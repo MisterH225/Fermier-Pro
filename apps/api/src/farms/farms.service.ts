@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException
 } from "@nestjs/common";
@@ -10,6 +11,7 @@ import { AuditService } from "../common/audit.service";
 import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateFarmDto } from "./dto/create-farm.dto";
+import { TransferFarmOwnershipDto } from "./dto/transfer-farm-ownership.dto";
 
 @Injectable()
 export class FarmsService {
@@ -97,6 +99,120 @@ export class FarmsService {
       throw new NotFoundException("Ferme introuvable");
     }
     return farm;
+  }
+
+  /**
+   * Transfere la propriete (`Farm.ownerId`). Reserve au proprietaire actuel.
+   * Le nouveau proprietaire doit deja avoir au moins un `FarmMembership` sur cette ferme.
+   */
+  async transferOwnership(
+    actor: User,
+    farmId: string,
+    dto: TransferFarmOwnershipDto
+  ) {
+    const farm = await this.prisma.farm.findFirst({
+      where: { id: farmId }
+    });
+    if (!farm) {
+      throw new NotFoundException("Ferme introuvable");
+    }
+    if (farm.ownerId !== actor.id) {
+      throw new ForbiddenException("Seul le proprietaire peut transferer la ferme");
+    }
+    if (dto.newOwnerUserId === actor.id) {
+      throw new BadRequestException("Le nouveau proprietaire doit etre un autre utilisateur");
+    }
+
+    const newOwnerExists = await this.prisma.user.findUnique({
+      where: { id: dto.newOwnerUserId }
+    });
+    if (!newOwnerExists) {
+      throw new BadRequestException("Utilisateur inconnu");
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const newOwnerRows = await tx.farmMembership.findMany({
+        where: { farmId, userId: dto.newOwnerUserId }
+      });
+      if (newOwnerRows.length === 0) {
+        throw new BadRequestException(
+          "Le nouveau proprietaire doit deja etre membre de la ferme"
+        );
+      }
+
+      const roleRank = (r: MembershipRole) =>
+        r === MembershipRole.manager
+          ? 0
+          : r === MembershipRole.worker
+            ? 1
+            : r === MembershipRole.veterinarian
+              ? 2
+              : r === MembershipRole.viewer
+                ? 3
+                : 4;
+
+      const sorted = [...newOwnerRows].sort(
+        (a, b) =>
+          roleRank(a.role) - roleRank(b.role) ||
+          a.createdAt.getTime() - b.createdAt.getTime()
+      );
+      const keep = sorted[0]!;
+      const removeIds = sorted.slice(1).map((m) => m.id);
+      if (removeIds.length > 0) {
+        await tx.farmMembership.deleteMany({
+          where: { id: { in: removeIds } }
+        });
+      }
+
+      await tx.farmMembership.update({
+        where: { id: keep.id },
+        data: { role: MembershipRole.owner, scopes: [] }
+      });
+
+      const formerOwnerRow = await tx.farmMembership.findFirst({
+        where: {
+          farmId,
+          userId: actor.id,
+          role: MembershipRole.owner
+        }
+      });
+      if (formerOwnerRow) {
+        await tx.farmMembership.update({
+          where: { id: formerOwnerRow.id },
+          data: { role: MembershipRole.manager, scopes: [] }
+        });
+      } else {
+        await tx.farmMembership.create({
+          data: {
+            farmId,
+            userId: actor.id,
+            role: MembershipRole.manager,
+            scopes: []
+          }
+        });
+      }
+
+      const updated = await tx.farm.update({
+        where: { id: farmId },
+        data: { ownerId: dto.newOwnerUserId }
+      });
+
+      return updated;
+    });
+
+    await this.audit.record({
+      actorUserId: actor.id,
+      farmId,
+      action: AUDIT_ACTION.farmOwnershipTransferred,
+      resourceType: "Farm",
+      resourceId: farmId,
+      metadata: {
+        previousOwnerId: actor.id,
+        newOwnerId: dto.newOwnerUserId
+      }
+    });
+
+    return result;
   }
 
   /**

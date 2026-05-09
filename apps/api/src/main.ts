@@ -1,5 +1,6 @@
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import { NestExpressApplication } from "@nestjs/platform-express";
 import { config as dotenvConfig } from "dotenv";
 import { join } from "path";
 import { AppModule } from "./app.module";
@@ -8,7 +9,9 @@ async function bootstrap() {
   dotenvConfig({ path: join(process.cwd(), ".env"), override: true });
   dotenvConfig({ path: join(process.cwd(), "../../.env"), override: true });
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  /** Express 5 : parser simple par defaut ; conserver le comportement type qs (objets / tableaux). */
+  app.set("query parser", "extended");
 
   const trustProxy = process.env.TRUST_PROXY;
   if (trustProxy === "1" || trustProxy === "true") {

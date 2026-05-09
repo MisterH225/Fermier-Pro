@@ -13,6 +13,7 @@ import { AppService } from "./app.service";
 import { AuthModule } from "./auth/auth.module";
 import { ChatModule } from "./chat/chat.module";
 import { CommonModule } from "./common/common.module";
+import { FarmMembersModule } from "./farm-members/farm-members.module";
 import { FarmsModule } from "./farms/farms.module";
 import { FinanceModule } from "./finance/finance.module";
 import { HealthEventsModule } from "./health-events/health-events.module";
@@ -66,6 +67,7 @@ import { VetConsultationsModule } from "./vet-consultations/vet-consultations.mo
     ChatModule,
     ProfilesModule,
     FarmsModule,
+    FarmMembersModule,
     InvitationsModule,
     LivestockModule,
     LivestockExitsModule,

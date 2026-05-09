@@ -4,6 +4,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { User } from "@prisma/client";
+import { ProfileType } from "@prisma/client";
 import * as jwt from "jsonwebtoken";
 import { PrismaService } from "../prisma/prisma.service";
 import type { SupabaseJwtPayload } from "./types/supabase-jwt.payload";

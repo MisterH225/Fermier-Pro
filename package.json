@@ -3,6 +3,14 @@
   "private": true,
   "version": "0.1.0",
   "description": "Fermier Pro monorepo (mobile + api + shared packages)",
+  "overrides": {
+    "@nestjs/common": "11.1.19",
+    "@nestjs/core": "11.1.19",
+    "@nestjs/platform-express": "11.1.19",
+    "@nestjs/platform-socket.io": "11.1.19",
+    "@nestjs/websockets": "11.1.19",
+    "@nestjs/microservices": "11.1.19"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -13,5 +21,9 @@
     "build:api": "npm run build --workspace @fermier/api",
     "lint:api": "npm run lint --workspace @fermier/api",
     "typecheck:mobile": "npm run typecheck --workspace @fermier/mobile"
+  },
+  "devDependencies": {
+    "@nestjs/common": "11.1.19",
+    "@nestjs/core": "11.1.19"
   }
 }

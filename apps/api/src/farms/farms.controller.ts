@@ -15,6 +15,7 @@ import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.decorator";
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
 import { CreateFarmDto } from "./dto/create-farm.dto";
+import { TransferFarmOwnershipDto } from "./dto/transfer-farm-ownership.dto";
 import { FarmsService } from "./farms.service";
 
 @Controller("farms")
@@ -31,6 +32,15 @@ export class FarmsController {
   @Get()
   list(@CurrentUser() user: User) {
     return this.farms.listForUser(user);
+  }
+
+  @Post(":farmId/transfer-ownership")
+  transferOwnership(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Body() dto: TransferFarmOwnershipDto
+  ) {
+    return this.farms.transferOwnership(user, farmId, dto);
   }
 
   @Get(":farmId/audit-logs")

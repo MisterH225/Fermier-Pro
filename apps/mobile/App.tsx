@@ -1,88 +1,114 @@
+import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import type { Session } from "@supabase/supabase-js";
+import { SessionProvider } from "./src/context/SessionContext";
+import { isAuthEnvConfigured } from "./src/env";
+import { getSupabase } from "./src/lib/supabase";
+import { FarmDetailScreen } from "./src/screens/FarmDetailScreen";
+import { FarmListScreen } from "./src/screens/FarmListScreen";
+import { LoginGateScreen } from "./src/screens/LoginGateScreen";
+import type { RootStackParamList } from "./src/types/navigation";
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
+
+const navTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: "#f9f8ea",
+    primary: "#5d7a1f"
+  }
+};
+
+function MainStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: "#5d7a1f" },
+        headerTintColor: "#fff",
+        headerTitleStyle: { fontWeight: "700" },
+        headerShadowVisible: false,
+        contentStyle: { backgroundColor: "#f9f8ea" }
+      }}
+    >
+      <Stack.Screen
+        name="FarmList"
+        component={FarmListScreen}
+        options={{ title: "Mes fermes" }}
+      />
+      <Stack.Screen
+        name="FarmDetail"
+        component={FarmDetailScreen}
+        options={({ route }) => ({ title: route.params.farmName })}
+      />
+    </Stack.Navigator>
+  );
+}
 
 export default function App() {
+  const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const authConfigured = isAuthEnvConfigured();
+
+  useEffect(() => {
+    const supabase = getSupabase();
+    if (!supabase) {
+      setSession(null);
+      return;
+    }
+    void supabase.auth
+      .getSession()
+      .then(({ data }) => setSession(data.session ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSession(s);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  const signOut = async () => {
+    const supabase = getSupabase();
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+  };
+
+  const inMainNav = Boolean(authConfigured && session);
+
   return (
-    <View style={styles.container}>
-      <View style={styles.heroCard}>
-        <Text style={styles.title}>Fermier Pro</Text>
-        <Text style={styles.subtitle}>Smart Livestock Platform</Text>
-      </View>
-
-      <View style={styles.kpiRow}>
-        <View style={styles.kpiCard}>
-          <Text style={styles.kpiValue}>+16%</Text>
-          <Text style={styles.kpiLabel}>Croissance</Text>
-        </View>
-        <View style={styles.kpiCard}>
-          <Text style={styles.kpiValue}>92%</Text>
-          <Text style={styles.kpiLabel}>Sante globale</Text>
-        </View>
-      </View>
-
-      <Text style={styles.sectionTitle}>MVP bootstrap pret</Text>
-      <Text style={styles.bodyText}>
-        Prochaine etape: auth multi-profils, gestion ferme, animaux et suivi
-        quotidien.
-      </Text>
-      <StatusBar style="dark" />
-    </View>
+    <GestureHandlerRootView style={styles.flex}>
+      <SafeAreaProvider>
+        <StatusBar style={inMainNav ? "light" : "dark"} />
+        {authConfigured && session === undefined ? (
+          <View style={styles.loaderWrap}>
+            <ActivityIndicator size="large" color="#5d7a1f" />
+          </View>
+        ) : authConfigured && session ? (
+          <SessionProvider
+            accessToken={session.access_token}
+            signOut={signOut}
+          >
+            <NavigationContainer theme={navTheme}>
+              <MainStack />
+            </NavigationContainer>
+          </SessionProvider>
+        ) : (
+          <LoginGateScreen />
+        )}
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  flex: { flex: 1 },
+  loaderWrap: {
     flex: 1,
-    backgroundColor: "#f9f8ea",
-    paddingHorizontal: 20,
-    paddingTop: 70
-  },
-  heroCard: {
-    backgroundColor: "#5d7a1f",
-    borderRadius: 24,
-    padding: 20
-  },
-  title: {
-    color: "#ffffff",
-    fontSize: 30,
-    fontWeight: "700"
-  },
-  subtitle: {
-    marginTop: 6,
-    color: "#dfe8c8",
-    fontSize: 14
-  },
-  kpiRow: {
-    marginTop: 18,
-    flexDirection: "row",
-    gap: 12
-  },
-  kpiCard: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 14
-  },
-  kpiValue: {
-    color: "#253107",
-    fontWeight: "700",
-    fontSize: 22
-  },
-  kpiLabel: {
-    marginTop: 4,
-    color: "#6d745b",
-    fontSize: 12
-  },
-  sectionTitle: {
-    marginTop: 26,
-    fontSize: 20,
-    color: "#1f2910",
-    fontWeight: "700"
-  },
-  bodyText: {
-    marginTop: 10,
-    color: "#4b513d",
-    fontSize: 14,
-    lineHeight: 20
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f9f8ea"
   }
 });
