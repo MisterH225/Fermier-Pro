@@ -61,6 +61,13 @@ export function FarmListScreen({ navigation }: Props) {
         ) : null,
       headerRight: () => (
         <View style={styles.headerRight}>
+          <TouchableOpacity
+            onPress={() => stackNavigation.navigate("MarketplaceList")}
+            style={styles.headerSecondary}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          >
+            <Text style={styles.headerSecondaryText}>Marché</Text>
+          </TouchableOpacity>
           {producerProfile ? (
             <TouchableOpacity
               onPress={() => stackNavigation.navigate("CreateFarm")}
@@ -145,8 +152,14 @@ export function FarmListScreen({ navigation }: Props) {
           <Text style={styles.emptyTitle}>Aucune ferme</Text>
           <Text style={styles.emptySub}>
             Crée une ferme avec le bouton « + Ferme » (profil producteur), ou
-            depuis un client API POST /farms.
+            depuis un client API POST /farms. Tu peux aussi parcourir le marché.
           </Text>
+          <TouchableOpacity
+            style={styles.ctaOutline}
+            onPress={() => stackNavigation.navigate("MarketplaceList")}
+          >
+            <Text style={styles.ctaOutlineText}>Voir le marché</Text>
+          </TouchableOpacity>
           {producerProfile ? (
             <TouchableOpacity
               style={styles.cta}
@@ -174,6 +187,15 @@ export function FarmListScreen({ navigation }: Props) {
                 Bonjour {authMe.user.fullName}
               </Text>
             ) : null}
+            <TouchableOpacity
+              style={styles.marketInline}
+              onPress={() => stackNavigation.navigate("MarketplaceList")}
+            >
+              <Text style={styles.marketInlineText}>Voir le marché</Text>
+              <Text style={styles.marketInlineSub}>
+                Annonces publiées · achat / inspiration
+              </Text>
+            </TouchableOpacity>
             {producerProfile ? (
               <TouchableOpacity
                 style={styles.inlineCta}
@@ -219,6 +241,26 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#4b513d",
     marginBottom: 10
+  },
+  marketInline: {
+    alignSelf: "stretch",
+    marginBottom: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    backgroundColor: "#fdfaf3",
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: "#c4a574"
+  },
+  marketInlineText: {
+    color: "#6b5420",
+    fontSize: 16,
+    fontWeight: "700"
+  },
+  marketInlineSub: {
+    marginTop: 4,
+    fontSize: 13,
+    color: "#6d745b"
   },
   inlineCta: {
     alignSelf: "flex-start",
@@ -292,12 +334,28 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 20
   },
+  ctaOutline: {
+    marginTop: 16,
+    borderWidth: 2,
+    borderColor: "#5d7a1f",
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+    alignSelf: "stretch"
+  },
+  ctaOutlineText: {
+    color: "#5d7a1f",
+    fontWeight: "700",
+    fontSize: 16,
+    textAlign: "center"
+  },
   cta: {
-    marginTop: 20,
+    marginTop: 12,
     backgroundColor: "#5d7a1f",
     paddingVertical: 14,
     paddingHorizontal: 24,
-    borderRadius: 14
+    borderRadius: 14,
+    alignSelf: "stretch"
   },
   ctaText: {
     color: "#fff",

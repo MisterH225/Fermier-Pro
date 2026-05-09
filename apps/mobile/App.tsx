@@ -1,92 +1,29 @@
-import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { QueryClientProvider } from "@tanstack/react-query";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { focusManager } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  AppState,
+  type AppStateStatus,
+  StyleSheet,
+  View
+} from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import type { Session } from "@supabase/supabase-js";
+import { MainNavigationShell } from "./src/components/MainNavigationShell";
 import { SessionProvider } from "./src/context/SessionContext";
 import { isAuthEnvConfigured } from "./src/env";
+import {
+  QUERY_PERSIST_STORAGE_KEY,
+  asyncStoragePersister,
+  shouldPersistQuery
+} from "./src/lib/queryPersist";
 import { queryClient } from "./src/lib/queryClient";
 import { getSupabase } from "./src/lib/supabase";
-import { AnimalDetailScreen } from "./src/screens/AnimalDetailScreen";
-import { BatchDetailScreen } from "./src/screens/BatchDetailScreen";
-import { CreateFarmScreen } from "./src/screens/CreateFarmScreen";
-import { CreateTaskScreen } from "./src/screens/CreateTaskScreen";
-import { FarmDetailScreen } from "./src/screens/FarmDetailScreen";
-import { FarmListScreen } from "./src/screens/FarmListScreen";
-import { FarmLivestockScreen } from "./src/screens/FarmLivestockScreen";
-import { FarmTasksScreen } from "./src/screens/FarmTasksScreen";
 import { LoginGateScreen } from "./src/screens/LoginGateScreen";
-import type { RootStackParamList } from "./src/types/navigation";
-
-const Stack = createNativeStackNavigator<RootStackParamList>();
-
-const navTheme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    background: "#f9f8ea",
-    primary: "#5d7a1f"
-  }
-};
-
-function MainStack() {
-  return (
-    <Stack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: "#5d7a1f" },
-        headerTintColor: "#fff",
-        headerTitleStyle: { fontWeight: "700" },
-        headerShadowVisible: false,
-        contentStyle: { backgroundColor: "#f9f8ea" }
-      }}
-    >
-      <Stack.Screen
-        name="FarmList"
-        component={FarmListScreen}
-        options={{ title: "Mes fermes" }}
-      />
-      <Stack.Screen
-        name="FarmDetail"
-        component={FarmDetailScreen}
-        options={({ route }) => ({ title: route.params.farmName })}
-      />
-      <Stack.Screen
-        name="FarmLivestock"
-        component={FarmLivestockScreen}
-        options={{ title: "Cheptel" }}
-      />
-      <Stack.Screen
-        name="FarmTasks"
-        component={FarmTasksScreen}
-        options={{ title: "Tâches terrain" }}
-      />
-      <Stack.Screen
-        name="CreateTask"
-        component={CreateTaskScreen}
-        options={{ title: "Nouvelle tâche" }}
-      />
-      <Stack.Screen
-        name="CreateFarm"
-        component={CreateFarmScreen}
-        options={{ title: "Nouvelle ferme" }}
-      />
-      <Stack.Screen
-        name="AnimalDetail"
-        component={AnimalDetailScreen}
-        options={({ route }) => ({ title: route.params.headline })}
-      />
-      <Stack.Screen
-        name="BatchDetail"
-        component={BatchDetailScreen}
-        options={({ route }) => ({ title: route.params.batchName })}
-      />
-    </Stack.Navigator>
-  );
-}
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
@@ -98,16 +35,53 @@ export default function App() {
       setSession(null);
       return;
     }
+
+    const handleAppState = (next: AppStateStatus) => {
+      focusManager.setFocused(next === "active");
+      if (next === "active") {
+        void supabase.auth.startAutoRefresh();
+      } else {
+        supabase.auth.stopAutoRefresh();
+      }
+    };
+    const appSub = AppState.addEventListener("change", handleAppState);
+    focusManager.setFocused(AppState.currentState === "active");
+    if (AppState.currentState === "active") {
+      void supabase.auth.startAutoRefresh();
+    }
+
     void supabase.auth
       .getSession()
       .then(({ data }) => setSession(data.session ?? null));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
     });
-    return () => sub.subscription.unsubscribe();
+
+    return () => {
+      appSub.remove();
+      sub.subscription.unsubscribe();
+      supabase.auth.stopAutoRefresh();
+    };
   }, []);
 
+  useEffect(() => {
+    if (session?.access_token) {
+      void queryClient.invalidateQueries();
+    }
+  }, [session?.access_token]);
+
+  useEffect(() => {
+    if (session === null) {
+      queryClient.clear();
+    }
+  }, [session]);
+
   const signOut = async () => {
+    await AsyncStorage.removeItem(QUERY_PERSIST_STORAGE_KEY).catch(
+      () => undefined
+    );
+    queryClient.clear();
     const supabase = getSupabase();
     if (supabase) {
       await supabase.auth.signOut();
@@ -129,11 +103,18 @@ export default function App() {
             accessToken={session.access_token}
             signOut={signOut}
           >
-            <QueryClientProvider client={queryClient}>
-              <NavigationContainer theme={navTheme}>
-                <MainStack />
-              </NavigationContainer>
-            </QueryClientProvider>
+            <PersistQueryClientProvider
+              client={queryClient}
+              persistOptions={{
+                persister: asyncStoragePersister,
+                maxAge: 1000 * 60 * 60 * 24,
+                dehydrateOptions: {
+                  shouldDehydrateQuery: shouldPersistQuery
+                }
+              }}
+            >
+              <MainNavigationShell />
+            </PersistQueryClientProvider>
           </SessionProvider>
         ) : (
           <LoginGateScreen />

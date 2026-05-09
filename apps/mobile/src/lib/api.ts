@@ -432,6 +432,252 @@ export function createFarm(
   );
 }
 
+/** GET /marketplace/listings — JWT ; sans `mine` = catalogue publié. */
+export type MarketplaceListingListItem = {
+  id: string;
+  sellerUserId?: string;
+  title: string;
+  description: string | null;
+  unitPrice: string | number | null;
+  quantity: number | null;
+  currency: string;
+  locationLabel: string | null;
+  status: string;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  farm: { id: string; name: string } | null;
+  animal: {
+    id: string;
+    publicId: string;
+    tagCode: string | null;
+  } | null;
+  seller?: { id: string; fullName: string | null };
+};
+
+export function fetchMarketplaceListings(
+  accessToken: string,
+  activeProfileId?: string | null,
+  opts?: { mine?: boolean; status?: string }
+): Promise<MarketplaceListingListItem[]> {
+  const qs = new URLSearchParams();
+  if (opts?.mine) {
+    qs.set("mine", "true");
+  }
+  if (opts?.status) {
+    qs.set("status", opts.status);
+  }
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return apiGetJson<MarketplaceListingListItem[]>(
+    `/marketplace/listings${suffix}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type MarketplaceOfferBrief = {
+  id: string;
+  listingId: string;
+  buyerUserId: string;
+  offeredPrice: string | number;
+  quantity: number | null;
+  message: string | null;
+  status: string;
+  createdAt: string;
+  buyer?: { id: string; fullName: string | null; email: string | null };
+};
+
+export type MarketplaceListingDetail = MarketplaceListingListItem & {
+  sellerUserId: string;
+  seller: { id: string; fullName: string | null; email: string | null };
+  myOffers?: MarketplaceOfferBrief[];
+  offers?: MarketplaceOfferBrief[];
+};
+
+export function fetchMarketplaceListing(
+  accessToken: string,
+  listingId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceListingDetail> {
+  return apiGetJson<MarketplaceListingDetail>(
+    `/marketplace/listings/${listingId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type PostMarketplaceOfferPayload = {
+  offeredPrice: number;
+  quantity?: number;
+  message?: string;
+};
+
+/** POST /marketplace/listings/:listingId/offers — acheteur / même JWT. */
+export function postMarketplaceOffer(
+  accessToken: string,
+  listingId: string,
+  payload: PostMarketplaceOfferPayload,
+  activeProfileId?: string | null
+): Promise<{ id: string }> {
+  return apiPostJson<{ id: string }>(
+    `/marketplace/listings/${listingId}/offers`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type MarketplaceOfferMineRow = {
+  id: string;
+  offeredPrice: string | number;
+  quantity: number | null;
+  message: string | null;
+  status: string;
+  createdAt: string;
+  listing: {
+    id: string;
+    title: string;
+    status: string;
+    currency: string;
+    farm: { id: string; name: string } | null;
+    seller: { id: string; fullName: string | null };
+    animal: { id: string; publicId: string; tagCode: string | null } | null;
+  };
+};
+
+/** GET /marketplace/offers — offres où je suis acheteur. */
+export function fetchMyMarketplaceOffers(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceOfferMineRow[]> {
+  return apiGetJson<MarketplaceOfferMineRow[]>(
+    "/marketplace/offers",
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** Vendeur : accepter une offre (annonce → vendue, autres offres refusées). */
+export function acceptMarketplaceOffer(
+  accessToken: string,
+  listingId: string,
+  offerId: string,
+  activeProfileId?: string | null
+): Promise<unknown> {
+  return apiPostJson<unknown>(
+    `/marketplace/listings/${listingId}/offers/${offerId}/accept`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** Vendeur : refuser une offre. */
+export function rejectMarketplaceOffer(
+  accessToken: string,
+  listingId: string,
+  offerId: string,
+  activeProfileId?: string | null
+): Promise<unknown> {
+  return apiPostJson<unknown>(
+    `/marketplace/listings/${listingId}/offers/${offerId}/reject`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** Acheteur : retirer une offre encore en attente. */
+export function withdrawMarketplaceOffer(
+  accessToken: string,
+  offerId: string,
+  activeProfileId?: string | null
+): Promise<unknown> {
+  return apiPostJson<unknown>(
+    `/marketplace/offers/${offerId}/withdraw`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type CreateMarketplaceListingPayload = {
+  farmId?: string;
+  animalId?: string;
+  title: string;
+  description?: string;
+  unitPrice?: number;
+  quantity?: number;
+  currency?: string;
+  locationLabel?: string;
+};
+
+/** POST /marketplace/listings — brouillon ; publication séparée. */
+export function createMarketplaceListing(
+  accessToken: string,
+  payload: CreateMarketplaceListingPayload,
+  activeProfileId?: string | null
+): Promise<MarketplaceListingListItem> {
+  return apiPostJson<MarketplaceListingListItem>(
+    "/marketplace/listings",
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type UpdateMarketplaceListingPayload = {
+  title?: string;
+  description?: string | null;
+  unitPrice?: number | null;
+  quantity?: number | null;
+  currency?: string;
+  locationLabel?: string | null;
+};
+
+/** PATCH /marketplace/listings/:id — vendeur, annonce non vendue / non annulée. */
+export function updateMarketplaceListing(
+  accessToken: string,
+  listingId: string,
+  payload: UpdateMarketplaceListingPayload,
+  activeProfileId?: string | null
+): Promise<MarketplaceListingListItem> {
+  return apiPatchJson<MarketplaceListingListItem>(
+    `/marketplace/listings/${listingId}`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** POST .../publish — passage en publié. */
+export function publishMarketplaceListing(
+  accessToken: string,
+  listingId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceListingListItem> {
+  return apiPostJson<MarketplaceListingListItem>(
+    `/marketplace/listings/${listingId}/publish`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** POST .../cancel — annulation et offres en attente refusées. */
+export function cancelMarketplaceListing(
+  accessToken: string,
+  listingId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceListingListItem | null> {
+  return apiPostJson<MarketplaceListingListItem | null>(
+    `/marketplace/listings/${listingId}/cancel`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
 export type AuthMeResponse = {
   user: {
     id: string;

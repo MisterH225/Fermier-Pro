@@ -32,6 +32,9 @@ async function purgeStaleE2eUser(prisma: PrismaClient): Promise<void> {
     });
     await prisma.farm.deleteMany({ where: { id: { in: farmIds } } });
   }
+  await prisma.marketplaceListing.deleteMany({
+    where: { sellerUserId: existing.id }
+  });
   await prisma.profile.deleteMany({ where: { userId: existing.id } });
   await prisma.user.delete({ where: { id: existing.id } });
 }
@@ -128,6 +131,9 @@ export async function cleanupE2eFixtures(
   ctx: Pick<E2ESeedResult, "farmId" | "userId">
 ): Promise<void> {
   try {
+    await prisma.marketplaceListing.deleteMany({
+      where: { sellerUserId: ctx.userId }
+    });
     await prisma.auditLog.deleteMany({
       where: {
         OR: [{ farmId: ctx.farmId }, { actorUserId: ctx.userId }]

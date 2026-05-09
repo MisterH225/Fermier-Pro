@@ -17,4 +17,10 @@ export type RootStackParamList = {
   };
   FarmTasks: { farmId: string; farmName: string };
   CreateTask: { farmId: string; farmName: string };
+  MarketplaceList: undefined;
+  MarketplaceListingDetail: { listingId: string; headline?: string };
+  MarketplaceMyOffers: undefined;
+  MarketplaceMyListings: undefined;
+  CreateMarketplaceListing: { farmId?: string };
+  EditMarketplaceListing: { listingId: string };
 };

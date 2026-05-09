@@ -41,6 +41,45 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(res.status).toBe(200);
   });
 
+  it("GET marketplace listings (catalogue publié)", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/marketplace/listings")
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it("GET marketplace listings ?mine=true (mes annonces)", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/marketplace/listings")
+      .query({ mine: "true" })
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it("POST marketplace listings (brouillon lié à la ferme seed)", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/marketplace/listings")
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({
+        title: "E2E contrat brouillon",
+        farmId: ctx.farmId
+      });
+    expect([200, 201]).toContain(res.status);
+    expect(res.body?.id).toBeDefined();
+    expect(res.body?.status).toBe("draft");
+  });
+
+  it("GET marketplace mes offres (acheteur)", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/marketplace/offers")
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
   it("GET /auth/me (session Supabase)", async () => {
     const res = await request(app.getHttpServer())
       .get("/api/v1/auth/me")

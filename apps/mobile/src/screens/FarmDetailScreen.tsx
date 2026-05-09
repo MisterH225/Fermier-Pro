@@ -70,6 +70,16 @@ export function FarmDetailScreen({ route, navigation }: Props) {
         <Text style={styles.tasksCtaSub}>Journal technicien</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={styles.marketCta}
+        onPress={() =>
+          navigation.navigate("CreateMarketplaceListing", { farmId })
+        }
+      >
+        <Text style={styles.marketCtaText}>Annonce sur le marché</Text>
+        <Text style={styles.marketCtaSub}>Créer une annonce liée à cette ferme</Text>
+      </TouchableOpacity>
+
       <FarmInfoBlocks farm={farm} />
     </ScrollView>
   );
@@ -132,7 +142,25 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 16,
     padding: 16,
+    marginBottom: 12
+  },
+  marketCta: {
+    borderWidth: 2,
+    borderColor: "#c4a574",
+    backgroundColor: "#fdfaf3",
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 20
+  },
+  marketCtaText: {
+    color: "#6b5420",
+    fontSize: 17,
+    fontWeight: "700"
+  },
+  marketCtaSub: {
+    color: "#6d745b",
+    fontSize: 13,
+    marginTop: 4
   },
   tasksCtaText: {
     color: "#5d7a1f",

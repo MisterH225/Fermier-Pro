@@ -74,7 +74,26 @@ GET http://localhost:3000/api/v1/health
 npm run dev:mobile
 ```
 
-Puis ouvrir l’app via Expo Go (Android/iOS) ou web. Une fois connecté avec Supabase (flux à brancher dans l’UI), le bouton **Tester GET /api/v1/auth/me** vérifie le lien avec l’API Nest.
+Puis ouvrir l’app via Expo Go (Android/iOS) ou web.
+
+### Session Supabase (refresh des jetons)
+
+Le client (`apps/mobile/src/lib/supabase.ts`) utilise **`persistSession`** et **`autoRefreshToken`**. Dans **`App.tsx`**, l’état d’avant-plan (**`AppState`**) appelle **`auth.startAutoRefresh()`** / **`stopAutoRefresh()`** quand l’app passe active ou en arrière-plan (modèle recommandé pour React Native dans la doc Supabase). Après chaque nouveau **`access_token`** (dont refresh silencieux), **TanStack Query** invalide les requêtes pour que les appels vers l’API Nest utilisent le jeton à jour ; à la déconnexion, le cache est vidé.
+
+Connexion : **OTP SMS** (`PhoneOtpAuth`) avec renvoi de code et décompte (anti-spam).
+
+### Offline partiel (lecture)
+
+Objectif terrain : consulter le **dernier état synchronisé** sans réseau.
+
+- **`@react-native-community/netinfo`** + **`onlineManager`** (TanStack Query) : les requêtes réseau sont mises en pause hors connexion ; pas de rafales d’échecs inutiles.
+- **`PersistQueryClientProvider`** + cache AsyncStorage (`apps/mobile/src/lib/queryPersist.ts`) : persistance des **GET métier** listés dans `shouldPersistQuery` (fermes, cheptel, lots, tâches, santé lot…), **24 h max** (`maxAge`).
+- **`OfflineBanner`** : bandeau explicite « hors ligne ».
+- **Écritures** (pesée, tâche, etc.) : pas de file d’attente locale pour l’instant — l’utilisateur reste informé par les erreurs réseau ; une **sync différée** (outbox) reste une évolution ultérieure.
+
+### Marketplace (mobile)
+
+L’API expose listings et offres (création / mise à jour / **publish** / **cancel**, `POST .../offers`, accept/refus vendeur, retrait d’offre acheteur). L’app propose **Marché** (liste publiée **avec recherche locale** sur titre / lieu / description / ferme / vendeur, raccourcis **Mes annonces** et **Mes offres**), **accueil fermes** avec encart **Voir le marché**, **Mes annonces** (filtres par statut, brouillons / publiées / vendues / annulées), **création** depuis le marché ou une **ferme** (« Annonce sur le marché », ferme pré-remplie), **détail** avec libellés FR, bandeau fin de vente, **gestion vendeur** (publier, modifier, annuler) et **offres reçues**, **formulaire d’offre** (acheteur), et **Mes offres** (statuts en français, retirer une offre en attente). Les erreurs **403** liées au scope `marketplace.write` sur une ferme sont expliquées dans les alertes.
 
 ## Fichier `.env` avec Supabase
 
@@ -159,4 +178,4 @@ Si `DATABASE_URL` ou `SUPABASE_JWT_SECRET` sont absents, la suite est **ignorée
 2. ~~Cheptel (liste animaux + lots), creation ferme.~~
 3. ~~**Detail animal / lot** : historique pesees + formulaire POST poids (scopes `livestockWrite`).~~
 4. ~~Journal technicien + santé lot sur mobile (`tasksRead`/`tasksWrite`, `healthRead`/`healthWrite`).~~
-5. Auth refresh / polish OTP ; offline partiel (hors scope immediat).
+5. ~~Auth refresh / polish OTP ; offline partiel lecture (persist TanStack + NetInfo + bandeau).~~ ~~Marché mobile (liste, détail, offres acheteur).~~ Sync écritures offline & flux vendeur (acceptation offre, etc.) en roadmap.
