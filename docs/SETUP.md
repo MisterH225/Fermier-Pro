@@ -78,15 +78,15 @@ Puis ouvrir l’app via Expo Go (Android/iOS) ou web. Une fois connecté avec Su
 API_PORT=3000
 JWT_ACCESS_SECRET=change_me_access
 JWT_REFRESH_SECRET=change_me_refresh
-DATABASE_URL=postgresql://postgres.<ref>:<password>@<region>.pooler.supabase.com:6543/postgres?pgbouncer=true&sslmode=require
-DIRECT_URL=postgresql://postgres.<ref>:<password>@<region>.pooler.supabase.com:5432/postgres?sslmode=require
+DATABASE_URL=postgresql://postgres.<ref>:<password>@<region>.pooler.supabase.com:5432/postgres?sslmode=require
 ```
 
 Important:
 - utilise le mot de passe DB exact de Supabase (pas le mot de passe compte utilisateur)
 - si le mot de passe contient des caracteres speciaux (`@`, `[`, `]`, `:`, `/`), encode-le en URL
   - exemple `@` devient `%40` (sinon tout ce qui suit le premier `@` est pris pour le **serveur**, pas le mot de passe — connexion impossible ou erreur bizarre type `db....supabase.co:5432`)
-- ajoute `sslmode=require` sur les deux URLs si ce n'est pas deja dans la chaine copiee
+- ajoute `sslmode=require` si ce n'est pas deja dans la chaine copiee
+- pour **Prisma** (`db push`, `migrate`), prefere une URL **session / directe** (port **5432**). Le pooler transaction (6543) peut poser probleme ; reserve-le eventuellement a la prod uniquement via une autre config
 
 4. Ajoute aussi **Supabase Auth** pour l'API :
 
@@ -97,13 +97,15 @@ SUPABASE_JWT_SECRET=<JWT Secret depuis Settings -> API>
 
 Voir `docs/SUPABASE_AUTH.md` pour Google, Apple et telephone.
 
-5. Le fichier `.env` est a la **racine** du monorepo. Les commandes Prisma (`prisma:push`, etc.) chargent automatiquement `../../.env` depuis `apps/api`.
+5. Le fichier `.env` est a la **racine** du monorepo (puis optionnellement `apps/api/.env`). Les scripts Prisma chargent ces fichiers via `apps/api/scripts/prisma-run.cjs`. Si `DATABASE_URL` est vide mais que tu as les variables **Docker** `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` **et** que tu n’utilises pas Supabase (`SUPABASE_URL` sans `supabase.co`), l’URL locale est composee pour Prisma. Avec Supabase, une `DATABASE_URL` cloud est **obligatoire** (le fallback Docker vers `127.0.0.1` est desactive pour eviter de pousser le schema au mauvais serveur).
 
 6. Apres changement du schema Prisma (ex. `User.supabaseUserId`), synchronise la base :
 
 ```bash
 npm run prisma:push --workspace @fermier/api
 ```
+
+Si la commande **reste bloquee longtemps** alors que la connexion affiche le pooler **:6543**, arrete avec Ctrl+C et definis **`PRISMA_DATABASE_URL`** dans le `.env` racine : meme mot de passe que `DATABASE_URL`, mais URL **session / directe en port 5432** (voir Supabase → Settings → Database). Les scripts Prisma utilisent alors cette URL pour `migrate` / `db push` uniquement ; l’API continue d’utiliser `DATABASE_URL`.
 
 7. Lance ensuite l'API normalement:
 

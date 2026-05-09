@@ -7,10 +7,10 @@
     "start:dev": "node scripts/start-dev.cjs",
     "build": "nest build",
     "lint": "eslint \"src/**/*.ts\" --max-warnings=0",
-    "prisma:generate": "npx -y dotenv-cli -e ../../.env -- prisma generate",
-    "prisma:migrate:dev": "npx -y dotenv-cli -e ../../.env -- prisma migrate dev",
-    "prisma:push": "npx -y dotenv-cli -e ../../.env -- prisma db push",
-    "prisma:push:force": "npx -y dotenv-cli -e ../../.env -- prisma db push --accept-data-loss"
+    "prisma:generate": "node scripts/prisma-run.cjs generate",
+    "prisma:migrate:dev": "node scripts/prisma-run.cjs migrate dev",
+    "prisma:push": "node scripts/prisma-run.cjs db push",
+    "prisma:push:force": "node scripts/prisma-run.cjs db push --accept-data-loss"
   },
   "engines": {
     "node": ">=20"
@@ -41,7 +41,6 @@
     "@types/ioredis": "^4.28.10",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.14.11",
-    "dotenv-cli": "^7.4.2",
     "eslint": "^9.6.0",
     "prisma": "^5.18.0",
     "typescript": "^5.5.4"
