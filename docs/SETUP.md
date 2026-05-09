@@ -4,7 +4,8 @@
 
 - Node.js **20 LTS** (recommande). Evite Node 25 pour le dev: des plantages memoire (`Zone Allocation failed`) peuvent survenir avec `nest start --watch`.
 - npm 10+
-- Docker (pour PostgreSQL local)
+- Un projet **[Supabase](https://supabase.com)** (Auth + base **Postgres** hébergée) — chemin nominal décrit ci‑dessous.
+- **Docker** : optionnel ; utile seulement si tu veux un Postgres **100 % local** au lieu du cloud Supabase.
 
 ## Installation
 
@@ -26,15 +27,23 @@ Le monorepo inclut **React Native** (`react-native`, `react-native-web`). Sous W
 
 Si `rmdir` échoue encore, installe [`rimraf`](https://www.npmjs.com/package/rimraf) globalement (`npm i -g rimraf`) puis `rimraf node_modules` depuis la racine du repo.
 
-## Lancer PostgreSQL
+## Base de donnees : Supabase (recommande)
+
+L’API Nest et Prisma parlent à Postgres via **`DATABASE_URL`**. Avec Supabase, c’est **la même base** que celle du tableau de bord : tu réutilises la **chaîne de connexion** du projet (voir section détaillée plus bas). Pas besoin d’installer Postgres sur ta machine.
+
+### Option : Postgres local avec Docker
+
+Si tu préfères une base locale (sans cloud) pour expérimenter :
 
 ```bash
 docker compose up -d
 ```
 
-Si tu n'utilises pas Docker/PostgreSQL local, passe directement a la section Supabase plus bas.
+Configure alors les variables Docker comme indiqué dans la section sur le `.env` (fallback Prisma quand `SUPABASE_URL` ne pointe pas vers `supabase.co`).
 
 ## Lancer API NestJS
+
+Configure au préalable le **`.env`** racine (section **Fichier `.env` avec Supabase** ci‑dessous) : **`DATABASE_URL`** et **`SUPABASE_JWT_SECRET`** pointent vers ton projet Supabase.
 
 ```bash
 npm run dev:api
@@ -67,12 +76,11 @@ npm run dev:mobile
 
 Puis ouvrir l’app via Expo Go (Android/iOS) ou web. Une fois connecté avec Supabase (flux à brancher dans l’UI), le bouton **Tester GET /api/v1/auth/me** vérifie le lien avec l’API Nest.
 
-## Setup sans Docker: Supabase (recommande)
+## Fichier `.env` avec Supabase
 
 1. Cree un fichier `.env` a la racine du projet.
-2. Copie les valeurs depuis ton projet Supabase:
-   - `Settings -> Database -> Connection string`
-3. Renseigne au minimum:
+2. Dans le dashboard Supabase : **Settings → Database → Connection string** (URI Postgres). C’est ta **`DATABASE_URL`** : la base du projet Supabase **est** un cluster Postgres ; Prisma et l’API s’y connectent comme à n’importe quel Postgres, mais en pratique tu copies/colles depuis Supabase.
+3. Renseigne au minimum :
 
 ```env
 API_PORT=3000
@@ -119,10 +127,36 @@ npm run dev:api
 http://localhost:3000/api/v1/health
 ```
 
+## Tests end-to-end (contrat API / mobile)
+
+Le fichier `apps/api/test/mobile-api-contract.e2e-spec.ts` exécute **Supertest** contre l’app Nest réelle et une **base Postgres** (en dev : typiquement **celle de ton projet Supabase**, via la même `DATABASE_URL` que l’API). Les JWT de test sont signés avec **`SUPABASE_JWT_SECRET`**, comme les vrais jetons Supabase. La suite injecte des données seed (ferme, lot, animal, profil producteur). Elle couvre les routes utilisées par `apps/mobile/src/lib/api.ts` : **auth/me**, **fermes** (liste, détail, **POST création** avec `X-Profile-Id`), **animaux** (liste, détail, pesée, santé), **lots** (liste, détail, pesée, santé), **tâches**.
+
+**Convention :** chaque nouveau wrapper dans `apps/mobile/src/lib/api.ts` doit être accompagné d’au moins un cas dans cette suite (ou dans un nouveau fichier `*.e2e-spec.ts` si le fichier devient trop volumineux).
+
+**Prérequis :** les **mêmes variables** que pour faire tourner l’API contre Supabase :
+
+- **`DATABASE_URL`** — chaîne **Session mode** / directe (port **5432**) copiée depuis Supabase (**Settings → Database**), schéma à jour (`npm run prisma:push --workspace @fermier/api`). Tu peux aussi utiliser un Postgres local (`docker compose`) si tu ne veux pas toucher au projet cloud pour les tests.
+- **`SUPABASE_JWT_SECRET`** — **Settings → API → JWT Secret** (identique à celui utilisé par l’API pour valider les `access_token`).
+
+**Attention :** les tests **écrivent** en base (seed + nettoyage). Utilise de préférence un **projet Supabase de dev / staging**, ou une base jetable locale, pas la prod.
+
+Depuis la racine du repo :
+
+```bash
+cd apps/api && npm run prisma:push && cd ../..
+npm run test:e2e
+```
+
+Si `DATABASE_URL` ou `SUPABASE_JWT_SECRET` sont absents, la suite est **ignorée** et un message l’indique dans la console.
+
+**CI :** le workflow `.github/workflows/e2e-api.yml` lance la même suite sur un **Postgres éphémère** (service GitHub Actions) — pas besoin de ton Supabase ; ça vérifie la stack Nest + Prisma sans exposer ton projet cloud.
+
+**Limite :** ce ne sont pas des tests UI (Expo). Pour du bout-en-bout navigateur, une piste est **Expo Web** + Playwright ou **Maestro** sur build native ; à traiter quand un flux de connexion testable en CI sera stabilisé.
+
 ## Prochaines taches MVP recommandees
 
-1. Auth JWT + refresh + profile switcher
-2. Entites ferme + memberships
-3. Entites animaux + poids + historique
-4. Journal quotidien technicien
-5. Permissions RBAC/ABAC par profil actif
+1. ~~Profil actif + switcher, TanStack Query, liste fermes.~~
+2. ~~Cheptel (liste animaux + lots), creation ferme.~~
+3. ~~**Detail animal / lot** : historique pesees + formulaire POST poids (scopes `livestockWrite`).~~
+4. ~~Journal technicien + santé lot sur mobile (`tasksRead`/`tasksWrite`, `healthRead`/`healthWrite`).~~
+5. Auth refresh / polish OTP ; offline partiel (hors scope immediat).

@@ -1,10 +1,11 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View
 } from "react-native";
 import { useSession } from "../context/SessionContext";
@@ -14,30 +15,22 @@ import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmDetail">;
 
-export function FarmDetailScreen({ route }: Props) {
-  const { farmId } = route.params;
-  const { accessToken } = useSession();
-  const [farm, setFarm] = useState<FarmDto | null>(null);
-  const [error, setError] = useState<string | null>(null);
+export function FarmDetailScreen({ route, navigation }: Props) {
+  const { farmId, farmName } = route.params;
+  const { accessToken, activeProfileId } = useSession();
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const data = await fetchFarm(accessToken, farmId);
-        if (!cancelled) {
-          setFarm(data);
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : String(e));
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken, farmId]);
+  const farmQuery = useQuery({
+    queryKey: ["farm", farmId, activeProfileId],
+    queryFn: () => fetchFarm(accessToken, farmId, activeProfileId)
+  });
+
+  const farm = farmQuery.data;
+  const error =
+    farmQuery.error instanceof Error
+      ? farmQuery.error.message
+      : farmQuery.error
+        ? String(farmQuery.error)
+        : null;
 
   if (error) {
     return (
@@ -47,7 +40,7 @@ export function FarmDetailScreen({ route }: Props) {
     );
   }
 
-  if (!farm) {
+  if (farmQuery.isPending || !farm) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#5d7a1f" />
@@ -57,6 +50,34 @@ export function FarmDetailScreen({ route }: Props) {
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+      <TouchableOpacity
+        style={styles.cheptelCta}
+        onPress={() =>
+          navigation.navigate("FarmLivestock", { farmId, farmName })
+        }
+      >
+        <Text style={styles.cheptelCtaText}>Voir le cheptel</Text>
+        <Text style={styles.cheptelCtaSub}>Animaux et lots</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.tasksCta}
+        onPress={() =>
+          navigation.navigate("FarmTasks", { farmId, farmName })
+        }
+      >
+        <Text style={styles.tasksCtaText}>Tâches terrain</Text>
+        <Text style={styles.tasksCtaSub}>Journal technicien</Text>
+      </TouchableOpacity>
+
+      <FarmInfoBlocks farm={farm} />
+    </ScrollView>
+  );
+}
+
+function FarmInfoBlocks({ farm }: { farm: FarmDto }) {
+  return (
+    <>
       <View style={styles.block}>
         <Text style={styles.label}>Espèce / focus</Text>
         <Text style={styles.value}>{farm.speciesFocus}</Text>
@@ -86,7 +107,7 @@ export function FarmDetailScreen({ route }: Props) {
         </View>
       )}
       <Text style={styles.meta}>ID : {farm.id}</Text>
-    </ScrollView>
+    </>
   );
 }
 
@@ -98,6 +119,40 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     paddingBottom: 32
+  },
+  cheptelCta: {
+    backgroundColor: "#5d7a1f",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12
+  },
+  tasksCta: {
+    borderWidth: 2,
+    borderColor: "#5d7a1f",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20
+  },
+  tasksCtaText: {
+    color: "#5d7a1f",
+    fontSize: 17,
+    fontWeight: "700"
+  },
+  tasksCtaSub: {
+    color: "#6d745b",
+    fontSize: 13,
+    marginTop: 4
+  },
+  cheptelCtaText: {
+    color: "#fff",
+    fontSize: 17,
+    fontWeight: "700"
+  },
+  cheptelCtaSub: {
+    color: "#dfe8c8",
+    fontSize: 13,
+    marginTop: 4
   },
   block: {
     marginBottom: 18

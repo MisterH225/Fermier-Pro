@@ -7,6 +7,7 @@
     "start:dev": "node scripts/start-dev.cjs",
     "build": "nest build",
     "lint": "eslint \"src/**/*.ts\" --max-warnings=0",
+    "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
     "prisma:generate": "node scripts/prisma-run.cjs generate",
     "prisma:migrate:dev": "node scripts/prisma-run.cjs migrate dev",
     "prisma:push": "node scripts/prisma-run.cjs db push",
@@ -37,12 +38,18 @@
   "devDependencies": {
     "@nestjs/cli": "^11.0.21",
     "@nestjs/schematics": "^11.1.0",
+    "@nestjs/testing": "^11.1.19",
     "@types/express": "^5.0.0",
     "@types/ioredis": "^4.28.10",
+    "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.14.11",
+    "@types/supertest": "^6.0.2",
     "eslint": "^9.6.0",
+    "jest": "^29.7.0",
     "prisma": "^5.18.0",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.2.5",
     "typescript": "^5.5.4"
   }
 }
