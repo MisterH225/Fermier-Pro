@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fermier-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fermier}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fermier_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-fermier_pro}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fermier}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

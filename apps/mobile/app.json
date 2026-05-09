@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "Fermier Pro",
+    "slug": "fermier-pro",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#f9f8ea"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}

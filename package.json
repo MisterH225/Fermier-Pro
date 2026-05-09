@@ -1,0 +1,17 @@
+{
+  "name": "fermier-pro",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Fermier Pro monorepo (mobile + api + shared packages)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:mobile": "npm run start --workspace @fermier/mobile",
+    "dev:api": "npm run start:dev --workspace @fermier/api",
+    "build:api": "npm run build --workspace @fermier/api",
+    "lint:api": "npm run lint --workspace @fermier/api",
+    "typecheck:mobile": "npm run typecheck --workspace @fermier/mobile"
+  }
+}

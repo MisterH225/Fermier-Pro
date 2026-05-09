@@ -1,0 +1,645 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum ProfileType {
+  producer
+  technician
+  veterinarian
+  buyer
+}
+
+/// Mode de suivi principal a la ferme (reversible ; voir docs/LIVESTOCK_MODES_AND_HOUSING.md).
+enum FarmLivestockMode {
+  individual
+  batch
+  hybrid
+}
+
+enum MembershipRole {
+  owner
+  manager
+  worker
+  veterinarian
+  viewer
+}
+
+model User {
+  id                    String               @id @default(cuid())
+  supabaseUserId        String               @unique
+  email                 String?              @unique
+  fullName              String?
+  phone                 String?              @unique
+  isActive              Boolean              @default(true)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  profiles              Profile[]
+  memberships           FarmMembership[]
+  ownedFarms            Farm[]               @relation("FarmOwner")
+  farmInvitesCreated    FarmInvitation[]     @relation("InvitationCreator")
+  tasksAssigned         FarmTask[]           @relation("TaskAssignee")
+  tasksCreated          FarmTask[]           @relation("TaskCreator")
+  expensesCreated       FarmExpense[]
+  revenuesCreated       FarmRevenue[]
+  healthEventsRecorded       AnimalHealthEvent[]
+  batchHealthEventsRecorded LivestockBatchHealthEvent[]
+  listingsAsSeller      MarketplaceListing[] @relation("ListingSeller")
+  offersAsBuyer         MarketplaceOffer[]   @relation("OfferBuyer")
+  vetConsultsOpened     VetConsultation[]    @relation("VetConsultOpenedBy")
+  vetConsultsPrimary    VetConsultation[]    @relation("VetConsultPrimaryVet")
+  vetConsultAttachments VetConsultationAttachment[]
+  penPlacementsCreated PenPlacement[] @relation("PenPlacementCreator")
+  penLogsRecorded      PenLog[]       @relation("PenLogRecorder")
+  livestockExitsRecorded LivestockExit[]
+  chatRoomMemberships ChatRoomMember[]
+  chatMessagesSent    ChatMessage[]
+  auditLogs           AuditLog[]
+
+  @@index([email])
+  @@index([phone])
+}
+
+model Profile {
+  id          String      @id @default(cuid())
+  userId      String
+  type        ProfileType
+  displayName String?
+  isDefault   Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+}
+
+model Farm {
+  id           String             @id @default(cuid())
+  ownerId      String
+  name         String
+  speciesFocus String             @default("porcin")
+  /// Suivi individuel, par bandes uniquement, ou hybride (politiques par categorie).
+  livestockMode              FarmLivestockMode @default(individual)
+  /// Ex. { "sow": "individual", "finisher": "batch" } — cles metier a stabiliser avec le referentiel categories.
+  livestockCategoryPolicies Json?
+  latitude     Decimal?
+  longitude    Decimal?
+  address      String?
+  capacity     Int?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  owner        User               @relation("FarmOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  memberships  FarmMembership[]
+  invitations  FarmInvitation[]
+  animals      Animal[]
+  tasks        FarmTask[]
+  expenses     FarmExpense[]
+  revenues     FarmRevenue[]
+  marketplaceListings MarketplaceListing[]
+  vetConsultations    VetConsultation[]
+  livestockBatches  LivestockBatch[]
+  barns             Barn[]
+  livestockExits    LivestockExit[] @relation("ExitOriginFarm")
+  transfersReceived LivestockExit[] @relation("ExitTransferDestinationFarm")
+  chatRoom          ChatRoom?
+  auditLogs         AuditLog[]
+}
+
+/// Journal d'audit applicatif (actions sensibles). Voir docs/SECURITY_ARCHITECTURE.md.
+model AuditLog {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  actorUserId  String
+  actor        User     @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  farmId       String?
+  farm         Farm?    @relation(fields: [farmId], references: [id], onDelete: SetNull)
+  action       String
+  resourceType String
+  resourceId   String?
+  metadata     Json?
+
+  @@index([actorUserId, createdAt])
+  @@index([farmId, createdAt])
+  @@index([resourceType, resourceId])
+  @@index([createdAt])
+}
+
+enum TaskStatus {
+  todo
+  in_progress
+  done
+  cancelled
+}
+
+enum TaskPriority {
+  low
+  normal
+  high
+}
+
+model FarmTask {
+  id              String       @id @default(cuid())
+  farmId          String
+  farm            Farm         @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  title           String
+  description     String?
+  category        String?
+  status          TaskStatus   @default(todo)
+  priority        TaskPriority @default(normal)
+  dueAt           DateTime?
+  completedAt     DateTime?
+  assignedUserId  String?
+  assignee        User?        @relation("TaskAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  createdByUserId String
+  creator         User         @relation("TaskCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([farmId, status])
+  @@index([assignedUserId])
+}
+
+model FarmExpense {
+  id              String   @id @default(cuid())
+  farmId          String
+  farm            Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  amount          Decimal  @db.Decimal(14, 2)
+  currency        String   @default("XOF")
+  label           String
+  category        String?
+  note            String?
+  occurredAt      DateTime @default(now())
+  createdByUserId String
+  creator         User     @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdAt       DateTime @default(now())
+
+  @@index([farmId, occurredAt])
+}
+
+model FarmRevenue {
+  id              String   @id @default(cuid())
+  farmId          String
+  farm            Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  amount          Decimal  @db.Decimal(14, 2)
+  currency        String   @default("XOF")
+  label           String
+  category        String?
+  note            String?
+  occurredAt      DateTime @default(now())
+  createdByUserId String
+  creator         User     @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdAt       DateTime @default(now())
+
+  @@index([farmId, occurredAt])
+}
+
+enum HealthSeverity {
+  info
+  watch
+  urgent
+}
+
+enum VetConsultationStatus {
+  open
+  in_progress
+  resolved
+  cancelled
+}
+
+model AnimalHealthEvent {
+  id               String         @id @default(cuid())
+  animalId         String
+  animal           Animal         @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  severity         HealthSeverity @default(info)
+  title            String
+  body             String?
+  recordedAt       DateTime       @default(now())
+  recordedByUserId String
+  recorder         User           @relation(fields: [recordedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([animalId, recordedAt])
+}
+
+model VetConsultation {
+  id               String                 @id @default(cuid())
+  farmId           String
+  farm             Farm                   @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  animalId         String?
+  animal           Animal?                @relation(fields: [animalId], references: [id], onDelete: SetNull)
+  subject          String
+  summary          String?
+  status           VetConsultationStatus  @default(open)
+  openedByUserId   String
+  openedBy         User                   @relation("VetConsultOpenedBy", fields: [openedByUserId], references: [id], onDelete: Restrict)
+  primaryVetUserId String?
+  primaryVet       User?                  @relation("VetConsultPrimaryVet", fields: [primaryVetUserId], references: [id], onDelete: SetNull)
+  openedAt         DateTime               @default(now())
+  closedAt         DateTime?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  attachments      VetConsultationAttachment[]
+
+  @@index([farmId, status])
+  @@index([farmId, openedAt])
+}
+
+model VetConsultationAttachment {
+  id               String            @id @default(cuid())
+  consultationId   String
+  consultation     VetConsultation   @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  url              String
+  mimeType         String?
+  label            String?
+  uploadedByUserId String
+  uploadedBy       User              @relation(fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+  createdAt        DateTime          @default(now())
+
+  @@index([consultationId])
+}
+
+enum AnimalSex {
+  male
+  female
+  unknown
+}
+
+model Species {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  sortOrder Int      @default(0)
+  breeds    Breed[]
+  animals   Animal[]
+  livestockBatches LivestockBatch[]
+}
+
+model Breed {
+  id        String   @id @default(cuid())
+  speciesId String
+  species   Species  @relation(fields: [speciesId], references: [id], onDelete: Cascade)
+  code      String?
+  name      String
+  animals   Animal[]
+  livestockBatches LivestockBatch[]
+
+  @@unique([speciesId, name])
+  @@index([speciesId])
+}
+
+model Animal {
+  id        String    @id @default(cuid())
+  farmId    String
+  farm      Farm      @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  speciesId String
+  species   Species   @relation(fields: [speciesId], references: [id], onDelete: Restrict)
+  breedId   String?
+  breed     Breed?    @relation(fields: [breedId], references: [id], onDelete: SetNull)
+  publicId  String    @unique @default(cuid())
+  tagCode   String?
+  sex       AnimalSex @default(unknown)
+  birthDate DateTime?
+  status    String    @default("active")
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  weights      AnimalWeight[]
+  healthEvents AnimalHealthEvent[]
+  marketplaceListings MarketplaceListing[]
+  vetConsultations VetConsultation[]
+  penPlacements    PenPlacement[]
+  livestockExits   LivestockExit[]
+
+  @@index([farmId])
+  @@index([farmId, status])
+  @@index([speciesId])
+  @@index([publicId])
+}
+
+enum LivestockExitKind {
+  sale
+  mortality
+  slaughter
+  transfer
+}
+
+/// Sortie de cheptel structuree (vente, mortalite, abattage, transfert).
+model LivestockExit {
+  id                 String             @id @default(cuid())
+  farmId             String
+  farm               Farm               @relation("ExitOriginFarm", fields: [farmId], references: [id], onDelete: Cascade)
+  animalId           String?
+  animal             Animal?            @relation(fields: [animalId], references: [id], onDelete: Restrict)
+  batchId            String?
+  batch              LivestockBatch?    @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  kind               LivestockExitKind
+  occurredAt         DateTime           @default(now())
+  recordedByUserId   String
+  recorder           User               @relation(fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  headcountAffected  Int?
+  buyerName          String?
+  price              Decimal?           @db.Decimal(14, 2)
+  currency           String?
+  weightKg           Decimal?           @db.Decimal(10, 3)
+  invoiceRef         String?
+  deathCause         String?
+  symptoms           String?
+  carcassYieldNote   String?
+  slaughterDestination String?
+  transferDestination  String?
+  toFarmId           String?
+  toFarm             Farm?              @relation("ExitTransferDestinationFarm", fields: [toFarmId], references: [id], onDelete: SetNull)
+  note               String?
+  createdAt          DateTime           @default(now())
+
+  @@index([farmId, occurredAt])
+  @@index([farmId, kind])
+  @@index([animalId])
+  @@index([batchId])
+}
+
+/// Bande / lot homogene (mode batch ou hybride). Voir docs/LIVESTOCK_MODES_AND_HOUSING.md.
+model LivestockBatch {
+  id             String    @id @default(cuid())
+  farmId         String
+  farm           Farm      @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  speciesId      String
+  species        Species   @relation(fields: [speciesId], references: [id], onDelete: Restrict)
+  breedId        String?
+  breed          Breed?    @relation(fields: [breedId], references: [id], onDelete: SetNull)
+  publicId       String    @unique @default(cuid())
+  name           String
+  /// Cle metier hybride (ex. nursery, finisher) — referentiel a stabiliser.
+  categoryKey    String?
+  headcount      Int       @default(0)
+  avgBirthDate   DateTime?
+  sourceTag      String?
+  status         String    @default("active")
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  weights        LivestockBatchWeight[]
+  healthEvents   LivestockBatchHealthEvent[]
+  penPlacements  PenPlacement[]
+  livestockExits LivestockExit[]
+
+  @@index([farmId])
+  @@index([farmId, status])
+  @@index([publicId])
+}
+
+model Barn {
+  id        String   @id @default(cuid())
+  farmId    String
+  farm      Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  name      String
+  code      String?
+  notes     String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  pens      Pen[]
+
+  @@index([farmId])
+}
+
+model Pen {
+  id         String   @id @default(cuid())
+  barnId     String
+  barn       Barn     @relation(fields: [barnId], references: [id], onDelete: Cascade)
+  name       String
+  code       String?
+  zoneLabel  String?
+  capacity   Int?
+  status     String   @default("active")
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  placements PenPlacement[]
+  logs       PenLog[]
+
+  @@index([barnId])
+}
+
+model PenPlacement {
+  id               String          @id @default(cuid())
+  penId            String
+  pen              Pen             @relation(fields: [penId], references: [id], onDelete: Cascade)
+  animalId         String?
+  animal           Animal?         @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  batchId          String?
+  batch            LivestockBatch? @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  startedAt        DateTime        @default(now())
+  endedAt          DateTime?
+  note             String?
+  createdByUserId  String
+  creator          User            @relation("PenPlacementCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([penId, endedAt])
+  @@index([animalId, endedAt])
+  @@index([batchId, endedAt])
+}
+
+enum PenLogType {
+  cleaning
+  disinfection
+  mortality
+  treatment
+  other
+}
+
+model PenLog {
+  id               String     @id @default(cuid())
+  penId            String
+  pen              Pen        @relation(fields: [penId], references: [id], onDelete: Cascade)
+  type             PenLogType @default(other)
+  title            String
+  body             String?
+  recordedAt       DateTime   @default(now())
+  recordedByUserId String
+  recorder         User       @relation("PenLogRecorder", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([penId, recordedAt])
+}
+
+model LivestockBatchWeight {
+  id                String         @id @default(cuid())
+  batchId           String
+  batch             LivestockBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  /// Poids moyen estime par tete (kg).
+  avgWeightKg       Decimal        @db.Decimal(10, 3)
+  headcountSnapshot Int?
+  measuredAt        DateTime       @default(now())
+  note              String?
+  createdAt         DateTime       @default(now())
+
+  @@index([batchId, measuredAt])
+}
+
+model LivestockBatchHealthEvent {
+  id               String         @id @default(cuid())
+  batchId          String
+  batch            LivestockBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  severity         HealthSeverity @default(info)
+  title            String
+  body             String?
+  recordedAt       DateTime       @default(now())
+  recordedByUserId String
+  recorder         User           @relation(fields: [recordedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([batchId, recordedAt])
+}
+
+enum ListingStatus {
+  draft
+  published
+  reserved
+  sold
+  cancelled
+}
+
+enum OfferStatus {
+  pending
+  accepted
+  rejected
+  withdrawn
+}
+
+model MarketplaceListing {
+  id            String          @id @default(cuid())
+  sellerUserId  String
+  seller        User            @relation("ListingSeller", fields: [sellerUserId], references: [id], onDelete: Restrict)
+  farmId        String?
+  farm          Farm?           @relation(fields: [farmId], references: [id], onDelete: SetNull)
+  animalId      String?
+  animal        Animal?         @relation(fields: [animalId], references: [id], onDelete: SetNull)
+  title         String
+  description   String?
+  unitPrice     Decimal?        @db.Decimal(14, 2)
+  quantity      Int?
+  currency      String          @default("XOF")
+  locationLabel String?
+  status        ListingStatus   @default(draft)
+  publishedAt   DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  offers        MarketplaceOffer[]
+
+  @@index([sellerUserId])
+  @@index([status])
+  @@index([farmId])
+}
+
+model MarketplaceOffer {
+  id           String             @id @default(cuid())
+  listingId    String
+  listing      MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyerUserId  String
+  buyer        User               @relation("OfferBuyer", fields: [buyerUserId], references: [id], onDelete: Restrict)
+  offeredPrice Decimal            @db.Decimal(14, 2)
+  quantity     Int?
+  message      String?
+  status       OfferStatus        @default(pending)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([listingId])
+  @@index([buyerUserId])
+  @@index([listingId, status])
+}
+
+model AnimalWeight {
+  id         String   @id @default(cuid())
+  animalId   String
+  animal     Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  weightKg   Decimal  @db.Decimal(10, 3)
+  measuredAt DateTime @default(now())
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@index([animalId, measuredAt])
+}
+
+model FarmInvitation {
+  id               String          @id @default(cuid())
+  farmId           String
+  farm             Farm            @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  createdById      String
+  creator          User            @relation("InvitationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  role             MembershipRole
+  scopes           String[]        @default([])
+  token            String          @unique
+  expiresAt        DateTime
+  redeemedAt       DateTime?
+  redeemedByUserId String?
+  inviteeEmail     String?
+  inviteePhone     String?
+  createdAt        DateTime        @default(now())
+
+  @@index([farmId])
+  @@index([expiresAt])
+}
+
+model FarmMembership {
+  id         String         @id @default(cuid())
+  farmId     String
+  userId     String
+  role       MembershipRole
+  scopes     String[]
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  farm       Farm           @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([farmId, userId, role])
+  @@index([farmId, role])
+  @@index([userId, role])
+}
+
+enum ChatRoomKind {
+  farm
+  direct
+}
+
+model ChatRoom {
+  id        String           @id @default(cuid())
+  kind      ChatRoomKind
+  farmId    String?          @unique
+  farm      Farm?            @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  directKey String?          @unique
+  title     String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  members   ChatRoomMember[]
+  messages  ChatMessage[]
+
+  @@index([kind])
+}
+
+model ChatRoomMember {
+  id     String   @id @default(cuid())
+  roomId String
+  room   ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt DateTime @default(now())
+
+  @@unique([roomId, userId])
+  @@index([userId])
+}
+
+model ChatMessage {
+  id           String   @id @default(cuid())
+  roomId       String
+  room         ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  senderUserId String
+  sender       User     @relation(fields: [senderUserId], references: [id], onDelete: Restrict)
+  body         String
+  createdAt    DateTime @default(now())
+
+  @@index([roomId, createdAt])
+}
