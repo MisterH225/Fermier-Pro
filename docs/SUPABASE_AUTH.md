@@ -28,6 +28,8 @@ SUPABASE_JWT_SECRET=<JWT Secret du projet>
 
 ## Mobile (Expo) — flux recommandes
 
+- **Config** : dans `apps/mobile/`, fichier `.env` (voir `.env.example`) avec `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_API_URL`. Client partagé : `apps/mobile/src/lib/supabase.ts` (`@supabase/supabase-js` + `AsyncStorage`) ; appel API typé : `src/lib/api.ts` (`fetchAuthMe`).
+- **OTP SMS dans l app** : ecran `PhoneOtpAuth` (`signInWithOtp` + `verifyOtp`, format E.164 obligatoire).
 - **Google** : `signInWithOAuth({ provider: 'google', options: { redirectTo } })` ou flux natif avec `expo-auth-session` selon ta stack.
 - **Apple** : `signInWithOAuth({ provider: 'apple', ... })` sur iOS.
 - **Telephone** : `signInWithOtp({ phone, options: { channel: 'sms' } })` puis verification du code.
@@ -39,7 +41,7 @@ GET /api/v1/auth/me
 Authorization: Bearer <access_token>
 ```
 
-La premiere requete cree ou met a jour l'utilisateur Prisma (`supabaseUserId` = `sub` du JWT) et cree un **profil acheteur** par defaut s'il n'existe aucun profil.
+La premiere requete cree ou met a jour l'utilisateur Prisma (`supabaseUserId` = `sub` du JWT) et assure un **profil acheteur** (`buyer`) : cree si absent (voir `AuthService.ensureDefaultBuyerProfile`).
 
 ## Producteur et marketplace
 
@@ -74,6 +76,10 @@ Exemples de codes : `finance.read`, `finance.write`, `tasks.read`, `tasks.write`
 | GET | `/api/v1/farms` | Lister fermes (proprietaire ou membre) |
 | GET | `/api/v1/farms/:farmId/audit-logs?limit=&cursor=` | Journal d’audit de la ferme ; scope **`audit.read`** ; pagination : `cursor` = `id` de la derniere entree de la page precedente |
 | GET | `/api/v1/farms/:id` | Detail si acces |
+| POST | `/api/v1/farms/:farmId/transfer-ownership` | Transfert de propriete : corps `{ "newOwnerUserId": "<User.id>" }`. Reserve au **`ownerId`** actuel. Le futur proprietaire doit **deja etre membre** de la ferme ; ses lignes `FarmMembership` multiples sont fusionnees (une conservee en `owner`). L ancien proprietaire recoit le role **`manager`** (scopes par defaut). |
+| GET | `/api/v1/farms/:farmId/members` | Liste des membres (`FarmMembership` + profil utilisateur) ; tout membre de la ferme |
+| PATCH | `/api/v1/farms/:farmId/members/:membershipId` | Mettre a jour `role` (sauf `owner`) et/ou `scopes` ; scope **`invitations.manage`** ; pas de modification de la ligne **proprietaire** |
+| DELETE | `/api/v1/farms/:farmId/members/:membershipId` | Retirer un membre (**`invitations.manage`**) ou **quitter la ferme** soi-meme (interdit si tu es `ownerId` de la ferme) |
 | POST | `/api/v1/farms/:farmId/invitations` | Inviter : scope **`invitations.manage`** (inclus dans le defaut `manager` / `*`). Corps: `role` (pas `owner`), `scopes?`, `inviteeEmail?`, `inviteePhone?`. Reponse: **`token`** a transmettre au invite |
 | POST | `/api/v1/invitations/accept` | Corps: `{ "token": "..." }`. Ajoute `FarmMembership`; une invitation ne s'utilise qu'une fois |
 
@@ -217,9 +223,15 @@ L'assigne doit etre **membre de la ferme** (ou proprietaire).
 |---------|--------|-------------|
 | GET | `/api/v1/farms/:farmId/finance/summary?from=&to=` | Totaux depenses, revenus, net (MVP : devise affichee `XOF` ; tout melange si plusieurs devises en base) |
 | GET | `/api/v1/farms/:farmId/finance/expenses?from=&to=` | Liste depenses |
-| POST | `/api/v1/farms/:farmId/finance/expenses` | `amount`, `label`, `currency?` (defaut `XOF`), `category?`, `note?`, `occurredAt?` |
+| GET | `/api/v1/farms/:farmId/finance/expenses/:expenseId` | Detail + createur ; **`finance.read`** |
+| POST | `/api/v1/farms/:farmId/finance/expenses` | `amount`, `label`, `currency?` (defaut `XOF`), `category?`, `note?`, `occurredAt?` ; scope **`finance.write`** |
+| PATCH | `/api/v1/farms/:farmId/finance/expenses/:expenseId` | MAJ partielle (memes champs que creation, tous optionnels) ; **`finance.write`** |
+| DELETE | `/api/v1/farms/:farmId/finance/expenses/:expenseId` | Suppression ; **`finance.write`** |
 | GET | `/api/v1/farms/:farmId/finance/revenues?from=&to=` | Liste revenus |
-| POST | `/api/v1/farms/:farmId/finance/revenues` | Idem structure |
+| GET | `/api/v1/farms/:farmId/finance/revenues/:revenueId` | Detail + createur ; **`finance.read`** |
+| POST | `/api/v1/farms/:farmId/finance/revenues` | Idem structure depense ; **`finance.write`** |
+| PATCH | `/api/v1/farms/:farmId/finance/revenues/:revenueId` | MAJ partielle ; **`finance.write`** |
+| DELETE | `/api/v1/farms/:farmId/finance/revenues/:revenueId` | Suppression ; **`finance.write`** |
 
 ### Sante — evenements par animal
 

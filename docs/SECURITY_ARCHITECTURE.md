@@ -145,9 +145,9 @@ Chaque entrée idéale : **qui** (user id), **quoi** (type d’événement), **r
 ### 9.2 État
 
 - **Implémenté** : modèle Prisma `AuditLog` (`actorUserId`, `farmId?`, `action`, `resourceType`, `resourceId?`, `metadata` JSON, index temps / ferme / ressource) et `AuditService.record()` (échecs d’écriture journalisés, sans faire échouer l’opération métier).
-- **Événements branchés** (codes dans `apps/api/src/common/audit.constants.ts`) : création de ferme ; suppression d’animal ; événements santé **animal** et **bande** ; création / mise à jour de **consultation véto** et ajout de **pièce jointe** ; création dépense / revenu ; acceptation d’offre marketplace ; création et acceptation d’invitation ferme.
+- **Événements branchés** (codes dans `apps/api/src/common/audit.constants.ts`) : création de ferme ; **transfert de propriété** ; suppression d’animal ; événements santé **animal** et **bande** ; création / mise à jour de **consultation véto** et ajout de **pièce jointe** ; création / **mise à jour / suppression** dépense et revenu ; acceptation d’offre marketplace ; création et acceptation d’invitation ferme ; **mise à jour / retrait de membre** de ferme.
 - **Lecture** : `GET /api/v1/farms/:farmId/audit-logs` (scope **`audit.read`**, pagination `limit` + `cursor` = dernier `id` reçu). Propriétaire et `manager` couverts par `*` ; les autres rôles peuvent recevoir `audit.read` via invitation.
-- **À étendre** : suppressions / mises à jour finance tracées, *diff* avant/après systématique, rétention / archivage, export compliance.
+- **À étendre** : *diff* champs sensibles (ex. notes longues) hors métadonnées audit, rétention / archivage, export compliance.
 
 ---
 

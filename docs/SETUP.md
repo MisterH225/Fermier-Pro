@@ -14,6 +14,18 @@ Depuis la racine du projet:
 npm install
 ```
 
+### Windows : `EPERM` / `ENOTEMPTY` pendant `npm install`
+
+Le monorepo inclut **React Native** (`react-native`, `react-native-web`). Sous Windows, npm peut échouer en supprimant ou réécrivant `node_modules` si des fichiers sont **verrouillés**.
+
+1. **Arrête** tout ce qui peut toucher au dépôt : Expo / Metro, `npm run dev:api`, onglets « Expo », **Cursor/VS Code** (ou ferme le dossier du projet le temps du nettoyage).
+2. Dans le **Gestionnaire des tâches**, termine les processus **Node.js** restants.
+3. Supprime le dossier `node_modules` à la racine (Explorateur ou terminal). Si ça bloque, **redémarre** la machine puis supprime à nouveau.
+4. Optionnel : ajoute une **exclusion** Windows Defender (ou autre antivirus) sur le dossier du projet pour limiter les verrouillages pendant `npm install`.
+5. Relance **`npm install`** à la racine.
+
+Si `rmdir` échoue encore, installe [`rimraf`](https://www.npmjs.com/package/rimraf) globalement (`npm i -g rimraf`) puis `rimraf node_modules` depuis la racine du repo.
+
 ## Lancer PostgreSQL
 
 ```bash
@@ -27,6 +39,8 @@ Si tu n'utilises pas Docker/PostgreSQL local, passe directement a la section Sup
 ```bash
 npm run dev:api
 ```
+
+Si tu vois `No driver (HTTP) has been selected` : c’est en général un **décalage de versions Nest** (ex. `@nestjs/core` en v10 à la racine du monorepo et `@nestjs/platform-express` en v11 sous `apps/api`). Le `package.json` racine déclare `@nestjs/common` / `@nestjs/core` en **11.1.19** pour le hoisting npm ; exécute **`npm install` à la racine** (et supprime d’anciens `node_modules` si besoin) puis relance `npm run dev:api`.
 
 Si tu vois `FATAL ERROR: Zone Allocation failed - process out of memory` pendant le watch:
 
@@ -42,11 +56,16 @@ GET http://localhost:3000/api/v1/health
 
 ## Lancer App Mobile Expo
 
+1. Dans `apps/mobile/`, copier `.env.example` vers `.env`.
+2. Renseigner au minimum :
+   - `EXPO_PUBLIC_SUPABASE_URL` et `EXPO_PUBLIC_SUPABASE_ANON_KEY` (dashboard Supabase → Settings → API)
+   - `EXPO_PUBLIC_API_URL` : URL atteignable depuis l’appareil (émulateur Android souvent `http://10.0.2.2:3000`, simulateur iOS `http://localhost:3000`, téléphone physique = IP LAN de ta machine + port API)
+
 ```bash
 npm run dev:mobile
 ```
 
-Puis ouvrir l'app via Expo Go (Android/iOS) ou web.
+Puis ouvrir l’app via Expo Go (Android/iOS) ou web. Une fois connecté avec Supabase (flux à brancher dans l’UI), le bouton **Tester GET /api/v1/auth/me** vérifie le lien avec l’API Nest.
 
 ## Setup sans Docker: Supabase (recommande)
 
