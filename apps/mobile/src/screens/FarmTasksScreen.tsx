@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { ModuleFeatureGate } from "../components/ModuleFeatureGate";
+import { TasksModuleGate } from "../components/TasksModuleGate";
 import { useSession } from "../context/SessionContext";
 import type { FarmTaskDto, PatchFarmTaskPayload } from "../lib/api";
 import { fetchFarmTasks, patchFarmTask } from "../lib/api";
@@ -125,9 +125,9 @@ export function FarmTasksScreen({ route, navigation }: Props) {
 
   if (!clientFeatures.tasks) {
     return (
-      <ModuleFeatureGate feature="tasks">
+      <TasksModuleGate>
         <View />
-      </ModuleFeatureGate>
+      </TasksModuleGate>
     );
   }
 

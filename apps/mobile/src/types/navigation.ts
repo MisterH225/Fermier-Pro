@@ -25,4 +25,69 @@ export type RootStackParamList = {
   EditMarketplaceListing: { listingId: string };
   ChatRooms: undefined;
   ChatRoom: { roomId: string; headline?: string };
+  ChatPickFarm: undefined;
+  ChatPickPeer: { farmId: string; farmName: string };
+  ChatSearchUser: undefined;
+  /** Écran générique « module prévu » (véto, finance, loges…). */
+  ModuleRoadmap: { title: string; body: string };
+  FarmVetConsultations: { farmId: string; farmName: string };
+  VetConsultationDetail: {
+    farmId: string;
+    farmName: string;
+    consultationId: string;
+  };
+  CreateVetConsultation: { farmId: string; farmName: string };
+  AddVetConsultationAttachment: {
+    farmId: string;
+    farmName: string;
+    consultationId: string;
+  };
+  FarmFinance: { farmId: string; farmName: string };
+  CreateFarmExpense: { farmId: string; farmName: string };
+  CreateFarmRevenue: { farmId: string; farmName: string };
+  EditFarmExpense: {
+    farmId: string;
+    farmName: string;
+    expenseId: string;
+  };
+  EditFarmRevenue: {
+    farmId: string;
+    farmName: string;
+    revenueId: string;
+  };
+  FarmBarns: { farmId: string; farmName: string };
+  CreateBarn: { farmId: string; farmName: string };
+  CreatePen: {
+    farmId: string;
+    farmName: string;
+    barnId: string;
+    barnName?: string;
+  };
+  BarnDetail: {
+    farmId: string;
+    farmName: string;
+    barnId: string;
+    barnName?: string;
+  };
+  PenDetail: {
+    farmId: string;
+    farmName: string;
+    penId: string;
+    penLabel?: string;
+  };
+  CreatePenLog: {
+    farmId: string;
+    farmName: string;
+    penId: string;
+    penLabel?: string;
+  };
+  PenMove: {
+    farmId: string;
+    farmName: string;
+    fromPenId: string;
+    fromPenLabel?: string;
+    animalId?: string;
+    batchId?: string;
+    occupantSummary?: string;
+  };
 };

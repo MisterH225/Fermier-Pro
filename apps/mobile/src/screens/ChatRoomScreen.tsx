@@ -21,7 +21,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { ModuleFeatureGate } from "../components/ModuleFeatureGate";
+import { ChatModuleGate } from "../components/ChatModuleGate";
 import { useSession } from "../context/SessionContext";
 import {
   type ChatSocketConnectionStatus,
@@ -30,6 +30,8 @@ import {
 import type { ChatMessageDto } from "../lib/api";
 import { fetchChatMessages, postChatMessage } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
+
+const CHAT_PAGE_SIZE = 40;
 
 type Props = NativeStackScreenProps<RootStackParamList, "ChatRoom">;
 
@@ -120,7 +122,13 @@ export function ChatRoomScreen({ route, navigation }: Props) {
   /** Si l’utilisateur est proche du bas ; au chargement on colle au dernier message. */
   const stickToBottomRef = useRef(true);
   const prevOrderedLenRef = useRef(0);
-  const [showNewMessagesFab, setShowNewMessagesFab] = useState(false);
+  /** Dernier message « en tête du fil » (le plus récent) — détecte prepend vs nouveaux messages. */
+  const tipNewestIdRef = useRef<string | null>(null);
+  /** Nombre de nouveaux messages (autres) arrivés hors vue en bas de liste. */
+  const [pendingBelowCount, setPendingBelowCount] = useState(0);
+  const hasMoreOlderRef = useRef(true);
+  const loadingOlderRef = useRef(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
 
   const { chatSocketStatus } = useChatRoomSocket({
     roomId,
@@ -137,14 +145,79 @@ export function ChatRoomScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     prevOrderedLenRef.current = 0;
-    setShowNewMessagesFab(false);
+    tipNewestIdRef.current = null;
+    setPendingBelowCount(0);
+    hasMoreOlderRef.current = true;
   }, [roomId]);
 
   const messagesQuery = useQuery({
     queryKey: ["chatMessages", roomId, activeProfileId],
     queryFn: () =>
-      fetchChatMessages(accessToken, roomId, activeProfileId, { take: 80 })
+      fetchChatMessages(accessToken, roomId, activeProfileId, {
+        take: CHAT_PAGE_SIZE
+      })
   });
+
+  useEffect(() => {
+    if (!messagesQuery.isSuccess || messagesQuery.data === undefined) {
+      return;
+    }
+    const len = messagesQuery.data.length;
+    if (len === 0) {
+      hasMoreOlderRef.current = false;
+      return;
+    }
+    if (len < CHAT_PAGE_SIZE) {
+      hasMoreOlderRef.current = false;
+    }
+  }, [messagesQuery.isSuccess, messagesQuery.data, roomId]);
+
+  const tryLoadOlder = useCallback(async () => {
+    if (!hasMoreOlderRef.current || loadingOlderRef.current) return;
+    const raw =
+      qc.getQueryData<ChatMessageDto[]>([
+        "chatMessages",
+        roomId,
+        activeProfileId
+      ]) ?? [];
+    const sorted = [...raw].sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+    const oldestId = sorted[0]?.id;
+    if (!oldestId) return;
+
+    loadingOlderRef.current = true;
+    setLoadingOlder(true);
+    try {
+      const older = await fetchChatMessages(
+        accessToken,
+        roomId,
+        activeProfileId,
+        { cursor: oldestId, take: CHAT_PAGE_SIZE }
+      );
+      if (older.length === 0) {
+        hasMoreOlderRef.current = false;
+        return;
+      }
+      if (older.length < CHAT_PAGE_SIZE) {
+        hasMoreOlderRef.current = false;
+      }
+      qc.setQueryData<ChatMessageDto[]>(
+        ["chatMessages", roomId, activeProfileId],
+        (old) => {
+          const merged = [...(old ?? []), ...older];
+          const map = new Map(merged.map((m) => [m.id, m]));
+          return Array.from(map.values());
+        }
+      );
+    } catch {
+      hasMoreOlderRef.current = false;
+    } finally {
+      loadingOlderRef.current = false;
+      setLoadingOlder(false);
+    }
+  }, [accessToken, roomId, activeProfileId, qc]);
 
   const ordered = useMemo(() => {
     const rows = messagesQuery.data ?? [];
@@ -160,16 +233,25 @@ export function ChatRoomScreen({ route, navigation }: Props) {
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       const { layoutMeasurement, contentOffset, contentSize } =
         e.nativeEvent;
-      const threshold = 120;
+      const thresholdBottom = 120;
       const distanceFromBottom =
         contentSize.height - layoutMeasurement.height - contentOffset.y;
-      const nearBottom = distanceFromBottom < threshold;
+      const nearBottom = distanceFromBottom < thresholdBottom;
       stickToBottomRef.current = nearBottom;
       if (nearBottom) {
-        setShowNewMessagesFab(false);
+        setPendingBelowCount(0);
+      }
+
+      const topThreshold = 100;
+      if (
+        contentOffset.y < topThreshold &&
+        hasMoreOlderRef.current &&
+        !loadingOlderRef.current
+      ) {
+        void tryLoadOlder();
       }
     },
-    []
+    [tryLoadOlder]
   );
 
   const scrollListToEnd = useCallback((animated: boolean) => {
@@ -188,27 +270,45 @@ export function ChatRoomScreen({ route, navigation }: Props) {
     scrollListToEnd(true);
   }, [ordered, myUserId, scrollListToEnd]);
 
-  /** Bouton « Nouveaux messages » : uniquement si des messages d’autres arrivent alors qu’on n’est pas en bas. */
+  /**
+   * Nouveaux messages en bas : ignore le chargement d’historique (prepend conserve le même
+   * dernier message que tipNewestIdRef).
+   */
   useEffect(() => {
     const n = ordered.length;
     const prev = prevOrderedLenRef.current;
+    const newest = ordered[n - 1];
+    const newestId = newest?.id ?? null;
+
+    if (
+      n > prev &&
+      prev > 0 &&
+      newestId != null &&
+      newestId === tipNewestIdRef.current
+    ) {
+      prevOrderedLenRef.current = n;
+      return;
+    }
+
     if (
       myUserId != null &&
       n > prev &&
       prev > 0 &&
-      !stickToBottomRef.current
+      !stickToBottomRef.current &&
+      newest &&
+      newest.senderUserId !== myUserId &&
+      newestId !== tipNewestIdRef.current
     ) {
-      const newest = ordered[ordered.length - 1];
-      if (newest.senderUserId !== myUserId) {
-        setShowNewMessagesFab(true);
-      }
+      setPendingBelowCount((c) => Math.min(c + (n - prev), 99));
     }
+
+    tipNewestIdRef.current = newestId;
     prevOrderedLenRef.current = n;
   }, [ordered, myUserId]);
 
   const jumpToLatestMessages = useCallback(() => {
     stickToBottomRef.current = true;
-    setShowNewMessagesFab(false);
+    setPendingBelowCount(0);
     scrollListToEnd(true);
   }, [scrollListToEnd]);
 
@@ -269,7 +369,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
   const liveStrip = liveStripProps(chatSocketStatus);
 
   return (
-    <ModuleFeatureGate feature="chat">
+    <ChatModuleGate>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -320,24 +420,53 @@ export function ChatRoomScreen({ route, navigation }: Props) {
               onScroll={onListScroll}
               scrollEventThrottle={100}
               onContentSizeChange={onListContentSizeChange}
+              maintainVisibleContentPosition={{
+                minIndexForVisible: 0
+              }}
+              ListHeaderComponent={
+                loadingOlder ? (
+                  <View style={styles.loadOlderBanner}>
+                    <ActivityIndicator size="small" color="#5d7a1f" />
+                    <Text style={styles.loadOlderText}>Messages plus anciens…</Text>
+                  </View>
+                ) : null
+              }
               refreshControl={
                 <RefreshControl
                   refreshing={messagesQuery.isRefetching}
-                  onRefresh={() => void messagesQuery.refetch()}
+                  onRefresh={() => {
+                    hasMoreOlderRef.current = true;
+                    void messagesQuery.refetch().then(() => {
+                      const d = qc.getQueryData<ChatMessageDto[]>([
+                        "chatMessages",
+                        roomId,
+                        activeProfileId
+                      ]);
+                      const len = d?.length ?? 0;
+                      if (len < CHAT_PAGE_SIZE) {
+                        hasMoreOlderRef.current = false;
+                      }
+                    });
+                  }}
                   tintColor="#5d7a1f"
                 />
               }
             />
-            {showNewMessagesFab ? (
+            {pendingBelowCount > 0 ? (
               <TouchableOpacity
                 style={styles.newMessagesFab}
                 onPress={jumpToLatestMessages}
                 activeOpacity={0.88}
                 accessibilityRole="button"
-                accessibilityLabel="Aller aux nouveaux messages"
+                accessibilityLabel={`Aller aux nouveaux messages, ${pendingBelowCount}`}
               >
                 <Text style={styles.newMessagesFabChevron}>↓</Text>
                 <Text style={styles.newMessagesFabText}>Nouveaux messages</Text>
+                <View style={styles.newMessagesFabBadge}>
+                  <Text style={styles.newMessagesFabBadgeText}>
+                    {pendingBelowCount > 99 ? "99+" : String(pendingBelowCount)}
+                  </Text>
+                </View>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -372,7 +501,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
           </Text>
         ) : null}
       </KeyboardAvoidingView>
-    </ModuleFeatureGate>
+    </ChatModuleGate>
   );
 }
 
@@ -416,6 +545,18 @@ const styles = StyleSheet.create({
   error: { color: "#b00020", textAlign: "center", fontSize: 14 },
   listWrap: { flex: 1, position: "relative" },
   listFlex: { flex: 1 },
+  loadOlderBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 10,
+    marginBottom: 8
+  },
+  loadOlderText: {
+    fontSize: 13,
+    color: "#6d745b"
+  },
   newMessagesFab: {
     position: "absolute",
     bottom: 14,
@@ -445,6 +586,20 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "700"
+  },
+  newMessagesFabBadge: {
+    minWidth: 22,
+    height: 22,
+    paddingHorizontal: 6,
+    borderRadius: 11,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  newMessagesFabBadgeText: {
+    color: "#5d7a1f",
+    fontSize: 12,
+    fontWeight: "800"
   },
   listContent: {
     padding: 16,

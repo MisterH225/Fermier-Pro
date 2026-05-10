@@ -31,7 +31,8 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     if (ctx?.prisma) {
       await cleanupE2eFixtures(ctx.prisma, {
         farmId: ctx.farmId,
-        userId: ctx.userId
+        userId: ctx.userId,
+        peerUserId: ctx.peerUserId
       });
     }
   });
@@ -124,6 +125,37 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(res.status).toBe(200);
     expect(res.body?.id).toBe(ctx.farmId);
     expect(res.body?.name).toBeDefined();
+  });
+
+  it("GET /farms/:farmId/members", async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/members`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it("GET /chat/directory/users (recherche annuaire)", async () => {
+    const short = await request(app.getHttpServer())
+      .get("/api/v1/chat/directory/users")
+      .query({ q: "x" })
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(short.status).toBe(400);
+
+    const ok = await request(app.getHttpServer())
+      .get("/api/v1/chat/directory/users")
+      .query({ q: "Annuaire" })
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(ok.status).toBe(200);
+    expect(Array.isArray(ok.body)).toBe(true);
+    expect(
+      ok.body.some(
+        (u: { email?: string; id?: string }) =>
+          u.id === ctx.peerUserId ||
+          (typeof u.email === "string" &&
+            u.email.includes("e2e-peer-directory"))
+      )
+    ).toBe(true);
   });
 
   it("GET /chat/rooms + POST salon ferme + messages", async () => {
@@ -314,6 +346,196 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(post.status).toBeGreaterThanOrEqual(200);
     expect(post.status).toBeLessThan(300);
     expect(post.body?.title).toBe("Visite e2e");
+  });
+
+  it("GET consultations vet + POST dossier + GET détail", async () => {
+    const list = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/vet-consultations`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(list.status).toBe(200);
+    expect(Array.isArray(list.body)).toBe(true);
+
+    const post = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/vet-consultations`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({ subject: "E2E dossier véto contrat" });
+    expect(post.status).toBeGreaterThanOrEqual(200);
+    expect(post.status).toBeLessThan(300);
+    const id = post.body?.id as string;
+    expect(id).toBeDefined();
+
+    const one = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/vet-consultations/${id}`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(one.status).toBe(200);
+    expect(one.body?.subject).toBe("E2E dossier véto contrat");
+
+    const attach = await request(app.getHttpServer())
+      .post(
+        `/api/v1/farms/${ctx.farmId}/vet-consultations/${id}/attachments`
+      )
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        url: "https://example.com/e2e-piece-jointe.pdf",
+        label: "Contrat e2e",
+        mimeType: "application/pdf"
+      });
+    expect(attach.status).toBeGreaterThanOrEqual(200);
+    expect(attach.status).toBeLessThan(300);
+    expect(attach.body?.url).toContain("example.com");
+
+    const patched = await request(app.getHttpServer())
+      .patch(`/api/v1/farms/${ctx.farmId}/vet-consultations/${id}`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({ status: "resolved" });
+    expect(patched.status).toBeGreaterThanOrEqual(200);
+    expect(patched.status).toBeLessThan(300);
+    expect(patched.body?.status).toBe("resolved");
+  });
+
+  it("GET consultations vet avec query status=open", async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/vet-consultations`)
+      .query({ status: "open" })
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it("GET finance summary (financeRead)", async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/finance/summary`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(res.status).toBe(200);
+    expect(res.body?.farmId).toBe(ctx.farmId);
+    expect(res.body?.totalExpenses).toBeDefined();
+    expect(res.body?.totalRevenues).toBeDefined();
+    expect(res.body?.net).toBeDefined();
+  });
+
+  it("POST dépense finance puis DELETE (financeWrite)", async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/finance/expenses`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        amount: 12500.5,
+        label: "E2E dépense contrat",
+        category: "test"
+      });
+    expect(res.status).toBeGreaterThanOrEqual(200);
+    expect(res.status).toBeLessThan(300);
+    expect(res.body?.label).toBe("E2E dépense contrat");
+    const expenseId = res.body?.id as string;
+    expect(expenseId).toBeDefined();
+
+    const patch = await request(app.getHttpServer())
+      .patch(
+        `/api/v1/farms/${ctx.farmId}/finance/expenses/${expenseId}`
+      )
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        label: "E2E dépense contrat (modifiée)",
+        amount: 13000
+      });
+    expect(patch.status).toBeGreaterThanOrEqual(200);
+    expect(patch.status).toBeLessThan(300);
+    expect(patch.body?.label).toBe("E2E dépense contrat (modifiée)");
+    expect(patch.body?.amount).toBe(13000);
+
+    const del = await request(app.getHttpServer())
+      .delete(
+        `/api/v1/farms/${ctx.farmId}/finance/expenses/${expenseId}`
+      )
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(del.status).toBeGreaterThanOrEqual(200);
+    expect(del.status).toBeLessThan(300);
+  });
+
+  it("GET liste bâtiments (housingRead)", async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/barns`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it("POST bâtiment puis loge (housingWrite)", async () => {
+    const barn = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/barns`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({ name: "E2E bâtiment contrat", code: "E2E-B" });
+    expect(barn.status).toBeGreaterThanOrEqual(200);
+    expect(barn.status).toBeLessThan(300);
+    const barnId = barn.body?.id as string;
+    expect(barnId).toBeDefined();
+
+    const pen = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/barns/${barnId}/pens`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({ name: "E2E loge contrat", zoneLabel: "contrat" });
+    expect(pen.status).toBeGreaterThanOrEqual(200);
+    expect(pen.status).toBeLessThan(300);
+    expect(pen.body?.name).toBe("E2E loge contrat");
+    const penId = pen.body?.id as string;
+    expect(penId).toBeDefined();
+
+    const log = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/pens/${penId}/logs`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({ type: "cleaning", title: "E2E entrée journal loge" });
+    expect(log.status).toBeGreaterThanOrEqual(200);
+    expect(log.status).toBeLessThan(300);
+    expect(log.body?.title).toBe("E2E entrée journal loge");
+  });
+
+  it("POST pen-move : placement animal puis déplacement (housingWrite)", async () => {
+    const barn = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/barns`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({ name: "E2E bâtiment pen-move", code: "E2E-PM" });
+    expect(barn.status).toBeGreaterThanOrEqual(200);
+    expect(barn.status).toBeLessThan(300);
+    const barnId = barn.body?.id as string;
+    expect(barnId).toBeDefined();
+
+    const penFrom = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/barns/${barnId}/pens`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({ name: "E2E loge origine pen-move", zoneLabel: "pm-from" });
+    expect(penFrom.status).toBeGreaterThanOrEqual(200);
+    expect(penFrom.status).toBeLessThan(300);
+    const penFromId = penFrom.body?.id as string;
+    expect(penFromId).toBeDefined();
+
+    const penTo = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/barns/${barnId}/pens`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({ name: "E2E loge destination pen-move", zoneLabel: "pm-to" });
+    expect(penTo.status).toBeGreaterThanOrEqual(200);
+    expect(penTo.status).toBeLessThan(300);
+    const penToId = penTo.body?.id as string;
+    expect(penToId).toBeDefined();
+
+    const startPl = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/pens/${penFromId}/placements`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({ animalId: ctx.animalId });
+    expect(startPl.status).toBeGreaterThanOrEqual(200);
+    expect(startPl.status).toBeLessThan(300);
+
+    const move = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/pen-move`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        fromPenId: penFromId,
+        toPenId: penToId,
+        animalId: ctx.animalId,
+        note: "E2E déplacement contrat pen-move"
+      });
+    expect(move.status).toBeGreaterThanOrEqual(200);
+    expect(move.status).toBeLessThan(300);
+    expect(move.body?.pen?.id).toBe(penToId);
+    expect(move.body?.animal?.id).toBe(ctx.animalId);
   });
 });
 

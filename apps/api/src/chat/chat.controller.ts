@@ -34,6 +34,15 @@ export class ChatController {
     return this.chat.listRooms(user);
   }
 
+  /** Recherche d’utilisateurs pour conversation directe (nom ou e-mail). */
+  @Get("directory/users")
+  searchUsersForChat(
+    @CurrentUser() user: User,
+    @Query("q") q?: string
+  ) {
+    return this.chat.searchUsersForChat(user, q ?? "");
+  }
+
   @Post("rooms/farm/:farmId")
   @UseGuards(FarmScopesGuard)
   @RequireFarmScopes(FARM_SCOPE.chat)

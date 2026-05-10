@@ -122,7 +122,8 @@ Le **frontend mobile** doit consommer un endpoint du type **`GET /config/client`
 ### 7.2 État actuel (repo)
 
 - Navigation **centralisée** (`MainNavigationShell`, pile d’écrans).
-- Prochaine étape structurante : extraire des **groupes d’écrans par domaine** (fichiers ou dossiers `features/marketplace`, `features/farms`, …) et une fonction **`buildMenuItems(flags, scopes)`** sans tout casser d’un coup.
+- **`farmDetailMenuVisibility(features)`** (`apps/mobile/src/lib/menuVisibility.ts`) : dérive les entrées **Ferme** / liste depuis les flags — complément naturel à `buildMenuItems(flags, scopes)` lorsque les **scopes** seront exposés au mobile.
+- Prochaine étape structurante : extraire des **groupes d’écrans par domaine** (fichiers ou dossiers `features/marketplace`, `features/farms`, …).
 
 ---
 
@@ -177,9 +178,12 @@ Cette architecture doit permettre :
 | Priorité | Action |
 |----------|--------|
 | Court | Finaliser **frontières** imports API ; documenter **surface HTTP** par module ; erreurs marketplace **isolées** (déjà amorcé). |
-| Moyen | **`FeatureFlagService`** + table ou config ; endpoint **client config** ; menu mobile **conditionnel**. |
+| Moyen | **Feature flags par tenant** (table / cache) au-delà des variables `FEATURE_*` ; **flags par ferme** si besoin métier. |
 | Moyen | **Publisher d’événements** + 1–2 flux critiques (ex. vente marketplace → audit / notification). |
+| Moyen | **Navigation mobile par domaine** (`features/*`) et **`buildMenuItems(flags, scopes)`** (voir §7.2). |
 | Long | Schémas DB / bounded contexts plus stricts ; extraction **service marketplace** ou **notifications** si charge ou équipe le justifient. |
+
+**Déjà en place (MVP)** : `FeatureFlagService` + `GET /config/client` ; garde-fous REST + WebSocket `/chat` ; mobile **menus conditionnels** (`ModuleFeatureGate`, session `clientFeatures`) ; messagerie **REST + temps réel**, pagination historique, DM via **membres de ferme** ou **`GET /chat/directory/users`** (recherche nom / e-mail, **uniquement utilisateurs partageant au moins une ferme** avec l’acteur).
 
 ---
 

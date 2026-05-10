@@ -20,6 +20,7 @@ import {
 import { useSession } from "../context/SessionContext";
 import type { FarmDto } from "../lib/api";
 import { fetchFarms } from "../lib/api";
+import { farmDetailMenuVisibility } from "../lib/menuVisibility";
 import type { RootStackParamList } from "../types/navigation";
 
 const PRODUCER = "producer";
@@ -40,6 +41,7 @@ export function FarmListScreen({ navigation }: Props) {
     clientFeatures
   } = useSession();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const menu = farmDetailMenuVisibility(clientFeatures);
 
   const farmsQuery = useQuery({
     queryKey: ["farms", activeProfileId],
@@ -62,7 +64,7 @@ export function FarmListScreen({ navigation }: Props) {
         ) : null,
       headerRight: () => (
         <View style={styles.headerRight}>
-          {clientFeatures.chat ? (
+          {menu.chat ? (
             <TouchableOpacity
               onPress={() => stackNavigation.navigate("ChatRooms")}
               style={styles.headerSecondary}
@@ -71,7 +73,7 @@ export function FarmListScreen({ navigation }: Props) {
               <Text style={styles.headerSecondaryText}>Messages</Text>
             </TouchableOpacity>
           ) : null}
-          {clientFeatures.marketplace ? (
+          {menu.marketplace ? (
             <TouchableOpacity
               onPress={() => stackNavigation.navigate("MarketplaceList")}
               style={styles.headerSecondary}
@@ -106,8 +108,8 @@ export function FarmListScreen({ navigation }: Props) {
     activeProfileId,
     producerProfile,
     stackNavigation,
-    clientFeatures.marketplace,
-    clientFeatures.chat
+    menu.marketplace,
+    menu.chat
   ]);
 
   const displayError = authError || farmsQuery.error;
@@ -168,7 +170,7 @@ export function FarmListScreen({ navigation }: Props) {
             Crée une ferme avec le bouton « + Ferme » (profil producteur), ou
             depuis un client API POST /farms. Tu peux aussi parcourir le marché.
           </Text>
-          {clientFeatures.marketplace ? (
+          {menu.marketplace ? (
             <TouchableOpacity
               style={styles.ctaOutline}
               onPress={() => stackNavigation.navigate("MarketplaceList")}
@@ -203,7 +205,7 @@ export function FarmListScreen({ navigation }: Props) {
                 Bonjour {authMe.user.fullName}
               </Text>
             ) : null}
-            {clientFeatures.marketplace ? (
+            {menu.marketplace ? (
               <TouchableOpacity
                 style={styles.marketInline}
                 onPress={() => stackNavigation.navigate("MarketplaceList")}

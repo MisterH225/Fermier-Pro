@@ -1,7 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback } from "react";
+import { useCallback, useLayoutEffect } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -11,18 +11,22 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { ModuleFeatureGate } from "../components/ModuleFeatureGate";
+import { ChatModuleGate } from "../components/ChatModuleGate";
 import { useSession } from "../context/SessionContext";
 import type { ChatRoomListItem } from "../lib/api";
-import { fetchChatRooms } from "../lib/api";
+import { directConversationTitle, fetchChatRooms } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ChatRooms">;
 
-function roomTitle(room: ChatRoomListItem): string {
+function roomTitle(room: ChatRoomListItem, myUserId?: string): string {
   if (room.farm?.name) return room.farm.name;
   if (room.title?.trim()) return room.title.trim();
-  if (room.kind === "direct") return "Message direct";
+  if (room.kind === "direct") {
+    return myUserId
+      ? directConversationTitle(room, myUserId)
+      : "Message direct";
+  }
   return "Salon";
 }
 
@@ -36,7 +40,23 @@ function lastPreview(room: ChatRoomListItem): string | null {
 }
 
 export function ChatRoomsScreen({ navigation }: Props) {
-  const { accessToken, activeProfileId } = useSession();
+  const { accessToken, activeProfileId, authMe } = useSession();
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate("ChatPickFarm")}
+          style={{ paddingHorizontal: 8 }}
+          hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
+            Nouveau
+          </Text>
+        </TouchableOpacity>
+      )
+    });
+  }, [navigation]);
 
   const roomsQuery = useQuery({
     queryKey: ["chatRooms", activeProfileId],
@@ -52,7 +72,7 @@ export function ChatRoomsScreen({ navigation }: Props) {
   const rooms = roomsQuery.data ?? [];
 
   return (
-    <ModuleFeatureGate feature="chat">
+    <ChatModuleGate>
       <View style={styles.wrap}>
         {roomsQuery.isPending ? (
           <View style={styles.centered}>
@@ -95,11 +115,13 @@ export function ChatRoomsScreen({ navigation }: Props) {
                 onPress={() =>
                   navigation.navigate("ChatRoom", {
                     roomId: item.id,
-                    headline: roomTitle(item)
+                    headline: roomTitle(item, authMe?.user.id)
                   })
                 }
               >
-                <Text style={styles.cardTitle}>{roomTitle(item)}</Text>
+                <Text style={styles.cardTitle}>
+                  {roomTitle(item, authMe?.user.id)}
+                </Text>
                 {lastPreview(item) ? (
                   <Text style={styles.cardPreview} numberOfLines={2}>
                     {lastPreview(item)}
@@ -112,7 +134,7 @@ export function ChatRoomsScreen({ navigation }: Props) {
           />
         )}
       </View>
-    </ModuleFeatureGate>
+    </ChatModuleGate>
   );
 }
 

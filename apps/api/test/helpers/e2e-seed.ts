@@ -1,5 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
-import { AnimalSex, ProfileType } from "@prisma/client";
+import { AnimalSex, MembershipRole, ProfileType } from "@prisma/client";
 import * as jwt from "jsonwebtoken";
 
 /** Sub JWT stable pour retrouver / purger l’utilisateur de test. */
@@ -9,6 +9,7 @@ export interface E2ESeedResult {
   prisma: PrismaClient;
   token: string;
   userId: string;
+  peerUserId: string;
   farmId: string;
   batchId: string;
   animalId: string;
@@ -16,6 +17,9 @@ export interface E2ESeedResult {
 }
 
 async function purgeStaleE2eUser(prisma: PrismaClient): Promise<void> {
+  await prisma.user.deleteMany({
+    where: { email: "e2e-peer-directory@fermier.local" }
+  });
   const existing = await prisma.user.findUnique({
     where: { supabaseUserId: E2E_SUPABASE_SUB },
     include: { ownedFarms: { select: { id: true } } }
@@ -86,6 +90,23 @@ export async function seedE2eFixtures(
     }
   });
 
+  const peerUser = await prisma.user.create({
+    data: {
+      supabaseUserId: "22222222-2222-2222-2222-222222222222",
+      email: "e2e-peer-directory@fermier.local",
+      fullName: "E2E Peer Annuaire"
+    }
+  });
+
+  await prisma.farmMembership.create({
+    data: {
+      farmId: farm.id,
+      userId: peerUser.id,
+      role: MembershipRole.worker,
+      scopes: []
+    }
+  });
+
   const batch = await prisma.livestockBatch.create({
     data: {
       farmId: farm.id,
@@ -119,6 +140,7 @@ export async function seedE2eFixtures(
     prisma,
     token,
     userId: user.id,
+    peerUserId: peerUser.id,
     farmId: farm.id,
     batchId: batch.id,
     animalId: animal.id,
@@ -128,7 +150,7 @@ export async function seedE2eFixtures(
 
 export async function cleanupE2eFixtures(
   prisma: PrismaClient,
-  ctx: Pick<E2ESeedResult, "farmId" | "userId">
+  ctx: Pick<E2ESeedResult, "farmId" | "userId" | "peerUserId">
 ): Promise<void> {
   try {
     await prisma.marketplaceListing.deleteMany({
@@ -136,12 +158,20 @@ export async function cleanupE2eFixtures(
     });
     await prisma.auditLog.deleteMany({
       where: {
-        OR: [{ farmId: ctx.farmId }, { actorUserId: ctx.userId }]
+        OR: [
+          { farmId: ctx.farmId },
+          { actorUserId: ctx.userId },
+          { actorUserId: ctx.peerUserId }
+        ]
       }
     });
     await prisma.farm.delete({ where: { id: ctx.farmId } });
-    await prisma.profile.deleteMany({ where: { userId: ctx.userId } });
-    await prisma.user.delete({ where: { id: ctx.userId } });
+    await prisma.profile.deleteMany({
+      where: { userId: { in: [ctx.userId, ctx.peerUserId] } }
+    });
+    await prisma.user.deleteMany({
+      where: { id: { in: [ctx.userId, ctx.peerUserId] } }
+    });
   } finally {
     await prisma.$disconnect();
   }

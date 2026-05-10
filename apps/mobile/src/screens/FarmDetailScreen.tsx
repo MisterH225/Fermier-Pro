@@ -11,6 +11,7 @@ import {
 import { useSession } from "../context/SessionContext";
 import type { FarmDto } from "../lib/api";
 import { ensureFarmChatRoom, fetchFarm } from "../lib/api";
+import { farmDetailMenuVisibility } from "../lib/menuVisibility";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmDetail">;
@@ -60,6 +61,8 @@ export function FarmDetailScreen({ route, navigation }: Props) {
     );
   }
 
+  const menu = farmDetailMenuVisibility(clientFeatures);
+
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
       <TouchableOpacity
@@ -72,7 +75,7 @@ export function FarmDetailScreen({ route, navigation }: Props) {
         <Text style={styles.cheptelCtaSub}>Animaux et lots</Text>
       </TouchableOpacity>
 
-      {clientFeatures.chat ? (
+      {menu.chat ? (
         <>
           <TouchableOpacity
             style={styles.chatCta}
@@ -96,7 +99,7 @@ export function FarmDetailScreen({ route, navigation }: Props) {
         </>
       ) : null}
 
-      {clientFeatures.tasks ? (
+      {menu.tasks ? (
         <TouchableOpacity
           style={styles.tasksCta}
           onPress={() =>
@@ -108,7 +111,41 @@ export function FarmDetailScreen({ route, navigation }: Props) {
         </TouchableOpacity>
       ) : null}
 
-      {clientFeatures.marketplace ? (
+      {menu.vetConsultations ? (
+        <TouchableOpacity
+          style={styles.vetCta}
+          onPress={() =>
+            navigation.navigate("FarmVetConsultations", { farmId, farmName })
+          }
+        >
+          <Text style={styles.vetCtaText}>Suivi vétérinaire</Text>
+          <Text style={styles.vetCtaSub}>Consultations et téléchargements</Text>
+        </TouchableOpacity>
+      ) : null}
+
+      {menu.finance ? (
+        <TouchableOpacity
+          style={styles.financeCta}
+          onPress={() =>
+            navigation.navigate("FarmFinance", { farmId, farmName })
+          }
+        >
+          <Text style={styles.financeCtaText}>Finance</Text>
+          <Text style={styles.financeCtaSub}>Coûts et marges</Text>
+        </TouchableOpacity>
+      ) : null}
+
+      {menu.housing ? (
+        <TouchableOpacity
+          style={styles.housingCta}
+          onPress={() => navigation.navigate("FarmBarns", { farmId, farmName })}
+        >
+          <Text style={styles.housingCtaText}>Loges et parcours</Text>
+          <Text style={styles.housingCtaSub}>Hébergement et chemins</Text>
+        </TouchableOpacity>
+      ) : null}
+
+      {menu.marketplace ? (
         <TouchableOpacity
           style={styles.marketCta}
           onPress={() =>
@@ -247,6 +284,60 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginBottom: 12,
     lineHeight: 18
+  },
+  vetCta: {
+    borderWidth: 2,
+    borderColor: "#4a90a4",
+    backgroundColor: "#eef6f8",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12
+  },
+  vetCtaText: {
+    color: "#2d5a6e",
+    fontSize: 17,
+    fontWeight: "700"
+  },
+  vetCtaSub: {
+    color: "#6d745b",
+    fontSize: 13,
+    marginTop: 4
+  },
+  financeCta: {
+    borderWidth: 2,
+    borderColor: "#6b7cb8",
+    backgroundColor: "#f2f4fb",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12
+  },
+  financeCtaText: {
+    color: "#3d4d78",
+    fontSize: 17,
+    fontWeight: "700"
+  },
+  financeCtaSub: {
+    color: "#6d745b",
+    fontSize: 13,
+    marginTop: 4
+  },
+  housingCta: {
+    borderWidth: 2,
+    borderColor: "#a67c52",
+    backgroundColor: "#faf6f0",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12
+  },
+  housingCtaText: {
+    color: "#5c4428",
+    fontSize: 17,
+    fontWeight: "700"
+  },
+  housingCtaSub: {
+    color: "#6d745b",
+    fontSize: 13,
+    marginTop: 4
   },
   block: {
     marginBottom: 18

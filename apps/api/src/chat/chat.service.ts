@@ -135,6 +135,13 @@ export class ChatService {
         room: {
           include: {
             farm: { select: { id: true, name: true } },
+            members: {
+              include: {
+                user: {
+                  select: { id: true, fullName: true, email: true }
+                }
+              }
+            },
             messages: {
               orderBy: { createdAt: "desc" },
               take: 1,
@@ -210,6 +217,60 @@ export class ChatService {
       include: {
         sender: { select: { id: true, fullName: true, email: true } }
       }
+    });
+  }
+
+  /**
+   * Annuaire pour DM : uniquement les utilisateurs avec au moins une ferme en commun
+   * (propriétaire ou membre), + recherche par fragment de nom ou d’e-mail (hors soi).
+   */
+  async searchUsersForChat(actor: User, rawQ: string) {
+    const q = rawQ.trim();
+    if (q.length < 2) {
+      throw new BadRequestException(
+        "Requete trop courte (minimum 2 caracteres)"
+      );
+    }
+
+    const myFarms = await this.prisma.farm.findMany({
+      where: {
+        OR: [
+          { ownerId: actor.id },
+          { memberships: { some: { userId: actor.id } } }
+        ]
+      },
+      select: { id: true }
+    });
+    const farmIds = myFarms.map((f) => f.id);
+    if (farmIds.length === 0) {
+      return [];
+    }
+
+    return this.prisma.user.findMany({
+      where: {
+        id: { not: actor.id },
+        AND: [
+          {
+            OR: [
+              { email: { contains: q, mode: "insensitive" } },
+              { fullName: { contains: q, mode: "insensitive" } }
+            ]
+          },
+          {
+            OR: [
+              { ownedFarms: { some: { id: { in: farmIds } } } },
+              { memberships: { some: { farmId: { in: farmIds } } } }
+            ]
+          }
+        ]
+      },
+      select: {
+        id: true,
+        fullName: true,
+        email: true
+      },
+      take: 20,
+      orderBy: [{ fullName: "asc" }, { email: "asc" }]
     });
   }
 }
