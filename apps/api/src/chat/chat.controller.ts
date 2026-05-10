@@ -10,6 +10,8 @@ import {
 import type { User } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
+import { FeatureEnabledGuard } from "../config-client/feature-enabled.guard";
+import { RequireFeature } from "../config-client/require-feature.decorator";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.decorator";
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
@@ -19,7 +21,8 @@ import { CreateDirectChatDto } from "./dto/create-direct-chat.dto";
 import { SendChatMessageDto } from "./dto/send-chat-message.dto";
 
 @Controller("chat")
-@UseGuards(SupabaseJwtGuard)
+@RequireFeature("chat")
+@UseGuards(SupabaseJwtGuard, FeatureEnabledGuard)
 export class ChatController {
   constructor(
     private readonly chat: ChatService,

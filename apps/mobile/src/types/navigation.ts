@@ -23,4 +23,6 @@ export type RootStackParamList = {
   MarketplaceMyListings: undefined;
   CreateMarketplaceListing: { farmId?: string };
   EditMarketplaceListing: { listingId: string };
+  ChatRooms: undefined;
+  ChatRoom: { roomId: string; headline?: string };
 };

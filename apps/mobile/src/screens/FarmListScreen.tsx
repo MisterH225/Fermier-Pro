@@ -36,7 +36,8 @@ export function FarmListScreen({ navigation }: Props) {
     authError,
     authMe,
     activeProfileId,
-    setActiveProfileId
+    setActiveProfileId,
+    clientFeatures
   } = useSession();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
 
@@ -61,13 +62,24 @@ export function FarmListScreen({ navigation }: Props) {
         ) : null,
       headerRight: () => (
         <View style={styles.headerRight}>
-          <TouchableOpacity
-            onPress={() => stackNavigation.navigate("MarketplaceList")}
-            style={styles.headerSecondary}
-            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-          >
-            <Text style={styles.headerSecondaryText}>Marché</Text>
-          </TouchableOpacity>
+          {clientFeatures.chat ? (
+            <TouchableOpacity
+              onPress={() => stackNavigation.navigate("ChatRooms")}
+              style={styles.headerSecondary}
+              hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+            >
+              <Text style={styles.headerSecondaryText}>Messages</Text>
+            </TouchableOpacity>
+          ) : null}
+          {clientFeatures.marketplace ? (
+            <TouchableOpacity
+              onPress={() => stackNavigation.navigate("MarketplaceList")}
+              style={styles.headerSecondary}
+              hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+            >
+              <Text style={styles.headerSecondaryText}>Marché</Text>
+            </TouchableOpacity>
+          ) : null}
           {producerProfile ? (
             <TouchableOpacity
               onPress={() => stackNavigation.navigate("CreateFarm")}
@@ -93,7 +105,9 @@ export function FarmListScreen({ navigation }: Props) {
     profiles,
     activeProfileId,
     producerProfile,
-    stackNavigation
+    stackNavigation,
+    clientFeatures.marketplace,
+    clientFeatures.chat
   ]);
 
   const displayError = authError || farmsQuery.error;
@@ -154,12 +168,14 @@ export function FarmListScreen({ navigation }: Props) {
             Crée une ferme avec le bouton « + Ferme » (profil producteur), ou
             depuis un client API POST /farms. Tu peux aussi parcourir le marché.
           </Text>
-          <TouchableOpacity
-            style={styles.ctaOutline}
-            onPress={() => stackNavigation.navigate("MarketplaceList")}
-          >
-            <Text style={styles.ctaOutlineText}>Voir le marché</Text>
-          </TouchableOpacity>
+          {clientFeatures.marketplace ? (
+            <TouchableOpacity
+              style={styles.ctaOutline}
+              onPress={() => stackNavigation.navigate("MarketplaceList")}
+            >
+              <Text style={styles.ctaOutlineText}>Voir le marché</Text>
+            </TouchableOpacity>
+          ) : null}
           {producerProfile ? (
             <TouchableOpacity
               style={styles.cta}
@@ -187,15 +203,17 @@ export function FarmListScreen({ navigation }: Props) {
                 Bonjour {authMe.user.fullName}
               </Text>
             ) : null}
-            <TouchableOpacity
-              style={styles.marketInline}
-              onPress={() => stackNavigation.navigate("MarketplaceList")}
-            >
-              <Text style={styles.marketInlineText}>Voir le marché</Text>
-              <Text style={styles.marketInlineSub}>
-                Annonces publiées · achat / inspiration
-              </Text>
-            </TouchableOpacity>
+            {clientFeatures.marketplace ? (
+              <TouchableOpacity
+                style={styles.marketInline}
+                onPress={() => stackNavigation.navigate("MarketplaceList")}
+              >
+                <Text style={styles.marketInlineText}>Voir le marché</Text>
+                <Text style={styles.marketInlineSub}>
+                  Annonces publiées · achat / inspiration
+                </Text>
+              </TouchableOpacity>
+            ) : null}
             {producerProfile ? (
               <TouchableOpacity
                 style={styles.inlineCta}

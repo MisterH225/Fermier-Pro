@@ -9,6 +9,7 @@ import {
 } from "@nestjs/websockets";
 import type { Server, Socket } from "socket.io";
 import { AuthService } from "../auth/auth.service";
+import { FeatureFlagService } from "../config-client/feature-flags.service";
 import { ChatService } from "./chat.service";
 import { WsJoinRoomDto } from "./dto/ws-join-room.dto";
 import { WsSendMessageDto } from "./dto/ws-send-message.dto";
@@ -25,7 +26,8 @@ export class ChatGateway implements OnGatewayConnection {
 
   constructor(
     private readonly auth: AuthService,
-    private readonly chat: ChatService
+    private readonly chat: ChatService,
+    private readonly featureFlags: FeatureFlagService
   ) {}
 
   broadcastNewMessage(roomId: string, message: unknown) {
@@ -33,6 +35,11 @@ export class ChatGateway implements OnGatewayConnection {
   }
 
   async handleConnection(client: Socket) {
+    if (!this.featureFlags.isEnabled("chat")) {
+      this.logger.debug("WS /chat : module désactivé (FEATURE_CHAT)");
+      client.disconnect(true);
+      return;
+    }
     const token = this.extractToken(client);
     if (!token) {
       client.disconnect(true);
@@ -68,6 +75,9 @@ export class ChatGateway implements OnGatewayConnection {
     @ConnectedSocket() client: Socket,
     @MessageBody() body: WsJoinRoomDto
   ) {
+    if (!this.featureFlags.isEnabled("chat")) {
+      return { ok: false, error: "module_disabled" };
+    }
     const userId = client.data.userId as string | undefined;
     if (!userId) {
       return { ok: false, error: "unauthorized" };
@@ -91,6 +101,9 @@ export class ChatGateway implements OnGatewayConnection {
     @ConnectedSocket() client: Socket,
     @MessageBody() body: WsSendMessageDto
   ) {
+    if (!this.featureFlags.isEnabled("chat")) {
+      return { ok: false, error: "module_disabled" };
+    }
     const userId = client.data.userId as string | undefined;
     if (!userId) {
       return { ok: false, error: "unauthorized" };

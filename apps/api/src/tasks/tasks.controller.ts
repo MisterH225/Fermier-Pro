@@ -13,6 +13,8 @@ import type { User } from "@prisma/client";
 import { TaskStatus } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
+import { FeatureEnabledGuard } from "../config-client/feature-enabled.guard";
+import { RequireFeature } from "../config-client/require-feature.decorator";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.decorator";
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
@@ -21,7 +23,8 @@ import { UpdateTaskDto } from "./dto/update-task.dto";
 import { TasksService } from "./tasks.service";
 
 @Controller("farms/:farmId/tasks")
-@UseGuards(SupabaseJwtGuard, FarmScopesGuard)
+@RequireFeature("tasks")
+@UseGuards(SupabaseJwtGuard, FeatureEnabledGuard, FarmScopesGuard)
 export class TasksController {
   constructor(private readonly tasks: TasksService) {}
 

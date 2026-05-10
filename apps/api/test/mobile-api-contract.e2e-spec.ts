@@ -41,6 +41,14 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(res.status).toBe(200);
   });
 
+  it("GET config/client (feature flags, sans auth)", async () => {
+    const res = await request(app.getHttpServer()).get("/api/v1/config/client");
+    expect(res.status).toBe(200);
+    expect(res.body?.features).toBeDefined();
+    expect(typeof res.body.features.marketplace).toBe("boolean");
+    expect(typeof res.body.features.chat).toBe("boolean");
+  });
+
   it("GET marketplace listings (catalogue publié)", async () => {
     const res = await request(app.getHttpServer())
       .get("/api/v1/marketplace/listings")
@@ -116,6 +124,36 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(res.status).toBe(200);
     expect(res.body?.id).toBe(ctx.farmId);
     expect(res.body?.name).toBeDefined();
+  });
+
+  it("GET /chat/rooms + POST salon ferme + messages", async () => {
+    const rooms = await request(app.getHttpServer())
+      .get("/api/v1/chat/rooms")
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(rooms.status).toBe(200);
+    expect(Array.isArray(rooms.body)).toBe(true);
+
+    const ensure = await request(app.getHttpServer())
+      .post(`/api/v1/chat/rooms/farm/${ctx.farmId}`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(ensure.status).toBeGreaterThanOrEqual(200);
+    expect(ensure.status).toBeLessThan(300);
+    const roomId = ensure.body?.id as string;
+    expect(roomId).toBeDefined();
+
+    const listMsg = await request(app.getHttpServer())
+      .get(`/api/v1/chat/rooms/${roomId}/messages`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(listMsg.status).toBe(200);
+    expect(Array.isArray(listMsg.body)).toBe(true);
+
+    const posted = await request(app.getHttpServer())
+      .post(`/api/v1/chat/rooms/${roomId}/messages`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({ body: "Message contrat e2e chat" });
+    expect(posted.status).toBeGreaterThanOrEqual(200);
+    expect(posted.status).toBeLessThan(300);
+    expect(posted.body?.body).toBe("Message contrat e2e chat");
   });
 
   it("POST /farms création (profil producteur)", async () => {

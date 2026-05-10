@@ -92,6 +92,116 @@ export async function apiPatchJson<T>(
   return JSON.parse(text) as T;
 }
 
+/** GET public (sans Bearer) — feature flags pour menus / modules. */
+export type ClientConfigDto = {
+  features: {
+    marketplace: boolean;
+    chat: boolean;
+    vetConsultations: boolean;
+    tasks: boolean;
+    finance: boolean;
+    housing: boolean;
+  };
+};
+
+export async function fetchClientConfig(): Promise<ClientConfigDto> {
+  const url = `${apiBaseUrl()}/api/v1/config/client`;
+  const res = await fetch(url);
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(text || `${res.status} ${res.statusText}`);
+  }
+  return JSON.parse(text) as ClientConfigDto;
+}
+
+/** REST chat — aligné sur `ChatController` (`/chat/...`). */
+export type ChatSenderPreview = {
+  id: string;
+  fullName: string | null;
+  email?: string | null;
+};
+
+export type ChatMessagePreview = {
+  id: string;
+  body: string;
+  createdAt: string;
+  sender: ChatSenderPreview;
+};
+
+export type ChatRoomListItem = {
+  id: string;
+  kind: string;
+  farmId: string | null;
+  directKey: string | null;
+  title: string | null;
+  farm?: { id: string; name: string } | null;
+  messages?: ChatMessagePreview[];
+};
+
+export type ChatMessageDto = {
+  id: string;
+  roomId: string;
+  senderUserId: string;
+  body: string;
+  createdAt: string;
+  sender: ChatSenderPreview;
+};
+
+export function fetchChatRooms(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<ChatRoomListItem[]> {
+  return apiGetJson<ChatRoomListItem[]>(
+    "/chat/rooms",
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function ensureFarmChatRoom(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<ChatRoomListItem> {
+  return apiPostJson<ChatRoomListItem>(
+    `/chat/rooms/farm/${farmId}`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchChatMessages(
+  accessToken: string,
+  roomId: string,
+  activeProfileId?: string | null,
+  opts?: { cursor?: string; take?: number }
+): Promise<ChatMessageDto[]> {
+  const qs = new URLSearchParams();
+  if (opts?.cursor) qs.set("cursor", opts.cursor);
+  if (opts?.take != null) qs.set("take", String(opts.take));
+  const q = qs.toString();
+  return apiGetJson<ChatMessageDto[]>(
+    `/chat/rooms/${roomId}/messages${q ? `?${q}` : ""}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function postChatMessage(
+  accessToken: string,
+  roomId: string,
+  body: string,
+  activeProfileId?: string | null
+): Promise<ChatMessageDto> {
+  return apiPostJson<ChatMessageDto>(
+    `/chat/rooms/${roomId}/messages`,
+    { body },
+    accessToken,
+    activeProfileId
+  );
+}
+
 export type FarmDto = {
   id: string;
   name: string;

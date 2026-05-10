@@ -13,6 +13,7 @@ import { AppService } from "./app.service";
 import { AuthModule } from "./auth/auth.module";
 import { ChatModule } from "./chat/chat.module";
 import { CommonModule } from "./common/common.module";
+import { ConfigClientModule } from "./config-client/config-client.module";
 import { FarmMembersModule } from "./farm-members/farm-members.module";
 import { FarmsModule } from "./farms/farms.module";
 import { FinanceModule } from "./finance/finance.module";
@@ -63,6 +64,7 @@ import { VetConsultationsModule } from "./vet-consultations/vet-consultations.mo
     }),
     PrismaModule,
     CommonModule,
+    ConfigClientModule,
     AuthModule,
     ChatModule,
     ProfilesModule,

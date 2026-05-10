@@ -15,6 +15,8 @@ import { MarketplaceListScreen } from "../screens/MarketplaceListScreen";
 import { MarketplaceListingDetailScreen } from "../screens/MarketplaceListingDetailScreen";
 import { MarketplaceMyListingsScreen } from "../screens/MarketplaceMyListingsScreen";
 import { MarketplaceMyOffersScreen } from "../screens/MarketplaceMyOffersScreen";
+import { ChatRoomsScreen } from "../screens/ChatRoomsScreen";
+import { ChatRoomScreen } from "../screens/ChatRoomScreen";
 import type { RootStackParamList } from "../types/navigation";
 import { OfflineBanner } from "./OfflineBanner";
 
@@ -111,6 +113,18 @@ function MainStack() {
         name="EditMarketplaceListing"
         component={EditMarketplaceListingScreen}
         options={{ title: "Modifier l'annonce" }}
+      />
+      <Stack.Screen
+        name="ChatRooms"
+        component={ChatRoomsScreen}
+        options={{ title: "Messages" }}
+      />
+      <Stack.Screen
+        name="ChatRoom"
+        component={ChatRoomScreen}
+        options={({ route }) => ({
+          title: route.params.headline ?? "Conversation"
+        })}
       />
     </Stack.Navigator>
   );

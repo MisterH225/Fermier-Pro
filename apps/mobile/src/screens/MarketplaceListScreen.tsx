@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
 import { useSession } from "../context/SessionContext";
 import type { MarketplaceListingListItem } from "../lib/api";
 import { fetchMarketplaceListings } from "../lib/api";
@@ -48,42 +49,45 @@ function listingSearchHaystack(item: MarketplaceListingListItem): string {
 }
 
 export function MarketplaceListScreen({ navigation }: Props) {
-  const { accessToken, activeProfileId } = useSession();
+  const { accessToken, activeProfileId, clientFeatures } = useSession();
   const [search, setSearch] = useState("");
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerRight: () => (
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("MarketplaceMyListings")}
-            style={{ paddingHorizontal: 6 }}
-            hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
-          >
-            <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>
-              Mes annonces
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("MarketplaceMyOffers")}
-            style={{ paddingHorizontal: 6 }}
-            hitSlop={{ top: 10, bottom: 10, left: 4, right: 8 }}
-          >
-            <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>
-              Mes offres
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )
+      headerRight: clientFeatures.marketplace
+        ? () => (
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("MarketplaceMyListings")}
+                style={{ paddingHorizontal: 6 }}
+                hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>
+                  Mes annonces
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("MarketplaceMyOffers")}
+                style={{ paddingHorizontal: 6 }}
+                hitSlop={{ top: 10, bottom: 10, left: 4, right: 8 }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>
+                  Mes offres
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )
+        : undefined
     });
-  }, [navigation]);
+  }, [navigation, clientFeatures.marketplace]);
 
   const listingsQuery = useQuery({
     queryKey: ["marketplaceListings", activeProfileId],
     queryFn: () =>
       fetchMarketplaceListings(accessToken, activeProfileId, {
         mine: false
-      })
+      }),
+    enabled: clientFeatures.marketplace
   });
 
   const err =
@@ -95,17 +99,21 @@ export function MarketplaceListScreen({ navigation }: Props) {
 
   if (listingsQuery.isPending) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#5d7a1f" />
-      </View>
+      <MarketplaceModuleGate>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#5d7a1f" />
+        </View>
+      </MarketplaceModuleGate>
     );
   }
 
   if (err) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.error}>{err}</Text>
-      </View>
+      <MarketplaceModuleGate>
+        <View style={styles.centered}>
+          <Text style={styles.error}>{err}</Text>
+        </View>
+      </MarketplaceModuleGate>
     );
   }
 
@@ -126,7 +134,8 @@ export function MarketplaceListScreen({ navigation }: Props) {
         : "Aucune annonce publiée pour le moment.";
 
   return (
-    <FlatList
+    <MarketplaceModuleGate>
+      <FlatList
       data={displayed}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.list}
@@ -186,6 +195,7 @@ export function MarketplaceListScreen({ navigation }: Props) {
         </TouchableOpacity>
       )}
     />
+    </MarketplaceModuleGate>
   );
 }
 

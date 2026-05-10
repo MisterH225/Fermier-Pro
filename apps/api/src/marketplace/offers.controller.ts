@@ -9,11 +9,14 @@ import {
 import type { User } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
+import { FeatureEnabledGuard } from "../config-client/feature-enabled.guard";
+import { RequireFeature } from "../config-client/require-feature.decorator";
 import { CreateOfferDto } from "./dto/create-offer.dto";
 import { OffersService } from "./offers.service";
 
 @Controller("marketplace")
-@UseGuards(SupabaseJwtGuard)
+@RequireFeature("marketplace")
+@UseGuards(SupabaseJwtGuard, FeatureEnabledGuard)
 export class OffersController {
   constructor(private readonly offers: OffersService) {}
 

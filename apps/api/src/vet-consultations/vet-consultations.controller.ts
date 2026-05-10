@@ -12,6 +12,8 @@ import type { User } from "@prisma/client";
 import { VetConsultationStatus } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
+import { FeatureEnabledGuard } from "../config-client/feature-enabled.guard";
+import { RequireFeature } from "../config-client/require-feature.decorator";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.decorator";
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
@@ -21,7 +23,8 @@ import { UpdateVetConsultationDto } from "./dto/update-vet-consultation.dto";
 import { VetConsultationsService } from "./vet-consultations.service";
 
 @Controller("farms/:farmId/vet-consultations")
-@UseGuards(SupabaseJwtGuard, FarmScopesGuard)
+@RequireFeature("vetConsultations")
+@UseGuards(SupabaseJwtGuard, FeatureEnabledGuard, FarmScopesGuard)
 export class VetConsultationsController {
   constructor(private readonly consultations: VetConsultationsService) {}
 

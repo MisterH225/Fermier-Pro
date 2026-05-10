@@ -8,10 +8,19 @@ import {
   useState,
   type ReactNode
 } from "react";
-import type { AuthMeResponse } from "../lib/api";
-import { fetchAuthMe } from "../lib/api";
+import type { AuthMeResponse, ClientConfigDto } from "../lib/api";
+import { fetchAuthMe, fetchClientConfig } from "../lib/api";
 
 const STORAGE_PROFILE_KEY = "@fermier_pro/active_profile_id";
+
+const DEFAULT_CLIENT_FEATURES: ClientConfigDto["features"] = {
+  marketplace: true,
+  chat: true,
+  vetConsultations: true,
+  tasks: true,
+  finance: true,
+  housing: true
+};
 
 type SessionContextValue = {
   accessToken: string;
@@ -23,6 +32,8 @@ type SessionContextValue = {
   activeProfileId: string | null;
   setActiveProfileId: (id: string | null) => Promise<void>;
   refreshAuthMe: () => Promise<void>;
+  /** GET /config/client — défaut tout activé si échec réseau */
+  clientFeatures: ClientConfigDto["features"];
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -53,6 +64,26 @@ export function SessionProvider({
   const [activeProfileId, setActiveProfileIdState] = useState<string | null>(
     null
   );
+  const [clientFeatures, setClientFeatures] =
+    useState<ClientConfigDto["features"]>(DEFAULT_CLIENT_FEATURES);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchClientConfig()
+      .then((cfg) => {
+        if (!cancelled) {
+          setClientFeatures(cfg.features);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setClientFeatures({ ...DEFAULT_CLIENT_FEATURES });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const bootstrap = useCallback(async () => {
     setAuthLoading(true);
@@ -141,7 +172,8 @@ export function SessionProvider({
       authError,
       activeProfileId,
       setActiveProfileId,
-      refreshAuthMe
+      refreshAuthMe,
+      clientFeatures
     }),
     [
       accessToken,
@@ -151,7 +183,8 @@ export function SessionProvider({
       authError,
       activeProfileId,
       setActiveProfileId,
-      refreshAuthMe
+      refreshAuthMe,
+      clientFeatures
     ]
   );
 

@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ActivityIndicator,
   ScrollView,
@@ -10,18 +10,30 @@ import {
 } from "react-native";
 import { useSession } from "../context/SessionContext";
 import type { FarmDto } from "../lib/api";
-import { fetchFarm } from "../lib/api";
+import { ensureFarmChatRoom, fetchFarm } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmDetail">;
 
 export function FarmDetailScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
-  const { accessToken, activeProfileId } = useSession();
+  const { accessToken, activeProfileId, clientFeatures } = useSession();
+  const qc = useQueryClient();
 
   const farmQuery = useQuery({
     queryKey: ["farm", farmId, activeProfileId],
     queryFn: () => fetchFarm(accessToken, farmId, activeProfileId)
+  });
+
+  const openFarmChat = useMutation({
+    mutationFn: () => ensureFarmChatRoom(accessToken, farmId, activeProfileId),
+    onSuccess: (room) => {
+      void qc.invalidateQueries({ queryKey: ["chatRooms", activeProfileId] });
+      navigation.navigate("ChatRoom", {
+        roomId: room.id,
+        headline: room.farm?.name ?? farmName
+      });
+    }
   });
 
   const farm = farmQuery.data;
@@ -60,25 +72,55 @@ export function FarmDetailScreen({ route, navigation }: Props) {
         <Text style={styles.cheptelCtaSub}>Animaux et lots</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.tasksCta}
-        onPress={() =>
-          navigation.navigate("FarmTasks", { farmId, farmName })
-        }
-      >
-        <Text style={styles.tasksCtaText}>Tâches terrain</Text>
-        <Text style={styles.tasksCtaSub}>Journal technicien</Text>
-      </TouchableOpacity>
+      {clientFeatures.chat ? (
+        <>
+          <TouchableOpacity
+            style={styles.chatCta}
+            onPress={() => openFarmChat.mutate()}
+            disabled={openFarmChat.isPending}
+          >
+            <Text style={styles.chatCtaText}>Salon de la ferme</Text>
+            <Text style={styles.chatCtaSub}>
+              {openFarmChat.isPending
+                ? "Ouverture…"
+                : "Fil de discussion lié à cette exploitation"}
+            </Text>
+          </TouchableOpacity>
+          {openFarmChat.isError ? (
+            <Text style={styles.chatErr}>
+              {openFarmChat.error instanceof Error
+                ? openFarmChat.error.message
+                : String(openFarmChat.error)}
+            </Text>
+          ) : null}
+        </>
+      ) : null}
 
-      <TouchableOpacity
-        style={styles.marketCta}
-        onPress={() =>
-          navigation.navigate("CreateMarketplaceListing", { farmId })
-        }
-      >
-        <Text style={styles.marketCtaText}>Annonce sur le marché</Text>
-        <Text style={styles.marketCtaSub}>Créer une annonce liée à cette ferme</Text>
-      </TouchableOpacity>
+      {clientFeatures.tasks ? (
+        <TouchableOpacity
+          style={styles.tasksCta}
+          onPress={() =>
+            navigation.navigate("FarmTasks", { farmId, farmName })
+          }
+        >
+          <Text style={styles.tasksCtaText}>Tâches terrain</Text>
+          <Text style={styles.tasksCtaSub}>Journal technicien</Text>
+        </TouchableOpacity>
+      ) : null}
+
+      {clientFeatures.marketplace ? (
+        <TouchableOpacity
+          style={styles.marketCta}
+          onPress={() =>
+            navigation.navigate("CreateMarketplaceListing", { farmId })
+          }
+        >
+          <Text style={styles.marketCtaText}>Annonce sur le marché</Text>
+          <Text style={styles.marketCtaSub}>
+            Créer une annonce liée à cette ferme
+          </Text>
+        </TouchableOpacity>
+      ) : null}
 
       <FarmInfoBlocks farm={farm} />
     </ScrollView>
@@ -181,6 +223,30 @@ const styles = StyleSheet.create({
     color: "#dfe8c8",
     fontSize: 13,
     marginTop: 4
+  },
+  chatCta: {
+    borderWidth: 2,
+    borderColor: "#7a9a3a",
+    backgroundColor: "#f0f5e4",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12
+  },
+  chatCtaText: {
+    color: "#3d5218",
+    fontSize: 17,
+    fontWeight: "700"
+  },
+  chatCtaSub: {
+    color: "#6d745b",
+    fontSize: 13,
+    marginTop: 4
+  },
+  chatErr: {
+    color: "#b00020",
+    fontSize: 13,
+    marginBottom: 12,
+    lineHeight: 18
   },
   block: {
     marginBottom: 18

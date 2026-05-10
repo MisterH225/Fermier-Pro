@@ -24,7 +24,9 @@ const PERSIST_QUERY_ROOTS = new Set([
   "marketplaceListings",
   "marketplaceListing",
   "marketplaceMyOffers",
-  "marketplaceMyListings"
+  "marketplaceMyListings",
+  "chatRooms",
+  "chatMessages"
 ]);
 
 export function shouldPersistQuery(query: Query): boolean {

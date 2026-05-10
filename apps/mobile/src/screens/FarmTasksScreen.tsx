@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { ModuleFeatureGate } from "../components/ModuleFeatureGate";
 import { useSession } from "../context/SessionContext";
 import type { FarmTaskDto, PatchFarmTaskPayload } from "../lib/api";
 import { fetchFarmTasks, patchFarmTask } from "../lib/api";
@@ -43,25 +44,27 @@ const PRIORITY_FR: Record<string, string> = {
 
 export function FarmTasksScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
-  const { accessToken, activeProfileId } = useSession();
+  const { accessToken, activeProfileId, clientFeatures } = useSession();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<FilterKey>("all");
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() =>
-            navigation.navigate("CreateTask", { farmId, farmName })
-          }
-          style={styles.headerBtn}
-          hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
-        >
-          <Text style={styles.headerBtnText}>+ Tâche</Text>
-        </TouchableOpacity>
-      )
+      headerRight: clientFeatures.tasks
+        ? () => (
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate("CreateTask", { farmId, farmName })
+              }
+              style={styles.headerBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+            >
+              <Text style={styles.headerBtnText}>+ Tâche</Text>
+            </TouchableOpacity>
+          )
+        : undefined
     });
-  }, [navigation, farmId, farmName]);
+  }, [navigation, farmId, farmName, clientFeatures.tasks]);
 
   const tasksQuery = useQuery({
     queryKey: ["farmTasks", farmId, activeProfileId, filter],
@@ -71,7 +74,8 @@ export function FarmTasksScreen({ route, navigation }: Props) {
         farmId,
         activeProfileId,
         filter === "all" ? undefined : filter
-      )
+      ),
+    enabled: clientFeatures.tasks
   });
 
   const updateMutation = useMutation({
@@ -118,6 +122,14 @@ export function FarmTasksScreen({ route, navigation }: Props) {
       : tasksQuery.error
         ? String(tasksQuery.error)
         : null;
+
+  if (!clientFeatures.tasks) {
+    return (
+      <ModuleFeatureGate feature="tasks">
+        <View />
+      </ModuleFeatureGate>
+    );
+  }
 
   if (loading) {
     return (

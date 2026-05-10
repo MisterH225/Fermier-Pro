@@ -63,6 +63,8 @@ API healthcheck:
 GET http://localhost:3000/api/v1/health
 ```
 
+**Feature flags (client)** — `GET /api/v1/config/client` (public, sans JWT) : objet `features` piloté par les variables **`FEATURE_*`** du `.env` (voir `.env.example`). Si un flag est à **`false`**, les routes REST du module correspondant répondent **503** (`RequireFeature` + `FeatureEnabledGuard` sur Nest : marketplace, chat, tâches, finance, loges, véto). Pour **chat**, le namespace Socket.IO **`/chat`** refuse aussi les nouvelles connexions WebSocket. Le mobile lit les flags au démarrage (`SessionContext`) et masque les entrées concernées (ex. marché, tâches terrain). Évolution prévue : flags par tenant / abonnement.
+
 ## Lancer App Mobile Expo
 
 1. Dans `apps/mobile/`, copier `.env.example` vers `.env`.

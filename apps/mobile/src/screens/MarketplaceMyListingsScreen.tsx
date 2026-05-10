@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
 import { useSession } from "../context/SessionContext";
 import type { MarketplaceListingListItem } from "../lib/api";
 import { fetchMarketplaceListings } from "../lib/api";
@@ -45,24 +46,26 @@ function formatPrice(
 }
 
 export function MarketplaceMyListingsScreen({ navigation }: Props) {
-  const { accessToken, activeProfileId } = useSession();
+  const { accessToken, activeProfileId, clientFeatures } = useSession();
   const [filter, setFilter] = useState<ListingFilter>("all");
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() => navigation.navigate("CreateMarketplaceListing", {})}
-          style={{ paddingHorizontal: 8 }}
-          hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
-        >
-          <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
-            Créer
-          </Text>
-        </TouchableOpacity>
-      )
+      headerRight: clientFeatures.marketplace
+        ? () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("CreateMarketplaceListing", {})}
+              style={{ paddingHorizontal: 8 }}
+              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
+                Créer
+              </Text>
+            </TouchableOpacity>
+          )
+        : undefined
     });
-  }, [navigation]);
+  }, [navigation, clientFeatures.marketplace]);
 
   const q = useQuery({
     queryKey: ["marketplaceMyListings", activeProfileId, filter],
@@ -70,11 +73,20 @@ export function MarketplaceMyListingsScreen({ navigation }: Props) {
       fetchMarketplaceListings(accessToken, activeProfileId, {
         mine: true,
         ...(filter !== "all" ? { status: filter } : {})
-      })
+      }),
+    enabled: clientFeatures.marketplace
   });
 
   const err =
     q.error instanceof Error ? q.error.message : q.error ? String(q.error) : null;
+
+  if (!clientFeatures.marketplace) {
+    return (
+      <MarketplaceModuleGate>
+        <View />
+      </MarketplaceModuleGate>
+    );
+  }
 
   if (q.isPending) {
     return (

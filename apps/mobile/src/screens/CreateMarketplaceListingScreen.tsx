@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
 import { useSession } from "../context/SessionContext";
 import {
   createMarketplaceListing,
@@ -24,7 +25,7 @@ import type { RootStackParamList } from "../types/navigation";
 type Props = NativeStackScreenProps<RootStackParamList, "CreateMarketplaceListing">;
 
 export function CreateMarketplaceListingScreen({ navigation, route }: Props) {
-  const { accessToken, activeProfileId } = useSession();
+  const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
 
   const initialFarmId = route.params?.farmId;
@@ -136,6 +137,14 @@ export function CreateMarketplaceListingScreen({ navigation, route }: Props) {
     ),
     [farmId, farmRows]
   );
+
+  if (!clientFeatures.marketplace) {
+    return (
+      <MarketplaceModuleGate>
+        <View />
+      </MarketplaceModuleGate>
+    );
+  }
 
   return (
     <ScrollView

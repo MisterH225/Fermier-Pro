@@ -57,6 +57,8 @@ Chaque profil a:
 
 ## 4) Architecture Technique (Cible)
 
+Référence **modularité plateforme, monolithe modulaire, feature flags, event-driven, résilience** : `docs/ARCHITECTURE_MODULAIRE.md`.
+
 ### Frontend Mobile
 - React Native + Expo
 - TypeScript

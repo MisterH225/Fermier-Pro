@@ -12,12 +12,15 @@ import type { User } from "@prisma/client";
 import { ListingStatus } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
+import { FeatureEnabledGuard } from "../config-client/feature-enabled.guard";
+import { RequireFeature } from "../config-client/require-feature.decorator";
 import { CreateListingDto } from "./dto/create-listing.dto";
 import { UpdateListingDto } from "./dto/update-listing.dto";
 import { ListingsService } from "./listings.service";
 
 @Controller("marketplace/listings")
-@UseGuards(SupabaseJwtGuard)
+@RequireFeature("marketplace")
+@UseGuards(SupabaseJwtGuard, FeatureEnabledGuard)
 export class ListingsController {
   constructor(private readonly listings: ListingsService) {}
 

@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
 import { useSession } from "../context/SessionContext";
 import type { MarketplaceOfferMineRow } from "../lib/api";
 import {
@@ -34,12 +35,13 @@ function formatMoney(v: string | number, currency: string): string {
 }
 
 export function MarketplaceMyOffersScreen({ navigation }: Props) {
-  const { accessToken, activeProfileId } = useSession();
+  const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
 
   const q = useQuery({
     queryKey: ["marketplaceMyOffers", activeProfileId],
-    queryFn: () => fetchMyMarketplaceOffers(accessToken, activeProfileId)
+    queryFn: () => fetchMyMarketplaceOffers(accessToken, activeProfileId),
+    enabled: clientFeatures.marketplace
   });
 
   const withdrawMut = useMutation({
@@ -63,6 +65,14 @@ export function MarketplaceMyOffersScreen({ navigation }: Props) {
 
   const err =
     q.error instanceof Error ? q.error.message : q.error ? String(q.error) : null;
+
+  if (!clientFeatures.marketplace) {
+    return (
+      <MarketplaceModuleGate>
+        <View />
+      </MarketplaceModuleGate>
+    );
+  }
 
   if (q.isPending) {
     return (

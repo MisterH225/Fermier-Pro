@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
 import { useSession } from "../context/SessionContext";
 import {
   acceptMarketplaceOffer,
@@ -51,7 +52,8 @@ export function MarketplaceListingDetailScreen({
   navigation
 }: Props) {
   const { listingId } = route.params;
-  const { accessToken, activeProfileId, authMe } = useSession();
+  const { accessToken, activeProfileId, authMe, clientFeatures } =
+    useSession();
   const qc = useQueryClient();
 
   const [offerPrice, setOfferPrice] = useState("");
@@ -61,7 +63,8 @@ export function MarketplaceListingDetailScreen({
   const q = useQuery({
     queryKey: ["marketplaceListing", listingId, activeProfileId],
     queryFn: () =>
-      fetchMarketplaceListing(accessToken, listingId, activeProfileId)
+      fetchMarketplaceListing(accessToken, listingId, activeProfileId),
+    enabled: clientFeatures.marketplace
   });
 
   useLayoutEffect(() => {
@@ -194,6 +197,14 @@ export function MarketplaceListingDetailScreen({
   const loading = q.isPending;
   const err =
     q.error instanceof Error ? q.error.message : q.error ? String(q.error) : null;
+
+  if (!clientFeatures.marketplace) {
+    return (
+      <MarketplaceModuleGate>
+        <View />
+      </MarketplaceModuleGate>
+    );
+  }
 
   if (loading) {
     return (

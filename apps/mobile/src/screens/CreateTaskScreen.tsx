@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { ModuleFeatureGate } from "../components/ModuleFeatureGate";
 import { useSession } from "../context/SessionContext";
 import {
   createFarmTask,
@@ -28,7 +29,7 @@ const PRIORITIES = [
 
 export function CreateTaskScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
-  const { accessToken, activeProfileId } = useSession();
+  const { accessToken, activeProfileId, clientFeatures } = useSession();
   const queryClient = useQueryClient();
 
   const [title, setTitle] = useState("");
@@ -68,6 +69,14 @@ export function CreateTaskScreen({ route, navigation }: Props) {
       Alert.alert("Création impossible", e.message);
     }
   });
+
+  if (!clientFeatures.tasks) {
+    return (
+      <ModuleFeatureGate feature="tasks">
+        <View />
+      </ModuleFeatureGate>
+    );
+  }
 
   return (
     <ScrollView

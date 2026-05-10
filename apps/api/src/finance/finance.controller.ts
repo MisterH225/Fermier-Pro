@@ -12,6 +12,8 @@ import {
 import type { User } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
+import { FeatureEnabledGuard } from "../config-client/feature-enabled.guard";
+import { RequireFeature } from "../config-client/require-feature.decorator";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.decorator";
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
@@ -22,7 +24,8 @@ import { UpdateRevenueDto } from "./dto/update-revenue.dto";
 import { FinanceService } from "./finance.service";
 
 @Controller("farms/:farmId/finance")
-@UseGuards(SupabaseJwtGuard, FarmScopesGuard)
+@RequireFeature("finance")
+@UseGuards(SupabaseJwtGuard, FeatureEnabledGuard, FarmScopesGuard)
 export class FinanceController {
   constructor(private readonly finance: FinanceService) {}
 

@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
 import { useSession } from "../context/SessionContext";
 import {
   fetchMarketplaceListing,
@@ -24,7 +25,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "EditMarketplaceListing"
 
 export function EditMarketplaceListingScreen({ navigation, route }: Props) {
   const { listingId } = route.params;
-  const { accessToken, activeProfileId, authMe } = useSession();
+  const { accessToken, activeProfileId, authMe, clientFeatures } = useSession();
   const qc = useQueryClient();
   const synced = useRef(false);
 
@@ -38,7 +39,8 @@ export function EditMarketplaceListingScreen({ navigation, route }: Props) {
   const q = useQuery({
     queryKey: ["marketplaceListing", listingId, activeProfileId],
     queryFn: () =>
-      fetchMarketplaceListing(accessToken, listingId, activeProfileId)
+      fetchMarketplaceListing(accessToken, listingId, activeProfileId),
+    enabled: clientFeatures.marketplace
   });
 
   useEffect(() => {
@@ -121,6 +123,14 @@ export function EditMarketplaceListingScreen({ navigation, route }: Props) {
 
   const err =
     q.error instanceof Error ? q.error.message : q.error ? String(q.error) : null;
+
+  if (!clientFeatures.marketplace) {
+    return (
+      <MarketplaceModuleGate>
+        <View />
+      </MarketplaceModuleGate>
+    );
+  }
 
   if (q.isPending || !q.data) {
     return (
