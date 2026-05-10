@@ -11,7 +11,7 @@ import {
 import { useSession } from "../context/SessionContext";
 import type { FarmDto } from "../lib/api";
 import { ensureFarmChatRoom, fetchFarm } from "../lib/api";
-import { farmDetailMenuVisibility } from "../lib/menuVisibility";
+import { buildFarmDetailMenu } from "../lib/menuVisibility";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmDetail">;
@@ -61,19 +61,21 @@ export function FarmDetailScreen({ route, navigation }: Props) {
     );
   }
 
-  const menu = farmDetailMenuVisibility(clientFeatures);
+  const menu = buildFarmDetailMenu(clientFeatures, farm.effectiveScopes);
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-      <TouchableOpacity
-        style={styles.cheptelCta}
-        onPress={() =>
-          navigation.navigate("FarmLivestock", { farmId, farmName })
-        }
-      >
-        <Text style={styles.cheptelCtaText}>Voir le cheptel</Text>
-        <Text style={styles.cheptelCtaSub}>Animaux et lots</Text>
-      </TouchableOpacity>
+      {menu.livestock ? (
+        <TouchableOpacity
+          style={styles.cheptelCta}
+          onPress={() =>
+            navigation.navigate("FarmLivestock", { farmId, farmName })
+          }
+        >
+          <Text style={styles.cheptelCtaText}>Voir le cheptel</Text>
+          <Text style={styles.cheptelCtaSub}>Animaux et lots</Text>
+        </TouchableOpacity>
+      ) : null}
 
       {menu.chat ? (
         <>
@@ -156,6 +158,34 @@ export function FarmDetailScreen({ route, navigation }: Props) {
           <Text style={styles.marketCtaSub}>
             Créer une annonce liée à cette ferme
           </Text>
+        </TouchableOpacity>
+      ) : null}
+
+      <TouchableOpacity
+        style={styles.teamCta}
+        onPress={() =>
+          navigation.navigate("FarmMembers", {
+            farmId,
+            farmName,
+            effectiveScopes: farm.effectiveScopes
+          })
+        }
+      >
+        <Text style={styles.teamCtaText}>Équipe et invitations</Text>
+        <Text style={styles.teamCtaSub}>
+          Membres, rôles et liens d&apos;invitation
+        </Text>
+      </TouchableOpacity>
+
+      {menu.feedStock ? (
+        <TouchableOpacity
+          style={styles.feedCta}
+          onPress={() =>
+            navigation.navigate("FarmFeedStock", { farmId, farmName })
+          }
+        >
+          <Text style={styles.feedCtaText}>Nutrition et stock</Text>
+          <Text style={styles.feedCtaSub}>Aliments achetés, stock restant</Text>
         </TouchableOpacity>
       ) : null}
 
@@ -335,6 +365,42 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   housingCtaSub: {
+    color: "#6d745b",
+    fontSize: 13,
+    marginTop: 4
+  },
+  teamCta: {
+    borderWidth: 2,
+    borderColor: "#6b6e9c",
+    backgroundColor: "#f4f4fb",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12
+  },
+  teamCtaText: {
+    color: "#3a3d6b",
+    fontSize: 17,
+    fontWeight: "700"
+  },
+  teamCtaSub: {
+    color: "#6d745b",
+    fontSize: 13,
+    marginTop: 4
+  },
+  feedCta: {
+    borderWidth: 2,
+    borderColor: "#8faa3c",
+    backgroundColor: "#f6f9e8",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12
+  },
+  feedCtaText: {
+    color: "#4d6318",
+    fontSize: 17,
+    fontWeight: "700"
+  },
+  feedCtaSub: {
     color: "#6d745b",
     fontSize: 13,
     marginTop: 4

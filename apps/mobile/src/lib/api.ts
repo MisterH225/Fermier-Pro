@@ -123,6 +123,7 @@ export type ClientConfigDto = {
     tasks: boolean;
     finance: boolean;
     housing: boolean;
+    feedStock: boolean;
   };
 };
 
@@ -217,6 +218,7 @@ export type FarmMemberDto = {
   farmId: string;
   userId: string;
   role: string;
+  scopes?: string[];
   user: {
     id: string;
     fullName: string | null;
@@ -232,6 +234,160 @@ export function fetchFarmMembers(
 ): Promise<FarmMemberDto[]> {
   return apiGetJson<FarmMemberDto[]>(
     `/farms/${farmId}/members`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type PatchFarmMemberPayload = {
+  role?: string;
+  scopes?: string[];
+};
+
+export function patchFarmMember(
+  accessToken: string,
+  farmId: string,
+  membershipId: string,
+  payload: PatchFarmMemberPayload,
+  activeProfileId?: string | null
+): Promise<FarmMemberDto> {
+  return apiPatchJson<FarmMemberDto>(
+    `/farms/${farmId}/members/${membershipId}`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function removeFarmMember(
+  accessToken: string,
+  farmId: string,
+  membershipId: string,
+  activeProfileId?: string | null
+): Promise<{ ok: boolean }> {
+  return apiDeleteJson<{ ok: boolean }>(
+    `/farms/${farmId}/members/${membershipId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type FarmInvitationPendingDto = {
+  id: string;
+  farmId: string;
+  role: string;
+  scopes: string[];
+  expiresAt: string;
+  inviteeEmail: string | null;
+  inviteePhone: string | null;
+  createdAt: string;
+  createdById: string;
+};
+
+export function fetchFarmPendingInvitations(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<FarmInvitationPendingDto[]> {
+  return apiGetJson<FarmInvitationPendingDto[]>(
+    `/farms/${farmId}/invitations`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type CreateFarmInvitationPayload = {
+  role: string;
+  scopes?: string[];
+  inviteeEmail?: string;
+  inviteePhone?: string;
+};
+
+export type CreateFarmInvitationResultDto = {
+  id: string;
+  farmId: string;
+  role: string;
+  expiresAt: string;
+  token: string;
+};
+
+export function createFarmInvitation(
+  accessToken: string,
+  farmId: string,
+  payload: CreateFarmInvitationPayload,
+  activeProfileId?: string | null
+): Promise<CreateFarmInvitationResultDto> {
+  return apiPostJson<CreateFarmInvitationResultDto>(
+    `/farms/${farmId}/invitations`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type FeedStockLotDto = {
+  id: string;
+  farmId: string;
+  productName: string;
+  quantityKg: string | number;
+  remainingKg: string | number;
+  purchasedAt: string;
+  supplierName: string | null;
+  unitPrice: string | number | null;
+  currency: string;
+  notes: string | null;
+  createdByUserId: string;
+  createdAt: string;
+  updatedAt: string;
+  creator?: { id: string; fullName: string | null };
+};
+
+export function fetchFeedStockLots(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<FeedStockLotDto[]> {
+  return apiGetJson<FeedStockLotDto[]>(
+    `/farms/${farmId}/feed-stock-lots`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type CreateFeedStockLotPayload = {
+  productName: string;
+  quantityKg: number;
+  purchasedAt?: string;
+  supplierName?: string;
+  unitPrice?: number;
+  currency?: string;
+  notes?: string;
+};
+
+export function createFeedStockLot(
+  accessToken: string,
+  farmId: string,
+  payload: CreateFeedStockLotPayload,
+  activeProfileId?: string | null
+): Promise<FeedStockLotDto> {
+  return apiPostJson<FeedStockLotDto>(
+    `/farms/${farmId}/feed-stock-lots`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function consumeFeedStockLot(
+  accessToken: string,
+  farmId: string,
+  lotId: string,
+  kg: number,
+  activeProfileId?: string | null
+): Promise<FeedStockLotDto> {
+  return apiPatchJson<FeedStockLotDto>(
+    `/farms/${farmId}/feed-stock-lots/${lotId}/consume`,
+    { kg },
     accessToken,
     activeProfileId
   );
@@ -310,6 +466,8 @@ export type FarmDto = {
   createdAt: string;
   updatedAt: string;
   livestockCategoryPolicies?: unknown;
+  /** Scopes effectifs sur cette ferme (RBAC), renvoyés par `GET /farms/:id`. */
+  effectiveScopes?: string[];
 };
 
 export function fetchFarms(
@@ -1286,6 +1444,8 @@ export type MarketplaceListingListItem = {
   locationLabel: string | null;
   status: string;
   publishedAt: string | null;
+  pickupAt?: string | null;
+  pickupNote?: string | null;
   createdAt: string;
   updatedAt: string;
   farm: { id: string; name: string } | null;
@@ -1343,6 +1503,40 @@ export function fetchMarketplaceListing(
 ): Promise<MarketplaceListingDetail> {
   return apiGetJson<MarketplaceListingDetail>(
     `/marketplace/listings/${listingId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type PatchMarketplacePickupPayload = {
+  pickupAt?: string | null;
+  pickupNote?: string | null;
+};
+
+/** PATCH — vendeur ou acheteur retenu : rendez-vous de retrait (sans paiement in-app). */
+export function patchMarketplacePickup(
+  accessToken: string,
+  listingId: string,
+  payload: PatchMarketplacePickupPayload,
+  activeProfileId?: string | null
+): Promise<MarketplaceListingListItem> {
+  return apiPatchJson<MarketplaceListingListItem>(
+    `/marketplace/listings/${listingId}/pickup`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** POST — vendeur : retrait effectué, annonce passée en « vendue » (hors encaissement). */
+export function completeMarketplaceHandover(
+  accessToken: string,
+  listingId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceListingListItem> {
+  return apiPostJson<MarketplaceListingListItem>(
+    `/marketplace/listings/${listingId}/complete-handover`,
+    {},
     accessToken,
     activeProfileId
   );

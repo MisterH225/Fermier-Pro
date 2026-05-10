@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +16,9 @@ import { useSession } from "../context/SessionContext";
 import {
   acceptMarketplaceOffer,
   cancelMarketplaceListing,
+  completeMarketplaceHandover,
   fetchMarketplaceListing,
+  patchMarketplacePickup,
   postMarketplaceOffer,
   publishMarketplaceListing,
   rejectMarketplaceOffer
@@ -59,6 +61,8 @@ export function MarketplaceListingDetailScreen({
   const [offerPrice, setOfferPrice] = useState("");
   const [offerQty, setOfferQty] = useState("");
   const [offerMsg, setOfferMsg] = useState("");
+  const [pickupAtStr, setPickupAtStr] = useState("");
+  const [pickupNoteStr, setPickupNoteStr] = useState("");
 
   const q = useQuery({
     queryKey: ["marketplaceListing", listingId, activeProfileId],
@@ -73,6 +77,15 @@ export function MarketplaceListingDetailScreen({
       title: t && t.length > 0 ? t : "Annonce"
     });
   }, [navigation, q.data?.title, route.params.headline]);
+
+  useEffect(() => {
+    const L = q.data;
+    if (!L) return;
+    setPickupAtStr(
+      L.pickupAt ? L.pickupAt.slice(0, 16).replace("T", " ") : ""
+    );
+    setPickupNoteStr(L.pickupNote ?? "");
+  }, [q.data?.pickupAt, q.data?.pickupNote, q.data?.id]);
 
   const offerMutation = useMutation({
     mutationFn: () => {
@@ -131,7 +144,10 @@ export function MarketplaceListingDetailScreen({
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
       void qc.invalidateQueries({ queryKey: ["marketplaceListings"] });
       void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
-      Alert.alert("Acceptée", "L’annonce est marquée comme vendue.");
+      Alert.alert(
+        "Offre acceptée",
+        "L’annonce est réservée pour cet acheteur. Fixez ensemble le rendez-vous de retrait (paiement hors application)."
+      );
     },
     onError: (e: Error) =>
       Alert.alert(
@@ -194,6 +210,54 @@ export function MarketplaceListingDetailScreen({
       )
   });
 
+  const pickupMutation = useMutation({
+    mutationFn: () => {
+      const raw = pickupAtStr.trim();
+      let pickupAt: string | null = null;
+      if (raw.length > 0) {
+        const normalized = raw.includes("T") ? raw : raw.replace(" ", "T");
+        const d = new Date(normalized);
+        if (!Number.isFinite(d.getTime())) {
+          throw new Error(
+            "Date/heure invalide (ex. 2026-05-15T10:00:00 ou avec fuseau Z)."
+          );
+        }
+        pickupAt = d.toISOString();
+      }
+      return patchMarketplacePickup(
+        accessToken,
+        listingId,
+        {
+          pickupAt,
+          pickupNote: pickupNoteStr.trim() || null
+        },
+        activeProfileId
+      );
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
+      Alert.alert("Enregistré", "Rendez-vous de retrait mis à jour.");
+    },
+    onError: (e: Error) =>
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e.message))
+  });
+
+  const handoverMutation = useMutation({
+    mutationFn: () =>
+      completeMarketplaceHandover(accessToken, listingId, activeProfileId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
+      void qc.invalidateQueries({ queryKey: ["marketplaceListings"] });
+      void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
+      Alert.alert(
+        "Retrait confirmé",
+        "L’annonce est marquée comme vendue (hors paiement sur la plateforme)."
+      );
+    },
+    onError: (e: Error) =>
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e.message))
+  });
+
   const loading = q.isPending;
   const err =
     q.error instanceof Error ? q.error.message : q.error ? String(q.error) : null;
@@ -230,6 +294,11 @@ export function MarketplaceListingDetailScreen({
     !isSeller &&
     L.status === "published";
 
+  const isAcceptedBuyer =
+    Boolean(myId && L.myOffers?.some((o) => o.status === "accepted"));
+  const canEditPickup =
+    L.status === "reserved" && (isSeller || isAcceptedBuyer);
+
   return (
     <ScrollView
       style={styles.scroll}
@@ -246,6 +315,13 @@ export function MarketplaceListingDetailScreen({
       ) : null}
       {L.status === "cancelled" ? (
         <Text style={styles.closedBanner}>Cette annonce a été annulée.</Text>
+      ) : null}
+      {L.status === "reserved" ? (
+        <Text style={styles.reservedBanner}>
+          Accord conclu — l&apos;animal ou le lot est réservé. Convoyez le rendez-vous
+          de retrait ci-dessous (paiement et livraison ne passent pas par
+          l&apos;application pour l&apos;instant).
+        </Text>
       ) : null}
       <Text style={styles.price}>
         {formatMoney(L.unitPrice, L.currency)}
@@ -279,6 +355,69 @@ export function MarketplaceListingDetailScreen({
             ID {L.animal.publicId}
             {L.animal.tagCode ? ` · ${L.animal.tagCode}` : ""}
           </Text>
+        </View>
+      ) : null}
+
+      {canEditPickup ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Rendez-vous de retrait</Text>
+          <Text style={styles.hintSmall}>
+            Date/heure (ISO recommandé, ex. 2026-05-15T10:00:00) — vendeur et
+            acheteur peuvent mettre à jour après accord.
+          </Text>
+          <TextInput
+            style={styles.pickupInput}
+            value={pickupAtStr}
+            onChangeText={setPickupAtStr}
+            placeholder="2026-05-15T10:00:00"
+            autoCapitalize="none"
+          />
+          <Text style={styles.labelSmall}>Note (lieu, créneau…)</Text>
+          <TextInput
+            style={[styles.pickupInput, styles.pickupNote]}
+            value={pickupNoteStr}
+            onChangeText={setPickupNoteStr}
+            multiline
+            placeholder="Ex. enlèvement à la porcherie, badge …"
+          />
+          <TouchableOpacity
+            style={styles.pickupSave}
+            disabled={pickupMutation.isPending}
+            onPress={() => pickupMutation.mutate()}
+          >
+            <Text style={styles.pickupSaveTxt}>
+              {pickupMutation.isPending ? "Enregistrement…" : "Enregistrer le RDV"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
+      {isSeller && L.status === "reserved" ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Après le retrait physique</Text>
+          <TouchableOpacity
+            style={styles.handoverBtn}
+            disabled={handoverMutation.isPending}
+            onPress={() =>
+              Alert.alert(
+                "Confirmer le retrait ?",
+                "L’annonce passera en « vendue ». Le paiement reste hors plateforme.",
+                [
+                  { text: "Annuler", style: "cancel" },
+                  {
+                    text: "Confirmer",
+                    onPress: () => handoverMutation.mutate()
+                  }
+                ]
+              )
+            }
+          >
+            <Text style={styles.handoverBtnTxt}>
+              {handoverMutation.isPending
+                ? "Confirmation…"
+                : "Confirmer que le retrait a eu lieu"}
+            </Text>
+          </TouchableOpacity>
         </View>
       ) : null}
 
@@ -395,7 +534,7 @@ export function MarketplaceListingDetailScreen({
                     onPress={() =>
                       Alert.alert(
                         "Accepter cette offre ?",
-                        "Les autres offres en attente seront refusées et l’annonce sera marquée comme vendue.",
+                        "Les autres offres en attente seront refusées et l’annonce sera réservée pour cet acheteur. Tu pourrez ensuite fixer le rendez-vous de retrait (paiement hors application).",
                         [
                           { text: "Annuler", style: "cancel" },
                           {
@@ -528,6 +667,69 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 12,
     lineHeight: 20
+  },
+  reservedBanner: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#2d5a6e",
+    backgroundColor: "#e8f4f8",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+    lineHeight: 20
+  },
+  hintSmall: {
+    fontSize: 12,
+    color: "#6d745b",
+    marginBottom: 8,
+    lineHeight: 17
+  },
+  labelSmall: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6d745b",
+    marginBottom: 4,
+    marginTop: 8
+  },
+  pickupInput: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e0e4d4",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: "#1f2910"
+  },
+  pickupNote: {
+    minHeight: 72,
+    textAlignVertical: "top"
+  },
+  pickupSave: {
+    marginTop: 12,
+    alignSelf: "flex-start",
+    backgroundColor: "#5d7a1f",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12
+  },
+  pickupSaveTxt: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 15
+  },
+  handoverBtn: {
+    marginTop: 8,
+    backgroundColor: "#c4a574",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: "center"
+  },
+  handoverBtnTxt: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 15
   },
   price: {
     fontSize: 22,

@@ -1,4 +1,11 @@
-import { Body, Controller, Param, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  UseGuards
+} from "@nestjs/common";
 import type { User } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
@@ -12,6 +19,16 @@ import { InvitationsService } from "./invitations.service";
 @Controller()
 export class InvitationsController {
   constructor(private readonly invitations: InvitationsService) {}
+
+  @Get("farms/:farmId/invitations")
+  @UseGuards(SupabaseJwtGuard, FarmScopesGuard)
+  @RequireFarmScopes(FARM_SCOPE.invitationsManage)
+  listPending(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string
+  ) {
+    return this.invitations.listPendingInvitations(user, farmId);
+  }
 
   @Post("farms/:farmId/invitations")
   @UseGuards(SupabaseJwtGuard, FarmScopesGuard)

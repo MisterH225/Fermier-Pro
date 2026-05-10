@@ -6,6 +6,8 @@ export function listingStatusLabel(status: string): string {
       return "Brouillon";
     case "published":
       return "Publiée";
+    case "reserved":
+      return "Réservée";
     case "sold":
       return "Vendue";
     case "cancelled":

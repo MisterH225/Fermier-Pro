@@ -90,4 +90,12 @@ export type RootStackParamList = {
     batchId?: string;
     occupantSummary?: string;
   };
+  FarmMembers: {
+    farmId: string;
+    farmName: string;
+    effectiveScopes?: string[];
+  };
+  CreateFarmInvitation: { farmId: string; farmName: string };
+  FarmFeedStock: { farmId: string; farmName: string };
+  CreateFeedPurchase: { farmId: string; farmName: string };
 };

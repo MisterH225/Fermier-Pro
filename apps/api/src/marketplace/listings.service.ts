@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException
 } from "@nestjs/common";
@@ -9,6 +10,7 @@ import { FarmAccessService } from "../common/farm-access.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateListingDto } from "./dto/create-listing.dto";
+import { PickupListingDto } from "./dto/pickup-listing.dto";
 import { UpdateListingDto } from "./dto/update-listing.dto";
 
 @Injectable()
@@ -141,6 +143,19 @@ export class ListingsService {
       throw new NotFoundException("Annonce introuvable");
     }
 
+    if (listing.status === ListingStatus.reserved) {
+      const accepted = await this.prisma.marketplaceOffer.findFirst({
+        where: {
+          listingId: id,
+          buyerUserId: user.id,
+          status: OfferStatus.accepted
+        }
+      });
+      if (listing.sellerUserId !== user.id && !accepted) {
+        throw new NotFoundException("Annonce introuvable");
+      }
+    }
+
     if (listing.sellerUserId === user.id) {
       const offers = await this.prisma.marketplaceOffer.findMany({
         where: { listingId: id },
@@ -164,9 +179,12 @@ export class ListingsService {
     await this.requireMarketplaceWriteIfFarmListing(user.id, listing.farmId);
     if (
       listing.status === ListingStatus.sold ||
-      listing.status === ListingStatus.cancelled
+      listing.status === ListingStatus.cancelled ||
+      listing.status === ListingStatus.reserved
     ) {
-      throw new BadRequestException("Annonce non modifiable");
+      throw new BadRequestException(
+        "Annonce non modifiable (réservée, vendue ou annulée)"
+      );
     }
     return this.prisma.marketplaceListing.update({
       where: { id },
@@ -228,7 +246,10 @@ export class ListingsService {
     }
     await this.prisma.$transaction([
       this.prisma.marketplaceOffer.updateMany({
-        where: { listingId: id, status: OfferStatus.pending },
+        where: {
+          listingId: id,
+          status: { in: [OfferStatus.pending, OfferStatus.accepted] }
+        },
         data: { status: OfferStatus.rejected }
       }),
       this.prisma.marketplaceListing.update({
@@ -237,5 +258,63 @@ export class ListingsService {
       })
     ]);
     return this.prisma.marketplaceListing.findUnique({ where: { id } });
+  }
+
+  /**
+   * Vendeur ou acheteur dont l'offre est acceptee : fixe le rendez-vous de retrait.
+   * Pas de paiement in-app : la negociation aboutit sur une annonce `reserved`.
+   */
+  async patchPickup(user: User, listingId: string, dto: PickupListingDto) {
+    const listing = await this.prisma.marketplaceListing.findUnique({
+      where: { id: listingId }
+    });
+    if (!listing) {
+      throw new NotFoundException("Annonce introuvable");
+    }
+    if (listing.status !== ListingStatus.reserved) {
+      throw new BadRequestException(
+        "Le rendez-vous de retrait ne s'applique qu'aux annonces reservees"
+      );
+    }
+    const isSeller = listing.sellerUserId === user.id;
+    const acceptedOffer = await this.prisma.marketplaceOffer.findFirst({
+      where: {
+        listingId,
+        buyerUserId: user.id,
+        status: OfferStatus.accepted
+      }
+    });
+    if (!isSeller && !acceptedOffer) {
+      throw new ForbiddenException(
+        "Seul le vendeur ou l'acheteur retenu peut enregistrer le rendez-vous"
+      );
+    }
+    if (isSeller) {
+      await this.requireMarketplaceWriteIfFarmListing(user.id, listing.farmId);
+    }
+    return this.prisma.marketplaceListing.update({
+      where: { id: listingId },
+      data: {
+        ...(dto.pickupAt !== undefined
+          ? { pickupAt: dto.pickupAt ? new Date(dto.pickupAt) : null }
+          : {}),
+        ...(dto.pickupNote !== undefined ? { pickupNote: dto.pickupNote } : {})
+      }
+    });
+  }
+
+  /** Vendeur : apres retrait effectif, marque l'annonce comme vendue (hors encaissement in-app). */
+  async completeHandover(user: User, listingId: string) {
+    const listing = await this.requireOwnerEditable(user, listingId);
+    await this.requireMarketplaceWriteIfFarmListing(user.id, listing.farmId);
+    if (listing.status !== ListingStatus.reserved) {
+      throw new BadRequestException(
+        "Cloture possible uniquement pour une annonce reservee (retrait d'abord convenu)"
+      );
+    }
+    return this.prisma.marketplaceListing.update({
+      where: { id: listingId },
+      data: { status: ListingStatus.sold }
+    });
   }
 }

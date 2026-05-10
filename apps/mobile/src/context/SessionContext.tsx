@@ -19,7 +19,8 @@ const DEFAULT_CLIENT_FEATURES: ClientConfigDto["features"] = {
   vetConsultations: true,
   tasks: true,
   finance: true,
-  housing: true
+  housing: true,
+  feedStock: true
 };
 
 type SessionContextValue = {

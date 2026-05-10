@@ -125,6 +125,8 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(res.status).toBe(200);
     expect(res.body?.id).toBe(ctx.farmId);
     expect(res.body?.name).toBeDefined();
+    expect(Array.isArray(res.body?.effectiveScopes)).toBe(true);
+    expect(res.body?.effectiveScopes).toContain("*");
   });
 
   it("GET /farms/:farmId/members", async () => {
@@ -445,6 +447,44 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     const del = await request(app.getHttpServer())
       .delete(
         `/api/v1/farms/${ctx.farmId}/finance/expenses/${expenseId}`
+      )
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(del.status).toBeGreaterThanOrEqual(200);
+    expect(del.status).toBeLessThan(300);
+  });
+
+  it("POST revenu finance puis PATCH puis DELETE (financeWrite)", async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/finance/revenues`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        amount: 9900,
+        label: "E2E revenu contrat",
+        category: "test"
+      });
+    expect(res.status).toBeGreaterThanOrEqual(200);
+    expect(res.status).toBeLessThan(300);
+    expect(res.body?.label).toBe("E2E revenu contrat");
+    const revenueId = res.body?.id as string;
+    expect(revenueId).toBeDefined();
+
+    const patch = await request(app.getHttpServer())
+      .patch(
+        `/api/v1/farms/${ctx.farmId}/finance/revenues/${revenueId}`
+      )
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        label: "E2E revenu contrat (modifié)",
+        amount: 10050
+      });
+    expect(patch.status).toBeGreaterThanOrEqual(200);
+    expect(patch.status).toBeLessThan(300);
+    expect(patch.body?.label).toBe("E2E revenu contrat (modifié)");
+    expect(patch.body?.amount).toBe(10050);
+
+    const del = await request(app.getHttpServer())
+      .delete(
+        `/api/v1/farms/${ctx.farmId}/finance/revenues/${revenueId}`
       )
       .set("Authorization", `Bearer ${ctx.token}`);
     expect(del.status).toBeGreaterThanOrEqual(200);

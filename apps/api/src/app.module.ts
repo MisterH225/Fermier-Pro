@@ -27,6 +27,7 @@ import { PrismaModule } from "./prisma/prisma.module";
 import { ProfilesModule } from "./profiles/profiles.module";
 import { TasksModule } from "./tasks/tasks.module";
 import { VetConsultationsModule } from "./vet-consultations/vet-consultations.module";
+import { FeedStockModule } from "./feed-stock/feed-stock.module";
 
 @Module({
   imports: [
@@ -78,7 +79,8 @@ import { VetConsultationsModule } from "./vet-consultations/vet-consultations.mo
     HealthEventsModule,
     HousingModule,
     MarketplaceModule,
-    VetConsultationsModule
+    VetConsultationsModule,
+    FeedStockModule
   ],
   controllers: [AppController],
   providers: [

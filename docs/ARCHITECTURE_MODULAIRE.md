@@ -122,7 +122,7 @@ Le **frontend mobile** doit consommer un endpoint du type **`GET /config/client`
 ### 7.2 État actuel (repo)
 
 - Navigation **centralisée** (`MainNavigationShell`, pile d’écrans).
-- **`farmDetailMenuVisibility(features)`** (`apps/mobile/src/lib/menuVisibility.ts`) : dérive les entrées **Ferme** / liste depuis les flags — complément naturel à `buildMenuItems(flags, scopes)` lorsque les **scopes** seront exposés au mobile.
+- **`farmDetailMenuVisibility(features)`** (liste fermes / header) et **`buildFarmDetailMenu(features, scopes)`** (`menuVisibility.ts`) : le détail ferme combine flags **`GET /config/client`** et scopes **`effectiveScopes`** renvoyés par **`GET /farms/:id`**.
 - Prochaine étape structurante : extraire des **groupes d’écrans par domaine** (fichiers ou dossiers `features/marketplace`, `features/farms`, …).
 
 ---

@@ -9,6 +9,8 @@ import { MembershipRole, Prisma } from "@prisma/client";
 import { randomBytes } from "crypto";
 import { AUDIT_ACTION } from "../common/audit.constants";
 import { AuditService } from "../common/audit.service";
+import { FarmAccessService } from "../common/farm-access.service";
+import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { PrismaService } from "../prisma/prisma.service";
 import { AcceptInvitationDto } from "./dto/accept-invitation.dto";
 import { CreateFarmInvitationDto } from "./dto/create-farm-invitation.dto";
@@ -19,8 +21,31 @@ const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export class InvitationsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly audit: AuditService
+    private readonly audit: AuditService,
+    private readonly farmAccess: FarmAccessService
   ) {}
+
+  /** Invitations en attente (non utilisées), réservées aux gestionnaires d’invitations. */
+  async listPendingInvitations(actor: User, farmId: string) {
+    await this.farmAccess.requireFarmScopes(actor.id, farmId, [
+      FARM_SCOPE.invitationsManage
+    ]);
+    return this.prisma.farmInvitation.findMany({
+      where: { farmId, redeemedAt: null },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        farmId: true,
+        role: true,
+        scopes: true,
+        expiresAt: true,
+        inviteeEmail: true,
+        inviteePhone: true,
+        createdAt: true,
+        createdById: true
+      }
+    });
+  }
 
   async createInvitation(
     user: User,

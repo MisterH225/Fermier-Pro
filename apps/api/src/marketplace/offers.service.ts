@@ -111,7 +111,7 @@ export class OffersService {
       }),
       this.prisma.marketplaceListing.update({
         where: { id: listingId },
-        data: { status: ListingStatus.sold }
+        data: { status: ListingStatus.reserved }
       })
     ]);
 

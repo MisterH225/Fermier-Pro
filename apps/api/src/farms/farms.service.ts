@@ -85,20 +85,19 @@ export class FarmsService {
     });
   }
 
-  async findOneForUser(user: User, farmId: string): Promise<Farm> {
-    const farm = await this.prisma.farm.findFirst({
-      where: {
-        id: farmId,
-        OR: [
-          { ownerId: user.id },
-          { memberships: { some: { userId: user.id } } }
-        ]
-      }
-    });
-    if (!farm) {
-      throw new NotFoundException("Ferme introuvable");
-    }
-    return farm;
+  /** Détail ferme + scopes effectifs (RBAC) pour le menu mobile et clients API. */
+  async findOneForUser(
+    user: User,
+    farmId: string
+  ): Promise<Farm & { effectiveScopes: string[] }> {
+    const { farm, scopes } = await this.farmAccess.getEffectiveFarmScopes(
+      user.id,
+      farmId
+    );
+    return {
+      ...farm,
+      effectiveScopes: Array.from(scopes).sort((a, b) => a.localeCompare(b))
+    };
   }
 
   /**

@@ -12,7 +12,8 @@ export type ClientFeatureKey =
   | "vetConsultations"
   | "tasks"
   | "finance"
-  | "housing";
+  | "housing"
+  | "feedStock";
 
 export type ClientFeatureFlags = Record<ClientFeatureKey, boolean>;
 
@@ -22,7 +23,8 @@ const ENV_KEYS: Record<ClientFeatureKey, string> = {
   vetConsultations: "FEATURE_VET_CONSULTATIONS",
   tasks: "FEATURE_TASKS",
   finance: "FEATURE_FINANCE",
-  housing: "FEATURE_HOUSING"
+  housing: "FEATURE_HOUSING",
+  feedStock: "FEATURE_FEED_STOCK"
 };
 
 const DEFAULTS: ClientFeatureFlags = {
@@ -31,7 +33,8 @@ const DEFAULTS: ClientFeatureFlags = {
   vetConsultations: true,
   tasks: true,
   finance: true,
-  housing: true
+  housing: true,
+  feedStock: true
 };
 
 @Injectable()
@@ -49,7 +52,8 @@ export class FeatureFlagService {
       ),
       tasks: this.readBool(ENV_KEYS.tasks, DEFAULTS.tasks),
       finance: this.readBool(ENV_KEYS.finance, DEFAULTS.finance),
-      housing: this.readBool(ENV_KEYS.housing, DEFAULTS.housing)
+      housing: this.readBool(ENV_KEYS.housing, DEFAULTS.housing),
+      feedStock: this.readBool(ENV_KEYS.feedStock, DEFAULTS.feedStock)
     };
   }
 

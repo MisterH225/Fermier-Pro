@@ -37,6 +37,10 @@ import { ChatPickFarmScreen } from "../screens/ChatPickFarmScreen";
 import { ChatPickPeerScreen } from "../screens/ChatPickPeerScreen";
 import { ChatSearchUserScreen } from "../screens/ChatSearchUserScreen";
 import { ModuleRoadmapScreen } from "../screens/ModuleRoadmapScreen";
+import { FarmMembersScreen } from "../screens/FarmMembersScreen";
+import { CreateFarmInvitationScreen } from "../screens/CreateFarmInvitationScreen";
+import { FarmFeedStockScreen } from "../screens/FarmFeedStockScreen";
+import { CreateFeedPurchaseScreen } from "../screens/CreateFeedPurchaseScreen";
 import type { RootStackParamList } from "../types/navigation";
 import { OfflineBanner } from "./OfflineBanner";
 
@@ -247,6 +251,26 @@ function MainStack() {
         name="ModuleRoadmap"
         component={ModuleRoadmapScreen}
         options={({ route }) => ({ title: route.params.title })}
+      />
+      <Stack.Screen
+        name="FarmMembers"
+        component={FarmMembersScreen}
+        options={{ title: "Équipe" }}
+      />
+      <Stack.Screen
+        name="CreateFarmInvitation"
+        component={CreateFarmInvitationScreen}
+        options={{ title: "Inviter" }}
+      />
+      <Stack.Screen
+        name="FarmFeedStock"
+        component={FarmFeedStockScreen}
+        options={{ title: "Nutrition et stock" }}
+      />
+      <Stack.Screen
+        name="CreateFeedPurchase"
+        component={CreateFeedPurchaseScreen}
+        options={{ title: "Achat aliments" }}
       />
     </Stack.Navigator>
   );
