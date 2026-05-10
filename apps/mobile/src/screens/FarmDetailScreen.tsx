@@ -13,7 +13,7 @@ import {
   buildFarmDetailMenuItems,
   type FarmDetailMenuNavigateRow,
   type FarmDetailMenuPreset
-} from "../features/farm-detail-menu";
+} from "../features";
 import type { FarmDto } from "../lib/api";
 import { ensureFarmChatRoom, fetchFarm } from "../lib/api";
 import { buildFarmDetailMenu } from "../lib/menuVisibility";

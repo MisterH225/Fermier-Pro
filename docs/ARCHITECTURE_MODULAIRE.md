@@ -121,9 +121,26 @@ Le **frontend mobile** doit consommer un endpoint du type **`GET /config/client`
 
 ### 7.2 État actuel (repo)
 
-- Navigation **centralisée** (`MainNavigationShell`, pile d’écrans).
+- Navigation **centralisée** (`MainNavigationShell`, pile d’écrans) ; les composants d’écran sont regroupés par **barrels** sous `apps/mobile/src/features/` et réexportés par `features/index.ts` pour un import unique depuis la coquille de navigation.
 - **`farmDetailMenuVisibility(features)`** (liste fermes / header) et **`buildFarmDetailMenu(features, scopes)`** (`menuVisibility.ts`) : le détail ferme combine flags **`GET /config/client`** et scopes **`effectiveScopes`** renvoyés par **`GET /farms/:id`**.
-- Prochaine étape structurante : extraire des **groupes d’écrans par domaine** (fichiers ou dossiers `features/marketplace`, `features/farms`, …).
+- **Menus détail / liste ferme (données + ordre des CTA)** : `features/farm-detail-menu` (`buildFarmDetailMenuItems`), `features/farm-list-menu` (`buildFarmListHeaderSecondaryItems`, etc.).
+
+**Carte `features/*` (mobile)** — chaque dossier expose un `index.ts` qui réexporte des écrans depuis `screens/` (ou des builders de menu) :
+
+| Dossier | Contenu principal |
+|---------|-------------------|
+| `features/farms` | Menus `farm-detail-menu`, `farm-list-menu` ; écrans liste / détail / création ferme ; acceptation invitation ; **membres** et **création d’invitation**. |
+| `features/livestock` | Cheptel, détail animal / bande. |
+| `features/tasks` | Tâches terrain, création de tâche. |
+| `features/vet` | Liste et dossiers consultations vétérinaires, pièces jointes. |
+| `features/finance` | Synthèse finance, dépenses / revenus (création et édition). |
+| `features/housing` | Bâtiments, loges, journal de loge, **PenMove** est aussi routé ici côté navigation loges. |
+| `features/feed-stock` | Stock alimentaire, achat (lot). |
+| `features/marketplace` | Catalogue, détail annonce, offres, annonces vendeur, création / édition d’annonce. |
+| `features/chat` | Salons, fil de discussion, choix ferme / interlocuteur, recherche annuaire. |
+| `features/platform` | Écrans transverses type **roadmap module** (`ModuleRoadmap`). |
+
+**Convention** : les fichiers sources des écrans restent dans `screens/` jusqu’à une migration éventuelle ; les barrels servent de **frontière d’import** par domaine produit.
 
 ---
 
