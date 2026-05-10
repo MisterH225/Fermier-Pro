@@ -18,6 +18,12 @@ import {
   ProfileSwitcherButton
 } from "../components/ProfilePickerModal";
 import { useSession } from "../context/SessionContext";
+import {
+  buildFarmListEmptyRows,
+  buildFarmListHeaderSecondaryItems,
+  buildFarmListListHeaderRows,
+  navigateFarmListQuickNav
+} from "../features/farm-list-menu";
 import type { FarmDto } from "../lib/api";
 import { fetchFarms } from "../lib/api";
 import { farmDetailMenuVisibility } from "../lib/menuVisibility";
@@ -41,7 +47,9 @@ export function FarmListScreen({ navigation }: Props) {
     clientFeatures
   } = useSession();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const menu = farmDetailMenuVisibility(clientFeatures);
+  const menuFlags = farmDetailMenuVisibility(clientFeatures);
+  const headerSecondaryItems =
+    buildFarmListHeaderSecondaryItems(menuFlags);
 
   const farmsQuery = useQuery({
     queryKey: ["farms", activeProfileId],
@@ -64,27 +72,29 @@ export function FarmListScreen({ navigation }: Props) {
         ) : null,
       headerRight: () => (
         <View style={styles.headerRight}>
-          {menu.chat ? (
-            <TouchableOpacity
-              onPress={() => stackNavigation.navigate("ChatRooms")}
-              style={styles.headerSecondary}
-              hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-            >
-              <Text style={styles.headerSecondaryText}>Messages</Text>
-            </TouchableOpacity>
-          ) : null}
-          {menu.marketplace ? (
-            <TouchableOpacity
-              onPress={() => stackNavigation.navigate("MarketplaceList")}
-              style={styles.headerSecondary}
-              hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-            >
-              <Text style={styles.headerSecondaryText}>Marché</Text>
-            </TouchableOpacity>
-          ) : null}
+          {headerSecondaryItems
+            .filter((item) => item.visible)
+            .map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                onPress={() =>
+                  navigateFarmListQuickNav(stackNavigation, {
+                    screen: item.screen
+                  })
+                }
+                style={styles.headerSecondary}
+                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+              >
+                <Text style={styles.headerSecondaryText}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
           {producerProfile ? (
             <TouchableOpacity
-              onPress={() => stackNavigation.navigate("CreateFarm")}
+              onPress={() =>
+                navigateFarmListQuickNav(stackNavigation, {
+                  screen: "CreateFarm"
+                })
+              }
               style={styles.headerSecondary}
               hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
             >
@@ -108,8 +118,8 @@ export function FarmListScreen({ navigation }: Props) {
     activeProfileId,
     producerProfile,
     stackNavigation,
-    menu.marketplace,
-    menu.chat
+    menuFlags.marketplace,
+    menuFlags.chat
   ]);
 
   const displayError = authError || farmsQuery.error;
@@ -161,6 +171,11 @@ export function FarmListScreen({ navigation }: Props) {
   const farms = farmsQuery.data ?? [];
 
   if (farms.length === 0) {
+    const emptyRows = buildFarmListEmptyRows({
+      menu: menuFlags,
+      hasProducerProfile: Boolean(producerProfile)
+    });
+
     return (
       <>
         {profileModal}
@@ -170,26 +185,56 @@ export function FarmListScreen({ navigation }: Props) {
             Crée une ferme avec le bouton « + Ferme » (profil producteur), ou
             depuis un client API POST /farms. Tu peux aussi parcourir le marché.
           </Text>
-          {menu.marketplace ? (
-            <TouchableOpacity
-              style={styles.ctaOutline}
-              onPress={() => stackNavigation.navigate("MarketplaceList")}
-            >
-              <Text style={styles.ctaOutlineText}>Voir le marché</Text>
-            </TouchableOpacity>
-          ) : null}
-          {producerProfile ? (
-            <TouchableOpacity
-              style={styles.cta}
-              onPress={() => stackNavigation.navigate("CreateFarm")}
-            >
-              <Text style={styles.ctaText}>Créer une ferme</Text>
-            </TouchableOpacity>
-          ) : null}
+          {emptyRows
+            .filter((row) => row.visible)
+            .map((row) => {
+              if (row.kind === "marketplaceCta") {
+                return (
+                  <TouchableOpacity
+                    key={row.kind}
+                    style={styles.ctaOutline}
+                    onPress={() =>
+                      navigateFarmListQuickNav(stackNavigation, row.target)
+                    }
+                  >
+                    <Text style={styles.ctaOutlineText}>{row.title}</Text>
+                  </TouchableOpacity>
+                );
+              }
+              if (row.kind === "createFarmCta") {
+                return (
+                  <TouchableOpacity
+                    key={row.kind}
+                    style={styles.cta}
+                    onPress={() =>
+                      navigateFarmListQuickNav(stackNavigation, row.target)
+                    }
+                  >
+                    <Text style={styles.ctaText}>{row.title}</Text>
+                  </TouchableOpacity>
+                );
+              }
+              return (
+                <TouchableOpacity
+                  key={row.kind}
+                  style={styles.inviteLinkEmpty}
+                  onPress={() =>
+                    navigateFarmListQuickNav(stackNavigation, row.target)
+                  }
+                >
+                  <Text style={styles.inviteLinkText}>{row.title}</Text>
+                </TouchableOpacity>
+              );
+            })}
         </View>
       </>
     );
   }
+
+  const listHeaderRows = buildFarmListListHeaderRows({
+    menu: menuFlags,
+    hasProducerProfile: Boolean(producerProfile)
+  });
 
   return (
     <>
@@ -205,25 +250,48 @@ export function FarmListScreen({ navigation }: Props) {
                 Bonjour {authMe.user.fullName}
               </Text>
             ) : null}
-            {menu.marketplace ? (
-              <TouchableOpacity
-                style={styles.marketInline}
-                onPress={() => stackNavigation.navigate("MarketplaceList")}
-              >
-                <Text style={styles.marketInlineText}>Voir le marché</Text>
-                <Text style={styles.marketInlineSub}>
-                  Annonces publiées · achat / inspiration
-                </Text>
-              </TouchableOpacity>
-            ) : null}
-            {producerProfile ? (
-              <TouchableOpacity
-                style={styles.inlineCta}
-                onPress={() => stackNavigation.navigate("CreateFarm")}
-              >
-                <Text style={styles.inlineCtaText}>+ Nouvelle ferme</Text>
-              </TouchableOpacity>
-            ) : null}
+            {listHeaderRows
+              .filter((row) => row.visible)
+              .map((row) => {
+                if (row.kind === "marketplaceBanner") {
+                  return (
+                    <TouchableOpacity
+                      key={row.kind}
+                      style={styles.marketInline}
+                      onPress={() =>
+                        navigateFarmListQuickNav(stackNavigation, row.target)
+                      }
+                    >
+                      <Text style={styles.marketInlineText}>{row.title}</Text>
+                      <Text style={styles.marketInlineSub}>{row.subtitle}</Text>
+                    </TouchableOpacity>
+                  );
+                }
+                if (row.kind === "createFarm") {
+                  return (
+                    <TouchableOpacity
+                      key={row.kind}
+                      style={styles.inlineCta}
+                      onPress={() =>
+                        navigateFarmListQuickNav(stackNavigation, row.target)
+                      }
+                    >
+                      <Text style={styles.inlineCtaText}>{row.title}</Text>
+                    </TouchableOpacity>
+                  );
+                }
+                return (
+                  <TouchableOpacity
+                    key={row.kind}
+                    style={styles.inviteLink}
+                    onPress={() =>
+                      navigateFarmListQuickNav(stackNavigation, row.target)
+                    }
+                  >
+                    <Text style={styles.inviteLinkText}>{row.title}</Text>
+                  </TouchableOpacity>
+                );
+              })}
           </>
         }
         renderItem={({ item }) => (
@@ -296,6 +364,21 @@ const styles = StyleSheet.create({
     color: "#3d5218",
     fontWeight: "600",
     fontSize: 14
+  },
+  inviteLink: {
+    alignSelf: "flex-start",
+    marginBottom: 8,
+    paddingVertical: 6
+  },
+  inviteLinkEmpty: {
+    marginTop: 16,
+    paddingVertical: 8
+  },
+  inviteLinkText: {
+    fontSize: 15,
+    color: "#4a5fa8",
+    fontWeight: "600",
+    textDecorationLine: "underline"
   },
   welcome: {
     marginTop: 16,

@@ -1,5 +1,7 @@
 export type RootStackParamList = {
   FarmList: undefined;
+  /** Saisie du jeton d’invitation (lien partagé par un gestionnaire de ferme). */
+  AcceptFarmInvitation: { prefilledToken?: string };
   FarmDetail: { farmId: string; farmName: string };
   FarmLivestock: { farmId: string; farmName: string };
   CreateFarm: undefined;

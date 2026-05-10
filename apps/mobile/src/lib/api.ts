@@ -325,6 +325,27 @@ export function createFarmInvitation(
   );
 }
 
+/** POST /invitations/accept — rattacher le compte à une ferme via le jeton reçu. */
+export type AcceptFarmInvitationResultDto = {
+  ok: boolean;
+  farmId: string;
+  role: string;
+  alreadyMember: boolean;
+};
+
+export function acceptFarmInvitationWithToken(
+  accessToken: string,
+  token: string,
+  activeProfileId?: string | null
+): Promise<AcceptFarmInvitationResultDto> {
+  return apiPostJson<AcceptFarmInvitationResultDto>(
+    "/invitations/accept",
+    { token: token.trim() },
+    accessToken,
+    activeProfileId
+  );
+}
+
 export type FeedStockLotDto = {
   id: string;
   farmId: string;

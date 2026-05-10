@@ -9,12 +9,53 @@ import {
   View
 } from "react-native";
 import { useSession } from "../context/SessionContext";
+import {
+  buildFarmDetailMenuItems,
+  type FarmDetailMenuNavigateRow,
+  type FarmDetailMenuPreset
+} from "../features/farm-detail-menu";
 import type { FarmDto } from "../lib/api";
 import { ensureFarmChatRoom, fetchFarm } from "../lib/api";
 import { buildFarmDetailMenu } from "../lib/menuVisibility";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmDetail">;
+
+function navigateFarmDetailRow(
+  navigation: Props["navigation"],
+  row: FarmDetailMenuNavigateRow
+): void {
+  switch (row.screen) {
+    case "FarmLivestock":
+      navigation.navigate("FarmLivestock", row.params);
+      return;
+    case "FarmTasks":
+      navigation.navigate("FarmTasks", row.params);
+      return;
+    case "FarmVetConsultations":
+      navigation.navigate("FarmVetConsultations", row.params);
+      return;
+    case "FarmFinance":
+      navigation.navigate("FarmFinance", row.params);
+      return;
+    case "FarmBarns":
+      navigation.navigate("FarmBarns", row.params);
+      return;
+    case "CreateMarketplaceListing":
+      navigation.navigate("CreateMarketplaceListing", row.params);
+      return;
+    case "FarmMembers":
+      navigation.navigate("FarmMembers", row.params);
+      return;
+    case "FarmFeedStock":
+      navigation.navigate("FarmFeedStock", row.params);
+      return;
+    default: {
+      const _exhaustive: never = row;
+      void _exhaustive;
+    }
+  }
+}
 
 export function FarmDetailScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
@@ -62,132 +103,56 @@ export function FarmDetailScreen({ route, navigation }: Props) {
   }
 
   const menu = buildFarmDetailMenu(clientFeatures, farm.effectiveScopes);
+  const menuRows = buildFarmDetailMenuItems({
+    menu,
+    farmId,
+    farmName,
+    effectiveScopes: farm.effectiveScopes
+  });
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-      {menu.livestock ? (
-        <TouchableOpacity
-          style={styles.cheptelCta}
-          onPress={() =>
-            navigation.navigate("FarmLivestock", { farmId, farmName })
+      {menuRows
+        .filter((row) => row.visible)
+        .map((row) => {
+          if (row.kind === "farmChat") {
+            return (
+              <View key="farmChat">
+                <TouchableOpacity
+                  style={styles.chatCta}
+                  onPress={() => openFarmChat.mutate()}
+                  disabled={openFarmChat.isPending}
+                >
+                  <Text style={styles.chatCtaText}>{row.title}</Text>
+                  <Text style={styles.chatCtaSub}>
+                    {openFarmChat.isPending
+                      ? row.subtitlePending
+                      : row.subtitleIdle}
+                  </Text>
+                </TouchableOpacity>
+                {openFarmChat.isError ? (
+                  <Text style={styles.chatErr}>
+                    {openFarmChat.error instanceof Error
+                      ? openFarmChat.error.message
+                      : String(openFarmChat.error)}
+                  </Text>
+                ) : null}
+              </View>
+            );
           }
-        >
-          <Text style={styles.cheptelCtaText}>Voir le cheptel</Text>
-          <Text style={styles.cheptelCtaSub}>Animaux et lots</Text>
-        </TouchableOpacity>
-      ) : null}
 
-      {menu.chat ? (
-        <>
-          <TouchableOpacity
-            style={styles.chatCta}
-            onPress={() => openFarmChat.mutate()}
-            disabled={openFarmChat.isPending}
-          >
-            <Text style={styles.chatCtaText}>Salon de la ferme</Text>
-            <Text style={styles.chatCtaSub}>
-              {openFarmChat.isPending
-                ? "Ouverture…"
-                : "Fil de discussion lié à cette exploitation"}
-            </Text>
-          </TouchableOpacity>
-          {openFarmChat.isError ? (
-            <Text style={styles.chatErr}>
-              {openFarmChat.error instanceof Error
-                ? openFarmChat.error.message
-                : String(openFarmChat.error)}
-            </Text>
-          ) : null}
-        </>
-      ) : null}
-
-      {menu.tasks ? (
-        <TouchableOpacity
-          style={styles.tasksCta}
-          onPress={() =>
-            navigation.navigate("FarmTasks", { farmId, farmName })
-          }
-        >
-          <Text style={styles.tasksCtaText}>Tâches terrain</Text>
-          <Text style={styles.tasksCtaSub}>Journal technicien</Text>
-        </TouchableOpacity>
-      ) : null}
-
-      {menu.vetConsultations ? (
-        <TouchableOpacity
-          style={styles.vetCta}
-          onPress={() =>
-            navigation.navigate("FarmVetConsultations", { farmId, farmName })
-          }
-        >
-          <Text style={styles.vetCtaText}>Suivi vétérinaire</Text>
-          <Text style={styles.vetCtaSub}>Consultations et téléchargements</Text>
-        </TouchableOpacity>
-      ) : null}
-
-      {menu.finance ? (
-        <TouchableOpacity
-          style={styles.financeCta}
-          onPress={() =>
-            navigation.navigate("FarmFinance", { farmId, farmName })
-          }
-        >
-          <Text style={styles.financeCtaText}>Finance</Text>
-          <Text style={styles.financeCtaSub}>Coûts et marges</Text>
-        </TouchableOpacity>
-      ) : null}
-
-      {menu.housing ? (
-        <TouchableOpacity
-          style={styles.housingCta}
-          onPress={() => navigation.navigate("FarmBarns", { farmId, farmName })}
-        >
-          <Text style={styles.housingCtaText}>Loges et parcours</Text>
-          <Text style={styles.housingCtaSub}>Hébergement et chemins</Text>
-        </TouchableOpacity>
-      ) : null}
-
-      {menu.marketplace ? (
-        <TouchableOpacity
-          style={styles.marketCta}
-          onPress={() =>
-            navigation.navigate("CreateMarketplaceListing", { farmId })
-          }
-        >
-          <Text style={styles.marketCtaText}>Annonce sur le marché</Text>
-          <Text style={styles.marketCtaSub}>
-            Créer une annonce liée à cette ferme
-          </Text>
-        </TouchableOpacity>
-      ) : null}
-
-      <TouchableOpacity
-        style={styles.teamCta}
-        onPress={() =>
-          navigation.navigate("FarmMembers", {
-            farmId,
-            farmName,
-            effectiveScopes: farm.effectiveScopes
-          })
-        }
-      >
-        <Text style={styles.teamCtaText}>Équipe et invitations</Text>
-        <Text style={styles.teamCtaSub}>
-          Membres, rôles et liens d&apos;invitation
-        </Text>
-      </TouchableOpacity>
-
-      {menu.feedStock ? (
-        <TouchableOpacity
-          style={styles.feedCta}
-          onPress={() =>
-            navigation.navigate("FarmFeedStock", { farmId, farmName })
-          }
-        >
-          <Text style={styles.feedCtaText}>Nutrition et stock</Text>
-          <Text style={styles.feedCtaSub}>Aliments achetés, stock restant</Text>
-        </TouchableOpacity>
-      ) : null}
+          const ps = MENU_PRESET_STYLES[row.preset];
+          return (
+            <TouchableOpacity
+              key={`${row.screen}-${row.preset}`}
+              style={ps.box}
+              onPress={() => navigateFarmDetailRow(navigation, row)}
+            >
+              <Text style={ps.title}>{row.title}</Text>
+              <Text style={ps.sub}>{row.subtitle}</Text>
+            </TouchableOpacity>
+          );
+        })}
 
       <FarmInfoBlocks farm={farm} />
     </ScrollView>
@@ -437,3 +402,54 @@ const styles = StyleSheet.create({
     textAlign: "center"
   }
 });
+
+const MENU_PRESET_STYLES: Record<
+  FarmDetailMenuPreset,
+  { box: object; title: object; sub: object }
+> = {
+  cheptel: {
+    box: styles.cheptelCta,
+    title: styles.cheptelCtaText,
+    sub: styles.cheptelCtaSub
+  },
+  tasks: {
+    box: styles.tasksCta,
+    title: styles.tasksCtaText,
+    sub: styles.tasksCtaSub
+  },
+  chat: {
+    box: styles.chatCta,
+    title: styles.chatCtaText,
+    sub: styles.chatCtaSub
+  },
+  vet: {
+    box: styles.vetCta,
+    title: styles.vetCtaText,
+    sub: styles.vetCtaSub
+  },
+  finance: {
+    box: styles.financeCta,
+    title: styles.financeCtaText,
+    sub: styles.financeCtaSub
+  },
+  housing: {
+    box: styles.housingCta,
+    title: styles.housingCtaText,
+    sub: styles.housingCtaSub
+  },
+  market: {
+    box: styles.marketCta,
+    title: styles.marketCtaText,
+    sub: styles.marketCtaSub
+  },
+  team: {
+    box: styles.teamCta,
+    title: styles.teamCtaText,
+    sub: styles.teamCtaSub
+  },
+  feed: {
+    box: styles.feedCta,
+    title: styles.feedCtaText,
+    sub: styles.feedCtaSub
+  }
+};

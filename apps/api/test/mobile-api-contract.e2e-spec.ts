@@ -48,6 +48,7 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(res.body?.features).toBeDefined();
     expect(typeof res.body.features.marketplace).toBe("boolean");
     expect(typeof res.body.features.chat).toBe("boolean");
+    expect(typeof res.body.features.feedStock).toBe("boolean");
   });
 
   it("GET marketplace listings (catalogue publié)", async () => {
@@ -135,6 +136,70 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
       .set("Authorization", `Bearer ${ctx.token}`);
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it("GET invitations pending + POST créer + POST accepter (pair)", async () => {
+    const pending = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/invitations`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(pending.status).toBe(200);
+    expect(Array.isArray(pending.body)).toBe(true);
+
+    const created = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/invitations`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({ role: "viewer" });
+    expect(created.status).toBeGreaterThanOrEqual(200);
+    expect(created.status).toBeLessThan(300);
+    const inviteToken = created.body?.token as string;
+    expect(inviteToken?.length).toBeGreaterThanOrEqual(16);
+
+    const accepted = await request(app.getHttpServer())
+      .post("/api/v1/invitations/accept")
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ token: inviteToken });
+    expect(accepted.status).toBeGreaterThanOrEqual(200);
+    expect(accepted.status).toBeLessThan(300);
+    expect(accepted.body?.farmId).toBe(ctx.farmId);
+    expect(accepted.body?.ok).toBe(true);
+  });
+
+  it("GET /farms/:farmId/feed-stock-lots + POST lot + PATCH consume", async () => {
+    const empty = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/feed-stock-lots`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(empty.status).toBe(200);
+    expect(Array.isArray(empty.body)).toBe(true);
+
+    const created = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/feed-stock-lots`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        productName: "Aliment contrat e2e",
+        quantityKg: 100
+      });
+    expect(created.status).toBeGreaterThanOrEqual(200);
+    expect(created.status).toBeLessThan(300);
+    const lotId = created.body?.id as string;
+    expect(lotId).toBeDefined();
+
+    const consumed = await request(app.getHttpServer())
+      .patch(
+        `/api/v1/farms/${ctx.farmId}/feed-stock-lots/${lotId}/consume`
+      )
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({ kg: 12.5 });
+    expect(consumed.status).toBeGreaterThanOrEqual(200);
+    expect(consumed.status).toBeLessThan(300);
+    expect(Number(consumed.body?.remainingKg)).toBeCloseTo(87.5, 5);
+
+    const listed = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/feed-stock-lots`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(listed.status).toBe(200);
+    expect(
+      listed.body.some((row: { id: string }) => row.id === lotId)
+    ).toBe(true);
   });
 
   it("GET /chat/directory/users (recherche annuaire)", async () => {

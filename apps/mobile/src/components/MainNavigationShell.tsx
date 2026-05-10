@@ -7,6 +7,7 @@ import { CreateFarmScreen } from "../screens/CreateFarmScreen";
 import { CreateTaskScreen } from "../screens/CreateTaskScreen";
 import { FarmDetailScreen } from "../screens/FarmDetailScreen";
 import { FarmListScreen } from "../screens/FarmListScreen";
+import { AcceptFarmInvitationScreen } from "../screens/AcceptFarmInvitationScreen";
 import { FarmLivestockScreen } from "../screens/FarmLivestockScreen";
 import { FarmTasksScreen } from "../screens/FarmTasksScreen";
 import { FarmVetConsultationsScreen } from "../screens/FarmVetConsultationsScreen";
@@ -25,12 +26,14 @@ import { PenDetailScreen } from "../screens/PenDetailScreen";
 import { CreateBarnScreen } from "../screens/CreateBarnScreen";
 import { CreatePenScreen } from "../screens/CreatePenScreen";
 import { CreatePenLogScreen } from "../screens/CreatePenLogScreen";
-import { CreateMarketplaceListingScreen } from "../screens/CreateMarketplaceListingScreen";
-import { EditMarketplaceListingScreen } from "../screens/EditMarketplaceListingScreen";
-import { MarketplaceListScreen } from "../screens/MarketplaceListScreen";
-import { MarketplaceListingDetailScreen } from "../screens/MarketplaceListingDetailScreen";
-import { MarketplaceMyListingsScreen } from "../screens/MarketplaceMyListingsScreen";
-import { MarketplaceMyOffersScreen } from "../screens/MarketplaceMyOffersScreen";
+import {
+  CreateMarketplaceListingScreen,
+  EditMarketplaceListingScreen,
+  MarketplaceListingDetailScreen,
+  MarketplaceListScreen,
+  MarketplaceMyListingsScreen,
+  MarketplaceMyOffersScreen
+} from "../features/marketplace";
 import { ChatRoomsScreen } from "../screens/ChatRoomsScreen";
 import { ChatRoomScreen } from "../screens/ChatRoomScreen";
 import { ChatPickFarmScreen } from "../screens/ChatPickFarmScreen";
@@ -70,6 +73,11 @@ function MainStack() {
         name="FarmList"
         component={FarmListScreen}
         options={{ title: "Mes fermes" }}
+      />
+      <Stack.Screen
+        name="AcceptFarmInvitation"
+        component={AcceptFarmInvitationScreen}
+        options={{ title: "Invitation" }}
       />
       <Stack.Screen
         name="FarmDetail"

@@ -5,9 +5,14 @@ import * as jwt from "jsonwebtoken";
 /** Sub JWT stable pour retrouver / purger l’utilisateur de test. */
 export const E2E_SUPABASE_SUB = "11111111-1111-1111-1111-111111111111";
 
+/** Sub du pair annuaire (invitation e2e, chat directory). */
+export const E2E_PEER_SUPABASE_SUB = "22222222-2222-2222-2222-222222222222";
+
 export interface E2ESeedResult {
   prisma: PrismaClient;
   token: string;
+  /** JWT pour le second utilisateur (annuaire / invitation accept). */
+  peerToken: string;
   userId: string;
   peerUserId: string;
   farmId: string;
@@ -92,7 +97,7 @@ export async function seedE2eFixtures(
 
   const peerUser = await prisma.user.create({
     data: {
-      supabaseUserId: "22222222-2222-2222-2222-222222222222",
+      supabaseUserId: E2E_PEER_SUPABASE_SUB,
       email: "e2e-peer-directory@fermier.local",
       fullName: "E2E Peer Annuaire"
     }
@@ -136,9 +141,20 @@ export async function seedE2eFixtures(
     { expiresIn: "2h", algorithm: "HS256" }
   );
 
+  const peerToken = jwt.sign(
+    {
+      sub: E2E_PEER_SUPABASE_SUB,
+      email: "e2e-peer-directory@fermier.local",
+      role: "authenticated"
+    },
+    secret,
+    { expiresIn: "2h", algorithm: "HS256" }
+  );
+
   return {
     prisma,
     token,
+    peerToken,
     userId: user.id,
     peerUserId: peerUser.id,
     farmId: farm.id,
