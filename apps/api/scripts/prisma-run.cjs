@@ -183,6 +183,22 @@ if (prismaUrlSource === "PRISMA_DATABASE_URL") {
 }
 env.DATABASE_URL = dbUrl;
 
+// Résoudre DIRECT_URL (connexion directe, port 5432) pour le champ directUrl du schema.prisma.
+// Même logique que DATABASE_URL : variable système vide ignorée, lecture fichier en fallback.
+function resolveDirectUrl(e) {
+  let url = stripOuterQuotes(e.DIRECT_URL);
+  if (url) return url;
+  url = parseEnvKeyFromFile(rootEnv, "DIRECT_URL");
+  if (url) return url;
+  url = parseEnvKeyFromFile(apiEnv, "DIRECT_URL");
+  if (url) return url;
+  return "";
+}
+const directUrl = resolveDirectUrl(env);
+if (directUrl) {
+  env.DIRECT_URL = directUrl;
+}
+
 const prismaPkgDir = path.dirname(require.resolve("prisma/package.json"));
 const prismaCli = path.join(prismaPkgDir, "build", "index.js");
 const prismaArgs = process.argv.slice(2);
