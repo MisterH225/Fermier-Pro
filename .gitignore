@@ -16,6 +16,9 @@ build/
 out/
 coverage/
 
+# Expo — données machine-spécifiques (urlRandomness, devices.json, etc.)
+.expo/
+
 # Environment files
 .env
 .env.*
