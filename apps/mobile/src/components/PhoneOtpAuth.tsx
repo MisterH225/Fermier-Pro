@@ -15,6 +15,24 @@ const RESEND_COOLDOWN_SEC = 60;
 
 type Step = "phone" | "otp";
 
+function formatAuthError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  const m = raw.toLowerCase();
+  if (
+    m.includes("network request failed") ||
+    m.includes("failed to fetch") ||
+    m.includes("network error")
+  ) {
+    return (
+      "Impossible de joindre Supabase (réseau ou URL). Vérifie la connexion internet, " +
+      "que EXPO_PUBLIC_SUPABASE_URL dans apps/mobile/.env est exactement l’URL du projet " +
+      "(https://….supabase.co), puis redémarre Expo après modification du .env. " +
+      "Sans SMS en local : ajoute EXPO_PUBLIC_AUTH_BYPASS=true pour le mode démo."
+    );
+  }
+  return raw;
+}
+
 /**
  * Connexion par SMS OTP (Supabase). Numéros au format E.164 (ex. +2250707070707).
  */
@@ -67,7 +85,7 @@ export function PhoneOtpAuth() {
       setStep("otp");
       setResendIn(RESEND_COOLDOWN_SEC);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatAuthError(err));
     } finally {
       setBusy(false);
     }
@@ -94,7 +112,7 @@ export function PhoneOtpAuth() {
       }
       setInfo("Connexion réussie…");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatAuthError(err));
     } finally {
       setBusy(false);
     }

@@ -1,5 +1,8 @@
 import type { AuthMeResponse } from "./api";
 
+/** Ferme factice listée en mode démo pour ouvrir les écrans ferme sans API. */
+export const DEMO_PREVIEW_FARM_ID = "00000000-0000-4000-8000-0000000000f0";
+
 /** Jeton factice passé à `SessionProvider` quand le bypass dev est actif. */
 export const DEMO_BYPASS_ACCESS_TOKEN = "__FERMIER_PRO_DEMO_BYPASS__";
 

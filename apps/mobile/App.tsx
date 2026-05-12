@@ -16,8 +16,8 @@ import type { Session } from "@supabase/supabase-js";
 import { MainNavigationShell } from "./src/components/MainNavigationShell";
 import { SessionProvider } from "./src/context/SessionContext";
 import {
-  isAuthBypassEnabled,
-  isAuthEnvConfigured
+  isAuthEnvConfigured,
+  isDemoNavigationOffered
 } from "./src/env";
 import { DEMO_BYPASS_ACCESS_TOKEN } from "./src/lib/demoBypass";
 import {
@@ -33,7 +33,7 @@ export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [demoBypass, setDemoBypass] = useState(false);
   const authConfigured = isAuthEnvConfigured();
-  const bypassAllowed = isAuthBypassEnabled();
+  const bypassAllowed = isDemoNavigationOffered();
 
   useEffect(() => {
     const supabase = getSupabase();

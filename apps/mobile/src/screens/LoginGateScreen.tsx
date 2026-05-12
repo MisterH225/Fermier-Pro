@@ -7,18 +7,31 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
+  useWindowDimensions
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { PhoneOtpAuth } from "../components/PhoneOtpAuth";
-import { isApiUrlConfigured, isAuthEnvConfigured } from "../env";
+import { getExpoPublicEnv, isApiUrlConfigured, isAuthEnvConfigured } from "../env";
 import { authColors, authRadii } from "../theme/authTheme";
 
 const LOGO = require("../../assets/images/fermier-pro-logo.png");
 
+function supabaseHostLabel(): string {
+  const raw = getExpoPublicEnv().supabaseUrl.trim();
+  if (!raw) {
+    return "";
+  }
+  try {
+    return new URL(raw).host;
+  } catch {
+    return "(URL invalide)";
+  }
+}
+
 export type LoginGateScreenProps = {
-  /** Activé si `EXPO_PUBLIC_AUTH_BYPASS=true` dans l’environnement. */
+  /** Voir `isDemoNavigationOffered()` : `__DEV__` ou `EXPO_PUBLIC_AUTH_BYPASS`. */
   bypassAllowed?: boolean;
   /** Lance la navigation principale sans session Supabase (données démo). */
   onEnterDemoBypass?: () => void;
@@ -33,6 +46,11 @@ export function LoginGateScreen({
 }: LoginGateScreenProps) {
   const authOk = isAuthEnvConfigured();
   const [showDiag, setShowDiag] = useState(false);
+  /** OTP masqué par défaut quand le mode démo est proposé (dev / AUTH_BYPASS). */
+  const [showSmsLogin, setShowSmsLogin] = useState(false);
+  const { width: winW } = useWindowDimensions();
+  const logoW = Math.min(winW - 32, 560);
+  const logoH = Math.round(logoW * 0.52);
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
@@ -49,7 +67,7 @@ export function LoginGateScreen({
           <View style={styles.logoBlock}>
             <Image
               source={LOGO}
-              style={styles.logo}
+              style={[styles.logo, { width: logoW, height: logoH }]}
               resizeMode="contain"
               accessibilityLabel="Fermier Pro"
             />
@@ -59,28 +77,11 @@ export function LoginGateScreen({
             </Text>
           </View>
 
-          {!authOk ? (
-            <View style={styles.warnCard}>
-              <Ionicons
-                name="warning-outline"
-                size={22}
-                color={authColors.error}
-                style={styles.warnIcon}
-              />
-              <Text style={styles.warnText}>
-                Copiez apps/mobile/.env.example vers .env et renseignez
-                EXPO_PUBLIC_SUPABASE_URL et EXPO_PUBLIC_SUPABASE_ANON_KEY.
-              </Text>
-            </View>
-          ) : (
-            <PhoneOtpAuth />
-          )}
-
           {bypassAllowed && onEnterDemoBypass ? (
             <View style={styles.bypassBlock}>
               <Text style={styles.bypassHint}>
-                Développement : Supabase Auth non requis pour parcourir les
-                écrans (données API réelles si `EXPO_PUBLIC_API_URL` est valide).
+                Parcours les écrans sans compte (données démo côté profil ; API
+                réelle si EXPO_PUBLIC_API_URL est joignable).
               </Text>
               <TouchableOpacity
                 style={styles.bypassBtn}
@@ -94,10 +95,65 @@ export function LoginGateScreen({
                   style={styles.bypassBtnIcon}
                 />
                 <Text style={styles.bypassBtnText}>
-                  Mode démo — explorer sans connexion
+                  Explorer l’app — mode démo
                 </Text>
               </TouchableOpacity>
             </View>
+          ) : null}
+
+          {!authOk ? (
+            bypassAllowed ? (
+              <View style={styles.infoCard}>
+                <Ionicons
+                  name="information-circle-outline"
+                  size={22}
+                  color={authColors.forestMuted}
+                  style={styles.warnIcon}
+                />
+                <Text style={styles.infoCardText}>
+                  Supabase non configuré : la connexion par SMS sera disponible
+                  après copie de .env.example vers .env et renseignement des
+                  clés. En attendant, utilise le bouton ci-dessus.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.warnCard}>
+                <Ionicons
+                  name="warning-outline"
+                  size={22}
+                  color={authColors.error}
+                  style={styles.warnIcon}
+                />
+                <Text style={styles.warnText}>
+                  Copiez apps/mobile/.env.example vers .env et renseignez
+                  EXPO_PUBLIC_SUPABASE_URL et EXPO_PUBLIC_SUPABASE_ANON_KEY.
+                </Text>
+              </View>
+            )
+          ) : null}
+
+          {authOk && bypassAllowed && showSmsLogin ? (
+            <TouchableOpacity
+              style={styles.smsFold}
+              onPress={() => setShowSmsLogin(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.smsFoldText}>Masquer la connexion SMS</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          {authOk && (!bypassAllowed || showSmsLogin) ? <PhoneOtpAuth /> : null}
+
+          {authOk && bypassAllowed && !showSmsLogin ? (
+            <TouchableOpacity
+              style={styles.smsReveal}
+              onPress={() => setShowSmsLogin(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.smsRevealText}>
+                Connexion par SMS (Supabase)…
+              </Text>
+            </TouchableOpacity>
           ) : null}
 
           <TouchableOpacity
@@ -118,14 +174,17 @@ export function LoginGateScreen({
 
           {showDiag ? (
             <View style={styles.diagBox}>
+              <Text style={styles.okInline} selectable>
+                Supabase (hôte) : {supabaseHostLabel() || "—"}
+              </Text>
               {!isApiUrlConfigured() ? (
-                <Text style={styles.warnInline}>
+                <Text style={[styles.warnInline, styles.diagSecond]}>
                   Ajoutez EXPO_PUBLIC_API_URL pour charger vos fermes (ex.
                   http://10.0.2.2:3000 sur émulateur Android, IP LAN sur
                   téléphone).
                 </Text>
               ) : (
-                <Text style={styles.okInline}>
+                <Text style={[styles.okInline, styles.diagSecond]} selectable>
                   API : {process.env.EXPO_PUBLIC_API_URL}
                 </Text>
               )}
@@ -158,9 +217,11 @@ const styles = StyleSheet.create({
     marginBottom: 8
   },
   logo: {
-    width: 300,
-    height: 150,
-    marginBottom: 12
+    marginBottom: 12,
+    alignSelf: "center"
+  },
+  diagSecond: {
+    marginTop: 10
   },
   tagline: {
     fontSize: 11,
@@ -197,8 +258,44 @@ const styles = StyleSheet.create({
     color: authColors.error,
     lineHeight: 20
   },
+  infoCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#F0FDF4",
+    borderRadius: authRadii.input,
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
+    padding: 16,
+    marginTop: 16
+  },
+  infoCardText: {
+    flex: 1,
+    fontSize: 14,
+    color: authColors.body,
+    lineHeight: 20
+  },
+  smsReveal: {
+    marginTop: 20,
+    alignItems: "center",
+    paddingVertical: 8
+  },
+  smsRevealText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: authColors.forest
+  },
+  smsFold: {
+    marginTop: 16,
+    alignItems: "center",
+    paddingVertical: 6
+  },
+  smsFoldText: {
+    fontSize: 14,
+    color: authColors.placeholder,
+    fontWeight: "500"
+  },
   bypassBlock: {
-    marginTop: 24,
+    marginTop: 16,
     width: "100%"
   },
   bypassHint: {

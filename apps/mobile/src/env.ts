@@ -27,3 +27,13 @@ export function isAuthBypassEnabled(): boolean {
   const v = (process.env.EXPO_PUBLIC_AUTH_BYPASS ?? "").trim().toLowerCase();
   return v === "1" || v === "true" || v === "yes";
 }
+
+/**
+ * Affiche le parcours « sans compte » (mode démo) : en build dev Metro (`__DEV__`),
+ * ou si `EXPO_PUBLIC_AUTH_BYPASS=true` (utile pour un build release de démo interne).
+ */
+export function isDemoNavigationOffered(): boolean {
+  return (
+    (typeof __DEV__ !== "undefined" && __DEV__) || isAuthBypassEnabled()
+  );
+}

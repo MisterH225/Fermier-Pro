@@ -97,6 +97,15 @@ export function MarketplaceListScreen({ navigation }: Props) {
         ? String(listingsQuery.error)
         : null;
 
+  const list = listingsQuery.data ?? [];
+  const needle = search.trim().toLowerCase();
+  const displayed = useMemo(() => {
+    if (!needle) {
+      return list;
+    }
+    return list.filter((item) => listingSearchHaystack(item).includes(needle));
+  }, [list, needle]);
+
   if (listingsQuery.isPending) {
     return (
       <MarketplaceModuleGate>
@@ -117,15 +126,6 @@ export function MarketplaceListScreen({ navigation }: Props) {
     );
   }
 
-  const list = listingsQuery.data ?? [];
-  const needle = search.trim().toLowerCase();
-  const displayed = useMemo(() => {
-    if (!needle) {
-      return list;
-    }
-    return list.filter((item) => listingSearchHaystack(item).includes(needle));
-  }, [list, needle]);
-
   const emptyMessage =
     list.length === 0
       ? "Aucune annonce publiée pour le moment."
@@ -136,65 +136,65 @@ export function MarketplaceListScreen({ navigation }: Props) {
   return (
     <MarketplaceModuleGate>
       <FlatList
-      data={displayed}
-      keyExtractor={(item) => item.id}
-      contentContainerStyle={styles.list}
-      refreshControl={
-        <RefreshControl
-          refreshing={listingsQuery.isFetching}
-          onRefresh={() => void listingsQuery.refetch()}
-        />
-      }
-      ListHeaderComponent={
-        <View style={styles.searchWrap}>
-          <TextInput
-            style={styles.searchInput}
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Rechercher (titre, lieu, ferme, vendeur…)"
-            placeholderTextColor="#999"
-            autoCapitalize="none"
-            autoCorrect={false}
+        data={displayed}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl
+            refreshing={listingsQuery.isFetching}
+            onRefresh={() => void listingsQuery.refetch()}
           />
-          {search.length > 0 ? (
-            <TouchableOpacity
-              style={styles.searchClearBtn}
-              onPress={() => setSearch("")}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <Text style={styles.searchClearTxt}>Effacer</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      }
-      ListEmptyComponent={<Text style={styles.empty}>{emptyMessage}</Text>}
-      renderItem={({ item }: { item: MarketplaceListingListItem }) => (
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() =>
-            navigation.navigate("MarketplaceListingDetail", {
-              listingId: item.id,
-              headline: item.title
-            })
-          }
-        >
-          <Text style={styles.cardTitle}>{item.title}</Text>
-          <Text style={styles.price}>
-            {formatPrice(item.unitPrice, item.currency)}
-            {item.quantity != null ? ` · ${item.quantity} unité(s)` : ""}
-          </Text>
-          {item.locationLabel ? (
-            <Text style={styles.meta}>{item.locationLabel}</Text>
-          ) : null}
-          {item.farm ? (
-            <Text style={styles.meta}>Ferme : {item.farm.name}</Text>
-          ) : null}
-          {item.seller?.fullName ? (
-            <Text style={styles.seller}>Vendeur : {item.seller.fullName}</Text>
-          ) : null}
-        </TouchableOpacity>
-      )}
-    />
+        }
+        ListHeaderComponent={
+          <View style={styles.searchWrap}>
+            <TextInput
+              style={styles.searchInput}
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Rechercher (titre, lieu, ferme, vendeur…)"
+              placeholderTextColor="#999"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {search.length > 0 ? (
+              <TouchableOpacity
+                style={styles.searchClearBtn}
+                onPress={() => setSearch("")}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Text style={styles.searchClearTxt}>Effacer</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        }
+        ListEmptyComponent={<Text style={styles.empty}>{emptyMessage}</Text>}
+        renderItem={({ item }: { item: MarketplaceListingListItem }) => (
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() =>
+              navigation.navigate("MarketplaceListingDetail", {
+                listingId: item.id,
+                headline: item.title
+              })
+            }
+          >
+            <Text style={styles.cardTitle}>{item.title}</Text>
+            <Text style={styles.price}>
+              {formatPrice(item.unitPrice, item.currency)}
+              {item.quantity != null ? ` · ${item.quantity} unité(s)` : ""}
+            </Text>
+            {item.locationLabel ? (
+              <Text style={styles.meta}>{item.locationLabel}</Text>
+            ) : null}
+            {item.farm ? (
+              <Text style={styles.meta}>Ferme : {item.farm.name}</Text>
+            ) : null}
+            {item.seller?.fullName ? (
+              <Text style={styles.seller}>Vendeur : {item.seller.fullName}</Text>
+            ) : null}
+          </TouchableOpacity>
+        )}
+      />
     </MarketplaceModuleGate>
   );
 }

@@ -72,6 +72,8 @@ GET http://localhost:3000/api/v1/health
    - `EXPO_PUBLIC_SUPABASE_URL` et `EXPO_PUBLIC_SUPABASE_ANON_KEY` (dashboard Supabase → Settings → API)
    - `EXPO_PUBLIC_API_URL` : URL atteignable depuis l’appareil (émulateur Android souvent `http://10.0.2.2:3000`, simulateur iOS `http://localhost:3000`, téléphone physique = IP LAN de ta machine + port API)
 
+**Aperçu UI sans Supabase (dev Metro)** : avec `npx expo start` / `__DEV__`, l’écran d’accueil propose **« Explorer l’app — mode démo »** sans renseigner les clés Supabase ; la connexion SMS reste accessible via le lien « Connexion par SMS… » une fois les variables renseignées. Pour un **build release** sans OTP, utilise `EXPO_PUBLIC_AUTH_BYPASS=true` dans `apps/mobile/.env`.
+
 **Important (monorepo)** : lancer Expo **uniquement** via `npm run dev:mobile` ou `npm run expo:start` à la racine, ou bien `cd apps/mobile && npx expo start`. Un `npx expo start` lancé **à la racine** du repo fait échouer Metro avec `Unable to resolve "../../App"` (Expo cherche `App` à la racine au lieu de `apps/mobile/App.tsx`).
 
 ```bash

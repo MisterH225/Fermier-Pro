@@ -23,7 +23,7 @@ import {
   buildFarmListHeaderSecondaryItems,
   buildFarmListListHeaderRows,
   navigateFarmListQuickNav
-} from "../features";
+} from "../features/farm-list-menu";
 import type { FarmDto } from "../lib/api";
 import { fetchFarms } from "../lib/api";
 import { farmDetailMenuVisibility } from "../lib/menuVisibility";

@@ -4,6 +4,7 @@
  * dans `apps/api/test/mobile-api-contract.e2e-spec.ts`.
  */
 import { getExpoPublicEnv } from "../env";
+import { tryDemoBypassApiGetJson } from "./demoApiGetBypass";
 
 function apiBaseUrl(): string {
   const { apiUrl } = getExpoPublicEnv();
@@ -32,6 +33,10 @@ export async function apiGetJson<T>(
   accessToken: string,
   activeProfileId?: string | null
 ): Promise<T> {
+  const demo = tryDemoBypassApiGetJson(path, accessToken);
+  if (demo !== null) {
+    return demo as T;
+  }
   const p = path.startsWith("/") ? path : `/${path}`;
   const url = `${apiBaseUrl()}/api/v1${p}`;
   const res = await fetch(url, {
