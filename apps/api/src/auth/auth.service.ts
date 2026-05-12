@@ -88,24 +88,10 @@ export class AuthService {
       }
     });
 
-    await this.ensureDefaultBuyerProfile(user.id);
+    /**
+     * Pas de profil crée automatiquement : la premiere connexion mobile impose un choix
+     * (producteur, veterinaire, etc.) via POST /profiles — premier profil `isDefault: true`.
+     */
     return user;
-  }
-
-  /** Premier profil marketplace pour tout nouvel utilisateur. */
-  private async ensureDefaultBuyerProfile(userId: string): Promise<void> {
-    const existing = await this.prisma.profile.findFirst({
-      where: { userId }
-    });
-    if (existing) {
-      return;
-    }
-    await this.prisma.profile.create({
-      data: {
-        userId,
-        type: "buyer",
-        isDefault: true
-      }
-    });
   }
 }

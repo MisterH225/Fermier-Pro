@@ -1778,3 +1778,30 @@ export async function fetchAuthMe(
   }
   return JSON.parse(text) as AuthMeResponse;
 }
+
+/** Types alignés sur Prisma `ProfileType` (premiere connexion mobile). */
+export type ProfileTypeChoice =
+  | "producer"
+  | "technician"
+  | "veterinarian"
+  | "buyer";
+
+export type CreatedProfileDto = {
+  id: string;
+  type: string;
+  displayName: string | null;
+  isDefault: boolean;
+};
+
+/** POST /api/v1/profiles — sans `X-Profile-Id` (creation du premier profil). */
+export function createProfile(
+  accessToken: string,
+  body: { type: ProfileTypeChoice; displayName?: string }
+): Promise<CreatedProfileDto> {
+  return apiPostJson<CreatedProfileDto>(
+    "/profiles",
+    body,
+    accessToken,
+    null
+  );
+}

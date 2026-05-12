@@ -8,30 +8,13 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { authColors, authRadii } from "../theme/authTheme";
+import { formatAuthError } from "../lib/authErrors";
 import { getSupabase } from "../lib/supabase";
+import { authColors, authRadii } from "../theme/authTheme";
 
 const RESEND_COOLDOWN_SEC = 60;
 
 type Step = "phone" | "otp";
-
-function formatAuthError(err: unknown): string {
-  const raw = err instanceof Error ? err.message : String(err);
-  const m = raw.toLowerCase();
-  if (
-    m.includes("network request failed") ||
-    m.includes("failed to fetch") ||
-    m.includes("network error")
-  ) {
-    return (
-      "Impossible de joindre Supabase (réseau ou URL). Vérifie la connexion internet, " +
-      "que EXPO_PUBLIC_SUPABASE_URL dans apps/mobile/.env est exactement l’URL du projet " +
-      "(https://….supabase.co), puis redémarre Expo après modification du .env. " +
-      "Sans SMS en local : ajoute EXPO_PUBLIC_AUTH_BYPASS=true pour le mode démo."
-    );
-  }
-  return raw;
-}
 
 /**
  * Connexion par SMS OTP (Supabase). Numéros au format E.164 (ex. +2250707070707).
@@ -254,7 +237,8 @@ export function PhoneOtpAuth() {
       {info ? <Text style={styles.inf}>{info}</Text> : null}
 
       <Text style={styles.footerNote}>
-        Pas encore de compte ? Le premier code SMS crée ton accès Fermier Pro.
+        Pas encore de compte ? La première connexion (Google ou code SMS) crée ton accès
+        Fermier Pro.
       </Text>
     </View>
   );

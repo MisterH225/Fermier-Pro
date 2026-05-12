@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { GoogleOAuthButton } from "../components/GoogleOAuthButton";
 import { PhoneOtpAuth } from "../components/PhoneOtpAuth";
 import { getExpoPublicEnv, isApiUrlConfigured, isAuthEnvConfigured } from "../env";
 import { authColors, authRadii } from "../theme/authTheme";
@@ -111,8 +112,8 @@ export function LoginGateScreen({
                   style={styles.warnIcon}
                 />
                 <Text style={styles.infoCardText}>
-                  Supabase non configuré : la connexion par SMS sera disponible
-                  après copie de .env.example vers .env et renseignement des
+                  Supabase non configuré : la connexion Google ou par SMS sera
+                  disponible après copie de .env.example vers .env et renseignement des
                   clés. En attendant, utilise le bouton ci-dessus.
                 </Text>
               </View>
@@ -132,6 +133,19 @@ export function LoginGateScreen({
             )
           ) : null}
 
+          {authOk ? (
+            <>
+              <GoogleOAuthButton />
+              {(!bypassAllowed || showSmsLogin) ? (
+                <View style={styles.authOrRow}>
+                  <View style={styles.authOrLine} />
+                  <Text style={styles.authOrText}>ou</Text>
+                  <View style={styles.authOrLine} />
+                </View>
+              ) : null}
+            </>
+          ) : null}
+
           {authOk && bypassAllowed && showSmsLogin ? (
             <TouchableOpacity
               style={styles.smsFold}
@@ -145,15 +159,22 @@ export function LoginGateScreen({
           {authOk && (!bypassAllowed || showSmsLogin) ? <PhoneOtpAuth /> : null}
 
           {authOk && bypassAllowed && !showSmsLogin ? (
-            <TouchableOpacity
-              style={styles.smsReveal}
-              onPress={() => setShowSmsLogin(true)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.smsRevealText}>
-                Connexion par SMS (Supabase)…
-              </Text>
-            </TouchableOpacity>
+            <>
+              <View style={styles.authOrRow}>
+                <View style={styles.authOrLine} />
+                <Text style={styles.authOrText}>ou</Text>
+                <View style={styles.authOrLine} />
+              </View>
+              <TouchableOpacity
+                style={styles.smsReveal}
+                onPress={() => setShowSmsLogin(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.smsRevealText}>
+                  Connexion par SMS (numéro mobile)…
+                </Text>
+              </TouchableOpacity>
+            </>
           ) : null}
 
           <TouchableOpacity
@@ -304,6 +325,22 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 17,
     marginBottom: 12
+  },
+  authOrRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 20,
+    marginBottom: 4
+  },
+  authOrLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: authColors.border
+  },
+  authOrText: {
+    marginHorizontal: 14,
+    fontSize: 14,
+    color: authColors.placeholder
   },
   bypassBtn: {
     flexDirection: "row",

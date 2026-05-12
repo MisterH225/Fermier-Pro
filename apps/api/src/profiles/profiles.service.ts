@@ -16,11 +16,17 @@ export class ProfilesService {
 
   async create(user: User, dto: CreateProfileDto): Promise<Profile> {
     try {
+      const existingCount = await this.prisma.profile.count({
+        where: { userId: user.id }
+      });
+      const isFirstProfile = existingCount === 0;
+
       const profile = await this.prisma.profile.create({
         data: {
           userId: user.id,
           type: dto.type,
-          displayName: dto.displayName
+          displayName: dto.displayName,
+          ...(isFirstProfile ? { isDefault: true } : {})
         }
       });
       if (dto.type === ProfileType.producer) {

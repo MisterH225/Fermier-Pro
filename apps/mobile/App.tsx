@@ -1,6 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { focusManager } from "@tanstack/react-query";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import {
@@ -13,7 +12,7 @@ import {
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import type { Session } from "@supabase/supabase-js";
-import { MainNavigationShell } from "./src/components/MainNavigationShell";
+import { AuthenticatedAppShell } from "./src/components/AuthenticatedAppShell";
 import { SessionProvider } from "./src/context/SessionContext";
 import {
   isAuthEnvConfigured,
@@ -22,8 +21,6 @@ import {
 import { DEMO_BYPASS_ACCESS_TOKEN } from "./src/lib/demoBypass";
 import {
   QUERY_PERSIST_STORAGE_KEY,
-  asyncStoragePersister,
-  shouldPersistQuery
 } from "./src/lib/queryPersist";
 import { queryClient } from "./src/lib/queryClient";
 import { getSupabase } from "./src/lib/supabase";
@@ -120,18 +117,7 @@ export default function App() {
             }
             signOut={signOut}
           >
-            <PersistQueryClientProvider
-              client={queryClient}
-              persistOptions={{
-                persister: asyncStoragePersister,
-                maxAge: 1000 * 60 * 60 * 24,
-                dehydrateOptions: {
-                  shouldDehydrateQuery: shouldPersistQuery
-                }
-              }}
-            >
-              <MainNavigationShell />
-            </PersistQueryClientProvider>
+            <AuthenticatedAppShell />
           </SessionProvider>
         ) : (
           <LoginGateScreen

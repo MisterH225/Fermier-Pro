@@ -37,6 +37,8 @@ type SessionContextValue = {
   activeProfileId: string | null;
   setActiveProfileId: (id: string | null) => Promise<void>;
   refreshAuthMe: () => Promise<void>;
+  /** Recharge session / profils depuis l’API (ex. après erreur réseau). */
+  reloadAuth: () => Promise<void>;
   /** GET /config/client — défaut tout activé si échec réseau */
   clientFeatures: ClientConfigDto["features"];
 };
@@ -104,12 +106,18 @@ export function SessionProvider({
       const stored = await AsyncStorage.getItem(STORAGE_PROFILE_KEY);
       const initial = await fetchAuthMe(accessToken);
       const ids = new Set(initial.profiles.map((p) => p.id));
-      let chosen =
-        stored && ids.has(stored)
-          ? stored
-          : pickDefaultProfileId(initial);
+      /** Profil avec `isDefault` (choix de la premiere connexion), puis secours locaux. */
+      const fromServer = pickDefaultProfileId(initial);
+      let chosen: string | null = null;
+      if (fromServer) {
+        chosen = fromServer;
+      } else if (stored && ids.has(stored)) {
+        chosen = stored;
+      } else {
+        chosen = initial.profiles[0]?.id ?? null;
+      }
       if (chosen && !ids.has(chosen)) {
-        chosen = pickDefaultProfileId(initial);
+        chosen = pickDefaultProfileId(initial) ?? initial.profiles[0]?.id ?? null;
       }
       if (chosen) {
         await AsyncStorage.setItem(STORAGE_PROFILE_KEY, chosen);
@@ -149,6 +157,10 @@ export function SessionProvider({
       setAuthError(e instanceof Error ? e.message : String(e));
     }
   }, [accessToken, activeProfileId]);
+
+  const reloadAuth = useCallback(async () => {
+    await bootstrap();
+  }, [bootstrap]);
 
   const setActiveProfileId = useCallback(
     async (id: string | null) => {
@@ -205,6 +217,7 @@ export function SessionProvider({
       activeProfileId,
       setActiveProfileId,
       refreshAuthMe,
+      reloadAuth,
       clientFeatures
     }),
     [
@@ -216,6 +229,7 @@ export function SessionProvider({
       activeProfileId,
       setActiveProfileId,
       refreshAuthMe,
+      reloadAuth,
       clientFeatures
     ]
   );

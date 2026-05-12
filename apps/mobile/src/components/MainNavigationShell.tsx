@@ -7,6 +7,7 @@ import {
   AnimalDetailScreen,
   BarnDetailScreen,
   BatchDetailScreen,
+  BuyerDashboardScreen,
   ChatPickFarmScreen,
   ChatPickPeerScreen,
   ChatRoomScreen,
@@ -40,12 +41,33 @@ import {
   MarketplaceMyListingsScreen,
   MarketplaceMyOffersScreen,
   ModuleRoadmapScreen,
+  ProducerDashboardScreen,
   PenDetailScreen,
   PenMoveScreen,
+  TechnicianDashboardScreen,
+  VeterinarianDashboardScreen,
   VetConsultationDetailScreen
 } from "../features";
 import type { RootStackParamList } from "../types/navigation";
+import { useSession } from "../context/SessionContext";
 import { OfflineBanner } from "./OfflineBanner";
+
+function dashboardRouteForProfileType(
+  type: string | undefined
+): keyof RootStackParamList {
+  switch (type) {
+    case "producer":
+      return "ProducerDashboard";
+    case "buyer":
+      return "BuyerDashboard";
+    case "veterinarian":
+      return "VeterinarianDashboard";
+    case "technician":
+      return "TechnicianDashboard";
+    default:
+      return "ProducerDashboard";
+  }
+}
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -59,8 +81,14 @@ const navTheme = {
 };
 
 function MainStack() {
+  const { authMe, activeProfileId } = useSession();
+  const activeType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
+  const initialRouteName = dashboardRouteForProfileType(activeType);
+
   return (
     <Stack.Navigator
+      key={activeProfileId ?? "none"}
+      initialRouteName={initialRouteName}
       screenOptions={{
         headerStyle: { backgroundColor: "#5d7a1f" },
         headerTintColor: "#fff",
@@ -69,6 +97,26 @@ function MainStack() {
         contentStyle: { backgroundColor: "#f9f8ea" }
       }}
     >
+      <Stack.Screen
+        name="ProducerDashboard"
+        component={ProducerDashboardScreen}
+        options={{ title: "Accueil producteur" }}
+      />
+      <Stack.Screen
+        name="BuyerDashboard"
+        component={BuyerDashboardScreen}
+        options={{ title: "Accueil acheteur" }}
+      />
+      <Stack.Screen
+        name="VeterinarianDashboard"
+        component={VeterinarianDashboardScreen}
+        options={{ title: "Accueil vétérinaire" }}
+      />
+      <Stack.Screen
+        name="TechnicianDashboard"
+        component={TechnicianDashboardScreen}
+        options={{ title: "Accueil technicien" }}
+      />
       <Stack.Screen
         name="FarmList"
         component={FarmListScreen}

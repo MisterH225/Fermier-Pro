@@ -2,6 +2,7 @@
   "expo": {
     "name": "Fermier Pro",
     "slug": "fermier-pro",
+    "scheme": "fermier-pro",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -11,6 +12,9 @@
     },
     "assetBundlePatterns": [
       "**/*"
+    ],
+    "plugins": [
+      "expo-web-browser"
     ]
   }
 }
