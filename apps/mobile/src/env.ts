@@ -18,3 +18,12 @@ export function isAuthEnvConfigured(): boolean {
 export function isApiUrlConfigured(): boolean {
   return !!getExpoPublicEnv().apiUrl;
 }
+
+/**
+ * Si `EXPO_PUBLIC_AUTH_BYPASS=true` (ou `1`), l’écran de connexion affiche un accès
+ * « mode démo » pour naviguer dans l’app sans Supabase Auth configuré (dev uniquement).
+ */
+export function isAuthBypassEnabled(): boolean {
+  const v = (process.env.EXPO_PUBLIC_AUTH_BYPASS ?? "").trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}

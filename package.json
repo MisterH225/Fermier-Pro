@@ -16,7 +16,8 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:mobile": "npm run start --workspace @fermier/mobile",
+    "dev:mobile": "npm --prefix apps/mobile run start",
+    "expo:start": "npm --prefix apps/mobile run start",
     "dev:api": "npm run start:dev --workspace @fermier/api",
     "build:api": "npm run build --workspace @fermier/api",
     "lint:api": "npm run lint --workspace @fermier/api",

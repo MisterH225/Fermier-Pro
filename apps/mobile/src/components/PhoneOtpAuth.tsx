@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -7,6 +8,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { authColors, authRadii } from "../theme/authTheme";
 import { getSupabase } from "../lib/supabase";
 
 const RESEND_COOLDOWN_SEC = 60;
@@ -99,70 +101,121 @@ export function PhoneOtpAuth() {
   };
 
   return (
-    <View style={styles.box}>
-      <Text style={styles.label}>Connexion par téléphone (SMS)</Text>
+    <View style={styles.wrap}>
+      <View style={styles.stepRow} accessibilityRole="progressbar">
+        <View
+          style={[
+            styles.stepSeg,
+            step === "phone" ? styles.stepSegActive : styles.stepSegDone
+          ]}
+        />
+        <View
+          style={[
+            styles.stepSeg,
+            step === "otp" ? styles.stepSegActive : styles.stepSegIdle
+          ]}
+        />
+      </View>
+
+      <Text style={styles.screenTitle}>Connexion</Text>
+      <Text style={styles.screenHint}>
+        {step === "phone"
+          ? "Saisis ton numéro mobile. Tu recevras un code par SMS."
+          : "Entre le code à 6 chiffres reçu par SMS."}
+      </Text>
+
       {step === "phone" ? (
         <>
-          <TextInput
-            style={styles.inputPhone}
-            placeholder="+2250707070707"
-            placeholderTextColor="#999"
-            keyboardType="phone-pad"
-            autoComplete="tel"
-            textContentType="telephoneNumber"
-            value={phone}
-            onChangeText={setPhone}
-            editable={!busy}
-          />
+          <View style={styles.inputShell}>
+            <Ionicons
+              name="call-outline"
+              size={22}
+              color={authColors.forestMuted}
+              style={styles.inputIcon}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="+2250707070707"
+              placeholderTextColor={authColors.placeholder}
+              keyboardType="phone-pad"
+              autoComplete="tel"
+              textContentType="telephoneNumber"
+              value={phone}
+              onChangeText={setPhone}
+              editable={!busy}
+            />
+          </View>
           <TouchableOpacity
-            style={[styles.btn, busy && styles.btnDis]}
+            style={[styles.btnPrimary, busy && styles.btnDisabled]}
             onPress={() => void sendCode()}
             disabled={busy}
+            activeOpacity={0.88}
           >
             {busy ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={authColors.white} />
             ) : (
-              <Text style={styles.btnTxt}>Recevoir le code</Text>
+              <Text style={styles.btnPrimaryText}>Recevoir le code</Text>
             )}
           </TouchableOpacity>
         </>
       ) : (
         <>
-          <Text style={styles.small}>Numéro : {phone}</Text>
-          <TextInput
-            style={[styles.inputPhone, styles.inputOtp]}
-            placeholder="Code SMS"
-            placeholderTextColor="#999"
-            keyboardType="number-pad"
-            maxLength={8}
-            autoComplete="one-time-code"
-            textContentType="oneTimeCode"
-            value={otp}
-            onChangeText={setOtp}
-            editable={!busy}
-          />
+          <Text style={styles.phoneRecall}>{phone}</Text>
+          <View style={styles.inputShell}>
+            <Ionicons
+              name="keypad-outline"
+              size={22}
+              color={authColors.forestMuted}
+              style={styles.inputIcon}
+            />
+            <TextInput
+              style={[styles.input, styles.inputOtp]}
+              placeholder="Code SMS"
+              placeholderTextColor={authColors.placeholder}
+              keyboardType="number-pad"
+              maxLength={8}
+              autoComplete="one-time-code"
+              textContentType="oneTimeCode"
+              value={otp}
+              onChangeText={setOtp}
+              editable={!busy}
+            />
+          </View>
           <TouchableOpacity
-            style={[styles.btn, busy && styles.btnDis]}
+            style={[styles.btnPrimary, busy && styles.btnDisabled]}
             onPress={() => void verifyCode()}
             disabled={busy}
+            activeOpacity={0.88}
           >
             {busy ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={authColors.white} />
             ) : (
-              <Text style={styles.btnTxt}>Vérifier et se connecter</Text>
+              <Text style={styles.btnPrimaryText}>Vérifier et se connecter</Text>
             )}
           </TouchableOpacity>
+
+          <View style={styles.orRow}>
+            <View style={styles.orLine} />
+            <Text style={styles.orText}>ou</Text>
+            <View style={styles.orLine} />
+          </View>
+
           <TouchableOpacity
-            style={[styles.btnOutline, (busy || resendIn > 0) && styles.btnDis]}
+            style={[
+              styles.btnOutline,
+              (busy || resendIn > 0) && styles.btnDisabled
+            ]}
             onPress={() => void sendCode()}
             disabled={busy || resendIn > 0}
+            activeOpacity={0.88}
           >
-            <Text style={styles.btnOutlineTxt}>
+            <Text style={styles.btnOutlineText}>
               {resendIn > 0
                 ? `Renvoyer le code (${resendIn}s)`
                 : "Renvoyer le code"}
             </Text>
           </TouchableOpacity>
+
           <TouchableOpacity
             onPress={() => {
               setStep("phone");
@@ -171,95 +224,164 @@ export function PhoneOtpAuth() {
               setInfo(null);
               setResendIn(0);
             }}
-            style={styles.link}
+            style={styles.linkWrap}
             disabled={busy}
           >
-            <Text style={styles.linkTxt}>Changer de numéro</Text>
+            <Text style={styles.linkStrong}>Changer de numéro</Text>
           </TouchableOpacity>
         </>
       )}
+
       {error ? <Text style={styles.err}>{error}</Text> : null}
       {info ? <Text style={styles.inf}>{info}</Text> : null}
+
+      <Text style={styles.footerNote}>
+        Pas encore de compte ? Le premier code SMS crée ton accès Fermier Pro.
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  box: {
-    marginTop: 10
+  wrap: {
+    marginTop: 8,
+    width: "100%"
   },
-  label: {
-    fontSize: 14,
-    color: "#4b513d",
-    marginBottom: 8,
-    fontWeight: "600"
+  stepRow: {
+    flexDirection: "row",
+    marginBottom: 28
   },
-  inputPhone: {
+  stepSeg: {
+    flex: 1,
+    height: 4,
+    borderRadius: 4,
+    marginHorizontal: 4
+  },
+  stepSegIdle: {
+    backgroundColor: authColors.border
+  },
+  stepSegActive: {
+    backgroundColor: authColors.lime
+  },
+  stepSegDone: {
+    backgroundColor: authColors.brandGreen
+  },
+  screenTitle: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: authColors.forest,
+    marginBottom: 10,
+    letterSpacing: -0.5
+  },
+  screenHint: {
+    fontSize: 15,
+    color: authColors.body,
+    lineHeight: 22,
+    marginBottom: 24
+  },
+  inputShell: {
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: "#c5c9b8",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    backgroundColor: "#fff",
-    color: "#1f2910"
+    borderColor: authColors.border,
+    borderRadius: authRadii.input,
+    backgroundColor: authColors.background,
+    paddingHorizontal: 16,
+    minHeight: 56
+  },
+  inputIcon: {
+    marginRight: 10
+  },
+  input: {
+    flex: 1,
+    fontSize: 17,
+    color: authColors.forest,
+    paddingVertical: 14
   },
   inputOtp: {
     fontSize: 22,
-    letterSpacing: 8,
+    letterSpacing: 6,
     textAlign: "center"
   },
-  small: {
-    fontSize: 13,
-    color: "#6d745b",
-    marginBottom: 8
-  },
-  btn: {
-    marginTop: 12,
-    backgroundColor: "#5d7a1f",
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center"
-  },
-  btnOutline: {
-    marginTop: 10,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#5d7a1f",
-    backgroundColor: "#fff"
-  },
-  btnOutlineTxt: {
-    color: "#5d7a1f",
-    fontWeight: "600",
-    fontSize: 15
-  },
-  btnDis: {
-    opacity: 0.55
-  },
-  btnTxt: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 15
-  },
-  link: {
-    marginTop: 12,
-    alignItems: "center"
-  },
-  linkTxt: {
-    color: "#5d7a1f",
+  phoneRecall: {
     fontSize: 14,
+    color: authColors.body,
+    marginBottom: 12,
+    textAlign: "center"
+  },
+  btnPrimary: {
+    marginTop: 18,
+    backgroundColor: authColors.forest,
+    borderRadius: authRadii.pill,
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 56
+  },
+  btnPrimaryText: {
+    color: authColors.white,
+    fontSize: 17,
     fontWeight: "600"
   },
+  btnDisabled: {
+    opacity: 0.55
+  },
+  orRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 22
+  },
+  orLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: authColors.border
+  },
+  orText: {
+    marginHorizontal: 14,
+    fontSize: 14,
+    color: authColors.placeholder
+  },
+  btnOutline: {
+    borderWidth: 1,
+    borderColor: authColors.border,
+    borderRadius: authRadii.pill,
+    paddingVertical: 16,
+    alignItems: "center",
+    backgroundColor: authColors.background,
+    minHeight: 56,
+    justifyContent: "center"
+  },
+  btnOutlineText: {
+    color: authColors.forest,
+    fontSize: 16,
+    fontWeight: "600"
+  },
+  linkWrap: {
+    marginTop: 20,
+    alignItems: "center"
+  },
+  linkStrong: {
+    color: authColors.forest,
+    fontSize: 16,
+    fontWeight: "700"
+  },
   err: {
-    marginTop: 10,
-    color: "#b00020",
-    fontSize: 13
+    marginTop: 16,
+    color: authColors.error,
+    fontSize: 14,
+    lineHeight: 20
   },
   inf: {
-    marginTop: 10,
-    color: "#2e5a2e",
-    fontSize: 13
+    marginTop: 16,
+    color: authColors.success,
+    fontSize: 14,
+    lineHeight: 20
+  },
+  footerNote: {
+    marginTop: 28,
+    fontSize: 13,
+    color: authColors.placeholder,
+    textAlign: "center",
+    lineHeight: 19
   }
 });

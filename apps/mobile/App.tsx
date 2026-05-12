@@ -15,7 +15,11 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import type { Session } from "@supabase/supabase-js";
 import { MainNavigationShell } from "./src/components/MainNavigationShell";
 import { SessionProvider } from "./src/context/SessionContext";
-import { isAuthEnvConfigured } from "./src/env";
+import {
+  isAuthBypassEnabled,
+  isAuthEnvConfigured
+} from "./src/env";
+import { DEMO_BYPASS_ACCESS_TOKEN } from "./src/lib/demoBypass";
 import {
   QUERY_PERSIST_STORAGE_KEY,
   asyncStoragePersister,
@@ -27,7 +31,9 @@ import { LoginGateScreen } from "./src/screens/LoginGateScreen";
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const [demoBypass, setDemoBypass] = useState(false);
   const authConfigured = isAuthEnvConfigured();
+  const bypassAllowed = isAuthBypassEnabled();
 
   useEffect(() => {
     const supabase = getSupabase();
@@ -78,6 +84,9 @@ export default function App() {
   }, [session]);
 
   const signOut = async () => {
+    if (demoBypass) {
+      setDemoBypass(false);
+    }
     await AsyncStorage.removeItem(QUERY_PERSIST_STORAGE_KEY).catch(
       () => undefined
     );
@@ -88,7 +97,9 @@ export default function App() {
     }
   };
 
-  const inMainNav = Boolean(authConfigured && session);
+  const inMainNav = Boolean(
+    (authConfigured && session) || (bypassAllowed && demoBypass)
+  );
 
   return (
     <GestureHandlerRootView style={styles.flex}>
@@ -96,11 +107,17 @@ export default function App() {
         <StatusBar style={inMainNav ? "light" : "dark"} />
         {authConfigured && session === undefined ? (
           <View style={styles.loaderWrap}>
-            <ActivityIndicator size="large" color="#5d7a1f" />
+            <ActivityIndicator size="large" color="#1B3B2E" />
           </View>
-        ) : authConfigured && session ? (
+        ) : inMainNav ? (
           <SessionProvider
-            accessToken={session.access_token}
+            accessToken={
+              authConfigured && session
+                ? session.access_token
+                : bypassAllowed && demoBypass
+                  ? DEMO_BYPASS_ACCESS_TOKEN
+                  : ""
+            }
             signOut={signOut}
           >
             <PersistQueryClientProvider
@@ -117,7 +134,10 @@ export default function App() {
             </PersistQueryClientProvider>
           </SessionProvider>
         ) : (
-          <LoginGateScreen />
+          <LoginGateScreen
+            bypassAllowed={bypassAllowed}
+            onEnterDemoBypass={() => setDemoBypass(true)}
+          />
         )}
       </SafeAreaProvider>
     </GestureHandlerRootView>
@@ -130,6 +150,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f9f8ea"
+    backgroundColor: "#ffffff"
   }
 });

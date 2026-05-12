@@ -7,7 +7,7 @@
     "userInterfaceStyle": "light",
     "splash": {
       "resizeMode": "contain",
-      "backgroundColor": "#f9f8ea"
+      "backgroundColor": "#ffffff"
     },
     "assetBundlePatterns": [
       "**/*"
