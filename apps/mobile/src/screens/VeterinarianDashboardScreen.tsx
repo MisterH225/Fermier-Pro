@@ -1,12 +1,10 @@
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { EventCard, KpiCard } from "../components/farm";
+import { MobileAppShell } from "../components/layout";
+import { IconButton, PrimaryButton } from "../components/ui";
+import { mobileColors, mobileSpacing, mobileTypography } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
 /**
@@ -17,112 +15,86 @@ export function VeterinarianDashboardScreen() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   return (
-    <ScrollView contentContainerStyle={styles.wrap}>
-      <Text style={styles.banner}>Espace vétérinaire</Text>
-      <Text style={styles.intro}>
-        Accède aux dossiers sanitaires depuis le détail d’une ferme dont tu es membre, ou
-        ouvre la messagerie pour coordonner avec les éleveurs.
-      </Text>
-
-      <TouchableOpacity
-        style={styles.tile}
-        onPress={() =>
-          navigation.navigate("ModuleRoadmap", {
-            title: "Cartographie des fermes",
-            body:
-              "Vue agrégée des fermes suivies : prévu dans une prochaine version. " +
-              "En attendant, sélectionne une ferme depuis « Mes fermes » si tu y es invité."
-          })
+    <MobileAppShell
+      title="Espace vétérinaire"
+      activeTab="home"
+      onTabChange={(tab) => {
+        if (tab === "home") {
+          return;
         }
-        activeOpacity={0.88}
-      >
-        <Text style={styles.tileTitle}>Suivi des exploitations</Text>
-        <Text style={styles.tileDesc}>
-          Vision métier vétérinaire (roadmap produit).
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.tile}
-        onPress={() => navigation.navigate("ChatRooms")}
-        activeOpacity={0.88}
-      >
-        <Text style={styles.tileTitle}>Messages</Text>
-        <Text style={styles.tileDesc}>
-          Échanges avec les producteurs et l’équipe terrain.
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.tile}
-        onPress={() =>
-          navigation.navigate("ModuleRoadmap", {
-            title: "Rappels et ordonnances",
-            body:
-              "Centralisation des prescriptions et relances : module à venir."
-          })
+        if (tab === "lots") {
+          navigation.navigate("FarmList");
         }
-        activeOpacity={0.88}
-      >
-        <Text style={styles.tileTitle}>Outils cliniques</Text>
-        <Text style={styles.tileDesc}>Prescriptions, historiques, pièces jointes.</Text>
-      </TouchableOpacity>
+        if (tab === "events") {
+          navigation.navigate("FarmEventsFeed");
+        }
+        if (tab === "profile") {
+          navigation.navigate("Account");
+        }
+      }}
+      topRight={<IconButton icon="search" onPress={() => navigation.navigate("FarmList")} />}
+    >
+      <ScrollView contentContainerStyle={styles.wrap}>
+        <View style={styles.kpiRow}>
+          <View style={styles.kpiItem}>
+            <KpiCard label="Alertes santé" value="2" tone="danger" />
+          </View>
+          <View style={styles.kpiItem}>
+            <KpiCard label="Consultations" value="6" tone="warning" />
+          </View>
+        </View>
 
-      <TouchableOpacity
-        style={styles.tile}
-        onPress={() => navigation.navigate("FarmList")}
-        activeOpacity={0.88}
-      >
-        <Text style={styles.tileTitle}>Mes fermes</Text>
-        <Text style={styles.tileDesc}>
-          Liste des exploitations auxquelles tu as accès (invitation ou rattachement).
-        </Text>
-      </TouchableOpacity>
+        <Text style={styles.sectionTitle}>Activité clinique</Text>
+        <View style={styles.list}>
+          <EventCard
+            title="Vaccination validée"
+            subtitle="Lot #8 - Croissance"
+            timestamp="09:18"
+          />
+          <EventCard
+            title="Alerte respiratoire"
+            subtitle="Lot #12 - Post-sevrage"
+            timestamp="07:41"
+          />
+        </View>
 
-      <View style={styles.footerPad} />
-    </ScrollView>
+        <Text style={styles.sectionTitle}>Actions rapides</Text>
+        <View style={styles.list}>
+          <PrimaryButton label="Mes fermes" onPress={() => navigation.navigate("FarmList")} />
+          <PrimaryButton label="Messages" onPress={() => navigation.navigate("ChatRooms")} />
+          <PrimaryButton
+            label="Rappels & ordonnances"
+            onPress={() =>
+              navigation.navigate("ModuleRoadmap", {
+                title: "Rappels et ordonnances",
+                body: "Centralisation des prescriptions et relances : module à venir."
+              })
+            }
+          />
+        </View>
+      </ScrollView>
+    </MobileAppShell>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 28,
-    backgroundColor: "#f0f7ff"
+    padding: mobileSpacing.lg,
+    paddingBottom: mobileSpacing.xxl,
+    gap: mobileSpacing.lg
   },
-  banner: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#0c4a6e",
-    marginBottom: 8
+  kpiRow: {
+    flexDirection: "row",
+    gap: mobileSpacing.md
   },
-  intro: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#334155",
-    marginBottom: 20
+  kpiItem: {
+    flex: 1
   },
-  tile: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#BFDBFE"
+  sectionTitle: {
+    ...mobileTypography.cardTitle,
+    color: mobileColors.textPrimary
   },
-  tileTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#0c4a6e",
-    marginBottom: 6
-  },
-  tileDesc: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: "#475569"
-  },
-  footerPad: {
-    height: 24
+  list: {
+    gap: mobileSpacing.md
   }
 });

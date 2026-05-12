@@ -1,7 +1,7 @@
 /**
  * Client HTTP vers `/api/v1` (API Nest liée à ton projet **Supabase** : Auth côté app,
  * Postgres côté serveur). Convention : tout nouvel appel ajouté ici doit avoir un cas
- * dans `apps/api/test/mobile-api-contract.e2e-spec.ts`.
+ * dans `apps/api/test/mobile-api-contract.e2e-spec.ts` (GET/POST/PATCH selon le cas).
  */
 import { getExpoPublicEnv } from "../env";
 import { tryDemoBypassApiGetJson } from "./demoApiGetBypass";
@@ -1740,15 +1740,32 @@ export function cancelMarketplaceListing(
   );
 }
 
+export type AuthMePrimaryFarm = {
+  id: string;
+  name: string;
+};
+
+export type AuthMeUser = {
+  id: string;
+  supabaseUserId: string;
+  email: string | null;
+  phone: string | null;
+  fullName: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  avatarUrl: string | null;
+  producerHomeFarmName: string | null;
+  homeLatitude: number | null;
+  homeLongitude: number | null;
+  homeLocationLabel: string | null;
+  homeLocationSource: "gps" | "manual" | null;
+  isActive: boolean;
+};
+
 export type AuthMeResponse = {
-  user: {
-    id: string;
-    supabaseUserId: string;
-    email: string | null;
-    phone: string | null;
-    fullName: string | null;
-    isActive: boolean;
-  };
+  user: AuthMeUser;
+  /** Première ferme propriétaire (ordre de création), pour libellé accueil producteur. */
+  primaryFarm: AuthMePrimaryFarm | null;
   profiles: Array<{
     id: string;
     type: string;
@@ -1761,6 +1778,17 @@ export type AuthMeResponse = {
     displayName: string | null;
     isDefault: boolean;
   } | null;
+};
+
+export type PatchMeProfilePayload = {
+  firstName?: string | null;
+  lastName?: string | null;
+  avatarUrl?: string | null;
+  producerHomeFarmName?: string | null;
+  homeLatitude?: number | null;
+  homeLongitude?: number | null;
+  homeLocationLabel?: string | null;
+  homeLocationSource?: "gps" | "manual" | null;
 };
 
 /** GET /api/v1/auth/me (Bearer = access_token Supabase). */
@@ -1777,6 +1805,20 @@ export async function fetchAuthMe(
     throw new Error(text || `${res.status} ${res.statusText}`);
   }
   return JSON.parse(text) as AuthMeResponse;
+}
+
+/** PATCH /api/v1/auth/me/profile — met à jour l’utilisateur courant (sans changer de profil métier). */
+export function patchAuthProfile(
+  accessToken: string,
+  body: PatchMeProfilePayload,
+  activeProfileId?: string | null
+): Promise<AuthMeResponse> {
+  return apiPatchJson<AuthMeResponse>(
+    "/auth/me/profile",
+    body,
+    accessToken,
+    activeProfileId ?? undefined
+  );
 }
 
 /** Types alignés sur Prisma `ProfileType` (premiere connexion mobile). */

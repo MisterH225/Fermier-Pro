@@ -27,6 +27,7 @@ import {
 import type { FarmDto } from "../lib/api";
 import { fetchFarms } from "../lib/api";
 import { farmDetailMenuVisibility } from "../lib/menuVisibility";
+import { mobileColors, mobileRadius, mobileSpacing } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
 const PRODUCER = "producer";
@@ -322,12 +323,13 @@ export function FarmListScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   list: {
-    padding: 16,
-    paddingBottom: 32
+    padding: mobileSpacing.lg,
+    paddingBottom: 32,
+    backgroundColor: mobileColors.surface
   },
   listWelcome: {
     fontSize: 15,
-    color: "#4b513d",
+    color: mobileColors.textSecondary,
     marginBottom: 10
   },
   marketInline: {
@@ -335,13 +337,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingVertical: 14,
     paddingHorizontal: 14,
-    backgroundColor: "#fdfaf3",
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: "#c4a574"
+    backgroundColor: mobileColors.background,
+    borderRadius: mobileRadius.md,
+    borderWidth: 1,
+    borderColor: mobileColors.border
   },
   marketInlineText: {
-    color: "#6b5420",
+    color: mobileColors.textPrimary,
     fontSize: 16,
     fontWeight: "700"
   },
@@ -355,13 +357,13 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: "#e8efd9",
+    backgroundColor: mobileColors.accentSoft,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#5d7a1f"
+    borderColor: mobileColors.accent
   },
   inlineCtaText: {
-    color: "#3d5218",
+    color: mobileColors.accent,
     fontWeight: "600",
     fontSize: 14
   },
@@ -376,7 +378,7 @@ const styles = StyleSheet.create({
   },
   inviteLinkText: {
     fontSize: 15,
-    color: "#4a5fa8",
+    color: mobileColors.accent,
     fontWeight: "600",
     textDecorationLine: "underline"
   },
@@ -386,17 +388,17 @@ const styles = StyleSheet.create({
     color: "#6d745b"
   },
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
+    backgroundColor: mobileColors.background,
+    borderRadius: mobileRadius.lg,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#e0e4d4"
+    borderColor: mobileColors.border
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#1f2910"
+    color: mobileColors.textPrimary
   },
   cardSub: {
     marginTop: 6,
@@ -415,7 +417,7 @@ const styles = StyleSheet.create({
     padding: 24
   },
   errorText: {
-    color: "#b00020",
+    color: mobileColors.error,
     textAlign: "center",
     fontSize: 14
   },
@@ -428,7 +430,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#1f2910"
+    color: mobileColors.textPrimary
   },
   emptySub: {
     marginTop: 10,
@@ -439,22 +441,22 @@ const styles = StyleSheet.create({
   },
   ctaOutline: {
     marginTop: 16,
-    borderWidth: 2,
-    borderColor: "#5d7a1f",
+    borderWidth: 1,
+    borderColor: mobileColors.accent,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 14,
     alignSelf: "stretch"
   },
   ctaOutlineText: {
-    color: "#5d7a1f",
+    color: mobileColors.accent,
     fontWeight: "700",
     fontSize: 16,
     textAlign: "center"
   },
   cta: {
     marginTop: 12,
-    backgroundColor: "#5d7a1f",
+    backgroundColor: mobileColors.accent,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 14,
@@ -474,7 +476,7 @@ const styles = StyleSheet.create({
     marginRight: 10
   },
   headerSecondaryText: {
-    color: "#fff",
+    color: mobileColors.accent,
     fontWeight: "600",
     fontSize: 14
   },
@@ -482,7 +484,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4
   },
   headerBtnText: {
-    color: "#fff",
+    color: mobileColors.textSecondary,
     fontWeight: "600",
     fontSize: 15
   }

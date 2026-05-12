@@ -35,6 +35,19 @@ model User {
   supabaseUserId        String               @unique
   email                 String?              @unique
   fullName              String?
+  /// Prénom affiché (accueil, OAuth Google souvent pré-rempli à la création).
+  firstName             String?
+  /// Nom de famille (OAuth ou saisi).
+  lastName              String?
+  /// URL publique avatar (ex. Supabase Storage).
+  avatarUrl             String?
+  /// Libellé ferme sur l’accueil producteur (prioritaire sur la 1re ferme).
+  producerHomeFarmName  String?
+  homeLatitude          Decimal?             @db.Decimal(10, 7)
+  homeLongitude         Decimal?             @db.Decimal(10, 7)
+  homeLocationLabel     String?
+  /// `gps` | `manual` — origine des coordonnées / libellé lieu.
+  homeLocationSource    String?
   phone                 String?              @unique
   isActive              Boolean              @default(true)
   createdAt             DateTime             @default(now())

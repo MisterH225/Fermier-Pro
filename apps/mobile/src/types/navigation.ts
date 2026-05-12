@@ -4,6 +4,10 @@ export type RootStackParamList = {
   VeterinarianDashboard: undefined;
   TechnicianDashboard: undefined;
   FarmList: undefined;
+  /** Fil d’événements terrain (UI ; brancher API plus tard). */
+  FarmEventsFeed: undefined;
+  /** Compte : déconnexion, langue, aide. */
+  Account: undefined;
   /** Saisie du jeton d’invitation (lien partagé par un gestionnaire de ferme). */
   AcceptFarmInvitation: { prefilledToken?: string };
   FarmDetail: { farmId: string; farmName: string };

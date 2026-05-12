@@ -1,12 +1,10 @@
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { EventCard, KpiCard } from "../components/farm";
+import { MobileAppShell } from "../components/layout";
+import { IconButton, PrimaryButton } from "../components/ui";
+import { mobileColors, mobileSpacing, mobileTypography } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
 /**
@@ -17,107 +15,87 @@ export function TechnicianDashboardScreen() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   return (
-    <ScrollView contentContainerStyle={styles.wrap}>
-      <Text style={styles.banner}>Espace technicien</Text>
-      <Text style={styles.intro}>
-        Priorité aux interventions, tâches terrain et nutrition selon les fermes où tu es
-        habilité.
-      </Text>
-
-      <TouchableOpacity
-        style={styles.tile}
-        onPress={() =>
-          navigation.navigate("ModuleRoadmap", {
-            title: "Planning interventions",
-            body:
-              "Vue planning multi-fermes : en cours de conception. Utilise les tâches terrain depuis le détail d’une ferme."
-          })
+    <MobileAppShell
+      title="Espace technicien"
+      activeTab="home"
+      onTabChange={(tab) => {
+        if (tab === "home") {
+          return;
         }
-        activeOpacity={0.88}
-      >
-        <Text style={styles.tileTitle}>Interventions</Text>
-        <Text style={styles.tileDesc}>Planning et missions terrain.</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.tile}
-        onPress={() => navigation.navigate("FarmList")}
-        activeOpacity={0.88}
-      >
-        <Text style={styles.tileTitle}>Mes fermes</Text>
-        <Text style={styles.tileDesc}>
-          Sélectionne une exploitation pour voir les tâches, loges et troupeaux.
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.tile}
-        onPress={() => navigation.navigate("ChatRooms")}
-        activeOpacity={0.88}
-      >
-        <Text style={styles.tileTitle}>Messages</Text>
-        <Text style={styles.tileDesc}>Coordination avec les équipes et les éleveurs.</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.tile}
-        onPress={() =>
-          navigation.navigate("ModuleRoadmap", {
-            title: "Rapports terrain",
-            body:
-              "Synthèses visites et indicateurs : évolution prévue du produit."
-          })
+        if (tab === "lots") {
+          navigation.navigate("FarmList");
         }
-        activeOpacity={0.88}
-      >
-        <Text style={styles.tileTitle}>Rapports</Text>
-        <Text style={styles.tileDesc}>Comptes rendus et indicateurs.</Text>
-      </TouchableOpacity>
+        if (tab === "events") {
+          navigation.navigate("FarmEventsFeed");
+        }
+        if (tab === "profile") {
+          navigation.navigate("Account");
+        }
+      }}
+      topRight={<IconButton icon="add" onPress={() => navigation.navigate("FarmList")} />}
+    >
+      <ScrollView contentContainerStyle={styles.wrap}>
+        <View style={styles.kpiRow}>
+          <View style={styles.kpiItem}>
+            <KpiCard label="Interventions jour" value="5" />
+          </View>
+          <View style={styles.kpiItem}>
+            <KpiCard label="Alertes terrain" value="1" tone="warning" />
+          </View>
+        </View>
 
-      <View style={styles.footerPad} />
-    </ScrollView>
+        <Text style={styles.sectionTitle}>Activité terrain</Text>
+        <View style={styles.list}>
+          <EventCard
+            title="Tâche en retard"
+            subtitle="Lot #4 - Contrôle alimentation"
+            timestamp="09:05"
+          />
+          <EventCard
+            title="Visite terminée"
+            subtitle="Bâtiment C - Nettoyage"
+            timestamp="07:22"
+          />
+        </View>
+
+        <Text style={styles.sectionTitle}>Actions rapides</Text>
+        <View style={styles.list}>
+          <PrimaryButton label="Mes fermes" onPress={() => navigation.navigate("FarmList")} />
+          <PrimaryButton label="Messages" onPress={() => navigation.navigate("ChatRooms")} />
+          <PrimaryButton
+            label="Planning interventions"
+            onPress={() =>
+              navigation.navigate("ModuleRoadmap", {
+                title: "Planning interventions",
+                body:
+                  "Vue planning multi-fermes : en cours de conception. Utilise les tâches terrain depuis le détail d’une ferme."
+              })
+            }
+          />
+        </View>
+      </ScrollView>
+    </MobileAppShell>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 28,
-    backgroundColor: "#fefce8"
+    padding: mobileSpacing.lg,
+    paddingBottom: mobileSpacing.xxl,
+    gap: mobileSpacing.lg
   },
-  banner: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#713f12",
-    marginBottom: 8
+  kpiRow: {
+    flexDirection: "row",
+    gap: mobileSpacing.md
   },
-  intro: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#57534e",
-    marginBottom: 20
+  kpiItem: {
+    flex: 1
   },
-  tile: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#FDE047"
+  sectionTitle: {
+    ...mobileTypography.cardTitle,
+    color: mobileColors.textPrimary
   },
-  tileTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#713f12",
-    marginBottom: 6
-  },
-  tileDesc: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: "#78716c"
-  },
-  footerPad: {
-    height: 24
+  list: {
+    gap: mobileSpacing.md
   }
 });

@@ -14,7 +14,19 @@ export const DEMO_AUTH_ME: AuthMeResponse = {
     email: "demo@fermier-pro.local",
     phone: null,
     fullName: "Explorateur démo",
+    firstName: "Explorateur",
+    lastName: "démo",
+    avatarUrl: null,
+    producerHomeFarmName: null,
+    homeLatitude: null,
+    homeLongitude: null,
+    homeLocationLabel: null,
+    homeLocationSource: null,
     isActive: true
+  },
+  primaryFarm: {
+    id: DEMO_PREVIEW_FARM_ID,
+    name: "Ferme démo (aperçu UI)"
   },
   profiles: [
     {

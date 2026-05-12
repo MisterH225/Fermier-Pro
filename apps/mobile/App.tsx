@@ -24,6 +24,8 @@ import {
 } from "./src/lib/queryPersist";
 import { queryClient } from "./src/lib/queryClient";
 import { getSupabase } from "./src/lib/supabase";
+import i18n from "./src/i18n/i18n";
+import { getStoredAppLocale } from "./src/lib/appLocale";
 import { LoginGateScreen } from "./src/screens/LoginGateScreen";
 
 export default function App() {
@@ -80,6 +82,12 @@ export default function App() {
     }
   }, [session]);
 
+  useEffect(() => {
+    void getStoredAppLocale().then((lng) => {
+      void i18n.changeLanguage(lng);
+    });
+  }, []);
+
   const signOut = async () => {
     if (demoBypass) {
       setDemoBypass(false);
@@ -101,7 +109,7 @@ export default function App() {
   return (
     <GestureHandlerRootView style={styles.flex}>
       <SafeAreaProvider>
-        <StatusBar style={inMainNav ? "light" : "dark"} />
+        <StatusBar style="dark" />
         {authConfigured && session === undefined ? (
           <View style={styles.loaderWrap}>
             <ActivityIndicator size="large" color="#1B3B2E" />

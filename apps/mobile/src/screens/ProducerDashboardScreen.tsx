@@ -1,128 +1,155 @@
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from "react-native";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { EventCard, KpiCard, LotCard } from "../components/farm";
+import type { AppTab } from "../components/layout/BottomTabBar";
+import { MobileAppShell } from "../components/layout";
+import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
+import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
+import { IconButton, PrimaryButton } from "../components/ui";
+import { useSession } from "../context/SessionContext";
+import { welcomeFirstName } from "../lib/userDisplay";
+import { mobileColors, mobileSpacing, mobileTypography } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
+const PRODUCER_TABS: AppTab[] = ["home", "lots", "events"];
+
 /**
- * Tableau de bord producteur : hub fermes et exploitation (distinct des autres métiers).
+ * Tableau de bord producteur : en-tête accueil (photo + prénom), menu profil en modal, 3 onglets.
  */
 export function ProducerDashboardScreen() {
+  const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { authMe } = useSession();
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  const user = authMe?.user;
+
+  const firstName = useMemo(() => welcomeFirstName(user), [user]);
+
+  const customHeader = (
+    <View style={styles.heroBar}>
+      <ProducerWelcomeHeader
+        welcomeLabel={t("producer.welcomeLine")}
+        firstName={firstName}
+        avatarUrl={user?.avatarUrl ?? null}
+        onPressAvatar={() => setProfileOpen(true)}
+      />
+      <IconButton
+        icon="add"
+        onPress={() => navigation.navigate("FarmEventsFeed")}
+      />
+    </View>
+  );
 
   return (
-    <ScrollView contentContainerStyle={styles.wrap}>
-      <Text style={styles.banner}>Espace producteur</Text>
-      <Text style={styles.intro}>
-        Pilote tes fermes, le cheptel, la nutrition et les ventes. Les raccourcis ci-dessous
-        mènent aux mêmes écrans qu’avant, depuis un point d’entrée dédié.
-      </Text>
-
-      <TouchableOpacity
-        style={styles.tilePrimary}
-        onPress={() => navigation.navigate("FarmList")}
-        activeOpacity={0.88}
+    <>
+      <MobileAppShell
+        customHeader={customHeader}
+        tabBarTabs={PRODUCER_TABS}
+        activeTab="home"
+        onTabChange={(tab) => {
+          if (tab === "home") {
+            return;
+          }
+          if (tab === "lots") {
+            navigation.navigate("FarmList");
+          }
+          if (tab === "events") {
+            navigation.navigate("FarmEventsFeed");
+          }
+        }}
       >
-        <Text style={styles.tilePrimaryTitle}>Mes fermes</Text>
-        <Text style={styles.tilePrimaryDesc}>
-          Liste des exploitations, accès détail et gestion quotidienne.
-        </Text>
-      </TouchableOpacity>
+        <ScrollView contentContainerStyle={styles.wrap}>
+          <View style={styles.kpiRow}>
+            <View style={styles.kpiItem}>
+              <KpiCard label="Lots actifs" value="12" />
+            </View>
+            <View style={styles.kpiItem}>
+              <KpiCard label="Alertes santé" value="2" tone="danger" />
+            </View>
+          </View>
 
-      <TouchableOpacity
-        style={styles.tile}
-        onPress={() => navigation.navigate("CreateFarm")}
-        activeOpacity={0.88}
-      >
-        <Text style={styles.tileTitle}>Nouvelle ferme</Text>
-        <Text style={styles.tileDesc}>Créer une exploitation (profil producteur requis).</Text>
-      </TouchableOpacity>
+          <Text style={styles.sectionTitle}>Lots à surveiller</Text>
+          <View style={styles.list}>
+            <LotCard
+              lotName="Lot #12 - Post-sevrage"
+              stage="Bâtiment A"
+              headCount={148}
+              mortality7d={3}
+              status="À surveiller"
+              onPress={() => navigation.navigate("FarmList")}
+            />
+            <LotCard
+              lotName="Lot #8 - Croissance"
+              stage="Bâtiment C"
+              headCount={192}
+              mortality7d={1}
+              status="En croissance"
+              onPress={() => navigation.navigate("FarmList")}
+            />
+          </View>
 
-      <TouchableOpacity
-        style={styles.tile}
-        onPress={() => navigation.navigate("MarketplaceList")}
-        activeOpacity={0.88}
-      >
-        <Text style={styles.tileTitle}>Marché</Text>
-        <Text style={styles.tileDesc}>Acheter ou vendre via la marketplace.</Text>
-      </TouchableOpacity>
+          <Text style={styles.sectionTitle}>Derniers événements</Text>
+          <View style={styles.list}>
+            <EventCard
+              title="Vaccination planifiée"
+              subtitle="Lot #8 - Croissance"
+              timestamp="08:42"
+            />
+            <EventCard
+              title="Mortalité déclarée"
+              subtitle="Lot #12 - Post-sevrage"
+              timestamp="07:50"
+            />
+          </View>
 
-      <TouchableOpacity
-        style={styles.tile}
-        onPress={() => navigation.navigate("ChatRooms")}
-        activeOpacity={0.88}
-      >
-        <Text style={styles.tileTitle}>Messages</Text>
-        <Text style={styles.tileDesc}>Échanges avec acheteurs, techniciens et vétérinaires.</Text>
-      </TouchableOpacity>
-
-      <View style={styles.footerPad} />
-    </ScrollView>
+          <PrimaryButton
+            label="+ Enregistrer un événement"
+            onPress={() => navigation.navigate("FarmList")}
+          />
+        </ScrollView>
+      </MobileAppShell>
+      <ProducerProfileModal
+        visible={profileOpen}
+        onClose={() => setProfileOpen(false)}
+      />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  heroBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: mobileSpacing.lg,
+    paddingVertical: mobileSpacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: mobileColors.border,
+    backgroundColor: mobileColors.background,
+    minHeight: 56
+  },
   wrap: {
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 28,
-    backgroundColor: "#f9f8ea"
+    padding: mobileSpacing.lg,
+    paddingBottom: mobileSpacing.xxl,
+    gap: mobileSpacing.lg
   },
-  banner: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#1B3B2E",
-    marginBottom: 8
+  kpiRow: {
+    flexDirection: "row",
+    gap: mobileSpacing.md
   },
-  intro: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#4B5563",
-    marginBottom: 20
+  kpiItem: {
+    flex: 1
   },
-  tilePrimary: {
-    backgroundColor: "#5d7a1f",
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 14
+  sectionTitle: {
+    ...mobileTypography.cardTitle,
+    color: mobileColors.textPrimary
   },
-  tilePrimaryTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#fff",
-    marginBottom: 8
-  },
-  tilePrimaryDesc: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#e8f5d9"
-  },
-  tile: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#E5E7EB"
-  },
-  tileTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1B3B2E",
-    marginBottom: 6
-  },
-  tileDesc: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: "#6B7280"
-  },
-  footerPad: {
-    height: 24
+  list: {
+    gap: mobileSpacing.md
   }
 });

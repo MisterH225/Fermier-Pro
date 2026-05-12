@@ -108,6 +108,24 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(res.body?.activeProfile?.type).toBe("producer");
   });
 
+  it("PATCH /auth/me/profile (prénom + ferme accueil)", async () => {
+    const res = await request(app.getHttpServer())
+      .patch("/api/v1/auth/me/profile")
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({
+        firstName: "E2E",
+        lastName: "Producteur",
+        producerHomeFarmName: "Ferme contrat e2e"
+      });
+    expect(res.status).toBe(200);
+    expect(res.body?.user?.firstName).toBe("E2E");
+    expect(res.body?.user?.lastName).toBe("Producteur");
+    expect(res.body?.user?.fullName).toBe("E2E Producteur");
+    expect(res.body?.user?.producerHomeFarmName).toBe("Ferme contrat e2e");
+    expect(res.body?.primaryFarm?.id).toBe(ctx.farmId);
+  });
+
   it("GET /farms liste", async () => {
     const res = await request(app.getHttpServer())
       .get("/api/v1/farms")

@@ -14,7 +14,20 @@
       "**/*"
     ],
     "plugins": [
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Autoriser l’accès à la photothèque pour choisir une photo de profil.",
+          "cameraPermission": "Autoriser l’accès à la caméra pour prendre une photo de profil."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Autoriser la localisation pour enregistrer la position de votre exploitation."
+        }
+      ]
     ]
   }
 }

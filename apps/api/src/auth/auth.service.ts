@@ -1,12 +1,14 @@
 import {
   Injectable,
+  NotFoundException,
   UnauthorizedException
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { Prisma } from "@prisma/client";
 import type { User } from "@prisma/client";
-import { ProfileType } from "@prisma/client";
 import * as jwt from "jsonwebtoken";
 import { PrismaService } from "../prisma/prisma.service";
+import type { UpdateMeProfileDto } from "./dto/update-me-profile.dto";
 import type { SupabaseJwtPayload } from "./types/supabase-jwt.payload";
 
 @Injectable()
@@ -44,6 +46,24 @@ export class AuthService {
     return authorization.slice("Bearer ".length).trim();
   }
 
+  private splitFullName(full: string): {
+    firstName: string | null;
+    lastName: string | null;
+  } {
+    const t = full.trim();
+    if (!t) {
+      return { firstName: null, lastName: null };
+    }
+    const i = t.indexOf(" ");
+    if (i === -1) {
+      return { firstName: t, lastName: null };
+    }
+    return {
+      firstName: t.slice(0, i),
+      lastName: t.slice(i + 1).trim() || null
+    };
+  }
+
   private displayNameFromMetadata(
     payload: SupabaseJwtPayload
   ): string | undefined {
@@ -72,6 +92,10 @@ export class AuthService {
     const phone =
       payload.phone && payload.phone.length > 0 ? payload.phone : null;
     const fullName = this.displayNameFromMetadata(payload);
+    const nameParts =
+      fullName !== undefined && fullName !== null && fullName.length > 0
+        ? this.splitFullName(fullName)
+        : { firstName: null as string | null, lastName: null as string | null };
 
     const user = await this.prisma.user.upsert({
       where: { supabaseUserId: payload.sub },
@@ -79,7 +103,9 @@ export class AuthService {
         supabaseUserId: payload.sub,
         email,
         phone,
-        fullName
+        fullName,
+        firstName: nameParts.firstName,
+        lastName: nameParts.lastName
       },
       update: {
         ...(email !== null ? { email } : {}),
@@ -93,5 +119,60 @@ export class AuthService {
      * (producteur, veterinaire, etc.) via POST /profiles — premier profil `isDefault: true`.
      */
     return user;
+  }
+
+  async updateMeProfile(userId: string, dto: UpdateMeProfileDto): Promise<User> {
+    const existing = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!existing) {
+      throw new NotFoundException("Utilisateur introuvable");
+    }
+
+    const data: Prisma.UserUpdateInput = {};
+    if (dto.firstName !== undefined) {
+      data.firstName = dto.firstName;
+    }
+    if (dto.lastName !== undefined) {
+      data.lastName = dto.lastName;
+    }
+    if (dto.avatarUrl !== undefined) {
+      data.avatarUrl = dto.avatarUrl;
+    }
+    if (dto.producerHomeFarmName !== undefined) {
+      data.producerHomeFarmName = dto.producerHomeFarmName;
+    }
+    if (dto.homeLocationLabel !== undefined) {
+      data.homeLocationLabel = dto.homeLocationLabel;
+    }
+    if (dto.homeLocationSource !== undefined) {
+      data.homeLocationSource = dto.homeLocationSource;
+    }
+    if (dto.homeLatitude !== undefined) {
+      data.homeLatitude =
+        dto.homeLatitude === null
+          ? null
+          : new Prisma.Decimal(dto.homeLatitude);
+    }
+    if (dto.homeLongitude !== undefined) {
+      data.homeLongitude =
+        dto.homeLongitude === null
+          ? null
+          : new Prisma.Decimal(dto.homeLongitude);
+    }
+
+    if (dto.firstName !== undefined || dto.lastName !== undefined) {
+      const nextFirst =
+        dto.firstName !== undefined ? dto.firstName : existing.firstName;
+      const nextLast =
+        dto.lastName !== undefined ? dto.lastName : existing.lastName;
+      const parts = [nextFirst, nextLast]
+        .filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+        .map((s) => s.trim());
+      data.fullName = parts.length > 0 ? parts.join(" ") : null;
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data
+    });
   }
 }

@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { StyleSheet, View } from "react-native";
 import {
   AcceptFarmInvitationScreen,
+  AccountScreen,
   AddVetConsultationAttachmentScreen,
   AnimalDetailScreen,
   BarnDetailScreen,
@@ -29,6 +30,7 @@ import {
   EditMarketplaceListingScreen,
   FarmBarnsScreen,
   FarmDetailScreen,
+  FarmEventsFeedScreen,
   FarmFeedStockScreen,
   FarmFinanceScreen,
   FarmListScreen,
@@ -50,24 +52,9 @@ import {
 } from "../features";
 import type { RootStackParamList } from "../types/navigation";
 import { useSession } from "../context/SessionContext";
+import { dashboardRouteForActiveProfileType } from "../lib/dashboardHomeRoute";
+import { mobileColors } from "../theme/mobileTheme";
 import { OfflineBanner } from "./OfflineBanner";
-
-function dashboardRouteForProfileType(
-  type: string | undefined
-): keyof RootStackParamList {
-  switch (type) {
-    case "producer":
-      return "ProducerDashboard";
-    case "buyer":
-      return "BuyerDashboard";
-    case "veterinarian":
-      return "VeterinarianDashboard";
-    case "technician":
-      return "TechnicianDashboard";
-    default:
-      return "ProducerDashboard";
-  }
-}
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -75,26 +62,32 @@ const navTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    background: "#f9f8ea",
-    primary: "#5d7a1f"
+    background: mobileColors.surface,
+    primary: mobileColors.accent,
+    text: mobileColors.textPrimary,
+    card: mobileColors.background,
+    border: mobileColors.border
   }
 };
 
 function MainStack() {
   const { authMe, activeProfileId } = useSession();
   const activeType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
-  const initialRouteName = dashboardRouteForProfileType(activeType);
+  const initialRouteName = dashboardRouteForActiveProfileType(activeType);
 
   return (
     <Stack.Navigator
       key={activeProfileId ?? "none"}
       initialRouteName={initialRouteName}
       screenOptions={{
-        headerStyle: { backgroundColor: "#5d7a1f" },
-        headerTintColor: "#fff",
-        headerTitleStyle: { fontWeight: "700" },
+        headerStyle: { backgroundColor: mobileColors.background },
+        headerTintColor: mobileColors.accent,
+        headerTitleStyle: {
+          fontWeight: "700",
+          color: mobileColors.textPrimary
+        },
         headerShadowVisible: false,
-        contentStyle: { backgroundColor: "#f9f8ea" }
+        contentStyle: { backgroundColor: mobileColors.surface }
       }}
     >
       <Stack.Screen
@@ -121,6 +114,16 @@ function MainStack() {
         name="FarmList"
         component={FarmListScreen}
         options={{ title: "Mes fermes" }}
+      />
+      <Stack.Screen
+        name="FarmEventsFeed"
+        component={FarmEventsFeedScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Account"
+        component={AccountScreen}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="AcceptFarmInvitation"

@@ -8,15 +8,16 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View
 } from "react-native";
+import { Card, PrimaryButton, SegmentedControl } from "../components/ui";
 import { TasksModuleGate } from "../components/TasksModuleGate";
 import { useSession } from "../context/SessionContext";
 import {
   createFarmTask,
   type CreateFarmTaskPayload
 } from "../lib/api";
+import { mobileColors, mobileRadius, mobileSpacing } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CreateTask">;
@@ -26,6 +27,7 @@ const PRIORITIES = [
   { value: "normal" as const, label: "Normale" },
   { value: "high" as const, label: "Haute" }
 ];
+type TaskPriority = (typeof PRIORITIES)[number]["value"];
 
 export function CreateTaskScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
@@ -35,8 +37,7 @@ export function CreateTaskScreen({ route, navigation }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
-  const [priority, setPriority] =
-    useState<CreateFarmTaskPayload["priority"]>("normal");
+  const [priority, setPriority] = useState<TaskPriority>("normal");
   const [dueDate, setDueDate] = useState("");
 
   const mutation = useMutation({
@@ -86,79 +87,61 @@ export function CreateTaskScreen({ route, navigation }: Props) {
     >
       <Text style={styles.farmHint}>{farmName}</Text>
 
-      <Text style={styles.label}>Titre *</Text>
-      <TextInput
-        style={styles.input}
-        value={title}
-        onChangeText={setTitle}
-        placeholder="Ex. Vaccination bande B"
-        placeholderTextColor="#999"
-      />
+      <Card>
+        <Text style={styles.label}>Titre *</Text>
+        <TextInput
+          style={styles.input}
+          value={title}
+          onChangeText={setTitle}
+          placeholder="Ex. Vaccination bande B"
+          placeholderTextColor={mobileColors.textSecondary}
+        />
 
-      <Text style={styles.label}>Description</Text>
-      <TextInput
-        style={[styles.input, styles.multiline]}
-        value={description}
-        onChangeText={setDescription}
-        placeholder="Détails pour le terrain…"
-        placeholderTextColor="#999"
-        multiline
-      />
+        <Text style={styles.label}>Description</Text>
+        <TextInput
+          style={[styles.input, styles.multiline]}
+          value={description}
+          onChangeText={setDescription}
+          placeholder="Détails pour le terrain…"
+          placeholderTextColor={mobileColors.textSecondary}
+          multiline
+        />
 
-      <Text style={styles.label}>Catégorie (optionnel)</Text>
-      <TextInput
-        style={styles.input}
-        value={category}
-        onChangeText={setCategory}
-        placeholder="sante, logistique…"
-        placeholderTextColor="#999"
-      />
+        <Text style={styles.label}>Catégorie (optionnel)</Text>
+        <TextInput
+          style={styles.input}
+          value={category}
+          onChangeText={setCategory}
+          placeholder="sante, logistique…"
+          placeholderTextColor={mobileColors.textSecondary}
+        />
 
-      <Text style={styles.label}>Priorité</Text>
-      <View style={styles.row}>
-        {PRIORITIES.map((p) => (
-          <TouchableOpacity
-            key={p.value}
-            style={[
-              styles.chip,
-              priority === p.value && styles.chipOn,
-              { marginRight: 8, marginBottom: 8 }
-            ]}
-            onPress={() => setPriority(p.value)}
-          >
-            <Text
-              style={[
-                styles.chipText,
-                priority === p.value && styles.chipTextOn
-              ]}
-            >
-              {p.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+        <Text style={styles.label}>Priorité</Text>
+        <SegmentedControl
+          items={PRIORITIES.map((p) => ({ key: p.value, label: p.label }))}
+          activeKey={priority}
+          onChange={(key) => setPriority(key as TaskPriority)}
+        />
 
-      <Text style={styles.label}>Échéance (optionnel, AAAA-MM-JJ)</Text>
-      <TextInput
-        style={styles.input}
-        value={dueDate}
-        onChangeText={setDueDate}
-        placeholder="2026-05-15"
-        placeholderTextColor="#999"
-        keyboardType="numbers-and-punctuation"
-      />
+        <Text style={styles.label}>Échéance (optionnel, AAAA-MM-JJ)</Text>
+        <TextInput
+          style={styles.input}
+          value={dueDate}
+          onChangeText={setDueDate}
+          placeholder="2026-05-15"
+          placeholderTextColor={mobileColors.textSecondary}
+          keyboardType="numbers-and-punctuation"
+        />
+      </Card>
 
-      <TouchableOpacity
-        style={[styles.submit, mutation.isPending && styles.submitDisabled]}
+      <PrimaryButton
+        label="Enregistrer l’événement"
         onPress={() => mutation.mutate()}
         disabled={mutation.isPending}
-      >
-        {mutation.isPending ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.submitText}>Créer la tâche</Text>
-        )}
-      </TouchableOpacity>
+        loading={mutation.isPending}
+      />
+
+      {mutation.isPending ? <ActivityIndicator color={mobileColors.accent} /> : null}
     </ScrollView>
   );
 }
@@ -166,76 +149,37 @@ export function CreateTaskScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   scroll: {
     flex: 1,
-    backgroundColor: "#f9f8ea"
+    backgroundColor: mobileColors.surface
   },
   content: {
-    padding: 16,
-    paddingBottom: 40
+    padding: mobileSpacing.lg,
+    paddingBottom: 40,
+    gap: mobileSpacing.lg
   },
   farmHint: {
     fontSize: 14,
-    color: "#6d745b",
-    marginBottom: 12
+    color: mobileColors.textSecondary
   },
   label: {
     fontSize: 12,
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     marginBottom: 6,
     marginTop: 10,
     textTransform: "uppercase",
     letterSpacing: 0.5
   },
   input: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderWidth: 1,
-    borderColor: "#e0e4d4",
-    borderRadius: 12,
+    borderColor: mobileColors.border,
+    borderRadius: mobileRadius.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#1f2910"
+    color: mobileColors.textPrimary
   },
   multiline: {
     minHeight: 100,
     textAlignVertical: "top"
-  },
-  row: {
-    flexDirection: "row",
-    flexWrap: "wrap"
-  },
-  chip: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#e0e4d4",
-    backgroundColor: "#fff"
-  },
-  chipOn: {
-    borderColor: "#5d7a1f",
-    backgroundColor: "#e8efd9"
-  },
-  chipText: {
-    color: "#4b513d",
-    fontSize: 14
-  },
-  chipTextOn: {
-    color: "#1f2910",
-    fontWeight: "600"
-  },
-  submit: {
-    marginTop: 28,
-    backgroundColor: "#5d7a1f",
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: "center"
-  },
-  submitDisabled: {
-    opacity: 0.7
-  },
-  submitText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 17
   }
 });

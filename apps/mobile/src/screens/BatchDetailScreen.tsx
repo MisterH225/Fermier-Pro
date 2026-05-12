@@ -11,6 +11,9 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { EventCard, LotDetailHeader } from "../components/farm";
+import { Card } from "../components/ui/Card";
+import { SegmentedControl } from "../components/ui/SegmentedControl";
 import { useSession } from "../context/SessionContext";
 import {
   fetchBatchHealthEvents,
@@ -20,6 +23,11 @@ import {
   type BatchHealthEventRow,
   type PostBatchHealthEventPayload
 } from "../lib/api";
+import {
+  mobileColors,
+  mobileRadius,
+  mobileSpacing
+} from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "BatchDetail">;
@@ -50,6 +58,8 @@ const SEVERITY_FR: Record<string, string> = {
   urgent: "Urgent"
 };
 
+type LotTab = "health" | "weight" | "feed" | "events";
+
 export function BatchDetailScreen({ route }: Props) {
   const { farmId, batchId } = route.params;
   const { accessToken, activeProfileId } = useSession();
@@ -63,6 +73,7 @@ export function BatchDetailScreen({ route }: Props) {
   const [healthTitle, setHealthTitle] = useState("");
   const [healthBody, setHealthBody] = useState("");
   const [healthDate, setHealthDate] = useState("");
+  const [lotTab, setLotTab] = useState<LotTab>("health");
 
   const batchQuery = useQuery({
     queryKey: ["farmBatch", farmId, batchId, activeProfileId],
@@ -169,23 +180,45 @@ export function BatchDetailScreen({ route }: Props) {
         ? String(batchQuery.error)
         : null;
 
-  const metaLine = useMemo(() => {
+  const mergedTimeline = useMemo(() => {
     if (!batch) {
-      return "";
+      return [];
     }
-    const parts = [
-      `${batch.headcount} tête${batch.headcount > 1 ? "s" : ""}`,
-      batch.species.name,
-      batch.breed?.name,
-      batch.status
-    ].filter(Boolean);
-    return parts.join(" · ");
-  }, [batch]);
+    const rows: Array<{
+      id: string;
+      title: string;
+      subtitle: string;
+      timeLabel: string;
+      ts: number;
+    }> = [];
+    for (const w of batch.weights) {
+      const ts = new Date(w.measuredAt).getTime();
+      rows.push({
+        id: `w-${w.id}`,
+        title: "Pesée",
+        subtitle: `${formatKg(w.avgWeightKg)} moyenne`,
+        timeLabel: new Date(w.measuredAt).toLocaleString(),
+        ts
+      });
+    }
+    const healthRows = healthQuery.data ?? [];
+    for (const ev of healthRows) {
+      const ts = new Date(ev.recordedAt).getTime();
+      rows.push({
+        id: `h-${ev.id}`,
+        title: ev.title,
+        subtitle: SEVERITY_FR[ev.severity] ?? ev.severity,
+        timeLabel: new Date(ev.recordedAt).toLocaleString(),
+        ts
+      });
+    }
+    return rows.sort((a, b) => b.ts - a.ts);
+  }, [batch, healthQuery.data]);
 
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#5d7a1f" />
+        <ActivityIndicator size="large" color={mobileColors.accent} />
       </View>
     );
   }
@@ -198,151 +231,212 @@ export function BatchDetailScreen({ route }: Props) {
     );
   }
 
+  const speciesLabel = [batch.species.name, batch.breed?.name]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.meta}>{metaLine}</Text>
+      <LotDetailHeader
+        lotName={route.params.batchName}
+        farmName={route.params.farmName}
+        headCount={batch.headcount}
+        speciesLabel={speciesLabel}
+        statusLabel={batch.status != null ? String(batch.status) : "—"}
+      />
       {batch.notes ? (
         <Text style={styles.notes}>{batch.notes}</Text>
       ) : null}
 
-      <Text style={styles.section}>Enregistrer une pesée (poids moyen)</Text>
-      <TextInput
-        style={styles.input}
-        value={avgText}
-        onChangeText={setAvgText}
-        placeholder="Poids moyen / tête (kg)"
-        placeholderTextColor="#999"
-        keyboardType="decimal-pad"
-      />
-      <TextInput
-        style={styles.input}
-        value={headText}
-        onChangeText={setHeadText}
-        placeholder="Effectif au moment de la pesée (optionnel)"
-        placeholderTextColor="#999"
-        keyboardType="number-pad"
-      />
-      <TextInput
-        style={[styles.input, styles.noteInput]}
-        value={noteText}
-        onChangeText={setNoteText}
-        placeholder="Note (optionnel)"
-        placeholderTextColor="#999"
-      />
-      <TouchableOpacity
-        style={[styles.btn, mutation.isPending && styles.btnDisabled]}
-        onPress={() => mutation.mutate()}
-        disabled={mutation.isPending}
-      >
-        <Text style={styles.btnText}>
-          {mutation.isPending ? "Envoi…" : "Ajouter la pesée"}
-        </Text>
-      </TouchableOpacity>
+      <View style={styles.segmentWrap}>
+        <SegmentedControl
+          items={[
+            { key: "health", label: "Santé" },
+            { key: "weight", label: "Poids" },
+            { key: "feed", label: "Alim." },
+            { key: "events", label: "Journal" }
+          ]}
+          activeKey={lotTab}
+          onChange={(k) => setLotTab(k as LotTab)}
+        />
+      </View>
 
-      <Text style={[styles.section, styles.historyTitle]}>Historique</Text>
-      {batch.weights.length === 0 ? (
-        <Text style={styles.emptyHist}>Aucune pesée enregistrée.</Text>
-      ) : (
-        batch.weights.map((row) => (
-          <View key={row.id} style={styles.row}>
-            <Text style={styles.rowMain}>{formatKg(row.avgWeightKg)}</Text>
-            <Text style={styles.rowSub}>
-              {new Date(row.measuredAt).toLocaleString()}
-              {row.headcountSnapshot != null
-                ? ` · ${row.headcountSnapshot} têtes`
-                : ""}
-            </Text>
-            {row.note ? (
-              <Text style={styles.rowNote}>{row.note}</Text>
-            ) : null}
-          </View>
-        ))
-      )}
-
-      <Text style={[styles.section, styles.healthSectionTitle]}>
-        Santé du lot
-      </Text>
-      {healthQuery.isError ? (
-        <Text style={styles.healthScopeHint}>
-          Impossible de charger l’historique santé. Vérifie le scope{" "}
-          <Text style={styles.mono}>healthRead</Text> sur cette ferme.
-        </Text>
-      ) : healthQuery.isPending ? (
-        <ActivityIndicator size="small" color="#5d7a1f" />
-      ) : (
+      {lotTab === "weight" ? (
         <>
-          <Text style={styles.subSection}>Nouvel événement</Text>
-          <View style={styles.severityRow}>
-            {SEVERITY_OPTIONS.map((opt) => (
-              <TouchableOpacity
-                key={opt.value}
-                style={[
-                  styles.severityChip,
-                  healthSeverity === opt.value && styles.severityChipOn
-                ]}
-                onPress={() => setHealthSeverity(opt.value)}
-              >
-                <Text
-                  style={[
-                    styles.severityChipText,
-                    healthSeverity === opt.value && styles.severityChipTextOn
-                  ]}
-                >
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <Text style={styles.section}>Enregistrer une pesée (poids moyen)</Text>
           <TextInput
             style={styles.input}
-            value={healthTitle}
-            onChangeText={setHealthTitle}
-            placeholder="Titre (obligatoire)"
-            placeholderTextColor="#999"
+            value={avgText}
+            onChangeText={setAvgText}
+            placeholder="Poids moyen / tête (kg)"
+            placeholderTextColor={mobileColors.textSecondary}
+            keyboardType="decimal-pad"
+          />
+          <TextInput
+            style={styles.input}
+            value={headText}
+            onChangeText={setHeadText}
+            placeholder="Effectif au moment de la pesée (optionnel)"
+            placeholderTextColor={mobileColors.textSecondary}
+            keyboardType="number-pad"
           />
           <TextInput
             style={[styles.input, styles.noteInput]}
-            value={healthBody}
-            onChangeText={setHealthBody}
-            placeholder="Détail clinique, traitement… (optionnel)"
-            placeholderTextColor="#999"
-            multiline
-          />
-          <TextInput
-            style={styles.input}
-            value={healthDate}
-            onChangeText={setHealthDate}
-            placeholder="Date de l’événement AAAA-MM-JJ (optionnel)"
-            placeholderTextColor="#999"
-            keyboardType="numbers-and-punctuation"
+            value={noteText}
+            onChangeText={setNoteText}
+            placeholder="Note (optionnel)"
+            placeholderTextColor={mobileColors.textSecondary}
           />
           <TouchableOpacity
-            style={[
-              styles.btnOutline,
-              healthMutation.isPending && styles.btnDisabled
-            ]}
-            onPress={() => healthMutation.mutate()}
-            disabled={healthMutation.isPending}
+            style={[styles.btn, mutation.isPending && styles.btnDisabled]}
+            onPress={() => mutation.mutate()}
+            disabled={mutation.isPending}
           >
-            <Text style={styles.btnOutlineText}>
-              {healthMutation.isPending ? "Envoi…" : "Enregistrer l’événement"}
+            <Text style={styles.btnText}>
+              {mutation.isPending ? "Envoi…" : "Ajouter la pesée"}
             </Text>
           </TouchableOpacity>
 
-          <Text style={styles.subSection}>Historique santé</Text>
-          {!healthQuery.data?.length ? (
-            <Text style={styles.emptyHist}>Aucun événement santé.</Text>
+          <Text style={[styles.section, styles.historyTitle]}>Historique</Text>
+          {batch.weights.length === 0 ? (
+            <Text style={styles.emptyHist}>Aucune pesée enregistrée.</Text>
           ) : (
-            healthQuery.data.map((ev) => (
-              <HealthEventCard key={ev.id} ev={ev} />
+            batch.weights.map((row) => (
+              <View key={row.id} style={styles.row}>
+                <Text style={styles.rowMain}>{formatKg(row.avgWeightKg)}</Text>
+                <Text style={styles.rowSub}>
+                  {new Date(row.measuredAt).toLocaleString()}
+                  {row.headcountSnapshot != null
+                    ? ` · ${row.headcountSnapshot} têtes`
+                    : ""}
+                </Text>
+                {row.note ? (
+                  <Text style={styles.rowNote}>{row.note}</Text>
+                ) : null}
+              </View>
             ))
           )}
         </>
-      )}
+      ) : null}
+
+      {lotTab === "health" ? (
+        <>
+          <Text style={[styles.section, styles.healthSectionTitle]}>
+            Santé du lot
+          </Text>
+          {healthQuery.isError ? (
+            <Text style={styles.healthScopeHint}>
+              Impossible de charger l’historique santé. Vérifie le scope{" "}
+              <Text style={styles.mono}>healthRead</Text> sur cette ferme.
+            </Text>
+          ) : healthQuery.isPending ? (
+            <ActivityIndicator size="small" color={mobileColors.accent} />
+          ) : (
+            <>
+              <Text style={styles.subSection}>Nouvel événement</Text>
+              <View style={styles.severityRow}>
+                {SEVERITY_OPTIONS.map((opt) => (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[
+                      styles.severityChip,
+                      healthSeverity === opt.value && styles.severityChipOn
+                    ]}
+                    onPress={() => setHealthSeverity(opt.value)}
+                  >
+                    <Text
+                      style={[
+                        styles.severityChipText,
+                        healthSeverity === opt.value && styles.severityChipTextOn
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TextInput
+                style={styles.input}
+                value={healthTitle}
+                onChangeText={setHealthTitle}
+                placeholder="Titre (obligatoire)"
+                placeholderTextColor={mobileColors.textSecondary}
+              />
+              <TextInput
+                style={[styles.input, styles.noteInput]}
+                value={healthBody}
+                onChangeText={setHealthBody}
+                placeholder="Détail clinique, traitement… (optionnel)"
+                placeholderTextColor={mobileColors.textSecondary}
+                multiline
+              />
+              <TextInput
+                style={styles.input}
+                value={healthDate}
+                onChangeText={setHealthDate}
+                placeholder="Date de l’événement AAAA-MM-JJ (optionnel)"
+                placeholderTextColor={mobileColors.textSecondary}
+                keyboardType="numbers-and-punctuation"
+              />
+              <TouchableOpacity
+                style={[
+                  styles.btnOutline,
+                  healthMutation.isPending && styles.btnDisabled
+                ]}
+                onPress={() => healthMutation.mutate()}
+                disabled={healthMutation.isPending}
+              >
+                <Text style={styles.btnOutlineText}>
+                  {healthMutation.isPending ? "Envoi…" : "Enregistrer l’événement"}
+                </Text>
+              </TouchableOpacity>
+
+              <Text style={styles.subSection}>Historique santé</Text>
+              {!healthQuery.data?.length ? (
+                <Text style={styles.emptyHist}>Aucun événement santé.</Text>
+              ) : (
+                healthQuery.data.map((ev) => (
+                  <HealthEventCard key={ev.id} ev={ev} />
+                ))
+              )}
+            </>
+          )}
+        </>
+      ) : null}
+
+      {lotTab === "feed" ? (
+        <Card>
+          <Text style={styles.feedTitle}>Alimentation</Text>
+          <Text style={styles.feedBody}>
+            Suivi des rations, consommation et stock aliment : branche ici les indicateurs
+            ICP / ration quotidienne et les entrées de mouvement depuis le module nutrition.
+          </Text>
+        </Card>
+      ) : null}
+
+      {lotTab === "events" ? (
+        <>
+          <Text style={styles.section}>Journal du lot</Text>
+          {mergedTimeline.length === 0 ? (
+            <Text style={styles.emptyHist}>Aucun événement enregistré.</Text>
+          ) : (
+            <View style={styles.timeline}>
+              {mergedTimeline.map((ev) => (
+                <EventCard
+                  key={ev.id}
+                  title={ev.title}
+                  subtitle={ev.subtitle}
+                  timestamp={ev.timeLabel}
+                />
+              ))}
+            </View>
+          )}
+        </>
+      ) : null}
     </ScrollView>
   );
 }
@@ -378,10 +472,10 @@ function HealthEventCard({ ev }: { ev: BatchHealthEventRow }) {
 const styles = StyleSheet.create({
   scroll: {
     flex: 1,
-    backgroundColor: "#f9f8ea"
+    backgroundColor: mobileColors.surface
   },
   content: {
-    padding: 16,
+    padding: mobileSpacing.lg,
     paddingBottom: 40
   },
   centered: {
@@ -389,27 +483,39 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
-    backgroundColor: "#f9f8ea"
+    backgroundColor: mobileColors.surface
   },
   error: {
-    color: "#b00020",
+    color: mobileColors.error,
     textAlign: "center"
   },
-  meta: {
-    fontSize: 15,
-    color: "#4b513d",
+  segmentWrap: {
+    marginBottom: mobileSpacing.lg
+  },
+  timeline: {
+    gap: mobileSpacing.md
+  },
+  feedTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: mobileColors.textPrimary,
     marginBottom: 8
+  },
+  feedBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: mobileColors.textSecondary
   },
   notes: {
     fontSize: 14,
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     fontStyle: "italic",
     marginBottom: 16
   },
   section: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#5d7a1f",
+    color: mobileColors.accent,
     marginBottom: 10,
     marginTop: 8
   },
@@ -421,7 +527,7 @@ const styles = StyleSheet.create({
   },
   healthScopeHint: {
     fontSize: 13,
-    color: "#8b4513",
+    color: mobileColors.warning,
     lineHeight: 20,
     marginBottom: 8
   },
@@ -432,7 +538,7 @@ const styles = StyleSheet.create({
   subSection: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#4b513d",
+    color: mobileColors.textSecondary,
     marginBottom: 8,
     marginTop: 4
   },
@@ -444,45 +550,45 @@ const styles = StyleSheet.create({
   severityChip: {
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     borderWidth: 1,
-    borderColor: "#e0e4d4",
-    backgroundColor: "#fff",
+    borderColor: mobileColors.border,
+    backgroundColor: mobileColors.background,
     marginRight: 6,
     marginBottom: 6
   },
   severityChipOn: {
-    borderColor: "#5d7a1f",
-    backgroundColor: "#e8efd9"
+    borderColor: mobileColors.accent,
+    backgroundColor: mobileColors.accentSoft
   },
   severityChipText: {
     fontSize: 13,
-    color: "#4b513d"
+    color: mobileColors.textSecondary
   },
   severityChipTextOn: {
     fontWeight: "600",
-    color: "#1f2910"
+    color: mobileColors.textPrimary
   },
   btnOutline: {
-    borderWidth: 2,
-    borderColor: "#5d7a1f",
+    borderWidth: 1,
+    borderColor: mobileColors.accent,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     alignItems: "center",
     marginBottom: 8
   },
   btnOutlineText: {
-    color: "#5d7a1f",
+    color: mobileColors.accent,
     fontWeight: "700",
     fontSize: 16
   },
   healthCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    backgroundColor: mobileColors.background,
+    borderRadius: mobileRadius.md,
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: "#e0e4d4"
+    borderColor: mobileColors.border
   },
   healthCardTop: {
     flexDirection: "row",
@@ -494,13 +600,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: "600",
-    color: "#1f2910"
+    color: mobileColors.textPrimary
   },
   sevBadge: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#5d7a1f",
-    backgroundColor: "#e8efd9",
+    color: mobileColors.accent,
+    backgroundColor: mobileColors.accentSoft,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -511,27 +617,27 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff3e0"
   },
   sevUrgent: {
-    color: "#b00020",
+    color: mobileColors.error,
     backgroundColor: "#ffebee"
   },
   input: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderWidth: 1,
-    borderColor: "#e0e4d4",
-    borderRadius: 12,
+    borderColor: mobileColors.border,
+    borderRadius: mobileRadius.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     marginBottom: 10
   },
   noteInput: {
     marginBottom: 14
   },
   btn: {
-    backgroundColor: "#5d7a1f",
+    backgroundColor: mobileColors.accent,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     alignItems: "center"
   },
   btnDisabled: {
@@ -543,30 +649,30 @@ const styles = StyleSheet.create({
     fontSize: 16
   },
   emptyHist: {
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     fontStyle: "italic"
   },
   row: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    backgroundColor: mobileColors.background,
+    borderRadius: mobileRadius.md,
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: "#e0e4d4"
+    borderColor: mobileColors.border
   },
   rowMain: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1f2910"
+    color: mobileColors.textPrimary
   },
   rowSub: {
     fontSize: 12,
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     marginTop: 4
   },
   rowNote: {
     fontSize: 13,
-    color: "#4b513d",
+    color: mobileColors.textSecondary,
     marginTop: 6
   }
 });
