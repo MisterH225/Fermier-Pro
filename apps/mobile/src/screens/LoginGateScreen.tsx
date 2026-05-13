@@ -17,7 +17,7 @@ import { PhoneOtpAuth } from "../components/PhoneOtpAuth";
 import { getExpoPublicEnv, isApiUrlConfigured, isAuthEnvConfigured } from "../env";
 import { authColors, authRadii } from "../theme/authTheme";
 
-const LOGO = require("../../assets/images/fermier-pro-logo.png");
+const LOGO = require("../../assets/images/fermier-pro-logo-nobg.png");
 
 function supabaseHostLabel(): string {
   const raw = getExpoPublicEnv().supabaseUrl.trim();
@@ -53,8 +53,8 @@ export function LoginGateScreen({
   /** OTP masqué par défaut quand le mode démo est proposé (dev / AUTH_BYPASS). */
   const [showSmsLogin, setShowSmsLogin] = useState(false);
   const { width: winW } = useWindowDimensions();
-  const logoW = Math.min(winW - 16, 720);
-  const logoH = Math.round(logoW * 0.52);
+  const logoW = Math.min(winW - 80, 340);
+  const logoH = Math.round(logoW * (295 / 601));
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
@@ -75,7 +75,7 @@ export function LoginGateScreen({
               resizeMode="contain"
               accessibilityLabel="Fermier Pro"
             />
-            <Text style={styles.tagline}>LA FERME INTÉGRÉE</Text>
+
             <Text style={styles.lead}>
               Pilote tes fermes, ton cheptel et tes opérations au quotidien.
             </Text>
@@ -233,13 +233,13 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 24,
-    paddingTop: 12,
+    paddingTop: 48,
     paddingBottom: 40
   },
   logoBlock: {
     alignItems: "center",
-    marginBottom: 8,
-    gap: 6
+    marginBottom: 4,
+    gap: 2
   },
   logo: {
     marginBottom: 0,
@@ -247,14 +247,6 @@ const styles = StyleSheet.create({
   },
   diagSecond: {
     marginTop: 10
-  },
-  tagline: {
-    fontSize: 11,
-    fontWeight: "500",
-    letterSpacing: 3.2,
-    color: authColors.body,
-    marginTop: 0,
-    marginBottom: 8
   },
   lead: {
     fontSize: 15,
