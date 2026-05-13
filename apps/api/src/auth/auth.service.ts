@@ -158,6 +158,9 @@ export class AuthService {
           ? null
           : new Prisma.Decimal(dto.homeLongitude);
     }
+    if (dto.notificationsEnabled !== undefined) {
+      data.notificationsEnabled = dto.notificationsEnabled;
+    }
 
     if (dto.firstName !== undefined || dto.lastName !== undefined) {
       const nextFirst =
@@ -170,9 +173,37 @@ export class AuthService {
       data.fullName = parts.length > 0 ? parts.join(" ") : null;
     }
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data
     });
+
+    const nextEnabled = updated.notificationsEnabled;
+    if (!nextEnabled) {
+      await this.prisma.pushDevice.deleteMany({ where: { userId } });
+      return updated;
+    }
+
+    const rawToken = dto.expoPushToken;
+    if (
+      typeof rawToken === "string" &&
+      rawToken.trim().length > 0 &&
+      nextEnabled
+    ) {
+      const token = rawToken.trim();
+      const platform =
+        dto.pushPlatform === "ios" ||
+        dto.pushPlatform === "android" ||
+        dto.pushPlatform === "web"
+          ? dto.pushPlatform
+          : "unknown";
+      await this.prisma.pushDevice.upsert({
+        where: { token },
+        create: { userId, token, platform },
+        update: { userId, platform }
+      });
+    }
+
+    return updated;
   }
 }

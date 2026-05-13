@@ -14,11 +14,16 @@ export const AUDIT_ACTION = {
   marketplaceOfferAccepted: "marketplace.offer.accepted",
   farmInvitationCreated: "farm.invitation.created",
   farmInvitationAccepted: "farm.invitation.accepted",
+  farmInvitationRejected: "farm.invitation.rejected",
+  farmInvitationScanRequested: "farm.invitation.scan_requested",
+  farmInvitationDefaultGenerated: "farm.invitation.default_generated",
   farmMemberUpdated: "farm.member.updated",
   farmMemberRemoved: "farm.member.removed",
   vetConsultationCreated: "vet.consultation.created",
   vetConsultationUpdated: "vet.consultation.updated",
-  vetConsultationAttachmentAdded: "vet.consultation.attachment_added"
+  vetConsultationAttachmentAdded: "vet.consultation.attachment_added",
+  farmHealthRecordCreated: "farm.health_record.created",
+  farmHealthRecordLinkedFinance: "farm.health_record.linked_finance"
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTION)[keyof typeof AUDIT_ACTION];

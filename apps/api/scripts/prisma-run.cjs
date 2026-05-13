@@ -194,10 +194,15 @@ function resolveDirectUrl(e) {
   if (url) return url;
   return "";
 }
-const directUrl = resolveDirectUrl(env);
-if (directUrl) {
-  env.DIRECT_URL = directUrl;
+let directUrl = resolveDirectUrl(env);
+if (!directUrl) {
+  // Schéma Prisma : `directUrl = env("DIRECT_URL")` — obligatoire pour le CLI.
+  // Si absent du .env : réutiliser l’URL déjà résolue pour migrate/push (souvent
+  // PRISMA_DATABASE_URL ou DATABASE_URL directe). Avec pooler seul sur DATABASE_URL,
+  // définir explicitement DIRECT_URL (session / port 5432 Supabase) dans le .env.
+  directUrl = dbUrl;
 }
+env.DIRECT_URL = directUrl;
 
 const prismaPkgDir = path.dirname(require.resolve("prisma/package.json"));
 const prismaCli = path.join(prismaPkgDir, "build", "index.js");

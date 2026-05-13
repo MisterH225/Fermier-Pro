@@ -1,10 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
 import { Tag } from "../ui/Tag";
-import { mobileColors, mobileRadius, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import {
+  mobileColors,
+  mobileRadius,
+  mobileSpacing,
+  mobileTypography
+} from "../../theme/mobileTheme";
 
-type LotDetailHeaderProps = {
-  lotName: string;
+type CheptelBatchDetailHeaderProps = {
+  batchName: string;
   farmName: string;
   headCount: number;
   speciesLabel: string;
@@ -24,29 +29,31 @@ function tagToneForStatus(
   if (s.includes("surveill") || s.includes("watch")) {
     return "warning";
   }
-  if (s.includes("actif") || s.includes("croissance") || s.includes("finition")) {
+  if (
+    s.includes("actif") ||
+    s.includes("croissance") ||
+    s.includes("finition")
+  ) {
     return "success";
   }
   return "neutral";
 }
 
-/**
- * En-tête type « profil / post » pour un lot (bande) : infos clés + tag statut.
- */
-export function LotDetailHeader({
-  lotName,
+/** En-tête pour le détail d’une bande (cheptel). */
+export function CheptelBatchDetailHeader({
+  batchName,
   farmName,
   headCount,
   speciesLabel,
   statusLabel,
   housingHint
-}: LotDetailHeaderProps) {
+}: CheptelBatchDetailHeaderProps) {
   return (
     <View style={styles.wrap}>
       <View style={styles.topRow}>
         <View style={styles.titleBlock}>
           <Text style={styles.title} numberOfLines={2}>
-            {lotName}
+            {batchName}
           </Text>
           <Text style={styles.farmLine} numberOfLines={1}>
             {farmName} · {speciesLabel}
@@ -57,14 +64,22 @@ export function LotDetailHeader({
 
       <View style={styles.metricsRow}>
         <View style={styles.metric}>
-          <Ionicons name="paw-outline" size={18} color={mobileColors.textSecondary} />
+          <Ionicons
+            name="paw-outline"
+            size={18}
+            color={mobileColors.textSecondary}
+          />
           <Text style={styles.metricText}>
             {headCount} tête{headCount > 1 ? "s" : ""}
           </Text>
         </View>
         {housingHint ? (
           <View style={styles.metric}>
-            <Ionicons name="business-outline" size={18} color={mobileColors.textSecondary} />
+            <Ionicons
+              name="business-outline"
+              size={18}
+              color={mobileColors.textSecondary}
+            />
             <Text style={styles.metricText} numberOfLines={1}>
               {housingHint}
             </Text>

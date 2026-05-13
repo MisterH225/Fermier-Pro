@@ -1,7 +1,10 @@
+import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
+  ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
@@ -11,7 +14,16 @@ import {
   View
 } from "react-native";
 import { useSession } from "../context/SessionContext";
-import { acceptFarmInvitationWithToken } from "../lib/api";
+import {
+  acceptFarmInvitationWithToken,
+  fetchInvitationByToken
+} from "../lib/api";
+import {
+  mobileColors,
+  mobileRadius,
+  mobileSpacing,
+  mobileTypography
+} from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<
@@ -19,8 +31,28 @@ type Props = NativeStackScreenProps<
   "AcceptFarmInvitation"
 >;
 
+function roleHint(role: string | null | undefined): string {
+  switch (role) {
+    case "worker":
+      return "technicien";
+    case "viewer":
+      return "observateur";
+    case "veterinarian":
+      return "intervenant vétérinaire";
+    case "manager":
+      return "gérant";
+    case "owner":
+      return "propriétaire";
+    default:
+      return role ? `membre (${role})` : "membre";
+  }
+}
+
 export function AcceptFarmInvitationScreen({ route, navigation }: Props) {
-  const prefill = route.params?.prefilledToken ?? "";
+  const prefill = route.params?.prefilledToken
+    ? decodeURIComponent(route.params.prefilledToken)
+    : "";
+  const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
   const [token, setToken] = useState(prefill);
@@ -29,7 +61,13 @@ export function AcceptFarmInvitationScreen({ route, navigation }: Props) {
     if (prefill) setToken(prefill);
   }, [prefill]);
 
-  const mut = useMutation({
+  const previewQuery = useQuery({
+    queryKey: ["invitationPreview", prefill, activeProfileId],
+    queryFn: () => fetchInvitationByToken(accessToken, prefill, activeProfileId),
+    enabled: Boolean(accessToken && prefill && prefill.length >= 16)
+  });
+
+  const accept = useMutation({
     mutationFn: () =>
       acceptFarmInvitationWithToken(
         accessToken,
@@ -40,22 +78,26 @@ export function AcceptFarmInvitationScreen({ route, navigation }: Props) {
       void qc.invalidateQueries({ queryKey: ["farms", activeProfileId] });
       void qc.invalidateQueries({ queryKey: ["farm"] });
       Alert.alert(
+        res.alreadyMember ? t("invite.alreadyMemberTitle") : t("invite.welcomeTitle"),
         res.alreadyMember
-          ? "Déjà membre"
-          : "Bienvenue sur la ferme",
-        res.alreadyMember
-          ? "Tu avais déjà accès avec ce rôle."
-          : `Tu es maintenant ${roleHint(res.role)} sur cette exploitation.`,
+          ? t("invite.alreadyMemberBody")
+          : t("invite.welcomeBody", { role: roleHint(res.role) }),
         [
           {
-            text: "Voir mes fermes",
+            text: t("invite.openMyFarms"),
             onPress: () => navigation.navigate("FarmList")
           }
         ]
       );
     },
-    onError: (e: Error) => Alert.alert("Invitation refusée", e.message)
+    onError: (e: Error) => Alert.alert(t("invite.refusedTitle"), e.message)
   });
+
+  const preview = previewQuery.data;
+  const isScanRequest =
+    preview && preview.isDefault && !preview.isOwner && !preview.alreadyMember;
+  const isAlreadyMember = preview?.alreadyMember;
+  const isOwner = preview?.isOwner;
 
   return (
     <ScrollView
@@ -63,79 +105,159 @@ export function AcceptFarmInvitationScreen({ route, navigation }: Props) {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.intro}>
-        Colle le jeton reçu lorsqu&apos;un gestionnaire t&apos;a invité par
-        message ou e-mail (sans espaces).
-      </Text>
-      <Text style={styles.label}>Jeton d&apos;invitation</Text>
+      {prefill && previewQuery.isLoading ? (
+        <View style={styles.previewLoading}>
+          <ActivityIndicator color={mobileColors.accent} />
+        </View>
+      ) : null}
+
+      {preview ? (
+        <View style={styles.previewCard}>
+          <View style={styles.previewIconWrap}>
+            <Ionicons
+              name={
+                isOwner
+                  ? "shield-checkmark-outline"
+                  : isAlreadyMember
+                    ? "checkmark-circle-outline"
+                    : isScanRequest
+                      ? "hourglass-outline"
+                      : "leaf-outline"
+              }
+              size={26}
+              color={mobileColors.accent}
+            />
+          </View>
+          <Text style={styles.previewFarm} numberOfLines={1}>
+            {preview.farmName}
+          </Text>
+          <Text style={styles.previewSub}>
+            {isOwner
+              ? t("invite.previewOwner")
+              : isAlreadyMember
+                ? t("invite.previewAlreadyMember", {
+                    role: roleHint(preview.role)
+                  })
+                : isScanRequest
+                  ? t("invite.previewScanRequest")
+                  : t("invite.previewShareLink", {
+                      role: roleHint(preview.role)
+                    })}
+          </Text>
+        </View>
+      ) : null}
+
+      <Text style={styles.intro}>{t("invite.introText")}</Text>
+      <Text style={styles.label}>{t("invite.tokenLabel")}</Text>
       <TextInput
         style={styles.input}
         value={token}
         onChangeText={setToken}
-        placeholder="Suite hexadécimale du lien ou du message"
+        placeholder={t("invite.tokenPlaceholder")}
         autoCapitalize="none"
         autoCorrect={false}
         multiline
       />
-      <TouchableOpacity
-        style={[styles.cta, mut.isPending && styles.ctaDisabled]}
-        disabled={mut.isPending || token.trim().length < 16}
-        onPress={() => mut.mutate()}
-      >
-        <Text style={styles.ctaTxt}>
-          {mut.isPending ? "Validation…" : "Rejoindre la ferme"}
-        </Text>
-      </TouchableOpacity>
+
+      {isScanRequest ? (
+        <Text style={styles.scanNote}>{t("invite.scanRequestNote")}</Text>
+      ) : isOwner ? (
+        <Text style={styles.scanNote}>{t("invite.ownerNote")}</Text>
+      ) : isAlreadyMember ? (
+        <Text style={styles.scanNote}>{t("invite.alreadyMemberNote")}</Text>
+      ) : (
+        <TouchableOpacity
+          style={[styles.cta, accept.isPending && styles.ctaDisabled]}
+          disabled={accept.isPending || token.trim().length < 16}
+          onPress={() => accept.mutate()}
+        >
+          <Text style={styles.ctaTxt}>
+            {accept.isPending ? t("invite.validating") : t("invite.joinCta")}
+          </Text>
+        </TouchableOpacity>
+      )}
     </ScrollView>
   );
 }
 
-function roleHint(role: string): string {
-  switch (role) {
-    case "worker":
-      return "technicien";
-    case "viewer":
-      return "observateur";
-    case "veterinarian":
-      return "intervenant vétérinaire";
-    case "manager":
-      return "gérant";
-    default:
-      return `membre (${role})`;
-  }
-}
-
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: "#f9f8ea" },
-  content: { padding: 16, paddingBottom: 40 },
+  scroll: { flex: 1, backgroundColor: mobileColors.surface },
+  content: {
+    padding: mobileSpacing.lg,
+    paddingBottom: mobileSpacing.xxl,
+    gap: mobileSpacing.md
+  },
+  previewLoading: {
+    paddingVertical: mobileSpacing.xl,
+    alignItems: "center"
+  },
+  previewCard: {
+    alignItems: "center",
+    paddingVertical: mobileSpacing.lg,
+    paddingHorizontal: mobileSpacing.lg,
+    backgroundColor: mobileColors.surfaceMuted,
+    borderRadius: mobileRadius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.border,
+    gap: 6
+  },
+  previewIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: mobileColors.accentSoft,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 6
+  },
+  previewFarm: {
+    ...mobileTypography.cardTitle,
+    color: mobileColors.textPrimary,
+    textAlign: "center"
+  },
+  previewSub: {
+    ...mobileTypography.body,
+    fontSize: 13,
+    color: mobileColors.textSecondary,
+    textAlign: "center"
+  },
   intro: {
+    ...mobileTypography.body,
     fontSize: 14,
-    color: "#6d745b",
-    lineHeight: 20,
-    marginBottom: 16
+    color: mobileColors.textSecondary,
+    lineHeight: 20
   },
   label: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#4a5238",
-    marginBottom: 8
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.6
   },
   input: {
     borderWidth: 1,
-    borderColor: "#d4d2c4",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    borderColor: mobileColors.border,
+    borderRadius: mobileRadius.md,
+    paddingHorizontal: mobileSpacing.md,
+    paddingVertical: mobileSpacing.md,
     fontSize: 15,
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     minHeight: 88,
-    textAlignVertical: "top"
+    textAlignVertical: "top",
+    color: mobileColors.textPrimary
+  },
+  scanNote: {
+    ...mobileTypography.body,
+    fontSize: 14,
+    color: mobileColors.textSecondary,
+    lineHeight: 20,
+    paddingHorizontal: mobileSpacing.sm,
+    paddingTop: mobileSpacing.sm
   },
   cta: {
-    marginTop: 24,
-    backgroundColor: "#5d7a1f",
-    borderRadius: 14,
-    padding: 16,
+    marginTop: mobileSpacing.lg,
+    backgroundColor: mobileColors.accent,
+    borderRadius: mobileRadius.pill,
+    paddingVertical: mobileSpacing.md,
     alignItems: "center"
   },
   ctaDisabled: { opacity: 0.55 },

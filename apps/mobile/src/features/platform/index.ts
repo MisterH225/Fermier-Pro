@@ -1,7 +1,9 @@
 export { FarmEventsFeedScreen } from "../../screens/FarmEventsFeedScreen";
+export { FarmHealthScreen } from "../../screens/FarmHealthScreen";
 export { AccountScreen } from "../../screens/AccountScreen";
 export { ModuleRoadmapScreen } from "../../screens/ModuleRoadmapScreen";
 export { ProducerDashboardScreen } from "../../screens/ProducerDashboardScreen";
+export { ProducerFarmSettingsScreen } from "../../screens/ProducerFarmSettingsScreen";
 export { BuyerDashboardScreen } from "../../screens/BuyerDashboardScreen";
 export { VeterinarianDashboardScreen } from "../../screens/VeterinarianDashboardScreen";
 export { TechnicianDashboardScreen } from "../../screens/TechnicianDashboardScreen";

@@ -1,10 +1,8 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
-  Patch,
   Post,
   UseGuards
 } from "@nestjs/common";
@@ -17,7 +15,6 @@ import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.decorator";
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
 import { CreatePenDto } from "./dto/create-pen.dto";
-import { UpdatePenDto } from "./dto/update-pen.dto";
 import { HousingService } from "./housing.service";
 
 @Controller("farms/:farmId/barns/:barnId/pens")

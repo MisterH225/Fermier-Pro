@@ -61,6 +61,10 @@ export class AuthController {
 
     const ap = req.activeProfile;
 
+    const pushDeviceCount = await this.prisma.pushDevice.count({
+      where: { userId: user.id }
+    });
+
     return {
       user: {
         id: user.id,
@@ -76,7 +80,9 @@ export class AuthController {
         homeLongitude: decimalToNumber(user.homeLongitude),
         homeLocationLabel: user.homeLocationLabel,
         homeLocationSource: user.homeLocationSource,
-        isActive: user.isActive
+        isActive: user.isActive,
+        notificationsEnabled: user.notificationsEnabled,
+        pushNotificationsRegistered: pushDeviceCount > 0
       },
       primaryFarm,
       profiles: profiles.map((p) => ({

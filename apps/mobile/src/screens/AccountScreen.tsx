@@ -5,8 +5,10 @@ import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet } from "react-native";
 import { AccountSettingsPanel } from "../components/account/AccountSettingsPanel";
 import { MobileAppShell } from "../components/layout";
+import { ProducerEventsFab } from "../components/producer/ProducerEventsFab";
 import { useSession } from "../context/SessionContext";
 import { dashboardRouteForActiveProfileType } from "../lib/dashboardHomeRoute";
+import { producerShellTabs } from "../lib/producerShellTabs";
 import { mobileSpacing } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
@@ -18,8 +20,13 @@ export function AccountScreen() {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { authMe, activeProfileId } = useSession();
+  const { authMe, activeProfileId, clientFeatures } = useSession();
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
+  const isProducer = profileType === "producer";
+
+  const shellTabs = producerShellTabs(
+    Boolean(isProducer && clientFeatures.finance)
+  );
 
   const goHome = useCallback(() => {
     const route = dashboardRouteForActiveProfileType(profileType);
@@ -41,23 +48,37 @@ export function AccountScreen() {
     }
   }, [navigation, profileType]);
 
+
   return (
     <MobileAppShell
       title={t("account.title")}
-      activeTab="profile"
-      onTabChange={(tab) => {
-        if (tab === "home") {
-          goHome();
-        }
-        if (tab === "lots") {
-          navigation.navigate(
-            profileType === "buyer" ? "MarketplaceMyListings" : "FarmList"
-          );
-        }
-        if (tab === "events") {
-          navigation.navigate("FarmEventsFeed");
-        }
-      }}
+      omitBottomTabBar={isProducer}
+      activeTab={isProducer ? undefined : "profile"}
+      tabBarTabs={isProducer ? undefined : shellTabs}
+      floatingAction={
+        isProducer ? (
+          <ProducerEventsFab onPress={() => navigation.navigate("FarmEventsFeed")} />
+        ) : undefined
+      }
+      onTabChange={
+        isProducer
+          ? undefined
+          : (tab) => {
+              if (tab === "home") {
+                goHome();
+              }
+              if (tab === "cheptel") {
+                if (profileType === "buyer") {
+                  navigation.navigate("MarketplaceMyListings");
+                  return;
+                }
+                navigation.navigate("FarmList");
+              }
+              if (tab === "health") {
+                navigation.navigate("FarmEventsFeed");
+              }
+            }
+      }
     >
       <ScrollView contentContainerStyle={styles.wrap}>
         <AccountSettingsPanel />

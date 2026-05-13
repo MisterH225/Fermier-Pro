@@ -45,10 +45,10 @@ export function BuyerDashboardScreen() {
         if (tab === "home") {
           return;
         }
-        if (tab === "lots") {
+        if (tab === "cheptel") {
           navigation.navigate("MarketplaceMyListings");
         }
-        if (tab === "events") {
+        if (tab === "health") {
           navigation.navigate("FarmEventsFeed");
         }
         if (tab === "profile") {

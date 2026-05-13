@@ -84,7 +84,7 @@ export function buildFarmDetailMenuItems(args: {
       preset: "cheptel",
       visible: menu.livestock,
       title: "Voir le cheptel",
-      subtitle: "Animaux et lots",
+      subtitle: "Animaux et bandes",
       screen: "FarmLivestock",
       params: { farmId, farmName }
     },

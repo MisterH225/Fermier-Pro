@@ -126,6 +126,31 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(res.body?.primaryFarm?.id).toBe(ctx.farmId);
   });
 
+  it("PATCH /auth/me/profile (notifications + jeton push simulé)", async () => {
+    const fakeToken = "ExponentPushToken[e2e-test-token-12345678901234567890]";
+    const on = await request(app.getHttpServer())
+      .patch("/api/v1/auth/me/profile")
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({
+        notificationsEnabled: true,
+        expoPushToken: fakeToken,
+        pushPlatform: "android"
+      });
+    expect(on.status).toBe(200);
+    expect(on.body?.user?.notificationsEnabled).toBe(true);
+    expect(on.body?.user?.pushNotificationsRegistered).toBe(true);
+
+    const off = await request(app.getHttpServer())
+      .patch("/api/v1/auth/me/profile")
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({ notificationsEnabled: false });
+    expect(off.status).toBe(200);
+    expect(off.body?.user?.notificationsEnabled).toBe(false);
+    expect(off.body?.user?.pushNotificationsRegistered).toBe(false);
+  });
+
   it("GET /farms liste", async () => {
     const res = await request(app.getHttpServer())
       .get("/api/v1/farms")
@@ -292,10 +317,11 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     await ctx.prisma.farm.delete({ where: { id: newId } });
   });
 
-  it("GET liste animaux + liste lots", async () => {
+  it("GET liste animaux + bandes + vue cheptel", async () => {
     const animals = await request(app.getHttpServer())
       .get(`/api/v1/farms/${ctx.farmId}/animals`)
-      .set("Authorization", `Bearer ${ctx.token}`);
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId);
     expect(animals.status).toBe(200);
     expect(
       animals.body.some((a: { id: string }) => a.id === ctx.animalId)
@@ -303,11 +329,34 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
 
     const batches = await request(app.getHttpServer())
       .get(`/api/v1/farms/${ctx.farmId}/batches`)
-      .set("Authorization", `Bearer ${ctx.token}`);
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId);
     expect(batches.status).toBe(200);
     expect(
       batches.body.some((b: { id: string }) => b.id === ctx.batchId)
     ).toBe(true);
+
+    const cheptel = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/cheptel`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId);
+    expect(cheptel.status).toBe(200);
+    expect(cheptel.body?.kpis?.totalAnimals).toBeDefined();
+
+    const logs = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/cheptel/status-logs`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId);
+    expect(logs.status).toBe(200);
+    expect(Array.isArray(logs.body)).toBe(true);
+
+    const cfg = await request(app.getHttpServer())
+      .put(`/api/v1/farms/${ctx.farmId}/cheptel-config`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({ housingBuildingsCount: 2 });
+    expect(cfg.status).toBeGreaterThanOrEqual(200);
+    expect(cfg.status).toBeLessThan(300);
   });
 
   it("GET détail animal", async () => {
@@ -317,6 +366,23 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(res.status).toBe(200);
     expect(res.body?.id).toBe(ctx.animalId);
     expect(Array.isArray(res.body?.weights)).toBe(true);
+  });
+
+  it("PATCH statut animal (cheptel)", async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/api/v1/farms/${ctx.farmId}/animals/${ctx.animalId}/status`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({ status: "sold", note: "e2e statut" });
+    expect(res.status).toBeGreaterThanOrEqual(200);
+    expect(res.status).toBeLessThan(300);
+    const back = await request(app.getHttpServer())
+      .patch(`/api/v1/farms/${ctx.farmId}/animals/${ctx.animalId}/status`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({ status: "active" });
+    expect(back.status).toBeGreaterThanOrEqual(200);
+    expect(back.status).toBeLessThan(300);
   });
 
   it("POST pesée animal (livestockWrite)", async () => {
@@ -498,6 +564,78 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(res.body?.net).toBeDefined();
   });
 
+  it("GET finance hub (overview, settings, categories, transactions, report, projection, simulation)", async () => {
+    const ov = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/finance/overview`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(ov.status).toBe(200);
+    expect(ov.body?.months3?.length).toBe(3);
+    expect(ov.body?.settings?.currencyCode).toBeDefined();
+
+    const st = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/finance/settings`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(st.status).toBe(200);
+    expect(st.body?.currencyCode).toBeDefined();
+
+    const cat = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/finance/categories`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(cat.status).toBe(200);
+    expect(Array.isArray(cat.body)).toBe(true);
+
+    const tx = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/finance/transactions`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(tx.status).toBe(200);
+    expect(Array.isArray(tx.body)).toBe(true);
+
+    const rep = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/finance/report`)
+      .query({ period: "month" })
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(rep.status).toBe(200);
+    expect(rep.body?.totals).toBeDefined();
+
+    const proj = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/finance/projection`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(proj.status).toBe(200);
+    expect(proj.body?.nextMonths?.length).toBe(3);
+
+    const sim = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/finance/simulation`)
+      .query({ saleHeadcount: "2", pricePerHead: "1000" })
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(sim.status).toBe(200);
+    expect(sim.body?.projectedBalance).toBeDefined();
+  });
+
+  it("POST finance transaction unifiée (income)", async () => {
+    const cats = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/finance/categories`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(cats.status).toBe(200);
+    const incomeCat = (cats.body as Array<{ id: string; type: string }>).find(
+      (c) => c.type === "income"
+    );
+    expect(incomeCat?.id).toBeDefined();
+
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/finance/transactions`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        type: "income",
+        financeCategoryId: incomeCat!.id,
+        amount: 500,
+        label: "E2E transaction unifiée",
+        occurredAt: "2026-01-15T12:00:00.000Z"
+      });
+    expect(res.status).toBeGreaterThanOrEqual(200);
+    expect(res.status).toBeLessThan(300);
+    expect(res.body?.label).toBe("E2E transaction unifiée");
+  });
+
   it("POST dépense finance puis DELETE (financeWrite)", async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/farms/${ctx.farmId}/finance/expenses`)
@@ -659,6 +797,135 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(move.status).toBeLessThan(300);
     expect(move.body?.pen?.id).toBe(penToId);
     expect(move.body?.animal?.id).toBe(ctx.animalId);
+  });
+
+  it("GET dashboard finance-timeseries, gestations, health, feed-stock", async () => {
+    const fin = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/dashboard/finance-timeseries`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(fin.status).toBe(200);
+    expect(fin.body?.farmId).toBe(ctx.farmId);
+    expect(Array.isArray(fin.body?.months)).toBe(true);
+    expect(fin.body.months.length).toBe(3);
+
+    const gest = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/dashboard/gestations`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(gest.status).toBe(200);
+    expect(gest.body?.farmId).toBe(ctx.farmId);
+    expect(Array.isArray(gest.body?.items)).toBe(true);
+    expect(gest.body.items.length).toBeGreaterThanOrEqual(1);
+    expect(typeof gest.body.items[0].urgent).toBe("boolean");
+    expect(gest.body.items[0].urgent).toBe(true);
+
+    const health = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/dashboard/health`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(health.status).toBe(200);
+    expect(health.body?.farmId).toBe(ctx.farmId);
+    expect(health.body?.mortalityWindowDays).toBe(30);
+
+    const feed = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/dashboard/feed-stock`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(feed.status).toBe(200);
+    expect(feed.body?.farmId).toBe(ctx.farmId);
+    expect(Array.isArray(feed.body?.items)).toBe(true);
+  });
+
+  it("GET ferme santé (overview, upcoming, mortality, events) + POST dossier + lien dépense", async () => {
+    const auth = {
+      Authorization: `Bearer ${ctx.token}`,
+      "X-Profile-Id": ctx.producerProfileId
+    };
+
+    const overview = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/health/overview`)
+      .set(auth);
+    expect(overview.status).toBe(200);
+    expect(overview.body?.farmId).toBe(ctx.farmId);
+
+    const upcoming = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/health/upcoming`)
+      .set(auth);
+    expect(upcoming.status).toBe(200);
+    expect(upcoming.body?.farmId).toBe(ctx.farmId);
+
+    const mort30 = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/health/mortality-rate`)
+      .set(auth);
+    expect(mort30.status).toBe(200);
+    expect(mort30.body?.periodDays).toBe(30);
+
+    const mort90 = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/health/mortality-rate`)
+      .query({ period: "90" })
+      .set(auth);
+    expect(mort90.status).toBe(200);
+    expect(mort90.body?.periodDays).toBe(90);
+
+    const events0 = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/health/events`)
+      .set(auth);
+    expect(events0.status).toBe(200);
+    expect(Array.isArray(events0.body)).toBe(true);
+
+    const vac = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/health/events`)
+      .set(auth)
+      .send({
+        kind: "vaccination",
+        entityType: "group",
+        entityId: ctx.batchId,
+        detail: { vaccineName: "E2E vaccin contrat ferme santé" }
+      });
+    expect(vac.status).toBeGreaterThanOrEqual(200);
+    expect(vac.status).toBeLessThan(300);
+    expect(vac.body?.id).toBeDefined();
+
+    const events1 = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/health/events`)
+      .query({ kind: "vaccination" })
+      .set(auth);
+    expect(events1.status).toBe(200);
+    expect(Array.isArray(events1.body)).toBe(true);
+
+    const treatment = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/health/events`)
+      .set(auth)
+      .send({
+        kind: "treatment",
+        entityType: "group",
+        entityId: ctx.batchId,
+        detail: { drugName: "E2E traitement contrat santé" }
+      });
+    expect(treatment.status).toBeGreaterThanOrEqual(200);
+    expect(treatment.status).toBeLessThan(300);
+    const treatmentId = treatment.body?.id as string;
+    expect(treatmentId).toBeDefined();
+
+    const expense = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/finance/expenses`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        amount: 5000,
+        label: "E2E dépense lien santé ferme",
+        category: "test"
+      });
+    expect(expense.status).toBeGreaterThanOrEqual(200);
+    expect(expense.status).toBeLessThan(300);
+    const expenseId = expense.body?.id as string;
+    expect(expenseId).toBeDefined();
+
+    const link = await request(app.getHttpServer())
+      .post(
+        `/api/v1/farms/${ctx.farmId}/health/events/${treatmentId}/link-transaction`
+      )
+      .set(auth)
+      .send({ expenseId });
+    expect(link.status).toBeGreaterThanOrEqual(200);
+    expect(link.status).toBeLessThan(300);
+    expect(link.body?.ok).toBe(true);
   });
 });
 

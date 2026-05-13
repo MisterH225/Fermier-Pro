@@ -16,6 +16,12 @@
     "plugins": [
       "expo-web-browser",
       [
+        "expo-notifications",
+        {
+          "sounds": []
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Autoriser l’accès à la photothèque pour choisir une photo de profil.",

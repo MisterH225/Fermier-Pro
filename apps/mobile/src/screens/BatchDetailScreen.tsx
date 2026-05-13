@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { EventCard, LotDetailHeader } from "../components/farm";
+import { EventCard, CheptelBatchDetailHeader } from "../components/farm";
 import { Card } from "../components/ui/Card";
 import { SegmentedControl } from "../components/ui/SegmentedControl";
 import { useSession } from "../context/SessionContext";
@@ -58,7 +58,7 @@ const SEVERITY_FR: Record<string, string> = {
   urgent: "Urgent"
 };
 
-type LotTab = "health" | "weight" | "feed" | "events";
+type BatchTab = "health" | "weight" | "feed" | "events";
 
 export function BatchDetailScreen({ route }: Props) {
   const { farmId, batchId } = route.params;
@@ -73,7 +73,7 @@ export function BatchDetailScreen({ route }: Props) {
   const [healthTitle, setHealthTitle] = useState("");
   const [healthBody, setHealthBody] = useState("");
   const [healthDate, setHealthDate] = useState("");
-  const [lotTab, setLotTab] = useState<LotTab>("health");
+  const [batchTab, setBatchTab] = useState<BatchTab>("health");
 
   const batchQuery = useQuery({
     queryKey: ["farmBatch", farmId, batchId, activeProfileId],
@@ -226,7 +226,7 @@ export function BatchDetailScreen({ route }: Props) {
   if (err || !batch) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.error}>{err || "Lot introuvable."}</Text>
+        <Text style={styles.error}>{err || "Bande introuvable."}</Text>
       </View>
     );
   }
@@ -241,8 +241,8 @@ export function BatchDetailScreen({ route }: Props) {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <LotDetailHeader
-        lotName={route.params.batchName}
+      <CheptelBatchDetailHeader
+        batchName={route.params.batchName}
         farmName={route.params.farmName}
         headCount={batch.headcount}
         speciesLabel={speciesLabel}
@@ -260,12 +260,12 @@ export function BatchDetailScreen({ route }: Props) {
             { key: "feed", label: "Alim." },
             { key: "events", label: "Journal" }
           ]}
-          activeKey={lotTab}
-          onChange={(k) => setLotTab(k as LotTab)}
+          activeKey={batchTab}
+          onChange={(k) => setBatchTab(k as BatchTab)}
         />
       </View>
 
-      {lotTab === "weight" ? (
+      {batchTab === "weight" ? (
         <>
           <Text style={styles.section}>Enregistrer une pesée (poids moyen)</Text>
           <TextInput
@@ -323,10 +323,10 @@ export function BatchDetailScreen({ route }: Props) {
         </>
       ) : null}
 
-      {lotTab === "health" ? (
+      {batchTab === "health" ? (
         <>
           <Text style={[styles.section, styles.healthSectionTitle]}>
-            Santé du lot
+            Santé de la bande
           </Text>
           {healthQuery.isError ? (
             <Text style={styles.healthScopeHint}>
@@ -408,7 +408,7 @@ export function BatchDetailScreen({ route }: Props) {
         </>
       ) : null}
 
-      {lotTab === "feed" ? (
+      {batchTab === "feed" ? (
         <Card>
           <Text style={styles.feedTitle}>Alimentation</Text>
           <Text style={styles.feedBody}>
@@ -418,9 +418,9 @@ export function BatchDetailScreen({ route }: Props) {
         </Card>
       ) : null}
 
-      {lotTab === "events" ? (
+      {batchTab === "events" ? (
         <>
-          <Text style={styles.section}>Journal du lot</Text>
+          <Text style={styles.section}>Journal de la bande</Text>
           {mergedTimeline.length === 0 ? (
             <Text style={styles.emptyHist}>Aucun événement enregistré.</Text>
           ) : (

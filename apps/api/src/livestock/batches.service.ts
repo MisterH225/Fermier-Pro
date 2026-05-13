@@ -14,6 +14,7 @@ import { CreateHealthEventDto } from "../health-events/dto/create-health-event.d
 import { CreateLivestockBatchDto } from "./dto/create-livestock-batch.dto";
 import { UpdateLivestockBatchDto } from "./dto/update-livestock-batch.dto";
 import { TaxonomyService } from "./taxonomy.service";
+import { LivestockStatusLogService } from "./livestock-status-log.service";
 
 const PORCIN_CODE = "porcin";
 
@@ -23,7 +24,8 @@ export class BatchesService {
     private readonly prisma: PrismaService,
     private readonly taxonomy: TaxonomyService,
     private readonly farmAccess: FarmAccessService,
-    private readonly audit: AuditService
+    private readonly audit: AuditService,
+    private readonly statusLog: LivestockStatusLogService
   ) {}
 
   private async resolveSpeciesId(speciesId?: string): Promise<string> {
@@ -137,7 +139,11 @@ export class BatchesService {
     if (dto.breedId !== undefined && dto.breedId !== null) {
       await this.assertBreedForSpecies(batch.speciesId, dto.breedId);
     }
-    return this.prisma.livestockBatch.update({
+    const nextStatus = dto.status !== undefined ? dto.status : batch.status;
+    const statusChanged =
+      dto.status !== undefined && dto.status !== batch.status;
+
+    const updated = await this.prisma.livestockBatch.update({
       where: { id: batchId },
       data: {
         ...(dto.name !== undefined ? { name: dto.name } : {}),
@@ -153,9 +159,34 @@ export class BatchesService {
           : {}),
         ...(dto.sourceTag !== undefined ? { sourceTag: dto.sourceTag } : {}),
         ...(dto.status !== undefined ? { status: dto.status } : {}),
+        ...(dto.expectedExitAt !== undefined
+          ? {
+              expectedExitAt: dto.expectedExitAt
+                ? new Date(dto.expectedExitAt)
+                : null
+            }
+          : {}),
+        ...(dto.closedAt !== undefined
+          ? {
+              closedAt: dto.closedAt ? new Date(dto.closedAt) : null
+            }
+          : {}),
         ...(dto.notes !== undefined ? { notes: dto.notes } : {})
       }
     });
+
+    if (statusChanged) {
+      await this.statusLog.record({
+        farmId,
+        recordedByUserId: user.id,
+        entityType: "batch",
+        entityId: batchId,
+        oldStatus: batch.status,
+        newStatus: nextStatus
+      });
+    }
+
+    return updated;
   }
 
   async deleteBatch(user: User, farmId: string, batchId: string) {

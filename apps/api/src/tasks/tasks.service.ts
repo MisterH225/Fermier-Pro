@@ -43,7 +43,7 @@ export class TasksService {
     farmId: string,
     status?: TaskStatus
   ) {
-    const farm = await this.farmAccess.requireFarmAccess(user.id, farmId);
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
     return this.prisma.farmTask.findMany({
       where: {
         farmId,

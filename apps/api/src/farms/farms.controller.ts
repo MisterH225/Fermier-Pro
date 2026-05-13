@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Put,
   Query,
   UseGuards
 } from "@nestjs/common";
@@ -15,6 +16,7 @@ import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.decorator";
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
 import { CreateFarmDto } from "./dto/create-farm.dto";
+import { UpdateFarmCheptelConfigDto } from "./dto/update-farm-cheptel-config.dto";
 import { TransferFarmOwnershipDto } from "./dto/transfer-farm-ownership.dto";
 import { FarmsService } from "./farms.service";
 
@@ -59,6 +61,49 @@ export class FarmsController {
       Number.isFinite(limit) ? limit : undefined,
       cursor
     );
+  }
+
+  @Put(":farmId/cheptel-config")
+  @UseGuards(FarmScopesGuard)
+  @RequireFarmScopes(FARM_SCOPE.livestockWrite)
+  updateCheptelConfig(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Body() dto: UpdateFarmCheptelConfigDto
+  ) {
+    return this.farms.updateCheptelConfig(user, farmId, dto);
+  }
+
+  @Get(":farmId/cheptel")
+  @UseGuards(FarmScopesGuard)
+  @RequireFarmScopes(FARM_SCOPE.livestockRead)
+  cheptelOverview(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string
+  ) {
+    return this.farms.getCheptelOverview(user, farmId);
+  }
+
+  @Get(":farmId/cheptel/status-logs")
+  @UseGuards(FarmScopesGuard)
+  @RequireFarmScopes(FARM_SCOPE.livestockRead)
+  cheptelStatusLogs(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string,
+    @Query("entityType") entityType?: string,
+    @Query("newStatus") newStatus?: string,
+    @Query("limit") limitRaw?: string
+  ) {
+    const limit = limitRaw ? Number.parseInt(limitRaw, 10) : undefined;
+    return this.farms.listCheptelStatusLogs(user, farmId, {
+      from,
+      to,
+      entityType,
+      newStatus,
+      limit: Number.isFinite(limit) ? limit : undefined
+    });
   }
 
   @Get(":id")

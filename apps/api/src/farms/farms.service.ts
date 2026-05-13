@@ -9,8 +9,11 @@ import { MembershipRole, Prisma } from "@prisma/client";
 import { AUDIT_ACTION } from "../common/audit.constants";
 import { AuditService } from "../common/audit.service";
 import { FarmAccessService } from "../common/farm-access.service";
+import { InvitationsService } from "../invitations/invitations.service";
+import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateFarmDto } from "./dto/create-farm.dto";
+import { UpdateFarmCheptelConfigDto } from "./dto/update-farm-cheptel-config.dto";
 import { TransferFarmOwnershipDto } from "./dto/transfer-farm-ownership.dto";
 
 @Injectable()
@@ -18,7 +21,8 @@ export class FarmsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
-    private readonly farmAccess: FarmAccessService
+    private readonly farmAccess: FarmAccessService,
+    private readonly invitations: InvitationsService
   ) {}
 
   async create(user: User, dto: CreateFarmDto): Promise<Farm> {
@@ -55,6 +59,12 @@ export class FarmsService {
         }
       });
 
+      // Lien collaboratif par défaut (QR / partage producteur) — token unique
+      // crypto-secure, expirant à 1 an. L'owner peut le partager via la
+      // section « Accès collaboratif » du profil ; les scans déclenchent une
+      // demande `scan_request` que l'owner valide ensuite.
+      await this.invitations.createDefaultInvitation(tx, farm.id, user.id);
+
       return farm;
     }).then(async (farm) => {
       await this.audit.record({
@@ -69,6 +79,14 @@ export class FarmsService {
           livestockMode: farm.livestockMode
         }
       });
+      await this.audit.record({
+        actorUserId: user.id,
+        farmId: farm.id,
+        action: AUDIT_ACTION.farmInvitationDefaultGenerated,
+        resourceType: "FarmInvitation",
+        metadata: { autoCreatedAtFarmCreation: true }
+      });
+      await ensureFarmFinanceBootstrap(this.prisma, farm.id);
       return farm;
     });
   }
@@ -261,5 +279,201 @@ export class FarmsService {
       items,
       nextCursor: hasMore ? items[items.length - 1]?.id ?? null : null
     };
+  }
+
+  async updateCheptelConfig(
+    user: User,
+    farmId: string,
+    dto: UpdateFarmCheptelConfigDto
+  ): Promise<Farm> {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const farm = await this.prisma.farm.findFirst({ where: { id: farmId } });
+    if (!farm) {
+      throw new NotFoundException("Ferme introuvable");
+    }
+    return this.prisma.farm.update({
+      where: { id: farmId },
+      data: {
+        ...(dto.livestockMode !== undefined
+          ? { livestockMode: dto.livestockMode }
+          : {}),
+        ...(dto.housingBuildingsCount !== undefined
+          ? { housingBuildingsCount: dto.housingBuildingsCount }
+          : {}),
+        ...(dto.housingPensPerBuilding !== undefined
+          ? { housingPensPerBuilding: dto.housingPensPerBuilding }
+          : {}),
+        ...(dto.housingMaxPigsPerPen !== undefined
+          ? { housingMaxPigsPerPen: dto.housingMaxPigsPerPen }
+          : {})
+      }
+    });
+  }
+
+  async getCheptelOverview(user: User, farmId: string) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const farm = await this.prisma.farm.findUnique({
+      where: { id: farmId },
+      select: {
+        id: true,
+        name: true,
+        livestockMode: true,
+        housingBuildingsCount: true,
+        housingPensPerBuilding: true,
+        housingMaxPigsPerPen: true
+      }
+    });
+    if (!farm) {
+      throw new NotFoundException("Ferme introuvable");
+    }
+
+    const animals = await this.prisma.animal.findMany({
+      where: { farmId },
+      select: {
+        sex: true,
+        status: true,
+        expectedFarrowingAt: true
+      }
+    });
+
+    const batches = await this.prisma.livestockBatch.findMany({
+      where: { farmId },
+      select: { headcount: true, status: true, closedAt: true, categoryKey: true }
+    });
+
+    let maleAnimals = 0;
+    let femaleAnimals = 0;
+    let unknownSexAnimals = 0;
+    for (const a of animals) {
+      if (a.sex === "male") {
+        maleAnimals += 1;
+      } else if (a.sex === "female") {
+        femaleAnimals += 1;
+      } else {
+        unknownSexAnimals += 1;
+      }
+    }
+
+    const gestatingFemales = animals.filter(
+      (a) => a.sex === "female" && a.expectedFarrowingAt != null
+    ).length;
+
+    const activeBatches = batches.filter((b) => b.status === "active");
+    const totalBatchHeadcount = activeBatches.reduce(
+      (s, b) => s + b.headcount,
+      0
+    );
+
+    const penCap = await this.prisma.pen.aggregate({
+      where: { barn: { farmId } },
+      _sum: { capacity: true }
+    });
+    let penCapacityTotal = penCap._sum.capacity ?? 0;
+    if (
+      penCapacityTotal === 0 &&
+      farm.housingBuildingsCount != null &&
+      farm.housingPensPerBuilding != null &&
+      farm.housingMaxPigsPerPen != null
+    ) {
+      penCapacityTotal =
+        farm.housingBuildingsCount *
+        farm.housingPensPerBuilding *
+        farm.housingMaxPigsPerPen;
+    }
+
+    const activePlacements = await this.prisma.penPlacement.findMany({
+      where: {
+        endedAt: null,
+        pen: { barn: { farmId } }
+      },
+      include: {
+        batch: { select: { headcount: true } }
+      }
+    });
+    let penOccupancyHeadcount = 0;
+    for (const pl of activePlacements) {
+      if (pl.animalId) {
+        penOccupancyHeadcount += 1;
+      } else if (pl.batchId && pl.batch) {
+        penOccupancyHeadcount += pl.batch.headcount;
+      }
+    }
+
+    const occupancyRate =
+      penCapacityTotal > 0
+        ? Math.min(
+            100,
+            Math.round((penOccupancyHeadcount / penCapacityTotal) * 1000) / 10
+          )
+        : null;
+
+    const barnCount = await this.prisma.barn.count({ where: { farmId } });
+
+    return {
+      farm,
+      kpis: {
+        totalAnimals: animals.length,
+        maleAnimals,
+        femaleAnimals,
+        unknownSexAnimals,
+        gestatingFemales,
+        totalBatchHeadcount,
+        activeBatchesCount: activeBatches.length,
+        closedBatchesCount: batches.filter(
+          (b) => b.closedAt != null || b.status !== "active"
+        ).length,
+        penCapacityTotal,
+        penOccupancyHeadcount,
+        occupancyRate,
+        barnCount
+      }
+    };
+  }
+
+  async listCheptelStatusLogs(
+    user: User,
+    farmId: string,
+    query: {
+      from?: string;
+      to?: string;
+      entityType?: string;
+      newStatus?: string;
+      limit?: number;
+    }
+  ) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const take = Math.min(Math.max(query.limit ?? 200, 1), 500);
+    const where: Prisma.LivestockStatusLogWhereInput = { farmId };
+    if (query.entityType?.trim()) {
+      where.entityType = query.entityType.trim();
+    }
+    if (query.newStatus?.trim()) {
+      where.newStatus = query.newStatus.trim();
+    }
+    const createdAt: Prisma.DateTimeFilter = {};
+    if (query.from?.trim()) {
+      const d = new Date(query.from.trim());
+      if (!Number.isNaN(d.getTime())) {
+        createdAt.gte = d;
+      }
+    }
+    if (query.to?.trim()) {
+      const d = new Date(query.to.trim());
+      if (!Number.isNaN(d.getTime())) {
+        createdAt.lte = d;
+      }
+    }
+    if (Object.keys(createdAt).length > 0) {
+      where.createdAt = createdAt;
+    }
+
+    return this.prisma.livestockStatusLog.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take,
+      include: {
+        recorder: { select: { id: true, fullName: true, email: true } }
+      }
+    });
   }
 }

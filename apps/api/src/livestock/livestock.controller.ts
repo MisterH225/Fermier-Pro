@@ -16,6 +16,7 @@ import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.deco
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
 import { CreateAnimalDto } from "./dto/create-animal.dto";
 import { CreateWeightDto } from "./dto/create-weight.dto";
+import { PatchAnimalStatusDto } from "./dto/patch-animal-status.dto";
 import { UpdateAnimalDto } from "./dto/update-animal.dto";
 import { LivestockService } from "./livestock.service";
 
@@ -38,6 +39,17 @@ export class LivestockController {
     @Body() dto: CreateAnimalDto
   ) {
     return this.livestock.createAnimal(user, farmId, dto);
+  }
+
+  @Patch(":animalId/status")
+  @RequireFarmScopes(FARM_SCOPE.livestockWrite)
+  patchStatus(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("animalId") animalId: string,
+    @Body() dto: PatchAnimalStatusDto
+  ) {
+    return this.livestock.patchAnimalStatus(user, farmId, animalId, dto);
   }
 
   @Get(":animalId")

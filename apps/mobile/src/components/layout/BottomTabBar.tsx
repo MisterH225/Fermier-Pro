@@ -3,7 +3,10 @@ import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
 
-export type AppTab = "home" | "lots" | "events" | "profile";
+export type AppTab = "home" | "cheptel" | "finance" | "health" | "profile";
+
+/** minHeight 64 + paddingBottom 8 — utilisé pour le FAB et la barre producteur fixe. */
+export const BOTTOM_TAB_BAR_CONTENT_HEIGHT = 72;
 
 type BottomTabBarProps = {
   activeTab: AppTab;
@@ -18,8 +21,9 @@ const TAB_DEFS: Array<{
   icon: keyof typeof Ionicons.glyphMap;
 }> = [
   { key: "home", labelKey: "shell.tabs.home", icon: "home-outline" },
-  { key: "lots", labelKey: "shell.tabs.lots", icon: "albums-outline" },
-  { key: "events", labelKey: "shell.tabs.events", icon: "add-circle-outline" },
+  { key: "cheptel", labelKey: "shell.tabs.cheptel", icon: "albums-outline" },
+  { key: "finance", labelKey: "shell.tabs.finance", icon: "trending-up-outline" },
+  { key: "health", labelKey: "shell.tabs.health", icon: "medkit-outline" },
   { key: "profile", labelKey: "shell.tabs.profile", icon: "person-outline" }
 ];
 
@@ -27,7 +31,7 @@ export function BottomTabBar({ activeTab, onChange, tabs }: BottomTabBarProps) {
   const { t } = useTranslation();
   const keys = tabs?.length
     ? tabs
-    : (["home", "lots", "events", "profile"] as AppTab[]);
+    : (["home", "cheptel", "health", "profile"] as AppTab[]);
   const items = TAB_DEFS.filter((d) => keys.includes(d.key));
   return (
     <View style={styles.wrap}>
@@ -79,5 +83,5 @@ const styles = StyleSheet.create({
   labelActive: {
     color: mobileColors.accent,
     fontWeight: "600"
-  }
+  },
 });

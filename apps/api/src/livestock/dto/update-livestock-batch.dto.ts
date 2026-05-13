@@ -46,6 +46,14 @@ export class UpdateLivestockBatchDto {
   status?: string;
 
   @IsOptional()
+  @IsDateString()
+  expectedExitAt?: string | null;
+
+  @IsOptional()
+  @IsDateString()
+  closedAt?: string | null;
+
+  @IsOptional()
   @IsString()
   @MaxLength(8000)
   notes?: string | null;

@@ -15,6 +15,7 @@ import type { Session } from "@supabase/supabase-js";
 import { AuthenticatedAppShell } from "./src/components/AuthenticatedAppShell";
 import { SessionProvider } from "./src/context/SessionContext";
 import {
+  getDevBypassApiAccessToken,
   isAuthEnvConfigured,
   isDemoNavigationOffered
 } from "./src/env";
@@ -120,7 +121,7 @@ export default function App() {
               authConfigured && session
                 ? session.access_token
                 : bypassAllowed && demoBypass
-                  ? DEMO_BYPASS_ACCESS_TOKEN
+                  ? getDevBypassApiAccessToken() ?? DEMO_BYPASS_ACCESS_TOKEN
                   : ""
             }
             signOut={signOut}

@@ -34,7 +34,10 @@ function supabaseHostLabel(): string {
 export type LoginGateScreenProps = {
   /** Voir `isDemoNavigationOffered()` : `__DEV__` ou `EXPO_PUBLIC_AUTH_BYPASS`. */
   bypassAllowed?: boolean;
-  /** Lance la navigation principale sans session Supabase (données démo). */
+  /**
+   * Lance la navigation principale sans session Supabase (données démo factices),
+   * sauf si `getDevBypassApiAccessToken()` renvoie un JWT en Metro — alors API réelle.
+   */
   onEnterDemoBypass?: () => void;
 };
 
@@ -50,7 +53,7 @@ export function LoginGateScreen({
   /** OTP masqué par défaut quand le mode démo est proposé (dev / AUTH_BYPASS). */
   const [showSmsLogin, setShowSmsLogin] = useState(false);
   const { width: winW } = useWindowDimensions();
-  const logoW = Math.min(winW - 32, 560);
+  const logoW = Math.min(winW - 16, 720);
   const logoH = Math.round(logoW * 0.52);
 
   return (
@@ -235,10 +238,11 @@ const styles = StyleSheet.create({
   },
   logoBlock: {
     alignItems: "center",
-    marginBottom: 8
+    marginBottom: 8,
+    gap: 6
   },
   logo: {
-    marginBottom: 12,
+    marginBottom: 0,
     alignSelf: "center"
   },
   diagSecond: {
@@ -249,6 +253,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     letterSpacing: 3.2,
     color: authColors.body,
+    marginTop: 0,
     marginBottom: 8
   },
   lead: {

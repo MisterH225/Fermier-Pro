@@ -16,13 +16,15 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:mobile": "npm --prefix apps/mobile run expo:start",
-    "expo:start": "npm --prefix apps/mobile run expo:start",
+    "postinstall": "npm exec -w @fermier/api -- prisma generate",
+    "dev:mobile": "npx expo start apps/mobile",
+    "expo:start": "npx expo start apps/mobile",
     "dev:api": "npm run start:dev --workspace @fermier/api",
     "build:api": "npm run build --workspace @fermier/api",
     "lint:api": "npm run lint --workspace @fermier/api",
     "typecheck:mobile": "npm run typecheck --workspace @fermier/mobile",
-    "test:e2e": "npm run test:e2e --workspace @fermier/api"
+    "test:e2e": "npm run test:e2e --workspace @fermier/api",
+    "ci:quality": "npm exec -w @fermier/api -- prisma generate && npm run lint:api && npm run build:api && npm run typecheck:mobile"
   },
   "devDependencies": {
     "@nestjs/common": "11.1.19",

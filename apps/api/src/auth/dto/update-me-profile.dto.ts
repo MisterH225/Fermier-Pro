@@ -1,5 +1,6 @@
 import { Type } from "class-transformer";
 import {
+  IsBoolean,
   IsIn,
   IsNumber,
   IsOptional,
@@ -49,4 +50,20 @@ export class UpdateMeProfileDto {
   @ValidateIf((_, v) => v !== null && v !== undefined)
   @IsIn(["gps", "manual"])
   homeLocationSource?: "gps" | "manual" | null;
+
+  @IsOptional()
+  @IsBoolean()
+  notificationsEnabled?: boolean;
+
+  /** Jeton retourné par `expo-notifications` (enregistré si `notificationsEnabled` reste vrai). */
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null && v !== undefined)
+  @IsString()
+  @MaxLength(4096)
+  expoPushToken?: string | null;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null && v !== undefined)
+  @IsIn(["ios", "android", "web", "unknown"])
+  pushPlatform?: "ios" | "android" | "web" | "unknown" | null;
 }

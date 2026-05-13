@@ -14,6 +14,7 @@ import { AuthModule } from "./auth/auth.module";
 import { ChatModule } from "./chat/chat.module";
 import { CommonModule } from "./common/common.module";
 import { ConfigClientModule } from "./config-client/config-client.module";
+import { DashboardModule } from "./dashboard/dashboard.module";
 import { FarmMembersModule } from "./farm-members/farm-members.module";
 import { FarmsModule } from "./farms/farms.module";
 import { FinanceModule } from "./finance/finance.module";
@@ -28,6 +29,7 @@ import { ProfilesModule } from "./profiles/profiles.module";
 import { TasksModule } from "./tasks/tasks.module";
 import { VetConsultationsModule } from "./vet-consultations/vet-consultations.module";
 import { FeedStockModule } from "./feed-stock/feed-stock.module";
+import { FarmHealthModule } from "./farm-health/farm-health.module";
 
 @Module({
   imports: [
@@ -66,6 +68,7 @@ import { FeedStockModule } from "./feed-stock/feed-stock.module";
     PrismaModule,
     CommonModule,
     ConfigClientModule,
+    DashboardModule,
     AuthModule,
     ChatModule,
     ProfilesModule,
@@ -80,7 +83,8 @@ import { FeedStockModule } from "./feed-stock/feed-stock.module";
     HousingModule,
     MarketplaceModule,
     VetConsultationsModule,
-    FeedStockModule
+    FeedStockModule,
+    FarmHealthModule
   ],
   controllers: [AppController],
   providers: [

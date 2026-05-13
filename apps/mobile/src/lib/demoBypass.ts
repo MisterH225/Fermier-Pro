@@ -22,7 +22,9 @@ export const DEMO_AUTH_ME: AuthMeResponse = {
     homeLongitude: null,
     homeLocationLabel: null,
     homeLocationSource: null,
-    isActive: true
+    isActive: true,
+    notificationsEnabled: false,
+    pushNotificationsRegistered: false
   },
   primaryFarm: {
     id: DEMO_PREVIEW_FARM_ID,
@@ -34,6 +36,12 @@ export const DEMO_AUTH_ME: AuthMeResponse = {
       type: "producer",
       displayName: "Profil producteur démo",
       isDefault: true
+    },
+    {
+      id: "00000000-0000-4000-8000-000000000003",
+      type: "veterinarian",
+      displayName: "Profil vétérinaire démo",
+      isDefault: false
     }
   ],
   activeProfile: {

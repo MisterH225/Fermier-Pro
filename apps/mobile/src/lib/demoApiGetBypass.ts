@@ -32,6 +32,9 @@ function demoFarm(farmId: string) {
     capacity: 100,
     latitude: null,
     longitude: null,
+    housingBuildingsCount: null,
+    housingPensPerBuilding: null,
+    housingMaxPigsPerPen: null,
     createdAt: ISO,
     updatedAt: ISO,
     effectiveScopes: [
@@ -39,11 +42,13 @@ function demoFarm(farmId: string) {
       "farm.write",
       "livestock.read",
       "livestock.write",
+      "health.read",
       "tasks.read",
       "finance.read",
       "housing.read",
       "feedStock.read",
       "vet.read",
+      "exits.read",
       "marketplace.read"
     ]
   };
@@ -65,6 +70,20 @@ export function tryDemoBypassApiGetJson(
 
   if (p === "/farms") {
     return [demoFarm(DEMO_PREVIEW_FARM_ID)];
+  }
+
+  const mDefaultInv = /^\/farms\/([^/]+)\/invitations\/default$/.exec(p);
+  if (mDefaultInv) {
+    const farmId = mDefaultInv[1];
+    return {
+      id: "00000000-0000-4000-8000-0000000000d1",
+      farmId,
+      token: "fermier-demo-default-invite-token",
+      expiresAt: "2027-12-31T23:59:59.000Z",
+      isDefault: true,
+      kind: "share_link",
+      status: "pending"
+    };
   }
 
   const mFinExp = /^\/farms\/([^/]+)\/finance\/expenses\/([^/]+)$/.exec(p);
@@ -109,7 +128,128 @@ export function tryDemoBypassApiGetJson(
       totalExpenses: "0",
       totalRevenues: "0",
       net: "0",
-      currency: "XOF"
+      currency: "XOF",
+      currencySymbol: "FCFA"
+    };
+  }
+
+  const mFinOverview = /^\/farms\/([^/]+)\/finance\/overview$/.exec(p);
+  if (mFinOverview) {
+    const farmId = mFinOverview[1];
+    const mk = (i: number) => {
+      const d = new Date(Date.UTC(2026, 2 + i, 15));
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    };
+    return {
+      farmId,
+      settings: {
+        currencyCode: "XOF",
+        currencySymbol: "FCFA",
+        lowBalanceThreshold: null
+      },
+      month: {
+        totalExpenses: "95000",
+        totalRevenues: "210000",
+        netMargin: "115000"
+      },
+      balanceAllTime: "50000",
+      lowBalanceWarning: false,
+      months3: [
+        { month: mk(0), expenses: "120000", revenues: "180000", currency: "XOF" },
+        { month: mk(1), expenses: "95000", revenues: "210000", currency: "XOF" },
+        { month: mk(2), expenses: "140000", revenues: "195000", currency: "XOF" }
+      ]
+    };
+  }
+
+  const mFinSettings = /^\/farms\/([^/]+)\/finance\/settings$/.exec(p);
+  if (mFinSettings) {
+    const farmId = mFinSettings[1];
+    return {
+      farmId,
+      currencyCode: "XOF",
+      currencySymbol: "FCFA",
+      lowBalanceThreshold: null
+    };
+  }
+
+  if (/^\/farms\/[^/]+\/finance\/categories$/.test(p)) {
+    return [];
+  }
+
+  if (/^\/farms\/[^/]+\/finance\/transactions$/.test(p)) {
+    return [];
+  }
+
+  const mFinReport = /^\/farms\/([^/]+)\/finance\/report$/.exec(p);
+  if (mFinReport) {
+    const farmId = mFinReport[1];
+    return {
+      farmId,
+      period: "month",
+      range: { start: ISO, end: ISO },
+      currency: "XOF",
+      currencySymbol: "FCFA",
+      totals: { expenses: "0", revenues: "0", net: "0" },
+      byCategory: []
+    };
+  }
+
+  const mFinProj = /^\/farms\/([^/]+)\/finance\/projection$/.exec(p);
+  if (mFinProj) {
+    const farmId = mFinProj[1];
+    return {
+      farmId,
+      currency: "XOF",
+      basedOnMonths: 6,
+      nextMonths: [
+        {
+          monthOffset: 1,
+          projectedExpenses: "100000",
+          projectedRevenues: "200000",
+          projectedNet: "100000"
+        },
+        {
+          monthOffset: 2,
+          projectedExpenses: "100000",
+          projectedRevenues: "200000",
+          projectedNet: "100000"
+        },
+        {
+          monthOffset: 3,
+          projectedExpenses: "100000",
+          projectedRevenues: "200000",
+          projectedNet: "100000"
+        }
+      ],
+      deficitAlert: false
+    };
+  }
+
+  const mFinMargin = /^\/farms\/([^/]+)\/finance\/margin-by-batch$/.exec(p);
+  if (mFinMargin) {
+    const farmId = mFinMargin[1];
+    return {
+      farmId,
+      batchId: "demo-batch",
+      batchName: "Bande démo",
+      headcount: 10,
+      revenues: "0",
+      expensesAllocated: "0",
+      grossMargin: "0",
+      costPerHead: "0",
+      costPerKg: null
+    };
+  }
+
+  const mFinSim = /^\/farms\/([^/]+)\/finance\/simulation$/.exec(p);
+  if (mFinSim) {
+    const farmId = mFinSim[1];
+    return {
+      farmId,
+      currentBalance: "0",
+      simulatedAdditionalRevenue: "0",
+      projectedBalance: "0"
     };
   }
 
@@ -246,6 +386,40 @@ export function tryDemoBypassApiGetJson(
     };
   }
 
+  const mCheptel = /^\/farms\/([^/]+)\/cheptel$/.exec(p);
+  if (mCheptel) {
+    const farmId = mCheptel[1];
+    const base = demoFarm(farmId);
+    return {
+      farm: {
+        id: base.id,
+        name: base.name,
+        livestockMode: base.livestockMode,
+        housingBuildingsCount: 2,
+        housingPensPerBuilding: 8,
+        housingMaxPigsPerPen: 12
+      },
+      kpis: {
+        totalAnimals: 24,
+        maleAnimals: 2,
+        femaleAnimals: 10,
+        unknownSexAnimals: 0,
+        gestatingFemales: 3,
+        totalBatchHeadcount: 120,
+        activeBatchesCount: 4,
+        closedBatchesCount: 1,
+        penCapacityTotal: 192,
+        penOccupancyHeadcount: 140,
+        occupancyRate: 72.9,
+        barnCount: 2
+      }
+    };
+  }
+
+  if (/^\/farms\/[^/]+\/cheptel\/status-logs/.test(p)) {
+    return [];
+  }
+
   const mFarmOnly = /^\/farms\/([^/]+)$/.exec(p);
   if (mFarmOnly) {
     return demoFarm(mFarmOnly[1]);
@@ -294,6 +468,136 @@ export function tryDemoBypassApiGetJson(
   }
 
   if (p === "/marketplace/offers") {
+    return [];
+  }
+
+  const mDashFin = /^\/farms\/([^/]+)\/dashboard\/finance-timeseries$/.exec(p);
+  if (mDashFin) {
+    const farmId = mDashFin[1];
+    const mk = (i: number) => {
+      const d = new Date(Date.UTC(2026, 2 + i, 15));
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    };
+    return {
+      farmId,
+      months: [
+        { month: mk(0), expenses: "120000", revenues: "180000", currency: "XOF" },
+        { month: mk(1), expenses: "95000", revenues: "210000", currency: "XOF" },
+        { month: mk(2), expenses: "140000", revenues: "195000", currency: "XOF" }
+      ]
+    };
+  }
+
+  const mDashGest = /^\/farms\/([^/]+)\/dashboard\/gestations$/.exec(p);
+  if (mDashGest) {
+    const farmId = mDashGest[1];
+    const due = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    return {
+      farmId,
+      items: [
+        {
+          animalId: "00000000-0000-4000-8000-0000000000a1",
+          label: "TRUIE-DEMO-01",
+          expectedFarrowingAt: due.toISOString(),
+          daysRemaining: 2,
+          urgent: true
+        }
+      ]
+    };
+  }
+
+  const mDashHealth = /^\/farms\/([^/]+)\/dashboard\/health$/.exec(p);
+  if (mDashHealth) {
+    const farmId = mDashHealth[1];
+    const vDue = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
+    return {
+      farmId,
+      upcomingVaccines: [
+        {
+          taskId: "00000000-0000-4000-8000-0000000000b1",
+          title: "Vaccin porcin démo",
+          dueAt: vDue.toISOString(),
+          animalHint: "Bande démo"
+        }
+      ],
+      nextVetConsultation: {
+        id: "00000000-0000-4000-8000-0000000000c1",
+        subject: "Visite de routine",
+        openedAt: new Date().toISOString(),
+        status: "open"
+      },
+      activeDiseaseCases: {
+        count: 1,
+        byType: [{ title: "Toux sèche", count: 1 }]
+      },
+      mortalityRate30d: "0.0100",
+      mortalityWindowDays: 30
+    };
+  }
+
+  const mDashFeed = /^\/farms\/([^/]+)\/dashboard\/feed-stock$/.exec(p);
+  if (mDashFeed) {
+    const farmId = mDashFeed[1];
+    return {
+      farmId,
+      items: [
+        {
+          productName: "Céréales démo",
+          remainingKg: "120",
+          initialKg: "500",
+          ratio: 0.24,
+          level: "medium",
+          critical: false
+        },
+        {
+          productName: "Complément démo",
+          remainingKg: "30",
+          initialKg: "200",
+          ratio: 0.15,
+          level: "critical",
+          critical: true
+        }
+      ]
+    };
+  }
+
+  const mFarmHealthOverview = /^\/farms\/([^/]+)\/health\/overview$/.exec(p);
+  if (mFarmHealthOverview) {
+    const farmId = mFarmHealthOverview[1];
+    return {
+      farmId,
+      activeDiseaseCount: 0,
+      nextVaccine: null,
+      nextVetVisitModule: null,
+      nextVetConsultationLegacy: null,
+      mortalityRate30d: "0.0000",
+      alerts: []
+    };
+  }
+
+  const mFarmHealthUpcoming = /^\/farms\/([^/]+)\/health\/upcoming$/.exec(p);
+  if (mFarmHealthUpcoming) {
+    const farmId = mFarmHealthUpcoming[1];
+    return {
+      farmId,
+      vaccines: [],
+      vetVisits: []
+    };
+  }
+
+  const mFarmHealthMort = /^\/farms\/([^/]+)\/health\/mortality-rate$/.exec(p);
+  if (mFarmHealthMort) {
+    const farmId = mFarmHealthMort[1];
+    return {
+      farmId,
+      periodDays: 30,
+      headcountLost: 0,
+      rate: "0"
+    };
+  }
+
+  const mFarmHealthEvents = /^\/farms\/([^/]+)\/health\/events$/.exec(p);
+  if (mFarmHealthEvents) {
     return [];
   }
 

@@ -1,10 +1,12 @@
 export type RootStackParamList = {
   ProducerDashboard: undefined;
+  /** Paramètres ferme (devise / seuils) — producteur. */
+  ProducerFarmSettings: { farmId: string; farmName: string };
   BuyerDashboard: undefined;
   VeterinarianDashboard: undefined;
   TechnicianDashboard: undefined;
   FarmList: undefined;
-  /** Fil d’événements terrain (UI ; brancher API plus tard). */
+  /** Fil d’événements terrain (liste des dossiers santé ferme). */
   FarmEventsFeed: undefined;
   /** Compte : déconnexion, langue, aide. */
   Account: undefined;
@@ -12,6 +14,8 @@ export type RootStackParamList = {
   AcceptFarmInvitation: { prefilledToken?: string };
   FarmDetail: { farmId: string; farmName: string };
   FarmLivestock: { farmId: string; farmName: string };
+  /** Santé ferme (dossiers vaccins, maladies, véto, traitements, mortalités). */
+  FarmHealth: { farmId: string; farmName: string };
   CreateFarm: undefined;
   AnimalDetail: {
     farmId: string;

@@ -122,12 +122,14 @@ export async function seedE2eFixtures(
     }
   });
 
+  const farrowingDue = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
   const animal = await prisma.animal.create({
     data: {
       farmId: farm.id,
       speciesId: species.id,
       sex: AnimalSex.unknown,
-      status: "active"
+      status: "active",
+      expectedFarrowingAt: farrowingDue
     }
   });
 

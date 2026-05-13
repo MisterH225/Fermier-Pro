@@ -22,10 +22,10 @@ export function VeterinarianDashboardScreen() {
         if (tab === "home") {
           return;
         }
-        if (tab === "lots") {
+        if (tab === "cheptel") {
           navigation.navigate("FarmList");
         }
-        if (tab === "events") {
+        if (tab === "health") {
           navigation.navigate("FarmEventsFeed");
         }
         if (tab === "profile") {

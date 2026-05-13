@@ -3,7 +3,7 @@
  * Postgres côté serveur). Convention : tout nouvel appel ajouté ici doit avoir un cas
  * dans `apps/api/test/mobile-api-contract.e2e-spec.ts` (GET/POST/PATCH selon le cas).
  */
-import { getExpoPublicEnv } from "../env";
+import { getExpoPublicEnv, isDemoApiGetMockDisabled } from "../env";
 import { tryDemoBypassApiGetJson } from "./demoApiGetBypass";
 
 function apiBaseUrl(): string {
@@ -33,7 +33,9 @@ export async function apiGetJson<T>(
   accessToken: string,
   activeProfileId?: string | null
 ): Promise<T> {
-  const demo = tryDemoBypassApiGetJson(path, accessToken);
+  const demo = isDemoApiGetMockDisabled()
+    ? null
+    : tryDemoBypassApiGetJson(path, accessToken);
   if (demo !== null) {
     return demo as T;
   }
@@ -60,6 +62,30 @@ export async function apiPostJson<T>(
   const url = `${apiBaseUrl()}/api/v1${p}`;
   const res = await fetch(url, {
     method: "POST",
+    headers: {
+      ...apiAuthHeaders(accessToken, activeProfileId),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(text || `${res.status} ${res.statusText}`);
+  }
+  return JSON.parse(text) as T;
+}
+
+/** PUT JSON /api/v1/... */
+export async function apiPutJson<T>(
+  path: string,
+  body: unknown,
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<T> {
+  const p = path.startsWith("/") ? path : `/${path}`;
+  const url = `${apiBaseUrl()}/api/v1${p}`;
+  const res = await fetch(url, {
+    method: "PUT",
     headers: {
       ...apiAuthHeaders(accessToken, activeProfileId),
       "Content-Type": "application/json"
@@ -277,16 +303,44 @@ export function removeFarmMember(
   );
 }
 
+export type InvitationRecipientKind = "veterinarian" | "technician" | "partner";
+
+export type InvitationPermissions = {
+  readOnly?: boolean;
+  dataEntry?: boolean;
+  health?: boolean;
+  finance?: boolean;
+};
+
+export type FarmInvitationKindDto = "share_link" | "scan_request";
+export type FarmInvitationStatusDto =
+  | "pending"
+  | "accepted"
+  | "rejected"
+  | "expired";
+
 export type FarmInvitationPendingDto = {
   id: string;
   farmId: string;
-  role: string;
+  role: string | null;
   scopes: string[];
   expiresAt: string;
   inviteeEmail: string | null;
   inviteePhone: string | null;
   createdAt: string;
   createdById: string;
+  kind: FarmInvitationKindDto;
+  status: FarmInvitationStatusDto;
+  isDefault: boolean;
+  permissions: InvitationPermissions | null;
+  recipientKind: InvitationRecipientKind | null;
+  scannedByUserId: string | null;
+  scannedBy: {
+    id: string;
+    fullName: string | null;
+    email: string | null;
+    phone: string | null;
+  } | null;
 };
 
 export function fetchFarmPendingInvitations(
@@ -302,18 +356,24 @@ export function fetchFarmPendingInvitations(
 }
 
 export type CreateFarmInvitationPayload = {
-  role: string;
+  role?: string;
   scopes?: string[];
   inviteeEmail?: string;
   inviteePhone?: string;
+  recipientKind?: InvitationRecipientKind;
+  permissions?: InvitationPermissions;
 };
 
 export type CreateFarmInvitationResultDto = {
   id: string;
   farmId: string;
-  role: string;
+  role: string | null;
+  scopes: string[];
+  recipientKind: InvitationRecipientKind | null;
+  permissions: InvitationPermissions | null;
   expiresAt: string;
   token: string;
+  isDefault: boolean;
 };
 
 export function createFarmInvitation(
@@ -324,6 +384,89 @@ export function createFarmInvitation(
 ): Promise<CreateFarmInvitationResultDto> {
   return apiPostJson<CreateFarmInvitationResultDto>(
     `/farms/${farmId}/invitations`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** GET /farms/:farmId/invitations/default — lien collaboratif par défaut + token QR. */
+export type FarmDefaultInvitationDto = {
+  id: string;
+  farmId: string;
+  token: string;
+  expiresAt: string;
+  isDefault: boolean;
+  kind: FarmInvitationKindDto;
+  status: FarmInvitationStatusDto;
+};
+
+export function fetchFarmDefaultInvitation(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<FarmDefaultInvitationDto> {
+  return apiGetJson<FarmDefaultInvitationDto>(
+    `/farms/${farmId}/invitations/default`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** GET /invitations/by-token/:token — aperçu après scan QR ou deep link. */
+export type InvitationPreviewDto = {
+  token: string;
+  farmId: string;
+  farmName: string;
+  kind: FarmInvitationKindDto;
+  status: FarmInvitationStatusDto;
+  isDefault: boolean;
+  role: string | null;
+  scopes: string[];
+  permissions: InvitationPermissions | null;
+  recipientKind: InvitationRecipientKind | null;
+  expiresAt: string;
+  isOwner: boolean;
+  alreadyMember: boolean;
+  /** ID de la `scan_request` créée par le scan (si applicable). */
+  pendingScanRequestId: string | null;
+};
+
+export function fetchInvitationByToken(
+  accessToken: string,
+  token: string,
+  activeProfileId?: string | null
+): Promise<InvitationPreviewDto> {
+  return apiGetJson<InvitationPreviewDto>(
+    `/invitations/by-token/${encodeURIComponent(token.trim())}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** POST /invitations/:invitationId/respond — owner valide/refuse une demande. */
+export type RespondInvitationPayload = {
+  accept: boolean;
+  recipientRole?: string;
+  permissions?: InvitationPermissions;
+};
+
+export type RespondInvitationResultDto = {
+  ok: boolean;
+  invitationId: string;
+  farmId: string;
+  status: FarmInvitationStatusDto;
+  role?: string | null;
+};
+
+export function respondToInvitation(
+  accessToken: string,
+  invitationId: string,
+  payload: RespondInvitationPayload,
+  activeProfileId?: string | null
+): Promise<RespondInvitationResultDto> {
+  return apiPostJson<RespondInvitationResultDto>(
+    `/invitations/${invitationId}/respond`,
     payload,
     accessToken,
     activeProfileId
@@ -349,6 +492,21 @@ export function acceptFarmInvitationWithToken(
     accessToken,
     activeProfileId
   );
+}
+
+/**
+ * URL deep link de partage : `EXPO_PUBLIC_INVITE_BASE_URL` (HTTPS pour
+ * universal link / web fallback) ou schéma de l'app par défaut.
+ */
+export function buildInvitationShareUrl(token: string): string {
+  const cleaned = token.trim();
+  const baseFromEnv =
+    process.env.EXPO_PUBLIC_INVITE_BASE_URL?.trim() ?? "";
+  if (baseFromEnv) {
+    const stripped = baseFromEnv.replace(/\/$/, "");
+    return `${stripped}/${encodeURIComponent(cleaned)}`;
+  }
+  return `fermier-pro://invite/${encodeURIComponent(cleaned)}`;
 }
 
 export type FeedStockLotDto = {
@@ -492,6 +650,9 @@ export type FarmDto = {
   createdAt: string;
   updatedAt: string;
   livestockCategoryPolicies?: unknown;
+  housingBuildingsCount?: number | null;
+  housingPensPerBuilding?: number | null;
+  housingMaxPigsPerPen?: number | null;
   /** Scopes effectifs sur cette ferme (RBAC), renvoyés par `GET /farms/:id`. */
   effectiveScopes?: string[];
 };
@@ -509,6 +670,109 @@ export function fetchFarm(
   activeProfileId?: string | null
 ): Promise<FarmDto> {
   return apiGetJson<FarmDto>(`/farms/${farmId}`, accessToken, activeProfileId);
+}
+
+export type CheptelOverviewDto = {
+  farm: {
+    id: string;
+    name: string;
+    livestockMode: string;
+    housingBuildingsCount: number | null;
+    housingPensPerBuilding: number | null;
+    housingMaxPigsPerPen: number | null;
+  };
+  kpis: {
+    totalAnimals: number;
+    maleAnimals: number;
+    femaleAnimals: number;
+    unknownSexAnimals: number;
+    gestatingFemales: number;
+    totalBatchHeadcount: number;
+    activeBatchesCount: number;
+    closedBatchesCount: number;
+    penCapacityTotal: number;
+    penOccupancyHeadcount: number;
+    occupancyRate: number | null;
+    barnCount: number;
+  };
+};
+
+export function fetchFarmCheptelOverview(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<CheptelOverviewDto> {
+  return apiGetJson<CheptelOverviewDto>(
+    `/farms/${farmId}/cheptel`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type UpdateFarmCheptelConfigPayload = {
+  livestockMode?: "individual" | "batch" | "hybrid";
+  housingBuildingsCount?: number | null;
+  housingPensPerBuilding?: number | null;
+  housingMaxPigsPerPen?: number | null;
+};
+
+export function updateFarmCheptelConfig(
+  accessToken: string,
+  farmId: string,
+  payload: UpdateFarmCheptelConfigPayload,
+  activeProfileId?: string | null
+): Promise<FarmDto> {
+  return apiPutJson<FarmDto>(
+    `/farms/${farmId}/cheptel-config`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type CheptelStatusLogRow = {
+  id: string;
+  farmId: string;
+  entityType: string;
+  entityId: string;
+  oldStatus: string | null;
+  newStatus: string;
+  note: string | null;
+  createdAt: string;
+  recorder: { id: string; fullName: string | null; email: string | null };
+};
+
+export function fetchFarmCheptelStatusLogs(
+  accessToken: string,
+  farmId: string,
+  activeProfileId: string | null | undefined,
+  query?: {
+    from?: string;
+    to?: string;
+    entityType?: string;
+    newStatus?: string;
+    limit?: number;
+  }
+): Promise<CheptelStatusLogRow[]> {
+  const q = new URLSearchParams();
+  if (query?.from) {
+    q.set("from", query.from);
+  }
+  if (query?.to) {
+    q.set("to", query.to);
+  }
+  if (query?.entityType) {
+    q.set("entityType", query.entityType);
+  }
+  if (query?.newStatus) {
+    q.set("newStatus", query.newStatus);
+  }
+  if (query?.limit != null) {
+    q.set("limit", String(query.limit));
+  }
+  const qs = q.toString();
+  const path = `/farms/${farmId}/cheptel/status-logs${qs ? `?${qs}` : ""}`;
+  return apiGetJson<CheptelStatusLogRow[]>(path, accessToken, activeProfileId);
 }
 
 /** Réponses GET .../animals et .../batches (Prisma + includes). */
@@ -530,6 +794,8 @@ export type BatchListItem = {
   species: { id: string; code: string; name: string };
   breed: { id: string; name: string } | null;
   weights?: Array<{ avgWeightKg: string | number; measuredAt: string }>;
+  expectedExitAt?: string | null;
+  closedAt?: string | null;
 };
 
 export function fetchFarmAnimals(
@@ -580,6 +846,8 @@ export type BatchDetail = {
   headcount: number;
   status: string;
   notes: string | null;
+  expectedExitAt?: string | null;
+  closedAt?: string | null;
   species: { id: string; code: string; name: string };
   breed: { id: string; name: string } | null;
   weights: Array<{
@@ -599,6 +867,26 @@ export function fetchFarmAnimal(
 ): Promise<AnimalDetail> {
   return apiGetJson<AnimalDetail>(
     `/farms/${farmId}/animals/${animalId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type PatchAnimalStatusPayload = {
+  status: "active" | "dead" | "sold" | "reformed" | "transferred";
+  note?: string | null;
+};
+
+export function patchAnimalStatus(
+  accessToken: string,
+  farmId: string,
+  animalId: string,
+  payload: PatchAnimalStatusPayload,
+  activeProfileId?: string | null
+): Promise<AnimalDetail> {
+  return apiPatchJson<AnimalDetail>(
+    `/farms/${farmId}/animals/${animalId}/status`,
+    payload,
     accessToken,
     activeProfileId
   );
@@ -926,6 +1214,318 @@ export function patchVetConsultation(
   );
 }
 
+/** Dashboard accueil producteur — scopes selon endpoint (finance, livestock, health). */
+export type DashboardFinanceMonthPoint = {
+  month: string;
+  expenses: string;
+  revenues: string;
+  currency: "XOF" | string;
+};
+
+export type DashboardFinanceTimeseriesDto = {
+  farmId: string;
+  months: DashboardFinanceMonthPoint[];
+};
+
+export type DashboardGestationItemDto = {
+  animalId: string;
+  label: string;
+  expectedFarrowingAt: string;
+  daysRemaining: number;
+  urgent: boolean;
+};
+
+export type DashboardGestationsDto = {
+  farmId: string;
+  items: DashboardGestationItemDto[];
+};
+
+export type DashboardHealthDto = {
+  farmId: string;
+  upcomingVaccines: Array<{
+    taskId: string;
+    title: string;
+    dueAt: string | null;
+    animalHint: string | null;
+  }>;
+  nextVetConsultation: {
+    id: string;
+    subject: string;
+    openedAt: string;
+    status: string;
+  } | null;
+  activeDiseaseCases: {
+    count: number;
+    byType: Array<{ title: string; count: number }>;
+  };
+  mortalityRate30d: string | null;
+  mortalityWindowDays: number;
+};
+
+export type DashboardFeedStockItemDto = {
+  productName: string;
+  remainingKg: string;
+  initialKg: string;
+  ratio: number;
+  level: "critical" | "medium" | "ok";
+  critical: boolean;
+};
+
+export type DashboardFeedStockDto = {
+  farmId: string;
+  items: DashboardFeedStockItemDto[];
+};
+
+export function fetchDashboardFinanceTimeseries(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<DashboardFinanceTimeseriesDto> {
+  return apiGetJson<DashboardFinanceTimeseriesDto>(
+    `/farms/${farmId}/dashboard/finance-timeseries`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchDashboardGestations(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<DashboardGestationsDto> {
+  return apiGetJson<DashboardGestationsDto>(
+    `/farms/${farmId}/dashboard/gestations`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchDashboardHealth(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<DashboardHealthDto> {
+  return apiGetJson<DashboardHealthDto>(
+    `/farms/${farmId}/dashboard/health`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** Santé ferme — aligné sur `FarmHealthController` (`/farms/:farmId/health/...`). */
+export type FarmHealthRecordKind =
+  | "vaccination"
+  | "disease"
+  | "vet_visit"
+  | "treatment"
+  | "mortality";
+
+export type FarmHealthEntityType = "animal" | "group";
+
+export type FarmHealthOverviewDto = {
+  farmId: string;
+  activeDiseaseCount: number;
+  nextVaccine: {
+    at: string | null;
+    vaccineName: string;
+    healthRecordId: string;
+  } | null;
+  nextVetVisitModule: {
+    at: string;
+    reason: string | null;
+    healthRecordId: string;
+  } | null;
+  nextVetConsultationLegacy: {
+    id: string;
+    subject: string;
+    openedAt: string;
+  } | null;
+  mortalityRate30d: string;
+  alerts: string[];
+};
+
+export type FarmHealthUpcomingDto = {
+  farmId: string;
+  vaccines: Array<{
+    vaccineName: string;
+    nextReminderAt: string | null;
+    healthRecord: { id: string; entityType: FarmHealthEntityType; entityId: string };
+  }>;
+  vetVisits: Array<{
+    id: string;
+    occurredAt: string;
+    status: string;
+    vetVisit: { vetName: string; reason: string } | null;
+  }>;
+};
+
+export type FarmHealthMortalityRateDto = {
+  farmId: string;
+  periodDays: number;
+  headcountLost: number;
+  rate: string;
+};
+
+export type FarmHealthRecorderPreview = {
+  id: string;
+  fullName: string | null;
+  email: string | null;
+};
+
+export type FarmHealthRecordRowDto = {
+  id: string;
+  farmId: string;
+  kind: FarmHealthRecordKind;
+  entityType: FarmHealthEntityType;
+  entityId: string;
+  occurredAt: string;
+  status: string;
+  notes: string | null;
+  attachmentUrl: string | null;
+  vaccination?: {
+    vaccineName: string;
+    vaccineType: string | null;
+    nextReminderAt: string | null;
+  } | null;
+  disease?: {
+    diagnosis: string | null;
+    caseStatus: string;
+  } | null;
+  vetVisit?: {
+    vetName: string;
+    reason: string;
+    cost: string | number | null;
+  } | null;
+  treatment?: {
+    drugName: string;
+    startDate: string;
+    endDate: string | null;
+    cost: string | number | null;
+  } | null;
+  mortality?: {
+    cause: string;
+    livestockExitId: string | null;
+  } | null;
+  recorder?: FarmHealthRecorderPreview | null;
+};
+
+export type CreateFarmHealthRecordBody = {
+  kind: FarmHealthRecordKind;
+  entityType: FarmHealthEntityType;
+  entityId: string;
+  occurredAt?: string;
+  status?: string;
+  notes?: string;
+  attachmentUrl?: string;
+  detail: Record<string, unknown>;
+};
+
+export function fetchFarmHealthOverview(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<FarmHealthOverviewDto> {
+  return apiGetJson<FarmHealthOverviewDto>(
+    `/farms/${farmId}/health/overview`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFarmHealthUpcoming(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<FarmHealthUpcomingDto> {
+  return apiGetJson<FarmHealthUpcomingDto>(
+    `/farms/${farmId}/health/upcoming`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFarmHealthMortalityRate(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null,
+  period?: "30" | "90"
+): Promise<FarmHealthMortalityRateDto> {
+  const qs = period ? `?period=${encodeURIComponent(period)}` : "";
+  return apiGetJson<FarmHealthMortalityRateDto>(
+    `/farms/${farmId}/health/mortality-rate${qs}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFarmHealthEvents(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null,
+  filters?: { kind?: FarmHealthRecordKind; status?: string; from?: string; to?: string }
+): Promise<FarmHealthRecordRowDto[]> {
+  const q = new URLSearchParams();
+  if (filters?.kind) {
+    q.set("kind", filters.kind);
+  }
+  if (filters?.status) {
+    q.set("status", filters.status);
+  }
+  if (filters?.from) {
+    q.set("from", filters.from);
+  }
+  if (filters?.to) {
+    q.set("to", filters.to);
+  }
+  const suffix = q.toString() ? `?${q.toString()}` : "";
+  return apiGetJson<FarmHealthRecordRowDto[]>(
+    `/farms/${farmId}/health/events${suffix}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function createFarmHealthRecord(
+  accessToken: string,
+  farmId: string,
+  body: CreateFarmHealthRecordBody,
+  activeProfileId?: string | null
+): Promise<FarmHealthRecordRowDto> {
+  return apiPostJson<FarmHealthRecordRowDto>(
+    `/farms/${farmId}/health/events`,
+    body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function linkFarmHealthRecordExpense(
+  accessToken: string,
+  farmId: string,
+  recordId: string,
+  expenseId: string,
+  activeProfileId?: string | null
+): Promise<{ ok: boolean }> {
+  return apiPostJson<{ ok: boolean }>(
+    `/farms/${farmId}/health/events/${recordId}/link-transaction`,
+    { expenseId },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchDashboardFeedStock(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<DashboardFeedStockDto> {
+  return apiGetJson<DashboardFeedStockDto>(
+    `/farms/${farmId}/dashboard/feed-stock`,
+    accessToken,
+    activeProfileId
+  );
+}
+
 /** Finance — scopes finance.read / finance.write. */
 export type FinanceSummaryDto = {
   farmId: string;
@@ -933,6 +1533,7 @@ export type FinanceSummaryDto = {
   totalRevenues: string;
   net: string;
   currency: string;
+  currencySymbol?: string;
 };
 
 export type FarmExpenseDto = {
@@ -1153,6 +1754,295 @@ export function patchFarmRevenue(
   return apiPatchJson<FarmRevenueDto>(
     `/farms/${farmId}/finance/revenues/${revenueId}`,
     payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type FinanceOverviewMonthPoint = {
+  month: string;
+  expenses: string;
+  revenues: string;
+  currency: string;
+};
+
+export type FinanceOverviewDto = {
+  farmId: string;
+  settings: {
+    currencyCode: string;
+    currencySymbol: string;
+    lowBalanceThreshold: string | null;
+  };
+  month: {
+    totalExpenses: string;
+    totalRevenues: string;
+    netMargin: string;
+  };
+  balanceAllTime: string;
+  lowBalanceWarning: boolean;
+  months3: FinanceOverviewMonthPoint[];
+};
+
+export type FinanceCategoryDto = {
+  id: string;
+  farmId: string;
+  type: string;
+  key: string;
+  name: string;
+  icon: string | null;
+  isDefault: boolean;
+};
+
+export type FinanceMergedTransactionDto = {
+  id: string;
+  kind: "expense" | "income";
+  amount: string;
+  currency: string;
+  label: string;
+  occurredAt: string;
+  categoryLabel: string | null;
+  categoryKey: string | null;
+  financeCategoryId: string | null;
+  linkedEntityType: string | null;
+  linkedEntityId: string | null;
+  attachmentUrl: string | null;
+  note: string | null;
+  creator?: { id: string; fullName: string | null; email: string | null };
+};
+
+export type FinanceReportCategoryRow = {
+  key: string;
+  label: string;
+  expenses: string;
+  revenues: string;
+  net: string;
+};
+
+export type FinanceReportDto = {
+  farmId: string;
+  period: "month" | "year";
+  range: { start: string; end: string };
+  currency: string;
+  currencySymbol: string;
+  totals: { expenses: string; revenues: string; net: string };
+  byCategory: FinanceReportCategoryRow[];
+  monthlyEvolution?: Array<{
+    month: string;
+    expenses: string;
+    revenues: string;
+    net: string;
+  }>;
+  topExpenseCategories?: Array<{
+    key: string;
+    label: string;
+    expenses: string;
+  }>;
+};
+
+export type FinanceProjectionDto = {
+  farmId: string;
+  currency: string;
+  basedOnMonths: number;
+  nextMonths: Array<{
+    monthOffset: number;
+    projectedExpenses: string;
+    projectedRevenues: string;
+    projectedNet: string;
+  }>;
+  deficitAlert: boolean;
+};
+
+export type FinanceMarginByBatchDto = {
+  farmId: string;
+  batchId: string;
+  batchName: string;
+  headcount: number;
+  revenues: string;
+  expensesAllocated: string;
+  grossMargin: string;
+  costPerHead: string;
+  costPerKg: string | null;
+};
+
+export type FinanceSimulationDto = {
+  farmId: string;
+  currentBalance: string;
+  simulatedAdditionalRevenue: string;
+  projectedBalance: string;
+};
+
+export type FarmFinanceSettingsDto = {
+  farmId: string;
+  currencyCode: string;
+  currencySymbol: string;
+  lowBalanceThreshold: string | null;
+};
+
+export function fetchFinanceOverview(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<FinanceOverviewDto> {
+  return apiGetJson<FinanceOverviewDto>(
+    `/farms/${farmId}/finance/overview`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFarmFinanceSettings(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<FarmFinanceSettingsDto> {
+  return apiGetJson<FarmFinanceSettingsDto>(
+    `/farms/${farmId}/finance/settings`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type PatchFarmFinanceSettingsPayload = {
+  currencyCode?: string;
+  currencySymbol?: string;
+  lowBalanceThreshold?: number | null;
+};
+
+export function patchFarmFinanceSettings(
+  accessToken: string,
+  farmId: string,
+  payload: PatchFarmFinanceSettingsPayload,
+  activeProfileId?: string | null
+): Promise<FarmFinanceSettingsDto> {
+  return apiPatchJson<FarmFinanceSettingsDto>(
+    `/farms/${farmId}/finance/settings`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFinanceCategories(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<FinanceCategoryDto[]> {
+  return apiGetJson<FinanceCategoryDto[]>(
+    `/farms/${farmId}/finance/categories`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFinanceTransactions(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null,
+  filters?: {
+    type?: "income" | "expense";
+    financeCategoryId?: string;
+    from?: string;
+    to?: string;
+  }
+): Promise<FinanceMergedTransactionDto[]> {
+  const qs = new URLSearchParams();
+  if (filters?.type) qs.set("type", filters.type);
+  if (filters?.financeCategoryId) {
+    qs.set("financeCategoryId", filters.financeCategoryId);
+  }
+  if (filters?.from) qs.set("from", filters.from);
+  if (filters?.to) qs.set("to", filters.to);
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return apiGetJson<FinanceMergedTransactionDto[]>(
+    `/farms/${farmId}/finance/transactions${suffix}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type PostFinanceTransactionPayload = {
+  type: "income" | "expense";
+  financeCategoryId?: string;
+  amount: number;
+  currency?: string;
+  label: string;
+  occurredAt?: string;
+  linkedEntityType?: string;
+  linkedEntityId?: string;
+  attachmentUrl?: string;
+  note?: string;
+};
+
+export function postFinanceTransaction(
+  accessToken: string,
+  farmId: string,
+  payload: PostFinanceTransactionPayload,
+  activeProfileId?: string | null
+): Promise<FarmExpenseDto | FarmRevenueDto> {
+  return apiPostJson<FarmExpenseDto | FarmRevenueDto>(
+    `/farms/${farmId}/finance/transactions`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFinanceReport(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null,
+  period: "month" | "year" = "month",
+  month?: string,
+  year?: string
+): Promise<FinanceReportDto> {
+  const qs = new URLSearchParams();
+  qs.set("period", period);
+  if (month) qs.set("month", month);
+  if (year) qs.set("year", year);
+  return apiGetJson<FinanceReportDto>(
+    `/farms/${farmId}/finance/report?${qs.toString()}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFinanceProjection(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<FinanceProjectionDto> {
+  return apiGetJson<FinanceProjectionDto>(
+    `/farms/${farmId}/finance/projection`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFinanceMarginByBatch(
+  accessToken: string,
+  farmId: string,
+  batchId: string,
+  activeProfileId?: string | null
+): Promise<FinanceMarginByBatchDto> {
+  return apiGetJson<FinanceMarginByBatchDto>(
+    `/farms/${farmId}/finance/margin-by-batch?batchId=${encodeURIComponent(batchId)}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFinanceSimulation(
+  accessToken: string,
+  farmId: string,
+  saleHeadcount: number,
+  pricePerHead: number,
+  activeProfileId?: string | null
+): Promise<FinanceSimulationDto> {
+  const qs = new URLSearchParams();
+  qs.set("saleHeadcount", String(saleHeadcount));
+  qs.set("pricePerHead", String(pricePerHead));
+  return apiGetJson<FinanceSimulationDto>(
+    `/farms/${farmId}/finance/simulation?${qs.toString()}`,
     accessToken,
     activeProfileId
   );
@@ -1760,6 +2650,8 @@ export type AuthMeUser = {
   homeLocationLabel: string | null;
   homeLocationSource: "gps" | "manual" | null;
   isActive: boolean;
+  notificationsEnabled: boolean;
+  pushNotificationsRegistered: boolean;
 };
 
 export type AuthMeResponse = {
@@ -1789,6 +2681,9 @@ export type PatchMeProfilePayload = {
   homeLongitude?: number | null;
   homeLocationLabel?: string | null;
   homeLocationSource?: "gps" | "manual" | null;
+  notificationsEnabled?: boolean;
+  expoPushToken?: string | null;
+  pushPlatform?: "ios" | "android" | "web" | "unknown" | null;
 };
 
 /** GET /api/v1/auth/me (Bearer = access_token Supabase). */

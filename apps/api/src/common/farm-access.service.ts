@@ -128,4 +128,14 @@ export class FarmAccessService {
       }
     }
   }
+
+  /** Vérifie un scope métier sans lever (ex. agrégations dashboard partielles). */
+  async hasFarmScope(
+    userId: string,
+    farmId: string,
+    scope: string
+  ): Promise<boolean> {
+    const { scopes } = await this.getEffectiveFarmScopes(userId, farmId);
+    return scopeSatisfies(scopes, scope);
+  }
 }

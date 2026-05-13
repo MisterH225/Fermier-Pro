@@ -114,7 +114,15 @@ export function FarmMembersScreen({ route, navigation }: Props) {
           <Text style={styles.inviteTitle}>Invitations en attente</Text>
           {invitesQ.data.map((inv: FarmInvitationPendingDto) => (
             <Text key={inv.id} style={styles.inviteLine}>
-              {ROLE_LABEL[inv.role] ?? inv.role}
+              {inv.kind === "scan_request"
+                ? `Demande${
+                    inv.scannedBy?.fullName
+                      ? ` de ${inv.scannedBy.fullName}`
+                      : ""
+                  }`
+                : inv.role
+                  ? (ROLE_LABEL[inv.role] ?? inv.role)
+                  : "Lien collaboratif"}
               {inv.inviteeEmail ? ` · ${inv.inviteeEmail}` : ""}
               {inv.inviteePhone ? ` · ${inv.inviteePhone}` : ""}
               {" · expire "}

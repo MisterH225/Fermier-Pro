@@ -1,45 +1,59 @@
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useQuery } from "@tanstack/react-query";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { EventCard } from "../components/farm";
 import { MobileAppShell } from "../components/layout";
-import { IconButton } from "../components/ui";
 import { useSession } from "../context/SessionContext";
 import { dashboardRouteForActiveProfileType } from "../lib/dashboardHomeRoute";
+import { fetchFarmHealthEvents, fetchFarms } from "../lib/api";
+import { producerShellTabs } from "../lib/producerShellTabs";
+import { resolveProducerHomeFarm } from "../lib/producerHomeFarm";
 import { mobileColors, mobileSpacing, mobileTypography } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
-const MOCK_EVENTS = [
-  {
-    title: "Mortalité déclarée",
-    subtitle: "Lot #12 · Post-sevrage",
-    timestamp: "10:02"
-  },
-  {
-    title: "Pesée enregistrée",
-    subtitle: "Lot #8 · Moy. 28,4 kg",
-    timestamp: "09:18"
-  },
-  {
-    title: "Vaccination PCV2",
-    subtitle: "Lot #8 · Croissance",
-    timestamp: "Hier"
-  },
-  {
-    title: "Entrée aliment",
-    subtitle: "Coulée 2 · +2,5 t",
-    timestamp: "Hier"
-  }
-];
-
 /**
- * Fil d’événements terrain (UI). Brancher sur l’API quand le modèle « événement unifié » existera.
+ * Fil d’événements terrain : dossiers santé ferme (`GET /farms/:id/health/events`).
  */
 export function FarmEventsFeedScreen() {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === "en" ? "en" : "fr";
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { activeProfileId, authMe } = useSession();
+  const { accessToken, activeProfileId, authMe, clientFeatures } = useSession();
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
+  const isProducer = profileType === "producer";
+
+  const farmsQuery = useQuery({
+    queryKey: ["farms", activeProfileId, "eventsShellCheptel"],
+    queryFn: () => fetchFarms(accessToken!, activeProfileId),
+    enabled: Boolean(
+      accessToken && activeProfileId && isProducer && !authMe?.primaryFarm
+    )
+  });
+
+  const producerHome = resolveProducerHomeFarm(authMe, farmsQuery.data);
+
+  const shellTabs = producerShellTabs(
+    Boolean(isProducer && clientFeatures.finance)
+  );
+
+  const eventsQuery = useQuery({
+    queryKey: [
+      "farmHealthEvents",
+      producerHome?.id,
+      activeProfileId,
+      "eventsFeed"
+    ],
+    queryFn: () =>
+      fetchFarmHealthEvents(
+        accessToken!,
+        producerHome!.id,
+        activeProfileId
+      ),
+    enabled: Boolean(accessToken && producerHome?.id && isProducer)
+  });
 
   const goHome = () => {
     const route = dashboardRouteForActiveProfileType(profileType);
@@ -61,40 +75,90 @@ export function FarmEventsFeedScreen() {
     }
   };
 
+  const formatTs = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) {
+      return "—";
+    }
+    return d.toLocaleString(locale, {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  };
+
+  const labelForKind = (kind: string): string => {
+    switch (kind) {
+      case "vaccination":
+        return t("health.formTitles.vaccination");
+      case "disease":
+        return t("health.formTitles.disease");
+      case "vet_visit":
+        return t("health.formTitles.vet_visit");
+      case "treatment":
+        return t("health.formTitles.treatment");
+      case "mortality":
+        return t("health.formTitles.mortality");
+      default:
+        return kind;
+    }
+  };
+
   return (
     <MobileAppShell
-      title="Événements"
-      activeTab="events"
-      onTabChange={(tab) => {
-        if (tab === "home") {
-          goHome();
-        }
-        if (tab === "lots") {
-          navigation.navigate(
-            profileType === "buyer" ? "MarketplaceMyListings" : "FarmList"
-          );
-        }
-        if (tab === "profile") {
-          navigation.navigate("Account");
-        }
-      }}
-      topRight={<IconButton icon="add" onPress={() => navigation.navigate("FarmList")} />}
+      title={t("eventsFeed.title")}
+      omitBottomTabBar={isProducer}
+      activeTab={isProducer ? undefined : "home"}
+      tabBarTabs={isProducer ? undefined : shellTabs}
+      onTabChange={
+        isProducer
+          ? undefined
+          : (tab) => {
+              if (tab === "home") {
+                goHome();
+              }
+              if (tab === "cheptel") {
+                if (profileType === "buyer") {
+                  navigation.navigate("MarketplaceMyListings");
+                  return;
+                }
+                navigation.navigate("FarmList");
+              }
+              if (tab === "health") {
+                navigation.navigate("FarmList");
+              }
+              if (tab === "profile") {
+                navigation.navigate("Account");
+              }
+            }
+      }
     >
       <ScrollView contentContainerStyle={styles.wrap}>
-        <Text style={styles.intro}>
-          Dernières actions sur tes lots et ta ferme. Saisie rapide : choisis une ferme puis
-          enregistre une tâche ou un événement santé depuis le détail du lot.
-        </Text>
-        <View style={styles.list}>
-          {MOCK_EVENTS.map((ev, i) => (
-            <EventCard
-              key={`${ev.title}-${i}`}
-              title={ev.title}
-              subtitle={ev.subtitle}
-              timestamp={ev.timestamp}
-            />
-          ))}
-        </View>
+        <Text style={styles.intro}>{t("eventsFeed.intro")}</Text>
+        {!isProducer || !producerHome ? (
+          <Text style={styles.muted}>{t("producer.dashboard.noFarmBody")}</Text>
+        ) : eventsQuery.isPending ? (
+          <ActivityIndicator color={mobileColors.accent} />
+        ) : eventsQuery.error ? (
+          <Text style={styles.err}>
+            {t("eventsFeed.loadError")} —{" "}
+            {(eventsQuery.error as Error).message}
+          </Text>
+        ) : (eventsQuery.data?.length ?? 0) === 0 ? (
+          <Text style={styles.muted}>{t("eventsFeed.empty")}</Text>
+        ) : (
+          <View style={styles.list}>
+            {eventsQuery.data!.map((ev) => (
+              <EventCard
+                key={ev.id}
+                title={labelForKind(ev.kind)}
+                subtitle={`${ev.entityType} · ${ev.entityId.slice(0, 8)}…`}
+                timestamp={formatTs(ev.occurredAt)}
+              />
+            ))}
+          </View>
+        )}
       </ScrollView>
     </MobileAppShell>
   );
@@ -109,6 +173,14 @@ const styles = StyleSheet.create({
   intro: {
     ...mobileTypography.body,
     color: mobileColors.textSecondary
+  },
+  muted: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary
+  },
+  err: {
+    ...mobileTypography.body,
+    color: mobileColors.error
   },
   list: {
     gap: mobileSpacing.md

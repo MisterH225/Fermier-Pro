@@ -20,7 +20,7 @@ const PRODUCER = "producer";
 type Props = NativeStackScreenProps<RootStackParamList, "CreateFarm">;
 
 const MODES = [
-  { value: "batch" as const, label: "Bandes (lots)" },
+  { value: "batch" as const, label: "Bandes (cheptel groupé)" },
   { value: "individual" as const, label: "Individuel" },
   { value: "hybrid" as const, label: "Hybride" }
 ];

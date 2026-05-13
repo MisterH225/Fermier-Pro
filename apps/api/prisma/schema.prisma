@@ -50,12 +50,16 @@ model User {
   homeLocationSource    String?
   phone                 String?              @unique
   isActive              Boolean              @default(true)
+  /// Préférences notifications push (opt-in ; jetons dans `PushDevice`).
+  notificationsEnabled Boolean             @default(false)
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
   profiles              Profile[]
+  pushDevices           PushDevice[]
   memberships           FarmMembership[]
   ownedFarms            Farm[]               @relation("FarmOwner")
   farmInvitesCreated    FarmInvitation[]     @relation("InvitationCreator")
+  farmInvitesScanned    FarmInvitation[]     @relation("InvitationScanner")
   tasksAssigned         FarmTask[]           @relation("TaskAssignee")
   tasksCreated          FarmTask[]           @relation("TaskCreator")
   expensesCreated       FarmExpense[]
@@ -71,12 +75,27 @@ model User {
   penLogsRecorded      PenLog[]       @relation("PenLogRecorder")
   livestockExitsRecorded LivestockExit[]
   feedStockLotsCreated   FeedStockLot[]
+  livestockStatusLogsRecorded LivestockStatusLog[] @relation("LivestockStatusLogRecorder")
+  farmHealthRecordsRecorded FarmHealthRecord[] @relation("FarmHealthRecordRecorder")
   chatRoomMemberships ChatRoomMember[]
   chatMessagesSent    ChatMessage[]
   auditLogs           AuditLog[]
 
   @@index([email])
   @@index([phone])
+}
+
+/// Jeton Expo push (ou autre) enregistré pour l’utilisateur — un enregistrement par appareil / jeton.
+model PushDevice {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  platform  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model Profile {
@@ -101,6 +120,10 @@ model Farm {
   livestockMode              FarmLivestockMode @default(individual)
   /// Ex. { "sow": "individual", "finisher": "batch" } — cles metier a stabiliser avec le referentiel categories.
   livestockCategoryPolicies Json?
+  /// Parametrage batiments / loges (synthese editable ; detail dans Barn/Pen).
+  housingBuildingsCount Int?
+  housingPensPerBuilding Int?
+  housingMaxPigsPerPen   Int?
   latitude     Decimal?
   longitude    Decimal?
   address      String?
@@ -111,6 +134,7 @@ model Farm {
   memberships  FarmMembership[]
   invitations  FarmInvitation[]
   animals      Animal[]
+  livestockStatusLogs LivestockStatusLog[]
   tasks        FarmTask[]
   expenses     FarmExpense[]
   revenues     FarmRevenue[]
@@ -123,6 +147,63 @@ model Farm {
   chatRoom          ChatRoom?
   auditLogs         AuditLog[]
   feedStockLots     FeedStockLot[]
+  financeSettings   FarmFinanceSettings?
+  financeCategories FinanceCategory[]
+  farmHealthRecords FarmHealthRecord[]
+}
+
+enum FinanceCategoryType {
+  income
+  expense
+}
+
+/// Paramètres financiers globaux de la ferme (devise, alertes).
+model FarmFinanceSettings {
+  id                  String   @id @default(cuid())
+  farmId              String   @unique
+  farm                Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  currencyCode        String   @default("XOF")
+  currencySymbol      String   @default("FCFA")
+  lowBalanceThreshold Decimal? @db.Decimal(14, 2)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+/// Catégorie de dépense ou de revenu (référentiel par ferme).
+model FinanceCategory {
+  id        String              @id @default(cuid())
+  farmId    String
+  farm      Farm                @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  type      FinanceCategoryType
+  key       String
+  name      String
+  icon      String?
+  isDefault Boolean             @default(false)
+  createdAt DateTime            @default(now())
+  expenses  FarmExpense[]
+  revenues  FarmRevenue[]
+
+  @@unique([farmId, type, key])
+  @@index([farmId, type])
+}
+
+/// Journal des changements de statut animal / bande (cheptel).
+model LivestockStatusLog {
+  id               String   @id @default(cuid())
+  farmId           String
+  farm             Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  /// `animal` | `batch`
+  entityType       String
+  entityId         String
+  oldStatus        String?
+  newStatus        String
+  note             String?
+  createdAt        DateTime @default(now())
+  recordedByUserId String
+  recorder         User     @relation("LivestockStatusLogRecorder", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([farmId, createdAt])
+  @@index([entityType, entityId])
 }
 
 /// Journal d'audit applicatif (actions sensibles). Voir docs/SECURITY_ARCHITECTURE.md.
@@ -180,37 +261,52 @@ model FarmTask {
 }
 
 model FarmExpense {
-  id              String   @id @default(cuid())
-  farmId          String
-  farm            Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
-  amount          Decimal  @db.Decimal(14, 2)
-  currency        String   @default("XOF")
-  label           String
-  category        String?
-  note            String?
-  occurredAt      DateTime @default(now())
-  createdByUserId String
-  creator         User     @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
-  createdAt       DateTime @default(now())
+  id                 String            @id @default(cuid())
+  farmId             String
+  farm               Farm              @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  amount             Decimal           @db.Decimal(14, 2)
+  currency           String            @default("XOF")
+  label              String
+  /// Ancien libellé libre ; préférer `financeCategoryId`.
+  category           String?
+  note               String?
+  occurredAt         DateTime          @default(now())
+  createdByUserId    String
+  creator            User              @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdAt          DateTime          @default(now())
+  financeCategoryId  String?
+  financeCategory    FinanceCategory?  @relation(fields: [financeCategoryId], references: [id], onDelete: SetNull)
+  linkedEntityType   String?
+  linkedEntityId     String?
+  attachmentUrl      String?
+  healthVetVisitLink HealthVetVisitDetail?
+  healthTreatmentLink HealthTreatmentDetail?
 
   @@index([farmId, occurredAt])
+  @@index([financeCategoryId])
 }
 
 model FarmRevenue {
-  id              String   @id @default(cuid())
-  farmId          String
-  farm            Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
-  amount          Decimal  @db.Decimal(14, 2)
-  currency        String   @default("XOF")
-  label           String
-  category        String?
-  note            String?
-  occurredAt      DateTime @default(now())
-  createdByUserId String
-  creator         User     @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
-  createdAt       DateTime @default(now())
+  id                 String            @id @default(cuid())
+  farmId             String
+  farm               Farm              @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  amount             Decimal           @db.Decimal(14, 2)
+  currency           String            @default("XOF")
+  label              String
+  category           String?
+  note               String?
+  occurredAt         DateTime          @default(now())
+  createdByUserId    String
+  creator            User              @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdAt          DateTime          @default(now())
+  financeCategoryId  String?
+  financeCategory    FinanceCategory?  @relation(fields: [financeCategoryId], references: [id], onDelete: SetNull)
+  linkedEntityType   String?
+  linkedEntityId     String?
+  attachmentUrl      String?
 
   @@index([farmId, occurredAt])
+  @@index([financeCategoryId])
 }
 
 enum HealthSeverity {
@@ -318,6 +414,8 @@ model Animal {
   tagCode   String?
   sex       AnimalSex @default(unknown)
   birthDate DateTime?
+  /// Mise bas prévue (truies / suivi reproduction) — alimente le dashboard gestations.
+  expectedFarrowingAt DateTime?
   status    String    @default("active")
   notes     String?
   createdAt DateTime  @default(now())
@@ -331,6 +429,7 @@ model Animal {
 
   @@index([farmId])
   @@index([farmId, status])
+  @@index([farmId, expectedFarrowingAt])
   @@index([speciesId])
   @@index([publicId])
 }
@@ -371,6 +470,8 @@ model LivestockExit {
   note               String?
   createdAt          DateTime           @default(now())
 
+  mortalityHealthDetail HealthMortalityDetail?
+
   @@index([farmId, occurredAt])
   @@index([farmId, kind])
   @@index([animalId])
@@ -395,6 +496,8 @@ model LivestockBatch {
   sourceTag      String?
   status         String    @default("active")
   notes          String?
+  expectedExitAt DateTime?
+  closedAt       DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   weights        LivestockBatchWeight[]
@@ -509,6 +612,117 @@ model LivestockBatchHealthEvent {
   @@index([batchId, recordedAt])
 }
 
+/// Dossier santé unifié (vaccination, maladie, visite véto, traitement, mortalité).
+enum FarmHealthRecordKind {
+  vaccination
+  disease
+  vet_visit
+  treatment
+  mortality
+}
+
+enum FarmHealthEntityType {
+  animal
+  group
+}
+
+enum FarmDiseaseCaseStatus {
+  active
+  recovered
+  dead
+  slaughtered
+}
+
+enum FarmMortalityCause {
+  disease
+  accident
+  unknown
+  other
+}
+
+model FarmHealthRecord {
+  id               String               @id @default(cuid())
+  farmId           String
+  farm             Farm                 @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  kind             FarmHealthRecordKind
+  entityType       FarmHealthEntityType
+  entityId         String
+  occurredAt       DateTime             @default(now())
+  status           String               @default("completed")
+  notes            String?
+  attachmentUrl    String?
+  recordedByUserId String
+  recorder         User                 @relation("FarmHealthRecordRecorder", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  vaccination HealthVaccinationDetail?
+  disease     HealthDiseaseDetail?
+  vetVisit    HealthVetVisitDetail?
+  treatment   HealthTreatmentDetail?
+  mortality   HealthMortalityDetail?
+
+  @@index([farmId, kind, occurredAt])
+  @@index([farmId, entityType, entityId])
+}
+
+model HealthVaccinationDetail {
+  healthRecordId String           @id
+  healthRecord   FarmHealthRecord @relation(fields: [healthRecordId], references: [id], onDelete: Cascade)
+  vaccineName    String
+  vaccineType    String?
+  dose           Decimal?         @db.Decimal(12, 4)
+  doseUnit       String?
+  practitioner   String?
+  nextReminderAt DateTime?
+  reminderDays   Int?
+}
+
+model HealthDiseaseDetail {
+  healthRecordId          String                @id
+  healthRecord            FarmHealthRecord      @relation(fields: [healthRecordId], references: [id], onDelete: Cascade)
+  symptoms                Json?
+  diagnosis               String?
+  caseStatus              FarmDiseaseCaseStatus @default(active)
+  linkedTreatmentRecordId String?
+}
+
+model HealthVetVisitDetail {
+  healthRecordId     String          @id
+  healthRecord       FarmHealthRecord @relation(fields: [healthRecordId], references: [id], onDelete: Cascade)
+  vetName            String
+  vetContact         String?
+  reason             String
+  report             String?
+  prescriptionUrl    String?
+  cost               Decimal?        @db.Decimal(14, 2)
+  financeExpenseId   String?         @unique
+  financeExpense     FarmExpense?    @relation(fields: [financeExpenseId], references: [id], onDelete: SetNull)
+}
+
+model HealthTreatmentDetail {
+  healthRecordId     String           @id
+  healthRecord       FarmHealthRecord @relation(fields: [healthRecordId], references: [id], onDelete: Cascade)
+  drugName           String
+  dosage             String?
+  unit               String?
+  frequency          String?
+  startDate          DateTime
+  endDate            DateTime?
+  cost               Decimal?         @db.Decimal(14, 2)
+  financeExpenseId   String?          @unique
+  financeExpense     FarmExpense?     @relation(fields: [financeExpenseId], references: [id], onDelete: SetNull)
+}
+
+model HealthMortalityDetail {
+  healthRecordId        String           @id
+  healthRecord          FarmHealthRecord @relation(fields: [healthRecordId], references: [id], onDelete: Cascade)
+  cause                 FarmMortalityCause
+  linkedDiseaseRecordId String?
+  livestockExitId       String?          @unique
+  livestockExit         LivestockExit?   @relation(fields: [livestockExitId], references: [id], onDelete: SetNull)
+}
+
 enum ListingStatus {
   draft
   published
@@ -603,24 +817,59 @@ model AnimalWeight {
   @@index([animalId, measuredAt])
 }
 
+/// Type d'invitation collaborative.
+/// - share_link : lien créé par l'owner avec rôle/permissions pré-encodés
+///   (cas particulier : `isDefault=true` = lien par défaut généré à la
+///   création de la ferme, support du QR code « accès collaboratif »).
+/// - scan_request : demande générée quand un utilisateur scanne un lien
+///   par défaut ; l'owner doit valider rôle + permissions.
+enum FarmInvitationKind {
+  share_link
+  scan_request
+}
+
+enum FarmInvitationStatus {
+  pending
+  accepted
+  rejected
+  expired
+}
+
 model FarmInvitation {
-  id               String          @id @default(cuid())
+  id               String                 @id @default(cuid())
   farmId           String
-  farm             Farm            @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  farm             Farm                   @relation(fields: [farmId], references: [id], onDelete: Cascade)
   createdById      String
-  creator          User            @relation("InvitationCreator", fields: [createdById], references: [id], onDelete: Cascade)
-  role             MembershipRole
-  scopes           String[]        @default([])
-  token            String          @unique
+  creator          User                   @relation("InvitationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  /// Null tant que l'owner n'a pas accepté un scan_request ou pour les liens par défaut non encore configurés.
+  role             MembershipRole?
+  scopes           String[]               @default([])
+  token            String                 @unique
   expiresAt        DateTime
   redeemedAt       DateTime?
   redeemedByUserId String?
   inviteeEmail     String?
   inviteePhone     String?
-  createdAt        DateTime        @default(now())
+  createdAt        DateTime               @default(now())
+
+  kind             FarmInvitationKind     @default(share_link)
+  status           FarmInvitationStatus   @default(pending)
+  /// Vrai pour le lien collaboratif par défaut (créé à la création de la ferme).
+  isDefault        Boolean                @default(false)
+  /// Vue UI des permissions ({ readOnly, dataEntry, health, finance }) — alignée sur `scopes`.
+  permissions      Json?
+  /// Étiquette UI côté mobile (`veterinarian` | `technician` | `partner`).
+  recipientKind    String?
+  acceptedAt       DateTime?
+  rejectedAt       DateTime?
+  /// Utilisateur ayant scanné le QR par défaut (uniquement sur kind=scan_request).
+  scannedByUserId  String?
+  scannedBy        User?                  @relation("InvitationScanner", fields: [scannedByUserId], references: [id], onDelete: SetNull)
 
   @@index([farmId])
   @@index([expiresAt])
+  @@index([farmId, kind, status])
+  @@index([farmId, isDefault])
 }
 
 model FarmMembership {

@@ -38,4 +38,24 @@ export class CreateExpenseDto {
   @IsOptional()
   @IsDateString()
   occurredAt?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  financeCategoryId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  linkedEntityType?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  linkedEntityId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  attachmentUrl?: string;
 }

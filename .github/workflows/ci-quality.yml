@@ -1,0 +1,28 @@
+# Vérifications rapides sur chaque PR (sans Postgres) : lint API, build, typecheck mobile.
+# Les tests e2e avec Postgres restent dans `e2e-api.yml`.
+name: CI quality
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Prisma generate (client Nest, sans DATABASE_URL)
+        run: npm exec -w @fermier/api -- prisma generate
+      - name: API lint
+        run: npm run lint:api
+      - name: API build
+        run: npm run build:api
+      - name: Mobile typecheck
+        run: npm run typecheck:mobile

@@ -11,6 +11,7 @@ import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateAnimalDto } from "./dto/create-animal.dto";
 import { CreateWeightDto } from "./dto/create-weight.dto";
+import { PatchAnimalStatusDto } from "./dto/patch-animal-status.dto";
 import { UpdateAnimalDto } from "./dto/update-animal.dto";
 import { TaxonomyService } from "./taxonomy.service";
 
@@ -137,19 +138,79 @@ export class LivestockService {
       await this.assertBreedForSpecies(animal.speciesId, dto.breedId);
     }
 
-    return this.prisma.animal.update({
-      where: { id: animalId },
-      data: {
-        ...(dto.breedId !== undefined ? { breedId: dto.breedId } : {}),
-        ...(dto.tagCode !== undefined ? { tagCode: dto.tagCode } : {}),
-        ...(dto.sex !== undefined ? { sex: dto.sex } : {}),
-        ...(dto.birthDate !== undefined
-          ? { birthDate: dto.birthDate ? new Date(dto.birthDate) : null }
-          : {}),
-        ...(dto.status !== undefined ? { status: dto.status } : {}),
-        ...(dto.notes !== undefined ? { notes: dto.notes } : {})
+    const prevStatus = animal.status;
+    const nextStatus =
+      dto.status !== undefined ? dto.status : prevStatus;
+    const statusChanging =
+      dto.status !== undefined && dto.status !== prevStatus;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.animal.update({
+        where: { id: animalId },
+        data: {
+          ...(dto.breedId !== undefined ? { breedId: dto.breedId } : {}),
+          ...(dto.tagCode !== undefined ? { tagCode: dto.tagCode } : {}),
+          ...(dto.sex !== undefined ? { sex: dto.sex } : {}),
+          ...(dto.birthDate !== undefined
+            ? { birthDate: dto.birthDate ? new Date(dto.birthDate) : null }
+            : {}),
+          ...(dto.status !== undefined ? { status: dto.status } : {}),
+          ...(dto.notes !== undefined ? { notes: dto.notes } : {})
+        }
+      });
+      if (statusChanging) {
+        await tx.livestockStatusLog.create({
+          data: {
+            farmId,
+            recordedByUserId: user.id,
+            entityType: "animal",
+            entityId: animalId,
+            oldStatus: prevStatus,
+            newStatus: nextStatus,
+            note: null
+          }
+        });
       }
     });
+
+    return this.prisma.animal.findFirst({
+      where: { id: animalId, farmId },
+      include: {
+        species: { select: { id: true, code: true, name: true } },
+        breed: { select: { id: true, name: true } },
+        weights: { orderBy: { measuredAt: "desc" }, take: 1 }
+      }
+    });
+  }
+
+  async patchAnimalStatus(
+    user: User,
+    farmId: string,
+    animalId: string,
+    dto: PatchAnimalStatusDto
+  ) {
+    const animal = await this.getAnimalOnFarm(user, farmId, animalId);
+    if (animal.status === dto.status) {
+      return this.getAnimal(user, farmId, animalId);
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await tx.animal.update({
+        where: { id: animalId },
+        data: { status: dto.status }
+      });
+      await tx.livestockStatusLog.create({
+        data: {
+          farmId,
+          recordedByUserId: user.id,
+          entityType: "animal",
+          entityId: animalId,
+          oldStatus: animal.status,
+          newStatus: dto.status,
+          note: dto.note ?? null
+        }
+      });
+    });
+    return this.getAnimal(user, farmId, animalId);
   }
 
   async deleteAnimal(user: User, farmId: string, animalId: string) {

@@ -1,6 +1,15 @@
-import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
+import {
+  NavigationContainer,
+  DefaultTheme,
+  type LinkingOptions
+} from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import * as Linking from "expo-linking";
 import { StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BOTTOM_TAB_BAR_CONTENT_HEIGHT } from "./layout/BottomTabBar";
+import { ProducerPersistentTabBar } from "./ProducerPersistentTabBar";
+import { ProducerFabBottomLiftProvider } from "../context/ProducerFabBottomLiftContext";
 import {
   AcceptFarmInvitationScreen,
   AccountScreen,
@@ -35,6 +44,7 @@ import {
   FarmFinanceScreen,
   FarmListScreen,
   FarmLivestockScreen,
+  FarmHealthScreen,
   FarmMembersScreen,
   FarmTasksScreen,
   FarmVetConsultationsScreen,
@@ -44,6 +54,7 @@ import {
   MarketplaceMyOffersScreen,
   ModuleRoadmapScreen,
   ProducerDashboardScreen,
+  ProducerFarmSettingsScreen,
   PenDetailScreen,
   PenMoveScreen,
   TechnicianDashboardScreen,
@@ -70,6 +81,29 @@ const navTheme = {
   }
 };
 
+/**
+ * Deep links « accès collaboratif » (`fermier-pro://invite/:token`) +
+ * Universal Link HTTPS optionnel via `EXPO_PUBLIC_INVITE_BASE_URL`.
+ * Le token est passé en `prefilledToken` à l'écran AcceptFarmInvitation
+ * (qui appelle `GET /invitations/by-token/:token` pour décider de la suite).
+ */
+const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: [
+    Linking.createURL("/", { scheme: "fermier-pro" }),
+    "fermier-pro://",
+    ...(process.env.EXPO_PUBLIC_INVITE_BASE_URL
+      ? [process.env.EXPO_PUBLIC_INVITE_BASE_URL.replace(/\/invite\/?$/, "")]
+      : [])
+  ],
+  config: {
+    screens: {
+      AcceptFarmInvitation: {
+        path: "invite/:prefilledToken"
+      }
+    }
+  }
+};
+
 function MainStack() {
   const { authMe, activeProfileId } = useSession();
   const activeType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
@@ -93,7 +127,12 @@ function MainStack() {
       <Stack.Screen
         name="ProducerDashboard"
         component={ProducerDashboardScreen}
-        options={{ title: "Accueil producteur" }}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ProducerFarmSettings"
+        component={ProducerFarmSettingsScreen}
+        options={{ title: "" }}
       />
       <Stack.Screen
         name="BuyerDashboard"
@@ -139,6 +178,11 @@ function MainStack() {
         name="FarmLivestock"
         component={FarmLivestockScreen}
         options={{ title: "Cheptel" }}
+      />
+      <Stack.Screen
+        name="FarmHealth"
+        component={FarmHealthScreen}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="FarmTasks"
@@ -335,13 +379,32 @@ function MainStack() {
   );
 }
 
+function MainNavigationWithChrome() {
+  const insets = useSafeAreaInsets();
+  const { authMe, activeProfileId } = useSession();
+  const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
+  const isProducer = profileType === "producer";
+  const fabLift = isProducer ? BOTTOM_TAB_BAR_CONTENT_HEIGHT + insets.bottom : 0;
+
+  return (
+    <ProducerFabBottomLiftProvider value={fabLift}>
+      <View style={styles.flex}>
+        <View style={styles.flex}>
+          <MainStack />
+        </View>
+        <ProducerPersistentTabBar />
+      </View>
+    </ProducerFabBottomLiftProvider>
+  );
+}
+
 /** À l’intérieur de `PersistQueryClientProvider` (réhydratation cache offline). */
 export function MainNavigationShell() {
   return (
     <View style={styles.flex}>
       <OfflineBanner />
-      <NavigationContainer theme={navTheme}>
-        <MainStack />
+      <NavigationContainer theme={navTheme} linking={linking}>
+        <MainNavigationWithChrome />
       </NavigationContainer>
     </View>
   );
