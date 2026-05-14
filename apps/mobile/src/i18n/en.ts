@@ -56,6 +56,7 @@ export const en = {
       cheptel: "Herd",
       finance: "Finance",
       health: "Health",
+      collaboration: "Team",
       profile: "Profile"
     },
     eventsFab: {
@@ -222,7 +223,30 @@ export const en = {
       dataEntry: "Log weights, movements, tasks and housing entries.",
       health: "Track health events and open vet consultations.",
       finance: "See and record expenses and revenues."
-    }
+    },
+    screenTitle: "Collaboration",
+    inviteSectionTitle: "Invitation",
+    inviteSent: "Invitation sent!",
+    regenerateLink: "Regenerate link",
+    regenerateConfirmTitle: "Regenerate link?",
+    regenerateConfirmBody:
+      "The old link will be invalidated. Anyone using it will no longer be able to join.",
+    regenerateConfirmAction: "Continue",
+    membersTitle: "Members",
+    addMember: "Add",
+    noMembers: "No members yet. Invite some collaborators.",
+    permissionsCurrentTitle: "Current permissions",
+    editPermissions: "Edit permissions",
+    savePermissions: "Save",
+    memberPermsSaved: "Permissions updated",
+    revokeAccess: "Revoke all access",
+    revokeConfirmTitle: "Revoke access?",
+    revokeConfirmBody: "{{name}} will immediately lose all access.",
+    revokeConfirmAction: "Revoke",
+    historyTitle: "Action history",
+    historyEmpty: "No actions recorded yet.",
+    historyShowMore: "Show more",
+    filterAll: "All"
   },
   financeScreen: {
     overview: "Overview",

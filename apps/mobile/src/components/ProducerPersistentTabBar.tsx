@@ -78,6 +78,10 @@ function producerActiveTabFromRoute(
     case "CreateVetConsultation":
     case "AddVetConsultationAttachment":
       return "health";
+    case "Collaboration":
+    case "FarmMembers":
+    case "CreateFarmInvitation":
+      return "collaboration";
     default:
       return "home";
   }
@@ -170,6 +174,17 @@ export function ProducerPersistentTabBar() {
         }
         if (farmContext) {
           navigation.navigate("FarmFinance", {
+            farmId: farmContext.farmId,
+            farmName: farmContext.farmName
+          });
+        } else {
+          navigation.navigate("FarmList");
+        }
+        return;
+      }
+      if (tab === "collaboration") {
+        if (farmContext) {
+          navigation.navigate("Collaboration", {
             farmId: farmContext.farmId,
             farmName: farmContext.farmName
           });

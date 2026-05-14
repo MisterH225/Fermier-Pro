@@ -85,4 +85,18 @@ export class InvitationsController {
   accept(@CurrentUser() user: User, @Body() dto: AcceptInvitationDto) {
     return this.invitations.accept(user, dto);
   }
+
+  /**
+   * Invalide l'ancien lien par défaut et en génère un nouveau (token frais).
+   * Utilisé depuis l'écran Collaboration → « Regénérer le lien ».
+   */
+  @Post("farms/:farmId/invitations/regenerate")
+  @UseGuards(SupabaseJwtGuard, FarmScopesGuard)
+  @RequireFarmScopes(FARM_SCOPE.invitationsManage)
+  regenerateDefault(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string
+  ) {
+    return this.invitations.regenerateDefaultInvitation(user, farmId);
+  }
 }

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
 
-export type AppTab = "home" | "cheptel" | "finance" | "health" | "profile";
+export type AppTab = "home" | "cheptel" | "finance" | "health" | "collaboration" | "profile";
 
 /** minHeight 64 + paddingBottom 8 — utilisé pour le FAB et la barre producteur fixe. */
 export const BOTTOM_TAB_BAR_CONTENT_HEIGHT = 72;
@@ -24,6 +24,7 @@ const TAB_DEFS: Array<{
   { key: "cheptel", labelKey: "shell.tabs.cheptel", icon: "albums-outline" },
   { key: "finance", labelKey: "shell.tabs.finance", icon: "trending-up-outline" },
   { key: "health", labelKey: "shell.tabs.health", icon: "medkit-outline" },
+  { key: "collaboration", labelKey: "shell.tabs.collaboration", icon: "people-outline" },
   { key: "profile", labelKey: "shell.tabs.profile", icon: "person-outline" }
 ];
 

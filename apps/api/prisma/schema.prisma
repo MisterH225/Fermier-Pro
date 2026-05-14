@@ -133,6 +133,7 @@ model Farm {
   owner        User               @relation("FarmOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   memberships  FarmMembership[]
   invitations  FarmInvitation[]
+  activityLogs MemberActivityLog[]
   animals      Animal[]
   livestockStatusLogs LivestockStatusLog[]
   tasks        FarmTask[]
@@ -873,19 +874,48 @@ model FarmInvitation {
 }
 
 model FarmMembership {
-  id         String         @id @default(cuid())
-  farmId     String
-  userId     String
-  role       MembershipRole
-  scopes     String[]
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
-  farm       Farm           @relation(fields: [farmId], references: [id], onDelete: Cascade)
-  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String         @id @default(cuid())
+  farmId      String
+  userId      String
+  role        MembershipRole
+  scopes      String[]
+  /// Vue UI des permissions ({ readOnly, dataEntry, health, finance }) — alignée sur `scopes`.
+  permissions Json?
+  invitedAt   DateTime?
+  acceptedAt  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  farm        Farm           @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityLogs MemberActivityLog[]
 
   @@unique([farmId, userId, role])
   @@index([farmId, role])
   @@index([userId, role])
+}
+
+enum MemberActivityModule {
+  cheptel
+  health
+  finance
+  stock
+  gestation
+  collaboration
+}
+
+model MemberActivityLog {
+  id         String               @id @default(cuid())
+  farmId     String
+  farm       Farm                 @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  memberId   String
+  member     FarmMembership       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  module     MemberActivityModule
+  action     String
+  detail     Json?
+  createdAt  DateTime             @default(now())
+
+  @@index([farmId, createdAt])
+  @@index([farmId, memberId])
 }
 
 enum ChatRoomKind {

@@ -10,6 +10,7 @@ import { AUDIT_ACTION } from "../common/audit.constants";
 import { AuditService } from "../common/audit.service";
 import { FarmAccessService } from "../common/farm-access.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
+import { MemberActivityLogsService } from "../member-activity-logs/member-activity-logs.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { UpdateFarmMemberDto } from "./dto/update-farm-member.dto";
 
@@ -18,7 +19,8 @@ export class FarmMembersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
-    private readonly audit: AuditService
+    private readonly audit: AuditService,
+    private readonly activityLogs: MemberActivityLogsService
   ) {}
 
   async list(actor: User, farmId: string) {
@@ -98,6 +100,14 @@ export class FarmMembersService {
       }
     });
 
+    await this.activityLogs.log({
+      farmId,
+      memberId: membershipId,
+      module: "collaboration",
+      action: "permissions_updated",
+      detail: { before: prev, after: { role: updated.role, scopes: updated.scopes } }
+    }).catch(() => undefined);
+
     return updated;
   }
 
@@ -147,5 +157,14 @@ export class FarmMembersService {
     });
 
     return { ok: true };
+  }
+
+  async logActivity(
+    farmId: string,
+    memberId: string,
+    action: string,
+    detail?: Record<string, unknown>
+  ): Promise<void> {
+    await this.activityLogs.log({ farmId, memberId, module: "collaboration", action, detail });
   }
 }

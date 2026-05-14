@@ -494,6 +494,71 @@ export function acceptFarmInvitationWithToken(
   );
 }
 
+/** POST /farms/:farmId/invitations/regenerate — invalide l'ancien lien par défaut + crée un nouveau. */
+export function regenerateFarmDefaultInvitation(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<FarmDefaultInvitationDto> {
+  return apiPostJson<FarmDefaultInvitationDto>(
+    `/farms/${farmId}/invitations/regenerate`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+// ─── Activité membres ─────────────────────────────────────────────────────────
+
+export type MemberActivityLogDto = {
+  id: string;
+  farmId: string;
+  memberId: string;
+  module: string;
+  action: string;
+  detail: Record<string, unknown> | null;
+  createdAt: string;
+  member: {
+    id: string;
+    role: string;
+    user: {
+      id: string;
+      fullName: string | null;
+      email: string | null;
+      avatarUrl: string | null;
+    };
+  };
+};
+
+export type FarmActivityLogsResult = {
+  items: MemberActivityLogDto[];
+  nextCursor: string | undefined;
+};
+
+export function fetchFarmActivityLogs(
+  accessToken: string,
+  farmId: string,
+  opts?: {
+    memberId?: string;
+    module?: string;
+    cursor?: string;
+    limit?: number;
+    activeProfileId?: string | null;
+  }
+): Promise<FarmActivityLogsResult> {
+  const params = new URLSearchParams();
+  if (opts?.memberId) params.set("member_id", opts.memberId);
+  if (opts?.module) params.set("module", opts.module);
+  if (opts?.cursor) params.set("cursor", opts.cursor);
+  if (opts?.limit) params.set("limit", String(opts.limit));
+  const qs = params.toString();
+  return apiGetJson<FarmActivityLogsResult>(
+    `/farms/${farmId}/activity-logs${qs ? `?${qs}` : ""}`,
+    accessToken,
+    opts?.activeProfileId
+  );
+}
+
 /**
  * URL deep link de partage : `EXPO_PUBLIC_INVITE_BASE_URL` (HTTPS pour
  * universal link / web fallback) ou schéma de l'app par défaut.

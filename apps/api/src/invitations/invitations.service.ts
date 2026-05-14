@@ -139,6 +139,21 @@ export class InvitationsService {
   }
 
   /**
+   * Invalide tous les liens par défaut existants et génère un nouveau token.
+   * Déclenché par « Regénérer le lien » depuis l'écran Collaboration.
+   */
+  async regenerateDefaultInvitation(actor: User, farmId: string) {
+    await this.farmAccess.requireFarmScopes(actor.id, farmId, [
+      FARM_SCOPE.invitationsManage
+    ]);
+    await this.prisma.farmInvitation.updateMany({
+      where: { farmId, isDefault: true, status: FarmInvitationStatus.pending },
+      data: { status: FarmInvitationStatus.expired }
+    });
+    return this.createDefaultInvitation(this.prisma, farmId, actor.id);
+  }
+
+  /**
    * Création du lien collaboratif par défaut. Idempotent par ferme — appelé
    * par `FarmsService.create` dans la même transaction (`tx` est soit le
    * client racine, soit un `TransactionClient`).

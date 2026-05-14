@@ -343,6 +343,10 @@ export function tryDemoBypassApiGetJson(
     return [];
   }
 
+  if (/^\/farms\/[^/]+\/activity-logs/.test(p)) {
+    return { items: [], nextCursor: undefined };
+  }
+
   if (/^\/farms\/[^/]+\/feed-stock-lots$/.test(p)) {
     return [];
   }

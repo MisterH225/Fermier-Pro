@@ -47,6 +47,9 @@ function navigateFarmDetailRow(
     case "FarmMembers":
       navigation.navigate("FarmMembers", row.params);
       return;
+    case "Collaboration":
+      navigation.navigate("Collaboration", row.params);
+      return;
     case "FarmFeedStock":
       navigation.navigate("FarmFeedStock", row.params);
       return;

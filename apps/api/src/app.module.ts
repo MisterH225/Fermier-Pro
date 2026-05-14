@@ -30,6 +30,7 @@ import { TasksModule } from "./tasks/tasks.module";
 import { VetConsultationsModule } from "./vet-consultations/vet-consultations.module";
 import { FeedStockModule } from "./feed-stock/feed-stock.module";
 import { FarmHealthModule } from "./farm-health/farm-health.module";
+import { MemberActivityLogsModule } from "./member-activity-logs/member-activity-logs.module";
 
 @Module({
   imports: [
@@ -84,7 +85,8 @@ import { FarmHealthModule } from "./farm-health/farm-health.module";
     MarketplaceModule,
     VetConsultationsModule,
     FeedStockModule,
-    FarmHealthModule
+    FarmHealthModule,
+    MemberActivityLogsModule
   ],
   controllers: [AppController],
   providers: [

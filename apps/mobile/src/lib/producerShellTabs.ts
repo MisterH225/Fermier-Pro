@@ -5,6 +5,6 @@ export function producerShellTabs(financeEnabled: boolean): AppTab[] {
   const mid = financeEnabled
     ? (["cheptel", "finance", "health"] as const)
     : (["cheptel", "health"] as const);
-  return ["home", ...mid, "profile"];
+  return ["home", ...mid, "collaboration", "profile"];
 }
 

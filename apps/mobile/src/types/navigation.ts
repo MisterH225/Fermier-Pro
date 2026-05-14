@@ -110,6 +110,8 @@ export type RootStackParamList = {
     effectiveScopes?: string[];
   };
   CreateFarmInvitation: { farmId: string; farmName: string };
+  /** Écran principal Collaboration (onglet barre basse). */
+  Collaboration: { farmId: string; farmName: string };
   FarmFeedStock: { farmId: string; farmName: string };
   CreateFeedPurchase: { farmId: string; farmName: string };
 };

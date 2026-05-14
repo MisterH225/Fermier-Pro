@@ -23,6 +23,7 @@ import {
   ChatRoomScreen,
   ChatRoomsScreen,
   ChatSearchUserScreen,
+  CollaborationScreen,
   CreateBarnScreen,
   CreateFarmExpenseScreen,
   CreateFarmInvitationScreen,
@@ -354,6 +355,11 @@ function MainStack() {
         name="ModuleRoadmap"
         component={ModuleRoadmapScreen}
         options={({ route }) => ({ title: route.params.title })}
+      />
+      <Stack.Screen
+        name="Collaboration"
+        component={CollaborationScreen}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="FarmMembers"

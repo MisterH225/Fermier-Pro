@@ -24,7 +24,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
-import { CollaborativeAccessShareModal } from "./CollaborativeAccessShareModal";
+import { InviteModal as CollaborativeAccessShareModal } from "../collaboration/InviteModal";
 
 type Props = {
   farmId: string | null;

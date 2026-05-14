@@ -56,6 +56,7 @@ export const fr = {
       cheptel: "Cheptel",
       finance: "Finance",
       health: "Santé",
+      collaboration: "Équipe",
       profile: "Profil"
     },
     eventsFab: {
@@ -223,7 +224,30 @@ export const fr = {
       dataEntry: "Enregistrer pesées, mouvements, tâches et logement.",
       health: "Suivre la santé, créer des consultations vétérinaires.",
       finance: "Voir et enregistrer dépenses et revenus."
-    }
+    },
+    screenTitle: "Collaboration",
+    inviteSectionTitle: "Invitation",
+    inviteSent: "Invitation envoyée !",
+    regenerateLink: "Regénérer le lien",
+    regenerateConfirmTitle: "Regénérer le lien ?",
+    regenerateConfirmBody:
+      "L'ancien lien sera invalide. Toute personne ayant l'ancien lien ne pourra plus l'utiliser.",
+    regenerateConfirmAction: "Continuer",
+    membersTitle: "Membres",
+    addMember: "Ajouter",
+    noMembers: "Aucun membre pour l'instant. Invite des collaborateurs.",
+    permissionsCurrentTitle: "Permissions actuelles",
+    editPermissions: "Modifier les permissions",
+    savePermissions: "Sauvegarder",
+    memberPermsSaved: "Permissions mises à jour",
+    revokeAccess: "Révoquer tous les accès",
+    revokeConfirmTitle: "Révoquer les accès ?",
+    revokeConfirmBody: "{{name}} perdra tous ses accès immédiatement.",
+    revokeConfirmAction: "Révoquer",
+    historyTitle: "Historique des actions",
+    historyEmpty: "Aucune action enregistrée.",
+    historyShowMore: "Voir plus",
+    filterAll: "Tous"
   },
   financeScreen: {
     overview: "Vue d’ensemble",
