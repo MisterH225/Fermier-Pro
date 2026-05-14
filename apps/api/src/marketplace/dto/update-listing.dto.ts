@@ -1,5 +1,7 @@
 import { Type } from "class-transformer";
 import {
+  IsArray,
+  IsEnum,
   IsInt,
   IsNumber,
   IsOptional,
@@ -8,6 +10,7 @@ import {
   MaxLength,
   Min
 } from "class-validator";
+import { ListingMarketCategory } from "@prisma/client";
 
 export class UpdateListingDto {
   @IsOptional()
@@ -43,4 +46,44 @@ export class UpdateListingDto {
   @IsString()
   @MaxLength(300)
   locationLabel?: string | null;
+
+  @IsOptional()
+  @IsEnum(ListingMarketCategory)
+  category?: ListingMarketCategory | null;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  photoUrls?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  animalIds?: string[];
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(1e7)
+  totalWeightKg?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(1e9)
+  pricePerKg?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(1e12)
+  totalPrice?: number | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  breedLabel?: string | null;
 }

@@ -4,56 +4,92 @@ import { useLayoutEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Image,
+  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View
 } from "react-native";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
+import { EventListFilter } from "../components/lists/EventListFilter";
+import type { FilterPill } from "../components/lists/types";
 import { useSession } from "../context/SessionContext";
 import type { MarketplaceListingListItem } from "../lib/api";
 import { fetchMarketplaceListings } from "../lib/api";
+import {
+  mobileColors,
+  mobileRadius,
+  mobileShadows,
+  mobileSpacing,
+  mobileTypography
+} from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MarketplaceList">;
 
-function formatPrice(
-  unitPrice: string | number | null | undefined,
-  currency: string
-): string {
-  if (unitPrice === undefined || unitPrice === null) {
-    return "Prix sur demande";
-  }
-  const n =
-    typeof unitPrice === "string" ? Number.parseFloat(unitPrice) : Number(unitPrice);
-  if (!Number.isFinite(n)) {
-    return String(unitPrice);
-  }
-  return `${n.toLocaleString(undefined, { maximumFractionDigits: 0 })} ${currency}`;
+const LIST_BG = "#F5F5F5";
+const PILL_ACTIVE = "#C2410C";
+
+type CatKey = "all" | "piglet" | "breeder" | "butcher" | "reformed";
+
+const CATEGORY_PILLS: { id: CatKey; label: string }[] = [
+  { id: "all", label: "Tout" },
+  { id: "piglet", label: "Porcelets" },
+  { id: "breeder", label: "Reproducteurs" },
+  { id: "butcher", label: "Charcutiers" },
+  { id: "reformed", label: "Truies réformées" }
+];
+
+function parseNum(v: string | number | null | undefined): number | null {
+  if (v === undefined || v === null) return null;
+  const n = typeof v === "string" ? Number.parseFloat(v) : Number(v);
+  return Number.isFinite(n) ? n : null;
 }
 
-function listingSearchHaystack(item: MarketplaceListingListItem): string {
-  return [
-    item.title,
-    item.locationLabel,
-    item.description,
-    item.farm?.name,
-    item.seller?.fullName,
-    item.animal?.publicId
-  ]
-    .filter((x): x is string => typeof x === "string" && x.length > 0)
-    .join(" ")
-    .toLowerCase();
+function formatMoney(n: number, currency: string): string {
+  return `${n.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} ${currency}`;
+}
+
+function isNewListing(publishedAt: string | null): boolean {
+  if (!publishedAt) return false;
+  const t = new Date(publishedAt).getTime();
+  return Date.now() - t < 48 * 60 * 60 * 1000;
+}
+
+function categoryLabel(cat: string | null | undefined): string {
+  switch (cat) {
+    case "piglet":
+      return "Porcelet";
+    case "breeder":
+      return "Reproducteur";
+    case "butcher":
+      return "Charcutier";
+    case "reformed":
+      return "Truie réformée";
+    default:
+      return "Lot";
+  }
 }
 
 export function MarketplaceListScreen({ navigation }: Props) {
+  const { width } = useWindowDimensions();
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const [search, setSearch] = useState("");
+  const [category, setCategory] = useState<CatKey>("all");
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+
+  const cardW = useMemo(
+    () => Math.floor((width - mobileSpacing.lg * 3) / 2),
+    [width]
+  );
 
   useLayoutEffect(() => {
     navigation.setOptions({
+      title: "Market",
       headerRight: clientFeatures.marketplace
         ? () => (
             <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -81,11 +117,16 @@ export function MarketplaceListScreen({ navigation }: Props) {
     });
   }, [navigation, clientFeatures.marketplace]);
 
+  const qTrim = search.trim();
+  const searchParam = qTrim.length >= 2 ? qTrim : undefined;
+
   const listingsQuery = useQuery({
-    queryKey: ["marketplaceListings", activeProfileId],
+    queryKey: ["marketplaceListings", activeProfileId, category, searchParam],
     queryFn: () =>
       fetchMarketplaceListings(accessToken, activeProfileId, {
-        mine: false
+        mine: false,
+        ...(category !== "all" ? { category } : {}),
+        ...(searchParam ? { q: searchParam } : {})
       }),
     enabled: clientFeatures.marketplace
   });
@@ -97,20 +138,28 @@ export function MarketplaceListScreen({ navigation }: Props) {
         ? String(listingsQuery.error)
         : null;
 
-  const list = listingsQuery.data ?? [];
-  const needle = search.trim().toLowerCase();
-  const displayed = useMemo(() => {
-    if (!needle) {
-      return list;
-    }
-    return list.filter((item) => listingSearchHaystack(item).includes(needle));
-  }, [list, needle]);
+  const pills: FilterPill[] = useMemo(
+    () => CATEGORY_PILLS.map((p) => ({ id: p.id, label: p.label })),
+    []
+  );
+
+  const toggleFav = (id: string) => {
+    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  if (!clientFeatures.marketplace) {
+    return (
+      <MarketplaceModuleGate>
+        <View />
+      </MarketplaceModuleGate>
+    );
+  }
 
   if (listingsQuery.isPending) {
     return (
       <MarketplaceModuleGate>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#5d7a1f" />
+          <ActivityIndicator size="large" color={mobileColors.accent} />
         </View>
       </MarketplaceModuleGate>
     );
@@ -126,154 +175,278 @@ export function MarketplaceListScreen({ navigation }: Props) {
     );
   }
 
+  const list = listingsQuery.data ?? [];
   const emptyMessage =
     list.length === 0
       ? "Aucune annonce publiée pour le moment."
-      : needle
-        ? "Aucun résultat pour cette recherche."
-        : "Aucune annonce publiée pour le moment.";
+      : "Aucun résultat. Essaie d’autres mots-clés ou filtres.";
+
+  const renderCard = ({ item }: { item: MarketplaceListingListItem }) => {
+    const photos = Array.isArray(item.photoUrls) ? item.photoUrls : [];
+    const uri = typeof photos[0] === "string" && photos[0].length > 0 ? photos[0] : null;
+    const wKg = parseNum(item.totalWeightKg);
+    const pKg = parseNum(item.pricePerKg);
+    const total = parseNum(item.totalPrice);
+    const cur = item.currency || "XOF";
+    const views = item.viewsCount ?? 0;
+    const consults = item.consultationsCount ?? 0;
+    const isNew = isNewListing(item.publishedAt ?? null);
+
+    return (
+      <TouchableOpacity
+        style={[styles.card, { width: cardW }]}
+        activeOpacity={0.92}
+        onPress={() =>
+          navigation.navigate("MarketplaceListingDetail", {
+            listingId: item.id,
+            headline: item.title
+          })
+        }
+      >
+        <View style={styles.photoWrap}>
+          {uri ? (
+            <Image source={{ uri }} style={styles.photo} resizeMode="cover" />
+          ) : (
+            <View style={[styles.photo, styles.photoPh]}>
+              <Text style={styles.photoPhTx}>📸</Text>
+            </View>
+          )}
+          <View style={[styles.badgeCat, { maxWidth: cardW - 56 }]}>
+            <Text style={styles.badgeCatTx} numberOfLines={1}>
+              {categoryLabel(item.category)}
+            </Text>
+          </View>
+          {isNew ? (
+            <View style={styles.badgeNew}>
+              <Text style={styles.badgeNewTx}>Nouveau</Text>
+            </View>
+          ) : null}
+          <Pressable
+            style={styles.favBtn}
+            hitSlop={10}
+            onPress={() => toggleFav(item.id)}
+          >
+            <Text style={styles.favTx}>{favorites[item.id] ? "❤️" : "🤍"}</Text>
+          </Pressable>
+        </View>
+        <View style={styles.cardBody}>
+          {wKg != null ? (
+            <Text style={styles.lineMuted}>
+              Poids total :{" "}
+              {`${wKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg`}
+            </Text>
+          ) : (
+            <Text style={styles.lineMuted}>Poids total : —</Text>
+          )}
+          {pKg != null ? (
+            <Text style={styles.lineMuted}>Prix/kg : {formatMoney(pKg, cur)}</Text>
+          ) : item.unitPrice != null ? (
+            <Text style={styles.lineMuted}>
+              Prix : {formatMoney(parseNum(item.unitPrice) ?? 0, cur)}
+            </Text>
+          ) : (
+            <Text style={styles.lineMuted}>Prix/kg : —</Text>
+          )}
+          <Text style={styles.totalLine}>
+            Prix total :{" "}
+            {total != null
+              ? formatMoney(total, cur)
+              : pKg != null && wKg != null
+                ? formatMoney(pKg * wKg, cur)
+                : "—"}
+          </Text>
+          <View style={styles.statsRow}>
+            <Text style={styles.statsTx}>👁 {views}</Text>
+            <Text style={styles.statsTx}>💬 {consults}</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <MarketplaceModuleGate>
-      <FlatList
-        data={displayed}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl
-            refreshing={listingsQuery.isFetching}
-            onRefresh={() => void listingsQuery.refetch()}
+      <View style={styles.root}>
+        <View style={styles.searchRow}>
+          <TextInput
+            style={styles.search}
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Ferme, lieu, race…"
+            placeholderTextColor={mobileColors.textSecondary}
+            autoCapitalize="none"
+            autoCorrect={false}
           />
-        }
-        ListHeaderComponent={
-          <View style={styles.searchWrap}>
-            <TextInput
-              style={styles.searchInput}
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Rechercher (titre, lieu, ferme, vendeur…)"
-              placeholderTextColor="#999"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            {search.length > 0 ? (
-              <TouchableOpacity
-                style={styles.searchClearBtn}
-                onPress={() => setSearch("")}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              >
-                <Text style={styles.searchClearTxt}>Effacer</Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
-        }
-        ListEmptyComponent={<Text style={styles.empty}>{emptyMessage}</Text>}
-        renderItem={({ item }: { item: MarketplaceListingListItem }) => (
           <TouchableOpacity
-            style={styles.card}
-            onPress={() =>
-              navigation.navigate("MarketplaceListingDetail", {
-                listingId: item.id,
-                headline: item.title
-              })
-            }
+            style={styles.filterAdv}
+            onPress={() => {}}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={styles.price}>
-              {formatPrice(item.unitPrice, item.currency)}
-              {item.quantity != null ? ` · ${item.quantity} unité(s)` : ""}
-            </Text>
-            {item.locationLabel ? (
-              <Text style={styles.meta}>{item.locationLabel}</Text>
-            ) : null}
-            {item.farm ? (
-              <Text style={styles.meta}>Ferme : {item.farm.name}</Text>
-            ) : null}
-            {item.seller?.fullName ? (
-              <Text style={styles.seller}>Vendeur : {item.seller.fullName}</Text>
-            ) : null}
+            <Text style={styles.filterAdvTx}>🎛️</Text>
           </TouchableOpacity>
-        )}
-      />
+        </View>
+        <EventListFilter
+          pills={pills}
+          activeId={category}
+          onChange={(id) => setCategory(id as CatKey)}
+          activeBackground="#C2410C"
+        />
+        <FlatList
+          data={list}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          columnWrapperStyle={styles.colWrap}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={listingsQuery.isFetching}
+              onRefresh={() => void listingsQuery.refetch()}
+              tintColor={mobileColors.accent}
+            />
+          }
+          ListEmptyComponent={<Text style={styles.empty}>{emptyMessage}</Text>}
+          renderItem={renderCard}
+        />
+      </View>
     </MarketplaceModuleGate>
   );
 }
 
 const styles = StyleSheet.create({
-  searchWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 14
-  },
-  searchInput: {
+  root: {
     flex: 1,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#e0e4d4",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    fontSize: 16,
-    color: "#1f2910"
-  },
-  searchClearBtn: {
-    marginLeft: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 4
-  },
-  searchClearTxt: {
-    color: "#5d7a1f",
-    fontWeight: "600",
-    fontSize: 15
-  },
-  list: {
-    padding: 16,
-    paddingBottom: 32
+    backgroundColor: LIST_BG,
+    paddingHorizontal: mobileSpacing.lg,
+    paddingTop: mobileSpacing.sm
   },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
-    backgroundColor: "#f9f8ea"
+    backgroundColor: LIST_BG
   },
-  error: {
-    color: "#b00020",
-    textAlign: "center"
+  error: { color: mobileColors.error, padding: mobileSpacing.lg },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.sm,
+    marginBottom: mobileSpacing.sm
+  },
+  search: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderRadius: mobileRadius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.border,
+    paddingHorizontal: mobileSpacing.md,
+    paddingVertical: mobileSpacing.sm,
+    ...mobileTypography.body,
+    color: mobileColors.textPrimary
+  },
+  filterAdv: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.border
+  },
+  filterAdvTx: { fontSize: 20 },
+  colWrap: {
+    justifyContent: "space-between",
+    marginBottom: mobileSpacing.md
+  },
+  listContent: {
+    paddingBottom: mobileSpacing.xxl,
+    paddingTop: mobileSpacing.xs
   },
   empty: {
+    ...mobileTypography.body,
+    color: mobileColors.textSecondary,
     textAlign: "center",
-    color: "#6d745b",
-    marginTop: 24,
-    fontStyle: "italic"
+    marginTop: mobileSpacing.xl
   },
   card: {
     backgroundColor: "#fff",
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#e0e4d4"
+    overflow: "hidden",
+    ...mobileShadows.card
   },
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#1f2910"
+  photoWrap: {
+    position: "relative",
+    height: 140,
+    backgroundColor: "#E8E8E8"
   },
-  price: {
-    marginTop: 8,
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#5d7a1f"
+  photo: {
+    width: "100%",
+    height: 140,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16
   },
-  meta: {
-    marginTop: 6,
-    fontSize: 13,
-    color: "#6d745b"
+  photoPh: {
+    alignItems: "center",
+    justifyContent: "center"
   },
-  seller: {
-    marginTop: 8,
-    fontSize: 13,
-    color: "#4b513d"
+  photoPhTx: { fontSize: 36, opacity: 0.35 },
+  badgeCat: {
+    position: "absolute",
+    left: 8,
+    top: 8,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8
+  },
+  badgeCatTx: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "700"
+  },
+  badgeNew: {
+    position: "absolute",
+    left: 8,
+    bottom: 8,
+    backgroundColor: PILL_ACTIVE,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6
+  },
+  badgeNewTx: { color: "#fff", fontSize: 10, fontWeight: "800" },
+  favBtn: {
+    position: "absolute",
+    right: 8,
+    top: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,215,128,0.95)",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  favTx: { fontSize: 16 },
+  cardBody: {
+    padding: mobileSpacing.sm
+  },
+  lineMuted: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: 2
+  },
+  totalLine: {
+    ...mobileTypography.body,
+    fontWeight: "800",
+    color: mobileColors.textPrimary,
+    marginTop: mobileSpacing.xs
+  },
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: mobileSpacing.sm
+  },
+  statsTx: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary
   }
 });

@@ -2,6 +2,7 @@ export { FarmEventsFeedScreen } from "../../screens/FarmEventsFeedScreen";
 export { FarmHealthScreen } from "../../screens/FarmHealthScreen";
 export { AccountScreen } from "../../screens/AccountScreen";
 export { ModuleRoadmapScreen } from "../../screens/ModuleRoadmapScreen";
+export { SmartAlertsListScreen } from "../../screens/SmartAlertsListScreen";
 export { ProducerDashboardScreen } from "../../screens/ProducerDashboardScreen";
 export { ProducerFarmSettingsScreen } from "../../screens/ProducerFarmSettingsScreen";
 export { BuyerDashboardScreen } from "../../screens/BuyerDashboardScreen";

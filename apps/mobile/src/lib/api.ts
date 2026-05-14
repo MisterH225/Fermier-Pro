@@ -574,69 +574,339 @@ export function buildInvitationShareUrl(token: string): string {
   return `fermier-pro://invite/${encodeURIComponent(cleaned)}`;
 }
 
-export type FeedStockLotDto = {
+export type FeedTypeDto = {
   id: string;
   farmId: string;
-  productName: string;
-  quantityKg: string | number;
-  remainingKg: string | number;
-  purchasedAt: string;
-  supplierName: string | null;
-  unitPrice: string | number | null;
-  currency: string;
-  notes: string | null;
-  createdByUserId: string;
+  name: string;
+  unit: "kg" | "tonne" | "sac";
+  lowStockThresholdDays: number;
+  color: string;
+  weightPerBagKg: string | null;
+  bagCountCurrent: string | null;
+  lastCheckDate: string | null;
+  currentStockKg: string;
   createdAt: string;
   updatedAt: string;
-  creator?: { id: string; fullName: string | null };
 };
 
-export function fetchFeedStockLots(
+export type FarmFeedOverviewDto = {
+  farmId: string;
+  totalStockKg: string;
+  types: FeedTypeDto[];
+};
+
+export type FarmFeedChartSeriesDto = {
+  feedTypeId: string;
+  name: string;
+  color: string;
+  points: number[];
+};
+
+export type FarmFeedChartDto = {
+  farmId: string;
+  periodMonths: number;
+  monthKeys: string[];
+  series: FarmFeedChartSeriesDto[];
+};
+
+export type FarmFeedStatItemDto = {
+  feedTypeId: string;
+  name: string;
+  color: string;
+  currentStockKg: string;
+  weightPerBagKg: string | null;
+  bagCountCurrent: string | null;
+  lastCheckDate: string | null;
+  avgDailyConsumptionKg: string | null;
+  daysRemaining: number | null;
+  estimatedDepletionDate: string | null;
+  status: "ok" | "warning" | "critical";
+};
+
+export type FarmFeedStatsDto = {
+  farmId: string;
+  items: FarmFeedStatItemDto[];
+};
+
+export type SmartAlertModuleDto =
+  | "stock"
+  | "health"
+  | "finance"
+  | "gestation"
+  | "cheptel";
+
+export type SmartAlertPriorityDto = "critical" | "warning" | "info";
+
+export type SmartAlertListItemDto = {
+  id: string;
+  module: SmartAlertModuleDto;
+  priority: SmartAlertPriorityDto;
+  title: string;
+  message: string;
+  action?: {
+    label: string;
+    route: string;
+    params?: Record<string, unknown>;
+  };
+  createdAt: string;
+  isRead: boolean;
+};
+
+export type FarmSmartAlertsListDto = {
+  farmId: string;
+  items: SmartAlertListItemDto[];
+};
+
+export type FarmSmartAlertsCountDto = {
+  farmId: string;
+  criticalUnread: number;
+};
+
+export type FarmAlertSettingsDto = {
+  id: string;
+  farmId: string;
+  mortalityRateThresholdPct: string | null;
+  lowBalanceThreshold: string | null;
+  stockWarningDays: number;
+  stockCriticalDays: number;
+  pushStock: boolean;
+  pushHealth: boolean;
+  pushFinance: boolean;
+  pushGestation: boolean;
+  pushCheptel: boolean;
+};
+
+export type FeedStockMovementDto = {
+  id: string;
+  farmId: string;
+  feedTypeId: string;
+  kind: "in" | "stock_check";
+  quantityKg: string | null;
+  bagsCounted: string | null;
+  bagsConsumed: string | null;
+  daysSinceLastCheck: number | null;
+  dailyConsumptionKg: string | null;
+  stockAfterKg: string;
+  supplier: string | null;
+  unitPrice: string | null;
+  notes: string | null;
+  occurredAt: string;
+  linkedExpenseId: string | null;
+  createdByUserId: string;
+  createdAt: string;
+  feedType: { id: string; name: string; unit: string };
+};
+
+export function fetchFarmFeedTypes(
   accessToken: string,
   farmId: string,
   activeProfileId?: string | null
-): Promise<FeedStockLotDto[]> {
-  return apiGetJson<FeedStockLotDto[]>(
-    `/farms/${farmId}/feed-stock-lots`,
+): Promise<FeedTypeDto[]> {
+  return apiGetJson<FeedTypeDto[]>(
+    `/farms/${farmId}/feed/types`,
     accessToken,
     activeProfileId
   );
 }
 
-export type CreateFeedStockLotPayload = {
-  productName: string;
-  quantityKg: number;
-  purchasedAt?: string;
-  supplierName?: string;
-  unitPrice?: number;
-  currency?: string;
-  notes?: string;
-};
-
-export function createFeedStockLot(
+export function createFarmFeedType(
   accessToken: string,
   farmId: string,
-  payload: CreateFeedStockLotPayload,
+  payload: {
+    name: string;
+    unit: "kg" | "tonne" | "sac";
+    color?: string;
+    weightPerBagKg?: number;
+    lowStockThresholdDays?: number;
+  },
   activeProfileId?: string | null
-): Promise<FeedStockLotDto> {
-  return apiPostJson<FeedStockLotDto>(
-    `/farms/${farmId}/feed-stock-lots`,
+): Promise<FeedTypeDto> {
+  return apiPostJson<FeedTypeDto>(
+    `/farms/${farmId}/feed/types`,
     payload,
     accessToken,
     activeProfileId
   );
 }
 
-export function consumeFeedStockLot(
+export function fetchFarmFeedOverview(
   accessToken: string,
   farmId: string,
-  lotId: string,
-  kg: number,
   activeProfileId?: string | null
-): Promise<FeedStockLotDto> {
-  return apiPatchJson<FeedStockLotDto>(
-    `/farms/${farmId}/feed-stock-lots/${lotId}/consume`,
-    { kg },
+): Promise<FarmFeedOverviewDto> {
+  return apiGetJson<FarmFeedOverviewDto>(
+    `/farms/${farmId}/feed/overview`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFarmFeedChart(
+  accessToken: string,
+  farmId: string,
+  period: "3m" | "6m" | "12m",
+  activeProfileId?: string | null
+): Promise<FarmFeedChartDto> {
+  return apiGetJson<FarmFeedChartDto>(
+    `/farms/${farmId}/feed/chart?period=${encodeURIComponent(period)}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFarmFeedStats(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<FarmFeedStatsDto> {
+  return apiGetJson<FarmFeedStatsDto>(
+    `/farms/${farmId}/feed/stats`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFarmSmartAlerts(
+  accessToken: string,
+  farmId: string,
+  activeProfileId: string | null | undefined,
+  query?: { priority?: string; module?: string; unread?: string }
+): Promise<FarmSmartAlertsListDto> {
+  const qs = new URLSearchParams();
+  if (query?.priority) qs.set("priority", query.priority);
+  if (query?.module) qs.set("module", query.module);
+  if (query?.unread) qs.set("unread", query.unread);
+  const tail = qs.toString() ? `?${qs.toString()}` : "";
+  return apiGetJson<FarmSmartAlertsListDto>(
+    `/farms/${farmId}/alerts${tail}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFarmSmartAlertsCount(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<FarmSmartAlertsCountDto> {
+  return apiGetJson<FarmSmartAlertsCountDto>(
+    `/farms/${farmId}/alerts/count`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function postFarmSmartAlertsRefresh(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<{ synced: number }> {
+  return apiPostJson<{ synced: number }>(
+    `/farms/${farmId}/alerts/refresh`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function patchFarmSmartAlertRead(
+  accessToken: string,
+  farmId: string,
+  alertId: string,
+  activeProfileId?: string | null
+): Promise<{ ok: boolean }> {
+  return apiPatchJson<{ ok: boolean }>(
+    `/farms/${farmId}/alerts/${alertId}/read`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFarmAlertSettings(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<FarmAlertSettingsDto> {
+  return apiGetJson<FarmAlertSettingsDto>(
+    `/farms/${farmId}/alert-settings`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function putFarmAlertSettings(
+  accessToken: string,
+  farmId: string,
+  payload: Partial<{
+    mortalityRateThresholdPct: number | null;
+    lowBalanceThreshold: number | null;
+    stockWarningDays: number;
+    stockCriticalDays: number;
+    pushStock: boolean;
+    pushHealth: boolean;
+    pushFinance: boolean;
+    pushGestation: boolean;
+    pushCheptel: boolean;
+  }>,
+  activeProfileId?: string | null
+): Promise<FarmAlertSettingsDto> {
+  return apiPutJson<FarmAlertSettingsDto>(
+    `/farms/${farmId}/alert-settings`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFarmFeedMovements(
+  accessToken: string,
+  farmId: string,
+  activeProfileId: string | null | undefined,
+  query?: { feedTypeId?: string; from?: string; to?: string }
+): Promise<FeedStockMovementDto[]> {
+  const qs = new URLSearchParams();
+  if (query?.feedTypeId) qs.set("feedTypeId", query.feedTypeId);
+  if (query?.from) qs.set("from", query.from);
+  if (query?.to) qs.set("to", query.to);
+  const tail = qs.toString() ? `?${qs.toString()}` : "";
+  return apiGetJson<FeedStockMovementDto[]>(
+    `/farms/${farmId}/feed/movements${tail}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type PostFarmFeedMovementPayload = {
+  kind: "in" | "stock_check";
+  feedTypeId?: string;
+  newFeedType?: {
+    name: string;
+    unit: "kg" | "tonne" | "sac";
+    color?: string;
+    weightPerBagKg?: number;
+    lowStockThresholdDays?: number;
+  };
+  quantityInput?: number;
+  quantityUnit?: "kg" | "tonne" | "sac";
+  weightPerBagKg?: number;
+  bagsCounted?: number;
+  supplier?: string;
+  unitPrice?: number;
+  priceBasis?: "kg" | "sac";
+  notes?: string;
+  occurredAt?: string;
+};
+
+export function postFarmFeedMovement(
+  accessToken: string,
+  farmId: string,
+  payload: PostFarmFeedMovementPayload,
+  activeProfileId?: string | null
+): Promise<FeedStockMovementDto> {
+  return apiPostJson<FeedStockMovementDto>(
+    `/farms/${farmId}/feed/movements`,
+    payload,
     accessToken,
     activeProfileId
   );
@@ -1334,6 +1604,7 @@ export type DashboardFeedStockItemDto = {
   ratio: number;
   level: "critical" | "medium" | "ok";
   critical: boolean;
+  color?: string;
 };
 
 export type DashboardFeedStockDto = {
@@ -1406,7 +1677,6 @@ export type FarmHealthOverviewDto = {
     openedAt: string;
   } | null;
   mortalityRate30d: string;
-  alerts: string[];
 };
 
 export type FarmHealthUpcomingDto = {
@@ -2429,6 +2699,16 @@ export type MarketplaceListingListItem = {
   pickupNote?: string | null;
   createdAt: string;
   updatedAt: string;
+  category?: string | null;
+  photoUrls?: string[] | null;
+  animalIds?: string[] | null;
+  totalWeightKg?: string | number | null;
+  pricePerKg?: string | number | null;
+  totalPrice?: string | number | null;
+  breedLabel?: string | null;
+  viewsCount?: number;
+  consultationsCount?: number;
+  expiresAt?: string | null;
   farm: { id: string; name: string } | null;
   animal: {
     id: string;
@@ -2441,7 +2721,7 @@ export type MarketplaceListingListItem = {
 export function fetchMarketplaceListings(
   accessToken: string,
   activeProfileId?: string | null,
-  opts?: { mine?: boolean; status?: string }
+  opts?: { mine?: boolean; status?: string; category?: string; q?: string }
 ): Promise<MarketplaceListingListItem[]> {
   const qs = new URLSearchParams();
   if (opts?.mine) {
@@ -2449,6 +2729,12 @@ export function fetchMarketplaceListings(
   }
   if (opts?.status) {
     qs.set("status", opts.status);
+  }
+  if (opts?.category) {
+    qs.set("category", opts.category);
+  }
+  if (opts?.q?.trim()) {
+    qs.set("q", opts.q.trim());
   }
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
   return apiGetJson<MarketplaceListingListItem[]>(
@@ -2475,6 +2761,17 @@ export type MarketplaceListingDetail = MarketplaceListingListItem & {
   seller: { id: string; fullName: string | null; email: string | null };
   myOffers?: MarketplaceOfferBrief[];
   offers?: MarketplaceOfferBrief[];
+  healthSnapshot?: MarketplaceListingHealthSnapshot | null;
+  farmRatingSummary?: { avg: number | null; count: number } | null;
+};
+
+export type MarketplaceListingHealthSnapshot = {
+  vaccinesUpToDate: boolean;
+  lastVaccinationAt: string | null;
+  lastVetVisitAt: string | null;
+  lastVetReason: string | null;
+  recentDiseaseSummary: string | null;
+  mortalityRate30dPct: string;
 };
 
 export function fetchMarketplaceListing(
@@ -2484,6 +2781,34 @@ export function fetchMarketplaceListing(
 ): Promise<MarketplaceListingDetail> {
   return apiGetJson<MarketplaceListingDetail>(
     `/marketplace/listings/${listingId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** POST — incrémente les vues (hors vendeur). */
+export function postMarketplaceListingView(
+  accessToken: string,
+  listingId: string,
+  activeProfileId?: string | null
+): Promise<{ ok: boolean; viewsCount: number }> {
+  return apiPostJson<{ ok: boolean; viewsCount: number }>(
+    `/marketplace/listings/${listingId}/view`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** POST — incrémente les consultations (hors vendeur). */
+export function postMarketplaceListingConsult(
+  accessToken: string,
+  listingId: string,
+  activeProfileId?: string | null
+): Promise<{ ok: boolean; consultationsCount: number }> {
+  return apiPostJson<{ ok: boolean; consultationsCount: number }>(
+    `/marketplace/listings/${listingId}/consult`,
+    {},
     accessToken,
     activeProfileId
   );
@@ -2524,9 +2849,11 @@ export function completeMarketplaceHandover(
 }
 
 export type PostMarketplaceOfferPayload = {
-  offeredPrice: number;
+  offeredPrice?: number;
+  proposedPricePerKg?: number;
   quantity?: number;
   message?: string;
+  buyerFarmId?: string;
 };
 
 /** POST /marketplace/listings/:listingId/offers — acheteur / même JWT. */
@@ -2627,6 +2954,13 @@ export type CreateMarketplaceListingPayload = {
   quantity?: number;
   currency?: string;
   locationLabel?: string;
+  category?: string;
+  photoUrls?: string[];
+  animalIds?: string[];
+  totalWeightKg?: number;
+  pricePerKg?: number;
+  totalPrice?: number;
+  breedLabel?: string;
 };
 
 /** POST /marketplace/listings — brouillon ; publication séparée. */
@@ -2650,6 +2984,13 @@ export type UpdateMarketplaceListingPayload = {
   quantity?: number | null;
   currency?: string;
   locationLabel?: string | null;
+  category?: string | null;
+  photoUrls?: string[];
+  animalIds?: string[];
+  totalWeightKg?: number | null;
+  pricePerKg?: number | null;
+  totalPrice?: number | null;
+  breedLabel?: string | null;
 };
 
 /** PATCH /marketplace/listings/:id — vendeur, annonce non vendue / non annulée. */
@@ -2806,4 +3147,142 @@ export function createProfile(
     accessToken,
     null
   );
+}
+
+/** Période rapport ferme (Prisma `ReportPeriodType`). */
+export type FarmReportPeriodType = "monthly" | "quarterly" | "yearly";
+
+export type FarmReportPreviewDto = {
+  farmId: string;
+  periodType: FarmReportPeriodType;
+  period: { start: string; end: string };
+  score: {
+    global: number;
+    band: string;
+    breakdown: Record<string, { score: number; detail: string }>;
+  };
+  sections: Record<string, unknown>;
+};
+
+export function fetchFarmReportPreview(
+  accessToken: string,
+  farmId: string,
+  activeProfileId: string | null | undefined,
+  params: {
+    periodType: FarmReportPeriodType;
+    year: number;
+    month?: number;
+    quarter?: number;
+  }
+): Promise<FarmReportPreviewDto> {
+  const q = new URLSearchParams();
+  q.set("periodType", params.periodType);
+  q.set("year", String(params.year));
+  if (params.month != null) {
+    q.set("month", String(params.month));
+  }
+  if (params.quarter != null) {
+    q.set("quarter", String(params.quarter));
+  }
+  return apiGetJson<FarmReportPreviewDto>(
+    `/farms/${farmId}/reports/preview?${q.toString()}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type FarmScoreDto = {
+  farmId: string;
+  scoreGlobal: number;
+  scoreBreakdown: Record<string, { score: number; detail: string }>;
+  band: string;
+};
+
+export function fetchFarmScore(
+  accessToken: string,
+  farmId: string,
+  activeProfileId: string | null | undefined,
+  params?: { year?: number; month?: number }
+): Promise<FarmScoreDto> {
+  const q = new URLSearchParams();
+  if (params?.year != null) {
+    q.set("year", String(params.year));
+  }
+  if (params?.month != null) {
+    q.set("month", String(params.month));
+  }
+  const suffix = q.toString() ? `?${q.toString()}` : "";
+  return apiGetJson<FarmScoreDto>(
+    `/farms/${farmId}/score${suffix}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type FarmReportListItemDto = {
+  id: string;
+  periodType: FarmReportPeriodType;
+  periodStart: string;
+  periodEnd: string;
+  generatedAt: string;
+  scoreGlobal: number;
+  contentHash: string | null;
+};
+
+export function fetchFarmReportsList(
+  accessToken: string,
+  farmId: string,
+  activeProfileId: string | null | undefined
+): Promise<FarmReportListItemDto[]> {
+  return apiGetJson<FarmReportListItemDto[]>(
+    `/farms/${farmId}/reports`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function generateFarmReport(
+  accessToken: string,
+  farmId: string,
+  activeProfileId: string | null | undefined,
+  body: {
+    periodType: FarmReportPeriodType;
+    anchor: { year: number; month?: number; quarter?: number };
+  }
+): Promise<{ id: string; scoreGlobal: number; contentHash: string }> {
+  return apiPostJson(
+    `/farms/${farmId}/reports/generate`,
+    body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type FarmReportDetailDto = {
+  id: string;
+  farmId: string;
+  periodType: FarmReportPeriodType;
+  periodStart: string;
+  periodEnd: string;
+  generatedAt: string;
+  scoreGlobal: number;
+  scoreBreakdown: unknown;
+  dataSnapshot: unknown;
+  contentHash: string | null;
+};
+
+export function fetchFarmReportById(
+  accessToken: string,
+  reportId: string,
+  activeProfileId?: string | null
+): Promise<FarmReportDetailDto> {
+  return apiGetJson<FarmReportDetailDto>(
+    `/reports/${reportId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function farmReportPdfAbsoluteUrl(reportId: string): string {
+  return `${apiBaseUrl()}/api/v1/reports/${reportId}/pdf`;
 }

@@ -1,7 +1,8 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -13,17 +14,20 @@ import {
   View
 } from "react-native";
 import { MobileAppShell } from "../components/layout";
+import { SmartAlertsSection } from "../components/smartAlerts/SmartAlertsSection";
+import { AlertBadge } from "../components/smartAlerts/AlertBadge";
 import { DashboardFinanceMiniChart } from "../components/producer/DashboardFinanceMiniChart";
 import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
 import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
-import { ProducerEventsFab } from "../components/producer/ProducerEventsFab";
 import { useSession } from "../context/SessionContext";
 import {
   fetchDashboardFeedStock,
   fetchDashboardFinanceTimeseries,
   fetchDashboardGestations,
   fetchDashboardHealth,
+  fetchFarmSmartAlertsCount,
   fetchFarms,
+  postFarmSmartAlertsRefresh,
   type DashboardFeedStockItemDto,
   type DashboardFinanceMonthPoint,
   type DashboardGestationItemDto,
@@ -167,6 +171,28 @@ export function ProducerDashboardScreen() {
     refetchInterval: 60_000
   });
 
+  const alertsCountQuery = useQuery({
+    queryKey: ["smartAlertsCount", farmId, activeProfileId],
+    queryFn: () =>
+      fetchFarmSmartAlertsCount(accessToken!, farmId!, activeProfileId),
+    enabled: Boolean(farmId && accessToken),
+    refetchInterval: 120_000
+  });
+
+  useEffect(() => {
+    if (!farmId || !accessToken) {
+      return;
+    }
+    void postFarmSmartAlertsRefresh(accessToken, farmId, activeProfileId)
+      .then(() => {
+        void qc.invalidateQueries({ queryKey: ["smartAlerts", farmId] });
+        void qc.invalidateQueries({
+          queryKey: ["smartAlertsCount", farmId, activeProfileId]
+        });
+      })
+      .catch(() => undefined);
+  }, [farmId, accessToken, activeProfileId, qc]);
+
   const onRefresh = useCallback(async () => {
     if (!farmId) {
       return;
@@ -183,9 +209,22 @@ export function ProducerDashboardScreen() {
     await Promise.all(tasks.map((p) => p.catch(() => undefined)));
     await farmsQuery.refetch().catch(() => undefined);
     void qc.invalidateQueries({ queryKey: ["farms", activeProfileId] });
+    if (farmId && accessToken) {
+      await postFarmSmartAlertsRefresh(
+        accessToken,
+        farmId,
+        activeProfileId
+      ).catch(() => undefined);
+      void qc.invalidateQueries({ queryKey: ["smartAlerts", farmId] });
+      void qc.invalidateQueries({
+        queryKey: ["smartAlertsCount", farmId, activeProfileId]
+      });
+    }
     setRefreshing(false);
   }, [
     farmId,
+    accessToken,
+    activeProfileId,
     financeEnabled,
     feedEnabled,
     financeQuery,
@@ -194,7 +233,8 @@ export function ProducerDashboardScreen() {
     feedQuery,
     farmsQuery,
     qc,
-    activeProfileId
+    activeProfileId,
+    accessToken
   ]);
 
   const customHeader = (
@@ -205,24 +245,53 @@ export function ProducerDashboardScreen() {
         avatarUrl={user?.avatarUrl ?? null}
         onPressAvatar={() => setProfileOpen(true)}
       />
-      <Pressable
-        onPress={() => {
-          if (!farmId || !farmName) {
-            navigation.navigate("FarmList");
-            return;
-          }
-          navigation.navigate("ProducerFarmSettings", { farmId, farmName });
-        }}
-        style={({ pressed }) => [
-          styles.heroSettingsBtn,
-          pressed && styles.heroSettingsBtnPressed
-        ]}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        accessibilityRole="button"
-        accessibilityLabel={t("producer.settingsButton")}
-      >
-        <Text style={styles.heroSettingsTx}>{t("producer.settingsButton")}</Text>
-      </Pressable>
+      <View style={styles.heroActions}>
+        <Pressable
+          onPress={() => {
+            if (!farmId || !farmName) {
+              navigation.navigate("FarmList");
+              return;
+            }
+            navigation.navigate("SmartAlertsList", { farmId, farmName });
+          }}
+          style={({ pressed }) => [
+            styles.heroIconBtn,
+            pressed && styles.heroIconBtnPressed
+          ]}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel={t("smartAlerts.bellA11y", "Alertes")}
+        >
+          <View style={styles.bellWrap}>
+            <Ionicons
+              name="notifications-outline"
+              size={22}
+              color={mobileColors.accent}
+            />
+            <AlertBadge
+              count={alertsCountQuery.data?.criticalUnread ?? 0}
+            />
+          </View>
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            if (!farmId || !farmName) {
+              navigation.navigate("FarmList");
+              return;
+            }
+            navigation.navigate("ProducerFarmSettings", { farmId, farmName });
+          }}
+          style={({ pressed }) => [
+            styles.heroSettingsBtn,
+            pressed && styles.heroSettingsBtnPressed
+          ]}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel={t("producer.settingsButton")}
+        >
+          <Text style={styles.heroSettingsTx}>{t("producer.settingsButton")}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 
@@ -231,11 +300,6 @@ export function ProducerDashboardScreen() {
       <MobileAppShell
         customHeader={customHeader}
         omitBottomTabBar
-        floatingAction={
-          <ProducerEventsFab
-            onPress={() => navigation.navigate("FarmEventsFeed")}
-          />
-        }
       >
         <ScrollView
           contentContainerStyle={styles.wrap}
@@ -261,6 +325,7 @@ export function ProducerDashboardScreen() {
               </Pressable>
             </View>
           ) : (
+            <>
             <View style={styles.grid}>
               <View style={styles.gridItem}>
                 <FinanceCard
@@ -348,6 +413,13 @@ export function ProducerDashboardScreen() {
                 />
               </View>
             </View>
+            <SmartAlertsSection
+              farmId={farmId}
+              farmName={farmName}
+              accessToken={accessToken!}
+              activeProfileId={activeProfileId}
+            />
+          </>
           )}
         </ScrollView>
       </MobileAppShell>
@@ -745,6 +817,23 @@ const styles = StyleSheet.create({
     borderBottomColor: mobileColors.border,
     backgroundColor: mobileColors.background,
     gap: mobileSpacing.sm
+  },
+  heroActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.xs
+  },
+  heroIconBtn: {
+    padding: mobileSpacing.sm,
+    borderRadius: mobileRadius.pill
+  },
+  heroIconBtnPressed: {
+    opacity: 0.85
+  },
+  bellWrap: {
+    position: "relative",
+    justifyContent: "center",
+    alignItems: "center"
   },
   heroSettingsBtn: {
     paddingHorizontal: mobileSpacing.md,

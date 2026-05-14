@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import type { User } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
+import { buildFeedStockStatsForFarm } from "../feed-stock/feed-stock-stats.helper";
 import { FarmAccessService } from "../common/farm-access.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { PrismaService } from "../prisma/prisma.service";
@@ -224,50 +225,31 @@ export class DashboardService {
     await this.farmAccess.requireFarmScopes(user.id, farmId, [
       FARM_SCOPE.livestockRead
     ]);
-    const lots = await this.prisma.feedStockLot.findMany({
-      where: { farmId },
-      select: {
-        productName: true,
-        remainingKg: true,
-        quantityKg: true
-      }
+    const st = await this.prisma.farmAlertSettings.findUnique({
+      where: { farmId }
+    });
+    const criticalDays = st?.stockCriticalDays ?? 15;
+    const warningDays = st?.stockWarningDays ?? 30;
+    const stats = await buildFeedStockStatsForFarm(this.prisma, farmId, {
+      criticalDays,
+      warningDays
     });
 
-    const byName = new Map<
-      string,
-      { remaining: Prisma.Decimal; initial: Prisma.Decimal }
-    >();
-    for (const l of lots) {
-      const cur =
-        byName.get(l.productName) ?? {
-          remaining: new Prisma.Decimal(0),
-          initial: new Prisma.Decimal(0)
-        };
-      cur.remaining = cur.remaining.plus(l.remainingKg);
-      cur.initial = cur.initial.plus(l.quantityKg);
-      byName.set(l.productName, cur);
-    }
-
-    const items = [...byName.entries()].map(([productName, v]) => {
-      const ratio = v.initial.gt(0)
-        ? v.remaining.div(v.initial).toNumber()
-        : 0;
-      const remainingNum = v.remaining.toNumber();
-      let level: "critical" | "medium" | "ok";
-      if (ratio < 0.15 || remainingNum < 50) {
-        level = "critical";
-      } else if (ratio < 0.45) {
-        level = "medium";
-      } else {
-        level = "ok";
-      }
+    const items = stats.map((t) => {
+      const level: "critical" | "medium" | "ok" =
+        t.status === "critical"
+          ? "critical"
+          : t.status === "warning"
+            ? "medium"
+            : "ok";
       return {
-        productName,
-        remainingKg: v.remaining.toString(),
-        initialKg: v.initial.toString(),
-        ratio,
+        productName: t.name,
+        remainingKg: t.currentStockKg,
+        initialKg: t.currentStockKg,
+        ratio: 1,
         level,
-        critical: level === "critical"
+        critical: level === "critical",
+        color: t.color
       };
     });
 

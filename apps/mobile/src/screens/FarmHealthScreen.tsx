@@ -1,11 +1,10 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -15,10 +14,10 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { ProducerEventsFab } from "../components/producer/ProducerEventsFab";
 import { MobileAppShell } from "../components/layout";
+import { EventList, type EventItem } from "../components/lists";
+import { BaseModal } from "../components/modals/BaseModal";
 import { useSession } from "../context/SessionContext";
-import { dashboardRouteForActiveProfileType } from "../lib/dashboardHomeRoute";
 import {
   createFarmHealthRecord,
   type AnimalListItem,
@@ -62,6 +61,62 @@ function formatDay(iso: string, locale: string): string {
   return x.toLocaleDateString(locale, { day: "numeric", month: "short" });
 }
 
+function healthPrimaryTitle(r: FarmHealthRecordRowDto): string {
+  if (r.kind === "vaccination" && r.vaccination) {
+    return r.vaccination.vaccineName;
+  }
+  if (r.kind === "disease" && r.disease) {
+    return r.disease.diagnosis ?? r.disease.caseStatus;
+  }
+  if (r.kind === "vet_visit" && r.vetVisit) {
+    return `${r.vetVisit.vetName} · ${r.vetVisit.reason}`;
+  }
+  if (r.kind === "treatment" && r.treatment) {
+    return r.treatment.drugName;
+  }
+  if (r.kind === "mortality" && r.mortality) {
+    return r.mortality.cause;
+  }
+  return r.kind;
+}
+
+function healthCostParts(
+  r: FarmHealthRecordRowDto
+): Pick<EventItem, "value" | "valueType"> {
+  if (r.kind === "vet_visit" && r.vetVisit?.cost != null && String(r.vetVisit.cost).length) {
+    const n =
+      typeof r.vetVisit.cost === "number"
+        ? r.vetVisit.cost
+        : Number.parseFloat(String(r.vetVisit.cost).replace(",", "."));
+    if (Number.isFinite(n) && n > 0) {
+      return { value: `- ${n.toLocaleString("fr-FR")} FCFA`, valueType: "negative" };
+    }
+  }
+  if (r.kind === "treatment" && r.treatment?.cost != null && String(r.treatment.cost).length) {
+    const n =
+      typeof r.treatment.cost === "number"
+        ? r.treatment.cost
+        : Number.parseFloat(String(r.treatment.cost).replace(",", "."));
+    if (Number.isFinite(n) && n > 0) {
+      return { value: `- ${n.toLocaleString("fr-FR")} FCFA`, valueType: "negative" };
+    }
+  }
+  return { valueType: "neutral" };
+}
+
+function healthListIcon(r: FarmHealthRecordRowDto): EventItem["iconType"] {
+  if (r.kind === "vaccination" || r.kind === "treatment") {
+    return "in";
+  }
+  if (r.kind === "mortality") {
+    return "out";
+  }
+  if (r.kind === "disease") {
+    return "custom";
+  }
+  return "check";
+}
+
 export function FarmHealthScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
   const { t, i18n } = useTranslation();
@@ -75,28 +130,6 @@ export function FarmHealthScreen({ route, navigation }: Props) {
 
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
   const isProducer = profileType === "producer";
-
-
-  const goHome = useCallback(() => {
-    const r = dashboardRouteForActiveProfileType(profileType);
-    switch (r) {
-      case "ProducerDashboard":
-        navigation.navigate("ProducerDashboard");
-        break;
-      case "BuyerDashboard":
-        navigation.navigate("BuyerDashboard");
-        break;
-      case "VeterinarianDashboard":
-        navigation.navigate("VeterinarianDashboard");
-        break;
-      case "TechnicianDashboard":
-        navigation.navigate("TechnicianDashboard");
-        break;
-      default:
-        navigation.navigate("ProducerDashboard");
-    }
-  }, [navigation, profileType]);
-
 
   const farmQuery = useQuery({
     queryKey: ["farm", farmId, activeProfileId],
@@ -213,6 +246,8 @@ export function FarmHealthScreen({ route, navigation }: Props) {
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkRecordId, setLinkRecordId] = useState<string | null>(null);
   const [linkExpenseId, setLinkExpenseId] = useState("");
+  const [healthKindFilter, setHealthKindFilter] = useState<string>("all");
+  const [kindPickOpen, setKindPickOpen] = useState(false);
 
   const resetForm = () => {
     setOccurredDate(toIsoDate(new Date()));
@@ -371,10 +406,108 @@ export function FarmHealthScreen({ route, navigation }: Props) {
     createMut.mutate(body);
   };
 
-  const byKind = useCallback(
-    (kind: FarmHealthRecordKind) =>
-      (eventsQuery.data ?? []).filter((r) => r.kind === kind),
-    [eventsQuery.data]
+  const healthRowsFiltered = useMemo(() => {
+    const arr = [...(eventsQuery.data ?? [])];
+    arr.sort(
+      (a, b) =>
+        new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
+    );
+    if (healthKindFilter === "all") {
+      return arr;
+    }
+    return arr.filter((r) => r.kind === healthKindFilter);
+  }, [eventsQuery.data, healthKindFilter]);
+
+  const healthHistoryPills = useMemo(
+    () => [
+      { id: "all", label: t("health.pillAll") },
+      { id: "vaccination", label: t("health.pillVaccination") },
+      { id: "disease", label: t("health.pillDisease") },
+      { id: "vet_visit", label: t("health.pillVet") },
+      { id: "treatment", label: t("health.pillTreatment") },
+      { id: "mortality", label: t("health.pillMortality") }
+    ],
+    [t]
+  );
+
+  const healthKindShortLabel = useCallback(
+    (kind: FarmHealthRecordKind) => {
+      switch (kind) {
+        case "vaccination":
+          return t("health.pillVaccination");
+        case "disease":
+          return t("health.pillDisease");
+        case "vet_visit":
+          return t("health.pillVet");
+        case "treatment":
+          return t("health.pillTreatment");
+        case "mortality":
+          return t("health.pillMortality");
+        default:
+          return kind;
+      }
+    },
+    [t]
+  );
+
+  const healthEventItems = useMemo((): EventItem[] => {
+    return healthRowsFiltered.map((r) => {
+      const date = formatDay(r.occurredAt, locale);
+      const title = healthPrimaryTitle(r);
+      const subtitle = `${healthKindShortLabel(r.kind)} · ${r.entityType} ${r.entityId.slice(0, 8)}…`;
+      const cost = healthCostParts(r);
+      const iconType = healthListIcon(r);
+      return {
+        id: r.id,
+        title,
+        subtitle,
+        value: cost.value,
+        valueType: cost.valueType,
+        date,
+        iconType,
+        customIcon: iconType === "custom" ? "medkit-outline" : undefined,
+        meta: r
+      };
+    });
+  }, [healthRowsFiltered, locale, healthKindShortLabel]);
+
+  const onHealthAddPress = useCallback(() => setKindPickOpen(true), []);
+
+  const renderHealthDetail = useCallback(
+    (item: EventItem, { close }: { close: () => void }) => {
+      const r = item.meta as FarmHealthRecordRowDto;
+      return (
+        <View style={{ gap: mobileSpacing.sm, paddingBottom: mobileSpacing.md }}>
+          <Text style={styles.meta}>
+            {t("health.detailKind")} : {t(`health.formTitles.${r.kind}` as const)}
+          </Text>
+          <Text style={styles.meta}>
+            {t("health.detailEntity")} : {r.entityType} {r.entityId}
+          </Text>
+          <Text style={styles.meta}>{formatDay(r.occurredAt, locale)}</Text>
+          {r.notes ? (
+            <Text style={styles.meta}>
+              {t("health.detailNotes")} : {r.notes}
+            </Text>
+          ) : null}
+          {isProducer && (r.kind === "vet_visit" || r.kind === "treatment") ? (
+            <Pressable
+              onPress={() => {
+                close();
+                setLinkRecordId(r.id);
+                setLinkExpenseId("");
+                setLinkOpen(true);
+              }}
+            >
+              <Text style={{ color: mobileColors.accent, fontWeight: "700" }}>
+                {t("health.linkShort")}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+      );
+    },
+    [t, locale, isProducer]
   );
 
   const refreshing =
@@ -414,55 +547,10 @@ export function FarmHealthScreen({ route, navigation }: Props) {
     a.tagCode?.trim() || a.publicId.slice(0, 8);
   const batchLabel = (b: BatchListItem) => b.name || b.id.slice(0, 8);
 
-  const rowLine = (r: FarmHealthRecordRowDto) => {
-    const day = formatDay(r.occurredAt, locale);
-    if (r.kind === "vaccination" && r.vaccination) {
-      return `${day} · ${r.vaccination.vaccineName}`;
-    }
-    if (r.kind === "disease" && r.disease) {
-      return `${day} · ${r.disease.diagnosis ?? r.disease.caseStatus}`;
-    }
-    if (r.kind === "vet_visit" && r.vetVisit) {
-      return `${day} · ${r.vetVisit.vetName} — ${r.vetVisit.reason}`;
-    }
-    if (r.kind === "treatment" && r.treatment) {
-      return `${day} · ${r.treatment.drugName}`;
-    }
-    if (r.kind === "mortality" && r.mortality) {
-      return `${day} · ${r.mortality.cause}`;
-    }
-    return `${day} · ${r.kind}`;
-  };
-
   return (
     <MobileAppShell
       title={farmName ? `${t("health.screenTitle")} — ${farmName}` : t("health.screenTitle")}
       omitBottomTabBar={isProducer}
-      activeTab={isProducer ? undefined : "health"}
-      floatingAction={
-        isProducer ? (
-          <ProducerEventsFab onPress={() => navigation.navigate("FarmEventsFeed")} />
-        ) : undefined
-      }
-      onTabChange={
-        isProducer
-          ? undefined
-          : (tab) => {
-              if (tab === "home") {
-                goHome();
-              }
-              if (tab === "cheptel") {
-                if (profileType === "buyer") {
-                  navigation.navigate("MarketplaceMyListings");
-                  return;
-                }
-                navigation.navigate("FarmList");
-              }
-              if (tab === "profile") {
-                navigation.navigate("Account");
-              }
-            }
-      }
     >
       <ScrollView
         contentContainerStyle={styles.wrap}
@@ -492,11 +580,6 @@ export function FarmHealthScreen({ route, navigation }: Props) {
                 ? `${(Number(rate90) * 100).toLocaleString(locale, { maximumFractionDigits: 2 })} %`
                 : "—"}
             </Text>
-            {(overview?.alerts ?? []).map((a, i) => (
-              <Text key={`${a}-${i}`} style={styles.alert}>
-                {a}
-              </Text>
-            ))}
           </View>
         )}
 
@@ -551,340 +634,278 @@ export function FarmHealthScreen({ route, navigation }: Props) {
           </View>
         ) : null}
 
-        <SectionBlock
-          title={t("health.sectionVaccinations")}
-          onAdd={() => openForm("vaccination")}
-          rows={byKind("vaccination")}
-          rowLine={rowLine}
+        <EventList
+          layout="embedded"
+          sectionTitle={t("health.historyTitle")}
+          onAddPress={onHealthAddPress}
+          data={healthEventItems}
+          filters={healthHistoryPills}
+          activeFilterId={healthKindFilter}
+          onFilterChange={setHealthKindFilter}
+          renderDetail={renderHealthDetail}
+          emptyMessage={t("health.noEvents")}
+          isLoading={eventsQuery.isPending && !(eventsQuery.data ?? []).length}
+          pageSize={15}
+          loadMoreLabel={t("health.loadMore")}
         />
         <UpcomingVaccines
           items={upcomingQuery.data?.vaccines}
           locale={locale}
           t={t}
         />
-
-        <SectionBlock
-          title={t("health.sectionDiseases")}
-          onAdd={() => openForm("disease")}
-          rows={byKind("disease")}
-          rowLine={rowLine}
-        />
-
-        <SectionBlock
-          title={t("health.sectionVet")}
-          onAdd={() => openForm("vet_visit")}
-          rows={byKind("vet_visit")}
-          rowLine={rowLine}
-          linkLabel={t("health.linkShort")}
-          onLink={
-            isProducer
-              ? (id) => {
-                  setLinkRecordId(id);
-                  setLinkExpenseId("");
-                  setLinkOpen(true);
-                }
-              : undefined
-          }
-          kindsForLink={["vet_visit"]}
-        />
-
-        <SectionBlock
-          title={t("health.sectionTreatments")}
-          onAdd={() => openForm("treatment")}
-          rows={byKind("treatment")}
-          rowLine={rowLine}
-          linkLabel={t("health.linkShort")}
-          onLink={
-            isProducer
-              ? (id) => {
-                  setLinkRecordId(id);
-                  setLinkExpenseId("");
-                  setLinkOpen(true);
-                }
-              : undefined
-          }
-          kindsForLink={["treatment"]}
-        />
-
-        <SectionBlock
-          title={t("health.sectionMortalities")}
-          onAdd={() => openForm("mortality")}
-          rows={byKind("mortality")}
-          rowLine={rowLine}
-        />
       </ScrollView>
 
-      <Modal visible={formOpen} animationType="slide" transparent>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>
-              {t(`health.formTitles.${formKind}` as const)}
-            </Text>
-            <ScrollView keyboardShouldPersistTaps="handled">
-              <Text style={styles.lab}>{t("health.fieldDate")}</Text>
-              <TextInput
-                style={styles.input}
-                value={occurredDate}
-                onChangeText={setOccurredDate}
-                placeholder="YYYY-MM-DD"
-              />
-              <Text style={styles.lab}>{t("health.fieldNotes")}</Text>
-              <TextInput
-                style={styles.input}
-                value={notes}
-                onChangeText={setNotes}
-                multiline
-              />
+      <BaseModal
+        visible={kindPickOpen}
+        onClose={() => setKindPickOpen(false)}
+        title={t("health.addRecordTitle")}
+        sheetMaxHeight="70%"
+      >
+        {(
+          [
+            "vaccination",
+            "disease",
+            "vet_visit",
+            "treatment",
+            "mortality"
+          ] as const
+        ).map((kind) => (
+          <Pressable
+            key={kind}
+            style={{ paddingVertical: mobileSpacing.md }}
+            onPress={() => {
+              setKindPickOpen(false);
+              openForm(kind);
+            }}
+          >
+            <Text style={styles.meta}>{t(`health.formTitles.${kind}` as const)}</Text>
+          </Pressable>
+        ))}
+      </BaseModal>
 
-              {formKind === "vaccination" ? (
-                <>
-                  <Text style={styles.lab}>{t("health.fieldVaccineName")}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={vaccineName}
-                    onChangeText={setVaccineName}
-                  />
-                  <Text style={styles.lab}>{t("health.fieldVaccineType")}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={vaccineType}
-                    onChangeText={setVaccineType}
-                  />
-                  <Text style={styles.lab}>{t("health.fieldNextReminder")}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={nextReminderDate}
-                    onChangeText={setNextReminderDate}
-                    placeholder="YYYY-MM-DD"
-                  />
-                  <Text style={styles.lab}>{t("health.fieldPractitioner")}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={practitioner}
-                    onChangeText={setPractitioner}
-                  />
-                </>
-              ) : null}
-
-              {formKind === "disease" ? (
-                <>
-                  <Text style={styles.lab}>{t("health.fieldDiagnosis")}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={diagnosis}
-                    onChangeText={setDiagnosis}
-                  />
-                  <Text style={styles.lab}>{t("health.fieldCaseStatus")}</Text>
-                  <View style={styles.row}>
-                    {DISEASE_STATUSES.map((s) => (
-                      <TouchableOpacity
-                        key={s}
-                        style={[styles.chip, caseStatus === s && styles.chipOn]}
-                        onPress={() => setCaseStatus(s)}
-                      >
-                        <Text style={styles.chipTx}>
-                          {t(`health.caseStatus.${s}` as const)}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </>
-              ) : null}
-
-              {formKind === "vet_visit" ? (
-                <>
-                  <Text style={styles.lab}>{t("health.fieldVetStatus")}</Text>
-                  <View style={styles.row}>
-                    {(["completed", "planned"] as const).map((s) => (
-                      <TouchableOpacity
-                        key={s}
-                        style={[styles.chip, vetStatus === s && styles.chipOn]}
-                        onPress={() => setVetStatus(s)}
-                      >
-                        <Text style={styles.chipTx}>{t(`health.vetStatus.${s}`)}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                  <Text style={styles.lab}>{t("health.fieldVetName")}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={vetName}
-                    onChangeText={setVetName}
-                  />
-                  <Text style={styles.lab}>{t("health.fieldVetReason")}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={vetReason}
-                    onChangeText={setVetReason}
-                  />
-                  <Text style={styles.lab}>{t("health.fieldVetContact")}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={vetContact}
-                    onChangeText={setVetContact}
-                  />
-                  <Text style={styles.lab}>{t("health.fieldCost")}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={vetCost}
-                    onChangeText={setVetCost}
-                    keyboardType="decimal-pad"
-                  />
-                </>
-              ) : null}
-
-              {formKind === "treatment" ? (
-                <>
-                  <Text style={styles.lab}>{t("health.fieldDrugName")}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={drugName}
-                    onChangeText={setDrugName}
-                  />
-                  <Text style={styles.lab}>{t("health.fieldDosage")}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={dosage}
-                    onChangeText={setDosage}
-                  />
-                  <Text style={styles.lab}>{t("health.fieldCost")}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={treatCost}
-                    onChangeText={setTreatCost}
-                    keyboardType="decimal-pad"
-                  />
-                </>
-              ) : null}
-
-              {formKind === "mortality" ? (
-                <>
-                  <Text style={styles.lab}>{t("health.fieldMortCause")}</Text>
-                  <View style={styles.row}>
-                    {MORTALITY_CAUSES.map((c) => (
-                      <TouchableOpacity
-                        key={c}
-                        style={[styles.chip, mortCause === c && styles.chipOn]}
-                        onPress={() => setMortCause(c)}
-                      >
-                        <Text style={styles.chipTx}>
-                          {t(`health.mortCause.${c}` as const)}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                  {subjectType === "group" ? (
-                    <>
-                      <Text style={styles.lab}>{t("health.fieldHeadcount")}</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={mortHeads}
-                        onChangeText={setMortHeads}
-                        keyboardType="number-pad"
-                      />
-                    </>
-                  ) : null}
-                  <Text style={styles.mortHint}>{t("health.mortalityHint")}</Text>
-                </>
-              ) : null}
-            </ScrollView>
-            <View style={styles.modalActions}>
-              <Pressable onPress={() => setFormOpen(false)}>
-                <Text style={styles.cancel}>{t("health.cancel")}</Text>
-              </Pressable>
-              <Pressable
-                onPress={submitForm}
-                disabled={createMut.isPending}
-                style={styles.saveBtn}
-              >
-                {createMut.isPending ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.saveTx}>{t("health.save")}</Text>
-                )}
-              </Pressable>
-            </View>
+      <BaseModal
+        visible={formOpen}
+        onClose={() => setFormOpen(false)}
+        title={t(`health.formTitles.${formKind}` as const)}
+        footerPrimary={
+          <View style={styles.modalActions}>
+            <Pressable onPress={() => setFormOpen(false)}>
+              <Text style={styles.cancel}>{t("health.cancel")}</Text>
+            </Pressable>
+            <Pressable
+              onPress={submitForm}
+              disabled={createMut.isPending}
+              style={styles.saveBtn}
+            >
+              {createMut.isPending ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.saveTx}>{t("health.save")}</Text>
+              )}
+            </Pressable>
           </View>
-        </View>
-      </Modal>
+        }
+      >
+        <Text style={styles.lab}>{t("health.fieldDate")}</Text>
+        <TextInput
+          style={styles.input}
+          value={occurredDate}
+          onChangeText={setOccurredDate}
+          placeholder="YYYY-MM-DD"
+        />
+        <Text style={styles.lab}>{t("health.fieldNotes")}</Text>
+        <TextInput
+          style={styles.input}
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+        />
 
-      <Modal visible={linkOpen} animationType="fade" transparent>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t("health.linkExpenseTitle")}</Text>
-            <Text style={styles.lab}>{t("health.fieldExpenseId")}</Text>
+        {formKind === "vaccination" ? (
+          <>
+            <Text style={styles.lab}>{t("health.fieldVaccineName")}</Text>
             <TextInput
               style={styles.input}
-              value={linkExpenseId}
-              onChangeText={setLinkExpenseId}
-              autoCapitalize="none"
+              value={vaccineName}
+              onChangeText={setVaccineName}
             />
-            <View style={styles.modalActions}>
-              <Pressable onPress={() => setLinkOpen(false)}>
-                <Text style={styles.cancel}>{t("health.cancel")}</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  if (!linkRecordId || !linkExpenseId.trim()) {
-                    return;
-                  }
-                  linkMut.mutate();
-                }}
-                style={styles.saveBtn}
-              >
-                <Text style={styles.saveTx}>{t("health.linkSubmit")}</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    </MobileAppShell>
-  );
-}
+            <Text style={styles.lab}>{t("health.fieldVaccineType")}</Text>
+            <TextInput
+              style={styles.input}
+              value={vaccineType}
+              onChangeText={setVaccineType}
+            />
+            <Text style={styles.lab}>{t("health.fieldNextReminder")}</Text>
+            <TextInput
+              style={styles.input}
+              value={nextReminderDate}
+              onChangeText={setNextReminderDate}
+              placeholder="YYYY-MM-DD"
+            />
+            <Text style={styles.lab}>{t("health.fieldPractitioner")}</Text>
+            <TextInput
+              style={styles.input}
+              value={practitioner}
+              onChangeText={setPractitioner}
+            />
+          </>
+        ) : null}
 
-function SectionBlock({
-  title,
-  onAdd,
-  rows,
-  rowLine,
-  onLink,
-  kindsForLink,
-  linkLabel
-}: {
-  title: string;
-  onAdd: () => void;
-  rows: FarmHealthRecordRowDto[];
-  rowLine: (r: FarmHealthRecordRowDto) => string;
-  onLink?: (recordId: string) => void;
-  kindsForLink?: FarmHealthRecordKind[];
-  linkLabel?: string;
-}) {
-  return (
-    <View style={styles.section}>
-      <View style={styles.sectionHead}>
-        <Text style={styles.h1}>{title}</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={onAdd}>
-          <Text style={styles.addTx}>+</Text>
-        </TouchableOpacity>
-      </View>
-      {rows.length === 0 ? (
-        <Text style={styles.empty}>—</Text>
-      ) : (
-        rows.slice(0, 12).map((r) => (
-          <View key={r.id} style={styles.rowItem}>
-            <Text style={styles.rowTx}>{rowLine(r)}</Text>
-            {onLink &&
-            kindsForLink?.includes(r.kind) &&
-            linkLabel &&
-            (r.kind === "vet_visit" || r.kind === "treatment") ? (
-              <TouchableOpacity onPress={() => onLink(r.id)}>
-                <Text style={styles.linkTx}>{linkLabel}</Text>
-              </TouchableOpacity>
+        {formKind === "disease" ? (
+          <>
+            <Text style={styles.lab}>{t("health.fieldDiagnosis")}</Text>
+            <TextInput
+              style={styles.input}
+              value={diagnosis}
+              onChangeText={setDiagnosis}
+            />
+            <Text style={styles.lab}>{t("health.fieldCaseStatus")}</Text>
+            <View style={styles.row}>
+              {DISEASE_STATUSES.map((s) => (
+                <TouchableOpacity
+                  key={s}
+                  style={[styles.chip, caseStatus === s && styles.chipOn]}
+                  onPress={() => setCaseStatus(s)}
+                >
+                  <Text style={styles.chipTx}>
+                    {t(`health.caseStatus.${s}` as const)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        ) : null}
+
+        {formKind === "vet_visit" ? (
+          <>
+            <Text style={styles.lab}>{t("health.fieldVetStatus")}</Text>
+            <View style={styles.row}>
+              {(["completed", "planned"] as const).map((s) => (
+                <TouchableOpacity
+                  key={s}
+                  style={[styles.chip, vetStatus === s && styles.chipOn]}
+                  onPress={() => setVetStatus(s)}
+                >
+                  <Text style={styles.chipTx}>{t(`health.vetStatus.${s}`)}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.lab}>{t("health.fieldVetName")}</Text>
+            <TextInput
+              style={styles.input}
+              value={vetName}
+              onChangeText={setVetName}
+            />
+            <Text style={styles.lab}>{t("health.fieldVetReason")}</Text>
+            <TextInput
+              style={styles.input}
+              value={vetReason}
+              onChangeText={setVetReason}
+            />
+            <Text style={styles.lab}>{t("health.fieldVetContact")}</Text>
+            <TextInput
+              style={styles.input}
+              value={vetContact}
+              onChangeText={setVetContact}
+            />
+            <Text style={styles.lab}>{t("health.fieldCost")}</Text>
+            <TextInput
+              style={styles.input}
+              value={vetCost}
+              onChangeText={setVetCost}
+              keyboardType="decimal-pad"
+            />
+          </>
+        ) : null}
+
+        {formKind === "treatment" ? (
+          <>
+            <Text style={styles.lab}>{t("health.fieldDrugName")}</Text>
+            <TextInput
+              style={styles.input}
+              value={drugName}
+              onChangeText={setDrugName}
+            />
+            <Text style={styles.lab}>{t("health.fieldDosage")}</Text>
+            <TextInput
+              style={styles.input}
+              value={dosage}
+              onChangeText={setDosage}
+            />
+            <Text style={styles.lab}>{t("health.fieldCost")}</Text>
+            <TextInput
+              style={styles.input}
+              value={treatCost}
+              onChangeText={setTreatCost}
+              keyboardType="decimal-pad"
+            />
+          </>
+        ) : null}
+
+        {formKind === "mortality" ? (
+          <>
+            <Text style={styles.lab}>{t("health.fieldMortCause")}</Text>
+            <View style={styles.row}>
+              {MORTALITY_CAUSES.map((c) => (
+                <TouchableOpacity
+                  key={c}
+                  style={[styles.chip, mortCause === c && styles.chipOn]}
+                  onPress={() => setMortCause(c)}
+                >
+                  <Text style={styles.chipTx}>
+                    {t(`health.mortCause.${c}` as const)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {subjectType === "group" ? (
+              <>
+                <Text style={styles.lab}>{t("health.fieldHeadcount")}</Text>
+                <TextInput
+                  style={styles.input}
+                  value={mortHeads}
+                  onChangeText={setMortHeads}
+                  keyboardType="number-pad"
+                />
+              </>
             ) : null}
+            <Text style={styles.mortHint}>{t("health.mortalityHint")}</Text>
+          </>
+        ) : null}
+      </BaseModal>
+
+      <BaseModal
+        visible={linkOpen}
+        onClose={() => setLinkOpen(false)}
+        title={t("health.linkExpenseTitle")}
+        footerPrimary={
+          <View style={styles.modalActions}>
+            <Pressable onPress={() => setLinkOpen(false)}>
+              <Text style={styles.cancel}>{t("health.cancel")}</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                if (!linkRecordId || !linkExpenseId.trim()) {
+                  return;
+                }
+                linkMut.mutate();
+              }}
+              style={styles.saveBtn}
+            >
+              <Text style={styles.saveTx}>{t("health.linkSubmit")}</Text>
+            </Pressable>
           </View>
-        ))
-      )}
-    </View>
+        }
+      >
+        <Text style={styles.lab}>{t("health.fieldExpenseId")}</Text>
+        <TextInput
+          style={styles.input}
+          value={linkExpenseId}
+          onChangeText={setLinkExpenseId}
+          autoCapitalize="none"
+        />
+      </BaseModal>
+    </MobileAppShell>
   );
 }
 
@@ -946,10 +967,6 @@ const styles = StyleSheet.create({
     color: mobileColors.textPrimary,
     fontSize: 14
   },
-  alert: {
-    ...mobileTypography.meta,
-    color: mobileColors.warning
-  },
   err: { color: mobileColors.error },
   block: { marginBottom: mobileSpacing.sm },
   lab: {
@@ -972,48 +989,6 @@ const styles = StyleSheet.create({
   },
   chipTx: { fontSize: 13, color: mobileColors.textPrimary },
   row: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
-  section: { marginTop: mobileSpacing.md },
-  sectionHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between"
-  },
-  addBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: mobileColors.accentSoft,
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  addTx: { fontSize: 22, fontWeight: "700", color: mobileColors.success },
-  empty: { ...mobileTypography.meta, color: mobileColors.textSecondary },
-  rowItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: mobileSpacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: mobileColors.border
-  },
-  rowTx: { flex: 1, ...mobileTypography.body, fontSize: 14 },
-  linkTx: { color: mobileColors.accent, fontWeight: "600", fontSize: 13 },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "#0008",
-    justifyContent: "flex-end"
-  },
-  modalCard: {
-    backgroundColor: mobileColors.background,
-    padding: mobileSpacing.lg,
-    borderTopLeftRadius: mobileRadius.lg,
-    borderTopRightRadius: mobileRadius.lg,
-    maxHeight: "88%"
-  },
-  modalTitle: {
-    ...mobileTypography.cardTitle,
-    marginBottom: mobileSpacing.md
-  },
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,

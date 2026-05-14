@@ -19,6 +19,7 @@ import {
   completeMarketplaceHandover,
   fetchMarketplaceListing,
   patchMarketplacePickup,
+  postMarketplaceListingView,
   postMarketplaceOffer,
   publishMarketplaceListing,
   rejectMarketplaceOffer
@@ -77,6 +78,14 @@ export function MarketplaceListingDetailScreen({
       title: t && t.length > 0 ? t : "Annonce"
     });
   }, [navigation, q.data?.title, route.params.headline]);
+
+  useEffect(() => {
+    const L = q.data;
+    if (!L || L.status !== "published" || !accessToken) return;
+    void postMarketplaceListingView(accessToken, listingId, activeProfileId).catch(
+      () => undefined
+    );
+  }, [q.data?.id, q.data?.status, accessToken, listingId, activeProfileId]);
 
   useEffect(() => {
     const L = q.data;

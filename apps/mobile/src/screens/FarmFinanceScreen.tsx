@@ -5,8 +5,6 @@ import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
-  Image,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -17,7 +15,6 @@ import {
   useWindowDimensions,
   View
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
 import {
   FinanceBarChart,
   type FinanceBarDatum,
@@ -26,11 +23,9 @@ import {
   FinanceKpiCard
 } from "../components/finance";
 import { FinanceModuleGate } from "../components/FinanceModuleGate";
-import { ProducerEventsFab } from "../components/producer/ProducerEventsFab";
+import { EventList, type EventItem } from "../components/lists";
+import { useModal } from "../components/modals/useModal";
 import { useSession } from "../context/SessionContext";
-import { isDemoBypassToken } from "../lib/demoBypass";
-import { getSupabase } from "../lib/supabase";
-import { uploadFinanceProofToSupabase } from "../lib/uploadFinanceProofToSupabase";
 import type {
   FinanceCategoryDto,
   FinanceMergedTransactionDto,
@@ -47,8 +42,7 @@ import {
   fetchFinanceProjection,
   fetchFinanceReport,
   fetchFinanceSimulation,
-  fetchFinanceTransactions,
-  postFinanceTransaction
+  fetchFinanceTransactions
 } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
 import {
@@ -133,11 +127,12 @@ function currentYearUtc(): string {
 
 export function FarmFinanceScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
-  const { accessToken, activeProfileId, clientFeatures, authMe } = useSession();
+  const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
   const { t, i18n } = useTranslation();
   const { width: windowWidth } = useWindowDimensions();
   const localeStr = i18n.language === "en" ? "en-US" : "fr-FR";
+  const { open } = useModal();
 
   const [reportPeriod, setReportPeriod] = useState<"month" | "year">("month");
   const [reportMonth] = useState(() => currentMonthUtc());
@@ -145,15 +140,6 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [simHeads, setSimHeads] = useState("10");
   const [simPrice, setSimPrice] = useState("50000");
-
-  const [modalOpen, setModalOpen] = useState(false);
-  const [txType, setTxType] = useState<"expense" | "income">("expense");
-  const [txCategoryId, setTxCategoryId] = useState<string>("");
-  const [txAmount, setTxAmount] = useState("");
-  const [txLabel, setTxLabel] = useState("");
-  const [txDate, setTxDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [txRef, setTxRef] = useState("");
-  const [proofPhotoUri, setProofPhotoUri] = useState<string | null>(null);
 
   const [insightTab, setInsightTab] = useState<InsightTab>("revenus");
   const [showAllTransactions, setShowAllTransactions] = useState(false);
@@ -242,62 +228,6 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
     onError: (e: Error) => Alert.alert("Simulation", e.message)
   });
 
-  const postTx = useMutation({
-    mutationFn: async () => {
-      const note = t("financeScreen.noteRef", { ref: txRef });
-      let attachmentUrl: string | undefined;
-      if (proofPhotoUri) {
-        if (!isDemoBypassToken(accessToken!)) {
-          const supabase = getSupabase();
-          if (!supabase) {
-            throw new Error(t("financeScreen.proofNoSupabase"));
-          }
-          const mime =
-            proofPhotoUri.toLowerCase().endsWith(".png") ||
-            proofPhotoUri.includes("png")
-              ? "image/png"
-              : "image/jpeg";
-          try {
-            attachmentUrl = await uploadFinanceProofToSupabase(
-              supabase,
-              farmId,
-              txRef,
-              proofPhotoUri,
-              mime
-            );
-          } catch {
-            throw new Error(t("financeScreen.proofUploadError"));
-          }
-        }
-      }
-      return postFinanceTransaction(
-        accessToken!,
-        farmId,
-        {
-          type: txType,
-          financeCategoryId: txCategoryId || undefined,
-          amount: Number(txAmount.replace(",", ".")),
-          label: txLabel.trim(),
-          occurredAt: `${txDate}T12:00:00.000Z`,
-          attachmentUrl,
-          note
-        },
-        activeProfileId
-      );
-    },
-    onSuccess: () => {
-      setModalOpen(false);
-      setTxAmount("");
-      setTxLabel("");
-      setTxCategoryId("");
-      setProofPhotoUri(null);
-      void qc.invalidateQueries({ queryKey: ["financeOverview", farmId] });
-      void qc.invalidateQueries({ queryKey: ["financeTransactions", farmId] });
-      void qc.invalidateQueries({ queryKey: ["financeReport", farmId] });
-    },
-    onError: (e: Error) => Alert.alert(t("financeScreen.errorTitle"), e.message)
-  });
-
   const deleteMutation = useMutation({
     mutationFn: async (p: { kind: "expense" | "income"; id: string }) => {
       if (p.kind === "expense") {
@@ -314,40 +244,38 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
     onError: (e: Error) => Alert.alert("Suppression impossible", e.message)
   });
 
-  const pickProofPhoto = useCallback(async (source: "library" | "camera") => {
-    const perm =
-      source === "library"
-        ? await ImagePicker.requestMediaLibraryPermissionsAsync()
-        : await ImagePicker.requestCameraPermissionsAsync();
-    if (!perm.granted) {
-      return;
-    }
-    const result =
-      source === "library"
-        ? await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ["images"],
-            quality: 0.82,
-            allowsMultipleSelection: false
-          })
-        : await ImagePicker.launchCameraAsync({ quality: 0.82 });
-    if (!result.canceled && result.assets[0]?.uri) {
-      setProofPhotoUri(result.assets[0].uri);
-    }
-  }, []);
-
-  const openProofMenu = useCallback(() => {
-    Alert.alert(t("financeScreen.proofHint"), undefined, [
-      { text: t("financeScreen.cancel"), style: "cancel" },
-      {
-        text: t("producer.pickGallery"),
-        onPress: () => void pickProofPhoto("library")
-      },
-      {
-        text: t("producer.pickCamera"),
-        onPress: () => void pickProofPhoto("camera")
+  const goEdit = useCallback(
+    (txRow: FinanceMergedTransactionDto) => {
+      if (txRow.kind === "expense") {
+        navigation.navigate("EditFarmExpense", {
+          farmId,
+          farmName,
+          expenseId: txRow.id
+        });
+      } else {
+        navigation.navigate("EditFarmRevenue", {
+          farmId,
+          farmName,
+          revenueId: txRow.id
+        });
       }
-    ]);
-  }, [t, pickProofPhoto]);
+    },
+    [navigation, farmId, farmName]
+  );
+
+  const confirmDelete = useCallback(
+    (txRow: FinanceMergedTransactionDto) => {
+      open("confirm-delete", {
+        message: txRow.label,
+        onConfirm: () =>
+          deleteMutation.mutateAsync({
+            kind: txRow.kind,
+            id: txRow.id
+          })
+      });
+    },
+    [open, deleteMutation]
+  );
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -355,9 +283,21 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
         ? () => (
             <TouchableOpacity
               onPress={() => {
-                setTxRef(newFarmTransactionRef());
-                setProofPhotoUri(null);
-                setModalOpen(true);
+                if (!accessToken) {
+                  return;
+                }
+                const ov = overviewQ.data as FinanceOverviewDto | undefined;
+                open("transaction", {
+                  farmId,
+                  farmName,
+                  accessToken,
+                  activeProfileId,
+                  categories: (catQ.data ?? []) as FinanceCategoryDto[],
+                  batches: (batchesQ.data ?? []) as import("../lib/api").BatchListItem[],
+                  currencyCode: ov?.settings.currencyCode ?? "XOF",
+                  currencySymbol: ov?.settings.currencySymbol ?? "",
+                  transactionRef: newFarmTransactionRef()
+                });
               }}
               style={styles.headerBtn}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -367,17 +307,23 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
           )
         : undefined
     });
-  }, [navigation, clientFeatures.finance, t]);
+  }, [
+    navigation,
+    clientFeatures.finance,
+    t,
+    open,
+    accessToken,
+    farmId,
+    farmName,
+    activeProfileId,
+    overviewQ.data,
+    catQ.data,
+    batchesQ.data
+  ]);
 
   const overview = overviewQ.data as FinanceOverviewDto | undefined;
   const curCode = overview?.settings.currencyCode ?? "XOF";
   const curSym = overview?.settings.currencySymbol ?? "";
-
-  const categories = (catQ.data ?? []) as FinanceCategoryDto[];
-  const categoriesForType = useMemo(
-    () => categories.filter((c) => c.type === txType),
-    [categories, txType]
-  );
 
   const transactions = (txQ.data ?? []) as FinanceMergedTransactionDto[];
 
@@ -567,6 +513,86 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
     return base.slice(0, limit);
   }, [insightTab, showAllTransactions, txSorted]);
 
+  const financeEventItems = useMemo((): EventItem[] => {
+    return recentForTab.map((txRow) => {
+      const timeStr = new Date(txRow.occurredAt).toLocaleString(localeStr, {
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+      const signed =
+        txRow.kind === "income"
+          ? `+${formatMoney(txRow.amount, txRow.currency || curCode, curSym)}`
+          : `−${formatMoney(txRow.amount, txRow.currency || curCode, curSym)}`;
+      return {
+        id: `${txRow.kind}-${txRow.id}`,
+        title: txRow.label,
+        subtitle: `${txRow.kind === "income" ? t("financeScreen.income") : t("financeScreen.expense")}${txRow.categoryLabel ? ` · ${txRow.categoryLabel}` : ""}`,
+        value: signed,
+        valueType: txRow.kind === "income" ? "positive" : "negative",
+        date: timeStr,
+        iconType: txRow.kind === "income" ? "in" : "out",
+        meta: txRow
+      };
+    });
+  }, [recentForTab, localeStr, curCode, curSym, t]);
+
+  const renderFinanceTxDetail = useCallback(
+    (item: EventItem, { close }: { close: () => void }) => {
+      const txRow = item.meta as FinanceMergedTransactionDto;
+      const fullDate = new Date(txRow.occurredAt).toLocaleString(localeStr);
+      return (
+        <View style={{ paddingBottom: mobileSpacing.md }}>
+          <Text style={{ ...mobileTypography.body, color: mobileColors.textSecondary }}>
+            {fullDate}
+          </Text>
+          <Text
+            style={{
+              fontSize: 22,
+              fontWeight: "800",
+              color:
+                txRow.kind === "income" ? mobileColors.success : mobileColors.error,
+              marginTop: mobileSpacing.sm
+            }}
+          >
+            {item.value}
+          </Text>
+          {txRow.categoryLabel ? (
+            <Text style={{ ...mobileTypography.meta, marginTop: mobileSpacing.xs }}>
+              {txRow.categoryLabel}
+            </Text>
+          ) : null}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginTop: mobileSpacing.lg
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => {
+                close();
+                goEdit(txRow);
+              }}
+            >
+              <Text style={styles.rowEdit}>{t("financeScreen.editShort")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                close();
+                confirmDelete(txRow);
+              }}
+            >
+              <Text style={styles.rowDelete}>{t("financeScreen.deleteShort")}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    },
+    [confirmDelete, goEdit, localeStr, t]
+  );
+
   // ── Données graphiques : Projections ──────────────────────────────────────
   const projectionBarsNet = useMemo((): FinanceBarDatum[] => {
     if (!projection?.nextMonths.length) return [];
@@ -725,44 +751,6 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
       </View>
     );
   }
-
-  const goEdit = (txRow: FinanceMergedTransactionDto) => {
-    if (txRow.kind === "expense") {
-      navigation.navigate("EditFarmExpense", {
-        farmId,
-        farmName,
-        expenseId: txRow.id
-      });
-    } else {
-      navigation.navigate("EditFarmRevenue", {
-        farmId,
-        farmName,
-        revenueId: txRow.id
-      });
-    }
-  };
-
-  const confirmDelete = (txRow: FinanceMergedTransactionDto) => {
-    Alert.alert(
-      "Supprimer ?",
-      txRow.label,
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Supprimer",
-          style: "destructive",
-          onPress: () =>
-            deleteMutation.mutate({
-              kind: txRow.kind,
-              id: txRow.id
-            })
-        }
-      ]
-    );
-  };
-
-  const isProducer =
-    authMe?.profiles.find((p) => p.id === activeProfileId)?.type === "producer";
 
   return (
     <View style={styles.screenRoot}>
@@ -1045,77 +1033,13 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
           </Pressable>
         </View>
 
-        {recentForTab.length === 0 ? (
-          <Text style={styles.muted}>{t("financeScreen.noTx")}</Text>
-        ) : (
-          recentForTab.map((txRow) => {
-            const initials = (txRow.label || "?").trim().slice(0, 1).toUpperCase();
-            const timeStr = new Date(txRow.occurredAt).toLocaleString(localeStr, {
-              day: "numeric",
-              month: "short",
-              hour: "2-digit",
-              minute: "2-digit"
-            });
-            const signed =
-              txRow.kind === "income"
-                ? `+${formatMoney(txRow.amount, txRow.currency || curCode, curSym)}`
-                : `−${formatMoney(txRow.amount, txRow.currency || curCode, curSym)}`;
-            return (
-              <View key={`${txRow.kind}-${txRow.id}`} style={styles.txCard}>
-                <View style={styles.txRowTop}>
-                  <View
-                    style={[
-                      styles.txAvatar,
-                      {
-                        backgroundColor:
-                          txRow.kind === "income"
-                            ? mobileColors.accentSoft
-                            : mobileColors.surfaceMuted
-                      }
-                    ]}
-                  >
-                    <Text style={styles.txAvatarTx}>{initials}</Text>
-                  </View>
-                  <View style={styles.txMid}>
-                    <Text style={styles.txTitle} numberOfLines={1}>
-                      {txRow.label}
-                    </Text>
-                    <Text style={styles.txSub} numberOfLines={1}>
-                      {txRow.kind === "income"
-                        ? t("financeScreen.income")
-                        : t("financeScreen.expense")}
-                      {txRow.categoryLabel ? ` · ${txRow.categoryLabel}` : ""}
-                    </Text>
-                  </View>
-                  <View style={styles.txRight}>
-                    <Text
-                      style={[
-                        styles.txAmount,
-                        {
-                          color:
-                            txRow.kind === "income"
-                              ? mobileColors.success
-                              : mobileColors.error
-                        }
-                      ]}
-                    >
-                      {signed}
-                    </Text>
-                    <Text style={styles.txTime}>{timeStr}</Text>
-                  </View>
-                </View>
-                <View style={styles.txRowFoot}>
-                  <TouchableOpacity onPress={() => goEdit(txRow)}>
-                    <Text style={styles.rowEdit}>{t("financeScreen.editShort")}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => confirmDelete(txRow)}>
-                    <Text style={styles.rowDelete}>{t("financeScreen.deleteShort")}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          })
-        )}
+        <EventList
+          layout="embedded"
+          data={financeEventItems}
+          pageSize={999}
+          emptyMessage={t("financeScreen.noTx")}
+          renderDetail={renderFinanceTxDetail}
+        />
 
         <Text style={[styles.sectionTitle, styles.sp]}>{t("financeScreen.advancedTitle")}</Text>
 
@@ -1353,154 +1277,12 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
           {t("financeScreen.exportHint")}
         </Text>
       </ScrollView>
-
-      <Modal visible={modalOpen} animationType="slide" transparent>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t("financeScreen.modalTitle")}</Text>
-            <ScrollView
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              style={styles.modalScroll}
-            >
-              <Text style={styles.fieldLab}>{t("financeScreen.transactionRef")}</Text>
-              <View style={styles.refBox}>
-                <Text style={styles.refValue} selectable>
-                  {txRef || "—"}
-                </Text>
-              </View>
-              <Text style={styles.refHint}>{t("financeScreen.transactionRefHint")}</Text>
-
-              <View style={styles.rowBtns}>
-                <Pressable
-                  style={[styles.chip, txType === "expense" && styles.chipOn]}
-                  onPress={() => {
-                    setTxType("expense");
-                    setTxCategoryId("");
-                  }}
-                >
-                  <Text style={styles.chipTx}>{t("financeScreen.expense")}</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.chip, txType === "income" && styles.chipOn]}
-                  onPress={() => {
-                    setTxType("income");
-                    setTxCategoryId("");
-                  }}
-                >
-                  <Text style={styles.chipTx}>{t("financeScreen.income")}</Text>
-                </Pressable>
-              </View>
-              <Text style={styles.fieldLab}>{t("financeScreen.fieldCategory")}</Text>
-              <ScrollView style={styles.catScroll} nestedScrollEnabled>
-                {categoriesForType.map((c) => (
-                  <Pressable
-                    key={c.id}
-                    style={[
-                      styles.catRow,
-                      txCategoryId === c.id && styles.catRowOn
-                    ]}
-                    onPress={() => setTxCategoryId(c.id)}
-                  >
-                    <Text>
-                      {c.icon ? `${c.icon} ` : ""}
-                      {c.name}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-              <Text style={styles.fieldLab}>{t("financeScreen.fieldAmount")}</Text>
-              <TextInput
-                style={styles.input}
-                value={txAmount}
-                onChangeText={setTxAmount}
-                keyboardType="decimal-pad"
-              />
-              <Text style={styles.fieldLab}>{t("financeScreen.fieldDescription")}</Text>
-              <TextInput
-                style={styles.input}
-                value={txLabel}
-                onChangeText={setTxLabel}
-              />
-              <Text style={styles.fieldLab}>{t("financeScreen.fieldDate")}</Text>
-              <TextInput style={styles.input} value={txDate} onChangeText={setTxDate} />
-
-              <Text style={styles.fieldLab}>{t("financeScreen.proofHint")}</Text>
-              {proofPhotoUri ? (
-                <View style={styles.proofPreviewWrap}>
-                  <Image
-                    source={{ uri: proofPhotoUri }}
-                    style={styles.proofPreview}
-                    resizeMode="cover"
-                  />
-                  <View style={styles.proofBtnRow}>
-                    <TouchableOpacity onPress={openProofMenu}>
-                      <Text style={styles.rowEdit}>
-                        {t("financeScreen.changeProofPhoto")}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setProofPhotoUri(null)}>
-                      <Text style={styles.rowDelete}>
-                        {t("financeScreen.removeProofPhoto")}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={styles.proofAddBtn}
-                  onPress={openProofMenu}
-                >
-                  <Text style={styles.proofAddBtnTx}>{t("financeScreen.addProofPhoto")}</Text>
-                </TouchableOpacity>
-              )}
-            </ScrollView>
-            <View style={styles.modalActions}>
-              <TouchableOpacity onPress={() => setModalOpen(false)}>
-                <Text style={styles.rowEdit}>{t("financeScreen.cancel")}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  if (!txLabel.trim() || !txAmount.trim()) {
-                    Alert.alert(
-                      t("financeScreen.requiredTitle"),
-                      t("financeScreen.requiredBody")
-                    );
-                    return;
-                  }
-                  postTx.mutate();
-                }}
-                disabled={postTx.isPending}
-              >
-                {postTx.isPending ? (
-                  <ActivityIndicator size="small" color={mobileColors.accent} />
-                ) : (
-                  <Text style={styles.primaryInline}>{t("financeScreen.create")}</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-      {isProducer ? (
-        <View style={styles.fabLayer} pointerEvents="box-none">
-          <ProducerEventsFab
-            onPress={() => navigation.navigate("FarmEventsFeed")}
-          />
-        </View>
-      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screenRoot: { flex: 1, position: "relative" },
-  fabLayer: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: "flex-end",
-    alignItems: "flex-end",
-    pointerEvents: "box-none"
-  },
   scroll: { flex: 1, backgroundColor: mobileColors.surface },
   content: {
     padding: mobileSpacing.lg,
@@ -1621,62 +1403,6 @@ const styles = StyleSheet.create({
     color: mobileColors.accent,
     fontWeight: "700"
   },
-  txCard: {
-    backgroundColor: mobileColors.background,
-    borderRadius: mobileRadius.lg,
-    padding: mobileSpacing.md,
-    marginBottom: mobileSpacing.sm,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: mobileColors.border,
-    ...mobileShadows.card
-  },
-  txRowTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: mobileSpacing.md
-  },
-  txAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  txAvatarTx: {
-    fontSize: 17,
-    fontWeight: "800",
-    color: mobileColors.textPrimary
-  },
-  txMid: { flex: 1, minWidth: 0 },
-  txTitle: {
-    ...mobileTypography.body,
-    fontWeight: "700",
-    color: mobileColors.textPrimary
-  },
-  txSub: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary,
-    marginTop: 2
-  },
-  txRight: { alignItems: "flex-end" },
-  txAmount: {
-    fontSize: 15,
-    fontWeight: "800"
-  },
-  txTime: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary,
-    marginTop: 4
-  },
-  txRowFoot: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: mobileSpacing.lg,
-    marginTop: mobileSpacing.md,
-    paddingTop: mobileSpacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: mobileColors.border
-  },
   rowAmount: { fontSize: 16, fontWeight: "800", color: mobileColors.textPrimary },
   rowMeta: {
     fontSize: 13,
@@ -1760,95 +1486,6 @@ const styles = StyleSheet.create({
     color: mobileColors.accent,
     fontWeight: "700",
     fontSize: 15
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "flex-end"
-  },
-  modalCard: {
-    backgroundColor: mobileColors.surface,
-    padding: mobileSpacing.lg,
-    borderTopLeftRadius: mobileRadius.lg,
-    borderTopRightRadius: mobileRadius.lg,
-    maxHeight: "92%"
-  },
-  modalScroll: {
-    maxHeight: 420
-  },
-  refBox: {
-    backgroundColor: mobileColors.surfaceMuted,
-    borderRadius: mobileRadius.sm,
-    padding: mobileSpacing.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: mobileColors.border
-  },
-  refValue: {
-    ...mobileTypography.body,
-    fontWeight: "800",
-    letterSpacing: 0.5,
-    color: mobileColors.textPrimary
-  },
-  refHint: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary,
-    marginTop: mobileSpacing.xs,
-    marginBottom: mobileSpacing.sm
-  },
-  proofPreviewWrap: {
-    marginBottom: mobileSpacing.sm
-  },
-  proofPreview: {
-    width: "100%",
-    height: 160,
-    borderRadius: mobileRadius.md,
-    backgroundColor: mobileColors.surfaceMuted
-  },
-  proofBtnRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: mobileSpacing.sm
-  },
-  proofAddBtn: {
-    borderWidth: 1,
-    borderColor: mobileColors.border,
-    borderRadius: mobileRadius.md,
-    borderStyle: "dashed",
-    paddingVertical: mobileSpacing.md,
-    alignItems: "center",
-    marginBottom: mobileSpacing.sm
-  },
-  proofAddBtnTx: {
-    color: mobileColors.accent,
-    fontWeight: "700"
-  },
-  modalTitle: {
-    ...mobileTypography.cardTitle,
-    color: mobileColors.textPrimary,
-    marginBottom: mobileSpacing.md
-  },
-  fieldLab: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: mobileColors.textSecondary,
-    marginTop: mobileSpacing.sm
-  },
-  catScroll: { maxHeight: 160, marginBottom: mobileSpacing.sm },
-  catRow: {
-    padding: mobileSpacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: mobileColors.border
-  },
-  catRowOn: { backgroundColor: mobileColors.accentSoft },
-  modalActions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: mobileSpacing.md
-  },
-  primaryInline: {
-    color: mobileColors.accent,
-    fontWeight: "800",
-    fontSize: 16
   },
   // ── Projections ─────────────────────────────────────────────────────────
   projMonthRow: {

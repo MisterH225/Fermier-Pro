@@ -14,22 +14,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { GoogleOAuthButton } from "../components/GoogleOAuthButton";
 import { PhoneOtpAuth } from "../components/PhoneOtpAuth";
-import { getExpoPublicEnv, isApiUrlConfigured, isAuthEnvConfigured } from "../env";
+import { isAuthEnvConfigured } from "../env";
 import { authColors, authRadii } from "../theme/authTheme";
 
 const LOGO = require("../../assets/images/fermier-pro-logo-nobg.png");
-
-function supabaseHostLabel(): string {
-  const raw = getExpoPublicEnv().supabaseUrl.trim();
-  if (!raw) {
-    return "";
-  }
-  try {
-    return new URL(raw).host;
-  } catch {
-    return "(URL invalide)";
-  }
-}
 
 export type LoginGateScreenProps = {
   /** Voir `isDemoNavigationOffered()` : `__DEV__` ou `EXPO_PUBLIC_AUTH_BYPASS`. */
@@ -42,14 +30,13 @@ export type LoginGateScreenProps = {
 };
 
 /**
- * Écran avant session : logo, charte maquette, configuration .env + OTP téléphone.
+ * Écran avant session : logo, accès démo optionnel, Google, OTP SMS.
  */
 export function LoginGateScreen({
   bypassAllowed = false,
   onEnterDemoBypass
 }: LoginGateScreenProps) {
   const authOk = isAuthEnvConfigured();
-  const [showDiag, setShowDiag] = useState(false);
   /** OTP masqué par défaut quand le mode démo est proposé (dev / AUTH_BYPASS). */
   const [showSmsLogin, setShowSmsLogin] = useState(false);
   const { width: winW } = useWindowDimensions();
@@ -83,10 +70,6 @@ export function LoginGateScreen({
 
           {bypassAllowed && onEnterDemoBypass ? (
             <View style={styles.bypassBlock}>
-              <Text style={styles.bypassHint}>
-                Parcours les écrans sans compte (données démo côté profil ; API
-                réelle si EXPO_PUBLIC_API_URL est joignable).
-              </Text>
               <TouchableOpacity
                 style={styles.bypassBtn}
                 onPress={onEnterDemoBypass}
@@ -115,9 +98,8 @@ export function LoginGateScreen({
                   style={styles.warnIcon}
                 />
                 <Text style={styles.infoCardText}>
-                  Supabase non configuré : la connexion Google ou par SMS sera
-                  disponible après copie de .env.example vers .env et renseignement des
-                  clés. En attendant, utilise le bouton ci-dessus.
+                  La connexion Google et par SMS ne sont pas disponibles pour le
+                  moment. Tu peux utiliser le mode démo ci-dessus.
                 </Text>
               </View>
             ) : (
@@ -129,8 +111,7 @@ export function LoginGateScreen({
                   style={styles.warnIcon}
                 />
                 <Text style={styles.warnText}>
-                  Copiez apps/mobile/.env.example vers .env et renseignez
-                  EXPO_PUBLIC_SUPABASE_URL et EXPO_PUBLIC_SUPABASE_ANON_KEY.
+                  La connexion n’est pas encore configurée sur cet appareil.
                 </Text>
               </View>
             )
@@ -179,41 +160,6 @@ export function LoginGateScreen({
               </TouchableOpacity>
             </>
           ) : null}
-
-          <TouchableOpacity
-            style={styles.diagToggle}
-            onPress={() => setShowDiag((v) => !v)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.diagToggleText}>
-              {showDiag ? "Masquer la configuration" : "Configuration API"}
-            </Text>
-            <Ionicons
-              name={showDiag ? "chevron-up" : "chevron-down"}
-              size={18}
-              color={authColors.placeholder}
-              style={styles.diagChevron}
-            />
-          </TouchableOpacity>
-
-          {showDiag ? (
-            <View style={styles.diagBox}>
-              <Text style={styles.okInline} selectable>
-                Supabase (hôte) : {supabaseHostLabel() || "—"}
-              </Text>
-              {!isApiUrlConfigured() ? (
-                <Text style={[styles.warnInline, styles.diagSecond]}>
-                  Ajoutez EXPO_PUBLIC_API_URL pour charger vos fermes (ex.
-                  http://10.0.2.2:3000 sur émulateur Android, IP LAN sur
-                  téléphone).
-                </Text>
-              ) : (
-                <Text style={[styles.okInline, styles.diagSecond]} selectable>
-                  API : {process.env.EXPO_PUBLIC_API_URL}
-                </Text>
-              )}
-            </View>
-          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -244,9 +190,6 @@ const styles = StyleSheet.create({
   logo: {
     marginBottom: 0,
     alignSelf: "center"
-  },
-  diagSecond: {
-    marginTop: 10
   },
   lead: {
     fontSize: 15,
@@ -316,13 +259,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     width: "100%"
   },
-  bypassHint: {
-    fontSize: 12,
-    color: authColors.placeholder,
-    textAlign: "center",
-    lineHeight: 17,
-    marginBottom: 12
-  },
   authOrRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -356,34 +292,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: authColors.forest
-  },
-  diagToggle: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 28
-  },
-  diagToggleText: {
-    fontSize: 14,
-    color: authColors.placeholder,
-    fontWeight: "500"
-  },
-  diagChevron: {
-    marginLeft: 6
-  },
-  diagBox: {
-    marginTop: 12,
-    paddingHorizontal: 4
-  },
-  warnInline: {
-    fontSize: 13,
-    color: authColors.body,
-    lineHeight: 19,
-    textAlign: "center"
-  },
-  okInline: {
-    fontSize: 13,
-    color: authColors.forestMuted,
-    textAlign: "center"
   }
 });

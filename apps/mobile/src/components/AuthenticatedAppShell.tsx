@@ -13,6 +13,8 @@ import {
 } from "../lib/queryPersist";
 import { queryClient } from "../lib/queryClient";
 import { isDemoBypassToken } from "../lib/demoBypass";
+import { AppModalsLayer } from "./modals";
+import { ModalProvider } from "../context/ModalContext";
 import { MainNavigationShell } from "./MainNavigationShell";
 import { FirstConnectionProfileScreen } from "../screens/FirstConnectionProfileScreen";
 
@@ -63,7 +65,10 @@ export function AuthenticatedAppShell() {
         }
       }}
     >
-      <MainNavigationShell />
+      <ModalProvider>
+        <MainNavigationShell />
+        <AppModalsLayer />
+      </ModalProvider>
     </PersistQueryClientProvider>
   );
 }

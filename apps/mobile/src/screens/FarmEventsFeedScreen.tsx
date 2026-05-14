@@ -1,17 +1,12 @@
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { EventCard } from "../components/farm";
 import { MobileAppShell } from "../components/layout";
 import { useSession } from "../context/SessionContext";
-import { dashboardRouteForActiveProfileType } from "../lib/dashboardHomeRoute";
 import { fetchFarmHealthEvents, fetchFarms } from "../lib/api";
-import { producerShellTabs } from "../lib/producerShellTabs";
 import { resolveProducerHomeFarm } from "../lib/producerHomeFarm";
 import { mobileColors, mobileSpacing, mobileTypography } from "../theme/mobileTheme";
-import type { RootStackParamList } from "../types/navigation";
 
 /**
  * Fil d’événements terrain : dossiers santé ferme (`GET /farms/:id/health/events`).
@@ -19,9 +14,7 @@ import type { RootStackParamList } from "../types/navigation";
 export function FarmEventsFeedScreen() {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "en" ? "en" : "fr";
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { accessToken, activeProfileId, authMe, clientFeatures } = useSession();
+  const { accessToken, activeProfileId, authMe } = useSession();
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
   const isProducer = profileType === "producer";
 
@@ -34,10 +27,6 @@ export function FarmEventsFeedScreen() {
   });
 
   const producerHome = resolveProducerHomeFarm(authMe, farmsQuery.data);
-
-  const shellTabs = producerShellTabs(
-    Boolean(isProducer && clientFeatures.finance)
-  );
 
   const eventsQuery = useQuery({
     queryKey: [
@@ -54,26 +43,6 @@ export function FarmEventsFeedScreen() {
       ),
     enabled: Boolean(accessToken && producerHome?.id && isProducer)
   });
-
-  const goHome = () => {
-    const route = dashboardRouteForActiveProfileType(profileType);
-    switch (route) {
-      case "ProducerDashboard":
-        navigation.navigate("ProducerDashboard");
-        break;
-      case "BuyerDashboard":
-        navigation.navigate("BuyerDashboard");
-        break;
-      case "VeterinarianDashboard":
-        navigation.navigate("VeterinarianDashboard");
-        break;
-      case "TechnicianDashboard":
-        navigation.navigate("TechnicianDashboard");
-        break;
-      default:
-        navigation.navigate("ProducerDashboard");
-    }
-  };
 
   const formatTs = (iso: string) => {
     const d = new Date(iso);
@@ -106,34 +75,7 @@ export function FarmEventsFeedScreen() {
   };
 
   return (
-    <MobileAppShell
-      title={t("eventsFeed.title")}
-      omitBottomTabBar={isProducer}
-      activeTab={isProducer ? undefined : "home"}
-      tabBarTabs={isProducer ? undefined : shellTabs}
-      onTabChange={
-        isProducer
-          ? undefined
-          : (tab) => {
-              if (tab === "home") {
-                goHome();
-              }
-              if (tab === "cheptel") {
-                if (profileType === "buyer") {
-                  navigation.navigate("MarketplaceMyListings");
-                  return;
-                }
-                navigation.navigate("FarmList");
-              }
-              if (tab === "health") {
-                navigation.navigate("FarmList");
-              }
-              if (tab === "profile") {
-                navigation.navigate("Account");
-              }
-            }
-      }
-    >
+    <MobileAppShell title={t("eventsFeed.title")} omitBottomTabBar={isProducer}>
       <ScrollView contentContainerStyle={styles.wrap}>
         <Text style={styles.intro}>{t("eventsFeed.intro")}</Text>
         {!isProducer || !producerHome ? (

@@ -184,27 +184,13 @@ export class FinanceController {
     @Res() res: Response,
     @Query("format") format = "csv",
     @Query("from") from?: string,
-    @Query("to") to?: string,
-    @Query("period") period: "month" | "year" = "month",
-    @Query("month") month?: string,
-    @Query("year") year?: string
+    @Query("to") to?: string
   ) {
     const fmt = (format || "csv").toLowerCase();
     if (fmt === "pdf") {
-      const buf = await this.finance.financeExportPdf(
-        user,
-        farmId,
-        period,
-        month,
-        year
+      throw new BadRequestException(
+        "Export PDF finance retiré : utilisez le menu Rapports (rapport ferme unifié, PDF serveur)."
       );
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader(
-        "Content-Disposition",
-        'attachment; filename="rapport-finance.pdf"'
-      );
-      res.send(buf);
-      return;
     }
     const csv = await this.finance.financeExportCsv(user, farmId, from, to);
     res.setHeader("Content-Type", "text/csv; charset=utf-8");

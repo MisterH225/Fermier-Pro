@@ -48,11 +48,30 @@ export class OffersService {
         "Vous ne pouvez pas offrir sur votre propre annonce"
       );
     }
+    const hasTotal =
+      dto.offeredPrice != null && Number.isFinite(dto.offeredPrice);
+    const hasPerKg =
+      dto.proposedPricePerKg != null &&
+      listing.totalWeightKg != null &&
+      Number.isFinite(dto.proposedPricePerKg);
+    if (!hasTotal && !hasPerKg) {
+      throw new BadRequestException(
+        "Indique un prix total d'offre ou un prix/kg (l'annonce doit avoir un poids total pour le prix/kg)."
+      );
+    }
+    const offeredNumber = hasPerKg
+      ? dto.proposedPricePerKg! * listing.totalWeightKg!.toNumber()
+      : dto.offeredPrice!;
     return this.prisma.marketplaceOffer.create({
       data: {
         listingId,
         buyerUserId: user.id,
-        offeredPrice: new Prisma.Decimal(dto.offeredPrice),
+        buyerFarmId: dto.buyerFarmId?.trim() || null,
+        proposedPricePerKg:
+          dto.proposedPricePerKg != null
+            ? new Prisma.Decimal(dto.proposedPricePerKg)
+            : null,
+        offeredPrice: new Prisma.Decimal(offeredNumber),
         quantity: dto.quantity ?? null,
         message: dto.message ?? null
       }

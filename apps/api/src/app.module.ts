@@ -1,6 +1,7 @@
 import { ThrottlerStorageRedisService } from "@nest-lab/throttler-storage-redis";
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
+import { ScheduleModule } from "@nestjs/schedule";
 import { APP_GUARD } from "@nestjs/core";
 import {
   ThrottlerGuard,
@@ -31,6 +32,8 @@ import { VetConsultationsModule } from "./vet-consultations/vet-consultations.mo
 import { FeedStockModule } from "./feed-stock/feed-stock.module";
 import { FarmHealthModule } from "./farm-health/farm-health.module";
 import { MemberActivityLogsModule } from "./member-activity-logs/member-activity-logs.module";
+import { SmartAlertsModule } from "./smart-alerts/smart-alerts.module";
+import { ReportsModule } from "./reports/reports.module";
 
 @Module({
   imports: [
@@ -43,6 +46,7 @@ import { MemberActivityLogsModule } from "./member-activity-logs/member-activity
         "../../.env"
       ]
     }),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -86,7 +90,9 @@ import { MemberActivityLogsModule } from "./member-activity-logs/member-activity
     VetConsultationsModule,
     FeedStockModule,
     FarmHealthModule,
-    MemberActivityLogsModule
+    MemberActivityLogsModule,
+    SmartAlertsModule,
+    ReportsModule
   ],
   controllers: [AppController],
   providers: [

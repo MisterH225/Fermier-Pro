@@ -207,42 +207,102 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(accepted.body?.ok).toBe(true);
   });
 
-  it("GET /farms/:farmId/feed-stock-lots + POST lot + PATCH consume", async () => {
-    const empty = await request(app.getHttpServer())
-      .get(`/api/v1/farms/${ctx.farmId}/feed-stock-lots`)
+  it("GET /farms/:farmId/feed/types + overview + chart + stats + POST movement entrée", async () => {
+    const types0 = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/feed/types`)
       .set("Authorization", `Bearer ${ctx.token}`);
-    expect(empty.status).toBe(200);
-    expect(Array.isArray(empty.body)).toBe(true);
+    expect(types0.status).toBe(200);
+    expect(Array.isArray(types0.body)).toBe(true);
 
-    const created = await request(app.getHttpServer())
-      .post(`/api/v1/farms/${ctx.farmId}/feed-stock-lots`)
+    const createdType = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/feed/types`)
       .set("Authorization", `Bearer ${ctx.token}`)
       .send({
-        productName: "Aliment contrat e2e",
-        quantityKg: 100
+        name: "Aliment contrat e2e",
+        unit: "kg",
+        color: "#111111"
       });
-    expect(created.status).toBeGreaterThanOrEqual(200);
-    expect(created.status).toBeLessThan(300);
-    const lotId = created.body?.id as string;
-    expect(lotId).toBeDefined();
+    expect(createdType.status).toBeGreaterThanOrEqual(200);
+    expect(createdType.status).toBeLessThan(300);
+    const typeId = createdType.body?.id as string;
+    expect(typeId).toBeDefined();
 
-    const consumed = await request(app.getHttpServer())
-      .patch(
-        `/api/v1/farms/${ctx.farmId}/feed-stock-lots/${lotId}/consume`
-      )
+    const postIn = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/feed/movements`)
       .set("Authorization", `Bearer ${ctx.token}`)
-      .send({ kg: 12.5 });
-    expect(consumed.status).toBeGreaterThanOrEqual(200);
-    expect(consumed.status).toBeLessThan(300);
-    expect(Number(consumed.body?.remainingKg)).toBeCloseTo(87.5, 5);
+      .send({
+        kind: "in",
+        feedTypeId: typeId,
+        quantityInput: 100,
+        quantityUnit: "kg"
+      });
+    expect(postIn.status).toBeGreaterThanOrEqual(200);
+    expect(postIn.status).toBeLessThan(300);
+    expect(Number(postIn.body?.stockAfterKg)).toBeCloseTo(100, 3);
 
-    const listed = await request(app.getHttpServer())
-      .get(`/api/v1/farms/${ctx.farmId}/feed-stock-lots`)
+    const overview = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/feed/overview`)
       .set("Authorization", `Bearer ${ctx.token}`);
-    expect(listed.status).toBe(200);
-    expect(
-      listed.body.some((row: { id: string }) => row.id === lotId)
-    ).toBe(true);
+    expect(overview.status).toBe(200);
+    expect(overview.body?.farmId).toBe(ctx.farmId);
+
+    const chart = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/feed/chart`)
+      .query({ period: "6m" })
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(chart.status).toBe(200);
+    expect(Array.isArray(chart.body?.monthKeys)).toBe(true);
+    expect(Array.isArray(chart.body?.series)).toBe(true);
+
+    const stats = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/feed/stats`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(stats.status).toBe(200);
+    expect(Array.isArray(stats.body?.items)).toBe(true);
+
+    const movements = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/feed/movements`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(movements.status).toBe(200);
+    expect(Array.isArray(movements.body)).toBe(true);
+
+    const sacType = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/feed/types`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        name: "Aliment sac e2e",
+        unit: "sac",
+        weightPerBagKg: 25,
+        color: "#222222"
+      });
+    expect(sacType.status).toBeGreaterThanOrEqual(200);
+    expect(sacType.status).toBeLessThan(300);
+    const sacId = sacType.body?.id as string;
+
+    const inSac = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/feed/movements`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        kind: "in",
+        feedTypeId: sacId,
+        quantityInput: 8,
+        quantityUnit: "sac"
+      });
+    expect(inSac.status).toBeGreaterThanOrEqual(200);
+    expect(inSac.status).toBeLessThan(300);
+    expect(Number(inSac.body?.stockAfterKg)).toBeCloseTo(200, 3);
+
+    const check = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/feed/movements`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        kind: "stock_check",
+        feedTypeId: sacId,
+        bagsCounted: 5
+      });
+    expect(check.status).toBeGreaterThanOrEqual(200);
+    expect(check.status).toBeLessThan(300);
+    expect(Number(check.body?.stockAfterKg)).toBeCloseTo(125, 3);
   });
 
   it("GET /chat/directory/users (recherche annuaire)", async () => {
@@ -831,6 +891,59 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(feed.status).toBe(200);
     expect(feed.body?.farmId).toBe(ctx.farmId);
     expect(Array.isArray(feed.body?.items)).toBe(true);
+  });
+
+  it("GET rapports preview + score + liste + POST generate + GET rapport + PDF", async () => {
+    const auth = {
+      Authorization: `Bearer ${ctx.token}`,
+      "X-Profile-Id": ctx.producerProfileId
+    };
+    const y = new Date().getUTCFullYear();
+    const m = new Date().getUTCMonth() + 1;
+    const prev = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/reports/preview`)
+      .query({ periodType: "monthly", year: String(y), month: String(m) })
+      .set(auth);
+    expect(prev.status).toBe(200);
+    expect(typeof prev.body?.score?.global).toBe("number");
+    expect(prev.body?.sections?.finance).toBeDefined();
+
+    const score = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/score`)
+      .query({ year: String(y), month: String(m) })
+      .set(auth);
+    expect(score.status).toBe(200);
+    expect(typeof score.body?.scoreGlobal).toBe("number");
+
+    const gen = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/reports/generate`)
+      .set(auth)
+      .send({
+        periodType: "monthly",
+        anchor: { year: y, month: m }
+      });
+    expect(gen.status).toBe(201);
+    expect(gen.body?.id).toBeDefined();
+
+    const list = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/reports`)
+      .set(auth);
+    expect(list.status).toBe(200);
+    expect(Array.isArray(list.body)).toBe(true);
+
+    const reportId = gen.body.id as string;
+    const one = await request(app.getHttpServer())
+      .get(`/api/v1/reports/${reportId}`)
+      .set({ Authorization: `Bearer ${ctx.token}` });
+    expect(one.status).toBe(200);
+    expect(one.body?.farmId).toBe(ctx.farmId);
+
+    const pdf = await request(app.getHttpServer())
+      .get(`/api/v1/reports/${reportId}/pdf`)
+      .set({ Authorization: `Bearer ${ctx.token}` });
+    expect(pdf.status).toBe(200);
+    expect(String(pdf.headers["content-type"] || "")).toContain("pdf");
+    expect(Buffer.byteLength(pdf.body as Buffer)).toBeGreaterThan(500);
   });
 
   it("GET ferme santé (overview, upcoming, mortality, events) + POST dossier + lien dépense", async () => {

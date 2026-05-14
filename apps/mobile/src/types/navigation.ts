@@ -113,5 +113,6 @@ export type RootStackParamList = {
   /** Écran principal Collaboration (onglet barre basse). */
   Collaboration: { farmId: string; farmName: string };
   FarmFeedStock: { farmId: string; farmName: string };
-  CreateFeedPurchase: { farmId: string; farmName: string };
+  SmartAlertsList: { farmId: string; farmName: string };
+  FarmReports: { farmId: string; farmName: string };
 };

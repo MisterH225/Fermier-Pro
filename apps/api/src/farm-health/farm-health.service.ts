@@ -19,6 +19,7 @@ import { FarmAccessService } from "../common/farm-access.service";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
 import { FinanceService } from "../finance/finance.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import { CreateFarmHealthRecordDto } from "./dto/create-farm-health-record.dto";
 
 function num(v: unknown): number | null {
@@ -47,7 +48,8 @@ export class FarmHealthService {
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
     private readonly audit: AuditService,
-    private readonly finance: FinanceService
+    private readonly finance: FinanceService,
+    private readonly smartAlerts: SmartAlertsService
   ) {}
 
   private async loadFarm(farmId: string) {
@@ -209,18 +211,6 @@ export class FarmHealthService {
         ? (dead / Math.max(1, activeHead + dead)).toFixed(4)
         : "0";
 
-    const overdueVac = await this.prisma.healthVaccinationDetail.count({
-      where: {
-        healthRecord: { farmId },
-        nextReminderAt: { lt: now }
-      }
-    });
-
-    const alerts: string[] = [];
-    if (overdueVac > 0) {
-      alerts.push(`${overdueVac} rappel(s) vaccin en retard`);
-    }
-
     const nextOpenVet = await this.prisma.vetConsultation.findFirst({
       where: {
         farmId,
@@ -254,8 +244,7 @@ export class FarmHealthService {
             openedAt: nextOpenVet.openedAt.toISOString()
           }
         : null,
-      mortalityRate30d,
-      alerts
+      mortalityRate30d
     };
   }
 
@@ -533,6 +522,8 @@ export class FarmHealthService {
       resourceId: row.id,
       metadata: { kind: dto.kind, entityType: dto.entityType }
     });
+
+    void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
 
     return this.prisma.farmHealthRecord.findUniqueOrThrow({
       where: { id: row.id },

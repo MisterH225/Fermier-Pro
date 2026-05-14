@@ -40,21 +40,6 @@ export function BuyerDashboardScreen() {
   return (
     <MobileAppShell
       title="Espace acheteur"
-      activeTab="home"
-      onTabChange={(tab) => {
-        if (tab === "home") {
-          return;
-        }
-        if (tab === "cheptel") {
-          navigation.navigate("MarketplaceMyListings");
-        }
-        if (tab === "health") {
-          navigation.navigate("FarmEventsFeed");
-        }
-        if (tab === "profile") {
-          navigation.navigate("Account");
-        }
-      }}
       topRight={<IconButton icon="search" onPress={() => navigation.navigate("MarketplaceList")} />}
     >
       <ScrollView contentContainerStyle={styles.wrap}>

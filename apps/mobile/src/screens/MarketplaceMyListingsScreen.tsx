@@ -1,9 +1,8 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
-import { useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -11,23 +10,31 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { EventList, type EventItem } from "../components/lists";
+import type { FilterPill } from "../components/lists/types";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
 import { useSession } from "../context/SessionContext";
 import type { MarketplaceListingListItem } from "../lib/api";
 import { fetchMarketplaceListings } from "../lib/api";
 import { listingStatusLabel } from "../lib/marketplaceLabels";
+import {
+  mobileColors,
+  mobileRadius,
+  mobileSpacing,
+  mobileTypography
+} from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MarketplaceMyListings">;
 
 type ListingFilter = "all" | "draft" | "published" | "sold" | "cancelled";
 
-const FILTERS: { key: ListingFilter; label: string }[] = [
-  { key: "all", label: "Toutes" },
-  { key: "draft", label: "Brouillons" },
-  { key: "published", label: "Publiées" },
-  { key: "sold", label: "Vendues" },
-  { key: "cancelled", label: "Annulées" }
+const FILTER_PILLS: FilterPill[] = [
+  { id: "all", label: "Toutes" },
+  { id: "draft", label: "Brouillons" },
+  { id: "published", label: "Publiées" },
+  { id: "sold", label: "Vendues" },
+  { id: "cancelled", label: "Annulées" }
 ];
 
 function formatPrice(
@@ -80,6 +87,39 @@ export function MarketplaceMyListingsScreen({ navigation }: Props) {
   const err =
     q.error instanceof Error ? q.error.message : q.error ? String(q.error) : null;
 
+  const rows = q.data ?? [];
+
+  const kpis = useMemo(() => {
+    let views = 0;
+    let consults = 0;
+    for (const r of rows) {
+      views += r.viewsCount ?? 0;
+      consults += r.consultationsCount ?? 0;
+    }
+    return { views, consults, n: rows.length };
+  }, [rows]);
+
+  const eventItems = useMemo((): EventItem[] => {
+    return rows.map((item) => {
+      const statusLab = listingStatusLabel(item.status);
+      const farm = item.farm?.name;
+      const priceLine =
+        item.totalPrice != null
+          ? `${typeof item.totalPrice === "string" ? item.totalPrice : String(item.totalPrice)} ${item.currency}`
+          : formatPrice(item.unitPrice, item.currency);
+      return {
+        id: item.id,
+        title: item.title,
+        subtitle: [statusLab, farm].filter(Boolean).join(" · "),
+        value: priceLine,
+        valueType: "neutral",
+        date: new Date(item.updatedAt).toLocaleDateString("fr-FR"),
+        iconType: item.status === "sold" ? "out" : item.status === "published" ? "in" : "check",
+        meta: item
+      };
+    });
+  }, [rows]);
+
   if (!clientFeatures.marketplace) {
     return (
       <MarketplaceModuleGate>
@@ -91,7 +131,7 @@ export function MarketplaceMyListingsScreen({ navigation }: Props) {
   if (q.isPending) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#5d7a1f" />
+        <ActivityIndicator size="large" color={mobileColors.accent} />
       </View>
     );
   }
@@ -104,100 +144,82 @@ export function MarketplaceMyListingsScreen({ navigation }: Props) {
     );
   }
 
-  const rows = q.data ?? [];
+  const emptyMessage =
+    filter === "all"
+      ? "Tu n'as pas encore d'annonce. Utilise « Créer » pour en ajouter une."
+      : "Aucune annonce dans ce filtre.";
 
   return (
-    <FlatList
-      data={rows}
-      keyExtractor={(item) => item.id}
-      contentContainerStyle={styles.list}
-      refreshControl={
-        <RefreshControl refreshing={q.isFetching} onRefresh={() => void q.refetch()} />
-      }
-      ListHeaderComponent={
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
-        >
-          {FILTERS.map(({ key, label }) => (
-            <TouchableOpacity
-              key={key}
-              style={[styles.filterChip, filter === key && styles.filterChipOn]}
-              onPress={() => setFilter(key)}
-            >
-              <Text
-                style={[styles.filterChipTxt, filter === key && styles.filterChipTxtOn]}
-              >
-                {label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      }
-      ListEmptyComponent={
-        <Text style={styles.empty}>
-          {filter === "all"
-            ? "Tu n&apos;as pas encore d&apos;annonce. Utilise « Créer » pour en ajouter une."
-            : "Aucune annonce dans ce filtre."}
-        </Text>
-      }
-      renderItem={({ item }: { item: MarketplaceListingListItem }) => (
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() =>
+    <View style={styles.root}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        refreshControl={
+          <RefreshControl refreshing={q.isFetching} onRefresh={() => void q.refetch()} />
+        }
+      >
+        <View style={styles.kpiRow}>
+          <View style={styles.kpiCard}>
+            <Text style={styles.kpiVal}>{kpis.n}</Text>
+            <Text style={styles.kpiLab}>Annonces</Text>
+          </View>
+          <View style={styles.kpiCard}>
+            <Text style={styles.kpiVal}>{kpis.views}</Text>
+            <Text style={styles.kpiLab}>Vues</Text>
+          </View>
+          <View style={styles.kpiCard}>
+            <Text style={styles.kpiVal}>{kpis.consults}</Text>
+            <Text style={styles.kpiLab}>Consultations</Text>
+          </View>
+        </View>
+        <EventList
+          layout="embedded"
+          data={eventItems}
+          filters={FILTER_PILLS}
+          activeFilterId={filter}
+          onFilterChange={(id) => setFilter(id as ListingFilter)}
+          emptyMessage={emptyMessage}
+          onItemPress={(it) => {
+            const item = it.meta as MarketplaceListingListItem;
             navigation.navigate("MarketplaceListingDetail", {
               listingId: item.id,
               headline: item.title
-            })
-          }
-        >
-          <Text style={styles.cardTitle}>{item.title}</Text>
-          <Text style={styles.badge}>{listingStatusLabel(item.status)}</Text>
-          <Text style={styles.price}>
-            {formatPrice(item.unitPrice, item.currency)}
-            {item.quantity != null ? ` · ${item.quantity} unité(s)` : ""}
-          </Text>
-          {item.farm ? (
-            <Text style={styles.meta}>Ferme : {item.farm.name}</Text>
-          ) : null}
-          {item.animal ? (
-            <Text style={styles.meta}>Animal : {item.animal.publicId}</Text>
-          ) : null}
-        </TouchableOpacity>
-      )}
-    />
+            });
+          }}
+        />
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  list: {
-    padding: 16,
-    paddingBottom: 32
+  root: { flex: 1, backgroundColor: "#F5F5F5" },
+  scroll: {
+    padding: mobileSpacing.lg,
+    paddingBottom: mobileSpacing.xxl
   },
-  filterRow: {
-    paddingBottom: 12
+  kpiRow: {
+    flexDirection: "row",
+    gap: mobileSpacing.sm,
+    marginBottom: mobileSpacing.md
   },
-  filterChip: {
-    borderWidth: 1,
-    borderColor: "#c8d4b0",
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    marginRight: 8,
-    backgroundColor: "#fff"
+  kpiCard: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderRadius: mobileRadius.md,
+    padding: mobileSpacing.sm,
+    alignItems: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.border
   },
-  filterChipOn: {
-    backgroundColor: "#5d7a1f",
-    borderColor: "#5d7a1f"
+  kpiVal: {
+    ...mobileTypography.cardTitle,
+    fontSize: 18,
+    color: mobileColors.textPrimary
   },
-  filterChipTxt: {
-    fontSize: 14,
-    color: "#1f2910"
-  },
-  filterChipTxtOn: {
-    color: "#fff",
-    fontWeight: "600"
+  kpiLab: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: 2
   },
   centered: {
     flex: 1,
@@ -209,47 +231,5 @@ const styles = StyleSheet.create({
   error: {
     color: "#b00020",
     textAlign: "center"
-  },
-  empty: {
-    textAlign: "center",
-    color: "#6d745b",
-    marginTop: 24,
-    fontStyle: "italic"
-  },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#e0e4d4"
-  },
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#1f2910"
-  },
-  badge: {
-    marginTop: 8,
-    alignSelf: "flex-start",
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#5d7a1f",
-    backgroundColor: "#e8efd8",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    overflow: "hidden"
-  },
-  price: {
-    marginTop: 10,
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#4b513d"
-  },
-  meta: {
-    marginTop: 6,
-    fontSize: 13,
-    color: "#6d745b"
   }
 });

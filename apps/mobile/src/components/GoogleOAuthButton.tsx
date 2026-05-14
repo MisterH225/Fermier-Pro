@@ -8,17 +8,15 @@ import {
   View
 } from "react-native";
 import { formatAuthError } from "../lib/authErrors";
-import { getGoogleOAuthRedirectUri, signInWithGoogle } from "../lib/googleAuth";
+import { signInWithGoogle } from "../lib/googleAuth";
 import { authColors, authRadii } from "../theme/authTheme";
 
 /**
- * Connexion via Google (Supabase Auth). Compléter la config côté dashboard Supabase
- * (Provider Google + Redirect URLs incluant l’URL renvoyée par `getGoogleOAuthRedirectUri()` en dev/build).
+ * Connexion via Google (Supabase Auth).
  */
 export function GoogleOAuthButton() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showRedirectHint, setShowRedirectHint] = useState(false);
 
   const onPress = async () => {
     setError(null);
@@ -57,21 +55,6 @@ export function GoogleOAuthButton() {
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity
-        onPress={() => setShowRedirectHint((v) => !v)}
-        style={styles.hintToggle}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Text style={styles.hintToggleText}>
-          {showRedirectHint ? "Masquer l’URL de redirection" : "URL de redirection (Supabase)"}
-        </Text>
-      </TouchableOpacity>
-      {showRedirectHint ? (
-        <Text style={styles.monoHint} selectable>
-          {getGoogleOAuthRedirectUri()}
-        </Text>
-      ) : null}
-
       {error ? <Text style={styles.err}>{error}</Text> : null}
     </View>
   );
@@ -104,22 +87,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "600",
     color: authColors.forest
-  },
-  hintToggle: {
-    marginTop: 10,
-    alignSelf: "center"
-  },
-  hintToggleText: {
-    fontSize: 13,
-    color: authColors.placeholder,
-    textDecorationLine: "underline"
-  },
-  monoHint: {
-    marginTop: 8,
-    fontSize: 11,
-    color: authColors.forestMuted,
-    textAlign: "center",
-    lineHeight: 16
   },
   err: {
     marginTop: 12,

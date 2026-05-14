@@ -5,11 +5,11 @@ import {
 } from "@nestjs/common";
 import type { FarmExpense, FarmRevenue, User } from "@prisma/client";
 import { FinanceCategoryType, Prisma } from "@prisma/client";
-import PDFDocument from "pdfkit";
 import { AUDIT_ACTION } from "../common/audit.constants";
 import { AuditService } from "../common/audit.service";
 import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import { ensureFarmFinanceBootstrap } from "./finance-bootstrap";
 import { CreateExpenseDto } from "./dto/create-expense.dto";
 import { CreateRevenueDto } from "./dto/create-revenue.dto";
@@ -21,7 +21,8 @@ export class FinanceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
-    private readonly audit: AuditService
+    private readonly audit: AuditService,
+    private readonly smartAlerts: SmartAlertsService
   ) {}
 
   private expenseSnapshot(row: FarmExpense) {
@@ -145,6 +146,7 @@ export class FinanceService {
         label: row.label
       }
     });
+    void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
     return row;
   }
 
@@ -294,6 +296,7 @@ export class FinanceService {
         label: row.label
       }
     });
+    void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
     return row;
   }
 
@@ -914,6 +917,87 @@ export class FinanceService {
     };
   }
 
+  /**
+   * Agrégation finance sur une fenêtre [start, end) (trimestre, glissement, etc.).
+   * Réutilise la même logique de regroupement que `financeReport`.
+   */
+  async financeReportRange(user: User, farmId: string, start: Date, end: Date) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    await ensureFarmFinanceBootstrap(this.prisma, farmId);
+    const settings = await this.prisma.farmFinanceSettings.findUniqueOrThrow({
+      where: { farmId }
+    });
+
+    const [expenses, revenues] = await Promise.all([
+      this.prisma.farmExpense.findMany({
+        where: { farmId, occurredAt: { gte: start, lt: end } },
+        include: { financeCategory: true }
+      }),
+      this.prisma.farmRevenue.findMany({
+        where: { farmId, occurredAt: { gte: start, lt: end } },
+        include: { financeCategory: true }
+      })
+    ]);
+
+    const byCat = new Map<
+      string,
+      { label: string; expenses: Prisma.Decimal; revenues: Prisma.Decimal }
+    >();
+
+    for (const e of expenses) {
+      const key = e.financeCategoryId ?? `legacy:${e.category ?? "none"}`;
+      const lab = e.financeCategory?.name ?? e.category ?? "Sans categorie";
+      const cur = byCat.get(key) ?? {
+        label: lab,
+        expenses: new Prisma.Decimal(0),
+        revenues: new Prisma.Decimal(0)
+      };
+      cur.expenses = cur.expenses.add(e.amount);
+      byCat.set(key, cur);
+    }
+    for (const r of revenues) {
+      const key = r.financeCategoryId ?? `legacy:${r.category ?? "none"}`;
+      const lab = r.financeCategory?.name ?? r.category ?? "Sans categorie";
+      const cur = byCat.get(key) ?? {
+        label: lab,
+        expenses: new Prisma.Decimal(0),
+        revenues: new Prisma.Decimal(0)
+      };
+      cur.revenues = cur.revenues.add(r.amount);
+      byCat.set(key, cur);
+    }
+
+    const rows = [...byCat.entries()].map(([key, v]) => ({
+      key,
+      label: v.label,
+      expenses: v.expenses.toString(),
+      revenues: v.revenues.toString(),
+      net: v.revenues.sub(v.expenses).toString()
+    }));
+
+    const totalExp = expenses.reduce(
+      (s, e) => s.add(e.amount),
+      new Prisma.Decimal(0)
+    );
+    const totalRev = revenues.reduce(
+      (s, r) => s.add(r.amount),
+      new Prisma.Decimal(0)
+    );
+
+    return {
+      farmId,
+      range: { start: start.toISOString(), end: end.toISOString() },
+      currency: settings.currencyCode,
+      currencySymbol: settings.currencySymbol,
+      totals: {
+        expenses: totalExp.toString(),
+        revenues: totalRev.toString(),
+        net: totalRev.sub(totalExp).toString()
+      },
+      byCategory: rows
+    };
+  }
+
   async financeMarginByBatch(user: User, farmId: string, batchId: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
     const batch = await this.prisma.livestockBatch.findFirst({
@@ -1106,70 +1190,6 @@ export class FinanceService {
       )
       .join("\n");
     return header + body;
-  }
-
-  async financeExportPdf(
-    user: User,
-    farmId: string,
-    period: "month" | "year",
-    month?: string,
-    year?: string
-  ): Promise<Buffer> {
-    const report = await this.financeReport(user, farmId, period, month, year);
-    return new Promise((resolve, reject) => {
-      const doc = new PDFDocument({ margin: 50, size: "A4" });
-      const chunks: Buffer[] = [];
-      doc.on("data", (chunk: Buffer) => chunks.push(chunk));
-      doc.on("end", () => resolve(Buffer.concat(chunks)));
-      doc.on("error", reject);
-
-      doc
-        .fontSize(18)
-        .text(`Rapport finance — ${report.period}`, { align: "center" });
-      doc.moveDown();
-      doc
-        .fontSize(10)
-        .text(`Periode: ${report.range.start} → ${report.range.end}`, {
-          align: "left"
-        });
-      doc.text(`Devise: ${report.currency} (${report.currencySymbol})`);
-      doc.moveDown();
-      doc.fontSize(12).text("Totaux", { underline: true });
-      doc.fontSize(10);
-      doc.text(`Revenus: ${report.totals.revenues}`);
-      doc.text(`Depenses: ${report.totals.expenses}`);
-      doc.text(`Net: ${report.totals.net}`);
-      doc.moveDown();
-      doc.fontSize(12).text("Par categorie", { underline: true });
-      doc.fontSize(9);
-      for (const row of report.byCategory.slice(0, 40)) {
-        doc.text(
-          `${row.label}: rev ${row.revenues} | dep ${row.expenses} | net ${row.net}`
-        );
-      }
-      if ("monthlyEvolution" in report && report.monthlyEvolution?.length) {
-        doc.addPage();
-        doc.fontSize(12).text("Evolution mensuelle", { underline: true });
-        doc.fontSize(9);
-        for (const m of report.monthlyEvolution) {
-          doc.text(
-            `${m.month}: rev ${m.revenues} dep ${m.expenses} net ${m.net}`
-          );
-        }
-      }
-      if (
-        "topExpenseCategories" in report &&
-        report.topExpenseCategories?.length
-      ) {
-        doc.moveDown();
-        doc.fontSize(12).text("Top depenses", { underline: true });
-        doc.fontSize(9);
-        for (const t of report.topExpenseCategories) {
-          doc.text(`${t.label}: ${t.expenses}`);
-        }
-      }
-      doc.end();
-    });
   }
 }
 

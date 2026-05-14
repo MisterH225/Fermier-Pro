@@ -12,6 +12,8 @@ export function listingStatusLabel(status: string): string {
       return "Vendue";
     case "cancelled":
       return "Annulée";
+    case "expired":
+      return "Expirée";
     default:
       return status;
   }
@@ -27,6 +29,8 @@ export function offerStatusLabel(status: string): string {
       return "Refusée";
     case "withdrawn":
       return "Retirée";
+    case "countered":
+      return "Contre-proposition";
     default:
       return status;
   }

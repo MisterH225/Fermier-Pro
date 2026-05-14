@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
+  Pressable,
   RefreshControl,
   ScrollView,
   Share,
@@ -13,8 +14,8 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { EventList, type EventItem } from "../components/lists";
 import { useSession } from "../context/SessionContext";
-import { ProducerEventsFab } from "../components/producer/ProducerEventsFab";
 import {
   type AnimalListItem,
   type BatchListItem,
@@ -32,6 +33,16 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../theme/mobileTheme";
+
+function cheptelLogIconType(r: CheptelStatusLogRow): EventItem["iconType"] {
+  if (r.newStatus === "sold" || r.newStatus === "dead") {
+    return "out";
+  }
+  if (r.newStatus === "active") {
+    return "in";
+  }
+  return "check";
+}
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmLivestock">;
@@ -54,9 +65,7 @@ function formatKg(v: string | number | undefined): string {
 export function FarmLivestockScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
   const { t } = useTranslation();
-  const { accessToken, activeProfileId, authMe } = useSession();
-  const isProducer =
-    authMe?.profiles.find((p) => p.id === activeProfileId)?.type === "producer";
+  const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
   const scrollRef = useRef<ScrollView>(null);
   const sectionY = useRef<Partial<Record<AnchorKey, number>>>({});
@@ -191,7 +200,7 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
   };
 
   const exportLogsCsv = async () => {
-    const rows = logs as CheptelStatusLogRow[];
+    const rows = logsQuery.data ?? [];
     const header = "date,entityType,entityId,oldStatus,newStatus,note,recorder\n";
     const body = rows
       .map((r) =>
@@ -222,6 +231,70 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
   const recordSectionLayout = (key: AnchorKey, y: number) => {
     sectionY.current[key] = y;
   };
+
+  const logFilterPills = useMemo(
+    () => [
+      { id: "all", label: t("cheptel.filterAll") },
+      { id: "animal", label: t("cheptel.filterAnimal") },
+      { id: "batch", label: t("cheptel.filterBatch") }
+    ],
+    [t]
+  );
+
+  const cheptelLogEvents = useMemo((): EventItem[] => {
+    return logs.map((r) => ({
+      id: r.id,
+      title: `${r.oldStatus ?? "—"} → ${r.newStatus}`,
+      subtitle: `${r.entityType} ${r.entityId.slice(0, 8)}…`,
+      value: r.newStatus,
+      valueType: "neutral",
+      date: new Date(r.createdAt).toLocaleDateString("fr-FR"),
+      iconType: cheptelLogIconType(r),
+      meta: r
+    }));
+  }, [logs]);
+
+  const onLogFilterChange = useCallback((id: string) => {
+    if (id === "animal") {
+      setLogEntityType("animal");
+    } else if (id === "batch") {
+      setLogEntityType("batch");
+    } else {
+      setLogEntityType(undefined);
+    }
+  }, []);
+
+  const activeLogFilterId = logEntityType ?? "all";
+
+  const logsExportHeader = useMemo(
+    () => (
+      <TouchableOpacity style={styles.csvBtn} onPress={() => void exportLogsCsv()}>
+        <Text style={styles.csvBtnText}>{t("cheptel.exportCsv")}</Text>
+      </TouchableOpacity>
+    ),
+    [exportLogsCsv, t]
+  );
+
+  const renderCheptelLogDetail = useCallback(
+    (item: EventItem, _ctx: { close: () => void }) => {
+      const r = item.meta as CheptelStatusLogRow;
+      return (
+        <View style={{ gap: mobileSpacing.sm, paddingBottom: mobileSpacing.md }}>
+          <Text style={styles.cardMeta}>
+            {new Date(r.createdAt).toLocaleString("fr-FR")}
+          </Text>
+          <Text style={styles.cardMeta}>
+            {r.entityType} · {r.entityId}
+          </Text>
+          <Text style={styles.cardMeta}>
+            {r.oldStatus ?? "—"} → {r.newStatus}
+          </Text>
+          {r.note ? <Text style={styles.cardMeta}>{r.note}</Text> : null}
+        </View>
+      );
+    },
+    []
+  );
 
   if (loading) {
     return (
@@ -454,60 +527,21 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
           <Text style={[styles.sectionTitle, styles.sectionSpacer]}>
             {t("cheptel.sectionStatuses")}
           </Text>
-          <View style={styles.filterRow}>
-            {(
-              [
-                [undefined, t("cheptel.filterAll")],
-                ["animal", t("cheptel.filterAnimal")],
-                ["batch", t("cheptel.filterBatch")]
-              ] as const
-            ).map(([val, lab]) => (
-              <TouchableOpacity
-                key={String(val)}
-                style={[
-                  styles.filterChip,
-                  logEntityType === val && styles.filterChipOn
-                ]}
-                onPress={() => setLogEntityType(val)}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    logEntityType === val && styles.filterChipTextOn
-                  ]}
-                >
-                  {lab}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <TouchableOpacity style={styles.csvBtn} onPress={() => void exportLogsCsv()}>
-            <Text style={styles.csvBtnText}>{t("cheptel.exportCsv")}</Text>
-          </TouchableOpacity>
-          {logs.length === 0 ? (
-            <Text style={styles.empty}>{t("cheptel.noLogs")}</Text>
-          ) : (
-            logs.map((r: CheptelStatusLogRow) => (
-              <View key={r.id} style={styles.logRow}>
-                <Text style={styles.logDate}>
-                  {new Date(r.createdAt).toLocaleString("fr-FR")}
-                </Text>
-                <Text style={styles.logBody}>
-                  {r.entityType} {r.entityId.slice(0, 8)}… : {r.oldStatus ?? "—"}{" "}
-                  → {r.newStatus}
-                </Text>
-              </View>
-            ))
-          )}
-        </View>
-      </ScrollView>
-      {isProducer ? (
-        <View style={styles.fabLayer} pointerEvents="box-none">
-          <ProducerEventsFab
-            onPress={() => navigation.navigate("FarmEventsFeed")}
+          <EventList
+            layout="embedded"
+            data={cheptelLogEvents}
+            filters={logFilterPills}
+            activeFilterId={activeLogFilterId}
+            onFilterChange={onLogFilterChange}
+            renderDetail={renderCheptelLogDetail}
+            prependContent={logsExportHeader}
+            emptyMessage={t("cheptel.noLogs")}
+            isLoading={logsQuery.isPending && logs.length === 0}
+            pageSize={30}
+            loadMoreLabel={t("cheptel.loadMore")}
           />
         </View>
-      ) : null}
+      </ScrollView>
     </View>
   );
 }
@@ -516,12 +550,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: mobileColors.background
-  },
-  fabLayer: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: "flex-end",
-    alignItems: "flex-end",
-    pointerEvents: "box-none"
   },
   anchorBar: {
     maxHeight: 48,
@@ -671,31 +699,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: mobileColors.accent
   },
-  filterRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: mobileSpacing.md
-  },
-  filterChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: mobileRadius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: mobileColors.border
-  },
-  filterChipOn: {
-    borderColor: mobileColors.accent,
-    backgroundColor: mobileColors.accentSoft
-  },
-  filterChipText: {
-    fontSize: 12,
-    color: mobileColors.textSecondary
-  },
-  filterChipTextOn: {
-    color: mobileColors.accent,
-    fontWeight: "600"
-  },
   csvBtn: {
     alignSelf: "flex-start",
     marginBottom: mobileSpacing.md
@@ -703,21 +706,6 @@ const styles = StyleSheet.create({
   csvBtnText: {
     color: mobileColors.accent,
     fontWeight: "600"
-  },
-  logRow: {
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: mobileColors.border
-  },
-  logDate: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary
-  },
-  logBody: {
-    ...mobileTypography.body,
-    fontSize: 14,
-    marginTop: 4,
-    color: mobileColors.textPrimary
   },
   error: {
     color: mobileColors.error,

@@ -15,6 +15,20 @@ enum ProfileType {
   buyer
 }
 
+enum SmartAlertModule {
+  stock
+  health
+  finance
+  gestation
+  cheptel
+}
+
+enum SmartAlertPriority {
+  critical
+  warning
+  info
+}
+
 /// Mode de suivi principal a la ferme (reversible ; voir docs/LIVESTOCK_MODES_AND_HOUSING.md).
 enum FarmLivestockMode {
   individual
@@ -74,9 +88,10 @@ model User {
   penPlacementsCreated PenPlacement[] @relation("PenPlacementCreator")
   penLogsRecorded      PenLog[]       @relation("PenLogRecorder")
   livestockExitsRecorded LivestockExit[]
-  feedStockLotsCreated   FeedStockLot[]
+  feedStockMovementsCreated FeedStockMovement[]
   livestockStatusLogsRecorded LivestockStatusLog[] @relation("LivestockStatusLogRecorder")
   farmHealthRecordsRecorded FarmHealthRecord[] @relation("FarmHealthRecordRecorder")
+  farmMarketRatingsGiven FarmMarketRating[] @relation("FarmMarketRatingAuthor")
   chatRoomMemberships ChatRoomMember[]
   chatMessagesSent    ChatMessage[]
   auditLogs           AuditLog[]
@@ -147,10 +162,15 @@ model Farm {
   transfersReceived LivestockExit[] @relation("ExitTransferDestinationFarm")
   chatRoom          ChatRoom?
   auditLogs         AuditLog[]
-  feedStockLots     FeedStockLot[]
+  feedTypes             FeedType[]
+  feedStockMovements  FeedStockMovement[]
   financeSettings   FarmFinanceSettings?
   financeCategories FinanceCategory[]
   farmHealthRecords FarmHealthRecord[]
+  marketRatingsReceived FarmMarketRating[]
+  smartAlerts          SmartAlert[]
+  farmAlertSettings    FarmAlertSettings?
+  farmReports          FarmReport[]
 }
 
 enum FinanceCategoryType {
@@ -730,6 +750,7 @@ enum ListingStatus {
   reserved
   sold
   cancelled
+  expired
 }
 
 enum OfferStatus {
@@ -737,6 +758,15 @@ enum OfferStatus {
   accepted
   rejected
   withdrawn
+  countered
+}
+
+/// Catégorie d’annonce porc sur le Market (porcelets, reproducteurs, etc.).
+enum ListingMarketCategory {
+  piglet
+  breeder
+  butcher
+  reformed
 }
 
 model MarketplaceListing {
@@ -747,14 +777,31 @@ model MarketplaceListing {
   farm          Farm?           @relation(fields: [farmId], references: [id], onDelete: SetNull)
   animalId      String?
   animal        Animal?         @relation(fields: [animalId], references: [id], onDelete: SetNull)
+  /// Catégorie métier (affiche filtres Market). Optionnel pour annonces historiques.
+  category      ListingMarketCategory?
+  /// URLs photos (Supabase Storage ou autre), ordre d’affichage = ordre du tableau.
+  photoUrls     Json            @default("[]")
+  /// Identifiants animaux concernés (lien cheptel) ; `animalId` peut rester le principal pour compat.
+  animalIds     Json            @default("[]")
+  totalWeightKg Decimal?        @db.Decimal(14, 4)
+  /// Prix au kg demandé par le vendeur (prioritaire sur `unitPrice` pour le flux porc).
+  pricePerKg    Decimal?        @db.Decimal(14, 4)
+  /// Prix total calculé ou saisi ; affichage principal grille Market.
+  totalPrice    Decimal?        @db.Decimal(14, 2)
+  breedLabel    String?
   title         String
   description   String?
   unitPrice     Decimal?        @db.Decimal(14, 2)
   quantity      Int?
   currency      String          @default("XOF")
   locationLabel String?
+  /// Résumé sanitaire figé ou surchargé à la publication (JSON côté API).
+  healthSummary Json?
   status        ListingStatus   @default(draft)
   publishedAt   DateTime?
+  expiresAt     DateTime?
+  viewsCount    Int             @default(0)
+  consultationsCount Int      @default(0)
   /// Rendez-vous de retrait des animaux (convenu hors paiement in-app).
   pickupAt      DateTime?
   pickupNote    String?
@@ -765,27 +812,70 @@ model MarketplaceListing {
   @@index([sellerUserId])
   @@index([status])
   @@index([farmId])
+  @@index([category])
 }
 
-/// Lots d’aliments achetés et stock restant (nutrition / inventaire à la ferme).
-model FeedStockLot {
-  id              String   @id @default(cuid())
-  farmId          String
-  farm            Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
-  productName     String
-  quantityKg      Decimal  @db.Decimal(12, 3)
-  remainingKg     Decimal  @db.Decimal(12, 3)
-  purchasedAt     DateTime @default(now())
-  supplierName    String?
-  unitPrice       Decimal? @db.Decimal(14, 2)
-  currency        String   @default("XOF")
-  notes           String?
-  createdByUserId String
-  creator         User     @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+enum FeedTypeUnit {
+  kg
+  tonne
+  sac
+}
 
-  @@index([farmId, purchasedAt])
+enum FeedMovementKind {
+  in
+  stock_check
+}
+
+/// Type d'aliment (croissance, démarrage, etc.) — paramètres et stock agrégé ferme.
+model FeedType {
+  id                    String        @id @default(cuid())
+  farmId                String
+  farm                  Farm          @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  name                  String
+  unit                  FeedTypeUnit  @default(kg)
+  /// Seuil bas (jours de stock restant) pour alertes personnalisées (défaut 15 jours côté métier UI).
+  lowStockThresholdDays Int           @default(15)
+  color                 String        @default("#5d7a1f")
+  /// Poids d'un sac (kg), requis pour saisie en sacs / contrôles inventaire.
+  weightPerBagKg        Decimal?      @db.Decimal(12, 4)
+  /// Dernier inventaire sacs restants (après dernier contrôle).
+  bagCountCurrent       Decimal?      @db.Decimal(14, 4)
+  lastCheckDate         DateTime?
+  /// Stock courant agrégé (kg).
+  currentStockKg        Decimal       @default(0) @db.Decimal(14, 4)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  movements             FeedStockMovement[]
+
+  @@index([farmId])
+}
+
+/// Entrées et contrôles de stock (consommation dérivée des inventaires).
+model FeedStockMovement {
+  id                   String           @id @default(cuid())
+  farmId               String
+  farm                 Farm             @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  feedTypeId           String
+  feedType             FeedType         @relation(fields: [feedTypeId], references: [id], onDelete: Cascade)
+  kind                 FeedMovementKind
+  /// Quantité ajoutée (kg) pour une entrée `in`.
+  quantityKg           Decimal?         @db.Decimal(14, 4)
+  bagsCounted          Decimal?         @db.Decimal(14, 4)
+  bagsConsumed         Decimal?         @db.Decimal(14, 4)
+  daysSinceLastCheck   Int?
+  dailyConsumptionKg   Decimal?         @db.Decimal(14, 6)
+  stockAfterKg         Decimal          @db.Decimal(14, 4)
+  supplier             String?
+  unitPrice            Decimal?         @db.Decimal(14, 2)
+  notes                String?
+  occurredAt           DateTime         @default(now())
+  linkedExpenseId      String?
+  createdByUserId      String
+  creator              User             @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdAt            DateTime         @default(now())
+
+  @@index([farmId, occurredAt])
+  @@index([feedTypeId, occurredAt])
 }
 
 model MarketplaceOffer {
@@ -794,9 +884,14 @@ model MarketplaceOffer {
   listing      MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
   buyerUserId  String
   buyer        User               @relation("OfferBuyer", fields: [buyerUserId], references: [id], onDelete: Restrict)
+  buyerFarmId  String?
+  /// Prix / kg proposé par l’acheteur (si renseigné, `offeredPrice` = total de l’offre).
+  proposedPricePerKg Decimal?   @db.Decimal(14, 4)
   offeredPrice Decimal            @db.Decimal(14, 2)
   quantity     Int?
   message      String?
+  /// Contre-proposition vendeur : prix / kg.
+  counterPricePerKg Decimal?     @db.Decimal(14, 4)
   status       OfferStatus        @default(pending)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
@@ -804,6 +899,21 @@ model MarketplaceOffer {
   @@index([listingId])
   @@index([buyerUserId])
   @@index([listingId, status])
+}
+
+/// Avis acheteur → ferme (notation Market).
+model FarmMarketRating {
+  id              String   @id @default(cuid())
+  farmId          String
+  farm            Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  ratedByUserId String
+  rater           User     @relation("FarmMarketRatingAuthor", fields: [ratedByUserId], references: [id], onDelete: Cascade)
+  score           Int
+  comment         String?
+  createdAt       DateTime @default(now())
+
+  @@unique([farmId, ratedByUserId])
+  @@index([farmId])
 }
 
 model AnimalWeight {
@@ -960,4 +1070,72 @@ model ChatMessage {
   createdAt    DateTime @default(now())
 
   @@index([roomId, createdAt])
+}
+
+/// Alerte / recommandation métier persistée (SmartAlerts — règles serveur).
+model SmartAlert {
+  id           String             @id @default(cuid())
+  farmId       String
+  farm         Farm               @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  /// Clé stable par règle (ex. `stock-depletion:<feedTypeId>`) pour upsert au recalcul.
+  ruleKey      String
+  module       SmartAlertModule
+  priority     SmartAlertPriority
+  title        String
+  message      String
+  actionRoute  String?
+  actionParams Json?
+  isRead       Boolean            @default(false)
+  readAt       DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@unique([farmId, ruleKey])
+  @@index([farmId, priority, isRead])
+  @@index([farmId, module])
+}
+
+/// Seuils et options notifications SmartAlerts par ferme.
+model FarmAlertSettings {
+  id                        String   @id @default(cuid())
+  farmId                    String   @unique
+  farm                      Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  /// Seuil taux mortalité mensuel (ex. 5 = 5 %).
+  mortalityRateThresholdPct Decimal? @db.Decimal(8, 4)
+  /// Seuil solde bas (optionnel ; sinon `FarmFinanceSettings.lowBalanceThreshold`).
+  lowBalanceThreshold       Decimal? @db.Decimal(14, 2)
+  stockWarningDays          Int      @default(30)
+  stockCriticalDays         Int      @default(15)
+  pushStock                 Boolean  @default(true)
+  pushHealth                Boolean  @default(true)
+  pushFinance               Boolean  @default(true)
+  pushGestation             Boolean  @default(true)
+  pushCheptel               Boolean  @default(true)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+}
+
+enum ReportPeriodType {
+  monthly
+  quarterly
+  yearly
+}
+
+/// Rapport agrégé multi-modules (PDF + snapshot JSON).
+model FarmReport {
+  id              String           @id @default(cuid())
+  farmId          String
+  farm            Farm             @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  periodType      ReportPeriodType
+  periodStart     DateTime
+  periodEnd       DateTime
+  generatedAt     DateTime         @default(now())
+  scoreGlobal     Int
+  scoreBreakdown  Json
+  dataSnapshot    Json
+  pdfUrl          String?
+  contentHash     String?
+  createdByUserId String?
+
+  @@index([farmId, generatedAt])
 }

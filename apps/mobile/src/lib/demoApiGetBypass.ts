@@ -351,6 +351,135 @@ export function tryDemoBypassApiGetJson(
     return [];
   }
 
+  if (/^\/farms\/[^/]+\/alerts\/count$/.test(p)) {
+    const farmId = /^\/farms\/([^/]+)\//.exec(p)?.[1] ?? "demo";
+    return { farmId, criticalUnread: 0 };
+  }
+  if (/^\/farms\/[^/]+\/alerts(\?|$)/.test(p)) {
+    const farmId = /^\/farms\/([^/]+)\/alerts/.exec(p)?.[1] ?? "demo";
+    return { farmId, items: [] };
+  }
+
+  if (/^\/farms\/[^/]+\/feed\/(types|overview|chart|stats|movements)/.test(p)) {
+    const mOv = /^\/farms\/([^/]+)\/feed\/overview$/.exec(p);
+    if (mOv) {
+      return {
+        farmId: mOv[1],
+        totalStockKg: "480",
+        types: [
+          {
+            id: "demo-ft-1",
+            farmId: mOv[1],
+            name: "Aliment démarrage",
+            unit: "sac",
+            lowStockThresholdDays: 15,
+            color: "#2D6A4F",
+            weightPerBagKg: "25",
+            bagCountCurrent: "8",
+            lastCheckDate: new Date().toISOString(),
+            currentStockKg: "200",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          },
+          {
+            id: "demo-ft-2",
+            farmId: mOv[1],
+            name: "Aliment croissance",
+            unit: "sac",
+            lowStockThresholdDays: 15,
+            color: "#5C6B7A",
+            weightPerBagKg: "25",
+            bagCountCurrent: "5",
+            lastCheckDate: new Date().toISOString(),
+            currentStockKg: "125",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        ]
+      };
+    }
+    if (/\/feed\/types$/.test(p)) {
+      const farmId = /^\/farms\/([^/]+)\//.exec(p)?.[1] ?? "demo";
+      return [
+        {
+          id: "demo-ft-1",
+          farmId,
+          name: "Aliment démarrage",
+          unit: "sac",
+          lowStockThresholdDays: 15,
+          color: "#2D6A4F",
+          weightPerBagKg: "25",
+          bagCountCurrent: "8",
+          lastCheckDate: new Date().toISOString(),
+          currentStockKg: "200",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      ];
+    }
+    const mChart = /^\/farms\/([^/]+)\/feed\/chart/.exec(p);
+    if (mChart) {
+      const farmId = mChart[1];
+      const monthKeys = ["2025-12", "2026-01", "2026-02", "2026-03", "2026-04", "2026-05"];
+      return {
+        farmId,
+        periodMonths: 6,
+        monthKeys,
+        series: [
+          {
+            feedTypeId: "demo-ft-1",
+            name: "Démarrage",
+            color: "#2D6A4F",
+            points: [120, 140, 160, 180, 190, 200]
+          },
+          {
+            feedTypeId: "demo-ft-2",
+            name: "Croissance",
+            color: "#5C6B7A",
+            points: [200, 190, 170, 155, 140, 125]
+          }
+        ]
+      };
+    }
+    if (/\/feed\/stats$/.test(p)) {
+      const farmId = /^\/farms\/([^/]+)\//.exec(p)?.[1] ?? "demo";
+      return {
+        farmId,
+        items: [
+          {
+            feedTypeId: "demo-ft-1",
+            name: "Aliment démarrage",
+            color: "#2D6A4F",
+            currentStockKg: "200",
+            weightPerBagKg: "25",
+            bagCountCurrent: "8",
+            lastCheckDate: new Date().toISOString(),
+            avgDailyConsumptionKg: "2.5",
+            daysRemaining: 80,
+            estimatedDepletionDate: "2026-08-01",
+            status: "ok"
+          },
+          {
+            feedTypeId: "demo-ft-2",
+            name: "Aliment croissance",
+            color: "#5C6B7A",
+            currentStockKg: "125",
+            weightPerBagKg: "25",
+            bagCountCurrent: "5",
+            lastCheckDate: new Date().toISOString(),
+            avgDailyConsumptionKg: "4.2",
+            daysRemaining: 22,
+            estimatedDepletionDate: "2026-06-05",
+            status: "warning"
+          }
+        ]
+      };
+    }
+    if (/\/feed\/movements/.test(p)) {
+      return [];
+    }
+  }
+
   const mBarnDetail = /^\/farms\/([^/]+)\/barns\/([^/]+)$/.exec(p);
   if (mBarnDetail) {
     const farmId = mBarnDetail[1];
@@ -463,12 +592,51 @@ export function tryDemoBypassApiGetJson(
       animal: null,
       seller: { id: uid, fullName: "Explorateur démo", email: "demo@fermier-pro.local" },
       myOffers: [],
-      offers: []
+      offers: [],
+      healthSnapshot: {
+        vaccinesUpToDate: true,
+        lastVaccinationAt: ISO,
+        lastVetVisitAt: ISO,
+        lastVetReason: "Visite de routine",
+        recentDiseaseSummary: null,
+        mortalityRate30dPct: "1.20"
+      },
+      farmRatingSummary: { avg: 4.5, count: 8 }
     };
   }
 
   if (p === "/marketplace/listings") {
-    return [];
+    const ISO = new Date().toISOString();
+    return [
+      {
+        id: "demo-listing-market-1",
+        title: "Lot porcelets croissance",
+        description: "Exemple UI (mode démo).",
+        unitPrice: null,
+        quantity: null,
+        currency: "XOF",
+        locationLabel: "Bouaké, CIV",
+        status: "published",
+        publishedAt: ISO,
+        pickupAt: null,
+        pickupNote: null,
+        createdAt: ISO,
+        updatedAt: ISO,
+        category: "piglet",
+        photoUrls: [],
+        animalIds: [],
+        totalWeightKg: "320",
+        pricePerKg: "1200",
+        totalPrice: "384000",
+        breedLabel: "Large White x Landrace",
+        viewsCount: 24,
+        consultationsCount: 5,
+        expiresAt: null,
+        farm: { id: DEMO_PREVIEW_FARM_ID, name: "Ferme démo (aperçu)" },
+        animal: null,
+        seller: { id: "demo-seller", fullName: "Producteur démo" }
+      }
+    ];
   }
 
   if (p === "/marketplace/offers") {
@@ -551,7 +719,8 @@ export function tryDemoBypassApiGetJson(
           initialKg: "500",
           ratio: 0.24,
           level: "medium",
-          critical: false
+          critical: false,
+          color: "#2D6A4F"
         },
         {
           productName: "Complément démo",
@@ -559,7 +728,8 @@ export function tryDemoBypassApiGetJson(
           initialKg: "200",
           ratio: 0.15,
           level: "critical",
-          critical: true
+          critical: true,
+          color: "#B45309"
         }
       ]
     };
@@ -574,8 +744,7 @@ export function tryDemoBypassApiGetJson(
       nextVaccine: null,
       nextVetVisitModule: null,
       nextVetConsultationLegacy: null,
-      mortalityRate30d: "0.0000",
-      alerts: []
+      mortalityRate30d: "0.0000"
     };
   }
 

@@ -7,9 +7,12 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import * as Linking from "expo-linking";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BOTTOM_TAB_BAR_CONTENT_HEIGHT } from "./layout/BottomTabBar";
 import { ProducerPersistentTabBar } from "./ProducerPersistentTabBar";
-import { ProducerFabBottomLiftProvider } from "../context/ProducerFabBottomLiftContext";
+import { producerBottomChromeHeight } from "./navigation";
+import {
+  ProducerBottomChromeProvider,
+  useProducerBottomChromePad
+} from "../context/ProducerBottomChromeContext";
 import {
   AcceptFarmInvitationScreen,
   AccountScreen,
@@ -29,7 +32,6 @@ import {
   CreateFarmInvitationScreen,
   CreateFarmRevenueScreen,
   CreateFarmScreen,
-  CreateFeedPurchaseScreen,
   CreateMarketplaceListingScreen,
   CreatePenLogScreen,
   CreatePenScreen,
@@ -56,6 +58,8 @@ import {
   ModuleRoadmapScreen,
   ProducerDashboardScreen,
   ProducerFarmSettingsScreen,
+  SmartAlertsListScreen,
+  FarmReportsScreen,
   PenDetailScreen,
   PenMoveScreen,
   TechnicianDashboardScreen,
@@ -109,6 +113,7 @@ function MainStack() {
   const { authMe, activeProfileId } = useSession();
   const activeType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
   const initialRouteName = dashboardRouteForActiveProfileType(activeType);
+  const bottomChromePad = useProducerBottomChromePad();
 
   return (
     <Stack.Navigator
@@ -122,7 +127,10 @@ function MainStack() {
           color: mobileColors.textPrimary
         },
         headerShadowVisible: false,
-        contentStyle: { backgroundColor: mobileColors.surface }
+        contentStyle: {
+          backgroundColor: mobileColors.surface,
+          ...(bottomChromePad > 0 ? { paddingBottom: bottomChromePad } : {})
+        }
       }}
     >
       <Stack.Screen
@@ -134,6 +142,16 @@ function MainStack() {
         name="ProducerFarmSettings"
         component={ProducerFarmSettingsScreen}
         options={{ title: "" }}
+      />
+      <Stack.Screen
+        name="SmartAlertsList"
+        component={SmartAlertsListScreen}
+        options={{ title: "Recommandations" }}
+      />
+      <Stack.Screen
+        name="FarmReports"
+        component={FarmReportsScreen}
+        options={{ title: "Rapports" }}
       />
       <Stack.Screen
         name="BuyerDashboard"
@@ -374,12 +392,7 @@ function MainStack() {
       <Stack.Screen
         name="FarmFeedStock"
         component={FarmFeedStockScreen}
-        options={{ title: "Nutrition et stock" }}
-      />
-      <Stack.Screen
-        name="CreateFeedPurchase"
-        component={CreateFeedPurchaseScreen}
-        options={{ title: "Achat aliments" }}
+        options={{ title: "Stock aliment" }}
       />
     </Stack.Navigator>
   );
@@ -390,17 +403,17 @@ function MainNavigationWithChrome() {
   const { authMe, activeProfileId } = useSession();
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
   const isProducer = profileType === "producer";
-  const fabLift = isProducer ? BOTTOM_TAB_BAR_CONTENT_HEIGHT + insets.bottom : 0;
+  const bottomChromePad = isProducer ? producerBottomChromeHeight(insets.bottom) : 0;
 
   return (
-    <ProducerFabBottomLiftProvider value={fabLift}>
+    <ProducerBottomChromeProvider value={bottomChromePad}>
       <View style={styles.flex}>
         <View style={styles.flex}>
           <MainStack />
         </View>
         <ProducerPersistentTabBar />
       </View>
-    </ProducerFabBottomLiftProvider>
+    </ProducerBottomChromeProvider>
   );
 }
 

@@ -17,21 +17,6 @@ export function VeterinarianDashboardScreen() {
   return (
     <MobileAppShell
       title="Espace vétérinaire"
-      activeTab="home"
-      onTabChange={(tab) => {
-        if (tab === "home") {
-          return;
-        }
-        if (tab === "cheptel") {
-          navigation.navigate("FarmList");
-        }
-        if (tab === "health") {
-          navigation.navigate("FarmEventsFeed");
-        }
-        if (tab === "profile") {
-          navigation.navigate("Account");
-        }
-      }}
       topRight={<IconButton icon="search" onPress={() => navigation.navigate("FarmList")} />}
     >
       <ScrollView contentContainerStyle={styles.wrap}>

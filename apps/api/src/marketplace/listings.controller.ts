@@ -9,7 +9,7 @@ import {
   UseGuards
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
-import { ListingStatus } from "@prisma/client";
+import { ListingMarketCategory, ListingStatus } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { FeatureEnabledGuard } from "../config-client/feature-enabled.guard";
@@ -29,7 +29,9 @@ export class ListingsController {
   list(
     @CurrentUser() user: User,
     @Query("mine") mine?: string,
-    @Query("status") statusRaw?: string
+    @Query("status") statusRaw?: string,
+    @Query("category") categoryRaw?: string,
+    @Query("q") q?: string
   ) {
     const mineBool = mine === "true" || mine === "1";
     const status =
@@ -37,12 +39,29 @@ export class ListingsController {
       Object.values(ListingStatus).includes(statusRaw as ListingStatus)
         ? (statusRaw as ListingStatus)
         : undefined;
-    return this.listings.list(user, mineBool, status);
+    const category =
+      categoryRaw &&
+      Object.values(ListingMarketCategory).includes(
+        categoryRaw as ListingMarketCategory
+      )
+        ? (categoryRaw as ListingMarketCategory)
+        : undefined;
+    return this.listings.list(user, mineBool, status, category, q);
   }
 
   @Post()
   create(@CurrentUser() user: User, @Body() dto: CreateListingDto) {
     return this.listings.create(user, dto);
+  }
+
+  @Post(":id/view")
+  view(@CurrentUser() user: User, @Param("id") id: string) {
+    return this.listings.recordView(user, id);
+  }
+
+  @Post(":id/consult")
+  consult(@CurrentUser() user: User, @Param("id") id: string) {
+    return this.listings.recordConsultation(user, id);
   }
 
   @Get(":id")
