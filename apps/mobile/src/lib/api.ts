@@ -4,7 +4,11 @@
  * dans `apps/api/test/mobile-api-contract.e2e-spec.ts` (GET/POST/PATCH selon le cas).
  */
 import { getExpoPublicEnv, isDemoApiGetMockDisabled } from "../env";
-import { tryDemoBypassApiGetJson } from "./demoApiGetBypass";
+import {
+  tryDemoBypassApiGetJson,
+  tryDemoBypassApiWriteJson
+} from "./demoApiGetBypass";
+import { isDemoBypassToken } from "./demoBypass";
 
 function apiBaseUrl(): string {
   const { apiUrl } = getExpoPublicEnv();
@@ -59,6 +63,12 @@ export async function apiPostJson<T>(
   activeProfileId?: string | null
 ): Promise<T> {
   const p = path.startsWith("/") ? path : `/${path}`;
+  if (!isDemoApiGetMockDisabled() && isDemoBypassToken(accessToken)) {
+    const demo = tryDemoBypassApiWriteJson("POST", p, body, accessToken);
+    if (demo !== null) {
+      return demo as T;
+    }
+  }
   const url = `${apiBaseUrl()}/api/v1${p}`;
   const res = await fetch(url, {
     method: "POST",
@@ -83,6 +93,12 @@ export async function apiPutJson<T>(
   activeProfileId?: string | null
 ): Promise<T> {
   const p = path.startsWith("/") ? path : `/${path}`;
+  if (!isDemoApiGetMockDisabled() && isDemoBypassToken(accessToken)) {
+    const demo = tryDemoBypassApiWriteJson("PUT", p, body, accessToken);
+    if (demo !== null) {
+      return demo as T;
+    }
+  }
   const url = `${apiBaseUrl()}/api/v1${p}`;
   const res = await fetch(url, {
     method: "PUT",
@@ -107,6 +123,12 @@ export async function apiPatchJson<T>(
   activeProfileId?: string | null
 ): Promise<T> {
   const p = path.startsWith("/") ? path : `/${path}`;
+  if (!isDemoApiGetMockDisabled() && isDemoBypassToken(accessToken)) {
+    const demo = tryDemoBypassApiWriteJson("PATCH", p, body, accessToken);
+    if (demo !== null) {
+      return demo as T;
+    }
+  }
   const url = `${apiBaseUrl()}/api/v1${p}`;
   const res = await fetch(url, {
     method: "PATCH",
@@ -1334,14 +1356,19 @@ export function postBatchHealthEvent(
 
 export type FarmTaskDto = {
   id: string;
+  farmId?: string;
   title: string;
   description: string | null;
   category: string | null;
   status: string;
   priority: string;
   dueAt: string | null;
+  reminder?: string | null;
   completedAt: string | null;
   createdAt: string;
+  updatedAt?: string;
+  assignedUserId?: string | null;
+  animalId?: string | null;
   assignee: {
     id: string;
     fullName: string | null;
@@ -1353,20 +1380,85 @@ export type FarmTaskDto = {
     fullName: string | null;
     email: string | null;
   };
+  completedBy?: {
+    id: string;
+    fullName: string | null;
+    email: string | null;
+  } | null;
+  animal?: {
+    id: string;
+    publicId: string;
+    tagCode: string | null;
+    species: { id: string; code: string; name: string };
+    breed: { id: string; name: string } | null;
+  } | null;
 };
 
 export function fetchFarmTasks(
   accessToken: string,
   farmId: string,
   activeProfileId?: string | null,
-  status?: string
+  status?: string,
+  assignedTo?: string,
+  period?: string
 ): Promise<FarmTaskDto[]> {
-  const qs =
-    status && status !== "all"
-      ? `?status=${encodeURIComponent(status)}`
-      : "";
+  const qs = new URLSearchParams();
+  if (status && status !== "all") {
+    qs.set("status", status);
+  }
+  if (assignedTo) {
+    qs.set("assigned_to", assignedTo);
+  }
+  if (period) {
+    qs.set("period", period);
+  }
+  const q = qs.toString();
   return apiGetJson<FarmTaskDto[]>(
-    `/farms/${farmId}/tasks${qs}`,
+    `/farms/${farmId}/tasks${q ? `?${q}` : ""}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFarmTasksPendingCount(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<{ pendingCount: number }> {
+  return apiGetJson<{ pendingCount: number }>(
+    `/farms/${farmId}/tasks/summary`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFarmTask(
+  accessToken: string,
+  farmId: string,
+  taskId: string,
+  activeProfileId?: string | null
+): Promise<FarmTaskDto> {
+  return apiGetJson<FarmTaskDto>(
+    `/farms/${farmId}/tasks/${taskId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type MyTasksDashboardDto = {
+  pendingCount: number;
+  tasks: FarmTaskDto[];
+};
+
+export function fetchMyTasksDashboard(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null,
+  period?: string
+): Promise<MyTasksDashboardDto> {
+  const qs = period ? `?period=${encodeURIComponent(period)}` : "";
+  return apiGetJson<MyTasksDashboardDto>(
+    `/farms/${farmId}/tasks/my-dashboard${qs}`,
     accessToken,
     activeProfileId
   );
@@ -1376,9 +1468,12 @@ export type CreateFarmTaskPayload = {
   title: string;
   description?: string;
   category?: string;
-  priority?: "low" | "normal" | "high";
-  status?: "todo" | "in_progress" | "done" | "cancelled";
+  priority?: "low" | "normal" | "high" | "urgent";
+  status?: "pending" | "todo" | "in_progress" | "done" | "cancelled";
   dueAt?: string;
+  assignedUserId?: string;
+  animalId?: string;
+  reminder?: "j_minus_1" | "j_zero" | "both";
 };
 
 export function createFarmTask(
@@ -1387,9 +1482,16 @@ export function createFarmTask(
   payload: CreateFarmTaskPayload,
   activeProfileId?: string | null
 ): Promise<FarmTaskDto> {
+  const body = {
+    ...payload,
+    priority:
+      payload.priority === "urgent" ? "high" : payload.priority,
+    status:
+      payload.status === "pending" ? "todo" : payload.status
+  };
   return apiPostJson<FarmTaskDto>(
     `/farms/${farmId}/tasks`,
-    payload,
+    body,
     accessToken,
     activeProfileId
   );
@@ -1399,10 +1501,13 @@ export type PatchFarmTaskPayload = {
   title?: string;
   description?: string | null;
   category?: string | null;
-  priority?: "low" | "normal" | "high";
-  status?: "todo" | "in_progress" | "done" | "cancelled";
+  priority?: "low" | "normal" | "high" | "urgent";
+  status?: "pending" | "todo" | "in_progress" | "done" | "cancelled";
   dueAt?: string | null;
   completedAt?: string | null;
+  assignedUserId?: string | null;
+  animalId?: string | null;
+  reminder?: "j_minus_1" | "j_zero" | "both" | null;
 };
 
 export function patchFarmTask(
@@ -1412,9 +1517,45 @@ export function patchFarmTask(
   payload: PatchFarmTaskPayload,
   activeProfileId?: string | null
 ): Promise<FarmTaskDto> {
+  const body = {
+    ...payload,
+    priority:
+      payload.priority === "urgent" ? "high" : payload.priority,
+    status:
+      payload.status === "pending" ? "todo" : payload.status
+  };
   return apiPatchJson<FarmTaskDto>(
     `/farms/${farmId}/tasks/${taskId}`,
-    payload,
+    body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function patchFarmTaskStatus(
+  accessToken: string,
+  farmId: string,
+  taskId: string,
+  status: string,
+  activeProfileId?: string | null
+): Promise<FarmTaskDto> {
+  const mapped = status === "pending" ? "todo" : status;
+  return apiPatchJson<FarmTaskDto>(
+    `/farms/${farmId}/tasks/${taskId}/status`,
+    { status: mapped },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function deleteFarmTask(
+  accessToken: string,
+  farmId: string,
+  taskId: string,
+  activeProfileId?: string | null
+): Promise<{ ok: boolean }> {
+  return apiDeleteJson<{ ok: boolean }>(
+    `/farms/${farmId}/tasks/${taskId}`,
     accessToken,
     activeProfileId
   );
@@ -2115,7 +2256,10 @@ export type FinanceOverviewDto = {
   };
   balanceAllTime: string;
   lowBalanceWarning: boolean;
-  months3: FinanceOverviewMonthPoint[];
+  /** Série mensuelle sur les 6 derniers mois (revenus / dépenses). */
+  months6: FinanceOverviewMonthPoint[];
+  /** @deprecated Utiliser months6 — 3 derniers mois seulement. */
+  months3?: FinanceOverviewMonthPoint[];
 };
 
 export type FinanceCategoryDto = {
@@ -2378,6 +2522,216 @@ export function fetchFinanceSimulation(
   qs.set("pricePerHead", String(pricePerHead));
   return apiGetJson<FinanceSimulationDto>(
     `/farms/${farmId}/finance/simulation?${qs.toString()}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type FarmBudgetLineDto = {
+  budgetLineId: string | null;
+  categoryId: string;
+  categoryKey: string;
+  categoryName: string;
+  categoryIcon: string | null;
+  amountPlanned: string;
+  amountRealized: string;
+  amountProjected: string;
+  consumptionPct: number;
+  projectedConsumptionPct: number;
+  remaining: string;
+  status: "ok" | "warning" | "exceeded";
+  projectedStatus: "ok" | "warning" | "exceeded";
+  currency: string;
+};
+
+export type FarmBudgetGlobalDto = {
+  totalPlanned: string;
+  totalRealized: string;
+  totalProjected: string;
+  remaining: string;
+  consumptionPct: number;
+  status: "on_track" | "warning" | "exceeded";
+  deltaProjected: string;
+  projectedEndOfMonth: string;
+};
+
+export type FarmBudgetSuggestionDto = {
+  id: string;
+  type: string;
+  message: string;
+  actionPayload: Record<string, unknown> | null;
+  isApplied: boolean;
+  isDismissed: boolean;
+  createdAt: string;
+};
+
+export type FarmBudgetViewDto = {
+  farmId: string;
+  year: number;
+  month: number;
+  configured: boolean;
+  budgetId: string | null;
+  currency: string;
+  currencySymbol: string;
+  createdFrom: string | null;
+  global: FarmBudgetGlobalDto;
+  lines: FarmBudgetLineDto[];
+  suggestions: FarmBudgetSuggestionDto[];
+};
+
+export type FarmBudgetCategoryHistoryDto = {
+  categoryId: string;
+  points: Array<{ year: number; month: number; expenses: string }>;
+  averageExpenses: string;
+};
+
+export type FarmBudgetSimulateDto = {
+  categoryId: string;
+  newAmount: string;
+  global: FarmBudgetGlobalDto & {
+    previousTotalPlanned: string;
+    marginAvailable: string;
+  };
+  lines: FarmBudgetLineDto[];
+};
+
+export function fetchFarmBudget(
+  accessToken: string,
+  farmId: string,
+  year: number,
+  month: number,
+  activeProfileId?: string | null
+): Promise<FarmBudgetViewDto> {
+  const qs = new URLSearchParams();
+  qs.set("year", String(year));
+  qs.set("month", String(month));
+  return apiGetJson<FarmBudgetViewDto>(
+    `/farms/${farmId}/finance/budget?${qs.toString()}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function upsertFarmBudget(
+  accessToken: string,
+  farmId: string,
+  payload: {
+    year: number;
+    month: number;
+    lines: Array<{ categoryId: string; amountPlanned: number }>;
+    createdFrom?: "manual" | "copied" | "auto_suggested";
+  },
+  activeProfileId?: string | null
+): Promise<FarmBudgetViewDto> {
+  return apiPostJson<FarmBudgetViewDto>(
+    `/farms/${farmId}/finance/budget`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function copyPreviousFarmBudget(
+  accessToken: string,
+  farmId: string,
+  year: number,
+  month: number,
+  activeProfileId?: string | null
+): Promise<FarmBudgetViewDto> {
+  const qs = new URLSearchParams();
+  qs.set("year", String(year));
+  qs.set("month", String(month));
+  return apiPostJson<FarmBudgetViewDto>(
+    `/farms/${farmId}/finance/budget/copy-previous?${qs.toString()}`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function applyAutoFarmBudget(
+  accessToken: string,
+  farmId: string,
+  year: number,
+  month: number,
+  activeProfileId?: string | null
+): Promise<FarmBudgetViewDto> {
+  const qs = new URLSearchParams();
+  qs.set("year", String(year));
+  qs.set("month", String(month));
+  return apiPostJson<FarmBudgetViewDto>(
+    `/farms/${farmId}/finance/budget/suggestion-auto?${qs.toString()}`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function updateFarmBudgetLine(
+  accessToken: string,
+  farmId: string,
+  lineId: string,
+  amountPlanned: number,
+  activeProfileId?: string | null
+): Promise<FarmBudgetViewDto> {
+  return apiPutJson<FarmBudgetViewDto>(
+    `/farms/${farmId}/finance/budget-lines/${lineId}`,
+    { amountPlanned },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFarmBudgetCategoryHistory(
+  accessToken: string,
+  farmId: string,
+  categoryId: string,
+  year: number,
+  month: number,
+  activeProfileId?: string | null
+): Promise<FarmBudgetCategoryHistoryDto> {
+  const qs = new URLSearchParams();
+  qs.set("categoryId", categoryId);
+  qs.set("year", String(year));
+  qs.set("month", String(month));
+  return apiGetJson<FarmBudgetCategoryHistoryDto>(
+    `/farms/${farmId}/finance/budget/category-history?${qs.toString()}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function simulateFarmBudget(
+  accessToken: string,
+  farmId: string,
+  year: number,
+  month: number,
+  categoryId: string,
+  newAmount: number,
+  activeProfileId?: string | null
+): Promise<FarmBudgetSimulateDto> {
+  const qs = new URLSearchParams();
+  qs.set("year", String(year));
+  qs.set("month", String(month));
+  qs.set("categoryId", categoryId);
+  qs.set("newAmount", String(newAmount));
+  return apiGetJson<FarmBudgetSimulateDto>(
+    `/farms/${farmId}/finance/budget/simulate?${qs.toString()}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function patchFarmBudgetSuggestion(
+  accessToken: string,
+  farmId: string,
+  suggestionId: string,
+  payload: { apply?: boolean; dismiss?: boolean },
+  activeProfileId?: string | null
+): Promise<FarmBudgetViewDto> {
+  return apiPatchJson<FarmBudgetViewDto>(
+    `/farms/${farmId}/finance/budget-suggestions/${suggestionId}`,
+    payload,
     accessToken,
     activeProfileId
   );

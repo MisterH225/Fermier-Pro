@@ -1,9 +1,13 @@
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useQuery } from "@tanstack/react-query";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { EventCard, KpiCard } from "../components/farm";
+import { KpiCard } from "../components/farm";
 import { MobileAppShell } from "../components/layout";
+import { DashboardTaskWidget } from "../components/tasks";
 import { IconButton, PrimaryButton } from "../components/ui";
+import { useSession } from "../context/SessionContext";
+import { fetchFarms } from "../lib/api";
 import { mobileColors, mobileSpacing, mobileTypography } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
@@ -13,6 +17,14 @@ import type { RootStackParamList } from "../types/navigation";
 export function TechnicianDashboardScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { accessToken, activeProfileId, clientFeatures } = useSession();
+
+  const farmsQ = useQuery({
+    queryKey: ["farms", activeProfileId],
+    queryFn: () => fetchFarms(accessToken!, activeProfileId),
+    enabled: Boolean(accessToken)
+  });
+  const primaryFarm = farmsQ.data?.[0];
 
   return (
     <MobileAppShell
@@ -29,19 +41,14 @@ export function TechnicianDashboardScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Activité terrain</Text>
-        <View style={styles.list}>
-          <EventCard
-            title="Tâche en retard"
-            subtitle="Lot #4 - Contrôle alimentation"
-            timestamp="09:05"
+        {primaryFarm && clientFeatures.tasks && accessToken ? (
+          <DashboardTaskWidget
+            farmId={primaryFarm.id}
+            farmName={primaryFarm.name}
+            accessToken={accessToken}
+            activeProfileId={activeProfileId}
           />
-          <EventCard
-            title="Visite terminée"
-            subtitle="Bâtiment C - Nettoyage"
-            timestamp="07:22"
-          />
-        </View>
+        ) : null}
 
         <Text style={styles.sectionTitle}>Actions rapides</Text>
         <View style={styles.list}>

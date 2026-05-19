@@ -47,11 +47,11 @@ export function MobileAppShell({
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: mobileColors.background
+    backgroundColor: mobileColors.canvas
   },
   content: {
     flex: 1,
-    backgroundColor: mobileColors.surface,
+    backgroundColor: mobileColors.canvas,
     position: "relative"
   },
   floatingLayer: {

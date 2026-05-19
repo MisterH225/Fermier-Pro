@@ -1,4 +1,6 @@
 export const mobileColors = {
+  /** Fond global des écrans (liste / formulaires), sous les cartes blanches. */
+  canvas: "#F2F2F7",
   background: "#FFFFFF",
   surface: "#FAFAFA",
   surfaceMuted: "#F7F7F7",

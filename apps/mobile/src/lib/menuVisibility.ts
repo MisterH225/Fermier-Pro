@@ -58,7 +58,7 @@ export function buildFarmDetailMenu(
   }
   return {
     chat: flags.chat && hasFarmScope(scopes, "chat"),
-    tasks: flags.tasks && hasFarmScope(scopes, ["tasks.read", "tasks.write"]),
+    tasks: flags.tasks && hasFarmScope(scopes, "tasks.read"),
     marketplace:
       flags.marketplace && hasFarmScope(scopes, "marketplace.read"),
     vetConsultations:

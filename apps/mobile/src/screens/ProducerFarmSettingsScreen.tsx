@@ -291,7 +291,7 @@ export function ProducerFarmSettingsScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: mobileColors.surface },
+  root: { flex: 1, backgroundColor: mobileColors.canvas },
   scroll: { flex: 1 },
   content: {
     padding: mobileSpacing.lg,

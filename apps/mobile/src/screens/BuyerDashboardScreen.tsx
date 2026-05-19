@@ -23,12 +23,12 @@ export function BuyerDashboardScreen() {
     {
       title: "Mes offres",
       desc: "Suivi de tes propositions d’achat.",
-      onPress: () => navigation.navigate("MarketplaceMyOffers")
+      onPress: () => navigation.navigate("MarketplaceList", { tab: "offers" })
     },
     {
       title: "Mes annonces",
       desc: "Annonces publiées depuis tes fermes liées.",
-      onPress: () => navigation.navigate("MarketplaceMyListings")
+      onPress: () => navigation.navigate("MarketplaceList", { tab: "mine" })
     },
     {
       title: "Messages",

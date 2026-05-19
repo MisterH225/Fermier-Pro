@@ -25,6 +25,7 @@ import { uploadUserAvatarToSupabase } from "../../lib/uploadAvatarToSupabase";
 import {
   mobileColors,
   mobileRadius,
+  mobileShadows,
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
@@ -458,7 +459,7 @@ export function ProducerProfileModal({
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: mobileColors.background
+    backgroundColor: mobileColors.canvas
   },
   topBar: {
     flexDirection: "row",
@@ -551,18 +552,19 @@ const styles = StyleSheet.create({
     marginLeft: 4
   },
   groupShell: {
-    backgroundColor: mobileColors.surfaceMuted,
+    backgroundColor: mobileColors.background,
     borderRadius: mobileRadius.lg,
     overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: mobileColors.border
+    borderColor: mobileColors.border,
+    ...mobileShadows.card
   },
   groupRow: {
     flexDirection: "row",
     alignItems: "center",
     minHeight: 52,
     paddingHorizontal: mobileSpacing.md,
-    backgroundColor: mobileColors.surfaceMuted
+    backgroundColor: mobileColors.background
   },
   groupRowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,

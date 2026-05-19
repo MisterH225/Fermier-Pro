@@ -16,6 +16,7 @@ import {
 import { FinanceModuleGate } from "../components/FinanceModuleGate";
 import { useSession } from "../context/SessionContext";
 import { createFarmRevenue } from "../lib/api";
+import { invalidateFarmFinanceQueries } from "../lib/invalidateFarmFinanceQueries";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CreateFarmRevenue">;
@@ -51,8 +52,7 @@ export function CreateFarmRevenueScreen({ route, navigation }: Props) {
       );
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["financeSummary", farmId] });
-      void qc.invalidateQueries({ queryKey: ["farmRevenues", farmId] });
+      invalidateFarmFinanceQueries(qc, farmId);
       navigation.goBack();
     },
     onError: (e: Error) => {

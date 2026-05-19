@@ -1,6 +1,12 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLayoutEffect, useMemo, useState, useCallback } from "react";
+import {
+  useLayoutEffect,
+  useMemo,
+  useState,
+  useCallback,
+  type ReactNode
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -12,16 +18,26 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  useWindowDimensions,
   View
 } from "react-native";
+import { TabContent, TabSelector } from "../components/tabs";
+import { BudgetScreen } from "../components/finance/budget";
 import {
-  FinanceBarChart,
-  type FinanceBarDatum,
-  FinanceDonutChart,
-  type FinanceDonutSegment,
-  FinanceKpiCard
+  SmartChart,
+  FinanceKpiCard,
+  formatFinanceChartValue,
+  financeMonthsToRevExpLines,
+  financeMonthsToSingleLine,
+  budgetVsExpenseLines,
+  type SmartChartPeriod
 } from "../components/finance";
+
+type CategoryBreakdownItem = {
+  label: string;
+  value: number;
+  display: string;
+  color: string;
+};
 import { FinanceModuleGate } from "../components/FinanceModuleGate";
 import { EventList, type EventItem } from "../components/lists";
 import { useModal } from "../components/modals/useModal";
@@ -36,6 +52,7 @@ import {
   deleteFarmExpense,
   deleteFarmRevenue,
   fetchFarmBatches,
+  fetchFarmBudget,
   fetchFinanceCategories,
   fetchFinanceMarginByBatch,
   fetchFinanceOverview,
@@ -44,6 +61,7 @@ import {
   fetchFinanceSimulation,
   fetchFinanceTransactions
 } from "../lib/api";
+import { invalidateFarmFinanceQueries } from "../lib/invalidateFarmFinanceQueries";
 import type { RootStackParamList } from "../types/navigation";
 import {
   mobileColors,
@@ -54,8 +72,6 @@ import {
 } from "../theme/mobileTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmFinance">;
-
-type InsightTab = "revenus" | "depenses" | "budget";
 
 const DONUT_PALETTE = [
   mobileColors.accent,
@@ -121,6 +137,17 @@ function currentMonthUtc(): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
+function parseMonthUtc(iso: string): { year: number; month: number } {
+  const [y, m] = iso.split("-").map(Number);
+  return { year: y ?? new Date().getUTCFullYear(), month: m ?? 1 };
+}
+
+function shiftMonthUtc(iso: string, delta: number): string {
+  const { year, month } = parseMonthUtc(iso);
+  const d = new Date(Date.UTC(year, month - 1 + delta, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
 function currentYearUtc(): string {
   return String(new Date().getUTCFullYear());
 }
@@ -130,18 +157,18 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
   const { t, i18n } = useTranslation();
-  const { width: windowWidth } = useWindowDimensions();
   const localeStr = i18n.language === "en" ? "en-US" : "fr-FR";
   const { open } = useModal();
 
   const [reportPeriod, setReportPeriod] = useState<"month" | "year">("month");
-  const [reportMonth] = useState(() => currentMonthUtc());
-  const [reportYear] = useState(() => currentYearUtc());
+  const [reportMonth, setReportMonth] = useState(() => currentMonthUtc());
+  const [reportYear, setReportYear] = useState(() => currentYearUtc());
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [simHeads, setSimHeads] = useState("10");
   const [simPrice, setSimPrice] = useState("50000");
 
-  const [insightTab, setInsightTab] = useState<InsightTab>("revenus");
+  const [financeTab, setFinanceTab] = useState("overview");
+  const [chartPeriod, setChartPeriod] = useState<SmartChartPeriod>("6M");
   const [showAllTransactions, setShowAllTransactions] = useState(false);
 
   const enabled = clientFeatures.finance;
@@ -201,6 +228,33 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
     enabled: enabled && Boolean(accessToken)
   });
 
+  /** Mois de référence pour le budget (aligné sur le sélecteur de période). */
+  const budgetAnchorRef = useMemo(() => {
+    if (reportPeriod === "month") {
+      return parseMonthUtc(reportMonth);
+    }
+    return { year: Number(reportYear), month: 12 };
+  }, [reportPeriod, reportMonth, reportYear]);
+
+  const budgetQ = useQuery({
+    queryKey: [
+      "farmBudget",
+      farmId,
+      budgetAnchorRef.year,
+      budgetAnchorRef.month,
+      activeProfileId
+    ],
+    queryFn: () =>
+      fetchFarmBudget(
+        accessToken!,
+        farmId,
+        budgetAnchorRef.year,
+        budgetAnchorRef.month,
+        activeProfileId
+      ),
+    enabled: enabled && Boolean(accessToken)
+  });
+
   const marginQ = useQuery({
     queryKey: ["financeMargin", farmId, activeProfileId, selectedBatchId],
     queryFn: () =>
@@ -237,9 +291,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
       }
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["financeOverview", farmId] });
-      void qc.invalidateQueries({ queryKey: ["financeTransactions", farmId] });
-      void qc.invalidateQueries({ queryKey: ["financeReport", farmId] });
+      invalidateFarmFinanceQueries(qc, farmId);
     },
     onError: (e: Error) => Alert.alert("Suppression impossible", e.message)
   });
@@ -327,10 +379,13 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
 
   const transactions = (txQ.data ?? []) as FinanceMergedTransactionDto[];
 
-  const months3 = useMemo(
-    () => (overviewQ.data as FinanceOverviewDto | undefined)?.months3 ?? [],
-    [overviewQ.data]
-  );
+  const months6 = useMemo(() => {
+    const o = overviewQ.data as FinanceOverviewDto | undefined;
+    if (o?.months6?.length) {
+      return o.months6;
+    }
+    return o?.months3 ?? [];
+  }, [overviewQ.data]);
 
   const txSorted = useMemo(
     () =>
@@ -342,103 +397,212 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
   );
 
   const revSeries = useMemo(
-    () => months3.map((m) => Number(m.revenues)),
-    [months3]
+    () => months6.map((m) => Number(m.revenues)),
+    [months6]
   );
   const expSeries = useMemo(
-    () => months3.map((m) => Number(m.expenses)),
-    [months3]
+    () => months6.map((m) => Number(m.expenses)),
+    [months6]
   );
   const netSeries = useMemo(
-    () => months3.map((m) => Number(m.revenues) - Number(m.expenses)),
-    [months3]
+    () => months6.map((m) => Number(m.revenues) - Number(m.expenses)),
+    [months6]
   );
 
-  const barsRevenues = useMemo((): FinanceBarDatum[] => {
-    const ev = report?.monthlyEvolution;
-    if (ev?.length) {
-      return ev.map((m) => ({
-        label: monthShort(m.month, localeStr),
-        value: Number(m.revenues),
-        color: mobileColors.success
-      }));
-    }
-    return months3.map((m) => ({
-      label: monthShort(m.month, localeStr),
-      value: Number(m.revenues),
-      color: mobileColors.success
-    }));
-  }, [report, months3, localeStr]);
+  const chartFmt = useCallback(
+    (n: number) => formatFinanceChartValue(n, curSym || curCode),
+    [curSym, curCode]
+  );
 
-  const barsExpenses = useMemo((): FinanceBarDatum[] => {
-    const ev = report?.monthlyEvolution;
-    if (ev?.length) {
-      return ev.map((m) => ({
-        label: monthShort(m.month, localeStr),
-        value: Number(m.expenses),
-        color: mobileColors.error
-      }));
+  const reportPeriodLabel = useMemo(() => {
+    if (reportPeriod === "year") {
+      return reportYear;
     }
-    return months3.map((m) => ({
-      label: monthShort(m.month, localeStr),
-      value: Number(m.expenses),
-      color: mobileColors.error
-    }));
-  }, [report, months3, localeStr]);
+    const { year, month } = parseMonthUtc(reportMonth);
+    const d = new Date(Date.UTC(year, month - 1, 1));
+    return d.toLocaleDateString(localeStr, { month: "long", year: "numeric" });
+  }, [reportPeriod, reportMonth, reportYear, localeStr]);
 
-  const barsNet = useMemo((): FinanceBarDatum[] => {
+  const chartMonths = useMemo(() => {
     const ev = report?.monthlyEvolution;
     if (ev?.length) {
       return ev.map((m) => ({
-        label: monthShort(m.month, localeStr),
-        value: Number(m.net),
-        color: mobileColors.accent
+        month: m.month,
+        revenues: Number(m.revenues),
+        expenses: Number(m.expenses),
+        net: Number(m.net)
       }));
     }
-    return months3.map((m) => ({
-      label: monthShort(m.month, localeStr),
-      value: Number(m.revenues) - Number(m.expenses),
-      color: mobileColors.accent
+    return months6.map((m) => ({
+      month: m.month,
+      revenues: Number(m.revenues),
+      expenses: Number(m.expenses),
+      net: Number(m.revenues) - Number(m.expenses)
     }));
-  }, [report, months3, localeStr]);
+  }, [report, months6]);
+
+  const budgetsForChartQ = useQueries({
+    queries: chartMonths.map((m) => {
+      const ref = parseMonthUtc(m.month);
+      return {
+        queryKey: [
+          "farmBudget",
+          farmId,
+          ref.year,
+          ref.month,
+          activeProfileId
+        ],
+        queryFn: () =>
+          fetchFarmBudget(
+            accessToken!,
+            farmId,
+            ref.year,
+            ref.month,
+            activeProfileId
+          ),
+        enabled: enabled && Boolean(accessToken),
+        staleTime: 60_000
+      };
+    })
+  });
+
+  const budgetChartSeries = useMemo(() => {
+    return chartMonths.map((m, i) => {
+      const view = budgetsForChartQ[i]?.data;
+      const planned =
+        view?.configured && Number(view.global.totalPlanned) > 0
+          ? Number(view.global.totalPlanned)
+          : undefined;
+      return {
+        month: m.month,
+        expenses: m.expenses,
+        budget: planned
+      };
+    });
+  }, [chartMonths, budgetsForChartQ]);
+
+  /** Budget de la période sélectionnée (`FarmBudget`), sinon repli estimation. */
+  const monthlyBudget = useMemo(() => {
+    if (reportPeriod === "year") {
+      const annualPlanned = budgetChartSeries.reduce(
+        (s, m) => s + (m.budget ?? 0),
+        0
+      );
+      if (annualPlanned > 0) {
+        return annualPlanned;
+      }
+    } else {
+      const budgetView = budgetQ.data;
+      if (budgetView?.configured) {
+        const planned = Number(budgetView.global.totalPlanned);
+        if (Number.isFinite(planned) && planned > 0) {
+          return planned;
+        }
+      }
+      const fromProjection = projection?.nextMonths?.[0];
+      if (fromProjection) {
+        const n = Number(fromProjection.projectedExpenses);
+        if (Number.isFinite(n) && n > 0) {
+          return n;
+        }
+      }
+    }
+    if (chartMonths.length) {
+      const sum = chartMonths.reduce((s, m) => s + m.expenses, 0);
+      const avg = sum / chartMonths.length;
+      const factor = reportPeriod === "year" ? chartMonths.length : 1;
+      if (Number.isFinite(avg) && avg > 0) {
+        return avg * factor;
+      }
+    }
+    return 0;
+  }, [
+    budgetQ.data,
+    projection,
+    chartMonths,
+    reportPeriod,
+    budgetChartSeries
+  ]);
+
+  const selectedPeriodExpenses = useMemo(() => {
+    if (report?.totals?.expenses != null) {
+      const n = Number(report.totals.expenses);
+      if (Number.isFinite(n)) {
+        return n;
+      }
+    }
+    if (reportPeriod === "month") {
+      const row = chartMonths.find((m) => m.month === reportMonth);
+      if (row) {
+        return row.expenses;
+      }
+    }
+    return Number(overview?.month.totalExpenses ?? 0);
+  }, [report, reportPeriod, reportMonth, chartMonths, overview]);
+
+  const budgetUsedPct =
+    monthlyBudget > 0
+      ? Math.round((selectedPeriodExpenses / monthlyBudget) * 100)
+      : null;
+
+  const showBudgetVsExpenseChart = useMemo(() => {
+    if (!chartMonths.length) {
+      return false;
+    }
+    const hasBudget = budgetChartSeries.some(
+      (m) => m.budget != null && m.budget > 0
+    );
+    const hasExpenses = budgetChartSeries.some((m) => m.expenses > 0);
+    return hasBudget || (monthlyBudget > 0 && hasExpenses);
+  }, [chartMonths, budgetChartSeries, monthlyBudget]);
+
+  const revExpChartLines = useMemo(
+    () =>
+      financeMonthsToRevExpLines(
+        chartMonths,
+        t("financeScreen.tabRevenues"),
+        t("financeScreen.tabExpenses")
+      ),
+    [chartMonths, t]
+  );
 
   const revDelta = useMemo(() => {
-    if (months3.length < 2) {
+    if (months6.length < 2) {
       return null;
     }
     const pct = pctDeltaString(
-      Number(months3[months3.length - 1]!.revenues),
-      Number(months3[months3.length - 2]!.revenues)
+      Number(months6[months6.length - 1]!.revenues),
+      Number(months6[months6.length - 2]!.revenues)
     );
     return pct ? t("financeScreen.vsPrevShort", { pct }) : null;
-  }, [months3, t]);
+  }, [months6, t]);
 
   const expDelta = useMemo(() => {
-    if (months3.length < 2) {
+    if (months6.length < 2) {
       return null;
     }
     const pct = pctDeltaString(
-      Number(months3[months3.length - 1]!.expenses),
-      Number(months3[months3.length - 2]!.expenses)
+      Number(months6[months6.length - 1]!.expenses),
+      Number(months6[months6.length - 2]!.expenses)
     );
     return pct ? t("financeScreen.vsPrevShort", { pct }) : null;
-  }, [months3, t]);
+  }, [months6, t]);
 
   const marginDelta = useMemo(() => {
-    if (months3.length < 2) {
+    if (months6.length < 2) {
       return null;
     }
     const n1 =
-      Number(months3[months3.length - 1]!.revenues) -
-      Number(months3[months3.length - 1]!.expenses);
+      Number(months6[months6.length - 1]!.revenues) -
+      Number(months6[months6.length - 1]!.expenses);
     const n0 =
-      Number(months3[months3.length - 2]!.revenues) -
-      Number(months3[months3.length - 2]!.expenses);
+      Number(months6[months6.length - 2]!.revenues) -
+      Number(months6[months6.length - 2]!.expenses);
     const pct = pctDeltaString(n1, n0);
     return pct ? t("financeScreen.vsPrevShort", { pct }) : null;
-  }, [months3, t]);
+  }, [months6, t]);
 
-  const donutRevenues = useMemo((): FinanceDonutSegment[] => {
+  const donutRevenues = useMemo((): CategoryBreakdownItem[] => {
     if (!report?.byCategory?.length) {
       return [];
     }
@@ -455,7 +619,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
     }));
   }, [report]);
 
-  const donutExpenses = useMemo((): FinanceDonutSegment[] => {
+  const donutExpenses = useMemo((): CategoryBreakdownItem[] => {
     if (report?.topExpenseCategories?.length) {
       return report.topExpenseCategories.map((c, i) => ({
         label: c.label,
@@ -480,38 +644,16 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
       }));
   }, [report]);
 
-  const donutBudget = useMemo((): FinanceDonutSegment[] => {
-    const o = overviewQ.data as FinanceOverviewDto | undefined;
-    const rev = Number(report?.totals.revenues ?? o?.month.totalRevenues ?? 0);
-    const exp = Number(report?.totals.expenses ?? o?.month.totalExpenses ?? 0);
-    const cur = report?.currency ?? o?.settings.currencyCode ?? "XOF";
-    const sym = report?.currencySymbol ?? o?.settings.currencySymbol;
-    return [
-      {
-        label: t("financeScreen.tabRevenues"),
-        value: Math.max(rev, 0),
-        display: formatMoney(rev, cur, sym),
-        color: mobileColors.success
-      },
-      {
-        label: t("financeScreen.tabExpenses"),
-        value: Math.max(exp, 0),
-        display: formatMoney(exp, cur, sym),
-        color: mobileColors.error
-      }
-    ];
-  }, [report, overviewQ.data, t]);
-
   const recentForTab = useMemo(() => {
     const limit = showAllTransactions ? 40 : 8;
     const base =
-      insightTab === "revenus"
+      financeTab === "revenus"
         ? txSorted.filter((x) => x.kind === "income")
-        : insightTab === "depenses"
+        : financeTab === "depenses"
           ? txSorted.filter((x) => x.kind === "expense")
           : txSorted;
     return base.slice(0, limit);
-  }, [insightTab, showAllTransactions, txSorted]);
+  }, [financeTab, showAllTransactions, txSorted]);
 
   const financeEventItems = useMemo((): EventItem[] => {
     return recentForTab.map((txRow) => {
@@ -593,117 +735,86 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
     [confirmDelete, goEdit, localeStr, t]
   );
 
-  // ── Données graphiques : Projections ──────────────────────────────────────
-  const projectionBarsNet = useMemo((): FinanceBarDatum[] => {
-    if (!projection?.nextMonths.length) return [];
-    return projection.nextMonths.map((m) => {
-      const net = Number(m.projectedNet);
-      return {
-        label: `M+${m.monthOffset}`,
-        value: Math.abs(net),
-        color: net >= 0 ? mobileColors.accent : mobileColors.error
-      };
-    });
-  }, [projection]);
-
-  const projectionBarsRevenues = useMemo((): FinanceBarDatum[] => {
+  const projectionChartMonths = useMemo(() => {
     if (!projection?.nextMonths.length) return [];
     return projection.nextMonths.map((m) => ({
-      label: `M+${m.monthOffset}`,
-      value: Number(m.projectedRevenues),
-      color: mobileColors.success
+      month: `M+${m.monthOffset}`,
+      revenues: Number(m.projectedRevenues),
+      expenses: Number(m.projectedExpenses),
+      net: Number(m.projectedNet)
     }));
   }, [projection]);
 
-  const projectionBarsExpenses = useMemo((): FinanceBarDatum[] => {
-    if (!projection?.nextMonths.length) return [];
-    return projection.nextMonths.map((m) => ({
-      label: `M+${m.monthOffset}`,
-      value: Number(m.projectedExpenses),
-      color: mobileColors.error
-    }));
-  }, [projection]);
+  const projectionRevExpLines = useMemo(
+    () =>
+      financeMonthsToRevExpLines(
+        projectionChartMonths,
+        t("financeScreen.projectedRevenues"),
+        t("financeScreen.projectedExpenses")
+      ),
+    [projectionChartMonths, t]
+  );
 
-  const projectionDonut = useMemo((): FinanceDonutSegment[] => {
-    if (!projection?.nextMonths.length) return [];
-    const totalRev = projection.nextMonths.reduce(
-      (s, m) => s + Number(m.projectedRevenues),
-      0
-    );
-    const totalExp = projection.nextMonths.reduce(
-      (s, m) => s + Number(m.projectedExpenses),
-      0
-    );
-    return [
-      {
-        label: t("financeScreen.projectedRevenues"),
-        value: Math.max(0, totalRev),
-        display: formatMoney(totalRev, projection.currency, curSym),
-        color: mobileColors.success
-      },
-      {
-        label: t("financeScreen.projectedExpenses"),
-        value: Math.max(0, totalExp),
-        display: formatMoney(totalExp, projection.currency, curSym),
-        color: mobileColors.error
-      }
-    ];
-  }, [projection, curSym, t]);
+  const projectionNetLines = useMemo(
+    () =>
+      financeMonthsToSingleLine(
+        projectionChartMonths,
+        "net",
+        t("financeScreen.projNet"),
+        mobileColors.accent,
+        (m) => Number(m.net ?? 0)
+      ),
+    [projectionChartMonths, t]
+  );
 
   const projectionTotalNet = useMemo(
     () => projection?.nextMonths.reduce((s, m) => s + Number(m.projectedNet), 0) ?? 0,
     [projection]
   );
 
-  // ── Données graphiques : Simulation ───────────────────────────────────────
-  const simBars = useMemo((): FinanceBarDatum[] => {
+  const simChartLines = useMemo(() => {
     if (!simMutation.data) return [];
     return [
       {
-        label: t("financeScreen.simBefore"),
-        value: Math.max(0, Number(simMutation.data.currentBalance)),
-        color: mobileColors.textSecondary
-      },
-      {
-        label: t("financeScreen.simAdditionalRev"),
-        value: Math.max(0, Number(simMutation.data.simulatedAdditionalRevenue)),
-        color: mobileColors.success
-      },
-      {
+        key: "balance",
         label: t("financeScreen.simAfter"),
-        value: Math.max(0, Number(simMutation.data.projectedBalance)),
-        color: mobileColors.accent
+        color: mobileColors.accent,
+        data: [
+          {
+            month: "1",
+            value: Math.max(0, Number(simMutation.data.currentBalance))
+          },
+          {
+            month: "2",
+            value:
+              Math.max(0, Number(simMutation.data.currentBalance)) +
+              Math.max(0, Number(simMutation.data.simulatedAdditionalRevenue))
+          },
+          {
+            month: "3",
+            value: Math.max(0, Number(simMutation.data.projectedBalance))
+          }
+        ]
       }
     ];
   }, [simMutation.data, t]);
 
-  const simDonut = useMemo((): FinanceDonutSegment[] => {
-    if (!simMutation.data) return [];
-    return [
-      {
-        label: t("financeScreen.simBefore"),
-        value: Math.max(0, Number(simMutation.data.currentBalance)),
-        display: formatMoney(simMutation.data.currentBalance, curCode, curSym),
-        color: mobileColors.accent
-      },
-      {
-        label: t("financeScreen.simAdditionalRev"),
-        value: Math.max(0, Number(simMutation.data.simulatedAdditionalRevenue)),
-        display: formatMoney(
-          simMutation.data.simulatedAdditionalRevenue,
-          curCode,
-          curSym
-        ),
-        color: mobileColors.success
-      }
-    ];
-  }, [simMutation.data, curCode, curSym, t]);
-
-  const kpiCardInnerW = Math.max(
-    108,
-    (windowWidth - mobileSpacing.lg * 2 - mobileSpacing.sm) / 2 -
-      mobileSpacing.md * 2
-  );
+  const renderCategoryBreakdown = (items: CategoryBreakdownItem[]) => {
+    if (!items.length) {
+      return (
+        <Text style={styles.muted}>—</Text>
+      );
+    }
+    return items.map((item) => (
+      <View key={item.label} style={styles.catRow}>
+        <View style={[styles.catDot, { backgroundColor: item.color }]} />
+        <Text style={styles.catLab} numberOfLines={1}>
+          {item.label}
+        </Text>
+        <Text style={styles.catVal}>{item.display}</Text>
+      </View>
+    ));
+  };
 
   const pending = queries.some((q) => q.isPending) || reportQ.isPending;
   const refreshing =
@@ -752,29 +863,134 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
     );
   }
 
+  const tabScroll = (children: ReactNode) => (
+    <ScrollView
+      style={styles.tabScroll}
+      contentContainerStyle={styles.tabScrollGrow}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={refetchAll}
+          tintColor={mobileColors.accent}
+        />
+      }
+      showsVerticalScrollIndicator={false}
+    >
+      <TabContent>{children}</TabContent>
+    </ScrollView>
+  );
+
+  const reportSpinner = reportQ.isPending ? (
+    <ActivityIndicator color={mobileColors.accent} style={{ marginVertical: 12 }} />
+  ) : null;
+
+  const txListBlock = (
+    <>
+      <View style={styles.txSectionHead}>
+        <Text style={styles.sectionTitle}>{t("financeScreen.recentTx")}</Text>
+        <Pressable
+          onPress={() => setShowAllTransactions((v) => !v)}
+          hitSlop={8}
+        >
+          <Text style={styles.viewAllLink}>
+            {showAllTransactions
+              ? t("financeScreen.viewLess")
+              : t("financeScreen.viewAll")}
+          </Text>
+        </Pressable>
+      </View>
+      <EventList
+        layout="embedded"
+        data={financeEventItems}
+        pageSize={999}
+        emptyMessage={t("financeScreen.noTx")}
+        renderDetail={renderFinanceTxDetail}
+      />
+    </>
+  );
+
   return (
     <View style={styles.screenRoot}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={refetchAll}
-            tintColor={mobileColors.accent}
-          />
+      <TabSelector
+        activeTab={financeTab}
+        onTabChange={(key) => {
+          setFinanceTab(key);
+          setShowAllTransactions(false);
+        }}
+        header={
+          <>
+            <Text style={styles.farmHint}>{farmName}</Text>
+            {overview?.lowBalanceWarning ? (
+              <View style={styles.warnBanner}>
+                <Text style={styles.warnText}>{t("financeScreen.lowBalanceBanner")}</Text>
+              </View>
+            ) : null}
+            <View style={styles.insightHeader}>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { marginTop: 0, marginBottom: 0, flex: 1, minWidth: 140 }
+                ]}
+              >
+                {t("financeScreen.insights")}
+              </Text>
+              <View style={styles.insightPeriodChips}>
+                <Pressable
+                  style={[styles.chip, reportPeriod === "month" && styles.chipOn]}
+                  onPress={() => setReportPeriod("month")}
+                >
+                  <Text style={styles.chipTx}>{t("financeScreen.periodMonth")}</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.chip, reportPeriod === "year" && styles.chipOn]}
+                  onPress={() => setReportPeriod("year")}
+                >
+                  <Text style={styles.chipTx}>{t("financeScreen.periodYear")}</Text>
+                </Pressable>
+              </View>
+            </View>
+            <View style={styles.reportPeriodNav}>
+              <Pressable
+                style={styles.reportPeriodNavBtn}
+                onPress={() => {
+                  if (reportPeriod === "month") {
+                    setReportMonth((m) => shiftMonthUtc(m, -1));
+                  } else {
+                    setReportYear((y) => String(Number(y) - 1));
+                  }
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={t("financeScreen.reportPeriodPrev")}
+              >
+                <Text style={styles.reportPeriodNavBtnTx}>◀</Text>
+              </Pressable>
+              <View style={styles.reportPeriodNavCenter}>
+                <Text style={styles.reportPeriodNavMain}>{reportPeriodLabel}</Text>
+              </View>
+              <Pressable
+                style={styles.reportPeriodNavBtn}
+                onPress={() => {
+                  if (reportPeriod === "month") {
+                    setReportMonth((m) => shiftMonthUtc(m, 1));
+                  } else {
+                    setReportYear((y) => String(Number(y) + 1));
+                  }
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={t("financeScreen.reportPeriodNext")}
+              >
+                <Text style={styles.reportPeriodNavBtnTx}>▶</Text>
+              </Pressable>
+            </View>
+          </>
         }
-      >
-        <Text style={styles.farmHint}>{farmName}</Text>
-
-        {overview?.lowBalanceWarning ? (
-          <View style={styles.warnBanner}>
-            <Text style={styles.warnText}>{t("financeScreen.lowBalanceBanner")}</Text>
-          </View>
-        ) : null}
-
-        <Text style={styles.sectionTitle}>{t("financeScreen.overview")}</Text>
-        {overview ? (
+        tabs={[
+          {
+            key: "overview",
+            label: t("financeScreen.tabOverview"),
+            content: tabScroll(
+              <>
+                {overview ? (
           <View style={styles.kpiRow}>
             <View style={styles.kpiHalf}>
               <FinanceKpiCard
@@ -784,7 +1000,6 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                 sparklineValues={netSeries.length > 1 ? netSeries : undefined}
                 sparklineColor="rgba(255,255,255,0.95)"
                 variant="dark"
-                onLayoutWidth={kpiCardInnerW}
               />
             </View>
             <View style={styles.kpiHalf}>
@@ -795,7 +1010,6 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                 sparklineValues={revSeries.length > 1 ? revSeries : undefined}
                 sparklineColor={mobileColors.success}
                 variant="income"
-                onLayoutWidth={kpiCardInnerW}
               />
             </View>
           </View>
@@ -810,7 +1024,6 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                 sparklineValues={expSeries.length > 1 ? expSeries : undefined}
                 sparklineColor={mobileColors.error}
                 variant="expense"
-                onLayoutWidth={kpiCardInnerW}
               />
             </View>
             <View style={styles.kpiHalf}>
@@ -821,478 +1034,422 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                 sparklineValues={netSeries.length > 1 ? netSeries : undefined}
                 sparklineColor={mobileColors.accent}
                 variant="margin"
-                onLayoutWidth={kpiCardInnerW}
               />
             </View>
           </View>
-        ) : null}
+                ) : null}
+                {showBudgetVsExpenseChart ? (
+                  <>
+                    <Text style={[styles.panelHeading, styles.panelHeadingSp]}>
+                      {t("financeScreen.expensesVsBudget")}
+                    </Text>
+                    <Text style={styles.budgetSummary}>
+                      {t("financeScreen.budgetMonthLine", {
+                        spent: formatMoney(
+                          selectedPeriodExpenses,
+                          curCode,
+                          curSym
+                        ),
+                        budget: formatMoney(monthlyBudget, curCode, curSym),
+                        pct: budgetUsedPct ?? 0
+                      })}
+                    </Text>
+                    <View style={styles.chartCard}>
+                      <SmartChart
+                        lines={budgetVsExpenseLines(
+                          budgetChartSeries,
+                          monthlyBudget,
+                          t("financeScreen.legendExpenses"),
+                          t("financeScreen.legendBudget")
+                        )}
+                        period={chartPeriod}
+                        onPeriodChange={setChartPeriod}
+                        formatValue={chartFmt}
+                        monthLabel={(iso) => monthShort(iso, localeStr)}
+                        unit={curSym}
+                      />
+                    </View>
+                  </>
+                ) : null}
+                {months6.length > 0 ? (
+                  <>
+                    <Text style={[styles.panelHeading, styles.panelHeadingSp]}>
+                      {t("financeScreen.trend6Months")}
+                    </Text>
+                    <View style={styles.chartCard}>
+                      <SmartChart
+                        lines={revExpChartLines}
+                        period={chartPeriod}
+                        onPeriodChange={setChartPeriod}
+                        formatValue={chartFmt}
+                        monthLabel={(iso) => monthShort(iso, localeStr)}
+                        unit={curSym}
+                      />
+                    </View>
+                  </>
+                ) : null}
 
-        <View style={styles.insightHeader}>
-          <Text
-            style={[
-              styles.sectionTitle,
-              { marginTop: mobileSpacing.sm, marginBottom: 0, flex: 1, minWidth: 140 }
-            ]}
-          >
-            {t("financeScreen.insights")}
-          </Text>
-          <View style={styles.insightPeriodChips}>
-            <Pressable
-              style={[styles.chip, reportPeriod === "month" && styles.chipOn]}
-              onPress={() => setReportPeriod("month")}
-            >
-              <Text style={styles.chipTx}>{t("financeScreen.periodMonth")}</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.chip, reportPeriod === "year" && styles.chipOn]}
-              onPress={() => setReportPeriod("year")}
-            >
-              <Text style={styles.chipTx}>{t("financeScreen.periodYear")}</Text>
-            </Pressable>
-          </View>
-        </View>
+                <Text style={[styles.sectionTitle, styles.sp]}>
+                  {t("financeScreen.advancedTitle")}
+                </Text>
+                <Text style={styles.panelHeading}>{t("financeScreen.marginByBand")}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {(batchesQ.data ?? []).map((b) => (
+                    <Pressable
+                      key={b.id}
+                      style={[
+                        styles.batchChip,
+                        selectedBatchId === b.id && styles.batchChipOn
+                      ]}
+                      onPress={() => setSelectedBatchId(b.id)}
+                    >
+                      <Text style={styles.batchChipTx}>{b.name}</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+                {selectedBatchId && marginQ.data ? (
+                  <View style={styles.marginBox}>
+                    <Text style={styles.rowMeta}>
+                      {t("financeScreen.marginRev")}{" "}
+                      {formatMoney(marginQ.data.revenues, curCode, curSym)}
+                    </Text>
+                    <Text style={styles.rowMeta}>
+                      {t("financeScreen.marginExpAlloc")}{" "}
+                      {formatMoney(marginQ.data.expensesAllocated, curCode, curSym)}
+                    </Text>
+                    <Text style={styles.rowAmount}>
+                      {t("financeScreen.marginGross")}{" "}
+                      {formatMoney(marginQ.data.grossMargin, curCode, curSym)}
+                    </Text>
+                    <Text style={styles.rowMeta}>
+                      {t("financeScreen.marginPerHead")}{" "}
+                      {formatMoney(marginQ.data.costPerHead, curCode, curSym)}
+                    </Text>
+                    {marginQ.data.costPerKg != null ? (
+                      <Text style={styles.rowMeta}>
+                        {t("financeScreen.marginPerKg")}{" "}
+                        {formatMoney(marginQ.data.costPerKg, curCode, curSym)}
+                      </Text>
+                    ) : null}
+                  </View>
+                ) : (
+                  <Text style={styles.muted}>{t("financeScreen.selectBand")}</Text>
+                )}
 
-        <View style={styles.insightTabRow}>
-          {(
-            [
-              ["revenus", "tabRevenues"],
-              ["depenses", "tabExpenses"],
-              ["budget", "tabBudget"]
-            ] as const
-          ).map(([key, i18nKey]) => (
-            <Pressable
-              key={key}
-              onPress={() => {
-                setInsightTab(key as InsightTab);
-                setShowAllTransactions(false);
-              }}
-              style={styles.insightTabBtn}
-            >
-              <Text
-                style={[
-                  styles.insightTabLabel,
-                  insightTab === key && styles.insightTabLabelOn
-                ]}
-              >
-                {t(`financeScreen.${i18nKey}`)}
-              </Text>
-              {insightTab === key ? <View style={styles.insightTabUnderline} /> : null}
-            </Pressable>
-          ))}
-        </View>
+                <Text style={[styles.sectionTitle, styles.sp]}>
+                  {t("financeScreen.projections")}
+                </Text>
+                {projectionQ.isPending ? (
+                  <ActivityIndicator
+                    color={mobileColors.accent}
+                    style={{ marginVertical: 12 }}
+                  />
+                ) : projection ? (
+                  <>
+                    {projection.deficitAlert ? (
+                      <View style={styles.warnBanner}>
+                        <Text style={styles.warnText}>
+                          {t("financeScreen.deficitBanner")}
+                        </Text>
+                      </View>
+                    ) : null}
+                    <Text style={styles.panelHeading}>
+                      {t("financeScreen.projRevExpSplit")}
+                    </Text>
+                    <View style={styles.chartCard}>
+                      <SmartChart
+                        lines={projectionRevExpLines}
+                        formatValue={chartFmt}
+                        monthLabel={(m) => m}
+                        unit={curSym}
+                        summaryStats={[
+                          {
+                            label: t("financeScreen.projNet"),
+                            value: projectionTotalNet
+                          }
+                        ]}
+                      />
+                    </View>
+                    <Text style={[styles.panelHeading, styles.panelHeadingSp]}>
+                      {t("financeScreen.projNetTrend")}
+                    </Text>
+                    <View style={styles.chartCard}>
+                      <SmartChart
+                        lines={projectionNetLines}
+                        formatValue={chartFmt}
+                        monthLabel={(m) => m}
+                        unit={curSym}
+                      />
+                    </View>
+                    {projection.nextMonths.map((m) => {
+                      const net = Number(m.projectedNet);
+                      return (
+                        <View key={m.monthOffset} style={styles.projMonthRow}>
+                          <Text style={styles.projMonthLabel}>M+{m.monthOffset}</Text>
+                          <View style={styles.projMonthVals}>
+                            <Text
+                              style={[styles.projMonthVal, { color: mobileColors.success }]}
+                            >
+                              +
+                              {formatMoney(
+                                m.projectedRevenues,
+                                projection.currency,
+                                curSym
+                              )}
+                            </Text>
+                            <Text
+                              style={[styles.projMonthVal, { color: mobileColors.error }]}
+                            >
+                              −
+                              {formatMoney(
+                                m.projectedExpenses,
+                                projection.currency,
+                                curSym
+                              )}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.projMonthVal,
+                                styles.projMonthNet,
+                                {
+                                  color:
+                                    net >= 0 ? mobileColors.accent : mobileColors.error
+                                }
+                              ]}
+                            >
+                              = {formatMoney(m.projectedNet, projection.currency, curSym)}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </>
+                ) : null}
 
-        {reportQ.isPending ? (
-          <ActivityIndicator color={mobileColors.accent} style={{ marginVertical: 12 }} />
-        ) : null}
+                <Text style={[styles.sectionTitle, styles.sp]}>
+                  {t("financeScreen.simulation")}
+                </Text>
+                <View style={styles.simRow}>
+                  <TextInput
+                    style={styles.input}
+                    keyboardType="numeric"
+                    value={simHeads}
+                    onChangeText={setSimHeads}
+                    placeholder={t("financeScreen.simHeadsPh")}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    keyboardType="numeric"
+                    value={simPrice}
+                    onChangeText={setSimPrice}
+                    placeholder={t("financeScreen.simPricePh")}
+                  />
+                  <TouchableOpacity
+                    style={styles.simBtn}
+                    onPress={() => simMutation.mutate()}
+                    disabled={simMutation.isPending}
+                  >
+                    {simMutation.isPending ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.simBtnTx}>{t("financeScreen.calc")}</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {simMutation.data ? (
+                  <>
+                    <Text style={[styles.panelHeading, { marginTop: mobileSpacing.md }]}>
+                      {t("financeScreen.simResultTitle")}
+                    </Text>
+                    <View style={styles.chartCard}>
+                      <SmartChart
+                        lines={simChartLines}
+                        formatValue={chartFmt}
+                        monthLabel={(m) =>
+                          m === "1"
+                            ? t("financeScreen.simBefore")
+                            : m === "2"
+                              ? t("financeScreen.simAdditionalRev")
+                              : t("financeScreen.simAfter")
+                        }
+                        unit={curSym}
+                      />
+                    </View>
+                    <View style={styles.simDetailCard}>
+                      <View style={styles.simDetailRow}>
+                        <Text style={styles.simDetailLabel}>
+                          {t("financeScreen.simBefore")}
+                        </Text>
+                        <Text style={styles.simDetailValue}>
+                          {formatMoney(simMutation.data.currentBalance, curCode, curSym)}
+                        </Text>
+                      </View>
+                      <View style={styles.simDetailRow}>
+                        <Text style={styles.simDetailLabel}>
+                          {t("financeScreen.simAdditionalRev")}
+                        </Text>
+                        <Text
+                          style={[styles.simDetailValue, { color: mobileColors.success }]}
+                        >
+                          +
+                          {formatMoney(
+                            simMutation.data.simulatedAdditionalRevenue,
+                            curCode,
+                            curSym
+                          )}
+                        </Text>
+                      </View>
+                      <View style={styles.simDetailRowFinal}>
+                        <Text style={[styles.simDetailLabel, { fontWeight: "800" }]}>
+                          {t("financeScreen.simAfter")}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.simDetailValue,
+                            { color: mobileColors.accent, fontWeight: "800" }
+                          ]}
+                        >
+                          {formatMoney(simMutation.data.projectedBalance, curCode, curSym)}
+                        </Text>
+                      </View>
+                    </View>
+                  </>
+                ) : null}
 
-        {insightTab === "revenus" ? (
-          <View style={styles.insightPanel}>
+                <Text style={[styles.subtle, { marginTop: mobileSpacing.lg }]}>
+                  {t("financeScreen.exportHint")}
+                </Text>
+              </>
+            )
+          },
+          {
+            key: "revenus",
+            label: t("financeScreen.tabRevenues"),
+            content: tabScroll(
+              <>
+                {reportSpinner}
+                <View style={styles.insightPanel}>
             <Text style={styles.panelHeading}>{t("financeScreen.trendRevenues")}</Text>
             <View style={styles.chartCard}>
-              <FinanceBarChart data={barsRevenues} emptyLabel="—" />
+              <SmartChart
+                lines={financeMonthsToSingleLine(
+                  chartMonths,
+                  "revenues",
+                  t("financeScreen.tabRevenues"),
+                  mobileColors.success,
+                  (m) => Number(m.revenues ?? 0)
+                )}
+                period={chartPeriod}
+                onPeriodChange={setChartPeriod}
+                formatValue={chartFmt}
+                monthLabel={(iso) => monthShort(iso, localeStr)}
+                unit={curSym}
+              />
             </View>
             <Text style={[styles.panelHeading, styles.panelHeadingSp]}>
               {t("financeScreen.sourcesRevenues")}
             </Text>
             <View style={styles.chartCard}>
-              <FinanceDonutChart
-                segments={donutRevenues}
-                centerTitle={t("financeScreen.tabRevenues")}
-                centerValue={
-                  report
-                    ? formatMoney(
-                        report.totals.revenues,
-                        report.currency,
-                        report.currencySymbol
-                      )
-                    : overview
-                      ? formatMoney(
-                          overview.month.totalRevenues,
-                          curCode,
-                          curSym
-                        )
-                      : "—"
-                }
-                emptyLabel="—"
-              />
+              {renderCategoryBreakdown(donutRevenues)}
             </View>
-          </View>
-        ) : null}
-
-        {insightTab === "depenses" ? (
-          <View style={styles.insightPanel}>
+                </View>
+                {txListBlock}
+              </>
+            )
+          },
+          {
+            key: "depenses",
+            label: t("financeScreen.tabExpenses"),
+            content: tabScroll(
+              <>
+                {reportSpinner}
+                <View style={styles.insightPanel}>
             <Text style={styles.panelHeading}>{t("financeScreen.trendExpenses")}</Text>
             <View style={styles.chartCard}>
-              <FinanceBarChart data={barsExpenses} emptyLabel="—" />
+              <SmartChart
+                lines={financeMonthsToSingleLine(
+                  chartMonths,
+                  "expenses",
+                  t("financeScreen.tabExpenses"),
+                  mobileColors.error,
+                  (m) => Number(m.expenses ?? 0)
+                )}
+                period={chartPeriod}
+                onPeriodChange={setChartPeriod}
+                formatValue={chartFmt}
+                monthLabel={(iso) => monthShort(iso, localeStr)}
+                unit={curSym}
+              />
             </View>
             <Text style={[styles.panelHeading, styles.panelHeadingSp]}>
               {t("financeScreen.sourcesExpenses")}
             </Text>
             <View style={styles.chartCard}>
-              <FinanceDonutChart
-                segments={donutExpenses}
-                centerTitle={t("financeScreen.tabExpenses")}
-                centerValue={
-                  report
-                    ? formatMoney(
-                        report.totals.expenses,
-                        report.currency,
-                        report.currencySymbol
-                      )
-                    : overview
-                      ? formatMoney(
-                          overview.month.totalExpenses,
-                          curCode,
-                          curSym
-                        )
-                      : "—"
-                }
-                emptyLabel="—"
-              />
+              {renderCategoryBreakdown(donutExpenses)}
             </View>
-          </View>
-        ) : null}
-
-        {insightTab === "budget" ? (
-          <View style={styles.insightPanel}>
-            <Text style={styles.panelHeading}>{t("financeScreen.trendNet")}</Text>
-            <View style={styles.chartCard}>
-              <FinanceBarChart data={barsNet} emptyLabel="—" />
-            </View>
-            <Text style={[styles.panelHeading, styles.panelHeadingSp]}>
-              {t("financeScreen.budgetSplit")}
-            </Text>
-            <View style={styles.chartCard}>
-              <FinanceDonutChart
-                segments={donutBudget}
-                centerTitle={t("financeScreen.tabBudget")}
-                centerValue={
-                  report
-                    ? formatMoney(report.totals.net, report.currency, report.currencySymbol)
-                    : overview
-                      ? formatMoney(overview.month.netMargin, curCode, curSym)
-                      : "—"
-                }
-                emptyLabel="—"
-              />
-            </View>
-            {report ? (
-              <>
-                <Text style={[styles.panelHeading, styles.panelHeadingSp]}>
-                  {t("financeScreen.catHint")}
-                </Text>
-                <Text style={styles.netLine}>
-                  {t("financeScreen.netLabel")}{" "}
-                  {formatMoney(report.totals.net, report.currency, report.currencySymbol)}
-                </Text>
-                {report.byCategory.map((r) => {
-                  const e = Number(r.expenses);
-                  const rev = Number(r.revenues);
-                  const tw = Math.max(1, e + rev);
-                  const ew = (e / tw) * 100;
-                  const rw = (rev / tw) * 100;
-                  return (
-                    <View key={r.key} style={styles.stackRow}>
-                      <Text style={styles.stackLab}>{r.label}</Text>
-                      <View style={styles.stackBar}>
-                        <View style={[styles.stackExp, { width: `${ew}%` }]} />
-                        <View style={[styles.stackRev, { width: `${rw}%` }]} />
-                      </View>
-                    </View>
-                  );
-                })}
-                {report.topExpenseCategories?.length ? (
-                  <>
-                    <Text style={[styles.subtle, { marginTop: mobileSpacing.md }]}>
-                      {t("financeScreen.topExpYear")}
-                    </Text>
-                    {report.topExpenseCategories.map((c) => (
-                      <Text key={c.key} style={styles.lineItem}>
-                        {c.label}:{" "}
-                        {formatMoney(c.expenses, report.currency, report.currencySymbol)}
-                      </Text>
-                    ))}
-                  </>
-                ) : null}
-              </>
-            ) : null}
-          </View>
-        ) : null}
-
-        <View style={styles.txSectionHead}>
-          <Text style={styles.sectionTitle}>{t("financeScreen.recentTx")}</Text>
-          <Pressable
-            onPress={() => setShowAllTransactions((v) => !v)}
-            hitSlop={8}
-          >
-            <Text style={styles.viewAllLink}>
-              {showAllTransactions
-                ? t("financeScreen.viewLess")
-                : t("financeScreen.viewAll")}
-            </Text>
-          </Pressable>
-        </View>
-
-        <EventList
-          layout="embedded"
-          data={financeEventItems}
-          pageSize={999}
-          emptyMessage={t("financeScreen.noTx")}
-          renderDetail={renderFinanceTxDetail}
-        />
-
-        <Text style={[styles.sectionTitle, styles.sp]}>{t("financeScreen.advancedTitle")}</Text>
-
-        <Text style={styles.panelHeading}>{t("financeScreen.marginByBand")}</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {(batchesQ.data ?? []).map((b) => (
-            <Pressable
-              key={b.id}
-              style={[
-                styles.batchChip,
-                selectedBatchId === b.id && styles.batchChipOn
-              ]}
-              onPress={() => setSelectedBatchId(b.id)}
-            >
-              <Text style={styles.batchChipTx}>{b.name}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-        {selectedBatchId && marginQ.data ? (
-          <View style={styles.marginBox}>
-            <Text style={styles.rowMeta}>
-              {t("financeScreen.marginRev")}{" "}
-              {formatMoney(
-                marginQ.data.revenues,
-                curCode,
-                curSym
-              )}
-            </Text>
-            <Text style={styles.rowMeta}>
-              {t("financeScreen.marginExpAlloc")}{" "}
-              {formatMoney(
-                marginQ.data.expensesAllocated,
-                curCode,
-                curSym
-              )}
-            </Text>
-            <Text style={styles.rowAmount}>
-              {t("financeScreen.marginGross")}{" "}
-              {formatMoney(marginQ.data.grossMargin, curCode, curSym)}
-            </Text>
-            <Text style={styles.rowMeta}>
-              {t("financeScreen.marginPerHead")}{" "}
-              {formatMoney(marginQ.data.costPerHead, curCode, curSym)}
-            </Text>
-            {marginQ.data.costPerKg != null ? (
-              <Text style={styles.rowMeta}>
-                {t("financeScreen.marginPerKg")}{" "}
-                {formatMoney(marginQ.data.costPerKg, curCode, curSym)}
-              </Text>
-            ) : null}
-          </View>
-        ) : (
-          <Text style={styles.muted}>{t("financeScreen.selectBand")}</Text>
-        )}
-
-        <Text style={[styles.sectionTitle, styles.sp]}>
-          {t("financeScreen.projections")}
-        </Text>
-        {projectionQ.isPending ? (
-          <ActivityIndicator color={mobileColors.accent} style={{ marginVertical: 12 }} />
-        ) : projection ? (
-          <>
-            {projection.deficitAlert ? (
-              <View style={styles.warnBanner}>
-                <Text style={styles.warnText}>{t("financeScreen.deficitBanner")}</Text>
-              </View>
-            ) : null}
-
-            {/* Donut : répartition globale revenus / dépenses projetés */}
-            <Text style={styles.panelHeading}>{t("financeScreen.projRevExpSplit")}</Text>
-            <View style={styles.chartCard}>
-              <FinanceDonutChart
-                segments={projectionDonut}
-                centerTitle={t("financeScreen.projNet")}
-                centerValue={formatMoney(projectionTotalNet, projection.currency, curSym)}
-                emptyLabel="—"
-              />
-            </View>
-
-            {/* Barres : trajectoire du résultat net */}
-            <Text style={[styles.panelHeading, styles.panelHeadingSp]}>
-              {t("financeScreen.projNetTrend")}
-            </Text>
-            <View style={styles.chartCard}>
-              <FinanceBarChart data={projectionBarsNet} emptyLabel="—" />
-            </View>
-
-            {/* Barres : revenus projetés */}
-            <Text style={[styles.panelHeading, styles.panelHeadingSp]}>
-              {t("financeScreen.projectedRevenues")}
-            </Text>
-            <View style={styles.chartCard}>
-              <FinanceBarChart data={projectionBarsRevenues} emptyLabel="—" />
-            </View>
-
-            {/* Barres : dépenses projetées */}
-            <Text style={[styles.panelHeading, styles.panelHeadingSp]}>
-              {t("financeScreen.projectedExpenses")}
-            </Text>
-            <View style={styles.chartCard}>
-              <FinanceBarChart data={projectionBarsExpenses} emptyLabel="—" />
-            </View>
-
-            {/* Tableau détail par mois */}
-            {projection.nextMonths.map((m) => {
-              const net = Number(m.projectedNet);
-              return (
-                <View key={m.monthOffset} style={styles.projMonthRow}>
-                  <Text style={styles.projMonthLabel}>M+{m.monthOffset}</Text>
-                  <View style={styles.projMonthVals}>
-                    <Text style={[styles.projMonthVal, { color: mobileColors.success }]}>
-                      +{formatMoney(m.projectedRevenues, projection.currency, curSym)}
-                    </Text>
-                    <Text style={[styles.projMonthVal, { color: mobileColors.error }]}>
-                      −{formatMoney(m.projectedExpenses, projection.currency, curSym)}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.projMonthVal,
-                        styles.projMonthNet,
-                        { color: net >= 0 ? mobileColors.accent : mobileColors.error }
-                      ]}
-                    >
-                      = {formatMoney(m.projectedNet, projection.currency, curSym)}
-                    </Text>
-                  </View>
                 </View>
-              );
-            })}
-          </>
-        ) : null}
-
-        <Text style={[styles.sectionTitle, styles.sp]}>
-          {t("financeScreen.simulation")}
-        </Text>
-
-        {/* Formulaire de saisie */}
-        <View style={styles.simRow}>
-          <TextInput
-            style={styles.input}
-            keyboardType="numeric"
-            value={simHeads}
-            onChangeText={setSimHeads}
-            placeholder={t("financeScreen.simHeadsPh")}
-          />
-          <TextInput
-            style={styles.input}
-            keyboardType="numeric"
-            value={simPrice}
-            onChangeText={setSimPrice}
-            placeholder={t("financeScreen.simPricePh")}
-          />
-          <TouchableOpacity
-            style={styles.simBtn}
-            onPress={() => simMutation.mutate()}
-            disabled={simMutation.isPending}
-          >
-            {simMutation.isPending ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.simBtnTx}>{t("financeScreen.calc")}</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Résultats graphiques */}
-        {simMutation.data ? (
-          <>
-            <Text style={[styles.panelHeading, { marginTop: mobileSpacing.md }]}>
-              {t("financeScreen.simResultTitle")}
-            </Text>
-
-            {/* Barres : avant / revenus simulés / après */}
-            <View style={styles.chartCard}>
-              <FinanceBarChart data={simBars} emptyLabel="—" />
-            </View>
-
-            {/* Donut : composition du solde projeté */}
-            <Text style={[styles.panelHeading, styles.panelHeadingSp]}>
-              {t("financeScreen.simComposition")}
-            </Text>
-            <View style={styles.chartCard}>
-              <FinanceDonutChart
-                segments={simDonut}
-                centerTitle={t("financeScreen.simAfter")}
-                centerValue={formatMoney(
-                  simMutation.data.projectedBalance,
-                  curCode,
-                  curSym
-                )}
-                emptyLabel="—"
-              />
-            </View>
-
-            {/* Détail chiffré */}
-            <View style={styles.simDetailCard}>
-              <View style={styles.simDetailRow}>
-                <Text style={styles.simDetailLabel}>
-                  {t("financeScreen.simBefore")}
-                </Text>
-                <Text style={styles.simDetailValue}>
-                  {formatMoney(simMutation.data.currentBalance, curCode, curSym)}
-                </Text>
-              </View>
-              <View style={styles.simDetailRow}>
-                <Text style={styles.simDetailLabel}>
-                  {t("financeScreen.simAdditionalRev")}
-                </Text>
-                <Text style={[styles.simDetailValue, { color: mobileColors.success }]}>
-                  +{formatMoney(
-                    simMutation.data.simulatedAdditionalRevenue,
-                    curCode,
-                    curSym
-                  )}
-                </Text>
-              </View>
-              <View style={styles.simDetailRowFinal}>
-                <Text style={[styles.simDetailLabel, { fontWeight: "800" }]}>
-                  {t("financeScreen.simAfter")}
-                </Text>
-                <Text
-                  style={[
-                    styles.simDetailValue,
-                    { color: mobileColors.accent, fontWeight: "800" }
-                  ]}
-                >
-                  {formatMoney(simMutation.data.projectedBalance, curCode, curSym)}
-                </Text>
-              </View>
-            </View>
-          </>
-        ) : null}
-
-        <Text style={[styles.subtle, { marginTop: mobileSpacing.lg }]}>
-          {t("financeScreen.exportHint")}
-        </Text>
-      </ScrollView>
+                {txListBlock}
+              </>
+            )
+          },
+          {
+            key: "budget",
+            label: t("financeScreen.tabBudget"),
+            content: tabScroll(
+              accessToken ? (
+                <BudgetScreen
+                  farmId={farmId}
+                  accessToken={accessToken}
+                  activeProfileId={activeProfileId}
+                />
+              ) : null
+            )
+          }
+        ]}
+      />
     </View>
   );
 }
 
+
 const styles = StyleSheet.create({
-  screenRoot: { flex: 1, position: "relative" },
-  scroll: { flex: 1, backgroundColor: mobileColors.surface },
-  content: {
-    padding: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl * 2
+  screenRoot: { flex: 1, position: "relative", backgroundColor: mobileColors.canvas },
+  tabScroll: { flex: 1 },
+  tabScrollGrow: { flexGrow: 1 },
+  miniChartBox: { alignItems: "center", marginBottom: mobileSpacing.sm },
+  legendRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: mobileSpacing.md,
+    marginTop: mobileSpacing.sm
+  },
+  legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { ...mobileTypography.meta, color: mobileColors.textSecondary },
+  monthRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: mobileSpacing.sm,
+    gap: mobileSpacing.xs
+  },
+  monthLab: {
+    ...mobileTypography.meta,
+    flex: 1,
+    textAlign: "center",
+    color: mobileColors.textSecondary,
+    fontSize: 11
+  },
+  budgetSummary: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginBottom: mobileSpacing.sm,
+    fontWeight: "600"
   },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: mobileColors.surface
+    backgroundColor: mobileColors.canvas
   },
   error: { color: mobileColors.error, ...mobileTypography.body },
   farmHint: {
@@ -1326,8 +1483,12 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.warning
   },
   warnText: { color: mobileColors.textPrimary, fontWeight: "600" },
-  kpiRow: { flexDirection: "row", gap: mobileSpacing.sm },
-  kpiHalf: { flex: 1, minWidth: 0 },
+  kpiRow: {
+    flexDirection: "row",
+    gap: mobileSpacing.sm,
+    alignItems: "stretch"
+  },
+  kpiHalf: { flex: 1, minWidth: 0, alignSelf: "stretch" },
   insightHeader: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -1336,38 +1497,37 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.sm,
     marginTop: mobileSpacing.md
   },
+  reportPeriodNav: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: mobileSpacing.sm,
+    marginBottom: mobileSpacing.xs,
+    paddingVertical: mobileSpacing.sm,
+    paddingHorizontal: mobileSpacing.sm,
+    borderRadius: mobileRadius.md,
+    backgroundColor: mobileColors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.border
+  },
+  reportPeriodNavBtn: {
+    paddingHorizontal: mobileSpacing.md,
+    paddingVertical: mobileSpacing.xs
+  },
+  reportPeriodNavBtnTx: {
+    fontSize: 18,
+    color: mobileColors.accent,
+    fontWeight: "800"
+  },
+  reportPeriodNavCenter: { flex: 1, alignItems: "center" },
+  reportPeriodNavMain: {
+    ...mobileTypography.cardTitle,
+    color: mobileColors.textPrimary,
+    textAlign: "center"
+  },
   insightPeriodChips: {
     flexDirection: "row",
     gap: mobileSpacing.sm,
     flexWrap: "wrap"
-  },
-  insightTabRow: {
-    flexDirection: "row",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: mobileColors.border,
-    marginTop: mobileSpacing.md,
-    marginBottom: mobileSpacing.sm
-  },
-  insightTabBtn: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: mobileSpacing.sm
-  },
-  insightTabLabel: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary,
-    fontWeight: "600"
-  },
-  insightTabLabelOn: {
-    color: mobileColors.textPrimary,
-    fontWeight: "800"
-  },
-  insightTabUnderline: {
-    marginTop: mobileSpacing.xs,
-    height: 3,
-    width: "56%",
-    borderRadius: 2,
-    backgroundColor: mobileColors.accent
   },
   insightPanel: { marginBottom: mobileSpacing.md },
   panelHeading: {
@@ -1546,6 +1706,23 @@ const styles = StyleSheet.create({
     fontWeight: "600"
   },
   simDetailValue: {
+    ...mobileTypography.body,
+    fontWeight: "700",
+    color: mobileColors.textPrimary
+  },
+  catRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.sm,
+    paddingVertical: mobileSpacing.xs
+  },
+  catDot: { width: 10, height: 10, borderRadius: 5 },
+  catLab: {
+    ...mobileTypography.body,
+    flex: 1,
+    color: mobileColors.textPrimary
+  },
+  catVal: {
     ...mobileTypography.body,
     fontWeight: "700",
     color: mobileColors.textPrimary

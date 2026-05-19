@@ -21,6 +21,148 @@ function normPath(path: string): string {
   return p;
 }
 
+function queryParams(path: string): URLSearchParams {
+  const q = path.indexOf("?");
+  if (q === -1) {
+    return new URLSearchParams();
+  }
+  return new URLSearchParams(path.slice(q + 1));
+}
+
+const DEMO_EXPENSE_CATEGORIES = [
+  {
+    id: "00000000-0000-4000-8000-0000000000c1",
+    key: "feed",
+    name: "Alimentation",
+    icon: "🌾"
+  },
+  {
+    id: "00000000-0000-4000-8000-0000000000c2",
+    key: "health",
+    name: "Santé",
+    icon: "💊"
+  },
+  {
+    id: "00000000-0000-4000-8000-0000000000c3",
+    key: "equipment",
+    name: "Équipements",
+    icon: "🔧"
+  },
+  {
+    id: "00000000-0000-4000-8000-0000000000c4",
+    key: "transport",
+    name: "Transport / logistique",
+    icon: "🚚"
+  }
+] as const;
+
+function demoFarmBudgetView(
+  farmId: string,
+  year: number,
+  month: number
+) {
+  const now = new Date();
+  const dim = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const day = Math.max(
+    1,
+    year === now.getUTCFullYear() && month === now.getUTCMonth() + 1
+      ? now.getUTCDate()
+      : dim
+  );
+
+  const lineIdByKey: Record<string, string> = {
+    feed: "00000000-0000-4000-8000-0000000000b1",
+    health: "00000000-0000-4000-8000-0000000000b2",
+    equipment: "00000000-0000-4000-8000-0000000000b3",
+    transport: "00000000-0000-4000-8000-0000000000b4"
+  };
+
+  const linesSpec = [
+    { cat: DEMO_EXPENSE_CATEGORIES[0], planned: 150_000, realized: 81_000 },
+    { cat: DEMO_EXPENSE_CATEGORIES[1], planned: 50_000, realized: 56_000 },
+    { cat: DEMO_EXPENSE_CATEGORIES[2], planned: 80_000, realized: 32_000 },
+    { cat: DEMO_EXPENSE_CATEGORIES[3], planned: 40_000, realized: 18_000 }
+  ];
+
+  const lines = linesSpec.map(({ cat, planned, realized }) => {
+    const projected = Math.round((realized / day) * dim);
+    const pct = planned > 0 ? (realized / planned) * 100 : 0;
+    const projPct = planned > 0 ? (projected / planned) * 100 : 0;
+    const status =
+      pct > 100 ? "exceeded" : pct >= 80 ? "warning" : ("ok" as const);
+    const projectedStatus =
+      projPct > 100 ? "exceeded" : projPct >= 80 ? "warning" : ("ok" as const);
+    return {
+      budgetLineId: lineIdByKey[cat.key] ?? null,
+      categoryId: cat.id,
+      categoryKey: cat.key,
+      categoryName: cat.name,
+      categoryIcon: cat.icon,
+      amountPlanned: String(planned),
+      amountRealized: String(realized),
+      amountProjected: String(projected),
+      consumptionPct: Math.round(pct * 10) / 10,
+      projectedConsumptionPct: Math.round(projPct * 10) / 10,
+      remaining: String(planned - realized),
+      status,
+      projectedStatus,
+      currency: "XOF"
+    };
+  });
+
+  const totalPlanned = linesSpec.reduce((s, l) => s + l.planned, 0);
+  const totalRealized = linesSpec.reduce((s, l) => s + l.realized, 0);
+  const totalProjected = lines.reduce(
+    (s, l) => s + Number(l.amountProjected),
+    0
+  );
+  const globalPct =
+    totalPlanned > 0 ? (totalRealized / totalPlanned) * 100 : 0;
+
+  return {
+    farmId,
+    year,
+    month,
+    configured: true,
+    budgetId: "00000000-0000-4000-8000-0000000000b1",
+    currency: "XOF",
+    currencySymbol: "FCFA",
+    createdFrom: "manual",
+    global: {
+      totalPlanned: String(totalPlanned),
+      totalRealized: String(totalRealized),
+      totalProjected: String(totalProjected),
+      remaining: String(totalPlanned - totalRealized),
+      consumptionPct: Math.round(globalPct * 10) / 10,
+      status:
+        globalPct > 100
+          ? "exceeded"
+          : globalPct >= 80
+            ? "warning"
+            : "on_track",
+      deltaProjected: String(totalProjected - totalPlanned),
+      projectedEndOfMonth: String(totalProjected)
+    },
+    lines,
+    suggestions: [
+      {
+        id: "00000000-0000-4000-8000-0000000000s1",
+        type: "category_exceeded_twice",
+        message:
+          "Budget Santé depasse 2 mois de suite — augmenter a 59000 FCFA ?",
+        actionPayload: {
+          action: "set_line_amount",
+          categoryId: DEMO_EXPENSE_CATEGORIES[1].id,
+          amountPlanned: 59_000
+        },
+        isApplied: false,
+        isDismissed: false,
+        createdAt: ISO
+      }
+    ]
+  };
+}
+
 function demoFarm(farmId: string) {
   return {
     id: farmId,
@@ -137,9 +279,15 @@ export function tryDemoBypassApiGetJson(
   if (mFinOverview) {
     const farmId = mFinOverview[1];
     const mk = (i: number) => {
-      const d = new Date(Date.UTC(2026, 2 + i, 15));
+      const d = new Date(Date.UTC(2025, 10 + i, 15));
       return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
     };
+    const months6 = [0, 1, 2, 3, 4, 5].map((i) => ({
+      month: mk(i),
+      expenses: String(80000 + i * 12000),
+      revenues: String(170000 + i * 8000),
+      currency: "XOF"
+    }));
     return {
       farmId,
       settings: {
@@ -154,11 +302,8 @@ export function tryDemoBypassApiGetJson(
       },
       balanceAllTime: "50000",
       lowBalanceWarning: false,
-      months3: [
-        { month: mk(0), expenses: "120000", revenues: "180000", currency: "XOF" },
-        { month: mk(1), expenses: "95000", revenues: "210000", currency: "XOF" },
-        { month: mk(2), expenses: "140000", revenues: "195000", currency: "XOF" }
-      ]
+      months6,
+      months3: months6.slice(-3)
     };
   }
 
@@ -174,7 +319,99 @@ export function tryDemoBypassApiGetJson(
   }
 
   if (/^\/farms\/[^/]+\/finance\/categories$/.test(p)) {
-    return [];
+    const farmId = DEMO_PREVIEW_FARM_ID;
+    return [
+      ...DEMO_EXPENSE_CATEGORIES.map((c) => ({
+        id: c.id,
+        farmId,
+        type: "expense",
+        key: c.key,
+        name: c.name,
+        icon: c.icon,
+        isDefault: true
+      })),
+      {
+        id: "00000000-0000-4000-8000-0000000000c5",
+        farmId,
+        type: "income",
+        key: "animal_sales",
+        name: "Ventes animaux",
+        icon: "🐷",
+        isDefault: true
+      }
+    ];
+  }
+
+  const mFinBudget = /^\/farms\/([^/]+)\/finance\/budget$/.exec(p);
+  if (mFinBudget) {
+    const farmId = mFinBudget[1];
+    const qs = queryParams(path);
+    const year = Number(qs.get("year")) || 2026;
+    const month = Number(qs.get("month")) || 5;
+    return demoFarmBudgetView(farmId, year, month);
+  }
+
+  const mFinBudgetHist =
+    /^\/farms\/([^/]+)\/finance\/budget\/category-history$/.exec(p);
+  if (mFinBudgetHist) {
+    const qs = queryParams(path);
+    const categoryId = qs.get("categoryId") ?? "";
+    return {
+      categoryId,
+      points: [
+        { year: 2026, month: 2, expenses: "78000" },
+        { year: 2026, month: 3, expenses: "92000" },
+        { year: 2026, month: 4, expenses: "85000" }
+      ],
+      averageExpenses: "85000"
+    };
+  }
+
+  const mFinBudgetSim = /^\/farms\/([^/]+)\/finance\/budget\/simulate$/.exec(p);
+  if (mFinBudgetSim) {
+    const farmId = mFinBudgetSim[1];
+    const qs = queryParams(path);
+    const year = Number(qs.get("year")) || 2026;
+    const month = Number(qs.get("month")) || 5;
+    const base = demoFarmBudgetView(farmId, year, month);
+    const categoryId = qs.get("categoryId") ?? "";
+    const newAmount = Number(qs.get("newAmount")) || 0;
+    const lines = base.lines.map((l) =>
+      l.categoryId === categoryId
+        ? { ...l, amountPlanned: String(newAmount) }
+        : l
+    );
+    const totalPlanned = lines.reduce(
+      (s, l) => s + Number(l.amountPlanned),
+      0
+    );
+    const totalRealized = Number(base.global.totalRealized);
+    const totalProjected = lines.reduce(
+      (s, l) => s + Number(l.amountProjected),
+      0
+    );
+    const globalPct =
+      totalPlanned > 0 ? (totalRealized / totalPlanned) * 100 : 0;
+    return {
+      categoryId,
+      newAmount: String(newAmount),
+      global: {
+        ...base.global,
+        totalPlanned: String(totalPlanned),
+        totalProjected: String(totalProjected),
+        remaining: String(totalPlanned - totalRealized),
+        consumptionPct: Math.round(globalPct * 10) / 10,
+        status:
+          globalPct > 100
+            ? "exceeded"
+            : globalPct >= 80
+              ? "warning"
+              : "on_track",
+        previousTotalPlanned: base.global.totalPlanned,
+        marginAvailable: String(totalPlanned - totalRealized)
+      },
+      lines
+    };
   }
 
   if (/^\/farms\/[^/]+\/finance\/transactions$/.test(p)) {
@@ -278,7 +515,27 @@ export function tryDemoBypassApiGetJson(
   }
 
   if (/^\/farms\/[^/]+\/animals$/.test(p)) {
-    return [];
+    const farmId = /^\/farms\/([^/]+)\/animals$/.exec(p)?.[1] ?? "demo";
+    return [
+      {
+        id: "00000000-0000-4000-8000-0000000000a1",
+        publicId: "PORC-001",
+        tagCode: "PORC-001",
+        sex: "female",
+        species: demoSpecies,
+        breed: null,
+        weights: []
+      },
+      {
+        id: "00000000-0000-4000-8000-0000000000a2",
+        publicId: "PORC-002",
+        tagCode: "PORC-002",
+        sex: "male",
+        species: demoSpecies,
+        breed: null,
+        weights: []
+      }
+    ];
   }
 
   const mBatchHealth = /^\/farms\/([^/]+)\/batches\/([^/]+)\/health-events$/.exec(
@@ -311,6 +568,14 @@ export function tryDemoBypassApiGetJson(
     return [];
   }
 
+  if (/^\/farms\/[^/]+\/tasks\/summary$/.test(p)) {
+    return { pendingCount: 0, inProgressCount: 0, doneCount: 0 };
+  }
+
+  if (/^\/farms\/[^/]+\/tasks\/my-dashboard$/.test(p)) {
+    return { items: [], total: 0 };
+  }
+
   const mVetDetail = /^\/farms\/([^/]+)\/vet-consultations\/([^/]+)$/.exec(p);
   if (mVetDetail) {
     const farmId = mVetDetail[1];
@@ -336,7 +601,34 @@ export function tryDemoBypassApiGetJson(
   }
 
   if (/^\/farms\/[^/]+\/members$/.test(p)) {
-    return [];
+    const farmId = /^\/farms\/([^/]+)\/members$/.exec(p)?.[1] ?? "demo";
+    const uid = DEMO_AUTH_ME.user.id;
+    return [
+      {
+        id: "00000000-0000-4000-8000-0000000000e1",
+        farmId,
+        userId: uid,
+        role: "owner",
+        user: {
+          id: uid,
+          fullName: DEMO_AUTH_ME.user.fullName ?? "Explorateur démo",
+          email: DEMO_AUTH_ME.user.email,
+          phone: null
+        }
+      },
+      {
+        id: "00000000-0000-4000-8000-0000000000e2",
+        farmId,
+        userId: "00000000-0000-4000-8000-000000000099",
+        role: "technician",
+        user: {
+          id: "00000000-0000-4000-8000-000000000099",
+          fullName: "Technicien démo",
+          email: "tech.demo@fermier.local",
+          phone: null
+        }
+      }
+    ];
   }
 
   if (/^\/farms\/[^/]+\/invitations$/.test(p)) {
@@ -772,6 +1064,57 @@ export function tryDemoBypassApiGetJson(
   const mFarmHealthEvents = /^\/farms\/([^/]+)\/health\/events$/.exec(p);
   if (mFarmHealthEvents) {
     return [];
+  }
+
+  return null;
+}
+
+/** Réponses factices POST / PUT / PATCH en mode démo (budget, etc.). */
+export function tryDemoBypassApiWriteJson(
+  method: "POST" | "PUT" | "PATCH",
+  path: string,
+  body: unknown,
+  accessToken: string
+): unknown | null {
+  if (!isDemoBypassToken(accessToken)) {
+    return null;
+  }
+  const p = normPath(path);
+  const qs = queryParams(path);
+  const payload = body as Record<string, unknown> | null;
+
+  const mBudgetPost = /^\/farms\/([^/]+)\/finance\/budget$/.exec(p);
+  if (method === "POST" && mBudgetPost) {
+    const farmId = mBudgetPost[1];
+    const year = Number(payload?.year ?? qs.get("year")) || 2026;
+    const month = Number(payload?.month ?? qs.get("month")) || 5;
+    return demoFarmBudgetView(farmId, year, month);
+  }
+
+  if (method === "POST" && /^\/farms\/([^/]+)\/finance\/budget\/copy-previous$/.test(p)) {
+    const farmId = /^\/farms\/([^/]+)\/finance\/budget\/copy-previous$/.exec(p)![1];
+    const year = Number(qs.get("year")) || 2026;
+    const month = Number(qs.get("month")) || 5;
+    return demoFarmBudgetView(farmId, year, month);
+  }
+
+  if (method === "POST" && /^\/farms\/([^/]+)\/finance\/budget\/suggestion-auto$/.test(p)) {
+    const farmId =
+      /^\/farms\/([^/]+)\/finance\/budget\/suggestion-auto$/.exec(p)![1];
+    const year = Number(qs.get("year")) || 2026;
+    const month = Number(qs.get("month")) || 5;
+    return demoFarmBudgetView(farmId, year, month);
+  }
+
+  if (method === "PUT" && /^\/farms\/([^/]+)\/finance\/budget-lines\/[^/]+$/.test(p)) {
+    const farmId = /^\/farms\/([^/]+)\/finance\/budget-lines\/[^/]+$/.exec(p)![1];
+    return demoFarmBudgetView(farmId, 2026, 5);
+  }
+
+  const mPatchSug =
+    /^\/farms\/([^/]+)\/finance\/budget-suggestions\/[^/]+$/.exec(p);
+  if (method === "PATCH" && mPatchSug) {
+    return demoFarmBudgetView(mPatchSug[1], 2026, 5);
   }
 
   return null;

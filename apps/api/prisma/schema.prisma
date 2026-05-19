@@ -76,6 +76,8 @@ model User {
   farmInvitesScanned    FarmInvitation[]     @relation("InvitationScanner")
   tasksAssigned         FarmTask[]           @relation("TaskAssignee")
   tasksCreated          FarmTask[]           @relation("TaskCreator")
+  tasksCompleted        FarmTask[]           @relation("TaskCompleter")
+  taskNotifications     TaskNotification[]
   expensesCreated       FarmExpense[]
   revenuesCreated       FarmRevenue[]
   healthEventsRecorded       AnimalHealthEvent[]
@@ -171,6 +173,8 @@ model Farm {
   smartAlerts          SmartAlert[]
   farmAlertSettings    FarmAlertSettings?
   farmReports          FarmReport[]
+  farmBudgets          FarmBudget[]
+  farmBudgetSuggestions FarmBudgetSuggestion[]
 }
 
 enum FinanceCategoryType {
@@ -201,11 +205,78 @@ model FinanceCategory {
   icon      String?
   isDefault Boolean             @default(false)
   createdAt DateTime            @default(now())
-  expenses  FarmExpense[]
-  revenues  FarmRevenue[]
+  expenses    FarmExpense[]
+  revenues    FarmRevenue[]
+  budgetLines FarmBudgetLine[]
 
   @@unique([farmId, type, key])
   @@index([farmId, type])
+}
+
+enum BudgetStatus {
+  on_track
+  warning
+  exceeded
+}
+
+enum BudgetCreatedFrom {
+  manual
+  copied
+  auto_suggested
+}
+
+enum BudgetLineStatus {
+  ok
+  warning
+  exceeded
+}
+
+/// Budget mensuel par ferme (lignes par catégorie de dépense).
+model FarmBudget {
+  id           String            @id @default(cuid())
+  farmId       String
+  farm         Farm              @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  year         Int
+  month        Int
+  totalPlanned Decimal           @db.Decimal(14, 2)
+  status       BudgetStatus      @default(on_track)
+  createdFrom  BudgetCreatedFrom @default(manual)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  lines        FarmBudgetLine[]
+  suggestions  FarmBudgetSuggestion[]
+
+  @@unique([farmId, year, month])
+  @@index([farmId, year, month])
+}
+
+model FarmBudgetLine {
+  id            String          @id @default(cuid())
+  budgetId      String
+  budget        FarmBudget      @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  categoryId    String
+  category      FinanceCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  amountPlanned Decimal         @db.Decimal(14, 2)
+
+  @@unique([budgetId, categoryId])
+  @@index([categoryId])
+}
+
+model FarmBudgetSuggestion {
+  id            String    @id @default(cuid())
+  farmId        String
+  farm          Farm      @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  budgetId      String?
+  budget        FarmBudget? @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  type          String
+  message       String
+  actionPayload Json?
+  isApplied     Boolean   @default(false)
+  isDismissed   Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  @@index([farmId, budgetId])
+  @@index([farmId, isDismissed, isApplied])
 }
 
 /// Journal des changements de statut animal / bande (cheptel).
@@ -259,26 +330,62 @@ enum TaskPriority {
   high
 }
 
+enum TaskReminder {
+  j_minus_1
+  j_zero
+  both
+}
+
+enum TaskNotificationType {
+  assigned
+  reminder
+  overdue
+  escalation
+  completed
+}
+
 model FarmTask {
-  id              String       @id @default(cuid())
-  farmId          String
-  farm            Farm         @relation(fields: [farmId], references: [id], onDelete: Cascade)
-  title           String
-  description     String?
-  category        String?
-  status          TaskStatus   @default(todo)
-  priority        TaskPriority @default(normal)
-  dueAt           DateTime?
-  completedAt     DateTime?
-  assignedUserId  String?
-  assignee        User?        @relation("TaskAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
-  createdByUserId String
-  creator         User         @relation("TaskCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  id                String        @id @default(cuid())
+  farmId            String
+  farm              Farm          @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  title             String
+  description       String?
+  category          String?
+  status            TaskStatus    @default(todo)
+  priority          TaskPriority  @default(normal)
+  dueAt             DateTime?
+  reminder          TaskReminder?
+  completedAt       DateTime?
+  completedByUserId String?
+  completedBy       User?         @relation("TaskCompleter", fields: [completedByUserId], references: [id], onDelete: SetNull)
+  assignedUserId    String?
+  assignee          User?         @relation("TaskAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  createdByUserId   String
+  creator           User          @relation("TaskCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  animalId          String?
+  animal            Animal?       @relation(fields: [animalId], references: [id], onDelete: SetNull)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  notifications     TaskNotification[]
 
   @@index([farmId, status])
+  @@index([farmId, dueAt])
   @@index([assignedUserId])
+  @@index([animalId])
+}
+
+model TaskNotification {
+  id        String               @id @default(cuid())
+  taskId    String
+  task      FarmTask               @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      TaskNotificationType
+  sentAt    DateTime               @default(now())
+  isRead    Boolean                @default(false)
+
+  @@index([taskId, type])
+  @@index([userId, isRead])
 }
 
 model FarmExpense {
@@ -447,6 +554,7 @@ model Animal {
   vetConsultations VetConsultation[]
   penPlacements    PenPlacement[]
   livestockExits   LivestockExit[]
+  farmTasks        FarmTask[]
 
   @@index([farmId])
   @@index([farmId, status])

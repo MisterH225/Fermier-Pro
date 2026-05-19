@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TabContent, TabSelector } from "../tabs";
 import { BaseModal } from "../modals/BaseModal";
 import { EventList, type EventItem } from "../lists";
 import { useSession } from "../../context/SessionContext";
@@ -25,7 +26,6 @@ import { PeriodSelector, type ReportAnchorState } from "./PeriodSelector";
 import { ProjectionSummary } from "./ProjectionSummary";
 import {
   mobileColors,
-  mobileRadius,
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
@@ -78,6 +78,119 @@ function ReportHistoryBody({
   );
 }
 
+function ReportPeriodPane({
+  farmId,
+  farmName,
+  periodType,
+  anchor,
+  onAnchorChange,
+  accessToken,
+  activeProfileId,
+  listQ,
+  onScorePress
+}: {
+  farmId: string;
+  farmName: string;
+  periodType: FarmReportPeriodType;
+  anchor: ReportAnchorState;
+  onAnchorChange: (a: ReportAnchorState) => void;
+  accessToken: string;
+  activeProfileId: string | null | undefined;
+  listQ: { data?: FarmReportListItemDto[]; isLoading: boolean };
+  onScorePress: () => void;
+}) {
+  const { t } = useTranslation();
+
+  const previewParams = useMemo(() => {
+    const p: {
+      periodType: FarmReportPeriodType;
+      year: number;
+      month?: number;
+      quarter?: number;
+    } = { periodType, year: anchor.year };
+    if (periodType === "monthly") {
+      p.month = anchor.month;
+    }
+    if (periodType === "quarterly") {
+      p.quarter = anchor.quarter;
+    }
+    return p;
+  }, [periodType, anchor]);
+
+  const previewQ = useQuery({
+    queryKey: ["farmReportPreview", farmId, activeProfileId, previewParams],
+    queryFn: () =>
+      fetchFarmReportPreview(accessToken, farmId, activeProfileId, previewParams),
+    enabled: Boolean(accessToken && farmId)
+  });
+
+  const preview = previewQ.data as FarmReportPreviewDto | undefined;
+  const sections = (preview?.sections ?? {}) as Record<string, unknown>;
+
+  return (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.tabScroll}
+    >
+      <TabContent>
+        <PeriodSelector
+          periodType={periodType}
+          anchor={anchor}
+          onAnchorChange={onAnchorChange}
+          hidePeriodTabs
+        />
+        {previewQ.isLoading ? (
+          <Text style={styles.muted}>{t("reportsScreen.loadingPreview")}</Text>
+        ) : previewQ.isError ? (
+          <Text style={styles.err}>{t("reportsScreen.previewError")}</Text>
+        ) : preview ? (
+          <>
+            <FarmScoreGauge
+              score={preview.score.global}
+              band={preview.score.band}
+              onPressDetails={onScorePress}
+            />
+            <FinanceSummary finance={sections.finance as never} />
+            <CheptelSummary cheptel={sections.cheptel as never} />
+            <HealthSummary health={sections.health as never} />
+            <FeedSummary feed={sections.feed as never} />
+            <GestationSummary gestation={sections.gestation as never} />
+            <ProjectionSummary
+              projection={sections.projection as never}
+              alerts={sections.smartAlertsTop as never}
+            />
+          </>
+        ) : null}
+        <Text style={[styles.sectionTitle, { marginTop: mobileSpacing.lg }]}>
+          {t("reportsScreen.history")}
+        </Text>
+        <EventList
+          layout="embedded"
+          data={(listQ.data ?? []).map((r: FarmReportListItemDto) => ({
+            id: r.id,
+            title: `${r.periodType}`,
+            subtitle: `${r.periodStart.slice(0, 10)} → ${r.periodEnd.slice(0, 10)}`,
+            value: String(r.scoreGlobal),
+            valueType: "neutral" as const,
+            date: r.generatedAt,
+            iconType: "check" as const,
+            meta: r
+          }))}
+          isLoading={listQ.isLoading}
+          emptyMessage={t("reportsScreen.historyEmpty")}
+          renderDetail={(item) => (
+            <ReportHistoryBody
+              reportId={item.id}
+              accessToken={accessToken}
+              activeProfileId={activeProfileId}
+            />
+          )}
+        />
+      </TabContent>
+    </ScrollView>
+  );
+}
+
 export function ReportScreen({
   farmId,
   farmName
@@ -91,6 +204,12 @@ export function ReportScreen({
   const [periodType, setPeriodType] = useState<FarmReportPeriodType>("monthly");
   const [anchor, setAnchor] = useState<ReportAnchorState>(() => utcAnchor());
   const [scoreModal, setScoreModal] = useState(false);
+
+  const listQ = useQuery({
+    queryKey: ["farmReportsList", farmId, activeProfileId],
+    queryFn: () => fetchFarmReportsList(accessToken!, farmId, activeProfileId),
+    enabled: Boolean(accessToken && farmId)
+  });
 
   const previewParams = useMemo(() => {
     const p: {
@@ -115,85 +234,37 @@ export function ReportScreen({
     enabled: Boolean(accessToken && farmId)
   });
 
-  const listQ = useQuery({
-    queryKey: ["farmReportsList", farmId, activeProfileId],
-    queryFn: () => fetchFarmReportsList(accessToken!, farmId, activeProfileId),
-    enabled: Boolean(accessToken && farmId)
-  });
-
-  const onRefresh = useCallback(async () => {
-    await Promise.all([previewQ.refetch(), listQ.refetch()]);
-  }, [previewQ, listQ]);
-
-  const historyItems: EventItem[] = useMemo(() => {
-    const rows = listQ.data ?? [];
-    return rows.map((r: FarmReportListItemDto) => ({
-      id: r.id,
-      title: `${r.periodType}`,
-      subtitle: `${r.periodStart.slice(0, 10)} → ${r.periodEnd.slice(0, 10)}`,
-      value: String(r.scoreGlobal),
-      valueType: "neutral" as const,
-      date: r.generatedAt,
-      iconType: "check" as const,
-      meta: r
-    }));
-  }, [listQ.data]);
-
   const preview = previewQ.data as FarmReportPreviewDto | undefined;
-  const sections = (preview?.sections ?? {}) as Record<string, unknown>;
 
-  const prepend = (
-    <View style={{ paddingBottom: 100, gap: mobileSpacing.md }}>
-      <Text style={styles.farmName}>{farmName}</Text>
-      <PeriodSelector
-        periodType={periodType}
-        onPeriodTypeChange={setPeriodType}
+  const periodTab = (type: FarmReportPeriodType, label: string) => ({
+    key: type,
+    label,
+    content: (
+      <ReportPeriodPane
+        farmId={farmId}
+        farmName={farmName}
+        periodType={type}
         anchor={anchor}
         onAnchorChange={setAnchor}
+        accessToken={accessToken!}
+        activeProfileId={activeProfileId}
+        listQ={listQ}
+        onScorePress={() => setScoreModal(true)}
       />
-      {previewQ.isLoading ? (
-        <Text style={styles.muted}>{t("reportsScreen.loadingPreview")}</Text>
-      ) : previewQ.isError ? (
-        <Text style={styles.err}>{t("reportsScreen.previewError")}</Text>
-      ) : preview ? (
-        <>
-          <FarmScoreGauge
-            score={preview.score.global}
-            band={preview.score.band}
-            onPressDetails={() => setScoreModal(true)}
-          />
-          <FinanceSummary finance={sections.finance as never} />
-          <CheptelSummary cheptel={sections.cheptel as never} />
-          <HealthSummary health={sections.health as never} />
-          <FeedSummary feed={sections.feed as never} />
-          <GestationSummary gestation={sections.gestation as never} />
-          <ProjectionSummary
-            projection={sections.projection as never}
-            alerts={sections.smartAlertsTop as never}
-          />
-        </>
-      ) : null}
-    </View>
-  );
+    )
+  });
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <EventList
-        layout="flatlist"
-        data={historyItems}
-        isLoading={listQ.isLoading}
-        refreshing={previewQ.isFetching || listQ.isFetching}
-        onRefresh={onRefresh}
-        prependContent={prepend}
-        sectionTitle={t("reportsScreen.history")}
-        emptyMessage={t("reportsScreen.historyEmpty")}
-        renderDetail={(item) => (
-          <ReportHistoryBody
-            reportId={item.id}
-            accessToken={accessToken!}
-            activeProfileId={activeProfileId}
-          />
-        )}
+      <TabSelector
+        activeTab={periodType}
+        onTabChange={(k) => setPeriodType(k as FarmReportPeriodType)}
+        header={<Text style={styles.farmName}>{farmName}</Text>}
+        tabs={[
+          periodTab("monthly", t("reportsScreen.periodMonthly")),
+          periodTab("quarterly", t("reportsScreen.periodQuarterly")),
+          periodTab("yearly", t("reportsScreen.periodYearly"))
+        ]}
       />
       {accessToken ? (
         <ExportPDFButton
@@ -232,16 +303,29 @@ export function ReportScreen({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: mobileColors.surface },
+  root: { flex: 1, backgroundColor: mobileColors.canvas },
   farmName: {
     ...mobileTypography.cardTitle,
+    color: mobileColors.textPrimary
+  },
+  tabScroll: { flexGrow: 1 },
+  sectionTitle: {
+    ...mobileTypography.cardTitle,
     color: mobileColors.textPrimary,
-    marginTop: mobileSpacing.sm
+    marginBottom: mobileSpacing.sm
   },
   muted: { ...mobileTypography.meta, color: mobileColors.textSecondary },
   err: { ...mobileTypography.body, color: mobileColors.error },
-  modalTitle: { ...mobileTypography.body, fontWeight: "800", color: mobileColors.textPrimary },
+  modalTitle: {
+    ...mobileTypography.body,
+    fontWeight: "800",
+    color: mobileColors.textPrimary
+  },
   modalLine: { ...mobileTypography.body, color: mobileColors.textPrimary },
   modalMuted: { ...mobileTypography.meta, color: mobileColors.textSecondary },
-  modalMono: { ...mobileTypography.meta, fontFamily: "monospace", color: mobileColors.textPrimary }
+  modalMono: {
+    ...mobileTypography.meta,
+    fontFamily: "monospace",
+    color: mobileColors.textPrimary
+  }
 });

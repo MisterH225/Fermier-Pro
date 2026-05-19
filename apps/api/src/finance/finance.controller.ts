@@ -28,13 +28,24 @@ import { CreateRevenueDto } from "./dto/create-revenue.dto";
 import { UpdateExpenseDto } from "./dto/update-expense.dto";
 import { UpdateFinanceSettingsDto } from "./dto/update-finance-settings.dto";
 import { UpdateRevenueDto } from "./dto/update-revenue.dto";
+import { BudgetService } from "./budget.service";
+import {
+  BudgetMonthQueryDto,
+  BudgetSimulateQueryDto,
+  PatchBudgetSuggestionDto,
+  UpdateBudgetLineDto,
+  UpsertFarmBudgetDto
+} from "./dto/upsert-farm-budget.dto";
 import { FinanceService } from "./finance.service";
 
 @Controller("farms/:farmId/finance")
 @RequireFeature("finance")
 @UseGuards(SupabaseJwtGuard, FeatureEnabledGuard, FarmScopesGuard)
 export class FinanceController {
-  constructor(private readonly finance: FinanceService) {}
+  constructor(
+    private readonly finance: FinanceService,
+    private readonly budget: BudgetService
+  ) {}
 
   @Get("overview")
   @RequireFarmScopes(FARM_SCOPE.financeRead)
@@ -314,5 +325,109 @@ export class FinanceController {
     @Param("revenueId") revenueId: string
   ) {
     return this.finance.deleteRevenue(user, farmId, revenueId);
+  }
+
+  @Get("budget")
+  @RequireFarmScopes(FARM_SCOPE.financeRead)
+  getBudget(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Query() q: BudgetMonthQueryDto
+  ) {
+    return this.budget.getBudget(user, farmId, q.year, q.month);
+  }
+
+  @Post("budget")
+  @RequireFarmScopes(FARM_SCOPE.financeWrite)
+  upsertBudget(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Body() dto: UpsertFarmBudgetDto
+  ) {
+    return this.budget.upsertBudget(user, farmId, dto);
+  }
+
+  @Post("budget/copy-previous")
+  @RequireFarmScopes(FARM_SCOPE.financeWrite)
+  copyPreviousBudget(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Query() q: BudgetMonthQueryDto
+  ) {
+    return this.budget.copyPreviousMonth(user, farmId, q.year, q.month);
+  }
+
+  @Post("budget/suggestion-auto")
+  @RequireFarmScopes(FARM_SCOPE.financeWrite)
+  applyAutoSuggestion(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Query() q: BudgetMonthQueryDto
+  ) {
+    return this.budget.suggestionAuto(user, farmId, q.year, q.month);
+  }
+
+  @Get("budget/simulate")
+  @RequireFarmScopes(FARM_SCOPE.financeRead)
+  simulateBudget(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Query() q: BudgetSimulateQueryDto
+  ) {
+    return this.budget.simulate(
+      user,
+      farmId,
+      q.year,
+      q.month,
+      q.categoryId,
+      q.newAmount
+    );
+  }
+
+  @Get("budget/category-history")
+  @RequireFarmScopes(FARM_SCOPE.financeRead)
+  categoryHistory(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Query("categoryId") categoryId: string,
+    @Query() q: BudgetMonthQueryDto
+  ) {
+    return this.budget.getCategoryHistory(
+      user,
+      farmId,
+      categoryId,
+      q.year,
+      q.month
+    );
+  }
+
+  @Put("budget-lines/:lineId")
+  @RequireFarmScopes(FARM_SCOPE.financeWrite)
+  updateBudgetLine(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("lineId") lineId: string,
+    @Body() dto: UpdateBudgetLineDto
+  ) {
+    return this.budget.updateBudgetLine(
+      user,
+      farmId,
+      lineId,
+      dto.amountPlanned
+    );
+  }
+
+  @Patch("budget-suggestions/:suggestionId")
+  @RequireFarmScopes(FARM_SCOPE.financeWrite)
+  patchBudgetSuggestion(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("suggestionId") suggestionId: string,
+    @Body() dto: PatchBudgetSuggestionDto
+  ) {
+    return this.budget.patchSuggestion(user, farmId, suggestionId, {
+      apply: dto.apply,
+      dismiss: dto.dismiss
+    });
   }
 }

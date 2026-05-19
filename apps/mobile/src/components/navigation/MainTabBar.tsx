@@ -1,7 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
+import { Pressable, StyleSheet, Text, useColorScheme, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
+import {
+  mobileColors,
+  mobileRadius,
+  mobileSpacing,
+  mobileTypography
+} from "../../theme/mobileTheme";
 import { NavItem } from "./NavItem";
 import { PRODUCER_NAV_BAR_HEIGHT } from "./producerNavMetrics";
 import type { ProducerMainTab } from "./types";
@@ -14,7 +19,13 @@ type MainTabBarProps = {
   financeEnabled: boolean;
 };
 
-const TAB_ORDER: ProducerMainTab[] = ["home", "cheptel", "health", "finance"];
+const TAB_ORDER: ProducerMainTab[] = [
+  "home",
+  "cheptel",
+  "health",
+  "collaboration",
+  "finance"
+];
 
 const TAB_META: Record<
   ProducerMainTab,
@@ -23,6 +34,7 @@ const TAB_META: Record<
   home: { emoji: "🏠", labelKey: "navigation.main.home" },
   cheptel: { emoji: "🐷", labelKey: "navigation.main.cheptel" },
   health: { emoji: "🏥", labelKey: "navigation.main.health" },
+  collaboration: { emoji: "🤝", labelKey: "navigation.main.collaboration" },
   finance: { emoji: "💰", labelKey: "navigation.main.finance" }
 };
 
@@ -79,6 +91,7 @@ export function MainTabBar({
               key={tab}
               dense
               emoji={meta.emoji}
+              label={t(meta.labelKey)}
               active={activeTab === tab}
               onPress={() => onTabPress(tab)}
               accessibilityLabel={t(meta.labelKey)}
@@ -104,7 +117,16 @@ export function MainTabBar({
           }
         ]}
       >
-        <Ionicons name="add" size={Math.round(H * 0.46)} color={plusIcon} />
+        <Ionicons name="add" size={Math.round(H * 0.38)} color={plusIcon} />
+        <Text
+          style={[
+            styles.plusLabel,
+            { color: dark ? "rgba(255,255,255,0.72)" : mobileColors.textSecondary }
+          ]}
+          numberOfLines={1}
+        >
+          {t("navigation.extended.menuShort")}
+        </Text>
       </Pressable>
     </View>
   );
@@ -130,6 +152,14 @@ const styles = StyleSheet.create({
   },
   plusOuter: {
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
+    gap: 1,
+    paddingVertical: 4
+  },
+  plusLabel: {
+    ...mobileTypography.meta,
+    fontSize: 9,
+    lineHeight: 11,
+    fontWeight: "600"
   }
 });

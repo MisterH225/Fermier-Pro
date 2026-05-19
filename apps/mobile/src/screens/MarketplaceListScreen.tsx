@@ -1,12 +1,15 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useQuery } from "@tanstack/react-query";
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -15,11 +18,25 @@ import {
   View
 } from "react-native";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
+import { EventList, type EventItem } from "../components/lists";
 import { EventListFilter } from "../components/lists/EventListFilter";
 import type { FilterPill } from "../components/lists/types";
+import { TabContent, TabSelector } from "../components/tabs";
 import { useSession } from "../context/SessionContext";
-import type { MarketplaceListingListItem } from "../lib/api";
-import { fetchMarketplaceListings } from "../lib/api";
+import type {
+  MarketplaceListingListItem,
+  MarketplaceOfferMineRow
+} from "../lib/api";
+import {
+  fetchMarketplaceListings,
+  fetchMyMarketplaceOffers,
+  withdrawMarketplaceOffer
+} from "../lib/api";
+import {
+  listingStatusLabel,
+  marketplaceActionErrorMessage,
+  offerStatusLabel
+} from "../lib/marketplaceLabels";
 import {
   mobileColors,
   mobileRadius,
@@ -31,10 +48,11 @@ import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MarketplaceList">;
 
-const LIST_BG = "#F5F5F5";
-const PILL_ACTIVE = "#C2410C";
-
+type MarketTab = "listings" | "mine" | "offers";
 type CatKey = "all" | "piglet" | "breeder" | "butcher" | "reformed";
+type ListingFilter = "all" | "draft" | "published" | "sold" | "cancelled";
+
+const PILL_ACTIVE = mobileColors.accent;
 
 const CATEGORY_PILLS: { id: CatKey; label: string }[] = [
   { id: "all", label: "Tout" },
@@ -42,6 +60,14 @@ const CATEGORY_PILLS: { id: CatKey; label: string }[] = [
   { id: "breeder", label: "Reproducteurs" },
   { id: "butcher", label: "Charcutiers" },
   { id: "reformed", label: "Truies réformées" }
+];
+
+const MY_LISTING_FILTER_PILLS: FilterPill[] = [
+  { id: "all", label: "Toutes" },
+  { id: "draft", label: "Brouillons" },
+  { id: "published", label: "Publiées" },
+  { id: "sold", label: "Vendues" },
+  { id: "cancelled", label: "Annulées" }
 ];
 
 function parseNum(v: string | number | null | undefined): number | null {
@@ -52,6 +78,21 @@ function parseNum(v: string | number | null | undefined): number | null {
 
 function formatMoney(n: number, currency: string): string {
   return `${n.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} ${currency}`;
+}
+
+function formatPrice(
+  unitPrice: string | number | null | undefined,
+  currency: string
+): string {
+  if (unitPrice === undefined || unitPrice === null) {
+    return "Prix sur demande";
+  }
+  const n =
+    typeof unitPrice === "string" ? Number.parseFloat(unitPrice) : Number(unitPrice);
+  if (!Number.isFinite(n)) {
+    return String(unitPrice);
+  }
+  return `${n.toLocaleString(undefined, { maximumFractionDigits: 0 })} ${currency}`;
 }
 
 function isNewListing(publishedAt: string | null): boolean {
@@ -75,47 +116,38 @@ function categoryLabel(cat: string | null | undefined): string {
   }
 }
 
-export function MarketplaceListScreen({ navigation }: Props) {
+function initialMarketTab(
+  param?: RootStackParamList["MarketplaceList"]
+): MarketTab {
+  const tab = param && "tab" in param ? param.tab : undefined;
+  if (tab === "mine" || tab === "offers" || tab === "listings") {
+    return tab;
+  }
+  return "listings";
+}
+
+export function MarketplaceListScreen({ navigation, route }: Props) {
+  const { t } = useTranslation();
   const { width } = useWindowDimensions();
   const { accessToken, activeProfileId, clientFeatures } = useSession();
+  const qc = useQueryClient();
+
+  const [marketTab, setMarketTab] = useState<MarketTab>(() =>
+    initialMarketTab(route.params)
+  );
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<CatKey>("all");
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+  const [myFilter, setMyFilter] = useState<ListingFilter>("all");
+
+  useEffect(() => {
+    setMarketTab(initialMarketTab(route.params));
+  }, [route.params]);
 
   const cardW = useMemo(
-    () => Math.floor((width - mobileSpacing.lg * 3) / 2),
+    () => Math.floor((width - mobileSpacing.lg * 6) / 2),
     [width]
   );
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      title: "Market",
-      headerRight: clientFeatures.marketplace
-        ? () => (
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <TouchableOpacity
-                onPress={() => navigation.navigate("MarketplaceMyListings")}
-                style={{ paddingHorizontal: 6 }}
-                hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
-              >
-                <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>
-                  Mes annonces
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => navigation.navigate("MarketplaceMyOffers")}
-                style={{ paddingHorizontal: 6 }}
-                hitSlop={{ top: 10, bottom: 10, left: 4, right: 8 }}
-              >
-                <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>
-                  Mes offres
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )
-        : undefined
-    });
-  }, [navigation, clientFeatures.marketplace]);
 
   const qTrim = search.trim();
   const searchParam = qTrim.length >= 2 ? qTrim : undefined;
@@ -123,22 +155,68 @@ export function MarketplaceListScreen({ navigation }: Props) {
   const listingsQuery = useQuery({
     queryKey: ["marketplaceListings", activeProfileId, category, searchParam],
     queryFn: () =>
-      fetchMarketplaceListings(accessToken, activeProfileId, {
+      fetchMarketplaceListings(accessToken!, activeProfileId, {
         mine: false,
         ...(category !== "all" ? { category } : {}),
         ...(searchParam ? { q: searchParam } : {})
       }),
-    enabled: clientFeatures.marketplace
+    enabled: clientFeatures.marketplace && marketTab === "listings"
   });
 
-  const err =
-    listingsQuery.error instanceof Error
-      ? listingsQuery.error.message
-      : listingsQuery.error
-        ? String(listingsQuery.error)
-        : null;
+  const myListingsQuery = useQuery({
+    queryKey: ["marketplaceMyListings", activeProfileId, myFilter],
+    queryFn: () =>
+      fetchMarketplaceListings(accessToken!, activeProfileId, {
+        mine: true,
+        ...(myFilter !== "all" ? { status: myFilter } : {})
+      }),
+    enabled: clientFeatures.marketplace && marketTab === "mine"
+  });
 
-  const pills: FilterPill[] = useMemo(
+  const offersQuery = useQuery({
+    queryKey: ["marketplaceMyOffers", activeProfileId],
+    queryFn: () => fetchMyMarketplaceOffers(accessToken!, activeProfileId),
+    enabled: clientFeatures.marketplace && marketTab === "offers"
+  });
+
+  const withdrawMut = useMutation({
+    mutationFn: (offerId: string) =>
+      withdrawMarketplaceOffer(accessToken!, offerId, activeProfileId),
+    onSuccess: (_data, offerId) => {
+      void qc.invalidateQueries({ queryKey: ["marketplaceMyOffers"] });
+      const row = offersQuery.data?.find((r) => r.id === offerId);
+      if (row) {
+        void qc.invalidateQueries({
+          queryKey: ["marketplaceListing", row.listing.id]
+        });
+      }
+    },
+    onError: (e: Error) =>
+      Alert.alert(
+        "Impossible de retirer l’offre",
+        marketplaceActionErrorMessage(e.message)
+      )
+  });
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: "Market",
+      headerRight:
+        clientFeatures.marketplace && marketTab === "mine"
+          ? () => (
+              <TouchableOpacity
+                onPress={() => navigation.navigate("CreateMarketplaceListing", {})}
+                style={{ paddingHorizontal: 8 }}
+                hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+              >
+                <Text style={styles.headerAction}>{t("marketScreen.create")}</Text>
+              </TouchableOpacity>
+            )
+          : undefined
+    });
+  }, [navigation, clientFeatures.marketplace, marketTab, t]);
+
+  const categoryPills: FilterPill[] = useMemo(
     () => CATEGORY_PILLS.map((p) => ({ id: p.id, label: p.label })),
     []
   );
@@ -147,41 +225,40 @@ export function MarketplaceListScreen({ navigation }: Props) {
     setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  if (!clientFeatures.marketplace) {
-    return (
-      <MarketplaceModuleGate>
-        <View />
-      </MarketplaceModuleGate>
-    );
-  }
+  const myRows = myListingsQuery.data ?? [];
+  const myKpis = useMemo(() => {
+    let views = 0;
+    let consults = 0;
+    for (const r of myRows) {
+      views += r.viewsCount ?? 0;
+      consults += r.consultationsCount ?? 0;
+    }
+    return { views, consults, n: myRows.length };
+  }, [myRows]);
 
-  if (listingsQuery.isPending) {
-    return (
-      <MarketplaceModuleGate>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={mobileColors.accent} />
-        </View>
-      </MarketplaceModuleGate>
-    );
-  }
+  const myEventItems = useMemo((): EventItem[] => {
+    return myRows.map((item) => {
+      const statusLab = listingStatusLabel(item.status);
+      const farm = item.farm?.name;
+      const priceLine =
+        item.totalPrice != null
+          ? `${typeof item.totalPrice === "string" ? item.totalPrice : String(item.totalPrice)} ${item.currency}`
+          : formatPrice(item.unitPrice, item.currency);
+      return {
+        id: item.id,
+        title: item.title,
+        subtitle: [statusLab, farm].filter(Boolean).join(" · "),
+        value: priceLine,
+        valueType: "neutral",
+        date: new Date(item.updatedAt).toLocaleDateString("fr-FR"),
+        iconType:
+          item.status === "sold" ? "out" : item.status === "published" ? "in" : "check",
+        meta: item
+      };
+    });
+  }, [myRows]);
 
-  if (err) {
-    return (
-      <MarketplaceModuleGate>
-        <View style={styles.centered}>
-          <Text style={styles.error}>{err}</Text>
-        </View>
-      </MarketplaceModuleGate>
-    );
-  }
-
-  const list = listingsQuery.data ?? [];
-  const emptyMessage =
-    list.length === 0
-      ? "Aucune annonce publiée pour le moment."
-      : "Aucun résultat. Essaie d’autres mots-clés ou filtres.";
-
-  const renderCard = ({ item }: { item: MarketplaceListingListItem }) => {
+  const renderListingCard = ({ item }: { item: MarketplaceListingListItem }) => {
     const photos = Array.isArray(item.photoUrls) ? item.photoUrls : [];
     const uri = typeof photos[0] === "string" && photos[0].length > 0 ? photos[0] : null;
     const wKg = parseNum(item.totalWeightKg);
@@ -218,7 +295,7 @@ export function MarketplaceListScreen({ navigation }: Props) {
           </View>
           {isNew ? (
             <View style={styles.badgeNew}>
-              <Text style={styles.badgeNewTx}>Nouveau</Text>
+              <Text style={styles.badgeNewTx}>{t("marketScreen.badgeNew")}</Text>
             </View>
           ) : null}
           <Pressable
@@ -232,23 +309,25 @@ export function MarketplaceListScreen({ navigation }: Props) {
         <View style={styles.cardBody}>
           {wKg != null ? (
             <Text style={styles.lineMuted}>
-              Poids total :{" "}
+              {t("marketScreen.totalWeight")}{" "}
               {`${wKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg`}
             </Text>
           ) : (
-            <Text style={styles.lineMuted}>Poids total : —</Text>
+            <Text style={styles.lineMuted}>{t("marketScreen.totalWeightEmpty")}</Text>
           )}
           {pKg != null ? (
-            <Text style={styles.lineMuted}>Prix/kg : {formatMoney(pKg, cur)}</Text>
+            <Text style={styles.lineMuted}>
+              {t("marketScreen.pricePerKg")} {formatMoney(pKg, cur)}
+            </Text>
           ) : item.unitPrice != null ? (
             <Text style={styles.lineMuted}>
-              Prix : {formatMoney(parseNum(item.unitPrice) ?? 0, cur)}
+              {t("marketScreen.price")} {formatMoney(parseNum(item.unitPrice) ?? 0, cur)}
             </Text>
           ) : (
-            <Text style={styles.lineMuted}>Prix/kg : —</Text>
+            <Text style={styles.lineMuted}>{t("marketScreen.pricePerKgEmpty")}</Text>
           )}
           <Text style={styles.totalLine}>
-            Prix total :{" "}
+            {t("marketScreen.totalPrice")}{" "}
             {total != null
               ? formatMoney(total, cur)
               : pKg != null && wKg != null
@@ -264,15 +343,95 @@ export function MarketplaceListScreen({ navigation }: Props) {
     );
   };
 
-  return (
-    <MarketplaceModuleGate>
-      <View style={styles.root}>
+  const renderOfferRow = ({ item }: { item: MarketplaceOfferMineRow }) => (
+    <View style={styles.offerCard}>
+      <TouchableOpacity
+        onPress={() =>
+          navigation.navigate("MarketplaceListingDetail", {
+            listingId: item.listing.id,
+            headline: item.listing.title
+          })
+        }
+      >
+        <Text style={styles.offerTitle}>{item.listing.title}</Text>
+        <Text style={styles.offerPrice}>
+          {t("marketScreen.myOffer")}{" "}
+          {formatMoney(
+            typeof item.offeredPrice === "string"
+              ? Number.parseFloat(item.offeredPrice)
+              : item.offeredPrice,
+            item.listing.currency
+          )}
+          {item.quantity != null ? ` × ${item.quantity}` : ""}
+        </Text>
+        <Text style={styles.offerMeta}>
+          {t("marketScreen.offerStatus")} {offerStatusLabel(item.status)}
+        </Text>
+        <Text style={styles.offerMeta}>
+          {t("marketScreen.listingStatus")} {listingStatusLabel(item.listing.status)}
+        </Text>
+        {item.listing.farm ? (
+          <Text style={styles.offerMeta}>{item.listing.farm.name}</Text>
+        ) : null}
+        <Text style={styles.offerLink}>{t("marketScreen.viewListing")}</Text>
+      </TouchableOpacity>
+      {item.status === "pending" ? (
+        <TouchableOpacity
+          style={[styles.withdraw, withdrawMut.isPending && styles.withdrawDisabled]}
+          disabled={withdrawMut.isPending}
+          onPress={() =>
+            Alert.alert(t("marketScreen.withdrawTitle"), t("marketScreen.withdrawBody"), [
+              { text: t("marketScreen.withdrawCancel"), style: "cancel" },
+              {
+                text: t("marketScreen.withdrawConfirm"),
+                style: "destructive",
+                onPress: () => withdrawMut.mutate(item.id)
+              }
+            ])
+          }
+        >
+          <Text style={styles.withdrawTxt}>{t("marketScreen.withdrawAction")}</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+
+  const listingsErr =
+    listingsQuery.error instanceof Error
+      ? listingsQuery.error.message
+      : listingsQuery.error
+        ? String(listingsQuery.error)
+        : null;
+
+  const listingsList = listingsQuery.data ?? [];
+  const listingsEmpty =
+    listingsList.length === 0
+      ? t("marketScreen.emptyListings")
+      : t("marketScreen.emptySearch");
+
+  const listingsTabContent = () => {
+    if (listingsQuery.isPending && !listingsQuery.data) {
+      return (
+        <View style={styles.tabCentered}>
+          <ActivityIndicator size="large" color={mobileColors.accent} />
+        </View>
+      );
+    }
+    if (listingsErr) {
+      return (
+        <View style={styles.tabCentered}>
+          <Text style={styles.error}>{listingsErr}</Text>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.listingsPane}>
         <View style={styles.searchRow}>
           <TextInput
             style={styles.search}
             value={search}
             onChangeText={setSearch}
-            placeholder="Ferme, lieu, race…"
+            placeholder={t("marketScreen.searchPlaceholder")}
             placeholderTextColor={mobileColors.textSecondary}
             autoCapitalize="none"
             autoCorrect={false}
@@ -286,13 +445,14 @@ export function MarketplaceListScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
         <EventListFilter
-          pills={pills}
+          pills={categoryPills}
           activeId={category}
           onChange={(id) => setCategory(id as CatKey)}
-          activeBackground="#C2410C"
+          activeBackground={PILL_ACTIVE}
         />
         <FlatList
-          data={list}
+          style={styles.listingsList}
+          data={listingsList}
           keyExtractor={(item) => item.id}
           numColumns={2}
           columnWrapperStyle={styles.colWrap}
@@ -304,8 +464,160 @@ export function MarketplaceListScreen({ navigation }: Props) {
               tintColor={mobileColors.accent}
             />
           }
-          ListEmptyComponent={<Text style={styles.empty}>{emptyMessage}</Text>}
-          renderItem={renderCard}
+          ListEmptyComponent={<Text style={styles.empty}>{listingsEmpty}</Text>}
+          renderItem={renderListingCard}
+        />
+      </View>
+    );
+  };
+
+  const myListingsTabContent = () => {
+    const err =
+      myListingsQuery.error instanceof Error
+        ? myListingsQuery.error.message
+        : myListingsQuery.error
+          ? String(myListingsQuery.error)
+          : null;
+    if (myListingsQuery.isPending && !myListingsQuery.data) {
+      return (
+        <View style={styles.tabCentered}>
+          <ActivityIndicator size="large" color={mobileColors.accent} />
+        </View>
+      );
+    }
+    if (err) {
+      return (
+        <View style={styles.tabCentered}>
+          <Text style={styles.error}>{err}</Text>
+        </View>
+      );
+    }
+    const emptyMessage =
+      myFilter === "all"
+        ? t("marketScreen.emptyMyListings")
+        : t("marketScreen.emptyMyFilter");
+    return (
+      <ScrollView
+        style={styles.tabScroll}
+        contentContainerStyle={styles.tabScrollGrow}
+        refreshControl={
+          <RefreshControl
+            refreshing={myListingsQuery.isFetching}
+            onRefresh={() => void myListingsQuery.refetch()}
+            tintColor={mobileColors.accent}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        <TabContent>
+          <View style={styles.kpiRow}>
+            <View style={styles.kpiCard}>
+              <Text style={styles.kpiVal}>{myKpis.n}</Text>
+              <Text style={styles.kpiLab}>{t("marketScreen.kpiListings")}</Text>
+            </View>
+            <View style={styles.kpiCard}>
+              <Text style={styles.kpiVal}>{myKpis.views}</Text>
+              <Text style={styles.kpiLab}>{t("marketScreen.kpiViews")}</Text>
+            </View>
+            <View style={styles.kpiCard}>
+              <Text style={styles.kpiVal}>{myKpis.consults}</Text>
+              <Text style={styles.kpiLab}>{t("marketScreen.kpiConsults")}</Text>
+            </View>
+          </View>
+          <EventList
+            layout="embedded"
+            data={myEventItems}
+            filters={MY_LISTING_FILTER_PILLS}
+            activeFilterId={myFilter}
+            onFilterChange={(id) => setMyFilter(id as ListingFilter)}
+            emptyMessage={emptyMessage}
+            onItemPress={(it) => {
+              const item = it.meta as MarketplaceListingListItem;
+              navigation.navigate("MarketplaceListingDetail", {
+                listingId: item.id,
+                headline: item.title
+              });
+            }}
+          />
+        </TabContent>
+      </ScrollView>
+    );
+  };
+
+  const offersTabContent = () => {
+    const err =
+      offersQuery.error instanceof Error
+        ? offersQuery.error.message
+        : offersQuery.error
+          ? String(offersQuery.error)
+          : null;
+    if (offersQuery.isPending && !offersQuery.data) {
+      return (
+        <View style={styles.tabCentered}>
+          <ActivityIndicator size="large" color={mobileColors.accent} />
+        </View>
+      );
+    }
+    if (err) {
+      return (
+        <View style={styles.tabCentered}>
+          <Text style={styles.error}>{err}</Text>
+        </View>
+      );
+    }
+    const rows = offersQuery.data ?? [];
+    return (
+      <FlatList
+        style={styles.tabScroll}
+        data={rows}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.offersList}
+        refreshControl={
+          <RefreshControl
+            refreshing={offersQuery.isFetching}
+            onRefresh={() => void offersQuery.refetch()}
+            tintColor={mobileColors.accent}
+          />
+        }
+        ListEmptyComponent={
+          <Text style={styles.empty}>{t("marketScreen.emptyOffers")}</Text>
+        }
+        renderItem={renderOfferRow}
+      />
+    );
+  };
+
+  if (!clientFeatures.marketplace) {
+    return (
+      <MarketplaceModuleGate>
+        <View />
+      </MarketplaceModuleGate>
+    );
+  }
+
+  return (
+    <MarketplaceModuleGate>
+      <View style={styles.root}>
+        <TabSelector
+          activeTab={marketTab}
+          onTabChange={(key) => setMarketTab(key as MarketTab)}
+          tabs={[
+            {
+              key: "listings",
+              label: t("marketScreen.tabListings"),
+              content: listingsTabContent()
+            },
+            {
+              key: "mine",
+              label: t("marketScreen.tabMyListings"),
+              content: myListingsTabContent()
+            },
+            {
+              key: "offers",
+              label: t("marketScreen.tabOffers"),
+              content: offersTabContent()
+            }
+          ]}
         />
       </View>
     </MarketplaceModuleGate>
@@ -315,26 +627,37 @@ export function MarketplaceListScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: LIST_BG,
-    paddingHorizontal: mobileSpacing.lg,
-    paddingTop: mobileSpacing.sm
+    backgroundColor: mobileColors.canvas
   },
-  centered: {
+  headerAction: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 15
+  },
+  tabCentered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: LIST_BG
+    padding: mobileSpacing.lg
   },
-  error: { color: mobileColors.error, padding: mobileSpacing.lg },
+  tabScroll: { flex: 1 },
+  tabScrollGrow: { flexGrow: 1 },
+  listingsPane: {
+    flex: 1,
+    minHeight: 0,
+    paddingTop: mobileSpacing.sm
+  },
+  listingsList: { flex: 1 },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: mobileSpacing.sm,
-    marginBottom: mobileSpacing.sm
+    marginBottom: mobileSpacing.sm,
+    paddingHorizontal: mobileSpacing.lg
   },
   search: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: mobileRadius.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: mobileColors.border,
@@ -347,7 +670,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: StyleSheet.hairlineWidth,
@@ -356,7 +679,8 @@ const styles = StyleSheet.create({
   filterAdvTx: { fontSize: 20 },
   colWrap: {
     justifyContent: "space-between",
-    marginBottom: mobileSpacing.md
+    marginBottom: mobileSpacing.md,
+    paddingHorizontal: mobileSpacing.lg
   },
   listContent: {
     paddingBottom: mobileSpacing.xxl,
@@ -366,10 +690,16 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     color: mobileColors.textSecondary,
     textAlign: "center",
-    marginTop: mobileSpacing.xl
+    marginTop: mobileSpacing.xl,
+    paddingHorizontal: mobileSpacing.lg
+  },
+  error: {
+    color: mobileColors.error,
+    ...mobileTypography.body,
+    textAlign: "center"
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 16,
     overflow: "hidden",
     ...mobileShadows.card
@@ -377,7 +707,7 @@ const styles = StyleSheet.create({
   photoWrap: {
     position: "relative",
     height: 140,
-    backgroundColor: "#E8E8E8"
+    backgroundColor: mobileColors.surfaceMuted
   },
   photo: {
     width: "100%",
@@ -448,5 +778,78 @@ const styles = StyleSheet.create({
   statsTx: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary
+  },
+  kpiRow: {
+    flexDirection: "row",
+    gap: mobileSpacing.sm,
+    marginBottom: mobileSpacing.md
+  },
+  kpiCard: {
+    flex: 1,
+    backgroundColor: mobileColors.background,
+    borderRadius: mobileRadius.md,
+    padding: mobileSpacing.sm,
+    alignItems: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.border
+  },
+  kpiVal: {
+    ...mobileTypography.cardTitle,
+    fontSize: 18,
+    color: mobileColors.textPrimary
+  },
+  kpiLab: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: 2
+  },
+  offersList: {
+    paddingHorizontal: mobileSpacing.lg,
+    paddingTop: mobileSpacing.md,
+    paddingBottom: mobileSpacing.xxl
+  },
+  offerCard: {
+    backgroundColor: mobileColors.background,
+    borderRadius: mobileRadius.lg,
+    padding: mobileSpacing.md,
+    marginBottom: mobileSpacing.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.border,
+    ...mobileShadows.card
+  },
+  offerTitle: {
+    ...mobileTypography.cardTitle,
+    color: mobileColors.textPrimary
+  },
+  offerPrice: {
+    marginTop: mobileSpacing.sm,
+    ...mobileTypography.body,
+    fontWeight: "600",
+    color: mobileColors.accent
+  },
+  offerMeta: {
+    marginTop: 4,
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary
+  },
+  offerLink: {
+    marginTop: mobileSpacing.sm,
+    ...mobileTypography.body,
+    color: mobileColors.accent,
+    fontWeight: "600"
+  },
+  withdraw: {
+    marginTop: mobileSpacing.md,
+    paddingVertical: mobileSpacing.sm,
+    alignItems: "center",
+    borderRadius: mobileRadius.md,
+    borderWidth: 2,
+    borderColor: mobileColors.warning
+  },
+  withdrawDisabled: { opacity: 0.55 },
+  withdrawTxt: {
+    color: mobileColors.warning,
+    fontWeight: "700",
+    fontSize: 14
   }
 });

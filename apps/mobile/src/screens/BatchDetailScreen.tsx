@@ -472,7 +472,7 @@ function HealthEventCard({ ev }: { ev: BatchHealthEventRow }) {
 const styles = StyleSheet.create({
   scroll: {
     flex: 1,
-    backgroundColor: mobileColors.surface
+    backgroundColor: mobileColors.canvas
   },
   content: {
     padding: mobileSpacing.lg,
@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
-    backgroundColor: mobileColors.surface
+    backgroundColor: mobileColors.canvas
   },
   error: {
     color: mobileColors.error,

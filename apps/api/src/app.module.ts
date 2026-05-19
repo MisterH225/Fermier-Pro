@@ -27,6 +27,7 @@ import { LivestockExitsModule } from "./livestock-exits/livestock-exits.module";
 import { MarketplaceModule } from "./marketplace/marketplace.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { ProfilesModule } from "./profiles/profiles.module";
+import { PushNotificationsModule } from "./push-notifications/push-notifications.module";
 import { TasksModule } from "./tasks/tasks.module";
 import { VetConsultationsModule } from "./vet-consultations/vet-consultations.module";
 import { FeedStockModule } from "./feed-stock/feed-stock.module";
@@ -82,6 +83,7 @@ import { ReportsModule } from "./reports/reports.module";
     InvitationsModule,
     LivestockModule,
     LivestockExitsModule,
+    PushNotificationsModule,
     TasksModule,
     FinanceModule,
     HealthEventsModule,

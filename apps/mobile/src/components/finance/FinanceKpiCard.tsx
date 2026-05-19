@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import { FinanceSparkline } from "./FinanceSparkline";
+import { SmartChart } from "../charts";
 import {
   mobileColors,
   mobileRadius,
@@ -31,6 +31,10 @@ const variantValue: Record<Variant, string> = {
   margin: mobileColors.textPrimary
 };
 
+const CARD_MIN_HEIGHT = 156;
+const DELTA_SLOT_HEIGHT = 18;
+const SPARK_SLOT_HEIGHT = 44;
+
 type Props = {
   title: string;
   value: string;
@@ -38,7 +42,6 @@ type Props = {
   sparklineValues?: number[];
   sparklineColor?: string;
   variant: Variant;
-  onLayoutWidth?: number;
 };
 
 export function FinanceKpiCard({
@@ -47,20 +50,20 @@ export function FinanceKpiCard({
   deltaText,
   sparklineValues,
   sparklineColor,
-  variant,
-  onLayoutWidth = 158
+  variant
 }: Props) {
-  const sparkW = Math.max(60, onLayoutWidth - mobileSpacing.md * 2);
   const sparkH = 40;
   const lineCol =
     sparklineColor ??
     (variant === "dark" ? mobileColors.accentSoft : mobileColors.accent);
 
+  const showSpark = Boolean(sparklineValues && sparklineValues.length > 1);
+
   return (
     <View
       style={[
         styles.card,
-        { backgroundColor: variantBg[variant] },
+        { backgroundColor: variantBg[variant], minHeight: CARD_MIN_HEIGHT },
         variant === "dark" ? styles.cardDark : styles.cardLight
       ]}
     >
@@ -70,32 +73,43 @@ export function FinanceKpiCard({
       <Text style={[styles.value, { color: variantValue[variant] }]} numberOfLines={2}>
         {value}
       </Text>
-      {deltaText ? (
-        <Text
-          style={[
-            styles.delta,
-            {
-              color:
-                variant === "dark"
-                  ? "rgba(255,255,255,0.85)"
-                  : mobileColors.textSecondary
-            }
-          ]}
-        >
-          {deltaText}
-        </Text>
-      ) : null}
-      {sparklineValues && sparklineValues.length > 1 ? (
-        <View style={styles.sparkWrap}>
-          <FinanceSparkline
-            values={sparklineValues}
-            width={sparkW}
+      <View style={styles.deltaSlot}>
+        {deltaText ? (
+          <Text
+            style={[
+              styles.delta,
+              {
+                color:
+                  variant === "dark"
+                    ? "rgba(255,255,255,0.85)"
+                    : mobileColors.textSecondary
+              }
+            ]}
+            numberOfLines={1}
+          >
+            {deltaText}
+          </Text>
+        ) : null}
+      </View>
+      <View style={styles.sparkSlot}>
+        {showSpark ? (
+          <SmartChart
+            compact
             height={sparkH}
-            strokeColor={lineCol}
-            showAxis={variant !== "dark"}
+            lines={[
+              {
+                key: "spark",
+                label: "",
+                color: lineCol,
+                data: sparklineValues!.map((value, i) => ({
+                  month: String(i),
+                  value
+                }))
+              }
+            ]}
           />
-        </View>
-      ) : null}
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -103,6 +117,7 @@ export function FinanceKpiCard({
 const styles = StyleSheet.create({
   card: {
     flex: 1,
+    alignSelf: "stretch",
     minWidth: 0,
     borderRadius: mobileRadius.lg,
     padding: mobileSpacing.md,
@@ -117,8 +132,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...mobileTypography.meta,
-    fontWeight: "600",
-    flex: 1
+    fontWeight: "600"
   },
   value: {
     fontSize: 17,
@@ -126,10 +140,19 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.sm,
     letterSpacing: -0.3
   },
+  deltaSlot: {
+    minHeight: DELTA_SLOT_HEIGHT,
+    marginTop: mobileSpacing.xs,
+    justifyContent: "center"
+  },
   delta: {
     ...mobileTypography.meta,
-    marginTop: mobileSpacing.xs,
     fontWeight: "600"
   },
-  sparkWrap: { marginTop: mobileSpacing.sm, alignItems: "flex-start" }
+  sparkSlot: {
+    minHeight: SPARK_SLOT_HEIGHT,
+    marginTop: mobileSpacing.sm,
+    justifyContent: "flex-end",
+    alignItems: "flex-start"
+  }
 });

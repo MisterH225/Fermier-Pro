@@ -16,7 +16,8 @@ import {
   type ProducerMainTab
 } from "./navigation";
 import { useSession } from "../context/SessionContext";
-import { fetchFarms } from "../lib/api";
+import { fetchFarmTasksPendingCount, fetchFarms } from "../lib/api";
+import { useFarmTasksSocket } from "../hooks/useFarmTasksSocket";
 import { resolveProducerHomeFarm } from "../lib/producerHomeFarm";
 import { mobileSpacing } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
@@ -103,6 +104,29 @@ export function ProducerPersistentTabBar() {
     return null;
   }, [focused?.params, producerHome]);
 
+  const tasksEnabled = Boolean(isProducer && clientFeatures.tasks && farmContext);
+
+  const { tasksSocketStatus } = useFarmTasksSocket({
+    farmId: farmContext?.farmId ?? "",
+    accessToken: accessToken ?? "",
+    enabled: tasksEnabled
+  });
+
+  const pendingTasksQ = useQuery({
+    queryKey: ["farmTasksPendingCount", farmContext?.farmId, activeProfileId],
+    queryFn: () =>
+      fetchFarmTasksPendingCount(
+        accessToken!,
+        farmContext!.farmId,
+        activeProfileId
+      ),
+    enabled: tasksEnabled && Boolean(accessToken),
+    refetchInterval:
+      tasksSocketStatus === "connected" ? false : 60_000
+  });
+
+  const pendingTasksCount = pendingTasksQ.data?.pendingCount ?? 0;
+
   const onTabPress = useCallback(
     (tab: ProducerMainTab) => {
       if (tab === "home") {
@@ -164,48 +188,42 @@ export function ProducerPersistentTabBar() {
       [
         {
           id: "nutrition" as const,
-          emoji: "🌾",
           label: t("navigation.extended.nutrition"),
           a11y: t("navigation.extended.nutrition")
         },
         {
           id: "collaboration" as const,
-          emoji: "🤝",
           label: t("navigation.extended.collaboration"),
           a11y: t("navigation.extended.collaboration")
         },
         {
           id: "market" as const,
-          emoji: "🛒",
           label: t("navigation.extended.market"),
           a11y: t("navigation.extended.market")
         },
         {
           id: "gestation" as const,
-          emoji: "🐣",
           label: t("navigation.extended.gestation"),
           a11y: t("navigation.extended.gestation")
         },
         {
           id: "tasks" as const,
-          emoji: "✅",
           label: t("navigation.extended.tasks"),
-          a11y: t("navigation.extended.tasks")
+          a11y: t("navigation.extended.tasks"),
+          badgeCount: pendingTasksCount
         },
         {
           id: "event" as const,
-          emoji: "📅",
           label: t("navigation.extended.event"),
           a11y: t("navigation.extended.event")
         },
         {
           id: "reports" as const,
-          emoji: "📊",
           label: t("navigation.extended.reports"),
           a11y: t("navigation.extended.reports")
         }
       ] as const,
-    [t]
+    [t, pendingTasksCount]
   );
 
   const onExtendedSelect = useCallback(
@@ -235,7 +253,7 @@ export function ProducerPersistentTabBar() {
             navigation.navigate("FarmList");
             return;
           }
-          navigation.navigate("FarmMembers", {
+          navigation.navigate("Collaboration", {
             farmId: ctx.farmId,
             farmName: ctx.farmName
           });

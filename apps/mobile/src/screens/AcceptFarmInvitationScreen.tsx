@@ -181,7 +181,7 @@ export function AcceptFarmInvitationScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: mobileColors.surface },
+  scroll: { flex: 1, backgroundColor: mobileColors.canvas },
   content: {
     padding: mobileSpacing.lg,
     paddingBottom: mobileSpacing.xxl,

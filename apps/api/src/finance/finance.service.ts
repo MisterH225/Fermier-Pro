@@ -525,7 +525,7 @@ export class FinanceService {
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)
     );
 
-    const [monthExp, monthRev, allExp, allRev, months3] = await Promise.all([
+    const [monthExp, monthRev, allExp, allRev, months6] = await Promise.all([
       this.prisma.farmExpense.aggregate({
         where: {
           farmId,
@@ -548,7 +548,7 @@ export class FinanceService {
         where: { farmId },
         _sum: { amount: true }
       }),
-      this.financeTimeseriesLast3Months(farmId)
+      this.financeTimeseriesMonths(farmId, 6)
     ]);
 
     const te = monthExp._sum.amount ?? new Prisma.Decimal(0);
@@ -575,24 +575,43 @@ export class FinanceService {
       },
       balanceAllTime: balance.toString(),
       lowBalanceWarning,
-      months3
+      months6,
+      /** @deprecated Préférer months6 — conserve les 3 derniers mois pour compatibilité. */
+      months3: months6.slice(-3)
     };
   }
 
-  private async financeTimeseriesLast3Months(farmId: string) {
-    const now = new Date();
+  private shiftMonthUtc(year: number, month: number, delta: number) {
+    const ref = new Date(Date.UTC(year, month - 1 + delta, 1));
+    return {
+      year: ref.getUTCFullYear(),
+      month: ref.getUTCMonth() + 1
+    };
+  }
+
+  /** Séries mensuelles sur `count` mois se terminant à `endYear`/`endMonth` (1–12). */
+  private async financeTimeseriesMonths(
+    farmId: string,
+    count: number,
+    endYear?: number,
+    endMonth?: number
+  ) {
+    const anchor =
+      endYear != null && endMonth != null
+        ? { year: endYear, month: endMonth }
+        : (() => {
+            const now = new Date();
+            return {
+              year: now.getUTCFullYear(),
+              month: now.getUTCMonth() + 1
+            };
+          })();
     const months: { label: string; start: Date; end: Date }[] = [];
-    for (let delta = 2; delta >= 0; delta -= 1) {
-      const ref = new Date(
-        Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - delta, 1)
-      );
-      const start = new Date(
-        Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), 1)
-      );
-      const end = new Date(
-        Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth() + 1, 1)
-      );
-      const label = `${ref.getUTCFullYear()}-${String(ref.getUTCMonth() + 1).padStart(2, "0")}`;
+    for (let delta = count - 1; delta >= 0; delta -= 1) {
+      const ref = this.shiftMonthUtc(anchor.year, anchor.month, -delta);
+      const start = new Date(Date.UTC(ref.year, ref.month - 1, 1));
+      const end = new Date(Date.UTC(ref.year, ref.month, 1));
+      const label = `${ref.year}-${String(ref.month).padStart(2, "0")}`;
       months.push({ label, start, end });
     }
     const settings = await this.prisma.farmFinanceSettings.findUniqueOrThrow({
@@ -619,6 +638,10 @@ export class FinanceService {
       })
     );
     return series;
+  }
+
+  private async financeTimeseriesLastMonths(farmId: string, count: number) {
+    return this.financeTimeseriesMonths(farmId, count);
   }
 
   async listMergedTransactions(
@@ -887,18 +910,36 @@ export class FinanceService {
           net: rM.sub(eM).toString()
         });
       }
-      topExpenseCategories = [...rows]
-        .filter((r) => new Prisma.Decimal(r.expenses).gt(0))
-        .sort((a, b) =>
-          new Prisma.Decimal(b.expenses).cmp(new Prisma.Decimal(a.expenses))
-        )
-        .slice(0, 10)
-        .map((r) => ({
-          key: r.key,
-          label: r.label,
-          expenses: r.expenses
-        }));
+    } else {
+      const endYear = start.getUTCFullYear();
+      const endMonth = start.getUTCMonth() + 1;
+      const series = await this.financeTimeseriesMonths(
+        farmId,
+        6,
+        endYear,
+        endMonth
+      );
+      monthlyEvolution = series.map((m) => ({
+        month: m.month,
+        expenses: m.expenses,
+        revenues: m.revenues,
+        net: new Prisma.Decimal(m.revenues)
+          .sub(new Prisma.Decimal(m.expenses))
+          .toString()
+      }));
     }
+
+    topExpenseCategories = [...rows]
+      .filter((r) => new Prisma.Decimal(r.expenses).gt(0))
+      .sort((a, b) =>
+        new Prisma.Decimal(b.expenses).cmp(new Prisma.Decimal(a.expenses))
+      )
+      .slice(0, 10)
+      .map((r) => ({
+        key: r.key,
+        label: r.label,
+        expenses: r.expenses
+      }));
 
     return {
       farmId,

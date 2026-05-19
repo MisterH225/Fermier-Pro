@@ -1,13 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import {
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
-} from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { TabContent, TabSelector } from "../tabs";
 import { useSession } from "../../context/SessionContext";
 import { fetchFarmMembers } from "../../lib/api";
 import {
@@ -36,6 +31,14 @@ export function CollaborationScreen({ farmId, farmName }: Props) {
 
   const isRefreshing = membersQ.isFetching && !membersQ.isLoading;
 
+  const refreshControl = (
+    <RefreshControl
+      refreshing={isRefreshing}
+      onRefresh={() => void membersQ.refetch()}
+      tintColor={mobileColors.accent}
+    />
+  );
+
   if (!farmId) {
     return (
       <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -46,50 +49,76 @@ export function CollaborationScreen({ farmId, farmName }: Props) {
     );
   }
 
+  const header = (
+    <View style={styles.pageHeader}>
+      <Text style={styles.pageTitle}>{t("collab.screenTitle")}</Text>
+      {farmName ? (
+        <Text style={styles.farmSubtitle} numberOfLines={1}>
+          {farmName}
+        </Text>
+      ) : null}
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={() => void membersQ.refetch()}
-            tintColor={mobileColors.accent}
-          />
-        }
-      >
-        {/* En-tête */}
-        <View style={styles.pageHeader}>
-          <Text style={styles.pageTitle}>{t("collab.screenTitle")}</Text>
-          {farmName ? (
-            <Text style={styles.farmSubtitle} numberOfLines={1}>
-              {farmName}
-            </Text>
-          ) : null}
-        </View>
-
-        {/* Section 1 — Invitation */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>
-            {t("collab.inviteSectionTitle")}
-          </Text>
-          <InviteSection farmId={farmId} farmName={farmName} />
-        </View>
-
-        {/* Section 2 — Membres actifs */}
-        <View style={styles.section}>
-          <MembersList farmId={farmId} farmName={farmName} />
-        </View>
-
-        {/* Section 3 — Historique */}
-        <View style={styles.section}>
-          <ActivityHistory
-            farmId={farmId}
-            members={membersQ.data ?? []}
-          />
-        </View>
-      </ScrollView>
+      <TabSelector
+        defaultTab="invite"
+        header={header}
+        tabs={[
+          {
+            key: "invite",
+            label: t("collab.tabInvite"),
+            content: (
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                refreshControl={refreshControl}
+                contentContainerStyle={styles.scrollPad}
+              >
+                <TabContent>
+                  <Text style={styles.sectionLabel}>
+                    {t("collab.inviteSectionTitle")}
+                  </Text>
+                  <InviteSection farmId={farmId} farmName={farmName} />
+                </TabContent>
+              </ScrollView>
+            )
+          },
+          {
+            key: "members",
+            label: t("collab.tabMembers"),
+            content: (
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                refreshControl={refreshControl}
+                contentContainerStyle={styles.scrollPad}
+              >
+                <TabContent>
+                  <MembersList farmId={farmId} farmName={farmName} />
+                </TabContent>
+              </ScrollView>
+            )
+          },
+          {
+            key: "history",
+            label: t("collab.tabHistory"),
+            content: (
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                refreshControl={refreshControl}
+                contentContainerStyle={styles.scrollPad}
+              >
+                <TabContent>
+                  <ActivityHistory
+                    farmId={farmId}
+                    members={membersQ.data ?? []}
+                  />
+                </TabContent>
+              </ScrollView>
+            )
+          }
+        ]}
+      />
     </SafeAreaView>
   );
 }
@@ -97,15 +126,12 @@ export function CollaborationScreen({ farmId, farmName }: Props) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: mobileColors.surface
+    backgroundColor: mobileColors.canvas
   },
-  scroll: {
-    paddingHorizontal: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl * 2,
-    gap: mobileSpacing.lg
+  scrollPad: {
+    flexGrow: 1
   },
   pageHeader: {
-    paddingTop: mobileSpacing.lg,
     gap: mobileSpacing.xs
   },
   pageTitle: {
@@ -115,9 +141,6 @@ const styles = StyleSheet.create({
   farmSubtitle: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary
-  },
-  section: {
-    gap: mobileSpacing.sm
   },
   sectionLabel: {
     ...mobileTypography.meta,

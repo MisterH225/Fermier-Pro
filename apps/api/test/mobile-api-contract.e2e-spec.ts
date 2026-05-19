@@ -629,6 +629,7 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
       .get(`/api/v1/farms/${ctx.farmId}/finance/overview`)
       .set("Authorization", `Bearer ${ctx.token}`);
     expect(ov.status).toBe(200);
+    expect(ov.body?.months6?.length).toBe(6);
     expect(ov.body?.months3?.length).toBe(3);
     expect(ov.body?.settings?.currencyCode).toBeDefined();
 
@@ -656,6 +657,7 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
       .set("Authorization", `Bearer ${ctx.token}`);
     expect(rep.status).toBe(200);
     expect(rep.body?.totals).toBeDefined();
+    expect(rep.body?.monthlyEvolution?.length).toBe(6);
 
     const proj = await request(app.getHttpServer())
       .get(`/api/v1/farms/${ctx.farmId}/finance/projection`)
@@ -669,6 +671,18 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
       .set("Authorization", `Bearer ${ctx.token}`);
     expect(sim.status).toBe(200);
     expect(sim.body?.projectedBalance).toBeDefined();
+
+    const now = new Date();
+    const budgetGet = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/finance/budget`)
+      .query({
+        year: String(now.getUTCFullYear()),
+        month: String(now.getUTCMonth() + 1)
+      })
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(budgetGet.status).toBe(200);
+    expect(budgetGet.body?.global).toBeDefined();
+    expect(Array.isArray(budgetGet.body?.lines)).toBe(true);
   });
 
   it("POST finance transaction unifiée (income)", async () => {

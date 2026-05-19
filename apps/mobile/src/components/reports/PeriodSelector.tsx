@@ -11,9 +11,11 @@ export type ReportAnchorState = {
 
 type Props = {
   periodType: FarmReportPeriodType;
-  onPeriodTypeChange: (p: FarmReportPeriodType) => void;
+  onPeriodTypeChange?: (p: FarmReportPeriodType) => void;
   anchor: ReportAnchorState;
   onAnchorChange: (a: ReportAnchorState) => void;
+  /** Masque les puces Mensuel / Trimestriel / Annuel (gérées par TabSelector). */
+  hidePeriodTabs?: boolean;
 };
 
 function Chip({
@@ -66,7 +68,8 @@ export function PeriodSelector({
   periodType,
   onPeriodTypeChange,
   anchor,
-  onAnchorChange
+  onAnchorChange,
+  hidePeriodTabs = false
 }: Props) {
   const { t, i18n } = useTranslation();
   const label = periodLabel(t, periodType, anchor);
@@ -116,23 +119,25 @@ export function PeriodSelector({
   return (
     <View style={styles.root}>
       <Text style={styles.title}>{t("reportsScreen.periodTitle")}</Text>
-      <View style={styles.row}>
-        <Chip
-          label={t("reportsScreen.periodMonthly")}
-          active={periodType === "monthly"}
-          onPress={() => onPeriodTypeChange("monthly")}
-        />
-        <Chip
-          label={t("reportsScreen.periodQuarterly")}
-          active={periodType === "quarterly"}
-          onPress={() => onPeriodTypeChange("quarterly")}
-        />
-        <Chip
-          label={t("reportsScreen.periodYearly")}
-          active={periodType === "yearly"}
-          onPress={() => onPeriodTypeChange("yearly")}
-        />
-      </View>
+      {!hidePeriodTabs && onPeriodTypeChange ? (
+        <View style={styles.row}>
+          <Chip
+            label={t("reportsScreen.periodMonthly")}
+            active={periodType === "monthly"}
+            onPress={() => onPeriodTypeChange("monthly")}
+          />
+          <Chip
+            label={t("reportsScreen.periodQuarterly")}
+            active={periodType === "quarterly"}
+            onPress={() => onPeriodTypeChange("quarterly")}
+          />
+          <Chip
+            label={t("reportsScreen.periodYearly")}
+            active={periodType === "yearly"}
+            onPress={() => onPeriodTypeChange("yearly")}
+          />
+        </View>
+      ) : null}
       <View style={styles.navRow}>
         <Pressable onPress={prev} style={styles.navBtn} accessibilityRole="button">
           <Text style={styles.navBtnText}>◀</Text>

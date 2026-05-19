@@ -40,6 +40,7 @@ function defaultScopesForRole(role: MembershipRole): string[] {
         FARM_SCOPE.vetRead,
         FARM_SCOPE.vetWrite,
         FARM_SCOPE.tasksRead,
+        FARM_SCOPE.tasksWrite,
         FARM_SCOPE.chat,
         FARM_SCOPE.marketplaceRead
       ];

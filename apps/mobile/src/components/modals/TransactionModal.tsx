@@ -26,6 +26,7 @@ import {
   postFinanceTransaction,
   type AnimalListItem
 } from "../../lib/api";
+import { invalidateFarmFinanceQueries } from "../../lib/invalidateFarmFinanceQueries";
 import {
   mobileColors,
   mobileRadius,
@@ -184,9 +185,7 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
     },
     onSuccess: () => {
       const fid = payload.farmId;
-      void qc.invalidateQueries({ queryKey: ["financeOverview", fid] });
-      void qc.invalidateQueries({ queryKey: ["financeTransactions", fid] });
-      void qc.invalidateQueries({ queryKey: ["financeReport", fid] });
+      invalidateFarmFinanceQueries(qc, fid);
       onClose();
       setTimeout(() => {
         open("success", {

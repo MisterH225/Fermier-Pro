@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { useLayoutEffect, useMemo, useState, useCallback } from "react";
+import { useLayoutEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -13,10 +13,16 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { FeedStockLineChart } from "../components/feed/FeedStockLineChart";
+import {
+  SmartChart,
+  feedChartToLines,
+  feedPeriodToChartPeriod,
+  chartPeriodToFeedPeriod
+} from "../components/charts";
 import { StockModal } from "../components/feed/StockModal";
 import { FeedStockModuleGate } from "../components/FeedStockModuleGate";
 import { EventList, type EventItem } from "../components/lists";
+import { TabContent, TabSelector } from "../components/tabs";
 import { useModal } from "../components/modals/useModal";
 import { useSession } from "../context/SessionContext";
 import type { FarmFeedStatItemDto, FeedStockMovementDto } from "../lib/api";
@@ -60,19 +66,10 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
   const [period, setPeriod] = useState<"3m" | "6m" | "12m">("6m");
   const [stockOpen, setStockOpen] = useState(false);
   const [movFilterType, setMovFilterType] = useState<string>("");
+  const [feedTab, setFeedTab] = useState<"overview" | "movements" | "controls">("overview");
   const [movKindFilter, setMovKindFilter] = useState<"all" | "in" | "stock_check">("all");
   const [movFrom, setMovFrom] = useState("");
   const [movTo, setMovTo] = useState("");
-
-  const periodLabels = useMemo(
-    () =>
-      [
-        { key: "3m" as const, label: t("feedStock.period3") },
-        { key: "6m" as const, label: t("feedStock.period6") },
-        { key: "12m" as const, label: t("feedStock.period12") }
-      ],
-    [t]
-  );
 
   const enabled = clientFeatures.feedStock && Boolean(accessToken);
 
@@ -140,6 +137,9 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
   const movements = movQ.data ?? [];
 
   const movementsFiltered = useMemo(() => {
+    if (feedTab === "controls") {
+      return movements.filter((x) => x.kind === "stock_check");
+    }
     if (movKindFilter === "in") {
       return movements.filter((x) => x.kind === "in");
     }
@@ -147,7 +147,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
       return movements.filter((x) => x.kind === "stock_check");
     }
     return movements;
-  }, [movements, movKindFilter]);
+  }, [movements, movKindFilter, feedTab]);
 
   const feedMovementEvents = useMemo((): EventItem[] => {
     return movementsFiltered.map((m) => {
@@ -296,105 +296,162 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
 
   const totalKg = overview ? Number.parseFloat(overview.totalStockKg) : 0;
 
+  const tabScroll = (children: ReactNode) => (
+    <ScrollView
+      style={styles.tabScroll}
+      contentContainerStyle={styles.tabScrollGrow}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => void refetchAll()}
+          tintColor={mobileColors.accent}
+        />
+      }
+      showsVerticalScrollIndicator={false}
+    >
+      <TabContent>{children}</TabContent>
+    </ScrollView>
+  );
+
+  const movementList = (showKindPills: boolean) => (
+    <EventList
+      layout="embedded"
+      sectionTitle={t("feedStock.movementsTitle")}
+      data={feedMovementEvents}
+      filters={showKindPills ? stockKindPills : undefined}
+      activeFilterId={showKindPills ? movKindFilter : undefined}
+      onFilterChange={showKindPills ? onStockKindFilter : undefined}
+      renderDetail={renderStockMovDetail}
+      prependContent={movementFiltersExtra}
+      emptyMessage={t("feedStock.noMovements")}
+      isLoading={movQ.isPending && movements.length === 0}
+      pageSize={25}
+      loadMoreLabel={t("feedStock.loadMore")}
+    />
+  );
+
   return (
     <View style={styles.root}>
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void refetchAll()}
-            tintColor={mobileColors.accent}
-          />
+      <TabSelector
+        activeTab={feedTab}
+        onTabChange={(key) => {
+          const tab = key as typeof feedTab;
+          setFeedTab(tab);
+          if (tab === "controls") {
+            setMovKindFilter("stock_check");
+          } else if (tab === "movements") {
+            setMovKindFilter("all");
+          }
+        }}
+        header={
+          <>
+            <Text style={styles.screenTitle}>{t("feedStock.title")}</Text>
+            <Text style={styles.farmHint}>{farmName}</Text>
+            <Text style={styles.global}>
+              {t("feedStock.globalStock")} :{" "}
+              <Text style={styles.globalVal}>{formatMassKg(totalKg)}</Text>
+            </Text>
+          </>
         }
-      >
-        <Text style={styles.screenTitle}>{t("feedStock.title")}</Text>
-        <Text style={styles.farmHint}>{farmName}</Text>
-        <Text style={styles.global}>
-          {t("feedStock.globalStock")} :{" "}
-          <Text style={styles.globalVal}>{formatMassKg(totalKg)}</Text>
-        </Text>
-
-        <Text style={styles.section}>{t("feedStock.chartTitle")}</Text>
-        <FeedStockLineChart
-          title={t("feedStock.chartTitle")}
-          chart={chart}
-          period={period}
-          onPeriodChange={setPeriod}
-          periodLabels={periodLabels}
-        />
-
-        <Text style={[styles.section, styles.sectionSp]}>
-          {t("feedStock.statsTitle")}
-        </Text>
-        {stats.length === 0 ? (
-          <Text style={styles.muted}>{t("feedStock.noStats")}</Text>
-        ) : (
-          stats.map((s) => (
-            <View key={s.feedTypeId} style={styles.statCard}>
-              <View style={styles.statHead}>
-                <View
-                  style={[styles.dot, { backgroundColor: s.color || mobileColors.accent }]}
-                />
-                <Text style={styles.statName}>{s.name}</Text>
-                <Text style={styles.statEmoji}>{statusEmoji(s.status)}</Text>
-              </View>
-              <Text style={styles.statLine}>
-                {t("feedStock.current")} :{" "}
-                {formatMassKg(Number.parseFloat(s.currentStockKg))}
-              </Text>
-              <Text style={styles.statLine}>
-                {t("feedStock.avgDaily")} :{" "}
-                {s.avgDailyConsumptionKg
-                  ? `${Number.parseFloat(s.avgDailyConsumptionKg).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} kg/j`
-                  : "—"}
-              </Text>
-              <Text style={styles.statLine}>
-                {t("feedStock.depletion")} :{" "}
-                {s.estimatedDepletionDate
-                  ? new Date(s.estimatedDepletionDate).toLocaleDateString("fr-FR")
-                  : "—"}
-              </Text>
-              <Text style={styles.statLine}>
-                {s.status === "ok"
-                  ? t("feedStock.statusOk")
-                  : s.status === "warning"
-                    ? t("feedStock.statusWarn")
-                    : t("feedStock.statusCrit")}
-              </Text>
-            </View>
-          ))
-        )}
-
-        <Text style={[styles.section, styles.sectionSp]}>
-          {t("feedStock.smartAlertsHintTitle", "Recommandations")}
-        </Text>
-        <View style={styles.card}>
-          <Text style={styles.muted}>
-            {t(
-              "feedStock.smartAlertsHintBody",
-              "Les alertes stock et consommation sont sur le tableau de bord (section Recommandations)."
-            )}
-          </Text>
-        </View>
-
-        <Text style={[styles.section, styles.sectionSp]}>
-          {t("feedStock.movementsTitle")}
-        </Text>
-        <EventList
-          layout="embedded"
-          data={feedMovementEvents}
-          filters={stockKindPills}
-          activeFilterId={movKindFilter}
-          onFilterChange={onStockKindFilter}
-          renderDetail={renderStockMovDetail}
-          prependContent={movementFiltersExtra}
-          emptyMessage={t("feedStock.noMovements")}
-          isLoading={movQ.isPending && movements.length === 0}
-          pageSize={25}
-          loadMoreLabel={t("feedStock.loadMore")}
-        />
-      </ScrollView>
+        tabs={[
+          {
+            key: "overview",
+            label: t("feedStock.tabOverview"),
+            content: tabScroll(
+              <>
+                <View style={styles.chartCard}>
+                  <Text style={styles.chartTitle}>{t("feedStock.chartTitle")}</Text>
+                  {chart ? (
+                    <SmartChart
+                      lines={feedChartToLines(chart)}
+                      period={feedPeriodToChartPeriod(period)}
+                      onPeriodChange={(p) => setPeriod(chartPeriodToFeedPeriod(p))}
+                      formatValue={(v) =>
+                        `${v.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg`
+                      }
+                      monthLabel={(m) => {
+                        const [y, mo] = m.split("-").map(Number);
+                        if (!y || !mo) return m;
+                        return new Date(Date.UTC(y, mo - 1, 1)).toLocaleDateString(
+                          "fr-FR",
+                          { month: "short" }
+                        );
+                      }}
+                    />
+                  ) : (
+                    <Text style={styles.muted}>—</Text>
+                  )}
+                </View>
+                <Text style={[styles.section, styles.sectionSp]}>
+                  {t("feedStock.statsTitle")}
+                </Text>
+                {stats.length === 0 ? (
+                  <Text style={styles.muted}>{t("feedStock.noStats")}</Text>
+                ) : (
+                  stats.map((s) => (
+                    <View key={s.feedTypeId} style={styles.statCard}>
+                      <View style={styles.statHead}>
+                        <View
+                          style={[
+                            styles.dot,
+                            { backgroundColor: s.color || mobileColors.accent }
+                          ]}
+                        />
+                        <Text style={styles.statName}>{s.name}</Text>
+                        <Text style={styles.statEmoji}>{statusEmoji(s.status)}</Text>
+                      </View>
+                      <Text style={styles.statLine}>
+                        {t("feedStock.current")} :{" "}
+                        {formatMassKg(Number.parseFloat(s.currentStockKg))}
+                      </Text>
+                      <Text style={styles.statLine}>
+                        {t("feedStock.avgDaily")} :{" "}
+                        {s.avgDailyConsumptionKg
+                          ? `${Number.parseFloat(s.avgDailyConsumptionKg).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} kg/j`
+                          : "—"}
+                      </Text>
+                      <Text style={styles.statLine}>
+                        {t("feedStock.depletion")} :{" "}
+                        {s.estimatedDepletionDate
+                          ? new Date(s.estimatedDepletionDate).toLocaleDateString("fr-FR")
+                          : "—"}
+                      </Text>
+                      <Text style={styles.statLine}>
+                        {s.status === "ok"
+                          ? t("feedStock.statusOk")
+                          : s.status === "warning"
+                            ? t("feedStock.statusWarn")
+                            : t("feedStock.statusCrit")}
+                      </Text>
+                    </View>
+                  ))
+                )}
+                <Text style={[styles.section, styles.sectionSp]}>
+                  {t("feedStock.smartAlertsHintTitle", "Recommandations")}
+                </Text>
+                <View style={styles.card}>
+                  <Text style={styles.muted}>
+                    {t(
+                      "feedStock.smartAlertsHintBody",
+                      "Les alertes stock et consommation sont sur le tableau de bord (section Recommandations)."
+                    )}
+                  </Text>
+                </View>
+              </>
+            )
+          },
+          {
+            key: "movements",
+            label: t("feedStock.tabMovements"),
+            content: tabScroll(movementList(true))
+          },
+          {
+            key: "controls",
+            label: t("feedStock.tabControls"),
+            content: tabScroll(movementList(false))
+          }
+        ]}
+      />
 
       {accessToken ? (
         <StockModal
@@ -417,16 +474,14 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: mobileColors.surface },
-  scroll: {
-    padding: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl * 2
-  },
+  root: { flex: 1, backgroundColor: mobileColors.canvas },
+  tabScroll: { flex: 1 },
+  tabScrollGrow: { flexGrow: 1 },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: mobileColors.surface
+    backgroundColor: mobileColors.canvas
   },
   error: { color: mobileColors.error, padding: mobileSpacing.lg },
   screenTitle: {
@@ -445,6 +500,17 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary
   },
   globalVal: { fontWeight: "800", color: mobileColors.textPrimary },
+  chartCard: {
+    backgroundColor: mobileColors.surface,
+    borderRadius: mobileRadius.lg,
+    padding: mobileSpacing.md,
+    ...mobileShadows.card
+  },
+  chartTitle: {
+    ...mobileTypography.cardTitle,
+    color: mobileColors.textPrimary,
+    marginBottom: mobileSpacing.sm
+  },
   section: {
     ...mobileTypography.cardTitle,
     marginTop: mobileSpacing.lg,
@@ -453,7 +519,7 @@ const styles = StyleSheet.create({
   sectionSp: { marginTop: mobileSpacing.xl },
   muted: { ...mobileTypography.meta, color: mobileColors.textSecondary },
   statCard: {
-    backgroundColor: mobileColors.surface,
+    backgroundColor: mobileColors.canvas,
     borderRadius: mobileRadius.lg,
     padding: mobileSpacing.md,
     marginBottom: mobileSpacing.sm,
@@ -471,7 +537,7 @@ const styles = StyleSheet.create({
   statEmoji: { fontSize: 16 },
   statLine: { ...mobileTypography.body, color: mobileColors.textSecondary, marginTop: 2 },
   card: {
-    backgroundColor: mobileColors.surface,
+    backgroundColor: mobileColors.canvas,
     borderRadius: mobileRadius.lg,
     padding: mobileSpacing.md,
     borderWidth: StyleSheet.hairlineWidth,

@@ -31,7 +31,7 @@ export type RootStackParamList = {
   };
   FarmTasks: { farmId: string; farmName: string };
   CreateTask: { farmId: string; farmName: string };
-  MarketplaceList: undefined;
+  MarketplaceList: { tab?: "listings" | "mine" | "offers" } | undefined;
   MarketplaceListingDetail: { listingId: string; headline?: string };
   MarketplaceMyOffers: undefined;
   MarketplaceMyListings: undefined;

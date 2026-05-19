@@ -35,7 +35,6 @@ import {
   CreateMarketplaceListingScreen,
   CreatePenLogScreen,
   CreatePenScreen,
-  CreateTaskScreen,
   CreateVetConsultationScreen,
   EditFarmExpenseScreen,
   EditFarmRevenueScreen,
@@ -78,7 +77,7 @@ const navTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    background: mobileColors.surface,
+    background: mobileColors.canvas,
     primary: mobileColors.accent,
     text: mobileColors.textPrimary,
     card: mobileColors.background,
@@ -128,7 +127,7 @@ function MainStack() {
         },
         headerShadowVisible: false,
         contentStyle: {
-          backgroundColor: mobileColors.surface,
+          backgroundColor: mobileColors.canvas,
           ...(bottomChromePad > 0 ? { paddingBottom: bottomChromePad } : {})
         }
       }}
@@ -206,12 +205,7 @@ function MainStack() {
       <Stack.Screen
         name="FarmTasks"
         component={FarmTasksScreen}
-        options={{ title: "Tâches terrain" }}
-      />
-      <Stack.Screen
-        name="CreateTask"
-        component={CreateTaskScreen}
-        options={{ title: "Nouvelle tâche" }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="FarmVetConsultations"

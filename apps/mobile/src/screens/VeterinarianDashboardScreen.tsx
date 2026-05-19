@@ -1,9 +1,13 @@
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useQuery } from "@tanstack/react-query";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { EventCard, KpiCard } from "../components/farm";
 import { MobileAppShell } from "../components/layout";
+import { DashboardTaskWidget } from "../components/tasks";
 import { IconButton, PrimaryButton } from "../components/ui";
+import { useSession } from "../context/SessionContext";
+import { fetchFarms } from "../lib/api";
 import { mobileColors, mobileSpacing, mobileTypography } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
@@ -13,6 +17,14 @@ import type { RootStackParamList } from "../types/navigation";
 export function VeterinarianDashboardScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { accessToken, activeProfileId, clientFeatures } = useSession();
+
+  const farmsQ = useQuery({
+    queryKey: ["farms", activeProfileId],
+    queryFn: () => fetchFarms(accessToken!, activeProfileId),
+    enabled: Boolean(accessToken)
+  });
+  const primaryFarm = farmsQ.data?.[0];
 
   return (
     <MobileAppShell
@@ -28,6 +40,15 @@ export function VeterinarianDashboardScreen() {
             <KpiCard label="Consultations" value="6" tone="warning" />
           </View>
         </View>
+
+        {primaryFarm && clientFeatures.tasks && accessToken ? (
+          <DashboardTaskWidget
+            farmId={primaryFarm.id}
+            farmName={primaryFarm.name}
+            accessToken={accessToken}
+            activeProfileId={activeProfileId}
+          />
+        ) : null}
 
         <Text style={styles.sectionTitle}>Activité clinique</Text>
         <View style={styles.list}>

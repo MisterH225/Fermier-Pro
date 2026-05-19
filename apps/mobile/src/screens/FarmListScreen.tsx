@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
   list: {
     padding: mobileSpacing.lg,
     paddingBottom: 32,
-    backgroundColor: mobileColors.surface
+    backgroundColor: mobileColors.canvas
   },
   listWelcome: {
     fontSize: 15,

@@ -16,7 +16,10 @@ import {
 import { MobileAppShell } from "../components/layout";
 import { SmartAlertsSection } from "../components/smartAlerts/SmartAlertsSection";
 import { AlertBadge } from "../components/smartAlerts/AlertBadge";
-import { DashboardFinanceMiniChart } from "../components/producer/DashboardFinanceMiniChart";
+import {
+  SmartChart,
+  financeMonthsToRevExpLines
+} from "../components/charts";
 import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
 import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
 import { useSession } from "../context/SessionContext";
@@ -521,39 +524,21 @@ function FinanceCard({
         style={styles.chartBox}
       >
         {pts.length > 0 ? (
-          <DashboardFinanceMiniChart
-            months={pts}
-            width={Math.max(120, chartWidth)}
-            height={112}
+          <SmartChart
+            lines={financeMonthsToRevExpLines(
+              pts.map((m) => ({
+                month: m.month,
+                revenues: Number(m.revenues),
+                expenses: Number(m.expenses)
+              })),
+              legendRevenue,
+              legendExpense
+            )}
+            period="3M"
+            monthLabel={(iso) => formatMonthShort(iso, locale)}
+            formatValue={(n) => formatMoney(n, locale)}
           />
         ) : null}
-      </View>
-      <View style={styles.legendRow}>
-        <View style={styles.legendItem}>
-          <View style={[styles.dot, { backgroundColor: mobileColors.error }]} />
-          <Text style={styles.legendText}>{legendExpense}</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View
-            style={[styles.dot, { backgroundColor: mobileColors.success }]}
-          />
-          <Text style={styles.legendText}>{legendRevenue}</Text>
-        </View>
-      </View>
-      <View style={styles.monthRow}>
-        {pts.map((m) => (
-          <View key={m.month} style={styles.monthCol}>
-            <Text style={styles.monthLab} numberOfLines={1}>
-              {formatMonthShort(m.month, locale)}
-            </Text>
-            <Text style={styles.monthExp} numberOfLines={1}>
-              {formatMoney(Number(m.expenses), locale)}
-            </Text>
-            <Text style={styles.monthRev} numberOfLines={1}>
-              {formatMoney(Number(m.revenues), locale)}
-            </Text>
-          </View>
-        ))}
       </View>
     </CardShell>
   );
@@ -865,7 +850,7 @@ const styles = StyleSheet.create({
     width: "100%"
   },
   card: {
-    backgroundColor: mobileColors.surface,
+    backgroundColor: mobileColors.background,
     borderRadius: mobileRadius.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: mobileColors.border,
@@ -1015,7 +1000,10 @@ const styles = StyleSheet.create({
   emptyFarm: {
     padding: mobileSpacing.lg,
     borderRadius: mobileRadius.md,
-    backgroundColor: mobileColors.surfaceMuted
+    backgroundColor: mobileColors.background,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.border,
+    ...mobileShadows.card
   },
   emptyTitle: {
     ...mobileTypography.cardTitle,

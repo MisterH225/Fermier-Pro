@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { MobileAppShell } from "../components/layout";
 import { EventList, type EventItem } from "../components/lists";
+import { TabContent, TabSelector } from "../components/tabs";
 import { BaseModal } from "../components/modals/BaseModal";
 import { useSession } from "../context/SessionContext";
 import {
@@ -39,6 +40,7 @@ import {
 import {
   mobileColors,
   mobileRadius,
+  mobileShadows,
   mobileSpacing,
   mobileTypography
 } from "../theme/mobileTheme";
@@ -48,6 +50,17 @@ type Props = NativeStackScreenProps<RootStackParamList, "FarmHealth">;
 
 const DISEASE_STATUSES = ["active", "recovered", "dead", "slaughtered"] as const;
 const MORTALITY_CAUSES = ["disease", "accident", "unknown", "other"] as const;
+
+const HEALTH_KIND_TABS = [
+  "vaccination",
+  "disease",
+  "vet_visit",
+  "treatment",
+  "mortality"
+] as const;
+
+type HealthKindTab = (typeof HEALTH_KIND_TABS)[number];
+type HealthScreenTab = "overview" | HealthKindTab;
 
 function toIsoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -246,7 +259,7 @@ export function FarmHealthScreen({ route, navigation }: Props) {
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkRecordId, setLinkRecordId] = useState<string | null>(null);
   const [linkExpenseId, setLinkExpenseId] = useState("");
-  const [healthKindFilter, setHealthKindFilter] = useState<string>("all");
+  const [healthTab, setHealthTab] = useState<HealthScreenTab>("overview");
   const [kindPickOpen, setKindPickOpen] = useState(false);
 
   const resetForm = () => {
@@ -412,23 +425,11 @@ export function FarmHealthScreen({ route, navigation }: Props) {
       (a, b) =>
         new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
     );
-    if (healthKindFilter === "all") {
-      return arr;
+    if (healthTab === "overview") {
+      return [];
     }
-    return arr.filter((r) => r.kind === healthKindFilter);
-  }, [eventsQuery.data, healthKindFilter]);
-
-  const healthHistoryPills = useMemo(
-    () => [
-      { id: "all", label: t("health.pillAll") },
-      { id: "vaccination", label: t("health.pillVaccination") },
-      { id: "disease", label: t("health.pillDisease") },
-      { id: "vet_visit", label: t("health.pillVet") },
-      { id: "treatment", label: t("health.pillTreatment") },
-      { id: "mortality", label: t("health.pillMortality") }
-    ],
-    [t]
-  );
+    return arr.filter((r) => r.kind === healthTab);
+  }, [eventsQuery.data, healthTab]);
 
   const healthKindShortLabel = useCallback(
     (kind: FarmHealthRecordKind) => {
@@ -547,113 +548,157 @@ export function FarmHealthScreen({ route, navigation }: Props) {
     a.tagCode?.trim() || a.publicId.slice(0, 8);
   const batchLabel = (b: BatchListItem) => b.name || b.id.slice(0, 8);
 
+  const tabScroll = (children: ReactNode) => (
+    <ScrollView
+      style={styles.tabScroll}
+      contentContainerStyle={styles.tabScrollGrow}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+      showsVerticalScrollIndicator={false}
+    >
+      <TabContent>{children}</TabContent>
+    </ScrollView>
+  );
+
+  const healthKindSectionTitle = (kind: HealthKindTab) => {
+    switch (kind) {
+      case "vaccination":
+        return t("health.sectionVaccinations");
+      case "disease":
+        return t("health.sectionDiseases");
+      case "vet_visit":
+        return t("health.sectionVet");
+      case "treatment":
+        return t("health.sectionTreatments");
+      case "mortality":
+        return t("health.sectionMortalities");
+    }
+  };
+
+  const subjectPickerBlock = (
+    <>
+      <Text style={styles.h1}>{t("health.subjectTitle")}</Text>
+      <Text style={styles.hint}>{t(`health.modeHint.${livestockMode}` as const)}</Text>
+      {showAnimalPicker ? (
+        <View style={styles.block}>
+          <Text style={styles.lab}>{t("health.pickAnimal")}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {animals.map((a) => (
+              <TouchableOpacity
+                key={a.id}
+                style={[
+                  styles.chip,
+                  subjectType === "animal" && subjectId === a.id && styles.chipOn
+                ]}
+                onPress={() => {
+                  setSubjectType("animal");
+                  setSubjectId(a.id);
+                }}
+              >
+                <Text style={styles.chipTx}>{animalLabel(a)}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+      {showBatchPicker ? (
+        <View style={styles.block}>
+          <Text style={styles.lab}>{t("health.pickBatch")}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {batches.map((b) => (
+              <TouchableOpacity
+                key={b.id}
+                style={[
+                  styles.chip,
+                  subjectType === "group" && subjectId === b.id && styles.chipOn
+                ]}
+                onPress={() => {
+                  setSubjectType("group");
+                  setSubjectId(b.id);
+                }}
+              >
+                <Text style={styles.chipTx}>{batchLabel(b)}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+    </>
+  );
+
+  const healthEventList = (kind: HealthKindTab) => (
+    <EventList
+      layout="embedded"
+      sectionTitle={healthKindSectionTitle(kind)}
+      onAddPress={onHealthAddPress}
+      data={healthEventItems}
+      renderDetail={renderHealthDetail}
+      emptyMessage={t("health.noEvents")}
+      isLoading={eventsQuery.isPending && !(eventsQuery.data ?? []).length}
+      pageSize={15}
+      loadMoreLabel={t("health.loadMore")}
+    />
+  );
+
   return (
     <MobileAppShell
       title={farmName ? `${t("health.screenTitle")} — ${farmName}` : t("health.screenTitle")}
       omitBottomTabBar={isProducer}
     >
-      <ScrollView
-        contentContainerStyle={styles.wrap}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <Text style={styles.h1}>{t("health.sectionOverview")}</Text>
-        {overviewQuery.isPending && !overview ? (
-          <ActivityIndicator color={mobileColors.accent} />
-        ) : overviewQuery.error ? (
-          <Text style={styles.err}>{(overviewQuery.error as Error).message}</Text>
-        ) : (
-          <View style={styles.card}>
-            <Text style={styles.meta}>
-              {t("health.activeDiseases")}: {overview?.activeDiseaseCount ?? "—"}
-            </Text>
-            <Text style={styles.meta}>
-              {t("health.mortality30")}:{" "}
-              {rate30 != null
-                ? `${(Number(rate30) * 100).toLocaleString(locale, { maximumFractionDigits: 2 })} %`
-                : "—"}
-            </Text>
-            <Text style={styles.meta}>
-              {t("health.mortality90")}:{" "}
-              {rate90 != null
-                ? `${(Number(rate90) * 100).toLocaleString(locale, { maximumFractionDigits: 2 })} %`
-                : "—"}
-            </Text>
-          </View>
-        )}
-
-        <Text style={styles.h1}>{t("health.subjectTitle")}</Text>
-        <Text style={styles.hint}>{t(`health.modeHint.${livestockMode}` as const)}</Text>
-        {showAnimalPicker ? (
-          <View style={styles.block}>
-            <Text style={styles.lab}>{t("health.pickAnimal")}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {animals.map((a) => (
-                <TouchableOpacity
-                  key={a.id}
-                  style={[
-                    styles.chip,
-                    subjectType === "animal" &&
-                      subjectId === a.id &&
-                      styles.chipOn
-                  ]}
-                  onPress={() => {
-                    setSubjectType("animal");
-                    setSubjectId(a.id);
-                  }}
-                >
-                  <Text style={styles.chipTx}>{animalLabel(a)}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        ) : null}
-        {showBatchPicker ? (
-          <View style={styles.block}>
-            <Text style={styles.lab}>{t("health.pickBatch")}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {batches.map((b) => (
-                <TouchableOpacity
-                  key={b.id}
-                  style={[
-                    styles.chip,
-                    subjectType === "group" &&
-                      subjectId === b.id &&
-                      styles.chipOn
-                  ]}
-                  onPress={() => {
-                    setSubjectType("group");
-                    setSubjectId(b.id);
-                  }}
-                >
-                  <Text style={styles.chipTx}>{batchLabel(b)}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        ) : null}
-
-        <EventList
-          layout="embedded"
-          sectionTitle={t("health.historyTitle")}
-          onAddPress={onHealthAddPress}
-          data={healthEventItems}
-          filters={healthHistoryPills}
-          activeFilterId={healthKindFilter}
-          onFilterChange={setHealthKindFilter}
-          renderDetail={renderHealthDetail}
-          emptyMessage={t("health.noEvents")}
-          isLoading={eventsQuery.isPending && !(eventsQuery.data ?? []).length}
-          pageSize={15}
-          loadMoreLabel={t("health.loadMore")}
-        />
-        <UpcomingVaccines
-          items={upcomingQuery.data?.vaccines}
-          locale={locale}
-          t={t}
-        />
-      </ScrollView>
+      <TabSelector
+        activeTab={healthTab}
+        onTabChange={(key) => setHealthTab(key as HealthScreenTab)}
+        tabs={[
+          {
+            key: "overview",
+            label: t("health.sectionOverview"),
+            content: tabScroll(
+              <>
+                {overviewQuery.isPending && !overview ? (
+                  <ActivityIndicator color={mobileColors.accent} />
+                ) : overviewQuery.error ? (
+                  <Text style={styles.err}>{(overviewQuery.error as Error).message}</Text>
+                ) : (
+                  <View style={styles.card}>
+                    <Text style={styles.meta}>
+                      {t("health.activeDiseases")}: {overview?.activeDiseaseCount ?? "—"}
+                    </Text>
+                    <Text style={styles.meta}>
+                      {t("health.mortality30")}:{" "}
+                      {rate30 != null
+                        ? `${(Number(rate30) * 100).toLocaleString(locale, { maximumFractionDigits: 2 })} %`
+                        : "—"}
+                    </Text>
+                    <Text style={styles.meta}>
+                      {t("health.mortality90")}:{" "}
+                      {rate90 != null
+                        ? `${(Number(rate90) * 100).toLocaleString(locale, { maximumFractionDigits: 2 })} %`
+                        : "—"}
+                    </Text>
+                  </View>
+                )}
+                {subjectPickerBlock}
+                <UpcomingVaccines
+                  items={upcomingQuery.data?.vaccines}
+                  locale={locale}
+                  t={t}
+                />
+              </>
+            )
+          },
+          ...HEALTH_KIND_TABS.map((kind) => ({
+            key: kind,
+            label: healthKindSectionTitle(kind),
+            content: tabScroll(
+              <>
+                {subjectPickerBlock}
+                {healthEventList(kind)}
+              </>
+            )
+          }))
+        ]}
+      />
 
       <BaseModal
         visible={kindPickOpen}
@@ -937,11 +982,8 @@ function UpcomingVaccines({
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    padding: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl,
-    gap: mobileSpacing.md
-  },
+  tabScroll: { flex: 1 },
+  tabScrollGrow: { flexGrow: 1 },
   h1: {
     ...mobileTypography.cardTitle,
     color: mobileColors.textPrimary,
@@ -957,10 +999,13 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary
   },
   card: {
-    backgroundColor: mobileColors.surfaceMuted,
+    backgroundColor: mobileColors.background,
     borderRadius: mobileRadius.md,
     padding: mobileSpacing.md,
-    gap: mobileSpacing.xs
+    gap: mobileSpacing.xs,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.border,
+    ...mobileShadows.card
   },
   meta: {
     ...mobileTypography.body,

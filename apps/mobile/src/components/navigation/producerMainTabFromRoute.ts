@@ -1,7 +1,7 @@
 import type { ProducerMainTab } from "./types";
 
 /**
- * Associe la route focalisée à un onglet principal, ou `null` si hors des 4 (menu +, listes, etc.).
+ * Associe la route focalisée à un onglet principal, ou `null` si hors des onglets (menu +, listes, etc.).
  */
 export function producerMainTabFromRoute(
   routeName: string,
@@ -34,6 +34,10 @@ export function producerMainTabFromRoute(
     case "CreateVetConsultation":
     case "AddVetConsultationAttachment":
       return "health";
+    case "Collaboration":
+    case "FarmMembers":
+    case "CreateFarmInvitation":
+      return "collaboration";
     default:
       return null;
   }

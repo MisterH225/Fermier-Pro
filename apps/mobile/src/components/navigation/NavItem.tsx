@@ -1,11 +1,13 @@
 import { Pressable, StyleSheet, Text, View, useColorScheme } from "react-native";
-import { mobileRadius } from "../../theme/mobileTheme";
+import { mobileRadius, mobileTypography } from "../../theme/mobileTheme";
 
 type NavItemProps = {
   emoji: string;
   active: boolean;
   onPress: () => void;
   accessibilityLabel: string;
+  /** Libellé affiché sous l’emoji (barre principale). */
+  label?: string;
   /** Réduit l’empreinte pour une pill basse (hauteur homogène avec le bouton +). */
   dense?: boolean;
 };
@@ -15,11 +17,19 @@ export function NavItem({
   active,
   onPress,
   accessibilityLabel,
+  label,
   dense
 }: NavItemProps) {
   const scheme = useColorScheme();
   const dark = scheme === "dark";
   const activeBg = dark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.08)";
+  const labelColor = active
+    ? dark
+      ? "#FFFFFF"
+      : "#111111"
+    : dark
+      ? "rgba(255,255,255,0.55)"
+      : "rgba(0,0,0,0.45)";
 
   const wrap = dense ? styles.iconWrapDense : styles.iconWrap;
   const hit = dense ? styles.hitDense : styles.hit;
@@ -35,6 +45,11 @@ export function NavItem({
       <View style={[wrap, active && { backgroundColor: activeBg }]}>
         <Text style={[emojiStyle, { opacity: active ? 1 : 0.45 }]}>{emoji}</Text>
       </View>
+      {label ? (
+        <Text style={[styles.label, { color: labelColor }]} numberOfLines={1}>
+          {label}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
@@ -49,9 +64,11 @@ const styles = StyleSheet.create({
   hitDense: {
     flex: 1,
     minWidth: 0,
-    minHeight: 36,
+    minHeight: 0,
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
+    paddingVertical: 2,
+    gap: 1
   },
   iconWrap: {
     width: 44,
@@ -61,8 +78,8 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   iconWrapDense: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 30,
     borderRadius: mobileRadius.pill,
     alignItems: "center",
     justifyContent: "center"
@@ -72,7 +89,15 @@ const styles = StyleSheet.create({
     lineHeight: 26
   },
   emojiDense: {
-    fontSize: 19,
-    lineHeight: 23
+    fontSize: 18,
+    lineHeight: 22
+  },
+  label: {
+    ...mobileTypography.meta,
+    fontSize: 9,
+    lineHeight: 11,
+    fontWeight: "600",
+    textAlign: "center",
+    maxWidth: 56
   }
 });
