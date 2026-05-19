@@ -1,4 +1,83 @@
 export const en = {
+  onboarding: {
+    progress: "Step {{current}} / {{total}}",
+    next: "Next",
+    back: "Back",
+    skipLink: "Skip for now",
+    errorTitle: "Error",
+    validationIncomplete: "Please complete all required fields.",
+    skipModal: {
+      title: "Your dashboard will be empty",
+      message:
+        "Without setting up your project, no data can be displayed. You can complete this anytime from your profile.",
+      continue: "Continue setup",
+      skipAnyway: "Skip anyway"
+    },
+    banner: {
+      text: "Your project is not set up yet — screens will stay empty.",
+      cta: "Complete now →"
+    },
+    emptyState: {
+      title: "No data available",
+      subtitle: "Set up your project to start tracking",
+      cta: "Set up my project →"
+    },
+    summary: {
+      farm: "Project / farm",
+      location: "Location",
+      breeders: "Breeders",
+      headcount: "Total headcount",
+      pens: "Total pens",
+      capacity: "Total capacity",
+      occupancy: "Initial occupancy"
+    },
+    step1: {
+      title: "Create your project",
+      subtitle: "This identifies your operation",
+      farmName: "Project / farm name",
+      farmPlaceholder: "e.g. Kouassi Farm",
+      species: "Species",
+      speciesPig: "🐷 Pig",
+      location: "Location",
+      useGps: "📍 Use my current location",
+      or: "or",
+      manualPlaceholder: "City, region, country"
+    },
+    step2: {
+      title: "Your breeders",
+      subtitle: "Define your breeding stock",
+      females: "Breeding sows",
+      males: "Breeding boars",
+      zeroWarning: "No breeders — you can add them later in Herd.",
+      preview: "Total breeders: {{total}}"
+    },
+    step3: {
+      title: "Production animals",
+      subtitle: "Current headcount",
+      starter: "Starter animals",
+      starterHelper: "Weaned piglets — early growth phase",
+      fattening: "Finishing animals",
+      fatteningHelper: "Final phase before sale or processing",
+      preview: "Total headcount: {{total}}"
+    },
+    step4: {
+      title: "Pen setup",
+      subtitle: "Farm infrastructure",
+      buildings: "Number of buildings",
+      pensPerBuilding: "Pens per building",
+      capacity: "Max capacity per pen",
+      capacityHelper: "Maximum animals per pen",
+      totalPens: "Total pens: {{n}}",
+      totalCapacity: "Total capacity: {{n}} places",
+      occupancy: "Initial occupancy: {{pct}} %"
+    },
+    completion: {
+      title: "Your project is ready",
+      subtitle: "Review the summary before opening the dashboard.",
+      cta: "Go to my dashboard",
+      success: "Your project is now configured"
+    }
+  },
   account: {
     title: "Account",
     identity: "Identity",
@@ -276,10 +355,158 @@ export const en = {
   },
   cheptel: {
     navOverview: "Overview",
-    navConfig: "Configuration",
     navAnimals: "Animals",
+    navPens: "Pens",
+    navWeight: "Weight & ADG",
+    navHistory: "History",
+    navConfig: "Configuration",
     navBatches: "Batches",
     navStatuses: "Statuses",
+    totalHeadcount: "Total headcount",
+    sexSplit: "Males / females",
+    availablePens: "Available pens",
+    unassignedAnimals: "Unassigned animals",
+    headcountTrend: "Headcount trend",
+    categoryBreakdown: "Breakdown by category",
+    category: {
+      piglets: "Piglets / starter",
+      growth: "Growth",
+      finishing: "Finishing",
+      breeders: "Breeders",
+      other: "Other"
+    },
+    openBarns: "Manage barns and pens",
+    pensOccupancyHint:
+      "Overall occupancy: {{rate}} · {{available}} pen(s) with free space.",
+    pens: {
+      allBarns: "All buildings",
+      places: "places",
+      tagStarter: "Starter",
+      tagFattening: "Finishing",
+      sanitary: {
+        healthy: "Healthy",
+        alert: "Alert",
+        critical: "Critical",
+        overcrowded: "Overcrowded",
+        empty: "Available"
+      },
+      empty: "No pens configured.",
+      createTitle: "New pen",
+      createSubmit: "Create",
+      createSuccess: "Pen created",
+      createMissing: "Building and name required.",
+      barn: "Building",
+      penName: "Pen name",
+      capacity: "Max capacity",
+      capacityLine: "{{occ}} / {{cap}} places",
+      animalsInPen: "Animals in pen",
+      noAnimals: "No animals in this pen."
+    },
+    weight: {
+      addShort: "Weigh-in",
+      addTitle: "Add weighing",
+      save: "Save",
+      saveSuccess: "Weigh-in saved — ADG updated",
+      invalid: "Invalid weight or animal.",
+      pickAnimal: "Animal",
+      weightKg: "Weight (kg)",
+      note: "Notes",
+      chartLabel: "Average weight",
+      allAnimals: "All",
+      noChart: "No weigh-ins for this period yet.",
+      gmqSection: "ADG per animal",
+      noGmq: "Add weigh-ins to compute ADG.",
+      entry: "Entry",
+      current: "Current",
+      gain: "Total gain",
+      target: "target"
+    },
+    history: {
+      filter: {
+        all: "All",
+        creations: "Created",
+        transfers: "Transfers",
+        statuses: "Statuses",
+        weights: "Weigh-ins"
+      }
+    },
+    animals: {
+      searchPlaceholder: "Search by ID or breed…",
+      noPen: "No pen assigned",
+      addFab: "New animal",
+      heads: "head(s)",
+      filter: {
+        all: "All",
+        male: "Males",
+        female: "Females",
+        active: "Active",
+        sold: "Sold",
+        dead: "Dead",
+        reformed: "Culled"
+      },
+      sexMale: "Male",
+      sexFemale: "Female",
+      create: {
+        title: "New animal",
+        tag: "Tag / ID",
+        tagRequired: "Enter an identification number.",
+        breed: "Breed",
+        sex: "Sex",
+        birthDate: "Birth date",
+        entryWeight: "Entry weight (kg)",
+        notes: "Notes",
+        submit: "Create animal",
+        success: "Animal created successfully",
+        errorTitle: "Could not create"
+      },
+      status: {
+        title: "Status — {{tag}}",
+        active: "Active",
+        dead: "Dead",
+        sold: "Sold",
+        reformed: "Culled",
+        transferred: "Transferred",
+        salePrice: "Sale price",
+        buyer: "Buyer",
+        deathCause: "Cause",
+        note: "Note",
+        submit: "Save",
+        success: "Status updated",
+        errorTitle: "Could not update",
+        financeLinked: "A revenue entry is created in Finance when a sale price is set.",
+        healthLinked: "A mortality exit is recorded (Health module)."
+      },
+      transfer: {
+        title: "Transfer to pen",
+        animal: "Animal",
+        fromPen: "Current pen: {{barn}} · {{pen}}",
+        noSourcePen: "No active source pen",
+        destination: "Destination pen",
+        noCapacity: "No capacity set",
+        nearFull: "> 80%",
+        warnCapacity: "Warning: pen is nearing maximum capacity.",
+        penFull: "Destination pen is full.",
+        missingFields: "Select an animal and destination pen.",
+        note: "Notes",
+        submit: "Transfer",
+        success: "Transfer completed",
+        errorTitle: "Transfer failed"
+      },
+      detail: {
+        breed: "Breed",
+        pen: "Pen",
+        weight: "Weight",
+        entryWeight: "Entry weight",
+        currentWeight: "Current weight",
+        health: "Health",
+        healthSoon: "Health summary coming soon.",
+        openHealth: "Open Health module",
+        edit: "Edit",
+        transfer: "Transfer",
+        addWeight: "Add weighing",
+        changeStatus: "Change status"
+      }
+    },
     sectionOverview: "Overview",
     sectionConfig: "Farm configuration",
     sectionAnimals: "Animals",

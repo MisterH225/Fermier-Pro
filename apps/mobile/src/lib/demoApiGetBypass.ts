@@ -522,18 +522,28 @@ export function tryDemoBypassApiGetJson(
         publicId: "PORC-001",
         tagCode: "PORC-001",
         sex: "female",
+        status: "active",
         species: demoSpecies,
         breed: null,
-        weights: []
+        weights: [{ weightKg: 82.5, measuredAt: new Date().toISOString() }],
+        currentPen: {
+          placementId: "demo-pl-1",
+          penId: "demo-pen-1",
+          penName: "Loge A1",
+          barnId: "demo-barn-1",
+          barnName: "Bâtiment 1"
+        }
       },
       {
         id: "00000000-0000-4000-8000-0000000000a2",
         publicId: "PORC-002",
         tagCode: "PORC-002",
         sex: "male",
+        status: "active",
         species: demoSpecies,
         breed: null,
-        weights: []
+        weights: [{ weightKg: 95, measuredAt: new Date().toISOString() }],
+        currentPen: null
       }
     ];
   }
@@ -826,6 +836,7 @@ export function tryDemoBypassApiGetJson(
       },
       kpis: {
         totalAnimals: 24,
+        totalHeadcount: 144,
         maleAnimals: 2,
         femaleAnimals: 10,
         unknownSexAnimals: 0,
@@ -836,8 +847,28 @@ export function tryDemoBypassApiGetJson(
         penCapacityTotal: 192,
         penOccupancyHeadcount: 140,
         occupancyRate: 72.9,
-        barnCount: 2
-      }
+        barnCount: 2,
+        availablePensCount: 5,
+        unassignedAnimalsCount: 3
+      },
+      categoryBreakdown: [
+        { key: "piglets", count: 40 },
+        { key: "growth", count: 50 },
+        { key: "finishing", count: 30 },
+        { key: "breeders", count: 12 }
+      ],
+      headcountTrend: (() => {
+        const rows: { month: string; total: number }[] = [];
+        const now = new Date();
+        for (let i = 11; i >= 0; i--) {
+          const d = new Date(
+            Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1)
+          );
+          const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+          rows.push({ month: key, total: 100 + i * 4 });
+        }
+        return rows;
+      })()
     };
   }
 
@@ -1066,6 +1097,72 @@ export function tryDemoBypassApiGetJson(
     return [];
   }
 
+  const mCheptelPens = /^\/farms\/([^/]+)\/cheptel\/pens$/.exec(p);
+  if (mCheptelPens) {
+    return {
+      barns: [{ id: "demo-barn-1", name: "Bâtiment 1" }],
+      pens: [
+        {
+          id: "demo-pen-1",
+          name: "Loge A1",
+          code: null,
+          barnId: "demo-barn-1",
+          barnName: "Bâtiment 1",
+          capacity: 12,
+          occupancy: 8,
+          occupancyRate: 66.7,
+          borderStatus: "healthy",
+          batchTypeTag: "starter",
+          sanitaryTag: "healthy"
+        },
+        {
+          id: "demo-pen-2",
+          name: "Loge A2",
+          code: null,
+          barnId: "demo-barn-1",
+          barnName: "Bâtiment 1",
+          capacity: 12,
+          occupancy: 12,
+          occupancyRate: 100,
+          borderStatus: "critical",
+          batchTypeTag: "fattening",
+          sanitaryTag: "overcrowded"
+        }
+      ]
+    };
+  }
+
+  if (/^\/farms\/[^/]+\/cheptel\/history$/.test(p)) {
+    return [];
+  }
+
+  if (/^\/farms\/[^/]+\/cheptel\/gmq\/summary$/.test(p)) {
+    return { animals: [], settings: [] };
+  }
+
+  if (/^\/farms\/[^/]+\/cheptel\/weight-series$/.test(p)) {
+    return [];
+  }
+
+  if (p === "/onboarding/status") {
+    return { isOnboarded: true, onboardingSkipped: false };
+  }
+
+  if (p === "/taxonomy") {
+    return [
+      {
+        id: demoSpecies.id,
+        code: "porcin",
+        name: "Porcin",
+        breeds: [
+          { id: "00000000-0000-4000-8000-0000000000b1", name: "Large White" },
+          { id: "00000000-0000-4000-8000-0000000000b2", name: "Landrace" },
+          { id: "00000000-0000-4000-8000-0000000000b3", name: "Duroc" }
+        ]
+      }
+    ];
+  }
+
   return null;
 }
 
@@ -1082,6 +1179,21 @@ export function tryDemoBypassApiWriteJson(
   const p = normPath(path);
   const qs = queryParams(path);
   const payload = body as Record<string, unknown> | null;
+
+  if (method === "POST" && p === "/onboarding/skip") {
+    return { isOnboarded: false, onboardingSkipped: true };
+  }
+
+  if (method === "POST" && p === "/onboarding/complete") {
+    return {
+      isOnboarded: true,
+      onboardingSkipped: false,
+      farm: {
+        id: DEMO_PREVIEW_FARM_ID,
+        name: String(payload?.farmName ?? "Ferme démo")
+      }
+    };
+  }
 
   const mBudgetPost = /^\/farms\/([^/]+)\/finance\/budget$/.exec(p);
   if (method === "POST" && mBudgetPost) {

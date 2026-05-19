@@ -133,7 +133,7 @@ export function SmartChart({
   const [selectedIndex, setSelectedIndex] = useState(
     Math.max(0, monthKeys.length - 1)
   );
-  const [width, setWidth] = useState(320);
+  const [width, setWidth] = useState(0);
   const drawAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -239,7 +239,8 @@ export function SmartChart({
         </View>
       ) : null}
 
-      <View style={{ height, width: "100%" }}>
+      <View style={[styles.chartBox, { height }]}>
+        {width > 0 ? (
         <Svg width={width} height={height}>
           {[0.25, 0.5, 0.75].map((ratio) => {
             const y = PAD_T + innerH * (1 - ratio);
@@ -305,6 +306,7 @@ export function SmartChart({
             )
           )}
         </Svg>
+        ) : null}
 
         {!compact && tooltipPoint ? (
           <ChartTooltip
@@ -358,7 +360,11 @@ export function SmartChart({
 }
 
 const styles = StyleSheet.create({
-  wrap: { width: "100%" },
+  wrap: { width: "100%", overflow: "hidden" },
+  chartBox: {
+    width: "100%",
+    overflow: "hidden"
+  },
   empty: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,

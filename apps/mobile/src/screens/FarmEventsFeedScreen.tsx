@@ -3,6 +3,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-nat
 import { useTranslation } from "react-i18next";
 import { EventCard } from "../components/farm";
 import { MobileAppShell } from "../components/layout";
+import { useProducerBottomChromePad } from "../context/ProducerBottomChromeContext";
 import { useSession } from "../context/SessionContext";
 import { fetchFarmHealthEvents, fetchFarms } from "../lib/api";
 import { resolveProducerHomeFarm } from "../lib/producerHomeFarm";
@@ -17,6 +18,7 @@ export function FarmEventsFeedScreen() {
   const { accessToken, activeProfileId, authMe } = useSession();
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
   const isProducer = profileType === "producer";
+  const bottomChromePad = useProducerBottomChromePad();
 
   const farmsQuery = useQuery({
     queryKey: ["farms", activeProfileId, "eventsShellCheptel"],
@@ -76,7 +78,12 @@ export function FarmEventsFeedScreen() {
 
   return (
     <MobileAppShell title={t("eventsFeed.title")} omitBottomTabBar={isProducer}>
-      <ScrollView contentContainerStyle={styles.wrap}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.wrap,
+          { paddingBottom: mobileSpacing.xxl + bottomChromePad }
+        ]}
+      >
         <Text style={styles.intro}>{t("eventsFeed.intro")}</Text>
         {!isProducer || !producerHome ? (
           <Text style={styles.muted}>{t("producer.dashboard.noFarmBody")}</Text>
@@ -109,7 +116,6 @@ export function FarmEventsFeedScreen() {
 const styles = StyleSheet.create({
   wrap: {
     padding: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl,
     gap: mobileSpacing.lg
   },
   intro: {

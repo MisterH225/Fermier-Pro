@@ -82,7 +82,9 @@ export class AuthController {
         homeLocationSource: user.homeLocationSource,
         isActive: user.isActive,
         notificationsEnabled: user.notificationsEnabled,
-        pushNotificationsRegistered: pushDeviceCount > 0
+        pushNotificationsRegistered: pushDeviceCount > 0,
+        isOnboarded: user.isOnboarded,
+        onboardingSkipped: user.onboardingSkipped
       },
       primaryFarm,
       profiles: profiles.map((p) => ({

@@ -20,8 +20,13 @@ import {
   SmartChart,
   financeMonthsToRevExpLines
 } from "../components/charts";
+import { EmptyStateCard } from "../components/common/EmptyStateCard";
+import { OnboardingBanner } from "../components/onboarding/OnboardingBanner";
 import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
+import { useOnboardingResume } from "../context/OnboardingResumeContext";
+import { getProducerOnboardingState } from "../lib/onboardingState";
 import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
+import { useProducerBottomChromePad } from "../context/ProducerBottomChromeContext";
 import { useSession } from "../context/SessionContext";
 import {
   fetchDashboardFeedStock,
@@ -95,6 +100,10 @@ export function ProducerDashboardScreen() {
     authMe,
     clientFeatures
   } = useSession();
+  const bottomChromePad = useProducerBottomChromePad();
+  const { requestResume } = useOnboardingResume();
+  const onboardingState = getProducerOnboardingState(authMe, activeProfileId);
+  const showOnboardingBanner = onboardingState === "skipped";
   const [profileOpen, setProfileOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [financeChartW, setFinanceChartW] = useState(280);
@@ -305,28 +314,38 @@ export function ProducerDashboardScreen() {
         omitBottomTabBar
       >
         <ScrollView
-          contentContainerStyle={styles.wrap}
+          contentContainerStyle={[
+            styles.wrap,
+            { paddingBottom: mobileSpacing.xxl + bottomChromePad }
+          ]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
+          {showOnboardingBanner ? (
+            <OnboardingBanner onComplete={requestResume} />
+          ) : null}
           {!farmId ? (
-            <View style={styles.emptyFarm}>
-              <Text style={styles.emptyTitle}>
-                {t("producer.dashboard.noFarmTitle")}
-              </Text>
-              <Text style={styles.emptyBody}>
-                {t("producer.dashboard.noFarmBody")}
-              </Text>
-              <Pressable
-                style={styles.linkBtn}
-                onPress={() => navigation.navigate("FarmList")}
-              >
-                <Text style={styles.linkBtnText}>
-                  {t("producer.dashboard.openFarmList")}
+            showOnboardingBanner ? (
+              <EmptyStateCard onConfigure={requestResume} />
+            ) : (
+              <View style={styles.emptyFarm}>
+                <Text style={styles.emptyTitle}>
+                  {t("producer.dashboard.noFarmTitle")}
                 </Text>
-              </Pressable>
-            </View>
+                <Text style={styles.emptyBody}>
+                  {t("producer.dashboard.noFarmBody")}
+                </Text>
+                <Pressable
+                  style={styles.linkBtn}
+                  onPress={() => navigation.navigate("FarmList")}
+                >
+                  <Text style={styles.linkBtnText}>
+                    {t("producer.dashboard.openFarmList")}
+                  </Text>
+                </Pressable>
+              </View>
+            )
           ) : (
             <>
             <View style={styles.grid}>
@@ -839,7 +858,6 @@ const styles = StyleSheet.create({
   },
   wrap: {
     padding: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl,
     gap: mobileSpacing.lg
   },
   grid: {

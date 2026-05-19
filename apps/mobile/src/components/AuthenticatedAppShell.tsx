@@ -15,20 +15,30 @@ import { queryClient } from "../lib/queryClient";
 import { isDemoBypassToken } from "../lib/demoBypass";
 import { AppModalsLayer } from "./modals";
 import { ModalProvider } from "../context/ModalContext";
+import { OnboardingResumeProvider } from "../context/OnboardingResumeContext";
+import { useOnboardingResume } from "../context/OnboardingResumeContext";
+import {
+  getProducerOnboardingState,
+  shouldShowOnboardingScreen
+} from "../lib/onboardingState";
 import { MainNavigationShell } from "./MainNavigationShell";
 import { FirstConnectionProfileScreen } from "../screens/FirstConnectionProfileScreen";
+import { OnboardingScreen } from "../screens/onboarding/OnboardingScreen";
 
 /**
  * Après SessionProvider : onboarding profil si aucun profil API, sinon navigation principale.
  */
-export function AuthenticatedAppShell() {
+function AuthenticatedAppShellInner() {
   const {
     authLoading,
     authMe,
     authError,
     accessToken,
-    reloadAuth
+    activeProfileId,
+    reloadAuth,
+    refreshAuthMe
   } = useSession();
+  const { resumeActive } = useOnboardingResume();
   const demo = isDemoBypassToken(accessToken);
 
   if (!demo && authLoading) {
@@ -54,6 +64,21 @@ export function AuthenticatedAppShell() {
     return <FirstConnectionProfileScreen />;
   }
 
+  const onboardingState = getProducerOnboardingState(authMe, activeProfileId);
+  if (
+    !demo &&
+    authMe &&
+    shouldShowOnboardingScreen(onboardingState, resumeActive)
+  ) {
+    return (
+      <OnboardingScreen
+        onFinished={() => {
+          void refreshAuthMe();
+        }}
+      />
+    );
+  }
+
   return (
     <PersistQueryClientProvider
       client={queryClient}
@@ -70,6 +95,14 @@ export function AuthenticatedAppShell() {
         <AppModalsLayer />
       </ModalProvider>
     </PersistQueryClientProvider>
+  );
+}
+
+export function AuthenticatedAppShell() {
+  return (
+    <OnboardingResumeProvider>
+      <AuthenticatedAppShellInner />
+    </OnboardingResumeProvider>
   );
 }
 

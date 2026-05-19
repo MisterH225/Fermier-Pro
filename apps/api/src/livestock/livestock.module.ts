@@ -16,6 +16,7 @@ import { TaxonomyService } from "./taxonomy.service";
     LivestockService,
     BatchesService,
     TaxonomyService
-  ]
+  ],
+  exports: [TaxonomyService, LivestockService]
 })
 export class LivestockModule {}

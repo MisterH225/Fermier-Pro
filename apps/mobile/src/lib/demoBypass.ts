@@ -24,7 +24,9 @@ export const DEMO_AUTH_ME: AuthMeResponse = {
     homeLocationSource: null,
     isActive: true,
     notificationsEnabled: false,
-    pushNotificationsRegistered: false
+    pushNotificationsRegistered: false,
+    isOnboarded: true,
+    onboardingSkipped: false
   },
   primaryFarm: {
     id: DEMO_PREVIEW_FARM_ID,

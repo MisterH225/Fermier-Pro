@@ -66,6 +66,10 @@ model User {
   isActive              Boolean              @default(true)
   /// Préférences notifications push (opt-in ; jetons dans `PushDevice`).
   notificationsEnabled Boolean             @default(false)
+  /// Producteur : configuration initiale (projet + cheptel) terminée.
+  isOnboarded           Boolean              @default(false)
+  /// Producteur : a quitté l’onboarding sans compléter (bannière + états vides).
+  onboardingSkipped     Boolean              @default(false)
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
   profiles              Profile[]
@@ -175,6 +179,23 @@ model Farm {
   farmReports          FarmReport[]
   farmBudgets          FarmBudget[]
   farmBudgetSuggestions FarmBudgetSuggestion[]
+  gmqSettings          FarmGmqSettings[]
+}
+
+/// Objectifs GMQ / poids cible par catégorie (ferme).
+model FarmGmqSettings {
+  id                 String   @id @default(cuid())
+  farmId             String
+  farm               Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  categoryKey        String
+  targetGmqGPerDay   Decimal? @db.Decimal(8, 2)
+  targetSaleWeightKg Decimal? @db.Decimal(10, 3)
+  alertThresholdGmq  Decimal? @db.Decimal(8, 2)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([farmId, categoryKey])
+  @@index([farmId])
 }
 
 enum FinanceCategoryType {
@@ -507,6 +528,11 @@ enum AnimalSex {
   unknown
 }
 
+enum AnimalOrigin {
+  farm_born
+  purchased
+}
+
 model Species {
   id        String   @id @default(cuid())
   code      String   @unique
@@ -545,6 +571,11 @@ model Animal {
   /// Mise bas prévue (truies / suivi reproduction) — alimente le dashboard gestations.
   expectedFarrowingAt DateTime?
   status    String    @default("active")
+  photoUrl  String?
+  origin    AnimalOrigin?
+  supplier  String?
+  entryWeightKg Decimal? @db.Decimal(10, 3)
+  statusChangedAt DateTime?
   notes     String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

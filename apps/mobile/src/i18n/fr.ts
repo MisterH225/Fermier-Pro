@@ -1,4 +1,83 @@
 export const fr = {
+  onboarding: {
+    progress: "Étape {{current}} / {{total}}",
+    next: "Suivant",
+    back: "Retour",
+    skipLink: "Passer pour l'instant",
+    errorTitle: "Erreur",
+    validationIncomplete: "Complète tous les champs requis.",
+    skipModal: {
+      title: "Votre tableau de bord sera vide",
+      message:
+        "Sans configurer votre projet, aucune donnée ne pourra être affichée. Vous pourrez compléter ces informations à tout moment depuis votre profil.",
+      continue: "Continuer la configuration",
+      skipAnyway: "Passer quand même"
+    },
+    banner: {
+      text: "Votre projet n'est pas encore configuré — vos écrans sont vides.",
+      cta: "Compléter maintenant →"
+    },
+    emptyState: {
+      title: "Aucune donnée disponible",
+      subtitle: "Configurez votre projet pour commencer le suivi",
+      cta: "Configurer mon projet →"
+    },
+    summary: {
+      farm: "Projet / ferme",
+      location: "Localisation",
+      breeders: "Reproducteurs",
+      headcount: "Effectif total",
+      pens: "Loges totales",
+      capacity: "Capacité totale",
+      occupancy: "Occupation initiale"
+    },
+    step1: {
+      title: "Créez votre projet",
+      subtitle: "Ces informations identifient votre exploitation",
+      farmName: "Nom du projet / ferme",
+      farmPlaceholder: "Ex : Ferme Kouassi",
+      species: "Spéculation",
+      speciesPig: "🐷 Porc",
+      location: "Localisation",
+      useGps: "📍 Utiliser ma position actuelle",
+      or: "ou",
+      manualPlaceholder: "Ville, région, pays"
+    },
+    step2: {
+      title: "Vos reproducteurs",
+      subtitle: "Définissez votre noyau de reproduction",
+      females: "Truies reproductrices",
+      males: "Verrats reproducteurs",
+      zeroWarning: "Aucun reproducteur — vous pourrez en ajouter plus tard dans Cheptel.",
+      preview: "Total reproducteurs : {{total}}"
+    },
+    step3: {
+      title: "Vos animaux en production",
+      subtitle: "Définissez vos effectifs actuels",
+      starter: "Animaux en démarrage",
+      starterHelper: "Porcelets sevrés — phase initiale de croissance",
+      fattening: "Animaux en engraissement",
+      fatteningHelper: "Phase finale avant vente ou transformation",
+      preview: "Effectif total (tous lots) : {{total}}"
+    },
+    step4: {
+      title: "Configuration des loges",
+      subtitle: "Infrastructure de votre ferme",
+      buildings: "Nombre de bâtiments",
+      pensPerBuilding: "Loges par bâtiment",
+      capacity: "Capacité max par loge",
+      capacityHelper: "Nombre maximum d'animaux par loge",
+      totalPens: "Loges totales : {{n}}",
+      totalCapacity: "Capacité totale : {{n}} places",
+      occupancy: "Occupation initiale : {{pct}} %"
+    },
+    completion: {
+      title: "Votre projet est prêt",
+      subtitle: "Vérifiez le récapitulatif avant d'accéder au tableau de bord.",
+      cta: "Accéder à mon tableau de bord",
+      success: "Votre projet est maintenant configuré"
+    }
+  },
   account: {
     title: "Compte",
     identity: "Identité",
@@ -278,10 +357,81 @@ export const fr = {
   },
   cheptel: {
     navOverview: "Vue d'ensemble",
-    navConfig: "Configuration",
     navAnimals: "Animaux",
+    navPens: "Loges",
+    navWeight: "Poids & GMQ",
+    navHistory: "Historique",
+    navConfig: "Configuration",
     navBatches: "Bandes",
     navStatuses: "Statuts",
+    totalHeadcount: "Effectif total",
+    sexSplit: "Mâles / femelles",
+    availablePens: "Loges disponibles",
+    unassignedAnimals: "Sans loge assignée",
+    headcountTrend: "Évolution de l'effectif",
+    categoryBreakdown: "Répartition par catégorie",
+    category: {
+      piglets: "Porcelets / démarrage",
+      growth: "Croissance",
+      finishing: "Engraissement",
+      breeders: "Reproducteurs",
+      other: "Autres"
+    },
+    openBarns: "Gérer les bâtiments et loges",
+    pensOccupancyHint:
+      "Occupation globale : {{rate}} · {{available}} loge(s) avec place libre.",
+    pens: {
+      allBarns: "Tous les bâtiments",
+      places: "places",
+      tagStarter: "Démarrage",
+      tagFattening: "Engraissement",
+      sanitary: {
+        healthy: "Sain",
+        alert: "Attention",
+        critical: "Critique",
+        overcrowded: "Surpeuplée",
+        empty: "Disponible"
+      },
+      empty: "Aucune loge configurée.",
+      createTitle: "Nouvelle loge",
+      createSubmit: "Créer",
+      createSuccess: "Loge créée",
+      createMissing: "Bâtiment et nom requis.",
+      barn: "Bâtiment",
+      penName: "Nom de la loge",
+      capacity: "Capacité max",
+      capacityLine: "{{occ}} / {{cap}} places",
+      animalsInPen: "Animaux dans la loge",
+      noAnimals: "Aucun animal dans cette loge."
+    },
+    weight: {
+      addShort: "Pesée",
+      addTitle: "Ajouter une pesée",
+      save: "Enregistrer",
+      saveSuccess: "Pesée enregistrée — GMQ mis à jour",
+      invalid: "Poids ou animal invalide.",
+      pickAnimal: "Animal",
+      weightKg: "Poids (kg)",
+      note: "Notes",
+      chartLabel: "Poids moyen",
+      allAnimals: "Tous",
+      noChart: "Pas encore de pesées sur cette période.",
+      gmqSection: "GMQ par animal",
+      noGmq: "Ajoutez des pesées pour calculer le GMQ.",
+      entry: "Entrée",
+      current: "Actuel",
+      gain: "Gain total",
+      target: "objectif"
+    },
+    history: {
+      filter: {
+        all: "Tous",
+        creations: "Créations",
+        transfers: "Transferts",
+        statuses: "Statuts",
+        weights: "Pesées"
+      }
+    },
     sectionOverview: "Vue d'ensemble",
     sectionConfig: "Configuration de la ferme",
     sectionAnimals: "Animaux",
@@ -327,7 +477,84 @@ export const fr = {
     reproductors: "Reproducteurs",
     growthBatches: "Croissance & démarrage (bandes)",
     lastWeight: "Dernier poids :",
-    cancel: "Annuler"
+    cancel: "Annuler",
+    animals: {
+      searchPlaceholder: "Rechercher par n° ou race…",
+      noPen: "Sans loge",
+      addFab: "Nouvel animal",
+      heads: "têtes",
+      filter: {
+        all: "Tous",
+        male: "Mâles",
+        female: "Femelles",
+        active: "Actifs",
+        sold: "Vendus",
+        dead: "Morts",
+        reformed: "Réformés"
+      },
+      sexMale: "Mâle",
+      sexFemale: "Femelle",
+      create: {
+        title: "Nouvel animal",
+        tag: "Numéro / boucle",
+        tagRequired: "Indique un numéro d'identification.",
+        breed: "Race",
+        sex: "Sexe",
+        birthDate: "Date de naissance",
+        entryWeight: "Poids à l'entrée (kg)",
+        notes: "Notes",
+        submit: "Créer l'animal",
+        success: "Animal créé avec succès",
+        errorTitle: "Création impossible"
+      },
+      status: {
+        title: "Statut — {{tag}}",
+        active: "Actif",
+        dead: "Mort",
+        sold: "Vendu",
+        reformed: "Réformé",
+        transferred: "Transféré",
+        salePrice: "Prix de vente",
+        buyer: "Acheteur",
+        deathCause: "Cause",
+        note: "Note",
+        submit: "Enregistrer",
+        success: "Statut mis à jour",
+        errorTitle: "Mise à jour impossible",
+        financeLinked: "Un revenu sera créé dans Finance si un prix de vente est indiqué.",
+        healthLinked: "Une sortie mortalité sera enregistrée (module Santé)."
+      },
+      transfer: {
+        title: "Transférer vers une loge",
+        animal: "Animal",
+        fromPen: "Loge actuelle : {{barn}} · {{pen}}",
+        noSourcePen: "Aucune loge source active",
+        destination: "Loge destination",
+        noCapacity: "Capacité non définie",
+        nearFull: "> 80 %",
+        warnCapacity: "Attention : la loge approche de sa capacité maximale.",
+        penFull: "La loge destination est pleine.",
+        missingFields: "Choisis un animal et une loge destination.",
+        note: "Notes",
+        submit: "Transférer",
+        success: "Transfert effectué",
+        errorTitle: "Transfert impossible"
+      },
+      detail: {
+        breed: "Race",
+        pen: "Loge",
+        weight: "Poids",
+        entryWeight: "Poids à l'entrée",
+        currentWeight: "Poids actuel",
+        health: "Santé",
+        healthSoon: "Résumé sanitaire à venir.",
+        openHealth: "Ouvrir le module Santé",
+        edit: "Modifier",
+        transfer: "Transférer",
+        addWeight: "Ajouter pesée",
+        changeStatus: "Changer statut"
+      }
+    }
   },
   producer: {
     welcomeLine: "Bienvenue",

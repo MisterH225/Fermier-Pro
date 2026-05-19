@@ -35,6 +35,8 @@ import { FarmHealthModule } from "./farm-health/farm-health.module";
 import { MemberActivityLogsModule } from "./member-activity-logs/member-activity-logs.module";
 import { SmartAlertsModule } from "./smart-alerts/smart-alerts.module";
 import { ReportsModule } from "./reports/reports.module";
+import { OnboardingModule } from "./onboarding/onboarding.module";
+import { CheptelModule } from "./cheptel/cheptel.module";
 
 @Module({
   imports: [
@@ -94,7 +96,9 @@ import { ReportsModule } from "./reports/reports.module";
     FarmHealthModule,
     MemberActivityLogsModule,
     SmartAlertsModule,
-    ReportsModule
+    ReportsModule,
+    OnboardingModule,
+    CheptelModule
   ],
   controllers: [AppController],
   providers: [

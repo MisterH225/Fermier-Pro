@@ -63,7 +63,7 @@ export class LivestockService {
 
   async listAnimals(user: User, farmId: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
-    return this.prisma.animal.findMany({
+    const rows = await this.prisma.animal.findMany({
       where: { farmId },
       orderBy: { updatedAt: "desc" },
       include: {
@@ -72,8 +72,38 @@ export class LivestockService {
         weights: {
           orderBy: { measuredAt: "desc" },
           take: 1
+        },
+        penPlacements: {
+          where: { endedAt: null },
+          take: 1,
+          orderBy: { startedAt: "desc" },
+          include: {
+            pen: {
+              select: {
+                id: true,
+                name: true,
+                barn: { select: { id: true, name: true } }
+              }
+            }
+          }
         }
       }
+    });
+
+    return rows.map(({ penPlacements, ...animal }) => {
+      const active = penPlacements[0] ?? null;
+      return {
+        ...animal,
+        currentPen: active
+          ? {
+              placementId: active.id,
+              penId: active.pen.id,
+              penName: active.pen.name,
+              barnId: active.pen.barn.id,
+              barnName: active.pen.barn.name
+            }
+          : null
+      };
     });
   }
 

@@ -1486,9 +1486,16 @@ const styles = StyleSheet.create({
   kpiRow: {
     flexDirection: "row",
     gap: mobileSpacing.sm,
-    alignItems: "stretch"
+    alignItems: "stretch",
+    width: "100%"
   },
-  kpiHalf: { flex: 1, minWidth: 0, alignSelf: "stretch" },
+  kpiHalf: {
+    flex: 1,
+    flexBasis: 0,
+    minWidth: 0,
+    alignSelf: "stretch",
+    overflow: "hidden"
+  },
   insightHeader: {
     flexDirection: "row",
     flexWrap: "wrap",

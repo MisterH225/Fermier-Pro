@@ -1,32 +1,29 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
-  Alert,
-  Pressable,
   RefreshControl,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View
 } from "react-native";
-import { EventList, type EventItem } from "../components/lists";
+import {
+  AnimalList,
+  CheptelHistory,
+  CheptelOverview,
+  CheptelPensTab,
+  CheptelWeightTab
+} from "../components/cheptel";
 import { TabContent, TabSelector } from "../components/tabs";
 import { useSession } from "../context/SessionContext";
 import {
-  type AnimalListItem,
-  type BatchListItem,
-  type CheptelStatusLogRow,
   fetchFarm,
   fetchFarmAnimals,
   fetchFarmBatches,
-  fetchFarmCheptelOverview,
-  fetchFarmCheptelStatusLogs,
-  patchAnimalStatus
+  fetchFarmCheptelOverview
 } from "../lib/api";
 import {
   mobileColors,
@@ -35,30 +32,9 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../theme/mobileTheme";
-
-function cheptelLogIconType(r: CheptelStatusLogRow): EventItem["iconType"] {
-  if (r.newStatus === "sold" || r.newStatus === "dead") {
-    return "out";
-  }
-  if (r.newStatus === "active") {
-    return "in";
-  }
-  return "check";
-}
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmLivestock">;
-
-function formatKg(v: string | number | undefined): string {
-  if (v === undefined || v === null) {
-    return "—";
-  }
-  const n = typeof v === "string" ? Number.parseFloat(v) : Number(v);
-  if (!Number.isFinite(n)) {
-    return String(v);
-  }
-  return `${n.toFixed(1)} kg`;
-}
 
 export function FarmLivestockScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
@@ -85,46 +61,21 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
     queryFn: () => fetchFarmBatches(accessToken!, farmId, activeProfileId)
   });
 
-  const [logEntityType, setLogEntityType] = useState<string | undefined>(
-    undefined
-  );
-
-  const logsQuery = useQuery({
-    queryKey: ["farmCheptelLogs", farmId, activeProfileId, logEntityType],
-    queryFn: () =>
-      fetchFarmCheptelStatusLogs(accessToken!, farmId, activeProfileId, {
-        entityType: logEntityType,
-        limit: 250
-      })
-  });
-
-  const patchStatusMut = useMutation({
-    mutationFn: (p: {
-      animalId: string;
-      status: "active" | "dead" | "sold" | "reformed" | "transferred";
-    }) =>
-      patchAnimalStatus(accessToken!, farmId, p.animalId, { status: p.status }, activeProfileId),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["farmAnimals", farmId] });
-      void qc.invalidateQueries({ queryKey: ["farmCheptel", farmId] });
-      void qc.invalidateQueries({ queryKey: ["farmCheptelLogs", farmId] });
-    }
-  });
-
   const refreshing =
     farmQuery.isFetching ||
     cheptelQuery.isFetching ||
     animalsQuery.isFetching ||
-    batchesQuery.isFetching ||
-    logsQuery.isFetching;
+    batchesQuery.isFetching;
 
   const onRefresh = useCallback(() => {
     void farmQuery.refetch();
     void cheptelQuery.refetch();
     void animalsQuery.refetch();
     void batchesQuery.refetch();
-    void logsQuery.refetch();
-  }, [farmQuery, cheptelQuery, animalsQuery, batchesQuery, logsQuery]);
+    void qc.invalidateQueries({ queryKey: ["cheptelHistory", farmId] });
+    void qc.invalidateQueries({ queryKey: ["cheptelPens", farmId] });
+    void qc.invalidateQueries({ queryKey: ["cheptelGmq", farmId] });
+  }, [farmQuery, cheptelQuery, animalsQuery, batchesQuery, qc, farmId]);
 
   const loading =
     farmQuery.isPending ||
@@ -150,135 +101,13 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
 
   const animals = animalsQuery.data ?? [];
   const batches = batchesQuery.data ?? [];
-  const logs = logsQuery.data ?? [];
-
-  const females = useMemo(
-    () => animals.filter((a) => a.sex === "female"),
-    [animals]
-  );
-  const males = useMemo(
-    () => animals.filter((a) => a.sex === "male"),
-    [animals]
-  );
-
-  const promptAnimalStatus = (a: AnimalListItem) => {
-    const tag = a.tagCode || a.publicId.slice(0, 8);
-    const opts: {
-      text: string;
-      status: "active" | "dead" | "sold" | "reformed" | "transferred";
-    }[] = [
-      { text: "Actif", status: "active" },
-      { text: "Mort", status: "dead" },
-      { text: "Vendu", status: "sold" },
-      { text: "Réformé", status: "reformed" },
-      { text: "Transféré", status: "transferred" }
-    ];
-    Alert.alert(
-      `${t("cheptel.changeStatus")} — ${tag}`,
-      undefined,
-      [
-        ...opts.map((o) => ({
-          text: o.text,
-          onPress: () =>
-            patchStatusMut.mutate({ animalId: a.id, status: o.status })
-        })),
-        { text: t("cheptel.cancel"), style: "cancel" }
-      ]
-    );
-  };
-
-  const exportLogsCsv = async () => {
-    const rows = logsQuery.data ?? [];
-    const header = "date,entityType,entityId,oldStatus,newStatus,note,recorder\n";
-    const body = rows
-      .map((r) =>
-        [
-          r.createdAt,
-          r.entityType,
-          r.entityId,
-          r.oldStatus ?? "",
-          r.newStatus,
-          (r.note ?? "").replace(/"/g, '""'),
-          r.recorder?.email ?? r.recorder?.id ?? ""
-        ]
-          .map((c) => `"${String(c)}"`)
-          .join(",")
-      )
-      .join("\n");
-    const csv = header + body;
-    try {
-      await Share.share({
-        message: csv,
-        title: `${farmName} — statuts`
-      });
-    } catch {
-      /* ignore share cancel */
-    }
-  };
-
-  const logFilterPills = useMemo(
-    () => [
-      { id: "all", label: t("cheptel.filterAll") },
-      { id: "animal", label: t("cheptel.filterAnimal") },
-      { id: "batch", label: t("cheptel.filterBatch") }
-    ],
-    [t]
-  );
-
-  const cheptelLogEvents = useMemo((): EventItem[] => {
-    return logs.map((r) => ({
-      id: r.id,
-      title: `${r.oldStatus ?? "—"} → ${r.newStatus}`,
-      subtitle: `${r.entityType} ${r.entityId.slice(0, 8)}…`,
-      value: r.newStatus,
-      valueType: "neutral",
-      date: new Date(r.createdAt).toLocaleDateString("fr-FR"),
-      iconType: cheptelLogIconType(r),
-      meta: r
-    }));
-  }, [logs]);
-
-  const onLogFilterChange = useCallback((id: string) => {
-    if (id === "animal") {
-      setLogEntityType("animal");
-    } else if (id === "batch") {
-      setLogEntityType("batch");
-    } else {
-      setLogEntityType(undefined);
-    }
-  }, []);
-
-  const activeLogFilterId = logEntityType ?? "all";
-
-  const logsExportHeader = useMemo(
-    () => (
-      <TouchableOpacity style={styles.csvBtn} onPress={() => void exportLogsCsv()}>
-        <Text style={styles.csvBtnText}>{t("cheptel.exportCsv")}</Text>
-      </TouchableOpacity>
-    ),
-    [exportLogsCsv, t]
-  );
-
-  const renderCheptelLogDetail = useCallback(
-    (item: EventItem, _ctx: { close: () => void }) => {
-      const r = item.meta as CheptelStatusLogRow;
-      return (
-        <View style={{ gap: mobileSpacing.sm, paddingBottom: mobileSpacing.md }}>
-          <Text style={styles.cardMeta}>
-            {new Date(r.createdAt).toLocaleString("fr-FR")}
-          </Text>
-          <Text style={styles.cardMeta}>
-            {r.entityType} · {r.entityId}
-          </Text>
-          <Text style={styles.cardMeta}>
-            {r.oldStatus ?? "—"} → {r.newStatus}
-          </Text>
-          {r.note ? <Text style={styles.cardMeta}>{r.note}</Text> : null}
-        </View>
-      );
-    },
-    []
-  );
+  const invalidateAnimals = useCallback(() => {
+    void qc.invalidateQueries({ queryKey: ["farmAnimals", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmCheptel", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmCheptelLogs", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmBarns", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmBarnDetails", farmId] });
+  }, [qc, farmId]);
 
   if (loading) {
     return (
@@ -343,41 +172,10 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
             key: "overview",
             label: t("cheptel.navOverview"),
             content: tabScroll(
-              <>
-                {modeHintBlock}
-                <View style={styles.kpiGrid}>
-                  <View style={styles.kpiCard}>
-                    <Text style={styles.kpiVal}>{kpis?.totalAnimals ?? "—"}</Text>
-                    <Text style={styles.kpiLab}>{t("cheptel.totalAnimals")}</Text>
-                  </View>
-                  <View style={styles.kpiCard}>
-                    <Text style={styles.kpiVal}>{kpis?.maleAnimals ?? "—"}</Text>
-                    <Text style={styles.kpiLab}>{t("cheptel.males")}</Text>
-                  </View>
-                  <View style={styles.kpiCard}>
-                    <Text style={styles.kpiVal}>{kpis?.femaleAnimals ?? "—"}</Text>
-                    <Text style={styles.kpiLab}>{t("cheptel.females")}</Text>
-                  </View>
-                  <View style={styles.kpiCard}>
-                    <Text style={styles.kpiVal}>
-                      {kpis?.totalBatchHeadcount ?? "—"}
-                    </Text>
-                    <Text style={styles.kpiLab}>{t("cheptel.batchHead")}</Text>
-                  </View>
-                  <View style={styles.kpiCard}>
-                    <Text style={styles.kpiVal}>
-                      {kpis?.occupancyRate != null ? `${kpis.occupancyRate}%` : "—"}
-                    </Text>
-                    <Text style={styles.kpiLab}>{t("cheptel.occupancy")}</Text>
-                  </View>
-                  <View style={styles.kpiCard}>
-                    <Text style={styles.kpiVal}>
-                      {kpis?.penOccupancyHeadcount ?? "—"}
-                    </Text>
-                    <Text style={styles.kpiLab}>{t("cheptel.penOcc")}</Text>
-                  </View>
-                </View>
-              </>
+              <CheptelOverview
+                overview={cheptelQuery.data}
+                isLoading={cheptelQuery.isPending}
+              />
             )
           },
           {
@@ -385,167 +183,83 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
             label: t("cheptel.navAnimals"),
             badge: animals.length || undefined,
             content: tabScroll(
-              showAnimals ? (
-                <>
-                  <Text style={styles.subSection}>{t("cheptel.reproductors")}</Text>
-                  <Text style={styles.metaLine}>
-                    {t("cheptel.males")} : {males.length} · {t("cheptel.females")}{" "}
-                    : {females.length}
-                  </Text>
-                  {animals.length === 0 ? (
-                    <Text style={styles.empty}>{t("cheptel.emptyAnimals")}</Text>
-                  ) : (
-                    animals.map((a) => {
-                      const tag = a.tagCode || a.publicId.slice(0, 8);
-                      const w = a.weights[0];
-                      return (
-                        <View key={a.id} style={styles.card}>
-                          <TouchableOpacity
-                            onPress={() =>
-                              navigation.navigate("AnimalDetail", {
-                                farmId,
-                                farmName,
-                                animalId: a.id,
-                                headline: tag
-                              })
-                            }
-                          >
-                            <Text style={styles.cardTitle}>
-                              {tag} · {a.species.name}
-                            </Text>
-                            <Text style={styles.cardSub}>
-                              {a.sex}
-                              {a.breed ? ` · ${a.breed.name}` : ""}
-                            </Text>
-                            <Text style={styles.cardMeta}>
-                              {t("cheptel.lastWeight")} {formatKg(w?.weightKg)}
-                            </Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={styles.statusBtn}
-                            onPress={() => promptAnimalStatus(a)}
-                            disabled={patchStatusMut.isPending}
-                          >
-                            <Text style={styles.statusBtnText}>
-                              {t("cheptel.changeStatus")}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      );
+              showAnimals || showBatches ? (
+                <AnimalList
+                  farmId={farmId}
+                  farmName={farmName}
+                  accessToken={accessToken!}
+                  activeProfileId={activeProfileId}
+                  animals={showAnimals ? animals : []}
+                  batches={batches}
+                  showBatches={showBatches}
+                  isLoading={animalsQuery.isPending && showAnimals}
+                  onRefresh={onRefresh}
+                  refreshing={refreshing}
+                  onInvalidate={invalidateAnimals}
+                  modeHint={modeHintBlock}
+                  onOpenBatch={(b) =>
+                    navigation.navigate("BatchDetail", {
+                      farmId,
+                      farmName,
+                      batchId: b.id,
+                      batchName: b.name
                     })
-                  )}
-                </>
+                  }
+                  onOpenAnimalScreen={(a) =>
+                    navigation.navigate("AnimalDetail", {
+                      farmId,
+                      farmName,
+                      animalId: a.id,
+                      headline: a.tagCode || a.publicId.slice(0, 8)
+                    })
+                  }
+                  onOpenHealth={() =>
+                    navigation.navigate("FarmHealth", { farmId, farmName })
+                  }
+                />
               ) : (
                 <Text style={styles.empty}>{t("cheptel.batchOnlyHint")}</Text>
               )
             )
           },
           {
-            key: "config",
-            label: t("cheptel.navConfig"),
+            key: "pens",
+            label: t("cheptel.navPens"),
             content: tabScroll(
-              <>
-                <Text style={styles.metaLine}>
-                  {t("cheptel.modeLabel")} :{" "}
-                  {t(`cheptel.mode${livestockMode === "individual" ? "Individual" : livestockMode === "batch" ? "Batch" : "Mixed"}` as const)}
-                </Text>
-                <TouchableOpacity
-                  style={styles.linkBtn}
-                  onPress={() =>
-                    navigation.navigate("ProducerFarmSettings", {
-                      farmId,
-                      farmName
-                    })
-                  }
-                >
-                  <Text style={styles.linkBtnText}>{t("cheptel.saveConfig")}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.linkBtn}
-                  onPress={() =>
-                    navigation.navigate("FarmBarns", { farmId, farmName })
-                  }
-                >
-                  <Text style={styles.linkBtnText}>{t("cheptel.buildings")}</Text>
-                </TouchableOpacity>
-              </>
+              <CheptelPensTab
+                farmId={farmId}
+                occupancyRate={kpis?.occupancyRate ?? null}
+                availablePens={kpis?.availablePensCount ?? 0}
+                onInvalidateOverview={onRefresh}
+              />
             )
           },
           {
-            key: "batches",
-            label: t("cheptel.navBatches"),
-            badge: batches.length || undefined,
+            key: "weight",
+            label: t("cheptel.navWeight"),
             content: tabScroll(
-              showBatches ? (
-                batches.length === 0 ? (
-                  <Text style={styles.empty}>{t("cheptel.emptyBatches")}</Text>
-                ) : (
-                  batches.map((b: BatchListItem) => {
-                    const w = b.weights?.[0];
-                    return (
-                      <TouchableOpacity
-                        key={b.id}
-                        style={styles.card}
-                        activeOpacity={0.75}
-                        onPress={() =>
-                          navigation.navigate("BatchDetail", {
-                            farmId,
-                            farmName,
-                            batchId: b.id,
-                            batchName: b.name
-                          })
-                        }
-                      >
-                        <Text style={styles.cardTitle}>
-                          {b.name} · {b.headcount} tête
-                          {b.headcount > 1 ? "s" : ""}
-                        </Text>
-                        <Text style={styles.cardSub}>
-                          {b.species.name}
-                          {b.breed ? ` · ${b.breed.name}` : ""} · {b.status}
-                        </Text>
-                        {b.expectedExitAt ? (
-                          <Text style={styles.cardMeta}>
-                            {t("cheptel.expectedExit")} :{" "}
-                            {new Date(b.expectedExitAt).toLocaleDateString("fr-FR")}
-                          </Text>
-                        ) : null}
-                        {b.closedAt ? (
-                          <Text style={styles.cardMeta}>
-                            {t("cheptel.closedAt")} :{" "}
-                            {new Date(b.closedAt).toLocaleDateString("fr-FR")}
-                          </Text>
-                        ) : null}
-                        <Text style={styles.cardMeta}>
-                          Poids moyen : {formatKg(w?.avgWeightKg)}
-                        </Text>
-                        <Text style={styles.cardHint}>{t("cheptel.openDetail")}</Text>
-                      </TouchableOpacity>
-                    );
-                  })
-                )
-              ) : (
-                <Text style={styles.empty}>{t("cheptel.individualHint")}</Text>
-              )
+              accessToken ? (
+                <CheptelWeightTab
+                  farmId={farmId}
+                  accessToken={accessToken}
+                  activeProfileId={activeProfileId}
+                />
+              ) : null
             )
           },
           {
             key: "history",
-            label: t("cheptel.navStatuses"),
+            label: t("cheptel.navHistory"),
             content: tabScroll(
-              <EventList
-                layout="embedded"
-                data={cheptelLogEvents}
-                filters={logFilterPills}
-                activeFilterId={activeLogFilterId}
-                onFilterChange={onLogFilterChange}
-                renderDetail={renderCheptelLogDetail}
-                prependContent={logsExportHeader}
-                emptyMessage={t("cheptel.noLogs")}
-                isLoading={logsQuery.isPending && logs.length === 0}
-                pageSize={30}
-                loadMoreLabel={t("cheptel.loadMore")}
-              />
+              accessToken ? (
+                <CheptelHistory
+                  farmId={farmId}
+                  accessToken={accessToken}
+                  activeProfileId={activeProfileId}
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                />
+              ) : null
             )
           }
         ]}

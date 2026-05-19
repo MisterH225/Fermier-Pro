@@ -1029,6 +1029,16 @@ export function fetchFarm(
   return apiGetJson<FarmDto>(`/farms/${farmId}`, accessToken, activeProfileId);
 }
 
+export type CheptelCategoryBreakdownRow = {
+  key: string;
+  count: number;
+};
+
+export type CheptelHeadcountTrendPoint = {
+  month: string;
+  total: number;
+};
+
 export type CheptelOverviewDto = {
   farm: {
     id: string;
@@ -1040,6 +1050,7 @@ export type CheptelOverviewDto = {
   };
   kpis: {
     totalAnimals: number;
+    totalHeadcount: number;
     maleAnimals: number;
     femaleAnimals: number;
     unknownSexAnimals: number;
@@ -1051,7 +1062,11 @@ export type CheptelOverviewDto = {
     penOccupancyHeadcount: number;
     occupancyRate: number | null;
     barnCount: number;
+    availablePensCount: number;
+    unassignedAnimalsCount: number;
   };
+  categoryBreakdown: CheptelCategoryBreakdownRow[];
+  headcountTrend: CheptelHeadcountTrendPoint[];
 };
 
 export function fetchFarmCheptelOverview(
@@ -1132,16 +1147,262 @@ export function fetchFarmCheptelStatusLogs(
   return apiGetJson<CheptelStatusLogRow[]>(path, accessToken, activeProfileId);
 }
 
+export type CheptelPenRowDto = {
+  id: string;
+  name: string;
+  code: string | null;
+  barnId: string;
+  barnName: string;
+  capacity: number;
+  occupancy: number;
+  occupancyRate: number | null;
+  borderStatus: "healthy" | "warning" | "critical" | "empty";
+  batchTypeTag: "starter" | "fattening" | null;
+  sanitaryTag: "healthy" | "alert" | "critical" | "overcrowded" | "empty";
+};
+
+export type CheptelPensResponseDto = {
+  barns: Array<{ id: string; name: string }>;
+  pens: CheptelPenRowDto[];
+};
+
+export function fetchCheptelPens(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null,
+  barnId?: string
+): Promise<CheptelPensResponseDto> {
+  const q = barnId ? `?barnId=${encodeURIComponent(barnId)}` : "";
+  return apiGetJson<CheptelPensResponseDto>(
+    `/farms/${farmId}/cheptel/pens${q}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type CheptelHistoryItemDto = {
+  id: string;
+  type: "status" | "weight" | "transfer" | "creation" | "pen_created";
+  occurredAt: string;
+  title: string;
+  subtitle: string | null;
+  entityType: string | null;
+  entityId: string | null;
+  meta?: unknown;
+};
+
+export function fetchCheptelHistory(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null,
+  query?: { type?: string; limit?: number }
+): Promise<CheptelHistoryItemDto[]> {
+  const q = new URLSearchParams();
+  if (query?.type) {
+    q.set("type", query.type);
+  }
+  if (query?.limit != null) {
+    q.set("limit", String(query.limit));
+  }
+  const qs = q.toString();
+  return apiGetJson<CheptelHistoryItemDto[]>(
+    `/farms/${farmId}/cheptel/history${qs ? `?${qs}` : ""}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type GmqAnimalSummaryDto = {
+  animalId: string;
+  label: string;
+  entryWeight: number | null;
+  currentWeight: number | null;
+  totalGainKg: number | null;
+  latestGmq: number | null;
+  avgGmq: number | null;
+  targetGmqGPerDay: number | null;
+  targetSaleWeightKg: number | null;
+  status: "ok" | "warn" | "critical";
+};
+
+export type CheptelGmqSummaryDto = {
+  animals: GmqAnimalSummaryDto[];
+  settings: Array<{
+    id: string;
+    categoryKey: string;
+    targetGmqGPerDay: string | number | null;
+    targetSaleWeightKg: string | number | null;
+    alertThresholdGmq: string | number | null;
+  }>;
+};
+
+export function fetchCheptelGmqSummary(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<CheptelGmqSummaryDto> {
+  return apiGetJson<CheptelGmqSummaryDto>(
+    `/farms/${farmId}/cheptel/gmq/summary`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type WeightSeriesPointDto = {
+  id: string;
+  animalId: string;
+  animalLabel: string;
+  weightKg: number;
+  measuredAt: string;
+  note: string | null;
+};
+
+export function fetchCheptelWeightSeries(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null,
+  query?: { animalId?: string; months?: number }
+): Promise<WeightSeriesPointDto[]> {
+  const q = new URLSearchParams();
+  if (query?.animalId) {
+    q.set("animalId", query.animalId);
+  }
+  if (query?.months != null) {
+    q.set("months", String(query.months));
+  }
+  const qs = q.toString();
+  return apiGetJson<WeightSeriesPointDto[]>(
+    `/farms/${farmId}/cheptel/weight-series${qs ? `?${qs}` : ""}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type PatchCheptelAnimalStatusPayload = PatchAnimalStatusPayload & {
+  salePrice?: number;
+  buyerName?: string;
+  deathCause?: string;
+};
+
+export function patchCheptelAnimalStatus(
+  accessToken: string,
+  farmId: string,
+  animalId: string,
+  payload: PatchCheptelAnimalStatusPayload,
+  activeProfileId?: string | null
+): Promise<AnimalDetail> {
+  return apiPatchJson<AnimalDetail>(
+    `/farms/${farmId}/cheptel/animals/${animalId}/status`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type UpsertGmqSettingsPayload = {
+  categories: Array<{
+    categoryKey: string;
+    targetGmqGPerDay?: number | null;
+    targetSaleWeightKg?: number | null;
+    alertThresholdGmq?: number | null;
+  }>;
+};
+
+export function putCheptelGmqSettings(
+  accessToken: string,
+  farmId: string,
+  payload: UpsertGmqSettingsPayload,
+  activeProfileId?: string | null
+): Promise<CheptelGmqSummaryDto["settings"]> {
+  return apiPutJson(
+    `/farms/${farmId}/cheptel/gmq/settings`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
 /** Réponses GET .../animals et .../batches (Prisma + includes). */
+export type AnimalPenSummary = {
+  placementId: string;
+  penId: string;
+  penName: string;
+  barnId: string;
+  barnName: string;
+};
+
 export type AnimalListItem = {
   id: string;
   publicId: string;
   tagCode: string | null;
   sex: string;
+  status: string;
   species: { id: string; code: string; name: string };
   breed: { id: string; name: string } | null;
   weights: Array<{ weightKg: string | number; measuredAt: string }>;
+  currentPen: AnimalPenSummary | null;
 };
+
+export type TaxonomyBreedDto = { id: string; name: string };
+export type TaxonomySpeciesDto = {
+  id: string;
+  code: string;
+  name: string;
+  breeds: TaxonomyBreedDto[];
+};
+
+export function fetchTaxonomy(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<TaxonomySpeciesDto[]> {
+  return apiGetJson<TaxonomySpeciesDto[]>("/taxonomy", accessToken, activeProfileId);
+}
+
+export type CreateAnimalPayload = {
+  tagCode?: string;
+  breedId?: string;
+  sex?: "male" | "female" | "unknown";
+  birthDate?: string;
+  notes?: string;
+  speciesId?: string;
+};
+
+export function createAnimal(
+  accessToken: string,
+  farmId: string,
+  payload: CreateAnimalPayload,
+  activeProfileId?: string | null
+): Promise<AnimalDetail> {
+  return apiPostJson<AnimalDetail>(
+    `/farms/${farmId}/animals`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type UpdateAnimalPayload = {
+  tagCode?: string;
+  breedId?: string | null;
+  sex?: "male" | "female" | "unknown";
+  birthDate?: string | null;
+  notes?: string | null;
+};
+
+export function updateAnimal(
+  accessToken: string,
+  farmId: string,
+  animalId: string,
+  payload: UpdateAnimalPayload,
+  activeProfileId?: string | null
+): Promise<AnimalDetail> {
+  return apiPatchJson<AnimalDetail>(
+    `/farms/${farmId}/animals/${animalId}`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
 
 export type BatchListItem = {
   id: string;
@@ -3412,6 +3673,8 @@ export type AuthMeUser = {
   isActive: boolean;
   notificationsEnabled: boolean;
   pushNotificationsRegistered: boolean;
+  isOnboarded: boolean;
+  onboardingSkipped: boolean;
 };
 
 export type AuthMeResponse = {
@@ -3445,6 +3708,67 @@ export type PatchMeProfilePayload = {
   expoPushToken?: string | null;
   pushPlatform?: "ios" | "android" | "web" | "unknown" | null;
 };
+
+export type OnboardingStatusDto = {
+  isOnboarded: boolean;
+  onboardingSkipped: boolean;
+};
+
+export type CompleteOnboardingPayload = {
+  farmName: string;
+  speciesFocus?: string;
+  locationSource: "gps" | "manual";
+  locationLabel?: string;
+  latitude?: number;
+  longitude?: number;
+  femaleBreeders: number;
+  maleBreeders: number;
+  starterHeadcount: number;
+  fatteningHeadcount: number;
+  buildingsCount: number;
+  pensPerBuilding: number;
+  maxPigsPerPen: number;
+};
+
+export type CompleteOnboardingResult = OnboardingStatusDto & {
+  farm: { id: string; name: string };
+};
+
+export function fetchOnboardingStatus(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<OnboardingStatusDto> {
+  return apiGetJson<OnboardingStatusDto>(
+    "/onboarding/status",
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function postOnboardingComplete(
+  accessToken: string,
+  payload: CompleteOnboardingPayload,
+  activeProfileId?: string | null
+): Promise<CompleteOnboardingResult> {
+  return apiPostJson<CompleteOnboardingResult>(
+    "/onboarding/complete",
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function postOnboardingSkip(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<OnboardingStatusDto> {
+  return apiPostJson<OnboardingStatusDto>(
+    "/onboarding/skip",
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
 
 /** GET /api/v1/auth/me (Bearer = access_token Supabase). */
 export async function fetchAuthMe(

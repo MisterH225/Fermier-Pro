@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import { Pressable, StyleSheet, Text, useColorScheme, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import {
@@ -43,9 +44,9 @@ const H = PRODUCER_NAV_BAR_HEIGHT;
 const glassShadow = {
   shadowColor: "#000",
   shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.1,
-  shadowRadius: 10,
-  elevation: 6
+  shadowOpacity: 0.08,
+  shadowRadius: 8,
+  elevation: 4
 } as const;
 
 export function MainTabBar({
@@ -59,46 +60,50 @@ export function MainTabBar({
   const scheme = useColorScheme();
   const dark = scheme === "dark";
 
-  const pillBg = dark ? "rgba(34,34,36,0.72)" : "rgba(255,255,255,0.78)";
-  const pillBorder = dark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)";
-  const plusBg = dark ? "rgba(45,45,48,0.78)" : "rgba(255,255,255,0.88)";
+  const pillBorder = dark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.06)";
+  const pillOverlay = dark ? "rgba(34,34,36,0.28)" : "rgba(255,255,255,0.22)";
+  const plusOverlay = dark ? "rgba(45,45,48,0.32)" : "rgba(255,255,255,0.28)";
   const plusIcon = dark ? "#FFFFFF" : mobileColors.accent;
+  const blurTint = dark ? "dark" : "light";
 
   const ordered = TAB_ORDER.filter((tab) => tabs.includes(tab));
 
   return (
     <View style={styles.row} pointerEvents="box-none">
-      <View
+      <BlurView
+        intensity={dark ? 28 : 40}
+        tint={blurTint}
         style={[
           styles.pill,
           {
             height: H,
             minHeight: H,
-            backgroundColor: pillBg,
             borderColor: pillBorder,
             ...glassShadow
           }
         ]}
       >
-        {ordered.map((tab) => {
-          const meta = TAB_META[tab];
-          const disabled = tab === "finance" && !financeEnabled;
-          if (disabled) {
-            return null;
-          }
-          return (
-            <NavItem
-              key={tab}
-              dense
-              emoji={meta.emoji}
-              label={t(meta.labelKey)}
-              active={activeTab === tab}
-              onPress={() => onTabPress(tab)}
-              accessibilityLabel={t(meta.labelKey)}
-            />
-          );
-        })}
-      </View>
+        <View style={[styles.pillOverlay, { backgroundColor: pillOverlay }]}>
+          {ordered.map((tab) => {
+            const meta = TAB_META[tab];
+            const disabled = tab === "finance" && !financeEnabled;
+            if (disabled) {
+              return null;
+            }
+            return (
+              <NavItem
+                key={tab}
+                dense
+                emoji={meta.emoji}
+                label={t(meta.labelKey)}
+                active={activeTab === tab}
+                onPress={() => onTabPress(tab)}
+                accessibilityLabel={t(meta.labelKey)}
+              />
+            );
+          })}
+        </View>
+      </BlurView>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t("navigation.extended.openA11y")}
@@ -109,14 +114,23 @@ export function MainTabBar({
             width: H,
             height: H,
             borderRadius: H / 2,
-            backgroundColor: plusBg,
-            borderWidth: StyleSheet.hairlineWidth,
             borderColor: pillBorder,
-            ...glassShadow,
-            opacity: pressed ? 0.92 : 1
+            opacity: pressed ? 0.92 : 1,
+            ...glassShadow
           }
         ]}
       >
+        <BlurView
+          intensity={dark ? 28 : 40}
+          tint={blurTint}
+          style={[StyleSheet.absoluteFill, { borderRadius: H / 2, overflow: "hidden" }]}
+        />
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            { borderRadius: H / 2, backgroundColor: plusOverlay }
+          ]}
+        />
         <Ionicons name="add" size={Math.round(H * 0.38)} color={plusIcon} />
         <Text
           style={[
@@ -142,19 +156,25 @@ const styles = StyleSheet.create({
   },
   pill: {
     flex: 1,
+    minWidth: 0,
+    borderRadius: mobileRadius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden"
+  },
+  pillOverlay: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-evenly",
-    minWidth: 0,
-    paddingHorizontal: mobileSpacing.xs,
-    borderRadius: mobileRadius.pill,
-    borderWidth: StyleSheet.hairlineWidth
+    paddingHorizontal: mobileSpacing.xs
   },
   plusOuter: {
     alignItems: "center",
     justifyContent: "center",
     gap: 1,
-    paddingVertical: 4
+    paddingVertical: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden"
   },
   plusLabel: {
     ...mobileTypography.meta,

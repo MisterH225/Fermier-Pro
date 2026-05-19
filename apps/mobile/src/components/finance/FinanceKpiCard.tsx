@@ -119,6 +119,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignSelf: "stretch",
     minWidth: 0,
+    width: "100%",
+    overflow: "hidden",
     borderRadius: mobileRadius.lg,
     padding: mobileSpacing.md,
     borderWidth: StyleSheet.hairlineWidth,
@@ -153,6 +155,8 @@ const styles = StyleSheet.create({
     minHeight: SPARK_SLOT_HEIGHT,
     marginTop: mobileSpacing.sm,
     justifyContent: "flex-end",
-    alignItems: "flex-start"
+    alignItems: "flex-start",
+    width: "100%",
+    overflow: "hidden"
   }
 });

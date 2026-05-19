@@ -9,10 +9,7 @@ import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProducerPersistentTabBar } from "./ProducerPersistentTabBar";
 import { producerBottomChromeHeight } from "./navigation";
-import {
-  ProducerBottomChromeProvider,
-  useProducerBottomChromePad
-} from "../context/ProducerBottomChromeContext";
+import { ProducerBottomChromeProvider } from "../context/ProducerBottomChromeContext";
 import {
   AcceptFarmInvitationScreen,
   AccountScreen,
@@ -112,8 +109,6 @@ function MainStack() {
   const { authMe, activeProfileId } = useSession();
   const activeType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
   const initialRouteName = dashboardRouteForActiveProfileType(activeType);
-  const bottomChromePad = useProducerBottomChromePad();
-
   return (
     <Stack.Navigator
       key={activeProfileId ?? "none"}
@@ -127,8 +122,7 @@ function MainStack() {
         },
         headerShadowVisible: false,
         contentStyle: {
-          backgroundColor: mobileColors.canvas,
-          ...(bottomChromePad > 0 ? { paddingBottom: bottomChromePad } : {})
+          backgroundColor: mobileColors.canvas
         }
       }}
     >

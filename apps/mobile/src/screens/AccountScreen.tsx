@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet } from "react-native";
 import { AccountSettingsPanel } from "../components/account/AccountSettingsPanel";
 import { MobileAppShell } from "../components/layout";
+import { useProducerBottomChromePad } from "../context/ProducerBottomChromeContext";
 import { useSession } from "../context/SessionContext";
 import { mobileSpacing } from "../theme/mobileTheme";
 
@@ -14,13 +15,19 @@ export function AccountScreen() {
   const { authMe, activeProfileId } = useSession();
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
   const isProducer = profileType === "producer";
+  const bottomChromePad = useProducerBottomChromePad();
 
   return (
     <MobileAppShell
       title={t("account.title")}
       omitBottomTabBar={isProducer}
     >
-      <ScrollView contentContainerStyle={styles.wrap}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.wrap,
+          { paddingBottom: mobileSpacing.xxl + bottomChromePad }
+        ]}
+      >
         <AccountSettingsPanel />
       </ScrollView>
     </MobileAppShell>
@@ -30,7 +37,6 @@ export function AccountScreen() {
 const styles = StyleSheet.create({
   wrap: {
     padding: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl,
     gap: mobileSpacing.lg
   }
 });

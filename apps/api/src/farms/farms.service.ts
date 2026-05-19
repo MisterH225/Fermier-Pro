@@ -330,15 +330,23 @@ export class FarmsService {
     const animals = await this.prisma.animal.findMany({
       where: { farmId },
       select: {
+        id: true,
         sex: true,
         status: true,
-        expectedFarrowingAt: true
+        expectedFarrowingAt: true,
+        createdAt: true
       }
     });
 
     const batches = await this.prisma.livestockBatch.findMany({
       where: { farmId },
-      select: { headcount: true, status: true, closedAt: true, categoryKey: true }
+      select: {
+        headcount: true,
+        status: true,
+        closedAt: true,
+        categoryKey: true,
+        createdAt: true
+      }
     });
 
     let maleAnimals = 0;
@@ -386,8 +394,25 @@ export class FarmsService {
         endedAt: null,
         pen: { barn: { farmId } }
       },
-      include: {
+      select: {
+        animalId: true,
+        batchId: true,
         batch: { select: { headcount: true } }
+      }
+    });
+
+    const pens = await this.prisma.pen.findMany({
+      where: { barn: { farmId } },
+      select: {
+        id: true,
+        capacity: true,
+        placements: {
+          where: { endedAt: null },
+          select: {
+            animalId: true,
+            batch: { select: { headcount: true } }
+          }
+        }
       }
     });
     let penOccupancyHeadcount = 0;
@@ -409,10 +434,120 @@ export class FarmsService {
 
     const barnCount = await this.prisma.barn.count({ where: { farmId } });
 
+    const activeAnimals = animals.filter((a) => a.status === "active");
+    const placedAnimalIds = new Set(
+      activePlacements
+        .map((p) => p.animalId)
+        .filter((id): id is string => Boolean(id))
+    );
+    const unassignedAnimalsCount = activeAnimals.filter(
+      (a) => !placedAnimalIds.has(a.id)
+    ).length;
+
+    let availablePensCount = 0;
+    for (const pen of pens) {
+      const cap = pen.capacity ?? 0;
+      if (cap <= 0) {
+        continue;
+      }
+      let occ = 0;
+      for (const pl of pen.placements) {
+        if (pl.animalId) {
+          occ += 1;
+        } else if (pl.batch?.headcount) {
+          occ += pl.batch.headcount;
+        }
+      }
+      if (occ < cap) {
+        availablePensCount += 1;
+      }
+    }
+
+    const categoryTotals: Record<string, number> = {
+      piglets: 0,
+      growth: 0,
+      finishing: 0,
+      breeders: 0,
+      other: 0
+    };
+
+    const mapBatchCategory = (key: string | null): keyof typeof categoryTotals => {
+      const k = (key ?? "").toLowerCase();
+      if (
+        k.includes("nursery") ||
+        k.includes("porcelet") ||
+        k.includes("demarrage") ||
+        k === "starter" ||
+        k === "start"
+      ) {
+        return "piglets";
+      }
+      if (k.includes("grow") || k.includes("croissance") || k === "grower") {
+        return "growth";
+      }
+      if (k.includes("finish") || k.includes("engrais") || k === "finisher") {
+        return "finishing";
+      }
+      if (k.includes("breed") || k.includes("reprod")) {
+        return "breeders";
+      }
+      return "other";
+    };
+
+    for (const b of activeBatches) {
+      const slot = mapBatchCategory(b.categoryKey);
+      categoryTotals[slot] += b.headcount;
+    }
+    categoryTotals.breeders +=
+      activeAnimals.filter((a) => a.sex === "male" || a.sex === "female").length;
+
+    const categoryBreakdown = (
+      ["piglets", "growth", "finishing", "breeders", "other"] as const
+    )
+      .map((key) => ({ key, count: categoryTotals[key] }))
+      .filter((row) => row.count > 0);
+
+    const headcountTrend: { month: string; total: number }[] = [];
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const monthStart = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1)
+      );
+      const monthEnd = new Date(
+        Date.UTC(
+          monthStart.getUTCFullYear(),
+          monthStart.getUTCMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999
+        )
+      );
+      const monthKey = `${monthStart.getUTCFullYear()}-${String(monthStart.getUTCMonth() + 1).padStart(2, "0")}`;
+      const animalsToDate = animals.filter(
+        (a) => new Date(a.createdAt) <= monthEnd
+      ).length;
+      const batchHeadToDate = batches
+        .filter(
+          (b) =>
+            new Date(b.createdAt) <= monthEnd &&
+            (b.status === "active" || (b.closedAt && new Date(b.closedAt) > monthEnd))
+        )
+        .reduce((s, b) => s + b.headcount, 0);
+      headcountTrend.push({
+        month: monthKey,
+        total: animalsToDate + batchHeadToDate
+      });
+    }
+
+    const totalHeadcount = activeAnimals.length + totalBatchHeadcount;
+
     return {
       farm,
       kpis: {
         totalAnimals: animals.length,
+        totalHeadcount,
         maleAnimals,
         femaleAnimals,
         unknownSexAnimals,
@@ -425,8 +560,12 @@ export class FarmsService {
         penCapacityTotal,
         penOccupancyHeadcount,
         occupancyRate,
-        barnCount
-      }
+        barnCount,
+        availablePensCount,
+        unassignedAnimalsCount
+      },
+      categoryBreakdown,
+      headcountTrend
     };
   }
 
