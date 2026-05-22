@@ -11,6 +11,7 @@ import {
   View
 } from "react-native";
 import { BaseModal } from "../../modals/BaseModal";
+import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
 import {
   createPen,
@@ -120,6 +121,7 @@ export function CreateLogeModal({
         </Pressable>
       }
     >
+      <ModalSection title={t("modals.sections.identification")}>
       <Text style={styles.label}>{t("cheptel.pens.barn")}</Text>
       <View style={styles.pillRow}>
         {barns.map((b) => (
@@ -157,6 +159,9 @@ export function CreateLogeModal({
           </Pressable>
         ))}
       </View>
+      </ModalSection>
+
+      <ModalSection title={t("modals.sections.details")}>
       <Text style={styles.label}>{t("cheptel.pens.avgWeightInitial")}</Text>
       <TextInput
         style={styles.input}
@@ -178,6 +183,7 @@ export function CreateLogeModal({
         onChangeText={setNotes}
         multiline
       />
+      </ModalSection>
     </BaseModal>
   );
 }
@@ -186,7 +192,6 @@ const styles = StyleSheet.create({
   label: {
     ...mobileTypography.meta,
     fontWeight: "600",
-    marginTop: mobileSpacing.sm,
     marginBottom: 4
   },
   input: {

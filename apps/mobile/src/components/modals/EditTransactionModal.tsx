@@ -13,6 +13,7 @@ import {
   View
 } from "react-native";
 import { BaseModal } from "./BaseModal";
+import { ModalSection } from "./ModalSection";
 import { useModal } from "./useModal";
 import type { EditTransactionModalPayload } from "../../context/ModalContext";
 import { FinanceCategoryGrid } from "../finance/FinanceCategoryGrid";
@@ -181,13 +182,15 @@ export function EditTransactionModal({ visible, payload, onClose }: Props) {
         </View>
       }
     >
-      <Text style={styles.fieldLab}>{t("financeScreen.fieldCategory")}</Text>
-      <FinanceCategoryGrid
-        categories={categoriesForType}
-        selectedId={txCategoryId}
-        onSelect={setTxCategoryId}
-      />
+      <ModalSection title={t("modals.sections.category")}>
+        <FinanceCategoryGrid
+          categories={categoriesForType}
+          selectedId={txCategoryId}
+          onSelect={setTxCategoryId}
+        />
+      </ModalSection>
 
+      <ModalSection title={t("modals.sections.amount")}>
       <Text style={styles.fieldLab}>
         {t("financeScreen.fieldAmount")} ({payload.currencyCode})
       </Text>
@@ -214,8 +217,9 @@ export function EditTransactionModal({ visible, payload, onClose }: Props) {
         onChangeText={setTxDate}
         placeholder="YYYY-MM-DD"
       />
+      </ModalSection>
 
-      <Text style={styles.fieldLab}>{t("financeScreen.fieldNote")}</Text>
+      <ModalSection title={t("modals.sections.note")}>
       <TextInput
         style={[styles.input, styles.multiline]}
         value={txNote}
@@ -223,6 +227,7 @@ export function EditTransactionModal({ visible, payload, onClose }: Props) {
         placeholder={t("financeScreen.fieldNotePh")}
         multiline
       />
+      </ModalSection>
     </BaseModal>
   );
 }
@@ -231,8 +236,7 @@ const styles = StyleSheet.create({
   fieldLab: {
     fontSize: 12,
     fontWeight: "700",
-    color: mobileColors.textSecondary,
-    marginTop: mobileSpacing.sm
+    color: mobileColors.textSecondary
   },
   catScroll: { maxHeight: 160, marginBottom: mobileSpacing.sm },
   catRow: {

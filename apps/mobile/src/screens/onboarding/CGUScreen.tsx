@@ -28,11 +28,10 @@ import { PrivacyPolicyScreen } from "./PrivacyPolicyScreen";
 const LOGO = require("../../../assets/images/fermier-pro-logo-nobg.png");
 
 type Props = {
-  isUpdate: boolean;
   onAccepted: () => void;
 };
 
-export function CGUScreen({ isUpdate, onAccepted }: Props) {
+export function CGUScreen({ onAccepted }: Props) {
   const { t } = useTranslation();
   const { accessToken, signOut, refreshAuthMe } = useSession();
   const { width: winW } = useWindowDimensions();
@@ -102,15 +101,8 @@ export function CGUScreen({ isUpdate, onAccepted }: Props) {
           resizeMode="contain"
           accessibilityLabel="Fermier Pro"
         />
-        {isUpdate ? (
-          <View style={styles.updateBadge}>
-            <Text style={styles.updateBadgeText}>{t("cgu.updateBadge")}</Text>
-          </View>
-        ) : null}
         <Text style={styles.title}>{t("cgu.title")}</Text>
-        <Text style={styles.subtitle}>
-          {isUpdate ? t("cgu.updateSubtitle") : t("cgu.subtitle")}
-        </Text>
+        <Text style={styles.subtitle}>{t("cgu.subtitle")}</Text>
       </View>
 
       {cguQuery.isPending ? (
@@ -195,18 +187,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingTop: 12,
     paddingBottom: 8
-  },
-  updateBadge: {
-    marginTop: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: authRadii.pill,
-    backgroundColor: "#FEF3C7"
-  },
-  updateBadgeText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#92400E"
   },
   title: {
     marginTop: 12,

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { BaseModal } from "../modals/BaseModal";
+import { ModalSection } from "../modals/ModalSection";
 import {
   mobileColors,
   mobileRadius,
@@ -68,17 +69,19 @@ export function DeleteAccountConfirmModal({
         }
       ]}
     >
-      <Text style={styles.icon}>🔴</Text>
-      <Text style={styles.message}>{t("account.deleteAccount.confirmMessage")}</Text>
-      <TextInput
-        style={styles.input}
-        value={text}
-        onChangeText={setText}
-        placeholder={t("account.deleteAccount.confirmPlaceholder")}
-        placeholderTextColor={mobileColors.textSecondary}
-        autoCapitalize="characters"
-        autoCorrect={false}
-      />
+      <ModalSection>
+        <Text style={styles.icon}>🔴</Text>
+        <Text style={styles.message}>{t("account.deleteAccount.confirmMessage")}</Text>
+        <TextInput
+          style={styles.input}
+          value={text}
+          onChangeText={setText}
+          placeholder={t("account.deleteAccount.confirmPlaceholder")}
+          placeholderTextColor={mobileColors.textSecondary}
+          autoCapitalize="characters"
+          autoCorrect={false}
+        />
+      </ModalSection>
     </BaseModal>
   );
 }

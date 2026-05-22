@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { BaseModal } from "../../modals/BaseModal";
+import { ModalSection } from "../../modals/ModalSection";
 import type { PenAnimalRowDto } from "../../../lib/api";
 import {
   mobileColors,
@@ -108,7 +109,7 @@ export function AnimalActionModal({
 
   return (
     <BaseModal visible={visible} onClose={onClose} title={tag}>
-      <View style={styles.headerMeta}>
+      <ModalSection>
         <Text style={styles.meta}>
           {animal.breed?.name ?? "—"} ·{" "}
           {animal.sex === "unknown"
@@ -124,7 +125,8 @@ export function AnimalActionModal({
         {animal.activeGestation ? (
           <Text style={styles.gestation}>{t("cheptel.actions.gestationActive")}</Text>
         ) : null}
-      </View>
+      </ModalSection>
+      <ModalSection plain>
       <View style={styles.grid}>
         {actions.map((a) => (
           <Pressable key={a.key} style={styles.actionCell} onPress={a.onPress}>
@@ -133,12 +135,12 @@ export function AnimalActionModal({
           </Pressable>
         ))}
       </View>
+      </ModalSection>
     </BaseModal>
   );
 }
 
 const styles = StyleSheet.create({
-  headerMeta: { gap: 4, marginBottom: mobileSpacing.md },
   meta: { ...mobileTypography.meta, color: mobileColors.textSecondary },
   alert: { color: mobileColors.error, fontWeight: "700", fontSize: 13 },
   gestation: { color: "#BE185D", fontWeight: "600", fontSize: 13 },

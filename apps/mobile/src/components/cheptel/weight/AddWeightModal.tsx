@@ -11,6 +11,7 @@ import {
   View
 } from "react-native";
 import { BaseModal } from "../../modals/BaseModal";
+import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
 import { fetchFarmAnimals, postAnimalWeight } from "../../../lib/api";
 import {
@@ -97,7 +98,7 @@ export function AddWeightModal({
         </Pressable>
       }
     >
-      <View style={{ gap: 8 }}>
+      <ModalSection title={t("modals.sections.animal")}>
         <Text style={styles.label}>{t("cheptel.weight.pickAnimal")}</Text>
         <View style={styles.pillRow}>
           {animals.map((a) => (
@@ -112,6 +113,9 @@ export function AddWeightModal({
             </Pressable>
           ))}
         </View>
+      </ModalSection>
+
+      <ModalSection title={t("modals.sections.measurement")}>
         <Text style={styles.label}>{t("cheptel.weight.weightKg")}</Text>
         <TextInput
           style={styles.input}
@@ -121,13 +125,13 @@ export function AddWeightModal({
         />
         <Text style={styles.label}>{t("cheptel.weight.note")}</Text>
         <TextInput style={styles.input} value={note} onChangeText={setNote} />
-      </View>
+      </ModalSection>
     </BaseModal>
   );
 }
 
 const styles = StyleSheet.create({
-  label: { ...mobileTypography.meta, fontWeight: "600", marginTop: 8 },
+  label: { ...mobileTypography.meta, fontWeight: "600" },
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,

@@ -336,6 +336,23 @@ export const fr = {
     }
   },
   modals: {
+    sections: {
+      identification: "Identification",
+      details: "Détails",
+      general: "Général",
+      assignment: "Attribution",
+      scheduling: "Échéance",
+      status: "Statut",
+      destination: "Destination",
+      animal: "Animal",
+      measurement: "Pesée",
+      reference: "Référence",
+      category: "Catégorie",
+      amount: "Montant",
+      link: "Lien",
+      proof: "Justificatif",
+      note: "Note"
+    },
     success: {
       title: "Succès",
       done: "Terminer"
@@ -650,6 +667,8 @@ export const fr = {
         notes: "Notes",
         submit: "Créer l'animal",
         success: "Animal créé avec succès",
+        successInPen: "Animal ajouté à la loge {{pen}}",
+        targetPen: "Placement : {{barn}} · {{pen}}",
         errorTitle: "Création impossible"
       },
       status: {

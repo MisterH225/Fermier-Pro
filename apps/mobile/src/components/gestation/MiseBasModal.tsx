@@ -11,6 +11,7 @@ import {
   View
 } from "react-native";
 import { BaseModal } from "../modals/BaseModal";
+import { ModalSection } from "../modals/ModalSection";
 import { recordGestationLitter } from "../../lib/api";
 import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
 
@@ -108,7 +109,7 @@ export function MiseBasModal({
         </Pressable>
       }
     >
-      <View style={styles.body}>
+      <ModalSection title={t("modals.sections.details")}>
         <Text style={styles.label}>{t("gestationScreen.birthDateTime")}</Text>
         <TextInput
           style={styles.input}
@@ -172,7 +173,7 @@ export function MiseBasModal({
           onChangeText={setNotes}
           multiline
         />
-      </View>
+      </ModalSection>
     </BaseModal>
   );
 }

@@ -119,7 +119,7 @@ function barnDisplayLabel(barn: { name: string; code?: string | null }): string 
 
 
 /** Incrémenter après changement de logique de répartition côté API. */
-const LAYOUT_REPAIR_VERSION = 4;
+const LAYOUT_REPAIR_VERSION = 5;
 
 
 
@@ -173,7 +173,16 @@ function pensNeedLayoutRepair(
 
   );
 
-  return legacyPen || legacyBarn || overcrowded || sharedBoarPen || missingUsage;
+  const legacyBatchInPen = pens.some((p) => p.batchTypeTag != null);
+
+  return (
+    legacyPen ||
+    legacyBarn ||
+    overcrowded ||
+    sharedBoarPen ||
+    missingUsage ||
+    legacyBatchInPen
+  );
 
 }
 

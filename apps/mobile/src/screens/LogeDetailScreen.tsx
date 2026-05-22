@@ -12,8 +12,11 @@ import {
   View
 } from "react-native";
 import { AnimalActionModal } from "../components/cheptel/animals/AnimalActionModal";
+import { AnimalDetailModal } from "../components/cheptel/animals/AnimalDetailModal";
+import { penAnimalToListItem } from "../components/cheptel/animals/animalUtils";
 import { ChangeStatusModal } from "../components/cheptel/animals/ChangeStatusModal";
 import { TransferModal } from "../components/cheptel/animals/TransferModal";
+import { CreateAnimalModal } from "../components/cheptel/animals/CreateAnimalModal";
 import { AddWeightModal } from "../components/cheptel/weight/AddWeightModal";
 import { EventList, type EventItem } from "../components/lists";
 import { useSession } from "../context/SessionContext";
@@ -113,6 +116,8 @@ export function LogeDetailScreen({ route, navigation }: Props) {
   const [statusAnimal, setStatusAnimal] = useState<AnimalListItem | null>(null);
   const [transferAnimal, setTransferAnimal] = useState<AnimalListItem | null>(null);
   const [weightAnimal, setWeightAnimal] = useState<AnimalListItem | null>(null);
+  const [detailAnimal, setDetailAnimal] = useState<AnimalListItem | null>(null);
+  const [isCreateAnimalVisible, setIsCreateAnimalVisible] = useState(false);
 
   const pensQ = useQuery({
     queryKey: ["cheptelPens", farmId, activeProfileId],
@@ -271,12 +276,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
           </Pressable>
           <Pressable
             style={styles.quickBtn}
-            onPress={() =>
-              navigation.navigate("FarmLivestock", {
-                farmId,
-                farmName
-              })
-            }
+            onPress={() => setIsCreateAnimalVisible(true)}
           >
             <Text style={styles.quickTx}>➕ {t("cheptel.pens.addAnimal")}</Text>
           </Pressable>
@@ -373,12 +373,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
           const a = actionAnimal;
           setActionAnimal(null);
           if (a) {
-            navigation.navigate("AnimalDetail", {
-              farmId,
-              farmName,
-              animalId: a.id,
-              headline: a.tagCode || a.publicId.slice(0, 8)
-            });
+            setDetailAnimal(toListItem(a));
           }
         }}
         onDeclareGestation={() => {
@@ -416,6 +411,51 @@ export function LogeDetailScreen({ route, navigation }: Props) {
         activeProfileId={activeProfileId}
         onClose={() => setWeightAnimal(null)}
         onSaved={invalidate}
+      />
+
+      <CreateAnimalModal
+        visible={isCreateAnimalVisible}
+        farmId={farmId}
+        accessToken={accessToken!}
+        activeProfileId={activeProfileId}
+        targetPen={
+          penMeta
+            ? {
+                penId,
+                penName: penMeta.name,
+                barnId: penMeta.barnId,
+                barnName: penMeta.barnName
+              }
+            : null
+        }
+        onClose={() => setIsCreateAnimalVisible(false)}
+        onCreated={invalidate}
+      />
+
+      <AnimalDetailModal
+        visible={Boolean(detailAnimal)}
+        animal={detailAnimal}
+        farmId={farmId}
+        accessToken={accessToken!}
+        activeProfileId={activeProfileId}
+        onClose={() => setDetailAnimal(null)}
+        onUpdated={invalidate}
+        onTransfer={(a) => {
+          setDetailAnimal(null);
+          setTransferAnimal(a);
+        }}
+        onChangeStatus={(a) => {
+          setDetailAnimal(null);
+          setStatusAnimal(a);
+        }}
+        onAddWeight={(a) => {
+          setDetailAnimal(null);
+          setWeightAnimal(a);
+        }}
+        onOpenHealth={() => {
+          setDetailAnimal(null);
+          navigation.navigate("FarmHealth", { farmId, farmName });
+        }}
       />
     </View>
   );

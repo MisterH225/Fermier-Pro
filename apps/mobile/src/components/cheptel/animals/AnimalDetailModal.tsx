@@ -8,12 +8,14 @@ import {
   Alert,
   Image,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View
 } from "react-native";
 import { BaseModal } from "../../modals/BaseModal";
+import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
 import type { AnimalListItem, AnimalOriginDto } from "../../../lib/api";
 import {
@@ -46,6 +48,8 @@ type Props = {
   farmId: string;
   accessToken: string;
   activeProfileId?: string | null;
+  /** modal = feuille ; page = écran stack (AnimalDetail) */
+  presentation?: "modal" | "page";
   onClose: () => void;
   onUpdated?: () => void;
   onTransfer: (animal: AnimalListItem) => void;
@@ -70,6 +74,7 @@ export function AnimalDetailModal({
   farmId,
   accessToken,
   activeProfileId,
+  presentation = "modal",
   onClose,
   onUpdated,
   onTransfer,
@@ -78,6 +83,7 @@ export function AnimalDetailModal({
   onOpenHealth,
   onOpenFullRecord
 }: Props) {
+  const isOpen = presentation === "page" ? Boolean(animal) : visible;
   const { t } = useTranslation();
   const { open } = useModal();
   const queryClient = useQueryClient();
@@ -98,19 +104,19 @@ export function AnimalDetailModal({
     queryKey: ["farmAnimal", farmId, animal?.id, activeProfileId],
     queryFn: () =>
       fetchFarmAnimal(accessToken, farmId, animal!.id, activeProfileId),
-    enabled: visible && Boolean(animal?.id)
+    enabled: isOpen && Boolean(animal?.id)
   });
 
   const taxonomyQuery = useQuery({
     queryKey: ["taxonomy", activeProfileId],
     queryFn: () => fetchTaxonomy(accessToken, activeProfileId),
-    enabled: visible
+    enabled: isOpen
   });
 
   const herdQuery = useQuery({
     queryKey: ["farmAnimals", farmId, activeProfileId],
     queryFn: () => fetchFarmAnimals(accessToken, farmId, activeProfileId),
-    enabled: visible
+    enabled: isOpen
   });
 
   const syncFormFromDetail = useCallback(() => {
@@ -134,17 +140,17 @@ export function AnimalDetailModal({
   }, [detailQuery.data]);
 
   useEffect(() => {
-    if (visible && detailQuery.isSuccess) {
+    if (isOpen && detailQuery.isSuccess) {
       syncFormFromDetail();
     }
-  }, [visible, detailQuery.isSuccess, syncFormFromDetail]);
+  }, [isOpen, detailQuery.isSuccess, syncFormFromDetail]);
 
   useEffect(() => {
-    if (!visible) {
+    if (!isOpen) {
       setPendingPhotoUri(null);
       setSexEditOpen(false);
     }
-  }, [visible]);
+  }, [isOpen]);
 
   const porcSpecies = useMemo(() => {
     const list = taxonomyQuery.data ?? [];
@@ -342,40 +348,38 @@ export function AnimalDetailModal({
   const detail = detailQuery.data;
   const latest = detail?.weights[0] ?? animal.weights[0];
   const entry = detail?.weights[detail.weights.length - 1];
+  const showFullRecordLink =
+    presentation === "modal" && Boolean(onOpenFullRecord);
 
-  return (
-    <BaseModal
-      visible={visible}
-      onClose={onClose}
-      title={tag}
-      statusBadge={{
-        label: t(`cheptel.animals.status.${animal.status}`),
-        tone: animal.status === "active" ? "neutral" : "warning"
-      }}
-      footerPrimary={
-        <Pressable
-          style={[styles.primaryBtn, saveMut.isPending && styles.btnDisabled]}
-          onPress={() => saveMut.mutate()}
-          disabled={saveMut.isPending || detailQuery.isPending}
-        >
-          {saveMut.isPending ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.primaryBtnText}>
-              {t("cheptel.animals.detail.save")}
-            </Text>
-          )}
-        </Pressable>
-      }
+  const saveFooter = (
+    <Pressable
+      style={[styles.primaryBtn, saveMut.isPending && styles.btnDisabled]}
+      onPress={() => saveMut.mutate()}
+      disabled={saveMut.isPending || detailQuery.isPending}
     >
-      {detailQuery.isPending ? (
-        <ActivityIndicator color={mobileColors.accent} style={{ marginVertical: 24 }} />
+      {saveMut.isPending ? (
+        <ActivityIndicator color="#fff" />
       ) : (
-        <View style={styles.body}>
-          <Text style={styles.sectionTitle}>
-            {t("cheptel.animals.detail.identity")}
-          </Text>
+        <Text style={styles.primaryBtnText}>
+          {t("cheptel.animals.detail.save")}
+        </Text>
+      )}
+    </Pressable>
+  );
 
+  const renderFormBody = () => {
+    if (detailQuery.isPending) {
+      return (
+        <ActivityIndicator
+          color={mobileColors.accent}
+          style={{ marginVertical: 24 }}
+        />
+      );
+    }
+
+    return (
+      <>
+          <ModalSection title={t("cheptel.animals.detail.identity")}>
           <View style={styles.photoRow}>
             <Pressable
               style={styles.photoCircle}
@@ -602,19 +606,18 @@ export function AnimalDetailModal({
             placeholder={t("cheptel.animals.detail.notesPlaceholder")}
             placeholderTextColor={mobileColors.textSecondary}
           />
+          </ModalSection>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t("cheptel.animals.detail.weight")}</Text>
+          <ModalSection title={t("cheptel.animals.detail.weight")}>
             <Text style={styles.meta}>
               {t("cheptel.animals.detail.entryWeight")}: {formatAnimalKg(entry?.weightKg)}
             </Text>
             <Text style={styles.meta}>
               {t("cheptel.animals.detail.currentWeight")}: {formatAnimalKg(latest?.weightKg)}
             </Text>
-          </View>
+          </ModalSection>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t("cheptel.animals.detail.health")}</Text>
+          <ModalSection title={t("cheptel.animals.detail.health")}>
             <Text style={styles.meta}>{t("cheptel.animals.detail.healthSoon")}</Text>
             {onOpenHealth ? (
               <Pressable style={styles.linkBtn} onPress={() => onOpenHealth(animal)}>
@@ -623,10 +626,11 @@ export function AnimalDetailModal({
                 </Text>
               </Pressable>
             ) : null}
-          </View>
+          </ModalSection>
 
+          <ModalSection plain>
           <View style={styles.actions}>
-            {onOpenFullRecord ? (
+            {showFullRecordLink && onOpenFullRecord ? (
               <ActionChip
                 icon="document-text-outline"
                 label={t("cheptel.actions.fullRecord")}
@@ -649,8 +653,36 @@ export function AnimalDetailModal({
               onPress={() => onChangeStatus(animal)}
             />
           </View>
-        </View>
-      )}
+          </ModalSection>
+      </>
+    );
+  };
+
+  if (presentation === "page") {
+    return (
+      <ScrollView
+        style={styles.pageScroll}
+        contentContainerStyle={styles.pageContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        {renderFormBody()}
+        <View style={styles.pageFooter}>{saveFooter}</View>
+      </ScrollView>
+    );
+  }
+
+  return (
+    <BaseModal
+      visible={visible}
+      onClose={onClose}
+      title={tag}
+      statusBadge={{
+        label: t(`cheptel.animals.status.${animal.status}`),
+        tone: animal.status === "active" ? "neutral" : "warning"
+      }}
+      footerPrimary={saveFooter}
+    >
+      {renderFormBody()}
     </BaseModal>
   );
 }
@@ -673,14 +705,13 @@ function ActionChip({
 }
 
 const styles = StyleSheet.create({
-  body: { gap: mobileSpacing.sm, paddingBottom: mobileSpacing.lg },
-  section: { gap: 4, marginTop: mobileSpacing.md },
-  sectionTitle: {
-    ...mobileTypography.body,
-    fontWeight: "700",
-    color: mobileColors.textPrimary,
-    marginBottom: 4
+  pageScroll: { flex: 1, backgroundColor: mobileColors.canvas },
+  pageContent: {
+    padding: mobileSpacing.md,
+    paddingBottom: mobileSpacing.xl,
+    gap: mobileSpacing.md
   },
+  pageFooter: { marginTop: mobileSpacing.md },
   label: {
     ...mobileTypography.meta,
     fontWeight: "600",

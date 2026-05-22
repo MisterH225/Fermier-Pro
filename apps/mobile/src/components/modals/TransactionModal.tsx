@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { BaseModal } from "./BaseModal";
+import { ModalSection } from "./ModalSection";
 import { useModal } from "./useModal";
 import type { TransactionModalPayload } from "../../context/ModalContext";
 import { getSupabase } from "../../lib/supabase";
@@ -235,14 +236,17 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
         </View>
       }
     >
-      <Text style={styles.fieldLab}>{t("financeScreen.transactionRef")}</Text>
-      <View style={styles.refBox}>
-        <Text style={styles.refValue} selectable>
-          {txRef || "—"}
-        </Text>
-      </View>
-      <Text style={styles.refHint}>{t("financeScreen.transactionRefHint")}</Text>
+      <ModalSection title={t("modals.sections.reference")}>
+        <Text style={styles.fieldLab}>{t("financeScreen.transactionRef")}</Text>
+        <View style={styles.refBox}>
+          <Text style={styles.refValue} selectable>
+            {txRef || "—"}
+          </Text>
+        </View>
+        <Text style={styles.refHint}>{t("financeScreen.transactionRefHint")}</Text>
+      </ModalSection>
 
+      <ModalSection title={t("modals.sections.category")}>
       <View style={styles.rowBtns}>
         <Pressable
           style={[styles.chip, txType === "expense" && styles.chipOn]}
@@ -270,7 +274,9 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
         selectedId={txCategoryId}
         onSelect={setTxCategoryId}
       />
+      </ModalSection>
 
+      <ModalSection title={t("modals.sections.amount")}>
       <Text style={styles.fieldLab}>
         {t("financeScreen.fieldAmount")} ({payload.currencyCode})
       </Text>
@@ -297,7 +303,9 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
         onChangeText={setTxDate}
         placeholder="YYYY-MM-DD"
       />
+      </ModalSection>
 
+      <ModalSection title={t("modals.sections.link")}>
       <Text style={styles.fieldLab}>{t("modals.transaction.linkSection")}</Text>
       <View style={styles.rowBtns}>
         {(["none", "batch", "animal"] as const).map((k) => (
@@ -362,7 +370,9 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
           </ScrollView>
         </>
       ) : null}
+      </ModalSection>
 
+      <ModalSection title={t("modals.sections.proof")}>
       <Text style={styles.fieldLab}>{t("financeScreen.proofHint")}</Text>
       {proofPhotoUri ? (
         <View style={styles.proofPreviewWrap}>
@@ -385,6 +395,7 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
           <Text style={styles.proofAddBtnTx}>{t("financeScreen.addProofPhoto")}</Text>
         </TouchableOpacity>
       )}
+      </ModalSection>
     </BaseModal>
   );
 }
@@ -393,8 +404,7 @@ const styles = StyleSheet.create({
   fieldLab: {
     fontSize: 12,
     fontWeight: "700",
-    color: mobileColors.textSecondary,
-    marginTop: mobileSpacing.sm
+    color: mobileColors.textSecondary
   },
   refBox: {
     backgroundColor: mobileColors.surfaceMuted,

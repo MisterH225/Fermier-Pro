@@ -64,7 +64,6 @@ function AuthenticatedAppShellInner() {
   if (authMe && cguStatus.needsAcceptance) {
     return (
       <CGUScreen
-        isUpdate={cguStatus.isUpdate}
         onAccepted={() => {
           void refreshAuthMe();
         }}

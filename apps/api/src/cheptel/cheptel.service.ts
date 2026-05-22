@@ -78,6 +78,9 @@ export type CheptelHistoryItem = {
 
 @Injectable()
 export class CheptelService {
+  /** Évite deux migrations legacy concurrentes (ex. listPens + listPenContents). */
+  private readonly legacyBatchMigrationFlights = new Map<string, Promise<void>>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
@@ -172,6 +175,7 @@ export class CheptelService {
 
   async listPens(user: User, farmId: string, barnId?: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
+    await this.migrateLegacyBatchPlacementsIfNeeded(user, farmId);
     const now = new Date();
     const gestationSoon = new Date(now);
     gestationSoon.setDate(gestationSoon.getDate() + 7);
@@ -419,6 +423,7 @@ export class CheptelService {
 
   async listPenContents(user: User, farmId: string, penId: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
+    await this.migrateLegacyBatchPlacementsIfNeeded(user, farmId);
     const pen = await this.prisma.pen.findFirst({
       where: { id: penId, barn: { farmId } }
     });
@@ -968,6 +973,73 @@ export class CheptelService {
           productionPlaced,
           rebalanced
         };
+      },
+      { maxWait: 10_000, timeout: 60_000 }
+    );
+  }
+
+  /** Lots onboarding legacy (bande) → sujets Dem-/Eng- individuels. */
+  private migrateLegacyBatchPlacementsIfNeeded(
+    user: User,
+    farmId: string
+  ): Promise<void> {
+    const inFlight = this.legacyBatchMigrationFlights.get(farmId);
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const flight = this.runLegacyBatchMigration(user, farmId).finally(() => {
+      this.legacyBatchMigrationFlights.delete(farmId);
+    });
+    this.legacyBatchMigrationFlights.set(farmId, flight);
+    return flight;
+  }
+
+  private async runLegacyBatchMigration(
+    user: User,
+    farmId: string
+  ): Promise<void> {
+    const farm = await this.prisma.farm.findUnique({
+      where: { id: farmId },
+      select: { housingBuildingsCount: true, speciesFocus: true }
+    });
+
+    const species = await this.prisma.species.findFirst({
+      where: { code: farm?.speciesFocus ?? "porcin" }
+    });
+    if (!species) {
+      return;
+    }
+
+    const buildingsCount = farm?.housingBuildingsCount ?? 2;
+
+    await this.prisma.$transaction(
+      async (tx) => {
+        const legacyBatchCount = await tx.penPlacement.count({
+          where: {
+            endedAt: null,
+            batchId: { not: null },
+            pen: { barn: { farmId } },
+            batch: { is: { headcount: { gt: 0 } } }
+          }
+        });
+        if (legacyBatchCount === 0) {
+          return;
+        }
+
+        const migrated = await migrateOnboardingBatchesToIndividualAnimals(
+          tx,
+          farmId,
+          species.id,
+          user.id
+        );
+        if (migrated > 0) {
+          await relocateProductionAnimalsToDefaultPlan(tx, {
+            farmId,
+            userId: user.id,
+            buildingsCount
+          });
+        }
       },
       { maxWait: 10_000, timeout: 60_000 }
     );

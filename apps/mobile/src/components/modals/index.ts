@@ -1,5 +1,6 @@
 export { AppModalsLayer } from "./AppModalsLayer";
 export { BaseModal, type BaseModalProps, type BaseModalSecondaryAction } from "./BaseModal";
+export { ModalSection } from "./ModalSection";
 export { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 export { SuccessModal } from "./SuccessModal";
 export { TransactionModal } from "./TransactionModal";

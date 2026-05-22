@@ -4,6 +4,7 @@ import {
   Prisma
 } from "@prisma/client";
 import { formatTagCode } from "../livestock/animal-tag.helper";
+import { lockFarmRowForUpdate } from "../livestock/farm-row-lock";
 
 export type PenSlot = {
   id: string;
@@ -240,6 +241,9 @@ async function allocateTagCodesInTx(
   if (count <= 0) {
     return [];
   }
+
+  await lockFarmRowForUpdate(tx, farmId);
+
   const counterKey =
     prefix === "Trui"
       ? "lastTruiTagNumber"
@@ -774,6 +778,8 @@ export async function migrateOnboardingBatchesToIndividualAnimals(
   speciesId: string,
   userId: string
 ): Promise<number> {
+  await lockFarmRowForUpdate(tx, farmId);
+
   const batchPlacements = await tx.penPlacement.findMany({
     where: {
       endedAt: null,

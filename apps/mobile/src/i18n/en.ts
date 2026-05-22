@@ -336,6 +336,23 @@ export const en = {
     }
   },
   modals: {
+    sections: {
+      identification: "Identification",
+      details: "Details",
+      general: "General",
+      assignment: "Assignment",
+      scheduling: "Due date",
+      status: "Status",
+      destination: "Destination",
+      animal: "Animal",
+      measurement: "Weight",
+      reference: "Reference",
+      category: "Category",
+      amount: "Amount",
+      link: "Link",
+      proof: "Receipt",
+      note: "Note"
+    },
     success: {
       title: "Success",
       done: "Done"
@@ -601,6 +618,8 @@ export const en = {
         notes: "Notes",
         submit: "Create animal",
         success: "Animal created successfully",
+        successInPen: "Animal added to pen {{pen}}",
+        targetPen: "Placement: {{barn}} · {{pen}}",
         errorTitle: "Could not create"
       },
       status: {

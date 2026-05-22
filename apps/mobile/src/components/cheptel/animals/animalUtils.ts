@@ -1,4 +1,4 @@
-import type { AnimalListItem } from "../../../lib/api";
+import type { AnimalListItem, PenAnimalRowDto } from "../../../lib/api";
 import type { EventItem } from "../../lists/types";
 
 export type AnimalStatusKey =
@@ -23,6 +23,36 @@ export function animalDisplayTag(a: AnimalListItem): string {
     return tag;
   }
   return `FP-${a.id.slice(-6).toUpperCase()}`;
+}
+
+/** Convertit une ligne de loge en item liste (fiche animal). */
+export function penAnimalToListItem(
+  a: PenAnimalRowDto,
+  pen?: { id: string; name: string; barnId: string; barnName: string } | null
+): AnimalListItem {
+  return {
+    id: a.id,
+    publicId: a.publicId,
+    tagCode: a.tagCode,
+    sex: a.sex,
+    productionCategory: a.productionCategory,
+    status: a.status,
+    species: a.species,
+    breed: a.breed,
+    weights: a.weights.map((w) => ({
+      weightKg: w.weightKg,
+      measuredAt: w.measuredAt
+    })),
+    currentPen: pen
+      ? {
+          placementId: "",
+          penId: pen.id,
+          penName: pen.name,
+          barnId: pen.barnId,
+          barnName: pen.barnName
+        }
+      : null
+  };
 }
 
 export function formatAnimalKg(v: string | number | undefined): string {

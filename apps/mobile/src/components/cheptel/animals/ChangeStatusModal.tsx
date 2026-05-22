@@ -11,6 +11,7 @@ import {
   View
 } from "react-native";
 import { BaseModal } from "../../modals/BaseModal";
+import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
 import type { AnimalListItem } from "../../../lib/api";
 import { patchCheptelAnimalStatus } from "../../../lib/api";
@@ -141,7 +142,7 @@ export function ChangeStatusModal({
         </Pressable>
       }
     >
-      <View style={styles.form}>
+      <ModalSection title={t("modals.sections.status")}>
         <View style={styles.statusGrid}>
           {STATUS_OPTIONS.map((opt) => (
             <Pressable
@@ -155,9 +156,10 @@ export function ChangeStatusModal({
             </Pressable>
           ))}
         </View>
+      </ModalSection>
 
         {status === "sold" ? (
-          <>
+          <ModalSection title={t("cheptel.animals.status.sold")}>
             <Text style={styles.label}>{t("cheptel.animals.status.salePrice")}</Text>
             <TextInput
               style={styles.input}
@@ -168,11 +170,11 @@ export function ChangeStatusModal({
             <Text style={styles.label}>{t("cheptel.animals.status.buyer")}</Text>
             <TextInput style={styles.input} value={buyer} onChangeText={setBuyer} />
             <Text style={styles.hint}>{t("cheptel.animals.status.financeLinked")}</Text>
-          </>
+          </ModalSection>
         ) : null}
 
         {status === "dead" ? (
-          <>
+          <ModalSection title={t("cheptel.animals.status.dead")}>
             <Text style={styles.label}>{t("cheptel.animals.status.deathCause")}</Text>
             <TextInput
               style={styles.input}
@@ -180,9 +182,10 @@ export function ChangeStatusModal({
               onChangeText={setDeathCause}
             />
             <Text style={styles.hint}>{t("cheptel.animals.status.healthLinked")}</Text>
-          </>
+          </ModalSection>
         ) : null}
 
+        <ModalSection title={t("modals.sections.note")}>
         <Text style={styles.label}>{t("cheptel.animals.status.note")}</Text>
         <TextInput
           style={[styles.input, styles.multiline]}
@@ -190,13 +193,12 @@ export function ChangeStatusModal({
           onChangeText={setNote}
           multiline
         />
-      </View>
+        </ModalSection>
     </BaseModal>
   );
 }
 
 const styles = StyleSheet.create({
-  form: { gap: mobileSpacing.sm, paddingBottom: mobileSpacing.lg },
   statusGrid: { gap: 8 },
   statusChip: {
     paddingVertical: 12,
@@ -214,8 +216,7 @@ const styles = StyleSheet.create({
   label: {
     ...mobileTypography.meta,
     fontWeight: "600",
-    color: mobileColors.textSecondary,
-    marginTop: mobileSpacing.sm
+    color: mobileColors.textSecondary
   },
   input: {
     borderWidth: 1,

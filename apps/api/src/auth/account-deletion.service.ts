@@ -162,6 +162,7 @@ export class AccountDeletionService {
       await this.prisma.$transaction(
         async (tx) => {
           for (const farmId of ownedFarmIds) {
+            await this.purgeOwnedFarmForDeletion(tx, farmId);
             await tx.farm.delete({ where: { id: farmId } });
           }
 
@@ -192,6 +193,46 @@ export class AccountDeletionService {
         "Compte applicatif supprimé ; contactez le support si vous ne pouvez plus vous connecter."
       );
     }
+  }
+
+  /**
+   * Supprime les lignes qui bloquent le CASCADE Prisma sur `Farm`
+   * (ex. `FarmBudgetLine` → `FinanceCategory` en Restrict).
+   */
+  private async purgeOwnedFarmForDeletion(
+    tx: Prisma.TransactionClient,
+    farmId: string
+  ): Promise<void> {
+    await tx.farmBudgetLine.deleteMany({
+      where: { budget: { farmId } }
+    });
+    await tx.farmBudgetSuggestion.deleteMany({ where: { farmId } });
+    await tx.farmBudget.deleteMany({ where: { farmId } });
+
+    await tx.litter.deleteMany({ where: { farmId } });
+    await tx.gestationVaccine.deleteMany({
+      where: { gestation: { farmId } }
+    });
+    await tx.gestationChecklistItem.deleteMany({
+      where: { gestation: { farmId } }
+    });
+    await tx.gestation.deleteMany({ where: { farmId } });
+
+    await tx.livestockExit.deleteMany({
+      where: { OR: [{ farmId }, { toFarmId: farmId }] }
+    });
+
+    await tx.marketplaceOffer.deleteMany({
+      where: { listing: { farmId } }
+    });
+    await tx.marketplaceListing.deleteMany({ where: { farmId } });
+
+    await tx.farmMembership.deleteMany({ where: { farmId } });
+    await tx.farmInvitation.deleteMany({ where: { farmId } });
+    await tx.farmMarketRating.deleteMany({ where: { farmId } });
+    await tx.chatMessage.deleteMany({ where: { room: { farmId } } });
+    await tx.chatRoomMember.deleteMany({ where: { room: { farmId } } });
+    await tx.chatRoom.deleteMany({ where: { farmId } });
   }
 
   /** Données liées à l'utilisateur hors fermes déjà supprimées. */

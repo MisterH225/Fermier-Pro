@@ -12,6 +12,7 @@ import {
   View
 } from "react-native";
 import { BaseModal } from "../modals/BaseModal";
+import { ModalSection } from "../modals/ModalSection";
 import { useModal } from "../modals/useModal";
 import type { AnimalListItem, FarmMemberDto, FarmTaskDto } from "../../lib/api";
 import {
@@ -286,7 +287,7 @@ export function TaskModal({
         </Pressable>
       }
     >
-      <View>
+      <ModalSection title={t("modals.sections.general")}>
         <Text style={styles.label}>{t("tasksScreen.fieldTitle")}</Text>
         <TextInput
           style={styles.input}
@@ -330,7 +331,9 @@ export function TaskModal({
             </Pressable>
           ))}
         </View>
+      </ModalSection>
 
+      <ModalSection title={t("modals.sections.assignment")}>
         <Text style={styles.label}>{t("tasksScreen.fieldAssignee")}</Text>
         {membersQ.isPending ? (
           <ActivityIndicator style={styles.loader} />
@@ -385,7 +388,9 @@ export function TaskModal({
             )}
           </ScrollView>
         )}
+      </ModalSection>
 
+      <ModalSection title={t("modals.sections.scheduling")}>
         <Text style={styles.label}>{t("tasksScreen.fieldDue")}</Text>
         <TaskDueDateField value={dueAt} onChange={setDueAt} />
 
@@ -417,7 +422,7 @@ export function TaskModal({
             </Pressable>
           ))}
         </View>
-      </View>
+      </ModalSection>
     </BaseModal>
   );
 }
@@ -426,7 +431,6 @@ const styles = StyleSheet.create({
   label: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
-    marginTop: mobileSpacing.md,
     marginBottom: mobileSpacing.xs
   },
   input: {

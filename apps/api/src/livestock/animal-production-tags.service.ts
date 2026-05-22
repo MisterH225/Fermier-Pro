@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { AnimalProductionCategory, Prisma } from "@prisma/client";
 import { formatTagCode } from "./animal-tag.helper";
+import { lockFarmRowForUpdate } from "./farm-row-lock";
 import { PrismaService } from "../prisma/prisma.service";
 
 export type AnimalTagPrefix = "Trui" | "Ver" | "Eng" | "Dem";
@@ -48,6 +49,10 @@ export class AnimalProductionTagsService {
     }
     const client = tx ?? this.prisma;
     const counterKey = PREFIX_TO_COUNTER[prefix];
+
+    if (tx) {
+      await lockFarmRowForUpdate(tx, farmId);
+    }
 
     const farm = await client.farm.findUniqueOrThrow({
       where: { id: farmId },

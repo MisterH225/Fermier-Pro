@@ -170,10 +170,6 @@ export function AnimalList({
         activeProfileId={activeProfileId}
         onClose={() => setDetailAnimal(null)}
         onUpdated={onInvalidate}
-        onOpenFullRecord={(a) => {
-          setDetailAnimal(null);
-          onOpenAnimalScreen(a);
-        }}
         onTransfer={(a) => {
           setDetailAnimal(null);
           setTransferAnimalId(a.id);

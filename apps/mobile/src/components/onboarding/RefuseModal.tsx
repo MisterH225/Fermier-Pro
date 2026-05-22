@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { BaseModal } from "../modals/BaseModal";
+import { ModalSection } from "../modals/ModalSection";
 import { authColors, authRadii } from "../../theme/authTheme";
 
 type Props = {
@@ -28,10 +29,12 @@ export function RefuseModal({ visible, onClose, onReread, onQuit }: Props) {
         onPress: onQuit
       }}
     >
-      <View style={styles.body}>
-        <Text style={styles.icon}>⚠️</Text>
-        <Text style={styles.message}>{t("cgu.refuseModal.message")}</Text>
-      </View>
+      <ModalSection>
+        <View style={styles.body}>
+          <Text style={styles.icon}>⚠️</Text>
+          <Text style={styles.message}>{t("cgu.refuseModal.message")}</Text>
+        </View>
+      </ModalSection>
     </BaseModal>
   );
 }

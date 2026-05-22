@@ -11,6 +11,7 @@ import {
   View
 } from "react-native";
 import { BaseModal } from "../modals/BaseModal";
+import { ModalSection } from "../modals/ModalSection";
 import type { AnimalListItem } from "../../lib/api";
 import { createGestation } from "../../lib/api";
 import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
@@ -99,7 +100,7 @@ export function CreateGestationModal({
         </Pressable>
       }
     >
-      <View style={styles.body}>
+      <ModalSection title={t("modals.sections.animal")}>
         <Text style={styles.label}>{t("gestationScreen.sow")}</Text>
         <View style={styles.pills}>
           {females.map((a) => {
@@ -123,7 +124,9 @@ export function CreateGestationModal({
             {sow.breed?.name ?? "—"} · {t("gestationScreen.matingDate")}
           </Text>
         ) : null}
+      </ModalSection>
 
+      <ModalSection title={t("modals.sections.details")}>
         <Text style={styles.label}>{t("gestationScreen.matingDate")}</Text>
         <TextInput
           style={styles.input}
@@ -176,13 +179,12 @@ export function CreateGestationModal({
           onChangeText={setNotes}
           multiline
         />
-      </View>
+      </ModalSection>
     </BaseModal>
   );
 }
 
 const styles = StyleSheet.create({
-  body: { gap: mobileSpacing.md, paddingBottom: mobileSpacing.lg },
   label: { fontWeight: "600", color: mobileColors.textPrimary },
   input: {
     borderWidth: 1,

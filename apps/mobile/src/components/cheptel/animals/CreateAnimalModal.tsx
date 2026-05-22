@@ -11,12 +11,15 @@ import {
   View
 } from "react-native";
 import { BaseModal } from "../../modals/BaseModal";
+import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
 import {
   createAnimal,
   fetchNextAnimalNumber,
   fetchTaxonomy,
-  postAnimalWeight
+  postAnimalWeight,
+  postPenMove,
+  type AnimalDetail
 } from "../../../lib/api";
 import {
   mobileColors,
@@ -30,11 +33,20 @@ import {
   type CreateAnimalCategoryKey
 } from "./animalUtils";
 
+export type CreateAnimalTargetPen = {
+  penId: string;
+  penName: string;
+  barnId: string;
+  barnName: string;
+};
+
 type Props = {
   visible: boolean;
   farmId: string;
   accessToken: string;
   activeProfileId?: string | null;
+  /** Loge de destination : placement automatique après création. */
+  targetPen?: CreateAnimalTargetPen | null;
   onClose: () => void;
   onCreated: () => void;
 };
@@ -51,6 +63,7 @@ export function CreateAnimalModal({
   farmId,
   accessToken,
   activeProfileId,
+  targetPen,
   onClose,
   onCreated
 }: Props) {
@@ -198,7 +211,18 @@ export function CreateAnimalModal({
         </Pressable>
       }
     >
-      <View style={styles.form}>
+      {targetPen ? (
+        <ModalSection title={t("modals.sections.destination")}>
+          <Text style={styles.placementHint}>
+            {t("cheptel.animals.create.targetPen", {
+              barn: targetPen.barnName,
+              pen: targetPen.penName
+            })}
+          </Text>
+        </ModalSection>
+      ) : null}
+
+      <ModalSection title={t("modals.sections.identification")}>
         <Text style={styles.label}>{t("cheptel.animals.create.category")} *</Text>
         <View style={styles.pillRow}>
           {CATEGORY_OPTIONS.map((key) => (
@@ -277,7 +301,9 @@ export function CreateAnimalModal({
         ) : (
           <Text style={styles.hint}>{t("cheptel.unknownSex")}</Text>
         )}
+      </ModalSection>
 
+      <ModalSection title={t("modals.sections.details")}>
         <Text style={styles.label}>{t("cheptel.animals.create.birthDate")}</Text>
         <TextInput
           style={styles.input}
@@ -304,18 +330,21 @@ export function CreateAnimalModal({
           onChangeText={setNotes}
           multiline
         />
-      </View>
+      </ModalSection>
     </BaseModal>
   );
 }
 
 const styles = StyleSheet.create({
-  form: { gap: mobileSpacing.sm, paddingBottom: mobileSpacing.lg },
+  placementHint: {
+    ...mobileTypography.body,
+    color: mobileColors.textPrimary,
+    fontWeight: "600"
+  },
   label: {
     ...mobileTypography.meta,
     fontWeight: "600",
-    color: mobileColors.textSecondary,
-    marginTop: mobileSpacing.sm
+    color: mobileColors.textSecondary
   },
   hint: {
     ...mobileTypography.meta,

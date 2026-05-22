@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     width: "100%"
   },
   sheet: {
-    backgroundColor: mobileColors.background,
+    backgroundColor: mobileColors.canvas,
     borderTopLeftRadius: SHEET_TOP_RADIUS,
     borderTopRightRadius: SHEET_TOP_RADIUS,
     paddingHorizontal: mobileSpacing.lg,
@@ -333,7 +333,8 @@ const styles = StyleSheet.create({
     flexShrink: 1
   },
   scrollContent: {
-    paddingTop: mobileSpacing.xs
+    paddingTop: mobileSpacing.xs,
+    gap: mobileSpacing.md
   },
   footerPrimary: {
     marginTop: mobileSpacing.md

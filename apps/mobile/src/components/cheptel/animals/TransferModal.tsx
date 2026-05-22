@@ -11,6 +11,7 @@ import {
   View
 } from "react-native";
 import { BaseModal } from "../../modals/BaseModal";
+import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
 import type { AnimalListItem, BarnDetailDto } from "../../../lib/api";
 import { fetchFarmBarn, fetchFarmBarns, postPenMove } from "../../../lib/api";
@@ -186,7 +187,7 @@ export function TransferModal({
         </Pressable>
       }
     >
-      <View style={styles.form}>
+      <ModalSection title={t("modals.sections.animal")}>
         <Text style={styles.label}>{t("cheptel.animals.transfer.animal")}</Text>
         <View style={styles.pillRow}>
           {animals
@@ -219,7 +220,9 @@ export function TransferModal({
         ) : (
           <Text style={styles.meta}>{t("cheptel.animals.transfer.noSourcePen")}</Text>
         )}
+      </ModalSection>
 
+      <ModalSection title={t("modals.sections.destination")}>
         <Text style={styles.label}>{t("cheptel.animals.transfer.destination")}</Text>
         {barnDetailsQuery.isPending ? (
           <ActivityIndicator color={mobileColors.accent} />
@@ -262,7 +265,9 @@ export function TransferModal({
         {capacityWarning === "warn" ? (
           <Text style={styles.warnText}>{t("cheptel.animals.transfer.warnCapacity")}</Text>
         ) : null}
+      </ModalSection>
 
+      <ModalSection title={t("modals.sections.note")}>
         <Text style={styles.label}>{t("cheptel.animals.transfer.note")}</Text>
         <TextInput
           style={[styles.input, styles.multiline]}
@@ -270,18 +275,16 @@ export function TransferModal({
           onChangeText={setNote}
           multiline
         />
-      </View>
+      </ModalSection>
     </BaseModal>
   );
 }
 
 const styles = StyleSheet.create({
-  form: { gap: mobileSpacing.sm, paddingBottom: mobileSpacing.xl },
   label: {
     ...mobileTypography.meta,
     fontWeight: "600",
-    color: mobileColors.textSecondary,
-    marginTop: mobileSpacing.sm
+    color: mobileColors.textSecondary
   },
   meta: { ...mobileTypography.meta, color: mobileColors.textSecondary },
   pillRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },

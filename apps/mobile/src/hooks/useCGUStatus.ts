@@ -9,12 +9,13 @@ export type CguStatusView = {
   acceptedAt: string | null;
 };
 
+/** CGU : une seule acceptation par compte (première connexion ou nouveau compte après suppression). */
 export function resolveCguStatus(authMe: AuthMeResponse | null): CguStatusView {
   if (authMe?.cgu) {
     const { cgu } = authMe;
     return {
       needsAcceptance: cgu.needsAcceptance,
-      isUpdate: cgu.isUpdate,
+      isUpdate: false,
       currentVersion: cgu.currentVersion,
       versionAccepted: cgu.versionAccepted,
       acceptedAt: cgu.acceptedAt
@@ -23,16 +24,10 @@ export function resolveCguStatus(authMe: AuthMeResponse | null): CguStatusView {
   if (authMe?.user) {
     const versionAccepted = authMe.user.cguVersionAccepted;
     const acceptedAt = authMe.user.cguAcceptedAt;
-    const currentVersion = "1.0";
-    const needsAcceptance =
-      !acceptedAt || !versionAccepted || versionAccepted !== currentVersion;
-    const isUpdate = Boolean(
-      acceptedAt && versionAccepted && versionAccepted !== currentVersion
-    );
     return {
-      needsAcceptance,
-      isUpdate,
-      currentVersion,
+      needsAcceptance: acceptedAt == null,
+      isUpdate: false,
+      currentVersion: "1.0",
       versionAccepted,
       acceptedAt
     };

@@ -74,22 +74,21 @@ export class CguService implements OnModuleInit {
     };
   }
 
+  /**
+   * CGU acceptées une seule fois par compte (première connexion).
+   * Nouvelle acceptation uniquement si l'utilisateur a supprimé son compte puis recréé un compte.
+   * Une mise à jour de version des CGU ne déclenche pas de ré-acceptation.
+   */
   buildStatusForUser(user: User, currentVersion: string): CguStatusDto {
     const versionAccepted = user.cguVersionAccepted;
     const acceptedAt = user.cguAcceptedAt;
-    const needsAcceptance =
-      !acceptedAt ||
-      !versionAccepted ||
-      versionAccepted !== currentVersion;
-    const isUpdate = Boolean(
-      acceptedAt && versionAccepted && versionAccepted !== currentVersion
-    );
+    const needsAcceptance = acceptedAt == null;
     return {
       currentVersion,
       acceptedAt: acceptedAt?.toISOString() ?? null,
       versionAccepted,
       needsAcceptance,
-      isUpdate
+      isUpdate: false
     };
   }
 
@@ -108,6 +107,12 @@ export class CguService implements OnModuleInit {
       throw new BadRequestException(
         `Version CGU invalide — version courante : ${current.version}`
       );
+    }
+    const existing = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId }
+    });
+    if (existing.cguAcceptedAt != null) {
+      return this.buildStatusForUser(existing, current.version);
     }
     const user = await this.prisma.user.update({
       where: { id: userId },
