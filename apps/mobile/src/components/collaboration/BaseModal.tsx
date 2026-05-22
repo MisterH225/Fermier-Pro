@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -51,6 +53,10 @@ export function BaseModal({
       onRequestClose={onClose}
     >
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
         <View style={styles.header}>
           <Pressable
             onPress={onClose}
@@ -89,7 +95,9 @@ export function BaseModal({
         </View>
 
         <ScrollView
+          style={styles.flex}
           contentContainerStyle={styles.scroll}
+          automaticallyAdjustKeyboardInsets
           keyboardShouldPersistTaps="handled"
         >
           {children}
@@ -104,6 +112,7 @@ export function BaseModal({
             </Pressable>
           ) : null}
         </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );
@@ -114,6 +123,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: mobileColors.background
   },
+  flex: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",

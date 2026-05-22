@@ -70,6 +70,9 @@ model User {
   isOnboarded           Boolean              @default(false)
   /// Producteur : a quitté l’onboarding sans compléter (bannière + états vides).
   onboardingSkipped     Boolean              @default(false)
+  /// Acceptation des CGU (obligatoire avant utilisation de l''app).
+  cguAcceptedAt         DateTime?
+  cguVersionAccepted    String?
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
   profiles              Profile[]
@@ -145,6 +148,11 @@ model Farm {
   housingBuildingsCount Int?
   housingPensPerBuilding Int?
   housingMaxPigsPerPen   Int?
+  /// Derniers numéros de tag par préfixe (Trui, Ver, Eng, Dem).
+  lastTruiTagNumber      Int                @default(0)
+  lastVerTagNumber       Int                @default(0)
+  lastEngTagNumber       Int                @default(0)
+  lastDemTagNumber       Int                @default(0)
   latitude     Decimal?
   longitude    Decimal?
   address      String?
@@ -180,6 +188,8 @@ model Farm {
   farmBudgets          FarmBudget[]
   farmBudgetSuggestions FarmBudgetSuggestion[]
   gmqSettings          FarmGmqSettings[]
+  gestations           Gestation[]
+  gestationSettings    GestationSettings?
 }
 
 /// Objectifs GMQ / poids cible par catégorie (ferme).
@@ -528,9 +538,27 @@ enum AnimalSex {
   unknown
 }
 
+enum AnimalProductionCategory {
+  breeding_female
+  breeding_male
+  fattening
+  starter
+  unknown
+}
+
 enum AnimalOrigin {
   farm_born
   purchased
+}
+
+/// Version et texte des conditions générales d''utilisation (ligne unique `current`).
+model CguSettings {
+  id             String   @id @default("current")
+  currentVersion String
+  content        String   @db.Text
+  contentUrl     String?
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
 }
 
 model Species {
@@ -567,6 +595,7 @@ model Animal {
   publicId  String    @unique @default(cuid())
   tagCode   String?
   sex       AnimalSex @default(unknown)
+  productionCategory AnimalProductionCategory @default(unknown)
   birthDate DateTime?
   /// Mise bas prévue (truies / suivi reproduction) — alimente le dashboard gestations.
   expectedFarrowingAt DateTime?
@@ -586,8 +615,19 @@ model Animal {
   penPlacements    PenPlacement[]
   livestockExits   LivestockExit[]
   farmTasks        FarmTask[]
+  gestationsAsSow  Gestation[] @relation("GestationSow")
+  gestationsAsBoar Gestation[] @relation("GestationBoar")
+  /// Filiation (naissance à la ferme) — truie et verrat reproducteurs de la même exploitation.
+  damId            String?
+  dam              Animal?   @relation("AnimalDam", fields: [damId], references: [id], onDelete: SetNull)
+  sireId           String?
+  sire             Animal?   @relation("AnimalSire", fields: [sireId], references: [id], onDelete: SetNull)
+  offspringAsDam   Animal[]  @relation("AnimalDam")
+  offspringAsSire  Animal[]  @relation("AnimalSire")
 
   @@index([farmId])
+  @@index([damId])
+  @@index([sireId])
   @@index([farmId, status])
   @@index([farmId, expectedFarrowingAt])
   @@index([speciesId])
@@ -685,20 +725,33 @@ model Barn {
   @@index([farmId])
 }
 
+enum PenCategory {
+  starter
+  fattening
+  maternity
+  quarantine
+  mixed
+  empty
+}
+
 model Pen {
-  id         String   @id @default(cuid())
-  barnId     String
-  barn       Barn     @relation(fields: [barnId], references: [id], onDelete: Cascade)
-  name       String
-  code       String?
-  zoneLabel  String?
-  capacity   Int?
-  status     String   @default("active")
-  sortOrder  Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  placements PenPlacement[]
-  logs       PenLog[]
+  id               String       @id @default(cuid())
+  barnId           String
+  barn             Barn         @relation(fields: [barnId], references: [id], onDelete: Cascade)
+  name             String
+  code             String?
+  zoneLabel        String?
+  capacity         Int?
+  status           String       @default("active")
+  category         PenCategory?
+  categoryForced   Boolean      @default(false)
+  averageWeightKg  Decimal?     @db.Decimal(10, 3)
+  averageAgeDays   Int?
+  sortOrder        Int          @default(0)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  placements       PenPlacement[]
+  logs             PenLog[]
 
   @@index([barnId])
 }
@@ -1277,4 +1330,115 @@ model FarmReport {
   createdByUserId String?
 
   @@index([farmId, generatedAt])
+}
+
+enum GestationStatus {
+  active
+  completed
+  aborted
+  lost
+}
+
+enum MatingType {
+  natural
+  artificial_insemination
+}
+
+enum GestationDeliveryType {
+  normal
+  difficult
+  cesarean
+}
+
+enum GestationVaccineStatus {
+  pending
+  done
+  overdue
+  skipped
+}
+
+model Gestation {
+  id                String          @id @default(cuid())
+  farmId            String
+  farm              Farm            @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  sowId             String
+  sow               Animal          @relation("GestationSow", fields: [sowId], references: [id], onDelete: Restrict)
+  boarId            String?
+  boar              Animal?         @relation("GestationBoar", fields: [boarId], references: [id], onDelete: SetNull)
+  matingType        MatingType
+  matingDate        DateTime
+  expectedBirthDate DateTime
+  actualBirthDate   DateTime?
+  gestationNumber   Int             @default(1)
+  status            GestationStatus @default(active)
+  notes             String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  litter            Litter?
+  vaccines          GestationVaccine[]
+  checklistItems    GestationChecklistItem[]
+
+  @@index([farmId, status])
+  @@index([farmId, expectedBirthDate])
+  @@index([sowId])
+}
+
+model Litter {
+  id                   String                 @id @default(cuid())
+  gestationId          String                 @unique
+  gestation            Gestation              @relation(fields: [gestationId], references: [id], onDelete: Cascade)
+  farmId               String
+  bornAlive            Int
+  stillborn            Int                    @default(0)
+  mummified            Int                    @default(0)
+  averageBirthWeightKg Decimal?               @db.Decimal(10, 3)
+  deliveryType         GestationDeliveryType  @default(normal)
+  vetAssistance        Boolean                @default(false)
+  weaningDate          DateTime?
+  starterBatchId       String?
+  notes                String?
+  recordedAt           DateTime               @default(now())
+  createdAt            DateTime               @default(now())
+
+  @@index([farmId])
+}
+
+model GestationVaccine {
+  id                    String                 @id @default(cuid())
+  gestationId           String
+  gestation             Gestation              @relation(fields: [gestationId], references: [id], onDelete: Cascade)
+  vaccineName           String
+  scheduledDate         DateTime
+  administeredDate      DateTime?
+  status                GestationVaccineStatus @default(pending)
+  linkedHealthRecordId  String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  @@index([gestationId])
+  @@index([gestationId, status])
+}
+
+model GestationChecklistItem {
+  id          String    @id @default(cuid())
+  gestationId String
+  gestation   Gestation @relation(fields: [gestationId], references: [id], onDelete: Cascade)
+  itemLabel   String
+  isChecked   Boolean   @default(false)
+  checkedAt   DateTime?
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  @@index([gestationId])
+}
+
+model GestationSettings {
+  id                    String   @id @default(cuid())
+  farmId                String   @unique
+  farm                  Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  gestationDurationDays Int      @default(114)
+  weaningDurationDays   Int      @default(28)
+  vaccineSchedule       Json
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }

@@ -7,6 +7,7 @@ import { LivestockService } from "./livestock.service";
 import { LivestockStatusLogService } from "./livestock-status-log.service";
 import { TaxonomyController } from "./taxonomy.controller";
 import { TaxonomyService } from "./taxonomy.service";
+import { AnimalProductionTagsService } from "./animal-production-tags.service";
 
 @Module({
   imports: [AuthModule],
@@ -15,8 +16,9 @@ import { TaxonomyService } from "./taxonomy.service";
     LivestockStatusLogService,
     LivestockService,
     BatchesService,
-    TaxonomyService
+    TaxonomyService,
+    AnimalProductionTagsService
   ],
-  exports: [TaxonomyService, LivestockService]
+  exports: [TaxonomyService, LivestockService, AnimalProductionTagsService]
 })
 export class LivestockModule {}

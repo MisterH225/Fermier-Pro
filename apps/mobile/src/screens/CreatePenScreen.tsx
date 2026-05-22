@@ -89,7 +89,6 @@ export function CreatePenScreen({ route, navigation }: Props) {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.content}
       >
-        <Text style={styles.hint}>{farmName}</Text>
         <Text style={styles.barnHint}>{barnName ?? "Bâtiment"}</Text>
 
         <Text style={styles.label}>Nom de la loge</Text>

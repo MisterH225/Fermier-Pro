@@ -12,7 +12,6 @@ import {
   shouldPersistQuery
 } from "../lib/queryPersist";
 import { queryClient } from "../lib/queryClient";
-import { isDemoBypassToken } from "../lib/demoBypass";
 import { AppModalsLayer } from "./modals";
 import { ModalProvider } from "../context/ModalContext";
 import { OnboardingResumeProvider } from "../context/OnboardingResumeContext";
@@ -22,6 +21,8 @@ import {
   shouldShowOnboardingScreen
 } from "../lib/onboardingState";
 import { MainNavigationShell } from "./MainNavigationShell";
+import { useCGUStatus } from "../hooks/useCGUStatus";
+import { CGUScreen } from "../screens/onboarding/CGUScreen";
 import { FirstConnectionProfileScreen } from "../screens/FirstConnectionProfileScreen";
 import { OnboardingScreen } from "../screens/onboarding/OnboardingScreen";
 
@@ -39,9 +40,9 @@ function AuthenticatedAppShellInner() {
     refreshAuthMe
   } = useSession();
   const { resumeActive } = useOnboardingResume();
-  const demo = isDemoBypassToken(accessToken);
+  const cguStatus = useCGUStatus(authMe);
 
-  if (!demo && authLoading) {
+  if (authLoading) {
     return (
       <View style={styles.loaderWrap}>
         <ActivityIndicator size="large" color="#1B3B2E" />
@@ -49,7 +50,7 @@ function AuthenticatedAppShellInner() {
     );
   }
 
-  if (!demo && authError && !authMe) {
+  if (authError && !authMe) {
     return (
       <View style={styles.loaderWrap}>
         <Text style={styles.errText}>{authError}</Text>
@@ -60,16 +61,23 @@ function AuthenticatedAppShellInner() {
     );
   }
 
-  if (!demo && authMe && authMe.profiles.length === 0) {
+  if (authMe && cguStatus.needsAcceptance) {
+    return (
+      <CGUScreen
+        isUpdate={cguStatus.isUpdate}
+        onAccepted={() => {
+          void refreshAuthMe();
+        }}
+      />
+    );
+  }
+
+  if (authMe && authMe.profiles.length === 0) {
     return <FirstConnectionProfileScreen />;
   }
 
   const onboardingState = getProducerOnboardingState(authMe, activeProfileId);
-  if (
-    !demo &&
-    authMe &&
-    shouldShowOnboardingScreen(onboardingState, resumeActive)
-  ) {
+  if (authMe && shouldShowOnboardingScreen(onboardingState, resumeActive)) {
     return (
       <OnboardingScreen
         onFinished={() => {
@@ -79,29 +87,29 @@ function AuthenticatedAppShellInner() {
     );
   }
 
-  return (
-    <PersistQueryClientProvider
-      client={queryClient}
-      persistOptions={{
-        persister: asyncStoragePersister,
-        maxAge: 1000 * 60 * 60 * 24,
-        dehydrateOptions: {
-          shouldDehydrateQuery: shouldPersistQuery
-        }
-      }}
-    >
-      <ModalProvider>
-        <MainNavigationShell />
-        <AppModalsLayer />
-      </ModalProvider>
-    </PersistQueryClientProvider>
-  );
+  return <MainNavigationShell />;
 }
+
+const queryPersistOptions = {
+  persister: asyncStoragePersister,
+  maxAge: 1000 * 60 * 60 * 24,
+  dehydrateOptions: {
+    shouldDehydrateQuery: shouldPersistQuery
+  }
+} as const;
 
 export function AuthenticatedAppShell() {
   return (
     <OnboardingResumeProvider>
-      <AuthenticatedAppShellInner />
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={queryPersistOptions}
+      >
+        <ModalProvider>
+          <AuthenticatedAppShellInner />
+          <AppModalsLayer />
+        </ModalProvider>
+      </PersistQueryClientProvider>
     </OnboardingResumeProvider>
   );
 }

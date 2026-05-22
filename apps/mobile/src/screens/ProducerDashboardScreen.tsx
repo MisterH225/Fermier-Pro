@@ -14,12 +14,11 @@ import {
   View
 } from "react-native";
 import { MobileAppShell } from "../components/layout";
+import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
 import { SmartAlertsSection } from "../components/smartAlerts/SmartAlertsSection";
 import { AlertBadge } from "../components/smartAlerts/AlertBadge";
-import {
-  SmartChart,
-  financeMonthsToRevExpLines
-} from "../components/charts";
+
+import { FinanceOverviewKpiGrid } from "../components/finance/FinanceOverviewKpiGrid";
 import { EmptyStateCard } from "../components/common/EmptyStateCard";
 import { OnboardingBanner } from "../components/onboarding/OnboardingBanner";
 import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
@@ -30,15 +29,15 @@ import { useProducerBottomChromePad } from "../context/ProducerBottomChromeConte
 import { useSession } from "../context/SessionContext";
 import {
   fetchDashboardFeedStock,
-  fetchDashboardFinanceTimeseries,
+  fetchFinanceOverview,
   fetchDashboardGestations,
   fetchDashboardHealth,
   fetchFarmSmartAlertsCount,
   fetchFarms,
   postFarmSmartAlertsRefresh,
   type DashboardFeedStockItemDto,
-  type DashboardFinanceMonthPoint,
   type DashboardGestationItemDto,
+  type FinanceOverviewDto,
   type DashboardHealthDto
 } from "../lib/api";
 import { welcomeFirstName } from "../lib/userDisplay";
@@ -50,15 +49,6 @@ import {
   mobileTypography
 } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
-
-function formatMonthShort(isoMonth: string, locale: string): string {
-  const [y, m] = isoMonth.split("-").map((x) => Number(x));
-  if (!y || !m) {
-    return isoMonth;
-  }
-  const d = new Date(Date.UTC(y, m - 1, 1));
-  return d.toLocaleDateString(locale, { month: "short", year: "2-digit" });
-}
 
 function formatMoney(n: number, locale: string): string {
   try {
@@ -86,6 +76,7 @@ function formatDay(iso: string | null | undefined, locale: string): string {
 
 /**
  * Tableau de bord producteur : cartes pilotées par l’API (aucune donnée locale fictive).
+ * Finance : grille KPI via FinanceOverviewKpiGrid (plus de SmartChart ici).
  */
 export function ProducerDashboardScreen() {
   const { t, i18n } = useTranslation();
@@ -106,8 +97,6 @@ export function ProducerDashboardScreen() {
   const showOnboardingBanner = onboardingState === "skipped";
   const [profileOpen, setProfileOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [financeChartW, setFinanceChartW] = useState(280);
-
   const user = authMe?.user;
   const firstName = useMemo(() => welcomeFirstName(user), [user]);
 
@@ -148,13 +137,9 @@ export function ProducerDashboardScreen() {
   );
 
   const financeQuery = useQuery({
-    queryKey: ["dashboardFinance", farmId, activeProfileId],
+    queryKey: ["financeOverview", farmId, activeProfileId],
     queryFn: () =>
-      fetchDashboardFinanceTimeseries(
-        accessToken!,
-        farmId!,
-        activeProfileId
-      ),
+      fetchFinanceOverview(accessToken!, farmId!, activeProfileId),
     enabled: financeEnabled,
     refetchInterval: 60_000
   });
@@ -350,22 +335,17 @@ export function ProducerDashboardScreen() {
             <>
             <View style={styles.grid}>
               <View style={styles.gridItem}>
-                <FinanceCard
+                <FinanceOverviewKpiGrid
                   enabled={financeEnabled}
-                  months={financeQuery.data?.months}
+                  overview={financeQuery.data as FinanceOverviewDto | undefined}
                   isPending={financeQuery.isPending}
                   error={
                     financeQuery.error instanceof Error
                       ? financeQuery.error.message
                       : null
                   }
-                  chartWidth={financeChartW}
-                  onLayoutChart={(w) => setFinanceChartW(w)}
-                  locale={locale}
-                  title={t("producer.dashboard.financeTitle")}
+                  sectionTitle={t("producer.dashboard.financeTitle")}
                   disabledHint={t("producer.dashboard.financeDisabled")}
-                  legendExpense={t("producer.dashboard.legendExpenses")}
-                  legendRevenue={t("producer.dashboard.legendRevenues")}
                   onPress={() =>
                     navigation.navigate("FarmFinance", { farmId, farmName })
                   }
@@ -441,6 +421,19 @@ export function ProducerDashboardScreen() {
               accessToken={accessToken!}
               activeProfileId={activeProfileId}
             />
+            <ModuleAIInsights
+              farmId={farmId}
+              module="global_dashboard"
+              accessToken={accessToken}
+              activeProfileId={activeProfileId}
+            />
+            <ModuleAIInsights
+              farmId={farmId}
+              module="gestation"
+              accessToken={accessToken}
+              activeProfileId={activeProfileId}
+              hasMinimalData={(gestationsQuery.data?.items?.length ?? 0) > 0}
+            />
           </>
           )}
         </ScrollView>
@@ -484,82 +477,6 @@ function CardShell({
       </View>
       {children}
     </Pressable>
-  );
-}
-
-function FinanceCard({
-  enabled,
-  months,
-  isPending,
-  error,
-  chartWidth,
-  onLayoutChart,
-  locale,
-  title,
-  disabledHint,
-  legendExpense,
-  legendRevenue,
-  onPress
-}: {
-  enabled: boolean;
-  months: DashboardFinanceMonthPoint[] | undefined;
-  isPending: boolean;
-  error: string | null;
-  chartWidth: number;
-  onLayoutChart: (w: number) => void;
-  locale: string;
-  title: string;
-  disabledHint: string;
-  legendExpense: string;
-  legendRevenue: string;
-  onPress: () => void;
-}) {
-  if (!enabled) {
-    return (
-      <CardShell emoji="💰" title={title} onPress={onPress} disabled>
-        <Text style={styles.muted}>{disabledHint}</Text>
-      </CardShell>
-    );
-  }
-  if (isPending && !months) {
-    return (
-      <CardShell emoji="💰" title={title} onPress={onPress}>
-        <ActivityIndicator color={mobileColors.accent} />
-      </CardShell>
-    );
-  }
-  if (error) {
-    return (
-      <CardShell emoji="💰" title={title} onPress={onPress}>
-        <Text style={styles.errSmall}>{error}</Text>
-      </CardShell>
-    );
-  }
-  const pts = months ?? [];
-  return (
-    <CardShell emoji="💰" title={title} onPress={onPress}>
-      <View
-        onLayout={(e) => onLayoutChart(e.nativeEvent.layout.width)}
-        style={styles.chartBox}
-      >
-        {pts.length > 0 ? (
-          <SmartChart
-            lines={financeMonthsToRevExpLines(
-              pts.map((m) => ({
-                month: m.month,
-                revenues: Number(m.revenues),
-                expenses: Number(m.expenses)
-              })),
-              legendRevenue,
-              legendExpense
-            )}
-            period="3M"
-            monthLabel={(iso) => formatMonthShort(iso, locale)}
-            formatValue={(n) => formatMoney(n, locale)}
-          />
-        ) : null}
-      </View>
-    </CardShell>
   );
 }
 
@@ -903,44 +820,6 @@ const styles = StyleSheet.create({
   errSmall: {
     ...mobileTypography.meta,
     color: mobileColors.error
-  },
-  chartBox: {
-    width: "100%",
-    minHeight: 112,
-    marginBottom: mobileSpacing.xs
-  },
-  legendRow: {
-    flexDirection: "row",
-    gap: mobileSpacing.md,
-    marginBottom: mobileSpacing.xs
-  },
-  legendItem: { flexDirection: "row", alignItems: "center", gap: 4 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary,
-    fontSize: 10
-  },
-  monthRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: mobileSpacing.xs
-  },
-  monthCol: { flex: 1 },
-  monthLab: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary,
-    fontSize: 10
-  },
-  monthExp: {
-    ...mobileTypography.meta,
-    color: mobileColors.error,
-    fontSize: 11
-  },
-  monthRev: {
-    ...mobileTypography.meta,
-    color: mobileColors.success,
-    fontSize: 11
   },
   gestList: { gap: mobileSpacing.sm },
   gestRow: {

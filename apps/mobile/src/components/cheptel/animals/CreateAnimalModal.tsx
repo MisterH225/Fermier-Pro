@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -13,9 +12,9 @@ import {
 } from "react-native";
 import { BaseModal } from "../../modals/BaseModal";
 import { useModal } from "../../modals/useModal";
-import type { AnimalListItem } from "../../../lib/api";
 import {
   createAnimal,
+  fetchNextAnimalNumber,
   fetchTaxonomy,
   postAnimalWeight
 } from "../../../lib/api";
@@ -25,30 +24,41 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../../theme/mobileTheme";
-import { suggestNextTagCode } from "./animalUtils";
+import {
+  defaultSexForCategory,
+  tagPrefixForCategory,
+  type CreateAnimalCategoryKey
+} from "./animalUtils";
 
 type Props = {
   visible: boolean;
   farmId: string;
   accessToken: string;
   activeProfileId?: string | null;
-  animals: AnimalListItem[];
   onClose: () => void;
   onCreated: () => void;
 };
+
+const CATEGORY_OPTIONS: CreateAnimalCategoryKey[] = [
+  "breeding_female",
+  "breeding_male",
+  "fattening",
+  "starter"
+];
 
 export function CreateAnimalModal({
   visible,
   farmId,
   accessToken,
   activeProfileId,
-  animals,
   onClose,
   onCreated
 }: Props) {
   const { t } = useTranslation();
   const { open } = useModal();
 
+  const [category, setCategory] =
+    useState<CreateAnimalCategoryKey>("breeding_female");
   const [tagCode, setTagCode] = useState("");
   const [breedId, setBreedId] = useState<string | null>(null);
   const [sex, setSex] = useState<"male" | "female">("female");
@@ -56,16 +66,44 @@ export function CreateAnimalModal({
   const [entryWeight, setEntryWeight] = useState("");
   const [notes, setNotes] = useState("");
 
+  const tagPrefix = tagPrefixForCategory(category);
+  const isBreeder =
+    category === "breeding_female" || category === "breeding_male";
+
+  const nextTagQuery = useQuery({
+    queryKey: ["nextAnimalNumber", farmId, tagPrefix, activeProfileId],
+    queryFn: () =>
+      fetchNextAnimalNumber(accessToken, farmId, tagPrefix, activeProfileId),
+    enabled: visible
+  });
+
   useEffect(() => {
-    if (visible) {
-      setTagCode(suggestNextTagCode(animals));
-      setBreedId(null);
-      setSex("female");
-      setBirthDate("");
-      setEntryWeight("");
-      setNotes("");
+    if (!visible) {
+      return;
     }
-  }, [visible, animals]);
+    setCategory("breeding_female");
+    setBreedId(null);
+    setBirthDate("");
+    setEntryWeight("");
+    setNotes("");
+    setSex("female");
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+    const d = defaultSexForCategory(category);
+    if (d === "female" || d === "male") {
+      setSex(d);
+    }
+  }, [category, visible]);
+
+  useEffect(() => {
+    if (nextTagQuery.data?.tagCode) {
+      setTagCode(nextTagQuery.data.tagCode);
+    }
+  }, [nextTagQuery.data?.tagCode]);
 
   const taxonomyQuery = useQuery({
     queryKey: ["taxonomy", activeProfileId],
@@ -80,19 +118,34 @@ export function CreateAnimalModal({
 
   const breeds = porcSpecies?.breeds ?? [];
 
+  const categoryLabel = (key: CreateAnimalCategoryKey): string => {
+    switch (key) {
+      case "breeding_female":
+        return t("cheptel.animals.create.categoryTrui");
+      case "breeding_male":
+        return t("cheptel.animals.create.categoryVer");
+      case "fattening":
+        return t("cheptel.animals.create.categoryEng");
+      case "starter":
+        return t("cheptel.animals.create.categoryDem");
+    }
+  };
+
   const saveMut = useMutation({
     mutationFn: async () => {
       const tag = tagCode.trim();
       if (!tag) {
         throw new Error(t("cheptel.animals.create.tagRequired"));
       }
+      const payloadSex = isBreeder ? sex : ("unknown" as const);
       const created = await createAnimal(
         accessToken,
         farmId,
         {
           tagCode: tag,
           breedId: breedId ?? undefined,
-          sex,
+          sex: payloadSex,
+          productionCategory: category,
           birthDate: birthDate.trim() || undefined,
           notes: notes.trim() || undefined,
           speciesId: porcSpecies?.id
@@ -133,7 +186,7 @@ export function CreateAnimalModal({
         <Pressable
           style={[styles.primaryBtn, saveMut.isPending && styles.btnDisabled]}
           onPress={() => saveMut.mutate()}
-          disabled={saveMut.isPending}
+          disabled={saveMut.isPending || nextTagQuery.isPending}
         >
           {saveMut.isPending ? (
             <ActivityIndicator color="#fff" />
@@ -145,17 +198,38 @@ export function CreateAnimalModal({
         </Pressable>
       }
     >
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.form}
-      >
+      <View style={styles.form}>
+        <Text style={styles.label}>{t("cheptel.animals.create.category")} *</Text>
+        <View style={styles.pillRow}>
+          {CATEGORY_OPTIONS.map((key) => (
+            <Pressable
+              key={key}
+              style={[styles.pill, category === key && styles.pillOn]}
+              onPress={() => setCategory(key)}
+            >
+              <Text
+                style={[
+                  styles.pillText,
+                  category === key && styles.pillTextOn
+                ]}
+              >
+                {categoryLabel(key)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
         <Text style={styles.label}>{t("cheptel.animals.create.tag")} *</Text>
-        <TextInput
-          style={styles.input}
-          value={tagCode}
-          onChangeText={setTagCode}
-          autoCapitalize="characters"
-        />
+        {nextTagQuery.isPending ? (
+          <ActivityIndicator color={mobileColors.accent} />
+        ) : (
+          <TextInput
+            style={styles.input}
+            value={tagCode}
+            onChangeText={setTagCode}
+            autoCapitalize="characters"
+          />
+        )}
 
         <Text style={styles.label}>{t("cheptel.animals.create.breed")} *</Text>
         {taxonomyQuery.isPending ? (
@@ -181,22 +255,28 @@ export function CreateAnimalModal({
           </View>
         )}
 
-        <Text style={styles.label}>{t("cheptel.animals.create.sex")} *</Text>
-        <View style={styles.pillRow}>
-          {(["female", "male"] as const).map((s) => (
-            <Pressable
-              key={s}
-              style={[styles.pill, sex === s && styles.pillOn]}
-              onPress={() => setSex(s)}
-            >
-              <Text style={[styles.pillText, sex === s && styles.pillTextOn]}>
-                {s === "male"
-                  ? t("cheptel.animals.sexMale")
-                  : t("cheptel.animals.sexFemale")}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        {isBreeder ? (
+          <>
+            <Text style={styles.label}>{t("cheptel.animals.create.sex")} *</Text>
+            <View style={styles.pillRow}>
+              {(["female", "male"] as const).map((s) => (
+                <Pressable
+                  key={s}
+                  style={[styles.pill, sex === s && styles.pillOn]}
+                  onPress={() => setSex(s)}
+                >
+                  <Text style={[styles.pillText, sex === s && styles.pillTextOn]}>
+                    {s === "male"
+                      ? t("cheptel.animals.sexMale")
+                      : t("cheptel.animals.sexFemale")}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        ) : (
+          <Text style={styles.hint}>{t("cheptel.unknownSex")}</Text>
+        )}
 
         <Text style={styles.label}>{t("cheptel.animals.create.birthDate")}</Text>
         <TextInput
@@ -224,7 +304,7 @@ export function CreateAnimalModal({
           onChangeText={setNotes}
           multiline
         />
-      </ScrollView>
+      </View>
     </BaseModal>
   );
 }
@@ -236,6 +316,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: mobileColors.textSecondary,
     marginTop: mobileSpacing.sm
+  },
+  hint: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    fontStyle: "italic"
   },
   input: {
     borderWidth: 1,

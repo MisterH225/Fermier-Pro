@@ -169,7 +169,8 @@ export function AnimalList({
         accessToken={accessToken}
         activeProfileId={activeProfileId}
         onClose={() => setDetailAnimal(null)}
-        onEdit={(a) => {
+        onUpdated={onInvalidate}
+        onOpenFullRecord={(a) => {
           setDetailAnimal(null);
           onOpenAnimalScreen(a);
         }}
@@ -193,7 +194,6 @@ export function AnimalList({
         farmId={farmId}
         accessToken={accessToken}
         activeProfileId={activeProfileId}
-        animals={animals}
         onClose={() => setCreateOpen(false)}
         onCreated={onInvalidate}
       />

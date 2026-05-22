@@ -140,8 +140,6 @@ export function EditFarmRevenueScreen({ route, navigation }: Props) {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.content}
       >
-        <Text style={styles.hint}>{farmName}</Text>
-
         <Text style={styles.label}>Montant (XOF par défaut)</Text>
         <TextInput
           style={styles.input}

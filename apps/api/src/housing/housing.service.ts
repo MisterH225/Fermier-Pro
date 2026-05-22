@@ -227,13 +227,36 @@ export class HousingService {
         ...(dto.zoneLabel !== undefined ? { zoneLabel: dto.zoneLabel } : {}),
         ...(dto.capacity !== undefined ? { capacity: dto.capacity } : {}),
         ...(dto.status !== undefined ? { status: dto.status } : {}),
-        ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {})
+        ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),
+        ...(dto.category !== undefined ? { category: dto.category } : {}),
+        ...(dto.categoryForced !== undefined
+          ? { categoryForced: dto.categoryForced }
+          : {}),
+        ...(dto.averageWeightKg !== undefined
+          ? {
+              averageWeightKg:
+                dto.averageWeightKg == null
+                  ? null
+                  : new Prisma.Decimal(dto.averageWeightKg)
+            }
+          : {}),
+        ...(dto.averageAgeDays !== undefined
+          ? { averageAgeDays: dto.averageAgeDays }
+          : {})
       }
     });
   }
 
   async deletePen(user: User, farmId: string, penId: string) {
     await this.requirePenInFarm(user.id, farmId, penId);
+    const active = await this.prisma.penPlacement.count({
+      where: { penId, endedAt: null }
+    });
+    if (active > 0) {
+      throw new BadRequestException(
+        "Transférez les animaux avant de supprimer cette loge."
+      );
+    }
     await this.prisma.pen.delete({ where: { id: penId } });
   }
 

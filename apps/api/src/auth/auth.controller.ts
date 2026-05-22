@@ -1,15 +1,23 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Patch,
+  Post,
   Req,
   UseGuards
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import type { User } from "@prisma/client";
 import type { Decimal } from "@prisma/client/runtime/library";
 import type { Request } from "express";
 import { PrismaService } from "../prisma/prisma.service";
+import { CguService } from "../cgu/cgu.service";
+import { AcceptCguDto } from "../cgu/dto/accept-cgu.dto";
+import { AccountDeletionService } from "./account-deletion.service";
 import { AuthService } from "./auth.service";
 import { CurrentUser } from "./decorators/current-user.decorator";
 import { UpdateMeProfileDto } from "./dto/update-me-profile.dto";
@@ -27,13 +35,44 @@ function decimalToNumber(value: Decimal | null | undefined): number | null {
 export class AuthController {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly authService: AuthService
+    private readonly authService: AuthService,
+    private readonly accountDeletion: AccountDeletionService,
+    private readonly cgu: CguService
   ) {}
 
   @Get("me")
   @UseGuards(SupabaseJwtGuard, OptionalActiveProfileGuard)
   async me(@CurrentUser() user: User, @Req() req: Request) {
     return this.buildMeResponse(user, req);
+  }
+
+  @Delete("me/account")
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 1, ttl: 60_000 } })
+  @UseGuards(SupabaseJwtGuard)
+  async deleteMyAccount(@CurrentUser() user: User) {
+    await this.accountDeletion.deleteAccount(user);
+    return { ok: true };
+  }
+
+  @Post("me/accept-cgu")
+  @UseGuards(SupabaseJwtGuard)
+  async acceptCgu(
+    @CurrentUser() user: User,
+    @Body() dto: AcceptCguDto,
+    @Req() req: Request
+  ) {
+    await this.cgu.acceptCgu(user.id, dto.version);
+    const fresh = await this.prisma.user.findUniqueOrThrow({
+      where: { id: user.id }
+    });
+    return this.buildMeResponse(fresh, req);
+  }
+
+  @Get("me/cgu-status")
+  @UseGuards(SupabaseJwtGuard)
+  async meCguStatus(@CurrentUser() user: User) {
+    return this.cgu.getStatusForUser(user.id);
   }
 
   @Patch("me/profile")
@@ -65,7 +104,11 @@ export class AuthController {
       where: { userId: user.id }
     });
 
+    const cguCurrent = await this.cgu.getCurrent();
+    const cguStatus = this.cgu.buildStatusForUser(user, cguCurrent.version);
+
     return {
+      cgu: cguStatus,
       user: {
         id: user.id,
         supabaseUserId: user.supabaseUserId,
@@ -84,7 +127,9 @@ export class AuthController {
         notificationsEnabled: user.notificationsEnabled,
         pushNotificationsRegistered: pushDeviceCount > 0,
         isOnboarded: user.isOnboarded,
-        onboardingSkipped: user.onboardingSkipped
+        onboardingSkipped: user.onboardingSkipped,
+        cguAcceptedAt: user.cguAcceptedAt?.toISOString() ?? null,
+        cguVersionAccepted: user.cguVersionAccepted
       },
       primaryFarm,
       profiles: profiles.map((p) => ({

@@ -41,6 +41,11 @@ export const mobileTypography = {
     lineHeight: 22,
     fontWeight: "600" as const
   },
+  sectionTitle: {
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: "700" as const
+  },
   body: {
     fontSize: 15,
     lineHeight: 21,

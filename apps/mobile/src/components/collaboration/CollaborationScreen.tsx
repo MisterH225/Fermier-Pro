@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ScreenSection } from "../layout/ScreenSection";
 import { TabContent, TabSelector } from "../tabs";
 import { useSession } from "../../context/SessionContext";
 import { fetchFarmMembers } from "../../lib/api";
@@ -49,22 +50,10 @@ export function CollaborationScreen({ farmId, farmName }: Props) {
     );
   }
 
-  const header = (
-    <View style={styles.pageHeader}>
-      <Text style={styles.pageTitle}>{t("collab.screenTitle")}</Text>
-      {farmName ? (
-        <Text style={styles.farmSubtitle} numberOfLines={1}>
-          {farmName}
-        </Text>
-      ) : null}
-    </View>
-  );
-
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
+    <SafeAreaView style={styles.safe} edges={[]}>
       <TabSelector
         defaultTab="invite"
-        header={header}
         tabs={[
           {
             key: "invite",
@@ -76,10 +65,9 @@ export function CollaborationScreen({ farmId, farmName }: Props) {
                 contentContainerStyle={styles.scrollPad}
               >
                 <TabContent>
-                  <Text style={styles.sectionLabel}>
-                    {t("collab.inviteSectionTitle")}
-                  </Text>
-                  <InviteSection farmId={farmId} farmName={farmName} />
+                  <ScreenSection title={t("collab.inviteSectionTitle")}>
+                    <InviteSection farmId={farmId} farmName={farmName} />
+                  </ScreenSection>
                 </TabContent>
               </ScrollView>
             )
@@ -94,7 +82,9 @@ export function CollaborationScreen({ farmId, farmName }: Props) {
                 contentContainerStyle={styles.scrollPad}
               >
                 <TabContent>
-                  <MembersList farmId={farmId} farmName={farmName} />
+                  <ScreenSection title={t("collab.tabMembers")}>
+                    <MembersList farmId={farmId} farmName={farmName} />
+                  </ScreenSection>
                 </TabContent>
               </ScrollView>
             )
@@ -109,10 +99,12 @@ export function CollaborationScreen({ farmId, farmName }: Props) {
                 contentContainerStyle={styles.scrollPad}
               >
                 <TabContent>
-                  <ActivityHistory
-                    farmId={farmId}
-                    members={membersQ.data ?? []}
-                  />
+                  <ScreenSection title={t("collab.tabHistory")}>
+                    <ActivityHistory
+                      farmId={farmId}
+                      members={membersQ.data ?? []}
+                    />
+                  </ScreenSection>
                 </TabContent>
               </ScrollView>
             )

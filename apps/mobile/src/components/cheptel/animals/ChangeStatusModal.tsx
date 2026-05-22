@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -142,7 +141,7 @@ export function ChangeStatusModal({
         </Pressable>
       }
     >
-      <ScrollView contentContainerStyle={styles.form}>
+      <View style={styles.form}>
         <View style={styles.statusGrid}>
           {STATUS_OPTIONS.map((opt) => (
             <Pressable
@@ -191,7 +190,7 @@ export function ChangeStatusModal({
           onChangeText={setNote}
           multiline
         />
-      </ScrollView>
+      </View>
     </BaseModal>
   );
 }

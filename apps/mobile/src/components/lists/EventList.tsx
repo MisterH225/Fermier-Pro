@@ -13,6 +13,7 @@ import { BaseModal } from "../modals/BaseModal";
 import { EventListFilter } from "./EventListFilter";
 import { EventListItem } from "./EventListItem";
 import type { EventItem, FilterPill } from "./types";
+import { ScreenSection } from "../layout/ScreenSection";
 import {
   mobileColors,
   mobileRadius,
@@ -124,6 +125,11 @@ export function EventList({
     );
   }, [isLoading, emptyMessage]);
 
+  const filterRow =
+    filters.length > 0 && activeFilterId && onFilterChange ? (
+      <EventListFilter pills={filters} activeId={activeFilterId} onChange={onFilterChange} />
+    ) : null;
+
   const header = (
     <View style={styles.headerBlock}>
       {sectionTitle || sectionRight || onAddPress ? (
@@ -143,17 +149,15 @@ export function EventList({
           </View>
         </View>
       ) : null}
-      {filters.length > 0 && activeFilterId && onFilterChange ? (
-        <EventListFilter pills={filters} activeId={activeFilterId} onChange={onFilterChange} />
-      ) : null}
+      {filterRow}
     </View>
   );
 
   if (layout === "embedded") {
-    return (
-      <View style={styles.embedRoot} testID={testID}>
+    const listBody = (
+      <>
         {prependContent}
-        {header}
+        {!sectionTitle ? header : filterRow ? <View style={styles.headerBlock}>{filterRow}</View> : null}
         {isLoading && !data.length ? (
           <View style={styles.embedPad}>
             {Array.from({ length: 5 }).map((_, i) => (
@@ -177,16 +181,46 @@ export function EventList({
             ) : null}
           </>
         )}
-        {selected && renderDetail ? (
-          <BaseModal
-            visible
-            onClose={() => setSelected(null)}
-            title={selected.title}
-            sheetMaxHeight="88%"
-          >
-            {renderDetail(selected, { close: () => setSelected(null) })}
-          </BaseModal>
-        ) : null}
+      </>
+    );
+
+    const modal =
+      selected && renderDetail ? (
+        <BaseModal
+          visible
+          onClose={() => setSelected(null)}
+          title={selected.title}
+          sheetMaxHeight="88%"
+        >
+          {renderDetail(selected, { close: () => setSelected(null) })}
+        </BaseModal>
+      ) : null;
+
+    if (sectionTitle) {
+      return (
+        <ScreenSection
+          title={sectionTitle}
+          headerRight={
+            <View style={styles.sectionRow}>
+              {sectionRight}
+              {onAddPress ? (
+                <Pressable onPress={onAddPress} hitSlop={8} accessibilityRole="button">
+                  <Text style={styles.addTx}>＋</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          }
+        >
+          {listBody}
+          {modal}
+        </ScreenSection>
+      );
+    }
+
+    return (
+      <View style={styles.embedRoot} testID={testID}>
+        {listBody}
+        {modal}
       </View>
     );
   }
@@ -253,10 +287,7 @@ const styles = StyleSheet.create({
     backgroundColor: LIST_BG
   },
   embedRoot: {
-    backgroundColor: LIST_BG,
-    borderRadius: mobileRadius.lg,
-    padding: mobileSpacing.sm,
-    marginTop: mobileSpacing.sm
+    gap: mobileSpacing.sm
   },
   embedPad: { paddingVertical: mobileSpacing.sm },
   headerBlock: { marginBottom: mobileSpacing.xs },

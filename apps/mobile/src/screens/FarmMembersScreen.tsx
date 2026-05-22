@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLayoutEffect } from "react";
+import { useScreenTitle } from "../hooks/useScreenTitle";
 import {
   ActivityIndicator,
   Alert,
@@ -59,27 +59,24 @@ export function FarmMembersScreen({ route, navigation }: Props) {
     onError: (e: Error) => Alert.alert("Impossible", e.message)
   });
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      title: "Équipe",
-      headerRight: canInvite
-        ? () => (
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("CreateFarmInvitation", {
-                  farmId,
-                  farmName
-                })
-              }
-              style={styles.headerBtn}
-              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
-            >
-              <Text style={styles.headerBtnText}>Inviter</Text>
-            </TouchableOpacity>
-          )
-        : undefined
-    });
-  }, [navigation, farmId, farmName, canInvite]);
+  useScreenTitle(navigation, farmName, {
+    headerRight: canInvite
+      ? () => (
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("CreateFarmInvitation", {
+                farmId,
+                farmName
+              })
+            }
+            style={styles.headerBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+          >
+            <Text style={styles.headerBtnText}>Inviter</Text>
+          </TouchableOpacity>
+        )
+      : undefined
+  });
 
   if (membersQ.isPending) {
     return (
@@ -108,7 +105,6 @@ export function FarmMembersScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.flex}>
-      <Text style={styles.hint}>{farmName}</Text>
       {canInvite && invitesQ.data && invitesQ.data.length > 0 ? (
         <View style={styles.inviteBanner}>
           <Text style={styles.inviteTitle}>Invitations en attente</Text>

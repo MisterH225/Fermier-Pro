@@ -13,6 +13,8 @@ import { ProducerBottomChromeProvider } from "../context/ProducerBottomChromeCon
 import {
   AcceptFarmInvitationScreen,
   AccountScreen,
+  DeleteAccountCompleteScreen,
+  DeleteAccountProcessScreen,
   AddVetConsultationAttachmentScreen,
   AnimalDetailScreen,
   BarnDetailScreen,
@@ -40,6 +42,7 @@ import {
   FarmDetailScreen,
   FarmEventsFeedScreen,
   FarmFeedStockScreen,
+  FarmGestationScreen,
   FarmFinanceScreen,
   FarmListScreen,
   FarmLivestockScreen,
@@ -57,6 +60,7 @@ import {
   SmartAlertsListScreen,
   FarmReportsScreen,
   PenDetailScreen,
+  LogeDetailScreen,
   PenMoveScreen,
   TechnicianDashboardScreen,
   VeterinarianDashboardScreen,
@@ -177,6 +181,24 @@ function MainStack() {
         options={{ headerShown: false }}
       />
       <Stack.Screen
+        name="DeleteAccountProcess"
+        component={DeleteAccountProcessScreen}
+        options={{
+          title: "",
+          headerBackVisible: false,
+          gestureEnabled: false
+        }}
+      />
+      <Stack.Screen
+        name="DeleteAccountComplete"
+        component={DeleteAccountCompleteScreen}
+        options={{
+          title: "",
+          headerShown: false,
+          gestureEnabled: false
+        }}
+      />
+      <Stack.Screen
         name="AcceptFarmInvitation"
         component={AcceptFarmInvitationScreen}
         options={{ title: "Invitation" }}
@@ -194,12 +216,12 @@ function MainStack() {
       <Stack.Screen
         name="FarmHealth"
         component={FarmHealthScreen}
-        options={{ headerShown: false }}
+        options={{ title: "Santé" }}
       />
       <Stack.Screen
         name="FarmTasks"
         component={FarmTasksScreen}
-        options={{ headerShown: false }}
+        options={{ title: "Tâches" }}
       />
       <Stack.Screen
         name="FarmVetConsultations"
@@ -264,6 +286,11 @@ function MainStack() {
       <Stack.Screen
         name="PenDetail"
         component={PenDetailScreen}
+        options={{ title: "Loge" }}
+      />
+      <Stack.Screen
+        name="LogeDetail"
+        component={LogeDetailScreen}
         options={{ title: "Loge" }}
       />
       <Stack.Screen
@@ -365,7 +392,7 @@ function MainStack() {
       <Stack.Screen
         name="Collaboration"
         component={CollaborationScreen}
-        options={{ headerShown: false }}
+        options={{ title: "Collaboration" }}
       />
       <Stack.Screen
         name="FarmMembers"
@@ -381,6 +408,11 @@ function MainStack() {
         name="FarmFeedStock"
         component={FarmFeedStockScreen}
         options={{ title: "Stock aliment" }}
+      />
+      <Stack.Screen
+        name="FarmGestation"
+        component={FarmGestationScreen}
+        options={{ title: "Gestation" }}
       />
     </Stack.Navigator>
   );

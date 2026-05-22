@@ -10,11 +10,18 @@ export function formatAuthError(err: unknown): string {
     return (
       "Impossible de joindre Supabase (réseau ou URL). Vérifie la connexion internet, " +
       "que EXPO_PUBLIC_SUPABASE_URL dans apps/mobile/.env est exactement l’URL du projet " +
-      "(https://….supabase.co), puis redémarre Expo après modification du .env. " +
-      "Sans SMS en local : ajoute EXPO_PUBLIC_AUTH_BYPASS=true pour le mode démo."
+      "(https://….supabase.co), puis redémarre Expo après modification du .env."
     );
   }
   if (m.includes("annulée") || m.includes("cancel")) {
+    return raw;
+  }
+  if (m.includes("flow state")) {
+    return (
+      "Connexion Google interrompue. Ferme Safari, relance Expo (--clear), puis réessaie une seule fois."
+    );
+  }
+  if (m.includes("jetons dans l’url") || m.includes("incomplete")) {
     return raw;
   }
   return raw;

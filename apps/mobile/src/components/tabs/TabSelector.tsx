@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     minHeight: 0,
     marginHorizontal: mobileSpacing.lg,
     marginTop: -1,
-    backgroundColor: mobileColors.background,
+    backgroundColor: mobileColors.surfaceMuted,
     borderBottomLeftRadius: mobileRadius.lg,
     borderBottomRightRadius: mobileRadius.lg,
     overflow: "hidden",

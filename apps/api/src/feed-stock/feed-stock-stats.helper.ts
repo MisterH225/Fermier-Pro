@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import { FeedMovementKind } from "@prisma/client";
+import { feedTypeColorAtIndex } from "./feed-type-colors";
 
 const MS_PER_DAY = 86_400_000;
 
@@ -27,7 +28,10 @@ export async function buildFeedStockStatsForFarm(
   farmId: string,
   thresholds: { criticalDays: number; warningDays: number }
 ): Promise<FeedStockStatRow[]> {
-  const types = await prisma.feedType.findMany({ where: { farmId } });
+  const types = await prisma.feedType.findMany({
+    where: { farmId },
+    orderBy: { name: "asc" }
+  });
   const lastChecksRaw = await prisma.feedStockMovement.findMany({
     where: { farmId, kind: FeedMovementKind.stock_check },
     orderBy: { occurredAt: "desc" },
@@ -47,7 +51,7 @@ export async function buildFeedStockStatsForFarm(
   const now = new Date();
   const { criticalDays, warningDays } = thresholds;
 
-  return types.map((t) => {
+  return types.map((t, index) => {
     const last = dailyByType.get(t.id);
     const daily = last?.dailyConsumptionKg?.toNumber() ?? null;
     const stock = t.currentStockKg.toNumber();
@@ -69,7 +73,7 @@ export async function buildFeedStockStatsForFarm(
     return {
       feedTypeId: t.id,
       name: t.name,
-      color: t.color,
+      color: feedTypeColorAtIndex(index),
       currentStockKg: t.currentStockKg.toString(),
       weightPerBagKg: t.weightPerBagKg?.toString() ?? null,
       bagCountCurrent: t.bagCountCurrent?.toString() ?? null,

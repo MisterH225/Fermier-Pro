@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -18,12 +19,21 @@ import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
 import { CreateFarmDto } from "./dto/create-farm.dto";
 import { UpdateFarmCheptelConfigDto } from "./dto/update-farm-cheptel-config.dto";
 import { TransferFarmOwnershipDto } from "./dto/transfer-farm-ownership.dto";
+import {
+  AnimalProductionTagsService,
+  type AnimalTagPrefix
+} from "../livestock/animal-production-tags.service";
 import { FarmsService } from "./farms.service";
+
+const TAG_PREFIXES = new Set<AnimalTagPrefix>(["Trui", "Ver", "Eng", "Dem"]);
 
 @Controller("farms")
 @UseGuards(SupabaseJwtGuard)
 export class FarmsController {
-  constructor(private readonly farms: FarmsService) {}
+  constructor(
+    private readonly farms: FarmsService,
+    private readonly animalTags: AnimalProductionTagsService
+  ) {}
 
   @Post()
   @UseGuards(ProducerProfileGuard)
@@ -104,6 +114,29 @@ export class FarmsController {
       newStatus,
       limit: Number.isFinite(limit) ? limit : undefined
     });
+  }
+
+  @Get(":farmId/next-animal-number")
+  @UseGuards(FarmScopesGuard)
+  @RequireFarmScopes(FARM_SCOPE.livestockRead)
+  async nextAnimalNumber(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Query("prefix") prefixRaw?: string
+  ) {
+    const prefix = (prefixRaw ?? "").trim() as AnimalTagPrefix;
+    if (!TAG_PREFIXES.has(prefix)) {
+      throw new BadRequestException(
+        "Préfixe invalide — utilisez Trui, Ver, Eng ou Dem"
+      );
+    }
+    await this.farms.findOneForUser(user, farmId);
+    const tagCode = await this.animalTags.nextTagCode(farmId, prefix);
+    return {
+      prefix,
+      tagCode,
+      productionCategory: this.animalTags.categoryForPrefix(prefix)
+    };
   }
 
   @Get(":id")

@@ -23,7 +23,8 @@ export const AUDIT_ACTION = {
   vetConsultationUpdated: "vet.consultation.updated",
   vetConsultationAttachmentAdded: "vet.consultation.attachment_added",
   farmHealthRecordCreated: "farm.health_record.created",
-  farmHealthRecordLinkedFinance: "farm.health_record.linked_finance"
+  farmHealthRecordLinkedFinance: "farm.health_record.linked_finance",
+  accountDeleted: "account.deleted"
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTION)[keyof typeof AUDIT_ACTION];

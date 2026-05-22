@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
+  Post,
   Put,
   Query,
   UseGuards
@@ -16,13 +18,27 @@ import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.deco
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
 import { PatchAnimalStatusDto } from "../livestock/dto/patch-animal-status.dto";
 import { PatchAnimalStatusExtendedDto } from "./dto/patch-animal-status-extended.dto";
+import { PatchPenAveragesDto } from "./dto/patch-pen-averages.dto";
 import { UpsertGmqSettingsDto } from "./dto/upsert-gmq-settings.dto";
 import { CheptelService } from "./cheptel.service";
+import { HousingService } from "../housing/housing.service";
 
 @Controller("farms/:farmId/cheptel")
 @UseGuards(SupabaseJwtGuard, FarmScopesGuard)
 export class CheptelController {
-  constructor(private readonly cheptel: CheptelService) {}
+  constructor(
+    private readonly cheptel: CheptelService,
+    private readonly housing: HousingService
+  ) {}
+
+  @Post("apply-default-layout")
+  @RequireFarmScopes(FARM_SCOPE.housingWrite)
+  applyDefaultLayout(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string
+  ) {
+    return this.cheptel.applyDefaultPenLayout(user, farmId);
+  }
 
   @Get("pens")
   @RequireFarmScopes(FARM_SCOPE.housingRead)
@@ -32,6 +48,58 @@ export class CheptelController {
     @Query("barnId") barnId?: string
   ) {
     return this.cheptel.listPens(user, farmId, barnId);
+  }
+
+  @Get("pens/:penId/animals")
+  @RequireFarmScopes(FARM_SCOPE.livestockRead)
+  penAnimals(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("penId") penId: string
+  ) {
+    return this.cheptel.listPenContents(user, farmId, penId);
+  }
+
+  @Get("pens/:penId/vaccine-alerts")
+  @RequireFarmScopes(FARM_SCOPE.livestockRead)
+  penVaccineAlerts(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("penId") penId: string
+  ) {
+    return this.cheptel.getPenVaccineAlerts(user, farmId, penId);
+  }
+
+  @Patch("pens/:penId/toggle-active")
+  @RequireFarmScopes(FARM_SCOPE.housingWrite)
+  togglePenActive(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("penId") penId: string
+  ) {
+    return this.cheptel.togglePenActive(user, farmId, penId);
+  }
+
+  @Patch("pens/:penId/averages")
+  @RequireFarmScopes(FARM_SCOPE.housingWrite)
+  patchPenAverages(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("penId") penId: string,
+    @Body() dto: PatchPenAveragesDto
+  ) {
+    return this.cheptel.patchPenAverages(user, farmId, penId, dto);
+  }
+
+  @Delete("pens/:penId")
+  @RequireFarmScopes(FARM_SCOPE.housingWrite)
+  async deletePen(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("penId") penId: string
+  ) {
+    await this.housing.deletePen(user, farmId, penId);
+    return { ok: true };
   }
 
   @Get("history")

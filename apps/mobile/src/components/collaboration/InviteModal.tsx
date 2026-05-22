@@ -17,7 +17,6 @@ import {
   type InvitationPermissions,
   type InvitationRecipientKind
 } from "../../lib/api";
-import { isDemoBypassToken } from "../../lib/demoBypass";
 import {
   ALL_PERMISSION_KEYS,
   type PermissionKey
@@ -88,10 +87,6 @@ export function InviteModal({ visible, farmId, farmName, onClose }: Props) {
 
   const submit = async () => {
     if (!farmId) return;
-    if (isDemoBypassToken(accessToken)) {
-      Alert.alert("", t("collab.demoBlocked"));
-      return;
-    }
     setSubmitting(true);
     try {
       const res = await createFarmInvitation(

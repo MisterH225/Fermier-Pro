@@ -91,7 +91,6 @@ export function PenDetailScreen({ route, navigation }: Props) {
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-      <Text style={styles.farmHint}>{farmName}</Text>
       <Text style={styles.barnLine}>
         Bâtiment : {pen.barn.name}
       </Text>

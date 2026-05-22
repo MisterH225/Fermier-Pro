@@ -6,9 +6,9 @@ import {
 import { ConfigService } from "@nestjs/config";
 import { Prisma } from "@prisma/client";
 import type { User } from "@prisma/client";
-import * as jwt from "jsonwebtoken";
 import { PrismaService } from "../prisma/prisma.service";
 import type { UpdateMeProfileDto } from "./dto/update-me-profile.dto";
+import { verifySupabaseAccessToken as verifySupabaseJwt } from "./supabase-jwt.verifier";
 import type { SupabaseJwtPayload } from "./types/supabase-jwt.payload";
 
 @Injectable()
@@ -18,25 +18,11 @@ export class AuthService {
     private readonly prisma: PrismaService
   ) {}
 
-  verifySupabaseAccessToken(token: string): SupabaseJwtPayload {
-    const secret = this.config.get<string>("SUPABASE_JWT_SECRET");
-    if (!secret) {
-      throw new UnauthorizedException("SUPABASE_JWT_SECRET manquant");
-    }
-
-    try {
-      const decoded = jwt.verify(token, secret, {
-        algorithms: ["HS256"]
-      }) as SupabaseJwtPayload;
-
-      if (!decoded?.sub) {
-        throw new UnauthorizedException("Jeton invalide");
-      }
-
-      return decoded;
-    } catch {
-      throw new UnauthorizedException("Jeton invalide ou expire");
-    }
+  async verifySupabaseAccessToken(token: string): Promise<SupabaseJwtPayload> {
+    return verifySupabaseJwt(token, {
+      supabaseUrl: this.config.get<string>("SUPABASE_URL"),
+      hs256Secret: this.config.get<string>("SUPABASE_JWT_SECRET")
+    });
   }
 
   extractBearerToken(authorization?: string): string {
@@ -80,7 +66,7 @@ export class AuthService {
 
   /** Jeton brut JWT Supabase (sans prefix Bearer). */
   async userFromAccessToken(accessToken: string): Promise<User> {
-    const payload = this.verifySupabaseAccessToken(accessToken);
+    const payload = await this.verifySupabaseAccessToken(accessToken);
     return this.syncUserFromSupabasePayload(payload);
   }
 

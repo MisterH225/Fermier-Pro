@@ -6,7 +6,11 @@ import {
   useState,
   type ReactNode
 } from "react";
-import type { BatchListItem, FinanceCategoryDto } from "../lib/api";
+import type {
+  BatchListItem,
+  FinanceCategoryDto,
+  FinanceMergedTransactionDto
+} from "../lib/api";
 
 export type TransactionModalPayload = {
   farmId: string;
@@ -26,6 +30,16 @@ export type SuccessModalPayload = {
   autoDismissMs?: number;
 };
 
+export type EditTransactionModalPayload = {
+  farmId: string;
+  accessToken: string;
+  activeProfileId?: string | null;
+  categories: FinanceCategoryDto[];
+  currencyCode: string;
+  currencySymbol: string;
+  transaction: FinanceMergedTransactionDto;
+};
+
 export type ConfirmDeleteModalPayload = {
   title?: string;
   message: string;
@@ -36,6 +50,7 @@ export type ConfirmDeleteModalPayload = {
 
 export type AppModalState =
   | { type: "transaction"; payload: TransactionModalPayload }
+  | { type: "edit-transaction"; payload: EditTransactionModalPayload }
   | { type: "success"; payload: SuccessModalPayload }
   | { type: "confirm-delete"; payload: ConfirmDeleteModalPayload };
 

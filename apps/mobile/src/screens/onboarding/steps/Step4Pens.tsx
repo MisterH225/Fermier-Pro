@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { OnboardingPenLayoutPreview } from "../../../components/onboarding/OnboardingPenLayoutPreview";
 import type { useOnboarding } from "../../../hooks/useOnboarding";
 import {
   mobileColors,
@@ -10,9 +12,40 @@ import {
 
 type Props = { ob: ReturnType<typeof useOnboarding> };
 
+function parsePosInt(raw: string): number | null {
+  const t = raw.trim();
+  if (!t) {
+    return null;
+  }
+  const n = Number.parseInt(t, 10);
+  return Number.isFinite(n) && n >= 1 ? n : null;
+}
+
+function parseNonNeg(raw: string): number {
+  const t = raw.trim();
+  if (!t) {
+    return 0;
+  }
+  const n = Number.parseInt(t, 10);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
 export function Step4Pens({ ob }: Props) {
   const { t } = useTranslation();
   const { form, patch, totalPens, totalCapacity, occupancyPct } = ob;
+
+  const layoutNums = useMemo(
+    () => ({
+      buildings: parsePosInt(form.buildingsCount),
+      pens: parsePosInt(form.pensPerBuilding),
+      capacity: parsePosInt(form.maxPigsPerPen),
+      females: parseNonNeg(form.femaleBreeders),
+      males: parseNonNeg(form.maleBreeders),
+      starter: parseNonNeg(form.starterHeadcount),
+      fattening: parseNonNeg(form.fatteningHeadcount)
+    }),
+    [form]
+  );
   return (
     <View style={styles.wrap}>
       <Text style={styles.title}>{t("onboarding.step4.title")}</Text>
@@ -41,6 +74,18 @@ export function Step4Pens({ ob }: Props) {
         value={form.maxPigsPerPen}
         onChangeText={(maxPigsPerPen) => patch({ maxPigsPerPen })}
         keyboardType="number-pad"
+      />
+
+      <Text style={styles.layoutHint}>{t("onboarding.step4.layoutHint")}</Text>
+
+      <OnboardingPenLayoutPreview
+        buildingsCount={layoutNums.buildings}
+        pensPerBuilding={layoutNums.pens}
+        maxPigsPerPen={layoutNums.capacity}
+        femaleCount={layoutNums.females}
+        maleCount={layoutNums.males}
+        starterCount={layoutNums.starter}
+        fatteningCount={layoutNums.fattening}
       />
 
       <View style={styles.preview}>
@@ -72,6 +117,12 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
     fontStyle: "italic"
+  },
+  layoutHint: {
+    ...mobileTypography.meta,
+    color: mobileColors.accent,
+    marginTop: mobileSpacing.sm,
+    fontWeight: "600"
   },
   input: {
     borderWidth: 1,

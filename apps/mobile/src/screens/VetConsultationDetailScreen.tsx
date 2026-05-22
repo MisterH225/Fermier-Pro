@@ -142,8 +142,6 @@ export function VetConsultationDetailScreen({ route, navigation }: Props) {
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-      <Text style={styles.farmHint}>{farmName}</Text>
-
       <View style={styles.editCard}>
         <Text style={styles.editTitle}>Objet et résumé</Text>
         <Text style={styles.editLabel}>Objet</Text>

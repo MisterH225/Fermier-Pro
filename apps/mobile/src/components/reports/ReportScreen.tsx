@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ScreenSection } from "../layout/ScreenSection";
 import { TabContent, TabSelector } from "../tabs";
 import { BaseModal } from "../modals/BaseModal";
 import { EventList, type EventItem } from "../lists";
@@ -133,23 +134,27 @@ function ReportPeriodPane({
       contentContainerStyle={styles.tabScroll}
     >
       <TabContent>
-        <PeriodSelector
-          periodType={periodType}
-          anchor={anchor}
-          onAnchorChange={onAnchorChange}
-          hidePeriodTabs
-        />
+        <ScreenSection>
+          <PeriodSelector
+            periodType={periodType}
+            anchor={anchor}
+            onAnchorChange={onAnchorChange}
+            hidePeriodTabs
+          />
+        </ScreenSection>
         {previewQ.isLoading ? (
           <Text style={styles.muted}>{t("reportsScreen.loadingPreview")}</Text>
         ) : previewQ.isError ? (
           <Text style={styles.err}>{t("reportsScreen.previewError")}</Text>
         ) : preview ? (
           <>
-            <FarmScoreGauge
-              score={preview.score.global}
-              band={preview.score.band}
-              onPressDetails={onScorePress}
-            />
+            <ScreenSection>
+              <FarmScoreGauge
+                score={preview.score.global}
+                band={preview.score.band}
+                onPressDetails={onScorePress}
+              />
+            </ScreenSection>
             <FinanceSummary finance={sections.finance as never} />
             <CheptelSummary cheptel={sections.cheptel as never} />
             <HealthSummary health={sections.health as never} />
@@ -161,10 +166,8 @@ function ReportPeriodPane({
             />
           </>
         ) : null}
-        <Text style={[styles.sectionTitle, { marginTop: mobileSpacing.lg }]}>
-          {t("reportsScreen.history")}
-        </Text>
         <EventList
+          sectionTitle={t("reportsScreen.history")}
           layout="embedded"
           data={(listQ.data ?? []).map((r: FarmReportListItemDto) => ({
             id: r.id,
@@ -259,7 +262,6 @@ export function ReportScreen({
       <TabSelector
         activeTab={periodType}
         onTabChange={(k) => setPeriodType(k as FarmReportPeriodType)}
-        header={<Text style={styles.farmName}>{farmName}</Text>}
         tabs={[
           periodTab("monthly", t("reportsScreen.periodMonthly")),
           periodTab("quarterly", t("reportsScreen.periodQuarterly")),

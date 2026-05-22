@@ -15,7 +15,7 @@ export class SupabaseJwtGuard implements CanActivate {
     const token = this.auth.extractBearerToken(
       req.headers.authorization as string | undefined
     );
-    const payload = this.auth.verifySupabaseAccessToken(token);
+    const payload = await this.auth.verifySupabaseAccessToken(token);
     const user = await this.auth.syncUserFromSupabasePayload(payload);
     req.user = user;
     return true;

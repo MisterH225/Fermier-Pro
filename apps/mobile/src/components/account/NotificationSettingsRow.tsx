@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import { useSession } from "../../context/SessionContext";
 import { patchAuthProfile } from "../../lib/api";
-import { isDemoBypassToken } from "../../lib/demoBypass";
 import {
   mobileColors,
   mobileSpacing,
@@ -58,10 +57,6 @@ export function NotificationSettingsRow() {
 
   const onToggle = useCallback(
     async (next: boolean) => {
-      if (isDemoBypassToken(accessToken)) {
-        Alert.alert("", t("account.notificationsDemoBlocked"));
-        return;
-      }
       setBusy(true);
       setLocalOverride(next);
       try {

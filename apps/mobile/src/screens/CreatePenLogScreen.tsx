@@ -86,7 +86,6 @@ export function CreatePenLogScreen({ route, navigation }: Props) {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.content}
       >
-        <Text style={styles.hint}>{farmName}</Text>
         <Text style={styles.penHint}>{penLabel ?? "Loge"}</Text>
 
         <Text style={styles.label}>Type</Text>

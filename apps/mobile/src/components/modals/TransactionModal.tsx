@@ -17,10 +17,9 @@ import * as ImagePicker from "expo-image-picker";
 import { BaseModal } from "./BaseModal";
 import { useModal } from "./useModal";
 import type { TransactionModalPayload } from "../../context/ModalContext";
-import { isDemoBypassToken } from "../../lib/demoBypass";
 import { getSupabase } from "../../lib/supabase";
 import { uploadFinanceProofToSupabase } from "../../lib/uploadFinanceProofToSupabase";
-import type { FinanceCategoryDto } from "../../lib/api";
+import { FinanceCategoryGrid } from "../finance/FinanceCategoryGrid";
 import {
   fetchFarmAnimals,
   postFinanceTransaction,
@@ -130,15 +129,14 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
       let attachmentUrl: string | undefined;
       const token = payload.accessToken;
       if (proofPhotoUri) {
-        if (!isDemoBypassToken(token)) {
-          const supabase = getSupabase();
-          if (!supabase) {
-            throw new Error(t("financeScreen.proofNoSupabase"));
-          }
-          const mime =
-            proofPhotoUri.toLowerCase().endsWith(".png") ||
-            proofPhotoUri.includes("png")
-              ? "image/png"
+        const supabase = getSupabase();
+        if (!supabase) {
+          throw new Error(t("financeScreen.proofNoSupabase"));
+        }
+        const mime =
+          proofPhotoUri.toLowerCase().endsWith(".png") ||
+          proofPhotoUri.includes("png")
+            ? "image/png"
               : "image/jpeg";
           try {
             attachmentUrl = await uploadFinanceProofToSupabase(
@@ -151,7 +149,6 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
           } catch {
             throw new Error(t("financeScreen.proofUploadError"));
           }
-        }
       }
       const linkedEntityType =
         linkKind === "batch" && linkBatchId
@@ -203,42 +200,6 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
       ? `${payload.currencySymbol || payload.currencyCode} ${txAmount.trim()}`
       : undefined;
 
-  const secondaryActions = useMemo(
-    () => [
-      {
-        key: "edit",
-        icon: "create-outline" as const,
-        label: t("modals.transaction.edit"),
-        onPress: () =>
-          Alert.alert(
-            t("modals.transaction.edit"),
-            t("modals.transaction.editCreateHint")
-          )
-      },
-      {
-        key: "dup",
-        icon: "copy-outline" as const,
-        label: t("modals.transaction.duplicate"),
-        onPress: () =>
-          Alert.alert(
-            t("modals.transaction.duplicate"),
-            t("modals.transaction.duplicateHint")
-          )
-      },
-      {
-        key: "del",
-        icon: "trash-outline" as const,
-        label: t("modals.transaction.delete"),
-        onPress: () =>
-          Alert.alert(
-            t("modals.transaction.delete"),
-            t("modals.transaction.deleteCreateHint")
-          )
-      }
-    ],
-    [t]
-  );
-
   const animals = (animalsQuery.data ?? []) as AnimalListItem[];
 
   return (
@@ -247,7 +208,6 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
       onClose={onClose}
       title={t("financeScreen.modalTitle")}
       headerAmount={headerAmountPreview}
-      secondaryActions={secondaryActions}
       footerPrimary={
         <View style={styles.actionsRow}>
           <TouchableOpacity onPress={onClose}>
@@ -305,20 +265,11 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
       </View>
 
       <Text style={styles.fieldLab}>{t("financeScreen.fieldCategory")}</Text>
-      <ScrollView style={styles.catScroll} nestedScrollEnabled>
-        {categoriesForType.map((c: FinanceCategoryDto) => (
-          <Pressable
-            key={c.id}
-            style={[styles.catRow, txCategoryId === c.id && styles.catRowOn]}
-            onPress={() => setTxCategoryId(c.id)}
-          >
-            <Text>
-              {c.icon ? `${c.icon} ` : ""}
-              {c.name}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      <FinanceCategoryGrid
+        categories={categoriesForType}
+        selectedId={txCategoryId}
+        onSelect={setTxCategoryId}
+      />
 
       <Text style={styles.fieldLab}>
         {t("financeScreen.fieldAmount")} ({payload.currencyCode})

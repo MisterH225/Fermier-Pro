@@ -85,7 +85,6 @@ export function AddVetConsultationAttachmentScreen({
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.content}
       >
-        <Text style={styles.hint}>{farmName}</Text>
         <Text style={styles.info}>
           Après avoir déposé la photo ou le PDF sur ton espace de stockage
           (ex. bucket Supabase), colle ici l’URL publique ou signée renvoyée par

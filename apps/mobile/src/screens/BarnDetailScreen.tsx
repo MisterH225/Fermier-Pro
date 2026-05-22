@@ -93,7 +93,6 @@ export function BarnDetailScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.flex}>
-      <Text style={styles.farmHint}>{farmName}</Text>
       {barn.notes ? (
         <Text style={styles.notes}>{barn.notes}</Text>
       ) : null}

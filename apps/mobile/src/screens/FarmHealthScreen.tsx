@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -14,9 +15,11 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { MobileAppShell } from "../components/layout";
+import { MobileAppShell, ScreenSection } from "../components/layout";
 import { EventList, type EventItem } from "../components/lists";
+import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
 import { TabContent, TabSelector } from "../components/tabs";
+import { invalidateAIInsights } from "../services/ai/AIRecommendationService";
 import { BaseModal } from "../components/modals/BaseModal";
 import { useSession } from "../context/SessionContext";
 import {
@@ -132,6 +135,7 @@ function healthListIcon(r: FarmHealthRecordRowDto): EventItem["iconType"] {
 
 export function FarmHealthScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
+  useScreenTitle(navigation, farmName);
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "en" ? "en" : "fr";
   const qc = useQueryClient();
@@ -299,6 +303,8 @@ export function FarmHealthScreen({ route, navigation }: Props) {
       ),
     onSuccess: () => {
       setFormOpen(false);
+      void invalidateAIInsights(farmId, "sante");
+      void invalidateAIInsights(farmId, "global_dashboard");
       void qc.invalidateQueries({ queryKey: ["farmHealthEvents", farmId] });
       void qc.invalidateQueries({ queryKey: ["farmHealthOverview", farmId] });
       void qc.invalidateQueries({ queryKey: ["farmHealthUpcoming", farmId] });
@@ -642,10 +648,7 @@ export function FarmHealthScreen({ route, navigation }: Props) {
   );
 
   return (
-    <MobileAppShell
-      title={farmName ? `${t("health.screenTitle")} — ${farmName}` : t("health.screenTitle")}
-      omitBottomTabBar={isProducer}
-    >
+    <MobileAppShell hideTopBar omitBottomTabBar={isProducer}>
       <TabSelector
         activeTab={healthTab}
         onTabChange={(key) => setHealthTab(key as HealthScreenTab)}
@@ -660,7 +663,7 @@ export function FarmHealthScreen({ route, navigation }: Props) {
                 ) : overviewQuery.error ? (
                   <Text style={styles.err}>{(overviewQuery.error as Error).message}</Text>
                 ) : (
-                  <View style={styles.card}>
+                  <ScreenSection title={t("health.sectionOverview")}>
                     <Text style={styles.meta}>
                       {t("health.activeDiseases")}: {overview?.activeDiseaseCount ?? "—"}
                     </Text>
@@ -676,9 +679,15 @@ export function FarmHealthScreen({ route, navigation }: Props) {
                         ? `${(Number(rate90) * 100).toLocaleString(locale, { maximumFractionDigits: 2 })} %`
                         : "—"}
                     </Text>
-                  </View>
+                  </ScreenSection>
                 )}
-                {subjectPickerBlock}
+                <ModuleAIInsights
+                  farmId={farmId}
+                  module="sante"
+                  accessToken={accessToken}
+                  activeProfileId={activeProfileId}
+                />
+                <ScreenSection>{subjectPickerBlock}</ScreenSection>
                 <UpcomingVaccines
                   items={upcomingQuery.data?.vaccines}
                   locale={locale}
@@ -692,7 +701,7 @@ export function FarmHealthScreen({ route, navigation }: Props) {
             label: healthKindSectionTitle(kind),
             content: tabScroll(
               <>
-                {subjectPickerBlock}
+                <ScreenSection>{subjectPickerBlock}</ScreenSection>
                 {healthEventList(kind)}
               </>
             )
@@ -967,8 +976,7 @@ function UpcomingVaccines({
     return null;
   }
   return (
-    <View style={styles.card}>
-      <Text style={styles.h2}>{t("health.upcomingVaccines")}</Text>
+    <ScreenSection title={t("health.upcomingVaccines")}>
       {items.slice(0, 8).map((v, i) => (
         <Text key={`${v.healthRecord.id}-${i}`} style={styles.meta}>
           {v.vaccineName} ·{" "}
@@ -977,7 +985,7 @@ function UpcomingVaccines({
             : "—"}
         </Text>
       ))}
-    </View>
+    </ScreenSection>
   );
 }
 

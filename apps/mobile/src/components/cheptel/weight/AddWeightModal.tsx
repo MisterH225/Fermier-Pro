@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -98,7 +97,7 @@ export function AddWeightModal({
         </Pressable>
       }
     >
-      <ScrollView contentContainerStyle={{ gap: 8 }}>
+      <View style={{ gap: 8 }}>
         <Text style={styles.label}>{t("cheptel.weight.pickAnimal")}</Text>
         <View style={styles.pillRow}>
           {animals.map((a) => (
@@ -122,7 +121,7 @@ export function AddWeightModal({
         />
         <Text style={styles.label}>{t("cheptel.weight.note")}</Text>
         <TextInput style={styles.input} value={note} onChangeText={setNote} />
-      </ScrollView>
+      </View>
     </BaseModal>
   );
 }

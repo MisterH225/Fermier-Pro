@@ -3,8 +3,10 @@ import { useEffect, useMemo, useRef } from "react";
 import {
   Animated,
   Dimensions,
+  KeyboardAvoidingView,
   Modal,
   PanResponder,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -115,6 +117,9 @@ export function BaseModal({
     })
   ).current;
 
+  const scrollBottomPad =
+    Math.max(insets.bottom, mobileSpacing.md) + mobileSpacing.xl;
+
   return (
     <Modal
       visible={visible}
@@ -135,101 +140,123 @@ export function BaseModal({
           ]}
         />
         <Pressable style={StyleSheet.absoluteFill} onPress={runClose} />
-        <Animated.View
-          style={[
-            styles.sheet,
-            {
-              maxHeight: sheetMaxHeight,
-              paddingBottom: Math.max(insets.bottom, mobileSpacing.md),
-              transform: [{ translateY }]
-            }
-          ]}
+        <KeyboardAvoidingView
+          style={styles.keyboardWrap}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 6 : 0}
         >
-          <View style={styles.handleZone} {...handlePan.panHandlers}>
-            <View style={styles.handleBar} />
-          </View>
+          <Animated.View
+            style={[
+              styles.sheet,
+              {
+                maxHeight: sheetMaxHeight,
+                transform: [{ translateY }]
+              }
+            ]}
+          >
+            <View style={styles.handleZone} {...handlePan.panHandlers}>
+              <View style={styles.handleBar} />
+            </View>
 
-          {(title || statusBadge) && (
-            <View style={styles.headerRow}>
-              {title ? (
-                <Text style={styles.title} numberOfLines={2}>
-                  {title}
-                </Text>
-              ) : (
-                <View />
-              )}
-              {statusBadge ? (
-                <View
-                  style={[
-                    styles.badge,
-                    statusBadge.tone === "warning" && styles.badgeWarn
-                  ]}
-                >
-                  <Text
+            {(title || statusBadge) && (
+              <View style={styles.headerRow}>
+                {title ? (
+                  <Text style={styles.title} numberOfLines={2}>
+                    {title}
+                  </Text>
+                ) : (
+                  <View />
+                )}
+                {statusBadge ? (
+                  <View
                     style={[
-                      styles.badgeTx,
-                      statusBadge.tone === "warning" && styles.badgeTxWarn
+                      styles.badge,
+                      statusBadge.tone === "warning" && styles.badgeWarn
                     ]}
                   >
-                    {statusBadge.label}
-                  </Text>
+                    <Text
+                      style={[
+                        styles.badgeTx,
+                        statusBadge.tone === "warning" && styles.badgeTxWarn
+                      ]}
+                    >
+                      {statusBadge.label}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            )}
+
+            {headerAmount ? (
+              <Text style={styles.headerAmount}>{headerAmount}</Text>
+            ) : null}
+
+            <ScrollView
+              style={styles.scroll}
+              automaticallyAdjustKeyboardInsets
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              bounces
+              contentContainerStyle={[
+                styles.scrollContent,
+                { paddingBottom: scrollBottomPad },
+                contentContainerStyle
+              ]}
+            >
+              {children}
+
+              {footerPrimary ? (
+                <View style={styles.footerPrimary}>{footerPrimary}</View>
+              ) : null}
+
+              {(secondaryActions?.length || destructiveAction) ? (
+                <View style={styles.sep} />
+              ) : null}
+
+              {secondaryActions && secondaryActions.length > 0 ? (
+                <View style={styles.iconRow}>
+                  {secondaryActions.map((a) => (
+                    <Pressable
+                      key={a.key}
+                      style={styles.iconCell}
+                      onPress={a.onPress}
+                      accessibilityRole="button"
+                      accessibilityLabel={a.label}
+                    >
+                      <View style={styles.iconCircle}>
+                        <Ionicons
+                          name={a.icon}
+                          size={22}
+                          color={mobileColors.textPrimary}
+                        />
+                      </View>
+                      <Text style={styles.iconLabel} numberOfLines={1}>
+                        {a.label}
+                      </Text>
+                    </Pressable>
+                  ))}
                 </View>
               ) : null}
-            </View>
-          )}
 
-          {headerAmount ? (
-            <Text style={styles.headerAmount}>{headerAmount}</Text>
-          ) : null}
-
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
-          >
-            {children}
-          </ScrollView>
-
-          {footerPrimary ? (
-            <View style={styles.footerPrimary}>{footerPrimary}</View>
-          ) : null}
-
-          {(secondaryActions?.length || destructiveAction) ? (
-            <View style={styles.sep} />
-          ) : null}
-
-          {secondaryActions && secondaryActions.length > 0 ? (
-            <View style={styles.iconRow}>
-              {secondaryActions.map((a) => (
+              {destructiveAction ? (
                 <Pressable
-                  key={a.key}
-                  style={styles.iconCell}
-                  onPress={a.onPress}
+                  style={styles.destructiveBtn}
+                  onPress={destructiveAction.onPress}
                   accessibilityRole="button"
-                  accessibilityLabel={a.label}
                 >
-                  <View style={styles.iconCircle}>
-                    <Ionicons name={a.icon} size={22} color={mobileColors.textPrimary} />
-                  </View>
-                  <Text style={styles.iconLabel} numberOfLines={1}>
-                    {a.label}
+                  <Ionicons
+                    name="trash-outline"
+                    size={18}
+                    color={mobileColors.error}
+                  />
+                  <Text style={styles.destructiveTx}>
+                    {destructiveAction.label}
                   </Text>
                 </Pressable>
-              ))}
-            </View>
-          ) : null}
-
-          {destructiveAction ? (
-            <Pressable
-              style={styles.destructiveBtn}
-              onPress={destructiveAction.onPress}
-              accessibilityRole="button"
-            >
-              <Ionicons name="trash-outline" size={18} color={mobileColors.error} />
-              <Text style={styles.destructiveTx}>{destructiveAction.label}</Text>
-            </Pressable>
-          ) : null}
-        </Animated.View>
+              ) : null}
+            </ScrollView>
+          </Animated.View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -239,6 +266,10 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     justifyContent: "flex-end"
+  },
+  keyboardWrap: {
+    justifyContent: "flex-end",
+    width: "100%"
   },
   sheet: {
     backgroundColor: mobileColors.background,
@@ -297,11 +328,15 @@ const styles = StyleSheet.create({
     color: mobileColors.textPrimary,
     marginBottom: mobileSpacing.sm
   },
+  scroll: {
+    flexGrow: 0,
+    flexShrink: 1
+  },
   scrollContent: {
-    paddingBottom: mobileSpacing.md
+    paddingTop: mobileSpacing.xs
   },
   footerPrimary: {
-    marginTop: mobileSpacing.sm
+    marginTop: mobileSpacing.md
   },
   sep: {
     height: StyleSheet.hairlineWidth,

@@ -1054,6 +1054,24 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(link.status).toBeLessThan(300);
     expect(link.body?.ok).toBe(true);
   });
+
+  it("POST /ai/recommendations (contrat mobile)", async () => {
+    const auth = {
+      Authorization: `Bearer ${ctx.token}`,
+      "X-Profile-Id": ctx.producerProfileId
+    };
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/ai/recommendations")
+      .set(auth)
+      .send({ farmId: ctx.farmId, module: "finance" });
+    expect(res.status).toBeGreaterThanOrEqual(200);
+    expect(res.status).toBeLessThan(300);
+    expect(typeof res.body.generatedAt).toBe("string");
+    expect(Array.isArray(res.body.items)).toBe(true);
+    if (!process.env.GEMINI_API_KEY?.trim()) {
+      expect(res.body.unavailable).toBe(true);
+    }
+  });
 });
 
 if (!hasDb || !hasJwt) {

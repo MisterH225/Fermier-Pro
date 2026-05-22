@@ -1,4 +1,4 @@
-import { AnimalSex } from "@prisma/client";
+import { AnimalProductionCategory, AnimalSex } from "@prisma/client";
 import {
   IsDateString,
   IsEnum,
@@ -24,6 +24,10 @@ export class CreateAnimalDto {
   @IsOptional()
   @IsEnum(AnimalSex)
   sex?: AnimalSex;
+
+  @IsOptional()
+  @IsEnum(AnimalProductionCategory)
+  productionCategory?: AnimalProductionCategory;
 
   @IsOptional()
   @IsDateString()

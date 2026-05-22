@@ -8,11 +8,11 @@ L'API Nest verifie le **JWT access** emis par Supabase (`HS256` avec le **JWT Se
 
 ```env
 SUPABASE_URL=https://<project-ref>.supabase.co
-SUPABASE_JWT_SECRET=<JWT Secret du projet>
+SUPABASE_JWT_SECRET=<optionnel, tests e2e HS256 uniquement>
 ```
 
-- `SUPABASE_JWT_SECRET` : **Settings -> API -> JWT Secret** (ne jamais exposer au client).
-- `SUPABASE_URL` : utile pour la doc et le client mobile ; l'API Nest ne l'utilise pas encore pour verifier les jetons.
+- `SUPABASE_URL` : **obligatoire** pour l'API Nest. Les jetons utilisateur (Google, SMS) sont signés en **ES256** ; l'API les verifie via `https://<ref>.supabase.co/auth/v1/.well-known/jwks.json`.
+- `SUPABASE_JWT_SECRET` : **ne pas** y mettre le **Key ID** affiche dans Authentication → JWT Keys. Reserve ce champ aux tests e2e locaux (HS256) si besoin. L'ancien « JWT Secret » legacy (Settings → API) ne s'applique qu'aux projets encore en HS256.
 
 ## Configuration dashboard Supabase
 
@@ -21,16 +21,39 @@ SUPABASE_JWT_SECRET=<JWT Secret du projet>
    - **Apple** : activer pour *Sign in with Apple* (compte developpeur Apple, Service ID, cle privee).
    - **Phone** : activer ; configurer un fournisseur SMS (selon region).
 
-2. **Authentication -> URL configuration**
-   - Ajouter les URL de redirection pour Expo / web (scheme `exp://` ou domaine de production).
+2. **Authentication -> URL configuration** (indispensable pour Google sur téléphone)
+   - **Site URL** : l’URL `exp://<IP-LAN>:8081/--/auth/callback` affichée sur l’écran de connexion mobile (Expo Go), ou `fermier-pro://auth/callback` en build natif. **Ne pas** laisser `http://localhost:3000` si tu testes sur iPhone physique — Safari tentera d’ouvrir localhost sur le téléphone et échouera.
+   - **Redirect URLs** : ajouter **exactement** la même URL (bouton « Add URL »). Sans cela, Supabase retombe sur Site URL (souvent localhost).
+   - Tu peux garder `http://localhost:3000` en Redirect URL **en plus** si tu développes aussi une app web.
 
 3. **Ne pas** s'appuyer sur `user_metadata` pour des decisions d'autorisation sensibles cote RLS : preferer `app_metadata` pour les roles serveur. Ici Nest synchronise seulement profil basique (email, telephone, nom) dans la table `User` Prisma.
+
+## Storage (photos mobile)
+
+L’app téléverse des fichiers via la clé **anon** + session utilisateur (`@supabase/supabase-js`) :
+
+| Bucket | Usage | Chemin type |
+|--------|--------|-------------|
+| **`avatars`** | Photo de profil producteur | `{auth.users.id}/avatar.jpg` |
+| **`finance-proofs`** | Preuve photo dépense / revenu | `farms/{farmId}/…` |
+
+Si l’enregistrement affiche **`Bucket not found`**, le bucket n’existe pas encore sur le projet Supabase.
+
+**Création (une fois par projet)** :
+
+1. Dashboard Supabase → **SQL Editor** → New query.
+2. Ouvrir le fichier `supabase/migrations/20260519120000_storage_buckets.sql` dans l’éditeur de code, **copier tout son contenu SQL** (les lignes `INSERT`, `CREATE POLICY`, etc.) — **ne pas** coller le chemin du fichier dans Supabase.
+3. Coller ce SQL dans l’éditeur Supabase et cliquer **Run** (crée les deux buckets publics + politiques RLS).
+3. Vérifier dans **Storage** que `avatars` et `finance-proofs` apparaissent.
+4. Relancer l’app (Expo) et réessayer l’upload.
+
+Alternative manuelle : **Storage → New bucket** → nom `avatars`, cocher **Public bucket**, MIME images ; répéter pour `finance-proofs`.
 
 ## Mobile (Expo) — flux recommandes
 
 - **Config** : dans `apps/mobile/`, fichier `.env` (voir `.env.example`) avec `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_API_URL`. Client partagé : `apps/mobile/src/lib/supabase.ts` (`@supabase/supabase-js` + `AsyncStorage`) ; appel API typé : `src/lib/api.ts` (`fetchAuthMe`).
 - **OTP SMS dans l app** : ecran `PhoneOtpAuth` (`signInWithOtp` + `verifyOtp`, format E.164 obligatoire).
-- **Google** : `signInWithOAuth({ provider: 'google', options: { redirectTo } })` ou flux natif avec `expo-auth-session` selon ta stack.
+- **Google** : `signInWithOAuth` + `WebBrowser.openAuthSessionAsync`, puis `setSession` avec les jetons dans l’URL de retour (flux **implicit** sur mobile, voir `googleAuth.ts` — pas de `exchangeCodeForSession` / PKCE sur téléphone).
 - **Apple** : `signInWithOAuth({ provider: 'apple', ... })` sur iOS.
 - **Telephone** : `signInWithOtp({ phone, options: { channel: 'sms' } })` puis verification du code.
 

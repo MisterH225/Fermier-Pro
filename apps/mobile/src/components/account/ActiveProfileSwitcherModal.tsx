@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useSession } from "../../context/SessionContext";
 import { createProfile, type ProfileTypeChoice } from "../../lib/api";
 import { formatAuthError } from "../../lib/authErrors";
-import { isDemoBypassToken } from "../../lib/demoBypass";
+import { profileTypeIcon } from "../../lib/profileTypeIcon";
 import {
   mobileColors,
   mobileRadius,
@@ -29,21 +29,6 @@ const PROFILE_TYPES: ProfileTypeChoice[] = [
   "veterinarian",
   "buyer"
 ];
-
-function profileIcon(type: string): keyof typeof Ionicons.glyphMap {
-  switch (type) {
-    case "producer":
-      return "leaf-outline";
-    case "technician":
-      return "construct-outline";
-    case "veterinarian":
-      return "medkit-outline";
-    case "buyer":
-      return "cart-outline";
-    default:
-      return "person-outline";
-  }
-}
 
 type ActiveProfileSwitcherModalProps = {
   visible: boolean;
@@ -63,7 +48,6 @@ export function ActiveProfileSwitcherModal({
   const [error, setError] = useState<string | null>(null);
 
   const profiles = authMe?.profiles ?? [];
-  const demo = isDemoBypassToken(accessToken);
 
   const onSelect = async (id: string) => {
     if (id === activeProfileId) {
@@ -83,10 +67,6 @@ export function ActiveProfileSwitcherModal({
   };
 
   const onAddType = async (type: ProfileTypeChoice) => {
-    if (demo) {
-      Alert.alert("", t("account.addProfileDemoBlocked"));
-      return;
-    }
     setCreating(true);
     setError(null);
     try {
@@ -145,7 +125,7 @@ export function ActiveProfileSwitcherModal({
                 >
                   <View style={styles.rowIcon}>
                     <Ionicons
-                      name={profileIcon(p.type)}
+                      name={profileTypeIcon(p.type)}
                       size={22}
                       color={active ? "#fff" : mobileColors.accent}
                     />
@@ -217,7 +197,7 @@ export function ActiveProfileSwitcherModal({
                       disabled={Boolean(busyId)}
                     >
                       <Ionicons
-                        name={profileIcon(type)}
+                        name={profileTypeIcon(type)}
                         size={20}
                         color={mobileColors.accent}
                       />

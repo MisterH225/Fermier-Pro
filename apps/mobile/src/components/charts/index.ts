@@ -14,6 +14,8 @@ export {
   budgetVsExpenseLines,
   barDataToLine,
   feedChartToLines,
+  feedSeriesColor,
+  FEED_SERIES_PALETTE,
   feedPeriodToChartPeriod,
   chartPeriodToFeedPeriod,
   type FinanceMonthPoint

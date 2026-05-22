@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -28,6 +29,7 @@ const ROLES = [
 
 export function CreateFarmInvitationScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
+  useScreenTitle(navigation, farmName);
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
 
@@ -66,7 +68,6 @@ export function CreateFarmInvitationScreen({ route, navigation }: Props) {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.farmHint}>{farmName}</Text>
       <Text style={styles.label}>Rôle</Text>
       <View style={styles.roleRow}>
         {ROLES.map((r) => (

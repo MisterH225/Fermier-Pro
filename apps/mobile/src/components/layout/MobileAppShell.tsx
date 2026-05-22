@@ -6,6 +6,8 @@ import { TopBar } from "./TopBar";
 
 type MobileAppShellProps = {
   title?: string;
+  /** Masque la TopBar interne quand le titre est déjà dans l'en-tête stack (`useScreenTitle`). */
+  hideTopBar?: boolean;
   /** Si défini, remplace la barre titre standard (ex. accueil producteur). */
   customHeader?: ReactNode;
   /**
@@ -20,6 +22,7 @@ type MobileAppShellProps = {
 
 export function MobileAppShell({
   title = "",
+  hideTopBar = false,
   customHeader,
   omitBottomTabBar,
   floatingAction,
@@ -29,9 +32,10 @@ export function MobileAppShell({
   const safeEdges: readonly Edge[] = omitBottomTabBar
     ? ["top"]
     : ["top", "bottom"];
+  const showTopBar = !hideTopBar && (customHeader != null || title.length > 0);
   return (
     <SafeAreaView style={styles.safe} edges={safeEdges}>
-      {customHeader ?? <TopBar title={title} rightSlot={topRight} />}
+      {showTopBar ? (customHeader ?? <TopBar title={title} rightSlot={topRight} />) : null}
       <View style={styles.content}>
         {children}
         {floatingAction ? (

@@ -1,20 +1,28 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
+import { CguModule } from "../cgu/cgu.module";
+import { PushNotificationsModule } from "../push-notifications/push-notifications.module";
+import { AccountDeletionService } from "./account-deletion.service";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { OptionalActiveProfileGuard } from "./guards/optional-active-profile.guard";
 import { ProducerProfileGuard } from "./guards/producer-profile.guard";
+import { SupabaseAdminService } from "./supabase-admin.service";
 import { SupabaseJwtGuard } from "./guards/supabase-jwt.guard";
 
 @Module({
+  imports: [PushNotificationsModule, forwardRef(() => CguModule)],
   controllers: [AuthController],
   providers: [
     AuthService,
+    AccountDeletionService,
+    SupabaseAdminService,
     SupabaseJwtGuard,
     OptionalActiveProfileGuard,
     ProducerProfileGuard
   ],
   exports: [
     AuthService,
+    AccountDeletionService,
     SupabaseJwtGuard,
     OptionalActiveProfileGuard,
     ProducerProfileGuard

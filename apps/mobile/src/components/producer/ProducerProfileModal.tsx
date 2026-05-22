@@ -19,7 +19,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSession } from "../../context/SessionContext";
 import { patchAuthProfile, type PatchMeProfilePayload } from "../../lib/api";
-import { isDemoBypassToken } from "../../lib/demoBypass";
 import { getSupabase } from "../../lib/supabase";
 import { uploadUserAvatarToSupabase } from "../../lib/uploadAvatarToSupabase";
 import {
@@ -184,10 +183,6 @@ export function ProducerProfileModal({
   };
 
   const onSave = async () => {
-    if (isDemoBypassToken(accessToken)) {
-      Alert.alert("", t("producer.demoNoSave"));
-      return;
-    }
     setSaving(true);
     try {
       const body: PatchMeProfilePayload = {
@@ -202,7 +197,7 @@ export function ProducerProfileModal({
 
       if (pendingAvatarUri) {
         const supabase = getSupabase();
-        if (!supabase || !authMe?.user.id) {
+        if (!supabase || !authMe?.user.supabaseUserId) {
           Alert.alert("", t("producer.photoUploadError"));
           setSaving(false);
           return;
@@ -214,7 +209,7 @@ export function ProducerProfileModal({
             : "image/jpeg";
         body.avatarUrl = await uploadUserAvatarToSupabase(
           supabase,
-          authMe.user.id,
+          authMe.user.supabaseUserId,
           pendingAvatarUri,
           mime
         );

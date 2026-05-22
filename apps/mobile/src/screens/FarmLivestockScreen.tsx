@@ -1,6 +1,8 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, type ReactNode } from "react";
+import { TabScreenHeader } from "../components/layout";
+import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -11,12 +13,11 @@ import {
   View
 } from "react-native";
 import {
-  AnimalList,
   CheptelHistory,
   CheptelOverview,
-  CheptelPensTab,
   CheptelWeightTab
 } from "../components/cheptel";
+import { CheptelTab } from "../components/cheptel/tabs/CheptelTab";
 import { TabContent, TabSelector } from "../components/tabs";
 import { useSession } from "../context/SessionContext";
 import {
@@ -38,6 +39,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "FarmLivestock">;
 
 export function FarmLivestockScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
+  useScreenTitle(navigation, farmName);
   const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
@@ -113,7 +115,6 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={mobileColors.accent} />
-        <Text style={styles.sub}>{farmName}</Text>
       </View>
     );
   }
@@ -166,7 +167,7 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
     <View style={styles.root}>
       <TabSelector
         defaultTab="overview"
-        header={<Text style={styles.farmTitle}>{farmName}</Text>}
+        header={<TabScreenHeader>{modeHintBlock}</TabScreenHeader>}
         tabs={[
           {
             key: "overview",
@@ -175,63 +176,25 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
               <CheptelOverview
                 overview={cheptelQuery.data}
                 isLoading={cheptelQuery.isPending}
+                farmId={farmId}
+                accessToken={accessToken}
+                activeProfileId={activeProfileId}
               />
             )
           },
           {
-            key: "animals",
-            label: t("cheptel.navAnimals"),
+            key: "cheptel",
+            label: t("cheptel.navCheptel"),
             badge: animals.length || undefined,
             content: tabScroll(
-              showAnimals || showBatches ? (
-                <AnimalList
+              accessToken ? (
+                <CheptelTab
                   farmId={farmId}
                   farmName={farmName}
-                  accessToken={accessToken!}
-                  activeProfileId={activeProfileId}
-                  animals={showAnimals ? animals : []}
-                  batches={batches}
-                  showBatches={showBatches}
-                  isLoading={animalsQuery.isPending && showAnimals}
-                  onRefresh={onRefresh}
-                  refreshing={refreshing}
-                  onInvalidate={invalidateAnimals}
-                  modeHint={modeHintBlock}
-                  onOpenBatch={(b) =>
-                    navigation.navigate("BatchDetail", {
-                      farmId,
-                      farmName,
-                      batchId: b.id,
-                      batchName: b.name
-                    })
-                  }
-                  onOpenAnimalScreen={(a) =>
-                    navigation.navigate("AnimalDetail", {
-                      farmId,
-                      farmName,
-                      animalId: a.id,
-                      headline: a.tagCode || a.publicId.slice(0, 8)
-                    })
-                  }
-                  onOpenHealth={() =>
-                    navigation.navigate("FarmHealth", { farmId, farmName })
-                  }
+                  navigation={navigation}
+                  onInvalidateOverview={onRefresh}
                 />
-              ) : (
-                <Text style={styles.empty}>{t("cheptel.batchOnlyHint")}</Text>
-              )
-            )
-          },
-          {
-            key: "pens",
-            label: t("cheptel.navPens"),
-            content: tabScroll(
-              <CheptelPensTab
-                farmId={farmId}
-                occupancyRate={kpis?.occupancyRate ?? null}
-                availablePens={kpis?.availablePensCount ?? 0}
-                onInvalidateOverview={onRefresh}
-              />
+              ) : null
             )
           },
           {

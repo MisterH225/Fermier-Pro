@@ -9,12 +9,8 @@ import {
   type ReactNode
 } from "react";
 import type { AuthMeResponse, ClientConfigDto } from "../lib/api";
+import { formatApiError } from "../lib/apiErrors";
 import { fetchAuthMe, fetchClientConfig } from "../lib/api";
-import {
-  DEMO_AUTH_ME,
-  isDemoBypassToken
-} from "../lib/demoBypass";
-
 const STORAGE_PROFILE_KEY = "@fermier_pro/active_profile_id";
 
 const DEFAULT_CLIENT_FEATURES: ClientConfigDto["features"] = {
@@ -95,13 +91,6 @@ export function SessionProvider({
   const bootstrap = useCallback(async () => {
     setAuthLoading(true);
     setAuthError(null);
-    if (isDemoBypassToken(accessToken)) {
-      setAuthMe(DEMO_AUTH_ME);
-      setActiveProfileIdState(DEMO_AUTH_ME.activeProfile?.id ?? null);
-      setAuthLoading(false);
-      setAuthError(null);
-      return;
-    }
     try {
       const stored = await AsyncStorage.getItem(STORAGE_PROFILE_KEY);
       const initial = await fetchAuthMe(accessToken);
@@ -129,7 +118,7 @@ export function SessionProvider({
         setActiveProfileIdState(null);
       }
     } catch (e) {
-      setAuthError(e instanceof Error ? e.message : String(e));
+      setAuthError(formatApiError(e));
       setAuthMe(null);
       setActiveProfileIdState(null);
     } finally {
@@ -142,11 +131,6 @@ export function SessionProvider({
   }, [bootstrap]);
 
   const refreshAuthMe = useCallback(async () => {
-    if (isDemoBypassToken(accessToken)) {
-      setAuthError(null);
-      setAuthMe(DEMO_AUTH_ME);
-      return;
-    }
     try {
       setAuthError(null);
       const me = activeProfileId
@@ -154,7 +138,7 @@ export function SessionProvider({
         : await fetchAuthMe(accessToken);
       setAuthMe(me);
     } catch (e) {
-      setAuthError(e instanceof Error ? e.message : String(e));
+      setAuthError(formatApiError(e));
     }
   }, [accessToken, activeProfileId]);
 
@@ -165,21 +149,6 @@ export function SessionProvider({
   const setActiveProfileId = useCallback(
     async (id: string | null) => {
       setAuthError(null);
-      if (isDemoBypassToken(accessToken)) {
-        setActiveProfileIdState(id);
-        if (id) {
-          await AsyncStorage.setItem(STORAGE_PROFILE_KEY, id);
-        } else {
-          await AsyncStorage.removeItem(STORAGE_PROFILE_KEY);
-        }
-        const match =
-          id != null ? DEMO_AUTH_ME.profiles.find((p) => p.id === id) : null;
-        setAuthMe({
-          ...DEMO_AUTH_ME,
-          activeProfile: match ?? null
-        });
-        return;
-      }
       setActiveProfileIdState(id);
       if (id) {
         await AsyncStorage.setItem(STORAGE_PROFILE_KEY, id);
@@ -187,7 +156,7 @@ export function SessionProvider({
           const me = await fetchAuthMe(accessToken, id);
           setAuthMe(me);
         } catch (e) {
-          setAuthError(e instanceof Error ? e.message : String(e));
+          setAuthError(formatApiError(e));
         }
       } else {
         await AsyncStorage.removeItem(STORAGE_PROFILE_KEY);
@@ -195,7 +164,7 @@ export function SessionProvider({
           const me = await fetchAuthMe(accessToken);
           setAuthMe(me);
         } catch (e) {
-          setAuthError(e instanceof Error ? e.message : String(e));
+          setAuthError(formatApiError(e));
         }
       }
     },

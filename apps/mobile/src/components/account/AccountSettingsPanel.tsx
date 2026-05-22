@@ -21,6 +21,7 @@ import {
 import type { RootStackParamList } from "../../types/navigation";
 import { Card } from "../ui/Card";
 import { ActiveProfileSwitcherControl } from "./ActiveProfileSwitcherControl";
+import { DangerZone } from "../profile/DangerZone";
 import { NotificationSettingsRow } from "./NotificationSettingsRow";
 
 const LOCALE_CODES: AppLocaleCode[] = ["fr", "en"];
@@ -159,6 +160,8 @@ export function AccountSettingsPanel({
           <Text style={styles.signOutLabel}>{t("account.signOut")}</Text>
         )}
       </Pressable>
+
+      <DangerZone />
     </View>
   );
 }

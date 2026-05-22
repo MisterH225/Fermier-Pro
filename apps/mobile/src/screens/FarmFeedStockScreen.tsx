@@ -1,6 +1,8 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { useLayoutEffect, useMemo, useState, useCallback, type ReactNode } from "react";
+import { useMemo, useState, useCallback, type ReactNode } from "react";
+import { TabScreenHeader } from "../components/layout";
+import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -16,13 +18,17 @@ import {
 import {
   SmartChart,
   feedChartToLines,
+  feedSeriesColor,
   feedPeriodToChartPeriod,
   chartPeriodToFeedPeriod
 } from "../components/charts";
 import { StockModal } from "../components/feed/StockModal";
 import { FeedStockModuleGate } from "../components/FeedStockModuleGate";
 import { EventList, type EventItem } from "../components/lists";
+import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
+import { ScreenSection } from "../components/layout/ScreenSection";
 import { TabContent, TabSelector } from "../components/tabs";
+import { invalidateAIInsights } from "../services/ai/AIRecommendationService";
 import { useModal } from "../components/modals/useModal";
 import { useSession } from "../context/SessionContext";
 import type { FarmFeedStatItemDto, FeedStockMovementDto } from "../lib/api";
@@ -254,21 +260,19 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
     return null;
   }, [results, movQ]);
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: clientFeatures.feedStock
-        ? () => (
-            <TouchableOpacity
-              onPress={() => setStockOpen(true)}
-              style={styles.headerBtn}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={styles.headerBtnText}>➕ {t("feedStock.add")}</Text>
-            </TouchableOpacity>
-          )
-        : undefined
-    });
-  }, [navigation, clientFeatures.feedStock, t]);
+  useScreenTitle(navigation, farmName, {
+    headerRight: clientFeatures.feedStock
+      ? () => (
+          <TouchableOpacity
+            onPress={() => setStockOpen(true)}
+            style={styles.headerBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.headerBtnText}>➕ {t("feedStock.add")}</Text>
+          </TouchableOpacity>
+        )
+      : undefined
+  });
 
   if (!clientFeatures.feedStock) {
     return (
@@ -344,14 +348,12 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
           }
         }}
         header={
-          <>
-            <Text style={styles.screenTitle}>{t("feedStock.title")}</Text>
-            <Text style={styles.farmHint}>{farmName}</Text>
+          <TabScreenHeader>
             <Text style={styles.global}>
               {t("feedStock.globalStock")} :{" "}
               <Text style={styles.globalVal}>{formatMassKg(totalKg)}</Text>
             </Text>
-          </>
+          </TabScreenHeader>
         }
         tabs={[
           {
@@ -359,8 +361,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
             label: t("feedStock.tabOverview"),
             content: tabScroll(
               <>
-                <View style={styles.chartCard}>
-                  <Text style={styles.chartTitle}>{t("feedStock.chartTitle")}</Text>
+                <ScreenSection title={t("feedStock.chartTitle")}>
                   {chart ? (
                     <SmartChart
                       lines={feedChartToLines(chart)}
@@ -381,20 +382,25 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
                   ) : (
                     <Text style={styles.muted}>—</Text>
                   )}
-                </View>
-                <Text style={[styles.section, styles.sectionSp]}>
-                  {t("feedStock.statsTitle")}
-                </Text>
+                </ScreenSection>
+                <ModuleAIInsights
+                  farmId={farmId}
+                  module="stock"
+                  accessToken={accessToken}
+                  activeProfileId={activeProfileId}
+                  hasMinimalData={stats.length > 0}
+                />
+                <ScreenSection title={t("feedStock.statsTitle")}>
                 {stats.length === 0 ? (
                   <Text style={styles.muted}>{t("feedStock.noStats")}</Text>
                 ) : (
-                  stats.map((s) => (
+                  stats.map((s, statIndex) => (
                     <View key={s.feedTypeId} style={styles.statCard}>
                       <View style={styles.statHead}>
                         <View
                           style={[
                             styles.dot,
-                            { backgroundColor: s.color || mobileColors.accent }
+                            { backgroundColor: feedSeriesColor(statIndex) }
                           ]}
                         />
                         <Text style={styles.statName}>{s.name}</Text>
@@ -426,17 +432,15 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
                     </View>
                   ))
                 )}
-                <Text style={[styles.section, styles.sectionSp]}>
-                  {t("feedStock.smartAlertsHintTitle", "Recommandations")}
-                </Text>
-                <View style={styles.card}>
+                </ScreenSection>
+                <ScreenSection title={t("feedStock.smartAlertsHintTitle", "Recommandations")}>
                   <Text style={styles.muted}>
                     {t(
                       "feedStock.smartAlertsHintBody",
                       "Les alertes stock et consommation sont sur le tableau de bord (section Recommandations)."
                     )}
                   </Text>
-                </View>
+                </ScreenSection>
               </>
             )
           },
@@ -461,12 +465,14 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
           accessToken={accessToken}
           activeProfileId={activeProfileId}
           types={types}
-          onSuccess={() =>
+          onSuccess={() => {
+            void invalidateAIInsights(farmId, "stock");
+            void invalidateAIInsights(farmId, "global_dashboard");
             open("success", {
               message: t("feedStock.successMessage"),
               autoDismissMs: 2000
-            })
-          }
+            });
+          }}
         />
       ) : null}
     </View>

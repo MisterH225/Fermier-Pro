@@ -28,8 +28,8 @@ export function TabContent({ children, style }: TabContentProps) {
 
 const styles = StyleSheet.create({
   wrap: {
-    paddingHorizontal: mobileSpacing.lg,
+    paddingHorizontal: mobileSpacing.md,
     paddingTop: mobileSpacing.md,
-    gap: mobileSpacing.md
+    gap: mobileSpacing.lg
   }
 });

@@ -1,6 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
+import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -27,6 +28,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "SmartAlertsList">;
 
 export function SmartAlertsListScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
+  useScreenTitle(navigation, farmName);
   const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
@@ -80,12 +82,7 @@ export function SmartAlertsListScreen({ route, navigation }: Props) {
   );
 
   return (
-    <MobileAppShell title={t("smartAlerts.listTitle", "Recommandations")}>
-      <View style={styles.sub}>
-        <Text style={styles.farmName} numberOfLines={1}>
-          {farmName}
-        </Text>
-      </View>
+    <MobileAppShell hideTopBar>
       {listQuery.isPending && !listQuery.data ? (
         <ActivityIndicator style={styles.center} color={mobileColors.accent} />
       ) : listQuery.error ? (

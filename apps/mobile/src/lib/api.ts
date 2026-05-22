@@ -3,19 +3,10 @@
  * Postgres côté serveur). Convention : tout nouvel appel ajouté ici doit avoir un cas
  * dans `apps/api/test/mobile-api-contract.e2e-spec.ts` (GET/POST/PATCH selon le cas).
  */
-import { getExpoPublicEnv, isDemoApiGetMockDisabled } from "../env";
-import {
-  tryDemoBypassApiGetJson,
-  tryDemoBypassApiWriteJson
-} from "./demoApiGetBypass";
-import { isDemoBypassToken } from "./demoBypass";
+import { resolveApiBaseUrl } from "../env";
 
 function apiBaseUrl(): string {
-  const { apiUrl } = getExpoPublicEnv();
-  if (!apiUrl) {
-    throw new Error("EXPO_PUBLIC_API_URL manquant");
-  }
-  return apiUrl.replace(/\/$/, "");
+  return resolveApiBaseUrl();
 }
 
 export function apiAuthHeaders(
@@ -37,12 +28,6 @@ export async function apiGetJson<T>(
   accessToken: string,
   activeProfileId?: string | null
 ): Promise<T> {
-  const demo = isDemoApiGetMockDisabled()
-    ? null
-    : tryDemoBypassApiGetJson(path, accessToken);
-  if (demo !== null) {
-    return demo as T;
-  }
   const p = path.startsWith("/") ? path : `/${path}`;
   const url = `${apiBaseUrl()}/api/v1${p}`;
   const res = await fetch(url, {
@@ -63,12 +48,6 @@ export async function apiPostJson<T>(
   activeProfileId?: string | null
 ): Promise<T> {
   const p = path.startsWith("/") ? path : `/${path}`;
-  if (!isDemoApiGetMockDisabled() && isDemoBypassToken(accessToken)) {
-    const demo = tryDemoBypassApiWriteJson("POST", p, body, accessToken);
-    if (demo !== null) {
-      return demo as T;
-    }
-  }
   const url = `${apiBaseUrl()}/api/v1${p}`;
   const res = await fetch(url, {
     method: "POST",
@@ -93,12 +72,6 @@ export async function apiPutJson<T>(
   activeProfileId?: string | null
 ): Promise<T> {
   const p = path.startsWith("/") ? path : `/${path}`;
-  if (!isDemoApiGetMockDisabled() && isDemoBypassToken(accessToken)) {
-    const demo = tryDemoBypassApiWriteJson("PUT", p, body, accessToken);
-    if (demo !== null) {
-      return demo as T;
-    }
-  }
   const url = `${apiBaseUrl()}/api/v1${p}`;
   const res = await fetch(url, {
     method: "PUT",
@@ -123,12 +96,6 @@ export async function apiPatchJson<T>(
   activeProfileId?: string | null
 ): Promise<T> {
   const p = path.startsWith("/") ? path : `/${path}`;
-  if (!isDemoApiGetMockDisabled() && isDemoBypassToken(accessToken)) {
-    const demo = tryDemoBypassApiWriteJson("PATCH", p, body, accessToken);
-    if (demo !== null) {
-      return demo as T;
-    }
-  }
   const url = `${apiBaseUrl()}/api/v1${p}`;
   const res = await fetch(url, {
     method: "PATCH",
@@ -1147,24 +1114,119 @@ export function fetchFarmCheptelStatusLogs(
   return apiGetJson<CheptelStatusLogRow[]>(path, accessToken, activeProfileId);
 }
 
+export type PenCategoryKey =
+  | "starter"
+  | "fattening"
+  | "maternity"
+  | "quarantine"
+  | "mixed"
+  | "empty";
+
+export type PenUsageTag =
+  | "empty"
+  | "sows"
+  | "boar"
+  | "boars"
+  | "starter"
+  | "fattening"
+  | "mixed";
+
 export type CheptelPenRowDto = {
   id: string;
   name: string;
   code: string | null;
   barnId: string;
   barnName: string;
+  sortOrder: number;
   capacity: number;
   occupancy: number;
   occupancyRate: number | null;
   borderStatus: "healthy" | "warning" | "critical" | "empty";
   batchTypeTag: "starter" | "fattening" | null;
   sanitaryTag: "healthy" | "alert" | "critical" | "overcrowded" | "empty";
+  category: PenCategoryKey;
+  categoryForced: boolean;
+  usageTag: PenUsageTag;
+  maleCount: number;
+  femaleCount: number;
+  isActive: boolean;
+  averageWeightKg: number | null;
+  averageAgeDays: number | null;
+  vaccineOverdueCount: number;
+  gestationImminent: boolean;
+  activeDiseaseCount: number;
 };
 
 export type CheptelPensResponseDto = {
-  barns: Array<{ id: string; name: string }>;
+  barns: Array<{ id: string; name: string; code?: string | null; sortOrder?: number }>;
   pens: CheptelPenRowDto[];
+  totalPens?: number;
 };
+
+export type PenAnimalRowDto = {
+  id: string;
+  publicId: string;
+  tagCode: string | null;
+  sex: "male" | "female" | "unknown";
+  productionCategory?:
+    | "breeding_female"
+    | "breeding_male"
+    | "fattening"
+    | "starter"
+    | "unknown";
+  status: string;
+  photoUrl: string | null;
+  species: { id: string; code: string; name: string };
+  breed: { id: string; name: string } | null;
+  weights: Array<{ weightKg: number; measuredAt: string }>;
+  currentWeightKg: number | null;
+  vaccineOverdue: boolean;
+  activeGestation: {
+    id: string;
+    expectedFarrowingAt: string | null;
+  } | null;
+};
+
+export type PenBatchRowDto = {
+  id: string;
+  publicId: string;
+  name: string;
+  headcount: number;
+  categoryKey: string | null;
+  status: string;
+  species: { id: string; code: string; name: string };
+  breed: { id: string; name: string } | null;
+  avgWeightKg: number | null;
+};
+
+export type PenContentsDto = {
+  animals: PenAnimalRowDto[];
+  batches: PenBatchRowDto[];
+};
+
+export type ApplyDefaultPenLayoutResult = {
+  batchesMigrated?: number;
+  breedersPlaced?: number;
+  productionPlaced?: number;
+  rebalanced?: number;
+  /** @deprecated Ancien format API */
+  animalsPlaced?: number;
+  batchesPlaced?: number;
+};
+
+/** Répartit truies, verrats et lots selon le plan onboarding (sujets sans loge). */
+export function applyCheptelDefaultPenLayout(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<ApplyDefaultPenLayoutResult> {
+  return apiPostJson<ApplyDefaultPenLayoutResult>(
+    `/farms/${farmId}/cheptel/apply-default-layout`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
 
 export function fetchCheptelPens(
   accessToken: string,
@@ -1175,6 +1237,87 @@ export function fetchCheptelPens(
   const q = barnId ? `?barnId=${encodeURIComponent(barnId)}` : "";
   return apiGetJson<CheptelPensResponseDto>(
     `/farms/${farmId}/cheptel/pens${q}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchPenContents(
+  accessToken: string,
+  farmId: string,
+  penId: string,
+  activeProfileId?: string | null
+): Promise<PenContentsDto> {
+  return apiGetJson<PenContentsDto>(
+    `/farms/${farmId}/cheptel/pens/${penId}/animals`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function patchPenToggleActive(
+  accessToken: string,
+  farmId: string,
+  penId: string,
+  activeProfileId?: string | null
+): Promise<{ id: string; status: string }> {
+  return apiPatchJson(
+    `/farms/${farmId}/cheptel/pens/${penId}/toggle-active`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function patchPenAverages(
+  accessToken: string,
+  farmId: string,
+  penId: string,
+  payload: { averageWeightKg?: number | null; averageAgeDays?: number | null },
+  activeProfileId?: string | null
+): Promise<unknown> {
+  return apiPatchJson(
+    `/farms/${farmId}/cheptel/pens/${penId}/averages`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function deleteCheptelPen(
+  accessToken: string,
+  farmId: string,
+  penId: string,
+  activeProfileId?: string | null
+): Promise<{ ok: boolean }> {
+  return apiDeleteJson(
+    `/farms/${farmId}/cheptel/pens/${penId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type PatchPenPayload = {
+  name?: string;
+  capacity?: number | null;
+  status?: string;
+  category?: PenCategoryKey;
+  categoryForced?: boolean;
+  averageWeightKg?: number | null;
+  averageAgeDays?: number | null;
+  zoneLabel?: string | null;
+};
+
+export function patchPen(
+  accessToken: string,
+  farmId: string,
+  penId: string,
+  payload: PatchPenPayload,
+  activeProfileId?: string | null
+): Promise<PenMutationDto> {
+  return apiPatchJson<PenMutationDto>(
+    `/farms/${farmId}/pens/${penId}`,
+    payload,
     accessToken,
     activeProfileId
   );
@@ -1335,7 +1478,13 @@ export type AnimalListItem = {
   id: string;
   publicId: string;
   tagCode: string | null;
-  sex: string;
+  sex: "male" | "female" | "unknown";
+  productionCategory?:
+    | "breeding_female"
+    | "breeding_male"
+    | "fattening"
+    | "starter"
+    | "unknown";
   status: string;
   species: { id: string; code: string; name: string };
   breed: { id: string; name: string } | null;
@@ -1362,6 +1511,7 @@ export type CreateAnimalPayload = {
   tagCode?: string;
   breedId?: string;
   sex?: "male" | "female" | "unknown";
+  productionCategory?: AnimalProductionCategoryDto;
   birthDate?: string;
   notes?: string;
   speciesId?: string;
@@ -1381,11 +1531,51 @@ export function createAnimal(
   );
 }
 
+export type AnimalTagPrefixDto = "Trui" | "Ver" | "Eng" | "Dem";
+
+export type AnimalProductionCategoryDto =
+  | "breeding_female"
+  | "breeding_male"
+  | "fattening"
+  | "starter"
+  | "unknown";
+
+export function fetchNextAnimalNumber(
+  accessToken: string,
+  farmId: string,
+  prefix: AnimalTagPrefixDto,
+  activeProfileId?: string | null
+): Promise<{
+  prefix: AnimalTagPrefixDto;
+  tagCode: string;
+  productionCategory: AnimalProductionCategoryDto;
+}> {
+  return apiGetJson(
+    `/farms/${farmId}/next-animal-number?prefix=${encodeURIComponent(prefix)}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type AnimalOriginDto = "farm_born" | "purchased";
+
+export type AnimalPedigreeRef = {
+  id: string;
+  tagCode: string | null;
+  publicId: string;
+};
+
 export type UpdateAnimalPayload = {
   tagCode?: string;
   breedId?: string | null;
   sex?: "male" | "female" | "unknown";
+  productionCategory?: AnimalProductionCategoryDto;
   birthDate?: string | null;
+  origin?: AnimalOriginDto | null;
+  supplier?: string | null;
+  photoUrl?: string | null;
+  damId?: string | null;
+  sireId?: string | null;
   notes?: string | null;
 };
 
@@ -1444,8 +1634,16 @@ export type AnimalDetail = {
   id: string;
   publicId: string;
   tagCode: string | null;
-  sex: string;
+  sex: "male" | "female" | "unknown";
+  productionCategory?: AnimalProductionCategoryDto;
   birthDate: string | null;
+  origin?: AnimalOriginDto | null;
+  supplier?: string | null;
+  photoUrl?: string | null;
+  damId?: string | null;
+  sireId?: string | null;
+  dam?: AnimalPedigreeRef | null;
+  sire?: AnimalPedigreeRef | null;
   status: string;
   notes: string | null;
   species: { id: string; code: string; name: string };
@@ -2604,13 +2802,6 @@ export type FinanceMarginByBatchDto = {
   costPerKg: string | null;
 };
 
-export type FinanceSimulationDto = {
-  farmId: string;
-  currentBalance: string;
-  simulatedAdditionalRevenue: string;
-  projectedBalance: string;
-};
-
 export type FarmFinanceSettingsDto = {
   farmId: string;
   currencyCode: string;
@@ -2766,23 +2957,6 @@ export function fetchFinanceMarginByBatch(
 ): Promise<FinanceMarginByBatchDto> {
   return apiGetJson<FinanceMarginByBatchDto>(
     `/farms/${farmId}/finance/margin-by-batch?batchId=${encodeURIComponent(batchId)}`,
-    accessToken,
-    activeProfileId
-  );
-}
-
-export function fetchFinanceSimulation(
-  accessToken: string,
-  farmId: string,
-  saleHeadcount: number,
-  pricePerHead: number,
-  activeProfileId?: string | null
-): Promise<FinanceSimulationDto> {
-  const qs = new URLSearchParams();
-  qs.set("saleHeadcount", String(saleHeadcount));
-  qs.set("pricePerHead", String(pricePerHead));
-  return apiGetJson<FinanceSimulationDto>(
-    `/farms/${farmId}/finance/simulation?${qs.toString()}`,
     accessToken,
     activeProfileId
   );
@@ -3656,6 +3830,22 @@ export type AuthMePrimaryFarm = {
   name: string;
 };
 
+export type CguStatusDto = {
+  currentVersion: string;
+  acceptedAt: string | null;
+  versionAccepted: string | null;
+  needsAcceptance: boolean;
+  isUpdate: boolean;
+};
+
+export type CguCurrentDto = {
+  version: string;
+  content: string;
+  contentUrl: string | null;
+  updatedAt: string;
+  privacyPolicyContent: string;
+};
+
 export type AuthMeUser = {
   id: string;
   supabaseUserId: string;
@@ -3675,9 +3865,12 @@ export type AuthMeUser = {
   pushNotificationsRegistered: boolean;
   isOnboarded: boolean;
   onboardingSkipped: boolean;
+  cguAcceptedAt: string | null;
+  cguVersionAccepted: string | null;
 };
 
 export type AuthMeResponse = {
+  cgu?: CguStatusDto;
   user: AuthMeUser;
   /** Première ferme propriétaire (ordre de création), pour libellé accueil producteur. */
   primaryFarm: AuthMePrimaryFarm | null;
@@ -3771,6 +3964,22 @@ export function postOnboardingSkip(
 }
 
 /** GET /api/v1/auth/me (Bearer = access_token Supabase). */
+export function fetchCguCurrent(accessToken: string): Promise<CguCurrentDto> {
+  return apiGetJson<CguCurrentDto>("/cgu/current", accessToken, null);
+}
+
+export function acceptCgu(
+  accessToken: string,
+  version: string
+): Promise<AuthMeResponse> {
+  return apiPostJson<AuthMeResponse>(
+    "/auth/me/accept-cgu",
+    { version },
+    accessToken,
+    null
+  );
+}
+
 export async function fetchAuthMe(
   accessToken: string,
   activeProfileId?: string
@@ -3784,6 +3993,13 @@ export async function fetchAuthMe(
     throw new Error(text || `${res.status} ${res.statusText}`);
   }
   return JSON.parse(text) as AuthMeResponse;
+}
+
+/** DELETE /api/v1/auth/me/account — suppression définitive du compte et des données. */
+export function deleteMyAccount(
+  accessToken: string
+): Promise<{ ok: boolean }> {
+  return apiDeleteJson<{ ok: boolean }>("/auth/me/account", accessToken);
 }
 
 /** PATCH /api/v1/auth/me/profile — met à jour l’utilisateur courant (sans changer de profil métier). */
@@ -3963,4 +4179,298 @@ export function fetchFarmReportById(
 
 export function farmReportPdfAbsoluteUrl(reportId: string): string {
   return `${apiBaseUrl()}/api/v1/reports/${reportId}/pdf`;
+}
+
+export type AIInsightDto = {
+  type: string;
+  priority: "critical" | "warning" | "info";
+  title: string;
+  message: string;
+  action_label?: string | null;
+  action_route?: string | null;
+};
+
+export type AIRecommendationsResponseDto = {
+  items: AIInsightDto[];
+  generatedAt: string;
+  insufficient?: boolean;
+  unavailable?: boolean;
+};
+
+export function fetchAIRecommendations(
+  accessToken: string,
+  body: { farmId: string; module: string },
+  activeProfileId?: string | null
+): Promise<AIRecommendationsResponseDto> {
+  return apiPostJson<AIRecommendationsResponseDto>(
+    "/ai/recommendations",
+    body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** Module Gestation — `/farms/:farmId/gestation/...` et `/gestations`. */
+export type GestationOverviewDto = {
+  kpis: {
+    activeGestations: number;
+    birthsDueIn7Days: number;
+    birthsDueThisMonth: number;
+    sowsAvailableForMating: number;
+    avgDaysBetweenFarrowing: number | null;
+    avgLitterSize: number | null;
+    neonatalMortalityPct: number | null;
+  };
+  birthsPerMonth: Array<{ month: string; count: number }>;
+  upcomingBirths: Array<{
+    gestationId: string;
+    sowId: string;
+    sowLabel: string;
+    photoUrl: string | null;
+    expectedBirthDate: string;
+    daysRemaining: number;
+    urgency: "critical" | "soon" | "active";
+  }>;
+};
+
+export type GestationListItemDto = {
+  id: string;
+  farmId: string;
+  sowId: string;
+  sowLabel: string;
+  boarLabel: string | null;
+  matingDate: string;
+  expectedBirthDate: string;
+  gestationNumber: number;
+  status: string;
+  matingType: string;
+  progress: {
+    daysRemaining: number;
+    progressPct: number;
+    weekCurrent: number;
+    weekTotal: number;
+    urgency: "critical" | "soon" | "active" | null;
+  } | null;
+  sow: {
+    id: string;
+    publicId: string;
+    tagCode: string | null;
+    photoUrl: string | null;
+    breed?: { name: string } | null;
+  };
+  checklistCompletionPct: number;
+};
+
+export type GestationDetailDto = GestationListItemDto & {
+  vaccines: Array<{
+    id: string;
+    vaccineName: string;
+    scheduledDate: string;
+    administeredDate: string | null;
+    status: string;
+  }>;
+  checklistItems: Array<{
+    id: string;
+    itemLabel: string;
+    isChecked: boolean;
+  }>;
+  litter?: unknown;
+  notes?: string | null;
+};
+
+export function fetchGestationOverview(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<GestationOverviewDto> {
+  return apiGetJson(
+    `/farms/${farmId}/gestation/overview`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchGestations(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null,
+  params?: { status?: string; filter?: string; q?: string }
+): Promise<{ items: GestationListItemDto[] }> {
+  const q = new URLSearchParams();
+  if (params?.status) q.set("status", params.status);
+  if (params?.filter) q.set("filter", params.filter);
+  if (params?.q) q.set("q", params.q);
+  const qs = q.toString();
+  return apiGetJson(
+    `/farms/${farmId}/gestation/gestations${qs ? `?${qs}` : ""}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchGestationDetail(
+  accessToken: string,
+  farmId: string,
+  gestationId: string,
+  activeProfileId?: string | null
+): Promise<GestationDetailDto> {
+  return apiGetJson(
+    `/farms/${farmId}/gestation/gestations/${gestationId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function createGestation(
+  accessToken: string,
+  farmId: string,
+  body: {
+    sowId: string;
+    boarId?: string;
+    matingType: "natural" | "artificial_insemination";
+    matingDate: string;
+    notes?: string;
+  },
+  activeProfileId?: string | null
+): Promise<GestationDetailDto> {
+  return apiPostJson(
+    `/farms/${farmId}/gestation/gestations`,
+    { ...body, farmId },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function updateGestation(
+  accessToken: string,
+  farmId: string,
+  gestationId: string,
+  body: {
+    boarId?: string | null;
+    matingDate?: string;
+    matingType?: "natural" | "artificial_insemination";
+    notes?: string | null;
+  },
+  activeProfileId?: string | null
+): Promise<GestationDetailDto> {
+  return apiPutJson(
+    `/farms/${farmId}/gestation/gestations/${gestationId}`,
+    body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function patchGestationStatus(
+  accessToken: string,
+  farmId: string,
+  gestationId: string,
+  status: "active" | "completed" | "aborted" | "lost",
+  activeProfileId?: string | null
+): Promise<GestationDetailDto> {
+  return apiPatchJson(
+    `/farms/${farmId}/gestation/gestations/${gestationId}/status`,
+    { status },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function recordGestationLitter(
+  accessToken: string,
+  farmId: string,
+  gestationId: string,
+  body: {
+    actualBirthDate: string;
+    bornAlive: number;
+    stillborn: number;
+    mummified?: number;
+    averageBirthWeightKg?: number;
+    deliveryType: "normal" | "difficult" | "cesarean";
+    vetAssistance?: boolean;
+    notes?: string;
+  },
+  activeProfileId?: string | null
+): Promise<GestationDetailDto> {
+  return apiPostJson(
+    `/farms/${farmId}/gestation/gestations/${gestationId}/litter`,
+    body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function administerGestationVaccine(
+  accessToken: string,
+  farmId: string,
+  vaccineId: string,
+  activeProfileId?: string | null
+): Promise<{ vaccineId: string; healthRecordId: string }> {
+  return apiPatchJson(
+    `/farms/${farmId}/gestation/vaccines/${vaccineId}/administer`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function toggleGestationChecklistItem(
+  accessToken: string,
+  farmId: string,
+  itemId: string,
+  isChecked: boolean,
+  activeProfileId?: string | null
+) {
+  return apiPatchJson(
+    `/farms/${farmId}/gestation/checklist/${itemId}`,
+    { isChecked },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchGestationAvailableSows(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+) {
+  return apiGetJson<{ items: Array<{
+    sowId: string;
+    label: string;
+    photoUrl: string | null;
+    lastFarrowingDate: string | null;
+    gestationCount: number;
+    daysSinceWeaning: number | null;
+    availability: "now" | "soon";
+    availableInDays: number;
+  }> }>(
+    `/farms/${farmId}/gestation/available-sows`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchGestationHistory(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null,
+  filter?: string
+) {
+  const q = filter ? `?filter=${encodeURIComponent(filter)}` : "";
+  return apiGetJson<{
+    events: Array<{
+      id: string;
+      type: string;
+      sowLabel: string;
+      sowId: string;
+      date: string;
+      result?: string;
+      notes?: string | null;
+    }>;
+    stats: Record<string, unknown>;
+  }>(
+    `/farms/${farmId}/gestation/history${q}`,
+    accessToken,
+    activeProfileId
+  );
 }

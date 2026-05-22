@@ -14,6 +14,7 @@ import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import { CreateFeedMovementDto } from "./dto/create-feed-movement.dto";
 import { CreateFeedTypeDto } from "./dto/create-feed-type.dto";
 import { buildFeedStockStatsForFarm } from "./feed-stock-stats.helper";
+import { feedTypeColorAtIndex } from "./feed-type-colors";
 
 const MS_PER_DAY = 86_400_000;
 
@@ -69,12 +70,13 @@ export class FarmFeedService {
     await this.farmAccess.requireFarmScopes(user.id, farmId, [
       FARM_SCOPE.livestockWrite
     ]);
+    const existingCount = await this.prisma.feedType.count({ where: { farmId } });
     return this.prisma.feedType.create({
       data: {
         farmId,
         name: dto.name.trim(),
         unit: dto.unit,
-        color: dto.color?.trim() || "#5d7a1f",
+        color: dto.color?.trim() || feedTypeColorAtIndex(existingCount),
         weightPerBagKg:
           dto.weightPerBagKg != null
             ? new Prisma.Decimal(dto.weightPerBagKg)
@@ -133,7 +135,7 @@ export class FarmFeedService {
       byType.set(m.feedTypeId, arr);
     }
 
-    const series = types.map((t) => {
+    const series = types.map((t, index) => {
       const arr = (byType.get(t.id) ?? []).slice();
       const points = months.map(({ end }) => {
         let v = 0;
@@ -149,7 +151,7 @@ export class FarmFeedService {
       return {
         feedTypeId: t.id,
         name: t.name,
-        color: t.color,
+        color: feedTypeColorAtIndex(index),
         points
       };
     });

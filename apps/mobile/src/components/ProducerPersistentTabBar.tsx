@@ -262,7 +262,14 @@ export function ProducerPersistentTabBar() {
           navigation.navigate("MarketplaceList");
           return;
         case "gestation":
-          navigation.navigate("ProducerDashboard");
+          if (!ctx) {
+            navigation.navigate("FarmList");
+            return;
+          }
+          navigation.navigate("FarmGestation", {
+            farmId: ctx.farmId,
+            farmName: ctx.farmName
+          });
           return;
         case "tasks":
           if (!ctx) {

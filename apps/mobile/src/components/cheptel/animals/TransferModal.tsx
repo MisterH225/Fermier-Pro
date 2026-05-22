@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -187,7 +186,7 @@ export function TransferModal({
         </Pressable>
       }
     >
-      <ScrollView contentContainerStyle={styles.form}>
+      <View style={styles.form}>
         <Text style={styles.label}>{t("cheptel.animals.transfer.animal")}</Text>
         <View style={styles.pillRow}>
           {animals
@@ -271,7 +270,7 @@ export function TransferModal({
           onChangeText={setNote}
           multiline
         />
-      </ScrollView>
+      </View>
     </BaseModal>
   );
 }

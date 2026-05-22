@@ -1,6 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -33,6 +34,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "ProducerFarmSettings">;
 export function ProducerFarmSettingsScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
   const { t } = useTranslation();
+  useScreenTitle(navigation, t("producer.farmSettingsTitle"));
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
 
@@ -51,12 +53,6 @@ export function ProducerFarmSettingsScreen({ route, navigation }: Props) {
   const [buildingsDraft, setBuildingsDraft] = useState("");
   const [pensDraft, setPensDraft] = useState("");
   const [capDraft, setCapDraft] = useState("");
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      title: t("producer.farmSettingsTitle")
-    });
-  }, [navigation, t]);
 
   const farmQuery = useQuery({
     queryKey: ["farm", farmId, activeProfileId],
@@ -168,8 +164,6 @@ export function ProducerFarmSettingsScreen({ route, navigation }: Props) {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.farmHint}>{farmName}</Text>
-
         <Text style={styles.sectionTitle}>{t("cheptel.sectionConfig")}</Text>
         {farmQuery.isPending && !farmQuery.data ? (
           <ActivityIndicator color={mobileColors.accent} />

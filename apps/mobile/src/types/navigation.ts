@@ -10,6 +10,8 @@ export type RootStackParamList = {
   FarmEventsFeed: undefined;
   /** Compte : déconnexion, langue, aide. */
   Account: undefined;
+  DeleteAccountProcess: undefined;
+  DeleteAccountComplete: undefined;
   /** Saisie du jeton d’invitation (lien partagé par un gestionnaire de ferme). */
   AcceptFarmInvitation: { prefilledToken?: string };
   FarmDetail: { farmId: string; farmName: string };
@@ -89,6 +91,13 @@ export type RootStackParamList = {
     penId: string;
     penLabel?: string;
   };
+  /** Détail loge — cheptel fusionné (animaux par loge). */
+  LogeDetail: {
+    farmId: string;
+    farmName: string;
+    penId: string;
+    penLabel?: string;
+  };
   CreatePenLog: {
     farmId: string;
     farmName: string;
@@ -113,6 +122,7 @@ export type RootStackParamList = {
   /** Écran principal Collaboration (onglet barre basse). */
   Collaboration: { farmId: string; farmName: string };
   FarmFeedStock: { farmId: string; farmName: string };
+  FarmGestation: { farmId: string; farmName: string };
   SmartAlertsList: { farmId: string; farmName: string };
   FarmReports: { farmId: string; farmName: string };
 };

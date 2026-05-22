@@ -132,7 +132,6 @@ export function PenMoveScreen({ route, navigation }: Props) {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.hint}>{farmName}</Text>
         <Text style={styles.fromLine}>
           Depuis : {fromPenLabel ?? "Loge"} —{" "}
           {occupantSummary ?? occupantFallback}

@@ -9,7 +9,17 @@ import { PrismaService } from "../prisma/prisma.service";
 import { InvitationsService } from "../invitations/invitations.service";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
 import { TaxonomyService } from "../livestock/taxonomy.service";
+import { AnimalProductionTagsService } from "../livestock/animal-production-tags.service";
 import { CompleteOnboardingDto } from "./dto/complete-onboarding.dto";
+import {
+  barnCodeForIndex,
+  barnLabelForIndex,
+  buildDefaultPlacementPlan,
+  persistOnboardingPlacementPlan,
+  penCategoryForOnboardingRole,
+  penNameForBarn,
+  type CreatedPenMeta
+} from "./onboarding-pen-layout";
 
 const PORCIN_CODE = "porcin";
 
@@ -18,7 +28,8 @@ export class OnboardingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly invitations: InvitationsService,
-    private readonly taxonomy: TaxonomyService
+    private readonly taxonomy: TaxonomyService,
+    private readonly animalTags: AnimalProductionTagsService
   ) {}
 
   async getStatus(userId: string) {
@@ -119,76 +130,161 @@ export class OnboardingService {
         user.id
       );
 
-      const animalRows: Prisma.AnimalCreateManyInput[] = [];
-      for (let i = 0; i < dto.femaleBreeders; i += 1) {
-        animalRows.push({
-          farmId: createdFarm.id,
-          speciesId: species.id,
-          sex: "female",
-          status: "active",
-          notes: "Reproductrice — onboarding"
-        });
-      }
-      for (let i = 0; i < dto.maleBreeders; i += 1) {
-        animalRows.push({
-          farmId: createdFarm.id,
-          speciesId: species.id,
-          sex: "male",
-          status: "active",
-          notes: "Reproducteur — onboarding"
-        });
-      }
-      if (animalRows.length > 0) {
-        await tx.animal.createMany({ data: animalRows });
-      }
+      const truiTags = await this.animalTags.allocateTagCodes(
+        createdFarm.id,
+        "Trui",
+        dto.femaleBreeders,
+        tx
+      );
+      const verTags = await this.animalTags.allocateTagCodes(
+        createdFarm.id,
+        "Ver",
+        dto.maleBreeders,
+        tx
+      );
+      const engTags = await this.animalTags.allocateTagCodes(
+        createdFarm.id,
+        "Eng",
+        dto.fatteningHeadcount,
+        tx
+      );
+      const demTags = await this.animalTags.allocateTagCodes(
+        createdFarm.id,
+        "Dem",
+        dto.starterHeadcount,
+        tx
+      );
 
-      if (dto.starterHeadcount > 0) {
-        await tx.livestockBatch.create({
+      const femaleIds: string[] = [];
+      const maleIds: string[] = [];
+      const fatteningIds: string[] = [];
+      const starterIds: string[] = [];
+
+      for (const tagCode of truiTags) {
+        const a = await tx.animal.create({
           data: {
             farmId: createdFarm.id,
             speciesId: species.id,
-            name: "Démarrage",
-            categoryKey: "nursery",
-            headcount: dto.starterHeadcount,
+            sex: "female",
             status: "active",
-            notes: "Lot créé à l'onboarding"
+            tagCode,
+            productionCategory: "breeding_female",
+            notes: "Truie reproductrice — onboarding"
           }
         });
+        femaleIds.push(a.id);
       }
-
-      if (dto.fatteningHeadcount > 0) {
-        await tx.livestockBatch.create({
+      for (const tagCode of verTags) {
+        const a = await tx.animal.create({
           data: {
             farmId: createdFarm.id,
             speciesId: species.id,
-            name: "Engraissement",
-            categoryKey: "finisher",
-            headcount: dto.fatteningHeadcount,
+            sex: "male",
             status: "active",
-            notes: "Lot créé à l'onboarding"
+            tagCode,
+            productionCategory: "breeding_male",
+            notes: "Verrat — onboarding"
           }
         });
+        maleIds.push(a.id);
       }
+      for (const tagCode of engTags) {
+        const a = await tx.animal.create({
+          data: {
+            farmId: createdFarm.id,
+            speciesId: species.id,
+            sex: "unknown",
+            status: "active",
+            tagCode,
+            productionCategory: "fattening",
+            notes: "Engraissement — onboarding"
+          }
+        });
+        fatteningIds.push(a.id);
+      }
+      for (const tagCode of demTags) {
+        const a = await tx.animal.create({
+          data: {
+            farmId: createdFarm.id,
+            speciesId: species.id,
+            sex: "unknown",
+            status: "active",
+            tagCode,
+            productionCategory: "starter",
+            notes: "Démarrage — onboarding"
+          }
+        });
+        starterIds.push(a.id);
+      }
+
+      const createdPens: Array<CreatedPenMeta & { capacity: number }> = [];
 
       for (let b = 0; b < dto.buildingsCount; b += 1) {
+        const code = barnCodeForIndex(b);
         const barn = await tx.barn.create({
           data: {
             farmId: createdFarm.id,
-            name: `Bâtiment ${b + 1}`,
+            name: barnLabelForIndex(b),
+            code,
             sortOrder: b
           }
         });
         for (let p = 0; p < dto.pensPerBuilding; p += 1) {
-          await tx.pen.create({
+          const category =
+            b === 0 && p === 0
+              ? penCategoryForOnboardingRole("maternity")
+              : penCategoryForOnboardingRole("default");
+          const penLabel = penNameForBarn(code, p);
+          const pen = await tx.pen.create({
             data: {
               barnId: barn.id,
-              name: `Loge ${p + 1}`,
+              name: penLabel,
+              code: penLabel,
               capacity: dto.maxPigsPerPen,
-              sortOrder: p
+              sortOrder: p,
+              category,
+              categoryForced: b === 0 && p === 0
             }
+          });
+          createdPens.push({
+            id: pen.id,
+            barnIndex: b,
+            sortOrder: p,
+            code,
+            capacity: dto.maxPigsPerPen
           });
         }
       }
+
+      const pensByBarn: Array<
+        Array<{ id: string; capacity: number; occupancy: number }>
+      > = Array.from({ length: dto.buildingsCount }, () => []);
+      for (const pen of createdPens) {
+        pensByBarn[pen.barnIndex].push({
+          id: pen.id,
+          capacity: pen.capacity,
+          occupancy: 0
+        });
+      }
+
+      const plan = buildDefaultPlacementPlan({
+        pensByBarn,
+        femaleIds,
+        maleIds,
+        fatteningIds,
+        starterIds
+      });
+
+      await persistOnboardingPlacementPlan(tx, {
+        farmId: createdFarm.id,
+        userId: user.id,
+        plan,
+        femaleIds,
+        maleIds,
+        fatteningIds,
+        starterIds,
+        speciesId: species.id
+      });
 
       await tx.user.update({
         where: { id: user.id },

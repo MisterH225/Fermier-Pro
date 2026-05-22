@@ -111,14 +111,35 @@ export function barDataToLine(
   ];
 }
 
+/**
+ * Teintes volontairement éloignées (bleu, orange, violet… — pas deux verts).
+ * Alignée sur `apps/api/src/feed-stock/feed-type-colors.ts`.
+ */
+export const FEED_SERIES_PALETTE = [
+  "#2563EB",
+  "#EA580C",
+  "#7C3AED",
+  "#DC2626",
+  "#0891B2",
+  "#DB2777",
+  "#CA8A04",
+  "#4F46E5",
+  "#0D9488",
+  "#64748B"
+] as const;
+
+export function feedSeriesColor(seriesIndex: number): string {
+  return FEED_SERIES_PALETTE[seriesIndex % FEED_SERIES_PALETTE.length]!;
+}
+
 export function feedChartToLines(chart: FarmFeedChartDto): SmartChartLine[] {
-  return chart.series.map((s) => ({
+  return chart.series.map((s, i) => ({
     key: s.feedTypeId,
     label: s.name,
-    color: s.color,
-    data: chart.monthKeys.map((month, i) => ({
+    color: feedSeriesColor(i),
+    data: chart.monthKeys.map((month, mi) => ({
       month,
-      value: s.points[i] ?? 0
+      value: s.points[mi] ?? 0
     }))
   }));
 }

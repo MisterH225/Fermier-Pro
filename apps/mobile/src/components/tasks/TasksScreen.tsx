@@ -2,6 +2,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
+import { useScreenTitle } from "../../hooks/useScreenTitle";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -33,10 +34,9 @@ import { apiStatusFromTab } from "./taskUtils";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmTasks">;
 
-const TASKS_BG = "#F5F5F5";
-
-export function TasksScreen({ route }: Props) {
+export function TasksScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
+  useScreenTitle(navigation, farmName);
   const {
     accessToken,
     activeProfileId,
@@ -132,9 +132,8 @@ export function TasksScreen({ route }: Props) {
 
   return (
     <TasksModuleGate>
-      <View style={[styles.root, { backgroundColor: TASKS_BG }]}>
-        <MobileAppShell title={t("navigation.extended.tasks")} omitBottomTabBar>
-          <Text style={styles.farmHint}>{farmName}</Text>
+      <View style={[styles.root, { backgroundColor: mobileColors.canvas }]}>
+        <MobileAppShell hideTopBar omitBottomTabBar>
           {canWrite ? (
             <View style={styles.actionRow}>
               <Pressable

@@ -1,9 +1,14 @@
-import { AnimalSex } from "@prisma/client";
+import {
+  AnimalOrigin,
+  AnimalProductionCategory,
+  AnimalSex
+} from "@prisma/client";
 import {
   IsDateString,
   IsEnum,
   IsOptional,
   IsString,
+  IsUrl,
   MaxLength
 } from "class-validator";
 
@@ -22,8 +27,34 @@ export class UpdateAnimalDto {
   sex?: AnimalSex;
 
   @IsOptional()
+  @IsEnum(AnimalProductionCategory)
+  productionCategory?: AnimalProductionCategory;
+
+  @IsOptional()
   @IsDateString()
   birthDate?: string | null;
+
+  @IsOptional()
+  @IsEnum(AnimalOrigin)
+  origin?: AnimalOrigin | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  supplier?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  photoUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  damId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  sireId?: string | null;
 
   @IsOptional()
   @IsString()

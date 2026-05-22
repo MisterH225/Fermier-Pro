@@ -286,7 +286,7 @@ export function TaskModal({
         </Pressable>
       }
     >
-      <ScrollView keyboardShouldPersistTaps="handled">
+      <View>
         <Text style={styles.label}>{t("tasksScreen.fieldTitle")}</Text>
         <TextInput
           style={styles.input}
@@ -417,7 +417,7 @@ export function TaskModal({
             </Pressable>
           ))}
         </View>
-      </ScrollView>
+      </View>
     </BaseModal>
   );
 }

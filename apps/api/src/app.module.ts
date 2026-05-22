@@ -37,6 +37,9 @@ import { SmartAlertsModule } from "./smart-alerts/smart-alerts.module";
 import { ReportsModule } from "./reports/reports.module";
 import { OnboardingModule } from "./onboarding/onboarding.module";
 import { CheptelModule } from "./cheptel/cheptel.module";
+import { CguModule } from "./cgu/cgu.module";
+import { AiModule } from "./ai/ai.module";
+import { GestationModule } from "./gestation/gestation.module";
 
 @Module({
   imports: [
@@ -78,6 +81,7 @@ import { CheptelModule } from "./cheptel/cheptel.module";
     ConfigClientModule,
     DashboardModule,
     AuthModule,
+    CguModule,
     ChatModule,
     ProfilesModule,
     FarmsModule,
@@ -98,7 +102,9 @@ import { CheptelModule } from "./cheptel/cheptel.module";
     SmartAlertsModule,
     ReportsModule,
     OnboardingModule,
-    CheptelModule
+    CheptelModule,
+    AiModule,
+    GestationModule
   ],
   controllers: [AppController],
   providers: [

@@ -1,3 +1,4 @@
+import "./src/lib/cryptoPolyfill";
 import "react-native-gesture-handler";
 import "react-native-url-polyfill/auto";
 import "./src/i18n/i18n";

@@ -92,8 +92,6 @@ export function CreateVetConsultationScreen({ route, navigation }: Props) {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.content}
       >
-        <Text style={styles.hint}>{farmName}</Text>
-
         <Text style={styles.label}>Objet</Text>
         <TextInput
           style={styles.input}

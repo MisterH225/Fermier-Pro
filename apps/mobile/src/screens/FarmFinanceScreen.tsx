@@ -1,12 +1,8 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  useLayoutEffect,
-  useMemo,
-  useState,
-  useCallback,
-  type ReactNode
-} from "react";
+import { useMemo, useState, useCallback, type ReactNode } from "react";
+import { ScreenSection, TabScreenHeader } from "../components/layout";
+import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -16,15 +12,17 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View
 } from "react-native";
+import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
 import { TabContent, TabSelector } from "../components/tabs";
 import { BudgetScreen } from "../components/finance/budget";
 import {
   SmartChart,
   FinanceKpiCard,
+  FinanceDonutChart,
+  financeCategoryColor,
   formatFinanceChartValue,
   financeMonthsToRevExpLines,
   financeMonthsToSingleLine,
@@ -58,7 +56,6 @@ import {
   fetchFinanceOverview,
   fetchFinanceProjection,
   fetchFinanceReport,
-  fetchFinanceSimulation,
   fetchFinanceTransactions
 } from "../lib/api";
 import { invalidateFarmFinanceQueries } from "../lib/invalidateFarmFinanceQueries";
@@ -72,15 +69,6 @@ import {
 } from "../theme/mobileTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmFinance">;
-
-const DONUT_PALETTE = [
-  mobileColors.accent,
-  mobileColors.success,
-  mobileColors.warning,
-  mobileColors.error,
-  "#5C6B7A",
-  "#2D6A4F"
-] as const;
 
 function pctDeltaString(cur: number, prev: number): string | null {
   if (!Number.isFinite(prev) || prev === 0) {
@@ -164,8 +152,6 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
   const [reportMonth, setReportMonth] = useState(() => currentMonthUtc());
   const [reportYear, setReportYear] = useState(() => currentYearUtc());
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
-  const [simHeads, setSimHeads] = useState("10");
-  const [simPrice, setSimPrice] = useState("50000");
 
   const [financeTab, setFinanceTab] = useState("overview");
   const [chartPeriod, setChartPeriod] = useState<SmartChartPeriod>("6M");
@@ -270,18 +256,6 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
   const report = reportQ.data as FinanceReportDto | undefined;
   const projection = projectionQ.data;
 
-  const simMutation = useMutation({
-    mutationFn: () =>
-      fetchFinanceSimulation(
-        accessToken!,
-        farmId,
-        Number(String(simHeads).replace(",", ".")),
-        Number(String(simPrice).replace(",", ".")),
-        activeProfileId
-      ),
-    onError: (e: Error) => Alert.alert("Simulation", e.message)
-  });
-
   const deleteMutation = useMutation({
     mutationFn: async (p: { kind: "expense" | "income"; id: string }) => {
       if (p.kind === "expense") {
@@ -296,23 +270,34 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
     onError: (e: Error) => Alert.alert("Suppression impossible", e.message)
   });
 
+  const overview = overviewQ.data as FinanceOverviewDto | undefined;
+  const curCode = overview?.settings.currencyCode ?? "XOF";
+  const curSym = overview?.settings.currencySymbol ?? "";
+
   const goEdit = useCallback(
     (txRow: FinanceMergedTransactionDto) => {
-      if (txRow.kind === "expense") {
-        navigation.navigate("EditFarmExpense", {
-          farmId,
-          farmName,
-          expenseId: txRow.id
-        });
-      } else {
-        navigation.navigate("EditFarmRevenue", {
-          farmId,
-          farmName,
-          revenueId: txRow.id
-        });
+      if (!accessToken) {
+        return;
       }
+      open("edit-transaction", {
+        farmId,
+        accessToken,
+        activeProfileId,
+        categories: (catQ.data ?? []) as FinanceCategoryDto[],
+        currencyCode: curCode,
+        currencySymbol: curSym,
+        transaction: txRow
+      });
     },
-    [navigation, farmId, farmName]
+    [
+      open,
+      accessToken,
+      farmId,
+      activeProfileId,
+      catQ.data,
+      curCode,
+      curSym
+    ]
   );
 
   const confirmDelete = useCallback(
@@ -329,53 +314,35 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
     [open, deleteMutation]
   );
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: clientFeatures.finance
-        ? () => (
-            <TouchableOpacity
-              onPress={() => {
-                if (!accessToken) {
-                  return;
-                }
-                const ov = overviewQ.data as FinanceOverviewDto | undefined;
-                open("transaction", {
-                  farmId,
-                  farmName,
-                  accessToken,
-                  activeProfileId,
-                  categories: (catQ.data ?? []) as FinanceCategoryDto[],
-                  batches: (batchesQ.data ?? []) as import("../lib/api").BatchListItem[],
-                  currencyCode: ov?.settings.currencyCode ?? "XOF",
-                  currencySymbol: ov?.settings.currencySymbol ?? "",
-                  transactionRef: newFarmTransactionRef()
-                });
-              }}
-              style={styles.headerBtn}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={styles.headerBtnText}>{t("financeScreen.newTx")}</Text>
-            </TouchableOpacity>
-          )
-        : undefined
-    });
-  }, [
-    navigation,
-    clientFeatures.finance,
-    t,
-    open,
-    accessToken,
-    farmId,
-    farmName,
-    activeProfileId,
-    overviewQ.data,
-    catQ.data,
-    batchesQ.data
-  ]);
-
-  const overview = overviewQ.data as FinanceOverviewDto | undefined;
-  const curCode = overview?.settings.currencyCode ?? "XOF";
-  const curSym = overview?.settings.currencySymbol ?? "";
+  useScreenTitle(navigation, farmName, {
+    headerRight: clientFeatures.finance
+      ? () => (
+          <TouchableOpacity
+            onPress={() => {
+              if (!accessToken) {
+                return;
+              }
+              const ov = overviewQ.data as FinanceOverviewDto | undefined;
+              open("transaction", {
+                farmId,
+                farmName,
+                accessToken,
+                activeProfileId,
+                categories: (catQ.data ?? []) as FinanceCategoryDto[],
+                batches: (batchesQ.data ?? []) as import("../lib/api").BatchListItem[],
+                currencyCode: ov?.settings.currencyCode ?? "XOF",
+                currencySymbol: ov?.settings.currencySymbol ?? "",
+                transactionRef: newFarmTransactionRef()
+              });
+            }}
+            style={styles.headerBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.headerBtnText}>{t("financeScreen.newTx")}</Text>
+          </TouchableOpacity>
+        )
+      : undefined
+  });
 
   const transactions = (txQ.data ?? []) as FinanceMergedTransactionDto[];
 
@@ -615,7 +582,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
       label: r.label,
       value: r.value,
       display: formatMoney(r.value, report.currency, report.currencySymbol),
-      color: DONUT_PALETTE[i % DONUT_PALETTE.length]!
+      color: financeCategoryColor(i)
     }));
   }, [report]);
 
@@ -625,7 +592,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
         label: c.label,
         value: Number(c.expenses),
         display: formatMoney(c.expenses, report.currency, report.currencySymbol),
-        color: DONUT_PALETTE[i % DONUT_PALETTE.length]!
+        color: financeCategoryColor(i)
       }));
     }
     if (!report?.byCategory?.length) {
@@ -640,7 +607,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
         label: r.label,
         value: r.value,
         display: formatMoney(r.value, report.currency, report.currencySymbol),
-        color: DONUT_PALETTE[i % DONUT_PALETTE.length]!
+        color: financeCategoryColor(i)
       }));
   }, [report]);
 
@@ -772,49 +739,12 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
     [projection]
   );
 
-  const simChartLines = useMemo(() => {
-    if (!simMutation.data) return [];
-    return [
-      {
-        key: "balance",
-        label: t("financeScreen.simAfter"),
-        color: mobileColors.accent,
-        data: [
-          {
-            month: "1",
-            value: Math.max(0, Number(simMutation.data.currentBalance))
-          },
-          {
-            month: "2",
-            value:
-              Math.max(0, Number(simMutation.data.currentBalance)) +
-              Math.max(0, Number(simMutation.data.simulatedAdditionalRevenue))
-          },
-          {
-            month: "3",
-            value: Math.max(0, Number(simMutation.data.projectedBalance))
-          }
-        ]
-      }
-    ];
-  }, [simMutation.data, t]);
-
-  const renderCategoryBreakdown = (items: CategoryBreakdownItem[]) => {
-    if (!items.length) {
-      return (
-        <Text style={styles.muted}>—</Text>
-      );
-    }
-    return items.map((item) => (
-      <View key={item.label} style={styles.catRow}>
-        <View style={[styles.catDot, { backgroundColor: item.color }]} />
-        <Text style={styles.catLab} numberOfLines={1}>
-          {item.label}
-        </Text>
-        <Text style={styles.catVal}>{item.display}</Text>
-      </View>
-    ));
-  };
+  const renderCategoryBreakdown = useCallback(
+    (items: CategoryBreakdownItem[]) => (
+      <FinanceDonutChart slices={items} emptyLabel="—" />
+    ),
+    []
+  );
 
   const pending = queries.some((q) => q.isPending) || reportQ.isPending;
   const refreshing =
@@ -918,8 +848,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
           setShowAllTransactions(false);
         }}
         header={
-          <>
-            <Text style={styles.farmHint}>{farmName}</Text>
+          <TabScreenHeader>
             {overview?.lowBalanceWarning ? (
               <View style={styles.warnBanner}>
                 <Text style={styles.warnText}>{t("financeScreen.lowBalanceBanner")}</Text>
@@ -982,7 +911,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                 <Text style={styles.reportPeriodNavBtnTx}>▶</Text>
               </Pressable>
             </View>
-          </>
+          </TabScreenHeader>
         }
         tabs={[
           {
@@ -991,58 +920,64 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
             content: tabScroll(
               <>
                 {overview ? (
-          <View style={styles.kpiRow}>
-            <View style={styles.kpiHalf}>
-              <FinanceKpiCard
-                title={t("financeScreen.balance")}
-                value={formatMoney(overview.balanceAllTime, curCode, curSym)}
-                deltaText={null}
-                sparklineValues={netSeries.length > 1 ? netSeries : undefined}
-                sparklineColor="rgba(255,255,255,0.95)"
-                variant="dark"
-              />
-            </View>
-            <View style={styles.kpiHalf}>
-              <FinanceKpiCard
-                title={t("financeScreen.revenuesMonth")}
-                value={formatMoney(overview.month.totalRevenues, curCode, curSym)}
-                deltaText={revDelta}
-                sparklineValues={revSeries.length > 1 ? revSeries : undefined}
-                sparklineColor={mobileColors.success}
-                variant="income"
-              />
-            </View>
-          </View>
-        ) : null}
-        {overview ? (
-          <View style={[styles.kpiRow, { marginTop: mobileSpacing.sm }]}>
-            <View style={styles.kpiHalf}>
-              <FinanceKpiCard
-                title={t("financeScreen.expensesMonth")}
-                value={formatMoney(overview.month.totalExpenses, curCode, curSym)}
-                deltaText={expDelta}
-                sparklineValues={expSeries.length > 1 ? expSeries : undefined}
-                sparklineColor={mobileColors.error}
-                variant="expense"
-              />
-            </View>
-            <View style={styles.kpiHalf}>
-              <FinanceKpiCard
-                title={t("financeScreen.marginMonth")}
-                value={formatMoney(overview.month.netMargin, curCode, curSym)}
-                deltaText={marginDelta}
-                sparklineValues={netSeries.length > 1 ? netSeries : undefined}
-                sparklineColor={mobileColors.accent}
-                variant="margin"
-              />
-            </View>
-          </View>
+                  <ScreenSection plain>
+                    <View style={styles.kpiRow}>
+                      <View style={styles.kpiHalf}>
+                        <FinanceKpiCard
+                          title={t("financeScreen.balance")}
+                          value={formatMoney(overview.balanceAllTime, curCode, curSym)}
+                          deltaText={null}
+                          sparklineValues={netSeries.length > 1 ? netSeries : undefined}
+                          sparklineColor="#F97316"
+                          variant="orange"
+                        />
+                      </View>
+                      <View style={styles.kpiHalf}>
+                        <FinanceKpiCard
+                          title={t("financeScreen.revenuesMonth")}
+                          value={formatMoney(overview.month.totalRevenues, curCode, curSym)}
+                          deltaText={revDelta}
+                          sparklineValues={revSeries.length > 1 ? revSeries : undefined}
+                          sparklineColor="#3B82F6"
+                          variant="blue"
+                        />
+                      </View>
+                    </View>
+                    <View style={[styles.kpiRow, styles.kpiRowSp]}>
+                      <View style={styles.kpiHalf}>
+                        <FinanceKpiCard
+                          title={t("financeScreen.expensesMonth")}
+                          value={formatMoney(overview.month.totalExpenses, curCode, curSym)}
+                          deltaText={expDelta}
+                          sparklineValues={expSeries.length > 1 ? expSeries : undefined}
+                          sparklineColor="#EAB308"
+                          variant="yellow"
+                        />
+                      </View>
+                      <View style={styles.kpiHalf}>
+                        <FinanceKpiCard
+                          title={t("financeScreen.marginMonth")}
+                          value={formatMoney(overview.month.netMargin, curCode, curSym)}
+                          deltaText={marginDelta}
+                          sparklineValues={netSeries.length > 1 ? netSeries : undefined}
+                          sparklineColor="#22C55E"
+                          variant="green"
+                        />
+                      </View>
+                    </View>
+                  </ScreenSection>
+                ) : null}
+                {overview ? (
+                  <ModuleAIInsights
+                    farmId={farmId}
+                    module="finance"
+                    accessToken={accessToken}
+                    activeProfileId={activeProfileId}
+                    enabled={clientFeatures.finance}
+                  />
                 ) : null}
                 {showBudgetVsExpenseChart ? (
-                  <>
-                    <Text style={[styles.panelHeading, styles.panelHeadingSp]}>
-                      {t("financeScreen.expensesVsBudget")}
-                    </Text>
+                  <ScreenSection title={t("financeScreen.expensesVsBudget")}>
                     <Text style={styles.budgetSummary}>
                       {t("financeScreen.budgetMonthLine", {
                         spent: formatMoney(
@@ -1054,45 +989,35 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                         pct: budgetUsedPct ?? 0
                       })}
                     </Text>
-                    <View style={styles.chartCard}>
-                      <SmartChart
-                        lines={budgetVsExpenseLines(
-                          budgetChartSeries,
-                          monthlyBudget,
-                          t("financeScreen.legendExpenses"),
-                          t("financeScreen.legendBudget")
-                        )}
-                        period={chartPeriod}
-                        onPeriodChange={setChartPeriod}
-                        formatValue={chartFmt}
-                        monthLabel={(iso) => monthShort(iso, localeStr)}
-                        unit={curSym}
-                      />
-                    </View>
-                  </>
+                    <SmartChart
+                      lines={budgetVsExpenseLines(
+                        budgetChartSeries,
+                        monthlyBudget,
+                        t("financeScreen.legendExpenses"),
+                        t("financeScreen.legendBudget")
+                      )}
+                      period={chartPeriod}
+                      onPeriodChange={setChartPeriod}
+                      formatValue={chartFmt}
+                      monthLabel={(iso) => monthShort(iso, localeStr)}
+                      unit={curSym}
+                    />
+                  </ScreenSection>
                 ) : null}
                 {months6.length > 0 ? (
-                  <>
-                    <Text style={[styles.panelHeading, styles.panelHeadingSp]}>
-                      {t("financeScreen.trend6Months")}
-                    </Text>
-                    <View style={styles.chartCard}>
-                      <SmartChart
-                        lines={revExpChartLines}
-                        period={chartPeriod}
-                        onPeriodChange={setChartPeriod}
-                        formatValue={chartFmt}
-                        monthLabel={(iso) => monthShort(iso, localeStr)}
-                        unit={curSym}
-                      />
-                    </View>
-                  </>
+                  <ScreenSection title={t("financeScreen.trend6Months")}>
+                    <SmartChart
+                      lines={revExpChartLines}
+                      period={chartPeriod}
+                      onPeriodChange={setChartPeriod}
+                      formatValue={chartFmt}
+                      monthLabel={(iso) => monthShort(iso, localeStr)}
+                      unit={curSym}
+                    />
+                  </ScreenSection>
                 ) : null}
 
-                <Text style={[styles.sectionTitle, styles.sp]}>
-                  {t("financeScreen.advancedTitle")}
-                </Text>
-                <Text style={styles.panelHeading}>{t("financeScreen.marginByBand")}</Text>
+                <ScreenSection title={t("financeScreen.marginByBand")}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {(batchesQ.data ?? []).map((b) => (
                     <Pressable
@@ -1135,10 +1060,8 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                 ) : (
                   <Text style={styles.muted}>{t("financeScreen.selectBand")}</Text>
                 )}
+                </ScreenSection>
 
-                <Text style={[styles.sectionTitle, styles.sp]}>
-                  {t("financeScreen.projections")}
-                </Text>
                 {projectionQ.isPending ? (
                   <ActivityIndicator
                     color={mobileColors.accent}
@@ -1147,16 +1070,15 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                 ) : projection ? (
                   <>
                     {projection.deficitAlert ? (
-                      <View style={styles.warnBanner}>
-                        <Text style={styles.warnText}>
-                          {t("financeScreen.deficitBanner")}
-                        </Text>
-                      </View>
+                      <ScreenSection>
+                        <View style={styles.warnBanner}>
+                          <Text style={styles.warnText}>
+                            {t("financeScreen.deficitBanner")}
+                          </Text>
+                        </View>
+                      </ScreenSection>
                     ) : null}
-                    <Text style={styles.panelHeading}>
-                      {t("financeScreen.projRevExpSplit")}
-                    </Text>
-                    <View style={styles.chartCard}>
+                    <ScreenSection title={t("financeScreen.projRevExpSplit")}>
                       <SmartChart
                         lines={projectionRevExpLines}
                         formatValue={chartFmt}
@@ -1169,156 +1091,67 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                           }
                         ]}
                       />
-                    </View>
-                    <Text style={[styles.panelHeading, styles.panelHeadingSp]}>
-                      {t("financeScreen.projNetTrend")}
-                    </Text>
-                    <View style={styles.chartCard}>
+                    </ScreenSection>
+                    <ScreenSection title={t("financeScreen.projNetTrend")}>
                       <SmartChart
                         lines={projectionNetLines}
                         formatValue={chartFmt}
                         monthLabel={(m) => m}
                         unit={curSym}
                       />
-                    </View>
-                    {projection.nextMonths.map((m) => {
-                      const net = Number(m.projectedNet);
-                      return (
-                        <View key={m.monthOffset} style={styles.projMonthRow}>
-                          <Text style={styles.projMonthLabel}>M+{m.monthOffset}</Text>
-                          <View style={styles.projMonthVals}>
-                            <Text
-                              style={[styles.projMonthVal, { color: mobileColors.success }]}
-                            >
-                              +
-                              {formatMoney(
-                                m.projectedRevenues,
-                                projection.currency,
-                                curSym
-                              )}
-                            </Text>
-                            <Text
-                              style={[styles.projMonthVal, { color: mobileColors.error }]}
-                            >
-                              −
-                              {formatMoney(
-                                m.projectedExpenses,
-                                projection.currency,
-                                curSym
-                              )}
-                            </Text>
-                            <Text
-                              style={[
-                                styles.projMonthVal,
-                                styles.projMonthNet,
-                                {
-                                  color:
-                                    net >= 0 ? mobileColors.accent : mobileColors.error
-                                }
-                              ]}
-                            >
-                              = {formatMoney(m.projectedNet, projection.currency, curSym)}
-                            </Text>
+                    </ScreenSection>
+                    <ScreenSection title={t("financeScreen.projections")}>
+                      {projection.nextMonths.map((m) => {
+                        const net = Number(m.projectedNet);
+                        return (
+                          <View key={m.monthOffset} style={styles.projMonthRow}>
+                            <Text style={styles.projMonthLabel}>M+{m.monthOffset}</Text>
+                            <View style={styles.projMonthVals}>
+                              <Text
+                                style={[
+                                  styles.projMonthVal,
+                                  { color: mobileColors.success }
+                                ]}
+                              >
+                                +
+                                {formatMoney(
+                                  m.projectedRevenues,
+                                  projection.currency,
+                                  curSym
+                                )}
+                              </Text>
+                              <Text
+                                style={[styles.projMonthVal, { color: mobileColors.error }]}
+                              >
+                                −
+                                {formatMoney(
+                                  m.projectedExpenses,
+                                  projection.currency,
+                                  curSym
+                                )}
+                              </Text>
+                              <Text
+                                style={[
+                                  styles.projMonthVal,
+                                  styles.projMonthNet,
+                                  {
+                                    color:
+                                      net >= 0
+                                        ? mobileColors.accent
+                                        : mobileColors.error
+                                  }
+                                ]}
+                              >
+                                ={" "}
+                                {formatMoney(m.projectedNet, projection.currency, curSym)}
+                              </Text>
+                            </View>
                           </View>
-                        </View>
-                      );
-                    })}
+                        );
+                      })}
+                    </ScreenSection>
                   </>
                 ) : null}
-
-                <Text style={[styles.sectionTitle, styles.sp]}>
-                  {t("financeScreen.simulation")}
-                </Text>
-                <View style={styles.simRow}>
-                  <TextInput
-                    style={styles.input}
-                    keyboardType="numeric"
-                    value={simHeads}
-                    onChangeText={setSimHeads}
-                    placeholder={t("financeScreen.simHeadsPh")}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    keyboardType="numeric"
-                    value={simPrice}
-                    onChangeText={setSimPrice}
-                    placeholder={t("financeScreen.simPricePh")}
-                  />
-                  <TouchableOpacity
-                    style={styles.simBtn}
-                    onPress={() => simMutation.mutate()}
-                    disabled={simMutation.isPending}
-                  >
-                    {simMutation.isPending ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <Text style={styles.simBtnTx}>{t("financeScreen.calc")}</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-                {simMutation.data ? (
-                  <>
-                    <Text style={[styles.panelHeading, { marginTop: mobileSpacing.md }]}>
-                      {t("financeScreen.simResultTitle")}
-                    </Text>
-                    <View style={styles.chartCard}>
-                      <SmartChart
-                        lines={simChartLines}
-                        formatValue={chartFmt}
-                        monthLabel={(m) =>
-                          m === "1"
-                            ? t("financeScreen.simBefore")
-                            : m === "2"
-                              ? t("financeScreen.simAdditionalRev")
-                              : t("financeScreen.simAfter")
-                        }
-                        unit={curSym}
-                      />
-                    </View>
-                    <View style={styles.simDetailCard}>
-                      <View style={styles.simDetailRow}>
-                        <Text style={styles.simDetailLabel}>
-                          {t("financeScreen.simBefore")}
-                        </Text>
-                        <Text style={styles.simDetailValue}>
-                          {formatMoney(simMutation.data.currentBalance, curCode, curSym)}
-                        </Text>
-                      </View>
-                      <View style={styles.simDetailRow}>
-                        <Text style={styles.simDetailLabel}>
-                          {t("financeScreen.simAdditionalRev")}
-                        </Text>
-                        <Text
-                          style={[styles.simDetailValue, { color: mobileColors.success }]}
-                        >
-                          +
-                          {formatMoney(
-                            simMutation.data.simulatedAdditionalRevenue,
-                            curCode,
-                            curSym
-                          )}
-                        </Text>
-                      </View>
-                      <View style={styles.simDetailRowFinal}>
-                        <Text style={[styles.simDetailLabel, { fontWeight: "800" }]}>
-                          {t("financeScreen.simAfter")}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.simDetailValue,
-                            { color: mobileColors.accent, fontWeight: "800" }
-                          ]}
-                        >
-                          {formatMoney(simMutation.data.projectedBalance, curCode, curSym)}
-                        </Text>
-                      </View>
-                    </View>
-                  </>
-                ) : null}
-
-                <Text style={[styles.subtle, { marginTop: mobileSpacing.lg }]}>
-                  {t("financeScreen.exportHint")}
-                </Text>
               </>
             )
           },
@@ -1328,9 +1161,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
             content: tabScroll(
               <>
                 {reportSpinner}
-                <View style={styles.insightPanel}>
-            <Text style={styles.panelHeading}>{t("financeScreen.trendRevenues")}</Text>
-            <View style={styles.chartCard}>
+                <ScreenSection title={t("financeScreen.trendRevenues")}>
               <SmartChart
                 lines={financeMonthsToSingleLine(
                   chartMonths,
@@ -1345,14 +1176,10 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                 monthLabel={(iso) => monthShort(iso, localeStr)}
                 unit={curSym}
               />
-            </View>
-            <Text style={[styles.panelHeading, styles.panelHeadingSp]}>
-              {t("financeScreen.sourcesRevenues")}
-            </Text>
-            <View style={styles.chartCard}>
+                </ScreenSection>
+                <ScreenSection title={t("financeScreen.sourcesRevenues")}>
               {renderCategoryBreakdown(donutRevenues)}
-            </View>
-                </View>
+                </ScreenSection>
                 {txListBlock}
               </>
             )
@@ -1363,9 +1190,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
             content: tabScroll(
               <>
                 {reportSpinner}
-                <View style={styles.insightPanel}>
-            <Text style={styles.panelHeading}>{t("financeScreen.trendExpenses")}</Text>
-            <View style={styles.chartCard}>
+                <ScreenSection title={t("financeScreen.trendExpenses")}>
               <SmartChart
                 lines={financeMonthsToSingleLine(
                   chartMonths,
@@ -1380,14 +1205,10 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                 monthLabel={(iso) => monthShort(iso, localeStr)}
                 unit={curSym}
               />
-            </View>
-            <Text style={[styles.panelHeading, styles.panelHeadingSp]}>
-              {t("financeScreen.sourcesExpenses")}
-            </Text>
-            <View style={styles.chartCard}>
+                </ScreenSection>
+                <ScreenSection title={t("financeScreen.sourcesExpenses")}>
               {renderCategoryBreakdown(donutExpenses)}
-            </View>
-                </View>
+                </ScreenSection>
                 {txListBlock}
               </>
             )
@@ -1464,11 +1285,6 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.sm
   },
   sp: { marginTop: mobileSpacing.xl },
-  subtle: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary,
-    marginBottom: mobileSpacing.sm
-  },
   muted: {
     ...mobileTypography.body,
     color: mobileColors.textSecondary,
@@ -1487,11 +1303,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: mobileSpacing.sm,
     alignItems: "stretch",
-    width: "100%"
+    width: "100%",
+    maxWidth: "100%",
+    overflow: "hidden"
   },
+  kpiRowSp: { marginTop: mobileSpacing.sm },
   kpiHalf: {
     flex: 1,
     flexBasis: 0,
+    flexGrow: 1,
+    flexShrink: 1,
     minWidth: 0,
     alignSelf: "stretch",
     overflow: "hidden"
@@ -1616,30 +1437,6 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border,
     ...mobileShadows.card
   },
-  simRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: mobileSpacing.sm,
-    marginVertical: mobileSpacing.sm
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: mobileColors.border,
-    borderRadius: mobileRadius.sm,
-    padding: mobileSpacing.md,
-    marginBottom: mobileSpacing.sm,
-    backgroundColor: mobileColors.background,
-    minWidth: 120,
-    flex: 1,
-    color: mobileColors.textPrimary
-  },
-  simBtn: {
-    backgroundColor: mobileColors.accent,
-    borderRadius: mobileRadius.sm,
-    paddingHorizontal: mobileSpacing.md,
-    justifyContent: "center"
-  },
-  simBtnTx: { color: "#fff", fontWeight: "700" },
   primaryBtn: {
     backgroundColor: mobileColors.accent,
     borderRadius: mobileRadius.md,
@@ -1681,57 +1478,5 @@ const styles = StyleSheet.create({
   },
   projMonthNet: {
     fontWeight: "800"
-  },
-  // ── Simulation ───────────────────────────────────────────────────────────
-  simDetailCard: {
-    marginTop: mobileSpacing.md,
-    backgroundColor: mobileColors.background,
-    borderRadius: mobileRadius.lg,
-    padding: mobileSpacing.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: mobileColors.border,
-    ...mobileShadows.card
-  },
-  simDetailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: mobileSpacing.xs
-  },
-  simDetailRowFinal: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: mobileSpacing.sm,
-    marginTop: mobileSpacing.xs,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: mobileColors.border
-  },
-  simDetailLabel: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary,
-    fontWeight: "600"
-  },
-  simDetailValue: {
-    ...mobileTypography.body,
-    fontWeight: "700",
-    color: mobileColors.textPrimary
-  },
-  catRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: mobileSpacing.sm,
-    paddingVertical: mobileSpacing.xs
-  },
-  catDot: { width: 10, height: 10, borderRadius: 5 },
-  catLab: {
-    ...mobileTypography.body,
-    flex: 1,
-    color: mobileColors.textPrimary
-  },
-  catVal: {
-    ...mobileTypography.body,
-    fontWeight: "700",
-    color: mobileColors.textPrimary
   }
 });

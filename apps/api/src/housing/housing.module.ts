@@ -15,6 +15,7 @@ import { PensController } from "./pens.controller";
     PenDetailController,
     HousingMoveController
   ],
-  providers: [HousingService]
+  providers: [HousingService],
+  exports: [HousingService]
 })
 export class HousingModule {}

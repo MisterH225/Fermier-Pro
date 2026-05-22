@@ -27,7 +27,7 @@ const INITIAL: OnboardingFormState = {
   maleBreeders: "",
   starterHeadcount: "",
   fatteningHeadcount: "",
-  buildingsCount: "1",
+  buildingsCount: "2",
   pensPerBuilding: "4",
   maxPigsPerPen: "12"
 };

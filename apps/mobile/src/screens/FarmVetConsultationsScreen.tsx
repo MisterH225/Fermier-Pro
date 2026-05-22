@@ -1,7 +1,8 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useLayoutEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useScreenTitle } from "../hooks/useScreenTitle";
 import {
   ActivityIndicator,
   FlatList,
@@ -42,23 +43,21 @@ export function FarmVetConsultationsScreen({ route, navigation }: Props) {
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const [filter, setFilter] = useState<VetFilterKey>("all");
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: clientFeatures.vetConsultations
-        ? () => (
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("CreateVetConsultation", { farmId, farmName })
-              }
-              style={styles.headerBtn}
-              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
-            >
-              <Text style={styles.headerBtnText}>+ Dossier</Text>
-            </TouchableOpacity>
-          )
-        : undefined
-    });
-  }, [navigation, farmId, farmName, clientFeatures.vetConsultations]);
+  useScreenTitle(navigation, farmName, {
+    headerRight: clientFeatures.vetConsultations
+      ? () => (
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("CreateVetConsultation", { farmId, farmName })
+            }
+            style={styles.headerBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+          >
+            <Text style={styles.headerBtnText}>+ Dossier</Text>
+          </TouchableOpacity>
+        )
+      : undefined
+  });
 
   const q = useQuery({
     queryKey: ["vetConsultations", farmId, activeProfileId, filter],
@@ -112,7 +111,6 @@ export function FarmVetConsultationsScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.flex}>
-      <Text style={styles.farmHint}>{farmName}</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

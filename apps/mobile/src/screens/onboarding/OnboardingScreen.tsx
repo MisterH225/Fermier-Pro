@@ -21,7 +21,6 @@ import {
   postOnboardingComplete,
   postOnboardingSkip
 } from "../../lib/api";
-import { isDemoBypassToken } from "../../lib/demoBypass";
 import { useModal } from "../../components/modals/useModal";
 import {
   mobileColors,
@@ -70,13 +69,6 @@ export function OnboardingScreen({ onFinished }: Props) {
       const payload = ob.toPayload();
       if (!payload) {
         throw new Error(t("onboarding.validationIncomplete"));
-      }
-      if (isDemoBypassToken(accessToken)) {
-        return Promise.resolve({
-          isOnboarded: true,
-          onboardingSkipped: false,
-          farm: { id: "demo", name: payload.farmName }
-        });
       }
       return postOnboardingComplete(accessToken, payload, activeProfileId);
     },
@@ -187,11 +179,6 @@ export function OnboardingScreen({ onFinished }: Props) {
         onContinueSetup={() => setSkipModalOpen(false)}
         onSkipAnyway={() => {
           setSkipModalOpen(false);
-          if (isDemoBypassToken(accessToken)) {
-            clearResume();
-            onFinished();
-            return;
-          }
           skipMut.mutate();
         }}
       />

@@ -18,7 +18,11 @@ export type AnimalFilterId =
   | "reformed";
 
 export function animalDisplayTag(a: AnimalListItem): string {
-  return a.tagCode?.trim() || a.publicId.slice(0, 10);
+  const tag = a.tagCode?.trim();
+  if (tag) {
+    return tag;
+  }
+  return `FP-${a.id.slice(-6).toUpperCase()}`;
 }
 
 export function formatAnimalKg(v: string | number | undefined): string {
@@ -64,6 +68,73 @@ export function sexIconColor(sex: string): string {
     return "#DB2777";
   }
   return "#6B7280";
+}
+
+export function sexDisplayLabel(
+  sex: string,
+  labels: { male: string; female: string; unknown: string }
+): string {
+  if (sex === "male") {
+    return labels.male;
+  }
+  if (sex === "female") {
+    return labels.female;
+  }
+  return labels.unknown;
+}
+
+/** Suggère un reclassement reproducteur après définition du sexe sur un sujet production. */
+export function shouldSuggestBreederReclass(
+  productionCategory: string | undefined,
+  newSex: "male" | "female"
+): boolean {
+  if (newSex !== "male" && newSex !== "female") {
+    return false;
+  }
+  return (
+    productionCategory === "fattening" ||
+    productionCategory === "starter" ||
+    productionCategory === "unknown"
+  );
+}
+
+export function breederCategoryForSex(
+  sex: "male" | "female"
+): "breeding_female" | "breeding_male" {
+  return sex === "female" ? "breeding_female" : "breeding_male";
+}
+
+export type CreateAnimalCategoryKey =
+  | "breeding_female"
+  | "breeding_male"
+  | "fattening"
+  | "starter";
+
+export function tagPrefixForCategory(
+  category: CreateAnimalCategoryKey
+): "Trui" | "Ver" | "Eng" | "Dem" {
+  switch (category) {
+    case "breeding_female":
+      return "Trui";
+    case "breeding_male":
+      return "Ver";
+    case "fattening":
+      return "Eng";
+    case "starter":
+      return "Dem";
+  }
+}
+
+export function defaultSexForCategory(
+  category: CreateAnimalCategoryKey
+): "male" | "female" | "unknown" {
+  if (category === "breeding_female") {
+    return "female";
+  }
+  if (category === "breeding_male") {
+    return "male";
+  }
+  return "unknown";
 }
 
 export function filterAnimals(
@@ -135,13 +206,17 @@ export function animalToEventItem(
 }
 
 export function suggestNextTagCode(animals: AnimalListItem[]): string {
-  const nums = animals
-    .map((a) => {
-      const src = a.tagCode ?? a.publicId;
-      const m = /(\d+)\s*$/.exec(src);
-      return m ? Number.parseInt(m[1], 10) : 0;
-    })
-    .filter((n) => Number.isFinite(n));
-  const next = (nums.length ? Math.max(...nums) : 0) + 1;
-  return `PORC-${String(next).padStart(3, "0")}`;
+  const prefix = "PORC";
+  let max = 0;
+  for (const a of animals) {
+    const tag = a.tagCode?.trim();
+    if (!tag) {
+      continue;
+    }
+    const m = new RegExp(`^${prefix}-(\\d+)$`, "i").exec(tag);
+    if (m) {
+      max = Math.max(max, Number.parseInt(m[1], 10));
+    }
+  }
+  return `${prefix}-${String(max + 1).padStart(3, "0")}`;
 }

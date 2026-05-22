@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -13,6 +14,7 @@ import {
   type ProfileTypeChoice
 } from "../lib/api";
 import { formatAuthError } from "../lib/authErrors";
+import { profileTypeIcon } from "../lib/profileTypeIcon";
 import { useSession } from "../context/SessionContext";
 import { authColors, authRadii } from "../theme/authTheme";
 
@@ -71,56 +73,83 @@ export function FirstConnectionProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.head}>Première connexion</Text>
-        <Text style={styles.sub}>
-          Choisis ton métier : tu accéderas ensuite à un tableau de bord adapté.
-          Tu pourras ajouter d’autres rôles plus tard depuis ton profil.
-        </Text>
 
-        <View style={styles.cards}>
-          {OPTIONS.map((opt) => {
-            const active = selected === opt.type;
-            return (
-              <TouchableOpacity
-                key={opt.type}
-                style={[styles.card, active && styles.cardActive]}
-                onPress={() => setSelected(opt.type)}
-                activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-              >
-                <Text style={[styles.cardTitle, active && styles.cardTitleActive]}>
-                  {opt.title}
-                </Text>
-                <Text style={styles.cardSub}>{opt.subtitle}</Text>
-              </TouchableOpacity>
-            );
-          })}
+        <View style={styles.body}>
+          <Text style={styles.sub}>
+            Choisis ton métier : tu accéderas ensuite à un tableau de bord adapté.
+            Tu pourras ajouter d’autres rôles plus tard depuis ton profil.
+          </Text>
+
+          <View style={styles.cards}>
+            {OPTIONS.map((opt) => {
+              const active = selected === opt.type;
+              return (
+                <TouchableOpacity
+                  key={opt.type}
+                  style={[styles.card, active && styles.cardActive]}
+                  onPress={() => setSelected(opt.type)}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${opt.title}. ${opt.subtitle}`}
+                  accessibilityState={{ selected: active }}
+                >
+                  <View
+                    style={[styles.iconWrap, active && styles.iconWrapActive]}
+                  >
+                    <Ionicons
+                      name={profileTypeIcon(opt.type)}
+                      size={26}
+                      color={active ? authColors.forest : authColors.forestMuted}
+                    />
+                  </View>
+                  <View style={styles.cardText}>
+                    <Text
+                      style={[styles.cardTitle, active && styles.cardTitleActive]}
+                    >
+                      {opt.title}
+                    </Text>
+                    <Text style={styles.cardSub}>{opt.subtitle}</Text>
+                  </View>
+                  {active ? (
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={24}
+                      color={authColors.forest}
+                    />
+                  ) : null}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.cta, (!selected || busy) && styles.ctaDisabled]}
+            onPress={() => void onContinue()}
+            disabled={!selected || busy}
+            activeOpacity={0.88}
+          >
+            {busy ? (
+              <ActivityIndicator color={authColors.forest} />
+            ) : (
+              <Text style={styles.ctaLabel}>Continuer</Text>
+            )}
+          </TouchableOpacity>
+
+          {error ? <Text style={styles.err}>{error}</Text> : null}
+
+          <TouchableOpacity
+            style={styles.signOutRow}
+            onPress={() => void signOut()}
+            hitSlop={{ top: 12, bottom: 12 }}
+          >
+            <Text style={styles.signOutText}>Utiliser un autre compte</Text>
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          style={[styles.cta, (!selected || busy) && styles.ctaDisabled]}
-          onPress={() => void onContinue()}
-          disabled={!selected || busy}
-          activeOpacity={0.88}
-        >
-          {busy ? (
-            <ActivityIndicator color={authColors.forest} />
-          ) : (
-            <Text style={styles.ctaLabel}>Continuer</Text>
-          )}
-        </TouchableOpacity>
-
-        {error ? <Text style={styles.err}>{error}</Text> : null}
-
-        <TouchableOpacity
-          style={styles.signOutRow}
-          onPress={() => void signOut()}
-          hitSlop={{ top: 12, bottom: 12 }}
-        >
-          <Text style={styles.signOutText}>Utiliser un autre compte</Text>
-        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -132,6 +161,7 @@ const styles = StyleSheet.create({
     backgroundColor: authColors.background
   },
   scroll: {
+    flexGrow: 1,
     paddingHorizontal: 22,
     paddingBottom: 32
   },
@@ -139,7 +169,13 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: "700",
     color: authColors.forest,
-    marginBottom: 10
+    paddingTop: 8
+  },
+  body: {
+    flex: 1,
+    justifyContent: "center",
+    paddingTop: 36,
+    paddingBottom: 12
   },
   sub: {
     fontSize: 15,
@@ -151,22 +187,40 @@ const styles = StyleSheet.create({
     gap: 12
   },
   card: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
     borderWidth: 1,
     borderColor: authColors.border,
     borderRadius: authRadii.input,
-    paddingVertical: 16,
-    paddingHorizontal: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     backgroundColor: authColors.background
   },
   cardActive: {
     borderColor: authColors.forest,
     backgroundColor: "#f4faf6"
   },
+  iconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f0f4f2"
+  },
+  iconWrapActive: {
+    backgroundColor: "#e2f0e8"
+  },
+  cardText: {
+    flex: 1,
+    minWidth: 0
+  },
   cardTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: authColors.forest,
-    marginBottom: 6
+    marginBottom: 4
   },
   cardTitleActive: {
     color: authColors.forestMuted

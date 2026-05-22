@@ -3,12 +3,14 @@ import {
   useModalContext,
   type AppModalState,
   type ConfirmDeleteModalPayload,
+  type EditTransactionModalPayload,
   type SuccessModalPayload,
   type TransactionModalPayload
 } from "../../context/ModalContext";
 
 type OpenFn = {
   (type: "transaction", payload: TransactionModalPayload): void;
+  (type: "edit-transaction", payload: EditTransactionModalPayload): void;
   (type: "success", payload: SuccessModalPayload): void;
   (type: "confirm-delete", payload: ConfirmDeleteModalPayload): void;
 };

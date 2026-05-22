@@ -4,7 +4,14 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
-import { LivestockExitKind, Prisma } from "@prisma/client";
+import {
+  FarmHealthEntityType,
+  FarmHealthRecordKind,
+  GestationStatus,
+  LivestockExitKind,
+  PenCategory,
+  Prisma
+} from "@prisma/client";
 import { FarmAccessService } from "../common/farm-access.service";
 import { FinanceService } from "../finance/finance.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -12,6 +19,13 @@ import { PatchAnimalStatusDto } from "../livestock/dto/patch-animal-status.dto";
 import { LivestockService } from "../livestock/livestock.service";
 import { UpsertGmqSettingsDto } from "./dto/upsert-gmq-settings.dto";
 import { decimalToNum, summarizeWeights } from "./cheptel-gmq.util";
+import {
+  migrateOnboardingBatchesToIndividualAnimals,
+  normalizeFarmPenNaming,
+  rebalanceOvercrowdedBatchPlacements,
+  relocateBreederAnimalsToDefaultPlan,
+  relocateProductionAnimalsToDefaultPlan
+} from "../onboarding/onboarding-pen-layout";
 
 export type CheptelPenOverviewRow = {
   id: string;
@@ -19,12 +33,31 @@ export type CheptelPenOverviewRow = {
   code: string | null;
   barnId: string;
   barnName: string;
+  sortOrder: number;
   capacity: number;
   occupancy: number;
   occupancyRate: number | null;
   borderStatus: "healthy" | "warning" | "critical" | "empty";
   batchTypeTag: "starter" | "fattening" | null;
   sanitaryTag: "healthy" | "alert" | "critical" | "overcrowded" | "empty";
+  category: PenCategory;
+  categoryForced: boolean;
+  usageTag:
+    | "empty"
+    | "sows"
+    | "boar"
+    | "boars"
+    | "starter"
+    | "fattening"
+    | "mixed";
+  maleCount: number;
+  femaleCount: number;
+  isActive: boolean;
+  averageWeightKg: number | null;
+  averageAgeDays: number | null;
+  vaccineOverdueCount: number;
+  gestationImminent: boolean;
+  activeDiseaseCount: number;
 };
 
 export type CheptelHistoryItem = {
@@ -70,8 +103,79 @@ export class CheptelService {
     return null;
   }
 
+  private detectPenUsageTag(params: {
+    occupancy: number;
+    hasGestationSow: boolean;
+    batchTypeTag: "starter" | "fattening" | null;
+    femaleCount: number;
+    maleCount: number;
+  }): CheptelPenOverviewRow["usageTag"] {
+    if (params.occupancy === 0) {
+      return "empty";
+    }
+    if (
+      params.batchTypeTag === "fattening" &&
+      params.femaleCount === 0 &&
+      params.maleCount === 0
+    ) {
+      return "fattening";
+    }
+    if (
+      params.batchTypeTag === "starter" &&
+      params.femaleCount === 0 &&
+      params.maleCount === 0
+    ) {
+      return "starter";
+    }
+    if (params.femaleCount > 0 && params.maleCount === 0) {
+      return "sows";
+    }
+    if (params.maleCount === 1 && params.femaleCount === 0) {
+      return "boar";
+    }
+    if (params.maleCount > 1 && params.femaleCount === 0) {
+      return "boars";
+    }
+    if (params.hasGestationSow) {
+      return "sows";
+    }
+    return "mixed";
+  }
+
+  private detectPenCategory(
+    occupancy: number,
+    hasGestationSow: boolean,
+    batchTypeTag: "starter" | "fattening" | null,
+    avgWeightKg: number | null,
+    usageTag: CheptelPenOverviewRow["usageTag"]
+  ): PenCategory {
+    if (occupancy === 0) {
+      return PenCategory.empty;
+    }
+    if (usageTag === "sows" || hasGestationSow) {
+      return PenCategory.maternity;
+    }
+    if (usageTag === "fattening" || batchTypeTag === "fattening") {
+      return PenCategory.fattening;
+    }
+    if (usageTag === "starter" || batchTypeTag === "starter") {
+      return PenCategory.starter;
+    }
+    if (avgWeightKg != null && avgWeightKg < 30) {
+      return PenCategory.starter;
+    }
+    if (avgWeightKg != null && avgWeightKg >= 30) {
+      return PenCategory.fattening;
+    }
+    return PenCategory.mixed;
+  }
+
   async listPens(user: User, farmId: string, barnId?: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const now = new Date();
+    const gestationSoon = new Date(now);
+    gestationSoon.setDate(gestationSoon.getDate() + 7);
+
     const pens = await this.prisma.pen.findMany({
       where: {
         barn: {
@@ -90,19 +194,88 @@ export class CheptelService {
         placements: {
           where: { endedAt: null },
           include: {
-            animal: { select: { id: true, status: true } },
+            animal: {
+              select: {
+                id: true,
+                status: true,
+                sex: true,
+                expectedFarrowingAt: true,
+                weights: {
+                  orderBy: { measuredAt: "desc" },
+                  take: 1,
+                  select: { weightKg: true }
+                },
+                gestationsAsSow: {
+                  where: { status: GestationStatus.active },
+                  take: 1,
+                  select: { id: true, expectedBirthDate: true }
+                }
+              }
+            },
             batch: { select: { headcount: true, categoryKey: true } }
           }
         }
       }
     });
 
+    const animalIds = pens.flatMap((pen) =>
+      pen.placements
+        .map((pl) => pl.animal?.id)
+        .filter((id): id is string => Boolean(id))
+    );
+
+    const vaccineOverdueByAnimal = new Map<string, number>();
+    if (animalIds.length > 0) {
+      const overdueRecords = await this.prisma.farmHealthRecord.findMany({
+        where: {
+          farmId,
+          entityType: FarmHealthEntityType.animal,
+          entityId: { in: animalIds },
+          kind: FarmHealthRecordKind.vaccination,
+          vaccination: { is: { nextReminderAt: { lt: now } } }
+        },
+        select: { entityId: true }
+      });
+      for (const rec of overdueRecords) {
+        vaccineOverdueByAnimal.set(
+          rec.entityId,
+          (vaccineOverdueByAnimal.get(rec.entityId) ?? 0) + 1
+        );
+      }
+    }
+
     const rows: CheptelPenOverviewRow[] = pens.map((pen) => {
       let occupancy = 0;
       let batchTypeTag: "starter" | "fattening" | null = null;
+      let vaccineOverdueCount = 0;
+      let gestationImminent = false;
+      let hasGestationSow = false;
+      let femaleCount = 0;
+      let maleCount = 0;
+      const weights: number[] = [];
+
       for (const pl of pen.placements) {
-        if (pl.animalId) {
+        if (pl.animalId && pl.animal) {
           occupancy += 1;
+          if (pl.animal.sex === "female") {
+            femaleCount += 1;
+          } else if (pl.animal.sex === "male") {
+            maleCount += 1;
+          }
+          vaccineOverdueCount += vaccineOverdueByAnimal.get(pl.animal.id) ?? 0;
+          const w = pl.animal.weights[0];
+          if (w) {
+            weights.push(decimalToNum(w.weightKg));
+          }
+          const g = pl.animal.gestationsAsSow[0];
+          if (g || pl.animal.expectedFarrowingAt) {
+            hasGestationSow = true;
+            const due =
+              g?.expectedBirthDate ?? pl.animal.expectedFarrowingAt;
+            if (due && due <= gestationSoon) {
+              gestationImminent = true;
+            }
+          }
         } else if (pl.batch) {
           occupancy += pl.batch.headcount;
           const tag = this.mapBatchType(pl.batch.categoryKey);
@@ -111,6 +284,7 @@ export class CheptelService {
           }
         }
       }
+
       const cap = pen.capacity ?? 0;
       const occupancyRate =
         cap > 0 ? Math.round((occupancy / cap) * 1000) / 10 : null;
@@ -121,6 +295,9 @@ export class CheptelService {
       if (occupancy === 0) {
         borderStatus = "empty";
         sanitaryTag = "empty";
+      } else if (vaccineOverdueCount > 0) {
+        borderStatus = "critical";
+        sanitaryTag = "critical";
       } else if (cap > 0 && occupancy >= cap) {
         borderStatus = "critical";
         sanitaryTag = "overcrowded";
@@ -129,28 +306,252 @@ export class CheptelService {
         sanitaryTag = "alert";
       }
 
+      const computedAvg =
+        weights.length > 0
+          ? Math.round(
+              (weights.reduce((a, b) => a + b, 0) / weights.length) * 10
+            ) / 10
+          : null;
+      const averageWeightKg =
+        pen.averageWeightKg != null
+          ? decimalToNum(pen.averageWeightKg)
+          : computedAvg;
+      const averageAgeDays = pen.averageAgeDays ?? null;
+
+      const usageTag = this.detectPenUsageTag({
+        occupancy,
+        hasGestationSow,
+        batchTypeTag,
+        femaleCount,
+        maleCount
+      });
+      const autoCategory = this.detectPenCategory(
+        occupancy,
+        hasGestationSow,
+        batchTypeTag,
+        averageWeightKg,
+        usageTag
+      );
+      const category =
+        pen.categoryForced && pen.category ? pen.category : autoCategory;
+
       return {
         id: pen.id,
         name: pen.name,
         code: pen.code,
         barnId: pen.barn.id,
         barnName: pen.barn.name,
+        sortOrder: pen.sortOrder,
         capacity: cap,
         occupancy,
         occupancyRate,
         borderStatus,
         batchTypeTag,
-        sanitaryTag
+        sanitaryTag,
+        category,
+        categoryForced: pen.categoryForced,
+        usageTag,
+        maleCount,
+        femaleCount,
+        isActive: pen.status !== "inactive",
+        averageWeightKg,
+        averageAgeDays,
+        vaccineOverdueCount,
+        gestationImminent,
+        activeDiseaseCount: 0
       };
     });
 
     const barns = await this.prisma.barn.findMany({
       where: { farmId },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      select: { id: true, name: true }
+      select: { id: true, name: true, code: true, sortOrder: true }
     });
 
-    return { barns, pens: rows };
+    return { barns, pens: rows, totalPens: rows.length };
+  }
+
+  async togglePenActive(user: User, farmId: string, penId: string) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const pen = await this.prisma.pen.findFirst({
+      where: { id: penId, barn: { farmId } }
+    });
+    if (!pen) {
+      throw new NotFoundException("Loge introuvable");
+    }
+    const next = pen.status === "inactive" ? "active" : "inactive";
+    return this.prisma.pen.update({
+      where: { id: penId },
+      data: { status: next }
+    });
+  }
+
+  async patchPenAverages(
+    user: User,
+    farmId: string,
+    penId: string,
+    dto: { averageWeightKg?: number | null; averageAgeDays?: number | null }
+  ) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const pen = await this.prisma.pen.findFirst({
+      where: { id: penId, barn: { farmId } }
+    });
+    if (!pen) {
+      throw new NotFoundException("Loge introuvable");
+    }
+    return this.prisma.pen.update({
+      where: { id: penId },
+      data: {
+        ...(dto.averageWeightKg !== undefined
+          ? {
+              averageWeightKg:
+                dto.averageWeightKg == null
+                  ? null
+                  : new Prisma.Decimal(dto.averageWeightKg)
+            }
+          : {}),
+        ...(dto.averageAgeDays !== undefined
+          ? { averageAgeDays: dto.averageAgeDays }
+          : {})
+      }
+    });
+  }
+
+  async listPenContents(user: User, farmId: string, penId: string) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const pen = await this.prisma.pen.findFirst({
+      where: { id: penId, barn: { farmId } }
+    });
+    if (!pen) {
+      throw new NotFoundException("Loge introuvable");
+    }
+    const now = new Date();
+
+    const animalPlacements = await this.prisma.penPlacement.findMany({
+      where: { penId, endedAt: null, animalId: { not: null } },
+      include: {
+        animal: {
+          include: {
+            breed: { select: { id: true, name: true } },
+            species: { select: { id: true, code: true, name: true } },
+            weights: { orderBy: { measuredAt: "desc" }, take: 3 },
+            gestationsAsSow: {
+              where: { status: GestationStatus.active },
+              take: 1,
+              select: { id: true, expectedBirthDate: true }
+            }
+          }
+        }
+      }
+    });
+
+    const batchPlacements = await this.prisma.penPlacement.findMany({
+      where: { penId, endedAt: null, batchId: { not: null } },
+      include: {
+        batch: {
+          include: {
+            breed: { select: { id: true, name: true } },
+            species: { select: { id: true, code: true, name: true } },
+            weights: { orderBy: { measuredAt: "desc" }, take: 1 }
+          }
+        }
+      }
+    });
+
+    const animalIds = animalPlacements
+      .map((p) => p.animal?.id)
+      .filter((id): id is string => Boolean(id));
+
+    const overdueAnimalIds = new Set<string>();
+    if (animalIds.length > 0) {
+      const recs = await this.prisma.farmHealthRecord.findMany({
+        where: {
+          farmId,
+          entityType: FarmHealthEntityType.animal,
+          entityId: { in: animalIds },
+          kind: FarmHealthRecordKind.vaccination,
+          vaccination: { is: { nextReminderAt: { lt: now } } }
+        },
+        select: { entityId: true }
+      });
+      for (const r of recs) {
+        overdueAnimalIds.add(r.entityId);
+      }
+    }
+
+    const animals = animalPlacements
+      .filter((p) => p.animal)
+      .map((p) => {
+        const a = p.animal!;
+        const latest = a.weights[0];
+        const activeGestation = a.gestationsAsSow[0] ?? null;
+        return {
+          id: a.id,
+          publicId: a.publicId,
+          tagCode: a.tagCode,
+          sex: a.sex,
+          productionCategory: a.productionCategory,
+          status: a.status,
+          photoUrl: a.photoUrl,
+          species: a.species,
+          breed: a.breed,
+          weights: a.weights.map((w) => ({
+            weightKg: decimalToNum(w.weightKg),
+            measuredAt: w.measuredAt.toISOString()
+          })),
+          currentWeightKg: latest ? decimalToNum(latest.weightKg) : null,
+          vaccineOverdue: overdueAnimalIds.has(a.id),
+          activeGestation: activeGestation
+            ? {
+                id: activeGestation.id,
+                expectedFarrowingAt:
+                  activeGestation.expectedBirthDate?.toISOString() ?? null
+              }
+            : null
+        };
+      });
+
+    const batches = batchPlacements
+      .filter((p) => p.batch)
+      .map((p) => {
+        const b = p.batch!;
+        const latestWeight = b.weights[0];
+        return {
+          id: b.id,
+          publicId: b.publicId,
+          name: b.name,
+          headcount: b.headcount,
+          categoryKey: b.categoryKey,
+          status: b.status,
+          species: b.species,
+          breed: b.breed,
+          avgWeightKg: latestWeight
+            ? decimalToNum(latestWeight.avgWeightKg)
+            : null
+        };
+      });
+
+    return { animals, batches };
+  }
+
+  /** @deprecated Préférer listPenContents — conservé pour alertes vaccins. */
+  async listPenAnimals(user: User, farmId: string, penId: string) {
+    const contents = await this.listPenContents(user, farmId, penId);
+    return contents.animals;
+  }
+
+  async getPenVaccineAlerts(user: User, farmId: string, penId: string) {
+    const animals = await this.listPenAnimals(user, farmId, penId);
+    return {
+      overdueCount: animals.filter((a) => a.vaccineOverdue).length,
+      animals: animals
+        .filter((a) => a.vaccineOverdue)
+        .map((a) => ({
+          id: a.id,
+          tagCode: a.tagCode,
+          publicId: a.publicId
+        }))
+    };
   }
 
   async listHistory(
@@ -488,5 +889,87 @@ export class CheptelService {
       measuredAt: w.measuredAt.toISOString(),
       note: w.note
     }));
+  }
+
+  /**
+   * Réapplique le plan de répartition onboarding pour les sujets/lots sans loge active.
+   * Utile si l'onboarding a été complété avant l'activation des placements automatiques.
+   */
+  async applyDefaultPenLayout(user: User, farmId: string) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+
+    const farm = await this.prisma.farm.findUnique({
+      where: { id: farmId },
+      select: {
+        housingBuildingsCount: true,
+        housingPensPerBuilding: true,
+        speciesFocus: true
+      }
+    });
+    if (!farm?.housingBuildingsCount || !farm.housingPensPerBuilding) {
+      throw new BadRequestException(
+        "Configuration des loges introuvable sur cette ferme"
+      );
+    }
+    const buildingsCount = farm.housingBuildingsCount;
+
+    const species = await this.prisma.species.findFirst({
+      where: { code: farm.speciesFocus ?? "porcin" }
+    });
+    if (!species) {
+      throw new BadRequestException("Espèce porcin indisponible");
+    }
+
+    const penCount = await this.prisma.pen.count({
+      where: { barn: { farmId } }
+    });
+    if (penCount === 0) {
+      throw new BadRequestException("Aucune loge sur cette ferme");
+    }
+
+    return this.prisma.$transaction(
+      async (tx) => {
+        await normalizeFarmPenNaming(tx, farmId);
+        await tx.pen.updateMany({
+          where: { barn: { farmId } },
+          data: { categoryForced: false }
+        });
+
+        const batchesMigrated =
+          await migrateOnboardingBatchesToIndividualAnimals(
+            tx,
+            farmId,
+            species.id,
+            user.id
+          );
+        const breedersPlaced = await relocateBreederAnimalsToDefaultPlan(
+          tx,
+          farmId,
+          user.id,
+          buildingsCount
+        );
+        const productionPlaced = await relocateProductionAnimalsToDefaultPlan(
+          tx,
+          {
+            farmId,
+            userId: user.id,
+            buildingsCount
+          }
+        );
+        const rebalanced = await rebalanceOvercrowdedBatchPlacements(
+          tx,
+          farmId,
+          user.id,
+          species.id
+        );
+        return {
+          batchesMigrated,
+          breedersPlaced,
+          productionPlaced,
+          rebalanced
+        };
+      },
+      { maxWait: 10_000, timeout: 60_000 }
+    );
   }
 }

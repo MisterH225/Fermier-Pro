@@ -1,7 +1,8 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useLayoutEffect } from "react";
+import { useCallback } from "react";
+import { useScreenTitle } from "../hooks/useScreenTitle";
 import {
   ActivityIndicator,
   FlatList,
@@ -22,23 +23,21 @@ export function FarmBarnsScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: clientFeatures.housing
-        ? () => (
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("CreateBarn", { farmId, farmName })
-              }
-              style={styles.headerBtn}
-              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
-            >
-              <Text style={styles.headerBtnText}>+ Bâtiment</Text>
-            </TouchableOpacity>
-          )
-        : undefined
-    });
-  }, [navigation, farmId, farmName, clientFeatures.housing]);
+  useScreenTitle(navigation, farmName, {
+    headerRight: clientFeatures.housing
+      ? () => (
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("CreateBarn", { farmId, farmName })
+            }
+            style={styles.headerBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+          >
+            <Text style={styles.headerBtnText}>+ Bâtiment</Text>
+          </TouchableOpacity>
+        )
+      : undefined
+  });
 
   const q = useQuery({
     queryKey: ["farmBarns", farmId, activeProfileId],
@@ -86,7 +85,6 @@ export function FarmBarnsScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.flex}>
-      <Text style={styles.farmHint}>{farmName}</Text>
       <FlatList
         data={barns}
         keyExtractor={(item) => item.id}

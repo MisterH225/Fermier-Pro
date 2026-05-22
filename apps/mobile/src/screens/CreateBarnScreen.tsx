@@ -85,8 +85,6 @@ export function CreateBarnScreen({ route, navigation }: Props) {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.content}
       >
-        <Text style={styles.hint}>{farmName}</Text>
-
         <Text style={styles.label}>Nom du bâtiment</Text>
         <TextInput
           style={styles.input}
