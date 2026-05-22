@@ -11,12 +11,12 @@ import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
 import { TaxonomyService } from "../livestock/taxonomy.service";
 import { AnimalProductionTagsService } from "../livestock/animal-production-tags.service";
 import { CompleteOnboardingDto } from "./dto/complete-onboarding.dto";
+import { PenAllocationService } from "../housing/pen-allocation.service";
 import {
   barnCodeForIndex,
   barnLabelForIndex,
   buildDefaultPlacementPlan,
   persistOnboardingPlacementPlan,
-  penCategoryForOnboardingRole,
   penNameForBarn,
   type CreatedPenMeta
 } from "./onboarding-pen-layout";
@@ -230,10 +230,6 @@ export class OnboardingService {
           }
         });
         for (let p = 0; p < dto.pensPerBuilding; p += 1) {
-          const category =
-            b === 0 && p === 0
-              ? penCategoryForOnboardingRole("maternity")
-              : penCategoryForOnboardingRole("default");
           const penLabel = penNameForBarn(code, p);
           const pen = await tx.pen.create({
             data: {
@@ -242,8 +238,8 @@ export class OnboardingService {
               code: penLabel,
               capacity: dto.maxPigsPerPen,
               sortOrder: p,
-              category,
-              categoryForced: b === 0 && p === 0
+              category: null,
+              categoryForced: false
             }
           });
           createdPens.push({
@@ -256,15 +252,49 @@ export class OnboardingService {
         }
       }
 
-      const pensByBarn: Array<
-        Array<{ id: string; capacity: number; occupancy: number }>
-      > = Array.from({ length: dto.buildingsCount }, () => []);
-      for (const pen of createdPens) {
-        pensByBarn[pen.barnIndex].push({
-          id: pen.id,
-          capacity: pen.capacity,
-          occupancy: 0
+      const reservations = PenAllocationService.assignPenReservationsAtOnboarding(
+        createdPens.map((p) => ({
+          id: p.id,
+          barnIndex: p.barnIndex,
+          sortOrder: p.sortOrder
+        })),
+        {
+          female: femaleIds.length,
+          male: maleIds.length,
+          fattening: fatteningIds.length,
+          starter: starterIds.length
+        },
+        dto.maxPigsPerPen
+      );
+
+      for (const [penId, reserved] of reservations) {
+        const category =
+          reserved === "spare"
+            ? PenAllocationService.penCategoryForRole("spare")
+            : PenAllocationService.penCategoryForRole(reserved);
+        await tx.pen.update({
+          where: { id: penId },
+          data: { category, categoryForced: false }
         });
+      }
+
+      const penSlots = PenAllocationService.buildPenSlotsForOnboarding(
+        createdPens.map((p) => ({
+          id: p.id,
+          capacity: p.capacity
+        })),
+        reservations
+      );
+
+      const pensByBarn: Array<typeof penSlots> = Array.from(
+        { length: dto.buildingsCount },
+        () => []
+      );
+      for (const slot of penSlots) {
+        const meta = createdPens.find((p) => p.id === slot.id);
+        if (meta) {
+          pensByBarn[meta.barnIndex].push(slot);
+        }
       }
 
       const plan = buildDefaultPlacementPlan({
@@ -306,7 +336,7 @@ export class OnboardingService {
       });
 
       return createdFarm;
-    });
+    }, { maxWait: 10_000, timeout: 120_000 });
 
     await ensureFarmFinanceBootstrap(this.prisma, farm.id);
 

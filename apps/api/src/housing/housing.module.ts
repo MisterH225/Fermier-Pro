@@ -4,6 +4,8 @@ import { ConfigClientModule } from "../config-client/config-client.module";
 import { BarnsController } from "./barns.controller";
 import { HousingMoveController } from "./housing-move.controller";
 import { HousingService } from "./housing.service";
+import { PenAllocationService } from "./pen-allocation.service";
+import { AdminPenAllocationController } from "./admin-pen-allocation.controller";
 import { PenDetailController } from "./pen-detail.controller";
 import { PensController } from "./pens.controller";
 
@@ -13,9 +15,10 @@ import { PensController } from "./pens.controller";
     BarnsController,
     PensController,
     PenDetailController,
-    HousingMoveController
+    HousingMoveController,
+    AdminPenAllocationController
   ],
-  providers: [HousingService],
-  exports: [HousingService]
+  providers: [HousingService, PenAllocationService],
+  exports: [HousingService, PenAllocationService]
 })
 export class HousingModule {}

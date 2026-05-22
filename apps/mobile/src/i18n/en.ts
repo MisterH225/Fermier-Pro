@@ -164,7 +164,9 @@ export const en = {
     notificationsPermissionDenied:
       "Notifications are blocked in your device settings. You can enable them later in Settings.",
     notificationsTokenError:
-      "Could not get a push token (Expo build / network). Retry on a device or Expo Go.",
+      "Could not get a push token (network or device). Try again on a phone with Expo Go or a development build.",
+    notificationsTokenMissingProject:
+      "Alerts are enabled, but the push token could not be saved: the Expo (EAS) project is not configured. In apps/mobile, run « npx eas init », copy the projectId to EXPO_PUBLIC_EAS_PROJECT_ID (.env), then restart Expo.",
     notificationsSaveError: "Could not save notification preferences.",
     notificationsDemoBlocked: "Demo mode: notification API settings are disabled.",
     notificationsA11y: "Enable or disable push notifications",

@@ -164,7 +164,9 @@ export const fr = {
     notificationsPermissionDenied:
       "Les notifications sont refusées dans les réglages du téléphone. Tu peux les activer plus tard dans les paramètres.",
     notificationsTokenError:
-      "Impossible d’obtenir un jeton push (build Expo / réseau). Réessaie depuis l’app sur appareil ou Expo Go.",
+      "Impossible d’obtenir un jeton push (réseau ou appareil). Réessaie sur un téléphone avec Expo Go ou un build de développement.",
+    notificationsTokenMissingProject:
+      "Les alertes sont activées, mais le jeton push n’a pas pu être enregistré : le projet Expo (EAS) n’est pas configuré. Dans apps/mobile, exécute « npx eas init », copie le projectId dans EXPO_PUBLIC_EAS_PROJECT_ID (.env), puis redémarre Expo.",
     notificationsSaveError: "Impossible d’enregistrer les préférences.",
     notificationsDemoBlocked: "En mode démo, les réglages notifications API sont désactivés.",
     notificationsA11y: "Activer ou désactiver les notifications push",

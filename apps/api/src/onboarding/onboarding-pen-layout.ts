@@ -3,14 +3,14 @@ import {
   PenCategory,
   Prisma
 } from "@prisma/client";
-import { formatTagCode } from "../livestock/animal-tag.helper";
-import { lockFarmRowForUpdate } from "../livestock/farm-row-lock";
+import { allocateTagCodesInTransaction } from "../livestock/allocate-tag-codes";
+import {
+  PenAllocationService,
+  type OnboardingPlacementPlan,
+  type PenSlot
+} from "../housing/pen-allocation.service";
 
-export type PenSlot = {
-  id: string;
-  capacity: number;
-  occupancy: number;
-};
+export type { OnboardingPlacementPlan, PenSlot };
 
 export function barnLabelForIndex(index: number): string {
   const letter = String.fromCharCode(65 + index);
@@ -71,40 +71,7 @@ export function planBatchDistribution(
   return plan;
 }
 
-/** Affecte chaque animal individuellement (1 place par tête) dans l'ordre des loges. */
-export function planIndividualAnimalPlacements(
-  animalIds: string[],
-  pens: PenSlot[]
-): Map<string, string> {
-  const map = new Map<string, string>();
-  if (animalIds.length === 0 || pens.length === 0) {
-    return map;
-  }
-  let penIdx = 0;
-  for (const animalId of animalIds) {
-    while (penIdx < pens.length && freeCapacity(pens[penIdx]) < 1) {
-      penIdx += 1;
-    }
-    if (penIdx >= pens.length) {
-      break;
-    }
-    const pen = pens[penIdx];
-    map.set(animalId, pen.id);
-    occupy(pen, 1);
-    if (freeCapacity(pen) < 1) {
-      penIdx += 1;
-    }
-  }
-  return map;
-}
-
-export type OnboardingPlacementPlan = {
-  femalePenByAnimalId: Map<string, string>;
-  malePenByAnimalId: Map<string, string>;
-  fatteningPenByAnimalId: Map<string, string>;
-  starterPenByAnimalId: Map<string, string>;
-};
-
+/** Plan d'affectation strict : une catégorie par loge réservée. */
 export function buildDefaultPlacementPlan(params: {
   pensByBarn: PenSlot[][];
   femaleIds: string[];
@@ -112,45 +79,13 @@ export function buildDefaultPlacementPlan(params: {
   fatteningIds: string[];
   starterIds: string[];
 }): OnboardingPlacementPlan {
-  const pensA = (params.pensByBarn[0] ?? []).map((p) => ({ ...p }));
-  const pensB = (params.pensByBarn[1] ?? []).map((p) => ({ ...p }));
-  const allPens = [...pensA, ...pensB];
-
-  const femalePenByAnimalId = planIndividualAnimalPlacements(
-    params.femaleIds,
-    pensA
-  );
-
-  const malePenPool = [...pensB, ...pensA.slice(1)];
-  const malePenByAnimalId = planIndividualAnimalPlacements(
-    params.maleIds,
-    malePenPool
-  );
-
-  const productionPool = allPens.filter((p) => freeCapacity(p) > 0);
-  const fatteningPenByAnimalId = planIndividualAnimalPlacements(
-    params.fatteningIds,
-    productionPool
-  );
-  for (const [, penId] of fatteningPenByAnimalId) {
-    const pen = allPens.find((p) => p.id === penId);
-    if (pen) {
-      occupy(pen, 1);
-    }
-  }
-
-  const starterPool = allPens.filter((p) => freeCapacity(p) > 0);
-  const starterPenByAnimalId = planIndividualAnimalPlacements(
-    params.starterIds,
-    starterPool
-  );
-
-  return {
-    femalePenByAnimalId,
-    malePenByAnimalId,
-    fatteningPenByAnimalId,
-    starterPenByAnimalId
-  };
+  const pens = params.pensByBarn.flat().map((p) => ({ ...p }));
+  return PenAllocationService.allocateAnimalsAtOnboarding(pens, {
+    femaleIds: params.femaleIds,
+    maleIds: params.maleIds,
+    fatteningIds: params.fatteningIds,
+    starterIds: params.starterIds
+  });
 }
 
 export function penCategoryForOnboardingRole(
@@ -158,11 +93,13 @@ export function penCategoryForOnboardingRole(
 ): PenCategory {
   switch (role) {
     case "maternity":
-      return PenCategory.maternity;
+      return PenAllocationService.penCategoryForRole("breeding_female");
     case "starter":
-      return PenCategory.starter;
+      return PenAllocationService.penCategoryForRole("starter");
     case "fattening":
-      return PenCategory.fattening;
+      return PenAllocationService.penCategoryForRole("fattening");
+    case "male":
+      return PenAllocationService.penCategoryForRole("breeding_male");
     default:
       return PenCategory.mixed;
   }
@@ -180,6 +117,7 @@ export function buildPensByBarnFromDb(
     id: string;
     capacity: number;
     sortOrder: number;
+    category?: PenCategory | null;
     barn: { sortOrder: number };
     placements: Array<{
       animalId: string | null;
@@ -188,31 +126,13 @@ export function buildPensByBarnFromDb(
   }>,
   buildingsCount: number
 ): PenSlot[][] {
-  const byBarn: PenSlot[][] = Array.from({ length: buildingsCount }, () => []);
-  const sorted = [...pens].sort(
-    (a, b) =>
-      a.barn.sortOrder - b.barn.sortOrder || a.sortOrder - b.sortOrder
+  return PenAllocationService.buildPensByBarnFromDb(
+    pens.map((p) => ({
+      ...p,
+      category: p.category ?? null
+    })),
+    buildingsCount
   );
-  for (const pen of sorted) {
-    const barnIndex = pen.barn.sortOrder;
-    if (barnIndex < 0 || barnIndex >= buildingsCount) {
-      continue;
-    }
-    let occupancy = 0;
-    for (const pl of pen.placements) {
-      if (pl.animalId) {
-        occupancy += 1;
-      } else if (pl.batch) {
-        occupancy += pl.batch.headcount;
-      }
-    }
-    byBarn[barnIndex].push({
-      id: pen.id,
-      capacity: pen.capacity,
-      occupancy
-    });
-  }
-  return byBarn;
 }
 
 export type PersistPlacementPlanParams = {
@@ -231,52 +151,6 @@ type BatchPlacementParams = {
   userId: string;
   speciesId: string;
 };
-
-async function allocateTagCodesInTx(
-  tx: Prisma.TransactionClient,
-  farmId: string,
-  prefix: "Trui" | "Ver" | "Eng" | "Dem",
-  count: number
-): Promise<string[]> {
-  if (count <= 0) {
-    return [];
-  }
-
-  await lockFarmRowForUpdate(tx, farmId);
-
-  const counterKey =
-    prefix === "Trui"
-      ? "lastTruiTagNumber"
-      : prefix === "Ver"
-        ? "lastVerTagNumber"
-        : prefix === "Eng"
-          ? "lastEngTagNumber"
-          : "lastDemTagNumber";
-
-  const farm = await tx.farm.findUniqueOrThrow({
-    where: { id: farmId },
-    select: {
-      lastTruiTagNumber: true,
-      lastVerTagNumber: true,
-      lastEngTagNumber: true,
-      lastDemTagNumber: true
-    }
-  });
-
-  let seq = farm[counterKey];
-  const codes: string[] = [];
-  for (let i = 0; i < count; i += 1) {
-    seq += 1;
-    codes.push(formatTagCode(prefix, seq));
-  }
-
-  await tx.farm.update({
-    where: { id: farmId },
-    data: { [counterKey]: seq }
-  });
-
-  return codes;
-}
 
 function productionCategoryForPrefix(
   prefix: "Eng" | "Dem"
@@ -575,6 +449,12 @@ export async function rebalanceOvercrowdedBatchPlacements(
     const pl = batchPlacements[0];
     const batch = pl.batch!;
     const headcount = batch.headcount;
+    const categoryKey = batch.categoryKey ?? "finisher";
+    const baseName = batch.name ?? "Lot";
+    const category =
+      categoryKey === "nursery"
+        ? penCategoryForOnboardingRole("starter")
+        : penCategoryForOnboardingRole("fattening");
 
     await tx.penPlacement.update({
       where: { id: pl.id },
@@ -591,6 +471,7 @@ export async function rebalanceOvercrowdedBatchPlacements(
         id: p.id,
         capacity: p.capacity ?? cap,
         sortOrder: p.sortOrder,
+        category: p.category,
         barn: { sortOrder: p.barn.sortOrder },
         placements: p.placements
           .filter((x) => x.id !== pl.id)
@@ -602,18 +483,18 @@ export async function rebalanceOvercrowdedBatchPlacements(
       buildingsCount
     );
     const allSlots = pensByBarn.flat();
-    const targetPens = allSlots.filter((s) => freeCapacity(s) > 0);
+    const batchRole = isNurseryCategoryKey(categoryKey)
+      ? ("starter" as const)
+      : ("fattening" as const);
+    const targetPens = allSlots.filter(
+      (s) =>
+        freeCapacity(s) > 0 &&
+        (s.reservedFor === batchRole || s.reservedFor === "spare")
+    );
     const splits = planBatchDistribution(headcount, targetPens);
     if (splits.length === 0) {
       continue;
     }
-
-    const categoryKey = batch.categoryKey ?? "finisher";
-    const baseName = batch.name ?? "Lot";
-    const category =
-      categoryKey === "nursery"
-        ? penCategoryForOnboardingRole("starter")
-        : penCategoryForOnboardingRole("fattening");
 
     rebalanced += await placeBatchSplitsInTx(
       tx,
@@ -627,6 +508,38 @@ export async function rebalanceOvercrowdedBatchPlacements(
   }
 
   return rebalanced;
+}
+
+async function countAnimalsByRole(
+  tx: Prisma.TransactionClient,
+  farmId: string
+): Promise<{
+  female: number;
+  male: number;
+  fattening: number;
+  starter: number;
+}> {
+  const animals = await tx.animal.findMany({
+    where: { farmId, status: "active" },
+    select: { productionCategory: true, sex: true, tagCode: true }
+  });
+  let female = 0;
+  let male = 0;
+  let fattening = 0;
+  let starter = 0;
+  for (const a of animals) {
+    const role = PenAllocationService.roleFromAnimal(a);
+    if (role === "breeding_female") {
+      female += 1;
+    } else if (role === "breeding_male") {
+      male += 1;
+    } else if (role === "fattening") {
+      fattening += 1;
+    } else if (role === "starter") {
+      starter += 1;
+    }
+  }
+  return { female, male, fattening, starter };
 }
 
 function isNurseryCategoryKey(categoryKey: string | null | undefined): boolean {
@@ -649,6 +562,7 @@ async function loadPensForLayout(
       id: true,
       capacity: true,
       sortOrder: true,
+      category: true,
       barn: { select: { sortOrder: true } },
       placements: {
         where: { endedAt: null },
@@ -753,13 +667,60 @@ export async function relocateBreederAnimalsToDefaultPlan(
 
   const pens = await loadPensForLayout(tx, farmId);
   const defaultCap = 12;
-  const pensByBarn = buildPensByBarnFromDb(
+  const cap = pens[0]?.capacity ?? defaultCap;
+
+  const allCounts = await countAnimalsByRole(tx, farmId);
+  const reservations = PenAllocationService.assignPenReservationsAtOnboarding(
+    pens.map((p) => ({
+      id: p.id,
+      barnIndex: p.barn.sortOrder,
+      sortOrder: p.sortOrder
+    })),
+    allCounts,
+    cap
+  );
+  for (const [penId, reserved] of reservations) {
+    const category =
+      reserved === "spare"
+        ? PenAllocationService.penCategoryForRole("spare")
+        : PenAllocationService.penCategoryForRole(reserved);
+    await tx.pen.update({
+      where: { id: penId },
+      data: { category, categoryForced: false }
+    });
+  }
+
+  const slots = PenAllocationService.buildPenSlotsForOnboarding(
     pens.map((pen) => ({
-      ...pen,
+      id: pen.id,
       capacity: pen.capacity ?? defaultCap
     })),
-    buildingsCount
+    reservations
   );
+  for (const pen of pens) {
+    const slot = slots.find((s) => s.id === pen.id);
+    if (!slot) {
+      continue;
+    }
+    let occ = 0;
+    for (const pl of pen.placements) {
+      if (pl.animalId) {
+        occ += 1;
+      } else if (pl.batch) {
+        occ += pl.batch.headcount;
+      }
+    }
+    slot.occupancy = occ;
+  }
+
+  const pensByBarn: PenSlot[][] = Array.from({ length: buildingsCount }, () => []);
+  for (const slot of slots) {
+    const pen = pens.find((p) => p.id === slot.id);
+    if (pen && pen.barn.sortOrder >= 0 && pen.barn.sortOrder < buildingsCount) {
+      pensByBarn[pen.barn.sortOrder].push(slot);
+    }
+  }
+
   const plan = buildDefaultPlacementPlan({
     pensByBarn,
     femaleIds,
@@ -778,8 +739,6 @@ export async function migrateOnboardingBatchesToIndividualAnimals(
   speciesId: string,
   userId: string
 ): Promise<number> {
-  await lockFarmRowForUpdate(tx, farmId);
-
   const batchPlacements = await tx.penPlacement.findMany({
     where: {
       endedAt: null,
@@ -809,7 +768,7 @@ export async function migrateOnboardingBatchesToIndividualAnimals(
       ? "Dem"
       : "Eng";
     const prodCategory = productionCategoryForPrefix(prefix);
-    const tags = await allocateTagCodesInTx(
+    const tags = await allocateTagCodesInTransaction(
       tx,
       farmId,
       prefix,
@@ -893,13 +852,66 @@ export async function relocateProductionAnimalsToDefaultPlan(
 
   const pens = await loadPensForLayout(tx, params.farmId);
   const defaultCap = 12;
-  const pensByBarn = buildPensByBarnFromDb(
+  const cap = pens[0]?.capacity ?? defaultCap;
+
+  const allCounts = await countAnimalsByRole(tx, params.farmId);
+  const reservations = PenAllocationService.assignPenReservationsAtOnboarding(
+    pens.map((p) => ({
+      id: p.id,
+      barnIndex: p.barn.sortOrder,
+      sortOrder: p.sortOrder
+    })),
+    allCounts,
+    cap
+  );
+  for (const [penId, reserved] of reservations) {
+    const category =
+      reserved === "spare"
+        ? PenAllocationService.penCategoryForRole("spare")
+        : PenAllocationService.penCategoryForRole(reserved);
+    await tx.pen.update({
+      where: { id: penId },
+      data: { category, categoryForced: false }
+    });
+  }
+
+  const slots = PenAllocationService.buildPenSlotsForOnboarding(
     pens.map((pen) => ({
-      ...pen,
+      id: pen.id,
       capacity: pen.capacity ?? defaultCap
     })),
-    params.buildingsCount
+    reservations
   );
+  for (const pen of pens) {
+    const slot = slots.find((s) => s.id === pen.id);
+    if (!slot) {
+      continue;
+    }
+    let occ = 0;
+    for (const pl of pen.placements) {
+      if (pl.animalId) {
+        occ += 1;
+      } else if (pl.batch) {
+        occ += pl.batch.headcount;
+      }
+    }
+    slot.occupancy = occ;
+  }
+
+  const pensByBarn: PenSlot[][] = Array.from(
+    { length: params.buildingsCount },
+    () => []
+  );
+  for (const slot of slots) {
+    const pen = pens.find((p) => p.id === slot.id);
+    if (
+      pen &&
+      pen.barn.sortOrder >= 0 &&
+      pen.barn.sortOrder < params.buildingsCount
+    ) {
+      pensByBarn[pen.barn.sortOrder].push(slot);
+    }
+  }
 
   const fatteningIds = productionAnimals
     .filter((a) => a.productionCategory === "fattening")

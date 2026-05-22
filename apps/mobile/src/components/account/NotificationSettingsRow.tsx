@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useSession } from "../../context/SessionContext";
 import { patchAuthProfile } from "../../lib/api";
+import { obtainExpoPushToken } from "../../lib/expoPush";
 import {
   mobileColors,
   mobileSpacing,
@@ -72,11 +73,19 @@ export function NotificationSettingsRow() {
             Alert.alert("", t("account.notificationsPermissionDenied"));
             return;
           }
-          let expoPushToken: string;
-          try {
-            const tokenRes = await Notifications.getExpoPushTokenAsync();
-            expoPushToken = tokenRes.data;
-          } catch {
+          const tokenResult = await obtainExpoPushToken();
+          if (!tokenResult.ok) {
+            if (tokenResult.reason === "no_project_id") {
+              await patchAuthProfile(
+                accessToken,
+                { notificationsEnabled: true },
+                activeProfileId
+              );
+              await refreshAuthMe();
+              setLocalOverride(null);
+              Alert.alert("", t("account.notificationsTokenMissingProject"));
+              return;
+            }
             setLocalOverride(null);
             Alert.alert("", t("account.notificationsTokenError"));
             return;
@@ -85,7 +94,7 @@ export function NotificationSettingsRow() {
             accessToken,
             {
               notificationsEnabled: true,
-              expoPushToken,
+              expoPushToken: tokenResult.token,
               pushPlatform: pushPlatformParam()
             },
             activeProfileId

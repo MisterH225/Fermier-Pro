@@ -7,6 +7,7 @@ import type { User } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { PenAllocationService } from "./pen-allocation.service";
 import { CreateBarnDto } from "./dto/create-barn.dto";
 import { CreatePenDto } from "./dto/create-pen.dto";
 import { CreatePenLogDto } from "./dto/create-pen-log.dto";
@@ -20,7 +21,8 @@ import { UpdatePenDto } from "./dto/update-pen.dto";
 export class HousingService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly farmAccess: FarmAccessService
+    private readonly farmAccess: FarmAccessService,
+    private readonly penAllocation: PenAllocationService
   ) {}
 
   private assertSingleOccupant(
@@ -302,6 +304,13 @@ export class HousingService {
       if (!animal) {
         throw new BadRequestException("Animal inconnu sur cette ferme");
       }
+      await this.prisma.$transaction(async (tx) => {
+        await this.penAllocation.assertAnimalPenCompatible(
+          tx,
+          animal.id,
+          penId
+        );
+      });
       await this.closeActiveForAnimalOnFarm(farmId, animal.id);
     } else {
       const batch = await this.prisma.livestockBatch.findFirst({
@@ -313,7 +322,7 @@ export class HousingService {
       await this.closeActiveForBatchOnFarm(farmId, batch.id);
     }
 
-    return this.prisma.penPlacement.create({
+    const created = await this.prisma.penPlacement.create({
       data: {
         penId,
         animalId: kind === "animal" ? dto.animalId! : null,
@@ -330,6 +339,12 @@ export class HousingService {
         }
       }
     });
+    if (kind === "animal") {
+      await this.prisma.$transaction(async (tx) => {
+        await this.penAllocation.recalculatePenCategory(tx, penId);
+      });
+    }
+    return created;
   }
 
   async endPlacement(
@@ -398,6 +413,13 @@ export class HousingService {
     }
 
     await this.prisma.$transaction(async (tx) => {
+      if (kind === "animal") {
+        await this.penAllocation.assertAnimalPenCompatible(
+          tx,
+          dto.animalId!,
+          dto.toPenId
+        );
+      }
       for (const p of toClose) {
         await tx.penPlacement.update({
           where: { id: p.id },
@@ -413,6 +435,12 @@ export class HousingService {
           createdByUserId: user.id
         }
       });
+      if (kind === "animal") {
+        await this.penAllocation.recalculatePenCategory(tx, dto.toPenId);
+        if (dto.fromPenId) {
+          await this.penAllocation.recalculatePenCategory(tx, dto.fromPenId);
+        }
+      }
     });
 
     return this.prisma.penPlacement.findFirst({

@@ -40,6 +40,15 @@ export class CheptelController {
     return this.cheptel.applyDefaultPenLayout(user, farmId);
   }
 
+  @Post("fix-pen-allocation")
+  @RequireFarmScopes(FARM_SCOPE.housingWrite)
+  fixPenAllocation(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string
+  ) {
+    return this.cheptel.fixPenAllocation(user, farmId);
+  }
+
   @Get("pens")
   @RequireFarmScopes(FARM_SCOPE.housingRead)
   listPens(

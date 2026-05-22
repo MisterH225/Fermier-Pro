@@ -26,6 +26,7 @@ import {
   relocateBreederAnimalsToDefaultPlan,
   relocateProductionAnimalsToDefaultPlan
 } from "../onboarding/onboarding-pen-layout";
+import { PenAllocationService } from "../housing/pen-allocation.service";
 
 export type CheptelPenOverviewRow = {
   id: string;
@@ -85,7 +86,8 @@ export class CheptelService {
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
     private readonly livestock: LivestockService,
-    private readonly finance: FinanceService
+    private readonly finance: FinanceService,
+    private readonly penAllocation: PenAllocationService
   ) {}
 
   private mapBatchType(
@@ -112,9 +114,13 @@ export class CheptelService {
     batchTypeTag: "starter" | "fattening" | null;
     femaleCount: number;
     maleCount: number;
+    allocationRoles: Set<string>;
   }): CheptelPenOverviewRow["usageTag"] {
     if (params.occupancy === 0) {
       return "empty";
+    }
+    if (params.allocationRoles.size > 1) {
+      return "mixed";
     }
     if (
       params.batchTypeTag === "fattening" &&
@@ -129,6 +135,21 @@ export class CheptelService {
       params.maleCount === 0
     ) {
       return "starter";
+    }
+    if (params.allocationRoles.size === 1) {
+      const [only] = [...params.allocationRoles];
+      if (only === "fattening") {
+        return "fattening";
+      }
+      if (only === "starter") {
+        return "starter";
+      }
+      if (only === "breeding_female") {
+        return "sows";
+      }
+      if (only === "breeding_male") {
+        return params.maleCount > 1 ? "boars" : "boar";
+      }
     }
     if (params.femaleCount > 0 && params.maleCount === 0) {
       return "sows";
@@ -203,6 +224,8 @@ export class CheptelService {
                 id: true,
                 status: true,
                 sex: true,
+                tagCode: true,
+                productionCategory: true,
                 expectedFarrowingAt: true,
                 weights: {
                   orderBy: { measuredAt: "desc" },
@@ -257,10 +280,15 @@ export class CheptelService {
       let femaleCount = 0;
       let maleCount = 0;
       const weights: number[] = [];
+      const allocationRoles = new Set<string>();
 
       for (const pl of pen.placements) {
         if (pl.animalId && pl.animal) {
           occupancy += 1;
+          const role = PenAllocationService.roleFromAnimal(pl.animal);
+          if (role) {
+            allocationRoles.add(role);
+          }
           if (pl.animal.sex === "female") {
             femaleCount += 1;
           } else if (pl.animal.sex === "male") {
@@ -285,6 +313,7 @@ export class CheptelService {
           const tag = this.mapBatchType(pl.batch.categoryKey);
           if (tag) {
             batchTypeTag = tag;
+            allocationRoles.add(tag);
           }
         }
       }
@@ -299,6 +328,9 @@ export class CheptelService {
       if (occupancy === 0) {
         borderStatus = "empty";
         sanitaryTag = "empty";
+      } else if (allocationRoles.size > 1) {
+        borderStatus = "warning";
+        sanitaryTag = "alert";
       } else if (vaccineOverdueCount > 0) {
         borderStatus = "critical";
         sanitaryTag = "critical";
@@ -327,7 +359,8 @@ export class CheptelService {
         hasGestationSow,
         batchTypeTag,
         femaleCount,
-        maleCount
+        maleCount,
+        allocationRoles
       });
       const autoCategory = this.detectPenCategory(
         occupancy,
@@ -900,6 +933,11 @@ export class CheptelService {
    * Réapplique le plan de répartition onboarding pour les sujets/lots sans loge active.
    * Utile si l'onboarding a été complété avant l'activation des placements automatiques.
    */
+  async fixPenAllocation(user: User, farmId: string) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    return this.penAllocation.fixFarmPenAllocation(farmId, user.id);
+  }
+
   async applyDefaultPenLayout(user: User, farmId: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
 
