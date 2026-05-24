@@ -6,8 +6,6 @@ export type RootStackParamList = {
   VeterinarianDashboard: undefined;
   TechnicianDashboard: undefined;
   FarmList: undefined;
-  /** Fil d’événements terrain (liste des dossiers santé ferme). */
-  FarmEventsFeed: undefined;
   /** Compte : déconnexion, langue, aide. */
   Account: undefined;
   DeleteAccountProcess: undefined;
@@ -17,7 +15,8 @@ export type RootStackParamList = {
   FarmDetail: { farmId: string; farmName: string };
   FarmLivestock: { farmId: string; farmName: string };
   /** Santé ferme (dossiers vaccins, maladies, véto, traitements, mortalités). */
-  FarmHealth: { farmId: string; farmName: string };
+  FarmHealth: { farmId: string; farmName: string; initialTab?: "overview" | "disease" };
+  VetSearch: { farmId: string; farmName: string };
   CreateFarm: undefined;
   AnimalDetail: {
     farmId: string;

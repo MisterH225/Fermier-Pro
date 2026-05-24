@@ -17,7 +17,7 @@ import type { RootStackParamList } from "../types/navigation";
 export function VeterinarianDashboardScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { accessToken, activeProfileId, clientFeatures } = useSession();
+  const { accessToken, activeProfileId, clientFeatures, authMe } = useSession();
 
   const farmsQ = useQuery({
     queryKey: ["farms", activeProfileId],
@@ -25,6 +25,7 @@ export function VeterinarianDashboardScreen() {
     enabled: Boolean(accessToken)
   });
   const primaryFarm = farmsQ.data?.[0];
+  const vetStatus = authMe?.vetProfessional?.verificationStatus;
 
   return (
     <MobileAppShell
@@ -32,6 +33,15 @@ export function VeterinarianDashboardScreen() {
       topRight={<IconButton icon="search" onPress={() => navigation.navigate("FarmList")} />}
     >
       <ScrollView contentContainerStyle={styles.wrap}>
+        {vetStatus === "pending" ? (
+          <Text style={styles.banner}>⏳ Profil en attente de validation</Text>
+        ) : vetStatus === "rejected" ? (
+          <Text style={[styles.banner, styles.bannerErr]}>
+            Profil refusé — complétez à nouveau l’onboarding vétérinaire
+          </Text>
+        ) : vetStatus === "verified" ? (
+          <Text style={[styles.banner, styles.bannerOk]}>✅ Profil vérifié</Text>
+        ) : null}
         <View style={styles.kpiRow}>
           <View style={styles.kpiItem}>
             <KpiCard label="Alertes santé" value="2" tone="danger" />
@@ -102,5 +112,14 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: mobileSpacing.md
-  }
+  },
+  banner: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    backgroundColor: "#FFFBEB",
+    padding: mobileSpacing.sm,
+    borderRadius: 8
+  },
+  bannerOk: { backgroundColor: "#ECFDF5", color: "#059669" },
+  bannerErr: { backgroundColor: "#FEF2F2", color: "#DC2626" }
 });

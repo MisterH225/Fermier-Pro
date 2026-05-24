@@ -41,6 +41,16 @@ export class AiDataAggregatorService {
         });
         return records > 0 || animals > 0;
       }
+      case "sante_diseases": {
+        const active = await this.prisma.farmHealthRecord.count({
+          where: {
+            farmId,
+            kind: FarmHealthRecordKind.disease,
+            disease: { caseStatus: FarmDiseaseCaseStatus.active }
+          }
+        });
+        return active > 0;
+      }
       case "stock": {
         const types = await this.prisma.feedType.count({ where: { farmId } });
         return types > 0;
@@ -87,6 +97,8 @@ export class AiDataAggregatorService {
         return this.aggregateCheptel(farmId);
       case "sante":
         return this.aggregateSante(farmId);
+      case "sante_diseases":
+        return this.aggregateSanteDiseases(farmId);
       case "stock":
         return this.aggregateStock(farmId);
       case "gestation":
@@ -416,6 +428,99 @@ export class AiDataAggregatorService {
       treatmentsLast30Days: treatments,
       mortalityRate30dPct: mortalityPct,
       daysSinceLastVetVisit: daysSinceVet
+    };
+  }
+
+  private async aggregateSanteDiseases(farmId: string) {
+    const now = new Date();
+    const since90 = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    const since30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const [activeRows, history90, resolved30, activeHead, sickHead, overdueVac, pens] =
+      await Promise.all([
+        this.prisma.farmHealthRecord.findMany({
+          where: {
+            farmId,
+            kind: FarmHealthRecordKind.disease,
+            disease: { caseStatus: FarmDiseaseCaseStatus.active }
+          },
+          include: {
+            disease: {
+              select: {
+                diagnosis: true,
+                severity: true,
+                durationEstimate: true,
+                inIsolation: true,
+                treatmentOngoing: true,
+                symptoms: true
+              }
+            }
+          },
+          orderBy: { occurredAt: "desc" },
+          take: 15
+        }),
+        this.prisma.farmHealthRecord.count({
+          where: {
+            farmId,
+            kind: FarmHealthRecordKind.disease,
+            occurredAt: { gte: since90 }
+          }
+        }),
+        this.prisma.farmHealthRecord.count({
+          where: {
+            farmId,
+            kind: FarmHealthRecordKind.disease,
+            disease: {
+              caseStatus: FarmDiseaseCaseStatus.recovered,
+              resolvedAt: { gte: since30 }
+            }
+          }
+        }),
+        this.prisma.animal.count({
+          where: { farmId, status: "active" }
+        }),
+        this.prisma.animal.count({
+          where: { farmId, status: "active", healthStatus: "sick" }
+        }),
+        this.prisma.healthVaccinationDetail.count({
+          where: {
+            healthRecord: { farmId },
+            nextReminderAt: { lt: now }
+          }
+        }),
+        this.prisma.pen.count({ where: { barn: { farmId } } })
+      ]);
+
+    const activeCases = activeRows.map((r) => {
+      const tags = (r.disease?.symptoms as { tags?: string[] } | null)?.tags ?? [];
+      return {
+        entityId: r.entityId,
+        entityType: r.entityType,
+        diagnosis: r.disease?.diagnosis ?? tags[0] ?? "Autre",
+        severity: r.disease?.severity ?? null,
+        durationEstimate: r.disease?.durationEstimate ?? null,
+        inIsolation: r.disease?.inIsolation ?? false,
+        treatmentOngoing: r.disease?.treatmentOngoing ?? false,
+        symptoms: tags,
+        declaredAt: r.occurredAt.toISOString()
+      };
+    });
+
+    const diseaseRatePct =
+      activeHead > 0
+        ? Math.round((activeRows.length / activeHead) * 1000) / 10
+        : 0;
+
+    return {
+      activeCases,
+      activeCaseCount: activeRows.length,
+      diseaseRatePct,
+      sickAnimals: sickHead,
+      activeHeadcount: activeHead,
+      historyCases90d: history90,
+      resolvedLast30d: resolved30,
+      vaccinesOverdue: overdueVac,
+      penCount: pens
     };
   }
 

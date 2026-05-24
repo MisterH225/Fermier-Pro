@@ -37,6 +37,7 @@ export function penAnimalToListItem(
     sex: a.sex,
     productionCategory: a.productionCategory,
     status: a.status,
+    healthStatus: a.healthStatus,
     species: a.species,
     breed: a.breed,
     weights: a.weights.map((w) => ({

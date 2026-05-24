@@ -40,13 +40,13 @@ import {
   EditMarketplaceListingScreen,
   FarmBarnsScreen,
   FarmDetailScreen,
-  FarmEventsFeedScreen,
   FarmFeedStockScreen,
   FarmGestationScreen,
   FarmFinanceScreen,
   FarmListScreen,
   FarmLivestockScreen,
   FarmHealthScreen,
+  VetSearchScreen,
   FarmMembersScreen,
   FarmTasksScreen,
   FarmVetConsultationsScreen,
@@ -171,11 +171,6 @@ function MainStack() {
         options={{ title: "Mes fermes" }}
       />
       <Stack.Screen
-        name="FarmEventsFeed"
-        component={FarmEventsFeedScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
         name="Account"
         component={AccountScreen}
         options={{ headerShown: false }}
@@ -217,6 +212,11 @@ function MainStack() {
         name="FarmHealth"
         component={FarmHealthScreen}
         options={{ title: "Santé" }}
+      />
+      <Stack.Screen
+        name="VetSearch"
+        component={VetSearchScreen}
+        options={{ title: "Vétérinaires" }}
       />
       <Stack.Screen
         name="FarmTasks"

@@ -107,8 +107,31 @@ export class AuthController {
     const cguCurrent = await this.cgu.getCurrent();
     const cguStatus = this.cgu.buildStatusForUser(user, cguCurrent.version);
 
+    const vetRow = await this.prisma.vetProfile.findUnique({
+      where: { userId: user.id },
+      select: {
+        id: true,
+        verificationStatus: true,
+        rejectionReason: true,
+        diplomaPhotoUrl: true
+      }
+    });
+
     return {
       cgu: cguStatus,
+      vetProfessional: vetRow
+        ? {
+            profileId: vetRow.id,
+            verificationStatus: vetRow.verificationStatus,
+            rejectionReason: vetRow.rejectionReason,
+            onboardingComplete: Boolean(vetRow.diplomaPhotoUrl?.trim())
+          }
+        : {
+            profileId: null,
+            verificationStatus: null,
+            rejectionReason: null,
+            onboardingComplete: false
+          },
       user: {
         id: user.id,
         supabaseUserId: user.supabaseUserId,

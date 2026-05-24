@@ -115,6 +115,13 @@ export function PenCard({
       ]}
       onPress={onPress}
     >
+      {pen.activeDiseaseCount > 0 ? (
+        <View style={[styles.badgeWarn, styles.badgeSick]}>
+          <Text style={styles.badgeWarnTx}>
+            {t("cheptel.pens.badgeActiveDisease")}
+          </Text>
+        </View>
+      ) : null}
       {pen.vaccineOverdueCount > 0 ? (
         <View style={styles.badgeWarn}>
           <Text style={styles.badgeWarnTx}>
@@ -212,6 +219,7 @@ const styles = StyleSheet.create({
     marginBottom: 6
   },
   badgeSoon: { backgroundColor: "#FEF3C7" },
+  badgeSick: { backgroundColor: "#FFF3E0" },
   badgeCrowd: { backgroundColor: "#FEE2E2" },
   badgeWarnTx: { fontSize: 10, fontWeight: "700", color: "#B91C1C" },
   topRow: {

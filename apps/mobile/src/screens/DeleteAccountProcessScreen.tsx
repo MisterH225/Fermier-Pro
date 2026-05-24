@@ -49,7 +49,7 @@ export function DeleteAccountProcessScreen({ navigation }: Props) {
         setRunning(false);
         Alert.alert(
           t("account.deleteAccount.errorTitle"),
-          formatApiError(err, t("account.deleteAccount.errorGeneric")),
+          formatApiError(err) || t("account.deleteAccount.errorGeneric"),
           [
             {
               text: t("account.deleteAccount.cancel"),

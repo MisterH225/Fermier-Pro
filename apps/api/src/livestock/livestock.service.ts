@@ -409,6 +409,11 @@ export class LivestockService {
     animalId: string,
     dto: PatchAnimalStatusDto
   ) {
+    if (dto.status === "sold") {
+      throw new BadRequestException(
+        "Utilisez PATCH /cheptel/animals/:id/sell pour enregistrer une vente"
+      );
+    }
     const animal = await this.getAnimalOnFarm(user, farmId, animalId);
     if (animal.status === dto.status) {
       return this.getAnimal(user, farmId, animalId);

@@ -42,6 +42,7 @@ export type BaseModalProps = {
   footerPrimary?: React.ReactNode;
   secondaryActions?: BaseModalSecondaryAction[];
   destructiveAction?: { label: string; onPress: () => void };
+  dismissible?: boolean;
   sheetMaxHeight?: number | `${number}%`;
   contentContainerStyle?: StyleProp<ViewStyle>;
 };
@@ -56,6 +57,7 @@ export function BaseModal({
   footerPrimary,
   secondaryActions,
   destructiveAction,
+  dismissible = true,
   sheetMaxHeight = "88%",
   contentContainerStyle
 }: BaseModalProps) {
@@ -66,6 +68,9 @@ export function BaseModal({
 
   const runClose = useMemo(
     () => () => {
+      if (!dismissible) {
+        return;
+      }
       Animated.parallel([
         Animated.timing(translateY, {
           toValue: screenH,
@@ -79,7 +84,7 @@ export function BaseModal({
         })
       ]).start(() => onClose());
     },
-    [backdrop, onClose, screenH, translateY]
+    [backdrop, dismissible, onClose, screenH, translateY]
   );
 
   useEffect(() => {
@@ -108,8 +113,12 @@ export function BaseModal({
 
   const handlePan = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 6 && g.dy > 0,
+      onMoveShouldSetPanResponder: (_, g) =>
+        dismissible && Math.abs(g.dy) > 6 && g.dy > 0,
       onPanResponderRelease: (_, g) => {
+        if (!dismissible) {
+          return;
+        }
         if (g.dy > 90 || g.vy > 0.9) {
           runClose();
         }
@@ -126,7 +135,7 @@ export function BaseModal({
       transparent
       animationType="none"
       statusBarTranslucent
-      onRequestClose={runClose}
+      onRequestClose={dismissible ? runClose : () => undefined}
     >
       <View style={styles.root}>
         <Animated.View
@@ -139,7 +148,11 @@ export function BaseModal({
             }
           ]}
         />
-        <Pressable style={StyleSheet.absoluteFill} onPress={runClose} />
+        {dismissible ? (
+          <Pressable style={StyleSheet.absoluteFill} onPress={runClose} />
+        ) : (
+          <View style={StyleSheet.absoluteFill} />
+        )}
         <KeyboardAvoidingView
           style={styles.keyboardWrap}
           behavior={Platform.OS === "ios" ? "padding" : "height"}

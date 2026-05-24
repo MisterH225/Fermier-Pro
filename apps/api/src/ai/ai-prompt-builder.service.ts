@@ -23,6 +23,13 @@ Génère 2 à 3 recommandations en français sur : prévention, urgences, calend
 Réponds UNIQUEMENT avec un tableau JSON valide :
 [{"type":"sante","priority":"critical|warning|info","title":"max 8 mots","message":"max 2 phrases","action_label":"optionnel","action_route":"optionnel"}]`,
 
+  sante_diseases: `Tu es un vétérinaire expert en santé porcine en Afrique de l'Ouest.
+Analyse les maladies actives de cette ferme et génère des stratégies concrètes pour les éradiquer.
+Données agrégées (aucune donnée personnelle) :
+{data}
+Réponds UNIQUEMENT avec un tableau JSON valide de 1 à 3 éléments, sans markdown :
+[{"type":"sante_diseases","priority":"critical|warning|info","title":"titre court","message":"action concrète en 1-2 phrases courtes. Délai estimé en fin de message.","action_label":"optionnel","action_route":"optionnel"}]`,
+
   stock: `Tu es un nutritionniste en élevage porcin.
 Voici les données de stock alimentaire agrégées :
 {data}

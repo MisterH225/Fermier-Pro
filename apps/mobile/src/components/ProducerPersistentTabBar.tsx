@@ -213,11 +213,6 @@ export function ProducerPersistentTabBar() {
           badgeCount: pendingTasksCount
         },
         {
-          id: "event" as const,
-          label: t("navigation.extended.event"),
-          a11y: t("navigation.extended.event")
-        },
-        {
           id: "reports" as const,
           label: t("navigation.extended.reports"),
           a11y: t("navigation.extended.reports")
@@ -280,9 +275,6 @@ export function ProducerPersistentTabBar() {
             farmId: ctx.farmId,
             farmName: ctx.farmName
           });
-          return;
-        case "event":
-          navigation.navigate("FarmEventsFeed");
           return;
         case "reports":
           if (!ctx) {

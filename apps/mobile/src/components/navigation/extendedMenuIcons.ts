@@ -10,6 +10,5 @@ export const EXTENDED_MENU_ICONS: Record<
   market: "cart-outline",
   gestation: "egg-outline",
   tasks: "checkbox-outline",
-  event: "calendar-outline",
   reports: "bar-chart-outline"
 };

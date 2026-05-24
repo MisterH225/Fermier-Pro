@@ -98,7 +98,11 @@ export function AnimalActionModal({
     (animal.productionCategory === "breeding_female" ||
       /^Trui-/i.test(animal.tagCode ?? ""));
 
-  if (isBreedingFemale && onDeclareGestation) {
+  if (
+    isBreedingFemale &&
+    !animal.activeGestation &&
+    onDeclareGestation
+  ) {
     actions.push({
       key: "gestation",
       label: t("cheptel.actions.declareGestation"),

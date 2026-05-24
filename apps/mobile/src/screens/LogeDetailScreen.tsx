@@ -4,6 +4,7 @@ import { useLayoutEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,9 +16,13 @@ import { AnimalActionModal } from "../components/cheptel/animals/AnimalActionMod
 import { AnimalDetailModal } from "../components/cheptel/animals/AnimalDetailModal";
 import { penAnimalToListItem } from "../components/cheptel/animals/animalUtils";
 import { ChangeStatusModal } from "../components/cheptel/animals/ChangeStatusModal";
+import { SaleModal, type SaleResult } from "../components/cheptel/animals/SaleModal";
+import { DiseaseModal } from "../components/shared/DiseaseModal";
 import { TransferModal } from "../components/cheptel/animals/TransferModal";
 import { CreateAnimalModal } from "../components/cheptel/animals/CreateAnimalModal";
 import { AddWeightModal } from "../components/cheptel/weight/AddWeightModal";
+import { CreateGestationModal } from "../components/shared/CreateGestationModal";
+import { useModal } from "../components/modals/useModal";
 import { EventList, type EventItem } from "../components/lists";
 import { useSession } from "../context/SessionContext";
 import {
@@ -89,13 +94,15 @@ function penAnimalToEventItem(
     subtitle: [
       a.breed?.name,
       t(`cheptel.animals.sex.${a.sex}`),
+      a.healthStatus === "sick" ? "🤒" : null,
       a.activeGestation ? "🤱" : null
     ]
       .filter(Boolean)
       .join(" · "),
     value:
       a.currentWeightKg != null ? `${a.currentWeightKg} kg` : undefined,
-    valueType: a.vaccineOverdue ? "negative" : "neutral",
+    valueType:
+      a.healthStatus === "sick" || a.vaccineOverdue ? "negative" : "neutral",
     date: lastMeasure?.slice(0, 10) ?? "—",
     iconType: "custom",
     customIcon: a.sex === "male" ? "male-outline" : "female-outline",
@@ -114,10 +121,14 @@ export function LogeDetailScreen({ route, navigation }: Props) {
   const [avgAge, setAvgAge] = useState("");
   const [actionAnimal, setActionAnimal] = useState<PenAnimalRowDto | null>(null);
   const [statusAnimal, setStatusAnimal] = useState<AnimalListItem | null>(null);
+  const [saleAnimal, setSaleAnimal] = useState<AnimalListItem | null>(null);
+  const [diseaseAnimal, setDiseaseAnimal] = useState<AnimalListItem | null>(null);
   const [transferAnimal, setTransferAnimal] = useState<AnimalListItem | null>(null);
   const [weightAnimal, setWeightAnimal] = useState<AnimalListItem | null>(null);
   const [detailAnimal, setDetailAnimal] = useState<AnimalListItem | null>(null);
   const [isCreateAnimalVisible, setIsCreateAnimalVisible] = useState(false);
+  const [gestationSow, setGestationSow] = useState<PenAnimalRowDto | null>(null);
+  const modal = useModal();
 
   const pensQ = useQuery({
     queryKey: ["cheptelPens", farmId, activeProfileId],
@@ -142,6 +153,28 @@ export function LogeDetailScreen({ route, navigation }: Props) {
     queryFn: () => fetchFarmAnimals(accessToken!, farmId, activeProfileId),
     enabled: Boolean(accessToken)
   });
+
+  const gestationFemales = useMemo(
+    () =>
+      (allAnimalsQ.data ?? []).filter(
+        (a) => a.sex === "female" && a.status === "active"
+      ),
+    [allAnimalsQ.data]
+  );
+  const gestationMales = useMemo(
+    () =>
+      (allAnimalsQ.data ?? []).filter(
+        (a) => a.sex === "male" && a.status === "active"
+      ),
+    [allAnimalsQ.data]
+  );
+
+  const invalidateCheptel = () => {
+    void qc.invalidateQueries({ queryKey: ["penContents", farmId, penId] });
+    void qc.invalidateQueries({ queryKey: ["cheptelPens", farmId] });
+    void qc.invalidateQueries({ queryKey: ["gestation", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmAnimals", farmId] });
+  };
 
   useLayoutEffect(() => {
     if (penMeta?.averageWeightKg != null) {
@@ -377,8 +410,45 @@ export function LogeDetailScreen({ route, navigation }: Props) {
           }
         }}
         onDeclareGestation={() => {
+          const a = actionAnimal;
+          if (!a) {
+            return;
+          }
+          if (a.activeGestation) {
+            Alert.alert("", t("cheptel.actions.gestationAlreadyActive"));
+            return;
+          }
+          setGestationSow(a);
           setActionAnimal(null);
-          navigation.navigate("FarmGestation", { farmId, farmName });
+        }}
+      />
+
+      <CreateGestationModal
+        visible={Boolean(gestationSow)}
+        farmId={farmId}
+        accessToken={accessToken!}
+        activeProfileId={activeProfileId}
+        females={gestationFemales}
+        males={gestationMales}
+        presetSowId={gestationSow?.id}
+        presetSowLabel={
+          gestationSow?.tagCode?.trim() ||
+          (gestationSow
+            ? `FP-${gestationSow.publicId.slice(-6)}`
+            : undefined)
+        }
+        penId={penId}
+        onClose={() => setGestationSow(null)}
+        onCreated={invalidateCheptel}
+        onSuccess={(gestation) => {
+          setGestationSow(null);
+          invalidateCheptel();
+          const date = gestation.expectedBirthDate?.slice(0, 10) ?? "—";
+          modal.open("success", {
+            title: t("gestationScreen.createSuccessTitle"),
+            message: t("gestationScreen.createSuccessWithDate", { date }),
+            autoDismissMs: 4000
+          });
         }}
       />
 
@@ -390,6 +460,45 @@ export function LogeDetailScreen({ route, navigation }: Props) {
         activeProfileId={activeProfileId}
         onClose={() => setStatusAnimal(null)}
         onUpdated={invalidate}
+        onRequestSale={(a) => setSaleAnimal(a)}
+        onRequestDisease={(a) => setDiseaseAnimal(a)}
+      />
+
+      <DiseaseModal
+        visible={Boolean(diseaseAnimal)}
+        presetAnimal={diseaseAnimal}
+        farmId={farmId}
+        accessToken={accessToken!}
+        activeProfileId={activeProfileId}
+        onClose={() => setDiseaseAnimal(null)}
+        onSuccess={invalidate}
+      />
+
+      <SaleModal
+        visible={Boolean(saleAnimal)}
+        animal={saleAnimal}
+        farmId={farmId}
+        accessToken={accessToken!}
+        activeProfileId={activeProfileId}
+        onCancel={() => setSaleAnimal(null)}
+        onSuccess={(sale: SaleResult) => {
+          setSaleAnimal(null);
+          invalidate();
+          const tag =
+            sale.animal.tagCode?.trim() ||
+            sale.animal.publicId?.slice(0, 8) ||
+            "—";
+          const amount = Number(sale.transaction.amount);
+          modal.open("success", {
+            title: t("cheptel.animals.sale.successTitle"),
+            message: t("cheptel.animals.sale.successMessage", {
+              tag,
+              amount: amount.toLocaleString("fr-FR"),
+              currency: sale.transaction.currency
+            }),
+            autoDismissMs: 3500
+          });
+        }}
       />
 
       <TransferModal

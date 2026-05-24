@@ -13,25 +13,33 @@ type Props = {
   onClose: () => void;
   onContinueSetup: () => void;
   onSkipAnyway: () => void;
+  titleKey?: string;
+  messageKey?: string;
+  continueKey?: string;
+  skipAnywayKey?: string;
 };
 
 export function SkipConfirmModal({
   visible,
   onClose,
   onContinueSetup,
-  onSkipAnyway
+  onSkipAnyway,
+  titleKey = "onboarding.skipModal.title",
+  messageKey = "onboarding.skipModal.message",
+  continueKey = "onboarding.skipModal.continue",
+  skipAnywayKey = "onboarding.skipModal.skipAnyway"
 }: Props) {
   const { t } = useTranslation();
   return (
-    <BaseModal visible={visible} onClose={onClose} title={t("onboarding.skipModal.title")}>
+    <BaseModal visible={visible} onClose={onClose} title={t(titleKey)}>
       <View style={styles.body}>
         <Text style={styles.icon}>⚠️</Text>
-        <Text style={styles.message}>{t("onboarding.skipModal.message")}</Text>
+        <Text style={styles.message}>{t(messageKey)}</Text>
         <Pressable style={styles.primary} onPress={onContinueSetup}>
-          <Text style={styles.primaryText}>{t("onboarding.skipModal.continue")}</Text>
+          <Text style={styles.primaryText}>{t(continueKey)}</Text>
         </Pressable>
         <Pressable style={styles.outline} onPress={onSkipAnyway}>
-          <Text style={styles.outlineText}>{t("onboarding.skipModal.skipAnyway")}</Text>
+          <Text style={styles.outlineText}>{t(skipAnywayKey)}</Text>
         </Pressable>
       </View>
     </BaseModal>

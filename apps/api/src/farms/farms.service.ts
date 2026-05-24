@@ -333,6 +333,8 @@ export class FarmsService {
         id: true,
         sex: true,
         status: true,
+        healthStatus: true,
+        productionCategory: true,
         expectedFarrowingAt: true,
         createdAt: true
       }
@@ -543,6 +545,47 @@ export class FarmsService {
 
     const totalHeadcount = activeAnimals.length + totalBatchHeadcount;
 
+    const sickAnimalsCount = activeAnimals.filter(
+      (a) => a.healthStatus === "sick"
+    ).length;
+    const fatteningCount = activeAnimals.filter(
+      (a) => a.productionCategory === "fattening"
+    ).length;
+    const starterCount = activeAnimals.filter(
+      (a) => a.productionCategory === "starter"
+    ).length;
+    const breedingFemalesCount = activeAnimals.filter(
+      (a) => a.productionCategory === "breeding_female"
+    ).length;
+    const breedingFemalesGestating = activeAnimals.filter(
+      (a) =>
+        a.productionCategory === "breeding_female" &&
+        a.expectedFarrowingAt != null
+    ).length;
+
+    const weekTrend = (
+      category: "fattening" | "starter"
+    ): number[] => {
+      const out: number[] = [];
+      for (let w = 3; w >= 0; w -= 1) {
+        const end = new Date(now);
+        end.setUTCDate(end.getUTCDate() - w * 7);
+        out.push(
+          activeAnimals.filter(
+            (a) =>
+              a.productionCategory === category &&
+              new Date(a.createdAt) <= end
+          ).length
+        );
+      }
+      return out;
+    };
+
+    const penFreeHeadcount = Math.max(
+      0,
+      penCapacityTotal - penOccupancyHeadcount
+    );
+
     return {
       farm,
       kpis: {
@@ -562,10 +605,34 @@ export class FarmsService {
         occupancyRate,
         barnCount,
         availablePensCount,
-        unassignedAnimalsCount
+        unassignedAnimalsCount,
+        sickAnimalsCount,
+        fatteningCount,
+        starterCount,
+        breedingFemalesCount,
+        breedingFemalesGestating
       },
       categoryBreakdown,
-      headcountTrend
+      headcountTrend,
+      miniWidgets: {
+        categoryDonut: categoryBreakdown.map((row) => ({
+          label: row.key,
+          count: row.count
+        })),
+        breedingDonut: [
+          { label: "gestating", count: breedingFemalesGestating },
+          {
+            label: "available",
+            count: Math.max(0, breedingFemalesCount - breedingFemalesGestating)
+          }
+        ],
+        fatteningTrend: weekTrend("fattening"),
+        starterTrend: weekTrend("starter"),
+        occupancyDonut: [
+          { label: "occupied", count: penOccupancyHeadcount },
+          { label: "free", count: penFreeHeadcount }
+        ]
+      }
     };
   }
 

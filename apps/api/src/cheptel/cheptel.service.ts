@@ -18,7 +18,9 @@ import { PrismaService } from "../prisma/prisma.service";
 import { PatchAnimalStatusDto } from "../livestock/dto/patch-animal-status.dto";
 import { LivestockService } from "../livestock/livestock.service";
 import { UpsertGmqSettingsDto } from "./dto/upsert-gmq-settings.dto";
+import { SellAnimalDto } from "./dto/sell-animal.dto";
 import { decimalToNum, summarizeWeights } from "./cheptel-gmq.util";
+import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
 import {
   migrateOnboardingBatchesToIndividualAnimals,
   normalizeFarmPenNaming,
@@ -68,7 +70,8 @@ export type CheptelHistoryItem = {
     | "weight"
     | "transfer"
     | "creation"
-    | "pen_created";
+    | "pen_created"
+    | "sold";
   occurredAt: string;
   title: string;
   subtitle: string | null;
@@ -223,6 +226,7 @@ export class CheptelService {
               select: {
                 id: true,
                 status: true,
+                healthStatus: true,
                 sex: true,
                 tagCode: true,
                 productionCategory: true,
@@ -275,6 +279,7 @@ export class CheptelService {
       let occupancy = 0;
       let batchTypeTag: "starter" | "fattening" | null = null;
       let vaccineOverdueCount = 0;
+      let activeDiseaseCount = 0;
       let gestationImminent = false;
       let hasGestationSow = false;
       let femaleCount = 0;
@@ -284,6 +289,9 @@ export class CheptelService {
 
       for (const pl of pen.placements) {
         if (pl.animalId && pl.animal) {
+          if (pl.animal.status !== "active") {
+            continue;
+          }
           occupancy += 1;
           const role = PenAllocationService.roleFromAnimal(pl.animal);
           if (role) {
@@ -295,6 +303,9 @@ export class CheptelService {
             maleCount += 1;
           }
           vaccineOverdueCount += vaccineOverdueByAnimal.get(pl.animal.id) ?? 0;
+          if (pl.animal.healthStatus === "sick") {
+            activeDiseaseCount += 1;
+          }
           const w = pl.animal.weights[0];
           if (w) {
             weights.push(decimalToNum(w.weightKg));
@@ -329,6 +340,9 @@ export class CheptelService {
         borderStatus = "empty";
         sanitaryTag = "empty";
       } else if (allocationRoles.size > 1) {
+        borderStatus = "warning";
+        sanitaryTag = "alert";
+      } else if (activeDiseaseCount > 0) {
         borderStatus = "warning";
         sanitaryTag = "alert";
       } else if (vaccineOverdueCount > 0) {
@@ -395,7 +409,7 @@ export class CheptelService {
         averageAgeDays,
         vaccineOverdueCount,
         gestationImminent,
-        activeDiseaseCount: 0
+        activeDiseaseCount
       };
     });
 
@@ -518,7 +532,7 @@ export class CheptelService {
     }
 
     const animals = animalPlacements
-      .filter((p) => p.animal)
+      .filter((p) => p.animal && p.animal.status === "active")
       .map((p) => {
         const a = p.animal!;
         const latest = a.weights[0];
@@ -530,6 +544,7 @@ export class CheptelService {
           sex: a.sex,
           productionCategory: a.productionCategory,
           status: a.status,
+          healthStatus: a.healthStatus,
           photoUrl: a.photoUrl,
           species: a.species,
           breed: a.breed,
@@ -673,6 +688,73 @@ export class CheptelService {
           entityType: p.animalId ? "animal" : "batch",
           entityId: p.animalId ?? p.batchId,
           meta: p
+        });
+      }
+    }
+
+    if (!typeFilter || typeFilter === "sold") {
+      const sales = await this.prisma.livestockExit.findMany({
+        where: {
+          farmId,
+          kind: LivestockExitKind.sale,
+          animalId: { not: null }
+        },
+        orderBy: { occurredAt: "desc" },
+        take,
+        include: {
+          animal: {
+            select: {
+              id: true,
+              tagCode: true,
+              publicId: true,
+              breed: { select: { name: true } },
+              productionCategory: true,
+              buyerName: true,
+              soldAt: true,
+              soldPrice: true,
+              soldCurrency: true,
+              penPlacements: {
+                where: { endedAt: { not: null } },
+                orderBy: { endedAt: "desc" },
+                take: 1,
+                include: {
+                  pen: {
+                    select: {
+                      name: true,
+                      barn: { select: { name: true } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+      for (const s of sales) {
+        const a = s.animal;
+        if (!a) {
+          continue;
+        }
+        const tag = a.tagCode ?? a.publicId.slice(0, 8);
+        const pen = a.penPlacements[0];
+        const penLabel = pen
+          ? `${pen.pen.barn.name} · ${pen.pen.name}`
+          : null;
+        const priceLabel =
+          s.price != null
+            ? `${decimalToNum(s.price).toLocaleString("fr-FR")} ${s.currency ?? ""}`.trim()
+            : null;
+        items.push({
+          id: `sold-${s.id}`,
+          type: "sold",
+          occurredAt: s.occurredAt.toISOString(),
+          title: `💰 Vendu · ${tag}`,
+          subtitle: [a.breed?.name, penLabel, priceLabel]
+            .filter(Boolean)
+            .join(" · "),
+          entityType: "animal",
+          entityId: a.id,
+          meta: { exit: s, animal: a }
         });
       }
     }
@@ -829,6 +911,131 @@ export class CheptelService {
     return this.getGmqSettings(user, farmId);
   }
 
+  async sellAnimal(
+    user: User,
+    farmId: string,
+    animalId: string,
+    dto: SellAnimalDto
+  ) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    await ensureFarmFinanceBootstrap(this.prisma, farmId);
+
+    const soldAt = new Date(dto.soldAt);
+    if (Number.isNaN(soldAt.getTime())) {
+      throw new BadRequestException("Date de vente invalide");
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const animal = await tx.animal.findFirst({
+        where: { id: animalId, farmId },
+        include: {
+          breed: { select: { name: true } },
+          penPlacements: { where: { endedAt: null } }
+        }
+      });
+      if (!animal) {
+        throw new NotFoundException("Animal introuvable");
+      }
+      if (animal.status !== "active") {
+        throw new BadRequestException(
+          "Seul un animal actif peut être vendu"
+        );
+      }
+
+      const finSettings = await tx.farmFinanceSettings.findUnique({
+        where: { farmId }
+      });
+      const currency = finSettings?.currencyCode ?? "XOF";
+      const financeCat = await tx.financeCategory.findFirst({
+        where: { farmId, key: "animal_sales" }
+      });
+
+      const tag = animal.tagCode ?? animal.publicId.slice(0, 8);
+      const breedName = animal.breed?.name ?? "—";
+      const label = `Vente ${tag} — ${breedName} — ${dto.soldWeightKg}kg`;
+      const noteParts = [dto.notes?.trim()].filter(Boolean);
+      if (dto.buyerName?.trim()) {
+        noteParts.push(`Acheteur : ${dto.buyerName.trim()}`);
+      }
+
+      await tx.animal.update({
+        where: { id: animalId },
+        data: {
+          status: "sold",
+          statusChangedAt: soldAt,
+          soldAt,
+          soldWeightKg: new Prisma.Decimal(dto.soldWeightKg),
+          soldPrice: new Prisma.Decimal(dto.totalPrice),
+          soldCurrency: currency,
+          buyerName: dto.buyerName?.trim() || null
+        }
+      });
+
+      await tx.livestockStatusLog.create({
+        data: {
+          farmId,
+          recordedByUserId: user.id,
+          entityType: "animal",
+          entityId: animalId,
+          oldStatus: animal.status,
+          newStatus: "sold",
+          note: [
+            label,
+            `${dto.totalPrice} ${currency}`,
+            dto.buyerName?.trim()
+          ]
+            .filter(Boolean)
+            .join(" · ")
+        }
+      });
+
+      for (const pl of animal.penPlacements) {
+        await tx.penPlacement.update({
+          where: { id: pl.id },
+          data: { endedAt: soldAt }
+        });
+      }
+
+      await tx.livestockExit.create({
+        data: {
+          farmId,
+          animalId,
+          kind: LivestockExitKind.sale,
+          occurredAt: soldAt,
+          recordedByUserId: user.id,
+          headcountAffected: 1,
+          buyerName: dto.buyerName?.trim() || null,
+          price: new Prisma.Decimal(dto.totalPrice),
+          currency,
+          weightKg: new Prisma.Decimal(dto.soldWeightKg),
+          note: noteParts.join(" · ") || null
+        }
+      });
+
+      const revenue = await tx.farmRevenue.create({
+        data: {
+          farmId,
+          amount: new Prisma.Decimal(dto.totalPrice),
+          currency,
+          label,
+          category: "animal_sales",
+          financeCategoryId: financeCat?.id ?? null,
+          note: noteParts.join(" · ") || null,
+          occurredAt: soldAt,
+          createdByUserId: user.id,
+          linkedEntityType: "animal",
+          linkedEntityId: animalId,
+          isAutoGenerated: true
+        }
+      });
+
+      return { transaction: revenue };
+    });
+
+    const animal = await this.livestock.getAnimal(user, farmId, animalId);
+    return { animal, transaction: result.transaction };
+  }
+
   async patchAnimalStatusWithLinks(
     user: User,
     farmId: string,
@@ -839,37 +1046,18 @@ export class CheptelService {
       deathCause?: string;
     }
   ) {
+    if (dto.status === "sold") {
+      throw new BadRequestException(
+        "Utilisez PATCH /cheptel/animals/:id/sell pour enregistrer une vente"
+      );
+    }
+
     const animal = await this.livestock.patchAnimalStatus(
       user,
       farmId,
       animalId,
       dto
     );
-
-    if (dto.status === "sold" && dto.salePrice != null && dto.salePrice > 0) {
-      const tag = animal?.tagCode ?? animalId.slice(0, 8);
-      await this.finance.createRevenue(user, farmId, {
-        amount: dto.salePrice,
-        label: `Vente animal ${tag}`,
-        category: "livestock_sale",
-        note: dto.note ?? undefined,
-        linkedEntityType: "animal",
-        linkedEntityId: animalId
-      });
-      await this.prisma.livestockExit.create({
-        data: {
-          farmId,
-          animalId,
-          kind: LivestockExitKind.sale,
-          recordedByUserId: user.id,
-          headcountAffected: 1,
-          buyerName: dto.buyerName ?? null,
-          price: new Prisma.Decimal(dto.salePrice),
-          currency: "XOF",
-          note: dto.note ?? null
-        }
-      });
-    }
 
     if (dto.status === "dead") {
       await this.prisma.livestockExit.create({

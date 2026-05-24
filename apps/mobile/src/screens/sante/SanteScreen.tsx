@@ -1,0 +1,730 @@
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  Alert,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from "react-native";
+import { MobileAppShell } from "../../components/layout";
+import { TabContent, TabSelector } from "../../components/tabs";
+import { EventList, type EventItem } from "../../components/lists";
+import {
+  HealthRecordFormModal,
+  type HealthFormState
+} from "../../components/sante/HealthRecordFormModal";
+import {
+  HEALTH_KIND_TABS,
+  HEALTH_RECORD_ADD_KINDS,
+  healthKindSectionTitle,
+  healthKindShortLabel,
+  recordToEventItem,
+  toIsoDate,
+  type HealthScreenTab
+} from "../../components/sante/healthUtils";
+import { BaseModal } from "../../components/modals/BaseModal";
+import { invalidateAIInsights } from "../../services/ai/AIRecommendationService";
+import { useScreenTitle } from "../../hooks/useScreenTitle";
+import { useSession } from "../../context/SessionContext";
+import {
+  createFarmHealthRecord,
+  type CreateFarmHealthRecordBody,
+  type FarmHealthEntityType,
+  type FarmHealthRecordKind,
+  type FarmHealthRecordRowDto,
+  fetchFarm,
+  fetchFarmAnimals,
+  fetchFarmBatches,
+  fetchFarmHealthEvents,
+  fetchFarmHealthMortalityRate,
+  fetchFarmHealthOverview,
+  fetchFarmHealthUpcoming,
+  linkFarmHealthRecordExpense
+} from "../../lib/api";
+import type { RootStackParamList } from "../../types/navigation";
+import {
+  mobileColors,
+  mobileRadius,
+  mobileSpacing,
+  mobileTypography
+} from "../../theme/mobileTheme";
+import { HealthOverviewTab } from "./tabs/HealthOverviewTab";
+import { HealthKindListTab } from "./tabs/HealthKindListTab";
+import { DiseasesTab } from "./tabs/DiseasesTab";
+import { VetVisitsTab } from "./tabs/VetVisitsTab";
+import { MortalitiesTab } from "./tabs/MortalitiesTab";
+import { VaccinesTab } from "./tabs/VaccinesTab";
+import { formatHealthDay } from "../../components/sante/healthUtils";
+
+type Props = NativeStackScreenProps<RootStackParamList, "FarmHealth">;
+
+const emptyForm = (): HealthFormState => ({
+  occurredDate: toIsoDate(new Date()),
+  notes: "",
+  vaccineName: "",
+  vaccineType: "",
+  nextReminderDate: "",
+  practitioner: "",
+  diagnosis: "",
+  caseStatus: "active",
+  vetName: "",
+  vetReason: "",
+  vetContact: "",
+  vetCost: "",
+  vetStatus: "completed",
+  drugName: "",
+  dosage: "",
+  treatCost: "",
+  mortCause: "unknown",
+  mortHeads: "1"
+});
+
+export function SanteScreen({ route, navigation }: Props) {
+  const { farmId, farmName, initialTab } = route.params;
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === "en" ? "en" : "fr";
+  const qc = useQueryClient();
+  const { accessToken, activeProfileId, authMe } = useSession();
+  const isProducer =
+    authMe?.profiles.find((p) => p.id === activeProfileId)?.type === "producer";
+
+  useScreenTitle(navigation, farmName, {
+    headerRight: () => (
+      <TouchableOpacity
+        onPress={() => navigation.navigate("VetSearch", { farmId, farmName })}
+        style={styles.headerBtn}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Text style={styles.headerBtnText}>
+          🔍 {t("health.findVetShort")}
+        </Text>
+      </TouchableOpacity>
+    )
+  });
+
+  const farmQuery = useQuery({
+    queryKey: ["farm", farmId, activeProfileId],
+    queryFn: () => fetchFarm(accessToken!, farmId, activeProfileId),
+    enabled: Boolean(accessToken && farmId)
+  });
+  const animalsQuery = useQuery({
+    queryKey: ["farmAnimals", farmId, activeProfileId],
+    queryFn: () => fetchFarmAnimals(accessToken!, farmId, activeProfileId),
+    enabled: Boolean(accessToken && farmId)
+  });
+  const batchesQuery = useQuery({
+    queryKey: ["farmBatches", farmId, activeProfileId],
+    queryFn: () => fetchFarmBatches(accessToken!, farmId, activeProfileId),
+    enabled: Boolean(accessToken && farmId)
+  });
+  const overviewQuery = useQuery({
+    queryKey: ["farmHealthOverview", farmId, activeProfileId],
+    queryFn: () => fetchFarmHealthOverview(accessToken!, farmId, activeProfileId),
+    enabled: Boolean(accessToken && farmId)
+  });
+  const upcomingQuery = useQuery({
+    queryKey: ["farmHealthUpcoming", farmId, activeProfileId],
+    queryFn: () => fetchFarmHealthUpcoming(accessToken!, farmId, activeProfileId),
+    enabled: Boolean(accessToken && farmId)
+  });
+  const mort30Query = useQuery({
+    queryKey: ["farmHealthMortality", farmId, "30", activeProfileId],
+    queryFn: () =>
+      fetchFarmHealthMortalityRate(accessToken!, farmId, activeProfileId, "30"),
+    enabled: Boolean(accessToken && farmId)
+  });
+  const mort90Query = useQuery({
+    queryKey: ["farmHealthMortality", farmId, "90", activeProfileId],
+    queryFn: () =>
+      fetchFarmHealthMortalityRate(accessToken!, farmId, activeProfileId, "90"),
+    enabled: Boolean(accessToken && farmId)
+  });
+  const eventsQuery = useQuery({
+    queryKey: ["farmHealthEvents", farmId, activeProfileId],
+    queryFn: () => fetchFarmHealthEvents(accessToken!, farmId, activeProfileId),
+    enabled: Boolean(accessToken && farmId)
+  });
+
+  const livestockMode =
+    (farmQuery.data?.livestockMode as "individual" | "batch" | "hybrid") ||
+    "individual";
+  const animals = animalsQuery.data ?? [];
+  const batches = (batchesQuery.data ?? []).filter((b) => b.status === "active");
+  const allRecords = eventsQuery.data ?? [];
+
+  const [subjectType, setSubjectType] = useState<FarmHealthEntityType>("animal");
+  const [subjectId, setSubjectId] = useState("");
+  const [healthTab, setHealthTab] = useState<HealthScreenTab>(
+    initialTab ?? "overview"
+  );
+  const [formOpen, setFormOpen] = useState(false);
+  const [formKind, setFormKind] = useState<FarmHealthRecordKind>("vaccination");
+  const [form, setForm] = useState<HealthFormState>(emptyForm);
+  const [kindPickOpen, setKindPickOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkRecordId, setLinkRecordId] = useState<string | null>(null);
+  const [linkExpenseId, setLinkExpenseId] = useState("");
+
+  useEffect(() => {
+    if (!farmQuery.data) return;
+    const mode = farmQuery.data.livestockMode;
+    if (mode === "individual" && animals[0]?.id) {
+      setSubjectType("animal");
+      setSubjectId(animals[0].id);
+    } else if (mode === "batch" && batches[0]?.id) {
+      setSubjectType("group");
+      setSubjectId(batches[0].id);
+    } else if (animals[0]?.id) {
+      setSubjectType("animal");
+      setSubjectId(animals[0].id);
+    } else if (batches[0]?.id) {
+      setSubjectType("group");
+      setSubjectId(batches[0].id);
+    }
+  }, [farmQuery.data, animals, batches]);
+
+  const openForm = (kind: FarmHealthRecordKind) => {
+    setForm(emptyForm());
+    setFormKind(kind);
+    setFormOpen(true);
+  };
+
+  const createMut = useMutation({
+    mutationFn: (body: CreateFarmHealthRecordBody) =>
+      createFarmHealthRecord(accessToken!, farmId, body, activeProfileId),
+    onSuccess: () => {
+      setFormOpen(false);
+      void invalidateAIInsights(farmId, "sante");
+      void invalidateAIInsights(farmId, "global_dashboard");
+      void qc.invalidateQueries({ queryKey: ["farmHealthEvents", farmId] });
+      void qc.invalidateQueries({ queryKey: ["farmHealthOverview", farmId] });
+      void qc.invalidateQueries({ queryKey: ["farmHealthUpcoming", farmId] });
+      void qc.invalidateQueries({ queryKey: ["farmHealthMortality", farmId] });
+      void qc.invalidateQueries({ queryKey: ["farmVaccineCoverage", farmId] });
+      void qc.invalidateQueries({ queryKey: ["farmAnimals", farmId] });
+      void qc.invalidateQueries({ queryKey: ["farmBatches", farmId] });
+    },
+    onError: (e: Error) => Alert.alert(t("health.errorTitle"), e.message)
+  });
+
+  const linkMut = useMutation({
+    mutationFn: () =>
+      linkFarmHealthRecordExpense(
+        accessToken!,
+        farmId,
+        linkRecordId!,
+        linkExpenseId.trim(),
+        activeProfileId
+      ),
+    onSuccess: () => {
+      setLinkOpen(false);
+      setLinkRecordId(null);
+      void eventsQuery.refetch();
+      Alert.alert("", t("health.linkOk"));
+    },
+    onError: (e: Error) => Alert.alert(t("health.errorTitle"), e.message)
+  });
+
+  const buildDetail = (): Record<string, unknown> => {
+    if (formKind === "vaccination") {
+      const d: Record<string, unknown> = { vaccineName: form.vaccineName.trim() };
+      if (form.vaccineType.trim()) d.vaccineType = form.vaccineType.trim();
+      if (form.practitioner.trim()) d.practitioner = form.practitioner.trim();
+      if (form.nextReminderDate.trim()) {
+        d.nextReminderAt = `${form.nextReminderDate.trim()}T12:00:00.000Z`;
+      }
+      return d;
+    }
+    if (formKind === "vet_visit") {
+      const d: Record<string, unknown> = {
+        vetName: form.vetName.trim(),
+        reason: form.vetReason.trim()
+      };
+      if (form.vetContact.trim()) d.vetContact = form.vetContact.trim();
+      const c = Number.parseFloat(form.vetCost.replace(",", "."));
+      if (Number.isFinite(c) && c > 0) d.cost = c;
+      return d;
+    }
+    if (formKind === "treatment") {
+      const d: Record<string, unknown> = { drugName: form.drugName.trim() };
+      if (form.dosage.trim()) d.dosage = form.dosage.trim();
+      const c = Number.parseFloat(form.treatCost.replace(",", "."));
+      if (Number.isFinite(c) && c > 0) d.cost = c;
+      d.startDate = `${form.occurredDate}T12:00:00.000Z`;
+      return d;
+    }
+    const heads = Number.parseInt(form.mortHeads, 10);
+    return {
+      cause: form.mortCause,
+      headcountAffected: Number.isFinite(heads) ? heads : 1
+    };
+  };
+
+  const submitForm = () => {
+    if (!subjectId.trim()) {
+      Alert.alert(t("health.errorTitle"), t("health.subjectRequired"));
+      return;
+    }
+    if (formKind === "vaccination" && !form.vaccineName.trim()) {
+      Alert.alert(t("health.errorTitle"), t("health.vaccineNameRequired"));
+      return;
+    }
+    if (formKind === "vet_visit" && (!form.vetName.trim() || !form.vetReason.trim())) {
+      Alert.alert(t("health.errorTitle"), t("health.vetFieldsRequired"));
+      return;
+    }
+    if (formKind === "treatment" && !form.drugName.trim()) {
+      Alert.alert(t("health.errorTitle"), t("health.drugNameRequired"));
+      return;
+    }
+    const body: CreateFarmHealthRecordBody = {
+      kind: formKind,
+      entityType: subjectType,
+      entityId: subjectId.trim(),
+      occurredAt: `${form.occurredDate}T12:00:00.000Z`,
+      notes: form.notes.trim() || undefined,
+      detail: buildDetail()
+    };
+    if (formKind === "vet_visit" && form.vetStatus === "planned") {
+      body.status = "planned";
+    }
+    createMut.mutate(body);
+  };
+
+  const renderHealthDetail = useCallback(
+    (item: EventItem, { close }: { close: () => void }) => {
+      const r = item.meta as FarmHealthRecordRowDto;
+      return (
+        <View style={{ gap: mobileSpacing.sm, paddingBottom: mobileSpacing.md }}>
+          <Text style={styles.meta}>
+            {t("health.detailKind")} : {t(`health.formTitles.${r.kind}` as const)}
+          </Text>
+          <Text style={styles.meta}>
+            {t("health.detailEntity")} : {r.entityType} {r.entityId}
+          </Text>
+          <Text style={styles.meta}>{formatHealthDay(r.occurredAt, locale)}</Text>
+          {r.notes ? (
+            <Text style={styles.meta}>
+              {t("health.detailNotes")} : {r.notes}
+            </Text>
+          ) : null}
+          {isProducer && (r.kind === "vet_visit" || r.kind === "treatment") ? (
+            <Pressable
+              onPress={() => {
+                close();
+                setLinkRecordId(r.id);
+                setLinkOpen(true);
+              }}
+            >
+              <Text style={{ color: mobileColors.accent, fontWeight: "700" }}>
+                {t("health.linkShort")}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+      );
+    },
+    [t, locale, isProducer]
+  );
+
+  const refreshing =
+    overviewQuery.isFetching || eventsQuery.isFetching || farmQuery.isFetching;
+
+  const onRefresh = useCallback(() => {
+    void overviewQuery.refetch();
+    void upcomingQuery.refetch();
+    void mort30Query.refetch();
+    void mort90Query.refetch();
+    void eventsQuery.refetch();
+    void farmQuery.refetch();
+    void animalsQuery.refetch();
+    void batchesQuery.refetch();
+  }, [
+    overviewQuery,
+    upcomingQuery,
+    mort30Query,
+    mort90Query,
+    eventsQuery,
+    farmQuery,
+    animalsQuery,
+    batchesQuery
+  ]);
+
+  const overview = overviewQuery.data;
+  const rate30 = mort30Query.data?.rate;
+  const rate90 = mort90Query.data?.rate;
+
+  const mortalityPct30 = useMemo(() => {
+    if (rate30 != null) return Number(rate30) * 100;
+    const raw = overview?.mortalityRate30d;
+    if (raw == null) return null;
+    const n = Number.parseFloat(String(raw));
+    return Number.isFinite(n) ? n * 100 : null;
+  }, [rate30, overview?.mortalityRate30d]);
+
+  const chartMonthLabel = useCallback(
+    (monthKey: string) => {
+      const [y, m] = monthKey.split("-").map(Number);
+      if (!y || !m) return monthKey;
+      return new Date(y, m - 1, 1).toLocaleDateString(locale, { month: "short" });
+    },
+    [locale]
+  );
+
+  const mortalityChartLines = useMemo(
+    () => [
+      {
+        key: "mortality",
+        label: t("health.chartMortality"),
+        color: "#E24B4A",
+        data: overview?.charts.mortalityHeadcount ?? []
+      }
+    ],
+    [overview?.charts.mortalityHeadcount, t]
+  );
+
+  const diseaseChartLines = useMemo(
+    () => [
+      {
+        key: "new_cases",
+        label: t("health.chartDiseaseNew"),
+        color: "#BA7517",
+        data: overview?.charts.diseaseNew ?? []
+      },
+      {
+        key: "resolved",
+        label: t("health.chartDiseaseResolved"),
+        color: "#1D9E75",
+        data: overview?.charts.diseaseResolved ?? []
+      }
+    ],
+    [overview?.charts.diseaseNew, overview?.charts.diseaseResolved, t]
+  );
+
+  const vaccineChartLines = useMemo(
+    () => [
+      {
+        key: "planned",
+        label: t("health.chartVaccinePlanned"),
+        color: "#4A90D9",
+        data: overview?.charts.vaccinationsPlanned ?? []
+      },
+      {
+        key: "done",
+        label: t("health.chartVaccineDone"),
+        color: "#1D9E75",
+        data: overview?.charts.vaccinationsDone ?? []
+      }
+    ],
+    [overview?.charts.vaccinationsPlanned, overview?.charts.vaccinationsDone, t]
+  );
+
+  const mortalityDonutSlices = useMemo(() => {
+    const palette: Record<string, string> = {
+      disease: "#E24B4A",
+      accident: "#BA7517",
+      unknown: "#888780",
+      other: "#4A90D9"
+    };
+    const rows = overview?.charts.mortalityCauses ?? [];
+    const total = rows.reduce((s, r) => s + r.value, 0);
+    return rows
+      .filter((r) => r.value > 0)
+      .map((r) => ({
+        label: t(`health.mortCause.${r.cause}` as const),
+        value: r.value,
+        color: palette[r.cause] ?? "#888780",
+        display:
+          total > 0 ? `${Math.round((r.value / total) * 100)} %` : undefined
+      }));
+  }, [overview?.charts.mortalityCauses, t]);
+
+  const tabScroll = (children: ReactNode) => (
+    <ScrollView
+      style={styles.tabScroll}
+      contentContainerStyle={styles.tabScrollGrow}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+      showsVerticalScrollIndicator={false}
+    >
+      <TabContent>{children}</TabContent>
+    </ScrollView>
+  );
+
+  const listCommon = {
+    locale,
+    livestockMode,
+    animals,
+    batches,
+    subjectType,
+    subjectId,
+    onSubjectSelect: (type: FarmHealthEntityType, id: string) => {
+      setSubjectType(type);
+      setSubjectId(id);
+    },
+    records: allRecords,
+    isLoading: eventsQuery.isPending && !allRecords.length,
+    renderDetail: renderHealthDetail
+  };
+
+  const vaccinationHistoryItems = useMemo((): EventItem[] => {
+    const label = healthKindShortLabel("vaccination", t);
+    return allRecords
+      .filter((r) => r.kind === "vaccination")
+      .map((r) => recordToEventItem(r, locale, label));
+  }, [allRecords, locale, t]);
+
+  return (
+    <MobileAppShell hideTopBar omitBottomTabBar={isProducer}>
+      <TabSelector
+        activeTab={healthTab}
+        onTabChange={(key) => setHealthTab(key as HealthScreenTab)}
+        tabs={[
+          {
+            key: "overview",
+            label: t("health.sectionOverview"),
+            content: tabScroll(
+              <HealthOverviewTab
+                farmId={farmId}
+                accessToken={accessToken}
+                activeProfileId={activeProfileId}
+                locale={locale}
+                overview={overview}
+                upcomingVaccines={upcomingQuery.data?.vaccines}
+                mortalityPct30={mortalityPct30}
+                isPending={overviewQuery.isPending}
+                error={
+                  overviewQuery.error instanceof Error
+                    ? overviewQuery.error
+                    : null
+                }
+                mortalityChartLines={mortalityChartLines}
+                diseaseChartLines={diseaseChartLines}
+                vaccineChartLines={vaccineChartLines}
+                mortalityDonutSlices={mortalityDonutSlices}
+                chartMonthLabel={chartMonthLabel}
+                globalStatusLabel={t(
+                  `health.globalStatus.${overview?.globalHealthStatus ?? "good"}` as const
+                )}
+                globalStatusVariant={
+                  overview?.globalHealthStatus === "critical"
+                    ? "orange"
+                    : overview?.globalHealthStatus === "warning"
+                      ? "yellow"
+                      : "green"
+                }
+                nextVetLabel={
+                  overview?.nextVetVisitModule
+                    ? `${formatHealthDay(overview.nextVetVisitModule.at, locale)}${
+                        overview.nextVetVisitModule.reason
+                          ? ` · ${overview.nextVetVisitModule.reason}`
+                          : ""
+                      }`
+                    : "—"
+                }
+              />
+            )
+          },
+          {
+            key: "vaccination",
+            label: healthKindSectionTitle("vaccination", t),
+            content: tabScroll(
+              <>
+                {accessToken ? (
+                  <VaccinesTab
+                    farmId={farmId}
+                    accessToken={accessToken}
+                    activeProfileId={activeProfileId}
+                    livestockMode={livestockMode}
+                  />
+                ) : null}
+                <EventList
+                  layout="embedded"
+                  sectionTitle={t("health.historyTitle")}
+                  onAddPress={() => openForm("vaccination")}
+                  data={vaccinationHistoryItems}
+                  renderDetail={renderHealthDetail}
+                  emptyMessage={t("health.noEvents")}
+                  isLoading={listCommon.isLoading}
+                  pageSize={15}
+                  loadMoreLabel={t("health.loadMore")}
+                />
+              </>
+            )
+          },
+          {
+            key: "disease",
+            label: healthKindSectionTitle("disease", t),
+            content: tabScroll(
+              <DiseasesTab
+                farmId={farmId}
+                farmName={farmName}
+                accessToken={accessToken!}
+                activeProfileId={activeProfileId}
+                locale={locale}
+                livestockMode={livestockMode}
+                animals={animals}
+                batches={batches}
+                navigation={navigation}
+                onRefresh={() => {
+                  void qc.invalidateQueries({ queryKey: ["farmHealthEvents", farmId] });
+                  void qc.invalidateQueries({ queryKey: ["farmDiseasesOverview", farmId] });
+                  void qc.invalidateQueries({ queryKey: ["farmDiseaseHistory", farmId] });
+                  void qc.invalidateQueries({ queryKey: ["farmAnimals", farmId] });
+                  void qc.invalidateQueries({ queryKey: ["cheptelPens", farmId] });
+                  void invalidateAIInsights(farmId, "sante");
+                  void invalidateAIInsights(farmId, "sante_diseases");
+                }}
+              />
+            )
+          },
+          {
+            key: "vet_visit",
+            label: healthKindSectionTitle("vet_visit", t),
+            content: tabScroll(
+              <VetVisitsTab
+                upcoming={upcomingQuery.data}
+                onAddPress={() => openForm("vet_visit")}
+                {...listCommon}
+              />
+            )
+          },
+          {
+            key: "treatment",
+            label: healthKindSectionTitle("treatment", t),
+            content: tabScroll(
+              <HealthKindListTab
+                kind="treatment"
+                onAddPress={() => openForm("treatment")}
+                {...listCommon}
+              />
+            )
+          },
+          {
+            key: "mortality",
+            label: healthKindSectionTitle("mortality", t),
+            content: tabScroll(
+              <MortalitiesTab
+                mortalityRate30={rate30 != null ? Number(rate30) : null}
+                mortalityRate90={rate90 != null ? Number(rate90) : null}
+                onAddPress={() => openForm("mortality")}
+                {...listCommon}
+              />
+            )
+          }
+        ]}
+      />
+
+      <BaseModal
+        visible={kindPickOpen}
+        onClose={() => setKindPickOpen(false)}
+        title={t("health.addRecordTitle")}
+        sheetMaxHeight="70%"
+      >
+        {HEALTH_RECORD_ADD_KINDS.map((kind) => (
+          <Pressable
+            key={kind}
+            style={{ paddingVertical: mobileSpacing.md }}
+            onPress={() => {
+              setKindPickOpen(false);
+              openForm(kind);
+            }}
+          >
+            <Text style={styles.meta}>
+              {t(`health.formTitles.${kind}` as const)}
+            </Text>
+          </Pressable>
+        ))}
+      </BaseModal>
+
+      <HealthRecordFormModal
+        visible={formOpen}
+        formKind={formKind}
+        subjectType={subjectType}
+        saving={createMut.isPending}
+        form={form}
+        onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+        onClose={() => setFormOpen(false)}
+        onSubmit={submitForm}
+      />
+
+      <BaseModal
+        visible={linkOpen}
+        onClose={() => setLinkOpen(false)}
+        title={t("health.linkExpenseTitle")}
+        footerPrimary={
+          <View style={styles.modalActions}>
+            <Pressable onPress={() => setLinkOpen(false)}>
+              <Text style={styles.cancel}>{t("health.cancel")}</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                if (linkRecordId && linkExpenseId.trim()) linkMut.mutate();
+              }}
+              style={styles.saveBtn}
+            >
+              <Text style={styles.saveTx}>{t("health.linkSubmit")}</Text>
+            </Pressable>
+          </View>
+        }
+      >
+        <Text style={styles.lab}>{t("health.fieldExpenseId")}</Text>
+        <TextInput
+          style={styles.input}
+          value={linkExpenseId}
+          onChangeText={setLinkExpenseId}
+          autoCapitalize="none"
+        />
+      </BaseModal>
+    </MobileAppShell>
+  );
+}
+
+const styles = StyleSheet.create({
+  tabScroll: { flex: 1 },
+  tabScrollGrow: { flexGrow: 1 },
+  headerBtn: { marginRight: mobileSpacing.sm },
+  headerBtnText: {
+    color: mobileColors.accent,
+    fontWeight: "700",
+    fontSize: 14
+  },
+  meta: {
+    ...mobileTypography.body,
+    color: mobileColors.textPrimary,
+    fontSize: 14
+  },
+  lab: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginBottom: 4
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: mobileColors.border,
+    borderRadius: mobileRadius.sm,
+    padding: mobileSpacing.sm,
+    color: mobileColors.textPrimary
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  cancel: { color: mobileColors.textSecondary, fontWeight: "600" },
+  saveBtn: {
+    backgroundColor: mobileColors.accent,
+    paddingHorizontal: mobileSpacing.lg,
+    paddingVertical: mobileSpacing.sm,
+    borderRadius: mobileRadius.sm
+  },
+  saveTx: { color: "#fff", fontWeight: "700" }
+});

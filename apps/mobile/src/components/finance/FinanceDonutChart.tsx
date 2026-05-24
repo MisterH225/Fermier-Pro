@@ -19,6 +19,13 @@ type Props = {
   slices: FinanceDonutSlice[];
   size?: number;
   emptyLabel?: string;
+  /** Utilise slice.color au lieu de la palette finance. */
+  useSliceColors?: boolean;
+  /** Centre : segment dominant ou total des valeurs. */
+  centerMode?: "top" | "total";
+  centerTitle?: string;
+  selectedLabel?: string | null;
+  onSlicePress?: (label: string) => void;
 };
 
 const CHART_SIZE = 188;
@@ -90,7 +97,12 @@ function donutSegmentPath(
 export function FinanceDonutChart({
   slices,
   size = CHART_SIZE,
-  emptyLabel = "—"
+  emptyLabel = "—",
+  useSliceColors = false,
+  centerMode = "top",
+  centerTitle,
+  selectedLabel = null,
+  onSlicePress
 }: Props) {
   const cx = size / 2;
   const cy = size / 2;
@@ -98,11 +110,11 @@ export function FinanceDonutChart({
   const rOuter = OUTER_R * scale;
   const rInner = INNER_R * scale;
 
-  const { segments, topPct } = useMemo(() => {
+  const { segments, topPct, total } = useMemo(() => {
     const positive = slices.filter((s) => s.value > 0);
     const sum = positive.reduce((acc, s) => acc + s.value, 0);
     if (sum <= 0) {
-      return { segments: [], topPct: 0 };
+      return { segments: [], topPct: 0, total: 0 };
     }
 
     let angle = 0;
@@ -113,7 +125,7 @@ export function FinanceDonutChart({
       angle = end;
       return {
         ...slice,
-        color: financeCategoryColor(i),
+        color: useSliceColors && slice.color ? slice.color : financeCategoryColor(i),
         startAngle: start,
         endAngle: end,
         pct: Math.round((slice.value / sum) * 100)
@@ -121,8 +133,8 @@ export function FinanceDonutChart({
     });
 
     const top = segs[0]?.pct ?? 0;
-    return { segments: segs, topPct: top };
-  }, [slices]);
+    return { segments: segs, topPct: top, total: sum };
+  }, [slices, useSliceColors]);
 
   if (!segments.length) {
     return <Text style={styles.empty}>{emptyLabel}</Text>;
@@ -144,14 +156,29 @@ export function FinanceDonutChart({
                 seg.endAngle
               )}
               fill={seg.color}
+              opacity={
+                selectedLabel && selectedLabel !== seg.label ? 0.35 : 1
+              }
+              onPress={onSlicePress ? () => onSlicePress(seg.label) : undefined}
             />
           ))}
         </Svg>
         <View style={styles.center} pointerEvents="none">
-          <Text style={styles.centerPct}>{topPct}%</Text>
-          <Text style={styles.centerLab} numberOfLines={1}>
-            {segments[0]?.label}
-          </Text>
+          {centerMode === "total" ? (
+            <>
+              <Text style={styles.centerPct}>{total}</Text>
+              <Text style={styles.centerLab} numberOfLines={1}>
+                {centerTitle ?? ""}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.centerPct}>{topPct}%</Text>
+              <Text style={styles.centerLab} numberOfLines={1}>
+                {segments[0]?.label}
+              </Text>
+            </>
+          )}
         </View>
       </View>
 

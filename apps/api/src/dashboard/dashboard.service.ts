@@ -1,6 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import type { User } from "@prisma/client";
-import { Prisma } from "@prisma/client";
+import {
+  FarmDiseaseCaseStatus,
+  FarmHealthRecordKind,
+  Prisma
+} from "@prisma/client";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
 import { buildFeedStockStatsForFarm } from "../feed-stock/feed-stock-stats.helper";
 import { FarmAccessService } from "../common/farm-access.service";
@@ -155,23 +159,27 @@ export class DashboardService {
 
     const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const diseaseAgg = await this.prisma.animalHealthEvent.groupBy({
-      by: ["title"],
+    const diseaseAggRaw = await this.prisma.healthDiseaseDetail.groupBy({
+      by: ["diagnosis"],
       where: {
-        animal: { farmId },
-        severity: { in: ["watch", "urgent"] },
-        recordedAt: { gte: since30 }
+        caseStatus: FarmDiseaseCaseStatus.active,
+        healthRecord: {
+          farmId,
+          kind: FarmHealthRecordKind.disease,
+          occurredAt: { gte: since30 }
+        }
       },
-      _count: { _all: true },
-      orderBy: { _count: { title: "desc" } },
-      take: 5
+      _count: { _all: true }
     });
+    const diseaseAgg = diseaseAggRaw
+      .sort((a, b) => (b._count._all ?? 0) - (a._count._all ?? 0))
+      .slice(0, 5);
 
-    const diseaseActiveCount = await this.prisma.animalHealthEvent.count({
+    const diseaseActiveCount = await this.prisma.farmHealthRecord.count({
       where: {
-        animal: { farmId },
-        severity: { in: ["watch", "urgent"] },
-        recordedAt: { gte: since30 }
+        farmId,
+        kind: FarmHealthRecordKind.disease,
+        disease: { caseStatus: FarmDiseaseCaseStatus.active }
       }
     });
 
@@ -212,7 +220,7 @@ export class DashboardService {
       activeDiseaseCases: {
         count: diseaseActiveCount,
         byType: diseaseAgg.map((g) => ({
-          title: g.title,
+          title: g.diagnosis?.trim() || "Autre",
           count: g._count._all
         }))
       },
@@ -236,20 +244,28 @@ export class DashboardService {
     });
 
     const items = stats.map((t) => {
+      const days = t.daysRemaining;
       const level: "critical" | "medium" | "ok" =
-        t.status === "critical"
+        days != null && days <= 3
           ? "critical"
-          : t.status === "warning"
+          : days != null && days <= 5
             ? "medium"
-            : "ok";
+            : t.status === "critical"
+              ? "critical"
+              : t.status === "warning"
+                ? "medium"
+                : "ok";
+      const ratio =
+        days != null ? Math.min(1, Math.max(0, days / 30)) : 1;
       return {
         productName: t.name,
         remainingKg: t.currentStockKg,
         initialKg: t.currentStockKg,
-        ratio: 1,
+        ratio,
         level,
         critical: level === "critical",
-        color: t.color
+        color: t.color,
+        daysRemaining: days
       };
     });
 

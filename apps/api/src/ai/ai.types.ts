@@ -2,6 +2,7 @@ export const AI_MODULE_KEYS = [
   "finance",
   "cheptel",
   "sante",
+  "sante_diseases",
   "stock",
   "gestation",
   "global_dashboard"

@@ -258,9 +258,6 @@ export class AccountDeletionService {
     await tx.livestockExit.deleteMany({ where: { recordedByUserId: userId } });
     await tx.penPlacement.deleteMany({ where: { createdByUserId: userId } });
     await tx.penLog.deleteMany({ where: { recordedByUserId: userId } });
-    await tx.animalHealthEvent.deleteMany({
-      where: { recordedByUserId: userId }
-    });
     await tx.livestockBatchHealthEvent.deleteMany({
       where: { recordedByUserId: userId }
     });

@@ -18,6 +18,9 @@ import {
 import { AnimalDetailModal } from "./AnimalDetailModal";
 import { ChangeStatusModal } from "./ChangeStatusModal";
 import { CreateAnimalModal } from "./CreateAnimalModal";
+import { SaleModal } from "./SaleModal";
+import type { SaleResult } from "./SaleModal";
+import { DiseaseModal } from "../../shared/DiseaseModal";
 import { TransferModal } from "./TransferModal";
 import {
   animalToEventItem,
@@ -25,6 +28,7 @@ import {
   type AnimalFilterId
 } from "./animalUtils";
 import type { AnimalListItem } from "../../../lib/api";
+import { useModal } from "../../modals/useModal";
 
 type Props = {
   farmId: string;
@@ -61,11 +65,14 @@ export function AnimalList({
   modeHint
 }: Props) {
   const { t } = useTranslation();
-  const [filterId, setFilterId] = useState<AnimalFilterId>("all");
+  const { open } = useModal();
+  const [filterId, setFilterId] = useState<AnimalFilterId>("active");
   const [search, setSearch] = useState("");
   const [detailAnimal, setDetailAnimal] = useState<AnimalListItem | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [statusAnimal, setStatusAnimal] = useState<AnimalListItem | null>(null);
+  const [saleAnimal, setSaleAnimal] = useState<AnimalListItem | null>(null);
+  const [diseaseAnimal, setDiseaseAnimal] = useState<AnimalListItem | null>(null);
   const [transferAnimalId, setTransferAnimalId] = useState<string | null>(null);
 
   const filters = useMemo(
@@ -202,6 +209,45 @@ export function AnimalList({
         activeProfileId={activeProfileId}
         onClose={() => setStatusAnimal(null)}
         onUpdated={onInvalidate}
+        onRequestSale={(a) => setSaleAnimal(a)}
+        onRequestDisease={(a) => setDiseaseAnimal(a)}
+      />
+
+      <DiseaseModal
+        visible={Boolean(diseaseAnimal)}
+        presetAnimal={diseaseAnimal}
+        farmId={farmId}
+        accessToken={accessToken}
+        activeProfileId={activeProfileId}
+        onClose={() => setDiseaseAnimal(null)}
+        onSuccess={onInvalidate}
+      />
+
+      <SaleModal
+        visible={Boolean(saleAnimal)}
+        animal={saleAnimal}
+        farmId={farmId}
+        accessToken={accessToken}
+        activeProfileId={activeProfileId}
+        onCancel={() => setSaleAnimal(null)}
+        onSuccess={(sale: SaleResult) => {
+          setSaleAnimal(null);
+          onInvalidate();
+          const tag =
+            sale.animal.tagCode?.trim() ||
+            sale.animal.publicId?.slice(0, 8) ||
+            "—";
+          const amount = Number(sale.transaction.amount);
+          open("success", {
+            title: t("cheptel.animals.sale.successTitle"),
+            message: t("cheptel.animals.sale.successMessage", {
+              tag,
+              amount: amount.toLocaleString("fr-FR"),
+              currency: sale.transaction.currency
+            }),
+            autoDismissMs: 3500
+          });
+        }}
       />
 
       <TransferModal

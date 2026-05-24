@@ -32,10 +32,13 @@ type Props = {
   activeProfileId?: string | null;
   onClose: () => void;
   onUpdated: () => void;
+  onRequestSale?: (animal: AnimalListItem) => void;
+  onRequestDisease?: (animal: AnimalListItem) => void;
 };
 
-const STATUS_OPTIONS: { key: AnimalStatusKey; emoji: string }[] = [
+const STATUS_OPTIONS: { key: AnimalStatusKey | "sick"; emoji: string }[] = [
   { key: "active", emoji: "✅" },
+  { key: "sick", emoji: "🤒" },
   { key: "dead", emoji: "💀" },
   { key: "sold", emoji: "💰" },
   { key: "reformed", emoji: "♻️" },
@@ -49,22 +52,20 @@ export function ChangeStatusModal({
   accessToken,
   activeProfileId,
   onClose,
-  onUpdated
+  onUpdated,
+  onRequestSale,
+  onRequestDisease
 }: Props) {
   const { t } = useTranslation();
   const { open } = useModal();
   const [status, setStatus] = useState<AnimalStatusKey>("active");
   const [note, setNote] = useState("");
-  const [salePrice, setSalePrice] = useState("");
-  const [buyer, setBuyer] = useState("");
   const [deathCause, setDeathCause] = useState("");
 
   useEffect(() => {
     if (visible && animal) {
       setStatus((animal.status as AnimalStatusKey) || "active");
       setNote("");
-      setSalePrice("");
-      setBuyer("");
       setDeathCause("");
     }
   }, [visible, animal]);
@@ -74,13 +75,10 @@ export function ChangeStatusModal({
       if (!animal) {
         throw new Error("Animal manquant");
       }
+      if (status === "sold") {
+        throw new Error(t("cheptel.animals.sale.useSaleModal"));
+      }
       const parts: string[] = [];
-      if (status === "sold" && salePrice.trim()) {
-        parts.push(`${t("cheptel.animals.status.salePrice")}: ${salePrice}`);
-      }
-      if (status === "sold" && buyer.trim()) {
-        parts.push(`${t("cheptel.animals.status.buyer")}: ${buyer}`);
-      }
       if (status === "dead" && deathCause.trim()) {
         parts.push(`${t("cheptel.animals.status.deathCause")}: ${deathCause}`);
       }
@@ -92,11 +90,6 @@ export function ChangeStatusModal({
         {
           status,
           note: mergedNote || null,
-          salePrice:
-            status === "sold" && salePrice.trim()
-              ? Number.parseFloat(salePrice.replace(",", "."))
-              : undefined,
-          buyerName: status === "sold" ? buyer.trim() || undefined : undefined,
           deathCause: status === "dead" ? deathCause.trim() || undefined : undefined
         },
         activeProfileId
@@ -121,6 +114,20 @@ export function ChangeStatusModal({
 
   const tag = animalDisplayTag(animal);
 
+  const onPickStatus = (key: AnimalStatusKey | "sick") => {
+    if (key === "sold") {
+      onRequestSale?.(animal);
+      onClose();
+      return;
+    }
+    if (key === "sick") {
+      onRequestDisease?.(animal);
+      onClose();
+      return;
+    }
+    setStatus(key);
+  };
+
   return (
     <BaseModal
       visible={visible}
@@ -130,7 +137,7 @@ export function ChangeStatusModal({
         <Pressable
           style={[styles.primaryBtn, saveMut.isPending && styles.btnDisabled]}
           onPress={() => saveMut.mutate()}
-          disabled={saveMut.isPending}
+          disabled={saveMut.isPending || status === "sold"}
         >
           {saveMut.isPending ? (
             <ActivityIndicator color="#fff" />
@@ -147,45 +154,39 @@ export function ChangeStatusModal({
           {STATUS_OPTIONS.map((opt) => (
             <Pressable
               key={opt.key}
-              style={[styles.statusChip, status === opt.key && styles.statusChipOn]}
-              onPress={() => setStatus(opt.key)}
+              style={[
+                styles.statusChip,
+                opt.key !== "sold" &&
+                  opt.key !== "sick" &&
+                  status === opt.key &&
+                  styles.statusChipOn
+              ]}
+              onPress={() => onPickStatus(opt.key)}
             >
               <Text style={styles.statusChipText}>
-                {opt.emoji} {t(`cheptel.animals.status.${opt.key}`)}
+                {opt.emoji}{" "}
+                {opt.key === "sick"
+                  ? t("cheptel.animals.status.sick")
+                  : t(`cheptel.animals.status.${opt.key}`)}
               </Text>
             </Pressable>
           ))}
         </View>
       </ModalSection>
 
-        {status === "sold" ? (
-          <ModalSection title={t("cheptel.animals.status.sold")}>
-            <Text style={styles.label}>{t("cheptel.animals.status.salePrice")}</Text>
-            <TextInput
-              style={styles.input}
-              value={salePrice}
-              onChangeText={setSalePrice}
-              keyboardType="decimal-pad"
-            />
-            <Text style={styles.label}>{t("cheptel.animals.status.buyer")}</Text>
-            <TextInput style={styles.input} value={buyer} onChangeText={setBuyer} />
-            <Text style={styles.hint}>{t("cheptel.animals.status.financeLinked")}</Text>
-          </ModalSection>
-        ) : null}
+      {status === "dead" ? (
+        <ModalSection title={t("cheptel.animals.status.dead")}>
+          <Text style={styles.label}>{t("cheptel.animals.status.deathCause")}</Text>
+          <TextInput
+            style={styles.input}
+            value={deathCause}
+            onChangeText={setDeathCause}
+          />
+          <Text style={styles.hint}>{t("cheptel.animals.status.healthLinked")}</Text>
+        </ModalSection>
+      ) : null}
 
-        {status === "dead" ? (
-          <ModalSection title={t("cheptel.animals.status.dead")}>
-            <Text style={styles.label}>{t("cheptel.animals.status.deathCause")}</Text>
-            <TextInput
-              style={styles.input}
-              value={deathCause}
-              onChangeText={setDeathCause}
-            />
-            <Text style={styles.hint}>{t("cheptel.animals.status.healthLinked")}</Text>
-          </ModalSection>
-        ) : null}
-
-        <ModalSection title={t("modals.sections.note")}>
+      <ModalSection title={t("modals.sections.note")}>
         <Text style={styles.label}>{t("cheptel.animals.status.note")}</Text>
         <TextInput
           style={[styles.input, styles.multiline]}
@@ -193,7 +194,7 @@ export function ChangeStatusModal({
           onChangeText={setNote}
           multiline
         />
-        </ModalSection>
+      </ModalSection>
     </BaseModal>
   );
 }

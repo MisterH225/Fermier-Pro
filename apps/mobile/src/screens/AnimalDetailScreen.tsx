@@ -1,6 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -10,8 +11,11 @@ import {
 import { AnimalDetailModal } from "../components/cheptel/animals/AnimalDetailModal";
 import { AddWeightModal } from "../components/cheptel/weight/AddWeightModal";
 import { ChangeStatusModal } from "../components/cheptel/animals/ChangeStatusModal";
+import { SaleModal, type SaleResult } from "../components/cheptel/animals/SaleModal";
+import { DiseaseModal } from "../components/shared/DiseaseModal";
 import { TransferModal } from "../components/cheptel/animals/TransferModal";
 import { animalDisplayTag } from "../components/cheptel/animals/animalUtils";
+import { useModal } from "../components/modals/useModal";
 import { useSession } from "../context/SessionContext";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import { fetchFarmAnimals } from "../lib/api";
@@ -29,12 +33,16 @@ type Props = NativeStackScreenProps<RootStackParamList, "AnimalDetail">;
 export function AnimalDetailScreen({ route, navigation }: Props) {
   const { farmId, farmName, animalId, headline } = route.params;
   const { accessToken, activeProfileId } = useSession();
+  const { t } = useTranslation();
+  const { open } = useModal();
   const queryClient = useQueryClient();
 
   const [transferAnimal, setTransferAnimal] = useState<AnimalListItem | null>(
     null
   );
   const [statusAnimal, setStatusAnimal] = useState<AnimalListItem | null>(null);
+  const [saleAnimal, setSaleAnimal] = useState<AnimalListItem | null>(null);
+  const [diseaseAnimal, setDiseaseAnimal] = useState<AnimalListItem | null>(null);
   const [weightAnimal, setWeightAnimal] = useState<AnimalListItem | null>(null);
 
   const animalsQuery = useQuery({
@@ -114,6 +122,45 @@ export function AnimalDetailScreen({ route, navigation }: Props) {
         onUpdated={() => {
           setStatusAnimal(null);
           invalidate();
+        }}
+        onRequestSale={(a) => setSaleAnimal(a)}
+        onRequestDisease={(a) => setDiseaseAnimal(a)}
+      />
+
+      <DiseaseModal
+        visible={Boolean(diseaseAnimal)}
+        presetAnimal={diseaseAnimal}
+        farmId={farmId}
+        accessToken={accessToken!}
+        activeProfileId={activeProfileId}
+        onClose={() => setDiseaseAnimal(null)}
+        onSuccess={invalidate}
+      />
+
+      <SaleModal
+        visible={Boolean(saleAnimal)}
+        animal={saleAnimal}
+        farmId={farmId}
+        accessToken={accessToken!}
+        activeProfileId={activeProfileId}
+        onCancel={() => setSaleAnimal(null)}
+        onSuccess={(sale: SaleResult) => {
+          setSaleAnimal(null);
+          invalidate();
+          const tag =
+            sale.animal.tagCode?.trim() ||
+            sale.animal.publicId?.slice(0, 8) ||
+            "—";
+          const amount = Number(sale.transaction.amount);
+          open("success", {
+            title: t("cheptel.animals.sale.successTitle"),
+            message: t("cheptel.animals.sale.successMessage", {
+              tag,
+              amount: amount.toLocaleString("fr-FR"),
+              currency: sale.transaction.currency
+            }),
+            autoDismissMs: 3500
+          });
         }}
       />
 

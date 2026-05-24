@@ -18,6 +18,7 @@ import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.deco
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
 import { PatchAnimalStatusDto } from "../livestock/dto/patch-animal-status.dto";
 import { PatchAnimalStatusExtendedDto } from "./dto/patch-animal-status-extended.dto";
+import { SellAnimalDto } from "./dto/sell-animal.dto";
 import { PatchPenAveragesDto } from "./dto/patch-pen-averages.dto";
 import { UpsertGmqSettingsDto } from "./dto/upsert-gmq-settings.dto";
 import { CheptelService } from "./cheptel.service";
@@ -181,5 +182,16 @@ export class CheptelController {
       buyerName: dto.buyerName,
       deathCause: dto.deathCause
     });
+  }
+
+  @Patch("animals/:animalId/sell")
+  @RequireFarmScopes(FARM_SCOPE.livestockWrite)
+  sellAnimal(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("animalId") animalId: string,
+    @Body() dto: SellAnimalDto
+  ) {
+    return this.cheptel.sellAnimal(user, farmId, animalId, dto);
   }
 }

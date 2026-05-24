@@ -24,6 +24,8 @@ function iconForType(
       return "in";
     case "status":
       return "out";
+    case "sold":
+      return "in";
     default:
       return "check";
   }
@@ -42,15 +44,17 @@ export function CheptelHistory({
   const typeParam =
     filterId === "all"
       ? undefined
-      : filterId === "statuses"
-        ? "status"
-        : filterId === "weights"
-          ? "weight"
-          : filterId === "transfers"
-            ? "transfer"
-            : filterId === "creations"
-              ? "creation"
-              : undefined;
+      : filterId === "sold"
+        ? "sold"
+        : filterId === "statuses"
+          ? "status"
+          : filterId === "weights"
+            ? "weight"
+            : filterId === "transfers"
+              ? "transfer"
+              : filterId === "creations"
+                ? "creation"
+                : undefined;
 
   const historyQuery = useQuery({
     queryKey: ["cheptelHistory", farmId, activeProfileId, typeParam],
@@ -67,6 +71,7 @@ export function CheptelHistory({
       { id: "creations", label: t("cheptel.history.filter.creations") },
       { id: "transfers", label: t("cheptel.history.filter.transfers") },
       { id: "statuses", label: t("cheptel.history.filter.statuses") },
+      { id: "sold", label: t("cheptel.history.filter.sold") },
       { id: "weights", label: t("cheptel.history.filter.weights") }
     ],
     [t]

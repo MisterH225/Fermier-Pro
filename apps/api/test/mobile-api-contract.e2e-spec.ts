@@ -428,21 +428,27 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(Array.isArray(res.body?.weights)).toBe(true);
   });
 
-  it("PATCH statut animal (cheptel)", async () => {
-    const res = await request(app.getHttpServer())
-      .patch(`/api/v1/farms/${ctx.farmId}/animals/${ctx.animalId}/status`)
+  it("PATCH statut animal (cheptel) — vendu via /sell", async () => {
+    const sell = await request(app.getHttpServer())
+      .patch(`/api/v1/farms/${ctx.farmId}/cheptel/animals/${ctx.animalId}/sell`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({
+        soldWeightKg: 85,
+        totalPrice: 170000,
+        soldAt: new Date().toISOString()
+      });
+    expect(sell.status).toBeGreaterThanOrEqual(200);
+    expect(sell.status).toBeLessThan(300);
+    expect(sell.body?.animal?.status).toBe("sold");
+    expect(sell.body?.transaction?.linkedEntityId).toBe(ctx.animalId);
+
+    const blocked = await request(app.getHttpServer())
+      .patch(`/api/v1/farms/${ctx.farmId}/cheptel/animals/${ctx.animalId}/status`)
       .set("Authorization", `Bearer ${ctx.token}`)
       .set("X-Profile-Id", ctx.producerProfileId)
       .send({ status: "sold", note: "e2e statut" });
-    expect(res.status).toBeGreaterThanOrEqual(200);
-    expect(res.status).toBeLessThan(300);
-    const back = await request(app.getHttpServer())
-      .patch(`/api/v1/farms/${ctx.farmId}/animals/${ctx.animalId}/status`)
-      .set("Authorization", `Bearer ${ctx.token}`)
-      .set("X-Profile-Id", ctx.producerProfileId)
-      .send({ status: "active" });
-    expect(back.status).toBeGreaterThanOrEqual(200);
-    expect(back.status).toBeLessThan(300);
+    expect(blocked.status).toBe(400);
   });
 
   it("POST pesée animal (livestockWrite)", async () => {
@@ -971,6 +977,16 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
       .set(auth);
     expect(overview.status).toBe(200);
     expect(overview.body?.farmId).toBe(ctx.farmId);
+    expect(overview.body?.globalHealthStatus).toBeDefined();
+    expect(overview.body?.charts?.mortalityHeadcount).toBeDefined();
+
+    const vaccineCoverage = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/vaccines/coverage`)
+      .set(auth);
+    expect(vaccineCoverage.status).toBe(200);
+    expect(vaccineCoverage.body?.farmId).toBe(ctx.farmId);
+    expect(Array.isArray(vaccineCoverage.body?.items)).toBe(true);
+    expect(vaccineCoverage.body.items.length).toBeGreaterThanOrEqual(10);
 
     const upcoming = await request(app.getHttpServer())
       .get(`/api/v1/farms/${ctx.farmId}/health/upcoming`)
@@ -1053,6 +1069,64 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(link.status).toBeGreaterThanOrEqual(200);
     expect(link.status).toBeLessThan(300);
     expect(link.body?.ok).toBe(true);
+
+    const diseaseOverview = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/health/diseases/overview`)
+      .set(auth);
+    expect(diseaseOverview.status).toBe(200);
+    expect(diseaseOverview.body?.kpis).toBeDefined();
+
+    const diseasePost = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/health/diseases`)
+      .set(auth)
+      .send({
+        entityType: "animal",
+        entityId: ctx.animalId,
+        symptoms: ["Fièvre", "Toux"],
+        durationEstimate: "1-2 jours",
+        estimatedOnsetDate: "2026-05-19T12:00:00.000Z",
+        severity: "moderate"
+      });
+    expect(diseasePost.status).toBeGreaterThanOrEqual(200);
+    expect(diseasePost.status).toBeLessThan(300);
+    const diseaseId = diseasePost.body?.id as string;
+    expect(diseaseId).toBeDefined();
+
+    const activeCases = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/health/diseases/active`)
+      .set(auth);
+    expect(activeCases.status).toBe(200);
+    expect(Array.isArray(activeCases.body)).toBe(true);
+
+    const patched = await request(app.getHttpServer())
+      .patch(`/api/v1/farms/${ctx.farmId}/health/events/${diseaseId}/disease`)
+      .set(auth)
+      .send({ severity: "severe", inIsolation: true });
+    expect(patched.status).toBeGreaterThanOrEqual(200);
+    expect(patched.status).toBeLessThan(300);
+    expect(patched.body?.disease?.severity).toBe("severe");
+
+    const treatment = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/health/events/${diseaseId}/treatment`)
+      .set(auth)
+      .send({ drugName: "TestMed", dosage: "2ml" });
+    expect(treatment.status).toBeGreaterThanOrEqual(200);
+    expect(treatment.status).toBeLessThan(300);
+    expect(treatment.body?.treatment?.drugName).toBe("TestMed");
+
+    const resolved = await request(app.getHttpServer())
+      .patch(`/api/v1/farms/${ctx.farmId}/health/events/${diseaseId}/resolve`)
+      .set(auth)
+      .send({});
+    expect(resolved.status).toBeGreaterThanOrEqual(200);
+    expect(resolved.status).toBeLessThan(300);
+    expect(resolved.body?.disease?.caseStatus).toBe("recovered");
+
+    const history = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/health/diseases/history?period=month`)
+      .set(auth);
+    expect(history.status).toBe(200);
+    expect(Array.isArray(history.body)).toBe(true);
   });
 
   it("POST /ai/recommendations (contrat mobile)", async () => {

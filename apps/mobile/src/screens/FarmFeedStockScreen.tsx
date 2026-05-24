@@ -18,11 +18,10 @@ import {
 import {
   SmartChart,
   feedChartToLines,
-  feedSeriesColor,
   feedPeriodToChartPeriod,
   chartPeriodToFeedPeriod
 } from "../components/charts";
-import { StockModal } from "../components/feed/StockModal";
+import { StockModal, FeedStockLevelGauge, farmFeedStatToGauge } from "../components/feed";
 import { FeedStockModuleGate } from "../components/FeedStockModuleGate";
 import { EventList, type EventItem } from "../components/lists";
 import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
@@ -31,7 +30,7 @@ import { TabContent, TabSelector } from "../components/tabs";
 import { invalidateAIInsights } from "../services/ai/AIRecommendationService";
 import { useModal } from "../components/modals/useModal";
 import { useSession } from "../context/SessionContext";
-import type { FarmFeedStatItemDto, FeedStockMovementDto } from "../lib/api";
+import type { FeedStockMovementDto } from "../lib/api";
 import {
   fetchFarmFeedChart,
   fetchFarmFeedMovements,
@@ -56,12 +55,6 @@ function formatMassKg(kg: number): string {
     return `${(kg / 1000).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} t`;
   }
   return `${kg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg`;
-}
-
-function statusEmoji(s: FarmFeedStatItemDto["status"]): string {
-  if (s === "critical") return "🔴";
-  if (s === "warning") return "🟡";
-  return "🟢";
 }
 
 export function FarmFeedStockScreen({ route, navigation }: Props) {
@@ -394,43 +387,21 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
                 {stats.length === 0 ? (
                   <Text style={styles.muted}>{t("feedStock.noStats")}</Text>
                 ) : (
-                  stats.map((s, statIndex) => (
-                    <View key={s.feedTypeId} style={styles.statCard}>
-                      <View style={styles.statHead}>
-                        <View
-                          style={[
-                            styles.dot,
-                            { backgroundColor: feedSeriesColor(statIndex) }
-                          ]}
-                        />
-                        <Text style={styles.statName}>{s.name}</Text>
-                        <Text style={styles.statEmoji}>{statusEmoji(s.status)}</Text>
-                      </View>
-                      <Text style={styles.statLine}>
-                        {t("feedStock.current")} :{" "}
-                        {formatMassKg(Number.parseFloat(s.currentStockKg))}
-                      </Text>
-                      <Text style={styles.statLine}>
-                        {t("feedStock.avgDaily")} :{" "}
-                        {s.avgDailyConsumptionKg
-                          ? `${Number.parseFloat(s.avgDailyConsumptionKg).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} kg/j`
-                          : "—"}
-                      </Text>
-                      <Text style={styles.statLine}>
-                        {t("feedStock.depletion")} :{" "}
-                        {s.estimatedDepletionDate
-                          ? new Date(s.estimatedDepletionDate).toLocaleDateString("fr-FR")
-                          : "—"}
-                      </Text>
-                      <Text style={styles.statLine}>
-                        {s.status === "ok"
-                          ? t("feedStock.statusOk")
-                          : s.status === "warning"
-                            ? t("feedStock.statusWarn")
-                            : t("feedStock.statusCrit")}
-                      </Text>
-                    </View>
-                  ))
+                  stats.map((s, statIndex) => {
+                    const gauge = farmFeedStatToGauge(s, statIndex, t);
+                    return (
+                      <FeedStockLevelGauge
+                        key={gauge.key}
+                        name={gauge.name}
+                        subtitle={gauge.subtitle}
+                        displayValue={gauge.displayValue}
+                        percent={gauge.percent}
+                        gaugeColor={gauge.gaugeColor}
+                        dotColor={gauge.dotColor}
+                        centerLabel={gauge.centerLabel}
+                      />
+                    );
+                  })
                 )}
                 </ScreenSection>
                 <ScreenSection title={t("feedStock.smartAlertsHintTitle", "Recommandations")}>
@@ -524,32 +495,8 @@ const styles = StyleSheet.create({
   },
   sectionSp: { marginTop: mobileSpacing.xl },
   muted: { ...mobileTypography.meta, color: mobileColors.textSecondary },
-  statCard: {
-    backgroundColor: mobileColors.canvas,
-    borderRadius: mobileRadius.lg,
-    padding: mobileSpacing.md,
-    marginBottom: mobileSpacing.sm,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: mobileColors.border,
-    ...mobileShadows.card
-  },
-  statHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: mobileSpacing.xs
-  },
-  dot: { width: 10, height: 10, borderRadius: 5, marginRight: 8 },
-  statName: { flex: 1, fontWeight: "800", color: mobileColors.textPrimary },
-  statEmoji: { fontSize: 16 },
-  statLine: { ...mobileTypography.body, color: mobileColors.textSecondary, marginTop: 2 },
-  card: {
-    backgroundColor: mobileColors.canvas,
-    borderRadius: mobileRadius.lg,
-    padding: mobileSpacing.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: mobileColors.border,
-    ...mobileShadows.card
-  },
+  headerBtn: { marginRight: mobileSpacing.sm },
+  headerBtnText: { color: mobileColors.accent, fontWeight: "700", fontSize: 15 },
   filters: { marginBottom: mobileSpacing.md },
   filterLab: {
     ...mobileTypography.meta,
@@ -573,7 +520,5 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.sm,
     marginTop: 4,
     color: mobileColors.textPrimary
-  },
-  headerBtn: { marginRight: mobileSpacing.sm },
-  headerBtnText: { color: mobileColors.accent, fontWeight: "700", fontSize: 15 }
+  }
 });

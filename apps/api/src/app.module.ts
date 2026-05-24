@@ -40,6 +40,7 @@ import { CheptelModule } from "./cheptel/cheptel.module";
 import { CguModule } from "./cgu/cgu.module";
 import { AiModule } from "./ai/ai.module";
 import { GestationModule } from "./gestation/gestation.module";
+import { VetsModule } from "./vets/vets.module";
 
 @Module({
   imports: [
@@ -104,7 +105,8 @@ import { GestationModule } from "./gestation/gestation.module";
     OnboardingModule,
     CheptelModule,
     AiModule,
-    GestationModule
+    GestationModule,
+    VetsModule
   ],
   controllers: [AppController],
   providers: [

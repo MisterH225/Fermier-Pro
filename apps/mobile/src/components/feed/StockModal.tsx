@@ -10,6 +10,7 @@ import {
   View
 } from "react-native";
 import { BaseModal } from "../modals/BaseModal";
+import { ModalSection } from "../modals/ModalSection";
 import type { FeedTypeDto } from "../../lib/api";
 import { postFarmFeedMovement } from "../../lib/api";
 import {
@@ -28,6 +29,10 @@ export type StockModalProps = {
   types: FeedTypeDto[];
   onSuccess: () => void;
 };
+
+function FieldLabel({ children }: { children: string }) {
+  return <Text style={styles.fieldLabel}>{children}</Text>;
+}
 
 export function StockModal({
   visible,
@@ -84,7 +89,9 @@ export function StockModal({
   );
 
   const preview = useMemo(() => {
-    if (!selected || tab !== "stock_check") return null;
+    if (!selected || tab !== "stock_check") {
+      return null;
+    }
     const wp =
       Number.parseFloat(weightOverride || selected.weightPerBagKg || "0") ||
       null;
@@ -106,9 +113,7 @@ export function StockModal({
       last != null && !Number.isNaN(last.getTime())
         ? Math.max(
             1,
-            Math.round(
-              (Date.now() - last.getTime()) / 86_400_000
-            )
+            Math.round((Date.now() - last.getTime()) / 86_400_000)
           )
         : 1;
     const dailyKg = (consumed * wp) / days;
@@ -145,7 +150,9 @@ export function StockModal({
               ? {
                   quantityInput: Number.parseFloat(qty.replace(",", ".")),
                   quantityUnit: qtyUnit,
-                  weightPerBagKg: Number.parseFloat(weightOverride.replace(",", ".")) || undefined,
+                  weightPerBagKg:
+                    Number.parseFloat(weightOverride.replace(",", ".")) ||
+                    undefined,
                   supplier: supplier.trim() || undefined,
                   unitPrice: unitPrice.trim()
                     ? Number.parseFloat(unitPrice.replace(",", "."))
@@ -176,7 +183,9 @@ export function StockModal({
             ? {
                 quantityInput: Number.parseFloat(qty.replace(",", ".")),
                 quantityUnit: qtyUnit,
-                weightPerBagKg: Number.parseFloat(weightOverride.replace(",", ".")) || undefined,
+                weightPerBagKg:
+                  Number.parseFloat(weightOverride.replace(",", ".")) ||
+                  undefined,
                 supplier: supplier.trim() || undefined,
                 unitPrice: unitPrice.trim()
                   ? Number.parseFloat(unitPrice.replace(",", "."))
@@ -237,226 +246,305 @@ export function StockModal({
         </View>
       }
     >
-      <View style={styles.rowBtns}>
-        <Pressable
-          style={[styles.chip, tab === "in" && styles.chipOn]}
-          onPress={() => setTab("in")}
-        >
-          <Text style={styles.chipTx}>{t("feedStock.tabIn")}</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.chip, tab === "stock_check" && styles.chipOn]}
-          onPress={() => setTab("stock_check")}
-        >
-          <Text style={styles.chipTx}>{t("feedStock.tabCheck")}</Text>
-        </Pressable>
-      </View>
+      <ModalSection title={t("feedStock.sectionOperation")} plain>
+        <View style={styles.rowBtns}>
+          <Pressable
+            style={[styles.chip, tab === "in" && styles.chipOn]}
+            onPress={() => setTab("in")}
+          >
+            <Text style={[styles.chipTx, tab === "in" && styles.chipTxOn]}>
+              {t("feedStock.tabIn")}
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.chip, tab === "stock_check" && styles.chipOn]}
+            onPress={() => setTab("stock_check")}
+          >
+            <Text
+              style={[
+                styles.chipTx,
+                tab === "stock_check" && styles.chipTxOn
+              ]}
+            >
+              {t("feedStock.tabCheck")}
+            </Text>
+          </Pressable>
+        </View>
+      </ModalSection>
 
-      <Pressable
-        style={{ marginVertical: mobileSpacing.sm }}
-        onPress={() => setNewMode((v) => !v)}
-      >
-        <Text style={styles.link}>
-          {newMode ? t("feedStock.useExistingType") : t("feedStock.createNewType")}
-        </Text>
-      </Pressable>
-
-      {newMode ? (
-        <>
-          <Text style={styles.lab}>{t("feedStock.fieldName")}</Text>
-          <TextInput style={styles.input} value={newName} onChangeText={setNewName} />
-          <Text style={styles.lab}>{t("feedStock.fieldUnit")}</Text>
-          <View style={styles.rowBtns}>
-            {(["kg", "tonne", "sac"] as const).map((u) => (
-              <Pressable
-                key={u}
-                style={[styles.chip, newUnit === u && styles.chipOn]}
-                onPress={() => setNewUnit(u)}
-              >
-                <Text style={styles.chipTx}>{u}</Text>
-              </Pressable>
-            ))}
+      <ModalSection title={t("modals.sections.identification")}>
+        <Pressable onPress={() => setNewMode((v) => !v)}>
+          <Text style={styles.link}>
+            {newMode
+              ? t("feedStock.useExistingType")
+              : t("feedStock.createNewType")}
+          </Text>
+        </Pressable>
+        {newMode ? (
+          <View style={styles.fields}>
+            <FieldLabel>{t("feedStock.fieldName")}</FieldLabel>
+            <TextInput
+              style={styles.input}
+              value={newName}
+              onChangeText={setNewName}
+            />
+            <FieldLabel>{t("feedStock.fieldUnit")}</FieldLabel>
+            <View style={styles.rowBtns}>
+              {(["kg", "tonne", "sac"] as const).map((u) => (
+                <Pressable
+                  key={u}
+                  style={[styles.chip, newUnit === u && styles.chipOn]}
+                  onPress={() => setNewUnit(u)}
+                >
+                  <Text style={[styles.chipTx, newUnit === u && styles.chipTxOn]}>
+                    {u}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <FieldLabel>{t("feedStock.fieldWeightPerBag")}</FieldLabel>
+            <TextInput
+              style={styles.input}
+              value={newWeightBag}
+              onChangeText={setNewWeightBag}
+              keyboardType="decimal-pad"
+              placeholder="25"
+            />
           </View>
-          <Text style={styles.lab}>{t("feedStock.fieldWeightPerBag")}</Text>
-          <TextInput
-            style={styles.input}
-            value={newWeightBag}
-            onChangeText={setNewWeightBag}
-            keyboardType="decimal-pad"
-            placeholder="25"
-          />
-        </>
-      ) : (
-        <>
-          <Text style={styles.lab}>{t("feedStock.fieldFeedType")}</Text>
-          <View style={styles.typeList}>
-            {types.map((ft) => (
-              <Pressable
-                key={ft.id}
-                style={[styles.typeChip, feedTypeId === ft.id && styles.typeChipOn]}
-                onPress={() => setFeedTypeId(ft.id)}
-              >
-                <Text style={styles.typeChipTx}>{ft.name}</Text>
-              </Pressable>
-            ))}
+        ) : (
+          <View style={styles.fields}>
+            <FieldLabel>{t("feedStock.fieldFeedType")}</FieldLabel>
+            <View style={styles.typeList}>
+              {types.map((ft) => (
+                <Pressable
+                  key={ft.id}
+                  style={[
+                    styles.typeChip,
+                    feedTypeId === ft.id && styles.typeChipOn
+                  ]}
+                  onPress={() => setFeedTypeId(ft.id)}
+                >
+                  <Text
+                    style={[
+                      styles.typeChipTx,
+                      feedTypeId === ft.id && styles.typeChipTxOn
+                    ]}
+                  >
+                    {ft.name}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
           </View>
-        </>
-      )}
+        )}
+      </ModalSection>
 
       {tab === "in" ? (
-        <>
-          <Text style={styles.lab}>{t("feedStock.fieldQty")}</Text>
-          <TextInput
-            style={styles.input}
-            value={qty}
-            onChangeText={setQty}
-            keyboardType="decimal-pad"
-          />
-          <Text style={styles.lab}>{t("feedStock.fieldQtyUnit")}</Text>
-          <View style={styles.rowBtns}>
-            {(["kg", "tonne", "sac"] as const).map((u) => (
-              <Pressable
-                key={u}
-                style={[styles.chip, qtyUnit === u && styles.chipOn]}
-                onPress={() => setQtyUnit(u)}
-              >
-                <Text style={styles.chipTx}>{u}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <Text style={styles.lab}>{t("feedStock.fieldWeightOverride")}</Text>
-          <TextInput
-            style={styles.input}
-            value={weightOverride}
-            onChangeText={setWeightOverride}
-            keyboardType="decimal-pad"
-            placeholder={
-              selected?.weightPerBagKg
-                ? String(selected.weightPerBagKg)
-                : "—"
-            }
-          />
-          <Text style={styles.lab}>{t("feedStock.fieldDate")}</Text>
-          <TextInput style={styles.input} value={occurredAt} onChangeText={setOccurredAt} />
-          <Text style={styles.lab}>{t("feedStock.fieldSupplier")}</Text>
-          <TextInput style={styles.input} value={supplier} onChangeText={setSupplier} />
-          <Text style={styles.lab}>{t("feedStock.fieldUnitPrice")}</Text>
-          <TextInput
-            style={styles.input}
-            value={unitPrice}
-            onChangeText={setUnitPrice}
-            keyboardType="decimal-pad"
-          />
-          <Text style={styles.lab}>{t("feedStock.fieldPriceBasis")}</Text>
-          <View style={styles.rowBtns}>
-            <Pressable
-              style={[styles.chip, priceBasis === "kg" && styles.chipOn]}
-              onPress={() => setPriceBasis("kg")}
-            >
-              <Text style={styles.chipTx}>kg</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.chip, priceBasis === "sac" && styles.chipOn]}
-              onPress={() => setPriceBasis("sac")}
-            >
-              <Text style={styles.chipTx}>{t("feedStock.sac")}</Text>
-            </Pressable>
-          </View>
-        </>
-      ) : (
-        <>
-          <Text style={styles.lab}>{t("feedStock.fieldBagsCounted")}</Text>
-          <TextInput
-            style={styles.input}
-            value={bagsCounted}
-            onChangeText={setBagsCounted}
-            keyboardType="decimal-pad"
-          />
-          {preview ? (
-            <View style={styles.previewBox}>
-              <Text style={styles.previewLine}>
-                {t("feedStock.previewPrevBags", { n: preview.prevBags.toFixed(1) })}
-              </Text>
-              <Text style={styles.previewLine}>
-                {t("feedStock.previewConsumed", { n: preview.consumed.toFixed(1) })}
-              </Text>
-              <Text style={styles.previewLine}>
-                {t("feedStock.previewDaily", {
-                  n: preview.dailyKg.toLocaleString("fr-FR", { maximumFractionDigits: 2 })
-                })}
-              </Text>
-              {preview.depl ? (
-                <Text style={styles.previewLine}>
-                  {t("feedStock.previewDepletion", { date: preview.depl })}
-                </Text>
-              ) : null}
+        <ModalSection title={t("modals.sections.details")}>
+          <View style={styles.fields}>
+            <FieldLabel>{t("feedStock.fieldQty")}</FieldLabel>
+            <TextInput
+              style={styles.input}
+              value={qty}
+              onChangeText={setQty}
+              keyboardType="decimal-pad"
+            />
+            <FieldLabel>{t("feedStock.fieldQtyUnit")}</FieldLabel>
+            <View style={styles.rowBtns}>
+              {(["kg", "tonne", "sac"] as const).map((u) => (
+                <Pressable
+                  key={u}
+                  style={[styles.chip, qtyUnit === u && styles.chipOn]}
+                  onPress={() => setQtyUnit(u)}
+                >
+                  <Text style={[styles.chipTx, qtyUnit === u && styles.chipTxOn]}>
+                    {u}
+                  </Text>
+                </Pressable>
+              ))}
             </View>
-          ) : (
-            <Text style={styles.hint}>{t("feedStock.checkHint")}</Text>
-          )}
-        </>
+            <FieldLabel>{t("feedStock.fieldWeightOverride")}</FieldLabel>
+            <TextInput
+              style={styles.input}
+              value={weightOverride}
+              onChangeText={setWeightOverride}
+              keyboardType="decimal-pad"
+              placeholder={
+                selected?.weightPerBagKg
+                  ? String(selected.weightPerBagKg)
+                  : "—"
+              }
+            />
+            <FieldLabel>{t("feedStock.fieldDate")}</FieldLabel>
+            <TextInput
+              style={styles.input}
+              value={occurredAt}
+              onChangeText={setOccurredAt}
+            />
+            <FieldLabel>{t("feedStock.fieldSupplier")}</FieldLabel>
+            <TextInput
+              style={styles.input}
+              value={supplier}
+              onChangeText={setSupplier}
+            />
+            <FieldLabel>{t("feedStock.fieldUnitPrice")}</FieldLabel>
+            <TextInput
+              style={styles.input}
+              value={unitPrice}
+              onChangeText={setUnitPrice}
+              keyboardType="decimal-pad"
+            />
+            <FieldLabel>{t("feedStock.fieldPriceBasis")}</FieldLabel>
+            <View style={styles.rowBtns}>
+              <Pressable
+                style={[styles.chip, priceBasis === "kg" && styles.chipOn]}
+                onPress={() => setPriceBasis("kg")}
+              >
+                <Text
+                  style={[
+                    styles.chipTx,
+                    priceBasis === "kg" && styles.chipTxOn
+                  ]}
+                >
+                  kg
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.chip, priceBasis === "sac" && styles.chipOn]}
+                onPress={() => setPriceBasis("sac")}
+              >
+                <Text
+                  style={[
+                    styles.chipTx,
+                    priceBasis === "sac" && styles.chipTxOn
+                  ]}
+                >
+                  {t("feedStock.sac")}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </ModalSection>
+      ) : (
+        <ModalSection title={t("modals.sections.measurement")}>
+          <View style={styles.fields}>
+            <FieldLabel>{t("feedStock.fieldBagsCounted")}</FieldLabel>
+            <TextInput
+              style={styles.input}
+              value={bagsCounted}
+              onChangeText={setBagsCounted}
+              keyboardType="decimal-pad"
+            />
+            {preview ? (
+              <View style={styles.previewBox}>
+                <Text style={styles.previewLine}>
+                  {t("feedStock.previewPrevBags", {
+                    n: preview.prevBags.toFixed(1)
+                  })}
+                </Text>
+                <Text style={styles.previewLine}>
+                  {t("feedStock.previewConsumed", {
+                    n: preview.consumed.toFixed(1)
+                  })}
+                </Text>
+                <Text style={styles.previewLine}>
+                  {t("feedStock.previewDaily", {
+                    n: preview.dailyKg.toLocaleString("fr-FR", {
+                      maximumFractionDigits: 2
+                    })
+                  })}
+                </Text>
+                {preview.depl ? (
+                  <Text style={styles.previewLine}>
+                    {t("feedStock.previewDepletion", { date: preview.depl })}
+                  </Text>
+                ) : null}
+              </View>
+            ) : (
+              <Text style={styles.hint}>{t("feedStock.checkHint")}</Text>
+            )}
+          </View>
+        </ModalSection>
       )}
 
-      <Text style={styles.lab}>{t("feedStock.fieldNotes")}</Text>
-      <TextInput
-        style={[styles.input, { minHeight: 72 }]}
-        value={notes}
-        onChangeText={setNotes}
-        multiline
-      />
-      {mut.error ? (
-        <Text style={styles.err}>
-          {mut.error instanceof Error ? mut.error.message : String(mut.error)}
-        </Text>
-      ) : null}
+      <ModalSection title={t("modals.sections.note")}>
+        <View style={styles.fields}>
+          <FieldLabel>{t("feedStock.fieldNotes")}</FieldLabel>
+          <TextInput
+            style={[styles.input, styles.notesInput]}
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+          />
+          {mut.error ? (
+            <Text style={styles.err}>
+              {mut.error instanceof Error
+                ? mut.error.message
+                : String(mut.error)}
+            </Text>
+          ) : null}
+        </View>
+      </ModalSection>
     </BaseModal>
   );
 }
 
 const styles = StyleSheet.create({
-  rowBtns: { flexDirection: "row", gap: mobileSpacing.sm, flexWrap: "wrap" },
+  fields: {
+    gap: mobileSpacing.sm
+  },
+  rowBtns: {
+    flexDirection: "row",
+    gap: mobileSpacing.sm,
+    flexWrap: "wrap"
+  },
   chip: {
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: mobileSpacing.sm,
     borderRadius: mobileRadius.pill,
     backgroundColor: mobileColors.surfaceMuted
   },
-  chipOn: { backgroundColor: mobileColors.accentSoft },
+  chipOn: { backgroundColor: mobileColors.accent },
   chipTx: { fontWeight: "700", color: mobileColors.textPrimary },
-  lab: {
+  chipTxOn: { color: "#fff" },
+  fieldLabel: {
     ...mobileTypography.meta,
-    color: mobileColors.textSecondary,
-    marginTop: mobileSpacing.sm
+    fontSize: 13,
+    fontWeight: "600",
+    color: mobileColors.textSecondary
   },
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
     borderRadius: mobileRadius.sm,
     padding: mobileSpacing.md,
-    marginTop: mobileSpacing.xs,
-    color: mobileColors.textPrimary
+    color: mobileColors.textPrimary,
+    backgroundColor: mobileColors.background
   },
+  notesInput: { minHeight: 72, textAlignVertical: "top" },
   typeList: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
   typeChip: {
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: mobileSpacing.sm,
     borderRadius: mobileRadius.pill,
     borderWidth: 1,
-    borderColor: mobileColors.border
+    borderColor: mobileColors.border,
+    backgroundColor: mobileColors.background
   },
   typeChipOn: {
     borderColor: mobileColors.accent,
     backgroundColor: mobileColors.accentSoft
   },
   typeChipTx: { fontWeight: "600", color: mobileColors.textPrimary },
+  typeChipTxOn: { color: mobileColors.accent, fontWeight: "700" },
   previewBox: {
-    marginTop: mobileSpacing.sm,
     padding: mobileSpacing.md,
     backgroundColor: mobileColors.surfaceMuted,
-    borderRadius: mobileRadius.md
+    borderRadius: mobileRadius.md,
+    gap: 4
   },
-  previewLine: { ...mobileTypography.body, marginBottom: 4 },
-  hint: { ...mobileTypography.meta, color: mobileColors.textSecondary, marginTop: 8 },
+  previewLine: { ...mobileTypography.body, color: mobileColors.textPrimary },
+  hint: { ...mobileTypography.meta, color: mobileColors.textSecondary },
   footerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -471,5 +559,5 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.md
   },
   primaryTx: { color: "#fff", fontWeight: "800" },
-  err: { color: mobileColors.error, marginTop: mobileSpacing.sm }
+  err: { color: mobileColors.error }
 });

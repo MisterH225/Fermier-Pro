@@ -13,5 +13,4 @@ export type ExtendedNavMenuId =
   | "market"
   | "gestation"
   | "tasks"
-  | "event"
   | "reports";

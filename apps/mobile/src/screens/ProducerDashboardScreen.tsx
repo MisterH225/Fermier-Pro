@@ -18,6 +18,7 @@ import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
 import { SmartAlertsSection } from "../components/smartAlerts/SmartAlertsSection";
 import { AlertBadge } from "../components/smartAlerts/AlertBadge";
 
+import { FeedStockLevelGauge, dashboardFeedItemToGauge } from "../components/feed";
 import { FinanceOverviewKpiGrid } from "../components/finance/FinanceOverviewKpiGrid";
 import { EmptyStateCard } from "../components/common/EmptyStateCard";
 import { OnboardingBanner } from "../components/onboarding/OnboardingBanner";
@@ -390,7 +391,14 @@ export function ProducerDashboardScreen() {
                   }}
                   dayAbbr={t("producer.dashboard.dayAbbr")}
                   onPress={() =>
-                    navigation.navigate("FarmHealth", { farmId, farmName })
+                    navigation.navigate("FarmHealth", {
+                      farmId,
+                      farmName,
+                      initialTab:
+                        (healthQuery.data?.activeDiseaseCases?.count ?? 0) > 0
+                          ? "disease"
+                          : undefined
+                    })
                   }
                 />
               </View>
@@ -408,7 +416,6 @@ export function ProducerDashboardScreen() {
                   locale={locale}
                   title={t("producer.dashboard.feedTitle")}
                   disabledHint={t("producer.dashboard.feedDisabled")}
-                  criticalLabel={t("producer.dashboard.feedCritical")}
                   onPress={() =>
                     navigation.navigate("FarmFeedStock", { farmId, farmName })
                   }
@@ -645,7 +652,6 @@ function FeedStockCard({
   locale,
   title,
   disabledHint,
-  criticalLabel,
   onPress
 }: {
   enabled: boolean;
@@ -655,9 +661,9 @@ function FeedStockCard({
   locale: string;
   title: string;
   disabledHint: string;
-  criticalLabel: string;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   if (!enabled) {
     return (
       <CardShell emoji="🌾" title={title} onPress={onPress} disabled>
@@ -689,39 +695,23 @@ function FeedStockCard({
   }
   return (
     <CardShell emoji="🌾" title={title} onPress={onPress}>
-      <View style={styles.feedList}>
-        {list.slice(0, 4).map((it) => (
-          <View key={it.productName} style={styles.feedRow}>
-            <View style={styles.feedTop}>
-              <Text style={styles.feedName} numberOfLines={1}>
-                {it.productName}
-              </Text>
-              <Text style={styles.feedKg}>
-                {formatMoney(Number(it.remainingKg), locale)} kg
-              </Text>
-            </View>
-            <View style={styles.barTrack}>
-              <View
-                style={[
-                  styles.barFill,
-                  it.level === "critical" && {
-                    backgroundColor: mobileColors.error
-                  },
-                  it.level === "medium" && {
-                    backgroundColor: mobileColors.warning
-                  },
-                  it.level === "ok" && { backgroundColor: mobileColors.success },
-                  {
-                    width: `${Math.round(Math.min(1, Math.max(0, it.ratio)) * 100)}%`
-                  }
-                ]}
-              />
-            </View>
-            {it.critical ? (
-              <Text style={styles.feedAlert}>{criticalLabel}</Text>
-            ) : null}
-          </View>
-        ))}
+      <View style={styles.feedGaugeList}>
+        {list.slice(0, 4).map((it, index) => {
+          const gauge = dashboardFeedItemToGauge(it, index, t, locale);
+          return (
+            <FeedStockLevelGauge
+              key={gauge.key}
+              name={gauge.name}
+              subtitle={gauge.subtitle}
+              displayValue={gauge.displayValue}
+              percent={gauge.percent}
+              gaugeColor={gauge.gaugeColor}
+              dotColor={gauge.dotColor}
+              centerLabel={gauge.centerLabel}
+              variant="embedded"
+            />
+          );
+        })}
       </View>
     </CardShell>
   );
@@ -863,37 +853,7 @@ const styles = StyleSheet.create({
     fontSize: 13
   },
   feedList: { gap: mobileSpacing.md },
-  feedRow: { gap: 4 },
-  feedTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: mobileSpacing.sm
-  },
-  feedName: {
-    ...mobileTypography.body,
-    flex: 1,
-    fontSize: 14,
-    color: mobileColors.textPrimary
-  },
-  feedKg: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary
-  },
-  barTrack: {
-    height: 6,
-    borderRadius: 4,
-    backgroundColor: mobileColors.border,
-    overflow: "hidden"
-  },
-  barFill: {
-    height: "100%",
-    borderRadius: 4
-  },
-  feedAlert: {
-    ...mobileTypography.meta,
-    color: mobileColors.error,
-    fontSize: 11
-  },
+  feedGaugeList: { gap: mobileSpacing.xs },
   emptyFarm: {
     padding: mobileSpacing.lg,
     borderRadius: mobileRadius.md,

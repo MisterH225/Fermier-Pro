@@ -25,6 +25,8 @@ import { useCGUStatus } from "../hooks/useCGUStatus";
 import { CGUScreen } from "../screens/onboarding/CGUScreen";
 import { FirstConnectionProfileScreen } from "../screens/FirstConnectionProfileScreen";
 import { OnboardingScreen } from "../screens/onboarding/OnboardingScreen";
+import { VetOnboardingScreen } from "../screens/onboarding/vet/VetOnboardingScreen";
+import { needsVetOnboarding } from "../lib/vetOnboardingState";
 
 /**
  * Après SessionProvider : onboarding profil si aucun profil API, sinon navigation principale.
@@ -73,6 +75,19 @@ function AuthenticatedAppShellInner() {
 
   if (authMe && authMe.profiles.length === 0) {
     return <FirstConnectionProfileScreen />;
+  }
+
+  if (needsVetOnboarding(authMe, activeProfileId)) {
+    return (
+      <VetOnboardingScreen
+        onFinished={() => {
+          void refreshAuthMe();
+        }}
+        onCancel={() => {
+          void refreshAuthMe();
+        }}
+      />
+    );
   }
 
   const onboardingState = getProducerOnboardingState(authMe, activeProfileId);

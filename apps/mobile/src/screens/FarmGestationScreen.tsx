@@ -5,6 +5,7 @@ import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -17,7 +18,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
 import { SmartChart, type SmartChartPeriod } from "../components/charts";
-import { CreateGestationModal } from "../components/gestation/CreateGestationModal";
+import { CreateGestationModal } from "../components/shared/CreateGestationModal";
 import { GestationDetailModal } from "../components/gestation/GestationDetailModal";
 import { MiseBasModal } from "../components/gestation/MiseBasModal";
 import { FinanceKpiCard } from "../components/finance/FinanceKpiCard";
@@ -474,6 +475,10 @@ export function FarmGestationScreen({ route, navigation }: Props) {
         males={males}
         onClose={() => setCreateOpen(false)}
         onCreated={invalidate}
+        onSuccess={() => {
+          invalidate();
+          Alert.alert(t("gestationScreen.createSuccessTitle"));
+        }}
       />
 
       <GestationDetailModal

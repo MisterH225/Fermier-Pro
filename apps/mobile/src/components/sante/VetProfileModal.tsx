@@ -1,0 +1,153 @@
+import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import {
+  ActivityIndicator,
+  Linking,
+  Pressable,
+  Share,
+  StyleSheet,
+  Text,
+  View
+} from "react-native";
+import { fetchVetPublicProfile } from "../../lib/api";
+import {
+  mobileColors,
+  mobileSpacing,
+  mobileTypography
+} from "../../theme/mobileTheme";
+import { BaseModal } from "../modals/BaseModal";
+
+type Props = {
+  visible: boolean;
+  vetId: string | null;
+  farmId: string;
+  farmName: string;
+  accessToken: string;
+  activeProfileId?: string | null;
+  onClose: () => void;
+  onPlanVisit: () => void;
+};
+
+export function VetProfileModal({
+  visible,
+  vetId,
+  farmId,
+  farmName,
+  accessToken,
+  activeProfileId,
+  onClose,
+  onPlanVisit
+}: Props) {
+  const { t } = useTranslation();
+
+  const q = useQuery({
+    queryKey: ["vetPublicProfile", vetId, activeProfileId],
+    queryFn: () => fetchVetPublicProfile(accessToken, vetId!, activeProfileId),
+    enabled: Boolean(visible && vetId && accessToken)
+  });
+
+  const profile = q.data;
+
+  const onContact = async () => {
+    if (!profile?.professionalPhone) {
+      return;
+    }
+    const msg = t("health.vetSearch.shareMessage", {
+      farm: farmName,
+      vet: profile.fullName,
+      phone: profile.professionalPhone
+    });
+    try {
+      await Share.share({ message: msg });
+    } catch {
+      const tel = profile.professionalPhone.replace(/\s/g, "");
+      void Linking.openURL(`tel:${tel}`);
+    }
+  };
+
+  return (
+    <BaseModal
+      visible={visible}
+      onClose={onClose}
+      title={profile?.fullName ?? t("health.vetSearch.profileTitle")}
+      sheetMaxHeight="92%"
+      footerPrimary={
+        profile ? (
+          <View style={styles.actions}>
+            <Pressable style={styles.btnSecondary} onPress={onPlanVisit}>
+              <Text style={styles.btnSecondaryTx}>
+                📅 {t("health.vetSearch.planVisit")}
+              </Text>
+            </Pressable>
+            {profile.canContact ? (
+              <Pressable style={styles.btnPrimary} onPress={() => void onContact()}>
+                <Text style={styles.btnPrimaryTx}>
+                  💬 {t("health.vetSearch.contact")}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : undefined
+      }
+    >
+      {q.isPending ? (
+        <ActivityIndicator color={mobileColors.accent} />
+      ) : q.error ? (
+        <Text style={styles.err}>{(q.error as Error).message}</Text>
+      ) : profile ? (
+        <View style={styles.body}>
+          {profile.isVerified ? (
+            <Text style={styles.verified}>{t("health.vetSearch.verified")}</Text>
+          ) : (
+            <Text style={styles.pending}>{t("health.vetSearch.notVerified")}</Text>
+          )}
+          <Text style={styles.meta}>
+            {profile.schoolName} ({profile.schoolCountry}) · {profile.graduationYear}
+          </Text>
+          <Text style={styles.meta}>{profile.locationLabel}</Text>
+          {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
+          {profile.ratingAvg != null ? (
+            <Text style={styles.meta}>
+              ★ {profile.ratingAvg.toFixed(1)} · {profile.ratingCount}{" "}
+              {t("health.vetSearch.reviews")}
+            </Text>
+          ) : null}
+          <Text style={styles.meta}>
+            {t("health.vetSearch.statsFarms", {
+              count: profile.stats.farmsFollowed
+            })}{" "}
+            ·{" "}
+            {t("health.vetSearch.statsVisits", {
+              count: profile.stats.visitsCompleted
+            })}
+          </Text>
+        </View>
+      ) : null}
+    </BaseModal>
+  );
+}
+
+const styles = StyleSheet.create({
+  body: { gap: mobileSpacing.sm },
+  verified: { color: "#059669", fontWeight: "700" },
+  pending: { color: mobileColors.textSecondary },
+  meta: { ...mobileTypography.meta, color: mobileColors.textSecondary },
+  bio: { ...mobileTypography.body, color: mobileColors.textPrimary },
+  err: { color: mobileColors.error },
+  actions: { gap: mobileSpacing.sm },
+  btnPrimary: {
+    backgroundColor: mobileColors.accent,
+    padding: mobileSpacing.md,
+    borderRadius: 12,
+    alignItems: "center"
+  },
+  btnPrimaryTx: { color: "#fff", fontWeight: "700" },
+  btnSecondary: {
+    borderWidth: 1,
+    borderColor: mobileColors.accent,
+    padding: mobileSpacing.md,
+    borderRadius: 12,
+    alignItems: "center"
+  },
+  btnSecondaryTx: { color: mobileColors.accent, fontWeight: "700" }
+});
