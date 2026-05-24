@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -23,6 +23,8 @@ import {
   mobileTypography
 } from "../../../theme/mobileTheme";
 import { budgetShortMonth, formatBudgetMoney } from "./budgetUtils";
+import { isOfflineQueuedResult, useOfflineMutation } from "../../../hooks/useOfflineMutation";
+import { BUDGET_INVALIDATE_ROOTS } from "../../../lib/offline/budgetOffline";
 
 type Props = {
   visible: boolean;
@@ -54,6 +56,7 @@ export function BudgetLineModal({
   onSaved
 }: Props) {
   const { t } = useTranslation();
+  const qc = useQueryClient();
   const [amount, setAmount] = useState("0");
 
   useEffect(() => {
@@ -76,7 +79,10 @@ export function BudgetLineModal({
     enabled: visible && Boolean(line?.categoryId)
   });
 
-  const saveMut = useMutation({
+  const saveMut = useOfflineMutation({
+    farmId,
+    type: "budget.updateLine",
+    label: line?.categoryName ?? t("budgetScreen.save"),
     mutationFn: async () => {
       const n = Number.parseFloat(amount.replace(",", "."));
       if (!line || !Number.isFinite(n)) {
@@ -108,8 +114,54 @@ export function BudgetLineModal({
         activeProfileId
       );
     },
+    buildOfflineItem: () => {
+      const n = Number.parseFloat(amount.replace(",", "."));
+      if (!line || !Number.isFinite(n)) {
+        throw new Error("invalid");
+      }
+      if (line.budgetLineId) {
+        return {
+          calls: [
+            {
+              method: "PUT",
+              path: `/farms/${farmId}/finance/budget-lines/${line.budgetLineId}`,
+              body: { amountPlanned: n }
+            }
+          ],
+          invalidateRoots: [...BUDGET_INVALIDATE_ROOTS]
+        };
+      }
+      return {
+        calls: [
+          {
+            method: "POST",
+            path: `/farms/${farmId}/finance/budget`,
+            body: {
+              year,
+              month,
+              lines: allLines.map((l) => ({
+                categoryId: l.categoryId,
+                amountPlanned:
+                  l.categoryId === line.categoryId
+                    ? n
+                    : Number.parseFloat(l.amountPlanned) || 0
+              }))
+            }
+          }
+        ],
+        invalidateRoots: [...BUDGET_INVALIDATE_ROOTS]
+      };
+    },
     onSuccess: (view) => {
-      onSaved(view);
+      if (!isOfflineQueuedResult(view)) {
+        onSaved(view as FarmBudgetViewDto);
+      }
+      onClose();
+    },
+    onQueued: () => {
+      for (const root of BUDGET_INVALIDATE_ROOTS) {
+        void qc.invalidateQueries({ queryKey: [root, farmId] });
+      }
       onClose();
     }
   });

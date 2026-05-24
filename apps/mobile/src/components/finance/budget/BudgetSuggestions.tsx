@@ -1,4 +1,3 @@
-import { useMutation } from "@tanstack/react-query";
 import { StyleSheet, Text, View, Pressable, ActivityIndicator } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { FarmBudgetSuggestionDto } from "../../../lib/api";
@@ -9,6 +8,8 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../../theme/mobileTheme";
+import { useOfflineMutation } from "../../../hooks/useOfflineMutation";
+import { BUDGET_INVALIDATE_ROOTS } from "../../../lib/offline/budgetOffline";
 
 type Props = {
   farmId: string;
@@ -27,8 +28,15 @@ export function BudgetSuggestions({
 }: Props) {
   const { t } = useTranslation();
 
-  const patchMut = useMutation({
-    mutationFn: (p: { id: string; apply?: boolean; dismiss?: boolean }) =>
+  const patchMut = useOfflineMutation<{
+    id: string;
+    apply?: boolean;
+    dismiss?: boolean;
+  }>({
+    farmId,
+    type: "budget.patchSuggestion",
+    label: t("budgetScreen.suggestionsTitle"),
+    mutationFn: (p) =>
       patchFarmBudgetSuggestion(
         accessToken,
         farmId,
@@ -36,7 +44,18 @@ export function BudgetSuggestions({
         { apply: p.apply, dismiss: p.dismiss },
         activeProfileId
       ),
-    onSuccess: () => onChange()
+    buildOfflineItem: (p) => ({
+      calls: [
+        {
+          method: "PATCH",
+          path: `/farms/${farmId}/finance/budget-suggestions/${p.id}`,
+          body: { apply: p.apply, dismiss: p.dismiss }
+        }
+      ],
+      invalidateRoots: [...BUDGET_INVALIDATE_ROOTS]
+    }),
+    onSuccess: () => onChange(),
+    onQueued: () => onChange()
   });
 
   if (!suggestions.length) {

@@ -30,38 +30,63 @@ export class PushNotificationsService {
     const devices = await this.prisma.pushDevice.findMany({
       where: { userId }
     });
-    if (!devices.length) {
-      return false;
-    }
+    return this.sendExpoMessages(
+      devices
+        .filter((d) => d.token?.startsWith("ExponentPushToken"))
+        .map((d) => ({ to: d.token, title, body, data }))
+    );
+  }
+
+  /** Diffusion push vers utilisateurs actifs (alertes sanitaires plateforme). */
+  async broadcast(
+    title: string,
+    body: string,
+    data?: Record<string, string>
+  ): Promise<number> {
+    const devices = await this.prisma.pushDevice.findMany({
+      where: {
+        user: { isActive: true, notificationsEnabled: true }
+      },
+      select: { token: true }
+    });
     const messages: ExpoPushMessage[] = devices
       .filter((d) => d.token?.startsWith("ExponentPushToken"))
-      .map((d) => ({
-        to: d.token,
-        title,
-        body,
-        data
-      }));
+      .map((d) => ({ to: d.token, title, body, data }));
+    if (!messages.length) {
+      return 0;
+    }
+    const sent = await this.sendExpoMessages(messages);
+    return sent ? messages.length : 0;
+  }
+
+  private async sendExpoMessages(messages: ExpoPushMessage[]): Promise<boolean> {
     if (!messages.length) {
       return false;
     }
     try {
-      const res = await fetch("https://exp.host/--/api/v2/push/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json"
-        },
-        body: JSON.stringify(messages.length === 1 ? messages[0] : messages)
-      });
-      if (!res.ok) {
-        this.logger.warn(
-          `Expo push HTTP ${res.status} pour user ${userId}: ${await res.text()}`
-        );
-        return false;
+      const chunks: ExpoPushMessage[][] = [];
+      for (let i = 0; i < messages.length; i += 100) {
+        chunks.push(messages.slice(i, i + 100));
+      }
+      for (const chunk of chunks) {
+        const res = await fetch("https://exp.host/--/api/v2/push/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json"
+          },
+          body: JSON.stringify(chunk.length === 1 ? chunk[0] : chunk)
+        });
+        if (!res.ok) {
+          this.logger.warn(
+            `Expo push batch HTTP ${res.status}: ${await res.text()}`
+          );
+          return false;
+        }
       }
       return true;
     } catch (e) {
-      this.logger.warn(`Expo push echoue pour user ${userId}`, e);
+      this.logger.warn("Expo push batch echoue", e);
       return false;
     }
   }

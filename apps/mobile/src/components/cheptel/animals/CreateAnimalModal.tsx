@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -18,9 +18,15 @@ import {
   fetchNextAnimalNumber,
   fetchTaxonomy,
   postAnimalWeight,
-  postPenMove,
-  type AnimalDetail
+  type AnimalDetail,
+  type CreateAnimalPayload
 } from "../../../lib/api";
+import {
+  offlineQueuedMessage,
+  useOfflineMutation
+} from "../../../hooks/useOfflineMutation";
+import { optimisticCreateAnimal } from "../../../lib/offline/optimistic";
+import { isOfflineQueuedResult } from "../../../lib/offline/types";
 import {
   mobileColors,
   mobileRadius,
@@ -69,6 +75,7 @@ export function CreateAnimalModal({
 }: Props) {
   const { t } = useTranslation();
   const { open } = useModal();
+  const qc = useQueryClient();
 
   const [category, setCategory] =
     useState<CreateAnimalCategoryKey>("breeding_female");
@@ -144,25 +151,34 @@ export function CreateAnimalModal({
     }
   };
 
-  const saveMut = useMutation({
+  const buildPayload = (): CreateAnimalPayload => {
+    const tag = tagCode.trim();
+    if (!tag) {
+      throw new Error(t("cheptel.animals.create.tagRequired"));
+    }
+    const payloadSex = isBreeder ? sex : ("unknown" as const);
+    return {
+      tagCode: tag,
+      breedId: breedId ?? undefined,
+      sex: payloadSex,
+      productionCategory: category,
+      birthDate: birthDate.trim() || undefined,
+      notes: notes.trim() || undefined,
+      speciesId: porcSpecies?.id
+    };
+  };
+
+  const saveMut = useOfflineMutation({
+    farmId,
+    type: "cheptel.createAnimal",
+    label: tagCode.trim() || t("cheptel.animals.create.title"),
+    assignLocalEntityId: true,
     mutationFn: async () => {
-      const tag = tagCode.trim();
-      if (!tag) {
-        throw new Error(t("cheptel.animals.create.tagRequired"));
-      }
-      const payloadSex = isBreeder ? sex : ("unknown" as const);
+      const payload = buildPayload();
       const created = await createAnimal(
         accessToken,
         farmId,
-        {
-          tagCode: tag,
-          breedId: breedId ?? undefined,
-          sex: payloadSex,
-          productionCategory: category,
-          birthDate: birthDate.trim() || undefined,
-          notes: notes.trim() || undefined,
-          speciesId: porcSpecies?.id
-        },
+        payload,
         activeProfileId
       );
       const w = Number.parseFloat(entryWeight.replace(",", "."));
@@ -177,12 +193,63 @@ export function CreateAnimalModal({
       }
       return created;
     },
-    onSuccess: () => {
+    buildOfflineItem: () => {
+      const payload = buildPayload();
+      const w = Number.parseFloat(entryWeight.replace(",", "."));
+      const calls: Array<{
+        method: "POST";
+        path: string;
+        body: unknown;
+      }> = [
+        {
+          method: "POST",
+          path: `/farms/${farmId}/animals`,
+          body: payload
+        }
+      ];
+      if (Number.isFinite(w) && w > 0) {
+        calls.push({
+          method: "POST",
+          path: `/farms/${farmId}/animals/{{0.id}}/weights`,
+          body: { weightKg: w }
+        });
+      }
+      return {
+        calls,
+        invalidateRoots: [
+          "farmAnimals",
+          "farmCheptel",
+          "cheptelPens",
+          "cheptelHistory"
+        ]
+      };
+    },
+    applyOptimistic: (_v, queueItemId) => {
+      optimisticCreateAnimal(
+        qc,
+        farmId,
+        activeProfileId,
+        queueItemId,
+        buildPayload(),
+        porcSpecies?.name
+      );
+    },
+    onSuccess: (data) => {
       onCreated();
       onClose();
       open("success", {
-        message: t("cheptel.animals.create.success"),
+        message: isOfflineQueuedResult(data)
+          ? offlineQueuedMessage(t)
+          : t("cheptel.animals.create.success"),
         autoDismissMs: 2200
+      });
+    },
+    onQueued: () => {
+      onCreated();
+      onClose();
+      open("success", {
+        message: offlineQueuedMessage(t),
+        autoDismissMs: 2600
       });
     },
     onError: (e: Error) => {

@@ -1,8 +1,9 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -12,7 +13,11 @@ import {
 import { BaseModal } from "../modals/BaseModal";
 import { ModalSection } from "../modals/ModalSection";
 import type { FeedTypeDto } from "../../lib/api";
-import { postFarmFeedMovement } from "../../lib/api";
+import { postFarmFeedMovement, type PostFarmFeedMovementPayload } from "../../lib/api";
+import {
+  offlineQueuedMessage,
+  useOfflineMutation
+} from "../../hooks/useOfflineMutation";
 import {
   mobileColors,
   mobileRadius,
@@ -132,81 +137,96 @@ export function StockModal({
     };
   }, [selected, tab, bagsCounted, weightOverride]);
 
-  const mut = useMutation({
-    mutationFn: () => {
-      if (newMode) {
-        const wpb = Number.parseFloat(newWeightBag.replace(",", "."));
-        return postFarmFeedMovement(
-          accessToken,
-          farmId,
-          {
-            kind: tab,
-            newFeedType: {
-              name: newName.trim(),
-              unit: newUnit,
-              weightPerBagKg: Number.isFinite(wpb) ? wpb : undefined
-            },
-            ...(tab === "in"
-              ? {
-                  quantityInput: Number.parseFloat(qty.replace(",", ".")),
-                  quantityUnit: qtyUnit,
-                  weightPerBagKg:
-                    Number.parseFloat(weightOverride.replace(",", ".")) ||
-                    undefined,
-                  supplier: supplier.trim() || undefined,
-                  unitPrice: unitPrice.trim()
-                    ? Number.parseFloat(unitPrice.replace(",", "."))
-                    : undefined,
-                  priceBasis,
-                  notes: notes.trim() || undefined,
-                  occurredAt: `${occurredAt}T12:00:00.000Z`
-                }
-              : {
-                  bagsCounted: Number.parseFloat(bagsCounted.replace(",", ".")),
-                  notes: notes.trim() || undefined,
-                  occurredAt: new Date().toISOString()
-                })
-          },
-          activeProfileId
-        );
-      }
-      if (!feedTypeId) {
-        return Promise.reject(new Error(t("feedStock.errors.pickType")));
-      }
-      return postFarmFeedMovement(
+  const buildMovementPayload = (): PostFarmFeedMovementPayload => {
+    if (newMode) {
+      const wpb = Number.parseFloat(newWeightBag.replace(",", "."));
+      return {
+        kind: tab,
+        newFeedType: {
+          name: newName.trim(),
+          unit: newUnit,
+          weightPerBagKg: Number.isFinite(wpb) ? wpb : undefined
+        },
+        ...(tab === "in"
+          ? {
+              quantityInput: Number.parseFloat(qty.replace(",", ".")),
+              quantityUnit: qtyUnit,
+              weightPerBagKg:
+                Number.parseFloat(weightOverride.replace(",", ".")) || undefined,
+              supplier: supplier.trim() || undefined,
+              unitPrice: unitPrice.trim()
+                ? Number.parseFloat(unitPrice.replace(",", "."))
+                : undefined,
+              priceBasis,
+              notes: notes.trim() || undefined,
+              occurredAt: `${occurredAt}T12:00:00.000Z`
+            }
+          : {
+              bagsCounted: Number.parseFloat(bagsCounted.replace(",", ".")),
+              notes: notes.trim() || undefined,
+              occurredAt: new Date().toISOString()
+            })
+      };
+    }
+    if (!feedTypeId) {
+      throw new Error(t("feedStock.errors.pickType"));
+    }
+    return {
+      kind: tab,
+      feedTypeId,
+      ...(tab === "in"
+        ? {
+            quantityInput: Number.parseFloat(qty.replace(",", ".")),
+            quantityUnit: qtyUnit,
+            weightPerBagKg:
+              Number.parseFloat(weightOverride.replace(",", ".")) || undefined,
+            supplier: supplier.trim() || undefined,
+            unitPrice: unitPrice.trim()
+              ? Number.parseFloat(unitPrice.replace(",", "."))
+              : undefined,
+            priceBasis,
+            notes: notes.trim() || undefined,
+            occurredAt: `${occurredAt}T12:00:00.000Z`
+          }
+        : {
+            bagsCounted: Number.parseFloat(bagsCounted.replace(",", ".")),
+            notes: notes.trim() || undefined,
+            occurredAt: new Date().toISOString()
+          })
+    };
+  };
+
+  const mut = useOfflineMutation({
+    farmId,
+    type: "feed.movement",
+    label: t("feedStock.modalTitle"),
+    mutationFn: async () =>
+      postFarmFeedMovement(
         accessToken,
         farmId,
-        {
-          kind: tab,
-          feedTypeId,
-          ...(tab === "in"
-            ? {
-                quantityInput: Number.parseFloat(qty.replace(",", ".")),
-                quantityUnit: qtyUnit,
-                weightPerBagKg:
-                  Number.parseFloat(weightOverride.replace(",", ".")) ||
-                  undefined,
-                supplier: supplier.trim() || undefined,
-                unitPrice: unitPrice.trim()
-                  ? Number.parseFloat(unitPrice.replace(",", "."))
-                  : undefined,
-                priceBasis,
-                notes: notes.trim() || undefined,
-                occurredAt: `${occurredAt}T12:00:00.000Z`
-              }
-            : {
-                bagsCounted: Number.parseFloat(bagsCounted.replace(",", ".")),
-                notes: notes.trim() || undefined,
-                occurredAt: new Date().toISOString()
-              })
-        },
+        buildMovementPayload(),
         activeProfileId
-      );
-    },
+      ),
+    buildOfflineItem: () => ({
+      calls: [
+        {
+          method: "POST",
+          path: `/farms/${farmId}/feed/movements`,
+          body: buildMovementPayload()
+        }
+      ],
+      invalidateRoots: ["farmFeed", "dashboardFeedStock"]
+    }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["farmFeed", farmId] });
       onSuccess();
       onClose();
+    },
+    onQueued: () => {
+      void qc.invalidateQueries({ queryKey: ["farmFeed", farmId] });
+      onSuccess();
+      onClose();
+      Alert.alert("", offlineQueuedMessage(t));
     }
   });
 

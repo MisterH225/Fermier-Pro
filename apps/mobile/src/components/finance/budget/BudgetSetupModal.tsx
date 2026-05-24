@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -23,6 +23,8 @@ import {
   mobileTypography
 } from "../../../theme/mobileTheme";
 import { budgetMonthLabel, formatBudgetMoney } from "./budgetUtils";
+import { isOfflineQueuedResult, useOfflineMutation } from "../../../hooks/useOfflineMutation";
+import { BUDGET_INVALIDATE_ROOTS } from "../../../lib/offline/budgetOffline";
 
 type Props = {
   visible: boolean;
@@ -54,6 +56,7 @@ export function BudgetSetupModal({
   onSaved
 }: Props) {
   const { t } = useTranslation();
+  const qc = useQueryClient();
   const [amounts, setAmounts] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -73,46 +76,96 @@ export function BudgetSetupModal({
     }, 0);
   }, [amounts]);
 
-  const saveMut = useMutation({
-    mutationFn: () =>
-      upsertFarmBudget(
-        accessToken,
-        farmId,
+  const buildUpsertBody = () => ({
+    year,
+    month,
+    lines: lines.map((l) => ({
+      categoryId: l.categoryId,
+      amountPlanned:
+        Number.parseFloat((amounts[l.categoryId] ?? "0").replace(",", ".")) || 0
+    }))
+  });
+
+  const afterBudgetQueued = () => {
+    for (const root of BUDGET_INVALIDATE_ROOTS) {
+      void qc.invalidateQueries({ queryKey: [root, farmId] });
+    }
+    onClose();
+  };
+
+  const saveMut = useOfflineMutation({
+    farmId,
+    type: "budget.upsert",
+    label: t("budgetScreen.setupTitle"),
+    mutationFn: async () =>
+      upsertFarmBudget(accessToken, farmId, buildUpsertBody(), activeProfileId),
+    buildOfflineItem: () => ({
+      calls: [
         {
-          year,
-          month,
-          lines: lines.map((l) => ({
-            categoryId: l.categoryId,
-            amountPlanned:
-              Number.parseFloat(
-                (amounts[l.categoryId] ?? "0").replace(",", ".")
-              ) || 0
-          }))
-        },
-        activeProfileId
-      ),
+          method: "POST",
+          path: `/farms/${farmId}/finance/budget`,
+          body: buildUpsertBody()
+        }
+      ],
+      invalidateRoots: [...BUDGET_INVALIDATE_ROOTS]
+    }),
     onSuccess: (view) => {
-      onSaved(view);
+      if (!isOfflineQueuedResult(view)) {
+        onSaved(view as FarmBudgetViewDto);
+      }
       onClose();
-    }
+    },
+    onQueued: afterBudgetQueued
   });
 
-  const copyMut = useMutation({
-    mutationFn: () =>
+  const copyMut = useOfflineMutation({
+    farmId,
+    type: "budget.copyPrevious",
+    label: t("budgetScreen.copyPrevious"),
+    mutationFn: async () =>
       copyPreviousFarmBudget(accessToken, farmId, year, month, activeProfileId),
+    buildOfflineItem: () => ({
+      calls: [
+        {
+          method: "POST",
+          path: `/farms/${farmId}/finance/budget/copy-previous?year=${year}&month=${month}`,
+          body: {}
+        }
+      ],
+      invalidateRoots: [...BUDGET_INVALIDATE_ROOTS]
+    }),
     onSuccess: (view) => {
-      onSaved(view);
+      if (!isOfflineQueuedResult(view)) {
+        onSaved(view as FarmBudgetViewDto);
+      }
       onClose();
-    }
+    },
+    onQueued: afterBudgetQueued
   });
 
-  const autoMut = useMutation({
-    mutationFn: () =>
+  const autoMut = useOfflineMutation({
+    farmId,
+    type: "budget.applyAuto",
+    label: t("budgetScreen.applyAuto"),
+    mutationFn: async () =>
       applyAutoFarmBudget(accessToken, farmId, year, month, activeProfileId),
+    buildOfflineItem: () => ({
+      calls: [
+        {
+          method: "POST",
+          path: `/farms/${farmId}/finance/budget/suggestion-auto?year=${year}&month=${month}`,
+          body: {}
+        }
+      ],
+      invalidateRoots: [...BUDGET_INVALIDATE_ROOTS]
+    }),
     onSuccess: (view) => {
-      onSaved(view);
+      if (!isOfflineQueuedResult(view)) {
+        onSaved(view as FarmBudgetViewDto);
+      }
       onClose();
-    }
+    },
+    onQueued: afterBudgetQueued
   });
 
   const busy = saveMut.isPending || copyMut.isPending || autoMut.isPending;

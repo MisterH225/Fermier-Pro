@@ -1,4 +1,3 @@
-import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -14,6 +13,11 @@ import { BaseModal } from "../modals/BaseModal";
 import { ModalSection } from "../modals/ModalSection";
 import { recordGestationLitter } from "../../lib/api";
 import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
+import {
+  isOfflineQueuedResult,
+  offlineQueuedMessage,
+  useOfflineMutation
+} from "../../hooks/useOfflineMutation";
 
 type Props = {
   visible: boolean;
@@ -49,42 +53,71 @@ export function MiseBasModal({
   const [vetAssistance, setVetAssistance] = useState(false);
   const [notes, setNotes] = useState("");
 
-  const mut = useMutation({
-    mutationFn: () => {
-      const alive = Number.parseInt(bornAlive, 10);
-      const dead = Number.parseInt(stillborn, 10) || 0;
-      if (!Number.isFinite(alive) || alive < 0) {
-        throw new Error(t("gestationScreen.invalidBornAlive"));
-      }
-      return recordGestationLitter(
+  const buildBody = () => {
+    const alive = Number.parseInt(bornAlive, 10);
+    const dead = Number.parseInt(stillborn, 10) || 0;
+    if (!Number.isFinite(alive) || alive < 0) {
+      throw new Error(t("gestationScreen.invalidBornAlive"));
+    }
+    return {
+      actualBirthDate,
+      bornAlive: alive,
+      stillborn: dead,
+      mummified: Number.parseInt(mummified, 10) || 0,
+      averageBirthWeightKg: avgWeight
+        ? Number.parseFloat(avgWeight)
+        : undefined,
+      deliveryType,
+      vetAssistance,
+      notes: notes.trim() || undefined
+    };
+  };
+
+  const mut = useOfflineMutation({
+    farmId,
+    type: "gestation.recordLitter",
+    label: sowLabel,
+    mutationFn: async () =>
+      recordGestationLitter(
         accessToken,
         farmId,
         gestationId,
-        {
-          actualBirthDate,
-          bornAlive: alive,
-          stillborn: dead,
-          mummified: Number.parseInt(mummified, 10) || 0,
-          averageBirthWeightKg: avgWeight
-            ? Number.parseFloat(avgWeight)
-            : undefined,
-          deliveryType,
-          vetAssistance,
-          notes: notes.trim() || undefined
-        },
+        buildBody(),
         activeProfileId
-      );
-    },
+      ),
+    buildOfflineItem: () => ({
+      calls: [
+        {
+          method: "POST",
+          path: `/farms/${farmId}/gestation/gestations/${gestationId}/litter`,
+          body: buildBody()
+        }
+      ],
+      invalidateRoots: [
+        "gestation",
+        "dashboardGestations",
+        "farmAnimals",
+        "farmCheptel"
+      ]
+    }),
     onSuccess: (data) => {
       onSaved();
       onClose();
-      const n = data.litter
-        ? (data as { litter?: { bornAlive?: number } }).litter?.bornAlive
-        : bornAlive;
+      if (isOfflineQueuedResult(data)) {
+        Alert.alert("", offlineQueuedMessage(t));
+        return;
+      }
+      const n =
+        (data as { litter?: { bornAlive?: number } }).litter?.bornAlive ?? bornAlive;
       Alert.alert(
         t("gestationScreen.litterSuccessTitle"),
-        t("gestationScreen.litterSuccessBody", { count: n ?? bornAlive })
+        t("gestationScreen.litterSuccessBody", { count: n })
       );
+    },
+    onQueued: () => {
+      onSaved();
+      onClose();
+      Alert.alert("", offlineQueuedMessage(t));
     },
     onError: (e: Error) => Alert.alert(t("gestationScreen.error"), e.message)
   });

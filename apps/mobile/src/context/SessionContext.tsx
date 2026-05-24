@@ -12,6 +12,7 @@ import type { AuthMeResponse, ClientConfigDto } from "../lib/api";
 import { formatApiError } from "../lib/apiErrors";
 import { fetchAuthMe, fetchClientConfig } from "../lib/api";
 const STORAGE_PROFILE_KEY = "@fermier_pro/active_profile_id";
+const AUTH_ME_CACHE_KEY = "@fermier_pro/auth_me_cache";
 
 const DEFAULT_CLIENT_FEATURES: ClientConfigDto["features"] = {
   marketplace: true,
@@ -113,14 +114,39 @@ export function SessionProvider({
         const withProfile = await fetchAuthMe(accessToken, chosen);
         setAuthMe(withProfile);
         setActiveProfileIdState(chosen);
+        await AsyncStorage.setItem(
+          AUTH_ME_CACHE_KEY,
+          JSON.stringify({ me: withProfile, profileId: chosen })
+        );
       } else {
         setAuthMe(initial);
         setActiveProfileIdState(null);
+        await AsyncStorage.setItem(
+          AUTH_ME_CACHE_KEY,
+          JSON.stringify({ me: initial, profileId: null })
+        );
       }
     } catch (e) {
-      setAuthError(formatApiError(e));
-      setAuthMe(null);
-      setActiveProfileIdState(null);
+      const cachedRaw = await AsyncStorage.getItem(AUTH_ME_CACHE_KEY);
+      if (cachedRaw) {
+        try {
+          const cached = JSON.parse(cachedRaw) as {
+            me: AuthMeResponse;
+            profileId: string | null;
+          };
+          setAuthMe(cached.me);
+          setActiveProfileIdState(cached.profileId);
+          setAuthError(null);
+        } catch {
+          setAuthError(formatApiError(e));
+          setAuthMe(null);
+          setActiveProfileIdState(null);
+        }
+      } else {
+        setAuthError(formatApiError(e));
+        setAuthMe(null);
+        setActiveProfileIdState(null);
+      }
     } finally {
       setAuthLoading(false);
     }
@@ -173,6 +199,7 @@ export function SessionProvider({
 
   const signOut = useCallback(async () => {
     await AsyncStorage.removeItem(STORAGE_PROFILE_KEY).catch(() => undefined);
+    await AsyncStorage.removeItem(AUTH_ME_CACHE_KEY).catch(() => undefined);
     await signOutProp();
   }, [signOutProp]);
 

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -17,6 +17,7 @@ import {
   toggleGestationChecklistItem
 } from "../../lib/api";
 import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
+import { useOfflineMutation } from "../../hooks/useOfflineMutation";
 
 type Props = {
   visible: boolean;
@@ -62,17 +63,44 @@ export function GestationDetailModal({
     enabled: visible && Boolean(gestationId)
   });
 
-  const vaccMut = useMutation({
-    mutationFn: (vaccineId: string) =>
-      administerGestationVaccine(accessToken, farmId, vaccineId, activeProfileId),
+  const gestationInvalidate = ["gestation", "dashboardGestations"];
+
+  const vaccMut = useOfflineMutation<string>({
+    farmId,
+    type: "gestation.administerVaccine",
+    label: t("gestationScreen.vaccines"),
+    mutationFn: (vaccineId) =>
+      administerGestationVaccine(
+        accessToken,
+        farmId,
+        vaccineId,
+        activeProfileId
+      ),
+    buildOfflineItem: (vaccineId) => ({
+      calls: [
+        {
+          method: "PATCH",
+          path: `/farms/${farmId}/gestation/vaccines/${vaccineId}/administer`,
+          body: {}
+        }
+      ],
+      invalidateRoots: [...gestationInvalidate, "farmHealthEvents"]
+    }),
     onSuccess: () => {
-      q.refetch();
+      void q.refetch();
+      onRefresh();
+    },
+    onQueued: () => {
+      void q.refetch();
       onRefresh();
     }
   });
 
-  const checkMut = useMutation({
-    mutationFn: ({ id, checked }: { id: string; checked: boolean }) =>
+  const checkMut = useOfflineMutation<{ id: string; checked: boolean }>({
+    farmId,
+    type: "gestation.checklist",
+    label: t("gestationScreen.preBirthChecklist"),
+    mutationFn: ({ id, checked }) =>
       toggleGestationChecklistItem(
         accessToken,
         farmId,
@@ -80,11 +108,25 @@ export function GestationDetailModal({
         checked,
         activeProfileId
       ),
-    onSuccess: () => q.refetch()
+    buildOfflineItem: ({ id, checked }) => ({
+      calls: [
+        {
+          method: "PATCH",
+          path: `/farms/${farmId}/gestation/checklist/${id}`,
+          body: { isChecked: checked }
+        }
+      ],
+      invalidateRoots: gestationInvalidate
+    }),
+    onSuccess: () => void q.refetch(),
+    onQueued: () => void q.refetch()
   });
 
-  const closeMut = useMutation({
-    mutationFn: (status: "aborted" | "lost") =>
+  const closeMut = useOfflineMutation<"aborted" | "lost">({
+    farmId,
+    type: "gestation.close",
+    label: t("gestationScreen.detailTitle"),
+    mutationFn: (status) =>
       patchGestationStatus(
         accessToken,
         farmId,
@@ -92,7 +134,21 @@ export function GestationDetailModal({
         status,
         activeProfileId
       ),
+    buildOfflineItem: (status) => ({
+      calls: [
+        {
+          method: "PATCH",
+          path: `/farms/${farmId}/gestation/gestations/${gestationId}/status`,
+          body: { status }
+        }
+      ],
+      invalidateRoots: gestationInvalidate
+    }),
     onSuccess: () => {
+      onRefresh();
+      onClose();
+    },
+    onQueued: () => {
       onRefresh();
       onClose();
     }

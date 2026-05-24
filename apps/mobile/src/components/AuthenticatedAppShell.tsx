@@ -12,6 +12,7 @@ import {
   shouldPersistQuery
 } from "../lib/queryPersist";
 import { queryClient } from "../lib/queryClient";
+import { OfflineSyncProvider } from "../context/OfflineSyncContext";
 import { AppModalsLayer } from "./modals";
 import { ModalProvider } from "../context/ModalContext";
 import { OnboardingResumeProvider } from "../context/OnboardingResumeContext";
@@ -119,10 +120,12 @@ export function AuthenticatedAppShell() {
         client={queryClient}
         persistOptions={queryPersistOptions}
       >
-        <ModalProvider>
-          <AuthenticatedAppShellInner />
-          <AppModalsLayer />
-        </ModalProvider>
+        <OfflineSyncProvider>
+          <ModalProvider>
+            <AuthenticatedAppShellInner />
+            <AppModalsLayer />
+          </ModalProvider>
+        </OfflineSyncProvider>
       </PersistQueryClientProvider>
     </OnboardingResumeProvider>
   );

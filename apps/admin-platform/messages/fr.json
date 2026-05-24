@@ -1,0 +1,262 @@
+{
+  "app": {
+    "title": "Fermier Pro — SuperAdmin",
+    "subtitle": "Console d'administration"
+  },
+  "nav": {
+    "overview": "Vue d'ensemble",
+    "vets": "Vétérinaires",
+    "users": "Utilisateurs",
+    "map": "Carte sanitaire",
+    "stats": "Statistiques",
+    "ai": "Assistant IA",
+    "settings": "Paramètres",
+    "logout": "Déconnexion"
+  },
+  "login": {
+    "title": "Connexion SuperAdmin",
+    "email": "Email",
+    "password": "Mot de passe",
+    "submit": "Se connecter",
+    "forbidden": "Accès réservé aux SuperAdmin.",
+    "error": "Identifiants invalides."
+  },
+  "overview": {
+    "title": "Vue d'ensemble",
+    "kpis": {
+      "farms": "Fermes actives",
+      "users": "Utilisateurs",
+      "vetsVerified": "Vétérinaires vérifiés",
+      "vetsPending": "En attente validation",
+      "animals": "Animaux actifs",
+      "diseases": "Cas maladies actifs",
+      "transactions": "Transactions ce mois",
+      "countries": "Pays couverts"
+    },
+    "charts": {
+      "signups": "Inscriptions (30 j)",
+      "profiles": "Répartition profils"
+    },
+    "activity": "Activité récente"
+  },
+  "vets": {
+    "title": "Validation vétérinaires",
+    "tabs": {
+      "pending": "En attente",
+      "verified": "Vérifiés",
+      "rejected": "Rejetés",
+      "all": "Tous"
+    },
+    "approve": "Approuver",
+    "reject": "Rejeter",
+    "view": "Voir dossier",
+    "diploma": "Diplôme",
+    "diplomaOpen": "Ouvrir le diplôme",
+    "rejectReason": "Motif du rejet",
+    "rejectPlaceholder": "Expliquez le motif…",
+    "statusLabels": {
+      "pending": "En attente",
+      "verified": "Vérifié",
+      "rejected": "Rejeté"
+    },
+    "empty": "Aucun vétérinaire dans cet onglet."
+  },
+  "users": {
+    "title": "Utilisateurs",
+    "total": "{count} utilisateurs",
+    "searchPlaceholder": "Rechercher nom ou email…",
+    "view": "Voir",
+    "empty": "Aucun utilisateur trouvé.",
+    "filters": {
+      "all": "Tous",
+      "producer": "Producteurs",
+      "technician": "Techniciens",
+      "veterinarian": "Vétérinaires",
+      "buyer": "Acheteurs"
+    },
+    "profiles": {
+      "producer": "Producteur",
+      "technician": "Technicien",
+      "veterinarian": "Vétérinaire",
+      "buyer": "Acheteur"
+    },
+    "columns": {
+      "name": "Nom",
+      "email": "Email",
+      "profile": "Profil",
+      "farm": "Ferme",
+      "joined": "Inscription",
+      "status": "Statut"
+    },
+    "status": {
+      "active": "Actif",
+      "inactive": "Inactif"
+    },
+    "detail": {
+      "back": "Retour à la liste",
+      "noFarm": "Aucune ferme enregistrée.",
+      "tabs": {
+        "profil": "Profil",
+        "cheptel": "Cheptel",
+        "finance": "Finance",
+        "sante": "Santé",
+        "gestation": "Gestation",
+        "activite": "Activité"
+      },
+      "sections": {
+        "identity": "Identité",
+        "farms": "Fermes",
+        "collaborations": "Collaborations"
+      },
+      "fields": {
+        "phone": "Téléphone",
+        "location": "Localisation",
+        "joined": "Inscrit le",
+        "animals": "animaux actifs",
+        "healthRecords": "fiches santé"
+      },
+      "livestock": {
+        "total": "Effectif total",
+        "byCategory": "Répartition par catégorie"
+      },
+      "finance": {
+        "revenues": "Revenus (3 mois)",
+        "expenses": "Dépenses (3 mois)",
+        "margin": "Marge nette",
+        "note": "Données agrégées sur les 90 derniers jours."
+      },
+      "health": {
+        "activeDiseases": "Cas maladies actifs",
+        "mortality": "Taux mortalité (30 j)",
+        "overdueVaccines": "Vaccins en retard"
+      },
+      "gestation": {
+        "active": "Gestations actives",
+        "upcoming": "Mises bas à venir"
+      },
+      "activity": {
+        "placeholder": "Historique d'activité détaillé — prochaine itération."
+      }
+    }
+  },
+  "stats": {
+    "title": "Statistiques agrégées",
+    "topDiseases": "Top maladies",
+    "periods": {
+      "month": "Mensuel",
+      "quarter": "Trimestriel",
+      "year": "Annuel"
+    },
+    "kpis": {
+      "newUsers": "Nouveaux utilisateurs",
+      "activeAnimals": "Animaux actifs",
+      "mortality": "Mortalités (période)"
+    }
+  },
+  "map": {
+    "title": "Carte sanitaire",
+    "subtitle": "Carte interactive Mapbox + agrégation par zone.",
+    "regions": "Zones par pays",
+    "empty": "Aucun cas sur la période.",
+    "activeCases": "{count} cas actifs",
+    "farms": "{count} fermes",
+    "totalCases": "{count} cas total",
+    "activePoints": "Points actifs géolocalisés",
+    "pointsNote": "Cas actifs avec coordonnées GPS.",
+    "alertsTitle": "Alertes actives",
+    "noAlerts": "Aucune alerte active.",
+    "alertModal": {
+      "create": "Créer une alerte",
+      "title": "Alerte manuelle",
+      "zone": "Zone concernée",
+      "level": "Niveau",
+      "message": "Message",
+      "cancel": "Annuler",
+      "submit": "Publier",
+      "levels": {
+        "info": "Info",
+        "warning": "Avertissement",
+        "critical": "Critique"
+      }
+    },
+    "periods": {
+      "7": "7 j",
+      "30": "30 j",
+      "90": "90 j",
+      "365": "12 mois"
+    }
+  },
+  "ai": {
+    "title": "Assistant IA",
+    "unavailable": "IA indisponible — vérifiez GEMINI_API_KEY côté API.",
+    "epidemic": {
+      "title": "Analyse épidémiologique",
+      "description": "Analyse des données sanitaires agrégées (30 derniers jours).",
+      "run": "Analyser la situation sanitaire",
+      "emerging": "Maladies émergentes",
+      "riskZones": "Zones à risque",
+      "trends": "Tendances",
+      "recommendations": "Recommandations prioritaires"
+    },
+    "ask": {
+      "title": "Aide à la décision",
+      "description": "Posez une question sur les statistiques agrégées de la plateforme.",
+      "placeholder": "Ex. : Quelles régions présentent les risques sanitaires les plus élevés ?",
+      "run": "Analyser"
+    },
+    "vetAssist": {
+      "title": "Assistance validation vétérinaires",
+      "description": "Analyse textuelle + vision du diplôme pour les dossiers en attente.",
+      "none": "Aucun dossier en attente.",
+      "run": "Analyser le dossier",
+      "imageAnalyzed": "Diplôme analysé par vision IA.",
+      "confidence": "Confiance",
+      "recommendation": "Recommandation",
+      "diploma": "Diplôme (texte)",
+      "consistent": "Cohérence infos",
+      "yes": "Oui",
+      "no": "Non",
+      "disclaimer": "Recommandation IA — décision finale humaine.",
+      "rec": {
+        "approve": "Approuver",
+        "review": "Vérifier manuellement",
+        "reject": "Rejeter"
+      }
+    }
+  },
+  "settings": {
+    "title": "Paramètres plateforme",
+    "save": "Enregistrer",
+    "saved": "Paramètres enregistrés.",
+    "sections": {
+      "map": "Périmètre géographique",
+      "alerts": "Seuils alertes sanitaires",
+      "notifications": "Notifications"
+    },
+    "fields": {
+      "mapScope": "Zone visible sur la carte",
+      "alertThreshold": "Seuil déclenchement (cas)",
+      "alertPeriod": "Période de calcul (jours)",
+      "alertLevel": "Niveau alerte par défaut",
+      "adminEmail": "Email SuperAdmin",
+      "reportFrequency": "Fréquence rapports (jours)"
+    },
+    "scopes": {
+      "world": "Monde entier",
+      "africa": "Afrique",
+      "west_africa": "Afrique de l'Ouest",
+      "countries": "Pays spécifiques"
+    },
+    "levels": {
+      "info": "Info",
+      "warning": "Avertissement",
+      "critical": "Critique"
+    }
+  },
+  "common": {
+    "loading": "Chargement…",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "comingSoon": "Section en cours de déploiement."
+  }
+}

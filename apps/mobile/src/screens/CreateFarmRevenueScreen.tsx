@@ -1,6 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -17,6 +18,7 @@ import { FinanceModuleGate } from "../components/FinanceModuleGate";
 import { useSession } from "../context/SessionContext";
 import { createFarmRevenue } from "../lib/api";
 import { invalidateFarmFinanceQueries } from "../lib/invalidateFarmFinanceQueries";
+import { offlineQueuedMessage, useOfflineMutation } from "../hooks/useOfflineMutation";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CreateFarmRevenue">;
@@ -28,6 +30,7 @@ function parseAmount(raw: string): number | null {
 
 export function CreateFarmRevenueScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
+  const { t } = useTranslation();
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
   const [amountText, setAmountText] = useState("");
@@ -35,25 +38,47 @@ export function CreateFarmRevenueScreen({ route, navigation }: Props) {
   const [category, setCategory] = useState("");
   const [note, setNote] = useState("");
 
-  const mutation = useMutation({
-    mutationFn: () => {
-      const amount = parseAmount(amountText);
-      if (amount == null) throw new Error("Montant invalide.");
-      return createFarmRevenue(
-        accessToken,
-        farmId,
+  const buildBody = () => {
+    const amount = parseAmount(amountText);
+    if (amount == null) {
+      throw new Error("Montant invalide.");
+    }
+    return {
+      amount,
+      label: label.trim(),
+      ...(category.trim() ? { category: category.trim() } : {}),
+      ...(note.trim() ? { note: note.trim() } : {})
+    };
+  };
+
+  const mutation = useOfflineMutation({
+    farmId,
+    type: "finance.createRevenue",
+    label: label.trim() || "Revenu",
+    mutationFn: async () =>
+      createFarmRevenue(accessToken, farmId, buildBody(), activeProfileId),
+    buildOfflineItem: () => ({
+      calls: [
         {
-          amount,
-          label: label.trim(),
-          ...(category.trim() ? { category: category.trim() } : {}),
-          ...(note.trim() ? { note: note.trim() } : {})
-        },
-        activeProfileId
-      );
-    },
+          method: "POST",
+          path: `/farms/${farmId}/finance/revenues`,
+          body: buildBody()
+        }
+      ],
+      invalidateRoots: [
+        "financeOverview",
+        "financeTransactions",
+        "financeReport"
+      ]
+    }),
     onSuccess: () => {
       invalidateFarmFinanceQueries(qc, farmId);
       navigation.goBack();
+    },
+    onQueued: () => {
+      invalidateFarmFinanceQueries(qc, farmId);
+      navigation.goBack();
+      Alert.alert("", offlineQueuedMessage(t));
     },
     onError: (e: Error) => {
       Alert.alert("Enregistrement impossible", e.message);

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -14,6 +14,12 @@ import { BaseModal } from "../../modals/BaseModal";
 import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
 import { fetchFarmAnimals, postAnimalWeight } from "../../../lib/api";
+import {
+  offlineQueuedMessage,
+  useOfflineMutation
+} from "../../../hooks/useOfflineMutation";
+import { optimisticAnimalWeight } from "../../../lib/offline/optimistic";
+import { isOfflineQueuedResult } from "../../../lib/offline/types";
 import {
   mobileColors,
   mobileRadius,
@@ -42,6 +48,7 @@ export function AddWeightModal({
 }: Props) {
   const { t } = useTranslation();
   const { open } = useModal();
+  const qc = useQueryClient();
   const [animalId, setAnimalId] = useState(preselectedAnimalId ?? "");
   const [weightKg, setWeightKg] = useState("");
   const [note, setNote] = useState("");
@@ -52,26 +59,66 @@ export function AddWeightModal({
     enabled: visible
   });
 
-  const saveMut = useMutation({
-    mutationFn: () => {
-      const w = Number.parseFloat(weightKg.replace(",", "."));
-      if (!animalId || !Number.isFinite(w) || w <= 0) {
-        throw new Error(t("cheptel.weight.invalid"));
-      }
+  const buildWeightPayload = () => {
+    const w = Number.parseFloat(weightKg.replace(",", "."));
+    if (!animalId || !Number.isFinite(w) || w <= 0) {
+      throw new Error(t("cheptel.weight.invalid"));
+    }
+    return { animalId, weightKg: w, note: note.trim() || undefined };
+  };
+
+  const saveMut = useOfflineMutation({
+    farmId,
+    type: "cheptel.postWeight",
+    label: t("cheptel.weight.addTitle"),
+    mutationFn: async () => {
+      const p = buildWeightPayload();
       return postAnimalWeight(
         accessToken,
         farmId,
-        animalId,
-        { weightKg: w, note: note.trim() || undefined },
+        p.animalId,
+        { weightKg: p.weightKg, note: p.note },
         activeProfileId
       );
     },
-    onSuccess: () => {
+    buildOfflineItem: () => {
+      const p = buildWeightPayload();
+      return {
+        calls: [
+          {
+            method: "POST",
+            path: `/farms/${farmId}/animals/${p.animalId}/weights`,
+            body: { weightKg: p.weightKg, note: p.note }
+          }
+        ],
+        invalidateRoots: [
+          "farmAnimals",
+          "farmCheptel",
+          "cheptelGmq",
+          "cheptelWeightSeries"
+        ]
+      };
+    },
+    applyOptimistic: () => {
+      const p = buildWeightPayload();
+      optimisticAnimalWeight(qc, farmId, activeProfileId, p.animalId, p.weightKg);
+    },
+    onSuccess: (data) => {
       onSaved();
       onClose();
       open("success", {
-        message: t("cheptel.weight.saveSuccess"),
+        message: isOfflineQueuedResult(data)
+          ? offlineQueuedMessage(t)
+          : t("cheptel.weight.saveSuccess"),
         autoDismissMs: 2200
+      });
+    },
+    onQueued: () => {
+      onSaved();
+      onClose();
+      open("success", {
+        message: offlineQueuedMessage(t),
+        autoDismissMs: 2600
       });
     },
     onError: (e: Error) => Alert.alert("", e.message)

@@ -11,7 +11,12 @@ const config = getDefaultConfig(projectRoot);
 config.watchFolders = [monorepoRoot];
 
 // Ne jamais embarquer le code Nest/API dans le bundle mobile (résolutions parasites).
-config.resolver.blockList = [/[/\\]apps[/\\]api[/\\].*/];
+// Ignorer les dossiers temporaires npm (ex. `.react-dom-xxxxx`) : sous Windows, Metro
+// plante avec ENOENT si npm les supprime pendant le file watching.
+config.resolver.blockList = [
+  /[/\\]apps[/\\]api[/\\].*/,
+  /[/\\]node_modules[/\\]\.(?!bin(?:[/\\]|$))[^/\\]+[/\\].*/
+];
 
 // Ordre de résolution des modules : local d'abord, puis racine du monorepo.
 config.resolver.nodeModulesPaths = [

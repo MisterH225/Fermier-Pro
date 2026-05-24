@@ -1,5 +1,11 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  offlineQueuedMessage,
+  useOfflineMutation
+} from "../../hooks/useOfflineMutation";
+import { optimisticHealthEvent } from "../../lib/offline/optimistic";
+import { isOfflineQueuedResult } from "../../lib/offline/types";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -196,20 +202,63 @@ export function SanteScreen({ route, navigation }: Props) {
     setFormOpen(true);
   };
 
-  const createMut = useMutation({
-    mutationFn: (body: CreateFarmHealthRecordBody) =>
+  const invalidateHealth = () => {
+    void invalidateAIInsights(farmId, "sante");
+    void invalidateAIInsights(farmId, "global_dashboard");
+    void qc.invalidateQueries({ queryKey: ["farmHealthEvents", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmHealthOverview", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmHealthUpcoming", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmHealthMortality", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmVaccineCoverage", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmAnimals", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmBatches", farmId] });
+  };
+
+  const createMut = useOfflineMutation<CreateFarmHealthRecordBody>({
+    farmId,
+    type: "health.createRecord",
+    label: t("health.screenTitle"),
+    mutationFn: (body) =>
       createFarmHealthRecord(accessToken!, farmId, body, activeProfileId),
-    onSuccess: () => {
+    buildOfflineItem: (body) => ({
+      calls: [
+        {
+          method: "POST",
+          path: `/farms/${farmId}/health/events`,
+          body
+        }
+      ],
+      invalidateRoots: [
+        "farmHealthEvents",
+        "farmHealthOverview",
+        "farmHealthUpcoming",
+        "farmHealthMortality",
+        "farmVaccineCoverage",
+        "farmAnimals",
+        "farmBatches"
+      ]
+    }),
+    applyOptimistic: (body, queueItemId) => {
+      optimisticHealthEvent(qc, farmId, queueItemId, {
+        type: body.kind,
+        kind: body.kind,
+        entityType: body.entityType,
+        entityId: body.entityId,
+        status: body.status,
+        notes: body.notes
+      });
+    },
+    onSuccess: (data) => {
       setFormOpen(false);
-      void invalidateAIInsights(farmId, "sante");
-      void invalidateAIInsights(farmId, "global_dashboard");
-      void qc.invalidateQueries({ queryKey: ["farmHealthEvents", farmId] });
-      void qc.invalidateQueries({ queryKey: ["farmHealthOverview", farmId] });
-      void qc.invalidateQueries({ queryKey: ["farmHealthUpcoming", farmId] });
-      void qc.invalidateQueries({ queryKey: ["farmHealthMortality", farmId] });
-      void qc.invalidateQueries({ queryKey: ["farmVaccineCoverage", farmId] });
-      void qc.invalidateQueries({ queryKey: ["farmAnimals", farmId] });
-      void qc.invalidateQueries({ queryKey: ["farmBatches", farmId] });
+      invalidateHealth();
+      if (isOfflineQueuedResult(data)) {
+        Alert.alert("", offlineQueuedMessage(t));
+      }
+    },
+    onQueued: () => {
+      setFormOpen(false);
+      invalidateHealth();
+      Alert.alert("", offlineQueuedMessage(t));
     },
     onError: (e: Error) => Alert.alert(t("health.errorTitle"), e.message)
   });

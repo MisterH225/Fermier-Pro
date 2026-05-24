@@ -456,6 +456,16 @@ export const fr = {
       pickType: "Choisis un type d’aliment."
     }
   },
+  offline: {
+    bannerOffline:
+      "Hors ligne — vos saisies sont enregistrées localement et seront synchronisées au retour du réseau.",
+    queuePending: "{{count}} action(s) en attente de synchronisation",
+    queueFailed:
+      "{{pending}} en attente · {{failed}} en échec (appuyez sur Synchroniser)",
+    syncNow: "Synchroniser",
+    queuedSuccess:
+      "Enregistré sur l’appareil — synchronisation dès que le réseau est disponible."
+  },
   cheptel: {
     navOverview: "Vue d'ensemble",
     navCheptel: "Cheptel",
@@ -477,6 +487,8 @@ export const fr = {
     unassignedAnimals: "Sans loge assignée",
     headcountTrend: "Évolution de l'effectif",
     categoryBreakdown: "Répartition par catégorie",
+    categoryPieCenter: "Effectif total",
+    categoryPieTooltip: "{{count}} têtes — {{pct}} %",
     category: {
       piglets: "Porcelets / démarrage",
       growth: "Croissance",

@@ -18,6 +18,6 @@ import { AiService } from "./ai.service";
     AiGeminiService,
     AiResponseParserService
   ],
-  exports: [AiService]
+  exports: [AiService, AiGeminiService]
 })
 export class AiModule {}

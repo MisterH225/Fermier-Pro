@@ -80,16 +80,24 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
   }, [farmQuery, cheptelQuery, animalsQuery, batchesQuery, qc, farmId]);
 
   const loading =
-    farmQuery.isPending ||
-    cheptelQuery.isPending ||
-    animalsQuery.isPending ||
-    batchesQuery.isPending;
+    (farmQuery.isPending && !farmQuery.data) ||
+    (cheptelQuery.isPending && !cheptelQuery.data) ||
+    (animalsQuery.isPending && !animalsQuery.data) ||
+    (batchesQuery.isPending && !batchesQuery.data);
 
   const errMsg =
-    (farmQuery.error as Error | undefined)?.message ||
-    (cheptelQuery.error as Error | undefined)?.message ||
-    (animalsQuery.error as Error | undefined)?.message ||
-    (batchesQuery.error as Error | undefined)?.message;
+    !farmQuery.data && (farmQuery.error as Error | undefined)?.message
+      ? (farmQuery.error as Error).message
+      : !cheptelQuery.data &&
+          !animalsQuery.data &&
+          !batchesQuery.data &&
+          ((cheptelQuery.error as Error | undefined)?.message ||
+            (animalsQuery.error as Error | undefined)?.message ||
+            (batchesQuery.error as Error | undefined)?.message)
+        ? (cheptelQuery.error as Error | undefined)?.message ||
+          (animalsQuery.error as Error | undefined)?.message ||
+          (batchesQuery.error as Error | undefined)?.message
+        : undefined;
 
   const livestockMode =
     (farmQuery.data?.livestockMode as "individual" | "batch" | "hybrid") ||

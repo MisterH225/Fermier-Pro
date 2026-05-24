@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -28,6 +28,11 @@ import {
   type FarmHealthRecordRowDto
 } from "../../lib/api";
 import { formatAuthError } from "../../lib/authErrors";
+import {
+  offlineAwareMessage,
+  offlineQueuedMessage,
+  useOfflineMutation
+} from "../../hooks/useOfflineMutation";
 import { HealthSubjectPicker } from "../sante/HealthSubjectPicker";
 import { animalDisplayTag } from "../cheptel/animals/animalUtils";
 import { toIsoDate } from "../sante/healthUtils";
@@ -198,7 +203,36 @@ export function DiseaseModal({
 
   const canSubmit = symptoms.length > 0 && subjectId.trim().length > 0;
 
-  const saveMut = useMutation({
+  const buildEditBody = () => ({
+    symptoms,
+    durationEstimate,
+    diagnosis: diagnosis.trim() || undefined,
+    severity,
+    treatmentOngoing,
+    inIsolation,
+    notes: notes.trim() || undefined
+  });
+
+  const buildCreateBody = (): CreateDiseaseCaseBody => ({
+    entityType: subjectType,
+    entityId: subjectId.trim(),
+    symptoms,
+    durationEstimate,
+    estimatedOnsetDate: `${estimatedOnsetDate.trim()}T12:00:00.000Z`,
+    diagnosis: diagnosis.trim() || undefined,
+    severity,
+    treatmentOngoing,
+    treatmentNotes: treatmentOngoing ? treatmentNotes.trim() || undefined : undefined,
+    inIsolation,
+    isolationPenId: isolationPenId ?? undefined,
+    notes: notes.trim() || undefined
+  });
+
+  const saveMut = useOfflineMutation({
+    farmId,
+    type: isEdit ? "health.updateDisease" : "health.createDisease",
+    label: t("health.diseaseModal.title"),
+    assignLocalEntityId: !isEdit,
     mutationFn: async () => {
       if (!canSubmit) {
         throw new Error(t("health.diseaseModal.validation"));
@@ -208,32 +242,11 @@ export function DiseaseModal({
           accessToken,
           farmId,
           editRecord.id,
-          {
-            symptoms,
-            durationEstimate,
-            diagnosis: diagnosis.trim() || undefined,
-            severity,
-            treatmentOngoing,
-            inIsolation,
-            notes: notes.trim() || undefined
-          },
+          buildEditBody(),
           activeProfileId
         );
       }
-      const body: CreateDiseaseCaseBody = {
-        entityType: subjectType,
-        entityId: subjectId.trim(),
-        symptoms,
-        durationEstimate,
-        estimatedOnsetDate: `${estimatedOnsetDate.trim()}T12:00:00.000Z`,
-        diagnosis: diagnosis.trim() || undefined,
-        severity,
-        treatmentOngoing,
-        treatmentNotes: treatmentOngoing ? treatmentNotes.trim() || undefined : undefined,
-        inIsolation,
-        isolationPenId: isolationPenId ?? undefined,
-        notes: notes.trim() || undefined
-      };
+      const body = buildCreateBody();
       const record = await createFarmDiseaseCase(
         accessToken,
         farmId,
@@ -259,11 +272,80 @@ export function DiseaseModal({
       }
       return record;
     },
-    onSuccess: () => {
+    buildOfflineItem: () => {
+      if (!canSubmit) {
+        throw new Error(t("health.diseaseModal.validation"));
+      }
+      if (isEdit && editRecord) {
+        return {
+          calls: [
+            {
+              method: "PATCH",
+              path: `/farms/${farmId}/health/events/${editRecord.id}/disease`,
+              body: buildEditBody()
+            }
+          ],
+          invalidateRoots: [
+            "farmHealthEvents",
+            "farmDiseasesOverview",
+            "farmHealthOverview",
+            "farmAnimals",
+            "cheptelPens"
+          ]
+        };
+      }
+      const body = buildCreateBody();
+      const calls: Array<{
+        method: "POST" | "PATCH";
+        path: string;
+        body: unknown;
+      }> = [
+        {
+          method: "POST",
+          path: `/farms/${farmId}/health/diseases`,
+          body
+        }
+      ];
+      if (
+        inIsolation &&
+        isolationPenId &&
+        subjectType === "animal"
+      ) {
+        calls.push({
+          method: "POST",
+          path: `/farms/${farmId}/pen-move`,
+          body: {
+            toPenId: isolationPenId,
+            animalId: subjectId.trim(),
+            note: t("health.diseaseModal.isolationMoveNote")
+          }
+        });
+      }
+      return {
+        calls,
+        invalidateRoots: [
+          "farmHealthEvents",
+          "farmDiseasesOverview",
+          "farmHealthOverview",
+          "farmAnimals",
+          "cheptelPens",
+          "farmBarnDetails"
+        ]
+      };
+    },
+    onSuccess: (data) => {
       onSuccess();
       onClose();
       open("success", {
-        message: t("health.diseaseModal.success"),
+        message: offlineAwareMessage(t, data, "health.diseaseModal.success"),
+        autoDismissMs: 2800
+      });
+    },
+    onQueued: () => {
+      onSuccess();
+      onClose();
+      open("success", {
+        message: offlineQueuedMessage(t),
         autoDismissMs: 2800
       });
     },

@@ -1,4 +1,3 @@
-import { useMutation } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -23,6 +22,11 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import {
+  isOfflineQueuedResult,
+  offlineQueuedMessage,
+  useOfflineMutation
+} from "../../hooks/useOfflineMutation";
 
 type Props = {
   visible: boolean;
@@ -82,32 +86,62 @@ export function BulkVaccineModal({
     });
   };
 
-  const mut = useMutation({
-    mutationFn: () =>
+  const buildBody = () => ({
+    vaccineId: vaccine.id,
+    subjects: initialSubjects
+      .filter((s) => selected.has(s.entityId))
+      .map((s) => ({
+        entityType: s.entityType,
+        entityId: s.entityId
+      })),
+    administeredDate: `${administeredDate}T12:00:00.000Z`,
+    practitioner: practitioner.trim() || undefined,
+    batchNumber: batchNumber.trim() || undefined,
+    expiryDate: expiryDate.trim()
+      ? `${expiryDate.trim()}T12:00:00.000Z`
+      : undefined,
+    notes: notes.trim() || undefined
+  });
+
+  const mut = useOfflineMutation({
+    farmId,
+    type: "health.bulkVaccine",
+    label: vaccine.name,
+    mutationFn: async () =>
       createFarmVaccineRecords(
         accessToken,
         farmId,
-        {
-          vaccineId: vaccine.id,
-          subjects: initialSubjects
-            .filter((s) => selected.has(s.entityId))
-            .map((s) => ({
-              entityType: s.entityType,
-              entityId: s.entityId
-            })),
-          administeredDate: `${administeredDate}T12:00:00.000Z`,
-          practitioner: practitioner.trim() || undefined,
-          batchNumber: batchNumber.trim() || undefined,
-          expiryDate: expiryDate.trim()
-            ? `${expiryDate.trim()}T12:00:00.000Z`
-            : undefined,
-          notes: notes.trim() || undefined
-        },
+        buildBody(),
         activeProfileId
       ),
+    buildOfflineItem: () => ({
+      calls: [
+        {
+          method: "POST",
+          path: `/farms/${farmId}/vaccines/records`,
+          body: buildBody()
+        }
+      ],
+      invalidateRoots: [
+        "farmHealthEvents",
+        "farmHealthOverview",
+        "farmVaccineCoverage",
+        "farmAnimals",
+        "farmBatches"
+      ]
+    }),
     onSuccess: (res) => {
-      onSuccess(res.createdCount);
+      if (isOfflineQueuedResult(res)) {
+        return;
+      }
+      const row = res as { createdCount: number };
+      onSuccess(row.createdCount);
       onClose();
+    },
+    onQueued: () => {
+      onSuccess(selected.size);
+      onClose();
+      Alert.alert("", offlineQueuedMessage(t));
     },
     onError: (e: Error) =>
       Alert.alert(t("health.errorTitle"), e.message)

@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -23,6 +24,8 @@ import {
   mobileTypography
 } from "../../../theme/mobileTheme";
 import { formatBudgetMoney, globalStatusKey } from "./budgetUtils";
+import { isOfflineQueuedResult, useOfflineMutation } from "../../../hooks/useOfflineMutation";
+import { BUDGET_INVALIDATE_ROOTS } from "../../../lib/offline/budgetOffline";
 
 type Props = {
   farmId: string;
@@ -44,6 +47,7 @@ export function SimulationTool({
   onApplied
 }: Props) {
   const { t } = useTranslation();
+  const qc = useQueryClient();
   const expenseLines = useMemo(
     () => budget.lines.filter((l) => Number(l.amountPlanned) >= 0),
     [budget.lines]
@@ -88,7 +92,10 @@ export function SimulationTool({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryId, draftAmount, year, month]);
 
-  const applyMut = useMutation({
+  const applyMut = useOfflineMutation({
+    farmId,
+    type: "budget.simulationApply",
+    label: t("budgetScreen.simApply"),
     mutationFn: async () => {
       const n = Number.parseFloat(draftAmount.replace(",", "."));
       if (!categoryId || !Number.isFinite(n)) {
@@ -118,7 +125,56 @@ export function SimulationTool({
         activeProfileId
       );
     },
-    onSuccess: () => onApplied()
+    buildOfflineItem: () => {
+      const n = Number.parseFloat(draftAmount.replace(",", "."));
+      if (!categoryId || !Number.isFinite(n)) {
+        throw new Error("invalid");
+      }
+      const line = budget.lines.find((l) => l.categoryId === categoryId);
+      if (line?.budgetLineId) {
+        return {
+          calls: [
+            {
+              method: "PUT",
+              path: `/farms/${farmId}/finance/budget-lines/${line.budgetLineId}`,
+              body: { amountPlanned: n }
+            }
+          ],
+          invalidateRoots: [...BUDGET_INVALIDATE_ROOTS]
+        };
+      }
+      return {
+        calls: [
+          {
+            method: "POST",
+            path: `/farms/${farmId}/finance/budget`,
+            body: {
+              year,
+              month,
+              lines: budget.lines.map((l) => ({
+                categoryId: l.categoryId,
+                amountPlanned:
+                  l.categoryId === categoryId
+                    ? n
+                    : Number.parseFloat(l.amountPlanned) || 0
+              }))
+            }
+          }
+        ],
+        invalidateRoots: [...BUDGET_INVALIDATE_ROOTS]
+      };
+    },
+    onSuccess: (data) => {
+      if (!isOfflineQueuedResult(data)) {
+        onApplied();
+      }
+    },
+    onQueued: () => {
+      for (const root of BUDGET_INVALIDATE_ROOTS) {
+        void qc.invalidateQueries({ queryKey: [root, farmId] });
+      }
+      onApplied();
+    }
   });
 
   const sim = simQ.data;

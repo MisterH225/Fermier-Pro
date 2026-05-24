@@ -1,0 +1,262 @@
+{
+  "app": {
+    "title": "Fermier Pro — SuperAdmin",
+    "subtitle": "Admin console"
+  },
+  "nav": {
+    "overview": "Overview",
+    "vets": "Veterinarians",
+    "users": "Users",
+    "map": "Health map",
+    "stats": "Statistics",
+    "ai": "AI assistant",
+    "settings": "Settings",
+    "logout": "Sign out"
+  },
+  "login": {
+    "title": "SuperAdmin sign in",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "forbidden": "SuperAdmin access only.",
+    "error": "Invalid credentials."
+  },
+  "overview": {
+    "title": "Overview",
+    "kpis": {
+      "farms": "Active farms",
+      "users": "Users",
+      "vetsVerified": "Verified vets",
+      "vetsPending": "Pending validation",
+      "animals": "Active animals",
+      "diseases": "Active disease cases",
+      "transactions": "Transactions this month",
+      "countries": "Countries covered"
+    },
+    "charts": {
+      "signups": "Sign-ups (30d)",
+      "profiles": "Profile distribution"
+    },
+    "activity": "Recent activity"
+  },
+  "vets": {
+    "title": "Vet validation",
+    "tabs": {
+      "pending": "Pending",
+      "verified": "Verified",
+      "rejected": "Rejected",
+      "all": "All"
+    },
+    "approve": "Approve",
+    "reject": "Reject",
+    "view": "View dossier",
+    "diploma": "Diploma",
+    "diplomaOpen": "Open diploma",
+    "rejectReason": "Rejection reason",
+    "rejectPlaceholder": "Explain the reason…",
+    "statusLabels": {
+      "pending": "Pending",
+      "verified": "Verified",
+      "rejected": "Rejected"
+    },
+    "empty": "No veterinarians in this tab."
+  },
+  "users": {
+    "title": "Users",
+    "total": "{count} users",
+    "searchPlaceholder": "Search name or email…",
+    "view": "View",
+    "empty": "No users found.",
+    "filters": {
+      "all": "All",
+      "producer": "Producers",
+      "technician": "Technicians",
+      "veterinarian": "Veterinarians",
+      "buyer": "Buyers"
+    },
+    "profiles": {
+      "producer": "Producer",
+      "technician": "Technician",
+      "veterinarian": "Veterinarian",
+      "buyer": "Buyer"
+    },
+    "columns": {
+      "name": "Name",
+      "email": "Email",
+      "profile": "Profile",
+      "farm": "Farm",
+      "joined": "Joined",
+      "status": "Status"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "detail": {
+      "back": "Back to list",
+      "noFarm": "No farm registered.",
+      "tabs": {
+        "profil": "Profile",
+        "cheptel": "Herd",
+        "finance": "Finance",
+        "sante": "Health",
+        "gestation": "Gestation",
+        "activite": "Activity"
+      },
+      "sections": {
+        "identity": "Identity",
+        "farms": "Farms",
+        "collaborations": "Collaborations"
+      },
+      "fields": {
+        "phone": "Phone",
+        "location": "Location",
+        "joined": "Joined on",
+        "animals": "active animals",
+        "healthRecords": "health records"
+      },
+      "livestock": {
+        "total": "Total headcount",
+        "byCategory": "By category"
+      },
+      "finance": {
+        "revenues": "Revenue (3 months)",
+        "expenses": "Expenses (3 months)",
+        "margin": "Net margin",
+        "note": "Aggregated data for the last 90 days."
+      },
+      "health": {
+        "activeDiseases": "Active disease cases",
+        "mortality": "Mortality rate (30d)",
+        "overdueVaccines": "Overdue vaccines"
+      },
+      "gestation": {
+        "active": "Active gestations",
+        "upcoming": "Upcoming farrowings"
+      },
+      "activity": {
+        "placeholder": "Detailed activity history — next iteration."
+      }
+    }
+  },
+  "stats": {
+    "title": "Aggregated statistics",
+    "topDiseases": "Top diseases",
+    "periods": {
+      "month": "Monthly",
+      "quarter": "Quarterly",
+      "year": "Yearly"
+    },
+    "kpis": {
+      "newUsers": "New users",
+      "activeAnimals": "Active animals",
+      "mortality": "Mortality (period)"
+    }
+  },
+  "map": {
+    "title": "Health map",
+    "subtitle": "Interactive Mapbox map + regional aggregation.",
+    "regions": "Regions by country",
+    "empty": "No cases in this period.",
+    "activeCases": "{count} active cases",
+    "farms": "{count} farms",
+    "totalCases": "{count} total cases",
+    "activePoints": "Geolocated active points",
+    "pointsNote": "Active cases with GPS coordinates.",
+    "alertsTitle": "Active alerts",
+    "noAlerts": "No active alerts.",
+    "alertModal": {
+      "create": "Create alert",
+      "title": "Manual alert",
+      "zone": "Affected zone",
+      "level": "Level",
+      "message": "Message",
+      "cancel": "Cancel",
+      "submit": "Publish",
+      "levels": {
+        "info": "Info",
+        "warning": "Warning",
+        "critical": "Critical"
+      }
+    },
+    "periods": {
+      "7": "7d",
+      "30": "30d",
+      "90": "90d",
+      "365": "12mo"
+    }
+  },
+  "ai": {
+    "title": "AI assistant",
+    "unavailable": "AI unavailable — check GEMINI_API_KEY on the API.",
+    "epidemic": {
+      "title": "Epidemiological analysis",
+      "description": "Analysis of aggregated health data (last 30 days).",
+      "run": "Analyze health situation",
+      "emerging": "Emerging diseases",
+      "riskZones": "At-risk zones",
+      "trends": "Trends",
+      "recommendations": "Priority recommendations"
+    },
+    "ask": {
+      "title": "Decision support",
+      "description": "Ask a question about aggregated platform statistics.",
+      "placeholder": "E.g. Which regions show the highest health risks?",
+      "run": "Analyze"
+    },
+    "vetAssist": {
+      "title": "Vet validation assist",
+      "description": "Text + diploma vision analysis for pending dossiers.",
+      "none": "No pending dossiers.",
+      "run": "Analyze dossier",
+      "imageAnalyzed": "Diploma analyzed with vision AI.",
+      "confidence": "Confidence",
+      "recommendation": "Recommendation",
+      "diploma": "Diploma (text)",
+      "consistent": "Info consistency",
+      "yes": "Yes",
+      "no": "No",
+      "disclaimer": "AI recommendation — final decision remains human.",
+      "rec": {
+        "approve": "Approve",
+        "review": "Review manually",
+        "reject": "Reject"
+      }
+    }
+  },
+  "settings": {
+    "title": "Platform settings",
+    "save": "Save",
+    "saved": "Settings saved.",
+    "sections": {
+      "map": "Geographic scope",
+      "alerts": "Health alert thresholds",
+      "notifications": "Notifications"
+    },
+    "fields": {
+      "mapScope": "Map visible area",
+      "alertThreshold": "Trigger threshold (cases)",
+      "alertPeriod": "Calculation period (days)",
+      "alertLevel": "Default alert level",
+      "adminEmail": "SuperAdmin email",
+      "reportFrequency": "Report frequency (days)"
+    },
+    "scopes": {
+      "world": "Worldwide",
+      "africa": "Africa",
+      "west_africa": "West Africa",
+      "countries": "Specific countries"
+    },
+    "levels": {
+      "info": "Info",
+      "warning": "Warning",
+      "critical": "Critical"
+    }
+  },
+  "common": {
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "comingSoon": "Section coming soon."
+  }
+}

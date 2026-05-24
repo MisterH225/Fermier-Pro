@@ -41,6 +41,7 @@ import { CguModule } from "./cgu/cgu.module";
 import { AiModule } from "./ai/ai.module";
 import { GestationModule } from "./gestation/gestation.module";
 import { VetsModule } from "./vets/vets.module";
+import { AdminPlatformModule } from "./admin-platform/admin-platform.module";
 
 @Module({
   imports: [
@@ -106,7 +107,8 @@ import { VetsModule } from "./vets/vets.module";
     CheptelModule,
     AiModule,
     GestationModule,
-    VetsModule
+    VetsModule,
+    AdminPlatformModule
   ],
   controllers: [AppController],
   providers: [

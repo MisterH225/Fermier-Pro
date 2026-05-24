@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -27,6 +27,12 @@ import {
   type AnimalListItem
 } from "../../lib/api";
 import { invalidateFarmFinanceQueries } from "../../lib/invalidateFarmFinanceQueries";
+import {
+  offlineQueuedMessage,
+  useOfflineMutation
+} from "../../hooks/useOfflineMutation";
+import { optimisticFinanceTransaction } from "../../lib/offline/optimistic";
+import { isOfflineQueuedResult } from "../../lib/offline/types";
 import {
   mobileColors,
   mobileRadius,
@@ -124,11 +130,39 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
     ]);
   }, [t, pickProofPhoto]);
 
-  const postTx = useMutation({
+  const buildTxBody = (attachmentUrl?: string) => {
+    const note = t("financeScreen.noteRef", { ref: txRef });
+    const linkedEntityType =
+      linkKind === "batch" && linkBatchId
+        ? "batch"
+        : linkKind === "animal" && linkAnimalId
+          ? "animal"
+          : undefined;
+    const linkedEntityId =
+      linkedEntityType === "batch"
+        ? linkBatchId
+        : linkedEntityType === "animal"
+          ? linkAnimalId
+          : undefined;
+    return {
+      type: txType,
+      financeCategoryId: txCategoryId || undefined,
+      amount: Number(txAmount.replace(",", ".")),
+      label: txLabel.trim(),
+      occurredAt: `${txDate}T12:00:00.000Z`,
+      attachmentUrl,
+      note,
+      linkedEntityType,
+      linkedEntityId
+    };
+  };
+
+  const postTx = useOfflineMutation({
+    farmId: payload.farmId,
+    type: "finance.postTransaction",
+    label: txLabel.trim() || t("financeScreen.newTransaction"),
     mutationFn: async () => {
-      const note = t("financeScreen.noteRef", { ref: txRef });
       let attachmentUrl: string | undefined;
-      const token = payload.accessToken;
       if (proofPhotoUri) {
         const supabase = getSupabase();
         if (!supabase) {
@@ -138,57 +172,83 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
           proofPhotoUri.toLowerCase().endsWith(".png") ||
           proofPhotoUri.includes("png")
             ? "image/png"
-              : "image/jpeg";
-          try {
-            attachmentUrl = await uploadFinanceProofToSupabase(
-              supabase,
-              payload.farmId,
-              txRef,
-              proofPhotoUri,
-              mime
-            );
-          } catch {
-            throw new Error(t("financeScreen.proofUploadError"));
-          }
+            : "image/jpeg";
+        try {
+          attachmentUrl = await uploadFinanceProofToSupabase(
+            supabase,
+            payload.farmId,
+            txRef,
+            proofPhotoUri,
+            mime
+          );
+        } catch {
+          throw new Error(t("financeScreen.proofUploadError"));
+        }
       }
-      const linkedEntityType =
-        linkKind === "batch" && linkBatchId
-          ? "batch"
-          : linkKind === "animal" && linkAnimalId
-            ? "animal"
-            : undefined;
-      const linkedEntityId =
-        linkedEntityType === "batch"
-          ? linkBatchId
-          : linkedEntityType === "animal"
-            ? linkAnimalId
-            : undefined;
-
       return postFinanceTransaction(
-        token,
+        payload.accessToken,
         payload.farmId,
-        {
-          type: txType,
-          financeCategoryId: txCategoryId || undefined,
-          amount: Number(txAmount.replace(",", ".")),
-          label: txLabel.trim(),
-          occurredAt: `${txDate}T12:00:00.000Z`,
-          attachmentUrl,
-          note,
-          linkedEntityType,
-          linkedEntityId
-        },
+        buildTxBody(attachmentUrl),
         payload.activeProfileId
       );
     },
-    onSuccess: () => {
-      const fid = payload.farmId;
-      invalidateFarmFinanceQueries(qc, fid);
+    buildOfflineItem: () => {
+      const mime =
+        proofPhotoUri &&
+        (proofPhotoUri.toLowerCase().endsWith(".png") ||
+          proofPhotoUri.includes("png"))
+          ? "image/png"
+          : "image/jpeg";
+      return {
+        calls: [
+          {
+            method: "POST",
+            path: `/farms/${payload.farmId}/finance/transactions`,
+            body: buildTxBody(undefined)
+          }
+        ],
+        invalidateRoots: [
+          "financeOverview",
+          "financeTransactions",
+          "financeReport"
+        ],
+        localProofUri: proofPhotoUri ?? undefined,
+        proofMeta: proofPhotoUri
+          ? {
+              farmId: payload.farmId,
+              txRef,
+              mime
+            }
+          : undefined
+      };
+    },
+    applyOptimistic: (_v, queueItemId) => {
+      optimisticFinanceTransaction(
+        qc,
+        payload.farmId,
+        queueItemId,
+        buildTxBody(undefined)
+      );
+    },
+    onSuccess: (data) => {
+      invalidateFarmFinanceQueries(qc, payload.farmId);
       onClose();
       setTimeout(() => {
         open("success", {
-          message: t("financeScreen.txSuccessMessage"),
+          message: isOfflineQueuedResult(data)
+            ? offlineQueuedMessage(t)
+            : t("financeScreen.txSuccessMessage"),
           autoDismissMs: 2000
+        });
+      }, 0);
+    },
+    onQueued: () => {
+      invalidateFarmFinanceQueries(qc, payload.farmId);
+      onClose();
+      setTimeout(() => {
+        open("success", {
+          message: offlineQueuedMessage(t),
+          autoDismissMs: 2600
         });
       }, 0);
     },

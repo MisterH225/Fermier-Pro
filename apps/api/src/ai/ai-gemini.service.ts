@@ -88,4 +88,86 @@ export class AiGeminiService {
       clearTimeout(timer);
     }
   }
+
+  async generateWithImageUrl(
+    prompt: string,
+    imageUrl: string
+  ): Promise<string | null> {
+    const apiKey = this.config.get<string>("GEMINI_API_KEY")?.trim();
+    if (!apiKey) {
+      return null;
+    }
+    const image = await this.fetchImageBase64(imageUrl);
+    if (!image) {
+      return null;
+    }
+
+    for (const model of this.modelChain()) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS * 2);
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  { text: prompt },
+                  {
+                    inline_data: {
+                      mime_type: image.mimeType,
+                      data: image.base64
+                    }
+                  }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.2,
+              maxOutputTokens: 1024,
+              responseMimeType: "application/json"
+            }
+          })
+        });
+        if (!res.ok) {
+          continue;
+        }
+        const body = (await res.json()) as {
+          candidates?: { content?: { parts?: { text?: string }[] } }[];
+        };
+        const text = body.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text?.trim()) {
+          return text.trim();
+        }
+      } catch {
+        /* try next model */
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+    return null;
+  }
+
+  private async fetchImageBase64(
+    imageUrl: string
+  ): Promise<{ base64: string; mimeType: string } | null> {
+    try {
+      const res = await fetch(imageUrl, { signal: AbortSignal.timeout(10_000) });
+      if (!res.ok) {
+        return null;
+      }
+      const buf = Buffer.from(await res.arrayBuffer());
+      const contentType = res.headers.get("content-type") ?? "image/jpeg";
+      const mimeType = contentType.split(";")[0]?.trim() || "image/jpeg";
+      return { base64: buf.toString("base64"), mimeType };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Image fetch failed: ${msg}`);
+      return null;
+    }
+  }
 }

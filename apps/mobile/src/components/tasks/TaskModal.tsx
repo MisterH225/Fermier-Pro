@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -21,6 +21,12 @@ import {
   fetchFarmMembers,
   patchFarmTask
 } from "../../lib/api";
+import {
+  isOfflineQueuedResult,
+  offlineAwareMessage,
+  offlineQueuedMessage,
+  useOfflineMutation
+} from "../../hooks/useOfflineMutation";
 import {
   mobileColors,
   mobileRadius,
@@ -194,27 +200,35 @@ export function TaskModal({
     }
   }, [visible, isEdit, assignedUserId, isCollaborator, currentUserId, assignees]);
 
-  const saveMut = useMutation({
-    mutationFn: () => {
-      if (!title.trim()) {
-        throw new Error(t("tasksScreen.errorTitleRequired"));
-      }
-      const assignee = isCollaborator
-        ? assignedUserId ?? currentUserId
-        : assignedUserId;
-      if (!assignee) {
-        throw new Error(t("tasksScreen.errorAssigneeRequired"));
-      }
-      const payload = {
-        title: title.trim(),
-        description: description.trim() || null,
-        category,
-        priority,
-        assignedUserId: assignee,
-        animalId: animalId ?? null,
-        dueAt: dueAt.trim() ? `${dueAt.trim()}T12:00:00.000Z` : null,
-        reminder
-      };
+  const buildTaskPayload = () => {
+    if (!title.trim()) {
+      throw new Error(t("tasksScreen.errorTitleRequired"));
+    }
+    const assignee = isCollaborator
+      ? assignedUserId ?? currentUserId
+      : assignedUserId;
+    if (!assignee) {
+      throw new Error(t("tasksScreen.errorAssigneeRequired"));
+    }
+    return {
+      title: title.trim(),
+      description: description.trim() || null,
+      category,
+      priority,
+      assignedUserId: assignee,
+      animalId: animalId ?? null,
+      dueAt: dueAt.trim() ? `${dueAt.trim()}T12:00:00.000Z` : null,
+      reminder
+    };
+  };
+
+  const saveMut = useOfflineMutation({
+    farmId,
+    type: isEdit ? "tasks.patch" : "tasks.create",
+    label: title.trim() || t("tasksScreen.createTitle"),
+    assignLocalEntityId: !isEdit,
+    mutationFn: async () => {
+      const payload = buildTaskPayload();
       if (isEdit && task) {
         return patchFarmTask(
           accessToken,
@@ -237,6 +251,51 @@ export function TaskModal({
         activeProfileId
       );
     },
+    buildOfflineItem: () => {
+      const payload = buildTaskPayload();
+      if (isEdit && task) {
+        return {
+          calls: [
+            {
+              method: "PATCH",
+              path: `/farms/${farmId}/tasks/${task.id}`,
+              body: {
+                ...payload,
+                priority:
+                  payload.priority === "urgent" ? "high" : payload.priority
+              }
+            }
+          ],
+          invalidateRoots: [
+            "farmTasks",
+            "farmTasksDashboard",
+            "farmTasksPendingCount"
+          ]
+        };
+      }
+      const body = {
+        ...payload,
+        description: description.trim() || undefined,
+        animalId: animalId ?? undefined,
+        dueAt: dueAt.trim() ? `${dueAt.trim()}T12:00:00.000Z` : undefined,
+        status: "todo",
+        priority: priority === "urgent" ? "high" : priority
+      };
+      return {
+        calls: [
+          {
+            method: "POST",
+            path: `/farms/${farmId}/tasks`,
+            body
+          }
+        ],
+        invalidateRoots: [
+          "farmTasks",
+          "farmTasksDashboard",
+          "farmTasksPendingCount"
+        ]
+      };
+    },
     onSuccess: (saved) => {
       void qc.invalidateQueries({ queryKey: ["farmTasks", farmId] });
       void qc.invalidateQueries({ queryKey: ["farmTasksDashboard", farmId] });
@@ -244,19 +303,30 @@ export function TaskModal({
       onClose();
       if (isEdit) {
         open("success", {
-          message: t("tasksScreen.saveSuccess"),
+          message: offlineAwareMessage(t, saved, "tasksScreen.saveSuccess"),
           autoDismissMs: 2000
         });
-      } else {
+      } else if (!isOfflineQueuedResult(saved)) {
+        const row = saved as FarmTaskDto;
         const name =
-          saved.assignee?.fullName ??
-          saved.assignee?.email ??
+          row.assignee?.fullName ??
+          row.assignee?.email ??
           t("tasksScreen.assignee");
         open("success", {
           message: t("tasksScreen.createSuccess", { name }),
           autoDismissMs: 2500
         });
       }
+    },
+    onQueued: () => {
+      void qc.invalidateQueries({ queryKey: ["farmTasks", farmId] });
+      void qc.invalidateQueries({ queryKey: ["farmTasksDashboard", farmId] });
+      void qc.invalidateQueries({ queryKey: ["farmTasksPendingCount", farmId] });
+      onClose();
+      open("success", {
+        message: offlineQueuedMessage(t),
+        autoDismissMs: 2600
+      });
     },
     onError: (e: Error) => Alert.alert(t("tasksScreen.errorTitle"), e.message)
   });

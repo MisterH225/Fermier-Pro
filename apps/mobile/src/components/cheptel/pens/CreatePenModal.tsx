@@ -1,4 +1,3 @@
-import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -13,6 +12,11 @@ import {
 import { BaseModal } from "../../modals/BaseModal";
 import { useModal } from "../../modals/useModal";
 import { createPen } from "../../../lib/api";
+import {
+  offlineAwareMessage,
+  offlineQueuedMessage,
+  useOfflineMutation
+} from "../../../hooks/useOfflineMutation";
 import {
   mobileColors,
   mobileRadius,
@@ -45,26 +49,57 @@ export function CreatePenModal({
   const [name, setName] = useState("");
   const [capacity, setCapacity] = useState("12");
 
-  const saveMut = useMutation({
-    mutationFn: () => {
-      const cap = Number.parseInt(capacity, 10);
-      if (!barnId || !name.trim()) {
-        throw new Error(t("cheptel.pens.createMissing"));
-      }
-      return createPen(
-        accessToken,
-        farmId,
-        barnId,
-        { name: name.trim(), capacity: Number.isFinite(cap) ? cap : undefined },
-        activeProfileId
-      );
+  const buildPenPayload = () => {
+    const cap = Number.parseInt(capacity, 10);
+    if (!barnId || !name.trim()) {
+      throw new Error(t("cheptel.pens.createMissing"));
+    }
+    return {
+      name: name.trim(),
+      capacity: Number.isFinite(cap) ? cap : undefined
+    };
+  };
+
+  const saveMut = useOfflineMutation({
+    farmId,
+    type: "cheptel.createPen",
+    label: name.trim() || t("cheptel.pens.createTitle"),
+    mutationFn: async () => {
+      const payload = buildPenPayload();
+      return createPen(accessToken, farmId, barnId, payload, activeProfileId);
     },
-    onSuccess: () => {
+    buildOfflineItem: () => {
+      const payload = buildPenPayload();
+      return {
+        calls: [
+          {
+            method: "POST",
+            path: `/farms/${farmId}/barns/${barnId}/pens`,
+            body: payload
+          }
+        ],
+        invalidateRoots: [
+          "cheptelPens",
+          "farmBarns",
+          "farmBarnDetails",
+          "farmBarn"
+        ]
+      };
+    },
+    onSuccess: (data) => {
       onCreated();
       onClose();
       open("success", {
-        message: t("cheptel.pens.createSuccess"),
+        message: offlineAwareMessage(t, data, "cheptel.pens.createSuccess"),
         autoDismissMs: 2000
+      });
+    },
+    onQueued: () => {
+      onCreated();
+      onClose();
+      open("success", {
+        message: offlineQueuedMessage(t),
+        autoDismissMs: 2600
       });
     },
     onError: (e: Error) => Alert.alert("", e.message)

@@ -106,6 +106,7 @@ model User {
   auditLogs           AuditLog[]
   vetProfile            VetProfile?
   vetRatingsAuthored    VetRating[] @relation("VetRatingAuthor")
+  superAdmin            SuperAdmin?
 
   @@index([email])
   @@index([phone])
@@ -1570,5 +1571,60 @@ model GestationSettings {
   weaningDurationDays   Int      @default(28)
   vaccineSchedule       Json
   createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+/// Comptes autorisés sur la console SuperAdmin (web).
+model SuperAdmin {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdBy String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum SanitaryAlertType {
+  auto
+  manual
+}
+
+enum SanitaryAlertLevel {
+  info
+  warning
+  critical
+}
+
+/// Alertes sanitaires territoriales (carte + notifications).
+model SanitaryAlert {
+  id          String              @id @default(cuid())
+  zoneName    String
+  countryCode String?
+  regionCode  String?
+  alertType   SanitaryAlertType
+  level       SanitaryAlertLevel  @default(warning)
+  diseaseName String?
+  caseCount   Int?
+  message     String
+  createdBy   String?
+  isActive    Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  resolvedAt  DateTime?
+
+  @@index([isActive, createdAt])
+  @@index([countryCode])
+}
+
+/// Paramètres globaux plateforme (périmètre carte, seuils alertes).
+model PlatformSettings {
+  id                    String   @id @default("default")
+  mapGeographicScope    String   @default("west_africa")
+  mapCountryCodes       Json?
+  alertCaseThreshold    Int      @default(5)
+  alertPeriodDays       Int      @default(30)
+  alertDefaultLevel     SanitaryAlertLevel @default(warning)
+  adminNotifyEmail      String?
+  reportFrequencyDays   Int      @default(7)
   updatedAt             DateTime @updatedAt
 }

@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -15,6 +15,12 @@ import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
 import type { AnimalListItem } from "../../../lib/api";
 import { patchCheptelAnimalStatus } from "../../../lib/api";
+import {
+  offlineQueuedMessage,
+  useOfflineMutation
+} from "../../../hooks/useOfflineMutation";
+import { optimisticPatchAnimalStatus } from "../../../lib/offline/optimistic";
+import { isOfflineQueuedResult } from "../../../lib/offline/types";
 import {
   mobileColors,
   mobileRadius,
@@ -58,6 +64,7 @@ export function ChangeStatusModal({
 }: Props) {
   const { t } = useTranslation();
   const { open } = useModal();
+  const qc = useQueryClient();
   const [status, setStatus] = useState<AnimalStatusKey>("active");
   const [note, setNote] = useState("");
   const [deathCause, setDeathCause] = useState("");
@@ -70,37 +77,80 @@ export function ChangeStatusModal({
     }
   }, [visible, animal]);
 
-  const saveMut = useMutation({
+  const buildPayload = () => {
+    if (!animal) {
+      throw new Error("Animal manquant");
+    }
+    if (status === "sold") {
+      throw new Error(t("cheptel.animals.sale.useSaleModal"));
+    }
+    const parts: string[] = [];
+    if (status === "dead" && deathCause.trim()) {
+      parts.push(`${t("cheptel.animals.status.deathCause")}: ${deathCause}`);
+    }
+    const mergedNote = [note.trim(), ...parts].filter(Boolean).join(" · ");
+    return {
+      animalId: animal.id,
+      body: {
+        status,
+        note: mergedNote || null,
+        deathCause: status === "dead" ? deathCause.trim() || undefined : undefined
+      }
+    };
+  };
+
+  const saveMut = useOfflineMutation({
+    farmId,
+    type: "cheptel.patchStatus",
+    label: animal ? animalDisplayTag(animal) : "—",
     mutationFn: async () => {
-      if (!animal) {
-        throw new Error("Animal manquant");
-      }
-      if (status === "sold") {
-        throw new Error(t("cheptel.animals.sale.useSaleModal"));
-      }
-      const parts: string[] = [];
-      if (status === "dead" && deathCause.trim()) {
-        parts.push(`${t("cheptel.animals.status.deathCause")}: ${deathCause}`);
-      }
-      const mergedNote = [note.trim(), ...parts].filter(Boolean).join(" · ");
+      const { animalId, body } = buildPayload();
       return patchCheptelAnimalStatus(
         accessToken,
         farmId,
-        animal.id,
-        {
-          status,
-          note: mergedNote || null,
-          deathCause: status === "dead" ? deathCause.trim() || undefined : undefined
-        },
+        animalId,
+        body,
         activeProfileId
       );
     },
-    onSuccess: () => {
+    buildOfflineItem: () => {
+      const { animalId, body } = buildPayload();
+      return {
+        calls: [
+          {
+            method: "PATCH",
+            path: `/farms/${farmId}/cheptel/animals/${animalId}/status`,
+            body
+          }
+        ],
+        invalidateRoots: [
+          "farmAnimals",
+          "farmCheptel",
+          "cheptelPens",
+          "cheptelHistory"
+        ]
+      };
+    },
+    applyOptimistic: () => {
+      const { animalId, body } = buildPayload();
+      optimisticPatchAnimalStatus(qc, farmId, activeProfileId, animalId, body);
+    },
+    onSuccess: (data) => {
       onUpdated();
       onClose();
       open("success", {
-        message: t("cheptel.animals.status.success"),
+        message: isOfflineQueuedResult(data)
+          ? offlineQueuedMessage(t)
+          : t("cheptel.animals.status.success"),
         autoDismissMs: 2200
+      });
+    },
+    onQueued: () => {
+      onUpdated();
+      onClose();
+      open("success", {
+        message: offlineQueuedMessage(t),
+        autoDismissMs: 2600
       });
     },
     onError: (e: Error) => {

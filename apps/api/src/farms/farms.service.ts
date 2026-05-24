@@ -496,12 +496,29 @@ export class FarmsService {
       return "other";
     };
 
+    const mapAnimalProductionCategory = (
+      cat: string
+    ): keyof typeof categoryTotals => {
+      switch (cat) {
+        case "breeding_female":
+        case "breeding_male":
+          return "breeders";
+        case "fattening":
+          return "finishing";
+        case "starter":
+          return "piglets";
+        default:
+          return "other";
+      }
+    };
+
     for (const b of activeBatches) {
       const slot = mapBatchCategory(b.categoryKey);
       categoryTotals[slot] += b.headcount;
     }
-    categoryTotals.breeders +=
-      activeAnimals.filter((a) => a.sex === "male" || a.sex === "female").length;
+    for (const a of activeAnimals) {
+      categoryTotals[mapAnimalProductionCategory(a.productionCategory)] += 1;
+    }
 
     const categoryBreakdown = (
       ["piglets", "growth", "finishing", "breeders", "other"] as const

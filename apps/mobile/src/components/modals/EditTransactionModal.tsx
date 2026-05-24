@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -19,6 +19,11 @@ import type { EditTransactionModalPayload } from "../../context/ModalContext";
 import { FinanceCategoryGrid } from "../finance/FinanceCategoryGrid";
 import { patchFarmExpense, patchFarmRevenue } from "../../lib/api";
 import { invalidateFarmFinanceQueries } from "../../lib/invalidateFarmFinanceQueries";
+import {
+  offlineAwareMessage,
+  offlineQueuedMessage,
+  useOfflineMutation
+} from "../../hooks/useOfflineMutation";
 import {
   mobileColors,
   mobileRadius,
@@ -98,19 +103,28 @@ export function EditTransactionModal({ visible, payload, onClose }: Props) {
     [txKind, t]
   );
 
-  const saveMutation = useMutation({
+  const buildBody = () => {
+    const amount = parseAmount(txAmount);
+    if (amount == null) {
+      throw new Error(t("financeScreen.invalidAmount"));
+    }
+    const selected = payload.categories.find((c) => c.id === txCategoryId);
+    const categoryValue = selected?.key ?? null;
+    return {
+      amount,
+      label: txLabel.trim(),
+      category: categoryValue,
+      note: txNote.trim() || null,
+      occurredAt: `${txDate}T12:00:00.000Z`
+    };
+  };
+
+  const saveMutation = useOfflineMutation({
+    farmId: payload.farmId,
+    type: "finance.patchTransaction",
+    label: txLabel.trim() || t("financeScreen.editShort"),
     mutationFn: async () => {
-      const amount = parseAmount(txAmount);
-      if (amount == null) throw new Error(t("financeScreen.invalidAmount"));
-      const selected = payload.categories.find((c) => c.id === txCategoryId);
-      const categoryValue = selected?.key ?? null;
-      const body = {
-        amount,
-        label: txLabel.trim(),
-        category: categoryValue,
-        note: txNote.trim() || null,
-        occurredAt: `${txDate}T12:00:00.000Z`
-      };
+      const body = buildBody();
       if (txKind === "expense") {
         return patchFarmExpense(
           payload.accessToken,
@@ -128,13 +142,42 @@ export function EditTransactionModal({ visible, payload, onClose }: Props) {
         payload.activeProfileId
       );
     },
-    onSuccess: () => {
+    buildOfflineItem: () => {
+      const body = buildBody();
+      const path =
+        txKind === "expense"
+          ? `/farms/${payload.farmId}/finance/expenses/${tx.id}`
+          : `/farms/${payload.farmId}/finance/revenues/${tx.id}`;
+      return {
+        calls: [{ method: "PATCH", path, body }],
+        invalidateRoots: [
+          "financeOverview",
+          "financeTransactions",
+          "financeReport"
+        ]
+      };
+    },
+    onSuccess: (data) => {
       invalidateFarmFinanceQueries(qc, payload.farmId);
       onClose();
       setTimeout(() => {
         open("success", {
-          message: t("financeScreen.editSuccessMessage"),
+          message: offlineAwareMessage(
+            t,
+            data,
+            "financeScreen.editSuccessMessage"
+          ),
           autoDismissMs: 2000
+        });
+      }, 0);
+    },
+    onQueued: () => {
+      invalidateFarmFinanceQueries(qc, payload.farmId);
+      onClose();
+      setTimeout(() => {
+        open("success", {
+          message: offlineQueuedMessage(t),
+          autoDismissMs: 2600
         });
       }, 0);
     },

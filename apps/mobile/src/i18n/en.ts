@@ -454,6 +454,15 @@ export const en = {
       pickType: "Pick a feed type."
     }
   },
+  offline: {
+    bannerOffline:
+      "Offline — your entries are saved on device and will sync when the network is back.",
+    queuePending: "{{count}} action(s) waiting to sync",
+    queueFailed:
+      "{{pending}} pending · {{failed}} failed (tap Sync)",
+    syncNow: "Sync",
+    queuedSuccess: "Saved on device — will sync when the network is available."
+  },
   cheptel: {
     navOverview: "Overview",
     navCheptel: "Herd",
@@ -475,6 +484,8 @@ export const en = {
     unassignedAnimals: "Unassigned animals",
     headcountTrend: "Headcount trend",
     categoryBreakdown: "Breakdown by category",
+    categoryPieCenter: "Total headcount",
+    categoryPieTooltip: "{{count}} head(s) — {{pct}}%",
     category: {
       piglets: "Piglets / starter",
       growth: "Growth",

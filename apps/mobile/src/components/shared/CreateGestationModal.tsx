@@ -1,4 +1,3 @@
-import { useMutation } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -15,6 +14,11 @@ import { ModalSection } from "../modals/ModalSection";
 import type { AnimalListItem, GestationDetailDto } from "../../lib/api";
 import { createGestation } from "../../lib/api";
 import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
+import {
+  isOfflineQueuedResult,
+  offlineQueuedMessage,
+  useOfflineMutation
+} from "../../hooks/useOfflineMutation";
 
 export type CreateGestationModalProps = {
   visible: boolean;
@@ -82,8 +86,20 @@ export function CreateGestationModal({
     sow?.tagCode?.trim() ||
     (sow ? `FP-${sow.publicId.slice(-6)}` : "");
 
-  const mut = useMutation({
-    mutationFn: () =>
+  const buildBody = () => ({
+    sowId,
+    boarId: boarId || undefined,
+    matingType,
+    matingDate,
+    notes: notes.trim() || undefined,
+    farmId
+  });
+
+  const mut = useOfflineMutation({
+    farmId,
+    type: "gestation.create",
+    label: sowDisplayLabel || t("gestationScreen.createTitle"),
+    mutationFn: async () =>
       createGestation(
         accessToken,
         farmId,
@@ -96,10 +112,27 @@ export function CreateGestationModal({
         },
         activeProfileId
       ),
+    buildOfflineItem: () => ({
+      calls: [
+        {
+          method: "POST",
+          path: `/farms/${farmId}/gestation/gestations`,
+          body: buildBody()
+        }
+      ],
+      invalidateRoots: ["gestation", "dashboardGestations", "farmAnimals"]
+    }),
     onSuccess: (gestation) => {
       onCreated?.();
-      onSuccess?.(gestation);
+      if (!isOfflineQueuedResult(gestation)) {
+        onSuccess?.(gestation as GestationDetailDto);
+      }
       onClose();
+    },
+    onQueued: () => {
+      onCreated?.();
+      onClose();
+      Alert.alert("", offlineQueuedMessage(t));
     },
     onError: (e: Error) => Alert.alert(t("gestationScreen.error"), e.message)
   });

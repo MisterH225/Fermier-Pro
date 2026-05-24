@@ -15,6 +15,7 @@ import type { Session } from "@supabase/supabase-js";
 import { AuthenticatedAppShell } from "./src/components/AuthenticatedAppShell";
 import { SessionProvider } from "./src/context/SessionContext";
 import { isAuthEnvConfigured } from "./src/env";
+import { clearOfflineStorage } from "./src/lib/offline/queueStore";
 import { QUERY_PERSIST_STORAGE_KEY } from "./src/lib/queryPersist";
 import { queryClient } from "./src/lib/queryClient";
 import { getSupabase } from "./src/lib/supabase";
@@ -84,6 +85,7 @@ export default function App() {
     await AsyncStorage.removeItem(QUERY_PERSIST_STORAGE_KEY).catch(
       () => undefined
     );
+    await clearOfflineStorage().catch(() => undefined);
     queryClient.clear();
     const supabase = getSupabase();
     if (supabase) {

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -15,6 +15,12 @@ import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
 import type { AnimalListItem, BarnDetailDto } from "../../../lib/api";
 import { fetchFarmBarn, fetchFarmBarns, postPenMove } from "../../../lib/api";
+import {
+  offlineAwareMessage,
+  offlineQueuedMessage,
+  useOfflineMutation
+} from "../../../hooks/useOfflineMutation";
+import { optimisticPenMove } from "../../../lib/offline/optimistic";
 import {
   mobileColors,
   mobileRadius,
@@ -58,6 +64,7 @@ export function TransferModal({
 }: Props) {
   const { t } = useTranslation();
   const { open } = useModal();
+  const qc = useQueryClient();
   const [animalId, setAnimalId] = useState<string | null>(null);
   const [toPenId, setToPenId] = useState<string | null>(null);
   const [note, setNote] = useState("");
@@ -130,32 +137,85 @@ export function TransferModal({
     return null;
   }, [selectedPen]);
 
-  const saveMut = useMutation({
+  const buildMoveBody = () => {
+    if (!animalId || !toPenId) {
+      throw new Error(t("cheptel.animals.transfer.missingFields"));
+    }
+    if (capacityWarning === "block") {
+      throw new Error(t("cheptel.animals.transfer.penFull"));
+    }
+    return {
+      animalId,
+      toPenId,
+      fromPenId,
+      note: note.trim() || undefined
+    };
+  };
+
+  const saveMut = useOfflineMutation({
+    farmId,
+    type: "cheptel.penMove",
+    label: t("cheptel.animals.transfer.title"),
     mutationFn: async () => {
-      if (!animalId || !toPenId) {
-        throw new Error(t("cheptel.animals.transfer.missingFields"));
+      const body = buildMoveBody();
+      return postPenMove(accessToken, farmId, body, activeProfileId);
+    },
+    buildOfflineItem: () => {
+      const body = buildMoveBody();
+      return {
+        calls: [
+          {
+            method: "POST",
+            path: `/farms/${farmId}/pen-move`,
+            body
+          }
+        ],
+        invalidateRoots: [
+          "farmAnimals",
+          "cheptelPens",
+          "farmBarns",
+          "farmBarnDetails",
+          "penDetail"
+        ]
+      };
+    },
+    applyOptimistic: () => {
+      const body = buildMoveBody();
+      const pen = penOptions.find((p) => p.penId === body.toPenId);
+      if (!pen) {
+        return;
       }
-      if (capacityWarning === "block") {
-        throw new Error(t("cheptel.animals.transfer.penFull"));
-      }
-      return postPenMove(
-        accessToken,
+      const barn = (barnDetailsQuery.data ?? []).find((b) =>
+        b.pens.some((p) => p.id === body.toPenId)
+      );
+      optimisticPenMove(
+        qc,
         farmId,
-        {
-          animalId,
-          toPenId,
-          fromPenId,
-          note: note.trim() || undefined
-        },
-        activeProfileId
+        body.animalId,
+        body.toPenId,
+        pen.penName,
+        barn?.id ?? "",
+        pen.barnName
       );
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       onTransferred();
       onClose();
       open("success", {
-        message: t("cheptel.animals.transfer.success"),
+        message: offlineAwareMessage(
+          t,
+          data,
+          "cheptel.animals.transfer.success"
+        ),
         autoDismissMs: 2200
+      });
+    },
+    onQueued: () => {
+      onTransferred();
+      onClose();
+      open("success", {
+        message: offlineQueuedMessage(t),
+        autoDismissMs: 2600
       });
     },
     onError: (e: Error) => {

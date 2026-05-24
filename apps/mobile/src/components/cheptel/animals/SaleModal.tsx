@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -18,6 +18,12 @@ import {
   sellCheptelAnimal
 } from "../../../lib/api";
 import { formatAuthError } from "../../../lib/authErrors";
+import {
+  offlineQueuedMessage,
+  useOfflineMutation
+} from "../../../hooks/useOfflineMutation";
+import { optimisticSellAnimal } from "../../../lib/offline/optimistic";
+import { isOfflineQueuedResult } from "../../../lib/offline/types";
 import {
   animalDisplayTag,
   formatAnimalKg
@@ -78,6 +84,7 @@ export function SaleModal({
   onSuccess
 }: Props) {
   const { t } = useTranslation();
+  const qc = useQueryClient();
   const [soldWeightKg, setSoldWeightKg] = useState("");
   const [pricePerKg, setPricePerKg] = useState("");
   const [totalPrice, setTotalPrice] = useState("");
@@ -146,28 +153,68 @@ export function SaleModal({
     return `${tag} · ${breed} · ${cat}`;
   }, [animal, t]);
 
-  const saveMut = useMutation({
-    mutationFn: async () => {
-      if (!animal || !canSubmit || totalNum == null || weightNum == null) {
-        throw new Error(t("cheptel.animals.sale.validation"));
+  const buildSaleBody = () => {
+    if (!animal || !canSubmit || totalNum == null || weightNum == null) {
+      throw new Error(t("cheptel.animals.sale.validation"));
+    }
+    return {
+      animalId: animal.id,
+      body: {
+        soldWeightKg: weightNum,
+        pricePerKg: parseDecimalInput(pricePerKg) ?? undefined,
+        totalPrice: totalNum,
+        buyerName: buyerName.trim() || undefined,
+        soldAt: `${soldAt.trim()}T12:00:00.000Z`,
+        notes: notes.trim() || undefined
       }
+    };
+  };
+
+  const saveMut = useOfflineMutation({
+    farmId,
+    type: "cheptel.sellAnimal",
+    label: animal ? animalDisplayTag(animal) : "—",
+    mutationFn: async () => {
+      const { animalId, body } = buildSaleBody();
       return sellCheptelAnimal(
         accessToken,
         farmId,
-        animal.id,
-        {
-          soldWeightKg: weightNum,
-          pricePerKg: parseDecimalInput(pricePerKg) ?? undefined,
-          totalPrice: totalNum,
-          buyerName: buyerName.trim() || undefined,
-          soldAt: `${soldAt.trim()}T12:00:00.000Z`,
-          notes: notes.trim() || undefined
-        },
+        animalId,
+        body,
         activeProfileId
       );
     },
+    buildOfflineItem: () => {
+      const { animalId, body } = buildSaleBody();
+      return {
+        calls: [
+          {
+            method: "PATCH",
+            path: `/farms/${farmId}/cheptel/animals/${animalId}/sell`,
+            body
+          }
+        ],
+        invalidateRoots: [
+          "farmAnimals",
+          "farmCheptel",
+          "financeOverview",
+          "financeTransactions"
+        ]
+      };
+    },
+    applyOptimistic: () => {
+      const { animalId } = buildSaleBody();
+      optimisticSellAnimal(qc, farmId, activeProfileId, animalId);
+    },
     onSuccess: (result) => {
-      onSuccess(result);
+      if (isOfflineQueuedResult(result)) {
+        onSuccess({} as SaleResult);
+        return;
+      }
+      onSuccess(result as SaleResult);
+    },
+    onQueued: () => {
+      onSuccess({} as SaleResult);
     },
     onError: (e: unknown) => {
       Alert.alert(t("cheptel.animals.sale.errorTitle"), formatAuthError(e));
