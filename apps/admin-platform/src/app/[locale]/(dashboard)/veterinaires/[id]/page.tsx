@@ -45,7 +45,9 @@ export default function VetDetailPage() {
       } else {
         await apiFetch(`/admin/vet-profiles/${id}/reject`, token, {
           method: "POST",
-          body: JSON.stringify({ reason: reason.trim() || "Dossier incomplet" })
+          body: JSON.stringify({
+            reason: reason.trim() || t("detail.rejectDefaultReason")
+          })
         });
       }
       router.push("/veterinaires");
@@ -69,25 +71,32 @@ export default function VetDetailPage() {
       <div className="grid md:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Profil</CardTitle>
+            <CardTitle className="text-base">{t("detail.profileTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>
-              <span className="text-muted-foreground">Email:</span> {vet.user.email ?? "—"}
+              <span className="text-muted-foreground">{t("detail.fields.email")}:</span>{" "}
+              {vet.user.email ?? "—"}
             </p>
             <p>
-              <span className="text-muted-foreground">Tél:</span> {vet.user.phone ?? "—"}
+              <span className="text-muted-foreground">{t("detail.fields.phone")}:</span>{" "}
+              {vet.user.phone ?? "—"}
             </p>
             <p>
-              <span className="text-muted-foreground">Spécialité:</span> {vet.primarySpecialty}
+              <span className="text-muted-foreground">{t("detail.fields.specialty")}:</span>{" "}
+              {vet.primarySpecialty}
             </p>
             <p>
-              <span className="text-muted-foreground">Localisation:</span> {vet.locationCity},{" "}
-              {vet.locationCountry}
+              <span className="text-muted-foreground">{t("detail.fields.location")}:</span>{" "}
+              {vet.locationCity}, {vet.locationCountry}
             </p>
             <p>
-              <span className="text-muted-foreground">École:</span> {vet.schoolName} (
-              {vet.schoolCountry}) — {vet.graduationYear}
+              <span className="text-muted-foreground">{t("detail.fields.school")}:</span>{" "}
+              {t("detail.schoolFormat", {
+                school: vet.schoolName,
+                country: vet.schoolCountry,
+                year: String(vet.graduationYear)
+              })}
             </p>
           </CardContent>
         </Card>

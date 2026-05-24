@@ -1106,13 +1106,13 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(patched.status).toBeLessThan(300);
     expect(patched.body?.disease?.severity).toBe("severe");
 
-    const treatment = await request(app.getHttpServer())
+    const diseaseTreatment = await request(app.getHttpServer())
       .post(`/api/v1/farms/${ctx.farmId}/health/events/${diseaseId}/treatment`)
       .set(auth)
       .send({ drugName: "TestMed", dosage: "2ml" });
-    expect(treatment.status).toBeGreaterThanOrEqual(200);
-    expect(treatment.status).toBeLessThan(300);
-    expect(treatment.body?.treatment?.drugName).toBe("TestMed");
+    expect(diseaseTreatment.status).toBeGreaterThanOrEqual(200);
+    expect(diseaseTreatment.status).toBeLessThan(300);
+    expect(diseaseTreatment.body?.treatment?.drugName).toBe("TestMed");
 
     const resolved = await request(app.getHttpServer())
       .patch(`/api/v1/farms/${ctx.farmId}/health/events/${diseaseId}/resolve`)

@@ -19,12 +19,35 @@ Plateforme web d'administration connectée à l'API NestJS et Supabase Auth.
 
 Après migration, promouvoir un utilisateur existant :
 
+```bash
+# Par email (recommandé)
+npm run promote:superadmin --workspace @fermier/api -- --email votre@email.com
+
+# Par id Prisma User
+npm run promote:superadmin --workspace @fermier/api -- --user-id clxxxxxxxx
+
+# Lister les comptes SuperAdmin
+npm run promote:superadmin --workspace @fermier/api -- --list
+```
+
+Équivalent SQL manuel :
+
 ```sql
 INSERT INTO "SuperAdmin" ("id", "userId", "createdAt")
 VALUES (gen_random_uuid()::text, '<USER_ID_PRISMA>', NOW());
 ```
 
 (`USER_ID` = champ `id` de la table `User`, pas `supabaseUserId`)
+
+## Tests e2e API admin
+
+Avec `DATABASE_URL` et `SUPABASE_JWT_SECRET` configurés :
+
+```bash
+npm run test:e2e --workspace @fermier/api
+```
+
+Le fichier `test/admin-platform.e2e-spec.ts` couvre `/admin/me`, overview, users, settings, carte, stats et alertes sanitaires.
 
 ## Lancement
 

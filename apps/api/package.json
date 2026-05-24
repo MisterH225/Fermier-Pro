@@ -13,7 +13,8 @@
     "prisma:migrate:resolve": "node scripts/prisma-run.cjs migrate resolve",
     "prisma:migrate:status": "node scripts/prisma-run.cjs migrate status",
     "prisma:push": "node scripts/prisma-run.cjs db push",
-    "prisma:push:force": "node scripts/prisma-run.cjs db push --accept-data-loss"
+    "prisma:push:force": "node scripts/prisma-run.cjs db push --accept-data-loss",
+    "promote:superadmin": "node scripts/promote-superadmin.cjs"
   },
   "engines": {
     "node": ">=20"

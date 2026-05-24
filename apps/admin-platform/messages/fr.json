@@ -37,7 +37,11 @@
       "signups": "Inscriptions (30 j)",
       "profiles": "Répartition profils"
     },
-    "activity": "Activité récente"
+    "activity": "Activité récente",
+    "activityItems": {
+      "vetRequest": "🩺 Demande vétérinaire — {name} ({country})",
+      "signup": "👤 Inscription — {name}"
+    }
   },
   "vets": {
     "title": "Validation vétérinaires",
@@ -59,7 +63,19 @@
       "verified": "Vérifié",
       "rejected": "Rejeté"
     },
-    "empty": "Aucun vétérinaire dans cet onglet."
+    "empty": "Aucun vétérinaire dans cet onglet.",
+    "detail": {
+      "profileTitle": "Profil",
+      "fields": {
+        "email": "Email",
+        "phone": "Tél",
+        "specialty": "Spécialité",
+        "location": "Localisation",
+        "school": "École"
+      },
+      "schoolFormat": "{school} ({country}) — {year}",
+      "rejectDefaultReason": "Dossier incomplet"
+    }
   },
   "users": {
     "title": "Utilisateurs",

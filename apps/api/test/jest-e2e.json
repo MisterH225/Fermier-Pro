@@ -13,5 +13,8 @@
     ]
   },
   "setupFiles": ["<rootDir>/test/load-test-env.ts"],
-  "testTimeout": 120000
+  "testTimeout": 120000,
+  "moduleNameMapper": {
+    "^jose$": "<rootDir>/test/mocks/jose.mock.ts"
+  }
 }

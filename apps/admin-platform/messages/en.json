@@ -37,7 +37,11 @@
       "signups": "Sign-ups (30d)",
       "profiles": "Profile distribution"
     },
-    "activity": "Recent activity"
+    "activity": "Recent activity",
+    "activityItems": {
+      "vetRequest": "🩺 Vet application — {name} ({country})",
+      "signup": "👤 Sign-up — {name}"
+    }
   },
   "vets": {
     "title": "Vet validation",
@@ -59,7 +63,19 @@
       "verified": "Verified",
       "rejected": "Rejected"
     },
-    "empty": "No veterinarians in this tab."
+    "empty": "No veterinarians in this tab.",
+    "detail": {
+      "profileTitle": "Profile",
+      "fields": {
+        "email": "Email",
+        "phone": "Phone",
+        "specialty": "Specialty",
+        "location": "Location",
+        "school": "School"
+      },
+      "schoolFormat": "{school} ({country}) — {year}",
+      "rejectDefaultReason": "Incomplete dossier"
+    }
   },
   "users": {
     "title": "Users",

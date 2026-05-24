@@ -148,12 +148,12 @@ export default function OverviewPage() {
           <ul className="space-y-2 text-sm text-muted-foreground">
             {data.recentActivity.vetRequests.map((v) => (
               <li key={v.id}>
-                🩺 Demande vétérinaire — {v.name} ({v.country})
+                {t("activityItems.vetRequest", { name: v.name, country: v.country })}
               </li>
             ))}
             {data.recentActivity.signups.map((u) => (
               <li key={u.id}>
-                👤 Inscription — {u.name}
+                {t("activityItems.signup", { name: u.name })}
               </li>
             ))}
           </ul>
