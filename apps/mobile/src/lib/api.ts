@@ -4235,6 +4235,10 @@ export type AuthMeUser = {
   homeLocationLabel: string | null;
   homeLocationSource: "gps" | "manual" | null;
   isActive: boolean;
+  accountStatus?: "active" | "suspended" | "banned";
+  suspendedReason?: string | null;
+  suspendedUntil?: string | null;
+  bannedReason?: string | null;
   notificationsEnabled: boolean;
   pushNotificationsRegistered: boolean;
   isOnboarded: boolean;
@@ -4263,6 +4267,8 @@ export type AuthMeResponse = {
     displayName: string | null;
     isDefault: boolean;
     avatarUrl: string | null;
+    profileStatus?: "active" | "suspended" | "banned";
+    profileSuspendedReason?: string | null;
   }>;
   activeProfile: {
     id: string;
@@ -4270,6 +4276,8 @@ export type AuthMeResponse = {
     displayName: string | null;
     isDefault: boolean;
     avatarUrl: string | null;
+    profileStatus?: "active" | "suspended" | "banned";
+    profileSuspendedReason?: string | null;
   } | null;
   vetProfessional?: VetProfessionalMeDto;
 };

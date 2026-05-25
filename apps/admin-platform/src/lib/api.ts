@@ -101,8 +101,17 @@ export type UserListItem = {
   phone: string | null;
   avatarUrl: string | null;
   isActive: boolean;
+  accountStatus?: "active" | "suspended" | "banned";
+  suspendedUntil?: string | null;
   createdAt: string;
-  profiles: Array<{ id: string; type: string; displayName: string | null }>;
+  profiles: Array<{
+    id: string;
+    type: string;
+    displayName: string | null;
+    profileStatus?: string;
+    createdAt?: string;
+  }>;
+  vetProfile?: { id: string; verificationStatus: string } | null;
   primaryFarm: { id: string; name: string } | null;
 };
 
@@ -119,10 +128,25 @@ export type UserDetailDto = {
     phone: string | null;
     avatarUrl: string | null;
     isActive: boolean;
+    accountStatus?: "active" | "suspended" | "banned";
+    suspendedAt?: string | null;
+    suspendedReason?: string | null;
+    suspendedUntil?: string | null;
+    bannedAt?: string | null;
+    bannedReason?: string | null;
     createdAt: string;
     homeLocationLabel: string | null;
   };
-  profiles: Array<{ id: string; type: string; displayName: string | null; isDefault: boolean }>;
+  profiles: Array<{
+    id: string;
+    type: string;
+    displayName: string | null;
+    isDefault: boolean;
+    profileStatus?: string;
+    profileSuspendedReason?: string | null;
+    profileSuspendedAt?: string | null;
+    createdAt?: string;
+  }>;
   vetProfile: VetProfileRow | null;
   farms: Array<{
     id: string;

@@ -120,6 +120,18 @@ export const fr = {
       success: "Votre projet est maintenant configuré"
     }
   },
+  moderation: {
+    bannedTitle: "Compte désactivé",
+    bannedDefault: "Votre compte a été désactivé par l'équipe Fermier Pro.",
+    suspendedTitle: "Compte suspendu",
+    suspendedDefault: "Votre compte est temporairement suspendu.",
+    until: "Jusqu'au {{date}}",
+    indefinite: "Durée indéfinie",
+    profileSuspendedTitle: "Profil suspendu",
+    profileSuspendedDefault: "Ce profil n'est plus accessible.",
+    switchProfileHint: "Changez de profil dans les paramètres si vous en avez un autre.",
+    contactSupport: "Contacter le support"
+  },
   account: {
     title: "Profil",
     identity: "Identité",

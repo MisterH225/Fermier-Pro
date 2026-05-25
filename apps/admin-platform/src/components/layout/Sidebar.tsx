@@ -10,7 +10,8 @@ import {
   Map,
   Settings,
   Shield,
-  Users
+  Users,
+  ClipboardList
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
@@ -23,6 +24,7 @@ const NAV_KEYS = [
   "overview",
   "vets",
   "users",
+  "auditLogs",
   "map",
   "stats",
   "ai",
@@ -38,6 +40,7 @@ const NAV: Array<{
   { href: "/", icon: LayoutDashboard, key: "overview" },
   { href: "/veterinaires", icon: Shield, key: "vets", badgeKey: "pendingVets" },
   { href: "/utilisateurs", icon: Users, key: "users" },
+  { href: "/audit-logs", icon: ClipboardList, key: "auditLogs" },
   { href: "/carte-sanitaire", icon: Map, key: "map", badgeKey: "activeAlerts" },
   { href: "/statistiques", icon: BarChart3, key: "stats" },
   { href: "/ia", icon: Bot, key: "ai" },

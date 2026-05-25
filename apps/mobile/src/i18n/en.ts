@@ -120,6 +120,18 @@ export const en = {
       success: "Your project is now configured"
     }
   },
+  moderation: {
+    bannedTitle: "Account disabled",
+    bannedDefault: "Your account was disabled by the Fermier Pro team.",
+    suspendedTitle: "Account suspended",
+    suspendedDefault: "Your account is temporarily suspended.",
+    until: "Until {{date}}",
+    indefinite: "Indefinite",
+    profileSuspendedTitle: "Profile suspended",
+    profileSuspendedDefault: "This profile is no longer available.",
+    switchProfileHint: "Switch profile in settings if you have another one.",
+    contactSupport: "Contact support"
+  },
   account: {
     title: "Profile",
     identity: "Identity",

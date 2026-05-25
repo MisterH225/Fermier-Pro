@@ -82,6 +82,7 @@ import { dashboardRouteForActiveProfileType } from "../lib/dashboardHomeRoute";
 import { defaultStackScreenOptions } from "../lib/navigationHeaderOptions";
 import { mobileColors } from "../theme/mobileTheme";
 import { vetStackScreenOptions } from "../theme/vetTheme";
+import { AccountModerationGate } from "./auth/AccountModerationGate";
 import { OfflineBanner } from "./OfflineBanner";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -465,6 +466,7 @@ function MainNavigationWithChrome() {
   return (
     <ProducerBottomChromeProvider value={producerPad}>
       <VetBottomChromeProvider value={vetPad}>
+        <AccountModerationGate>
         <View style={styles.flex}>
           <View style={styles.flex}>
             <MainStack />
@@ -472,6 +474,7 @@ function MainNavigationWithChrome() {
           <ProducerPersistentTabBar />
           <VetPersistentTabBar />
         </View>
+        </AccountModerationGate>
       </VetBottomChromeProvider>
     </ProducerBottomChromeProvider>
   );

@@ -7,6 +7,7 @@
     "overview": "Vue d'ensemble",
     "vets": "Vétérinaires",
     "users": "Utilisateurs",
+    "auditLogs": "Journal admin",
     "map": "Carte sanitaire",
     "stats": "Statistiques",
     "ai": "Assistant IA",
@@ -145,7 +146,47 @@
     "statusFilters": {
       "all": "Tous",
       "active": "Actifs",
+      "suspended": "Suspendus",
+      "banned": "Bannis",
       "inactive": "Inactifs"
+    },
+    "accountStatus": {
+      "active": "Actif",
+      "suspended": "Suspendu",
+      "banned": "Banni"
+    },
+    "actions": {
+      "menu": "Actions",
+      "close": "Fermer",
+      "view": "Voir le profil",
+      "message": "Envoyer un message",
+      "warn": "Avertir",
+      "suspend": "Suspendre le compte",
+      "unsuspend": "Lever la suspension",
+      "ban": "Bannir le compte",
+      "delete": "Supprimer le compte"
+    },
+    "moderation": {
+      "suspendTitle": "Suspendre {name}",
+      "unsuspendTitle": "Lever la suspension",
+      "banTitle": "Bannir {name}",
+      "banWarning": "Le bannissement désactive l'accès. Les données sont conservées.",
+      "warnTitle": "Envoyer un avertissement",
+      "messageTitle": "Envoyer un message",
+      "deleteAccountTitle": "Supprimer le compte",
+      "deleteAccountWarning": "Action irréversible. Toutes les données seront supprimées.",
+      "scope": "Portée",
+      "scopeAccount": "Compte global (tous les profils)",
+      "scopeVet": "Profil vétérinaire uniquement",
+      "scopeProducer": "Profil producteur uniquement",
+      "reason": "Raison",
+      "duration": "Durée",
+      "details": "Précisions",
+      "confirmPhrase": "Saisir {phrase} pour confirmer",
+      "subject": "Objet",
+      "cancel": "Annuler",
+      "confirm": "Confirmer",
+      "send": "Envoyer"
     },
     "pagination": {
       "page": "Page {current} sur {total}"
@@ -181,6 +222,9 @@
       "noFarm": "Aucune ferme enregistrée.",
       "tabs": {
         "profil": "Profil",
+        "profiles": "Profils",
+        "history": "Historique admin",
+        "messages": "Messages admin",
         "cheptel": "Cheptel",
         "finance": "Finance",
         "sante": "Santé",
@@ -308,6 +352,19 @@
         "review": "Vérifier manuellement",
         "reject": "Rejeter"
       }
+    }
+  },
+  "auditLogs": {
+    "title": "Journal des actions admin",
+    "subtitle": "Historique des suspensions, bannissements, messages et avertissements.",
+    "empty": "Aucune entrée.",
+    "columns": {
+      "date": "Date",
+      "admin": "Admin",
+      "target": "Utilisateur",
+      "action": "Action",
+      "profile": "Profil ciblé",
+      "reason": "Raison"
     }
   },
   "settings": {

@@ -1,4 +1,5 @@
 import { Module, forwardRef } from "@nestjs/common";
+import { AdminModerationModule } from "../admin-moderation/admin-moderation.module";
 import { CguModule } from "../cgu/cgu.module";
 import { PushNotificationsModule } from "../push-notifications/push-notifications.module";
 import { AccountDeletionService } from "./account-deletion.service";
@@ -10,7 +11,11 @@ import { SupabaseAdminService } from "./supabase-admin.service";
 import { SupabaseJwtGuard } from "./guards/supabase-jwt.guard";
 
 @Module({
-  imports: [PushNotificationsModule, forwardRef(() => CguModule)],
+  imports: [
+    PushNotificationsModule,
+    forwardRef(() => AdminModerationModule),
+    forwardRef(() => CguModule)
+  ],
   controllers: [AuthController],
   providers: [
     AuthService,

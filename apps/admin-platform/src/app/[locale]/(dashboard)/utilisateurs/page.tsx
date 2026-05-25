@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { ChevronLeft, ChevronRight, Search, Tractor } from "lucide-react";
 import { apiFetch, type UsersListDto } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
+import { AccountStatusBadge } from "@/components/users/AccountStatusBadge";
+import { UserActionsMenu } from "@/components/users/UserActionsMenu";
 import { UserAvatar } from "@/components/users/UserAvatar";
 import { FilterPills } from "@/components/layout/FilterPills";
 import { PageSkeleton } from "@/components/layout/PageSkeleton";
@@ -23,7 +25,7 @@ const PROFILE_FILTERS = [
   "buyer"
 ] as const;
 
-const STATUS_FILTERS = ["all", "active", "inactive"] as const;
+const STATUS_FILTERS = ["all", "active", "suspended", "banned", "inactive"] as const;
 
 type ProfileFilter = (typeof PROFILE_FILTERS)[number];
 type StatusFilter = (typeof STATUS_FILTERS)[number];
@@ -56,20 +58,27 @@ export default function UtilisateursPage() {
     setPage(0);
   }, [debounced, profile, status]);
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     if (!token) return;
     setLoading(true);
     const params = new URLSearchParams();
     if (debounced) params.set("search", debounced);
     if (profile !== "all") params.set("profileType", profile);
-    if (status === "active") params.set("isActive", "true");
-    if (status === "inactive") params.set("isActive", "false");
+    if (status === "active" || status === "suspended" || status === "banned") {
+      params.set("accountStatus", status);
+    } else if (status === "inactive") {
+      params.set("isActive", "false");
+    }
     params.set("skip", String(page * PAGE_SIZE));
     params.set("take", String(PAGE_SIZE));
     apiFetch<UsersListDto>(`/admin/users?${params}`, token)
       .then(setData)
       .finally(() => setLoading(false));
   }, [token, debounced, profile, status, page]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   const rows = useMemo(() => data?.items ?? [], [data]);
   const total = data?.total ?? 0;
@@ -160,18 +169,19 @@ export default function UtilisateursPage() {
                   {t("columns.farm")}
                 </th>
                 <th className="px-4 py-3 font-semibold">{t("columns.status")}</th>
+                <th className="px-4 py-3 font-semibold w-12" />
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="h-32 text-center text-muted-foreground">
+                  <td colSpan={6} className="h-32 text-center text-muted-foreground">
                     …
                   </td>
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="h-32 text-center text-muted-foreground">
+                  <td colSpan={6} className="h-32 text-center text-muted-foreground">
                     {t("empty")}
                   </td>
                 </tr>
@@ -218,9 +228,13 @@ export default function UtilisateursPage() {
                         </Link>
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell">
-                        <Badge variant="secondary" className="rounded-lg font-medium">
-                          {t(`profiles.${primaryProfile}` as "profiles.producer")}
-                        </Badge>
+                        <div className="flex flex-wrap gap-1">
+                          {u.profiles.map((p) => (
+                            <Badge key={p.id} variant="secondary" className="rounded-lg text-xs">
+                              {t(`profiles.${p.type}` as "profiles.producer")}
+                            </Badge>
+                          ))}
+                        </div>
                         <p className="text-xs text-muted-foreground mt-1">
                           {t("since", { date: formatSince(u.createdAt, locale) })}
                         </p>
@@ -243,17 +257,14 @@ export default function UtilisateursPage() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "rounded-lg",
-                            u.isActive
-                              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                              : "bg-muted text-muted-foreground"
-                          )}
-                        >
-                          {u.isActive ? t("status.active") : t("status.inactive")}
-                        </Badge>
+                        <AccountStatusBadge
+                          status={u.accountStatus ?? (u.isActive ? "active" : "suspended")}
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        {token ? (
+                          <UserActionsMenu user={u} token={token} onRefresh={reload} />
+                        ) : null}
                       </td>
                     </tr>
                   );

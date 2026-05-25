@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Patch,
   Post,
   Req,
@@ -17,6 +18,7 @@ import type { Request } from "express";
 import { PrismaService } from "../prisma/prisma.service";
 import { CguService } from "../cgu/cgu.service";
 import { AcceptCguDto } from "../cgu/dto/accept-cgu.dto";
+import { AdminUserModerationService } from "../admin-platform/admin-user-moderation.service";
 import { AccountDeletionService } from "./account-deletion.service";
 import { AuthService } from "./auth.service";
 import { CurrentUser } from "./decorators/current-user.decorator";
@@ -37,7 +39,8 @@ export class AuthController {
     private readonly prisma: PrismaService,
     private readonly authService: AuthService,
     private readonly accountDeletion: AccountDeletionService,
-    private readonly cgu: CguService
+    private readonly cgu: CguService,
+    private readonly adminMessages: AdminUserModerationService
   ) {}
 
   @Get("me")
@@ -102,7 +105,11 @@ export class AuthController {
       select: { id: true, name: true }
     });
 
-    const ap = req.activeProfile;
+    const activeProfileId = req.activeProfile?.id;
+    const ap =
+      activeProfileId != null
+        ? profiles.find((p) => p.id === activeProfileId) ?? req.activeProfile
+        : req.activeProfile;
     const resolvedAvatar = ap?.avatarUrl ?? user.avatarUrl;
 
     const pushDeviceCount = await this.prisma.pushDevice.count({
@@ -152,6 +159,10 @@ export class AuthController {
         homeLocationLabel: user.homeLocationLabel,
         homeLocationSource: user.homeLocationSource,
         isActive: user.isActive,
+        accountStatus: user.accountStatus,
+        suspendedReason: user.suspendedReason,
+        suspendedUntil: user.suspendedUntil?.toISOString() ?? null,
+        bannedReason: user.bannedReason,
         notificationsEnabled: user.notificationsEnabled,
         pushNotificationsRegistered: pushDeviceCount > 0,
         isOnboarded: user.isOnboarded,
@@ -165,7 +176,9 @@ export class AuthController {
         type: p.type,
         displayName: p.displayName,
         isDefault: p.isDefault,
-        avatarUrl: p.avatarUrl ?? user.avatarUrl
+        avatarUrl: p.avatarUrl ?? user.avatarUrl,
+        profileStatus: p.profileStatus,
+        profileSuspendedReason: p.profileSuspendedReason
       })),
       activeProfile: ap
         ? {
@@ -173,7 +186,9 @@ export class AuthController {
             type: ap.type,
             displayName: ap.displayName,
             isDefault: ap.isDefault,
-            avatarUrl: ap.avatarUrl ?? user.avatarUrl
+            avatarUrl: ap.avatarUrl ?? user.avatarUrl,
+            profileStatus: ap.profileStatus,
+            profileSuspendedReason: ap.profileSuspendedReason
           }
         : null
     };

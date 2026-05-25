@@ -64,6 +64,12 @@ model User {
   homeLocationSource    String?
   phone                 String?              @unique
   isActive              Boolean              @default(true)
+  accountStatus         AccountStatus        @default(active)
+  suspendedAt           DateTime?
+  suspendedReason       String?
+  suspendedUntil        DateTime?
+  bannedAt              DateTime?
+  bannedReason          String?
   /// Préférences notifications push (opt-in ; jetons dans `PushDevice`).
   notificationsEnabled Boolean             @default(false)
   /// Producteur : configuration initiale (projet + cheptel) terminée.
@@ -107,8 +113,13 @@ model User {
   vetProfile            VetProfile?
   vetRatingsAuthored    VetRating[] @relation("VetRatingAuthor")
   superAdmin            SuperAdmin?
+  adminAuditActions     AdminAuditLog[]      @relation("AdminAuditActor")
+  adminAuditTargets     AdminAuditLog[]      @relation("AdminAuditTarget")
+  adminMessagesSent     AdminMessage[]       @relation("AdminMessageSender")
+  adminMessagesReceived AdminMessage[]       @relation("AdminMessageRecipient")
 
   @@index([email])
+  @@index([accountStatus])
   @@index([phone])
 }
 
@@ -189,11 +200,15 @@ model Profile {
   /// Photo de profil propre à ce rôle (producteur, vétérinaire, technicien…).
   avatarUrl   String?
   isDefault   Boolean     @default(false)
+  profileStatus ProfileModerationStatus @default(active)
+  profileSuspendedReason String?
+  profileSuspendedAt     DateTime?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, type])
+  @@index([profileStatus])
 }
 
 model Farm {
@@ -1574,6 +1589,81 @@ model GestationSettings {
   vaccineSchedule       Json
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+}
+
+enum AccountStatus {
+  active
+  suspended
+  banned
+}
+
+enum ProfileModerationStatus {
+  active
+  suspended
+  banned
+}
+
+enum AdminAuditTargetType {
+  account
+  vet_profile
+  farm_profile
+  buyer_profile
+  technician_profile
+}
+
+enum AdminAuditAction {
+  suspend
+  unsuspend
+  ban
+  unban
+  delete_profile
+  delete_account
+  warn
+  message
+}
+
+enum AdminMessageType {
+  notification
+  warning
+  info
+}
+
+/// Journal des actions SuperAdmin (modération utilisateurs).
+model AdminAuditLog {
+  id                String               @id @default(cuid())
+  adminUserId       String
+  admin             User                 @relation("AdminAuditActor", fields: [adminUserId], references: [id], onDelete: Restrict)
+  targetUserId      String
+  target            User                 @relation("AdminAuditTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  targetProfileType AdminAuditTargetType
+  targetProfileId   String?
+  action            AdminAuditAction
+  reason            String?
+  metadata          Json?
+  createdAt         DateTime             @default(now())
+
+  @@index([targetUserId, createdAt])
+  @@index([adminUserId, createdAt])
+  @@index([createdAt])
+  @@index([action])
+}
+
+/// Messages admin → utilisateur (in-app + push).
+model AdminMessage {
+  id              String           @id @default(cuid())
+  adminUserId     String
+  admin           User             @relation("AdminMessageSender", fields: [adminUserId], references: [id], onDelete: Restrict)
+  recipientUserId String
+  recipient       User             @relation("AdminMessageRecipient", fields: [recipientUserId], references: [id], onDelete: Cascade)
+  subject         String
+  message         String
+  type            AdminMessageType @default(notification)
+  isRead          Boolean          @default(false)
+  sentAt          DateTime         @default(now())
+  readAt          DateTime?
+
+  @@index([recipientUserId, sentAt])
+  @@index([recipientUserId, isRead])
 }
 
 /// Comptes autorisés sur la console SuperAdmin (web).

@@ -7,6 +7,7 @@ import {
   FarmDiseaseCaseStatus,
   FarmHealthRecordKind,
   ProfileType,
+  AccountStatus,
   VetVerificationStatus,
   Prisma
 } from "@prisma/client";
@@ -284,6 +285,7 @@ export class AdminPlatformService {
     search?: string;
     profileType?: string;
     isActive?: boolean;
+    accountStatus?: AccountStatus;
     skip?: number;
     take?: number;
   }) {
@@ -302,10 +304,21 @@ export class AdminPlatformService {
     if (pt && (Object.values(ProfileType) as string[]).includes(pt)) {
       where.profiles = { some: { type: pt } };
     }
-    if (query.isActive === true) {
+    if (query.accountStatus) {
+      where.accountStatus = query.accountStatus;
+    } else if (query.isActive === true) {
       where.isActive = true;
+      where.accountStatus = AccountStatus.active;
     } else if (query.isActive === false) {
-      where.isActive = false;
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+        {
+          OR: [
+            { isActive: false },
+            { accountStatus: { not: AccountStatus.active } }
+          ]
+        }
+      ];
     }
 
     const [items, total] = await Promise.all([
@@ -315,8 +328,17 @@ export class AdminPlatformService {
         take,
         orderBy: { createdAt: "desc" },
         include: {
-          profiles: { select: { id: true, type: true, displayName: true } },
-          ownedFarms: { select: { id: true, name: true }, take: 1 }
+          profiles: {
+            select: {
+              id: true,
+              type: true,
+              displayName: true,
+              profileStatus: true,
+              createdAt: true
+            }
+          },
+          ownedFarms: { select: { id: true, name: true }, take: 1 },
+          vetProfile: { select: { id: true, verificationStatus: true } }
         }
       }),
       this.prisma.user.count({ where })
@@ -331,8 +353,14 @@ export class AdminPlatformService {
         phone: u.phone,
         avatarUrl: u.avatarUrl,
         isActive: u.isActive,
+        accountStatus: u.accountStatus,
+        suspendedUntil: u.suspendedUntil?.toISOString() ?? null,
         createdAt: u.createdAt.toISOString(),
-        profiles: u.profiles,
+        profiles: u.profiles.map((p) => ({
+          ...p,
+          createdAt: p.createdAt.toISOString()
+        })),
+        vetProfile: u.vetProfile,
         primaryFarm: u.ownedFarms[0] ?? null
       }))
     };
@@ -479,10 +507,25 @@ export class AdminPlatformService {
         phone: user.phone,
         avatarUrl: user.avatarUrl,
         isActive: user.isActive,
+        accountStatus: user.accountStatus,
+        suspendedAt: user.suspendedAt?.toISOString() ?? null,
+        suspendedReason: user.suspendedReason,
+        suspendedUntil: user.suspendedUntil?.toISOString() ?? null,
+        bannedAt: user.bannedAt?.toISOString() ?? null,
+        bannedReason: user.bannedReason,
         createdAt: user.createdAt.toISOString(),
         homeLocationLabel: user.homeLocationLabel
       },
-      profiles: user.profiles,
+      profiles: user.profiles.map((p) => ({
+        id: p.id,
+        type: p.type,
+        displayName: p.displayName,
+        isDefault: p.isDefault,
+        profileStatus: p.profileStatus,
+        profileSuspendedReason: p.profileSuspendedReason,
+        profileSuspendedAt: p.profileSuspendedAt?.toISOString() ?? null,
+        createdAt: p.createdAt.toISOString()
+      })),
       vetProfile: user.vetProfile,
       farms: user.ownedFarms.map((f) => ({
         id: f.id,

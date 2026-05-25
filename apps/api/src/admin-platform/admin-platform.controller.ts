@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -11,8 +12,10 @@ import {
 import type { User } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
+import { AccountStatus, AdminAuditAction } from "@prisma/client";
 import { AdminPlatformService } from "./admin-platform.service";
 import { AdminAiService } from "./admin-ai.service";
+import { AdminUserModerationService } from "./admin-user-moderation.service";
 import {
   AdminAiAskDto,
   AdminAiLocaleDto,
@@ -20,6 +23,18 @@ import {
   RejectVetProfileAdminDto,
   UpdatePlatformSettingsDto
 } from "./dto/admin-platform.dto";
+import {
+  BanUserDto,
+  BulkAdminMessageDto,
+  DeleteAccountAdminDto,
+  DeleteProfileAdminDto,
+  SendAdminMessageToUserDto,
+  SuspendUserDto,
+  UnbanUserDto,
+  UnsuspendUserDto,
+  WarnUserDto,
+  ModerationScopeDto
+} from "./dto/admin-user-moderation.dto";
 import { SuperAdminGuard } from "./super-admin.guard";
 
 @Controller("admin")
@@ -27,7 +42,8 @@ import { SuperAdminGuard } from "./super-admin.guard";
 export class AdminPlatformController {
   constructor(
     private readonly admin: AdminPlatformService,
-    private readonly adminAi: AdminAiService
+    private readonly adminAi: AdminAiService,
+    private readonly moderation: AdminUserModerationService
   ) {}
 
   @Get("me")
@@ -70,15 +86,23 @@ export class AdminPlatformController {
     @Query("search") search?: string,
     @Query("profileType") profileType?: string,
     @Query("isActive") isActive?: string,
+    @Query("accountStatus") accountStatus?: string,
     @Query("skip") skip?: string,
     @Query("take") take?: string
   ) {
     const activeFilter =
       isActive === "true" ? true : isActive === "false" ? false : undefined;
+    const statusParsed =
+      accountStatus === "active" ||
+      accountStatus === "suspended" ||
+      accountStatus === "banned"
+        ? (accountStatus as AccountStatus)
+        : undefined;
     return this.admin.listUsers({
       search,
       profileType,
-      isActive: activeFilter,
+      isActive: statusParsed ? undefined : activeFilter,
+      accountStatus: statusParsed,
       skip: skip ? Number.parseInt(skip, 10) : undefined,
       take: take ? Number.parseInt(take, 10) : undefined
     });
@@ -87,6 +111,132 @@ export class AdminPlatformController {
   @Get("users/:id")
   getUser(@Param("id") id: string) {
     return this.admin.getUserDetail(id);
+  }
+
+  @Patch("users/:id/suspend")
+  suspendUser(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: SuspendUserDto
+  ) {
+    return this.moderation.suspendUser(admin.id, id, dto);
+  }
+
+  @Patch("users/:id/unsuspend")
+  unsuspendUser(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: UnsuspendUserDto
+  ) {
+    return this.moderation.unsuspendUser(admin.id, id, dto);
+  }
+
+  @Patch("users/:id/ban")
+  banUser(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: BanUserDto
+  ) {
+    return this.moderation.banUser(admin.id, id, dto);
+  }
+
+  @Patch("users/:id/unban")
+  unbanUser(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: UnbanUserDto
+  ) {
+    return this.moderation.unbanUser(admin.id, id, dto);
+  }
+
+  @Delete("users/:id/account")
+  deleteAccount(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: DeleteAccountAdminDto
+  ) {
+    return this.moderation.deleteAccount(admin.id, id, dto);
+  }
+
+  @Post("users/:id/warn")
+  warnUser(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: WarnUserDto
+  ) {
+    return this.moderation.warnUser(admin.id, id, dto);
+  }
+
+  @Post("messages")
+  sendMessage(@CurrentUser() admin: User, @Body() body: SendAdminMessageToUserDto) {
+    const { userId, ...dto } = body;
+    return this.moderation.sendMessage(admin.id, userId, dto);
+  }
+
+  @Post("messages/bulk")
+  bulkMessage(@CurrentUser() admin: User, @Body() dto: BulkAdminMessageDto) {
+    return this.moderation.sendBulkMessage(admin.id, dto);
+  }
+
+  @Get("messages")
+  listMessages(@Query("userId") userId: string, @Query("skip") skip?: string, @Query("take") take?: string) {
+    return this.moderation.listMessagesForUser(
+      userId,
+      skip ? Number.parseInt(skip, 10) : undefined,
+      take ? Number.parseInt(take, 10) : undefined
+    );
+  }
+
+  @Get("audit-logs")
+  auditLogs(
+    @Query("userId") userId?: string,
+    @Query("adminId") adminId?: string,
+    @Query("action") action?: string,
+    @Query("skip") skip?: string,
+    @Query("take") take?: string
+  ) {
+    const actionParsed = action
+      ? (Object.values(AdminAuditAction) as string[]).includes(action)
+        ? (action as AdminAuditAction)
+        : undefined
+      : undefined;
+    return this.moderation.listAuditLogs({
+      userId,
+      adminId,
+      action: actionParsed,
+      skip: skip ? Number.parseInt(skip, 10) : undefined,
+      take: take ? Number.parseInt(take, 10) : undefined
+    });
+  }
+
+  @Patch("profiles/veterinarian/:userId/suspend")
+  suspendVetProfile(
+    @CurrentUser() admin: User,
+    @Param("userId") userId: string,
+    @Body() dto: SuspendUserDto
+  ) {
+    return this.moderation.suspendUser(admin.id, userId, {
+      ...dto,
+      scope: ModerationScopeDto.veterinarian
+    });
+  }
+
+  @Delete("profiles/veterinarian/:userId")
+  deleteVetProfile(
+    @CurrentUser() admin: User,
+    @Param("userId") userId: string,
+    @Body() dto: DeleteProfileAdminDto
+  ) {
+    return this.moderation.deleteVetProfile(admin.id, userId, dto);
+  }
+
+  @Delete("profiles/producer/:userId")
+  deleteProducerProfile(
+    @CurrentUser() admin: User,
+    @Param("userId") userId: string,
+    @Body() dto: DeleteProfileAdminDto
+  ) {
+    return this.moderation.deleteProducerProfile(admin.id, userId, dto);
   }
 
   @Get("health-map")

@@ -7,6 +7,7 @@
     "overview": "Overview",
     "vets": "Veterinarians",
     "users": "Users",
+    "auditLogs": "Admin log",
     "map": "Health map",
     "stats": "Statistics",
     "ai": "AI assistant",
@@ -145,7 +146,47 @@
     "statusFilters": {
       "all": "All",
       "active": "Active",
+      "suspended": "Suspended",
+      "banned": "Banned",
       "inactive": "Inactive"
+    },
+    "accountStatus": {
+      "active": "Active",
+      "suspended": "Suspended",
+      "banned": "Banned"
+    },
+    "actions": {
+      "menu": "Actions",
+      "close": "Close",
+      "view": "View profile",
+      "message": "Send message",
+      "warn": "Warn",
+      "suspend": "Suspend account",
+      "unsuspend": "Lift suspension",
+      "ban": "Ban account",
+      "delete": "Delete account"
+    },
+    "moderation": {
+      "suspendTitle": "Suspend {name}",
+      "unsuspendTitle": "Lift suspension",
+      "banTitle": "Ban {name}",
+      "banWarning": "Banning disables access. Data is retained.",
+      "warnTitle": "Send a warning",
+      "messageTitle": "Send a message",
+      "deleteAccountTitle": "Delete account",
+      "deleteAccountWarning": "Irreversible. All user data will be deleted.",
+      "scope": "Scope",
+      "scopeAccount": "Global account (all profiles)",
+      "scopeVet": "Veterinarian profile only",
+      "scopeProducer": "Producer profile only",
+      "reason": "Reason",
+      "duration": "Duration",
+      "details": "Details",
+      "confirmPhrase": "Type {phrase} to confirm",
+      "subject": "Subject",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "send": "Send"
     },
     "pagination": {
       "page": "Page {current} of {total}"
@@ -308,6 +349,19 @@
         "review": "Review manually",
         "reject": "Reject"
       }
+    }
+  },
+  "auditLogs": {
+    "title": "Admin action log",
+    "subtitle": "History of suspensions, bans, messages and warnings.",
+    "empty": "No entries.",
+    "columns": {
+      "date": "Date",
+      "admin": "Admin",
+      "target": "User",
+      "action": "Action",
+      "profile": "Target profile",
+      "reason": "Reason"
     }
   },
   "settings": {
