@@ -109,13 +109,17 @@ export function TransferModal({
     return out;
   }, [barnDetailsQuery.data]);
 
+  // On ne dépend pas de la référence `animals` (recréée à chaque render parent
+  // par un filter/map sur useQuery → boucle « Maximum update depth »). On lit
+  // uniquement l'ID du premier animal, qui est une string stable.
+  const fallbackAnimalId = animals[0]?.id ?? null;
   useEffect(() => {
     if (visible) {
-      setAnimalId(initialAnimalId ?? animals[0]?.id ?? null);
+      setAnimalId(initialAnimalId ?? fallbackAnimalId);
       setToPenId(null);
       setNote("");
     }
-  }, [visible, initialAnimalId, animals]);
+  }, [visible, initialAnimalId, fallbackAnimalId]);
 
   const selectedAnimal = animals.find((a) => a.id === animalId) ?? null;
   const fromPenId = selectedAnimal?.currentPen?.penId;

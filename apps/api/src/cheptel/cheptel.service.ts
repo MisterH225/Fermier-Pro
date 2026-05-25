@@ -1,6 +1,9 @@
 import {
   BadRequestException,
+  forwardRef,
+  Inject,
   Injectable,
+  Logger,
   NotFoundException
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
@@ -29,6 +32,7 @@ import {
   relocateProductionAnimalsToDefaultPlan
 } from "../onboarding/onboarding-pen-layout";
 import { PenAllocationService } from "../housing/pen-allocation.service";
+import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 
 export type CheptelPenOverviewRow = {
   id: string;
@@ -57,7 +61,7 @@ export type CheptelPenOverviewRow = {
   femaleCount: number;
   isActive: boolean;
   averageWeightKg: number | null;
-  averageAgeDays: number | null;
+  averageAgeWeeks: number | null;
   vaccineOverdueCount: number;
   gestationImminent: boolean;
   activeDiseaseCount: number;
@@ -85,12 +89,16 @@ export class CheptelService {
   /** Évite deux migrations legacy concurrentes (ex. listPens + listPenContents). */
   private readonly legacyBatchMigrationFlights = new Map<string, Promise<void>>();
 
+  private readonly logger = new Logger(CheptelService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
     private readonly livestock: LivestockService,
     private readonly finance: FinanceService,
-    private readonly penAllocation: PenAllocationService
+    private readonly penAllocation: PenAllocationService,
+    @Inject(forwardRef(() => SmartAlertsService))
+    private readonly smartAlerts: SmartAlertsService
   ) {}
 
   private mapBatchType(
@@ -366,7 +374,7 @@ export class CheptelService {
         pen.averageWeightKg != null
           ? decimalToNum(pen.averageWeightKg)
           : computedAvg;
-      const averageAgeDays = pen.averageAgeDays ?? null;
+      const averageAgeWeeks = pen.averageAgeWeeks ?? null;
 
       const usageTag = this.detectPenUsageTag({
         occupancy,
@@ -406,7 +414,7 @@ export class CheptelService {
         femaleCount,
         isActive: pen.status !== "inactive",
         averageWeightKg,
-        averageAgeDays,
+        averageAgeWeeks,
         vaccineOverdueCount,
         gestationImminent,
         activeDiseaseCount
@@ -441,7 +449,7 @@ export class CheptelService {
     user: User,
     farmId: string,
     penId: string,
-    dto: { averageWeightKg?: number | null; averageAgeDays?: number | null }
+    dto: { averageWeightKg?: number | null; averageAgeWeeks?: number | null }
   ) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
     const pen = await this.prisma.pen.findFirst({
@@ -450,7 +458,7 @@ export class CheptelService {
     if (!pen) {
       throw new NotFoundException("Loge introuvable");
     }
-    return this.prisma.pen.update({
+    const updated = await this.prisma.pen.update({
       where: { id: penId },
       data: {
         ...(dto.averageWeightKg !== undefined
@@ -461,11 +469,20 @@ export class CheptelService {
                   : new Prisma.Decimal(dto.averageWeightKg)
             }
           : {}),
-        ...(dto.averageAgeDays !== undefined
-          ? { averageAgeDays: dto.averageAgeDays }
+        ...(dto.averageAgeWeeks !== undefined
+          ? { averageAgeWeeks: dto.averageAgeWeeks }
           : {})
       }
     });
+    if (
+      dto.averageWeightKg !== undefined ||
+      dto.averageAgeWeeks !== undefined
+    ) {
+      void this.smartAlerts
+        .refreshInternal(farmId)
+        .catch((e) => this.logger.warn(`SmartAlerts refresh after pen averages failed`, e));
+    }
+    return updated;
   }
 
   async listPenContents(user: User, farmId: string, penId: string) {

@@ -824,7 +824,8 @@ model Pen {
   category         PenCategory?
   categoryForced   Boolean      @default(false)
   averageWeightKg  Decimal?     @db.Decimal(10, 3)
-  averageAgeDays   Int?
+  /// Âge moyen des sujets de la loge, en SEMAINES entières (0 — 104).
+  averageAgeWeeks  Int?
   sortOrder        Int          @default(0)
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
@@ -1446,6 +1447,12 @@ model FarmAlertSettings {
   lowBalanceThreshold       Decimal? @db.Decimal(14, 2)
   stockWarningDays          Int      @default(30)
   stockCriticalDays         Int      @default(15)
+  /// Seuil poids moyen (kg) au-delà duquel une loge « Démarrage » devrait
+  /// être reclassée en « Croissance ». Défaut : 30 kg.
+  starterMaxAvgWeightKg     Decimal? @db.Decimal(10, 3) @default(30)
+  /// Seuil âge moyen (semaines) au-delà duquel une loge « Démarrage »
+  /// devrait être reclassée. Défaut : 10 semaines.
+  starterMaxAvgAgeWeeks     Int?     @default(10)
   pushStock                 Boolean  @default(true)
   pushHealth                Boolean  @default(true)
   pushFinance               Boolean  @default(true)

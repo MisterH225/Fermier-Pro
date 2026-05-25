@@ -137,6 +137,9 @@ export function DiseaseModal({
     [pensQ.data?.pens]
   );
 
+  const firstAnimalId = animals[0]?.id ?? null;
+  const firstBatchId = batches[0]?.id ?? null;
+
   useEffect(() => {
     if (!visible) {
       return;
@@ -165,12 +168,12 @@ export function DiseaseModal({
     if (presetAnimal) {
       setSubjectType("animal");
       setSubjectId(presetAnimal.id);
-    } else if (animals[0]?.id) {
+    } else if (firstAnimalId) {
       setSubjectType("animal");
-      setSubjectId(animals[0].id);
-    } else if (batches[0]?.id) {
+      setSubjectId(firstAnimalId);
+    } else if (firstBatchId) {
       setSubjectType("group");
-      setSubjectId(batches[0].id);
+      setSubjectId(firstBatchId);
     }
     setSymptoms([]);
     setCustomSymptom("");
@@ -184,7 +187,9 @@ export function DiseaseModal({
     setShowIsolationPicker(false);
     setIsolationPenId(null);
     setNotes("");
-  }, [visible, presetAnimal, editRecord, animals, batches]);
+    // Dépendre des IDs (strings stables) plutôt que des références d'arrays
+    // recréées à chaque render parent (`?? []`, `.filter()` → boucle infinie).
+  }, [visible, presetAnimal, editRecord, firstAnimalId, firstBatchId]);
 
   const toggleSymptom = (tag: string) => {
     setSymptoms((prev) =>

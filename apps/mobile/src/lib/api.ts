@@ -9,6 +9,37 @@ function apiBaseUrl(): string {
   return resolveApiBaseUrl();
 }
 
+/**
+ * Extrait un message lisible d'une réponse API en erreur.
+ * NestJS renvoie `{ "message": string | string[], "error": string, "statusCode": number }`.
+ * On retourne uniquement la chaîne `message` (jointe si tableau), pour éviter l'affichage
+ * du JSON brut dans les `Alert.alert(title, e.message)` côté app.
+ */
+function formatApiErrorBody(text: string, status: number, statusText: string): string {
+  const trimmed = text.trim();
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      const body = JSON.parse(trimmed) as {
+        message?: string | string[];
+        error?: string;
+      };
+      const m = body?.message;
+      if (Array.isArray(m) && m.length > 0) {
+        return m.join(" · ");
+      }
+      if (typeof m === "string" && m.trim().length > 0) {
+        return m;
+      }
+      if (typeof body?.error === "string" && body.error.trim().length > 0) {
+        return body.error;
+      }
+    } catch {
+      // pas du JSON exploitable — retombe sur le texte brut
+    }
+  }
+  return trimmed || `${status} ${statusText}`.trim();
+}
+
 export function apiAuthHeaders(
   accessToken: string,
   activeProfileId?: string | null
@@ -35,7 +66,7 @@ export async function apiGetJson<T>(
   });
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(text || `${res.status} ${res.statusText}`);
+    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
   }
   return JSON.parse(text) as T;
 }
@@ -59,7 +90,7 @@ export async function apiPostJson<T>(
   });
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(text || `${res.status} ${res.statusText}`);
+    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
   }
   return JSON.parse(text) as T;
 }
@@ -83,7 +114,7 @@ export async function apiPutJson<T>(
   });
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(text || `${res.status} ${res.statusText}`);
+    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
   }
   return JSON.parse(text) as T;
 }
@@ -107,7 +138,7 @@ export async function apiPatchJson<T>(
   });
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(text || `${res.status} ${res.statusText}`);
+    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
   }
   return JSON.parse(text) as T;
 }
@@ -126,7 +157,7 @@ export async function apiDeleteJson<T>(
   });
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(text || `${res.status} ${res.statusText}`);
+    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
   }
   if (!text.trim()) {
     return {} as T;
@@ -152,7 +183,7 @@ export async function fetchClientConfig(): Promise<ClientConfigDto> {
   const res = await fetch(url);
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(text || `${res.status} ${res.statusText}`);
+    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
   }
   return JSON.parse(text) as ClientConfigDto;
 }
@@ -1163,7 +1194,8 @@ export type CheptelPenRowDto = {
   femaleCount: number;
   isActive: boolean;
   averageWeightKg: number | null;
-  averageAgeDays: number | null;
+  /** Âge moyen des sujets de la loge en SEMAINES (0 — 104). */
+  averageAgeWeeks: number | null;
   vaccineOverdueCount: number;
   gestationImminent: boolean;
   activeDiseaseCount: number;
@@ -1286,7 +1318,7 @@ export function patchPenAverages(
   accessToken: string,
   farmId: string,
   penId: string,
-  payload: { averageWeightKg?: number | null; averageAgeDays?: number | null },
+  payload: { averageWeightKg?: number | null; averageAgeWeeks?: number | null },
   activeProfileId?: string | null
 ): Promise<unknown> {
   return apiPatchJson(
@@ -1317,7 +1349,7 @@ export type PatchPenPayload = {
   category?: PenCategoryKey;
   categoryForced?: boolean;
   averageWeightKg?: number | null;
-  averageAgeDays?: number | null;
+  averageAgeWeeks?: number | null;
   zoneLabel?: string | null;
 };
 
@@ -4648,7 +4680,7 @@ export async function fetchAuthMe(
   });
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(text || `${res.status} ${res.statusText}`);
+    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
   }
   return JSON.parse(text) as AuthMeResponse;
 }
@@ -4671,6 +4703,54 @@ export function patchAuthProfile(
     body,
     accessToken,
     activeProfileId ?? undefined
+  );
+}
+
+/** Type d'un message admin (modération, info, avertissement). */
+export type AdminMessageTypeDto = "notification" | "warning" | "info";
+
+export type AdminMessageDto = {
+  id: string;
+  subject: string;
+  message: string;
+  type: AdminMessageTypeDto;
+  isRead: boolean;
+  sentAt: string;
+  readAt: string | null;
+  admin: { id: string; fullName: string | null; email: string | null };
+};
+
+export type AdminMessagesListDto = {
+  total: number;
+  items: AdminMessageDto[];
+};
+
+/** GET /api/v1/auth/me/admin-messages — historique messages admin → utilisateur. */
+export function fetchMyAdminMessages(
+  accessToken: string
+): Promise<AdminMessagesListDto> {
+  return apiGetJson<AdminMessagesListDto>("/auth/me/admin-messages", accessToken);
+}
+
+/** GET /api/v1/auth/me/admin-messages/unread-count — badge cloche. */
+export function fetchMyAdminMessagesUnreadCount(
+  accessToken: string
+): Promise<{ count: number }> {
+  return apiGetJson<{ count: number }>(
+    "/auth/me/admin-messages/unread-count",
+    accessToken
+  );
+}
+
+/** PATCH /api/v1/auth/me/admin-messages/:id/read — marque le message comme lu. */
+export function markMyAdminMessageRead(
+  accessToken: string,
+  messageId: string
+): Promise<{ ok: boolean }> {
+  return apiPatchJson<{ ok: boolean }>(
+    `/auth/me/admin-messages/${messageId}/read`,
+    {},
+    accessToken
   );
 }
 

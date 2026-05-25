@@ -10,7 +10,7 @@ import {
   UseGuards
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
-import { IsBoolean, IsNumber, IsOptional, Max, Min } from "class-validator";
+import { IsBoolean, IsInt, IsNumber, IsOptional, Max, Min } from "class-validator";
 import { Type } from "class-transformer";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
@@ -45,6 +45,22 @@ export class UpdateFarmAlertSettingsDto {
   @Min(1)
   @Max(60)
   stockCriticalDays?: number;
+
+  /** Seuil poids moyen (kg) au-delà duquel une loge Démarrage devrait basculer en Croissance. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(500)
+  starterMaxAvgWeightKg?: number | null;
+
+  /** Seuil âge moyen (semaines) au-delà duquel une loge Démarrage devrait basculer en Croissance. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(104)
+  starterMaxAvgAgeWeeks?: number | null;
 
   @IsOptional()
   @IsBoolean()

@@ -1,9 +1,10 @@
-import { Module } from "@nestjs/common";
+import { forwardRef, Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { CommonModule } from "../common/common.module";
 import { FinanceModule } from "../finance/finance.module";
 import { HousingModule } from "../housing/housing.module";
 import { LivestockModule } from "../livestock/livestock.module";
+import { SmartAlertsModule } from "../smart-alerts/smart-alerts.module";
 import { CheptelController } from "./cheptel.controller";
 import { CheptelService } from "./cheptel.service";
 
@@ -13,7 +14,8 @@ import { CheptelService } from "./cheptel.service";
     CommonModule,
     LivestockModule,
     FinanceModule,
-    HousingModule
+    HousingModule,
+    forwardRef(() => SmartAlertsModule)
   ],
   controllers: [CheptelController],
   providers: [CheptelService],

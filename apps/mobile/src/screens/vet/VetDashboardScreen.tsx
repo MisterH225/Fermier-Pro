@@ -21,6 +21,7 @@ import { DashboardTaskWidget } from "../../components/tasks";
 import { VetProfileModal } from "../../components/vet/VetProfileModal";
 import { VetWelcomeHeader } from "../../components/vet/VetWelcomeHeader";
 import { VisitCard } from "../../components/vet/VisitCard";
+import { AdminMessagesBanner } from "../../components/admin/AdminMessagesBanner";
 import { useVetBottomChromePad } from "../../context/VetBottomChromeContext";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { useSession } from "../../context/SessionContext";
@@ -173,6 +174,7 @@ export function VetDashboardScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} />
         }
       >
+        <AdminMessagesBanner />
         {isPending ? (
           <View style={styles.pendingBanner}>
             <Text style={styles.pendingTx}>⏳ {t("vet.dashboard.pendingBanner")}</Text>

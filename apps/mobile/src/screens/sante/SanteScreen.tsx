@@ -178,23 +178,29 @@ export function SanteScreen({ route, navigation }: Props) {
   const [linkRecordId, setLinkRecordId] = useState<string | null>(null);
   const [linkExpenseId, setLinkExpenseId] = useState("");
 
+  // On ne dépend pas des références `animals` / `batches` (recréées à chaque
+  // render via `?? []` et `.filter(...)` → boucle « Maximum update depth »).
+  // On suit uniquement les IDs du premier animal / lot, qui sont des strings
+  // stables tant que le cache react-query ne change pas.
+  const firstAnimalId = animals[0]?.id ?? null;
+  const firstBatchId = batches[0]?.id ?? null;
   useEffect(() => {
     if (!farmQuery.data) return;
     const mode = farmQuery.data.livestockMode;
-    if (mode === "individual" && animals[0]?.id) {
+    if (mode === "individual" && firstAnimalId) {
       setSubjectType("animal");
-      setSubjectId(animals[0].id);
-    } else if (mode === "batch" && batches[0]?.id) {
+      setSubjectId(firstAnimalId);
+    } else if (mode === "batch" && firstBatchId) {
       setSubjectType("group");
-      setSubjectId(batches[0].id);
-    } else if (animals[0]?.id) {
+      setSubjectId(firstBatchId);
+    } else if (firstAnimalId) {
       setSubjectType("animal");
-      setSubjectId(animals[0].id);
-    } else if (batches[0]?.id) {
+      setSubjectId(firstAnimalId);
+    } else if (firstBatchId) {
       setSubjectType("group");
-      setSubjectId(batches[0].id);
+      setSubjectId(firstBatchId);
     }
-  }, [farmQuery.data, animals, batches]);
+  }, [farmQuery.data, firstAnimalId, firstBatchId]);
 
   const openForm = (kind: FarmHealthRecordKind) => {
     setForm(emptyForm());

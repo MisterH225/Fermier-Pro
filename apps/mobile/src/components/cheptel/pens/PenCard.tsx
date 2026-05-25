@@ -168,6 +168,11 @@ export function PenCard({
           {t("cheptel.pens.avgWeight", { kg: pen.averageWeightKg })}
         </Text>
       ) : null}
+      {pen.averageAgeWeeks != null ? (
+        <Text style={styles.meta}>
+          {t("cheptel.pens.avgAgeWeeksShort", { weeks: pen.averageAgeWeeks })}
+        </Text>
+      ) : null}
       <View style={styles.barTrack}>
         <View
           style={[styles.barFill, { width: `${rate}%`, backgroundColor: barColor }]}

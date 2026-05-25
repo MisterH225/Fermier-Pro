@@ -22,6 +22,7 @@ import { FeedStockLevelGauge, dashboardFeedItemToGauge } from "../components/fee
 import { FinanceOverviewKpiGrid } from "../components/finance/FinanceOverviewKpiGrid";
 import { EmptyStateCard } from "../components/common/EmptyStateCard";
 import { OnboardingBanner } from "../components/onboarding/OnboardingBanner";
+import { AdminMessagesBanner } from "../components/admin/AdminMessagesBanner";
 import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
 import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
 import { useOnboardingResume } from "../context/OnboardingResumeContext";
@@ -304,6 +305,7 @@ export function ProducerDashboardScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
+          <AdminMessagesBanner />
           {showOnboardingBanner ? (
             <OnboardingBanner onComplete={requestResume} />
           ) : null}

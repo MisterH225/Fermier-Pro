@@ -76,7 +76,11 @@ export function CreateLogeModal({
         activeProfileId
       );
       const w = avgWeight.trim() ? Number.parseFloat(avgWeight) : null;
-      const age = avgAge.trim() ? Number.parseInt(avgAge, 10) : null;
+      const ageRaw = avgAge.trim() ? Number.parseInt(avgAge, 10) : null;
+      const ageWeeks =
+        ageRaw == null || !Number.isFinite(ageRaw)
+          ? null
+          : Math.min(104, Math.max(0, ageRaw));
       await patchPen(
         accessToken,
         farmId,
@@ -85,7 +89,7 @@ export function CreateLogeModal({
           category,
           categoryForced: true,
           averageWeightKg: Number.isFinite(w!) ? w : null,
-          averageAgeDays: Number.isFinite(age!) ? age : null,
+          averageAgeWeeks: ageWeeks,
           zoneLabel: notes.trim() || undefined
         },
         activeProfileId
@@ -175,7 +179,9 @@ export function CreateLogeModal({
         value={avgAge}
         onChangeText={setAvgAge}
         keyboardType="number-pad"
+        placeholder="8"
       />
+      <Text style={styles.helper}>{t("cheptel.pens.avgAgeHelper")}</Text>
       <Text style={styles.label}>{t("cheptel.pens.notes")}</Text>
       <TextInput
         style={[styles.input, styles.multiline]}
@@ -202,6 +208,12 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.background
   },
   multiline: { minHeight: 72, textAlignVertical: "top" },
+  helper: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: 4,
+    marginBottom: 4
+  },
   pillRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   pill: {
     paddingHorizontal: 12,

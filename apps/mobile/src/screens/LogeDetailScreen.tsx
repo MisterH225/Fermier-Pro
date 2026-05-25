@@ -180,14 +180,21 @@ export function LogeDetailScreen({ route, navigation }: Props) {
     if (penMeta?.averageWeightKg != null) {
       setAvgWeight(String(penMeta.averageWeightKg));
     }
-    if (penMeta?.averageAgeDays != null) {
-      setAvgAge(String(penMeta.averageAgeDays));
+    if (penMeta?.averageAgeWeeks != null) {
+      setAvgAge(String(penMeta.averageAgeWeeks));
     }
-  }, [penMeta?.averageWeightKg, penMeta?.averageAgeDays]);
+  }, [penMeta?.averageWeightKg, penMeta?.averageAgeWeeks]);
 
   const saveAveragesMut = useMutation({
-    mutationFn: () =>
-      patchPenAverages(
+    mutationFn: () => {
+      const ageRaw = avgAge.trim()
+        ? Number.parseInt(avgAge, 10)
+        : null;
+      const ageWeeks =
+        ageRaw == null || !Number.isFinite(ageRaw)
+          ? null
+          : Math.min(104, Math.max(0, ageRaw));
+      return patchPenAverages(
         accessToken!,
         farmId,
         penId,
@@ -195,12 +202,11 @@ export function LogeDetailScreen({ route, navigation }: Props) {
           averageWeightKg: avgWeight.trim()
             ? Number.parseFloat(avgWeight)
             : null,
-          averageAgeDays: avgAge.trim()
-            ? Number.parseInt(avgAge, 10)
-            : null
+          averageAgeWeeks: ageWeeks
         },
         activeProfileId
-      ),
+      );
+    },
     onSuccess: () => {
       void pensQ.refetch();
       void contentsQ.refetch();

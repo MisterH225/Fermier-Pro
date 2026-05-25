@@ -132,6 +132,15 @@ export const fr = {
     switchProfileHint: "Changez de profil dans les paramètres si vous en avez un autre.",
     contactSupport: "Contacter le support"
   },
+  adminMessages: {
+    title: "Messages de l'administration",
+    empty: "Aucun message pour l'instant.",
+    bannerTitle: "Message de l'administration",
+    bannerOne: "1 nouveau message — appuyez pour ouvrir",
+    bannerCount: "{{count}} messages non lus",
+    bannerA11y: "Voir les messages admin",
+    openCta: "Voir les messages de l'administration"
+  },
   account: {
     title: "Profil",
     identity: "Identité",
@@ -662,6 +671,7 @@ export const fr = {
       newPen: "Nouvelle loge",
       subjects: "{{count}} sujets",
       avgWeight: "{{kg}} kg moy.",
+      avgAgeWeeksShort: "{{weeks}} sem.",
       badgeVaccineLate: "Vaccins en retard",
       badgeActiveDisease: "Cas maladie actif",
       badgeFarrowingSoon: "Mise bas imminente",
@@ -693,12 +703,13 @@ export const fr = {
         empty: "Vide"
       },
       avgWeightInitial: "Poids moyen initial (optionnel)",
-      avgAgeInitial: "Âge moyen initial (jours)",
+      avgAgeInitial: "Âge moyen initial (semaines)",
+      avgAgeHelper: "Âge moyen des sujets en semaines (max 104 = 2 ans)",
       notes: "Notes",
       penDetail: "Loge",
       occupancy: "Occupation",
       avgWeightField: "Poids moyen (kg)",
-      avgAgeField: "Âge moyen (jours)",
+      avgAgeField: "Âge moyen (semaines)",
       filterAll: "Tous",
       filterMale: "Verrats",
       filterFemale: "Truies",

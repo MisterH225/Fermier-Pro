@@ -1,9 +1,27 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSession } from "../../context/SessionContext";
 import { mobileColors, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { AdminMessagesModal } from "../admin/AdminMessagesModal";
 
 const SUPPORT_EMAIL = "support@fermierpro.com";
+
+function ViewMessagesButton({ label }: { label: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Pressable
+        style={styles.secondaryBtn}
+        onPress={() => setOpen(true)}
+        accessibilityRole="button"
+      >
+        <Text style={styles.secondaryBtnTx}>{label}</Text>
+      </Pressable>
+      <AdminMessagesModal visible={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
 
 export function AccountModerationGate({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
@@ -24,6 +42,9 @@ export function AccountModerationGate({ children }: { children: React.ReactNode 
         <Pressable style={styles.btn} onPress={() => void Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}>
           <Text style={styles.btnTx}>{t("moderation.contactSupport")}</Text>
         </Pressable>
+        <ViewMessagesButton
+          label={t("adminMessages.openCta", "Voir les messages de l'administration")}
+        />
       </View>
     );
   }
@@ -49,6 +70,9 @@ export function AccountModerationGate({ children }: { children: React.ReactNode 
         <Pressable style={styles.btn} onPress={() => void Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}>
           <Text style={styles.btnTx}>{t("moderation.contactSupport")}</Text>
         </Pressable>
+        <ViewMessagesButton
+          label={t("adminMessages.openCta", "Voir les messages de l'administration")}
+        />
       </View>
     );
   }
@@ -66,6 +90,9 @@ export function AccountModerationGate({ children }: { children: React.ReactNode 
           {active.profileSuspendedReason ?? t("moderation.profileSuspendedDefault")}
         </Text>
         <Text style={styles.meta}>{t("moderation.switchProfileHint")}</Text>
+        <ViewMessagesButton
+          label={t("adminMessages.openCta", "Voir les messages de l'administration")}
+        />
       </View>
     );
   }
@@ -105,5 +132,18 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12
   },
-  btnTx: { color: "#fff", fontWeight: "700" }
+  btnTx: { color: "#fff", fontWeight: "700" },
+  secondaryBtn: {
+    marginTop: mobileSpacing.sm,
+    paddingHorizontal: mobileSpacing.xl,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: mobileColors.border,
+    backgroundColor: "#fff"
+  },
+  secondaryBtnTx: {
+    color: mobileColors.accent,
+    fontWeight: "600"
+  }
 });

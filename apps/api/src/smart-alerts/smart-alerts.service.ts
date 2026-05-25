@@ -263,6 +263,8 @@ export class SmartAlertsService {
       lowBalanceThreshold?: number | null;
       stockWarningDays?: number;
       stockCriticalDays?: number;
+      starterMaxAvgWeightKg?: number | null;
+      starterMaxAvgAgeWeeks?: number | null;
       pushStock?: boolean;
       pushHealth?: boolean;
       pushFinance?: boolean;
@@ -290,6 +292,15 @@ export class SmartAlertsService {
     if (dto.stockCriticalDays != null) {
       data.stockCriticalDays = dto.stockCriticalDays;
     }
+    if (dto.starterMaxAvgWeightKg !== undefined) {
+      data.starterMaxAvgWeightKg =
+        dto.starterMaxAvgWeightKg == null
+          ? null
+          : new Prisma.Decimal(dto.starterMaxAvgWeightKg);
+    }
+    if (dto.starterMaxAvgAgeWeeks !== undefined) {
+      data.starterMaxAvgAgeWeeks = dto.starterMaxAvgAgeWeeks;
+    }
     if (dto.pushStock != null) data.pushStock = dto.pushStock;
     if (dto.pushHealth != null) data.pushHealth = dto.pushHealth;
     if (dto.pushFinance != null) data.pushFinance = dto.pushFinance;
@@ -315,6 +326,16 @@ export class SmartAlertsService {
           : {}),
         ...(dto.stockCriticalDays != null
           ? { stockCriticalDays: dto.stockCriticalDays }
+          : {}),
+        ...(dto.starterMaxAvgWeightKg != null
+          ? {
+              starterMaxAvgWeightKg: new Prisma.Decimal(
+                dto.starterMaxAvgWeightKg
+              )
+            }
+          : {}),
+        ...(dto.starterMaxAvgAgeWeeks != null
+          ? { starterMaxAvgAgeWeeks: dto.starterMaxAvgAgeWeeks }
           : {}),
         ...(dto.pushStock != null ? { pushStock: dto.pushStock } : {}),
         ...(dto.pushHealth != null ? { pushHealth: dto.pushHealth } : {}),

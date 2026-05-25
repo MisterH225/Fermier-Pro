@@ -132,6 +132,15 @@ export const en = {
     switchProfileHint: "Switch profile in settings if you have another one.",
     contactSupport: "Contact support"
   },
+  adminMessages: {
+    title: "Admin messages",
+    empty: "No messages yet.",
+    bannerTitle: "Admin message",
+    bannerOne: "1 new message — tap to open",
+    bannerCount: "{{count}} unread messages",
+    bannerA11y: "Open admin messages",
+    openCta: "View admin messages"
+  },
   account: {
     title: "Profile",
     identity: "Identity",
@@ -659,6 +668,7 @@ export const en = {
       newPen: "New pen",
       subjects: "{{count}} head",
       avgWeight: "{{kg}} kg avg.",
+      avgAgeWeeksShort: "{{weeks}} w.",
       badgeVaccineLate: "Vaccines overdue",
       badgeActiveDisease: "Active disease case",
       badgeFarrowingSoon: "Farrowing soon",
@@ -689,12 +699,13 @@ export const en = {
         empty: "Empty"
       },
       avgWeightInitial: "Initial avg. weight (optional)",
-      avgAgeInitial: "Initial avg. age (days)",
+      avgAgeInitial: "Initial avg. age (weeks)",
+      avgAgeHelper: "Average age of subjects in weeks (max 104 = 2 years)",
       notes: "Notes",
       penDetail: "Pen",
       occupancy: "Occupancy",
       avgWeightField: "Avg. weight (kg)",
-      avgAgeField: "Avg. age (days)",
+      avgAgeField: "Avg. age (weeks)",
       filterAll: "All",
       filterMale: "Boars",
       filterFemale: "Sows",
