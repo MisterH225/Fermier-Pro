@@ -21,6 +21,7 @@ import { useSession } from "../../context/SessionContext";
 import { patchAuthProfile, type PatchMeProfilePayload } from "../../lib/api";
 import { getSupabase } from "../../lib/supabase";
 import { uploadUserAvatarToSupabase } from "../../lib/uploadAvatarToSupabase";
+import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import {
   mobileColors,
   mobileRadius,
@@ -207,11 +208,16 @@ export function ProducerProfileModal({
           pendingAvatarUri.includes("png")
             ? "image/png"
             : "image/jpeg";
+        const profileType =
+          authMe?.profiles.find((p) => p.id === activeProfileId)?.type ??
+          authMe?.activeProfile?.type ??
+          "producer";
         body.avatarUrl = await uploadUserAvatarToSupabase(
           supabase,
           authMe.user.supabaseUserId,
           pendingAvatarUri,
-          mime
+          mime,
+          profileType
         );
       }
 
@@ -228,7 +234,9 @@ export function ProducerProfileModal({
     }
   };
 
-  const displayAvatarUri = pendingAvatarUri ?? authMe?.user.avatarUrl ?? null;
+  const displayAvatarUri =
+    pendingAvatarUri ??
+    resolveActiveProfileAvatarUrl(authMe, activeProfileId);
 
   const displayName = useMemo(() => {
     const a = `${firstName} ${lastName}`.trim();

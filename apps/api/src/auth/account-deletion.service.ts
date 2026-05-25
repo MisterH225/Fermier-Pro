@@ -76,7 +76,23 @@ export class AccountDeletionService {
     if (avatarPath) {
       avatarPaths.push(avatarPath);
     }
+    const profiles = await this.prisma.profile.findMany({
+      where: { userId: user.id },
+      select: { avatarUrl: true, type: true }
+    });
+    for (const profile of profiles) {
+      const p = storagePathFromPublicUrl(profile.avatarUrl, "avatars");
+      if (p) {
+        avatarPaths.push(p);
+      }
+    }
     if (user.supabaseUserId) {
+      const profileTypes = ["producer", "technician", "veterinarian", "buyer"];
+      for (const profileType of profileTypes) {
+        avatarPaths.push(`${user.supabaseUserId}/${profileType}/avatar.jpg`);
+        avatarPaths.push(`${user.supabaseUserId}/${profileType}/avatar.png`);
+        avatarPaths.push(`${user.supabaseUserId}/${profileType}/avatar.webp`);
+      }
       avatarPaths.push(`${user.supabaseUserId}/avatar.jpg`);
       avatarPaths.push(`${user.supabaseUserId}/avatar.png`);
       avatarPaths.push(`${user.supabaseUserId}/avatar.webp`);

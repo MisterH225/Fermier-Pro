@@ -71,6 +71,9 @@ export class ProfilesService {
               dto.displayName !== undefined
                 ? dto.displayName
                 : profile.displayName,
+            ...(dto.avatarUrl !== undefined
+              ? { avatarUrl: dto.avatarUrl }
+              : {}),
             isDefault: true
           }
         })
@@ -85,7 +88,8 @@ export class ProfilesService {
       data: {
         ...(dto.displayName !== undefined
           ? { displayName: dto.displayName }
-          : {})
+          : {}),
+        ...(dto.avatarUrl !== undefined ? { avatarUrl: dto.avatarUrl } : {})
       }
     });
   }

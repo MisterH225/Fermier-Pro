@@ -82,7 +82,11 @@ export class AuthController {
     @Body() dto: UpdateMeProfileDto,
     @Req() req: Request
   ) {
-    const updated = await this.authService.updateMeProfile(user.id, dto);
+    const updated = await this.authService.updateMeProfile(
+      user.id,
+      dto,
+      req.activeProfile?.id
+    );
     return this.buildMeResponse(updated, req);
   }
 
@@ -99,6 +103,7 @@ export class AuthController {
     });
 
     const ap = req.activeProfile;
+    const resolvedAvatar = ap?.avatarUrl ?? user.avatarUrl;
 
     const pushDeviceCount = await this.prisma.pushDevice.count({
       where: { userId: user.id }
@@ -140,7 +145,7 @@ export class AuthController {
         fullName: user.fullName,
         firstName: user.firstName,
         lastName: user.lastName,
-        avatarUrl: user.avatarUrl,
+        avatarUrl: resolvedAvatar,
         producerHomeFarmName: user.producerHomeFarmName,
         homeLatitude: decimalToNumber(user.homeLatitude),
         homeLongitude: decimalToNumber(user.homeLongitude),
@@ -159,14 +164,16 @@ export class AuthController {
         id: p.id,
         type: p.type,
         displayName: p.displayName,
-        isDefault: p.isDefault
+        isDefault: p.isDefault,
+        avatarUrl: p.avatarUrl ?? user.avatarUrl
       })),
       activeProfile: ap
         ? {
             id: ap.id,
             type: ap.type,
             displayName: ap.displayName,
-            isDefault: ap.isDefault
+            isDefault: ap.isDefault,
+            avatarUrl: ap.avatarUrl ?? user.avatarUrl
           }
         : null
     };

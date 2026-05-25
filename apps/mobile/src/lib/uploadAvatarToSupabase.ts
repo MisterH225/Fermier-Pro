@@ -5,16 +5,19 @@ export const AVATARS_BUCKET = "avatars";
 /**
  * Téléverse une image locale vers le bucket Supabase `avatars` (public).
  * `storageOwnerId` = `auth.users.id` (JWT `sub`), dossier aligné sur les politiques RLS.
- * Créer le bucket : `supabase/migrations/20260519120000_storage_buckets.sql`.
+ * `profileSlug` = type de profil (`producer`, `veterinarian`, …) pour une photo par rôle.
  */
 export async function uploadUserAvatarToSupabase(
   supabase: SupabaseClient,
   storageOwnerId: string,
   localUri: string,
-  mimeType: string
+  mimeType: string,
+  profileSlug?: string
 ): Promise<string> {
   const ext = mimeType.includes("png") ? "png" : "jpg";
-  const path = `${storageOwnerId}/avatar.${ext}`;
+  const path = profileSlug
+    ? `${storageOwnerId}/${profileSlug}/avatar.${ext}`
+    : `${storageOwnerId}/avatar.${ext}`;
   const response = await fetch(localUri);
   const buf = await response.arrayBuffer();
   const { error: upErr } = await supabase.storage

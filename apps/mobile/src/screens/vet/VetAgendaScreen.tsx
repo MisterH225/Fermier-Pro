@@ -14,14 +14,14 @@ import {
 } from "react-native";
 import { EventList } from "../../components/lists/EventList";
 import type { EventItem } from "../../components/lists/types";
-import { MobileAppShell } from "../../components/layout";
+import { VetMobileShell } from "../../components/layout";
 import { ScheduleVisitModal } from "../../components/vet/ScheduleVisitModal";
 import { VisitCard } from "../../components/vet/VisitCard";
 import { VisitSlotPicker } from "../../components/vet/VisitSlotPicker";
 import { useVetBottomChromePad } from "../../context/VetBottomChromeContext";
 import { useSession } from "../../context/SessionContext";
 import { fetchVetDashboard, fetchVetProfileMe } from "../../lib/api";
-import { vetColors, vetRadius } from "../../theme/vetTheme";
+import { vetColors, vetRadius, vetShadow } from "../../theme/vetTheme";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
@@ -92,7 +92,7 @@ export function VetAgendaScreen() {
   }, [navigation, listView]);
 
   return (
-    <MobileAppShell hideTopBar>
+    <VetMobileShell hideTopBar>
       <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomPad + 16 }]}>
         {!listView ? (
           <>
@@ -204,7 +204,7 @@ export function VetAgendaScreen() {
         selectedDay={selectedDay}
         selectedSlot={selectedSlot}
       />
-    </MobileAppShell>
+    </VetMobileShell>
   );
 }
 
@@ -227,8 +227,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 10,
     marginRight: 8,
-    borderRadius: 12,
-    minWidth: 48
+    borderRadius: vetRadius.day,
+    minWidth: 48,
+    backgroundColor: vetColors.cardBg
   },
   dayCellActive: { backgroundColor: vetColors.primary },
   dayName: { fontSize: 11, color: vetColors.textSecondary },
@@ -277,9 +278,10 @@ const styles = StyleSheet.create({
   bookBtn: {
     marginTop: mobileSpacing.lg,
     backgroundColor: vetColors.primary,
-    borderRadius: vetRadius.button,
+    borderRadius: vetRadius.search,
     paddingVertical: 16,
-    alignItems: "center"
+    alignItems: "center",
+    ...vetShadow.soft
   },
   bookBtnDisabled: { opacity: 0.45 },
   bookBtnTx: { color: "#fff", fontWeight: "700", fontSize: 16 }

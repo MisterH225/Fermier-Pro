@@ -107,7 +107,11 @@ export class AuthService {
     return user;
   }
 
-  async updateMeProfile(userId: string, dto: UpdateMeProfileDto): Promise<User> {
+  async updateMeProfile(
+    userId: string,
+    dto: UpdateMeProfileDto,
+    activeProfileId?: string | null
+  ): Promise<User> {
     const existing = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!existing) {
       throw new NotFoundException("Utilisateur introuvable");
@@ -121,7 +125,14 @@ export class AuthService {
       data.lastName = dto.lastName;
     }
     if (dto.avatarUrl !== undefined) {
-      data.avatarUrl = dto.avatarUrl;
+      if (activeProfileId) {
+        await this.prisma.profile.updateMany({
+          where: { id: activeProfileId, userId },
+          data: { avatarUrl: dto.avatarUrl }
+        });
+      } else {
+        data.avatarUrl = dto.avatarUrl;
+      }
     }
     if (dto.producerHomeFarmName !== undefined) {
       data.producerHomeFarmName = dto.producerHomeFarmName;

@@ -132,7 +132,7 @@ export function VetMessagesScreen() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: vetColors.background },
+  wrap: { flex: 1, backgroundColor: vetColors.canvas },
   list: { padding: mobileSpacing.lg, paddingBottom: 32 },
   emptyList: { flexGrow: 1 },
   centered: {

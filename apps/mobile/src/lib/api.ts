@@ -4262,12 +4262,14 @@ export type AuthMeResponse = {
     type: string;
     displayName: string | null;
     isDefault: boolean;
+    avatarUrl: string | null;
   }>;
   activeProfile: {
     id: string;
     type: string;
     displayName: string | null;
     isDefault: boolean;
+    avatarUrl: string | null;
   } | null;
   vetProfessional?: VetProfessionalMeDto;
 };

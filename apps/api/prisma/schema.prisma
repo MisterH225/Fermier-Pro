@@ -186,6 +186,8 @@ model Profile {
   userId      String
   type        ProfileType
   displayName String?
+  /// Photo de profil propre à ce rôle (producteur, vétérinaire, technicien…).
+  avatarUrl   String?
   isDefault   Boolean     @default(false)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt

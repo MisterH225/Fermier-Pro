@@ -27,6 +27,7 @@ import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHea
 import { useOnboardingResume } from "../context/OnboardingResumeContext";
 import { getProducerOnboardingState } from "../lib/onboardingState";
 import { useProducerBottomChromePad } from "../context/ProducerBottomChromeContext";
+import { resolveActiveProfileAvatarUrl } from "../lib/profileAvatar";
 import { useSession } from "../context/SessionContext";
 import {
   fetchDashboardFeedStock,
@@ -240,7 +241,7 @@ export function ProducerDashboardScreen() {
       <ProducerWelcomeHeader
         welcomeLabel={t("producer.welcomeLine")}
         firstName={firstName}
-        avatarUrl={user?.avatarUrl ?? null}
+        avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
         onPressAvatar={() => setProfileOpen(true)}
       />
       <View style={styles.heroActions}>

@@ -81,6 +81,7 @@ import { useSession } from "../context/SessionContext";
 import { dashboardRouteForActiveProfileType } from "../lib/dashboardHomeRoute";
 import { defaultStackScreenOptions } from "../lib/navigationHeaderOptions";
 import { mobileColors } from "../theme/mobileTheme";
+import { vetStackScreenOptions } from "../theme/vetTheme";
 import { OfflineBanner } from "./OfflineBanner";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -160,20 +161,39 @@ function MainStack() {
         component={VeterinarianDashboardScreen}
         options={{ headerShown: false }}
       />
-      <Stack.Screen name="VetAgenda" component={VetAgendaScreen} options={{ title: "Agenda" }} />
-      <Stack.Screen name="VetFarms" component={VetFarmsScreen} options={{ title: "Mes fermes" }} />
+      <Stack.Screen
+        name="VetAgenda"
+        component={VetAgendaScreen}
+        options={{ ...vetStackScreenOptions, title: "Agenda" }}
+      />
+      <Stack.Screen
+        name="VetFarms"
+        component={VetFarmsScreen}
+        options={{ ...vetStackScreenOptions, title: "Mes fermes" }}
+      />
       <Stack.Screen
         name="VetFarmDetail"
         component={VetFarmDetailScreen}
-        options={({ route }) => ({ title: route.params.farmName })}
+        options={({ route }) => ({
+          ...vetStackScreenOptions,
+          title: route.params.farmName
+        })}
       />
       <Stack.Screen
         name="VetMessages"
         component={VetMessagesScreen}
-        options={{ title: "Messages" }}
+        options={{ ...vetStackScreenOptions, title: "Messages" }}
       />
-      <Stack.Screen name="VetTasks" component={VetTasksScreen} options={{ title: "Tâches" }} />
-      <Stack.Screen name="VetReports" component={VetReportsScreen} options={{ title: "Rapports" }} />
+      <Stack.Screen
+        name="VetTasks"
+        component={VetTasksScreen}
+        options={{ ...vetStackScreenOptions, title: "Tâches" }}
+      />
+      <Stack.Screen
+        name="VetReports"
+        component={VetReportsScreen}
+        options={{ ...vetStackScreenOptions, title: "Rapports" }}
+      />
       <Stack.Screen
         name="TechnicianDashboard"
         component={TechnicianDashboardScreen}

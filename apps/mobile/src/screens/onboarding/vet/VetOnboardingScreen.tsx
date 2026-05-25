@@ -15,13 +15,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SkipConfirmModal } from "../../../components/onboarding/SkipConfirmModal";
 import { useSession } from "../../../context/SessionContext";
-import { upsertVetProfile } from "../../../lib/api";
-import { formatAuthError } from "../../../lib/authErrors";
+import { patchAuthProfile, upsertVetProfile } from "../../../lib/api";
 import { formatApiError } from "../../../lib/apiErrors";
+import { formatAuthError } from "../../../lib/authErrors";
 import { pickNonVetFallbackProfileId } from "../../../lib/vetOnboardingState";
 import { getSupabase } from "../../../lib/supabase";
-import { uploadVetDiplomaToSupabase } from "../../../lib/uploadVetDiplomaToSupabase";
 import { uploadUserAvatarToSupabase } from "../../../lib/uploadAvatarToSupabase";
+import { uploadVetDiplomaToSupabase } from "../../../lib/uploadVetDiplomaToSupabase";
 import {
   mobileColors,
   mobileRadius,
@@ -170,7 +170,8 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
           supabase,
           authMe.user.supabaseUserId,
           avatarUri,
-          "image/jpeg"
+          "image/jpeg",
+          "veterinarian"
         );
       }
       const year = Number.parseInt(graduationYear, 10);
@@ -197,6 +198,13 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
         },
         activeProfileId
       );
+      if (profilePhotoUrl) {
+        await patchAuthProfile(
+          accessToken,
+          { avatarUrl: profilePhotoUrl },
+          activeProfileId
+        );
+      }
       await refreshAuthMe();
       setStep(3);
     } catch (e: unknown) {

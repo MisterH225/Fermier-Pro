@@ -6,6 +6,8 @@ import { TopBar } from "./TopBar";
 
 type MobileAppShellProps = {
   title?: string;
+  /** Fond de l'écran (défaut : canvas producteur). */
+  canvasColor?: string;
   /** Masque la TopBar interne quand le titre est déjà dans l'en-tête stack (`useScreenTitle`). */
   hideTopBar?: boolean;
   /** Si défini, remplace la barre titre standard (ex. accueil producteur). */
@@ -22,6 +24,7 @@ type MobileAppShellProps = {
 
 export function MobileAppShell({
   title = "",
+  canvasColor = mobileColors.canvas,
   hideTopBar = false,
   customHeader,
   omitBottomTabBar,
@@ -42,9 +45,9 @@ export function MobileAppShell({
   })();
   const showTopBar = !hideTopBar && (customHeader != null || title.length > 0);
   return (
-    <SafeAreaView style={styles.safe} edges={safeEdges}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: canvasColor }]} edges={safeEdges}>
       {showTopBar ? (customHeader ?? <TopBar title={title} rightSlot={topRight} />) : null}
-      <View style={styles.content}>
+      <View style={[styles.content, { backgroundColor: canvasColor }]}>
         {children}
         {floatingAction ? (
           <View style={styles.floatingLayer} pointerEvents="box-none">

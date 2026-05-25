@@ -15,13 +15,14 @@ import {
 } from "react-native";
 import { EventList } from "../../components/lists/EventList";
 import type { EventItem } from "../../components/lists/types";
-import { MobileAppShell } from "../../components/layout";
+import { VetMobileShell } from "../../components/layout";
 import { AlertBadge } from "../../components/smartAlerts/AlertBadge";
 import { DashboardTaskWidget } from "../../components/tasks";
 import { VetProfileModal } from "../../components/vet/VetProfileModal";
 import { VetWelcomeHeader } from "../../components/vet/VetWelcomeHeader";
 import { VisitCard } from "../../components/vet/VisitCard";
 import { useVetBottomChromePad } from "../../context/VetBottomChromeContext";
+import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { useSession } from "../../context/SessionContext";
 import { fetchFarms, fetchVetDashboard } from "../../lib/api";
 import { welcomeFirstName } from "../../lib/userDisplay";
@@ -132,7 +133,7 @@ export function VetDashboardScreen() {
       <VetWelcomeHeader
         welcomeLabel={t("vet.dashboard.welcome")}
         displayName={displayName}
-        avatarUrl={authMe?.user.avatarUrl ?? null}
+        avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
         verified={isVerified}
         onPressAvatar={() => setProfileOpen(true)}
       />
@@ -147,7 +148,11 @@ export function VetDashboardScreen() {
           }
           navigation.navigate("VetFarms");
         }}
-        style={({ pressed }) => [styles.heroIconBtn, pressed && { opacity: 0.85 }]}
+        style={({ pressed }) => [
+          styles.heroIconBtn,
+          vetShadow.soft,
+          pressed && { opacity: 0.85 }
+        ]}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         accessibilityRole="button"
         accessibilityLabel={t("smartAlerts.bellA11y", "Notifications")}
@@ -161,7 +166,7 @@ export function VetDashboardScreen() {
   );
 
   return (
-    <MobileAppShell customHeader={dashboardHeader} omitBottomTabBar>
+    <VetMobileShell customHeader={dashboardHeader} omitBottomTabBar>
       <ScrollView
         contentContainerStyle={[styles.wrap, { paddingBottom: bottomPad + 24 }]}
         refreshControl={
@@ -231,29 +236,29 @@ export function VetDashboardScreen() {
                 label={t("vet.dashboard.kpiFarms")}
                 value={kpis?.farmsFollowed ?? 0}
                 emoji="🏡"
-                bg={vetColors.primaryLight}
+                bg={vetColors.kpiBlue}
                 accent={vetColors.primary}
               />
               <KpiTile
                 label={t("vet.dashboard.kpiVisits")}
                 value={kpis?.visitsThisMonth ?? 0}
                 emoji="🩺"
-                bg="#E8F5E9"
+                bg={vetColors.kpiGreen}
                 accent="#2E7D32"
               />
               <KpiTile
                 label={t("vet.dashboard.kpiAlerts")}
                 value={kpis?.healthAlerts ?? 0}
                 emoji="⚠️"
-                bg="#FFF3E0"
-                accent="#E65100"
+                bg={vetColors.kpiAmber}
+                accent="#D97706"
               />
               <KpiTile
                 label={t("vet.dashboard.kpiTasks")}
                 value={kpis?.pendingTasks ?? 0}
                 emoji="📋"
-                bg="#FCE4EC"
-                accent="#C2185B"
+                bg={vetColors.kpiRose}
+                accent="#DB2777"
               />
             </View>
 
@@ -325,7 +330,7 @@ export function VetDashboardScreen() {
         )}
       </ScrollView>
       <VetProfileModal visible={profileOpen} onClose={() => setProfileOpen(false)} />
-    </MobileAppShell>
+    </VetMobileShell>
   );
 }
 
@@ -379,15 +384,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: mobileSpacing.lg,
-    paddingVertical: mobileSpacing.xs,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: vetColors.border,
-    backgroundColor: vetColors.cardBg,
+    paddingVertical: mobileSpacing.sm,
+    backgroundColor: vetColors.canvas,
     gap: mobileSpacing.sm
   },
   heroIconBtn: {
-    padding: mobileSpacing.sm,
-    borderRadius: vetRadius.pill
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: vetColors.cardBg,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: vetColors.border
   },
   bellWrap: {
     position: "relative",
@@ -409,11 +418,14 @@ const styles = StyleSheet.create({
   searchWrap: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F3F4F6",
-    borderRadius: vetRadius.button,
+    backgroundColor: vetColors.cardBg,
+    borderRadius: vetRadius.search,
     paddingHorizontal: mobileSpacing.md,
-    paddingVertical: 10,
-    gap: mobileSpacing.sm
+    paddingVertical: 12,
+    gap: mobileSpacing.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: vetColors.border,
+    ...vetShadow.soft
   },
   searchInput: { flex: 1, fontSize: 15, color: vetColors.textPrimary },
   sectionHead: {
@@ -435,8 +447,9 @@ const styles = StyleSheet.create({
     borderRadius: vetRadius.card,
     padding: mobileSpacing.xl,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: vetColors.border
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: vetColors.border,
+    ...vetShadow.card
   },
   emptyTx: { color: vetColors.textSecondary },
   kpiGrid: {
@@ -475,11 +488,14 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center"
   },
-  quickBtnPrimary: { backgroundColor: vetColors.primary },
+  quickBtnPrimary: {
+    backgroundColor: vetColors.primary,
+    ...vetShadow.soft
+  },
   quickBtnOutline: {
     borderWidth: 1.5,
     borderColor: vetColors.primary,
-    backgroundColor: "transparent"
+    backgroundColor: vetColors.cardBg
   },
   quickBtnTx: { fontWeight: "700", color: vetColors.primary, fontSize: 15 },
   quickBtnTxPrimary: { color: "#fff" }

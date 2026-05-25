@@ -12,12 +12,12 @@ import {
   View
 } from "react-native";
 import { FarmCard, type FarmCardBadge } from "../../components/vet/FarmCard";
-import { MobileAppShell } from "../../components/layout";
+import { VetMobileShell } from "../../components/layout";
 import { useVetBottomChromePad } from "../../context/VetBottomChromeContext";
 import { useSession } from "../../context/SessionContext";
 import { fetchVetDashboard } from "../../lib/api";
 import { openPhoneCall } from "../../lib/phone";
-import { vetColors } from "../../theme/vetTheme";
+import { vetColors, vetRadius, vetShadow } from "../../theme/vetTheme";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
@@ -65,7 +65,7 @@ export function VetFarmsScreen() {
   }
 
   return (
-    <MobileAppShell hideTopBar>
+    <VetMobileShell hideTopBar>
       <View style={[styles.wrap, { paddingBottom: bottomPad }]}>
         <TextInput
           style={styles.search}
@@ -118,19 +118,22 @@ export function VetFarmsScreen() {
           }
         />
       </View>
-    </MobileAppShell>
+    </VetMobileShell>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, padding: mobileSpacing.lg },
   search: {
-    backgroundColor: "#F3F4F6",
-    borderRadius: 12,
+    backgroundColor: vetColors.cardBg,
+    borderRadius: vetRadius.search,
     paddingHorizontal: mobileSpacing.md,
-    paddingVertical: 10,
+    paddingVertical: 12,
     marginBottom: mobileSpacing.md,
-    color: vetColors.textPrimary
+    color: vetColors.textPrimary,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: vetColors.border,
+    ...vetShadow.soft
   },
   pills: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: mobileSpacing.md },
   pill: {

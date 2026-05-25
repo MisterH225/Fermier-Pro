@@ -351,6 +351,8 @@ export const en = {
     profile: {
       title: "Vet profile",
       verified: "Verified profile",
+      sectionProfessional: "Professional profile",
+      sectionAccount: "Account",
       zone: "Service area",
       school: "Education",
       availability: "Available",

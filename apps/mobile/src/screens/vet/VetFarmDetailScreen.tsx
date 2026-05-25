@@ -4,7 +4,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { MobileAppShell } from "../../components/layout";
+import { VetMobileShell } from "../../components/layout";
 import { useVetBottomChromePad } from "../../context/VetBottomChromeContext";
 import { vetColors } from "../../theme/vetTheme";
 import { mobileSpacing } from "../../theme/mobileTheme";
@@ -22,7 +22,7 @@ export function VetFarmDetailScreen() {
   const [tab, setTab] = useState<(typeof TABS)[number]>("health");
 
   return (
-    <MobileAppShell title={farmName}>
+    <VetMobileShell hideTopBar>
       <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomPad }]}>
         <View style={styles.tabs}>
           {TABS.map((id) => (
@@ -91,7 +91,7 @@ export function VetFarmDetailScreen() {
           </Pressable>
         ) : null}
       </ScrollView>
-    </MobileAppShell>
+    </VetMobileShell>
   );
 }
 

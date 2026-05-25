@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { MobileAppShell } from "../../components/layout";
+import { VetMobileShell } from "../../components/layout";
 import { useSession } from "../../context/SessionContext";
 import { fetchFarms } from "../../lib/api";
 import { vetColors } from "../../theme/vetTheme";
@@ -33,28 +33,28 @@ export function VetTasksScreen() {
 
   if (farmsQ.isLoading) {
     return (
-      <MobileAppShell title={t("vet.tasks.title")}>
+      <VetMobileShell hideTopBar>
         <ActivityIndicator style={{ marginTop: 40 }} color={vetColors.primary} />
-      </MobileAppShell>
+      </VetMobileShell>
     );
   }
 
   if (!farm) {
     return (
-      <MobileAppShell title={t("vet.tasks.title")}>
+      <VetMobileShell hideTopBar>
         <View style={styles.center}>
           <Text style={styles.empty}>{t("vet.tasks.noFarm")}</Text>
         </View>
-      </MobileAppShell>
+      </VetMobileShell>
     );
   }
 
   return (
-    <MobileAppShell title={t("vet.tasks.title")}>
+    <VetMobileShell hideTopBar>
       <View style={styles.center}>
         <Text style={styles.empty}>{t("vet.tasks.redirect")}</Text>
       </View>
-    </MobileAppShell>
+    </VetMobileShell>
   );
 }
 

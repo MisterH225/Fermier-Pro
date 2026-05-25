@@ -85,8 +85,7 @@ export function VetPersistentTabBar() {
         id: "prescriptions",
         label: t("vet.extended.prescriptions"),
         a11y: t("vet.extended.prescriptions")
-      },
-      { id: "settings", label: t("vet.extended.settings"), a11y: t("vet.extended.settings") }
+      }
     ],
     [t]
   );
@@ -106,9 +105,6 @@ export function VetPersistentTabBar() {
             title: t("vet.extended.prescriptions"),
             body: t("vet.extended.prescriptionsRoadmap")
           });
-          return;
-        case "settings":
-          navigation.navigate("Account");
           return;
         default:
           return;

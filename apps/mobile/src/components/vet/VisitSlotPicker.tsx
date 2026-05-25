@@ -105,6 +105,7 @@ export function VisitSlotPicker({
           const status = slotMap.get(slot) ?? "available";
           const occupied = status === "occupied" || status === "unavailable";
           const selected = selectedSlot === slot;
+          const available = !occupied && !selected;
           return (
             <Pressable
               key={slot}
@@ -112,6 +113,7 @@ export function VisitSlotPicker({
               style={[
                 styles.slot,
                 { borderColor: colors.border },
+                available && { backgroundColor: vetColors.slotAvailable },
                 occupied && styles.slotOccupied,
                 selected && { backgroundColor: colors.primary, borderColor: colors.primary }
               ]}
@@ -153,12 +155,15 @@ const styles = StyleSheet.create({
   slot: {
     width: "30%",
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: vetRadius.button,
     backgroundColor: vetColors.cardBg,
     alignItems: "center",
     borderWidth: 1
   },
-  slotOccupied: { backgroundColor: "#6B7280", borderColor: "#6B7280" },
+  slotOccupied: {
+    backgroundColor: vetColors.slotOccupied,
+    borderColor: vetColors.slotOccupied
+  },
   slotTx: { fontWeight: "600", color: vetColors.textPrimary },
   slotTxInv: { color: "#fff" }
 });

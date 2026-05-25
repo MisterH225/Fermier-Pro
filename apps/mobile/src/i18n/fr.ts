@@ -351,6 +351,8 @@ export const fr = {
     profile: {
       title: "Profil vétérinaire",
       verified: "Profil vérifié",
+      sectionProfessional: "Profil professionnel",
+      sectionAccount: "Compte",
       zone: "Zone d'intervention",
       school: "Formation",
       availability: "Disponible",

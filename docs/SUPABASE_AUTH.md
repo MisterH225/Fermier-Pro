@@ -34,7 +34,7 @@ L’app téléverse des fichiers via la clé **anon** + session utilisateur (`@s
 
 | Bucket | Usage | Chemin type |
 |--------|--------|-------------|
-| **`avatars`** | Photo de profil (producteur / vétérinaire) | `{auth.users.id}/avatar.jpg` |
+| **`avatars`** | Photo de profil par rôle (producteur, vétérinaire, technicien…) | `{auth.users.id}/{profileType}/avatar.jpg` (legacy : `{id}/avatar.jpg`) |
 | **`vet-credentials`** | Diplôme vétérinaire (onboarding) | `diplomas/{auth.users.id}/…` |
 | **`finance-proofs`** | Preuve photo dépense / revenu | `farms/{farmId}/…` |
 

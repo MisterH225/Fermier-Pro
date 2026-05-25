@@ -119,11 +119,13 @@ const styles = StyleSheet.create({
   },
   actions: { flexDirection: "row", gap: 8 },
   actionBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: vetColors.primaryLight,
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: vetColors.border
   }
 });
