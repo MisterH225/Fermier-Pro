@@ -1,3 +1,5 @@
+import { formatApiError } from "./apiErrors";
+
 /** Messages d’erreur lisibles pour l’écran de connexion (SMS, OAuth, etc.). */
 export function formatAuthError(err: unknown): string {
   const raw = err instanceof Error ? err.message : String(err);
@@ -7,6 +9,9 @@ export function formatAuthError(err: unknown): string {
     m.includes("failed to fetch") ||
     m.includes("network error")
   ) {
+    if (m.includes("/api/v1") || m.includes("api nest") || m.includes("injoignable")) {
+      return formatApiError(err);
+    }
     return (
       "Impossible de joindre Supabase (réseau ou URL). Vérifie la connexion internet, " +
       "que EXPO_PUBLIC_SUPABASE_URL dans apps/mobile/.env est exactement l’URL du projet " +

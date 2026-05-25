@@ -29,9 +29,17 @@ export function MobileAppShell({
   topRight,
   children
 }: MobileAppShellProps) {
-  const safeEdges: readonly Edge[] = omitBottomTabBar
-    ? ["top"]
-    : ["top", "bottom"];
+  const safeEdges: readonly Edge[] = (() => {
+    const edges: Edge[] = [];
+    /** Pas de marge haute si le header stack natif est déjà affiché (`hideTopBar`). */
+    if (!hideTopBar) {
+      edges.push("top");
+    }
+    if (!omitBottomTabBar) {
+      edges.push("bottom");
+    }
+    return edges;
+  })();
   const showTopBar = !hideTopBar && (customHeader != null || title.length > 0);
   return (
     <SafeAreaView style={styles.safe} edges={safeEdges}>

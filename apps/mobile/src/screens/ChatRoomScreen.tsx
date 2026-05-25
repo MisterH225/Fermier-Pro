@@ -139,9 +139,9 @@ export function ChatRoomScreen({ route, navigation }: Props) {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: headline ?? "Conversation"
+      title: "Conversation"
     });
-  }, [navigation, headline]);
+  }, [navigation]);
 
   useEffect(() => {
     prevOrderedLenRef.current = 0;

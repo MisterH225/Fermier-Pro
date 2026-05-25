@@ -14,7 +14,8 @@
     "prisma:migrate:status": "node scripts/prisma-run.cjs migrate status",
     "prisma:push": "node scripts/prisma-run.cjs db push",
     "prisma:push:force": "node scripts/prisma-run.cjs db push --accept-data-loss",
-    "promote:superadmin": "node scripts/promote-superadmin.cjs"
+    "promote:superadmin": "node scripts/promote-superadmin.cjs",
+    "set:auth-password": "node scripts/set-auth-password.cjs"
   },
   "engines": {
     "node": ">=20"

@@ -39,8 +39,8 @@ type Props = NativeStackScreenProps<RootStackParamList, "FarmLivestock">;
 
 export function FarmLivestockScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
-  useScreenTitle(navigation, farmName);
   const { t } = useTranslation();
+  useScreenTitle(navigation, t("navigation.main.cheptel"));
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
   const farmQuery = useQuery({

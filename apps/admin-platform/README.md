@@ -14,6 +14,21 @@ Plateforme web d'administration connectée à l'API NestJS et Supabase Auth.
 1. Copier `apps/admin-platform/.env.local.example` → `apps/admin-platform/.env.local`
 2. Renseigner les mêmes `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_ANON_KEY` que l'app mobile
 3. `NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1`
+4. `NEXT_PUBLIC_ADMIN_URL=http://localhost:3001` (URL publique de la console)
+
+### Connexion Google (éviter l’erreur `exp://`)
+
+Le projet mobile utilise des URLs `exp://…` dans Supabase. **La console web a besoin de sa propre Redirect URL.**
+
+Dans [Supabase Dashboard](https://supabase.com/dashboard) → **Authentication** → **URL Configuration** → **Redirect URLs**, ajoutez **en plus** des URLs mobile :
+
+```
+http://localhost:3001/auth/callback
+```
+
+(L’écran de login affiche l’URL exacte à copier.)
+
+Ne supprimez pas les `exp://…` déjà présents (app mobile). Gardez les deux.
 
 ## Premier SuperAdmin
 
@@ -71,4 +86,4 @@ npm run dev:admin
 | GET | `/api/v1/admin/health-map` |
 | GET | `/api/v1/admin/stats` |
 
-Les anciennes routes secret `x-vet-verification-secret` restent disponibles pour scripts.
+Les scripts ops utilisent `POST /api/v1/internal/vet-profiles/:id/verify|reject` avec l'en-tête `x-vet-verification-secret`.

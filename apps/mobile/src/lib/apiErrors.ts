@@ -21,11 +21,11 @@ export function formatApiError(err: unknown): string {
     }
     const metro = Constants.expoConfig?.hostUri ?? "—";
     return (
-      `Connexion Google OK, mais l’API Nest est injoignable (${apiHint}).\n\n` +
-      `• Lance l’API : depuis la racine du projet, npm run start:dev (ou cd apps/api && npm run start:dev)\n` +
-      `• Même Wi‑Fi que le téléphone\n` +
-      `• Mets à jour apps/mobile/.env : EXPO_PUBLIC_API_URL=http://<IP-du-PC>:3000 (Expo Metro : ${metro})\n` +
-      `• Redémarre Expo avec npx expo start --clear`
+      `L’API Nest est injoignable (${apiHint}).\n\n` +
+      `• Lance l’API : npm run dev:api (racine) ou cd apps/api && npm run start:dev\n` +
+      `• Même Wi‑Fi que le téléphone / le simulateur\n` +
+      `• apps/mobile/.env : EXPO_PUBLIC_API_URL=http://<IP-du-PC>:3000 (Metro : ${metro})\n` +
+      `• Redémarre Expo : npx expo start --clear`
     );
   }
 

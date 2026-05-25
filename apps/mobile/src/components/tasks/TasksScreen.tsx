@@ -36,14 +36,14 @@ type Props = NativeStackScreenProps<RootStackParamList, "FarmTasks">;
 
 export function TasksScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
-  useScreenTitle(navigation, farmName);
+  const { t } = useTranslation();
+  useScreenTitle(navigation, t("navigation.extended.tasks"));
   const {
     accessToken,
     activeProfileId,
     clientFeatures,
     authMe
   } = useSession();
-  const { t } = useTranslation();
   const qc = useQueryClient();
 
   const [tab, setTab] = useState<TaskTabKey>("pending");

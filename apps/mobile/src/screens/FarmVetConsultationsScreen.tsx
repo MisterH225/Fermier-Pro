@@ -2,6 +2,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import {
   ActivityIndicator,
@@ -40,10 +41,11 @@ const FILTERS: { key: VetFilterKey; label: string }[] = [
 
 export function FarmVetConsultationsScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
+  const { t } = useTranslation();
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const [filter, setFilter] = useState<VetFilterKey>("all");
 
-  useScreenTitle(navigation, farmName, {
+  useScreenTitle(navigation, t("navigation.screenTitles.vetConsultations"), {
     headerRight: clientFeatures.vetConsultations
       ? () => (
           <TouchableOpacity

@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import {
@@ -32,6 +33,7 @@ const ROLE_LABEL: Record<string, string> = {
 
 export function FarmMembersScreen({ route, navigation }: Props) {
   const { farmId, farmName, effectiveScopes } = route.params;
+  const { t } = useTranslation();
   const { accessToken, activeProfileId, authMe } = useSession();
   const qc = useQueryClient();
   const myId = authMe?.user.id;
@@ -59,7 +61,7 @@ export function FarmMembersScreen({ route, navigation }: Props) {
     onError: (e: Error) => Alert.alert("Impossible", e.message)
   });
 
-  useScreenTitle(navigation, farmName, {
+  useScreenTitle(navigation, t("navigation.screenTitles.team"), {
     headerRight: canInvite
       ? () => (
           <TouchableOpacity

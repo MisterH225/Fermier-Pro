@@ -1,14 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import {
-  ActivityIndicator,
-  Linking,
-  Pressable,
-  Share,
-  StyleSheet,
-  Text,
-  View
-} from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { openPhoneCall } from "../../lib/phone";
 import { fetchVetPublicProfile } from "../../lib/api";
 import {
   mobileColors,
@@ -48,21 +41,11 @@ export function VetProfileModal({
 
   const profile = q.data;
 
-  const onContact = async () => {
-    if (!profile?.professionalPhone) {
-      return;
-    }
-    const msg = t("health.vetSearch.shareMessage", {
-      farm: farmName,
-      vet: profile.fullName,
-      phone: profile.professionalPhone
+  const onContact = () => {
+    void openPhoneCall(profile?.professionalPhone, {
+      errorTitle: t("health.vetSearch.callErrorTitle"),
+      errorMessage: t("health.vetSearch.callError")
     });
-    try {
-      await Share.share({ message: msg });
-    } catch {
-      const tel = profile.professionalPhone.replace(/\s/g, "");
-      void Linking.openURL(`tel:${tel}`);
-    }
   };
 
   return (

@@ -91,4 +91,14 @@ const result = spawnSync(
   { stdio: "inherit", cwd: apiRoot, env: process.env }
 );
 
-process.exit(result.status === null ? 1 : result.status);
+// Arrêt volontaire (Ctrl+C) : ne pas afficher d’erreur npm.
+const status = result.status;
+if (result.signal === "SIGINT" || result.signal === "SIGTERM" || status === 130) {
+  process.exit(0);
+}
+// Codes Windows fréquents après Ctrl+C (ex. 0xC000013A, 0xC000016A).
+if (status === 3221225738 || status === 3221225786) {
+  process.exit(0);
+}
+
+process.exit(status === null ? 1 : status);

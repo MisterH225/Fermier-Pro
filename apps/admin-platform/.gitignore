@@ -1,1 +1,4 @@
+*.tsbuildinfo
 tsbuildinfo
+.env.local
+.env*.local

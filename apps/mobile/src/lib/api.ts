@@ -4383,6 +4383,145 @@ export function upsertVetProfile(
   return apiPostJson("/vet-profiles", body, accessToken, activeProfileId);
 }
 
+export type VetDashboardDto = {
+  kpis: {
+    farmsFollowed: number;
+    visitsThisMonth: number;
+    healthAlerts: number;
+    pendingTasks: number;
+  };
+  upcomingVisits: Array<{
+    id: string;
+    farmId: string;
+    farmName: string;
+    producerName: string | null;
+    producerPhone: string | null;
+    scheduledAt: string;
+    subject: string;
+    location: string | null;
+    status: string;
+  }>;
+  assignedFarms: Array<{
+    id: string;
+    name: string;
+    address: string | null;
+    producerName: string | null;
+    producerPhone: string | null;
+  }>;
+  recentActivity: Array<{
+    id: string;
+    kind: "consultation" | "vet_visit" | "vaccination" | "disease" | "treatment" | "alert";
+    title: string;
+    subtitle: string;
+    occurredAt: string;
+    farmId: string;
+    farmName: string;
+  }>;
+  stats: {
+    farmsFollowed: number;
+    visitsCompleted: number;
+    averageRating: number | null;
+  };
+};
+
+export function fetchVetDashboard(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<VetDashboardDto> {
+  return apiGetJson("/vet-profiles/me/dashboard", accessToken, activeProfileId);
+}
+
+export function fetchVetProfileMe(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<VetPublicProfileDto> {
+  return apiGetJson("/vet-profiles/me", accessToken, activeProfileId);
+}
+
+export type VetVisitReason =
+  | "routine"
+  | "urgency"
+  | "followup"
+  | "vaccination"
+  | "other";
+
+export type ScheduleVetVisitPayload = {
+  farmId: string;
+  scheduledAt: string;
+  reason: VetVisitReason;
+  notes?: string;
+  consultationPrice?: number;
+};
+
+export type ScheduleVetVisitResult = {
+  id: string;
+  farmId: string;
+  farmName: string;
+  scheduledAt: string;
+  subject: string;
+  status: string;
+};
+
+export function scheduleVetVisit(
+  accessToken: string,
+  activeProfileId: string | null | undefined,
+  payload: ScheduleVetVisitPayload
+): Promise<ScheduleVetVisitResult> {
+  return apiPostJson(
+    "/vet-profiles/me/schedule-visit",
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type VetAvailabilitySlotDto = {
+  time: string;
+  status: "available" | "occupied" | "unavailable";
+};
+
+export type VetAvailabilityDto = {
+  vetProfileId: string;
+  date: string;
+  vetAvailable: boolean;
+  slots: VetAvailabilitySlotDto[];
+};
+
+export function fetchVetAvailability(
+  accessToken: string,
+  vetProfileId: string,
+  dateIso: string,
+  activeProfileId?: string | null
+): Promise<VetAvailabilityDto> {
+  const q = new URLSearchParams({ date: dateIso });
+  return apiGetJson<VetAvailabilityDto>(
+    `/vets/${encodeURIComponent(vetProfileId)}/availability?${q.toString()}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type ProducerScheduleVetVisitPayload = {
+  vetProfileId: string;
+  scheduledAt: string;
+  reason: VetVisitReason;
+  notes?: string;
+};
+
+export function scheduleVetVisitFromProducer(
+  accessToken: string,
+  farmId: string,
+  activeProfileId: string | null | undefined,
+  payload: ProducerScheduleVetVisitPayload
+): Promise<ScheduleVetVisitResult> {
+  return apiPostJson(
+    `/farms/${encodeURIComponent(farmId)}/schedule-vet-visit`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
 export function createVetRating(
   accessToken: string,
   vetId: string,

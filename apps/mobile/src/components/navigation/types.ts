@@ -13,4 +13,6 @@ export type ExtendedNavMenuId =
   | "market"
   | "gestation"
   | "tasks"
-  | "reports";
+  | "reports"
+  | "prescriptions"
+  | "settings";

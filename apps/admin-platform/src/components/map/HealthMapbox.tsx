@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { HealthMapDto } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 type Props = {
   points: HealthMapDto["points"];
@@ -13,6 +15,7 @@ type Props = {
 const WEST_AFRICA: [number, number] = [-5, 10];
 
 export function HealthMapbox({ points, className }: Props) {
+  const t = useTranslations("map");
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
 
@@ -40,6 +43,8 @@ export function HealthMapbox({ points, className }: Props) {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !token) return;
+
+    const unknownLabel = t("unknownDiagnosis");
 
     const render = () => {
       const sourceId = "health-points";
@@ -82,7 +87,7 @@ export function HealthMapbox({ points, className }: Props) {
         const f = e.features?.[0];
         if (!f?.geometry || f.geometry.type !== "Point") return;
         const [lng, lat] = f.geometry.coordinates;
-        const diagnosis = f.properties?.diagnosis ?? "Maladie";
+        const diagnosis = f.properties?.diagnosis ?? unknownLabel;
         new mapboxgl.Popup()
           .setLngLat([lng, lat])
           .setHTML(`<strong>${diagnosis}</strong>`)
@@ -95,17 +100,20 @@ export function HealthMapbox({ points, className }: Props) {
     } else {
       map.once("load", render);
     }
-  }, [points, token]);
+  }, [points, t, token]);
 
   if (!token) {
     return (
       <div
-        className={`flex items-center justify-center bg-slate-100 rounded-xl text-sm text-slate-500 p-8 ${className ?? ""}`}
+        className={cn(
+          "flex items-center justify-center bg-muted rounded-xl text-sm text-muted-foreground p-8 border border-dashed border-border",
+          className
+        )}
       >
-        NEXT_PUBLIC_MAPBOX_TOKEN manquant
+        {t("tokenMissing")}
       </div>
     );
   }
 
-  return <div ref={containerRef} className={`rounded-xl overflow-hidden ${className ?? ""}`} />;
+  return <div ref={containerRef} className={cn("rounded-xl overflow-hidden", className)} />;
 }

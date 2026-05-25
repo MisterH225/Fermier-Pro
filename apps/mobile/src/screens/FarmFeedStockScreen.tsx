@@ -253,7 +253,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
     return null;
   }, [results, movQ]);
 
-  useScreenTitle(navigation, farmName, {
+  useScreenTitle(navigation, t("navigation.screenTitles.feedStock"), {
     headerRight: clientFeatures.feedStock
       ? () => (
           <TouchableOpacity

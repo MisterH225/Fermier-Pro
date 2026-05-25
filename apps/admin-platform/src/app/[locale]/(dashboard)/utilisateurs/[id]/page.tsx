@@ -13,34 +13,39 @@ import {
 import { Link } from "@/i18n/navigation";
 import { apiFetch, type UserDetailDto } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { FilterPills } from "@/components/layout/FilterPills";
+import { UserAvatar } from "@/components/users/UserAvatar";
+import { PageSkeleton } from "@/components/layout/PageSkeleton";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-const TABS = [
-  "profil",
-  "cheptel",
-  "finance",
-  "sante",
-  "gestation",
-  "activite"
-] as const;
-
-type TabId = (typeof TABS)[number];
+import { cn } from "@/lib/utils";
 
 const PIE_COLORS = ["#FF8C00", "#1565C0", "#2E7D32", "#6A1B9A", "#E53935"];
 
 function formatMoney(n: number) {
-  return new Intl.NumberFormat(undefined, {
-    maximumFractionDigits: 0
-  }).format(n);
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n);
 }
 
 function formatPct(n: number) {
   return `${(n * 100).toFixed(1)} %`;
+}
+
+function DetailSection({
+  title,
+  children,
+  className
+}: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={cn("space-y-4", className)}>
+      <h2 className="text-lg font-bold text-brand border-b border-border/60 pb-2">{title}</h2>
+      {children}
+    </section>
+  );
 }
 
 export default function UserDetailPage() {
@@ -50,7 +55,6 @@ export default function UserDetailPage() {
   const id = params.id as string;
   const { token, ready } = useAdminToken();
   const [data, setData] = useState<UserDetailDto | null>(null);
-  const [tab, setTab] = useState<TabId>("profil");
 
   useEffect(() => {
     if (!token) return;
@@ -58,7 +62,7 @@ export default function UserDetailPage() {
   }, [token, id]);
 
   if (!ready || !data) {
-    return <p className="text-muted-foreground">…</p>;
+    return <PageSkeleton className="max-w-5xl" />;
   }
 
   const { user, farms, livestockSummary, financeSummary, healthSummary, gestationSummary } =
@@ -77,28 +81,48 @@ export default function UserDetailPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={user.fullName ?? user.email ?? user.id}
-        description={user.email ?? undefined}
-        action={
-          <Button variant="outline" asChild>
-            <Link href="/utilisateurs">← {t("back")}</Link>
-          </Button>
-        }
-      />
+    <div className="space-y-10 max-w-6xl">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0">
+          <UserAvatar
+            name={user.fullName}
+            email={user.email}
+            avatarUrl={user.avatarUrl}
+            size="lg"
+          />
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-brand truncate">
+              {user.fullName ?? user.email ?? user.id}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-0.5 truncate">{user.email ?? "—"}</p>
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              <Badge
+                variant="outline"
+                className={cn(
+                  "rounded-lg",
+                  user.isActive
+                    ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                    : "bg-muted text-muted-foreground"
+                )}
+              >
+                {user.isActive ? tUsers("status.active") : tUsers("status.inactive")}
+              </Badge>
+              {data.profiles.map((p) => (
+                <Badge key={p.id} variant="secondary" className="rounded-lg">
+                  {profileLabel(p.type)}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </div>
+        <Button variant="outline" className="rounded-xl shrink-0" asChild>
+          <Link href="/utilisateurs">← {t("back")}</Link>
+        </Button>
+      </div>
 
-      <FilterPills
-        items={TABS}
-        value={tab}
-        onChange={setTab}
-        label={(id) => t(`tabs.${id}`)}
-        size="default"
-      />
-
-      {tab === "profil" ? (
+      <DetailSection title={t("tabs.profil")}>
         <div className="grid md:grid-cols-2 gap-6">
-          <Card>
+          <Card className="rounded-2xl border-border/60 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">{t("sections.identity")}</CardTitle>
             </CardHeader>
@@ -115,17 +139,10 @@ export default function UserDetailPage() {
                 <span className="text-muted-foreground">{t("fields.joined")}:</span>{" "}
                 {new Date(user.createdAt).toLocaleDateString()}
               </p>
-              <div className="flex flex-wrap gap-2 pt-2">
-                {data.profiles.map((p) => (
-                  <Badge key={p.id} variant="secondary">
-                    {profileLabel(p.type)}
-                  </Badge>
-                ))}
-              </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-2xl border-border/60 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">{t("sections.farms")}</CardTitle>
             </CardHeader>
@@ -134,10 +151,10 @@ export default function UserDetailPage() {
                 <p className="text-muted-foreground">{t("noFarm")}</p>
               ) : (
                 farms.map((f) => (
-                  <div key={f.id} className="border rounded-xl p-4">
+                  <div key={f.id} className="border border-border/60 rounded-xl p-4 bg-muted/20">
                     <p className="font-semibold">{f.name}</p>
                     <p className="text-muted-foreground text-xs mt-1">{f.address ?? "—"}</p>
-                    <p className="text-xs mt-2">
+                    <p className="text-xs mt-2 text-muted-foreground">
                       {f.activeAnimals} {t("fields.animals")} · {f.healthRecords}{" "}
                       {t("fields.healthRecords")}
                     </p>
@@ -148,7 +165,7 @@ export default function UserDetailPage() {
           </Card>
 
           {data.memberships.length > 0 ? (
-            <Card className="md:col-span-2">
+            <Card className="md:col-span-2 rounded-2xl border-border/60 shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">{t("sections.collaborations")}</CardTitle>
               </CardHeader>
@@ -156,7 +173,9 @@ export default function UserDetailPage() {
                 <ul className="flex flex-wrap gap-2">
                   {data.memberships.map((m) => (
                     <li key={m.id}>
-                      <Badge variant="outline">{m.farm.name}</Badge>
+                      <Badge variant="outline" className="rounded-lg">
+                        {m.farm.name}
+                      </Badge>
                     </li>
                   ))}
                 </ul>
@@ -164,21 +183,21 @@ export default function UserDetailPage() {
             </Card>
           ) : null}
         </div>
-      ) : null}
+      </DetailSection>
 
-      {tab === "cheptel" ? (
-        <div className="grid lg:grid-cols-2 gap-6">
+      <DetailSection title={t("tabs.cheptel")}>
+        <div className="grid lg:grid-cols-3 gap-4">
           <KpiCard
             label={t("livestock.total")}
             value={livestockSummary.totalActive}
             accent="#FF8C00"
             background="#FFF3E0"
           />
-          <Card>
+          <Card className="lg:col-span-2 rounded-2xl border-border/60 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">{t("livestock.byCategory")}</CardTitle>
             </CardHeader>
-            <CardContent className="h-72">
+            <CardContent className="h-64">
               {livestockSummary.byCategory.length === 0 ? (
                 <p className="text-muted-foreground text-sm">—</p>
               ) : (
@@ -193,7 +212,7 @@ export default function UserDetailPage() {
                       nameKey="name"
                       cx="50%"
                       cy="50%"
-                      outerRadius={90}
+                      outerRadius={80}
                       label
                     >
                       {livestockSummary.byCategory.map((_, i) => (
@@ -207,35 +226,33 @@ export default function UserDetailPage() {
             </CardContent>
           </Card>
         </div>
-      ) : null}
+      </DetailSection>
 
-      {tab === "finance" ? (
-        <div className="space-y-4">
-          <div className="grid md:grid-cols-3 gap-4">
-            <KpiCard
-              label={t("finance.revenues")}
-              value={formatMoney(financeSummary.revenues3m)}
-              accent="#2E7D32"
-              background="#E8F5E9"
-            />
-            <KpiCard
-              label={t("finance.expenses")}
-              value={formatMoney(financeSummary.expenses3m)}
-              accent="#E53935"
-              background="#FFEBEE"
-            />
-            <KpiCard
-              label={t("finance.margin")}
-              value={formatMoney(financeSummary.netMargin3m)}
-              accent="#1565C0"
-              background="#E3F2FD"
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">{t("finance.note")}</p>
+      <DetailSection title={t("tabs.finance")}>
+        <div className="grid md:grid-cols-3 gap-4">
+          <KpiCard
+            label={t("finance.revenues")}
+            value={formatMoney(financeSummary.revenues3m)}
+            accent="#2E7D32"
+            background="#E8F5E9"
+          />
+          <KpiCard
+            label={t("finance.expenses")}
+            value={formatMoney(financeSummary.expenses3m)}
+            accent="#E53935"
+            background="#FFEBEE"
+          />
+          <KpiCard
+            label={t("finance.margin")}
+            value={formatMoney(financeSummary.netMargin3m)}
+            accent="#1565C0"
+            background="#E3F2FD"
+          />
         </div>
-      ) : null}
+        <p className="text-xs text-muted-foreground">{t("finance.note")}</p>
+      </DetailSection>
 
-      {tab === "sante" ? (
+      <DetailSection title={t("tabs.sante")}>
         <div className="grid md:grid-cols-3 gap-4">
           <KpiCard
             label={t("health.activeDiseases")}
@@ -256,10 +273,10 @@ export default function UserDetailPage() {
             background="#FFF8E1"
           />
         </div>
-      ) : null}
+      </DetailSection>
 
-      {tab === "gestation" ? (
-        <div className="grid md:grid-cols-2 gap-4">
+      <DetailSection title={t("tabs.gestation")}>
+        <div className="grid md:grid-cols-2 gap-4 max-w-2xl">
           <KpiCard
             label={t("gestation.active")}
             value={String(gestationSummary.active)}
@@ -273,15 +290,7 @@ export default function UserDetailPage() {
             background="#E0F7FA"
           />
         </div>
-      ) : null}
-
-      {tab === "activite" ? (
-        <Card>
-          <CardContent className="py-6 text-sm text-muted-foreground">
-            <p>{t("activity.placeholder")}</p>
-          </CardContent>
-        </Card>
-      ) : null}
+      </DetailSection>
     </div>
   );
 }

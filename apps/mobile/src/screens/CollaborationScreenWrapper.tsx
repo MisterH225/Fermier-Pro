@@ -9,7 +9,6 @@ type Props = NativeStackScreenProps<RootStackParamList, "Collaboration">;
 export function CollaborationScreenWrapper({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
   const { t } = useTranslation();
-  const title = farmName?.trim() || t("collab.screenTitle");
-  useScreenTitle(navigation, title);
+  useScreenTitle(navigation, t("collab.screenTitle"));
   return <CollaborationScreen farmId={farmId} farmName={farmName} />;
 }

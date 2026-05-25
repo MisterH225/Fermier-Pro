@@ -1,5 +1,6 @@
 export { FarmHealthScreen } from "../../screens/FarmHealthScreen";
 export { VetSearchScreen } from "../../screens/VetSearchScreen";
+export { ProducerScheduleVetVisitScreen } from "../../screens/ProducerScheduleVetVisitScreen";
 export { AccountScreen } from "../../screens/AccountScreen";
 export { DeleteAccountProcessScreen } from "../../screens/DeleteAccountProcessScreen";
 export { DeleteAccountCompleteScreen } from "../../screens/DeleteAccountCompleteScreen";

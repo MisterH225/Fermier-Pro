@@ -73,11 +73,10 @@ export function MarketplaceListingDetailScreen({
   });
 
   useLayoutEffect(() => {
-    const t = q.data?.title ?? route.params.headline;
     navigation.setOptions({
-      title: t && t.length > 0 ? t : "Annonce"
+      title: "Annonce"
     });
-  }, [navigation, q.data?.title, route.params.headline]);
+  }, [navigation]);
 
   useEffect(() => {
     const L = q.data;

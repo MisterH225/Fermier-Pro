@@ -283,6 +283,7 @@ export class AdminPlatformService {
   async listUsers(query: {
     search?: string;
     profileType?: string;
+    isActive?: boolean;
     skip?: number;
     take?: number;
   }) {
@@ -300,6 +301,11 @@ export class AdminPlatformService {
     }
     if (pt && (Object.values(ProfileType) as string[]).includes(pt)) {
       where.profiles = { some: { type: pt } };
+    }
+    if (query.isActive === true) {
+      where.isActive = true;
+    } else if (query.isActive === false) {
+      where.isActive = false;
     }
 
     const [items, total] = await Promise.all([

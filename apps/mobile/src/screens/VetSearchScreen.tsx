@@ -75,7 +75,7 @@ export function VetSearchScreen({ route, navigation }: Props) {
   ];
 
   return (
-    <MobileAppShell title={t("health.vetSearch.title")} omitBottomTabBar>
+    <MobileAppShell hideTopBar omitBottomTabBar>
       <View style={styles.wrap}>
         <TextInput
           style={styles.search}
@@ -126,8 +126,15 @@ export function VetSearchScreen({ route, navigation }: Props) {
         activeProfileId={activeProfileId}
         onClose={() => setSelectedVetId(null)}
         onPlanVisit={() => {
+          const id = selectedVetId;
           setSelectedVetId(null);
-          navigation.navigate("FarmHealth", { farmId, farmName });
+          if (id) {
+            navigation.navigate("ProducerScheduleVetVisit", {
+              farmId,
+              farmName,
+              vetProfileId: id
+            });
+          }
         }}
       />
     </MobileAppShell>

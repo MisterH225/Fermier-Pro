@@ -121,7 +121,7 @@ export const fr = {
     }
   },
   account: {
-    title: "Compte",
+    title: "Profil",
     identity: "Identité",
     noName: "Nom non renseigné",
     linkedAccount: "Compte lié à ton authentification.",
@@ -312,6 +312,127 @@ export const fr = {
       other: "Autre"
     }
   },
+  vet: {
+    nav: {
+      home: "Accueil",
+      agenda: "Agenda",
+      farms: "Mes Fermes",
+      messages: "Messages"
+    },
+    extended: {
+      tasks: "Tâches",
+      reports: "Rapports",
+      prescriptions: "Ordonnances",
+      prescriptionsRoadmap: "Centralisation des ordonnances et relances : module à venir.",
+      settings: "Paramètres"
+    },
+    dashboard: {
+      welcome: "Bienvenue",
+      defaultName: "Vétérinaire",
+      pendingBanner: "Profil en attente de validation",
+      searchPlaceholder: "Rechercher une ferme, un animal…",
+      upcomingTitle: "Prochains rendez-vous",
+      seeAll: "Voir tous →",
+      noVisits: "Aucun RDV planifié — voir mes fermes",
+      kpisTitle: "Indicateurs",
+      kpiFarms: "Fermes suivies",
+      kpiVisits: "Visites ce mois",
+      kpiAlerts: "Alertes santé",
+      kpiTasks: "Tâches en attente",
+      tasksTitle: "Mes tâches",
+      taskFilter: { today: "Aujourd'hui", week: "Cette semaine", all: "Toutes" },
+      activityTitle: "Activité clinique récente",
+      activityEmpty: "Aucune activité récente",
+      quickActions: "Actions rapides",
+      actionFarms: "Mes fermes",
+      actionSchedule: "Planifier une visite",
+      actionCase: "Déclarer un cas"
+    },
+    profile: {
+      title: "Profil vétérinaire",
+      verified: "Profil vérifié",
+      zone: "Zone d'intervention",
+      school: "Formation",
+      availability: "Disponible",
+      statsFarms: "Fermes",
+      statsVisits: "Visites",
+      statsRating: "Note moy."
+    },
+    farms: {
+      title: "Mes fermes",
+      search: "Rechercher une ferme…",
+      empty: "Aucune ferme assignée",
+      filter: {
+        all: "Toutes",
+        alerts: "Alertes actives",
+        visit: "Visite planifiée",
+        recent: "Récentes"
+      }
+    },
+    farmDetail: {
+      tabs: {
+        health: "Santé",
+        livestock: "Cheptel",
+        history: "Historique",
+        tasks: "Tâches"
+      },
+      healthHint: "Consultez les indicateurs santé et alertes de cette ferme.",
+      openHealth: "Ouvrir le module santé",
+      declareCase: "Déclarer un cas",
+      openLivestock: "Voir le cheptel",
+      openHistory: "Historique consultations",
+      openTasks: "Tâches de la ferme"
+    },
+    agenda: {
+      title: "Agenda",
+      chooseSlot: "Choisir un créneau",
+      period: { morning: "Matin", afternoon: "Après-midi", evening: "Soir" },
+      bookNow: "Planifier la visite",
+      scheduleTitle: "Planifier une visite",
+      scheduleRoadmap: "La planification de visites avec notification producteur arrive dans une prochaine version.",
+      empty: "Aucun rendez-vous"
+    },
+    schedule: {
+      title: "Planifier une visite",
+      confirm: "Confirmer le RDV",
+      farm: "Ferme",
+      reason: "Motif",
+      notes: "Notes",
+      notesPlaceholder: "Observations, instructions…",
+      price: "Tarif consultation (optionnel)",
+      pricePlaceholder: "Ex. 120",
+      pickSlot: "Sélectionnez un créneau horaire ci-dessus.",
+      noFarms: "Aucune ferme assignée.",
+      missingFields: "Choisissez une ferme et un créneau.",
+      successTitle: "RDV confirmé",
+      successBody: "Visite planifiée pour {{farm}} — {{date}}",
+      reasons: {
+        routine: "Routine",
+        urgency: "Urgence",
+        followup: "Suivi",
+        vaccination: "Vaccination",
+        other: "Autre"
+      }
+    },
+    messages: {
+      new: "Nouveau",
+      emptyTitle: "Aucune conversation",
+      emptySub: "Démarrez un échange avec un producteur via une ferme assignée."
+    },
+    call: {
+      errorTitle: "Appel",
+      error: "Numéro indisponible."
+    },
+    tasks: {
+      title: "Tâches",
+      noFarm: "Aucune ferme — rejoignez une exploitation en tant que vétérinaire.",
+      redirect: "Ouverture des tâches…"
+    },
+    reports: {
+      title: "Rapports",
+      body: "Rapports de visite, ordonnances et statistiques personnelles seront regroupés ici (export PDF à venir)."
+    }
+  },
   navigation: {
     main: {
       home: "Accueil",
@@ -334,6 +455,16 @@ export const fr = {
       reports: "Rapports",
       closeBackdropA11y: "Fermer le menu",
       closeA11y: "Fermer"
+    },
+    screenTitles: {
+      feedStock: "Stock aliment",
+      recommendations: "Recommandations",
+      animalDetail: "Fiche animal",
+      farm: "Ferme",
+      barns: "Loges et parcours",
+      vetConsultations: "Suivi vétérinaire",
+      team: "Équipe",
+      invite: "Inviter"
     }
   },
   modals: {
@@ -815,7 +946,7 @@ export const fr = {
   producer: {
     welcomeLine: "Bienvenue",
     settingsButton: "Paramètres",
-    farmSettingsTitle: "Paramètres ferme",
+    farmSettingsTitle: "Paramètres",
     farmCheptelConfigSaved: "Configuration de la ferme enregistrée.",
     profileTitle: "Mon profil",
     close: "Fermer",
@@ -1384,7 +1515,24 @@ export const fr = {
       planVisit: "Planifier une visite",
       contact: "Contacter",
       shareMessage:
-        "Contact vétérinaire {{vet}} pour la ferme {{farm}} — {{phone}}"
+        "Contact vétérinaire {{vet}} pour la ferme {{farm}} — {{phone}}",
+      callErrorTitle: "Appel impossible",
+      callError: "Numéro de téléphone indisponible."
+    },
+    scheduleVet: {
+      title: "Planifier une visite",
+      titleWithName: "RDV — {{name}}",
+      farm: "Ferme",
+      vetUnavailable: "Ce vétérinaire n'accepte pas de nouveaux rendez-vous pour le moment.",
+      pickSlot: "Choisissez un créneau horaire.",
+      reason: "Motif",
+      notes: "Notes",
+      notesPlaceholder: "Décrivez le besoin (symptômes, lot concerné…)",
+      confirm: "Demander le RDV",
+      successTitle: "Demande envoyée",
+      successBody: "{{vet}} — {{farm}} le {{date}}",
+      callErrorTitle: "Appel",
+      callError: "Numéro indisponible."
     },
     vaccines: {
       statUpToDate: "{{count}} sujets à jour",

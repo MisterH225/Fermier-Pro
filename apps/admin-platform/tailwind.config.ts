@@ -44,7 +44,13 @@ const config: Config = {
         brand: {
           DEFAULT: "#1B3B2E",
           light: "#2d5a47",
-          accent: "#FF8C00"
+          lighter: "#3d6b54",
+          accent: "#FF8C00",
+          cream: "#F4F7EF",
+          olive: "#5C6B3A",
+          "olive-light": "#8B9A5B",
+          "olive-dark": "#3D4A28",
+          gold: "#E8A838"
         }
       },
       fontFamily: {

@@ -27,9 +27,9 @@ import type { RootStackParamList } from "../types/navigation";
 type Props = NativeStackScreenProps<RootStackParamList, "SmartAlertsList">;
 
 export function SmartAlertsListScreen({ route, navigation }: Props) {
-  const { farmId, farmName } = route.params;
-  useScreenTitle(navigation, farmName);
+  const { farmId } = route.params;
   const { t } = useTranslation();
+  useScreenTitle(navigation, t("navigation.screenTitles.recommendations"));
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
 

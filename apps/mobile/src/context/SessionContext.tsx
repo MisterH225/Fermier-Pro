@@ -8,9 +8,11 @@ import {
   useState,
   type ReactNode
 } from "react";
+import { AppState, type AppStateStatus } from "react-native";
 import type { AuthMeResponse, ClientConfigDto } from "../lib/api";
 import { formatApiError } from "../lib/apiErrors";
 import { fetchAuthMe, fetchClientConfig } from "../lib/api";
+import { queryClient } from "../lib/queryClient";
 const STORAGE_PROFILE_KEY = "@fermier_pro/active_profile_id";
 const AUTH_ME_CACHE_KEY = "@fermier_pro/auth_me_cache";
 
@@ -96,13 +98,13 @@ export function SessionProvider({
       const stored = await AsyncStorage.getItem(STORAGE_PROFILE_KEY);
       const initial = await fetchAuthMe(accessToken);
       const ids = new Set(initial.profiles.map((p) => p.id));
-      /** Profil avec `isDefault` (choix de la premiere connexion), puis secours locaux. */
+      /** Dernier profil choisi (AsyncStorage), puis défaut serveur. */
       const fromServer = pickDefaultProfileId(initial);
       let chosen: string | null = null;
-      if (fromServer) {
-        chosen = fromServer;
-      } else if (stored && ids.has(stored)) {
+      if (stored && ids.has(stored)) {
         chosen = stored;
+      } else if (fromServer) {
+        chosen = fromServer;
       } else {
         chosen = initial.profiles[0]?.id ?? null;
       }
@@ -163,10 +165,34 @@ export function SessionProvider({
         ? await fetchAuthMe(accessToken, activeProfileId)
         : await fetchAuthMe(accessToken);
       setAuthMe(me);
+      await AsyncStorage.setItem(
+        AUTH_ME_CACHE_KEY,
+        JSON.stringify({ me, profileId: activeProfileId })
+      );
     } catch (e) {
       setAuthError(formatApiError(e));
     }
   }, [accessToken, activeProfileId]);
+
+  useEffect(() => {
+    const onAppState = (state: AppStateStatus) => {
+      if (state === "active") {
+        void refreshAuthMe();
+      }
+    };
+    const sub = AppState.addEventListener("change", onAppState);
+    return () => sub.remove();
+  }, [refreshAuthMe]);
+
+  useEffect(() => {
+    if (authMe?.vetProfessional?.verificationStatus !== "pending") {
+      return;
+    }
+    const id = setInterval(() => {
+      void refreshAuthMe();
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [authMe?.vetProfessional?.verificationStatus, refreshAuthMe]);
 
   const reloadAuth = useCallback(async () => {
     await bootstrap();
@@ -176,11 +202,16 @@ export function SessionProvider({
     async (id: string | null) => {
       setAuthError(null);
       setActiveProfileIdState(id);
+      queryClient.removeQueries();
       if (id) {
         await AsyncStorage.setItem(STORAGE_PROFILE_KEY, id);
         try {
           const me = await fetchAuthMe(accessToken, id);
           setAuthMe(me);
+          await AsyncStorage.setItem(
+            AUTH_ME_CACHE_KEY,
+            JSON.stringify({ me, profileId: id })
+          );
         } catch (e) {
           setAuthError(formatApiError(e));
         }
@@ -189,6 +220,10 @@ export function SessionProvider({
         try {
           const me = await fetchAuthMe(accessToken);
           setAuthMe(me);
+          await AsyncStorage.setItem(
+            AUTH_ME_CACHE_KEY,
+            JSON.stringify({ me, profileId: null })
+          );
         } catch (e) {
           setAuthError(formatApiError(e));
         }

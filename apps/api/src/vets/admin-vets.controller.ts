@@ -10,7 +10,11 @@ import { ConfigService } from "@nestjs/config";
 import { RejectVetProfileDto } from "./dto/reject-vet-profile.dto";
 import { VetsService } from "./vets.service";
 
-@Controller("admin/vet-profiles")
+/**
+ * Routes script / ops (secret partagé). Ne pas confondre avec
+ * POST /api/v1/admin/vet-profiles/:id/verify (console SuperAdmin + JWT).
+ */
+@Controller("internal/vet-profiles")
 export class AdminVetsController {
   constructor(
     private readonly vets: VetsService,

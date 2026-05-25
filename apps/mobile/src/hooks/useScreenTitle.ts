@@ -22,6 +22,7 @@ export function useScreenTitle(
     navigation.setOptions({
       title,
       headerShown,
+      headerBackTitle: "",
       ...(headerRight !== undefined ? { headerRight } : {})
     });
   }, [navigation, title, headerRight, headerShown]);

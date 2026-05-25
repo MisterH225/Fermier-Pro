@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useTranslation } from "react-i18next";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -29,7 +30,8 @@ const ROLES = [
 
 export function CreateFarmInvitationScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
-  useScreenTitle(navigation, farmName);
+  const { t } = useTranslation();
+  useScreenTitle(navigation, t("navigation.screenTitles.invite"));
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
 

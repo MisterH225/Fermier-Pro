@@ -101,7 +101,7 @@ export function SanteScreen({ route, navigation }: Props) {
   const isProducer =
     authMe?.profiles.find((p) => p.id === activeProfileId)?.type === "producer";
 
-  useScreenTitle(navigation, farmName, {
+  useScreenTitle(navigation, t("health.screenTitle"), {
     headerRight: () => (
       <TouchableOpacity
         onPress={() => navigation.navigate("VetSearch", { farmId, farmName })}

@@ -8,8 +8,11 @@ import * as Linking from "expo-linking";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProducerPersistentTabBar } from "./ProducerPersistentTabBar";
+import { VetPersistentTabBar } from "./VetPersistentTabBar";
 import { producerBottomChromeHeight } from "./navigation";
+import { vetBottomChromeHeight } from "./navigation/vet/vetNavMetrics";
 import { ProducerBottomChromeProvider } from "../context/ProducerBottomChromeContext";
+import { VetBottomChromeProvider } from "../context/VetBottomChromeContext";
 import {
   AcceptFarmInvitationScreen,
   AccountScreen,
@@ -47,6 +50,7 @@ import {
   FarmLivestockScreen,
   FarmHealthScreen,
   VetSearchScreen,
+  ProducerScheduleVetVisitScreen,
   FarmMembersScreen,
   FarmTasksScreen,
   FarmVetConsultationsScreen,
@@ -64,11 +68,18 @@ import {
   PenMoveScreen,
   TechnicianDashboardScreen,
   VeterinarianDashboardScreen,
+  VetAgendaScreen,
+  VetFarmDetailScreen,
+  VetFarmsScreen,
+  VetMessagesScreen,
+  VetReportsScreen,
+  VetTasksScreen,
   VetConsultationDetailScreen
 } from "../features";
 import type { RootStackParamList } from "../types/navigation";
 import { useSession } from "../context/SessionContext";
 import { dashboardRouteForActiveProfileType } from "../lib/dashboardHomeRoute";
+import { defaultStackScreenOptions } from "../lib/navigationHeaderOptions";
 import { mobileColors } from "../theme/mobileTheme";
 import { OfflineBanner } from "./OfflineBanner";
 
@@ -117,18 +128,7 @@ function MainStack() {
     <Stack.Navigator
       key={activeProfileId ?? "none"}
       initialRouteName={initialRouteName}
-      screenOptions={{
-        headerStyle: { backgroundColor: mobileColors.background },
-        headerTintColor: mobileColors.accent,
-        headerTitleStyle: {
-          fontWeight: "700",
-          color: mobileColors.textPrimary
-        },
-        headerShadowVisible: false,
-        contentStyle: {
-          backgroundColor: mobileColors.canvas
-        }
-      }}
+      screenOptions={defaultStackScreenOptions}
     >
       <Stack.Screen
         name="ProducerDashboard"
@@ -153,17 +153,31 @@ function MainStack() {
       <Stack.Screen
         name="BuyerDashboard"
         component={BuyerDashboardScreen}
-        options={{ title: "Accueil acheteur" }}
+        options={{ title: "Accueil" }}
       />
       <Stack.Screen
         name="VeterinarianDashboard"
         component={VeterinarianDashboardScreen}
-        options={{ title: "Accueil vétérinaire" }}
+        options={{ headerShown: false }}
       />
+      <Stack.Screen name="VetAgenda" component={VetAgendaScreen} options={{ title: "Agenda" }} />
+      <Stack.Screen name="VetFarms" component={VetFarmsScreen} options={{ title: "Mes fermes" }} />
+      <Stack.Screen
+        name="VetFarmDetail"
+        component={VetFarmDetailScreen}
+        options={({ route }) => ({ title: route.params.farmName })}
+      />
+      <Stack.Screen
+        name="VetMessages"
+        component={VetMessagesScreen}
+        options={{ title: "Messages" }}
+      />
+      <Stack.Screen name="VetTasks" component={VetTasksScreen} options={{ title: "Tâches" }} />
+      <Stack.Screen name="VetReports" component={VetReportsScreen} options={{ title: "Rapports" }} />
       <Stack.Screen
         name="TechnicianDashboard"
         component={TechnicianDashboardScreen}
-        options={{ title: "Accueil technicien" }}
+        options={{ title: "Accueil" }}
       />
       <Stack.Screen
         name="FarmList"
@@ -201,7 +215,7 @@ function MainStack() {
       <Stack.Screen
         name="FarmDetail"
         component={FarmDetailScreen}
-        options={({ route }) => ({ title: route.params.farmName })}
+        options={{ title: "Ferme" }}
       />
       <Stack.Screen
         name="FarmLivestock"
@@ -216,7 +230,12 @@ function MainStack() {
       <Stack.Screen
         name="VetSearch"
         component={VetSearchScreen}
-        options={{ title: "Vétérinaires" }}
+        options={{ title: "Trouver un vétérinaire" }}
+      />
+      <Stack.Screen
+        name="ProducerScheduleVetVisit"
+        component={ProducerScheduleVetVisitScreen}
+        options={{ title: "Planifier une visite" }}
       />
       <Stack.Screen
         name="FarmTasks"
@@ -316,17 +335,17 @@ function MainStack() {
       <Stack.Screen
         name="AnimalDetail"
         component={AnimalDetailScreen}
-        options={({ route }) => ({ title: route.params.headline })}
+        options={{ title: "Fiche animal" }}
       />
       <Stack.Screen
         name="BatchDetail"
         component={BatchDetailScreen}
-        options={({ route }) => ({ title: route.params.batchName })}
+        options={{ title: "Lot" }}
       />
       <Stack.Screen
         name="MarketplaceList"
         component={MarketplaceListScreen}
-        options={{ title: "Marché" }}
+        options={{ title: "Market" }}
       />
       <Stack.Screen
         name="MarketplaceListingDetail"
@@ -363,9 +382,7 @@ function MainStack() {
       <Stack.Screen
         name="ChatRoom"
         component={ChatRoomScreen}
-        options={({ route }) => ({
-          title: route.params.headline ?? "Conversation"
-        })}
+        options={{ title: "Conversation" }}
       />
       <Stack.Screen
         name="ChatPickFarm"
@@ -375,9 +392,7 @@ function MainStack() {
       <Stack.Screen
         name="ChatPickPeer"
         component={ChatPickPeerScreen}
-        options={({ route }) => ({
-          title: route.params.farmName
-        })}
+        options={{ title: "Nouvelle conversation" }}
       />
       <Stack.Screen
         name="ChatSearchUser"
@@ -423,16 +438,21 @@ function MainNavigationWithChrome() {
   const { authMe, activeProfileId } = useSession();
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
   const isProducer = profileType === "producer";
-  const bottomChromePad = isProducer ? producerBottomChromeHeight(insets.bottom) : 0;
+  const isVeterinarian = profileType === "veterinarian";
+  const producerPad = isProducer ? producerBottomChromeHeight(insets.bottom) : 0;
+  const vetPad = isVeterinarian ? vetBottomChromeHeight(insets.bottom) : 0;
 
   return (
-    <ProducerBottomChromeProvider value={bottomChromePad}>
-      <View style={styles.flex}>
+    <ProducerBottomChromeProvider value={producerPad}>
+      <VetBottomChromeProvider value={vetPad}>
         <View style={styles.flex}>
-          <MainStack />
+          <View style={styles.flex}>
+            <MainStack />
+          </View>
+          <ProducerPersistentTabBar />
+          <VetPersistentTabBar />
         </View>
-        <ProducerPersistentTabBar />
-      </View>
+      </VetBottomChromeProvider>
     </ProducerBottomChromeProvider>
   );
 }

@@ -23,29 +23,36 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { vetColors } from "../../theme/vetTheme";
 import { TaskListView } from "./TaskListView";
 import { TaskDetailModal } from "./TaskDetailModal";
+
+type PeriodKey = "today" | "week" | "all";
 
 type Props = {
   farmId: string;
   farmName: string;
   accessToken: string;
   activeProfileId?: string | null;
+  /** Masque titre + filtres (déjà affichés par l’écran parent, ex. accueil véto). */
+  embedded?: boolean;
+  period?: PeriodKey;
 };
-
-type PeriodKey = "today" | "week" | "all";
 
 export function DashboardTaskWidget({
   farmId,
   farmName,
   accessToken,
-  activeProfileId
+  activeProfileId,
+  embedded = false,
+  period: periodProp
 }: Props) {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const qc = useQueryClient();
-  const [period, setPeriod] = useState<PeriodKey>("today");
+  const [internalPeriod, setInternalPeriod] = useState<PeriodKey>("today");
+  const period = periodProp ?? internalPeriod;
   const [detail, setDetail] = useState<FarmTaskDto | null>(null);
 
   const { tasksSocketStatus } = useFarmTasksSocket({
@@ -79,35 +86,39 @@ export function DashboardTaskWidget({
   const tasks = dashQ.data?.tasks ?? [];
 
   return (
-    <View style={styles.wrap}>
-      <View style={styles.head}>
-        <Text style={styles.title}>{t("tasksScreen.myTasks")}</Text>
-        {dashQ.data?.pendingCount ? (
-          <View style={styles.badge}>
-            <Text style={styles.badgeTx}>{dashQ.data.pendingCount}</Text>
+    <View style={embedded ? styles.embeddedWrap : styles.wrap}>
+      {!embedded ? (
+        <>
+          <View style={styles.head}>
+            <Text style={styles.title}>{t("tasksScreen.myTasks")}</Text>
+            {dashQ.data?.pendingCount ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeTx}>{dashQ.data.pendingCount}</Text>
+              </View>
+            ) : null}
           </View>
-        ) : null}
-      </View>
 
-      <View style={styles.chips}>
-        {(
-          [
-            ["today", t("tasksScreen.filterToday")],
-            ["week", t("tasksScreen.filterWeek")],
-            ["all", t("tasksScreen.filterAll")]
-          ] as const
-        ).map(([key, label]) => (
-          <Pressable
-            key={key}
-            style={[styles.chip, period === key && styles.chipOn]}
-            onPress={() => setPeriod(key)}
-          >
-            <Text style={[styles.chipTx, period === key && styles.chipTxOn]}>
-              {label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+          <View style={styles.chips}>
+            {(
+              [
+                ["today", t("tasksScreen.filterToday")],
+                ["week", t("tasksScreen.filterWeek")],
+                ["all", t("tasksScreen.filterAll")]
+              ] as const
+            ).map(([key, label]) => (
+              <Pressable
+                key={key}
+                style={[styles.chip, period === key && styles.chipOn]}
+                onPress={() => setInternalPeriod(key)}
+              >
+                <Text style={[styles.chipTx, period === key && styles.chipTxOn]}>
+                  {label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </>
+      ) : null}
 
       {dashQ.isPending ? (
         <ActivityIndicator style={{ marginVertical: mobileSpacing.md }} />
@@ -148,6 +159,13 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.md,
     marginHorizontal: mobileSpacing.lg,
     marginBottom: mobileSpacing.lg
+  },
+  embeddedWrap: {
+    backgroundColor: vetColors.cardBg,
+    borderRadius: mobileRadius.lg,
+    padding: mobileSpacing.md,
+    borderWidth: 1,
+    borderColor: vetColors.border
   },
   head: {
     flexDirection: "row",

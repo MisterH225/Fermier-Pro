@@ -121,7 +121,7 @@ export const en = {
     }
   },
   account: {
-    title: "Account",
+    title: "Profile",
     identity: "Identity",
     noName: "Name not provided",
     linkedAccount: "Account linked to your sign-in.",
@@ -312,6 +312,127 @@ export const en = {
       other: "Other"
     }
   },
+  vet: {
+    nav: {
+      home: "Home",
+      agenda: "Schedule",
+      farms: "My Farms",
+      messages: "Messages"
+    },
+    extended: {
+      tasks: "Tasks",
+      reports: "Reports",
+      prescriptions: "Prescriptions",
+      prescriptionsRoadmap: "Prescription hub and reminders: coming soon.",
+      settings: "Settings"
+    },
+    dashboard: {
+      welcome: "Welcome back",
+      defaultName: "Veterinarian",
+      pendingBanner: "Profile pending verification",
+      searchPlaceholder: "Search farm, animal…",
+      upcomingTitle: "Upcoming visits",
+      seeAll: "See all →",
+      noVisits: "No scheduled visits — see my farms",
+      kpisTitle: "Overview",
+      kpiFarms: "Farms followed",
+      kpiVisits: "Visits this month",
+      kpiAlerts: "Health alerts",
+      kpiTasks: "Pending tasks",
+      tasksTitle: "My tasks",
+      taskFilter: { today: "Today", week: "This week", all: "All" },
+      activityTitle: "Recent clinical activity",
+      activityEmpty: "No recent activity",
+      quickActions: "Quick actions",
+      actionFarms: "My farms",
+      actionSchedule: "Schedule a visit",
+      actionCase: "Report a case"
+    },
+    profile: {
+      title: "Vet profile",
+      verified: "Verified profile",
+      zone: "Service area",
+      school: "Education",
+      availability: "Available",
+      statsFarms: "Farms",
+      statsVisits: "Visits",
+      statsRating: "Avg. rating"
+    },
+    farms: {
+      title: "My farms",
+      search: "Search a farm…",
+      empty: "No assigned farms",
+      filter: {
+        all: "All",
+        alerts: "Active alerts",
+        visit: "Scheduled visit",
+        recent: "Recent"
+      }
+    },
+    farmDetail: {
+      tabs: {
+        health: "Health",
+        livestock: "Herd",
+        history: "History",
+        tasks: "Tasks"
+      },
+      healthHint: "View health KPIs and alerts for this farm.",
+      openHealth: "Open health module",
+      declareCase: "Report a case",
+      openLivestock: "View herd",
+      openHistory: "Consultation history",
+      openTasks: "Farm tasks"
+    },
+    agenda: {
+      title: "Schedule",
+      chooseSlot: "Choose a time slot",
+      period: { morning: "Morning", afternoon: "Afternoon", evening: "Evening" },
+      bookNow: "Schedule visit",
+      scheduleTitle: "Schedule a visit",
+      scheduleRoadmap: "Visit scheduling with producer notifications is coming in a future release.",
+      empty: "No appointments"
+    },
+    schedule: {
+      title: "Schedule a visit",
+      confirm: "Confirm appointment",
+      farm: "Farm",
+      reason: "Reason",
+      notes: "Notes",
+      notesPlaceholder: "Observations, instructions…",
+      price: "Consultation fee (optional)",
+      pricePlaceholder: "e.g. 120",
+      pickSlot: "Select a time slot above.",
+      noFarms: "No assigned farms.",
+      missingFields: "Choose a farm and time slot.",
+      successTitle: "Appointment confirmed",
+      successBody: "Visit scheduled for {{farm}} — {{date}}",
+      reasons: {
+        routine: "Routine",
+        urgency: "Urgent",
+        followup: "Follow-up",
+        vaccination: "Vaccination",
+        other: "Other"
+      }
+    },
+    messages: {
+      new: "New",
+      emptyTitle: "No conversations",
+      emptySub: "Start chatting with a producer from an assigned farm."
+    },
+    call: {
+      errorTitle: "Call",
+      error: "Phone number unavailable."
+    },
+    tasks: {
+      title: "Tasks",
+      noFarm: "No farm — join a farm as veterinarian first.",
+      redirect: "Opening tasks…"
+    },
+    reports: {
+      title: "Reports",
+      body: "Visit reports, prescriptions and personal stats will be grouped here (PDF export coming soon)."
+    }
+  },
   navigation: {
     main: {
       home: "Home",
@@ -334,6 +455,16 @@ export const en = {
       reports: "Reports",
       closeBackdropA11y: "Close menu",
       closeA11y: "Close"
+    },
+    screenTitles: {
+      feedStock: "Feed stock",
+      recommendations: "Recommendations",
+      animalDetail: "Animal record",
+      farm: "Farm",
+      barns: "Pens & housing",
+      vetConsultations: "Vet follow-up",
+      team: "Team",
+      invite: "Invite"
     }
   },
   modals: {
@@ -809,7 +940,7 @@ export const en = {
   producer: {
     welcomeLine: "Welcome",
     settingsButton: "Settings",
-    farmSettingsTitle: "Farm settings",
+    farmSettingsTitle: "Settings",
     farmCheptelConfigSaved: "Farm configuration saved.",
     profileTitle: "My profile",
     close: "Close",
@@ -1374,7 +1505,24 @@ export const en = {
       planVisit: "Schedule a visit",
       contact: "Contact",
       shareMessage:
-        "Vet contact {{vet}} for farm {{farm}} — {{phone}}"
+        "Vet contact {{vet}} for farm {{farm}} — {{phone}}",
+      callErrorTitle: "Cannot call",
+      callError: "Phone number unavailable."
+    },
+    scheduleVet: {
+      title: "Schedule a visit",
+      titleWithName: "Appointment — {{name}}",
+      farm: "Farm",
+      vetUnavailable: "This veterinarian is not accepting appointments right now.",
+      pickSlot: "Select a time slot.",
+      reason: "Reason",
+      notes: "Notes",
+      notesPlaceholder: "Describe the need (symptoms, batch…)",
+      confirm: "Request appointment",
+      successTitle: "Request sent",
+      successBody: "{{vet}} — {{farm}} on {{date}}",
+      callErrorTitle: "Call",
+      callError: "Phone number unavailable."
     },
     vaccines: {
       statUpToDate: "{{count}} up to date",

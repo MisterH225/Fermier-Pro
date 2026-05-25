@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AccountPasswordCard } from "@/components/settings/AccountPasswordCard";
 
 const SCOPES = ["world", "africa", "west_africa", "countries"] as const;
 const LEVELS = ["info", "warning", "critical"] as const;
@@ -67,6 +68,8 @@ export default function ParametresPage() {
   return (
     <div className="space-y-8 max-w-2xl">
       <PageHeader title={t("title")} />
+
+      <AccountPasswordCard />
 
       <Card>
         <CardHeader className="pb-2">

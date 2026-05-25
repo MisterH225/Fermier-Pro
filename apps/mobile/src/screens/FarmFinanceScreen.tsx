@@ -314,7 +314,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
     [open, deleteMutation]
   );
 
-  useScreenTitle(navigation, farmName, {
+  useScreenTitle(navigation, t("navigation.main.finance"), {
     headerRight: clientFeatures.finance
       ? () => (
           <TouchableOpacity

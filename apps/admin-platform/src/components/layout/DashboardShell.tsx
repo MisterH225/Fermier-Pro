@@ -5,6 +5,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
+import { ShellLoading } from "@/components/layout/PageSkeleton";
 import { useAdminRealtime } from "@/lib/useAdminRealtime";
 
 export function DashboardShell({ children }: { children: ReactNode }) {
@@ -39,22 +40,18 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   };
 
   if (!token) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-slate-500">
-        …
-      </div>
-    );
+    return <ShellLoading />;
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-brand-cream">
       <Sidebar
         pendingVets={pendingVets}
         activeAlerts={activeAlerts}
         onLogout={logout}
       />
       <main className="flex-1 overflow-auto">
-        <div className="p-8 max-w-7xl mx-auto">
+        <div className="p-6 lg:p-8 max-w-7xl mx-auto">
           <DashboardHeader pendingVets={pendingVets} activeAlerts={activeAlerts} />
           {children}
         </div>

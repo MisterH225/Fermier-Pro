@@ -14,7 +14,6 @@ import { ChangeStatusModal } from "../components/cheptel/animals/ChangeStatusMod
 import { SaleModal, type SaleResult } from "../components/cheptel/animals/SaleModal";
 import { DiseaseModal } from "../components/shared/DiseaseModal";
 import { TransferModal } from "../components/cheptel/animals/TransferModal";
-import { animalDisplayTag } from "../components/cheptel/animals/animalUtils";
 import { useModal } from "../components/modals/useModal";
 import { useSession } from "../context/SessionContext";
 import { useScreenTitle } from "../hooks/useScreenTitle";
@@ -31,7 +30,7 @@ import { useState } from "react";
 type Props = NativeStackScreenProps<RootStackParamList, "AnimalDetail">;
 
 export function AnimalDetailScreen({ route, navigation }: Props) {
-  const { farmId, farmName, animalId, headline } = route.params;
+  const { farmId, farmName, animalId } = route.params;
   const { accessToken, activeProfileId } = useSession();
   const { t } = useTranslation();
   const { open } = useModal();
@@ -56,11 +55,7 @@ export function AnimalDetailScreen({ route, navigation }: Props) {
     [animalsQuery.data, animalId]
   );
 
-  const screenTitle =
-    headline?.trim() ||
-    (animal ? animalDisplayTag(animal) : "Animal");
-
-  useScreenTitle(navigation, screenTitle);
+  useScreenTitle(navigation, t("navigation.screenTitles.animalDetail"));
 
   const invalidate = () => {
     void queryClient.invalidateQueries({

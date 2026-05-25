@@ -23,9 +23,9 @@ import { FinanceOverviewKpiGrid } from "../components/finance/FinanceOverviewKpi
 import { EmptyStateCard } from "../components/common/EmptyStateCard";
 import { OnboardingBanner } from "../components/onboarding/OnboardingBanner";
 import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
+import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
 import { useOnboardingResume } from "../context/OnboardingResumeContext";
 import { getProducerOnboardingState } from "../lib/onboardingState";
-import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
 import { useProducerBottomChromePad } from "../context/ProducerBottomChromeContext";
 import { useSession } from "../context/SessionContext";
 import {
@@ -235,7 +235,7 @@ export function ProducerDashboardScreen() {
     accessToken
   ]);
 
-  const customHeader = (
+  const dashboardHeader = (
     <View style={styles.heroBar}>
       <ProducerWelcomeHeader
         welcomeLabel={t("producer.welcomeLine")}
@@ -266,9 +266,7 @@ export function ProducerDashboardScreen() {
               size={22}
               color={mobileColors.accent}
             />
-            <AlertBadge
-              count={alertsCountQuery.data?.criticalUnread ?? 0}
-            />
+            <AlertBadge count={alertsCountQuery.data?.criticalUnread ?? 0} />
           </View>
         </Pressable>
         <Pressable
@@ -295,10 +293,7 @@ export function ProducerDashboardScreen() {
 
   return (
     <>
-      <MobileAppShell
-        customHeader={customHeader}
-        omitBottomTabBar
-      >
+      <MobileAppShell customHeader={dashboardHeader} omitBottomTabBar>
         <ScrollView
           contentContainerStyle={[
             styles.wrap,

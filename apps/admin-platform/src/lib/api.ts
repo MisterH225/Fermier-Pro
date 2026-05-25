@@ -14,15 +14,26 @@ export async function apiFetch<T>(
   accessToken: string,
   init?: RequestInit
 ): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-      ...(init?.headers ?? {})
-    },
-    cache: "no-store"
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        ...(init?.headers ?? {})
+      },
+      cache: "no-store"
+    });
+  } catch (e) {
+    const hint =
+      e instanceof TypeError && /fetch/i.test(e.message)
+        ? `API injoignable (${API_BASE}). Lancez l’API : npm run dev:api depuis la racine du monorepo.`
+        : e instanceof Error
+          ? e.message
+          : String(e);
+    throw new ApiError(hint, 0);
+  }
   if (!res.ok) {
     const text = await res.text();
     throw new ApiError(text || res.statusText, res.status);

@@ -13,16 +13,64 @@
     "settings": "Settings",
     "logout": "Sign out"
   },
+  "notifications": {
+    "title": "Notifications",
+    "none": "No notifications",
+    "pendingVets": "Pending veterinarians ({count})",
+    "activeAlerts": "Health alerts ({count})"
+  },
   "login": {
     "title": "SuperAdmin sign in",
+    "formYear": "2026",
+    "formTag": "Admin console",
+    "formLead": "Access full control of the agricultural platform.",
+    "navSignIn": "Sign in",
+    "navAbout": "About",
     "email": "Email",
     "password": "Password",
     "submit": "Sign in",
     "forbidden": "SuperAdmin access only.",
-    "error": "Invalid credentials."
+    "error": "Invalid credentials.",
+    "errorGoogleHint": "Invalid password or Google-only account. Use « Continue with Google », then set a console password in Settings.",
+    "google": "Continue with Google",
+    "googleHint": "Google account? Sign in once with Google, then create a password in Settings.",
+    "orEmail": "or email",
+    "oauthRedirectError": "Google sign-in failed: Supabase redirected to the mobile app (exp://). Add the URL below to Redirect URLs (see orange box).",
+    "oauthCallbackError": "Google callback failed: {reason}. Check Google Cloud Console → Authorized redirect URI: https://YOUR-PROJECT.supabase.co/auth/v1/callback",
+    "apiUnreachable": "API unreachable. Start the API (npm run start:dev in apps/api) and try again.",
+    "oauthNoUrl": "Google sign-in failed. Check Supabase → Redirect URLs (URL below, not /en/login) and restart npm run dev:admin after editing .env.local.",
+    "oauthEnvMissing": "Supabase env vars missing in the browser. Check apps/admin-platform/.env.local, then restart npm run dev:admin.",
+    "oauthSetupTitle": "Supabase — Redirect URL (web console)",
+    "oauthSetupBody": "Authentication → URL Configuration → Redirect URLs — add this line (alongside mobile exp:// URLs):",
+    "oauthSetupWildcard": "Optional in dev (wildcard):",
+    "oauthSetupWrong": "Do not use /en/login. If Google shows a blank page: exp:// Site URL must not apply to web — redirect_to must not include ?next= (fixed in app).",
+    "hero": {
+      "badge": "Fermier Pro SuperAdmin Console",
+      "titleHighlight": "Grow",
+      "titleRest": "the future of farming.",
+      "subtitle": "Farms, producers, animal health — all from one powerful dashboard.",
+      "stats": {
+        "farms": { "value": "500+", "label": "Farms supported" },
+        "producers": { "value": "12,000+", "label": "Active producers" },
+        "countries": { "value": "15+", "label": "Countries covered" },
+        "growth": { "value": "98%", "label": "Field satisfaction" }
+      },
+      "tags": {
+        "organic": "Sustainable farming",
+        "automation": "Automated tracking",
+        "health": "Animal health"
+      }
+    }
   },
   "overview": {
     "title": "Overview",
+    "subtitle": "Monitor the agricultural platform: farms, producers, and animal health at a glance.",
+    "deltaPeriod": "vs. previous 15 days",
+    "activityEmpty": "No recent activity.",
+    "actions": {
+      "export": "Export",
+      "filter": "Filters"
+    },
     "kpis": {
       "farms": "Active farms",
       "users": "Users",
@@ -35,7 +83,14 @@
     },
     "charts": {
       "signups": "Sign-ups (30d)",
-      "profiles": "Profile distribution"
+      "profiles": "Profile distribution",
+      "period30d": "Last 30 days",
+      "totalProfiles": "Profiles"
+    },
+    "countries": {
+      "title": "Presence by country",
+      "empty": "No geographic data.",
+      "unknown": "Unknown"
     },
     "activity": "Recent activity",
     "activityItems": {
@@ -79,10 +134,22 @@
   },
   "users": {
     "title": "Users",
+    "loading": "Loading…",
     "total": "{count} users",
-    "searchPlaceholder": "Search name or email…",
+    "searchPlaceholder": "Search…",
+    "selectAll": "Select all",
+    "since": "Since {date}",
+    "primaryFarm": "Primary farm",
     "view": "View",
     "empty": "No users found.",
+    "statusFilters": {
+      "all": "All",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "pagination": {
+      "page": "Page {current} of {total}"
+    },
     "filters": {
       "all": "All",
       "producer": "Producers",
@@ -97,6 +164,7 @@
       "buyer": "Buyer"
     },
     "columns": {
+      "member": "Member",
       "name": "Name",
       "email": "Email",
       "profile": "Profile",
@@ -179,6 +247,8 @@
     "totalCases": "{count} total cases",
     "activePoints": "Geolocated active points",
     "pointsNote": "Active cases with GPS coordinates.",
+    "tokenMissing": "NEXT_PUBLIC_MAPBOX_TOKEN missing in apps/admin-platform/.env.local",
+    "unknownDiagnosis": "Disease",
     "alertsTitle": "Active alerts",
     "noAlerts": "No active alerts.",
     "alertModal": {
@@ -267,6 +337,18 @@
       "info": "Info",
       "warning": "Warning",
       "critical": "Critical"
+    },
+    "password": {
+      "title": "Console password",
+      "description": "Set an email password to sign in without Google. You can change it anytime.",
+      "new": "New password",
+      "confirm": "Confirm",
+      "placeholder": "At least 8 characters",
+      "save": "Update password",
+      "saved": "Password saved.",
+      "tooShort": "Minimum 8 characters.",
+      "mismatch": "Passwords do not match.",
+      "error": "Could not update password."
     }
   },
   "common": {

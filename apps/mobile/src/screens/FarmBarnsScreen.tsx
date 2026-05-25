@@ -2,6 +2,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import {
   ActivityIndicator,
@@ -21,9 +22,10 @@ type Props = NativeStackScreenProps<RootStackParamList, "FarmBarns">;
 
 export function FarmBarnsScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
+  const { t } = useTranslation();
   const { accessToken, activeProfileId, clientFeatures } = useSession();
 
-  useScreenTitle(navigation, farmName, {
+  useScreenTitle(navigation, t("navigation.screenTitles.barns"), {
     headerRight: clientFeatures.housing
       ? () => (
           <TouchableOpacity

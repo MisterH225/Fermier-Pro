@@ -17,6 +17,7 @@ import { SkipConfirmModal } from "../../../components/onboarding/SkipConfirmModa
 import { useSession } from "../../../context/SessionContext";
 import { upsertVetProfile } from "../../../lib/api";
 import { formatAuthError } from "../../../lib/authErrors";
+import { formatApiError } from "../../../lib/apiErrors";
 import { pickNonVetFallbackProfileId } from "../../../lib/vetOnboardingState";
 import { getSupabase } from "../../../lib/supabase";
 import { uploadVetDiplomaToSupabase } from "../../../lib/uploadVetDiplomaToSupabase";
@@ -153,12 +154,13 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
     setBusy(true);
     try {
       const supabase = getSupabase();
-      if (!supabase || !authMe?.user.id) {
+      const storageOwnerId = authMe?.user.supabaseUserId;
+      if (!supabase || !storageOwnerId) {
         throw new Error(t("vetOnboarding.uploadError"));
       }
       const diplomaUrl = await uploadVetDiplomaToSupabase(
         supabase,
-        authMe.user.id,
+        storageOwnerId,
         diplomaUri,
         diplomaMime
       );
@@ -198,7 +200,7 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
       await refreshAuthMe();
       setStep(3);
     } catch (e: unknown) {
-      Alert.alert(t("health.errorTitle"), formatAuthError(e));
+      Alert.alert(t("health.errorTitle"), formatApiError(e));
     } finally {
       setBusy(false);
     }

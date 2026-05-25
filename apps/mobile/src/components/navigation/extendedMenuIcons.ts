@@ -10,5 +10,7 @@ export const EXTENDED_MENU_ICONS: Record<
   market: "cart-outline",
   gestation: "egg-outline",
   tasks: "checkbox-outline",
-  reports: "bar-chart-outline"
+  reports: "bar-chart-outline",
+  prescriptions: "medkit-outline",
+  settings: "settings-outline"
 };

@@ -13,16 +13,64 @@
     "settings": "Paramètres",
     "logout": "Déconnexion"
   },
+  "notifications": {
+    "title": "Notifications",
+    "none": "Aucune notification",
+    "pendingVets": "Vétérinaires en attente ({count})",
+    "activeAlerts": "Alertes sanitaires ({count})"
+  },
   "login": {
     "title": "Connexion SuperAdmin",
+    "formYear": "2026",
+    "formTag": "Console admin",
+    "formLead": "Accédez au pilotage de toute la plateforme agricole.",
+    "navSignIn": "Connexion",
+    "navAbout": "À propos",
     "email": "Email",
     "password": "Mot de passe",
     "submit": "Se connecter",
     "forbidden": "Accès réservé aux SuperAdmin.",
-    "error": "Identifiants invalides."
+    "error": "Identifiants invalides.",
+    "errorGoogleHint": "Mot de passe invalide ou compte créé via Google. Utilisez « Continuer avec Google », puis définissez un mot de passe dans Paramètres.",
+    "google": "Continuer avec Google",
+    "googleHint": "Compte Google ? Connectez-vous une fois avec Google, puis créez un mot de passe dans Paramètres.",
+    "orEmail": "ou email",
+    "oauthRedirectError": "Connexion Google interrompue : Supabase renvoie vers l’app mobile (exp://). Ajoutez l’URL ci-dessous dans Redirect URLs (voir encadré orange).",
+    "oauthCallbackError": "Retour Google échoué : {reason}. Vérifiez Google Cloud Console → URI de redirection autorisée : https://VOTRE-PROJET.supabase.co/auth/v1/callback",
+    "apiUnreachable": "API inaccessible. Lancez l’API (npm run start:dev dans apps/api) puis réessayez.",
+    "oauthNoUrl": "Connexion Google impossible. Vérifiez Supabase → Redirect URLs (URL ci-dessous, pas /en/login) et redémarrez npm run dev:admin après .env.local.",
+    "oauthEnvMissing": "Variables Supabase manquantes côté navigateur. Vérifiez apps/admin-platform/.env.local puis redémarrez npm run dev:admin.",
+    "oauthSetupTitle": "Supabase — Redirect URL (console web)",
+    "oauthSetupBody": "Authentication → URL Configuration → Redirect URLs — ajoutez cette ligne (en plus des URLs exp:// mobile) :",
+    "oauthSetupWildcard": "Optionnel en dev (wildcard) :",
+    "oauthSetupWrong": "Ne pas utiliser /en/login. Si page blanche sur Google : la Site URL exp:// ne doit pas être utilisée pour le web — gardez redirect_to sans ?next= (corrigé dans l’app).",
+    "hero": {
+      "badge": "Console SuperAdmin Fermier Pro",
+      "titleHighlight": "Cultivez",
+      "titleRest": "l'avenir de l'élevage.",
+      "subtitle": "Fermes, producteurs, santé animale — tout depuis un seul tableau de bord.",
+      "stats": {
+        "farms": { "value": "500+", "label": "Fermes accompagnées" },
+        "producers": { "value": "12 000+", "label": "Producteurs actifs" },
+        "countries": { "value": "15+", "label": "Pays couverts" },
+        "growth": { "value": "98%", "label": "Satisfaction terrain" }
+      },
+      "tags": {
+        "organic": "Élevage durable",
+        "automation": "Suivi automatisé",
+        "health": "Santé animale"
+      }
+    }
   },
   "overview": {
     "title": "Vue d'ensemble",
+    "subtitle": "Pilotez la plateforme agricole : fermes, producteurs et santé animale en un coup d'œil.",
+    "deltaPeriod": "vs. 15 jours préc.",
+    "activityEmpty": "Aucune activité récente.",
+    "actions": {
+      "export": "Exporter",
+      "filter": "Filtres"
+    },
     "kpis": {
       "farms": "Fermes actives",
       "users": "Utilisateurs",
@@ -35,7 +83,14 @@
     },
     "charts": {
       "signups": "Inscriptions (30 j)",
-      "profiles": "Répartition profils"
+      "profiles": "Répartition profils",
+      "period30d": "30 derniers jours",
+      "totalProfiles": "Profils"
+    },
+    "countries": {
+      "title": "Présence par pays",
+      "empty": "Aucune donnée géographique.",
+      "unknown": "Non renseigné"
     },
     "activity": "Activité récente",
     "activityItems": {
@@ -79,10 +134,22 @@
   },
   "users": {
     "title": "Utilisateurs",
+    "loading": "Chargement…",
     "total": "{count} utilisateurs",
-    "searchPlaceholder": "Rechercher nom ou email…",
+    "searchPlaceholder": "Rechercher…",
+    "selectAll": "Tout sélectionner",
+    "since": "Depuis {date}",
+    "primaryFarm": "Ferme principale",
     "view": "Voir",
     "empty": "Aucun utilisateur trouvé.",
+    "statusFilters": {
+      "all": "Tous",
+      "active": "Actifs",
+      "inactive": "Inactifs"
+    },
+    "pagination": {
+      "page": "Page {current} sur {total}"
+    },
     "filters": {
       "all": "Tous",
       "producer": "Producteurs",
@@ -97,6 +164,7 @@
       "buyer": "Acheteur"
     },
     "columns": {
+      "member": "Membre",
       "name": "Nom",
       "email": "Email",
       "profile": "Profil",
@@ -179,6 +247,8 @@
     "totalCases": "{count} cas total",
     "activePoints": "Points actifs géolocalisés",
     "pointsNote": "Cas actifs avec coordonnées GPS.",
+    "tokenMissing": "NEXT_PUBLIC_MAPBOX_TOKEN manquant dans apps/admin-platform/.env.local",
+    "unknownDiagnosis": "Maladie",
     "alertsTitle": "Alertes actives",
     "noAlerts": "Aucune alerte active.",
     "alertModal": {
@@ -267,6 +337,18 @@
       "info": "Info",
       "warning": "Avertissement",
       "critical": "Critique"
+    },
+    "password": {
+      "title": "Mot de passe console",
+      "description": "Définissez un mot de passe email pour vous connecter sans Google. Modifiable à tout moment.",
+      "new": "Nouveau mot de passe",
+      "confirm": "Confirmer",
+      "placeholder": "Au moins 8 caractères",
+      "save": "Mettre à jour le mot de passe",
+      "saved": "Mot de passe enregistré.",
+      "tooShort": "Minimum 8 caractères.",
+      "mismatch": "Les mots de passe ne correspondent pas.",
+      "error": "Impossible de mettre à jour le mot de passe."
     }
   },
   "common": {

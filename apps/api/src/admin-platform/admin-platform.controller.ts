@@ -69,12 +69,16 @@ export class AdminPlatformController {
   listUsers(
     @Query("search") search?: string,
     @Query("profileType") profileType?: string,
+    @Query("isActive") isActive?: string,
     @Query("skip") skip?: string,
     @Query("take") take?: string
   ) {
+    const activeFilter =
+      isActive === "true" ? true : isActive === "false" ? false : undefined;
     return this.admin.listUsers({
       search,
       profileType,
+      isActive: activeFilter,
       skip: skip ? Number.parseInt(skip, 10) : undefined,
       take: take ? Number.parseInt(take, 10) : undefined
     });

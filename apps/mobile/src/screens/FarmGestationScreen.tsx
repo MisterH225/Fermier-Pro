@@ -70,7 +70,7 @@ export function FarmGestationScreen({ route, navigation }: Props) {
     label: string;
   } | null>(null);
 
-  useScreenTitle(navigation, farmName, {
+  useScreenTitle(navigation, t("navigation.extended.gestation"), {
     headerRight: () => (
       <Pressable
         onPress={() => setCreateOpen(true)}

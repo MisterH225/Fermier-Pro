@@ -81,7 +81,7 @@ export function VetConsultationDetailScreen({ route, navigation }: Props) {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: row?.subject ?? "Consultation",
+      title: "Consultation",
       headerRight: clientFeatures.vetConsultations
         ? () => (
             <TouchableOpacity
@@ -102,7 +102,6 @@ export function VetConsultationDetailScreen({ route, navigation }: Props) {
     });
   }, [
     navigation,
-    row?.subject,
     farmId,
     farmName,
     consultationId,

@@ -1,3 +1,4 @@
+import { useLayoutEffect } from "react";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
@@ -26,11 +27,16 @@ export function TechnicianDashboardScreen() {
   });
   const primaryFarm = farmsQ.data?.[0];
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <IconButton icon="add" onPress={() => navigation.navigate("FarmList")} />
+      )
+    });
+  }, [navigation]);
+
   return (
-    <MobileAppShell
-      title="Espace technicien"
-      topRight={<IconButton icon="add" onPress={() => navigation.navigate("FarmList")} />}
-    >
+    <MobileAppShell hideTopBar>
       <ScrollView contentContainerStyle={styles.wrap}>
         <View style={styles.kpiRow}>
           <View style={styles.kpiItem}>

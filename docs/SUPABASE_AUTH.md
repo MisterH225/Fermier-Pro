@@ -34,7 +34,8 @@ L’app téléverse des fichiers via la clé **anon** + session utilisateur (`@s
 
 | Bucket | Usage | Chemin type |
 |--------|--------|-------------|
-| **`avatars`** | Photo de profil producteur | `{auth.users.id}/avatar.jpg` |
+| **`avatars`** | Photo de profil (producteur / vétérinaire) | `{auth.users.id}/avatar.jpg` |
+| **`vet-credentials`** | Diplôme vétérinaire (onboarding) | `diplomas/{auth.users.id}/…` |
 | **`finance-proofs`** | Preuve photo dépense / revenu | `farms/{farmId}/…` |
 
 Si l’enregistrement affiche **`Bucket not found`**, le bucket n’existe pas encore sur le projet Supabase.
@@ -44,8 +45,9 @@ Si l’enregistrement affiche **`Bucket not found`**, le bucket n’existe pas e
 1. Dashboard Supabase → **SQL Editor** → New query.
 2. Ouvrir le fichier `supabase/migrations/20260519120000_storage_buckets.sql` dans l’éditeur de code, **copier tout son contenu SQL** (les lignes `INSERT`, `CREATE POLICY`, etc.) — **ne pas** coller le chemin du fichier dans Supabase.
 3. Coller ce SQL dans l’éditeur Supabase et cliquer **Run** (crée les deux buckets publics + politiques RLS).
-3. Vérifier dans **Storage** que `avatars` et `finance-proofs` apparaissent.
-4. Relancer l’app (Expo) et réessayer l’upload.
+3. Exécuter aussi `supabase/migrations/20260523140000_vet_credentials_bucket.sql` pour l’onboarding vétérinaire.
+4. Vérifier dans **Storage** que `avatars`, `vet-credentials` et `finance-proofs` apparaissent.
+5. Relancer l’app (Expo) et réessayer l’upload.
 
 Alternative manuelle : **Storage → New bucket** → nom `avatars`, cocher **Public bucket**, MIME images ; répéter pour `finance-proofs`.
 

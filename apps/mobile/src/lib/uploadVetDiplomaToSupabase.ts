@@ -4,10 +4,11 @@ const BUCKET = "vet-credentials";
 
 /**
  * Téléverse diplôme vétérinaire (JPG/PNG/PDF) — bucket `vet-credentials` (public read recommandé pour admin).
+ * `storageOwnerId` = `auth.users.id` (JWT `sub`), aligné sur les politiques RLS (`diplomas/{uid}/…`).
  */
 export async function uploadVetDiplomaToSupabase(
   supabase: SupabaseClient,
-  userId: string,
+  storageOwnerId: string,
   localUri: string,
   mimeType: string
 ): Promise<string> {
@@ -17,7 +18,7 @@ export async function uploadVetDiplomaToSupabase(
     : lower.includes("png")
       ? "png"
       : "jpg";
-  const path = `diplomas/${userId}/${Date.now()}.${ext}`;
+  const path = `diplomas/${storageOwnerId}/${Date.now()}.${ext}`;
   const response = await fetch(localUri);
   const buf = await response.arrayBuffer();
   const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, buf, {

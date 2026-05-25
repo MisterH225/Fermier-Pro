@@ -1,3 +1,4 @@
+import { useLayoutEffect } from "react";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
@@ -37,11 +38,16 @@ export function BuyerDashboardScreen() {
     }
   ];
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <IconButton icon="search" onPress={() => navigation.navigate("MarketplaceList")} />
+      )
+    });
+  }, [navigation]);
+
   return (
-    <MobileAppShell
-      title="Espace acheteur"
-      topRight={<IconButton icon="search" onPress={() => navigation.navigate("MarketplaceList")} />}
-    >
+    <MobileAppShell hideTopBar>
       <ScrollView contentContainerStyle={styles.wrap}>
         <View style={styles.kpiRow}>
           <View style={styles.kpiItem}>

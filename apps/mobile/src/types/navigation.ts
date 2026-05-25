@@ -4,6 +4,12 @@ export type RootStackParamList = {
   ProducerFarmSettings: { farmId: string; farmName: string };
   BuyerDashboard: undefined;
   VeterinarianDashboard: undefined;
+  VetAgenda: undefined;
+  VetFarms: undefined;
+  VetFarmDetail: { farmId: string; farmName: string };
+  VetMessages: undefined;
+  VetTasks: undefined;
+  VetReports: undefined;
   TechnicianDashboard: undefined;
   FarmList: undefined;
   /** Compte : déconnexion, langue, aide. */
@@ -17,6 +23,11 @@ export type RootStackParamList = {
   /** Santé ferme (dossiers vaccins, maladies, véto, traitements, mortalités). */
   FarmHealth: { farmId: string; farmName: string; initialTab?: "overview" | "disease" };
   VetSearch: { farmId: string; farmName: string };
+  ProducerScheduleVetVisit: {
+    farmId: string;
+    farmName: string;
+    vetProfileId: string;
+  };
   CreateFarm: undefined;
   AnimalDetail: {
     farmId: string;
