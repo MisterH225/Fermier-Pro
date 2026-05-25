@@ -5,8 +5,34 @@ import {
   Injectable,
   NotFoundException
 } from "@nestjs/common";
+import type { VetAvailabilityDto } from "./dto/vet-availability.dto";
+import type { ProducerScheduleVetVisitDto } from "./dto/producer-schedule-vet-visit.dto";
 import type { User } from "@prisma/client";
-import { Prisma, ProfileType } from "@prisma/client";
+import {
+  FarmHealthRecordKind,
+  MembershipRole,
+  Prisma,
+  ProfileType,
+  SmartAlertModule,
+  VetConsultationStatus
+} from "@prisma/client";
+import type {
+  VetDashboardActivityDto,
+  VetDashboardDto,
+  VetDashboardUpcomingVisitDto
+} from "./dto/vet-dashboard.dto";
+import {
+  ScheduleVetVisitDto,
+  VetVisitReason
+} from "./dto/schedule-vet-visit.dto";
+import { AUDIT_ACTION } from "../common/audit.constants";
+import { AuditService } from "../common/audit.service";
+import { PushNotificationsService } from "../push-notifications/push-notifications.service";
+import {
+  VET_VISIT_SLOT_TIMES,
+  dayBoundsFromIsoDate,
+  slotTimeFromDate
+} from "./vet-visit-slots.constants";
 
 type VetVerificationStatus = "pending" | "verified" | "rejected";
 
@@ -15,6 +41,7 @@ const VetStatus = {
   verified: "verified" as const,
   rejected: "rejected" as const
 };
+import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateVetRatingDto } from "./dto/create-vet-rating.dto";
@@ -43,11 +70,21 @@ function decimalToNumber(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+const VISIT_REASON_LABEL: Record<VetVisitReason, string> = {
+  [VetVisitReason.routine]: "Visite routine",
+  [VetVisitReason.urgency]: "Urgence",
+  [VetVisitReason.followup]: "Suivi",
+  [VetVisitReason.vaccination]: "Vaccination",
+  [VetVisitReason.other]: "Autre"
+};
+
 @Injectable()
 export class VetsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly farmAccess: FarmAccessService
+    private readonly farmAccess: FarmAccessService,
+    private readonly audit: AuditService,
+    private readonly push: PushNotificationsService
   ) {}
 
   async assertVeterinarianProfile(userId: string) {
@@ -428,5 +465,540 @@ export class VetsService {
         verifiedAt: null
       }
     });
+  }
+
+  async getVetAvailability(
+    vetProfileId: string,
+    dateIso: string
+  ): Promise<VetAvailabilityDto> {
+    const vet = await this.prisma.vetProfile.findUnique({
+      where: { id: vetProfileId }
+    });
+    if (!vet || vet.verificationStatus !== VetStatus.verified) {
+      throw new NotFoundException("Vétérinaire introuvable ou non vérifié");
+    }
+
+    const { dayStart, dayEnd } = dayBoundsFromIsoDate(dateIso);
+    const consultations = await this.prisma.vetConsultation.findMany({
+      where: {
+        primaryVetUserId: vet.userId,
+        status: VetConsultationStatus.open,
+        openedAt: { gte: dayStart, lt: dayEnd }
+      },
+      select: { openedAt: true }
+    });
+
+    const occupied = new Set(
+      consultations.map((c) => slotTimeFromDate(c.openedAt))
+    );
+
+    const slots = VET_VISIT_SLOT_TIMES.map((time) => ({
+      time,
+      status: !vet.availability
+        ? ("unavailable" as const)
+        : occupied.has(time)
+          ? ("occupied" as const)
+          : ("available" as const)
+    }));
+
+    return {
+      vetProfileId: vet.id,
+      date: dateIso,
+      vetAvailable: vet.availability,
+      slots
+    };
+  }
+
+  private async assertSlotAvailable(
+    vetUserId: string,
+    scheduled: Date
+  ): Promise<void> {
+    const dateIso = scheduled.toISOString().slice(0, 10);
+    const time = slotTimeFromDate(scheduled);
+    const { dayStart, dayEnd } = dayBoundsFromIsoDate(dateIso);
+    const sameDay = await this.prisma.vetConsultation.findMany({
+      where: {
+        primaryVetUserId: vetUserId,
+        status: VetConsultationStatus.open,
+        openedAt: { gte: dayStart, lt: dayEnd }
+      },
+      select: { openedAt: true }
+    });
+    const occupied = new Set(sameDay.map((c) => slotTimeFromDate(c.openedAt)));
+    if (occupied.has(time)) {
+      throw new ConflictException("Ce créneau est déjà réservé");
+    }
+  }
+
+  private formatVisitDate(scheduled: Date): string {
+    return scheduled.toLocaleString("fr-FR", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+
+  private async notifyVisitScheduled(params: {
+    farmId: string;
+    farmName: string;
+    scheduledAt: Date;
+    vetUserId: string;
+    vetDisplayName: string;
+    openedByUserId: string;
+    openedByName: string | null;
+    initiatedBy: "vet" | "producer";
+  }) {
+    const farm = await this.prisma.farm.findUnique({
+      where: { id: params.farmId },
+      select: { ownerId: true, name: true }
+    });
+    if (!farm) {
+      return;
+    }
+    const when = this.formatVisitDate(params.scheduledAt);
+    const farmLabel = params.farmName || farm.name;
+
+    if (params.initiatedBy === "vet") {
+      await this.push.sendToUser(
+        farm.ownerId,
+        "Visite vétérinaire planifiée",
+        `${params.vetDisplayName} le ${when} — ${farmLabel}`,
+        {
+          type: "vet_visit_scheduled",
+          farmId: params.farmId,
+          consultationKind: "vet_scheduled"
+        }
+      );
+    } else {
+      const producerLabel = params.openedByName?.trim() || "Un producteur";
+      await this.push.sendToUser(
+        params.vetUserId,
+        "Demande de visite",
+        `${producerLabel} — ${farmLabel} le ${when}`,
+        {
+          type: "vet_visit_requested",
+          farmId: params.farmId,
+          consultationKind: "producer_request"
+        }
+      );
+      if (farm.ownerId !== params.openedByUserId) {
+        await this.push.sendToUser(
+          params.openedByUserId,
+          "RDV vétérinaire enregistré",
+          `${params.vetDisplayName} le ${when}`,
+          { type: "vet_visit_scheduled", farmId: params.farmId }
+        );
+      }
+    }
+  }
+
+  private async createScheduledConsultation(params: {
+    actorUserId: string;
+    farmId: string;
+    vetUserId: string;
+    openedByUserId: string;
+    scheduledAt: Date;
+    reason: ScheduleVetVisitDto["reason"];
+    notes?: string | null;
+    consultationPrice?: number | null;
+    initiatedBy: "vet" | "producer";
+  }) {
+    await this.assertSlotAvailable(params.vetUserId, params.scheduledAt);
+
+    const reasonLabel = VISIT_REASON_LABEL[params.reason];
+    const subject = params.notes?.trim()
+      ? `${reasonLabel} — ${params.notes.trim().slice(0, 120)}`
+      : reasonLabel;
+
+    const summaryPayload = {
+      kind: "scheduled_visit",
+      reason: params.reason,
+      notes: params.notes?.trim() ?? null,
+      consultationPrice: params.consultationPrice ?? null,
+      scheduledAt: params.scheduledAt.toISOString(),
+      initiatedBy: params.initiatedBy
+    };
+
+    const row = await this.prisma.vetConsultation.create({
+      data: {
+        farmId: params.farmId,
+        subject,
+        summary: JSON.stringify(summaryPayload),
+        openedAt: params.scheduledAt,
+        openedByUserId: params.openedByUserId,
+        primaryVetUserId: params.vetUserId,
+        status: VetConsultationStatus.open
+      },
+      include: {
+        farm: { select: { id: true, name: true, address: true } },
+        openedBy: { select: { id: true, fullName: true, email: true } },
+        primaryVet: { select: { id: true, fullName: true, email: true } }
+      }
+    });
+
+    await this.audit.record({
+      actorUserId: params.actorUserId,
+      farmId: params.farmId,
+      action: AUDIT_ACTION.vetConsultationCreated,
+      resourceType: "VetConsultation",
+      resourceId: row.id,
+      metadata: {
+        scheduled: true,
+        scheduledAt: params.scheduledAt.toISOString(),
+        reason: params.reason,
+        initiatedBy: params.initiatedBy
+      }
+    });
+
+    const vetName =
+      row.primaryVet?.fullName?.trim() || "Vétérinaire";
+    await this.notifyVisitScheduled({
+      farmId: params.farmId,
+      farmName: row.farm.name,
+      scheduledAt: params.scheduledAt,
+      vetUserId: params.vetUserId,
+      vetDisplayName: vetName,
+      openedByUserId: params.openedByUserId,
+      openedByName: row.openedBy.fullName,
+      initiatedBy: params.initiatedBy
+    });
+
+    return {
+      id: row.id,
+      farmId: row.farmId,
+      farmName: row.farm.name,
+      scheduledAt: row.openedAt.toISOString(),
+      subject: row.subject,
+      status: row.status
+    };
+  }
+
+  async scheduleVisit(user: User, dto: ScheduleVetVisitDto) {
+    await this.assertVeterinarianProfile(user.id);
+    const vetProfile = await this.prisma.vetProfile.findUnique({
+      where: { userId: user.id }
+    });
+    if (!vetProfile) {
+      throw new NotFoundException("Profil vétérinaire non créé");
+    }
+    if (vetProfile.verificationStatus !== VetStatus.verified) {
+      throw new ForbiddenException(
+        "Profil vétérinaire non vérifié — planification impossible"
+      );
+    }
+
+    const membership = await this.prisma.farmMembership.findFirst({
+      where: {
+        farmId: dto.farmId,
+        userId: user.id,
+        role: MembershipRole.veterinarian
+      }
+    });
+    if (!membership) {
+      throw new ForbiddenException("Ferme non assignée à ce vétérinaire");
+    }
+    await this.farmAccess.requireFarmScopes(user.id, dto.farmId, [
+      FARM_SCOPE.vetWrite
+    ]);
+
+    const scheduled = new Date(dto.scheduledAt);
+    if (Number.isNaN(scheduled.getTime())) {
+      throw new BadRequestException("Date de visite invalide");
+    }
+    if (scheduled.getTime() < Date.now() - 60_000) {
+      throw new BadRequestException("La visite doit être planifiée dans le futur");
+    }
+
+    return this.createScheduledConsultation({
+      actorUserId: user.id,
+      farmId: dto.farmId,
+      vetUserId: user.id,
+      openedByUserId: user.id,
+      scheduledAt: scheduled,
+      reason: dto.reason,
+      notes: dto.notes,
+      consultationPrice: dto.consultationPrice,
+      initiatedBy: "vet"
+    });
+  }
+
+  async scheduleVisitFromProducer(
+    user: User,
+    farmId: string,
+    dto: ProducerScheduleVetVisitDto
+  ) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+
+    const vetProfile = await this.prisma.vetProfile.findUnique({
+      where: { id: dto.vetProfileId }
+    });
+    if (!vetProfile || vetProfile.verificationStatus !== VetStatus.verified) {
+      throw new NotFoundException("Vétérinaire introuvable ou non vérifié");
+    }
+    if (!vetProfile.availability) {
+      throw new BadRequestException(
+        "Ce vétérinaire n'est pas disponible actuellement"
+      );
+    }
+
+    const scheduled = new Date(dto.scheduledAt);
+    if (Number.isNaN(scheduled.getTime())) {
+      throw new BadRequestException("Date de visite invalide");
+    }
+    if (scheduled.getTime() < Date.now() - 60_000) {
+      throw new BadRequestException("La visite doit être planifiée dans le futur");
+    }
+
+    return this.createScheduledConsultation({
+      actorUserId: user.id,
+      farmId,
+      vetUserId: vetProfile.userId,
+      openedByUserId: user.id,
+      scheduledAt: scheduled,
+      reason: dto.reason,
+      notes: dto.notes,
+      consultationPrice: null,
+      initiatedBy: "producer"
+    });
+  }
+
+  private async filterFarmIdsByScope(
+    userId: string,
+    farmIds: string[],
+    scope: string
+  ): Promise<string[]> {
+    const allowed: string[] = [];
+    for (const farmId of farmIds) {
+      if (await this.farmAccess.hasFarmScope(userId, farmId, scope)) {
+        allowed.push(farmId);
+      }
+    }
+    return allowed;
+  }
+
+  async getDashboard(user: User): Promise<VetDashboardDto> {
+    await this.assertVeterinarianProfile(user.id);
+    const vetRow = await this.prisma.vetProfile.findUnique({
+      where: { userId: user.id }
+    });
+    if (!vetRow) {
+      throw new NotFoundException("Profil vétérinaire non créé");
+    }
+
+    const memberships = await this.prisma.farmMembership.findMany({
+      where: { userId: user.id, role: MembershipRole.veterinarian },
+      include: {
+        farm: {
+          select: {
+            id: true,
+            name: true,
+            address: true,
+            owner: { select: { fullName: true, email: true, phone: true } }
+          }
+        }
+      }
+    });
+    const allFarmIds = memberships.map((m) => m.farmId);
+    const healthFarmIds = await this.filterFarmIdsByScope(
+      user.id,
+      allFarmIds,
+      FARM_SCOPE.healthRead
+    );
+    const vetFarmIds = await this.filterFarmIdsByScope(
+      user.id,
+      allFarmIds,
+      FARM_SCOPE.vetRead
+    );
+    const tasksFarmIds = await this.filterFarmIdsByScope(
+      user.id,
+      allFarmIds,
+      FARM_SCOPE.tasksRead
+    );
+    const followedFarmIds = [
+      ...new Set([...healthFarmIds, ...vetFarmIds, ...tasksFarmIds])
+    ];
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const [
+      visitsThisMonth,
+      healthAlerts,
+      pendingTasks,
+      openConsultations,
+      recentConsultations,
+      recentHealth
+    ] = await Promise.all([
+      healthFarmIds.length === 0
+        ? 0
+        : this.prisma.farmHealthRecord.count({
+            where: {
+              farmId: { in: healthFarmIds },
+              kind: FarmHealthRecordKind.vet_visit,
+              occurredAt: { gte: monthStart }
+            }
+          }),
+      healthFarmIds.length === 0
+        ? 0
+        : this.prisma.smartAlert.count({
+            where: {
+              farmId: { in: healthFarmIds },
+              module: SmartAlertModule.health,
+              isRead: false
+            }
+          }),
+      tasksFarmIds.length === 0
+        ? 0
+        : this.prisma.farmTask.count({
+            where: {
+              farmId: { in: tasksFarmIds },
+              assignedUserId: user.id,
+              completedAt: null
+            }
+          }),
+      vetFarmIds.length === 0
+        ? []
+        : this.prisma.vetConsultation.findMany({
+            where: {
+              farmId: { in: vetFarmIds },
+              status: VetConsultationStatus.open,
+              OR: [
+                { primaryVetUserId: user.id },
+                { primaryVetUserId: null }
+              ]
+            },
+            orderBy: { openedAt: "asc" },
+            take: 12,
+            include: {
+              farm: { select: { id: true, name: true, address: true } },
+              openedBy: { select: { fullName: true, email: true, phone: true } }
+            }
+          }),
+      vetFarmIds.length === 0
+        ? []
+        : this.prisma.vetConsultation.findMany({
+            where: { farmId: { in: vetFarmIds } },
+            orderBy: { openedAt: "desc" },
+            take: 8,
+            include: {
+              farm: { select: { id: true, name: true } },
+              openedBy: { select: { fullName: true } }
+            }
+          }),
+      healthFarmIds.length === 0
+        ? []
+        : this.prisma.farmHealthRecord.findMany({
+            where: { farmId: { in: healthFarmIds } },
+            orderBy: { occurredAt: "desc" },
+            take: 8,
+            include: {
+              farm: { select: { id: true, name: true } },
+              vetVisit: true,
+              vaccination: true,
+              disease: true,
+              treatment: true
+            }
+          })
+    ]);
+
+    const visitsCompleted = await this.prisma.vetConsultation.count({
+      where: {
+        primaryVetUserId: user.id,
+        status: VetConsultationStatus.resolved
+      }
+    });
+
+    const upcomingVisits: VetDashboardUpcomingVisitDto[] = openConsultations.map(
+      (c) => ({
+        id: c.id,
+        farmId: c.farmId,
+        farmName: c.farm.name,
+        producerName: c.openedBy.fullName ?? c.openedBy.email,
+        producerPhone: c.openedBy.phone,
+        scheduledAt: c.openedAt.toISOString(),
+        subject: c.subject,
+        location: c.farm.address,
+        status: c.status
+      })
+    );
+
+    const activityFromConsultations: VetDashboardActivityDto[] =
+      recentConsultations.map((c) => ({
+        id: `consult-${c.id}`,
+        kind: "consultation" as const,
+        title: c.subject,
+        subtitle: c.openedBy.fullName ?? "—",
+        occurredAt: c.openedAt.toISOString(),
+        farmId: c.farmId,
+        farmName: c.farm.name
+      }));
+
+    const activityFromHealth: VetDashboardActivityDto[] = recentHealth.map(
+      (r) => {
+        let kind: VetDashboardActivityDto["kind"] = "vet_visit";
+        let title = "Événement santé";
+        let subtitle = r.farm.name;
+        if (r.kind === FarmHealthRecordKind.vaccination) {
+          kind = "vaccination";
+          title = "Vaccination";
+          subtitle = r.vaccination?.vaccineName ?? r.farm.name;
+        } else if (r.kind === FarmHealthRecordKind.disease) {
+          kind = "disease";
+          title = r.disease?.diagnosis ?? "Cas maladie";
+          subtitle = r.farm.name;
+        } else if (r.kind === FarmHealthRecordKind.treatment) {
+          kind = "treatment";
+          title = "Traitement";
+          subtitle = r.treatment?.drugName ?? r.farm.name;
+        } else if (r.kind === FarmHealthRecordKind.vet_visit) {
+          kind = "vet_visit";
+          title = r.vetVisit?.reason ?? "Visite vétérinaire";
+          subtitle = r.vetVisit?.vetName ?? r.farm.name;
+        }
+        return {
+          id: `health-${r.id}`,
+          kind,
+          title,
+          subtitle,
+          occurredAt: r.occurredAt.toISOString(),
+          farmId: r.farmId,
+          farmName: r.farm.name
+        };
+      }
+    );
+
+    const recentActivity = [...activityFromConsultations, ...activityFromHealth]
+      .sort(
+        (a, b) =>
+          new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
+      )
+      .slice(0, 5);
+
+    const assignedFarms = memberships.map((m) => ({
+      id: m.farm.id,
+      name: m.farm.name,
+      address: m.farm.address,
+      producerName: m.farm.owner.fullName ?? m.farm.owner.email,
+      producerPhone: m.farm.owner.phone
+    }));
+
+    return {
+      kpis: {
+        farmsFollowed: followedFarmIds.length,
+        visitsThisMonth,
+        healthAlerts,
+        pendingTasks
+      },
+      upcomingVisits,
+      assignedFarms,
+      recentActivity,
+      stats: {
+        farmsFollowed: followedFarmIds.length,
+        visitsCompleted,
+        averageRating: vetRow.ratingAvg ? Number(vetRow.ratingAvg) : null
+      }
+    };
   }
 }

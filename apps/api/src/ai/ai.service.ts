@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import type { User } from "@prisma/client";
 import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { requiredScopesForAiModule } from "./ai-module-scopes";
 import { AiDataAggregatorService } from "./ai-data-aggregator.service";
 import { AiGeminiService } from "./ai-gemini.service";
 import { AiPromptBuilderService } from "./ai-prompt-builder.service";
@@ -27,7 +28,11 @@ export class AiService {
     dto: CreateAiRecommendationsDto
   ): Promise<AiRecommendationsResponse> {
     const { farmId, module } = dto;
-    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    await this.farmAccess.requireFarmScopes(
+      user.id,
+      farmId,
+      requiredScopesForAiModule(module)
+    );
 
     const farm = await this.prisma.farm.findUnique({
       where: { id: farmId },

@@ -8,14 +8,18 @@ import {
 import type { MemberActivityModule, User } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
+import { FARM_SCOPE } from "../common/farm-scopes.constants";
+import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.decorator";
+import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
 import { MemberActivityLogsService } from "./member-activity-logs.service";
 
 @Controller("farms/:farmId/activity-logs")
-@UseGuards(SupabaseJwtGuard)
+@UseGuards(SupabaseJwtGuard, FarmScopesGuard)
 export class MemberActivityLogsController {
   constructor(private readonly svc: MemberActivityLogsService) {}
 
   @Get()
+  @RequireFarmScopes(FARM_SCOPE.auditRead)
   list(
     @CurrentUser() user: User,
     @Param("farmId") farmId: string,

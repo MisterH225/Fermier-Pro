@@ -592,13 +592,12 @@ export class AiDataAggregatorService {
   }
 
   private async aggregateDashboard(farmId: string) {
-    const [finance, cheptel, sante, stock, gestation] = await Promise.all([
-      this.aggregateFinance(farmId).catch(() => null),
+    const [cheptel, sante, stock, gestation] = await Promise.all([
       this.aggregateCheptel(farmId).catch(() => null),
       this.aggregateSante(farmId).catch(() => null),
       this.aggregateStock(farmId).catch(() => null),
       this.aggregateGestation(farmId).catch(() => null)
     ]);
-    return { finance, cheptel, sante, stock, gestation };
+    return { finance: null, cheptel, sante, stock, gestation };
   }
 }

@@ -220,7 +220,6 @@ export class ReportsService {
     end: Date
   ) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
-    const prev = previousPeriod(periodType, start, end);
 
     const farm = await this.prisma.farm.findUniqueOrThrow({
       where: { id: farmId }
@@ -232,52 +231,118 @@ export class ReportsService {
       )
     );
 
-    const financeCurrent = await this.finance.financeReportRange(
-      user,
+    const prev = previousPeriod(periodType, start, end);
+    const canFinance = await this.farmAccess.hasFarmScope(
+      user.id,
       farmId,
-      start,
-      end
-    );
-    const financePrev = await this.finance.financeReportRange(
-      user,
-      farmId,
-      prev.start,
-      prev.end
+      FARM_SCOPE.financeRead
     );
 
-    const curRev = Number(financeCurrent.totals.revenues);
-    const curExp = Number(financeCurrent.totals.expenses);
-    const prevRev = Number(financePrev.totals.revenues);
-    const prevExp = Number(financePrev.totals.expenses);
-    const deltaRevPct =
-      prevRev > 0 ? Math.round(((curRev - prevRev) / prevRev) * 100) : null;
-    const deltaExpPct =
-      prevExp > 0 ? Math.round(((curExp - prevExp) / prevExp) * 100) : null;
+    let financeCurrent: Awaited<
+      ReturnType<FinanceService["financeReportRange"]>
+    >;
+    let financePrev: typeof financeCurrent;
+    let curRev = 0;
+    let curExp = 0;
+    let prevRev = 0;
+    let prevExp = 0;
+    let deltaRevPct: number | null = null;
+    let deltaExpPct: number | null = null;
+    let monthlyTrend: {
+      month: string;
+      revenues: string;
+      expenses: string;
+    }[] = [];
+    let topExp: { label: string; expenses: number }[] = [];
+    let topRev: { label: string; revenues: number }[] = [];
+    let expCount = 0;
+    let revCount = 0;
+    let mwf = 0;
 
-    const monthlyTrend = await this.financeMonthlyTrend(farmId, start, end);
+    if (canFinance) {
+      financeCurrent = await this.finance.financeReportRange(
+        user,
+        farmId,
+        start,
+        end
+      );
+      financePrev = await this.finance.financeReportRange(
+        user,
+        farmId,
+        prev.start,
+        prev.end
+      );
 
-    const topExp = [...financeCurrent.byCategory]
-      .map((r) => ({
-        label: r.label,
-        expenses: Number(r.expenses)
-      }))
-      .sort((a, b) => b.expenses - a.expenses)
-      .slice(0, 3);
-    const topRev = [...financeCurrent.byCategory]
-      .map((r) => ({
-        label: r.label,
-        revenues: Number(r.revenues)
-      }))
-      .sort((a, b) => b.revenues - a.revenues)
-      .slice(0, 3);
+      curRev = Number(financeCurrent.totals.revenues);
+      curExp = Number(financeCurrent.totals.expenses);
+      prevRev = Number(financePrev.totals.revenues);
+      prevExp = Number(financePrev.totals.expenses);
+      deltaRevPct =
+        prevRev > 0 ? Math.round(((curRev - prevRev) / prevRev) * 100) : null;
+      deltaExpPct =
+        prevExp > 0 ? Math.round(((curExp - prevExp) / prevExp) * 100) : null;
 
-    const [expCount, revCount, healthCount, feedMovCount] = await Promise.all([
-      this.prisma.farmExpense.count({
-        where: { farmId, occurredAt: { gte: start, lt: end } }
-      }),
-      this.prisma.farmRevenue.count({
-        where: { farmId, occurredAt: { gte: start, lt: end } }
-      }),
+      monthlyTrend = await this.financeMonthlyTrend(farmId, start, end);
+
+      topExp = [...financeCurrent.byCategory]
+        .map((r) => ({
+          label: r.label,
+          expenses: Number(r.expenses)
+        }))
+        .sort((a, b) => b.expenses - a.expenses)
+        .slice(0, 3);
+      topRev = [...financeCurrent.byCategory]
+        .map((r) => ({
+          label: r.label,
+          revenues: Number(r.revenues)
+        }))
+        .sort((a, b) => b.revenues - a.revenues)
+        .slice(0, 3);
+
+      [expCount, revCount] = await Promise.all([
+        this.prisma.farmExpense.count({
+          where: { farmId, occurredAt: { gte: start, lt: end } }
+        }),
+        this.prisma.farmRevenue.count({
+          where: { farmId, occurredAt: { gte: start, lt: end } }
+        })
+      ]);
+
+      const monthsWithFinance = await this.prisma.$queryRaw<{ c: bigint }[]>`
+        SELECT COUNT(DISTINCT m)::bigint AS c
+        FROM (
+          SELECT date_trunc('month', "occurredAt") AS m
+          FROM "FarmExpense"
+          WHERE "farmId" = ${farmId}
+          UNION
+          SELECT date_trunc('month', "occurredAt")
+          FROM "FarmRevenue"
+          WHERE "farmId" = ${farmId}
+        ) t
+      `;
+      mwf = Number(monthsWithFinance[0]?.c ?? 0n);
+    } else {
+      const settings = await this.prisma.farmFinanceSettings.findUnique({
+        where: { farmId }
+      });
+      financeCurrent = {
+        farmId,
+        range: { start: start.toISOString(), end: end.toISOString() },
+        currency: settings?.currencyCode ?? "XOF",
+        currencySymbol: settings?.currencySymbol ?? "FCFA",
+        totals: { revenues: "0", expenses: "0", net: "0" },
+        byCategory: []
+      };
+      financePrev = {
+        ...financeCurrent,
+        range: {
+          start: prev.start.toISOString(),
+          end: prev.end.toISOString()
+        }
+      };
+    }
+
+    const [healthCount, feedMovCount] = await Promise.all([
       this.prisma.farmHealthRecord.count({
         where: { farmId, occurredAt: { gte: start, lt: end } }
       }),
@@ -285,20 +350,6 @@ export class ReportsService {
         where: { farmId, occurredAt: { gte: start, lt: end } }
       })
     ]);
-
-    const monthsWithFinance = await this.prisma.$queryRaw<{ c: bigint }[]>`
-      SELECT COUNT(DISTINCT m)::bigint AS c
-      FROM (
-        SELECT date_trunc('month', "occurredAt") AS m
-        FROM "FarmExpense"
-        WHERE "farmId" = ${farmId}
-        UNION
-        SELECT date_trunc('month', "occurredAt")
-        FROM "FarmRevenue"
-        WHERE "farmId" = ${farmId}
-      ) t
-    `;
-    const mwf = Number(monthsWithFinance[0]?.c ?? 0n);
 
     const activeHead = await this.prisma.animal.count({
       where: { farmId, status: "active" }
@@ -379,23 +430,25 @@ export class ReportsService {
     const mortalityRate =
       activeHead + dead > 0 ? dead / Math.max(1, activeHead + dead) : 0;
 
-    const healthSpend = await this.prisma.farmExpense.aggregate({
-      where: {
-        farmId,
-        occurredAt: { gte: start, lt: end },
-        OR: [
-          {
-            financeCategory: {
-              farmId,
-              type: FinanceCategoryType.expense,
-              key: "health"
-            }
+    const healthSpend = canFinance
+      ? await this.prisma.farmExpense.aggregate({
+          where: {
+            farmId,
+            occurredAt: { gte: start, lt: end },
+            OR: [
+              {
+                financeCategory: {
+                  farmId,
+                  type: FinanceCategoryType.expense,
+                  key: "health"
+                }
+              },
+              { category: { contains: "sant", mode: "insensitive" } }
+            ]
           },
-          { category: { contains: "sant", mode: "insensitive" } }
-        ]
-      },
-      _sum: { amount: true }
-    });
+          _sum: { amount: true }
+        })
+      : { _sum: { amount: null as null } };
 
     const feedChecks = await this.prisma.feedStockMovement.count({
       where: {
@@ -412,22 +465,28 @@ export class ReportsService {
       },
       _sum: { quantityKg: true }
     });
-    const feedCost = await this.prisma.farmExpense.aggregate({
-      where: {
-        farmId,
-        occurredAt: { gte: start, lt: end },
-        financeCategory: {
-          farmId,
-          type: FinanceCategoryType.expense,
-          key: "feed"
-        }
-      },
-      _sum: { amount: true }
-    });
-    const feedCostNum = Number(feedCost._sum.amount ?? 0);
-    const headDays = Math.max(1, activeHead * ((end.getTime() - start.getTime()) / 86400000));
-    const costPerHeadDay = headDays > 0 ? feedCostNum / headDays : 0;
-    const ratioFeedRev = curRev > 0 ? (feedCostNum / curRev) * 100 : null;
+    const feedCost = canFinance
+      ? await this.prisma.farmExpense.aggregate({
+          where: {
+            farmId,
+            occurredAt: { gte: start, lt: end },
+            financeCategory: {
+              farmId,
+              type: FinanceCategoryType.expense,
+              key: "feed"
+            }
+          },
+          _sum: { amount: true }
+        })
+      : { _sum: { amount: null as null } };
+    const feedCostNum = canFinance ? Number(feedCost._sum.amount ?? 0) : 0;
+    const headDays = Math.max(
+      1,
+      activeHead * ((end.getTime() - start.getTime()) / 86400000)
+    );
+    const costPerHeadDay = canFinance && headDays > 0 ? feedCostNum / headDays : 0;
+    const ratioFeedRev =
+      canFinance && curRev > 0 ? (feedCostNum / curRev) * 100 : null;
 
     const farrowings = await this.prisma.animal.count({
       where: {
@@ -576,7 +635,9 @@ export class ReportsService {
           )
         : null;
 
-    const projection = await this.finance.financeProjection(user, farmId);
+    const projection = canFinance
+      ? await this.finance.financeProjection(user, farmId)
+      : null;
     const alerts = await this.smartAlerts.evaluateDrafts(farmId);
     const topAlerts = alerts
       .sort(
@@ -662,8 +723,8 @@ export class ReportsService {
         avgDaysBetweenFarrowing: null
       },
       projection: {
-        nextMonths: projection.nextMonths,
-        deficitAlert: projection.deficitAlert,
+        nextMonths: projection?.nextMonths ?? [],
+        deficitAlert: projection?.deficitAlert ?? null,
         marginTrend
       },
       smartAlertsTop: topAlerts

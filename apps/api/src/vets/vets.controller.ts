@@ -11,6 +11,8 @@ import type { User } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { CreateVetRatingDto } from "./dto/create-vet-rating.dto";
+import { ScheduleVetVisitDto } from "./dto/schedule-vet-visit.dto";
+import { ProducerScheduleVetVisitDto } from "./dto/producer-schedule-vet-visit.dto";
 import { UpsertVetProfileDto } from "./dto/upsert-vet-profile.dto";
 import { VetsService } from "./vets.service";
 
@@ -22,6 +24,36 @@ export class VetsController {
   @Get("vet-profiles/me")
   me(@CurrentUser() user: User) {
     return this.vets.getMyProfile(user);
+  }
+
+  @Get("vet-profiles/me/dashboard")
+  dashboard(@CurrentUser() user: User) {
+    return this.vets.getDashboard(user);
+  }
+
+  @Post("vet-profiles/me/schedule-visit")
+  scheduleVisit(@CurrentUser() user: User, @Body() dto: ScheduleVetVisitDto) {
+    return this.vets.scheduleVisit(user, dto);
+  }
+
+  @Get("vets/:vetId/availability")
+  availability(
+    @Param("vetId") vetId: string,
+    @Query("date") date: string
+  ) {
+    const day =
+      date?.trim() ||
+      new Date().toISOString().slice(0, 10);
+    return this.vets.getVetAvailability(vetId, day);
+  }
+
+  @Post("farms/:farmId/schedule-vet-visit")
+  scheduleFromProducer(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Body() dto: ProducerScheduleVetVisitDto
+  ) {
+    return this.vets.scheduleVisitFromProducer(user, farmId, dto);
   }
 
   @Post("vet-profiles")

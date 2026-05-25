@@ -22,6 +22,8 @@ export class FarmMembersController {
   constructor(private readonly members: FarmMembersService) {}
 
   @Get()
+  @UseGuards(FarmScopesGuard)
+  @RequireFarmScopes(FARM_SCOPE.chat)
   list(@CurrentUser() user: User, @Param("farmId") farmId: string) {
     return this.members.list(user, farmId);
   }
