@@ -3546,6 +3546,201 @@ export function patchFarmBudgetSuggestion(
   );
 }
 
+export type FeedProductionPhaseDto =
+  | "starter"
+  | "growth"
+  | "fattening"
+  | "breeder"
+  | "unknown";
+
+export type FarmProfitabilitySettingsDto = {
+  farmId: string;
+  marketPricePerKg: number | null;
+  icTargetStarter: number;
+  icTargetGrowth: number;
+  icTargetFattening: number;
+  gmqRefStarter: number;
+  gmqRefGrowth: number;
+  gmqRefFattening: number;
+};
+
+export type IcPhaseResultDto = {
+  phase: string;
+  label: string;
+  icCalculated: number | null;
+  icTarget: number;
+  status: "ok" | "warning" | "critical" | "unavailable";
+  feedConsumedKg: number;
+  kgGained: number;
+  kgGainedLabel: string;
+  dataSource: "real" | "estimated";
+};
+
+export type ProfitabilityPeriodDto = {
+  farmId: string;
+  periodMonth: number;
+  periodYear: number;
+  currency: string;
+  currencySymbol: string;
+  settings: FarmProfitabilitySettingsDto;
+  totalCosts: number;
+  feedCostByPhase: {
+    starter: number;
+    growth: number;
+    fattening: number;
+    breeder: number;
+  };
+  healthCost: number;
+  fixedCosts: number;
+  breederCostImputed: number;
+  otherCosts: number;
+  kgSoldReal: number;
+  kgSoldLabel: string;
+  kgEstimatedInStock: number;
+  kgEstimatedLabel: string;
+  avgSalePricePerKg: number | null;
+  costPerKgSold: number | null;
+  costPerKgProduced: number | null;
+  marginPerKg: number | null;
+  breakEvenPricePerKg: number | null;
+  isProfitable: boolean | null;
+  herdValueEstimated: number | null;
+  icByPhase: {
+    starter: IcPhaseResultDto;
+    growth: IcPhaseResultDto;
+    fattening: IcPhaseResultDto;
+    global: {
+      icCalculated: number | null;
+      feedConsumedKg: number;
+      kgGained: number;
+      note: string;
+    };
+    allFeedTypesQualified: boolean;
+  };
+  costBreakdown: {
+    key: string;
+    label: string;
+    amount: number;
+    pctOfTotal: number;
+    costPerKg: number | null;
+    color: string;
+  }[];
+  calculatedAt: string;
+  snapshotId: string | null;
+};
+
+export type ProfitabilityHistoryPointDto = {
+  periodMonth: number;
+  periodYear: number;
+  monthKey: string;
+  costPerKgSold: number | null;
+  salePricePerKg: number | null;
+  breakEvenPricePerKg: number | null;
+  marginPerKg: number | null;
+  totalCosts: number;
+};
+
+export function fetchProfitabilitySettings(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<FarmProfitabilitySettingsDto> {
+  return apiGetJson<FarmProfitabilitySettingsDto>(
+    `/farms/${farmId}/profitability/settings`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function patchProfitabilitySettings(
+  accessToken: string,
+  farmId: string,
+  payload: Partial<FarmProfitabilitySettingsDto>,
+  activeProfileId?: string | null
+): Promise<FarmProfitabilitySettingsDto> {
+  return apiPatchJson<FarmProfitabilitySettingsDto>(
+    `/farms/${farmId}/profitability/settings`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchProfitabilityPeriod(
+  accessToken: string,
+  farmId: string,
+  year: number,
+  month: number,
+  activeProfileId?: string | null
+): Promise<ProfitabilityPeriodDto> {
+  const qs = new URLSearchParams();
+  qs.set("year", String(year));
+  qs.set("month", String(month));
+  return apiGetJson<ProfitabilityPeriodDto>(
+    `/farms/${farmId}/profitability?${qs.toString()}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchProfitabilityHistory(
+  accessToken: string,
+  farmId: string,
+  months = 6,
+  activeProfileId?: string | null
+): Promise<ProfitabilityHistoryPointDto[]> {
+  return apiGetJson<ProfitabilityHistoryPointDto[]>(
+    `/farms/${farmId}/profitability/history?months=${months}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function simulateProfitability(
+  accessToken: string,
+  farmId: string,
+  param: string,
+  value: number,
+  year: number,
+  month: number,
+  activeProfileId?: string | null
+): Promise<{
+  param: string;
+  value: number;
+  costPerKgSold: number | null;
+  marginPerKg: number | null;
+  isProfitable: boolean | null;
+  herdValueEstimated: number | null;
+  feedSavingsEstimate: number | null;
+  message: string;
+}> {
+  const qs = new URLSearchParams();
+  qs.set("param", param);
+  qs.set("value", String(value));
+  qs.set("year", String(year));
+  qs.set("month", String(month));
+  return apiGetJson(
+    `/farms/${farmId}/profitability/simulate?${qs.toString()}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function patchFarmFeedType(
+  accessToken: string,
+  farmId: string,
+  feedTypeId: string,
+  payload: { productionPhase?: FeedProductionPhaseDto },
+  activeProfileId?: string | null
+): Promise<FeedTypeDto> {
+  return apiPatchJson<FeedTypeDto>(
+    `/farms/${farmId}/feed/types/${feedTypeId}`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
 /** POST pièce jointe (URL après dépôt stockage, ex. Supabase). */
 export type AddVetConsultationAttachmentPayload = {
   url: string;

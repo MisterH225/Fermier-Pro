@@ -19,6 +19,7 @@ import { DashboardModule } from "./dashboard/dashboard.module";
 import { FarmMembersModule } from "./farm-members/farm-members.module";
 import { FarmsModule } from "./farms/farms.module";
 import { FinanceModule } from "./finance/finance.module";
+import { ProfitabilityModule } from "./profitability/profitability.module";
 import { HealthEventsModule } from "./health-events/health-events.module";
 import { HousingModule } from "./housing/housing.module";
 import { InvitationsModule } from "./invitations/invitations.module";
@@ -94,6 +95,7 @@ import { AdminPlatformModule } from "./admin-platform/admin-platform.module";
     PushNotificationsModule,
     TasksModule,
     FinanceModule,
+    ProfitabilityModule,
     HealthEventsModule,
     HousingModule,
     MarketplaceModule,

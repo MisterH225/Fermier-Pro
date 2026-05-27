@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { BaseModal } from "../modals/BaseModal";
 import { ModalSection } from "../modals/ModalSection";
-import type { FeedTypeDto } from "../../lib/api";
+import type { FeedProductionPhaseDto, FeedTypeDto } from "../../lib/api";
 import { postFarmFeedMovement, type PostFarmFeedMovementPayload } from "../../lib/api";
 import {
   offlineQueuedMessage,
@@ -56,6 +56,7 @@ export function StockModal({
   const [newName, setNewName] = useState("");
   const [newUnit, setNewUnit] = useState<"kg" | "tonne" | "sac">("sac");
   const [newWeightBag, setNewWeightBag] = useState("");
+  const [newPhase, setNewPhase] = useState<FeedProductionPhaseDto>("unknown");
   const [qty, setQty] = useState("");
   const [qtyUnit, setQtyUnit] = useState<"kg" | "tonne" | "sac">("sac");
   const [weightOverride, setWeightOverride] = useState("");

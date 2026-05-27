@@ -268,7 +268,9 @@ model Farm {
   farmBudgetSuggestions FarmBudgetSuggestion[]
   gmqSettings          FarmGmqSettings[]
   gestations           Gestation[]
-  gestationSettings    GestationSettings?
+  gestationSettings        GestationSettings?
+  profitabilitySettings    FarmProfitabilitySettings?
+  profitabilitySnapshots   ProfitabilitySnapshot[]
 }
 
 /// Objectifs GMQ / poids cible par catégorie (ferme).
@@ -302,6 +304,47 @@ model FarmFinanceSettings {
   lowBalanceThreshold Decimal? @db.Decimal(14, 2)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+}
+
+model FarmProfitabilitySettings {
+  id                String   @id @default(cuid())
+  farmId            String   @unique
+  farm              Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  marketPricePerKg  Decimal? @db.Decimal(14, 4)
+  icTargetStarter   Decimal  @default(1.8) @db.Decimal(6, 3)
+  icTargetGrowth    Decimal  @default(2.8) @db.Decimal(6, 3)
+  icTargetFattening Decimal  @default(3.2) @db.Decimal(6, 3)
+  gmqRefStarter     Int      @default(300)
+  gmqRefGrowth      Int      @default(450)
+  gmqRefFattening   Int      @default(650)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model ProfitabilitySnapshot {
+  id                 String   @id @default(cuid())
+  farmId             String
+  farm               Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  periodMonth        Int
+  periodYear         Int
+  totalCosts         Decimal  @db.Decimal(16, 2)
+  feedCostByPhase    Json
+  healthCost         Decimal  @db.Decimal(16, 2)
+  fixedCosts         Decimal  @db.Decimal(16, 2)
+  breederCostImputed Decimal  @db.Decimal(16, 2)
+  otherCosts         Decimal  @default(0) @db.Decimal(16, 2)
+  kgSoldReal         Decimal  @db.Decimal(14, 4)
+  kgEstimatedInStock Decimal  @db.Decimal(14, 4)
+  avgSalePricePerKg  Decimal? @db.Decimal(14, 4)
+  costPerKgSold      Decimal? @db.Decimal(14, 4)
+  costPerKgProduced  Decimal? @db.Decimal(14, 4)
+  marginPerKg        Decimal? @db.Decimal(14, 4)
+  icByPhase          Json
+  herdValueEstimated Decimal? @db.Decimal(16, 2)
+  calculatedAt       DateTime @default(now())
+
+  @@unique([farmId, periodYear, periodMonth])
+  @@index([farmId, periodYear, periodMonth])
 }
 
 /// Catégorie de dépense ou de revenu (référentiel par ferme).
@@ -1161,6 +1204,14 @@ enum FeedTypeUnit {
   sac
 }
 
+enum FeedProductionPhase {
+  starter
+  growth
+  fattening
+  breeder
+  unknown
+}
+
 enum FeedMovementKind {
   in
   stock_check
@@ -1182,9 +1233,10 @@ model FeedType {
   bagCountCurrent       Decimal?      @db.Decimal(14, 4)
   lastCheckDate         DateTime?
   /// Stock courant agrégé (kg).
-  currentStockKg        Decimal       @default(0) @db.Decimal(14, 4)
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  currentStockKg        Decimal             @default(0) @db.Decimal(14, 4)
+  productionPhase       FeedProductionPhase @default(unknown)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
   movements             FeedStockMovement[]
 
   @@index([farmId])

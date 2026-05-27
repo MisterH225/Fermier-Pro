@@ -18,6 +18,7 @@ import {
 import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
 import { TabContent, TabSelector } from "../components/tabs";
 import { BudgetScreen } from "../components/finance/budget";
+import { ProfitabilityTab } from "./finance/tabs/ProfitabilityTab";
 import {
   SmartChart,
   FinanceKpiCard,
@@ -1222,6 +1223,29 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                   farmId={farmId}
                   accessToken={accessToken}
                   activeProfileId={activeProfileId}
+                />
+              ) : null
+            )
+          },
+          {
+            key: "profitability",
+            label: t("financeScreen.tabProfitability"),
+            content: tabScroll(
+              accessToken ? (
+                <ProfitabilityTab
+                  farmId={farmId}
+                  accessToken={accessToken}
+                  activeProfileId={activeProfileId}
+                  year={
+                    reportPeriod === "month"
+                      ? Number(reportMonth.split("-")[0])
+                      : Number(reportYear)
+                  }
+                  month={
+                    reportPeriod === "month"
+                      ? Number(reportMonth.split("-")[1])
+                      : new Date().getUTCMonth() + 1
+                  }
                 />
               ) : null
             )

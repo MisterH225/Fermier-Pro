@@ -17,7 +17,9 @@ import { useSession } from "../context/SessionContext";
 import {
   fetchFarm,
   fetchFinanceOverview,
+  fetchProfitabilitySettings,
   patchFarmFinanceSettings,
+  patchProfitabilitySettings,
   updateFarmCheptelConfig,
   type FinanceOverviewDto
 } from "../lib/api";
@@ -32,7 +34,7 @@ import {
 type Props = NativeStackScreenProps<RootStackParamList, "ProducerFarmSettings">;
 
 export function ProducerFarmSettingsScreen({ route, navigation }: Props) {
-  const { farmId, farmName } = route.params;
+  const { farmId } = route.params;
   const { t } = useTranslation();
   useScreenTitle(navigation, t("producer.farmSettingsTitle"));
   const { accessToken, activeProfileId, clientFeatures } = useSession();
@@ -41,10 +43,19 @@ export function ProducerFarmSettingsScreen({ route, navigation }: Props) {
   const [editCurrencyCode, setEditCurrencyCode] = useState("");
   const [editCurrencySymbol, setEditCurrencySymbol] = useState("");
   const [editLowBalanceThreshold, setEditLowBalanceThreshold] = useState("");
+  const [marketPricePerKg, setMarketPricePerKg] = useState("");
+  const [icStarter, setIcStarter] = useState("1.8");
+  const [icGrowth, setIcGrowth] = useState("2.8");
+  const [icFattening, setIcFattening] = useState("3.2");
+  const [gmqStarter, setGmqStarter] = useState("300");
+  const [gmqGrowth, setGmqGrowth] = useState("450");
+  const [gmqFattening, setGmqFattening] = useState("650");
   const settingsPrimed = useRef(false);
+  const profitabilityPrimed = useRef(false);
 
   useEffect(() => {
     settingsPrimed.current = false;
+    profitabilityPrimed.current = false;
   }, [farmId]);
 
   const [modeDraft, setModeDraft] = useState<"individual" | "batch" | "hybrid">(
@@ -63,6 +74,13 @@ export function ProducerFarmSettingsScreen({ route, navigation }: Props) {
   const overviewQ = useQuery({
     queryKey: ["financeOverview", farmId, activeProfileId],
     queryFn: () => fetchFinanceOverview(accessToken!, farmId, activeProfileId),
+    enabled: Boolean(clientFeatures.finance && accessToken && farmId)
+  });
+
+  const profitabilitySettingsQ = useQuery({
+    queryKey: ["profitabilitySettings", farmId, activeProfileId],
+    queryFn: () =>
+      fetchProfitabilitySettings(accessToken!, farmId, activeProfileId),
     enabled: Boolean(clientFeatures.finance && accessToken && farmId)
   });
 
@@ -101,6 +119,23 @@ export function ProducerFarmSettingsScreen({ route, navigation }: Props) {
         : ""
     );
   }, [overview]);
+
+  useEffect(() => {
+    const p = profitabilitySettingsQ.data;
+    if (!p || profitabilityPrimed.current) {
+      return;
+    }
+    profitabilityPrimed.current = true;
+    setMarketPricePerKg(
+      p.marketPricePerKg != null ? String(p.marketPricePerKg) : ""
+    );
+    setIcStarter(String(p.icTargetStarter));
+    setIcGrowth(String(p.icTargetGrowth));
+    setIcFattening(String(p.icTargetFattening));
+    setGmqStarter(String(p.gmqRefStarter));
+    setGmqGrowth(String(p.gmqRefGrowth));
+    setGmqFattening(String(p.gmqRefFattening));
+  }, [profitabilitySettingsQ.data]);
 
   const saveCheptelConfigMut = useMutation({
     mutationFn: () => {
@@ -153,6 +188,41 @@ export function ProducerFarmSettingsScreen({ route, navigation }: Props) {
       Alert.alert(t("financeScreen.savedTitle"), t("financeScreen.savedSettings"));
     },
     onError: (e: Error) => Alert.alert(t("financeScreen.errorTitle"), e.message)
+  });
+
+  const profitabilityPatch = useMutation({
+    mutationFn: () => {
+      const mp = marketPricePerKg.trim();
+      if (!mp) {
+        throw new Error("market_price_required");
+      }
+      return patchProfitabilitySettings(
+        accessToken!,
+        farmId,
+        {
+          marketPricePerKg: Number.parseFloat(mp.replace(",", ".")),
+          icTargetStarter: Number.parseFloat(icStarter.replace(",", ".")),
+          icTargetGrowth: Number.parseFloat(icGrowth.replace(",", ".")),
+          icTargetFattening: Number.parseFloat(icFattening.replace(",", ".")),
+          gmqRefStarter: Number.parseInt(gmqStarter, 10),
+          gmqRefGrowth: Number.parseInt(gmqGrowth, 10),
+          gmqRefFattening: Number.parseInt(gmqFattening, 10)
+        },
+        activeProfileId
+      );
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["profitabilitySettings", farmId] });
+      void qc.invalidateQueries({ queryKey: ["profitability", farmId] });
+      Alert.alert(t("financeScreen.savedTitle"), t("profitability.savedSettings"));
+    },
+    onError: (e: Error) =>
+      Alert.alert(
+        t("financeScreen.errorTitle"),
+        e.message === "market_price_required"
+          ? t("profitability.marketPricePerKg")
+          : e.message
+      )
   });
 
   const farmErr = farmQuery.error instanceof Error ? farmQuery.error.message : null;
@@ -277,6 +347,69 @@ export function ProducerFarmSettingsScreen({ route, navigation }: Props) {
                 {t("financeScreen.saveSettings")}
               </Text>
             </TouchableOpacity>
+
+            <Text style={[styles.sectionTitle, styles.sectionSpacer]}>
+              {t("profitability.settingsTitle")}
+            </Text>
+            <Text style={styles.fieldLab}>{t("profitability.marketPricePerKg")}</Text>
+            <Text style={styles.fieldHint}>{t("profitability.marketPriceHelp")}</Text>
+            <TextInput
+              style={styles.input}
+              value={marketPricePerKg}
+              onChangeText={setMarketPricePerKg}
+              keyboardType="decimal-pad"
+            />
+            <Text style={styles.fieldLab}>{t("profitability.icTargetStarter")}</Text>
+            <TextInput
+              style={styles.input}
+              value={icStarter}
+              onChangeText={setIcStarter}
+              keyboardType="decimal-pad"
+            />
+            <Text style={styles.fieldLab}>{t("profitability.icTargetGrowth")}</Text>
+            <TextInput
+              style={styles.input}
+              value={icGrowth}
+              onChangeText={setIcGrowth}
+              keyboardType="decimal-pad"
+            />
+            <Text style={styles.fieldLab}>{t("profitability.icTargetFattening")}</Text>
+            <TextInput
+              style={styles.input}
+              value={icFattening}
+              onChangeText={setIcFattening}
+              keyboardType="decimal-pad"
+            />
+            <Text style={styles.fieldLab}>{t("profitability.gmqRefStarter")}</Text>
+            <TextInput
+              style={styles.input}
+              value={gmqStarter}
+              onChangeText={setGmqStarter}
+              keyboardType="number-pad"
+            />
+            <Text style={styles.fieldLab}>{t("profitability.gmqRefGrowth")}</Text>
+            <TextInput
+              style={styles.input}
+              value={gmqGrowth}
+              onChangeText={setGmqGrowth}
+              keyboardType="number-pad"
+            />
+            <Text style={styles.fieldLab}>{t("profitability.gmqRefFattening")}</Text>
+            <TextInput
+              style={styles.input}
+              value={gmqFattening}
+              onChangeText={setGmqFattening}
+              keyboardType="number-pad"
+            />
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={() => profitabilityPatch.mutate()}
+              disabled={profitabilityPatch.isPending}
+            >
+              <Text style={styles.primaryBtnTx}>
+                {t("profitability.saveSettings")}
+              </Text>
+            </TouchableOpacity>
           </>
         ) : null}
       </ScrollView>
@@ -290,11 +423,6 @@ const styles = StyleSheet.create({
   content: {
     padding: mobileSpacing.lg,
     paddingBottom: mobileSpacing.xxl * 2
-  },
-  farmHint: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary,
-    marginBottom: mobileSpacing.md
   },
   sectionTitle: {
     ...mobileTypography.cardTitle,
@@ -310,6 +438,12 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.md,
     marginBottom: 4,
     color: mobileColors.textSecondary
+  },
+  fieldHint: {
+    ...mobileTypography.meta,
+    fontSize: 12,
+    color: mobileColors.textSecondary,
+    marginBottom: 4
   },
   modeRow: {
     flexDirection: "row",

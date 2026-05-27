@@ -81,7 +81,42 @@ export class FarmFeedService {
           dto.weightPerBagKg != null
             ? new Prisma.Decimal(dto.weightPerBagKg)
             : null,
-        lowStockThresholdDays: dto.lowStockThresholdDays ?? 15
+        lowStockThresholdDays: dto.lowStockThresholdDays ?? 15,
+        productionPhase: dto.productionPhase ?? "unknown"
+      }
+    });
+  }
+
+  async updateType(
+    user: User,
+    farmId: string,
+    feedTypeId: string,
+    dto: import("./dto/update-feed-type.dto").UpdateFeedTypeDto
+  ) {
+    await this.farmAccess.requireFarmScopes(user.id, farmId, [
+      FARM_SCOPE.livestockWrite
+    ]);
+    const existing = await this.prisma.feedType.findFirst({
+      where: { id: feedTypeId, farmId }
+    });
+    if (!existing) {
+      throw new NotFoundException("Type d'aliment introuvable");
+    }
+    return this.prisma.feedType.update({
+      where: { id: feedTypeId },
+      data: {
+        ...(dto.name != null ? { name: dto.name.trim() } : {}),
+        ...(dto.unit != null ? { unit: dto.unit } : {}),
+        ...(dto.color != null ? { color: dto.color.trim() } : {}),
+        ...(dto.weightPerBagKg != null
+          ? { weightPerBagKg: new Prisma.Decimal(dto.weightPerBagKg) }
+          : {}),
+        ...(dto.lowStockThresholdDays != null
+          ? { lowStockThresholdDays: dto.lowStockThresholdDays }
+          : {}),
+        ...(dto.productionPhase != null
+          ? { productionPhase: dto.productionPhase }
+          : {})
       }
     });
   }

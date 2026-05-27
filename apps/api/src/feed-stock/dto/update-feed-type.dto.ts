@@ -10,13 +10,15 @@ import {
 } from "class-validator";
 import { FeedProductionPhase, FeedTypeUnit } from "@prisma/client";
 
-export class CreateFeedTypeDto {
+export class UpdateFeedTypeDto {
+  @IsOptional()
   @IsString()
   @MaxLength(120)
-  name!: string;
+  name?: string;
 
+  @IsOptional()
   @IsEnum(FeedTypeUnit)
-  unit!: FeedTypeUnit;
+  unit?: FeedTypeUnit;
 
   @IsOptional()
   @IsString()
