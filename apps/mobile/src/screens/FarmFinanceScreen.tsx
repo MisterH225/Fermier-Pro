@@ -18,7 +18,6 @@ import {
 import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
 import { TabContent, TabSelector } from "../components/tabs";
 import { BudgetScreen } from "../components/finance/budget";
-import { ProfitabilityTab } from "./finance/tabs/ProfitabilityTab";
 import {
   SmartChart,
   FinanceKpiCard,
@@ -47,8 +46,10 @@ import type {
   FinanceOverviewDto,
   FinanceReportDto
 } from "../lib/api";
+import { LinkedStockSection } from "../components/finance/LinkedStockSection";
 import {
   deleteFarmExpense,
+  deleteFarmExpenseWithStock,
   deleteFarmRevenue,
   fetchFarmBatches,
   fetchFarmBudget,
@@ -303,6 +304,45 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
 
   const confirmDelete = useCallback(
     (txRow: FinanceMergedTransactionDto) => {
+      const linked =
+        txRow.kind === "expense" &&
+        (txRow.linkedStockMovementIds?.length ?? 0) > 0;
+      if (linked && accessToken) {
+        Alert.alert(
+          t("financeStockLink.deleteLinkedTitle"),
+          t("financeStockLink.deleteLinkedBody"),
+          [
+            { text: t("financeScreen.cancel"), style: "cancel" },
+            {
+              text: t("financeStockLink.deleteFinanceOnly"),
+              onPress: () =>
+                void deleteFarmExpenseWithStock(
+                  accessToken,
+                  farmId,
+                  txRow.id,
+                  false,
+                  activeProfileId
+                ).then(() => invalidateFarmFinanceQueries(qc, farmId))
+            },
+            {
+              text: t("financeStockLink.deleteBoth"),
+              style: "destructive",
+              onPress: () =>
+                void deleteFarmExpenseWithStock(
+                  accessToken,
+                  farmId,
+                  txRow.id,
+                  true,
+                  activeProfileId
+                ).then(() => {
+                  invalidateFarmFinanceQueries(qc, farmId);
+                  void qc.invalidateQueries({ queryKey: ["farmFeed", farmId] });
+                })
+            }
+          ]
+        );
+        return;
+      }
       open("confirm-delete", {
         message: txRow.label,
         onConfirm: () =>
@@ -312,7 +352,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
           })
       });
     },
-    [open, deleteMutation]
+    [open, deleteMutation, accessToken, farmId, activeProfileId, qc, t]
   );
 
   useScreenTitle(navigation, t("navigation.main.finance"), {
@@ -673,6 +713,22 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
               {txRow.categoryLabel}
             </Text>
           ) : null}
+          {accessToken && txRow.kind === "expense" ? (
+            <LinkedStockSection
+              farmId={farmId}
+              accessToken={accessToken}
+              activeProfileId={activeProfileId}
+              transaction={txRow}
+            />
+          ) : null}
+          {accessToken && txRow.kind === "expense" ? (
+            <LinkedStockSection
+              farmId={farmId}
+              accessToken={accessToken}
+              activeProfileId={activeProfileId}
+              transaction={txRow}
+            />
+          ) : null}
           <View
             style={{
               flexDirection: "row",
@@ -700,7 +756,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
         </View>
       );
     },
-    [confirmDelete, goEdit, localeStr, t]
+    [confirmDelete, goEdit, localeStr, t, accessToken, farmId, activeProfileId]
   );
 
   const projectionChartMonths = useMemo(() => {
@@ -1223,29 +1279,6 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                   farmId={farmId}
                   accessToken={accessToken}
                   activeProfileId={activeProfileId}
-                />
-              ) : null
-            )
-          },
-          {
-            key: "profitability",
-            label: t("financeScreen.tabProfitability"),
-            content: tabScroll(
-              accessToken ? (
-                <ProfitabilityTab
-                  farmId={farmId}
-                  accessToken={accessToken}
-                  activeProfileId={activeProfileId}
-                  year={
-                    reportPeriod === "month"
-                      ? Number(reportMonth.split("-")[0])
-                      : Number(reportYear)
-                  }
-                  month={
-                    reportPeriod === "month"
-                      ? Number(reportMonth.split("-")[1])
-                      : new Date().getUTCMonth() + 1
-                  }
                 />
               ) : null
             )

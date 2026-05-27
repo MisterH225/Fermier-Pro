@@ -8,7 +8,7 @@ import {
   MaxLength,
   Min
 } from "class-validator";
-import { FeedProductionPhase, FeedTypeUnit } from "@prisma/client";
+import { FeedTypeUnit } from "@prisma/client";
 
 export class UpdateFeedTypeDto {
   @IsOptional()
@@ -39,7 +39,4 @@ export class UpdateFeedTypeDto {
   @Max(365)
   lowStockThresholdDays?: number;
 
-  @IsOptional()
-  @IsEnum(FeedProductionPhase)
-  productionPhase?: FeedProductionPhase;
 }

@@ -12,8 +12,12 @@ import {
 } from "react-native";
 import { BaseModal } from "../modals/BaseModal";
 import { ModalSection } from "../modals/ModalSection";
-import type { FeedProductionPhaseDto, FeedTypeDto } from "../../lib/api";
-import { postFarmFeedMovement, type PostFarmFeedMovementPayload } from "../../lib/api";
+import type { FeedTypeDto } from "../../lib/api";
+import {
+  postFarmFeedMovement,
+  postFarmFeedMovementWithTransaction,
+  type PostFarmFeedMovementPayload
+} from "../../lib/api";
 import {
   offlineQueuedMessage,
   useOfflineMutation
@@ -56,7 +60,6 @@ export function StockModal({
   const [newName, setNewName] = useState("");
   const [newUnit, setNewUnit] = useState<"kg" | "tonne" | "sac">("sac");
   const [newWeightBag, setNewWeightBag] = useState("");
-  const [newPhase, setNewPhase] = useState<FeedProductionPhaseDto>("unknown");
   const [qty, setQty] = useState("");
   const [qtyUnit, setQtyUnit] = useState<"kg" | "tonne" | "sac">("sac");
   const [weightOverride, setWeightOverride] = useState("");
@@ -68,6 +71,8 @@ export function StockModal({
   const [occurredAt, setOccurredAt] = useState(() =>
     new Date().toISOString().slice(0, 10)
   );
+  const [createFinanceExpense, setCreateFinanceExpense] = useState(false);
+  const [financeLabel, setFinanceLabel] = useState("");
 
   useEffect(() => {
     if (visible) {
@@ -86,6 +91,8 @@ export function StockModal({
       setPriceBasis("kg");
       setNotes("");
       setOccurredAt(new Date().toISOString().slice(0, 10));
+      setCreateFinanceExpense(false);
+      setFinanceLabel("");
     }
   }, [visible, types]);
 
@@ -93,6 +100,26 @@ export function StockModal({
     () => types.find((x) => x.id === feedTypeId),
     [types, feedTypeId]
   );
+
+  const purchaseAmount = useMemo(() => {
+    const p = Number.parseFloat(unitPrice.replace(",", "."));
+  const q = Number.parseFloat(qty.replace(",", "."));
+    if (!Number.isFinite(p) || !Number.isFinite(q) || q <= 0) {
+      return 0;
+    }
+    if (priceBasis === "sac" && qtyUnit === "sac") {
+      return p * q;
+    }
+    return p * q;
+  }, [unitPrice, qty, priceBasis, qtyUnit]);
+
+  const hasPurchaseAmount = purchaseAmount > 0;
+
+  useEffect(() => {
+    if (hasPurchaseAmount) {
+      setCreateFinanceExpense(true);
+    }
+  }, [hasPurchaseAmount]);
 
   const preview = useMemo(() => {
     if (!selected || tab !== "stock_check") {
@@ -201,13 +228,35 @@ export function StockModal({
     farmId,
     type: "feed.movement",
     label: t("feedStock.modalTitle"),
-    mutationFn: async () =>
-      postFarmFeedMovement(
+    mutationFn: async () => {
+      const body = buildMovementPayload();
+      if (
+        tab === "in" &&
+        createFinanceExpense &&
+        hasPurchaseAmount &&
+        body.unitPrice != null
+      ) {
+        return postFarmFeedMovementWithTransaction(
+          accessToken,
+          farmId,
+          {
+            ...body,
+            createFinanceExpense: true,
+            financeLabel: financeLabel.trim() || undefined
+          },
+          activeProfileId
+        );
+      }
+      if (tab === "in" && body.unitPrice != null && !createFinanceExpense) {
+        body.skipAutoFinanceExpense = true;
+      }
+      return postFarmFeedMovement(
         accessToken,
         farmId,
-        buildMovementPayload(),
+        body,
         activeProfileId
-      ),
+      );
+    },
     buildOfflineItem: () => ({
       calls: [
         {
@@ -216,7 +265,7 @@ export function StockModal({
           body: buildMovementPayload()
         }
       ],
-      invalidateRoots: ["farmFeed", "dashboardFeedStock"]
+      invalidateRoots: ["farmFeed", "dashboardFeedStock", "financeTransactions", "financeOverview"]
     }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["farmFeed", farmId] });
@@ -415,6 +464,36 @@ export function StockModal({
               onChangeText={setUnitPrice}
               keyboardType="decimal-pad"
             />
+            {hasPurchaseAmount ? (
+              <>
+                <View style={styles.rowBtns}>
+                  <Text style={styles.fieldLabel}>
+                    {t("financeStockLink.createFinanceExpense")}
+                  </Text>
+                  <Pressable
+                    style={[styles.chip, createFinanceExpense && styles.chipOn]}
+                    onPress={() => setCreateFinanceExpense((v) => !v)}
+                  >
+                    <Text style={styles.chipTx}>
+                      {createFinanceExpense
+                        ? t("financeStockLink.toggleOn")
+                        : t("financeStockLink.toggleOff")}
+                    </Text>
+                  </Pressable>
+                </View>
+                {createFinanceExpense ? (
+                  <>
+                    <FieldLabel>{t("financeStockLink.financeLabel")}</FieldLabel>
+                    <TextInput
+                      style={styles.input}
+                      value={financeLabel}
+                      onChangeText={setFinanceLabel}
+                      placeholder={supplier.trim() || selected?.name || ""}
+                    />
+                  </>
+                ) : null}
+              </>
+            ) : null}
             <FieldLabel>{t("feedStock.fieldPriceBasis")}</FieldLabel>
             <View style={styles.rowBtns}>
               <Pressable

@@ -80,4 +80,8 @@ export class CreateFeedMovementDto {
   @IsOptional()
   @IsDateString()
   occurredAt?: string;
+
+  /** Si true, ne crée pas de dépense Finance automatique (flux liaison dédié). */
+  @IsOptional()
+  skipAutoFinanceExpense?: boolean;
 }

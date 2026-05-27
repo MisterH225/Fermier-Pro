@@ -22,6 +22,7 @@ import {
   chartPeriodToFeedPeriod
 } from "../components/charts";
 import { StockModal, FeedStockLevelGauge, farmFeedStatToGauge } from "../components/feed";
+import { LinkedFinanceSection } from "../components/stock/LinkedFinanceSection";
 import { FeedStockModuleGate } from "../components/FeedStockModuleGate";
 import { EventList, type EventItem } from "../components/lists";
 import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
@@ -162,7 +163,9 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
       return {
         id: m.id,
         title: m.feedType.name,
-        subtitle: kindLabel,
+        subtitle: m.linkedExpenseId
+          ? `${kindLabel} · ${t("financeStockLink.financeBadge")}`
+          : kindLabel,
         value: qty,
         valueType: m.kind === "in" ? "positive" : "neutral",
         date: dateShort,
@@ -233,10 +236,18 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
             {m.kind === "in" ? t("feedStock.movementIn") : t("feedStock.movementCheck")}
           </Text>
           {m.notes ? <Text style={{ ...mobileTypography.body }}>{m.notes}</Text> : null}
+          {accessToken ? (
+            <LinkedFinanceSection
+              farmId={farmId}
+              accessToken={accessToken}
+              activeProfileId={activeProfileId}
+              movement={m}
+            />
+          ) : null}
         </View>
       );
     },
-    [t]
+    [t, accessToken, farmId, activeProfileId]
   );
 
   const onStockKindFilter = useCallback((id: string) => {
