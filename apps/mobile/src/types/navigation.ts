@@ -3,6 +3,10 @@ export type RootStackParamList = {
   /** Paramètres ferme (devise / seuils) — producteur. */
   ProducerFarmSettings: { farmId: string; farmName: string };
   BuyerDashboard: undefined;
+  BuyerMarket: { favoritesOnly?: boolean; searchQuery?: string } | undefined;
+  BuyerMessages: undefined;
+  BuyerHistory: { initialTab?: "proposals" | "purchases" | "reviews" } | undefined;
+  BuyerAlerts: undefined;
   VeterinarianDashboard: undefined;
   VetAgenda: undefined;
   VetFarms: undefined;
@@ -11,6 +15,9 @@ export type RootStackParamList = {
   VetTasks: undefined;
   VetReports: undefined;
   TechnicianDashboard: undefined;
+  TechTasks: undefined;
+  TechFarm: undefined;
+  TechTracking: undefined;
   FarmList: undefined;
   /** Compte : déconnexion, langue, aide. */
   Account: undefined;
@@ -43,7 +50,9 @@ export type RootStackParamList = {
   };
   FarmTasks: { farmId: string; farmName: string };
   CreateTask: { farmId: string; farmName: string };
-  MarketplaceList: { tab?: "listings" | "mine" | "offers" } | undefined;
+  MarketplaceList:
+    | { tab?: "listings" | "mine" | "offers"; buyerView?: boolean }
+    | undefined;
   MarketplaceListingDetail: { listingId: string; headline?: string };
   MarketplaceMyOffers: undefined;
   MarketplaceMyListings: undefined;

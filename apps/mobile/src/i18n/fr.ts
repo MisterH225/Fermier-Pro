@@ -1193,34 +1193,6 @@ export const fr = {
     marginPerHead: "Coût / tête :",
     marginPerKg: "Coût / kg :"
   },
-  financeStockLink: {
-    stockSectionTitle: "Détails stock",
-    recordStock: "Enregistrer aussi en stock",
-    toggleOn: "Oui",
-    toggleOff: "Non",
-    quantity: "Quantité reçue",
-    unitPrice: "Prix unitaire",
-    line: "Ligne {{n}}",
-    lineSubtotal: "Sous-total : {{amount}} {{currency}}",
-    addLine: "+ Ajouter un autre type d'aliment",
-    totalGap:
-      "Écart de {{gap}} {{currency}} — ajustez les quantités ou le montant total",
-    newFeedType: "Nouveau type",
-    useExistingType: "Type existant",
-    linkedStockTitle: "Stock lié",
-    unitPriceShort: "{{price}} / unité",
-    openStock: "Voir dans Stock Aliment",
-    createFinanceExpense: "Créer aussi la dépense dans Finance",
-    financeLabel: "Libellé dépense",
-    financeBadge: "Lié Finance",
-    linkedFinanceTitle: "Dépense Finance liée",
-    deleteLinkedTitle: "Suppression liée",
-    deleteLinkedBody:
-      "Cette transaction est liée à une entrée stock. Supprimer aussi l'entrée stock ?",
-    deleteBoth: "Supprimer les deux",
-    deleteFinanceOnly: "Finance uniquement",
-    txWithStockSuccess: "Dépense enregistrée — stock mis à jour"
-  },
   budgetScreen: {
     status: {
       onTrack: "🟢 Sous contrôle",
@@ -1825,5 +1797,150 @@ export const fr = {
   ai: {
     insightTitle: "En bref",
     refresh: "Actualiser les recommandations"
+  },
+  tech: {
+    nav: {
+      home: "Accueil",
+      tasks: "Tâches",
+      farm: "Ferme",
+      tracking: "Suivi"
+    },
+    extended: {
+      vaccinations: "Vaccinations",
+      weighings: "Pesées",
+      feedStock: "Stock aliment",
+      reports: "Rapports"
+    },
+    dashboard: {
+      welcome: "Bonjour, {{name}} 👋",
+      defaultName: "Technicien",
+      farmSubtitle: "Ferme {{farm}} — {{date}}",
+      noFarm: "En attente d’invitation sur une ferme",
+      tasksToday: "Tâches du jour",
+      noTasks: "Aucune tâche pour aujourd’hui ✅",
+      allTasks: "Voir toutes les tâches →",
+      quickActions: "Actions rapides",
+      farmStatus: "État de la ferme",
+      recentActivity: "Mon activité récente",
+      noActivity: "Aucune activité récente",
+      allActivity: "Voir tout →"
+    },
+    quick: {
+      stock: "Contrôle stock",
+      weight: "Pesée",
+      vaccine: "Vacciner",
+      disease: "Maladie",
+      mortality: "Mortalité",
+      feedIn: "Entrée aliment"
+    },
+    kpi: {
+      alerts: "Alertes",
+      vaccines: "Vaccins retard",
+      gestation: "Mises bas",
+      stock: "Stock critique"
+    },
+    tasks: { noFarm: "Aucune ferme assignée pour le moment." },
+    farm: {
+      title: "Ma ferme",
+      tabs: { loges: "Loges", cheptel: "Cheptel", sante: "Santé", gestation: "Gestation" },
+      openLoges: "Ouvrir loges",
+      openCheptel: "Ouvrir cheptel",
+      openSante: "Ouvrir santé",
+      openGestation: "Ouvrir gestation",
+      openModule: "Ouvrir le module"
+    },
+    tracking: { title: "Suivi" }
+  },
+  buyer: {
+    nav: {
+      home: "Accueil",
+      market: "Market",
+      messages: "Messages",
+      history: "Mes achats"
+    },
+    extended: {
+      favorites: "Favoris",
+      priceAlerts: "Alertes prix",
+      reviews: "Mes avis",
+      preferences: "Préférences"
+    },
+    dashboard: {
+      welcome: "Bonjour, {{name}} 👋",
+      defaultName: "Acheteur",
+      searchPlaceholder: "Rechercher des animaux…",
+      offersForYou: "Offres pour vous",
+      allOffers: "Voir toutes les offres →",
+      activeProposals: "Mes propositions actives",
+      noProposals: "Aucune proposition en cours",
+      allProposals: "Voir toutes les propositions →"
+    },
+    kpi: {
+      pending: "Propositions",
+      purchases: "Achats",
+      favorites: "Favoris",
+      alerts: "Alertes"
+    },
+    history: {
+      title: "Mes achats",
+      tabs: { proposals: "Propositions", purchases: "Achats", reviews: "Avis" },
+      comingSoon: "Historique détaillé bientôt disponible."
+    },
+    alerts: { title: "Alertes prix", comingSoon: "Création d’alertes bientôt disponible." }
+  },
+  techOnboarding: {
+    skip: "Annuler",
+    step1Title: "Vos informations",
+    step2Title: "Votre expérience",
+    fullName: "Prénom et nom",
+    phone: "Téléphone",
+    experience: "Années d’expérience",
+    specializations: "Spécialisations",
+    formation: "Formation (optionnel)",
+    continue: "Continuer",
+    doneTitle: "Profil créé ✅",
+    doneBody: "Attendez qu’un producteur vous invite pour accéder à une ferme.",
+    doneCta: "Accéder à mon espace",
+    exp: {
+      "<1": "Moins d’1 an",
+      "1-3": "1-3 ans",
+      "3-5": "3-5 ans",
+      "5-10": "5-10 ans",
+      "10+": "Plus de 10 ans"
+    },
+    spec: {
+      feed: "Alimentation",
+      health: "Santé",
+      repro: "Reproduction",
+      herd: "Gestion cheptel",
+      all: "Tout terrain"
+    }
+  },
+  buyerOnboarding: {
+    skip: "Annuler",
+    step1Title: "Vos informations",
+    step2Title: "Vos préférences",
+    fullName: "Nom / raison sociale",
+    location: "Localisation",
+    phone: "Téléphone",
+    volume: "Volume habituel",
+    continue: "Continuer",
+    doneTitle: "Profil acheteur créé ✅",
+    doneBody: "Explorez le marketplace et faites des propositions aux producteurs.",
+    doneCta: "Explorer le marketplace",
+    type: {
+      individual: "Producteur",
+      slaughterhouse: "Abattoir",
+      wholesaler: "Grossiste",
+      reseller: "Revendeur",
+      other: "Autre"
+    },
+    cat: {
+      piglet: "Porcelets",
+      breeder_male: "Repro. mâles",
+      breeder_female: "Repro. femelles",
+      butcher: "Charcutiers",
+      reformed: "Truies réformées"
+    },
+    vol: { "1-5": "1-5", "5-20": "5-20", "20-50": "20-50", "50+": "50+" }
   }
 } as const;

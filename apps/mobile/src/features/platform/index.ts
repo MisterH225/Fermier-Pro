@@ -11,3 +11,10 @@ export { ProducerFarmSettingsScreen } from "../../screens/ProducerFarmSettingsSc
 export { BuyerDashboardScreen } from "../../screens/BuyerDashboardScreen";
 export { VeterinarianDashboardScreen } from "../../screens/VeterinarianDashboardScreen";
 export { TechnicianDashboardScreen } from "../../screens/TechnicianDashboardScreen";
+export { TechTasksScreen } from "../../screens/technician/TechTasksScreen";
+export { TechFarmScreen } from "../../screens/technician/TechFarmScreen";
+export { TechTrackingScreen } from "../../screens/technician/TechTrackingScreen";
+export { BuyerMarketScreen } from "../../screens/buyer/BuyerMarketScreen";
+export { BuyerMessagesScreen } from "../../screens/buyer/BuyerMessagesScreen";
+export { BuyerHistoryScreen } from "../../screens/buyer/BuyerHistoryScreen";
+export { BuyerAlertsScreen } from "../../screens/buyer/BuyerAlertsScreen";

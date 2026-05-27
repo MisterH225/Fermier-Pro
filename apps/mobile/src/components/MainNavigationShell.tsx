@@ -9,6 +9,12 @@ import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProducerPersistentTabBar } from "./ProducerPersistentTabBar";
 import { VetPersistentTabBar } from "./VetPersistentTabBar";
+import { TechPersistentTabBar } from "./TechPersistentTabBar";
+import { BuyerPersistentTabBar } from "./BuyerPersistentTabBar";
+import { techBottomChromeHeight } from "./navigation/technician/techNavMetrics";
+import { buyerBottomChromeHeight } from "./navigation/buyer/buyerNavMetrics";
+import { TechBottomChromeProvider } from "../context/TechBottomChromeContext";
+import { BuyerBottomChromeProvider } from "../context/BuyerBottomChromeContext";
 import { producerBottomChromeHeight } from "./navigation";
 import { vetBottomChromeHeight } from "./navigation/vet/vetNavMetrics";
 import { ProducerBottomChromeProvider } from "../context/ProducerBottomChromeContext";
@@ -67,6 +73,13 @@ import {
   LogeDetailScreen,
   PenMoveScreen,
   TechnicianDashboardScreen,
+  TechTasksScreen,
+  TechFarmScreen,
+  TechTrackingScreen,
+  BuyerMarketScreen,
+  BuyerMessagesScreen,
+  BuyerHistoryScreen,
+  BuyerAlertsScreen,
   VeterinarianDashboardScreen,
   VetAgendaScreen,
   VetFarmDetailScreen,

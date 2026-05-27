@@ -111,6 +111,8 @@ model User {
   chatMessagesSent    ChatMessage[]
   auditLogs           AuditLog[]
   vetProfile            VetProfile?
+  technicianProfile     TechnicianProfile?
+  buyerProfile          BuyerProfile?
   vetRatingsAuthored    VetRating[] @relation("VetRatingAuthor")
   superAdmin            SuperAdmin?
   adminAuditActions     AdminAuditLog[]      @relation("AdminAuditActor")
@@ -177,6 +179,78 @@ model VetRating {
 
   @@unique([vetId, ratedByUserId])
   @@index([vetId])
+}
+
+
+enum BuyerType {
+  individual
+  slaughterhouse
+  wholesaler
+  reseller
+  other
+}
+
+enum PriceAlertFrequency {
+  immediate
+  daily
+}
+
+/// Profil technicien / porcher (données pro + onboarding).
+model TechnicianProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experienceYears    String?
+  specializations    Json     @default("[]")
+  formation          String?
+  profilePhotoUrl    String?
+  onboardingComplete Boolean  @default(false)
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+/// Profil acheteur marketplace.
+model BuyerProfile {
+  id                   String            @id @default(cuid())
+  userId               String            @unique
+  user                 User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  buyerType            BuyerType         @default(individual)
+  businessName         String?
+  locationLabel        String?
+  homeLatitude         Decimal?          @db.Decimal(10, 7)
+  homeLongitude        Decimal?          @db.Decimal(10, 7)
+  searchRadiusKm       Int?
+  preferredCategories  Json              @default("[]")
+  priceRangeMin        Decimal?          @db.Decimal(14, 2)
+  priceRangeMax        Decimal?          @db.Decimal(14, 2)
+  typicalVolume        String?
+  profilePhotoUrl      String?
+  ratingAvg            Decimal?          @db.Decimal(3, 2)
+  ratingCount          Int               @default(0)
+  onboardingComplete   Boolean           @default(false)
+  isActive             Boolean           @default(true)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  priceAlerts          BuyerPriceAlert[]
+
+  @@index([buyerType])
+}
+
+model BuyerPriceAlert {
+  id                    String              @id @default(cuid())
+  buyerProfileId        String
+  buyerProfile          BuyerProfile        @relation(fields: [buyerProfileId], references: [id], onDelete: Cascade)
+  animalCategory        String
+  maxPricePerKg         Decimal             @db.Decimal(14, 4)
+  minWeightKg           Decimal?            @db.Decimal(14, 4)
+  radiusKm              Int?
+  notificationFrequency PriceAlertFrequency @default(immediate)
+  isActive              Boolean             @default(true)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([buyerProfileId, isActive])
 }
 
 /// Jeton Expo push (ou autre) enregistré pour l’utilisateur — un enregistrement par appareil / jeton.

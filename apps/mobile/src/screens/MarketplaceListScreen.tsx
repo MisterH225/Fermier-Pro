@@ -132,9 +132,11 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
 
-  const [marketTab, setMarketTab] = useState<MarketTab>(() =>
-    initialMarketTab(route.params)
-  );
+  const buyerView = route.params?.buyerView === true;
+  const [marketTab, setMarketTab] = useState<MarketTab>(() => {
+    const tab = initialMarketTab(route.params);
+    return buyerView && tab === "mine" ? "listings" : tab;
+  });
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<CatKey>("all");
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});

@@ -12,5 +12,12 @@ export const EXTENDED_MENU_ICONS: Record<
   tasks: "checkbox-outline",
   reports: "bar-chart-outline",
   prescriptions: "medkit-outline",
-  settings: "settings-outline"
+  settings: "settings-outline",
+  vaccinations: "medkit-outline",
+  weighings: "scale-outline",
+  feedStock: "nutrition-outline",
+  favorites: "heart-outline",
+  priceAlerts: "notifications-outline",
+  reviews: "star-outline",
+  preferences: "options-outline"
 };

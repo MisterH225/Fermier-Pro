@@ -4440,6 +4440,8 @@ export type AuthMeResponse = {
     profileSuspendedReason?: string | null;
   } | null;
   vetProfessional?: VetProfessionalMeDto;
+  technicianProfile?: TechnicianProfileMeDto | null;
+  buyerProfile?: BuyerProfileMeDto | null;
 };
 
 export type VetSearchItemDto = {
@@ -5339,4 +5341,190 @@ export function patchProfitabilitySettings(
   activeProfileId?: string | null
 ): Promise<ProfitabilitySettingsDto> {
   return fetchProfitabilitySettings(accessToken, farmId, activeProfileId);
+}
+
+
+
+// --- Technicien / Acheteur profils ---
+
+export type TechnicianProfileMeDto = {
+  profileId: string;
+  onboardingComplete: boolean;
+  experienceYears: string | null;
+};
+
+export type BuyerProfileMeDto = {
+  profileId: string;
+  onboardingComplete: boolean;
+  buyerType: string;
+  preferredCategories: unknown;
+};
+
+export type TechnicianDashboardDto = {
+  farms: Array<{
+    farmId: string;
+    farmName: string;
+    speciesFocus: string;
+    role: string;
+    scopes: string[];
+  }>;
+  activeFarmId: string | null;
+  tasksTodayCount: number;
+  alertsCount: number;
+  kpis: {
+    activeAlerts: number;
+    overdueVaccines: number;
+    gestationThisWeek: number;
+    criticalStock: number;
+  };
+};
+
+export type TechnicianActivityItemDto = {
+  id: string;
+  farmId: string;
+  farmName: string;
+  module: string;
+  action: string;
+  detail: string | null;
+  createdAt: string;
+};
+
+export type BuyerDashboardDto = {
+  profile: {
+    buyerType: string;
+    onboardingComplete: boolean;
+    preferredCategories: unknown;
+    priceRangeMin: string | null;
+    priceRangeMax: string | null;
+  } | null;
+  kpis: {
+    pendingProposals: number;
+    purchasesCount: number;
+    favoritesCount: number;
+    activeAlerts: number;
+  };
+};
+
+export type BuyerProposalDto = {
+  id: string;
+  status: string;
+  offeredPrice: string;
+  proposedPricePerKg: string | null;
+  quantity: number | null;
+  message: string | null;
+  counterPricePerKg: string | null;
+  createdAt: string;
+  listing: {
+    id: string;
+    title: string;
+    category: string;
+    status: string;
+    pricePerKg: string | null;
+    farmName: string | null;
+    sellerName: string | null;
+  };
+};
+
+export type BuyerPersonalizedListingDto = {
+  id: string;
+  title: string;
+  category: string;
+  pricePerKg: string | null;
+  totalPrice: string | null;
+  weightKg: string | null;
+  farmName: string;
+  locationLabel: string | null;
+  distanceKm: number | null;
+  ratingAvg: number | null;
+  isNew: boolean;
+};
+
+export type UpsertTechnicianProfileBody = {
+  experienceYears?: string;
+  specializations?: string[];
+  formation?: string;
+  profilePhotoUrl?: string;
+  onboardingComplete?: boolean;
+};
+
+export type UpsertBuyerProfileBody = {
+  buyerType?: string;
+  businessName?: string;
+  locationLabel?: string;
+  homeLatitude?: number;
+  homeLongitude?: number;
+  searchRadiusKm?: number;
+  preferredCategories?: string[];
+  priceRangeMin?: number;
+  priceRangeMax?: number;
+  typicalVolume?: string;
+  profilePhotoUrl?: string;
+  onboardingComplete?: boolean;
+};
+
+export function fetchTechnicianDashboard(
+  accessToken: string,
+  activeProfileId?: string | null,
+  farmId?: string
+): Promise<TechnicianDashboardDto> {
+  const q = farmId ? `?farmId=${encodeURIComponent(farmId)}` : "";
+  return apiGetJson(`/technicians/me/dashboard${q}`, accessToken, activeProfileId);
+}
+
+export function fetchTechnicianActivity(
+  accessToken: string,
+  activeProfileId?: string | null,
+  farmId?: string,
+  limit = 20
+): Promise<TechnicianActivityItemDto[]> {
+  const q = new URLSearchParams({ limit: String(limit) });
+  if (farmId) q.set("farmId", farmId);
+  return apiGetJson(
+    `/technicians/me/activity?${q.toString()}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function upsertTechnicianProfile(
+  accessToken: string,
+  activeProfileId: string | null | undefined,
+  body: UpsertTechnicianProfileBody
+): Promise<unknown> {
+  return apiPatchJson("/technicians/me/profile", body, accessToken, activeProfileId);
+}
+
+export function fetchBuyerDashboard(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<BuyerDashboardDto> {
+  return apiGetJson("/buyers/me/dashboard", accessToken, activeProfileId);
+}
+
+export function fetchBuyerProposals(
+  accessToken: string,
+  activeProfileId?: string | null,
+  status?: string
+): Promise<BuyerProposalDto[]> {
+  const q = status ? `?status=${encodeURIComponent(status)}` : "";
+  return apiGetJson(`/buyers/me/proposals${q}`, accessToken, activeProfileId);
+}
+
+export function fetchBuyerPersonalizedListings(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<BuyerPersonalizedListingDto[]> {
+  return apiGetJson(
+    "/buyers/me/personalized-listings",
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function upsertBuyerProfile(
+  accessToken: string,
+  activeProfileId: string | null | undefined,
+  body: UpsertBuyerProfileBody
+): Promise<unknown> {
+  return apiPatchJson("/buyers/me/profile", body, accessToken, activeProfileId);
 }
