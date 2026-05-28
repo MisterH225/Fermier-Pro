@@ -16,6 +16,13 @@ import {
 import { EventList } from "../../components/lists/EventList";
 import type { EventItem } from "../../components/lists/types";
 import { ActiveProfileSwitcherModal } from "../../components/account/ActiveProfileSwitcherModal";
+import {
+  ProfileHeroCard,
+  ProfileSectionEmpty,
+  ProfileSectionLink,
+  profileScreenScrollContent,
+  ScreenSection
+} from "../../components/layout";
 import { BuyerMobileShell } from "../../components/layout/BuyerMobileShell";
 import { useBuyerBottomChromePad } from "../../context/BuyerBottomChromeContext";
 import { useSession } from "../../context/SessionContext";
@@ -24,7 +31,6 @@ import {
   fetchBuyerPersonalizedListings,
   fetchBuyerProposals
 } from "../../lib/api";
-import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { welcomeFirstName } from "../../lib/userDisplay";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import { buyerColors, buyerRadius, buyerShadow } from "../../theme/buyerTheme";
@@ -95,7 +101,10 @@ export function BuyerDashboardScreen() {
   return (
     <BuyerMobileShell hideTopBar>
       <ScrollView
-        contentContainerStyle={[styles.wrap, { paddingBottom: bottomPad + mobileSpacing.xl }]}
+        contentContainerStyle={[
+          profileScreenScrollContent,
+          { paddingBottom: bottomPad + mobileSpacing.xl }
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -104,90 +113,101 @@ export function BuyerDashboardScreen() {
           />
         }
       >
-        <View style={styles.headerRow}>
-          <Pressable style={styles.headerLeft} onPress={() => setProfileOpen(true)}>
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Ionicons name="cart" size={24} color={buyerColors.primary} />
-            </View>
-            <Text style={styles.greeting}>
-              {t("buyer.dashboard.welcome", { name: displayName })}
-            </Text>
-          </Pressable>
-          <View style={styles.headerRight}>
+        <ProfileHeroCard>
+          <View style={styles.headerRow}>
+            <Pressable style={styles.headerLeft} onPress={() => setProfileOpen(true)}>
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <Ionicons name="cart" size={24} color={buyerColors.primary} />
+              </View>
+              <Text style={styles.greeting}>
+                {t("buyer.dashboard.welcome", { name: displayName })}
+              </Text>
+            </Pressable>
             <Pressable onPress={() => navigation.navigate("BuyerMarket")}>
               <Ionicons name="search-outline" size={24} color={buyerColors.primary} />
             </Pressable>
           </View>
+          <TextInput
+            style={styles.search}
+            placeholder={t("buyer.dashboard.searchPlaceholder")}
+            placeholderTextColor={buyerColors.textMuted}
+            value={search}
+            onChangeText={setSearch}
+            onSubmitEditing={() =>
+              navigation.navigate("BuyerMarket", { searchQuery: search.trim() || undefined })
+            }
+          />
+        </ProfileHeroCard>
+
+        <View style={styles.sectionBlock}>
+          <ScreenSection title={t("buyer.dashboard.offersForYou")} plain>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {(offersQ.data ?? []).slice(0, 8).map((o) => (
+                <Pressable
+                  key={o.id}
+                  style={[styles.offerCard, buyerShadow.card]}
+                  onPress={() =>
+                    navigation.navigate("MarketplaceListingDetail", {
+                      listingId: o.id,
+                      headline: o.title
+                    })
+                  }
+                >
+                  <Text style={styles.offerTitle} numberOfLines={2}>
+                    {o.title}
+                  </Text>
+                  <Text style={styles.offerMeta}>{o.farmName}</Text>
+                  {o.pricePerKg ? (
+                    <Text style={styles.offerPrice}>{o.pricePerKg} / kg</Text>
+                  ) : null}
+                </Pressable>
+              ))}
+            </ScrollView>
+          </ScreenSection>
+          <ProfileSectionLink
+            color={buyerColors.primary}
+            label={t("buyer.dashboard.allOffers")}
+            onPress={() => navigation.navigate("BuyerMarket")}
+          />
         </View>
 
-        <TextInput
-          style={styles.search}
-          placeholder={t("buyer.dashboard.searchPlaceholder")}
-          placeholderTextColor={buyerColors.textMuted}
-          value={search}
-          onChangeText={setSearch}
-          onSubmitEditing={() =>
-            navigation.navigate("BuyerMarket", { searchQuery: search.trim() || undefined })
-          }
-        />
-
-        <Text style={styles.sectionTitle}>{t("buyer.dashboard.offersForYou")}</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {(offersQ.data ?? []).slice(0, 8).map((o) => (
-            <Pressable
-              key={o.id}
-              style={[styles.offerCard, buyerShadow.card]}
-              onPress={() =>
-                navigation.navigate("MarketplaceListingDetail", {
-                  listingId: o.id,
-                  headline: o.title
-                })
-              }
-            >
-              <Text style={styles.offerTitle} numberOfLines={2}>
-                {o.title}
+        <ScreenSection title={t("buyer.dashboard.sectionStats")} plain>
+          <View style={styles.kpiGrid}>
+            <View style={[styles.kpiCard, { backgroundColor: buyerColors.primaryLight }]}>
+              <Text style={styles.kpiValue}>{kpis?.pendingProposals ?? 0}</Text>
+              <Text style={styles.kpiLabel}>{t("buyer.kpi.pending")}</Text>
+            </View>
+            <View style={[styles.kpiCard, { backgroundColor: "#E8F5E9" }]}>
+              <Text style={[styles.kpiValue, { color: buyerColors.success }]}>
+                {kpis?.purchasesCount ?? 0}
               </Text>
-              <Text style={styles.offerMeta}>{o.farmName}</Text>
-              {o.pricePerKg ? (
-                <Text style={styles.offerPrice}>{o.pricePerKg} / kg</Text>
-              ) : null}
-            </Pressable>
-          ))}
-        </ScrollView>
-        <Pressable onPress={() => navigation.navigate("BuyerMarket")}>
-          <Text style={styles.link}>{t("buyer.dashboard.allOffers")}</Text>
-        </Pressable>
+              <Text style={styles.kpiLabel}>{t("buyer.kpi.purchases")}</Text>
+            </View>
+            <View style={[styles.kpiCard, { backgroundColor: "#FCE4EC" }]}>
+              <Text style={styles.kpiValue}>{kpis?.favoritesCount ?? 0}</Text>
+              <Text style={styles.kpiLabel}>{t("buyer.kpi.favorites")}</Text>
+            </View>
+            <View style={[styles.kpiCard, { backgroundColor: "#FFF3E0" }]}>
+              <Text style={styles.kpiValue}>{kpis?.activeAlerts ?? 0}</Text>
+              <Text style={styles.kpiLabel}>{t("buyer.kpi.alerts")}</Text>
+            </View>
+          </View>
+        </ScreenSection>
 
-        <View style={styles.kpiGrid}>
-          <View style={[styles.kpiCard, { backgroundColor: buyerColors.primaryLight }]}>
-            <Text style={styles.kpiValue}>{kpis?.pendingProposals ?? 0}</Text>
-            <Text style={styles.kpiLabel}>{t("buyer.kpi.pending")}</Text>
-          </View>
-          <View style={[styles.kpiCard, { backgroundColor: "#E8F5E9" }]}>
-            <Text style={[styles.kpiValue, { color: buyerColors.success }]}>
-              {kpis?.purchasesCount ?? 0}
-            </Text>
-            <Text style={styles.kpiLabel}>{t("buyer.kpi.purchases")}</Text>
-          </View>
-          <View style={[styles.kpiCard, { backgroundColor: "#FCE4EC" }]}>
-            <Text style={styles.kpiValue}>{kpis?.favoritesCount ?? 0}</Text>
-            <Text style={styles.kpiLabel}>{t("buyer.kpi.favorites")}</Text>
-          </View>
-          <View style={[styles.kpiCard, { backgroundColor: "#FFF3E0" }]}>
-            <Text style={styles.kpiValue}>{kpis?.activeAlerts ?? 0}</Text>
-            <Text style={styles.kpiLabel}>{t("buyer.kpi.alerts")}</Text>
-          </View>
+        <View style={styles.sectionBlock}>
+          <ScreenSection title={t("buyer.dashboard.activeProposals")}>
+            {proposalEvents.length > 0 ? (
+              <EventList data={proposalEvents} />
+            ) : (
+              <ProfileSectionEmpty>{t("buyer.dashboard.noProposals")}</ProfileSectionEmpty>
+            )}
+          </ScreenSection>
+          <ProfileSectionLink
+            color={buyerColors.primary}
+            label={t("buyer.dashboard.allProposals")}
+            onPress={() => navigation.navigate("BuyerHistory")}
+          />
         </View>
-
-        <Text style={styles.sectionTitle}>{t("buyer.dashboard.activeProposals")}</Text>
-        {proposalEvents.length > 0 ? (
-          <EventList data={proposalEvents} />
-        ) : (
-          <Text style={styles.empty}>{t("buyer.dashboard.noProposals")}</Text>
-        )}
-        <Pressable onPress={() => navigation.navigate("BuyerHistory")}>
-          <Text style={styles.link}>{t("buyer.dashboard.allProposals")}</Text>
-        </Pressable>
       </ScrollView>
 
       <ActiveProfileSwitcherModal visible={profileOpen} onClose={() => setProfileOpen(false)} />
@@ -196,10 +216,9 @@ export function BuyerDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
+  sectionBlock: { gap: mobileSpacing.sm },
   headerRow: { flexDirection: "row", alignItems: "center" },
   headerLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: mobileSpacing.md },
-  headerRight: { flexDirection: "row", gap: mobileSpacing.sm },
   avatar: { width: 48, height: 48, borderRadius: 24 },
   avatarPlaceholder: {
     backgroundColor: buyerColors.primaryLight,
@@ -208,15 +227,15 @@ const styles = StyleSheet.create({
   },
   greeting: { ...mobileTypography.cardTitle, fontSize: 18, flex: 1, color: buyerColors.textPrimary },
   search: {
-    backgroundColor: buyerColors.cardBg,
-    borderRadius: 20,
+    backgroundColor: buyerColors.canvas,
+    borderRadius: buyerRadius.button,
     borderWidth: 1,
     borderColor: buyerColors.border,
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: 12,
-    ...mobileTypography.body
+    ...mobileTypography.body,
+    color: buyerColors.textPrimary
   },
-  sectionTitle: { ...mobileTypography.cardTitle, color: buyerColors.textPrimary, marginTop: mobileSpacing.sm },
   offerCard: {
     width: 160,
     marginRight: mobileSpacing.sm,
@@ -229,8 +248,6 @@ const styles = StyleSheet.create({
   offerTitle: { ...mobileTypography.body, fontWeight: "600", color: buyerColors.textPrimary },
   offerMeta: { ...mobileTypography.meta, color: buyerColors.textSecondary, marginTop: 4 },
   offerPrice: { ...mobileTypography.meta, color: buyerColors.primary, fontWeight: "700", marginTop: 4 },
-  link: { ...mobileTypography.body, color: buyerColors.primary, fontWeight: "600" },
-  empty: { ...mobileTypography.body, color: buyerColors.textSecondary },
   kpiGrid: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
   kpiCard: {
     width: "47%",

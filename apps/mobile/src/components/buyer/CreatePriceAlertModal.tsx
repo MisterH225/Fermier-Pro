@@ -16,6 +16,7 @@ import {
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
 import { BaseModal } from "../modals/BaseModal";
+import { ModalSection } from "../modals/ModalSection";
 
 type Props = {
   visible: boolean;
@@ -114,61 +115,66 @@ export function CreatePriceAlertModal({
         </Pressable>
       }
     >
-      <Text style={styles.lab}>{t("buyer.alerts.fieldCategory")}</Text>
-      <View style={styles.row}>
-        {CATEGORIES.map((c) => (
-          <Pressable
-            key={c.key}
-            style={[styles.chip, category === c.key && styles.chipOn]}
-            onPress={() => setCategory(c.key)}
-          >
-            <Text style={styles.chipTx}>{t(c.labelKey)}</Text>
-          </Pressable>
-        ))}
-      </View>
+      <ModalSection title={t("buyer.alerts.fieldCategory")}>
+        <View style={styles.row}>
+          {CATEGORIES.map((c) => (
+            <Pressable
+              key={c.key}
+              style={[styles.chip, category === c.key && styles.chipOn]}
+              onPress={() => setCategory(c.key)}
+            >
+              <Text style={styles.chipTx}>{t(c.labelKey)}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </ModalSection>
 
-      <Text style={styles.lab}>{t("buyer.alerts.fieldMaxPrice")}</Text>
-      <TextInput
-        style={styles.input}
-        value={maxPrice}
-        onChangeText={setMaxPrice}
-        keyboardType="decimal-pad"
-        placeholder="1500"
-        placeholderTextColor={buyerColors.textMuted}
-      />
+      <ModalSection title={t("buyer.alerts.sectionCriteria")}>
+        <Text style={styles.lab}>{t("buyer.alerts.fieldMaxPrice")}</Text>
+        <TextInput
+          style={styles.input}
+          value={maxPrice}
+          onChangeText={setMaxPrice}
+          keyboardType="decimal-pad"
+          placeholder="1500"
+          placeholderTextColor={buyerColors.textMuted}
+        />
+        <Text style={styles.lab}>{t("buyer.alerts.fieldMinWeight")}</Text>
+        <TextInput
+          style={styles.input}
+          value={minWeight}
+          onChangeText={setMinWeight}
+          keyboardType="decimal-pad"
+          placeholder={t("buyer.alerts.optional")}
+          placeholderTextColor={buyerColors.textMuted}
+        />
+      </ModalSection>
 
-      <Text style={styles.lab}>{t("buyer.alerts.fieldMinWeight")}</Text>
-      <TextInput
-        style={styles.input}
-        value={minWeight}
-        onChangeText={setMinWeight}
-        keyboardType="decimal-pad"
-        placeholder={t("buyer.alerts.optional")}
-        placeholderTextColor={buyerColors.textMuted}
-      />
+      <ModalSection title={t("buyer.alerts.sectionZone")}>
+        <Text style={styles.lab}>{t("buyer.alerts.fieldRadius")}</Text>
+        <TextInput
+          style={styles.input}
+          value={radius}
+          onChangeText={setRadius}
+          keyboardType="number-pad"
+          placeholder={t("buyer.alerts.optional")}
+          placeholderTextColor={buyerColors.textMuted}
+        />
+      </ModalSection>
 
-      <Text style={styles.lab}>{t("buyer.alerts.fieldRadius")}</Text>
-      <TextInput
-        style={styles.input}
-        value={radius}
-        onChangeText={setRadius}
-        keyboardType="number-pad"
-        placeholder={t("buyer.alerts.optional")}
-        placeholderTextColor={buyerColors.textMuted}
-      />
-
-      <Text style={styles.lab}>{t("buyer.alerts.fieldFrequency")}</Text>
-      <View style={styles.row}>
-        {FREQUENCIES.map((f) => (
-          <Pressable
-            key={f}
-            style={[styles.chip, frequency === f && styles.chipOn]}
-            onPress={() => setFrequency(f)}
-          >
-            <Text style={styles.chipTx}>{t(`buyer.alerts.freq.${f}`)}</Text>
-          </Pressable>
-        ))}
-      </View>
+      <ModalSection title={t("buyer.alerts.fieldFrequency")}>
+        <View style={styles.row}>
+          {FREQUENCIES.map((f) => (
+            <Pressable
+              key={f}
+              style={[styles.chip, frequency === f && styles.chipOn]}
+              onPress={() => setFrequency(f)}
+            >
+              <Text style={styles.chipTx}>{t(`buyer.alerts.freq.${f}`)}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </ModalSection>
     </BaseModal>
   );
 }
@@ -178,14 +184,15 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     color: buyerColors.textSecondary,
     marginBottom: 4,
-    marginTop: mobileSpacing.sm
+    marginTop: mobileSpacing.xs
   },
   input: {
     borderWidth: 1,
     borderColor: buyerColors.border,
     borderRadius: buyerRadius.button,
     padding: mobileSpacing.sm,
-    color: buyerColors.textPrimary
+    color: buyerColors.textPrimary,
+    backgroundColor: buyerColors.canvas
   },
   row: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.xs },
   chip: {
@@ -193,7 +200,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: buyerRadius.pill,
     borderWidth: 1,
-    borderColor: buyerColors.border
+    borderColor: buyerColors.border,
+    backgroundColor: buyerColors.cardBg
   },
   chipOn: {
     borderColor: buyerColors.primary,

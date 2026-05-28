@@ -10,6 +10,11 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  ProfileHeroCard,
+  profileScreenScrollContent,
+  ScreenSection
+} from "../../../components/layout";
 import { useSession } from "../../../context/SessionContext";
 import { patchAuthProfile, upsertBuyerProfile } from "../../../lib/api";
 import { formatApiError } from "../../../lib/apiErrors";
@@ -93,73 +98,121 @@ export function BuyerOnboardingScreen({ onFinished, onCancel }: Props) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={profileScreenScrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <Pressable onPress={() => void onSkipProfile()} style={styles.skip}>
           <Text style={styles.skipText}>{t("buyerOnboarding.skip")}</Text>
         </Pressable>
 
         {step === 0 ? (
           <>
-            <Text style={styles.title}>{t("buyerOnboarding.step1Title")}</Text>
-            <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder={t("buyerOnboarding.fullName")} />
-            <View style={styles.chips}>
-              {BUYER_TYPES.map((bt) => (
-                <Pressable
-                  key={bt}
-                  style={[styles.chip, buyerType === bt && styles.chipActive]}
-                  onPress={() => setBuyerType(bt)}
-                >
-                  <Text style={[styles.chipText, buyerType === bt && styles.chipTextActive]}>
-                    {t(`buyerOnboarding.type.${bt}`)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            <TextInput style={styles.input} value={locationLabel} onChangeText={setLocationLabel} placeholder={t("buyerOnboarding.location")} />
-            <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder={t("buyerOnboarding.phone")} keyboardType="phone-pad" />
-            <Pressable style={styles.primary} onPress={() => setStep(1)} disabled={!fullName.trim() || !locationLabel.trim()}>
+            <ProfileHeroCard>
+              <Text style={styles.heroTitle}>{t("buyerOnboarding.step1Title")}</Text>
+            </ProfileHeroCard>
+            <ScreenSection title={t("buyerOnboarding.sectionIdentity")}>
+              <TextInput
+                style={styles.input}
+                value={fullName}
+                onChangeText={setFullName}
+                placeholder={t("buyerOnboarding.fullName")}
+                placeholderTextColor={buyerColors.textMuted}
+              />
+              <TextInput
+                style={[styles.input, styles.inputSpaced]}
+                value={locationLabel}
+                onChangeText={setLocationLabel}
+                placeholder={t("buyerOnboarding.location")}
+                placeholderTextColor={buyerColors.textMuted}
+              />
+              <TextInput
+                style={[styles.input, styles.inputSpaced]}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder={t("buyerOnboarding.phone")}
+                keyboardType="phone-pad"
+                placeholderTextColor={buyerColors.textMuted}
+              />
+            </ScreenSection>
+            <ScreenSection title={t("buyerOnboarding.sectionType")}>
+              <View style={styles.chips}>
+                {BUYER_TYPES.map((bt) => (
+                  <Pressable
+                    key={bt}
+                    style={[styles.chip, buyerType === bt && styles.chipActive]}
+                    onPress={() => setBuyerType(bt)}
+                  >
+                    <Text style={[styles.chipText, buyerType === bt && styles.chipTextActive]}>
+                      {t(`buyerOnboarding.type.${bt}`)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </ScreenSection>
+            <Pressable
+              style={[styles.primary, (!fullName.trim() || !locationLabel.trim()) && styles.primaryDisabled]}
+              onPress={() => setStep(1)}
+              disabled={!fullName.trim() || !locationLabel.trim()}
+            >
               <Text style={styles.primaryLabel}>{t("buyerOnboarding.continue")}</Text>
             </Pressable>
           </>
         ) : step === 1 ? (
           <>
-            <Text style={styles.title}>{t("buyerOnboarding.step2Title")}</Text>
-            <View style={styles.chips}>
-              {CATEGORIES.map((c) => (
-                <Pressable
-                  key={c}
-                  style={[styles.chip, preferredCategories.includes(c) && styles.chipActive]}
-                  onPress={() => toggleCat(c)}
-                >
-                  <Text style={[styles.chipText, preferredCategories.includes(c) && styles.chipTextActive]}>
-                    {t(`buyerOnboarding.cat.${c}`)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            <Text style={styles.label}>{t("buyerOnboarding.volume")}</Text>
-            <View style={styles.chips}>
-              {VOLUMES.map((v) => (
-                <Pressable
-                  key={v}
-                  style={[styles.chip, typicalVolume === v && styles.chipActive]}
-                  onPress={() => setTypicalVolume(v)}
-                >
-                  <Text style={[styles.chipText, typicalVolume === v && styles.chipTextActive]}>
-                    {t(`buyerOnboarding.vol.${v}`)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+            <ProfileHeroCard>
+              <Text style={styles.heroTitle}>{t("buyerOnboarding.step2Title")}</Text>
+            </ProfileHeroCard>
+            <ScreenSection title={t("buyerOnboarding.sectionCategories")}>
+              <View style={styles.chips}>
+                {CATEGORIES.map((c) => (
+                  <Pressable
+                    key={c}
+                    style={[styles.chip, preferredCategories.includes(c) && styles.chipActive]}
+                    onPress={() => toggleCat(c)}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        preferredCategories.includes(c) && styles.chipTextActive
+                      ]}
+                    >
+                      {t(`buyerOnboarding.cat.${c}`)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </ScreenSection>
+            <ScreenSection title={t("buyerOnboarding.volume")}>
+              <View style={styles.chips}>
+                {VOLUMES.map((v) => (
+                  <Pressable
+                    key={v}
+                    style={[styles.chip, typicalVolume === v && styles.chipActive]}
+                    onPress={() => setTypicalVolume(v)}
+                  >
+                    <Text style={[styles.chipText, typicalVolume === v && styles.chipTextActive]}>
+                      {t(`buyerOnboarding.vol.${v}`)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </ScreenSection>
             <Pressable style={styles.primary} onPress={() => setStep(2)}>
               <Text style={styles.primaryLabel}>{t("buyerOnboarding.continue")}</Text>
             </Pressable>
           </>
         ) : (
           <>
-            <Text style={styles.title}>{t("buyerOnboarding.doneTitle")}</Text>
-            <Text style={styles.body}>{t("buyerOnboarding.doneBody")}</Text>
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <ProfileHeroCard>
+              <Text style={styles.heroTitle}>{t("buyerOnboarding.doneTitle")}</Text>
+              <Text style={styles.heroBody}>{t("buyerOnboarding.doneBody")}</Text>
+            </ProfileHeroCard>
+            {error ? (
+              <ScreenSection title={t("buyerOnboarding.sectionError")}>
+                <Text style={styles.error}>{error}</Text>
+              </ScreenSection>
+            ) : null}
             <Pressable style={styles.primary} onPress={() => void submit()} disabled={busy}>
               {busy ? (
                 <ActivityIndicator color="#fff" />
@@ -176,20 +229,20 @@ export function BuyerOnboardingScreen({ onFinished, onCancel }: Props) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: buyerColors.canvas },
-  scroll: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
   skip: { alignSelf: "flex-end" },
   skipText: { color: buyerColors.primary, fontWeight: "600" },
-  title: { ...mobileTypography.cardTitle, fontSize: 22, color: buyerColors.textPrimary },
-  body: { ...mobileTypography.body, color: buyerColors.textSecondary, lineHeight: 22 },
-  label: { ...mobileTypography.meta, color: buyerColors.textSecondary },
+  heroTitle: { ...mobileTypography.cardTitle, fontSize: 22, color: buyerColors.textPrimary },
+  heroBody: { ...mobileTypography.body, color: buyerColors.textSecondary, lineHeight: 22 },
   input: {
-    backgroundColor: mobileColors.background,
+    backgroundColor: buyerColors.canvas,
     borderRadius: mobileRadius.md,
     borderWidth: 1,
     borderColor: mobileColors.border,
     padding: mobileSpacing.md,
-    ...mobileTypography.body
+    ...mobileTypography.body,
+    color: buyerColors.textPrimary
   },
+  inputSpaced: { marginTop: mobileSpacing.sm },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
   chip: {
     paddingHorizontal: mobileSpacing.md,
@@ -203,12 +256,12 @@ const styles = StyleSheet.create({
   chipText: { ...mobileTypography.meta, fontWeight: "600", color: buyerColors.textSecondary },
   chipTextActive: { color: "#fff" },
   primary: {
-    marginTop: mobileSpacing.lg,
     backgroundColor: buyerColors.primary,
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.lg,
     alignItems: "center"
   },
+  primaryDisabled: { opacity: 0.5 },
   primaryLabel: { color: "#fff", fontWeight: "700", fontSize: 16 },
   error: { color: mobileColors.error }
 });

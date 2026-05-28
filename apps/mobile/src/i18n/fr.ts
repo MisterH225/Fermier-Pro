@@ -1847,14 +1847,21 @@ export const fr = {
       openCheptel: "Ouvrir cheptel",
       openSante: "Ouvrir santé",
       openGestation: "Ouvrir gestation",
-      openModule: "Ouvrir le module"
+      openModule: "Ouvrir le module",
+      sectionModules: "Modules disponibles",
+      sectionAction: "Accès"
     },
-    tracking: { title: "Suivi" },
+    tracking: {
+      title: "Suivi",
+      subtitle: "Historique de vos interventions sur les fermes assignées.",
+      sectionLog: "Journal d'activité"
+    },
     vaccinePicker: {
       title: "Choisir un vaccin",
       empty: "Aucun vaccin configuré sur cette ferme.",
       pending: "{{count}} sujet(s) à traiter",
-      select: "Vacciner"
+      select: "Vacciner",
+      sectionList: "Vaccins disponibles"
     },
     permissionDenied: "Permission non accordée par le producteur.",
     permissionReadOnly: "Accès lecture seule sur ce module."
@@ -1880,7 +1887,8 @@ export const fr = {
       allOffers: "Voir toutes les offres →",
       activeProposals: "Mes propositions actives",
       noProposals: "Aucune proposition en cours",
-      allProposals: "Voir toutes les propositions →"
+      allProposals: "Voir toutes les propositions →",
+      sectionStats: "Vue d'ensemble"
     },
     kpi: {
       pending: "Propositions",
@@ -1891,7 +1899,8 @@ export const fr = {
     history: {
       title: "Mes achats",
       tabs: { proposals: "Propositions", purchases: "Achats", reviews: "Avis" },
-      comingSoon: "Historique détaillé bientôt disponible."
+      comingSoon: "Historique détaillé bientôt disponible.",
+      sectionFilter: "Filtrer par type"
     },
     alerts: {
       title: "Alertes prix",
@@ -1920,10 +1929,16 @@ export const fr = {
       invalidWeight: "Poids minimum invalide.",
       invalidRadius: "Rayon invalide.",
       categoryOther: "Autre",
+      sectionList: "Mes alertes actives",
+      sectionCriteria: "Critères de prix",
+      sectionZone: "Zone de recherche",
       freq: { immediate: "Immédiat", daily: "Quotidien" }
     }
   },
   techOnboarding: {
+    sectionIdentity: "Identité",
+    sectionFormation: "Formation",
+    sectionError: "Erreur",
     skip: "Annuler",
     step1Title: "Vos informations",
     step2Title: "Votre expérience",
@@ -1952,6 +1967,10 @@ export const fr = {
     }
   },
   buyerOnboarding: {
+    sectionIdentity: "Identité",
+    sectionType: "Type d'acheteur",
+    sectionCategories: "Catégories recherchées",
+    sectionError: "Erreur",
     skip: "Annuler",
     step1Title: "Vos informations",
     step2Title: "Vos préférences",

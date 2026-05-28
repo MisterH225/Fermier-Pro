@@ -10,6 +10,11 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  ProfileHeroCard,
+  profileScreenScrollContent,
+  ScreenSection
+} from "../../../components/layout";
 import { useSession } from "../../../context/SessionContext";
 import { patchAuthProfile, upsertTechnicianProfile } from "../../../lib/api";
 import { formatApiError } from "../../../lib/apiErrors";
@@ -92,61 +97,108 @@ export function TechOnboardingScreen({ onFinished, onCancel }: Props) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={profileScreenScrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <Pressable onPress={() => void onSkipProfile()} style={styles.skip}>
           <Text style={styles.skipText}>{t("techOnboarding.skip")}</Text>
         </Pressable>
 
         {step === 0 ? (
           <>
-            <Text style={styles.title}>{t("techOnboarding.step1Title")}</Text>
-            <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder={t("techOnboarding.fullName")} />
-            <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder={t("techOnboarding.phone")} keyboardType="phone-pad" />
-            <Pressable style={styles.primary} onPress={() => setStep(1)} disabled={!fullName.trim()}>
+            <ProfileHeroCard>
+              <Text style={styles.heroTitle}>{t("techOnboarding.step1Title")}</Text>
+            </ProfileHeroCard>
+            <ScreenSection title={t("techOnboarding.sectionIdentity")}>
+              <TextInput
+                style={styles.input}
+                value={fullName}
+                onChangeText={setFullName}
+                placeholder={t("techOnboarding.fullName")}
+                placeholderTextColor={techColors.textMuted}
+              />
+              <TextInput
+                style={[styles.input, styles.inputSpaced]}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder={t("techOnboarding.phone")}
+                keyboardType="phone-pad"
+                placeholderTextColor={techColors.textMuted}
+              />
+            </ScreenSection>
+            <Pressable
+              style={[styles.primary, !fullName.trim() && styles.primaryDisabled]}
+              onPress={() => setStep(1)}
+              disabled={!fullName.trim()}
+            >
               <Text style={styles.primaryLabel}>{t("techOnboarding.continue")}</Text>
             </Pressable>
           </>
         ) : step === 1 ? (
           <>
-            <Text style={styles.title}>{t("techOnboarding.step2Title")}</Text>
-            <Text style={styles.label}>{t("techOnboarding.experience")}</Text>
-            <View style={styles.chips}>
-              {EXPERIENCE.map((e) => (
-                <Pressable
-                  key={e}
-                  style={[styles.chip, experienceYears === e && styles.chipActive]}
-                  onPress={() => setExperienceYears(e)}
-                >
-                  <Text style={[styles.chipText, experienceYears === e && styles.chipTextActive]}>
-                    {t(`techOnboarding.exp.${e}`)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            <Text style={styles.label}>{t("techOnboarding.specializations")}</Text>
-            <View style={styles.chips}>
-              {SPECS.map((s) => (
-                <Pressable
-                  key={s}
-                  style={[styles.chip, specializations.includes(s) && styles.chipActive]}
-                  onPress={() => toggleSpec(s)}
-                >
-                  <Text style={[styles.chipText, specializations.includes(s) && styles.chipTextActive]}>
-                    {t(`techOnboarding.spec.${s}`)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            <TextInput style={styles.input} value={formation} onChangeText={setFormation} placeholder={t("techOnboarding.formation")} />
+            <ProfileHeroCard>
+              <Text style={styles.heroTitle}>{t("techOnboarding.step2Title")}</Text>
+            </ProfileHeroCard>
+            <ScreenSection title={t("techOnboarding.experience")}>
+              <View style={styles.chips}>
+                {EXPERIENCE.map((e) => (
+                  <Pressable
+                    key={e}
+                    style={[styles.chip, experienceYears === e && styles.chipActive]}
+                    onPress={() => setExperienceYears(e)}
+                  >
+                    <Text style={[styles.chipText, experienceYears === e && styles.chipTextActive]}>
+                      {t(`techOnboarding.exp.${e}`)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </ScreenSection>
+            <ScreenSection title={t("techOnboarding.specializations")}>
+              <View style={styles.chips}>
+                {SPECS.map((s) => (
+                  <Pressable
+                    key={s}
+                    style={[styles.chip, specializations.includes(s) && styles.chipActive]}
+                    onPress={() => toggleSpec(s)}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        specializations.includes(s) && styles.chipTextActive
+                      ]}
+                    >
+                      {t(`techOnboarding.spec.${s}`)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </ScreenSection>
+            <ScreenSection title={t("techOnboarding.sectionFormation")}>
+              <TextInput
+                style={styles.input}
+                value={formation}
+                onChangeText={setFormation}
+                placeholder={t("techOnboarding.formation")}
+                placeholderTextColor={techColors.textMuted}
+              />
+            </ScreenSection>
             <Pressable style={styles.primary} onPress={() => setStep(2)} disabled={busy}>
               <Text style={styles.primaryLabel}>{t("techOnboarding.continue")}</Text>
             </Pressable>
           </>
         ) : (
           <>
-            <Text style={styles.title}>{t("techOnboarding.doneTitle")}</Text>
-            <Text style={styles.body}>{t("techOnboarding.doneBody")}</Text>
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <ProfileHeroCard>
+              <Text style={styles.heroTitle}>{t("techOnboarding.doneTitle")}</Text>
+              <Text style={styles.heroBody}>{t("techOnboarding.doneBody")}</Text>
+            </ProfileHeroCard>
+            {error ? (
+              <ScreenSection title={t("techOnboarding.sectionError")}>
+                <Text style={styles.error}>{error}</Text>
+              </ScreenSection>
+            ) : null}
             <Pressable style={styles.primary} onPress={() => void submit()} disabled={busy}>
               {busy ? (
                 <ActivityIndicator color="#fff" />
@@ -163,20 +215,20 @@ export function TechOnboardingScreen({ onFinished, onCancel }: Props) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: techColors.canvas },
-  scroll: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
   skip: { alignSelf: "flex-end" },
   skipText: { color: techColors.primary, fontWeight: "600" },
-  title: { ...mobileTypography.cardTitle, fontSize: 22, color: techColors.textPrimary },
-  body: { ...mobileTypography.body, color: techColors.textSecondary, lineHeight: 22 },
-  label: { ...mobileTypography.meta, color: techColors.textSecondary, marginTop: mobileSpacing.sm },
+  heroTitle: { ...mobileTypography.cardTitle, fontSize: 22, color: techColors.textPrimary },
+  heroBody: { ...mobileTypography.body, color: techColors.textSecondary, lineHeight: 22 },
   input: {
-    backgroundColor: mobileColors.background,
+    backgroundColor: techColors.canvas,
     borderRadius: mobileRadius.md,
     borderWidth: 1,
     borderColor: mobileColors.border,
     padding: mobileSpacing.md,
-    ...mobileTypography.body
+    ...mobileTypography.body,
+    color: techColors.textPrimary
   },
+  inputSpaced: { marginTop: mobileSpacing.sm },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
   chip: {
     paddingHorizontal: mobileSpacing.md,
@@ -190,12 +242,12 @@ const styles = StyleSheet.create({
   chipText: { ...mobileTypography.meta, fontWeight: "600", color: techColors.textSecondary },
   chipTextActive: { color: "#fff" },
   primary: {
-    marginTop: mobileSpacing.lg,
     backgroundColor: techColors.primary,
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.lg,
     alignItems: "center"
   },
+  primaryDisabled: { opacity: 0.5 },
   primaryLabel: { color: "#fff", fontWeight: "700", fontSize: 16 },
   error: { color: mobileColors.error }
 });

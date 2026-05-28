@@ -13,6 +13,12 @@ import {
 } from "react-native";
 import { CreatePriceAlertModal } from "../../components/buyer/CreatePriceAlertModal";
 import { PriceAlertCard } from "../../components/buyer/PriceAlertCard";
+import {
+  ProfileHeroCard,
+  ProfileSectionEmpty,
+  profileScreenScrollContent,
+  ScreenSection
+} from "../../components/layout";
 import { BuyerMobileShell } from "../../components/layout/BuyerMobileShell";
 import { useBuyerBottomChromePad } from "../../context/BuyerBottomChromeContext";
 import { useSession } from "../../context/SessionContext";
@@ -21,7 +27,7 @@ import {
   fetchBuyerPriceAlerts,
   updateBuyerPriceAlert
 } from "../../lib/api";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing } from "../../theme/mobileTheme";
 import { buyerColors, buyerRadius, buyerShadow } from "../../theme/buyerTheme";
 
 export function BuyerAlertsScreen() {
@@ -66,7 +72,10 @@ export function BuyerAlertsScreen() {
   return (
     <BuyerMobileShell>
       <ScrollView
-        contentContainerStyle={[styles.wrap, { paddingBottom: bottomPad + 88 }]}
+        contentContainerStyle={[
+          profileScreenScrollContent,
+          { paddingBottom: bottomPad + 88 }
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={alertsQ.isFetching && !alertsQ.isLoading}
@@ -75,37 +84,41 @@ export function BuyerAlertsScreen() {
           />
         }
       >
-        <Text style={styles.title}>{t("buyer.alerts.title")}</Text>
-        <Text style={styles.subtitle}>{t("buyer.alerts.subtitle")}</Text>
+        <ProfileHeroCard>
+          <Text style={styles.heroTitle}>{t("buyer.alerts.title")}</Text>
+          <Text style={styles.heroSubtitle}>{t("buyer.alerts.subtitle")}</Text>
+        </ProfileHeroCard>
 
-        {alertsQ.isLoading ? (
-          <ActivityIndicator color={buyerColors.primary} style={styles.loader} />
-        ) : alertsQ.error ? (
-          <Text style={styles.error}>{(alertsQ.error as Error).message}</Text>
-        ) : alerts.length === 0 ? (
-          <View style={[styles.emptyCard, buyerShadow.card]}>
-            <Text style={styles.emptyTitle}>{t("buyer.alerts.emptyTitle")}</Text>
-            <Text style={styles.emptyBody}>{t("buyer.alerts.emptyBody")}</Text>
-          </View>
-        ) : (
-          <View style={styles.list}>
-            {alerts.map((alert) => (
-              <PriceAlertCard
-                key={alert.id}
-                alert={alert}
-                toggling={togglingId === alert.id}
-                onToggleActive={(next) =>
-                  toggleMut.mutate({ id: alert.id, isActive: next })
-                }
-                onDelete={() => deleteMut.mutate(alert.id)}
-              />
-            ))}
-          </View>
-        )}
+        <ScreenSection title={t("buyer.alerts.sectionList")} plain>
+          {alertsQ.isLoading ? (
+            <ActivityIndicator color={buyerColors.primary} style={styles.loader} />
+          ) : alertsQ.error ? (
+            <Text style={styles.error}>{(alertsQ.error as Error).message}</Text>
+          ) : alerts.length === 0 ? (
+            <View style={[styles.emptyCard, buyerShadow.card]}>
+              <Text style={styles.emptyTitle}>{t("buyer.alerts.emptyTitle")}</Text>
+              <Text style={styles.emptyBody}>{t("buyer.alerts.emptyBody")}</Text>
+            </View>
+          ) : (
+            <View style={styles.list}>
+              {alerts.map((alert) => (
+                <PriceAlertCard
+                  key={alert.id}
+                  alert={alert}
+                  toggling={togglingId === alert.id}
+                  onToggleActive={(next) =>
+                    toggleMut.mutate({ id: alert.id, isActive: next })
+                  }
+                  onDelete={() => deleteMut.mutate(alert.id)}
+                />
+              ))}
+            </View>
+          )}
+        </ScreenSection>
       </ScrollView>
 
       <Pressable
-        style={[styles.fab, buyerShadow.card]}
+        style={[styles.fab, buyerShadow.floating]}
         onPress={() => setCreateOpen(true)}
         accessibilityLabel={t("buyer.alerts.createCta")}
       >
@@ -127,23 +140,21 @@ export function BuyerAlertsScreen() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
-  title: { ...mobileTypography.cardTitle, fontSize: 20, color: buyerColors.textPrimary },
-  subtitle: { ...mobileTypography.body, color: buyerColors.textSecondary },
-  loader: { marginTop: mobileSpacing.xl },
+  heroTitle: { fontSize: 20, fontWeight: "700", color: buyerColors.textPrimary },
+  heroSubtitle: { color: buyerColors.textSecondary, lineHeight: 20 },
+  loader: { marginVertical: mobileSpacing.lg },
   error: { color: buyerColors.danger },
   list: { gap: mobileSpacing.md },
   emptyCard: {
     backgroundColor: buyerColors.cardBg,
     borderRadius: buyerRadius.card,
     padding: mobileSpacing.lg,
-    gap: mobileSpacing.sm
+    gap: mobileSpacing.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: buyerColors.border
   },
-  emptyTitle: {
-    ...mobileTypography.cardTitle,
-    color: buyerColors.textPrimary
-  },
-  emptyBody: { ...mobileTypography.body, color: buyerColors.textSecondary },
+  emptyTitle: { fontWeight: "700", color: buyerColors.textPrimary },
+  emptyBody: { color: buyerColors.textSecondary },
   fab: {
     position: "absolute",
     right: mobileSpacing.lg,

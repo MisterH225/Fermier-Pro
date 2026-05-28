@@ -1855,14 +1855,21 @@ export const en = {
       openCheptel: "Open herd",
       openSante: "Open health",
       openGestation: "Open gestation",
-      openModule: "Open module"
+      openModule: "Open module",
+      sectionModules: "Available modules",
+      sectionAction: "Access"
     },
-    tracking: { title: "Tracking" },
+    tracking: {
+      title: "Tracking",
+      subtitle: "History of your work on assigned farms.",
+      sectionLog: "Activity log"
+    },
     vaccinePicker: {
       title: "Choose a vaccine",
       empty: "No vaccines configured on this farm.",
       pending: "{{count}} subject(s) pending",
-      select: "Vaccinate"
+      select: "Vaccinate",
+      sectionList: "Available vaccines"
     },
     permissionDenied: "Permission not granted by the producer.",
     permissionReadOnly: "Read-only access on this module."
@@ -1883,7 +1890,8 @@ export const en = {
       allOffers: "View all offers →",
       activeProposals: "Active proposals",
       noProposals: "No pending proposals",
-      allProposals: "View all proposals →"
+      allProposals: "View all proposals →",
+      sectionStats: "Overview"
     },
     kpi: {
       pending: "Proposals",
@@ -1894,7 +1902,8 @@ export const en = {
     history: {
       title: "My purchases",
       tabs: { proposals: "Proposals", purchases: "Purchases", reviews: "Reviews" },
-      comingSoon: "Detailed history coming soon."
+      comingSoon: "Detailed history coming soon.",
+      sectionFilter: "Filter by type"
     },
     alerts: {
       title: "Price alerts",
@@ -1923,10 +1932,16 @@ export const en = {
       invalidWeight: "Invalid minimum weight.",
       invalidRadius: "Invalid radius.",
       categoryOther: "Other",
+      sectionList: "My active alerts",
+      sectionCriteria: "Price criteria",
+      sectionZone: "Search area",
       freq: { immediate: "Immediate", daily: "Daily" }
     }
   },
   techOnboarding: {
+    sectionIdentity: "Identity",
+    sectionFormation: "Training",
+    sectionError: "Error",
     skip: "Cancel",
     step1Title: "Your details",
     step2Title: "Your experience",
@@ -1955,6 +1970,10 @@ export const en = {
     }
   },
   buyerOnboarding: {
+    sectionIdentity: "Identity",
+    sectionType: "Buyer type",
+    sectionCategories: "Preferred categories",
+    sectionError: "Error",
     skip: "Cancel",
     step1Title: "Your details",
     step2Title: "Purchase preferences",

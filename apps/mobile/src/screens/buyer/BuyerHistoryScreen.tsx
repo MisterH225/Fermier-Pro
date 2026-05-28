@@ -1,12 +1,24 @@
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useRoute } from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
+} from "react-native";
 import { EventList } from "../../components/lists/EventList";
 import type { EventItem } from "../../components/lists/types";
+import {
+  ProfileHeroCard,
+  ProfileSectionEmpty,
+  profileScreenScrollContent,
+  ScreenSection
+} from "../../components/layout";
 import { BuyerMobileShell } from "../../components/layout/BuyerMobileShell";
 import { useBuyerBottomChromePad } from "../../context/BuyerBottomChromeContext";
 import { useSession } from "../../context/SessionContext";
@@ -22,8 +34,6 @@ export function BuyerHistoryScreen() {
   const { t } = useTranslation();
   const bottomPad = useBuyerBottomChromePad();
   const route = useRoute<Route>();
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken, activeProfileId } = useSession();
   const [tab, setTab] = useState<Tab>(route.params?.initialTab ?? "proposals");
 
@@ -44,42 +54,59 @@ export function BuyerHistoryScreen() {
     iconColor: buyerColors.primary
   }));
 
+  const tabLabel = t(`buyer.history.tabs.${tab}`);
+
   return (
     <BuyerMobileShell hideTopBar>
-      <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomPad }]}>
-        <Text style={styles.title}>{t("buyer.history.title")}</Text>
-        <View style={styles.pills}>
-          {(["proposals", "purchases", "reviews"] as Tab[]).map((k) => (
-            <Pressable
-              key={k}
-              style={[styles.pill, tab === k && styles.pillActive]}
-              onPress={() => setTab(k)}
-            >
-              <Text style={[styles.pillText, tab === k && styles.pillTextActive]}>
-                {t(`buyer.history.tabs.${k}`)}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        {tab === "proposals" ? (
-          proposalsQ.isLoading ? (
-            <ActivityIndicator color={buyerColors.primary} />
-          ) : items.length > 0 ? (
-            <EventList data={items} />
+      <ScrollView
+        contentContainerStyle={[
+          profileScreenScrollContent,
+          { paddingBottom: bottomPad + mobileSpacing.xl }
+        ]}
+      >
+        <ProfileHeroCard>
+          <Text style={styles.heroTitle}>{t("buyer.history.title")}</Text>
+        </ProfileHeroCard>
+
+        <ScreenSection title={t("buyer.history.sectionFilter")}>
+          <View style={styles.pills}>
+            {(["proposals", "purchases", "reviews"] as Tab[]).map((k) => {
+              const active = tab === k;
+              return (
+                <Pressable
+                  key={k}
+                  style={[styles.pill, active && styles.pillActive]}
+                  onPress={() => setTab(k)}
+                >
+                  <Text style={[styles.pillText, active && styles.pillTextActive]}>
+                    {t(`buyer.history.tabs.${k}`)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </ScreenSection>
+
+        <ScreenSection title={tabLabel}>
+          {tab === "proposals" ? (
+            proposalsQ.isLoading ? (
+              <ActivityIndicator color={buyerColors.primary} />
+            ) : items.length > 0 ? (
+              <EventList data={items} />
+            ) : (
+              <ProfileSectionEmpty>{t("buyer.dashboard.noProposals")}</ProfileSectionEmpty>
+            )
           ) : (
-            <Text style={styles.empty}>{t("buyer.dashboard.noProposals")}</Text>
-          )
-        ) : (
-          <Text style={styles.empty}>{t("buyer.history.comingSoon")}</Text>
-        )}
+            <ProfileSectionEmpty>{t("buyer.history.comingSoon")}</ProfileSectionEmpty>
+          )}
+        </ScreenSection>
       </ScrollView>
     </BuyerMobileShell>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
-  title: { ...mobileTypography.cardTitle, fontSize: 20, color: buyerColors.textPrimary },
+  heroTitle: { ...mobileTypography.cardTitle, fontSize: 20, color: buyerColors.textPrimary },
   pills: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
   pill: {
     paddingHorizontal: mobileSpacing.md,
@@ -87,10 +114,9 @@ const styles = StyleSheet.create({
     borderRadius: buyerRadius.pill,
     borderWidth: 1,
     borderColor: buyerColors.border,
-    backgroundColor: buyerColors.cardBg
+    backgroundColor: buyerColors.canvas
   },
   pillActive: { backgroundColor: buyerColors.primary, borderColor: buyerColors.primary },
   pillText: { ...mobileTypography.meta, fontWeight: "600", color: buyerColors.textSecondary },
-  pillTextActive: { color: "#fff" },
-  empty: { ...mobileTypography.body, color: buyerColors.textSecondary }
+  pillTextActive: { color: "#fff" }
 });

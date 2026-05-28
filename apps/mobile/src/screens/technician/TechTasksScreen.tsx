@@ -3,12 +3,16 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import {
+  ProfileSectionEmpty,
+  profileScreenScrollContent,
+  ScreenSection
+} from "../../components/layout";
 import { TechMobileShell } from "../../components/layout/TechMobileShell";
 import { useTechBottomChromePad } from "../../context/TechBottomChromeContext";
 import { useSession } from "../../context/SessionContext";
 import { fetchTechnicianDashboard } from "../../lib/api";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import { techColors } from "../../theme/technicianTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
@@ -41,20 +45,19 @@ export function TechTasksScreen() {
 
   return (
     <TechMobileShell>
-      <View style={[styles.wrap, { paddingBottom: bottomPad }]}>
-        {dashQ.isLoading ? (
-          <ActivityIndicator color={techColors.primary} />
-        ) : farm ? (
-          <ActivityIndicator color={techColors.primary} />
-        ) : (
-          <Text style={styles.empty}>{t("tech.tasks.noFarm")}</Text>
-        )}
+      <View style={[profileScreenScrollContent, styles.wrap, { paddingBottom: bottomPad }]}>
+        <ScreenSection title={t("tech.dashboard.tasksToday")}>
+          {dashQ.isLoading || farm ? (
+            <ActivityIndicator color={techColors.primary} />
+          ) : (
+            <ProfileSectionEmpty>{t("tech.tasks.noFarm")}</ProfileSectionEmpty>
+          )}
+        </ScreenSection>
       </View>
     </TechMobileShell>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, justifyContent: "center", alignItems: "center", padding: mobileSpacing.lg },
-  empty: { ...mobileTypography.body, color: techColors.textSecondary, textAlign: "center" }
+  wrap: { flex: 1, justifyContent: "center" }
 });

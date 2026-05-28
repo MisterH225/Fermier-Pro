@@ -13,6 +13,7 @@ import {
 import { AddWeightModal } from "../cheptel/weight/AddWeightModal";
 import { StockModal } from "../feed/StockModal";
 import { BaseModal } from "../modals/BaseModal";
+import { ModalSection } from "../modals/ModalSection";
 import { BulkVaccineModal } from "../sante/BulkVaccineModal";
 import { DiseaseModal } from "../shared/DiseaseModal";
 import {
@@ -231,39 +232,42 @@ export function TechQuickActionModals({
         onClose={closeVaccineFlow}
         title={t("tech.vaccinePicker.title")}
       >
-        {coverageQ.isPending ? (
-          <ActivityIndicator color={techColors.primary} style={styles.loader} />
-        ) : coverageQ.error ? (
-          <Text style={styles.err}>{(coverageQ.error as Error).message}</Text>
-        ) : (coverageQ.data?.items ?? []).length === 0 ? (
-          <Text style={styles.empty}>{t("tech.vaccinePicker.empty")}</Text>
-        ) : (
-          <ScrollView style={styles.vaccineList}>
-            {(coverageQ.data?.items ?? []).map((item) => {
-              const pending = item.stats.overdue + item.stats.upcoming;
-              return (
-                <Pressable
-                  key={item.vaccine.id}
-                  style={styles.vaccineRow}
-                  disabled={loadingVaccineId != null}
-                  onPress={() => void pickVaccine(item.vaccine.id)}
-                >
-                  <View style={styles.vaccineInfo}>
-                    <Text style={styles.vaccineName}>{item.vaccine.name}</Text>
-                    <Text style={styles.vaccineMeta}>
-                      {t("tech.vaccinePicker.pending", { count: pending })}
-                    </Text>
-                  </View>
-                  {loadingVaccineId === item.vaccine.id ? (
-                    <ActivityIndicator color={techColors.primary} />
-                  ) : (
-                    <Text style={styles.vaccineCta}>{t("tech.vaccinePicker.select")}</Text>
-                  )}
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        )}
+        <ModalSection title={t("tech.vaccinePicker.sectionList")} flush>
+          {coverageQ.isPending ? (
+            <ActivityIndicator color={techColors.primary} style={styles.loader} />
+          ) : coverageQ.error ? (
+            <Text style={styles.err}>{(coverageQ.error as Error).message}</Text>
+          ) : (coverageQ.data?.items ?? []).length === 0 ? (
+            <Text style={styles.empty}>{t("tech.vaccinePicker.empty")}</Text>
+          ) : (
+            <ScrollView style={styles.vaccineList}>
+              {(coverageQ.data?.items ?? []).map((item, index, arr) => {
+                const pending = item.stats.overdue + item.stats.upcoming;
+                const isLast = index === arr.length - 1;
+                return (
+                  <Pressable
+                    key={item.vaccine.id}
+                    style={[styles.vaccineRow, isLast && styles.vaccineRowLast]}
+                    disabled={loadingVaccineId != null}
+                    onPress={() => void pickVaccine(item.vaccine.id)}
+                  >
+                    <View style={styles.vaccineInfo}>
+                      <Text style={styles.vaccineName}>{item.vaccine.name}</Text>
+                      <Text style={styles.vaccineMeta}>
+                        {t("tech.vaccinePicker.pending", { count: pending })}
+                      </Text>
+                    </View>
+                    {loadingVaccineId === item.vaccine.id ? (
+                      <ActivityIndicator color={techColors.primary} />
+                    ) : (
+                      <Text style={styles.vaccineCta}>{t("tech.vaccinePicker.select")}</Text>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          )}
+        </ModalSection>
       </BaseModal>
 
       {bulkVaccine ? (
@@ -293,10 +297,12 @@ export function TechQuickActionModals({
 
 const styles = StyleSheet.create({
   loader: { marginVertical: mobileSpacing.lg },
-  err: { color: techColors.danger ?? "#C2185B" },
-  empty: { ...mobileTypography.body, color: techColors.textSecondary },
+  err: { color: techColors.danger ?? "#C2185B", padding: mobileSpacing.md },
+  empty: { ...mobileTypography.body, color: techColors.textSecondary, padding: mobileSpacing.md },
   vaccineList: { maxHeight: 360 },
+  vaccineRowLast: { borderBottomWidth: 0 },
   vaccineRow: {
+    paddingHorizontal: mobileSpacing.md,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

@@ -3,6 +3,12 @@ import { useTranslation } from "react-i18next";
 import { ActivityIndicator, ScrollView, StyleSheet, Text } from "react-native";
 import { EventList } from "../../components/lists/EventList";
 import type { EventItem } from "../../components/lists/types";
+import {
+  ProfileHeroCard,
+  ProfileSectionEmpty,
+  profileScreenScrollContent,
+  ScreenSection
+} from "../../components/layout";
 import { TechMobileShell } from "../../components/layout/TechMobileShell";
 import { useTechBottomChromePad } from "../../context/TechBottomChromeContext";
 import { useSession } from "../../context/SessionContext";
@@ -41,19 +47,32 @@ export function TechTrackingScreen() {
 
   return (
     <TechMobileShell hideTopBar>
-      <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomPad }]}>
-        <Text style={styles.title}>{t("tech.tracking.title")}</Text>
-        {activityQ.isLoading ? <ActivityIndicator color={techColors.primary} /> : null}
-        {items.length > 0 ? <EventList data={items} /> : (
-          <Text style={styles.empty}>{t("tech.dashboard.noActivity")}</Text>
-        )}
+      <ScrollView
+        contentContainerStyle={[
+          profileScreenScrollContent,
+          { paddingBottom: bottomPad + mobileSpacing.xl }
+        ]}
+      >
+        <ProfileHeroCard>
+          <Text style={styles.heroTitle}>{t("tech.tracking.title")}</Text>
+          <Text style={styles.heroSubtitle}>{t("tech.tracking.subtitle")}</Text>
+        </ProfileHeroCard>
+
+        <ScreenSection title={t("tech.tracking.sectionLog")}>
+          {activityQ.isLoading ? (
+            <ActivityIndicator color={techColors.primary} />
+          ) : items.length > 0 ? (
+            <EventList data={items} />
+          ) : (
+            <ProfileSectionEmpty>{t("tech.dashboard.noActivity")}</ProfileSectionEmpty>
+          )}
+        </ScreenSection>
       </ScrollView>
     </TechMobileShell>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
-  title: { ...mobileTypography.cardTitle, fontSize: 20, color: techColors.textPrimary },
-  empty: { ...mobileTypography.body, color: techColors.textSecondary }
+  heroTitle: { ...mobileTypography.cardTitle, fontSize: 20, color: techColors.textPrimary },
+  heroSubtitle: { ...mobileTypography.body, color: techColors.textSecondary }
 });

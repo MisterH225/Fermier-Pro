@@ -16,24 +16,31 @@ import {
 } from "react-native";
 import { EventList } from "../../components/lists/EventList";
 import type { EventItem } from "../../components/lists/types";
+import {
+  ProfileHeroCard,
+  ProfileSectionEmpty,
+  ProfileSectionLink,
+  profileScreenScrollContent,
+  ScreenSection
+} from "../../components/layout";
 import { TechMobileShell } from "../../components/layout/TechMobileShell";
 import { ActiveProfileSwitcherModal } from "../../components/account/ActiveProfileSwitcherModal";
 import { DashboardTaskWidget } from "../../components/tasks";
+import { TechQuickActionModals } from "../../components/technician/TechQuickActionModals";
 import { useTechBottomChromePad } from "../../context/TechBottomChromeContext";
 import { useSession } from "../../context/SessionContext";
 import {
   fetchTechnicianActivity,
   fetchTechnicianDashboard
 } from "../../lib/api";
-import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
-import { welcomeFirstName } from "../../lib/userDisplay";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
-import { techColors, techRadius, techShadow } from "../../theme/technicianTheme";
 import {
   canTechQuickAction,
   type TechQuickActionKey
 } from "../../lib/technicianPermissions";
-import { TechQuickActionModals } from "../../components/technician/TechQuickActionModals";
+import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
+import { welcomeFirstName } from "../../lib/userDisplay";
+import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { techColors, techRadius, techShadow } from "../../theme/technicianTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 const QUICK_ACTIONS: {
@@ -129,194 +136,199 @@ export function TechDashboardScreen() {
 
   const kpis = dashQ.data?.kpis;
 
-  const openFarmRoute = useCallback(
-    (route: "FarmFeedStock" | "FarmHealth") => {
-      if (!activeFarm) {
-        navigation.navigate("TechFarm");
-        return;
-      }
-      navigation.navigate(route, {
-        farmId: activeFarm.farmId,
-        farmName: activeFarm.farmName
-      });
-    },
-    [activeFarm, navigation]
-  );
-
   return (
     <TechMobileShell hideTopBar>
       <ScrollView
-        contentContainerStyle={[styles.wrap, { paddingBottom: bottomPad + mobileSpacing.xl }]}
+        contentContainerStyle={[
+          profileScreenScrollContent,
+          { paddingBottom: bottomPad + mobileSpacing.xl }
+        ]}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={techColors.primary} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void onRefresh()}
+            tintColor={techColors.primary}
+          />
         }
       >
-        <View style={styles.headerRow}>
-          <Pressable style={styles.headerLeft} onPress={() => setProfileOpen(true)}>
-            {resolveActiveProfileAvatarUrl(authMe, activeProfileId) ? (
-              <Image
-                source={{ uri: resolveActiveProfileAvatarUrl(authMe, activeProfileId)! }}
-                style={styles.avatar}
+        <ProfileHeroCard>
+          <View style={styles.headerRow}>
+            <Pressable style={styles.headerLeft} onPress={() => setProfileOpen(true)}>
+              {resolveActiveProfileAvatarUrl(authMe, activeProfileId) ? (
+                <Image
+                  source={{ uri: resolveActiveProfileAvatarUrl(authMe, activeProfileId)! }}
+                  style={styles.avatar}
+                />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <Ionicons name="construct" size={24} color={techColors.primary} />
+                </View>
+              )}
+              <View style={styles.headerText}>
+                <Text style={styles.greeting}>
+                  {t("tech.dashboard.welcome", { name: displayName })}
+                </Text>
+                <Text style={styles.subtitle} numberOfLines={2}>
+                  {activeFarm
+                    ? t("tech.dashboard.farmSubtitle", {
+                        farm: activeFarm.farmName,
+                        date: todayLabel
+                      })
+                    : t("tech.dashboard.noFarm")}
+                </Text>
+              </View>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                if (activeFarm) {
+                  navigation.navigate("SmartAlertsList", {
+                    farmId: activeFarm.farmId,
+                    farmName: activeFarm.farmName
+                  });
+                }
+              }}
+              style={styles.bell}
+            >
+              <Ionicons name="notifications-outline" size={24} color={techColors.primary} />
+              {(dashQ.data?.alertsCount ?? 0) > 0 ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{dashQ.data?.alertsCount}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+          </View>
+
+          {farms.length > 1 ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.farmPills}>
+              {farms.map((f) => {
+                const active = f.farmId === resolvedFarmId;
+                return (
+                  <Pressable
+                    key={f.farmId}
+                    style={[styles.farmPill, active && styles.farmPillActive]}
+                    onPress={() => setActiveFarmId(f.farmId)}
+                  >
+                    <Text style={[styles.farmPillText, active && styles.farmPillTextActive]}>
+                      {f.farmName}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          ) : null}
+        </ProfileHeroCard>
+
+        <View style={styles.sectionBlock}>
+          <ScreenSection title={t("tech.dashboard.tasksToday")}>
+            {activeFarm && clientFeatures.tasks && accessToken ? (
+              <DashboardTaskWidget
+                farmId={activeFarm.farmId}
+                farmName={activeFarm.farmName}
+                accessToken={accessToken}
+                activeProfileId={activeProfileId}
+                embedded
               />
             ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Ionicons name="construct" size={24} color={techColors.primary} />
-              </View>
+              <ProfileSectionEmpty>{t("tech.dashboard.noTasks")}</ProfileSectionEmpty>
             )}
-            <View style={styles.headerText}>
-              <Text style={styles.greeting}>
-                {t("tech.dashboard.welcome", { name: displayName })}
-              </Text>
-              <Text style={styles.subtitle} numberOfLines={2}>
-                {activeFarm
-                  ? t("tech.dashboard.farmSubtitle", {
-                      farm: activeFarm.farmName,
-                      date: todayLabel
-                    })
-                  : t("tech.dashboard.noFarm")}
-              </Text>
-            </View>
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              if (activeFarm) {
-                navigation.navigate("SmartAlertsList", {
-                  farmId: activeFarm.farmId,
-                  farmName: activeFarm.farmName
-                });
-              }
-            }}
-            style={styles.bell}
-          >
-            <Ionicons name="notifications-outline" size={24} color={techColors.primary} />
-            {(dashQ.data?.alertsCount ?? 0) > 0 ? (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{dashQ.data?.alertsCount}</Text>
-              </View>
-            ) : null}
-          </Pressable>
+          </ScreenSection>
+          <ProfileSectionLink
+            color={techColors.primary}
+            label={t("tech.dashboard.allTasks")}
+            onPress={() => navigation.navigate("TechTasks")}
+          />
         </View>
 
-        {farms.length > 1 ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.farmPills}>
-            {farms.map((f) => {
-              const active = f.farmId === resolvedFarmId;
+        <ScreenSection title={t("tech.dashboard.quickActions")} plain>
+          <View style={styles.quickGrid}>
+            {QUICK_ACTIONS.map((a) => {
+              const allowed = activeFarm
+                ? canTechQuickAction(activeFarm.scopes, a.key)
+                : false;
               return (
                 <Pressable
-                  key={f.farmId}
-                  style={[styles.farmPill, active && styles.farmPillActive]}
-                  onPress={() => setActiveFarmId(f.farmId)}
+                  key={a.key}
+                  style={[
+                    styles.quickCard,
+                    techShadow.card,
+                    !allowed && styles.quickCardDisabled
+                  ]}
+                  onPress={() => {
+                    if (!activeFarm) {
+                      Alert.alert("", t("tech.tasks.noFarm"));
+                      return;
+                    }
+                    if (!allowed) {
+                      Alert.alert("", t("tech.permissionDenied"));
+                      return;
+                    }
+                    if (a.key === "vaccine") {
+                      setQuickAction("vaccine");
+                      return;
+                    }
+                    if (a.key === "mortality") {
+                      navigation.navigate("FarmHealth", {
+                        farmId: activeFarm.farmId,
+                        farmName: activeFarm.farmName,
+                        initialTab: "mortality",
+                        openFormKind: "mortality"
+                      });
+                      return;
+                    }
+                    setQuickAction(a.key);
+                  }}
                 >
-                  <Text style={[styles.farmPillText, active && styles.farmPillTextActive]}>
-                    {f.farmName}
+                  <Ionicons
+                    name={a.icon}
+                    size={26}
+                    color={allowed ? techColors.primary : techColors.textMuted}
+                  />
+                  <Text
+                    style={[styles.quickLabel, !allowed && styles.quickLabelDisabled]}
+                  >
+                    {t(`tech.quick.${a.key}`)}
                   </Text>
                 </Pressable>
               );
             })}
-          </ScrollView>
-        ) : null}
+          </View>
+        </ScreenSection>
 
-        <Text style={styles.sectionTitle}>{t("tech.dashboard.tasksToday")}</Text>
-        {activeFarm && clientFeatures.tasks && accessToken ? (
-          <DashboardTaskWidget
-            farmId={activeFarm.farmId}
-            farmName={activeFarm.farmName}
-            accessToken={accessToken}
-            activeProfileId={activeProfileId}
+        <ScreenSection title={t("tech.dashboard.farmStatus")} plain>
+          <View style={styles.kpiRow}>
+            <View style={[styles.kpiCard, techShadow.card]}>
+              <Text style={styles.kpiValue}>{kpis?.activeAlerts ?? 0}</Text>
+              <Text style={styles.kpiLabel}>{t("tech.kpi.alerts")}</Text>
+            </View>
+            <View style={[styles.kpiCard, techShadow.card]}>
+              <Text style={styles.kpiValue}>{kpis?.overdueVaccines ?? 0}</Text>
+              <Text style={styles.kpiLabel}>{t("tech.kpi.vaccines")}</Text>
+            </View>
+            <View style={[styles.kpiCard, techShadow.card]}>
+              <Text style={styles.kpiValue}>{kpis?.gestationThisWeek ?? 0}</Text>
+              <Text style={styles.kpiLabel}>{t("tech.kpi.gestation")}</Text>
+            </View>
+            <View style={[styles.kpiCard, techShadow.card]}>
+              <Text style={styles.kpiValue}>{kpis?.criticalStock ?? 0}</Text>
+              <Text style={styles.kpiLabel}>{t("tech.kpi.stock")}</Text>
+            </View>
+          </View>
+        </ScreenSection>
+
+        <View style={styles.sectionBlock}>
+          <ScreenSection title={t("tech.dashboard.recentActivity")}>
+            {events.length > 0 ? (
+              <EventList data={events} />
+            ) : (
+              <ProfileSectionEmpty>{t("tech.dashboard.noActivity")}</ProfileSectionEmpty>
+            )}
+          </ScreenSection>
+          <ProfileSectionLink
+            color={techColors.primary}
+            label={t("tech.dashboard.allActivity")}
+            onPress={() => navigation.navigate("TechTracking")}
           />
-        ) : (
-          <Text style={styles.empty}>{t("tech.dashboard.noTasks")}</Text>
-        )}
-        <Pressable onPress={() => navigation.navigate("TechTasks")}>
-          <Text style={styles.link}>{t("tech.dashboard.allTasks")}</Text>
-        </Pressable>
-
-        <Text style={styles.sectionTitle}>{t("tech.dashboard.quickActions")}</Text>
-        <View style={styles.quickGrid}>
-          {QUICK_ACTIONS.map((a) => {
-            const allowed = activeFarm
-              ? canTechQuickAction(activeFarm.scopes, a.key)
-              : false;
-            return (
-              <Pressable
-                key={a.key}
-                style={[
-                  styles.quickCard,
-                  techShadow.card,
-                  !allowed && styles.quickCardDisabled
-                ]}
-                onPress={() => {
-                  if (!activeFarm) {
-                    Alert.alert("", t("tech.tasks.noFarm"));
-                    return;
-                  }
-                  if (!allowed) {
-                    Alert.alert("", t("tech.permissionDenied"));
-                    return;
-                  }
-                  if (a.key === "vaccine") {
-                    setQuickAction("vaccine");
-                    return;
-                  }
-                  if (a.key === "mortality") {
-                    navigation.navigate("FarmHealth", {
-                      farmId: activeFarm.farmId,
-                      farmName: activeFarm.farmName,
-                      initialTab: "mortality",
-                      openFormKind: "mortality"
-                    });
-                    return;
-                  }
-                  setQuickAction(a.key);
-                }}
-              >
-                <Ionicons
-                  name={a.icon}
-                  size={26}
-                  color={allowed ? techColors.primary : techColors.textMuted}
-                />
-                <Text
-                  style={[
-                    styles.quickLabel,
-                    !allowed && styles.quickLabelDisabled
-                  ]}
-                >
-                  {t(`tech.quick.${a.key}`)}
-                </Text>
-              </Pressable>
-            );
-          })}
         </View>
-
-        <Text style={styles.sectionTitle}>{t("tech.dashboard.farmStatus")}</Text>
-        <View style={styles.kpiRow}>
-          <View style={[styles.kpiCard, techShadow.card]}>
-            <Text style={styles.kpiValue}>{kpis?.activeAlerts ?? 0}</Text>
-            <Text style={styles.kpiLabel}>{t("tech.kpi.alerts")}</Text>
-          </View>
-          <View style={[styles.kpiCard, techShadow.card]}>
-            <Text style={styles.kpiValue}>{kpis?.overdueVaccines ?? 0}</Text>
-            <Text style={styles.kpiLabel}>{t("tech.kpi.vaccines")}</Text>
-          </View>
-          <View style={[styles.kpiCard, techShadow.card]}>
-            <Text style={styles.kpiValue}>{kpis?.gestationThisWeek ?? 0}</Text>
-            <Text style={styles.kpiLabel}>{t("tech.kpi.gestation")}</Text>
-          </View>
-          <View style={[styles.kpiCard, techShadow.card]}>
-            <Text style={styles.kpiValue}>{kpis?.criticalStock ?? 0}</Text>
-            <Text style={styles.kpiLabel}>{t("tech.kpi.stock")}</Text>
-          </View>
-        </View>
-
-        <Text style={styles.sectionTitle}>{t("tech.dashboard.recentActivity")}</Text>
-        {events.length > 0 ? (
-          <EventList data={events} />
-        ) : (
-          <Text style={styles.empty}>{t("tech.dashboard.noActivity")}</Text>
-        )}
-        <Pressable onPress={() => navigation.navigate("TechTracking")}>
-          <Text style={styles.link}>{t("tech.dashboard.allActivity")}</Text>
-        </Pressable>
       </ScrollView>
 
       <TechQuickActionModals
@@ -345,7 +357,7 @@ export function TechDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
+  sectionBlock: { gap: mobileSpacing.sm },
   headerRow: { flexDirection: "row", alignItems: "flex-start", gap: mobileSpacing.md },
   headerLeft: { flex: 1, flexDirection: "row", gap: mobileSpacing.md },
   avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: techColors.primaryLight },
@@ -366,12 +378,12 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   badgeText: { color: "#fff", fontSize: 10, fontWeight: "700" },
-  farmPills: { marginVertical: mobileSpacing.xs },
+  farmPills: { marginTop: mobileSpacing.xs },
   farmPill: {
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: 8,
     borderRadius: techRadius.pill,
-    backgroundColor: techColors.cardBg,
+    backgroundColor: techColors.primaryLight,
     borderWidth: 1,
     borderColor: techColors.border,
     marginRight: mobileSpacing.sm
@@ -379,9 +391,6 @@ const styles = StyleSheet.create({
   farmPillActive: { backgroundColor: techColors.primary, borderColor: techColors.primary },
   farmPillText: { ...mobileTypography.meta, fontWeight: "600", color: techColors.textSecondary },
   farmPillTextActive: { color: "#fff" },
-  sectionTitle: { ...mobileTypography.cardTitle, color: techColors.textPrimary, marginTop: mobileSpacing.sm },
-  empty: { ...mobileTypography.body, color: techColors.textSecondary },
-  link: { ...mobileTypography.body, color: techColors.primary, fontWeight: "600" },
   quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
   quickCard: {
     width: "31%",
@@ -394,7 +403,12 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: techColors.border
   },
-  quickLabel: { ...mobileTypography.meta, textAlign: "center", color: techColors.textPrimary, fontWeight: "600" },
+  quickLabel: {
+    ...mobileTypography.meta,
+    textAlign: "center",
+    color: techColors.textPrimary,
+    fontWeight: "600"
+  },
   quickCardDisabled: { opacity: 0.45 },
   quickLabelDisabled: { color: techColors.textMuted },
   kpiRow: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
