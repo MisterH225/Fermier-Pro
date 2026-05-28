@@ -1903,7 +1903,10 @@ export const en = {
       title: "My purchases",
       tabs: { proposals: "Proposals", purchases: "Purchases", reviews: "Reviews" },
       comingSoon: "Detailed history coming soon.",
-      sectionFilter: "Filter by type"
+      sectionFilter: "Filter by type",
+      noProposals: "No pending or declined proposals.",
+      noPurchases: "No confirmed purchases yet.",
+      noReviews: "You have not left any reviews yet."
     },
     alerts: {
       title: "Price alerts",

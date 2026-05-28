@@ -1900,7 +1900,10 @@ export const fr = {
       title: "Mes achats",
       tabs: { proposals: "Propositions", purchases: "Achats", reviews: "Avis" },
       comingSoon: "Historique détaillé bientôt disponible.",
-      sectionFilter: "Filtrer par type"
+      sectionFilter: "Filtrer par type",
+      noProposals: "Aucune proposition en cours ou refusée.",
+      noPurchases: "Aucun achat confirmé pour le moment.",
+      noReviews: "Vous n'avez pas encore laissé d'avis."
     },
     alerts: {
       title: "Alertes prix",

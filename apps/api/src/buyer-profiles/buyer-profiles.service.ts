@@ -439,6 +439,30 @@ export class BuyerProfilesService {
     return { ok: true };
   }
 
+
+  async listPurchases(user: User) {
+    return this.listProposals(user, OfferStatus.accepted);
+  }
+
+  async listReviews(user: User) {
+    const rows = await this.prisma.farmMarketRating.findMany({
+      where: { ratedByUserId: user.id },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      include: {
+        farm: { select: { id: true, name: true } }
+      }
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      score: r.score,
+      comment: r.comment,
+      createdAt: r.createdAt.toISOString(),
+      farmId: r.farmId,
+      farmName: r.farm.name
+    }));
+  }
+
   private async ensureProfileType(userId: string, type: ProfileType) {
     const p = await this.prisma.profile.findFirst({
       where: { userId, type }

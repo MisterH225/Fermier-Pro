@@ -5593,3 +5593,28 @@ export function deleteBuyerPriceAlert(
   );
 }
 
+export type BuyerPurchaseDto = BuyerProposalDto;
+
+export type BuyerReviewDto = {
+  id: string;
+  score: number;
+  comment: string | null;
+  createdAt: string;
+  farmId: string;
+  farmName: string;
+};
+
+export function fetchBuyerPurchases(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<BuyerPurchaseDto[]> {
+  return apiGetJson("/buyers/me/purchases", accessToken, activeProfileId);
+}
+
+export function fetchBuyerReviews(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<BuyerReviewDto[]> {
+  return apiGetJson("/buyers/me/reviews", accessToken, activeProfileId);
+}
+

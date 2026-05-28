@@ -36,6 +36,16 @@ export class BuyerProfilesController {
     return this.svc.listProposals(user, status);
   }
 
+  @Get("purchases")
+  purchases(@CurrentUser() user: User) {
+    return this.svc.listPurchases(user);
+  }
+
+  @Get("reviews")
+  reviews(@CurrentUser() user: User) {
+    return this.svc.listReviews(user);
+  }
+
   @Get("personalized-listings")
   personalizedListings(@CurrentUser() user: User) {
     return this.svc.personalizedListings(user);

@@ -1,11 +1,12 @@
 import { useRoute } from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,13 +23,26 @@ import {
 import { BuyerMobileShell } from "../../components/layout/BuyerMobileShell";
 import { useBuyerBottomChromePad } from "../../context/BuyerBottomChromeContext";
 import { useSession } from "../../context/SessionContext";
-import { fetchBuyerProposals } from "../../lib/api";
+import {
+  fetchBuyerProposals,
+  fetchBuyerPurchases,
+  fetchBuyerReviews
+} from "../../lib/api";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 type Tab = "proposals" | "purchases" | "reviews";
 type Route = RouteProp<RootStackParamList, "BuyerHistory">;
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+}
+
+function stars(score: number): string {
+  return "★".repeat(Math.min(5, Math.max(0, score)));
+}
 
 export function BuyerHistoryScreen() {
   const { t } = useTranslation();
@@ -38,23 +52,126 @@ export function BuyerHistoryScreen() {
   const [tab, setTab] = useState<Tab>(route.params?.initialTab ?? "proposals");
 
   const proposalsQ = useQuery({
-    queryKey: ["buyerProposals", activeProfileId, tab],
+    queryKey: ["buyerProposals", activeProfileId, "history"],
     queryFn: () => fetchBuyerProposals(accessToken!, activeProfileId),
     enabled: Boolean(accessToken) && tab === "proposals"
   });
 
-  const items: EventItem[] = (proposalsQ.data ?? []).map((p) => ({
-    id: p.id,
-    title: p.listing.title,
-    subtitle: `${p.status} · ${p.listing.farmName ?? "—"}`,
-    date: new Date(p.createdAt).toLocaleDateString(),
-    valueType: "neutral",
-    iconType: "custom",
-    customIcon: "receipt-outline",
-    iconColor: buyerColors.primary
-  }));
+  const purchasesQ = useQuery({
+    queryKey: ["buyerPurchases", activeProfileId],
+    queryFn: () => fetchBuyerPurchases(accessToken!, activeProfileId),
+    enabled: Boolean(accessToken) && tab === "purchases"
+  });
+
+  const reviewsQ = useQuery({
+    queryKey: ["buyerReviews", activeProfileId],
+    queryFn: () => fetchBuyerReviews(accessToken!, activeProfileId),
+    enabled: Boolean(accessToken) && tab === "reviews"
+  });
+
+  const proposalItems: EventItem[] = useMemo(
+    () =>
+      (proposalsQ.data ?? [])
+        .filter((p) => p.status !== "accepted")
+        .map((p) => ({
+          id: p.id,
+          title: p.listing.title,
+          subtitle: `${p.status} · ${p.listing.farmName ?? "—"}`,
+          date: formatDate(p.createdAt),
+          valueType: "neutral" as const,
+          iconType: "custom" as const,
+          customIcon: "paper-plane-outline",
+          iconColor: buyerColors.primary
+        })),
+    [proposalsQ.data]
+  );
+
+  const purchaseItems: EventItem[] = useMemo(
+    () =>
+      (purchasesQ.data ?? []).map((p) => ({
+        id: p.id,
+        title: p.listing.title,
+        subtitle: `${p.offeredPrice} · ${p.listing.farmName ?? "—"}`,
+        date: formatDate(p.createdAt),
+        valueType: "positive" as const,
+        iconType: "custom" as const,
+        customIcon: "checkmark-circle-outline",
+        iconColor: buyerColors.success
+      })),
+    [purchasesQ.data]
+  );
+
+  const reviewItems: EventItem[] = useMemo(
+    () =>
+      (reviewsQ.data ?? []).map((r) => ({
+        id: r.id,
+        title: r.farmName,
+        subtitle: r.comment
+          ? `${stars(r.score)} · ${r.comment}`
+          : stars(r.score),
+        date: formatDate(r.createdAt),
+        valueType: "neutral" as const,
+        iconType: "custom" as const,
+        customIcon: "star-outline",
+        iconColor: buyerColors.warning
+      })),
+    [reviewsQ.data]
+  );
 
   const tabLabel = t(`buyer.history.tabs.${tab}`);
+  const isLoading =
+    (tab === "proposals" && proposalsQ.isLoading) ||
+    (tab === "purchases" && purchasesQ.isLoading) ||
+    (tab === "reviews" && reviewsQ.isLoading);
+
+  const isFetching =
+    proposalsQ.isFetching || purchasesQ.isFetching || reviewsQ.isFetching;
+
+  const refresh = () => {
+    if (tab === "proposals") void proposalsQ.refetch();
+    if (tab === "purchases") void purchasesQ.refetch();
+    if (tab === "reviews") void reviewsQ.refetch();
+  };
+
+  const renderContent = () => {
+    if (isLoading) {
+      return <ActivityIndicator color={buyerColors.primary} />;
+    }
+    if (tab === "proposals") {
+      if (proposalsQ.error) {
+        return (
+          <ProfileSectionEmpty>{(proposalsQ.error as Error).message}</ProfileSectionEmpty>
+        );
+      }
+      return proposalItems.length > 0 ? (
+        <EventList data={proposalItems} />
+      ) : (
+        <ProfileSectionEmpty>{t("buyer.history.noProposals")}</ProfileSectionEmpty>
+      );
+    }
+    if (tab === "purchases") {
+      if (purchasesQ.error) {
+        return (
+          <ProfileSectionEmpty>{(purchasesQ.error as Error).message}</ProfileSectionEmpty>
+        );
+      }
+      return purchaseItems.length > 0 ? (
+        <EventList data={purchaseItems} />
+      ) : (
+        <ProfileSectionEmpty>{t("buyer.history.noPurchases")}</ProfileSectionEmpty>
+      );
+    }
+    if (reviewsQ.error) {
+      return (
+        <ProfileSectionEmpty>{(reviewsQ.error as Error).message}</ProfileSectionEmpty>
+      );
+    }
+    return reviewItems.length > 0 ? (
+      <EventList data={reviewItems} />
+    ) : (
+      <ProfileSectionEmpty>{t("buyer.history.noReviews")}</ProfileSectionEmpty>
+    );
+  };
 
   return (
     <BuyerMobileShell hideTopBar>
@@ -63,6 +180,13 @@ export function BuyerHistoryScreen() {
           profileScreenScrollContent,
           { paddingBottom: bottomPad + mobileSpacing.xl }
         ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && !isLoading}
+            onRefresh={refresh}
+            tintColor={buyerColors.primary}
+          />
+        }
       >
         <ProfileHeroCard>
           <Text style={styles.heroTitle}>{t("buyer.history.title")}</Text>
@@ -87,19 +211,7 @@ export function BuyerHistoryScreen() {
           </View>
         </ScreenSection>
 
-        <ScreenSection title={tabLabel}>
-          {tab === "proposals" ? (
-            proposalsQ.isLoading ? (
-              <ActivityIndicator color={buyerColors.primary} />
-            ) : items.length > 0 ? (
-              <EventList data={items} />
-            ) : (
-              <ProfileSectionEmpty>{t("buyer.dashboard.noProposals")}</ProfileSectionEmpty>
-            )
-          ) : (
-            <ProfileSectionEmpty>{t("buyer.history.comingSoon")}</ProfileSectionEmpty>
-          )}
-        </ScreenSection>
+        <ScreenSection title={tabLabel}>{renderContent()}</ScreenSection>
       </ScrollView>
     </BuyerMobileShell>
   );
