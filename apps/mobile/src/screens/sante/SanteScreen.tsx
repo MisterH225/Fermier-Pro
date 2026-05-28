@@ -170,6 +170,7 @@ export function SanteScreen({ route, navigation }: Props) {
   const [healthTab, setHealthTab] = useState<HealthScreenTab>(
     initialTab ?? "overview"
   );
+  const [pendingOpenForm, setPendingOpenForm] = useState(openFormKind);
   const [formOpen, setFormOpen] = useState(false);
   const [formKind, setFormKind] = useState<FarmHealthRecordKind>("vaccination");
   const [form, setForm] = useState<HealthFormState>(emptyForm);
@@ -201,6 +202,15 @@ export function SanteScreen({ route, navigation }: Props) {
     setFormKind(kind);
     setFormOpen(true);
   };
+
+  useEffect(() => {
+    if (!pendingOpenForm || !farmQuery.data) {
+      return;
+    }
+    setHealthTab(pendingOpenForm);
+    openForm(pendingOpenForm);
+    setPendingOpenForm(undefined);
+  }, [pendingOpenForm, farmQuery.data]);
 
   const invalidateHealth = () => {
     void invalidateAIInsights(farmId, "sante");
