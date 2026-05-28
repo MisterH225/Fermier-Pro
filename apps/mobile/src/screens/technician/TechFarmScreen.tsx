@@ -17,6 +17,12 @@ import { useSession } from "../../context/SessionContext";
 import { fetchTechnicianDashboard } from "../../lib/api";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import { techColors, techRadius } from "../../theme/technicianTheme";
+import { Alert } from "react-native";
+import {
+  canTechViewFarmModule,
+  canTechWriteFarmModule,
+  type TechFarmModuleKey
+} from "../../lib/technicianPermissions";
 import type { RootStackParamList } from "../../types/navigation";
 
 const TABS = ["loges", "cheptel", "sante", "gestation"] as const;
@@ -40,6 +46,14 @@ export function TechFarmScreen() {
   const open = () => {
     if (!farm) {
       return;
+    }
+    const moduleKey = tab as TechFarmModuleKey;
+    if (!canTechViewFarmModule(farm.scopes, moduleKey)) {
+      Alert.alert("", t("tech.permissionDenied"));
+      return;
+    }
+    if (!canTechWriteFarmModule(farm.scopes, moduleKey)) {
+      Alert.alert("", t("tech.permissionReadOnly"));
     }
     const params = { farmId: farm.farmId, farmName: farm.farmName };
     if (tab === "loges") {

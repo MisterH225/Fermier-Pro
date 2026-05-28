@@ -93,7 +93,7 @@ const emptyForm = (): HealthFormState => ({
 });
 
 export function SanteScreen({ route, navigation }: Props) {
-  const { farmId, farmName, initialTab } = route.params;
+  const { farmId, farmName, initialTab, openFormKind } = route.params;
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "en" ? "en" : "fr";
   const qc = useQueryClient();
@@ -170,6 +170,7 @@ export function SanteScreen({ route, navigation }: Props) {
   const [healthTab, setHealthTab] = useState<HealthScreenTab>(
     initialTab ?? "overview"
   );
+  const [pendingOpenForm, setPendingOpenForm] = useState(openFormKind);
   const [formOpen, setFormOpen] = useState(false);
   const [formKind, setFormKind] = useState<FarmHealthRecordKind>("vaccination");
   const [form, setForm] = useState<HealthFormState>(emptyForm);
@@ -201,6 +202,15 @@ export function SanteScreen({ route, navigation }: Props) {
     setFormKind(kind);
     setFormOpen(true);
   };
+
+  useEffect(() => {
+    if (!pendingOpenForm || !farmQuery.data) {
+      return;
+    }
+    setHealthTab(pendingOpenForm);
+    openForm(pendingOpenForm);
+    setPendingOpenForm(undefined);
+  }, [pendingOpenForm, farmQuery.data]);
 
   const invalidateHealth = () => {
     void invalidateAIInsights(farmId, "sante");

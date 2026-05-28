@@ -28,7 +28,19 @@ export type RootStackParamList = {
   FarmDetail: { farmId: string; farmName: string };
   FarmLivestock: { farmId: string; farmName: string };
   /** Santé ferme (dossiers vaccins, maladies, véto, traitements, mortalités). */
-  FarmHealth: { farmId: string; farmName: string; initialTab?: "overview" | "disease" };
+  FarmHealth: {
+    farmId: string;
+    farmName: string;
+    initialTab?:
+      | "overview"
+      | "disease"
+      | "vaccination"
+      | "mortality"
+      | "vet_visit"
+      | "treatment";
+    /** Ouvre directement le formulaire d’ajout (ex. depuis dashboard technicien). */
+    openFormKind?: "mortality" | "vaccination" | "vet_visit" | "treatment";
+  };
   VetSearch: { farmId: string; farmName: string };
   ProducerScheduleVetVisit: {
     farmId: string;

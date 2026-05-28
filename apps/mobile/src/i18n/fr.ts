@@ -1849,7 +1849,9 @@ export const fr = {
       openGestation: "Ouvrir gestation",
       openModule: "Ouvrir le module"
     },
-    tracking: { title: "Suivi" }
+    tracking: { title: "Suivi" },
+    permissionDenied: "Permission non accordée par le producteur.",
+    permissionReadOnly: "Accès lecture seule sur ce module."
   },
   buyer: {
     nav: {

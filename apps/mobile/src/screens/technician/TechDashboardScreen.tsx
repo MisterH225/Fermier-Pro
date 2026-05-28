@@ -5,6 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  Alert,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -27,16 +29,24 @@ import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { welcomeFirstName } from "../../lib/userDisplay";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import { techColors, techRadius, techShadow } from "../../theme/technicianTheme";
+import {
+  canTechQuickAction,
+  type TechQuickActionKey
+} from "../../lib/technicianPermissions";
+import { TechQuickActionModals } from "../../components/technician/TechQuickActionModals";
 import type { RootStackParamList } from "../../types/navigation";
 
-const QUICK_ACTIONS = [
-  { key: "stock", icon: "nutrition-outline" as const, route: "FarmFeedStock" as const },
-  { key: "weight", icon: "scale-outline" as const, route: "FarmHealth" as const },
-  { key: "vaccine", icon: "medkit-outline" as const, route: "FarmHealth" as const },
-  { key: "disease", icon: "warning-outline" as const, route: "FarmHealth" as const },
-  { key: "mortality", icon: "skull-outline" as const, route: "FarmHealth" as const },
-  { key: "feedIn", icon: "cube-outline" as const, route: "FarmFeedStock" as const }
-] as const;
+const QUICK_ACTIONS: {
+  key: TechQuickActionKey;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  { key: "stock", icon: "nutrition-outline" },
+  { key: "weight", icon: "scale-outline" },
+  { key: "vaccine", icon: "medkit-outline" },
+  { key: "disease", icon: "warning-outline" },
+  { key: "mortality", icon: "skull-outline" },
+  { key: "feedIn", icon: "cube-outline" }
+];
 
 function activityToEvent(
   a: { id: string; action: string; detail: string | null; createdAt: string; module: string },
@@ -69,6 +79,7 @@ export function TechDashboardScreen() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [activeFarmId, setActiveFarmId] = useState<string | null>(null);
+  const [quickAction, setQuickAction] = useState<TechQuickActionKey | null>(null);
 
   const dashQ = useQuery({
     queryKey: ["techDashboard", activeProfileId, activeFarmId],
@@ -143,7 +154,10 @@ export function TechDashboardScreen() {
         <View style={styles.headerRow}>
           <Pressable style={styles.headerLeft} onPress={() => setProfileOpen(true)}>
             {resolveActiveProfileAvatarUrl(authMe, activeProfileId) ? (
-              <View style={styles.avatar} />
+              <Image
+                source={{ uri: resolveActiveProfileAvatarUrl(authMe, activeProfileId)! }}
+                style={styles.avatar}
+              />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
                 <Ionicons name="construct" size={24} color={techColors.primary} />
@@ -219,16 +233,63 @@ export function TechDashboardScreen() {
 
         <Text style={styles.sectionTitle}>{t("tech.dashboard.quickActions")}</Text>
         <View style={styles.quickGrid}>
-          {QUICK_ACTIONS.map((a) => (
-            <Pressable
-              key={a.key}
-              style={[styles.quickCard, techShadow.card]}
-              onPress={() => openFarmRoute(a.route)}
-            >
-              <Ionicons name={a.icon} size={26} color={techColors.primary} />
-              <Text style={styles.quickLabel}>{t(`tech.quick.${a.key}`)}</Text>
-            </Pressable>
-          ))}
+          {QUICK_ACTIONS.map((a) => {
+            const allowed = activeFarm
+              ? canTechQuickAction(activeFarm.scopes, a.key)
+              : false;
+            return (
+              <Pressable
+                key={a.key}
+                style={[
+                  styles.quickCard,
+                  techShadow.card,
+                  !allowed && styles.quickCardDisabled
+                ]}
+                onPress={() => {
+                  if (!activeFarm) {
+                    Alert.alert("", t("tech.tasks.noFarm"));
+                    return;
+                  }
+                  if (!allowed) {
+                    Alert.alert("", t("tech.permissionDenied"));
+                    return;
+                  }
+                  if (a.key === "vaccine") {
+                    navigation.navigate("FarmHealth", {
+                      farmId: activeFarm.farmId,
+                      farmName: activeFarm.farmName,
+                      initialTab: "vaccination"
+                    });
+                    return;
+                  }
+                  if (a.key === "mortality") {
+                    navigation.navigate("FarmHealth", {
+                      farmId: activeFarm.farmId,
+                      farmName: activeFarm.farmName,
+                      initialTab: "mortality",
+                      openFormKind: "mortality"
+                    });
+                    return;
+                  }
+                  setQuickAction(a.key);
+                }}
+              >
+                <Ionicons
+                  name={a.icon}
+                  size={26}
+                  color={allowed ? techColors.primary : techColors.textMuted}
+                />
+                <Text
+                  style={[
+                    styles.quickLabel,
+                    !allowed && styles.quickLabelDisabled
+                  ]}
+                >
+                  {t(`tech.quick.${a.key}`)}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         <Text style={styles.sectionTitle}>{t("tech.dashboard.farmStatus")}</Text>
@@ -261,6 +322,26 @@ export function TechDashboardScreen() {
           <Text style={styles.link}>{t("tech.dashboard.allActivity")}</Text>
         </Pressable>
       </ScrollView>
+
+      <TechQuickActionModals
+        farm={
+          activeFarm
+            ? {
+                farmId: activeFarm.farmId,
+                farmName: activeFarm.farmName,
+                scopes: activeFarm.scopes
+              }
+            : undefined
+        }
+        accessToken={accessToken!}
+        activeProfileId={activeProfileId}
+        openAction={quickAction}
+        onClose={() => setQuickAction(null)}
+        onSuccess={() => {
+          void dashQ.refetch();
+          void activityQ.refetch();
+        }}
+      />
 
       <ActiveProfileSwitcherModal visible={profileOpen} onClose={() => setProfileOpen(false)} />
     </TechMobileShell>
@@ -318,6 +399,8 @@ const styles = StyleSheet.create({
     borderColor: techColors.border
   },
   quickLabel: { ...mobileTypography.meta, textAlign: "center", color: techColors.textPrimary, fontWeight: "600" },
+  quickCardDisabled: { opacity: 0.45 },
+  quickLabelDisabled: { color: techColors.textMuted },
   kpiRow: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
   kpiCard: {
     width: "47%",
