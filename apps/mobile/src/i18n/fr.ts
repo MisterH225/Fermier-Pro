@@ -1850,6 +1850,12 @@ export const fr = {
       openModule: "Ouvrir le module"
     },
     tracking: { title: "Suivi" },
+    vaccinePicker: {
+      title: "Choisir un vaccin",
+      empty: "Aucun vaccin configuré sur cette ferme.",
+      pending: "{{count}} sujet(s) à traiter",
+      select: "Vacciner"
+    },
     permissionDenied: "Permission non accordée par le producteur.",
     permissionReadOnly: "Accès lecture seule sur ce module."
   },
@@ -1887,7 +1893,35 @@ export const fr = {
       tabs: { proposals: "Propositions", purchases: "Achats", reviews: "Avis" },
       comingSoon: "Historique détaillé bientôt disponible."
     },
-    alerts: { title: "Alertes prix", comingSoon: "Création d’alertes bientôt disponible." }
+    alerts: {
+      title: "Alertes prix",
+      subtitle: "Soyez notifié quand une annonce correspond à vos critères.",
+      comingSoon: "Création d'alertes bientôt disponible.",
+      emptyTitle: "Aucune alerte",
+      emptyBody: "Créez une alerte pour suivre les prix sur le marketplace.",
+      createTitle: "Nouvelle alerte",
+      createCta: "Créer l'alerte",
+      fieldCategory: "Catégorie",
+      fieldMaxPrice: "Prix max / kg (FCFA)",
+      fieldMinWeight: "Poids minimum (kg)",
+      fieldRadius: "Rayon (km)",
+      fieldFrequency: "Fréquence",
+      optional: "Optionnel",
+      maxPrice: "≤ {{price}} FCFA/kg",
+      minWeight: "≥ {{kg}} kg",
+      radius: "{{km}} km",
+      matchingCount: "{{count}} offre(s) correspondante(s)",
+      deleteTitle: "Supprimer l'alerte ?",
+      deleteBody: "Cette action est irréversible.",
+      deleteConfirm: "Supprimer",
+      cancel: "Annuler",
+      errorTitle: "Alerte",
+      invalidPrice: "Prix maximum invalide.",
+      invalidWeight: "Poids minimum invalide.",
+      invalidRadius: "Rayon invalide.",
+      categoryOther: "Autre",
+      freq: { immediate: "Immédiat", daily: "Quotidien" }
+    }
   },
   techOnboarding: {
     skip: "Annuler",

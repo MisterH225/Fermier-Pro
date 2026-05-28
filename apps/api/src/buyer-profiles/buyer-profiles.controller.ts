@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Patch,
   Post,
   Query,
@@ -12,6 +14,7 @@ import { OfferStatus } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { CreateBuyerPriceAlertDto } from "./dto/create-price-alert.dto";
+import { UpdateBuyerPriceAlertDto } from "./dto/update-price-alert.dto";
 import { UpsertBuyerProfileDto } from "./dto/upsert-buyer-profile.dto";
 import { BuyerProfilesService } from "./buyer-profiles.service";
 
@@ -49,6 +52,21 @@ export class BuyerProfilesController {
     @Body() dto: CreateBuyerPriceAlertDto
   ) {
     return this.svc.createPriceAlert(user, dto);
+  }
+
+
+  @Patch("price-alerts/:id")
+  updatePriceAlert(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() dto: UpdateBuyerPriceAlertDto
+  ) {
+    return this.svc.updatePriceAlert(user, id, dto);
+  }
+
+  @Delete("price-alerts/:id")
+  deletePriceAlert(@CurrentUser() user: User, @Param("id") id: string) {
+    return this.svc.deletePriceAlert(user, id);
   }
 
   @Patch("profile")

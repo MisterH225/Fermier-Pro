@@ -5528,3 +5528,68 @@ export function upsertBuyerProfile(
 ): Promise<unknown> {
   return apiPatchJson("/buyers/me/profile", body, accessToken, activeProfileId);
 }
+
+export type BuyerPriceAlertDto = {
+  id: string;
+  animalCategory: string;
+  maxPricePerKg: string;
+  minWeightKg: string | null;
+  radiusKm: number | null;
+  notificationFrequency: "immediate" | "daily";
+  isActive: boolean;
+  createdAt: string;
+  matchingListingsCount: number;
+};
+
+export type CreateBuyerPriceAlertBody = {
+  animalCategory: string;
+  maxPricePerKg: number;
+  minWeightKg?: number;
+  radiusKm?: number;
+  notificationFrequency?: "immediate" | "daily";
+  isActive?: boolean;
+};
+
+export type UpdateBuyerPriceAlertBody = Partial<CreateBuyerPriceAlertBody>;
+
+export function fetchBuyerPriceAlerts(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<BuyerPriceAlertDto[]> {
+  return apiGetJson("/buyers/me/price-alerts", accessToken, activeProfileId);
+}
+
+export function createBuyerPriceAlert(
+  accessToken: string,
+  activeProfileId: string | null | undefined,
+  body: CreateBuyerPriceAlertBody
+): Promise<BuyerPriceAlertDto> {
+  return apiPostJson("/buyers/me/price-alerts", body, accessToken, activeProfileId);
+}
+
+export function updateBuyerPriceAlert(
+  accessToken: string,
+  activeProfileId: string | null | undefined,
+  alertId: string,
+  body: UpdateBuyerPriceAlertBody
+): Promise<BuyerPriceAlertDto> {
+  return apiPatchJson(
+    `/buyers/me/price-alerts/${encodeURIComponent(alertId)}`,
+    body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function deleteBuyerPriceAlert(
+  accessToken: string,
+  activeProfileId: string | null | undefined,
+  alertId: string
+): Promise<{ ok: boolean }> {
+  return apiDeleteJson(
+    `/buyers/me/price-alerts/${encodeURIComponent(alertId)}`,
+    accessToken,
+    activeProfileId
+  );
+}
+

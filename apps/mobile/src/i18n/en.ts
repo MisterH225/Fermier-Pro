@@ -1858,6 +1858,12 @@ export const en = {
       openModule: "Open module"
     },
     tracking: { title: "Tracking" },
+    vaccinePicker: {
+      title: "Choose a vaccine",
+      empty: "No vaccines configured on this farm.",
+      pending: "{{count}} subject(s) pending",
+      select: "Vaccinate"
+    },
     permissionDenied: "Permission not granted by the producer.",
     permissionReadOnly: "Read-only access on this module."
   },
@@ -1890,7 +1896,35 @@ export const en = {
       tabs: { proposals: "Proposals", purchases: "Purchases", reviews: "Reviews" },
       comingSoon: "Detailed history coming soon."
     },
-    alerts: { title: "Price alerts", comingSoon: "Price alert creation coming soon." }
+    alerts: {
+      title: "Price alerts",
+      subtitle: "Get notified when a listing matches your criteria.",
+      comingSoon: "Price alert creation coming soon.",
+      emptyTitle: "No alerts yet",
+      emptyBody: "Create an alert to track marketplace prices.",
+      createTitle: "New alert",
+      createCta: "Create alert",
+      fieldCategory: "Category",
+      fieldMaxPrice: "Max price / kg (FCFA)",
+      fieldMinWeight: "Minimum weight (kg)",
+      fieldRadius: "Radius (km)",
+      fieldFrequency: "Frequency",
+      optional: "Optional",
+      maxPrice: "≤ {{price}} FCFA/kg",
+      minWeight: "≥ {{kg}} kg",
+      radius: "{{km}} km",
+      matchingCount: "{{count}} matching listing(s)",
+      deleteTitle: "Delete this alert?",
+      deleteBody: "This action cannot be undone.",
+      deleteConfirm: "Delete",
+      cancel: "Cancel",
+      errorTitle: "Alert",
+      invalidPrice: "Invalid maximum price.",
+      invalidWeight: "Invalid minimum weight.",
+      invalidRadius: "Invalid radius.",
+      categoryOther: "Other",
+      freq: { immediate: "Immediate", daily: "Daily" }
+    }
   },
   techOnboarding: {
     skip: "Cancel",

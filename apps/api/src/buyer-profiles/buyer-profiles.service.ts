@@ -11,7 +11,25 @@ import {
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import type { CreateBuyerPriceAlertDto } from "./dto/create-price-alert.dto";
+import type { UpdateBuyerPriceAlertDto } from "./dto/update-price-alert.dto";
 import type { UpsertBuyerProfileDto } from "./dto/upsert-buyer-profile.dto";
+
+function haversineKm(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 @Injectable()
 export class BuyerProfilesService {
@@ -238,21 +256,122 @@ export class BuyerProfilesService {
       where: { buyerProfileId: profile.id },
       orderBy: { createdAt: "desc" }
     });
-    return rows.map((a) => ({
-      id: a.id,
-      animalCategory: a.animalCategory,
-      maxPricePerKg: a.maxPricePerKg.toString(),
-      minWeightKg: a.minWeightKg?.toString() ?? null,
-      radiusKm: a.radiusKm,
-      notificationFrequency: a.notificationFrequency,
-      isActive: a.isActive,
-      createdAt: a.createdAt.toISOString()
-    }));
+    return Promise.all(
+      rows.map((row) => this.serializePriceAlert(user, row, profile))
+    );
+  }
+
+  private resolveListingCategories(animalCategory: string) {
+    if (
+      animalCategory === "breeder_male" ||
+      animalCategory === "breeder_female"
+    ) {
+      return ["breeder"] as const;
+    }
+    const known = ["piglet", "breeder", "butcher", "reformed"] as const;
+    if ((known as readonly string[]).includes(animalCategory)) {
+      return [animalCategory as (typeof known)[number]];
+    }
+    return [] as const;
+  }
+
+  private async countMatchingListings(
+    user: User,
+    alert: {
+      animalCategory: string;
+      maxPricePerKg: { toNumber(): number };
+      minWeightKg: { toNumber(): number } | null;
+      radiusKm: number | null;
+    },
+    profile: {
+      homeLatitude: { toNumber(): number } | null;
+      homeLongitude: { toNumber(): number } | null;
+    }
+  ): Promise<number> {
+    const categories = this.resolveListingCategories(alert.animalCategory);
+    const maxPrice = alert.maxPricePerKg.toNumber();
+    const minWeight = alert.minWeightKg?.toNumber() ?? null;
+    const radiusKm = alert.radiusKm;
+    const homeLat = profile.homeLatitude?.toNumber() ?? null;
+    const homeLng = profile.homeLongitude?.toNumber() ?? null;
+
+    const listings = await this.prisma.marketplaceListing.findMany({
+      where: {
+        status: ListingStatus.published,
+        sellerUserId: { not: user.id },
+        ...(categories.length ? { category: { in: [...categories] } } : {}),
+        OR: [
+          { pricePerKg: null },
+          { pricePerKg: { lte: new Prisma.Decimal(maxPrice) } }
+        ]
+      },
+      include: {
+        farm: { select: { latitude: true, longitude: true } }
+      }
+    });
+
+    return listings.filter((listing) => {
+      if (minWeight != null) {
+        const weight = listing.totalWeightKg?.toNumber();
+        if (weight != null && weight < minWeight) {
+          return false;
+        }
+      }
+      if (
+        radiusKm != null &&
+        homeLat != null &&
+        homeLng != null &&
+        listing.farm?.latitude != null &&
+        listing.farm?.longitude != null
+      ) {
+        const farmLat = listing.farm.latitude.toNumber();
+        const farmLng = listing.farm.longitude.toNumber();
+        if (haversineKm(homeLat, homeLng, farmLat, farmLng) > radiusKm) {
+          return false;
+        }
+      }
+      return true;
+    }).length;
+  }
+
+  private async serializePriceAlert(
+    user: User,
+    row: {
+      id: string;
+      animalCategory: string;
+      maxPricePerKg: { toNumber(): number; toString(): string };
+      minWeightKg: { toNumber(): number; toString(): string } | null;
+      radiusKm: number | null;
+      notificationFrequency: string;
+      isActive: boolean;
+      createdAt: Date;
+    },
+    profile: {
+      homeLatitude: { toNumber(): number } | null;
+      homeLongitude: { toNumber(): number } | null;
+    }
+  ) {
+    const matchingListingsCount = await this.countMatchingListings(
+      user,
+      row,
+      profile
+    );
+    return {
+      id: row.id,
+      animalCategory: row.animalCategory,
+      maxPricePerKg: row.maxPricePerKg.toString(),
+      minWeightKg: row.minWeightKg?.toString() ?? null,
+      radiusKm: row.radiusKm,
+      notificationFrequency: row.notificationFrequency,
+      isActive: row.isActive,
+      createdAt: row.createdAt.toISOString(),
+      matchingListingsCount
+    };
   }
 
   async createPriceAlert(user: User, dto: CreateBuyerPriceAlertDto) {
     const profile = await this.ensureRow(user.id);
-    return this.prisma.buyerPriceAlert.create({
+    const row = await this.prisma.buyerPriceAlert.create({
       data: {
         buyerProfileId: profile.id,
         animalCategory: dto.animalCategory,
@@ -266,6 +385,58 @@ export class BuyerProfilesService {
         isActive: dto.isActive ?? true
       }
     });
+    return this.serializePriceAlert(user, row, profile);
+  }
+
+  async updatePriceAlert(
+    user: User,
+    id: string,
+    dto: UpdateBuyerPriceAlertDto
+  ) {
+    const profile = await this.ensureRow(user.id);
+    const existing = await this.prisma.buyerPriceAlert.findFirst({
+      where: { id, buyerProfileId: profile.id }
+    });
+    if (!existing) {
+      throw new NotFoundException("Alerte introuvable");
+    }
+    const row = await this.prisma.buyerPriceAlert.update({
+      where: { id },
+      data: {
+        ...(dto.animalCategory !== undefined
+          ? { animalCategory: dto.animalCategory }
+          : {}),
+        ...(dto.maxPricePerKg !== undefined
+          ? { maxPricePerKg: new Prisma.Decimal(dto.maxPricePerKg) }
+          : {}),
+        ...(dto.minWeightKg !== undefined
+          ? {
+              minWeightKg:
+                dto.minWeightKg != null
+                  ? new Prisma.Decimal(dto.minWeightKg)
+                  : null
+            }
+          : {}),
+        ...(dto.radiusKm !== undefined ? { radiusKm: dto.radiusKm } : {}),
+        ...(dto.notificationFrequency !== undefined
+          ? { notificationFrequency: dto.notificationFrequency }
+          : {}),
+        ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {})
+      }
+    });
+    return this.serializePriceAlert(user, row, profile);
+  }
+
+  async deletePriceAlert(user: User, id: string) {
+    const profile = await this.ensureRow(user.id);
+    const existing = await this.prisma.buyerPriceAlert.findFirst({
+      where: { id, buyerProfileId: profile.id }
+    });
+    if (!existing) {
+      throw new NotFoundException("Alerte introuvable");
+    }
+    await this.prisma.buyerPriceAlert.delete({ where: { id } });
+    return { ok: true };
   }
 
   private async ensureProfileType(userId: string, type: ProfileType) {

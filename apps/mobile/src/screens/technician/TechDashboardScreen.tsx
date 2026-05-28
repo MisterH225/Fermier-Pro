@@ -255,11 +255,7 @@ export function TechDashboardScreen() {
                     return;
                   }
                   if (a.key === "vaccine") {
-                    navigation.navigate("FarmHealth", {
-                      farmId: activeFarm.farmId,
-                      farmName: activeFarm.farmName,
-                      initialTab: "vaccination"
-                    });
+                    setQuickAction("vaccine");
                     return;
                   }
                   if (a.key === "mortality") {
