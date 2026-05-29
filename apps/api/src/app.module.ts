@@ -112,7 +112,11 @@ import { TechnicianProfilesModule } from "./technician-profiles/technician-profi
     AiModule,
     GestationModule,
     VetsModule,
-    AdminPlatformModule
+    AdminPlatformModule,
+    FeatureFlagsModule,
+    MarketModule,
+    BuyerProfilesModule,
+    TechnicianProfilesModule
   ],
   controllers: [AppController],
   providers: [
