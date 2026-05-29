@@ -1,15 +1,8 @@
+import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
 import { mobileRadius, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 
 export type PigPriceCategoryKey = "all" | "porcelet" | "croissance" | "charcutier" | "reproducteur";
-
-const OPTIONS: { key: PigPriceCategoryKey; label: string }[] = [
-  { key: "all", label: "Tous" },
-  { key: "porcelet", label: "Porcelets 🐣" },
-  { key: "croissance", label: "Croissance 📈" },
-  { key: "charcutier", label: "Charcutier 🐷" },
-  { key: "reproducteur", label: "Reproducteurs ♻️" }
-];
 
 type Props = {
   value: PigPriceCategoryKey;
@@ -17,13 +10,23 @@ type Props = {
 };
 
 export function CategorySelector({ value, onChange }: Props) {
+  const { t } = useTranslation();
+
+  const options: { key: PigPriceCategoryKey; label: string }[] = [
+    { key: "all", label: t("pigPriceIndex.categoryAll") },
+    { key: "porcelet", label: t("pigPriceIndex.categoryPorcelet") },
+    { key: "croissance", label: t("pigPriceIndex.categoryCroissance") },
+    { key: "charcutier", label: t("pigPriceIndex.categoryCharcutier") },
+    { key: "reproducteur", label: t("pigPriceIndex.categoryReproducteur") }
+  ];
+
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.row}
     >
-      {OPTIONS.map((opt) => {
+      {options.map((opt) => {
         const active = value === opt.key;
         return (
           <Pressable

@@ -6,6 +6,7 @@ import {
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { PigPriceIndexCacheService } from "./pig-price-index-cache.service";
+import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import {
   addSaleToBucket,
   addUtcDays,
@@ -140,7 +141,8 @@ export class PigPriceIndexService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly cache: PigPriceIndexCacheService
+    private readonly cache: PigPriceIndexCacheService,
+    private readonly smartAlerts: SmartAlertsService
   ) {}
 
   cacheKey(suffix: string): string {
@@ -290,6 +292,7 @@ export class PigPriceIndexService {
     const today = startOfUtcDay(new Date());
     await this.calculateForDate(today);
     await this.calculateForDate(addUtcDays(today, -1));
+    await this.smartAlerts.syncMarketAlertsGlobally();
   }
 
   async getChart(

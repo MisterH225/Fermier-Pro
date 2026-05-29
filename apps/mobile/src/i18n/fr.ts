@@ -249,6 +249,28 @@ export const fr = {
     withdrawConfirm: "Retirer",
     withdrawAction: "Retirer mon offre"
   },
+  pigPriceIndex: {
+    title: "📊 Cours du porc",
+    subtitle: "Indice de prix moyen sur la plateforme",
+    badge: "Mis à jour toutes les heures",
+    period7d: "7J",
+    period30d: "1M",
+    period3m: "3M",
+    period12m: "12M",
+    unit: "FCFA/kg",
+    emptyData: "Données insuffisantes",
+    categoryAll: "Tous",
+    categoryPorcelet: "Porcelets 🐣",
+    categoryCroissance: "Croissance 📈",
+    categoryCharcutier: "Charcutier 🐷",
+    categoryReproducteur: "Reproducteurs ♻️",
+    statToday: "Aujourd'hui",
+    statHigh: "Plus haut",
+    statLow: "Plus bas",
+    statVolume: "Transactions",
+    variationFlat: "0.0% ➡️",
+    priceOnRequest: "—"
+  },
   tasksScreen: {
     tabPending: "En attente",
     tabInProgress: "En cours",

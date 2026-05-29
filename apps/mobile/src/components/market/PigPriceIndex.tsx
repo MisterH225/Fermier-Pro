@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { SmartChart, type SmartChartLine } from "../charts";
 import { ScreenSection } from "../layout";
@@ -14,13 +15,6 @@ import { mobileColors, mobileRadius, mobileSpacing, mobileTypography } from "../
 import { CategorySelector, type PigPriceCategoryKey } from "./CategorySelector";
 import { PriceStatsRow } from "./PriceStatsRow";
 import { PriceTickerBar } from "./PriceTickerBar";
-
-const PERIODS: { key: PigPriceIndexPeriod; label: string }[] = [
-  { key: "7d", label: "7J" },
-  { key: "30d", label: "1M" },
-  { key: "3m", label: "3M" },
-  { key: "12m", label: "12M" }
-];
 
 function chartToLines(
   series: Awaited<ReturnType<typeof fetchPigPriceIndexChart>>["series"]
@@ -39,9 +33,18 @@ function chartToLines(
 }
 
 export function PigPriceIndex() {
+  const { t, i18n } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
   const [period, setPeriod] = useState<PigPriceIndexPeriod>("30d");
   const [category, setCategory] = useState<PigPriceCategoryKey>("all");
+
+  const locale = i18n.language === "en" ? "en-US" : "fr-FR";
+  const periods: { key: PigPriceIndexPeriod; label: string }[] = [
+    { key: "7d", label: t("pigPriceIndex.period7d") },
+    { key: "30d", label: t("pigPriceIndex.period30d") },
+    { key: "3m", label: t("pigPriceIndex.period3m") },
+    { key: "12m", label: t("pigPriceIndex.period12m") }
+  ];
 
   const enabled = Boolean(accessToken);
 
@@ -82,23 +85,23 @@ export function PigPriceIndex() {
     if (Number.isNaN(d.getTime())) {
       return key;
     }
-    return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+    return d.toLocaleDateString(locale, { day: "numeric", month: "short" });
   };
 
   return (
     <ScreenSection
-      title="📊 Cours du porc"
+      title={t("pigPriceIndex.title")}
       headerRight={
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>Mis à jour toutes les heures</Text>
+          <Text style={styles.badgeText}>{t("pigPriceIndex.badge")}</Text>
         </View>
       }
     >
-      <Text style={styles.subtitle}>Indice de prix moyen sur la plateforme</Text>
+      <Text style={styles.subtitle}>{t("pigPriceIndex.subtitle")}</Text>
       <PriceTickerBar data={tickerQ.data} />
 
       <View style={styles.periodRow}>
-        {PERIODS.map((p) => (
+        {periods.map((p) => (
           <Pressable
             key={p.key}
             style={[styles.periodChip, period === p.key && styles.periodChipOn]}
@@ -118,14 +121,14 @@ export function PigPriceIndex() {
       {chartQ.isLoading ? (
         <ActivityIndicator color={mobileColors.accent} style={{ marginVertical: 24 }} />
       ) : chartQ.data?.insufficientData ? (
-        <Text style={styles.empty}>{chartQ.data.message}</Text>
+        <Text style={styles.empty}>{chartQ.data.message ?? t("pigPriceIndex.emptyData")}</Text>
       ) : (
         <SmartChart
           lines={lines}
-          unit="FCFA/kg"
+          unit={t("pigPriceIndex.unit")}
           monthLabel={monthLabel}
-          formatValue={(v) => `${Math.round(v).toLocaleString("fr-FR")}`}
-          emptyLabel="Données insuffisantes"
+          formatValue={(v) => `${Math.round(v).toLocaleString(locale)}`}
+          emptyLabel={t("pigPriceIndex.emptyData")}
           height={220}
         />
       )}

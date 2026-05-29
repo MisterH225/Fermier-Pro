@@ -5,6 +5,7 @@ import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
 import type { ComputedSmartAlert, FarmAlertThresholds } from "./smart-alerts.types";
 import { evaluateCheptelRules } from "./rules/cheptel.rules";
+import { evaluateMarketRules } from "./rules/market.rules";
 import { evaluateFinanceRules } from "./rules/finance.rules";
 import { evaluateGestationRules } from "./rules/gestation.rules";
 import { evaluateHealthRules } from "./rules/health.rules";
@@ -64,14 +65,15 @@ export class SmartAlertsService {
       return [];
     }
     const th = await this.resolveThresholds(farmId);
-    const [stock, health, finance, gestation, cheptel] = await Promise.all([
+    const [stock, health, finance, gestation, cheptel, market] = await Promise.all([
       evaluateStockRules(this.prisma, farmId, th),
       evaluateHealthRules(this.prisma, farmId, th),
       evaluateFinanceRules(this.prisma, farmId, th),
       evaluateGestationRules(this.prisma, farmId),
-      evaluateCheptelRules(this.prisma, farmId)
+      evaluateCheptelRules(this.prisma, farmId),
+      evaluateMarketRules(this.prisma)
     ]);
-    const merged = [...stock, ...health, ...finance, ...gestation, ...cheptel];
+    const merged = [...stock, ...health, ...finance, ...gestation, ...cheptel, ...market];
     return this.enrichActions(merged, farmId, farm.name);
   }
 
@@ -130,6 +132,56 @@ export class SmartAlertsService {
     return drafts.length;
   }
 
+
+  /** Propagation des alertes marché (indice PigPrice) sur toutes les fermes. */
+  async syncMarketAlertsGlobally(): Promise<void> {
+    const marketDrafts = await evaluateMarketRules(this.prisma);
+    const activeKeys = marketDrafts.map((d) => d.ruleKey);
+    const farms = await this.prisma.farm.findMany({
+      select: { id: true, name: true }
+    });
+
+    for (const farm of farms) {
+      const drafts = this.enrichActions(marketDrafts, farm.id, farm.name);
+      await this.prisma.$transaction(async (tx) => {
+        for (const d of drafts) {
+          const ap = d.action?.params;
+          await tx.smartAlert.upsert({
+            where: { farmId_ruleKey: { farmId: farm.id, ruleKey: d.ruleKey } },
+            create: {
+              farmId: farm.id,
+              ruleKey: d.ruleKey,
+              module: d.module,
+              priority: d.priority,
+              title: d.title,
+              message: d.message,
+              actionRoute: d.action?.route ?? null,
+              actionParams:
+                ap != null ? (ap as Prisma.InputJsonValue) : undefined,
+              isRead: false
+            },
+            update: {
+              module: d.module,
+              priority: d.priority,
+              title: d.title,
+              message: d.message,
+              actionRoute: d.action?.route ?? null,
+              actionParams:
+                ap != null ? (ap as Prisma.InputJsonValue) : undefined
+            }
+          });
+        }
+        await tx.smartAlert.deleteMany({
+          where: {
+            farmId: farm.id,
+            ruleKey: { startsWith: "market-price-variation:" },
+            ...(activeKeys.length > 0 ? { ruleKey: { notIn: activeKeys } } : {})
+          }
+        });
+      });
+    }
+  }
+
   private readVisibilityCutoff(): Date {
     return new Date(Date.now() - READ_VISIBLE_HOURS * 60 * 60 * 1000);
   }
@@ -161,7 +213,8 @@ export class SmartAlertsService {
       q.module === "health" ||
       q.module === "finance" ||
       q.module === "gestation" ||
-      q.module === "cheptel"
+      q.module === "cheptel" ||
+      q.module === "market"
     ) {
       where.module = q.module;
     }
@@ -189,7 +242,8 @@ export class SmartAlertsService {
       health: "Santé",
       finance: "Finance",
       gestation: "Gestation",
-      cheptel: "Cheptel"
+      cheptel: "Cheptel",
+      market: "Marché"
     };
 
     return {

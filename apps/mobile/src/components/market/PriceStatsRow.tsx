@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import type { PigPriceIndexStatsDto } from "../../lib/api";
@@ -6,13 +7,6 @@ type Props = {
   stats: PigPriceIndexStatsDto | undefined;
   category: string;
 };
-
-function fmt(n: number | null): string {
-  if (n == null || !Number.isFinite(n)) {
-    return "—";
-  }
-  return `${Math.round(n).toLocaleString("fr-FR")}`;
-}
 
 function deltaText(v: number | null): string {
   if (v == null || !Number.isFinite(v)) {
@@ -24,6 +18,16 @@ function deltaText(v: number | null): string {
 }
 
 export function PriceStatsRow({ stats, category }: Props) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === "en" ? "en-US" : "fr-FR";
+
+  const fmt = (n: number | null): string => {
+    if (n == null || !Number.isFinite(n)) {
+      return "—";
+    }
+    return `${Math.round(n).toLocaleString(locale)}`;
+  };
+
   const row =
     category === "all"
       ? stats?.rows[0]
@@ -43,22 +47,22 @@ export function PriceStatsRow({ stats, category }: Props) {
   return (
     <View style={styles.grid}>
       <View style={styles.cell}>
-        <Text style={styles.label}>Aujourd'hui</Text>
+        <Text style={styles.label}>{t("pigPriceIndex.statToday")}</Text>
         <Text style={styles.value}>{fmt(row.todayPrice)}</Text>
         <Text style={[styles.delta, { color: deltaColor }]}>
           {deltaText(row.variation24h)}
         </Text>
       </View>
       <View style={styles.cell}>
-        <Text style={styles.label}>Plus haut</Text>
+        <Text style={styles.label}>{t("pigPriceIndex.statHigh")}</Text>
         <Text style={[styles.value, { color: "#00C9A7" }]}>{fmt(row.high30d)}</Text>
       </View>
       <View style={styles.cell}>
-        <Text style={styles.label}>Plus bas</Text>
+        <Text style={styles.label}>{t("pigPriceIndex.statLow")}</Text>
         <Text style={[styles.value, { color: "#FF4757" }]}>{fmt(row.low30d)}</Text>
       </View>
       <View style={styles.cell}>
-        <Text style={styles.label}>Transactions</Text>
+        <Text style={styles.label}>{t("pigPriceIndex.statVolume")}</Text>
         <Text style={[styles.value, { color: "#7C3AED" }]}>{row.volume}</Text>
       </View>
     </View>

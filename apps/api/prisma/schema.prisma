@@ -21,6 +21,7 @@ enum SmartAlertModule {
   finance
   gestation
   cheptel
+  market
 }
 
 enum SmartAlertPriority {

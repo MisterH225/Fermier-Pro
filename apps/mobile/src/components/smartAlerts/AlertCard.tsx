@@ -30,7 +30,8 @@ function moduleLabel(m: SmartAlertListItemDto["module"]): string {
     health: "Santé",
     finance: "Finance",
     gestation: "Gestation",
-    cheptel: "Cheptel"
+    cheptel: "Cheptel",
+    market: "Marché"
   };
   return map[m];
 }

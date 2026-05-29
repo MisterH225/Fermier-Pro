@@ -249,6 +249,28 @@ export const en = {
     withdrawConfirm: "Withdraw",
     withdrawAction: "Withdraw my offer"
   },
+  pigPriceIndex: {
+    title: "📊 Pig prices",
+    subtitle: "Average price index on the platform",
+    badge: "Updated every hour",
+    period7d: "7D",
+    period30d: "1M",
+    period3m: "3M",
+    period12m: "12M",
+    unit: "FCFA/kg",
+    emptyData: "Insufficient data",
+    categoryAll: "All",
+    categoryPorcelet: "Piglets 🐣",
+    categoryCroissance: "Growth 📈",
+    categoryCharcutier: "Butcher 🐷",
+    categoryReproducteur: "Breeders ♻️",
+    statToday: "Today",
+    statHigh: "High",
+    statLow: "Low",
+    statVolume: "Transactions",
+    variationFlat: "0.0% ➡️",
+    priceOnRequest: "—"
+  },
   tasksScreen: {
     tabPending: "Pending",
     tabInProgress: "In progress",

@@ -622,7 +622,8 @@ export type SmartAlertModuleDto =
   | "health"
   | "finance"
   | "gestation"
-  | "cheptel";
+  | "cheptel"
+  | "market";
 
 export type SmartAlertPriorityDto = "critical" | "warning" | "info";
 
