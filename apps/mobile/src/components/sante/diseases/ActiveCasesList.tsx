@@ -35,10 +35,10 @@ type Props = {
   animals: AnimalListItem[];
   locale: string;
   isLoading: boolean;
-  onAddPress: () => void;
+  onAddPress?: () => void;
   onOpenCase: (record: FarmHealthRecordRowDto) => void;
-  onSwipeResolve: (record: FarmHealthRecordRowDto) => void;
-  onSwipeTreatment: (record: FarmHealthRecordRowDto) => void;
+  onSwipeResolve?: (record: FarmHealthRecordRowDto) => void;
+  onSwipeTreatment?: (record: FarmHealthRecordRowDto) => void;
   resolvingId?: string | null;
 };
 
@@ -162,12 +162,17 @@ export function ActiveCasesList({
           scrollEnabled={false}
           renderItem={({ item }) => {
             const record = item.meta as FarmHealthRecordRowDto;
+            if (!onSwipeResolve && !onSwipeTreatment) {
+              return (
+                <EventListItem item={item} onPress={() => onOpenCase(record)} />
+              );
+            }
             return (
               <SwipeableCaseRow
                 item={item}
                 onPress={() => onOpenCase(record)}
-                onResolve={() => onSwipeResolve(record)}
-                onTreatment={() => onSwipeTreatment(record)}
+                onResolve={() => onSwipeResolve?.(record)}
+                onTreatment={() => onSwipeTreatment?.(record)}
                 resolving={resolvingId === record.id}
               />
             );

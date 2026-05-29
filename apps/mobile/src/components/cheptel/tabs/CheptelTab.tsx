@@ -73,6 +73,7 @@ type Props = {
   navigation: Nav;
 
   onInvalidateOverview?: () => void;
+  readOnly?: boolean;
 
 };
 
@@ -196,7 +197,8 @@ export function CheptelTab({
 
   navigation,
 
-  onInvalidateOverview
+  onInvalidateOverview,
+  readOnly = false
 
 }: Props) {
 
@@ -480,6 +482,8 @@ export function CheptelTab({
 
           onDelete={(p) => deleteMut.mutate(p.id)}
 
+          readOnly={readOnly}
+
         />
 
       ))}
@@ -506,19 +510,23 @@ export function CheptelTab({
 
           </Text>
 
-          <Pressable
+          {!readOnly ? (
 
-            style={styles.addPill}
+            <Pressable
 
-            onPress={() => setCreateOpen(true)}
+              style={styles.addPill}
 
-            accessibilityRole="button"
+              onPress={() => setCreateOpen(true)}
 
-          >
+              accessibilityRole="button"
 
-            <Text style={styles.addPillTx}>+ {t("cheptel.pens.newPen")}</Text>
+            >
 
-          </Pressable>
+              <Text style={styles.addPillTx}>+ {t("cheptel.pens.newPen")}</Text>
+
+            </Pressable>
+
+          ) : null}
 
         </View>
 

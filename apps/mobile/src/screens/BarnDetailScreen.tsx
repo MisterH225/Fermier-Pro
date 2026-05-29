@@ -11,6 +11,7 @@ import {
   View
 } from "react-native";
 import { HousingModuleGate } from "../components/HousingModuleGate";
+import { TechFarmAccessGate } from "../components/technician/TechFarmAccessGate";
 import { useSession } from "../context/SessionContext";
 import { fetchFarmBarn } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
@@ -18,6 +19,39 @@ import type { RootStackParamList } from "../types/navigation";
 type Props = NativeStackScreenProps<RootStackParamList, "BarnDetail">;
 
 export function BarnDetailScreen({ route, navigation }: Props) {
+  const { clientFeatures } = useSession();
+  const { farmId } = route.params;
+
+  if (!clientFeatures.housing) {
+    return (
+      <HousingModuleGate>
+        <View />
+      </HousingModuleGate>
+    );
+  }
+
+  return (
+    <TechFarmAccessGate farmId={farmId} module="loges">
+      {({ readOnly }) => (
+        <BarnDetailContent
+          route={route}
+          navigation={navigation}
+          readOnly={readOnly}
+        />
+      )}
+    </TechFarmAccessGate>
+  );
+}
+
+function BarnDetailContent({
+  route,
+  navigation,
+  readOnly
+}: {
+  route: Props["route"];
+  navigation: Props["navigation"];
+  readOnly: boolean;
+}) {
   const { farmId, farmName, barnId, barnName } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
 
@@ -33,24 +67,25 @@ export function BarnDetailScreen({ route, navigation }: Props) {
     const title = barn?.name ?? barnName ?? "Bâtiment";
     navigation.setOptions({
       title,
-      headerRight: clientFeatures.housing
-        ? () => (
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("CreatePen", {
-                  farmId,
-                  farmName,
-                  barnId,
-                  barnName: title
-                })
-              }
-              style={styles.headerBtn}
-              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
-            >
-              <Text style={styles.headerBtnText}>+ Loge</Text>
-            </TouchableOpacity>
-          )
-        : undefined
+      headerRight:
+        clientFeatures.housing && !readOnly
+          ? () => (
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("CreatePen", {
+                    farmId,
+                    farmName,
+                    barnId,
+                    barnName: title
+                  })
+                }
+                style={styles.headerBtn}
+                hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+              >
+                <Text style={styles.headerBtnText}>+ Loge</Text>
+              </TouchableOpacity>
+            )
+          : undefined
     });
   }, [
     navigation,
@@ -59,16 +94,9 @@ export function BarnDetailScreen({ route, navigation }: Props) {
     farmId,
     farmName,
     barnId,
-    clientFeatures.housing
+    clientFeatures.housing,
+    readOnly
   ]);
-
-  if (!clientFeatures.housing) {
-    return (
-      <HousingModuleGate>
-        <View />
-      </HousingModuleGate>
-    );
-  }
 
   if (q.isPending) {
     return (
@@ -151,12 +179,6 @@ export function BarnDetailScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: "#f9f8ea" },
-  farmHint: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    fontSize: 13,
-    color: "#6d745b"
-  },
   notes: {
     paddingHorizontal: 16,
     paddingBottom: 8,

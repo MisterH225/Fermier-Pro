@@ -33,6 +33,8 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../theme/mobileTheme";
+import { useTechFarmPermissions } from "../hooks/useTechFarmPermissions";
+import { TechReadOnlyBanner } from "../components/technician/TechReadOnlyBanner";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmLivestock">;
@@ -40,6 +42,8 @@ type Props = NativeStackScreenProps<RootStackParamList, "FarmLivestock">;
 export function FarmLivestockScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
   const { t } = useTranslation();
+  const techPerms = useTechFarmPermissions(farmId, "cheptel");
+  const readOnly = techPerms.readOnly;
   useScreenTitle(navigation, t("navigation.main.cheptel"));
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
@@ -119,6 +123,22 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
     void qc.invalidateQueries({ queryKey: ["farmBarnDetails", farmId] });
   }, [qc, farmId]);
 
+  if (techPerms.isTech && techPerms.loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={mobileColors.accent} />
+      </View>
+    );
+  }
+
+  if (techPerms.isTech && !techPerms.canView) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.error}>{t("tech.permissionDenied")}</Text>
+      </View>
+    );
+  }
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -173,6 +193,11 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.root}>
+      {readOnly ? (
+        <View style={{ paddingHorizontal: mobileSpacing.md, paddingTop: mobileSpacing.sm }}>
+          <TechReadOnlyBanner />
+        </View>
+      ) : null}
       <TabSelector
         defaultTab="overview"
         header={<TabScreenHeader>{modeHintBlock}</TabScreenHeader>}
@@ -201,6 +226,7 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
                   farmName={farmName}
                   navigation={navigation}
                   onInvalidateOverview={onRefresh}
+                  readOnly={readOnly}
                 />
               ) : null
             )
@@ -214,6 +240,7 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
                   farmId={farmId}
                   accessToken={accessToken}
                   activeProfileId={activeProfileId}
+                  readOnly={readOnly}
                 />
               ) : null
             )

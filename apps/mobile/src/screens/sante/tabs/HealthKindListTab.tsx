@@ -34,7 +34,7 @@ type Props = {
   onSubjectSelect: (type: FarmHealthEntityType, id: string) => void;
   records: FarmHealthRecordRowDto[];
   isLoading: boolean;
-  onAddPress: () => void;
+  onAddPress?: () => void;
   renderDetail: (item: EventItem, ctx: { close: () => void }) => ReactNode;
   prependContent?: ReactNode;
   showSubjectPicker?: boolean;

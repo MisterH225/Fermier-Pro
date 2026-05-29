@@ -9,6 +9,7 @@ import { isOfflineQueuedResult } from "../../lib/offline/types";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  ActivityIndicator,
   Alert,
   Pressable,
   RefreshControl,
@@ -38,6 +39,8 @@ import {
 import { BaseModal } from "../../components/modals/BaseModal";
 import { invalidateAIInsights } from "../../services/ai/AIRecommendationService";
 import { useScreenTitle } from "../../hooks/useScreenTitle";
+import { useTechFarmPermissions } from "../../hooks/useTechFarmPermissions";
+import { TechReadOnlyBanner } from "../../components/technician/TechReadOnlyBanner";
 import { useSession } from "../../context/SessionContext";
 import {
   createFarmHealthRecord,
@@ -100,6 +103,7 @@ export function SanteScreen({ route, navigation }: Props) {
   const { accessToken, activeProfileId, authMe } = useSession();
   const isProducer =
     authMe?.profiles.find((p) => p.id === activeProfileId)?.type === "producer";
+  const techPerms = useTechFarmPermissions(farmId, "sante");
 
   useScreenTitle(navigation, t("health.screenTitle"), {
     headerRight: () => (
@@ -541,8 +545,27 @@ export function SanteScreen({ route, navigation }: Props) {
       .map((r) => recordToEventItem(r, locale, label));
   }, [allRecords, locale, t]);
 
+  if (techPerms.isTech && techPerms.loading) {
+    return (
+      <View style={styles.gateCentered}>
+        <ActivityIndicator size="large" color={mobileColors.accent} />
+      </View>
+    );
+  }
+
+  if (techPerms.isTech && !techPerms.canView) {
+    return (
+      <View style={styles.gateCentered}>
+        <Text style={styles.gateError}>{t("tech.permissionDenied")}</Text>
+      </View>
+    );
+  }
+
+  const readOnly = techPerms.readOnly;
+
   return (
     <MobileAppShell hideTopBar omitBottomTabBar={isProducer}>
+      {readOnly ? <TechReadOnlyBanner /> : null}
       <TabSelector
         activeTab={healthTab}
         onTabChange={(key) => setHealthTab(key as HealthScreenTab)}
@@ -608,7 +631,7 @@ export function SanteScreen({ route, navigation }: Props) {
                 <EventList
                   layout="embedded"
                   sectionTitle={t("health.historyTitle")}
-                  onAddPress={() => openForm("vaccination")}
+                  onAddPress={readOnly ? undefined : () => openForm("vaccination")}
                   data={vaccinationHistoryItems}
                   renderDetail={renderHealthDetail}
                   emptyMessage={t("health.noEvents")}
@@ -633,6 +656,7 @@ export function SanteScreen({ route, navigation }: Props) {
                 animals={animals}
                 batches={batches}
                 navigation={navigation}
+                readOnly={readOnly}
                 onRefresh={() => {
                   void qc.invalidateQueries({ queryKey: ["farmHealthEvents", farmId] });
                   void qc.invalidateQueries({ queryKey: ["farmDiseasesOverview", farmId] });
@@ -651,7 +675,7 @@ export function SanteScreen({ route, navigation }: Props) {
             content: tabScroll(
               <VetVisitsTab
                 upcoming={upcomingQuery.data}
-                onAddPress={() => openForm("vet_visit")}
+                onAddPress={readOnly ? undefined : () => openForm("vet_visit")}
                 {...listCommon}
               />
             )
@@ -662,7 +686,7 @@ export function SanteScreen({ route, navigation }: Props) {
             content: tabScroll(
               <HealthKindListTab
                 kind="treatment"
-                onAddPress={() => openForm("treatment")}
+                onAddPress={readOnly ? undefined : () => openForm("treatment")}
                 {...listCommon}
               />
             )
@@ -674,7 +698,7 @@ export function SanteScreen({ route, navigation }: Props) {
               <MortalitiesTab
                 mortalityRate30={rate30 != null ? Number(rate30) : null}
                 mortalityRate90={rate90 != null ? Number(rate90) : null}
-                onAddPress={() => openForm("mortality")}
+                onAddPress={readOnly ? undefined : () => openForm("mortality")}
                 {...listCommon}
               />
             )
@@ -748,6 +772,14 @@ export function SanteScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  gateCentered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: mobileSpacing.lg,
+    backgroundColor: mobileColors.canvas
+  },
+  gateError: { ...mobileTypography.body, color: mobileColors.error, textAlign: "center" },
   tabScroll: { flex: 1 },
   tabScrollGrow: { flexGrow: 1 },
   headerBtn: { marginRight: mobileSpacing.sm },

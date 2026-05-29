@@ -1864,7 +1864,9 @@ export const fr = {
       sectionList: "Vaccins disponibles"
     },
     permissionDenied: "Permission non accordée par le producteur.",
-    permissionReadOnly: "Accès lecture seule sur ce module."
+    permissionReadOnly: "Accès lecture seule sur ce module.",
+    readOnlyBanner: "Mode lecture seule — vous ne pouvez pas modifier ce module.",
+    farmReadOnlyBadge: "Lecture seule"
   },
   buyer: {
     nav: {

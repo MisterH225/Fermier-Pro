@@ -1872,7 +1872,9 @@ export const en = {
       sectionList: "Available vaccines"
     },
     permissionDenied: "Permission not granted by the producer.",
-    permissionReadOnly: "Read-only access on this module."
+    permissionReadOnly: "Read-only access on this module.",
+    readOnlyBanner: "Read-only mode — you cannot edit this module.",
+    farmReadOnlyBadge: "Read only"
   },
   buyer: {
     nav: { home: "Home", market: "Market", messages: "Messages", history: "Purchases" },
