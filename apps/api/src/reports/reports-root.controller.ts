@@ -17,9 +17,12 @@ import { FarmAccessService } from "../common/farm-access.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { GenerateFarmReportDto } from "./dto/generate-farm-report.dto";
 import { ReportsService } from "./reports.service";
+import { RequirePlatformModule } from "../feature-flags/require-platform-module.decorator";
+import { PlatformModuleEnabledGuard } from "../feature-flags/platform-module-enabled.guard";
 
 @Controller("reports")
-@UseGuards(SupabaseJwtGuard)
+@RequirePlatformModule("reports")
+@UseGuards(SupabaseJwtGuard, PlatformModuleEnabledGuard)
 export class ReportsRootController {
   constructor(
     private readonly reports: ReportsService,

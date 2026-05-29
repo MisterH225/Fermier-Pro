@@ -84,6 +84,9 @@ model User {
   updatedAt             DateTime             @updatedAt
   profiles              Profile[]
   pushDevices           PushDevice[]
+  technicianProfile     TechnicianProfile?
+  buyerProfile          BuyerProfile?
+  reactivationWaitlist  ReactivationWaitlist[]
   memberships           FarmMembership[]
   ownedFarms            Farm[]               @relation("FarmOwner")
   farmInvitesCreated    FarmInvitation[]     @relation("InvitationCreator")
@@ -476,6 +479,7 @@ model FarmTask {
   animalId          String?
   animal            Animal?       @relation(fields: [animalId], references: [id], onDelete: SetNull)
   createdAt         DateTime      @default(now())
+  archived          Boolean       @default(false)
   updatedAt         DateTime      @updatedAt
   notifications     TaskNotification[]
 
@@ -1147,8 +1151,10 @@ model MarketplaceListing {
   pickupAt      DateTime?
   pickupNote    String?
   createdAt     DateTime        @default(now())
+  archived      Boolean         @default(false)
   updatedAt     DateTime        @updatedAt
   offers        MarketplaceOffer[]
+  favorites     BuyerFavorite[]
 
   @@index([sellerUserId])
   @@index([status])
@@ -1234,6 +1240,7 @@ model MarketplaceOffer {
   /// Contre-proposition vendeur : prix / kg.
   counterPricePerKg Decimal?     @db.Decimal(14, 4)
   status       OfferStatus        @default(pending)
+  archived     Boolean            @default(false)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
@@ -1317,6 +1324,7 @@ model FarmInvitation {
   /// Utilisateur ayant scanné le QR par défaut (uniquement sur kind=scan_request).
   scannedByUserId  String?
   scannedBy        User?                  @relation("InvitationScanner", fields: [scannedByUserId], references: [id], onDelete: SetNull)
+  archived         Boolean                @default(false)
 
   @@index([farmId])
   @@index([expiresAt])
@@ -1339,6 +1347,7 @@ model FarmMembership {
   farm        Farm           @relation(fields: [farmId], references: [id], onDelete: Cascade)
   user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   activityLogs MemberActivityLog[]
+  archived     Boolean             @default(false)
 
   @@unique([farmId, userId, role])
   @@index([farmId, role])
@@ -1523,6 +1532,7 @@ model Gestation {
   status            GestationStatus @default(active)
   notes             String?
   createdAt         DateTime        @default(now())
+  archived          Boolean         @default(false)
   updatedAt         DateTime        @updatedAt
   litter            Litter?
   vaccines          GestationVaccine[]
@@ -1750,3 +1760,146 @@ model PigPriceIndexDaily {
   @@unique([date, category])
   @@index([date(sort: Desc)])
 }
+enum BuyerType {
+  individual
+  slaughterhouse
+  wholesaler
+  reseller
+  other
+}
+
+enum PriceAlertFrequency {
+  immediate
+  daily
+}
+
+enum FeatureFlagHistoryAction {
+  disabled
+  reactivated
+  scheduled
+}
+
+model TechnicianProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experienceYears    String?
+  specializations    Json     @default("[]")
+  formation          String?
+  profilePhotoUrl    String?
+  onboardingComplete Boolean  @default(false)
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model BuyerProfile {
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  buyerType           BuyerType @default(individual)
+  businessName        String?
+  locationLabel       String?
+  homeLatitude        Decimal?  @db.Decimal(10, 7)
+  homeLongitude       Decimal?  @db.Decimal(10, 7)
+  searchRadiusKm      Int?
+  preferredCategories Json      @default("[]")
+  priceRangeMin       Decimal?  @db.Decimal(14, 2)
+  priceRangeMax       Decimal?  @db.Decimal(14, 2)
+  typicalVolume       String?
+  profilePhotoUrl     String?
+  ratingAvg           Decimal?  @db.Decimal(3, 2)
+  ratingCount         Int       @default(0)
+  onboardingComplete  Boolean   @default(false)
+  isActive            Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  priceAlerts         BuyerPriceAlert[]
+  favorites           BuyerFavorite[]
+
+  @@index([buyerType])
+}
+
+model BuyerPriceAlert {
+  id                    String              @id @default(cuid())
+  buyerProfileId        String
+  buyerProfile          BuyerProfile        @relation(fields: [buyerProfileId], references: [id], onDelete: Cascade)
+  animalCategory        String
+  maxPricePerKg         Decimal             @db.Decimal(14, 4)
+  minWeightKg           Decimal?            @db.Decimal(14, 4)
+  radiusKm              Int?
+  notificationFrequency PriceAlertFrequency @default(immediate)
+  isActive              Boolean             @default(true)
+  archived              Boolean             @default(false)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([buyerProfileId, isActive])
+}
+
+model BuyerFavorite {
+  id             String             @id @default(cuid())
+  buyerProfileId String
+  buyerProfile   BuyerProfile       @relation(fields: [buyerProfileId], references: [id], onDelete: Cascade)
+  listingId      String
+  listing        MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt      DateTime           @default(now())
+
+  @@unique([buyerProfileId, listingId])
+  @@index([buyerProfileId])
+  @@index([listingId])
+}
+
+model PlatformFeatureFlag {
+  moduleId              String    @id
+  moduleName            String
+  icon                  String?
+  canDisable            Boolean   @default(true)
+  isActive              Boolean   @default(true)
+  disabledAt            DateTime?
+  disabledById          String?
+  disableReason         String?
+  reactivatedAt         DateTime?
+  reactivatedById       String?
+  scheduledReactivation DateTime?
+  userMessageFr         String?
+  userMessageEn         String?
+  updatedAt             DateTime  @updatedAt
+}
+
+model FeatureFlagHistory {
+  id                  String                   @id @default(cuid())
+  moduleId            String
+  action              FeatureFlagHistoryAction
+  performedById       String?
+  reason              String?
+  affectedDataSummary Json?
+  createdAt           DateTime                 @default(now())
+
+  @@index([moduleId, createdAt(sort: Desc)])
+}
+
+model ArchivedDataRegistry {
+  id             String    @id @default(cuid())
+  moduleId       String
+  tableName      String
+  recordId       String
+  originalStatus String?
+  archivedAt     DateTime  @default(now())
+  restoredAt     DateTime?
+
+  @@index([moduleId, restoredAt])
+  @@index([tableName, recordId])
+}
+
+model ReactivationWaitlist {
+  id        String   @id @default(cuid())
+  moduleId  String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([moduleId, userId])
+  @@index([moduleId])
+}
+

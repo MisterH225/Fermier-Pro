@@ -1,10 +1,15 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { PlatformFeatureFlagsService } from "../feature-flags/platform-feature-flags.service";
+import {
+  CLIENT_FEATURE_TO_PLATFORM,
+  PLATFORM_MODULE_IDS,
+  type PlatformModuleId
+} from "../feature-flags/platform-modules.constants";
+import type { PlatformModulePublicDto } from "../feature-flags/platform-feature-flags.service";
 
 /**
- * Feature flags lus depuis l'environnement (MVP).
- * Convention : FEATURE_<CLE>=true|false|1|0|yes|no (insensible à la casse).
- * Les clés absentes utilisent la valeur par défaut (souvent true pour ne pas couper l'existant).
+ * Feature flags : variables d'environnement (MVP) + état plateforme en base.
  */
 export type ClientFeatureKey =
   | "marketplace"
@@ -39,27 +44,55 @@ const DEFAULTS: ClientFeatureFlags = {
 
 @Injectable()
 export class FeatureFlagService {
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    private readonly platformFlags: PlatformFeatureFlagsService
+  ) {}
 
-  /** Snapshot pour le client mobile / web (menus, routes). */
-  getClientFeatureFlags(): ClientFeatureFlags {
+  async getClientFeatureFlags(): Promise<ClientFeatureFlags> {
+    const platformRows = await this.platformFlags.listPublicModules();
+    const activeMap = new Map(platformRows.map((r) => [r.moduleId, r.isActive]));
+
     return {
-      marketplace: this.readBool(ENV_KEYS.marketplace, DEFAULTS.marketplace),
-      chat: this.readBool(ENV_KEYS.chat, DEFAULTS.chat),
-      vetConsultations: this.readBool(
-        ENV_KEYS.vetConsultations,
-        DEFAULTS.vetConsultations
-      ),
-      tasks: this.readBool(ENV_KEYS.tasks, DEFAULTS.tasks),
-      finance: this.readBool(ENV_KEYS.finance, DEFAULTS.finance),
-      housing: this.readBool(ENV_KEYS.housing, DEFAULTS.housing),
-      feedStock: this.readBool(ENV_KEYS.feedStock, DEFAULTS.feedStock)
+      marketplace: this.combine("marketplace", activeMap),
+      chat: this.combine("chat", activeMap),
+      vetConsultations: this.combine("vetConsultations", activeMap),
+      tasks: this.combine("tasks", activeMap),
+      finance: this.combine("finance", activeMap),
+      housing: this.combine("housing", activeMap),
+      feedStock: this.combine("feedStock", activeMap)
     };
   }
 
-  /** Vérification serveur (guards, désactivation route). */
-  isEnabled(key: ClientFeatureKey): boolean {
-    return this.getClientFeatureFlags()[key];
+  async getPlatformModules(): Promise<PlatformModulePublicDto[]> {
+    return this.platformFlags.listPublicModules();
+  }
+
+  async isEnabled(key: ClientFeatureKey): Promise<boolean> {
+    const flags = await this.getClientFeatureFlags();
+    return flags[key];
+  }
+
+  async isPlatformModuleEnabled(moduleId: PlatformModuleId): Promise<boolean> {
+    return this.platformFlags.isModuleActive(moduleId);
+  }
+
+  async resolveInactiveContext(
+    key: ClientFeatureKey
+  ): Promise<{ moduleId: PlatformModuleId; message: string | null }> {
+    const moduleId = CLIENT_FEATURE_TO_PLATFORM[key];
+    const message = await this.platformFlags.getInactiveMessage(moduleId, "fr");
+    return { moduleId, message };
+  }
+
+  private combine(
+    key: ClientFeatureKey,
+    activeMap: Map<string, boolean>
+  ): boolean {
+    const envOn = this.readBool(ENV_KEYS[key], DEFAULTS[key]);
+    if (!envOn) return false;
+    const platformId = CLIENT_FEATURE_TO_PLATFORM[key];
+    return activeMap.get(platformId) ?? true;
   }
 
   private readBool(envKey: string, defaultValue: boolean): boolean {
@@ -77,3 +110,5 @@ export class FeatureFlagService {
     return defaultValue;
   }
 }
+
+export { PLATFORM_MODULE_IDS, type PlatformModuleId };

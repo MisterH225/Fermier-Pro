@@ -28,6 +28,7 @@ const NAV_KEYS = [
   "map",
   "stats",
   "ai",
+  "modules",
   "settings"
 ] as const;
 

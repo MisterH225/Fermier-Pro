@@ -408,6 +408,22 @@
       "error": "Impossible de mettre à jour le mot de passe."
     }
   },
+  "modules": {
+    "title": "Modules plateforme",
+    "subtitle": "Activez ou désactivez les modules métier pour tous les utilisateurs.",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "disable": "Désactiver",
+    "reactivate": "Réactiver",
+    "disableTitle": "Désactiver {name}",
+    "reactivateTitle": "Réactiver {name}",
+    "impact": "Données concernées :",
+    "cascade": "Modules désactivés en cascade",
+    "reason": "Motif (obligatoire à la désactivation)",
+    "userMessage": "Message utilisateur (FR)",
+    "cancel": "Annuler",
+    "confirm": "Confirmer"
+  },
   "common": {
     "loading": "Chargement…",
     "save": "Enregistrer",

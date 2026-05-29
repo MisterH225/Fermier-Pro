@@ -6,13 +6,13 @@ import {
   UseGuards
 } from "@nestjs/common";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
-import { FeatureEnabledGuard } from "../config-client/feature-enabled.guard";
-import { RequireFeature } from "../config-client/require-feature.decorator";
+import { RequirePlatformModule } from "../feature-flags/require-platform-module.decorator";
+import { PlatformModuleEnabledGuard } from "../feature-flags/platform-module-enabled.guard";
 import { PigPriceIndexService } from "./pig-price-index.service";
 
 @Controller("market/pig-price-index")
-@RequireFeature("marketplace")
-@UseGuards(SupabaseJwtGuard, FeatureEnabledGuard)
+@RequirePlatformModule("pig_price_index")
+@UseGuards(SupabaseJwtGuard, PlatformModuleEnabledGuard)
 export class PigPriceIndexController {
   constructor(private readonly index: PigPriceIndexService) {}
 
