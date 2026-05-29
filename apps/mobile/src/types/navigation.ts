@@ -54,6 +54,8 @@ export type RootStackParamList = {
   ChatPickFarm: undefined;
   ChatPickPeer: { farmId: string; farmName: string };
   ChatSearchUser: undefined;
+  /** Messagerie producteur — liste de toutes les conversations. */
+  ProducerMessages: undefined;
   /** Écran générique « module prévu » (véto, finance, loges…). */
   ModuleRoadmap: { title: string; body: string };
   FarmVetConsultations: { farmId: string; farmName: string };

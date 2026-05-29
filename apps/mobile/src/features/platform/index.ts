@@ -11,3 +11,4 @@ export { ProducerFarmSettingsScreen } from "../../screens/ProducerFarmSettingsSc
 export { BuyerDashboardScreen } from "../../screens/BuyerDashboardScreen";
 export { VeterinarianDashboardScreen } from "../../screens/VeterinarianDashboardScreen";
 export { TechnicianDashboardScreen } from "../../screens/TechnicianDashboardScreen";
+export { ProducerMessagesScreen } from "../../screens/ProducerMessagesScreen";

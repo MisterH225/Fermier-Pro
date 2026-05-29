@@ -528,6 +528,122 @@ export function regenerateFarmDefaultInvitation(
   );
 }
 
+// ─── Recherche collaborateur par identifiant (téléphone/email) ───────────────
+
+export type CollaboratorIdentifierKindDto = "email" | "phone";
+
+export type CollaboratorSearchUserDto = {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  maskedIdentifier: string;
+  identifierKind: CollaboratorIdentifierKindDto;
+  profileTypes: string[];
+  vetVerified: boolean;
+};
+
+export type CollaboratorSearchResultDto =
+  | { status: "not_found" }
+  | { status: "self" }
+  | { status: "found"; user: CollaboratorSearchUserDto }
+  | { status: "already_member"; user: CollaboratorSearchUserDto }
+  | { status: "already_invited"; user: CollaboratorSearchUserDto };
+
+export function searchCollaboratorByIdentifier(
+  accessToken: string,
+  farmId: string,
+  identifier: string,
+  activeProfileId?: string | null
+): Promise<CollaboratorSearchResultDto> {
+  return apiPostJson<CollaboratorSearchResultDto>(
+    `/farms/${farmId}/collaborators/search`,
+    { identifier },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type InviteByIdentifierPayload = {
+  userId: string;
+  recipientKind: InvitationRecipientKind;
+  permissions: InvitationPermissions;
+  message?: string;
+};
+
+export type InviteByIdentifierResultDto = {
+  ok: boolean;
+  invitationId: string;
+  farmId: string;
+  recipientFirstName: string | null;
+  status: FarmInvitationStatusDto;
+};
+
+export function inviteCollaboratorByIdentifier(
+  accessToken: string,
+  farmId: string,
+  payload: InviteByIdentifierPayload,
+  activeProfileId?: string | null
+): Promise<InviteByIdentifierResultDto> {
+  return apiPostJson<InviteByIdentifierResultDto>(
+    `/farms/${farmId}/collaborators/invite-by-identifier`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+// ─── Invitations reçues (côté invité) ────────────────────────────────────────
+
+export type MyPendingInvitationDto = {
+  id: string;
+  farmId: string;
+  farmName: string;
+  farmSpecies: string | null;
+  role: string | null;
+  recipientKind: InvitationRecipientKind | null;
+  permissions: InvitationPermissions | null;
+  scopes: string[];
+  message: string | null;
+  expiresAt: string;
+  createdAt: string;
+  inviter: {
+    id: string;
+    displayName: string;
+    avatarUrl: string | null;
+  };
+};
+
+export function fetchMyPendingInvitations(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<MyPendingInvitationDto[]> {
+  return apiGetJson<MyPendingInvitationDto[]>(
+    `/me/invitations/pending`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function respondToMyInvitation(
+  accessToken: string,
+  invitationId: string,
+  accept: boolean,
+  activeProfileId?: string | null
+): Promise<{
+  ok: boolean;
+  invitationId: string;
+  farmId: string;
+  status: FarmInvitationStatusDto;
+  role?: string | null;
+}> {
+  return apiPostJson(
+    `/me/invitations/${invitationId}/respond`,
+    { accept },
+    accessToken,
+    activeProfileId
+  );
+}
+
 // ─── Activité membres ─────────────────────────────────────────────────────────
 
 export type MemberActivityLogDto = {
@@ -4333,6 +4449,8 @@ export type VetSearchResponseDto = {
 
 export type VetPublicProfileDto = {
   id: string;
+  /** userId de l'utilisateur vétérinaire (pour ouvrir un chat direct). */
+  userId: string;
   fullName: string;
   primarySpecialty: string;
   otherSpecialties: string[];

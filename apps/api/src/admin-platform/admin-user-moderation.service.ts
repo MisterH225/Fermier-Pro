@@ -120,9 +120,12 @@ export class AdminUserModerationService {
 
   /**
    * Notifie l'utilisateur d'une action de modération :
-   *  - crée toujours un `AdminMessage` (visible in-app, indépendant du push),
-   *  - envoie un push si l'utilisateur a `notificationsEnabled = true`.
-   * Le toggle `notifyUser` côté admin contrôle l'envoi global (défaut : true).
+   *  - crée **toujours** un `AdminMessage` (visible in-app, indépendant du push),
+   *  - envoie un push uniquement si `notify !== false`.
+   *
+   * `notify = false` signifie « ne pas envoyer de push », pas « ne rien faire ».
+   * L'historique in-app doit rester complet même quand l'admin coche
+   * « ne pas notifier ».
    */
   private async notifyUser(input: {
     adminUserId: string;
@@ -132,9 +135,6 @@ export class AdminUserModerationService {
     type?: AdminMessageType;
     notify: boolean | undefined;
   }) {
-    if (input.notify === false) {
-      return;
-    }
     await this.prisma.adminMessage.create({
       data: {
         adminUserId: input.adminUserId,
@@ -144,9 +144,11 @@ export class AdminUserModerationService {
         type: input.type ?? AdminMessageType.notification
       }
     });
-    await this.push.sendToUser(input.userId, input.title, input.body, {
-      type: "admin_moderation"
-    });
+    if (input.notify !== false) {
+      await this.push.sendToUser(input.userId, input.title, input.body, {
+        type: "admin_moderation"
+      });
+    }
   }
 
   private async getUserOrThrow(userId: string) {

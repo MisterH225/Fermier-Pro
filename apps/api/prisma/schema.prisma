@@ -87,6 +87,7 @@ model User {
   ownedFarms            Farm[]               @relation("FarmOwner")
   farmInvitesCreated    FarmInvitation[]     @relation("InvitationCreator")
   farmInvitesScanned    FarmInvitation[]     @relation("InvitationScanner")
+  farmInvitesReceived   FarmInvitation[]     @relation("InvitationInvitee")
   tasksAssigned         FarmTask[]           @relation("TaskAssignee")
   tasksCreated          FarmTask[]           @relation("TaskCreator")
   tasksCompleted        FarmTask[]           @relation("TaskCompleter")
@@ -1302,6 +1303,11 @@ model FarmInvitation {
   redeemedByUserId String?
   inviteeEmail     String?
   inviteePhone     String?
+  /// Renseigné quand l'invitation cible un compte existant (recherche par identifiant).
+  inviteeUserId    String?
+  invitee          User?                  @relation("InvitationInvitee", fields: [inviteeUserId], references: [id], onDelete: SetNull)
+  /// Message personnel optionnel saisi par l'inviteur.
+  message          String?
   createdAt        DateTime               @default(now())
 
   kind             FarmInvitationKind     @default(share_link)
@@ -1322,6 +1328,7 @@ model FarmInvitation {
   @@index([expiresAt])
   @@index([farmId, kind, status])
   @@index([farmId, isDefault])
+  @@index([inviteeUserId, status])
 }
 
 model FarmMembership {

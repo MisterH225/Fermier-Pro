@@ -9,4 +9,7 @@ export { MemberAvatar } from "./MemberAvatar";
 export { MemberCard } from "./MemberCard";
 export { MemberModal } from "./MemberModal";
 export { MembersList } from "./MembersList";
+export { PendingInvitationsBanner } from "./PendingInvitationsBanner";
+export { PendingInvitationsModal } from "./PendingInvitationsModal";
+export { SearchCollaboratorModal } from "./SearchCollaboratorModal";
 export { SuccessModal } from "./SuccessModal";

@@ -23,6 +23,7 @@ import { FinanceOverviewKpiGrid } from "../components/finance/FinanceOverviewKpi
 import { EmptyStateCard } from "../components/common/EmptyStateCard";
 import { OnboardingBanner } from "../components/onboarding/OnboardingBanner";
 import { AdminMessagesBanner } from "../components/admin/AdminMessagesBanner";
+import { PendingInvitationsBanner } from "../components/collaboration/PendingInvitationsBanner";
 import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
 import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
 import { useOnboardingResume } from "../context/OnboardingResumeContext";
@@ -306,6 +307,7 @@ export function ProducerDashboardScreen() {
           }
         >
           <AdminMessagesBanner />
+          <PendingInvitationsBanner />
           {showOnboardingBanner ? (
             <OnboardingBanner onComplete={requestResume} />
           ) : null}

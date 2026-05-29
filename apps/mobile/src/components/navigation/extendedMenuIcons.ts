@@ -11,6 +11,7 @@ export const EXTENDED_MENU_ICONS: Record<
   gestation: "egg-outline",
   tasks: "checkbox-outline",
   reports: "bar-chart-outline",
+  messages: "chatbubbles-outline",
   prescriptions: "medkit-outline",
   settings: "settings-outline"
 };

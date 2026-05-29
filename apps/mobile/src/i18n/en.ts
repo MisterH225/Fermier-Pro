@@ -1,4 +1,11 @@
 export const en = {
+  common: {
+    error: "Error",
+    cancel: "Cancel",
+    ok: "OK",
+    close: "Close",
+    retry: "Retry"
+  },
   cgu: {
     title: "Terms of use",
     subtitle: "Please read and accept before continuing",
@@ -461,6 +468,7 @@ export const en = {
       home: "Home",
       cheptel: "Herd",
       health: "Health",
+      messages: "Messages",
       finance: "Finance",
       collaboration: "Team",
       profile: "Profile"
@@ -476,6 +484,7 @@ export const en = {
       gestation: "Gestation",
       tasks: "Tasks",
       reports: "Reports",
+      messages: "Messages",
       closeBackdropA11y: "Close menu",
       closeA11y: "Close"
     },
@@ -963,6 +972,12 @@ export const en = {
     cancel: "Cancel"
   },
   producer: {
+    messages: {
+      new: "New",
+      emptyTitle: "No messages",
+      emptySub: "Send a message to your vet from their profile page.",
+      noMessage: "No messages yet"
+    },
     welcomeLine: "Welcome",
     settingsButton: "Settings",
     farmSettingsTitle: "Settings",
@@ -1097,7 +1112,54 @@ export const en = {
     historyTitle: "Action history",
     historyEmpty: "No actions recorded yet.",
     historyShowMore: "Show more",
-    filterAll: "All"
+    filterAll: "All",
+    profileTypes: {
+      producer: "Producer",
+      technician: "Technician",
+      veterinarian: "Veterinarian",
+      buyer: "Buyer"
+    },
+    searchByIdentifier: {
+      openBtn: "Add by identifier",
+      title: "Add a collaborator",
+      configureTitle: "Configure the invitation",
+      fieldLabel: "Email or phone number",
+      placeholder: "+1 555 000 0000 or email@example.com",
+      hint: "Enter the exact identifier the person uses to sign in.",
+      searchAction: "Search",
+      notFound:
+        "No account found with this identifier. Make sure the person is registered and uses this sign-in method.",
+      selfSearch: "You cannot invite yourself.",
+      alreadyMember: "This person is already part of your project.",
+      alreadyMemberBadge: "Already a member",
+      alreadyInvited: "An invitation is already pending for this person.",
+      alreadyInvitedBadge: "Invitation pending",
+      inviteCta: "Invite this person",
+      sendInvite: "Send",
+      messageLabel: "Personal message (optional)",
+      messagePlaceholder:
+        "E.g. Hi, I'd like to give you access to my farm...",
+      successMsg:
+        "Invitation sent to {{name}} — awaiting their confirmation."
+    },
+    pendingInvitations: {
+      bannerTitle: "Invitation received",
+      bannerOne: "A farm wants to add you — tap to reply",
+      bannerCount: "{{count}} pending invitations",
+      bannerA11y: "View received invitations",
+      title: "Received invitations",
+      empty: "No pending invitations.",
+      invitedBy: "Invited by {{name}}",
+      role: "Role",
+      roleUnknown: "Member",
+      accept: "Accept",
+      reject: "Decline",
+      acceptedToast: "You have joined the farm.",
+      cancel: "Cancel",
+      confirmRejectTitle: "Decline the invitation?",
+      confirmRejectBody:
+        "You will no longer have access to {{farm}} through this invitation."
+    }
   },
   financeScreen: {
     overview: "Overview",
@@ -1529,6 +1591,8 @@ export const en = {
       statsVisits: "{{count}} visits",
       planVisit: "Schedule a visit",
       contact: "Contact",
+      call: "Call",
+      message: "Message",
       shareMessage:
         "Vet contact {{vet}} for farm {{farm}} — {{phone}}",
       callErrorTitle: "Cannot call",

@@ -61,6 +61,7 @@ import {
   ModuleRoadmapScreen,
   ProducerDashboardScreen,
   ProducerFarmSettingsScreen,
+  ProducerMessagesScreen,
   SmartAlertsListScreen,
   FarmReportsScreen,
   PenDetailScreen,
@@ -257,6 +258,11 @@ function MainStack() {
         name="ProducerScheduleVetVisit"
         component={ProducerScheduleVetVisitScreen}
         options={{ title: "Planifier une visite" }}
+      />
+      <Stack.Screen
+        name="ProducerMessages"
+        component={ProducerMessagesScreen}
+        options={{ title: "Messages" }}
       />
       <Stack.Screen
         name="FarmTasks"

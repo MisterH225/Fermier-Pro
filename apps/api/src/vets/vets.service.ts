@@ -227,6 +227,7 @@ export class VetsService {
 
     return {
       id: row.id,
+      userId: row.userId,
       fullName: row.fullName,
       primarySpecialty: row.primarySpecialty,
       otherSpecialties: Array.isArray(row.otherSpecialties)

@@ -136,6 +136,10 @@ export function VetSearchScreen({ route, navigation }: Props) {
             });
           }
         }}
+        onOpenChat={(roomId, headline) => {
+          setSelectedVetId(null);
+          navigation.navigate("ChatRoom", { roomId, headline });
+        }}
       />
     </MobileAppShell>
   );

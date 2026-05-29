@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   GoneException,
   Injectable,
   Logger,
@@ -19,11 +20,24 @@ import { AuditService } from "../common/audit.service";
 import { FarmAccessService } from "../common/farm-access.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { PrismaService } from "../prisma/prisma.service";
+import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import {
   CreateFarmInvitationDto,
+  INVITATION_RECIPIENT_KINDS,
+  type InvitationRecipientKind,
   InvitationPermissionsDto
 } from "./dto/create-farm-invitation.dto";
+import { InviteByIdentifierDto } from "./dto/invite-by-identifier.dto";
 import { RespondInvitationDto } from "./dto/respond-invitation.dto";
+import { SearchCollaboratorDto } from "./dto/search-collaborator.dto";
+import {
+  detectIdentifierKind,
+  maskEmail,
+  maskFullName,
+  maskPhone,
+  normalizeEmail,
+  normalizePhone
+} from "./identifier-utils";
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const DEFAULT_LINK_TTL_MS = 365 * 24 * 60 * 60 * 1000;
@@ -112,7 +126,8 @@ export class InvitationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
-    private readonly farmAccess: FarmAccessService
+    private readonly farmAccess: FarmAccessService,
+    private readonly push: PushNotificationsService
   ) {}
 
   /**
@@ -706,6 +721,520 @@ export class InvitationsService {
       farmId: result.farmId,
       role: result.role,
       alreadyMember: result.alreadyMember
+    };
+  }
+
+  /**
+   * Recherche un utilisateur existant par email OU téléphone.
+   * Règle stricte : on ne renvoie qu'un résultat *masqué*, et uniquement
+   * si l'identifiant fourni correspond exactement à un champ renseigné
+   * côté `User`. Aucune donnée sensible n'est divulguée.
+   */
+  async searchUserByIdentifier(
+    actor: User,
+    farmId: string,
+    dto: SearchCollaboratorDto
+  ) {
+    await this.farmAccess.requireFarmScopes(actor.id, farmId, [
+      FARM_SCOPE.invitationsManage
+    ]);
+
+    const raw = dto.identifier.trim();
+    const kind = detectIdentifierKind(raw);
+    if (!kind) {
+      throw new BadRequestException("Identifiant invalide");
+    }
+
+    let normalized: string | null = null;
+    if (kind === "email") {
+      normalized = normalizeEmail(raw);
+    } else {
+      normalized = normalizePhone(raw);
+    }
+    if (!normalized) {
+      throw new BadRequestException(
+        kind === "email" ? "Email invalide" : "Numéro de téléphone invalide"
+      );
+    }
+
+    const where: PrismaTypes.UserWhereInput =
+      kind === "email"
+        ? { email: normalized }
+        : { phone: normalized };
+
+    const user = await this.prisma.user.findFirst({
+      where,
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        firstName: true,
+        lastName: true,
+        fullName: true,
+        avatarUrl: true,
+        accountStatus: true,
+        profiles: {
+          where: { profileStatus: "active" },
+          select: { id: true, type: true }
+        },
+        vetProfile: {
+          select: { verificationStatus: true }
+        }
+      }
+    });
+
+    await this.audit.record({
+      actorUserId: actor.id,
+      farmId,
+      action: AUDIT_ACTION.farmInvitationIdentifierSearched,
+      resourceType: "User",
+      resourceId: user?.id ?? null,
+      metadata: {
+        identifierKind: kind,
+        found: Boolean(user)
+      }
+    });
+
+    if (!user) {
+      return { status: "not_found" as const };
+    }
+    if (user.accountStatus !== "active") {
+      return { status: "not_found" as const };
+    }
+    if (user.id === actor.id) {
+      return { status: "self" as const };
+    }
+
+    const existingMembership = await this.prisma.farmMembership.findFirst({
+      where: { farmId, userId: user.id }
+    });
+    const pendingInvitation = await this.prisma.farmInvitation.findFirst({
+      where: {
+        farmId,
+        inviteeUserId: user.id,
+        status: FarmInvitationStatus.pending,
+        expiresAt: { gt: new Date() }
+      }
+    });
+
+    const profileTypes = Array.from(
+      new Set(user.profiles.map((p) => p.type))
+    );
+    const vetVerified =
+      profileTypes.includes("veterinarian") &&
+      user.vetProfile?.verificationStatus === "verified";
+
+    const maskedIdentifier =
+      kind === "email" && user.email
+        ? maskEmail(user.email)
+        : kind === "phone" && user.phone
+          ? maskPhone(user.phone)
+          : "";
+
+    const displayName = maskFullName(user.firstName, user.lastName);
+
+    if (existingMembership) {
+      return {
+        status: "already_member" as const,
+        user: {
+          userId: user.id,
+          displayName,
+          avatarUrl: user.avatarUrl,
+          maskedIdentifier,
+          identifierKind: kind,
+          profileTypes,
+          vetVerified
+        }
+      };
+    }
+
+    if (pendingInvitation) {
+      return {
+        status: "already_invited" as const,
+        user: {
+          userId: user.id,
+          displayName,
+          avatarUrl: user.avatarUrl,
+          maskedIdentifier,
+          identifierKind: kind,
+          profileTypes,
+          vetVerified
+        }
+      };
+    }
+
+    return {
+      status: "found" as const,
+      user: {
+        userId: user.id,
+        displayName,
+        avatarUrl: user.avatarUrl,
+        maskedIdentifier,
+        identifierKind: kind,
+        profileTypes,
+        vetVerified
+      }
+    };
+  }
+
+  /**
+   * Crée une `FarmInvitation` ciblée vers un compte existant (token
+   * conservé pour cohérence/deep link, mais l'invité voit l'invitation
+   * directement via `listMyPendingInvitations`).
+   */
+  async inviteByIdentifier(
+    actor: User,
+    farmId: string,
+    dto: InviteByIdentifierDto
+  ) {
+    await this.farmAccess.requireFarmScopes(actor.id, farmId, [
+      FARM_SCOPE.invitationsManage
+    ]);
+
+    if (dto.userId === actor.id) {
+      throw new BadRequestException(
+        "Vous ne pouvez pas vous inviter vous-même"
+      );
+    }
+    if (
+      !INVITATION_RECIPIENT_KINDS.includes(
+        dto.recipientKind as InvitationRecipientKind
+      )
+    ) {
+      throw new BadRequestException("recipientKind invalide");
+    }
+
+    const role = recipientKindToRole(dto.recipientKind);
+    if (!role) {
+      throw new BadRequestException(
+        "Un rôle valide est requis pour cette invitation"
+      );
+    }
+
+    const target = await this.prisma.user.findUnique({
+      where: { id: dto.userId },
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        firstName: true,
+        lastName: true,
+        accountStatus: true,
+        profiles: {
+          where: { profileStatus: "active" },
+          select: { type: true }
+        },
+        vetProfile: {
+          select: { verificationStatus: true }
+        }
+      }
+    });
+    if (!target || target.accountStatus !== "active") {
+      throw new NotFoundException("Utilisateur introuvable");
+    }
+
+    if (dto.recipientKind === "veterinarian") {
+      const hasVerifiedVet =
+        target.profiles.some((p) => p.type === "veterinarian") &&
+        target.vetProfile?.verificationStatus === "verified";
+      if (!hasVerifiedVet) {
+        throw new BadRequestException(
+          "Le rôle vétérinaire requiert un profil vétérinaire vérifié"
+        );
+      }
+    }
+
+    const existingMembership = await this.prisma.farmMembership.findFirst({
+      where: { farmId, userId: target.id }
+    });
+    if (existingMembership) {
+      throw new ConflictException(
+        "Cette personne fait déjà partie de votre projet"
+      );
+    }
+    const existingPending = await this.prisma.farmInvitation.findFirst({
+      where: {
+        farmId,
+        inviteeUserId: target.id,
+        status: FarmInvitationStatus.pending,
+        expiresAt: { gt: new Date() }
+      }
+    });
+    if (existingPending) {
+      throw new ConflictException(
+        "Une invitation est déjà en attente pour cette personne"
+      );
+    }
+
+    const scopes = permissionsToScopes(dto.permissions, role);
+    const token = generateToken();
+    const expiresAt = new Date(Date.now() + INVITE_TTL_MS);
+
+    const inv = await this.prisma.farmInvitation.create({
+      data: {
+        farmId,
+        createdById: actor.id,
+        role,
+        scopes,
+        token,
+        expiresAt,
+        inviteeUserId: target.id,
+        inviteeEmail: target.email ?? null,
+        inviteePhone: target.phone ?? null,
+        kind: FarmInvitationKind.share_link,
+        status: FarmInvitationStatus.pending,
+        recipientKind: dto.recipientKind,
+        permissions: (dto.permissions ?? null) as PrismaTypes.InputJsonValue,
+        message: dto.message?.trim() || null
+      }
+    });
+
+    await this.audit.record({
+      actorUserId: actor.id,
+      farmId,
+      action: AUDIT_ACTION.farmInvitationByIdentifierCreated,
+      resourceType: "FarmInvitation",
+      resourceId: inv.id,
+      metadata: {
+        targetUserId: target.id,
+        recipientKind: inv.recipientKind ?? undefined,
+        permissions: inv.permissions ?? undefined
+      }
+    });
+
+    const farm = await this.prisma.farm.findUnique({
+      where: { id: farmId },
+      select: { name: true }
+    });
+
+    this.push
+      .sendToUser(
+        target.id,
+        "Nouvelle invitation",
+        `${actor.firstName ? actor.firstName : "Un producteur"} vous invite à rejoindre ${farm?.name ?? "sa ferme"}.`,
+        {
+          type: "farm_invitation",
+          invitationId: inv.id,
+          farmId
+        }
+      )
+      .catch((err) => {
+        this.logger.warn(
+          `[invitations] push invitation by identifier non délivrée: ${err instanceof Error ? err.message : String(err)}`
+        );
+      });
+
+    return {
+      ok: true,
+      invitationId: inv.id,
+      farmId: inv.farmId,
+      recipientFirstName: target.firstName ?? null,
+      status: inv.status
+    };
+  }
+
+  /**
+   * Liste les invitations en attente pour l'utilisateur courant
+   * (ciblées via `inviteeUserId`). Inclut le nom de ferme + métadonnées
+   * affichables (rôle, permissions, message, expiration).
+   */
+  async listMyPendingInvitations(user: User) {
+    const now = new Date();
+    const rows = await this.prisma.farmInvitation.findMany({
+      where: {
+        inviteeUserId: user.id,
+        status: FarmInvitationStatus.pending,
+        expiresAt: { gt: now }
+      },
+      orderBy: { createdAt: "desc" },
+      include: {
+        farm: { select: { id: true, name: true, speciesFocus: true } },
+        creator: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatarUrl: true
+          }
+        }
+      }
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      farmId: row.farmId,
+      farmName: row.farm.name,
+      farmSpecies: row.farm.speciesFocus,
+      role: row.role,
+      recipientKind: row.recipientKind,
+      permissions: row.permissions,
+      scopes: row.scopes,
+      message: row.message,
+      expiresAt: row.expiresAt,
+      createdAt: row.createdAt,
+      inviter: {
+        id: row.creator.id,
+        displayName: maskFullName(
+          row.creator.firstName,
+          row.creator.lastName
+        ),
+        avatarUrl: row.creator.avatarUrl
+      }
+    }));
+  }
+
+  /**
+   * Accepte/refuse une invitation reçue (ciblée via `inviteeUserId`).
+   * Sécurité : seul le user invité peut répondre.
+   */
+  async respondToMyInvitation(
+    user: User,
+    invitationId: string,
+    accept: boolean
+  ) {
+    const invitation = await this.prisma.farmInvitation.findUnique({
+      where: { id: invitationId }
+    });
+    if (!invitation) {
+      throw new NotFoundException("Invitation introuvable");
+    }
+    if (invitation.inviteeUserId !== user.id) {
+      throw new ForbiddenException(
+        "Cette invitation ne vous est pas destinée"
+      );
+    }
+    if (invitation.status !== FarmInvitationStatus.pending) {
+      throw new ConflictException("Invitation déjà traitée");
+    }
+    if (invitation.expiresAt.getTime() < Date.now()) {
+      await this.prisma.farmInvitation.update({
+        where: { id: invitation.id },
+        data: { status: FarmInvitationStatus.expired }
+      });
+      throw new GoneException("Invitation expirée");
+    }
+
+    if (!accept) {
+      const updated = await this.prisma.farmInvitation.update({
+        where: { id: invitation.id },
+        data: {
+          status: FarmInvitationStatus.rejected,
+          rejectedAt: new Date()
+        }
+      });
+      await this.audit.record({
+        actorUserId: user.id,
+        farmId: invitation.farmId,
+        action: AUDIT_ACTION.farmInvitationRejected,
+        resourceType: "FarmInvitation",
+        resourceId: invitation.id,
+        metadata: { byInvitee: true }
+      });
+      this.push
+        .sendToUser(
+          invitation.createdById,
+          "Invitation refusée",
+          `${user.firstName ? user.firstName : "Le destinataire"} a décliné votre invitation.`,
+          {
+            type: "farm_invitation_response",
+            invitationId: invitation.id,
+            accepted: "false"
+          }
+        )
+        .catch(() => undefined);
+      return {
+        ok: true,
+        invitationId: updated.id,
+        farmId: updated.farmId,
+        status: updated.status
+      };
+    }
+
+    if (!invitation.role) {
+      throw new BadRequestException("Invitation incomplète : rôle manquant");
+    }
+    const role = invitation.role;
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const fresh = await tx.farmInvitation.findUnique({
+        where: { id: invitation.id }
+      });
+      if (!fresh || fresh.status !== FarmInvitationStatus.pending) {
+        throw new ConflictException("Invitation déjà traitée");
+      }
+      if (fresh.expiresAt.getTime() < Date.now()) {
+        throw new GoneException("Invitation expirée");
+      }
+
+      const existing = await tx.farmMembership.findFirst({
+        where: { farmId: fresh.farmId, userId: user.id, role }
+      });
+      if (!existing) {
+        try {
+          await tx.farmMembership.create({
+            data: {
+              farmId: fresh.farmId,
+              userId: user.id,
+              role,
+              scopes: fresh.scopes,
+              acceptedAt: new Date()
+            }
+          });
+        } catch (e) {
+          if (
+            e instanceof Prisma.PrismaClientKnownRequestError &&
+            e.code === "P2002"
+          ) {
+            // membership concurrent — on continue
+          } else {
+            throw e;
+          }
+        }
+      }
+
+      const updated = await tx.farmInvitation.update({
+        where: { id: fresh.id },
+        data: {
+          status: FarmInvitationStatus.accepted,
+          acceptedAt: new Date(),
+          redeemedAt: new Date(),
+          redeemedByUserId: user.id
+        }
+      });
+      return { updated, alreadyMember: Boolean(existing) };
+    });
+
+    await this.audit.record({
+      actorUserId: user.id,
+      farmId: invitation.farmId,
+      action: AUDIT_ACTION.farmInvitationAccepted,
+      resourceType: "FarmInvitation",
+      resourceId: invitation.id,
+      metadata: {
+        byInvitee: true,
+        role,
+        alreadyMember: result.alreadyMember
+      }
+    });
+
+    this.push
+      .sendToUser(
+        invitation.createdById,
+        "Invitation acceptée",
+        `${user.firstName ? user.firstName : "Le destinataire"} a rejoint votre ferme.`,
+        {
+          type: "farm_invitation_response",
+          invitationId: invitation.id,
+          accepted: "true"
+        }
+      )
+      .catch(() => undefined);
+
+    return {
+      ok: true,
+      invitationId: result.updated.id,
+      farmId: result.updated.farmId,
+      role,
+      status: result.updated.status
     };
   }
 

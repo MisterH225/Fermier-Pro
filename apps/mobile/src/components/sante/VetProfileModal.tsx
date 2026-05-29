@@ -1,8 +1,16 @@
+import { useMutation } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  View
+} from "react-native";
 import { openPhoneCall } from "../../lib/phone";
-import { fetchVetPublicProfile } from "../../lib/api";
+import { ensureDirectChatRoom, fetchVetPublicProfile } from "../../lib/api";
 import {
   mobileColors,
   mobileSpacing,
@@ -19,6 +27,7 @@ type Props = {
   activeProfileId?: string | null;
   onClose: () => void;
   onPlanVisit: () => void;
+  onOpenChat: (roomId: string, headline: string) => void;
 };
 
 export function VetProfileModal({
@@ -29,7 +38,8 @@ export function VetProfileModal({
   accessToken,
   activeProfileId,
   onClose,
-  onPlanVisit
+  onPlanVisit,
+  onOpenChat
 }: Props) {
   const { t } = useTranslation();
 
@@ -41,7 +51,19 @@ export function VetProfileModal({
 
   const profile = q.data;
 
-  const onContact = () => {
+  const chatMutation = useMutation({
+    mutationFn: () =>
+      ensureDirectChatRoom(accessToken, profile!.userId, activeProfileId),
+    onSuccess: (room) => {
+      onClose();
+      onOpenChat(room.id, profile?.fullName ?? "Vétérinaire");
+    },
+    onError: (err: Error) => {
+      Alert.alert(t("common.error"), err.message);
+    }
+  });
+
+  const onCall = () => {
     void openPhoneCall(profile?.professionalPhone, {
       errorTitle: t("health.vetSearch.callErrorTitle"),
       errorMessage: t("health.vetSearch.callError")
@@ -55,7 +77,7 @@ export function VetProfileModal({
       title={profile?.fullName ?? t("health.vetSearch.profileTitle")}
       sheetMaxHeight="92%"
       footerPrimary={
-        profile ? (
+        profile && !profile.isSelf ? (
           <View style={styles.actions}>
             <Pressable style={styles.btnSecondary} onPress={onPlanVisit}>
               <Text style={styles.btnSecondaryTx}>
@@ -63,11 +85,29 @@ export function VetProfileModal({
               </Text>
             </Pressable>
             {profile.canContact ? (
-              <Pressable style={styles.btnPrimary} onPress={() => void onContact()}>
-                <Text style={styles.btnPrimaryTx}>
-                  💬 {t("health.vetSearch.contact")}
-                </Text>
-              </Pressable>
+              <View style={styles.contactRow}>
+                <Pressable
+                  style={[styles.btnPrimary, styles.btnHalf]}
+                  onPress={onCall}
+                >
+                  <Text style={styles.btnPrimaryTx}>
+                    📞 {t("health.vetSearch.call")}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.btnSecondary, styles.btnHalf]}
+                  onPress={() => chatMutation.mutate()}
+                  disabled={chatMutation.isPending}
+                >
+                  {chatMutation.isPending ? (
+                    <ActivityIndicator size="small" color={mobileColors.accent} />
+                  ) : (
+                    <Text style={styles.btnSecondaryTx}>
+                      💬 {t("health.vetSearch.message")}
+                    </Text>
+                  )}
+                </Pressable>
+              </View>
             ) : null}
           </View>
         ) : undefined
@@ -118,6 +158,11 @@ const styles = StyleSheet.create({
   bio: { ...mobileTypography.body, color: mobileColors.textPrimary },
   err: { color: mobileColors.error },
   actions: { gap: mobileSpacing.sm },
+  contactRow: {
+    flexDirection: "row",
+    gap: mobileSpacing.sm
+  },
+  btnHalf: { flex: 1 },
   btnPrimary: {
     backgroundColor: mobileColors.accent,
     padding: mobileSpacing.md,

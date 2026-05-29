@@ -192,6 +192,11 @@ export function ProducerPersistentTabBar() {
           a11y: t("navigation.extended.nutrition")
         },
         {
+          id: "messages" as const,
+          label: t("navigation.extended.messages"),
+          a11y: t("navigation.extended.messages")
+        },
+        {
           id: "collaboration" as const,
           label: t("navigation.extended.collaboration"),
           a11y: t("navigation.extended.collaboration")
@@ -226,6 +231,9 @@ export function ProducerPersistentTabBar() {
       setExtendedOpen(false);
       const ctx = farmContext;
       switch (id) {
+        case "messages":
+          navigation.navigate("ProducerMessages");
+          return;
         case "nutrition":
           if (!ctx) {
             navigation.navigate("FarmList");

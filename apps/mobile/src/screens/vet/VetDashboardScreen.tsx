@@ -22,6 +22,7 @@ import { VetProfileModal } from "../../components/vet/VetProfileModal";
 import { VetWelcomeHeader } from "../../components/vet/VetWelcomeHeader";
 import { VisitCard } from "../../components/vet/VisitCard";
 import { AdminMessagesBanner } from "../../components/admin/AdminMessagesBanner";
+import { PendingInvitationsBanner } from "../../components/collaboration/PendingInvitationsBanner";
 import { useVetBottomChromePad } from "../../context/VetBottomChromeContext";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { useSession } from "../../context/SessionContext";
@@ -175,6 +176,7 @@ export function VetDashboardScreen() {
         }
       >
         <AdminMessagesBanner />
+        <PendingInvitationsBanner />
         {isPending ? (
           <View style={styles.pendingBanner}>
             <Text style={styles.pendingTx}>⏳ {t("vet.dashboard.pendingBanner")}</Text>

@@ -16,6 +16,8 @@ export const AUDIT_ACTION = {
   farmInvitationAccepted: "farm.invitation.accepted",
   farmInvitationRejected: "farm.invitation.rejected",
   farmInvitationScanRequested: "farm.invitation.scan_requested",
+  farmInvitationIdentifierSearched: "farm.invitation.identifier_searched",
+  farmInvitationByIdentifierCreated: "farm.invitation.by_identifier_created",
   farmInvitationDefaultGenerated: "farm.invitation.default_generated",
   farmMemberUpdated: "farm.member.updated",
   farmMemberRemoved: "farm.member.removed",

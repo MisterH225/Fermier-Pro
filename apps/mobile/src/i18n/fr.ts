@@ -1,4 +1,11 @@
 export const fr = {
+  common: {
+    error: "Erreur",
+    cancel: "Annuler",
+    ok: "OK",
+    close: "Fermer",
+    retry: "Réessayer"
+  },
   cgu: {
     title: "Conditions d'utilisation",
     subtitle: "Veuillez lire et accepter avant de continuer",
@@ -461,6 +468,7 @@ export const fr = {
       home: "Accueil",
       cheptel: "Cheptel",
       health: "Santé",
+      messages: "Messages",
       finance: "Finance",
       collaboration: "Équipe",
       profile: "Profil"
@@ -476,6 +484,7 @@ export const fr = {
       gestation: "Gestation",
       tasks: "Tâches",
       reports: "Rapports",
+      messages: "Messages",
       closeBackdropA11y: "Fermer le menu",
       closeA11y: "Fermer"
     },
@@ -969,6 +978,12 @@ export const fr = {
     }
   },
   producer: {
+    messages: {
+      new: "Nouveau",
+      emptyTitle: "Aucun message",
+      emptySub: "Envoyez un message à votre vétérinaire depuis la fiche de son profil.",
+      noMessage: "Pas encore de message"
+    },
     welcomeLine: "Bienvenue",
     settingsButton: "Paramètres",
     farmSettingsTitle: "Paramètres",
@@ -1104,7 +1119,54 @@ export const fr = {
     historyTitle: "Historique des actions",
     historyEmpty: "Aucune action enregistrée.",
     historyShowMore: "Voir plus",
-    filterAll: "Tous"
+    filterAll: "Tous",
+    profileTypes: {
+      producer: "Producteur",
+      technician: "Technicien",
+      veterinarian: "Vétérinaire",
+      buyer: "Acheteur"
+    },
+    searchByIdentifier: {
+      openBtn: "Ajouter par identifiant",
+      title: "Ajouter un collaborateur",
+      configureTitle: "Configurer l'invitation",
+      fieldLabel: "Email ou numéro de téléphone",
+      placeholder: "+225 07 00 00 00 00 ou email@exemple.com",
+      hint: "Saisissez l'identifiant exact utilisé par la personne pour se connecter.",
+      searchAction: "Rechercher",
+      notFound:
+        "Aucun compte trouvé avec cet identifiant. Vérifiez que la personne est bien inscrite sur la plateforme et qu'elle utilise ce moyen de connexion.",
+      selfSearch: "Vous ne pouvez pas vous ajouter vous-même.",
+      alreadyMember: "Cette personne fait déjà partie de votre projet.",
+      alreadyMemberBadge: "Déjà membre",
+      alreadyInvited: "Une invitation est déjà en attente pour cette personne.",
+      alreadyInvitedBadge: "Invitation en attente",
+      inviteCta: "Inviter cette personne",
+      sendInvite: "Envoyer",
+      messageLabel: "Message personnel (optionnel)",
+      messagePlaceholder:
+        "Ex: Bonjour, je vous invite à accéder à ma ferme...",
+      successMsg:
+        "Invitation envoyée à {{name}} — en attente de sa confirmation."
+    },
+    pendingInvitations: {
+      bannerTitle: "Invitation reçue",
+      bannerOne: "Une ferme souhaite vous ajouter — appuyez pour répondre",
+      bannerCount: "{{count}} invitations en attente",
+      bannerA11y: "Voir les invitations reçues",
+      title: "Invitations reçues",
+      empty: "Aucune invitation en attente.",
+      invitedBy: "Invité par {{name}}",
+      role: "Rôle",
+      roleUnknown: "Membre",
+      accept: "Accepter",
+      reject: "Refuser",
+      acceptedToast: "Vous avez rejoint la ferme.",
+      cancel: "Annuler",
+      confirmRejectTitle: "Refuser l'invitation ?",
+      confirmRejectBody:
+        "Vous n'aurez plus accès à la ferme {{farm}} via cette invitation."
+    }
   },
   financeScreen: {
     overview: "Vue d’ensemble",
@@ -1539,6 +1601,8 @@ export const fr = {
       statsVisits: "{{count}} visites",
       planVisit: "Planifier une visite",
       contact: "Contacter",
+      call: "Appeler",
+      message: "Message",
       shareMessage:
         "Contact vétérinaire {{vet}} pour la ferme {{farm}} — {{phone}}",
       callErrorTitle: "Appel impossible",
