@@ -25,7 +25,6 @@ import { InvitationsModule } from "./invitations/invitations.module";
 import { LivestockModule } from "./livestock/livestock.module";
 import { LivestockExitsModule } from "./livestock-exits/livestock-exits.module";
 import { MarketplaceModule } from "./marketplace/marketplace.module";
-import { MarketModule } from "./market/market.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { ProfilesModule } from "./profiles/profiles.module";
 import { PushNotificationsModule } from "./push-notifications/push-notifications.module";
@@ -43,6 +42,8 @@ import { AiModule } from "./ai/ai.module";
 import { GestationModule } from "./gestation/gestation.module";
 import { VetsModule } from "./vets/vets.module";
 import { AdminPlatformModule } from "./admin-platform/admin-platform.module";
+import { FeatureFlagsModule } from "./feature-flags/feature-flags.module";
+import { MarketModule } from "./market/market.module";
 
 @Module({
   imports: [

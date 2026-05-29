@@ -249,7 +249,8 @@ export function SessionProvider({
       setActiveProfileId,
       refreshAuthMe,
       reloadAuth,
-      clientFeatures
+      clientFeatures,
+      platformModules
     }),
     [
       accessToken,
@@ -261,7 +262,8 @@ export function SessionProvider({
       setActiveProfileId,
       refreshAuthMe,
       reloadAuth,
-      clientFeatures
+      clientFeatures,
+      platformModules
     ]
   );
 

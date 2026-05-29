@@ -18,7 +18,7 @@ export class FeatureEnabledGuard implements CanActivate {
     private readonly flags: FeatureFlagService
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const key = this.reflector.getAllAndOverride<ClientFeatureKey>(
       FEATURE_FLAG_METADATA,
       [context.getHandler(), context.getClass()]
@@ -26,13 +26,18 @@ export class FeatureEnabledGuard implements CanActivate {
     if (!key) {
       return true;
     }
-    if (!this.flags.isEnabled(key)) {
-      throw new ServiceUnavailableException({
-        statusCode: 503,
-        message: `Fonctionnalite desactivee (${key})`,
-        error: "Service Unavailable"
-      });
+    const enabled = await this.flags.isEnabled(key);
+    if (enabled) {
+      return true;
     }
-    return true;
+    const { moduleId, message } = await this.flags.resolveInactiveContext(key);
+    throw new ServiceUnavailableException({
+      statusCode: 503,
+      code: "MODULE_INACTIVE",
+      moduleId,
+      feature: key,
+      message: message ?? `Fonctionnalité désactivée (${key})`,
+      error: "Service Unavailable"
+    });
   }
 }
