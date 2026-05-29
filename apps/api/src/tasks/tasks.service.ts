@@ -520,6 +520,7 @@ export class TasksService {
 
     const overdueTasks = await this.prisma.farmTask.findMany({
       where: {
+        archived: false,
         status: { in: [TaskStatus.todo, TaskStatus.in_progress] },
         dueAt: { lt: yesterdayEnd },
         assignedUserId: { not: null }

@@ -522,6 +522,8 @@ model FarmExpense {
   linkedEntityType   String?
   linkedEntityId     String?
   attachmentUrl      String?
+  /// Mouvements de stock (`FeedStockMovement`) créés avec cette dépense.
+  linkedStockMovementIds String[] @default([])
   healthVetVisitLink HealthVetVisitDetail?
   healthTreatmentLink HealthTreatmentDetail?
 

@@ -29,6 +29,7 @@ import {
   relocateProductionAnimalsToDefaultPlan
 } from "../onboarding/onboarding-pen-layout";
 import { PenAllocationService } from "../housing/pen-allocation.service";
+import { PigPriceIndexService } from "../market/pig-price-index.service";
 
 export type CheptelPenOverviewRow = {
   id: string;
@@ -90,8 +91,7 @@ export class CheptelService {
     private readonly farmAccess: FarmAccessService,
     private readonly livestock: LivestockService,
     private readonly finance: FinanceService,
-    private readonly penAllocation: PenAllocationService,
-    private readonly pigPriceIndex: PigPriceIndexService
+    private readonly penAllocation: PenAllocationService
   ) {}
 
   private mapBatchType(
@@ -1032,8 +1032,6 @@ export class CheptelService {
 
       return { transaction: revenue };
     });
-
-    void this.pigPriceIndex.calculateRecentDays().catch(() => undefined);
 
     const animal = await this.livestock.getAnimal(user, farmId, animalId);
     return { animal, transaction: result.transaction };
