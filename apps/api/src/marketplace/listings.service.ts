@@ -129,6 +129,7 @@ export class ListingsService {
       return this.prisma.marketplaceListing.findMany({
         where: {
           sellerUserId: user.id,
+          archived: false,
           ...(status ? { status } : {}),
           ...(category ? { category } : {}),
           ...textFilter

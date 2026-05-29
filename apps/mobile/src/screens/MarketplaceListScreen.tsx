@@ -28,9 +28,14 @@ import type {
   MarketplaceOfferMineRow
 } from "../lib/api";
 import {
+  addBuyerFavorite,
+  fetchBuyerFavoriteIds,
+  fetchBuyerFavorites,
   fetchMarketplaceListings,
   fetchMyMarketplaceOffers,
-  withdrawMarketplaceOffer
+  removeBuyerFavorite,
+  withdrawMarketplaceOffer,
+  type BuyerFavoriteListingDto
 } from "../lib/api";
 import {
   listingStatusLabel,
@@ -129,20 +134,42 @@ function initialMarketTab(
 export function MarketplaceListScreen({ navigation, route }: Props) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
-  const { accessToken, activeProfileId, clientFeatures } = useSession();
+  const { accessToken, activeProfileId, authMe, clientFeatures } = useSession();
   const qc = useQueryClient();
 
-  const [marketTab, setMarketTab] = useState<MarketTab>(() =>
-    initialMarketTab(route.params)
-  );
+  const buyerView = route.params?.buyerView === true;
+  const favoritesOnly = route.params?.favoritesOnly === true;
+  const [marketTab, setMarketTab] = useState<MarketTab>(() => {
+    const tab = initialMarketTab(route.params);
+    return buyerView && tab === "mine" ? "listings" : tab;
+  });
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<CatKey>("all");
-  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+  const isBuyerProfile =
+    authMe?.profiles.find((p) => p.id === activeProfileId)?.type === "buyer";
+
+  const favoriteIdsQ = useQuery({
+    queryKey: ["buyerFavoriteIds", activeProfileId],
+    queryFn: () => fetchBuyerFavoriteIds(accessToken!, activeProfileId),
+    enabled: Boolean(accessToken && isBuyerProfile && clientFeatures.marketplace)
+  });
+
+  const favoriteIdSet = useMemo(
+    () => new Set(favoriteIdsQ.data ?? []),
+    [favoriteIdsQ.data]
+  );
   const [myFilter, setMyFilter] = useState<ListingFilter>("all");
 
   useEffect(() => {
     setMarketTab(initialMarketTab(route.params));
   }, [route.params]);
+
+  useEffect(() => {
+    const q = route.params?.searchQuery;
+    if (typeof q === "string" && q.trim()) {
+      setSearch(q.trim());
+    }
+  }, [route.params?.searchQuery]);
 
   const cardW = useMemo(
     () => Math.floor((width - mobileSpacing.lg * 6) / 2),
@@ -152,6 +179,14 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
   const qTrim = search.trim();
   const searchParam = qTrim.length >= 2 ? qTrim : undefined;
 
+  const favoritesListQuery = useQuery({
+    queryKey: ["buyerFavoritesList", activeProfileId],
+    queryFn: () => fetchBuyerFavorites(accessToken!, activeProfileId),
+    enabled:
+      clientFeatures.marketplace &&
+      Boolean(isBuyerProfile && favoritesOnly && accessToken)
+  });
+
   const listingsQuery = useQuery({
     queryKey: ["marketplaceListings", activeProfileId, category, searchParam],
     queryFn: () =>
@@ -160,7 +195,10 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
         ...(category !== "all" ? { category } : {}),
         ...(searchParam ? { q: searchParam } : {})
       }),
-    enabled: clientFeatures.marketplace && marketTab === "listings"
+    enabled:
+      clientFeatures.marketplace &&
+      marketTab === "listings" &&
+      !favoritesOnly
   });
 
   const myListingsQuery = useQuery({
@@ -221,8 +259,33 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     []
   );
 
+  const favMut = useMutation({
+    mutationFn: async ({
+      listingId,
+      remove
+    }: {
+      listingId: string;
+      remove: boolean;
+    }) => {
+      if (remove) {
+        return removeBuyerFavorite(accessToken!, activeProfileId, listingId);
+      }
+      return addBuyerFavorite(accessToken!, activeProfileId, listingId);
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["buyerFavoriteIds"] });
+      void qc.invalidateQueries({ queryKey: ["buyerFavorites"] });
+      void qc.invalidateQueries({ queryKey: ["buyerFavoritesList"] });
+      void qc.invalidateQueries({ queryKey: ["buyerDashboard"] });
+    },
+    onError: (e: Error) => Alert.alert("Favoris", e.message)
+  });
+
   const toggleFav = (id: string) => {
-    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
+    if (!isBuyerProfile || !accessToken) {
+      return;
+    }
+    favMut.mutate({ listingId: id, remove: favoriteIdSet.has(id) });
   };
 
   const myRows = myListingsQuery.data ?? [];
@@ -298,13 +361,15 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
               <Text style={styles.badgeNewTx}>{t("marketScreen.badgeNew")}</Text>
             </View>
           ) : null}
-          <Pressable
-            style={styles.favBtn}
-            hitSlop={10}
-            onPress={() => toggleFav(item.id)}
-          >
-            <Text style={styles.favTx}>{favorites[item.id] ? "❤️" : "🤍"}</Text>
-          </Pressable>
+          {isBuyerProfile ? (
+            <Pressable
+              style={styles.favBtn}
+              hitSlop={10}
+              onPress={() => toggleFav(item.id)}
+            >
+              <Text style={styles.favTx}>{favoriteIdSet.has(item.id) ? "❤️" : "🤍"}</Text>
+            </Pressable>
+          ) : null}
         </View>
         <View style={styles.cardBody}>
           {wKg != null ? (
@@ -403,7 +468,32 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
         ? String(listingsQuery.error)
         : null;
 
-  const listingsList = listingsQuery.data ?? [];
+const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
+    return (favoritesListQuery.data ?? []).map((f: BuyerFavoriteListingDto) => ({
+      id: f.id,
+      title: f.title,
+      description: null,
+      unitPrice: null,
+      quantity: null,
+      currency: "XOF",
+      locationLabel: null,
+      status: "published",
+      publishedAt: f.publishedAt,
+      createdAt: f.favoritedAt,
+      updatedAt: f.favoritedAt,
+      category: f.category,
+      photoUrls: Array.isArray(f.photoUrls)
+        ? (f.photoUrls as string[])
+        : [],
+      totalWeightKg: f.weightKg,
+      pricePerKg: f.pricePerKg,
+      totalPrice: f.totalPrice,
+      farm: f.farmName ? { id: "", name: f.farmName } : null,
+      animal: null
+    }));
+  }, [favoritesListQuery.data]);
+
+  const listingsList = favoritesOnly ? favoritesAsListings : (listingsQuery.data ?? []);
   const listingsEmpty =
     listingsList.length === 0
       ? t("marketScreen.emptyListings")
@@ -459,8 +549,8 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl
-              refreshing={listingsQuery.isFetching}
-              onRefresh={() => void listingsQuery.refetch()}
+              refreshing={favoritesOnly ? favoritesListQuery.isFetching : listingsQuery.isFetching}
+              onRefresh={() => void (favoritesOnly ? favoritesListQuery.refetch() : listingsQuery.refetch())}
               tintColor={mobileColors.accent}
             />
           }

@@ -10,7 +10,8 @@ import {
   Put,
   Query,
   Res,
-  UseGuards
+  UseGuards,
+  ParseBoolPipe
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
 import type { Response } from "express";
@@ -37,6 +38,8 @@ import {
   UpsertFarmBudgetDto
 } from "./dto/upsert-farm-budget.dto";
 import { FinanceService } from "./finance.service";
+import { FeedFinanceLinkService } from "../feed-finance-link/feed-finance-link.service";
+import { CreateTransactionWithStockDto } from "../feed-finance-link/dto/feed-finance-link.dto";
 
 @Controller("farms/:farmId/finance")
 @RequireFeature("finance")
@@ -44,7 +47,8 @@ import { FinanceService } from "./finance.service";
 export class FinanceController {
   constructor(
     private readonly finance: FinanceService,
-    private readonly budget: BudgetService
+    private readonly budget: BudgetService,
+    private readonly feedFinanceLink: FeedFinanceLinkService
   ) {}
 
   @Get("overview")
@@ -138,6 +142,54 @@ export class FinanceController {
       attachmentUrl: dto.attachmentUrl,
       note: dto.note
     });
+  }
+
+
+  @Post("transactions/with-stock")
+  @RequireFarmScopes(FARM_SCOPE.financeWrite)
+  createTransactionWithStock(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Body() dto: CreateTransactionWithStockDto
+  ) {
+    return this.feedFinanceLink.createTransactionWithStock(user, farmId, dto);
+  }
+
+  @Get("expenses/:expenseId/linked-stock")
+  @RequireFarmScopes(FARM_SCOPE.financeRead)
+  getLinkedStockForExpense(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("expenseId") expenseId: string
+  ) {
+    return this.feedFinanceLink.getLinkedStockForExpense(user, farmId, expenseId);
+  }
+
+  @Patch("expenses/:expenseId/sync-linked-stock")
+  @RequireFarmScopes(FARM_SCOPE.financeWrite)
+  syncLinkedStockFromExpense(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("expenseId") expenseId: string
+  ) {
+    return this.feedFinanceLink.syncLinkedStockFromExpense(user, farmId, expenseId);
+  }
+
+  @Delete("expenses/:expenseId/with-stock")
+  @RequireFarmScopes(FARM_SCOPE.financeWrite)
+  deleteExpenseWithStock(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("expenseId") expenseId: string,
+    @Query("deleteStock", new ParseBoolPipe({ optional: true }))
+    deleteStock?: boolean
+  ) {
+    return this.feedFinanceLink.deleteExpenseWithStock(
+      user,
+      farmId,
+      expenseId,
+      deleteStock === true
+    );
   }
 
   @Get("report")

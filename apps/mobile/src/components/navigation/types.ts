@@ -16,4 +16,11 @@ export type ExtendedNavMenuId =
   | "reports"
   | "messages"
   | "prescriptions"
-  | "settings";
+  | "settings"
+  | "vaccinations"
+  | "weighings"
+  | "feedStock"
+  | "favorites"
+  | "priceAlerts"
+  | "reviews"
+  | "preferences";

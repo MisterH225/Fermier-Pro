@@ -96,6 +96,8 @@ export default function StatistiquesPage() {
               )}
             </CardContent>
           </Card>
+
+          {token ? <PigPriceIndexSection token={token} /> : null}
         </>
       )}
     </div>

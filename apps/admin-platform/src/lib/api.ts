@@ -255,3 +255,62 @@ export type AdminVetAssistResult = {
   unavailable?: boolean;
   diplomaImageAnalyzed?: boolean;
 };
+
+export type AdminPigPriceChartDto = {
+  period: string;
+  category: string;
+  insufficientData: boolean;
+  message: string | null;
+  series: Array<{
+    key: string;
+    label: string;
+    color: string;
+    dashed?: boolean;
+    points: Array<{
+      date: string;
+      avgPricePerKg: number;
+      listingAvgPrice: number | null;
+      transactionCount: number;
+      variationPct: number | null;
+      limitedData: boolean;
+    }>;
+  }>;
+  updatedAt: string;
+};
+
+export type AdminPigPriceStatsDto = {
+  rows: Array<{
+    category: string;
+    label: string;
+    todayPrice: number | null;
+    variation24h: number | null;
+    variation7d: number | null;
+    high30d: number | null;
+    low30d: number | null;
+    volume: number;
+  }>;
+};
+
+export function fetchAdminPigPriceChart(
+  token: string,
+  period = "30d",
+  category = "all"
+): Promise<AdminPigPriceChartDto> {
+  const q = new URLSearchParams({ period });
+  if (category !== "all") q.set("category", category);
+  return apiFetch(`/admin/pig-price-index?${q.toString()}`, token);
+}
+
+export function fetchAdminPigPriceStats(
+  token: string,
+  period = "30d"
+): Promise<AdminPigPriceStatsDto> {
+  return apiFetch(`/admin/pig-price-index/stats?period=${period}`, token);
+}
+
+export function fetchAdminPigPriceTicker(token: string) {
+  return apiFetch<{ items: Array<{ category: string; label: string; icon: string; pricePerKg: number | null; variationPct: number | null; color: string }> }>(
+    "/admin/pig-price-index/ticker",
+    token
+  );
+}

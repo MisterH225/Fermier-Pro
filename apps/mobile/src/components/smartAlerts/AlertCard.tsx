@@ -11,6 +11,8 @@ import {
   mobileTypography
 } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { useTranslation } from "react-i18next";
+import { resolveSmartAlertText } from "../../lib/smartAlertDisplay";
 
 function priorityIcon(p: SmartAlertListItemDto["priority"]): string {
   if (p === "critical") return "alert-circle";
@@ -24,13 +26,17 @@ function priorityColor(p: SmartAlertListItemDto["priority"]): string {
   return mobileColors.accent;
 }
 
-function moduleLabel(m: SmartAlertListItemDto["module"]): string {
+function moduleLabel(
+  m: SmartAlertListItemDto["module"],
+  t: (key: string) => string
+): string {
   const map: Record<SmartAlertListItemDto["module"], string> = {
     stock: "Stock",
     health: "Santé",
     finance: "Finance",
     gestation: "Gestation",
-    cheptel: "Cheptel"
+    cheptel: "Cheptel",
+    market: t("smartAlerts.moduleMarket")
   };
   return map[m];
 }
@@ -42,6 +48,8 @@ type AlertCardProps = {
 };
 
 export function AlertCard({ alert, navigation, onMarkRead }: AlertCardProps) {
+  const { t } = useTranslation();
+  const display = resolveSmartAlertText(alert, t);
   const onPressCard = useCallback(() => {
     const a = alert.action;
     if (a?.route) {
@@ -85,14 +93,14 @@ export function AlertCard({ alert, navigation, onMarkRead }: AlertCardProps) {
         />
         <View style={styles.titleCol}>
           <Text style={styles.title} numberOfLines={2}>
-            {alert.title}
+            {display.title}
           </Text>
           <View style={styles.tag}>
-            <Text style={styles.tagTx}>{moduleLabel(alert.module)}</Text>
+            <Text style={styles.tagTx}>{moduleLabel(alert.module, t)}</Text>
           </View>
         </View>
       </View>
-      <Text style={styles.message}>{alert.message}</Text>
+      <Text style={styles.message}>{display.message}</Text>
       {alert.action?.route ? (
         <Text style={styles.actionHint}>
           → {alert.action.label}

@@ -1,5 +1,11 @@
 import type { SmartAlertModule, SmartAlertPriority } from "@prisma/client";
 
+export type SmartAlertI18nDto = {
+  titleKey: string;
+  messageKey: string;
+  params?: Record<string, string | number>;
+};
+
 export type SmartAlertActionDto = {
   label: string;
   route: string;
@@ -13,6 +19,7 @@ export type ComputedSmartAlert = {
   priority: SmartAlertPriority;
   title: string;
   message: string;
+  i18n?: SmartAlertI18nDto;
   action?: SmartAlertActionDto;
 };
 

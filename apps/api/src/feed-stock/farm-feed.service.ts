@@ -294,7 +294,11 @@ export class FarmFeedService {
           : null;
 
       let linkedExpenseId: string | null = null;
-      if (dto.unitPrice != null && dto.unitPrice >= 0) {
+      if (
+        !dto.skipAutoFinanceExpense &&
+        dto.unitPrice != null &&
+        dto.unitPrice >= 0
+      ) {
         const fin = await this.prisma.farmFinanceSettings.findUnique({
           where: { farmId }
         });

@@ -39,6 +39,7 @@ type Props = {
   onPress: () => void;
   onToggleActive: (pen: CheptelPenRowDto, next: boolean) => void;
   onDelete: (pen: CheptelPenRowDto) => void;
+  readOnly?: boolean;
 };
 
 export function PenCard({
@@ -47,7 +48,8 @@ export function PenCard({
   layout = "grid",
   onPress,
   onToggleActive,
-  onDelete
+  onDelete,
+  readOnly = false
 }: Props) {
   const label = displayName ?? pen.code?.trim() ?? pen.name;
   const { t } = useTranslation();
@@ -179,21 +181,23 @@ export function PenCard({
         />
       </View>
 
-      <View style={styles.footer}>
-        <Pressable
-          onPress={onDeletePress}
-          hitSlop={8}
-          accessibilityLabel={t("cheptel.pens.deleteA11y")}
-        >
-          <Ionicons name="trash-outline" size={18} color={mobileColors.textSecondary} />
-        </Pressable>
-        <Switch
-          value={pen.isActive}
-          onValueChange={(v) => onToggleActive(pen, v)}
-          trackColor={{ false: "#D1D5DB", true: mobileColors.accentSoft }}
-          thumbColor={pen.isActive ? mobileColors.accent : "#f4f4f5"}
-        />
-      </View>
+      {!readOnly ? (
+        <View style={styles.footer}>
+          <Pressable
+            onPress={onDeletePress}
+            hitSlop={8}
+            accessibilityLabel={t("cheptel.pens.deleteA11y")}
+          >
+            <Ionicons name="trash-outline" size={18} color={mobileColors.textSecondary} />
+          </Pressable>
+          <Switch
+            value={pen.isActive}
+            onValueChange={(v) => onToggleActive(pen, v)}
+            trackColor={{ false: "#D1D5DB", true: mobileColors.accentSoft }}
+            thumbColor={pen.isActive ? mobileColors.accent : "#f4f4f5"}
+          />
+        </View>
+      ) : null}
     </Pressable>
   );
 }

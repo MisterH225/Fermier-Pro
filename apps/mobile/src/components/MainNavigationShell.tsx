@@ -1,14 +1,22 @@
 import {
   NavigationContainer,
+  createNavigationContainerRef,
   DefaultTheme,
   type LinkingOptions
 } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import * as Linking from "expo-linking";
+import { useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProducerPersistentTabBar } from "./ProducerPersistentTabBar";
 import { VetPersistentTabBar } from "./VetPersistentTabBar";
+import { TechPersistentTabBar } from "./TechPersistentTabBar";
+import { BuyerPersistentTabBar } from "./BuyerPersistentTabBar";
+import { techBottomChromeHeight } from "./navigation/technician/techNavMetrics";
+import { buyerBottomChromeHeight } from "./navigation/buyer/buyerNavMetrics";
+import { TechBottomChromeProvider } from "../context/TechBottomChromeContext";
+import { BuyerBottomChromeProvider } from "../context/BuyerBottomChromeContext";
 import { producerBottomChromeHeight } from "./navigation";
 import { vetBottomChromeHeight } from "./navigation/vet/vetNavMetrics";
 import { ProducerBottomChromeProvider } from "../context/ProducerBottomChromeContext";
@@ -68,6 +76,14 @@ import {
   LogeDetailScreen,
   PenMoveScreen,
   TechnicianDashboardScreen,
+  TechTasksScreen,
+  TechFarmScreen,
+  TechTrackingScreen,
+  BuyerMarketScreen,
+  BuyerMessagesScreen,
+  BuyerHistoryScreen,
+  BuyerAlertsScreen,
+  BuyerFavoritesScreen,
   VeterinarianDashboardScreen,
   VetAgendaScreen,
   VetFarmDetailScreen,
@@ -85,6 +101,7 @@ import { mobileColors } from "../theme/mobileTheme";
 import { vetStackScreenOptions } from "../theme/vetTheme";
 import { AccountModerationGate } from "./auth/AccountModerationGate";
 import { OfflineBanner } from "./OfflineBanner";
+import { useSmartAlertPushNavigation } from "../hooks/useSmartAlertPushNavigation";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -157,6 +174,46 @@ function MainStack() {
         name="BuyerDashboard"
         component={BuyerDashboardScreen}
         options={{ title: "Accueil" }}
+      />
+      <Stack.Screen
+        name="BuyerMarket"
+        component={BuyerMarketScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="BuyerMessages"
+        component={BuyerMessagesScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="BuyerHistory"
+        component={BuyerHistoryScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="BuyerAlerts"
+        component={BuyerAlertsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="BuyerFavorites"
+        component={BuyerFavoritesScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="TechTasks"
+        component={TechTasksScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="TechFarm"
+        component={TechFarmScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="TechTracking"
+        component={TechTrackingScreen}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="VeterinarianDashboard"
@@ -487,15 +544,22 @@ function MainNavigationWithChrome() {
 }
 
 /** À l’intérieur de `PersistQueryClientProvider` (réhydratation cache offline). */
-export function MainNavigationShell() {
+const navigationRef = createNavigationContainerRef<RootStackParamList>();
+
+function MainNavigationShellInner() {
+  useSmartAlertPushNavigation(navigationRef);
   return (
     <View style={styles.flex}>
       <OfflineBanner />
-      <NavigationContainer theme={navTheme} linking={linking}>
+      <NavigationContainer ref={navigationRef} theme={navTheme} linking={linking}>
         <MainNavigationWithChrome />
       </NavigationContainer>
     </View>
   );
+}
+
+export function MainNavigationShell() {
+  return <MainNavigationShellInner />;
 }
 
 const styles = StyleSheet.create({

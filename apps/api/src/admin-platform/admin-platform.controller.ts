@@ -36,6 +36,7 @@ import {
   ModerationScopeDto
 } from "./dto/admin-user-moderation.dto";
 import { SuperAdminGuard } from "./super-admin.guard";
+import { PigPriceIndexService } from "../market/pig-price-index.service";
 
 @Controller("admin")
 @UseGuards(SupabaseJwtGuard, SuperAdminGuard)

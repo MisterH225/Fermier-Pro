@@ -265,6 +265,59 @@ export const en = {
     withdrawConfirm: "Withdraw",
     withdrawAction: "Withdraw my offer"
   },
+  pigPriceIndex: {
+    title: "📊 Pig prices",
+    subtitle: "Average price index on the platform",
+    badge: "Updated every hour",
+    period7d: "7D",
+    period30d: "1M",
+    period3m: "3M",
+    period12m: "12M",
+    unit: "FCFA/kg",
+    emptyData: "Insufficient data",
+    categoryAll: "All",
+    categoryPorcelet: "Piglets 🐣",
+    categoryCroissance: "Growth 📈",
+    categoryCharcutier: "Butcher 🐷",
+    categoryReproducteur: "Breeders ♻️",
+    statToday: "Today",
+    statHigh: "High",
+    statLow: "Low",
+    statVolume: "Transactions",
+    variationFlat: "0.0% ➡️",
+    priceOnRequest: "—"
+  },
+  smartAlerts: {
+    moduleMarket: "Market",
+    market: {
+      priceUp: {
+        title: "{{category}} price rising",
+        message:
+          "{{category}} price rose {{pct}}% in 24h ({{price}} FCFA/kg, platform index)."
+      },
+      priceDown: {
+        title: "{{category}} price falling",
+        message:
+          "{{category}} price fell {{pct}}% in 24h ({{price}} FCFA/kg, platform index)."
+      },
+      categories: {
+        porcelet: "piglets",
+        croissance: "growers",
+        charcutier: "finishers",
+        reproducteur: "breeders"
+      }
+    },
+    settings: {
+      title: "SmartAlerts notifications",
+      subtitle: "Choose which alerts to receive as push on this device.",
+      pushStock: "Feed stock",
+      pushHealth: "Health",
+      pushFinance: "Finance",
+      pushGestation: "Gestation",
+      pushCheptel: "Herd",
+      pushMarket: "Pig price index"
+    }
+  },
   tasksScreen: {
     tabPending: "Pending",
     tabInProgress: "In progress",
@@ -1256,6 +1309,34 @@ export const en = {
     marginPerHead: "Cost per head:",
     marginPerKg: "Cost per kg:"
   },
+  financeStockLink: {
+    stockSectionTitle: "Stock details",
+    recordStock: "Also record in stock",
+    toggleOn: "Yes",
+    toggleOff: "No",
+    quantity: "Quantity received",
+    unitPrice: "Unit price",
+    line: "Line {{n}}",
+    lineSubtotal: "Subtotal: {{amount}} {{currency}}",
+    addLine: "+ Add another feed type",
+    totalGap:
+      "Gap of {{gap}} {{currency}} — adjust quantities or total amount",
+    newFeedType: "New type",
+    useExistingType: "Existing type",
+    linkedStockTitle: "Linked stock",
+    unitPriceShort: "{{price}} / unit",
+    openStock: "View in Feed Stock",
+    createFinanceExpense: "Also create expense in Finance",
+    financeLabel: "Expense label",
+    financeBadge: "Linked Finance",
+    linkedFinanceTitle: "Linked finance expense",
+    deleteLinkedTitle: "Linked deletion",
+    deleteLinkedBody:
+      "This transaction is linked to a stock entry. Delete the stock entry too?",
+    deleteBoth: "Delete both",
+    deleteFinanceOnly: "Finance only",
+    txWithStockSuccess: "Expense recorded — stock updated"
+  },
   budgetScreen: {
     status: {
       onTrack: "🟢 On track",
@@ -1857,6 +1938,211 @@ export const en = {
       abortion: "Closed",
       vaccine: "Vaccine"
     }
+  },
+  tech: {
+    nav: { home: "Home", tasks: "Tasks", farm: "Farm", tracking: "Tracking" },
+    extended: {
+      vaccinations: "Vaccinations",
+      weighings: "Weighings",
+      feedStock: "Feed stock",
+      reports: "Reports"
+    },
+    dashboard: {
+      welcome: "Hello, {{name}} 👋",
+      defaultName: "Technician",
+      farmSubtitle: "Farm {{farm}} — {{date}}",
+      noFarm: "Waiting for a farm invitation",
+      tasksToday: "Today's tasks",
+      noTasks: "No tasks for today ✅",
+      allTasks: "View all tasks →",
+      quickActions: "Quick actions",
+      farmStatus: "Farm status",
+      recentActivity: "Recent activity",
+      noActivity: "No recent activity",
+      allActivity: "View all →"
+    },
+    quick: {
+      stock: "Stock check",
+      weight: "Weigh-in",
+      vaccine: "Vaccinate",
+      disease: "Report disease",
+      mortality: "Mortality",
+      feedIn: "Feed intake"
+    },
+    kpi: {
+      alerts: "Alerts",
+      vaccines: "Overdue vaccines",
+      gestation: "Farrowings",
+      stock: "Critical stock"
+    },
+    tasks: { noFarm: "No farm assigned yet." },
+    farm: {
+      title: "My farm",
+      tabs: { loges: "Pens", cheptel: "Herd", sante: "Health", gestation: "Gestation" },
+      openLoges: "Open pens",
+      openCheptel: "Open herd",
+      openSante: "Open health",
+      openGestation: "Open gestation",
+      openModule: "Open module",
+      sectionModules: "Available modules",
+      sectionAction: "Access"
+    },
+    tracking: {
+      title: "Tracking",
+      subtitle: "History of your work on assigned farms.",
+      sectionLog: "Activity log"
+    },
+    vaccinePicker: {
+      title: "Choose a vaccine",
+      empty: "No vaccines configured on this farm.",
+      pending: "{{count}} subject(s) pending",
+      select: "Vaccinate",
+      sectionList: "Available vaccines"
+    },
+    permissionDenied: "Permission not granted by the producer.",
+    permissionReadOnly: "Read-only access on this module.",
+    readOnlyBanner: "Read-only mode — you cannot edit this module.",
+    farmReadOnlyBadge: "Read only"
+  },
+  buyer: {
+    nav: { home: "Home", market: "Market", messages: "Messages", history: "Purchases" },
+    extended: {
+      favorites: "Favorites",
+      priceAlerts: "Price alerts",
+      reviews: "My reviews",
+      preferences: "Preferences"
+    },
+    dashboard: {
+      welcome: "Hello, {{name}} 👋",
+      defaultName: "Buyer",
+      searchPlaceholder: "Search animals…",
+      offersForYou: "Offers for you",
+      allOffers: "View all offers →",
+      activeProposals: "Active proposals",
+      noProposals: "No pending proposals",
+      allProposals: "View all proposals →",
+      sectionStats: "Overview"
+    },
+    kpi: {
+      pending: "Proposals",
+      purchases: "Purchases",
+      favorites: "Favorites",
+      alerts: "Alerts"
+    },
+    history: {
+      title: "My purchases",
+      tabs: { proposals: "Proposals", purchases: "Purchases", reviews: "Reviews" },
+      comingSoon: "Detailed history coming soon.",
+      sectionFilter: "Filter by type",
+      noProposals: "No pending or declined proposals.",
+      noPurchases: "No confirmed purchases yet.",
+      noReviews: "You have not left any reviews yet."
+    },
+  favorites: {
+    title: "My favorites",
+    subtitle: "Listings you follow on the marketplace.",
+    sectionList: "Saved listings",
+    emptyTitle: "No favorites yet",
+    emptyBody: "Tap the heart on a listing to save it here.",
+    explore: "Browse marketplace",
+    remove: "Remove from favorites",
+    errorTitle: "Favorites"
+  },
+    alerts: {
+      title: "Price alerts",
+      subtitle: "Get notified when a listing matches your criteria.",
+      comingSoon: "Price alert creation coming soon.",
+      emptyTitle: "No alerts yet",
+      emptyBody: "Create an alert to track marketplace prices.",
+      createTitle: "New alert",
+      createCta: "Create alert",
+      fieldCategory: "Category",
+      fieldMaxPrice: "Max price / kg (FCFA)",
+      fieldMinWeight: "Minimum weight (kg)",
+      fieldRadius: "Radius (km)",
+      fieldFrequency: "Frequency",
+      optional: "Optional",
+      maxPrice: "≤ {{price}} FCFA/kg",
+      minWeight: "≥ {{kg}} kg",
+      radius: "{{km}} km",
+      matchingCount: "{{count}} matching listing(s)",
+      deleteTitle: "Delete this alert?",
+      deleteBody: "This action cannot be undone.",
+      deleteConfirm: "Delete",
+      cancel: "Cancel",
+      errorTitle: "Alert",
+      invalidPrice: "Invalid maximum price.",
+      invalidWeight: "Invalid minimum weight.",
+      invalidRadius: "Invalid radius.",
+      categoryOther: "Other",
+      sectionList: "My active alerts",
+      sectionCriteria: "Price criteria",
+      sectionZone: "Search area",
+      freq: { immediate: "Immediate", daily: "Daily" }
+    }
+  },
+  techOnboarding: {
+    sectionIdentity: "Identity",
+    sectionFormation: "Training",
+    sectionError: "Error",
+    skip: "Cancel",
+    step1Title: "Your details",
+    step2Title: "Your experience",
+    fullName: "Full name",
+    phone: "Phone",
+    experience: "Years of experience",
+    specializations: "Specializations",
+    formation: "Training (optional)",
+    continue: "Continue",
+    doneTitle: "Profile created ✅",
+    doneBody: "Wait for a producer to invite you to access a farm.",
+    doneCta: "Go to my space",
+    exp: {
+      "<1": "Less than 1 year",
+      "1-3": "1-3 years",
+      "3-5": "3-5 years",
+      "5-10": "5-10 years",
+      "10+": "More than 10 years"
+    },
+    spec: {
+      feed: "Feeding",
+      health: "Animal health",
+      repro: "Reproduction",
+      herd: "Herd management",
+      all: "Generalist"
+    }
+  },
+  buyerOnboarding: {
+    sectionIdentity: "Identity",
+    sectionType: "Buyer type",
+    sectionCategories: "Preferred categories",
+    sectionError: "Error",
+    skip: "Cancel",
+    step1Title: "Your details",
+    step2Title: "Purchase preferences",
+    fullName: "Name / business",
+    location: "Location",
+    phone: "Phone",
+    volume: "Typical volume",
+    continue: "Continue",
+    doneTitle: "Buyer profile created ✅",
+    doneBody: "Browse the marketplace and send proposals to producers.",
+    doneCta: "Explore marketplace",
+    type: {
+      individual: "Producer",
+      slaughterhouse: "Slaughterhouse",
+      wholesaler: "Wholesaler",
+      reseller: "Reseller",
+      other: "Other"
+    },
+    cat: {
+      piglet: "Piglets",
+      breeder_male: "Boars",
+      breeder_female: "Sows",
+      butcher: "Finishers",
+      reformed: "Culled sows"
+    },
+    vol: { "1-5": "1-5", "5-20": "5-20", "20-50": "20-50", "50+": "50+" }
   },
   ai: {
     insightTitle: "In brief",

@@ -19,12 +19,17 @@ import { CreateFeedMovementDto } from "./dto/create-feed-movement.dto";
 import { CreateFeedTypeDto } from "./dto/create-feed-type.dto";
 import { ListFeedMovementsQueryDto } from "./dto/list-feed-movements-query.dto";
 import { FarmFeedService } from "./farm-feed.service";
+import { FeedFinanceLinkService } from "../feed-finance-link/feed-finance-link.service";
+import { CreateMovementWithTransactionDto } from "../feed-finance-link/dto/feed-finance-link.dto";
 
 @Controller("farms/:farmId/feed")
 @RequireFeature("feedStock")
 @UseGuards(SupabaseJwtGuard, FeatureEnabledGuard, FarmScopesGuard)
 export class FarmFeedController {
-  constructor(private readonly farmFeed: FarmFeedService) {}
+  constructor(
+    private readonly farmFeed: FarmFeedService,
+    private readonly feedFinanceLink: FeedFinanceLinkService
+  ) {}
 
   @Get("types")
   @RequireFarmScopes(FARM_SCOPE.livestockRead)
@@ -82,5 +87,29 @@ export class FarmFeedController {
     @Body() dto: CreateFeedMovementDto
   ) {
     return this.farmFeed.createMovement(user, farmId, dto);
+  }
+
+  @Post("movements/with-transaction")
+  @RequireFarmScopes(FARM_SCOPE.livestockWrite)
+  createMovementWithTransaction(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Body() dto: CreateMovementWithTransactionDto
+  ) {
+    return this.feedFinanceLink.createMovementWithTransaction(user, farmId, dto);
+  }
+
+  @Get("movements/:movementId/linked-transaction")
+  @RequireFarmScopes(FARM_SCOPE.livestockRead)
+  getLinkedTransactionForMovement(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("movementId") movementId: string
+  ) {
+    return this.feedFinanceLink.getLinkedTransactionForMovement(
+      user,
+      farmId,
+      movementId
+    );
   }
 }

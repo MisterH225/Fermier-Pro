@@ -23,9 +23,16 @@ import { uploadFinanceProofToSupabase } from "../../lib/uploadFinanceProofToSupa
 import { FinanceCategoryGrid } from "../finance/FinanceCategoryGrid";
 import {
   fetchFarmAnimals,
+  fetchFarmFeedTypes,
   postFinanceTransaction,
+  postFinanceTransactionWithStock,
   type AnimalListItem
 } from "../../lib/api";
+import {
+  FinanceStockLinesEditor,
+  stockLinesToPayload,
+  type StockLineForm
+} from "../finance/FinanceStockLinesEditor";
 import { invalidateFarmFinanceQueries } from "../../lib/invalidateFarmFinanceQueries";
 import {
   offlineQueuedMessage,
@@ -63,6 +70,23 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
   const [linkKind, setLinkKind] = useState<LinkKind>("none");
   const [linkBatchId, setLinkBatchId] = useState<string>("");
   const [linkAnimalId, setLinkAnimalId] = useState<string>("");
+  const [recordStock, setRecordStock] = useState(true);
+  const [stockLines, setStockLines] = useState<StockLineForm[]>([]);
+
+  const selectedCategory = useMemo(
+    () => payload.categories.find((c) => c.id === txCategoryId),
+    [payload.categories, txCategoryId]
+  );
+  const isFeedExpense = txType === "expense" && selectedCategory?.key === "feed";
+
+  const feedTypesQuery = useQuery({
+    queryKey: ["farmFeedTypes", payload.farmId, payload.activeProfileId, "txModal"],
+    queryFn: () =>
+      fetchFarmFeedTypes(payload.accessToken, payload.farmId, payload.activeProfileId),
+    enabled: visible && isFeedExpense && Boolean(payload.accessToken)
+  });
+  const feedTypes = feedTypesQuery.data ?? [];
+
 
   useEffect(() => {
     if (visible) {
@@ -76,8 +100,34 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
       setLinkKind("none");
       setLinkBatchId("");
       setLinkAnimalId("");
+      setRecordStock(true);
+      setStockLines([]);
     }
   }, [visible, payload.transactionRef]);
+
+  useEffect(() => {
+    if (!isFeedExpense) {
+      return;
+    }
+    setRecordStock(true);
+    if (stockLines.length === 0 && feedTypes.length > 0) {
+      setStockLines([
+        {
+          key: "l-0",
+          feedTypeId: feedTypes[0].id,
+          newFeedName: "",
+          newFeedMode: false,
+          quantity: "",
+          quantityUnit:
+            feedTypes[0].unit === "kg" || feedTypes[0].unit === "tonne"
+              ? "kg"
+              : "sac",
+          unitPrice: "",
+          supplier: ""
+        }
+      ]);
+    }
+  }, [isFeedExpense, feedTypes, stockLines.length]);
 
   const animalsQuery = useQuery({
     queryKey: ["farmAnimals", payload.farmId, payload.activeProfileId, "txModal"],
@@ -185,6 +235,29 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
           throw new Error(t("financeScreen.proofUploadError"));
         }
       }
+      const amount = Number(txAmount.replace(",", "."));
+      const note = t("financeScreen.noteRef", { ref: txRef });
+      if (isFeedExpense && recordStock) {
+        const lines = stockLinesToPayload(stockLines, feedTypes);
+        if (lines.length > 0) {
+          return postFinanceTransactionWithStock(
+            payload.accessToken,
+            payload.farmId,
+            {
+              amount,
+              currency: payload.currencyCode,
+              label: txLabel.trim(),
+              financeCategoryId: txCategoryId || undefined,
+              occurredAt: `${txDate}T12:00:00.000Z`,
+              note,
+              attachmentUrl,
+              recordStock: true,
+              stockLines: lines
+            },
+            payload.activeProfileId
+          );
+        }
+      }
       return postFinanceTransaction(
         payload.accessToken,
         payload.farmId,
@@ -210,7 +283,8 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
         invalidateRoots: [
           "financeOverview",
           "financeTransactions",
-          "financeReport"
+          "financeReport",
+          "farmFeed"
         ],
         localProofUri: proofPhotoUri ?? undefined,
         proofMeta: proofPhotoUri
@@ -364,6 +438,35 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
         placeholder="YYYY-MM-DD"
       />
       </ModalSection>
+
+      {isFeedExpense ? (
+        <ModalSection title={t("financeStockLink.stockSectionTitle")}>
+          <View style={styles.stockToggleRow}>
+            <Text style={styles.fieldLab}>{t("financeStockLink.recordStock")}</Text>
+            <Pressable
+              style={[styles.chip, recordStock && styles.chipOn]}
+              onPress={() => setRecordStock((v) => !v)}
+            >
+              <Text style={styles.chipTx}>
+                {recordStock ? t("common.yes") : t("common.no")}
+              </Text>
+            </Pressable>
+          </View>
+          {recordStock ? (
+            feedTypesQuery.isPending ? (
+              <ActivityIndicator color={mobileColors.accent} />
+            ) : (
+              <FinanceStockLinesEditor
+                types={feedTypes}
+                lines={stockLines}
+                onChange={setStockLines}
+                totalAmount={Number.parseFloat(txAmount.replace(",", ".")) || 0}
+                currencyCode={payload.currencyCode}
+              />
+            )
+          ) : null}
+        </ModalSection>
+      ) : null}
 
       <ModalSection title={t("modals.sections.link")}>
       <Text style={styles.fieldLab}>{t("modals.transaction.linkSection")}</Text>
@@ -557,6 +660,7 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   dangerLink: { color: mobileColors.error, fontWeight: "700" },
+  stockToggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: mobileSpacing.sm },
   primaryTx: {
     color: mobileColors.accent,
     fontWeight: "800",

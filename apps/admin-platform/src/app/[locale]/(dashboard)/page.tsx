@@ -21,11 +21,14 @@ import { PageSkeleton } from "@/components/layout/PageSkeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "@/i18n/navigation";
+import { PigPriceIndexSection } from "@/components/market/PigPriceIndexSection";
+import { useAdminToken } from "@/lib/useAdminToken";
 
 const PROFILE_COLORS = ["#1B3B2E", "#FF8C00", "#8B9A5B", "#1565C0", "#6A1B9A"];
 
 export default function OverviewPage() {
   const t = useTranslations("overview");
+  const { token } = useAdminToken();
   const [data, setData] = useState<OverviewDto | null>(null);
 
   useEffect(() => {
@@ -108,6 +111,12 @@ export default function OverviewPage() {
           <OverviewStatCard key={k.label} label={k.label} value={k.value} accent={k.accent} />
         ))}
       </div>
+
+      {token ? (
+        <div className="max-w-sm">
+          <PigPriceIndexSection token={token} compact />
+        </div>
+      ) : null}
 
       <div className="grid lg:grid-cols-5 gap-6">
         <Card className="lg:col-span-3 rounded-2xl border-border/60 shadow-sm">

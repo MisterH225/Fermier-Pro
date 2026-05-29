@@ -7,6 +7,7 @@ import { MobileAppShell } from "../components/layout";
 import { IconButton, PrimaryButton } from "../components/ui";
 import { mobileColors, mobileSpacing, mobileTypography } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
+import { PigPriceIndex } from "../components/market/PigPriceIndex";
 
 /**
  * Tableau de bord acheteur : accès marché et messagerie (distinct du flux producteur).

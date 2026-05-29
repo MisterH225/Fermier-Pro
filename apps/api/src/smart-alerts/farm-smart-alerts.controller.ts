@@ -81,6 +81,10 @@ export class UpdateFarmAlertSettingsDto {
   @IsOptional()
   @IsBoolean()
   pushCheptel?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  pushMarket?: boolean;
 }
 
 @Controller("farms/:farmId")

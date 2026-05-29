@@ -119,6 +119,20 @@ export class AuthController {
     const cguCurrent = await this.cgu.getCurrent();
     const cguStatus = this.cgu.buildStatusForUser(user, cguCurrent.version);
 
+
+    const technicianRow = await this.prisma.technicianProfile.findUnique({
+      where: { userId: user.id },
+      select: { id: true, onboardingComplete: true, experienceYears: true }
+    });
+    const buyerRow = await this.prisma.buyerProfile.findUnique({
+      where: { userId: user.id },
+      select: {
+        id: true,
+        onboardingComplete: true,
+        buyerType: true,
+        preferredCategories: true
+      }
+    });
     const vetRow = await this.prisma.vetProfile.findUnique({
       where: { userId: user.id },
       select: {
@@ -131,6 +145,21 @@ export class AuthController {
 
     return {
       cgu: cguStatus,
+      technicianProfile: technicianRow
+        ? {
+            profileId: technicianRow.id,
+            onboardingComplete: technicianRow.onboardingComplete,
+            experienceYears: technicianRow.experienceYears
+          }
+        : null,
+      buyerProfile: buyerRow
+        ? {
+            profileId: buyerRow.id,
+            onboardingComplete: buyerRow.onboardingComplete,
+            buyerType: buyerRow.buyerType,
+            preferredCategories: buyerRow.preferredCategories
+          }
+        : null,
       vetProfessional: vetRow
         ? {
             profileId: vetRow.id,

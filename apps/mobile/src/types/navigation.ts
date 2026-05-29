@@ -3,6 +3,11 @@ export type RootStackParamList = {
   /** Paramètres ferme (devise / seuils) — producteur. */
   ProducerFarmSettings: { farmId: string; farmName: string };
   BuyerDashboard: undefined;
+  BuyerMarket: { favoritesOnly?: boolean; searchQuery?: string } | undefined;
+  BuyerMessages: undefined;
+  BuyerHistory: { initialTab?: "proposals" | "purchases" | "reviews" } | undefined;
+  BuyerAlerts: undefined;
+  BuyerFavorites: undefined;
   VeterinarianDashboard: undefined;
   VetAgenda: undefined;
   VetFarms: undefined;
@@ -11,6 +16,9 @@ export type RootStackParamList = {
   VetTasks: undefined;
   VetReports: undefined;
   TechnicianDashboard: undefined;
+  TechTasks: undefined;
+  TechFarm: undefined;
+  TechTracking: undefined;
   FarmList: undefined;
   /** Compte : déconnexion, langue, aide. */
   Account: undefined;
@@ -21,7 +29,19 @@ export type RootStackParamList = {
   FarmDetail: { farmId: string; farmName: string };
   FarmLivestock: { farmId: string; farmName: string };
   /** Santé ferme (dossiers vaccins, maladies, véto, traitements, mortalités). */
-  FarmHealth: { farmId: string; farmName: string; initialTab?: "overview" | "disease" };
+  FarmHealth: {
+    farmId: string;
+    farmName: string;
+    initialTab?:
+      | "overview"
+      | "disease"
+      | "vaccination"
+      | "mortality"
+      | "vet_visit"
+      | "treatment";
+    /** Ouvre directement le formulaire d’ajout (ex. depuis dashboard technicien). */
+    openFormKind?: "mortality" | "vaccination" | "vet_visit" | "treatment";
+  };
   VetSearch: { farmId: string; farmName: string };
   ProducerScheduleVetVisit: {
     farmId: string;
@@ -43,7 +63,14 @@ export type RootStackParamList = {
   };
   FarmTasks: { farmId: string; farmName: string };
   CreateTask: { farmId: string; farmName: string };
-  MarketplaceList: { tab?: "listings" | "mine" | "offers" } | undefined;
+  MarketplaceList:
+    | {
+        tab?: "listings" | "mine" | "offers";
+        buyerView?: boolean;
+        favoritesOnly?: boolean;
+        searchQuery?: string;
+      }
+    | undefined;
   MarketplaceListingDetail: { listingId: string; headline?: string };
   MarketplaceMyOffers: undefined;
   MarketplaceMyListings: undefined;

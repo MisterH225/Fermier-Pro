@@ -28,6 +28,10 @@ import { FirstConnectionProfileScreen } from "../screens/FirstConnectionProfileS
 import { OnboardingScreen } from "../screens/onboarding/OnboardingScreen";
 import { VetOnboardingScreen } from "../screens/onboarding/vet/VetOnboardingScreen";
 import { needsVetOnboarding } from "../lib/vetOnboardingState";
+import { TechOnboardingScreen } from "../screens/onboarding/technician/TechOnboardingScreen";
+import { BuyerOnboardingScreen } from "../screens/onboarding/buyer/BuyerOnboardingScreen";
+import { needsTechOnboarding } from "../lib/techOnboardingState";
+import { needsBuyerOnboarding } from "../lib/buyerOnboardingState";
 
 /**
  * Après SessionProvider : onboarding profil si aucun profil API, sinon navigation principale.
@@ -81,6 +85,32 @@ function AuthenticatedAppShellInner() {
   if (needsVetOnboarding(authMe, activeProfileId)) {
     return (
       <VetOnboardingScreen
+        onFinished={() => {
+          void refreshAuthMe();
+        }}
+        onCancel={() => {
+          void refreshAuthMe();
+        }}
+      />
+    );
+  }
+
+  if (needsTechOnboarding(authMe, activeProfileId)) {
+    return (
+      <TechOnboardingScreen
+        onFinished={() => {
+          void refreshAuthMe();
+        }}
+        onCancel={() => {
+          void refreshAuthMe();
+        }}
+      />
+    );
+  }
+
+  if (needsBuyerOnboarding(authMe, activeProfileId)) {
+    return (
+      <BuyerOnboardingScreen
         onFinished={() => {
           void refreshAuthMe();
         }}

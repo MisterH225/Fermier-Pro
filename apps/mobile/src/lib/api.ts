@@ -166,6 +166,30 @@ export async function apiDeleteJson<T>(
 }
 
 /** GET public (sans Bearer) — feature flags pour menus / modules. */
+export type PlatformModuleId =
+  | "core_producer"
+  | "technician"
+  | "veterinarian"
+  | "marketplace"
+  | "buyer"
+  | "collaboration"
+  | "reports"
+  | "ai_assistant"
+  | "pig_price_index"
+  | "gestation"
+  | "nutrition";
+
+export type PlatformModuleDto = {
+  moduleId: PlatformModuleId;
+  moduleName: string;
+  icon: string | null;
+  isActive: boolean;
+  canDisable: boolean;
+  userMessageFr: string | null;
+  userMessageEn: string | null;
+  scheduledReactivation: string | null;
+};
+
 export type ClientConfigDto = {
   features: {
     marketplace: boolean;
@@ -176,6 +200,7 @@ export type ClientConfigDto = {
     housing: boolean;
     feedStock: boolean;
   };
+  modules: PlatformModuleDto[];
 };
 
 export async function fetchClientConfig(): Promise<ClientConfigDto> {

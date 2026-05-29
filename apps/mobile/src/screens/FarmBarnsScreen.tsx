@@ -14,6 +14,7 @@ import {
   View
 } from "react-native";
 import { HousingModuleGate } from "../components/HousingModuleGate";
+import { TechFarmAccessGate } from "../components/technician/TechFarmAccessGate";
 import { useSession } from "../context/SessionContext";
 import { fetchFarmBarns } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
@@ -24,22 +25,6 @@ export function FarmBarnsScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
   const { t } = useTranslation();
   const { accessToken, activeProfileId, clientFeatures } = useSession();
-
-  useScreenTitle(navigation, t("navigation.screenTitles.barns"), {
-    headerRight: clientFeatures.housing
-      ? () => (
-          <TouchableOpacity
-            onPress={() =>
-              navigation.navigate("CreateBarn", { farmId, farmName })
-            }
-            style={styles.headerBtn}
-            hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
-          >
-            <Text style={styles.headerBtnText}>+ Bâtiment</Text>
-          </TouchableOpacity>
-        )
-      : undefined
-  });
 
   const q = useQuery({
     queryKey: ["farmBarns", farmId, activeProfileId],
@@ -60,6 +45,56 @@ export function FarmBarnsScreen({ route, navigation }: Props) {
       </HousingModuleGate>
     );
   }
+
+  return (
+    <TechFarmAccessGate farmId={farmId} module="loges">
+      {({ readOnly }) => (
+        <FarmBarnsContent
+          farmId={farmId}
+          farmName={farmName}
+          navigation={navigation}
+          readOnly={readOnly}
+          q={q}
+          t={t}
+        />
+      )}
+    </TechFarmAccessGate>
+  );
+}
+
+function FarmBarnsContent({
+  farmId,
+  farmName,
+  navigation,
+  readOnly,
+  q,
+  t
+}: {
+  farmId: string;
+  farmName: string;
+  navigation: Props["navigation"];
+  readOnly: boolean;
+  q: ReturnType<typeof useQuery<Awaited<ReturnType<typeof fetchFarmBarns>>>>;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  const { clientFeatures } = useSession();
+
+  useScreenTitle(navigation, t("navigation.screenTitles.barns"), {
+    headerRight:
+      clientFeatures.housing && !readOnly
+        ? () => (
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate("CreateBarn", { farmId, farmName })
+              }
+              style={styles.headerBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+            >
+              <Text style={styles.headerBtnText}>+ Bâtiment</Text>
+            </TouchableOpacity>
+          )
+        : undefined
+  });
 
   if (q.isPending) {
     return (
@@ -137,13 +172,6 @@ export function FarmBarnsScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: "#f9f8ea" },
-  farmHint: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 4,
-    fontSize: 13,
-    color: "#6d745b"
-  },
   list: { padding: 16, paddingBottom: 32 },
   emptyList: { flexGrow: 1 },
   centered: {

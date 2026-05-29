@@ -28,9 +28,10 @@ type Props = {
   farmId: string;
   accessToken: string;
   activeProfileId?: string | null;
+  readOnly?: boolean;
 };
 
-export function CheptelWeightTab({ farmId, accessToken, activeProfileId }: Props) {
+export function CheptelWeightTab({ farmId, accessToken, activeProfileId, readOnly = false }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
   const [period, setPeriod] = useState<SmartChartPeriod>("6M");
@@ -89,11 +90,13 @@ export function CheptelWeightTab({ farmId, accessToken, activeProfileId }: Props
 
   return (
     <View>
-      <View style={styles.toolbar}>
-        <Pressable onPress={() => setAddOpen(true)} style={styles.settingsBtn}>
-          <Text style={styles.settingsTx}>＋ {t("cheptel.weight.addShort")}</Text>
-        </Pressable>
-      </View>
+      {!readOnly ? (
+        <View style={styles.toolbar}>
+          <Pressable onPress={() => setAddOpen(true)} style={styles.settingsBtn}>
+            <Text style={styles.settingsTx}>＋ {t("cheptel.weight.addShort")}</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.animalPills}>
         <Pressable
@@ -147,6 +150,7 @@ export function CheptelWeightTab({ farmId, accessToken, activeProfileId }: Props
         gmqRows.slice(0, 12).map((row) => <GMQCard key={row.animalId} row={row} />)
       )}
 
+      {!readOnly ? (
       <AddWeightModal
         visible={addOpen}
         farmId={farmId}
@@ -159,10 +163,13 @@ export function CheptelWeightTab({ farmId, accessToken, activeProfileId }: Props
           void gmqQuery.refetch();
         }}
       />
+      ) : null}
 
+      {!readOnly ? (
       <Pressable style={styles.fab} onPress={() => setAddOpen(true)}>
         <Text style={styles.fabTx}>＋</Text>
       </Pressable>
+      ) : null}
     </View>
   );
 }

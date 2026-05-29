@@ -720,6 +720,7 @@ export class FinanceService {
       financeCategoryId: e.financeCategoryId,
       linkedEntityType: e.linkedEntityType,
       linkedEntityId: e.linkedEntityId,
+      linkedStockMovementIds: e.linkedStockMovementIds ?? [],
       attachmentUrl: e.attachmentUrl,
       note: e.note,
       creator: e.creator

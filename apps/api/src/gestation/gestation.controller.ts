@@ -22,9 +22,12 @@ import { PatchGestationStatusDto } from "./dto/patch-gestation-status.dto";
 import { RecordLitterDto } from "./dto/record-litter.dto";
 import { UpdateGestationSettingsDto } from "./dto/update-gestation-settings.dto";
 import { GestationService } from "./gestation.service";
+import { RequirePlatformModule } from "../feature-flags/require-platform-module.decorator";
+import { PlatformModuleEnabledGuard } from "../feature-flags/platform-module-enabled.guard";
 
 @Controller("farms/:farmId/gestation")
-@UseGuards(SupabaseJwtGuard, FarmScopesGuard)
+@RequirePlatformModule("gestation")
+@UseGuards(SupabaseJwtGuard, FarmScopesGuard, PlatformModuleEnabledGuard)
 export class GestationController {
   constructor(private readonly gestation: GestationService) {}
 

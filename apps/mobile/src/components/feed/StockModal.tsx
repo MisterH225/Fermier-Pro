@@ -32,6 +32,7 @@ export type StockModalProps = {
   accessToken: string;
   activeProfileId?: string | null;
   types: FeedTypeDto[];
+  defaultTab?: "in" | "stock_check";
   onSuccess: () => void;
 };
 
@@ -46,6 +47,7 @@ export function StockModal({
   accessToken,
   activeProfileId,
   types,
+  defaultTab = "in",
   onSuccess
 }: StockModalProps) {
   const { t } = useTranslation();
@@ -70,7 +72,7 @@ export function StockModal({
 
   useEffect(() => {
     if (visible) {
-      setTab("in");
+      setTab(defaultTab);
       setFeedTypeId(types[0]?.id ?? "");
       setNewMode(false);
       setNewName("");
@@ -86,7 +88,7 @@ export function StockModal({
       setNotes("");
       setOccurredAt(new Date().toISOString().slice(0, 10));
     }
-  }, [visible, types]);
+  }, [visible, types, defaultTab]);
 
   const selected = useMemo(
     () => types.find((x) => x.id === feedTypeId),

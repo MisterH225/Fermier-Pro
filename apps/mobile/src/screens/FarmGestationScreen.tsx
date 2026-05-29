@@ -34,6 +34,8 @@ import {
   fetchGestations,
   type GestationListItemDto
 } from "../lib/api";
+import { useTechFarmPermissions } from "../hooks/useTechFarmPermissions";
+import { TechReadOnlyBanner } from "../components/technician/TechReadOnlyBanner";
 import type { RootStackParamList } from "../types/navigation";
 import {
   mobileColors,
@@ -70,17 +72,39 @@ export function FarmGestationScreen({ route, navigation }: Props) {
     label: string;
   } | null>(null);
 
+  const techPerms = useTechFarmPermissions(farmId, "gestation");
+  const readOnly = techPerms.readOnly;
+
   useScreenTitle(navigation, t("navigation.extended.gestation"), {
-    headerRight: () => (
-      <Pressable
-        onPress={() => setCreateOpen(true)}
-        accessibilityLabel={t("gestationScreen.createTitle")}
-        style={{ padding: 8 }}
-      >
-        <Ionicons name="add-circle-outline" size={26} color={mobileColors.accent} />
-      </Pressable>
-    )
+    headerRight:
+      readOnly
+        ? undefined
+        : () => (
+            <Pressable
+              onPress={() => setCreateOpen(true)}
+              accessibilityLabel={t("gestationScreen.createTitle")}
+              style={{ padding: 8 }}
+            >
+              <Ionicons name="add-circle-outline" size={26} color={mobileColors.accent} />
+            </Pressable>
+          )
   });
+
+  if (techPerms.isTech && techPerms.loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={mobileColors.accent} />
+      </View>
+    );
+  }
+
+  if (techPerms.isTech && !techPerms.canView) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.denied}>{t("tech.permissionDenied")}</Text>
+      </View>
+    );
+  }
 
   const enabled = Boolean(accessToken);
 
@@ -326,7 +350,7 @@ export function FarmGestationScreen({ route, navigation }: Props) {
         activeFilterId={activeFilter}
         onFilterChange={setActiveFilter}
         onItemPress={(item) => setDetailId(item.id)}
-        onAddPress={() => setCreateOpen(true)}
+        onAddPress={readOnly ? undefined : () => setCreateOpen(true)}
         isLoading={activeQ.isPending}
         emptyMessage={t("gestationScreen.emptyActive")}
         refreshing={activeQ.isFetching}
@@ -413,6 +437,11 @@ export function FarmGestationScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.root}>
+      {readOnly ? (
+        <View style={styles.bannerWrap}>
+          <TechReadOnlyBanner />
+        </View>
+      ) : null}
       <TabSelector
         activeTab={tab}
         onTabChange={(key) => setTab(key as TabId)}
@@ -440,14 +469,18 @@ export function FarmGestationScreen({ route, navigation }: Props) {
                 layout="embedded"
                 data={activeEvents}
                 onItemPress={(item) => setDetailId(item.id)}
-                onAddPress={() => {
-                  const first = activeQ.data?.items?.[0];
-                  if (first) {
-                    setLitterTarget({ id: first.id, label: first.sowLabel });
-                  } else {
-                    setCreateOpen(true);
-                  }
-                }}
+                onAddPress={
+                  readOnly
+                    ? undefined
+                    : () => {
+                        const first = activeQ.data?.items?.[0];
+                        if (first) {
+                          setLitterTarget({ id: first.id, label: first.sowLabel });
+                        } else {
+                          setCreateOpen(true);
+                        }
+                      }
+                }
                 isLoading={activeQ.isPending}
                 emptyMessage={t("gestationScreen.emptyBirth")}
                 sectionTitle={t("gestationScreen.imminentBirths")}
@@ -462,9 +495,11 @@ export function FarmGestationScreen({ route, navigation }: Props) {
         ]}
       />
 
-      <Pressable style={styles.fab} onPress={() => setCreateOpen(true)}>
-        <Ionicons name="add" size={28} color="#fff" />
-      </Pressable>
+      {!readOnly ? (
+        <Pressable style={styles.fab} onPress={() => setCreateOpen(true)}>
+          <Ionicons name="add" size={28} color="#fff" />
+        </Pressable>
+      ) : null}
 
       <CreateGestationModal
         visible={createOpen}
@@ -543,6 +578,15 @@ function gestationToEvent(
 }
 
 const styles = StyleSheet.create({
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: mobileSpacing.lg,
+    backgroundColor: mobileColors.canvas
+  },
+  denied: { ...mobileTypography.body, color: mobileColors.error, textAlign: "center" },
+  bannerWrap: { paddingHorizontal: mobileSpacing.md, paddingTop: mobileSpacing.sm },
   root: { flex: 1, backgroundColor: mobileColors.canvas },
   scroll: {
     padding: mobileSpacing.md,

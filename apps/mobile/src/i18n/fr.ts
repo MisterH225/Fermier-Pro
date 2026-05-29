@@ -265,6 +265,59 @@ export const fr = {
     withdrawConfirm: "Retirer",
     withdrawAction: "Retirer mon offre"
   },
+  pigPriceIndex: {
+    title: "📊 Cours du porc",
+    subtitle: "Indice de prix moyen sur la plateforme",
+    badge: "Mis à jour toutes les heures",
+    period7d: "7J",
+    period30d: "1M",
+    period3m: "3M",
+    period12m: "12M",
+    unit: "FCFA/kg",
+    emptyData: "Données insuffisantes",
+    categoryAll: "Tous",
+    categoryPorcelet: "Porcelets 🐣",
+    categoryCroissance: "Croissance 📈",
+    categoryCharcutier: "Charcutier 🐷",
+    categoryReproducteur: "Reproducteurs ♻️",
+    statToday: "Aujourd'hui",
+    statHigh: "Plus haut",
+    statLow: "Plus bas",
+    statVolume: "Transactions",
+    variationFlat: "0.0% ➡️",
+    priceOnRequest: "—"
+  },
+  smartAlerts: {
+    moduleMarket: "Marché",
+    market: {
+      priceUp: {
+        title: "Prix {{category}} en hausse",
+        message:
+          "Le cours {{category}} a augmenté de {{pct}} % sur 24 h ({{price}} FCFA/kg, indice plateforme)."
+      },
+      priceDown: {
+        title: "Prix {{category}} en baisse",
+        message:
+          "Le cours {{category}} a baissé de {{pct}} % sur 24 h ({{price}} FCFA/kg, indice plateforme)."
+      },
+      categories: {
+        porcelet: "porcelets",
+        croissance: "croissance",
+        charcutier: "charcutier",
+        reproducteur: "reproducteur"
+      }
+    },
+    settings: {
+      title: "Notifications SmartAlerts",
+      subtitle: "Choisissez les alertes à recevoir en push sur cet appareil.",
+      pushStock: "Stock aliment",
+      pushHealth: "Santé",
+      pushFinance: "Finance",
+      pushGestation: "Gestation",
+      pushCheptel: "Cheptel",
+      pushMarket: "Indice de prix porc"
+    }
+  },
   tasksScreen: {
     tabPending: "En attente",
     tabInProgress: "En cours",
@@ -1872,5 +1925,220 @@ export const fr = {
   ai: {
     insightTitle: "En bref",
     refresh: "Actualiser les recommandations"
+  },
+  tech: {
+    nav: {
+      home: "Accueil",
+      tasks: "Tâches",
+      farm: "Ferme",
+      tracking: "Suivi"
+    },
+    extended: {
+      vaccinations: "Vaccinations",
+      weighings: "Pesées",
+      feedStock: "Stock aliment",
+      reports: "Rapports"
+    },
+    dashboard: {
+      welcome: "Bonjour, {{name}} 👋",
+      defaultName: "Technicien",
+      farmSubtitle: "Ferme {{farm}} — {{date}}",
+      noFarm: "En attente d’invitation sur une ferme",
+      tasksToday: "Tâches du jour",
+      noTasks: "Aucune tâche pour aujourd’hui ✅",
+      allTasks: "Voir toutes les tâches →",
+      quickActions: "Actions rapides",
+      farmStatus: "État de la ferme",
+      recentActivity: "Mon activité récente",
+      noActivity: "Aucune activité récente",
+      allActivity: "Voir tout →"
+    },
+    quick: {
+      stock: "Contrôle stock",
+      weight: "Pesée",
+      vaccine: "Vacciner",
+      disease: "Maladie",
+      mortality: "Mortalité",
+      feedIn: "Entrée aliment"
+    },
+    kpi: {
+      alerts: "Alertes",
+      vaccines: "Vaccins retard",
+      gestation: "Mises bas",
+      stock: "Stock critique"
+    },
+    tasks: { noFarm: "Aucune ferme assignée pour le moment." },
+    farm: {
+      title: "Ma ferme",
+      tabs: { loges: "Loges", cheptel: "Cheptel", sante: "Santé", gestation: "Gestation" },
+      openLoges: "Ouvrir loges",
+      openCheptel: "Ouvrir cheptel",
+      openSante: "Ouvrir santé",
+      openGestation: "Ouvrir gestation",
+      openModule: "Ouvrir le module",
+      sectionModules: "Modules disponibles",
+      sectionAction: "Accès"
+    },
+    tracking: {
+      title: "Suivi",
+      subtitle: "Historique de vos interventions sur les fermes assignées.",
+      sectionLog: "Journal d'activité"
+    },
+    vaccinePicker: {
+      title: "Choisir un vaccin",
+      empty: "Aucun vaccin configuré sur cette ferme.",
+      pending: "{{count}} sujet(s) à traiter",
+      select: "Vacciner",
+      sectionList: "Vaccins disponibles"
+    },
+    permissionDenied: "Permission non accordée par le producteur.",
+    permissionReadOnly: "Accès lecture seule sur ce module.",
+    readOnlyBanner: "Mode lecture seule — vous ne pouvez pas modifier ce module.",
+    farmReadOnlyBadge: "Lecture seule"
+  },
+  buyer: {
+    nav: {
+      home: "Accueil",
+      market: "Market",
+      messages: "Messages",
+      history: "Mes achats"
+    },
+    extended: {
+      favorites: "Favoris",
+      priceAlerts: "Alertes prix",
+      reviews: "Mes avis",
+      preferences: "Préférences"
+    },
+    dashboard: {
+      welcome: "Bonjour, {{name}} 👋",
+      defaultName: "Acheteur",
+      searchPlaceholder: "Rechercher des animaux…",
+      offersForYou: "Offres pour vous",
+      allOffers: "Voir toutes les offres →",
+      activeProposals: "Mes propositions actives",
+      noProposals: "Aucune proposition en cours",
+      allProposals: "Voir toutes les propositions →",
+      sectionStats: "Vue d'ensemble"
+    },
+    kpi: {
+      pending: "Propositions",
+      purchases: "Achats",
+      favorites: "Favoris",
+      alerts: "Alertes"
+    },
+    history: {
+      title: "Mes achats",
+      tabs: { proposals: "Propositions", purchases: "Achats", reviews: "Avis" },
+      comingSoon: "Historique détaillé bientôt disponible.",
+      sectionFilter: "Filtrer par type",
+      noProposals: "Aucune proposition en cours ou refusée.",
+      noPurchases: "Aucun achat confirmé pour le moment.",
+      noReviews: "Vous n'avez pas encore laissé d'avis."
+    },
+  favorites: {
+    title: "Mes favoris",
+    subtitle: "Annonces que vous suivez sur le marketplace.",
+    sectionList: "Annonces enregistrées",
+    emptyTitle: "Aucun favori",
+    emptyBody: "Appuyez sur le cœur sur une annonce pour l'ajouter ici.",
+    explore: "Explorer le marketplace",
+    remove: "Retirer des favoris",
+    errorTitle: "Favoris"
+  },
+    alerts: {
+      title: "Alertes prix",
+      subtitle: "Soyez notifié quand une annonce correspond à vos critères.",
+      comingSoon: "Création d'alertes bientôt disponible.",
+      emptyTitle: "Aucune alerte",
+      emptyBody: "Créez une alerte pour suivre les prix sur le marketplace.",
+      createTitle: "Nouvelle alerte",
+      createCta: "Créer l'alerte",
+      fieldCategory: "Catégorie",
+      fieldMaxPrice: "Prix max / kg (FCFA)",
+      fieldMinWeight: "Poids minimum (kg)",
+      fieldRadius: "Rayon (km)",
+      fieldFrequency: "Fréquence",
+      optional: "Optionnel",
+      maxPrice: "≤ {{price}} FCFA/kg",
+      minWeight: "≥ {{kg}} kg",
+      radius: "{{km}} km",
+      matchingCount: "{{count}} offre(s) correspondante(s)",
+      deleteTitle: "Supprimer l'alerte ?",
+      deleteBody: "Cette action est irréversible.",
+      deleteConfirm: "Supprimer",
+      cancel: "Annuler",
+      errorTitle: "Alerte",
+      invalidPrice: "Prix maximum invalide.",
+      invalidWeight: "Poids minimum invalide.",
+      invalidRadius: "Rayon invalide.",
+      categoryOther: "Autre",
+      sectionList: "Mes alertes actives",
+      sectionCriteria: "Critères de prix",
+      sectionZone: "Zone de recherche",
+      freq: { immediate: "Immédiat", daily: "Quotidien" }
+    }
+  },
+  techOnboarding: {
+    sectionIdentity: "Identité",
+    sectionFormation: "Formation",
+    sectionError: "Erreur",
+    skip: "Annuler",
+    step1Title: "Vos informations",
+    step2Title: "Votre expérience",
+    fullName: "Prénom et nom",
+    phone: "Téléphone",
+    experience: "Années d’expérience",
+    specializations: "Spécialisations",
+    formation: "Formation (optionnel)",
+    continue: "Continuer",
+    doneTitle: "Profil créé ✅",
+    doneBody: "Attendez qu’un producteur vous invite pour accéder à une ferme.",
+    doneCta: "Accéder à mon espace",
+    exp: {
+      "<1": "Moins d’1 an",
+      "1-3": "1-3 ans",
+      "3-5": "3-5 ans",
+      "5-10": "5-10 ans",
+      "10+": "Plus de 10 ans"
+    },
+    spec: {
+      feed: "Alimentation",
+      health: "Santé",
+      repro: "Reproduction",
+      herd: "Gestion cheptel",
+      all: "Tout terrain"
+    }
+  },
+  buyerOnboarding: {
+    sectionIdentity: "Identité",
+    sectionType: "Type d'acheteur",
+    sectionCategories: "Catégories recherchées",
+    sectionError: "Erreur",
+    skip: "Annuler",
+    step1Title: "Vos informations",
+    step2Title: "Vos préférences",
+    fullName: "Nom / raison sociale",
+    location: "Localisation",
+    phone: "Téléphone",
+    volume: "Volume habituel",
+    continue: "Continuer",
+    doneTitle: "Profil acheteur créé ✅",
+    doneBody: "Explorez le marketplace et faites des propositions aux producteurs.",
+    doneCta: "Explorer le marketplace",
+    type: {
+      individual: "Producteur",
+      slaughterhouse: "Abattoir",
+      wholesaler: "Grossiste",
+      reseller: "Revendeur",
+      other: "Autre"
+    },
+    cat: {
+      piglet: "Porcelets",
+      breeder_male: "Repro. mâles",
+      breeder_female: "Repro. femelles",
+      butcher: "Charcutiers",
+      reformed: "Truies réformées"
+    },
+    vol: { "1-5": "1-5", "5-20": "5-20", "20-50": "20-50", "50+": "50+" }
   }
 } as const;

@@ -46,8 +46,10 @@ import type {
   FinanceOverviewDto,
   FinanceReportDto
 } from "../lib/api";
+import { LinkedStockSection } from "../components/finance/LinkedStockSection";
 import {
   deleteFarmExpense,
+  deleteFarmExpenseWithStock,
   deleteFarmRevenue,
   fetchFarmBatches,
   fetchFarmBudget,
@@ -302,6 +304,45 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
 
   const confirmDelete = useCallback(
     (txRow: FinanceMergedTransactionDto) => {
+      const linked =
+        txRow.kind === "expense" &&
+        (txRow.linkedStockMovementIds?.length ?? 0) > 0;
+      if (linked && accessToken) {
+        Alert.alert(
+          t("financeStockLink.deleteLinkedTitle"),
+          t("financeStockLink.deleteLinkedBody"),
+          [
+            { text: t("financeScreen.cancel"), style: "cancel" },
+            {
+              text: t("financeStockLink.deleteFinanceOnly"),
+              onPress: () =>
+                void deleteFarmExpenseWithStock(
+                  accessToken,
+                  farmId,
+                  txRow.id,
+                  false,
+                  activeProfileId
+                ).then(() => invalidateFarmFinanceQueries(qc, farmId))
+            },
+            {
+              text: t("financeStockLink.deleteBoth"),
+              style: "destructive",
+              onPress: () =>
+                void deleteFarmExpenseWithStock(
+                  accessToken,
+                  farmId,
+                  txRow.id,
+                  true,
+                  activeProfileId
+                ).then(() => {
+                  invalidateFarmFinanceQueries(qc, farmId);
+                  void qc.invalidateQueries({ queryKey: ["farmFeed", farmId] });
+                })
+            }
+          ]
+        );
+        return;
+      }
       open("confirm-delete", {
         message: txRow.label,
         onConfirm: () =>
@@ -311,7 +352,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
           })
       });
     },
-    [open, deleteMutation]
+    [open, deleteMutation, accessToken, farmId, activeProfileId, qc, t]
   );
 
   useScreenTitle(navigation, t("navigation.main.finance"), {
@@ -672,6 +713,22 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
               {txRow.categoryLabel}
             </Text>
           ) : null}
+          {accessToken && txRow.kind === "expense" ? (
+            <LinkedStockSection
+              farmId={farmId}
+              accessToken={accessToken}
+              activeProfileId={activeProfileId}
+              transaction={txRow}
+            />
+          ) : null}
+          {accessToken && txRow.kind === "expense" ? (
+            <LinkedStockSection
+              farmId={farmId}
+              accessToken={accessToken}
+              activeProfileId={activeProfileId}
+              transaction={txRow}
+            />
+          ) : null}
           <View
             style={{
               flexDirection: "row",
@@ -699,7 +756,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
         </View>
       );
     },
-    [confirmDelete, goEdit, localeStr, t]
+    [confirmDelete, goEdit, localeStr, t, accessToken, farmId, activeProfileId]
   );
 
   const projectionChartMonths = useMemo(() => {

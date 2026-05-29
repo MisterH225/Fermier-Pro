@@ -36,4 +36,5 @@ export class CreateFeedTypeDto {
   @Min(1)
   @Max(365)
   lowStockThresholdDays?: number;
+
 }

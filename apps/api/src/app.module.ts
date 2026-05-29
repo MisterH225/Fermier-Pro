@@ -42,6 +42,10 @@ import { AiModule } from "./ai/ai.module";
 import { GestationModule } from "./gestation/gestation.module";
 import { VetsModule } from "./vets/vets.module";
 import { AdminPlatformModule } from "./admin-platform/admin-platform.module";
+import { FeatureFlagsModule } from "./feature-flags/feature-flags.module";
+import { MarketModule } from "./market/market.module";
+import { BuyerProfilesModule } from "./buyer-profiles/buyer-profiles.module";
+import { TechnicianProfilesModule } from "./technician-profiles/technician-profiles.module";
 
 @Module({
   imports: [
@@ -108,7 +112,11 @@ import { AdminPlatformModule } from "./admin-platform/admin-platform.module";
     AiModule,
     GestationModule,
     VetsModule,
-    AdminPlatformModule
+    AdminPlatformModule,
+    FeatureFlagsModule,
+    MarketModule,
+    BuyerProfilesModule,
+    TechnicianProfilesModule
   ],
   controllers: [AppController],
   providers: [
