@@ -9,7 +9,11 @@ import {
   type ReactNode
 } from "react";
 import { AppState, type AppStateStatus } from "react-native";
-import type { AuthMeResponse, ClientConfigDto } from "../lib/api";
+import type {
+  AuthMeResponse,
+  ClientConfigDto,
+  PlatformModuleDto
+} from "../lib/api";
 import { formatApiError } from "../lib/apiErrors";
 import { fetchAuthMe, fetchClientConfig } from "../lib/api";
 import { queryClient } from "../lib/queryClient";
@@ -73,6 +77,9 @@ export function SessionProvider({
   );
   const [clientFeatures, setClientFeatures] =
     useState<ClientConfigDto["features"]>(DEFAULT_CLIENT_FEATURES);
+  const [platformModules, setPlatformModules] = useState<PlatformModuleDto[]>(
+    []
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -80,11 +87,13 @@ export function SessionProvider({
       .then((cfg) => {
         if (!cancelled) {
           setClientFeatures(cfg.features);
+          setPlatformModules(cfg.modules ?? []);
         }
       })
       .catch(() => {
         if (!cancelled) {
           setClientFeatures({ ...DEFAULT_CLIENT_FEATURES });
+          setPlatformModules([]);
         }
       });
     return () => {
@@ -250,7 +259,8 @@ export function SessionProvider({
       setActiveProfileId,
       refreshAuthMe,
       reloadAuth,
-      clientFeatures
+      clientFeatures,
+      platformModules
     }),
     [
       accessToken,
@@ -262,7 +272,8 @@ export function SessionProvider({
       setActiveProfileId,
       refreshAuthMe,
       reloadAuth,
-      clientFeatures
+      clientFeatures,
+      platformModules
     ]
   );
 
