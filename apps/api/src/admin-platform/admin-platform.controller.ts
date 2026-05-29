@@ -43,7 +43,8 @@ export class AdminPlatformController {
   constructor(
     private readonly admin: AdminPlatformService,
     private readonly adminAi: AdminAiService,
-    private readonly moderation: AdminUserModerationService
+    private readonly moderation: AdminUserModerationService,
+    private readonly pigPriceIndex: PigPriceIndexService
   ) {}
 
   @Get("me")
@@ -288,5 +289,33 @@ export class AdminPlatformController {
   @Post("ai/vet-assist/:id")
   aiVetAssist(@Param("id") id: string, @Body() dto: AdminAiLocaleDto) {
     return this.adminAi.vetAssist(id, dto.locale ?? "fr");
+  }
+
+  @Get("pig-price-index")
+  pigPriceIndexChart(
+    @Query("period") period?: string,
+    @Query("category") category?: string
+  ) {
+    return this.pigPriceIndex.getChart(period, category);
+  }
+
+  @Get("pig-price-index/today")
+  pigPriceIndexToday() {
+    return this.pigPriceIndex.getToday();
+  }
+
+  @Get("pig-price-index/stats")
+  pigPriceIndexStats(@Query("period") period?: string) {
+    return this.pigPriceIndex.getStats(period);
+  }
+
+  @Get("pig-price-index/ticker")
+  pigPriceIndexTicker() {
+    return this.pigPriceIndex.getTicker();
+  }
+
+  @Post("pig-price-index/calculate")
+  pigPriceIndexCalculate() {
+    return this.pigPriceIndex.calculateRecentDays();
   }
 }

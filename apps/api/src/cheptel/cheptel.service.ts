@@ -90,7 +90,8 @@ export class CheptelService {
     private readonly farmAccess: FarmAccessService,
     private readonly livestock: LivestockService,
     private readonly finance: FinanceService,
-    private readonly penAllocation: PenAllocationService
+    private readonly penAllocation: PenAllocationService,
+    private readonly pigPriceIndex: PigPriceIndexService
   ) {}
 
   private mapBatchType(
@@ -1031,6 +1032,8 @@ export class CheptelService {
 
       return { transaction: revenue };
     });
+
+    void this.pigPriceIndex.calculateRecentDays().catch(() => undefined);
 
     const animal = await this.livestock.getAnimal(user, farmId, animalId);
     return { animal, transaction: result.transaction };

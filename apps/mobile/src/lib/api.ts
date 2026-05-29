@@ -5671,3 +5671,88 @@ export function removeBuyerFavorite(
   );
 }
 
+
+export type PigPriceIndexPeriod = "7d" | "30d" | "3m" | "12m";
+
+export type PigPriceIndexPointDto = {
+  date: string;
+  avgPricePerKg: number;
+  listingAvgPrice: number | null;
+  transactionCount: number;
+  variationPct: number | null;
+  limitedData: boolean;
+};
+
+export type PigPriceIndexSeriesDto = {
+  key: string;
+  label: string;
+  color: string;
+  dashed?: boolean;
+  points: PigPriceIndexPointDto[];
+};
+
+export type PigPriceIndexChartDto = {
+  period: PigPriceIndexPeriod;
+  category: string;
+  insufficientData: boolean;
+  message: string | null;
+  series: PigPriceIndexSeriesDto[];
+  updatedAt: string;
+};
+
+export type PigPriceIndexTickerDto = {
+  items: Array<{
+    category: string;
+    label: string;
+    icon: string;
+    pricePerKg: number | null;
+    variationPct: number | null;
+    color: string;
+  }>;
+  updatedAt: string;
+};
+
+export type PigPriceIndexStatsDto = {
+  rows: Array<{
+    category: string;
+    label: string;
+    todayPrice: number | null;
+    variation24h: number | null;
+    variation7d: number | null;
+    high30d: number | null;
+    low30d: number | null;
+    volume: number;
+  }>;
+};
+
+export function fetchPigPriceIndexChart(
+  accessToken: string,
+  activeProfileId: string | null | undefined,
+  period: PigPriceIndexPeriod,
+  category?: string
+): Promise<PigPriceIndexChartDto> {
+  const q = new URLSearchParams({ period });
+  if (category && category !== "all") {
+    q.set("category", category);
+  }
+  return apiGetJson(`/market/pig-price-index?${q.toString()}`, accessToken, activeProfileId);
+}
+
+export function fetchPigPriceIndexTicker(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<PigPriceIndexTickerDto> {
+  return apiGetJson("/market/pig-price-index/ticker", accessToken, activeProfileId);
+}
+
+export function fetchPigPriceIndexStats(
+  accessToken: string,
+  activeProfileId: string | null | undefined,
+  period: PigPriceIndexPeriod
+): Promise<PigPriceIndexStatsDto> {
+  return apiGetJson(
+    `/market/pig-price-index/stats?period=${encodeURIComponent(period)}`,
+    accessToken,
+    activeProfileId
+  );
+}

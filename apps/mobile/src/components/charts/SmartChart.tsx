@@ -38,7 +38,8 @@ export type SmartChartLine = {
   key: string;
   label: string;
   color: string;
-  data: { month: string; value: number }[];
+  dashed?: boolean;
+  data: { month: string; value: number; limitedData?: boolean }[];
 };
 
 export type SmartChartSummaryStat = {
