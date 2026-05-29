@@ -1,4 +1,5 @@
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
+import type { RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useCallback } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
@@ -7,16 +8,24 @@ import { useBuyerBottomChromePad } from "../../context/BuyerBottomChromeContext"
 import { buyerColors } from "../../theme/buyerTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
+type Route = RouteProp<RootStackParamList, "BuyerMarket">;
+
 /** Ouvre le marketplace (liste publique) en mode acheteur. */
 export function BuyerMarketScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<Route>();
   const bottomPad = useBuyerBottomChromePad();
 
   useFocusEffect(
     useCallback(() => {
-      navigation.navigate("MarketplaceList", { tab: "listings", buyerView: true });
-    }, [navigation])
+      navigation.navigate("MarketplaceList", {
+        tab: "listings",
+        buyerView: true,
+        searchQuery: route.params?.searchQuery,
+        favoritesOnly: route.params?.favoritesOnly
+      });
+    }, [navigation, route.params?.searchQuery, route.params?.favoritesOnly])
   );
 
   return (

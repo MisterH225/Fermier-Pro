@@ -1905,6 +1905,16 @@ export const fr = {
       noPurchases: "Aucun achat confirmé pour le moment.",
       noReviews: "Vous n'avez pas encore laissé d'avis."
     },
+  favorites: {
+    title: "Mes favoris",
+    subtitle: "Annonces que vous suivez sur le marketplace.",
+    sectionList: "Annonces enregistrées",
+    emptyTitle: "Aucun favori",
+    emptyBody: "Appuyez sur le cœur sur une annonce pour l'ajouter ici.",
+    explore: "Explorer le marketplace",
+    remove: "Retirer des favoris",
+    errorTitle: "Favoris"
+  },
     alerts: {
       title: "Alertes prix",
       subtitle: "Soyez notifié quand une annonce correspond à vos critères.",

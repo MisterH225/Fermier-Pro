@@ -18,3 +18,4 @@ export { BuyerMarketScreen } from "../../screens/buyer/BuyerMarketScreen";
 export { BuyerMessagesScreen } from "../../screens/buyer/BuyerMessagesScreen";
 export { BuyerHistoryScreen } from "../../screens/buyer/BuyerHistoryScreen";
 export { BuyerAlertsScreen } from "../../screens/buyer/BuyerAlertsScreen";
+export { BuyerFavoritesScreen } from "../../screens/buyer/BuyerFavoritesScreen";

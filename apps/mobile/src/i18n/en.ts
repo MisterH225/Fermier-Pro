@@ -1908,6 +1908,16 @@ export const en = {
       noPurchases: "No confirmed purchases yet.",
       noReviews: "You have not left any reviews yet."
     },
+  favorites: {
+    title: "My favorites",
+    subtitle: "Listings you follow on the marketplace.",
+    sectionList: "Saved listings",
+    emptyTitle: "No favorites yet",
+    emptyBody: "Tap the heart on a listing to save it here.",
+    explore: "Browse marketplace",
+    remove: "Remove from favorites",
+    errorTitle: "Favorites"
+  },
     alerts: {
       title: "Price alerts",
       subtitle: "Get notified when a listing matches your criteria.",

@@ -5618,3 +5618,56 @@ export function fetchBuyerReviews(
   return apiGetJson("/buyers/me/reviews", accessToken, activeProfileId);
 }
 
+export type BuyerFavoriteListingDto = {
+  favoriteId: string;
+  favoritedAt: string;
+  id: string;
+  title: string;
+  category: string | null;
+  pricePerKg: string | null;
+  totalPrice: string | null;
+  weightKg: string | null;
+  farmName: string | null;
+  photoUrls: unknown;
+  publishedAt: string | null;
+};
+
+export function fetchBuyerFavorites(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<BuyerFavoriteListingDto[]> {
+  return apiGetJson("/buyers/me/favorites", accessToken, activeProfileId);
+}
+
+export function fetchBuyerFavoriteIds(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<string[]> {
+  return apiGetJson("/buyers/me/favorites/ids", accessToken, activeProfileId);
+}
+
+export function addBuyerFavorite(
+  accessToken: string,
+  activeProfileId: string | null | undefined,
+  listingId: string
+): Promise<{ ok: boolean; listingId: string; favoriteId: string }> {
+  return apiPostJson(
+    "/buyers/me/favorites",
+    { listingId },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function removeBuyerFavorite(
+  accessToken: string,
+  activeProfileId: string | null | undefined,
+  listingId: string
+): Promise<{ ok: boolean }> {
+  return apiDeleteJson(
+    `/buyers/me/favorites/${encodeURIComponent(listingId)}`,
+    accessToken,
+    activeProfileId
+  );
+}
+

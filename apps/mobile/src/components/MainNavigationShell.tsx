@@ -80,6 +80,7 @@ import {
   BuyerMessagesScreen,
   BuyerHistoryScreen,
   BuyerAlertsScreen,
+  BuyerFavoritesScreen,
   VeterinarianDashboardScreen,
   VetAgendaScreen,
   VetFarmDetailScreen,
@@ -169,6 +170,46 @@ function MainStack() {
         name="BuyerDashboard"
         component={BuyerDashboardScreen}
         options={{ title: "Accueil" }}
+      />
+      <Stack.Screen
+        name="BuyerMarket"
+        component={BuyerMarketScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="BuyerMessages"
+        component={BuyerMessagesScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="BuyerHistory"
+        component={BuyerHistoryScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="BuyerAlerts"
+        component={BuyerAlertsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="BuyerFavorites"
+        component={BuyerFavoritesScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="TechTasks"
+        component={TechTasksScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="TechFarm"
+        component={TechFarmScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="TechTracking"
+        component={TechTrackingScreen}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="VeterinarianDashboard"

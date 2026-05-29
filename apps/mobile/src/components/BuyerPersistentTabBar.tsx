@@ -92,7 +92,7 @@ export function BuyerPersistentTabBar() {
       setExtendedOpen(false);
       switch (id) {
         case "favorites":
-          navigation.navigate("BuyerMarket", { favoritesOnly: true });
+          navigation.navigate("BuyerFavorites");
           return;
         case "priceAlerts":
           navigation.navigate("BuyerAlerts");

@@ -7,6 +7,7 @@ export type RootStackParamList = {
   BuyerMessages: undefined;
   BuyerHistory: { initialTab?: "proposals" | "purchases" | "reviews" } | undefined;
   BuyerAlerts: undefined;
+  BuyerFavorites: undefined;
   VeterinarianDashboard: undefined;
   VetAgenda: undefined;
   VetFarms: undefined;
@@ -63,7 +64,12 @@ export type RootStackParamList = {
   FarmTasks: { farmId: string; farmName: string };
   CreateTask: { farmId: string; farmName: string };
   MarketplaceList:
-    | { tab?: "listings" | "mine" | "offers"; buyerView?: boolean }
+    | {
+        tab?: "listings" | "mine" | "offers";
+        buyerView?: boolean;
+        favoritesOnly?: boolean;
+        searchQuery?: string;
+      }
     | undefined;
   MarketplaceListingDetail: { listingId: string; headline?: string };
   MarketplaceMyOffers: undefined;

@@ -13,6 +13,7 @@ import type { User } from "@prisma/client";
 import { OfferStatus } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
+import { CreateBuyerFavoriteDto } from "./dto/create-buyer-favorite.dto";
 import { CreateBuyerPriceAlertDto } from "./dto/create-price-alert.dto";
 import { UpdateBuyerPriceAlertDto } from "./dto/update-price-alert.dto";
 import { UpsertBuyerProfileDto } from "./dto/upsert-buyer-profile.dto";
@@ -44,6 +45,32 @@ export class BuyerProfilesController {
   @Get("reviews")
   reviews(@CurrentUser() user: User) {
     return this.svc.listReviews(user);
+  }
+
+  @Get("favorites")
+  favorites(@CurrentUser() user: User) {
+    return this.svc.listFavorites(user);
+  }
+
+  @Get("favorites/ids")
+  favoriteIds(@CurrentUser() user: User) {
+    return this.svc.listFavoriteIds(user);
+  }
+
+  @Post("favorites")
+  createFavorite(
+    @CurrentUser() user: User,
+    @Body() dto: CreateBuyerFavoriteDto
+  ) {
+    return this.svc.addFavorite(user, dto.listingId);
+  }
+
+  @Delete("favorites/:listingId")
+  deleteFavorite(
+    @CurrentUser() user: User,
+    @Param("listingId") listingId: string
+  ) {
+    return this.svc.removeFavorite(user, listingId);
   }
 
   @Get("personalized-listings")

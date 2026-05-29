@@ -183,14 +183,20 @@ export function BuyerDashboardScreen() {
               </Text>
               <Text style={styles.kpiLabel}>{t("buyer.kpi.purchases")}</Text>
             </View>
-            <View style={[styles.kpiCard, { backgroundColor: "#FCE4EC" }]}>
+            <Pressable
+              style={[styles.kpiCard, { backgroundColor: "#FCE4EC" }]}
+              onPress={() => navigation.navigate("BuyerFavorites")}
+            >
               <Text style={styles.kpiValue}>{kpis?.favoritesCount ?? 0}</Text>
               <Text style={styles.kpiLabel}>{t("buyer.kpi.favorites")}</Text>
-            </View>
-            <View style={[styles.kpiCard, { backgroundColor: "#FFF3E0" }]}>
+            </Pressable>
+            <Pressable
+              style={[styles.kpiCard, { backgroundColor: "#FFF3E0" }]}
+              onPress={() => navigation.navigate("BuyerAlerts")}
+            >
               <Text style={styles.kpiValue}>{kpis?.activeAlerts ?? 0}</Text>
               <Text style={styles.kpiLabel}>{t("buyer.kpi.alerts")}</Text>
-            </View>
+            </Pressable>
           </View>
         </ScreenSection>
 

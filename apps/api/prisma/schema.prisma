@@ -233,6 +233,7 @@ model BuyerProfile {
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
   priceAlerts          BuyerPriceAlert[]
+  favorites            BuyerFavorite[]
 
   @@index([buyerType])
 }
@@ -251,6 +252,19 @@ model BuyerPriceAlert {
   updatedAt             DateTime            @updatedAt
 
   @@index([buyerProfileId, isActive])
+}
+
+model BuyerFavorite {
+  id             String             @id @default(cuid())
+  buyerProfileId String
+  buyerProfile   BuyerProfile       @relation(fields: [buyerProfileId], references: [id], onDelete: Cascade)
+  listingId      String
+  listing        MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt      DateTime           @default(now())
+
+  @@unique([buyerProfileId, listingId])
+  @@index([buyerProfileId])
+  @@index([listingId])
 }
 
 /// Jeton Expo push (ou autre) enregistré pour l’utilisateur — un enregistrement par appareil / jeton.
@@ -1224,6 +1238,7 @@ model MarketplaceListing {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   offers        MarketplaceOffer[]
+  buyerFavorites BuyerFavorite[]
 
   @@index([sellerUserId])
   @@index([status])

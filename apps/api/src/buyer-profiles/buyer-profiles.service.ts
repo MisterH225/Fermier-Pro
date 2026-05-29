@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException
 } from "@nestjs/common";
@@ -138,7 +139,9 @@ export class BuyerProfilesService {
           isActive: true
         }
       }),
-      Promise.resolve(0)
+      profile
+        ? this.prisma.buyerFavorite.count({ where: { buyerProfileId: profile.id } })
+        : Promise.resolve(0)
     ]);
 
     return {
@@ -461,6 +464,96 @@ export class BuyerProfilesService {
       farmId: r.farmId,
       farmName: r.farm.name
     }));
+  }
+
+
+  async listFavoriteIds(user: User) {
+    const profile = await this.ensureRow(user.id);
+    const rows = await this.prisma.buyerFavorite.findMany({
+      where: { buyerProfileId: profile.id },
+      select: { listingId: true },
+      orderBy: { createdAt: "desc" }
+    });
+    return rows.map((r) => r.listingId);
+  }
+
+  async listFavorites(user: User) {
+    const profile = await this.ensureRow(user.id);
+    const rows = await this.prisma.buyerFavorite.findMany({
+      where: { buyerProfileId: profile.id },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      include: {
+        listing: {
+          include: {
+            farm: { select: { id: true, name: true } }
+          }
+        }
+      }
+    });
+    return rows
+      .filter(
+        (f) =>
+          f.listing.sellerUserId !== user.id &&
+          f.listing.status === ListingStatus.published
+      )
+      .map((f) => ({
+        favoriteId: f.id,
+        favoritedAt: f.createdAt.toISOString(),
+        id: f.listing.id,
+        title: f.listing.title,
+        category: f.listing.category,
+        pricePerKg: f.listing.pricePerKg?.toString() ?? null,
+        totalPrice: f.listing.totalPrice?.toString() ?? null,
+        weightKg: f.listing.totalWeightKg?.toString() ?? null,
+        farmName: f.listing.farm?.name ?? null,
+        photoUrls: f.listing.photoUrls,
+        publishedAt: f.listing.publishedAt?.toISOString() ?? null
+      }));
+  }
+
+  async addFavorite(user: User, listingId: string) {
+    const listing = await this.prisma.marketplaceListing.findUnique({
+      where: { id: listingId }
+    });
+    if (!listing) {
+      throw new NotFoundException("Annonce introuvable");
+    }
+    if (listing.sellerUserId === user.id) {
+      throw new BadRequestException("Impossible de favoriser votre propre annonce");
+    }
+    const profile = await this.ensureRow(user.id);
+    const row = await this.prisma.buyerFavorite.upsert({
+      where: {
+        buyerProfileId_listingId: {
+          buyerProfileId: profile.id,
+          listingId
+        }
+      },
+      create: {
+        buyerProfileId: profile.id,
+        listingId
+      },
+      update: {}
+    });
+    return { ok: true, listingId, favoriteId: row.id };
+  }
+
+  async removeFavorite(user: User, listingId: string) {
+    const profile = await this.ensureRow(user.id);
+    const existing = await this.prisma.buyerFavorite.findUnique({
+      where: {
+        buyerProfileId_listingId: {
+          buyerProfileId: profile.id,
+          listingId
+        }
+      }
+    });
+    if (!existing) {
+      throw new NotFoundException("Favori introuvable");
+    }
+    await this.prisma.buyerFavorite.delete({ where: { id: existing.id } });
+    return { ok: true };
   }
 
   private async ensureProfileType(userId: string, type: ProfileType) {
