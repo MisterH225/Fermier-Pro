@@ -46,6 +46,7 @@ export async function evaluateMarketRules(
     const absPct = Math.abs(variation).toFixed(1);
     const price =
       row.weightedAvgPrice?.toNumber() ?? row.avgPricePerKg.toNumber();
+    const priceFormatted = Math.round(price).toLocaleString("fr-FR");
 
     out.push({
       ruleKey: `market-price-variation:${row.category}:${dayKey}`,
@@ -55,7 +56,20 @@ export async function evaluateMarketRules(
           ? SmartAlertPriority.warning
           : SmartAlertPriority.info,
       title: isUp ? `Prix ${label} en hausse` : `Prix ${label} en baisse`,
-      message: `Le cours ${label} a ${isUp ? "augmenté" : "baissé"} de ${absPct} % sur 24 h (${Math.round(price).toLocaleString("fr-FR")} FCFA/kg, indice plateforme).`,
+      message: `Le cours ${label} a ${isUp ? "augmenté" : "baissé"} de ${absPct} % sur 24 h (${priceFormatted} FCFA/kg, indice plateforme).`,
+      i18n: {
+        titleKey: isUp
+          ? "smartAlerts.market.priceUp.title"
+          : "smartAlerts.market.priceDown.title",
+        messageKey: isUp
+          ? "smartAlerts.market.priceUp.message"
+          : "smartAlerts.market.priceDown.message",
+        params: {
+          categoryKey: row.category,
+          pct: absPct,
+          price: priceFormatted
+        }
+      },
       action: {
         label: "Voir l'indice",
         route: "BuyerDashboard",

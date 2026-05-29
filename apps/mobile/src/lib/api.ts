@@ -627,12 +627,19 @@ export type SmartAlertModuleDto =
 
 export type SmartAlertPriorityDto = "critical" | "warning" | "info";
 
+export type SmartAlertI18nDto = {
+  titleKey: string;
+  messageKey: string;
+  params?: Record<string, string | number>;
+};
+
 export type SmartAlertListItemDto = {
   id: string;
   module: SmartAlertModuleDto;
   priority: SmartAlertPriorityDto;
   title: string;
   message: string;
+  i18n?: SmartAlertI18nDto;
   action?: {
     label: string;
     route: string;
@@ -664,6 +671,7 @@ export type FarmAlertSettingsDto = {
   pushFinance: boolean;
   pushGestation: boolean;
   pushCheptel: boolean;
+  pushMarket: boolean;
 };
 
 export type FeedStockMovementDto = {
@@ -838,6 +846,7 @@ export function putFarmAlertSettings(
     pushFinance: boolean;
     pushGestation: boolean;
     pushCheptel: boolean;
+    pushMarket: boolean;
   }>,
   activeProfileId?: string | null
 ): Promise<FarmAlertSettingsDto> {

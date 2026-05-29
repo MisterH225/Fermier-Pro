@@ -271,6 +271,37 @@ export const fr = {
     variationFlat: "0.0% ➡️",
     priceOnRequest: "—"
   },
+  smartAlerts: {
+    moduleMarket: "Marché",
+    market: {
+      priceUp: {
+        title: "Prix {{category}} en hausse",
+        message:
+          "Le cours {{category}} a augmenté de {{pct}} % sur 24 h ({{price}} FCFA/kg, indice plateforme)."
+      },
+      priceDown: {
+        title: "Prix {{category}} en baisse",
+        message:
+          "Le cours {{category}} a baissé de {{pct}} % sur 24 h ({{price}} FCFA/kg, indice plateforme)."
+      },
+      categories: {
+        porcelet: "porcelets",
+        croissance: "croissance",
+        charcutier: "charcutier",
+        reproducteur: "reproducteur"
+      }
+    },
+    settings: {
+      title: "Notifications SmartAlerts",
+      subtitle: "Choisissez les alertes à recevoir en push sur cet appareil.",
+      pushStock: "Stock aliment",
+      pushHealth: "Santé",
+      pushFinance: "Finance",
+      pushGestation: "Gestation",
+      pushCheptel: "Cheptel",
+      pushMarket: "Indice de prix porc"
+    }
+  },
   tasksScreen: {
     tabPending: "En attente",
     tabInProgress: "En cours",

@@ -271,6 +271,37 @@ export const en = {
     variationFlat: "0.0% ➡️",
     priceOnRequest: "—"
   },
+  smartAlerts: {
+    moduleMarket: "Market",
+    market: {
+      priceUp: {
+        title: "{{category}} price rising",
+        message:
+          "{{category}} price rose {{pct}}% in 24h ({{price}} FCFA/kg, platform index)."
+      },
+      priceDown: {
+        title: "{{category}} price falling",
+        message:
+          "{{category}} price fell {{pct}}% in 24h ({{price}} FCFA/kg, platform index)."
+      },
+      categories: {
+        porcelet: "piglets",
+        croissance: "growers",
+        charcutier: "finishers",
+        reproducteur: "breeders"
+      }
+    },
+    settings: {
+      title: "SmartAlerts notifications",
+      subtitle: "Choose which alerts to receive as push on this device.",
+      pushStock: "Feed stock",
+      pushHealth: "Health",
+      pushFinance: "Finance",
+      pushGestation: "Gestation",
+      pushCheptel: "Herd",
+      pushMarket: "Pig price index"
+    }
+  },
   tasksScreen: {
     tabPending: "Pending",
     tabInProgress: "In progress",

@@ -1,10 +1,12 @@
 import {
   NavigationContainer,
+  createNavigationContainerRef,
   DefaultTheme,
   type LinkingOptions
 } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import * as Linking from "expo-linking";
+import { useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProducerPersistentTabBar } from "./ProducerPersistentTabBar";
@@ -98,6 +100,7 @@ import { mobileColors } from "../theme/mobileTheme";
 import { vetStackScreenOptions } from "../theme/vetTheme";
 import { AccountModerationGate } from "./auth/AccountModerationGate";
 import { OfflineBanner } from "./OfflineBanner";
+import { useSmartAlertPushNavigation } from "../hooks/useSmartAlertPushNavigation";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -535,15 +538,22 @@ function MainNavigationWithChrome() {
 }
 
 /** À l’intérieur de `PersistQueryClientProvider` (réhydratation cache offline). */
-export function MainNavigationShell() {
+const navigationRef = createNavigationContainerRef<RootStackParamList>();
+
+function MainNavigationShellInner() {
+  useSmartAlertPushNavigation(navigationRef);
   return (
     <View style={styles.flex}>
       <OfflineBanner />
-      <NavigationContainer theme={navTheme} linking={linking}>
+      <NavigationContainer ref={navigationRef} theme={navTheme} linking={linking}>
         <MainNavigationWithChrome />
       </NavigationContainer>
     </View>
   );
+}
+
+export function MainNavigationShell() {
+  return <MainNavigationShellInner />;
 }
 
 const styles = StyleSheet.create({

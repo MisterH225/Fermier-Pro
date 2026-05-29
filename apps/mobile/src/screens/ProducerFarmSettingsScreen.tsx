@@ -24,6 +24,7 @@ import {
   type FinanceOverviewDto
 } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
+import { FarmAlertPushSettings } from "../components/smartAlerts/FarmAlertPushSettings";
 import {
   mobileColors,
   mobileRadius,
@@ -412,6 +413,10 @@ export function ProducerFarmSettingsScreen({ route, navigation }: Props) {
             </TouchableOpacity>
           </>
         ) : null}
+
+        <View style={styles.sectionSpacerBlock}>
+          <FarmAlertPushSettings farmId={farmId} />
+        </View>
       </ScrollView>
     </View>
   );
@@ -430,6 +435,9 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.md
   },
   sectionSpacer: {
+    marginTop: mobileSpacing.xl
+  },
+  sectionSpacerBlock: {
     marginTop: mobileSpacing.xl
   },
   error: { color: mobileColors.error, marginBottom: mobileSpacing.sm },
