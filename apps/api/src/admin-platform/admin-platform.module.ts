@@ -11,7 +11,14 @@ import { SuperAdminGuard } from "./super-admin.guard";
 import { MarketModule } from "../market/market.module";
 
 @Module({
-  imports: [AuthModule, AdminModerationModule, VetsModule, PushNotificationsModule, AiModule],
+  imports: [
+    AuthModule,
+    AdminModerationModule,
+    VetsModule,
+    PushNotificationsModule,
+    AiModule,
+    MarketModule
+  ],
   controllers: [AdminPlatformController],
   providers: [AdminPlatformService, AdminAiService, SuperAdminGuard],
   exports: [AdminPlatformService, SuperAdminGuard]

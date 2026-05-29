@@ -14,8 +14,7 @@ import { CheptelService } from "./cheptel.service";
     CommonModule,
     LivestockModule,
     FinanceModule,
-    HousingModule,
-    MarketModule
+    HousingModule
   ],
   controllers: [CheptelController],
   providers: [CheptelService],

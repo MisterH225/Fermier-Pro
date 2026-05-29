@@ -186,7 +186,7 @@ export class OffersService {
 
   async withdraw(user: User, offerId: string) {
     const offer = await this.prisma.marketplaceOffer.findFirst({
-      where: { id: offerId, buyerUserId: user.id }
+      where: { id: offerId, buyerUserId: user.id, archived: false }
     });
     if (!offer) {
       throw new NotFoundException("Offre introuvable");

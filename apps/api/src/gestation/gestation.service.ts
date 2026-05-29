@@ -308,7 +308,7 @@ export class GestationService {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
     const settings = await this.ensureSettings(farmId);
     const now = new Date();
-    const where: Prisma.GestationWhereInput = { farmId };
+    const where: Prisma.GestationWhereInput = { farmId, archived: false };
     if (opts.status) {
       where.status = opts.status;
     } else {
