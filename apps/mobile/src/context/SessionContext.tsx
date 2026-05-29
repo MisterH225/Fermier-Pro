@@ -40,6 +40,7 @@ type SessionContextValue = {
   reloadAuth: () => Promise<void>;
   /** GET /config/client — défaut tout activé si échec réseau */
   clientFeatures: ClientConfigDto["features"];
+  platformModules: PlatformModuleDto[];
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -249,8 +250,7 @@ export function SessionProvider({
       setActiveProfileId,
       refreshAuthMe,
       reloadAuth,
-      clientFeatures,
-      platformModules
+      clientFeatures
     }),
     [
       accessToken,
@@ -262,8 +262,7 @@ export function SessionProvider({
       setActiveProfileId,
       refreshAuthMe,
       reloadAuth,
-      clientFeatures,
-      platformModules
+      clientFeatures
     ]
   );
 
