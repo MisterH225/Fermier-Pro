@@ -14,5 +14,5 @@ export class PatchPenAveragesDto {
   @IsInt()
   @Min(0)
   @Max(104)
-  averageAgeWeeks?: number | null;
+  averageAgeWeeksManual?: number | null;
 }

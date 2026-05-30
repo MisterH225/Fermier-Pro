@@ -2,11 +2,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
-  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -24,7 +23,8 @@ import {
   ScreenSection
 } from "../../components/layout";
 import { TechMobileShell } from "../../components/layout/TechMobileShell";
-import { ActiveProfileSwitcherModal } from "../../components/account/ActiveProfileSwitcherModal";
+import { TechProfileModal } from "../../components/technician/TechProfileModal";
+import { TechWelcomeHeader } from "../../components/technician/TechWelcomeHeader";
 import { DashboardTaskWidget } from "../../components/tasks";
 import { TechQuickActionModals } from "../../components/technician/TechQuickActionModals";
 import { useTechBottomChromePad } from "../../context/TechBottomChromeContext";
@@ -136,8 +136,40 @@ export function TechDashboardScreen() {
 
   const kpis = dashQ.data?.kpis;
 
+  const dashboardHeader: ReactNode = (
+    <View style={styles.heroBar}>
+      <TechWelcomeHeader
+        welcomeLabel={t("tech.dashboard.welcomeLine")}
+        displayName={displayName}
+        avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
+        onPressAvatar={() => setProfileOpen(true)}
+      />
+      <Pressable
+        onPress={() => {
+          if (activeFarm) {
+            navigation.navigate("SmartAlertsList", {
+              farmId: activeFarm.farmId,
+              farmName: activeFarm.farmName
+            });
+          }
+        }}
+        style={({ pressed }) => [styles.bell, pressed && { opacity: 0.85 }]}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        accessibilityRole="button"
+        accessibilityLabel={t("smartAlerts.bellA11y", "Notifications")}
+      >
+        <Ionicons name="notifications-outline" size={22} color={techColors.primary} />
+        {(dashQ.data?.alertsCount ?? 0) > 0 ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{dashQ.data?.alertsCount}</Text>
+          </View>
+        ) : null}
+      </Pressable>
+    </View>
+  );
+
   return (
-    <TechMobileShell hideTopBar>
+    <TechMobileShell customHeader={dashboardHeader} omitBottomTabBar>
       <ScrollView
         contentContainerStyle={[
           profileScreenScrollContent,
@@ -152,51 +184,14 @@ export function TechDashboardScreen() {
         }
       >
         <ProfileHeroCard>
-          <View style={styles.headerRow}>
-            <Pressable style={styles.headerLeft} onPress={() => setProfileOpen(true)}>
-              {resolveActiveProfileAvatarUrl(authMe, activeProfileId) ? (
-                <Image
-                  source={{ uri: resolveActiveProfileAvatarUrl(authMe, activeProfileId)! }}
-                  style={styles.avatar}
-                />
-              ) : (
-                <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <Ionicons name="construct" size={24} color={techColors.primary} />
-                </View>
-              )}
-              <View style={styles.headerText}>
-                <Text style={styles.greeting}>
-                  {t("tech.dashboard.welcome", { name: displayName })}
-                </Text>
-                <Text style={styles.subtitle} numberOfLines={2}>
-                  {activeFarm
-                    ? t("tech.dashboard.farmSubtitle", {
-                        farm: activeFarm.farmName,
-                        date: todayLabel
-                      })
-                    : t("tech.dashboard.noFarm")}
-                </Text>
-              </View>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                if (activeFarm) {
-                  navigation.navigate("SmartAlertsList", {
-                    farmId: activeFarm.farmId,
-                    farmName: activeFarm.farmName
-                  });
-                }
-              }}
-              style={styles.bell}
-            >
-              <Ionicons name="notifications-outline" size={24} color={techColors.primary} />
-              {(dashQ.data?.alertsCount ?? 0) > 0 ? (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{dashQ.data?.alertsCount}</Text>
-                </View>
-              ) : null}
-            </Pressable>
-          </View>
+          <Text style={styles.subtitle} numberOfLines={2}>
+            {activeFarm
+              ? t("tech.dashboard.farmSubtitle", {
+                  farm: activeFarm.farmName,
+                  date: todayLabel
+                })
+              : t("tech.dashboard.noFarm")}
+          </Text>
 
           {farms.length > 1 ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.farmPills}>
@@ -351,21 +346,24 @@ export function TechDashboardScreen() {
         }}
       />
 
-      <ActiveProfileSwitcherModal visible={profileOpen} onClose={() => setProfileOpen(false)} />
+      <TechProfileModal visible={profileOpen} onClose={() => setProfileOpen(false)} />
     </TechMobileShell>
   );
 }
 
 const styles = StyleSheet.create({
+  heroBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: mobileSpacing.lg,
+    paddingVertical: mobileSpacing.sm,
+    backgroundColor: techColors.canvas,
+    gap: mobileSpacing.sm
+  },
   sectionBlock: { gap: mobileSpacing.sm },
-  headerRow: { flexDirection: "row", alignItems: "flex-start", gap: mobileSpacing.md },
-  headerLeft: { flex: 1, flexDirection: "row", gap: mobileSpacing.md },
-  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: techColors.primaryLight },
-  avatarPlaceholder: { alignItems: "center", justifyContent: "center" },
-  headerText: { flex: 1 },
-  greeting: { ...mobileTypography.cardTitle, fontSize: 18, color: techColors.textPrimary },
-  subtitle: { ...mobileTypography.meta, color: techColors.textSecondary, marginTop: 4 },
-  bell: { padding: mobileSpacing.sm },
+  subtitle: { ...mobileTypography.meta, color: techColors.textSecondary },
+  bell: { padding: mobileSpacing.sm, position: "relative" },
   badge: {
     position: "absolute",
     top: 4,

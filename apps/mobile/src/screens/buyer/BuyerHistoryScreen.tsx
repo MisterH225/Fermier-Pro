@@ -15,7 +15,6 @@ import {
 import { EventList } from "../../components/lists/EventList";
 import type { EventItem } from "../../components/lists/types";
 import {
-  ProfileHeroCard,
   ProfileSectionEmpty,
   profileScreenScrollContent,
   ScreenSection
@@ -188,10 +187,6 @@ export function BuyerHistoryScreen() {
           />
         }
       >
-        <ProfileHeroCard>
-          <Text style={styles.heroTitle}>{t("buyer.history.title")}</Text>
-        </ProfileHeroCard>
-
         <ScreenSection title={t("buyer.history.sectionFilter")}>
           <View style={styles.pills}>
             {(["proposals", "purchases", "reviews"] as Tab[]).map((k) => {
@@ -218,7 +213,6 @@ export function BuyerHistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  heroTitle: { ...mobileTypography.cardTitle, fontSize: 20, color: buyerColors.textPrimary },
   pills: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
   pill: {
     paddingHorizontal: mobileSpacing.md,

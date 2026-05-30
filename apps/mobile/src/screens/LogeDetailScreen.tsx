@@ -176,14 +176,19 @@ export function LogeDetailScreen({ route, navigation }: Props) {
     void qc.invalidateQueries({ queryKey: ["farmAnimals", farmId] });
   };
 
+  const penAgeData = penMeta?.ageData ?? contentsQ.data?.ageData;
+
   useLayoutEffect(() => {
     if (penMeta?.averageWeightKg != null) {
       setAvgWeight(String(penMeta.averageWeightKg));
     }
-    if (penMeta?.averageAgeWeeks != null) {
-      setAvgAge(String(penMeta.averageAgeWeeks));
+    const manual = penAgeData?.averageAgeWeeksManual;
+    if (manual != null) {
+      setAvgAge(String(manual));
+    } else if (penAgeData?.isManual !== true) {
+      setAvgAge("");
     }
-  }, [penMeta?.averageWeightKg, penMeta?.averageAgeWeeks]);
+  }, [penMeta?.averageWeightKg, penAgeData?.averageAgeWeeksManual, penAgeData?.isManual]);
 
   const saveAveragesMut = useMutation({
     mutationFn: () => {
@@ -202,7 +207,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
           averageWeightKg: avgWeight.trim()
             ? Number.parseFloat(avgWeight)
             : null,
-          averageAgeWeeks: ageWeeks
+          averageAgeWeeksManual: ageWeeks
         },
         activeProfileId
       );
@@ -292,14 +297,72 @@ export function LogeDetailScreen({ route, navigation }: Props) {
             keyboardType="decimal-pad"
             onBlur={() => saveAveragesMut.mutate()}
           />
-          <Text style={styles.infoLab}>{t("cheptel.pens.avgAgeField")}</Text>
-          <TextInput
-            style={styles.input}
-            value={avgAge}
-            onChangeText={setAvgAge}
-            keyboardType="number-pad"
-            onBlur={() => saveAveragesMut.mutate()}
-          />
+          <Text style={styles.sectionTitle}>{t("cheptel.pens.avgAgeSection")}</Text>
+          {penAgeData?.displayAgeWeeks != null && !penAgeData.isManual ? (
+            <>
+              <Text style={styles.ageValue}>
+                {t("cheptel.pens.avgAgeCalculated", {
+                  weeks: penAgeData.displayAgeWeeks
+                })}
+              </Text>
+              <Text style={styles.ageSub}>
+                {penAgeData.animalsWithoutAgeCount > 0
+                  ? t("cheptel.pens.avgAgePartial", {
+                      with: penAgeData.animalsWithAgeCount,
+                      total:
+                        penAgeData.animalsWithAgeCount +
+                        penAgeData.animalsWithoutAgeCount,
+                      without: penAgeData.animalsWithoutAgeCount
+                    })
+                  : t("cheptel.pens.avgAgeFromAnimals", {
+                      count: penAgeData.animalsWithAgeCount
+                    })}
+              </Text>
+              <View style={styles.autoBadge}>
+                <Text style={styles.autoBadgeTx}>
+                  {t("cheptel.pens.avgAgeAutoBadge")}
+                </Text>
+              </View>
+            </>
+          ) : penAgeData?.isManual && penAgeData.displayAgeWeeks != null ? (
+            <>
+              <Text style={styles.ageValue}>
+                {t("cheptel.pens.avgAgeCalculated", {
+                  weeks: penAgeData.displayAgeWeeks
+                })}
+              </Text>
+              <View style={styles.manualBadge}>
+                <Text style={styles.manualBadgeTx}>
+                  {t("cheptel.pens.avgAgeManualBadge")}
+                </Text>
+              </View>
+              <Text style={styles.infoLab}>
+                {t("cheptel.pens.avgAgeManualEdit")}
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={avgAge}
+                onChangeText={setAvgAge}
+                keyboardType="number-pad"
+                onBlur={() => saveAveragesMut.mutate()}
+              />
+            </>
+          ) : (
+            <>
+              <Text style={styles.ageMuted}>{t("cheptel.pens.avgAgeWeeksEmpty")}</Text>
+              <Text style={styles.infoLab}>
+                {t("cheptel.pens.avgAgeManualEdit")}
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={avgAge}
+                onChangeText={setAvgAge}
+                keyboardType="number-pad"
+                placeholder={t("cheptel.pens.avgAgeManualPlaceholder")}
+                onBlur={() => saveAveragesMut.mutate()}
+              />
+            </>
+          )}
         </View>
 
         <View style={styles.quickBar}>
@@ -426,6 +489,13 @@ export function LogeDetailScreen({ route, navigation }: Props) {
           }
           setGestationSow(a);
           setActionAnimal(null);
+        }}
+        onListForSale={() => {
+          const full = actionAnimal ? toListItem(actionAnimal) : null;
+          setActionAnimal(null);
+          if (full) {
+            setSaleAnimal(full);
+          }
         }}
       />
 
@@ -571,6 +641,10 @@ export function LogeDetailScreen({ route, navigation }: Props) {
           setDetailAnimal(null);
           navigation.navigate("FarmHealth", { farmId, farmName });
         }}
+        onListForSale={(a) => {
+          setDetailAnimal(null);
+          setSaleAnimal(a);
+        }}
       />
     </View>
   );
@@ -606,6 +680,47 @@ const styles = StyleSheet.create({
     marginTop: 4,
     backgroundColor: mobileColors.background
   },
+  sectionTitle: {
+    ...mobileTypography.meta,
+    fontWeight: "700",
+    color: mobileColors.textPrimary,
+    marginTop: 12
+  },
+  ageValue: {
+    ...mobileTypography.title,
+    fontSize: 20,
+    color: mobileColors.textPrimary,
+    marginTop: 4
+  },
+  ageSub: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: 4
+  },
+  ageMuted: {
+    ...mobileTypography.body,
+    color: mobileColors.textSecondary,
+    opacity: 0.75,
+    marginTop: 4
+  },
+  autoBadge: {
+    alignSelf: "flex-start",
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: mobileRadius.pill,
+    backgroundColor: "#DCFCE7"
+  },
+  autoBadgeTx: { fontSize: 12, fontWeight: "600", color: "#166534" },
+  manualBadge: {
+    alignSelf: "flex-start",
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: mobileRadius.pill,
+    backgroundColor: mobileColors.accentSoft
+  },
+  manualBadgeTx: { fontSize: 12, fontWeight: "600", color: mobileColors.accent },
   filterRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
   filterPill: {
     paddingHorizontal: 12,

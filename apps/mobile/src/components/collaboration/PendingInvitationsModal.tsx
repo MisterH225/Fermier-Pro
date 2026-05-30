@@ -55,6 +55,9 @@ export function PendingInvitationsModal({ visible, onClose }: Props) {
       void qc.invalidateQueries({
         queryKey: ["myPendingInvitations", activeProfileId]
       });
+      void qc.invalidateQueries({
+        queryKey: ["myPendingInvitations.banner", activeProfileId]
+      });
       void qc.invalidateQueries({ queryKey: ["farms", activeProfileId] });
       void qc.invalidateQueries({ queryKey: ["farm"] });
       void qc.invalidateQueries({ queryKey: ["farmMembers"] });

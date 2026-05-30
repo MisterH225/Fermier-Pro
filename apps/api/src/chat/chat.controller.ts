@@ -58,12 +58,21 @@ export class ChatController {
     @CurrentUser() user: User,
     @Body() dto: CreateDirectChatDto
   ) {
-    return this.chat.ensureDirectRoom(user, dto.peerUserId);
+    return this.chat.ensureDirectRoom(
+      user,
+      dto.peerUserId,
+      dto.marketplaceListingId?.trim() || undefined
+    );
   }
 
   @Get("rooms/:roomId")
   getRoom(@CurrentUser() user: User, @Param("roomId") roomId: string) {
     return this.chat.getRoom(user, roomId);
+  }
+
+  @Post("rooms/:roomId/read")
+  markRoomRead(@CurrentUser() user: User, @Param("roomId") roomId: string) {
+    return this.chat.markRoomRead(user, roomId);
   }
 
   @Get("rooms/:roomId/messages")

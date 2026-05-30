@@ -14,6 +14,7 @@ import { AUDIT_ACTION } from "../common/audit.constants";
 import { AuditService } from "../common/audit.service";
 import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { calculateAnimalAgeWeeks } from "../cheptel/age-calculation.util";
 import { CreateAnimalDto } from "./dto/create-animal.dto";
 import { CreateWeightDto } from "./dto/create-weight.dto";
 import { PatchAnimalStatusDto } from "./dto/patch-animal-status.dto";
@@ -229,6 +230,8 @@ export class LivestockService {
     await this.assertUniqueTagCode(farmId, tagCode);
 
     const sex = dto.sex ?? defaultSexForCategory(productionCategory);
+    const entryDate = new Date();
+    entryDate.setUTCHours(0, 0, 0, 0);
 
     return this.prisma.animal.create({
       data: {
@@ -239,6 +242,11 @@ export class LivestockService {
         sex,
         productionCategory,
         birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
+        entryDate,
+        ageWeeksAtEntry:
+          dto.birthDate == null && dto.ageWeeksAtEntry != null
+            ? dto.ageWeeksAtEntry
+            : undefined,
         notes: dto.notes
       }
     });
@@ -294,12 +302,35 @@ export class LivestockService {
     }
   }
 
+  private enrichAnimalDetail<
+    T extends {
+      birthDate: Date | null;
+      ageWeeksAtEntry: number | null;
+      entryDate: Date | null;
+    }
+  >(row: T) {
+    const currentAgeWeeks = calculateAnimalAgeWeeks({
+      birthDate: row.birthDate,
+      ageWeeksAtEntry: row.ageWeeksAtEntry,
+      entryDate: row.entryDate
+    });
+    return {
+      ...row,
+      entryDate: row.entryDate?.toISOString().slice(0, 10) ?? null,
+      currentAgeWeeks
+    };
+  }
+
   async getAnimal(user: User, farmId: string, animalId: string) {
     await this.getAnimalOnFarm(user, farmId, animalId);
-    return this.prisma.animal.findFirst({
+    const row = await this.prisma.animal.findFirst({
       where: { id: animalId, farmId },
       include: this.animalDetailInclude
     });
+    if (!row) {
+      throw new NotFoundException("Animal introuvable");
+    }
+    return this.enrichAnimalDetail(row);
   }
 
   async updateAnimal(
@@ -367,7 +398,20 @@ export class LivestockService {
             ? { productionCategory: dto.productionCategory }
             : {}),
           ...(dto.birthDate !== undefined
-            ? { birthDate: dto.birthDate ? new Date(dto.birthDate) : null }
+            ? {
+                birthDate: dto.birthDate ? new Date(dto.birthDate) : null,
+                ...(dto.birthDate
+                  ? { ageWeeksAtEntry: null }
+                  : {})
+              }
+            : {}),
+          ...(dto.ageWeeksAtEntry !== undefined
+            ? { ageWeeksAtEntry: dto.ageWeeksAtEntry }
+            : {}),
+          ...(dto.entryDate !== undefined
+            ? {
+                entryDate: dto.entryDate ? new Date(dto.entryDate) : null
+              }
             : {}),
           ...(dto.origin !== undefined ? { origin: dto.origin } : {}),
           ...(dto.supplier !== undefined
@@ -397,10 +441,14 @@ export class LivestockService {
       }
     });
 
-    return this.prisma.animal.findFirst({
+    const updated = await this.prisma.animal.findFirst({
       where: { id: animalId, farmId },
       include: this.animalDetailInclude
     });
+    if (!updated) {
+      throw new NotFoundException("Animal introuvable");
+    }
+    return this.enrichAnimalDetail(updated);
   }
 
   async patchAnimalStatus(

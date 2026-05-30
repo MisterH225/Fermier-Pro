@@ -44,7 +44,7 @@ export function TechTasksScreen() {
   );
 
   return (
-    <TechMobileShell>
+    <TechMobileShell hideTopBar>
       <View style={[profileScreenScrollContent, styles.wrap, { paddingBottom: bottomPad }]}>
         <ScreenSection title={t("tech.dashboard.tasksToday")}>
           {dashQ.isLoading || farm ? (

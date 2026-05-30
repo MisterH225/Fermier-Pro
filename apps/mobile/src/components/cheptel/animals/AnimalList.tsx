@@ -190,6 +190,10 @@ export function AnimalList({
           onOpenAnimalScreen(a);
         }}
         onOpenHealth={onOpenHealth}
+        onListForSale={(a) => {
+          setDetailAnimal(null);
+          setSaleAnimal(a);
+        }}
       />
 
       <CreateAnimalModal

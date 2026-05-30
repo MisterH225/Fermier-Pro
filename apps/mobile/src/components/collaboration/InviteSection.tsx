@@ -13,6 +13,7 @@ import {
 } from "../../theme/mobileTheme";
 import { CollaborativeAccessPanel } from "../account/CollaborativeAccessPanel";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
+import { PendingScanRequestsSection } from "./PendingScanRequestsSection";
 import { SearchCollaboratorModal } from "./SearchCollaboratorModal";
 
 type Props = {
@@ -44,6 +45,8 @@ export function InviteSection({ farmId, farmName }: Props) {
 
   return (
     <View style={styles.wrap}>
+      {farmId ? <PendingScanRequestsSection farmId={farmId} /> : null}
+
       <CollaborativeAccessPanel farmId={farmId} farmName={farmName} />
 
       {farmId ? (

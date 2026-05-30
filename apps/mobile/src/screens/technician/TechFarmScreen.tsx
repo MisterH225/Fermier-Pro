@@ -13,7 +13,6 @@ import {
   View
 } from "react-native";
 import {
-  ProfileHeroCard,
   ProfileSectionEmpty,
   profileScreenScrollContent,
   ScreenSection
@@ -84,18 +83,19 @@ export function TechFarmScreen() {
           { paddingBottom: bottomPad + mobileSpacing.xl }
         ]}
       >
-        <ProfileHeroCard>
-          <Text style={styles.heroTitle}>{t("tech.farm.title")}</Text>
-          {dashQ.isLoading ? <ActivityIndicator color={techColors.primary} /> : null}
-          {farm ? (
-            <Text style={styles.farmName}>{farm.farmName}</Text>
-          ) : !dashQ.isLoading ? (
-            <ProfileSectionEmpty>{t("tech.tasks.noFarm")}</ProfileSectionEmpty>
-          ) : null}
-        </ProfileHeroCard>
+        {dashQ.isLoading ? (
+          <ActivityIndicator color={techColors.primary} style={styles.loader} />
+        ) : null}
+        {!farm && !dashQ.isLoading ? (
+          <ProfileSectionEmpty>{t("tech.tasks.noFarm")}</ProfileSectionEmpty>
+        ) : null}
 
         {farm ? (
           <>
+            <ScreenSection title={farm.farmName}>
+              <Text style={styles.farmMeta}>{farm.role}</Text>
+            </ScreenSection>
+
             <ScreenSection title={t("tech.farm.sectionModules")}>
               <View style={styles.pills}>
                 {TABS.map((k) => {
@@ -159,8 +159,8 @@ export function TechFarmScreen() {
 }
 
 const styles = StyleSheet.create({
-  heroTitle: { ...mobileTypography.cardTitle, fontSize: 20, color: techColors.textPrimary },
-  farmName: { ...mobileTypography.body, color: techColors.textSecondary },
+  loader: { marginVertical: mobileSpacing.lg },
+  farmMeta: { ...mobileTypography.body, color: techColors.textSecondary },
   pills: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
   pill: {
     paddingHorizontal: mobileSpacing.md,

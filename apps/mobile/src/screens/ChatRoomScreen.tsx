@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useFocusEffect } from "@react-navigation/native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useCallback,
@@ -22,13 +23,26 @@ import {
   View
 } from "react-native";
 import { ChatModuleGate } from "../components/ChatModuleGate";
+import { ChatInputBar } from "../components/messaging/ChatInputBar";
+import { ListingContextBanner } from "../components/messaging/ListingContextBanner";
+import { MessageBubble } from "../components/messaging/MessageBubble";
+import {
+  mobileColors,
+  mobileRadius,
+  mobileSpacing
+} from "../theme/mobileTheme";
 import { useSession } from "../context/SessionContext";
 import {
   type ChatSocketConnectionStatus,
   useChatRoomSocket
 } from "../hooks/useChatRoomSocket";
 import type { ChatMessageDto } from "../lib/api";
-import { fetchChatMessages, postChatMessage } from "../lib/api";
+import {
+  fetchChatMessages,
+  fetchChatRoom,
+  markChatRoomRead,
+  postChatMessage
+} from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
 
 const CHAT_PAGE_SIZE = 40;
@@ -98,27 +112,39 @@ function liveStripProps(status: ChatSocketConnectionStatus): LiveStrip {
   }
 }
 
-function formatTime(iso: string): string {
+type ChatListItem =
+  | { kind: "date"; id: string; label: string }
+  | { kind: "message"; id: string; message: ChatMessageDto };
+
+function formatDaySeparator(iso: string): string {
   try {
     const d = new Date(iso);
-    return d.toLocaleString(undefined, {
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (d.toDateString() === now.toDateString()) {
+      return "Aujourd'hui";
+    }
+    if (d.toDateString() === yesterday.toDateString()) {
+      return "Hier";
+    }
+    return d.toLocaleDateString(undefined, {
+      weekday: "long",
       day: "numeric",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit"
+      month: "long"
     });
   } catch {
-    return iso;
+    return "";
   }
 }
 
 export function ChatRoomScreen({ route, navigation }: Props) {
-  const { roomId, headline } = route.params;
+  const { roomId, headline, listingId: listingIdParam } = route.params;
   const { accessToken, activeProfileId, authMe, clientFeatures } =
     useSession();
   const qc = useQueryClient();
   const [draft, setDraft] = useState("");
-  const listRef = useRef<FlatList<ChatMessageDto>>(null);
+  const listRef = useRef<FlatList<ChatListItem>>(null);
   /** Si l’utilisateur est proche du bas ; au chargement on colle au dernier message. */
   const stickToBottomRef = useRef(true);
   const prevOrderedLenRef = useRef(0);
@@ -137,11 +163,41 @@ export function ChatRoomScreen({ route, navigation }: Props) {
     enabled: clientFeatures.chat && !!accessToken
   });
 
+  const roomQuery = useQuery({
+    queryKey: ["chatRoom", roomId, activeProfileId],
+    queryFn: () => fetchChatRoom(accessToken!, roomId, activeProfileId),
+    enabled: Boolean(accessToken)
+  });
+
+  const listingContext =
+    roomQuery.data?.marketplaceListing ?? null;
+  const effectiveListingId =
+    listingIdParam ??
+    roomQuery.data?.marketplaceListingId ??
+    listingContext?.id ??
+    null;
+
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: "Conversation"
+      title: headline?.trim() || "Conversation"
     });
-  }, [navigation]);
+  }, [navigation, headline]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!accessToken) {
+        return;
+      }
+      void markChatRoomRead(accessToken, roomId, activeProfileId).then(() => {
+        void qc.invalidateQueries({ queryKey: ["chatRooms"] });
+        void qc.setQueryData(
+          ["chatRoom", roomId, activeProfileId],
+          (prev: typeof roomQuery.data) =>
+            prev ? { ...prev, unreadCount: 0 } : prev
+        );
+      });
+    }, [accessToken, roomId, activeProfileId, qc])
+  );
 
   useEffect(() => {
     prevOrderedLenRef.current = 0;
@@ -226,6 +282,24 @@ export function ChatRoomScreen({ route, navigation }: Props) {
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
   }, [messagesQuery.data]);
+
+  const listItems = useMemo((): ChatListItem[] => {
+    const items: ChatListItem[] = [];
+    let lastDay: string | null = null;
+    for (const message of ordered) {
+      const day = new Date(message.createdAt).toDateString();
+      if (day !== lastDay) {
+        items.push({
+          kind: "date",
+          id: `date-${day}`,
+          label: formatDaySeparator(message.createdAt)
+        });
+        lastDay = day;
+      }
+      items.push({ kind: "message", id: message.id, message });
+    }
+    return items;
+  }, [ordered]);
 
   const myUserId = authMe?.user.id;
 
@@ -335,30 +409,33 @@ export function ChatRoomScreen({ route, navigation }: Props) {
   });
 
   const renderItem = useCallback(
-    ({ item }: { item: ChatMessageDto }) => {
-      const mine = item.senderUserId === myUserId;
-      return (
-        <View
-          style={[styles.bubbleRow, mine ? styles.bubbleRowMine : undefined]}
-        >
-          <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleOther]}>
-            {!mine ? (
-              <Text style={styles.senderName}>
-                {item.sender?.fullName?.trim() || "Participant"}
-              </Text>
-            ) : null}
-            <Text style={[styles.msgBody, mine ? styles.msgBodyMine : undefined]}>
-              {item.body}
-            </Text>
-            <Text style={[styles.msgMeta, mine ? styles.msgMetaMine : undefined]}>
-              {formatTime(item.createdAt)}
-            </Text>
+    ({ item }: { item: ChatListItem }) => {
+      if (item.kind === "date") {
+        return (
+          <View style={styles.dateSepWrap}>
+            <Text style={styles.dateSepText}>{item.label}</Text>
           </View>
-        </View>
+        );
+      }
+      return (
+        <MessageBubble
+          message={item.message}
+          isMine={item.message.senderUserId === myUserId}
+        />
       );
     },
     [myUserId]
   );
+
+  const openListingProposal = useCallback(() => {
+    if (!effectiveListingId) {
+      return;
+    }
+    navigation.navigate("MarketplaceListingDetail", {
+      listingId: effectiveListingId,
+      headline: listingContext?.title
+    });
+  }, [navigation, effectiveListingId, listingContext?.title]);
 
   const onSend = () => {
     const t = draft.trim();
@@ -396,6 +473,9 @@ export function ChatRoomScreen({ route, navigation }: Props) {
             </View>
           )
         ) : null}
+        {listingContext ? (
+          <ListingContextBanner listing={listingContext} />
+        ) : null}
         {messagesQuery.isPending ? (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color="#5d7a1f" />
@@ -412,7 +492,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
           <View style={styles.listWrap}>
             <FlatList
               ref={listRef}
-              data={ordered}
+              data={listItems}
               keyExtractor={(m) => m.id}
               renderItem={renderItem}
               style={styles.listFlex}
@@ -471,28 +551,22 @@ export function ChatRoomScreen({ route, navigation }: Props) {
             ) : null}
           </View>
         )}
-        <View style={styles.composer}>
-          <TextInput
-            style={styles.input}
-            value={draft}
-            onChangeText={setDraft}
-            placeholder="Écrire un message…"
-            placeholderTextColor="#9aa088"
-            multiline
-            maxLength={4000}
-            editable={!sendMutation.isPending}
-          />
+        {effectiveListingId ? (
           <TouchableOpacity
-            style={[
-              styles.sendBtn,
-              (!draft.trim() || sendMutation.isPending) && styles.sendBtnDisabled
-            ]}
-            onPress={onSend}
-            disabled={!draft.trim() || sendMutation.isPending}
+            style={styles.quickOfferBtn}
+            onPress={openListingProposal}
+            activeOpacity={0.88}
           >
-            <Text style={styles.sendBtnText}>Envoyer</Text>
+            <Text style={styles.quickOfferBtnText}>Faire une proposition</Text>
           </TouchableOpacity>
-        </View>
+        ) : null}
+        <ChatInputBar
+          value={draft}
+          onChangeText={setDraft}
+          onSend={onSend}
+          sending={sendMutation.isPending}
+          placeholder="Votre message…"
+        />
         {sendMutation.error ? (
           <Text style={styles.sendError}>
             {sendMutation.error instanceof Error
@@ -506,7 +580,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#f9f8ea" },
+  flex: { flex: 1, backgroundColor: mobileColors.canvas },
   liveStrip: {
     paddingVertical: 8,
     paddingHorizontal: 14,
@@ -604,6 +678,32 @@ const styles = StyleSheet.create({
   listContent: {
     padding: 16,
     paddingBottom: 8
+  },
+  dateSepWrap: {
+    alignSelf: "center",
+    marginVertical: mobileSpacing.sm,
+    backgroundColor: "rgba(0,0,0,0.06)",
+    borderRadius: mobileRadius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 4
+  },
+  dateSepText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: mobileColors.textSecondary
+  },
+  quickOfferBtn: {
+    marginHorizontal: mobileSpacing.md,
+    marginBottom: mobileSpacing.xs,
+    paddingVertical: 10,
+    borderRadius: mobileRadius.pill,
+    backgroundColor: mobileColors.accentSoft,
+    alignItems: "center"
+  },
+  quickOfferBtnText: {
+    color: mobileColors.accent,
+    fontWeight: "700",
+    fontSize: 14
   },
   bubbleRow: {
     alignItems: "flex-start",

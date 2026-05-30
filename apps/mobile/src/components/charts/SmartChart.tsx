@@ -31,6 +31,10 @@ const PAD_L = 8;
 const PAD_R = 8;
 const PAD_T = 16;
 const PAD_B = 8;
+const COMPACT_PAD_L = 0;
+const COMPACT_PAD_R = 0;
+const COMPACT_PAD_T = 2;
+const COMPACT_PAD_B = 2;
 
 export type SmartChartPeriod = "3M" | "6M" | "12M";
 
@@ -142,30 +146,54 @@ export function SmartChart({
   }, [monthKeys.length, period, lines]);
 
   useEffect(() => {
+    if (compact) {
+      drawAnim.setValue(1);
+      return;
+    }
     drawAnim.setValue(0);
     Animated.timing(drawAnim, {
       toValue: 1,
       duration: 400,
       useNativeDriver: false
     }).start();
-  }, [slicedLines, width, drawAnim]);
+  }, [slicedLines, width, drawAnim, compact]);
 
-  const innerW = Math.max(40, width - PAD_L - PAD_R);
-  const innerH = Math.max(40, height - PAD_T - PAD_B);
+  const padL = compact ? COMPACT_PAD_L : PAD_L;
+  const padR = compact ? COMPACT_PAD_R : PAD_R;
+  const padT = compact ? COMPACT_PAD_T : PAD_T;
+  const padB = compact ? COMPACT_PAD_B : PAD_B;
 
-  const maxY = useMemo(() => {
-    let m = 1;
+  const innerW = Math.max(compact ? 24 : 40, width - padL - padR);
+  const innerH = Math.max(compact ? 20 : 40, height - padT - padB);
+
+  const { minY, maxY } = useMemo(() => {
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
     for (const line of slicedLines) {
       for (const d of line.data) {
-        if (Number.isFinite(d.value)) m = Math.max(m, d.value);
+        if (!Number.isFinite(d.value)) {
+          continue;
+        }
+        min = Math.min(min, d.value);
+        max = Math.max(max, d.value);
       }
     }
-    return m;
+    if (!Number.isFinite(min) || !Number.isFinite(max)) {
+      return { minY: 0, maxY: 1 };
+    }
+    if (min === max) {
+      const bump = Math.abs(min) * 0.12 || 1;
+      return { minY: min - bump, maxY: max + bump };
+    }
+    const span = max - min;
+    const margin = span * 0.08;
+    return { minY: min - margin, maxY: max + margin };
   }, [slicedLines]);
 
   const xAt = (i: number, n: number) =>
-    n <= 1 ? PAD_L + innerW / 2 : PAD_L + (innerW * i) / (n - 1);
-  const yAt = (v: number) => PAD_T + innerH - (v / maxY) * innerH;
+    n <= 1 ? padL + innerW / 2 : padL + (innerW * i) / (n - 1);
+  const yAt = (v: number) =>
+    padT + innerH - ((v - minY) / (maxY - minY)) * innerH;
 
   const seriesGeometry = useMemo(() => {
     const n = monthKeys.length;
@@ -178,7 +206,7 @@ export function SmartChart({
       const pathLen = approximatePathLength(pts);
       return { line, pts, path, pathLen };
     });
-  }, [slicedLines, monthKeys.length, innerW, innerH, maxY]);
+  }, [slicedLines, monthKeys.length, innerW, innerH, minY, maxY, padL, padT]);
 
   const onLayout = (e: LayoutChangeEvent) => {
     setWidth(e.nativeEvent.layout.width);
@@ -243,28 +271,30 @@ export function SmartChart({
       <View style={[styles.chartBox, { height }]}>
         {width > 0 ? (
         <Svg width={width} height={height}>
-          {[0.25, 0.5, 0.75].map((ratio) => {
-            const y = PAD_T + innerH * (1 - ratio);
-            return (
-              <Line
-                key={ratio}
-                x1={PAD_L}
-                y1={y}
-                x2={PAD_L + innerW}
-                y2={y}
-                stroke={mobileColors.textPrimary}
-                strokeOpacity={0.1}
-                strokeWidth={1}
-              />
-            );
-          })}
+          {!compact
+            ? [0.25, 0.5, 0.75].map((ratio) => {
+                const y = padT + innerH * (1 - ratio);
+                return (
+                  <Line
+                    key={ratio}
+                    x1={padL}
+                    y1={y}
+                    x2={padL + innerW}
+                    y2={y}
+                    stroke={mobileColors.textPrimary}
+                    strokeOpacity={0.1}
+                    strokeWidth={1}
+                  />
+                );
+              })
+            : null}
 
-          {tooltipPoint ? (
+          {!compact && tooltipPoint ? (
             <Line
               x1={tooltipPoint.x}
-              y1={PAD_T}
+              y1={padT}
               x2={tooltipPoint.x}
-              y2={PAD_T + innerH}
+              y2={padT + innerH}
               stroke={mobileColors.border}
               strokeWidth={1}
               strokeDasharray="4 4"
@@ -272,6 +302,19 @@ export function SmartChart({
           ) : null}
 
           {seriesGeometry.map(({ line, path, pathLen }) => {
+            if (compact) {
+              return (
+                <Path
+                  key={line.key}
+                  d={path}
+                  fill="none"
+                  stroke={line.color}
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              );
+            }
             const offset = drawAnim.interpolate({
               inputRange: [0, 1],
               outputRange: [pathLen, 0]
@@ -291,21 +334,23 @@ export function SmartChart({
             );
           })}
 
-          {seriesGeometry.map(({ line, pts }) =>
-            pts.map((pt, pi) =>
-              pi === selectedIndex ? (
-                <Circle
-                  key={`${line.key}-${pi}`}
-                  cx={pt.x}
-                  cy={pt.y}
-                  r={5}
-                  fill="#FFFFFF"
-                  stroke={line.color}
-                  strokeWidth={2}
-                />
-              ) : null
-            )
-          )}
+          {!compact
+            ? seriesGeometry.map(({ line, pts }) =>
+                pts.map((pt, pi) =>
+                  pi === selectedIndex ? (
+                    <Circle
+                      key={`${line.key}-${pi}`}
+                      cx={pt.x}
+                      cy={pt.y}
+                      r={5}
+                      fill="#FFFFFF"
+                      stroke={line.color}
+                      strokeWidth={2}
+                    />
+                  ) : null
+                )
+              )
+            : null}
         </Svg>
         ) : null}
 

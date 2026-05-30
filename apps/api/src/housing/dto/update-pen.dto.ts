@@ -67,5 +67,5 @@ export class UpdatePenDto {
   @IsInt()
   @Min(0)
   @Max(104)
-  averageAgeWeeks?: number | null;
+  averageAgeWeeksManual?: number | null;
 }

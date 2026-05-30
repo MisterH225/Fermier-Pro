@@ -15,18 +15,55 @@ import {
 } from "@prisma/client";
 import { FarmAccessService } from "../common/farm-access.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
+import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
 import { PrismaService } from "../prisma/prisma.service";
+import { PushNotificationsService } from "../push-notifications/push-notifications.service";
+import { CompleteHandoverDto } from "./dto/complete-handover.dto";
 import { CreateListingDto } from "./dto/create-listing.dto";
+import { PublishListingDto } from "./dto/publish-listing.dto";
+import { RenewListingDto } from "./dto/renew-listing.dto";
 import { FarmRatingsService } from "./farm-ratings.service";
+import {
+  buildListingFarmInfo,
+  buildListingHealthData
+} from "./listing-detail-health.helper";
 import { PickupListingDto } from "./dto/pickup-listing.dto";
 import { UpdateListingDto } from "./dto/update-listing.dto";
+
+function privacyDisplayName(fullName: string | null | undefined): string {
+  const raw = fullName?.trim();
+  if (!raw) {
+    return "—";
+  }
+  const parts = raw.split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) {
+    return parts[0] ?? "—";
+  }
+  const lastInitial = parts[parts.length - 1]![0]?.toUpperCase() ?? "";
+  return lastInitial ? `${parts[0]} ${lastInitial}.` : parts[0]!;
+}
+
+function jsonStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter(
+    (x): x is string => typeof x === "string" && x.trim().length > 0
+  );
+}
+
+type ListingAnimalPick = {
+  id: string;
+  photoUrl: string | null;
+};
 
 @Injectable()
 export class ListingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
-    private readonly farmRatings: FarmRatingsService
+    private readonly farmRatings: FarmRatingsService,
+    private readonly push: PushNotificationsService
   ) {}
 
   private async resolveFarmAndAnimal(
@@ -73,11 +110,90 @@ export class ListingsService {
     ]);
   }
 
+  private collectPrimaryAnimalIdsForPhotoFallback(
+    rows: Array<{
+      animalId: string | null;
+      animalIds: unknown;
+      photoUrls: unknown;
+      animal?: ListingAnimalPick | null;
+    }>
+  ): string[] {
+    const ids = new Set<string>();
+    for (const row of rows) {
+      if (jsonStringArray(row.photoUrls).length > 0) {
+        continue;
+      }
+      const linked = jsonStringArray(row.animalIds);
+      const primary = row.animalId ?? linked[0] ?? null;
+      if (!primary) {
+        continue;
+      }
+      if (row.animal?.id === primary) {
+        continue;
+      }
+      ids.add(primary);
+    }
+    return [...ids];
+  }
+
+  private async loadAnimalPhotoMap(
+    animalIds: string[]
+  ): Promise<Map<string, string | null>> {
+    if (!animalIds.length) {
+      return new Map();
+    }
+    const animals = await this.prisma.animal.findMany({
+      where: { id: { in: animalIds } },
+      select: { id: true, photoUrl: true }
+    });
+    return new Map(animals.map((a) => [a.id, a.photoUrl]));
+  }
+
+  private formatListingForApi<
+    T extends {
+      photoUrls: unknown;
+      animalIds: unknown;
+      animalId: string | null;
+      animal?: ListingAnimalPick | null;
+    }
+  >(row: T, animalPhotoById: Map<string, string | null>) {
+    const photoUrls = jsonStringArray(row.photoUrls);
+    const animalIds = jsonStringArray(row.animalIds);
+    const primaryAnimalId = row.animalId ?? animalIds[0] ?? null;
+    let fallbackPhotoUrl: string | null = null;
+    if (photoUrls.length === 0 && primaryAnimalId) {
+      if (row.animal?.id === primaryAnimalId) {
+        fallbackPhotoUrl = row.animal.photoUrl ?? null;
+      } else {
+        fallbackPhotoUrl = animalPhotoById.get(primaryAnimalId) ?? null;
+      }
+    }
+    return {
+      ...row,
+      photoUrls,
+      animalIds,
+      fallbackPhotoUrl
+    };
+  }
+
+  private async formatListingsForApi<
+    T extends {
+      photoUrls: unknown;
+      animalIds: unknown;
+      animalId: string | null;
+      animal?: ListingAnimalPick | null;
+    }
+  >(rows: T[]) {
+    const needIds = this.collectPrimaryAnimalIdsForPhotoFallback(rows);
+    const photoMap = await this.loadAnimalPhotoMap(needIds);
+    return rows.map((row) => this.formatListingForApi(row, photoMap));
+  }
+
   async create(user: User, dto: CreateListingDto) {
     const refs = await this.resolveFarmAndAnimal(user, dto);
     const photoUrls = dto.photoUrls ?? [];
     const animalIds = dto.animalIds ?? [];
-    return this.prisma.marketplaceListing.create({
+    const created = await this.prisma.marketplaceListing.create({
       data: {
         sellerUserId: user.id,
         farmId: refs.farmId,
@@ -102,8 +218,21 @@ export class ListingsService {
           dto.totalPrice != null ? new Prisma.Decimal(dto.totalPrice) : null,
         breedLabel: dto.breedLabel,
         status: ListingStatus.draft
+      },
+      include: {
+        farm: { select: { id: true, name: true } },
+        animal: {
+          select: {
+            id: true,
+            publicId: true,
+            tagCode: true,
+            photoUrl: true
+          }
+        }
       }
     });
+    const [formatted] = await this.formatListingsForApi([created]);
+    return formatted;
   }
 
   async list(
@@ -126,7 +255,7 @@ export class ListingsService {
       : {};
 
     if (mine) {
-      return this.prisma.marketplaceListing.findMany({
+      const rows = await this.prisma.marketplaceListing.findMany({
         where: {
           sellerUserId: user.id,
           archived: false,
@@ -137,16 +266,24 @@ export class ListingsService {
         orderBy: { updatedAt: "desc" },
         include: {
           farm: { select: { id: true, name: true } },
-          animal: { select: { id: true, publicId: true, tagCode: true } }
+          animal: {
+            select: {
+              id: true,
+              publicId: true,
+              tagCode: true,
+              photoUrl: true
+            }
+          }
         }
       });
+      return this.formatListingsForApi(rows);
     }
     const publicStatus =
       status && status !== ListingStatus.draft
         ? status
         : ListingStatus.published;
     const now = new Date();
-    return this.prisma.marketplaceListing.findMany({
+    const rows = await this.prisma.marketplaceListing.findMany({
       where: {
         status: publicStatus,
         OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
@@ -159,9 +296,17 @@ export class ListingsService {
           select: { id: true, fullName: true }
         },
         farm: { select: { id: true, name: true } },
-        animal: { select: { id: true, publicId: true, tagCode: true } }
+        animal: {
+          select: {
+            id: true,
+            publicId: true,
+            tagCode: true,
+            photoUrl: true
+          }
+        }
       }
     });
+    return this.formatListingsForApi(rows);
   }
 
   private async farmHealthSnapshot(farmId: string) {
@@ -212,18 +357,43 @@ export class ListingsService {
     };
   }
 
-  private async enrichListingPayload(listing: { farmId: string | null }) {
-    let healthSnapshot: Awaited<
-      ReturnType<ListingsService["farmHealthSnapshot"]>
-    > | null = null;
+  private async enrichListingPayload(
+    listing: {
+      farmId: string | null;
+      animalId: string | null;
+      animalIds: unknown;
+      locationLabel: string | null;
+      sellerUserId: string;
+    },
+    sellerFullName: string | null
+  ) {
+    let healthData: Awaited<ReturnType<typeof buildListingHealthData>> | null =
+      null;
+    let farmInfo: Awaited<ReturnType<typeof buildListingFarmInfo>> | null =
+      null;
     let farmRatingSummary: { avg: number | null; count: number } | null = null;
+
     if (listing.farmId) {
-      healthSnapshot = await this.farmHealthSnapshot(listing.farmId);
-      farmRatingSummary = await this.farmRatings.averageForFarm(
-        listing.farmId
+      const animalIds = this.resolveListingAnimalIds({
+        animalId: listing.animalId,
+        animalIds: listing.animalIds as Prisma.JsonValue
+      });
+      farmRatingSummary = await this.farmRatings.averageForFarm(listing.farmId);
+      healthData = await buildListingHealthData(
+        this.prisma,
+        listing.farmId,
+        animalIds
+      );
+      farmInfo = await buildListingFarmInfo(
+        this.prisma,
+        listing.farmId,
+        privacyDisplayName(sellerFullName),
+        listing.locationLabel,
+        farmRatingSummary
       );
     }
-    return { healthSnapshot, farmRatingSummary };
+
+    return { healthData, farmInfo, farmRatingSummary };
   }
 
   async getById(user: User, id: string) {
@@ -238,7 +408,8 @@ export class ListingsService {
             publicId: true,
             tagCode: true,
             sex: true,
-            status: true
+            status: true,
+            photoUrl: true
           }
         }
       }
@@ -266,7 +437,10 @@ export class ListingsService {
       }
     }
 
-    const extra = await this.enrichListingPayload(listing);
+    const extra = await this.enrichListingPayload(
+      listing,
+      listing.seller.fullName
+    );
 
     if (listing.sellerUserId === user.id) {
       const offers = await this.prisma.marketplaceOffer.findMany({
@@ -276,14 +450,42 @@ export class ListingsService {
           buyer: { select: { id: true, fullName: true, email: true } }
         }
       });
-      return { ...listing, ...extra, offers };
+      const [formatted] = await this.formatListingsForApi([listing]);
+      const { seller: _ignoredSeller, ...listingRest } = formatted;
+      const seller = this.sanitizeSellerForViewer(
+        listing.seller,
+        user.id,
+        listing.sellerUserId
+      );
+      return { ...listingRest, ...extra, seller, offers };
     }
 
     const myOffers = await this.prisma.marketplaceOffer.findMany({
       where: { listingId: id, buyerUserId: user.id },
       orderBy: { createdAt: "desc" }
     });
-    return { ...listing, ...extra, myOffers };
+    const [formatted] = await this.formatListingsForApi([listing]);
+    const { seller: _ignoredSeller2, ...listingRest } = formatted;
+    const seller = this.sanitizeSellerForViewer(
+      listing.seller,
+      user.id,
+      listing.sellerUserId
+    );
+    return { ...listingRest, ...extra, seller, myOffers };
+  }
+
+  private sanitizeSellerForViewer(
+    seller: { id: string; fullName: string | null; email: string | null },
+    viewerUserId: string,
+    sellerUserId: string
+  ) {
+    const isOwner = viewerUserId === sellerUserId;
+    return {
+      id: seller.id,
+      fullName: seller.fullName,
+      sellerDisplayName: privacyDisplayName(seller.fullName),
+      ...(isOwner ? { email: seller.email } : {})
+    };
   }
 
   async recordView(user: User, id: string) {
@@ -400,17 +602,52 @@ export class ListingsService {
     return listing;
   }
 
-  async publish(user: User, id: string) {
+  async publish(user: User, id: string, dto?: PublishListingDto) {
     const listing = await this.requireOwnerEditable(user, id);
     await this.requireMarketplaceWriteIfFarmListing(user.id, listing.farmId);
     if (listing.status !== ListingStatus.draft) {
       throw new BadRequestException("Publication impossible dans cet etat");
     }
+    const durationDays = dto?.durationDays ?? 14;
+    const expiresAt = new Date(
+      Date.now() + durationDays * 24 * 60 * 60 * 1000
+    );
+    let healthSummary: Prisma.InputJsonValue | undefined;
+    if (listing.farmId) {
+      const snap = await this.farmHealthSnapshot(listing.farmId);
+      healthSummary = snap as Prisma.InputJsonValue;
+    }
     return this.prisma.marketplaceListing.update({
       where: { id },
       data: {
         status: ListingStatus.published,
-        publishedAt: new Date()
+        publishedAt: new Date(),
+        expiresAt,
+        ...(healthSummary !== undefined ? { healthSummary } : {})
+      }
+    });
+  }
+
+  async renew(user: User, id: string, dto: RenewListingDto) {
+    const listing = await this.requireOwnerEditable(user, id);
+    await this.requireMarketplaceWriteIfFarmListing(user.id, listing.farmId);
+    if (
+      listing.status !== ListingStatus.expired &&
+      listing.status !== ListingStatus.published
+    ) {
+      throw new BadRequestException(
+        "Seules les annonces publiees ou expirees peuvent etre renouvelees"
+      );
+    }
+    const expiresAt = new Date(
+      Date.now() + dto.durationDays * 24 * 60 * 60 * 1000
+    );
+    return this.prisma.marketplaceListing.update({
+      where: { id },
+      data: {
+        status: ListingStatus.published,
+        expiresAt,
+        publishedAt: listing.publishedAt ?? new Date()
       }
     });
   }
@@ -483,18 +720,252 @@ export class ListingsService {
     });
   }
 
-  /** Vendeur : apres retrait effectif, marque l'annonce comme vendue (hors encaissement in-app). */
-  async completeHandover(user: User, listingId: string) {
+  /** Vendeur : conclut la vente — Cheptel + Finance + statut annonce (transaction atomique). */
+  async completeHandover(
+    user: User,
+    listingId: string,
+    dto: CompleteHandoverDto
+  ) {
     const listing = await this.requireOwnerEditable(user, listingId);
     await this.requireMarketplaceWriteIfFarmListing(user.id, listing.farmId);
     if (listing.status !== ListingStatus.reserved) {
       throw new BadRequestException(
-        "Cloture possible uniquement pour une annonce reservee (retrait d'abord convenu)"
+        "Cloture possible uniquement pour une annonce reservee"
       );
     }
-    return this.prisma.marketplaceListing.update({
-      where: { id: listingId },
-      data: { status: ListingStatus.sold }
+    if (!listing.farmId) {
+      throw new BadRequestException(
+        "Annonce sans ferme : vente cheptel/finance impossible"
+      );
+    }
+
+    const offer = await this.prisma.marketplaceOffer.findFirst({
+      where: {
+        id: dto.offerId,
+        listingId,
+        status: OfferStatus.accepted
+      },
+      include: {
+        buyer: { select: { id: true, fullName: true } }
+      }
     });
+    if (!offer) {
+      throw new BadRequestException("Offre acceptee introuvable pour cette annonce");
+    }
+
+    const soldAt = dto.soldAt ? new Date(dto.soldAt) : new Date();
+    if (Number.isNaN(soldAt.getTime())) {
+      throw new BadRequestException("Date de vente invalide");
+    }
+
+    const animalIds = this.resolveListingAnimalIds(listing);
+    if (animalIds.length === 0) {
+      throw new BadRequestException(
+        "Aucun animal lie : associe au moins un animal avant de conclure la vente"
+      );
+    }
+
+    await ensureFarmFinanceBootstrap(this.prisma, listing.farmId);
+
+    const buyerName =
+      offer.buyer.fullName?.trim() || offer.buyer.id.slice(0, 8);
+    const weightPerAnimal =
+      animalIds.length > 0 ? dto.soldWeightKg / animalIds.length : dto.soldWeightKg;
+    const pricePerAnimal =
+      animalIds.length > 0 ? dto.totalPrice / animalIds.length : dto.totalPrice;
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const fresh = await tx.marketplaceListing.findUnique({
+        where: { id: listingId }
+      });
+      if (!fresh || fresh.status !== ListingStatus.reserved) {
+        throw new BadRequestException("Annonce deja cloturee");
+      }
+
+      const finSettings = await tx.farmFinanceSettings.findUnique({
+        where: { farmId: listing.farmId! }
+      });
+      const currency = finSettings?.currencyCode ?? listing.currency ?? "XOF";
+      const financeCat = await tx.financeCategory.findFirst({
+        where: { farmId: listing.farmId!, key: "animal_sales" }
+      });
+
+      const revenueIds: string[] = [];
+
+      for (const animalId of animalIds) {
+        const animal = await tx.animal.findFirst({
+          where: { id: animalId, farmId: listing.farmId! },
+          include: {
+            breed: { select: { name: true } },
+            penPlacements: { where: { endedAt: null } }
+          }
+        });
+        if (!animal) {
+          throw new BadRequestException(`Animal ${animalId} introuvable`);
+        }
+        if (animal.status !== "active") {
+          throw new BadRequestException(
+            `Animal ${animal.publicId} n'est plus actif`
+          );
+        }
+
+        const tag = animal.tagCode ?? animal.publicId.slice(0, 8);
+        const breedName = animal.breed?.name ?? "—";
+        const label = `Vente Market ${tag} — ${breedName} — ${weightPerAnimal.toFixed(1)}kg`;
+        const noteParts = [dto.notes?.trim(), `Acheteur : ${buyerName}`].filter(
+          Boolean
+        );
+
+        await tx.animal.update({
+          where: { id: animalId },
+          data: {
+            status: "sold",
+            statusChangedAt: soldAt,
+            soldAt,
+            soldWeightKg: new Prisma.Decimal(weightPerAnimal),
+            soldPrice: new Prisma.Decimal(pricePerAnimal),
+            soldCurrency: currency,
+            buyerName
+          }
+        });
+
+        await tx.livestockStatusLog.create({
+          data: {
+            farmId: listing.farmId!,
+            recordedByUserId: user.id,
+            entityType: "animal",
+            entityId: animalId,
+            oldStatus: animal.status,
+            newStatus: "sold",
+            note: [label, `${pricePerAnimal} ${currency}`, buyerName]
+              .filter(Boolean)
+              .join(" · ")
+          }
+        });
+
+        for (const pl of animal.penPlacements) {
+          await tx.penPlacement.update({
+            where: { id: pl.id },
+            data: { endedAt: soldAt }
+          });
+        }
+
+        await tx.livestockExit.create({
+          data: {
+            farmId: listing.farmId!,
+            animalId,
+            kind: LivestockExitKind.sale,
+            occurredAt: soldAt,
+            recordedByUserId: user.id,
+            headcountAffected: 1,
+            buyerName,
+            price: new Prisma.Decimal(pricePerAnimal),
+            currency,
+            weightKg: new Prisma.Decimal(weightPerAnimal),
+            note: noteParts.join(" · ") || null
+          }
+        });
+
+        const revenue = await tx.farmRevenue.create({
+          data: {
+            farmId: listing.farmId!,
+            amount: new Prisma.Decimal(pricePerAnimal),
+            currency,
+            label,
+            category: "animal_sales",
+            financeCategoryId: financeCat?.id ?? null,
+            note: noteParts.join(" · ") || null,
+            occurredAt: soldAt,
+            createdByUserId: user.id,
+            linkedEntityType: "animal",
+            linkedEntityId: animalId,
+            isAutoGenerated: true
+          }
+        });
+        revenueIds.push(revenue.id);
+      }
+
+      await tx.marketplaceOffer.updateMany({
+        where: {
+          listingId,
+          id: { not: offer.id },
+          status: { in: [OfferStatus.pending, OfferStatus.countered] }
+        },
+        data: { status: OfferStatus.rejected }
+      });
+
+      const updatedListing = await tx.marketplaceListing.update({
+        where: { id: listingId },
+        data: {
+          status: ListingStatus.sold,
+          totalWeightKg: new Prisma.Decimal(dto.soldWeightKg),
+          totalPrice: new Prisma.Decimal(dto.totalPrice)
+        }
+      });
+
+      return { listing: updatedListing, revenueIds, buyerUserId: offer.buyerUserId };
+    });
+
+    const amountLabel = `${dto.totalPrice.toLocaleString("fr-FR")} ${listing.currency}`;
+    void this.push.sendToUser(
+      result.buyerUserId,
+      "✅ Proposition acceptée",
+      `Votre proposition pour « ${listing.title} » a été conclue.`,
+      { type: "marketplace_sale", listingId }
+    );
+    void this.push.sendToUser(
+      user.id,
+      "🎉 Vente conclue",
+      `${amountLabel} enregistré dans Finance.`,
+      { type: "marketplace_sale", listingId }
+    );
+
+    return result.listing;
+  }
+
+  private resolveListingAnimalIds(listing: {
+    animalId: string | null;
+    animalIds: Prisma.JsonValue;
+  }): string[] {
+    const ids = new Set<string>();
+    if (listing.animalId) {
+      ids.add(listing.animalId);
+    }
+    if (Array.isArray(listing.animalIds)) {
+      for (const raw of listing.animalIds) {
+        if (typeof raw === "string" && raw.trim()) {
+          ids.add(raw.trim());
+        }
+      }
+    }
+    return Array.from(ids);
+  }
+
+  /** Cron : expire les annonces publiees depassees. */
+  async expireStaleListings(): Promise<number> {
+    const now = new Date();
+    const stale = await this.prisma.marketplaceListing.findMany({
+      where: {
+        status: ListingStatus.published,
+        expiresAt: { lt: now }
+      },
+      select: { id: true, sellerUserId: true, title: true }
+    });
+    if (!stale.length) {
+      return 0;
+    }
+    await this.prisma.marketplaceListing.updateMany({
+      where: { id: { in: stale.map((s) => s.id) } },
+      data: { status: ListingStatus.expired }
+    });
+    for (const row of stale) {
+      void this.push.sendToUser(
+        row.sellerUserId,
+        "Annonce expirée",
+        `« ${row.title} » n'est plus visible sur le marché. Vous pouvez la renouveler.`,
+        { type: "marketplace_expired", listingId: row.id }
+      );
+    }
+    return stale.length;
   }
 }

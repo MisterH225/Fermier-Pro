@@ -4,7 +4,6 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text } from "react-native";
 import { EventList } from "../../components/lists/EventList";
 import type { EventItem } from "../../components/lists/types";
 import {
-  ProfileHeroCard,
   ProfileSectionEmpty,
   profileScreenScrollContent,
   ScreenSection
@@ -13,7 +12,7 @@ import { TechMobileShell } from "../../components/layout/TechMobileShell";
 import { useTechBottomChromePad } from "../../context/TechBottomChromeContext";
 import { useSession } from "../../context/SessionContext";
 import { fetchTechnicianActivity } from "../../lib/api";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing } from "../../theme/mobileTheme";
 import { techColors } from "../../theme/technicianTheme";
 
 export function TechTrackingScreen() {
@@ -53,11 +52,6 @@ export function TechTrackingScreen() {
           { paddingBottom: bottomPad + mobileSpacing.xl }
         ]}
       >
-        <ProfileHeroCard>
-          <Text style={styles.heroTitle}>{t("tech.tracking.title")}</Text>
-          <Text style={styles.heroSubtitle}>{t("tech.tracking.subtitle")}</Text>
-        </ProfileHeroCard>
-
         <ScreenSection title={t("tech.tracking.sectionLog")}>
           {activityQ.isLoading ? (
             <ActivityIndicator color={techColors.primary} />
@@ -72,7 +66,3 @@ export function TechTrackingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  heroTitle: { ...mobileTypography.cardTitle, fontSize: 20, color: techColors.textPrimary },
-  heroSubtitle: { ...mobileTypography.body, color: techColors.textSecondary }
-});

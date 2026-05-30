@@ -15,7 +15,6 @@ import {
   View
 } from "react-native";
 import {
-  ProfileHeroCard,
   ProfileSectionEmpty,
   profileScreenScrollContent,
   ScreenSection
@@ -81,11 +80,6 @@ export function BuyerFavoritesScreen() {
           />
         }
       >
-        <ProfileHeroCard>
-          <Text style={styles.heroTitle}>{t("buyer.favorites.title")}</Text>
-          <Text style={styles.heroSubtitle}>{t("buyer.favorites.subtitle")}</Text>
-        </ProfileHeroCard>
-
         <ScreenSection title={t("buyer.favorites.sectionList")} plain>
           {favoritesQ.isLoading ? (
             <ActivityIndicator color={buyerColors.primary} style={styles.loader} />
@@ -154,8 +148,6 @@ export function BuyerFavoritesScreen() {
 }
 
 const styles = StyleSheet.create({
-  heroTitle: { ...mobileTypography.cardTitle, fontSize: 20, color: buyerColors.textPrimary },
-  heroSubtitle: { ...mobileTypography.body, color: buyerColors.textSecondary },
   loader: { marginVertical: mobileSpacing.lg },
   list: { gap: mobileSpacing.md },
   emptyCard: {

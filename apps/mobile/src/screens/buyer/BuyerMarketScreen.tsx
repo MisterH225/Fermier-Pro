@@ -10,7 +10,7 @@ import type { RootStackParamList } from "../../types/navigation";
 
 type Route = RouteProp<RootStackParamList, "BuyerMarket">;
 
-/** Ouvre le marketplace (liste publique) en mode acheteur. */
+/** Ouvre le marketplace (liste publique) en mode acheteur — onglet Market. */
 export function BuyerMarketScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -19,7 +19,7 @@ export function BuyerMarketScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      navigation.navigate("MarketplaceList", {
+      navigation.replace("MarketplaceList", {
         tab: "listings",
         buyerView: true,
         searchQuery: route.params?.searchQuery,

@@ -772,7 +772,9 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.md
   },
   gridItem: {
-    width: "100%"
+    width: "100%",
+    alignSelf: "stretch",
+    flexShrink: 0
   },
   card: {
     backgroundColor: mobileColors.background,

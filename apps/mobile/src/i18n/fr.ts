@@ -89,7 +89,10 @@ export const fr = {
       starterHelper: "Porcelets sevrés — phase initiale de croissance",
       fattening: "Animaux en engraissement",
       fatteningHelper: "Phase finale avant vente ou transformation",
-      preview: "Effectif total : {{total}} sujets"
+      preview: "Effectif total : {{total}} sujets",
+      estimatedAge: "Âge moyen estimé (semaines)",
+      estimatedAgeHelper:
+        "Appliqué à chaque animal de production créé — permet le suivi d'âge dynamique"
     },
     step4: {
       title: "Configuration des loges",
@@ -240,12 +243,134 @@ export const fr = {
     create: "Créer",
     searchPlaceholder: "Ferme, lieu, race…",
     badgeNew: "Nouveau",
+    badgeSold: "Vendu",
+    badgeExpired: "Expiré",
+    detailTitle: "Annonce",
+    listingStatus: "Statut :",
+    emptyListingsHint: "Publie une annonce depuis Mes annonces ou le cheptel.",
+    soldBanner: "Vente conclue — cette annonce est terminée.",
+    cancelledBanner: "Cette annonce a été annulée.",
+    reservedBanner:
+      "Accord conclu — fixez le rendez-vous de retrait ci-dessous, puis concluez la vente.",
+    noDescription: "Pas de description.",
+    healthTitle: "Résumé sanitaire",
+    healthVaccinesOk: "Vaccinations à jour.",
+    healthVaccinesKo: "Vaccinations à vérifier.",
+    healthDisease: "Maladie récente :",
+    healthMortality: "Mortalité 30 j :",
+    renewAction: "Renouveler 14 jours",
+    renewSuccess: "Annonce renouvelée.",
+    offerAccept: "Accepter",
+    offerReject: "Refuser",
+    offerCounter: "Contre-proposer",
+    acceptCounter: "Accepter la contre-proposition",
+    myOffersTitle: "Mes offres sur cette annonce",
+    acceptSuccessTitle: "Offre acceptée",
+    acceptSuccessBody:
+      "L'annonce est réservée. Concluez la vente pour mettre à jour le cheptel et la finance.",
+    categories: {
+      all: "Tout",
+      piglet: "Porcelets",
+      breeder: "Reproducteurs",
+      butcher: "Charcutiers",
+      reformed: "Truies réformées",
+      unknown: "Lot"
+    },
+    proposalModal: {
+      open: "Faire une proposition",
+      title: "Proposition",
+      pricePerKg: "Prix/kg proposé",
+      message: "Message au vendeur",
+      messagePlaceholder: "Précisions…",
+      submit: "Envoyer",
+      success: "Proposition envoyée.",
+      errorTitle: "Envoi impossible",
+      noWeight: "Cette annonce n'a pas de poids total — proposition impossible.",
+      asked: "Prix demandé :"
+    },
+    counterModal: {
+      title: "Contre-proposition",
+      buyer: "Acheteur :",
+      asked: "Votre prix demandé :",
+      pricePerKg: "Prix/kg contre-proposé",
+      submit: "Envoyer",
+      success: "Contre-proposition envoyée.",
+      accepted: "Contre-proposition acceptée."
+    },
+    saleModal: {
+      open: "Conclure la vente",
+      title: "Confirmation de vente",
+      buyer: "Acheteur :",
+      weight: "Poids final (kg)",
+      total: "Prix total final",
+      notes: "Notes",
+      confirm: "Confirmer la vente",
+      footer: "Cheptel et Finance seront mis à jour automatiquement.",
+      success: "Vente enregistrée — Finance et Cheptel mis à jour."
+    },
     totalWeight: "Poids total :",
     totalWeightEmpty: "Poids total : —",
     pricePerKg: "Prix/kg :",
     pricePerKgEmpty: "Prix/kg : —",
     price: "Prix :",
     totalPrice: "Prix total :",
+    detail: {
+      chatTitle: "Conversation",
+      contactErrorTitle: "Messagerie",
+      vaccines: "Vaccinations",
+      vetVisit: "Dernière visite vétérinaire",
+      none: "Aucune",
+      activeCases: "Cas actifs",
+      noneOk: "Aucun",
+      noHealthData: "Aucune donnée sanitaire disponible.",
+      health: {
+        globalStatus: "Statut vaccinations",
+        globalVaccinesOk: "À jour ✅",
+        globalVaccinesOverdue: "En retard 🔴",
+        globalVaccinesNone: "Aucun vaccin enregistré",
+        vaccinesTitle: "💉 Vaccins reçus",
+        vaccinesBadgeOk: "✅ À jour",
+        vaccinesBadgeOverdue: "🔴 En retard",
+        vaccinesBadgeNone: "Aucun vaccin",
+        vaccinesEmpty: "Aucun vaccin enregistré pour ce sujet",
+        vaccineDone: "✅ Fait",
+        vaccineUpcoming: "⏳ Rappel à venir",
+        vaccineOverdue: "🔴 En retard",
+        diseasesTitle: "🤒 Antécédents médicaux",
+        diseasesBadgeNone: "✅ Aucun cas",
+        diseasesBadgeCount: "{{count}} cas",
+        diseasesEmpty: "Aucun antécédent médical enregistré ✅",
+        activeCasesWarning: "⚠️ {{count}} cas actif(s) en cours de traitement",
+        diseasePeriod: "Du {{from}} au {{to}}",
+        diseaseDuration: "{{days}} j",
+        statusRecovered: "✅ Guéri",
+        statusResolved: "✅ Résolu"
+      },
+      farm: {
+        sectionTitle: "À propos de la ferme",
+        producer: "Producteur",
+        salesCount: "{{count}} ventes conclues",
+        activeListings: "Annonces actives",
+        totalSales: "Ventes conclues",
+        viewListings: "Voir les autres annonces de cette ferme"
+      },
+      animalSection: "Animal",
+      animalId: "N° animal",
+      breed: "Race",
+      weight: "Poids",
+      category: "Catégorie",
+      sellerSection: "Vendeur",
+      reviews: "avis",
+      description: "Description",
+      sellerActions: "Gestion vendeur",
+      editListing: "Modifier l'annonce",
+      cancelConfirmTitle: "Annuler cette annonce ?",
+      cancelConfirmBody: "Les offres encore en attente seront refusées.",
+      cancelAction: "Annuler l'annonce",
+      cancelling: "Annulation…",
+      makeProposal: "Faire une proposition",
+      contactSeller: "Contacter le vendeur"
+    },
     emptyListings: "Aucune annonce publiée pour le moment.",
     emptySearch: "Aucun résultat. Essaie d’autres mots-clés ou filtres.",
     emptyMyListings: "Tu n’as pas encore d’annonce. Utilise « Créer » pour en ajouter une.",
@@ -263,7 +388,75 @@ export const fr = {
       "Tu pourras en soumettre une nouvelle plus tard si l’annonce est toujours publiée.",
     withdrawCancel: "Annuler",
     withdrawConfirm: "Retirer",
-    withdrawAction: "Retirer mon offre"
+    withdrawAction: "Retirer mon offre",
+    createForm: {
+      titleModal: "Nouvelle annonce",
+      errorTitle: "Création impossible",
+      submit: "Créer le brouillon",
+      submitting: "Enregistrement…",
+      photos: {
+        title: "Photos de l’animal",
+        primary: "Principal",
+        addTitle: "Ajouter une photo",
+        fromGallery: "Choisir depuis la galerie",
+        fromCamera: "Prendre une photo",
+        emptyHint: "Aucune photo — une illustration par défaut sera affichée sur l’annonce.",
+        animalPhotoOffer:
+          "Photo disponible sur la fiche {{label}} — l’utiliser pour l’annonce ?",
+        useAnimalPhoto: "Oui, utiliser cette photo",
+        addOwn: "Ajouter mes propres photos",
+        farmRequiredTitle: "Ferme requise",
+        farmRequiredBody:
+          "Sélectionne d’abord une ferme pour téléverser des photos.",
+        uploadErrorTitle: "Upload impossible",
+        uploadErrorBody: "Erreur lors de l’upload — réessayez.",
+        uploadUnavailable: "Stockage photos indisponible."
+      },
+      sectionFarm: "Ferme liée",
+      noFarm: "Sans ferme",
+      farmHint:
+        "Lie une ferme pour rattacher le cheptel et conclure la vente (Finance + effectifs).",
+      sectionCategory: "Catégorie",
+      sectionAnimal: "Animaux du lot",
+      animalMultiHint: "Sélectionne un ou plusieurs animaux actifs (obligatoire).",
+      noActiveAnimals: "Aucun animal actif sur cette ferme.",
+      noAnimal: "Aucun",
+      sectionListing: "Annonce",
+      title: "Titre",
+      titlePlaceholder: "Ex. Lot de 12 porcelets — 450 kg",
+      description: "Description",
+      descriptionPlaceholder: "Race, conformité, historique sanitaire…",
+      breedLabel: "Race (optionnel)",
+      breedPlaceholder: "Ex. Large White",
+      sectionPricingPork: "Poids et prix",
+      totalWeight: "Poids total (kg)",
+      pricePerKg: "Prix/kg demandé",
+      totalPrice: "Prix total",
+      totalAuto: "Calcul automatique : {{amount}}",
+      currency: "Devise",
+      sectionLocation: "Lieu",
+      location: "Lieu / retrait",
+      locationPlaceholder: "Ex. Nioro du Rip",
+      sectionDuration: "Durée sur le marché",
+      durationHint: "Durée appliquée lors de la publication.",
+      durationDays: "{{count}} jours",
+      draftHint: "Brouillon : invisible jusqu'à publication.",
+      footerNote:
+        "L'annonce est créée en brouillon. Publie-la depuis le détail pour la rendre visible.",
+      errors: {
+        titleRequired: "Le titre est obligatoire.",
+        weightRequired: "Indique le poids total (kg).",
+        pricePerKgRequired: "Indique le prix au kg.",
+        totalRequired: "Indique un prix total valide."
+      }
+    },
+    publishConfirmTitle: "Publier cette annonce ?",
+    publishConfirmBody:
+      "Elle sera visible par les acheteurs pendant la durée choisie.",
+    publishCancel: "Annuler",
+    publishAction: "Publier sur le marché",
+    publishing: "Publication…",
+    publishSuccess: "Annonce publiée — visible sur le marché.",
   },
   pigPriceIndex: {
     title: "📊 Cours du porc",
@@ -275,6 +468,8 @@ export const fr = {
     period12m: "12M",
     unit: "FCFA/kg",
     emptyData: "Données insuffisantes",
+    emptyDataHint:
+      "Le graphe apparaît dès que la plateforme enregistre assez de ventes ou d'annonces (au moins 3 points sur la période). C'est normal en environnement de test ou au lancement.",
     categoryAll: "Tous",
     categoryPorcelet: "Porcelets 🐣",
     categoryCroissance: "Croissance 📈",
@@ -734,6 +929,18 @@ export const fr = {
       subjects: "{{count}} sujets",
       avgWeight: "{{kg}} kg moy.",
       avgAgeWeeksShort: "{{weeks}} sem.",
+      avgAgeWeeksManualShort: "{{weeks}} sem. ✏️",
+      avgAgeWeeksPartialShort: "{{weeks}} sem. ({{without}} sans âge)",
+      avgAgeWeeksEmpty: "— sem.",
+      avgAgeSection: "Âge moyen",
+      avgAgeCalculated: "{{weeks}} semaines",
+      avgAgeFromAnimals: "Calculé depuis {{count}} animaux",
+      avgAgePartial:
+        "Basé sur {{with}} / {{total}} animaux ({{without}} sans âge connu)",
+      avgAgeAutoBadge: "Mis à jour automatiquement",
+      avgAgeManualBadge: "Saisie manuelle",
+      avgAgeManualEdit: "Âge moyen estimé (semaines)",
+      avgAgeManualPlaceholder: "Ex. 8",
       badgeVaccineLate: "Vaccins en retard",
       badgeActiveDisease: "Cas maladie actif",
       badgeFarrowingSoon: "Mise bas imminente",
@@ -912,6 +1119,10 @@ export const fr = {
         breed: "Race",
         sex: "Sexe",
         birthDate: "Date de naissance",
+        birthDateHelper: "Si connue — permet un suivi précis de l'âge",
+        ageAtEntry: "Âge estimé à l'entrée (semaines)",
+        ageAtEntryHelper:
+          "Si la date de naissance est inconnue — estimation suffisante",
         entryWeight: "Poids à l'entrée (kg)",
         notes: "Notes",
         submit: "Créer l'animal",
@@ -1020,6 +1231,14 @@ export const fr = {
         weight: "Poids",
         entryWeight: "Poids à l'entrée",
         currentWeight: "Poids actuel",
+        ageSection: "Âge",
+        birthDate: "Date de naissance",
+        bornOn: "Né le {{date}} — {{weeks}} sem.",
+        ageAtEntry: "Âge à l'entrée (semaines)",
+        enteredAt: "Entré à {{weeks}} sem. le {{date}} — actuellement {{current}} sem.",
+        currentAgeEstimated: "Âge actuel estimé",
+        currentAgeWeeks: "{{weeks}} semaines",
+        currentAgeAuto: "Calculé automatiquement",
         health: "Santé",
         healthSoon: "Résumé sanitaire à venir.",
         openHealth: "Ouvrir le module Santé",
@@ -1219,6 +1438,34 @@ export const fr = {
       confirmRejectTitle: "Refuser l'invitation ?",
       confirmRejectBody:
         "Vous n'aurez plus accès à la ferme {{farm}} via cette invitation."
+    },
+    scanRequests: {
+      sectionTitle: "Demandes via QR en attente",
+      requestFrom: "Demande de {{name}}",
+      requestFromUnknown: "Collaborateur via QR",
+      expires: "Expire le {{date}}",
+      review: "Examiner",
+      reviewA11y: "Examiner la demande de {{name}}",
+      modalTitle: "Valider la demande",
+      configureHint:
+        "Choisissez le rôle et les permissions accordés à ce collaborateur.",
+      accept: "Accepter",
+      reject: "Refuser",
+      rejectConfirmTitle: "Refuser la demande ?",
+      rejectConfirmBody:
+        "{{name}} ne pourra pas rejoindre la ferme via cette demande.",
+      acceptedToast: "Collaborateur ajouté à la ferme.",
+      rejectedToast: "Demande refusée."
+    },
+    createInvitation: {
+      emailLabel: "E-mail invité (optionnel)",
+      emailPlaceholder: "exemple@domaine.com",
+      phoneLabel: "Téléphone invité (optionnel)",
+      phonePlaceholder: "+221 …",
+      note:
+        "Au moins un e-mail ou un téléphone aide à retrouver l'invitation ; le lien peut aussi être partagé après création.",
+      submit: "Créer l'invitation",
+      submitting: "Création…"
     }
   },
   financeScreen: {
@@ -1940,6 +2187,7 @@ export const fr = {
       reports: "Rapports"
     },
     dashboard: {
+      welcomeLine: "Bonjour",
       welcome: "Bonjour, {{name}} 👋",
       defaultName: "Technicien",
       farmSubtitle: "Ferme {{farm}} — {{date}}",
@@ -1994,9 +2242,17 @@ export const fr = {
     permissionDenied: "Permission non accordée par le producteur.",
     permissionReadOnly: "Accès lecture seule sur ce module.",
     readOnlyBanner: "Mode lecture seule — vous ne pouvez pas modifier ce module.",
-    farmReadOnlyBadge: "Lecture seule"
+    farmReadOnlyBadge: "Lecture seule",
+    profile: {
+      sectionTech: "Profil technicien",
+      sectionAccount: "Compte",
+      experience: "Expérience",
+      farmsAssigned: "Fermes",
+      tasksToday: "Tâches du jour"
+    }
   },
   buyer: {
+    backToHome: "Accueil",
     nav: {
       home: "Accueil",
       market: "Market",
@@ -2010,6 +2266,7 @@ export const fr = {
       preferences: "Préférences"
     },
     dashboard: {
+      welcomeLine: "Bonjour",
       welcome: "Bonjour, {{name}} 👋",
       defaultName: "Acheteur",
       searchPlaceholder: "Rechercher des animaux…",
@@ -2020,11 +2277,27 @@ export const fr = {
       allProposals: "Voir toutes les propositions →",
       sectionStats: "Vue d'ensemble"
     },
+    profile: {
+      sectionBuyer: "Profil acheteur",
+      sectionAccount: "Compte",
+      buyerType: "Type d'acheteur",
+      preferredCategories: "Catégories préférées",
+      typeIndividual: "Particulier",
+      typeProfessional: "Professionnel"
+    },
     kpi: {
       pending: "Propositions",
       purchases: "Achats",
       favorites: "Favoris",
       alerts: "Alertes"
+    },
+    messages: {
+      title: "Messages",
+      subtitle: "Échanges avec les vendeurs et producteurs.",
+      new: "Nouveau",
+      emptyTitle: "Aucune conversation",
+      emptySub: "Contactez un vendeur depuis une annonce ou démarrez une conversation.",
+      noMessage: "Pas encore de message"
     },
     history: {
       title: "Mes achats",

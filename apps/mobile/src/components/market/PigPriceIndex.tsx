@@ -121,7 +121,17 @@ export function PigPriceIndex() {
       {chartQ.isLoading ? (
         <ActivityIndicator color={mobileColors.accent} style={{ marginVertical: 24 }} />
       ) : chartQ.data?.insufficientData ? (
-        <Text style={styles.empty}>{chartQ.data.message ?? t("pigPriceIndex.emptyData")}</Text>
+        <View style={styles.emptyBox}>
+          <Text style={styles.empty}>
+            {chartQ.data.message ?? t("pigPriceIndex.emptyData")}
+          </Text>
+          <Text style={styles.emptyHint}>{t("pigPriceIndex.emptyDataHint")}</Text>
+        </View>
+      ) : lines.every((l) => l.data.length === 0) ? (
+        <View style={styles.emptyBox}>
+          <Text style={styles.empty}>{t("pigPriceIndex.emptyData")}</Text>
+          <Text style={styles.emptyHint}>{t("pigPriceIndex.emptyDataHint")}</Text>
+        </View>
       ) : (
         <SmartChart
           lines={lines}
@@ -169,7 +179,16 @@ const styles = StyleSheet.create({
   empty: {
     ...mobileTypography.body,
     color: mobileColors.textSecondary,
+    textAlign: "center"
+  },
+  emptyBox: {
+    paddingVertical: mobileSpacing.lg,
+    gap: mobileSpacing.sm
+  },
+  emptyHint: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
     textAlign: "center",
-    paddingVertical: mobileSpacing.lg
+    lineHeight: 18
   }
 });

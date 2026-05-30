@@ -4,6 +4,7 @@ import {
   SmartAlertModule,
   SmartAlertPriority
 } from "@prisma/client";
+import { buildPenAgeData } from "../../cheptel/age-calculation.util";
 import type { ComputedSmartAlert } from "../smart-alerts.types";
 
 const MS_DAY = 86_400_000;
@@ -77,15 +78,45 @@ export async function evaluateCheptelRules(
       id: true,
       name: true,
       averageWeightKg: true,
-      averageAgeWeeks: true,
-      barn: { select: { id: true, name: true } }
+      averageAgeWeeksManual: true,
+      barn: { select: { id: true, name: true } },
+      placements: {
+        where: { endedAt: null, animalId: { not: null } },
+        select: {
+          animal: {
+            select: {
+              status: true,
+              birthDate: true,
+              ageWeeksAtEntry: true,
+              entryDate: true
+            }
+          }
+        }
+      }
     }
   });
 
+  const now = new Date();
   for (const p of starterPens) {
     const avgWeight =
       p.averageWeightKg != null ? Number(p.averageWeightKg) : null;
-    const avgAge = p.averageAgeWeeks ?? null;
+    const ageAnimals = p.placements
+      .map((pl) => pl.animal)
+      .filter(
+        (a): a is NonNullable<typeof a> =>
+          Boolean(a && a.status === "active")
+      )
+      .map((a) => ({
+        birthDate: a.birthDate,
+        ageWeeksAtEntry: a.ageWeeksAtEntry,
+        entryDate: a.entryDate
+      }));
+    const ageData = buildPenAgeData(
+      ageAnimals,
+      p.averageAgeWeeksManual ?? null,
+      now
+    );
+    const avgAge = ageData.displayAgeWeeks;
     const overWeight =
       avgWeight != null && Number.isFinite(avgWeight) && avgWeight > maxStarterWeight;
     const overAge = avgAge != null && avgAge > maxStarterAge;

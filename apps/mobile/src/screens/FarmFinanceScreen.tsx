@@ -48,6 +48,12 @@ import type {
 } from "../lib/api";
 import { LinkedStockSection } from "../components/finance/LinkedStockSection";
 import {
+  financeCumulativeBalanceSeries,
+  financeMonthExpenseSeries,
+  financeMonthNetSeries,
+  financeMonthRevenueSeries
+} from "../components/finance/financeSparklineSeries";
+import {
   deleteFarmExpense,
   deleteFarmExpenseWithStock,
   deleteFarmRevenue,
@@ -405,16 +411,23 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
   );
 
   const revSeries = useMemo(
-    () => months6.map((m) => Number(m.revenues)),
+    () => financeMonthRevenueSeries(months6),
     [months6]
   );
   const expSeries = useMemo(
-    () => months6.map((m) => Number(m.expenses)),
+    () => financeMonthExpenseSeries(months6),
     [months6]
   );
   const netSeries = useMemo(
-    () => months6.map((m) => Number(m.revenues) - Number(m.expenses)),
+    () => financeMonthNetSeries(months6),
     [months6]
+  );
+  const balanceSeries = useMemo(
+    () =>
+      overview
+        ? financeCumulativeBalanceSeries(months6, overview.balanceAllTime)
+        : [],
+    [months6, overview]
   );
 
   const chartFmt = useCallback(
@@ -984,7 +997,9 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                           title={t("financeScreen.balance")}
                           value={formatMoney(overview.balanceAllTime, curCode, curSym)}
                           deltaText={null}
-                          sparklineValues={netSeries.length > 1 ? netSeries : undefined}
+                          sparklineValues={
+                            balanceSeries.length > 1 ? balanceSeries : undefined
+                          }
                           sparklineColor="#F97316"
                           variant="orange"
                         />

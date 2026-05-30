@@ -11,5 +11,7 @@ export { MemberModal } from "./MemberModal";
 export { MembersList } from "./MembersList";
 export { PendingInvitationsBanner } from "./PendingInvitationsBanner";
 export { PendingInvitationsModal } from "./PendingInvitationsModal";
+export { PendingScanRequestsSection } from "./PendingScanRequestsSection";
+export { RespondScanRequestModal } from "./RespondScanRequestModal";
 export { SearchCollaboratorModal } from "./SearchCollaboratorModal";
 export { SuccessModal } from "./SuccessModal";

@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Pressable,
@@ -13,27 +13,24 @@ import {
   TextInput,
   View
 } from "react-native";
-import { EventList } from "../../components/lists/EventList";
-import type { EventItem } from "../../components/lists/types";
-import { ActiveProfileSwitcherModal } from "../../components/account/ActiveProfileSwitcherModal";
+import { AdminMessagesBanner } from "../../components/admin/AdminMessagesBanner";
+import { PendingInvitationsBanner } from "../../components/collaboration/PendingInvitationsBanner";
+import { PigPriceIndex } from "../../components/market/PigPriceIndex";
+import { BuyerProfileModal } from "../../components/buyer/BuyerProfileModal";
+import { BuyerWelcomeHeader } from "../../components/buyer/BuyerWelcomeHeader";
 import {
   ProfileHeroCard,
-  ProfileSectionEmpty,
-  ProfileSectionLink,
   profileScreenScrollContent,
   ScreenSection
 } from "../../components/layout";
 import { BuyerMobileShell } from "../../components/layout/BuyerMobileShell";
 import { useBuyerBottomChromePad } from "../../context/BuyerBottomChromeContext";
 import { useSession } from "../../context/SessionContext";
-import {
-  fetchBuyerDashboard,
-  fetchBuyerPersonalizedListings,
-  fetchBuyerProposals
-} from "../../lib/api";
+import { fetchBuyerDashboard } from "../../lib/api";
+import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { welcomeFirstName } from "../../lib/userDisplay";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
-import { buyerColors, buyerRadius, buyerShadow } from "../../theme/buyerTheme";
+import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 export function BuyerDashboardScreen() {
@@ -52,27 +49,15 @@ export function BuyerDashboardScreen() {
     enabled: Boolean(accessToken)
   });
 
-  const offersQ = useQuery({
-    queryKey: ["buyerOffers", activeProfileId],
-    queryFn: () => fetchBuyerPersonalizedListings(accessToken!, activeProfileId),
-    enabled: Boolean(accessToken)
-  });
-
-  const proposalsQ = useQuery({
-    queryKey: ["buyerProposals", activeProfileId, "pending"],
-    queryFn: () => fetchBuyerProposals(accessToken!, activeProfileId, "pending"),
-    enabled: Boolean(accessToken)
-  });
-
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       await refreshAuthMe();
-      await Promise.all([dashQ.refetch(), offersQ.refetch(), proposalsQ.refetch()]);
+      await dashQ.refetch();
     } finally {
       setRefreshing(false);
     }
-  }, [refreshAuthMe, dashQ, offersQ, proposalsQ]);
+  }, [refreshAuthMe, dashQ]);
 
   useFocusEffect(
     useCallback(() => {
@@ -80,26 +65,23 @@ export function BuyerDashboardScreen() {
     }, [refreshAuthMe])
   );
 
-  const displayName = welcomeFirstName(authMe?.user ?? null) ?? t("buyer.dashboard.defaultName");
+  const displayName =
+    welcomeFirstName(authMe?.user ?? null) ?? t("buyer.dashboard.defaultName");
   const kpis = dashQ.data?.kpis;
 
-  const proposalEvents: EventItem[] = useMemo(
-    () =>
-      (proposalsQ.data ?? []).slice(0, 5).map((p) => ({
-        id: p.id,
-        title: p.listing.title,
-        subtitle: `${p.status} · ${p.offeredPrice}`,
-        date: new Date(p.createdAt).toLocaleDateString(),
-        valueType: "neutral" as const,
-        iconType: "custom" as const,
-        customIcon: "paper-plane-outline",
-        iconColor: buyerColors.primary
-      })),
-    [proposalsQ.data]
+  const dashboardHeader: ReactNode = (
+    <View style={styles.heroBar}>
+      <BuyerWelcomeHeader
+        welcomeLabel={t("buyer.dashboard.welcomeLine")}
+        displayName={displayName}
+        avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
+        onPressAvatar={() => setProfileOpen(true)}
+      />
+    </View>
   );
 
   return (
-    <BuyerMobileShell hideTopBar>
+    <BuyerMobileShell customHeader={dashboardHeader} omitBottomTabBar>
       <ScrollView
         contentContainerStyle={[
           profileScreenScrollContent,
@@ -113,63 +95,31 @@ export function BuyerDashboardScreen() {
           />
         }
       >
+        <AdminMessagesBanner />
+        <PendingInvitationsBanner />
+
         <ProfileHeroCard>
-          <View style={styles.headerRow}>
-            <Pressable style={styles.headerLeft} onPress={() => setProfileOpen(true)}>
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Ionicons name="cart" size={24} color={buyerColors.primary} />
-              </View>
-              <Text style={styles.greeting}>
-                {t("buyer.dashboard.welcome", { name: displayName })}
-              </Text>
-            </Pressable>
-            <Pressable onPress={() => navigation.navigate("BuyerMarket")}>
-              <Ionicons name="search-outline" size={24} color={buyerColors.primary} />
-            </Pressable>
+          <View style={styles.searchWrap}>
+            <Ionicons name="search" size={20} color={buyerColors.textMuted} />
+            <TextInput
+              style={styles.search}
+              placeholder={t("buyer.dashboard.searchPlaceholder")}
+              placeholderTextColor={buyerColors.textMuted}
+              value={search}
+              onChangeText={setSearch}
+              onSubmitEditing={() =>
+                navigation.navigate("MarketplaceList", {
+                  tab: "listings",
+                  buyerView: true,
+                  fromDashboard: true,
+                  searchQuery: search.trim() || undefined
+                })
+              }
+            />
           </View>
-          <TextInput
-            style={styles.search}
-            placeholder={t("buyer.dashboard.searchPlaceholder")}
-            placeholderTextColor={buyerColors.textMuted}
-            value={search}
-            onChangeText={setSearch}
-            onSubmitEditing={() =>
-              navigation.navigate("BuyerMarket", { searchQuery: search.trim() || undefined })
-            }
-          />
         </ProfileHeroCard>
 
-        <View style={styles.sectionBlock}>
-          <ScreenSection title={t("buyer.dashboard.offersForYou")} plain>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {(offersQ.data ?? []).slice(0, 8).map((o) => (
-                <Pressable
-                  key={o.id}
-                  style={[styles.offerCard, buyerShadow.card]}
-                  onPress={() =>
-                    navigation.navigate("MarketplaceListingDetail", {
-                      listingId: o.id,
-                      headline: o.title
-                    })
-                  }
-                >
-                  <Text style={styles.offerTitle} numberOfLines={2}>
-                    {o.title}
-                  </Text>
-                  <Text style={styles.offerMeta}>{o.farmName}</Text>
-                  {o.pricePerKg ? (
-                    <Text style={styles.offerPrice}>{o.pricePerKg} / kg</Text>
-                  ) : null}
-                </Pressable>
-              ))}
-            </ScrollView>
-          </ScreenSection>
-          <ProfileSectionLink
-            color={buyerColors.primary}
-            label={t("buyer.dashboard.allOffers")}
-            onPress={() => navigation.navigate("BuyerMarket")}
-          />
-        </View>
+        <PigPriceIndex />
 
         <ScreenSection title={t("buyer.dashboard.sectionStats")} plain>
           <View style={styles.kpiGrid}>
@@ -199,61 +149,39 @@ export function BuyerDashboardScreen() {
             </Pressable>
           </View>
         </ScreenSection>
-
-        <View style={styles.sectionBlock}>
-          <ScreenSection title={t("buyer.dashboard.activeProposals")}>
-            {proposalEvents.length > 0 ? (
-              <EventList data={proposalEvents} />
-            ) : (
-              <ProfileSectionEmpty>{t("buyer.dashboard.noProposals")}</ProfileSectionEmpty>
-            )}
-          </ScreenSection>
-          <ProfileSectionLink
-            color={buyerColors.primary}
-            label={t("buyer.dashboard.allProposals")}
-            onPress={() => navigation.navigate("BuyerHistory")}
-          />
-        </View>
       </ScrollView>
 
-      <ActiveProfileSwitcherModal visible={profileOpen} onClose={() => setProfileOpen(false)} />
+      <BuyerProfileModal visible={profileOpen} onClose={() => setProfileOpen(false)} />
     </BuyerMobileShell>
   );
 }
 
 const styles = StyleSheet.create({
-  sectionBlock: { gap: mobileSpacing.sm },
-  headerRow: { flexDirection: "row", alignItems: "center" },
-  headerLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: mobileSpacing.md },
-  avatar: { width: 48, height: 48, borderRadius: 24 },
-  avatarPlaceholder: {
-    backgroundColor: buyerColors.primaryLight,
+  heroBar: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "space-between",
+    paddingHorizontal: mobileSpacing.lg,
+    paddingVertical: mobileSpacing.sm,
+    backgroundColor: buyerColors.canvas,
+    gap: mobileSpacing.sm
   },
-  greeting: { ...mobileTypography.cardTitle, fontSize: 18, flex: 1, color: buyerColors.textPrimary },
-  search: {
+  searchWrap: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: buyerColors.canvas,
     borderRadius: buyerRadius.button,
     borderWidth: 1,
     borderColor: buyerColors.border,
     paddingHorizontal: mobileSpacing.md,
+    gap: mobileSpacing.sm
+  },
+  search: {
+    flex: 1,
     paddingVertical: 12,
     ...mobileTypography.body,
     color: buyerColors.textPrimary
   },
-  offerCard: {
-    width: 160,
-    marginRight: mobileSpacing.sm,
-    padding: mobileSpacing.md,
-    backgroundColor: buyerColors.cardBg,
-    borderRadius: buyerRadius.card,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: buyerColors.border
-  },
-  offerTitle: { ...mobileTypography.body, fontWeight: "600", color: buyerColors.textPrimary },
-  offerMeta: { ...mobileTypography.meta, color: buyerColors.textSecondary, marginTop: 4 },
-  offerPrice: { ...mobileTypography.meta, color: buyerColors.primary, fontWeight: "700", marginTop: 4 },
   kpiGrid: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
   kpiCard: {
     width: "47%",

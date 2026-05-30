@@ -105,6 +105,7 @@ export function AnimalDetailScreen({ route, navigation }: Props) {
         onOpenHealth={() =>
           navigation.navigate("FarmHealth", { farmId, farmName })
         }
+        onListForSale={(a) => setSaleAnimal(a)}
       />
 
       <ChangeStatusModal

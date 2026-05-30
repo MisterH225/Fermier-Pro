@@ -77,6 +77,7 @@ export function PenCard({
   const categoryLabel = t(`cheptel.pens.usage.${usage}`, {
     defaultValue: t(`cheptel.pens.category.${pen.category}`)
   });
+  const ageData = pen.ageData;
   const sanitaryIcon =
     pen.vaccineOverdueCount > 0
       ? { bg: "#FEE2E2", icon: "medical-outline" as const, color: mobileColors.error }
@@ -170,11 +171,26 @@ export function PenCard({
           {t("cheptel.pens.avgWeight", { kg: pen.averageWeightKg })}
         </Text>
       ) : null}
-      {pen.averageAgeWeeks != null ? (
+      {ageData?.displayAgeWeeks != null ? (
         <Text style={styles.meta}>
-          {t("cheptel.pens.avgAgeWeeksShort", { weeks: pen.averageAgeWeeks })}
+          {ageData.isManual
+            ? t("cheptel.pens.avgAgeWeeksManualShort", {
+                weeks: ageData.displayAgeWeeks
+              })
+            : ageData.animalsWithoutAgeCount > 0
+              ? t("cheptel.pens.avgAgeWeeksPartialShort", {
+                  weeks: ageData.displayAgeWeeks,
+                  without: ageData.animalsWithoutAgeCount
+                })
+              : t("cheptel.pens.avgAgeWeeksShort", {
+                  weeks: ageData.displayAgeWeeks
+                })}
         </Text>
-      ) : null}
+      ) : (
+        <Text style={[styles.meta, styles.metaMuted]}>
+          {t("cheptel.pens.avgAgeWeeksEmpty")}
+        </Text>
+      )}
       <View style={styles.barTrack}>
         <View
           style={[styles.barFill, { width: `${rate}%`, backgroundColor: barColor }]}
@@ -263,6 +279,7 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary,
     marginBottom: 2
   },
+  metaMuted: { opacity: 0.65 },
   barTrack: {
     height: 6,
     borderRadius: 3,

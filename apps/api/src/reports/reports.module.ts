@@ -11,7 +11,14 @@ import { ReportsRootController } from "./reports-root.controller";
 import { ReportsService } from "./reports.service";
 
 @Module({
-  imports: [PrismaModule, CommonModule, AuthModule, FinanceModule, SmartAlertsModule],
+  imports: [
+    PrismaModule,
+    CommonModule,
+    AuthModule,
+    FinanceModule,
+    SmartAlertsModule,
+    FeatureFlagsModule
+  ],
   controllers: [FarmReportsController, ReportsRootController],
   providers: [ReportsService, ReportsPdfService]
 })

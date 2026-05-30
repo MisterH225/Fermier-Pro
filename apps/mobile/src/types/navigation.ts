@@ -5,7 +5,7 @@ export type RootStackParamList = {
   BuyerDashboard: undefined;
   BuyerMarket: { favoritesOnly?: boolean; searchQuery?: string } | undefined;
   BuyerMessages: undefined;
-  BuyerHistory: { initialTab?: "proposals" | "purchases" | "reviews" } | undefined;
+  BuyerHistory: { initialTab?: "proposals" | "purchases" | "reviews"; fromDashboard?: boolean } | undefined;
   BuyerAlerts: undefined;
   BuyerFavorites: undefined;
   VeterinarianDashboard: undefined;
@@ -67,6 +67,7 @@ export type RootStackParamList = {
     | {
         tab?: "listings" | "mine" | "offers";
         buyerView?: boolean;
+        fromDashboard?: boolean;
         favoritesOnly?: boolean;
         searchQuery?: string;
       }
@@ -77,7 +78,11 @@ export type RootStackParamList = {
   CreateMarketplaceListing: { farmId?: string };
   EditMarketplaceListing: { listingId: string };
   ChatRooms: undefined;
-  ChatRoom: { roomId: string; headline?: string };
+  ChatRoom: {
+    roomId: string;
+    headline?: string;
+    listingId?: string;
+  };
   ChatPickFarm: undefined;
   ChatPickPeer: { farmId: string; farmName: string };
   ChatSearchUser: undefined;

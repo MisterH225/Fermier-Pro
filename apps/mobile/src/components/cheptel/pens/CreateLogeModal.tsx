@@ -89,7 +89,7 @@ export function CreateLogeModal({
           category,
           categoryForced: true,
           averageWeightKg: Number.isFinite(w!) ? w : null,
-          averageAgeWeeks: ageWeeks,
+          averageAgeWeeksManual: ageWeeks,
           zoneLabel: notes.trim() || undefined
         },
         activeProfileId

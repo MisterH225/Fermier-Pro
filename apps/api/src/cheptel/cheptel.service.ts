@@ -31,6 +31,9 @@ import {
   relocateBreederAnimalsToDefaultPlan,
   relocateProductionAnimalsToDefaultPlan
 } from "../onboarding/onboarding-pen-layout";
+import { AgeCalculationService } from "./age-calculation.service";
+import type { PenAgeData } from "./age-calculation.types";
+import { calculateAnimalAgeWeeks } from "./age-calculation.util";
 import { PenAllocationService } from "../housing/pen-allocation.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 
@@ -61,7 +64,7 @@ export type CheptelPenOverviewRow = {
   femaleCount: number;
   isActive: boolean;
   averageWeightKg: number | null;
-  averageAgeWeeks: number | null;
+  ageData: PenAgeData;
   vaccineOverdueCount: number;
   gestationImminent: boolean;
   activeDiseaseCount: number;
@@ -97,6 +100,7 @@ export class CheptelService {
     private readonly livestock: LivestockService,
     private readonly finance: FinanceService,
     private readonly penAllocation: PenAllocationService,
+    private readonly ageCalculation: AgeCalculationService,
     @Inject(forwardRef(() => SmartAlertsService))
     private readonly smartAlerts: SmartAlertsService
   ) {}
@@ -238,6 +242,9 @@ export class CheptelService {
                 sex: true,
                 tagCode: true,
                 productionCategory: true,
+                birthDate: true,
+                ageWeeksAtEntry: true,
+                entryDate: true,
                 expectedFarrowingAt: true,
                 weights: {
                   orderBy: { measuredAt: "desc" },
@@ -293,6 +300,11 @@ export class CheptelService {
       let femaleCount = 0;
       let maleCount = 0;
       const weights: number[] = [];
+      const ageAnimals: Array<{
+        birthDate: Date | null;
+        ageWeeksAtEntry: number | null;
+        entryDate: Date | null;
+      }> = [];
       const allocationRoles = new Set<string>();
 
       for (const pl of pen.placements) {
@@ -301,6 +313,11 @@ export class CheptelService {
             continue;
           }
           occupancy += 1;
+          ageAnimals.push({
+            birthDate: pl.animal.birthDate,
+            ageWeeksAtEntry: pl.animal.ageWeeksAtEntry,
+            entryDate: pl.animal.entryDate
+          });
           const role = PenAllocationService.roleFromAnimal(pl.animal);
           if (role) {
             allocationRoles.add(role);
@@ -374,7 +391,11 @@ export class CheptelService {
         pen.averageWeightKg != null
           ? decimalToNum(pen.averageWeightKg)
           : computedAvg;
-      const averageAgeWeeks = pen.averageAgeWeeks ?? null;
+      const ageData = this.ageCalculation.buildPenAgeDataFromAnimals(
+        ageAnimals,
+        pen.averageAgeWeeksManual ?? null,
+        now
+      );
 
       const usageTag = this.detectPenUsageTag({
         occupancy,
@@ -414,7 +435,7 @@ export class CheptelService {
         femaleCount,
         isActive: pen.status !== "inactive",
         averageWeightKg,
-        averageAgeWeeks,
+        ageData,
         vaccineOverdueCount,
         gestationImminent,
         activeDiseaseCount
@@ -449,7 +470,10 @@ export class CheptelService {
     user: User,
     farmId: string,
     penId: string,
-    dto: { averageWeightKg?: number | null; averageAgeWeeks?: number | null }
+    dto: {
+      averageWeightKg?: number | null;
+      averageAgeWeeksManual?: number | null;
+    }
   ) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
     const pen = await this.prisma.pen.findFirst({
@@ -469,14 +493,14 @@ export class CheptelService {
                   : new Prisma.Decimal(dto.averageWeightKg)
             }
           : {}),
-        ...(dto.averageAgeWeeks !== undefined
-          ? { averageAgeWeeks: dto.averageAgeWeeks }
+        ...(dto.averageAgeWeeksManual !== undefined
+          ? { averageAgeWeeksManual: dto.averageAgeWeeksManual }
           : {})
       }
     });
     if (
       dto.averageWeightKg !== undefined ||
-      dto.averageAgeWeeks !== undefined
+      dto.averageAgeWeeksManual !== undefined
     ) {
       void this.smartAlerts
         .refreshInternal(farmId)
@@ -554,6 +578,14 @@ export class CheptelService {
         const a = p.animal!;
         const latest = a.weights[0];
         const activeGestation = a.gestationsAsSow[0] ?? null;
+        const currentAgeWeeks = calculateAnimalAgeWeeks(
+          {
+            birthDate: a.birthDate,
+            ageWeeksAtEntry: a.ageWeeksAtEntry,
+            entryDate: a.entryDate
+          },
+          now
+        );
         return {
           id: a.id,
           publicId: a.publicId,
@@ -563,6 +595,10 @@ export class CheptelService {
           status: a.status,
           healthStatus: a.healthStatus,
           photoUrl: a.photoUrl,
+          birthDate: a.birthDate?.toISOString().slice(0, 10) ?? null,
+          ageWeeksAtEntry: a.ageWeeksAtEntry,
+          entryDate: a.entryDate?.toISOString().slice(0, 10) ?? null,
+          currentAgeWeeks,
           species: a.species,
           breed: a.breed,
           weights: a.weights.map((w) => ({
@@ -601,7 +637,12 @@ export class CheptelService {
         };
       });
 
-    return { animals, batches };
+    const ageData = await this.ageCalculation.calculatePenAverageAgeWeeks(
+      penId,
+      now
+    );
+
+    return { animals, batches, ageData };
   }
 
   /** @deprecated Préférer listPenContents — conservé pour alertes vaccins. */

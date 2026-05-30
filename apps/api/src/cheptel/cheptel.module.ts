@@ -5,6 +5,7 @@ import { FinanceModule } from "../finance/finance.module";
 import { HousingModule } from "../housing/housing.module";
 import { LivestockModule } from "../livestock/livestock.module";
 import { SmartAlertsModule } from "../smart-alerts/smart-alerts.module";
+import { AgeCalculationModule } from "./age-calculation.module";
 import { CheptelController } from "./cheptel.controller";
 import { CheptelService } from "./cheptel.service";
 
@@ -15,10 +16,11 @@ import { CheptelService } from "./cheptel.service";
     LivestockModule,
     FinanceModule,
     HousingModule,
+    AgeCalculationModule,
     forwardRef(() => SmartAlertsModule)
   ],
   controllers: [CheptelController],
   providers: [CheptelService],
-  exports: [CheptelService]
+  exports: [CheptelService, AgeCalculationModule]
 })
 export class CheptelModule {}

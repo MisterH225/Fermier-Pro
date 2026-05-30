@@ -232,13 +232,26 @@ export type ChatRoomMemberPreview = {
   user: { id: string; fullName: string | null; email?: string | null };
 };
 
+export type ChatListingSummary = {
+  id: string;
+  title: string;
+  category: string;
+  currency: string;
+  pricePerKg: number | null;
+  totalWeightKg: number | null;
+  photoUrls: string[];
+};
+
 export type ChatRoomListItem = {
   id: string;
   kind: string;
   farmId: string | null;
   directKey: string | null;
   title: string | null;
+  marketplaceListingId?: string | null;
+  unreadCount?: number;
   farm?: { id: string; name: string } | null;
+  marketplaceListing?: ChatListingSummary | null;
   messages?: ChatMessagePreview[];
   members?: ChatRoomMemberPreview[];
 };
@@ -279,11 +292,42 @@ export function ensureFarmChatRoom(
 export function ensureDirectChatRoom(
   accessToken: string,
   peerUserId: string,
-  activeProfileId?: string | null
+  activeProfileId?: string | null,
+  marketplaceListingId?: string | null
 ): Promise<ChatRoomListItem> {
   return apiPostJson<ChatRoomListItem>(
     "/chat/rooms/direct",
-    { peerUserId },
+    {
+      peerUserId,
+      ...(marketplaceListingId
+        ? { marketplaceListingId }
+        : {})
+    },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchChatRoom(
+  accessToken: string,
+  roomId: string,
+  activeProfileId?: string | null
+): Promise<ChatRoomListItem> {
+  return apiGetJson<ChatRoomListItem>(
+    `/chat/rooms/${roomId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function markChatRoomRead(
+  accessToken: string,
+  roomId: string,
+  activeProfileId?: string | null
+): Promise<{ ok: true }> {
+  return apiPostJson<{ ok: true }>(
+    `/chat/rooms/${roomId}/read`,
+    {},
     accessToken,
     activeProfileId
   );
@@ -1315,6 +1359,15 @@ export type PenUsageTag =
   | "fattening"
   | "mixed";
 
+export type PenAgeDataDto = {
+  averageAgeWeeksCalculated: number | null;
+  averageAgeWeeksManual: number | null;
+  animalsWithAgeCount: number;
+  animalsWithoutAgeCount: number;
+  displayAgeWeeks: number | null;
+  isManual: boolean;
+};
+
 export type CheptelPenRowDto = {
   id: string;
   name: string;
@@ -1335,8 +1388,8 @@ export type CheptelPenRowDto = {
   femaleCount: number;
   isActive: boolean;
   averageWeightKg: number | null;
-  /** Âge moyen des sujets de la loge en SEMAINES (0 — 104). */
-  averageAgeWeeks: number | null;
+  /** Présent si l’API cheptel est à jour ; absent sur cache / ancienne réponse. */
+  ageData?: PenAgeDataDto;
   vaccineOverdueCount: number;
   gestationImminent: boolean;
   activeDiseaseCount: number;
@@ -1362,6 +1415,10 @@ export type PenAnimalRowDto = {
   status: string;
   healthStatus?: "healthy" | "sick" | "recovering";
   photoUrl: string | null;
+  birthDate?: string | null;
+  ageWeeksAtEntry?: number | null;
+  entryDate?: string | null;
+  currentAgeWeeks?: number | null;
   species: { id: string; code: string; name: string };
   breed: { id: string; name: string } | null;
   weights: Array<{ weightKg: number; measuredAt: string }>;
@@ -1386,6 +1443,7 @@ export type PenBatchRowDto = {
 };
 
 export type PenContentsDto = {
+  ageData: PenAgeDataDto;
   animals: PenAnimalRowDto[];
   batches: PenBatchRowDto[];
 };
@@ -1459,7 +1517,10 @@ export function patchPenAverages(
   accessToken: string,
   farmId: string,
   penId: string,
-  payload: { averageWeightKg?: number | null; averageAgeWeeks?: number | null },
+  payload: {
+    averageWeightKg?: number | null;
+    averageAgeWeeksManual?: number | null;
+  },
   activeProfileId?: string | null
 ): Promise<unknown> {
   return apiPatchJson(
@@ -1490,7 +1551,7 @@ export type PatchPenPayload = {
   category?: PenCategoryKey;
   categoryForced?: boolean;
   averageWeightKg?: number | null;
-  averageAgeWeeks?: number | null;
+  averageAgeWeeksManual?: number | null;
   zoneLabel?: string | null;
 };
 
@@ -1715,6 +1776,7 @@ export type AnimalListItem = {
   breed: { id: string; name: string } | null;
   weights: Array<{ weightKg: string | number; measuredAt: string }>;
   currentPen: AnimalPenSummary | null;
+  photoUrl?: string | null;
 };
 
 export type TaxonomyBreedDto = { id: string; name: string };
@@ -1738,6 +1800,7 @@ export type CreateAnimalPayload = {
   sex?: "male" | "female" | "unknown";
   productionCategory?: AnimalProductionCategoryDto;
   birthDate?: string;
+  ageWeeksAtEntry?: number;
   notes?: string;
   speciesId?: string;
 };
@@ -1796,6 +1859,8 @@ export type UpdateAnimalPayload = {
   sex?: "male" | "female" | "unknown";
   productionCategory?: AnimalProductionCategoryDto;
   birthDate?: string | null;
+  ageWeeksAtEntry?: number | null;
+  entryDate?: string | null;
   origin?: AnimalOriginDto | null;
   supplier?: string | null;
   photoUrl?: string | null;
@@ -1862,6 +1927,9 @@ export type AnimalDetail = {
   sex: "male" | "female" | "unknown";
   productionCategory?: AnimalProductionCategoryDto;
   birthDate: string | null;
+  ageWeeksAtEntry?: number | null;
+  entryDate?: string | null;
+  currentAgeWeeks?: number | null;
   origin?: AnimalOriginDto | null;
   supplier?: string | null;
   photoUrl?: string | null;
@@ -3841,6 +3909,7 @@ export type PenDetailDto = {
   barn: { id: string; name: string; farmId: string };
   placements: PenPlacementDto[];
   logs: PenLogDto[];
+  ageData: PenAgeDataDto;
 };
 
 export function fetchPenDetail(
@@ -4037,6 +4106,8 @@ export type MarketplaceListingListItem = {
   updatedAt: string;
   category?: string | null;
   photoUrls?: string[] | null;
+  /** Photo cheptel si photoUrls vide (API). */
+  fallbackPhotoUrl?: string | null;
   animalIds?: string[] | null;
   totalWeightKg?: string | number | null;
   pricePerKg?: string | number | null;
@@ -4050,6 +4121,7 @@ export type MarketplaceListingListItem = {
     id: string;
     publicId: string;
     tagCode: string | null;
+    photoUrl?: string | null;
   } | null;
   seller?: { id: string; fullName: string | null };
 };
@@ -4085,6 +4157,8 @@ export type MarketplaceOfferBrief = {
   listingId: string;
   buyerUserId: string;
   offeredPrice: string | number;
+  proposedPricePerKg?: string | number | null;
+  counterPricePerKg?: string | number | null;
   quantity: number | null;
   message: string | null;
   status: string;
@@ -4092,15 +4166,60 @@ export type MarketplaceOfferBrief = {
   buyer?: { id: string; fullName: string | null; email: string | null };
 };
 
+export type MarketplaceListingHealthVaccine = {
+  vaccineName: string;
+  administeredDate: string;
+  nextDueDate: string | null;
+  status: "done" | "upcoming" | "overdue";
+  animalId: string;
+  animalLabel: string;
+};
+
+export type MarketplaceListingPastDisease = {
+  diagnosis: string | null;
+  symptomsSummary: string;
+  onsetDate: string;
+  resolvedDate: string;
+  durationDays: number;
+  finalStatus: "recovered" | "resolved";
+  animalId: string;
+  animalLabel: string;
+};
+
+export type MarketplaceListingHealthData = {
+  vaccines: MarketplaceListingHealthVaccine[];
+  pastDiseases: MarketplaceListingPastDisease[];
+  activeCasesCount: number;
+  vaccinesStatus: "up_to_date" | "overdue" | "none";
+};
+
+export type MarketplaceListingFarmInfo = {
+  farmId: string;
+  farmName: string;
+  farmLocation: string | null;
+  producerDisplayName: string;
+  farmRating: number | null;
+  farmRatingCount: number;
+  farmTotalSales: number;
+  activeListingsCount: number;
+};
+
 export type MarketplaceListingDetail = MarketplaceListingListItem & {
   sellerUserId: string;
-  seller: { id: string; fullName: string | null; email: string | null };
+  seller: {
+    id: string;
+    fullName: string | null;
+    email?: string | null;
+    sellerDisplayName?: string;
+  };
   myOffers?: MarketplaceOfferBrief[];
   offers?: MarketplaceOfferBrief[];
-  healthSnapshot?: MarketplaceListingHealthSnapshot | null;
+  healthData?: MarketplaceListingHealthData | null;
+  farmInfo?: MarketplaceListingFarmInfo | null;
   farmRatingSummary?: { avg: number | null; count: number } | null;
 };
 
+/** @deprecated Utiliser `healthData` sur le détail annonce. */
 export type MarketplaceListingHealthSnapshot = {
   vaccinesUpToDate: boolean;
   lastVaccinationAt: string | null;
@@ -4170,15 +4289,24 @@ export function patchMarketplacePickup(
   );
 }
 
-/** POST — vendeur : retrait effectué, annonce passée en « vendue » (hors encaissement). */
+/** POST — vendeur : conclut la vente (Cheptel + Finance atomiques). */
+export type CompleteMarketplaceHandoverPayload = {
+  offerId: string;
+  soldWeightKg: number;
+  totalPrice: number;
+  soldAt?: string;
+  notes?: string;
+};
+
 export function completeMarketplaceHandover(
   accessToken: string,
   listingId: string,
+  payload: CompleteMarketplaceHandoverPayload,
   activeProfileId?: string | null
 ): Promise<MarketplaceListingListItem> {
   return apiPostJson<MarketplaceListingListItem>(
     `/marketplace/listings/${listingId}/complete-handover`,
-    {},
+    payload,
     accessToken,
     activeProfileId
   );
@@ -4237,7 +4365,7 @@ export function fetchMyMarketplaceOffers(
   );
 }
 
-/** Vendeur : accepter une offre (annonce → vendue, autres offres refusées). */
+/** Vendeur : accepter une offre (annonce → réservée, autres offres refusées). */
 export function acceptMarketplaceOffer(
   accessToken: string,
   listingId: string,
@@ -4261,6 +4389,37 @@ export function rejectMarketplaceOffer(
 ): Promise<unknown> {
   return apiPostJson<unknown>(
     `/marketplace/listings/${listingId}/offers/${offerId}/reject`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** Vendeur : contre-proposition (prix/kg). */
+export function counterMarketplaceOffer(
+  accessToken: string,
+  listingId: string,
+  offerId: string,
+  payload: { counterPricePerKg: number; message?: string },
+  activeProfileId?: string | null
+): Promise<unknown> {
+  return apiPostJson<unknown>(
+    `/marketplace/listings/${listingId}/offers/${offerId}/counter`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** Acheteur : accepte une contre-proposition. */
+export function acceptMarketplaceOfferCounter(
+  accessToken: string,
+  listingId: string,
+  offerId: string,
+  activeProfileId?: string | null
+): Promise<unknown> {
+  return apiPostJson<unknown>(
+    `/marketplace/listings/${listingId}/offers/${offerId}/accept-counter`,
     {},
     accessToken,
     activeProfileId
@@ -4348,11 +4507,26 @@ export function updateMarketplaceListing(
 export function publishMarketplaceListing(
   accessToken: string,
   listingId: string,
-  activeProfileId?: string | null
+  activeProfileId?: string | null,
+  durationDays?: 7 | 14 | 30
 ): Promise<MarketplaceListingListItem> {
   return apiPostJson<MarketplaceListingListItem>(
     `/marketplace/listings/${listingId}/publish`,
-    {},
+    durationDays ? { durationDays } : {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function renewMarketplaceListing(
+  accessToken: string,
+  listingId: string,
+  durationDays: 7 | 14 | 30,
+  activeProfileId?: string | null
+): Promise<MarketplaceListingListItem> {
+  return apiPostJson<MarketplaceListingListItem>(
+    `/marketplace/listings/${listingId}/renew`,
+    { durationDays },
     accessToken,
     activeProfileId
   );
@@ -4451,6 +4625,17 @@ export type AuthMeResponse = {
     avatarUrl: string | null;
     profileStatus?: "active" | "suspended" | "banned";
     profileSuspendedReason?: string | null;
+  } | null;
+  technicianProfile?: {
+    profileId: string;
+    onboardingComplete: boolean;
+    experienceYears: string | null;
+  } | null;
+  buyerProfile?: {
+    profileId: string;
+    onboardingComplete: boolean;
+    buyerType: string;
+    preferredCategories: string[];
   } | null;
   vetProfessional?: VetProfessionalMeDto;
 };
@@ -4754,6 +4939,7 @@ export type CompleteOnboardingPayload = {
   buildingsCount: number;
   pensPerBuilding: number;
   maxPigsPerPen: number;
+  productionEstimatedAgeWeeks?: number;
 };
 
 export type CompleteOnboardingResult = OnboardingStatusDto & {
@@ -5351,6 +5537,509 @@ export function fetchGestationHistory(
     stats: Record<string, unknown>;
   }>(
     `/farms/${farmId}/gestation/history${q}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+// ─── Profil acheteur (`/buyers/me`) ─────────────────────────────────────────
+
+export type UpsertBuyerProfileBody = {
+  buyerType?: string;
+  businessName?: string;
+  locationLabel?: string;
+  homeLatitude?: number;
+  homeLongitude?: number;
+  searchRadiusKm?: number;
+  preferredCategories?: string[];
+  priceRangeMin?: number;
+  priceRangeMax?: number;
+  typicalVolume?: string;
+  profilePhotoUrl?: string;
+  onboardingComplete?: boolean;
+};
+
+export type BuyerDashboardDto = {
+  profile: {
+    buyerType: string;
+    onboardingComplete: boolean;
+    preferredCategories: string[];
+    priceRangeMin: string | null;
+    priceRangeMax: string | null;
+  } | null;
+  kpis: {
+    pendingProposals: number;
+    purchasesCount: number;
+    favoritesCount: number;
+    activeAlerts: number;
+  };
+};
+
+export type BuyerProposalDto = {
+  id: string;
+  status: string;
+  offeredPrice: string;
+  proposedPricePerKg: string | null;
+  quantity: number | null;
+  message: string | null;
+  counterPricePerKg: string | null;
+  createdAt: string;
+  listing: {
+    id: string;
+    title: string;
+    category: string;
+    status: string;
+    pricePerKg: string | null;
+    farmName: string | null;
+    sellerName: string | null;
+  };
+};
+
+export type BuyerListingPreviewDto = {
+  id: string;
+  title: string;
+  category: string;
+  pricePerKg: string | null;
+  totalPrice: string | null;
+  weightKg: string | null;
+  farmName: string | null;
+  publishedAt: string | null;
+  photoUrls: unknown;
+};
+
+export type BuyerFavoriteListingDto = BuyerListingPreviewDto & {
+  favoriteId: string;
+  favoritedAt: string;
+};
+
+export type BuyerPriceAlertDto = {
+  id: string;
+  animalCategory: string;
+  maxPricePerKg: string;
+  minWeightKg: string | null;
+  radiusKm: number | null;
+  notificationFrequency: string;
+  isActive: boolean;
+  createdAt: string;
+  matchingListingsCount: number;
+};
+
+export type CreateBuyerPriceAlertBody = {
+  animalCategory: string;
+  maxPricePerKg: number;
+  minWeightKg?: number;
+  radiusKm?: number;
+  notificationFrequency?: string;
+  isActive?: boolean;
+};
+
+export type UpdateBuyerPriceAlertBody = Partial<CreateBuyerPriceAlertBody>;
+
+/** PATCH /api/v1/buyers/me/profile */
+export function upsertBuyerProfile(
+  accessToken: string,
+  activeProfileId: string | null | undefined,
+  body: UpsertBuyerProfileBody
+): Promise<unknown> {
+  return apiPatchJson("/buyers/me/profile", body, accessToken, activeProfileId);
+}
+
+/** GET /api/v1/buyers/me/dashboard */
+export function fetchBuyerDashboard(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<BuyerDashboardDto> {
+  return apiGetJson<BuyerDashboardDto>(
+    "/buyers/me/dashboard",
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** GET /api/v1/buyers/me/personalized-listings */
+export function fetchBuyerPersonalizedListings(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<BuyerListingPreviewDto[]> {
+  return apiGetJson<BuyerListingPreviewDto[]>(
+    "/buyers/me/personalized-listings",
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** GET /api/v1/buyers/me/proposals */
+export function fetchBuyerProposals(
+  accessToken: string,
+  activeProfileId?: string | null,
+  status?: string
+): Promise<BuyerProposalDto[]> {
+  const q = status ? `?status=${encodeURIComponent(status)}` : "";
+  return apiGetJson<BuyerProposalDto[]>(
+    `/buyers/me/proposals${q}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** GET /api/v1/buyers/me/purchases */
+export function fetchBuyerPurchases(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<BuyerProposalDto[]> {
+  return apiGetJson<BuyerProposalDto[]>(
+    "/buyers/me/purchases",
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type BuyerReviewDto = {
+  id: string;
+  score: number;
+  comment: string | null;
+  createdAt: string;
+  farmId: string;
+  farmName: string;
+};
+
+/** GET /api/v1/buyers/me/reviews */
+export function fetchBuyerReviews(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<BuyerReviewDto[]> {
+  return apiGetJson<BuyerReviewDto[]>(
+    "/buyers/me/reviews",
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** GET /api/v1/buyers/me/price-alerts */
+export function fetchBuyerPriceAlerts(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<BuyerPriceAlertDto[]> {
+  return apiGetJson<BuyerPriceAlertDto[]>(
+    "/buyers/me/price-alerts",
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** POST /api/v1/buyers/me/price-alerts */
+export function createBuyerPriceAlert(
+  accessToken: string,
+  activeProfileId: string | null | undefined,
+  body: CreateBuyerPriceAlertBody
+): Promise<BuyerPriceAlertDto> {
+  return apiPostJson<BuyerPriceAlertDto>(
+    "/buyers/me/price-alerts",
+    body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** PATCH /api/v1/buyers/me/price-alerts/:id */
+export function updateBuyerPriceAlert(
+  accessToken: string,
+  activeProfileId: string | null | undefined,
+  alertId: string,
+  body: UpdateBuyerPriceAlertBody
+): Promise<BuyerPriceAlertDto> {
+  return apiPatchJson<BuyerPriceAlertDto>(
+    `/buyers/me/price-alerts/${encodeURIComponent(alertId)}`,
+    body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** DELETE /api/v1/buyers/me/price-alerts/:id */
+export function deleteBuyerPriceAlert(
+  accessToken: string,
+  activeProfileId: string | null | undefined,
+  alertId: string
+): Promise<{ ok: boolean }> {
+  return apiDeleteJson<{ ok: boolean }>(
+    `/buyers/me/price-alerts/${encodeURIComponent(alertId)}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** GET /api/v1/buyers/me/favorites */
+export function fetchBuyerFavorites(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<BuyerFavoriteListingDto[]> {
+  return apiGetJson<BuyerFavoriteListingDto[]>(
+    "/buyers/me/favorites",
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** GET /api/v1/buyers/me/favorites/ids */
+export function fetchBuyerFavoriteIds(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<string[]> {
+  return apiGetJson<string[]>(
+    "/buyers/me/favorites/ids",
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** POST /api/v1/buyers/me/favorites */
+export function addBuyerFavorite(
+  accessToken: string,
+  activeProfileId: string | null | undefined,
+  listingId: string
+): Promise<{ ok: boolean; listingId: string; favoriteId: string }> {
+  return apiPostJson(
+    "/buyers/me/favorites",
+    { listingId },
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** DELETE /api/v1/buyers/me/favorites/:listingId */
+export function removeBuyerFavorite(
+  accessToken: string,
+  activeProfileId: string | null | undefined,
+  listingId: string
+): Promise<{ ok: boolean }> {
+  return apiDeleteJson<{ ok: boolean }>(
+    `/buyers/me/favorites/${encodeURIComponent(listingId)}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+// ─── Profil technicien (`/technicians/me`) ───────────────────────────────────
+
+export type UpsertTechnicianProfileBody = {
+  experienceYears?: string;
+  specializations?: string[];
+  formation?: string;
+  profilePhotoUrl?: string;
+  onboardingComplete?: boolean;
+};
+
+export type TechnicianDashboardDto = {
+  farms: Array<{
+    farmId: string;
+    farmName: string;
+    speciesFocus: string | null;
+    role: string;
+    scopes: string[];
+  }>;
+  activeFarmId: string | null;
+  tasksTodayCount: number;
+  alertsCount: number;
+  kpis: {
+    activeAlerts: number;
+    overdueVaccines: number;
+    gestationThisWeek: number;
+    criticalStock: number;
+  };
+};
+
+export type TechnicianActivityRowDto = {
+  id: string;
+  farmId: string;
+  farmName: string;
+  module: string;
+  action: string;
+  detail: string | null;
+  createdAt: string;
+};
+
+/** PATCH /api/v1/technicians/me/profile */
+export function upsertTechnicianProfile(
+  accessToken: string,
+  activeProfileId: string | null | undefined,
+  body: UpsertTechnicianProfileBody
+): Promise<unknown> {
+  return apiPatchJson(
+    "/technicians/me/profile",
+    body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** GET /api/v1/technicians/me/dashboard */
+export function fetchTechnicianDashboard(
+  accessToken: string,
+  activeProfileId?: string | null,
+  farmId?: string
+): Promise<TechnicianDashboardDto> {
+  const q = farmId ? `?farmId=${encodeURIComponent(farmId)}` : "";
+  return apiGetJson<TechnicianDashboardDto>(
+    `/technicians/me/dashboard${q}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** GET /api/v1/technicians/me/activity */
+export function fetchTechnicianActivity(
+  accessToken: string,
+  activeProfileId?: string | null,
+  farmId?: string,
+  limit?: number
+): Promise<TechnicianActivityRowDto[]> {
+  const q = new URLSearchParams();
+  if (farmId) q.set("farmId", farmId);
+  if (limit != null) q.set("limit", String(limit));
+  const suffix = q.toString() ? `?${q.toString()}` : "";
+  return apiGetJson<TechnicianActivityRowDto[]>(
+    `/technicians/me/activity${suffix}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+// ─── Indice prix porc (`/market/pig-price-index`) ────────────────────────────
+
+export type PigPriceIndexPeriod = "7d" | "30d" | "3m" | "12m";
+
+export type PigPriceIndexPointDto = {
+  date: string;
+  avgPricePerKg: number;
+  listingAvgPrice: number | null;
+  transactionCount: number;
+  variationPct: number | null;
+  limitedData: boolean;
+};
+
+export type PigPriceIndexSeriesDto = {
+  key: string;
+  label: string;
+  color: string;
+  dashed?: boolean;
+  points: PigPriceIndexPointDto[];
+};
+
+export type PigPriceIndexChartDto = {
+  period: PigPriceIndexPeriod;
+  category: string;
+  insufficientData: boolean;
+  message: string | null;
+  series: PigPriceIndexSeriesDto[];
+  updatedAt: string;
+};
+
+export type PigPriceIndexTickerItemDto = {
+  category: string;
+  label: string;
+  icon: string;
+  pricePerKg: number | null;
+  variationPct: number | null;
+  color: string;
+};
+
+export type PigPriceIndexTickerDto = {
+  items: PigPriceIndexTickerItemDto[];
+  updatedAt: string;
+};
+
+export type PigPriceIndexStatsRowDto = {
+  category: string;
+  label: string;
+  todayPrice: number | null;
+  variation24h: number | null;
+  variation7d: number | null;
+  high30d: number | null;
+  low30d: number | null;
+  volume: number;
+};
+
+export type PigPriceIndexStatsDto = {
+  rows: PigPriceIndexStatsRowDto[];
+};
+
+/** GET /api/v1/market/pig-price-index */
+export function fetchPigPriceIndexChart(
+  accessToken: string,
+  activeProfileId?: string | null,
+  period: PigPriceIndexPeriod = "30d",
+  category?: string
+): Promise<PigPriceIndexChartDto> {
+  const q = new URLSearchParams();
+  q.set("period", period);
+  if (category) q.set("category", category);
+  return apiGetJson<PigPriceIndexChartDto>(
+    `/market/pig-price-index?${q.toString()}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** GET /api/v1/market/pig-price-index/ticker */
+export function fetchPigPriceIndexTicker(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<PigPriceIndexTickerDto> {
+  return apiGetJson<PigPriceIndexTickerDto>(
+    "/market/pig-price-index/ticker",
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** GET /api/v1/market/pig-price-index/stats */
+export function fetchPigPriceIndexStats(
+  accessToken: string,
+  activeProfileId?: string | null,
+  period: PigPriceIndexPeriod = "30d"
+): Promise<PigPriceIndexStatsDto> {
+  return apiGetJson<PigPriceIndexStatsDto>(
+    `/market/pig-price-index/stats?period=${encodeURIComponent(period)}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+// ─── Finance + stock aliment ─────────────────────────────────────────────────
+
+export type FinanceStockLineInput = {
+  feedTypeId?: string;
+  newFeedType?: { name: string; unit: "kg" | "sac" };
+  quantityInput: number;
+  quantityUnit: "kg" | "tonne" | "sac";
+  unitPrice?: number;
+  priceBasis?: "kg" | "sac";
+  supplier?: string;
+};
+
+export type PostFinanceTransactionWithStockPayload = {
+  amount: number;
+  currency?: string;
+  label: string;
+  financeCategoryId?: string;
+  occurredAt?: string;
+  note?: string;
+  attachmentUrl?: string;
+  recordStock?: boolean;
+  stockLines?: FinanceStockLineInput[];
+};
+
+/** POST /api/v1/farms/:farmId/finance/transactions/with-stock */
+export function postFinanceTransactionWithStock(
+  accessToken: string,
+  farmId: string,
+  payload: PostFinanceTransactionWithStockPayload,
+  activeProfileId?: string | null
+): Promise<FarmExpenseDto> {
+  return apiPostJson<FarmExpenseDto>(
+    `/farms/${farmId}/finance/transactions/with-stock`,
+    payload,
     accessToken,
     activeProfileId
   );

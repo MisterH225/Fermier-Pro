@@ -16,6 +16,7 @@ import { AcceptInvitationDto } from "./dto/accept-invitation.dto";
 import { CreateFarmInvitationDto } from "./dto/create-farm-invitation.dto";
 import { InviteByIdentifierDto } from "./dto/invite-by-identifier.dto";
 import { RespondInvitationDto } from "./dto/respond-invitation.dto";
+import { RespondMyInvitationDto } from "./dto/respond-my-invitation.dto";
 import { SearchCollaboratorDto } from "./dto/search-collaborator.dto";
 import { InvitationsService } from "./invitations.service";
 
@@ -145,12 +146,12 @@ export class InvitationsController {
   respondToMyInvitation(
     @CurrentUser() user: User,
     @Param("invitationId") invitationId: string,
-    @Body() body: { accept: boolean }
+    @Body() dto: RespondMyInvitationDto
   ) {
     return this.invitations.respondToMyInvitation(
       user,
       invitationId,
-      Boolean(body?.accept)
+      dto.accept === true
     );
   }
 }

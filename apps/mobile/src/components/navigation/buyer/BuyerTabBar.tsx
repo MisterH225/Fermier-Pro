@@ -18,7 +18,7 @@ const TAB_META: Record<BuyerMainTab, { icon: keyof typeof Ionicons.glyphMap; ico
   home: { icon: "home", iconOutline: "home-outline", labelKey: "buyer.nav.home" },
   market: { icon: "cart", iconOutline: "cart-outline", labelKey: "buyer.nav.market" },
   messages: { icon: "chatbubbles", iconOutline: "chatbubbles-outline", labelKey: "buyer.nav.messages" },
-  history: { icon: "receipt", iconOutline: "receipt-outline", labelKey: "buyer.nav.history" },
+  history: { icon: "receipt", iconOutline: "receipt-outline", labelKey: "buyer.nav.history" }
 };
 
 const H = BUYER_NAV_BAR_HEIGHT;

@@ -17,11 +17,19 @@ import {
   useWindowDimensions,
   View
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
+import { CreateMarketplaceListingModal } from "../components/marketplace/CreateMarketplaceListingModal";
+import {
+  MarketplaceListingCard,
+  MarketplaceListingCardSkeleton
+} from "../components/marketplace/MarketplaceListingCard";
+import { EmptyStateCard } from "../components/common/EmptyStateCard";
 import { EventList, type EventItem } from "../components/lists";
 import { EventListFilter } from "../components/lists/EventListFilter";
 import type { FilterPill } from "../components/lists/types";
 import { TabContent, TabSelector } from "../components/tabs";
+import { useBuyerBottomChromePad } from "../context/BuyerBottomChromeContext";
 import { useSession } from "../context/SessionContext";
 import type {
   MarketplaceListingListItem,
@@ -49,6 +57,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../theme/mobileTheme";
+import { buyerColors, buyerStackScreenOptions } from "../theme/buyerTheme";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MarketplaceList">;
@@ -138,7 +147,12 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
   const qc = useQueryClient();
 
   const buyerView = route.params?.buyerView === true;
+  const fromDashboard = route.params?.fromDashboard === true;
   const favoritesOnly = route.params?.favoritesOnly === true;
+  const buyerBottomPad = useBuyerBottomChromePad();
+  const buyerScrollBottomPad = buyerView
+    ? buyerBottomPad + mobileSpacing.lg
+    : mobileSpacing.xxl;
   const [marketTab, setMarketTab] = useState<MarketTab>(() => {
     const tab = initialMarketTab(route.params);
     return buyerView && tab === "mine" ? "listings" : tab;
@@ -159,6 +173,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     [favoriteIdsQ.data]
   );
   const [myFilter, setMyFilter] = useState<ListingFilter>("all");
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   useEffect(() => {
     setMarketTab(initialMarketTab(route.params));
@@ -237,13 +252,42 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
   });
 
   useLayoutEffect(() => {
+    const backToDashboard = () => navigation.navigate("BuyerDashboard");
+
     navigation.setOptions({
-      title: "Market",
-      headerRight:
-        clientFeatures.marketplace && marketTab === "mine"
+      ...(buyerView ? buyerStackScreenOptions : {}),
+      title: buyerView ? t("buyer.nav.market") : "Market",
+      headerLeft:
+        fromDashboard
           ? () => (
               <TouchableOpacity
-                onPress={() => navigation.navigate("CreateMarketplaceListing", {})}
+                onPress={backToDashboard}
+                style={styles.headerBackBtn}
+                hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel={t("buyer.backToHome")}
+              >
+                <Ionicons
+                  name="chevron-back"
+                  size={22}
+                  color={buyerView ? buyerColors.primary : mobileColors.accent}
+                />
+                <Text
+                  style={[
+                    styles.headerBackTx,
+                    buyerView && { color: buyerColors.primary }
+                  ]}
+                >
+                  {t("buyer.backToHome")}
+                </Text>
+              </TouchableOpacity>
+            )
+          : undefined,
+      headerRight:
+        clientFeatures.marketplace && marketTab === "mine" && !buyerView
+          ? () => (
+              <TouchableOpacity
+                onPress={() => setCreateModalOpen(true)}
                 style={{ paddingHorizontal: 8 }}
                 hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
               >
@@ -252,7 +296,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
             )
           : undefined
     });
-  }, [navigation, clientFeatures.marketplace, marketTab, t]);
+  }, [navigation, clientFeatures.marketplace, marketTab, t, buyerView, fromDashboard]);
 
   const categoryPills: FilterPill[] = useMemo(
     () => CATEGORY_PILLS.map((p) => ({ id: p.id, label: p.label })),
@@ -321,92 +365,21 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     });
   }, [myRows]);
 
-  const renderListingCard = ({ item }: { item: MarketplaceListingListItem }) => {
-    const photos = Array.isArray(item.photoUrls) ? item.photoUrls : [];
-    const uri = typeof photos[0] === "string" && photos[0].length > 0 ? photos[0] : null;
-    const wKg = parseNum(item.totalWeightKg);
-    const pKg = parseNum(item.pricePerKg);
-    const total = parseNum(item.totalPrice);
-    const cur = item.currency || "XOF";
-    const views = item.viewsCount ?? 0;
-    const consults = item.consultationsCount ?? 0;
-    const isNew = isNewListing(item.publishedAt ?? null);
-
-    return (
-      <TouchableOpacity
-        style={[styles.card, { width: cardW }]}
-        activeOpacity={0.92}
-        onPress={() =>
-          navigation.navigate("MarketplaceListingDetail", {
-            listingId: item.id,
-            headline: item.title
-          })
-        }
-      >
-        <View style={styles.photoWrap}>
-          {uri ? (
-            <Image source={{ uri }} style={styles.photo} resizeMode="cover" />
-          ) : (
-            <View style={[styles.photo, styles.photoPh]}>
-              <Text style={styles.photoPhTx}>📸</Text>
-            </View>
-          )}
-          <View style={[styles.badgeCat, { maxWidth: cardW - 56 }]}>
-            <Text style={styles.badgeCatTx} numberOfLines={1}>
-              {categoryLabel(item.category)}
-            </Text>
-          </View>
-          {isNew ? (
-            <View style={styles.badgeNew}>
-              <Text style={styles.badgeNewTx}>{t("marketScreen.badgeNew")}</Text>
-            </View>
-          ) : null}
-          {isBuyerProfile ? (
-            <Pressable
-              style={styles.favBtn}
-              hitSlop={10}
-              onPress={() => toggleFav(item.id)}
-            >
-              <Text style={styles.favTx}>{favoriteIdSet.has(item.id) ? "❤️" : "🤍"}</Text>
-            </Pressable>
-          ) : null}
-        </View>
-        <View style={styles.cardBody}>
-          {wKg != null ? (
-            <Text style={styles.lineMuted}>
-              {t("marketScreen.totalWeight")}{" "}
-              {`${wKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg`}
-            </Text>
-          ) : (
-            <Text style={styles.lineMuted}>{t("marketScreen.totalWeightEmpty")}</Text>
-          )}
-          {pKg != null ? (
-            <Text style={styles.lineMuted}>
-              {t("marketScreen.pricePerKg")} {formatMoney(pKg, cur)}
-            </Text>
-          ) : item.unitPrice != null ? (
-            <Text style={styles.lineMuted}>
-              {t("marketScreen.price")} {formatMoney(parseNum(item.unitPrice) ?? 0, cur)}
-            </Text>
-          ) : (
-            <Text style={styles.lineMuted}>{t("marketScreen.pricePerKgEmpty")}</Text>
-          )}
-          <Text style={styles.totalLine}>
-            {t("marketScreen.totalPrice")}{" "}
-            {total != null
-              ? formatMoney(total, cur)
-              : pKg != null && wKg != null
-                ? formatMoney(pKg * wKg, cur)
-                : "—"}
-          </Text>
-          <View style={styles.statsRow}>
-            <Text style={styles.statsTx}>👁 {views}</Text>
-            <Text style={styles.statsTx}>💬 {consults}</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+  const renderListingCard = ({ item }: { item: MarketplaceListingListItem }) => (
+    <MarketplaceListingCard
+      item={item}
+      width={cardW}
+      showFavorite={isBuyerProfile}
+      isFavorite={favoriteIdSet.has(item.id)}
+      onToggleFavorite={() => toggleFav(item.id)}
+      onPress={() =>
+        navigation.navigate("MarketplaceListingDetail", {
+          listingId: item.id,
+          headline: item.title
+        })
+      }
+    />
+  );
 
   const renderOfferRow = ({ item }: { item: MarketplaceOfferMineRow }) => (
     <View style={styles.offerCard}>
@@ -502,8 +475,10 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
   const listingsTabContent = () => {
     if (listingsQuery.isPending && !listingsQuery.data) {
       return (
-        <View style={styles.tabCentered}>
-          <ActivityIndicator size="large" color={mobileColors.accent} />
+        <View style={[styles.listingsPane, styles.skeletonGrid, { paddingHorizontal: mobileSpacing.lg }]}>
+          {[0, 1, 2, 3].map((i) => (
+            <MarketplaceListingCardSkeleton key={i} width={cardW} />
+          ))}
         </View>
       );
     }
@@ -514,8 +489,8 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
         </View>
       );
     }
-    return (
-      <View style={styles.listingsPane}>
+    const listingsHeader = (
+      <View style={styles.listHeader}>
         <View style={styles.searchRow}>
           <TextInput
             style={styles.search}
@@ -526,27 +501,31 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
             autoCapitalize="none"
             autoCorrect={false}
           />
-          <TouchableOpacity
-            style={styles.filterAdv}
-            onPress={() => {}}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={styles.filterAdvTx}>🎛️</Text>
-          </TouchableOpacity>
         </View>
-        <EventListFilter
-          pills={categoryPills}
-          activeId={category}
-          onChange={(id) => setCategory(id as CatKey)}
-          activeBackground={PILL_ACTIVE}
-        />
+        <View style={styles.filterRow}>
+          <EventListFilter
+            pills={categoryPills}
+            activeId={category}
+            onChange={(id) => setCategory(id as CatKey)}
+            activeBackground={PILL_ACTIVE}
+          />
+        </View>
+      </View>
+    );
+
+    return (
+      <View style={styles.listingsPane}>
         <FlatList
           style={styles.listingsList}
           data={listingsList}
           keyExtractor={(item) => item.id}
           numColumns={2}
           columnWrapperStyle={styles.colWrap}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[
+            styles.listContent,
+            buyerView && { paddingBottom: buyerScrollBottomPad }
+          ]}
+          ListHeaderComponent={listingsHeader}
           refreshControl={
             <RefreshControl
               refreshing={favoritesOnly ? favoritesListQuery.isFetching : listingsQuery.isFetching}
@@ -554,7 +533,16 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
               tintColor={mobileColors.accent}
             />
           }
-          ListEmptyComponent={<Text style={styles.empty}>{listingsEmpty}</Text>}
+          ListEmptyComponent={
+            <EmptyStateCard
+              title={listingsEmpty}
+              subtitle={
+                favoritesOnly
+                  ? undefined
+                  : t("marketScreen.emptyListingsHint")
+              }
+            />
+          }
           renderItem={renderListingCard}
         />
       </View>
@@ -670,7 +658,7 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
           />
         }
         ListEmptyComponent={
-          <Text style={styles.empty}>{t("marketScreen.emptyOffers")}</Text>
+          <EmptyStateCard title={t("marketScreen.emptyOffers")} />
         }
         renderItem={renderOfferRow}
       />
@@ -688,28 +676,42 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
   return (
     <MarketplaceModuleGate>
       <View style={styles.root}>
-        <TabSelector
-          activeTab={marketTab}
-          onTabChange={(key) => setMarketTab(key as MarketTab)}
-          tabs={[
-            {
-              key: "listings",
-              label: t("marketScreen.tabListings"),
-              content: listingsTabContent()
-            },
-            {
-              key: "mine",
-              label: t("marketScreen.tabMyListings"),
-              content: myListingsTabContent()
-            },
-            {
-              key: "offers",
-              label: t("marketScreen.tabOffers"),
-              content: offersTabContent()
-            }
-          ]}
-        />
+        {buyerView ? (
+          listingsTabContent()
+        ) : (
+          <TabSelector
+            activeTab={marketTab}
+            onTabChange={(key) => setMarketTab(key as MarketTab)}
+            tabs={[
+              {
+                key: "listings",
+                label: t("marketScreen.tabListings"),
+                content: listingsTabContent()
+              },
+              {
+                key: "mine",
+                label: t("marketScreen.tabMyListings"),
+                content: myListingsTabContent()
+              },
+              {
+                key: "offers",
+                label: t("marketScreen.tabOffers"),
+                content: offersTabContent()
+              }
+            ]}
+          />
+        )}
       </View>
+      <CreateMarketplaceListingModal
+        visible={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onCreated={(created) =>
+          navigation.navigate("MarketplaceListingDetail", {
+            listingId: created.id,
+            headline: created.title
+          })
+        }
+      />
     </MarketplaceModuleGate>
   );
 }
@@ -720,9 +722,21 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.canvas
   },
   headerAction: {
-    color: "#fff",
+    color: mobileColors.accent,
     fontWeight: "600",
     fontSize: 15
+  },
+  headerBackBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingLeft: 4,
+    gap: 2
+  },
+  headerBackTx: {
+    ...mobileTypography.body,
+    color: mobileColors.accent,
+    fontWeight: "600",
+    fontSize: 16
   },
   tabCentered: {
     flex: 1,
@@ -734,15 +748,25 @@ const styles = StyleSheet.create({
   tabScrollGrow: { flexGrow: 1 },
   listingsPane: {
     flex: 1,
-    minHeight: 0,
-    paddingTop: mobileSpacing.sm
+    minHeight: 0
   },
   listingsList: { flex: 1 },
+  listHeader: {
+    flexGrow: 0,
+    flexShrink: 0,
+    paddingTop: mobileSpacing.sm,
+    paddingBottom: mobileSpacing.xs,
+    gap: mobileSpacing.xs
+  },
+  filterRow: {
+    flexGrow: 0,
+    flexShrink: 0,
+    paddingHorizontal: mobileSpacing.lg
+  },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: mobileSpacing.sm,
-    marginBottom: mobileSpacing.sm,
     paddingHorizontal: mobileSpacing.lg
   },
   search: {
@@ -773,8 +797,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: mobileSpacing.lg
   },
   listContent: {
-    paddingBottom: mobileSpacing.xxl,
-    paddingTop: mobileSpacing.xs
+    paddingBottom: mobileSpacing.xxl
+  },
+  skeletonGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: mobileSpacing.md,
+    paddingTop: mobileSpacing.sm
   },
   empty: {
     ...mobileTypography.body,

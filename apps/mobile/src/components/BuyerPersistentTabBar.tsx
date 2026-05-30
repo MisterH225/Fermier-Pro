@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ExtendedMenuGrid } from "./navigation/ExtendedMenuGrid";
 import { BuyerTabBar } from "./navigation/buyer/BuyerTabBar";
 import { buyerMainTabFromRoute } from "./navigation/buyer/buyerMainTabs";
-import { BUYER_NAV_FLOAT_BOTTOM } from "./navigation/buyer/buyerNavMetrics";
+import { BUYER_NAV_FLOAT_BOTTOM, BUYER_NAV_BAR_HEIGHT } from "./navigation/buyer/buyerNavMetrics";
 import type { ExtendedNavMenuId } from "./navigation/types";
 import type { BuyerMainTab } from "./navigation/buyer/types";
 import { useSession } from "../context/SessionContext";
@@ -51,8 +51,8 @@ export function BuyerPersistentTabBar() {
   );
 
   const activeTab = useMemo(
-    () => buyerMainTabFromRoute(focused?.name),
-    [focused?.name]
+    () => buyerMainTabFromRoute(focused?.name, focused?.params),
+    [focused?.name, focused?.params]
   );
 
   const onTabPress = useCallback(
@@ -131,6 +131,8 @@ export function BuyerPersistentTabBar() {
         onClose={() => setExtendedOpen(false)}
         items={[...extendedItems]}
         onSelect={onExtendedSelect}
+        navFloatBottom={BUYER_NAV_FLOAT_BOTTOM}
+        navBarHeight={BUYER_NAV_BAR_HEIGHT}
       />
     </View>
   );

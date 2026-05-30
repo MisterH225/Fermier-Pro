@@ -1,7 +1,7 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useLayoutEffect } from "react";
+import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -14,6 +14,8 @@ import {
   View
 } from "react-native";
 import { MobileAppShell } from "../components/layout";
+import { ConversationRow } from "../components/messaging/ConversationRow";
+import { ConversationSearchBar } from "../components/messaging/ConversationSearchBar";
 import { useProducerBottomChromePad } from "../context/ProducerBottomChromeContext";
 import { useSession } from "../context/SessionContext";
 import {
@@ -21,6 +23,7 @@ import {
   fetchChatRooms,
   type ChatRoomListItem
 } from "../lib/api";
+import { filterChatRooms } from "../lib/filterChatRooms";
 import {
   mobileColors,
   mobileRadius,
@@ -73,6 +76,7 @@ export function ProducerMessagesScreen() {
   const bottomPad = useProducerBottomChromePad();
   const { accessToken, activeProfileId, authMe } = useSession();
   const myUserId = authMe?.user.id;
+  const [search, setSearch] = useState("");
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -102,7 +106,10 @@ export function ProducerMessagesScreen() {
     }, [roomsQ.refetch])
   );
 
-  const rooms = roomsQ.data ?? [];
+  const rooms = useMemo(
+    () => filterChatRooms(roomsQ.data ?? [], search, myUserId),
+    [roomsQ.data, search, myUserId]
+  );
 
   return (
     <MobileAppShell hideTopBar omitBottomTabBar>
@@ -146,48 +153,19 @@ export function ProducerMessagesScreen() {
                 </Text>
               </View>
             }
-            renderItem={({ item }) => {
-              const title = roomTitle(item, myUserId);
-              const preview = lastPreview(item);
-              const time = lastTime(item);
-              return (
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.card,
-                    pressed && styles.cardPressed
-                  ]}
-                  onPress={() =>
-                    navigation.navigate("ChatRoom", {
-                      roomId: item.id,
-                      headline: title
-                    })
-                  }
-                >
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarTx}>{initials(title)}</Text>
-                  </View>
-                  <View style={styles.cardBody}>
-                    <View style={styles.cardTopRow}>
-                      <Text style={styles.cardTitle} numberOfLines={1}>
-                        {title}
-                      </Text>
-                      {time ? (
-                        <Text style={styles.cardTime}>{time}</Text>
-                      ) : null}
-                    </View>
-                    {preview ? (
-                      <Text style={styles.cardPreview} numberOfLines={2}>
-                        {preview}
-                      </Text>
-                    ) : (
-                      <Text style={styles.cardMuted}>
-                        {t("producer.messages.noMessage")}
-                      </Text>
-                    )}
-                  </View>
-                </Pressable>
-              );
-            }}
+            renderItem={({ item }) => (
+              <ConversationRow
+                room={item}
+                myUserId={myUserId}
+                onPress={() =>
+                  navigation.navigate("ChatRoom", {
+                    roomId: item.id,
+                    headline: roomTitle(item, myUserId),
+                    listingId: item.marketplaceListingId ?? undefined
+                  })
+                }
+              />
+            )}
           />
         )}
       </View>

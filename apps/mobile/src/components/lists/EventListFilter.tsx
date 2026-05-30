@@ -25,6 +25,7 @@ export function EventListFilter({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={styles.strip}
       contentContainerStyle={styles.scroll}
     >
       {pills.map((p) => {
@@ -48,8 +49,15 @@ export function EventListFilter({
 }
 
 const styles = StyleSheet.create({
+  /** Évite qu’un ScrollView horizontal absorbe la hauteur du parent flex. */
+  strip: {
+    flexGrow: 0,
+    flexShrink: 0,
+    alignSelf: "stretch",
+    maxHeight: 48
+  },
   scroll: {
-    paddingVertical: mobileSpacing.sm,
+    paddingVertical: mobileSpacing.xs,
     gap: mobileSpacing.sm,
     flexDirection: "row",
     alignItems: "center"

@@ -15,7 +15,10 @@ import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { FeatureEnabledGuard } from "../config-client/feature-enabled.guard";
 import { RequireFeature } from "../config-client/require-feature.decorator";
 import { CreateListingDto } from "./dto/create-listing.dto";
+import { CompleteHandoverDto } from "./dto/complete-handover.dto";
 import { PickupListingDto } from "./dto/pickup-listing.dto";
+import { PublishListingDto } from "./dto/publish-listing.dto";
+import { RenewListingDto } from "./dto/renew-listing.dto";
 import { UpdateListingDto } from "./dto/update-listing.dto";
 import { ListingsService } from "./listings.service";
 
@@ -79,8 +82,21 @@ export class ListingsController {
   }
 
   @Post(":id/publish")
-  publish(@CurrentUser() user: User, @Param("id") id: string) {
-    return this.listings.publish(user, id);
+  publish(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() dto: PublishListingDto
+  ) {
+    return this.listings.publish(user, id, dto);
+  }
+
+  @Post(":id/renew")
+  renew(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() dto: RenewListingDto
+  ) {
+    return this.listings.renew(user, id, dto);
   }
 
   @Post(":id/cancel")
@@ -98,7 +114,11 @@ export class ListingsController {
   }
 
   @Post(":id/complete-handover")
-  completeHandover(@CurrentUser() user: User, @Param("id") id: string) {
-    return this.listings.completeHandover(user, id);
+  completeHandover(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() dto: CompleteHandoverDto
+  ) {
+    return this.listings.completeHandover(user, id, dto);
   }
 }

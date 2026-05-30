@@ -11,6 +11,7 @@ import { Prisma } from "@prisma/client";
 import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
+import { AgeCalculationService } from "../cheptel/age-calculation.service";
 import { PenAllocationService } from "./pen-allocation.service";
 import { CreateBarnDto } from "./dto/create-barn.dto";
 import { CreatePenDto } from "./dto/create-pen.dto";
@@ -29,6 +30,7 @@ export class HousingService {
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
     private readonly penAllocation: PenAllocationService,
+    private readonly ageCalculation: AgeCalculationService,
     @Inject(forwardRef(() => SmartAlertsService))
     private readonly smartAlerts: SmartAlertsService
   ) {}
@@ -190,7 +192,7 @@ export class HousingService {
 
   async getPenDetail(user: User, farmId: string, penId: string) {
     await this.requirePenInFarm(user.id, farmId, penId);
-    return this.prisma.pen.findFirst({
+    const pen = await this.prisma.pen.findFirst({
       where: { id: penId, barn: { farmId } },
       include: {
         barn: { select: { id: true, name: true, farmId: true } },
@@ -225,6 +227,11 @@ export class HousingService {
         }
       }
     });
+    if (!pen) {
+      throw new NotFoundException("Loge introuvable");
+    }
+    const ageData = await this.ageCalculation.calculatePenAverageAgeWeeks(penId);
+    return { ...pen, ageData };
   }
 
   async updatePen(user: User, farmId: string, penId: string, dto: UpdatePenDto) {
@@ -250,8 +257,8 @@ export class HousingService {
                   : new Prisma.Decimal(dto.averageWeightKg)
             }
           : {}),
-        ...(dto.averageAgeWeeks !== undefined
-          ? { averageAgeWeeks: dto.averageAgeWeeks }
+        ...(dto.averageAgeWeeksManual !== undefined
+          ? { averageAgeWeeksManual: dto.averageAgeWeeksManual }
           : {})
       }
     });
@@ -499,6 +506,19 @@ export class HousingService {
         }
       }
     });
+
+    if (kind === "animal") {
+      const sourcePenId =
+        dto.fromPenId ?? [...fromPenIdsTouched][0] ?? null;
+      if (sourcePenId) {
+        await this.ageCalculation.recalculatePenAverageAfterTransfer(
+          sourcePenId,
+          dto.toPenId
+        );
+      } else {
+        await this.ageCalculation.calculatePenAverageAgeWeeks(dto.toPenId);
+      }
+    }
 
     // Hors transaction : rafraîchit les SmartAlerts (incluant la règle
     // « Requalification loge Démarrage ») — best effort, ne bloque pas le

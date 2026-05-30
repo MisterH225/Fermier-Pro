@@ -677,6 +677,10 @@ model Animal {
   sex       AnimalSex @default(unknown)
   productionCategory AnimalProductionCategory @default(unknown)
   birthDate DateTime?
+  /// Âge estimé en semaines au moment de l'entrée dans la ferme (si naissance inconnue).
+  ageWeeksAtEntry Int?
+  /// Date d'entrée dans la ferme (≠ date d'assignation à une loge).
+  entryDate       DateTime? @db.Date
   /// Mise bas prévue (truies / suivi reproduction) — alimente le dashboard gestations.
   expectedFarrowingAt DateTime?
   status    String    @default("active")
@@ -832,8 +836,8 @@ model Pen {
   category         PenCategory?
   categoryForced   Boolean      @default(false)
   averageWeightKg  Decimal?     @db.Decimal(10, 3)
-  /// Âge moyen des sujets de la loge, en SEMAINES entières (0 — 104).
-  averageAgeWeeks  Int?
+  /// Saisie manuelle de l'âge moyen (semaines) — fallback si aucun animal avec âge connu.
+  averageAgeWeeksManual Int?
   sortOrder        Int          @default(0)
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
@@ -1159,6 +1163,7 @@ model MarketplaceListing {
   updatedAt     DateTime        @updatedAt
   offers        MarketplaceOffer[]
   favorites     BuyerFavorite[]
+  chatRooms     ChatRoom[]
 
   @@index([sellerUserId])
   @@index([status])
@@ -1394,27 +1399,32 @@ enum ChatRoomKind {
 }
 
 model ChatRoom {
-  id        String           @id @default(cuid())
-  kind      ChatRoomKind
-  farmId    String?          @unique
-  farm      Farm?            @relation(fields: [farmId], references: [id], onDelete: Cascade)
-  directKey String?          @unique
-  title     String?
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-  members   ChatRoomMember[]
-  messages  ChatMessage[]
+  id                    String              @id @default(cuid())
+  kind                  ChatRoomKind
+  farmId                String?             @unique
+  farm                  Farm?               @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  directKey             String?             @unique
+  title                 String?
+  /// Annonce marketplace liée à la négociation (chat acheteur ↔ vendeur).
+  marketplaceListingId  String?
+  marketplaceListing    MarketplaceListing? @relation(fields: [marketplaceListingId], references: [id], onDelete: SetNull)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  members               ChatRoomMember[]
+  messages              ChatMessage[]
 
   @@index([kind])
+  @@index([marketplaceListingId])
 }
 
 model ChatRoomMember {
-  id     String   @id @default(cuid())
-  roomId String
-  room   ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  userId String
-  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  joinedAt DateTime @default(now())
+  id         String    @id @default(cuid())
+  roomId     String
+  room       ChatRoom  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt   DateTime  @default(now())
+  lastReadAt DateTime?
 
   @@unique([roomId, userId])
   @@index([userId])

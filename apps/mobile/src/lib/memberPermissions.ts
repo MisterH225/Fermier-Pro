@@ -1,4 +1,7 @@
-import type { InvitationPermissions } from "./api";
+import type {
+  InvitationPermissions,
+  InvitationRecipientKind
+} from "./api";
 
 /** Convertit les permissions UI en liste de scopes RBAC. */
 export function permissionsToScopes(perms: InvitationPermissions): string[] {
@@ -47,6 +50,45 @@ export const ALL_PERMISSION_KEYS: readonly PermissionKey[] = [
   "health",
   "finance"
 ] as const;
+
+/** Permissions par défaut selon le type de collaborateur (invitation / scan QR). */
+export function defaultPermissionsForRecipientKind(
+  kind: InvitationRecipientKind
+): InvitationPermissions {
+  switch (kind) {
+    case "veterinarian":
+      return { readOnly: true, health: true };
+    case "technician":
+      return { readOnly: true, dataEntry: true };
+    default:
+      return { readOnly: true };
+  }
+}
+
+/** Étiquette UI mobile → rôle API (`MembershipRole`). */
+export function recipientKindToMembershipRole(
+  kind: InvitationRecipientKind
+): string {
+  switch (kind) {
+    case "veterinarian":
+      return "veterinarian";
+    case "technician":
+      return "worker";
+    case "partner":
+      return "viewer";
+  }
+}
+
+export function toggleInvitationPermission(
+  prev: InvitationPermissions,
+  key: PermissionKey
+): InvitationPermissions {
+  const next: InvitationPermissions = { ...prev, [key]: !prev[key] };
+  const hasOther =
+    Boolean(next.dataEntry) || Boolean(next.health) || Boolean(next.finance);
+  if (!hasOther) next.readOnly = true;
+  return next;
+}
 
 /** Badge couleur selon le rôle UI (recipientKind ou MembershipRole). */
 export const ROLE_BADGE_COLOR: Record<string, string> = {

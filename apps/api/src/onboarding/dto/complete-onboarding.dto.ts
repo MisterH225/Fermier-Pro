@@ -81,4 +81,12 @@ export class CompleteOnboardingDto {
   @Min(1)
   @Max(10_000)
   maxPigsPerPen!: number;
+
+  /** Âge moyen estimé (semaines) pour les animaux de production créés en masse. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(104)
+  productionEstimatedAgeWeeks?: number;
 }

@@ -1,7 +1,7 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useLayoutEffect } from "react";
+import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -13,7 +13,8 @@ import {
   View
 } from "react-native";
 import { ChatModuleGate } from "../../components/ChatModuleGate";
-import { ConversationItem } from "../../components/vet/ConversationItem";
+import { ConversationRow } from "../../components/messaging/ConversationRow";
+import { ConversationSearchBar } from "../../components/messaging/ConversationSearchBar";
 import { useVetBottomChromePad } from "../../context/VetBottomChromeContext";
 import { useSession } from "../../context/SessionContext";
 import {
@@ -21,6 +22,7 @@ import {
   fetchChatRooms,
   type ChatRoomListItem
 } from "../../lib/api";
+import { filterChatRooms } from "../../lib/filterChatRooms";
 import { vetColors } from "../../theme/vetTheme";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
@@ -96,6 +98,13 @@ export function VetMessagesScreen() {
           </View>
         ) : (
           <FlatList
+            ListHeaderComponent={
+              <ConversationSearchBar
+                value={search}
+                onChangeText={setSearch}
+                accentColor={vetColors.primary}
+              />
+            }
             data={rooms}
             keyExtractor={(item) => item.id}
             contentContainerStyle={
@@ -116,12 +125,10 @@ export function VetMessagesScreen() {
               </View>
             }
             renderItem={({ item }) => (
-              <ConversationItem
+              <ConversationRow
                 room={item}
                 myUserId={myUserId}
                 onPress={() => openRoom(item)}
-                onMessage={() => openRoom(item)}
-                onCall={() => openRoom(item)}
               />
             )}
           />

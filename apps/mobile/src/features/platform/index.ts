@@ -8,7 +8,7 @@ export { ModuleRoadmapScreen } from "../../screens/ModuleRoadmapScreen";
 export { SmartAlertsListScreen } from "../../screens/SmartAlertsListScreen";
 export { ProducerDashboardScreen } from "../../screens/ProducerDashboardScreen";
 export { ProducerFarmSettingsScreen } from "../../screens/ProducerFarmSettingsScreen";
-export { BuyerDashboardScreen } from "../../screens/BuyerDashboardScreen";
+export { BuyerDashboardScreen } from "../../screens/buyer/BuyerDashboardScreen";
 export { VeterinarianDashboardScreen } from "../../screens/VeterinarianDashboardScreen";
 export { TechnicianDashboardScreen } from "../../screens/TechnicianDashboardScreen";
 export { ProducerMessagesScreen } from "../../screens/ProducerMessagesScreen";

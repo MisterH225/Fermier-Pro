@@ -1,17 +1,22 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View
 } from "react-native";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
+import { MobileAppShell } from "../components/layout";
+import { ModalSection } from "../components/modals/ModalSection";
 import { useSession } from "../context/SessionContext";
 import {
   fetchMarketplaceListing,
@@ -19,12 +24,19 @@ import {
   updateMarketplaceListing
 } from "../lib/api";
 import { marketplaceActionErrorMessage } from "../lib/marketplaceLabels";
+import {
+  mobileColors,
+  mobileRadius,
+  mobileSpacing,
+  mobileTypography
+} from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "EditMarketplaceListing">;
 
 export function EditMarketplaceListingScreen({ navigation, route }: Props) {
   const { listingId } = route.params;
+  const { t } = useTranslation();
   const { accessToken, activeProfileId, authMe, clientFeatures } = useSession();
   const qc = useQueryClient();
   const synced = useRef(false);
@@ -71,12 +83,12 @@ export function EditMarketplaceListingScreen({ navigation, route }: Props) {
 
   const mut = useMutation({
     mutationFn: () => {
-      const t = title.trim();
-      if (!t) {
+      const trimmed = title.trim();
+      if (!trimmed) {
         throw new Error("Le titre est obligatoire.");
       }
       const payload: UpdateMarketplaceListingPayload = {
-        title: t,
+        title: trimmed,
         description: description.trim() ? description.trim() : null,
         currency: currency.trim() || "XOF",
         locationLabel: locationLabel.trim() ? locationLabel.trim() : null
@@ -116,7 +128,7 @@ export function EditMarketplaceListingScreen({ navigation, route }: Props) {
     },
     onError: (e: Error) =>
       Alert.alert(
-        "Enregistrement impossible",
+        t("marketScreen.createForm.errorTitle"),
         marketplaceActionErrorMessage(e.message)
       )
   });
@@ -134,13 +146,15 @@ export function EditMarketplaceListingScreen({ navigation, route }: Props) {
 
   if (q.isPending || !q.data) {
     return (
-      <View style={styles.centered}>
-        {err ? (
-          <Text style={styles.error}>{err}</Text>
-        ) : (
-          <ActivityIndicator size="large" color="#5d7a1f" />
-        )}
-      </View>
+      <MobileAppShell hideTopBar>
+        <View style={styles.centered}>
+          {err ? (
+            <Text style={styles.error}>{err}</Text>
+          ) : (
+            <ActivityIndicator size="large" color={mobileColors.accent} />
+          )}
+        </View>
+      </MobileAppShell>
     );
   }
 
@@ -148,159 +162,173 @@ export function EditMarketplaceListingScreen({ navigation, route }: Props) {
   const myId = authMe?.user.id;
   if (!myId || L.sellerUserId !== myId) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.error}>Tu ne peux modifier que tes propres annonces.</Text>
-      </View>
+      <MobileAppShell hideTopBar>
+        <View style={styles.centered}>
+          <Text style={styles.error}>Tu ne peux modifier que tes propres annonces.</Text>
+        </View>
+      </MobileAppShell>
     );
   }
 
   if (L.status === "sold" || L.status === "cancelled") {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.error}>
-          Cette annonce est clôturée et ne peut plus être modifiée.
-        </Text>
-      </View>
+      <MobileAppShell hideTopBar>
+        <View style={styles.centered}>
+          <Text style={styles.error}>
+            Cette annonce est clôturée et ne peut plus être modifiée.
+          </Text>
+        </View>
+      </MobileAppShell>
     );
   }
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-    >
-      <Text style={styles.meta}>
-        Ferme / animal ne sont pas modifiables après création.
-      </Text>
-
-      <Text style={styles.label}>Titre *</Text>
-      <TextInput
-        style={styles.input}
-        value={title}
-        onChangeText={setTitle}
-        placeholder="Titre"
-        placeholderTextColor="#999"
-      />
-
-      <Text style={styles.label}>Description</Text>
-      <TextInput
-        style={[styles.input, styles.inputMulti]}
-        value={description}
-        onChangeText={setDescription}
-        placeholder="Description"
-        placeholderTextColor="#999"
-        multiline
-      />
-
-      <Text style={styles.label}>Prix unitaire</Text>
-      <TextInput
-        style={styles.input}
-        value={unitPrice}
-        onChangeText={setUnitPrice}
-        keyboardType="decimal-pad"
-        placeholderTextColor="#999"
-      />
-
-      <Text style={styles.label}>Quantité</Text>
-      <TextInput
-        style={styles.input}
-        value={quantity}
-        onChangeText={setQuantity}
-        keyboardType="number-pad"
-        placeholderTextColor="#999"
-      />
-
-      <Text style={styles.label}>Devise</Text>
-      <TextInput
-        style={styles.input}
-        value={currency}
-        onChangeText={setCurrency}
-        autoCapitalize="characters"
-        placeholderTextColor="#999"
-      />
-
-      <Text style={styles.label}>Lieu / retrait</Text>
-      <TextInput
-        style={styles.input}
-        value={locationLabel}
-        onChangeText={setLocationLabel}
-        placeholderTextColor="#999"
-      />
-
-      <TouchableOpacity
-        style={[styles.submit, mut.isPending && styles.submitDisabled]}
-        disabled={mut.isPending}
-        onPress={() => mut.mutate()}
+    <MobileAppShell hideTopBar>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <Text style={styles.submitTxt}>
-          {mut.isPending ? "Enregistrement…" : "Enregistrer"}
-        </Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.meta}>
+            Ferme / animal ne sont pas modifiables après création.
+          </Text>
+
+          <ModalSection title={t("marketScreen.createForm.sectionListing")}>
+            <Text style={styles.lab}>{t("marketScreen.createForm.title")} *</Text>
+            <TextInput
+              style={styles.input}
+              value={title}
+              onChangeText={setTitle}
+              placeholder={t("marketScreen.createForm.titlePlaceholder")}
+              placeholderTextColor={mobileColors.textSecondary}
+            />
+
+            <Text style={styles.lab}>{t("marketScreen.createForm.description")}</Text>
+            <TextInput
+              style={[styles.input, styles.inputMulti]}
+              value={description}
+              onChangeText={setDescription}
+              placeholder={t("marketScreen.createForm.descriptionPlaceholder")}
+              placeholderTextColor={mobileColors.textSecondary}
+              multiline
+            />
+          </ModalSection>
+
+          <ModalSection title={t("marketScreen.createForm.sectionPricing")}>
+            <Text style={styles.lab}>{t("marketScreen.createForm.unitPrice")}</Text>
+            <TextInput
+              style={styles.input}
+              value={unitPrice}
+              onChangeText={setUnitPrice}
+              keyboardType="decimal-pad"
+              placeholderTextColor={mobileColors.textSecondary}
+            />
+
+            <Text style={styles.lab}>{t("marketScreen.createForm.quantity")}</Text>
+            <TextInput
+              style={styles.input}
+              value={quantity}
+              onChangeText={setQuantity}
+              keyboardType="number-pad"
+              placeholderTextColor={mobileColors.textSecondary}
+            />
+
+            <Text style={styles.lab}>{t("marketScreen.createForm.currency")}</Text>
+            <TextInput
+              style={styles.input}
+              value={currency}
+              onChangeText={setCurrency}
+              autoCapitalize="characters"
+              placeholderTextColor={mobileColors.textSecondary}
+            />
+          </ModalSection>
+
+          <ModalSection title={t("marketScreen.createForm.sectionLocation")}>
+            <Text style={styles.lab}>{t("marketScreen.createForm.location")}</Text>
+            <TextInput
+              style={styles.input}
+              value={locationLabel}
+              onChangeText={setLocationLabel}
+              placeholder={t("marketScreen.createForm.locationPlaceholder")}
+              placeholderTextColor={mobileColors.textSecondary}
+            />
+          </ModalSection>
+
+          <Pressable
+            style={[styles.submit, mut.isPending && styles.submitDisabled]}
+            disabled={mut.isPending || !title.trim()}
+            onPress={() => mut.mutate()}
+          >
+            {mut.isPending ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.submitTx}>Enregistrer</Text>
+            )}
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </MobileAppShell>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    flex: 1,
-    backgroundColor: "#f9f8ea"
-  },
+  flex: { flex: 1 },
   content: {
-    padding: 16,
-    paddingBottom: 40
+    padding: mobileSpacing.lg,
+    paddingBottom: mobileSpacing.xxl,
+    gap: mobileSpacing.md
   },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
-    backgroundColor: "#f9f8ea"
+    padding: mobileSpacing.xl
   },
   error: {
-    color: "#b00020",
-    textAlign: "center"
+    color: mobileColors.error,
+    textAlign: "center",
+    ...mobileTypography.body
   },
   meta: {
-    fontSize: 13,
-    color: "#6d745b",
-    marginBottom: 8,
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
     lineHeight: 18
   },
-  label: {
-    fontSize: 13,
-    color: "#4b513d",
-    marginTop: 16,
-    marginBottom: 6,
-    fontWeight: "600"
+  lab: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginBottom: 4,
+    marginTop: mobileSpacing.xs
   },
   input: {
-    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#e0e4d4",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: "#1f2910"
+    borderColor: mobileColors.border,
+    borderRadius: mobileRadius.md,
+    paddingHorizontal: mobileSpacing.md,
+    paddingVertical: mobileSpacing.sm,
+    ...mobileTypography.body,
+    color: mobileColors.textPrimary,
+    backgroundColor: mobileColors.surfaceMuted
   },
   inputMulti: {
-    minHeight: 100,
+    minHeight: 96,
     textAlignVertical: "top"
   },
   submit: {
-    marginTop: 24,
-    backgroundColor: "#5d7a1f",
-    paddingVertical: 14,
-    borderRadius: 12,
+    marginTop: mobileSpacing.sm,
+    backgroundColor: mobileColors.accent,
+    paddingVertical: mobileSpacing.md,
+    borderRadius: mobileRadius.md,
     alignItems: "center"
   },
-  submitDisabled: {
-    opacity: 0.65
-  },
-  submitTxt: {
+  submitDisabled: { opacity: 0.55 },
+  submitTx: {
+    ...mobileTypography.body,
     color: "#fff",
-    fontWeight: "700",
-    fontSize: 16
+    fontWeight: "700"
   }
 });

@@ -7,8 +7,16 @@ const ROUTES: Record<BuyerMainTab, string> = {
   history: "BuyerHistory"
 };
 
-export function buyerMainTabFromRoute(routeName: string | undefined): BuyerMainTab | null {
+export function buyerMainTabFromRoute(
+  routeName: string | undefined,
+  params?: Record<string, unknown>
+): BuyerMainTab | null {
   if (!routeName) return null;
-  const hit = (Object.entries(ROUTES) as [BuyerMainTab, string][]).find(([, r]) => r === routeName);
+  if (routeName === "MarketplaceList" && params?.buyerView === true) {
+    return "market";
+  }
+  const hit = (Object.entries(ROUTES) as [BuyerMainTab, string][]).find(
+    ([, r]) => r === routeName
+  );
   return hit?.[0] ?? null;
 }

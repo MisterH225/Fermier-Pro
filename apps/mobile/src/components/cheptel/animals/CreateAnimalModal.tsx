@@ -83,6 +83,7 @@ export function CreateAnimalModal({
   const [breedId, setBreedId] = useState<string | null>(null);
   const [sex, setSex] = useState<"male" | "female">("female");
   const [birthDate, setBirthDate] = useState("");
+  const [ageAtEntry, setAgeAtEntry] = useState("");
   const [entryWeight, setEntryWeight] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -104,6 +105,7 @@ export function CreateAnimalModal({
     setCategory("breeding_female");
     setBreedId(null);
     setBirthDate("");
+    setAgeAtEntry("");
     setEntryWeight("");
     setNotes("");
     setSex("female");
@@ -157,12 +159,20 @@ export function CreateAnimalModal({
       throw new Error(t("cheptel.animals.create.tagRequired"));
     }
     const payloadSex = isBreeder ? sex : ("unknown" as const);
+    const ageRaw = ageAtEntry.trim()
+      ? Number.parseInt(ageAtEntry, 10)
+      : null;
+    const ageWeeksAtEntry =
+      birthDate.trim() || ageRaw == null || !Number.isFinite(ageRaw)
+        ? undefined
+        : Math.max(0, ageRaw);
     return {
       tagCode: tag,
       breedId: breedId ?? undefined,
       sex: payloadSex,
       productionCategory: category,
       birthDate: birthDate.trim() || undefined,
+      ageWeeksAtEntry,
       notes: notes.trim() || undefined,
       speciesId: porcSpecies?.id
     };
@@ -372,6 +382,7 @@ export function CreateAnimalModal({
 
       <ModalSection title={t("modals.sections.details")}>
         <Text style={styles.label}>{t("cheptel.animals.create.birthDate")}</Text>
+        <Text style={styles.hint}>{t("cheptel.animals.create.birthDateHelper")}</Text>
         <TextInput
           style={styles.input}
           value={birthDate}
@@ -379,6 +390,25 @@ export function CreateAnimalModal({
           placeholder="AAAA-MM-JJ"
           placeholderTextColor={mobileColors.textSecondary}
         />
+
+        {!birthDate.trim() ? (
+          <>
+            <Text style={styles.label}>
+              {t("cheptel.animals.create.ageAtEntry")}
+            </Text>
+            <Text style={styles.hint}>
+              {t("cheptel.animals.create.ageAtEntryHelper")}
+            </Text>
+            <TextInput
+              style={styles.input}
+              value={ageAtEntry}
+              onChangeText={setAgeAtEntry}
+              keyboardType="number-pad"
+              placeholder="8"
+              placeholderTextColor={mobileColors.textSecondary}
+            />
+          </>
+        ) : null}
 
         <Text style={styles.label}>{t("cheptel.animals.create.entryWeight")}</Text>
         <TextInput

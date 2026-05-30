@@ -14,8 +14,6 @@ import {
 import { CreatePriceAlertModal } from "../../components/buyer/CreatePriceAlertModal";
 import { PriceAlertCard } from "../../components/buyer/PriceAlertCard";
 import {
-  ProfileHeroCard,
-  ProfileSectionEmpty,
   profileScreenScrollContent,
   ScreenSection
 } from "../../components/layout";
@@ -70,7 +68,7 @@ export function BuyerAlertsScreen() {
   const alerts = alertsQ.data ?? [];
 
   return (
-    <BuyerMobileShell>
+    <BuyerMobileShell hideTopBar>
       <ScrollView
         contentContainerStyle={[
           profileScreenScrollContent,
@@ -84,11 +82,6 @@ export function BuyerAlertsScreen() {
           />
         }
       >
-        <ProfileHeroCard>
-          <Text style={styles.heroTitle}>{t("buyer.alerts.title")}</Text>
-          <Text style={styles.heroSubtitle}>{t("buyer.alerts.subtitle")}</Text>
-        </ProfileHeroCard>
-
         <ScreenSection title={t("buyer.alerts.sectionList")} plain>
           {alertsQ.isLoading ? (
             <ActivityIndicator color={buyerColors.primary} style={styles.loader} />
@@ -118,7 +111,7 @@ export function BuyerAlertsScreen() {
       </ScrollView>
 
       <Pressable
-        style={[styles.fab, buyerShadow.floating]}
+        style={[styles.fab, buyerShadow.floating, { bottom: bottomPad + mobileSpacing.lg }]}
         onPress={() => setCreateOpen(true)}
         accessibilityLabel={t("buyer.alerts.createCta")}
       >
@@ -140,8 +133,6 @@ export function BuyerAlertsScreen() {
 }
 
 const styles = StyleSheet.create({
-  heroTitle: { fontSize: 20, fontWeight: "700", color: buyerColors.textPrimary },
-  heroSubtitle: { color: buyerColors.textSecondary, lineHeight: 20 },
   loader: { marginVertical: mobileSpacing.lg },
   error: { color: buyerColors.danger },
   list: { gap: mobileSpacing.md },
@@ -158,7 +149,6 @@ const styles = StyleSheet.create({
   fab: {
     position: "absolute",
     right: mobileSpacing.lg,
-    bottom: mobileSpacing.lg,
     width: 56,
     height: 56,
     borderRadius: 28,

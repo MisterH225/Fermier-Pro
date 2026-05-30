@@ -98,6 +98,8 @@ import { useSession } from "../context/SessionContext";
 import { dashboardRouteForActiveProfileType } from "../lib/dashboardHomeRoute";
 import { defaultStackScreenOptions } from "../lib/navigationHeaderOptions";
 import { mobileColors } from "../theme/mobileTheme";
+import { techStackScreenOptions } from "../theme/technicianTheme";
+import { buyerStackScreenOptions } from "../theme/buyerTheme";
 import { vetStackScreenOptions } from "../theme/vetTheme";
 import { AccountModerationGate } from "./auth/AccountModerationGate";
 import { OfflineBanner } from "./OfflineBanner";
@@ -173,7 +175,7 @@ function MainStack() {
       <Stack.Screen
         name="BuyerDashboard"
         component={BuyerDashboardScreen}
-        options={{ title: "Accueil" }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="BuyerMarket"
@@ -183,37 +185,37 @@ function MainStack() {
       <Stack.Screen
         name="BuyerMessages"
         component={BuyerMessagesScreen}
-        options={{ headerShown: false }}
+        options={{ ...buyerStackScreenOptions, title: "Messages" }}
       />
       <Stack.Screen
         name="BuyerHistory"
         component={BuyerHistoryScreen}
-        options={{ headerShown: false }}
+        options={{ ...buyerStackScreenOptions, title: "Mes achats" }}
       />
       <Stack.Screen
         name="BuyerAlerts"
         component={BuyerAlertsScreen}
-        options={{ headerShown: false }}
+        options={{ ...buyerStackScreenOptions, title: "Alertes prix" }}
       />
       <Stack.Screen
         name="BuyerFavorites"
         component={BuyerFavoritesScreen}
-        options={{ headerShown: false }}
+        options={{ ...buyerStackScreenOptions, title: "Favoris" }}
       />
       <Stack.Screen
         name="TechTasks"
         component={TechTasksScreen}
-        options={{ headerShown: false }}
+        options={{ ...techStackScreenOptions, title: "Tâches" }}
       />
       <Stack.Screen
         name="TechFarm"
         component={TechFarmScreen}
-        options={{ headerShown: false }}
+        options={{ ...techStackScreenOptions, title: "Ma ferme" }}
       />
       <Stack.Screen
         name="TechTracking"
         component={TechTrackingScreen}
-        options={{ headerShown: false }}
+        options={{ ...techStackScreenOptions, title: "Suivi" }}
       />
       <Stack.Screen
         name="VeterinarianDashboard"
@@ -256,7 +258,7 @@ function MainStack() {
       <Stack.Screen
         name="TechnicianDashboard"
         component={TechnicianDashboardScreen}
-        options={{ title: "Accueil" }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="FarmList"
@@ -523,21 +525,31 @@ function MainNavigationWithChrome() {
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
   const isProducer = profileType === "producer";
   const isVeterinarian = profileType === "veterinarian";
+  const isBuyer = profileType === "buyer";
+  const isTechnician = profileType === "technician";
   const producerPad = isProducer ? producerBottomChromeHeight(insets.bottom) : 0;
   const vetPad = isVeterinarian ? vetBottomChromeHeight(insets.bottom) : 0;
+  const buyerPad = isBuyer ? buyerBottomChromeHeight(insets.bottom) : 0;
+  const techPad = isTechnician ? techBottomChromeHeight(insets.bottom) : 0;
 
   return (
     <ProducerBottomChromeProvider value={producerPad}>
       <VetBottomChromeProvider value={vetPad}>
-        <AccountModerationGate>
-        <View style={styles.flex}>
-          <View style={styles.flex}>
-            <MainStack />
-          </View>
-          <ProducerPersistentTabBar />
-          <VetPersistentTabBar />
-        </View>
-        </AccountModerationGate>
+        <BuyerBottomChromeProvider value={buyerPad}>
+          <TechBottomChromeProvider value={techPad}>
+            <AccountModerationGate>
+              <View style={styles.flex}>
+                <View style={styles.flex}>
+                  <MainStack />
+                </View>
+                <ProducerPersistentTabBar />
+                <VetPersistentTabBar />
+                <BuyerPersistentTabBar />
+                <TechPersistentTabBar />
+              </View>
+            </AccountModerationGate>
+          </TechBottomChromeProvider>
+        </BuyerBottomChromeProvider>
       </VetBottomChromeProvider>
     </ProducerBottomChromeProvider>
   );
