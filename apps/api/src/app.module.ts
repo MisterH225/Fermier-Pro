@@ -46,6 +46,7 @@ import { FeatureFlagsModule } from "./feature-flags/feature-flags.module";
 import { MarketModule } from "./market/market.module";
 import { BuyerProfilesModule } from "./buyer-profiles/buyer-profiles.module";
 import { TechnicianProfilesModule } from "./technician-profiles/technician-profiles.module";
+import { FarmSettingsModule } from "./farm-settings/farm-settings.module";
 
 @Module({
   imports: [
@@ -116,7 +117,8 @@ import { TechnicianProfilesModule } from "./technician-profiles/technician-profi
     FeatureFlagsModule,
     MarketModule,
     BuyerProfilesModule,
-    TechnicianProfilesModule
+    TechnicianProfilesModule,
+    FarmSettingsModule
   ],
   controllers: [AppController],
   providers: [

@@ -108,6 +108,7 @@ model User {
   penLogsRecorded      PenLog[]       @relation("PenLogRecorder")
   livestockExitsRecorded LivestockExit[]
   feedStockMovementsCreated FeedStockMovement[]
+  feedReconciliationRejections FeedReconciliationRejection[]
   livestockStatusLogsRecorded LivestockStatusLog[] @relation("LivestockStatusLogRecorder")
   farmHealthRecordsRecorded FarmHealthRecord[] @relation("FarmHealthRecordRecorder")
   vaccineRecordsAdministered VaccineRecord[] @relation("VaccineRecordAdministeredBy")
@@ -259,6 +260,7 @@ model Farm {
   auditLogs         AuditLog[]
   feedTypes             FeedType[]
   feedStockMovements  FeedStockMovement[]
+  feedReconciliationRejections FeedReconciliationRejection[]
   financeSettings   FarmFinanceSettings?
   financeCategories FinanceCategory[]
   farmHealthRecords FarmHealthRecord[]
@@ -271,9 +273,44 @@ model Farm {
   farmReports          FarmReport[]
   farmBudgets          FarmBudget[]
   farmBudgetSuggestions FarmBudgetSuggestion[]
-  gmqSettings          FarmGmqSettings[]
-  gestations           Gestation[]
-  gestationSettings    GestationSettings?
+  gmqSettings              FarmGmqSettings[]
+  gestations               Gestation[]
+  gestationSettings        GestationSettings?
+  profitabilitySettings    FarmProfitabilitySettings?
+  appSettings              FarmAppSettings?
+}
+
+/// Préférences app régionales / apparence (par ferme).
+model FarmAppSettings {
+  id                 String   @id @default(cuid())
+  farmId             String   @unique
+  farm               Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  language           String   @default("fr")
+  dateFormat         String   @default("DD/MM/YYYY")
+  timezone           String   @default("Africa/Abidjan")
+  theme              String   @default("light")
+  budgetAutoSuggest  Boolean  @default(true)
+  dailySummaryHour   String?
+  /// Toggles notifications étendus (marketplace, chat, IA…) — complète FarmAlertSettings.
+  notificationExtra  Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+/// IC / GMQ référence et prix marché (rentabilité).
+model FarmProfitabilitySettings {
+  id                 String   @id @default(cuid())
+  farmId             String   @unique
+  farm               Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  marketPricePerKg   Decimal? @db.Decimal(14, 4)
+  icTargetStarter    Decimal  @default(1.8) @db.Decimal(6, 3)
+  icTargetGrowth     Decimal  @default(2.8) @db.Decimal(6, 3)
+  icTargetFattening  Decimal  @default(3.2) @db.Decimal(6, 3)
+  gmqRefStarter      Int      @default(300)
+  gmqRefGrowth       Int      @default(450)
+  gmqRefFattening    Int      @default(650)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 /// Objectifs GMQ / poids cible par catégorie (ferme).
@@ -1199,6 +1236,8 @@ model FeedType {
   lastCheckDate         DateTime?
   /// Stock courant agrégé (kg).
   currentStockKg        Decimal       @default(0) @db.Decimal(14, 4)
+  /// Prix unitaire moyen pondéré (kg) — mois en cours, entrées avec coût.
+  currentPumpPrice      Decimal?      @db.Decimal(14, 4)
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
   movements             FeedStockMovement[]
@@ -1223,15 +1262,37 @@ model FeedStockMovement {
   stockAfterKg         Decimal          @db.Decimal(14, 4)
   supplier             String?
   unitPrice            Decimal?         @db.Decimal(14, 2)
+  /// Coût total de l'entrée (devise ferme).
+  totalCost            Decimal?         @db.Decimal(14, 2)
   notes                String?
   occurredAt           DateTime         @default(now())
   linkedExpenseId      String?
+  isCostMissing        Boolean          @default(false)
+  reconciliationDismissedAt DateTime?
   createdByUserId      String
   creator              User             @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
   createdAt            DateTime         @default(now())
+  reconciliationRejections FeedReconciliationRejection[]
 
   @@index([farmId, occurredAt])
   @@index([feedTypeId, occurredAt])
+  @@index([farmId, isCostMissing])
+}
+
+/// Paires stock ↔ finance déjà rejetées par l'utilisateur.
+model FeedReconciliationRejection {
+  id              String            @id @default(cuid())
+  farmId          String
+  farm            Farm              @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  movementId      String
+  movement        FeedStockMovement @relation(fields: [movementId], references: [id], onDelete: Cascade)
+  expenseId       String
+  rejectedAt      DateTime          @default(now())
+  rejectedByUserId String
+  rejector        User              @relation(fields: [rejectedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([movementId, expenseId])
+  @@index([farmId])
 }
 
 model MarketplaceOffer {
@@ -1805,18 +1866,43 @@ enum FeatureFlagHistoryAction {
   scheduled
 }
 
+enum TechnicianFormationType {
+  diplome
+  formation_courte
+  sur_le_tas
+  autodidacte
+}
+
 model TechnicianProfile {
-  id                 String   @id @default(cuid())
-  userId             String   @unique
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  experienceYears    String?
-  specializations    Json     @default("[]")
-  formation          String?
-  profilePhotoUrl    String?
-  onboardingComplete Boolean  @default(false)
-  isActive           Boolean  @default(true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                          String                   @id @default(cuid())
+  userId                      String                   @unique
+  user                        User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Legacy text field (onboarding) — préférer experienceYearsCount.
+  experienceYears             String?
+  experienceYearsCount        Int?
+  specializations             Json                     @default("[]")
+  formation                   String?
+  formationType               TechnicianFormationType?
+  formationDetails            String?
+  graduationYear              Int?
+  pretensionSalarialeMensuelle Decimal?                @db.Decimal(14, 2)
+  pretensionCurrency          String                   @default("XOF")
+  locationCity                String?
+  locationCountry             String?
+  locationLat                 Decimal?                 @db.Decimal(10, 7)
+  locationLng                 Decimal?                 @db.Decimal(10, 7)
+  isAvailable                 Boolean                  @default(true)
+  availabilityNote            String?
+  bio                         String?
+  profilePhotoUrl             String?
+  isPublic                    Boolean                  @default(true)
+  onboardingComplete          Boolean                  @default(false)
+  isActive                    Boolean                  @default(true)
+  createdAt                   DateTime                 @default(now())
+  updatedAt                   DateTime                 @updatedAt
+
+  @@index([isPublic, isAvailable])
+  @@index([locationCity])
 }
 
 model BuyerProfile {

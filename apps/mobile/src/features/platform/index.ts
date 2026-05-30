@@ -15,6 +15,7 @@ export { ProducerMessagesScreen } from "../../screens/ProducerMessagesScreen";
 export { TechTasksScreen } from "../../screens/technician/TechTasksScreen";
 export { TechFarmScreen } from "../../screens/technician/TechFarmScreen";
 export { TechTrackingScreen } from "../../screens/technician/TechTrackingScreen";
+export { TechProfileEditScreen } from "../../screens/technician/TechProfileEditScreen";
 export { BuyerMarketScreen } from "../../screens/buyer/BuyerMarketScreen";
 export { BuyerMessagesScreen } from "../../screens/buyer/BuyerMessagesScreen";
 export { BuyerHistoryScreen } from "../../screens/buyer/BuyerHistoryScreen";

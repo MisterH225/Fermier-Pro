@@ -809,8 +809,8 @@ export type FarmFeedChartSeriesDto = {
 
 export type FarmFeedChartDto = {
   farmId: string;
-  periodMonths: number;
-  monthKeys: string[];
+  periodWeeks: number;
+  weekKeys: string[];
   series: FarmFeedChartSeriesDto[];
 };
 
@@ -838,7 +838,8 @@ export type SmartAlertModuleDto =
   | "health"
   | "finance"
   | "gestation"
-  | "cheptel";
+  | "cheptel"
+  | "market";
 
 export type SmartAlertPriorityDto = "critical" | "warning" | "info";
 
@@ -848,6 +849,11 @@ export type SmartAlertListItemDto = {
   priority: SmartAlertPriorityDto;
   title: string;
   message: string;
+  i18n?: {
+    titleKey: string;
+    messageKey: string;
+    params?: Record<string, string | number>;
+  };
   action?: {
     label: string;
     route: string;
@@ -879,6 +885,7 @@ export type FarmAlertSettingsDto = {
   pushFinance: boolean;
   pushGestation: boolean;
   pushCheptel: boolean;
+  pushMarket: boolean;
 };
 
 export type FeedStockMovementDto = {
@@ -894,12 +901,50 @@ export type FeedStockMovementDto = {
   stockAfterKg: string;
   supplier: string | null;
   unitPrice: string | null;
+  totalCost: string | null;
   notes: string | null;
   occurredAt: string;
   linkedExpenseId: string | null;
+  isCostMissing: boolean;
+  reconciliationDismissedAt: string | null;
   createdByUserId: string;
   createdAt: string;
   feedType: { id: string; name: string; unit: string };
+};
+
+export type ReconciliationOfferDto = {
+  status: "single" | "multiple" | "none";
+  movementId?: string;
+  expenseId?: string;
+  stock?: {
+    movementId: string;
+    feedTypeName: string;
+    quantityKg: string;
+    occurredAt: string;
+    supplier: string | null;
+  };
+  finance?: {
+    expenseId: string;
+    amount: string;
+    currency: string;
+    label: string;
+    occurredAt: string;
+  };
+  candidates?: Array<{
+    expenseId: string;
+    amount: string;
+    currency: string;
+    label: string;
+    occurredAt: string;
+    daysDelta: number;
+  }>;
+  calculatedUnitPricePerKg?: number;
+  currency?: string;
+};
+
+export type PostFarmFeedMovementResponse = {
+  movement: FeedStockMovementDto;
+  reconciliation: ReconciliationOfferDto | null;
 };
 
 export function fetchFarmFeedTypes(
@@ -1053,6 +1098,7 @@ export function putFarmAlertSettings(
     pushFinance: boolean;
     pushGestation: boolean;
     pushCheptel: boolean;
+    pushMarket: boolean;
   }>,
   activeProfileId?: string | null
 ): Promise<FarmAlertSettingsDto> {
@@ -1108,10 +1154,112 @@ export function postFarmFeedMovement(
   farmId: string,
   payload: PostFarmFeedMovementPayload,
   activeProfileId?: string | null
-): Promise<FeedStockMovementDto> {
-  return apiPostJson<FeedStockMovementDto>(
+): Promise<PostFarmFeedMovementResponse> {
+  return apiPostJson<PostFarmFeedMovementResponse>(
     `/farms/${farmId}/feed/movements`,
     payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type PatchFarmFeedMovementPayload = {
+  feedTypeId?: string;
+  quantityInput?: number;
+  quantityUnit?: "kg" | "tonne" | "sac";
+  weightPerBagKg?: number;
+  supplier?: string;
+  unitPrice?: number;
+  totalCost?: number;
+  priceBasis?: "kg" | "sac";
+  notes?: string;
+  occurredAt?: string;
+};
+
+export function patchFarmFeedMovement(
+  accessToken: string,
+  farmId: string,
+  movementId: string,
+  payload: PatchFarmFeedMovementPayload,
+  activeProfileId?: string | null
+): Promise<PostFarmFeedMovementResponse> {
+  return apiPatchJson<PostFarmFeedMovementResponse>(
+    `/farms/${farmId}/feed/movements/${movementId}`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function deleteFarmFeedMovement(
+  accessToken: string,
+  farmId: string,
+  movementId: string,
+  activeProfileId?: string | null
+): Promise<{ ok: boolean }> {
+  return apiDeleteJson<{ ok: boolean }>(
+    `/farms/${farmId}/feed/movements/${movementId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchIncompleteFeedMovements(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<FeedStockMovementDto[]> {
+  return apiGetJson<FeedStockMovementDto[]>(
+    `/farms/${farmId}/feed/movements/incomplete`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function reconcileFeedMovement(
+  accessToken: string,
+  farmId: string,
+  movementId: string,
+  expenseId: string,
+  activeProfileId?: string | null
+): Promise<{
+  movementId: string;
+  expenseId: string;
+  unitPricePerKg: number;
+  currency: string;
+}> {
+  return apiPostJson(
+    `/farms/${farmId}/feed/movements/${movementId}/reconcile`,
+    { expenseId },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function rejectFeedReconciliation(
+  accessToken: string,
+  farmId: string,
+  movementId: string,
+  body: { expenseId: string; totalCost?: number; supplier?: string },
+  activeProfileId?: string | null
+): Promise<{ ok: boolean; expenseId?: string; amount?: string }> {
+  return apiPostJson(
+    `/farms/${farmId}/feed/movements/${movementId}/reject-reconciliation`,
+    body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function dismissFeedReconciliation(
+  accessToken: string,
+  farmId: string,
+  movementId: string,
+  activeProfileId?: string | null
+): Promise<{ ok: boolean }> {
+  return apiPostJson(
+    `/farms/${farmId}/feed/movements/${movementId}/dismiss-reconciliation`,
+    {},
     accessToken,
     activeProfileId
   );
@@ -2016,6 +2164,7 @@ export function fetchFarmBatch(
 
 export type PostAnimalWeightPayload = {
   weightKg: number;
+  measuredAt?: string;
   note?: string;
 };
 
@@ -3197,13 +3346,17 @@ export type CreateFarmExpensePayload = {
   occurredAt?: string;
 };
 
+export type CreateFarmExpenseResponse = FarmExpenseDto & {
+  reconciliation?: ReconciliationOfferDto | null;
+};
+
 export function createFarmExpense(
   accessToken: string,
   farmId: string,
   payload: CreateFarmExpensePayload,
   activeProfileId?: string | null
-): Promise<FarmExpenseDto> {
-  return apiPostJson<FarmExpenseDto>(
+): Promise<CreateFarmExpenseResponse> {
+  return apiPostJson<CreateFarmExpenseResponse>(
     `/farms/${farmId}/finance/expenses`,
     payload,
     accessToken,
@@ -3242,6 +3395,77 @@ export function deleteFarmExpense(
 ): Promise<{ ok: boolean }> {
   return apiDeleteJson<{ ok: boolean }>(
     `/farms/${farmId}/finance/expenses/${expenseId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type LinkedStockMovementSummaryDto = {
+  id: string;
+  feedTypeId: string;
+  feedTypeName: string;
+  quantityKg: string | null;
+  unitPrice: string | null;
+  supplier: string | null;
+  occurredAt: string;
+};
+
+export type LinkedStockForExpenseDto = {
+  expenseId: string;
+  movements: LinkedStockMovementSummaryDto[];
+};
+
+/** GET /farms/:farmId/finance/expenses/:expenseId/linked-stock */
+export function fetchLinkedStockForExpense(
+  accessToken: string,
+  farmId: string,
+  expenseId: string,
+  activeProfileId?: string | null
+): Promise<LinkedStockForExpenseDto> {
+  return apiGetJson<LinkedStockForExpenseDto>(
+    `/farms/${farmId}/finance/expenses/${expenseId}/linked-stock`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type LinkedTransactionForMovementDto = {
+  movementId: string;
+  expense: {
+    id: string;
+    amount: string;
+    currency: string;
+    label: string;
+    occurredAt: string;
+    categoryKey: string | null;
+  } | null;
+};
+
+/** GET /farms/:farmId/feed/movements/:movementId/linked-transaction */
+export function fetchLinkedTransactionForMovement(
+  accessToken: string,
+  farmId: string,
+  movementId: string,
+  activeProfileId?: string | null
+): Promise<LinkedTransactionForMovementDto> {
+  return apiGetJson<LinkedTransactionForMovementDto>(
+    `/farms/${farmId}/feed/movements/${movementId}/linked-transaction`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** DELETE /farms/:farmId/finance/expenses/:expenseId/with-stock */
+export function deleteFarmExpenseWithStock(
+  accessToken: string,
+  farmId: string,
+  expenseId: string,
+  deleteStock: boolean,
+  activeProfileId?: string | null
+): Promise<{ ok: boolean }> {
+  const q = deleteStock ? "?deleteStock=true" : "?deleteStock=false";
+  return apiDeleteJson<{ ok: boolean }>(
+    `/farms/${farmId}/finance/expenses/${expenseId}/with-stock${q}`,
     accessToken,
     activeProfileId
   );
@@ -3360,6 +3584,7 @@ export type FinanceMergedTransactionDto = {
   attachmentUrl: string | null;
   note: string | null;
   isAutoGenerated?: boolean;
+  linkedStockMovementIds?: string[];
   creator?: { id: string; fullName: string | null; email: string | null };
 };
 
@@ -3475,6 +3700,38 @@ export function fetchFinanceCategories(
 ): Promise<FinanceCategoryDto[]> {
   return apiGetJson<FinanceCategoryDto[]>(
     `/farms/${farmId}/finance/categories`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function createFinanceCategory(
+  accessToken: string,
+  farmId: string,
+  payload: {
+    type: "income" | "expense";
+    key: string;
+    name: string;
+    icon?: string | null;
+  },
+  activeProfileId?: string | null
+): Promise<FinanceCategoryDto> {
+  return apiPostJson<FinanceCategoryDto>(
+    `/farms/${farmId}/finance/categories`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function deleteFinanceCategory(
+  accessToken: string,
+  farmId: string,
+  categoryId: string,
+  activeProfileId?: string | null
+): Promise<{ ok: boolean }> {
+  return apiDeleteJson<{ ok: boolean }>(
+    `/farms/${farmId}/finance/categories/${categoryId}`,
     accessToken,
     activeProfileId
   );
@@ -4400,7 +4657,11 @@ export function counterMarketplaceOffer(
   accessToken: string,
   listingId: string,
   offerId: string,
-  payload: { counterPricePerKg: number; message?: string },
+  payload: {
+    counterPricePerKg?: number;
+    counterOfferedPrice?: number;
+    message?: string;
+  },
   activeProfileId?: string | null
 ): Promise<unknown> {
   return apiPostJson<unknown>(
@@ -5822,11 +6083,60 @@ export function removeBuyerFavorite(
 
 // ─── Profil technicien (`/technicians/me`) ───────────────────────────────────
 
+export type TechnicianFormationType =
+  | "diplome"
+  | "formation_courte"
+  | "sur_le_tas"
+  | "autodidacte";
+
+export type TechnicianProfileDto = {
+  id: string;
+  userId: string;
+  displayName?: string;
+  experienceYearsCount: number | null;
+  specializations: string[];
+  formation: string | null;
+  formationType: TechnicianFormationType | null;
+  formationTypeLabel: string | null;
+  formationDetails: string | null;
+  graduationYear: number | null;
+  pretensionSalarialeMensuelle: number | null;
+  pretensionCurrency: string;
+  locationCity: string | null;
+  locationCountry: string | null;
+  locationLabel: string | null;
+  locationLat: number | null;
+  locationLng: number | null;
+  isAvailable: boolean;
+  availabilityNote: string | null;
+  bio: string | null;
+  profilePhotoUrl: string | null;
+  isPublic: boolean;
+  onboardingComplete: boolean;
+  isActive: boolean;
+  distanceKm?: number | null;
+  isSelf?: boolean;
+};
+
 export type UpsertTechnicianProfileBody = {
   experienceYears?: string;
+  experienceYearsCount?: number;
   specializations?: string[];
   formation?: string;
+  formationType?: TechnicianFormationType;
+  formationDetails?: string;
+  graduationYear?: number;
+  pretensionSalarialeMensuelle?: number | null;
+  pretensionCurrency?: string;
+  locationCity?: string;
+  locationCountry?: string;
+  locationLat?: number;
+  locationLng?: number;
+  isAvailable?: boolean;
+  availabilityNote?: string;
+  bio?: string;
   profilePhotoUrl?: string;
+  isPublic?: boolean;
   onboardingComplete?: boolean;
 };
 
@@ -5858,6 +6168,95 @@ export type TechnicianActivityRowDto = {
   detail: string | null;
   createdAt: string;
 };
+
+/** GET /api/v1/technicians/me/profile */
+export function fetchTechnicianProfile(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<TechnicianProfileDto> {
+  return apiGetJson<TechnicianProfileDto>(
+    "/technicians/me/profile",
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** GET /api/v1/technicians/search */
+export function searchTechnicians(
+  accessToken: string,
+  params: {
+    q?: string;
+    city?: string;
+    nearLat?: number;
+    nearLng?: number;
+    radiusKm?: number;
+    availableOnly?: boolean;
+    experienceMin?: number;
+    specialization?: string;
+    salaryMax?: number;
+  },
+  activeProfileId?: string | null
+): Promise<{ items: TechnicianProfileDto[] }> {
+  const qs = new URLSearchParams();
+  if (params.q) qs.set("q", params.q);
+  if (params.city) qs.set("city", params.city);
+  if (params.nearLat != null) qs.set("nearLat", String(params.nearLat));
+  if (params.nearLng != null) qs.set("nearLng", String(params.nearLng));
+  if (params.radiusKm != null) qs.set("radiusKm", String(params.radiusKm));
+  if (params.availableOnly != null) {
+    qs.set("availableOnly", String(params.availableOnly));
+  }
+  if (params.experienceMin != null) {
+    qs.set("experienceMin", String(params.experienceMin));
+  }
+  if (params.specialization) qs.set("specialization", params.specialization);
+  if (params.salaryMax != null) qs.set("salaryMax", String(params.salaryMax));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return apiGetJson<{ items: TechnicianProfileDto[] }>(
+    `/technicians/search${suffix}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** GET /api/v1/technicians/:userId/public-profile */
+export function fetchTechnicianPublicProfile(
+  accessToken: string,
+  userId: string,
+  activeProfileId?: string | null
+): Promise<TechnicianProfileDto> {
+  return apiGetJson<TechnicianProfileDto>(
+    `/technicians/${encodeURIComponent(userId)}/public-profile`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** POST /api/v1/farms/:farmId/collaborators/invite-from-chat */
+export function inviteCollaboratorFromChat(
+  accessToken: string,
+  farmId: string,
+  payload: {
+    peerUserId: string;
+    roomId?: string;
+    recipientKind: InvitationRecipientKind;
+    permissions: InvitationPermissions;
+    message?: string;
+  },
+  activeProfileId?: string | null
+): Promise<{
+  ok: boolean;
+  invitationId: string;
+  roomId: string;
+  messageId: string;
+}> {
+  return apiPostJson(
+    `/farms/${farmId}/collaborators/invite-from-chat`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
 
 /** PATCH /api/v1/technicians/me/profile */
 export function upsertTechnicianProfile(
@@ -6043,4 +6442,148 @@ export function postFinanceTransactionWithStock(
     accessToken,
     activeProfileId
   );
+}
+
+/** GET /farms/:farmId/settings — paramètres agrégés (source unique). */
+export type FarmSettingsDto = {
+  farm: {
+    id: string;
+    name: string;
+    speciesFocus: string;
+    livestockMode: "individual" | "batch" | "hybrid";
+    address: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    housingBuildingsCount: number | null;
+    housingPensPerBuilding: number | null;
+    housingMaxPigsPerPen: number | null;
+  };
+  app: {
+    language: "fr" | "en";
+    dateFormat: string;
+    timezone: string;
+    theme: "light" | "dark" | "system";
+    budgetAutoSuggest: boolean;
+    dailySummaryHour: string | null;
+    notificationExtra: Record<string, unknown> | null;
+  };
+  finance: {
+    currencyCode: string;
+    currencySymbol: string;
+    lowBalanceThreshold: number | null;
+  };
+  alerts: {
+    mortalityRateThresholdPct: number | null;
+    lowBalanceThreshold: number | null;
+    stockWarningDays: number;
+    stockCriticalDays: number;
+    starterMaxAvgWeightKg: number | null;
+    starterMaxAvgAgeWeeks: number | null;
+    pushStock: boolean;
+    pushHealth: boolean;
+    pushFinance: boolean;
+    pushGestation: boolean;
+    pushCheptel: boolean;
+    pushMarket: boolean;
+  };
+  gestation: {
+    gestationDurationDays: number;
+    weaningDurationDays: number;
+    vaccineSchedule: unknown;
+  };
+  profitability: {
+    marketPricePerKg: number | null;
+    icTargetStarter: number | null;
+    icTargetGrowth: number | null;
+    icTargetFattening: number | null;
+    gmqRefStarter: number;
+    gmqRefGrowth: number;
+    gmqRefFattening: number;
+  };
+  gmqTargets: {
+    gmqTargetStarter: number | null;
+    gmqTargetGrowth: number | null;
+    gmqTargetFattening: number | null;
+    targetSaleWeightKg: number | null;
+  };
+};
+
+export type PatchFarmSettingsPayload = {
+  app?: Partial<FarmSettingsDto["app"]>;
+  finance?: Partial<FarmSettingsDto["finance"]>;
+  alerts?: Partial<FarmSettingsDto["alerts"]>;
+  profitability?: Partial<{
+    marketPricePerKg: number | null;
+    icTargetStarter: number;
+    icTargetGrowth: number;
+    icTargetFattening: number;
+    gmqRefStarter: number;
+    gmqRefGrowth: number;
+    gmqRefFattening: number;
+  }>;
+  gmqTargets?: Partial<FarmSettingsDto["gmqTargets"]>;
+  gestation?: { weaningDurationDays?: number };
+  farm?: {
+    name?: string;
+    livestockMode?: "individual" | "batch" | "hybrid";
+    address?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+  };
+};
+
+export function fetchFarmSettings(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<FarmSettingsDto> {
+  return apiGetJson<FarmSettingsDto>(
+    `/farms/${farmId}/settings`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function patchFarmSettings(
+  accessToken: string,
+  farmId: string,
+  payload: PatchFarmSettingsPayload,
+  activeProfileId?: string | null
+): Promise<FarmSettingsDto> {
+  return apiPatchJson<FarmSettingsDto>(
+    `/farms/${farmId}/settings`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type ProfitabilitySettingsDto = FarmSettingsDto["profitability"];
+
+export function fetchProfitabilitySettings(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<ProfitabilitySettingsDto> {
+  return fetchFarmSettings(accessToken, farmId, activeProfileId).then(
+    (s) => s.profitability
+  );
+}
+
+export type PatchProfitabilitySettingsPayload = NonNullable<
+  PatchFarmSettingsPayload["profitability"]
+>;
+
+export function patchProfitabilitySettings(
+  accessToken: string,
+  farmId: string,
+  payload: PatchProfitabilitySettingsPayload,
+  activeProfileId?: string | null
+): Promise<ProfitabilitySettingsDto> {
+  return patchFarmSettings(
+    accessToken,
+    farmId,
+    { profitability: payload },
+    activeProfileId
+  ).then((s) => s.profitability);
 }

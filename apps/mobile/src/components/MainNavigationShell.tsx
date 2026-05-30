@@ -79,6 +79,7 @@ import {
   TechTasksScreen,
   TechFarmScreen,
   TechTrackingScreen,
+  TechProfileEditScreen,
   BuyerMarketScreen,
   BuyerMessagesScreen,
   BuyerHistoryScreen,
@@ -104,6 +105,7 @@ import { vetStackScreenOptions } from "../theme/vetTheme";
 import { AccountModerationGate } from "./auth/AccountModerationGate";
 import { OfflineBanner } from "./OfflineBanner";
 import { useSmartAlertPushNavigation } from "../hooks/useSmartAlertPushNavigation";
+import { ExpenseCategoriesScreen } from "../screens/settings/ExpenseCategoriesScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -160,6 +162,10 @@ function MainStack() {
       <Stack.Screen
         name="ProducerFarmSettings"
         component={ProducerFarmSettingsScreen}
+      />
+      <Stack.Screen
+        name="SettingsExpenseCategories"
+        component={ExpenseCategoriesScreen}
         options={{ title: "" }}
       />
       <Stack.Screen
@@ -216,6 +222,11 @@ function MainStack() {
         name="TechTracking"
         component={TechTrackingScreen}
         options={{ ...techStackScreenOptions, title: "Suivi" }}
+      />
+      <Stack.Screen
+        name="TechProfileEdit"
+        component={TechProfileEditScreen}
+        options={{ ...techStackScreenOptions, title: "Mon profil" }}
       />
       <Stack.Screen
         name="VeterinarianDashboard"
