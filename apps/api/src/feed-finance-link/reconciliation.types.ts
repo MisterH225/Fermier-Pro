@@ -16,6 +16,7 @@ export type ReconciliationFinanceCard = {
 
 export type ReconciliationCandidateDto = ReconciliationFinanceCard & {
   daysDelta: number;
+  movementId?: string;
 };
 
 export type ReconciliationOfferDto = {

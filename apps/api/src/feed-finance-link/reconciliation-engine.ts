@@ -369,6 +369,7 @@ export class ReconciliationEngine {
         occurredAt: expense.occurredAt.toISOString()
       },
       candidates: eligible.map((m) => ({
+        movementId: m.id,
         expenseId,
         amount: expense.amount.toString(),
         currency: expense.currency,

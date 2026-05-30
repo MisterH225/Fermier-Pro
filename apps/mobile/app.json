@@ -3,7 +3,7 @@
     "name": "Fermier Pro",
     "slug": "fermier-pro",
     "scheme": "fermier-pro",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "splash": {
@@ -13,6 +13,35 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "ios": {
+      "bundleIdentifier": "com.fermierpro.app",
+      "supportsTablet": false,
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": ["fermier-pro"]
+          }
+        ]
+      }
+    },
+    "android": {
+      "package": "com.fermierpro.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "fermier-pro"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
     "plugins": [
       "expo-web-browser",
       [
@@ -24,8 +53,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Autoriser l’accès à la photothèque pour choisir une photo de profil.",
-          "cameraPermission": "Autoriser l’accès à la caméra pour prendre une photo de profil."
+          "photosPermission": "Autoriser l'accès à la photothèque pour choisir une photo de profil.",
+          "cameraPermission": "Autoriser l'accès à la caméra pour prendre une photo de profil."
         }
       ],
       [
@@ -34,6 +63,12 @@
           "locationWhenInUsePermission": "Autoriser la localisation pour enregistrer la position de votre exploitation."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "ebb8a3e5-e17a-4a66-ae0a-f7624ab6c12a"
+      }
+    },
+    "owner": "misterh225"
   }
 }

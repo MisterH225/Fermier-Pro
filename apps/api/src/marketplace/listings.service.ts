@@ -615,46 +615,77 @@ export class ListingsService {
         "Annonce non modifiable (réservée, vendue ou annulée)"
       );
     }
-    const nextAnimalIds =
-      dto.animalIds !== undefined
-        ? dto.animalIds
-        : jsonStringArray(listing.animalIds);
-    const nextAnimalId = listing.animalId;
-    const nextWeight =
-      dto.totalWeightKg !== undefined
-        ? dto.totalWeightKg
-        : listing.totalWeightKg != null
-          ? Number(listing.totalWeightKg)
-          : null;
-    const nextQuantity =
-      dto.quantity !== undefined ? dto.quantity : listing.quantity;
-    const sellerCategory =
-      dto.category !== undefined ? dto.category : listing.category;
-    const normalizedCategory = this.resolvedListingCategory(
-      sellerCategory,
-      nextWeight,
-      nextAnimalIds,
-      nextAnimalId,
-      nextQuantity
-    );
-    const nextPricePerKg =
-      dto.pricePerKg !== undefined
-        ? dto.pricePerKg
-        : listing.pricePerKg != null
-          ? Number(listing.pricePerKg)
-          : null;
-    const nextTotalPrice =
-      dto.totalPrice !== undefined
-        ? dto.totalPrice
-        : listing.totalPrice != null
-          ? Number(listing.totalPrice)
-          : null;
-    const pricing = this.normalizeListingPricing(
-      normalizedCategory,
-      nextWeight,
-      nextPricePerKg,
-      nextTotalPrice
-    );
+
+    const pricingFieldsPresent =
+      dto.category !== undefined ||
+      dto.totalWeightKg !== undefined ||
+      dto.pricePerKg !== undefined ||
+      dto.totalPrice !== undefined ||
+      dto.quantity !== undefined ||
+      dto.animalIds !== undefined;
+
+    let pricingUpdate: {
+      category?: ListingMarketCategory | undefined;
+      totalWeightKg?: Prisma.Decimal | null;
+      pricePerKg?: Prisma.Decimal | null;
+      totalPrice?: Prisma.Decimal;
+    } = {};
+
+    if (pricingFieldsPresent) {
+      const nextAnimalIds =
+        dto.animalIds !== undefined
+          ? dto.animalIds
+          : jsonStringArray(listing.animalIds);
+      const nextAnimalId = listing.animalId;
+      const nextWeight =
+        dto.totalWeightKg !== undefined
+          ? dto.totalWeightKg
+          : listing.totalWeightKg != null
+            ? Number(listing.totalWeightKg)
+            : null;
+      const nextQuantity =
+        dto.quantity !== undefined ? dto.quantity : listing.quantity;
+      const sellerCategory =
+        dto.category !== undefined ? dto.category : listing.category;
+      const normalizedCategory = this.resolvedListingCategory(
+        sellerCategory,
+        nextWeight,
+        nextAnimalIds,
+        nextAnimalId,
+        nextQuantity
+      );
+      const nextPricePerKg =
+        dto.pricePerKg !== undefined
+          ? dto.pricePerKg
+          : listing.pricePerKg != null
+            ? Number(listing.pricePerKg)
+            : null;
+      const nextTotalPrice =
+        dto.totalPrice !== undefined
+          ? dto.totalPrice
+          : listing.totalPrice != null
+            ? Number(listing.totalPrice)
+            : null;
+      const pricing = this.normalizeListingPricing(
+        normalizedCategory,
+        nextWeight,
+        nextPricePerKg,
+        nextTotalPrice
+      );
+
+      pricingUpdate = {
+        category: normalizedCategory,
+        totalWeightKg:
+          pricing.totalWeightKg != null
+            ? new Prisma.Decimal(pricing.totalWeightKg)
+            : null,
+        pricePerKg:
+          pricing.pricePerKg != null
+            ? new Prisma.Decimal(pricing.pricePerKg)
+            : null,
+        totalPrice: new Prisma.Decimal(pricing.totalPrice)
+      };
+    }
 
     return this.prisma.marketplaceListing.update({
       where: { id },
@@ -676,22 +707,13 @@ export class ListingsService {
         ...(dto.locationLabel !== undefined
           ? { locationLabel: dto.locationLabel }
           : {}),
-        category: normalizedCategory,
         ...(dto.photoUrls !== undefined
           ? { photoUrls: dto.photoUrls as Prisma.InputJsonValue }
           : {}),
         ...(dto.animalIds !== undefined
           ? { animalIds: dto.animalIds as Prisma.InputJsonValue }
           : {}),
-        totalWeightKg:
-          pricing.totalWeightKg != null
-            ? new Prisma.Decimal(pricing.totalWeightKg)
-            : null,
-        pricePerKg:
-          pricing.pricePerKg != null
-            ? new Prisma.Decimal(pricing.pricePerKg)
-            : null,
-        totalPrice: new Prisma.Decimal(pricing.totalPrice),
+        ...pricingUpdate,
         ...(dto.breedLabel !== undefined ? { breedLabel: dto.breedLabel } : {})
       }
     });
