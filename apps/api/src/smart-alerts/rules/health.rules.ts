@@ -54,7 +54,7 @@ export async function evaluateHealthRules(
       action: {
         label: "Ouvrir santé",
         route: "FarmHealth",
-        params: { farmId }
+        params: { farmId, vaccineName }
       }
     });
   }
@@ -86,7 +86,7 @@ export async function evaluateHealthRules(
       action: {
         label: "Santé",
         route: "FarmHealth",
-        params: { farmId }
+        params: { farmId, vaccineName: name }
       }
     });
   }
@@ -119,7 +119,7 @@ export async function evaluateHealthRules(
         action: {
           label: "Santé",
           route: "FarmHealth",
-          params: { farmId }
+          params: { farmId, recordId: r.id }
         }
       });
     }
@@ -177,7 +177,7 @@ export async function evaluateHealthRules(
       action: {
         label: "Santé",
         route: "FarmHealth",
-        params: { farmId }
+        params: { farmId, initialTab: "mortality" }
       }
     });
   }

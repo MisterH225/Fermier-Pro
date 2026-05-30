@@ -10,10 +10,15 @@ import {
   TextInput,
   View
 } from "react-native";
+import { AppDatePicker } from "../common/AppDatePicker";
 import { BaseModal } from "../modals/BaseModal";
 import { ModalSection } from "../modals/ModalSection";
 import type { FeedTypeDto } from "../../lib/api";
-import { postFarmFeedMovement, type PostFarmFeedMovementPayload } from "../../lib/api";
+import {
+  postFarmFeedMovement,
+  type PostFarmFeedMovementPayload,
+  type PostFarmFeedMovementResponse
+} from "../../lib/api";
 import {
   offlineQueuedMessage,
   useOfflineMutation
@@ -33,7 +38,7 @@ export type StockModalProps = {
   activeProfileId?: string | null;
   types: FeedTypeDto[];
   defaultTab?: "in" | "stock_check";
-  onSuccess: () => void;
+  onSuccess?: (res?: PostFarmFeedMovementResponse) => void;
 };
 
 function FieldLabel({ children }: { children: string }) {
@@ -219,14 +224,14 @@ export function StockModal({
       ],
       invalidateRoots: ["farmFeed", "dashboardFeedStock"]
     }),
-    onSuccess: () => {
+    onSuccess: (res) => {
       void qc.invalidateQueries({ queryKey: ["farmFeed", farmId] });
-      onSuccess();
+      onSuccess?.(res as PostFarmFeedMovementResponse);
       onClose();
     },
     onQueued: () => {
       void qc.invalidateQueries({ queryKey: ["farmFeed", farmId] });
-      onSuccess();
+      onSuccess?.();
       onClose();
       Alert.alert("", offlineQueuedMessage(t));
     }
@@ -397,11 +402,11 @@ export function StockModal({
                   : "—"
               }
             />
-            <FieldLabel>{t("feedStock.fieldDate")}</FieldLabel>
-            <TextInput
-              style={styles.input}
-              value={occurredAt}
-              onChangeText={setOccurredAt}
+            <AppDatePicker
+              label={t("feedStock.fieldDate")}
+              isoValue={occurredAt}
+              onIsoChange={setOccurredAt}
+              farmId={farmId}
             />
             <FieldLabel>{t("feedStock.fieldSupplier")}</FieldLabel>
             <TextInput

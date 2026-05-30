@@ -251,7 +251,8 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
       .query({ period: "6m" })
       .set("Authorization", `Bearer ${ctx.token}`);
     expect(chart.status).toBe(200);
-    expect(Array.isArray(chart.body?.monthKeys)).toBe(true);
+    expect(Array.isArray(chart.body?.weekKeys)).toBe(true);
+    expect(chart.body?.weekKeys.length).toBeGreaterThanOrEqual(20);
     expect(Array.isArray(chart.body?.series)).toBe(true);
 
     const stats = await request(app.getHttpServer())

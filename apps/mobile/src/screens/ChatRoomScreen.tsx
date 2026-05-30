@@ -40,9 +40,11 @@ import type { ChatMessageDto } from "../lib/api";
 import {
   fetchChatMessages,
   fetchChatRoom,
+  fetchFarmMembers,
   markChatRoomRead,
   postChatMessage
 } from "../lib/api";
+import { DirectInviteModal } from "../components/collaboration/DirectInviteModal";
 import type { RootStackParamList } from "../types/navigation";
 
 const CHAT_PAGE_SIZE = 40;
@@ -139,7 +141,14 @@ function formatDaySeparator(iso: string): string {
 }
 
 export function ChatRoomScreen({ route, navigation }: Props) {
-  const { roomId, headline, listingId: listingIdParam } = route.params;
+  const {
+    roomId,
+    headline,
+    listingId: listingIdParam,
+    peerUserId,
+    farmId: farmIdParam
+  } = route.params;
+  const [inviteOpen, setInviteOpen] = useState(false);
   const { accessToken, activeProfileId, authMe, clientFeatures } =
     useSession();
   const qc = useQueryClient();
@@ -177,11 +186,35 @@ export function ChatRoomScreen({ route, navigation }: Props) {
     listingContext?.id ??
     null;
 
+  const membersQ = useQuery({
+    queryKey: ["farmMembers", farmIdParam, activeProfileId],
+    queryFn: () => fetchFarmMembers(accessToken!, farmIdParam!, activeProfileId),
+    enabled: Boolean(accessToken && farmIdParam)
+  });
+
+  const peerIsMember = Boolean(
+    peerUserId &&
+      membersQ.data?.some((m) => m.userId === peerUserId)
+  );
+
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: headline?.trim() || "Conversation"
+      title: headline?.trim() || "Conversation",
+      headerRight:
+        farmIdParam && peerUserId && !peerIsMember
+          ? () => (
+              <TouchableOpacity
+                onPress={() => setInviteOpen(true)}
+                style={{ paddingHorizontal: 8 }}
+              >
+                <Text style={{ color: mobileColors.accent, fontWeight: "700" }}>
+                  Inviter
+                </Text>
+              </TouchableOpacity>
+            )
+          : undefined
     });
-  }, [navigation, headline]);
+  }, [navigation, headline, farmIdParam, peerUserId, peerIsMember]);
 
   useFocusEffect(
     useCallback(() => {
@@ -573,6 +606,21 @@ export function ChatRoomScreen({ route, navigation }: Props) {
               ? sendMutation.error.message
               : String(sendMutation.error)}
           </Text>
+        ) : null}
+        {farmIdParam && peerUserId ? (
+          <DirectInviteModal
+            visible={inviteOpen}
+            farmId={farmIdParam}
+            farmName={headline ?? "Ferme"}
+            peerUserId={peerUserId}
+            peerDisplayName={headline ?? "Contact"}
+            recipientKind="technician"
+            roomId={roomId}
+            onClose={() => setInviteOpen(false)}
+            onSuccess={() => {
+              void membersQ.refetch();
+            }}
+          />
         ) : null}
       </KeyboardAvoidingView>
     </ChatModuleGate>

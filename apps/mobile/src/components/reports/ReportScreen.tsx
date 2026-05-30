@@ -139,6 +139,7 @@ function ReportPeriodPane({
             periodType={periodType}
             anchor={anchor}
             onAnchorChange={onAnchorChange}
+            farmId={farmId}
             hidePeriodTabs
           />
         </ScreenSection>

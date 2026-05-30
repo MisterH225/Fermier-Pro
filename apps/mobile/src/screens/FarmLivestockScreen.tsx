@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { TabScreenHeader } from "../components/layout";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useTranslation } from "react-i18next";
@@ -40,7 +40,25 @@ import type { RootStackParamList } from "../types/navigation";
 type Props = NativeStackScreenProps<RootStackParamList, "FarmLivestock">;
 
 export function FarmLivestockScreen({ route, navigation }: Props) {
-  const { farmId, farmName } = route.params;
+  const {
+    farmId,
+    farmName,
+    initialTab,
+    openPenId,
+    highlightPen,
+    showRequalificationBanner
+  } = route.params;
+  const [livestockTab, setLivestockTab] = useState(
+    initialTab ?? (openPenId ? "cheptel" : "overview")
+  );
+
+  useEffect(() => {
+    if (initialTab) {
+      setLivestockTab(initialTab);
+    } else if (openPenId) {
+      setLivestockTab("cheptel");
+    }
+  }, [initialTab, openPenId]);
   const { t } = useTranslation();
   const techPerms = useTechFarmPermissions(farmId, "cheptel");
   const readOnly = techPerms.readOnly;
@@ -199,6 +217,8 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
         </View>
       ) : null}
       <TabSelector
+        activeTab={livestockTab}
+        onTabChange={(k) => setLivestockTab(k as typeof livestockTab)}
         defaultTab="overview"
         header={<TabScreenHeader>{modeHintBlock}</TabScreenHeader>}
         tabs={[
@@ -227,6 +247,9 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
                   navigation={navigation}
                   onInvalidateOverview={onRefresh}
                   readOnly={readOnly}
+                  openPenId={openPenId}
+                  highlightPenId={highlightPen ? openPenId : undefined}
+                  showRequalificationBanner={showRequalificationBanner}
                 />
               ) : null
             )

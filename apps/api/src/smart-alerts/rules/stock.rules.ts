@@ -34,7 +34,7 @@ export async function evaluateStockRules(
         action: {
           label: "Voir stock aliment",
           route: "FarmFeedStock",
-          params: { farmId }
+          params: { farmId, feedTypeId: s.feedTypeId }
         }
       });
     } else if (
@@ -69,7 +69,7 @@ export async function evaluateStockRules(
           action: {
             label: "Saisir inventaire",
             route: "FarmFeedStock",
-            params: { farmId }
+            params: { farmId, feedTypeId: s.feedTypeId, autoOpenControl: true }
           }
         });
       }
@@ -83,14 +83,39 @@ export async function evaluateStockRules(
         action: {
           label: "Stock aliment",
           route: "FarmFeedStock",
-          params: { farmId }
+          params: { farmId, feedTypeId: s.feedTypeId, autoOpenControl: true }
         }
       });
     }
   }
 
+  const missingCostCount = await prisma.feedStockMovement.count({
+    where: {
+      farmId,
+      kind: "in",
+      isCostMissing: true
+    }
+  });
+  if (missingCostCount > 0) {
+    out.push({
+      ruleKey: `stock-cost-missing:${farmId}`,
+      module: SmartAlertModule.stock,
+      priority: SmartAlertPriority.info,
+      title: "Entrées stock sans coût",
+      message: `${missingCostCount} entrée(s) de stock sans coût renseigné — complétez pour améliorer votre coût de revient.`,
+      action: {
+        label: "Voir les entrées incomplètes",
+        route: "FarmFeedStock",
+        params: { farmId, feedTab: "movements", costFilter: "missing" }
+      }
+    });
+  }
+
   const spikes = await feedStockConsumptionSpikeMessages(prisma, farmId);
   for (const sp of spikes) {
+    const feedTypeId = sp.ruleKey.startsWith("stock-spike:")
+      ? sp.ruleKey.slice("stock-spike:".length)
+      : undefined;
     out.push({
       ruleKey: sp.ruleKey,
       module: SmartAlertModule.stock,
@@ -100,7 +125,7 @@ export async function evaluateStockRules(
       action: {
         label: "Analyser stock",
         route: "FarmFeedStock",
-        params: { farmId }
+        params: { farmId, feedTypeId }
       }
     });
   }

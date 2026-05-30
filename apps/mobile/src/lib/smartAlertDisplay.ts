@@ -18,8 +18,8 @@ export function resolveSmartAlertText(
       category: smartAlertCategoryLabel(categoryKey, t)
     };
     return {
-      title: t(alert.i18n.titleKey, params),
-      message: t(alert.i18n.messageKey, params)
+      title: String(t(alert.i18n.titleKey, params)),
+      message: String(t(alert.i18n.messageKey, params))
     };
   }
   return { title: alert.title, message: alert.message };

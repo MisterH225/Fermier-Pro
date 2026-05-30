@@ -44,6 +44,11 @@ export class TechnicianProfilesController {
     );
   }
 
+  @Get("profile")
+  getProfile(@CurrentUser() user: User) {
+    return this.svc.getMe(user);
+  }
+
   @Patch("profile")
   upsertProfile(
     @CurrentUser() user: User,

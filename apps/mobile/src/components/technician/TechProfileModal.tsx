@@ -1,4 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,11 +18,16 @@ import { AccountSettingsPanel } from "../account/AccountSettingsPanel";
 import { ActiveProfileSwitcherControl } from "../account/ActiveProfileSwitcherControl";
 import { ProfileLanguagePill } from "../account/ProfileLanguagePill";
 import { useSession } from "../../context/SessionContext";
-import { fetchTechnicianDashboard } from "../../lib/api";
+import {
+  fetchTechnicianDashboard,
+  fetchTechnicianProfile
+} from "../../lib/api";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { welcomeFirstName } from "../../lib/userDisplay";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import { techColors, techRadius } from "../../theme/technicianTheme";
+import type { RootStackParamList } from "../../types/navigation";
+import { PrimaryButton } from "../ui/PrimaryButton";
 
 const AVATAR = 108;
 
@@ -48,6 +55,8 @@ function InfoBlock({ label, value }: { label: string; value: string }) {
 
 export function TechProfileModal({ visible, onClose }: TechProfileModalProps) {
   const { t } = useTranslation();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken, activeProfileId, authMe } = useSession();
 
   const dashQ = useQuery({
@@ -56,7 +65,13 @@ export function TechProfileModal({ visible, onClose }: TechProfileModalProps) {
     enabled: Boolean(visible && accessToken)
   });
 
-  const techProfile = authMe?.technicianProfile;
+  const profileQ = useQuery({
+    queryKey: ["techProfile", activeProfileId, "modal"],
+    queryFn: () => fetchTechnicianProfile(accessToken!, activeProfileId),
+    enabled: Boolean(visible && accessToken)
+  });
+
+  const techProfile = profileQ.data;
   const farmsCount = dashQ.data?.farms.length ?? 0;
 
   const avatarUri = useMemo(
@@ -67,9 +82,21 @@ export function TechProfileModal({ visible, onClose }: TechProfileModalProps) {
   const displayName =
     welcomeFirstName(authMe?.user ?? null) ?? t("tech.dashboard.defaultName");
 
-  const experienceLabel = techProfile?.experienceYears?.trim()
-    ? techProfile.experienceYears
-    : "—";
+  const experienceLabel =
+    techProfile?.experienceYearsCount != null
+      ? `${techProfile.experienceYearsCount} ans`
+      : "—";
+
+  const locationLabel = [techProfile?.locationCity, techProfile?.locationCountry]
+    .filter(Boolean)
+    .join(", ");
+
+  const specs = techProfile?.specializations ?? [];
+
+  const openEdit = () => {
+    onClose();
+    navigation.navigate("TechProfileEdit");
+  };
 
   return (
     <Modal
@@ -110,20 +137,50 @@ export function TechProfileModal({ visible, onClose }: TechProfileModalProps) {
             <Text style={styles.heroName} numberOfLines={2}>
               {displayName}
             </Text>
-            {authMe?.user.email ? (
-              <Text style={styles.heroEmail} numberOfLines={1}>
-                {authMe.user.email}
-              </Text>
-            ) : null}
             <ActiveProfileSwitcherControl variant="hero" />
           </View>
 
+          <PrimaryButton
+            label={t("tech.profile.edit")}
+            onPress={openEdit}
+          />
+
           <SectionHeader label={t("tech.profile.sectionTech")} />
           <View style={styles.proCard}>
+            {locationLabel ? (
+              <InfoBlock
+                label={t("tech.profile.location")}
+                value={locationLabel}
+              />
+            ) : null}
             <InfoBlock
               label={t("tech.profile.experience")}
               value={experienceLabel}
             />
+            {specs.length > 0 ? (
+              <InfoBlock
+                label={t("tech.profile.specializations")}
+                value={specs.join(" · ")}
+              />
+            ) : null}
+            {techProfile &&
+            "isAvailable" in techProfile &&
+            techProfile.isAvailable != null ? (
+              <InfoBlock
+                label={t("tech.profile.availability")}
+                value={
+                  techProfile.isAvailable
+                    ? t("tech.profile.available")
+                    : t("tech.profile.unavailable")
+                }
+              />
+            ) : null}
+            {techProfile?.pretensionSalarialeMensuelle != null ? (
+              <InfoBlock
+                label={t("tech.profile.pretension")}
+                value={`${techProfile.pretensionSalarialeMensuelle} ${techProfile.pretensionCurrency ?? ""}/mois`.trim()}
+              />
+            ) : null}
             <View style={styles.statsRow}>
               <View style={styles.stat}>
                 <Text style={styles.statVal}>{farmsCount}</Text>

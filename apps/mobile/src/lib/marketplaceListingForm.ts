@@ -3,6 +3,14 @@ import type { AnimalListItem } from "./api";
 
 export type ListingCategory = "piglet" | "breeder" | "butcher" | "reformed";
 
+/** Poids moyen max. (kg) pour rester en catégorie porcelet (aligné API). */
+export const LISTING_PIGLET_MAX_AVG_KG = 15;
+
+/** Porcelets et reproducteurs : prix forfaitaire (pas au kg). */
+export function usesFlatListingPrice(category: ListingCategory): boolean {
+  return category === "piglet" || category === "breeder";
+}
+
 export type ListingDurationDays = 7 | 14 | 30;
 
 export type MarketplaceListingFormValues = {
@@ -45,6 +53,29 @@ export const EMPTY_MARKETPLACE_LISTING_FORM: MarketplaceListingFormValues = {
   publishDurationDays: 14,
   photoUrls: []
 };
+
+/**
+ * Recatégorise selon le poids si l’utilisateur est en mode « porcelet » (auto).
+ * Reproducteur / charcutier / réformée = intention vendeur conservée.
+ */
+export function suggestListingCategoryFromWeight(
+  totalWeightKg: number,
+  headcount: number,
+  current: ListingCategory
+): ListingCategory {
+  if (
+    current === "breeder" ||
+    current === "reformed" ||
+    current === "butcher"
+  ) {
+    return current;
+  }
+  const avg = totalWeightKg / Math.max(1, headcount);
+  if (avg < LISTING_PIGLET_MAX_AVG_KG) {
+    return "piglet";
+  }
+  return "butcher";
+}
 
 export function parseDecimalField(raw: string): number | null {
   const t = raw.trim().replace(",", ".");
@@ -112,21 +143,31 @@ export function buildMarketplaceListingPayload(
     throw new Error(t("marketScreen.createForm.errors.titleRequired"));
   }
 
+  const flatPrice = usesFlatListingPrice(values.category);
   const totalWeightKg = parseDecimalField(values.totalWeightKg);
   const pricePerKg = parseDecimalField(values.pricePerKg);
   let totalPrice = parseDecimalField(values.totalPrice);
-  if (totalPrice == null && totalWeightKg != null && pricePerKg != null) {
+  if (
+    !flatPrice &&
+    totalPrice == null &&
+    totalWeightKg != null &&
+    pricePerKg != null
+  ) {
     totalPrice = totalWeightKg * pricePerKg;
   }
 
-  if (totalWeightKg == null || totalWeightKg <= 0) {
+  if (!flatPrice && (totalWeightKg == null || totalWeightKg <= 0)) {
     throw new Error(t("marketScreen.createForm.errors.weightRequired"));
   }
-  if (pricePerKg == null || pricePerKg <= 0) {
+  if (!flatPrice && (pricePerKg == null || pricePerKg <= 0)) {
     throw new Error(t("marketScreen.createForm.errors.pricePerKgRequired"));
   }
   if (totalPrice == null || totalPrice <= 0) {
-    throw new Error(t("marketScreen.createForm.errors.totalRequired"));
+    throw new Error(
+      flatPrice
+        ? t("marketScreen.createForm.errors.flatPriceRequired")
+        : t("marketScreen.createForm.errors.totalRequired")
+    );
   }
 
   const animalIds =
@@ -142,8 +183,8 @@ export function buildMarketplaceListingPayload(
     currency: values.currency.trim() || "XOF",
     locationLabel: values.locationLabel.trim() || undefined,
     category: values.category,
-    totalWeightKg,
-    pricePerKg,
+    totalWeightKg: totalWeightKg ?? undefined,
+    pricePerKg: flatPrice ? undefined : pricePerKg ?? undefined,
     totalPrice,
     breedLabel: values.breedLabel.trim() || undefined,
     animalIds: animalIds.length > 0 ? animalIds : undefined
@@ -191,6 +232,11 @@ export function applyAnimalSelection(
 
   if (weightSum != null) {
     patch.totalWeightKg = formatDecimalForInput(weightSum, 1);
+    patch.category = suggestListingCategoryFromWeight(
+      weightSum,
+      ids.length || 1,
+      prev.category
+    );
     patch.totalPriceManual = false;
     const computed = computeTotalFromWeightAndPrice(
       patch.totalWeightKg,

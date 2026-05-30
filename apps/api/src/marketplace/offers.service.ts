@@ -15,6 +15,7 @@ import { ChatService } from "../chat/chat.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import { CounterOfferDto } from "./dto/counter-offer.dto";
 import { CreateOfferDto } from "./dto/create-offer.dto";
+import { usesFlatListingPrice } from "./marketplace-listing-category.helper";
 
 @Injectable()
 export class OffersService {
@@ -65,15 +66,19 @@ export class OffersService {
         "Vous avez deja une proposition active sur cette annonce"
       );
     }
+    const flatAsk = usesFlatListingPrice(listing.category);
     const hasTotal =
       dto.offeredPrice != null && Number.isFinite(dto.offeredPrice);
     const hasPerKg =
+      !flatAsk &&
       dto.proposedPricePerKg != null &&
       listing.totalWeightKg != null &&
       Number.isFinite(dto.proposedPricePerKg);
     if (!hasTotal && !hasPerKg) {
       throw new BadRequestException(
-        "Indique un prix total d'offre ou un prix/kg (l'annonce doit avoir un poids total pour le prix/kg)."
+        flatAsk
+          ? "Indique un montant forfaitaire pour votre offre."
+          : "Indique un prix total d'offre ou un prix/kg (l'annonce doit avoir un poids total pour le prix/kg)."
       );
     }
     const offeredNumber = hasPerKg
@@ -104,10 +109,13 @@ export class OffersService {
       (listing.totalWeightKg
         ? offeredNumber / listing.totalWeightKg.toNumber()
         : offeredNumber);
+    const offerSummary = flatAsk
+      ? `${Math.round(offeredNumber).toLocaleString("fr-FR")} ${listing.currency} (forfait)`
+      : `${Math.round(priceKg).toLocaleString("fr-FR")} FCFA/kg`;
     void this.push.sendToUser(
       listing.sellerUserId,
       "💰 Nouvelle proposition reçue",
-      `${buyerFirst} propose ${Math.round(priceKg).toLocaleString("fr-FR")} FCFA/kg pour « ${listing.title} ».`,
+      `${buyerFirst} propose ${offerSummary} pour « ${listing.title} ».`,
       { type: "marketplace_offer", listingId, offerId: created.id }
     );
 
@@ -275,9 +283,23 @@ export class OffersService {
     if (listing.status !== ListingStatus.published) {
       throw new BadRequestException("Annonce non eligible");
     }
-    if (!listing.totalWeightKg) {
+    const flatAsk = usesFlatListingPrice(listing.category);
+    const hasFlat =
+      dto.counterOfferedPrice != null &&
+      Number.isFinite(dto.counterOfferedPrice);
+    const hasPerKg =
+      !flatAsk &&
+      dto.counterPricePerKg != null &&
+      Number.isFinite(dto.counterPricePerKg) &&
+      listing.totalWeightKg != null;
+    if (flatAsk && !hasFlat) {
       throw new BadRequestException(
-        "Poids total requis sur l'annonce pour une contre-proposition au kg"
+        "Indique un montant forfaitaire pour la contre-proposition."
+      );
+    }
+    if (!flatAsk && !hasPerKg) {
+      throw new BadRequestException(
+        "Poids total requis sur l'annonce pour une contre-proposition au kg."
       );
     }
     const offer = await this.prisma.marketplaceOffer.findFirst({
@@ -289,20 +311,31 @@ export class OffersService {
     if (offer.status !== OfferStatus.pending) {
       throw new BadRequestException("Offre non modifiable");
     }
-    const total = dto.counterPricePerKg * listing.totalWeightKg.toNumber();
+    const total = hasFlat
+      ? dto.counterOfferedPrice!
+      : dto.counterPricePerKg! * listing.totalWeightKg!.toNumber();
     const updated = await this.prisma.marketplaceOffer.update({
       where: { id: offerId },
       data: {
         status: OfferStatus.countered,
-        counterPricePerKg: new Prisma.Decimal(dto.counterPricePerKg),
+        counterPricePerKg:
+          hasPerKg && dto.counterPricePerKg != null
+            ? new Prisma.Decimal(dto.counterPricePerKg)
+            : null,
         offeredPrice: new Prisma.Decimal(total),
-        proposedPricePerKg: new Prisma.Decimal(dto.counterPricePerKg)
+        proposedPricePerKg:
+          hasPerKg && dto.counterPricePerKg != null
+            ? new Prisma.Decimal(dto.counterPricePerKg)
+            : null
       }
     });
+    const counterSummary = flatAsk
+      ? `${Math.round(total).toLocaleString("fr-FR")} ${listing.currency} (forfait)`
+      : `${Math.round(dto.counterPricePerKg!).toLocaleString("fr-FR")} FCFA/kg`;
     void this.push.sendToUser(
       offer.buyerUserId,
       "🔄 Contre-proposition reçue",
-      `Le vendeur propose ${Math.round(dto.counterPricePerKg).toLocaleString("fr-FR")} FCFA/kg pour « ${listing.title} ».`,
+      `Le vendeur propose ${counterSummary} pour « ${listing.title} ».`,
       { type: "marketplace_counter", listingId, offerId }
     );
     return updated;

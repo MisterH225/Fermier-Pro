@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -15,9 +15,12 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { AppDatePicker } from "../components/common/AppDatePicker";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
 import { CounterProposalModal } from "../components/marketplace/CounterProposalModal";
+import { isFlatPriceListing } from "../components/marketplace/listingPricing";
 import { ProposalModal } from "../components/marketplace/ProposalModal";
 import {
   formatMarketMoney,
@@ -38,6 +41,7 @@ import {
   ListingStatusBadge
 } from "../components/marketplace/listingDetailUi";
 import { useSession } from "../context/SessionContext";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { formatAnimalDisplayLabel } from "../lib/animalDisplay";
 import {
   acceptMarketplaceOffer,
@@ -94,6 +98,7 @@ export function MarketplaceListingDetailScreen({
   const { accessToken, activeProfileId, authMe, clientFeatures } =
     useSession();
   const qc = useQueryClient();
+  const insets = useSafeAreaInsets();
 
   const [pickupAtStr, setPickupAtStr] = useState("");
   const [pickupNoteStr, setPickupNoteStr] = useState("");
@@ -148,9 +153,7 @@ export function MarketplaceListingDetailScreen({
   useEffect(() => {
     const L = q.data;
     if (!L) return;
-    setPickupAtStr(
-      L.pickupAt ? L.pickupAt.slice(0, 16).replace("T", " ") : ""
-    );
+    setPickupAtStr(L.pickupAt ?? "");
     setPickupNoteStr(L.pickupNote ?? "");
   }, [q.data?.pickupAt, q.data?.pickupNote, q.data?.id]);
 
@@ -174,12 +177,18 @@ export function MarketplaceListingDetailScreen({
   });
 
   const proposalMutation = useMutation({
-    mutationFn: (input: { proposedPricePerKg: number; message?: string }) =>
+    mutationFn: (input: {
+      proposedPricePerKg?: number;
+      offeredPrice?: number;
+      message?: string;
+    }) =>
       postMarketplaceOffer(
         accessToken,
         listingId,
         {
-          proposedPricePerKg: input.proposedPricePerKg,
+          ...(input.offeredPrice != null
+            ? { offeredPrice: input.offeredPrice }
+            : { proposedPricePerKg: input.proposedPricePerKg }),
           message: input.message
         },
         activeProfileId
@@ -287,18 +296,7 @@ export function MarketplaceListingDetailScreen({
 
   const pickupMutation = useMutation({
     mutationFn: () => {
-      const raw = pickupAtStr.trim();
-      let pickupAt: string | null = null;
-      if (raw.length > 0) {
-        const normalized = raw.includes("T") ? raw : raw.replace(" ", "T");
-        const d = new Date(normalized);
-        if (!Number.isFinite(d.getTime())) {
-          throw new Error(
-            "Date/heure invalide (ex. 2026-05-15T10:00:00 ou avec fuseau Z)."
-          );
-        }
-        pickupAt = d.toISOString();
-      }
+      const pickupAt = pickupAtStr.trim() || null;
       return patchMarketplacePickup(
         accessToken,
         listingId,
@@ -343,12 +341,20 @@ export function MarketplaceListingDetailScreen({
   });
 
   const counterMut = useMutation({
-    mutationFn: (input: { offerId: string; counterPricePerKg: number }) =>
+    mutationFn: (input: {
+      offerId: string;
+      counterPricePerKg?: number;
+      counterOfferedPrice?: number;
+    }) =>
       counterMarketplaceOffer(
         accessToken,
         listingId,
         input.offerId,
-        { counterPricePerKg: input.counterPricePerKg },
+        {
+          ...(input.counterOfferedPrice != null
+            ? { counterOfferedPrice: input.counterOfferedPrice }
+            : { counterPricePerKg: input.counterPricePerKg })
+        },
         activeProfileId
       ),
     onSuccess: () => {
@@ -387,6 +393,22 @@ export function MarketplaceListingDetailScreen({
       Alert.alert("Impossible", marketplaceActionErrorMessage(e.message))
   });
 
+  const buyerFooterHeight = useMemo(() => {
+    const L = q.data;
+    if (!L) {
+      return 0;
+    }
+    const myId = authMe?.user.id;
+    const isSeller = Boolean(myId && L.sellerUserId === myId);
+    const canSubmitOffer = Boolean(myId && !isSeller && L.status === "published");
+    const showFooter = !isSeller && (canSubmitOffer || L.status === "published");
+    return showFooter ? 140 : 0;
+  }, [q.data, authMe?.user.id]);
+
+  const scrollBottomPad = useScrollBottomPad({
+    stickyFooterHeight: buyerFooterHeight
+  });
+
   const loading = q.isPending;
   const err =
     q.error instanceof Error ? q.error.message : q.error ? String(q.error) : null;
@@ -421,6 +443,8 @@ export function MarketplaceListingDetailScreen({
   const photos = listingPhotoUrlsArray(L.photoUrls);
   const wKg = parseMarketNum(L.totalWeightKg);
   const pKg = parseMarketNum(L.pricePerKg);
+  const askTotal = parseMarketNum(L.totalPrice);
+  const flatPrice = isFlatPriceListing(L.category);
   const canSubmitOffer =
     Boolean(myId) && !isSeller && L.status === "published";
 
@@ -434,11 +458,14 @@ export function MarketplaceListingDetailScreen({
   const views = L.viewsCount ?? 0;
   const consults = L.consultationsCount ?? 0;
 
+  const showBuyerFooter = buyerFooterHeight > 0;
+
   return (
     <>
+    <View style={styles.screen}>
     <ScrollView
       style={styles.scroll}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: scrollBottomPad }]}
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.heroWrap}>
@@ -480,25 +507,36 @@ export function MarketplaceListingDetailScreen({
           status={L.status}
           label={listingStatusLabel(L.status)}
         />
-        {pKg != null ? (
-          <Text style={styles.priceMain}>
-            {formatMoney(pKg, L.currency)}
-            <Text style={styles.pricePerKg}>/kg</Text>
-          </Text>
+        {flatPrice && askTotal != null ? (
+          <>
+            <Text style={styles.priceMain}>
+              {formatMoney(askTotal, L.currency)}
+            </Text>
+            <Text style={styles.priceSub}>{t("marketScreen.flatPriceLabel")}</Text>
+          </>
+        ) : pKg != null ? (
+          <>
+            <Text style={styles.priceMain}>
+              {formatMoney(pKg, L.currency)}
+              <Text style={styles.pricePerKg}>/kg</Text>
+            </Text>
+            {wKg != null ? (
+              <Text style={styles.priceSub}>
+                {t("marketScreen.totalWeight")}{" "}
+                {wKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg
+              </Text>
+            ) : null}
+            <Text style={styles.priceTotal}>
+              {t("marketScreen.totalPrice")}{" "}
+              {formatMoney(
+                L.totalPrice ?? (pKg != null && wKg != null ? pKg * wKg : null),
+                L.currency
+              )}
+            </Text>
+          </>
+        ) : askTotal != null ? (
+          <Text style={styles.priceMain}>{formatMoney(askTotal, L.currency)}</Text>
         ) : null}
-        {wKg != null ? (
-          <Text style={styles.priceSub}>
-            {t("marketScreen.totalWeight")}{" "}
-            {wKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg
-          </Text>
-        ) : null}
-        <Text style={styles.priceTotal}>
-          {t("marketScreen.totalPrice")}{" "}
-          {formatMoney(
-            L.totalPrice ?? (pKg != null && wKg != null ? pKg * wKg : null),
-            L.currency
-          )}
-        </Text>
         <Text style={styles.statsRow}>
           👁 {views} · 💬 {consults}
         </Text>
@@ -572,15 +610,14 @@ export function MarketplaceListingDetailScreen({
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Rendez-vous de retrait</Text>
           <Text style={styles.hintSmall}>
-            Date/heure (ISO recommandé, ex. 2026-05-15T10:00:00) — vendeur et
-            acheteur peuvent mettre à jour après accord.
+            Vendeur et acheteur peuvent ajuster le créneau après accord.
           </Text>
-          <TextInput
-            style={styles.pickupInput}
-            value={pickupAtStr}
-            onChangeText={setPickupAtStr}
-            placeholder="2026-05-15T10:00:00"
-            autoCapitalize="none"
+          <AppDatePicker
+            label="Date et heure de retrait"
+            mode="datetime"
+            isoValue={pickupAtStr}
+            onIsoChange={setPickupAtStr}
+            minDate={new Date()}
           />
           <Text style={styles.labelSmall}>Note (lieu, créneau…)</Text>
           <TextInput
@@ -806,8 +843,13 @@ export function MarketplaceListingDetailScreen({
       ) : null}
     </ScrollView>
 
-    {!isSeller && (canSubmitOffer || L.status === "published") ? (
-      <View style={styles.footerBar}>
+    {showBuyerFooter ? (
+      <View
+        style={[
+          styles.footerBar,
+          { paddingBottom: Math.max(insets.bottom, mobileSpacing.md) }
+        ]}
+      >
         {canSubmitOffer ? (
           <PrimaryButton
             label={t("marketScreen.detail.makeProposal")}
@@ -824,6 +866,7 @@ export function MarketplaceListingDetailScreen({
         ) : null}
       </View>
     ) : null}
+    </View>
 
     <ProposalModal
       visible={proposalOpen}
@@ -842,7 +885,8 @@ export function MarketplaceListingDetailScreen({
         if (!activeOffer) return;
         counterMut.mutate({
           offerId: activeOffer.id,
-          counterPricePerKg: payload.counterPricePerKg
+          counterPricePerKg: payload.counterPricePerKg,
+          counterOfferedPrice: payload.counterOfferedPrice
         });
       }}
     />
@@ -864,6 +908,10 @@ export function MarketplaceListingDetailScreen({
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: mobileColors.canvas
+  },
   scroll: {
     flex: 1,
     backgroundColor: mobileColors.canvas
@@ -871,9 +919,7 @@ const styles = StyleSheet.create({
   cardsPad: {
     paddingHorizontal: mobileSpacing.lg
   },
-  content: {
-    paddingBottom: mobileSpacing.xxl
-  },
+  content: {},
   heroWrap: {
     position: "relative",
     marginBottom: mobileSpacing.md,
@@ -896,7 +942,7 @@ const styles = StyleSheet.create({
   },
   footerBar: {
     padding: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xl,
+    paddingBottom: mobileSpacing.md,
     backgroundColor: mobileColors.background,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: mobileColors.border,

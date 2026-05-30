@@ -281,14 +281,18 @@ export function ProducerDashboardScreen() {
             navigation.navigate("ProducerFarmSettings", { farmId, farmName });
           }}
           style={({ pressed }) => [
-            styles.heroSettingsBtn,
-            pressed && styles.heroSettingsBtnPressed
+            styles.heroIconBtn,
+            pressed && styles.heroIconBtnPressed
           ]}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           accessibilityRole="button"
           accessibilityLabel={t("producer.settingsButton")}
         >
-          <Text style={styles.heroSettingsTx}>{t("producer.settingsButton")}</Text>
+          <Ionicons
+            name="settings-outline"
+            size={22}
+            color={mobileColors.accent}
+          />
         </Pressable>
       </View>
     </View>

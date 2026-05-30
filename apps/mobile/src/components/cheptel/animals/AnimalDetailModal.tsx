@@ -14,6 +14,7 @@ import {
   TextInput,
   View
 } from "react-native";
+import { AppDatePicker } from "../../common/AppDatePicker";
 import { BaseModal } from "../../modals/BaseModal";
 import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
@@ -289,8 +290,7 @@ export function AnimalDetailModal({
           : Math.max(0, ageRaw);
 
       const sexWasSetOnThisSave =
-        effectiveSex !== "unknown" &&
-        (resolvedSex === "unknown" || resolvedSex !== effectiveSex);
+        resolvedSex === "unknown" || resolvedSex !== effectiveSex;
 
       const updated = await updateAnimal(
         accessToken,
@@ -469,13 +469,12 @@ export function AnimalDetailModal({
           <Text style={styles.sectionTitle}>
             {t("cheptel.animals.detail.ageSection")}
           </Text>
-          <Text style={styles.label}>{t("cheptel.animals.detail.birthDate")}</Text>
-          <TextInput
-            style={styles.input}
-            value={birthDate}
-            onChangeText={setBirthDate}
-            placeholder="AAAA-MM-JJ"
-            placeholderTextColor={mobileColors.textSecondary}
+          <AppDatePicker
+            label={t("cheptel.animals.detail.birthDate")}
+            isoValue={birthDate}
+            onIsoChange={setBirthDate}
+            farmId={farmId}
+            maxDate={new Date()}
           />
           {birthDate.trim() && detailQuery.data?.currentAgeWeeks != null ? (
             <Text style={styles.hint}>

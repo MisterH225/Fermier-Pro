@@ -27,7 +27,15 @@ export type RootStackParamList = {
   /** Saisie du jeton d’invitation (lien partagé par un gestionnaire de ferme). */
   AcceptFarmInvitation: { prefilledToken?: string };
   FarmDetail: { farmId: string; farmName: string };
-  FarmLivestock: { farmId: string; farmName: string };
+  FarmLivestock: {
+    farmId: string;
+    farmName: string;
+    initialTab?: "overview" | "cheptel" | "weight" | "history";
+    openPenId?: string;
+    highlightPen?: boolean;
+    autoOpenTransfer?: boolean;
+    showRequalificationBanner?: boolean;
+  };
   /** Santé ferme (dossiers vaccins, maladies, véto, traitements, mortalités). */
   FarmHealth: {
     farmId: string;
@@ -41,6 +49,9 @@ export type RootStackParamList = {
       | "treatment";
     /** Ouvre directement le formulaire d’ajout (ex. depuis dashboard technicien). */
     openFormKind?: "mortality" | "vaccination" | "vet_visit" | "treatment";
+    openDiseaseId?: string;
+    openVisitId?: string;
+    openVaccineName?: string;
   };
   VetSearch: { farmId: string; farmName: string };
   ProducerScheduleVetVisit: {
@@ -77,11 +88,14 @@ export type RootStackParamList = {
   MarketplaceMyListings: undefined;
   CreateMarketplaceListing: { farmId?: string };
   EditMarketplaceListing: { listingId: string };
+  TechProfileEdit: undefined;
   ChatRooms: undefined;
   ChatRoom: {
     roomId: string;
     headline?: string;
     listingId?: string;
+    peerUserId?: string;
+    farmId?: string;
   };
   ChatPickFarm: undefined;
   ChatPickPeer: { farmId: string; farmName: string };
@@ -102,7 +116,13 @@ export type RootStackParamList = {
     farmName: string;
     consultationId: string;
   };
-  FarmFinance: { farmId: string; farmName: string };
+  FarmFinance: {
+    farmId: string;
+    farmName: string;
+    initialTab?: "overview" | "revenus" | "depenses" | "budget";
+    openCategoryId?: string;
+    highlightOverrun?: boolean;
+  };
   CreateFarmExpense: { farmId: string; farmName: string };
   CreateFarmRevenue: { farmId: string; farmName: string };
   EditFarmExpense: {
@@ -165,8 +185,27 @@ export type RootStackParamList = {
   CreateFarmInvitation: { farmId: string; farmName: string };
   /** Écran principal Collaboration (onglet barre basse). */
   Collaboration: { farmId: string; farmName: string };
-  FarmFeedStock: { farmId: string; farmName: string };
-  FarmGestation: { farmId: string; farmName: string };
+  FarmFeedStock: {
+    farmId: string;
+    farmName: string;
+    feedTab?: "overview" | "movements" | "controls";
+    openFeedTypeId?: string;
+    highlightFeedType?: boolean;
+    autoOpenControl?: boolean;
+    filterCostMissing?: boolean;
+    costFilter?: "missing";
+  };
+  FarmGestation: {
+    farmId: string;
+    farmName: string;
+    initialTab?: "overview" | "active" | "planning" | "birth" | "history";
+    openGestationId?: string;
+    autoOpenDetail?: boolean;
+    highlightUrgent?: boolean;
+    highlightSowId?: string;
+    tab?: string;
+  };
   SmartAlertsList: { farmId: string; farmName: string };
   FarmReports: { farmId: string; farmName: string };
+  SettingsExpenseCategories: { farmId: string; farmName: string };
 };

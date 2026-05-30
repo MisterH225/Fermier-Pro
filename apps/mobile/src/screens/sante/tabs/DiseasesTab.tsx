@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Alert, StyleSheet, View } from "react-native";
@@ -41,6 +41,7 @@ type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList>;
   onRefresh: () => void;
   readOnly?: boolean;
+  initialOpenDiseaseId?: string;
 };
 
 export function DiseasesTab({
@@ -54,7 +55,8 @@ export function DiseasesTab({
   batches,
   navigation,
   onRefresh,
-  readOnly = false
+  readOnly = false,
+  initialOpenDiseaseId
 }: Props) {
   const { t } = useTranslation();
   const [diseaseModalOpen, setDiseaseModalOpen] = useState(false);
@@ -95,6 +97,16 @@ export function DiseasesTab({
     () => [...records, ...(treatmentsQ.data ?? [])],
     [records, treatmentsQ.data]
   );
+
+  useEffect(() => {
+    if (!initialOpenDiseaseId || eventsQ.isPending) {
+      return;
+    }
+    const match = records.find((r) => r.id === initialOpenDiseaseId);
+    if (match) {
+      setDetailRecord(match);
+    }
+  }, [initialOpenDiseaseId, records, eventsQ.isPending]);
 
   const handleSuccess = () => {
     onRefresh();

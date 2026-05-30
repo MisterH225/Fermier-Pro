@@ -462,7 +462,7 @@ export function TaskModal({
 
       <ModalSection title={t("modals.sections.scheduling")}>
         <Text style={styles.label}>{t("tasksScreen.fieldDue")}</Text>
-        <TaskDueDateField value={dueAt} onChange={setDueAt} />
+        <TaskDueDateField value={dueAt} onChange={setDueAt} farmId={farmId} />
 
         <Text style={styles.label}>{t("tasksScreen.fieldDescription")}</Text>
         <TextInput

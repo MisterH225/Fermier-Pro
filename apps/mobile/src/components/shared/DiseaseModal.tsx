@@ -11,6 +11,7 @@ import {
   TextInput,
   View
 } from "react-native";
+import { AppDatePicker } from "../common/AppDatePicker";
 import { BaseModal } from "../modals/BaseModal";
 import { ModalSection } from "../modals/ModalSection";
 import { useModal } from "../modals/useModal";
@@ -475,11 +476,12 @@ export function DiseaseModal({
       </ModalSection>
 
       <ModalSection title={`${t("health.diseaseModal.onsetDate")} *`}>
-        <TextInput
-          style={styles.input}
-          value={estimatedOnsetDate}
-          onChangeText={setEstimatedOnsetDate}
-          placeholder="YYYY-MM-DD"
+        <AppDatePicker
+          isoValue={estimatedOnsetDate}
+          onIsoChange={setEstimatedOnsetDate}
+          farmId={farmId}
+          maxDate={new Date()}
+          required
         />
       </ModalSection>
 

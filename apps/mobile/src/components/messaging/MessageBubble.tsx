@@ -1,6 +1,8 @@
 import { StyleSheet, Text, View } from "react-native";
 import type { ChatMessageDto } from "../../lib/api";
+import { parseFarmInvitationMessage } from "../../lib/farmInvitationMessage";
 import { parseMarketplaceOfferMessage } from "../../lib/marketplaceOfferMessage";
+import { InviteCardInChat } from "./InviteCardInChat";
 import { formatPrivacyDisplayName } from "../../lib/userDisplay";
 import { ProposalCardInChat } from "./ProposalCardInChat";
 import {
@@ -39,6 +41,10 @@ type Props = {
 
 export function MessageBubble({ message, isMine }: Props) {
   const body = message.body?.trim() ?? "";
+  const invite = parseFarmInvitationMessage(body);
+  if (invite) {
+    return <InviteCardInChat payload={invite} isMine={isMine} />;
+  }
   const offer = parseMarketplaceOfferMessage(body);
   if (offer) {
     return <ProposalCardInChat payload={offer} isMine={isMine} />;

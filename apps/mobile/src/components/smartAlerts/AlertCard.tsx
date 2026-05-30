@@ -13,6 +13,8 @@ import {
 import type { RootStackParamList } from "../../types/navigation";
 import { useTranslation } from "react-i18next";
 import { resolveSmartAlertText } from "../../lib/smartAlertDisplay";
+import { navigateToAlert } from "../../services/navigation/DeepNavigationService";
+import { useSession } from "../../context/SessionContext";
 
 function priorityIcon(p: SmartAlertListItemDto["priority"]): string {
   if (p === "critical") return "alert-circle";
@@ -49,15 +51,28 @@ type AlertCardProps = {
 
 export function AlertCard({ alert, navigation, onMarkRead }: AlertCardProps) {
   const { t } = useTranslation();
+  const { authMe, activeProfileId } = useSession();
   const display = resolveSmartAlertText(alert, t);
+  const profileType =
+    authMe?.profiles.find((p) => p.id === activeProfileId)?.type ?? "producer";
   const onPressCard = useCallback(() => {
-    const a = alert.action;
-    if (a?.route) {
-      // Routes dynamiques alignées sur RootStackParamList (émises par l’API).
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      navigation.navigate(a.route as any, (a.params ?? {}) as any);
-    }
-  }, [alert.action, navigation]);
+    navigateToAlert(
+      navigation,
+      {
+        id: alert.id,
+        module: alert.module,
+        ruleKey: alert.ruleKey,
+        action: alert.action
+      },
+      profileType === "technician"
+        ? "technician"
+        : profileType === "veterinarian"
+          ? "veterinarian"
+          : profileType === "buyer"
+            ? "buyer"
+            : "producer"
+    );
+  }, [alert, navigation, profileType]);
 
   const renderRight = useCallback(() => {
     if (alert.isRead) {

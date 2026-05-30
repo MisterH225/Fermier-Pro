@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { AppDatePicker } from "../common/AppDatePicker";
 import { BaseModal } from "./BaseModal";
 import { ModalSection } from "./ModalSection";
 import { useModal } from "./useModal";
@@ -253,12 +254,11 @@ export function EditTransactionModal({ visible, payload, onClose }: Props) {
         placeholder={t("modals.transaction.descriptionPh")}
       />
 
-      <Text style={styles.fieldLab}>{t("financeScreen.fieldDate")}</Text>
-      <TextInput
-        style={styles.input}
-        value={txDate}
-        onChangeText={setTxDate}
-        placeholder="YYYY-MM-DD"
+      <AppDatePicker
+        label={t("financeScreen.fieldDate")}
+        isoValue={txDate}
+        onIsoChange={setTxDate}
+        farmId={payload.farmId}
       />
       </ModalSection>
 

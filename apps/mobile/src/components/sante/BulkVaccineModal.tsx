@@ -10,6 +10,7 @@ import {
   TextInput,
   View
 } from "react-native";
+import { AppDatePicker } from "../common/AppDatePicker";
 import { BaseModal } from "../modals/BaseModal";
 import {
   createFarmVaccineRecords,
@@ -199,12 +200,12 @@ export function BulkVaccineModal({
           );
         })}
       </ScrollView>
-      <Text style={styles.lab}>{t("health.fieldDate")}</Text>
-      <TextInput
-        style={styles.input}
-        value={administeredDate}
-        onChangeText={setAdministeredDate}
-        placeholder="YYYY-MM-DD"
+      <AppDatePicker
+        label={t("health.fieldDate")}
+        isoValue={administeredDate}
+        onIsoChange={setAdministeredDate}
+        farmId={farmId}
+        maxDate={new Date()}
       />
       <Text style={styles.lab}>{t("health.fieldPractitioner")}</Text>
       <TextInput
@@ -218,12 +219,12 @@ export function BulkVaccineModal({
         value={batchNumber}
         onChangeText={setBatchNumber}
       />
-      <Text style={styles.lab}>{t("health.vaccines.expiryDate")}</Text>
-      <TextInput
-        style={styles.input}
-        value={expiryDate}
-        onChangeText={setExpiryDate}
-        placeholder="YYYY-MM-DD"
+      <AppDatePicker
+        label={t("health.vaccines.expiryDate")}
+        isoValue={expiryDate}
+        onIsoChange={setExpiryDate}
+        farmId={farmId}
+        minDate={new Date()}
       />
       <Text style={styles.lab}>{t("health.fieldNotes")}</Text>
       <TextInput

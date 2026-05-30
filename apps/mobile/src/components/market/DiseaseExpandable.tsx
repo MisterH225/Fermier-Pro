@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { MarketplaceListingHealthData } from "../../lib/api";
@@ -15,7 +16,7 @@ type Props = {
 
 function diseaseBadge(
   healthData: MarketplaceListingHealthData,
-  t: (k: string) => string
+  t: TFunction
 ): ExpandableBadge {
   if (healthData.pastDiseases.length === 0) {
     return {

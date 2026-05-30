@@ -137,6 +137,8 @@ export class SmartAlertsService {
     const params = this.buildActionParams(draft, farm.id, farm.name);
     const payload = {
       type: "smart_alert",
+      ruleKey: draft.ruleKey,
+      module: draft.module,
       route: draft.action?.route ?? "BuyerDashboard",
       farmId: farm.id,
       params: JSON.stringify(this.sanitizeActionParams(params) ?? {})
@@ -373,6 +375,7 @@ export class SmartAlertsService {
         const params = this.sanitizeActionParams(r.actionParams);
         return {
           id: r.id,
+          ruleKey: r.ruleKey,
           module: r.module,
           priority: r.priority,
           title: r.title,

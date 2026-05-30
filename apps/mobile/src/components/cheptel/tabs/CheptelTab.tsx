@@ -53,6 +53,7 @@ import {
 } from "../../../theme/mobileTheme";
 
 import { ScreenSection } from "../../layout/ScreenSection";
+import { HighlightWrapper } from "../../common/HighlightWrapper";
 
 import { PenCard } from "../pens/PenCard";
 
@@ -74,6 +75,9 @@ type Props = {
 
   onInvalidateOverview?: () => void;
   readOnly?: boolean;
+  openPenId?: string;
+  highlightPenId?: string;
+  showRequalificationBanner?: boolean;
 
 };
 
@@ -198,7 +202,10 @@ export function CheptelTab({
   navigation,
 
   onInvalidateOverview,
-  readOnly = false
+  readOnly = false,
+  openPenId,
+  highlightPenId,
+  showRequalificationBanner = false
 
 }: Props) {
 
@@ -211,8 +218,17 @@ export function CheptelTab({
   const [barnId, setBarnId] = useState<string | undefined>(undefined);
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [highlightActive, setHighlightActive] = useState(false);
 
-
+  useEffect(() => {
+    if (!highlightPenId) {
+      setHighlightActive(false);
+      return;
+    }
+    setHighlightActive(true);
+    const t = setTimeout(() => setHighlightActive(false), 2200);
+    return () => clearTimeout(t);
+  }, [highlightPenId]);
 
   const pensQuery = useQuery({
 
@@ -269,6 +285,16 @@ export function CheptelTab({
   const barns = pensQuery.data?.barns ?? [];
 
   const total = pensQuery.data?.totalPens ?? pens.length;
+
+  useEffect(() => {
+    if (!openPenId || !pens.length) {
+      return;
+    }
+    const pen = pens.find((p) => p.id === openPenId);
+    if (pen?.barnId && pen.barnId !== barnId) {
+      setBarnId(pen.barnId);
+    }
+  }, [openPenId, pens, barnId]);
 
   const layoutRepairDone = useRef<string | null>(null);
 
@@ -456,37 +482,28 @@ export function CheptelTab({
 
     <View style={stacked ? styles.penStack : styles.penGrid}>
 
-      {colPens.map((pen) => (
-
-        <PenCard
-
-          key={pen.id}
-
-          pen={pen}
-
-          displayName={penDisplayLabel(pen)}
-
-          layout={stacked ? "stacked" : "grid"}
-
-          onPress={() => openLoge(pen)}
-
-          onToggleActive={(p, next) => {
-
-            if (p.isActive !== next) {
-
-              toggleMut.mutate({ penId: p.id });
-
-            }
-
-          }}
-
-          onDelete={(p) => deleteMut.mutate(p.id)}
-
-          readOnly={readOnly}
-
-        />
-
-      ))}
+      {colPens.map((pen) => {
+        const highlighted =
+          highlightActive &&
+          (pen.id === highlightPenId || pen.id === openPenId);
+        return (
+          <HighlightWrapper key={pen.id} active={highlighted}>
+            <PenCard
+              pen={pen}
+              displayName={penDisplayLabel(pen)}
+              layout={stacked ? "stacked" : "grid"}
+              onPress={() => openLoge(pen)}
+              onToggleActive={(p, next) => {
+                if (p.isActive !== next) {
+                  toggleMut.mutate({ penId: p.id });
+                }
+              }}
+              onDelete={(p) => deleteMut.mutate(p.id)}
+              readOnly={readOnly}
+            />
+          </HighlightWrapper>
+        );
+      })}
 
     </View>
 
@@ -530,7 +547,16 @@ export function CheptelTab({
 
         </View>
 
-
+        {showRequalificationBanner ? (
+          <View style={styles.requalBanner}>
+            <Text style={styles.requalBannerTx}>
+              {t(
+                "cheptel.requalificationBanner",
+                "Une requalification de cette loge est recommandée (seuil démarrage / type d’usage)."
+              )}
+            </Text>
+          </View>
+        ) : null}
 
         <ScrollView
 
@@ -868,6 +894,21 @@ const styles = StyleSheet.create({
 
     marginTop: mobileSpacing.lg
 
+  },
+
+  requalBanner: {
+    backgroundColor: mobileColors.accentSoft,
+    borderRadius: mobileRadius.md,
+    padding: mobileSpacing.md,
+    marginBottom: mobileSpacing.sm,
+    borderWidth: 1,
+    borderColor: mobileColors.accent
+  },
+
+  requalBannerTx: {
+    ...mobileTypography.body,
+    color: mobileColors.textPrimary,
+    lineHeight: 20
   }
 
 });

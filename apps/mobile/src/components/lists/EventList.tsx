@@ -8,6 +8,7 @@ import {
   View,
   type ListRenderItem
 } from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 import { BaseModal } from "../modals/BaseModal";
 import { EventListFilter } from "./EventListFilter";
@@ -42,6 +43,10 @@ export type EventListProps = {
   sectionRight?: ReactNode;
   loadMoreLabel?: string;
   testID?: string;
+  /** Swipe droite (ex. modifier) — retourner null pour désactiver sur un item */
+  renderSwipeRight?: (item: EventItem) => ReactNode | null;
+  /** Ouvre le détail d’un enregistrement (navigation depuis alerte). */
+  initialOpenItemId?: string;
 };
 
 function SkeletonBlock() {
@@ -80,14 +85,38 @@ export function EventList({
   sectionTitle,
   sectionRight,
   loadMoreLabel = "…",
-  testID
+  testID,
+  renderSwipeRight,
+  initialOpenItemId
 }: EventListProps) {
   const [limit, setLimit] = useState(pageSize);
   const [selected, setSelected] = useState<EventItem | null>(null);
+  const [didOpenInitial, setDidOpenInitial] = useState(false);
 
   useEffect(() => {
     setLimit(pageSize);
   }, [data, pageSize]);
+
+  useEffect(() => {
+    if (!initialOpenItemId || didOpenInitial || isLoading || !data.length) {
+      return;
+    }
+    const item = data.find((d) => d.id === initialOpenItemId);
+    if (item) {
+      onItemPress?.(item);
+      if (renderDetail) {
+        setSelected(item);
+      }
+      setDidOpenInitial(true);
+    }
+  }, [
+    initialOpenItemId,
+    didOpenInitial,
+    isLoading,
+    data,
+    onItemPress,
+    renderDetail
+  ]);
 
   const visible = useMemo(() => data.slice(0, limit), [data, limit]);
   const canLoadMore = limit < data.length;
@@ -102,9 +131,27 @@ export function EventList({
     [onItemPress, renderDetail]
   );
 
+  const renderListItem = useCallback(
+    (item: EventItem) => {
+      const row = (
+        <EventListItem item={item} onPress={() => openItem(item)} />
+      );
+      const swipe = renderSwipeRight?.(item);
+      if (!swipe) {
+        return row;
+      }
+      return (
+        <Swipeable renderRightActions={() => swipe} overshootRight={false}>
+          {row}
+        </Swipeable>
+      );
+    },
+    [openItem, renderSwipeRight]
+  );
+
   const renderRow: ListRenderItem<EventItem> = useCallback(
-    ({ item }) => <EventListItem item={item} onPress={() => openItem(item)} />,
-    [openItem]
+    ({ item }) => renderListItem(item),
+    [renderListItem]
   );
 
   const listEmpty = useMemo(() => {
@@ -169,7 +216,7 @@ export function EventList({
         ) : (
           <>
             {visible.map((item) => (
-              <EventListItem key={item.id} item={item} onPress={() => openItem(item)} />
+              <View key={item.id}>{renderListItem(item)}</View>
             ))}
             {canLoadMore ? (
               <Pressable

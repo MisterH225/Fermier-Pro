@@ -11,6 +11,7 @@ import {
 import {
   buildMarketplaceListingPayload,
   EMPTY_MARKETPLACE_LISTING_FORM,
+  usesFlatListingPrice,
   type MarketplaceListingFormValues
 } from "../../lib/marketplaceListingForm";
 import { marketplaceActionErrorMessage } from "../../lib/marketplaceLabels";
@@ -95,10 +96,12 @@ export function CreateMarketplaceListingModal({
     onClose();
   };
 
+  const flatPrice = usesFlatListingPrice(values.category);
   const canSubmit =
     Boolean(values.title.trim()) &&
-    Boolean(values.totalWeightKg.trim()) &&
-    Boolean(values.pricePerKg.trim()) &&
+    Boolean(values.totalPrice.trim()) &&
+    (flatPrice || Boolean(values.totalWeightKg.trim())) &&
+    (flatPrice || Boolean(values.pricePerKg.trim())) &&
     (!values.farmId || values.selectedAnimalIds.length > 0);
 
   return (

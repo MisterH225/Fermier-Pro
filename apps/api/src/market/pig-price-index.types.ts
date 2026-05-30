@@ -74,21 +74,8 @@ export function categoryFromSale(
   return null;
 }
 
-/** Catégorie indice depuis une annonce marketplace. */
-export function categoryFromListing(
-  category: ListingMarketCategory | null
-): PigPriceIndexCategory | null {
-  switch (category) {
-    case ListingMarketCategory.piglet:
-      return PigPriceIndexCategory.porcelet;
-    case ListingMarketCategory.butcher:
-      return PigPriceIndexCategory.charcutier;
-    case ListingMarketCategory.breeder:
-      return PigPriceIndexCategory.reproducteur;
-    default:
-      return null;
-  }
-}
+/** Catégorie indice depuis une annonce (délégué au helper marketplace). */
+export { categoryForPriceIndexFromListing as categoryFromListing } from "../marketplace/marketplace-listing-category.helper";
 
 export function weightedAvgFromBucket(bucket: SaleBucket): number | null {
   if (bucket.sumWeight <= 0 || bucket.count === 0) {

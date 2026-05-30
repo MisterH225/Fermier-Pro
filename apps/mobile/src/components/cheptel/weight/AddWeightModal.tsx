@@ -13,7 +13,9 @@ import {
 import { BaseModal } from "../../modals/BaseModal";
 import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
+import { AppDatePicker } from "../../common/AppDatePicker";
 import { fetchFarmAnimals, postAnimalWeight } from "../../../lib/api";
+import { toIsoDateString } from "../../../lib/appDate";
 import {
   offlineQueuedMessage,
   useOfflineMutation
@@ -51,6 +53,7 @@ export function AddWeightModal({
   const qc = useQueryClient();
   const [animalId, setAnimalId] = useState(preselectedAnimalId ?? "");
   const [weightKg, setWeightKg] = useState("");
+  const [measuredAtIso, setMeasuredAtIso] = useState(() => toIsoDateString(new Date()));
   const [note, setNote] = useState("");
 
   const animalsQuery = useQuery({
@@ -64,7 +67,12 @@ export function AddWeightModal({
     if (!animalId || !Number.isFinite(w) || w <= 0) {
       throw new Error(t("cheptel.weight.invalid"));
     }
-    return { animalId, weightKg: w, note: note.trim() || undefined };
+    return {
+      animalId,
+      weightKg: w,
+      measuredAt: measuredAtIso.trim() || undefined,
+      note: note.trim() || undefined
+    };
   };
 
   const saveMut = useOfflineMutation({
@@ -77,7 +85,11 @@ export function AddWeightModal({
         accessToken,
         farmId,
         p.animalId,
-        { weightKg: p.weightKg, note: p.note },
+        {
+          weightKg: p.weightKg,
+          measuredAt: p.measuredAt,
+          note: p.note
+        },
         activeProfileId
       );
     },
@@ -88,7 +100,11 @@ export function AddWeightModal({
           {
             method: "POST",
             path: `/farms/${farmId}/animals/${p.animalId}/weights`,
-            body: { weightKg: p.weightKg, note: p.note }
+            body: {
+              weightKg: p.weightKg,
+              measuredAt: p.measuredAt,
+              note: p.note
+            }
           }
         ],
         invalidateRoots: [
@@ -169,6 +185,13 @@ export function AddWeightModal({
           value={weightKg}
           onChangeText={setWeightKg}
           keyboardType="decimal-pad"
+        />
+        <AppDatePicker
+          farmId={farmId}
+          isoValue={measuredAtIso}
+          onIsoChange={setMeasuredAtIso}
+          label={t("cheptel.weight.measuredAt")}
+          maxDate={new Date()}
         />
         <Text style={styles.label}>{t("cheptel.weight.note")}</Text>
         <TextInput style={styles.input} value={note} onChangeText={setNote} />

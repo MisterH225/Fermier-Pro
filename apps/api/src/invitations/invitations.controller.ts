@@ -15,6 +15,7 @@ import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
 import { AcceptInvitationDto } from "./dto/accept-invitation.dto";
 import { CreateFarmInvitationDto } from "./dto/create-farm-invitation.dto";
 import { InviteByIdentifierDto } from "./dto/invite-by-identifier.dto";
+import { InviteFromChatDto } from "./dto/invite-from-chat.dto";
 import { RespondInvitationDto } from "./dto/respond-invitation.dto";
 import { RespondMyInvitationDto } from "./dto/respond-my-invitation.dto";
 import { SearchCollaboratorDto } from "./dto/search-collaborator.dto";
@@ -131,6 +132,17 @@ export class InvitationsController {
     @Body() dto: InviteByIdentifierDto
   ) {
     return this.invitations.inviteByIdentifier(user, farmId, dto);
+  }
+
+  @Post("farms/:farmId/collaborators/invite-from-chat")
+  @UseGuards(SupabaseJwtGuard, FarmScopesGuard)
+  @RequireFarmScopes(FARM_SCOPE.invitationsManage)
+  inviteFromChat(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Body() dto: InviteFromChatDto
+  ) {
+    return this.invitations.inviteFromChat(user, farmId, dto);
   }
 
   /** Liste les invitations en attente reçues par l'utilisateur courant. */

@@ -20,9 +20,15 @@ type ListProps = Omit<
 type Props = ListProps & {
   upcoming: FarmHealthUpcomingDto | undefined;
   locale: string;
+  initialOpenVisitId?: string;
 };
 
-export function VetVisitsTab({ upcoming, locale, ...listProps }: Props) {
+export function VetVisitsTab({
+  upcoming,
+  locale,
+  initialOpenVisitId,
+  ...listProps
+}: Props) {
   const { t } = useTranslation();
   const next = upcoming?.vetVisits?.[0];
 
@@ -46,6 +52,7 @@ export function VetVisitsTab({ upcoming, locale, ...listProps }: Props) {
       locale={locale}
       prependContent={prepend}
       showSubjectPicker={false}
+      initialOpenRecordId={initialOpenVisitId}
       {...listProps}
     />
   );

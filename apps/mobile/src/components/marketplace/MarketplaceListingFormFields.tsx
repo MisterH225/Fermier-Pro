@@ -6,6 +6,9 @@ import {
   applyAnimalSelection,
   computeTotalFromWeightAndPrice,
   formatDecimalForInput,
+  parseDecimalField,
+  suggestListingCategoryFromWeight,
+  usesFlatListingPrice,
   type ListingCategory,
   type ListingDurationDays,
   type MarketplaceListingFormValues
@@ -69,8 +72,10 @@ export function MarketplaceListingFormFields({
     [values.totalWeightKg, values.pricePerKg]
   );
 
+  const flatPrice = usesFlatListingPrice(values.category);
+
   const displayTotal =
-    values.totalPriceManual && values.totalPrice.trim()
+    flatPrice || (values.totalPriceManual && values.totalPrice.trim())
       ? values.totalPrice
       : computedTotal != null
         ? formatDecimalForInput(computedTotal, 0)
@@ -80,7 +85,8 @@ export function MarketplaceListingFormFields({
     patch: Partial<MarketplaceListingFormValues>
   ) => {
     const next = { ...values, ...patch };
-    if (!next.totalPriceManual) {
+    const nextFlat = usesFlatListingPrice(next.category);
+    if (!nextFlat && !next.totalPriceManual) {
       const total = computeTotalFromWeightAndPrice(
         next.totalWeightKg,
         next.pricePerKg
@@ -88,6 +94,31 @@ export function MarketplaceListingFormFields({
       if (total != null) {
         patch.totalPrice = formatDecimalForInput(total, 0);
       }
+    }
+    const weight = parseDecimalField(next.totalWeightKg);
+    if (weight != null && weight > 0) {
+      const headcount =
+        next.selectedAnimalIds.length > 0
+          ? next.selectedAnimalIds.length
+          : next.animalId
+            ? 1
+            : 1;
+      patch.category = suggestListingCategoryFromWeight(
+        weight,
+        headcount,
+        next.category
+      );
+    }
+    onChange(patch);
+  };
+
+  const onCategoryChange = (category: ListingCategory) => {
+    const patch: Partial<MarketplaceListingFormValues> = { category };
+    if (usesFlatListingPrice(category)) {
+      patch.pricePerKg = "";
+      patch.totalPriceManual = true;
+    } else if (usesFlatListingPrice(values.category)) {
+      patch.totalPriceManual = false;
     }
     onChange(patch);
   };
@@ -150,12 +181,13 @@ export function MarketplaceListingFormFields({
       ) : null}
 
       <ModalSection title={t("marketScreen.createForm.sectionCategory")}>
+        <Text style={styles.hint}>{t("marketScreen.createForm.categoryHint")}</Text>
         <View style={styles.chipRow}>
           {CATEGORIES.map((cat) => (
             <Pressable
               key={cat}
               style={[styles.chip, values.category === cat && styles.chipOn]}
-              onPress={() => set({ category: cat })}
+              onPress={() => onCategoryChange(cat)}
             >
               <Text
                 style={[
@@ -242,37 +274,59 @@ export function MarketplaceListingFormFields({
         />
       </ModalSection>
 
-      <ModalSection title={t("marketScreen.createForm.sectionPricingPork")}>
+      <ModalSection
+        title={
+          flatPrice
+            ? t("marketScreen.createForm.sectionPricingFlat")
+            : t("marketScreen.createForm.sectionPricingPork")
+        }
+      >
+        {flatPrice ? (
+          <Text style={styles.hint}>
+            {t("marketScreen.createForm.flatPriceHint")}
+          </Text>
+        ) : null}
         <Text style={styles.lab}>
-          {t("marketScreen.createForm.totalWeight")} *
+          {flatPrice
+            ? t("marketScreen.createForm.weightOptional")
+            : `${t("marketScreen.createForm.totalWeight")} *`}
         </Text>
         <TextInput
           style={styles.input}
           value={values.totalWeightKg}
           onChangeText={(totalWeightKg) =>
-            onWeightOrPriceChange({ totalWeightKg, totalPriceManual: false })
+            onWeightOrPriceChange({
+              totalWeightKg,
+              totalPriceManual: flatPrice ? true : false
+            })
           }
           placeholder="0"
           placeholderTextColor={mobileColors.textSecondary}
           keyboardType="decimal-pad"
         />
 
-        <Text style={styles.lab}>
-          {t("marketScreen.createForm.pricePerKg")} *
-        </Text>
-        <TextInput
-          style={styles.input}
-          value={values.pricePerKg}
-          onChangeText={(pricePerKg) =>
-            onWeightOrPriceChange({ pricePerKg, totalPriceManual: false })
-          }
-          placeholder="0"
-          placeholderTextColor={mobileColors.textSecondary}
-          keyboardType="decimal-pad"
-        />
+        {!flatPrice ? (
+          <>
+            <Text style={styles.lab}>
+              {t("marketScreen.createForm.pricePerKg")} *
+            </Text>
+            <TextInput
+              style={styles.input}
+              value={values.pricePerKg}
+              onChangeText={(pricePerKg) =>
+                onWeightOrPriceChange({ pricePerKg, totalPriceManual: false })
+              }
+              placeholder="0"
+              placeholderTextColor={mobileColors.textSecondary}
+              keyboardType="decimal-pad"
+            />
+          </>
+        ) : null}
 
         <Text style={styles.lab}>
-          {t("marketScreen.createForm.totalPrice")} *
+          {flatPrice
+            ? `${t("marketScreen.createForm.flatPrice")} *`
+            : `${t("marketScreen.createForm.totalPrice")} *`}
         </Text>
         <TextInput
           style={styles.input}
@@ -280,11 +334,11 @@ export function MarketplaceListingFormFields({
           onChangeText={(totalPrice) =>
             set({ totalPrice, totalPriceManual: true })
           }
-          placeholder="0"
+          placeholder={flatPrice ? "20000" : "0"}
           placeholderTextColor={mobileColors.textSecondary}
           keyboardType="decimal-pad"
         />
-        {!values.totalPriceManual && computedTotal != null ? (
+        {!flatPrice && !values.totalPriceManual && computedTotal != null ? (
           <Text style={styles.calcHint}>
             {t("marketScreen.createForm.totalAuto", {
               amount: formatMarketMoney(computedTotal, values.currency)

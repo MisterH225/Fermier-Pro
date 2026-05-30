@@ -72,7 +72,7 @@ export async function evaluateFinanceRules(
           action: {
             label: "Finance",
             route: "FarmFinance",
-            params: { farmId }
+            params: { farmId, categoryId: c.id }
           }
         });
       }

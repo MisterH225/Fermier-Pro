@@ -17,6 +17,7 @@ import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
 import { MarketplaceListingFormFields } from "../components/marketplace/MarketplaceListingFormFields";
 import { MobileAppShell } from "../components/layout";
 import { useSession } from "../context/SessionContext";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import {
   createMarketplaceListing,
   fetchFarmAnimals,
@@ -42,6 +43,7 @@ export function CreateMarketplaceListingScreen({ navigation, route }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
+  const scrollBottomPad = useScrollBottomPad();
 
   const initialFarmId = route.params?.farmId ?? null;
   const lockFarm = Boolean(initialFarmId);
@@ -143,7 +145,6 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: {
     padding: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl,
     gap: mobileSpacing.md
   },
   submit: {

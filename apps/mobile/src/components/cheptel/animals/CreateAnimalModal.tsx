@@ -10,6 +10,7 @@ import {
   TextInput,
   View
 } from "react-native";
+import { AppDatePicker } from "../../common/AppDatePicker";
 import { BaseModal } from "../../modals/BaseModal";
 import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
@@ -381,14 +382,13 @@ export function CreateAnimalModal({
       </ModalSection>
 
       <ModalSection title={t("modals.sections.details")}>
-        <Text style={styles.label}>{t("cheptel.animals.create.birthDate")}</Text>
-        <Text style={styles.hint}>{t("cheptel.animals.create.birthDateHelper")}</Text>
-        <TextInput
-          style={styles.input}
-          value={birthDate}
-          onChangeText={setBirthDate}
-          placeholder="AAAA-MM-JJ"
-          placeholderTextColor={mobileColors.textSecondary}
+        <AppDatePicker
+          label={t("cheptel.animals.create.birthDate")}
+          helper={t("cheptel.animals.create.birthDateHelper")}
+          isoValue={birthDate}
+          onIsoChange={setBirthDate}
+          farmId={farmId}
+          maxDate={new Date()}
         />
 
         {!birthDate.trim() ? (

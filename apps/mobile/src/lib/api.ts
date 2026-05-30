@@ -845,6 +845,7 @@ export type SmartAlertPriorityDto = "critical" | "warning" | "info";
 
 export type SmartAlertListItemDto = {
   id: string;
+  ruleKey?: string;
   module: SmartAlertModuleDto;
   priority: SmartAlertPriorityDto;
   title: string;

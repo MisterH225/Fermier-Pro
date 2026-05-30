@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { FarmReportPeriodType } from "../../lib/api";
+import { AppDatePicker } from "../common/AppDatePicker";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 
 export type ReportAnchorState = {
@@ -14,6 +15,7 @@ type Props = {
   onPeriodTypeChange?: (p: FarmReportPeriodType) => void;
   anchor: ReportAnchorState;
   onAnchorChange: (a: ReportAnchorState) => void;
+  farmId?: string;
   /** Masque les puces Mensuel / Trimestriel / Annuel (gérées par TabSelector). */
   hidePeriodTabs?: boolean;
 };
@@ -69,6 +71,7 @@ export function PeriodSelector({
   onPeriodTypeChange,
   anchor,
   onAnchorChange,
+  farmId,
   hidePeriodTabs = false
 }: Props) {
   const { t, i18n } = useTranslation();
@@ -143,7 +146,26 @@ export function PeriodSelector({
           <Text style={styles.navBtnText}>◀</Text>
         </Pressable>
         <View style={styles.navCenter}>
-          <Text style={styles.navMain}>{label}</Text>
+          {periodType === "monthly" ? (
+            <AppDatePicker
+              mode="month_year"
+              farmId={farmId}
+              isoValue={`${anchor.year}-${String(anchor.month).padStart(2, "0")}`}
+              onIsoChange={(iso) => {
+                const m = /^(\d{4})-(\d{2})/.exec(iso.trim());
+                if (!m) {
+                  return;
+                }
+                onAnchorChange({
+                  ...anchor,
+                  year: Number(m[1]),
+                  month: Number(m[2])
+                });
+              }}
+            />
+          ) : (
+            <Text style={styles.navMain}>{label}</Text>
+          )}
           {periodType === "monthly" ? (
             <Text style={styles.navSub}>{longLabel}</Text>
           ) : null}

@@ -1,6 +1,8 @@
 import * as Notifications from "expo-notifications";
 import type { NavigationContainerRef } from "@react-navigation/native";
 import { useEffect, type RefObject } from "react";
+import { navigateFromPushData } from "../services/navigation/DeepNavigationService";
+import type { PushSmartAlertData } from "../services/navigation/deepNavigation.types";
 import type { RootStackParamList } from "../types/navigation";
 
 Notifications.setNotificationHandler({
@@ -13,36 +15,19 @@ Notifications.setNotificationHandler({
   })
 });
 
-function parsePushParams(raw: unknown): Record<string, unknown> | undefined {
-  if (typeof raw !== "string" || !raw.trim()) {
-    return undefined;
-  }
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    return parsed && typeof parsed === "object"
-      ? (parsed as Record<string, unknown>)
-      : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 export function useSmartAlertPushNavigation(
   navigationRef: RefObject<NavigationContainerRef<RootStackParamList> | null>
 ) {
   useEffect(() => {
     const navigateFromData = (data: Record<string, unknown> | undefined) => {
-      if (!data || data.type !== "smart_alert" || typeof data.route !== "string") {
+      if (!data || data.type !== "smart_alert") {
         return;
       }
       const nav = navigationRef.current;
       if (!nav?.isReady()) {
         return;
       }
-      const route = data.route as keyof RootStackParamList;
-      const params = parsePushParams(data.params);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      nav.navigate(route as any, (params ?? undefined) as any);
+      navigateFromPushData(nav, data as PushSmartAlertData);
     };
 
     void Notifications.getLastNotificationResponseAsync().then((response) => {

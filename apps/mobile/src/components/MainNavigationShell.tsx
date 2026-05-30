@@ -162,6 +162,7 @@ function MainStack() {
       <Stack.Screen
         name="ProducerFarmSettings"
         component={ProducerFarmSettingsScreen}
+        options={{ title: "" }}
       />
       <Stack.Screen
         name="SettingsExpenseCategories"

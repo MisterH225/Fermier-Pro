@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState, useCallback, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import { ScreenSection, TabScreenHeader } from "../components/layout";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useTranslation } from "react-i18next";
@@ -149,7 +149,13 @@ function currentYearUtc(): string {
 }
 
 export function FarmFinanceScreen({ route, navigation }: Props) {
-  const { farmId, farmName } = route.params;
+  const {
+    farmId,
+    farmName,
+    initialTab: initialTabParam,
+    openCategoryId,
+    highlightOverrun
+  } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
   const { t, i18n } = useTranslation();
@@ -1294,6 +1300,8 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                   farmId={farmId}
                   accessToken={accessToken}
                   activeProfileId={activeProfileId}
+                  highlightCategoryId={openCategoryId}
+                  highlightOverrun={highlightOverrun}
                 />
               ) : null
             )

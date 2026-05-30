@@ -30,6 +30,8 @@ import {
 import { InviteByIdentifierDto } from "./dto/invite-by-identifier.dto";
 import { RespondInvitationDto } from "./dto/respond-invitation.dto";
 import { SearchCollaboratorDto } from "./dto/search-collaborator.dto";
+import { ChatService } from "../chat/chat.service";
+import { FARM_INVITATION_MESSAGE_TYPE } from "../chat/chat-invitation-message";
 import {
   detectIdentifierKind,
   maskEmail,
@@ -38,6 +40,7 @@ import {
   normalizeEmail,
   normalizePhone
 } from "./identifier-utils";
+import { InviteFromChatDto } from "./dto/invite-from-chat.dto";
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const DEFAULT_LINK_TTL_MS = 365 * 24 * 60 * 60 * 1000;
@@ -127,8 +130,22 @@ export class InvitationsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly farmAccess: FarmAccessService,
-    private readonly push: PushNotificationsService
+    private readonly push: PushNotificationsService,
+    private readonly chat: ChatService
   ) {}
+
+  private recipientKindLabel(kind: string | null | undefined): string {
+    switch (kind) {
+      case "veterinarian":
+        return "Vétérinaire";
+      case "technician":
+        return "Technicien";
+      case "partner":
+        return "Partenaire";
+      default:
+        return "Collaborateur";
+    }
+  }
 
   /**
    * Lien collaboratif par défaut (kind=share_link, isDefault=true) pour une ferme.
@@ -1034,6 +1051,47 @@ export class InvitationsService {
   }
 
   /**
+   * Invitation depuis une conversation directe : crée l'invitation puis
+   * publie une carte structurée dans le salon.
+   */
+  async inviteFromChat(actor: User, farmId: string, dto: InviteFromChatDto) {
+    const created = await this.inviteByIdentifier(actor, farmId, {
+      userId: dto.peerUserId,
+      recipientKind: dto.recipientKind,
+      permissions: dto.permissions,
+      message: dto.message
+    });
+
+    const farm = await this.prisma.farm.findUnique({
+      where: { id: farmId },
+      select: { name: true }
+    });
+
+    const room = await this.chat.ensureDirectRoom(
+      actor,
+      dto.peerUserId,
+      undefined
+    );
+    const roomId = dto.roomId?.trim() || room.id;
+
+    const msg = await this.chat.postFarmInvitationMessage(roomId, actor.id, {
+      _type: FARM_INVITATION_MESSAGE_TYPE,
+      invitationId: created.invitationId,
+      farmId,
+      farmName: farm?.name ?? "Ferme",
+      recipientKind: dto.recipientKind,
+      roleLabel: this.recipientKindLabel(dto.recipientKind),
+      status: "pending"
+    });
+
+    return {
+      ...created,
+      roomId,
+      messageId: msg.id
+    };
+  }
+
+  /**
    * Liste les invitations en attente pour l'utilisateur courant
    * (ciblées via `inviteeUserId`). Inclut le nom de ferme + métadonnées
    * affichables (rôle, permissions, message, expiration).
@@ -1141,6 +1199,13 @@ export class InvitationsService {
           }
         )
         .catch(() => undefined);
+      await this.chat
+        .syncFarmInvitationMessageStatus(invitation.id, "rejected")
+        .catch((err) => {
+          this.logger.warn(
+            `[invitations] sync chat card rejected: ${err instanceof Error ? err.message : String(err)}`
+          );
+        });
       return {
         ok: true,
         invitationId: updated.id,
@@ -1228,6 +1293,14 @@ export class InvitationsService {
         }
       )
       .catch(() => undefined);
+
+    await this.chat
+      .syncFarmInvitationMessageStatus(invitation.id, "accepted")
+      .catch((err) => {
+        this.logger.warn(
+          `[invitations] sync chat card accepted: ${err instanceof Error ? err.message : String(err)}`
+        );
+      });
 
     return {
       ok: true,

@@ -1,6 +1,8 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import type { ReconciliationOfferDto } from "../lib/api";
+import { ReconciliationAlertModal } from "../components/stock/ReconciliationAlertModal";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -16,7 +18,7 @@ import {
 } from "react-native";
 import { FinanceModuleGate } from "../components/FinanceModuleGate";
 import { useSession } from "../context/SessionContext";
-import { createFarmExpense } from "../lib/api";
+import { createFarmExpense, type CreateFarmExpenseResponse } from "../lib/api";
 import { invalidateFarmFinanceQueries } from "../lib/invalidateFarmFinanceQueries";
 import {
   offlineQueuedMessage,
@@ -40,6 +42,8 @@ export function CreateFarmExpenseScreen({ route, navigation }: Props) {
   const [label, setLabel] = useState("");
   const [category, setCategory] = useState("");
   const [note, setNote] = useState("");
+  const [reconciliationOffer, setReconciliationOffer] =
+    useState<ReconciliationOfferDto | null>(null);
 
   const buildBody = () => {
     const amount = parseAmount(amountText);
@@ -75,8 +79,13 @@ export function CreateFarmExpenseScreen({ route, navigation }: Props) {
         "farmExpenses"
       ]
     }),
-    onSuccess: () => {
+    onSuccess: (res) => {
       invalidateFarmFinanceQueries(qc, farmId);
+      const body = res as CreateFarmExpenseResponse;
+      if (body.reconciliation && body.reconciliation.status !== "none") {
+        setReconciliationOffer(body.reconciliation);
+        return;
+      }
       navigation.goBack();
     },
     onQueued: () => {
@@ -111,6 +120,7 @@ export function CreateFarmExpenseScreen({ route, navigation }: Props) {
   }
 
   return (
+    <>
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -170,6 +180,26 @@ export function CreateFarmExpenseScreen({ route, navigation }: Props) {
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
+    {reconciliationOffer && accessToken ? (
+      <ReconciliationAlertModal
+        visible
+        offer={reconciliationOffer}
+        farmId={farmId}
+        accessToken={accessToken}
+        activeProfileId={activeProfileId}
+        onClose={() => {
+          setReconciliationOffer(null);
+          navigation.goBack();
+        }}
+        onDone={() => {
+          invalidateFarmFinanceQueries(qc, farmId);
+          void qc.invalidateQueries({ queryKey: ["farmFeed", farmId] });
+          setReconciliationOffer(null);
+          navigation.goBack();
+        }}
+      />
+    ) : null}
+    </>
   );
 }
 

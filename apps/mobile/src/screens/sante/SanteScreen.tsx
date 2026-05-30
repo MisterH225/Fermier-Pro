@@ -96,7 +96,15 @@ const emptyForm = (): HealthFormState => ({
 });
 
 export function SanteScreen({ route, navigation }: Props) {
-  const { farmId, farmName, initialTab, openFormKind } = route.params;
+  const {
+    farmId,
+    farmName,
+    initialTab,
+    openFormKind,
+    openDiseaseId,
+    openVisitId,
+    openVaccineName
+  } = route.params;
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "en" ? "en" : "fr";
   const qc = useQueryClient();
@@ -174,6 +182,12 @@ export function SanteScreen({ route, navigation }: Props) {
   const [healthTab, setHealthTab] = useState<HealthScreenTab>(
     initialTab ?? "overview"
   );
+
+  useEffect(() => {
+    if (initialTab) {
+      setHealthTab(initialTab);
+    }
+  }, [initialTab]);
   const [pendingOpenForm, setPendingOpenForm] = useState(openFormKind);
   const [formOpen, setFormOpen] = useState(false);
   const [formKind, setFormKind] = useState<FarmHealthRecordKind>("vaccination");
@@ -632,6 +646,7 @@ export function SanteScreen({ route, navigation }: Props) {
                     accessToken={accessToken}
                     activeProfileId={activeProfileId}
                     livestockMode={livestockMode}
+                    highlightVaccineName={openVaccineName}
                   />
                 ) : null}
                 <EventList
@@ -663,6 +678,7 @@ export function SanteScreen({ route, navigation }: Props) {
                 batches={batches}
                 navigation={navigation}
                 readOnly={readOnly}
+                initialOpenDiseaseId={openDiseaseId}
                 onRefresh={() => {
                   void qc.invalidateQueries({ queryKey: ["farmHealthEvents", farmId] });
                   void qc.invalidateQueries({ queryKey: ["farmDiseasesOverview", farmId] });
@@ -682,6 +698,7 @@ export function SanteScreen({ route, navigation }: Props) {
               <VetVisitsTab
                 upcoming={upcomingQuery.data}
                 onAddPress={readOnly ? undefined : () => openForm("vet_visit")}
+                initialOpenVisitId={openVisitId}
                 {...listCommon}
               />
             )
@@ -736,6 +753,7 @@ export function SanteScreen({ route, navigation }: Props) {
 
       <HealthRecordFormModal
         visible={formOpen}
+        farmId={farmId}
         formKind={formKind}
         subjectType={subjectType}
         saving={createMut.isPending}

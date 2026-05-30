@@ -18,6 +18,7 @@ import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
 import { MobileAppShell } from "../components/layout";
 import { ModalSection } from "../components/modals/ModalSection";
 import { useSession } from "../context/SessionContext";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import {
   fetchMarketplaceListing,
   type UpdateMarketplaceListingPayload,
@@ -39,6 +40,7 @@ export function EditMarketplaceListingScreen({ navigation, route }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId, authMe, clientFeatures } = useSession();
   const qc = useQueryClient();
+  const scrollBottomPad = useScrollBottomPad();
   const synced = useRef(false);
 
   const [title, setTitle] = useState("");
@@ -189,7 +191,7 @@ export function EditMarketplaceListingScreen({ navigation, route }: Props) {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingBottom: scrollBottomPad }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -279,7 +281,6 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: {
     padding: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl,
     gap: mobileSpacing.md
   },
   centered: {

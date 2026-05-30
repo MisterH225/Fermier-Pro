@@ -6,6 +6,7 @@ import { SmartAlertsModule } from "../smart-alerts/smart-alerts.module";
 import { FarmFeedController } from "./farm-feed.controller";
 import { FarmFeedService } from "./farm-feed.service";
 import { FeedFinanceLinkModule } from "../feed-finance-link/feed-finance-link.module";
+import { FeedReconciliationCronService } from "./feed-reconciliation-cron.service";
 
 @Module({
   imports: [
@@ -16,6 +17,6 @@ import { FeedFinanceLinkModule } from "../feed-finance-link/feed-finance-link.mo
     FeedFinanceLinkModule
   ],
   controllers: [FarmFeedController],
-  providers: [FarmFeedService]
+  providers: [FarmFeedService, FeedReconciliationCronService]
 })
 export class FeedStockModule {}

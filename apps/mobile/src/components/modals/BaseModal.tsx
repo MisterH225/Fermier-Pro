@@ -127,7 +127,9 @@ export function BaseModal({
   ).current;
 
   const scrollBottomPad =
-    Math.max(insets.bottom, mobileSpacing.md) + mobileSpacing.xl;
+    Math.max(insets.bottom, mobileSpacing.md) +
+    mobileSpacing.xl +
+    (footerPrimary ? mobileSpacing.xxl + 56 : 0);
 
   return (
     <Modal

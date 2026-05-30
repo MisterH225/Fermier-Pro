@@ -9,7 +9,9 @@ import {
   TextInput,
   View
 } from "react-native";
+import { AppDatePicker } from "../common/AppDatePicker";
 import { BaseModal } from "../modals/BaseModal";
+import { toIsoDateTimeString } from "../../lib/appDate";
 import { ModalSection } from "../modals/ModalSection";
 import { recordGestationLitter } from "../../lib/api";
 import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
@@ -41,8 +43,9 @@ export function MiseBasModal({
   onSaved
 }: Props) {
   const { t } = useTranslation();
-  const now = new Date().toISOString();
-  const [actualBirthDate, setActualBirthDate] = useState(now);
+  const [actualBirthDate, setActualBirthDate] = useState(() =>
+    toIsoDateTimeString(new Date())
+  );
   const [bornAlive, setBornAlive] = useState("");
   const [stillborn, setStillborn] = useState("0");
   const [mummified, setMummified] = useState("0");
@@ -143,11 +146,13 @@ export function MiseBasModal({
       }
     >
       <ModalSection title={t("modals.sections.details")}>
-        <Text style={styles.label}>{t("gestationScreen.birthDateTime")}</Text>
-        <TextInput
-          style={styles.input}
-          value={actualBirthDate}
-          onChangeText={setActualBirthDate}
+        <AppDatePicker
+          label={t("gestationScreen.birthDateTime")}
+          mode="datetime"
+          isoValue={actualBirthDate}
+          onIsoChange={setActualBirthDate}
+          farmId={farmId}
+          maxDate={new Date()}
         />
         <Text style={styles.label}>{t("gestationScreen.bornAlive")}</Text>
         <TextInput

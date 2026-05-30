@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import type {
   MarketplaceListingDetail,
   MarketplaceOfferBrief
 } from "../../lib/api";
+import { isFlatPriceListing } from "./listingPricing";
 import { formatMarketMoney, parseMarketNum } from "./MarketplaceListingCard";
 import {
   mobileColors,
@@ -20,7 +21,11 @@ type Props = {
   listing: MarketplaceListingDetail | null;
   offer: MarketplaceOfferBrief | null;
   onClose: () => void;
-  onSubmit: (payload: { counterPricePerKg: number; message?: string }) => void;
+  onSubmit: (payload: {
+    counterPricePerKg?: number;
+    counterOfferedPrice?: number;
+    message?: string;
+  }) => void;
   submitting?: boolean;
 };
 
@@ -33,15 +38,26 @@ export function CounterProposalModal({
   submitting
 }: Props) {
   const { t } = useTranslation();
+  const flatAsk = isFlatPriceListing(listing?.category ?? null);
   const wKg = parseMarketNum(listing?.totalWeightKg);
   const askPk = parseMarketNum(listing?.pricePerKg);
-  const [pricePerKg, setPricePerKg] = useState("");
+  const askTotal = parseMarketNum(listing?.totalPrice);
+  const [amount, setAmount] = useState("");
 
-  const total = useMemo(() => {
-    const p = Number.parseFloat(pricePerKg.replace(",", "."));
-    if (!Number.isFinite(p) || wKg == null) return null;
-    return p * wKg;
-  }, [pricePerKg, wKg]);
+  const handleOpen = () => {
+    if (flatAsk && askTotal != null) {
+      setAmount(String(Math.round(askTotal)));
+    } else if (askPk != null) {
+      setAmount(String(askPk));
+    } else {
+      setAmount("");
+    }
+  };
+
+  const parsed = Number.parseFloat(amount.replace(",", "."));
+  const canSubmit = Boolean(
+    listing && Number.isFinite(parsed) && parsed >= 0 && (!flatAsk ? wKg != null : true)
+  );
 
   return (
     <BaseModal
@@ -52,43 +68,53 @@ export function CounterProposalModal({
         <PrimaryButton
           label={t("marketScreen.counterModal.submit")}
           loading={submitting}
-          disabled={!listing || wKg == null}
+          disabled={!canSubmit}
           onPress={() => {
-            const p = Number.parseFloat(pricePerKg.replace(",", "."));
-            if (!Number.isFinite(p) || p < 0) return;
-            onSubmit({ counterPricePerKg: p });
+            if (!Number.isFinite(parsed) || parsed < 0) {
+              return;
+            }
+            if (flatAsk) {
+              onSubmit({ counterOfferedPrice: parsed });
+            } else {
+              onSubmit({ counterPricePerKg: parsed });
+            }
           }}
         />
       }
     >
-      {visible && askPk != null && pricePerKg === "" ? (
-        <View
-          onLayout={() => setPricePerKg(String(askPk))}
-        />
-      ) : null}
+      {visible ? <View onLayout={handleOpen} /> : null}
       {offer?.buyer?.fullName ? (
         <Text style={styles.meta}>
           {t("marketScreen.counterModal.buyer")} {offer.buyer.fullName}
         </Text>
       ) : null}
-      {askPk != null ? (
+      {flatAsk && askTotal != null ? (
+        <Text style={styles.meta}>
+          {t("marketScreen.counterModal.askedFlat")}{" "}
+          {formatMarketMoney(askTotal, listing?.currency ?? "XOF")}
+        </Text>
+      ) : askPk != null ? (
         <Text style={styles.meta}>
           {t("marketScreen.counterModal.asked")}{" "}
           {formatMarketMoney(askPk, listing?.currency ?? "XOF")}/kg
         </Text>
       ) : null}
-      <Text style={styles.lab}>{t("marketScreen.counterModal.pricePerKg")}</Text>
+      <Text style={styles.lab}>
+        {flatAsk
+          ? t("marketScreen.counterModal.offeredFlat")
+          : t("marketScreen.counterModal.pricePerKg")}
+      </Text>
       <TextInput
         style={styles.input}
-        value={pricePerKg}
-        onChangeText={setPricePerKg}
+        value={amount}
+        onChangeText={setAmount}
         keyboardType="decimal-pad"
         placeholderTextColor={mobileColors.textSecondary}
       />
-      {total != null && listing ? (
+      {!flatAsk && wKg != null && Number.isFinite(parsed) ? (
         <Text style={styles.total}>
           {t("marketScreen.totalPrice")}{" "}
-          {formatMarketMoney(total, listing.currency)}
+          {formatMarketMoney(parsed * wKg, listing?.currency ?? "XOF")}
         </Text>
       ) : null}
     </BaseModal>

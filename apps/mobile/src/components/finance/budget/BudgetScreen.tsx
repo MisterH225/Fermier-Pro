@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -20,11 +20,14 @@ import { BudgetSetupModal } from "./BudgetSetupModal";
 import { BudgetSuggestions } from "./BudgetSuggestions";
 import { GlobalBudgetGauge } from "./GlobalBudgetGauge";
 import { SimulationTool } from "./SimulationTool";
+import { HighlightWrapper } from "../../common/HighlightWrapper";
 
 type Props = {
   farmId: string;
   accessToken: string;
   activeProfileId?: string | null;
+  highlightCategoryId?: string;
+  highlightOverrun?: boolean;
 };
 
 function shiftMonth(year: number, month: number, delta: number) {
@@ -41,7 +44,13 @@ function shiftMonth(year: number, month: number, delta: number) {
   return { year: y, month: m };
 }
 
-export function BudgetScreen({ farmId, accessToken, activeProfileId }: Props) {
+export function BudgetScreen({
+  farmId,
+  accessToken,
+  activeProfileId,
+  highlightCategoryId,
+  highlightOverrun
+}: Props) {
   const { t, i18n } = useTranslation();
   const { open } = useModal();
   const qc = useQueryClient();
@@ -50,6 +59,17 @@ export function BudgetScreen({ farmId, accessToken, activeProfileId }: Props) {
   const [month, setMonth] = useState(now.getUTCMonth() + 1);
   const [setupOpen, setSetupOpen] = useState(false);
   const [editLine, setEditLine] = useState<FarmBudgetLineDto | null>(null);
+  const [highlightCategory, setHighlightCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!highlightCategoryId) {
+      setHighlightCategory(null);
+      return;
+    }
+    setHighlightCategory(highlightCategoryId);
+    const timer = setTimeout(() => setHighlightCategory(null), 2200);
+    return () => clearTimeout(timer);
+  }, [highlightCategoryId]);
 
   const budgetQ = useQuery({
     queryKey: ["farmBudget", farmId, year, month, activeProfileId],
@@ -110,7 +130,7 @@ export function BudgetScreen({ farmId, accessToken, activeProfileId }: Props) {
       <BudgetHeader
         year={year}
         month={month}
-        locale={locale}
+        farmId={farmId}
         globalStatus={globalStatus}
         onPrevMonth={() => {
           const p = shiftMonth(year, month, -1);
@@ -121,6 +141,10 @@ export function BudgetScreen({ farmId, accessToken, activeProfileId }: Props) {
           const n = shiftMonth(year, month, 1);
           setYear(n.year);
           setMonth(n.month);
+        }}
+        onMonthSelect={(y, m) => {
+          setYear(y);
+          setMonth(m);
         }}
         onConfigure={() => setSetupOpen(true)}
       />
@@ -141,18 +165,26 @@ export function BudgetScreen({ farmId, accessToken, activeProfileId }: Props) {
       />
 
       <Text style={styles.section}>{t("budgetScreen.linesTitle")}</Text>
-      {data.lines.map((line) => (
-        <BudgetLineCard
-          key={line.categoryId}
-          line={line}
-          currencySymbol={data.currencySymbol}
-          onEdit={
-            line.categoryKey === "uncategorized"
-              ? undefined
-              : () => setEditLine(line)
-          }
-        />
-      ))}
+      {data.lines.map((line) => {
+        const active =
+          highlightCategory === line.categoryId &&
+          (!highlightOverrun ||
+            line.status === "exceeded" ||
+            line.status === "warning");
+        return (
+          <HighlightWrapper key={line.categoryId} active={active}>
+            <BudgetLineCard
+              line={line}
+              currencySymbol={data.currencySymbol}
+              onEdit={
+                line.categoryKey === "uncategorized"
+                  ? undefined
+                  : () => setEditLine(line)
+              }
+            />
+          </HighlightWrapper>
+        );
+      })}
 
       <Pressable style={styles.addBtn} onPress={() => setSetupOpen(true)}>
         <Text style={styles.addTx}>{t("budgetScreen.addCategory")}</Text>

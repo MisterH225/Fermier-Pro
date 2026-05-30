@@ -40,9 +40,9 @@ export async function evaluateCheptelRules(
         title: "Loge pleine",
         message: `Loge « ${p.name} » (${p.barn.name}) à capacité max (${n}/${cap}) — vérifier densité.`,
         action: {
-          label: "Logement",
-          route: "FarmBarns",
-          params: { farmId }
+          label: "Voir la loge",
+          route: "FarmLivestock",
+          params: { farmId, penId: p.id }
         }
       });
     }
@@ -136,8 +136,8 @@ export async function evaluateCheptelRules(
       message: `Loge « ${p.name} » (${p.barn.name}) est taguée Démarrage mais ${reason} — pensez à la reclasser en Croissance.`,
       action: {
         label: "Requalifier maintenant",
-        route: "LogeDetail",
-        params: { penId: p.id, farmId }
+        route: "FarmLivestock",
+        params: { farmId, penId: p.id }
       }
     });
   }

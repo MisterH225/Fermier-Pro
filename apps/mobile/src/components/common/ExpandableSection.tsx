@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
   Animated,
   LayoutAnimation,
@@ -7,8 +7,7 @@ import {
   StyleSheet,
   Text,
   UIManager,
-  View,
-  type ReactNode
+  View
 } from "react-native";
 import {
   mobileColors,

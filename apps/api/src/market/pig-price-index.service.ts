@@ -8,6 +8,9 @@ import { PrismaService } from "../prisma/prisma.service";
 import { PigPriceIndexCacheService } from "./pig-price-index-cache.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import {
+  listingHeadcount
+} from "../marketplace/marketplace-listing-category.helper";
+import {
   addSaleToBucket,
   addUtcDays,
   avgFromListingBucket,
@@ -186,7 +189,12 @@ export class PigPriceIndexService {
       },
       select: {
         pricePerKg: true,
-        category: true
+        category: true,
+        totalWeightKg: true,
+        quantity: true,
+        animalId: true,
+        animalIds: true,
+        animal: { select: { productionCategory: true } }
       }
     });
 
@@ -218,7 +226,24 @@ export class PigPriceIndexService {
       if (!Number.isFinite(pricePerKg)) {
         continue;
       }
-      const cat = categoryFromListing(l.category);
+      const animalIds = Array.isArray(l.animalIds)
+        ? (l.animalIds as unknown[]).filter(
+            (x): x is string => typeof x === "string" && x.length > 0
+          )
+        : [];
+      const headcount = listingHeadcount(
+        animalIds,
+        l.animalId,
+        l.quantity
+      );
+      const weight =
+        l.totalWeightKg != null ? Number(l.totalWeightKg) : null;
+      const cat = categoryFromListing(
+        l.category,
+        weight,
+        headcount,
+        l.animal?.productionCategory ?? null
+      );
       if (!cat) {
         continue;
       }

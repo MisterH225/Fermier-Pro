@@ -60,6 +60,8 @@ export type SmartChartProps = {
   summaryStats?: SmartChartSummaryStat[];
   formatValue?: (value: number) => string;
   monthLabel?: (monthKey: string) => string;
+  /** Données déjà dimensionnées par l’API (ex. stock aliment par semaine). */
+  skipPeriodSlice?: boolean;
   height?: number;
   /** Mode compact (sparkline KPI) — sans pills ni stats. */
   compact?: boolean;
@@ -70,8 +72,12 @@ const PERIOD_OPTIONS: SmartChartPeriod[] = ["3M", "6M", "12M"];
 
 function sliceByPeriod(
   lines: SmartChartLine[],
-  period: SmartChartPeriod
+  period: SmartChartPeriod,
+  skip?: boolean
 ): SmartChartLine[] {
+  if (skip) {
+    return lines;
+  }
   const n = period === "3M" ? 3 : period === "6M" ? 6 : 12;
   return lines.map((line) => ({
     ...line,
@@ -109,6 +115,7 @@ export function SmartChart({
   summaryStats,
   formatValue,
   monthLabel,
+  skipPeriodSlice = false,
   height = CHART_H,
   compact = false,
   emptyLabel = "—"
@@ -130,11 +137,12 @@ export function SmartChart({
     });
 
   const slicedLines = useMemo(
-    () => sliceByPeriod(lines, period),
-    [lines, period]
+    () => sliceByPeriod(lines, period, skipPeriodSlice),
+    [lines, period, skipPeriodSlice]
   );
 
   const monthKeys = slicedLines[0]?.data.map((d) => d.month) ?? [];
+  const lastMonthKey = monthKeys[monthKeys.length - 1] ?? "";
   const [selectedIndex, setSelectedIndex] = useState(
     Math.max(0, monthKeys.length - 1)
   );
@@ -143,7 +151,7 @@ export function SmartChart({
 
   useEffect(() => {
     setSelectedIndex(Math.max(0, monthKeys.length - 1));
-  }, [monthKeys.length, period, lines]);
+  }, [monthKeys.length, period, lastMonthKey]);
 
   useEffect(() => {
     if (compact) {

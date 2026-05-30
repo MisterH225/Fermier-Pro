@@ -12,6 +12,7 @@ import {
   mobileTypography
 } from "../../theme/mobileTheme";
 import { ActivityHistory } from "./ActivityHistory";
+import { DirectoryTab } from "./DirectoryTab";
 import { InviteSection } from "./InviteSection";
 import { MembersList } from "./MembersList";
 
@@ -73,6 +74,15 @@ export function CollaborationScreen({ farmId, farmName }: Props) {
             )
           },
           {
+            key: "directory",
+            label: t("collab.tabDirectory"),
+            content: (
+              <View style={styles.directoryWrap}>
+                <DirectoryTab farmId={farmId} farmName={farmName ?? ""} />
+              </View>
+            )
+          },
+          {
             key: "members",
             label: t("collab.tabMembers"),
             content: (
@@ -122,6 +132,11 @@ const styles = StyleSheet.create({
   },
   scrollPad: {
     flexGrow: 1
+  },
+  directoryWrap: {
+    flex: 1,
+    minHeight: 400,
+    paddingBottom: mobileSpacing.lg
   },
   pageHeader: {
     gap: mobileSpacing.xs

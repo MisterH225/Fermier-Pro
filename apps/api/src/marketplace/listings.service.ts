@@ -29,6 +29,11 @@ import {
 } from "./listing-detail-health.helper";
 import { PickupListingDto } from "./dto/pickup-listing.dto";
 import { UpdateListingDto } from "./dto/update-listing.dto";
+import {
+  listingHeadcount,
+  resolveListingMarketCategory,
+  usesFlatListingPrice
+} from "./marketplace-listing-category.helper";
 
 function privacyDisplayName(fullName: string | null | undefined): string {
   const raw = fullName?.trim();
@@ -189,10 +194,83 @@ export class ListingsService {
     return rows.map((row) => this.formatListingForApi(row, photoMap));
   }
 
+  private resolvedListingCategory(
+    sellerCategory: ListingMarketCategory | null | undefined,
+    totalWeightKg: number | null | undefined,
+    animalIds: string[],
+    animalId: string | null,
+    quantity?: number | null
+  ): ListingMarketCategory | undefined {
+    const resolved = resolveListingMarketCategory(
+      sellerCategory,
+      totalWeightKg,
+      listingHeadcount(animalIds, animalId, quantity)
+    );
+    return resolved ?? undefined;
+  }
+
+  private normalizeListingPricing(
+    category: ListingMarketCategory | undefined,
+    totalWeightKg: number | null | undefined,
+    pricePerKg: number | null | undefined,
+    totalPrice: number | null | undefined
+  ): {
+    totalWeightKg: number | null;
+    pricePerKg: number | null;
+    totalPrice: number;
+  } {
+    if (category && usesFlatListingPrice(category)) {
+      if (totalPrice == null || totalPrice <= 0 || !Number.isFinite(totalPrice)) {
+        throw new BadRequestException(
+          "Prix forfaitaire requis pour un porcelet ou un reproducteur."
+        );
+      }
+      const weight =
+        totalWeightKg != null && totalWeightKg > 0 ? totalWeightKg : null;
+      return {
+        totalWeightKg: weight,
+        pricePerKg: null,
+        totalPrice
+      };
+    }
+
+    if (totalWeightKg == null || totalWeightKg <= 0) {
+      throw new BadRequestException("Poids total requis.");
+    }
+    if (pricePerKg == null || pricePerKg <= 0) {
+      throw new BadRequestException("Prix au kg requis.");
+    }
+    const resolvedTotal =
+      totalPrice != null && totalPrice > 0
+        ? totalPrice
+        : totalWeightKg * pricePerKg;
+    if (resolvedTotal <= 0) {
+      throw new BadRequestException("Prix total invalide.");
+    }
+    return {
+      totalWeightKg,
+      pricePerKg,
+      totalPrice: resolvedTotal
+    };
+  }
+
   async create(user: User, dto: CreateListingDto) {
     const refs = await this.resolveFarmAndAnimal(user, dto);
     const photoUrls = dto.photoUrls ?? [];
     const animalIds = dto.animalIds ?? [];
+    const category = this.resolvedListingCategory(
+      dto.category,
+      dto.totalWeightKg ?? null,
+      animalIds,
+      refs.animalId,
+      dto.quantity
+    );
+    const pricing = this.normalizeListingPricing(
+      category,
+      dto.totalWeightKg ?? null,
+      dto.pricePerKg ?? null,
+      dto.totalPrice ?? null
+    );
     const created = await this.prisma.marketplaceListing.create({
       data: {
         sellerUserId: user.id,
@@ -205,17 +283,18 @@ export class ListingsService {
         quantity: dto.quantity,
         currency: dto.currency ?? "XOF",
         locationLabel: dto.locationLabel,
-        category: dto.category ?? undefined,
+        category,
         photoUrls: photoUrls as Prisma.InputJsonValue,
         animalIds: animalIds as Prisma.InputJsonValue,
         totalWeightKg:
-          dto.totalWeightKg != null
-            ? new Prisma.Decimal(dto.totalWeightKg)
+          pricing.totalWeightKg != null
+            ? new Prisma.Decimal(pricing.totalWeightKg)
             : null,
         pricePerKg:
-          dto.pricePerKg != null ? new Prisma.Decimal(dto.pricePerKg) : null,
-        totalPrice:
-          dto.totalPrice != null ? new Prisma.Decimal(dto.totalPrice) : null,
+          pricing.pricePerKg != null
+            ? new Prisma.Decimal(pricing.pricePerKg)
+            : null,
+        totalPrice: new Prisma.Decimal(pricing.totalPrice),
         breedLabel: dto.breedLabel,
         status: ListingStatus.draft
       },
@@ -536,6 +615,47 @@ export class ListingsService {
         "Annonce non modifiable (réservée, vendue ou annulée)"
       );
     }
+    const nextAnimalIds =
+      dto.animalIds !== undefined
+        ? dto.animalIds
+        : jsonStringArray(listing.animalIds);
+    const nextAnimalId = listing.animalId;
+    const nextWeight =
+      dto.totalWeightKg !== undefined
+        ? dto.totalWeightKg
+        : listing.totalWeightKg != null
+          ? Number(listing.totalWeightKg)
+          : null;
+    const nextQuantity =
+      dto.quantity !== undefined ? dto.quantity : listing.quantity;
+    const sellerCategory =
+      dto.category !== undefined ? dto.category : listing.category;
+    const normalizedCategory = this.resolvedListingCategory(
+      sellerCategory,
+      nextWeight,
+      nextAnimalIds,
+      nextAnimalId,
+      nextQuantity
+    );
+    const nextPricePerKg =
+      dto.pricePerKg !== undefined
+        ? dto.pricePerKg
+        : listing.pricePerKg != null
+          ? Number(listing.pricePerKg)
+          : null;
+    const nextTotalPrice =
+      dto.totalPrice !== undefined
+        ? dto.totalPrice
+        : listing.totalPrice != null
+          ? Number(listing.totalPrice)
+          : null;
+    const pricing = this.normalizeListingPricing(
+      normalizedCategory,
+      nextWeight,
+      nextPricePerKg,
+      nextTotalPrice
+    );
+
     return this.prisma.marketplaceListing.update({
       where: { id },
       data: {
@@ -556,37 +676,22 @@ export class ListingsService {
         ...(dto.locationLabel !== undefined
           ? { locationLabel: dto.locationLabel }
           : {}),
-        ...(dto.category !== undefined ? { category: dto.category } : {}),
+        category: normalizedCategory,
         ...(dto.photoUrls !== undefined
           ? { photoUrls: dto.photoUrls as Prisma.InputJsonValue }
           : {}),
         ...(dto.animalIds !== undefined
           ? { animalIds: dto.animalIds as Prisma.InputJsonValue }
           : {}),
-        ...(dto.totalWeightKg !== undefined
-          ? {
-              totalWeightKg:
-                dto.totalWeightKg != null
-                  ? new Prisma.Decimal(dto.totalWeightKg)
-                  : null
-            }
-          : {}),
-        ...(dto.pricePerKg !== undefined
-          ? {
-              pricePerKg:
-                dto.pricePerKg != null
-                  ? new Prisma.Decimal(dto.pricePerKg)
-                  : null
-            }
-          : {}),
-        ...(dto.totalPrice !== undefined
-          ? {
-              totalPrice:
-                dto.totalPrice != null
-                  ? new Prisma.Decimal(dto.totalPrice)
-                  : null
-            }
-          : {}),
+        totalWeightKg:
+          pricing.totalWeightKg != null
+            ? new Prisma.Decimal(pricing.totalWeightKg)
+            : null,
+        pricePerKg:
+          pricing.pricePerKg != null
+            ? new Prisma.Decimal(pricing.pricePerKg)
+            : null,
+        totalPrice: new Prisma.Decimal(pricing.totalPrice),
         ...(dto.breedLabel !== undefined ? { breedLabel: dto.breedLabel } : {})
       }
     });
@@ -617,12 +722,37 @@ export class ListingsService {
       const snap = await this.farmHealthSnapshot(listing.farmId);
       healthSummary = snap as Prisma.InputJsonValue;
     }
+    const animalIds = jsonStringArray(listing.animalIds);
+    const normalizedCategory = this.resolvedListingCategory(
+      listing.category,
+      listing.totalWeightKg != null ? Number(listing.totalWeightKg) : null,
+      animalIds,
+      listing.animalId,
+      listing.quantity
+    );
+    const pricing = this.normalizeListingPricing(
+      normalizedCategory,
+      listing.totalWeightKg != null ? Number(listing.totalWeightKg) : null,
+      listing.pricePerKg != null ? Number(listing.pricePerKg) : null,
+      listing.totalPrice != null ? Number(listing.totalPrice) : null
+    );
+
     return this.prisma.marketplaceListing.update({
       where: { id },
       data: {
         status: ListingStatus.published,
         publishedAt: new Date(),
         expiresAt,
+        category: normalizedCategory,
+        totalWeightKg:
+          pricing.totalWeightKg != null
+            ? new Prisma.Decimal(pricing.totalWeightKg)
+            : null,
+        pricePerKg:
+          pricing.pricePerKg != null
+            ? new Prisma.Decimal(pricing.pricePerKg)
+            : null,
+        totalPrice: new Prisma.Decimal(pricing.totalPrice),
         ...(healthSummary !== undefined ? { healthSummary } : {})
       }
     });

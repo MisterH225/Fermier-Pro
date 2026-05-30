@@ -10,6 +10,7 @@ import {
   TextInput,
   View
 } from "react-native";
+import { AppDatePicker } from "../../common/AppDatePicker";
 import { BaseModal } from "../../modals/BaseModal";
 import { ModalSection } from "../../modals/ModalSection";
 import type { AnimalListItem, AnimalSaleResultDto } from "../../../lib/api";
@@ -293,11 +294,12 @@ export function SaleModal({
           onChange={setBuyerName}
           placeholder={t("cheptel.animals.sale.buyerPlaceholder")}
         />
-        <Field
+        <AppDatePicker
           label={t("cheptel.animals.sale.soldAt")}
-          value={soldAt}
-          onChange={setSoldAt}
-          placeholder="YYYY-MM-DD"
+          isoValue={soldAt}
+          onIsoChange={setSoldAt}
+          farmId={farmId}
+          maxDate={new Date()}
         />
         <Field
           label={t("cheptel.animals.sale.notes")}

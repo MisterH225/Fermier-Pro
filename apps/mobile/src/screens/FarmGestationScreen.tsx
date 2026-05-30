@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState, useCallback, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useTranslation } from "react-i18next";
 import {
@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
+import { HighlightWrapper } from "../components/common/HighlightWrapper";
 import { SmartChart, type SmartChartPeriod } from "../components/charts";
 import { CreateGestationModal } from "../components/shared/CreateGestationModal";
 import { GestationDetailModal } from "../components/gestation/GestationDetailModal";
@@ -56,11 +57,19 @@ function urgencyEmoji(u?: string | null): string {
 }
 
 export function FarmGestationScreen({ route, navigation }: Props) {
-  const { farmId, farmName } = route.params;
+  const {
+    farmId,
+    farmName,
+    initialTab,
+    openGestationId,
+    autoOpenDetail,
+    tab: tabParam,
+    highlightSowId
+  } = route.params;
   const { accessToken, activeProfileId } = useSession();
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<TabId>("overview");
+  const [tab, setTab] = useState<TabId>(initialTab ?? "overview");
   const [chartPeriod, setChartPeriod] = useState<SmartChartPeriod>("6M");
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -71,6 +80,33 @@ export function FarmGestationScreen({ route, navigation }: Props) {
     id: string;
     label: string;
   } | null>(null);
+  const [highlightSow, setHighlightSow] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!highlightSowId) {
+      setHighlightSow(null);
+      return;
+    }
+    setHighlightSow(highlightSowId);
+    const t = setTimeout(() => setHighlightSow(null), 2200);
+    return () => clearTimeout(t);
+  }, [highlightSowId]);
+
+  useEffect(() => {
+    if (tabParam === "planning") {
+      setTab("planning");
+    } else if (initialTab) {
+      setTab(initialTab);
+    }
+    if (openGestationId) {
+      if (autoOpenDetail) {
+        const open = setTimeout(() => setDetailId(openGestationId), 300);
+        return () => clearTimeout(open);
+      }
+      setTab("active");
+    }
+    return undefined;
+  }, [initialTab, openGestationId, autoOpenDetail, tabParam]);
 
   const techPerms = useTechFarmPermissions(farmId, "gestation");
   const readOnly = techPerms.readOnly;
@@ -366,14 +402,18 @@ export function FarmGestationScreen({ route, navigation }: Props) {
           <ActivityIndicator />
         ) : (
           (availableQ.data?.items ?? []).map((s) => (
-            <View key={s.sowId} style={styles.planCard}>
-              <Text style={styles.planTitle}>{s.label}</Text>
-              <Text style={styles.planMeta}>
-                {t("gestationScreen.gestationCount", { count: s.gestationCount })}
-                {s.lastFarrowingDate
-                  ? ` · ${s.lastFarrowingDate.slice(0, 10)}`
-                  : ""}
-              </Text>
+            <HighlightWrapper
+              key={s.sowId}
+              active={highlightSow === s.sowId}
+            >
+              <View style={styles.planCard}>
+                <Text style={styles.planTitle}>{s.label}</Text>
+                <Text style={styles.planMeta}>
+                  {t("gestationScreen.gestationCount", { count: s.gestationCount })}
+                  {s.lastFarrowingDate
+                    ? ` · ${s.lastFarrowingDate.slice(0, 10)}`
+                    : ""}
+                </Text>
               <Text style={styles.planStatus}>
                 {s.availability === "now"
                   ? `✅ ${t("gestationScreen.availableNow")}`
@@ -381,7 +421,8 @@ export function FarmGestationScreen({ route, navigation }: Props) {
                       days: s.availableInDays
                     })}`}
               </Text>
-            </View>
+              </View>
+            </HighlightWrapper>
           ))
         )}
       </ScreenSection>

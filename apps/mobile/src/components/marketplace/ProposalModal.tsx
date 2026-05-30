@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import type { MarketplaceListingDetail } from "../../lib/api";
+import { isFlatPriceListing } from "./listingPricing";
 import { parseMarketNum, formatMarketMoney } from "./MarketplaceListingCard";
 import {
   mobileColors,
@@ -17,7 +18,8 @@ type Props = {
   listing: MarketplaceListingDetail | null;
   onClose: () => void;
   onSubmit: (payload: {
-    proposedPricePerKg: number;
+    proposedPricePerKg?: number;
+    offeredPrice?: number;
     message?: string;
   }) => void;
   submitting?: boolean;
@@ -31,25 +33,28 @@ export function ProposalModal({
   submitting
 }: Props) {
   const { t } = useTranslation();
+  const flatAsk = isFlatPriceListing(listing?.category ?? null);
   const wKg = parseMarketNum(listing?.totalWeightKg);
   const askPk = parseMarketNum(listing?.pricePerKg);
-  const [pricePerKg, setPricePerKg] = useState("");
+  const askTotal = parseMarketNum(listing?.totalPrice);
+  const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
 
-  const total = useMemo(() => {
-    const p = Number.parseFloat(pricePerKg.replace(",", "."));
-    if (!Number.isFinite(p) || wKg == null) return null;
-    return p * wKg;
-  }, [pricePerKg, wKg]);
-
   const handleOpen = () => {
-    if (askPk != null) {
-      setPricePerKg(String(askPk));
+    if (flatAsk && askTotal != null) {
+      setAmount(String(Math.round(askTotal)));
+    } else if (askPk != null) {
+      setAmount(String(askPk));
     } else {
-      setPricePerKg("");
+      setAmount("");
     }
     setMessage("");
   };
+
+  const parsed = Number.parseFloat(amount.replace(",", "."));
+  const canSubmit = Boolean(
+    listing && Number.isFinite(parsed) && parsed >= 0 && (!flatAsk ? wKg != null : true)
+  );
 
   return (
     <BaseModal
@@ -60,14 +65,22 @@ export function ProposalModal({
         <PrimaryButton
           label={t("marketScreen.proposalModal.submit")}
           loading={submitting}
-          disabled={!listing || wKg == null}
+          disabled={!canSubmit}
           onPress={() => {
-            const p = Number.parseFloat(pricePerKg.replace(",", "."));
-            if (!Number.isFinite(p) || p < 0) return;
-            onSubmit({
-              proposedPricePerKg: p,
-              message: message.trim() || undefined
-            });
+            if (!Number.isFinite(parsed) || parsed < 0) {
+              return;
+            }
+            if (flatAsk) {
+              onSubmit({
+                offeredPrice: parsed,
+                message: message.trim() || undefined
+              });
+            } else {
+              onSubmit({
+                proposedPricePerKg: parsed,
+                message: message.trim() || undefined
+              });
+            }
           }}
         />
       }
@@ -76,35 +89,50 @@ export function ProposalModal({
       {listing ? (
         <>
           <Text style={styles.hint}>{listing.title}</Text>
-          {wKg != null ? (
-            <Text style={styles.meta}>
-              {t("marketScreen.totalWeight")}{" "}
-              {wKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg
-            </Text>
+          {flatAsk ? (
+            askTotal != null ? (
+              <Text style={styles.meta}>
+                {t("marketScreen.proposalModal.askedFlat")}{" "}
+                {formatMarketMoney(askTotal, listing.currency)}
+              </Text>
+            ) : null
           ) : (
-            <Text style={styles.warn}>
-              {t("marketScreen.proposalModal.noWeight")}
-            </Text>
+            <>
+              {wKg != null ? (
+                <Text style={styles.meta}>
+                  {t("marketScreen.totalWeight")}{" "}
+                  {wKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg
+                </Text>
+              ) : (
+                <Text style={styles.warn}>
+                  {t("marketScreen.proposalModal.noWeight")}
+                </Text>
+              )}
+              {askPk != null ? (
+                <Text style={styles.meta}>
+                  {t("marketScreen.proposalModal.asked")}{" "}
+                  {formatMarketMoney(askPk, listing.currency)}/kg
+                </Text>
+              ) : null}
+            </>
           )}
-          {askPk != null ? (
-            <Text style={styles.meta}>
-              {t("marketScreen.proposalModal.asked")}{" "}
-              {formatMarketMoney(askPk, listing.currency)}/kg
-            </Text>
-          ) : null}
-          <Text style={styles.lab}>{t("marketScreen.proposalModal.pricePerKg")}</Text>
+          <Text style={styles.lab}>
+            {flatAsk
+              ? t("marketScreen.proposalModal.offeredFlat")
+              : t("marketScreen.proposalModal.pricePerKg")}
+          </Text>
           <TextInput
             style={styles.input}
-            value={pricePerKg}
-            onChangeText={setPricePerKg}
+            value={amount}
+            onChangeText={setAmount}
             keyboardType="decimal-pad"
             placeholder="0"
             placeholderTextColor={mobileColors.textSecondary}
           />
-          {total != null ? (
+          {!flatAsk && wKg != null && Number.isFinite(parsed) ? (
             <Text style={styles.total}>
               {t("marketScreen.totalPrice")}{" "}
-              {formatMarketMoney(total, listing.currency)}
+              {formatMarketMoney(parsed * wKg, listing.currency)}
             </Text>
           ) : null}
           <Text style={styles.lab}>{t("marketScreen.proposalModal.message")}</Text>

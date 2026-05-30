@@ -137,9 +137,9 @@ export function feedChartToLines(chart: FarmFeedChartDto): SmartChartLine[] {
     key: s.feedTypeId,
     label: s.name,
     color: feedSeriesColor(i),
-    data: chart.monthKeys.map((month, mi) => ({
-      month,
-      value: s.points[mi] ?? 0
+    data: chart.weekKeys.map((week, wi) => ({
+      month: week,
+      value: s.points[wi] ?? 0
     }))
   }));
 }

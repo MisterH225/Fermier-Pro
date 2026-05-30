@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { AppDatePicker } from "../components/common/AppDatePicker";
 import { EventCard, CheptelBatchDetailHeader } from "../components/farm";
 import { Card } from "../components/ui/Card";
 import { SegmentedControl } from "../components/ui/SegmentedControl";
@@ -374,13 +375,12 @@ export function BatchDetailScreen({ route }: Props) {
                 placeholderTextColor={mobileColors.textSecondary}
                 multiline
               />
-              <TextInput
-                style={styles.input}
-                value={healthDate}
-                onChangeText={setHealthDate}
-                placeholder="Date de l’événement AAAA-MM-JJ (optionnel)"
-                placeholderTextColor={mobileColors.textSecondary}
-                keyboardType="numbers-and-punctuation"
+              <AppDatePicker
+                isoValue={healthDate}
+                onIsoChange={setHealthDate}
+                farmId={farmId}
+                maxDate={new Date()}
+                placeholder="Date de l'événement (optionnel)"
               />
               <TouchableOpacity
                 style={[

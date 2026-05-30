@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { useMemo, useState, useCallback, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import { TabScreenHeader } from "../components/layout";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useTranslation } from "react-i18next";
@@ -15,14 +15,20 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import {
   SmartChart,
   feedChartToLines,
   feedPeriodToChartPeriod,
   chartPeriodToFeedPeriod
 } from "../components/charts";
+import { AppDateRangePicker } from "../components/common/AppDateRangePicker";
 import { StockModal, FeedStockLevelGauge, farmFeedStatToGauge } from "../components/feed";
+import { HighlightWrapper } from "../components/common/HighlightWrapper";
+import { EditStockModal } from "../components/stock/EditStockModal";
 import { LinkedFinanceSection } from "../components/stock/LinkedFinanceSection";
+import { ReconciliationAlertModal } from "../components/stock/ReconciliationAlertModal";
+import type { PostFarmFeedMovementResponse, ReconciliationOfferDto } from "../lib/api";
 import { FeedStockModuleGate } from "../components/FeedStockModuleGate";
 import { EventList, type EventItem } from "../components/lists";
 import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
@@ -50,6 +56,18 @@ import {
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmFeedStock">;
 
+function getUtcWeekNumber(date: Date): number {
+  const d = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+  );
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(
+    ((d.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7
+  );
+}
+
 function formatMassKg(kg: number): string {
   if (!Number.isFinite(kg)) return "—";
   if (kg >= 1000) {
@@ -59,17 +77,69 @@ function formatMassKg(kg: number): string {
 }
 
 export function FarmFeedStockScreen({ route, navigation }: Props) {
-  const { farmId, farmName } = route.params;
+  const {
+    farmId,
+    farmName,
+    feedTab: feedTabParam,
+    openFeedTypeId,
+    highlightFeedType,
+    autoOpenControl,
+    filterCostMissing,
+    costFilter
+  } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { open } = useModal();
   const [period, setPeriod] = useState<"3m" | "6m" | "12m">("6m");
   const [stockOpen, setStockOpen] = useState(false);
+  const [stockModalDefaultTab, setStockModalDefaultTab] = useState<
+    "in" | "stock_check"
+  >("in");
   const [movFilterType, setMovFilterType] = useState<string>("");
   const [feedTab, setFeedTab] = useState<"overview" | "movements" | "controls">("overview");
-  const [movKindFilter, setMovKindFilter] = useState<"all" | "in" | "stock_check">("all");
+  const [movKindFilter, setMovKindFilter] = useState<
+    "all" | "in" | "stock_check" | "missing_cost"
+  >("all");
   const [movFrom, setMovFrom] = useState("");
   const [movTo, setMovTo] = useState("");
+  const [editMovement, setEditMovement] = useState<FeedStockMovementDto | null>(
+    null
+  );
+  const [reconciliationOffer, setReconciliationOffer] =
+    useState<ReconciliationOfferDto | null>(null);
+  const [highlightFeedId, setHighlightFeedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (feedTabParam) {
+      setFeedTab(feedTabParam);
+    }
+    if (filterCostMissing || costFilter === "missing") {
+      setFeedTab("movements");
+      setMovKindFilter("missing_cost");
+    }
+    if (openFeedTypeId) {
+      setMovFilterType(openFeedTypeId);
+      if (highlightFeedType) {
+        setHighlightFeedId(openFeedTypeId);
+        const t = setTimeout(() => setHighlightFeedId(null), 2200);
+        return () => clearTimeout(t);
+      }
+    }
+    if (autoOpenControl) {
+      setFeedTab("controls");
+      setStockModalDefaultTab("stock_check");
+      const t = setTimeout(() => setStockOpen(true), 300);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [
+    feedTabParam,
+    openFeedTypeId,
+    highlightFeedType,
+    autoOpenControl,
+    filterCostMissing,
+    costFilter
+  ]);
 
   const enabled = clientFeatures.feedStock && Boolean(accessToken);
 
@@ -146,6 +216,9 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
     if (movKindFilter === "stock_check") {
       return movements.filter((x) => x.kind === "stock_check");
     }
+    if (movKindFilter === "missing_cost") {
+      return movements.filter((x) => x.kind === "in" && x.isCostMissing);
+    }
     return movements;
   }, [movements, movKindFilter, feedTab]);
 
@@ -163,9 +236,13 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
       return {
         id: m.id,
         title: m.feedType.name,
-        subtitle: m.linkedExpenseId
-          ? `${kindLabel} · ${t("financeStockLink.financeBadge")}`
-          : kindLabel,
+        subtitle: [
+          kindLabel,
+          m.linkedExpenseId ? t("financeStockLink.financeBadge") : null,
+          m.isCostMissing ? t("feedStock.badgeMissingCost") : null
+        ]
+          .filter(Boolean)
+          .join(" · "),
         value: qty,
         valueType: m.kind === "in" ? "positive" : "neutral",
         date: dateShort,
@@ -179,7 +256,8 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
     () => [
       { id: "all", label: t("feedStock.kindAll") },
       { id: "in", label: t("feedStock.kindIn") },
-      { id: "stock_check", label: t("feedStock.kindCheck") }
+      { id: "stock_check", label: t("feedStock.kindCheck") },
+      { id: "missing_cost", label: t("feedStock.filterMissingCost") }
     ],
     [t]
   );
@@ -205,19 +283,16 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
             </Pressable>
           ))}
         </ScrollView>
-        <Text style={styles.filterLab}>{t("feedStock.filterFrom")}</Text>
-        <TextInput
-          style={styles.fInput}
-          value={movFrom}
-          onChangeText={setMovFrom}
-          placeholder="YYYY-MM-DD"
-        />
-        <Text style={styles.filterLab}>{t("feedStock.filterTo")}</Text>
-        <TextInput
-          style={styles.fInput}
-          value={movTo}
-          onChangeText={setMovTo}
-          placeholder="YYYY-MM-DD"
+        <AppDateRangePicker
+          startIso={movFrom}
+          endIso={movTo}
+          onChange={(from, to) => {
+            setMovFrom(from);
+            setMovTo(to);
+          }}
+          farmId={farmId}
+          startLabel={t("feedStock.filterFrom")}
+          endLabel={t("feedStock.filterTo")}
         />
       </View>
     ),
@@ -225,7 +300,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
   );
 
   const renderStockMovDetail = useCallback(
-    (item: EventItem, _ctx: { close: () => void }) => {
+    (item: EventItem, ctx: { close: () => void }) => {
       const m = item.meta as FeedStockMovementDto;
       return (
         <View style={{ paddingBottom: mobileSpacing.md, gap: mobileSpacing.sm }}>
@@ -244,6 +319,17 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
               movement={m}
             />
           ) : null}
+          {m.kind === "in" ? (
+            <Pressable
+              style={styles.editBtn}
+              onPress={() => {
+                ctx.close();
+                setEditMovement(m);
+              }}
+            >
+              <Text style={styles.editBtnTx}>{t("feedStock.editMovement")}</Text>
+            </Pressable>
+          ) : null}
         </View>
       );
     },
@@ -253,8 +339,19 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
   const onStockKindFilter = useCallback((id: string) => {
     if (id === "in") setMovKindFilter("in");
     else if (id === "stock_check") setMovKindFilter("stock_check");
+    else if (id === "missing_cost") setMovKindFilter("missing_cost");
     else setMovKindFilter("all");
   }, []);
+
+  const handleStockSaved = useCallback(
+    (res?: PostFarmFeedMovementResponse) => {
+      refetchAll();
+      if (res?.reconciliation && res.reconciliation.status !== "none") {
+        setReconciliationOffer(res.reconciliation);
+      }
+    },
+    [refetchAll]
+  );
 
   const pending = results.some((r) => r.isPending) || movQ.isPending;
   const errMsg = useMemo(() => {
@@ -321,6 +418,27 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
     </ScrollView>
   );
 
+  const renderStockSwipeEdit = useCallback(
+    (item: EventItem) => {
+      const m = item.meta as FeedStockMovementDto;
+      if (m.kind !== "in") {
+        return null;
+      }
+      return (
+        <Pressable
+          style={styles.swipeEdit}
+          onPress={() => setEditMovement(m)}
+          accessibilityRole="button"
+          accessibilityLabel={t("feedStock.editMovement")}
+        >
+          <Ionicons name="pencil" size={20} color="#fff" />
+          <Text style={styles.swipeEditTx}>{t("feedStock.editMovement")}</Text>
+        </Pressable>
+      );
+    },
+    [t]
+  );
+
   const movementList = (showKindPills: boolean) => (
     <EventList
       layout="embedded"
@@ -330,6 +448,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
       activeFilterId={showKindPills ? movKindFilter : undefined}
       onFilterChange={showKindPills ? onStockKindFilter : undefined}
       renderDetail={renderStockMovDetail}
+      renderSwipeRight={renderStockSwipeEdit}
       prependContent={movementFiltersExtra}
       emptyMessage={t("feedStock.noMovements")}
       isLoading={movQ.isPending && movements.length === 0}
@@ -370,17 +489,26 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
                     <SmartChart
                       lines={feedChartToLines(chart)}
                       period={feedPeriodToChartPeriod(period)}
+                      skipPeriodSlice
                       onPeriodChange={(p) => setPeriod(chartPeriodToFeedPeriod(p))}
                       formatValue={(v) =>
                         `${v.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg`
                       }
-                      monthLabel={(m) => {
-                        const [y, mo] = m.split("-").map(Number);
-                        if (!y || !mo) return m;
-                        return new Date(Date.UTC(y, mo - 1, 1)).toLocaleDateString(
-                          "fr-FR",
-                          { month: "short" }
-                        );
+                      monthLabel={(weekEnd) => {
+                        const d = new Date(`${weekEnd}T12:00:00.000Z`);
+                        if (Number.isNaN(d.getTime())) {
+                          return weekEnd;
+                        }
+                        const locale = i18n.language === "en" ? "en-US" : "fr-FR";
+                        const weekNo = getUtcWeekNumber(d);
+                        const shortDate = d.toLocaleDateString(locale, {
+                          day: "numeric",
+                          month: "short"
+                        });
+                        return t("feedStock.chartWeekLabel", {
+                          week: weekNo,
+                          date: shortDate
+                        });
                       }}
                     />
                   ) : (
@@ -401,16 +529,20 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
                   stats.map((s, statIndex) => {
                     const gauge = farmFeedStatToGauge(s, statIndex, t);
                     return (
-                      <FeedStockLevelGauge
+                      <HighlightWrapper
                         key={gauge.key}
-                        name={gauge.name}
-                        subtitle={gauge.subtitle}
-                        displayValue={gauge.displayValue}
-                        percent={gauge.percent}
-                        gaugeColor={gauge.gaugeColor}
-                        dotColor={gauge.dotColor}
-                        centerLabel={gauge.centerLabel}
-                      />
+                        active={highlightFeedId === gauge.key}
+                      >
+                        <FeedStockLevelGauge
+                          name={gauge.name}
+                          subtitle={gauge.subtitle}
+                          displayValue={gauge.displayValue}
+                          percent={gauge.percent}
+                          gaugeColor={gauge.gaugeColor}
+                          dotColor={gauge.dotColor}
+                          centerLabel={gauge.centerLabel}
+                        />
+                      </HighlightWrapper>
                     );
                   })
                 )}
@@ -440,22 +572,59 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
       />
 
       {accessToken ? (
+        <>
         <StockModal
           visible={stockOpen}
-          onClose={() => setStockOpen(false)}
+          onClose={() => {
+            setStockOpen(false);
+            setStockModalDefaultTab("in");
+          }}
+          defaultTab={stockModalDefaultTab}
           farmId={farmId}
           accessToken={accessToken}
           activeProfileId={activeProfileId}
           types={types}
-          onSuccess={() => {
+          onSuccess={(res) => {
             void invalidateAIInsights(farmId, "stock");
             void invalidateAIInsights(farmId, "global_dashboard");
-            open("success", {
-              message: t("feedStock.successMessage"),
-              autoDismissMs: 2000
-            });
+            handleStockSaved(res);
+            if (!res?.reconciliation) {
+              open("success", {
+                message: t("feedStock.successMessage"),
+                autoDismissMs: 2000
+              });
+            }
           }}
         />
+        {editMovement ? (
+          <EditStockModal
+            visible
+            movement={editMovement}
+            types={types}
+            farmId={farmId}
+            accessToken={accessToken}
+            activeProfileId={activeProfileId}
+            onClose={() => setEditMovement(null)}
+            onSaved={(res) => {
+              handleStockSaved(res);
+            }}
+          />
+        ) : null}
+        {reconciliationOffer ? (
+          <ReconciliationAlertModal
+            visible
+            offer={reconciliationOffer}
+            farmId={farmId}
+            accessToken={accessToken}
+            activeProfileId={activeProfileId}
+            onClose={() => setReconciliationOffer(null)}
+            onDone={() => {
+              refetchAll();
+              void invalidateAIInsights(farmId, "stock");
+            }}
+          />
+        ) : null}
+        </>
       ) : null}
     </View>
   );
@@ -531,5 +700,35 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.sm,
     marginTop: 4,
     color: mobileColors.textPrimary
+  },
+  editBtn: {
+    marginTop: mobileSpacing.md,
+    alignSelf: "flex-start",
+    paddingVertical: mobileSpacing.sm,
+    paddingHorizontal: mobileSpacing.md,
+    borderRadius: mobileRadius.md,
+    backgroundColor: mobileColors.accentSoft
+  },
+  editBtnTx: {
+    ...mobileTypography.meta,
+    color: mobileColors.accent,
+    fontWeight: "700"
+  },
+  swipeEdit: {
+    backgroundColor: mobileColors.accent,
+    justifyContent: "center",
+    alignItems: "center",
+    width: 96,
+    marginVertical: 4,
+    borderTopRightRadius: mobileRadius.md,
+    borderBottomRightRadius: mobileRadius.md,
+    paddingHorizontal: mobileSpacing.sm,
+    gap: 4
+  },
+  swipeEditTx: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "700",
+    textAlign: "center"
   }
 });

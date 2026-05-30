@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { isFlatPriceListing } from "./listingPricing";
 import {
   Pressable,
   StyleSheet,
@@ -84,6 +85,7 @@ export function MarketplaceListingCard({
         : "—";
 
   const categoryKey = item.category ?? "unknown";
+  const flatPrice = isFlatPriceListing(item.category);
 
   return (
     <Pressable
@@ -171,7 +173,11 @@ export function MarketplaceListingCard({
             {`${wKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg`}
           </Text>
         ) : null}
-        {pKg != null ? (
+        {flatPrice && total != null ? (
+          <Text style={styles.lineMuted}>
+            {t("marketScreen.flatPriceLabel")}
+          </Text>
+        ) : pKg != null ? (
           <Text style={styles.lineMuted}>
             {t("marketScreen.pricePerKg")} {formatMarketMoney(pKg, cur)}
           </Text>

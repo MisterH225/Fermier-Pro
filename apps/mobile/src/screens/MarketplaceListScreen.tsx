@@ -18,6 +18,7 @@ import {
   View
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { PigPriceIndex } from "../components/market/PigPriceIndex";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
 import { CreateMarketplaceListingModal } from "../components/marketplace/CreateMarketplaceListingModal";
 import {
@@ -29,7 +30,7 @@ import { EventList, type EventItem } from "../components/lists";
 import { EventListFilter } from "../components/lists/EventListFilter";
 import type { FilterPill } from "../components/lists/types";
 import { TabContent, TabSelector } from "../components/tabs";
-import { useBuyerBottomChromePad } from "../context/BuyerBottomChromeContext";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { useSession } from "../context/SessionContext";
 import type {
   MarketplaceListingListItem,
@@ -149,10 +150,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
   const buyerView = route.params?.buyerView === true;
   const fromDashboard = route.params?.fromDashboard === true;
   const favoritesOnly = route.params?.favoritesOnly === true;
-  const buyerBottomPad = useBuyerBottomChromePad();
-  const buyerScrollBottomPad = buyerView
-    ? buyerBottomPad + mobileSpacing.lg
-    : mobileSpacing.xxl;
+  const scrollBottomPad = useScrollBottomPad();
   const [marketTab, setMarketTab] = useState<MarketTab>(() => {
     const tab = initialMarketTab(route.params);
     return buyerView && tab === "mine" ? "listings" : tab;
@@ -175,9 +173,13 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
   const [myFilter, setMyFilter] = useState<ListingFilter>("all");
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
+  const routeTab =
+    route.params && "tab" in route.params ? route.params.tab : undefined;
+
   useEffect(() => {
-    setMarketTab(initialMarketTab(route.params));
-  }, [route.params]);
+    const tab = initialMarketTab(route.params);
+    setMarketTab(buyerView && tab === "mine" ? "listings" : tab);
+  }, [routeTab, buyerView]);
 
   useEffect(() => {
     const q = route.params?.searchQuery;
@@ -406,7 +408,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
           {t("marketScreen.offerStatus")} {offerStatusLabel(item.status)}
         </Text>
         <Text style={styles.offerMeta}>
-          {t("marketScreen.listingStatus")} {listingStatusLabel(item.listing.status)}
+          {t("marketScreen.offerListingLabel")} {listingStatusLabel(item.listing.status)}
         </Text>
         {item.listing.farm ? (
           <Text style={styles.offerMeta}>{item.listing.farm.name}</Text>
@@ -491,6 +493,9 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
     }
     const listingsHeader = (
       <View style={styles.listHeader}>
+        <View style={styles.pigPriceSection}>
+          <PigPriceIndex />
+        </View>
         <View style={styles.searchRow}>
           <TextInput
             style={styles.search}
@@ -523,7 +528,7 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
           columnWrapperStyle={styles.colWrap}
           contentContainerStyle={[
             styles.listContent,
-            buyerView && { paddingBottom: buyerScrollBottomPad }
+            { paddingBottom: scrollBottomPad }
           ]}
           ListHeaderComponent={listingsHeader}
           refreshControl={
@@ -577,7 +582,10 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
     return (
       <ScrollView
         style={styles.tabScroll}
-        contentContainerStyle={styles.tabScrollGrow}
+        contentContainerStyle={[
+          styles.tabScrollGrow,
+          { paddingBottom: scrollBottomPad }
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={myListingsQuery.isFetching}
@@ -649,7 +657,10 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
         style={styles.tabScroll}
         data={rows}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.offersList}
+        contentContainerStyle={[
+          styles.offersList,
+          { paddingBottom: scrollBottomPad }
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={offersQuery.isFetching}
@@ -756,7 +767,10 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     paddingTop: mobileSpacing.sm,
     paddingBottom: mobileSpacing.xs,
-    gap: mobileSpacing.xs
+    gap: mobileSpacing.sm
+  },
+  pigPriceSection: {
+    paddingHorizontal: mobileSpacing.lg
   },
   filterRow: {
     flexGrow: 0,
@@ -796,9 +810,7 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.md,
     paddingHorizontal: mobileSpacing.lg
   },
-  listContent: {
-    paddingBottom: mobileSpacing.xxl
-  },
+  listContent: {},
   skeletonGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -925,8 +937,7 @@ const styles = StyleSheet.create({
   },
   offersList: {
     paddingHorizontal: mobileSpacing.lg,
-    paddingTop: mobileSpacing.md,
-    paddingBottom: mobileSpacing.xxl
+    paddingTop: mobileSpacing.md
   },
   offerCard: {
     backgroundColor: mobileColors.background,

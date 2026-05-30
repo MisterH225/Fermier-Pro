@@ -71,8 +71,13 @@ export function VetMessagesScreen() {
     }, [roomsQ.refetch])
   );
 
-  const rooms = roomsQ.data ?? [];
+  const [search, setSearch] = useState("");
   const myUserId = authMe?.user.id;
+
+  const rooms = useMemo(
+    () => filterChatRooms(roomsQ.data ?? [], search, myUserId),
+    [roomsQ.data, search, myUserId]
+  );
 
   const openRoom = (room: ChatRoomListItem) => {
     navigation.navigate("ChatRoom", {

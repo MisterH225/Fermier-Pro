@@ -9,6 +9,11 @@ import { ChatRoomKind } from "@prisma/client";
 import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
 import {
+  buildFarmInvitationMessageBody,
+  parseFarmInvitationMessageBody,
+  type FarmInvitationChatPayload
+} from "./chat-invitation-message";
+import {
   buildMarketplaceOfferMessageBody,
   marketplaceOfferMessagePreview,
   parseMarketplaceOfferMessageBody,
@@ -374,6 +379,51 @@ export class ChatService {
         sender: { select: { id: true, fullName: true } }
       }
     });
+  }
+
+  async postFarmInvitationMessage(
+    roomId: string,
+    senderId: string,
+    payload: FarmInvitationChatPayload
+  ) {
+    await this.assertRoomMember(senderId, roomId);
+    const body = buildFarmInvitationMessageBody(payload);
+    return this.prisma.chatMessage.create({
+      data: {
+        roomId,
+        senderUserId: senderId,
+        body
+      },
+      include: {
+        sender: { select: { id: true, fullName: true } }
+      }
+    });
+  }
+
+  /** Met à jour le statut des cartes invitation JSON dans les salons. */
+  async syncFarmInvitationMessageStatus(
+    invitationId: string,
+    status: "accepted" | "rejected"
+  ): Promise<void> {
+    const needle = `"invitationId":"${invitationId}"`;
+    const messages = await this.prisma.chatMessage.findMany({
+      where: { body: { contains: needle } },
+      select: { id: true, body: true }
+    });
+    for (const msg of messages) {
+      const parsed = parseFarmInvitationMessageBody(msg.body);
+      if (!parsed || parsed.invitationId !== invitationId) {
+        continue;
+      }
+      if (parsed.status === status) {
+        continue;
+      }
+      const next: FarmInvitationChatPayload = { ...parsed, status };
+      await this.prisma.chatMessage.update({
+        where: { id: msg.id },
+        data: { body: buildFarmInvitationMessageBody(next) }
+      });
+    }
   }
 
   async postMarketplaceOfferMessage(

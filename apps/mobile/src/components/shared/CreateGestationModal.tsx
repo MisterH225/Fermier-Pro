@@ -9,6 +9,7 @@ import {
   TextInput,
   View
 } from "react-native";
+import { AppDatePicker } from "../common/AppDatePicker";
 import { BaseModal } from "../modals/BaseModal";
 import { ModalSection } from "../modals/ModalSection";
 import type { AnimalListItem, GestationDetailDto } from "../../lib/api";
@@ -198,12 +199,12 @@ export function CreateGestationModal({
       </ModalSection>
 
       <ModalSection title={t("modals.sections.details")}>
-        <Text style={styles.label}>{t("gestationScreen.matingDate")}</Text>
-        <TextInput
-          style={styles.input}
-          value={matingDate}
-          onChangeText={setMatingDate}
-          placeholder="YYYY-MM-DD"
+        <AppDatePicker
+          label={t("gestationScreen.matingDate")}
+          isoValue={matingDate}
+          onIsoChange={setMatingDate}
+          farmId={farmId}
+          maxDate={new Date()}
         />
 
         <Text style={styles.label}>{t("gestationScreen.boar")}</Text>

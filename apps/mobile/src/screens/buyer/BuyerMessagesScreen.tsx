@@ -24,6 +24,7 @@ import {
   fetchChatRooms,
   type ChatRoomListItem
 } from "../../lib/api";
+import { filterChatRooms } from "../../lib/filterChatRooms";
 import { mobileRadius, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import { buyerColors, buyerRadius, buyerShadow } from "../../theme/buyerTheme";
 import type { RootStackParamList } from "../../types/navigation";

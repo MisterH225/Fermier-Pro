@@ -25,9 +25,12 @@ type Props = {
   farmName: string;
   accessToken: string;
   activeProfileId?: string | null;
+  /** Santé : appel + message si vérifié. Collaboration : message toujours proposé. */
+  variant?: "health" | "collaboration";
   onClose: () => void;
   onPlanVisit: () => void;
-  onOpenChat: (roomId: string, headline: string) => void;
+  onOpenChat: (roomId: string, headline: string, peerUserId: string) => void;
+  onInvite?: (peerUserId: string, displayName: string) => void;
 };
 
 export function VetProfileModal({
@@ -37,11 +40,14 @@ export function VetProfileModal({
   farmName,
   accessToken,
   activeProfileId,
+  variant = "health",
   onClose,
   onPlanVisit,
-  onOpenChat
+  onOpenChat,
+  onInvite
 }: Props) {
   const { t } = useTranslation();
+  const isCollaboration = variant === "collaboration";
 
   const q = useQuery({
     queryKey: ["vetPublicProfile", vetId, activeProfileId],
@@ -55,8 +61,11 @@ export function VetProfileModal({
     mutationFn: () =>
       ensureDirectChatRoom(accessToken, profile!.userId, activeProfileId),
     onSuccess: (room) => {
+      if (!profile?.userId) {
+        return;
+      }
       onClose();
-      onOpenChat(room.id, profile?.fullName ?? "Vétérinaire");
+      onOpenChat(room.id, profile.fullName ?? "Vétérinaire", profile.userId);
     },
     onError: (err: Error) => {
       Alert.alert(t("common.error"), err.message);
@@ -79,36 +88,84 @@ export function VetProfileModal({
       footerPrimary={
         profile && !profile.isSelf ? (
           <View style={styles.actions}>
-            <Pressable style={styles.btnSecondary} onPress={onPlanVisit}>
-              <Text style={styles.btnSecondaryTx}>
-                📅 {t("health.vetSearch.planVisit")}
-              </Text>
-            </Pressable>
-            {profile.canContact ? (
-              <View style={styles.contactRow}>
+            {isCollaboration ? (
+              <>
                 <Pressable
-                  style={[styles.btnPrimary, styles.btnHalf]}
-                  onPress={onCall}
-                >
-                  <Text style={styles.btnPrimaryTx}>
-                    📞 {t("health.vetSearch.call")}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.btnSecondary, styles.btnHalf]}
+                  style={styles.btnPrimary}
                   onPress={() => chatMutation.mutate()}
                   disabled={chatMutation.isPending}
                 >
                   {chatMutation.isPending ? (
-                    <ActivityIndicator size="small" color={mobileColors.accent} />
+                    <ActivityIndicator size="small" color="#fff" />
                   ) : (
-                    <Text style={styles.btnSecondaryTx}>
-                      💬 {t("health.vetSearch.message")}
+                    <Text style={styles.btnPrimaryTx}>
+                      {t("collab.directory.message")}
                     </Text>
                   )}
                 </Pressable>
-              </View>
-            ) : null}
+                {onInvite ? (
+                  <Pressable
+                    style={styles.btnSecondary}
+                    onPress={() => {
+                      onInvite(profile.userId, profile.fullName);
+                      onClose();
+                    }}
+                  >
+                    <Text style={styles.btnSecondaryTx}>
+                      {t("collab.directory.invite")}
+                    </Text>
+                  </Pressable>
+                ) : null}
+                <Pressable style={styles.btnSecondary} onPress={onPlanVisit}>
+                  <Text style={styles.btnSecondaryTx}>
+                    📅 {t("health.vetSearch.planVisit")}
+                  </Text>
+                </Pressable>
+                {profile.canContact ? (
+                  <Pressable style={styles.btnSecondary} onPress={onCall}>
+                    <Text style={styles.btnSecondaryTx}>
+                      📞 {t("health.vetSearch.call")}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <Pressable style={styles.btnSecondary} onPress={onPlanVisit}>
+                  <Text style={styles.btnSecondaryTx}>
+                    📅 {t("health.vetSearch.planVisit")}
+                  </Text>
+                </Pressable>
+                {profile.canContact ? (
+                  <View style={styles.contactRow}>
+                    <Pressable
+                      style={[styles.btnPrimary, styles.btnHalf]}
+                      onPress={onCall}
+                    >
+                      <Text style={styles.btnPrimaryTx}>
+                        📞 {t("health.vetSearch.call")}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.btnSecondary, styles.btnHalf]}
+                      onPress={() => chatMutation.mutate()}
+                      disabled={chatMutation.isPending}
+                    >
+                      {chatMutation.isPending ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={mobileColors.accent}
+                        />
+                      ) : (
+                        <Text style={styles.btnSecondaryTx}>
+                          💬 {t("health.vetSearch.message")}
+                        </Text>
+                      )}
+                    </Pressable>
+                  </View>
+                ) : null}
+              </>
+            )}
           </View>
         ) : undefined
       }
