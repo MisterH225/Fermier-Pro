@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "description": "Fermier Pro monorepo (mobile + api + shared packages)",
+  "prisma": {
+    "schema": "apps/api/prisma/schema.prisma"
+  },
   "overrides": {
     "@nestjs/common": "11.1.19",
     "@nestjs/core": "11.1.19",
