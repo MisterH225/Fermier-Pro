@@ -5,10 +5,12 @@
     "scheme": "fermier-pro",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#1a1a1a"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -27,7 +29,8 @@
     "android": {
       "package": "com.fermierpro.app",
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1a1a1a"
       },
       "intentFilters": [
         {
