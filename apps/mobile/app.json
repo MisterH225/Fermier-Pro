@@ -17,6 +17,7 @@
     ],
     "ios": {
       "bundleIdentifier": "com.fermierpro.app",
+      "buildNumber": "2",
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
