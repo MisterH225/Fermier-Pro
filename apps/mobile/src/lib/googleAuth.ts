@@ -16,16 +16,13 @@ function isLocalhostish(url: string): boolean {
 }
 
 export function getGoogleOAuthRedirectUri(): string {
-  const hostUri = Constants.expoConfig?.hostUri?.trim();
-  if (hostUri && !isLocalhostish(hostUri)) {
-    return `exp://${hostUri}/--/${OAUTH_CALLBACK_PATH}`;
-  }
-
-  const fromLinking = Linking.createURL(OAUTH_CALLBACK_PATH);
-  if (Platform.OS !== "web" && isLocalhostish(fromLinking)) {
+  // Dans un vrai build (TestFlight, APK) — jamais de exp://
+  // On utilise toujours le scheme de l'app
+  if (Platform.OS !== "web") {
     return `fermier-pro://${OAUTH_CALLBACK_PATH}`;
   }
-  return fromLinking;
+  // Web uniquement
+  return Linking.createURL(OAUTH_CALLBACK_PATH);
 }
 
 function parseUrlParams(url: string): URLSearchParams {
