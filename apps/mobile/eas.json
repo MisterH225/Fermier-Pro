@@ -47,8 +47,8 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": podcast.harold@gmail.com,
-        "ascAppId": 6775011670,
+        "appleId": "podcast.harold@gmail.com",
+        "ascAppId": "6775011670",
         "appleTeamId": "W9YDMQML3G"
       }
     }
