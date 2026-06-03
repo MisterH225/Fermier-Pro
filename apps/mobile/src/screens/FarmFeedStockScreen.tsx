@@ -77,17 +77,21 @@ function formatMassKg(kg: number): string {
 }
 
 export function FarmFeedStockScreen({ route, navigation }: Props) {
+  const params = route.params ?? {};
   const {
-    farmId,
-    farmName,
+    farmId = "",
+    farmName = "",
     feedTab: feedTabParam,
     openFeedTypeId,
     highlightFeedType,
     autoOpenControl,
     filterCostMissing,
     costFilter
-  } = route.params;
-  const { accessToken, activeProfileId, clientFeatures } = useSession();
+  } = params;
+  const session = useSession();
+  const accessToken = session?.accessToken ?? "";
+  const activeProfileId = session?.activeProfileId ?? null;
+  const clientFeatures = session?.clientFeatures ?? { feedStock: false };
   const { t, i18n } = useTranslation();
   const { open } = useModal();
   const [period, setPeriod] = useState<"3m" | "6m" | "12m">("6m");
@@ -375,6 +379,14 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
       : undefined
   });
 
+  if (!farmId) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.error}>Configuration manquante</Text>
+      </View>
+    );
+  }
+
   if (!clientFeatures.feedStock) {
     return (
       <FeedStockModuleGate>
@@ -523,27 +535,32 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
                   hasMinimalData={stats.length > 0}
                 />
                 <ScreenSection title={t("feedStock.statsTitle")}>
-                {stats.length === 0 ? (
+                {!stats || stats.length === 0 ? (
                   <Text style={styles.muted}>{t("feedStock.noStats")}</Text>
                 ) : (
                   stats.map((s, statIndex) => {
-                    const gauge = farmFeedStatToGauge(s, statIndex, t);
-                    return (
-                      <HighlightWrapper
-                        key={gauge.key}
-                        active={highlightFeedId === gauge.key}
-                      >
-                        <FeedStockLevelGauge
-                          name={gauge.name}
-                          subtitle={gauge.subtitle}
-                          displayValue={gauge.displayValue}
-                          percent={gauge.percent}
-                          gaugeColor={gauge.gaugeColor}
-                          dotColor={gauge.dotColor}
-                          centerLabel={gauge.centerLabel}
-                        />
-                      </HighlightWrapper>
-                    );
+                    if (!s || !s.feedTypeId) return null;
+                    try {
+                      const gauge = farmFeedStatToGauge(s, statIndex, t);
+                      return (
+                        <HighlightWrapper
+                          key={gauge.key || `stat-${statIndex}`}
+                          active={highlightFeedId === gauge.key}
+                        >
+                          <FeedStockLevelGauge
+                            name={gauge.name || "—"}
+                            subtitle={gauge.subtitle || ""}
+                            displayValue={gauge.displayValue || "—"}
+                            percent={gauge.percent}
+                            gaugeColor={gauge.gaugeColor || mobileColors.accent}
+                            dotColor={gauge.dotColor || mobileColors.accent}
+                            centerLabel={gauge.centerLabel}
+                          />
+                        </HighlightWrapper>
+                      );
+                    } catch {
+                      return null;
+                    }
                   })
                 )}
                 </ScreenSection>
