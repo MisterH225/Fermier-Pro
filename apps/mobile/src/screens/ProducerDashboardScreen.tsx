@@ -26,7 +26,9 @@ import { AdminMessagesBanner } from "../components/admin/AdminMessagesBanner";
 import { PendingInvitationsBanner } from "../components/collaboration/PendingInvitationsBanner";
 import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
 import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
+import { ProjectIndicator } from "../components/projects";
 import { useOnboardingResume } from "../context/OnboardingResumeContext";
+import { useActiveProject, useActiveFarm } from "../context/ActiveProjectContext";
 import { getProducerOnboardingState } from "../lib/onboardingState";
 import { useProducerBottomChromePad } from "../context/ProducerBottomChromeContext";
 import { resolveActiveProfileAvatarUrl } from "../lib/profileAvatar";
@@ -95,6 +97,7 @@ export function ProducerDashboardScreen() {
     authMe,
     clientFeatures
   } = useSession();
+  const { activeFarm, activeFarmId, farms, refreshFarms } = useActiveProject();
   const bottomChromePad = useProducerBottomChromePad();
   const { requestResume } = useOnboardingResume();
   const onboardingState = getProducerOnboardingState(authMe, activeProfileId);
@@ -112,26 +115,10 @@ export function ProducerDashboardScreen() {
   }, [authMe, activeProfileId]);
 
   const isProducer = activeProfile?.type === "producer";
+  const showMultiProjectIndicator = farms.filter(f => f.status === "active").length > 1;
 
-  const farmsQuery = useQuery({
-    queryKey: ["farms", activeProfileId, "producerHome"],
-    queryFn: () => fetchFarms(accessToken!, activeProfileId),
-    enabled: Boolean(accessToken && isProducer && !authMe?.primaryFarm)
-  });
-
-  const resolvedFarm = useMemo(() => {
-    if (authMe?.primaryFarm) {
-      return authMe.primaryFarm;
-    }
-    const first = farmsQuery.data?.[0];
-    if (first) {
-      return { id: first.id, name: first.name };
-    }
-    return null;
-  }, [authMe?.primaryFarm, farmsQuery.data]);
-
-  const farmId = resolvedFarm?.id ?? null;
-  const farmName = resolvedFarm?.name ?? "";
+  const farmId = activeFarmId;
+  const farmName = activeFarm?.name ?? "";
 
   const financeEnabled = Boolean(
     farmId && accessToken && clientFeatures.finance
@@ -208,7 +195,7 @@ export function ProducerDashboardScreen() {
       tasks.push(feedQuery.refetch());
     }
     await Promise.all(tasks.map((p) => p.catch(() => undefined)));
-    await farmsQuery.refetch().catch(() => undefined);
+    await refreshFarms().catch(() => undefined);
     void qc.invalidateQueries({ queryKey: ["farms", activeProfileId] });
     if (farmId && accessToken) {
       await postFarmSmartAlertsRefresh(
@@ -232,20 +219,23 @@ export function ProducerDashboardScreen() {
     gestationsQuery,
     healthQuery,
     feedQuery,
-    farmsQuery,
-    qc,
-    activeProfileId,
-    accessToken
+    refreshFarms,
+    qc
   ]);
 
   const dashboardHeader = (
     <View style={styles.heroBar}>
-      <ProducerWelcomeHeader
-        welcomeLabel={t("producer.welcomeLine")}
-        firstName={firstName}
-        avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
-        onPressAvatar={() => setProfileOpen(true)}
-      />
+      <View style={styles.heroTopRow}>
+        <ProducerWelcomeHeader
+          welcomeLabel={t("producer.welcomeLine")}
+          firstName={firstName}
+          avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
+          onPressAvatar={() => setProfileOpen(true)}
+        />
+        {showMultiProjectIndicator && (
+          <ProjectIndicator onPress={() => setProfileOpen(true)} />
+        )}
+      </View>
       <View style={styles.heroActions}>
         <Pressable
           onPress={() => {
@@ -731,6 +721,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: mobileColors.border,
     backgroundColor: mobileColors.background,
+  },
+  heroTopRow: {
+    flexDirection: "column",
+    alignItems: "flex-start",
     gap: mobileSpacing.sm
   },
   heroActions: {

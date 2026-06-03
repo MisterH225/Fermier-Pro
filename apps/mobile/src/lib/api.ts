@@ -1336,6 +1336,9 @@ export type FarmDto = {
   capacity: number | null;
   latitude: string | null;
   longitude: string | null;
+  status: FarmStatus;
+  archivedAt: string | null;
+  displayOrder: number;
   createdAt: string;
   updatedAt: string;
   livestockCategoryPolicies?: unknown;
@@ -1359,6 +1362,78 @@ export function fetchFarm(
   activeProfileId?: string | null
 ): Promise<FarmDto> {
   return apiGetJson<FarmDto>(`/farms/${farmId}`, accessToken, activeProfileId);
+}
+
+export function fetchAllFarms(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<FarmDto[]> {
+  return apiGetJson<FarmDto[]>("/farms/all", accessToken, activeProfileId);
+}
+
+export type ArchiveFarmReason =
+  | "temporarily_inactive"
+  | "restructuring"
+  | "end_of_season"
+  | "other";
+
+export function archiveFarm(
+  accessToken: string,
+  farmId: string,
+  reason?: ArchiveFarmReason,
+  activeProfileId?: string | null
+): Promise<FarmDto> {
+  return apiPatchJson<FarmDto>(
+    `/farms/${farmId}/archive`,
+    { reason },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function restoreFarm(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<FarmDto> {
+  return apiPatchJson<FarmDto>(
+    `/farms/${farmId}/restore`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function deleteFarm(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<{ ok: boolean }> {
+  return apiDeleteJson<{ ok: boolean }>(
+    `/farms/${farmId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function setActiveFarm(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<{ activeFarmId: string }> {
+  return apiPatchJson<{ activeFarmId: string }>(
+    "/farms/active",
+    { farmId },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function getActiveFarm(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<FarmDto | null> {
+  return apiGetJson<FarmDto | null>("/farms/active", accessToken, activeProfileId);
 }
 
 export type CheptelCategoryBreakdownRow = {
@@ -4813,6 +4888,8 @@ export type AuthMePrimaryFarm = {
   name: string;
 };
 
+export type FarmStatus = "active" | "archived";
+
 export type CguStatusDto = {
   currentVersion: string;
   acceptedAt: string | null;
@@ -4868,8 +4945,10 @@ export type VetProfessionalMeDto = {
 export type AuthMeResponse = {
   cgu?: CguStatusDto;
   user: AuthMeUser;
-  /** Première ferme propriétaire (ordre de création), pour libellé accueil producteur. */
+  /** Première ferme propriétaire (ordre de création), pour libellé accueil producteur. @deprecated Use activeFarm instead. */
   primaryFarm: AuthMePrimaryFarm | null;
+  /** Projet actif sélectionné par l'utilisateur. */
+  activeFarm: AuthMePrimaryFarm | null;
   profiles: Array<{
     id: string;
     type: string;

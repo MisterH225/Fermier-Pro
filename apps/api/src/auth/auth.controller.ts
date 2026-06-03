@@ -99,11 +99,35 @@ export class AuthController {
       orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }]
     });
 
-    const primaryFarm = await this.prisma.farm.findFirst({
-      where: { ownerId: user.id },
-      orderBy: { createdAt: "asc" },
-      select: { id: true, name: true }
-    });
+    let activeFarm: { id: string; name: string } | null = null;
+    if (user.activeFarmId) {
+      activeFarm = await this.prisma.farm.findFirst({
+        where: { id: user.activeFarmId, status: "active" },
+        select: { id: true, name: true }
+      });
+    }
+    if (!activeFarm) {
+      const fallback = await this.prisma.farm.findFirst({
+        where: {
+          OR: [
+            { ownerId: user.id },
+            { memberships: { some: { userId: user.id } } }
+          ],
+          status: "active"
+        },
+        orderBy: { createdAt: "asc" },
+        select: { id: true, name: true }
+      });
+      if (fallback) {
+        activeFarm = fallback;
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { activeFarmId: fallback.id }
+        });
+      }
+    }
+
+    const primaryFarm = activeFarm;
 
     const activeProfileId = req.activeProfile?.id;
     const ap =
@@ -200,6 +224,7 @@ export class AuthController {
         cguVersionAccepted: user.cguVersionAccepted
       },
       primaryFarm,
+      activeFarm,
       profiles: profiles.map((p) => ({
         id: p.id,
         type: p.type,

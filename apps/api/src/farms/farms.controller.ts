@@ -2,8 +2,10 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -19,6 +21,8 @@ import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
 import { CreateFarmDto } from "./dto/create-farm.dto";
 import { UpdateFarmCheptelConfigDto } from "./dto/update-farm-cheptel-config.dto";
 import { TransferFarmOwnershipDto } from "./dto/transfer-farm-ownership.dto";
+import { ArchiveFarmDto } from "./dto/archive-farm.dto";
+import { SetActiveFarmDto } from "./dto/set-active-farm.dto";
 import {
   AnimalProductionTagsService,
   type AnimalTagPrefix
@@ -42,8 +46,17 @@ export class FarmsController {
   }
 
   @Get()
-  list(@CurrentUser() user: User) {
-    return this.farms.listForUser(user);
+  list(
+    @CurrentUser() user: User,
+    @Query("includeArchived") includeArchivedRaw?: string
+  ) {
+    const includeArchived = includeArchivedRaw === "true";
+    return this.farms.listForUser(user, { includeArchived });
+  }
+
+  @Get("all")
+  listAll(@CurrentUser() user: User) {
+    return this.farms.listAllForUser(user);
   }
 
   @Post(":farmId/transfer-ownership")
@@ -137,6 +150,38 @@ export class FarmsController {
       tagCode,
       productionCategory: this.animalTags.categoryForPrefix(prefix)
     };
+  }
+
+  @Patch(":farmId/archive")
+  archive(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Body() dto: ArchiveFarmDto
+  ) {
+    return this.farms.archiveFarm(user, farmId, dto);
+  }
+
+  @Patch(":farmId/restore")
+  restore(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string
+  ) {
+    return this.farms.restoreFarm(user, farmId);
+  }
+
+  @Delete(":farmId")
+  delete(@CurrentUser() user: User, @Param("farmId") farmId: string) {
+    return this.farms.deleteFarm(user, farmId);
+  }
+
+  @Get("active")
+  getActiveFarm(@CurrentUser() user: User) {
+    return this.farms.getActiveOrFirstFarm(user);
+  }
+
+  @Patch("active")
+  setActiveFarm(@CurrentUser() user: User, @Body() dto: SetActiveFarmDto) {
+    return this.farms.setActiveFarm(user, dto.farmId);
   }
 
   @Get(":id")

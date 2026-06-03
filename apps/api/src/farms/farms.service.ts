@@ -5,7 +5,7 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import type { Farm, User } from "@prisma/client";
-import { MembershipRole, Prisma } from "@prisma/client";
+import { FarmStatus, MembershipRole, Prisma } from "@prisma/client";
 import { AUDIT_ACTION } from "../common/audit.constants";
 import { AuditService } from "../common/audit.service";
 import { FarmAccessService } from "../common/farm-access.service";
@@ -15,6 +15,10 @@ import { PrismaService } from "../prisma/prisma.service";
 import { CreateFarmDto } from "./dto/create-farm.dto";
 import { UpdateFarmCheptelConfigDto } from "./dto/update-farm-cheptel-config.dto";
 import { TransferFarmOwnershipDto } from "./dto/transfer-farm-ownership.dto";
+import { ArchiveFarmDto } from "./dto/archive-farm.dto";
+import { FarmDeletionService } from "./farm-deletion.service";
+
+const MAX_ACTIVE_FARMS_PER_USER = 3;
 
 @Injectable()
 export class FarmsService {
@@ -22,10 +26,20 @@ export class FarmsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly farmAccess: FarmAccessService,
-    private readonly invitations: InvitationsService
+    private readonly invitations: InvitationsService,
+    private readonly farmDeletion: FarmDeletionService
   ) {}
 
   async create(user: User, dto: CreateFarmDto): Promise<Farm> {
+    const activeFarmCount = await this.prisma.farm.count({
+      where: { ownerId: user.id, status: FarmStatus.active }
+    });
+    if (activeFarmCount >= MAX_ACTIVE_FARMS_PER_USER) {
+      throw new ForbiddenException(
+        `Limite de ${MAX_ACTIVE_FARMS_PER_USER} projets actifs atteinte. Archivez un projet pour en créer un nouveau.`
+      );
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const farm = await tx.farm.create({
         data: {
@@ -65,6 +79,14 @@ export class FarmsService {
       // demande `scan_request` que l'owner valide ensuite.
       await this.invitations.createDefaultInvitation(tx, farm.id, user.id);
 
+      // Si c'est le premier projet ou si l'utilisateur n'a pas de projet actif, on le définit comme actif
+      if (!user.activeFarmId) {
+        await tx.user.update({
+          where: { id: user.id },
+          data: { activeFarmId: farm.id }
+        });
+      }
+
       return farm;
     }).then(async (farm) => {
       await this.audit.record({
@@ -91,7 +113,27 @@ export class FarmsService {
     });
   }
 
-  async listForUser(user: User): Promise<Farm[]> {
+  async listForUser(
+    user: User,
+    options?: { includeArchived?: boolean }
+  ): Promise<Farm[]> {
+    const statusFilter = options?.includeArchived
+      ? undefined
+      : { status: FarmStatus.active };
+
+    return this.prisma.farm.findMany({
+      where: {
+        ...statusFilter,
+        OR: [
+          { ownerId: user.id },
+          { memberships: { some: { userId: user.id } } }
+        ]
+      },
+      orderBy: [{ displayOrder: "asc" }, { updatedAt: "desc" }]
+    });
+  }
+
+  async listAllForUser(user: User): Promise<Farm[]> {
     return this.prisma.farm.findMany({
       where: {
         OR: [
@@ -99,7 +141,7 @@ export class FarmsService {
           { memberships: { some: { userId: user.id } } }
         ]
       },
-      orderBy: { updatedAt: "desc" }
+      orderBy: [{ status: "asc" }, { displayOrder: "asc" }, { updatedAt: "desc" }]
     });
   }
 
@@ -698,5 +740,196 @@ export class FarmsService {
         recorder: { select: { id: true, fullName: true, email: true } }
       }
     });
+  }
+
+  async archiveFarm(
+    user: User,
+    farmId: string,
+    dto: ArchiveFarmDto
+  ): Promise<Farm> {
+    const farm = await this.prisma.farm.findFirst({
+      where: { id: farmId }
+    });
+    if (!farm) {
+      throw new NotFoundException("Projet introuvable");
+    }
+    if (farm.ownerId !== user.id) {
+      throw new ForbiddenException("Seul le propriétaire peut archiver le projet");
+    }
+    if (farm.status === FarmStatus.archived) {
+      throw new BadRequestException("Ce projet est déjà archivé");
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.farm.update({
+        where: { id: farmId },
+        data: {
+          status: FarmStatus.archived,
+          archivedAt: new Date()
+        }
+      });
+
+      if (user.activeFarmId === farmId) {
+        const nextActiveFarm = await tx.farm.findFirst({
+          where: {
+            ownerId: user.id,
+            status: FarmStatus.active,
+            id: { not: farmId }
+          },
+          orderBy: { createdAt: "asc" }
+        });
+        await tx.user.update({
+          where: { id: user.id },
+          data: { activeFarmId: nextActiveFarm?.id ?? null }
+        });
+      }
+
+      return result;
+    });
+
+    await this.audit.record({
+      actorUserId: user.id,
+      farmId,
+      action: AUDIT_ACTION.farmArchived,
+      resourceType: "Farm",
+      resourceId: farmId,
+      metadata: { reason: dto.reason ?? null }
+    });
+
+    return updated;
+  }
+
+  async restoreFarm(user: User, farmId: string): Promise<Farm> {
+    const farm = await this.prisma.farm.findFirst({
+      where: { id: farmId }
+    });
+    if (!farm) {
+      throw new NotFoundException("Projet introuvable");
+    }
+    if (farm.ownerId !== user.id) {
+      throw new ForbiddenException("Seul le propriétaire peut restaurer le projet");
+    }
+    if (farm.status !== FarmStatus.archived) {
+      throw new BadRequestException("Ce projet n'est pas archivé");
+    }
+
+    const activeFarmCount = await this.prisma.farm.count({
+      where: { ownerId: user.id, status: FarmStatus.active }
+    });
+    if (activeFarmCount >= MAX_ACTIVE_FARMS_PER_USER) {
+      throw new ForbiddenException(
+        `Limite de ${MAX_ACTIVE_FARMS_PER_USER} projets actifs atteinte. Archivez un projet pour restaurer celui-ci.`
+      );
+    }
+
+    const updated = await this.prisma.farm.update({
+      where: { id: farmId },
+      data: {
+        status: FarmStatus.active,
+        archivedAt: null
+      }
+    });
+
+    await this.audit.record({
+      actorUserId: user.id,
+      farmId,
+      action: AUDIT_ACTION.farmRestored,
+      resourceType: "Farm",
+      resourceId: farmId
+    });
+
+    return updated;
+  }
+
+  async deleteFarm(user: User, farmId: string): Promise<{ ok: boolean }> {
+    const farm = await this.prisma.farm.findFirst({
+      where: { id: farmId }
+    });
+    if (!farm) {
+      throw new NotFoundException("Projet introuvable");
+    }
+    if (farm.ownerId !== user.id) {
+      throw new ForbiddenException("Seul le propriétaire peut supprimer le projet");
+    }
+
+    await this.audit.record({
+      actorUserId: user.id,
+      farmId,
+      action: AUDIT_ACTION.farmDeleted,
+      resourceType: "Farm",
+      resourceId: farmId,
+      metadata: { name: farm.name }
+    });
+
+    await this.farmDeletion.deleteFarm(farmId, user.id);
+
+    return { ok: true };
+  }
+
+  async setActiveFarm(user: User, farmId: string): Promise<{ activeFarmId: string }> {
+    const farm = await this.prisma.farm.findFirst({
+      where: { id: farmId }
+    });
+    if (!farm) {
+      throw new NotFoundException("Projet introuvable");
+    }
+
+    const hasAccess =
+      farm.ownerId === user.id ||
+      (await this.prisma.farmMembership.findFirst({
+        where: { farmId, userId: user.id }
+      }));
+    if (!hasAccess) {
+      throw new ForbiddenException("Vous n'avez pas accès à ce projet");
+    }
+
+    if (farm.status === FarmStatus.archived) {
+      throw new BadRequestException("Impossible d'activer un projet archivé");
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { activeFarmId: farmId }
+    });
+
+    return { activeFarmId: farmId };
+  }
+
+  async getActiveFarm(user: User): Promise<Farm | null> {
+    if (!user.activeFarmId) {
+      return null;
+    }
+    return this.prisma.farm.findFirst({
+      where: { id: user.activeFarmId, status: FarmStatus.active }
+    });
+  }
+
+  async getActiveOrFirstFarm(user: User): Promise<Farm | null> {
+    if (user.activeFarmId) {
+      const active = await this.prisma.farm.findFirst({
+        where: { id: user.activeFarmId, status: FarmStatus.active }
+      });
+      if (active) return active;
+    }
+
+    const firstActive = await this.prisma.farm.findFirst({
+      where: {
+        OR: [
+          { ownerId: user.id },
+          { memberships: { some: { userId: user.id } } }
+        ],
+        status: FarmStatus.active
+      },
+      orderBy: { createdAt: "asc" }
+    });
+
+    if (firstActive && !user.activeFarmId) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { activeFarmId: firstActive.id }
+      });
+    }
+
+    return firstActive;
   }
 }

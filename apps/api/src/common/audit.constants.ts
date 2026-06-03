@@ -2,6 +2,9 @@
 export const AUDIT_ACTION = {
   animalDeleted: "animal.deleted",
   farmCreated: "farm.created",
+  farmArchived: "farm.archived",
+  farmRestored: "farm.restored",
+  farmDeleted: "farm.deleted",
   farmOwnershipTransferred: "farm.ownership.transferred",
   financeExpenseCreated: "finance.expense.created",
   financeExpenseUpdated: "finance.expense.updated",

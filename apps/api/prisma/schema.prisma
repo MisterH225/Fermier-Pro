@@ -37,6 +37,12 @@ enum FarmLivestockMode {
   hybrid
 }
 
+/// Statut du projet (ferme) — actif ou archivé.
+enum FarmStatus {
+  active
+  archived
+}
+
 enum MembershipRole {
   owner
   manager
@@ -82,6 +88,9 @@ model User {
   cguVersionAccepted    String?
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
+  /// Projet (ferme) actif sélectionné par l'utilisateur producteur.
+  activeFarmId          String?
+  activeFarm            Farm?                @relation("UserActiveFarm", fields: [activeFarmId], references: [id], onDelete: SetNull)
   profiles              Profile[]
   pushDevices           PushDevice[]
   technicianProfile     TechnicianProfile?
@@ -127,6 +136,7 @@ model User {
   @@index([email])
   @@index([accountStatus])
   @@index([phone])
+  @@index([activeFarmId])
 }
 
 enum VetVerificationStatus {
@@ -239,9 +249,17 @@ model Farm {
   longitude    Decimal?
   address      String?
   capacity     Int?
+  /// Statut du projet : actif (visible) ou archivé (masqué par défaut).
+  status       FarmStatus         @default(active)
+  /// Date d'archivage (si status = archived).
+  archivedAt   DateTime?
+  /// Ordre d'affichage dans la liste des projets (0 = premier).
+  displayOrder Int                @default(0)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   owner        User               @relation("FarmOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  /// Utilisateurs ayant ce projet comme projet actif (relation inverse).
+  activeFarmUsers User[]          @relation("UserActiveFarm")
   memberships  FarmMembership[]
   invitations  FarmInvitation[]
   activityLogs MemberActivityLog[]
@@ -278,6 +296,9 @@ model Farm {
   gestationSettings        GestationSettings?
   profitabilitySettings    FarmProfitabilitySettings?
   appSettings              FarmAppSettings?
+
+  @@index([ownerId, status])
+  @@index([status])
 }
 
 /// Préférences app régionales / apparence (par ferme).

@@ -18,7 +18,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSession } from "../../context/SessionContext";
-import { patchAuthProfile, type PatchMeProfilePayload } from "../../lib/api";
+import { useActiveProject } from "../../context/ActiveProjectContext";
+import { patchAuthProfile, type PatchMeProfilePayload, type FarmDto } from "../../lib/api";
 import { getSupabase } from "../../lib/supabase";
 import { uploadUserAvatarToSupabase } from "../../lib/uploadAvatarToSupabase";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
@@ -34,6 +35,7 @@ import { ActiveProfileSwitcherControl } from "../account/ActiveProfileSwitcherCo
 import { CollaborativeAccessPanel } from "../account/CollaborativeAccessPanel";
 import { ProfileLanguagePill } from "../account/ProfileLanguagePill";
 import { FarmMapPickerModal } from "./FarmMapPickerModal";
+import { ProjectSwitcher } from "../projects";
 
 const AVATAR = 108;
 const PENCIL = 36;
@@ -80,6 +82,7 @@ export function ProducerProfileModal({
     authMe,
     refreshAuthMe
   } = useSession();
+  const { activeFarm, farms } = useActiveProject();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -91,6 +94,10 @@ export function ProducerProfileModal({
   const [pendingAvatarUri, setPendingAvatarUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [mapPickerVisible, setMapPickerVisible] = useState(false);
+  const [projectSwitcherVisible, setProjectSwitcherVisible] = useState(false);
+
+  const activeFarmsCount = farms.filter((f) => f.status === "active").length;
+  const showProjectsSection = activeFarmsCount > 0;
 
   const resetFromAuth = useCallback(() => {
     const u = authMe?.user;
@@ -432,10 +439,45 @@ export function ProducerProfileModal({
             </Pressable>
           </GroupShell>
 
+          {showProjectsSection && (
+            <>
+              <SectionHeader label="Mes projets" />
+              <GroupShell>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.groupRow,
+                    pressed && styles.gpsRowPressed
+                  ]}
+                  onPress={() => setProjectSwitcherVisible(true)}
+                >
+                  <Ionicons
+                    name="business-outline"
+                    size={22}
+                    color={mobileColors.accent}
+                    style={styles.rowIcon}
+                  />
+                  <View style={styles.projectRowContent}>
+                    <Text style={styles.projectCurrentName} numberOfLines={1}>
+                      {activeFarm?.name ?? "—"}
+                    </Text>
+                    <Text style={styles.projectCount}>
+                      {activeFarmsCount} projet{activeFarmsCount > 1 ? "s" : ""} actif{activeFarmsCount > 1 ? "s" : ""}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={mobileColors.textSecondary}
+                  />
+                </Pressable>
+              </GroupShell>
+            </>
+          )}
+
           <SectionHeader label={t("producer.profileSectionCollab")} />
           <CollaborativeAccessPanel
-            farmId={authMe?.primaryFarm?.id ?? null}
-            farmName={authMe?.primaryFarm?.name ?? farmName ?? null}
+            farmId={activeFarm?.id ?? null}
+            farmName={activeFarm?.name ?? farmName ?? null}
           />
 
           <SectionHeader label={t("producer.profileSectionAccount")} />
@@ -455,6 +497,37 @@ export function ProducerProfileModal({
       initialLng={locLng}
       onConfirm={applyMapPick}
     />
+    <Modal
+      visible={projectSwitcherVisible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setProjectSwitcherVisible(false)}
+    >
+      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <View style={styles.topBar}>
+          <Pressable
+            onPress={() => setProjectSwitcherVisible(false)}
+            hitSlop={14}
+          >
+            <Ionicons name="close" size={26} color={mobileColors.textPrimary} />
+          </Pressable>
+          <View style={{ flex: 1 }} />
+        </View>
+        <ProjectSwitcher
+          onCreateProject={() => {
+            setProjectSwitcherVisible(false);
+            onClose();
+          }}
+          onEditProject={(farm: FarmDto) => {
+            setProjectSwitcherVisible(false);
+          }}
+          onClose={() => {
+            setProjectSwitcherVisible(false);
+            onClose();
+          }}
+        />
+      </SafeAreaView>
+    </Modal>
     </>
   );
 }
@@ -618,5 +691,20 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.xs,
     marginLeft: 4,
     marginBottom: mobileSpacing.xs
+  },
+  projectRowContent: {
+    flex: 1,
+    marginLeft: mobileSpacing.xs
+  },
+  projectCurrentName: {
+    ...mobileTypography.body,
+    fontSize: 16,
+    fontWeight: "600",
+    color: mobileColors.textPrimary
+  },
+  projectCount: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: 2
   }
 });

@@ -7,6 +7,7 @@ import {
   View
 } from "react-native";
 import { useSession } from "../context/SessionContext";
+import { ActiveProjectProvider } from "../context/ActiveProjectContext";
 import {
   asyncStoragePersister,
   shouldPersistQuery
@@ -152,8 +153,10 @@ export function AuthenticatedAppShell() {
       >
         <OfflineSyncProvider>
           <ModalProvider>
-            <AuthenticatedAppShellInner />
-            <AppModalsLayer />
+            <ActiveProjectProvider>
+              <AuthenticatedAppShellInner />
+              <AppModalsLayer />
+            </ActiveProjectProvider>
           </ModalProvider>
         </OfflineSyncProvider>
       </PersistQueryClientProvider>
