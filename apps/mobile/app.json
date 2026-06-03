@@ -19,6 +19,7 @@
       "bundleIdentifier": "com.fermierpro.app",
       "supportsTablet": false,
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": ["fermier-pro"]
