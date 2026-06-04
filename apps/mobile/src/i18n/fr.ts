@@ -283,6 +283,8 @@ export const fr = {
     healthMortality: "Mortalité 30 j :",
     renewAction: "Renouveler 14 jours",
     renewSuccess: "Annonce renouvelée.",
+    cancelSuccess: "Annonce annulée.",
+    offerRejectSuccess: "Proposition refusée.",
     offerAccept: "Accepter",
     offerReject: "Refuser",
     offerCounter: "Contre-proposer",
@@ -493,6 +495,9 @@ export const fr = {
     publishAction: "Publier sur le marché",
     publishing: "Publication…",
     publishSuccess: "Annonce publiée — visible sur le marché.",
+    editForm: {
+      success: "Annonce mise à jour."
+    },
   },
   pigPriceIndex: {
     title: "📊 Cours du porc",

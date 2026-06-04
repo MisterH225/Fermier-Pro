@@ -19,8 +19,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppDatePicker } from "../components/common/AppDatePicker";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
-import { ListingModal } from "../components/marketplace/ListingModal";
 import { CounterProposalModal } from "../components/marketplace/CounterProposalModal";
+import { ListingModal } from "../components/marketplace/ListingModal";
 import { isFlatPriceListing } from "../components/marketplace/listingPricing";
 import { ProposalModal } from "../components/marketplace/ProposalModal";
 import {
@@ -30,6 +30,7 @@ import {
 import { ListingImage } from "../components/marketplace/ListingImage";
 import { listingPhotoUrlsArray } from "../lib/resolveListingImage";
 import { SaleConfirmModal } from "../components/marketplace/SaleConfirmModal";
+import { useModal } from "../components/modals/useModal";
 import { PrimaryButton } from "../components/ui/PrimaryButton";
 import { SecondaryButton } from "../components/ui/SecondaryButton";
 import { FarmInfoCard } from "../components/market/FarmInfoCard";
@@ -41,7 +42,6 @@ import {
   ListingStatusBadge
 } from "../components/marketplace/listingDetailUi";
 import { useSession } from "../context/SessionContext";
-import { useModal } from "../components/modals/useModal";
 import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { formatAnimalDisplayLabel } from "../lib/animalDisplay";
 import {
@@ -75,7 +75,6 @@ import {
 } from "../theme/mobileTheme";
 import type { ListingDurationDays } from "../lib/marketplaceListingForm";
 import type { RootStackParamList } from "../types/navigation";
-import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -101,6 +100,11 @@ export function MarketplaceListingDetailScreen({
     useSession();
   const qc = useQueryClient();
   const insets = useSafeAreaInsets();
+  const { open } = useModal();
+
+  const showSuccess = (message: string, title?: string) => {
+    open("success", { message, title, autoDismissMs: 2200 });
+  };
 
   const [pickupAtStr, setPickupAtStr] = useState("");
   const [pickupNoteStr, setPickupNoteStr] = useState("");
@@ -110,9 +114,6 @@ export function MarketplaceListingDetailScreen({
   const [activeOffer, setActiveOffer] = useState<MarketplaceOfferBrief | null>(
     null
   );
-  const modal = useModal();
-  const showSuccess = (message: string) =>
-    modal.open("success", { message, autoDismissMs: 2200 });
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [publishDurationDays, setPublishDurationDays] =
     useState<ListingDurationDays>(14);
@@ -227,9 +228,9 @@ export function MarketplaceListingDetailScreen({
       if (activeOffer) {
         setSaleOpen(true);
       } else {
-        Alert.alert(
-          t("marketScreen.acceptSuccessTitle"),
-          t("marketScreen.acceptSuccessBody")
+        showSuccess(
+          t("marketScreen.acceptSuccessBody"),
+          t("marketScreen.acceptSuccessTitle")
         );
       }
     },
@@ -251,6 +252,7 @@ export function MarketplaceListingDetailScreen({
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
       void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
+      showSuccess(t("marketScreen.offerRejectSuccess"));
     },
     onError: (e: Error) =>
       Alert.alert(
@@ -287,10 +289,7 @@ export function MarketplaceListingDetailScreen({
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
       void qc.invalidateQueries({ queryKey: ["marketplaceListings"] });
       void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
-      Alert.alert(
-        "Annulée",
-        "L’annonce est clôturée et les offres en attente ont été refusées."
-      );
+      showSuccess(t("marketScreen.cancelSuccess"));
     },
     onError: (e: Error) =>
       Alert.alert(
@@ -314,7 +313,7 @@ export function MarketplaceListingDetailScreen({
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
-      showSuccess(t("marketScreen.detail.pickupSaved"));
+      Alert.alert("Enregistré", "Rendez-vous de retrait mis à jour.");
     },
     onError: (e: Error) =>
       Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
@@ -416,7 +415,7 @@ export function MarketplaceListingDetailScreen({
 
   const loading = q.isPending;
   const err =
-    getQueryErrorMessage(q.error, t);
+    q.error instanceof Error ? q.error.message : q.error ? String(q.error) : null;
 
   if (!clientFeatures.marketplace) {
     return (
@@ -901,7 +900,6 @@ export function MarketplaceListingDetailScreen({
       onClose={() => setSaleOpen(false)}
       onConfirm={(payload) => handoverMutation.mutate(payload)}
     />
-
     {isSeller ? (
       <ListingModal
         visible={editModalOpen}
@@ -911,11 +909,6 @@ export function MarketplaceListingDetailScreen({
         onClose={() => setEditModalOpen(false)}
         onSuccess={() => {
           void q.refetch();
-          showSuccess(
-            t("marketScreen.editForm.success", {
-              defaultValue: "Annonce mise à jour."
-            })
-          );
         }}
       />
     ) : null}

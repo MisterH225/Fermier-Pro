@@ -283,6 +283,8 @@ export const en = {
     healthMortality: "30-day mortality:",
     renewAction: "Renew 14 days",
     renewSuccess: "Listing renewed.",
+    cancelSuccess: "Listing cancelled.",
+    offerRejectSuccess: "Offer declined.",
     offerAccept: "Accept",
     offerReject: "Decline",
     offerCounter: "Counter",
@@ -492,6 +494,9 @@ export const en = {
     publishAction: "Publish to market",
     publishing: "Publishing…",
     publishSuccess: "Listing published — visible on the market.",
+    editForm: {
+      success: "Listing updated."
+    },
   },
   pigPriceIndex: {
     title: "📊 Pig prices",
