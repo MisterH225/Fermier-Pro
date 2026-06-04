@@ -245,6 +245,7 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
       .set("Authorization", `Bearer ${ctx.token}`);
     expect(overview.status).toBe(200);
     expect(overview.body?.farmId).toBe(ctx.farmId);
+    expect(Array.isArray(overview.body?.items)).toBe(true);
 
     const chart = await request(app.getHttpServer())
       .get(`/api/v1/farms/${ctx.farmId}/feed/chart`)

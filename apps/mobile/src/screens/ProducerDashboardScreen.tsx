@@ -701,7 +701,7 @@ function FeedStockCard({
               percent={gauge.percent}
               gaugeColor={gauge.gaugeColor}
               dotColor={gauge.dotColor}
-              centerLabel={gauge.centerLabel}
+              daysLabel={gauge.daysLabel}
               variant="embedded"
             />
           );

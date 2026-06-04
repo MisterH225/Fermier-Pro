@@ -1,10 +1,9 @@
 export { FeedStockLevelGauge } from "./FeedStockLevelGauge";
 export {
-  FEED_GAUGE_CRITICAL_DAYS,
-  FEED_GAUGE_REFERENCE_DAYS,
-  FEED_GAUGE_WARNING_DAYS,
+  FEED_GAUGE_STATUS_COLORS,
   feedStockGaugeColor,
-  feedStockGaugePercent
+  feedStockGaugePercent,
+  type FeedStockGaugeStatus
 } from "./feedStockGaugeUtils";
 export {
   dashboardFeedItemToGauge,
