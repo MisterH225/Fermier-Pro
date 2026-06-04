@@ -24,7 +24,8 @@
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "742075194736-ukme83465m4g39r3s8ghoib7cusu1v1r.apps.googleusercontent.com"
       },
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "image": "latest"
       },
       "android": {
         "buildType": "apk"
