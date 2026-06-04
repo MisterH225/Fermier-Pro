@@ -2079,6 +2079,64 @@ export function fetchNextAnimalNumber(
   );
 }
 
+
+export function fetchTagCodePreview(
+  accessToken: string,
+  farmId: string,
+  prefix: AnimalTagPrefixDto,
+  count: number,
+  activeProfileId?: string | null
+): Promise<{
+  prefix: AnimalTagPrefixDto;
+  firstTagCode: string;
+  lastTagCode: string;
+  count: number;
+  productionCategory: AnimalProductionCategoryDto;
+}> {
+  return apiGetJson(
+    `/farms/${farmId}/next-animal-number?prefix=${encodeURIComponent(prefix)}&count=${count}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type BulkCreateAnimalsPayload = {
+  penId?: string;
+  productionCategory: Exclude<AnimalProductionCategoryDto, "unknown">;
+  count: number;
+  sex?: "male" | "female" | "unknown";
+  breedId?: string;
+  entryWeightKg?: number;
+  ageWeeksAtEntry?: number;
+  entryDate: string;
+  origin: AnimalOriginDto;
+  supplier?: string;
+  notes?: string;
+};
+
+export type BulkCreateAnimalsResult = {
+  animalsCreated: Array<{ id: string; tagCode: string | null }>;
+  firstNumber: string;
+  lastNumber: string;
+  count: number;
+  placedInPenCount: number;
+  unplacedCount: number;
+};
+
+export function createBulkAnimals(
+  accessToken: string,
+  farmId: string,
+  payload: BulkCreateAnimalsPayload,
+  activeProfileId?: string | null
+): Promise<BulkCreateAnimalsResult> {
+  return apiPostJson<BulkCreateAnimalsResult>(
+    `/farms/${farmId}/animals/bulk`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
 export type AnimalOriginDto = "farm_born" | "purchased";
 
 export type AnimalPedigreeRef = {

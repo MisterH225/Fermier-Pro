@@ -135,7 +135,8 @@ export class FarmsController {
   async nextAnimalNumber(
     @CurrentUser() user: User,
     @Param("farmId") farmId: string,
-    @Query("prefix") prefixRaw?: string
+    @Query("prefix") prefixRaw?: string,
+    @Query("count") countRaw?: string
   ) {
     const prefix = (prefixRaw ?? "").trim() as AnimalTagPrefix;
     if (!TAG_PREFIXES.has(prefix)) {
@@ -144,6 +145,22 @@ export class FarmsController {
       );
     }
     await this.farms.findOneForUser(user, farmId);
+    const count = countRaw ? Number.parseInt(countRaw, 10) : 1;
+    if (countRaw && (!Number.isFinite(count) || count < 1 || count > 200)) {
+      throw new BadRequestException("count invalide (1–200)");
+    }
+    if (count > 1) {
+      const range = await this.animalTags.previewTagCodeRange(
+        farmId,
+        prefix,
+        count
+      );
+      return {
+        prefix,
+        productionCategory: this.animalTags.categoryForPrefix(prefix),
+        ...range
+      };
+    }
     const tagCode = await this.animalTags.nextTagCode(farmId, prefix);
     return {
       prefix,
