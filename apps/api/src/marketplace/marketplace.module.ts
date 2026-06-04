@@ -5,6 +5,7 @@ import { ConfigClientModule } from "../config-client/config-client.module";
 import { PushNotificationsModule } from "../push-notifications/push-notifications.module";
 import { FarmRatingsController } from "./farm-ratings.controller";
 import { FarmRatingsService } from "./farm-ratings.service";
+import { FarmMarketplaceLifecycleService } from "./farm-marketplace-lifecycle.service";
 import { ListingsController } from "./listings.controller";
 import { ListingsService } from "./listings.service";
 import { MarketplaceCronService } from "./marketplace-cron.service";
@@ -15,10 +16,12 @@ import { OffersService } from "./offers.service";
   imports: [AuthModule, ChatModule, ConfigClientModule, PushNotificationsModule],
   controllers: [ListingsController, OffersController, FarmRatingsController],
   providers: [
+    FarmMarketplaceLifecycleService,
     ListingsService,
     OffersService,
     FarmRatingsService,
     MarketplaceCronService
-  ]
+  ],
+  exports: [FarmMarketplaceLifecycleService, ListingsService]
 })
 export class MarketplaceModule {}

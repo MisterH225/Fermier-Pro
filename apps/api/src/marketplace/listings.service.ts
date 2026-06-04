@@ -23,6 +23,7 @@ import { CreateListingDto } from "./dto/create-listing.dto";
 import { PublishListingDto } from "./dto/publish-listing.dto";
 import { RenewListingDto } from "./dto/renew-listing.dto";
 import { FarmRatingsService } from "./farm-ratings.service";
+import { FarmMarketplaceLifecycleService } from "./farm-marketplace-lifecycle.service";
 import {
   buildListingFarmInfo,
   buildListingHealthData
@@ -68,7 +69,8 @@ export class ListingsService {
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
     private readonly farmRatings: FarmRatingsService,
-    private readonly push: PushNotificationsService
+    private readonly push: PushNotificationsService,
+    private readonly marketplaceLifecycle: FarmMarketplaceLifecycleService
   ) {}
 
   private async resolveFarmAndAnimal(
@@ -357,15 +359,19 @@ export class ListingsService {
       });
       return this.formatListingsForApi(rows);
     }
+    const now = new Date();
     const publicStatus =
       status && status !== ListingStatus.draft
         ? status
         : ListingStatus.published;
-    const now = new Date();
     const rows = await this.prisma.marketplaceListing.findMany({
       where: {
-        status: publicStatus,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        ...(publicStatus === ListingStatus.published
+          ? this.marketplaceLifecycle.publicListingWhere(now)
+          : {
+              status: publicStatus,
+              OR: [{ expiresAt: null }, { expiresAt: { gt: now } }]
+            }),
         ...(category ? { category } : {}),
         ...textFilter
       },

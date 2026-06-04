@@ -269,6 +269,7 @@ model Farm {
   expenses     FarmExpense[]
   revenues     FarmRevenue[]
   marketplaceListings MarketplaceListing[]
+  pigPriceSnapshots   PigPriceSnapshot[]
   vetConsultations    VetConsultation[]
   livestockBatches  LivestockBatch[]
   barns             Barn[]
@@ -1158,6 +1159,7 @@ model HealthMortalityDetail {
 enum ListingStatus {
   draft
   published
+  paused
   reserved
   sold
   cancelled
@@ -1170,6 +1172,13 @@ enum OfferStatus {
   rejected
   withdrawn
   countered
+  on_hold
+  cancelled
+}
+
+enum PigPriceSnapshotSource {
+  listing
+  direct_sale
 }
 
 /// Catégorie d’annonce porc sur le Market (porcelets, reproducteurs, etc.).
@@ -1868,6 +1877,23 @@ model PigPriceIndexDaily {
   @@unique([date, category])
   @@index([date(sort: Desc)])
 }
+
+model PigPriceSnapshot {
+  id         String                 @id @default(cuid())
+  category   PigPriceIndexCategory
+  pricePerKg Decimal                @db.Decimal(14, 4)
+  weightKg   Decimal                @db.Decimal(14, 4)
+  soldAt     DateTime
+  source     PigPriceSnapshotSource @default(listing)
+  farmId     String?
+  farm       Farm?                  @relation(fields: [farmId], references: [id], onDelete: SetNull)
+  createdAt  DateTime               @default(now())
+
+  @@index([soldAt(sort: Desc)])
+  @@index([category, soldAt(sort: Desc)])
+  @@index([farmId])
+}
+
 enum BuyerType {
   individual
   slaughterhouse
