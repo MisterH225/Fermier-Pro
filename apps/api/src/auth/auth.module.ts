@@ -28,6 +28,7 @@ import { SupabaseJwtGuard } from "./guards/supabase-jwt.guard";
   exports: [
     AuthService,
     AccountDeletionService,
+    SupabaseAdminService,
     SupabaseJwtGuard,
     OptionalActiveProfileGuard,
     ProducerProfileGuard
