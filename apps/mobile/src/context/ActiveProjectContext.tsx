@@ -119,14 +119,15 @@ export function ActiveProjectProvider({ children }: { children: ReactNode }) {
         setActiveFarmIdState(farmId);
         await AsyncStorage.setItem(STORAGE_ACTIVE_FARM_KEY, farmId);
 
-        queryClient.removeQueries();
+        queryClient.clear();
         await refreshAuthMe();
+        await loadFarms();
       } catch (e) {
         setError(getUserFacingError(e, t));
         throw e;
       }
     },
-    [accessToken, activeProfileId, refreshAuthMe]
+    [accessToken, activeProfileId, refreshAuthMe, loadFarms]
   );
 
   const archiveFarm = useCallback(

@@ -4361,6 +4361,61 @@ export function createFarmBarn(
   );
 }
 
+export type UpdateBarnPayload = {
+  name?: string;
+  code?: string;
+  notes?: string;
+};
+
+export function updateFarmBarn(
+  accessToken: string,
+  farmId: string,
+  barnId: string,
+  payload: UpdateBarnPayload,
+  activeProfileId?: string | null
+): Promise<BarnMutationDto> {
+  return apiPatchJson<BarnMutationDto>(
+    `/farms/${farmId}/barns/${barnId}`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function deleteFarmBarn(
+  accessToken: string,
+  farmId: string,
+  barnId: string,
+  activeProfileId?: string | null
+): Promise<{ ok: boolean }> {
+  return apiDeleteJson<{ ok: boolean }>(
+    `/farms/${farmId}/barns/${barnId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type StartPenPlacementPayload = {
+  animalId?: string;
+  batchId?: string;
+  note?: string;
+};
+
+export function startPenPlacement(
+  accessToken: string,
+  farmId: string,
+  penId: string,
+  payload: StartPenPlacementPayload,
+  activeProfileId?: string | null
+): Promise<PenPlacementDto> {
+  return apiPostJson<PenPlacementDto>(
+    `/farms/${farmId}/pens/${penId}/placements`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
 export type CreatePenPayload = {
   name: string;
   code?: string;

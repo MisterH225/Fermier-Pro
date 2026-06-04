@@ -136,7 +136,6 @@ export type RootStackParamList = {
     revenueId: string;
   };
   FarmBarns: { farmId: string; farmName: string };
-  CreateBarn: { farmId: string; farmName: string };
   CreatePen: {
     farmId: string;
     farmName: string;
