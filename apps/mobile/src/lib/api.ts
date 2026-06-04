@@ -794,10 +794,13 @@ export type FeedTypeDto = {
   updatedAt: string;
 };
 
+export type FeedStockComputedStatus = "ok" | "warning" | "critical" | "no_data";
+
 export type FarmFeedOverviewDto = {
   farmId: string;
   totalStockKg: string;
-  types: FeedTypeDto[];
+  /** Statistiques enrichies par type (remplace `types` brut). */
+  items: FarmFeedStatItemDto[];
 };
 
 export type FarmFeedChartSeriesDto = {
@@ -826,6 +829,13 @@ export type FarmFeedStatItemDto = {
   daysRemaining: number | null;
   estimatedDepletionDate: string | null;
   status: "ok" | "warning" | "critical";
+  percentConsumed?: number | null;
+  percentRemaining?: number | null;
+  stockAtLastEntry?: string | null;
+  daysSinceLastCheck?: number | null;
+  hasSufficientData?: boolean;
+  stockStatus?: FeedStockComputedStatus;
+  stockStatusColor?: string;
 };
 
 export type FarmFeedStatsDto = {
@@ -2724,6 +2734,8 @@ export type DashboardFeedStockItemDto = {
   critical: boolean;
   color?: string;
   daysRemaining: number | null;
+  percentRemaining?: number | null;
+  stockStatus?: FeedStockComputedStatus;
 };
 
 export type DashboardFeedStockDto = {

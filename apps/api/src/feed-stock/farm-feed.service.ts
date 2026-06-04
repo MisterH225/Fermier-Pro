@@ -475,21 +475,35 @@ export class FarmFeedService {
           "Définir weightPerBagKg sur le type avant un contrôle"
         );
       }
+      const prevCheck = await this.prisma.feedStockMovement.findFirst({
+        where: {
+          farmId,
+          feedTypeId: feedType.id,
+          kind: FeedMovementKind.stock_check
+        },
+        orderBy: { occurredAt: "desc" },
+        select: { stockAfterKg: true, occurredAt: true, bagsCounted: true }
+      });
       const prevBags =
+        prevCheck?.bagsCounted ??
         feedType.bagCountCurrent ??
         feedType.currentStockKg.div(wp);
       const counted = new Prisma.Decimal(dto.bagsCounted);
       const consumed = prevBags.minus(counted);
-      const consumedKg = consumed.times(wp);
+      const newStock = counted.times(wp);
+      const prevStockKg = prevCheck?.stockAfterKg ?? feedType.currentStockKg;
+      const consumedKg = prevStockKg.minus(newStock);
       let daysSince = 1;
-      if (feedType.lastCheckDate) {
+      if (prevCheck) {
+        daysSince = daysBetweenUtc(prevCheck.occurredAt, occurredAt);
+      } else if (feedType.lastCheckDate) {
         daysSince = daysBetweenUtc(feedType.lastCheckDate, occurredAt);
       }
+      const consumedNum = consumedKg.toNumber();
       const daily =
-        consumedKg.toNumber() > 0
-          ? new Prisma.Decimal(consumedKg.toNumber()).div(daysSince)
+        consumedNum > 0
+          ? new Prisma.Decimal(consumedNum).div(daysSince)
           : new Prisma.Decimal(0);
-      const newStock = counted.times(wp);
 
       const movement = await this.prisma.$transaction(async (tx) => {
         const m = await tx.feedStockMovement.create({

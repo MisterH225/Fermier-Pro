@@ -1,8 +1,12 @@
 import type { PrismaClient } from "@prisma/client";
 import { FeedMovementKind } from "@prisma/client";
 import { feedTypeColorAtIndex } from "./feed-type-colors";
-
-const MS_PER_DAY = 86_400_000;
+import {
+  computeFeedStockMetrics,
+  daysBetweenUtc,
+  FEED_STOCK_STATUS_COLORS,
+  type FeedStockComputedStatus
+} from "./feed-stock-calculation.helper";
 
 export type FeedStockStatRow = {
   feedTypeId: string;
@@ -16,74 +20,89 @@ export type FeedStockStatRow = {
   daysRemaining: number | null;
   estimatedDepletionDate: string | null;
   status: "ok" | "warning" | "critical";
+  percentConsumed: number | null;
+  percentRemaining: number | null;
+  stockAtLastEntry: string | null;
+  daysSinceLastCheck: number | null;
+  hasSufficientData: boolean;
+  stockStatus: FeedStockComputedStatus;
+  stockStatusColor: string;
 };
 
-function daysBetweenUtc(a: Date, b: Date): number {
-  const d = Math.round((b.getTime() - a.getTime()) / MS_PER_DAY);
-  return Math.max(1, d);
+const MS_PER_DAY = 86_400_000;
+
+function mapDisplayStatus(
+  stockStatus: FeedStockComputedStatus
+): "ok" | "warning" | "critical" {
+  if (stockStatus === "critical") return "critical";
+  if (stockStatus === "warning") return "warning";
+  return "ok";
 }
 
 export async function buildFeedStockStatsForFarm(
   prisma: PrismaClient,
   farmId: string,
-  thresholds: { criticalDays: number; warningDays: number }
+  _thresholds: { criticalDays: number; warningDays: number }
 ): Promise<FeedStockStatRow[]> {
   const types = await prisma.feedType.findMany({
     where: { farmId },
     orderBy: { name: "asc" }
   });
-  const lastChecksRaw = await prisma.feedStockMovement.findMany({
-    where: { farmId, kind: FeedMovementKind.stock_check },
-    orderBy: { occurredAt: "desc" },
-    select: {
-      feedTypeId: true,
-      dailyConsumptionKg: true,
-      occurredAt: true
-    }
-  });
-  const dailyByType = new Map<string, (typeof lastChecksRaw)[0]>();
-  for (const r of lastChecksRaw) {
-    if (!dailyByType.has(r.feedTypeId)) {
-      dailyByType.set(r.feedTypeId, r);
-    }
-  }
 
   const now = new Date();
-  const { criticalDays, warningDays } = thresholds;
 
-  return types.map((t, index) => {
-    const last = dailyByType.get(t.id);
-    const daily = last?.dailyConsumptionKg?.toNumber() ?? null;
-    const stock = t.currentStockKg.toNumber();
-    let daysRemaining: number | null = null;
-    let estimatedDepletionDate: string | null = null;
-    if (daily != null && daily > 0 && stock > 0) {
-      daysRemaining = Math.floor(stock / daily);
-      const depl = new Date(now.getTime() + daysRemaining * MS_PER_DAY);
-      estimatedDepletionDate = depl.toISOString().slice(0, 10);
-    }
-    let status: "ok" | "warning" | "critical" = "ok";
-    if (daysRemaining != null) {
-      const crit = Math.min(criticalDays, t.lowStockThresholdDays);
-      const warn = Math.max(warningDays, crit + 1);
-      if (daysRemaining < crit) status = "critical";
-      else if (daysRemaining <= warn) status = "warning";
-      else status = "ok";
-    }
-    return {
-      feedTypeId: t.id,
-      name: t.name,
-      color: feedTypeColorAtIndex(index),
-      currentStockKg: t.currentStockKg.toString(),
-      weightPerBagKg: t.weightPerBagKg?.toString() ?? null,
-      bagCountCurrent: t.bagCountCurrent?.toString() ?? null,
-      lastCheckDate: t.lastCheckDate?.toISOString() ?? null,
-      avgDailyConsumptionKg: last?.dailyConsumptionKg?.toString() ?? null,
-      daysRemaining,
-      estimatedDepletionDate,
-      status
-    };
-  });
+  const rows = await Promise.all(
+    types.map(async (t, index) => {
+      const metrics = await computeFeedStockMetrics(prisma, farmId, t.id);
+
+      let estimatedDepletionDate: string | null = null;
+      if (metrics.estimatedDaysRemaining != null && metrics.estimatedDaysRemaining > 0) {
+        const depl = new Date(
+          now.getTime() + metrics.estimatedDaysRemaining * MS_PER_DAY
+        );
+        estimatedDepletionDate = depl.toISOString().slice(0, 10);
+      }
+
+      const lastCheck = await prisma.feedStockMovement.findFirst({
+        where: {
+          farmId,
+          feedTypeId: t.id,
+          kind: FeedMovementKind.stock_check
+        },
+        orderBy: { occurredAt: "desc" },
+        select: { occurredAt: true }
+      });
+
+      return {
+        feedTypeId: t.id,
+        name: t.name,
+        color: feedTypeColorAtIndex(index),
+        currentStockKg: metrics.currentStockKg.toString(),
+        weightPerBagKg: t.weightPerBagKg?.toString() ?? null,
+        bagCountCurrent: t.bagCountCurrent?.toString() ?? null,
+        lastCheckDate: lastCheck?.occurredAt.toISOString() ?? null,
+        avgDailyConsumptionKg:
+          metrics.avgDailyConsumptionKg != null
+            ? metrics.avgDailyConsumptionKg.toFixed(4)
+            : null,
+        daysRemaining: metrics.estimatedDaysRemaining,
+        estimatedDepletionDate,
+        status: mapDisplayStatus(metrics.status),
+        percentConsumed: metrics.percentConsumed,
+        percentRemaining: metrics.percentRemaining,
+        stockAtLastEntry:
+          metrics.stockAtLastEntryKg != null
+            ? metrics.stockAtLastEntryKg.toString()
+            : null,
+        daysSinceLastCheck: metrics.daysSinceLastCheck,
+        hasSufficientData: metrics.hasSufficientData,
+        stockStatus: metrics.status,
+        stockStatusColor: FEED_STOCK_STATUS_COLORS[metrics.status]
+      };
+    })
+  );
+
+  return rows;
 }
 
 export async function feedStockConsumptionSpikeMessages(

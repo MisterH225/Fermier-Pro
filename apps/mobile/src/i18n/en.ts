@@ -891,10 +891,15 @@ export const en = {
     previewDepletion: "Estimated stock-out: {{date}}",
     gaugePercent: "{{value}}%",
     gaugeDaily: "{{kg}} kg/d",
-    gaugeNoDaily: "unknown use",
+    gaugePercentRemaining: "{{value}}% remaining",
+    gaugeNoDaily: "consumption —",
+    gaugeDaysEstimate: "~{{count}} days remaining",
+    gaugeInsufficientData:
+      "Record at least 2 stock checks to see estimates",
     gaugeDaysLeft: "{{count}} d left",
-    gaugeUnknownDays: "unknown duration",
+    gaugeUnknownDays: "estimate —",
     gaugeCenterDays: "{{count}} d",
+    lastCheckAgo: "Last check: {{count}} d ago",
     gaugeDashboardSubtitle: "{{kg}} kg · {{count}} d left",
     gaugeDashboardNoDays: "{{kg}} kg · unknown duration",
     errors: {

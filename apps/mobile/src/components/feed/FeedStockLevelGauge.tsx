@@ -11,14 +11,17 @@ import {
 type Props = {
   name: string;
   subtitle: string;
-  /** Valeur principale (ex. « 38 % » ou « 12 j »). */
+  /** Valeur principale (ex. « 42 % restant »). */
   displayValue: string;
   /** Remplissage jauge 0–100 ; null = piste vide. */
   percent: number | null;
+  /** Couleur de la jauge selon criticité stock. */
   gaugeColor: string;
-  /** Libellé centré dans l'arc (ex. « 5 j »). */
-  centerLabel?: string;
+  /** Estimation jours — toujours en gris (informatif). */
+  daysLabel?: string;
   dotColor: string;
+  /** Dernier contrôle > 7 jours — sous-titre en orange. */
+  lastCheckWarning?: boolean;
   /** `embedded` = ligne dans une carte parente (dashboard). */
   variant?: "card" | "embedded";
 };
@@ -89,8 +92,9 @@ export function FeedStockLevelGauge({
   displayValue,
   percent,
   gaugeColor,
-  centerLabel,
+  daysLabel,
   dotColor,
+  lastCheckWarning,
   variant = "card"
 }: Props) {
   return (
@@ -107,16 +111,19 @@ export function FeedStockLevelGauge({
             {name}
           </Text>
         </View>
-        <Text style={styles.subtitle} numberOfLines={2}>
+        <Text
+          style={[styles.subtitle, lastCheckWarning && styles.subtitleWarn]}
+          numberOfLines={3}
+        >
           {subtitle}
         </Text>
         <Text style={styles.displayValue}>{displayValue}</Text>
+        {daysLabel ? (
+          <Text style={styles.daysEstimate}>{daysLabel}</Text>
+        ) : null}
       </View>
       <View style={styles.right}>
         <SemiGauge percent={percent} color={gaugeColor} />
-        {centerLabel ? (
-          <Text style={[styles.centerLabel, { color: gaugeColor }]}>{centerLabel}</Text>
-        ) : null}
       </View>
     </View>
   );
@@ -169,6 +176,14 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary,
     marginTop: 2
   },
+  subtitleWarn: {
+    color: mobileColors.warning
+  },
+  daysEstimate: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: mobileSpacing.xs
+  },
   displayValue: {
     fontSize: 28,
     lineHeight: 34,
@@ -184,11 +199,5 @@ const styles = StyleSheet.create({
   gaugeWrap: {
     width: GAUGE_W,
     height: GAUGE_H
-  },
-  centerLabel: {
-    position: "absolute",
-    bottom: 2,
-    fontSize: 11,
-    fontWeight: "700"
   }
 });
