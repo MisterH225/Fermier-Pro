@@ -20,7 +20,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { PigPriceIndex } from "../components/market/PigPriceIndex";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
-import { CreateMarketplaceListingModal } from "../components/marketplace/CreateMarketplaceListingModal";
+import { ListingModal } from "../components/marketplace/ListingModal";
 import {
   MarketplaceListingCard,
   MarketplaceListingCardSkeleton
@@ -714,10 +714,11 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
           />
         )}
       </View>
-      <CreateMarketplaceListingModal
+      <ListingModal
         visible={createModalOpen}
+        mode="create"
         onClose={() => setCreateModalOpen(false)}
-        onCreated={(created) =>
+        onSuccess={(created) =>
           navigation.navigate("MarketplaceListingDetail", {
             listingId: created.id,
             headline: created.title

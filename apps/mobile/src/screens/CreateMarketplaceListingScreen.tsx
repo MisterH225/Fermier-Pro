@@ -1,7 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { View } from "react-native";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
-import { CreateMarketplaceListingModal } from "../components/marketplace/CreateMarketplaceListingModal";
+import { ListingModal } from "../components/marketplace/ListingModal";
 import { useSession } from "../context/SessionContext";
 import type { RootStackParamList } from "../types/navigation";
 
@@ -9,7 +9,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "CreateMarketplaceListin
 
 /**
  * Route stack conservée (menu ferme, navigation profonde).
- * Délègue au modal canonique `CreateMarketplaceListingModal`.
+ * Délègue au modal unifié `ListingModal` (mode création).
  */
 export function CreateMarketplaceListingScreen({ navigation, route }: Props) {
   const { clientFeatures } = useSession();
@@ -26,12 +26,13 @@ export function CreateMarketplaceListingScreen({ navigation, route }: Props) {
 
   return (
     <View style={{ flex: 1 }}>
-      <CreateMarketplaceListingModal
+      <ListingModal
         visible
+        mode="create"
         initialFarmId={initialFarmId}
         lockFarm={lockFarm}
         onClose={() => navigation.goBack()}
-        onCreated={(created) => {
+        onSuccess={(created) => {
           navigation.replace("MarketplaceListingDetail", {
             listingId: created.id,
             headline: created.title

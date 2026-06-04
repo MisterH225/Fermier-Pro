@@ -45,6 +45,11 @@ type Props = {
   lockFarm?: boolean;
   /** Affiche le choix de durée (publication). */
   showDuration?: boolean;
+  /** Date d'expiration actuelle (mode édition). */
+  editExpiresAt?: string | null;
+  /** Prolonger l'annonce de X jours supplémentaires. */
+  extendDuration?: boolean;
+  onExtendDurationChange?: (extend: boolean) => void;
 };
 
 export function MarketplaceListingFormFields({
@@ -55,7 +60,10 @@ export function MarketplaceListingFormFields({
   farmsLoading,
   animalsLoading,
   lockFarm,
-  showDuration
+  showDuration,
+  editExpiresAt,
+  extendDuration,
+  onExtendDurationChange
 }: Props) {
   const { t } = useTranslation();
 
@@ -397,7 +405,68 @@ export function MarketplaceListingFormFields({
         </ModalSection>
       ) : null}
 
-      <Text style={styles.footerNote}>{t("marketScreen.createForm.footerNote")}</Text>
+      {editExpiresAt != null ? (
+        <ModalSection
+          title={t("marketScreen.editForm.sectionDuration", {
+            defaultValue: "Durée de l'annonce"
+          })}
+        >
+          <Text style={styles.hint}>
+            {t("marketScreen.editForm.expiresAt", {
+              defaultValue: "Expire le {{date}}",
+              date: new Date(editExpiresAt).toLocaleDateString("fr-FR", {
+                day: "numeric",
+                month: "long",
+                year: "numeric"
+              })
+            })}
+          </Text>
+          <Pressable
+            style={[styles.chip, extendDuration && styles.chipOn]}
+            onPress={() => onExtendDurationChange?.(!extendDuration)}
+          >
+            <Text style={[styles.chipTx, extendDuration && styles.chipTxOn]}>
+              {t("marketScreen.editForm.extendToggle", {
+                defaultValue: "Prolonger l'annonce"
+              })}
+            </Text>
+          </Pressable>
+          {extendDuration ? (
+            <>
+              <Text style={styles.hint}>
+                {t("marketScreen.editForm.extendHint", {
+                  defaultValue: "Ajouter des jours supplémentaires :"
+                })}
+              </Text>
+              <View style={styles.chipRow}>
+                {DURATIONS.map((d) => (
+                  <Pressable
+                    key={d}
+                    style={[
+                      styles.chip,
+                      values.publishDurationDays === d && styles.chipOn
+                    ]}
+                    onPress={() => set({ publishDurationDays: d })}
+                  >
+                    <Text
+                      style={[
+                        styles.chipTx,
+                        values.publishDurationDays === d && styles.chipTxOn
+                      ]}
+                    >
+                      +{d}j
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          ) : null}
+        </ModalSection>
+      ) : null}
+
+      {editExpiresAt == null ? (
+        <Text style={styles.footerNote}>{t("marketScreen.createForm.footerNote")}</Text>
+      ) : null}
     </>
   );
 }
