@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "node scripts/prisma-run.cjs migrate deploy && node dist/main.js",
+    "start": "node dist/main.js",
     "start:dev": "node scripts/start-dev.cjs",
     "build": "nest build",
     "lint": "eslint \"src/**/*.ts\" --max-warnings=0",
