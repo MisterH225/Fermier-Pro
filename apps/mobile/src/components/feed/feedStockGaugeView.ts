@@ -1,10 +1,11 @@
 import type { TFunction } from "i18next";
 import type { FarmFeedStatItemDto, DashboardFeedStockItemDto } from "../../lib/api";
+import { feedSeriesColor } from "../charts/smartChartAdapters";
 import {
   feedStockGaugeColor,
-  feedStockGaugePercent
+  feedStockGaugePercent,
+  type FeedStockGaugeStatus
 } from "./feedStockGaugeUtils";
-import { feedSeriesColor } from "../charts/smartChartAdapters";
 
 function formatMassKg(kg: number): string {
   if (!Number.isFinite(kg)) return "—";
@@ -22,8 +23,38 @@ export type FeedStockGaugeViewModel = {
   percent: number | null;
   gaugeColor: string;
   dotColor: string;
-  centerLabel?: string;
+  /** Libellé jours — toujours affiché en gris (informatif). */
+  daysLabel?: string;
+  /** Dernier contrôle — orange si > 7 jours. */
+  lastCheckWarning?: boolean;
+  insufficientData?: boolean;
 };
+
+function resolveStatus(stat: FarmFeedStatItemDto): FeedStockGaugeStatus {
+  if (stat.stockStatus) {
+    return stat.stockStatus;
+  }
+  if (stat.hasSufficientData === false) {
+    return "no_data";
+  }
+  if (stat.status === "critical") return "critical";
+  if (stat.status === "warning") return "warning";
+  return "ok";
+}
+
+function formatDaysRemaining(
+  days: number | null,
+  hasSufficientData: boolean,
+  t: TFunction
+): string {
+  if (!hasSufficientData) {
+    return t("feedStock.gaugeInsufficientData");
+  }
+  if (days == null) {
+    return t("feedStock.gaugeUnknownDays");
+  }
+  return t("feedStock.gaugeDaysEstimate", { count: days });
+}
 
 export function farmFeedStatToGauge(
   stat: FarmFeedStatItemDto,
@@ -35,34 +66,50 @@ export function farmFeedStatToGauge(
     ? Number.parseFloat(stat.avgDailyConsumptionKg)
     : null;
   const days = stat.daysRemaining;
-  const percent = feedStockGaugePercent(days);
-  const gaugeColor = feedStockGaugeColor(days, index);
+  const percentRemaining = stat.percentRemaining ?? null;
+  const percent = feedStockGaugePercent(percentRemaining);
+  const stockStatus = resolveStatus(stat);
+  const gaugeColor = feedStockGaugeColor(stockStatus, stat.stockStatusColor);
   const dotColor = feedSeriesColor(index);
+  const hasData = stat.hasSufficientData !== false;
 
-  const stockLabel = formatMassKg(stockKg);
+  const stockLabel = `${t("feedStock.current")}: ${formatMassKg(stockKg)}`;
   const dailyLabel =
-    daily != null
-      ? t("feedStock.gaugeDaily", {
+    daily != null && hasData
+      ? t("feedStock.avgDaily", {
           kg: daily.toLocaleString("fr-FR", { maximumFractionDigits: 2 })
         })
       : t("feedStock.gaugeNoDaily");
 
-  const daysSubtitle =
-    days != null
-      ? t("feedStock.gaugeDaysLeft", { count: days })
-      : t("feedStock.gaugeUnknownDays");
+  const daysLabel = formatDaysRemaining(days, hasData, t);
+
+  const lastCheckDays = stat.daysSinceLastCheck ?? null;
+  const lastCheckLine =
+    lastCheckDays != null
+      ? t("feedStock.lastCheckAgo", { count: lastCheckDays })
+      : null;
+
+  const subtitleParts = [stockLabel, dailyLabel];
+  if (lastCheckLine) {
+    subtitleParts.push(lastCheckLine);
+  }
+
+  const percentLabel =
+    percent != null
+      ? t("feedStock.gaugePercentRemaining", { value: percent })
+      : "—";
 
   return {
     key: stat.feedTypeId,
     name: stat.name,
-    subtitle: `${stockLabel} · ${dailyLabel} · ${daysSubtitle}`,
-    displayValue:
-      percent != null ? t("feedStock.gaugePercent", { value: percent }) : "—",
+    subtitle: subtitleParts.join(" · "),
+    displayValue: percentLabel,
     percent,
     gaugeColor,
     dotColor,
-    centerLabel:
-      days != null ? t("feedStock.gaugeCenterDays", { count: days }) : undefined
+    daysLabel,
+    lastCheckWarning: lastCheckDays != null && lastCheckDays > 7,
+    insufficientData: !hasData
   };
 }
 
@@ -73,29 +120,40 @@ export function dashboardFeedItemToGauge(
   locale: string
 ): FeedStockGaugeViewModel {
   const days = item.daysRemaining ?? null;
-  const percent = feedStockGaugePercent(days);
-  const gaugeColor = feedStockGaugeColor(days, index);
+  const percentRemaining =
+    item.percentRemaining ??
+    (item.ratio != null ? Math.round(item.ratio * 100) : null);
+  const percent = feedStockGaugePercent(percentRemaining);
+  const stockStatus: FeedStockGaugeStatus =
+    item.stockStatus ??
+    (item.level === "critical"
+      ? "critical"
+      : item.level === "medium"
+        ? "warning"
+        : percent == null
+          ? "no_data"
+          : "ok");
+  const gaugeColor = feedStockGaugeColor(stockStatus, item.color);
   const dotColor = item.color ?? feedSeriesColor(index);
   const stockKg = Number.parseFloat(item.remainingKg);
+  const hasData = percent != null || days != null;
+
+  const daysLabel = formatDaysRemaining(days, hasData, t);
 
   return {
     key: item.productName,
     name: item.productName,
-    subtitle:
-      days != null
-        ? t("feedStock.gaugeDashboardSubtitle", {
-            kg: stockKg.toLocaleString(locale, { maximumFractionDigits: 1 }),
-            count: days
-          })
-        : t("feedStock.gaugeDashboardNoDays", {
-            kg: stockKg.toLocaleString(locale, { maximumFractionDigits: 1 })
-          }),
+    subtitle: t("feedStock.gaugeDashboardSubtitle", {
+      kg: stockKg.toLocaleString(locale, { maximumFractionDigits: 1 }),
+      count: days ?? "—"
+    }),
     displayValue:
-      percent != null ? t("feedStock.gaugePercent", { value: percent }) : "—",
+      percent != null
+        ? t("feedStock.gaugePercentRemaining", { value: percent })
+        : "—",
     percent,
     gaugeColor,
     dotColor,
-    centerLabel:
-      days != null ? t("feedStock.gaugeCenterDays", { count: days }) : undefined
+    daysLabel
   };
 }

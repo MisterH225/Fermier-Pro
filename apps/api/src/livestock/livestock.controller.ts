@@ -14,6 +14,7 @@ import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.decorator";
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
+import { BulkCreateAnimalsDto } from "./dto/bulk-create-animals.dto";
 import { CreateAnimalDto } from "./dto/create-animal.dto";
 import { CreateWeightDto } from "./dto/create-weight.dto";
 import { PatchAnimalStatusDto } from "./dto/patch-animal-status.dto";
@@ -39,6 +40,16 @@ export class LivestockController {
     @Body() dto: CreateAnimalDto
   ) {
     return this.livestock.createAnimal(user, farmId, dto);
+  }
+
+  @Post("bulk")
+  @RequireFarmScopes(FARM_SCOPE.livestockWrite)
+  bulkCreate(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Body() dto: BulkCreateAnimalsDto
+  ) {
+    return this.livestock.bulkCreateAnimals(user, farmId, dto);
   }
 
   @Patch(":animalId/status")

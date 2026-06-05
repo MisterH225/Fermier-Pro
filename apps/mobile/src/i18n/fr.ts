@@ -1065,6 +1065,7 @@ export const fr = {
       batchCategoryOther: "Lot",
       vaccinateLot: "Vacciner le lot",
       addAnimal: "Ajouter animal",
+      addSeveral: "Ajouter plusieurs",
       columnLeft: "Colonne gauche",
       columnRight: "Colonne droite",
       topToBottom: "Numérotation de haut en bas",

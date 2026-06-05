@@ -12,6 +12,41 @@ const PREFIX_TO_COUNTER: Record<
   Dem: "lastDemTagNumber"
 };
 
+type FarmTagCounterClient = Pick<Prisma.TransactionClient, "farm">;
+
+/** Aperçu sans consommer de numéros (lecture seule des compteurs ferme). */
+export async function peekTagCodeRange(
+  client: FarmTagCounterClient,
+  farmId: string,
+  prefix: AnimalTagPrefix,
+  count: number
+): Promise<{ firstTagCode: string; lastTagCode: string; count: number }> {
+  if (count < 1) {
+    throw new Error("count must be >= 1");
+  }
+  const farm = await client.farm.findUnique({
+    where: { id: farmId },
+    select: {
+      lastTruiTagNumber: true,
+      lastVerTagNumber: true,
+      lastEngTagNumber: true,
+      lastDemTagNumber: true
+    }
+  });
+  if (!farm) {
+    throw new Error("Farm not found");
+  }
+  const counterKey = PREFIX_TO_COUNTER[prefix];
+  const current = farm[counterKey];
+  const seqStart = current + 1;
+  const seqEnd = current + count;
+  return {
+    firstTagCode: formatTagCode(prefix, seqStart),
+    lastTagCode: formatTagCode(prefix, seqEnd),
+    count
+  };
+}
+
 /**
  * Allocation atomique de numéros de boucle (increment SQL) — safe en transaction
  * longue et sans `SELECT FOR UPDATE` (compatible pooler Supabase).

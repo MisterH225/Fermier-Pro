@@ -794,10 +794,13 @@ export type FeedTypeDto = {
   updatedAt: string;
 };
 
+export type FeedStockComputedStatus = "ok" | "warning" | "critical" | "no_data";
+
 export type FarmFeedOverviewDto = {
   farmId: string;
   totalStockKg: string;
-  types: FeedTypeDto[];
+  /** Statistiques enrichies par type (remplace `types` brut). */
+  items: FarmFeedStatItemDto[];
 };
 
 export type FarmFeedChartSeriesDto = {
@@ -826,6 +829,13 @@ export type FarmFeedStatItemDto = {
   daysRemaining: number | null;
   estimatedDepletionDate: string | null;
   status: "ok" | "warning" | "critical";
+  percentConsumed?: number | null;
+  percentRemaining?: number | null;
+  stockAtLastEntry?: string | null;
+  daysSinceLastCheck?: number | null;
+  hasSufficientData?: boolean;
+  stockStatus?: FeedStockComputedStatus;
+  stockStatusColor?: string;
 };
 
 export type FarmFeedStatsDto = {
@@ -2069,6 +2079,64 @@ export function fetchNextAnimalNumber(
   );
 }
 
+
+export function fetchTagCodePreview(
+  accessToken: string,
+  farmId: string,
+  prefix: AnimalTagPrefixDto,
+  count: number,
+  activeProfileId?: string | null
+): Promise<{
+  prefix: AnimalTagPrefixDto;
+  firstTagCode: string;
+  lastTagCode: string;
+  count: number;
+  productionCategory: AnimalProductionCategoryDto;
+}> {
+  return apiGetJson(
+    `/farms/${farmId}/next-animal-number?prefix=${encodeURIComponent(prefix)}&count=${count}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type BulkCreateAnimalsPayload = {
+  penId?: string;
+  productionCategory: Exclude<AnimalProductionCategoryDto, "unknown">;
+  count: number;
+  sex?: "male" | "female" | "unknown";
+  breedId?: string;
+  entryWeightKg?: number;
+  ageWeeksAtEntry?: number;
+  entryDate: string;
+  origin: AnimalOriginDto;
+  supplier?: string;
+  notes?: string;
+};
+
+export type BulkCreateAnimalsResult = {
+  animalsCreated: Array<{ id: string; tagCode: string | null }>;
+  firstNumber: string;
+  lastNumber: string;
+  count: number;
+  placedInPenCount: number;
+  unplacedCount: number;
+};
+
+export function createBulkAnimals(
+  accessToken: string,
+  farmId: string,
+  payload: BulkCreateAnimalsPayload,
+  activeProfileId?: string | null
+): Promise<BulkCreateAnimalsResult> {
+  return apiPostJson<BulkCreateAnimalsResult>(
+    `/farms/${farmId}/animals/bulk`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
 export type AnimalOriginDto = "farm_born" | "purchased";
 
 export type AnimalPedigreeRef = {
@@ -2724,6 +2792,8 @@ export type DashboardFeedStockItemDto = {
   critical: boolean;
   color?: string;
   daysRemaining: number | null;
+  percentRemaining?: number | null;
+  stockStatus?: FeedStockComputedStatus;
 };
 
 export type DashboardFeedStockDto = {

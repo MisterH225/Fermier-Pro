@@ -18,6 +18,7 @@ import {
 import { AnimalDetailModal } from "./AnimalDetailModal";
 import { ChangeStatusModal } from "./ChangeStatusModal";
 import { CreateAnimalModal } from "./CreateAnimalModal";
+import { BulkAddAnimalsModal } from "./BulkAddAnimalsModal";
 import { SaleModal } from "./SaleModal";
 import type { SaleResult } from "./SaleModal";
 import { DiseaseModal } from "../../shared/DiseaseModal";
@@ -70,6 +71,7 @@ export function AnimalList({
   const [search, setSearch] = useState("");
   const [detailAnimal, setDetailAnimal] = useState<AnimalListItem | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [statusAnimal, setStatusAnimal] = useState<AnimalListItem | null>(null);
   const [saleAnimal, setSaleAnimal] = useState<AnimalListItem | null>(null);
   const [diseaseAnimal, setDiseaseAnimal] = useState<AnimalListItem | null>(null);
@@ -163,6 +165,8 @@ export function AnimalList({
       <Pressable
         style={styles.fab}
         onPress={() => setCreateOpen(true)}
+        onLongPress={() => setBulkOpen(true)}
+        delayLongPress={400}
         accessibilityRole="button"
         accessibilityLabel={t("cheptel.animals.addFab")}
       >
@@ -202,6 +206,15 @@ export function AnimalList({
         accessToken={accessToken}
         activeProfileId={activeProfileId}
         onClose={() => setCreateOpen(false)}
+        onCreated={onInvalidate}
+      />
+
+      <BulkAddAnimalsModal
+        visible={bulkOpen}
+        farmId={farmId}
+        accessToken={accessToken}
+        activeProfileId={activeProfileId}
+        onClose={() => setBulkOpen(false)}
         onCreated={onInvalidate}
       />
 

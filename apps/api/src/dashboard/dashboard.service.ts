@@ -246,26 +246,28 @@ export class DashboardService {
     const items = stats.map((t) => {
       const days = t.daysRemaining;
       const level: "critical" | "medium" | "ok" =
-        days != null && days <= 3
+        t.status === "critical"
           ? "critical"
-          : days != null && days <= 5
+          : t.status === "warning"
             ? "medium"
-            : t.status === "critical"
-              ? "critical"
-              : t.status === "warning"
-                ? "medium"
-                : "ok";
+            : "ok";
       const ratio =
-        days != null ? Math.min(1, Math.max(0, days / 30)) : 1;
+        t.percentRemaining != null
+          ? Math.min(1, Math.max(0, t.percentRemaining / 100))
+          : days != null
+            ? Math.min(1, Math.max(0, days / 30))
+            : 0;
       return {
         productName: t.name,
         remainingKg: t.currentStockKg,
-        initialKg: t.currentStockKg,
+        initialKg: t.stockAtLastEntry ?? t.currentStockKg,
         ratio,
         level,
         critical: level === "critical",
-        color: t.color,
-        daysRemaining: days
+        color: t.stockStatusColor ?? t.color,
+        daysRemaining: days,
+        percentRemaining: t.percentRemaining,
+        stockStatus: t.stockStatus
       };
     });
 

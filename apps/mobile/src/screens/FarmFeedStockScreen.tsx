@@ -358,27 +358,6 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
     [refetchAll]
   );
 
-  const renderStockSwipeEdit = useCallback(
-    (item: EventItem) => {
-      const m = item.meta as FeedStockMovementDto;
-      if (m.kind !== "in") {
-        return null;
-      }
-      return (
-        <Pressable
-          style={styles.swipeEdit}
-          onPress={() => setEditMovement(m)}
-          accessibilityRole="button"
-          accessibilityLabel={t("feedStock.editMovement")}
-        >
-          <Ionicons name="pencil" size={20} color="#fff" />
-          <Text style={styles.swipeEditTx}>{t("feedStock.editMovement")}</Text>
-        </Pressable>
-      );
-    },
-    [t]
-  );
-
   const pending = results.some((r) => r.isPending) || movQ.isPending;
   const errMsg = useMemo(() => {
     for (const r of [...results, movQ]) {
@@ -450,6 +429,27 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
     >
       <TabContent>{children}</TabContent>
     </ScrollView>
+  );
+
+  const renderStockSwipeEdit = useCallback(
+    (item: EventItem) => {
+      const m = item.meta as FeedStockMovementDto;
+      if (m.kind !== "in") {
+        return null;
+      }
+      return (
+        <Pressable
+          style={styles.swipeEdit}
+          onPress={() => setEditMovement(m)}
+          accessibilityRole="button"
+          accessibilityLabel={t("feedStock.editMovement")}
+        >
+          <Ionicons name="pencil" size={20} color="#fff" />
+          <Text style={styles.swipeEditTx}>{t("feedStock.editMovement")}</Text>
+        </Pressable>
+      );
+    },
+    [t]
   );
 
   const movementList = (showKindPills: boolean) => (
@@ -555,7 +555,8 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
                             percent={gauge.percent}
                             gaugeColor={gauge.gaugeColor || mobileColors.accent}
                             dotColor={gauge.dotColor || mobileColors.accent}
-                            centerLabel={gauge.centerLabel}
+                            daysLabel={gauge.daysLabel}
+                            lastCheckWarning={gauge.lastCheckWarning}
                           />
                         </HighlightWrapper>
                       );
