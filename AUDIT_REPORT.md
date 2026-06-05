@@ -333,7 +333,7 @@ components/collaboration/BaseModal.tsx ← duplicate API/UX
 | Endpoints `health-events` deprecated | API | Plan de retrait versionné |
 | `DeepNavigationService` | Service sous-utilisé | Generaliser ou supprimer |
 | `EmptyStateCard` | Composant **sous-utilisé** (pas mort, mais quasi) | — |
-| PR #16 `BulkAddAnimalsModal` | Non sur `main` | Intégration pending |
+| PR #16 `BulkAddAnimalsModal` | ~~Non sur `main`~~ | **Fusionné** — [PR #16](https://github.com/MisterH225/Fermier-Pro/pull/16) (`1bbd24e`) |
 
 **Faux positifs (à garder) :** `modals/SuccessModal` et `ConfirmDeleteModal` utilisent `Modal` RN mais sont la couche standard globale.
 
@@ -366,13 +366,13 @@ components/collaboration/BaseModal.tsx ← duplicate API/UX
 12. Découper `api.ts` mobile.
 13. Étendre `DeepNavigationService` ou le retirer.
 14. Audit `TextInput` styles (83 fichiers) — composant `AppTextField` partagé.
-15. Aligner documentation statuts marketplace / cycle de vie ferme (PR #17).
+15. ~~Aligner documentation statuts marketplace / cycle de vie ferme (PR #17).~~ → **implémenté** ([PR #17](https://github.com/MisterH225/Fermier-Pro/pull/17), `FarmMarketplaceLifecycleService`).
 
 ---
 
-## 8. STATUT_DES_CORRECTIONS — Suivi PR #19 (juin 2026)
+## 8. STATUT_DES_CORRECTIONS — Suivi post-audit (juin 2026)
 
-Branche : `cursor/audit-fixes-p0-p1-0287` — [PR #19](https://github.com/MisterH225/Fermier-Pro/pull/19)
+**`main` à jour** — merges : [PR #19](https://github.com/MisterH225/Fermier-Pro/pull/19) (`2c9432a`), [PR #16](https://github.com/MisterH225/Fermier-Pro/pull/16) (`1bbd24e`), [PR #17](https://github.com/MisterH225/Fermier-Pro/pull/17) (`2ae2313`).
 
 ### P0 — Traité
 
@@ -402,11 +402,18 @@ Branche : `cursor/audit-fixes-p0-p1-0287` — [PR #19](https://github.com/Mister
 
 ### P3 — Non traité
 
-- Découpage `api.ts`, `DeepNavigationService`, `AppTextField`, doc marketplace PR #17
+- Découpage `api.ts`, `DeepNavigationService`, `AppTextField`
+
+### PR fonctionnelles fusionnées (après audit)
+
+| PR | Merge | Contenu |
+|----|-------|---------|
+| [#16](https://github.com/MisterH225/Fermier-Pro/pull/16) | `1bbd24e` | `BulkAddAnimalsModal`, `POST …/animals/bulk`, recalcul stock aliment + jauge colorée |
+| [#17](https://github.com/MisterH225/Fermier-Pro/pull/17) | `2ae2313` | `FarmMarketplaceLifecycleService` (archive/restore/delete ferme), statuts `paused`/`on_hold`, snapshots `PigPriceSnapshot`, filtre listings publics |
 
 ### Métriques post-correction (mobile)
 
-| Métrique | Avant audit | Juin 2026 (branche fixes) |
+| Métrique | Avant audit | Juin 2026 (`main`) |
 |----------|-------------|---------------------------|
 | Fichiers `#f9f8ea` | ~60 | **0** |
 | Fichiers `getUserFacingError` | 0 | **~73** |
@@ -451,11 +458,11 @@ Branche : `cursor/audit-fixes-p0-p1-0287` — [PR #19](https://github.com/Mister
 
 ### C. Prochaines étapes recommandées
 
-1. **Fusionner** [PR #19](https://github.com/MisterH225/Fermier-Pro/pull/19) (correctifs P0–P2) sur `main`.
-2. Clôturer [PR #18](https://github.com/MisterH225/Fermier-Pro/pull/18) — ce rapport est intégré dans #19.
-3. Poursuivre P2 restant : registre React Query, routes `@deprecated`, `collaboration/ConfirmDeleteModal` local (InviteSection).
-4. Rebaser / fusionner PR fonctionnelles #16 (bulk animals), #17 (marketplace sync) après merge des fixes.
+1. Clôturer [PR #18](https://github.com/MisterH225/Fermier-Pro/pull/18) (documentation seule, obsolète).
+2. Poursuivre P2 restant : registre React Query, routes `@deprecated`, `collaboration/ConfirmDeleteModal` local (`InviteSection`).
+3. P3 : découpage `api.ts`, `AppTextField`, `DeepNavigationService`.
+4. Valider en prod les migrations Prisma / Supabase (#17 : `marketplace_farm_lifecycle`, `PigPriceSnapshot`).
 
 ---
 
-*Rapport initial : audit lecture seule (3 juin 2026). Section 8 mise à jour après implémentation PR #19.*
+*Rapport initial : audit lecture seule (3 juin 2026). Section 8 mise à jour : PR #19 (5 juin), PR #16 et #17 (5 juin).*
