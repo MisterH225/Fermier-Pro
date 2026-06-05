@@ -3,7 +3,8 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { ListSkeleton } from "../../components/common/SkeletonBlocks";
 import {
   ProfileSectionEmpty,
   profileScreenScrollContent,
@@ -47,8 +48,10 @@ export function TechTasksScreen() {
     <TechMobileShell hideTopBar>
       <View style={[profileScreenScrollContent, styles.wrap, { paddingBottom: bottomPad }]}>
         <ScreenSection title={t("tech.dashboard.tasksToday")}>
-          {dashQ.isLoading || farm ? (
-            <ActivityIndicator color={techColors.primary} />
+          {dashQ.isLoading ? (
+            <ListSkeleton count={3} />
+          ) : farm ? (
+            <ListSkeleton count={2} />
           ) : (
             <ProfileSectionEmpty>{t("tech.tasks.noFarm")}</ProfileSectionEmpty>
           )}

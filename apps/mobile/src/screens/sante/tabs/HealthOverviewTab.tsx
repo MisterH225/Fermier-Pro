@@ -1,5 +1,6 @@
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { KpiGridSkeleton } from "../../../components/common/SkeletonBlocks";
 import { SmartChart } from "../../../components/charts";
 import { FinanceDonutChart } from "../../../components/finance/FinanceDonutChart";
 import { FinanceKpiCard } from "../../../components/finance/FinanceKpiCard";
@@ -13,6 +14,7 @@ import type {
   FarmHealthOverviewDto,
   FarmHealthUpcomingDto
 } from "../../../lib/api";
+import { getUserFacingError } from "../../../lib/userFacingError";
 import {
   mobileColors,
   mobileSpacing,
@@ -81,10 +83,10 @@ export function HealthOverviewTab({
   const { t } = useTranslation();
 
   if (isPending && !overview) {
-    return <ActivityIndicator color={mobileColors.accent} />;
+    return <KpiGridSkeleton count={4} />;
   }
   if (error) {
-    return <Text style={styles.err}>{error.message}</Text>;
+    return <Text style={styles.err}>{getUserFacingError(error, t)}</Text>;
   }
 
   return (

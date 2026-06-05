@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -328,7 +329,7 @@ export function TaskModal({
         autoDismissMs: 2600
       });
     },
-    onError: (e: Error) => Alert.alert(t("tasksScreen.errorTitle"), e.message)
+    onError: (e: Error) => Alert.alert(t("tasksScreen.errorTitle"), getUserFacingError(e, t))
   });
 
   return (

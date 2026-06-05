@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -371,7 +372,7 @@ export function AnimalDetailModal({
       }
     },
     onError: (e: Error) => {
-      Alert.alert(t("cheptel.animals.detail.saveErrorTitle"), e.message);
+      Alert.alert(t("cheptel.animals.detail.saveErrorTitle"), getUserFacingError(e, t));
     }
   });
 

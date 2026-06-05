@@ -5,13 +5,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View
 } from "react-native";
+import { CardContentSkeleton } from "../../components/common/SkeletonBlocks";
 import { EventList } from "../../components/lists/EventList";
 import type { EventItem } from "../../components/lists/types";
 import { VetMobileShell } from "../../components/layout";
@@ -171,7 +171,7 @@ export function VetAgendaScreen() {
                 activeProfileId={activeProfileId}
               />
             ) : (
-              <ActivityIndicator color={vetColors.primary} />
+              <CardContentSkeleton lines={4} />
             )}
             <Pressable
               style={[styles.bookBtn, !selectedSlot && styles.bookBtnDisabled]}

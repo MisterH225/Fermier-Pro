@@ -27,10 +27,10 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { useModal } from "../modals/useModal";
+import { getUserFacingError } from "../../lib/userFacingError";
 import { BaseModal } from "./BaseModal";
-import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 import { MemberAvatar } from "./MemberAvatar";
-import { SuccessModal } from "./SuccessModal";
 
 type Props = {
   visible: boolean;
@@ -44,11 +44,9 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
 
+  const modal = useModal();
   const [editMode, setEditMode] = useState(false);
   const [permissions, setPermissions] = useState<InvitationPermissions>({});
-  const [confirmRevoke, setConfirmRevoke] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [successMsg, setSuccessMsg] = useState("");
 
   const startEdit = () => {
     if (!member) return;
@@ -78,10 +76,13 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["farmMembers", farmId] });
       setEditMode(false);
-      setSuccessMsg(t("collab.memberPermsSaved"));
-      setShowSuccess(true);
+      modal.open("success", {
+        message: t("collab.memberPermsSaved"),
+        autoDismissMs: 2200
+      });
     },
-    onError: (e: Error) => Alert.alert("", e.message)
+    onError: (e: Error) =>
+      Alert.alert("", getUserFacingError(e, t))
   });
 
   const revokeMut = useMutation({
@@ -89,13 +90,9 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
       removeFarmMember(accessToken, farmId, member!.id, activeProfileId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["farmMembers", farmId] });
-      setConfirmRevoke(false);
       onClose();
     },
-    onError: (e: Error) => {
-      setConfirmRevoke(false);
-      Alert.alert("", e.message);
-    }
+    onError: (e: Error) => Alert.alert("", getUserFacingError(e, t))
   });
 
   if (!member) return null;
@@ -110,7 +107,7 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
   return (
     <>
       <BaseModal
-        visible={visible && !confirmRevoke && !showSuccess}
+        visible={visible}
         title={displayName}
         onClose={onClose}
         {...(editMode
@@ -205,7 +202,14 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
 
         {!isOwner ? (
           <Pressable
-            onPress={() => setConfirmRevoke(true)}
+            onPress={() =>
+              modal.open("confirm-delete", {
+                title: t("collab.revokeConfirmTitle"),
+                message: t("collab.revokeConfirmBody", { name: displayName }),
+                confirmLabel: t("collab.revokeConfirmAction"),
+                onConfirm: () => revokeMut.mutate()
+              })
+            }
             style={styles.revokeBtn}
             accessibilityRole="button"
           >
@@ -215,21 +219,6 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
         ) : null}
       </BaseModal>
 
-      <ConfirmDeleteModal
-        visible={confirmRevoke}
-        title={t("collab.revokeConfirmTitle")}
-        body={t("collab.revokeConfirmBody", { name: displayName })}
-        confirmLabel={t("collab.revokeConfirmAction")}
-        onConfirm={() => revokeMut.mutate()}
-        onCancel={() => setConfirmRevoke(false)}
-        loading={revokeMut.isPending}
-      />
-
-      <SuccessModal
-        visible={showSuccess}
-        message={successMsg}
-        onClose={() => setShowSuccess(false)}
-      />
     </>
   );
 }

@@ -20,7 +20,14 @@ export const en = {
     cancel: "Cancel",
     ok: "OK",
     close: "Close",
-    retry: "Retry"
+    retry: "Retry",
+    errors: {
+      generic: "Something went wrong. Please try again.",
+      network: "Connection failed. Check your network and try again.",
+      unauthorized: "Session expired. Please sign in again.",
+      forbidden: "You don't have permission for this action.",
+      notFound: "Item not found."
+    }
   },
   cgu: {
     title: "Terms of use",

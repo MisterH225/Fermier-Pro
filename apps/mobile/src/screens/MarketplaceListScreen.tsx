@@ -60,6 +60,7 @@ import {
 } from "../theme/mobileTheme";
 import { buyerColors, buyerStackScreenOptions } from "../theme/buyerTheme";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MarketplaceList">;
 
@@ -249,7 +250,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     onError: (e: Error) =>
       Alert.alert(
         "Impossible de retirer l’offre",
-        marketplaceActionErrorMessage(e.message)
+        marketplaceActionErrorMessage(e, t)
       )
   });
 
@@ -324,7 +325,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
       void qc.invalidateQueries({ queryKey: ["buyerFavoritesList"] });
       void qc.invalidateQueries({ queryKey: ["buyerDashboard"] });
     },
-    onError: (e: Error) => Alert.alert("Favoris", e.message)
+    onError: (e: Error) => Alert.alert("Favoris", getUserFacingError(e, t))
   });
 
   const toggleFav = (id: string) => {
@@ -438,7 +439,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
 
   const listingsErr =
     listingsQuery.error instanceof Error
-      ? listingsQuery.error.message
+      ? getUserFacingError(listingsQuery.error, t)
       : listingsQuery.error
         ? String(listingsQuery.error)
         : null;
@@ -557,7 +558,7 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
   const myListingsTabContent = () => {
     const err =
       myListingsQuery.error instanceof Error
-        ? myListingsQuery.error.message
+        ? getUserFacingError(myListingsQuery.error, t)
         : myListingsQuery.error
           ? String(myListingsQuery.error)
           : null;
@@ -633,7 +634,7 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
   const offersTabContent = () => {
     const err =
       offersQuery.error instanceof Error
-        ? offersQuery.error.message
+        ? getUserFacingError(offersQuery.error, t)
         : offersQuery.error
           ? String(offersQuery.error)
           : null;

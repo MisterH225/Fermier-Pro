@@ -1,6 +1,9 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { mobileColors } from "../theme/mobileTheme";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { getUserFacingError } from "../lib/userFacingError";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -21,6 +24,7 @@ import type { RootStackParamList } from "../types/navigation";
 type Props = NativeStackScreenProps<RootStackParamList, "CreateBarn">;
 
 export function CreateBarnScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { farmId, farmName } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
@@ -56,7 +60,7 @@ export function CreateBarnScreen({ route, navigation }: Props) {
       navigation.goBack();
     },
     onError: (e: Error) => {
-      Alert.alert("Création impossible", e.message);
+      Alert.alert("Création impossible", getUserFacingError(e, t));
     }
   });
 
@@ -141,9 +145,9 @@ export function CreateBarnScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#f9f8ea" },
+  flex: { flex: 1, backgroundColor: mobileColors.canvas },
   content: { padding: 16, paddingBottom: 40 },
-  hint: { fontSize: 13, color: "#6d745b", marginBottom: 16 },
+  hint: { fontSize: 13, color: mobileColors.textSecondary, marginBottom: 16 },
   label: {
     fontSize: 13,
     fontWeight: "700",
@@ -158,7 +162,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     marginBottom: 16
   },
   multiline: { minHeight: 88, textAlignVertical: "top" },

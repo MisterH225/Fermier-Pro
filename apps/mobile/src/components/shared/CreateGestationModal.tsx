@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -135,7 +136,7 @@ export function CreateGestationModal({
       onClose();
       Alert.alert("", offlineQueuedMessage(t));
     },
-    onError: (e: Error) => Alert.alert(t("gestationScreen.error"), e.message)
+    onError: (e: Error) => Alert.alert(t("gestationScreen.error"), getUserFacingError(e, t))
   });
 
   return (

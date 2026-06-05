@@ -20,9 +20,10 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { useModal } from "../modals/useModal";
+import { getUserFacingError } from "../../lib/userFacingError";
 import { BaseModal } from "./BaseModal";
 import { CollaboratorRolePermissionsFields } from "./CollaboratorRolePermissionsFields";
-import { SuccessModal } from "./SuccessModal";
 
 type Props = {
   visible: boolean;
@@ -40,19 +41,17 @@ export function RespondScanRequestModal({
   const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
+  const modal = useModal();
 
   const [recipientKind, setRecipientKind] =
     useState<InvitationRecipientKind>("technician");
   const [permissions, setPermissions] = useState<InvitationPermissions>(
     defaultPermissionsForRecipientKind("technician")
   );
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-
   useEffect(() => {
     if (!visible || !invitation) return;
     setRecipientKind("technician");
     setPermissions(defaultPermissionsForRecipientKind("technician"));
-    setSuccessMsg(null);
   }, [visible, invitation?.id]);
 
   const invalidate = () => {
@@ -77,9 +76,13 @@ export function RespondScanRequestModal({
       ),
     onSuccess: () => {
       invalidate();
-      setSuccessMsg(t("collab.scanRequests.acceptedToast"));
+      modal.open("success", {
+        message: t("collab.scanRequests.acceptedToast"),
+        autoDismissMs: 2200
+      });
+      onClose();
     },
-    onError: (e: Error) => Alert.alert("", e.message)
+    onError: (e: Error) => Alert.alert("", getUserFacingError(e, t))
   });
 
   const rejectMut = useMutation({
@@ -92,15 +95,14 @@ export function RespondScanRequestModal({
       ),
     onSuccess: () => {
       invalidate();
-      setSuccessMsg(t("collab.scanRequests.rejectedToast"));
+      modal.open("success", {
+        message: t("collab.scanRequests.rejectedToast"),
+        autoDismissMs: 2200
+      });
+      onClose();
     },
-    onError: (e: Error) => Alert.alert("", e.message)
+    onError: (e: Error) => Alert.alert("", getUserFacingError(e, t))
   });
-
-  const handleClose = () => {
-    setSuccessMsg(null);
-    onClose();
-  };
 
   const requesterLabel = invitation?.scannedBy?.fullName?.trim()
     || invitation?.scannedBy?.email?.trim()
@@ -127,9 +129,9 @@ export function RespondScanRequestModal({
   return (
     <>
       <BaseModal
-        visible={visible && !successMsg}
+        visible={visible}
         title={t("collab.scanRequests.modalTitle")}
-        onClose={handleClose}
+        onClose={onClose}
         confirmLabel={t("collab.scanRequests.accept")}
         onConfirm={() => acceptMut.mutate()}
         confirmDisabled={!invitation || busy}
@@ -168,12 +170,6 @@ export function RespondScanRequestModal({
           </>
         ) : null}
       </BaseModal>
-
-      <SuccessModal
-        visible={Boolean(successMsg)}
-        message={successMsg ?? ""}
-        onClose={handleClose}
-      />
     </>
   );
 }

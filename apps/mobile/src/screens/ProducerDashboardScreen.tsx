@@ -21,6 +21,7 @@ import { AlertBadge } from "../components/smartAlerts/AlertBadge";
 import { FeedStockLevelGauge, dashboardFeedItemToGauge } from "../components/feed";
 import { FinanceOverviewKpiGrid } from "../components/finance/FinanceOverviewKpiGrid";
 import { EmptyStateCard } from "../components/common/EmptyStateCard";
+import { CardContentSkeleton } from "../components/common/SkeletonBlocks";
 import { OnboardingBanner } from "../components/onboarding/OnboardingBanner";
 import { AdminMessagesBanner } from "../components/admin/AdminMessagesBanner";
 import { PendingInvitationsBanner } from "../components/collaboration/PendingInvitationsBanner";
@@ -55,6 +56,7 @@ import {
   mobileTypography
 } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 function formatMoney(n: number, locale: string): string {
   try {
@@ -336,7 +338,7 @@ export function ProducerDashboardScreen() {
                   isPending={financeQuery.isPending}
                   error={
                     financeQuery.error instanceof Error
-                      ? financeQuery.error.message
+                      ? getUserFacingError(financeQuery.error, t)
                       : null
                   }
                   sectionTitle={t("producer.dashboard.financeTitle")}
@@ -353,7 +355,7 @@ export function ProducerDashboardScreen() {
                   isPending={gestationsQuery.isPending}
                   error={
                     gestationsQuery.error instanceof Error
-                      ? gestationsQuery.error.message
+                      ? getUserFacingError(gestationsQuery.error, t)
                       : null
                   }
                   locale={locale}
@@ -372,7 +374,7 @@ export function ProducerDashboardScreen() {
                   isPending={healthQuery.isPending}
                   error={
                     healthQuery.error instanceof Error
-                      ? healthQuery.error.message
+                      ? getUserFacingError(healthQuery.error, t)
                       : null
                   }
                   locale={locale}
@@ -404,7 +406,7 @@ export function ProducerDashboardScreen() {
                   isPending={feedQuery.isPending}
                   error={
                     feedQuery.error instanceof Error
-                      ? feedQuery.error.message
+                      ? getUserFacingError(feedQuery.error, t)
                       : null
                   }
                   locale={locale}
@@ -503,7 +505,7 @@ function GestationsCard({
   if (isPending && !items) {
     return (
       <CardShell emoji="🐷" title={title} onPress={onPress}>
-        <ActivityIndicator color={mobileColors.accent} />
+        <CardContentSkeleton lines={3} />
       </CardShell>
     );
   }
@@ -577,7 +579,7 @@ function HealthCard({
   if (isPending && !data) {
     return (
       <CardShell emoji="🏥" title={title} onPress={onPress}>
-        <ActivityIndicator color={mobileColors.accent} />
+        <CardContentSkeleton lines={3} />
       </CardShell>
     );
   }
@@ -668,7 +670,7 @@ function FeedStockCard({
   if (isPending && !items) {
     return (
       <CardShell emoji="🌾" title={title} onPress={onPress}>
-        <ActivityIndicator color={mobileColors.accent} />
+        <CardContentSkeleton lines={3} />
       </CardShell>
     );
   }

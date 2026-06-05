@@ -37,6 +37,7 @@ type CategoryBreakdownItem = {
   color: string;
 };
 import { FinanceModuleGate } from "../components/FinanceModuleGate";
+import { KpiGridSkeleton, ListSkeleton } from "../components/common/SkeletonBlocks";
 import { EventList, type EventItem } from "../components/lists";
 import { useModal } from "../components/modals/useModal";
 import { useSession } from "../context/SessionContext";
@@ -75,6 +76,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../theme/mobileTheme";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmFinance">;
 
@@ -281,7 +283,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
     onSuccess: () => {
       invalidateFarmFinanceQueries(qc, farmId);
     },
-    onError: (e: Error) => Alert.alert("Suppression impossible", e.message)
+    onError: (e: Error) => Alert.alert("Suppression impossible", getUserFacingError(e, t))
   });
 
   const overview = overviewQ.data as FinanceOverviewDto | undefined;
@@ -848,17 +850,23 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
 
   if (pending && !overview) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={mobileColors.accent} />
+      <View style={styles.screenRoot}>
+        <TabScreenHeader />
+        <ScrollView contentContainerStyle={styles.tabScrollGrow}>
+          <TabContent>
+            <KpiGridSkeleton count={4} />
+            <ListSkeleton count={5} style={{ marginTop: 16 }} />
+          </TabContent>
+        </ScrollView>
       </View>
     );
   }
 
   const errMsg =
     overviewQ.error instanceof Error
-      ? overviewQ.error.message
+      ? getUserFacingError(overviewQ.error, t)
       : txQ.error instanceof Error
-        ? txQ.error.message
+        ? getUserFacingError(txQ.error, t)
         : null;
 
   if (errMsg && !overview) {
@@ -887,7 +895,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
   );
 
   const reportSpinner = reportQ.isPending ? (
-    <ActivityIndicator color={mobileColors.accent} style={{ marginVertical: 12 }} />
+    <ListSkeleton count={2} style={{ marginVertical: 12 }} />
   ) : null;
 
   const txListBlock = (

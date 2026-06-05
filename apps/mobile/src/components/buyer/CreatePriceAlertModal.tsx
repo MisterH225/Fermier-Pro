@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   Alert,
   Pressable,
@@ -92,7 +93,7 @@ export function CreatePriceAlertModal({
       onCreated();
       onClose();
     },
-    onError: (e: Error) => Alert.alert(t("buyer.alerts.errorTitle"), e.message)
+    onError: (e: Error) => Alert.alert(t("buyer.alerts.errorTitle"), getUserFacingError(e, t))
   });
 
   const handleClose = () => {

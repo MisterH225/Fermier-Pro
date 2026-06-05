@@ -29,7 +29,6 @@ import {
 import { ListingImage } from "../components/marketplace/ListingImage";
 import { listingPhotoUrlsArray } from "../lib/resolveListingImage";
 import { SaleConfirmModal } from "../components/marketplace/SaleConfirmModal";
-import { SuccessModal } from "../components/collaboration/SuccessModal";
 import { PrimaryButton } from "../components/ui/PrimaryButton";
 import { SecondaryButton } from "../components/ui/SecondaryButton";
 import { FarmInfoCard } from "../components/market/FarmInfoCard";
@@ -41,6 +40,7 @@ import {
   ListingStatusBadge
 } from "../components/marketplace/listingDetailUi";
 import { useSession } from "../context/SessionContext";
+import { useModal } from "../components/modals/useModal";
 import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { formatAnimalDisplayLabel } from "../lib/animalDisplay";
 import {
@@ -74,6 +74,7 @@ import {
 } from "../theme/mobileTheme";
 import type { ListingDurationDays } from "../lib/marketplaceListingForm";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -108,7 +109,9 @@ export function MarketplaceListingDetailScreen({
   const [activeOffer, setActiveOffer] = useState<MarketplaceOfferBrief | null>(
     null
   );
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const modal = useModal();
+  const showSuccess = (message: string) =>
+    modal.open("success", { message, autoDismissMs: 2200 });
   const [publishDurationDays, setPublishDurationDays] =
     useState<ListingDurationDays>(14);
 
@@ -173,7 +176,7 @@ export function MarketplaceListingDetailScreen({
       });
     },
     onError: (e: Error) =>
-      Alert.alert(t("marketScreen.detail.contactErrorTitle"), e.message)
+      Alert.alert(t("marketScreen.detail.contactErrorTitle"), getUserFacingError(e, t))
   });
 
   const proposalMutation = useMutation({
@@ -195,14 +198,14 @@ export function MarketplaceListingDetailScreen({
       ),
     onSuccess: () => {
       setProposalOpen(false);
-      setSuccessMsg(t("marketScreen.proposalModal.success"));
+      showSuccess(t("marketScreen.proposalModal.success"));
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
       void qc.invalidateQueries({ queryKey: ["marketplaceMyOffers"] });
     },
     onError: (e: Error) => {
       Alert.alert(
         t("marketScreen.proposalModal.errorTitle"),
-        marketplaceActionErrorMessage(e.message)
+        marketplaceActionErrorMessage(e, t)
       );
     }
   });
@@ -231,7 +234,7 @@ export function MarketplaceListingDetailScreen({
     onError: (e: Error) =>
       Alert.alert(
         "Action impossible",
-        marketplaceActionErrorMessage(e.message)
+        marketplaceActionErrorMessage(e, t)
       )
   });
 
@@ -250,7 +253,7 @@ export function MarketplaceListingDetailScreen({
     onError: (e: Error) =>
       Alert.alert(
         "Action impossible",
-        marketplaceActionErrorMessage(e.message)
+        marketplaceActionErrorMessage(e, t)
       )
   });
 
@@ -266,12 +269,12 @@ export function MarketplaceListingDetailScreen({
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
       void qc.invalidateQueries({ queryKey: ["marketplaceListings"] });
       void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
-      setSuccessMsg(t("marketScreen.publishSuccess"));
+      showSuccess(t("marketScreen.publishSuccess"));
     },
     onError: (e: Error) =>
       Alert.alert(
         "Publication impossible",
-        marketplaceActionErrorMessage(e.message)
+        marketplaceActionErrorMessage(e, t)
       )
   });
 
@@ -290,7 +293,7 @@ export function MarketplaceListingDetailScreen({
     onError: (e: Error) =>
       Alert.alert(
         "Annulation impossible",
-        marketplaceActionErrorMessage(e.message)
+        marketplaceActionErrorMessage(e, t)
       )
   });
 
@@ -309,10 +312,10 @@ export function MarketplaceListingDetailScreen({
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
-      Alert.alert("Enregistré", "Rendez-vous de retrait mis à jour.");
+      showSuccess(t("marketScreen.detail.pickupSaved"));
     },
     onError: (e: Error) =>
-      Alert.alert("Impossible", marketplaceActionErrorMessage(e.message))
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
   });
 
   const handoverMutation = useMutation({
@@ -331,13 +334,13 @@ export function MarketplaceListingDetailScreen({
       ),
     onSuccess: () => {
       setSaleOpen(false);
-      setSuccessMsg(t("marketScreen.saleModal.success"));
+      showSuccess(t("marketScreen.saleModal.success"));
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
       void qc.invalidateQueries({ queryKey: ["marketplaceListings"] });
       void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
     },
     onError: (e: Error) =>
-      Alert.alert("Impossible", marketplaceActionErrorMessage(e.message))
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
   });
 
   const counterMut = useMutation({
@@ -359,11 +362,11 @@ export function MarketplaceListingDetailScreen({
       ),
     onSuccess: () => {
       setCounterOpen(false);
-      setSuccessMsg(t("marketScreen.counterModal.success"));
+      showSuccess(t("marketScreen.counterModal.success"));
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
     },
     onError: (e: Error) =>
-      Alert.alert("Impossible", marketplaceActionErrorMessage(e.message))
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
   });
 
   const acceptCounterMut = useMutation({
@@ -375,11 +378,11 @@ export function MarketplaceListingDetailScreen({
         activeProfileId
       ),
     onSuccess: () => {
-      setSuccessMsg(t("marketScreen.counterModal.accepted"));
+      showSuccess(t("marketScreen.counterModal.accepted"));
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
     },
     onError: (e: Error) =>
-      Alert.alert("Impossible", marketplaceActionErrorMessage(e.message))
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
   });
 
   const renewMut = useMutation({
@@ -387,10 +390,10 @@ export function MarketplaceListingDetailScreen({
       renewMarketplaceListing(accessToken, listingId, 14, activeProfileId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
-      setSuccessMsg(t("marketScreen.renewSuccess"));
+      showSuccess(t("marketScreen.renewSuccess"));
     },
     onError: (e: Error) =>
-      Alert.alert("Impossible", marketplaceActionErrorMessage(e.message))
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
   });
 
   const buyerFooterHeight = useMemo(() => {
@@ -411,7 +414,7 @@ export function MarketplaceListingDetailScreen({
 
   const loading = q.isPending;
   const err =
-    q.error instanceof Error ? q.error.message : q.error ? String(q.error) : null;
+    getQueryErrorMessage(q.error, t);
 
   if (!clientFeatures.marketplace) {
     return (
@@ -897,11 +900,6 @@ export function MarketplaceListingDetailScreen({
       submitting={handoverMutation.isPending}
       onClose={() => setSaleOpen(false)}
       onConfirm={(payload) => handoverMutation.mutate(payload)}
-    />
-    <SuccessModal
-      visible={Boolean(successMsg)}
-      message={successMsg ?? ""}
-      onClose={() => setSuccessMsg(null)}
     />
     </>
   );

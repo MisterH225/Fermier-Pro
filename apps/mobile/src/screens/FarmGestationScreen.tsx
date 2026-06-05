@@ -24,6 +24,7 @@ import { GestationDetailModal } from "../components/gestation/GestationDetailMod
 import { MiseBasModal } from "../components/gestation/MiseBasModal";
 import { FinanceKpiCard } from "../components/finance/FinanceKpiCard";
 import { EventList, type EventItem } from "../components/lists";
+import { useModal } from "../components/modals/useModal";
 import { ScreenSection } from "../components/layout/ScreenSection";
 import { TabContent, TabSelector } from "../components/tabs";
 import { useSession } from "../context/SessionContext";
@@ -68,6 +69,7 @@ export function FarmGestationScreen({ route, navigation }: Props) {
   } = route.params;
   const { accessToken, activeProfileId } = useSession();
   const { t } = useTranslation();
+  const modal = useModal();
   const qc = useQueryClient();
   const [tab, setTab] = useState<TabId>(initialTab ?? "overview");
   const [chartPeriod, setChartPeriod] = useState<SmartChartPeriod>("6M");
@@ -553,7 +555,10 @@ export function FarmGestationScreen({ route, navigation }: Props) {
         onCreated={invalidate}
         onSuccess={() => {
           invalidate();
-          Alert.alert(t("gestationScreen.createSuccessTitle"));
+          modal.open("success", {
+            message: t("gestationScreen.createSuccessTitle"),
+            autoDismissMs: 2200
+          });
         }}
       />
 

@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -264,7 +265,7 @@ export function CreateAnimalModal({
       });
     },
     onError: (e: Error) => {
-      Alert.alert(t("cheptel.animals.create.errorTitle"), e.message);
+      Alert.alert(t("cheptel.animals.create.errorTitle"), getUserFacingError(e, t));
     }
   });
 

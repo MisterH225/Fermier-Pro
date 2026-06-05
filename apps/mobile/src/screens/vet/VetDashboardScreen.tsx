@@ -13,6 +13,7 @@ import {
   TextInput,
   View
 } from "react-native";
+import { CardContentSkeleton, KpiGridSkeleton, ListSkeleton } from "../../components/common/SkeletonBlocks";
 import { EventList } from "../../components/lists/EventList";
 import type { EventItem } from "../../components/lists/types";
 import { VetMobileShell } from "../../components/layout";
@@ -201,7 +202,9 @@ export function VetDashboardScreen() {
                 <Text style={styles.sectionCta}>{t("vet.dashboard.seeAll")}</Text>
               </Pressable>
             </View>
-            {(dashQ.data?.upcomingVisits.length ?? 0) === 0 ? (
+            {dashQ.isPending && !dashQ.data ? (
+              <CardContentSkeleton lines={2} />
+            ) : (dashQ.data?.upcomingVisits.length ?? 0) === 0 ? (
               <Pressable
                 style={styles.emptyCard}
                 onPress={() => navigation.navigate("VetFarms")}
@@ -235,6 +238,9 @@ export function VetDashboardScreen() {
             <Text style={[styles.sectionTitle, styles.sectionGap]}>
               {t("vet.dashboard.kpisTitle")}
             </Text>
+            {dashQ.isPending && !dashQ.data ? (
+              <KpiGridSkeleton count={4} />
+            ) : (
             <View style={styles.kpiGrid}>
               <KpiTile
                 label={t("vet.dashboard.kpiFarms")}
@@ -265,6 +271,7 @@ export function VetDashboardScreen() {
                 accent="#DB2777"
               />
             </View>
+            )}
 
             {primaryFarm && clientFeatures.tasks && accessToken ? (
               <>
@@ -306,11 +313,15 @@ export function VetDashboardScreen() {
             <Text style={[styles.sectionTitle, styles.sectionGap]}>
               {t("vet.dashboard.activityTitle")}
             </Text>
+            {dashQ.isPending && !dashQ.data ? (
+              <ListSkeleton count={3} />
+            ) : (
             <EventList
               data={events}
               layout="embedded"
               emptyMessage={t("vet.dashboard.activityEmpty")}
             />
+            )}
 
             <Text style={[styles.sectionTitle, styles.sectionGap]}>
               {t("vet.dashboard.quickActions")}

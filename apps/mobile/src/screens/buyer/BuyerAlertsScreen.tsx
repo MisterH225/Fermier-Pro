@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -51,7 +52,7 @@ export function BuyerAlertsScreen() {
       void qc.invalidateQueries({ queryKey: ["buyerPriceAlerts"] });
       void qc.invalidateQueries({ queryKey: ["buyerDashboard"] });
     },
-    onError: (e: Error) => Alert.alert(t("buyer.alerts.errorTitle"), e.message),
+    onError: (e: Error) => Alert.alert(t("buyer.alerts.errorTitle"), getUserFacingError(e, t)),
     onSettled: () => setTogglingId(null)
   });
 
@@ -62,7 +63,7 @@ export function BuyerAlertsScreen() {
       void qc.invalidateQueries({ queryKey: ["buyerPriceAlerts"] });
       void qc.invalidateQueries({ queryKey: ["buyerDashboard"] });
     },
-    onError: (e: Error) => Alert.alert(t("buyer.alerts.errorTitle"), e.message)
+    onError: (e: Error) => Alert.alert(t("buyer.alerts.errorTitle"), getUserFacingError(e, t))
   });
 
   const alerts = alertsQ.data ?? [];

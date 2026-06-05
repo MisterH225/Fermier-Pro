@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -328,7 +329,7 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
       }, 0);
     },
     onError: (e: Error) =>
-      Alert.alert(t("financeScreen.errorTitle"), e.message)
+      Alert.alert(t("financeScreen.errorTitle"), getUserFacingError(e, t))
   });
 
   const headerAmountPreview =

@@ -14,7 +14,6 @@ export { PendingInvitationsModal } from "./PendingInvitationsModal";
 export { PendingScanRequestsSection } from "./PendingScanRequestsSection";
 export { RespondScanRequestModal } from "./RespondScanRequestModal";
 export { SearchCollaboratorModal } from "./SearchCollaboratorModal";
-export { SuccessModal } from "./SuccessModal";
 export { DirectoryTab } from "./DirectoryTab";
 export { TechnicianCard } from "./TechnicianCard";
 export { TechnicianPublicProfileModal } from "./TechnicianPublicProfileModal";

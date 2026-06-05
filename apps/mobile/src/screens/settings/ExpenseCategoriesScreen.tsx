@@ -23,6 +23,7 @@ import {
 } from "../../lib/api";
 import { mobileColors, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SettingsExpenseCategories">;
 
@@ -57,7 +58,7 @@ export function ExpenseCategoriesScreen({ route, navigation }: Props) {
       setNewName("");
       void qc.invalidateQueries({ queryKey: ["financeCategories", farmId] });
     },
-    onError: (e: Error) => Alert.alert(t("common.error"), e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const delMut = useMutation({
@@ -66,7 +67,7 @@ export function ExpenseCategoriesScreen({ route, navigation }: Props) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["financeCategories", farmId] });
     },
-    onError: (e: Error) => Alert.alert(t("common.error"), e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const expenses =
