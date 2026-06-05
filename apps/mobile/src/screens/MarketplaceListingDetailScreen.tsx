@@ -29,7 +29,6 @@ import {
 import { ListingImage } from "../components/marketplace/ListingImage";
 import { listingPhotoUrlsArray } from "../lib/resolveListingImage";
 import { SaleConfirmModal } from "../components/marketplace/SaleConfirmModal";
-import { SuccessModal } from "../components/collaboration/SuccessModal";
 import { PrimaryButton } from "../components/ui/PrimaryButton";
 import { SecondaryButton } from "../components/ui/SecondaryButton";
 import { FarmInfoCard } from "../components/market/FarmInfoCard";
@@ -41,6 +40,7 @@ import {
   ListingStatusBadge
 } from "../components/marketplace/listingDetailUi";
 import { useSession } from "../context/SessionContext";
+import { useModal } from "../components/modals/useModal";
 import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { formatAnimalDisplayLabel } from "../lib/animalDisplay";
 import {
@@ -109,7 +109,9 @@ export function MarketplaceListingDetailScreen({
   const [activeOffer, setActiveOffer] = useState<MarketplaceOfferBrief | null>(
     null
   );
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const modal = useModal();
+  const showSuccess = (message: string) =>
+    modal.open("success", { message, autoDismissMs: 2200 });
   const [publishDurationDays, setPublishDurationDays] =
     useState<ListingDurationDays>(14);
 
@@ -196,7 +198,7 @@ export function MarketplaceListingDetailScreen({
       ),
     onSuccess: () => {
       setProposalOpen(false);
-      setSuccessMsg(t("marketScreen.proposalModal.success"));
+      showSuccess(t("marketScreen.proposalModal.success"));
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
       void qc.invalidateQueries({ queryKey: ["marketplaceMyOffers"] });
     },
@@ -267,7 +269,7 @@ export function MarketplaceListingDetailScreen({
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
       void qc.invalidateQueries({ queryKey: ["marketplaceListings"] });
       void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
-      setSuccessMsg(t("marketScreen.publishSuccess"));
+      showSuccess(t("marketScreen.publishSuccess"));
     },
     onError: (e: Error) =>
       Alert.alert(
@@ -310,7 +312,7 @@ export function MarketplaceListingDetailScreen({
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
-      setSuccessMsg(t("marketScreen.detail.pickupSaved"));
+      showSuccess(t("marketScreen.detail.pickupSaved"));
     },
     onError: (e: Error) =>
       Alert.alert("Impossible", marketplaceActionErrorMessage(e.message))
@@ -332,7 +334,7 @@ export function MarketplaceListingDetailScreen({
       ),
     onSuccess: () => {
       setSaleOpen(false);
-      setSuccessMsg(t("marketScreen.saleModal.success"));
+      showSuccess(t("marketScreen.saleModal.success"));
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
       void qc.invalidateQueries({ queryKey: ["marketplaceListings"] });
       void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
@@ -360,7 +362,7 @@ export function MarketplaceListingDetailScreen({
       ),
     onSuccess: () => {
       setCounterOpen(false);
-      setSuccessMsg(t("marketScreen.counterModal.success"));
+      showSuccess(t("marketScreen.counterModal.success"));
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
     },
     onError: (e: Error) =>
@@ -376,7 +378,7 @@ export function MarketplaceListingDetailScreen({
         activeProfileId
       ),
     onSuccess: () => {
-      setSuccessMsg(t("marketScreen.counterModal.accepted"));
+      showSuccess(t("marketScreen.counterModal.accepted"));
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
     },
     onError: (e: Error) =>
@@ -388,7 +390,7 @@ export function MarketplaceListingDetailScreen({
       renewMarketplaceListing(accessToken, listingId, 14, activeProfileId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
-      setSuccessMsg(t("marketScreen.renewSuccess"));
+      showSuccess(t("marketScreen.renewSuccess"));
     },
     onError: (e: Error) =>
       Alert.alert("Impossible", marketplaceActionErrorMessage(e.message))
@@ -898,11 +900,6 @@ export function MarketplaceListingDetailScreen({
       submitting={handoverMutation.isPending}
       onClose={() => setSaleOpen(false)}
       onConfirm={(payload) => handoverMutation.mutate(payload)}
-    />
-    <SuccessModal
-      visible={Boolean(successMsg)}
-      message={successMsg ?? ""}
-      onClose={() => setSuccessMsg(null)}
     />
     </>
   );

@@ -15,6 +15,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { KpiGridSkeleton } from "../common/SkeletonBlocks";
 import { FinanceKpiCard } from "./FinanceKpiCard";
 import {
   financeCumulativeBalanceSeries,
@@ -160,7 +161,7 @@ export function FinanceOverviewKpiGrid({
         {!enabled ? (
           <Text style={styles.muted}>{disabledHint}</Text>
         ) : showLoader ? (
-          <ActivityIndicator color={mobileColors.accent} style={styles.loader} />
+          <KpiGridSkeleton count={4} />
         ) : error ? (
           <Text style={styles.err}>{error}</Text>
         ) : overview ? (

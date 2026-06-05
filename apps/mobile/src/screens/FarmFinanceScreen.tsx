@@ -37,6 +37,7 @@ type CategoryBreakdownItem = {
   color: string;
 };
 import { FinanceModuleGate } from "../components/FinanceModuleGate";
+import { KpiGridSkeleton, ListSkeleton } from "../components/common/SkeletonBlocks";
 import { EventList, type EventItem } from "../components/lists";
 import { useModal } from "../components/modals/useModal";
 import { useSession } from "../context/SessionContext";
@@ -849,8 +850,14 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
 
   if (pending && !overview) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={mobileColors.accent} />
+      <View style={styles.screenRoot}>
+        <TabScreenHeader />
+        <ScrollView contentContainerStyle={styles.tabScrollGrow}>
+          <TabContent>
+            <KpiGridSkeleton count={4} />
+            <ListSkeleton count={5} style={{ marginTop: 16 }} />
+          </TabContent>
+        </ScrollView>
       </View>
     );
   }
@@ -888,7 +895,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
   );
 
   const reportSpinner = reportQ.isPending ? (
-    <ActivityIndicator color={mobileColors.accent} style={{ marginVertical: 12 }} />
+    <ListSkeleton count={2} style={{ marginVertical: 12 }} />
   ) : null;
 
   const txListBlock = (

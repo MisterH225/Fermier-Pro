@@ -20,9 +20,9 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { useModal } from "../modals/useModal";
 import { BaseModal } from "./BaseModal";
 import { CollaboratorRolePermissionsFields } from "./CollaboratorRolePermissionsFields";
-import { SuccessModal } from "./SuccessModal";
 import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
 
 type Props = {
@@ -47,13 +47,12 @@ export function RespondScanRequestModal({
   const [permissions, setPermissions] = useState<InvitationPermissions>(
     defaultPermissionsForRecipientKind("technician")
   );
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const modal = useModal();
 
   useEffect(() => {
     if (!visible || !invitation) return;
     setRecipientKind("technician");
     setPermissions(defaultPermissionsForRecipientKind("technician"));
-    setSuccessMsg(null);
   }, [visible, invitation?.id]);
 
   const invalidate = () => {
@@ -78,7 +77,8 @@ export function RespondScanRequestModal({
       ),
     onSuccess: () => {
       invalidate();
-      setSuccessMsg(t("collab.scanRequests.acceptedToast"));
+      modal.open("success", { message: t("collab.scanRequests.acceptedToast"), autoDismissMs: 2200 });
+      onClose();
     },
     onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
@@ -93,13 +93,13 @@ export function RespondScanRequestModal({
       ),
     onSuccess: () => {
       invalidate();
-      setSuccessMsg(t("collab.scanRequests.rejectedToast"));
+      modal.open("success", { message: t("collab.scanRequests.rejectedToast"), autoDismissMs: 2200 });
+      onClose();
     },
     onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const handleClose = () => {
-    setSuccessMsg(null);
     onClose();
   };
 
@@ -128,7 +128,7 @@ export function RespondScanRequestModal({
   return (
     <>
       <BaseModal
-        visible={visible && !successMsg}
+        visible={visible}
         title={t("collab.scanRequests.modalTitle")}
         onClose={handleClose}
         confirmLabel={t("collab.scanRequests.accept")}
@@ -169,12 +169,6 @@ export function RespondScanRequestModal({
           </>
         ) : null}
       </BaseModal>
-
-      <SuccessModal
-        visible={Boolean(successMsg)}
-        message={successMsg ?? ""}
-        onClose={handleClose}
-      />
     </>
   );
 }

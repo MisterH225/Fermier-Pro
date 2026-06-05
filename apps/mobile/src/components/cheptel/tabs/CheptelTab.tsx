@@ -53,6 +53,8 @@ import {
 } from "../../../theme/mobileTheme";
 
 import { ScreenSection } from "../../layout/ScreenSection";
+import { EmptyStateCard } from "../../common/EmptyStateCard";
+import { ListSkeleton } from "../../common/SkeletonBlocks";
 import { HighlightWrapper } from "../../common/HighlightWrapper";
 
 import { PenCard } from "../pens/PenCard";
@@ -472,7 +474,7 @@ export function CheptelTab({
 
   if (pensQuery.isPending) {
 
-    return <ActivityIndicator color={mobileColors.accent} style={{ marginTop: 24 }} />;
+    return <ListSkeleton count={4} style={{ marginTop: 24 }} />;
 
   }
 
@@ -685,9 +687,7 @@ export function CheptelTab({
 
 
       {pens.length === 0 ? (
-
-        <Text style={styles.empty}>{t("cheptel.pens.empty")}</Text>
-
+        <EmptyStateCard title={t("cheptel.pens.empty")} />
       ) : null}
 
 

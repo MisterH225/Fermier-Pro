@@ -21,6 +21,7 @@ import { AlertBadge } from "../components/smartAlerts/AlertBadge";
 import { FeedStockLevelGauge, dashboardFeedItemToGauge } from "../components/feed";
 import { FinanceOverviewKpiGrid } from "../components/finance/FinanceOverviewKpiGrid";
 import { EmptyStateCard } from "../components/common/EmptyStateCard";
+import { CardContentSkeleton } from "../components/common/SkeletonBlocks";
 import { OnboardingBanner } from "../components/onboarding/OnboardingBanner";
 import { AdminMessagesBanner } from "../components/admin/AdminMessagesBanner";
 import { PendingInvitationsBanner } from "../components/collaboration/PendingInvitationsBanner";
@@ -504,7 +505,7 @@ function GestationsCard({
   if (isPending && !items) {
     return (
       <CardShell emoji="🐷" title={title} onPress={onPress}>
-        <ActivityIndicator color={mobileColors.accent} />
+        <CardContentSkeleton lines={3} />
       </CardShell>
     );
   }
@@ -578,7 +579,7 @@ function HealthCard({
   if (isPending && !data) {
     return (
       <CardShell emoji="🏥" title={title} onPress={onPress}>
-        <ActivityIndicator color={mobileColors.accent} />
+        <CardContentSkeleton lines={3} />
       </CardShell>
     );
   }
@@ -669,7 +670,7 @@ function FeedStockCard({
   if (isPending && !items) {
     return (
       <CardShell emoji="🌾" title={title} onPress={onPress}>
-        <ActivityIndicator color={mobileColors.accent} />
+        <CardContentSkeleton lines={3} />
       </CardShell>
     );
   }
