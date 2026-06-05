@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, Pressable, StyleSheet, Text } from "react-native";
 import { useSession } from "../../context/SessionContext";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   createMarketplaceListing,
   fetchFarmAnimals,
@@ -85,7 +86,7 @@ export function CreateMarketplaceListingModal({
     onError: (e: Error) =>
       Alert.alert(
         t("marketScreen.createForm.errorTitle"),
-        marketplaceActionErrorMessage(e.message)
+        marketplaceActionErrorMessage(e, t)
       )
   });
 

@@ -129,7 +129,7 @@ export function SearchCollaboratorModal({ visible, farmId, onClose }: Props) {
       setSearchError(null);
     },
     onError: (err: Error) => {
-      setSearchError(err.message);
+      setSearchError(getUserFacingError(err, t));
       setSearchResult(null);
     }
   });

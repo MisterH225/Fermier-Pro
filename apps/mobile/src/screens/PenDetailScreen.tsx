@@ -77,7 +77,7 @@ export function PenDetailScreen({ route, navigation }: Props) {
   if (q.isPending) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#5d7a1f" />
+        <ActivityIndicator size="large" color={mobileColors.accent} />
       </View>
     );
   }
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   },
   error: { color: "#a34c24", textAlign: "center" },
   farmHint: { fontSize: 13, color: mobileColors.textSecondary, marginBottom: 4 },
-  barnLine: { fontSize: 14, color: "#5d7a1f", marginBottom: 14 },
+  barnLine: { fontSize: 14, color: mobileColors.accent, marginBottom: 14 },
   block: {
     marginBottom: 12,
     backgroundColor: "#fff",
@@ -241,6 +241,6 @@ const styles = StyleSheet.create({
   moveBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#5d7a1f"
+    color: mobileColors.accent
   }
 });

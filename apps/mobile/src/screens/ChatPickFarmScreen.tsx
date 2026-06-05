@@ -47,7 +47,7 @@ export function ChatPickFarmScreen({ navigation }: Props) {
         </TouchableOpacity>
         {farmsQuery.isPending ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color="#5d7a1f" />
+            <ActivityIndicator size="large" color={mobileColors.accent} />
           </View>
         ) : farmsQuery.error ? (
           <View style={styles.centered}>

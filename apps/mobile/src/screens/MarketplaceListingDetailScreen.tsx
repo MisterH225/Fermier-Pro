@@ -74,7 +74,7 @@ import {
 } from "../theme/mobileTheme";
 import type { ListingDurationDays } from "../lib/marketplaceListingForm";
 import type { RootStackParamList } from "../types/navigation";
-import { getQueryErrorMessage } from "../lib/userFacingError";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -176,7 +176,7 @@ export function MarketplaceListingDetailScreen({
       });
     },
     onError: (e: Error) =>
-      Alert.alert(t("marketScreen.detail.contactErrorTitle"), e.message)
+      Alert.alert(t("marketScreen.detail.contactErrorTitle"), getUserFacingError(e, t))
   });
 
   const proposalMutation = useMutation({
@@ -205,7 +205,7 @@ export function MarketplaceListingDetailScreen({
     onError: (e: Error) => {
       Alert.alert(
         t("marketScreen.proposalModal.errorTitle"),
-        marketplaceActionErrorMessage(e.message)
+        marketplaceActionErrorMessage(e, t)
       );
     }
   });
@@ -234,7 +234,7 @@ export function MarketplaceListingDetailScreen({
     onError: (e: Error) =>
       Alert.alert(
         "Action impossible",
-        marketplaceActionErrorMessage(e.message)
+        marketplaceActionErrorMessage(e, t)
       )
   });
 
@@ -253,7 +253,7 @@ export function MarketplaceListingDetailScreen({
     onError: (e: Error) =>
       Alert.alert(
         "Action impossible",
-        marketplaceActionErrorMessage(e.message)
+        marketplaceActionErrorMessage(e, t)
       )
   });
 
@@ -274,7 +274,7 @@ export function MarketplaceListingDetailScreen({
     onError: (e: Error) =>
       Alert.alert(
         "Publication impossible",
-        marketplaceActionErrorMessage(e.message)
+        marketplaceActionErrorMessage(e, t)
       )
   });
 
@@ -293,7 +293,7 @@ export function MarketplaceListingDetailScreen({
     onError: (e: Error) =>
       Alert.alert(
         "Annulation impossible",
-        marketplaceActionErrorMessage(e.message)
+        marketplaceActionErrorMessage(e, t)
       )
   });
 
@@ -315,7 +315,7 @@ export function MarketplaceListingDetailScreen({
       showSuccess(t("marketScreen.detail.pickupSaved"));
     },
     onError: (e: Error) =>
-      Alert.alert("Impossible", marketplaceActionErrorMessage(e.message))
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
   });
 
   const handoverMutation = useMutation({
@@ -340,7 +340,7 @@ export function MarketplaceListingDetailScreen({
       void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
     },
     onError: (e: Error) =>
-      Alert.alert("Impossible", marketplaceActionErrorMessage(e.message))
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
   });
 
   const counterMut = useMutation({
@@ -366,7 +366,7 @@ export function MarketplaceListingDetailScreen({
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
     },
     onError: (e: Error) =>
-      Alert.alert("Impossible", marketplaceActionErrorMessage(e.message))
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
   });
 
   const acceptCounterMut = useMutation({
@@ -382,7 +382,7 @@ export function MarketplaceListingDetailScreen({
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
     },
     onError: (e: Error) =>
-      Alert.alert("Impossible", marketplaceActionErrorMessage(e.message))
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
   });
 
   const renewMut = useMutation({
@@ -393,7 +393,7 @@ export function MarketplaceListingDetailScreen({
       showSuccess(t("marketScreen.renewSuccess"));
     },
     onError: (e: Error) =>
-      Alert.alert("Impossible", marketplaceActionErrorMessage(e.message))
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
   });
 
   const buyerFooterHeight = useMemo(() => {

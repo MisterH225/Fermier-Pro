@@ -101,7 +101,7 @@ function FarmBarnsContent({
   if (q.isPending) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#5d7a1f" />
+        <ActivityIndicator size="large" color={mobileColors.accent} />
       </View>
     );
   }
@@ -134,7 +134,7 @@ function FarmBarnsContent({
           <RefreshControl
             refreshing={q.isRefetching}
             onRefresh={() => void q.refetch()}
-            tintColor="#5d7a1f"
+            tintColor={mobileColors.accent}
           />
         }
         ListEmptyComponent={

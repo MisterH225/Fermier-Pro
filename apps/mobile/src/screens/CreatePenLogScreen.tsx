@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   penHint: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#5d7a1f",
+    color: mobileColors.accent,
     marginBottom: 16
   },
   label: {
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     marginBottom: 8
   },
   typeChipOn: {
-    borderColor: "#5d7a1f",
+    borderColor: mobileColors.accent,
     backgroundColor: "#eef4dc"
   },
   typeChipText: { fontSize: 13, color: "#4a5238" },
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   },
   multiline: { minHeight: 100, textAlignVertical: "top" },
   cta: {
-    backgroundColor: "#5d7a1f",
+    backgroundColor: mobileColors.accent,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",

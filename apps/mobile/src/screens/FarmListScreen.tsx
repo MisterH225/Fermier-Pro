@@ -158,7 +158,7 @@ export function FarmListScreen({ navigation }: Props) {
       <>
         {profileModal}
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#5d7a1f" />
+          <ActivityIndicator size="large" color={mobileColors.accent} />
           {authMe?.user.fullName ? (
             <Text style={styles.welcome}>
               Bonjour {authMe.user.fullName}

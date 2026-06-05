@@ -60,7 +60,7 @@ export function FarmMembersScreen({ route, navigation }: Props) {
       void qc.invalidateQueries({ queryKey: ["farmMembers", farmId] });
       void qc.invalidateQueries({ queryKey: ["farmPendingInvitations", farmId] });
     },
-    onError: (e: Error) => Alert.alert("Impossible", e.message)
+    onError: (e: Error) => Alert.alert("Impossible", getUserFacingError(e, t))
   });
 
   useScreenTitle(navigation, t("navigation.screenTitles.team"), {

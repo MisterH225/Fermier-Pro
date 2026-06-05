@@ -20,7 +20,14 @@ export const fr = {
     cancel: "Annuler",
     ok: "OK",
     close: "Fermer",
-    retry: "Réessayer"
+    retry: "Réessayer",
+    errors: {
+      generic: "Une erreur est survenue. Réessaie dans un instant.",
+      network: "Connexion impossible. Vérifie ton réseau et réessaie.",
+      unauthorized: "Session expirée. Reconnecte-toi.",
+      forbidden: "Tu n'as pas les droits pour cette action.",
+      notFound: "Élément introuvable."
+    }
   },
   cgu: {
     title: "Conditions d'utilisation",
@@ -1078,7 +1085,6 @@ export const fr = {
       createMissing: "Bâtiment et nom requis.",
       barn: "Bâtiment",
       penName: "Nom de la loge",
-      penCodeOptional: "Code (optionnel)",
       capacity: "Capacité max",
       capacityLine: "{{occ}} / {{cap}} places",
       noAnimals: "Aucun animal dans cette loge."

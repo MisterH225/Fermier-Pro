@@ -2,6 +2,8 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { mobileColors } from "../theme/mobileTheme";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { getUserFacingError } from "../lib/userFacingError";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -27,6 +29,7 @@ const MODES = [
 ];
 
 export function CreateFarmScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const { accessToken, authMe } = useSession();
   const queryClient = useQueryClient();
 
@@ -54,7 +57,7 @@ export function CreateFarmScreen({ navigation }: Props) {
       navigation.goBack();
     },
     onError: (e: Error) => {
-      Alert.alert("Création impossible", e.message);
+      Alert.alert("Création impossible", getUserFacingError(e, t));
     }
   });
 

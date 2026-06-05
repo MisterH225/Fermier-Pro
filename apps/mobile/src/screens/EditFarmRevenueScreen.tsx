@@ -115,7 +115,7 @@ export function EditFarmRevenueScreen({ route, navigation }: Props) {
   if (revenueQuery.isPending) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#5d7a1f" />
+        <ActivityIndicator size="large" color={mobileColors.accent} />
       </View>
     );
   }
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   },
   multiline: { minHeight: 88, textAlignVertical: "top" },
   cta: {
-    backgroundColor: "#5d7a1f",
+    backgroundColor: mobileColors.accent,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",

@@ -250,7 +250,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     onError: (e: Error) =>
       Alert.alert(
         "Impossible de retirer l’offre",
-        marketplaceActionErrorMessage(e.message)
+        marketplaceActionErrorMessage(e, t)
       )
   });
 
@@ -325,7 +325,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
       void qc.invalidateQueries({ queryKey: ["buyerFavoritesList"] });
       void qc.invalidateQueries({ queryKey: ["buyerDashboard"] });
     },
-    onError: (e: Error) => Alert.alert("Favoris", e.message)
+    onError: (e: Error) => Alert.alert("Favoris", getUserFacingError(e, t))
   });
 
   const toggleFav = (id: string) => {

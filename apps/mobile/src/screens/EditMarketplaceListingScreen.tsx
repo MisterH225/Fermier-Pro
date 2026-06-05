@@ -132,7 +132,7 @@ export function EditMarketplaceListingScreen({ navigation, route }: Props) {
     onError: (e: Error) =>
       Alert.alert(
         t("marketScreen.createForm.errorTitle"),
-        marketplaceActionErrorMessage(e.message)
+        marketplaceActionErrorMessage(e, t)
       )
   });
 

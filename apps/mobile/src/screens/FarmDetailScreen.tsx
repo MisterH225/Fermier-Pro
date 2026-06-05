@@ -104,7 +104,7 @@ export function FarmDetailScreen({ route, navigation }: Props) {
   if (farmQuery.isPending || !farm) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#5d7a1f" />
+        <ActivityIndicator size="large" color={mobileColors.accent} />
       </View>
     );
   }
@@ -212,14 +212,14 @@ const styles = StyleSheet.create({
     paddingBottom: 32
   },
   cheptelCta: {
-    backgroundColor: "#5d7a1f",
+    backgroundColor: mobileColors.accent,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12
   },
   tasksCta: {
     borderWidth: 2,
-    borderColor: "#5d7a1f",
+    borderColor: mobileColors.accent,
     backgroundColor: "#fff",
     borderRadius: 16,
     padding: 16,
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     marginTop: 4
   },
   tasksCtaText: {
-    color: "#5d7a1f",
+    color: mobileColors.accent,
     fontSize: 17,
     fontWeight: "700"
   },

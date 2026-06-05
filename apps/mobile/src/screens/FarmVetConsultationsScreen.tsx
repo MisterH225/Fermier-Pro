@@ -92,7 +92,7 @@ export function FarmVetConsultationsScreen({ route, navigation }: Props) {
   if (q.isPending) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#5d7a1f" />
+        <ActivityIndicator size="large" color={mobileColors.accent} />
       </View>
     );
   }
@@ -151,7 +151,7 @@ export function FarmVetConsultationsScreen({ route, navigation }: Props) {
           <RefreshControl
             refreshing={q.isRefetching}
             onRefresh={() => void q.refetch()}
-            tintColor="#5d7a1f"
+            tintColor={mobileColors.accent}
           />
         }
         ListEmptyComponent={
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     marginRight: 8
   },
   filterChipOn: {
-    borderColor: "#5d7a1f",
+    borderColor: mobileColors.accent,
     backgroundColor: "#e8efd9"
   },
   filterChipText: {
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 16, fontWeight: "700", color: mobileColors.textPrimary },
   cardMeta: { fontSize: 13, color: mobileColors.textSecondary, marginTop: 6 },
-  cardAnimal: { fontSize: 13, color: "#5d7a1f", marginTop: 4 },
+  cardAnimal: { fontSize: 13, color: mobileColors.accent, marginTop: 4 },
   cardPreview: { fontSize: 14, color: "#4a5238", marginTop: 8 },
   headerBtn: { marginRight: 4 },
   headerBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 }

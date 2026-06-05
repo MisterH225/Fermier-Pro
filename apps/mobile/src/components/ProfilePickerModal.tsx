@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fafafa"
   },
   rowActive: {
-    borderColor: "#5d7a1f",
+    borderColor: mobileColors.accent,
     backgroundColor: "#f0f4e4"
   },
   rowText: {
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   cancelText: {
-    color: "#5d7a1f",
+    color: mobileColors.accent,
     fontWeight: "600"
   },
   miniBtn: {

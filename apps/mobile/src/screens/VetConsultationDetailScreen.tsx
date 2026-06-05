@@ -55,7 +55,7 @@ export function VetConsultationDetailScreen({ route, navigation }: Props) {
       void qc.invalidateQueries({ queryKey: ["vetConsultations", farmId] });
     },
     onError: (e: Error) => {
-      Alert.alert("Mise à jour impossible", e.message);
+      Alert.alert("Mise à jour impossible", getUserFacingError(e, t));
     }
   });
 
@@ -123,7 +123,7 @@ export function VetConsultationDetailScreen({ route, navigation }: Props) {
   if (q.isPending) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#5d7a1f" />
+        <ActivityIndicator size="large" color={mobileColors.accent} />
       </View>
     );
   }
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e8e4d4"
   },
-  attachLabel: { fontSize: 15, fontWeight: "600", color: "#5d7a1f" },
+  attachLabel: { fontSize: 15, fontWeight: "600", color: mobileColors.accent },
   attachUrl: { fontSize: 12, color: mobileColors.textSecondary, marginTop: 4 },
   headerBtn: { marginRight: 4 },
   headerBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   actionBtn: {
-    backgroundColor: "#5d7a1f",
+    backgroundColor: mobileColors.accent,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: "center",
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
   },
   editMultiline: { minHeight: 100, textAlignVertical: "top" },
   saveBtn: {
-    backgroundColor: "#5d7a1f",
+    backgroundColor: mobileColors.accent,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: "center",

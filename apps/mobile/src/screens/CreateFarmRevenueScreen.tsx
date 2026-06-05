@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   },
   multiline: { minHeight: 88, textAlignVertical: "top" },
   cta: {
-    backgroundColor: "#5d7a1f",
+    backgroundColor: mobileColors.accent,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",

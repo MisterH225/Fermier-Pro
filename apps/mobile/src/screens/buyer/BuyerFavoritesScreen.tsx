@@ -3,6 +3,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -60,7 +61,7 @@ export function BuyerFavoritesScreen() {
       void qc.invalidateQueries({ queryKey: ["buyerFavoriteIds"] });
       void qc.invalidateQueries({ queryKey: ["buyerDashboard"] });
     },
-    onError: (e: Error) => Alert.alert(t("buyer.favorites.errorTitle"), e.message)
+    onError: (e: Error) => Alert.alert(t("buyer.favorites.errorTitle"), getUserFacingError(e, t))
   });
 
   const items = favoritesQ.data ?? [];

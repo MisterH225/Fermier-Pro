@@ -99,7 +99,7 @@ export function ChatSearchUserScreen({ navigation }: Props) {
           </Text>
         ) : searchQuery.isPending ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color="#5d7a1f" />
+            <ActivityIndicator size="large" color={mobileColors.accent} />
           </View>
         ) : searchQuery.error ? (
           <View style={styles.centered}>

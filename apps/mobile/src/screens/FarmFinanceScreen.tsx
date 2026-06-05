@@ -283,7 +283,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
     onSuccess: () => {
       invalidateFarmFinanceQueries(qc, farmId);
     },
-    onError: (e: Error) => Alert.alert("Suppression impossible", e.message)
+    onError: (e: Error) => Alert.alert("Suppression impossible", getUserFacingError(e, t))
   });
 
   const overview = overviewQ.data as FinanceOverviewDto | undefined;

@@ -1,5 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   offlineQueuedMessage,
   useOfflineMutation
@@ -294,7 +295,7 @@ export function SanteScreen({ route, navigation }: Props) {
       invalidateHealth();
       Alert.alert("", offlineQueuedMessage(t));
     },
-    onError: (e: Error) => Alert.alert(t("health.errorTitle"), e.message)
+    onError: (e: Error) => Alert.alert(t("health.errorTitle"), getUserFacingError(e, t))
   });
 
   const linkMut = useMutation({
@@ -312,7 +313,7 @@ export function SanteScreen({ route, navigation }: Props) {
       void eventsQuery.refetch();
       Alert.alert("", t("health.linkOk"));
     },
-    onError: (e: Error) => Alert.alert(t("health.errorTitle"), e.message)
+    onError: (e: Error) => Alert.alert(t("health.errorTitle"), getUserFacingError(e, t))
   });
 
   const buildDetail = (): Record<string, unknown> => {

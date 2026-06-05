@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -68,7 +69,7 @@ export function VetProfileModal({
       onOpenChat(room.id, profile.fullName ?? "Vétérinaire", profile.userId);
     },
     onError: (err: Error) => {
-      Alert.alert(t("common.error"), err.message);
+      Alert.alert(t("common.error"), getUserFacingError(err, t));
     }
   });
 

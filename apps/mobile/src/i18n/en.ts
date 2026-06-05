@@ -20,7 +20,14 @@ export const en = {
     cancel: "Cancel",
     ok: "OK",
     close: "Close",
-    retry: "Retry"
+    retry: "Retry",
+    errors: {
+      generic: "Something went wrong. Please try again.",
+      network: "Connection failed. Check your network and try again.",
+      unauthorized: "Session expired. Please sign in again.",
+      forbidden: "You don't have permission for this action.",
+      notFound: "Item not found."
+    }
   },
   cgu: {
     title: "Terms of use",
@@ -1037,7 +1044,6 @@ export const en = {
       createMissing: "Building and name required.",
       barn: "Building",
       penName: "Pen name",
-      penCodeOptional: "Code (optional)",
       capacity: "Max capacity",
       capacityLine: "{{occ}} / {{cap}} places",
       noAnimals: "No animals in this pen."

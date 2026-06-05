@@ -2,6 +2,8 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { mobileColors } from "../theme/mobileTheme";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { getUserFacingError } from "../lib/userFacingError";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -22,6 +24,7 @@ import type { RootStackParamList } from "../types/navigation";
 type Props = NativeStackScreenProps<RootStackParamList, "CreateBarn">;
 
 export function CreateBarnScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { farmId, farmName } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
@@ -57,7 +60,7 @@ export function CreateBarnScreen({ route, navigation }: Props) {
       navigation.goBack();
     },
     onError: (e: Error) => {
-      Alert.alert("Création impossible", e.message);
+      Alert.alert("Création impossible", getUserFacingError(e, t));
     }
   });
 

@@ -80,7 +80,7 @@ export function ChatRoomsScreen({ navigation }: Props) {
       <View style={styles.wrap}>
         {roomsQuery.isPending ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color="#5d7a1f" />
+            <ActivityIndicator size="large" color={mobileColors.accent} />
           </View>
         ) : roomsQuery.error ? (
           <View style={styles.centered}>
@@ -101,7 +101,7 @@ export function ChatRoomsScreen({ navigation }: Props) {
               <RefreshControl
                 refreshing={roomsQuery.isRefetching}
                 onRefresh={() => void roomsQuery.refetch()}
-                tintColor="#5d7a1f"
+                tintColor={mobileColors.accent}
               />
             }
             ListEmptyComponent={

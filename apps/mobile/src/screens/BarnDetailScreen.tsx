@@ -100,7 +100,7 @@ function BarnDetailContent({
   if (q.isPending) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#5d7a1f" />
+        <ActivityIndicator size="large" color={mobileColors.accent} />
       </View>
     );
   }
@@ -134,7 +134,7 @@ function BarnDetailContent({
           <RefreshControl
             refreshing={q.isRefetching}
             onRefresh={() => void q.refetch()}
-            tintColor="#5d7a1f"
+            tintColor={mobileColors.accent}
           />
         }
         ListEmptyComponent={
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 17, fontWeight: "700", color: "#1f2910" },
   cardMeta: { fontSize: 14, color: "#6d745b", marginTop: 6 },
-  cardStatus: { fontSize: 13, color: "#5d7a1f", marginTop: 8 },
+  cardStatus: { fontSize: 13, color: mobileColors.accent, marginTop: 8 },
   headerBtn: { marginRight: 4 },
   headerBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 }
 });

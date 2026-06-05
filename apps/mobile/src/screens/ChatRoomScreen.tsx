@@ -514,7 +514,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
         ) : null}
         {messagesQuery.isPending ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color="#5d7a1f" />
+            <ActivityIndicator size="large" color={mobileColors.accent} />
           </View>
         ) : messagesQuery.error ? (
           <View style={styles.centered}>
@@ -542,7 +542,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
               ListHeaderComponent={
                 loadingOlder ? (
                   <View style={styles.loadOlderBanner}>
-                    <ActivityIndicator size="small" color="#5d7a1f" />
+                    <ActivityIndicator size="small" color={mobileColors.accent} />
                     <Text style={styles.loadOlderText}>Messages plus anciens…</Text>
                   </View>
                 ) : null
@@ -564,7 +564,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
                       }
                     });
                   }}
-                  tintColor="#5d7a1f"
+                  tintColor={mobileColors.accent}
                 />
               }
             />
@@ -691,7 +691,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#5d7a1f",
+    backgroundColor: mobileColors.accent,
     paddingVertical: 10,
     paddingHorizontal: 18,
     paddingLeft: 14,
@@ -722,7 +722,7 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   newMessagesFabBadgeText: {
-    color: "#5d7a1f",
+    color: mobileColors.accent,
     fontSize: 12,
     fontWeight: "800"
   },
@@ -771,7 +771,7 @@ const styles = StyleSheet.create({
     borderWidth: 1
   },
   bubbleMine: {
-    backgroundColor: "#5d7a1f",
+    backgroundColor: mobileColors.accent,
     borderColor: "#4a6118"
   },
   bubbleOther: {
@@ -781,7 +781,7 @@ const styles = StyleSheet.create({
   senderName: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#5d7a1f",
+    color: mobileColors.accent,
     marginBottom: 4
   },
   msgBody: {
@@ -825,7 +825,7 @@ const styles = StyleSheet.create({
     color: mobileColors.textPrimary
   },
   sendBtn: {
-    backgroundColor: "#5d7a1f",
+    backgroundColor: mobileColors.accent,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 14

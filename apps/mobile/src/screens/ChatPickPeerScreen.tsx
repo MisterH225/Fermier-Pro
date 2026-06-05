@@ -61,7 +61,7 @@ export function ChatPickPeerScreen({ route, navigation }: Props) {
         </Text>
         {membersQuery.isPending ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color="#5d7a1f" />
+            <ActivityIndicator size="large" color={mobileColors.accent} />
           </View>
         ) : membersQuery.error ? (
           <View style={styles.centered}>

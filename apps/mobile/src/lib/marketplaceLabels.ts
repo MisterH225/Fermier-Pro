@@ -1,3 +1,6 @@
+import type { TFunction } from "i18next";
+import { getUserFacingError } from "./userFacingError";
+
 /** Libellés FR pour les statuts API marketplace (listings / offres). */
 
 export function listingStatusLabel(status: string): string {
@@ -39,13 +42,22 @@ export function offerStatusLabel(status: string): string {
 /**
  * Enrichit le message d’erreur HTTP (403 scopes ferme) pour l’affichage utilisateur.
  */
-export function marketplaceActionErrorMessage(raw: string): string {
+export function marketplaceActionErrorMessage(err: unknown, t: TFunction): string {
+  const raw =
+    err instanceof Error
+      ? err.message
+      : typeof err === "string"
+        ? err
+        : err != null
+          ? String(err)
+          : "";
   const compact = raw.replace(/\s+/g, " ").trim();
+  const base = getUserFacingError(err, t);
   if (
     compact.includes("marketplace.write") ||
     compact.includes("Permission manquante")
   ) {
-    return `${raw}\n\nSi l’annonce est liée à une ferme, ton rôle sur cette ferme doit autoriser le marché en écriture (invitation / scopes).`;
+    return `${base}\n\nSi l’annonce est liée à une ferme, ton rôle sur cette ferme doit autoriser le marché en écriture (invitation / scopes).`;
   }
-  return raw;
+  return base;
 }

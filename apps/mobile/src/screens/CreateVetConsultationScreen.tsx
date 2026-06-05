@@ -2,6 +2,8 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { mobileColors } from "../theme/mobileTheme";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { getUserFacingError } from "../lib/userFacingError";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -28,6 +30,7 @@ function animalTitle(a: AnimalListItem): string {
 }
 
 export function CreateVetConsultationScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { farmId, farmName } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
@@ -62,7 +65,7 @@ export function CreateVetConsultationScreen({ route, navigation }: Props) {
       });
     },
     onError: (e: Error) => {
-      Alert.alert("Création impossible", e.message);
+      Alert.alert("Création impossible", getUserFacingError(e, t));
     }
   });
 
