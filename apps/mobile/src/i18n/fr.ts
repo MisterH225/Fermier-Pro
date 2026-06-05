@@ -337,7 +337,6 @@ export const fr = {
     totalPrice: "Prix total :",
     detail: {
       chatTitle: "Conversation",
-      pickupSaved: "Rendez-vous de retrait enregistré.",
       contactErrorTitle: "Messagerie",
       vaccines: "Vaccinations",
       vetVisit: "Dernière visite vétérinaire",
@@ -1079,6 +1078,7 @@ export const fr = {
       createMissing: "Bâtiment et nom requis.",
       barn: "Bâtiment",
       penName: "Nom de la loge",
+      penCodeOptional: "Code (optionnel)",
       capacity: "Capacité max",
       capacityLine: "{{occ}} / {{cap}} places",
       noAnimals: "Aucun animal dans cette loge."

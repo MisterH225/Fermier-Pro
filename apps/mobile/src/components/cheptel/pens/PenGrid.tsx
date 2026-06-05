@@ -19,7 +19,7 @@ import {
 } from "../../../theme/mobileTheme";
 import { PenBloc } from "./PenBloc";
 import { PenDetailModal } from "./PenDetailModal";
-import { CreatePenModal } from "./CreatePenModal";
+import { CreateLogeModal } from "./CreateLogeModal";
 
 type Props = {
   farmId: string;
@@ -122,12 +122,13 @@ export function PenGrid({
         activeProfileId={activeProfileId}
       />
 
-      <CreatePenModal
+      <CreateLogeModal
         visible={createOpen}
         farmId={farmId}
         accessToken={accessToken}
         activeProfileId={activeProfileId}
         barns={barns}
+        defaultBarnId={barnId}
         onClose={() => setCreateOpen(false)}
         onCreated={() => {
           void pensQuery.refetch();

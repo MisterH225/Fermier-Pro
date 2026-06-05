@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
-import { useLayoutEffect } from "react";
+import { useLayoutEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -11,6 +11,7 @@ import {
   View
 } from "react-native";
 import { useTranslation } from "react-i18next";
+import { CreateLogeModal } from "../components/cheptel/pens/CreateLogeModal";
 import { HousingModuleGate } from "../components/HousingModuleGate";
 import { TechFarmAccessGate } from "../components/technician/TechFarmAccessGate";
 import { useSession } from "../context/SessionContext";
@@ -58,6 +59,7 @@ function BarnDetailContent({
   const { t } = useTranslation();
   const { farmId, farmName, barnId, barnName } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
+  const [createOpen, setCreateOpen] = useState(false);
 
   const q = useQuery({
     queryKey: ["farmBarn", farmId, barnId, activeProfileId],
@@ -75,14 +77,7 @@ function BarnDetailContent({
         clientFeatures.housing && !readOnly
           ? () => (
               <TouchableOpacity
-                onPress={() =>
-                  navigation.navigate("CreatePen", {
-                    farmId,
-                    farmName,
-                    barnId,
-                    barnName: title
-                  })
-                }
+                onPress={() => setCreateOpen(true)}
                 style={styles.headerBtn}
                 hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
               >
@@ -176,6 +171,20 @@ function BarnDetailContent({
             <Text style={styles.cardStatus}>Statut : {item.status}</Text>
           </TouchableOpacity>
         )}
+      />
+
+      <CreateLogeModal
+        visible={createOpen}
+        farmId={farmId}
+        accessToken={accessToken}
+        activeProfileId={activeProfileId}
+        barns={[{ id: barnId, name: barn?.name ?? barnName ?? "Bâtiment" }]}
+        defaultBarnId={barnId}
+        lockBarn
+        onClose={() => setCreateOpen(false)}
+        onCreated={() => {
+          void q.refetch();
+        }}
       />
     </View>
   );

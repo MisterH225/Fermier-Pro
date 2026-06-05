@@ -337,7 +337,6 @@ export const en = {
     totalPrice: "Total price:",
     detail: {
       chatTitle: "Conversation",
-      pickupSaved: "Pickup appointment saved.",
       contactErrorTitle: "Messaging",
       vaccines: "Vaccinations",
       vetVisit: "Last vet visit",
@@ -1038,6 +1037,7 @@ export const en = {
       createMissing: "Building and name required.",
       barn: "Building",
       penName: "Pen name",
+      penCodeOptional: "Code (optional)",
       capacity: "Max capacity",
       capacityLine: "{{occ}} / {{cap}} places",
       noAnimals: "No animals in this pen."
