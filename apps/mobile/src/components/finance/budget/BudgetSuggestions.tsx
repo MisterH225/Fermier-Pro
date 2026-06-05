@@ -9,7 +9,7 @@ import {
   mobileTypography
 } from "../../../theme/mobileTheme";
 import { useOfflineMutation } from "../../../hooks/useOfflineMutation";
-import { BUDGET_INVALIDATE_ROOTS } from "../../../lib/offline/budgetOffline";
+import { BUDGET_INVALIDATE_ROOTS } from "../../../lib/finance/financeQueryKeys";
 
 type Props = {
   farmId: string;

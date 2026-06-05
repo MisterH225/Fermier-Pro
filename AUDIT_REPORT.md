@@ -387,7 +387,7 @@ components/collaboration/BaseModal.tsx ← duplicate API/UX
 | # | Action | Statut | Détail |
 |---|--------|--------|--------|
 | 4 | Fusion `BaseModal` collaboration | ✅ | Adaptateur vers `modals/BaseModal` |
-| 5 | `SuccessModal` collaboration | ✅ | `collaboration/SuccessModal.tsx` supprimé ; `MemberModal` confirm-delete → `useModal` |
+| 5 | `SuccessModal` collaboration | ✅ partiel | `InviteSection` / `MemberModal` confirm-delete → `useModal` ; `collaboration/ConfirmDeleteModal` supprimé |
 | 6 | `EmptyStateCard` | ✅ partiel | `EventList`, cheptel, finance |
 | 7 | Skeletons | ✅ partiel | Dashboard, finance, santé, cheptel, **vet/tech/onboarding** (`SkeletonBlocks`) |
 
@@ -397,8 +397,8 @@ components/collaboration/BaseModal.tsx ← duplicate API/UX
 |---|--------|--------|--------|
 | 8 | Création loge unique | ✅ | `CreateLogeModal` ; `CreatePenModal` deprecated ; stack `CreatePenScreen` délègue |
 | 9 | Marketplace création | ✅ | `CreateMarketplaceListingScreen` → wrapper modal |
-| 10 | Registre React Query | ⏳ | Non traité |
-| 11 | Routes `@deprecated` | ⏳ | Alias re-export conservés (pas de redirection forcée) |
+| 10 | Registre React Query | ✅ partiel | `lib/finance/financeQueryKeys.ts` + `invalidateFinanceQueries` ; budget modals unifiés |
+| 11 | Routes `@deprecated` | ✅ partiel | Barrels `features/*` pointent vers écrans canoniques (`SanteScreen`, `TasksScreen`, etc.) |
 
 ### P3 — Non traité
 
@@ -459,10 +459,10 @@ components/collaboration/BaseModal.tsx ← duplicate API/UX
 ### C. Prochaines étapes recommandées
 
 1. Clôturer [PR #18](https://github.com/MisterH225/Fermier-Pro/pull/18) (documentation seule, obsolète).
-2. Poursuivre P2 restant : registre React Query, routes `@deprecated`, `collaboration/ConfirmDeleteModal` local (`InviteSection`).
+2. Poursuivre P2 restant : étendre le registre React Query aux autres domaines ; supprimer les shims `screens/Farm*Screen` si plus importés.
 3. P3 : découpage `api.ts`, `AppTextField`, `DeepNavigationService`.
 4. Valider en prod les migrations Prisma / Supabase (#17 : `marketplace_farm_lifecycle`, `PigPriceSnapshot`).
 
 ---
 
-*Rapport initial : audit lecture seule (3 juin 2026). Section 8 mise à jour : PR #19 (5 juin), PR #16 et #17 (5 juin).*
+*Rapport initial : audit lecture seule (3 juin 2026). Section 8 mise à jour : PR #19 (5 juin), PR #16/#17 (5 juin), P2 restant (5 juin).*

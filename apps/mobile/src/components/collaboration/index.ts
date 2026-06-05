@@ -2,7 +2,6 @@ export { ActivityHistory } from "./ActivityHistory";
 export { ActivityToggleHeader } from "./ActivityToggleHeader";
 export { BaseModal } from "./BaseModal";
 export { CollaborationScreen } from "./CollaborationScreen";
-export { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 export { InviteModal } from "./InviteModal";
 export { InviteSection } from "./InviteSection";
 export { MemberAvatar } from "./MemberAvatar";

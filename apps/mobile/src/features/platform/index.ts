@@ -1,4 +1,4 @@
-export { FarmHealthScreen } from "../../screens/FarmHealthScreen";
+export { SanteScreen as FarmHealthScreen } from "../../screens/sante/SanteScreen";
 export { VetSearchScreen } from "../../screens/VetSearchScreen";
 export { ProducerScheduleVetVisitScreen } from "../../screens/ProducerScheduleVetVisitScreen";
 export { AccountScreen } from "../../screens/AccountScreen";
@@ -7,9 +7,9 @@ export { DeleteAccountCompleteScreen } from "../../screens/DeleteAccountComplete
 export { ModuleRoadmapScreen } from "../../screens/ModuleRoadmapScreen";
 export { SmartAlertsListScreen } from "../../screens/SmartAlertsListScreen";
 export { ProducerDashboardScreen } from "../../screens/ProducerDashboardScreen";
-export { ProducerFarmSettingsScreen } from "../../screens/ProducerFarmSettingsScreen";
+export { SettingsScreen as ProducerFarmSettingsScreen } from "../../screens/settings/SettingsScreen";
 export { BuyerDashboardScreen } from "../../screens/buyer/BuyerDashboardScreen";
-export { VeterinarianDashboardScreen } from "../../screens/VeterinarianDashboardScreen";
+export { VetDashboardScreen as VeterinarianDashboardScreen } from "../../screens/vet/VetDashboardScreen";
 export { TechnicianDashboardScreen } from "../../screens/TechnicianDashboardScreen";
 export { ProducerMessagesScreen } from "../../screens/ProducerMessagesScreen";
 export { TechTasksScreen } from "../../screens/technician/TechTasksScreen";
