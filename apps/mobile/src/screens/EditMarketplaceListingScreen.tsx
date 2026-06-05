@@ -32,6 +32,7 @@ import {
   mobileTypography
 } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "EditMarketplaceListing">;
 
@@ -136,7 +137,7 @@ export function EditMarketplaceListingScreen({ navigation, route }: Props) {
   });
 
   const err =
-    q.error instanceof Error ? q.error.message : q.error ? String(q.error) : null;
+    getQueryErrorMessage(q.error, t);
 
   if (!clientFeatures.marketplace) {
     return (

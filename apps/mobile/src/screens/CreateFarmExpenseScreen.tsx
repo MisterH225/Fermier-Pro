@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { mobileColors } from "../theme/mobileTheme";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import type { ReconciliationOfferDto } from "../lib/api";
@@ -25,6 +26,7 @@ import {
   useOfflineMutation
 } from "../hooks/useOfflineMutation";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CreateFarmExpense">;
 
@@ -94,7 +96,7 @@ export function CreateFarmExpenseScreen({ route, navigation }: Props) {
       Alert.alert("", offlineQueuedMessage(t));
     },
     onError: (e: Error) => {
-      Alert.alert("Enregistrement impossible", e.message);
+      Alert.alert(t("common.errors.saveFailed"), getUserFacingError(e, t));
     }
   });
 
@@ -204,9 +206,9 @@ export function CreateFarmExpenseScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#f9f8ea" },
+  flex: { flex: 1, backgroundColor: mobileColors.canvas },
   content: { padding: 16, paddingBottom: 40 },
-  hint: { fontSize: 13, color: "#6d745b", marginBottom: 16 },
+  hint: { fontSize: 13, color: mobileColors.textSecondary, marginBottom: 16 },
   label: {
     fontSize: 13,
     fontWeight: "700",
@@ -221,7 +223,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     marginBottom: 16
   },
   multiline: { minHeight: 88, textAlignVertical: "top" },

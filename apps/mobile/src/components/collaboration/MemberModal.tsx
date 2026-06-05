@@ -31,6 +31,7 @@ import { BaseModal } from "./BaseModal";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 import { MemberAvatar } from "./MemberAvatar";
 import { SuccessModal } from "./SuccessModal";
+import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
 
 type Props = {
   visible: boolean;
@@ -81,7 +82,7 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
       setSuccessMsg(t("collab.memberPermsSaved"));
       setShowSuccess(true);
     },
-    onError: (e: Error) => Alert.alert("", e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const revokeMut = useMutation({
@@ -94,7 +95,7 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
     },
     onError: (e: Error) => {
       setConfirmRevoke(false);
-      Alert.alert("", e.message);
+      Alert.alert(t("common.error"), getUserFacingError(e, t));
     }
   });
 

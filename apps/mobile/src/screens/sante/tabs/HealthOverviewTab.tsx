@@ -13,6 +13,7 @@ import type {
   FarmHealthOverviewDto,
   FarmHealthUpcomingDto
 } from "../../../lib/api";
+import { getUserFacingError } from "../../../lib/userFacingError";
 import {
   mobileColors,
   mobileSpacing,
@@ -84,7 +85,7 @@ export function HealthOverviewTab({
     return <ActivityIndicator color={mobileColors.accent} />;
   }
   if (error) {
-    return <Text style={styles.err}>{error.message}</Text>;
+    return <Text style={styles.err}>{getUserFacingError(error, t)}</Text>;
   }
 
   return (

@@ -23,6 +23,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../../theme/mobileTheme";
+import { getQueryErrorMessage, getUserFacingError } from "../../../lib/userFacingError";
 
 type Props = {
   visible: boolean;
@@ -102,7 +103,7 @@ export function CreatePenModal({
         autoDismissMs: 2600
       });
     },
-    onError: (e: Error) => Alert.alert("", e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   return (

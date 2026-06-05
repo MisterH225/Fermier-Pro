@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { mobileColors } from "../theme/mobileTheme";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
@@ -174,7 +175,7 @@ export function CreateFarmScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   scroll: {
     flex: 1,
-    backgroundColor: "#f9f8ea"
+    backgroundColor: mobileColors.canvas
   },
   content: {
     padding: 16,
@@ -184,7 +185,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     padding: 24,
-    backgroundColor: "#f9f8ea"
+    backgroundColor: mobileColors.canvas
   },
   warn: {
     color: "#8b4513",
@@ -193,7 +194,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     marginBottom: 6,
     marginTop: 12,
     textTransform: "uppercase",
@@ -207,7 +208,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#1f2910"
+    color: mobileColors.textPrimary
   },
   inputMulti: {
     minHeight: 72,
@@ -234,7 +235,7 @@ const styles = StyleSheet.create({
     fontSize: 14
   },
   modeChipTextOn: {
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     fontWeight: "600"
   },
   submit: {
@@ -255,7 +256,7 @@ const styles = StyleSheet.create({
   note: {
     marginTop: 20,
     fontSize: 12,
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     lineHeight: 17
   }
 });

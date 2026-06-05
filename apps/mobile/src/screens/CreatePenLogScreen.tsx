@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { mobileColors } from "../theme/mobileTheme";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -13,11 +14,13 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { HousingModuleGate } from "../components/HousingModuleGate";
 import { useSession } from "../context/SessionContext";
 import type { PenLogTypeDto } from "../lib/api";
 import { createPenLog } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CreatePenLog">;
 
@@ -30,6 +33,7 @@ const LOG_TYPES: { key: PenLogTypeDto; label: string }[] = [
 ];
 
 export function CreatePenLogScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { farmId, farmName, penId, penLabel } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
@@ -57,7 +61,7 @@ export function CreatePenLogScreen({ route, navigation }: Props) {
       navigation.goBack();
     },
     onError: (e: Error) => {
-      Alert.alert("Enregistrement impossible", e.message);
+      Alert.alert(t("common.errors.saveFailed"), getUserFacingError(e, t));
     }
   });
 
@@ -144,9 +148,9 @@ export function CreatePenLogScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#f9f8ea" },
+  flex: { flex: 1, backgroundColor: mobileColors.canvas },
   content: { padding: 16, paddingBottom: 40 },
-  hint: { fontSize: 13, color: "#6d745b", marginBottom: 4 },
+  hint: { fontSize: 13, color: mobileColors.textSecondary, marginBottom: 4 },
   penHint: {
     fontSize: 15,
     fontWeight: "700",
@@ -179,7 +183,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#eef4dc"
   },
   typeChipText: { fontSize: 13, color: "#4a5238" },
-  typeChipTextOn: { fontWeight: "700", color: "#1f2910" },
+  typeChipTextOn: { fontWeight: "700", color: mobileColors.textPrimary },
   input: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -188,7 +192,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     marginBottom: 16
   },
   multiline: { minHeight: 100, textAlignVertical: "top" },

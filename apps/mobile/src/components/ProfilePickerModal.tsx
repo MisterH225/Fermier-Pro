@@ -7,6 +7,7 @@ import {
   View
 } from "react-native";
 import type { AuthMeResponse } from "../lib/api";
+import { mobileColors } from "../theme/mobileTheme";
 
 const PROFILE_LABEL: Record<string, string> = {
   producer: "Producteur",

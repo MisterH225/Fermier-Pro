@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { mobileColors } from "../theme/mobileTheme";
 import { useQuery } from "@tanstack/react-query";
 import { useLayoutEffect } from "react";
 import {
@@ -9,14 +10,17 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { HousingModuleGate } from "../components/HousingModuleGate";
 import { useSession } from "../context/SessionContext";
 import { fetchPenDetail } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "PenDetail">;
 
 export function PenDetailScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { farmId, farmName, penId, penLabel } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
 
@@ -79,7 +83,7 @@ export function PenDetailScreen({ route, navigation }: Props) {
   }
 
   const err =
-    q.error instanceof Error ? q.error.message : q.error ? String(q.error) : null;
+    getQueryErrorMessage(q.error, t);
 
   if (err || !pen) {
     return (
@@ -189,17 +193,17 @@ export function PenDetailScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: "#f9f8ea" },
+  scroll: { flex: 1, backgroundColor: mobileColors.canvas },
   content: { padding: 16, paddingBottom: 40 },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
-    backgroundColor: "#f9f8ea"
+    backgroundColor: mobileColors.canvas
   },
   error: { color: "#a34c24", textAlign: "center" },
-  farmHint: { fontSize: 13, color: "#6d745b", marginBottom: 4 },
+  farmHint: { fontSize: 13, color: mobileColors.textSecondary, marginBottom: 4 },
   barnLine: { fontSize: 14, color: "#5d7a1f", marginBottom: 14 },
   block: {
     marginBottom: 12,
@@ -212,24 +216,24 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     marginBottom: 6,
     textTransform: "uppercase",
     letterSpacing: 0.5
   },
   labelSpaced: { marginTop: 10 },
-  value: { fontSize: 15, color: "#1f2910", lineHeight: 22 },
-  meta: { fontSize: 13, color: "#6d745b", marginTop: 8 },
+  value: { fontSize: 15, color: mobileColors.textPrimary, lineHeight: 22 },
+  meta: { fontSize: 13, color: mobileColors.textSecondary, marginTop: 8 },
   sectionTitle: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     marginTop: 8,
     marginBottom: 10
   },
   sectionSpacer: { marginTop: 16 },
-  muted: { fontSize: 14, color: "#6d745b", marginBottom: 8 },
-  logTitle: { fontSize: 15, fontWeight: "700", color: "#1f2910" },
+  muted: { fontSize: 14, color: mobileColors.textSecondary, marginBottom: 8 },
+  logTitle: { fontSize: 15, fontWeight: "700", color: mobileColors.textPrimary },
   logBody: { fontSize: 14, color: "#4a5238", marginTop: 8, lineHeight: 20 },
   headerBtn: { marginRight: 4 },
   headerBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },

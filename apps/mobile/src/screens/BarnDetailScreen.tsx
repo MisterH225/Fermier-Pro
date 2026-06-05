@@ -10,11 +10,14 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { HousingModuleGate } from "../components/HousingModuleGate";
 import { TechFarmAccessGate } from "../components/technician/TechFarmAccessGate";
 import { useSession } from "../context/SessionContext";
 import { fetchFarmBarn } from "../lib/api";
+import { getQueryErrorMessage } from "../lib/userFacingError";
 import type { RootStackParamList } from "../types/navigation";
+import { mobileColors } from "../theme/mobileTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "BarnDetail">;
 
@@ -52,6 +55,7 @@ function BarnDetailContent({
   navigation: Props["navigation"];
   readOnly: boolean;
 }) {
+  const { t } = useTranslation();
   const { farmId, farmName, barnId, barnName } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
 
@@ -107,7 +111,7 @@ function BarnDetailContent({
   }
 
   const err =
-    q.error instanceof Error ? q.error.message : q.error ? String(q.error) : null;
+    getQueryErrorMessage(q.error, t);
 
   if (err || !barn) {
     return (
@@ -178,7 +182,7 @@ function BarnDetailContent({
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#f9f8ea" },
+  flex: { flex: 1, backgroundColor: mobileColors.canvas },
   notes: {
     paddingHorizontal: 16,
     paddingBottom: 8,
@@ -193,7 +197,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
-    backgroundColor: "#f9f8ea"
+    backgroundColor: mobileColors.canvas
   },
   error: { color: "#a34c24", textAlign: "center" },
   emptyBox: { padding: 32 },

@@ -1,6 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +17,9 @@ import {
 import { VetModuleGate } from "../components/VetModuleGate";
 import { useSession } from "../context/SessionContext";
 import { addVetConsultationAttachment } from "../lib/api";
+import { getUserFacingError } from "../lib/userFacingError";
 import type { RootStackParamList } from "../types/navigation";
+import { mobileColors } from "../theme/mobileTheme";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -27,6 +30,7 @@ export function AddVetConsultationAttachmentScreen({
   route,
   navigation
 }: Props) {
+  const { t } = useTranslation();
   const { farmId, farmName, consultationId } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
@@ -55,7 +59,7 @@ export function AddVetConsultationAttachmentScreen({
       navigation.goBack();
     },
     onError: (e: Error) => {
-      Alert.alert("Ajout impossible", e.message);
+      Alert.alert(t("common.errors.saveFailed"), getUserFacingError(e, t));
     }
   });
 
@@ -139,7 +143,7 @@ export function AddVetConsultationAttachmentScreen({
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#f9f8ea" },
+  flex: { flex: 1, backgroundColor: mobileColors.canvas },
   content: { padding: 16, paddingBottom: 40 },
   hint: { fontSize: 13, color: "#6d745b", marginBottom: 8 },
   info: {

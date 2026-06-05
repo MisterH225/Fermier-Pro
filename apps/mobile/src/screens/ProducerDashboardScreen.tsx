@@ -55,6 +55,7 @@ import {
   mobileTypography
 } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 function formatMoney(n: number, locale: string): string {
   try {
@@ -336,7 +337,7 @@ export function ProducerDashboardScreen() {
                   isPending={financeQuery.isPending}
                   error={
                     financeQuery.error instanceof Error
-                      ? financeQuery.error.message
+                      ? getUserFacingError(financeQuery.error, t)
                       : null
                   }
                   sectionTitle={t("producer.dashboard.financeTitle")}
@@ -353,7 +354,7 @@ export function ProducerDashboardScreen() {
                   isPending={gestationsQuery.isPending}
                   error={
                     gestationsQuery.error instanceof Error
-                      ? gestationsQuery.error.message
+                      ? getUserFacingError(gestationsQuery.error, t)
                       : null
                   }
                   locale={locale}
@@ -372,7 +373,7 @@ export function ProducerDashboardScreen() {
                   isPending={healthQuery.isPending}
                   error={
                     healthQuery.error instanceof Error
-                      ? healthQuery.error.message
+                      ? getUserFacingError(healthQuery.error, t)
                       : null
                   }
                   locale={locale}
@@ -404,7 +405,7 @@ export function ProducerDashboardScreen() {
                   isPending={feedQuery.isPending}
                   error={
                     feedQuery.error instanceof Error
-                      ? feedQuery.error.message
+                      ? getUserFacingError(feedQuery.error, t)
                       : null
                   }
                   locale={locale}

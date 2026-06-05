@@ -74,6 +74,7 @@ import {
 } from "../theme/mobileTheme";
 import type { ListingDurationDays } from "../lib/marketplaceListingForm";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -309,7 +310,7 @@ export function MarketplaceListingDetailScreen({
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
-      Alert.alert("Enregistré", "Rendez-vous de retrait mis à jour.");
+      setSuccessMsg(t("marketScreen.detail.pickupSaved"));
     },
     onError: (e: Error) =>
       Alert.alert("Impossible", marketplaceActionErrorMessage(e.message))
@@ -411,7 +412,7 @@ export function MarketplaceListingDetailScreen({
 
   const loading = q.isPending;
   const err =
-    q.error instanceof Error ? q.error.message : q.error ? String(q.error) : null;
+    getQueryErrorMessage(q.error, t);
 
   if (!clientFeatures.marketplace) {
     return (

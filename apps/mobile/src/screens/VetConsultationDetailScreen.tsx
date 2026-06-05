@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { mobileColors } from "../theme/mobileTheme";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useLayoutEffect, useState } from "react";
 import {
@@ -12,11 +13,13 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { VetModuleGate } from "../components/VetModuleGate";
 import { useSession } from "../context/SessionContext";
 import type { PatchVetConsultationPayload } from "../lib/api";
 import { fetchVetConsultation, patchVetConsultation } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -31,6 +34,7 @@ const STATUS_FR: Record<string, string> = {
 };
 
 export function VetConsultationDetailScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { farmId, farmName, consultationId } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
@@ -125,7 +129,7 @@ export function VetConsultationDetailScreen({ route, navigation }: Props) {
   }
 
   const err =
-    q.error instanceof Error ? q.error.message : q.error ? String(q.error) : null;
+    getQueryErrorMessage(q.error, t);
 
   if (err || !row) {
     return (
@@ -308,17 +312,17 @@ export function VetConsultationDetailScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: "#f9f8ea" },
+  scroll: { flex: 1, backgroundColor: mobileColors.canvas },
   content: { padding: 16, paddingBottom: 40 },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
-    backgroundColor: "#f9f8ea"
+    backgroundColor: mobileColors.canvas
   },
   error: { color: "#a34c24", textAlign: "center" },
-  farmHint: { fontSize: 13, color: "#6d745b", marginBottom: 12 },
+  farmHint: { fontSize: 13, color: mobileColors.textSecondary, marginBottom: 12 },
   block: {
     marginBottom: 14,
     backgroundColor: "#fff",
@@ -330,20 +334,20 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     marginBottom: 6,
     textTransform: "uppercase",
     letterSpacing: 0.5
   },
-  value: { fontSize: 15, color: "#1f2910", lineHeight: 22 },
+  value: { fontSize: 15, color: mobileColors.textPrimary, lineHeight: 22 },
   sectionTitle: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     marginTop: 8,
     marginBottom: 10
   },
-  muted: { fontSize: 14, color: "#6d745b" },
+  muted: { fontSize: 14, color: mobileColors.textSecondary },
   attachRow: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -353,7 +357,7 @@ const styles = StyleSheet.create({
     borderColor: "#e8e4d4"
   },
   attachLabel: { fontSize: 15, fontWeight: "600", color: "#5d7a1f" },
-  attachUrl: { fontSize: 12, color: "#6d745b", marginTop: 4 },
+  attachUrl: { fontSize: 12, color: mobileColors.textSecondary, marginTop: 4 },
   headerBtn: { marginRight: 4 },
   headerBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   actionBox: {
@@ -367,7 +371,7 @@ const styles = StyleSheet.create({
   actionTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     marginBottom: 12
   },
   actionBtn: {
@@ -399,24 +403,24 @@ const styles = StyleSheet.create({
   editTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     marginBottom: 12
   },
   editLabel: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     marginBottom: 6
   },
   editInput: {
-    backgroundColor: "#f9f8ea",
+    backgroundColor: mobileColors.canvas,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: "#e8e4d4",
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     marginBottom: 12
   },
   editMultiline: { minHeight: 100, textAlignVertical: "top" },

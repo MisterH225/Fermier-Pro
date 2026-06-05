@@ -337,6 +337,7 @@ export const fr = {
     totalPrice: "Prix total :",
     detail: {
       chatTitle: "Conversation",
+      pickupSaved: "Rendez-vous de retrait enregistré.",
       contactErrorTitle: "Messagerie",
       vaccines: "Vaccinations",
       vetVisit: "Dernière visite vétérinaire",

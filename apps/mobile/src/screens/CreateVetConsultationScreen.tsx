@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { mobileColors } from "../theme/mobileTheme";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -177,9 +178,9 @@ export function CreateVetConsultationScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#f9f8ea" },
+  flex: { flex: 1, backgroundColor: mobileColors.canvas },
   content: { padding: 16, paddingBottom: 40 },
-  hint: { fontSize: 13, color: "#6d745b", marginBottom: 16 },
+  hint: { fontSize: 13, color: mobileColors.textSecondary, marginBottom: 16 },
   label: {
     fontSize: 13,
     fontWeight: "700",
@@ -194,7 +195,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     marginBottom: 16
   },
   multiline: { minHeight: 120, textAlignVertical: "top" },
@@ -220,10 +221,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#eef4dc"
   },
   chipText: { fontSize: 13, color: "#4a5238" },
-  chipTextOn: { fontWeight: "700", color: "#1f2910" },
+  chipTextOn: { fontWeight: "700", color: mobileColors.textPrimary },
   muted: {
     fontSize: 14,
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     marginBottom: 16,
     lineHeight: 20
   },

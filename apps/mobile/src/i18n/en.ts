@@ -337,6 +337,7 @@ export const en = {
     totalPrice: "Total price:",
     detail: {
       chatTitle: "Conversation",
+      pickupSaved: "Pickup appointment saved.",
       contactErrorTitle: "Messaging",
       vaccines: "Vaccinations",
       vetVisit: "Last vet visit",

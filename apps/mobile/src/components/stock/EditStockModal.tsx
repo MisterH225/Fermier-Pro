@@ -26,6 +26,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { getUserFacingError } from "../../lib/userFacingError";
 
 type Props = {
   visible: boolean;
@@ -119,7 +120,7 @@ export function EditStockModal({
       onSaved(res);
       onClose();
     },
-    onError: (e: Error) => Alert.alert(t("common.error"), e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const deleteMut = useMutation({
@@ -129,7 +130,7 @@ export function EditStockModal({
       void qc.invalidateQueries({ queryKey: ["farmFeed", farmId] });
       onClose();
     },
-    onError: (e: Error) => Alert.alert(t("common.error"), e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const confirmDelete = () => {

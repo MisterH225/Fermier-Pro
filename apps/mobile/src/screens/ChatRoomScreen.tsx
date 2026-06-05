@@ -10,6 +10,7 @@ import {
   useState
 } from "react";
 import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   FlatList,
@@ -46,6 +47,7 @@ import {
 } from "../lib/api";
 import { DirectInviteModal } from "../components/collaboration/DirectInviteModal";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 const CHAT_PAGE_SIZE = 40;
 
@@ -141,6 +143,7 @@ function formatDaySeparator(iso: string): string {
 }
 
 export function ChatRoomScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const {
     roomId,
     headline,
@@ -517,7 +520,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
           <View style={styles.centered}>
             <Text style={styles.error}>
               {messagesQuery.error instanceof Error
-                ? messagesQuery.error.message
+                ? getUserFacingError(messagesQuery.error, t)
                 : String(messagesQuery.error)}
             </Text>
           </View>
@@ -603,7 +606,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
         {sendMutation.error ? (
           <Text style={styles.sendError}>
             {sendMutation.error instanceof Error
-              ? sendMutation.error.message
+              ? getUserFacingError(sendMutation.error, t)
               : String(sendMutation.error)}
           </Text>
         ) : null}
@@ -677,7 +680,7 @@ const styles = StyleSheet.create({
   },
   loadOlderText: {
     fontSize: 13,
-    color: "#6d745b"
+    color: mobileColors.textSecondary
   },
   newMessagesFab: {
     position: "absolute",
@@ -783,7 +786,7 @@ const styles = StyleSheet.create({
   },
   msgBody: {
     fontSize: 16,
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     lineHeight: 22
   },
   msgBodyMine: {
@@ -792,7 +795,7 @@ const styles = StyleSheet.create({
   msgMeta: {
     marginTop: 6,
     fontSize: 11,
-    color: "#6d745b"
+    color: mobileColors.textSecondary
   },
   msgMetaMine: {
     color: "#dfe8c8"
@@ -819,7 +822,7 @@ const styles = StyleSheet.create({
     borderColor: "#d4dac8",
     backgroundColor: "#fff",
     fontSize: 16,
-    color: "#1f2910"
+    color: mobileColors.textPrimary
   },
   sendBtn: {
     backgroundColor: "#5d7a1f",

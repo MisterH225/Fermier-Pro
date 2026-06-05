@@ -75,6 +75,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../theme/mobileTheme";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmFinance">;
 
@@ -856,9 +857,9 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
 
   const errMsg =
     overviewQ.error instanceof Error
-      ? overviewQ.error.message
+      ? getUserFacingError(overviewQ.error, t)
       : txQ.error instanceof Error
-        ? txQ.error.message
+        ? getUserFacingError(txQ.error, t)
         : null;
 
   if (errMsg && !overview) {

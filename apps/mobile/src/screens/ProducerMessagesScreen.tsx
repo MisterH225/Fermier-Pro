@@ -32,6 +32,7 @@ import {
   mobileTypography
 } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 function roomTitle(room: ChatRoomListItem, myUserId?: string): string {
   if (room.farm?.name) return room.farm.name;
@@ -122,7 +123,7 @@ export function ProducerMessagesScreen() {
           <View style={styles.centered}>
             <Text style={styles.error}>
               {roomsQ.error instanceof Error
-                ? roomsQ.error.message
+                ? getUserFacingError(roomsQ.error, t)
                 : String(roomsQ.error)}
             </Text>
           </View>

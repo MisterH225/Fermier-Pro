@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { mobileColors } from "../theme/mobileTheme";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import type { RootStackParamList } from "../types/navigation";
 
@@ -27,7 +28,7 @@ export function ModuleRoadmapScreen({ route }: Props) {
 const styles = StyleSheet.create({
   scroll: {
     flex: 1,
-    backgroundColor: "#f9f8ea"
+    backgroundColor: mobileColors.canvas
   },
   content: {
     padding: 20,
@@ -36,7 +37,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     marginBottom: 14
   },
   body: {
@@ -54,7 +55,7 @@ const styles = StyleSheet.create({
   },
   noteText: {
     fontSize: 13,
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     lineHeight: 20
   }
 });

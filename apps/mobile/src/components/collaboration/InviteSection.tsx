@@ -15,6 +15,7 @@ import { CollaborativeAccessPanel } from "../account/CollaborativeAccessPanel";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 import { PendingScanRequestsSection } from "./PendingScanRequestsSection";
 import { SearchCollaboratorModal } from "./SearchCollaboratorModal";
+import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
 
 type Props = {
   farmId: string | null;
@@ -39,7 +40,7 @@ export function InviteSection({ farmId, farmName }: Props) {
     },
     onError: (e: Error) => {
       setConfirmVisible(false);
-      Alert.alert("", e.message);
+      Alert.alert(t("common.error"), getUserFacingError(e, t));
     }
   });
 

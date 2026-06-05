@@ -53,6 +53,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../theme/mobileTheme";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmFeedStock">;
 
@@ -381,7 +382,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
   const pending = results.some((r) => r.isPending) || movQ.isPending;
   const errMsg = useMemo(() => {
     for (const r of [...results, movQ]) {
-      if (r.error instanceof Error) return r.error.message;
+      if (r.error) return getUserFacingError(r.error, t);
     }
     return null;
   }, [results, movQ]);

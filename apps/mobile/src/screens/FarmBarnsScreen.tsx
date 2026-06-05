@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { mobileColors } from "../theme/mobileTheme";
 import { useFocusEffect } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
@@ -18,6 +19,7 @@ import { TechFarmAccessGate } from "../components/technician/TechFarmAccessGate"
 import { useSession } from "../context/SessionContext";
 import { fetchFarmBarns } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmBarns">;
 
@@ -105,7 +107,7 @@ function FarmBarnsContent({
   }
 
   const err =
-    q.error instanceof Error ? q.error.message : q.error ? String(q.error) : null;
+    getQueryErrorMessage(q.error, t);
 
   if (err) {
     return (
@@ -171,7 +173,7 @@ function FarmBarnsContent({
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#f9f8ea" },
+  flex: { flex: 1, backgroundColor: mobileColors.canvas },
   list: { padding: 16, paddingBottom: 32 },
   emptyList: { flexGrow: 1 },
   centered: {
@@ -179,18 +181,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
-    backgroundColor: "#f9f8ea"
+    backgroundColor: mobileColors.canvas
   },
   error: { color: "#a34c24", textAlign: "center", marginBottom: 8 },
-  hint: { fontSize: 13, color: "#6d745b", textAlign: "center" },
+  hint: { fontSize: 13, color: mobileColors.textSecondary, textAlign: "center" },
   emptyBox: { padding: 32 },
   emptyTitle: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     marginBottom: 8
   },
-  emptySub: { fontSize: 14, color: "#6d745b", lineHeight: 20 },
+  emptySub: { fontSize: 14, color: mobileColors.textSecondary, lineHeight: 20 },
   card: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -199,8 +201,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e8e4d4"
   },
-  cardTitle: { fontSize: 17, fontWeight: "700", color: "#1f2910" },
-  cardMeta: { fontSize: 14, color: "#6d745b", marginTop: 6 },
+  cardTitle: { fontSize: 17, fontWeight: "700", color: mobileColors.textPrimary },
+  cardMeta: { fontSize: 14, color: mobileColors.textSecondary, marginTop: 6 },
   headerBtn: { marginRight: 4 },
   headerBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 }
 });

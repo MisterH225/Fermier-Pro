@@ -23,6 +23,7 @@ import {
 import { BaseModal } from "./BaseModal";
 import { CollaboratorRolePermissionsFields } from "./CollaboratorRolePermissionsFields";
 import { SuccessModal } from "./SuccessModal";
+import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
 
 type Props = {
   visible: boolean;
@@ -79,7 +80,7 @@ export function RespondScanRequestModal({
       invalidate();
       setSuccessMsg(t("collab.scanRequests.acceptedToast"));
     },
-    onError: (e: Error) => Alert.alert("", e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const rejectMut = useMutation({
@@ -94,7 +95,7 @@ export function RespondScanRequestModal({
       invalidate();
       setSuccessMsg(t("collab.scanRequests.rejectedToast"));
     },
-    onError: (e: Error) => Alert.alert("", e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const handleClose = () => {

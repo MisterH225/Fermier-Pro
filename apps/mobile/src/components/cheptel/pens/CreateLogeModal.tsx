@@ -24,6 +24,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../../theme/mobileTheme";
+import { getQueryErrorMessage, getUserFacingError } from "../../../lib/userFacingError";
 
 const CATEGORIES: PenCategoryKey[] = [
   "starter",
@@ -103,7 +104,7 @@ export function CreateLogeModal({
         autoDismissMs: 2000
       });
     },
-    onError: (e: Error) => Alert.alert("", e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   return (

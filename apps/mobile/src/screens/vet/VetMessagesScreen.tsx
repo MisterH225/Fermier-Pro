@@ -26,6 +26,7 @@ import { filterChatRooms } from "../../lib/filterChatRooms";
 import { vetColors } from "../../theme/vetTheme";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
 
 function roomHeadline(room: ChatRoomListItem, myUserId?: string): string {
   if (room.farm?.name) {
@@ -97,7 +98,7 @@ export function VetMessagesScreen() {
           <View style={styles.centered}>
             <Text style={styles.error}>
               {roomsQ.error instanceof Error
-                ? roomsQ.error.message
+                ? getUserFacingError(roomsQ.error, t)
                 : String(roomsQ.error)}
             </Text>
           </View>

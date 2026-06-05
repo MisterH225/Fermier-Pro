@@ -33,6 +33,7 @@ import {
 } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import { techColors } from "../../theme/technicianTheme";
+import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "TechProfileEdit">;
 
@@ -202,7 +203,7 @@ export function TechProfileEditScreen({ navigation }: Props) {
       void qc.invalidateQueries({ queryKey: ["technicianSearch"] });
       navigation.goBack();
     },
-    onError: (e: Error) => Alert.alert("Erreur", e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const photoSection = useMemo(

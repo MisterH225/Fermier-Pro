@@ -2,6 +2,11 @@ import type { ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { ClientConfigDto } from "../lib/api";
 import { useSession } from "../context/SessionContext";
+import {
+  mobileColors,
+  mobileSpacing,
+  mobileTypography
+} from "../theme/mobileTheme";
 
 export type ClientFeatureKey = keyof ClientConfigDto["features"];
 
@@ -45,20 +50,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
-    backgroundColor: "#f9f8ea"
+    padding: mobileSpacing.xl,
+    backgroundColor: mobileColors.canvas
   },
   title: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1f2910",
+    ...mobileTypography.cardTitle,
+    color: mobileColors.textPrimary,
     textAlign: "center",
-    marginBottom: 10
+    marginBottom: mobileSpacing.sm
   },
   sub: {
-    fontSize: 14,
-    color: "#6d745b",
-    textAlign: "center",
-    lineHeight: 20
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    textAlign: "center"
   }
 });

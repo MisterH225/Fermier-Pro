@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
@@ -65,7 +66,7 @@ export function PendingInvitationsModal({ visible, onClose }: Props) {
         Alert.alert("", t("collab.pendingInvitations.acceptedToast"));
       }
     },
-    onError: (e: Error) => Alert.alert("", e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const items = listQuery.data ?? [];

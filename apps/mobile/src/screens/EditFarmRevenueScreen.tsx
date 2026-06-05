@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { mobileColors } from "../theme/mobileTheme";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
@@ -13,11 +14,13 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { FinanceModuleGate } from "../components/FinanceModuleGate";
 import { useSession } from "../context/SessionContext";
 import { fetchFarmRevenue, patchFarmRevenue } from "../lib/api";
 import { invalidateFarmFinanceQueries } from "../lib/invalidateFarmFinanceQueries";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "EditFarmRevenue">;
 
@@ -33,6 +36,7 @@ function amountToInput(amount: string | number): string {
 }
 
 export function EditFarmRevenueScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { farmId, farmName, revenueId } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
@@ -83,7 +87,7 @@ export function EditFarmRevenueScreen({ route, navigation }: Props) {
       navigation.goBack();
     },
     onError: (e: Error) => {
-      Alert.alert("Enregistrement impossible", e.message);
+      Alert.alert(t("common.errors.saveFailed"), getUserFacingError(e, t));
     }
   });
 
@@ -118,7 +122,7 @@ export function EditFarmRevenueScreen({ route, navigation }: Props) {
 
   const err =
     revenueQuery.error instanceof Error
-      ? revenueQuery.error.message
+      ? getUserFacingError(revenueQuery.error, t)
       : revenueQuery.error
         ? String(revenueQuery.error)
         : null;
@@ -195,17 +199,17 @@ export function EditFarmRevenueScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#f9f8ea" },
+  flex: { flex: 1, backgroundColor: mobileColors.canvas },
   content: { padding: 16, paddingBottom: 40 },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
-    backgroundColor: "#f9f8ea"
+    backgroundColor: mobileColors.canvas
   },
   error: { color: "#a34c24", textAlign: "center" },
-  hint: { fontSize: 13, color: "#6d745b", marginBottom: 16 },
+  hint: { fontSize: 13, color: mobileColors.textSecondary, marginBottom: 16 },
   label: {
     fontSize: 13,
     fontWeight: "700",
@@ -220,7 +224,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     marginBottom: 16
   },
   multiline: { minHeight: 88, textAlignVertical: "top" },

@@ -28,6 +28,7 @@ import { filterChatRooms } from "../../lib/filterChatRooms";
 import { mobileRadius, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import { buyerColors, buyerRadius, buyerShadow } from "../../theme/buyerTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
 
 function roomTitle(room: ChatRoomListItem, myUserId?: string): string {
   if (room.kind === "direct" && myUserId) {
@@ -132,7 +133,7 @@ export function BuyerMessagesScreen() {
           <View style={styles.centered}>
             <Text style={styles.error}>
               {roomsQ.error instanceof Error
-                ? roomsQ.error.message
+                ? getUserFacingError(roomsQ.error, t)
                 : String(roomsQ.error)}
             </Text>
           </View>

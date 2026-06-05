@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { mobileColors } from "../theme/mobileTheme";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ActivityIndicator,
@@ -8,6 +9,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { useSession } from "../context/SessionContext";
 import {
   buildFarmDetailMenuItems,
@@ -18,6 +20,7 @@ import type { FarmDto } from "../lib/api";
 import { ensureFarmChatRoom, fetchFarm } from "../lib/api";
 import { buildFarmDetailMenu } from "../lib/menuVisibility";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmDetail">;
 
@@ -61,6 +64,7 @@ function navigateFarmDetailRow(
 }
 
 export function FarmDetailScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { farmId, farmName } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
@@ -84,7 +88,7 @@ export function FarmDetailScreen({ route, navigation }: Props) {
   const farm = farmQuery.data;
   const error =
     farmQuery.error instanceof Error
-      ? farmQuery.error.message
+      ? getUserFacingError(farmQuery.error, t)
       : farmQuery.error
         ? String(farmQuery.error)
         : null;
@@ -136,7 +140,7 @@ export function FarmDetailScreen({ route, navigation }: Props) {
                 {openFarmChat.isError ? (
                   <Text style={styles.chatErr}>
                     {openFarmChat.error instanceof Error
-                      ? openFarmChat.error.message
+                      ? getUserFacingError(openFarmChat.error, t)
                       : String(openFarmChat.error)}
                   </Text>
                 ) : null}
@@ -201,7 +205,7 @@ function FarmInfoBlocks({ farm }: { farm: FarmDto }) {
 const styles = StyleSheet.create({
   scroll: {
     flex: 1,
-    backgroundColor: "#f9f8ea"
+    backgroundColor: mobileColors.canvas
   },
   content: {
     padding: 16,
@@ -235,7 +239,7 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   marketCtaSub: {
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     fontSize: 13,
     marginTop: 4
   },
@@ -245,7 +249,7 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   tasksCtaSub: {
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     fontSize: 13,
     marginTop: 4
   },
@@ -273,7 +277,7 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   chatCtaSub: {
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     fontSize: 13,
     marginTop: 4
   },
@@ -297,7 +301,7 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   vetCtaSub: {
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     fontSize: 13,
     marginTop: 4
   },
@@ -315,7 +319,7 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   financeCtaSub: {
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     fontSize: 13,
     marginTop: 4
   },
@@ -333,7 +337,7 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   housingCtaSub: {
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     fontSize: 13,
     marginTop: 4
   },
@@ -351,7 +355,7 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   teamCtaSub: {
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     fontSize: 13,
     marginTop: 4
   },
@@ -369,7 +373,7 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   feedCtaSub: {
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     fontSize: 13,
     marginTop: 4
   },
@@ -378,14 +382,14 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 4
   },
   value: {
     fontSize: 16,
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     lineHeight: 22
   },
   meta: {
@@ -398,7 +402,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
-    backgroundColor: "#f9f8ea"
+    backgroundColor: mobileColors.canvas
   },
   errorText: {
     color: "#b00020",
