@@ -17,6 +17,7 @@ import { UpdateFarmCheptelConfigDto } from "./dto/update-farm-cheptel-config.dto
 import { TransferFarmOwnershipDto } from "./dto/transfer-farm-ownership.dto";
 import { ArchiveFarmDto } from "./dto/archive-farm.dto";
 import { FarmDeletionService } from "./farm-deletion.service";
+import { FarmMarketplaceLifecycleService } from "../marketplace/farm-marketplace-lifecycle.service";
 
 const MAX_ACTIVE_FARMS_PER_USER = 3;
 
@@ -27,7 +28,8 @@ export class FarmsService {
     private readonly audit: AuditService,
     private readonly farmAccess: FarmAccessService,
     private readonly invitations: InvitationsService,
-    private readonly farmDeletion: FarmDeletionService
+    private readonly farmDeletion: FarmDeletionService,
+    private readonly marketplaceLifecycle: FarmMarketplaceLifecycleService
   ) {}
 
   async create(user: User, dto: CreateFarmDto): Promise<Farm> {
@@ -760,7 +762,15 @@ export class FarmsService {
       throw new BadRequestException("Ce projet est déjà archivé");
     }
 
+    let archiveNotices: Awaited<
+      ReturnType<FarmMarketplaceLifecycleService["applyFarmArchived"]>
+    > = [];
     const updated = await this.prisma.$transaction(async (tx) => {
+      archiveNotices = await this.marketplaceLifecycle.applyFarmArchived(
+        tx,
+        farmId,
+        farm.name
+      );
       const result = await tx.farm.update({
         where: { id: farmId },
         data: {
@@ -796,6 +806,8 @@ export class FarmsService {
       metadata: { reason: dto.reason ?? null }
     });
 
+    this.marketplaceLifecycle.dispatchBuyerNotices(archiveNotices);
+
     return updated;
   }
 
@@ -822,12 +834,23 @@ export class FarmsService {
       );
     }
 
-    const updated = await this.prisma.farm.update({
-      where: { id: farmId },
-      data: {
-        status: FarmStatus.active,
-        archivedAt: null
-      }
+    let restoreNotices: Awaited<
+      ReturnType<FarmMarketplaceLifecycleService["applyFarmRestored"]>
+    > = [];
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.farm.update({
+        where: { id: farmId },
+        data: {
+          status: FarmStatus.active,
+          archivedAt: null
+        }
+      });
+      restoreNotices = await this.marketplaceLifecycle.applyFarmRestored(
+        tx,
+        farmId,
+        farm.name
+      );
+      return result;
     });
 
     await this.audit.record({
@@ -837,6 +860,8 @@ export class FarmsService {
       resourceType: "Farm",
       resourceId: farmId
     });
+
+    this.marketplaceLifecycle.dispatchBuyerNotices(restoreNotices);
 
     return updated;
   }

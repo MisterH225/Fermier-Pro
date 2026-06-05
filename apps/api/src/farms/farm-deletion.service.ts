@@ -8,6 +8,7 @@ import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { SupabaseAdminService } from "../auth/supabase-admin.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
+import { FarmMarketplaceLifecycleService } from "../marketplace/farm-marketplace-lifecycle.service";
 
 function storagePathFromPublicUrl(
   url: string | null | undefined,
@@ -31,7 +32,8 @@ export class FarmDeletionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly supabaseAdmin: SupabaseAdminService,
-    private readonly push: PushNotificationsService
+    private readonly push: PushNotificationsService,
+    private readonly marketplaceLifecycle: FarmMarketplaceLifecycleService
   ) {}
 
   async deleteFarm(farmId: string, actorUserId: string): Promise<void> {
@@ -139,13 +141,25 @@ export class FarmDeletionService {
     }
 
     try {
+      let deleteNotices: Awaited<
+        ReturnType<FarmMarketplaceLifecycleService["applyFarmDeleted"]>
+      >["notices"] = [];
+      let listingIds: string[] = [];
       await this.prisma.$transaction(
         async (tx) => {
+          const del = await this.marketplaceLifecycle.applyFarmDeleted(tx, farmId);
+          deleteNotices = del.notices;
+          listingIds = del.listingIds;
+          await this.marketplaceLifecycle.purgeListingsAfterFarmDelete(
+            tx,
+            listingIds
+          );
           await this.purgeFarmData(tx, farmId);
           await tx.farm.delete({ where: { id: farmId } });
         },
         { maxWait: 15_000, timeout: 120_000 }
       );
+      this.marketplaceLifecycle.dispatchBuyerNotices(deleteNotices);
     } catch (err) {
       this.logger.error(
         `Farm deletion rollback for farm ${farmId}`,
@@ -233,14 +247,6 @@ export class FarmDeletionService {
     await tx.feedType.deleteMany({ where: { farmId } });
 
     await tx.standardVaccine.deleteMany({ where: { farmId } });
-
-    await tx.marketplaceOffer.deleteMany({
-      where: { listing: { farmId } }
-    });
-    await tx.buyerFavorite.deleteMany({
-      where: { listing: { farmId } }
-    });
-    await tx.marketplaceListing.deleteMany({ where: { farmId } });
 
     await tx.memberActivityLog.deleteMany({ where: { farmId } });
     await tx.farmMembership.deleteMany({ where: { farmId } });

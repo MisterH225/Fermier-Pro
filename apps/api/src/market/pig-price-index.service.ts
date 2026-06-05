@@ -175,6 +175,33 @@ export class PigPriceIndexService {
       }
     });
 
+
+    const soldListings = await this.prisma.marketplaceListing.findMany({
+      where: {
+        status: ListingStatus.sold,
+        totalPrice: { gt: 0 },
+        totalWeightKg: { gt: 0 },
+        updatedAt: { gte: date, lt: next }
+      },
+      select: {
+        totalPrice: true,
+        totalWeightKg: true,
+        category: true,
+        quantity: true,
+        animalId: true,
+        animalIds: true,
+        animal: { select: { productionCategory: true } }
+      }
+    });
+
+    const priceSnapshots = await this.prisma.pigPriceSnapshot.findMany({
+      where: { soldAt: { gte: date, lt: next } },
+      select: {
+        pricePerKg: true,
+        weightKg: true,
+        category: true
+      }
+    });
     const listings = await this.prisma.marketplaceListing.findMany({
       where: {
         status: ListingStatus.published,
@@ -221,6 +248,54 @@ export class PigPriceIndexService {
       }
     }
 
+
+    for (const sl of soldListings) {
+      const price = Number(sl.totalPrice);
+      const weight = Number(sl.totalWeightKg);
+      if (!Number.isFinite(price) || !Number.isFinite(weight) || weight <= 0) {
+        continue;
+      }
+      const globalBucket = saleBuckets.get(PigPriceIndexCategory.global)!;
+      addSaleToBucket(globalBucket, price, weight);
+      const animalIds = Array.isArray(sl.animalIds)
+        ? (sl.animalIds as unknown[]).filter(
+            (x): x is string => typeof x === "string" && x.length > 0
+          )
+        : [];
+      const headcount = listingHeadcount(
+        animalIds,
+        sl.animalId,
+        sl.quantity
+      );
+      const cat =
+        categoryFromListing(
+          sl.category,
+          weight,
+          headcount,
+          sl.animal?.productionCategory ?? null
+        ) ?? categoryFromSale(sl.animal?.productionCategory ?? "unknown", weight);
+      if (cat && cat !== PigPriceIndexCategory.global) {
+        addSaleToBucket(saleBuckets.get(cat)!, price, weight);
+      }
+    }
+
+    for (const snap of priceSnapshots) {
+      const pricePerKg = Number(snap.pricePerKg);
+      const weight = Number(snap.weightKg);
+      if (
+        !Number.isFinite(pricePerKg) ||
+        !Number.isFinite(weight) ||
+        weight <= 0
+      ) {
+        continue;
+      }
+      const price = pricePerKg * weight;
+      const globalBucket = saleBuckets.get(PigPriceIndexCategory.global)!;
+      addSaleToBucket(globalBucket, price, weight);
+      if (snap.category !== PigPriceIndexCategory.global) {
+        addSaleToBucket(saleBuckets.get(snap.category)!, price, weight);
+      }
+    }
     for (const l of listings) {
       const pricePerKg = Number(l.pricePerKg);
       if (!Number.isFinite(pricePerKg)) {
