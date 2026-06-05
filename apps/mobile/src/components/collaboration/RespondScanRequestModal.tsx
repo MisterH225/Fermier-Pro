@@ -21,9 +21,9 @@ import {
   mobileTypography
 } from "../../theme/mobileTheme";
 import { useModal } from "../modals/useModal";
+import { getUserFacingError } from "../../lib/userFacingError";
 import { BaseModal } from "./BaseModal";
 import { CollaboratorRolePermissionsFields } from "./CollaboratorRolePermissionsFields";
-import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
 
 type Props = {
   visible: boolean;
@@ -41,14 +41,13 @@ export function RespondScanRequestModal({
   const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
+  const modal = useModal();
 
   const [recipientKind, setRecipientKind] =
     useState<InvitationRecipientKind>("technician");
   const [permissions, setPermissions] = useState<InvitationPermissions>(
     defaultPermissionsForRecipientKind("technician")
   );
-  const modal = useModal();
-
   useEffect(() => {
     if (!visible || !invitation) return;
     setRecipientKind("technician");
@@ -77,10 +76,13 @@ export function RespondScanRequestModal({
       ),
     onSuccess: () => {
       invalidate();
-      modal.open("success", { message: t("collab.scanRequests.acceptedToast"), autoDismissMs: 2200 });
+      modal.open("success", {
+        message: t("collab.scanRequests.acceptedToast"),
+        autoDismissMs: 2200
+      });
       onClose();
     },
-    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
+    onError: (e: Error) => Alert.alert("", getUserFacingError(e, t))
   });
 
   const rejectMut = useMutation({
@@ -93,15 +95,14 @@ export function RespondScanRequestModal({
       ),
     onSuccess: () => {
       invalidate();
-      modal.open("success", { message: t("collab.scanRequests.rejectedToast"), autoDismissMs: 2200 });
+      modal.open("success", {
+        message: t("collab.scanRequests.rejectedToast"),
+        autoDismissMs: 2200
+      });
       onClose();
     },
-    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
+    onError: (e: Error) => Alert.alert("", getUserFacingError(e, t))
   });
-
-  const handleClose = () => {
-    onClose();
-  };
 
   const requesterLabel = invitation?.scannedBy?.fullName?.trim()
     || invitation?.scannedBy?.email?.trim()
@@ -130,7 +131,7 @@ export function RespondScanRequestModal({
       <BaseModal
         visible={visible}
         title={t("collab.scanRequests.modalTitle")}
-        onClose={handleClose}
+        onClose={onClose}
         confirmLabel={t("collab.scanRequests.accept")}
         onConfirm={() => acceptMut.mutate()}
         confirmDisabled={!invitation || busy}

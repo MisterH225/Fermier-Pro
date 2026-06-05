@@ -27,8 +27,6 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
-import { getUserFacingError } from "../../lib/userFacingError";
-
 import { useModal } from "../modals/useModal";
 import { BaseModal } from "./BaseModal";
 
@@ -103,17 +101,16 @@ export function InviteModal({ visible, farmId, farmName, onClose }: Props) {
         url
       });
       await Share.share({ message, url });
-      modal.open("success", { message: t("collab.inviteSent"), autoDismissMs: 2200 });
+      modal.open("success", {
+        message: t("collab.inviteSent"),
+        autoDismissMs: 2200
+      });
       onClose();
     } catch (e) {
-      Alert.alert(t("common.error"), e instanceof Error ? getUserFacingError(e, t) : t("collab.createError"));
+      Alert.alert("", e instanceof Error ? e.message : t("collab.createError"));
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleClose = () => {
-    onClose();
   };
 
   return (
@@ -121,7 +118,7 @@ export function InviteModal({ visible, farmId, farmName, onClose }: Props) {
       <BaseModal
         visible={visible}
         title={t("collab.shareTitle")}
-        onClose={handleClose}
+        onClose={onClose}
         confirmLabel={t("collab.shareConfirm")}
         onConfirm={() => void submit()}
         confirmDisabled={!farmId}

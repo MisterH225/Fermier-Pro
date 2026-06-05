@@ -77,6 +77,7 @@ export function SearchCollaboratorModal({ visible, farmId, onClose }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
+  const modal = useModal();
 
   const [identifier, setIdentifier] = useState("");
   const [searchResult, setSearchResult] =
@@ -92,7 +93,6 @@ export function SearchCollaboratorModal({ visible, farmId, onClose }: Props) {
     defaultPermissionsFor("technician")
   );
   const [message, setMessage] = useState("");
-  const modal = useModal();
 
   const canSearch = isMinValid(identifier);
 

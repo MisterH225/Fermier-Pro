@@ -81,7 +81,8 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
         autoDismissMs: 2200
       });
     },
-    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
+    onError: (e: Error) =>
+      Alert.alert("", getUserFacingError(e, t))
   });
 
   const revokeMut = useMutation({
@@ -91,8 +92,7 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
       void qc.invalidateQueries({ queryKey: ["farmMembers", farmId] });
       onClose();
     },
-    onError: (e: Error) =>
-      Alert.alert(t("common.error"), getUserFacingError(e, t))
+    onError: (e: Error) => Alert.alert("", getUserFacingError(e, t))
   });
 
   if (!member) return null;
@@ -218,6 +218,7 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
           </Pressable>
         ) : null}
       </BaseModal>
+
     </>
   );
 }
