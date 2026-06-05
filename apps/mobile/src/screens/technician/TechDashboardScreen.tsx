@@ -13,6 +13,7 @@ import {
   Text,
   View
 } from "react-native";
+import { KpiGridSkeleton, ListSkeleton } from "../../components/common/SkeletonBlocks";
 import { EventList } from "../../components/lists/EventList";
 import type { EventItem } from "../../components/lists/types";
 import {
@@ -290,6 +291,9 @@ export function TechDashboardScreen() {
         </ScreenSection>
 
         <ScreenSection title={t("tech.dashboard.farmStatus")} plain>
+          {dashQ.isPending && !dashQ.data ? (
+            <KpiGridSkeleton count={4} />
+          ) : (
           <View style={styles.kpiRow}>
             <View style={[styles.kpiCard, techShadow.card]}>
               <Text style={styles.kpiValue}>{kpis?.activeAlerts ?? 0}</Text>
@@ -308,11 +312,14 @@ export function TechDashboardScreen() {
               <Text style={styles.kpiLabel}>{t("tech.kpi.stock")}</Text>
             </View>
           </View>
+          )}
         </ScreenSection>
 
         <View style={styles.sectionBlock}>
           <ScreenSection title={t("tech.dashboard.recentActivity")}>
-            {events.length > 0 ? (
+            {dashQ.isPending && !dashQ.data ? (
+              <ListSkeleton count={4} />
+            ) : events.length > 0 ? (
               <EventList data={events} />
             ) : (
               <ProfileSectionEmpty>{t("tech.dashboard.noActivity")}</ProfileSectionEmpty>

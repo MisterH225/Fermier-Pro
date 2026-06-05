@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, ScrollView, StyleSheet, Text } from "react-native";
+import { ScrollView, StyleSheet, Text } from "react-native";
+import { ListSkeleton } from "../../components/common/SkeletonBlocks";
 import { EventList } from "../../components/lists/EventList";
 import type { EventItem } from "../../components/lists/types";
 import {
@@ -54,7 +55,7 @@ export function TechTrackingScreen() {
       >
         <ScreenSection title={t("tech.tracking.sectionLog")}>
           {activityQ.isLoading ? (
-            <ActivityIndicator color={techColors.primary} />
+            <ListSkeleton count={5} />
           ) : items.length > 0 ? (
             <EventList data={items} />
           ) : (

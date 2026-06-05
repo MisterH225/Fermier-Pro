@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -23,6 +22,7 @@ import {
   type ChatRoomListItem
 } from "../../lib/api";
 import { filterChatRooms } from "../../lib/filterChatRooms";
+import { ListSkeleton } from "../../components/common/SkeletonBlocks";
 import { vetColors } from "../../theme/vetTheme";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
@@ -91,15 +91,13 @@ export function VetMessagesScreen() {
     <ChatModuleGate>
       <View style={[styles.wrap, { paddingBottom: bottomPad }]}>
         {roomsQ.isPending ? (
-          <View style={styles.centered}>
-            <ActivityIndicator size="large" color={vetColors.primary} />
+          <View style={styles.list}>
+            <ListSkeleton count={6} />
           </View>
         ) : roomsQ.error ? (
           <View style={styles.centered}>
             <Text style={styles.error}>
-              {roomsQ.error instanceof Error
-                ? getUserFacingError(roomsQ.error, t)
-                : String(roomsQ.error)}
+              {getUserFacingError(roomsQ.error, t)}
             </Text>
           </View>
         ) : (

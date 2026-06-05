@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
@@ -12,6 +11,7 @@ import {
   Text,
   View
 } from "react-native";
+import { CardContentSkeleton } from "../../components/common/SkeletonBlocks";
 import {
   ProfileSectionEmpty,
   profileScreenScrollContent,
@@ -84,7 +84,7 @@ export function TechFarmScreen() {
         ]}
       >
         {dashQ.isLoading ? (
-          <ActivityIndicator color={techColors.primary} style={styles.loader} />
+          <CardContentSkeleton lines={5} />
         ) : null}
         {!farm && !dashQ.isLoading ? (
           <ProfileSectionEmpty>{t("tech.tasks.noFarm")}</ProfileSectionEmpty>
