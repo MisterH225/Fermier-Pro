@@ -424,7 +424,7 @@ components/collaboration/BaseModal.tsx ← duplicate API/UX
 | Fichiers skeleton (`SkeletonBlocks`) | ~0 | **~17** |
 | `EmptyStateCard` (imports) | 2 | **5** |
 | `useModal` | ~25 | **~36** |
-| `collaboration/SuccessModal` | présent | **supprimé** |
+| `collaboration/ConfirmDeleteModal` | présent | **supprimé** |
 | Fichiers `Alert.alert` | 81 → ~77 | **~77** (confirmations / erreurs légitimes restantes) |
 
 ---
