@@ -1,6 +1,8 @@
 import * as Notifications from "expo-notifications";
 import type { NavigationContainerRef } from "@react-navigation/native";
 import { useEffect, type RefObject } from "react";
+import { useSession } from "../context/SessionContext";
+import { resolveDeepNavProfile } from "../lib/resolveDeepNavProfile";
 import { navigateFromPushData } from "../services/navigation/DeepNavigationService";
 import type { PushSmartAlertData } from "../services/navigation/deepNavigation.types";
 import type { RootStackParamList } from "../types/navigation";
@@ -18,7 +20,11 @@ Notifications.setNotificationHandler({
 export function useSmartAlertPushNavigation(
   navigationRef: RefObject<NavigationContainerRef<RootStackParamList> | null>
 ) {
+  const { authMe, activeProfileId } = useSession();
+
   useEffect(() => {
+    const profile = resolveDeepNavProfile(authMe, activeProfileId);
+
     const navigateFromData = (data: Record<string, unknown> | undefined) => {
       if (!data || data.type !== "smart_alert") {
         return;
@@ -27,7 +33,7 @@ export function useSmartAlertPushNavigation(
       if (!nav?.isReady()) {
         return;
       }
-      navigateFromPushData(nav, data as PushSmartAlertData);
+      navigateFromPushData(nav, data as PushSmartAlertData, profile);
     };
 
     void Notifications.getLastNotificationResponseAsync().then((response) => {
@@ -45,5 +51,5 @@ export function useSmartAlertPushNavigation(
     });
 
     return () => sub.remove();
-  }, [navigationRef]);
+  }, [navigationRef, authMe, activeProfileId]);
 }
