@@ -28,9 +28,9 @@ import {
   mobileTypography
 } from "../../theme/mobileTheme";
 import { useModal } from "../modals/useModal";
-import { getUserFacingError } from "../../lib/userFacingError";
 import { BaseModal } from "./BaseModal";
 import { MemberAvatar } from "./MemberAvatar";
+import { SuccessModal } from "./SuccessModal";
 
 type Props = {
   visible: boolean;
@@ -43,10 +43,12 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
+  const { open } = useModal();
 
-  const modal = useModal();
   const [editMode, setEditMode] = useState(false);
   const [permissions, setPermissions] = useState<InvitationPermissions>({});
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
 
   const startEdit = () => {
     if (!member) return;
@@ -76,13 +78,10 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["farmMembers", farmId] });
       setEditMode(false);
-      modal.open("success", {
-        message: t("collab.memberPermsSaved"),
-        autoDismissMs: 2200
-      });
+      setSuccessMsg(t("collab.memberPermsSaved"));
+      setShowSuccess(true);
     },
-    onError: (e: Error) =>
-      Alert.alert("", getUserFacingError(e, t))
+    onError: (e: Error) => Alert.alert("", e.message)
   });
 
   const revokeMut = useMutation({
@@ -92,13 +91,22 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
       void qc.invalidateQueries({ queryKey: ["farmMembers", farmId] });
       onClose();
     },
-    onError: (e: Error) => Alert.alert("", getUserFacingError(e, t))
+    onError: (e: Error) => Alert.alert("", e.message)
   });
 
   if (!member) return null;
 
   const displayName =
     member.user.fullName?.trim() || member.user.email || "—";
+
+  const openRevokeConfirm = () => {
+    open("confirm-delete", {
+      title: t("collab.revokeConfirmTitle"),
+      message: t("collab.revokeConfirmBody", { name: displayName }),
+      confirmLabel: t("collab.revokeConfirmAction"),
+      onConfirm: async () => { await revokeMut.mutateAsync(); }
+    });
+  };
   const badgeColor = ROLE_BADGE_COLOR[member.role] ?? mobileColors.textSecondary;
   const roleLabel = ROLE_DISPLAY_FR[member.role] ?? member.role;
   const currentPerms = scopesToPermissions(member.scopes ?? []);
@@ -107,7 +115,7 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
   return (
     <>
       <BaseModal
-        visible={visible}
+        visible={visible && !showSuccess}
         title={displayName}
         onClose={onClose}
         {...(editMode
@@ -202,14 +210,7 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
 
         {!isOwner ? (
           <Pressable
-            onPress={() =>
-              modal.open("confirm-delete", {
-                title: t("collab.revokeConfirmTitle"),
-                message: t("collab.revokeConfirmBody", { name: displayName }),
-                confirmLabel: t("collab.revokeConfirmAction"),
-                onConfirm: () => revokeMut.mutate()
-              })
-            }
+            onPress={openRevokeConfirm}
             style={styles.revokeBtn}
             accessibilityRole="button"
           >
@@ -219,6 +220,11 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
         ) : null}
       </BaseModal>
 
+<SuccessModal
+        visible={showSuccess}
+        message={successMsg}
+        onClose={() => setShowSuccess(false)}
+      />
     </>
   );
 }
