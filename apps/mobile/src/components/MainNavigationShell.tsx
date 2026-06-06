@@ -37,7 +37,6 @@ import {
   ChatRoomsScreen,
   ChatSearchUserScreen,
   CollaborationScreen,
-  CreateBarnScreen,
   CreateFarmExpenseScreen,
   CreateFarmInvitationScreen,
   CreateFarmRevenueScreen,
@@ -408,11 +407,6 @@ function MainStack() {
         name="LogeDetail"
         component={LogeDetailScreen}
         options={{ title: "Loge" }}
-      />
-      <Stack.Screen
-        name="CreateBarn"
-        component={CreateBarnScreen}
-        options={{ title: "Nouveau bâtiment" }}
       />
       <Stack.Screen
         name="CreatePen"

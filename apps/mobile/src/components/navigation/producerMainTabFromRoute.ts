@@ -23,7 +23,6 @@ export function producerMainTabFromRoute(
     case "FarmBarns":
     case "BarnDetail":
     case "PenDetail":
-    case "CreateBarn":
     case "CreatePen":
     case "CreatePenLog":
     case "PenMove":
