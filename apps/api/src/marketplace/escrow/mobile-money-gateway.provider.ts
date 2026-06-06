@@ -6,15 +6,7 @@ import {
 } from "@nestjs/common";
 import { DevMobileMoneyGateway } from "./dev-mobile-money.gateway";
 import { MOBILE_MONEY_GATEWAY } from "./mobile-money.gateway";
-
-function isProductionRuntime(): boolean {
-  const env = (
-    process.env.NODE_ENV ??
-    process.env.APP_ENV ??
-    ""
-  ).toLowerCase();
-  return env === "production" || env === "prod";
-}
+import { isDeploymentProduction } from "./runtime-env.util";
 
 /**
  * Refuse le gateway simulé en production tant qu'aucun provider réel n'est branché.
@@ -25,7 +17,7 @@ class MobileMoneyGatewayGuard implements OnModuleInit {
 
   onModuleInit(): void {
     const provider = (process.env.MOBILE_MONEY_PROVIDER ?? "dev").trim().toLowerCase();
-    if (isProductionRuntime() && provider === "dev") {
+    if (isDeploymentProduction() && provider === "dev") {
       throw new Error(
         "MOBILE_MONEY_PROVIDER=dev interdit en production. Brancher un provider réel (wave, orange, mtn…) avant le lancement."
       );

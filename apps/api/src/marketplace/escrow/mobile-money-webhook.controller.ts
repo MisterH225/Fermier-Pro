@@ -9,6 +9,7 @@ import {
 import { createHmac, timingSafeEqual } from "crypto";
 import { SkipThrottle } from "@nestjs/throttler";
 import { MarketplaceTransactionService } from "./marketplace-transaction.service";
+import { isDeploymentProduction } from "./runtime-env.util";
 
 type PaymentWebhookBody = {
   event: "payment.confirmed" | "payment.failed";
@@ -59,7 +60,7 @@ export class MobileMoneyWebhookController {
   ): void {
     const secret = process.env.MOBILE_MONEY_WEBHOOK_SECRET?.trim();
     if (!secret) {
-      if (isProductionRuntime()) {
+      if (isDeploymentProduction()) {
         throw new UnauthorizedException("Webhook secret non configuré");
       }
       return;
@@ -83,13 +84,4 @@ export class MobileMoneyWebhookController {
       throw new UnauthorizedException("Signature invalide");
     }
   }
-}
-
-function isProductionRuntime(): boolean {
-  const env = (
-    process.env.NODE_ENV ??
-    process.env.APP_ENV ??
-    ""
-  ).toLowerCase();
-  return env === "production" || env === "prod";
 }
