@@ -37,6 +37,8 @@ import {
   type ChatSocketConnectionStatus,
   useChatRoomSocket
 } from "../hooks/useChatRoomSocket";
+import { useBottomChromePad } from "../hooks/useBottomInset";
+import { CHAT_INPUT_BAR_HEIGHT } from "../constants/layout";
 import type { ChatMessageDto } from "../lib/api";
 import {
   fetchChatMessages,
@@ -165,6 +167,8 @@ export function ChatRoomScreen({ route, navigation }: Props) {
   /** Nombre de nouveaux messages (autres) arrivés hors vue en bas de liste. */
   const [pendingBelowCount, setPendingBelowCount] = useState(0);
   const hasMoreOlderRef = useRef(true);
+  const bottomChromePad = useBottomChromePad();
+  const listBottomPad = CHAT_INPUT_BAR_HEIGHT + mobileSpacing.sm;
   const loadingOlderRef = useRef(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
 
@@ -485,7 +489,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
     <ChatModuleGate>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
         {liveStrip ? (
@@ -532,7 +536,10 @@ export function ChatRoomScreen({ route, navigation }: Props) {
               keyExtractor={(m) => m.id}
               renderItem={renderItem}
               style={styles.listFlex}
-              contentContainerStyle={styles.listContent}
+              contentContainerStyle={[
+                styles.listContent,
+                { paddingBottom: listBottomPad }
+              ]}
               onScroll={onListScroll}
               scrollEventThrottle={100}
               onContentSizeChange={onListContentSizeChange}
@@ -602,6 +609,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
           onSend={onSend}
           sending={sendMutation.isPending}
           placeholder="Votre message…"
+          paddingBottom={bottomChromePad}
         />
         {sendMutation.error ? (
           <Text style={styles.sendError}>

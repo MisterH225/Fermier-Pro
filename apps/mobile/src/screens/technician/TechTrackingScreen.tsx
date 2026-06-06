@@ -10,7 +10,7 @@ import {
   ScreenSection
 } from "../../components/layout";
 import { TechMobileShell } from "../../components/layout/TechMobileShell";
-import { useTechBottomChromePad } from "../../context/TechBottomChromeContext";
+import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import { fetchTechnicianActivity } from "../../lib/api";
 import { mobileSpacing } from "../../theme/mobileTheme";
@@ -19,7 +19,7 @@ import { techColors } from "../../theme/technicianTheme";
 export function TechTrackingScreen() {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
-  const bottomPad = useTechBottomChromePad();
+  const bottomInset = useBottomInset();
   const { accessToken, activeProfileId } = useSession();
 
   const activityQ = useQuery({
@@ -50,7 +50,7 @@ export function TechTrackingScreen() {
       <ScrollView
         contentContainerStyle={[
           profileScreenScrollContent,
-          { paddingBottom: bottomPad + mobileSpacing.xl }
+          { paddingBottom: bottomInset }
         ]}
       >
         <ScreenSection title={t("tech.tracking.sectionLog")}>

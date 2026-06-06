@@ -1,6 +1,5 @@
 import {
   NavigationContainer,
-  createNavigationContainerRef,
   DefaultTheme,
   type LinkingOptions
 } from "@react-navigation/native";
@@ -97,6 +96,7 @@ import {
 import type { RootStackParamList } from "../types/navigation";
 import { useSession } from "../context/SessionContext";
 import { dashboardRouteForActiveProfileType } from "../lib/dashboardHomeRoute";
+import { rootNavigationRef } from "../lib/navigationRef";
 import { defaultStackScreenOptions } from "../lib/navigationHeaderOptions";
 import { mobileColors } from "../theme/mobileTheme";
 import { techStackScreenOptions } from "../theme/technicianTheme";
@@ -550,7 +550,7 @@ function MainNavigationWithChrome() {
         <BuyerBottomChromeProvider value={buyerPad}>
           <TechBottomChromeProvider value={techPad}>
             <AccountModerationGate>
-              <View style={styles.flex}>
+              <View key={activeProfileId ?? "none"} style={styles.flex}>
                 <View style={styles.flex}>
                   <MainStack />
                 </View>
@@ -568,14 +568,20 @@ function MainNavigationWithChrome() {
 }
 
 /** À l’intérieur de `PersistQueryClientProvider` (réhydratation cache offline). */
-const navigationRef = createNavigationContainerRef<RootStackParamList>();
-
 function MainNavigationShellInner() {
-  useSmartAlertPushNavigation(navigationRef);
+  const { activeProfileId } = useSession();
+  useSmartAlertPushNavigation(rootNavigationRef);
+  const navContainerKey = activeProfileId ?? "none";
+
   return (
     <View style={styles.flex}>
       <OfflineBanner />
-      <NavigationContainer ref={navigationRef} theme={navTheme} linking={linking}>
+      <NavigationContainer
+        key={navContainerKey}
+        ref={rootNavigationRef}
+        theme={navTheme}
+        linking={linking}
+      >
         <MainNavigationWithChrome />
       </NavigationContainer>
     </View>

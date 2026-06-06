@@ -15,7 +15,6 @@ import {
   ProfileType,
   SmartAlertModule,
   VetAppointmentStatus,
-  VetAppointmentStatus,
   VetConsultationStatus
 } from "@prisma/client";
 import type {

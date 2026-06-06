@@ -16,7 +16,7 @@ import {
 import { MobileAppShell } from "../components/layout";
 import { ConversationRow } from "../components/messaging/ConversationRow";
 import { ConversationSearchBar } from "../components/messaging/ConversationSearchBar";
-import { useProducerBottomChromePad } from "../context/ProducerBottomChromeContext";
+import { useBottomChromePad } from "../hooks/useBottomInset";
 import { useSession } from "../context/SessionContext";
 import {
   directConversationTitle,
@@ -74,7 +74,7 @@ export function ProducerMessagesScreen() {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const bottomPad = useProducerBottomChromePad();
+  const bottomPad = useBottomChromePad();
   const { accessToken, activeProfileId, authMe } = useSession();
   const myUserId = authMe?.user.id;
   const [search, setSearch] = useState("");

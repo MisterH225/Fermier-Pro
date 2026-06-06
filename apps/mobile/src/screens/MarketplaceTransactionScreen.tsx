@@ -19,6 +19,7 @@ import {
 } from "../components/marketplace/MarketplaceListingCard";
 import { PrimaryButton } from "../components/ui/PrimaryButton";
 import { SecondaryButton } from "../components/ui/SecondaryButton";
+import { useBottomInset } from "../hooks/useBottomInset";
 import { useSession } from "../context/SessionContext";
 import {
   cancelMarketplaceTransaction,
@@ -53,6 +54,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId, authMe, clientFeatures } =
     useSession();
+  const bottomInset = useBottomInset();
   const qc = useQueryClient();
   const [pickupDate, setPickupDate] = useState("");
   const [pickupLocation, setPickupLocation] = useState("");
@@ -223,7 +225,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   return (
     <ScrollView
       style={styles.scroll}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.card}>
@@ -372,7 +374,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: mobileColors.surfaceMuted },
-  content: { padding: mobileSpacing.lg, paddingBottom: 48 },
+  content: { padding: mobileSpacing.lg },
   centered: {
     flex: 1,
     alignItems: "center",

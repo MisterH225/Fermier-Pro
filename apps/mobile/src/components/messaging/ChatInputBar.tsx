@@ -18,6 +18,8 @@ type Props = {
   onSend: () => void;
   sending?: boolean;
   placeholder?: string;
+  /** Espace sous la barre pour dégager la navbar flottante. */
+  paddingBottom?: number;
 };
 
 export function ChatInputBar({
@@ -25,12 +27,13 @@ export function ChatInputBar({
   onChangeText,
   onSend,
   sending = false,
-  placeholder = "Votre message…"
+  placeholder = "Votre message…",
+  paddingBottom = 0
 }: Props) {
   const canSend = value.trim().length > 0 && !sending;
 
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, paddingBottom > 0 ? { paddingBottom } : null]}>
       <Pressable style={styles.attachBtn} hitSlop={8}>
         <Ionicons
           name="attach-outline"

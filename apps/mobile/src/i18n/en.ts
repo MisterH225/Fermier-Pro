@@ -693,6 +693,7 @@ export const en = {
       kpiVisits: "Visits this month",
       kpiAlerts: "Health alerts",
       kpiTasks: "Pending tasks",
+      pendingEarnings: "Awaiting service completion",
       tasksTitle: "My tasks",
       taskFilter: { today: "Today", week: "This week", all: "All" },
       activityTitle: "Recent clinical activity",
@@ -1514,6 +1515,12 @@ export const en = {
       emptySub: "Send a message to your vet from their profile page.",
       noMessage: "No messages yet"
     },
+    vetAppointments: {
+      title: "Vet appointments",
+      payNow: "Pay now",
+      confirmService: "Confirm service",
+      vetFallback: "Veterinarian"
+    },
     welcomeLine: "Welcome",
     settingsButton: "Settings",
     farmSettingsTitle: "Settings",
@@ -1786,6 +1793,8 @@ export const en = {
     marketplaceSection: "Marketplace",
     marketplacePending: "Pending sales",
     marketplaceBlocked: "Held funds",
+    vetAppointmentsSection: "Vet appointments",
+    vetAppointmentsBlocked: "Upcoming appointments (held)",
     marketplaceSellerChart: "Marketplace sales (6 months)",
     marketplaceBuyerChart: "Marketplace purchases (6 months)",
     marketplaceConfirmedRevenue: "Confirmed revenue",
@@ -2252,6 +2261,8 @@ export const en = {
       verified: "✅ Verified",
       notVerified: "Profile pending verification",
       reviews: "reviews",
+      completedAppointments: "{{count}} completed services",
+      priceRange: "Services from {{min}} to {{max}} {{currency}}",
       statsFarms: "{{count}} farms followed",
       statsVisits: "{{count}} visits",
       planVisit: "Schedule a visit",

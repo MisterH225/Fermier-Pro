@@ -1163,6 +1163,52 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                           ))}
                       </ScreenSection>
                     ) : null}
+                    {vetAppointmentFinanceQ.data &&
+                    vetAppointmentFinanceQ.data.blockedForAppointments > 0 ? (
+                      <ScreenSection
+                        title={t("financeScreen.vetAppointmentsSection")}
+                        plain
+                      >
+                        <View style={styles.kpiRow}>
+                          <View style={styles.kpiHalf}>
+                            <FinanceKpiCard
+                              title={t("financeScreen.vetAppointmentsBlocked")}
+                              value={formatMoney(
+                                vetAppointmentFinanceQ.data.blockedForAppointments,
+                                vetAppointmentFinanceQ.data.currency,
+                                curSym
+                              )}
+                              deltaText={null}
+                              variant="yellow"
+                            />
+                          </View>
+                        </View>
+                        {(vetAppointmentFinanceQ.data.blockedAppointments ?? [])
+                          .slice(0, 5)
+                          .map((appt) => (
+                            <Pressable
+                              key={appt.id}
+                              style={styles.marketplaceTxRow}
+                              onPress={() =>
+                                navigation.navigate("VetAppointmentDetail", {
+                                  appointmentId: appt.id
+                                })
+                              }
+                            >
+                              <Text style={styles.marketplaceTxTitle} numberOfLines={1}>
+                                {appt.vetName} · {appt.farmName}
+                              </Text>
+                              <Text style={styles.marketplaceTxAmount}>
+                                {formatMoney(
+                                  appt.amount,
+                                  vetAppointmentFinanceQ.data!.currency,
+                                  curSym
+                                )}
+                              </Text>
+                            </Pressable>
+                          ))}
+                      </ScreenSection>
+                    ) : null}
                   </ScreenSection>
                 ) : null}
                 {overview ? (

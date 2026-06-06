@@ -189,8 +189,29 @@ export function VetProfileModal({
           {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
           {profile.ratingAvg != null ? (
             <Text style={styles.meta}>
-              ★ {profile.ratingAvg.toFixed(1)} · {profile.ratingCount}{" "}
-              {t("health.vetSearch.reviews")}
+              ⭐ {profile.ratingAvg.toFixed(1)} / 5 · ({profile.ratingCount}{" "}
+              {t("health.vetSearch.reviews")})
+            </Text>
+          ) : null}
+          {profile.stats.completedAppointments != null &&
+          profile.stats.completedAppointments > 0 ? (
+            <Text style={styles.meta}>
+              {t("health.vetSearch.completedAppointments", {
+                count: profile.stats.completedAppointments
+              })}
+            </Text>
+          ) : null}
+          {profile.servicePriceRange ? (
+            <Text style={styles.meta}>
+              {t("health.vetSearch.priceRange", {
+                min: Math.round(profile.servicePriceRange.min).toLocaleString(
+                  "fr-FR"
+                ),
+                max: Math.round(profile.servicePriceRange.max).toLocaleString(
+                  "fr-FR"
+                ),
+                currency: profile.servicePriceRange.currency
+              })}
             </Text>
           ) : null}
           <Text style={styles.meta}>
@@ -202,6 +223,26 @@ export function VetProfileModal({
               count: profile.stats.visitsCompleted
             })}
           </Text>
+          {profile.recentReviews.length > 0 ? (
+            <View style={styles.reviews}>
+              {profile.recentReviews.slice(0, 3).map((r, i) => (
+                <View key={`${r.createdAt}-${i}`} style={styles.reviewRow}>
+                  <Text style={styles.reviewScore}>
+                    {"★".repeat(r.score)}
+                    {"☆".repeat(Math.max(0, 5 - r.score))}
+                  </Text>
+                  {r.comment ? (
+                    <Text style={styles.reviewComment} numberOfLines={2}>
+                      {r.comment}
+                    </Text>
+                  ) : null}
+                  {r.tags && r.tags.length > 0 ? (
+                    <Text style={styles.reviewTags}>{r.tags.join(" · ")}</Text>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          ) : null}
         </View>
       ) : null}
     </BaseModal>
@@ -215,6 +256,11 @@ const styles = StyleSheet.create({
   meta: { ...mobileTypography.meta, color: mobileColors.textSecondary },
   bio: { ...mobileTypography.body, color: mobileColors.textPrimary },
   err: { color: mobileColors.error },
+  reviews: { marginTop: mobileSpacing.sm, gap: mobileSpacing.sm },
+  reviewRow: { gap: 2 },
+  reviewScore: { color: "#F59E0B", fontWeight: "700", fontSize: 14 },
+  reviewComment: { ...mobileTypography.meta, color: mobileColors.textSecondary },
+  reviewTags: { ...mobileTypography.meta, fontSize: 11, color: mobileColors.textSecondary },
   actions: { gap: mobileSpacing.sm },
   contactRow: {
     flexDirection: "row",

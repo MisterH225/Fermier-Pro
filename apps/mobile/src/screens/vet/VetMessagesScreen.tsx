@@ -14,7 +14,7 @@ import {
 import { ChatModuleGate } from "../../components/ChatModuleGate";
 import { ConversationRow } from "../../components/messaging/ConversationRow";
 import { ConversationSearchBar } from "../../components/messaging/ConversationSearchBar";
-import { useVetBottomChromePad } from "../../context/VetBottomChromeContext";
+import { useBottomChromePad } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import {
   directConversationTitle,
@@ -42,7 +42,7 @@ export function VetMessagesScreen() {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const bottomPad = useVetBottomChromePad();
+  const bottomChromePad = useBottomChromePad();
   const { accessToken, activeProfileId, authMe } = useSession();
 
   useLayoutEffect(() => {
@@ -89,7 +89,7 @@ export function VetMessagesScreen() {
 
   return (
     <ChatModuleGate>
-      <View style={[styles.wrap, { paddingBottom: bottomPad }]}>
+      <View style={[styles.wrap, { paddingBottom: bottomChromePad }]}>
         {roomsQ.isPending ? (
           <View style={styles.list}>
             <ListSkeleton count={6} />

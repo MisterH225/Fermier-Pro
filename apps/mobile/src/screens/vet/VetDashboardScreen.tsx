@@ -24,10 +24,10 @@ import { VetWelcomeHeader } from "../../components/vet/VetWelcomeHeader";
 import { VisitCard } from "../../components/vet/VisitCard";
 import { AdminMessagesBanner } from "../../components/admin/AdminMessagesBanner";
 import { PendingInvitationsBanner } from "../../components/collaboration/PendingInvitationsBanner";
-import { useVetBottomChromePad } from "../../context/VetBottomChromeContext";
+import { useBottomInset } from "../../hooks/useBottomInset";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { useSession } from "../../context/SessionContext";
-import { fetchFarms, fetchVetDashboard } from "../../lib/api";
+import { fetchFarms, fetchVetDashboard, fetchVetAppointmentFinanceSummary } from "../../lib/api";
 import { welcomeFirstName } from "../../lib/userDisplay";
 import { vetColors, vetRadius, vetShadow } from "../../theme/vetTheme";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
@@ -74,7 +74,7 @@ export function VetDashboardScreen() {
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const bottomPad = useVetBottomChromePad();
+  const bottomInset = useBottomInset();
   const { accessToken, activeProfileId, authMe, refreshAuthMe, clientFeatures } =
     useSession();
   const [profileOpen, setProfileOpen] = useState(false);
@@ -89,6 +89,13 @@ export function VetDashboardScreen() {
   const dashQ = useQuery({
     queryKey: ["vetDashboard", activeProfileId],
     queryFn: () => fetchVetDashboard(accessToken!, activeProfileId),
+    enabled: Boolean(accessToken && !isPending)
+  });
+
+  const financeQ = useQuery({
+    queryKey: ["vetAppointmentFinance", activeProfileId, "vet"],
+    queryFn: () =>
+      fetchVetAppointmentFinanceSummary(accessToken!, "vet", activeProfileId),
     enabled: Boolean(accessToken && !isPending)
   });
 
@@ -171,7 +178,7 @@ export function VetDashboardScreen() {
   return (
     <VetMobileShell customHeader={dashboardHeader} omitBottomTabBar>
       <ScrollView
-        contentContainerStyle={[styles.wrap, { paddingBottom: bottomPad + 24 }]}
+        contentContainerStyle={[styles.wrap, { paddingBottom: bottomInset }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} />
         }
@@ -284,6 +291,18 @@ export function VetDashboardScreen() {
               />
             </View>
             )}
+
+            {(financeQ.data?.pendingEarnings ?? 0) > 0 ? (
+              <View style={styles.earningsCard}>
+                <Text style={styles.earningsLabel}>
+                  {t("vet.dashboard.pendingEarnings")}
+                </Text>
+                <Text style={styles.earningsValue}>
+                  {Math.round(financeQ.data!.pendingEarnings).toLocaleString("fr-FR")}{" "}
+                  {financeQ.data!.currency}
+                </Text>
+              </View>
+            ) : null}
 
             {primaryFarm && clientFeatures.tasks && accessToken ? (
               <>
@@ -525,5 +544,23 @@ const styles = StyleSheet.create({
     backgroundColor: vetColors.cardBg
   },
   quickBtnTx: { fontWeight: "700", color: vetColors.primary, fontSize: 15 },
-  quickBtnTxPrimary: { color: "#fff" }
+  quickBtnTxPrimary: { color: "#fff" },
+  earningsCard: {
+    marginTop: mobileSpacing.md,
+    backgroundColor: vetColors.kpiGreen,
+    borderRadius: 12,
+    padding: mobileSpacing.lg,
+    gap: 4
+  },
+  earningsLabel: {
+    ...mobileTypography.meta,
+    color: "#2E7D32",
+    fontWeight: "600"
+  },
+  earningsValue: {
+    ...mobileTypography.title,
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#166534"
+  }
 });

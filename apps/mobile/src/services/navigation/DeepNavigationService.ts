@@ -421,3 +421,54 @@ export function navigateFromPushData(
 
   return navigateToAlert(nav, alert, profile);
 }
+
+/** Navigation depuis une notification push (RDV véto, marketplace, alertes). */
+export function navigateFromGenericPushData(
+  navigationRef: NavigationContainerRef<RootStackParamList>,
+  data: Record<string, unknown> | undefined
+): boolean {
+  if (!data?.type || typeof data.type !== "string") {
+    return false;
+  }
+  const nav = navigationRef;
+  if (!nav?.isReady()) {
+    return false;
+  }
+
+  const type = data.type;
+
+  if (type === "smart_alert") {
+    return navigateFromPushData(
+      nav,
+      data as unknown as import("./deepNavigation.types").PushSmartAlertData
+    );
+  }
+
+  if (type.startsWith("vet_appointment")) {
+    const appointmentId = str(data.appointmentId);
+    if (!appointmentId) {
+      return false;
+    }
+    nav.navigate("VetAppointmentDetail", { appointmentId });
+    return true;
+  }
+
+  if (
+    type.startsWith("marketplace_") &&
+    str(data.transactionId)
+  ) {
+    nav.navigate("MarketplaceTransaction", {
+      transactionId: str(data.transactionId)!
+    });
+    return true;
+  }
+
+  if (type.startsWith("marketplace_") && str(data.listingId)) {
+    nav.navigate("MarketplaceListingDetail", {
+      listingId: str(data.listingId)!
+    });
+    return true;
+  }
+
+  return false;
+}

@@ -15,7 +15,6 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppDatePicker } from "../components/common/AppDatePicker";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
@@ -43,6 +42,7 @@ import {
 } from "../components/marketplace/listingDetailUi";
 import { useSession } from "../context/SessionContext";
 import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
+import { useBottomChromePad } from "../hooks/useBottomInset";
 import { formatAnimalDisplayLabel } from "../lib/animalDisplay";
 import {
   acceptMarketplaceOffer,
@@ -101,7 +101,7 @@ export function MarketplaceListingDetailScreen({
   const { accessToken, activeProfileId, authMe, clientFeatures } =
     useSession();
   const qc = useQueryClient();
-  const insets = useSafeAreaInsets();
+  const bottomChromePad = useBottomChromePad();
   const { open } = useModal();
 
   const showSuccess = (message: string, title?: string) => {
@@ -897,7 +897,7 @@ export function MarketplaceListingDetailScreen({
       <View
         style={[
           styles.footerBar,
-          { paddingBottom: Math.max(insets.bottom, mobileSpacing.md) }
+          { paddingBottom: bottomChromePad + mobileSpacing.md }
         ]}
       >
         {canSubmitOfferWithEscrow ? (

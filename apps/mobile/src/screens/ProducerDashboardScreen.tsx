@@ -27,13 +27,14 @@ import { CardContentSkeleton } from "../components/common/SkeletonBlocks";
 import { OnboardingBanner } from "../components/onboarding/OnboardingBanner";
 import { AdminMessagesBanner } from "../components/admin/AdminMessagesBanner";
 import { PendingInvitationsBanner } from "../components/collaboration/PendingInvitationsBanner";
+import { VetAppointmentActionsBanner } from "../components/vet/VetAppointmentActionsBanner";
 import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
 import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
 import { ProjectIndicator } from "../components/projects";
 import { useOnboardingResume } from "../context/OnboardingResumeContext";
 import { useActiveProject, useActiveFarm } from "../context/ActiveProjectContext";
 import { getProducerOnboardingState } from "../lib/onboardingState";
-import { useProducerBottomChromePad } from "../context/ProducerBottomChromeContext";
+import { useBottomInset } from "../hooks/useBottomInset";
 import { resolveActiveProfileAvatarUrl } from "../lib/profileAvatar";
 import { useSession } from "../context/SessionContext";
 import {
@@ -103,7 +104,7 @@ export function ProducerDashboardScreen() {
     clientFeatures
   } = useSession();
   const { activeFarm, activeFarmId, farms, refreshFarms } = useActiveProject();
-  const bottomChromePad = useProducerBottomChromePad();
+  const bottomInset = useBottomInset();
   const { requestResume } = useOnboardingResume();
   const onboardingState = getProducerOnboardingState(authMe, activeProfileId);
   const showOnboardingBanner = onboardingState === "skipped";
@@ -308,7 +309,7 @@ export function ProducerDashboardScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.wrap,
-            { paddingBottom: mobileSpacing.xxl + bottomChromePad }
+            { paddingBottom: bottomInset }
           ]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -316,6 +317,13 @@ export function ProducerDashboardScreen() {
         >
           <AdminMessagesBanner />
           <PendingInvitationsBanner />
+          {accessToken && farmId ? (
+            <VetAppointmentActionsBanner
+              accessToken={accessToken}
+              activeProfileId={activeProfileId}
+              farmId={farmId}
+            />
+          ) : null}
           {showOnboardingBanner ? (
             <OnboardingBanner onComplete={requestResume} />
           ) : null}
