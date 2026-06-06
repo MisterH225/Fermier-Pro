@@ -138,6 +138,12 @@ export const ACTIVE_ESCROW_STATUSES: MarketplaceTransactionStatus[] = [
   MarketplaceTransactionStatus.WEIGHT_VALIDATED
 ];
 
+/** Statuts bloquant la modification d'une annonce (escrow + paiement en attente). */
+export const LISTING_EDIT_LOCK_STATUSES: MarketplaceTransactionStatus[] = [
+  MarketplaceTransactionStatus.PAYMENT_PENDING,
+  ...ACTIVE_ESCROW_STATUSES
+];
+
 export const CANCELLABLE_BY_BUYER: MarketplaceTransactionStatus[] = [
   MarketplaceTransactionStatus.PAYMENT_PENDING,
   MarketplaceTransactionStatus.PAYMENT_HELD,

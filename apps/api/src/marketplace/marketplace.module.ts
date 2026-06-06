@@ -7,10 +7,12 @@ import { PushNotificationsModule } from "../push-notifications/push-notification
 import {
   DevMobileMoneyGateway,
   EscrowService,
-  MOBILE_MONEY_GATEWAY,
   MarketplaceTransactionController,
   MarketplaceTransactionCronService,
-  MarketplaceTransactionService
+  MarketplaceTransactionService,
+  MobileMoneyWebhookController,
+  mobileMoneyGatewayGuardProvider,
+  mobileMoneyGatewayProvider
 } from "./escrow";
 import { FarmRatingsController } from "./farm-ratings.controller";
 import { FarmRatingsService } from "./farm-ratings.service";
@@ -37,7 +39,8 @@ import { OffersService } from "./offers.service";
     OffersController,
     FarmRatingsController,
     MarketplacePigPriceIndexController,
-    MarketplaceTransactionController
+    MarketplaceTransactionController,
+    MobileMoneyWebhookController
   ],
   providers: [
     FarmMarketplaceLifecycleService,
@@ -51,7 +54,8 @@ import { OffersService } from "./offers.service";
     MarketplaceTransactionService,
     MarketplaceTransactionCronService,
     DevMobileMoneyGateway,
-    { provide: MOBILE_MONEY_GATEWAY, useExisting: DevMobileMoneyGateway }
+    mobileMoneyGatewayGuardProvider,
+    mobileMoneyGatewayProvider
   ],
   exports: [
     FarmMarketplaceLifecycleService,

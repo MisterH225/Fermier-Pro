@@ -40,10 +40,20 @@ export class DevMobileMoneyGateway implements MobileMoneyGateway {
     return { providerRef, paymentUrl: null };
   }
 
-  async confirmPayment(providerRef: string): Promise<MobileMoneyConfirmResult> {
+  async confirmPayment(
+    providerRef: string,
+    transactionId: string
+  ): Promise<MobileMoneyConfirmResult> {
     const row = this.pending.get(providerRef);
     if (!row) {
       return { success: false, providerRef, failureReason: "Référence introuvable" };
+    }
+    if (row.transactionId !== transactionId) {
+      return {
+        success: false,
+        providerRef,
+        failureReason: "Référence non liée à cette transaction"
+      };
     }
     this.pending.delete(providerRef);
     return { success: true, providerRef };

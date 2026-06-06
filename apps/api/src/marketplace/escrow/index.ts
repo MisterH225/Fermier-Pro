@@ -7,3 +7,8 @@ export {
 export { MarketplaceTransactionService } from "./marketplace-transaction.service";
 export { MarketplaceTransactionController } from "./marketplace-transaction.controller";
 export { MarketplaceTransactionCronService } from "./marketplace-transaction.cron";
+export { MobileMoneyWebhookController } from "./mobile-money-webhook.controller";
+export {
+  mobileMoneyGatewayGuardProvider,
+  mobileMoneyGatewayProvider
+} from "./mobile-money-gateway.provider";

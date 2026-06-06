@@ -525,7 +525,7 @@ export class VetAppointmentService {
       throw new BadRequestException("Référence paiement manquante");
     }
 
-    const confirmed = await this.gateway.confirmPayment(ref);
+    const confirmed = await this.gateway.confirmPayment(ref, appointmentId);
     if (!confirmed.success) {
       throw new BadRequestException(
         confirmed.failureReason ?? "Paiement non confirmé"

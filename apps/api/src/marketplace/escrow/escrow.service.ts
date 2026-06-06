@@ -37,22 +37,33 @@ export class EscrowService {
     return { providerRef: init.providerRef };
   }
 
-  async confirmHold(providerRef: string): Promise<boolean> {
-    const res = await this.gateway.confirmPayment(providerRef);
+  async confirmHold(providerRef: string, transactionId: string): Promise<boolean> {
+    const res = await this.gateway.confirmPayment(providerRef, transactionId);
     return res.success;
   }
 
   async releaseFundsToSeller(
     transactionId: string,
+    sellerUserId: string,
     sellerAmount: number,
     currency: string
   ): Promise<void> {
+    const res = await this.gateway.releaseFunds({
+      amount: sellerAmount,
+      currency,
+      recipientUserId: sellerUserId,
+      transactionId,
+      label: `Marketplace settlement ${transactionId}`
+    });
+    if (!res.success) {
+      throw new Error("Échec versement vendeur via mobile money");
+    }
     await this.logMovement(
       transactionId,
       MarketplaceFundMovementKind.RELEASE_TO_SELLER,
       sellerAmount,
       currency,
-      null,
+      res.providerRef,
       "Versement vendeur"
     );
   }

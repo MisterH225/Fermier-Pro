@@ -3,8 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 const BUCKET = "vet-credentials";
 
 /**
- * Téléverse diplôme vétérinaire (JPG/PNG/PDF) — bucket `vet-credentials` (public read recommandé pour admin).
- * `storageOwnerId` = `auth.users.id` (JWT `sub`), aligné sur les politiques RLS (`diplomas/{uid}/…`).
+ * Téléverse diplôme vétérinaire (JPG/PNG/PDF) — bucket `vet-credentials` (privé).
+ * L’URL retournée sert de référence en base ; l’accès admin passe par URL signée côté API.
  */
 export async function uploadVetDiplomaToSupabase(
   supabase: SupabaseClient,

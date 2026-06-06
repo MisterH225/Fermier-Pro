@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { parseSupabaseStoragePublicUrl } from "./supabase-storage-url.util";
 
 @Injectable()
 export class SupabaseAdminService {
@@ -73,5 +74,50 @@ export class SupabaseAdminService {
         `Storage delete ${bucket} (${res.status}): ${text.slice(0, 200)}`
       );
     }
+  }
+
+  /**
+   * URL signée pour un objet Storage (bucket privé ou accès admin).
+   * Accepte une URL publique Supabase stockée en base.
+   */
+  async createSignedStorageUrl(
+    storedUrl: string,
+    expiresInSeconds = 3600
+  ): Promise<string | null> {
+    const parsed = parseSupabaseStoragePublicUrl(storedUrl);
+    const base = this.baseUrl;
+    const key = this.serviceRoleKey;
+    if (!parsed || !base || !key) {
+      return null;
+    }
+    const pathEnc = parsed.path
+      .split("/")
+      .map((segment) => encodeURIComponent(segment))
+      .join("/");
+    const res = await fetch(
+      `${base}/storage/v1/object/sign/${parsed.bucket}/${pathEnc}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          apikey: key,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ expiresIn: expiresInSeconds })
+      }
+    );
+    if (!res.ok) {
+      const text = await res.text();
+      this.logger.warn(
+        `Storage sign ${parsed.bucket} (${res.status}): ${text.slice(0, 200)}`
+      );
+      return null;
+    }
+    const body = (await res.json()) as { signedURL?: string; signedUrl?: string };
+    const relative = body.signedURL ?? body.signedUrl;
+    if (!relative) {
+      return null;
+    }
+    return relative.startsWith("http") ? relative : `${base}${relative}`;
   }
 }

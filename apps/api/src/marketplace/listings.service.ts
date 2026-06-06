@@ -36,6 +36,7 @@ import {
   resolveListingMarketCategory,
   usesFlatListingPrice
 } from "./marketplace-listing-category.helper";
+import { LISTING_EDIT_LOCK_STATUSES } from "./escrow/transaction.utils";
 
 function privacyDisplayName(fullName: string | null | undefined): string {
   const raw = fullName?.trim();
@@ -621,6 +622,19 @@ export class ListingsService {
     ) {
       throw new BadRequestException(
         "Annonce non modifiable (réservée, vendue ou annulée)"
+      );
+    }
+
+    const activeEscrow = await this.prisma.marketplaceTransaction.findFirst({
+      where: {
+        listingId: id,
+        status: { in: LISTING_EDIT_LOCK_STATUSES }
+      },
+      select: { id: true, status: true }
+    });
+    if (activeEscrow) {
+      throw new BadRequestException(
+        "Annonce non modifiable pendant un paiement ou une transaction en cours"
       );
     }
 

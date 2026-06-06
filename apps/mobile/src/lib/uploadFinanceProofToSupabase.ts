@@ -3,8 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 const BUCKET = "finance-proofs";
 
 /**
- * Téléverse une photo de preuve vers le bucket public `finance-proofs`.
- * Créer le bucket + politiques de lecture/écriture dans le dashboard Supabase si besoin.
+ * Téléverse une photo de preuve vers le bucket `finance-proofs` (privé, accès membres ferme).
  */
 export async function uploadFinanceProofToSupabase(
   supabase: SupabaseClient,

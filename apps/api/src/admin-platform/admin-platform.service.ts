@@ -14,6 +14,7 @@ import {
 import { PrismaService } from "../prisma/prisma.service";
 import { PlatformSettingsService } from "../platform-settings/platform-settings.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
+import { SupabaseAdminService } from "../auth/supabase-admin.service";
 import { VetsService } from "../vets/vets.service";
 import type {
   CreateSanitaryAlertDto,
@@ -37,7 +38,8 @@ export class AdminPlatformService {
     private readonly prisma: PrismaService,
     private readonly vets: VetsService,
     private readonly push: PushNotificationsService,
-    private readonly platformSettings: PlatformSettingsService
+    private readonly platformSettings: PlatformSettingsService,
+    private readonly supabaseAdmin: SupabaseAdminService
   ) {}
 
   async assertSuperAdmin(userId: string) {
@@ -242,7 +244,17 @@ export class AdminPlatformService {
     if (!row) {
       throw new NotFoundException("Profil vétérinaire introuvable");
     }
-    return row;
+    let diplomaPhotoUrl = row.diplomaPhotoUrl;
+    if (diplomaPhotoUrl?.trim()) {
+      const signed = await this.supabaseAdmin.createSignedStorageUrl(
+        diplomaPhotoUrl.trim(),
+        3600
+      );
+      if (signed) {
+        diplomaPhotoUrl = signed;
+      }
+    }
+    return { ...row, diplomaPhotoUrl };
   }
 
   async verifyVetProfile(vetId: string) {

@@ -25,7 +25,10 @@ export interface MobileMoneyGateway {
     label: string;
   }): Promise<MobileMoneyInitResult>;
 
-  confirmPayment(providerRef: string): Promise<MobileMoneyConfirmResult>;
+  confirmPayment(
+    providerRef: string,
+    transactionId: string
+  ): Promise<MobileMoneyConfirmResult>;
 
   refund(params: {
     amount: number;
