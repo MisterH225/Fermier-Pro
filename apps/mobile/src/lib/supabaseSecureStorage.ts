@@ -10,6 +10,25 @@ function chunkKey(key: string, index: number): string {
   return `${key}__${index}`;
 }
 
+async function readChunkCount(key: string): Promise<number> {
+  const metaRaw = await SecureStore.getItemAsync(chunkMetaKey(key));
+  if (!metaRaw) {
+    return 0;
+  }
+  const count = Number.parseInt(metaRaw, 10);
+  return Number.isFinite(count) && count > 0 ? count : 0;
+}
+
+async function deleteChunks(
+  key: string,
+  fromIndex: number,
+  toExclusive: number
+): Promise<void> {
+  for (let i = fromIndex; i < toExclusive; i += 1) {
+    await SecureStore.deleteItemAsync(chunkKey(key, i));
+  }
+}
+
 /**
  * Adaptateur Supabase auth compatible SecureStore (Keychain / Keystore).
  * Les sessions JWT dépassent souvent 2 Ko — stockage découpé en morceaux.
@@ -36,12 +55,17 @@ export const supabaseSecureStorage = {
   },
 
   async setItem(key: string, value: string): Promise<void> {
-    await SecureStore.deleteItemAsync(key);
+    const priorChunkCount = await readChunkCount(key);
+
     if (value.length <= CHUNK_SIZE) {
+      if (priorChunkCount > 0) {
+        await deleteChunks(key, 0, priorChunkCount);
+      }
       await SecureStore.deleteItemAsync(chunkMetaKey(key));
       await SecureStore.setItemAsync(key, value);
       return;
     }
+
     const chunks = Math.ceil(value.length / CHUNK_SIZE);
     for (let i = 0; i < chunks; i += 1) {
       await SecureStore.setItemAsync(
@@ -49,19 +73,17 @@ export const supabaseSecureStorage = {
         value.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE)
       );
     }
+    if (priorChunkCount > chunks) {
+      await deleteChunks(key, chunks, priorChunkCount);
+    }
     await SecureStore.setItemAsync(chunkMetaKey(key), String(chunks));
     await SecureStore.deleteItemAsync(key);
   },
 
   async removeItem(key: string): Promise<void> {
-    const metaRaw = await SecureStore.getItemAsync(chunkMetaKey(key));
-    if (metaRaw) {
-      const count = Number.parseInt(metaRaw, 10);
-      if (Number.isFinite(count) && count > 0) {
-        for (let i = 0; i < count; i += 1) {
-          await SecureStore.deleteItemAsync(chunkKey(key, i));
-        }
-      }
+    const priorChunkCount = await readChunkCount(key);
+    if (priorChunkCount > 0) {
+      await deleteChunks(key, 0, priorChunkCount);
       await SecureStore.deleteItemAsync(chunkMetaKey(key));
     }
     await SecureStore.deleteItemAsync(key);

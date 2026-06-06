@@ -39,6 +39,7 @@ import { SuperAdminGuard } from "./super-admin.guard";
 import { PigPriceIndexService } from "../market/pig-price-index.service";
 import { MarketplacePigPriceIndexService } from "../marketplace/pig-price-index.service";
 import { MarketplaceTransactionService } from "../marketplace/escrow/marketplace-transaction.service";
+import { ReceiptService } from "../marketplace/receipts/receipt.service";
 import { VetAppointmentService } from "../vet-appointments/vet-appointment.service";
 
 @Controller("admin")
@@ -51,6 +52,7 @@ export class AdminPlatformController {
     private readonly pigPriceIndex: PigPriceIndexService,
     private readonly hybridPigPriceIndex: MarketplacePigPriceIndexService,
     private readonly marketplaceTransactions: MarketplaceTransactionService,
+    private readonly receipts: ReceiptService,
     private readonly vetAppointments: VetAppointmentService
   ) {}
 
@@ -387,6 +389,33 @@ export class AdminPlatformController {
   @Get("marketplace/revenue")
   adminPlatformRevenue(@Query("period") period?: string) {
     return this.marketplaceTransactions.getPlatformRevenueAdmin(period);
+  }
+
+  @Get("marketplace/receipts")
+  adminListReceipts(
+    @Query("status") status?: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string
+  ) {
+    const statusParsed =
+      status === "pending" || status === "generated" || status === "failed"
+        ? status
+        : undefined;
+    return this.receipts.listForAdmin({
+      status: statusParsed,
+      from: from ? new Date(from) : undefined,
+      to: to ? new Date(to) : undefined
+    });
+  }
+
+  @Post("marketplace/receipts/regenerate/:transactionId")
+  adminRegenerateReceipt(@Param("transactionId") transactionId: string) {
+    return this.receipts.generateReceipt(transactionId, { force: true });
+  }
+
+  @Get("marketplace/receipts/:receiptId/download")
+  adminDownloadReceipt(@Param("receiptId") receiptId: string) {
+    return this.receipts.adminDownload(receiptId);
   }
 
   @Get("vet-appointments")

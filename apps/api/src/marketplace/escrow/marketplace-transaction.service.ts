@@ -20,6 +20,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { PlatformSettingsService } from "../../platform-settings/platform-settings.service";
 import { PushNotificationsService } from "../../push-notifications/push-notifications.service";
 import { ListingsService } from "../listings.service";
+import { ReceiptService } from "../receipts/receipt.service";
 import { EscrowService } from "./escrow.service";
 import {
   ACTIVE_ESCROW_STATUSES,
@@ -43,7 +44,8 @@ export class MarketplaceTransactionService {
     private readonly push: PushNotificationsService,
     private readonly platformSettings: PlatformSettingsService,
     @Inject(forwardRef(() => ListingsService))
-    private readonly listings: ListingsService
+    private readonly listings: ListingsService,
+    private readonly receipts: ReceiptService
   ) {}
 
   /** Crée une transaction escrow après acceptation d'offre (vendeur ou acheteur). */
@@ -107,7 +109,14 @@ export class MarketplaceTransactionService {
       where: { id: transactionId },
       include: {
         listing: { select: { id: true, title: true, category: true } },
-        offer: true
+        offer: true,
+        receipt: {
+          select: {
+            id: true,
+            receiptNumber: true,
+            generatedAt: true
+          }
+        }
       }
     });
     if (!tx) {
@@ -607,8 +616,12 @@ export class MarketplaceTransactionService {
             id: transactionId,
             status: MarketplaceTransactionStatus.WEIGHT_VALIDATED
           },
-          data: { status: MarketplaceTransactionStatus.TRANSACTION_CLOSED }
+          data: {
+            status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
+            closedAt: new Date()
+          }
         });
+        void this.receipts.generateReceipt(transactionId);
         return;
       }
 
@@ -683,6 +696,7 @@ export class MarketplaceTransactionService {
         },
         data: {
           status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
+          closedAt: new Date(),
           finalAmount: new Prisma.Decimal(finalAmount),
           commissionAmount: new Prisma.Decimal(amounts.commissionAmount),
           sellerReceivedAmount: new Prisma.Decimal(amounts.sellerReceivedAmount),
@@ -740,6 +754,8 @@ export class MarketplaceTransactionService {
         `Transaction finalisée.${refundNote}`,
         { type: "marketplace_transaction_closed", transactionId: tx.id }
       );
+
+      void this.receipts.generateReceipt(transactionId);
     } finally {
       await this.prisma.$executeRaw`SELECT pg_advisory_unlock(hashtext(${lockKey}))`;
     }
@@ -823,6 +839,11 @@ export class MarketplaceTransactionService {
       ReturnType<PrismaService["marketplaceTransaction"]["findUnique"]>
     > & {
       listing?: { id: string; title: string; category: string | null };
+      receipt?: {
+        id: string;
+        receiptNumber: string;
+        generatedAt: Date;
+      } | null;
     }
   ) {
     if (!tx) return null;
@@ -846,7 +867,15 @@ export class MarketplaceTransactionService {
       pickupLocation: tx.pickupLocation,
       currency: tx.currency,
       offerExpiresAt: tx.offerExpiresAt.toISOString(),
-      listingTitle: tx.listing?.title ?? null
+      listingTitle: tx.listing?.title ?? null,
+      receiptGenerationStatus: tx.receiptGenerationStatus,
+      receipt: tx.receipt
+        ? {
+            id: tx.receipt.id,
+            receiptNumber: tx.receipt.receiptNumber,
+            generatedAt: tx.receipt.generatedAt.toISOString()
+          }
+        : null
     };
   }
 

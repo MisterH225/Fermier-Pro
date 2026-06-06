@@ -404,6 +404,43 @@ export function fetchAdminMarketplaceDisputes(token: string) {
   );
 }
 
+export type AdminMarketplaceReceiptRow = {
+  transactionId: string;
+  listingTitle: string;
+  sellerName: string | null;
+  buyerName: string | null;
+  closedAt: string | null;
+  receiptGenerationStatus: string;
+  receipt: {
+    id: string;
+    receiptNumber: string;
+    generatedAt: string;
+    pdfSizeBytes: number;
+  } | null;
+};
+
+export function fetchAdminMarketplaceReceipts(token: string) {
+  return apiFetch<AdminMarketplaceReceiptRow[]>(
+    "/admin/marketplace/receipts",
+    token
+  );
+}
+
+export function adminRegenerateReceipt(token: string, transactionId: string) {
+  return apiFetch<{ receiptNumber: string } | null>(
+    `/admin/marketplace/receipts/regenerate/${transactionId}`,
+    token,
+    { method: "POST" }
+  );
+}
+
+export function adminDownloadReceipt(token: string, receiptId: string) {
+  return apiFetch<{ receiptNumber: string; downloadUrl: string }>(
+    `/admin/marketplace/receipts/${receiptId}/download`,
+    token
+  );
+}
+
 export function adminArbitrateMarketplaceWeight(
   token: string,
   transactionId: string,

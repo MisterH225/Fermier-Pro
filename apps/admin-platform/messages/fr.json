@@ -441,7 +441,24 @@
     "tabs": {
       "transactions": "Transactions",
       "disputes": "Litiges poids",
-      "revenue": "Commissions"
+      "revenue": "Commissions",
+      "receipts": "Reçus PDF"
+    },
+    "receipts": {
+      "empty": "Aucune transaction clôturée.",
+      "summary": "{generated} reçus générés sur {total} transactions clôturées.",
+      "colListing": "Annonce",
+      "colReceipt": "N° reçu",
+      "colStatus": "Statut",
+      "colClosed": "Clôture",
+      "colActions": "Actions",
+      "download": "Télécharger",
+      "regenerate": "Régénérer",
+      "status": {
+        "pending": "En attente",
+        "generated": "Généré",
+        "failed": "Échec"
+      }
     },
     "transactions": {
       "empty": "Aucune transaction.",

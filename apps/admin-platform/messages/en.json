@@ -423,7 +423,24 @@
     "tabs": {
       "transactions": "Transactions",
       "disputes": "Weight disputes",
-      "revenue": "Commissions"
+      "revenue": "Commissions",
+      "receipts": "PDF receipts"
+    },
+    "receipts": {
+      "empty": "No closed transactions.",
+      "summary": "{generated} receipts generated out of {total} closed transactions.",
+      "colListing": "Listing",
+      "colReceipt": "Receipt no.",
+      "colStatus": "Status",
+      "colClosed": "Closed",
+      "colActions": "Actions",
+      "download": "Download",
+      "regenerate": "Regenerate",
+      "status": {
+        "pending": "Pending",
+        "generated": "Generated",
+        "failed": "Failed"
+      }
     },
     "transactions": {
       "empty": "No transactions.",

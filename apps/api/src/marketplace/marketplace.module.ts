@@ -14,6 +14,7 @@ import {
   mobileMoneyGatewayGuardProvider,
   mobileMoneyGatewayProvider
 } from "./escrow";
+import { ReceiptController, ReceiptPdfService, ReceiptService } from "./receipts";
 import { FarmRatingsController } from "./farm-ratings.controller";
 import { FarmRatingsService } from "./farm-ratings.service";
 import { FarmMarketplaceLifecycleService } from "./farm-marketplace-lifecycle.service";
@@ -40,7 +41,8 @@ import { OffersService } from "./offers.service";
     FarmRatingsController,
     MarketplacePigPriceIndexController,
     MarketplaceTransactionController,
-    MobileMoneyWebhookController
+    MobileMoneyWebhookController,
+    ReceiptController
   ],
   providers: [
     FarmMarketplaceLifecycleService,
@@ -55,13 +57,16 @@ import { OffersService } from "./offers.service";
     MarketplaceTransactionCronService,
     DevMobileMoneyGateway,
     mobileMoneyGatewayGuardProvider,
-    mobileMoneyGatewayProvider
+    mobileMoneyGatewayProvider,
+    ReceiptService,
+    ReceiptPdfService
   ],
   exports: [
     FarmMarketplaceLifecycleService,
     ListingsService,
     MarketplacePigPriceIndexService,
-    MarketplaceTransactionService
+    MarketplaceTransactionService,
+    ReceiptService
   ]
 })
 export class MarketplaceModule {}

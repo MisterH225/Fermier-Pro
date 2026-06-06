@@ -19,6 +19,7 @@ import {
 } from "../components/marketplace/MarketplaceListingCard";
 import { PrimaryButton } from "../components/ui/PrimaryButton";
 import { SecondaryButton } from "../components/ui/SecondaryButton";
+import { TransactionReceiptCard } from "../components/marketplace/TransactionReceiptCard";
 import { useBottomInset } from "../hooks/useBottomInset";
 import { useSession } from "../context/SessionContext";
 import {
@@ -366,6 +367,13 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
           <Text style={styles.success}>
             {t("marketScreen.transaction.closed")}
           </Text>
+          <TransactionReceiptCard
+            transactionId={transactionId}
+            accessToken={accessToken!}
+            activeProfileId={activeProfileId}
+            receiptGenerationStatus={tx.receiptGenerationStatus}
+            receipt={tx.receipt}
+          />
         </View>
       ) : null}
     </ScrollView>

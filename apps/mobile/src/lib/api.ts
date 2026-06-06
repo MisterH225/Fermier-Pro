@@ -4988,6 +4988,19 @@ export type MarketplaceTransactionDto = {
   currency: string;
   offerExpiresAt: string;
   listingTitle: string | null;
+  receiptGenerationStatus?: string;
+  receipt?: {
+    id: string;
+    receiptNumber: string;
+    generatedAt: string;
+  } | null;
+};
+
+export type MarketplaceReceiptDto = {
+  receiptNumber: string | null;
+  generatedAt: string | null;
+  downloadUrl: string | null;
+  status: string;
 };
 
 export type MarketplaceFinanceSummaryDto = {
@@ -5146,6 +5159,18 @@ export function cancelMarketplaceTransaction(
   return apiPostJson<MarketplaceTransactionDto>(
     `/marketplace/transactions/${transactionId}/cancel`,
     {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchMarketplaceReceipt(
+  accessToken: string,
+  transactionId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceReceiptDto> {
+  return apiGetJson<MarketplaceReceiptDto>(
+    `/marketplace/transactions/${transactionId}/receipt`,
     accessToken,
     activeProfileId
   );

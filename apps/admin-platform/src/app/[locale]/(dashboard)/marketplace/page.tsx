@@ -13,8 +13,9 @@ import { FilterPills } from "@/components/layout/FilterPills";
 import { MarketplaceTransactionTable } from "@/components/marketplace/MarketplaceTransactionTable";
 import { WeightDisputeQueue } from "@/components/marketplace/WeightDisputeQueue";
 import { PlatformRevenueSection } from "@/components/marketplace/PlatformRevenueSection";
+import { MarketplaceReceiptsSection } from "@/components/marketplace/MarketplaceReceiptsSection";
 
-const MAIN_TABS = ["transactions", "disputes", "revenue"] as const;
+const MAIN_TABS = ["transactions", "disputes", "revenue", "receipts"] as const;
 type MainTab = (typeof MAIN_TABS)[number];
 
 const STATUS_FILTERS = [
@@ -116,6 +117,10 @@ export default function MarketplaceAdminPage() {
 
       {mainTab === "revenue" && token ? (
         <PlatformRevenueSection token={token} />
+      ) : null}
+
+      {mainTab === "receipts" && token ? (
+        <MarketplaceReceiptsSection token={token} />
       ) : null}
     </div>
   );

@@ -120,6 +120,8 @@ model User {
   offersAsBuyer         MarketplaceOffer[]   @relation("OfferBuyer")
   marketplaceTransactionsAsBuyer  MarketplaceTransaction[] @relation("TransactionBuyer")
   marketplaceTransactionsAsSeller MarketplaceTransaction[] @relation("TransactionSeller")
+  marketplaceReceiptsAsSeller     MarketplaceTransactionReceipt[] @relation("ReceiptSeller")
+  marketplaceReceiptsAsBuyer      MarketplaceTransactionReceipt[] @relation("ReceiptBuyer")
   vetConsultsOpened     VetConsultation[]    @relation("VetConsultOpenedBy")
   vetConsultsPrimary    VetConsultation[]    @relation("VetConsultPrimaryVet")
   vetConsultAttachments VetConsultationAttachment[]
@@ -1508,6 +1510,12 @@ model MarketplaceOffer {
   @@index([listingId, status])
 }
 
+enum ReceiptGenerationStatus {
+  pending
+  generated
+  failed
+}
+
 /// Transaction marketplace avec escrow (cycle complet jusqu'à clôture).
 model MarketplaceTransaction {
   id                      String                       @id @default(cuid())
@@ -1543,6 +1551,8 @@ model MarketplaceTransaction {
   paymentProviderRef      String?
   paymentInitiatedAt      DateTime?
   paymentConfirmedAt      DateTime?
+  closedAt                DateTime?
+  receiptGenerationStatus ReceiptGenerationStatus @default(pending)
   cancelledAt             DateTime?
   cancelReason            String?
   offerExpiresAt          DateTime
@@ -1551,6 +1561,7 @@ model MarketplaceTransaction {
   updatedAt               DateTime                     @updatedAt
   fundMovements           MarketplaceFundMovement[]
   platformRevenue         PlatformRevenue?
+  receipt                 MarketplaceTransactionReceipt?
 
   @@index([listingId, status])
   @@index([buyerUserId, status])
@@ -1571,6 +1582,31 @@ model MarketplaceFundMovement {
   createdAt     DateTime                    @default(now())
 
   @@index([transactionId])
+}
+
+model MarketplaceTransactionReceipt {
+  id                   String                 @id @default(cuid())
+  receiptNumber        String                 @unique
+  transactionId        String                 @unique
+  transaction          MarketplaceTransaction @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  sellerId             String
+  seller               User                   @relation("ReceiptSeller", fields: [sellerId], references: [id], onDelete: Restrict)
+  buyerId              String
+  buyer                User                   @relation("ReceiptBuyer", fields: [buyerId], references: [id], onDelete: Restrict)
+  pdfStoragePath       String
+  pdfSizeBytes         Int
+  generatedAt          DateTime               @default(now())
+  receiptYear          Int
+  yearSequence         Int
+  downloadedBySeller   Boolean                @default(false)
+  downloadedByBuyer    Boolean                @default(false)
+  sellerDownloadedAt   DateTime?
+  buyerDownloadedAt    DateTime?
+
+  @@unique([receiptYear, yearSequence])
+  @@index([generatedAt(sort: Desc)])
+  @@index([sellerId])
+  @@index([buyerId])
 }
 
 model PlatformRevenue {

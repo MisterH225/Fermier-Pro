@@ -325,7 +325,17 @@ export const en = {
       validateWeight: "Validate weight",
       disputeWeight: "Dispute weight",
       cancel: "Cancel transaction",
-      closed: "Transaction completed."
+      closed: "Transaction completed.",
+      receiptTitle: "Transaction receipt",
+      receiptNumber: "No. {{number}}",
+      receiptGeneratedAt: "Generated on {{date}}",
+      receiptDownload: "Download receipt (PDF)",
+      receiptGenerating: "Generating…",
+      receiptFailed: "Error — contact support or retry.",
+      receiptRetry: "Retry",
+      receiptErrorTitle: "Download failed",
+      receiptErrorBody: "Could not fetch the receipt.",
+      receiptNotReady: "Receipt not available yet."
     },
     categories: {
       all: "All",
