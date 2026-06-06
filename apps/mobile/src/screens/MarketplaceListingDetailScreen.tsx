@@ -66,6 +66,7 @@ import {
   marketplaceActionErrorMessage,
   offerStatusLabel
 } from "../lib/marketplaceLabels";
+import { getUserFacingError } from "../lib/userFacingError";
 import {
   mobileColors,
   mobileRadius,
