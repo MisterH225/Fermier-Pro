@@ -38,6 +38,8 @@ import {
 import { SuperAdminGuard } from "./super-admin.guard";
 import { PigPriceIndexService } from "../market/pig-price-index.service";
 import { MarketplacePigPriceIndexService } from "../marketplace/pig-price-index.service";
+import { MarketplaceTransactionService } from "../marketplace/escrow/marketplace-transaction.service";
+import { VetAppointmentService } from "../vet-appointments/vet-appointment.service";
 
 @Controller("admin")
 @UseGuards(SupabaseJwtGuard, SuperAdminGuard)
@@ -47,7 +49,9 @@ export class AdminPlatformController {
     private readonly adminAi: AdminAiService,
     private readonly moderation: AdminUserModerationService,
     private readonly pigPriceIndex: PigPriceIndexService,
-    private readonly hybridPigPriceIndex: MarketplacePigPriceIndexService
+    private readonly hybridPigPriceIndex: MarketplacePigPriceIndexService,
+    private readonly marketplaceTransactions: MarketplaceTransactionService,
+    private readonly vetAppointments: VetAppointmentService
   ) {}
 
   @Get("me")
@@ -355,5 +359,51 @@ export class AdminPlatformController {
   @Post("pig-price-index/hybrid/recalculate")
   adminRecalculateHybridIndex() {
     return this.hybridPigPriceIndex.calculateHybridIndex();
+  }
+
+  @Get("marketplace/transactions")
+  adminListTransactions(@Query("status") status?: string) {
+    return this.marketplaceTransactions.listForAdmin(status);
+  }
+
+  @Get("marketplace/disputes")
+  adminListDisputes() {
+    return this.marketplaceTransactions.listDisputesForAdmin();
+  }
+
+  @Post("marketplace/transactions/:id/arbitrate")
+  adminArbitrateWeight(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() body: { arbitrationWeightKg: number }
+  ) {
+    return this.marketplaceTransactions.arbitrateWeight(
+      admin.id,
+      id,
+      body.arbitrationWeightKg
+    );
+  }
+
+  @Get("marketplace/revenue")
+  adminPlatformRevenue(@Query("period") period?: string) {
+    return this.marketplaceTransactions.getPlatformRevenueAdmin(period);
+  }
+
+  @Get("vet-appointments")
+  adminListVetAppointments(@Query("status") status?: string) {
+    return this.vetAppointments.listForAdmin(status);
+  }
+
+  @Post("vet-appointments/:id/refund")
+  adminRefundVetAppointment(
+    @Param("id") id: string,
+    @Body() body: { amount?: number }
+  ) {
+    return this.vetAppointments.adminManualRefund(id, body.amount);
+  }
+
+  @Get("vet-appointments/revenue")
+  adminVetAppointmentRevenue(@Query("period") period?: string) {
+    return this.vetAppointments.getAdminRevenue(period);
   }
 }

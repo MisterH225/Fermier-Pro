@@ -1,4 +1,4 @@
-import { IsEnum, IsInt, IsOptional, IsString, MaxLength, Min } from "class-validator";
+import { IsEnum, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
 import { SanitaryAlertLevel, SanitaryAlertType } from "@prisma/client";
 
 export class RejectVetProfileAdminDto {
@@ -39,6 +39,13 @@ export class UpdatePlatformSettingsDto {
   @IsInt()
   @Min(1)
   reportFrequencyDays?: number;
+
+  /** Taux de commission marketplace (ex. 0.05 = 5 %). */
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(0.99)
+  marketplaceCommissionRate?: number;
 }
 
 export class AdminAiAskDto {

@@ -1,9 +1,17 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { ChatModule } from "../chat/chat.module";
 import { ConfigClientModule } from "../config-client/config-client.module";
 import { FeatureFlagsModule } from "../feature-flags/feature-flags.module";
 import { PushNotificationsModule } from "../push-notifications/push-notifications.module";
+import {
+  DevMobileMoneyGateway,
+  EscrowService,
+  MOBILE_MONEY_GATEWAY,
+  MarketplaceTransactionController,
+  MarketplaceTransactionCronService,
+  MarketplaceTransactionService
+} from "./escrow";
 import { FarmRatingsController } from "./farm-ratings.controller";
 import { FarmRatingsService } from "./farm-ratings.service";
 import { FarmMarketplaceLifecycleService } from "./farm-marketplace-lifecycle.service";
@@ -28,7 +36,8 @@ import { OffersService } from "./offers.service";
     ListingsController,
     OffersController,
     FarmRatingsController,
-    MarketplacePigPriceIndexController
+    MarketplacePigPriceIndexController,
+    MarketplaceTransactionController
   ],
   providers: [
     FarmMarketplaceLifecycleService,
@@ -37,12 +46,18 @@ import { OffersService } from "./offers.service";
     FarmRatingsService,
     MarketplaceCronService,
     MarketplacePigPriceIndexService,
-    MarketplacePigPriceIndexCronService
+    MarketplacePigPriceIndexCronService,
+    EscrowService,
+    MarketplaceTransactionService,
+    MarketplaceTransactionCronService,
+    DevMobileMoneyGateway,
+    { provide: MOBILE_MONEY_GATEWAY, useExisting: DevMobileMoneyGateway }
   ],
   exports: [
     FarmMarketplaceLifecycleService,
     ListingsService,
-    MarketplacePigPriceIndexService
+    MarketplacePigPriceIndexService,
+    MarketplaceTransactionService
   ]
 })
 export class MarketplaceModule {}

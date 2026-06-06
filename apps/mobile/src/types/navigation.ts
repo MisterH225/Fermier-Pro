@@ -59,6 +59,7 @@ export type RootStackParamList = {
     farmName: string;
     vetProfileId: string;
   };
+  VetAppointmentDetail: { appointmentId: string };
   CreateFarm: undefined;
   AnimalDetail: {
     farmId: string;
@@ -84,6 +85,7 @@ export type RootStackParamList = {
       }
     | undefined;
   MarketplaceListingDetail: { listingId: string; headline?: string };
+  MarketplaceTransaction: { transactionId: string };
   MarketplaceMyOffers: undefined;
   MarketplaceMyListings: undefined;
   CreateMarketplaceListing: { farmId?: string };

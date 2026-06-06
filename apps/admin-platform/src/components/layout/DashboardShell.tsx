@@ -13,11 +13,16 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [pendingVets, setPendingVets] = useState(0);
   const [activeAlerts, setActiveAlerts] = useState(0);
+  const [marketplaceDisputes, setMarketplaceDisputes] = useState(0);
 
-  const onCounts = useCallback((c: { pendingVets: number; activeAlerts: number }) => {
-    setPendingVets(c.pendingVets);
-    setActiveAlerts(c.activeAlerts);
-  }, []);
+  const onCounts = useCallback(
+    (c: { pendingVets: number; activeAlerts: number; marketplaceDisputes: number }) => {
+      setPendingVets(c.pendingVets);
+      setActiveAlerts(c.activeAlerts);
+      setMarketplaceDisputes(c.marketplaceDisputes);
+    },
+    []
+  );
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -48,6 +53,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       <Sidebar
         pendingVets={pendingVets}
         activeAlerts={activeAlerts}
+        marketplaceDisputes={marketplaceDisputes}
         onLogout={logout}
       />
       <main className="flex-1 overflow-auto">

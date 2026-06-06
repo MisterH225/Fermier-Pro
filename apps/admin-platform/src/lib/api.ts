@@ -196,6 +196,7 @@ export type PlatformSettingsDto = {
   alertDefaultLevel: string;
   adminNotifyEmail: string | null;
   reportFrequencyDays: number;
+  marketplaceCommissionRate: number;
 };
 
 export type HealthMapDto = {
@@ -367,4 +368,151 @@ export function adminRecalculateHybridPigPrice(token: string) {
   return apiFetch<unknown>("/admin/pig-price-index/hybrid/recalculate", token, {
     method: "POST"
   });
+}
+
+export type AdminMarketplaceTransactionRow = {
+  id: string;
+  status: string;
+  blockedAmount: string | number;
+  finalAmount?: string | number | null;
+  realWeightKg?: string | number | null;
+  arbitrationWeightKg?: string | number | null;
+  currency: string;
+  updatedAt: string;
+  weightDisputeOpenedAt?: string | null;
+  weightDeclaredByBuyerAt?: string | null;
+  listing: { id: string; title: string };
+  buyer: { id: string; fullName: string | null; email: string | null };
+  seller: { id: string; fullName: string | null; email: string | null };
+};
+
+export function fetchAdminMarketplaceTransactions(
+  token: string,
+  status?: string
+) {
+  const q = status ? `?status=${encodeURIComponent(status)}` : "";
+  return apiFetch<AdminMarketplaceTransactionRow[]>(
+    `/admin/marketplace/transactions${q}`,
+    token
+  );
+}
+
+export function fetchAdminMarketplaceDisputes(token: string) {
+  return apiFetch<AdminMarketplaceTransactionRow[]>(
+    "/admin/marketplace/disputes",
+    token
+  );
+}
+
+export function adminArbitrateMarketplaceWeight(
+  token: string,
+  transactionId: string,
+  arbitrationWeightKg: number
+) {
+  return apiFetch<unknown>(
+    `/admin/marketplace/transactions/${transactionId}/arbitrate`,
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify({ arbitrationWeightKg })
+    }
+  );
+}
+
+export type AdminPlatformRevenueDto = {
+  period: string;
+  totalCommission: number;
+  totalGross: number;
+  transactionCount: number;
+  series: Array<{ date: string; commission: number }>;
+  recent: Array<{
+    id: string;
+    transactionId: string;
+    listingTitle: string;
+    commissionAmount: number;
+    grossAmount: number;
+    commissionRate: number;
+    collectedAt: string;
+  }>;
+};
+
+export function fetchAdminPlatformRevenue(
+  token: string,
+  period = "30d"
+) {
+  return apiFetch<AdminPlatformRevenueDto>(
+    `/admin/marketplace/revenue?period=${encodeURIComponent(period)}`,
+    token
+  );
+}
+
+export type AdminVetAppointmentRow = {
+  id: string;
+  status: string;
+  farmName?: string | null;
+  vetName?: string | null;
+  producerName?: string | null;
+  servicePrice?: number | null;
+  blockedAmount?: number | null;
+  currency: string;
+  requestedAt: string;
+  confirmedAt?: string | null;
+  conflictStatus?: string | null;
+};
+
+export function fetchAdminVetAppointments(token: string, status?: string) {
+  const q = status ? `?status=${encodeURIComponent(status)}` : "";
+  return apiFetch<AdminVetAppointmentRow[]>(
+    `/admin/vet-appointments${q}`,
+    token
+  );
+}
+
+export function adminRefundVetAppointment(
+  token: string,
+  appointmentId: string,
+  amount?: number
+) {
+  return apiFetch<{ ok: boolean; refundAmount: number }>(
+    `/admin/vet-appointments/${appointmentId}/refund`,
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify(amount != null ? { amount } : {})
+    }
+  );
+}
+
+export type AdminVetAppointmentRevenueDto = {
+  period: string;
+  totalCommission: number;
+  totalGross: number;
+  appointmentCount: number;
+  recent: Array<{
+    id: string;
+    appointmentId: string | null;
+    farmName: string;
+    vetName: string;
+    commissionAmount: number;
+    grossAmount: number;
+    collectedAt: string;
+  }>;
+  lowRatedVets: Array<{
+    id: string;
+    fullName: string;
+    ratingAvg: number | null;
+    ratingCount: number;
+    completedAppointments: number;
+  }>;
+};
+
+export function fetchAdminVetAppointmentRevenue(
+  token: string,
+  period?: string
+) {
+  const q = period ? `?period=${encodeURIComponent(period)}` : "";
+  return apiFetch<AdminVetAppointmentRevenueDto>(
+    `/admin/vet-appointments/revenue${q}`,
+    token
+  );
 }

@@ -888,9 +888,12 @@ export class ListingsService {
   ) {
     const listing = await this.requireOwnerEditable(user, listingId);
     await this.requireMarketplaceWriteIfFarmListing(user.id, listing.farmId);
-    if (listing.status !== ListingStatus.reserved) {
+    if (
+      listing.status !== ListingStatus.reserved &&
+      listing.status !== ListingStatus.published
+    ) {
       throw new BadRequestException(
-        "Cloture possible uniquement pour une annonce reservee"
+        "Cloture possible uniquement pour une annonce disponible ou reservee"
       );
     }
     if (!listing.farmId) {

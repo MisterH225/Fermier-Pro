@@ -57,6 +57,7 @@ import {
   FarmHealthScreen,
   VetSearchScreen,
   ProducerScheduleVetVisitScreen,
+  VetAppointmentDetailScreen,
   FarmMembersScreen,
   FarmTasksScreen,
   FarmVetConsultationsScreen,
@@ -64,6 +65,7 @@ import {
   MarketplaceListScreen,
   MarketplaceMyListingsScreen,
   MarketplaceMyOffersScreen,
+  MarketplaceTransactionScreen,
   ModuleRoadmapScreen,
   ProducerDashboardScreen,
   ProducerFarmSettingsScreen,
@@ -329,6 +331,11 @@ function MainStack() {
         options={{ title: "Planifier une visite" }}
       />
       <Stack.Screen
+        name="VetAppointmentDetail"
+        component={VetAppointmentDetailScreen}
+        options={{ title: "Rendez-vous" }}
+      />
+      <Stack.Screen
         name="ProducerMessages"
         component={ProducerMessagesScreen}
         options={{ title: "Messages" }}
@@ -444,6 +451,11 @@ function MainStack() {
         options={({ route }) => ({
           title: route.params.headline ?? "Annonce"
         })}
+      />
+      <Stack.Screen
+        name="MarketplaceTransaction"
+        component={MarketplaceTransactionScreen}
+        options={{ title: "Transaction" }}
       />
       <Stack.Screen
         name="MarketplaceMyOffers"

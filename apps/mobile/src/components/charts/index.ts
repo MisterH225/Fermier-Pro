@@ -11,6 +11,8 @@ export { ChartTooltip } from "./ChartTooltip";
 export {
   financeMonthsToRevExpLines,
   financeMonthsToSingleLine,
+  marketplaceBuyerFinanceLines,
+  marketplaceSellerFinanceLines,
   budgetVsExpenseLines,
   barDataToLine,
   feedChartToLines,
@@ -18,5 +20,6 @@ export {
   FEED_SERIES_PALETTE,
   feedPeriodToChartPeriod,
   chartPeriodToFeedPeriod,
-  type FinanceMonthPoint
+  type FinanceMonthPoint,
+  type MarketplaceFinanceMonthPoint
 } from "./smartChartAdapters";

@@ -27,7 +27,12 @@ export default function ParametresPage() {
 
   useEffect(() => {
     if (!token) return;
-    apiFetch<PlatformSettingsDto>("/admin/settings", token).then(setForm);
+    apiFetch<PlatformSettingsDto>("/admin/settings", token).then((row) => {
+      setForm({
+        ...row,
+        marketplaceCommissionRate: Number(row.marketplaceCommissionRate ?? 0.05)
+      });
+    });
   }, [token]);
 
   const update = <K extends keyof PlatformSettingsDto>(
@@ -51,7 +56,8 @@ export default function ParametresPage() {
           alertPeriodDays: form.alertPeriodDays,
           alertDefaultLevel: form.alertDefaultLevel,
           adminNotifyEmail: form.adminNotifyEmail ?? "",
-          reportFrequencyDays: form.reportFrequencyDays
+          reportFrequencyDays: form.reportFrequencyDays,
+          marketplaceCommissionRate: form.marketplaceCommissionRate
         })
       });
       setForm(next);
@@ -160,6 +166,37 @@ export default function ParametresPage() {
               value={form.reportFrequencyDays}
               onChange={(e) => update("reportFrequencyDays", Number(e.target.value))}
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">{t("sections.marketplace")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="marketplace-commission">
+              {t("fields.marketplaceCommission")}
+            </Label>
+            <Input
+              id="marketplace-commission"
+              type="number"
+              min={0}
+              max={99}
+              step={0.1}
+              value={Math.round((form.marketplaceCommissionRate ?? 0.05) * 1000) / 10}
+              onChange={(e) => {
+                const pct = Number(e.target.value);
+                update(
+                  "marketplaceCommissionRate",
+                  Number.isFinite(pct) ? pct / 100 : 0.05
+                );
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("fields.marketplaceCommissionHint")}
+            </p>
           </div>
         </CardContent>
       </Card>

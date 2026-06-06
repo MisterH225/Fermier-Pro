@@ -90,6 +90,10 @@ model User {
   indexWeight           Decimal              @default(0.1) @db.Decimal(3, 2)
   /// Ventes marketplace conclues (handover) — anti-manipulation indice.
   completedTransactions Int                  @default(0)
+  /// Score réputation marketplace (100 par défaut).
+  reputationScore       Int                  @default(100)
+  /// Annulations vendeur sur transactions escrow.
+  cancelledAsSellerCount Int                 @default(0)
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
   /// Projet (ferme) actif sélectionné par l'utilisateur producteur.
@@ -114,6 +118,8 @@ model User {
   batchHealthEventsRecorded LivestockBatchHealthEvent[]
   listingsAsSeller      MarketplaceListing[] @relation("ListingSeller")
   offersAsBuyer         MarketplaceOffer[]   @relation("OfferBuyer")
+  marketplaceTransactionsAsBuyer  MarketplaceTransaction[] @relation("TransactionBuyer")
+  marketplaceTransactionsAsSeller MarketplaceTransaction[] @relation("TransactionSeller")
   vetConsultsOpened     VetConsultation[]    @relation("VetConsultOpenedBy")
   vetConsultsPrimary    VetConsultation[]    @relation("VetConsultPrimaryVet")
   vetConsultAttachments VetConsultationAttachment[]
@@ -131,6 +137,8 @@ model User {
   auditLogs           AuditLog[]
   vetProfile            VetProfile?
   vetRatingsAuthored    VetRating[] @relation("VetRatingAuthor")
+  vetAppointmentsAsProducer VetAppointment[] @relation("AppointmentProducer")
+  vetAppointmentsAsVet      VetAppointment[] @relation("AppointmentVet")
   superAdmin            SuperAdmin?
   adminAuditActions     AdminAuditLog[]      @relation("AdminAuditActor")
   adminAuditTargets     AdminAuditLog[]      @relation("AdminAuditTarget")
@@ -173,10 +181,14 @@ model VetProfile {
   rejectionReason      String?
   ratingAvg            Decimal?              @db.Decimal(3, 2)
   ratingCount          Int                   @default(0)
+  completedAppointments Int                  @default(0)
+  cancelledAppointmentsAsVet Int             @default(0)
   verifiedAt           DateTime?
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   ratings              VetRating[]
+  vetAppointments      VetAppointment[]
+  appointmentRatings   VetAppointmentRating[]
 
   @@index([verificationStatus])
   @@index([primarySpecialty])
@@ -275,6 +287,7 @@ model Farm {
   marketplaceListings MarketplaceListing[]
   pigPriceSnapshots   PigPriceSnapshot[]
   vetConsultations    VetConsultation[]
+  vetAppointments     VetAppointment[]
   livestockBatches  LivestockBatch[]
   barns             Barn[]
   livestockExits    LivestockExit[] @relation("ExitOriginFarm")
@@ -667,6 +680,109 @@ model VetConsultationAttachment {
   createdAt        DateTime          @default(now())
 
   @@index([consultationId])
+}
+
+enum VetAppointmentStatus {
+  APPOINTMENT_REQUESTED
+  AWAITING_PAYMENT
+  APPOINTMENT_CONFIRMED
+  APPOINTMENT_IN_PROGRESS
+  APPOINTMENT_COMPLETED
+  APPOINTMENT_RATED
+  APPOINTMENT_REFUSED
+  PAYMENT_EXPIRED
+  CANCELLED_BY_PRODUCER
+  CANCELLED_BY_VET
+}
+
+enum VetAppointmentConflictStatus {
+  AVAILABLE
+  CONFLICT_NEARBY
+  CONFLICT_EXACT
+}
+
+enum VetAppointmentFundMovementKind {
+  HOLD
+  RELEASE_TO_VET
+  REFUND_PRODUCER
+  COMMISSION
+}
+
+/// Rendez-vous vétérinaire producteur ↔ véto (demande → acceptation → escrow → prestation → avis).
+model VetAppointment {
+  id                     String                      @id @default(cuid())
+  farmId                 String
+  farm                   Farm                        @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  producerUserId         String
+  producer               User                        @relation("AppointmentProducer", fields: [producerUserId], references: [id], onDelete: Restrict)
+  vetProfileId           String
+  vetProfile             VetProfile                  @relation(fields: [vetProfileId], references: [id], onDelete: Restrict)
+  vetUserId              String
+  vet                    User                        @relation("AppointmentVet", fields: [vetUserId], references: [id], onDelete: Restrict)
+  status                 VetAppointmentStatus        @default(APPOINTMENT_REQUESTED)
+  requestedAt            DateTime
+  confirmedAt            DateTime?
+  estimatedDurationHours Decimal                     @default(1) @db.Decimal(4, 2)
+  reason                 String
+  notes                  String?
+  farmLocation           String
+  refusalReason          String?
+  vetResponseNotes       String?
+  servicePrice           Decimal?                    @db.Decimal(14, 2)
+  commissionRate         Decimal                     @default(0.05) @db.Decimal(5, 4)
+  commissionAmount       Decimal?                    @db.Decimal(14, 2)
+  vetReceivedAmount      Decimal?                    @db.Decimal(14, 2)
+  blockedAmount          Decimal?                    @db.Decimal(14, 2)
+  paymentDeadline        DateTime?
+  paymentConfirmedAt     DateTime?
+  paymentProviderRef     String?
+  completedAt            DateTime?
+  cancelledAt            DateTime?
+  cancellationReason     String?
+  conflictStatus         VetAppointmentConflictStatus?
+  conflictDetails        Json?
+  calendarBlocked        Boolean                     @default(false)
+  currency               String                      @default("XOF")
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+  rating                 VetAppointmentRating?
+  fundMovements          VetAppointmentFundMovement[]
+  platformRevenue        PlatformRevenue?
+
+  @@index([vetUserId, status])
+  @@index([producerUserId, status])
+  @@index([farmId, status])
+  @@index([status, paymentDeadline])
+  @@index([status, confirmedAt])
+}
+
+model VetAppointmentRating {
+  id             String         @id @default(cuid())
+  appointmentId  String         @unique
+  appointment    VetAppointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  vetProfileId   String
+  vetProfile     VetProfile     @relation(fields: [vetProfileId], references: [id], onDelete: Cascade)
+  producerUserId String
+  rating         Int
+  comment        String?
+  tags           String[]       @default([])
+  createdAt      DateTime       @default(now())
+
+  @@index([vetProfileId])
+}
+
+model VetAppointmentFundMovement {
+  id            String                         @id @default(cuid())
+  appointmentId String
+  appointment   VetAppointment                 @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  kind          VetAppointmentFundMovementKind
+  amount        Decimal                        @db.Decimal(14, 2)
+  currency      String                         @default("XOF")
+  providerRef   String?
+  note          String?
+  createdAt     DateTime                       @default(now())
+
+  @@index([appointmentId])
 }
 
 enum AnimalSex {
@@ -1180,6 +1296,41 @@ enum OfferStatus {
   cancelled
 }
 
+enum MarketplaceTransactionStatus {
+  OFFER_ACCEPTED
+  PAYMENT_PENDING
+  PAYMENT_HELD
+  PICKUP_SCHEDULED
+  WEIGHT_DECLARED
+  WEIGHT_DISPUTED
+  WEIGHT_VALIDATED
+  TRANSACTION_CLOSED
+  CANCELLED_BY_BUYER
+  CANCELLED_BY_SELLER
+  CANCELLED_SOLD_TO_OTHER
+  PAYMENT_FAILED
+  OFFER_EXPIRED
+}
+
+enum MarketplacePriceType {
+  per_kg
+  flat
+}
+
+enum WeightValidatedBy {
+  auto
+  seller
+  superadmin
+}
+
+enum MarketplaceFundMovementKind {
+  HOLD
+  RELEASE_TO_SELLER
+  REFUND_BUYER
+  ADDITIONAL_CHARGE
+  COMMISSION
+}
+
 enum PigPriceSnapshotSource {
   listing
   direct_sale
@@ -1229,10 +1380,13 @@ model MarketplaceListing {
   /// Rendez-vous de retrait des animaux (convenu hors paiement in-app).
   pickupAt      DateTime?
   pickupNote    String?
+  /// Nombre d'offres avec fonds sécurisés (PAYMENT_HELD+).
+  activeOfferCount Int             @default(0)
   createdAt     DateTime        @default(now())
   archived      Boolean         @default(false)
   updatedAt     DateTime        @updatedAt
   offers        MarketplaceOffer[]
+  transactions  MarketplaceTransaction[]
   favorites     BuyerFavorite[]
   chatRooms     ChatRoom[]
 
@@ -1347,10 +1501,93 @@ model MarketplaceOffer {
   archived     Boolean            @default(false)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
+  transaction  MarketplaceTransaction?
 
   @@index([listingId])
   @@index([buyerUserId])
   @@index([listingId, status])
+}
+
+/// Transaction marketplace avec escrow (cycle complet jusqu'à clôture).
+model MarketplaceTransaction {
+  id                      String                       @id @default(cuid())
+  offerId                 String                       @unique
+  offer                   MarketplaceOffer             @relation(fields: [offerId], references: [id], onDelete: Restrict)
+  listingId               String
+  listing                 MarketplaceListing           @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  buyerUserId             String
+  buyer                   User                         @relation("TransactionBuyer", fields: [buyerUserId], references: [id], onDelete: Restrict)
+  sellerUserId            String
+  seller                  User                         @relation("TransactionSeller", fields: [sellerUserId], references: [id], onDelete: Restrict)
+  status                  MarketplaceTransactionStatus @default(PAYMENT_PENDING)
+  priceType               MarketplacePriceType
+  agreedPricePerKg        Decimal?                     @db.Decimal(14, 4)
+  agreedFlatPrice         Decimal?                     @db.Decimal(14, 2)
+  estimatedWeightKg       Decimal?                     @db.Decimal(14, 4)
+  blockedAmount           Decimal                      @db.Decimal(14, 2)
+  finalAmount             Decimal?                     @db.Decimal(14, 2)
+  realWeightKg            Decimal?                     @db.Decimal(14, 4)
+  arbitrationWeightKg     Decimal?                     @db.Decimal(14, 4)
+  weightDeclaredByBuyerAt DateTime?
+  weightDisputeOpenedAt   DateTime?
+  weightValidatedAt       DateTime?
+  weightValidatedBy       WeightValidatedBy?
+  weightScalePhotoUrl     String?
+  pickupDate              DateTime?                    @db.Date
+  pickupLocation          String?
+  commissionRate          Decimal                      @db.Decimal(5, 4)
+  commissionAmount        Decimal?                     @db.Decimal(14, 2)
+  sellerReceivedAmount    Decimal?                     @db.Decimal(14, 2)
+  buyerRefundAmount       Decimal?                     @db.Decimal(14, 2)
+  buyerAdditionalCharge   Decimal?                     @db.Decimal(14, 2)
+  paymentProviderRef      String?
+  paymentInitiatedAt      DateTime?
+  paymentConfirmedAt      DateTime?
+  cancelledAt             DateTime?
+  cancelReason            String?
+  offerExpiresAt          DateTime
+  currency                String                       @default("XOF")
+  createdAt               DateTime                     @default(now())
+  updatedAt               DateTime                     @updatedAt
+  fundMovements           MarketplaceFundMovement[]
+  platformRevenue         PlatformRevenue?
+
+  @@index([listingId, status])
+  @@index([buyerUserId, status])
+  @@index([sellerUserId, status])
+  @@index([status])
+  @@index([offerExpiresAt])
+}
+
+model MarketplaceFundMovement {
+  id            String                      @id @default(cuid())
+  transactionId String
+  transaction   MarketplaceTransaction      @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  kind          MarketplaceFundMovementKind
+  amount        Decimal                     @db.Decimal(14, 2)
+  currency      String                      @default("XOF")
+  providerRef   String?
+  note          String?
+  createdAt     DateTime                    @default(now())
+
+  @@index([transactionId])
+}
+
+model PlatformRevenue {
+  id               String                  @id @default(cuid())
+  transactionId    String?                 @unique
+  transaction      MarketplaceTransaction? @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  vetAppointmentId String?                 @unique
+  vetAppointment   VetAppointment?         @relation(fields: [vetAppointmentId], references: [id], onDelete: Restrict)
+  sellerId         String
+  buyerId          String
+  grossAmount      Decimal                @db.Decimal(14, 2)
+  commissionRate   Decimal                @db.Decimal(5, 4)
+  commissionAmount Decimal                @db.Decimal(14, 2)
+  collectedAt      DateTime               @default(now())
+  type             String                 @default("COMMISSION")
+
+  @@index([collectedAt(sort: Desc)])
 }
 
 /// Avis acheteur → ferme (notation Market).
@@ -1851,6 +2088,7 @@ model PlatformSettings {
   alertDefaultLevel     SanitaryAlertLevel @default(warning)
   adminNotifyEmail      String?
   reportFrequencyDays   Int      @default(7)
+  marketplaceCommissionRate Decimal @default(0.05) @db.Decimal(5, 4)
   updatedAt             DateTime @updatedAt
 }
 

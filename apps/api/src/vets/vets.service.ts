@@ -14,6 +14,8 @@ import {
   Prisma,
   ProfileType,
   SmartAlertModule,
+  VetAppointmentStatus,
+  VetAppointmentStatus,
   VetConsultationStatus
 } from "@prisma/client";
 import type {
@@ -44,6 +46,8 @@ const VetStatus = {
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { VetAppointmentService } from "../vet-appointments/vet-appointment.service";
+import { VetCalendarService } from "../vet-appointments/vet-calendar.service";
 import { CreateVetRatingDto } from "./dto/create-vet-rating.dto";
 import { UpsertVetProfileDto } from "./dto/upsert-vet-profile.dto";
 
@@ -84,7 +88,9 @@ export class VetsService {
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
     private readonly audit: AuditService,
-    private readonly push: PushNotificationsService
+    private readonly push: PushNotificationsService,
+    private readonly vetAppointments: VetAppointmentService,
+    private readonly vetCalendar: VetCalendarService
   ) {}
 
   async assertVeterinarianProfile(userId: string) {
@@ -204,11 +210,12 @@ export class VetsService {
       verificationStatus: VetVerificationStatus;
       ratingAvg: Prisma.Decimal | null;
       ratingCount: number;
-      verifiedAt: Date | null;
+      completedAppointments: number;
     },
     viewerUserId?: string
   ) {
-    const [farmsCount, visitsCount, ratings] = await Promise.all([
+    const [farmsCount, visitsCount, legacyRatings, appointmentRatings, priceRange] =
+      await Promise.all([
       this.prisma.farmMembership.count({
         where: { userId: row.userId, role: "veterinarian" }
       }),
@@ -222,8 +229,68 @@ export class VetsService {
         include: {
           ratedBy: { select: { fullName: true } }
         }
+      }),
+      this.prisma.vetAppointmentRating.findMany({
+        where: { vetProfileId: row.id },
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        include: {
+          appointment: {
+            select: {
+              producer: { select: { fullName: true } }
+            }
+          }
+        }
+      }),
+      this.prisma.vetAppointment.aggregate({
+        where: {
+          vetProfileId: row.id,
+          status: {
+            in: [
+              VetAppointmentStatus.APPOINTMENT_COMPLETED,
+              VetAppointmentStatus.APPOINTMENT_RATED
+            ]
+          },
+          servicePrice: { not: null }
+        },
+        _min: { servicePrice: true },
+        _max: { servicePrice: true }
       })
     ]);
+
+    const legacyReviews = legacyRatings.map((r: (typeof legacyRatings)[number]) => ({
+      score: r.score,
+      comment: r.comment,
+      authorName: r.ratedBy.fullName,
+      createdAt: r.createdAt.toISOString(),
+      tags: [] as string[]
+    }));
+
+    const appointmentReviews = appointmentRatings.map(
+      (r: (typeof appointmentRatings)[number]) => ({
+        score: r.rating,
+        comment: r.comment,
+        authorName: r.appointment.producer.fullName,
+        createdAt: r.createdAt.toISOString(),
+        tags: r.tags
+      })
+    );
+
+    const recentReviews = [...legacyReviews, ...appointmentReviews]
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
+      .slice(0, 8);
+
+    const priceMin =
+      priceRange._min.servicePrice != null
+        ? Number(priceRange._min.servicePrice)
+        : null;
+    const priceMax =
+      priceRange._max.servicePrice != null
+        ? Number(priceRange._max.servicePrice)
+        : null;
 
     return {
       id: row.id,
@@ -250,14 +317,14 @@ export class VetsService {
       ratingCount: row.ratingCount,
       stats: {
         farmsFollowed: farmsCount,
-        visitsCompleted: visitsCount
+        visitsCompleted: visitsCount + row.completedAppointments,
+        completedAppointments: row.completedAppointments
       },
-      recentReviews: ratings.map((r: (typeof ratings)[number]) => ({
-        score: r.score,
-        comment: r.comment,
-        authorName: r.ratedBy.fullName,
-        createdAt: r.createdAt.toISOString()
-      })),
+      servicePriceRange:
+        priceMin != null && priceMax != null
+          ? { min: priceMin, max: priceMax, currency: "XOF" }
+          : null,
+      recentReviews,
       canContact: row.verificationStatus === VetStatus.verified,
       isSelf: viewerUserId === row.userId
     };
@@ -479,19 +546,12 @@ export class VetsService {
       throw new NotFoundException("Vétérinaire introuvable ou non vérifié");
     }
 
-    const { dayStart, dayEnd } = dayBoundsFromIsoDate(dateIso);
-    const consultations = await this.prisma.vetConsultation.findMany({
-      where: {
-        primaryVetUserId: vet.userId,
-        status: VetConsultationStatus.open,
-        openedAt: { gte: dayStart, lt: dayEnd }
-      },
-      select: { openedAt: true }
-    });
-
-    const occupied = new Set(
-      consultations.map((c) => slotTimeFromDate(c.openedAt))
+    const blocked = await this.vetCalendar.getBlockedSlotsForDay(
+      vet.userId,
+      dateIso
     );
+
+    const occupied = new Set(blocked.map((d) => slotTimeFromDate(d)));
 
     const slots = VET_VISIT_SLOT_TIMES.map((time) => ({
       time,
@@ -888,38 +948,11 @@ export class VetsService {
     farmId: string,
     dto: ProducerScheduleVetVisitDto
   ) {
-    await this.farmAccess.requireFarmAccess(user.id, farmId);
-
-    const vetProfile = await this.prisma.vetProfile.findUnique({
-      where: { id: dto.vetProfileId }
-    });
-    if (!vetProfile || vetProfile.verificationStatus !== VetStatus.verified) {
-      throw new NotFoundException("Vétérinaire introuvable ou non vérifié");
-    }
-    if (!vetProfile.availability) {
-      throw new BadRequestException(
-        "Ce vétérinaire n'est pas disponible actuellement"
-      );
-    }
-
-    const scheduled = new Date(dto.scheduledAt);
-    if (Number.isNaN(scheduled.getTime())) {
-      throw new BadRequestException("Date de visite invalide");
-    }
-    if (scheduled.getTime() < Date.now() - 60_000) {
-      throw new BadRequestException("La visite doit être planifiée dans le futur");
-    }
-
-    return this.createScheduledConsultation({
-      actorUserId: user.id,
-      farmId,
-      vetUserId: vetProfile.userId,
-      openedByUserId: user.id,
-      scheduledAt: scheduled,
+    return this.vetAppointments.requestAppointment(user, farmId, {
+      vetProfileId: dto.vetProfileId,
+      requestedAt: dto.scheduledAt,
       reason: dto.reason,
-      notes: dto.notes,
-      consultationPrice: null,
-      initiatedBy: "producer"
+      notes: dto.notes
     });
   }
 
@@ -987,6 +1020,7 @@ export class VetsService {
       healthAlerts,
       pendingTasks,
       openConsultations,
+      vetAppointments,
       recentConsultations,
       recentHealth
     ] = await Promise.all([
@@ -1035,6 +1069,25 @@ export class VetsService {
               openedBy: { select: { fullName: true, email: true, phone: true } }
             }
           }),
+      this.prisma.vetAppointment.findMany({
+        where: {
+          vetUserId: user.id,
+          status: {
+            in: [
+              VetAppointmentStatus.APPOINTMENT_REQUESTED,
+              VetAppointmentStatus.AWAITING_PAYMENT,
+              VetAppointmentStatus.APPOINTMENT_CONFIRMED,
+              VetAppointmentStatus.APPOINTMENT_IN_PROGRESS
+            ]
+          }
+        },
+        orderBy: { requestedAt: "asc" },
+        take: 20,
+        include: {
+          farm: { select: { id: true, name: true, address: true } },
+          producer: { select: { fullName: true, email: true, phone: true } }
+        }
+      }),
       vetFarmIds.length === 0
         ? []
         : this.prisma.vetConsultation.findMany({
@@ -1062,15 +1115,41 @@ export class VetsService {
           })
     ]);
 
-    const visitsCompleted = await this.prisma.vetConsultation.count({
-      where: {
-        primaryVetUserId: user.id,
-        status: VetConsultationStatus.resolved
-      }
-    });
+    const visitsCompleted =
+      (await this.prisma.vetConsultation.count({
+        where: {
+          primaryVetUserId: user.id,
+          status: VetConsultationStatus.resolved
+        }
+      })) + vetRow.completedAppointments;
 
-    const upcomingVisits: VetDashboardUpcomingVisitDto[] = openConsultations.map(
-      (c) => ({
+    const appointmentVisits: VetDashboardUpcomingVisitDto[] = vetAppointments.map(
+      (a) => ({
+        id: a.id,
+        farmId: a.farmId,
+        farmName: a.farm.name,
+        producerName: a.producer.fullName ?? a.producer.email,
+        producerPhone: a.producer.phone,
+        scheduledAt: (a.confirmedAt ?? a.requestedAt).toISOString(),
+        subject: a.reason,
+        location: a.farmLocation ?? a.farm.address,
+        status: a.status,
+        kind: "appointment" as const,
+        conflictStatus: a.conflictStatus,
+        conflictLabel:
+          a.conflictStatus === "CONFLICT_EXACT"
+            ? "Conflit détecté"
+            : a.conflictStatus === "CONFLICT_NEARBY"
+              ? "RDV proche"
+              : a.conflictStatus === "AVAILABLE"
+                ? "Créneau disponible"
+                : null,
+        servicePrice: a.servicePrice != null ? Number(a.servicePrice) : null
+      })
+    );
+
+    const consultationVisits: VetDashboardUpcomingVisitDto[] =
+      openConsultations.map((c) => ({
         id: c.id,
         farmId: c.farmId,
         farmName: c.farm.name,
@@ -1079,8 +1158,13 @@ export class VetsService {
         scheduledAt: c.openedAt.toISOString(),
         subject: c.subject,
         location: c.farm.address,
-        status: c.status
-      })
+        status: c.status,
+        kind: "consultation" as const
+      }));
+
+    const upcomingVisits = [...appointmentVisits, ...consultationVisits].sort(
+      (a, b) =>
+        new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
     );
 
     const activityFromConsultations: VetDashboardActivityDto[] =

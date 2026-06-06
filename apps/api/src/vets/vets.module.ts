@@ -4,6 +4,7 @@ import { AuthModule } from "../auth/auth.module";
 import { CommonModule } from "../common/common.module";
 import { PrismaModule } from "../prisma/prisma.module";
 import { PushNotificationsModule } from "../push-notifications/push-notifications.module";
+import { VetAppointmentsModule } from "../vet-appointments/vet-appointments.module";
 import { AdminVetsController } from "./admin-vets.controller";
 import { VetsController } from "./vets.controller";
 import { VetsService } from "./vets.service";
@@ -14,7 +15,8 @@ import { VetsService } from "./vets.service";
     CommonModule,
     PrismaModule,
     ConfigModule,
-    PushNotificationsModule
+    PushNotificationsModule,
+    VetAppointmentsModule
   ],
   controllers: [VetsController, AdminVetsController],
   providers: [VetsService],

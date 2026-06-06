@@ -222,13 +222,25 @@ export function VetDashboardScreen() {
                     scheduledAt={v.scheduledAt}
                     subject={v.subject}
                     location={v.location}
-                    onPress={() =>
+                    conflictLabel={v.conflictLabel}
+                    statusLabel={
+                      v.kind === "appointment" && v.status === "APPOINTMENT_REQUESTED"
+                        ? t("vet.appointment.requestPending")
+                        : undefined
+                    }
+                    onPress={() => {
+                      if (v.kind === "appointment") {
+                        navigation.navigate("VetAppointmentDetail", {
+                          appointmentId: v.id
+                        });
+                        return;
+                      }
                       navigation.navigate("VetConsultationDetail", {
                         farmId: v.farmId,
                         farmName: v.farmName,
                         consultationId: v.id
-                      })
-                    }
+                      });
+                    }}
                     onMessage={() => navigation.navigate("VetMessages")}
                   />
                 ))}

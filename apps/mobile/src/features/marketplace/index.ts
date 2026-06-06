@@ -7,3 +7,4 @@ export { MarketplaceListingDetailScreen } from "../../screens/MarketplaceListing
 export { MarketplaceListScreen } from "../../screens/MarketplaceListScreen";
 export { MarketplaceMyListingsScreen } from "../../screens/MarketplaceMyListingsScreen";
 export { MarketplaceMyOffersScreen } from "../../screens/MarketplaceMyOffersScreen";
+export { MarketplaceTransactionScreen } from "../../screens/MarketplaceTransactionScreen";

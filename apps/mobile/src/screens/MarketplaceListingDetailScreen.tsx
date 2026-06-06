@@ -52,6 +52,7 @@ import {
   counterMarketplaceOffer,
   ensureDirectChatRoom,
   fetchMarketplaceListing,
+  fetchMarketplaceTransactions,
   patchMarketplacePickup,
   postMarketplaceListingConsult,
   postMarketplaceListingView,
@@ -124,6 +125,12 @@ export function MarketplaceListingDetailScreen({
     queryFn: () =>
       fetchMarketplaceListing(accessToken, listingId, activeProfileId),
     enabled: clientFeatures.marketplace
+  });
+
+  const txQ = useQuery({
+    queryKey: ["marketplaceTransactions", activeProfileId],
+    queryFn: () => fetchMarketplaceTransactions(accessToken, activeProfileId),
+    enabled: Boolean(accessToken) && clientFeatures.marketplace
   });
 
   useLayoutEffect(() => {
@@ -379,9 +386,14 @@ export function MarketplaceListingDetailScreen({
         offerId,
         activeProfileId
       ),
-    onSuccess: () => {
+    onSuccess: (data) => {
       showSuccess(t("marketScreen.counterModal.accepted"));
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
+      if (data.transactionId) {
+        navigation.navigate("MarketplaceTransaction", {
+          transactionId: data.transactionId
+        });
+      }
     },
     onError: (e: Error) =>
       Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
@@ -455,6 +467,22 @@ export function MarketplaceListingDetailScreen({
 
   const isAcceptedBuyer =
     Boolean(myId && L.myOffers?.some((o) => o.status === "accepted"));
+  const activeTxStatuses = [
+    "PAYMENT_PENDING",
+    "PAYMENT_HELD",
+    "PICKUP_SCHEDULED",
+    "WEIGHT_DECLARED",
+    "WEIGHT_DISPUTED",
+    "WEIGHT_VALIDATED"
+  ];
+  const myListingTx = txQ.data?.find(
+    (tx) =>
+      tx.listingId === listingId &&
+      tx.buyerUserId === myId &&
+      activeTxStatuses.includes(tx.status)
+  );
+  const canSubmitOfferWithEscrow =
+    canSubmitOffer && !myListingTx;
   const canEditPickup =
     L.status === "reserved" && (isSeller || isAcceptedBuyer);
 
@@ -512,6 +540,25 @@ export function MarketplaceListingDetailScreen({
           status={L.status}
           label={listingStatusLabel(L.status)}
         />
+        {(L.activeOfferCount ?? 0) >= 1 ? (
+          <Text style={styles.offersBadge}>
+            {t("marketScreen.badgeActiveOffers", {
+              count: L.activeOfferCount
+            })}
+          </Text>
+        ) : null}
+        {myListingTx ? (
+          <View style={{ marginTop: mobileSpacing.sm }}>
+            <PrimaryButton
+              label={t("marketScreen.activeOfferCta")}
+              onPress={() =>
+                navigation.navigate("MarketplaceTransaction", {
+                  transactionId: myListingTx.id
+                })
+              }
+            />
+          </View>
+        ) : null}
         {flatPrice && askTotal != null ? (
           <>
             <Text style={styles.priceMain}>
@@ -853,7 +900,7 @@ export function MarketplaceListingDetailScreen({
           { paddingBottom: Math.max(insets.bottom, mobileSpacing.md) }
         ]}
       >
-        {canSubmitOffer ? (
+        {canSubmitOfferWithEscrow ? (
           <PrimaryButton
             label={t("marketScreen.detail.makeProposal")}
             onPress={() => setProposalOpen(true)}
@@ -1035,6 +1082,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 12,
     lineHeight: 20
+  },
+  offersBadge: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#B45309",
+    marginTop: 4,
+    marginBottom: 8
   },
   reservedBanner: {
     fontSize: 14,

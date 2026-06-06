@@ -290,6 +290,46 @@ export class MarketplacePigPriceIndexService {
   private async loadConfirmedTransactions(
     since: Date
   ): Promise<HybridIndexPoint[]> {
+    const closed = await this.prisma.marketplaceTransaction.findMany({
+      where: {
+        status: "TRANSACTION_CLOSED",
+        updatedAt: { gte: since },
+        finalAmount: { gt: 0 }
+      },
+      select: {
+        finalAmount: true,
+        realWeightKg: true,
+        arbitrationWeightKg: true,
+        estimatedWeightKg: true
+      }
+    });
+
+    const points: HybridIndexPoint[] = [];
+    for (const tx of closed) {
+      const finalAmount = Number(tx.finalAmount);
+      const weight =
+        tx.arbitrationWeightKg != null
+          ? Number(tx.arbitrationWeightKg)
+          : tx.realWeightKg != null
+            ? Number(tx.realWeightKg)
+            : tx.estimatedWeightKg != null
+              ? Number(tx.estimatedWeightKg)
+              : 0;
+      if (!Number.isFinite(finalAmount) || finalAmount <= 0 || weight <= 0) {
+        continue;
+      }
+      points.push({
+        pricePerKg: finalAmount / weight,
+        volumeKg: weight,
+        sourceWeight: HYBRID_INDEX_RULES.confirmedWeight,
+        kind: "confirmed"
+      });
+    }
+
+    if (points.length > 0) {
+      return points;
+    }
+
     const listings = await this.prisma.marketplaceListing.findMany({
       where: {
         status: ListingStatus.sold,
@@ -304,21 +344,21 @@ export class MarketplacePigPriceIndexService {
       }
     });
 
-    const points: HybridIndexPoint[] = [];
+    const legacyPoints: HybridIndexPoint[] = [];
     for (const l of listings) {
       const weight = Number(l.totalWeightKg);
       const price = Number(l.totalPrice);
       if (!Number.isFinite(weight) || weight <= 0 || !Number.isFinite(price)) {
         continue;
       }
-      points.push({
+      legacyPoints.push({
         pricePerKg: price / weight,
         volumeKg: weight,
         sourceWeight: HYBRID_INDEX_RULES.confirmedWeight,
         kind: "confirmed"
       });
     }
-    return points;
+    return legacyPoints;
   }
 
   private async loadEligibleListings(referenceIndex: number | null): Promise<{

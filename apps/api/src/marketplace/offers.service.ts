@@ -5,7 +5,7 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
-import { ListingStatus, OfferStatus, Prisma } from "@prisma/client";
+import { ListingStatus, OfferStatus, Prisma, MarketplaceTransactionStatus } from "@prisma/client";
 import { AUDIT_ACTION } from "../common/audit.constants";
 import { AuditService } from "../common/audit.service";
 import { FarmAccessService } from "../common/farm-access.service";
@@ -15,6 +15,7 @@ import { ChatService } from "../chat/chat.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import { CounterOfferDto } from "./dto/counter-offer.dto";
 import { CreateOfferDto } from "./dto/create-offer.dto";
+import { MarketplaceTransactionService } from "./escrow/marketplace-transaction.service";
 import { usesFlatListingPrice } from "./marketplace-listing-category.helper";
 
 @Injectable()
@@ -24,7 +25,8 @@ export class OffersService {
     private readonly farmAccess: FarmAccessService,
     private readonly audit: AuditService,
     private readonly push: PushNotificationsService,
-    private readonly chat: ChatService
+    private readonly chat: ChatService,
+    private readonly transactions: MarketplaceTransactionService
   ) {}
 
   private async requireMarketplaceWriteIfFarmListing(
@@ -52,6 +54,27 @@ export class OffersService {
     if (listing.sellerUserId === user.id) {
       throw new ForbiddenException(
         "Vous ne pouvez pas offrir sur votre propre annonce"
+      );
+    }
+    const existingHeld = await this.prisma.marketplaceTransaction.findFirst({
+      where: {
+        listingId,
+        buyerUserId: user.id,
+        status: {
+          in: [
+            MarketplaceTransactionStatus.PAYMENT_PENDING,
+            MarketplaceTransactionStatus.PAYMENT_HELD,
+            MarketplaceTransactionStatus.PICKUP_SCHEDULED,
+            MarketplaceTransactionStatus.WEIGHT_DECLARED,
+            MarketplaceTransactionStatus.WEIGHT_DISPUTED,
+            MarketplaceTransactionStatus.WEIGHT_VALIDATED
+          ]
+        }
+      }
+    });
+    if (existingHeld) {
+      throw new BadRequestException(
+        "Vous avez déjà une offre active sur cette annonce"
       );
     }
     const existingActive = await this.prisma.marketplaceOffer.findFirst({
@@ -181,24 +204,13 @@ export class OffersService {
       throw new BadRequestException("Offre non modifiable");
     }
 
-    await this.prisma.$transaction([
-      this.prisma.marketplaceOffer.update({
-        where: { id: offerId },
-        data: { status: OfferStatus.accepted }
-      }),
-      this.prisma.marketplaceOffer.updateMany({
-        where: {
-          listingId,
-          id: { not: offerId },
-          status: { in: [OfferStatus.pending, OfferStatus.countered] }
-        },
-        data: { status: OfferStatus.rejected }
-      }),
-      this.prisma.marketplaceListing.update({
-        where: { id: listingId },
-        data: { status: ListingStatus.reserved }
-      })
-    ]);
+    await this.prisma.marketplaceOffer.update({
+      where: { id: offerId },
+      data: { status: OfferStatus.accepted }
+    });
+
+    const { transactionId } =
+      await this.transactions.createFromAcceptedOffer(offerId);
 
     await this.audit.record({
       actorUserId: user.id,
@@ -217,21 +229,29 @@ export class OffersService {
     void this.push.sendToUser(
       offer.buyerUserId,
       "✅ Proposition acceptée",
-      `Votre offre sur « ${listing.title} » a été acceptée. Finalisez le retrait avec le vendeur.`,
-      { type: "marketplace_offer_accepted", listingId, offerId }
+      `Votre offre sur « ${listing.title} » a été acceptée. Procédez au paiement pour sécuriser l'achat.`,
+      {
+        type: "marketplace_offer_accepted",
+        listingId,
+        offerId,
+        transactionId
+      }
     );
 
-    return this.prisma.marketplaceListing.findUnique({
-      where: { id: listingId },
-      include: {
-        offers: {
-          orderBy: { createdAt: "desc" },
-          include: {
-            buyer: { select: { id: true, fullName: true, email: true } }
+    return {
+      listing: await this.prisma.marketplaceListing.findUnique({
+        where: { id: listingId },
+        include: {
+          offers: {
+            orderBy: { createdAt: "desc" },
+            include: {
+              buyer: { select: { id: true, fullName: true, email: true } }
+            }
           }
         }
-      }
-    });
+      }),
+      transactionId
+    };
   }
 
   async reject(user: User, listingId: string, offerId: string) {
@@ -359,33 +379,32 @@ export class OffersService {
       throw new BadRequestException("Aucune contre-proposition a accepter");
     }
 
-    await this.prisma.$transaction([
-      this.prisma.marketplaceOffer.update({
-        where: { id: offerId },
-        data: { status: OfferStatus.accepted }
-      }),
-      this.prisma.marketplaceOffer.updateMany({
-        where: {
-          listingId,
-          id: { not: offerId },
-          status: { in: [OfferStatus.pending, OfferStatus.countered] }
-        },
-        data: { status: OfferStatus.rejected }
-      }),
-      this.prisma.marketplaceListing.update({
-        where: { id: listingId },
-        data: { status: ListingStatus.reserved }
-      })
-    ]);
+    await this.prisma.marketplaceOffer.update({
+      where: { id: offerId },
+      data: { status: OfferStatus.accepted }
+    });
+
+    const { transactionId } =
+      await this.transactions.createFromAcceptedOffer(offerId);
 
     void this.push.sendToUser(
       listing.sellerUserId,
       "Contre-proposition acceptée",
       `L'acheteur a accepté votre contre-proposition sur « ${listing.title} ».`,
-      { type: "marketplace_counter_accepted", listingId, offerId }
+      {
+        type: "marketplace_counter_accepted",
+        listingId,
+        offerId,
+        transactionId
+      }
     );
 
-    return this.prisma.marketplaceOffer.findUnique({ where: { id: offerId } });
+    return {
+      offer: await this.prisma.marketplaceOffer.findUnique({
+        where: { id: offerId }
+      }),
+      transactionId
+    };
   }
 
   async withdraw(user: User, offerId: string) {

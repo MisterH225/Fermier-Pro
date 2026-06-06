@@ -11,7 +11,9 @@ import {
   Settings,
   Shield,
   Users,
-  ClipboardList
+  ClipboardList,
+  Store,
+  Calendar
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
@@ -23,9 +25,11 @@ const LOGO_ASPECT = 601 / 295;
 const NAV_KEYS = [
   "overview",
   "vets",
+  "vetAppointments",
   "users",
   "auditLogs",
   "map",
+  "marketplace",
   "stats",
   "ai",
   "modules",
@@ -36,13 +40,20 @@ const NAV: Array<{
   href: string;
   icon: typeof LayoutDashboard;
   key: (typeof NAV_KEYS)[number];
-  badgeKey?: "pendingVets" | "activeAlerts";
+  badgeKey?: "pendingVets" | "activeAlerts" | "marketplaceDisputes";
 }> = [
   { href: "/", icon: LayoutDashboard, key: "overview" },
   { href: "/veterinaires", icon: Shield, key: "vets", badgeKey: "pendingVets" },
+  { href: "/veterinaires/rendez-vous", icon: Calendar, key: "vetAppointments" },
   { href: "/utilisateurs", icon: Users, key: "users" },
   { href: "/audit-logs", icon: ClipboardList, key: "auditLogs" },
   { href: "/carte-sanitaire", icon: Map, key: "map", badgeKey: "activeAlerts" },
+  {
+    href: "/marketplace",
+    icon: Store,
+    key: "marketplace",
+    badgeKey: "marketplaceDisputes"
+  },
   { href: "/statistiques", icon: BarChart3, key: "stats" },
   { href: "/ia", icon: Bot, key: "ai" },
   { href: "/parametres", icon: Settings, key: "settings" }
@@ -51,10 +62,16 @@ const NAV: Array<{
 type Props = {
   pendingVets?: number;
   activeAlerts?: number;
+  marketplaceDisputes?: number;
   onLogout: () => void;
 };
 
-export function Sidebar({ pendingVets = 0, activeAlerts = 0, onLogout }: Props) {
+export function Sidebar({
+  pendingVets = 0,
+  activeAlerts = 0,
+  marketplaceDisputes = 0,
+  onLogout
+}: Props) {
   const t = useTranslations("nav");
   const pathname = usePathname();
 
@@ -86,7 +103,9 @@ export function Sidebar({ pendingVets = 0, activeAlerts = 0, onLogout }: Props) 
               ? pendingVets
               : item.badgeKey === "activeAlerts" && activeAlerts > 0
                 ? activeAlerts
-                : null;
+                : item.badgeKey === "marketplaceDisputes" && marketplaceDisputes > 0
+                  ? marketplaceDisputes
+                  : null;
           return (
             <Link
               key={item.href}

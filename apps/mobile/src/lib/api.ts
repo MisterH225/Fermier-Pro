@@ -4650,6 +4650,7 @@ export type MarketplaceListingListItem = {
   viewsCount?: number;
   consultationsCount?: number;
   expiresAt?: string | null;
+  activeOfferCount?: number;
   farm: { id: string; name: string } | null;
   animal: {
     id: string;
@@ -4950,14 +4951,200 @@ export function counterMarketplaceOffer(
 }
 
 /** Acheteur : accepte une contre-proposition. */
+export type MarketplaceAcceptOfferResponse = {
+  transactionId: string;
+};
+
 export function acceptMarketplaceOfferCounter(
   accessToken: string,
   listingId: string,
   offerId: string,
   activeProfileId?: string | null
-): Promise<unknown> {
-  return apiPostJson<unknown>(
+): Promise<MarketplaceAcceptOfferResponse> {
+  return apiPostJson<MarketplaceAcceptOfferResponse>(
     `/marketplace/listings/${listingId}/offers/${offerId}/accept-counter`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type MarketplaceTransactionDto = {
+  id: string;
+  listingId: string;
+  offerId: string;
+  buyerUserId: string;
+  sellerUserId: string;
+  status: string;
+  priceType: string;
+  agreedPricePerKg: number | null;
+  agreedFlatPrice: number | null;
+  estimatedWeightKg: number | null;
+  blockedAmount: number;
+  finalAmount: number | null;
+  realWeightKg: number | null;
+  pickupDate: string | null;
+  pickupLocation: string | null;
+  currency: string;
+  offerExpiresAt: string;
+  listingTitle: string | null;
+};
+
+export type MarketplaceFinanceSummaryDto = {
+  blockedFunds: number;
+  pendingRevenue: number;
+  totalSpent: number;
+  confirmedRevenue: number;
+  currency: string;
+  blockedTransactions: Array<{
+    id: string;
+    listingId: string;
+    listingTitle: string;
+    blockedAmount: number;
+    status: string;
+    sellerName: string | null;
+  }>;
+  pendingTransactions: Array<{
+    id: string;
+    listingId: string;
+    listingTitle: string;
+    blockedAmount: number;
+    status: string;
+    buyerName: string | null;
+  }>;
+  monthlySeries: Array<{
+    month: string;
+    confirmedRevenue: number;
+    pendingRevenue: number;
+    confirmedSpent: number;
+    blockedFunds: number;
+  }>;
+};
+
+export function fetchMarketplaceTransactions(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto[]> {
+  return apiGetJson<MarketplaceTransactionDto[]>(
+    "/marketplace/transactions",
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchMarketplaceTransactionSummary(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceFinanceSummaryDto> {
+  return apiGetJson<MarketplaceFinanceSummaryDto>(
+    "/marketplace/transactions/summary",
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchMarketplaceTransaction(
+  accessToken: string,
+  transactionId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiGetJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function initiateMarketplacePayment(
+  accessToken: string,
+  transactionId: string,
+  activeProfileId?: string | null
+): Promise<{ providerRef: string; amount: number; currency: string }> {
+  return apiPostJson<{ providerRef: string; amount: number; currency: string }>(
+    `/marketplace/transactions/${transactionId}/payment/initiate`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmMarketplacePayment(
+  accessToken: string,
+  transactionId: string,
+  providerRef?: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/payment/confirm`,
+    providerRef ? { providerRef } : {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function scheduleMarketplacePickup(
+  accessToken: string,
+  transactionId: string,
+  payload: { pickupDate: string; pickupLocation: string; notes?: string },
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/pickup`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function declareMarketplaceWeight(
+  accessToken: string,
+  transactionId: string,
+  realWeightKg: number,
+  activeProfileId?: string | null,
+  photoUrl?: string
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/weight/declare`,
+    { realWeightKg, photoUrl },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function validateMarketplaceWeight(
+  accessToken: string,
+  transactionId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/weight/validate`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function disputeMarketplaceWeight(
+  accessToken: string,
+  transactionId: string,
+  reason: string | undefined,
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/weight/dispute`,
+    reason ? { reason } : {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function cancelMarketplaceTransaction(
+  accessToken: string,
+  transactionId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/cancel`,
     {},
     accessToken,
     activeProfileId
@@ -5219,12 +5406,22 @@ export type VetPublicProfileDto = {
   isVerified: boolean;
   ratingAvg: number | null;
   ratingCount: number;
-  stats: { farmsFollowed: number; visitsCompleted: number };
+  stats: {
+    farmsFollowed: number;
+    visitsCompleted: number;
+    completedAppointments?: number;
+  };
+  servicePriceRange?: {
+    min: number;
+    max: number;
+    currency: string;
+  } | null;
   recentReviews: Array<{
     score: number;
     comment: string | null;
     authorName: string | null;
     createdAt: string;
+    tags?: string[];
   }>;
   canContact: boolean;
   isSelf: boolean;
@@ -5312,6 +5509,10 @@ export type VetDashboardDto = {
     subject: string;
     location: string | null;
     status: string;
+    kind?: "consultation" | "appointment";
+    conflictStatus?: string | null;
+    conflictLabel?: string | null;
+    servicePrice?: number | null;
   }>;
   assignedFarms: Array<{
     id: string;
@@ -5368,10 +5569,13 @@ export type ScheduleVetVisitPayload = {
 export type ScheduleVetVisitResult = {
   id: string;
   farmId: string;
-  farmName: string;
+  farmName?: string | null;
   scheduledAt: string;
-  subject: string;
+  requestedAt?: string;
+  subject?: string;
+  reason?: string;
   status: string;
+  vetName?: string | null;
 };
 
 export function scheduleVetVisit(
@@ -5429,6 +5633,193 @@ export function scheduleVetVisitFromProducer(
   return apiPostJson(
     `/farms/${encodeURIComponent(farmId)}/schedule-vet-visit`,
     payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type VetAppointmentDto = {
+  id: string;
+  farmId: string;
+  farmName?: string | null;
+  farmLocation?: string | null;
+  producerUserId: string;
+  producerName?: string | null;
+  vetProfileId: string;
+  vetUserId: string;
+  vetName?: string | null;
+  status: string;
+  requestedAt: string;
+  scheduledAt?: string;
+  confirmedAt?: string | null;
+  estimatedDurationHours: number;
+  reason: string;
+  notes?: string | null;
+  refusalReason?: string | null;
+  vetResponseNotes?: string | null;
+  servicePrice?: number | null;
+  blockedAmount?: number | null;
+  paymentDeadline?: string | null;
+  paymentConfirmedAt?: string | null;
+  completedAt?: string | null;
+  conflictStatus?: string | null;
+  conflictLabel?: string | null;
+  currency: string;
+  rating?: { rating: number; comment?: string | null; tags?: string[] } | null;
+  requiresRating?: boolean;
+};
+
+export type VetAppointmentFinanceSummaryDto = {
+  role: "producer" | "vet";
+  pendingEarnings: number;
+  confirmedEarnings: number;
+  blockedForAppointments: number;
+  currency: string;
+  pendingAppointments?: Array<{
+    id: string;
+    farmName: string;
+    producerName: string | null;
+    amount: number;
+    status: string;
+    confirmedAt: string | null;
+  }>;
+  blockedAppointments?: Array<{
+    id: string;
+    farmName: string;
+    vetName: string;
+    amount: number;
+    status: string;
+    confirmedAt: string | null;
+  }>;
+};
+
+export function fetchVetAppointmentFinanceSummary(
+  accessToken: string,
+  role: "producer" | "vet",
+  activeProfileId?: string | null
+): Promise<VetAppointmentFinanceSummaryDto> {
+  return apiGetJson(
+    `/vet-appointments/summary?role=${role}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchVetAppointments(
+  accessToken: string,
+  role: "producer" | "vet",
+  activeProfileId?: string | null
+): Promise<VetAppointmentDto[]> {
+  return apiGetJson(
+    `/vet-appointments/me?role=${role}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchVetAppointment(
+  accessToken: string,
+  appointmentId: string,
+  activeProfileId?: string | null
+): Promise<VetAppointmentDto> {
+  return apiGetJson(
+    `/vet-appointments/${encodeURIComponent(appointmentId)}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function vetAcceptAppointment(
+  accessToken: string,
+  appointmentId: string,
+  payload: { servicePrice: number; confirmedAt?: string; notes?: string },
+  activeProfileId?: string | null
+): Promise<VetAppointmentDto> {
+  return apiPostJson(
+    `/vet-appointments/${encodeURIComponent(appointmentId)}/accept`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function vetRefuseAppointment(
+  accessToken: string,
+  appointmentId: string,
+  refusalReason?: string,
+  activeProfileId?: string | null
+): Promise<VetAppointmentDto> {
+  return apiPostJson(
+    `/vet-appointments/${encodeURIComponent(appointmentId)}/refuse`,
+    refusalReason ? { refusalReason } : {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function initiateVetAppointmentPayment(
+  accessToken: string,
+  appointmentId: string,
+  activeProfileId?: string | null
+): Promise<{ providerRef: string; amount: number; currency: string }> {
+  return apiPostJson(
+    `/vet-appointments/${encodeURIComponent(appointmentId)}/payment/initiate`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmVetAppointmentPayment(
+  accessToken: string,
+  appointmentId: string,
+  providerRef?: string,
+  activeProfileId?: string | null
+): Promise<VetAppointmentDto> {
+  return apiPostJson(
+    `/vet-appointments/${encodeURIComponent(appointmentId)}/payment/confirm`,
+    providerRef ? { providerRef } : {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function completeVetAppointmentService(
+  accessToken: string,
+  appointmentId: string,
+  activeProfileId?: string | null
+): Promise<VetAppointmentDto & { requiresRating?: boolean }> {
+  return apiPostJson(
+    `/vet-appointments/${encodeURIComponent(appointmentId)}/complete`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function submitVetAppointmentRating(
+  accessToken: string,
+  appointmentId: string,
+  payload: { rating: number; comment?: string; tags?: string[] },
+  activeProfileId?: string | null
+): Promise<VetAppointmentDto> {
+  return apiPostJson(
+    `/vet-appointments/${encodeURIComponent(appointmentId)}/rating`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function cancelVetAppointment(
+  accessToken: string,
+  appointmentId: string,
+  reason?: string,
+  activeProfileId?: string | null
+): Promise<VetAppointmentDto> {
+  return apiPostJson(
+    `/vet-appointments/${encodeURIComponent(appointmentId)}/cancel`,
+    reason ? { reason } : {},
     accessToken,
     activeProfileId
   );
