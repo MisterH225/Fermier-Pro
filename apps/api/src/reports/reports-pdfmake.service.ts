@@ -2,22 +2,32 @@ import { Injectable, Logger } from "@nestjs/common";
 import type { FarmReport } from "@prisma/client";
 import QRCode from "qrcode";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const PdfPrinter = require("pdfmake/build/pdfmake");
+const pdfMake = require("pdfmake/build/pdfmake");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const pdfFonts = require("pdfmake/build/vfs_fonts");
 
-PdfPrinter.vfs = pdfFonts.pdfMake?.vfs ?? pdfFonts.vfs;
+type PdfFontVfs = Record<string, string>;
 
-const fonts = {
-  Roboto: {
-    normal: Buffer.from(PdfPrinter.vfs["Roboto-Regular.ttf"], "base64"),
-    bold: Buffer.from(PdfPrinter.vfs["Roboto-Medium.ttf"], "base64"),
-    italics: Buffer.from(PdfPrinter.vfs["Roboto-Italic.ttf"], "base64"),
-    bolditalics: Buffer.from(PdfPrinter.vfs["Roboto-MediumItalic.ttf"], "base64")
+function resolvePdfmakeVfs(raw: Record<string, unknown>): PdfFontVfs {
+  const nested =
+    (raw.pdfMake as { vfs?: PdfFontVfs } | undefined)?.vfs ??
+    (raw.vfs as PdfFontVfs | undefined);
+  if (nested) return nested;
+  if (typeof raw["Roboto-Regular.ttf"] === "string") {
+    return raw as PdfFontVfs;
   }
-};
+  throw new Error("pdfmake vfs fonts could not be loaded");
+}
 
-const printer = new PdfPrinter(fonts);
+pdfMake.addVirtualFileSystem(resolvePdfmakeVfs(pdfFonts));
+pdfMake.addFonts({
+  Roboto: {
+    normal: "Roboto-Regular.ttf",
+    bold: "Roboto-Medium.ttf",
+    italics: "Roboto-Italic.ttf",
+    bolditalics: "Roboto-MediumItalic.ttf"
+  }
+});
 
 import { buildFarmReportDocDefinition } from "./templates/farm-report.template";
 import type {
@@ -113,14 +123,10 @@ export class ReportsPdfmakeService {
     };
 
     const docDefinition = buildFarmReportDocDefinition(ctx);
-    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+    const pdfDoc = pdfMake.createPdf(docDefinition);
 
     return new Promise((resolve, reject) => {
-      const chunks: Buffer[] = [];
-      pdfDoc.on("data", (chunk: Buffer) => chunks.push(chunk));
-      pdfDoc.on("end", () => resolve(Buffer.concat(chunks)));
-      pdfDoc.on("error", reject);
-      pdfDoc.end();
+      pdfDoc.getBuffer((buffer: Buffer) => resolve(buffer), reject);
     });
   }
 
