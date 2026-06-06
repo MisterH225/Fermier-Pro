@@ -212,7 +212,7 @@ export function ListingModal({
               defaultValue: "Modification impossible"
             })
           : t("marketScreen.createForm.errorTitle"),
-        marketplaceActionErrorMessage(e.message)
+        marketplaceActionErrorMessage(e, t)
       )
   });
 
