@@ -11,13 +11,18 @@ import {
 import { cacheDirectory, downloadAsync } from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import {
-  apiAuthHeaders,
-  farmReportPdfAbsoluteUrl,
+  fetchFarmReportDownloadUrl,
   generateFarmReport,
   type FarmReportPeriodType
 } from "../../lib/api";
 import type { ReportAnchorState } from "./PeriodSelector";
-import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import {
+  mobileColors,
+  mobileRadius,
+  mobileShadows,
+  mobileSpacing,
+  mobileTypography
+} from "../../theme/mobileTheme";
 
 type Props = {
   farmId: string;
@@ -27,6 +32,26 @@ type Props = {
   anchor: ReportAnchorState;
   onGenerated?: () => void;
 };
+
+async function downloadAndShare(
+  url: string,
+  reportId: string,
+  dialogTitle: string
+): Promise<void> {
+  const target = `${cacheDirectory ?? ""}rapport-${reportId}.pdf`;
+  const res = await downloadAsync(url, target);
+  if (res.status !== 200) {
+    throw new Error(String(res.status));
+  }
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(res.uri, {
+      mimeType: "application/pdf",
+      dialogTitle
+    });
+  } else {
+    Alert.alert(dialogTitle, "Le partage système n'est pas disponible.");
+  }
+}
 
 export function ExportPDFButton({
   farmId,
@@ -38,9 +63,11 @@ export function ExportPDFButton({
 }: Props) {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "compiling" | "sharing">("idle");
 
   const run = async () => {
     setBusy(true);
+    setPhase("compiling");
     try {
       const bodyAnchor: { year: number; month?: number; quarter?: number } = {
         year: anchor.year
@@ -55,22 +82,17 @@ export function ExportPDFButton({
         anchor: bodyAnchor
       });
       onGenerated?.();
-      const url = farmReportPdfAbsoluteUrl(gen.id);
-      const target = `${cacheDirectory ?? ""}rapport-${gen.id}.pdf`;
-      const res = await downloadAsync(url, target, {
-        headers: apiAuthHeaders(accessToken, activeProfileId ?? null)
-      });
-      if (res.status !== 200) {
-        throw new Error(String(res.status));
+      setPhase("sharing");
+      let url = gen.downloadUrl ?? null;
+      if (!url) {
+        const dl = await fetchFarmReportDownloadUrl(
+          accessToken,
+          gen.id,
+          activeProfileId
+        );
+        url = dl.downloadUrl;
       }
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(res.uri, {
-          mimeType: "application/pdf",
-          dialogTitle: t("reportsScreen.exportPdf")
-        });
-      } else {
-        Alert.alert(t("reportsScreen.exportPdf"), t("reportsScreen.shareUnavailable"));
-      }
+      await downloadAndShare(url, gen.id, t("reportsScreen.exportPdf"));
     } catch (e) {
       Alert.alert(
         t("reportsScreen.exportErrorTitle"),
@@ -78,8 +100,16 @@ export function ExportPDFButton({
       );
     } finally {
       setBusy(false);
+      setPhase("idle");
     }
   };
+
+  const label =
+    phase === "compiling"
+      ? t("reportsScreen.compiling")
+      : phase === "sharing"
+        ? t("reportsScreen.downloading")
+        : t("reportsScreen.generatePdf");
 
   return (
     <View style={styles.bar} pointerEvents="box-none">
@@ -91,15 +121,64 @@ export function ExportPDFButton({
           { opacity: pressed || busy ? 0.85 : 1 }
         ]}
         accessibilityRole="button"
-        accessibilityLabel={t("reportsScreen.exportPdf")}
+        accessibilityLabel={label}
       >
         {busy ? (
-          <ActivityIndicator color="#FFFFFF" />
+          <View style={styles.busyRow}>
+            <ActivityIndicator color="#FFFFFF" />
+            <Text style={styles.btnTx}>{label}</Text>
+          </View>
         ) : (
-          <Text style={styles.btnTx}>📄 {t("reportsScreen.exportPdf")}</Text>
+          <Text style={styles.btnTx}>📄 {label}</Text>
         )}
       </Pressable>
     </View>
+  );
+}
+
+export function ReportDownloadButton({
+  reportId,
+  accessToken,
+  activeProfileId
+}: {
+  reportId: string;
+  accessToken: string;
+  activeProfileId: string | null | undefined;
+}) {
+  const { t } = useTranslation();
+  const [busy, setBusy] = useState(false);
+
+  const run = async () => {
+    setBusy(true);
+    try {
+      const { downloadUrl } = await fetchFarmReportDownloadUrl(
+        accessToken,
+        reportId,
+        activeProfileId
+      );
+      await downloadAndShare(downloadUrl, reportId, t("reportsScreen.exportPdf"));
+    } catch (e) {
+      Alert.alert(
+        t("reportsScreen.exportErrorTitle"),
+        e instanceof Error ? e.message : String(e)
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Pressable
+      onPress={() => void run()}
+      disabled={busy}
+      style={({ pressed }) => [styles.dlBtn, pressed && { opacity: 0.85 }]}
+    >
+      {busy ? (
+        <ActivityIndicator size="small" color={mobileColors.accent} />
+      ) : (
+        <Text style={styles.dlBtnTx}>{t("reportsScreen.downloadReport")}</Text>
+      )}
+    </Pressable>
   );
 }
 
@@ -119,9 +198,27 @@ const styles = StyleSheet.create({
     minHeight: 52,
     ...mobileShadows.card
   },
+  busyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.sm
+  },
   btnTx: {
     ...mobileTypography.body,
     color: "#FFFFFF",
     fontWeight: "800"
+  },
+  dlBtn: {
+    alignSelf: "flex-start",
+    paddingVertical: mobileSpacing.xs,
+    paddingHorizontal: mobileSpacing.sm,
+    borderRadius: mobileRadius.sm,
+    borderWidth: 1,
+    borderColor: mobileColors.accent
+  },
+  dlBtnTx: {
+    ...mobileTypography.meta,
+    color: mobileColors.accent,
+    fontWeight: "700"
   }
 });

@@ -6,7 +6,7 @@ import { FinanceModule } from "../finance/finance.module";
 import { PrismaModule } from "../prisma/prisma.module";
 import { SmartAlertsModule } from "../smart-alerts/smart-alerts.module";
 import { FarmReportsController } from "./farm-reports.controller";
-import { ReportsPdfService } from "./reports-pdf.service";
+import { ReportsPdfmakeService } from "./reports-pdfmake.service";
 import { ReportsRootController } from "./reports-root.controller";
 import { ReportsService } from "./reports.service";
 
@@ -20,6 +20,6 @@ import { ReportsService } from "./reports.service";
     FeatureFlagsModule
   ],
   controllers: [FarmReportsController, ReportsRootController],
-  providers: [ReportsService, ReportsPdfService]
+  providers: [ReportsService, ReportsPdfmakeService]
 })
 export class ReportsModule {}

@@ -17,7 +17,7 @@ import {
   type FarmReportPreviewDto
 } from "../../lib/api";
 import { CheptelSummary } from "./CheptelSummary";
-import { ExportPDFButton } from "./ExportPDFButton";
+import { ExportPDFButton, ReportDownloadButton } from "./ExportPDFButton";
 import { FarmScoreGauge } from "./FarmScoreGauge";
 import { FeedSummary } from "./FeedSummary";
 import { FinanceSummary } from "./FinanceSummary";
@@ -75,6 +75,11 @@ function ReportHistoryBody({
       </Text>
       <Text style={styles.modalMuted}>{t("reportsScreen.detailHash")}</Text>
       <Text style={styles.modalMono}>{q.data.contentHash ?? "—"}</Text>
+      <ReportDownloadButton
+        reportId={reportId}
+        accessToken={accessToken}
+        activeProfileId={activeProfileId}
+      />
     </View>
   );
 }

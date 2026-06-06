@@ -6184,6 +6184,7 @@ export type FarmReportListItemDto = {
   generatedAt: string;
   scoreGlobal: number;
   contentHash: string | null;
+  pdfUrl?: string | null;
 };
 
 export function fetchFarmReportsList(
@@ -6206,7 +6207,13 @@ export function generateFarmReport(
     periodType: FarmReportPeriodType;
     anchor: { year: number; month?: number; quarter?: number };
   }
-): Promise<{ id: string; scoreGlobal: number; contentHash: string }> {
+): Promise<{
+  id: string;
+  reportId?: string;
+  scoreGlobal: number;
+  contentHash: string;
+  downloadUrl?: string | null;
+}> {
   return apiPostJson(
     `/farms/${farmId}/reports/generate`,
     body,
@@ -6242,6 +6249,18 @@ export function fetchFarmReportById(
 
 export function farmReportPdfAbsoluteUrl(reportId: string): string {
   return `${apiBaseUrl()}/api/v1/reports/${reportId}/pdf`;
+}
+
+export function fetchFarmReportDownloadUrl(
+  accessToken: string,
+  reportId: string,
+  activeProfileId?: string | null
+): Promise<{ downloadUrl: string }> {
+  return apiGetJson<{ downloadUrl: string }>(
+    `/reports/${reportId}/download`,
+    accessToken,
+    activeProfileId
+  );
 }
 
 export type AIInsightDto = {

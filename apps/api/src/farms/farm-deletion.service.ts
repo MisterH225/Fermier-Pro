@@ -9,6 +9,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { SupabaseAdminService } from "../auth/supabase-admin.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import { FarmMarketplaceLifecycleService } from "../marketplace/farm-marketplace-lifecycle.service";
+import { REPORTS_STORAGE_BUCKET } from "../reports/reports.constants";
 
 function storagePathFromPublicUrl(
   url: string | null | undefined,
@@ -23,6 +24,23 @@ function storagePathFromPublicUrl(
     return null;
   }
   return decodeURIComponent(url.slice(idx + marker.length).split("?")[0]);
+}
+
+function reportPdfStoragePath(
+  pdfUrl: string | null | undefined
+): string | null {
+  if (!pdfUrl?.trim()) {
+    return null;
+  }
+  const trimmed = pdfUrl.trim();
+  const fromReports = storagePathFromPublicUrl(trimmed, REPORTS_STORAGE_BUCKET);
+  if (fromReports) {
+    return fromReports;
+  }
+  if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+    return trimmed.replace(/^\/+/, "");
+  }
+  return storagePathFromPublicUrl(trimmed, "finance-proofs");
 }
 
 @Injectable()
@@ -54,6 +72,7 @@ export class FarmDeletionService {
     });
 
     const storagePaths: string[] = [];
+    const reportPdfPaths: string[] = [];
 
     const [expenses, revenues, reports, listings, animals, healthRecords, vetProfiles] =
       await Promise.all([
@@ -96,8 +115,10 @@ export class FarmDeletionService {
       if (p) storagePaths.push(p);
     }
     for (const row of reports) {
-      const p = storagePathFromPublicUrl(row.pdfUrl, "finance-proofs");
-      if (p) storagePaths.push(p);
+      const p = reportPdfStoragePath(row.pdfUrl);
+      if (p) {
+        reportPdfPaths.push(p);
+      }
     }
     for (const listing of listings) {
       const urls = Array.isArray(listing.photoUrls)
@@ -134,6 +155,12 @@ export class FarmDeletionService {
     try {
       await this.supabaseAdmin.removeStorageObjects("finance-proofs", storagePaths);
       await this.supabaseAdmin.removeStorageObjects("avatars", storagePaths);
+      if (reportPdfPaths.length > 0) {
+        await this.supabaseAdmin.removeStorageObjects(
+          REPORTS_STORAGE_BUCKET,
+          reportPdfPaths
+        );
+      }
     } catch (err) {
       this.logger.warn(
         `Storage cleanup partial: ${err instanceof Error ? err.message : String(err)}`
