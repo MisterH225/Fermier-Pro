@@ -37,6 +37,7 @@ import {
 } from "./dto/admin-user-moderation.dto";
 import { SuperAdminGuard } from "./super-admin.guard";
 import { PigPriceIndexService } from "../market/pig-price-index.service";
+import { MarketplacePigPriceIndexService } from "../marketplace/pig-price-index.service";
 
 @Controller("admin")
 @UseGuards(SupabaseJwtGuard, SuperAdminGuard)
@@ -44,7 +45,9 @@ export class AdminPlatformController {
   constructor(
     private readonly admin: AdminPlatformService,
     private readonly adminAi: AdminAiService,
-    private readonly moderation: AdminUserModerationService
+    private readonly moderation: AdminUserModerationService,
+    private readonly pigPriceIndex: PigPriceIndexService,
+    private readonly hybridPigPriceIndex: MarketplacePigPriceIndexService
   ) {}
 
   @Get("me")
@@ -289,5 +292,68 @@ export class AdminPlatformController {
   @Post("ai/vet-assist/:id")
   aiVetAssist(@Param("id") id: string, @Body() dto: AdminAiLocaleDto) {
     return this.adminAi.vetAssist(id, dto.locale ?? "fr");
+  }
+
+  @Get("pig-price-index")
+  adminPigPriceChart(
+    @Query("period") period?: string,
+    @Query("category") category?: string
+  ) {
+    return this.pigPriceIndex.getChart(period, category);
+  }
+
+  @Get("pig-price-index/stats")
+  adminPigPriceStats(@Query("period") period?: string) {
+    return this.pigPriceIndex.getStats(period);
+  }
+
+  @Get("pig-price-index/ticker")
+  adminPigPriceTicker() {
+    return this.pigPriceIndex.getTicker();
+  }
+
+  @Get("pig-price-index/hybrid")
+  async adminHybridIndex() {
+    const [current, snapshots, flagged, contributors] = await Promise.all([
+      this.hybridPigPriceIndex.getPublicIndex(),
+      this.hybridPigPriceIndex.getSnapshots(30),
+      this.hybridPigPriceIndex.getFlaggedListings(50),
+      this.hybridPigPriceIndex.getTopContributors(10)
+    ]);
+    const latestSnapshot = snapshots[0] ?? null;
+    return {
+      current,
+      isFrozen: latestSnapshot?.isFrozen ?? false,
+      freezeReason: latestSnapshot?.freezeReason ?? null,
+      snapshots: snapshots.map((s) => ({
+        id: s.id,
+        calculatedAt: s.calculatedAt.toISOString(),
+        indexValue: Number(s.indexValue),
+        confirmedCount: s.confirmedCount,
+        listingCount: s.listingCount,
+        totalWeightKg: Number(s.totalWeightKg),
+        isFrozen: s.isFrozen,
+        freezeReason: s.freezeReason
+      })),
+      flaggedListings: flagged.map((f) => ({
+        id: f.id,
+        listingId: f.listingId,
+        sellerUserId: f.sellerUserId,
+        pricePerKg: Number(f.pricePerKg),
+        deviationPct: Number(f.deviationPct),
+        flaggedAt: f.flaggedAt.toISOString()
+      })),
+      topContributors: contributors
+    };
+  }
+
+  @Post("pig-price-index/hybrid/unfreeze")
+  adminUnfreezeHybridIndex() {
+    return this.hybridPigPriceIndex.unfreezeIndex();
+  }
+
+  @Post("pig-price-index/hybrid/recalculate")
+  adminRecalculateHybridIndex() {
+    return this.hybridPigPriceIndex.calculateHybridIndex();
   }
 }

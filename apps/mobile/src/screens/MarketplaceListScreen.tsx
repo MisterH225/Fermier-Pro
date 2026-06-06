@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { PigPriceIndex } from "../components/market/PigPriceIndex";
+import { PigPriceIndexCard } from "../components/market/PigPriceIndexCard";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
 import { ListingModal } from "../components/marketplace/ListingModal";
 import {
@@ -495,6 +496,7 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
     const listingsHeader = (
       <View style={styles.listHeader}>
         <View style={styles.pigPriceSection}>
+          <PigPriceIndexCard />
           <PigPriceIndex />
         </View>
         <View style={styles.searchRow}>

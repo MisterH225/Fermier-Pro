@@ -314,3 +314,57 @@ export function fetchAdminPigPriceTicker(token: string) {
     token
   );
 }
+
+export type AdminHybridPigPriceDto = {
+  current: {
+    price_per_kg: number;
+    trend: "up" | "down" | "stable";
+    variation_7d_pct: number | null;
+    calculated_at: string;
+    data_points_count: number;
+  } | null;
+  isFrozen: boolean;
+  freezeReason: string | null;
+  snapshots: Array<{
+    id: string;
+    calculatedAt: string;
+    indexValue: number;
+    confirmedCount: number;
+    listingCount: number;
+    totalWeightKg: number;
+    isFrozen: boolean;
+    freezeReason: string | null;
+  }>;
+  flaggedListings: Array<{
+    id: string;
+    listingId: string;
+    sellerUserId: string;
+    pricePerKg: number;
+    deviationPct: number;
+    flaggedAt: string;
+  }>;
+  topContributors: Array<{
+    sellerUserId: string;
+    sellerName: string;
+    volumeKg: number;
+    transactionCount: number;
+  }>;
+};
+
+export function fetchAdminHybridPigPrice(token: string) {
+  return apiFetch<AdminHybridPigPriceDto>("/admin/pig-price-index/hybrid", token);
+}
+
+export function adminUnfreezeHybridPigPrice(token: string) {
+  return apiFetch<{ ok: true; recalculated: boolean }>(
+    "/admin/pig-price-index/hybrid/unfreeze",
+    token,
+    { method: "POST" }
+  );
+}
+
+export function adminRecalculateHybridPigPrice(token: string) {
+  return apiFetch<unknown>("/admin/pig-price-index/hybrid/recalculate", token, {
+    method: "POST"
+  });
+}

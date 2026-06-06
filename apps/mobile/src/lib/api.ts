@@ -6749,6 +6749,26 @@ export function fetchPigPriceIndexStats(
   );
 }
 
+export type HybridPigPriceIndexDto = {
+  price_per_kg: number | null;
+  trend: "up" | "down" | "stable";
+  variation_7d_pct: number | null;
+  calculated_at: string | null;
+  data_points_count: number;
+};
+
+/** GET /api/v1/marketplace/pig-price-index — indice hybride anti-manipulation */
+export function fetchHybridPigPriceIndex(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<HybridPigPriceIndexDto> {
+  return apiGetJson<HybridPigPriceIndexDto>(
+    "/marketplace/pig-price-index",
+    accessToken,
+    activeProfileId
+  );
+}
+
 // ─── Finance + stock aliment ─────────────────────────────────────────────────
 
 export type FinanceStockLineInput = {

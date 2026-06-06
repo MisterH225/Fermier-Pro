@@ -86,6 +86,10 @@ model User {
   /// Acceptation des CGU (obligatoire avant utilisation de l''app).
   cguAcceptedAt         DateTime?
   cguVersionAccepted    String?
+  /// Poids du vendeur dans l'indice PigPrice (0.1 nouveaux comptes, ≥0.5 vérifiés).
+  indexWeight           Decimal              @default(0.1) @db.Decimal(3, 2)
+  /// Ventes marketplace conclues (handover) — anti-manipulation indice.
+  completedTransactions Int                  @default(0)
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
   /// Projet (ferme) actif sélectionné par l'utilisateur producteur.
@@ -1876,6 +1880,34 @@ model PigPriceIndexDaily {
 
   @@unique([date, category])
   @@index([date(sort: Desc)])
+}
+
+/// Snapshots de l'indice hybride anti-manipulation (transactions + annonces pondérées).
+model PigPriceIndexHybridSnapshot {
+  id             String   @id @default(cuid())
+  calculatedAt   DateTime @default(now())
+  indexValue     Decimal  @db.Decimal(10, 2)
+  confirmedCount Int      @default(0)
+  listingCount   Int      @default(0)
+  totalWeightKg  Decimal  @default(0) @db.Decimal(14, 4)
+  isFrozen       Boolean  @default(false)
+  freezeReason   String?
+
+  @@index([calculatedAt(sort: Desc)])
+  @@map("pig_price_index_snapshots")
+}
+
+/// Annonces exclues silencieusement (écart > 30 % vs indice).
+model PigPriceIndexFlaggedListing {
+  id           String   @id @default(cuid())
+  listingId    String
+  sellerUserId String
+  pricePerKg   Decimal  @db.Decimal(14, 4)
+  deviationPct Decimal  @db.Decimal(8, 4)
+  flaggedAt    DateTime @default(now())
+
+  @@index([flaggedAt(sort: Desc)])
+  @@index([listingId])
 }
 
 model PigPriceSnapshot {

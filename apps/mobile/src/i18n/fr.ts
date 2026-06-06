@@ -525,6 +525,10 @@ export const fr = {
     variationFlat: "0.0% ➡️",
     priceOnRequest: "—"
   },
+  pigPriceIndexCard: {
+    title: "Indice PigPrice",
+    basedOn: "Basé sur {{count}} transactions"
+  },
   smartAlerts: {
     moduleMarket: "Marché",
     market: {

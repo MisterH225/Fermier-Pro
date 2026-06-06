@@ -15,6 +15,7 @@ import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FilterPills } from "@/components/layout/FilterPills";
 import { PigPriceIndexSection } from "@/components/market/PigPriceIndexSection";
+import { HybridPigPriceAdminSection } from "@/components/market/HybridPigPriceAdminSection";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -99,6 +100,7 @@ export default function StatistiquesPage() {
           </Card>
 
           {token ? <PigPriceIndexSection token={token} /> : null}
+          {token ? <HybridPigPriceAdminSection token={token} /> : null}
         </>
       )}
     </div>
