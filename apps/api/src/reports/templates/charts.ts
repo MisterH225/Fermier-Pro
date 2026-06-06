@@ -26,7 +26,7 @@ export function buildBarChartSvg(
   const labels = data
     .map((d, i) => {
       const x = pad + i * (barW + 4) + barW / 2;
-      const short = d.label.length > 6 ? d.label.slice(5) : d.label;
+      const short = d.label.length > 6 ? d.label.slice(0, 6) : d.label;
       return `<text x="${x}" y="${height - 4}" font-size="6" text-anchor="middle" fill="${REPORT_COLORS.greyText}">${short}</text>`;
     })
     .join("");

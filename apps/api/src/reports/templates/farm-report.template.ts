@@ -143,7 +143,7 @@ function pageFinance(ctx: FarmReportPdfContext): PdfContent[] {
   const net = rev - exp;
   const trend = (finSec.monthlyTrend ?? []) as Array<{ month: string; revenues: string }>;
   const barData = trend.slice(-6).map((r) => ({
-    label: r.month,
+    label: r.month.length > 6 ? r.month.slice(5) : r.month,
     value: Number(r.revenues)
   }));
   const topRev = (finSec.topRevenues ?? []) as Array<{ label: string; revenues: number }>;
