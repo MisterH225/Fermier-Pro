@@ -847,7 +847,7 @@ export const en = {
     period12: "12M",
     statsTitle: "Stats by feed type",
     current: "Current stock",
-    avgDaily: "Avg. daily use",
+    avgDaily: "Avg. daily: {{kg}} kg/d",
     depletion: "Est. depletion",
     statusOk: "OK",
     statusWarn: "Watch",
@@ -897,6 +897,11 @@ export const en = {
     previewDaily: "Daily use: {{n}} kg/d",
     previewDepletion: "Estimated stock-out: {{date}}",
     gaugePercent: "{{value}}%",
+    gaugePercentRemaining: "{{value}}% remaining",
+    gaugeInsufficientData: "insufficient data",
+    gaugeDaysEstimate: "{{count}} d left",
+    lastCheckAgo: "Last check: {{count}} d ago",
+    unknownFeedType: "Feed",
     gaugeDaily: "{{kg}} kg/d",
     gaugeNoDaily: "unknown use",
     gaugeDaysLeft: "{{count}} d left",
@@ -904,6 +909,9 @@ export const en = {
     gaugeCenterDays: "{{count}} d",
     gaugeDashboardSubtitle: "{{kg}} kg · {{count}} d left",
     gaugeDashboardNoDays: "{{kg}} kg · unknown duration",
+    smartAlertsHintTitle: "Recommendations",
+    smartAlertsHintBody:
+      "Feed and consumption alerts are on the dashboard (Recommendations section).",
     errors: {
       pickType: "Pick a feed type."
     }

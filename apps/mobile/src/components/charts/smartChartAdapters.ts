@@ -133,13 +133,15 @@ export function feedSeriesColor(seriesIndex: number): string {
 }
 
 export function feedChartToLines(chart: FarmFeedChartDto): SmartChartLine[] {
-  return chart.series.map((s, i) => ({
-    key: s.feedTypeId,
-    label: s.name,
+  const series = chart.series ?? [];
+  const weekKeys = chart.weekKeys ?? [];
+  return series.map((s, i) => ({
+    key: s.feedTypeId ?? `series-${i}`,
+    label: s.name ?? "—",
     color: feedSeriesColor(i),
-    data: chart.weekKeys.map((week, wi) => ({
+    data: weekKeys.map((week, wi) => ({
       month: week,
-      value: s.points[wi] ?? 0
+      value: s.points?.[wi] ?? 0
     }))
   }));
 }
