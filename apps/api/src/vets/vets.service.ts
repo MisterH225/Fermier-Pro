@@ -613,13 +613,23 @@ export class VetsService {
       ? `${reasonLabel} — ${params.notes.trim().slice(0, 120)}`
       : reasonLabel;
 
+    const visitQuoteStatus =
+      params.initiatedBy === "producer" && params.consultationPrice == null
+        ? "pending_vet"
+        : params.initiatedBy === "vet" &&
+            params.consultationPrice != null &&
+            params.consultationPrice > 0
+          ? "pending_producer"
+          : "confirmed";
+
     const summaryPayload = {
       kind: "scheduled_visit",
       reason: params.reason,
       notes: params.notes?.trim() ?? null,
       consultationPrice: params.consultationPrice ?? null,
       scheduledAt: params.scheduledAt.toISOString(),
-      initiatedBy: params.initiatedBy
+      initiatedBy: params.initiatedBy,
+      visitQuoteStatus
     };
 
     const row = await this.prisma.vetConsultation.create({
@@ -672,8 +682,156 @@ export class VetsService {
       farmName: row.farm.name,
       scheduledAt: row.openedAt.toISOString(),
       subject: row.subject,
-      status: row.status
+      status: row.status,
+      visitQuoteStatus
     };
+  }
+
+  async submitVisitQuote(
+    user: User,
+    consultationId: string,
+    price: number,
+    note?: string
+  ) {
+    await this.assertVeterinarianProfile(user.id);
+    const row = await this.prisma.vetConsultation.findUnique({
+      where: { id: consultationId },
+      include: { farm: { select: { name: true } } }
+    });
+    if (!row || row.primaryVetUserId !== user.id) {
+      throw new NotFoundException("Consultation introuvable");
+    }
+    let summary: Record<string, unknown> = {};
+    try {
+      summary = JSON.parse(row.summary ?? "{}") as Record<string, unknown>;
+    } catch {
+      summary = {};
+    }
+    summary.consultationPrice = price;
+    summary.vetQuoteNote = note?.trim() ?? null;
+    summary.visitQuoteStatus = "pending_producer";
+
+    const updated = await this.prisma.vetConsultation.update({
+      where: { id: consultationId },
+      data: { summary: JSON.stringify(summary) }
+    });
+
+    const farm = await this.prisma.farm.findUnique({
+      where: { id: row.farmId },
+      select: { ownerId: true }
+    });
+    if (farm) {
+      await this.push.sendToUser(
+        farm.ownerId,
+        "Devis visite vétérinaire",
+        `Devis reçu : ${price} pour visite du ${this.formatVisitDate(row.openedAt)}`,
+        { type: "vet_visit_quote", consultationId }
+      );
+    }
+
+    return { id: updated.id, visitQuoteStatus: "pending_producer", price };
+  }
+
+  async respondVisitQuote(
+    user: User,
+    farmId: string,
+    consultationId: string,
+    action: "accept" | "refuse" | "counter",
+    counterPrice?: number
+  ) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const row = await this.prisma.vetConsultation.findFirst({
+      where: { id: consultationId, farmId }
+    });
+    if (!row) {
+      throw new NotFoundException("Consultation introuvable");
+    }
+    let summary: Record<string, unknown> = {};
+    try {
+      summary = JSON.parse(row.summary ?? "{}") as Record<string, unknown>;
+    } catch {
+      summary = {};
+    }
+
+    if (action === "accept") {
+      summary.visitQuoteStatus = "confirmed";
+    } else if (action === "refuse") {
+      summary.visitQuoteStatus = "refused";
+    } else if (action === "counter" && counterPrice != null) {
+      summary.counterPrice = counterPrice;
+      summary.visitQuoteStatus = "pending_vet";
+    } else {
+      throw new BadRequestException("Action invalide");
+    }
+
+    const updated = await this.prisma.vetConsultation.update({
+      where: { id: consultationId },
+      data: {
+        summary: JSON.stringify(summary),
+        status:
+          action === "accept"
+            ? VetConsultationStatus.open
+            : action === "refuse"
+              ? VetConsultationStatus.cancelled
+              : row.status
+      }
+    });
+
+    if (row.primaryVetUserId && action !== "refuse") {
+      await this.push.sendToUser(
+        row.primaryVetUserId,
+        "Réponse devis visite",
+        action === "accept"
+          ? "Le producteur a accepté votre devis."
+          : "Contre-proposition reçue du producteur.",
+        { type: "vet_visit_quote_response", consultationId }
+      );
+    }
+
+    return {
+      id: updated.id,
+      visitQuoteStatus: summary.visitQuoteStatus,
+      consultationPrice: summary.consultationPrice ?? null
+    };
+  }
+
+  async listPendingVisitQuotes(user: User, farmId: string) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const rows = await this.prisma.vetConsultation.findMany({
+      where: { farmId, status: { not: VetConsultationStatus.cancelled } },
+      orderBy: { openedAt: "asc" },
+      take: 30,
+      include: {
+        primaryVet: { select: { fullName: true } }
+      }
+    });
+    return rows
+      .map((r) => {
+        let summary: Record<string, unknown> = {};
+        try {
+          summary = JSON.parse(r.summary ?? "{}") as Record<string, unknown>;
+        } catch {
+          return null;
+        }
+        if (
+          summary.kind !== "scheduled_visit" ||
+          !summary.visitQuoteStatus ||
+          summary.visitQuoteStatus === "confirmed"
+        ) {
+          return null;
+        }
+        return {
+          id: r.id,
+          scheduledAt: r.openedAt.toISOString(),
+          vetName: r.primaryVet?.fullName ?? "Vétérinaire",
+          reason: summary.reason,
+          visitQuoteStatus: summary.visitQuoteStatus,
+          consultationPrice: summary.consultationPrice ?? null,
+          counterPrice: summary.counterPrice ?? null,
+          notes: summary.notes ?? null
+        };
+      })
+      .filter(Boolean);
   }
 
   async scheduleVisit(user: User, dto: ScheduleVetVisitDto) {

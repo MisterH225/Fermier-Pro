@@ -15,12 +15,20 @@ import { BaseModal } from "../modals/BaseModal";
 import { ModalSection } from "../modals/ModalSection";
 import type { AnimalListItem, GestationDetailDto } from "../../lib/api";
 import { createGestation } from "../../lib/api";
+import { useActiveFarm } from "../../context/ActiveProjectContext";
 import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
 import {
   isOfflineQueuedResult,
   offlineQueuedMessage,
   useOfflineMutation
 } from "../../hooks/useOfflineMutation";
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string | null | undefined): boolean {
+  return Boolean(value?.trim() && UUID_RE.test(value.trim()));
+}
 
 export type CreateGestationModalProps = {
   visible: boolean;
@@ -52,6 +60,8 @@ export function CreateGestationModal({
   onSuccess
 }: CreateGestationModalProps) {
   const { t } = useTranslation();
+  const { activeFarmId } = useActiveFarm();
+  const resolvedFarmId = isUuid(farmId) ? farmId.trim() : activeFarmId ?? "";
   const lockSow = Boolean(presetSowId?.trim());
   const [sowId, setSowId] = useState("");
   const [boarId, setBoarId] = useState("");
@@ -94,17 +104,17 @@ export function CreateGestationModal({
     matingType,
     matingDate,
     notes: notes.trim() || undefined,
-    farmId
+    farmId: resolvedFarmId
   });
 
   const mut = useOfflineMutation({
-    farmId,
+    farmId: resolvedFarmId,
     type: "gestation.create",
     label: sowDisplayLabel || t("gestationScreen.createTitle"),
     mutationFn: async () =>
       createGestation(
         accessToken,
-        farmId,
+        resolvedFarmId,
         {
           sowId,
           boarId: boarId || undefined,
@@ -118,7 +128,7 @@ export function CreateGestationModal({
       calls: [
         {
           method: "POST",
-          path: `/farms/${farmId}/gestation/gestations`,
+          path: `/farms/${resolvedFarmId}/gestation/gestations`,
           body: buildBody()
         }
       ],
@@ -148,8 +158,25 @@ export function CreateGestationModal({
         <Pressable
           style={[styles.btn, mut.isPending && styles.btnDisabled]}
           onPress={() => {
-            if (!sowId) {
-              Alert.alert(t("gestationScreen.pickSow"));
+            if (!isUuid(resolvedFarmId)) {
+              Alert.alert(
+                t("gestationScreen.error"),
+                t("gestationScreen.invalidFarmId")
+              );
+              return;
+            }
+            if (!isUuid(sowId)) {
+              Alert.alert(
+                t("gestationScreen.error"),
+                t("gestationScreen.pickSow")
+              );
+              return;
+            }
+            if (boarId && !isUuid(boarId)) {
+              Alert.alert(
+                t("gestationScreen.error"),
+                t("gestationScreen.invalidBoarId")
+              );
               return;
             }
             mut.mutate();

@@ -22,7 +22,11 @@ import { SmartChart, type SmartChartPeriod } from "../components/charts";
 import { CreateGestationModal } from "../components/shared/CreateGestationModal";
 import { GestationDetailModal } from "../components/gestation/GestationDetailModal";
 import { MiseBasModal } from "../components/gestation/MiseBasModal";
-import { FinanceKpiCard } from "../components/finance/FinanceKpiCard";
+import {
+  CheptelStyleKpiCard,
+  cheptelKpiGridStyles
+} from "../components/cheptel/overview/CheptelStyleKpiCard";
+import { SailliePlanningAI } from "../components/gestation/SailliePlanningAI";
 import { EventList, type EventItem } from "../components/lists";
 import { useModal } from "../components/modals/useModal";
 import { ScreenSection } from "../components/layout/ScreenSection";
@@ -286,37 +290,41 @@ export function FarmGestationScreen({ route, navigation }: Props) {
       ) : (
         <>
           <ScreenSection plain>
-            <View style={styles.kpiGrid}>
-              <View style={styles.kpiHalf}>
-                <FinanceKpiCard
-                  title={t("gestationScreen.kpiActive")}
+            <View style={cheptelKpiGridStyles.grid}>
+              <View style={cheptelKpiGridStyles.half}>
+                <CheptelStyleKpiCard
+                  icon="🤰"
+                  bg="#FFF3E0"
+                  accent="#FF8C00"
+                  label={t("gestationScreen.kpiActive")}
                   value={String(kpis?.activeGestations ?? 0)}
-                  deltaText={null}
-                  variant="orange"
                 />
               </View>
-              <View style={styles.kpiHalf}>
-                <FinanceKpiCard
-                  title={t("gestationScreen.kpiDue7")}
+              <View style={cheptelKpiGridStyles.half}>
+                <CheptelStyleKpiCard
+                  icon="⏰"
+                  bg="#E3F2FD"
+                  accent="#1565C0"
+                  label={t("gestationScreen.kpiDue7")}
                   value={String(kpis?.birthsDueIn7Days ?? 0)}
-                  deltaText={null}
-                  variant="blue"
                 />
               </View>
-              <View style={styles.kpiHalf}>
-                <FinanceKpiCard
-                  title={t("gestationScreen.kpiDueMonth")}
+              <View style={cheptelKpiGridStyles.half}>
+                <CheptelStyleKpiCard
+                  icon="📅"
+                  bg="#FFF8E1"
+                  accent="#F57F17"
+                  label={t("gestationScreen.kpiDueMonth")}
                   value={String(kpis?.birthsDueThisMonth ?? 0)}
-                  deltaText={null}
-                  variant="yellow"
                 />
               </View>
-              <View style={styles.kpiHalf}>
-                <FinanceKpiCard
-                  title={t("gestationScreen.kpiAvailable")}
+              <View style={cheptelKpiGridStyles.half}>
+                <CheptelStyleKpiCard
+                  icon="🐽"
+                  bg="#E8F5E9"
+                  accent="#2E7D32"
+                  label={t("gestationScreen.kpiAvailable")}
                   value={String(kpis?.sowsAvailableForMating ?? 0)}
-                  deltaText={null}
-                  variant="green"
                 />
               </View>
             </View>
@@ -399,6 +407,18 @@ export function FarmGestationScreen({ route, navigation }: Props) {
 
   const planningTab = (
     <>
+      {!readOnly ? (
+        <ScreenSection plain>
+          <SailliePlanningAI
+            farmId={farmId}
+            accessToken={accessToken!}
+            activeProfileId={activeProfileId}
+            onApplyRow={(sowId, boarId, date) => {
+              setCreateOpen(true);
+            }}
+          />
+        </ScreenSection>
+      ) : null}
       <ScreenSection title={t("gestationScreen.availableSows")}>
         {availableQ.isPending ? (
           <ActivityIndicator />
@@ -537,12 +557,6 @@ export function FarmGestationScreen({ route, navigation }: Props) {
           }
         ]}
       />
-
-      {!readOnly ? (
-        <Pressable style={styles.fab} onPress={() => setCreateOpen(true)}>
-          <Ionicons name="add" size={28} color="#fff" />
-        </Pressable>
-      ) : null}
 
       <CreateGestationModal
         visible={createOpen}
@@ -687,17 +701,5 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.lg,
     gap: 4
   },
-  statsLine: { fontSize: 13 },
-  fab: {
-    position: "absolute",
-    right: 20,
-    bottom: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: mobileColors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-    ...mobileShadows.card
-  }
+  statsLine: { fontSize: 13 }
 });

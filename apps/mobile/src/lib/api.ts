@@ -1872,6 +1872,29 @@ export function fetchCheptelGmqSummary(
   );
 }
 
+export type DetectedBatchDto = {
+  id: string;
+  name: string;
+  category: string;
+  headcount: number;
+  avgAgeWeeks: number | null;
+  avgWeightKg: number | null;
+  penNames: string[];
+  animalIds: string[];
+};
+
+export function fetchDetectedBatches(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<{ farmId: string; batches: DetectedBatchDto[] }> {
+  return apiGetJson(
+    `/farms/${farmId}/cheptel/detected-batches`,
+    accessToken,
+    activeProfileId
+  );
+}
+
 export type WeightSeriesPointDto = {
   id: string;
   animalId: string;
@@ -4175,6 +4198,59 @@ export function simulateFarmBudget(
   );
 }
 
+export type BudgetAiRecommendation = {
+  categoryId: string;
+  categoryName: string;
+  currentBudget: number;
+  suggestedBudget: number;
+  savings: number;
+  action: string;
+  justification: string;
+};
+
+export type BudgetAiAnalysisDto = {
+  analysis: string;
+  recommendations: BudgetAiRecommendation[];
+  totalSavingsEstimate: number;
+  aiPowered?: boolean;
+};
+
+export function fetchBudgetAiAnalysis(
+  accessToken: string,
+  farmId: string,
+  year: number,
+  month: number,
+  activeProfileId?: string | null
+): Promise<BudgetAiAnalysisDto> {
+  const qs = new URLSearchParams();
+  qs.set("year", String(year));
+  qs.set("month", String(month));
+  return apiGetJson<BudgetAiAnalysisDto>(
+    `/farms/${farmId}/finance/budget/ai-analysis?${qs.toString()}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function applyBudgetAiRecommendations(
+  accessToken: string,
+  farmId: string,
+  year: number,
+  month: number,
+  items: Array<{ categoryId: string; suggestedBudget: number }>,
+  activeProfileId?: string | null
+): Promise<FarmBudgetViewDto> {
+  const qs = new URLSearchParams();
+  qs.set("year", String(year));
+  qs.set("month", String(month));
+  return apiPostJson<FarmBudgetViewDto>(
+    `/farms/${farmId}/finance/budget/ai-analysis/apply?${qs.toString()}`,
+    { items },
+    accessToken,
+    activeProfileId
+  );
+}
+
 export function patchFarmBudgetSuggestion(
   accessToken: string,
   farmId: string,
@@ -5358,6 +5434,44 @@ export function scheduleVetVisitFromProducer(
   );
 }
 
+export type VetVisitQuoteDto = {
+  id: string;
+  scheduledAt: string;
+  vetName: string;
+  reason: unknown;
+  visitQuoteStatus: string;
+  consultationPrice: number | null;
+  counterPrice: number | null;
+  notes: string | null;
+};
+
+export function fetchVetVisitQuotes(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<VetVisitQuoteDto[]> {
+  return apiGetJson(
+    `/farms/${farmId}/vet-visit-quotes`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function respondVetVisitQuote(
+  accessToken: string,
+  farmId: string,
+  consultationId: string,
+  payload: { action: "accept" | "refuse" | "counter"; counterPrice?: number },
+  activeProfileId?: string | null
+): Promise<{ id: string; visitQuoteStatus: string }> {
+  return apiPostJson(
+    `/farms/${farmId}/vet-visit-quotes/${consultationId}/respond`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
 export function createVetRating(
   accessToken: string,
   vetId: string,
@@ -5978,6 +6092,31 @@ export function fetchGestationAvailableSows(
     availableInDays: number;
   }> }>(
     `/farms/${farmId}/gestation/available-sows`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type GestationAiMatingRecommendation = {
+  sowId: string;
+  sowLabel: string;
+  boarId: string | null;
+  boarLabel: string | null;
+  suggestedDate: string;
+  expectedBirthDate: string | null;
+  reason: string;
+};
+
+export function fetchGestationAiMatingPlan(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<{
+  recommendations: GestationAiMatingRecommendation[];
+  aiPowered?: boolean;
+}> {
+  return apiGetJson(
+    `/farms/${farmId}/gestation/ai-mating-plan`,
     accessToken,
     activeProfileId
   );
@@ -6619,6 +6758,7 @@ export type FinanceStockLineInput = {
   quantityUnit: "kg" | "tonne" | "sac";
   unitPrice?: number;
   priceBasis?: "kg" | "sac";
+  weightPerBagKg?: number;
   supplier?: string;
 };
 

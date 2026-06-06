@@ -20,6 +20,8 @@ import { AlertBadge } from "../components/smartAlerts/AlertBadge";
 
 import { FeedStockLevelGauge, dashboardFeedItemToGauge } from "../components/feed";
 import { FinanceOverviewKpiGrid } from "../components/finance/FinanceOverviewKpiGrid";
+import { CategoryBreakdownPanel } from "../components/cheptel/overview/CategoryBreakdownPanel";
+import { ScreenSection } from "../components/layout/ScreenSection";
 import { EmptyStateCard } from "../components/common/EmptyStateCard";
 import { CardContentSkeleton } from "../components/common/SkeletonBlocks";
 import { OnboardingBanner } from "../components/onboarding/OnboardingBanner";
@@ -37,6 +39,7 @@ import { useSession } from "../context/SessionContext";
 import {
   fetchDashboardFeedStock,
   fetchFinanceOverview,
+  fetchFarmCheptelOverview,
   fetchDashboardGestations,
   fetchDashboardHealth,
   fetchFarmSmartAlertsCount,
@@ -161,6 +164,14 @@ export function ProducerDashboardScreen() {
     refetchInterval: 60_000
   });
 
+  const cheptelOverviewQ = useQuery({
+    queryKey: ["cheptelOverview", farmId, activeProfileId],
+    queryFn: () =>
+      fetchFarmCheptelOverview(accessToken!, farmId!, activeProfileId),
+    enabled: Boolean(farmId && accessToken),
+    refetchInterval: 120_000
+  });
+
   const alertsCountQuery = useQuery({
     queryKey: ["smartAlertsCount", farmId, activeProfileId],
     queryFn: () =>
@@ -193,6 +204,7 @@ export function ProducerDashboardScreen() {
       tasks.push(financeQuery.refetch());
     }
     tasks.push(gestationsQuery.refetch(), healthQuery.refetch());
+    tasks.push(cheptelOverviewQ.refetch());
     if (feedEnabled) {
       tasks.push(feedQuery.refetch());
     }
@@ -418,6 +430,13 @@ export function ProducerDashboardScreen() {
                 />
               </View>
             </View>
+            {(cheptelOverviewQ.data?.categoryBreakdown?.length ?? 0) > 0 ? (
+              <ScreenSection title={t("cheptel.categoryBreakdown")}>
+                <CategoryBreakdownPanel
+                  rows={cheptelOverviewQ.data?.categoryBreakdown ?? []}
+                />
+              </ScreenSection>
+            ) : null}
             <SmartAlertsSection
               farmId={farmId}
               farmName={farmName}

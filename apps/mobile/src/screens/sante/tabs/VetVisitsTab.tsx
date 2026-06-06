@@ -9,6 +9,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../../theme/mobileTheme";
+import { VetVisitQuotesPanel } from "../../../components/sante/VetVisitQuotesPanel";
 import { HealthKindListTab } from "./HealthKindListTab";
 import type { ComponentProps } from "react";
 
@@ -20,31 +21,46 @@ type ListProps = Omit<
 type Props = ListProps & {
   upcoming: FarmHealthUpcomingDto | undefined;
   locale: string;
+  farmId: string;
+  accessToken: string;
+  activeProfileId?: string | null;
   initialOpenVisitId?: string;
 };
 
 export function VetVisitsTab({
   upcoming,
   locale,
+  farmId,
+  accessToken,
+  activeProfileId,
   initialOpenVisitId,
   ...listProps
 }: Props) {
   const { t } = useTranslation();
   const next = upcoming?.vetVisits?.[0];
 
-  const prepend = next ? (
-    <View style={styles.highlight}>
-      <Text style={styles.highlightLabel}>
-        {t("health.vetVisits.nextPlanned")}
-      </Text>
-      <Text style={styles.highlightTitle}>
-        {next.vetVisit?.vetName ?? "—"} · {next.vetVisit?.reason ?? ""}
-      </Text>
-      <Text style={styles.highlightMeta}>
-        {formatHealthDay(next.occurredAt, locale)}
-      </Text>
-    </View>
-  ) : null;
+  const prepend = (
+    <>
+      <VetVisitQuotesPanel
+        farmId={farmId}
+        accessToken={accessToken}
+        activeProfileId={activeProfileId}
+      />
+      {next ? (
+        <View style={styles.highlight}>
+          <Text style={styles.highlightLabel}>
+            {t("health.vetVisits.nextPlanned")}
+          </Text>
+          <Text style={styles.highlightTitle}>
+            {next.vetVisit?.vetName ?? "—"} · {next.vetVisit?.reason ?? ""}
+          </Text>
+          <Text style={styles.highlightMeta}>
+            {formatHealthDay(next.occurredAt, locale)}
+          </Text>
+        </View>
+      ) : null}
+    </>
+  );
 
   return (
     <HealthKindListTab

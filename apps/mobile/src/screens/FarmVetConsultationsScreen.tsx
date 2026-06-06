@@ -268,5 +268,5 @@ const styles = StyleSheet.create({
   cardAnimal: { fontSize: 13, color: mobileColors.accent, marginTop: 4 },
   cardPreview: { fontSize: 14, color: "#4a5238", marginTop: 8 },
   headerBtn: { marginRight: 4 },
-  headerBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 }
+  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: 15 }
 });
