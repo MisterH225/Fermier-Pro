@@ -33,3 +33,20 @@ export async function uploadListingPhotoToSupabase(
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
   return data.publicUrl;
 }
+
+/** Retire une photo du bucket `listings` à partir de son URL publique. */
+export async function deleteListingPhotoFromSupabase(
+  supabase: SupabaseClient,
+  publicUrl: string
+): Promise<void> {
+  const marker = `/storage/v1/object/public/${BUCKET}/`;
+  const idx = publicUrl.indexOf(marker);
+  if (idx < 0) {
+    return;
+  }
+  const path = decodeURIComponent(publicUrl.slice(idx + marker.length));
+  if (!path) {
+    return;
+  }
+  await supabase.storage.from(BUCKET).remove([path]);
+}

@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppDatePicker } from "../components/common/AppDatePicker";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
+import { ListingModal } from "../components/marketplace/ListingModal";
 import { CounterProposalModal } from "../components/marketplace/CounterProposalModal";
 import { isFlatPriceListing } from "../components/marketplace/listingPricing";
 import { ProposalModal } from "../components/marketplace/ProposalModal";
@@ -112,6 +113,7 @@ export function MarketplaceListingDetailScreen({
   const modal = useModal();
   const showSuccess = (message: string) =>
     modal.open("success", { message, autoDismissMs: 2200 });
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [publishDurationDays, setPublishDurationDays] =
     useState<ListingDurationDays>(14);
 
@@ -706,9 +708,7 @@ export function MarketplaceListingDetailScreen({
           ) : null}
           <SecondaryButton
             label={t("marketScreen.detail.editListing")}
-            onPress={() =>
-              navigation.navigate("EditMarketplaceListing", { listingId })
-            }
+            onPress={() => setEditModalOpen(true)}
             disabled={
               publishMutation.isPending ||
               cancelMutation.isPending ||
@@ -901,6 +901,24 @@ export function MarketplaceListingDetailScreen({
       onClose={() => setSaleOpen(false)}
       onConfirm={(payload) => handoverMutation.mutate(payload)}
     />
+
+    {isSeller ? (
+      <ListingModal
+        visible={editModalOpen}
+        mode="edit"
+        listingId={listingId}
+        lockFarm
+        onClose={() => setEditModalOpen(false)}
+        onSuccess={() => {
+          void q.refetch();
+          showSuccess(
+            t("marketScreen.editForm.success", {
+              defaultValue: "Annonce mise à jour."
+            })
+          );
+        }}
+      />
+    ) : null}
     </>
   );
 }

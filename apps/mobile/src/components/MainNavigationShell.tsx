@@ -48,7 +48,6 @@ import {
   CreateVetConsultationScreen,
   EditFarmExpenseScreen,
   EditFarmRevenueScreen,
-  EditMarketplaceListingScreen,
   FarmBarnsScreen,
   FarmDetailScreen,
   FarmFeedStockScreen,
@@ -466,11 +465,6 @@ function MainStack() {
         name="CreateMarketplaceListing"
         component={CreateMarketplaceListingScreen}
         options={{ title: "Nouvelle annonce" }}
-      />
-      <Stack.Screen
-        name="EditMarketplaceListing"
-        component={EditMarketplaceListingScreen}
-        options={{ title: "Modifier l'annonce" }}
       />
       <Stack.Screen
         name="ChatRooms"

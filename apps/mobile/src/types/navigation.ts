@@ -87,7 +87,6 @@ export type RootStackParamList = {
   MarketplaceMyOffers: undefined;
   MarketplaceMyListings: undefined;
   CreateMarketplaceListing: { farmId?: string };
-  EditMarketplaceListing: { listingId: string };
   TechProfileEdit: undefined;
   ChatRooms: undefined;
   ChatRoom: {
