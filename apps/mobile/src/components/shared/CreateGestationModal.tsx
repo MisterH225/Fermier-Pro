@@ -23,11 +23,13 @@ import {
   useOfflineMutation
 } from "../../hooks/useOfflineMutation";
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// Les identifiants en base sont des CUID (`@default(cuid())`), pas des UUID.
+// On valide donc un identifiant générique : chaîne non vide, sans espace,
+// d'une longueur plausible (couvre cuid, cuid2 et uuid).
+const ID_RE = /^[a-z0-9_-]{8,}$/i;
 
-function isUuid(value: string | null | undefined): boolean {
-  return Boolean(value?.trim() && UUID_RE.test(value.trim()));
+function isValidId(value: string | null | undefined): boolean {
+  return Boolean(value?.trim() && ID_RE.test(value.trim()));
 }
 
 export type CreateGestationModalProps = {
@@ -61,7 +63,7 @@ export function CreateGestationModal({
 }: CreateGestationModalProps) {
   const { t } = useTranslation();
   const { activeFarmId } = useActiveFarm();
-  const resolvedFarmId = isUuid(farmId) ? farmId.trim() : activeFarmId ?? "";
+  const resolvedFarmId = isValidId(farmId) ? farmId.trim() : activeFarmId ?? "";
   const lockSow = Boolean(presetSowId?.trim());
   const [sowId, setSowId] = useState("");
   const [boarId, setBoarId] = useState("");
@@ -158,21 +160,21 @@ export function CreateGestationModal({
         <Pressable
           style={[styles.btn, mut.isPending && styles.btnDisabled]}
           onPress={() => {
-            if (!isUuid(resolvedFarmId)) {
+            if (!isValidId(resolvedFarmId)) {
               Alert.alert(
                 t("gestationScreen.error"),
                 t("gestationScreen.invalidFarmId")
               );
               return;
             }
-            if (!isUuid(sowId)) {
+            if (!isValidId(sowId)) {
               Alert.alert(
                 t("gestationScreen.error"),
                 t("gestationScreen.pickSow")
               );
               return;
             }
-            if (boarId && !isUuid(boarId)) {
+            if (boarId && !isValidId(boarId)) {
               Alert.alert(
                 t("gestationScreen.error"),
                 t("gestationScreen.invalidBoarId")
