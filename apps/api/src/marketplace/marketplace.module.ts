@@ -26,6 +26,10 @@ import { MarketplacePigPriceIndexCronService } from "./pig-price-index.cron";
 import { MarketplacePigPriceIndexService } from "./pig-price-index.service";
 import { SuperAdminGuard } from "../admin-platform/super-admin.guard";
 import { BuyerProfileDetectorService } from "./buyer-profile-detector.service";
+import { CreditCronService } from "./credit/credit-cron.service";
+import { CreditOffersController } from "./credit/credit-offers.controller";
+import { CreditOffersService } from "./credit/credit-offers.service";
+import { CreditScoreService } from "./credit/credit-score.service";
 import { MarketplaceDisputesController } from "./marketplace-disputes.controller";
 import { OffersController } from "./offers.controller";
 import { OffersService } from "./offers.service";
@@ -45,6 +49,7 @@ import { OffersService } from "./offers.service";
     MarketplacePigPriceIndexController,
     MarketplaceTransactionController,
     MarketplaceDisputesController,
+    CreditOffersController,
     MobileMoneyWebhookController,
     ReceiptController
   ],
@@ -65,14 +70,19 @@ import { OffersService } from "./offers.service";
     mobileMoneyGatewayProvider,
     ReceiptService,
     ReceiptPdfService,
-    BuyerProfileDetectorService
+    BuyerProfileDetectorService,
+    CreditScoreService,
+    CreditOffersService,
+    CreditCronService
   ],
   exports: [
     FarmMarketplaceLifecycleService,
     ListingsService,
     MarketplacePigPriceIndexService,
     MarketplaceTransactionService,
-    ReceiptService
+    ReceiptService,
+    CreditOffersService,
+    CreditScoreService
   ]
 })
 export class MarketplaceModule {}

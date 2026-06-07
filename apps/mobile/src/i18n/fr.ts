@@ -405,6 +405,92 @@ export const fr = {
       successTitle: "Envoi confirmé",
       successBody: "L'acheteur a été notifié."
     },
+    creditModal: {
+      open: "💳 Offre à crédit",
+      title: "💳 Offre à crédit",
+      subtitle: "Proposez un accord de paiement en deux fois",
+      totalPrice: "Prix total proposé",
+      advancePct: "Pourcentage d'avance (%)",
+      advanceHelper: "Minimum 20 % — maximum 50 %",
+      balanceHelper: "Délai max 7 jours après livraison — rappels uniquement après échéance",
+      advancePreview: "Avance : {{amount}}",
+      balancePreview: "Solde : {{amount}}",
+      balanceDays: "Délai de paiement du solde",
+      dayOption: "{{count}} jour",
+      message: "Message au vendeur",
+      messagePh: "Présentez-vous, expliquez votre activité de revendeur…",
+      scoreWarning:
+        "Votre score crédit actuel est fragile. Le vendeur sera informé de votre historique.",
+      yourScore: "Votre score crédit :",
+      submit: "Envoyer l'offre à crédit",
+      success: "Offre à crédit envoyée au vendeur.",
+      errorTitle: "Offre à crédit impossible",
+      blocked:
+        "Votre score crédit ne vous permet pas de faire des offres à crédit pour le moment.",
+      badge: "À CRÉDIT"
+    },
+    credit: {
+      accept: "✅ Accepter",
+      counter: "🔄 Contre-proposer",
+      counterTitle: "🔄 Contre-proposition crédit",
+      counterSubmit: "Envoyer la contre-proposition",
+      counterSuccess: "Contre-proposition crédit envoyée.",
+      acceptCounter: "Accepter la contre-proposition",
+      agreedSuccess:
+        "Accord crédit conclu — sécurisez l'avance sur la plateforme pour lancer la livraison.",
+      escrow: {
+        transactionMissing: "Transaction escrow introuvable — réessayez dans un instant.",
+        advanceHeld: "L'avance reste bloquée sur la plateforme jusqu'à la livraison.",
+        balanceRecalculated:
+          "Le solde est recalculé au poids réel après validation par le vendeur."
+      },
+      buyerScore: "Score crédit acheteur :",
+      termsAdvance: "Avance : {{pct}} % = {{amount}}",
+      termsBalance: "Solde : {{amount}} dans {{days}} jours",
+      paymentMode: "Mode de paiement utilisé",
+      paymentRef: "Référence paiement",
+      paymentRefPh: "Numéro de transaction, reçu…",
+      advance: {
+        title: "Confirmer le paiement de l'avance",
+        info: "En confirmant, vous déclarez avoir effectué le virement ou la remise de l'avance au vendeur.",
+        due: "Avance due",
+        balance: "Solde restant",
+        delay: "Solde sous {{count}} jours après livraison",
+        confirm: "✅ J'ai payé l'avance",
+        declare: "💰 J'ai payé l'avance",
+        payEscrow: "💳 Payer l'avance (escrow)",
+        declaredSuccess: "Avance déclarée — le vendeur va confirmer la réception.",
+        confirmReceived: "✅ Confirmer la réception de l'avance",
+        notReceived: "❌ Je n'ai pas reçu l'avance",
+        confirmedSuccess: "Avance confirmée — la livraison peut commencer."
+      },
+      balance: {
+        title: "Confirmer le paiement du solde",
+        amount: "Montant payé",
+        confirm: "✅ J'ai payé le solde",
+        declare: "💰 J'ai payé le solde",
+        payEscrow: "💳 Payer le solde (escrow)",
+        remaining: "Solde restant",
+        dueOn: "Dû le {{date}}",
+        inDays: "dans {{count}} jour(s)",
+        statusPending: "En attente de paiement",
+        statusDeclared: "Paiement déclaré",
+        statusPaid: "Soldé",
+        statusArbitration: "Arbitrage en cours",
+        declaredSuccess: "Solde déclaré — le vendeur va confirmer la réception.",
+        confirmReceived: "✅ Confirmer la réception du solde",
+        notReceived: "❌ Je n'ai pas reçu le solde",
+        confirmedSuccess: "Transaction crédit soldée."
+      },
+      dashboard: {
+        scoreTitle: "Mon score crédit",
+        pendingTitle: "Soldes en attente",
+        empty: "Aucun solde crédit en cours.",
+        transactions: "{{count}} transaction(s) crédit",
+        onTime: "{{count}} paiement(s) à temps",
+        late: "{{count}} retard(s)"
+      }
+    },
     transferModal: {
       open: "Ajouter à mon cheptel",
       title: "Importer dans ma ferme",

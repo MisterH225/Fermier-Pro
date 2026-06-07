@@ -19,6 +19,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
 import { ListingModal } from "../components/marketplace/ListingModal";
 import { isFlatPriceListing } from "../components/marketplace/listingPricing";
+import { CreditProposalModal } from "../components/marketplace/CreditProposalModal";
+import { CreditScoreBadge } from "../components/marketplace/CreditScoreBadge";
 import { ProposalModal } from "../components/marketplace/ProposalModal";
 import {
   formatMarketMoney,
@@ -46,9 +48,11 @@ import {
   ensureDirectChatRoom,
   fetchMarketplaceListing,
   fetchMarketplaceTransactions,
+  fetchMyCreditScore,
   postMarketplaceListingConsult,
   postMarketplaceListingView,
   postMarketplaceOffer,
+  postMarketplaceCreditOffer,
   publishMarketplaceListing,
   renewMarketplaceListing
 } from "../lib/api";
@@ -99,6 +103,7 @@ export function MarketplaceListingDetailScreen({
   };
 
   const [proposalOpen, setProposalOpen] = useState(false);
+  const [creditOpen, setCreditOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [publishDurationDays, setPublishDurationDays] =
     useState<ListingDurationDays>(14);
@@ -164,6 +169,39 @@ export function MarketplaceListingDetailScreen({
     },
     onError: (e: Error) =>
       Alert.alert(t("marketScreen.detail.contactErrorTitle"), getUserFacingError(e, t))
+  });
+
+  const creditScoreQ = useQuery({
+    queryKey: ["myCreditScore", activeProfileId],
+    queryFn: () => fetchMyCreditScore(accessToken!, activeProfileId),
+    enabled: Boolean(accessToken) && clientFeatures.marketplace
+  });
+
+  const creditProposalMutation = useMutation({
+    mutationFn: (input: {
+      offeredPrice: number;
+      advancePercentage: number;
+      balanceDueDays: number;
+      message?: string;
+    }) =>
+      postMarketplaceCreditOffer(
+        accessToken,
+        listingId,
+        input,
+        activeProfileId
+      ),
+    onSuccess: () => {
+      setCreditOpen(false);
+      showSuccess(t("marketScreen.creditModal.success"));
+      void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
+      void qc.invalidateQueries({ queryKey: ["marketplaceMyOffers"] });
+    },
+    onError: (e: Error) => {
+      Alert.alert(
+        t("marketScreen.creditModal.errorTitle"),
+        marketplaceActionErrorMessage(e, t)
+      );
+    }
   });
 
   const proposalMutation = useMutation({
@@ -320,6 +358,13 @@ export function MarketplaceListingDetailScreen({
   );
   const canSubmitOfferWithEscrow =
     canSubmitOffer && !myListingTx;
+  const isButcherListing = L.category === "butcher";
+  const creditBlocked = creditScoreQ.data?.blocked === true;
+  const canSubmitCreditOffer =
+    canSubmitOfferWithEscrow && isButcherListing && !creditBlocked;
+  const showCreditScoreWarning =
+    creditScoreQ.data?.score === "attention" ||
+    creditScoreQ.data?.score === "risque";
 
   const categoryKey = L.category ?? "unknown";
   const screenW = Dimensions.get("window").width;
@@ -641,10 +686,32 @@ export function MarketplaceListingDetailScreen({
         ]}
       >
         {canSubmitOfferWithEscrow ? (
-          <PrimaryButton
+          <SecondaryButton
             label={t("marketScreen.detail.makeProposal")}
             onPress={() => setProposalOpen(true)}
           />
+        ) : null}
+        {isButcherListing && canSubmitOffer ? (
+          <View style={{ marginTop: mobileSpacing.sm }}>
+            <PrimaryButton
+              label={t("marketScreen.creditModal.open")}
+              onPress={() => setCreditOpen(true)}
+              disabled={!canSubmitCreditOffer}
+            />
+          </View>
+        ) : null}
+        {isButcherListing && creditBlocked ? (
+          <Text style={styles.creditBlocked}>
+            {t("marketScreen.creditModal.blocked")}
+          </Text>
+        ) : null}
+        {isButcherListing ? (
+          <Pressable onPress={() => navigation.navigate("CreditDashboard")}>
+            <CreditScoreBadge
+              score={creditScoreQ.data}
+              prefix={t("marketScreen.creditModal.yourScore")}
+            />
+          </Pressable>
         ) : null}
         {L.status === "published" && L.sellerUserId ? (
           <SecondaryButton
@@ -664,6 +731,14 @@ export function MarketplaceListingDetailScreen({
       submitting={proposalMutation.isPending}
       onClose={() => setProposalOpen(false)}
       onSubmit={(payload) => proposalMutation.mutate(payload)}
+    />
+    <CreditProposalModal
+      visible={creditOpen}
+      listing={L}
+      submitting={creditProposalMutation.isPending}
+      buyerScoreWarning={showCreditScoreWarning}
+      onClose={() => setCreditOpen(false)}
+      onSubmit={(payload) => creditProposalMutation.mutate(payload)}
     />
     {isSeller ? (
       <ListingModal
@@ -1123,5 +1198,10 @@ const styles = StyleSheet.create({
   durationChipTxOn: {
     color: mobileColors.accent,
     fontWeight: "700"
+  },
+  creditBlocked: {
+    ...mobileTypography.meta,
+    color: mobileColors.error,
+    marginTop: mobileSpacing.xs
   }
 });

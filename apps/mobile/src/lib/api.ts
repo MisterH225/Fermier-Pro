@@ -4870,13 +4870,236 @@ export function postMarketplaceOffer(
   );
 }
 
-export type MarketplaceOfferMineRow = {
+export type BuyerCreditScoreDto = {
+  score: string;
+  emoji: string;
+  label: string;
+  color: string;
+  blocked: boolean;
+  creditTransactionsCount: number;
+  creditOnTimeCount: number;
+  creditLateCount: number;
+  creditDefaultCount: number;
+};
+
+export type MarketplaceCreditOfferDto = {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  currency: string;
+  offerType: string;
+  status: string;
+  offeredPrice: number;
+  advancePercentage: number | null;
+  advanceAmount: number | null;
+  balanceAmount: number | null;
+  balanceDueDays: number | null;
+  balanceDueAt: string | null;
+  message: string | null;
+  buyerCreditScore: BuyerCreditScoreDto | null;
+  transactionId?: string | null;
+};
+
+export function fetchMyCreditScore(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<BuyerCreditScoreDto> {
+  return apiGetJson<BuyerCreditScoreDto>(
+    "/marketplace/buyers/me/credit-score",
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function postMarketplaceCreditOffer(
+  accessToken: string,
+  listingId: string,
+  payload: {
+    offeredPrice: number;
+    advancePercentage: number;
+    balanceDueDays: number;
+    message?: string;
+    buyerFarmId?: string;
+  },
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPostJson<MarketplaceCreditOfferDto>(
+    `/marketplace/listings/${listingId}/offers/credit`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function agreeMarketplaceCreditOffer(
+  accessToken: string,
+  listingId: string,
+  offerId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/listings/${listingId}/offers/${offerId}/agree-credit`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function counterMarketplaceCreditOffer(
+  accessToken: string,
+  listingId: string,
+  offerId: string,
+  payload: {
+    offeredPrice: number;
+    advancePercentage: number;
+    balanceDueDays: number;
+    message?: string;
+  },
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/listings/${listingId}/offers/${offerId}/counter-credit`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function initiateMarketplaceCreditBalancePayment(
+  accessToken: string,
+  offerId: string,
+  activeProfileId?: string | null
+): Promise<{
+  providerRef: string;
+  amount: number;
+  currency: string;
+  transactionId: string;
+}> {
+  return apiPostJson(
+    `/marketplace/offers/${offerId}/balance-payment/initiate`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmMarketplaceCreditBalancePayment(
+  accessToken: string,
+  offerId: string,
+  providerRef?: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/offers/${offerId}/balance-payment/confirm`,
+    providerRef ? { providerRef } : {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function declareMarketplaceAdvancePaid(
+  accessToken: string,
+  offerId: string,
+  payload: { paymentMode: string; paymentRef?: string },
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/offers/${offerId}/confirm-advance-paid`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmMarketplaceAdvanceReceived(
+  accessToken: string,
+  offerId: string,
+  received: boolean,
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/offers/${offerId}/confirm-advance-received`,
+    { received },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function declareMarketplaceBalancePaid(
+  accessToken: string,
+  offerId: string,
+  payload: { amount: number; paymentMode: string; paymentRef?: string },
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/offers/${offerId}/confirm-balance-paid`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmMarketplaceBalanceReceived(
+  accessToken: string,
+  offerId: string,
+  received: boolean,
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/offers/${offerId}/confirm-balance-received`,
+    { received },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type CreditPendingRow = {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  currency: string;
+  balanceAmount: number;
+  balanceDueAt: string | null;
+  status: string;
+  buyerName: string | null;
+};
+
+export function fetchCreditPendingOffers(
+  accessToken: string,
+  farmId?: string | null,
+  activeProfileId?: string | null
+): Promise<CreditPendingRow[]> {
+  const qs = farmId?.trim() ? `?farmId=${encodeURIComponent(farmId.trim())}` : "";
+  return apiGetJson<CreditPendingRow[]>(
+    `/marketplace/offers/credit-pending${qs}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type MarketplaceOfferCreditFields = {
+  offerType?: string | null;
+  advancePercentage?: number | null;
+  advanceAmount?: string | number | null;
+  balanceAmount?: string | number | null;
+  balanceDueDays?: number | null;
+  balanceDueAt?: string | null;
+  advancePaidDeclaredAt?: string | null;
+  advanceConfirmedAt?: string | null;
+  balancePaidDeclaredAt?: string | null;
+  balanceConfirmedAt?: string | null;
+  deliveredAt?: string | null;
+  buyerCreditScore?: BuyerCreditScoreDto | null;
+};
+
+export type MarketplaceOfferMineRow = MarketplaceOfferCreditFields & {
   id: string;
   offeredPrice: string | number;
   quantity: number | null;
   message: string | null;
   status: string;
   createdAt: string;
+  transaction?: { id: string } | null;
   listing: {
     id: string;
     title: string;
@@ -4900,7 +5123,7 @@ export function fetchMyMarketplaceOffers(
   );
 }
 
-export type MarketplaceOfferReceivedRow = {
+export type MarketplaceOfferReceivedRow = MarketplaceOfferCreditFields & {
   id: string;
   offeredPrice: string | number;
   proposedPricePerKg?: string | number | null;
@@ -5074,6 +5297,7 @@ export type MarketplaceTransactionDto = {
     generatedAt: string;
   } | null;
   pendingTransfer?: MarketplacePendingTransferDto | null;
+  isCredit?: boolean;
 };
 
 export type MarketplaceReceiptDto = {

@@ -121,6 +121,8 @@ model User {
   offersAsBuyer         MarketplaceOffer[]   @relation("OfferBuyer")
   marketplaceDeliveryDisputesRaised MarketplaceDeliveryDispute[] @relation("DeliveryDisputeRaisedBy")
   marketplacePendingTransfersAsBuyer MarketplacePendingTransfer[] @relation("PendingTransferBuyer")
+  creditArbitrationsAsBuyer  MarketplaceCreditArbitration[] @relation("CreditArbitrationBuyer")
+  creditArbitrationsAsSeller MarketplaceCreditArbitration[] @relation("CreditArbitrationSeller")
   marketplaceTransactionsAsBuyer  MarketplaceTransaction[] @relation("TransactionBuyer")
   marketplaceTransactionsAsSeller MarketplaceTransaction[] @relation("TransactionSeller")
   marketplaceReceiptsAsSeller     MarketplaceTransactionReceipt[] @relation("ReceiptSeller")
@@ -1287,12 +1289,18 @@ enum ListingStatus {
   published
   paused
   reserved
+  reserved_credit
   shipped
   delivered
   disputed
   sold
   cancelled
   expired
+}
+
+enum OfferType {
+  standard
+  credit
 }
 
 enum OfferStatus {
@@ -1304,6 +1312,25 @@ enum OfferStatus {
   on_hold
   cancelled
   completed
+  credit_agreed
+  advance_confirmed
+  balance_pending
+  balance_declared
+  arbitration
+}
+
+enum BuyerCreditScore {
+  excellent
+  bon
+  nouveau
+  attention
+  risque
+}
+
+enum MarketplaceCreditArbitrationResolution {
+  paid_late
+  defaulted
+  cancelled
 }
 
 enum MarketplaceTransactionStatus {
@@ -1427,6 +1454,7 @@ model MarketplaceListing {
   offers        MarketplaceOffer[]
   transactions  MarketplaceTransaction[]
   deliveryDisputes MarketplaceDeliveryDispute[]
+  creditArbitrations MarketplaceCreditArbitration[]
   favorites     BuyerFavorite[]
   chatRooms     ChatRoom[]
 
@@ -1530,6 +1558,7 @@ model MarketplaceOffer {
   buyerUserId  String
   buyer        User               @relation("OfferBuyer", fields: [buyerUserId], references: [id], onDelete: Restrict)
   buyerFarmId  String?
+  offerType    OfferType          @default(standard)
   /// Prix / kg proposé par l’acheteur (si renseigné, `offeredPrice` = total de l’offre).
   proposedPricePerKg Decimal?   @db.Decimal(14, 4)
   offeredPrice Decimal            @db.Decimal(14, 2)
@@ -1537,6 +1566,22 @@ model MarketplaceOffer {
   message      String?
   /// Contre-proposition vendeur : prix / kg.
   counterPricePerKg Decimal?     @db.Decimal(14, 4)
+  /// Vente à crédit — % avance (20–50).
+  advancePercentage   Int?
+  advanceAmount       Decimal?    @db.Decimal(14, 2)
+  balanceAmount       Decimal?    @db.Decimal(14, 2)
+  balanceDueDays      Int?
+  balanceDueAt        DateTime?
+  deliveredAt         DateTime?
+  advancePaidDeclaredAt  DateTime?
+  advanceConfirmedAt     DateTime?
+  balancePaidDeclaredAt  DateTime?
+  balanceConfirmedAt     DateTime?
+  advancePaymentMode     String?
+  balancePaymentMode     String?
+  advancePaymentRef      String?
+  balancePaymentRef      String?
+  balancePaidAmount      Decimal? @db.Decimal(14, 2)
   status       OfferStatus        @default(pending)
   completedAt  DateTime?
   archived     Boolean            @default(false)
@@ -1544,10 +1589,12 @@ model MarketplaceOffer {
   updatedAt    DateTime           @updatedAt
   transaction  MarketplaceTransaction?
   deliveryDisputes MarketplaceDeliveryDispute[]
+  creditArbitrations MarketplaceCreditArbitration[]
 
   @@index([listingId])
   @@index([buyerUserId])
   @@index([listingId, status])
+  @@index([offerType, status])
 }
 
 enum ReceiptGenerationStatus {
@@ -1604,6 +1651,8 @@ model MarketplaceTransaction {
   cancelReason            String?
   offerExpiresAt          DateTime
   currency                String                       @default("XOF")
+  /// Transaction vente à crédit — pas de clôture escrow avant solde.
+  isCredit                Boolean                      @default(false)
   createdAt               DateTime                     @default(now())
   updatedAt               DateTime                     @updatedAt
   fundMovements           MarketplaceFundMovement[]
@@ -2369,6 +2418,12 @@ model BuyerProfile {
   profilePhotoUrl     String?
   ratingAvg           Decimal?  @db.Decimal(3, 2)
   ratingCount         Int       @default(0)
+  creditScore         BuyerCreditScore @default(nouveau)
+  creditTransactionsCount Int     @default(0)
+  creditOnTimeCount   Int       @default(0)
+  creditLateCount     Int       @default(0)
+  creditDefaultCount  Int       @default(0)
+  creditBlocked       Boolean   @default(false)
   onboardingComplete  Boolean   @default(false)
   isActive            Boolean   @default(true)
   createdAt           DateTime  @default(now())
@@ -2377,6 +2432,32 @@ model BuyerProfile {
   favorites           BuyerFavorite[]
 
   @@index([buyerType])
+  @@index([creditScore])
+}
+
+/// Arbitrage solde vente à crédit marketplace.
+model MarketplaceCreditArbitration {
+  id            String                              @id @default(cuid())
+  offerId       String
+  offer         MarketplaceOffer                    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  listingId     String
+  listing       MarketplaceListing                  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyerUserId   String
+  buyer         User                                @relation("CreditArbitrationBuyer", fields: [buyerUserId], references: [id], onDelete: Restrict)
+  sellerUserId  String
+  seller        User                                @relation("CreditArbitrationSeller", fields: [sellerUserId], references: [id], onDelete: Restrict)
+  balanceAmount Decimal                             @db.Decimal(14, 2)
+  triggeredAt   DateTime                            @default(now())
+  resolvedAt    DateTime?
+  resolution    MarketplaceCreditArbitrationResolution?
+  notes         String?
+  createdAt     DateTime                            @default(now())
+  updatedAt     DateTime                            @updatedAt
+
+  @@index([offerId])
+  @@index([listingId])
+  @@index([buyerUserId])
+  @@index([resolvedAt])
 }
 
 model BuyerPriceAlert {
