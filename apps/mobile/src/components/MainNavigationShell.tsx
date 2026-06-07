@@ -65,6 +65,7 @@ import {
   MarketplaceMyListingsScreen,
   MarketplaceMyOffersScreen,
   MarketplaceTransactionScreen,
+  CreditDashboardScreen,
   ModuleRoadmapScreen,
   ProducerDashboardScreen,
   ProducerFarmSettingsScreen,
@@ -456,6 +457,11 @@ function MainStack() {
         name="MarketplaceTransaction"
         component={MarketplaceTransactionScreen}
         options={{ title: "Transaction" }}
+      />
+      <Stack.Screen
+        name="CreditDashboard"
+        component={CreditDashboardScreen}
+        options={{ title: "Score crédit" }}
       />
       <Stack.Screen
         name="MarketplaceMyOffers"

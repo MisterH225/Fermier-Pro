@@ -10,12 +10,16 @@ import {
   Text,
   View
 } from "react-native";
+import { parseMarketNum } from "../../../components/marketplace/MarketplaceListingCard";
 import { ProposalCard } from "../../../components/marketplace/ProposalCard";
 import { EmptyStateCard } from "../../../components/common/EmptyStateCard";
 import { useModal } from "../../../components/modals/useModal";
 import { useSession } from "../../../context/SessionContext";
 import {
   acceptMarketplaceOfferCounter,
+  agreeMarketplaceCreditOffer,
+  confirmMarketplaceCreditBalancePayment,
+  initiateMarketplaceCreditBalancePayment,
   fetchMyMarketplaceOffers,
   withdrawMarketplaceOffer,
   type MarketplaceOfferMineRow
@@ -53,6 +57,19 @@ export function PropositionsEnvoyeesTab({
     void qc.invalidateQueries({ queryKey: ["marketplaceMyOffers"] });
     void qc.invalidateQueries({ queryKey: ["marketplaceOffersCounts"] });
     void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
+    void qc.invalidateQueries({ queryKey: ["marketplaceTransactions"] });
+  };
+
+  const openCreditTransaction = (row: MarketplaceOfferMineRow) => {
+    const txId = row.transaction?.id;
+    if (!txId) {
+      Alert.alert(
+        t("common.error"),
+        t("marketScreen.credit.escrow.transactionMissing")
+      );
+      return;
+    }
+    navigation.navigate("MarketplaceTransaction", { transactionId: txId });
   };
 
   const withdrawMut = useMutation({
@@ -73,17 +90,33 @@ export function PropositionsEnvoyeesTab({
   });
 
   const acceptCounterMut = useMutation({
-    mutationFn: (row: MarketplaceOfferMineRow) =>
-      acceptMarketplaceOfferCounter(
+    mutationFn: async (row: MarketplaceOfferMineRow) => {
+      if (row.offerType === "credit") {
+        const data = await agreeMarketplaceCreditOffer(
+          accessToken!,
+          row.listing.id,
+          row.id,
+          activeProfileId
+        );
+        return {
+          credit: true as const,
+          transactionId: data.transactionId ?? undefined
+        };
+      }
+      const data = await acceptMarketplaceOfferCounter(
         accessToken!,
         row.listing.id,
         row.id,
         activeProfileId
-      ),
+      );
+      return { credit: false as const, transactionId: data.transactionId };
+    },
     onSuccess: (data, row) => {
       invalidateAll(row.listing.id);
       open("success", {
-        message: t("marketScreen.counterModal.accepted"),
+        message: data.credit
+          ? t("marketScreen.credit.agreedSuccess")
+          : t("marketScreen.counterModal.accepted"),
         autoDismissMs: 2000
       });
       if (data.transactionId) {
@@ -97,6 +130,31 @@ export function PropositionsEnvoyeesTab({
         t("common.error"),
         marketplaceActionErrorMessage(e, t)
       )
+  });
+
+  const payBalanceMut = useMutation({
+    mutationFn: async (row: MarketplaceOfferMineRow) => {
+      const init = await initiateMarketplaceCreditBalancePayment(
+        accessToken!,
+        row.id,
+        activeProfileId
+      );
+      await confirmMarketplaceCreditBalancePayment(
+        accessToken!,
+        row.id,
+        init.providerRef,
+        activeProfileId
+      );
+    },
+    onSuccess: (_data, row) => {
+      invalidateAll(row.listing.id);
+      open("success", {
+        message: t("marketScreen.credit.balance.declaredSuccess"),
+        autoDismissMs: 2000
+      });
+    },
+    onError: (e: Error) =>
+      Alert.alert(t("common.error"), marketplaceActionErrorMessage(e, t))
   });
 
   const confirmWithdraw = (row: MarketplaceOfferMineRow) => {
@@ -134,6 +192,10 @@ export function PropositionsEnvoyeesTab({
   }
 
   const rows = sentQ.data ?? [];
+  const busy =
+    withdrawMut.isPending ||
+    acceptCounterMut.isPending ||
+    payBalanceMut.isPending;
 
   return (
     <FlatList
@@ -167,6 +229,15 @@ export function PropositionsEnvoyeesTab({
           createdAt={item.createdAt}
           currency={item.listing.currency}
           listingTitle={item.listing.title}
+          offerType={item.offerType}
+          advancePercentage={item.advancePercentage}
+          advanceAmount={item.advanceAmount}
+          balanceAmount={item.balanceAmount}
+          balanceDueDays={item.balanceDueDays}
+          balanceDueAt={item.balanceDueAt}
+          advancePaidDeclaredAt={item.advancePaidDeclaredAt}
+          advanceConfirmedAt={item.advanceConfirmedAt}
+          balancePaidDeclaredAt={item.balancePaidDeclaredAt}
           listingCategory={null}
           sellerName={
             item.listing.seller.fullName ??
@@ -174,7 +245,7 @@ export function PropositionsEnvoyeesTab({
             null
           }
           subtitle={item.listing.farm?.name ?? undefined}
-          actionsDisabled={withdrawMut.isPending || acceptCounterMut.isPending}
+          actionsDisabled={busy}
           withdrawLoading={withdrawMut.isPending}
           acceptCounterLoading={acceptCounterMut.isPending}
           onPressListing={() =>
@@ -185,6 +256,8 @@ export function PropositionsEnvoyeesTab({
           }
           onWithdraw={() => confirmWithdraw(item)}
           onAcceptCounter={() => acceptCounterMut.mutate(item)}
+          onDeclareAdvance={() => openCreditTransaction(item)}
+          onDeclareBalance={() => payBalanceMut.mutate(item)}
         />
       )}
     />
