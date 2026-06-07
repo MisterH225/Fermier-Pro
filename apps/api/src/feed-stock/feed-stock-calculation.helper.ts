@@ -267,10 +267,28 @@ export function selectConsumptionRateIntervals(
   return intervals.slice(-3);
 }
 
+export type StockAnchorSource = "check" | "entry" | "ledger";
+
 export type StockAnchor = {
   stockKg: number;
   anchorDate: Date;
+  source: StockAnchorSource;
 };
+
+/** L'entrée l'emporte si elle est postérieure ou le même jour qu'un contrôle. */
+export function isEntryLatestStockEvent(input: {
+  latestCheck: { occurredAt: Date } | null;
+  lastIn: { occurredAt: Date } | null;
+}): boolean {
+  const { latestCheck, lastIn } = input;
+  if (!lastIn) {
+    return false;
+  }
+  if (!latestCheck) {
+    return true;
+  }
+  return lastIn.occurredAt >= latestCheck.occurredAt;
+}
 
 export function resolveStockAnchor(input: {
   ledgerStockKg: number;
@@ -289,22 +307,52 @@ export function resolveStockAnchor(input: {
   const check = input.latestCheck;
   const lastIn = input.lastIn;
 
-  if (check && (!lastIn || check.occurredAt >= lastIn.occurredAt)) {
+  if (isEntryLatestStockEvent({ latestCheck: check, lastIn })) {
+    if (lastIn && lastIn.stockAfterKg != null) {
+      return {
+        stockKg: lastIn.stockAfterKg,
+        anchorDate: lastIn.occurredAt,
+        source: "entry"
+      };
+    }
+    return {
+      stockKg: input.ledgerStockKg,
+      anchorDate: lastIn?.occurredAt ?? input.asOf,
+      source: "entry"
+    };
+  }
+
+  if (check) {
     return {
       stockKg: resolveCheckStockKg(check, input.weightPerBagKg),
-      anchorDate: check.occurredAt
+      anchorDate: check.occurredAt,
+      source: "check"
     };
   }
   if (lastIn && lastIn.stockAfterKg != null) {
     return {
       stockKg: lastIn.stockAfterKg,
-      anchorDate: lastIn.occurredAt
+      anchorDate: lastIn.occurredAt,
+      source: "entry"
     };
   }
   return {
     stockKg: input.ledgerStockKg,
-    anchorDate: input.asOf
+    anchorDate: input.asOf,
+    source: "ledger"
   };
+}
+
+/** Ne conserve que les intervalles dont le contrôle final est postérieur à l'entrée. */
+export function filterConsumptionIntervalsAfterEntry(
+  intervals: ConsumptionInterval[],
+  checksChron: Array<{ id: string; occurredAt: Date }>,
+  lastInOccurredAt: Date
+): ConsumptionInterval[] {
+  return intervals.filter((i) => {
+    const toCheck = checksChron.find((c) => c.id === i.toCheckId);
+    return toCheck != null && toCheck.occurredAt > lastInOccurredAt;
+  });
 }
 
 /** Estime le stock actuel en amortissant la conso depuis le dernier point d'ancrage. */
@@ -488,7 +536,18 @@ export async function computeFeedStockMetricsDebug(
   warnings.push(...built.warnings);
 
   const entryIds = new Set(entryRows.map((e) => e.id));
-  const rateIntervals = selectConsumptionRateIntervals(intervals, entryIds);
+  const entryIsLatest = isEntryLatestStockEvent({
+    latestCheck,
+    lastIn
+  });
+  let rateIntervals = selectConsumptionRateIntervals(intervals, entryIds);
+  if (entryIsLatest && lastIn) {
+    rateIntervals = filterConsumptionIntervalsAfterEntry(
+      rateIntervals,
+      checksChron,
+      lastIn.occurredAt
+    );
+  }
   let avgDailyConsumptionKg = computeWeightedAvgDailyKg(rateIntervals);
   if (
     rateIntervals.length > 0 &&
@@ -498,7 +557,9 @@ export async function computeFeedStockMetricsDebug(
     warnings.push("Consommation nulle ou négative sur la période récente.");
   }
 
-  const hasSufficientData = intervals.some((x) => x.consumedKg > 0 && x.days > 0);
+  const hasSufficientData = rateIntervals.some(
+    (x) => x.consumedKg > 0 && x.days > 0
+  );
 
   if (avgDailyConsumptionKg != null && avgDailyConsumptionKg < 0) {
     warnings.push("avg_daily_consumption_kg négatif — données incohérentes.");
@@ -523,11 +584,10 @@ export async function computeFeedStockMetricsDebug(
     weightPerBagKg: wp,
     asOf
   });
-  const currentStockKg = projectStockFromAnchor(
-    anchor,
-    avgDailyConsumptionKg,
-    asOf
-  );
+  const currentStockKg =
+    entryIsLatest
+      ? anchor.stockKg
+      : projectStockFromAnchor(anchor, avgDailyConsumptionKg, asOf);
 
   if (
     stockAtLastEntryKg != null &&

@@ -3,6 +3,8 @@ import {
   calendarDaysElapsed,
   computeWeightedAvgDailyKg,
   daysBetweenUtc,
+  filterConsumptionIntervalsAfterEntry,
+  isEntryLatestStockEvent,
   projectStockFromAnchor,
   resolveCurrentStockKg,
   resolveFeedStockStatus,
@@ -284,7 +286,8 @@ describe("feed-stock-calculation.helper", () => {
       const projected = projectStockFromAnchor(
         {
           stockKg: 800,
-          anchorDate: new Date("2026-06-01T12:00:00.000Z")
+          anchorDate: new Date("2026-06-01T12:00:00.000Z"),
+          source: "check"
         },
         20,
         asOf
@@ -297,12 +300,34 @@ describe("feed-stock-calculation.helper", () => {
         projectStockFromAnchor(
           {
             stockKg: 800,
-            anchorDate: new Date("2026-06-01T12:00:00.000Z")
+            anchorDate: new Date("2026-06-01T12:00:00.000Z"),
+            source: "check"
           },
           null,
           asOf
         )
       ).toBe(800);
+    });
+  });
+
+  describe("isEntryLatestStockEvent", () => {
+    it("privilégie l'entrée à date égale au contrôle (même jour T12:00Z)", () => {
+      const at = new Date("2026-06-07T12:00:00.000Z");
+      expect(
+        isEntryLatestStockEvent({
+          latestCheck: { occurredAt: at },
+          lastIn: { occurredAt: at }
+        })
+      ).toBe(true);
+    });
+
+    it("retourne false si le contrôle est postérieur à l'entrée", () => {
+      expect(
+        isEntryLatestStockEvent({
+          latestCheck: { occurredAt: new Date("2026-06-10T12:00:00.000Z") },
+          lastIn: { occurredAt: new Date("2026-06-07T12:00:00.000Z") }
+        })
+      ).toBe(false);
     });
   });
 
@@ -323,7 +348,72 @@ describe("feed-stock-calculation.helper", () => {
         asOf: new Date("2026-06-11T12:00:00.000Z")
       });
       expect(anchor.stockKg).toBe(900);
+      expect(anchor.source).toBe("entry");
       expect(anchor.anchorDate.toISOString()).toBe("2026-06-09T12:00:00.000Z");
+    });
+
+    it("privilégie l'entrée à la même date qu'un contrôle à 0 sac", () => {
+      const at = new Date("2026-06-07T12:00:00.000Z");
+      const anchor = resolveStockAnchor({
+        ledgerStockKg: 1000,
+        latestCheck: {
+          occurredAt: at,
+          bagsCounted: 0,
+          stockAfterKg: 0
+        },
+        lastIn: {
+          occurredAt: at,
+          stockAfterKg: 1000
+        },
+        weightPerBagKg: 25,
+        asOf: new Date("2026-06-07T18:00:00.000Z")
+      });
+      expect(anchor.stockKg).toBe(1000);
+      expect(anchor.source).toBe("entry");
+    });
+  });
+
+  describe("filterConsumptionIntervalsAfterEntry", () => {
+    it("exclut les intervalles antérieurs à la dernière entrée", () => {
+      const d0 = new Date("2026-06-01T00:00:00.000Z");
+      const d10 = new Date("2026-06-11T00:00:00.000Z");
+      const d20 = new Date("2026-06-21T00:00:00.000Z");
+      const d25 = new Date("2026-06-26T00:00:00.000Z");
+      const checksChron = [
+        { id: "c1", occurredAt: d10 },
+        { id: "c2", occurredAt: d20 },
+        { id: "c3", occurredAt: d25 }
+      ];
+      const intervals = [
+        {
+          fromCheckId: "in1",
+          toCheckId: "c1",
+          days: 10,
+          consumedKg: 50,
+          dailyKg: 5
+        },
+        {
+          fromCheckId: "c1",
+          toCheckId: "c2",
+          days: 10,
+          consumedKg: 150,
+          dailyKg: 15
+        },
+        {
+          fromCheckId: "c2",
+          toCheckId: "c3",
+          days: 5,
+          consumedKg: 100,
+          dailyKg: 20
+        }
+      ];
+      const filtered = filterConsumptionIntervalsAfterEntry(
+        intervals,
+        checksChron,
+        d20
+      );
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0]!.toCheckId).toBe("c3");
     });
   });
 
