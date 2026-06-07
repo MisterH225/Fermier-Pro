@@ -109,6 +109,140 @@ export type ResolveCurrentStockKgInput = {
  * Stock courant : registre (`feedType.currentStockKg`) sauf si le dernier
  * événement est un contrôle physique (pas d'entrée plus récente).
  */
+export type ConsumptionInterval = {
+  fromCheckId: string;
+  toCheckId: string;
+  days: number;
+  consumedKg: number;
+  dailyKg: number;
+};
+
+function resolveCheckStockKg(
+  check: { bagsCounted: number | null; stockAfterKg: number | null },
+  weightPerBagKg: number | null
+): number {
+  const bags = check.bagsCounted;
+  if (bags != null && weightPerBagKg != null && weightPerBagKg > 0) {
+    return bags * weightPerBagKg;
+  }
+  return check.stockAfterKg ?? 0;
+}
+
+/**
+ * Moyenne journalière pondérée : Σ consommation / Σ jours (pas une moyenne
+ * arithmétique des taux de chaque intervalle).
+ */
+export function computeWeightedAvgDailyKg(
+  intervals: Array<Pick<ConsumptionInterval, "days" | "consumedKg">>
+): number | null {
+  const positive = intervals.filter((x) => x.consumedKg > 0 && x.days > 0);
+  if (positive.length === 0) {
+    return null;
+  }
+  const totalConsumed = positive.reduce((s, x) => s + x.consumedKg, 0);
+  const totalDays = positive.reduce((s, x) => s + x.days, 0);
+  if (totalDays <= 0 || totalConsumed <= 0) {
+    return null;
+  }
+  return totalConsumed / totalDays;
+}
+
+export function buildConsumptionIntervals(input: {
+  checksChron: Array<{
+    id: string;
+    occurredAt: Date;
+    stockAfterKg: number | null;
+    bagsCounted: number | null;
+  }>;
+  entryRows: Array<{
+    id: string;
+    occurredAt: Date;
+    quantityKg: number | null;
+    stockAfterKg: number | null;
+  }>;
+  weightPerBagKg: number | null;
+}): { intervals: ConsumptionInterval[]; warnings: string[] } {
+  const warnings: string[] = [];
+  const intervals: ConsumptionInterval[] = [];
+  const { checksChron, entryRows, weightPerBagKg } = input;
+
+  if (checksChron.length >= 1) {
+    const firstCheck = checksChron[0]!;
+    const entriesBeforeCheck = entryRows.filter(
+      (e) => e.occurredAt <= firstCheck.occurredAt
+    );
+    const firstIn = entriesBeforeCheck[0];
+    if (firstIn) {
+      const stockBeforeFirstEntry =
+        (firstIn.stockAfterKg ?? 0) - (firstIn.quantityKg ?? 0);
+      const totalInKg = entriesBeforeCheck.reduce(
+        (s, e) => s + (e.quantityKg ?? 0),
+        0
+      );
+      const stockCheck = resolveCheckStockKg(
+        {
+          bagsCounted: firstCheck.bagsCounted,
+          stockAfterKg: firstCheck.stockAfterKg
+        },
+        weightPerBagKg
+      );
+      const consumedKg = stockBeforeFirstEntry + totalInKg - stockCheck;
+      const days = daysBetweenUtc(firstIn.occurredAt, firstCheck.occurredAt);
+      const dailyKg = consumedKg > 0 ? consumedKg / days : 0;
+      intervals.push({
+        fromCheckId: firstIn.id,
+        toCheckId: firstCheck.id,
+        days,
+        consumedKg,
+        dailyKg
+      });
+    }
+  }
+
+  for (let i = 1; i < checksChron.length; i++) {
+    const older = checksChron[i - 1]!;
+    const newer = checksChron[i]!;
+    const stockOlder = resolveCheckStockKg(
+      {
+        bagsCounted: older.bagsCounted,
+        stockAfterKg: older.stockAfterKg
+      },
+      weightPerBagKg
+    );
+    const stockNewer = resolveCheckStockKg(
+      {
+        bagsCounted: newer.bagsCounted,
+        stockAfterKg: newer.stockAfterKg
+      },
+      weightPerBagKg
+    );
+    const entriesKg = sumEntryKgFromMovements(
+      entryRows,
+      older.occurredAt,
+      newer.occurredAt
+    );
+    const consumedKg = stockOlder + entriesKg - stockNewer;
+    const days = daysBetweenUtc(older.occurredAt, newer.occurredAt);
+
+    if (consumedKg < 0 && entriesKg <= 0) {
+      warnings.push(
+        "Stock en hausse entre deux contrôles sans entrée enregistrée."
+      );
+    }
+
+    const dailyKg = consumedKg > 0 ? consumedKg / days : 0;
+    intervals.push({
+      fromCheckId: older.id,
+      toCheckId: newer.id,
+      days,
+      consumedKg,
+      dailyKg
+    });
+  }
+
+  return { intervals, warnings };
+}
+
 export function resolveCurrentStockKg(input: ResolveCurrentStockKgInput): number {
   const ledger = Number.isFinite(input.ledgerStockKg) ? input.ledgerStockKg : 0;
   const check = input.latestCheck;
@@ -279,80 +413,32 @@ export async function computeFeedStockMetricsDebug(
     );
   }
 
-  const intervals: FeedStockCalculationDebug["intervals"] = [];
-  const checksChron = [...checksDesc].reverse();
+  const checksChron = [...checksDesc].reverse().map((c) => ({
+    id: c.id,
+    occurredAt: c.occurredAt,
+    stockAfterKg: toNum(c.stockAfterKg),
+    bagsCounted: toNum(c.bagsCounted)
+  }));
 
-  for (let i = 1; i < checksChron.length; i++) {
-    const older = checksChron[i - 1]!;
-    const newer = checksChron[i]!;
-    const stockOlder = toNum(older.stockAfterKg) ?? 0;
-    const stockNewer = toNum(newer.stockAfterKg) ?? 0;
-    const entriesKg = sumEntryKgFromMovements(
-      entryRows,
-      older.occurredAt,
-      newer.occurredAt
-    );
-    const consumedKg = stockOlder + entriesKg - stockNewer;
-    const days = daysBetweenUtc(older.occurredAt, newer.occurredAt);
-
-    if (consumedKg < 0 && entriesKg <= 0) {
-      warnings.push(
-        "Stock en hausse entre deux contrôles sans entrée enregistrée."
-      );
-    }
-
-    const dailyKg = consumedKg > 0 ? consumedKg / days : 0;
-    intervals.push({
-      fromCheckId: older.id,
-      toCheckId: newer.id,
-      days,
-      consumedKg,
-      dailyKg
-    });
-  }
-
-  // Entrée(s) → premier contrôle : permet une conso dès le 1er contrôle.
-  if (checksChron.length === 1) {
-    const check = checksChron[0]!;
-    const entriesBeforeCheck = entryRows.filter(
-      (e) => e.occurredAt <= check.occurredAt
-    );
-    const firstIn = entriesBeforeCheck[0];
-    if (firstIn) {
-      const stockBeforeFirstEntry =
-        (firstIn.stockAfterKg ?? 0) - (firstIn.quantityKg ?? 0);
-      const totalInKg = entriesBeforeCheck.reduce(
-        (s, e) => s + (e.quantityKg ?? 0),
-        0
-      );
-      const stockCheck = toNum(check.stockAfterKg) ?? 0;
-      const consumedKg = stockBeforeFirstEntry + totalInKg - stockCheck;
-      const days = daysBetweenUtc(firstIn.occurredAt, check.occurredAt);
-      const dailyKg = consumedKg > 0 ? consumedKg / days : 0;
-      intervals.push({
-        fromCheckId: firstIn.id,
-        toCheckId: check.id,
-        days,
-        consumedKg,
-        dailyKg
-      });
-    }
-  }
+  const built = buildConsumptionIntervals({
+    checksChron,
+    entryRows,
+    weightPerBagKg: wp
+  });
+  const intervals = built.intervals;
+  warnings.push(...built.warnings);
 
   const recentIntervals = intervals.slice(-3);
-  let avgDailyConsumptionKg: number | null = null;
-  if (recentIntervals.length > 0) {
-    const positive = recentIntervals.filter((x) => x.dailyKg > 0);
-    if (positive.length > 0) {
-      avgDailyConsumptionKg =
-        positive.reduce((s, x) => s + x.dailyKg, 0) / positive.length;
-    } else if (recentIntervals.some((x) => x.consumedKg <= 0)) {
-      avgDailyConsumptionKg = null;
-      warnings.push("Consommation nulle ou négative sur la période récente.");
-    }
+  let avgDailyConsumptionKg = computeWeightedAvgDailyKg(recentIntervals);
+  if (
+    recentIntervals.length > 0 &&
+    avgDailyConsumptionKg == null &&
+    recentIntervals.some((x) => x.consumedKg <= 0)
+  ) {
+    warnings.push("Consommation nulle ou négative sur la période récente.");
   }
 
-  const hasSufficientData = intervals.some((x) => x.dailyKg > 0);
+  const hasSufficientData = intervals.some((x) => x.consumedKg > 0 && x.days > 0);
 
   if (avgDailyConsumptionKg != null && avgDailyConsumptionKg < 0) {
     warnings.push("avg_daily_consumption_kg négatif — données incohérentes.");

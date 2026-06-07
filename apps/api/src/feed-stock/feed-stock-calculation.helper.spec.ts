@@ -1,4 +1,6 @@
 import {
+  buildConsumptionIntervals,
+  computeWeightedAvgDailyKg,
   daysBetweenUtc,
   resolveCurrentStockKg,
   resolveFeedStockStatus,
@@ -97,6 +99,111 @@ describe("feed-stock-calculation.helper", () => {
           weightPerBagKg: 25
         })
       ).toBe(750);
+    });
+  });
+
+  describe("computeWeightedAvgDailyKg", () => {
+    it("pondère par la durée des intervalles (pas une moyenne des taux)", () => {
+      const weighted = computeWeightedAvgDailyKg([
+        { days: 10, consumedKg: 50 },
+        { days: 20, consumedKg: 400 }
+      ]);
+      // (50+400)/(10+20) = 15 — pas (5+20)/2 = 12,5
+      expect(weighted).toBeCloseTo(15, 5);
+    });
+
+    it("retourne null sans consommation positive", () => {
+      expect(
+        computeWeightedAvgDailyKg([{ days: 10, consumedKg: 0 }])
+      ).toBeNull();
+    });
+  });
+
+  describe("buildConsumptionIntervals", () => {
+    const wp = 25;
+
+    it("conserve l'intervalle entrée → 1er contrôle même avec 2+ contrôles", () => {
+      const d0 = new Date("2026-06-01T00:00:00.000Z");
+      const d10 = new Date("2026-06-11T00:00:00.000Z");
+      const d20 = new Date("2026-06-21T00:00:00.000Z");
+
+      const { intervals } = buildConsumptionIntervals({
+        weightPerBagKg: wp,
+        entryRows: [
+          {
+            id: "in1",
+            occurredAt: d0,
+            quantityKg: 1000,
+            stockAfterKg: 1000
+          }
+        ],
+        checksChron: [
+          {
+            id: "c1",
+            occurredAt: d10,
+            bagsCounted: 38,
+            stockAfterKg: 950
+          },
+          {
+            id: "c2",
+            occurredAt: d20,
+            bagsCounted: 34,
+            stockAfterKg: 850
+          }
+        ]
+      });
+
+      expect(intervals).toHaveLength(2);
+      expect(intervals[0]!.fromCheckId).toBe("in1");
+      expect(intervals[0]!.toCheckId).toBe("c1");
+      expect(intervals[0]!.consumedKg).toBeCloseTo(50, 1);
+      expect(intervals[1]!.consumedKg).toBeCloseTo(100, 1);
+    });
+
+    it("inclut les entrées entre deux contrôles", () => {
+      const d0 = new Date("2026-06-01T00:00:00.000Z");
+      const d10 = new Date("2026-06-11T00:00:00.000Z");
+      const d15 = new Date("2026-06-16T00:00:00.000Z");
+      const d20 = new Date("2026-06-21T00:00:00.000Z");
+
+      const { intervals } = buildConsumptionIntervals({
+        weightPerBagKg: wp,
+        entryRows: [
+          {
+            id: "in1",
+            occurredAt: d0,
+            quantityKg: 1000,
+            stockAfterKg: 1000
+          },
+          {
+            id: "in2",
+            occurredAt: d15,
+            quantityKg: 100,
+            stockAfterKg: 1000
+          }
+        ],
+        checksChron: [
+          {
+            id: "c1",
+            occurredAt: d10,
+            bagsCounted: 38,
+            stockAfterKg: 950
+          },
+          {
+            id: "c2",
+            occurredAt: d20,
+            bagsCounted: 36,
+            stockAfterKg: 900
+          }
+        ]
+      });
+
+      const betweenChecks = intervals.find(
+        (x) => x.fromCheckId === "c1" && x.toCheckId === "c2"
+      );
+      // 950 + 100 - 900 = 150 kg sur 10 j
+      expect(betweenChecks?.consumedKg).toBeCloseTo(150, 1);
+      expect(betweenChecks?.dailyKg).toBeCloseTo(15, 1);
     });
   });
 
