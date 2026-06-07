@@ -4897,6 +4897,7 @@ export type MarketplaceCreditOfferDto = {
   balanceDueAt: string | null;
   message: string | null;
   buyerCreditScore: BuyerCreditScoreDto | null;
+  transactionId?: string | null;
 };
 
 export function fetchMyCreditScore(
@@ -4959,6 +4960,38 @@ export function counterMarketplaceCreditOffer(
   return apiPatchJson<MarketplaceCreditOfferDto>(
     `/marketplace/listings/${listingId}/offers/${offerId}/counter-credit`,
     payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function initiateMarketplaceCreditBalancePayment(
+  accessToken: string,
+  offerId: string,
+  activeProfileId?: string | null
+): Promise<{
+  providerRef: string;
+  amount: number;
+  currency: string;
+  transactionId: string;
+}> {
+  return apiPostJson(
+    `/marketplace/offers/${offerId}/balance-payment/initiate`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmMarketplaceCreditBalancePayment(
+  accessToken: string,
+  offerId: string,
+  providerRef?: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/offers/${offerId}/balance-payment/confirm`,
+    providerRef ? { providerRef } : {},
     accessToken,
     activeProfileId
   );
@@ -5066,6 +5099,7 @@ export type MarketplaceOfferMineRow = MarketplaceOfferCreditFields & {
   message: string | null;
   status: string;
   createdAt: string;
+  transaction?: { id: string } | null;
   listing: {
     id: string;
     title: string;

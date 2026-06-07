@@ -18,13 +18,18 @@ import { FarmAccessService } from "../../common/farm-access.service";
 import { FARM_SCOPE } from "../../common/farm-scopes.constants";
 import { PrismaService } from "../../prisma/prisma.service";
 import { PushNotificationsService } from "../../push-notifications/push-notifications.service";
+import { EscrowService } from "../escrow/escrow.service";
+import { calculateFinalAmount } from "../escrow/transaction.utils";
 import { CreditScoreService } from "./credit-score.service";
 import { MarketplaceTransactionService } from "../escrow/marketplace-transaction.service";
+
+const ESCROW_PAYMENT_MSG =
+  "Utilisez le paiement sécurisé sur la plateforme via l'écran transaction marketplace.";
 
 const CREDIT_CATEGORY = ListingMarketCategory.butcher;
 const MIN_ADVANCE_PCT = 20;
 const MAX_ADVANCE_PCT = 50;
-const MAX_BALANCE_DAYS = 4;
+const MAX_BALANCE_DAYS = 7;
 
 @Injectable()
 export class CreditOffersService {
@@ -33,6 +38,7 @@ export class CreditOffersService {
     private readonly farmAccess: FarmAccessService,
     private readonly push: PushNotificationsService,
     private readonly creditScore: CreditScoreService,
+    private readonly escrow: EscrowService,
     @Inject(forwardRef(() => MarketplaceTransactionService))
     private readonly transactions: MarketplaceTransactionService
   ) {}
@@ -214,167 +220,164 @@ export class CreditOffersService {
       })
     ]);
 
+    const { transactionId } =
+      await this.transactions.createCreditAdvanceTransaction(offerId);
     const advance = Number(offer.advanceAmount ?? 0);
     void this.push.sendToUser(
       offer.buyerUserId,
       "Accord crédit conclu",
-      `Payez l'avance de ${Math.round(advance).toLocaleString("fr-FR")} ${listing.currency} pour lancer la livraison`,
-      { type: "marketplace_credit_agreed", listingId, offerId }
+      `Sécurisez l'avance de ${Math.round(advance).toLocaleString("fr-FR")} ${listing.currency} sur la plateforme pour lancer la livraison.`,
+      { type: "marketplace_credit_agreed", listingId, offerId, transactionId }
     );
-    return this.serializeOffer(offerId, user.id);
+    const serialized = await this.serializeOffer(offerId, user.id);
+    return { ...serialized, transactionId };
   }
 
   async declareAdvancePaid(
-    user: User,
-    offerId: string,
-    dto: { paymentMode: string; paymentRef?: string }
+    _user: User,
+    _offerId: string,
+    _dto: { paymentMode: string; paymentRef?: string }
   ) {
-    const offer = await this.requireBuyerCreditOffer(offerId, user.id);
-    if (offer.status !== OfferStatus.credit_agreed) {
-      throw new BadRequestException("Déclaration d'avance impossible");
-    }
-    if (offer.advancePaidDeclaredAt) {
-      return this.serializeOffer(offerId, user.id);
-    }
-    await this.prisma.marketplaceOffer.update({
-      where: { id: offerId },
-      data: {
-        advancePaidDeclaredAt: new Date(),
-        advancePaymentMode: dto.paymentMode.trim(),
-        advancePaymentRef: dto.paymentRef?.trim() || null
-      }
-    });
-    const listing = await this.prisma.marketplaceListing.findUniqueOrThrow({
-      where: { id: offer.listingId }
-    });
-    const advance = Number(offer.advanceAmount ?? 0);
-    void this.push.sendToUser(
-      listing.sellerUserId,
-      "💰 Avance déclarée reçue",
-      `L'acheteur déclare avoir payé ${Math.round(advance).toLocaleString("fr-FR")} ${listing.currency} d'avance. Confirmez la réception.`,
-      { type: "marketplace_credit_advance_declared", offerId }
-    );
-    return this.serializeOffer(offerId, user.id);
+    throw new BadRequestException(ESCROW_PAYMENT_MSG);
   }
 
-  async confirmAdvanceReceived(user: User, offerId: string, received: boolean) {
-    const offer = await this.requireSellerCreditOffer(offerId, user.id);
-    if (!offer.advancePaidDeclaredAt) {
-      throw new BadRequestException("Aucune avance déclarée");
-    }
-    const listing = await this.prisma.marketplaceListing.findUniqueOrThrow({
-      where: { id: offer.listingId }
-    });
-    if (!received) {
-      await this.prisma.marketplaceOffer.update({
-        where: { id: offerId },
-        data: {
-          advancePaidDeclaredAt: null,
-          advancePaymentMode: null,
-          advancePaymentRef: null,
-          status: OfferStatus.credit_agreed
-        }
-      });
-      void this.push.sendToUser(
-        offer.buyerUserId,
-        "Avance non confirmée",
-        "Le vendeur n'a pas confirmé la réception de l'avance",
-        { type: "marketplace_credit_advance_rejected", offerId }
-      );
-      return this.serializeOffer(offerId, user.id);
-    }
-    if (offer.advanceConfirmedAt) {
-      return this.serializeOffer(offerId, user.id);
-    }
-    await this.prisma.marketplaceOffer.update({
-      where: { id: offerId },
-      data: {
-        advanceConfirmedAt: new Date(),
-        status: OfferStatus.advance_confirmed
-      }
-    });
-    await this.prisma.marketplaceListing.update({
-      where: { id: offer.listingId },
-      data: { status: ListingStatus.shipped }
-    });
-    await this.transactions.createCreditDeliveryTransaction(offerId);
-    void this.push.sendToUser(
-      offer.buyerUserId,
-      "Avance confirmée",
-      "La livraison peut commencer",
-      { type: "marketplace_credit_advance_confirmed", offerId }
-    );
-    return this.serializeOffer(offerId, user.id);
+  async confirmAdvanceReceived(
+    _user: User,
+    _offerId: string,
+    _received: boolean
+  ) {
+    throw new BadRequestException(ESCROW_PAYMENT_MSG);
   }
 
-  async onCreditDeliveryConfirmed(offerId: string, deliveredAt: Date) {
-    const offer = await this.prisma.marketplaceOffer.findUnique({
-      where: { id: offerId }
+  /** Après validation du poids réel — recalcule le solde dû (prix réel − avance escrow). */
+  async onCreditWeightValidated(transactionId: string) {
+    const tx = await this.prisma.marketplaceTransaction.findUnique({
+      where: { id: transactionId },
+      include: { offer: true, listing: true }
     });
-    if (!offer || offer.offerType !== OfferType.credit) {
+    if (!tx?.offer || tx.offer.offerType !== OfferType.credit) {
       return;
     }
-    const dueAt = new Date(deliveredAt);
-    dueAt.setDate(dueAt.getDate() + (offer.balanceDueDays ?? 2));
-    await this.prisma.marketplaceOffer.update({
-      where: { id: offerId },
-      data: {
-        status: OfferStatus.balance_pending,
-        deliveredAt,
-        balanceDueAt: dueAt
-      }
-    });
-    const listing = await this.prisma.marketplaceListing.findUnique({
-      where: { id: offer.listingId },
-      include: { farm: { select: { name: true } } }
-    });
-    const balance = Number(offer.balanceAmount ?? 0);
+    const finalAmount = calculateFinalAmount(tx);
+    const advanceHeld = Number(tx.blockedAmount);
+    const balanceAmount = Math.max(0, Math.round(finalAmount - advanceHeld));
+    const dueAt = new Date();
+    dueAt.setDate(
+      dueAt.getDate() + (tx.offer.balanceDueDays ?? MAX_BALANCE_DAYS)
+    );
+    await this.prisma.$transaction([
+      this.prisma.marketplaceTransaction.update({
+        where: { id: transactionId },
+        data: { finalAmount: new Prisma.Decimal(finalAmount) }
+      }),
+      this.prisma.marketplaceOffer.update({
+        where: { id: tx.offerId },
+        data: {
+          status: OfferStatus.balance_pending,
+          balanceAmount: new Prisma.Decimal(balanceAmount),
+          balanceDueAt: dueAt,
+          deliveredAt: tx.buyerReceivedAt ?? new Date(),
+          balancePaymentRef: null
+        }
+      })
+    ]);
+    const amountLabel = `${Math.round(balanceAmount).toLocaleString("fr-FR")} ${tx.currency}`;
     void this.push.sendToUser(
-      offer.buyerUserId,
-      "Livraison confirmée",
-      `Solde de ${Math.round(balance).toLocaleString("fr-FR")} ${listing?.currency ?? "XOF"} dû le ${dueAt.toLocaleDateString("fr-FR")}`,
-      { type: "marketplace_credit_balance_due", offerId }
+      tx.buyerUserId,
+      "Solde recalculé au poids réel",
+      `Prix réel : ${Math.round(finalAmount).toLocaleString("fr-FR")} ${tx.currency}. Solde de ${amountLabel} à régler sur la plateforme avant le ${dueAt.toLocaleDateString("fr-FR")}.`,
+      { type: "marketplace_credit_balance_due", offerId: tx.offerId, transactionId }
     );
   }
 
-  async declareBalancePaid(
-    user: User,
-    offerId: string,
-    dto: { amount: number; paymentMode: string; paymentRef?: string }
-  ) {
+  async initiateBalancePayment(user: User, offerId: string) {
     const offer = await this.requireBuyerCreditOffer(offerId, user.id);
     if (
       offer.status !== OfferStatus.balance_pending &&
       offer.status !== OfferStatus.arbitration
     ) {
-      throw new BadRequestException("Déclaration de solde impossible");
+      throw new BadRequestException("Paiement du solde impossible à ce stade");
     }
-    if (offer.balanceDueAt && offer.balanceDueAt.getTime() < Date.now()) {
-      throw new BadRequestException("Échéance dépassée — arbitrage en cours");
+    const amount = Number(offer.balanceAmount ?? 0);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new BadRequestException("Aucun solde à payer");
+    }
+    const tx = await this.prisma.marketplaceTransaction.findUnique({
+      where: { offerId }
+    });
+    if (!tx) {
+      throw new BadRequestException("Transaction introuvable");
+    }
+    const hold = await this.escrow.holdFunds(
+      tx.id,
+      user.id,
+      amount,
+      tx.currency,
+      `Solde crédit ${offerId}`
+    );
+    await this.prisma.marketplaceOffer.update({
+      where: { id: offerId },
+      data: { balancePaymentRef: hold.providerRef }
+    });
+    return {
+      providerRef: hold.providerRef,
+      amount,
+      currency: tx.currency,
+      transactionId: tx.id
+    };
+  }
+
+  async confirmBalancePayment(user: User, offerId: string, providerRef?: string) {
+    const offer = await this.requireBuyerCreditOffer(offerId, user.id);
+    if (
+      offer.status !== OfferStatus.balance_pending &&
+      offer.status !== OfferStatus.arbitration
+    ) {
+      throw new BadRequestException("Confirmation du solde impossible");
     }
     if (offer.balancePaidDeclaredAt) {
       return this.serializeOffer(offerId, user.id);
+    }
+    const ref = offer.balancePaymentRef?.trim();
+    if (!ref) {
+      throw new BadRequestException("Initiez d'abord le paiement du solde");
+    }
+    if (providerRef && providerRef !== ref) {
+      throw new BadRequestException("Référence paiement invalide");
+    }
+    const tx = await this.prisma.marketplaceTransaction.findUniqueOrThrow({
+      where: { offerId }
+    });
+    const ok = await this.escrow.confirmHold(ref, tx.id);
+    if (!ok) {
+      throw new BadRequestException("Paiement du solde refusé");
     }
     await this.prisma.marketplaceOffer.update({
       where: { id: offerId },
       data: {
         status: OfferStatus.balance_declared,
         balancePaidDeclaredAt: new Date(),
-        balancePaidAmount: new Prisma.Decimal(dto.amount),
-        balancePaymentMode: dto.paymentMode.trim(),
-        balancePaymentRef: dto.paymentRef?.trim() || null
+        balancePaidAmount: offer.balanceAmount,
+        balancePaymentMode: "escrow"
       }
     });
-    const listing = await this.prisma.marketplaceListing.findUniqueOrThrow({
-      where: { id: offer.listingId }
-    });
+    const balance = Number(offer.balanceAmount ?? 0);
     void this.push.sendToUser(
-      listing.sellerUserId,
-      "💰 Solde déclaré reçu",
-      `L'acheteur déclare avoir payé le solde de ${Math.round(dto.amount).toLocaleString("fr-FR")} ${listing.currency}`,
+      tx.sellerUserId,
+      "💰 Solde sécurisé sur la plateforme",
+      `L'acheteur a bloqué ${Math.round(balance).toLocaleString("fr-FR")} ${tx.currency} en escrow. Confirmez pour clôturer.`,
       { type: "marketplace_credit_balance_declared", offerId }
     );
     return this.serializeOffer(offerId, user.id);
+  }
+
+  /** @deprecated Utiliser initiateBalancePayment + confirmBalancePayment (escrow). */
+  async declareBalancePaid(
+    _user: User,
+    _offerId: string,
+    _dto: { amount: number; paymentMode: string; paymentRef?: string }
+  ) {
+    throw new BadRequestException(ESCROW_PAYMENT_MSG);
   }
 
   async confirmBalanceReceived(user: User, offerId: string, received: boolean) {
@@ -395,6 +398,7 @@ export class CreditOffersService {
           status: OfferStatus.balance_pending
         }
       });
+      // balancePaymentRef cleared — l'acheteur peut relancer un paiement escrow
       void this.push.sendToUser(
         offer.buyerUserId,
         "Solde non confirmé",
@@ -406,6 +410,12 @@ export class CreditOffersService {
     const now = new Date();
     const onTime =
       !offer.balanceDueAt || offer.balancePaidDeclaredAt! <= offer.balanceDueAt;
+    const tx = await this.prisma.marketplaceTransaction.findUnique({
+      where: { offerId }
+    });
+    if (tx) {
+      await this.transactions.settleCreditTransaction(tx.id);
+    }
     await this.prisma.$transaction([
       this.prisma.marketplaceOffer.update({
         where: { id: offerId },
@@ -499,42 +509,29 @@ export class CreditOffersService {
     for (const offer of pending) {
       const due = offer.balanceDueAt!;
       const msPerDay = 86_400_000;
-      const daysUntil = Math.ceil((due.getTime() - now.getTime()) / msPerDay);
+      if (now.getTime() <= due.getTime()) {
+        continue;
+      }
+      const daysLate = Math.floor((now.getTime() - due.getTime()) / msPerDay);
       const balance = Number(offer.balanceAmount ?? 0);
       const farmName = offer.listing.farm?.name ?? "la ferme";
       const amountLabel = `${Math.round(balance).toLocaleString("fr-FR")} ${offer.listing.currency}`;
 
-      if (daysUntil === 2) {
-        reminders += 1;
-        void this.push.sendToUser(
-          offer.buyerUserId,
-          "⏰ Rappel — Solde dû dans 2 jours",
-          `Vous devez ${amountLabel} à ${farmName}. Échéance dans 2 jours.`,
-          { type: "marketplace_credit_reminder", offerId: offer.id }
-        );
-      } else if (daysUntil === 1) {
-        reminders += 1;
-        void this.push.sendToUser(
-          offer.buyerUserId,
-          "⚠️ Rappel urgent — Solde dû demain",
-          `Dernier rappel — ${amountLabel} dû demain à ${farmName}.`,
-          { type: "marketplace_credit_reminder", offerId: offer.id }
-        );
-      } else if (daysUntil === 0) {
+      if (daysLate === 1) {
         reminders += 2;
         void this.push.sendToUser(
           offer.buyerUserId,
-          "🔴 Solde dû aujourd'hui",
-          `Payez ${amountLabel} pour éviter l'arbitrage`,
+          "🔴 Retard de paiement — solde dépassé",
+          `Le solde de ${amountLabel} pour ${farmName} est en retard. Réglez sur la plateforme immédiatement.`,
           { type: "marketplace_credit_reminder", offerId: offer.id }
         );
         void this.push.sendToUser(
           offer.listing.sellerUserId,
-          "⚠️ Solde dû aujourd'hui",
-          `Le solde de l'acheteur est dû aujourd'hui`,
+          "⚠️ Solde acheteur en retard",
+          `Le solde de ${amountLabel} est dépassé.`,
           { type: "marketplace_credit_reminder_seller", offerId: offer.id }
         );
-      } else if (daysUntil < -1) {
+      } else if (daysLate >= 2) {
         const existing = await this.prisma.marketplaceCreditArbitration.findFirst({
           where: { offerId: offer.id, resolvedAt: null }
         });
@@ -721,7 +718,8 @@ export class CreditOffersService {
       where: { id: offerId },
       include: {
         listing: { select: { title: true, currency: true, category: true, sellerUserId: true } },
-        buyer: { select: { id: true, fullName: true } }
+        buyer: { select: { id: true, fullName: true } },
+        transaction: { select: { id: true } }
       }
     });
     if (!offer) {
@@ -752,7 +750,8 @@ export class CreditOffersService {
       balanceConfirmedAt: offer.balanceConfirmedAt?.toISOString() ?? null,
       message: offer.message,
       buyerName: offer.buyer.fullName,
-      buyerCreditScore: buyerScore
+      buyerCreditScore: buyerScore,
+      transactionId: offer.transaction?.id ?? null
     };
   }
 }

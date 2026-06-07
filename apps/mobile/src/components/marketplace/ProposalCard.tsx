@@ -433,7 +433,7 @@ export function ProposalCard(props: ProposalCardProps) {
           disabled={!props.onDeclareAdvance}
         >
           <Text style={styles.btnPrimaryTx}>
-            {t("marketScreen.credit.advance.declare")}
+            {t("marketScreen.credit.advance.payEscrow")}
           </Text>
         </Pressable>
       ) : null}
@@ -449,7 +449,7 @@ export function ProposalCard(props: ProposalCardProps) {
           disabled={!props.onDeclareBalance}
         >
           <Text style={styles.btnPrimaryTx}>
-            {t("marketScreen.credit.balance.declare")}
+            {t("marketScreen.credit.balance.payEscrow")}
           </Text>
         </Pressable>
       ) : null}

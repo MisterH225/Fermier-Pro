@@ -24,7 +24,7 @@ export function CountdownBalance({ dueAt }: Props) {
     if (!dueAt) return 0;
     const due = new Date(dueAt).getTime();
     if (Number.isNaN(due)) return 0;
-    const start = due - 4 * 86_400_000;
+    const start = due - 7 * 86_400_000;
     const span = due - start;
     if (span <= 0) return 1;
     const elapsed = now - start;

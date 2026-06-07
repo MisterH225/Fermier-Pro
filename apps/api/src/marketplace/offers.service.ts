@@ -188,6 +188,7 @@ export class OffersService {
       where: { buyerUserId: user.id },
       orderBy: { createdAt: "desc" },
       include: {
+        transaction: { select: { id: true } },
         listing: {
           include: {
             seller: { select: { id: true, fullName: true } },

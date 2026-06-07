@@ -35,7 +35,7 @@ type Props = {
   }) => void;
 };
 
-const DAY_OPTIONS = [1, 2, 3, 4] as const;
+const DAY_OPTIONS = [1, 2, 3, 4, 5, 6, 7] as const;
 
 export function CreditProposalModal({
   visible,
@@ -141,6 +141,7 @@ export function CreditProposalModal({
         keyboardType="number-pad"
       />
       <Text style={styles.helper}>{t("marketScreen.creditModal.advanceHelper")}</Text>
+      <Text style={styles.helper}>{t("marketScreen.creditModal.balanceHelper")}</Text>
       {amounts ? (
         <View style={styles.pills}>
           <Text style={[styles.pill, styles.pillGreen]}>

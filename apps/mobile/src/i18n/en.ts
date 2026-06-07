@@ -435,7 +435,14 @@ export const en = {
       counterSubmit: "Send counter-offer",
       counterSuccess: "Credit counter-offer sent.",
       acceptCounter: "Accept counter-offer",
-      agreedSuccess: "Credit deal agreed — pay the advance to start delivery.",
+      agreedSuccess:
+        "Credit deal agreed — secure the advance on the platform to start delivery.",
+      escrow: {
+        transactionMissing: "Escrow transaction not found — try again shortly.",
+        advanceHeld: "The advance stays held on the platform until delivery.",
+        balanceRecalculated:
+          "The balance is recalculated from real weight after seller validation."
+      },
       buyerScore: "Buyer credit score:",
       termsAdvance: "Advance: {{pct}}% = {{amount}}",
       termsBalance: "Balance: {{amount}} in {{days}} days",
@@ -450,6 +457,7 @@ export const en = {
         delay: "Balance due {{count}} days after delivery",
         confirm: "✅ I paid the advance",
         declare: "💰 I paid the advance",
+        payEscrow: "💳 Pay advance (escrow)",
         declaredSuccess: "Advance declared — the seller will confirm receipt.",
         confirmReceived: "✅ Confirm advance received",
         notReceived: "❌ I did not receive the advance",
@@ -460,6 +468,7 @@ export const en = {
         amount: "Amount paid",
         confirm: "✅ I paid the balance",
         declare: "💰 I paid the balance",
+        payEscrow: "💳 Pay balance (escrow)",
         remaining: "Remaining balance",
         dueOn: "Due on {{date}}",
         inDays: "in {{count}} day(s)",

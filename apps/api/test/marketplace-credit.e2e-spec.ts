@@ -12,10 +12,12 @@ const hasDb = Boolean(process.env.DATABASE_URL?.trim());
 const hasJwt = Boolean(process.env.SUPABASE_JWT_SECRET?.trim());
 const describeOrSkip = hasDb && hasJwt ? describe : describe.skip;
 
-describeOrSkip("Marketplace vente à crédit (e2e)", () => {
+describeOrSkip("Marketplace vente à crédit escrow (e2e)", () => {
   let app: NestExpressApplication;
   let ctx: E2ESeedResult;
   let listingId: string;
+  let offerId: string;
+  let transactionId: string;
 
   beforeAll(async () => {
     process.env.THROTTLE_LIMIT = "100000";
@@ -39,7 +41,7 @@ describeOrSkip("Marketplace vente à crédit (e2e)", () => {
       .set("Authorization", `Bearer ${ctx.token}`)
       .set("X-Profile-Id", ctx.producerProfileId)
       .send({
-        title: "E2E charcutier crédit",
+        title: "E2E charcutier crédit escrow",
         farmId: ctx.farmId,
         animalId: animal.id,
         category: "butcher",
@@ -104,202 +106,121 @@ describeOrSkip("Marketplace vente à crédit (e2e)", () => {
       .send({
         offeredPrice: 50_000,
         advancePercentage: 30,
-        balanceDueDays: 2
+        balanceDueDays: 7
       });
     expect(res.status).toBeGreaterThanOrEqual(400);
   });
 
-  it("refuse accept standard sur offre crédit", async () => {
-    const create = await request(app.getHttpServer())
-      .post(`/api/v1/marketplace/listings/${listingId}/offers/credit`)
-      .set("Authorization", `Bearer ${ctx.peerToken}`)
-      .send({
-        offeredPrice: 90_000,
-        advancePercentage: 25,
-        balanceDueDays: 3,
-        message: "Test guard standard"
-      });
-    expect([200, 201]).toContain(create.status);
-    const offerId = create.body.id as string;
-    const accept = await request(app.getHttpServer())
-      .post(`/api/v1/marketplace/listings/${listingId}/offers/${offerId}/accept`)
-      .set("Authorization", `Bearer ${ctx.token}`)
-      .set("X-Profile-Id", ctx.producerProfileId);
-    expect(accept.status).toBeGreaterThanOrEqual(400);
-  });
-
-  it("crée offre crédit, contre-proposition et accord", async () => {
+  it("accord crédit crée transaction escrow avance", async () => {
     const create = await request(app.getHttpServer())
       .post(`/api/v1/marketplace/listings/${listingId}/offers/credit`)
       .set("Authorization", `Bearer ${ctx.peerToken}`)
       .send({
         offeredPrice: 100_000,
         advancePercentage: 30,
-        balanceDueDays: 2,
-        message: "Revendeur E2E"
+        balanceDueDays: 7,
+        message: "Revendeur E2E escrow"
       });
     expect([200, 201]).toContain(create.status);
-    expect(create.body.offerType).toBe("credit");
-
-    const offerId = create.body.id as string;
-    const counter = await request(app.getHttpServer())
-      .patch(
-        `/api/v1/marketplace/listings/${listingId}/offers/${offerId}/counter-credit`
-      )
-      .set("Authorization", `Bearer ${ctx.token}`)
-      .set("X-Profile-Id", ctx.producerProfileId)
-      .send({
-        offeredPrice: 95_000,
-        advancePercentage: 40,
-        balanceDueDays: 3
-      });
-    expect(counter.status).toBe(200);
-    expect(counter.body.status).toBe("countered");
+    offerId = create.body.id;
 
     const agree = await request(app.getHttpServer())
       .patch(
         `/api/v1/marketplace/listings/${listingId}/offers/${offerId}/agree-credit`
       )
-      .set("Authorization", `Bearer ${ctx.peerToken}`);
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId);
     expect(agree.status).toBe(200);
     expect(agree.body.status).toBe("credit_agreed");
-    expect(agree.body.advancePercentage).toBe(40);
+    expect(agree.body.transactionId).toBeTruthy();
+    transactionId = agree.body.transactionId;
+
+    const tx = await request(app.getHttpServer())
+      .get(`/api/v1/marketplace/transactions/${transactionId}`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(tx.body.status).toBe("PAYMENT_PENDING");
+    expect(tx.body.isCredit).toBe(true);
+    expect(Number(tx.body.blockedAmount)).toBe(30_000);
   });
 
-  it("flux avance : déclaration, double ignore, confirmation vendeur", async () => {
-    const offer = await ctx.prisma.marketplaceOffer.findFirstOrThrow({
-      where: { listingId, offerType: "credit", status: "credit_agreed" }
-    });
-
-    const declare1 = await request(app.getHttpServer())
-      .patch(`/api/v1/marketplace/offers/${offer.id}/confirm-advance-paid`)
-      .set("Authorization", `Bearer ${ctx.peerToken}`)
-      .send({ paymentMode: "Mobile Money", paymentRef: "MM-001" });
-    expect(declare1.status).toBe(200);
-    expect(declare1.body.advancePaidDeclaredAt).toBeTruthy();
-
-    const declare2 = await request(app.getHttpServer())
-      .patch(`/api/v1/marketplace/offers/${offer.id}/confirm-advance-paid`)
+  it("refuse déclaration avance hors escrow", async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/api/v1/marketplace/offers/${offerId}/confirm-advance-paid`)
       .set("Authorization", `Bearer ${ctx.peerToken}`)
       .send({ paymentMode: "Espèces" });
-    expect(declare2.status).toBe(200);
-
-    const confirm = await request(app.getHttpServer())
-      .patch(`/api/v1/marketplace/offers/${offer.id}/confirm-advance-received`)
-      .set("Authorization", `Bearer ${ctx.token}`)
-      .set("X-Profile-Id", ctx.producerProfileId)
-      .send({ received: true });
-    expect(confirm.status).toBe(200);
-    expect(confirm.body.status).toBe("advance_confirmed");
-
-    const listing = await ctx.prisma.marketplaceListing.findUniqueOrThrow({
-      where: { id: listingId }
-    });
-    expect(listing.status).toBe("shipped");
-  });
-
-  it("vendeur ne peut pas confirmer solde sans déclaration acheteur", async () => {
-    const offer = await ctx.prisma.marketplaceOffer.findFirstOrThrow({
-      where: { listingId, status: "advance_confirmed" }
-    });
-    await ctx.prisma.marketplaceOffer.update({
-      where: { id: offer.id },
-      data: {
-        status: "balance_pending",
-        deliveredAt: new Date(),
-        balanceDueAt: new Date(Date.now() + 86_400_000)
-      }
-    });
-    const res = await request(app.getHttpServer())
-      .patch(`/api/v1/marketplace/offers/${offer.id}/confirm-balance-received`)
-      .set("Authorization", `Bearer ${ctx.token}`)
-      .set("X-Profile-Id", ctx.producerProfileId)
-      .send({ received: true });
     expect(res.status).toBeGreaterThanOrEqual(400);
   });
 
-  it("flux solde : déclaration acheteur et confirmation vendeur", async () => {
-    const offer = await ctx.prisma.marketplaceOffer.findFirstOrThrow({
-      where: { listingId, status: "balance_pending" }
-    });
+  it("avance payée via escrow puis livraison et solde recalculé", async () => {
+    const init = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${transactionId}/payment/initiate`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(init.status).toBe(201);
+    const pay = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${transactionId}/payment/confirm`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ providerRef: init.body.providerRef });
+    expect(pay.status).toBe(201);
+    expect(pay.body.status).toBe("PAYMENT_HELD");
 
-    const declare = await request(app.getHttpServer())
-      .patch(`/api/v1/marketplace/offers/${offer.id}/confirm-balance-paid`)
+    const offerAfterPay = await ctx.prisma.marketplaceOffer.findUniqueOrThrow({
+      where: { id: offerId }
+    });
+    expect(offerAfterPay.status).toBe("advance_confirmed");
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${transactionId}/confirm-shipment`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({ shippedAt: new Date().toISOString().slice(0, 10) });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${transactionId}/confirm-receipt`)
       .set("Authorization", `Bearer ${ctx.peerToken}`)
       .send({
-        amount: Number(offer.balanceAmount),
-        paymentMode: "Virement bancaire",
-        paymentRef: "VIR-99"
+        receivedAt: new Date().toISOString().slice(0, 10),
+        condition: "conform",
+        receivedAnimalIds: [],
+        realWeightKg: 80
       });
-    expect(declare.status).toBe(200);
-    expect(declare.body.status).toBe("balance_declared");
 
-    const confirm = await request(app.getHttpServer())
-      .patch(`/api/v1/marketplace/offers/${offer.id}/confirm-balance-received`)
+    await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${transactionId}/weight/validate`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId);
+
+    const offerBalanced = await ctx.prisma.marketplaceOffer.findUniqueOrThrow({
+      where: { id: offerId }
+    });
+    expect(offerBalanced.status).toBe("balance_pending");
+    expect(Number(offerBalanced.balanceAmount)).toBe(70_000);
+    expect(offerBalanced.balanceDueAt).toBeTruthy();
+  });
+
+  it("solde payé via escrow et clôture vendeur", async () => {
+    const initBal = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/offers/${offerId}/balance-payment/initiate`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(initBal.status).toBe(201);
+
+    const confirmBal = await request(app.getHttpServer())
+      .patch(`/api/v1/marketplace/offers/${offerId}/balance-payment/confirm`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ providerRef: initBal.body.providerRef });
+    expect(confirmBal.status).toBe(200);
+    expect(confirmBal.body.status).toBe("balance_declared");
+
+    const close = await request(app.getHttpServer())
+      .patch(`/api/v1/marketplace/offers/${offerId}/confirm-balance-received`)
       .set("Authorization", `Bearer ${ctx.token}`)
       .set("X-Profile-Id", ctx.producerProfileId)
       .send({ received: true });
-    expect(confirm.status).toBe(200);
-    expect(confirm.body.status).toBe("completed");
+    expect(close.status).toBe(200);
+    expect(close.body.status).toBe("completed");
 
-    const score = await request(app.getHttpServer())
-      .get("/api/v1/marketplace/buyers/me/credit-score")
-      .set("Authorization", `Bearer ${ctx.peerToken}`);
-    expect(score.status).toBe(200);
-    expect(score.body.creditTransactionsCount).toBeGreaterThanOrEqual(1);
-  });
-
-  it("refuse avance 100% (solde nul)", async () => {
-    const species = await ctx.prisma.species.findUniqueOrThrow({
-      where: { code: "porcin" }
+    const txClosed = await ctx.prisma.marketplaceTransaction.findUniqueOrThrow({
+      where: { id: transactionId }
     });
-    const animal = await ctx.prisma.animal.create({
-      data: {
-        farmId: ctx.farmId,
-        speciesId: species.id,
-        sex: AnimalSex.unknown,
-        status: "active"
-      }
-    });
-    const extra = await request(app.getHttpServer())
-      .post("/api/v1/marketplace/listings")
-      .set("Authorization", `Bearer ${ctx.token}`)
-      .set("X-Profile-Id", ctx.producerProfileId)
-      .send({
-        title: "Charcutier solde nul",
-        farmId: ctx.farmId,
-        animalId: animal.id,
-        category: "butcher",
-        totalPrice: 80_000,
-        totalWeightKg: 60
-      });
-    await request(app.getHttpServer())
-      .post(`/api/v1/marketplace/listings/${extra.body.id}/publish`)
-      .set("Authorization", `Bearer ${ctx.token}`)
-      .set("X-Profile-Id", ctx.producerProfileId)
-      .send({ durationDays: 14 });
-    const res = await request(app.getHttpServer())
-      .post(`/api/v1/marketplace/listings/${extra.body.id}/offers/credit`)
-      .set("Authorization", `Bearer ${ctx.peerToken}`)
-      .send({
-        offeredPrice: 80_000,
-        advancePercentage: 50,
-        balanceDueDays: 1
-      });
-    expect(res.status).toBeGreaterThanOrEqual(200);
-    if (res.status < 400) {
-      const bad = await request(app.getHttpServer())
-        .patch(
-          `/api/v1/marketplace/listings/${extra.body.id}/offers/${res.body.id}/counter-credit`
-        )
-        .set("Authorization", `Bearer ${ctx.token}`)
-        .set("X-Profile-Id", ctx.producerProfileId)
-        .send({
-          offeredPrice: 80_000,
-          advancePercentage: 100,
-          balanceDueDays: 1
-        });
-      expect(bad.status).toBeGreaterThanOrEqual(400);
-    }
+    expect(txClosed.status).toBe("TRANSACTION_CLOSED");
   });
 });

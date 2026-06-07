@@ -63,8 +63,8 @@ export class MarketplaceTransactionService {
     private readonly creditOffers: CreditOffersService
   ) {}
 
-  /** Transaction livraison pour vente à crédit (sans escrow complet). */
-  async createCreditDeliveryTransaction(
+  /** Transaction crédit — avance bloquée en escrow jusqu'à la livraison. */
+  async createCreditAdvanceTransaction(
     offerId: string
   ): Promise<{ transactionId: string }> {
     const offer = await this.prisma.marketplaceOffer.findUnique({
@@ -80,23 +80,20 @@ export class MarketplaceTransactionService {
     if (existing) {
       return { transactionId: existing.id };
     }
+    const advance = Number(offer.advanceAmount ?? 0);
+    if (!Number.isFinite(advance) || advance <= 0) {
+      throw new BadRequestException("Montant d'avance invalide");
+    }
     const listing = offer.listing;
     const terms = agreedTermsFromOffer(offer, listing);
-    const blocked = calculateBlockedAmount({
-      priceType: terms.priceType,
-      agreedPricePerKg: terms.agreedPricePerKg,
-      agreedFlatPrice: terms.agreedFlatPrice,
-      estimatedWeightKg: terms.estimatedWeightKg
-    });
     const commissionRate = await this.platformSettings.getMarketplaceCommissionRate();
-    const now = new Date();
     const tx = await this.prisma.marketplaceTransaction.create({
       data: {
         offerId: offer.id,
         listingId: listing.id,
         buyerUserId: offer.buyerUserId,
         sellerUserId: listing.sellerUserId,
-        status: MarketplaceTransactionStatus.PAYMENT_HELD,
+        status: MarketplaceTransactionStatus.PAYMENT_PENDING,
         priceType: terms.priceType,
         agreedPricePerKg:
           terms.agreedPricePerKg != null
@@ -110,12 +107,11 @@ export class MarketplaceTransactionService {
           terms.estimatedWeightKg != null
             ? new Prisma.Decimal(terms.estimatedWeightKg)
             : null,
-        blockedAmount: new Prisma.Decimal(blocked),
+        blockedAmount: new Prisma.Decimal(advance),
         commissionRate: new Prisma.Decimal(commissionRate),
         offerExpiresAt: paymentExpiryDate(),
         currency: listing.currency ?? "XOF",
-        isCredit: true,
-        paymentConfirmedAt: now
+        isCredit: true
       }
     });
     return { transactionId: tx.id };
@@ -667,12 +663,35 @@ export class MarketplaceTransactionService {
     });
 
     const amountLabel = `${Math.round(Number(tx.blockedAmount)).toLocaleString("fr-FR")} ${tx.currency}`;
-    void this.push.sendToUser(
-      tx.sellerUserId,
-      "Paiement sécurisé",
-      `Un acheteur a sécurisé ${amountLabel} pour « ${listing?.title ?? "votre annonce"} ». Coordonnez la livraison.`,
-      { type: "marketplace_payment_held", transactionId: tx.id, listingId: tx.listingId }
-    );
+    if (tx.isCredit) {
+      await this.prisma.marketplaceOffer.update({
+        where: { id: tx.offerId },
+        data: {
+          status: OfferStatus.advance_confirmed,
+          advanceConfirmedAt: new Date(),
+          advancePaymentMode: "escrow"
+        }
+      });
+      void this.push.sendToUser(
+        tx.buyerUserId,
+        "Avance sécurisée",
+        `${amountLabel} est bloqué sur la plateforme jusqu'à la livraison.`,
+        { type: "marketplace_credit_advance_held", transactionId: tx.id }
+      );
+      void this.push.sendToUser(
+        tx.sellerUserId,
+        "Avance en escrow",
+        `L'acheteur a sécurisé ${amountLabel} sur la plateforme. Coordonnez la remise des animaux.`,
+        { type: "marketplace_credit_advance_held_seller", transactionId: tx.id }
+      );
+    } else {
+      void this.push.sendToUser(
+        tx.sellerUserId,
+        "Paiement sécurisé",
+        `Un acheteur a sécurisé ${amountLabel} pour « ${listing?.title ?? "votre annonce"} ». Coordonnez la livraison.`,
+        { type: "marketplace_payment_held", transactionId: tx.id, listingId: tx.listingId }
+      );
+    }
 
     return this.getById(user, tx.id);
   }
@@ -917,11 +936,10 @@ export class MarketplaceTransactionService {
       })
     ]);
     if (tx.isCredit) {
-      void this.creditOffers.onCreditDeliveryConfirmed(tx.offerId, receivedAt);
       void this.push.sendToUser(
         tx.sellerUserId,
         "Réception confirmée (crédit)",
-        "Livraison enregistrée. Le solde reste en attente hors escrow.",
+        "Validez le poids réel pour calculer le solde restant dû par l'acheteur.",
         { type: "marketplace_credit_receipt_confirmed", transactionId: tx.id }
       );
     } else if (nextStatus === MarketplaceTransactionStatus.WEIGHT_DECLARED) {
@@ -1237,6 +1255,10 @@ export class MarketplaceTransactionService {
         weightValidatedBy: WeightValidatedBy.seller
       }
     });
+    if (tx.isCredit) {
+      await this.creditOffers.onCreditWeightValidated(tx.id);
+      return this.getById(user, tx.id);
+    }
     await this.settleTransaction(tx.id);
     return this.getById(user, tx.id);
   }
@@ -1297,8 +1319,81 @@ export class MarketplaceTransactionService {
         weightValidatedBy: WeightValidatedBy.superadmin
       }
     });
-    await this.settleTransaction(tx.id);
+    if (tx.isCredit) {
+      await this.creditOffers.onCreditWeightValidated(tx.id);
+    } else {
+      await this.settleTransaction(tx.id);
+    }
     return { ok: true };
+  }
+
+  /** Clôture escrow crédit après paiement du solde (avance + solde sur plateforme). */
+  async settleCreditTransaction(transactionId: string): Promise<void> {
+    const lockKey = `settle-credit:${transactionId}`;
+    await this.prisma.$executeRaw`SELECT pg_advisory_lock(hashtext(${lockKey}))`;
+    try {
+      const tx = await this.prisma.marketplaceTransaction.findUnique({
+        where: { id: transactionId },
+        include: { listing: true, offer: true }
+      });
+      if (!tx?.isCredit || !tx.offer) {
+        return;
+      }
+      if (tx.status === MarketplaceTransactionStatus.TRANSACTION_CLOSED) {
+        return;
+      }
+      const advanceHeld = Number(tx.blockedAmount);
+      const balancePaid = Number(tx.offer.balancePaidAmount ?? 0);
+      const totalHeld = advanceHeld + balancePaid;
+      const finalAmount =
+        tx.finalAmount != null
+          ? Number(tx.finalAmount)
+          : calculateFinalAmount(tx);
+      const rate = Number(tx.commissionRate);
+      const amounts = settlementAmounts({
+        blockedAmount: totalHeld,
+        finalAmount,
+        commissionRate: rate
+      });
+
+      if (amounts.buyerRefundAmount > 0) {
+        await this.escrow.refundBuyer(
+          tx.id,
+          tx.buyerUserId,
+          amounts.buyerRefundAmount,
+          tx.currency,
+          tx.paymentProviderRef
+        );
+      }
+
+      await this.escrow.releaseFundsToSeller(
+        tx.id,
+        tx.sellerUserId,
+        amounts.sellerReceivedAmount,
+        tx.currency
+      );
+      await this.escrow.collectCommission(
+        tx.id,
+        amounts.commissionAmount,
+        tx.currency
+      );
+
+      await this.prisma.marketplaceTransaction.update({
+        where: { id: transactionId },
+        data: {
+          status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
+          closedAt: new Date(),
+          finalAmount: new Prisma.Decimal(finalAmount),
+          commissionAmount: new Prisma.Decimal(amounts.commissionAmount),
+          sellerReceivedAmount: new Prisma.Decimal(amounts.sellerReceivedAmount),
+          buyerRefundAmount: new Prisma.Decimal(amounts.buyerRefundAmount),
+          buyerAdditionalCharge: new Prisma.Decimal(amounts.buyerAdditionalCharge)
+        }
+      });
+      void this.receipts.generateReceipt(transactionId);
+    } finally {
+      await this.prisma.$executeRaw`SELECT pg_advisory_unlock(hashtext(${lockKey}))`;
+    }
   }
 
   async cancelByBuyer(user: User, transactionId: string) {

@@ -25,7 +25,7 @@ export class CreateCreditOfferDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(4)
+  @Max(7)
   balanceDueDays!: number;
 
   @IsOptional()

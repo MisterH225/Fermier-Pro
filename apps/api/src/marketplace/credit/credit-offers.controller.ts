@@ -104,6 +104,27 @@ export class CreditOffersController {
     );
   }
 
+  @Post("offers/:offerId/balance-payment/initiate")
+  initiateBalancePayment(
+    @CurrentUser() user: User,
+    @Param("offerId") offerId: string
+  ) {
+    return this.creditOffers.initiateBalancePayment(user, offerId);
+  }
+
+  @Patch("offers/:offerId/balance-payment/confirm")
+  confirmBalancePayment(
+    @CurrentUser() user: User,
+    @Param("offerId") offerId: string,
+    @Body() body: { providerRef?: string }
+  ) {
+    return this.creditOffers.confirmBalancePayment(
+      user,
+      offerId,
+      body.providerRef
+    );
+  }
+
   @Patch("offers/:offerId/confirm-balance-paid")
   declareBalance(
     @CurrentUser() user: User,

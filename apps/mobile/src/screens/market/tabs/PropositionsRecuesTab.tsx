@@ -22,7 +22,6 @@ import { useSession } from "../../../context/SessionContext";
 import {
   acceptMarketplaceOffer,
   agreeMarketplaceCreditOffer,
-  confirmMarketplaceAdvanceReceived,
   confirmMarketplaceBalanceReceived,
   counterMarketplaceCreditOffer,
   counterMarketplaceOffer,
@@ -124,13 +123,16 @@ export function PropositionsRecuesTab({
   const acceptMut = useMutation({
     mutationFn: async (row: MarketplaceOfferReceivedRow) => {
       if (row.offerType === "credit") {
-        await agreeMarketplaceCreditOffer(
+        const data = await agreeMarketplaceCreditOffer(
           accessToken!,
           row.listing.id,
           row.id,
           activeProfileId
         );
-        return { credit: true as const, transactionId: undefined };
+        return {
+          credit: true as const,
+          transactionId: data.transactionId ?? undefined
+        };
       }
       const data = await acceptMarketplaceOffer(
         accessToken!,
@@ -224,28 +226,6 @@ export function PropositionsRecuesTab({
       )
   });
 
-  const confirmAdvanceMut = useMutation({
-    mutationFn: (row: MarketplaceOfferReceivedRow) =>
-      confirmMarketplaceAdvanceReceived(accessToken!, row.id, true, activeProfileId),
-    onSuccess: (_data, row) => {
-      invalidateAll(row.listing.id);
-      open("success", {
-        message: t("marketScreen.credit.advance.confirmedSuccess"),
-        autoDismissMs: 2000
-      });
-    },
-    onError: (e: Error) =>
-      Alert.alert(t("common.error"), marketplaceActionErrorMessage(e, t))
-  });
-
-  const rejectAdvanceMut = useMutation({
-    mutationFn: (row: MarketplaceOfferReceivedRow) =>
-      confirmMarketplaceAdvanceReceived(accessToken!, row.id, false, activeProfileId),
-    onSuccess: (_data, row) => invalidateAll(row.listing.id),
-    onError: (e: Error) =>
-      Alert.alert(t("common.error"), marketplaceActionErrorMessage(e, t))
-  });
-
   const confirmBalanceMut = useMutation({
     mutationFn: (row: MarketplaceOfferReceivedRow) =>
       confirmMarketplaceBalanceReceived(accessToken!, row.id, true, activeProfileId),
@@ -327,8 +307,6 @@ export function PropositionsRecuesTab({
     rejectMut.isPending ||
     counterMut.isPending ||
     creditCounterMut.isPending ||
-    confirmAdvanceMut.isPending ||
-    rejectAdvanceMut.isPending ||
     confirmBalanceMut.isPending ||
     rejectBalanceMut.isPending ||
     chatMut.isPending;
@@ -466,8 +444,6 @@ export function PropositionsRecuesTab({
                         }
                       }}
                       onNegotiate={() => chatMut.mutate(row)}
-                      onConfirmAdvance={() => confirmAdvanceMut.mutate(row)}
-                      onRejectAdvance={() => rejectAdvanceMut.mutate(row)}
                       onConfirmBalance={() => confirmBalanceMut.mutate(row)}
                       onRejectBalance={() => rejectBalanceMut.mutate(row)}
                     />

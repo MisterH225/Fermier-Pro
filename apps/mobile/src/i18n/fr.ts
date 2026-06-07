@@ -412,6 +412,7 @@ export const fr = {
       totalPrice: "Prix total proposé",
       advancePct: "Pourcentage d'avance (%)",
       advanceHelper: "Minimum 20 % — maximum 50 %",
+      balanceHelper: "Délai max 7 jours après livraison — rappels uniquement après échéance",
       advancePreview: "Avance : {{amount}}",
       balancePreview: "Solde : {{amount}}",
       balanceDays: "Délai de paiement du solde",
@@ -435,7 +436,14 @@ export const fr = {
       counterSubmit: "Envoyer la contre-proposition",
       counterSuccess: "Contre-proposition crédit envoyée.",
       acceptCounter: "Accepter la contre-proposition",
-      agreedSuccess: "Accord crédit conclu — payez l'avance pour lancer la livraison.",
+      agreedSuccess:
+        "Accord crédit conclu — sécurisez l'avance sur la plateforme pour lancer la livraison.",
+      escrow: {
+        transactionMissing: "Transaction escrow introuvable — réessayez dans un instant.",
+        advanceHeld: "L'avance reste bloquée sur la plateforme jusqu'à la livraison.",
+        balanceRecalculated:
+          "Le solde est recalculé au poids réel après validation par le vendeur."
+      },
       buyerScore: "Score crédit acheteur :",
       termsAdvance: "Avance : {{pct}} % = {{amount}}",
       termsBalance: "Solde : {{amount}} dans {{days}} jours",
@@ -450,6 +458,7 @@ export const fr = {
         delay: "Solde sous {{count}} jours après livraison",
         confirm: "✅ J'ai payé l'avance",
         declare: "💰 J'ai payé l'avance",
+        payEscrow: "💳 Payer l'avance (escrow)",
         declaredSuccess: "Avance déclarée — le vendeur va confirmer la réception.",
         confirmReceived: "✅ Confirmer la réception de l'avance",
         notReceived: "❌ Je n'ai pas reçu l'avance",
@@ -460,6 +469,7 @@ export const fr = {
         amount: "Montant payé",
         confirm: "✅ J'ai payé le solde",
         declare: "💰 J'ai payé le solde",
+        payEscrow: "💳 Payer le solde (escrow)",
         remaining: "Solde restant",
         dueOn: "Dû le {{date}}",
         inDays: "dans {{count}} jour(s)",
