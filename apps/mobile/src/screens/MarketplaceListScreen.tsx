@@ -45,6 +45,7 @@ import {
   fetchBuyerFavorites,
   fetchMarketplaceListings,
   fetchMarketplaceOfferCounts,
+  fetchPigPriceIndexDashboard,
   removeBuyerFavorite,
   type BuyerFavoriteListingDto
 } from "../lib/api";
@@ -164,6 +165,15 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     const tab = initialMarketTab(route.params);
     return buyerView && tab === "mine" ? "listings" : tab;
   });
+
+  const pigDashboardQ = useQuery({
+    queryKey: ["pigPriceDashboard", activeProfileId, "30d"],
+    queryFn: () =>
+      fetchPigPriceIndexDashboard(accessToken!, activeProfileId, "30d"),
+    enabled: Boolean(accessToken) && marketTab === "listings",
+    staleTime: 3_600_000
+  });
+
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<CatKey>("all");
   const isBuyerProfile =
@@ -447,7 +457,7 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
     const listingsHeader = (
       <View style={styles.listHeader}>
         <View style={styles.pigPriceSection}>
-          <PigPriceIndexCard />
+          <PigPriceIndexCard hybrid={pigDashboardQ.data?.hybrid ?? undefined} />
           <PigPriceIndex />
         </View>
         <View style={styles.searchRow}>

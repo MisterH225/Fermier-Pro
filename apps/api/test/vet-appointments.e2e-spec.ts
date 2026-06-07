@@ -252,4 +252,53 @@ describeOrSkip("RDV vétérinaire escrow (e2e)", () => {
     expect(secondRes.status).toBe(201);
     expect(secondRes.body.conflictStatus).toMatch(/CONFLICT_/);
   });
+
+  it("véto planifie visite gratuite → VetAppointment APPOINTMENT_CONFIRMED", async () => {
+    const scheduledAt = futureIso(12);
+
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/vet-profiles/me/schedule-visit")
+      .set("Authorization", `Bearer ${ctx.vetToken}`)
+      .set("X-Profile-Id", ctx.veterinarianProfileId)
+      .send({
+        farmId: ctx.farmId,
+        scheduledAt,
+        reason: "routine",
+        notes: "Visite e2e planifiée par le véto"
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.status).toBe("APPOINTMENT_CONFIRMED");
+
+    const row = await ctx.prisma.vetAppointment.findUniqueOrThrow({
+      where: { id: res.body.id as string }
+    });
+    expect(row.vetUserId).toBe(ctx.vetUserId);
+    expect(row.producerUserId).toBe(ctx.producerUserId);
+    expect(row.calendarBlocked).toBe(true);
+  });
+
+  it("véto planifie avec tarif → AWAITING_PAYMENT", async () => {
+    const scheduledAt = futureIso(13);
+
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/vet-profiles/me/schedule-visit")
+      .set("Authorization", `Bearer ${ctx.vetToken}`)
+      .set("X-Profile-Id", ctx.veterinarianProfileId)
+      .send({
+        farmId: ctx.farmId,
+        scheduledAt,
+        reason: "vaccination",
+        consultationPrice: 45000
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.status).toBe("AWAITING_PAYMENT");
+
+    const row = await ctx.prisma.vetAppointment.findUniqueOrThrow({
+      where: { id: res.body.id as string }
+    });
+    expect(Number(row.servicePrice)).toBe(45000);
+    expect(row.calendarBlocked).toBe(false);
+  });
 });

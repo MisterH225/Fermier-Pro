@@ -35,16 +35,7 @@ export class VetsController {
   }
 
   @Post("vet-profiles/me/schedule-visit")
-  scheduleVisit(
-    @CurrentUser() user: User,
-    @Body() dto: ScheduleVetVisitDto,
-    @Res({ passthrough: true }) res: Response
-  ) {
-    setDeprecatedSuccessor(
-      res,
-      "/api/v1/farms/:farmId/vet-appointments",
-      "Sat, 01 Jul 2027 00:00:00 GMT"
-    );
+  scheduleVisit(@CurrentUser() user: User, @Body() dto: ScheduleVetVisitDto) {
     return this.vets.scheduleVisit(user, dto);
   }
 

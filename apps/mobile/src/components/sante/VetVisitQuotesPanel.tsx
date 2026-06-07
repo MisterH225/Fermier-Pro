@@ -8,6 +8,7 @@ import {
   View
 } from "react-native";
 import { fetchVetVisitQuotes, respondVetVisitQuote } from "../../lib/api";
+import { formatFarmMoney } from "../../lib/formatMoney";
 import {
   mobileColors,
   mobileRadius,
@@ -64,12 +65,15 @@ export function VetVisitQuotesPanel({
   return (
     <View style={styles.wrap}>
       <Text style={styles.title}>{t("health.vetQuotes.title")}</Text>
+      <Text style={styles.legacy}>{t("health.vetQuotes.legacyNotice")}</Text>
       {pending.map((q) => (
         <View key={q.id} style={styles.card}>
           <Text style={styles.vet}>{q.vetName}</Text>
           <Text style={styles.meta}>
             {new Date(q.scheduledAt).toLocaleDateString()} ·{" "}
-            {q.consultationPrice != null ? `${q.consultationPrice} €` : "—"}
+            {q.consultationPrice != null
+              ? formatFarmMoney(q.consultationPrice, "XOF")
+              : "—"}
           </Text>
           <View style={styles.row}>
             <Pressable
@@ -93,7 +97,12 @@ export function VetVisitQuotesPanel({
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: mobileSpacing.md },
-  title: { ...mobileTypography.sectionTitle, marginBottom: mobileSpacing.sm },
+  title: { ...mobileTypography.sectionTitle, marginBottom: mobileSpacing.xs },
+  legacy: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginBottom: mobileSpacing.sm
+  },
   card: {
     backgroundColor: "#EFF6FF",
     borderRadius: mobileRadius.lg,
