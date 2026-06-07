@@ -150,9 +150,11 @@ describeOrSkip("Stock aliment — consommation avec entrées (e2e)", () => {
     const row = (stats.body.items as Array<Record<string, unknown>>).find(
       (x) => x.feedTypeId === postCheckTypeId
     );
-    // Contrôle à 800 kg + entrée 100 kg = 900 kg (pas 800 figé sur le contrôle)
-    expect(Number.parseFloat(String(row?.currentStockKg ?? ""))).toBeCloseTo(900, 1);
-    expect(row?.percentRemaining).toBeGreaterThanOrEqual(85);
+    // Entrée à 900 kg il y a ~2 j ; conso estimée depuis le contrôle → stock projeté < 900
+    const projectedStock = Number.parseFloat(String(row?.currentStockKg ?? ""));
+    expect(projectedStock).toBeGreaterThan(750);
+    expect(projectedStock).toBeLessThan(900);
+    expect(row?.percentRemaining).toBeGreaterThanOrEqual(75);
 
     await ctx.prisma.feedStockMovement.deleteMany({
       where: { feedTypeId: postCheckTypeId }

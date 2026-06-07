@@ -129,18 +129,16 @@ export class FarmFeedService {
     await this.farmAccess.requireFarmScopes(user.id, farmId, [
       FARM_SCOPE.livestockRead
     ]);
-    const types = await this.prisma.feedType.findMany({
-      where: { farmId },
-      orderBy: { name: "asc" }
-    });
-    let total = new Prisma.Decimal(0);
-    for (const t of types) {
-      total = total.plus(t.currentStockKg);
+    const th = await this.feedAlertThresholds(farmId);
+    const items = await buildFeedStockStatsForFarm(this.prisma, farmId, th);
+    let total = 0;
+    for (const item of items) {
+      total += Number.parseFloat(item.currentStockKg);
     }
     return {
       farmId,
       totalStockKg: total.toString(),
-      types: types ?? []
+      items
     };
   }
 

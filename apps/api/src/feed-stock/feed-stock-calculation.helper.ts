@@ -54,6 +54,12 @@ export function daysBetweenUtc(a: Date, b: Date): number {
   return Math.max(1, d);
 }
 
+/** Jours calendaires écoulés entre deux dates (0 si même jour). */
+export function calendarDaysElapsed(from: Date, to: Date): number {
+  const d = Math.round((to.getTime() - from.getTime()) / MS_PER_DAY);
+  return Math.max(0, d);
+}
+
 /** Somme en mémoire (évite N agrégats SQL par intervalle). */
 export function sumEntryKgFromMovements(
   entries: Array<{ occurredAt: Date; quantityKg: number | null }>,
@@ -243,6 +249,77 @@ export function buildConsumptionIntervals(input: {
   return { intervals, warnings };
 }
 
+/**
+ * Intervalles pour le taux de conso : privilégie les périodes entre deux
+ * contrôles (≥ 2) pour éviter de diluer avec l'intervalle entrée → 1er contrôle.
+ */
+export function selectConsumptionRateIntervals(
+  intervals: ConsumptionInterval[],
+  entryIds: ReadonlySet<string>
+): ConsumptionInterval[] {
+  const betweenChecks = intervals.filter((i) => !entryIds.has(i.fromCheckId));
+  if (betweenChecks.length >= 2) {
+    return betweenChecks.slice(-3);
+  }
+  if (betweenChecks.length === 1) {
+    return betweenChecks;
+  }
+  return intervals.slice(-3);
+}
+
+export type StockAnchor = {
+  stockKg: number;
+  anchorDate: Date;
+};
+
+export function resolveStockAnchor(input: {
+  ledgerStockKg: number;
+  latestCheck: {
+    occurredAt: Date;
+    bagsCounted: number | null;
+    stockAfterKg: number | null;
+  } | null;
+  lastIn: {
+    occurredAt: Date;
+    stockAfterKg: number | null;
+  } | null;
+  weightPerBagKg: number | null;
+  asOf: Date;
+}): StockAnchor {
+  const check = input.latestCheck;
+  const lastIn = input.lastIn;
+
+  if (check && (!lastIn || check.occurredAt >= lastIn.occurredAt)) {
+    return {
+      stockKg: resolveCheckStockKg(check, input.weightPerBagKg),
+      anchorDate: check.occurredAt
+    };
+  }
+  if (lastIn && lastIn.stockAfterKg != null) {
+    return {
+      stockKg: lastIn.stockAfterKg,
+      anchorDate: lastIn.occurredAt
+    };
+  }
+  return {
+    stockKg: input.ledgerStockKg,
+    anchorDate: input.asOf
+  };
+}
+
+/** Estime le stock actuel en amortissant la conso depuis le dernier point d'ancrage. */
+export function projectStockFromAnchor(
+  anchor: StockAnchor,
+  avgDailyKg: number | null,
+  asOf: Date
+): number {
+  const daysElapsed = calendarDaysElapsed(anchor.anchorDate, asOf);
+  if (avgDailyKg == null || avgDailyKg <= 0 || daysElapsed <= 0) {
+    return anchor.stockKg;
+  }
+  return Math.max(0, anchor.stockKg - avgDailyKg * daysElapsed);
+}
+
 export function resolveCurrentStockKg(input: ResolveCurrentStockKgInput): number {
   const ledger = Number.isFinite(input.ledgerStockKg) ? input.ledgerStockKg : 0;
   const check = input.latestCheck;
@@ -319,13 +396,15 @@ export async function computeFeedStockMetrics(
   prisma: PrismaClient,
   farmId: string,
   feedTypeId: string,
-  thresholds?: FeedStockStatusThresholds
+  thresholds?: FeedStockStatusThresholds,
+  asOf?: Date
 ): Promise<FeedStockCalculationResult> {
   const debug = await computeFeedStockMetricsDebug(
     prisma,
     farmId,
     feedTypeId,
-    thresholds
+    thresholds,
+    asOf
   );
   const {
     checks: _c,
@@ -340,7 +419,8 @@ export async function computeFeedStockMetricsDebug(
   prisma: PrismaClient,
   farmId: string,
   feedTypeId: string,
-  thresholds?: FeedStockStatusThresholds
+  thresholds?: FeedStockStatusThresholds,
+  asOf: Date = new Date()
 ): Promise<FeedStockCalculationDebug> {
   const warnings: string[] = [];
 
@@ -388,30 +468,9 @@ export async function computeFeedStockMetricsDebug(
 
   const wp = toNum(feedType.weightPerBagKg);
   const latestCheck = checksDesc[0] ?? null;
-
-  const currentStockKg = resolveCurrentStockKg({
-    ledgerStockKg: toNum(feedType.currentStockKg) ?? 0,
-    latestCheck: latestCheck
-      ? {
-          occurredAt: latestCheck.occurredAt,
-          bagsCounted: toNum(latestCheck.bagsCounted),
-          stockAfterKg: toNum(latestCheck.stockAfterKg)
-        }
-      : null,
-    lastInOccurredAt: lastIn?.occurredAt ?? null,
-    weightPerBagKg: wp
-  });
+  const ledgerStockKg = toNum(feedType.currentStockKg) ?? 0;
 
   const stockAtLastEntryKg = lastIn ? toNum(lastIn.stockAfterKg) : null;
-
-  if (
-    stockAtLastEntryKg != null &&
-    currentStockKg > stockAtLastEntryKg + 0.01
-  ) {
-    warnings.push(
-      "current_stock_kg > stock_at_last_entry — vérifiez les saisies."
-    );
-  }
 
   const checksChron = [...checksDesc].reverse().map((c) => ({
     id: c.id,
@@ -428,12 +487,13 @@ export async function computeFeedStockMetricsDebug(
   const intervals = built.intervals;
   warnings.push(...built.warnings);
 
-  const recentIntervals = intervals.slice(-3);
-  let avgDailyConsumptionKg = computeWeightedAvgDailyKg(recentIntervals);
+  const entryIds = new Set(entryRows.map((e) => e.id));
+  const rateIntervals = selectConsumptionRateIntervals(intervals, entryIds);
+  let avgDailyConsumptionKg = computeWeightedAvgDailyKg(rateIntervals);
   if (
-    recentIntervals.length > 0 &&
+    rateIntervals.length > 0 &&
     avgDailyConsumptionKg == null &&
-    recentIntervals.some((x) => x.consumedKg <= 0)
+    rateIntervals.some((x) => x.consumedKg <= 0)
   ) {
     warnings.push("Consommation nulle ou négative sur la période récente.");
   }
@@ -443,6 +503,39 @@ export async function computeFeedStockMetricsDebug(
   if (avgDailyConsumptionKg != null && avgDailyConsumptionKg < 0) {
     warnings.push("avg_daily_consumption_kg négatif — données incohérentes.");
     avgDailyConsumptionKg = null;
+  }
+
+  const anchor = resolveStockAnchor({
+    ledgerStockKg,
+    latestCheck: latestCheck
+      ? {
+          occurredAt: latestCheck.occurredAt,
+          bagsCounted: toNum(latestCheck.bagsCounted),
+          stockAfterKg: toNum(latestCheck.stockAfterKg)
+        }
+      : null,
+    lastIn: lastIn
+      ? {
+          occurredAt: lastIn.occurredAt,
+          stockAfterKg: toNum(lastIn.stockAfterKg)
+        }
+      : null,
+    weightPerBagKg: wp,
+    asOf
+  });
+  const currentStockKg = projectStockFromAnchor(
+    anchor,
+    avgDailyConsumptionKg,
+    asOf
+  );
+
+  if (
+    stockAtLastEntryKg != null &&
+    currentStockKg > stockAtLastEntryKg + 0.01
+  ) {
+    warnings.push(
+      "current_stock_kg > stock_at_last_entry — vérifiez les saisies."
+    );
   }
 
   let percentConsumed: number | null = null;
@@ -467,9 +560,8 @@ export async function computeFeedStockMetricsDebug(
     estimatedDaysRemaining = 0;
   }
 
-  const now = new Date();
   const daysSinceLastCheck = latestCheck
-    ? daysBetweenUtc(latestCheck.occurredAt, now)
+    ? calendarDaysElapsed(latestCheck.occurredAt, asOf)
     : null;
 
   const status = resolveFeedStockStatus(

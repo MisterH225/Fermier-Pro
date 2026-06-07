@@ -126,16 +126,20 @@ export function StockModal({
       refDates.length > 0
         ? refDates.reduce((latest, d) => (d > latest ? d : latest))
         : null;
+    const controlDate = new Date(`${occurredAt}T12:00:00.000Z`);
     const days =
       ref != null && !Number.isNaN(ref.getTime())
-        ? Math.max(1, Math.round((Date.now() - ref.getTime()) / 86_400_000))
+        ? Math.max(
+            1,
+            Math.round((controlDate.getTime() - ref.getTime()) / 86_400_000)
+          )
         : 1;
     const dailyKg = (consumed * wp) / days;
     const stockKg = counted * wp;
     let depl: string | null = null;
     if (dailyKg > 0 && stockKg > 0) {
       const daysLeft = Math.floor(stockKg / dailyKg);
-      const d = new Date(Date.now() + daysLeft * 86_400_000);
+      const d = new Date(controlDate.getTime() + daysLeft * 86_400_000);
       depl = d.toLocaleDateString("fr-FR");
     }
     return {
@@ -144,7 +148,7 @@ export function StockModal({
       dailyKg,
       depl
     };
-  }, [selected, tab, bagsCounted, weightOverride]);
+  }, [selected, tab, bagsCounted, weightOverride, occurredAt]);
 
   const buildMovementPayload = (): PostFarmFeedMovementPayload => {
     if (newMode) {
@@ -173,7 +177,7 @@ export function StockModal({
           : {
               bagsCounted: Number.parseFloat(bagsCounted.replace(",", ".")),
               notes: notes.trim() || undefined,
-              occurredAt: new Date().toISOString()
+              occurredAt: `${occurredAt}T12:00:00.000Z`
             })
       };
     }
@@ -200,7 +204,7 @@ export function StockModal({
         : {
             bagsCounted: Number.parseFloat(bagsCounted.replace(",", ".")),
             notes: notes.trim() || undefined,
-            occurredAt: new Date().toISOString()
+            occurredAt: `${occurredAt}T12:00:00.000Z`
           })
     };
   };
@@ -463,6 +467,12 @@ export function StockModal({
               value={bagsCounted}
               onChangeText={setBagsCounted}
               keyboardType="decimal-pad"
+            />
+            <AppDatePicker
+              label={t("feedStock.fieldDate")}
+              isoValue={occurredAt}
+              onIsoChange={setOccurredAt}
+              farmId={farmId}
             />
             {preview ? (
               <View style={styles.previewBox}>

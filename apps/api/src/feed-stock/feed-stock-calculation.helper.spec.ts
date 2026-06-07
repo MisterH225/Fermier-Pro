@@ -1,9 +1,13 @@
 import {
   buildConsumptionIntervals,
+  calendarDaysElapsed,
   computeWeightedAvgDailyKg,
   daysBetweenUtc,
+  projectStockFromAnchor,
   resolveCurrentStockKg,
   resolveFeedStockStatus,
+  resolveStockAnchor,
+  selectConsumptionRateIntervals,
   sumEntryKgFromMovements
 } from "./feed-stock-calculation.helper";
 
@@ -204,6 +208,122 @@ describe("feed-stock-calculation.helper", () => {
       // 950 + 100 - 900 = 150 kg sur 10 j
       expect(betweenChecks?.consumedKg).toBeCloseTo(150, 1);
       expect(betweenChecks?.dailyKg).toBeCloseTo(15, 1);
+    });
+  });
+
+  describe("calendarDaysElapsed", () => {
+    it("retourne 0 pour la même date", () => {
+      const d = new Date("2026-06-01T12:00:00.000Z");
+      expect(calendarDaysElapsed(d, d)).toBe(0);
+    });
+
+    it("compte les jours sans minimum à 1", () => {
+      const a = new Date("2026-06-01T00:00:00.000Z");
+      const b = new Date("2026-06-06T00:00:00.000Z");
+      expect(calendarDaysElapsed(a, b)).toBe(5);
+    });
+  });
+
+  describe("selectConsumptionRateIntervals", () => {
+    it("privilégie les intervalles entre contrôles quand il y en a ≥ 2", () => {
+      const intervals = [
+        {
+          fromCheckId: "in1",
+          toCheckId: "c1",
+          days: 10,
+          consumedKg: 50,
+          dailyKg: 5
+        },
+        {
+          fromCheckId: "c1",
+          toCheckId: "c2",
+          days: 10,
+          consumedKg: 150,
+          dailyKg: 15
+        },
+        {
+          fromCheckId: "c2",
+          toCheckId: "c3",
+          days: 10,
+          consumedKg: 200,
+          dailyKg: 20
+        }
+      ];
+      const selected = selectConsumptionRateIntervals(
+        intervals,
+        new Set(["in1"])
+      );
+      expect(selected).toHaveLength(2);
+      expect(selected.every((i) => i.fromCheckId !== "in1")).toBe(true);
+      expect(computeWeightedAvgDailyKg(selected)).toBeCloseTo(17.5, 5);
+    });
+
+    it("retombe sur l'intervalle entrée → contrôle s'il n'y a qu'un seul contrôle", () => {
+      const intervals = [
+        {
+          fromCheckId: "in1",
+          toCheckId: "c1",
+          days: 10,
+          consumedKg: 200,
+          dailyKg: 20
+        }
+      ];
+      const selected = selectConsumptionRateIntervals(
+        intervals,
+        new Set(["in1"])
+      );
+      expect(selected).toHaveLength(1);
+      expect(computeWeightedAvgDailyKg(selected)).toBeCloseTo(20, 5);
+    });
+  });
+
+  describe("projectStockFromAnchor", () => {
+    const asOf = new Date("2026-06-11T12:00:00.000Z");
+
+    it("amortit la conso depuis le dernier contrôle", () => {
+      const projected = projectStockFromAnchor(
+        {
+          stockKg: 800,
+          anchorDate: new Date("2026-06-01T12:00:00.000Z")
+        },
+        20,
+        asOf
+      );
+      expect(projected).toBeCloseTo(600, 1);
+    });
+
+    it("ne projette pas sans taux de conso", () => {
+      expect(
+        projectStockFromAnchor(
+          {
+            stockKg: 800,
+            anchorDate: new Date("2026-06-01T12:00:00.000Z")
+          },
+          null,
+          asOf
+        )
+      ).toBe(800);
+    });
+  });
+
+  describe("resolveStockAnchor", () => {
+    it("ancre sur une entrée postérieure au dernier contrôle", () => {
+      const anchor = resolveStockAnchor({
+        ledgerStockKg: 900,
+        latestCheck: {
+          occurredAt: new Date("2026-06-01T12:00:00.000Z"),
+          bagsCounted: 32,
+          stockAfterKg: 800
+        },
+        lastIn: {
+          occurredAt: new Date("2026-06-09T12:00:00.000Z"),
+          stockAfterKg: 900
+        },
+        weightPerBagKg: 25,
+        asOf: new Date("2026-06-11T12:00:00.000Z")
+      });
+      expect(anchor.stockKg).toBe(900);
+      expect(anchor.anchorDate.toISOString()).toBe("2026-06-09T12:00:00.000Z");
     });
   });
 
