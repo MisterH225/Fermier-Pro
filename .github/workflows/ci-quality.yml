@@ -28,3 +28,5 @@ jobs:
         run: npm run test:unit
       - name: Mobile typecheck
         run: npm run typecheck:mobile
+      - name: Admin typecheck
+        run: npm run typecheck:admin

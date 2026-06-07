@@ -1342,6 +1342,31 @@ export class MarketplaceTransactionService {
       if (tx.status === MarketplaceTransactionStatus.TRANSACTION_CLOSED) {
         return;
       }
+      if (tx.status !== MarketplaceTransactionStatus.WEIGHT_VALIDATED) {
+        return;
+      }
+
+      const priorRelease = await this.prisma.marketplaceFundMovement.findFirst({
+        where: {
+          transactionId,
+          kind: MarketplaceFundMovementKind.RELEASE_TO_SELLER
+        }
+      });
+      if (priorRelease) {
+        await this.prisma.marketplaceTransaction.updateMany({
+          where: {
+            id: transactionId,
+            status: MarketplaceTransactionStatus.WEIGHT_VALIDATED
+          },
+          data: {
+            status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
+            closedAt: new Date()
+          }
+        });
+        void this.receipts.generateReceipt(transactionId);
+        return;
+      }
+
       const advanceHeld = Number(tx.blockedAmount);
       const balancePaid = Number(tx.offer.balancePaidAmount ?? 0);
       const totalHeld = advanceHeld + balancePaid;
@@ -1378,8 +1403,11 @@ export class MarketplaceTransactionService {
         tx.currency
       );
 
-      await this.prisma.marketplaceTransaction.update({
-        where: { id: transactionId },
+      const closed = await this.prisma.marketplaceTransaction.updateMany({
+        where: {
+          id: transactionId,
+          status: MarketplaceTransactionStatus.WEIGHT_VALIDATED
+        },
         data: {
           status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
           closedAt: new Date(),
@@ -1390,6 +1418,32 @@ export class MarketplaceTransactionService {
           buyerAdditionalCharge: new Prisma.Decimal(amounts.buyerAdditionalCharge)
         }
       });
+      if (closed.count === 0) {
+        return;
+      }
+
+      try {
+        await this.prisma.platformRevenue.create({
+          data: {
+            transactionId: tx.id,
+            sellerId: tx.sellerUserId,
+            buyerId: tx.buyerUserId,
+            grossAmount: new Prisma.Decimal(finalAmount),
+            commissionRate: tx.commissionRate,
+            commissionAmount: new Prisma.Decimal(amounts.commissionAmount)
+          }
+        });
+      } catch (e) {
+        if (
+          !(
+            e instanceof Prisma.PrismaClientKnownRequestError &&
+            e.code === "P2002"
+          )
+        ) {
+          throw e;
+        }
+      }
+
       void this.receipts.generateReceipt(transactionId);
     } finally {
       await this.prisma.$executeRaw`SELECT pg_advisory_unlock(hashtext(${lockKey}))`;
@@ -1398,30 +1452,49 @@ export class MarketplaceTransactionService {
 
   async cancelByBuyer(user: User, transactionId: string) {
     const tx = await this.requireBuyer(transactionId, user.id);
+    if (tx.status === MarketplaceTransactionStatus.CANCELLED_BY_BUYER) {
+      return { ok: true };
+    }
     if (!CANCELLABLE_BY_BUYER.includes(tx.status)) {
       throw new BadRequestException("Annulation impossible à ce stade");
     }
-    if (
+    const needsRefund =
       tx.status === MarketplaceTransactionStatus.PAYMENT_HELD ||
       tx.status === MarketplaceTransactionStatus.PICKUP_SCHEDULED ||
-      tx.status === MarketplaceTransactionStatus.SELLER_SHIPPED
-    ) {
-      await this.escrow.refundBuyer(
-        tx.id,
-        tx.buyerUserId,
-        Number(tx.blockedAmount),
-        tx.currency,
-        tx.paymentProviderRef
-      );
-      await this.decrementActiveOfferCount(tx.listingId);
+      tx.status === MarketplaceTransactionStatus.SELLER_SHIPPED;
+    if (needsRefund) {
+      const priorRefund = await this.prisma.marketplaceFundMovement.findFirst({
+        where: {
+          transactionId: tx.id,
+          kind: MarketplaceFundMovementKind.REFUND_BUYER
+        }
+      });
+      if (!priorRefund) {
+        await this.escrow.refundBuyer(
+          tx.id,
+          tx.buyerUserId,
+          Number(tx.blockedAmount),
+          tx.currency,
+          tx.paymentProviderRef
+        );
+      }
     }
-    await this.prisma.marketplaceTransaction.update({
-      where: { id: tx.id },
+    const cancelled = await this.prisma.marketplaceTransaction.updateMany({
+      where: {
+        id: tx.id,
+        status: { in: [...CANCELLABLE_BY_BUYER] }
+      },
       data: {
         status: MarketplaceTransactionStatus.CANCELLED_BY_BUYER,
         cancelledAt: new Date()
       }
     });
+    if (cancelled.count === 0) {
+      return { ok: true };
+    }
+    if (needsRefund) {
+      await this.decrementActiveOfferCount(tx.listingId);
+    }
     await this.prisma.marketplaceListing.updateMany({
       where: {
         id: tx.listingId,
