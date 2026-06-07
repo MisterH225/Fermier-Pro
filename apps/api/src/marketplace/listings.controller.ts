@@ -20,13 +20,20 @@ import { PickupListingDto } from "./dto/pickup-listing.dto";
 import { PublishListingDto } from "./dto/publish-listing.dto";
 import { RenewListingDto } from "./dto/renew-listing.dto";
 import { UpdateListingDto } from "./dto/update-listing.dto";
+import { ConfirmReceiptDto } from "./dto/confirm-receipt.dto";
+import { ConfirmShipmentDto } from "./dto/confirm-shipment.dto";
+import { DeliveryDisputeDto } from "./dto/delivery-dispute.dto";
+import { MarketplaceTransactionService } from "./escrow/marketplace-transaction.service";
 import { ListingsService } from "./listings.service";
 
 @Controller("marketplace/listings")
 @RequireFeature("marketplace")
 @UseGuards(SupabaseJwtGuard, FeatureEnabledGuard)
 export class ListingsController {
-  constructor(private readonly listings: ListingsService) {}
+  constructor(
+    private readonly listings: ListingsService,
+    private readonly transactions: MarketplaceTransactionService
+  ) {}
 
   @Get()
   list(
@@ -120,5 +127,49 @@ export class ListingsController {
     @Body() dto: CompleteHandoverDto
   ) {
     return this.listings.completeHandover(user, id, dto);
+  }
+
+  @Get(":id/transaction-status")
+  transactionStatus(@CurrentUser() user: User, @Param("id") id: string) {
+    return this.transactions.getTransactionStatusForListing(user, id);
+  }
+
+  @Post(":id/confirm-shipment")
+  async confirmShipment(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() dto: ConfirmShipmentDto
+  ) {
+    const txId = await this.transactions.requireActiveTransactionIdForListing(
+      user,
+      id
+    );
+    return this.transactions.confirmShipment(user, txId, dto);
+  }
+
+  @Post(":id/confirm-receipt")
+  async confirmReceipt(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() dto: ConfirmReceiptDto
+  ) {
+    const txId = await this.transactions.requireActiveTransactionIdForListing(
+      user,
+      id
+    );
+    return this.transactions.confirmReceipt(user, txId, dto);
+  }
+
+  @Post(":id/dispute")
+  async openDispute(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() dto: DeliveryDisputeDto
+  ) {
+    const txId = await this.transactions.requireActiveTransactionIdForListing(
+      user,
+      id
+    );
+    return this.transactions.openDeliveryDispute(user, txId, dto);
   }
 }

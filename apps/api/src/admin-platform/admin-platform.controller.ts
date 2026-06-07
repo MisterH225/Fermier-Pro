@@ -38,6 +38,7 @@ import {
 import { SuperAdminGuard } from "./super-admin.guard";
 import { PigPriceIndexService } from "../market/pig-price-index.service";
 import { MarketplacePigPriceIndexService } from "../marketplace/pig-price-index.service";
+import { ResolveDeliveryDisputeDto } from "../marketplace/dto/resolve-delivery-dispute.dto";
 import { MarketplaceTransactionService } from "../marketplace/escrow/marketplace-transaction.service";
 import { ReceiptService } from "../marketplace/receipts/receipt.service";
 import { VetAppointmentService } from "../vet-appointments/vet-appointment.service";
@@ -371,6 +372,15 @@ export class AdminPlatformController {
   @Get("marketplace/disputes")
   adminListDisputes() {
     return this.marketplaceTransactions.listDisputesForAdmin();
+  }
+
+  @Patch("marketplace/disputes/:id/resolve")
+  adminResolveDeliveryDispute(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() body: ResolveDeliveryDisputeDto
+  ) {
+    return this.marketplaceTransactions.resolveDeliveryDispute(admin.id, id, body);
   }
 
   @Post("marketplace/transactions/:id/arbitrate")

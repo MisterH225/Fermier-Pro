@@ -512,12 +512,18 @@ export class ListingsService {
       throw new NotFoundException("Annonce introuvable");
     }
 
-    if (listing.status === ListingStatus.reserved) {
+    const lockedForBuyer = [
+      ListingStatus.reserved,
+      ListingStatus.shipped,
+      ListingStatus.delivered,
+      ListingStatus.disputed
+    ] as ListingStatus[];
+    if (lockedForBuyer.includes(listing.status)) {
       const accepted = await this.prisma.marketplaceOffer.findFirst({
         where: {
           listingId: id,
           buyerUserId: user.id,
-          status: OfferStatus.accepted
+          status: { in: [OfferStatus.accepted, OfferStatus.completed] }
         }
       });
       if (listing.sellerUserId !== user.id && !accepted) {
@@ -904,10 +910,11 @@ export class ListingsService {
     await this.requireMarketplaceWriteIfFarmListing(user.id, listing.farmId);
     if (
       listing.status !== ListingStatus.reserved &&
-      listing.status !== ListingStatus.published
+      listing.status !== ListingStatus.published &&
+      listing.status !== ListingStatus.delivered
     ) {
       throw new BadRequestException(
-        "Cloture possible uniquement pour une annonce disponible ou reservee"
+        "Cloture possible uniquement pour une annonce en cours de vente"
       );
     }
     if (!listing.farmId) {
@@ -958,7 +965,8 @@ export class ListingsService {
       if (
         !fresh ||
         (fresh.status !== ListingStatus.reserved &&
-          fresh.status !== ListingStatus.published)
+          fresh.status !== ListingStatus.published &&
+          fresh.status !== ListingStatus.delivered)
       ) {
         throw new BadRequestException("Annonce deja cloturee");
       }

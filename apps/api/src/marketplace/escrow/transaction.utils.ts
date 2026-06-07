@@ -133,9 +133,17 @@ export function settlementAmounts(params: {
 export const ACTIVE_ESCROW_STATUSES: MarketplaceTransactionStatus[] = [
   MarketplaceTransactionStatus.PAYMENT_HELD,
   MarketplaceTransactionStatus.PICKUP_SCHEDULED,
+  MarketplaceTransactionStatus.SELLER_SHIPPED,
+  MarketplaceTransactionStatus.BUYER_RECEIVED,
+  MarketplaceTransactionStatus.DELIVERY_DISPUTED,
   MarketplaceTransactionStatus.WEIGHT_DECLARED,
   MarketplaceTransactionStatus.WEIGHT_DISPUTED,
   MarketplaceTransactionStatus.WEIGHT_VALIDATED
+];
+
+export const SHIPMENT_CONFIRM_STATUSES: MarketplaceTransactionStatus[] = [
+  MarketplaceTransactionStatus.PAYMENT_HELD,
+  MarketplaceTransactionStatus.PICKUP_SCHEDULED
 ];
 
 /** Statuts bloquant la modification d'une annonce (escrow + paiement en attente). */
@@ -147,12 +155,14 @@ export const LISTING_EDIT_LOCK_STATUSES: MarketplaceTransactionStatus[] = [
 export const CANCELLABLE_BY_BUYER: MarketplaceTransactionStatus[] = [
   MarketplaceTransactionStatus.PAYMENT_PENDING,
   MarketplaceTransactionStatus.PAYMENT_HELD,
-  MarketplaceTransactionStatus.PICKUP_SCHEDULED
+  MarketplaceTransactionStatus.PICKUP_SCHEDULED,
+  MarketplaceTransactionStatus.SELLER_SHIPPED
 ];
 
 export const CANCELLABLE_BY_SELLER: MarketplaceTransactionStatus[] = [
   MarketplaceTransactionStatus.PAYMENT_PENDING,
   MarketplaceTransactionStatus.PAYMENT_HELD,
   MarketplaceTransactionStatus.PICKUP_SCHEDULED,
+  MarketplaceTransactionStatus.SELLER_SHIPPED,
   MarketplaceTransactionStatus.WEIGHT_DECLARED
 ];

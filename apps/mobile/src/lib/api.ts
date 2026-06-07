@@ -5028,6 +5028,17 @@ export function acceptMarketplaceOfferCounter(
   );
 }
 
+export type MarketplacePendingTransferDto = {
+  id: string;
+  transactionId: string;
+  buyerFarmId: string | null;
+  animalIds: string[];
+  expiresAt: string;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+};
+
 export type MarketplaceTransactionDto = {
   id: string;
   listingId: string;
@@ -5044,6 +5055,15 @@ export type MarketplaceTransactionDto = {
   realWeightKg: number | null;
   pickupDate: string | null;
   pickupLocation: string | null;
+  sellerShippedAt?: string | null;
+  shipmentMethod?: string | null;
+  shipmentNotes?: string | null;
+  buyerReceivedAt?: string | null;
+  receiptCondition?: string | null;
+  receiptNotes?: string | null;
+  receivedAnimalIds?: string[];
+  listingStatus?: string | null;
+  listingAnimalIds?: string[];
   currency: string;
   offerExpiresAt: string;
   listingTitle: string | null;
@@ -5053,6 +5073,7 @@ export type MarketplaceTransactionDto = {
     receiptNumber: string;
     generatedAt: string;
   } | null;
+  pendingTransfer?: MarketplacePendingTransferDto | null;
 };
 
 export type MarketplaceReceiptDto = {
@@ -5168,6 +5189,44 @@ export function scheduleMarketplacePickup(
   );
 }
 
+export function confirmMarketplaceShipment(
+  accessToken: string,
+  transactionId: string,
+  payload: {
+    shippedAt: string;
+    method?: "handover" | "third_party" | "seller_delivery";
+    notes?: string;
+  },
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/confirm-shipment`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmMarketplaceReceipt(
+  accessToken: string,
+  transactionId: string,
+  payload: {
+    receivedAt: string;
+    condition: "conform" | "minor_issue" | "major_issue";
+    receivedAnimalIds: string[];
+    realWeightKg?: number;
+    notes?: string;
+  },
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/confirm-receipt`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
 export function declareMarketplaceWeight(
   accessToken: string,
   transactionId: string,
@@ -5218,6 +5277,20 @@ export function cancelMarketplaceTransaction(
   return apiPostJson<MarketplaceTransactionDto>(
     `/marketplace/transactions/${transactionId}/cancel`,
     {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function completeMarketplacePendingTransfer(
+  accessToken: string,
+  transactionId: string,
+  payload: { buyerFarmId: string; penId?: string },
+  activeProfileId?: string | null
+): Promise<{ ok: boolean; animalIds: string[] }> {
+  return apiPostJson<{ ok: boolean; animalIds: string[] }>(
+    `/marketplace/transactions/${transactionId}/pending-transfer/complete`,
+    payload,
     accessToken,
     activeProfileId
   );

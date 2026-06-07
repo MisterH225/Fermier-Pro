@@ -343,12 +343,17 @@ export const fr = {
       statusLabel: "Étape",
       stepPayment: "Paiement",
       stepDelivery: "Livraison",
+      stepShipment: "Envoi",
+      stepReceipt: "Réception",
       stepWeight: "Poids réel",
       stepClosing: "Clôture",
       status: {
         PAYMENT_PENDING: "En attente de paiement",
-        PAYMENT_HELD: "Paiement sécurisé — livraison à planifier",
+        PAYMENT_HELD: "Paiement sécurisé — en attente d'envoi",
         PICKUP_SCHEDULED: "Livraison planifiée",
+        SELLER_SHIPPED: "Envoi confirmé — en attente de réception",
+        BUYER_RECEIVED: "Réception confirmée — poids à valider",
+        DELIVERY_DISPUTED: "Litige livraison",
         WEIGHT_DECLARED: "Poids déclaré — validation vendeur",
         WEIGHT_DISPUTED: "Litige poids — arbitrage",
         WEIGHT_VALIDATED: "Finalisation en cours",
@@ -371,11 +376,65 @@ export const fr = {
       sellerWaitWeight:
         "Livraison planifiée. L'acheteur confirmera le poids réel le jour de la récupération ; vous pourrez alors valider et conclure la vente.",
       buyerWaitSchedule:
-        "Paiement sécurisé. Planifiez la livraison ci-dessous — le poids réel ne sera demandé qu'une fois l'animal récupéré.",
+        "Paiement sécurisé. Le vendeur confirmera l'envoi ; vous confirmerez la réception à la livraison.",
+      sellerWaitReceipt:
+        "Envoi confirmé. En attente de la confirmation de réception par l'acheteur.",
+      buyerWaitReceipt:
+        "Le vendeur a confirmé l'envoi. Confirmez la réception une fois les animaux livrés.",
+      deliveryDisputed:
+        "Un litige livraison est ouvert. Les fonds restent sécurisés en attendant la résolution.",
       finalizing:
         "Poids validé — libération des fonds et mise à jour du cheptel en cours.",
       weightDisputed:
         "Le poids est contesté. Un arbitrage est en cours — vous serez informé de la suite."
+    },
+    shipmentModal: {
+      open: "Confirmer l'envoi",
+      title: "Confirmer l'envoi",
+      info: "Indiquez que les animaux ont été remis à l'acheteur ou sont en cours de livraison.",
+      date: "Date d'envoi",
+      method: "Mode de livraison",
+      methods: {
+        handover: "Remise en main propre",
+        third_party: "Transport tiers",
+        seller_delivery: "Livraison vendeur"
+      },
+      notes: "Notes pour l'acheteur",
+      notesPh: "Instructions, contact transporteur…",
+      confirm: "Confirmer l'envoi",
+      successTitle: "Envoi confirmé",
+      successBody: "L'acheteur a été notifié."
+    },
+    transferModal: {
+      open: "Ajouter à mon cheptel",
+      title: "Importer dans ma ferme",
+      info:
+        "{{count}} animal(aux) prêt(s) à être ajouté(s) à votre cheptel après cette vente.",
+      farm: "Ferme destinataire",
+      penOptional: "Loge (optionnel)",
+      noPen: "Aucune loge — les animaux seront créés sans placement.",
+      confirm: "Importer les animaux",
+      successTitle: "Cheptel mis à jour",
+      successBody: "Vos animaux ont été ajoutés à la ferme sélectionnée."
+    },
+    receiptModal: {
+      open: "Confirmer la réception",
+      title: "Confirmer la réception",
+      info: "Vérifiez que vous avez bien reçu les animaux dans l'état prévu.",
+      animals: "Animaux reçus",
+      date: "Date de réception",
+      condition: "État des animaux",
+      conditions: {
+        conform: "Conforme",
+        minor_issue: "Problème mineur",
+        major_issue: "Problème majeur"
+      },
+      comment: "Commentaire",
+      commentPh: "Décrivez le problème…",
+      confirm: "Confirmer la réception",
+      reportProblem: "Signaler un problème",
+      successTitle: "Réception enregistrée",
+      successBody: "La transaction avance vers la clôture."
     },
     categories: {
       all: "Tout",

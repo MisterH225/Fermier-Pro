@@ -17,6 +17,9 @@ import {
   formatMarketMoney,
   parseMarketNum
 } from "../components/marketplace/MarketplaceListingCard";
+import { ConfirmReceiptModal } from "../components/marketplace/ConfirmReceiptModal";
+import { ConfirmShipmentModal } from "../components/marketplace/ConfirmShipmentModal";
+import { TransferToFarmModal } from "../components/marketplace/TransferToFarmModal";
 import { PrimaryButton } from "../components/ui/PrimaryButton";
 import { SecondaryButton } from "../components/ui/SecondaryButton";
 import { TransactionReceiptCard } from "../components/marketplace/TransactionReceiptCard";
@@ -24,7 +27,10 @@ import { useBottomInset } from "../hooks/useBottomInset";
 import { useSession } from "../context/SessionContext";
 import {
   cancelMarketplaceTransaction,
+  completeMarketplacePendingTransfer,
   confirmMarketplacePayment,
+  confirmMarketplaceReceipt,
+  confirmMarketplaceShipment,
   declareMarketplaceWeight,
   disputeMarketplaceWeight,
   fetchMarketplaceTransaction,
@@ -58,12 +64,15 @@ function stepIndex(status: string): number {
     case "PAYMENT_PENDING":
       return 0;
     case "PAYMENT_HELD":
-      return 1;
     case "PICKUP_SCHEDULED":
+      return 1;
+    case "SELLER_SHIPPED":
       return 2;
+    case "BUYER_RECEIVED":
     case "WEIGHT_DECLARED":
     case "WEIGHT_DISPUTED":
     case "WEIGHT_VALIDATED":
+    case "DELIVERY_DISPUTED":
       return 3;
     case "TRANSACTION_CLOSED":
       return 4;
@@ -95,6 +104,9 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   const [pickupDate, setPickupDate] = useState("");
   const [pickupLocation, setPickupLocation] = useState("");
   const [realWeight, setRealWeight] = useState("");
+  const [shipmentOpen, setShipmentOpen] = useState(false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
 
   const q = useQuery({
     queryKey: ["marketplaceTransaction", transactionId, activeProfileId],
@@ -165,6 +177,56 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
       Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
   });
 
+  const shipmentMut = useMutation({
+    mutationFn: (payload: {
+      shippedAt: string;
+      method?: "handover" | "third_party" | "seller_delivery";
+      notes?: string;
+    }) =>
+      confirmMarketplaceShipment(
+        accessToken,
+        transactionId,
+        payload,
+        activeProfileId
+      ),
+    onSuccess: () => {
+      setShipmentOpen(false);
+      invalidate();
+      Alert.alert(
+        t("marketScreen.shipmentModal.successTitle"),
+        t("marketScreen.shipmentModal.successBody")
+      );
+    },
+    onError: (e: Error) =>
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
+  });
+
+  const receiptMut = useMutation({
+    mutationFn: (payload: {
+      receivedAt: string;
+      condition: "conform" | "minor_issue" | "major_issue";
+      receivedAnimalIds: string[];
+      realWeightKg?: number;
+      notes?: string;
+    }) =>
+      confirmMarketplaceReceipt(
+        accessToken,
+        transactionId,
+        payload,
+        activeProfileId
+      ),
+    onSuccess: () => {
+      setReceiptOpen(false);
+      invalidate();
+      Alert.alert(
+        t("marketScreen.receiptModal.successTitle"),
+        t("marketScreen.receiptModal.successBody")
+      );
+    },
+    onError: (e: Error) =>
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
+  });
+
   const weightMut = useMutation({
     mutationFn: () => {
       const kg = Number.parseFloat(realWeight.replace(",", "."));
@@ -225,6 +287,26 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
       Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
   });
 
+  const transferMut = useMutation({
+    mutationFn: (payload: { buyerFarmId: string; penId?: string }) =>
+      completeMarketplacePendingTransfer(
+        accessToken,
+        transactionId,
+        payload,
+        activeProfileId
+      ),
+    onSuccess: () => {
+      setTransferOpen(false);
+      invalidate();
+      Alert.alert(
+        t("marketScreen.transferModal.successTitle"),
+        t("marketScreen.transferModal.successBody")
+      );
+    },
+    onError: (e: Error) =>
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
+  });
+
   const tx = q.data;
   const draftKg = useMemo(() => {
     const kg = Number.parseFloat(realWeight.replace(",", "."));
@@ -277,15 +359,28 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
     });
   const stepLabels = [
     t("marketScreen.transaction.stepPayment"),
-    t("marketScreen.transaction.stepDelivery"),
-    t("marketScreen.transaction.stepWeight"),
+    t("marketScreen.transaction.stepShipment"),
+    t("marketScreen.transaction.stepReceipt"),
     t("marketScreen.transaction.stepClosing")
   ];
-  const canDeclareWeight = isBuyer && tx.status === "PICKUP_SCHEDULED";
-  const showPickupForm = tx.status === "PAYMENT_HELD";
+  const animalIds = tx.listingAnimalIds ?? [];
+  const canConfirmShipment =
+    isSeller &&
+    (tx.status === "PAYMENT_HELD" || tx.status === "PICKUP_SCHEDULED");
+  const canConfirmReceipt = isBuyer && tx.status === "SELLER_SHIPPED";
+  const canDeclareWeight = isBuyer && tx.status === "BUYER_RECEIVED";
+  const pendingTransfer = tx.pendingTransfer;
+  const canCompleteTransfer =
+    isBuyer &&
+    tx.status === "TRANSACTION_CLOSED" &&
+    pendingTransfer != null &&
+    pendingTransfer.completedAt == null &&
+    pendingTransfer.cancelledAt == null;
+  const showPickupForm =
+    tx.status === "PAYMENT_HELD" || tx.status === "PICKUP_SCHEDULED";
   const showScheduledPickup =
     Boolean(tx.pickupDate && tx.pickupLocation) &&
-    ["PICKUP_SCHEDULED", "WEIGHT_DECLARED", "WEIGHT_VALIDATED"].includes(
+    ["PICKUP_SCHEDULED", "SELLER_SHIPPED", "BUYER_RECEIVED", "WEIGHT_DECLARED", "WEIGHT_VALIDATED"].includes(
       tx.status
     );
 
@@ -401,10 +496,18 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         </View>
       ) : null}
 
-      {isSeller && tx.status === "PICKUP_SCHEDULED" ? (
+      {isSeller && tx.status === "SELLER_SHIPPED" ? (
         <View style={styles.section}>
           <Text style={styles.waiting}>
-            {t("marketScreen.transaction.sellerWaitWeight")}
+            {t("marketScreen.transaction.sellerWaitReceipt")}
+          </Text>
+        </View>
+      ) : null}
+
+      {isBuyer && tx.status === "SELLER_SHIPPED" ? (
+        <View style={styles.section}>
+          <Text style={styles.waiting}>
+            {t("marketScreen.transaction.buyerWaitReceipt")}
           </Text>
         </View>
       ) : null}
@@ -430,6 +533,32 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
           <Text style={styles.waiting}>
             {t("marketScreen.transaction.weightDisputed")}
           </Text>
+        </View>
+      ) : null}
+
+      {tx.status === "DELIVERY_DISPUTED" ? (
+        <View style={styles.section}>
+          <Text style={styles.waiting}>
+            {t("marketScreen.transaction.deliveryDisputed")}
+          </Text>
+        </View>
+      ) : null}
+
+      {canConfirmShipment ? (
+        <View style={styles.section}>
+          <PrimaryButton
+            label={t("marketScreen.shipmentModal.open")}
+            onPress={() => setShipmentOpen(true)}
+          />
+        </View>
+      ) : null}
+
+      {canConfirmReceipt ? (
+        <View style={styles.section}>
+          <PrimaryButton
+            label={t("marketScreen.receiptModal.open")}
+            onPress={() => setReceiptOpen(true)}
+          />
         </View>
       ) : null}
 
@@ -539,9 +668,12 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
       ) : null}
 
       {(isBuyer || isSeller) &&
-      ["PAYMENT_HELD", "PICKUP_SCHEDULED", "PAYMENT_PENDING"].includes(
-        tx.status
-      ) ? (
+      [
+        "PAYMENT_HELD",
+        "PICKUP_SCHEDULED",
+        "PAYMENT_PENDING",
+        "SELLER_SHIPPED"
+      ].includes(tx.status) ? (
         <View style={styles.section}>
           <SecondaryButton
             label={t("marketScreen.transaction.cancel")}
@@ -556,6 +688,14 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
           <Text style={styles.success}>
             {t("marketScreen.transaction.closed")}
           </Text>
+          {canCompleteTransfer ? (
+            <View style={{ marginTop: mobileSpacing.md }}>
+              <PrimaryButton
+                label={t("marketScreen.transferModal.open")}
+                onPress={() => setTransferOpen(true)}
+              />
+            </View>
+          ) : null}
           <TransactionReceiptCard
             transactionId={transactionId}
             accessToken={accessToken!}
@@ -564,6 +704,32 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
             receipt={tx.receipt}
           />
         </View>
+      ) : null}
+
+      <ConfirmShipmentModal
+        visible={shipmentOpen}
+        submitting={shipmentMut.isPending}
+        onClose={() => setShipmentOpen(false)}
+        onConfirm={(payload) => shipmentMut.mutate(payload)}
+      />
+      <ConfirmReceiptModal
+        visible={receiptOpen}
+        submitting={receiptMut.isPending}
+        animalIds={animalIds}
+        priceType={tx.priceType}
+        onClose={() => setReceiptOpen(false)}
+        onConfirm={(payload) => receiptMut.mutate(payload)}
+      />
+      {pendingTransfer ? (
+        <TransferToFarmModal
+          visible={transferOpen}
+          submitting={transferMut.isPending}
+          pendingTransfer={pendingTransfer}
+          accessToken={accessToken!}
+          activeProfileId={activeProfileId}
+          onClose={() => setTransferOpen(false)}
+          onConfirm={(payload) => transferMut.mutate(payload)}
+        />
       ) : null}
     </ScrollView>
   );

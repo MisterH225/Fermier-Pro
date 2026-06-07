@@ -259,10 +259,7 @@ export class OffersService {
       throw new BadRequestException("Offre non modifiable");
     }
 
-    await this.prisma.marketplaceOffer.update({
-      where: { id: offerId },
-      data: { status: OfferStatus.accepted }
-    });
+    await this.reserveListingForAcceptedOffer(listingId, offerId, offer.buyerUserId);
 
     const { transactionId } =
       await this.transactions.createFromAcceptedOffer(offerId);
@@ -287,6 +284,17 @@ export class OffersService {
       `Votre offre sur « ${listing.title} » a été acceptée. Procédez au paiement pour sécuriser l'achat.`,
       {
         type: "marketplace_offer_accepted",
+        listingId,
+        offerId,
+        transactionId
+      }
+    );
+    void this.push.sendToUser(
+      user.id,
+      "Proposition acceptée",
+      `Vous avez accepté une offre sur « ${listing.title} ». Confirmez l'envoi une fois les animaux remis.`,
+      {
+        type: "marketplace_offer_accepted_seller",
         listingId,
         offerId,
         transactionId
@@ -434,10 +442,7 @@ export class OffersService {
       throw new BadRequestException("Aucune contre-proposition a accepter");
     }
 
-    await this.prisma.marketplaceOffer.update({
-      where: { id: offerId },
-      data: { status: OfferStatus.accepted }
-    });
+    await this.reserveListingForAcceptedOffer(listingId, offerId, offer.buyerUserId);
 
     const { transactionId } =
       await this.transactions.createFromAcceptedOffer(offerId);
@@ -479,5 +484,33 @@ export class OffersService {
       where: { id: offerId },
       data: { status: OfferStatus.withdrawn }
     });
+  }
+
+  private async reserveListingForAcceptedOffer(
+    listingId: string,
+    offerId: string,
+    buyerUserId: string
+  ): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.marketplaceOffer.update({
+        where: { id: offerId },
+        data: { status: OfferStatus.accepted }
+      }),
+      this.prisma.marketplaceOffer.updateMany({
+        where: {
+          listingId,
+          id: { not: offerId },
+          status: { in: [OfferStatus.pending, OfferStatus.countered] }
+        },
+        data: { status: OfferStatus.rejected }
+      }),
+      this.prisma.marketplaceListing.update({
+        where: { id: listingId },
+        data: {
+          status: ListingStatus.reserved,
+          reservedForBuyerUserId: buyerUserId
+        }
+      })
+    ]);
   }
 }
