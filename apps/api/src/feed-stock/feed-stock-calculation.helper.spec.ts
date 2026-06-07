@@ -1,5 +1,6 @@
 import {
   daysBetweenUtc,
+  resolveCurrentStockKg,
   resolveFeedStockStatus,
   sumEntryKgFromMovements
 } from "./feed-stock-calculation.helper";
@@ -50,6 +51,52 @@ describe("feed-stock-calculation.helper", () => {
         new Date("2026-06-05T10:00:00.000Z")
       );
       expect(sum).toBe(200);
+    });
+  });
+
+  describe("resolveCurrentStockKg", () => {
+    const checkAt = new Date("2026-06-01T12:00:00.000Z");
+    const entryAfter = new Date("2026-06-05T12:00:00.000Z");
+
+    it("utilise le registre si une entrée est postérieure au dernier contrôle", () => {
+      expect(
+        resolveCurrentStockKg({
+          ledgerStockKg: 1000,
+          latestCheck: {
+            occurredAt: checkAt,
+            bagsCounted: 20,
+            stockAfterKg: 500
+          },
+          lastInOccurredAt: entryAfter,
+          weightPerBagKg: 25
+        })
+      ).toBe(1000);
+    });
+
+    it("utilise le contrôle physique si c'est le dernier événement", () => {
+      expect(
+        resolveCurrentStockKg({
+          ledgerStockKg: 999,
+          latestCheck: {
+            occurredAt: entryAfter,
+            bagsCounted: 20,
+            stockAfterKg: 500
+          },
+          lastInOccurredAt: checkAt,
+          weightPerBagKg: 25
+        })
+      ).toBe(500);
+    });
+
+    it("retourne le registre sans contrôle", () => {
+      expect(
+        resolveCurrentStockKg({
+          ledgerStockKg: 750,
+          latestCheck: null,
+          lastInOccurredAt: checkAt,
+          weightPerBagKg: 25
+        })
+      ).toBe(750);
     });
   });
 

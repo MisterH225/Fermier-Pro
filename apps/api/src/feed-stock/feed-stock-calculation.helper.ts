@@ -94,6 +94,43 @@ function clampPercent(n: number): number {
   return Math.min(100, Math.max(0, n));
 }
 
+export type ResolveCurrentStockKgInput = {
+  ledgerStockKg: number;
+  latestCheck: {
+    occurredAt: Date;
+    bagsCounted: number | null;
+    stockAfterKg: number | null;
+  } | null;
+  lastInOccurredAt: Date | null;
+  weightPerBagKg: number | null;
+};
+
+/**
+ * Stock courant : registre (`feedType.currentStockKg`) sauf si le dernier
+ * événement est un contrôle physique (pas d'entrée plus récente).
+ */
+export function resolveCurrentStockKg(input: ResolveCurrentStockKgInput): number {
+  const ledger = Number.isFinite(input.ledgerStockKg) ? input.ledgerStockKg : 0;
+  const check = input.latestCheck;
+  if (!check) {
+    return ledger;
+  }
+
+  const wp = input.weightPerBagKg;
+  const bags = check.bagsCounted;
+  let checkStockKg = check.stockAfterKg ?? 0;
+  if (bags != null && wp != null && wp > 0) {
+    checkStockKg = bags * wp;
+  }
+
+  const lastInAt = input.lastInOccurredAt;
+  if (!lastInAt || check.occurredAt >= lastInAt) {
+    return checkStockKg;
+  }
+
+  return ledger;
+}
+
 export type FeedStockStatusThresholds = {
   criticalDays: number;
   warningDays: number;
@@ -218,17 +255,18 @@ export async function computeFeedStockMetricsDebug(
   const wp = toNum(feedType.weightPerBagKg);
   const latestCheck = checksDesc[0] ?? null;
 
-  let currentStockKg: number;
-  if (latestCheck) {
-    const bags = toNum(latestCheck.bagsCounted);
-    if (bags != null && wp != null && wp > 0) {
-      currentStockKg = bags * wp;
-    } else {
-      currentStockKg = toNum(latestCheck.stockAfterKg) ?? 0;
-    }
-  } else {
-    currentStockKg = toNum(feedType.currentStockKg) ?? 0;
-  }
+  const currentStockKg = resolveCurrentStockKg({
+    ledgerStockKg: toNum(feedType.currentStockKg) ?? 0,
+    latestCheck: latestCheck
+      ? {
+          occurredAt: latestCheck.occurredAt,
+          bagsCounted: toNum(latestCheck.bagsCounted),
+          stockAfterKg: toNum(latestCheck.stockAfterKg)
+        }
+      : null,
+    lastInOccurredAt: lastIn?.occurredAt ?? null,
+    weightPerBagKg: wp
+  });
 
   const stockAtLastEntryKg = lastIn ? toNum(lastIn.stockAfterKg) : null;
 

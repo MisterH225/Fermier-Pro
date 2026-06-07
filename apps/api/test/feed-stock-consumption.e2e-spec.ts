@@ -100,6 +100,66 @@ describeOrSkip("Stock aliment — consommation avec entrées (e2e)", () => {
     expect(daily).toBeLessThanOrEqual(25);
   });
 
+  it("reflète une entrée postérieure au dernier contrôle dans le stock courant", async () => {
+    const typeRes = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/feed/types`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        name: "Aliment post-check e2e",
+        unit: "sac",
+        weightPerBagKg: 25,
+        color: "#aabbcc"
+      });
+    const postCheckTypeId = typeRes.body.id as string;
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/feed/movements`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        kind: "in",
+        feedTypeId: postCheckTypeId,
+        quantityInput: 40,
+        quantityUnit: "sac",
+        occurredAt: daysAgo(15)
+      });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/feed/movements`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        kind: "stock_check",
+        feedTypeId: postCheckTypeId,
+        bagsCounted: 32,
+        occurredAt: daysAgo(10)
+      });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/feed/movements`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        kind: "in",
+        feedTypeId: postCheckTypeId,
+        quantityInput: 4,
+        quantityUnit: "sac",
+        occurredAt: daysAgo(2)
+      });
+
+    const stats = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/feed/stats`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    const row = (stats.body.items as Array<Record<string, unknown>>).find(
+      (x) => x.feedTypeId === postCheckTypeId
+    );
+    // Contrôle à 800 kg + entrée 100 kg = 900 kg (pas 800 figé sur le contrôle)
+    expect(Number.parseFloat(String(row?.currentStockKg ?? ""))).toBeCloseTo(900, 1);
+    expect(row?.percentRemaining).toBeGreaterThanOrEqual(85);
+
+    await ctx.prisma.feedStockMovement.deleteMany({
+      where: { feedTypeId: postCheckTypeId }
+    });
+    await ctx.prisma.feedType.delete({ where: { id: postCheckTypeId } });
+  });
+
   it("inclut une réception entre deux contrôles dans la consommation", async () => {
     const typeRes = await request(app.getHttpServer())
       .post(`/api/v1/farms/${ctx.farmId}/feed/types`)
