@@ -47,6 +47,14 @@
         }
       ]
     },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ebb8a3e5-e17a-4a66-ae0a-f7624ab6c12a",
+      "enabled": true,
+      "fallbackToCacheTimeout": 0
+    },
     "plugins": [
       "expo-dev-client",
       "expo-web-browser",
