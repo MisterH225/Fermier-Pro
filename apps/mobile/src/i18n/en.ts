@@ -463,6 +463,21 @@ export const en = {
     withdrawCancel: "Cancel",
     withdrawConfirm: "Withdraw",
     withdrawAction: "Withdraw my offer",
+    proposals: {
+      tabReceived: "Received",
+      tabSent: "Sent",
+      emptyReceivedTitle: "No offers received",
+      emptyReceivedBody: "Interested buyers on your listings will appear here.",
+      emptySentTitle: "No offers sent",
+      emptySentBody: "Make an offer on a marketplace listing to get started.",
+      groupCount: "{{count}} offer(s)",
+      negotiate: "Negotiate",
+      anonymousBuyer: "Buyer",
+      receivedSection: "Offers received",
+      viewReceived: "View offers",
+      viewSent: "View my offers",
+      withdrawSuccess: "Offer withdrawn."
+    },
     createForm: {
       titleModal: "New listing",
       errorTitle: "Could not create",

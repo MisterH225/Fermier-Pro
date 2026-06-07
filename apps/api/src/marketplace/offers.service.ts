@@ -183,6 +183,61 @@ export class OffersService {
     });
   }
 
+  /** Propositions reçues sur les annonces du vendeur connecté (optionnellement filtrées par ferme). */
+  async listReceived(user: User, farmId?: string) {
+    return this.prisma.marketplaceOffer.findMany({
+      where: {
+        listing: {
+          sellerUserId: user.id,
+          ...(farmId ? { farmId } : {})
+        }
+      },
+      orderBy: { createdAt: "desc" },
+      include: {
+        buyer: { select: { id: true, fullName: true, email: true } },
+        listing: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            currency: true,
+            category: true,
+            totalWeightKg: true,
+            pricePerKg: true,
+            totalPrice: true,
+            farm: { select: { id: true, name: true } },
+            animal: { select: { id: true, publicId: true, tagCode: true } }
+          }
+        }
+      }
+    });
+  }
+
+  async counts(user: User, farmId?: string) {
+    const [receivedPending, sentPending] = await Promise.all([
+      this.prisma.marketplaceOffer.count({
+        where: {
+          status: OfferStatus.pending,
+          listing: {
+            sellerUserId: user.id,
+            ...(farmId ? { farmId } : {})
+          }
+        }
+      }),
+      this.prisma.marketplaceOffer.count({
+        where: {
+          buyerUserId: user.id,
+          status: { in: [OfferStatus.pending, OfferStatus.countered] }
+        }
+      })
+    ]);
+    return {
+      receivedPending,
+      sentPending,
+      total: receivedPending + sentPending
+    };
+  }
+
   async accept(user: User, listingId: string, offerId: string) {
     const listing = await this.prisma.marketplaceListing.findFirst({
       where: { id: listingId, sellerUserId: user.id }
