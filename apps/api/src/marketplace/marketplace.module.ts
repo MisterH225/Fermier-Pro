@@ -14,7 +14,7 @@ import {
   mobileMoneyGatewayGuardProvider,
   mobileMoneyGatewayProvider
 } from "./escrow";
-import { ReceiptController, ReceiptPdfService, ReceiptService } from "./receipts";
+import { ReceiptController, ReceiptPdfService, ReceiptService, ReceiptVerifyController } from "./receipts";
 import { FarmRatingsController } from "./farm-ratings.controller";
 import { FarmRatingsService } from "./farm-ratings.service";
 import { FarmMarketplaceLifecycleService } from "./farm-marketplace-lifecycle.service";
@@ -51,7 +51,8 @@ import { OffersService } from "./offers.service";
     MarketplaceDisputesController,
     CreditOffersController,
     MobileMoneyWebhookController,
-    ReceiptController
+    ReceiptController,
+    ReceiptVerifyController
   ],
   providers: [
     SuperAdminGuard,

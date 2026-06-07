@@ -53,7 +53,10 @@ export async function buildFeedStockStatsForFarm(
 
   const rows = await Promise.all(
     types.map(async (t, index) => {
-      const metrics = await computeFeedStockMetrics(prisma, farmId, t.id);
+      const metrics = await computeFeedStockMetrics(prisma, farmId, t.id, {
+        criticalDays: _thresholds.criticalDays,
+        warningDays: _thresholds.warningDays
+      });
 
       let estimatedDepletionDate: string | null = null;
       if (metrics.estimatedDaysRemaining != null && metrics.estimatedDaysRemaining > 0) {

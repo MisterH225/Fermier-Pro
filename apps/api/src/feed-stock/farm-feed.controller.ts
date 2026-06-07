@@ -146,9 +146,7 @@ export class FarmFeedController {
     @Param("farmId") farmId: string,
     @Param("movementId") movementId: string
   ) {
-    void user;
-    void farmId;
-    return this.reconciliation.buildOfferForMovement(movementId);
+    return this.farmFeed.reconciliationCandidates(user, farmId, movementId);
   }
 
   @Post("movements/:movementId/reconcile")
@@ -204,11 +202,7 @@ export class FarmFeedController {
     @Param("farmId") farmId: string,
     @Param("movementId") movementId: string
   ) {
-    void user;
-    void farmId;
-    return this.reconciliation.dismissTemporarily(movementId).then(() => ({
-      ok: true
-    }));
+    return this.farmFeed.dismissReconciliation(user, farmId, movementId);
   }
 
   @Post("movements/scan-reconciliation")

@@ -119,15 +119,16 @@ export function StockModal({
       return null;
     }
     const consumed = prevBagsRaw - counted;
-    const last = selected.lastCheckDate
-      ? new Date(selected.lastCheckDate)
-      : null;
+    const refDates = [selected.lastCheckDate, selected.lastEntryDate]
+      .filter(Boolean)
+      .map((d) => new Date(d as string));
+    const ref =
+      refDates.length > 0
+        ? refDates.reduce((latest, d) => (d > latest ? d : latest))
+        : null;
     const days =
-      last != null && !Number.isNaN(last.getTime())
-        ? Math.max(
-            1,
-            Math.round((Date.now() - last.getTime()) / 86_400_000)
-          )
+      ref != null && !Number.isNaN(ref.getTime())
+        ? Math.max(1, Math.round((Date.now() - ref.getTime()) / 86_400_000))
         : 1;
     const dailyKg = (consumed * wp) / days;
     const stockKg = counted * wp;

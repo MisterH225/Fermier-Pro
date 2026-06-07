@@ -86,10 +86,23 @@ export class FarmFeedService {
     await this.farmAccess.requireFarmScopes(user.id, farmId, [
       FARM_SCOPE.livestockRead
     ]);
-    return this.prisma.feedType.findMany({
+    const types = await this.prisma.feedType.findMany({
       where: { farmId },
       orderBy: { name: "asc" }
     });
+    const lastEntries = await this.prisma.feedStockMovement.findMany({
+      where: { farmId, kind: FeedMovementKind.in },
+      orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+      distinct: ["feedTypeId"],
+      select: { feedTypeId: true, occurredAt: true }
+    });
+    const lastEntryByType = new Map(
+      lastEntries.map((m) => [m.feedTypeId, m.occurredAt.toISOString()])
+    );
+    return types.map((t) => ({
+      ...t,
+      lastEntryDate: lastEntryByType.get(t.id) ?? null
+    }));
   }
 
   async createType(user: User, farmId: string, dto: CreateFeedTypeDto) {
@@ -211,6 +224,41 @@ export class FarmFeedService {
     ]);
     const items = await this.statsForFarm(farmId);
     return { farmId, items: Array.isArray(items) ? items : [] };
+  }
+
+  async reconciliationCandidates(
+    user: User,
+    farmId: string,
+    movementId: string
+  ): Promise<ReconciliationOfferDto> {
+    await this.farmAccess.requireFarmScopes(user.id, farmId, [
+      FARM_SCOPE.livestockRead
+    ]);
+    const movement = await this.prisma.feedStockMovement.findFirst({
+      where: { id: movementId, farmId, kind: FeedMovementKind.in }
+    });
+    if (!movement) {
+      throw new NotFoundException("Entrée de stock introuvable");
+    }
+    return this.reconciliation.buildOfferForMovement(movementId);
+  }
+
+  async dismissReconciliation(
+    user: User,
+    farmId: string,
+    movementId: string
+  ): Promise<{ ok: true }> {
+    await this.farmAccess.requireFarmScopes(user.id, farmId, [
+      FARM_SCOPE.livestockWrite
+    ]);
+    const movement = await this.prisma.feedStockMovement.findFirst({
+      where: { id: movementId, farmId, kind: FeedMovementKind.in }
+    });
+    if (!movement) {
+      throw new NotFoundException("Entrée de stock introuvable");
+    }
+    await this.reconciliation.dismissTemporarily(movementId);
+    return { ok: true };
   }
 
   async listMovements(
@@ -485,20 +533,35 @@ export class FarmFeedService {
         orderBy: { occurredAt: "desc" },
         select: { stockAfterKg: true, occurredAt: true, bagsCounted: true }
       });
+      const wpDec = feedType.weightPerBagKg!;
       const prevBags =
-        prevCheck?.bagsCounted ??
         feedType.bagCountCurrent ??
-        feedType.currentStockKg.div(wp);
+        prevCheck?.bagsCounted ??
+        feedType.currentStockKg.div(wpDec);
       const counted = new Prisma.Decimal(dto.bagsCounted);
       const consumed = prevBags.minus(counted);
-      const newStock = counted.times(wp);
-      const prevStockKg = prevCheck?.stockAfterKg ?? feedType.currentStockKg;
+      const newStock = counted.times(wpDec);
+      const prevStockKg = feedType.currentStockKg;
       const consumedKg = prevStockKg.minus(newStock);
       let daysSince = 1;
       if (prevCheck) {
         daysSince = daysBetweenUtc(prevCheck.occurredAt, occurredAt);
-      } else if (feedType.lastCheckDate) {
-        daysSince = daysBetweenUtc(feedType.lastCheckDate, occurredAt);
+      } else {
+        const lastIn = await this.prisma.feedStockMovement.findFirst({
+          where: {
+            farmId,
+            feedTypeId: feedType.id,
+            kind: FeedMovementKind.in,
+            occurredAt: { lte: occurredAt }
+          },
+          orderBy: { occurredAt: "desc" },
+          select: { occurredAt: true }
+        });
+        if (lastIn) {
+          daysSince = daysBetweenUtc(lastIn.occurredAt, occurredAt);
+        } else if (feedType.lastCheckDate) {
+          daysSince = daysBetweenUtc(feedType.lastCheckDate, occurredAt);
+        }
       }
       const consumedNum = consumedKg.toNumber();
       const daily =

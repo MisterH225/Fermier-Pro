@@ -24,5 +24,7 @@ jobs:
         run: npm run lint:api
       - name: API build
         run: npm run build:api
+      - name: API unit tests
+        run: npm run test:unit
       - name: Mobile typecheck
         run: npm run typecheck:mobile

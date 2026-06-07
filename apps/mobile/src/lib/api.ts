@@ -649,6 +649,7 @@ export type FeedTypeDto = {
   weightPerBagKg: string | null;
   bagCountCurrent: string | null;
   lastCheckDate: string | null;
+  lastEntryDate?: string | null;
   currentStockKg: string;
   createdAt: string;
   updatedAt: string;

@@ -54,33 +54,76 @@ export function daysBetweenUtc(a: Date, b: Date): number {
   return Math.max(1, d);
 }
 
+/** Somme en mémoire (évite N agrégats SQL par intervalle). */
+export function sumEntryKgFromMovements(
+  entries: Array<{ occurredAt: Date; quantityKg: number | null }>,
+  afterExclusive: Date,
+  beforeInclusive: Date
+): number {
+  let sum = 0;
+  for (const e of entries) {
+    if (e.occurredAt > afterExclusive && e.occurredAt <= beforeInclusive) {
+      sum += e.quantityKg ?? 0;
+    }
+  }
+  return sum;
+}
+
+/** Somme des entrées `in` strictement après `afterExclusive`, jusqu'à `beforeInclusive`. */
+export async function sumEntryKgBetween(
+  prisma: PrismaClient,
+  farmId: string,
+  feedTypeId: string,
+  afterExclusive: Date,
+  beforeInclusive: Date
+): Promise<number> {
+  const result = await prisma.feedStockMovement.aggregate({
+    where: {
+      farmId,
+      feedTypeId,
+      kind: FeedMovementKind.in,
+      occurredAt: { gt: afterExclusive, lte: beforeInclusive }
+    },
+    _sum: { quantityKg: true }
+  });
+  return toNum(result._sum.quantityKg) ?? 0;
+}
+
 function clampPercent(n: number): number {
   if (!Number.isFinite(n)) return 0;
   return Math.min(100, Math.max(0, n));
 }
 
+export type FeedStockStatusThresholds = {
+  criticalDays: number;
+  warningDays: number;
+};
+
 /** Statut visuel : jauge colorée selon jours restants ou % restant. */
 export function resolveFeedStockStatus(
   estimatedDaysRemaining: number | null,
   percentRemaining: number | null,
-  hasSufficientData: boolean
+  hasSufficientData: boolean,
+  thresholds?: FeedStockStatusThresholds
 ): FeedStockComputedStatus {
   if (!hasSufficientData) {
     return "no_data";
   }
+  const criticalDays = thresholds?.criticalDays ?? 15;
+  const warningDays = thresholds?.warningDays ?? 30;
   const daysCrit =
-    estimatedDaysRemaining != null && estimatedDaysRemaining < 15;
+    estimatedDaysRemaining != null && estimatedDaysRemaining < criticalDays;
   const daysWarn =
     estimatedDaysRemaining != null &&
-    estimatedDaysRemaining >= 15 &&
-    estimatedDaysRemaining <= 30;
+    estimatedDaysRemaining >= criticalDays &&
+    estimatedDaysRemaining <= warningDays;
   const pctCrit = percentRemaining != null && percentRemaining < 20;
   const pctWarn =
     percentRemaining != null &&
     percentRemaining >= 20 &&
     percentRemaining <= 50;
   const daysOk =
-    estimatedDaysRemaining != null && estimatedDaysRemaining > 30;
+    estimatedDaysRemaining != null && estimatedDaysRemaining > warningDays;
   const pctOk = percentRemaining != null && percentRemaining > 50;
 
   if (daysCrit || pctCrit) {
@@ -104,9 +147,15 @@ export function resolveFeedStockStatus(
 export async function computeFeedStockMetrics(
   prisma: PrismaClient,
   farmId: string,
-  feedTypeId: string
+  feedTypeId: string,
+  thresholds?: FeedStockStatusThresholds
 ): Promise<FeedStockCalculationResult> {
-  const debug = await computeFeedStockMetricsDebug(prisma, farmId, feedTypeId);
+  const debug = await computeFeedStockMetricsDebug(
+    prisma,
+    farmId,
+    feedTypeId,
+    thresholds
+  );
   const {
     checks: _c,
     intervals: _i,
@@ -119,7 +168,8 @@ export async function computeFeedStockMetrics(
 export async function computeFeedStockMetricsDebug(
   prisma: PrismaClient,
   farmId: string,
-  feedTypeId: string
+  feedTypeId: string,
+  thresholds?: FeedStockStatusThresholds
 ): Promise<FeedStockCalculationDebug> {
   const warnings: string[] = [];
 
@@ -152,6 +202,18 @@ export async function computeFeedStockMetricsDebug(
       quantityKg: true
     }
   });
+
+  const entryMovements = await prisma.feedStockMovement.findMany({
+    where: { farmId, feedTypeId, kind: FeedMovementKind.in },
+    select: { id: true, occurredAt: true, quantityKg: true, stockAfterKg: true },
+    orderBy: [{ occurredAt: "asc" }, { id: "asc" }]
+  });
+  const entryRows = entryMovements.map((e) => ({
+    id: e.id,
+    occurredAt: e.occurredAt,
+    quantityKg: toNum(e.quantityKg),
+    stockAfterKg: toNum(e.stockAfterKg)
+  }));
 
   const wp = toNum(feedType.weightPerBagKg);
   const latestCheck = checksDesc[0] ?? null;
@@ -187,23 +249,18 @@ export async function computeFeedStockMetricsDebug(
     const newer = checksChron[i]!;
     const stockOlder = toNum(older.stockAfterKg) ?? 0;
     const stockNewer = toNum(newer.stockAfterKg) ?? 0;
-    const consumedKg = stockOlder - stockNewer;
+    const entriesKg = sumEntryKgFromMovements(
+      entryRows,
+      older.occurredAt,
+      newer.occurredAt
+    );
+    const consumedKg = stockOlder + entriesKg - stockNewer;
     const days = daysBetweenUtc(older.occurredAt, newer.occurredAt);
 
-    if (consumedKg < 0) {
-      const entryBetween = await prisma.feedStockMovement.count({
-        where: {
-          farmId,
-          feedTypeId,
-          kind: FeedMovementKind.in,
-          occurredAt: { gt: older.occurredAt, lt: newer.occurredAt }
-        }
-      });
-      if (entryBetween === 0) {
-        warnings.push(
-          "Stock en hausse entre deux contrôles sans entrée enregistrée."
-        );
-      }
+    if (consumedKg < 0 && entriesKg <= 0) {
+      warnings.push(
+        "Stock en hausse entre deux contrôles sans entrée enregistrée."
+      );
     }
 
     const dailyKg = consumedKg > 0 ? consumedKg / days : 0;
@@ -214,6 +271,34 @@ export async function computeFeedStockMetricsDebug(
       consumedKg,
       dailyKg
     });
+  }
+
+  // Entrée(s) → premier contrôle : permet une conso dès le 1er contrôle.
+  if (checksChron.length === 1) {
+    const check = checksChron[0]!;
+    const entriesBeforeCheck = entryRows.filter(
+      (e) => e.occurredAt <= check.occurredAt
+    );
+    const firstIn = entriesBeforeCheck[0];
+    if (firstIn) {
+      const stockBeforeFirstEntry =
+        (firstIn.stockAfterKg ?? 0) - (firstIn.quantityKg ?? 0);
+      const totalInKg = entriesBeforeCheck.reduce(
+        (s, e) => s + (e.quantityKg ?? 0),
+        0
+      );
+      const stockCheck = toNum(check.stockAfterKg) ?? 0;
+      const consumedKg = stockBeforeFirstEntry + totalInKg - stockCheck;
+      const days = daysBetweenUtc(firstIn.occurredAt, check.occurredAt);
+      const dailyKg = consumedKg > 0 ? consumedKg / days : 0;
+      intervals.push({
+        fromCheckId: firstIn.id,
+        toCheckId: check.id,
+        days,
+        consumedKg,
+        dailyKg
+      });
+    }
   }
 
   const recentIntervals = intervals.slice(-3);
@@ -229,7 +314,7 @@ export async function computeFeedStockMetricsDebug(
     }
   }
 
-  const hasSufficientData = checksDesc.length >= 2;
+  const hasSufficientData = intervals.some((x) => x.dailyKg > 0);
 
   if (avgDailyConsumptionKg != null && avgDailyConsumptionKg < 0) {
     warnings.push("avg_daily_consumption_kg négatif — données incohérentes.");
@@ -266,7 +351,8 @@ export async function computeFeedStockMetricsDebug(
   const status = resolveFeedStockStatus(
     estimatedDaysRemaining,
     percentRemaining,
-    hasSufficientData
+    hasSufficientData,
+    thresholds
   );
 
   return {

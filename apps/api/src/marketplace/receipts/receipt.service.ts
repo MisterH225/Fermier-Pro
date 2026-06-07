@@ -89,8 +89,6 @@ export class ReceiptService {
       const pdfBuffer = await this.pdf.renderReceiptPdf(pdfInput);
       const storagePath = `${receiptNumber}.pdf`;
 
-      await this.uploadWithRetry(storagePath, pdfBuffer);
-
       await this.prisma.$transaction(async (db) => {
         await db.marketplaceTransactionReceipt.create({
           data: {
@@ -109,6 +107,21 @@ export class ReceiptService {
           data: { receiptGenerationStatus: ReceiptGenerationStatus.generated }
         });
       });
+
+      try {
+        await this.uploadWithRetry(storagePath, pdfBuffer);
+      } catch (uploadErr) {
+        await this.prisma.$transaction(async (db) => {
+          await db.marketplaceTransactionReceipt.delete({
+            where: { transactionId: tx.id }
+          });
+          await db.marketplaceTransaction.update({
+            where: { id: tx.id },
+            data: { receiptGenerationStatus: ReceiptGenerationStatus.failed }
+          });
+        });
+        throw uploadErr;
+      }
 
       void this.push.sendToUser(
         tx.sellerUserId,
@@ -200,6 +213,36 @@ export class ReceiptService {
       receiptNumber: receipt.receiptNumber,
       generatedAt: receipt.generatedAt.toISOString(),
       downloadUrl
+    };
+  }
+
+  /** Vérification publique du QR code (sans PII). */
+  async verifyReceiptPublic(receiptNumber: string) {
+    const normalized = receiptNumber.trim().toUpperCase();
+    const receipt = await this.prisma.marketplaceTransactionReceipt.findUnique({
+      where: { receiptNumber: normalized },
+      include: {
+        transaction: {
+          select: {
+            status: true,
+            closedAt: true,
+            listing: { select: { category: true } }
+          }
+        }
+      }
+    });
+    if (
+      !receipt ||
+      receipt.transaction.status !== MarketplaceTransactionStatus.TRANSACTION_CLOSED
+    ) {
+      throw new NotFoundException("Reçu introuvable ou transaction non clôturée");
+    }
+    return {
+      valid: true,
+      receiptNumber: receipt.receiptNumber,
+      generatedAt: receipt.generatedAt.toISOString(),
+      closedAt: receipt.transaction.closedAt?.toISOString() ?? null,
+      listingCategory: receipt.transaction.listing.category
     };
   }
 

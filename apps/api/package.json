@@ -8,6 +8,7 @@
     "build": "nest build",
     "lint": "eslint \"src/**/*.ts\" --max-warnings=0",
     "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
+    "test:unit": "jest --config ./test/jest-unit.json",
     "prisma:generate": "node scripts/prisma-run.cjs generate",
     "prisma:migrate:dev": "node scripts/prisma-run.cjs migrate dev",
     "prisma:migrate:deploy": "node scripts/prisma-run.cjs migrate deploy",

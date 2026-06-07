@@ -82,6 +82,9 @@ export class EscrowService {
       transactionId,
       originalProviderRef
     });
+    if (!res.success) {
+      throw new Error("Échec remboursement acheteur via mobile money");
+    }
     await this.logMovement(
       transactionId,
       MarketplaceFundMovementKind.REFUND_BUYER,

@@ -32,7 +32,8 @@
     "typecheck:mobile": "npm run typecheck --workspace @fermier/mobile",
     "typecheck:admin": "npm run typecheck --workspace @fermier/admin-platform",
     "test:e2e": "npm run test:e2e --workspace @fermier/api",
-    "ci:quality": "npm exec -w @fermier/api -- prisma generate && npm run lint:api && npm run build:api && npm run typecheck:mobile"
+    "test:unit": "npm run test:unit --workspace @fermier/api",
+    "ci:quality": "npm exec -w @fermier/api -- prisma generate && npm run lint:api && npm run build:api && npm run test:unit && npm run typecheck:mobile"
   },
   "devDependencies": {
     "@nestjs/common": "11.1.19",
