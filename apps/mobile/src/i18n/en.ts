@@ -358,14 +358,20 @@ export const en = {
         PAYMENT_FAILED: "Payment failed"
       },
       scheduledPickup: "Pickup: {{date}} — {{location}}",
+      schedulePickupHint:
+        "Schedule delivery or pickup date and location (this may be days or weeks away). Actual weight is entered only on the day the animal is handed over.",
       weightAtDeliveryHint:
-        "At delivery (even without a scheduled pickup), confirm the actual weight to calculate the final amount.",
+        "On delivery or pickup day, confirm the measured actual weight to calculate the final amount.",
       projectedFinalCost: "Estimated final cost: {{amount}}",
       finalCost: "Final amount: {{amount}}",
       sellerWaitPayment:
         "Waiting for the buyer to pay. You will be notified once funds are secured.",
-      sellerWaitDelivery:
-        "Payment received. At delivery the buyer will confirm actual weight; you can then validate and close the sale.",
+      sellerWaitSchedule:
+        "Payment received. Schedule delivery with the buyer — actual weight is confirmed on pickup day.",
+      sellerWaitWeight:
+        "Delivery scheduled. The buyer will confirm actual weight on pickup day; you can then validate and close the sale.",
+      buyerWaitSchedule:
+        "Payment secured. Schedule delivery below — actual weight is only required once the animal is collected.",
       finalizing:
         "Weight validated — releasing funds and updating livestock records.",
       weightDisputed:

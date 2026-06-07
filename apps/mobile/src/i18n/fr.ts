@@ -358,14 +358,20 @@ export const fr = {
         PAYMENT_FAILED: "Paiement échoué"
       },
       scheduledPickup: "Rendez-vous : {{date}} — {{location}}",
+      schedulePickupHint:
+        "Planifiez la date et le lieu de livraison ou de récupération (cela peut être dans plusieurs jours ou semaines). Le poids réel sera renseigné uniquement le jour de la remise de l'animal.",
       weightAtDeliveryHint:
-        "À la livraison (même sans RDV planifié), confirmez le poids réel pour calculer le montant final.",
+        "Le jour de la livraison ou de la récupération, confirmez le poids réel mesuré pour calculer le montant final.",
       projectedFinalCost: "Coût final estimé : {{amount}}",
       finalCost: "Montant final : {{amount}}",
       sellerWaitPayment:
         "En attente du paiement de l'acheteur. Vous serez notifié dès que les fonds sont sécurisés.",
-      sellerWaitDelivery:
-        "Paiement reçu. À la livraison, l'acheteur confirmera le poids réel ; vous pourrez alors valider et conclure la vente.",
+      sellerWaitSchedule:
+        "Paiement reçu. Planifiez la livraison avec l'acheteur — le poids réel sera confirmé le jour de la récupération.",
+      sellerWaitWeight:
+        "Livraison planifiée. L'acheteur confirmera le poids réel le jour de la récupération ; vous pourrez alors valider et conclure la vente.",
+      buyerWaitSchedule:
+        "Paiement sécurisé. Planifiez la livraison ci-dessous — le poids réel ne sera demandé qu'une fois l'animal récupéré.",
       finalizing:
         "Poids validé — libération des fonds et mise à jour du cheptel en cours.",
       weightDisputed:

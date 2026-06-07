@@ -281,9 +281,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
     t("marketScreen.transaction.stepWeight"),
     t("marketScreen.transaction.stepClosing")
   ];
-  const canDeclareWeight =
-    isBuyer &&
-    (tx.status === "PAYMENT_HELD" || tx.status === "PICKUP_SCHEDULED");
+  const canDeclareWeight = isBuyer && tx.status === "PICKUP_SCHEDULED";
   const showPickupForm = tx.status === "PAYMENT_HELD";
   const showScheduledPickup =
     Boolean(tx.pickupDate && tx.pickupLocation) &&
@@ -395,11 +393,26 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         </View>
       ) : null}
 
-      {isSeller &&
-      (tx.status === "PAYMENT_HELD" || tx.status === "PICKUP_SCHEDULED") ? (
+      {isSeller && tx.status === "PAYMENT_HELD" ? (
         <View style={styles.section}>
           <Text style={styles.waiting}>
-            {t("marketScreen.transaction.sellerWaitDelivery")}
+            {t("marketScreen.transaction.sellerWaitSchedule")}
+          </Text>
+        </View>
+      ) : null}
+
+      {isSeller && tx.status === "PICKUP_SCHEDULED" ? (
+        <View style={styles.section}>
+          <Text style={styles.waiting}>
+            {t("marketScreen.transaction.sellerWaitWeight")}
+          </Text>
+        </View>
+      ) : null}
+
+      {isBuyer && tx.status === "PAYMENT_HELD" ? (
+        <View style={styles.section}>
+          <Text style={styles.waiting}>
+            {t("marketScreen.transaction.buyerWaitSchedule")}
           </Text>
         </View>
       ) : null}
@@ -438,7 +451,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
             {t("marketScreen.transaction.pickupSection")}
           </Text>
           <Text style={styles.hint}>
-            {t("marketScreen.transaction.weightAtDeliveryHint")}
+            {t("marketScreen.transaction.schedulePickupHint")}
           </Text>
           <AppDatePicker
             label={t("marketScreen.transaction.pickupDate")}
@@ -470,11 +483,9 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
           <Text style={styles.sectionTitle}>
             {t("marketScreen.transaction.weightSection")}
           </Text>
-          {tx.status === "PAYMENT_HELD" ? (
-            <Text style={styles.hint}>
-              {t("marketScreen.transaction.weightAtDeliveryHint")}
-            </Text>
-          ) : null}
+          <Text style={styles.hint}>
+            {t("marketScreen.transaction.weightAtDeliveryHint")}
+          </Text>
           <Text style={styles.label}>
             {t("marketScreen.transaction.realWeight")}
           </Text>

@@ -328,11 +328,10 @@ export class MarketplaceTransactionService {
     photoUrl?: string
   ) {
     const tx = await this.requireBuyer(transactionId, user.id);
-    if (
-      tx.status !== MarketplaceTransactionStatus.PICKUP_SCHEDULED &&
-      tx.status !== MarketplaceTransactionStatus.PAYMENT_HELD
-    ) {
-      throw new BadRequestException("Déclaration de poids impossible");
+    if (tx.status !== MarketplaceTransactionStatus.PICKUP_SCHEDULED) {
+      throw new BadRequestException(
+        "Le poids réel ne peut être déclaré qu'après planification de la livraison"
+      );
     }
     if (!Number.isFinite(realWeightKg) || realWeightKg <= 0) {
       throw new BadRequestException("Poids invalide");
