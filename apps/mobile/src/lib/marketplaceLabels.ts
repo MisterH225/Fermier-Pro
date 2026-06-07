@@ -22,6 +22,27 @@ export function listingStatusLabel(status: string): string {
   }
 }
 
+export function projectMarketplaceFinalAmount(params: {
+  priceType: string;
+  agreedPricePerKg: number | null;
+  agreedFlatPrice: number | null;
+  realWeightKg: number | null;
+  draftWeightKg?: number | null;
+}): number | null {
+  if (params.priceType === "flat") {
+    return params.agreedFlatPrice;
+  }
+  const perKg = params.agreedPricePerKg;
+  if (perKg == null || perKg <= 0) {
+    return null;
+  }
+  const weight = params.realWeightKg ?? params.draftWeightKg ?? null;
+  if (weight == null || weight <= 0) {
+    return null;
+  }
+  return perKg * weight;
+}
+
 export function offerStatusLabel(status: string): string {
   switch (status) {
     case "pending":

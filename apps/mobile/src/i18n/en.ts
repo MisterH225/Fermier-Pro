@@ -272,6 +272,8 @@ export const en = {
     badgeExpired: "Expired",
     badgeActiveOffers: "{{count}} active offer(s)",
     activeOfferCta: "View your active offer",
+    activeTransactionCtaBuyer: "Track purchase in progress",
+    activeTransactionCtaSeller: "Track sale in progress",
     detailTitle: "Listing",
     listingStatus: "Status:",
     emptyListingsHint: "Publish a listing from My listings or livestock.",
@@ -297,6 +299,8 @@ export const en = {
     acceptSuccessTitle: "Offer accepted",
     acceptSuccessBody:
       "Proceed to payment to secure your purchase.",
+    acceptSuccessBodySeller:
+      "The buyer can now pay. Track delivery and closing here.",
     transaction: {
       agreedPrice: "Agreed price:",
       agreedPricePerKg: "Agreed price/kg:",
@@ -335,7 +339,37 @@ export const en = {
       receiptRetry: "Retry",
       receiptErrorTitle: "Download failed",
       receiptErrorBody: "Could not fetch the receipt.",
-      receiptNotReady: "Receipt not available yet."
+      receiptNotReady: "Receipt not available yet.",
+      statusLabel: "Step",
+      stepPayment: "Payment",
+      stepDelivery: "Delivery",
+      stepWeight: "Actual weight",
+      stepClosing: "Closing",
+      status: {
+        PAYMENT_PENDING: "Awaiting payment",
+        PAYMENT_HELD: "Payment secured — schedule delivery",
+        PICKUP_SCHEDULED: "Delivery scheduled",
+        WEIGHT_DECLARED: "Weight declared — seller validation",
+        WEIGHT_DISPUTED: "Weight dispute — arbitration",
+        WEIGHT_VALIDATED: "Finalizing",
+        TRANSACTION_CLOSED: "Sale completed",
+        CANCELLED_BY_BUYER: "Cancelled by buyer",
+        CANCELLED_BY_SELLER: "Cancelled by seller",
+        PAYMENT_FAILED: "Payment failed"
+      },
+      scheduledPickup: "Pickup: {{date}} — {{location}}",
+      weightAtDeliveryHint:
+        "At delivery (even without a scheduled pickup), confirm the actual weight to calculate the final amount.",
+      projectedFinalCost: "Estimated final cost: {{amount}}",
+      finalCost: "Final amount: {{amount}}",
+      sellerWaitPayment:
+        "Waiting for the buyer to pay. You will be notified once funds are secured.",
+      sellerWaitDelivery:
+        "Payment received. At delivery the buyer will confirm actual weight; you can then validate and close the sale.",
+      finalizing:
+        "Weight validated — releasing funds and updating livestock records.",
+      weightDisputed:
+        "Weight is disputed. Arbitration is in progress — you will be notified."
     },
     categories: {
       all: "All",

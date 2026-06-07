@@ -955,7 +955,11 @@ export class ListingsService {
       const fresh = await tx.marketplaceListing.findUnique({
         where: { id: listingId }
       });
-      if (!fresh || fresh.status !== ListingStatus.reserved) {
+      if (
+        !fresh ||
+        (fresh.status !== ListingStatus.reserved &&
+          fresh.status !== ListingStatus.published)
+      ) {
         throw new BadRequestException("Annonce deja cloturee");
       }
 

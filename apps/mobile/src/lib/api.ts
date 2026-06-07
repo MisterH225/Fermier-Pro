@@ -4958,14 +4958,19 @@ export function fetchMarketplaceOfferCounts(
   );
 }
 
-/** Vendeur : accepter une offre (annonce → réservée, autres offres refusées). */
+/** Réponse acceptation offre (vendeur ou acheteur contre-proposition). */
+export type MarketplaceAcceptOfferResponse = {
+  transactionId: string;
+};
+
+/** Vendeur : accepter une offre (crée la transaction escrow). */
 export function acceptMarketplaceOffer(
   accessToken: string,
   listingId: string,
   offerId: string,
   activeProfileId?: string | null
-): Promise<unknown> {
-  return apiPostJson<unknown>(
+): Promise<MarketplaceAcceptOfferResponse> {
+  return apiPostJson<MarketplaceAcceptOfferResponse>(
     `/marketplace/listings/${listingId}/offers/${offerId}/accept`,
     {},
     accessToken,
@@ -5009,10 +5014,6 @@ export function counterMarketplaceOffer(
 }
 
 /** Acheteur : accepte une contre-proposition. */
-export type MarketplaceAcceptOfferResponse = {
-  transactionId: string;
-};
-
 export function acceptMarketplaceOfferCounter(
   accessToken: string,
   listingId: string,
