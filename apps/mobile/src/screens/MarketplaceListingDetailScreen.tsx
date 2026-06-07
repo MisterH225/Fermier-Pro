@@ -16,10 +16,11 @@ import {
   View
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { AppDatePicker } from "../components/common/AppDatePicker";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
 import { ListingModal } from "../components/marketplace/ListingModal";
 import { isFlatPriceListing } from "../components/marketplace/listingPricing";
+import { CreditProposalModal } from "../components/marketplace/CreditProposalModal";
+import { CreditScoreBadge } from "../components/marketplace/CreditScoreBadge";
 import { ProposalModal } from "../components/marketplace/ProposalModal";
 import {
   formatMarketMoney,
@@ -27,7 +28,6 @@ import {
 } from "../components/marketplace/MarketplaceListingCard";
 import { ListingImage } from "../components/marketplace/ListingImage";
 import { listingPhotoUrlsArray } from "../lib/resolveListingImage";
-import { SaleConfirmModal } from "../components/marketplace/SaleConfirmModal";
 import { useModal } from "../components/modals/useModal";
 import { PrimaryButton } from "../components/ui/PrimaryButton";
 import { SecondaryButton } from "../components/ui/SecondaryButton";
@@ -45,17 +45,16 @@ import { useBottomChromePad } from "../hooks/useBottomInset";
 import { formatAnimalDisplayLabel } from "../lib/animalDisplay";
 import {
   cancelMarketplaceListing,
-  completeMarketplaceHandover,
   ensureDirectChatRoom,
   fetchMarketplaceListing,
   fetchMarketplaceTransactions,
-  patchMarketplacePickup,
+  fetchMyCreditScore,
   postMarketplaceListingConsult,
   postMarketplaceListingView,
   postMarketplaceOffer,
+  postMarketplaceCreditOffer,
   publishMarketplaceListing,
-  renewMarketplaceListing,
-  type MarketplaceOfferBrief
+  renewMarketplaceListing
 } from "../lib/api";
 import {
   listingStatusLabel,
@@ -103,13 +102,8 @@ export function MarketplaceListingDetailScreen({
     open("success", { message, title, autoDismissMs: 2200 });
   };
 
-  const [pickupAtStr, setPickupAtStr] = useState("");
-  const [pickupNoteStr, setPickupNoteStr] = useState("");
   const [proposalOpen, setProposalOpen] = useState(false);
-  const [saleOpen, setSaleOpen] = useState(false);
-  const [activeOffer, setActiveOffer] = useState<MarketplaceOfferBrief | null>(
-    null
-  );
+  const [creditOpen, setCreditOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [publishDurationDays, setPublishDurationDays] =
     useState<ListingDurationDays>(14);
@@ -158,13 +152,6 @@ export function MarketplaceListingDetailScreen({
     authMe?.user.id
   ]);
 
-  useEffect(() => {
-    const L = q.data;
-    if (!L) return;
-    setPickupAtStr(L.pickupAt ?? "");
-    setPickupNoteStr(L.pickupNote ?? "");
-  }, [q.data?.pickupAt, q.data?.pickupNote, q.data?.id]);
-
   const contactSellerMutation = useMutation({
     mutationFn: (sellerUserId: string) =>
       ensureDirectChatRoom(
@@ -174,6 +161,7 @@ export function MarketplaceListingDetailScreen({
         listingId
       ),
     onSuccess: (room) => {
+      void qc.invalidateQueries({ queryKey: ["chatRooms", activeProfileId] });
       navigation.navigate("ChatRoom", {
         roomId: room.id,
         headline: room.title?.trim() || t("marketScreen.detail.chatTitle"),
@@ -182,6 +170,39 @@ export function MarketplaceListingDetailScreen({
     },
     onError: (e: Error) =>
       Alert.alert(t("marketScreen.detail.contactErrorTitle"), getUserFacingError(e, t))
+  });
+
+  const creditScoreQ = useQuery({
+    queryKey: ["myCreditScore", activeProfileId],
+    queryFn: () => fetchMyCreditScore(accessToken!, activeProfileId),
+    enabled: Boolean(accessToken) && clientFeatures.marketplace
+  });
+
+  const creditProposalMutation = useMutation({
+    mutationFn: (input: {
+      offeredPrice: number;
+      advancePercentage: number;
+      balanceDueDays: number;
+      message?: string;
+    }) =>
+      postMarketplaceCreditOffer(
+        accessToken,
+        listingId,
+        input,
+        activeProfileId
+      ),
+    onSuccess: () => {
+      setCreditOpen(false);
+      showSuccess(t("marketScreen.creditModal.success"));
+      void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
+      void qc.invalidateQueries({ queryKey: ["marketplaceMyOffers"] });
+    },
+    onError: (e: Error) => {
+      Alert.alert(
+        t("marketScreen.creditModal.errorTitle"),
+        marketplaceActionErrorMessage(e, t)
+      );
+    }
   });
 
   const proposalMutation = useMutation({
@@ -253,52 +274,6 @@ export function MarketplaceListingDetailScreen({
       )
   });
 
-  const pickupMutation = useMutation({
-    mutationFn: () => {
-      const pickupAt = pickupAtStr.trim() || null;
-      return patchMarketplacePickup(
-        accessToken,
-        listingId,
-        {
-          pickupAt,
-          pickupNote: pickupNoteStr.trim() || null
-        },
-        activeProfileId
-      );
-    },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
-      Alert.alert("Enregistré", "Rendez-vous de retrait mis à jour.");
-    },
-    onError: (e: Error) =>
-      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
-  });
-
-  const handoverMutation = useMutation({
-    mutationFn: (payload: {
-      offerId: string;
-      soldWeightKg: number;
-      totalPrice: number;
-      soldAt?: string;
-      notes?: string;
-    }) =>
-      completeMarketplaceHandover(
-        accessToken,
-        listingId,
-        payload,
-        activeProfileId
-      ),
-    onSuccess: () => {
-      setSaleOpen(false);
-      showSuccess(t("marketScreen.saleModal.success"));
-      void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
-      void qc.invalidateQueries({ queryKey: ["marketplaceListings"] });
-      void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
-    },
-    onError: (e: Error) =>
-      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
-  });
-
   const renewMut = useMutation({
     mutationFn: () =>
       renewMarketplaceListing(accessToken, listingId, 14, activeProfileId),
@@ -365,12 +340,13 @@ export function MarketplaceListingDetailScreen({
   const canSubmitOffer =
     Boolean(myId) && !isSeller && L.status === "published";
 
-  const isAcceptedBuyer =
-    Boolean(myId && L.myOffers?.some((o) => o.status === "accepted"));
   const activeTxStatuses = [
     "PAYMENT_PENDING",
     "PAYMENT_HELD",
     "PICKUP_SCHEDULED",
+    "SELLER_SHIPPED",
+    "BUYER_RECEIVED",
+    "DELIVERY_DISPUTED",
     "WEIGHT_DECLARED",
     "WEIGHT_DISPUTED",
     "WEIGHT_VALIDATED"
@@ -378,13 +354,18 @@ export function MarketplaceListingDetailScreen({
   const myListingTx = txQ.data?.find(
     (tx) =>
       tx.listingId === listingId &&
-      tx.buyerUserId === myId &&
+      (tx.buyerUserId === myId || tx.sellerUserId === myId) &&
       activeTxStatuses.includes(tx.status)
   );
   const canSubmitOfferWithEscrow =
     canSubmitOffer && !myListingTx;
-  const canEditPickup =
-    L.status === "reserved" && (isSeller || isAcceptedBuyer);
+  const isButcherListing = L.category === "butcher";
+  const creditBlocked = creditScoreQ.data?.blocked === true;
+  const canSubmitCreditOffer =
+    canSubmitOfferWithEscrow && isButcherListing && !creditBlocked;
+  const showCreditScoreWarning =
+    creditScoreQ.data?.score === "attention" ||
+    creditScoreQ.data?.score === "risque";
 
   const categoryKey = L.category ?? "unknown";
   const screenW = Dimensions.get("window").width;
@@ -450,7 +431,11 @@ export function MarketplaceListingDetailScreen({
         {myListingTx ? (
           <View style={{ marginTop: mobileSpacing.sm }}>
             <PrimaryButton
-              label={t("marketScreen.activeOfferCta")}
+              label={
+                myListingTx.sellerUserId === myId
+                  ? t("marketScreen.activeTransactionCtaSeller")
+                  : t("marketScreen.activeTransactionCtaBuyer")
+              }
               onPress={() =>
                 navigation.navigate("MarketplaceTransaction", {
                   transactionId: myListingTx.id
@@ -521,11 +506,6 @@ export function MarketplaceListingDetailScreen({
           {t("marketScreen.cancelledBanner")}
         </Text>
       ) : null}
-      {L.status === "reserved" ? (
-        <Text style={styles.reservedBanner}>
-          {t("marketScreen.reservedBanner")}
-        </Text>
-      ) : null}
       {L.animal ? (
         <DetailCard>
           <DetailSectionLabel>{t("marketScreen.detail.animalSection")}</DetailSectionLabel>
@@ -556,39 +536,6 @@ export function MarketplaceListingDetailScreen({
           <DetailSectionLabel>{t("marketScreen.detail.description")}</DetailSectionLabel>
           <Text style={styles.desc}>{L.description}</Text>
         </DetailCard>
-      ) : null}
-
-      {canEditPickup ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Rendez-vous de retrait</Text>
-          <Text style={styles.hintSmall}>
-            Vendeur et acheteur peuvent ajuster le créneau après accord.
-          </Text>
-          <AppDatePicker
-            label="Date et heure de retrait"
-            mode="datetime"
-            isoValue={pickupAtStr}
-            onIsoChange={setPickupAtStr}
-            minDate={new Date()}
-          />
-          <Text style={styles.labelSmall}>Note (lieu, créneau…)</Text>
-          <TextInput
-            style={[styles.pickupInput, styles.pickupNote]}
-            value={pickupNoteStr}
-            onChangeText={setPickupNoteStr}
-            multiline
-            placeholder="Ex. enlèvement à la porcherie, badge …"
-          />
-          <TouchableOpacity
-            style={styles.pickupSave}
-            disabled={pickupMutation.isPending}
-            onPress={() => pickupMutation.mutate()}
-          >
-            <Text style={styles.pickupSaveTxt}>
-              {pickupMutation.isPending ? "Enregistrement…" : "Enregistrer le RDV"}
-            </Text>
-          </TouchableOpacity>
-        </View>
       ) : null}
 
       {isSeller && (L.status === "draft" || L.status === "published") ? (
@@ -730,20 +677,6 @@ export function MarketplaceListingDetailScreen({
         </DetailCard>
       ) : null}
 
-      {isSeller && L.status === "reserved" ? (
-        <DetailCard>
-          <PrimaryButton
-            label={t("marketScreen.saleModal.open")}
-            onPress={() => {
-              const accepted = L.offers?.find((o) => o.status === "accepted");
-              if (accepted) {
-                setActiveOffer(accepted);
-                setSaleOpen(true);
-              }
-            }}
-          />
-        </DetailCard>
-      ) : null}
     </ScrollView>
 
     {showBuyerFooter ? (
@@ -754,10 +687,32 @@ export function MarketplaceListingDetailScreen({
         ]}
       >
         {canSubmitOfferWithEscrow ? (
-          <PrimaryButton
+          <SecondaryButton
             label={t("marketScreen.detail.makeProposal")}
             onPress={() => setProposalOpen(true)}
           />
+        ) : null}
+        {isButcherListing && canSubmitOffer ? (
+          <View style={{ marginTop: mobileSpacing.sm }}>
+            <PrimaryButton
+              label={t("marketScreen.creditModal.open")}
+              onPress={() => setCreditOpen(true)}
+              disabled={!canSubmitCreditOffer}
+            />
+          </View>
+        ) : null}
+        {isButcherListing && creditBlocked ? (
+          <Text style={styles.creditBlocked}>
+            {t("marketScreen.creditModal.blocked")}
+          </Text>
+        ) : null}
+        {isButcherListing ? (
+          <Pressable onPress={() => navigation.navigate("CreditDashboard")}>
+            <CreditScoreBadge
+              score={creditScoreQ.data}
+              prefix={t("marketScreen.creditModal.yourScore")}
+            />
+          </Pressable>
         ) : null}
         {L.status === "published" && L.sellerUserId ? (
           <SecondaryButton
@@ -778,13 +733,13 @@ export function MarketplaceListingDetailScreen({
       onClose={() => setProposalOpen(false)}
       onSubmit={(payload) => proposalMutation.mutate(payload)}
     />
-    <SaleConfirmModal
-      visible={saleOpen}
+    <CreditProposalModal
+      visible={creditOpen}
       listing={L}
-      offer={activeOffer}
-      submitting={handoverMutation.isPending}
-      onClose={() => setSaleOpen(false)}
-      onConfirm={(payload) => handoverMutation.mutate(payload)}
+      submitting={creditProposalMutation.isPending}
+      buyerScoreWarning={showCreditScoreWarning}
+      onClose={() => setCreditOpen(false)}
+      onSubmit={(payload) => creditProposalMutation.mutate(payload)}
     />
     {isSeller ? (
       <ListingModal
@@ -1244,5 +1199,10 @@ const styles = StyleSheet.create({
   durationChipTxOn: {
     color: mobileColors.accent,
     fontWeight: "700"
+  },
+  creditBlocked: {
+    ...mobileTypography.meta,
+    color: mobileColors.error,
+    marginTop: mobileSpacing.xs
   }
 });

@@ -272,6 +272,8 @@ export const fr = {
     badgeExpired: "Expiré",
     badgeActiveOffers: "{{count}} offre(s) en cours",
     activeOfferCta: "Voir votre offre active",
+    activeTransactionCtaBuyer: "Suivre l'achat en cours",
+    activeTransactionCtaSeller: "Suivre la vente en cours",
     detailTitle: "Annonce",
     listingStatus: "Statut :",
     emptyListingsHint: "Publie une annonce depuis Mes annonces ou le cheptel.",
@@ -297,6 +299,8 @@ export const fr = {
     acceptSuccessTitle: "Offre acceptée",
     acceptSuccessBody:
       "Procédez au paiement pour sécuriser votre achat.",
+    acceptSuccessBodySeller:
+      "L'acheteur peut maintenant payer. Suivez la livraison et la clôture ici.",
     transaction: {
       agreedPrice: "Prix convenu :",
       agreedPricePerKg: "Prix/kg convenu :",
@@ -335,7 +339,188 @@ export const fr = {
       receiptRetry: "Réessayer",
       receiptErrorTitle: "Téléchargement impossible",
       receiptErrorBody: "Impossible de récupérer le reçu.",
-      receiptNotReady: "Reçu non disponible pour le moment."
+      receiptNotReady: "Reçu non disponible pour le moment.",
+      statusLabel: "Étape",
+      stepPayment: "Paiement",
+      stepDelivery: "Livraison",
+      stepShipment: "Envoi",
+      stepReceipt: "Réception",
+      stepWeight: "Poids réel",
+      stepClosing: "Clôture",
+      status: {
+        PAYMENT_PENDING: "En attente de paiement",
+        PAYMENT_HELD: "Paiement sécurisé — en attente d'envoi",
+        PICKUP_SCHEDULED: "Livraison planifiée",
+        SELLER_SHIPPED: "Envoi confirmé — en attente de réception",
+        BUYER_RECEIVED: "Réception confirmée — poids à valider",
+        DELIVERY_DISPUTED: "Litige livraison",
+        WEIGHT_DECLARED: "Poids déclaré — validation vendeur",
+        WEIGHT_DISPUTED: "Litige poids — arbitrage",
+        WEIGHT_VALIDATED: "Finalisation en cours",
+        TRANSACTION_CLOSED: "Vente conclue",
+        CANCELLED_BY_BUYER: "Annulée par l'acheteur",
+        CANCELLED_BY_SELLER: "Annulée par le vendeur",
+        PAYMENT_FAILED: "Paiement échoué"
+      },
+      scheduledPickup: "Rendez-vous : {{date}} — {{location}}",
+      schedulePickupHint:
+        "Planifiez la date et le lieu de livraison ou de récupération (cela peut être dans plusieurs jours ou semaines). Le poids réel sera renseigné uniquement le jour de la remise de l'animal.",
+      weightAtDeliveryHint:
+        "Le jour de la livraison ou de la récupération, confirmez le poids réel mesuré pour calculer le montant final.",
+      projectedFinalCost: "Coût final estimé : {{amount}}",
+      finalCost: "Montant final : {{amount}}",
+      sellerWaitPayment:
+        "En attente du paiement de l'acheteur. Vous serez notifié dès que les fonds sont sécurisés.",
+      sellerWaitSchedule:
+        "Paiement reçu. Planifiez la livraison avec l'acheteur — le poids réel sera confirmé le jour de la récupération.",
+      sellerWaitWeight:
+        "Livraison planifiée. L'acheteur confirmera le poids réel le jour de la récupération ; vous pourrez alors valider et conclure la vente.",
+      buyerWaitSchedule:
+        "Paiement sécurisé. Le vendeur confirmera l'envoi ; vous confirmerez la réception à la livraison.",
+      sellerWaitReceipt:
+        "Envoi confirmé. En attente de la confirmation de réception par l'acheteur.",
+      buyerWaitReceipt:
+        "Le vendeur a confirmé l'envoi. Confirmez la réception une fois les animaux livrés.",
+      deliveryDisputed:
+        "Un litige livraison est ouvert. Les fonds restent sécurisés en attendant la résolution.",
+      finalizing:
+        "Poids validé — libération des fonds et mise à jour du cheptel en cours.",
+      weightDisputed:
+        "Le poids est contesté. Un arbitrage est en cours — vous serez informé de la suite."
+    },
+    shipmentModal: {
+      open: "Confirmer l'envoi",
+      title: "Confirmer l'envoi",
+      info: "Indiquez que les animaux ont été remis à l'acheteur ou sont en cours de livraison.",
+      date: "Date d'envoi",
+      method: "Mode de livraison",
+      methods: {
+        handover: "Remise en main propre",
+        third_party: "Transport tiers",
+        seller_delivery: "Livraison vendeur"
+      },
+      notes: "Notes pour l'acheteur",
+      notesPh: "Instructions, contact transporteur…",
+      confirm: "Confirmer l'envoi",
+      successTitle: "Envoi confirmé",
+      successBody: "L'acheteur a été notifié."
+    },
+    creditModal: {
+      open: "💳 Offre à crédit",
+      title: "💳 Offre à crédit",
+      subtitle: "Proposez un accord de paiement en deux fois",
+      totalPrice: "Prix total proposé",
+      advancePct: "Pourcentage d'avance (%)",
+      advanceHelper: "Minimum 20 % — maximum 50 %",
+      balanceHelper: "Délai max 7 jours après livraison — rappels uniquement après échéance",
+      advancePreview: "Avance : {{amount}}",
+      balancePreview: "Solde : {{amount}}",
+      balanceDays: "Délai de paiement du solde",
+      dayOption: "{{count}} jour",
+      message: "Message au vendeur",
+      messagePh: "Présentez-vous, expliquez votre activité de revendeur…",
+      scoreWarning:
+        "Votre score crédit actuel est fragile. Le vendeur sera informé de votre historique.",
+      yourScore: "Votre score crédit :",
+      submit: "Envoyer l'offre à crédit",
+      success: "Offre à crédit envoyée au vendeur.",
+      errorTitle: "Offre à crédit impossible",
+      blocked:
+        "Votre score crédit ne vous permet pas de faire des offres à crédit pour le moment.",
+      badge: "À CRÉDIT"
+    },
+    credit: {
+      accept: "✅ Accepter",
+      counter: "🔄 Contre-proposer",
+      counterTitle: "🔄 Contre-proposition crédit",
+      counterSubmit: "Envoyer la contre-proposition",
+      counterSuccess: "Contre-proposition crédit envoyée.",
+      acceptCounter: "Accepter la contre-proposition",
+      agreedSuccess:
+        "Accord crédit conclu — sécurisez l'avance sur la plateforme pour lancer la livraison.",
+      escrow: {
+        transactionMissing: "Transaction escrow introuvable — réessayez dans un instant.",
+        advanceHeld: "L'avance reste bloquée sur la plateforme jusqu'à la livraison.",
+        balanceRecalculated:
+          "Le solde est recalculé au poids réel après validation par le vendeur."
+      },
+      buyerScore: "Score crédit acheteur :",
+      termsAdvance: "Avance : {{pct}} % = {{amount}}",
+      termsBalance: "Solde : {{amount}} dans {{days}} jours",
+      paymentMode: "Mode de paiement utilisé",
+      paymentRef: "Référence paiement",
+      paymentRefPh: "Numéro de transaction, reçu…",
+      advance: {
+        title: "Confirmer le paiement de l'avance",
+        info: "En confirmant, vous déclarez avoir effectué le virement ou la remise de l'avance au vendeur.",
+        due: "Avance due",
+        balance: "Solde restant",
+        delay: "Solde sous {{count}} jours après livraison",
+        confirm: "✅ J'ai payé l'avance",
+        declare: "💰 J'ai payé l'avance",
+        payEscrow: "💳 Payer l'avance (escrow)",
+        declaredSuccess: "Avance déclarée — le vendeur va confirmer la réception.",
+        confirmReceived: "✅ Confirmer la réception de l'avance",
+        notReceived: "❌ Je n'ai pas reçu l'avance",
+        confirmedSuccess: "Avance confirmée — la livraison peut commencer."
+      },
+      balance: {
+        title: "Confirmer le paiement du solde",
+        amount: "Montant payé",
+        confirm: "✅ J'ai payé le solde",
+        declare: "💰 J'ai payé le solde",
+        payEscrow: "💳 Payer le solde (escrow)",
+        remaining: "Solde restant",
+        dueOn: "Dû le {{date}}",
+        inDays: "dans {{count}} jour(s)",
+        statusPending: "En attente de paiement",
+        statusDeclared: "Paiement déclaré",
+        statusPaid: "Soldé",
+        statusArbitration: "Arbitrage en cours",
+        declaredSuccess: "Solde déclaré — le vendeur va confirmer la réception.",
+        confirmReceived: "✅ Confirmer la réception du solde",
+        notReceived: "❌ Je n'ai pas reçu le solde",
+        confirmedSuccess: "Transaction crédit soldée."
+      },
+      dashboard: {
+        scoreTitle: "Mon score crédit",
+        pendingTitle: "Soldes en attente",
+        empty: "Aucun solde crédit en cours.",
+        transactions: "{{count}} transaction(s) crédit",
+        onTime: "{{count}} paiement(s) à temps",
+        late: "{{count}} retard(s)"
+      }
+    },
+    transferModal: {
+      open: "Ajouter à mon cheptel",
+      title: "Importer dans ma ferme",
+      info:
+        "{{count}} animal(aux) prêt(s) à être ajouté(s) à votre cheptel après cette vente.",
+      farm: "Ferme destinataire",
+      penOptional: "Loge (optionnel)",
+      noPen: "Aucune loge — les animaux seront créés sans placement.",
+      confirm: "Importer les animaux",
+      successTitle: "Cheptel mis à jour",
+      successBody: "Vos animaux ont été ajoutés à la ferme sélectionnée."
+    },
+    receiptModal: {
+      open: "Confirmer la réception",
+      title: "Confirmer la réception",
+      info: "Vérifiez que vous avez bien reçu les animaux dans l'état prévu.",
+      animals: "Animaux reçus",
+      date: "Date de réception",
+      condition: "État des animaux",
+      conditions: {
+        conform: "Conforme",
+        minor_issue: "Problème mineur",
+        major_issue: "Problème majeur"
+      },
+      comment: "Commentaire",
+      commentPh: "Décrivez le problème…",
+      confirm: "Confirmer la réception",
+      reportProblem: "Signaler un problème",
+      successTitle: "Réception enregistrée",
+      successBody: "La transaction avance vers la clôture."
     },
     categories: {
       all: "Tout",
@@ -1006,16 +1191,17 @@ export const fr = {
     previewDaily: "Consommation / jour : {{n}} kg/j",
     previewDepletion: "Fin de stock estimée : {{date}}",
     gaugePercent: "{{value}} %",
-    gaugePercentRemaining: "{{value}} % restants",
-    gaugeInsufficientData: "données insuffisantes",
-    gaugeDaysEstimate: "{{count}} j restants",
+    gaugePercentRemaining: "{{value}} % restant",
+    gaugeDaily: "{{kg}} kg/j",
+    gaugeNoDaily: "conso. —",
+    gaugeDaysLeft: "{{count}} j restants",
+    gaugeDaysEstimate: "~{{count}} jours restants",
+    gaugeUnknownDays: "estimation —",
+    gaugeInsufficientData:
+      "Effectuez au moins 2 contrôles de stock pour voir les estimations",
+    gaugeCenterDays: "{{count}} j",
     lastCheckAgo: "Dernier contrôle : il y a {{count}} j",
     unknownFeedType: "Aliment",
-    gaugeDaily: "{{kg}} kg/j",
-    gaugeNoDaily: "conso. inconnue",
-    gaugeDaysLeft: "{{count}} j restants",
-    gaugeUnknownDays: "durée inconnue",
-    gaugeCenterDays: "{{count}} j",
     gaugeDashboardSubtitle: "{{kg}} kg · {{count}} j restants",
     gaugeDashboardNoDays: "{{kg}} kg · durée inconnue",
     smartAlertsHintTitle: "Recommandations",
@@ -2838,6 +3024,17 @@ export const fr = {
       sectionCriteria: "Critères de prix",
       sectionZone: "Zone de recherche",
       freq: { immediate: "Immédiat", daily: "Quotidien" }
+    }
+  },
+  chat: {
+    inputPlaceholder: "Votre message…",
+    phoneWarning: {
+      realtime:
+        "Les numéros de téléphone sont automatiquement masqués pour votre sécurité.",
+      masked: "Numéro masqué automatiquement pour votre protection.",
+      imageBlocked:
+        "Cette image semble contenir un numéro de téléphone et ne peut pas être envoyée.",
+      analyzing: "Vérification sécurité…"
     }
   },
   techOnboarding: {

@@ -24,7 +24,7 @@ import { vetColors, vetRadius } from "../../theme/vetTheme";
 
 const AVATAR = 108;
 
-type VetProfileModalProps = {
+type VetAccountModalProps = {
   visible: boolean;
   onClose: () => void;
 };
@@ -46,7 +46,7 @@ function InfoBlock({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function VetProfileModal({ visible, onClose }: VetProfileModalProps) {
+export function VetAccountModal({ visible, onClose }: VetAccountModalProps) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId, authMe } = useSession();
 

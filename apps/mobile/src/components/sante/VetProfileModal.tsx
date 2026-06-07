@@ -1,5 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { getUserFacingError } from "../../lib/userFacingError";
 import {
@@ -48,6 +47,7 @@ export function VetProfileModal({
   onInvite
 }: Props) {
   const { t } = useTranslation();
+  const qc = useQueryClient();
   const isCollaboration = variant === "collaboration";
 
   const q = useQuery({
@@ -65,6 +65,7 @@ export function VetProfileModal({
       if (!profile?.userId) {
         return;
       }
+      void qc.invalidateQueries({ queryKey: ["chatRooms", activeProfileId] });
       onClose();
       onOpenChat(room.id, profile.fullName ?? "Vétérinaire", profile.userId);
     },

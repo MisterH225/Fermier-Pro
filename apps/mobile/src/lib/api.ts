@@ -3,167 +3,20 @@
  * Postgres côté serveur). Convention : tout nouvel appel ajouté ici doit avoir un cas
  * dans `apps/api/test/mobile-api-contract.e2e-spec.ts` (GET/POST/PATCH selon le cas).
  */
-import { resolveApiBaseUrl } from "../env";
+export * from "./api/http";
+export * from "./api/auth";
 
-function apiBaseUrl(): string {
-  return resolveApiBaseUrl();
-}
-
-/**
- * Extrait un message lisible d'une réponse API en erreur.
- * NestJS renvoie `{ "message": string | string[], "error": string, "statusCode": number }`.
- * On retourne uniquement la chaîne `message` (jointe si tableau), pour éviter l'affichage
- * du JSON brut dans les `Alert.alert(title, e.message)` côté app.
- */
-function formatApiErrorBody(text: string, status: number, statusText: string): string {
-  const trimmed = text.trim();
-  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-    try {
-      const body = JSON.parse(trimmed) as {
-        message?: string | string[];
-        error?: string;
-      };
-      const m = body?.message;
-      if (Array.isArray(m) && m.length > 0) {
-        return m.join(" · ");
-      }
-      if (typeof m === "string" && m.trim().length > 0) {
-        return m;
-      }
-      if (typeof body?.error === "string" && body.error.trim().length > 0) {
-        return body.error;
-      }
-    } catch {
-      // pas du JSON exploitable — retombe sur le texte brut
-    }
-  }
-  return trimmed || `${status} ${statusText}`.trim();
-}
-
-export function apiAuthHeaders(
-  accessToken: string,
-  activeProfileId?: string | null
-): Record<string, string> {
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${accessToken}`
-  };
-  if (activeProfileId) {
-    headers["X-Profile-Id"] = activeProfileId;
-  }
-  return headers;
-}
-
-/** GET JSON sous /api/v1/... avec Bearer (+ profil actif optionnel). */
-export async function apiGetJson<T>(
-  path: string,
-  accessToken: string,
-  activeProfileId?: string | null
-): Promise<T> {
-  const p = path.startsWith("/") ? path : `/${path}`;
-  const url = `${apiBaseUrl()}/api/v1${p}`;
-  const res = await fetch(url, {
-    headers: apiAuthHeaders(accessToken, activeProfileId)
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
-  }
-  return JSON.parse(text) as T;
-}
-
-/** POST JSON /api/v1/... */
-export async function apiPostJson<T>(
-  path: string,
-  body: unknown,
-  accessToken: string,
-  activeProfileId?: string | null
-): Promise<T> {
-  const p = path.startsWith("/") ? path : `/${path}`;
-  const url = `${apiBaseUrl()}/api/v1${p}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      ...apiAuthHeaders(accessToken, activeProfileId),
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(body)
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
-  }
-  return JSON.parse(text) as T;
-}
-
-/** PUT JSON /api/v1/... */
-export async function apiPutJson<T>(
-  path: string,
-  body: unknown,
-  accessToken: string,
-  activeProfileId?: string | null
-): Promise<T> {
-  const p = path.startsWith("/") ? path : `/${path}`;
-  const url = `${apiBaseUrl()}/api/v1${p}`;
-  const res = await fetch(url, {
-    method: "PUT",
-    headers: {
-      ...apiAuthHeaders(accessToken, activeProfileId),
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(body)
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
-  }
-  return JSON.parse(text) as T;
-}
-
-/** PATCH JSON /api/v1/... */
-export async function apiPatchJson<T>(
-  path: string,
-  body: unknown,
-  accessToken: string,
-  activeProfileId?: string | null
-): Promise<T> {
-  const p = path.startsWith("/") ? path : `/${path}`;
-  const url = `${apiBaseUrl()}/api/v1${p}`;
-  const res = await fetch(url, {
-    method: "PATCH",
-    headers: {
-      ...apiAuthHeaders(accessToken, activeProfileId),
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(body)
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
-  }
-  return JSON.parse(text) as T;
-}
-
-/** DELETE /api/v1/... — corps JSON optionnel (ex. `{ ok: true }`). */
-export async function apiDeleteJson<T>(
-  path: string,
-  accessToken: string,
-  activeProfileId?: string | null
-): Promise<T> {
-  const p = path.startsWith("/") ? path : `/${path}`;
-  const url = `${apiBaseUrl()}/api/v1${p}`;
-  const res = await fetch(url, {
-    method: "DELETE",
-    headers: apiAuthHeaders(accessToken, activeProfileId)
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
-  }
-  if (!text.trim()) {
-    return {} as T;
-  }
-  return JSON.parse(text) as T;
-}
+import {
+  apiAuthHeaders,
+  apiBaseUrl,
+  apiDeleteJson,
+  apiGetJson,
+  apiPatchJson,
+  apiPostJson,
+  apiPutJson,
+  formatApiErrorBody
+} from "./api/http";
+import type { FarmStatus, VetVerificationStatus } from "./api/auth";
 
 /** GET public (sans Bearer) — feature flags pour menus / modules. */
 export type PlatformModuleId =
@@ -261,8 +114,15 @@ export type ChatMessageDto = {
   roomId: string;
   senderUserId: string;
   body: string;
+  wasModified?: boolean;
+  modificationType?: "phone_masked" | "image_blocked" | null;
   createdAt: string;
   sender: ChatSenderPreview;
+};
+
+export type ChatImageAnalysisResult = {
+  allowed: boolean;
+  reason?: string;
 };
 
 export function fetchChatRooms(
@@ -1331,6 +1191,20 @@ export function postChatMessage(
   return apiPostJson<ChatMessageDto>(
     `/chat/rooms/${roomId}/messages`,
     { body },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function analyzeChatImage(
+  accessToken: string,
+  imageBase64: string,
+  mimeType: string,
+  activeProfileId?: string | null
+): Promise<ChatImageAnalysisResult> {
+  return apiPostJson<ChatImageAnalysisResult>(
+    "/chat/analyze-image",
+    { imageBase64, mimeType },
     accessToken,
     activeProfileId
   );
@@ -4855,13 +4729,236 @@ export function postMarketplaceOffer(
   );
 }
 
-export type MarketplaceOfferMineRow = {
+export type BuyerCreditScoreDto = {
+  score: string;
+  emoji: string;
+  label: string;
+  color: string;
+  blocked: boolean;
+  creditTransactionsCount: number;
+  creditOnTimeCount: number;
+  creditLateCount: number;
+  creditDefaultCount: number;
+};
+
+export type MarketplaceCreditOfferDto = {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  currency: string;
+  offerType: string;
+  status: string;
+  offeredPrice: number;
+  advancePercentage: number | null;
+  advanceAmount: number | null;
+  balanceAmount: number | null;
+  balanceDueDays: number | null;
+  balanceDueAt: string | null;
+  message: string | null;
+  buyerCreditScore: BuyerCreditScoreDto | null;
+  transactionId?: string | null;
+};
+
+export function fetchMyCreditScore(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<BuyerCreditScoreDto> {
+  return apiGetJson<BuyerCreditScoreDto>(
+    "/marketplace/buyers/me/credit-score",
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function postMarketplaceCreditOffer(
+  accessToken: string,
+  listingId: string,
+  payload: {
+    offeredPrice: number;
+    advancePercentage: number;
+    balanceDueDays: number;
+    message?: string;
+    buyerFarmId?: string;
+  },
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPostJson<MarketplaceCreditOfferDto>(
+    `/marketplace/listings/${listingId}/offers/credit`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function agreeMarketplaceCreditOffer(
+  accessToken: string,
+  listingId: string,
+  offerId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/listings/${listingId}/offers/${offerId}/agree-credit`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function counterMarketplaceCreditOffer(
+  accessToken: string,
+  listingId: string,
+  offerId: string,
+  payload: {
+    offeredPrice: number;
+    advancePercentage: number;
+    balanceDueDays: number;
+    message?: string;
+  },
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/listings/${listingId}/offers/${offerId}/counter-credit`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function initiateMarketplaceCreditBalancePayment(
+  accessToken: string,
+  offerId: string,
+  activeProfileId?: string | null
+): Promise<{
+  providerRef: string;
+  amount: number;
+  currency: string;
+  transactionId: string;
+}> {
+  return apiPostJson(
+    `/marketplace/offers/${offerId}/balance-payment/initiate`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmMarketplaceCreditBalancePayment(
+  accessToken: string,
+  offerId: string,
+  providerRef?: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/offers/${offerId}/balance-payment/confirm`,
+    providerRef ? { providerRef } : {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function declareMarketplaceAdvancePaid(
+  accessToken: string,
+  offerId: string,
+  payload: { paymentMode: string; paymentRef?: string },
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/offers/${offerId}/confirm-advance-paid`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmMarketplaceAdvanceReceived(
+  accessToken: string,
+  offerId: string,
+  received: boolean,
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/offers/${offerId}/confirm-advance-received`,
+    { received },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function declareMarketplaceBalancePaid(
+  accessToken: string,
+  offerId: string,
+  payload: { amount: number; paymentMode: string; paymentRef?: string },
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/offers/${offerId}/confirm-balance-paid`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmMarketplaceBalanceReceived(
+  accessToken: string,
+  offerId: string,
+  received: boolean,
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/offers/${offerId}/confirm-balance-received`,
+    { received },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type CreditPendingRow = {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  currency: string;
+  balanceAmount: number;
+  balanceDueAt: string | null;
+  status: string;
+  buyerName: string | null;
+};
+
+export function fetchCreditPendingOffers(
+  accessToken: string,
+  farmId?: string | null,
+  activeProfileId?: string | null
+): Promise<CreditPendingRow[]> {
+  const qs = farmId?.trim() ? `?farmId=${encodeURIComponent(farmId.trim())}` : "";
+  return apiGetJson<CreditPendingRow[]>(
+    `/marketplace/offers/credit-pending${qs}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type MarketplaceOfferCreditFields = {
+  offerType?: string | null;
+  advancePercentage?: number | null;
+  advanceAmount?: string | number | null;
+  balanceAmount?: string | number | null;
+  balanceDueDays?: number | null;
+  balanceDueAt?: string | null;
+  advancePaidDeclaredAt?: string | null;
+  advanceConfirmedAt?: string | null;
+  balancePaidDeclaredAt?: string | null;
+  balanceConfirmedAt?: string | null;
+  deliveredAt?: string | null;
+  buyerCreditScore?: BuyerCreditScoreDto | null;
+};
+
+export type MarketplaceOfferMineRow = MarketplaceOfferCreditFields & {
   id: string;
   offeredPrice: string | number;
   quantity: number | null;
   message: string | null;
   status: string;
   createdAt: string;
+  transaction?: { id: string } | null;
   listing: {
     id: string;
     title: string;
@@ -4885,7 +4982,7 @@ export function fetchMyMarketplaceOffers(
   );
 }
 
-export type MarketplaceOfferReceivedRow = {
+export type MarketplaceOfferReceivedRow = MarketplaceOfferCreditFields & {
   id: string;
   offeredPrice: string | number;
   proposedPricePerKg?: string | number | null;
@@ -4943,14 +5040,19 @@ export function fetchMarketplaceOfferCounts(
   );
 }
 
-/** Vendeur : accepter une offre (annonce → réservée, autres offres refusées). */
+/** Réponse acceptation offre (vendeur ou acheteur contre-proposition). */
+export type MarketplaceAcceptOfferResponse = {
+  transactionId: string;
+};
+
+/** Vendeur : accepter une offre (crée la transaction escrow). */
 export function acceptMarketplaceOffer(
   accessToken: string,
   listingId: string,
   offerId: string,
   activeProfileId?: string | null
-): Promise<unknown> {
-  return apiPostJson<unknown>(
+): Promise<MarketplaceAcceptOfferResponse> {
+  return apiPostJson<MarketplaceAcceptOfferResponse>(
     `/marketplace/listings/${listingId}/offers/${offerId}/accept`,
     {},
     accessToken,
@@ -4994,10 +5096,6 @@ export function counterMarketplaceOffer(
 }
 
 /** Acheteur : accepte une contre-proposition. */
-export type MarketplaceAcceptOfferResponse = {
-  transactionId: string;
-};
-
 export function acceptMarketplaceOfferCounter(
   accessToken: string,
   listingId: string,
@@ -5011,6 +5109,17 @@ export function acceptMarketplaceOfferCounter(
     activeProfileId
   );
 }
+
+export type MarketplacePendingTransferDto = {
+  id: string;
+  transactionId: string;
+  buyerFarmId: string | null;
+  animalIds: string[];
+  expiresAt: string;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+};
 
 export type MarketplaceTransactionDto = {
   id: string;
@@ -5028,6 +5137,15 @@ export type MarketplaceTransactionDto = {
   realWeightKg: number | null;
   pickupDate: string | null;
   pickupLocation: string | null;
+  sellerShippedAt?: string | null;
+  shipmentMethod?: string | null;
+  shipmentNotes?: string | null;
+  buyerReceivedAt?: string | null;
+  receiptCondition?: string | null;
+  receiptNotes?: string | null;
+  receivedAnimalIds?: string[];
+  listingStatus?: string | null;
+  listingAnimalIds?: string[];
   currency: string;
   offerExpiresAt: string;
   listingTitle: string | null;
@@ -5037,6 +5155,8 @@ export type MarketplaceTransactionDto = {
     receiptNumber: string;
     generatedAt: string;
   } | null;
+  pendingTransfer?: MarketplacePendingTransferDto | null;
+  isCredit?: boolean;
 };
 
 export type MarketplaceReceiptDto = {
@@ -5152,6 +5272,44 @@ export function scheduleMarketplacePickup(
   );
 }
 
+export function confirmMarketplaceShipment(
+  accessToken: string,
+  transactionId: string,
+  payload: {
+    shippedAt: string;
+    method?: "handover" | "third_party" | "seller_delivery";
+    notes?: string;
+  },
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/confirm-shipment`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmMarketplaceReceipt(
+  accessToken: string,
+  transactionId: string,
+  payload: {
+    receivedAt: string;
+    condition: "conform" | "minor_issue" | "major_issue";
+    receivedAnimalIds: string[];
+    realWeightKg?: number;
+    notes?: string;
+  },
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/confirm-receipt`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
 export function declareMarketplaceWeight(
   accessToken: string,
   transactionId: string,
@@ -5202,6 +5360,20 @@ export function cancelMarketplaceTransaction(
   return apiPostJson<MarketplaceTransactionDto>(
     `/marketplace/transactions/${transactionId}/cancel`,
     {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function completeMarketplacePendingTransfer(
+  accessToken: string,
+  transactionId: string,
+  payload: { buyerFarmId: string; penId?: string },
+  activeProfileId?: string | null
+): Promise<{ ok: boolean; animalIds: string[] }> {
+  return apiPostJson<{ ok: boolean; animalIds: string[] }>(
+    `/marketplace/transactions/${transactionId}/pending-transfer/complete`,
+    payload,
     accessToken,
     activeProfileId
   );
@@ -5338,104 +5510,6 @@ export function cancelMarketplaceListing(
     activeProfileId
   );
 }
-
-export type AuthMePrimaryFarm = {
-  id: string;
-  name: string;
-};
-
-export type FarmStatus = "active" | "archived";
-
-export type CguStatusDto = {
-  currentVersion: string;
-  acceptedAt: string | null;
-  versionAccepted: string | null;
-  needsAcceptance: boolean;
-  isUpdate: boolean;
-};
-
-export type CguCurrentDto = {
-  version: string;
-  content: string;
-  contentUrl: string | null;
-  updatedAt: string;
-  privacyPolicyContent: string;
-};
-
-export type AuthMeUser = {
-  id: string;
-  supabaseUserId: string;
-  email: string | null;
-  phone: string | null;
-  fullName: string | null;
-  firstName: string | null;
-  lastName: string | null;
-  avatarUrl: string | null;
-  producerHomeFarmName: string | null;
-  homeLatitude: number | null;
-  homeLongitude: number | null;
-  homeLocationLabel: string | null;
-  homeLocationSource: "gps" | "manual" | null;
-  isActive: boolean;
-  accountStatus?: "active" | "suspended" | "banned";
-  suspendedReason?: string | null;
-  suspendedUntil?: string | null;
-  bannedReason?: string | null;
-  notificationsEnabled: boolean;
-  pushNotificationsRegistered: boolean;
-  isOnboarded: boolean;
-  onboardingSkipped: boolean;
-  cguAcceptedAt: string | null;
-  cguVersionAccepted: string | null;
-};
-
-export type VetVerificationStatus = "pending" | "verified" | "rejected";
-
-export type VetProfessionalMeDto = {
-  profileId: string | null;
-  verificationStatus: VetVerificationStatus | null;
-  rejectionReason: string | null;
-  onboardingComplete: boolean;
-};
-
-export type AuthMeResponse = {
-  cgu?: CguStatusDto;
-  user: AuthMeUser;
-  /** Première ferme propriétaire (ordre de création), pour libellé accueil producteur. @deprecated Use activeFarm instead. */
-  primaryFarm: AuthMePrimaryFarm | null;
-  /** Projet actif sélectionné par l'utilisateur. */
-  activeFarm: AuthMePrimaryFarm | null;
-  profiles: Array<{
-    id: string;
-    type: string;
-    displayName: string | null;
-    isDefault: boolean;
-    avatarUrl: string | null;
-    profileStatus?: "active" | "suspended" | "banned";
-    profileSuspendedReason?: string | null;
-  }>;
-  activeProfile: {
-    id: string;
-    type: string;
-    displayName: string | null;
-    isDefault: boolean;
-    avatarUrl: string | null;
-    profileStatus?: "active" | "suspended" | "banned";
-    profileSuspendedReason?: string | null;
-  } | null;
-  technicianProfile?: {
-    profileId: string;
-    onboardingComplete: boolean;
-    experienceYears: string | null;
-  } | null;
-  buyerProfile?: {
-    profileId: string;
-    onboardingComplete: boolean;
-    buyerType: string;
-    preferredCategories: string[];
-  } | null;
-  vetProfessional?: VetProfessionalMeDto;
-};
 
 export type VetSearchItemDto = {
   id: string;
@@ -5955,20 +6029,6 @@ export function createVetRating(
   );
 }
 
-export type PatchMeProfilePayload = {
-  firstName?: string | null;
-  lastName?: string | null;
-  avatarUrl?: string | null;
-  producerHomeFarmName?: string | null;
-  homeLatitude?: number | null;
-  homeLongitude?: number | null;
-  homeLocationLabel?: string | null;
-  homeLocationSource?: "gps" | "manual" | null;
-  notificationsEnabled?: boolean;
-  expoPushToken?: string | null;
-  pushPlatform?: "ios" | "android" | "web" | "unknown" | null;
-};
-
 export type OnboardingStatusDto = {
   isOnboarded: boolean;
   onboardingSkipped: boolean;
@@ -6028,134 +6088,6 @@ export function postOnboardingSkip(
     {},
     accessToken,
     activeProfileId
-  );
-}
-
-/** GET /api/v1/auth/me (Bearer = access_token Supabase). */
-export function fetchCguCurrent(accessToken: string): Promise<CguCurrentDto> {
-  return apiGetJson<CguCurrentDto>("/cgu/current", accessToken, null);
-}
-
-export function acceptCgu(
-  accessToken: string,
-  version: string
-): Promise<AuthMeResponse> {
-  return apiPostJson<AuthMeResponse>(
-    "/auth/me/accept-cgu",
-    { version },
-    accessToken,
-    null
-  );
-}
-
-export async function fetchAuthMe(
-  accessToken: string,
-  activeProfileId?: string
-): Promise<AuthMeResponse> {
-  const url = `${apiBaseUrl()}/api/v1/auth/me`;
-  const res = await fetch(url, {
-    headers: apiAuthHeaders(accessToken, activeProfileId ?? null)
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
-  }
-  return JSON.parse(text) as AuthMeResponse;
-}
-
-/** DELETE /api/v1/auth/me/account — suppression définitive du compte et des données. */
-export function deleteMyAccount(
-  accessToken: string
-): Promise<{ ok: boolean }> {
-  return apiDeleteJson<{ ok: boolean }>("/auth/me/account", accessToken);
-}
-
-/** PATCH /api/v1/auth/me/profile — met à jour l’utilisateur courant (sans changer de profil métier). */
-export function patchAuthProfile(
-  accessToken: string,
-  body: PatchMeProfilePayload,
-  activeProfileId?: string | null
-): Promise<AuthMeResponse> {
-  return apiPatchJson<AuthMeResponse>(
-    "/auth/me/profile",
-    body,
-    accessToken,
-    activeProfileId ?? undefined
-  );
-}
-
-/** Type d'un message admin (modération, info, avertissement). */
-export type AdminMessageTypeDto = "notification" | "warning" | "info";
-
-export type AdminMessageDto = {
-  id: string;
-  subject: string;
-  message: string;
-  type: AdminMessageTypeDto;
-  isRead: boolean;
-  sentAt: string;
-  readAt: string | null;
-  admin: { id: string; fullName: string | null; email: string | null };
-};
-
-export type AdminMessagesListDto = {
-  total: number;
-  items: AdminMessageDto[];
-};
-
-/** GET /api/v1/auth/me/admin-messages — historique messages admin → utilisateur. */
-export function fetchMyAdminMessages(
-  accessToken: string
-): Promise<AdminMessagesListDto> {
-  return apiGetJson<AdminMessagesListDto>("/auth/me/admin-messages", accessToken);
-}
-
-/** GET /api/v1/auth/me/admin-messages/unread-count — badge cloche. */
-export function fetchMyAdminMessagesUnreadCount(
-  accessToken: string
-): Promise<{ count: number }> {
-  return apiGetJson<{ count: number }>(
-    "/auth/me/admin-messages/unread-count",
-    accessToken
-  );
-}
-
-/** PATCH /api/v1/auth/me/admin-messages/:id/read — marque le message comme lu. */
-export function markMyAdminMessageRead(
-  accessToken: string,
-  messageId: string
-): Promise<{ ok: boolean }> {
-  return apiPatchJson<{ ok: boolean }>(
-    `/auth/me/admin-messages/${messageId}/read`,
-    {},
-    accessToken
-  );
-}
-
-/** Types alignés sur Prisma `ProfileType` (premiere connexion mobile). */
-export type ProfileTypeChoice =
-  | "producer"
-  | "technician"
-  | "veterinarian"
-  | "buyer";
-
-export type CreatedProfileDto = {
-  id: string;
-  type: string;
-  displayName: string | null;
-  isDefault: boolean;
-};
-
-/** POST /api/v1/profiles — sans `X-Profile-Id` (creation du premier profil). */
-export function createProfile(
-  accessToken: string,
-  body: { type: ProfileTypeChoice; displayName?: string }
-): Promise<CreatedProfileDto> {
-  return apiPostJson<CreatedProfileDto>(
-    "/profiles",
-    body,
-    accessToken,
-    null
   );
 }
 

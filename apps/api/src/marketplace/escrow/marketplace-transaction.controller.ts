@@ -11,6 +11,10 @@ import { CurrentUser } from "../../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../../auth/guards/supabase-jwt.guard";
 import { RequirePlatformModule } from "../../feature-flags/require-platform-module.decorator";
 import { PlatformModuleEnabledGuard } from "../../feature-flags/platform-module-enabled.guard";
+import { ConfirmReceiptDto } from "../dto/confirm-receipt.dto";
+import { ConfirmShipmentDto } from "../dto/confirm-shipment.dto";
+import { CompletePendingTransferDto } from "../dto/complete-pending-transfer.dto";
+import { DeliveryDisputeDto } from "../dto/delivery-dispute.dto";
 import { MarketplaceTransactionService } from "./marketplace-transaction.service";
 
 @Controller("marketplace/transactions")
@@ -46,6 +50,33 @@ export class MarketplaceTransactionController {
     @Body() body: { providerRef?: string }
   ) {
     return this.transactions.confirmPayment(user, id, body.providerRef);
+  }
+
+  @Post(":id/confirm-shipment")
+  confirmShipment(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() body: ConfirmShipmentDto
+  ) {
+    return this.transactions.confirmShipment(user, id, body);
+  }
+
+  @Post(":id/confirm-receipt")
+  confirmReceipt(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() body: ConfirmReceiptDto
+  ) {
+    return this.transactions.confirmReceipt(user, id, body);
+  }
+
+  @Post(":id/delivery-dispute")
+  openDeliveryDispute(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() body: DeliveryDisputeDto
+  ) {
+    return this.transactions.openDeliveryDispute(user, id, body);
   }
 
   @Post(":id/pickup")
@@ -90,6 +121,20 @@ export class MarketplaceTransactionController {
     @Body() body: { reason?: string }
   ) {
     return this.transactions.disputeWeight(user, id, body.reason);
+  }
+
+  @Get(":id/pending-transfer")
+  getPendingTransfer(@CurrentUser() user: User, @Param("id") id: string) {
+    return this.transactions.getPendingTransfer(user, id);
+  }
+
+  @Post(":id/pending-transfer/complete")
+  completePendingTransfer(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() body: CompletePendingTransferDto
+  ) {
+    return this.transactions.completePendingTransfer(user, id, body);
   }
 
   @Post(":id/cancel")

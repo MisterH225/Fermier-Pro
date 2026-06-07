@@ -13,6 +13,7 @@ import {
 import type { RootStackParamList } from "../../types/navigation";
 import { useTranslation } from "react-i18next";
 import { resolveSmartAlertText } from "../../lib/smartAlertDisplay";
+import { resolveDeepNavProfile } from "../../lib/resolveDeepNavProfile";
 import { navigateToAlert } from "../../services/navigation/DeepNavigationService";
 import { useSession } from "../../context/SessionContext";
 
@@ -53,8 +54,7 @@ export function AlertCard({ alert, navigation, onMarkRead }: AlertCardProps) {
   const { t } = useTranslation();
   const { authMe, activeProfileId } = useSession();
   const display = resolveSmartAlertText(alert, t);
-  const profileType =
-    authMe?.profiles.find((p) => p.id === activeProfileId)?.type ?? "producer";
+  const profile = resolveDeepNavProfile(authMe, activeProfileId);
   const onPressCard = useCallback(() => {
     navigateToAlert(
       navigation,
@@ -64,15 +64,9 @@ export function AlertCard({ alert, navigation, onMarkRead }: AlertCardProps) {
         ruleKey: alert.ruleKey,
         action: alert.action
       },
-      profileType === "technician"
-        ? "technician"
-        : profileType === "veterinarian"
-          ? "veterinarian"
-          : profileType === "buyer"
-            ? "buyer"
-            : "producer"
+      profile
     );
-  }, [alert, navigation, profileType]);
+  }, [alert, navigation, profile]);
 
   const renderRight = useCallback(() => {
     if (alert.isRead) {

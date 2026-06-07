@@ -1,9 +1,72 @@
 # Audit technique — Fermier-Pro
 
-**Date :** 7 juin 2026  
+**Date initiale :** 7 juin 2026  
+**Dernière mise à jour :** 7 juin 2026 (v2 — après `git pull origin main`)  
+**Commit de référence :** `113be86` (`main` — merge PR #29)  
 **Périmètre :** `apps/api`, `apps/mobile`, `apps/admin-platform`  
-**Mode :** lecture seule — aucune correction de code appliquée  
-**Branche auditée :** `main` (post-merge PR #28 + #29)
+**Mode :** lecture seule — aucune correction de code appliquée dans cet audit  
+
+---
+
+## Mise à jour v2 — après pull `main`
+
+### État du dépôt
+
+```text
+git fetch origin main && git pull   → déjà à jour (113be86)
+PR #28 mergée (5092fba) — collab / véto / e2e
+PR #29 mergée (113be86) — marketplace Propositions Reçues/Envoyées
+PR #30 ouverte     — ce document TECHNICAL_AUDIT.md (draft)
+```
+
+### Correctifs récents mergés — impact sur l'audit
+
+| Issue | Statut post-merge | Détail |
+|-------|-------------------|--------|
+| TECH-009 (modales dupliquées) | **Partiellement atténué** | PR #28 : `MemberModal` + `ConfirmDeleteModal` — busy/try-finally ; plus de `onClose()` prématuré. Les **4 paires de composants homonymes** restent. |
+| TECH-003 (flux véto) | **Partiellement atténué** | PR #28 : KPI `farmsFollowed = memberships.length` ; invalidation `vetDashboard` ; bandeau `APPOINTMENT_REQUESTED`. **3 flux API** (consultations, appointments, schedule-visit) **toujours présents**. |
+| TECH-014 (cache) | **Amélioré (marketplace + véto)** | Nouvelles clés `marketplaceOffersReceived`, `marketplaceOffersCounts` ; invalidation `vetDashboard` à l'acceptation d'invitation. |
+| — (marketplace offres) | **Nouveau — positif** | `GET /marketplace/offers/received`, `GET /marketplace/offers/counts` ; UI `PropositionsScreen` — réduit la duplication actions-offres dans `ListingDetail`. |
+| TECH-023 (TS admin) | **Toujours ouvert** | 3 erreurs TS sur `veterinaires/rendez-vous/page.tsx` (l.86, 94, 115). |
+| TECH-001 à TECH-008, TECH-010 à TECH-022 | **Ouverts** | Inchangés sur `main` |
+
+### Nouvelles entrées d'audit (v2)
+
+#### TECH-025 — Endpoints marketplace offres reçues (positif)
+- **Catégorie :** ROUTE
+- **Sévérité :** INFO
+- **Fichiers :** `apps/api/src/marketplace/offers.controller.ts`, `offers.service.ts`
+- **Description :** `GET offers/received?farmId=` et `GET offers/counts?farmId=` centralisent les propositions vendeur.
+- **Impact :** Bonne direction ; le détail annonce ne porte plus les actions (lien « Voir les propositions »).
+- **Suite :** Documenter dans OpenAPI / contrat mobile.
+
+#### TECH-026 — Propositions : sous-onglets imbriqués dans TabSelector
+- **Catégorie :** COMPONENT
+- **Sévérité :** LOW
+- **Fichiers :** `MarketplaceListScreen.tsx` → `PropositionsScreen.tsx` (TabSelector dans TabSelector)
+- **Description :** Double niveau d'onglets (Marché / Mes annonces / Propositions → Reçues / Envoyées).
+- **Impact :** UX acceptable ; à surveiller sur petits écrans.
+- **Fix recommandé :** Aucun urgent ; tests manuels scroll + safe area.
+
+#### TECH-027 — Tests e2e ajoutés (PR #28) — couverture partielle
+- **Catégorie :** TS / QA
+- **Sévérité :** INFO
+- **Fichiers :** `farm-members.e2e-spec.ts`, enrichissements `vet-rbac`, `vet-appointments`, `mobile-api-contract`
+- **Description :** Révocation, KPI dashboard, offres marketplace counts — pas de e2e mobile Detox/Maestro.
+- **Suite :** Étendre e2e API pour accept/refuse proposition marketplace.
+
+### Métriques reconfirmées (v2)
+
+| Métrique | v1 | v2 (`main` @ 113be86) |
+|----------|----|------------------------|
+| Controllers | 52 | **52** |
+| Routes HTTP | ~381 | **381** |
+| Routes doublon exact | 0 | **0** |
+| Composants homonymes | 4 paires | **4 paires** |
+| `navigation.navigate` direct | ~170 | **171** |
+| `Alert.alert` | ~205 | **205** |
+| `tsc` mobile / api | OK | **OK** |
+| `tsc` admin-platform | 4+ erreurs | **3 erreurs** (même page) |
 
 ---
 
@@ -52,7 +115,7 @@ Aucun conflit NestJS **exact** (même verbe HTTP + même chemin complet) détect
 | Vétérinaire | `vets.controller.ts`, `vet-consultations.controller.ts`, `vet-appointment.controller.ts` | **3 flux visites** : legacy consultations/quotes, RDV escrow, schedule-visit |
 | Finance / transactions | `finance.controller.ts`, `marketplace/escrow/marketplace-transaction.controller.ts` | Deux familles « transaction » (ferme vs marketplace) — namespaces distincts |
 | Feed / stock | `farm-feed.controller.ts`, `dashboard.controller.ts` | Pas de controller `stock` séparé ; agrégat `dashboard/feed-stock` |
-| Marketplace / market | `marketplace/*.controller.ts`, `market/pig-price-index.controller.ts` | **Triple pig-price-index** : `market/`, `marketplace/`, `admin/` |
+| Marketplace / market | `marketplace/*.controller.ts`, `market/pig-price-index.controller.ts` | **Triple pig-price-index** ; offres : `GET offers`, `offers/received`, `offers/counts`, `listings/:id/offers` |
 | Rapports | `reports-root.controller.ts`, `farm-reports.controller.ts` | Deux `POST …/reports/generate` |
 | CGU | `auth.controller.ts`, `cgu.controller.ts` | Acceptation CGU sur auth ET users |
 | Membres / invitations | `farm-members.controller.ts`, `invitations.controller.ts` | Cycle de vie collaborateur scindé (cohérent mais couplé au scope `invitations.manage`) |
@@ -396,12 +459,12 @@ WHERE l."farmId" IS NOT NULL AND f.id IS NULL AND l.status = 'published';
 
 ### Immédiat (CRITICAL / HIGH)
 
-| ID | Titre | Effort estimé |
-|----|-------|---------------|
-| TECH-023 | TS admin-platform cassé | Faible |
-| TECH-009 | Modales dupliquées (freeze UI) | Moyen |
-| TECH-003 | Flux vétérinaire fragmentés | Élevé |
-| TECH-001 | Double API statut animal | Moyen |
+| ID | Titre | Effort estimé | Note v2 |
+|----|-------|---------------|---------|
+| TECH-023 | TS admin-platform cassé | Faible | Toujours bloquant CI admin |
+| TECH-009 | Modales dupliquées (freeze UI) | Moyen | PR #28 a corrigé le symptôme révocation ; fusion composants reste |
+| TECH-003 | Flux vétérinaire fragmentés | Élevé | PR #28 = patches UX/KPI, pas unification flux |
+| TECH-001 | Double API statut animal | Moyen | — |
 
 ### Prochain sprint (HIGH / MEDIUM)
 
@@ -458,7 +521,15 @@ cd apps/admin-platform && npx tsc --noEmit  # ERREURS
 
 ## Validation audit
 
-- [x] `TECHNICAL_AUDIT.md` généré
-- [x] Aucune modification de code applicatif
+- [x] `TECHNICAL_AUDIT.md` généré (v1)
+- [x] Mise à jour v2 après `git pull origin main` @ `113be86`
+- [x] Aucune modification de code applicatif (hors ce document)
 - [ ] SQL orphelins sur base live — **à exécuter manuellement** (requêtes adaptées section 5)
 - [ ] Corrections — **en attente validation produit**
+
+### Historique des passes
+
+| Pass | Commit `main` | Action |
+|------|---------------|--------|
+| v1 | `113be86` | Audit initial complet |
+| v2 | `113be86` | Re-pull, re-métriques, statut PR #28/#29, issues TECH-025–027 |

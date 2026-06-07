@@ -9,16 +9,26 @@ import {
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
 import {
+  AnimalOrigin,
   ListingStatus,
+  MarketplaceDeliveryDisputeStatus,
   MarketplaceFundMovementKind,
+  MarketplacePriceType,
+  MarketplaceReceiptCondition,
+  MarketplaceShipmentMethod,
   MarketplaceTransactionStatus,
   OfferStatus,
+  OfferType,
   Prisma,
   WeightValidatedBy
 } from "@prisma/client";
+import { FarmAccessService } from "../../common/farm-access.service";
 import { PrismaService } from "../../prisma/prisma.service";
+import type { ResolveDeliveryDisputeDto } from "../dto/resolve-delivery-dispute.dto";
 import { PlatformSettingsService } from "../../platform-settings/platform-settings.service";
 import { PushNotificationsService } from "../../push-notifications/push-notifications.service";
+import { BuyerProfileDetectorService } from "../buyer-profile-detector.service";
+import { CreditOffersService } from "../credit/credit-offers.service";
 import { ListingsService } from "../listings.service";
 import { ReceiptService } from "../receipts/receipt.service";
 import { EscrowService } from "./escrow.service";
@@ -26,6 +36,7 @@ import {
   ACTIVE_ESCROW_STATUSES,
   CANCELLABLE_BY_BUYER,
   CANCELLABLE_BY_SELLER,
+  SHIPMENT_CONFIRM_STATUSES,
   agreedTermsFromOffer,
   calculateBlockedAmount,
   calculateFinalAmount,
@@ -45,8 +56,66 @@ export class MarketplaceTransactionService {
     private readonly platformSettings: PlatformSettingsService,
     @Inject(forwardRef(() => ListingsService))
     private readonly listings: ListingsService,
-    private readonly receipts: ReceiptService
+    private readonly receipts: ReceiptService,
+    private readonly buyerProfiles: BuyerProfileDetectorService,
+    private readonly farmAccess: FarmAccessService,
+    @Inject(forwardRef(() => CreditOffersService))
+    private readonly creditOffers: CreditOffersService
   ) {}
+
+  /** Transaction crédit — avance bloquée en escrow jusqu'à la livraison. */
+  async createCreditAdvanceTransaction(
+    offerId: string
+  ): Promise<{ transactionId: string }> {
+    const offer = await this.prisma.marketplaceOffer.findUnique({
+      where: { id: offerId },
+      include: { listing: true }
+    });
+    if (!offer || offer.offerType !== OfferType.credit) {
+      throw new BadRequestException("Offre crédit invalide");
+    }
+    const existing = await this.prisma.marketplaceTransaction.findUnique({
+      where: { offerId }
+    });
+    if (existing) {
+      return { transactionId: existing.id };
+    }
+    const advance = Number(offer.advanceAmount ?? 0);
+    if (!Number.isFinite(advance) || advance <= 0) {
+      throw new BadRequestException("Montant d'avance invalide");
+    }
+    const listing = offer.listing;
+    const terms = agreedTermsFromOffer(offer, listing);
+    const commissionRate = await this.platformSettings.getMarketplaceCommissionRate();
+    const tx = await this.prisma.marketplaceTransaction.create({
+      data: {
+        offerId: offer.id,
+        listingId: listing.id,
+        buyerUserId: offer.buyerUserId,
+        sellerUserId: listing.sellerUserId,
+        status: MarketplaceTransactionStatus.PAYMENT_PENDING,
+        priceType: terms.priceType,
+        agreedPricePerKg:
+          terms.agreedPricePerKg != null
+            ? new Prisma.Decimal(terms.agreedPricePerKg)
+            : null,
+        agreedFlatPrice:
+          terms.agreedFlatPrice != null
+            ? new Prisma.Decimal(terms.agreedFlatPrice)
+            : null,
+        estimatedWeightKg:
+          terms.estimatedWeightKg != null
+            ? new Prisma.Decimal(terms.estimatedWeightKg)
+            : null,
+        blockedAmount: new Prisma.Decimal(advance),
+        commissionRate: new Prisma.Decimal(commissionRate),
+        offerExpiresAt: paymentExpiryDate(),
+        currency: listing.currency ?? "XOF",
+        isCredit: true
+      }
+    });
+    return { transactionId: tx.id };
+  }
 
   /** Crée une transaction escrow après acceptation d'offre (vendeur ou acheteur). */
   async createFromAcceptedOffer(offerId: string): Promise<{ transactionId: string }> {
@@ -108,7 +177,16 @@ export class MarketplaceTransactionService {
     const tx = await this.prisma.marketplaceTransaction.findUnique({
       where: { id: transactionId },
       include: {
-        listing: { select: { id: true, title: true, category: true } },
+        listing: {
+          select: {
+            id: true,
+            title: true,
+            category: true,
+            status: true,
+            animalId: true,
+            animalIds: true
+          }
+        },
         offer: true,
         receipt: {
           select: {
@@ -116,6 +194,10 @@ export class MarketplaceTransactionService {
             receiptNumber: true,
             generatedAt: true
           }
+        },
+        pendingTransfers: {
+          orderBy: { createdAt: "desc" },
+          take: 1
         }
       }
     });
@@ -126,6 +208,372 @@ export class MarketplaceTransactionService {
       throw new ForbiddenException();
     }
     return this.serialize(tx);
+  }
+
+  async getPendingTransfer(user: User, transactionId: string) {
+    const tx = await this.requireBuyer(transactionId, user.id);
+    const pending = await this.prisma.marketplacePendingTransfer.findFirst({
+      where: {
+        transactionId: tx.id,
+        buyerUserId: user.id,
+        completedAt: null,
+        cancelledAt: null
+      },
+      orderBy: { createdAt: "desc" }
+    });
+    if (!pending) {
+      throw new NotFoundException("Aucun transfert en attente");
+    }
+    return this.serializePendingTransfer(pending);
+  }
+
+  async completePendingTransfer(
+    user: User,
+    transactionId: string,
+    params: { buyerFarmId?: string; penId?: string }
+  ) {
+    const tx = await this.requireBuyer(transactionId, user.id);
+    if (tx.status !== MarketplaceTransactionStatus.TRANSACTION_CLOSED) {
+      throw new BadRequestException(
+        "Le transfert cheptel n'est disponible qu'après clôture de la transaction"
+      );
+    }
+    const pending = await this.prisma.marketplacePendingTransfer.findFirst({
+      where: {
+        transactionId: tx.id,
+        buyerUserId: user.id,
+        completedAt: null,
+        cancelledAt: null
+      },
+      include: {
+        transaction: {
+          include: {
+            listing: { include: { farm: { select: { name: true } } } }
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+    if (!pending) {
+      throw new NotFoundException("Aucun transfert en attente");
+    }
+    if (pending.expiresAt.getTime() < Date.now()) {
+      throw new BadRequestException("Ce transfert a expiré");
+    }
+
+    const farmId = params.buyerFarmId?.trim() || pending.buyerFarmId;
+    if (!farmId) {
+      throw new BadRequestException(
+        "Sélectionnez la ferme destinataire de vos animaux"
+      );
+    }
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+
+    if (params.penId) {
+      const pen = await this.prisma.pen.findFirst({
+        where: { id: params.penId, barn: { farmId } }
+      });
+      if (!pen) {
+        throw new BadRequestException("Loge introuvable sur cette ferme");
+      }
+    }
+
+    const sourceIds = Array.isArray(pending.animalIds)
+      ? pending.animalIds.filter((v): v is string => typeof v === "string")
+      : [];
+    if (sourceIds.length === 0) {
+      throw new BadRequestException("Aucun animal à transférer");
+    }
+
+    const sourceAnimals = await this.prisma.animal.findMany({
+      where: { id: { in: sourceIds } }
+    });
+    if (sourceAnimals.length === 0) {
+      throw new BadRequestException("Animaux source introuvables");
+    }
+
+    const sellerFarmName =
+      pending.transaction.listing.farm?.name ?? "Marketplace";
+    const entryDate = new Date();
+    entryDate.setUTCHours(0, 0, 0, 0);
+
+    const createdAnimalIds = await this.prisma.$transaction(async (db) => {
+      const imported: string[] = [];
+      for (const src of sourceAnimals) {
+        const tag = src.tagCode ?? src.publicId.slice(0, 8);
+        const created = await db.animal.create({
+          data: {
+            farmId,
+            speciesId: src.speciesId,
+            breedId: src.breedId,
+            sex: src.sex,
+            productionCategory: src.productionCategory,
+            birthDate: src.birthDate,
+            ageWeeksAtEntry: src.ageWeeksAtEntry,
+            entryDate,
+            entryWeightKg: src.soldWeightKg ?? src.entryWeightKg,
+            origin: AnimalOrigin.purchased,
+            supplier: sellerFarmName,
+            notes: `Achat marketplace — transaction ${tx.id} (source ${tag})`,
+            status: "active",
+            photoUrl: src.photoUrl
+          }
+        });
+        if (params.penId) {
+          await db.penPlacement.create({
+            data: {
+              penId: params.penId,
+              animalId: created.id,
+              createdByUserId: user.id
+            }
+          });
+        }
+        imported.push(created.id);
+      }
+      await db.marketplacePendingTransfer.update({
+        where: { id: pending.id },
+        data: {
+          completedAt: new Date(),
+          buyerFarmId: farmId
+        }
+      });
+      return imported;
+    });
+
+    void this.push.sendToUser(
+      user.id,
+      "Animaux ajoutés au cheptel",
+      `${createdAnimalIds.length} animal(aux) importé(s) dans votre ferme.`,
+      {
+        type: "marketplace_pending_transfer_completed",
+        transactionId: tx.id,
+        buyerFarmId: farmId
+      }
+    );
+
+    return {
+      ok: true,
+      animalIds: createdAnimalIds,
+      pendingTransfer: await this.prisma.marketplacePendingTransfer.findUnique({
+        where: { id: pending.id }
+      }).then((row) => (row ? this.serializePendingTransfer(row) : null))
+    };
+  }
+
+  async resolveDeliveryDispute(
+    adminUserId: string,
+    disputeId: string,
+    dto: ResolveDeliveryDisputeDto
+  ) {
+    const dispute = await this.prisma.marketplaceDeliveryDispute.findUnique({
+      where: { id: disputeId },
+      include: {
+        transaction: true,
+        listing: true
+      }
+    });
+    if (!dispute) {
+      throw new NotFoundException("Litige introuvable");
+    }
+    if (dispute.status !== MarketplaceDeliveryDisputeStatus.open) {
+      throw new BadRequestException("Litige déjà résolu");
+    }
+    const tx = dispute.transaction;
+    if (tx.status !== MarketplaceTransactionStatus.DELIVERY_DISPUTED) {
+      throw new BadRequestException("Transaction non en litige livraison");
+    }
+
+    const now = new Date();
+    const notes = dto.notes?.trim() || null;
+
+    if (
+      dto.outcome === MarketplaceDeliveryDisputeStatus.resolved_vendor
+    ) {
+      await this.prisma.$transaction([
+        this.prisma.marketplaceDeliveryDispute.update({
+          where: { id: dispute.id },
+          data: {
+            status: MarketplaceDeliveryDisputeStatus.resolved_vendor,
+            resolvedAt: now
+          }
+        }),
+        this.prisma.marketplaceTransaction.update({
+          where: { id: tx.id },
+          data: { status: MarketplaceTransactionStatus.BUYER_RECEIVED }
+        }),
+        this.prisma.marketplaceListing.update({
+          where: { id: dispute.listingId },
+          data: {
+            status: ListingStatus.delivered,
+            disputedAt: null,
+            deliveredAt: tx.buyerReceivedAt ?? now
+          }
+        })
+      ]);
+      void this.push.sendToUser(
+        tx.buyerUserId,
+        "Litige résolu",
+        "Le litige livraison est clos en faveur du vendeur. Déclarez le poids réel pour poursuivre.",
+        { type: "marketplace_delivery_dispute_resolved", transactionId: tx.id }
+      );
+      void this.push.sendToUser(
+        tx.sellerUserId,
+        "Litige résolu",
+        "Le litige livraison est clos. En attente du poids déclaré par l'acheteur.",
+        { type: "marketplace_delivery_dispute_resolved", transactionId: tx.id }
+      );
+      return { ok: true, outcome: dto.outcome, adminUserId, notes };
+    }
+
+    if (
+      dto.outcome === MarketplaceDeliveryDisputeStatus.resolved_buyer ||
+      dto.outcome === MarketplaceDeliveryDisputeStatus.cancelled
+    ) {
+      await this.refundAndCancelDeliveryDispute(tx, dispute.id, dto.outcome, notes);
+      return { ok: true, outcome: dto.outcome, adminUserId, notes };
+    }
+
+    if (dto.outcome === MarketplaceDeliveryDisputeStatus.resolved_split) {
+      const pct = dto.buyerRefundPercent ?? 50;
+      const blocked = Number(tx.blockedAmount);
+      const buyerRefund = Math.round((blocked * pct) / 100);
+      const sellerGross = blocked - buyerRefund;
+      const commission = Math.round(
+        sellerGross * Number(tx.commissionRate)
+      );
+      const sellerNet = sellerGross - commission;
+
+      if (buyerRefund > 0) {
+        await this.escrow.refundBuyer(
+          tx.id,
+          tx.buyerUserId,
+          buyerRefund,
+          tx.currency,
+          tx.paymentProviderRef
+        );
+      }
+      if (sellerNet > 0) {
+        await this.escrow.releaseFundsToSeller(
+          tx.id,
+          tx.sellerUserId,
+          sellerNet,
+          tx.currency
+        );
+      }
+      if (commission > 0) {
+        await this.escrow.collectCommission(tx.id, commission, tx.currency);
+      }
+
+      await this.prisma.$transaction([
+        this.prisma.marketplaceDeliveryDispute.update({
+          where: { id: dispute.id },
+          data: {
+            status: MarketplaceDeliveryDisputeStatus.resolved_split,
+            resolvedAt: now
+          }
+        }),
+        this.prisma.marketplaceTransaction.update({
+          where: { id: tx.id },
+          data: {
+            status: MarketplaceTransactionStatus.CANCELLED_BY_SELLER,
+            cancelledAt: now,
+            cancelReason:
+              notes ??
+              `Arbitrage partagé — remboursement acheteur ${pct}%`,
+            buyerRefundAmount: new Prisma.Decimal(buyerRefund),
+            sellerReceivedAmount: new Prisma.Decimal(sellerNet),
+            commissionAmount: new Prisma.Decimal(commission)
+          }
+        }),
+        this.prisma.marketplaceListing.update({
+          where: { id: dispute.listingId },
+          data: {
+            status: ListingStatus.published,
+            reservedForBuyerUserId: null,
+            shippedAt: null,
+            deliveredAt: null,
+            disputedAt: null
+          }
+        })
+      ]);
+
+      void this.push.sendToUser(
+        tx.buyerUserId,
+        "Litige résolu (partagé)",
+        `Remboursement de ${buyerRefund.toLocaleString("fr-FR")} ${tx.currency}.`,
+        { type: "marketplace_delivery_dispute_resolved", transactionId: tx.id }
+      );
+      void this.push.sendToUser(
+        tx.sellerUserId,
+        "Litige résolu (partagé)",
+        `Versement de ${sellerNet.toLocaleString("fr-FR")} ${tx.currency}.`,
+        { type: "marketplace_delivery_dispute_resolved", transactionId: tx.id }
+      );
+      return { ok: true, outcome: dto.outcome, adminUserId, notes, buyerRefund, sellerNet };
+    }
+
+    throw new BadRequestException("Issue de résolution invalide");
+  }
+
+  private async refundAndCancelDeliveryDispute(
+    tx: Prisma.MarketplaceTransactionGetPayload<object>,
+    disputeId: string,
+    outcome:
+      | typeof MarketplaceDeliveryDisputeStatus.resolved_buyer
+      | typeof MarketplaceDeliveryDisputeStatus.cancelled,
+    notes: string | null
+  ): Promise<void> {
+    await this.escrow.refundBuyer(
+      tx.id,
+      tx.buyerUserId,
+      Number(tx.blockedAmount),
+      tx.currency,
+      tx.paymentProviderRef
+    );
+    const now = new Date();
+    await this.prisma.$transaction([
+      this.prisma.marketplaceDeliveryDispute.update({
+        where: { id: disputeId },
+        data: { status: outcome, resolvedAt: now }
+      }),
+      this.prisma.marketplaceTransaction.update({
+        where: { id: tx.id },
+        data: {
+          status: MarketplaceTransactionStatus.CANCELLED_BY_SELLER,
+          cancelledAt: now,
+          cancelReason:
+            notes ??
+            (outcome === MarketplaceDeliveryDisputeStatus.cancelled
+              ? "Litige annulé par arbitrage"
+              : "Litige résolu en faveur de l'acheteur"),
+          buyerRefundAmount: tx.blockedAmount
+        }
+      }),
+      this.prisma.marketplaceListing.update({
+        where: { id: tx.listingId },
+        data: {
+          status: ListingStatus.published,
+          reservedForBuyerUserId: null,
+          shippedAt: null,
+          deliveredAt: null,
+          disputedAt: null
+        }
+      })
+    ]);
+    await this.decrementActiveOfferCount(tx.listingId);
+    const amountLabel = `${Math.round(Number(tx.blockedAmount)).toLocaleString("fr-FR")} ${tx.currency}`;
+    void this.push.sendToUser(
+      tx.buyerUserId,
+      "Litige résolu",
+      `Remboursement de ${amountLabel} en cours.`,
+      { type: "marketplace_delivery_dispute_resolved", transactionId: tx.id }
+    );
+    void this.push.sendToUser(
+      tx.sellerUserId,
+      "Litige résolu",
+      "La transaction a été annulée suite à l'arbitrage.",
+      { type: "marketplace_delivery_dispute_resolved", transactionId: tx.id }
+    );
   }
 
   async initiatePayment(user: User, transactionId: string) {
@@ -215,12 +663,35 @@ export class MarketplaceTransactionService {
     });
 
     const amountLabel = `${Math.round(Number(tx.blockedAmount)).toLocaleString("fr-FR")} ${tx.currency}`;
-    void this.push.sendToUser(
-      tx.sellerUserId,
-      "Paiement sécurisé",
-      `Un acheteur a sécurisé ${amountLabel} pour « ${listing?.title ?? "votre annonce"} ». Coordonnez la livraison.`,
-      { type: "marketplace_payment_held", transactionId: tx.id, listingId: tx.listingId }
-    );
+    if (tx.isCredit) {
+      await this.prisma.marketplaceOffer.update({
+        where: { id: tx.offerId },
+        data: {
+          status: OfferStatus.advance_confirmed,
+          advanceConfirmedAt: new Date(),
+          advancePaymentMode: "escrow"
+        }
+      });
+      void this.push.sendToUser(
+        tx.buyerUserId,
+        "Avance sécurisée",
+        `${amountLabel} est bloqué sur la plateforme jusqu'à la livraison.`,
+        { type: "marketplace_credit_advance_held", transactionId: tx.id }
+      );
+      void this.push.sendToUser(
+        tx.sellerUserId,
+        "Avance en escrow",
+        `L'acheteur a sécurisé ${amountLabel} sur la plateforme. Coordonnez la remise des animaux.`,
+        { type: "marketplace_credit_advance_held_seller", transactionId: tx.id }
+      );
+    } else {
+      void this.push.sendToUser(
+        tx.sellerUserId,
+        "Paiement sécurisé",
+        `Un acheteur a sécurisé ${amountLabel} pour « ${listing?.title ?? "votre annonce"} ». Coordonnez la livraison.`,
+        { type: "marketplace_payment_held", transactionId: tx.id, listingId: tx.listingId }
+      );
+    }
 
     return this.getById(user, tx.id);
   }
@@ -321,6 +792,423 @@ export class MarketplaceTransactionService {
     return this.getById(user, tx.id);
   }
 
+  async confirmShipment(
+    user: User,
+    transactionId: string,
+    params: {
+      shippedAt: string;
+      method?: MarketplaceShipmentMethod;
+      notes?: string;
+    }
+  ) {
+    const tx = await this.requireSeller(transactionId, user.id);
+    if (!SHIPMENT_CONFIRM_STATUSES.includes(tx.status)) {
+      throw new BadRequestException(
+        "Confirmation d'envoi impossible à ce stade"
+      );
+    }
+    const shippedAt = new Date(params.shippedAt);
+    if (Number.isNaN(shippedAt.getTime())) {
+      throw new BadRequestException("Date d'envoi invalide");
+    }
+    await this.prisma.$transaction([
+      this.prisma.marketplaceTransaction.update({
+        where: { id: tx.id },
+        data: {
+          status: MarketplaceTransactionStatus.SELLER_SHIPPED,
+          sellerShippedAt: shippedAt,
+          shipmentMethod: params.method ?? null,
+          shipmentNotes: params.notes?.trim() || null
+        }
+      }),
+      this.prisma.marketplaceListing.update({
+        where: { id: tx.listingId },
+        data: {
+          status: ListingStatus.shipped,
+          shippedAt
+        }
+      })
+    ]);
+    const listing = await this.prisma.marketplaceListing.findUnique({
+      where: { id: tx.listingId },
+      include: { farm: { select: { name: true } } }
+    });
+    const farmLabel = listing?.farm?.name ?? "Le vendeur";
+    void this.push.sendToUser(
+      tx.buyerUserId,
+      "Envoi confirmé",
+      `${farmLabel} a confirmé l'envoi de vos animaux. Confirmez la réception une fois livrés.`,
+      {
+        type: "marketplace_shipment_confirmed",
+        transactionId: tx.id,
+        listingId: tx.listingId
+      }
+    );
+    return this.getById(user, tx.id);
+  }
+
+  async confirmReceipt(
+    user: User,
+    transactionId: string,
+    params: {
+      receivedAt: string;
+      condition: MarketplaceReceiptCondition;
+      receivedAnimalIds: string[];
+      realWeightKg?: number;
+      notes?: string;
+    }
+  ) {
+    const tx = await this.requireBuyer(transactionId, user.id);
+    if (tx.status !== MarketplaceTransactionStatus.SELLER_SHIPPED) {
+      throw new BadRequestException(
+        "Confirmation de réception impossible à ce stade"
+      );
+    }
+    if (params.condition !== MarketplaceReceiptCondition.conform) {
+      return this.openDeliveryDispute(user, transactionId, {
+        disputeType:
+          params.condition === MarketplaceReceiptCondition.major_issue
+            ? "État sanitaire non conforme"
+            : "Problème mineur à la réception",
+        description:
+          params.notes?.trim() ||
+          "Problème signalé lors de la confirmation de réception.",
+        photoUrls: []
+      });
+    }
+    const receivedAt = new Date(params.receivedAt);
+    if (Number.isNaN(receivedAt.getTime())) {
+      throw new BadRequestException("Date de réception invalide");
+    }
+    const listing = await this.prisma.marketplaceListing.findUnique({
+      where: { id: tx.listingId }
+    });
+    if (!listing) {
+      throw new NotFoundException("Annonce introuvable");
+    }
+    const expectedIds = this.listingAnimalIds(listing);
+    if (expectedIds.length > 0) {
+      const received = new Set(params.receivedAnimalIds);
+      const missing = expectedIds.filter((id) => !received.has(id));
+      if (missing.length > 0) {
+        throw new BadRequestException(
+          "Tous les animaux attendus doivent être confirmés"
+        );
+      }
+    }
+    let nextStatus: MarketplaceTransactionStatus =
+      MarketplaceTransactionStatus.BUYER_RECEIVED;
+    let realWeight: Prisma.Decimal | undefined;
+    if (tx.priceType === MarketplacePriceType.flat) {
+      nextStatus = MarketplaceTransactionStatus.WEIGHT_DECLARED;
+      realWeight = new Prisma.Decimal(
+        tx.estimatedWeightKg?.toNumber() ??
+          listing.totalWeightKg?.toNumber() ??
+          0
+      );
+    } else if (params.realWeightKg != null && params.realWeightKg > 0) {
+      nextStatus = MarketplaceTransactionStatus.WEIGHT_DECLARED;
+      realWeight = new Prisma.Decimal(params.realWeightKg);
+    }
+    await this.prisma.$transaction([
+      this.prisma.marketplaceTransaction.update({
+        where: { id: tx.id },
+        data: {
+          status: nextStatus,
+          buyerReceivedAt: receivedAt,
+          receiptCondition: params.condition,
+          receiptNotes: params.notes?.trim() || null,
+          receivedAnimalIds: params.receivedAnimalIds,
+          ...(realWeight != null
+            ? {
+                realWeightKg: realWeight,
+                weightDeclaredByBuyerAt: new Date()
+              }
+            : {})
+        }
+      }),
+      this.prisma.marketplaceListing.update({
+        where: { id: tx.listingId },
+        data: {
+          status: ListingStatus.delivered,
+          deliveredAt: receivedAt
+        }
+      })
+    ]);
+    if (tx.isCredit) {
+      void this.push.sendToUser(
+        tx.sellerUserId,
+        "Réception confirmée (crédit)",
+        "Validez le poids réel pour calculer le solde restant dû par l'acheteur.",
+        { type: "marketplace_credit_receipt_confirmed", transactionId: tx.id }
+      );
+    } else if (nextStatus === MarketplaceTransactionStatus.WEIGHT_DECLARED) {
+      void this.push.sendToUser(
+        tx.sellerUserId,
+        "Réception confirmée",
+        "L'acheteur a confirmé la réception. Validez le poids pour finaliser la vente.",
+        { type: "marketplace_receipt_confirmed", transactionId: tx.id }
+      );
+    } else {
+      void this.push.sendToUser(
+        tx.sellerUserId,
+        "Réception confirmée",
+        "L'acheteur a confirmé la réception. En attente du poids réel.",
+        { type: "marketplace_receipt_confirmed", transactionId: tx.id }
+      );
+    }
+    return this.getById(user, tx.id);
+  }
+
+  async openDeliveryDispute(
+    user: User,
+    transactionId: string,
+    params: {
+      disputeType: string;
+      description: string;
+      photoUrls?: string[];
+    }
+  ) {
+    const tx = await this.requireParticipant(transactionId, user.id);
+    if (
+      tx.status !== MarketplaceTransactionStatus.SELLER_SHIPPED &&
+      tx.status !== MarketplaceTransactionStatus.BUYER_RECEIVED
+    ) {
+      throw new BadRequestException("Litige livraison impossible à ce stade");
+    }
+    const now = new Date();
+    await this.prisma.$transaction([
+      this.prisma.marketplaceTransaction.update({
+        where: { id: tx.id },
+        data: { status: MarketplaceTransactionStatus.DELIVERY_DISPUTED }
+      }),
+      this.prisma.marketplaceListing.update({
+        where: { id: tx.listingId },
+        data: {
+          status: ListingStatus.disputed,
+          disputedAt: now
+        }
+      }),
+      this.prisma.marketplaceDeliveryDispute.create({
+        data: {
+          listingId: tx.listingId,
+          offerId: tx.offerId,
+          transactionId: tx.id,
+          raisedByUserId: user.id,
+          disputeType: params.disputeType.trim(),
+          description: params.description.trim(),
+          photoUrls: (params.photoUrls ?? []) as Prisma.InputJsonValue
+        }
+      })
+    ]);
+    const peerId =
+      user.id === tx.buyerUserId ? tx.sellerUserId : tx.buyerUserId;
+    void this.push.sendToUser(
+      peerId,
+      "Litige livraison",
+      "Un problème a été signalé sur la livraison. Vérifiez les détails.",
+      { type: "marketplace_delivery_disputed", transactionId: tx.id }
+    );
+    const admins = await this.prisma.superAdmin.findMany({
+      select: { userId: true }
+    });
+    for (const a of admins) {
+      void this.push.sendToUser(
+        a.userId,
+        "Litige livraison marketplace",
+        `Transaction ${tx.id} — suivi requis.`,
+        { type: "marketplace_delivery_dispute_admin", transactionId: tx.id }
+      );
+    }
+    return this.getById(user, tx.id);
+  }
+
+  async requireActiveTransactionIdForListing(
+    user: User,
+    listingId: string
+  ): Promise<string> {
+    const tx = await this.prisma.marketplaceTransaction.findFirst({
+      where: {
+        listingId,
+        status: {
+          notIn: [
+            MarketplaceTransactionStatus.CANCELLED_BY_BUYER,
+            MarketplaceTransactionStatus.CANCELLED_BY_SELLER,
+            MarketplaceTransactionStatus.CANCELLED_SOLD_TO_OTHER,
+            MarketplaceTransactionStatus.OFFER_EXPIRED,
+            MarketplaceTransactionStatus.PAYMENT_FAILED,
+            MarketplaceTransactionStatus.TRANSACTION_CLOSED
+          ]
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+    if (!tx) {
+      throw new NotFoundException("Aucune transaction active pour cette annonce");
+    }
+    if (tx.buyerUserId !== user.id && tx.sellerUserId !== user.id) {
+      throw new ForbiddenException("Accès refusé");
+    }
+    return tx.id;
+  }
+
+  async getTransactionStatusForListing(user: User, listingId: string) {
+    const listing = await this.prisma.marketplaceListing.findUnique({
+      where: { id: listingId },
+      select: {
+        id: true,
+        status: true,
+        reservedForBuyerUserId: true,
+        shippedAt: true,
+        deliveredAt: true,
+        disputedAt: true,
+        sellerUserId: true,
+        animalIds: true,
+        animalId: true
+      }
+    });
+    if (!listing) {
+      throw new NotFoundException("Annonce introuvable");
+    }
+    const tx = await this.prisma.marketplaceTransaction.findFirst({
+      where: {
+        listingId,
+        status: {
+          notIn: [
+            MarketplaceTransactionStatus.CANCELLED_BY_BUYER,
+            MarketplaceTransactionStatus.CANCELLED_BY_SELLER,
+            MarketplaceTransactionStatus.CANCELLED_SOLD_TO_OTHER,
+            MarketplaceTransactionStatus.OFFER_EXPIRED,
+            MarketplaceTransactionStatus.PAYMENT_FAILED
+          ]
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+    if (!tx) {
+      throw new NotFoundException("Aucune transaction active");
+    }
+    if (tx.buyerUserId !== user.id && tx.sellerUserId !== user.id) {
+      throw new ForbiddenException("Accès refusé");
+    }
+    return {
+      listing,
+      transaction: await this.getById(user, tx.id),
+      animalIds: this.listingAnimalIds(listing)
+    };
+  }
+
+  async handleDeliveryReminders(): Promise<{ vendor: number; buyer: number }> {
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    let vendor = 0;
+    let buyer = 0;
+    const reservedListings = await this.prisma.marketplaceListing.findMany({
+      where: {
+        status: ListingStatus.reserved,
+        updatedAt: { lte: threeDaysAgo }
+      },
+      include: {
+        transactions: {
+          where: { status: MarketplaceTransactionStatus.PAYMENT_HELD },
+          take: 1
+        }
+      }
+    });
+    for (const listing of reservedListings) {
+      const tx = listing.transactions[0];
+      if (!tx) {
+        continue;
+      }
+      vendor += 1;
+      void this.push.sendToUser(
+        listing.sellerUserId,
+        "Rappel envoi",
+        "N'oubliez pas de confirmer l'envoi de vos animaux.",
+        { type: "marketplace_remind_vendor_shipment", listingId: listing.id }
+      );
+    }
+    const shipped = await this.prisma.marketplaceTransaction.findMany({
+      where: {
+        status: MarketplaceTransactionStatus.SELLER_SHIPPED,
+        sellerShippedAt: { lte: threeDaysAgo }
+      }
+    });
+    for (const tx of shipped) {
+      buyer += 1;
+      void this.push.sendToUser(
+        tx.buyerUserId,
+        "Rappel réception",
+        "Avez-vous bien reçu vos animaux ? Confirmez la réception.",
+        { type: "marketplace_remind_buyer_receipt", transactionId: tx.id }
+      );
+    }
+    return { vendor, buyer };
+  }
+
+  async handleAutoDeliveryDisputes(): Promise<number> {
+    const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    const rows = await this.prisma.marketplaceTransaction.findMany({
+      where: {
+        status: MarketplaceTransactionStatus.SELLER_SHIPPED,
+        sellerShippedAt: { lte: cutoff }
+      }
+    });
+    for (const tx of rows) {
+      const now = new Date();
+      await this.prisma.$transaction([
+        this.prisma.marketplaceTransaction.update({
+          where: { id: tx.id },
+          data: { status: MarketplaceTransactionStatus.DELIVERY_DISPUTED }
+        }),
+        this.prisma.marketplaceListing.update({
+          where: { id: tx.listingId },
+          data: { status: ListingStatus.disputed, disputedAt: now }
+        }),
+        this.prisma.marketplaceDeliveryDispute.create({
+          data: {
+            listingId: tx.listingId,
+            offerId: tx.offerId,
+            transactionId: tx.id,
+            raisedByUserId: tx.buyerUserId,
+            disputeType: "Délai dépassé",
+            description:
+              "Aucune confirmation de réception dans les 14 jours suivant l'envoi.",
+            photoUrls: []
+          }
+        })
+      ]);
+      void this.push.sendToUser(
+        tx.sellerUserId,
+        "Litige automatique",
+        "Délai de confirmation de réception dépassé.",
+        { type: "marketplace_delivery_disputed", transactionId: tx.id }
+      );
+      void this.push.sendToUser(
+        tx.buyerUserId,
+        "Litige automatique",
+        "Délai de confirmation de réception dépassé.",
+        { type: "marketplace_delivery_disputed", transactionId: tx.id }
+      );
+    }
+    return rows.length;
+  }
+
+  private listingAnimalIds(
+    listing: Pick<
+      Prisma.MarketplaceListingGetPayload<object>,
+      "animalId" | "animalIds"
+    >
+  ): string[] {
+    const raw = listing.animalIds;
+    const fromJson = Array.isArray(raw)
+      ? raw.filter((v): v is string => typeof v === "string")
+      : [];
+    if (listing.animalId && !fromJson.includes(listing.animalId)) {
+      return [listing.animalId, ...fromJson];
+    }
+    return fromJson;
+  }
+
   async declareWeight(
     user: User,
     transactionId: string,
@@ -328,11 +1216,10 @@ export class MarketplaceTransactionService {
     photoUrl?: string
   ) {
     const tx = await this.requireBuyer(transactionId, user.id);
-    if (
-      tx.status !== MarketplaceTransactionStatus.PICKUP_SCHEDULED &&
-      tx.status !== MarketplaceTransactionStatus.PAYMENT_HELD
-    ) {
-      throw new BadRequestException("Déclaration de poids impossible");
+    if (tx.status !== MarketplaceTransactionStatus.BUYER_RECEIVED) {
+      throw new BadRequestException(
+        "Le poids réel ne peut être déclaré qu'après confirmation de réception"
+      );
     }
     if (!Number.isFinite(realWeightKg) || realWeightKg <= 0) {
       throw new BadRequestException("Poids invalide");
@@ -368,6 +1255,10 @@ export class MarketplaceTransactionService {
         weightValidatedBy: WeightValidatedBy.seller
       }
     });
+    if (tx.isCredit) {
+      await this.creditOffers.onCreditWeightValidated(tx.id);
+      return this.getById(user, tx.id);
+    }
     await this.settleTransaction(tx.id);
     return this.getById(user, tx.id);
   }
@@ -428,8 +1319,81 @@ export class MarketplaceTransactionService {
         weightValidatedBy: WeightValidatedBy.superadmin
       }
     });
-    await this.settleTransaction(tx.id);
+    if (tx.isCredit) {
+      await this.creditOffers.onCreditWeightValidated(tx.id);
+    } else {
+      await this.settleTransaction(tx.id);
+    }
     return { ok: true };
+  }
+
+  /** Clôture escrow crédit après paiement du solde (avance + solde sur plateforme). */
+  async settleCreditTransaction(transactionId: string): Promise<void> {
+    const lockKey = `settle-credit:${transactionId}`;
+    await this.prisma.$executeRaw`SELECT pg_advisory_lock(hashtext(${lockKey}))`;
+    try {
+      const tx = await this.prisma.marketplaceTransaction.findUnique({
+        where: { id: transactionId },
+        include: { listing: true, offer: true }
+      });
+      if (!tx?.isCredit || !tx.offer) {
+        return;
+      }
+      if (tx.status === MarketplaceTransactionStatus.TRANSACTION_CLOSED) {
+        return;
+      }
+      const advanceHeld = Number(tx.blockedAmount);
+      const balancePaid = Number(tx.offer.balancePaidAmount ?? 0);
+      const totalHeld = advanceHeld + balancePaid;
+      const finalAmount =
+        tx.finalAmount != null
+          ? Number(tx.finalAmount)
+          : calculateFinalAmount(tx);
+      const rate = Number(tx.commissionRate);
+      const amounts = settlementAmounts({
+        blockedAmount: totalHeld,
+        finalAmount,
+        commissionRate: rate
+      });
+
+      if (amounts.buyerRefundAmount > 0) {
+        await this.escrow.refundBuyer(
+          tx.id,
+          tx.buyerUserId,
+          amounts.buyerRefundAmount,
+          tx.currency,
+          tx.paymentProviderRef
+        );
+      }
+
+      await this.escrow.releaseFundsToSeller(
+        tx.id,
+        tx.sellerUserId,
+        amounts.sellerReceivedAmount,
+        tx.currency
+      );
+      await this.escrow.collectCommission(
+        tx.id,
+        amounts.commissionAmount,
+        tx.currency
+      );
+
+      await this.prisma.marketplaceTransaction.update({
+        where: { id: transactionId },
+        data: {
+          status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
+          closedAt: new Date(),
+          finalAmount: new Prisma.Decimal(finalAmount),
+          commissionAmount: new Prisma.Decimal(amounts.commissionAmount),
+          sellerReceivedAmount: new Prisma.Decimal(amounts.sellerReceivedAmount),
+          buyerRefundAmount: new Prisma.Decimal(amounts.buyerRefundAmount),
+          buyerAdditionalCharge: new Prisma.Decimal(amounts.buyerAdditionalCharge)
+        }
+      });
+      void this.receipts.generateReceipt(transactionId);
+    } finally {
+      await this.prisma.$executeRaw`SELECT pg_advisory_unlock(hashtext(${lockKey}))`;
+    }
   }
 
   async cancelByBuyer(user: User, transactionId: string) {
@@ -437,8 +1401,11 @@ export class MarketplaceTransactionService {
     if (!CANCELLABLE_BY_BUYER.includes(tx.status)) {
       throw new BadRequestException("Annulation impossible à ce stade");
     }
-    if (tx.status === MarketplaceTransactionStatus.PAYMENT_HELD ||
-        tx.status === MarketplaceTransactionStatus.PICKUP_SCHEDULED) {
+    if (
+      tx.status === MarketplaceTransactionStatus.PAYMENT_HELD ||
+      tx.status === MarketplaceTransactionStatus.PICKUP_SCHEDULED ||
+      tx.status === MarketplaceTransactionStatus.SELLER_SHIPPED
+    ) {
       await this.escrow.refundBuyer(
         tx.id,
         tx.buyerUserId,
@@ -453,6 +1420,24 @@ export class MarketplaceTransactionService {
       data: {
         status: MarketplaceTransactionStatus.CANCELLED_BY_BUYER,
         cancelledAt: new Date()
+      }
+    });
+    await this.prisma.marketplaceListing.updateMany({
+      where: {
+        id: tx.listingId,
+        status: {
+          in: [
+            ListingStatus.reserved,
+            ListingStatus.shipped,
+            ListingStatus.delivered
+          ]
+        }
+      },
+      data: {
+        status: ListingStatus.published,
+        reservedForBuyerUserId: null,
+        shippedAt: null,
+        deliveredAt: null
       }
     });
     const listing = await this.prisma.marketplaceListing.findUnique({
@@ -542,6 +1527,16 @@ export class MarketplaceTransactionService {
         where: { id: tx.offerId },
         data: { status: OfferStatus.rejected }
       });
+      await this.prisma.marketplaceListing.updateMany({
+        where: {
+          id: tx.listingId,
+          status: ListingStatus.reserved
+        },
+        data: {
+          status: ListingStatus.published,
+          reservedForBuyerUserId: null
+        }
+      });
       void this.push.sendToUser(
         tx.buyerUserId,
         "Offre expirée",
@@ -601,6 +1596,9 @@ export class MarketplaceTransactionService {
         return;
       }
       if (tx.status !== MarketplaceTransactionStatus.WEIGHT_VALIDATED) {
+        return;
+      }
+      if (tx.isCredit) {
         return;
       }
 
@@ -730,10 +1728,21 @@ export class MarketplaceTransactionService {
         }
       }
 
+      await this.prisma.marketplaceOffer.update({
+        where: { id: tx.offerId },
+        data: { status: OfferStatus.completed, completedAt: new Date() }
+      });
+
       await this.prisma.marketplaceListing.update({
         where: { id: tx.listingId },
-        data: { status: ListingStatus.sold, activeOfferCount: 0 }
+        data: {
+          status: ListingStatus.sold,
+          activeOfferCount: 0,
+          reservedForBuyerUserId: null
+        }
       });
+
+      await this.routePostCloseBuyerTransfer(tx);
 
       await this.refundOtherHeldTransactions(tx.listingId, tx.id);
 
@@ -759,6 +1768,70 @@ export class MarketplaceTransactionService {
     } finally {
       await this.prisma.$executeRaw`SELECT pg_advisory_unlock(hashtext(${lockKey}))`;
     }
+  }
+
+  private async routePostCloseBuyerTransfer(
+    tx: Prisma.MarketplaceTransactionGetPayload<{
+      include: { listing: true; offer: true };
+    }>
+  ): Promise<void> {
+    const profile = await this.buyerProfiles.detect(
+      tx.buyerUserId,
+      tx.offer.buyerFarmId
+    );
+    const animalIds = this.listingAnimalIds(tx.listing);
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    if (profile.kind === "PLATFORM_USER_WITH_FARM") {
+      await this.prisma.marketplacePendingTransfer.create({
+        data: {
+          transactionId: tx.id,
+          buyerUserId: tx.buyerUserId,
+          buyerFarmId: profile.buyerFarmId,
+          animalIds,
+          expiresAt
+        }
+      });
+      void this.push.sendToUser(
+        tx.buyerUserId,
+        "🐷 Vos animaux sont prêts",
+        "La transaction est close. Vos animaux vont être ajoutés à votre cheptel.",
+        {
+          type: "marketplace_pending_transfer",
+          transactionId: tx.id,
+          ...(profile.buyerFarmId
+            ? { buyerFarmId: profile.buyerFarmId }
+            : {})
+        }
+      );
+      return;
+    }
+
+    if (profile.kind === "PLATFORM_USER_WITHOUT_FARM") {
+      await this.prisma.marketplacePendingTransfer.create({
+        data: {
+          transactionId: tx.id,
+          buyerUserId: tx.buyerUserId,
+          buyerFarmId: null,
+          animalIds,
+          expiresAt
+        }
+      });
+      void this.push.sendToUser(
+        tx.buyerUserId,
+        "🐷 Finalisez votre cheptel",
+        "La transaction est close. Créez ou rejoignez une ferme pour récupérer vos animaux.",
+        { type: "marketplace_pending_transfer_onboarding", transactionId: tx.id }
+      );
+      return;
+    }
+
+    void this.push.sendToUser(
+      tx.buyerUserId,
+      "✅ Achat confirmé",
+      "Votre achat est confirmé.",
+      { type: "marketplace_transaction_closed_buyer", transactionId: tx.id }
+    );
   }
 
   private async refundOtherHeldTransactions(
@@ -834,19 +1907,45 @@ export class MarketplaceTransactionService {
     return tx;
   }
 
+  private serializePendingTransfer(
+    pending: Prisma.MarketplacePendingTransferGetPayload<object>
+  ) {
+    return {
+      id: pending.id,
+      transactionId: pending.transactionId,
+      buyerFarmId: pending.buyerFarmId,
+      animalIds: Array.isArray(pending.animalIds)
+        ? pending.animalIds.filter((v): v is string => typeof v === "string")
+        : [],
+      expiresAt: pending.expiresAt.toISOString(),
+      completedAt: pending.completedAt?.toISOString() ?? null,
+      cancelledAt: pending.cancelledAt?.toISOString() ?? null,
+      createdAt: pending.createdAt.toISOString()
+    };
+  }
+
   private serialize(
     tx: Awaited<
       ReturnType<PrismaService["marketplaceTransaction"]["findUnique"]>
     > & {
-      listing?: { id: string; title: string; category: string | null };
+      listing?: {
+        id: string;
+        title: string;
+        category: string | null;
+        status?: ListingStatus;
+        animalId?: string | null;
+        animalIds?: Prisma.JsonValue;
+      };
       receipt?: {
         id: string;
         receiptNumber: string;
         generatedAt: Date;
       } | null;
+      pendingTransfers?: Prisma.MarketplacePendingTransferGetPayload<object>[];
     }
   ) {
     if (!tx) return null;
+    const pending = tx.pendingTransfers?.[0] ?? null;
     return {
       id: tx.id,
       listingId: tx.listingId,
@@ -865,6 +1964,26 @@ export class MarketplaceTransactionService {
       realWeightKg: tx.realWeightKg ? Number(tx.realWeightKg) : null,
       pickupDate: tx.pickupDate?.toISOString().slice(0, 10) ?? null,
       pickupLocation: tx.pickupLocation,
+      sellerShippedAt: tx.sellerShippedAt?.toISOString() ?? null,
+      shipmentMethod: tx.shipmentMethod,
+      shipmentNotes: tx.shipmentNotes,
+      buyerReceivedAt: tx.buyerReceivedAt?.toISOString() ?? null,
+      receiptCondition: tx.receiptCondition,
+      receiptNotes: tx.receiptNotes,
+      receivedAnimalIds: Array.isArray(tx.receivedAnimalIds)
+        ? tx.receivedAnimalIds.filter((v): v is string => typeof v === "string")
+        : [],
+      listingStatus:
+        tx.listing && "status" in tx.listing ? tx.listing.status ?? null : null,
+      listingAnimalIds:
+        tx.listing && "animalIds" in tx.listing
+          ? this.listingAnimalIds(
+              tx.listing as Pick<
+                Prisma.MarketplaceListingGetPayload<object>,
+                "animalId" | "animalIds"
+              >
+            )
+          : [],
       currency: tx.currency,
       offerExpiresAt: tx.offerExpiresAt.toISOString(),
       listingTitle: tx.listing?.title ?? null,
@@ -875,7 +1994,9 @@ export class MarketplaceTransactionService {
             receiptNumber: tx.receipt.receiptNumber,
             generatedAt: tx.receipt.generatedAt.toISOString()
           }
-        : null
+        : null,
+      pendingTransfer: pending ? this.serializePendingTransfer(pending) : null,
+      isCredit: tx.isCredit ?? false
     };
   }
 
@@ -886,7 +2007,16 @@ export class MarketplaceTransactionService {
       },
       orderBy: { updatedAt: "desc" },
       include: {
-        listing: { select: { id: true, title: true, category: true } }
+        listing: {
+          select: {
+            id: true,
+            title: true,
+            category: true,
+            status: true,
+            animalId: true,
+            animalIds: true
+          }
+        }
       },
       take: 100
     });
@@ -898,6 +2028,9 @@ export class MarketplaceTransactionService {
     const heldStatuses = [
       MarketplaceTransactionStatus.PAYMENT_HELD,
       MarketplaceTransactionStatus.PICKUP_SCHEDULED,
+      MarketplaceTransactionStatus.SELLER_SHIPPED,
+      MarketplaceTransactionStatus.BUYER_RECEIVED,
+      MarketplaceTransactionStatus.DELIVERY_DISPUTED,
       MarketplaceTransactionStatus.WEIGHT_DECLARED,
       MarketplaceTransactionStatus.WEIGHT_DISPUTED,
       MarketplaceTransactionStatus.WEIGHT_VALIDATED
@@ -1055,15 +2188,59 @@ export class MarketplaceTransactionService {
   }
 
   async listDisputesForAdmin() {
-    return this.prisma.marketplaceTransaction.findMany({
-      where: { status: MarketplaceTransactionStatus.WEIGHT_DISPUTED },
-      orderBy: { weightDisputeOpenedAt: "asc" },
-      include: {
-        listing: { select: { title: true } },
-        buyer: { select: { fullName: true, email: true } },
-        seller: { select: { fullName: true, email: true } }
-      }
-    });
+    const [weightDisputes, deliveryDisputes] = await Promise.all([
+      this.prisma.marketplaceTransaction.findMany({
+        where: { status: MarketplaceTransactionStatus.WEIGHT_DISPUTED },
+        orderBy: { weightDisputeOpenedAt: "asc" },
+        include: {
+          listing: { select: { title: true } },
+          buyer: { select: { fullName: true, email: true } },
+          seller: { select: { fullName: true, email: true } }
+        }
+      }),
+      this.prisma.marketplaceDeliveryDispute.findMany({
+        where: { status: MarketplaceDeliveryDisputeStatus.open },
+        orderBy: { createdAt: "asc" },
+        include: {
+          transaction: {
+            include: {
+              listing: { select: { title: true } },
+              buyer: { select: { fullName: true, email: true } },
+              seller: { select: { fullName: true, email: true } }
+            }
+          }
+        }
+      })
+    ]);
+
+    return [
+      ...weightDisputes.map((tx) => ({
+        kind: "weight" as const,
+        id: tx.id,
+        transactionId: tx.id,
+        listingTitle: tx.listing.title,
+        buyerName: tx.buyer.fullName,
+        buyerEmail: tx.buyer.email,
+        sellerName: tx.seller.fullName,
+        sellerEmail: tx.seller.email,
+        status: tx.status,
+        openedAt: tx.weightDisputeOpenedAt?.toISOString() ?? null
+      })),
+      ...deliveryDisputes.map((d) => ({
+        kind: "delivery" as const,
+        id: d.id,
+        transactionId: d.transactionId,
+        listingTitle: d.transaction.listing.title,
+        buyerName: d.transaction.buyer.fullName,
+        buyerEmail: d.transaction.buyer.email,
+        sellerName: d.transaction.seller.fullName,
+        sellerEmail: d.transaction.seller.email,
+        disputeType: d.disputeType,
+        description: d.description,
+        status: d.status,
+        openedAt: d.createdAt.toISOString()
+      }))
+    ];
   }
 
   async listForAdmin(status?: string) {

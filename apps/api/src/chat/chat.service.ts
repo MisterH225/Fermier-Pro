@@ -19,6 +19,7 @@ import {
   parseMarketplaceOfferMessageBody,
   type MarketplaceOfferChatPayload
 } from "./chat-offer-message";
+import { ChatPhoneSecurityService } from "./chat-phone-security.service";
 
 function directKeyForPair(userIdA: string, userIdB: string): string {
   return [userIdA, userIdB].sort().join("_");
@@ -59,7 +60,8 @@ type RoomWithListInclude = Prisma.ChatRoomGetPayload<{
 export class ChatService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly farmAccess: FarmAccessService
+    private readonly farmAccess: FarmAccessService,
+    private readonly phoneSecurity: ChatPhoneSecurityService
   ) {}
 
   async assertRoomMember(userId: string, roomId: string) {
@@ -369,11 +371,22 @@ export class ChatService {
       throw new BadRequestException("Message vide");
     }
     await this.assertRoomMember(senderId, roomId);
+    const room = await this.prisma.chatRoom.findUnique({
+      where: { id: roomId },
+      select: { farmId: true }
+    });
+    const sanitized = await this.phoneSecurity.sanitizeMessageText(
+      senderId,
+      room?.farmId ?? null,
+      trimmed
+    );
     return this.prisma.chatMessage.create({
       data: {
         roomId,
         senderUserId: senderId,
-        body: trimmed
+        body: sanitized.body,
+        wasModified: sanitized.wasModified,
+        modificationType: sanitized.modificationType ?? undefined
       },
       include: {
         sender: { select: { id: true, fullName: true } }

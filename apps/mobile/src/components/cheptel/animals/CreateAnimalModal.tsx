@@ -8,10 +8,10 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View
 } from "react-native";
 import { AppDatePicker } from "../../common/AppDatePicker";
+import { AppTextField } from "../../common/AppTextField";
 import { BaseModal } from "../../modals/BaseModal";
 import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
@@ -355,12 +355,11 @@ export function CreateAnimalModal({
           ))}
         </View>
 
-        <Text style={styles.label}>{t("cheptel.animals.create.tag")} *</Text>
         {nextTagQuery.isPending ? (
           <ActivityIndicator color={mobileColors.accent} />
         ) : (
-          <TextInput
-            style={styles.input}
+          <AppTextField
+            label={`${t("cheptel.animals.create.tag")} *`}
             value={tagCode}
             onChangeText={setTagCode}
             autoCapitalize="characters"
@@ -433,30 +432,25 @@ export function CreateAnimalModal({
             <Text style={styles.hint}>
               {t("cheptel.animals.create.ageAtEntryHelper")}
             </Text>
-            <TextInput
-              style={styles.input}
+            <AppTextField
               value={ageAtEntry}
               onChangeText={setAgeAtEntry}
               keyboardType="number-pad"
               placeholder="8"
-              placeholderTextColor={mobileColors.textSecondary}
             />
           </>
         ) : null}
 
-        <Text style={styles.label}>{t("cheptel.animals.create.entryWeight")}</Text>
-        <TextInput
-          style={styles.input}
+        <AppTextField
+          label={t("cheptel.animals.create.entryWeight")}
           value={entryWeight}
           onChangeText={setEntryWeight}
           keyboardType="decimal-pad"
           placeholder="kg"
-          placeholderTextColor={mobileColors.textSecondary}
         />
 
-        <Text style={styles.label}>{t("cheptel.animals.create.notes")}</Text>
-        <TextInput
-          style={[styles.input, styles.multiline]}
+        <AppTextField
+          label={t("cheptel.animals.create.notes")}
           value={notes}
           onChangeText={setNotes}
           multiline
@@ -482,17 +476,6 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary,
     fontStyle: "italic"
   },
-  input: {
-    borderWidth: 1,
-    borderColor: mobileColors.border,
-    borderRadius: mobileRadius.md,
-    paddingHorizontal: mobileSpacing.md,
-    paddingVertical: 10,
-    ...mobileTypography.body,
-    color: mobileColors.textPrimary,
-    backgroundColor: mobileColors.background
-  },
-  multiline: { minHeight: 72, textAlignVertical: "top" },
   pillRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   pill: {
     paddingHorizontal: 12,
