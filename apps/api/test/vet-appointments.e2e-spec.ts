@@ -122,6 +122,68 @@ describeOrSkip("RDV vétérinaire escrow (e2e)", () => {
     expect(vetProfile.completedAppointments).toBeGreaterThanOrEqual(1);
   });
 
+  it("vétérinaire refuse une demande → APPOINTMENT_REFUSED", async () => {
+    const scheduledAt = futureIso(6);
+
+    const createRes = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/vet-appointments`)
+      .set("Authorization", `Bearer ${ctx.producerToken}`)
+      .send({
+        vetProfileId: ctx.vetProfileId,
+        scheduledAt,
+        reason: "Visite à refuser"
+      });
+
+    expect(createRes.status).toBe(201);
+    const appointmentId = createRes.body.id as string;
+
+    const refuseRes = await request(app.getHttpServer())
+      .post(`/api/v1/vet-appointments/${appointmentId}/refuse`)
+      .set("Authorization", `Bearer ${ctx.vetToken}`)
+      .set("X-Profile-Id", ctx.veterinarianProfileId)
+      .send({ refusalReason: "Indisponible e2e" });
+
+    expect(refuseRes.status).toBe(201);
+    expect(refuseRes.body.status).toBe("APPOINTMENT_REFUSED");
+
+    const row = await ctx.prisma.vetAppointment.findUniqueOrThrow({
+      where: { id: appointmentId }
+    });
+    expect(row.status).toBe(VetAppointmentStatus.APPOINTMENT_REFUSED);
+    expect(row.refusalReason).toBe("Indisponible e2e");
+  });
+
+  it("paiement sans devis accepté → 400", async () => {
+    const scheduledAt = futureIso(11);
+
+    const createRes = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/vet-appointments`)
+      .set("Authorization", `Bearer ${ctx.producerToken}`)
+      .send({
+        vetProfileId: ctx.vetProfileId,
+        scheduledAt,
+        reason: "Sans acceptation véto"
+      });
+
+    expect(createRes.status).toBe(201);
+    const appointmentId = createRes.body.id as string;
+    expect(createRes.body.status).toBe("APPOINTMENT_REQUESTED");
+
+    const initRes = await request(app.getHttpServer())
+      .post(`/api/v1/vet-appointments/${appointmentId}/payment/initiate`)
+      .set("Authorization", `Bearer ${ctx.producerToken}`);
+
+    expect(initRes.status).toBe(400);
+
+    const acceptInvalidRes = await request(app.getHttpServer())
+      .post(`/api/v1/vet-appointments/${appointmentId}/accept`)
+      .set("Authorization", `Bearer ${ctx.vetToken}`)
+      .set("X-Profile-Id", ctx.veterinarianProfileId)
+      .send({ servicePrice: 0, confirmedAt: scheduledAt });
+
+    expect(acceptInvalidRes.status).toBe(400);
+  });
+
   it("une demande en attente ne bloque pas le calendrier véto", async () => {
     const scheduledAt = futureIso(9);
 

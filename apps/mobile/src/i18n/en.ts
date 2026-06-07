@@ -1529,6 +1529,7 @@ export const en = {
       title: "Vet appointments",
       payNow: "Pay now",
       confirmService: "Confirm service",
+      waitingForVet: "Waiting for veterinarian",
       vetFallback: "Veterinarian"
     },
     welcomeLine: "Welcome",
@@ -1713,6 +1714,7 @@ export const en = {
     revokeConfirmTitle: "Revoke access?",
     revokeConfirmBody: "{{name}} will immediately lose all access.",
     revokeConfirmAction: "Revoke",
+    revokeSuccess: "Access revoked successfully",
     historyTitle: "Action history",
     historyEmpty: "No actions recorded yet.",
     historyShowMore: "Show more",

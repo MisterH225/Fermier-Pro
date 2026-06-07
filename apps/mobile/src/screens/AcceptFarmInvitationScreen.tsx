@@ -78,6 +78,7 @@ export function AcceptFarmInvitationScreen({ route, navigation }: Props) {
     onSuccess: (res) => {
       void qc.invalidateQueries({ queryKey: ["farms", activeProfileId] });
       void qc.invalidateQueries({ queryKey: ["farm"] });
+      void qc.invalidateQueries({ queryKey: ["vetDashboard"] });
       Alert.alert(
         res.alreadyMember ? t("invite.alreadyMemberTitle") : t("invite.welcomeTitle"),
         res.alreadyMember

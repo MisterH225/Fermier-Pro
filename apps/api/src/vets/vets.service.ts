@@ -1007,9 +1007,7 @@ export class VetsService {
       allFarmIds,
       FARM_SCOPE.tasksRead
     );
-    const followedFarmIds = [
-      ...new Set([...healthFarmIds, ...vetFarmIds, ...tasksFarmIds])
-    ];
+    const farmsFollowedCount = memberships.length;
     const monthStart = new Date();
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
@@ -1228,7 +1226,7 @@ export class VetsService {
 
     return {
       kpis: {
-        farmsFollowed: followedFarmIds.length,
+        farmsFollowed: farmsFollowedCount,
         visitsThisMonth,
         healthAlerts,
         pendingTasks
@@ -1237,7 +1235,7 @@ export class VetsService {
       assignedFarms,
       recentActivity,
       stats: {
-        farmsFollowed: followedFarmIds.length,
+        farmsFollowed: farmsFollowedCount,
         visitsCompleted,
         averageRating: vetRow.ratingAvg ? Number(vetRow.ratingAvg) : null
       }

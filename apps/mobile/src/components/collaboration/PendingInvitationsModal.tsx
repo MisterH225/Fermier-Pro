@@ -62,6 +62,7 @@ export function PendingInvitationsModal({ visible, onClose }: Props) {
       void qc.invalidateQueries({ queryKey: ["farms", activeProfileId] });
       void qc.invalidateQueries({ queryKey: ["farm"] });
       void qc.invalidateQueries({ queryKey: ["farmMembers"] });
+      void qc.invalidateQueries({ queryKey: ["vetDashboard"] });
       if (vars.accept) {
         Alert.alert("", t("collab.pendingInvitations.acceptedToast"));
       }

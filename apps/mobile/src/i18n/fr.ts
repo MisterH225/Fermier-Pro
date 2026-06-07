@@ -1572,6 +1572,7 @@ export const fr = {
       title: "Rendez-vous vétérinaire",
       payNow: "Payer maintenant",
       confirmService: "Confirmer la prestation",
+      waitingForVet: "En attente du vétérinaire",
       vetFallback: "Vétérinaire"
     },
     welcomeLine: "Bienvenue",
@@ -1757,6 +1758,7 @@ export const fr = {
     revokeConfirmTitle: "Révoquer les accès ?",
     revokeConfirmBody: "{{name}} perdra tous ses accès immédiatement.",
     revokeConfirmAction: "Révoquer",
+    revokeSuccess: "Accès révoqué avec succès",
     historyTitle: "Historique des actions",
     historyEmpty: "Aucune action enregistrée.",
     historyShowMore: "Voir plus",
