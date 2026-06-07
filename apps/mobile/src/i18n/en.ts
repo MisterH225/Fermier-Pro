@@ -2812,6 +2812,17 @@ export const en = {
       freq: { immediate: "Immediate", daily: "Daily" }
     }
   },
+  chat: {
+    inputPlaceholder: "Your message…",
+    phoneWarning: {
+      realtime:
+        "Phone numbers are automatically masked for your security.",
+      masked: "Phone number masked automatically for your protection.",
+      imageBlocked:
+        "This image appears to contain a phone number and cannot be sent.",
+      analyzing: "Security check…"
+    }
+  },
   techOnboarding: {
     sectionIdentity: "Identity",
     sectionFormation: "Training",
