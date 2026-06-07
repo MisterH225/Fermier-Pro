@@ -706,10 +706,12 @@ export function MarketplaceListingDetailScreen({
           </Text>
         ) : null}
         {isButcherListing ? (
-          <CreditScoreBadge
-            score={creditScoreQ.data}
-            prefix={t("marketScreen.creditModal.yourScore")}
-          />
+          <Pressable onPress={() => navigation.navigate("CreditDashboard")}>
+            <CreditScoreBadge
+              score={creditScoreQ.data}
+              prefix={t("marketScreen.creditModal.yourScore")}
+            />
+          </Pressable>
         ) : null}
         {L.status === "published" && L.sellerUserId ? (
           <SecondaryButton
