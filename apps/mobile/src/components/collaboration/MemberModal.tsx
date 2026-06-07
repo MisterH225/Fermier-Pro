@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -45,7 +45,15 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
   const { open } = useModal();
 
   const [editMode, setEditMode] = useState(false);
+  const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false);
   const [permissions, setPermissions] = useState<InvitationPermissions>({});
+
+  useEffect(() => {
+    if (!visible) {
+      setEditMode(false);
+      setRevokeConfirmOpen(false);
+    }
+  }, [visible]);
 
   const startEdit = () => {
     if (!member) return;
@@ -93,15 +101,19 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
         queryKey: ["farmPendingInvitations", farmId]
       });
       void qc.invalidateQueries({ queryKey: ["farmActivityLogs", farmId] });
+      setRevokeConfirmOpen(false);
       onClose();
       setTimeout(() => {
         open("success", {
           message: t("collab.revokeSuccess"),
           autoDismissMs: 2200
         });
-      }, 300);
+      }, 320);
     },
-    onError: (e: Error) => Alert.alert("", e.message)
+    onError: (e: Error) => {
+      setRevokeConfirmOpen(false);
+      Alert.alert("", e.message);
+    }
   });
 
   if (!member) return null;
@@ -109,20 +121,6 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
   const displayName =
     member.user.fullName?.trim() || member.user.email || "—";
 
-  const openRevokeConfirm = () => {
-    Alert.alert(
-      t("collab.revokeConfirmTitle"),
-      t("collab.revokeConfirmBody", { name: displayName }),
-      [
-        { text: t("modals.confirmDelete.cancel"), style: "cancel" },
-        {
-          text: t("collab.revokeConfirmAction"),
-          style: "destructive",
-          onPress: () => revokeMut.mutate()
-        }
-      ]
-    );
-  };
   const badgeColor = ROLE_BADGE_COLOR[member.role] ?? mobileColors.textSecondary;
   const roleLabel = ROLE_DISPLAY_FR[member.role] ?? member.role;
   const currentPerms = scopesToPermissions(member.scopes ?? []);
@@ -224,15 +222,52 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
         ) : null}
 
         {!isOwner ? (
-          <Pressable
-            onPress={openRevokeConfirm}
-            disabled={revokeMut.isPending}
-            style={[styles.revokeBtn, revokeMut.isPending && styles.btnDisabled]}
-            accessibilityRole="button"
-          >
-            <Ionicons name="ban-outline" size={16} color={mobileColors.error} />
-            <Text style={styles.revokeBtnTxt}>{t("collab.revokeAccess")}</Text>
-          </Pressable>
+          revokeConfirmOpen ? (
+            <View style={styles.revokeConfirmBox}>
+              <Text style={styles.revokeConfirmTitle}>
+                {t("collab.revokeConfirmTitle")}
+              </Text>
+              <Text style={styles.revokeConfirmBody}>
+                {t("collab.revokeConfirmBody", { name: displayName })}
+              </Text>
+              <View style={styles.revokeConfirmRow}>
+                <Pressable
+                  onPress={() => setRevokeConfirmOpen(false)}
+                  disabled={revokeMut.isPending}
+                  style={[styles.revokeCancelBtn, revokeMut.isPending && styles.btnDisabled]}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.revokeCancelTxt}>
+                    {t("modals.confirmDelete.cancel")}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => revokeMut.mutate()}
+                  disabled={revokeMut.isPending}
+                  style={[styles.revokeConfirmBtn, revokeMut.isPending && styles.btnDisabled]}
+                  accessibilityRole="button"
+                >
+                  {revokeMut.isPending ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.revokeConfirmTxt}>
+                      {t("collab.revokeConfirmAction")}
+                    </Text>
+                  )}
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <Pressable
+              onPress={() => setRevokeConfirmOpen(true)}
+              disabled={revokeMut.isPending}
+              style={[styles.revokeBtn, revokeMut.isPending && styles.btnDisabled]}
+              accessibilityRole="button"
+            >
+              <Ionicons name="ban-outline" size={16} color={mobileColors.error} />
+              <Text style={styles.revokeBtnTxt}>{t("collab.revokeAccess")}</Text>
+            </Pressable>
+          )
         ) : null}
     </BaseModal>
   );
@@ -354,5 +389,55 @@ const styles = StyleSheet.create({
   },
   btnDisabled: {
     opacity: 0.5
+  },
+  revokeConfirmBox: {
+    borderRadius: mobileRadius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.error,
+    backgroundColor: "rgba(214, 69, 69, 0.06)",
+    padding: mobileSpacing.md,
+    gap: mobileSpacing.sm
+  },
+  revokeConfirmTitle: {
+    ...mobileTypography.cardTitle,
+    fontSize: 16,
+    color: mobileColors.error
+  },
+  revokeConfirmBody: {
+    ...mobileTypography.body,
+    fontSize: 14,
+    color: mobileColors.textSecondary
+  },
+  revokeConfirmRow: {
+    flexDirection: "row",
+    gap: mobileSpacing.sm,
+    marginTop: mobileSpacing.xs
+  },
+  revokeCancelBtn: {
+    flex: 1,
+    paddingVertical: mobileSpacing.md,
+    borderRadius: mobileRadius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.border,
+    alignItems: "center"
+  },
+  revokeCancelTxt: {
+    ...mobileTypography.body,
+    fontWeight: "600",
+    color: mobileColors.textPrimary
+  },
+  revokeConfirmBtn: {
+    flex: 1,
+    paddingVertical: mobileSpacing.md,
+    borderRadius: mobileRadius.md,
+    backgroundColor: mobileColors.error,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 48
+  },
+  revokeConfirmTxt: {
+    ...mobileTypography.body,
+    fontWeight: "700",
+    color: "#fff"
   }
 });
