@@ -3021,6 +3021,17 @@ export const fr = {
       freq: { immediate: "Immédiat", daily: "Quotidien" }
     }
   },
+  chat: {
+    inputPlaceholder: "Votre message…",
+    phoneWarning: {
+      realtime:
+        "Les numéros de téléphone sont automatiquement masqués pour votre sécurité.",
+      masked: "Numéro masqué automatiquement pour votre protection.",
+      imageBlocked:
+        "Cette image semble contenir un numéro de téléphone et ne peut pas être envoyée.",
+      analyzing: "Vérification sécurité…"
+    }
+  },
   techOnboarding: {
     sectionIdentity: "Identité",
     sectionFormation: "Formation",

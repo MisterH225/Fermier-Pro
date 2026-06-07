@@ -141,6 +141,7 @@ model User {
   farmMarketRatingsGiven FarmMarketRating[] @relation("FarmMarketRatingAuthor")
   chatRoomMemberships ChatRoomMember[]
   chatMessagesSent    ChatMessage[]
+  chatSecurityEvents  ChatSecurityEvent[]
   auditLogs           AuditLog[]
   vetProfile            VetProfile?
   vetRatingsAuthored    VetRating[] @relation("VetRatingAuthor")
@@ -300,6 +301,7 @@ model Farm {
   livestockExits    LivestockExit[] @relation("ExitOriginFarm")
   transfersReceived LivestockExit[] @relation("ExitTransferDestinationFarm")
   chatRoom          ChatRoom?
+  chatSecurityEvents ChatSecurityEvent[]
   auditLogs         AuditLog[]
   feedTypes             FeedType[]
   feedStockMovements  FeedStockMovement[]
@@ -1909,6 +1911,17 @@ enum ChatRoomKind {
   direct
 }
 
+enum ChatMessageModificationType {
+  phone_masked
+  image_blocked
+}
+
+enum ChatSecurityEventType {
+  phone_masked_in_text
+  image_blocked_phone
+  alphabetic_phone_attempt
+}
+
 model ChatRoom {
   id                    String              @id @default(cuid())
   kind                  ChatRoomKind
@@ -1942,15 +1955,32 @@ model ChatRoomMember {
 }
 
 model ChatMessage {
-  id           String   @id @default(cuid())
-  roomId       String
-  room         ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  senderUserId String
-  sender       User     @relation(fields: [senderUserId], references: [id], onDelete: Restrict)
-  body         String
-  createdAt    DateTime @default(now())
+  id               String                        @id @default(cuid())
+  roomId           String
+  room             ChatRoom                      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  senderUserId     String
+  sender           User                          @relation(fields: [senderUserId], references: [id], onDelete: Restrict)
+  body             String
+  wasModified      Boolean                       @default(false)
+  modificationType ChatMessageModificationType?
+  createdAt        DateTime                      @default(now())
 
   @@index([roomId, createdAt])
+}
+
+model ChatSecurityEvent {
+  id        String                @id @default(cuid())
+  userId    String
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  farmId    String?
+  farm      Farm?                 @relation(fields: [farmId], references: [id], onDelete: SetNull)
+  eventType ChatSecurityEventType
+  context   Json?
+  createdAt DateTime              @default(now())
+
+  @@index([userId, createdAt])
+  @@index([eventType, createdAt])
+  @@index([farmId])
 }
 
 /// Alerte / recommandation métier persistée (SmartAlerts — règles serveur).

@@ -261,8 +261,15 @@ export type ChatMessageDto = {
   roomId: string;
   senderUserId: string;
   body: string;
+  wasModified?: boolean;
+  modificationType?: "phone_masked" | "image_blocked" | null;
   createdAt: string;
   sender: ChatSenderPreview;
+};
+
+export type ChatImageAnalysisResult = {
+  allowed: boolean;
+  reason?: string;
 };
 
 export function fetchChatRooms(
@@ -1331,6 +1338,20 @@ export function postChatMessage(
   return apiPostJson<ChatMessageDto>(
     `/chat/rooms/${roomId}/messages`,
     { body },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function analyzeChatImage(
+  accessToken: string,
+  imageBase64: string,
+  mimeType: string,
+  activeProfileId?: string | null
+): Promise<ChatImageAnalysisResult> {
+  return apiPostJson<ChatImageAnalysisResult>(
+    "/chat/analyze-image",
+    { imageBase64, mimeType },
     accessToken,
     activeProfileId
   );
