@@ -14,7 +14,10 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import type { BuyerCreditScoreDto } from "../../lib/api";
 import { formatMarketMoney, parseMarketNum } from "./MarketplaceListingCard";
+import { CreditScoreBadge } from "./CreditScoreBadge";
+import { BalanceTrackingCard } from "./BalanceTrackingCard";
 import { MemberAvatar } from "../collaboration/MemberAvatar";
 
 type ProposalCardBase = {
@@ -27,6 +30,15 @@ type ProposalCardBase = {
   currency: string;
   listingTitle: string;
   offerType?: string | null;
+  advancePercentage?: number | null;
+  advanceAmount?: string | number | null;
+  balanceAmount?: string | number | null;
+  balanceDueDays?: number | null;
+  balanceDueAt?: string | null;
+  advancePaidDeclaredAt?: string | null;
+  advanceConfirmedAt?: string | null;
+  balancePaidDeclaredAt?: string | null;
+  buyerCreditScore?: BuyerCreditScoreDto | null;
   listingCategory?: string | null;
   listingWeightKg?: string | number | null;
   subtitle?: string | null;
@@ -41,6 +53,10 @@ type ReceivedProps = ProposalCardBase & {
   onReject?: () => void;
   onCounter?: () => void;
   onNegotiate?: () => void;
+  onConfirmAdvance?: () => void;
+  onRejectAdvance?: () => void;
+  onConfirmBalance?: () => void;
+  onRejectBalance?: () => void;
 };
 
 type SentProps = ProposalCardBase & {
@@ -48,6 +64,8 @@ type SentProps = ProposalCardBase & {
   sellerName?: string | null;
   onWithdraw?: () => void;
   onAcceptCounter?: () => void;
+  onDeclareAdvance?: () => void;
+  onDeclareBalance?: () => void;
   withdrawLoading?: boolean;
   acceptCounterLoading?: boolean;
 };
@@ -90,12 +108,25 @@ export function ProposalCard(props: ProposalCardProps) {
     currency,
     listingTitle,
     offerType,
+    advancePercentage,
+    advanceAmount,
+    balanceAmount,
+    balanceDueDays,
+    balanceDueAt,
+    advancePaidDeclaredAt,
+    advanceConfirmedAt,
+    balancePaidDeclaredAt,
+    buyerCreditScore,
     listingCategory,
     listingWeightKg,
     subtitle,
     onPressListing,
     actionsDisabled
   } = props;
+
+  const isCredit = offerType === "credit";
+  const advanceNum = parseMarketNum(advanceAmount);
+  const balanceNum = parseMarketNum(balanceAmount);
 
   const weightKg = parseMarketNum(listingWeightKg);
   const categoryLabel = listingCategory
@@ -151,8 +182,48 @@ export function ProposalCard(props: ProposalCardProps) {
         </View>
       </Pressable>
 
-      {offerType === "credit" ? (
+      {isCredit ? (
         <Text style={styles.creditBadge}>💳 {t("marketScreen.creditModal.badge")}</Text>
+      ) : null}
+
+      {isCredit && advancePercentage != null ? (
+        <View style={styles.creditDetails}>
+          <Text style={styles.creditLine}>
+            {t("marketScreen.credit.termsAdvance", {
+              pct: advancePercentage,
+              amount:
+                advanceNum != null
+                  ? formatMarketMoney(advanceNum, currency)
+                  : "—"
+            })}
+          </Text>
+          <Text style={styles.creditLine}>
+            {t("marketScreen.credit.termsBalance", {
+              amount:
+                balanceNum != null
+                  ? formatMarketMoney(balanceNum, currency)
+                  : "—",
+              days: balanceDueDays ?? "—"
+            })}
+          </Text>
+          {variant === "received" ? (
+            <CreditScoreBadge
+              score={buyerCreditScore}
+              prefix={t("marketScreen.credit.buyerScore")}
+            />
+          ) : null}
+        </View>
+      ) : null}
+
+      {isCredit &&
+      (status === "balance_pending" || status === "balance_declared") &&
+      balanceNum != null ? (
+        <BalanceTrackingCard
+          balanceAmount={balanceNum}
+          currency={currency}
+          balanceDueAt={balanceDueAt ?? null}
+          status={status}
+        />
       ) : null}
 
       <View style={styles.amountRow}>
@@ -170,7 +241,8 @@ export function ProposalCard(props: ProposalCardProps) {
 
       {variant === "received" &&
       status === "pending" &&
-      !actionsDisabled ? (
+      !actionsDisabled &&
+      !isCredit ? (
         <View style={styles.actions}>
           <Pressable
             style={[styles.btn, styles.btnPrimary]}
@@ -207,7 +279,97 @@ export function ProposalCard(props: ProposalCardProps) {
         </View>
       ) : null}
 
-      {variant === "sent" && status === "countered" && !actionsDisabled ? (
+      {variant === "received" &&
+      isCredit &&
+      status === "pending" &&
+      !actionsDisabled ? (
+        <View style={styles.actions}>
+          <Pressable
+            style={[styles.btn, styles.btnPrimary]}
+            onPress={props.onAccept}
+            disabled={!props.onAccept}
+          >
+            <Text style={styles.btnPrimaryTx}>
+              {t("marketScreen.credit.accept")}
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.btn, styles.btnOutline]}
+            onPress={props.onCounter}
+            disabled={!props.onCounter}
+          >
+            <Text style={styles.btnOutlineTx}>
+              {t("marketScreen.credit.counter")}
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.btn, styles.btnDangerOutline]}
+            onPress={props.onReject}
+            disabled={!props.onReject}
+          >
+            <Text style={styles.btnDangerTx}>{t("marketScreen.offerReject")}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {variant === "received" &&
+      isCredit &&
+      status === "credit_agreed" &&
+      advancePaidDeclaredAt &&
+      !advanceConfirmedAt &&
+      !actionsDisabled ? (
+        <View style={styles.actions}>
+          <Pressable
+            style={[styles.btn, styles.btnPrimary]}
+            onPress={props.onConfirmAdvance}
+            disabled={!props.onConfirmAdvance}
+          >
+            <Text style={styles.btnPrimaryTx}>
+              {t("marketScreen.credit.advance.confirmReceived")}
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.btn, styles.btnDangerOutline]}
+            onPress={props.onRejectAdvance}
+            disabled={!props.onRejectAdvance}
+          >
+            <Text style={styles.btnDangerTx}>
+              {t("marketScreen.credit.advance.notReceived")}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {variant === "received" &&
+      isCredit &&
+      status === "balance_declared" &&
+      !actionsDisabled ? (
+        <View style={styles.actions}>
+          <Pressable
+            style={[styles.btn, styles.btnPrimary]}
+            onPress={props.onConfirmBalance}
+            disabled={!props.onConfirmBalance}
+          >
+            <Text style={styles.btnPrimaryTx}>
+              {t("marketScreen.credit.balance.confirmReceived")}
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.btn, styles.btnDangerOutline]}
+            onPress={props.onRejectBalance}
+            disabled={!props.onRejectBalance}
+          >
+            <Text style={styles.btnDangerTx}>
+              {t("marketScreen.credit.balance.notReceived")}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {variant === "sent" &&
+      status === "countered" &&
+      !actionsDisabled &&
+      !isCredit ? (
         <View style={styles.actions}>
           <Pressable
             style={[styles.btn, styles.btnPrimary]}
@@ -232,7 +394,67 @@ export function ProposalCard(props: ProposalCardProps) {
         </View>
       ) : null}
 
-      {variant === "sent" && status === "pending" && !actionsDisabled ? (
+      {variant === "sent" &&
+      isCredit &&
+      status === "countered" &&
+      !actionsDisabled ? (
+        <View style={styles.actions}>
+          <Pressable
+            style={[styles.btn, styles.btnPrimary]}
+            onPress={props.onAcceptCounter}
+            disabled={!props.onAcceptCounter || props.acceptCounterLoading}
+          >
+            {props.acceptCounterLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.btnPrimaryTx}>
+                {t("marketScreen.credit.acceptCounter")}
+              </Text>
+            )}
+          </Pressable>
+          <Pressable
+            style={[styles.btn, styles.btnDangerOutline]}
+            onPress={props.onWithdraw}
+            disabled={!props.onWithdraw || props.withdrawLoading}
+          >
+            <Text style={styles.btnDangerTx}>{t("marketScreen.offerReject")}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {variant === "sent" &&
+      isCredit &&
+      status === "credit_agreed" &&
+      !advancePaidDeclaredAt &&
+      !actionsDisabled ? (
+        <Pressable
+          style={[styles.btn, styles.btnPrimary]}
+          onPress={props.onDeclareAdvance}
+          disabled={!props.onDeclareAdvance}
+        >
+          <Text style={styles.btnPrimaryTx}>
+            {t("marketScreen.credit.advance.declare")}
+          </Text>
+        </Pressable>
+      ) : null}
+
+      {variant === "sent" &&
+      isCredit &&
+      status === "balance_pending" &&
+      !balancePaidDeclaredAt &&
+      !actionsDisabled ? (
+        <Pressable
+          style={[styles.btn, styles.btnPrimary]}
+          onPress={props.onDeclareBalance}
+          disabled={!props.onDeclareBalance}
+        >
+          <Text style={styles.btnPrimaryTx}>
+            {t("marketScreen.credit.balance.declare")}
+          </Text>
+        </Pressable>
+      ) : null}
+
+      {variant === "sent" && status === "pending" && !actionsDisabled && !isCredit ? (
         <Pressable
           style={styles.withdrawBtn}
           onPress={props.onWithdraw}
@@ -303,6 +525,14 @@ const styles = StyleSheet.create({
     color: "#BA7517",
     fontWeight: "700",
     marginBottom: mobileSpacing.xs
+  },
+  creditDetails: {
+    gap: 2,
+    marginBottom: mobileSpacing.xs
+  },
+  creditLine: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary
   },
   badgeTx: {
     ...mobileTypography.meta,

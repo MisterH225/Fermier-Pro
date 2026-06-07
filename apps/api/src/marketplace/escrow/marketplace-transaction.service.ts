@@ -1900,7 +1900,8 @@ export class MarketplaceTransactionService {
             generatedAt: tx.receipt.generatedAt.toISOString()
           }
         : null,
-      pendingTransfer: pending ? this.serializePendingTransfer(pending) : null
+      pendingTransfer: pending ? this.serializePendingTransfer(pending) : null,
+      isCredit: tx.isCredit ?? false
     };
   }
 

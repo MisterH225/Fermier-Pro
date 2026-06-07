@@ -14,13 +14,17 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { CounterProposalModal } from "../../../components/marketplace/CounterProposalModal";
+import { CreditProposalModal } from "../../../components/marketplace/CreditProposalModal";
 import { ProposalCard } from "../../../components/marketplace/ProposalCard";
 import { EmptyStateCard } from "../../../components/common/EmptyStateCard";
 import { useModal } from "../../../components/modals/useModal";
 import { useSession } from "../../../context/SessionContext";
 import {
   acceptMarketplaceOffer,
-  type MarketplaceAcceptOfferResponse,
+  agreeMarketplaceCreditOffer,
+  confirmMarketplaceAdvanceReceived,
+  confirmMarketplaceBalanceReceived,
+  counterMarketplaceCreditOffer,
   counterMarketplaceOffer,
   ensureDirectChatRoom,
   fetchMarketplaceListing,
@@ -29,6 +33,7 @@ import {
   type MarketplaceOfferBrief,
   type MarketplaceOfferReceivedRow
 } from "../../../lib/api";
+import { parseMarketNum } from "../../../components/marketplace/MarketplaceListingCard";
 import { marketplaceActionErrorMessage } from "../../../lib/marketplaceLabels";
 import { getUserFacingError } from "../../../lib/userFacingError";
 import {
@@ -67,6 +72,8 @@ export function PropositionsRecuesTab({
   const [counterOffer, setCounterOffer] = useState<MarketplaceOfferReceivedRow | null>(
     null
   );
+  const [creditCounterOffer, setCreditCounterOffer] =
+    useState<MarketplaceOfferReceivedRow | null>(null);
   const [activeListingId, setActiveListingId] = useState<string | null>(null);
 
   const receivedQ = useQuery({
@@ -115,15 +122,33 @@ export function PropositionsRecuesTab({
   };
 
   const acceptMut = useMutation({
-    mutationFn: (row: MarketplaceOfferReceivedRow) =>
-      acceptMarketplaceOffer(
+    mutationFn: async (row: MarketplaceOfferReceivedRow) => {
+      if (row.offerType === "credit") {
+        await agreeMarketplaceCreditOffer(
+          accessToken!,
+          row.listing.id,
+          row.id,
+          activeProfileId
+        );
+        return { credit: true as const, transactionId: undefined };
+      }
+      const data = await acceptMarketplaceOffer(
         accessToken!,
         row.listing.id,
         row.id,
         activeProfileId
-      ),
-    onSuccess: (data: MarketplaceAcceptOfferResponse, row) => {
+      );
+      return { credit: false as const, transactionId: data.transactionId };
+    },
+    onSuccess: (data, row) => {
       invalidateAll(row.listing.id);
+      if (data.credit) {
+        open("success", {
+          message: t("marketScreen.credit.agreedSuccess"),
+          autoDismissMs: 2200
+        });
+        return;
+      }
       open("success", {
         title: t("marketScreen.acceptSuccessTitle"),
         message: t("marketScreen.acceptSuccessBodySeller"),
@@ -162,6 +187,85 @@ export function PropositionsRecuesTab({
         t("common.error"),
         marketplaceActionErrorMessage(e, t)
       )
+  });
+
+  const creditCounterMut = useMutation({
+    mutationFn: (input: {
+      row: MarketplaceOfferReceivedRow;
+      offeredPrice: number;
+      advancePercentage: number;
+      balanceDueDays: number;
+      message?: string;
+    }) =>
+      counterMarketplaceCreditOffer(
+        accessToken!,
+        input.row.listing.id,
+        input.row.id,
+        {
+          offeredPrice: input.offeredPrice,
+          advancePercentage: input.advancePercentage,
+          balanceDueDays: input.balanceDueDays,
+          message: input.message
+        },
+        activeProfileId
+      ),
+    onSuccess: (_data, input) => {
+      setCreditCounterOffer(null);
+      invalidateAll(input.row.listing.id);
+      open("success", {
+        message: t("marketScreen.credit.counterSuccess"),
+        autoDismissMs: 2000
+      });
+    },
+    onError: (e: Error) =>
+      Alert.alert(
+        t("common.error"),
+        marketplaceActionErrorMessage(e, t)
+      )
+  });
+
+  const confirmAdvanceMut = useMutation({
+    mutationFn: (row: MarketplaceOfferReceivedRow) =>
+      confirmMarketplaceAdvanceReceived(accessToken!, row.id, true, activeProfileId),
+    onSuccess: (_data, row) => {
+      invalidateAll(row.listing.id);
+      open("success", {
+        message: t("marketScreen.credit.advance.confirmedSuccess"),
+        autoDismissMs: 2000
+      });
+    },
+    onError: (e: Error) =>
+      Alert.alert(t("common.error"), marketplaceActionErrorMessage(e, t))
+  });
+
+  const rejectAdvanceMut = useMutation({
+    mutationFn: (row: MarketplaceOfferReceivedRow) =>
+      confirmMarketplaceAdvanceReceived(accessToken!, row.id, false, activeProfileId),
+    onSuccess: (_data, row) => invalidateAll(row.listing.id),
+    onError: (e: Error) =>
+      Alert.alert(t("common.error"), marketplaceActionErrorMessage(e, t))
+  });
+
+  const confirmBalanceMut = useMutation({
+    mutationFn: (row: MarketplaceOfferReceivedRow) =>
+      confirmMarketplaceBalanceReceived(accessToken!, row.id, true, activeProfileId),
+    onSuccess: (_data, row) => {
+      invalidateAll(row.listing.id);
+      open("success", {
+        message: t("marketScreen.credit.balance.confirmedSuccess"),
+        autoDismissMs: 2000
+      });
+    },
+    onError: (e: Error) =>
+      Alert.alert(t("common.error"), marketplaceActionErrorMessage(e, t))
+  });
+
+  const rejectBalanceMut = useMutation({
+    mutationFn: (row: MarketplaceOfferReceivedRow) =>
+      confirmMarketplaceBalanceReceived(accessToken!, row.id, false, activeProfileId),
+    onSuccess: (_data, row) => invalidateAll(row.listing.id),
+    onError: (e: Error) =>
+      Alert.alert(t("common.error"), marketplaceActionErrorMessage(e, t))
   });
 
   const counterMut = useMutation({
@@ -222,6 +326,11 @@ export function PropositionsRecuesTab({
     acceptMut.isPending ||
     rejectMut.isPending ||
     counterMut.isPending ||
+    creditCounterMut.isPending ||
+    confirmAdvanceMut.isPending ||
+    rejectAdvanceMut.isPending ||
+    confirmBalanceMut.isPending ||
+    rejectBalanceMut.isPending ||
     chatMut.isPending;
 
   const toggleGroup = (listingId: string) => {
@@ -326,6 +435,16 @@ export function PropositionsRecuesTab({
                       createdAt={row.createdAt}
                       currency={row.listing.currency}
                       listingTitle={row.listing.title}
+                      offerType={row.offerType}
+                      advancePercentage={row.advancePercentage}
+                      advanceAmount={row.advanceAmount}
+                      balanceAmount={row.balanceAmount}
+                      balanceDueDays={row.balanceDueDays}
+                      balanceDueAt={row.balanceDueAt}
+                      advancePaidDeclaredAt={row.advancePaidDeclaredAt}
+                      advanceConfirmedAt={row.advanceConfirmedAt}
+                      balancePaidDeclaredAt={row.balancePaidDeclaredAt}
+                      buyerCreditScore={row.buyerCreditScore}
                       listingCategory={row.listing.category}
                       listingWeightKg={row.listing.totalWeightKg}
                       actionsDisabled={busy}
@@ -338,10 +457,19 @@ export function PropositionsRecuesTab({
                       onAccept={() => acceptMut.mutate(row)}
                       onReject={() => rejectMut.mutate(row)}
                       onCounter={() => {
-                        setCounterOffer(row);
-                        setActiveListingId(row.listing.id);
+                        if (row.offerType === "credit") {
+                          setCreditCounterOffer(row);
+                          setActiveListingId(row.listing.id);
+                        } else {
+                          setCounterOffer(row);
+                          setActiveListingId(row.listing.id);
+                        }
                       }}
                       onNegotiate={() => chatMut.mutate(row)}
+                      onConfirmAdvance={() => confirmAdvanceMut.mutate(row)}
+                      onRejectAdvance={() => rejectAdvanceMut.mutate(row)}
+                      onConfirmBalance={() => confirmBalanceMut.mutate(row)}
+                      onRejectBalance={() => rejectBalanceMut.mutate(row)}
                     />
                   ))
                 : null}
@@ -369,6 +497,30 @@ export function PropositionsRecuesTab({
         }}
       />
 
+      <CreditProposalModal
+        visible={Boolean(creditCounterOffer)}
+        listing={listingDetailQ.data ?? null}
+        mode="counter"
+        initialValues={
+          creditCounterOffer
+            ? {
+                offeredPrice: parseMarketNum(creditCounterOffer.offeredPrice) ?? undefined,
+                advancePercentage: creditCounterOffer.advancePercentage ?? undefined,
+                balanceDueDays: creditCounterOffer.balanceDueDays ?? undefined,
+                message: creditCounterOffer.message ?? undefined
+              }
+            : undefined
+        }
+        onClose={() => {
+          setCreditCounterOffer(null);
+          setActiveListingId(null);
+        }}
+        submitting={creditCounterMut.isPending}
+        onSubmit={(payload) => {
+          if (!creditCounterOffer) return;
+          creditCounterMut.mutate({ row: creditCounterOffer, ...payload });
+        }}
+      />
     </>
   );
 }

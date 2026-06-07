@@ -5,7 +5,13 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
-import { ListingStatus, OfferStatus, Prisma, MarketplaceTransactionStatus } from "@prisma/client";
+import {
+  ListingStatus,
+  MarketplaceTransactionStatus,
+  OfferStatus,
+  OfferType,
+  Prisma
+} from "@prisma/client";
 import { AUDIT_ACTION } from "../common/audit.constants";
 import { AuditService } from "../common/audit.service";
 import { FarmAccessService } from "../common/farm-access.service";
@@ -15,6 +21,7 @@ import { ChatService } from "../chat/chat.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import { CounterOfferDto } from "./dto/counter-offer.dto";
 import { CreateOfferDto } from "./dto/create-offer.dto";
+import { CreditScoreService } from "./credit/credit-score.service";
 import { MarketplaceTransactionService } from "./escrow/marketplace-transaction.service";
 import { usesFlatListingPrice } from "./marketplace-listing-category.helper";
 
@@ -26,8 +33,17 @@ export class OffersService {
     private readonly audit: AuditService,
     private readonly push: PushNotificationsService,
     private readonly chat: ChatService,
-    private readonly transactions: MarketplaceTransactionService
+    private readonly transactions: MarketplaceTransactionService,
+    private readonly creditScore: CreditScoreService
   ) {}
+
+  private assertStandardOffer(offer: { offerType: OfferType }) {
+    if (offer.offerType === OfferType.credit) {
+      throw new BadRequestException(
+        "Cette offre utilise le flux crédit — action non applicable"
+      );
+    }
+  }
 
   private async requireMarketplaceWriteIfFarmListing(
     userId: string,
@@ -185,7 +201,7 @@ export class OffersService {
 
   /** Propositions reçues sur les annonces du vendeur connecté (optionnellement filtrées par ferme). */
   async listReceived(user: User, farmId?: string) {
-    return this.prisma.marketplaceOffer.findMany({
+    const rows = await this.prisma.marketplaceOffer.findMany({
       where: {
         listing: {
           sellerUserId: user.id,
@@ -211,6 +227,15 @@ export class OffersService {
         }
       }
     });
+    return Promise.all(
+      rows.map(async (row) => {
+        const buyerCreditScore =
+          row.offerType === OfferType.credit
+            ? await this.creditScore.getForUser(row.buyerUserId)
+            : null;
+        return { ...row, buyerCreditScore };
+      })
+    );
   }
 
   async counts(user: User, farmId?: string) {
@@ -258,6 +283,7 @@ export class OffersService {
     if (offer.status !== OfferStatus.pending) {
       throw new BadRequestException("Offre non modifiable");
     }
+    this.assertStandardOffer(offer);
 
     await this.reserveListingForAcceptedOffer(listingId, offerId, offer.buyerUserId);
 
@@ -394,6 +420,7 @@ export class OffersService {
     if (offer.status !== OfferStatus.pending) {
       throw new BadRequestException("Offre non modifiable");
     }
+    this.assertStandardOffer(offer);
     const total = hasFlat
       ? dto.counterOfferedPrice!
       : dto.counterPricePerKg! * listing.totalWeightKg!.toNumber();
@@ -441,6 +468,7 @@ export class OffersService {
     if (offer.status !== OfferStatus.countered) {
       throw new BadRequestException("Aucune contre-proposition a accepter");
     }
+    this.assertStandardOffer(offer);
 
     await this.reserveListingForAcceptedOffer(listingId, offerId, offer.buyerUserId);
 

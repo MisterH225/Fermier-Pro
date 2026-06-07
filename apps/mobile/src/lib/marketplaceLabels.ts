@@ -61,6 +61,18 @@ export function offerStatusLabel(status: string): string {
       return "Retirée";
     case "countered":
       return "Contre-proposition";
+    case "credit_agreed":
+      return "Accord crédit";
+    case "advance_confirmed":
+      return "Avance confirmée";
+    case "balance_pending":
+      return "Solde en attente";
+    case "balance_declared":
+      return "Solde déclaré";
+    case "arbitration":
+      return "Arbitrage";
+    case "completed":
+      return "Terminée";
     default:
       return status;
   }

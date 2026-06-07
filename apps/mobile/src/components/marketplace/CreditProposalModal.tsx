@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import type { MarketplaceListingDetail } from "../../lib/api";
@@ -12,11 +12,20 @@ import {
   mobileTypography
 } from "../../theme/mobileTheme";
 
+type InitialValues = {
+  offeredPrice?: number;
+  advancePercentage?: number;
+  balanceDueDays?: number;
+  message?: string;
+};
+
 type Props = {
   visible: boolean;
   listing: MarketplaceListingDetail | null;
   submitting?: boolean;
   buyerScoreWarning?: boolean;
+  mode?: "create" | "counter";
+  initialValues?: InitialValues;
   onClose: () => void;
   onSubmit: (payload: {
     offeredPrice: number;
@@ -33,6 +42,8 @@ export function CreditProposalModal({
   listing,
   submitting,
   buyerScoreWarning,
+  mode = "create",
+  initialValues,
   onClose,
   onSubmit
 }: Props) {
@@ -41,6 +52,22 @@ export function CreditProposalModal({
   const [advancePct, setAdvancePct] = useState("30");
   const [days, setDays] = useState<number>(2);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (!visible) return;
+    setTotal(
+      initialValues?.offeredPrice != null
+        ? String(initialValues.offeredPrice)
+        : ""
+    );
+    setAdvancePct(
+      initialValues?.advancePercentage != null
+        ? String(initialValues.advancePercentage)
+        : "30"
+    );
+    setDays(initialValues?.balanceDueDays ?? 2);
+    setMessage(initialValues?.message ?? "");
+  }, [visible, initialValues]);
 
   const currency = listing?.currency ?? "XOF";
   const totalNum = Number.parseFloat(total.replace(",", "."));
@@ -66,10 +93,18 @@ export function CreditProposalModal({
     <BaseModal
       visible={visible}
       onClose={onClose}
-      title={t("marketScreen.creditModal.title")}
+      title={
+        mode === "counter"
+          ? t("marketScreen.credit.counterTitle")
+          : t("marketScreen.creditModal.title")
+      }
       footerPrimary={
         <PrimaryButton
-          label={t("marketScreen.creditModal.submit")}
+          label={
+            mode === "counter"
+              ? t("marketScreen.credit.counterSubmit")
+              : t("marketScreen.creditModal.submit")
+          }
           loading={submitting}
           disabled={!valid}
           onPress={() => {
