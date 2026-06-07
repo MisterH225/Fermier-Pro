@@ -143,15 +143,10 @@ export function dashboardFeedItemToGauge(
   return {
     key: item.productName,
     name: item.productName,
-    subtitle:
-      days != null
-        ? t("feedStock.gaugeDashboardSubtitle", {
-            kg: stockKg.toLocaleString(locale, { maximumFractionDigits: 1 }),
-            count: days
-          })
-        : t("feedStock.gaugeDashboardNoDays", {
-            kg: stockKg.toLocaleString(locale, { maximumFractionDigits: 1 })
-          }),
+    subtitle: t("feedStock.gaugeDashboardSubtitle", {
+      kg: stockKg.toLocaleString(locale, { maximumFractionDigits: 1 }),
+      count: days ?? "—"
+    }),
     displayValue:
       percent != null
         ? t("feedStock.gaugePercentRemaining", { value: percent })

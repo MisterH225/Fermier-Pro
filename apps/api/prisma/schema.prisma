@@ -117,7 +117,12 @@ model User {
   revenuesCreated       FarmRevenue[]
   batchHealthEventsRecorded LivestockBatchHealthEvent[]
   listingsAsSeller      MarketplaceListing[] @relation("ListingSeller")
+  listingsReservedAsBuyer MarketplaceListing[] @relation("ListingReservedBuyer")
   offersAsBuyer         MarketplaceOffer[]   @relation("OfferBuyer")
+  marketplaceDeliveryDisputesRaised MarketplaceDeliveryDispute[] @relation("DeliveryDisputeRaisedBy")
+  marketplacePendingTransfersAsBuyer MarketplacePendingTransfer[] @relation("PendingTransferBuyer")
+  creditArbitrationsAsBuyer  MarketplaceCreditArbitration[] @relation("CreditArbitrationBuyer")
+  creditArbitrationsAsSeller MarketplaceCreditArbitration[] @relation("CreditArbitrationSeller")
   marketplaceTransactionsAsBuyer  MarketplaceTransaction[] @relation("TransactionBuyer")
   marketplaceTransactionsAsSeller MarketplaceTransaction[] @relation("TransactionSeller")
   marketplaceReceiptsAsSeller     MarketplaceTransactionReceipt[] @relation("ReceiptSeller")
@@ -136,6 +141,7 @@ model User {
   farmMarketRatingsGiven FarmMarketRating[] @relation("FarmMarketRatingAuthor")
   chatRoomMemberships ChatRoomMember[]
   chatMessagesSent    ChatMessage[]
+  chatSecurityEvents  ChatSecurityEvent[]
   auditLogs           AuditLog[]
   vetProfile            VetProfile?
   vetRatingsAuthored    VetRating[] @relation("VetRatingAuthor")
@@ -295,6 +301,7 @@ model Farm {
   livestockExits    LivestockExit[] @relation("ExitOriginFarm")
   transfersReceived LivestockExit[] @relation("ExitTransferDestinationFarm")
   chatRoom          ChatRoom?
+  chatSecurityEvents ChatSecurityEvent[]
   auditLogs         AuditLog[]
   feedTypes             FeedType[]
   feedStockMovements  FeedStockMovement[]
@@ -316,6 +323,7 @@ model Farm {
   gestationSettings        GestationSettings?
   profitabilitySettings    FarmProfitabilitySettings?
   appSettings              FarmAppSettings?
+  marketplacePendingTransfers MarketplacePendingTransfer[]
 
   @@index([ownerId, status])
   @@index([status])
@@ -1283,9 +1291,18 @@ enum ListingStatus {
   published
   paused
   reserved
+  reserved_credit
+  shipped
+  delivered
+  disputed
   sold
   cancelled
   expired
+}
+
+enum OfferType {
+  standard
+  credit
 }
 
 enum OfferStatus {
@@ -1296,6 +1313,26 @@ enum OfferStatus {
   countered
   on_hold
   cancelled
+  completed
+  credit_agreed
+  advance_confirmed
+  balance_pending
+  balance_declared
+  arbitration
+}
+
+enum BuyerCreditScore {
+  excellent
+  bon
+  nouveau
+  attention
+  risque
+}
+
+enum MarketplaceCreditArbitrationResolution {
+  paid_late
+  defaulted
+  cancelled
 }
 
 enum MarketplaceTransactionStatus {
@@ -1303,6 +1340,9 @@ enum MarketplaceTransactionStatus {
   PAYMENT_PENDING
   PAYMENT_HELD
   PICKUP_SCHEDULED
+  SELLER_SHIPPED
+  BUYER_RECEIVED
+  DELIVERY_DISPUTED
   WEIGHT_DECLARED
   WEIGHT_DISPUTED
   WEIGHT_VALIDATED
@@ -1312,6 +1352,26 @@ enum MarketplaceTransactionStatus {
   CANCELLED_SOLD_TO_OTHER
   PAYMENT_FAILED
   OFFER_EXPIRED
+}
+
+enum MarketplaceDeliveryDisputeStatus {
+  open
+  resolved_vendor
+  resolved_buyer
+  resolved_split
+  cancelled
+}
+
+enum MarketplaceShipmentMethod {
+  handover
+  third_party
+  seller_delivery
+}
+
+enum MarketplaceReceiptCondition {
+  conform
+  minor_issue
+  major_issue
 }
 
 enum MarketplacePriceType {
@@ -1384,11 +1444,19 @@ model MarketplaceListing {
   pickupNote    String?
   /// Nombre d'offres avec fonds sécurisés (PAYMENT_HELD+).
   activeOfferCount Int             @default(0)
+  /// Acheteur retenu après acceptation d'offre (escrow).
+  reservedForBuyerUserId String?
+  reservedForBuyer       User?    @relation("ListingReservedBuyer", fields: [reservedForBuyerUserId], references: [id], onDelete: SetNull)
+  shippedAt     DateTime?
+  deliveredAt   DateTime?
+  disputedAt    DateTime?
   createdAt     DateTime        @default(now())
   archived      Boolean         @default(false)
   updatedAt     DateTime        @updatedAt
   offers        MarketplaceOffer[]
   transactions  MarketplaceTransaction[]
+  deliveryDisputes MarketplaceDeliveryDispute[]
+  creditArbitrations MarketplaceCreditArbitration[]
   favorites     BuyerFavorite[]
   chatRooms     ChatRoom[]
 
@@ -1492,6 +1560,7 @@ model MarketplaceOffer {
   buyerUserId  String
   buyer        User               @relation("OfferBuyer", fields: [buyerUserId], references: [id], onDelete: Restrict)
   buyerFarmId  String?
+  offerType    OfferType          @default(standard)
   /// Prix / kg proposé par l’acheteur (si renseigné, `offeredPrice` = total de l’offre).
   proposedPricePerKg Decimal?   @db.Decimal(14, 4)
   offeredPrice Decimal            @db.Decimal(14, 2)
@@ -1499,15 +1568,35 @@ model MarketplaceOffer {
   message      String?
   /// Contre-proposition vendeur : prix / kg.
   counterPricePerKg Decimal?     @db.Decimal(14, 4)
+  /// Vente à crédit — % avance (20–50).
+  advancePercentage   Int?
+  advanceAmount       Decimal?    @db.Decimal(14, 2)
+  balanceAmount       Decimal?    @db.Decimal(14, 2)
+  balanceDueDays      Int?
+  balanceDueAt        DateTime?
+  deliveredAt         DateTime?
+  advancePaidDeclaredAt  DateTime?
+  advanceConfirmedAt     DateTime?
+  balancePaidDeclaredAt  DateTime?
+  balanceConfirmedAt     DateTime?
+  advancePaymentMode     String?
+  balancePaymentMode     String?
+  advancePaymentRef      String?
+  balancePaymentRef      String?
+  balancePaidAmount      Decimal? @db.Decimal(14, 2)
   status       OfferStatus        @default(pending)
+  completedAt  DateTime?
   archived     Boolean            @default(false)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   transaction  MarketplaceTransaction?
+  deliveryDisputes MarketplaceDeliveryDispute[]
+  creditArbitrations MarketplaceCreditArbitration[]
 
   @@index([listingId])
   @@index([buyerUserId])
   @@index([listingId, status])
+  @@index([offerType, status])
 }
 
 enum ReceiptGenerationStatus {
@@ -1543,6 +1632,13 @@ model MarketplaceTransaction {
   weightScalePhotoUrl     String?
   pickupDate              DateTime?                    @db.Date
   pickupLocation          String?
+  sellerShippedAt         DateTime?
+  shipmentMethod          MarketplaceShipmentMethod?
+  shipmentNotes           String?
+  buyerReceivedAt         DateTime?
+  receiptCondition        MarketplaceReceiptCondition?
+  receiptNotes            String?
+  receivedAnimalIds       Json                         @default("[]")
   commissionRate          Decimal                      @db.Decimal(5, 4)
   commissionAmount        Decimal?                     @db.Decimal(14, 2)
   sellerReceivedAmount    Decimal?                     @db.Decimal(14, 2)
@@ -1557,17 +1653,66 @@ model MarketplaceTransaction {
   cancelReason            String?
   offerExpiresAt          DateTime
   currency                String                       @default("XOF")
+  /// Transaction vente à crédit — pas de clôture escrow avant solde.
+  isCredit                Boolean                      @default(false)
   createdAt               DateTime                     @default(now())
   updatedAt               DateTime                     @updatedAt
   fundMovements           MarketplaceFundMovement[]
   platformRevenue         PlatformRevenue?
   receipt                 MarketplaceTransactionReceipt?
+  deliveryDisputes        MarketplaceDeliveryDispute[]
+  pendingTransfers        MarketplacePendingTransfer[]
 
   @@index([listingId, status])
   @@index([buyerUserId, status])
   @@index([sellerUserId, status])
   @@index([status])
   @@index([offerExpiresAt])
+}
+
+/// Litige livraison marketplace (double confirmation).
+model MarketplaceDeliveryDispute {
+  id              String                         @id @default(cuid())
+  listingId       String
+  listing         MarketplaceListing             @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  offerId         String
+  offer           MarketplaceOffer               @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  transactionId   String
+  transaction     MarketplaceTransaction         @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  raisedByUserId  String
+  raisedBy        User                           @relation("DeliveryDisputeRaisedBy", fields: [raisedByUserId], references: [id], onDelete: Restrict)
+  disputeType     String
+  description     String
+  photoUrls       Json                           @default("[]")
+  status          MarketplaceDeliveryDisputeStatus @default(open)
+  resolvedAt      DateTime?
+  createdAt       DateTime                       @default(now())
+  updatedAt       DateTime                       @updatedAt
+
+  @@index([listingId])
+  @@index([transactionId])
+  @@index([status])
+}
+
+/// Transfert cheptel acheteur en attente après clôture transaction.
+model MarketplacePendingTransfer {
+  id              String                 @id @default(cuid())
+  transactionId   String
+  transaction     MarketplaceTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  buyerUserId     String
+  buyer           User                   @relation("PendingTransferBuyer", fields: [buyerUserId], references: [id], onDelete: Restrict)
+  buyerFarmId     String?
+  buyerFarm       Farm?                  @relation(fields: [buyerFarmId], references: [id], onDelete: SetNull)
+  animalIds       Json                   @default("[]")
+  expiresAt       DateTime
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([buyerUserId])
+  @@index([transactionId])
+  @@index([expiresAt])
 }
 
 model MarketplaceFundMovement {
@@ -1766,6 +1911,17 @@ enum ChatRoomKind {
   direct
 }
 
+enum ChatMessageModificationType {
+  phone_masked
+  image_blocked
+}
+
+enum ChatSecurityEventType {
+  phone_masked_in_text
+  image_blocked_phone
+  alphabetic_phone_attempt
+}
+
 model ChatRoom {
   id                    String              @id @default(cuid())
   kind                  ChatRoomKind
@@ -1799,15 +1955,32 @@ model ChatRoomMember {
 }
 
 model ChatMessage {
-  id           String   @id @default(cuid())
-  roomId       String
-  room         ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  senderUserId String
-  sender       User     @relation(fields: [senderUserId], references: [id], onDelete: Restrict)
-  body         String
-  createdAt    DateTime @default(now())
+  id               String                        @id @default(cuid())
+  roomId           String
+  room             ChatRoom                      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  senderUserId     String
+  sender           User                          @relation(fields: [senderUserId], references: [id], onDelete: Restrict)
+  body             String
+  wasModified      Boolean                       @default(false)
+  modificationType ChatMessageModificationType?
+  createdAt        DateTime                      @default(now())
 
   @@index([roomId, createdAt])
+}
+
+model ChatSecurityEvent {
+  id        String                @id @default(cuid())
+  userId    String
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  farmId    String?
+  farm      Farm?                 @relation(fields: [farmId], references: [id], onDelete: SetNull)
+  eventType ChatSecurityEventType
+  context   Json?
+  createdAt DateTime              @default(now())
+
+  @@index([userId, createdAt])
+  @@index([eventType, createdAt])
+  @@index([farmId])
 }
 
 /// Alerte / recommandation métier persistée (SmartAlerts — règles serveur).
@@ -2275,6 +2448,12 @@ model BuyerProfile {
   profilePhotoUrl     String?
   ratingAvg           Decimal?  @db.Decimal(3, 2)
   ratingCount         Int       @default(0)
+  creditScore         BuyerCreditScore @default(nouveau)
+  creditTransactionsCount Int     @default(0)
+  creditOnTimeCount   Int       @default(0)
+  creditLateCount     Int       @default(0)
+  creditDefaultCount  Int       @default(0)
+  creditBlocked       Boolean   @default(false)
   onboardingComplete  Boolean   @default(false)
   isActive            Boolean   @default(true)
   createdAt           DateTime  @default(now())
@@ -2283,6 +2462,32 @@ model BuyerProfile {
   favorites           BuyerFavorite[]
 
   @@index([buyerType])
+  @@index([creditScore])
+}
+
+/// Arbitrage solde vente à crédit marketplace.
+model MarketplaceCreditArbitration {
+  id            String                              @id @default(cuid())
+  offerId       String
+  offer         MarketplaceOffer                    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  listingId     String
+  listing       MarketplaceListing                  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyerUserId   String
+  buyer         User                                @relation("CreditArbitrationBuyer", fields: [buyerUserId], references: [id], onDelete: Restrict)
+  sellerUserId  String
+  seller        User                                @relation("CreditArbitrationSeller", fields: [sellerUserId], references: [id], onDelete: Restrict)
+  balanceAmount Decimal                             @db.Decimal(14, 2)
+  triggeredAt   DateTime                            @default(now())
+  resolvedAt    DateTime?
+  resolution    MarketplaceCreditArbitrationResolution?
+  notes         String?
+  createdAt     DateTime                            @default(now())
+  updatedAt     DateTime                            @updatedAt
+
+  @@index([offerId])
+  @@index([listingId])
+  @@index([buyerUserId])
+  @@index([resolvedAt])
 }
 
 model BuyerPriceAlert {
