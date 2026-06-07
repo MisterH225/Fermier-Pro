@@ -1,17 +1,17 @@
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text } from "react-native";
 import { VetMobileShell } from "../../components/layout";
-import { useVetBottomChromePad } from "../../context/VetBottomChromeContext";
+import { useBottomInset } from "../../hooks/useBottomInset";
 import { vetColors } from "../../theme/vetTheme";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 
 export function VetReportsScreen() {
   const { t } = useTranslation();
-  const bottomPad = useVetBottomChromePad();
+  const bottomInset = useBottomInset();
 
   return (
     <VetMobileShell hideTopBar>
-      <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomPad }]}>
+      <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomInset }]}>
         <Text style={styles.body}>{t("vet.reports.body")}</Text>
       </ScrollView>
     </VetMobileShell>

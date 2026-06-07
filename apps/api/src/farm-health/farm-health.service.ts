@@ -25,6 +25,7 @@ import { CreateFarmHealthRecordDto } from "./dto/create-farm-health-record.dto";
 import { CreateDiseaseCaseDto } from "./dto/create-disease-case.dto";
 import { AddDiseaseTreatmentDto } from "./dto/add-disease-treatment.dto";
 import { UpdateDiseaseCaseDto } from "./dto/update-disease-case.dto";
+import { FarmVaccineService } from "./farm-vaccine.service";
 import {
   buildDiseaseDetailData,
   syncAnimalHealthStatus
@@ -77,7 +78,8 @@ export class FarmHealthService {
     private readonly farmAccess: FarmAccessService,
     private readonly audit: AuditService,
     private readonly finance: FinanceService,
-    private readonly smartAlerts: SmartAlertsService
+    private readonly smartAlerts: SmartAlertsService,
+    private readonly farmVaccine: FarmVaccineService
   ) {}
 
   private async loadFarm(farmId: string) {
@@ -248,12 +250,8 @@ export class FarmHealthService {
       select: { id: true, subject: true, openedAt: true }
     });
 
-    const overdueVaccineCount = await this.prisma.healthVaccinationDetail.count({
-      where: {
-        healthRecord: { farmId },
-        nextReminderAt: { lt: now }
-      }
-    });
+    const overdueVaccineCount =
+      await this.farmVaccine.countOverdueAdministrations(user, farmId);
 
     const activeTreatmentCount = await this.prisma.healthTreatmentDetail.count({
       where: {

@@ -860,7 +860,15 @@ export class CheptelService {
         tagCode: true,
         publicId: true,
         entryWeightKg: true,
-        weights: { orderBy: { measuredAt: "asc" } }
+        entryDate: true,
+        weights: { orderBy: { measuredAt: "asc" } },
+        penPlacements: {
+          where: { endedAt: null },
+          take: 1,
+          select: {
+            pen: { select: { averageWeightKg: true } }
+          }
+        }
       }
     });
 
@@ -874,9 +882,17 @@ export class CheptelService {
         weightKg: decimalToNum(w.weightKg),
         measuredAt: w.measuredAt
       }));
+      const penAvg =
+        a.penPlacements[0]?.pen?.averageWeightKg != null
+          ? decimalToNum(a.penPlacements[0].pen.averageWeightKg)
+          : null;
       const sum = summarizeWeights(
         points,
-        a.entryWeightKg != null ? decimalToNum(a.entryWeightKg) : null
+        a.entryWeightKg != null ? decimalToNum(a.entryWeightKg) : null,
+        {
+          penAverageWeightKg: penAvg,
+          entryDate: a.entryDate
+        }
       );
       const targetGmq =
         defaultTarget?.targetGmqGPerDay != null
@@ -1327,5 +1343,170 @@ export class CheptelService {
       },
       { maxWait: 10_000, timeout: 60_000 }
     );
+  }
+
+  async detectPotentialBatches(user: User, farmId: string) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const now = new Date();
+    const animals = await this.prisma.animal.findMany({
+      where: {
+        farmId,
+        status: "active",
+        productionCategory: { in: ["starter", "fattening"] }
+      },
+      select: {
+        id: true,
+        tagCode: true,
+        publicId: true,
+        productionCategory: true,
+        entryWeightKg: true,
+        birthDate: true,
+        ageWeeksAtEntry: true,
+        entryDate: true,
+        weights: { orderBy: { measuredAt: "desc" }, take: 1 },
+        penPlacements: {
+          where: { endedAt: null },
+          take: 1,
+          select: {
+            penId: true,
+            pen: { select: { name: true, averageWeightKg: true } }
+          }
+        }
+      }
+    });
+
+    type Enriched = {
+      id: string;
+      label: string;
+      category: string;
+      ageWeeks: number | null;
+      weightKg: number | null;
+      penId: string | null;
+      penName: string | null;
+    };
+
+    const enriched: Enriched[] = animals.map((a) => {
+      const ageWeeks = calculateAnimalAgeWeeks(
+        {
+          birthDate: a.birthDate,
+          ageWeeksAtEntry: a.ageWeeksAtEntry,
+          entryDate: a.entryDate
+        },
+        now
+      );
+      let weightKg = a.weights[0]
+        ? decimalToNum(a.weights[0].weightKg)
+        : null;
+      if (!weightKg && a.penPlacements[0]?.pen?.averageWeightKg) {
+        weightKg = decimalToNum(a.penPlacements[0].pen.averageWeightKg);
+      }
+      if (!weightKg && a.entryWeightKg) {
+        weightKg = decimalToNum(a.entryWeightKg);
+      }
+      return {
+        id: a.id,
+        label: a.tagCode ?? a.publicId.slice(0, 8),
+        category: a.productionCategory,
+        ageWeeks,
+        weightKg,
+        penId: a.penPlacements[0]?.penId ?? null,
+        penName: a.penPlacements[0]?.pen?.name ?? null
+      };
+    });
+
+    const monthLabels = [
+      "Jan",
+      "Fev",
+      "Mar",
+      "Avr",
+      "Mai",
+      "Jun",
+      "Jul",
+      "Aou",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+    ];
+    const monthTag = `${monthLabels[now.getMonth()]}${now.getFullYear()}`;
+    const batches: Array<{
+      id: string;
+      name: string;
+      category: string;
+      headcount: number;
+      avgAgeWeeks: number | null;
+      avgWeightKg: number | null;
+      penNames: string[];
+      animalIds: string[];
+    }> = [];
+
+    const byCategory = new Map<string, Enriched[]>();
+    for (const e of enriched) {
+      const arr = byCategory.get(e.category) ?? [];
+      arr.push(e);
+      byCategory.set(e.category, arr);
+    }
+
+    for (const [category, group] of byCategory) {
+      const used = new Set<string>();
+      for (const seed of group) {
+        if (used.has(seed.id)) {
+          continue;
+        }
+        const members = group.filter((m) => {
+          if (used.has(m.id)) {
+            return false;
+          }
+          if (
+            m.ageWeeks != null &&
+            seed.ageWeeks != null &&
+            Math.abs(m.ageWeeks - seed.ageWeeks) > 2
+          ) {
+            return false;
+          }
+          if (
+            m.weightKg != null &&
+            seed.weightKg != null &&
+            Math.abs(m.weightKg - seed.weightKg) > 5
+          ) {
+            return false;
+          }
+          return true;
+        });
+        if (members.length < 2) {
+          continue;
+        }
+        members.forEach((m) => used.add(m.id));
+        const ages = members
+          .map((m) => m.ageWeeks)
+          .filter((x): x is number => x != null);
+        const weights = members
+          .map((m) => m.weightKg)
+          .filter((x): x is number => x != null);
+        const catLabel = category === "fattening" ? "Eng" : "Dem";
+        batches.push({
+          id: `detected-${category}-${members[0].id}`,
+          name: `Bande ${catLabel}-${monthTag}`,
+          category,
+          headcount: members.length,
+          avgAgeWeeks: ages.length
+            ? Math.round(ages.reduce((a, b) => a + b, 0) / ages.length)
+            : null,
+          avgWeightKg: weights.length
+            ? Math.round(
+                (weights.reduce((a, b) => a + b, 0) / weights.length) * 10
+              ) / 10
+            : null,
+          penNames: [
+            ...new Set(
+              members.map((m) => m.penName).filter((n): n is string => Boolean(n))
+            )
+          ],
+          animalIds: members.map((m) => m.id)
+        });
+      }
+    }
+
+    return { farmId, batches };
   }
 }

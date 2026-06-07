@@ -21,7 +21,7 @@ import {
   ScreenSection
 } from "../../components/layout";
 import { BuyerMobileShell } from "../../components/layout/BuyerMobileShell";
-import { useBuyerBottomChromePad } from "../../context/BuyerBottomChromeContext";
+import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import {
   fetchBuyerFavorites,
@@ -43,7 +43,7 @@ export function BuyerFavoritesScreen() {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const bottomPad = useBuyerBottomChromePad();
+  const bottomInset = useBottomInset();
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
 
@@ -71,7 +71,7 @@ export function BuyerFavoritesScreen() {
       <ScrollView
         contentContainerStyle={[
           profileScreenScrollContent,
-          { paddingBottom: bottomPad + mobileSpacing.xl }
+          { paddingBottom: bottomInset }
         ]}
         refreshControl={
           <RefreshControl

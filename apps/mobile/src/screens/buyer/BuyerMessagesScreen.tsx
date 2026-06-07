@@ -17,7 +17,7 @@ import { ChatModuleGate } from "../../components/ChatModuleGate";
 import { ProfileSectionEmpty, profileScreenScrollContent } from "../../components/layout";
 import { ConversationRow } from "../../components/messaging/ConversationRow";
 import { ConversationSearchBar } from "../../components/messaging/ConversationSearchBar";
-import { useBuyerBottomChromePad } from "../../context/BuyerBottomChromeContext";
+import { useBottomChromePad, useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import {
   directConversationTitle,
@@ -77,7 +77,8 @@ export function BuyerMessagesScreen() {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const bottomPad = useBuyerBottomChromePad();
+  const bottomChromePad = useBottomChromePad();
+  const bottomInset = useBottomInset();
   const { accessToken, activeProfileId, authMe } = useSession();
   const myUserId = authMe?.user.id;
   const [search, setSearch] = useState("");
@@ -124,7 +125,7 @@ export function BuyerMessagesScreen() {
 
   return (
     <ChatModuleGate>
-      <View style={[styles.wrap, { paddingBottom: bottomPad }]}>
+      <View style={[styles.wrap, { paddingBottom: bottomChromePad }]}>
         {roomsQ.isPending ? (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color={buyerColors.primary} />
@@ -151,7 +152,7 @@ export function BuyerMessagesScreen() {
             contentContainerStyle={[
               profileScreenScrollContent,
               rooms.length === 0 ? styles.emptyList : undefined,
-              { paddingBottom: bottomPad + mobileSpacing.lg }
+              { paddingBottom: bottomInset }
             ]}
             refreshControl={
               <RefreshControl

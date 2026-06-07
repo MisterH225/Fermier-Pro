@@ -18,7 +18,7 @@ import { VetMobileShell } from "../../components/layout";
 import { ScheduleVisitModal } from "../../components/vet/ScheduleVisitModal";
 import { VisitCard } from "../../components/vet/VisitCard";
 import { VisitSlotPicker } from "../../components/vet/VisitSlotPicker";
-import { useVetBottomChromePad } from "../../context/VetBottomChromeContext";
+import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import { fetchVetDashboard, fetchVetProfileMe } from "../../lib/api";
 import { vetColors, vetRadius, vetShadow } from "../../theme/vetTheme";
@@ -30,7 +30,7 @@ export function VetAgendaScreen() {
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const bottomPad = useVetBottomChromePad();
+  const bottomInset = useBottomInset();
   const { accessToken, activeProfileId } = useSession();
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [listView, setListView] = useState(false);
@@ -93,7 +93,7 @@ export function VetAgendaScreen() {
 
   return (
     <VetMobileShell hideTopBar>
-      <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomPad + 16 }]}>
+      <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomInset }]}>
         {!listView ? (
           <>
             <View style={styles.monthRow}>

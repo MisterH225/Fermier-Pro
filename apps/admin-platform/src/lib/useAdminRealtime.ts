@@ -7,6 +7,7 @@ import { apiFetch, type OverviewDto } from "@/lib/api";
 type Counts = {
   pendingVets: number;
   activeAlerts: number;
+  marketplaceDisputes: number;
 };
 
 export function useAdminRealtime(onChange: (counts: Counts) => void) {
@@ -19,14 +20,16 @@ export function useAdminRealtime(onChange: (counts: Counts) => void) {
       const token = data.session?.access_token;
       if (!token || cancelled) return;
       try {
-        const [overview, alerts] = await Promise.all([
+        const [overview, alerts, disputes] = await Promise.all([
           apiFetch<OverviewDto>("/admin/platform/overview", token),
-          apiFetch<Array<{ id: string }>>("/admin/sanitary-alerts", token)
+          apiFetch<Array<{ id: string }>>("/admin/sanitary-alerts", token),
+          apiFetch<Array<{ id: string }>>("/admin/marketplace/disputes", token)
         ]);
         if (!cancelled) {
           onChange({
             pendingVets: overview.kpis.pendingVets,
-            activeAlerts: alerts.length
+            activeAlerts: alerts.length,
+            marketplaceDisputes: disputes.length
           });
         }
       } catch {

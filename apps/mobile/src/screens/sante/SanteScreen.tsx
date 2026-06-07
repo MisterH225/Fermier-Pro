@@ -698,6 +698,9 @@ export function SanteScreen({ route, navigation }: Props) {
             content: tabScroll(
               <VetVisitsTab
                 upcoming={upcomingQuery.data}
+                farmId={farmId}
+                accessToken={accessToken!}
+                activeProfileId={activeProfileId}
                 onAddPress={readOnly ? undefined : () => openForm("vet_visit")}
                 initialOpenVisitId={openVisitId}
                 {...listCommon}

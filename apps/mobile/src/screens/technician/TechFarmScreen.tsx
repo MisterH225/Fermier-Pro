@@ -18,7 +18,7 @@ import {
   ScreenSection
 } from "../../components/layout";
 import { TechMobileShell } from "../../components/layout/TechMobileShell";
-import { useTechBottomChromePad } from "../../context/TechBottomChromeContext";
+import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import { fetchTechnicianDashboard } from "../../lib/api";
 import {
@@ -34,7 +34,7 @@ const TABS = ["loges", "cheptel", "sante", "gestation"] as const;
 
 export function TechFarmScreen() {
   const { t } = useTranslation();
-  const bottomPad = useTechBottomChromePad();
+  const bottomInset = useBottomInset();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken, activeProfileId } = useSession();
@@ -80,7 +80,7 @@ export function TechFarmScreen() {
       <ScrollView
         contentContainerStyle={[
           profileScreenScrollContent,
-          { paddingBottom: bottomPad + mobileSpacing.xl }
+          { paddingBottom: bottomInset }
         ]}
       >
         {dashQ.isLoading ? (

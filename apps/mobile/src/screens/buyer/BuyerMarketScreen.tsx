@@ -4,7 +4,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useCallback } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { BuyerMobileShell } from "../../components/layout/BuyerMobileShell";
-import { useBuyerBottomChromePad } from "../../context/BuyerBottomChromeContext";
+import { useBottomChromePad } from "../../hooks/useBottomInset";
 import { buyerColors } from "../../theme/buyerTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
@@ -15,7 +15,7 @@ export function BuyerMarketScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<Route>();
-  const bottomPad = useBuyerBottomChromePad();
+  const bottomChromePad = useBottomChromePad();
 
   useFocusEffect(
     useCallback(() => {
@@ -30,7 +30,7 @@ export function BuyerMarketScreen() {
 
   return (
     <BuyerMobileShell>
-      <View style={[styles.wrap, { paddingBottom: bottomPad }]}>
+      <View style={[styles.wrap, { paddingBottom: bottomChromePad }]}>
         <ActivityIndicator color={buyerColors.primary} />
       </View>
     </BuyerMobileShell>

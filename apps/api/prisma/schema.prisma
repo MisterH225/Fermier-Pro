@@ -86,6 +86,14 @@ model User {
   /// Acceptation des CGU (obligatoire avant utilisation de l''app).
   cguAcceptedAt         DateTime?
   cguVersionAccepted    String?
+  /// Poids du vendeur dans l'indice PigPrice (0.1 nouveaux comptes, ≥0.5 vérifiés).
+  indexWeight           Decimal              @default(0.1) @db.Decimal(3, 2)
+  /// Ventes marketplace conclues (handover) — anti-manipulation indice.
+  completedTransactions Int                  @default(0)
+  /// Score réputation marketplace (100 par défaut).
+  reputationScore       Int                  @default(100)
+  /// Annulations vendeur sur transactions escrow.
+  cancelledAsSellerCount Int                 @default(0)
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
   /// Projet (ferme) actif sélectionné par l'utilisateur producteur.
@@ -109,7 +117,16 @@ model User {
   revenuesCreated       FarmRevenue[]
   batchHealthEventsRecorded LivestockBatchHealthEvent[]
   listingsAsSeller      MarketplaceListing[] @relation("ListingSeller")
+  listingsReservedAsBuyer MarketplaceListing[] @relation("ListingReservedBuyer")
   offersAsBuyer         MarketplaceOffer[]   @relation("OfferBuyer")
+  marketplaceDeliveryDisputesRaised MarketplaceDeliveryDispute[] @relation("DeliveryDisputeRaisedBy")
+  marketplacePendingTransfersAsBuyer MarketplacePendingTransfer[] @relation("PendingTransferBuyer")
+  creditArbitrationsAsBuyer  MarketplaceCreditArbitration[] @relation("CreditArbitrationBuyer")
+  creditArbitrationsAsSeller MarketplaceCreditArbitration[] @relation("CreditArbitrationSeller")
+  marketplaceTransactionsAsBuyer  MarketplaceTransaction[] @relation("TransactionBuyer")
+  marketplaceTransactionsAsSeller MarketplaceTransaction[] @relation("TransactionSeller")
+  marketplaceReceiptsAsSeller     MarketplaceTransactionReceipt[] @relation("ReceiptSeller")
+  marketplaceReceiptsAsBuyer      MarketplaceTransactionReceipt[] @relation("ReceiptBuyer")
   vetConsultsOpened     VetConsultation[]    @relation("VetConsultOpenedBy")
   vetConsultsPrimary    VetConsultation[]    @relation("VetConsultPrimaryVet")
   vetConsultAttachments VetConsultationAttachment[]
@@ -124,9 +141,12 @@ model User {
   farmMarketRatingsGiven FarmMarketRating[] @relation("FarmMarketRatingAuthor")
   chatRoomMemberships ChatRoomMember[]
   chatMessagesSent    ChatMessage[]
+  chatSecurityEvents  ChatSecurityEvent[]
   auditLogs           AuditLog[]
   vetProfile            VetProfile?
   vetRatingsAuthored    VetRating[] @relation("VetRatingAuthor")
+  vetAppointmentsAsProducer VetAppointment[] @relation("AppointmentProducer")
+  vetAppointmentsAsVet      VetAppointment[] @relation("AppointmentVet")
   superAdmin            SuperAdmin?
   adminAuditActions     AdminAuditLog[]      @relation("AdminAuditActor")
   adminAuditTargets     AdminAuditLog[]      @relation("AdminAuditTarget")
@@ -169,10 +189,14 @@ model VetProfile {
   rejectionReason      String?
   ratingAvg            Decimal?              @db.Decimal(3, 2)
   ratingCount          Int                   @default(0)
+  completedAppointments Int                  @default(0)
+  cancelledAppointmentsAsVet Int             @default(0)
   verifiedAt           DateTime?
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   ratings              VetRating[]
+  vetAppointments      VetAppointment[]
+  appointmentRatings   VetAppointmentRating[]
 
   @@index([verificationStatus])
   @@index([primarySpecialty])
@@ -271,11 +295,13 @@ model Farm {
   marketplaceListings MarketplaceListing[]
   pigPriceSnapshots   PigPriceSnapshot[]
   vetConsultations    VetConsultation[]
+  vetAppointments     VetAppointment[]
   livestockBatches  LivestockBatch[]
   barns             Barn[]
   livestockExits    LivestockExit[] @relation("ExitOriginFarm")
   transfersReceived LivestockExit[] @relation("ExitTransferDestinationFarm")
   chatRoom          ChatRoom?
+  chatSecurityEvents ChatSecurityEvent[]
   auditLogs         AuditLog[]
   feedTypes             FeedType[]
   feedStockMovements  FeedStockMovement[]
@@ -297,6 +323,7 @@ model Farm {
   gestationSettings        GestationSettings?
   profitabilitySettings    FarmProfitabilitySettings?
   appSettings              FarmAppSettings?
+  marketplacePendingTransfers MarketplacePendingTransfer[]
 
   @@index([ownerId, status])
   @@index([status])
@@ -663,6 +690,109 @@ model VetConsultationAttachment {
   createdAt        DateTime          @default(now())
 
   @@index([consultationId])
+}
+
+enum VetAppointmentStatus {
+  APPOINTMENT_REQUESTED
+  AWAITING_PAYMENT
+  APPOINTMENT_CONFIRMED
+  APPOINTMENT_IN_PROGRESS
+  APPOINTMENT_COMPLETED
+  APPOINTMENT_RATED
+  APPOINTMENT_REFUSED
+  PAYMENT_EXPIRED
+  CANCELLED_BY_PRODUCER
+  CANCELLED_BY_VET
+}
+
+enum VetAppointmentConflictStatus {
+  AVAILABLE
+  CONFLICT_NEARBY
+  CONFLICT_EXACT
+}
+
+enum VetAppointmentFundMovementKind {
+  HOLD
+  RELEASE_TO_VET
+  REFUND_PRODUCER
+  COMMISSION
+}
+
+/// Rendez-vous vétérinaire producteur ↔ véto (demande → acceptation → escrow → prestation → avis).
+model VetAppointment {
+  id                     String                      @id @default(cuid())
+  farmId                 String
+  farm                   Farm                        @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  producerUserId         String
+  producer               User                        @relation("AppointmentProducer", fields: [producerUserId], references: [id], onDelete: Restrict)
+  vetProfileId           String
+  vetProfile             VetProfile                  @relation(fields: [vetProfileId], references: [id], onDelete: Restrict)
+  vetUserId              String
+  vet                    User                        @relation("AppointmentVet", fields: [vetUserId], references: [id], onDelete: Restrict)
+  status                 VetAppointmentStatus        @default(APPOINTMENT_REQUESTED)
+  requestedAt            DateTime
+  confirmedAt            DateTime?
+  estimatedDurationHours Decimal                     @default(1) @db.Decimal(4, 2)
+  reason                 String
+  notes                  String?
+  farmLocation           String
+  refusalReason          String?
+  vetResponseNotes       String?
+  servicePrice           Decimal?                    @db.Decimal(14, 2)
+  commissionRate         Decimal                     @default(0.05) @db.Decimal(5, 4)
+  commissionAmount       Decimal?                    @db.Decimal(14, 2)
+  vetReceivedAmount      Decimal?                    @db.Decimal(14, 2)
+  blockedAmount          Decimal?                    @db.Decimal(14, 2)
+  paymentDeadline        DateTime?
+  paymentConfirmedAt     DateTime?
+  paymentProviderRef     String?
+  completedAt            DateTime?
+  cancelledAt            DateTime?
+  cancellationReason     String?
+  conflictStatus         VetAppointmentConflictStatus?
+  conflictDetails        Json?
+  calendarBlocked        Boolean                     @default(false)
+  currency               String                      @default("XOF")
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+  rating                 VetAppointmentRating?
+  fundMovements          VetAppointmentFundMovement[]
+  platformRevenue        PlatformRevenue?
+
+  @@index([vetUserId, status])
+  @@index([producerUserId, status])
+  @@index([farmId, status])
+  @@index([status, paymentDeadline])
+  @@index([status, confirmedAt])
+}
+
+model VetAppointmentRating {
+  id             String         @id @default(cuid())
+  appointmentId  String         @unique
+  appointment    VetAppointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  vetProfileId   String
+  vetProfile     VetProfile     @relation(fields: [vetProfileId], references: [id], onDelete: Cascade)
+  producerUserId String
+  rating         Int
+  comment        String?
+  tags           String[]       @default([])
+  createdAt      DateTime       @default(now())
+
+  @@index([vetProfileId])
+}
+
+model VetAppointmentFundMovement {
+  id            String                         @id @default(cuid())
+  appointmentId String
+  appointment   VetAppointment                 @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  kind          VetAppointmentFundMovementKind
+  amount        Decimal                        @db.Decimal(14, 2)
+  currency      String                         @default("XOF")
+  providerRef   String?
+  note          String?
+  createdAt     DateTime                       @default(now())
+
+  @@index([appointmentId])
 }
 
 enum AnimalSex {
@@ -1161,9 +1291,18 @@ enum ListingStatus {
   published
   paused
   reserved
+  reserved_credit
+  shipped
+  delivered
+  disputed
   sold
   cancelled
   expired
+}
+
+enum OfferType {
+  standard
+  credit
 }
 
 enum OfferStatus {
@@ -1174,6 +1313,84 @@ enum OfferStatus {
   countered
   on_hold
   cancelled
+  completed
+  credit_agreed
+  advance_confirmed
+  balance_pending
+  balance_declared
+  arbitration
+}
+
+enum BuyerCreditScore {
+  excellent
+  bon
+  nouveau
+  attention
+  risque
+}
+
+enum MarketplaceCreditArbitrationResolution {
+  paid_late
+  defaulted
+  cancelled
+}
+
+enum MarketplaceTransactionStatus {
+  OFFER_ACCEPTED
+  PAYMENT_PENDING
+  PAYMENT_HELD
+  PICKUP_SCHEDULED
+  SELLER_SHIPPED
+  BUYER_RECEIVED
+  DELIVERY_DISPUTED
+  WEIGHT_DECLARED
+  WEIGHT_DISPUTED
+  WEIGHT_VALIDATED
+  TRANSACTION_CLOSED
+  CANCELLED_BY_BUYER
+  CANCELLED_BY_SELLER
+  CANCELLED_SOLD_TO_OTHER
+  PAYMENT_FAILED
+  OFFER_EXPIRED
+}
+
+enum MarketplaceDeliveryDisputeStatus {
+  open
+  resolved_vendor
+  resolved_buyer
+  resolved_split
+  cancelled
+}
+
+enum MarketplaceShipmentMethod {
+  handover
+  third_party
+  seller_delivery
+}
+
+enum MarketplaceReceiptCondition {
+  conform
+  minor_issue
+  major_issue
+}
+
+enum MarketplacePriceType {
+  per_kg
+  flat
+}
+
+enum WeightValidatedBy {
+  auto
+  seller
+  superadmin
+}
+
+enum MarketplaceFundMovementKind {
+  HOLD
+  RELEASE_TO_SELLER
+  REFUND_BUYER
+  ADDITIONAL_CHARGE
+  COMMISSION
 }
 
 enum PigPriceSnapshotSource {
@@ -1225,10 +1442,21 @@ model MarketplaceListing {
   /// Rendez-vous de retrait des animaux (convenu hors paiement in-app).
   pickupAt      DateTime?
   pickupNote    String?
+  /// Nombre d'offres avec fonds sécurisés (PAYMENT_HELD+).
+  activeOfferCount Int             @default(0)
+  /// Acheteur retenu après acceptation d'offre (escrow).
+  reservedForBuyerUserId String?
+  reservedForBuyer       User?    @relation("ListingReservedBuyer", fields: [reservedForBuyerUserId], references: [id], onDelete: SetNull)
+  shippedAt     DateTime?
+  deliveredAt   DateTime?
+  disputedAt    DateTime?
   createdAt     DateTime        @default(now())
   archived      Boolean         @default(false)
   updatedAt     DateTime        @updatedAt
   offers        MarketplaceOffer[]
+  transactions  MarketplaceTransaction[]
+  deliveryDisputes MarketplaceDeliveryDispute[]
+  creditArbitrations MarketplaceCreditArbitration[]
   favorites     BuyerFavorite[]
   chatRooms     ChatRoom[]
 
@@ -1332,6 +1560,7 @@ model MarketplaceOffer {
   buyerUserId  String
   buyer        User               @relation("OfferBuyer", fields: [buyerUserId], references: [id], onDelete: Restrict)
   buyerFarmId  String?
+  offerType    OfferType          @default(standard)
   /// Prix / kg proposé par l’acheteur (si renseigné, `offeredPrice` = total de l’offre).
   proposedPricePerKg Decimal?   @db.Decimal(14, 4)
   offeredPrice Decimal            @db.Decimal(14, 2)
@@ -1339,14 +1568,207 @@ model MarketplaceOffer {
   message      String?
   /// Contre-proposition vendeur : prix / kg.
   counterPricePerKg Decimal?     @db.Decimal(14, 4)
+  /// Vente à crédit — % avance (20–50).
+  advancePercentage   Int?
+  advanceAmount       Decimal?    @db.Decimal(14, 2)
+  balanceAmount       Decimal?    @db.Decimal(14, 2)
+  balanceDueDays      Int?
+  balanceDueAt        DateTime?
+  deliveredAt         DateTime?
+  advancePaidDeclaredAt  DateTime?
+  advanceConfirmedAt     DateTime?
+  balancePaidDeclaredAt  DateTime?
+  balanceConfirmedAt     DateTime?
+  advancePaymentMode     String?
+  balancePaymentMode     String?
+  advancePaymentRef      String?
+  balancePaymentRef      String?
+  balancePaidAmount      Decimal? @db.Decimal(14, 2)
   status       OfferStatus        @default(pending)
+  completedAt  DateTime?
   archived     Boolean            @default(false)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
+  transaction  MarketplaceTransaction?
+  deliveryDisputes MarketplaceDeliveryDispute[]
+  creditArbitrations MarketplaceCreditArbitration[]
 
   @@index([listingId])
   @@index([buyerUserId])
   @@index([listingId, status])
+  @@index([offerType, status])
+}
+
+enum ReceiptGenerationStatus {
+  pending
+  generated
+  failed
+}
+
+/// Transaction marketplace avec escrow (cycle complet jusqu'à clôture).
+model MarketplaceTransaction {
+  id                      String                       @id @default(cuid())
+  offerId                 String                       @unique
+  offer                   MarketplaceOffer             @relation(fields: [offerId], references: [id], onDelete: Restrict)
+  listingId               String
+  listing                 MarketplaceListing           @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  buyerUserId             String
+  buyer                   User                         @relation("TransactionBuyer", fields: [buyerUserId], references: [id], onDelete: Restrict)
+  sellerUserId            String
+  seller                  User                         @relation("TransactionSeller", fields: [sellerUserId], references: [id], onDelete: Restrict)
+  status                  MarketplaceTransactionStatus @default(PAYMENT_PENDING)
+  priceType               MarketplacePriceType
+  agreedPricePerKg        Decimal?                     @db.Decimal(14, 4)
+  agreedFlatPrice         Decimal?                     @db.Decimal(14, 2)
+  estimatedWeightKg       Decimal?                     @db.Decimal(14, 4)
+  blockedAmount           Decimal                      @db.Decimal(14, 2)
+  finalAmount             Decimal?                     @db.Decimal(14, 2)
+  realWeightKg            Decimal?                     @db.Decimal(14, 4)
+  arbitrationWeightKg     Decimal?                     @db.Decimal(14, 4)
+  weightDeclaredByBuyerAt DateTime?
+  weightDisputeOpenedAt   DateTime?
+  weightValidatedAt       DateTime?
+  weightValidatedBy       WeightValidatedBy?
+  weightScalePhotoUrl     String?
+  pickupDate              DateTime?                    @db.Date
+  pickupLocation          String?
+  sellerShippedAt         DateTime?
+  shipmentMethod          MarketplaceShipmentMethod?
+  shipmentNotes           String?
+  buyerReceivedAt         DateTime?
+  receiptCondition        MarketplaceReceiptCondition?
+  receiptNotes            String?
+  receivedAnimalIds       Json                         @default("[]")
+  commissionRate          Decimal                      @db.Decimal(5, 4)
+  commissionAmount        Decimal?                     @db.Decimal(14, 2)
+  sellerReceivedAmount    Decimal?                     @db.Decimal(14, 2)
+  buyerRefundAmount       Decimal?                     @db.Decimal(14, 2)
+  buyerAdditionalCharge   Decimal?                     @db.Decimal(14, 2)
+  paymentProviderRef      String?
+  paymentInitiatedAt      DateTime?
+  paymentConfirmedAt      DateTime?
+  closedAt                DateTime?
+  receiptGenerationStatus ReceiptGenerationStatus @default(pending)
+  cancelledAt             DateTime?
+  cancelReason            String?
+  offerExpiresAt          DateTime
+  currency                String                       @default("XOF")
+  /// Transaction vente à crédit — pas de clôture escrow avant solde.
+  isCredit                Boolean                      @default(false)
+  createdAt               DateTime                     @default(now())
+  updatedAt               DateTime                     @updatedAt
+  fundMovements           MarketplaceFundMovement[]
+  platformRevenue         PlatformRevenue?
+  receipt                 MarketplaceTransactionReceipt?
+  deliveryDisputes        MarketplaceDeliveryDispute[]
+  pendingTransfers        MarketplacePendingTransfer[]
+
+  @@index([listingId, status])
+  @@index([buyerUserId, status])
+  @@index([sellerUserId, status])
+  @@index([status])
+  @@index([offerExpiresAt])
+}
+
+/// Litige livraison marketplace (double confirmation).
+model MarketplaceDeliveryDispute {
+  id              String                         @id @default(cuid())
+  listingId       String
+  listing         MarketplaceListing             @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  offerId         String
+  offer           MarketplaceOffer               @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  transactionId   String
+  transaction     MarketplaceTransaction         @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  raisedByUserId  String
+  raisedBy        User                           @relation("DeliveryDisputeRaisedBy", fields: [raisedByUserId], references: [id], onDelete: Restrict)
+  disputeType     String
+  description     String
+  photoUrls       Json                           @default("[]")
+  status          MarketplaceDeliveryDisputeStatus @default(open)
+  resolvedAt      DateTime?
+  createdAt       DateTime                       @default(now())
+  updatedAt       DateTime                       @updatedAt
+
+  @@index([listingId])
+  @@index([transactionId])
+  @@index([status])
+}
+
+/// Transfert cheptel acheteur en attente après clôture transaction.
+model MarketplacePendingTransfer {
+  id              String                 @id @default(cuid())
+  transactionId   String
+  transaction     MarketplaceTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  buyerUserId     String
+  buyer           User                   @relation("PendingTransferBuyer", fields: [buyerUserId], references: [id], onDelete: Restrict)
+  buyerFarmId     String?
+  buyerFarm       Farm?                  @relation(fields: [buyerFarmId], references: [id], onDelete: SetNull)
+  animalIds       Json                   @default("[]")
+  expiresAt       DateTime
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([buyerUserId])
+  @@index([transactionId])
+  @@index([expiresAt])
+}
+
+model MarketplaceFundMovement {
+  id            String                      @id @default(cuid())
+  transactionId String
+  transaction   MarketplaceTransaction      @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  kind          MarketplaceFundMovementKind
+  amount        Decimal                     @db.Decimal(14, 2)
+  currency      String                      @default("XOF")
+  providerRef   String?
+  note          String?
+  createdAt     DateTime                    @default(now())
+
+  @@index([transactionId])
+}
+
+model MarketplaceTransactionReceipt {
+  id                   String                 @id @default(cuid())
+  receiptNumber        String                 @unique
+  transactionId        String                 @unique
+  transaction          MarketplaceTransaction @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  sellerId             String
+  seller               User                   @relation("ReceiptSeller", fields: [sellerId], references: [id], onDelete: Restrict)
+  buyerId              String
+  buyer                User                   @relation("ReceiptBuyer", fields: [buyerId], references: [id], onDelete: Restrict)
+  pdfStoragePath       String
+  pdfSizeBytes         Int
+  generatedAt          DateTime               @default(now())
+  receiptYear          Int
+  yearSequence         Int
+  downloadedBySeller   Boolean                @default(false)
+  downloadedByBuyer    Boolean                @default(false)
+  sellerDownloadedAt   DateTime?
+  buyerDownloadedAt    DateTime?
+
+  @@unique([receiptYear, yearSequence])
+  @@index([generatedAt(sort: Desc)])
+  @@index([sellerId])
+  @@index([buyerId])
+}
+
+model PlatformRevenue {
+  id               String                  @id @default(cuid())
+  transactionId    String?                 @unique
+  transaction      MarketplaceTransaction? @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  vetAppointmentId String?                 @unique
+  vetAppointment   VetAppointment?         @relation(fields: [vetAppointmentId], references: [id], onDelete: Restrict)
+  sellerId         String
+  buyerId          String
+  grossAmount      Decimal                @db.Decimal(14, 2)
+  commissionRate   Decimal                @db.Decimal(5, 4)
+  commissionAmount Decimal                @db.Decimal(14, 2)
+  collectedAt      DateTime               @default(now())
+  type             String                 @default("COMMISSION")
+
+  @@index([collectedAt(sort: Desc)])
 }
 
 /// Avis acheteur → ferme (notation Market).
@@ -1489,6 +1911,17 @@ enum ChatRoomKind {
   direct
 }
 
+enum ChatMessageModificationType {
+  phone_masked
+  image_blocked
+}
+
+enum ChatSecurityEventType {
+  phone_masked_in_text
+  image_blocked_phone
+  alphabetic_phone_attempt
+}
+
 model ChatRoom {
   id                    String              @id @default(cuid())
   kind                  ChatRoomKind
@@ -1522,15 +1955,32 @@ model ChatRoomMember {
 }
 
 model ChatMessage {
-  id           String   @id @default(cuid())
-  roomId       String
-  room         ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  senderUserId String
-  sender       User     @relation(fields: [senderUserId], references: [id], onDelete: Restrict)
-  body         String
-  createdAt    DateTime @default(now())
+  id               String                        @id @default(cuid())
+  roomId           String
+  room             ChatRoom                      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  senderUserId     String
+  sender           User                          @relation(fields: [senderUserId], references: [id], onDelete: Restrict)
+  body             String
+  wasModified      Boolean                       @default(false)
+  modificationType ChatMessageModificationType?
+  createdAt        DateTime                      @default(now())
 
   @@index([roomId, createdAt])
+}
+
+model ChatSecurityEvent {
+  id        String                @id @default(cuid())
+  userId    String
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  farmId    String?
+  farm      Farm?                 @relation(fields: [farmId], references: [id], onDelete: SetNull)
+  eventType ChatSecurityEventType
+  context   Json?
+  createdAt DateTime              @default(now())
+
+  @@index([userId, createdAt])
+  @@index([eventType, createdAt])
+  @@index([farmId])
 }
 
 /// Alerte / recommandation métier persistée (SmartAlerts — règles serveur).
@@ -1847,6 +2297,7 @@ model PlatformSettings {
   alertDefaultLevel     SanitaryAlertLevel @default(warning)
   adminNotifyEmail      String?
   reportFrequencyDays   Int      @default(7)
+  marketplaceCommissionRate Decimal @default(0.05) @db.Decimal(5, 4)
   updatedAt             DateTime @updatedAt
 }
 
@@ -1876,6 +2327,34 @@ model PigPriceIndexDaily {
 
   @@unique([date, category])
   @@index([date(sort: Desc)])
+}
+
+/// Snapshots de l'indice hybride anti-manipulation (transactions + annonces pondérées).
+model PigPriceIndexHybridSnapshot {
+  id             String   @id @default(cuid())
+  calculatedAt   DateTime @default(now())
+  indexValue     Decimal  @db.Decimal(10, 2)
+  confirmedCount Int      @default(0)
+  listingCount   Int      @default(0)
+  totalWeightKg  Decimal  @default(0) @db.Decimal(14, 4)
+  isFrozen       Boolean  @default(false)
+  freezeReason   String?
+
+  @@index([calculatedAt(sort: Desc)])
+  @@map("pig_price_index_snapshots")
+}
+
+/// Annonces exclues silencieusement (écart > 30 % vs indice).
+model PigPriceIndexFlaggedListing {
+  id           String   @id @default(cuid())
+  listingId    String
+  sellerUserId String
+  pricePerKg   Decimal  @db.Decimal(14, 4)
+  deviationPct Decimal  @db.Decimal(8, 4)
+  flaggedAt    DateTime @default(now())
+
+  @@index([flaggedAt(sort: Desc)])
+  @@index([listingId])
 }
 
 model PigPriceSnapshot {
@@ -1969,6 +2448,12 @@ model BuyerProfile {
   profilePhotoUrl     String?
   ratingAvg           Decimal?  @db.Decimal(3, 2)
   ratingCount         Int       @default(0)
+  creditScore         BuyerCreditScore @default(nouveau)
+  creditTransactionsCount Int     @default(0)
+  creditOnTimeCount   Int       @default(0)
+  creditLateCount     Int       @default(0)
+  creditDefaultCount  Int       @default(0)
+  creditBlocked       Boolean   @default(false)
   onboardingComplete  Boolean   @default(false)
   isActive            Boolean   @default(true)
   createdAt           DateTime  @default(now())
@@ -1977,6 +2462,32 @@ model BuyerProfile {
   favorites           BuyerFavorite[]
 
   @@index([buyerType])
+  @@index([creditScore])
+}
+
+/// Arbitrage solde vente à crédit marketplace.
+model MarketplaceCreditArbitration {
+  id            String                              @id @default(cuid())
+  offerId       String
+  offer         MarketplaceOffer                    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  listingId     String
+  listing       MarketplaceListing                  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyerUserId   String
+  buyer         User                                @relation("CreditArbitrationBuyer", fields: [buyerUserId], references: [id], onDelete: Restrict)
+  sellerUserId  String
+  seller        User                                @relation("CreditArbitrationSeller", fields: [sellerUserId], references: [id], onDelete: Restrict)
+  balanceAmount Decimal                             @db.Decimal(14, 2)
+  triggeredAt   DateTime                            @default(now())
+  resolvedAt    DateTime?
+  resolution    MarketplaceCreditArbitrationResolution?
+  notes         String?
+  createdAt     DateTime                            @default(now())
+  updatedAt     DateTime                            @updatedAt
+
+  @@index([offerId])
+  @@index([listingId])
+  @@index([buyerUserId])
+  @@index([resolvedAt])
 }
 
 model BuyerPriceAlert {

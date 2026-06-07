@@ -125,6 +125,9 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
               ? "kg"
               : "sac",
           unitPrice: "",
+          weightPerBagKg: feedTypes[0].weightPerBagKg
+            ? String(feedTypes[0].weightPerBagKg)
+            : "",
           supplier: ""
         }
       ]);

@@ -59,6 +59,7 @@ export type RootStackParamList = {
     farmName: string;
     vetProfileId: string;
   };
+  VetAppointmentDetail: { appointmentId: string };
   CreateFarm: undefined;
   AnimalDetail: {
     farmId: string;
@@ -77,6 +78,8 @@ export type RootStackParamList = {
   MarketplaceList:
     | {
         tab?: "listings" | "mine" | "offers";
+        offersSubTab?: "received" | "sent";
+        offersListingId?: string;
         buyerView?: boolean;
         fromDashboard?: boolean;
         favoritesOnly?: boolean;
@@ -84,10 +87,11 @@ export type RootStackParamList = {
       }
     | undefined;
   MarketplaceListingDetail: { listingId: string; headline?: string };
+  MarketplaceTransaction: { transactionId: string };
+  CreditDashboard: undefined;
   MarketplaceMyOffers: undefined;
   MarketplaceMyListings: undefined;
   CreateMarketplaceListing: { farmId?: string };
-  EditMarketplaceListing: { listingId: string };
   TechProfileEdit: undefined;
   ChatRooms: undefined;
   ChatRoom: {
@@ -136,7 +140,6 @@ export type RootStackParamList = {
     revenueId: string;
   };
   FarmBarns: { farmId: string; farmName: string };
-  CreateBarn: { farmId: string; farmName: string };
   CreatePen: {
     farmId: string;
     farmName: string;

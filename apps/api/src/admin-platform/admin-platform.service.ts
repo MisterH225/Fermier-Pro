@@ -12,7 +12,9 @@ import {
   Prisma
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { PlatformSettingsService } from "../platform-settings/platform-settings.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
+import { SupabaseAdminService } from "../auth/supabase-admin.service";
 import { VetsService } from "../vets/vets.service";
 import type {
   CreateSanitaryAlertDto,
@@ -35,7 +37,9 @@ export class AdminPlatformService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly vets: VetsService,
-    private readonly push: PushNotificationsService
+    private readonly push: PushNotificationsService,
+    private readonly platformSettings: PlatformSettingsService,
+    private readonly supabaseAdmin: SupabaseAdminService
   ) {}
 
   async assertSuperAdmin(userId: string) {
@@ -240,7 +244,17 @@ export class AdminPlatformService {
     if (!row) {
       throw new NotFoundException("Profil vétérinaire introuvable");
     }
-    return row;
+    let diplomaPhotoUrl = row.diplomaPhotoUrl;
+    if (diplomaPhotoUrl?.trim()) {
+      const signed = await this.supabaseAdmin.createSignedStorageUrl(
+        diplomaPhotoUrl.trim(),
+        3600
+      );
+      if (signed) {
+        diplomaPhotoUrl = signed;
+      }
+    }
+    return { ...row, diplomaPhotoUrl };
   }
 
   async verifyVetProfile(vetId: string) {
@@ -690,7 +704,7 @@ export class AdminPlatformService {
   }
 
   async updateSettings(dto: UpdatePlatformSettingsDto) {
-    return this.prisma.platformSettings.upsert({
+    const row = await this.prisma.platformSettings.upsert({
       where: { id: "default" },
       create: {
         id: "default",
@@ -700,7 +714,9 @@ export class AdminPlatformService {
         alertPeriodDays: dto.alertPeriodDays ?? 30,
         alertDefaultLevel: dto.alertDefaultLevel ?? "warning",
         adminNotifyEmail: dto.adminNotifyEmail ?? null,
-        reportFrequencyDays: dto.reportFrequencyDays ?? 7
+        reportFrequencyDays: dto.reportFrequencyDays ?? 7,
+        marketplaceCommissionRate:
+          dto.marketplaceCommissionRate ?? 0.05
       },
       update: {
         ...(dto.mapGeographicScope !== undefined
@@ -723,9 +739,14 @@ export class AdminPlatformService {
           : {}),
         ...(dto.reportFrequencyDays !== undefined
           ? { reportFrequencyDays: dto.reportFrequencyDays }
+          : {}),
+        ...(dto.marketplaceCommissionRate !== undefined
+          ? { marketplaceCommissionRate: dto.marketplaceCommissionRate }
           : {})
       }
     });
+    this.platformSettings.invalidateCache();
+    return row;
   }
 
   async listSanitaryAlerts(activeOnly = true) {

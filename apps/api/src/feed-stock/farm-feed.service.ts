@@ -127,7 +127,7 @@ export class FarmFeedService {
     return {
       farmId,
       totalStockKg: total.toString(),
-      types
+      types: types ?? []
     };
   }
 
@@ -209,7 +209,8 @@ export class FarmFeedService {
     await this.farmAccess.requireFarmScopes(user.id, farmId, [
       FARM_SCOPE.livestockRead
     ]);
-    return { farmId, items: await this.statsForFarm(farmId) };
+    const items = await this.statsForFarm(farmId);
+    return { farmId, items: Array.isArray(items) ? items : [] };
   }
 
   async listMovements(

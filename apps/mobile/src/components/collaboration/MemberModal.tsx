@@ -89,9 +89,13 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
       removeFarmMember(accessToken, farmId, member!.id, activeProfileId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["farmMembers", farmId] });
-      onClose();
-    },
-    onError: (e: Error) => Alert.alert("", e.message)
+      void qc.invalidateQueries({
+        queryKey: ["farmPendingInvitations", farmId]
+      });
+      void qc.invalidateQueries({ queryKey: ["farmActivityLogs", farmId] });
+      setSuccessMsg(t("collab.revokeSuccess"));
+      setShowSuccess(true);
+    }
   });
 
   if (!member) return null;
@@ -211,7 +215,8 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
         {!isOwner ? (
           <Pressable
             onPress={openRevokeConfirm}
-            style={styles.revokeBtn}
+            disabled={revokeMut.isPending}
+            style={[styles.revokeBtn, revokeMut.isPending && styles.btnDisabled]}
             accessibilityRole="button"
           >
             <Ionicons name="ban-outline" size={16} color={mobileColors.error} />
@@ -220,10 +225,13 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
         ) : null}
       </BaseModal>
 
-<SuccessModal
+      <SuccessModal
         visible={showSuccess}
         message={successMsg}
-        onClose={() => setShowSuccess(false)}
+        onClose={() => {
+          setShowSuccess(false);
+          onClose();
+        }}
       />
     </>
   );
@@ -342,5 +350,8 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     color: mobileColors.error,
     fontWeight: "600"
+  },
+  btnDisabled: {
+    opacity: 0.5
   }
 });

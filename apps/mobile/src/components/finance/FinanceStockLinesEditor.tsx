@@ -23,6 +23,7 @@ export type StockLineForm = {
   quantity: string;
   quantityUnit: "kg" | "tonne" | "sac";
   unitPrice: string;
+  weightPerBagKg: string;
   supplier: string;
 };
 
@@ -61,6 +62,23 @@ export function stockLinesToPayload(
         ? Number.parseFloat(l.unitPrice.replace(",", "."))
         : undefined;
       const ft = types.find((t) => t.id === l.feedTypeId);
+      const wpbRaw = l.weightPerBagKg.trim();
+      const wpbFromForm = wpbRaw
+        ? Number.parseFloat(wpbRaw.replace(",", "."))
+        : undefined;
+      const ftWpb =
+        ft?.weightPerBagKg != null
+          ? Number.parseFloat(String(ft.weightPerBagKg))
+          : undefined;
+      const weightPerBagKg =
+        l.quantityUnit === "sac"
+          ? Number.isFinite(wpbFromForm!)
+            ? wpbFromForm
+            : Number.isFinite(ftWpb!)
+              ? ftWpb
+              : undefined
+          : undefined;
+
       if (l.newFeedMode && l.newFeedName.trim()) {
         return {
           newFeedType: {
@@ -70,6 +88,7 @@ export function stockLinesToPayload(
           quantityInput: q,
           quantityUnit: l.quantityUnit,
           unitPrice,
+          weightPerBagKg,
           supplier: (l.supplier || defaultSupplier)?.trim() || undefined
         };
       }
@@ -79,6 +98,7 @@ export function stockLinesToPayload(
         quantityUnit: l.quantityUnit,
         unitPrice,
         priceBasis: l.quantityUnit === "sac" ? ("sac" as const) : ("kg" as const),
+        weightPerBagKg,
         supplier: (l.supplier || defaultSupplier)?.trim() || undefined
       };
     });
@@ -118,6 +138,9 @@ export function FinanceStockLinesEditor({
         quantity: "",
         quantityUnit: (types[0]?.unit as "kg" | "sac") ?? "sac",
         unitPrice: "",
+        weightPerBagKg: types[0]?.weightPerBagKg
+          ? String(types[0].weightPerBagKg)
+          : "",
         supplier: defaultSupplier ?? ""
       }
     ]);
@@ -178,7 +201,10 @@ export function FinanceStockLinesEditor({
                       quantityUnit:
                         ft.unit === "kg" || ft.unit === "tonne"
                           ? "kg"
-                          : "sac"
+                          : "sac",
+                      weightPerBagKg: ft.weightPerBagKg
+                        ? String(ft.weightPerBagKg)
+                        : ""
                     })
                   }
                 >
@@ -217,6 +243,22 @@ export function FinanceStockLinesEditor({
             keyboardType="decimal-pad"
             placeholder={currencyCode}
           />
+          {line.quantityUnit === "sac" &&
+          !types.find((ft) => ft.id === line.feedTypeId)?.weightPerBagKg ? (
+            <>
+              <Text style={styles.lab}>{t("financeStockLink.weightPerBag")}</Text>
+              <TextInput
+                style={styles.input}
+                value={line.weightPerBagKg}
+                onChangeText={(v) => updateLine(idx, { weightPerBagKg: v })}
+                keyboardType="decimal-pad"
+                placeholder="25"
+              />
+              <Text style={styles.hint}>
+                {t("financeStockLink.weightPerBagHint")}
+              </Text>
+            </>
+          ) : null}
           <Text style={styles.sub}>
             {t("financeStockLink.lineSubtotal", {
               amount: lineSubtotal(line, types).toFixed(2),
@@ -290,6 +332,11 @@ const styles = StyleSheet.create({
     color: mobileColors.textPrimary
   },
   sub: { ...mobileTypography.meta, color: mobileColors.textSecondary },
+  hint: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: 2
+  },
   addBtn: { alignSelf: "flex-start" },
   addTx: { color: mobileColors.accent, fontWeight: "700" },
   gapWarn: { color: mobileColors.warning, ...mobileTypography.meta }

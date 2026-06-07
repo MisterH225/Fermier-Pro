@@ -12,6 +12,8 @@ export {
   SmartChart,
   financeMonthsToRevExpLines,
   financeMonthsToSingleLine,
+  marketplaceBuyerFinanceLines,
+  marketplaceSellerFinanceLines,
   budgetVsExpenseLines,
   barDataToLine,
   feedChartToLines,

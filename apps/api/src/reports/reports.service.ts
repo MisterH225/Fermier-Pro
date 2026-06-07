@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import type { User } from "@prisma/client";
 import {
   FarmDiseaseCaseStatus,
@@ -10,6 +10,7 @@ import {
   ReportPeriodType
 } from "@prisma/client";
 import { createHash } from "crypto";
+import { SupabaseAdminService } from "../auth/supabase-admin.service";
 import { FarmAccessService } from "../common/farm-access.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { buildFeedStockStatsForFarm } from "../feed-stock/feed-stock-stats.helper";
@@ -17,8 +18,12 @@ import { FinanceService } from "../finance/finance.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import { previousPeriod, resolveReportPeriod } from "./reports-period.util";
+import { buildExtendedReportData } from "./reports-snapshot-extended";
 import { computeFarmScore } from "./reports-score.util";
-import { ReportsPdfService } from "./reports-pdf.service";
+import { REPORTS_STORAGE_BUCKET } from "./reports.constants";
+import { ReportsPdfmakeService } from "./reports-pdfmake.service";
+
+export { REPORTS_STORAGE_BUCKET } from "./reports.constants";
 
 export type ReportAnchorDto = {
   year: number;
@@ -28,12 +33,15 @@ export type ReportAnchorDto = {
 
 @Injectable()
 export class ReportsService {
+  private readonly log = new Logger(ReportsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
     private readonly finance: FinanceService,
     private readonly smartAlerts: SmartAlertsService,
-    private readonly pdf: ReportsPdfService
+    private readonly pdf: ReportsPdfmakeService,
+    private readonly supabaseAdmin: SupabaseAdminService
   ) {}
 
   private async requireFarmRead(user: User, farmId: string) {
@@ -87,7 +95,8 @@ export class ReportsService {
         periodEnd: true,
         generatedAt: true,
         scoreGlobal: true,
-        contentHash: true
+        contentHash: true,
+        pdfUrl: true
       }
     });
   }
@@ -116,12 +125,31 @@ export class ReportsService {
     const { start, end } = resolveReportPeriod(periodType, anchor);
     const sections = await this.buildDataSnapshot(user, farmId, periodType, start, end);
     const score = this.scoreFromSnapshot(sections);
+
+    const prevHead = Number(
+      (sections.cheptel as { headcountStartEstimate?: number })?.headcountStartEstimate ?? 0
+    );
+    const curHead = Number(
+      (sections.cheptel as { headcountEnd?: number })?.headcountEnd ?? 0
+    );
+    const extended = await buildExtendedReportData(
+      this.prisma,
+      farmId,
+      start,
+      end,
+      sections as Record<string, unknown>,
+      score,
+      prevHead,
+      curHead
+    );
+
     const snapshot = {
       farmId,
       periodType,
       period: { start: start.toISOString(), end: end.toISOString() },
       score,
-      sections
+      sections,
+      ...extended
     };
     const json = JSON.stringify(snapshot);
     const contentHash = createHash("sha256").update(json).digest("hex");
@@ -138,7 +166,85 @@ export class ReportsService {
         createdByUserId: user.id
       }
     });
-    return { id: row.id, scoreGlobal: row.scoreGlobal, contentHash };
+
+    let downloadUrl: string | null = null;
+    try {
+      downloadUrl = await this.persistReportPdf(row.id, user);
+    } catch (e) {
+      this.log.warn(`PDF upload failed for report ${row.id}: ${String(e)}`);
+    }
+
+    return {
+      id: row.id,
+      reportId: row.id,
+      scoreGlobal: row.scoreGlobal,
+      contentHash,
+      downloadUrl
+    };
+  }
+
+  async getReportDownloadUrl(user: User, reportId: string): Promise<{ downloadUrl: string }> {
+    const row = await this.getReport(user, reportId);
+    if (row.pdfUrl) {
+      const signed = await this.supabaseAdmin.createSignedStoragePathUrl(
+        REPORTS_STORAGE_BUCKET,
+        row.pdfUrl,
+        3600
+      );
+      if (signed) {
+        return { downloadUrl: signed };
+      }
+    }
+    const { buffer, filename } = await this.buildReportPdf(user, reportId);
+    const storagePath = await this.uploadReportPdf(row.farmId, reportId, buffer);
+    await this.prisma.farmReport.update({
+      where: { id: reportId },
+      data: { pdfUrl: storagePath }
+    });
+    const signed = await this.supabaseAdmin.createSignedStoragePathUrl(
+      REPORTS_STORAGE_BUCKET,
+      storagePath,
+      3600
+    );
+    if (!signed) {
+      throw new NotFoundException("Impossible de générer l'URL de téléchargement");
+    }
+    void filename;
+    return { downloadUrl: signed };
+  }
+
+  private async persistReportPdf(reportId: string, user: User): Promise<string | null> {
+    const { buffer } = await this.buildReportPdf(user, reportId);
+    const row = await this.prisma.farmReport.findUniqueOrThrow({
+      where: { id: reportId }
+    });
+    const storagePath = await this.uploadReportPdf(row.farmId, reportId, buffer);
+    await this.prisma.farmReport.update({
+      where: { id: reportId },
+      data: { pdfUrl: storagePath }
+    });
+    return this.supabaseAdmin.createSignedStoragePathUrl(
+      REPORTS_STORAGE_BUCKET,
+      storagePath,
+      3600
+    );
+  }
+
+  private async uploadReportPdf(
+    farmId: string,
+    reportId: string,
+    buffer: Buffer
+  ): Promise<string> {
+    const y = new Date().getUTCFullYear();
+    const m = String(new Date().getUTCMonth() + 1).padStart(2, "0");
+    const path = `${farmId}/REPORT-${y}-${m}-${reportId}.pdf`;
+    await this.supabaseAdmin.uploadStorageObject(
+      REPORTS_STORAGE_BUCKET,
+      path,
+      buffer,
+      "application/pdf"
+    );
+    return path;
   }
 
   async buildReportPdf(

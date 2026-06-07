@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { FarmCard, type FarmCardBadge } from "../../components/vet/FarmCard";
 import { VetMobileShell } from "../../components/layout";
-import { useVetBottomChromePad } from "../../context/VetBottomChromeContext";
+import { useBottomChromePad } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import { fetchVetDashboard } from "../../lib/api";
 import { openPhoneCall } from "../../lib/phone";
@@ -27,7 +27,7 @@ export function VetFarmsScreen() {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const bottomPad = useVetBottomChromePad();
+  const bottomChromePad = useBottomChromePad();
   const { accessToken, activeProfileId } = useSession();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
@@ -66,7 +66,7 @@ export function VetFarmsScreen() {
 
   return (
     <VetMobileShell hideTopBar>
-      <View style={[styles.wrap, { paddingBottom: bottomPad }]}>
+      <View style={[styles.wrap, { paddingBottom: bottomChromePad }]}>
         <TextInput
           style={styles.search}
           placeholder={t("vet.farms.search")}

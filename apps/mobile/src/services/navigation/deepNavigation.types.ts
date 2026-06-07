@@ -84,3 +84,16 @@ export type PushSmartAlertData = {
   route?: string;
   params?: string;
 };
+
+export type PushVetAppointmentData = {
+  type?: string;
+  appointmentId?: string;
+  farmId?: string;
+};
+
+export type PushMarketplaceData = {
+  type?: string;
+  transactionId?: string;
+  listingId?: string;
+  offerId?: string;
+};

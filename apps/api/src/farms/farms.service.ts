@@ -510,15 +510,30 @@ export class FarmsService {
     }
 
     const categoryTotals: Record<string, number> = {
-      piglets: 0,
+      reproducteur_femelle: 0,
+      reproducteur_male: 0,
+      fattening: 0,
+      starter: 0,
       growth: 0,
-      finishing: 0,
-      breeders: 0,
       other: 0
     };
 
     const mapBatchCategory = (key: string | null): keyof typeof categoryTotals => {
       const k = (key ?? "").toLowerCase();
+      if (
+        k.includes("truie") ||
+        k.includes("sow") ||
+        (k.includes("breed") && k.includes("fem"))
+      ) {
+        return "reproducteur_femelle";
+      }
+      if (
+        k.includes("verrat") ||
+        k.includes("boar") ||
+        (k.includes("breed") && k.includes("male"))
+      ) {
+        return "reproducteur_male";
+      }
       if (
         k.includes("nursery") ||
         k.includes("porcelet") ||
@@ -526,16 +541,16 @@ export class FarmsService {
         k === "starter" ||
         k === "start"
       ) {
-        return "piglets";
+        return "starter";
       }
       if (k.includes("grow") || k.includes("croissance") || k === "grower") {
         return "growth";
       }
       if (k.includes("finish") || k.includes("engrais") || k === "finisher") {
-        return "finishing";
+        return "fattening";
       }
       if (k.includes("breed") || k.includes("reprod")) {
-        return "breeders";
+        return "reproducteur_femelle";
       }
       return "other";
     };
@@ -545,12 +560,13 @@ export class FarmsService {
     ): keyof typeof categoryTotals => {
       switch (cat) {
         case "breeding_female":
+          return "reproducteur_femelle";
         case "breeding_male":
-          return "breeders";
+          return "reproducteur_male";
         case "fattening":
-          return "finishing";
+          return "fattening";
         case "starter":
-          return "piglets";
+          return "starter";
         default:
           return "other";
       }
@@ -565,7 +581,14 @@ export class FarmsService {
     }
 
     const categoryBreakdown = (
-      ["piglets", "growth", "finishing", "breeders", "other"] as const
+      [
+        "reproducteur_femelle",
+        "reproducteur_male",
+        "fattening",
+        "starter",
+        "growth",
+        "other"
+      ] as const
     )
       .map((key) => ({ key, count: categoryTotals[key] }))
       .filter((row) => row.count > 0);

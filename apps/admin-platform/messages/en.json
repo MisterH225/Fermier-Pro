@@ -6,9 +6,11 @@
   "nav": {
     "overview": "Overview",
     "vets": "Veterinarians",
+    "vetAppointments": "Vet appointments",
     "users": "Users",
     "auditLogs": "Admin log",
     "map": "Health map",
+    "marketplace": "Marketplace",
     "stats": "Statistics",
     "ai": "AI assistant",
     "modules": "Modules",
@@ -19,7 +21,8 @@
     "title": "Notifications",
     "none": "No notifications",
     "pendingVets": "Pending veterinarians ({count})",
-    "activeAlerts": "Health alerts ({count})"
+    "activeAlerts": "Health alerts ({count})",
+    "marketplaceDisputes": "Weight disputes ({count})"
   },
   "login": {
     "title": "SuperAdmin sign in",
@@ -372,7 +375,8 @@
     "sections": {
       "map": "Geographic scope",
       "alerts": "Health alert thresholds",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "marketplace": "Marketplace"
     },
     "fields": {
       "mapScope": "Map visible area",
@@ -380,7 +384,9 @@
       "alertPeriod": "Calculation period (days)",
       "alertLevel": "Default alert level",
       "adminEmail": "SuperAdmin email",
-      "reportFrequency": "Report frequency (days)"
+      "reportFrequency": "Report frequency (days)",
+      "marketplaceCommission": "Marketplace commission (%)",
+      "marketplaceCommissionHint": "Applied to each completed marketplace sale (e.g. 5 = 5%)."
     },
     "scopes": {
       "world": "Worldwide",
@@ -411,5 +417,130 @@
     "save": "Save",
     "cancel": "Cancel",
     "comingSoon": "Section coming soon."
+  },
+  "marketplace": {
+    "title": "Marketplace — transactions",
+    "tabs": {
+      "transactions": "Transactions",
+      "disputes": "Weight disputes",
+      "revenue": "Commissions",
+      "receipts": "PDF receipts"
+    },
+    "receipts": {
+      "empty": "No closed transactions.",
+      "summary": "{generated} receipts generated out of {total} closed transactions.",
+      "colListing": "Listing",
+      "colReceipt": "Receipt no.",
+      "colStatus": "Status",
+      "colClosed": "Closed",
+      "colActions": "Actions",
+      "download": "Download",
+      "regenerate": "Regenerate",
+      "status": {
+        "pending": "Pending",
+        "generated": "Generated",
+        "failed": "Failed"
+      }
+    },
+    "transactions": {
+      "empty": "No transactions.",
+      "allStatuses": "All statuses",
+      "colListing": "Listing",
+      "colStatus": "Status",
+      "colBuyer": "Buyer",
+      "colSeller": "Seller",
+      "colAmount": "Held amount",
+      "colUpdated": "Updated"
+    },
+    "status": {
+      "OFFER_ACCEPTED": "Offer accepted",
+      "PAYMENT_PENDING": "Payment pending",
+      "PAYMENT_HELD": "Payment secured",
+      "PICKUP_SCHEDULED": "Pickup scheduled",
+      "WEIGHT_DECLARED": "Weight declared",
+      "WEIGHT_DISPUTED": "Weight disputed",
+      "WEIGHT_VALIDATED": "Weight validated",
+      "TRANSACTION_CLOSED": "Closed",
+      "CANCELLED_BY_BUYER": "Cancelled (buyer)",
+      "CANCELLED_BY_SELLER": "Cancelled (seller)",
+      "CANCELLED_SOLD_TO_OTHER": "Sold to another",
+      "PAYMENT_FAILED": "Payment failed",
+      "OFFER_EXPIRED": "Offer expired"
+    },
+    "disputes": {
+      "empty": "No open disputes.",
+      "buyer": "Buyer",
+      "seller": "Seller",
+      "declaredWeight": "Declared weight",
+      "blockedAmount": "Held amount",
+      "openedAt": "Opened at",
+      "arbitrate": "Arbitrate",
+      "arbitrateTitle": "Weight arbitration",
+      "arbitrationWeight": "Arbitrated weight (kg)",
+      "cancel": "Cancel",
+      "confirm": "Submit arbitration",
+      "invalidWeight": "Invalid weight.",
+      "error": "Arbitration failed."
+    },
+    "revenue": {
+      "totalCommission": "Commissions collected",
+      "totalGross": "Gross volume",
+      "transactionCount": "Closed transactions",
+      "dailySeries": "Daily commissions",
+      "colListing": "Listing",
+      "colGross": "Gross amount",
+      "colCommission": "Commission",
+      "colDate": "Date",
+      "period": {
+        "7d": "7 days",
+        "30d": "30 days",
+        "90d": "90 days",
+        "all": "All time"
+      }
+    }
+  },
+  "vetAppointments": {
+    "title": "Veterinary appointments",
+    "tabs": {
+      "list": "List",
+      "revenue": "Commissions & ratings"
+    },
+    "list": {
+      "empty": "No appointments.",
+      "allStatuses": "All statuses",
+      "colFarm": "Farm",
+      "colVet": "Veterinarian",
+      "colProducer": "Producer",
+      "colStatus": "Status",
+      "colAmount": "Amount",
+      "colWhen": "Date",
+      "refund": "Refund",
+      "refundConfirm": "Confirm full refund to the producer?",
+      "refundError": "Refund failed."
+    },
+    "status": {
+      "APPOINTMENT_REQUESTED": "Requested",
+      "AWAITING_PAYMENT": "Awaiting payment",
+      "APPOINTMENT_CONFIRMED": "Confirmed",
+      "APPOINTMENT_IN_PROGRESS": "In progress",
+      "APPOINTMENT_COMPLETED": "Completed",
+      "APPOINTMENT_RATED": "Rated",
+      "APPOINTMENT_REFUSED": "Refused",
+      "PAYMENT_EXPIRED": "Payment expired",
+      "CANCELLED_BY_PRODUCER": "Cancelled (producer)",
+      "CANCELLED_BY_VET": "Cancelled (vet)"
+    },
+    "revenue": {
+      "totalCommission": "Appointment commissions",
+      "totalGross": "Gross volume",
+      "appointmentCount": "Completed appointments",
+      "lowRated": "Low-rated vets (< 3/5)",
+      "period": {
+        "7d": "7 days",
+        "30d": "30 days",
+        "90d": "90 days",
+        "all": "All time"
+      }
+    }
   }
 }

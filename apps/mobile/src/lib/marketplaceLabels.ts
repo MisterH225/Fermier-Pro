@@ -11,6 +11,12 @@ export function listingStatusLabel(status: string): string {
       return "Publiée";
     case "reserved":
       return "Réservée";
+    case "shipped":
+      return "Envoi confirmé";
+    case "delivered":
+      return "Livraison confirmée";
+    case "disputed":
+      return "Litige en cours";
     case "sold":
       return "Vendue";
     case "cancelled":
@@ -20,6 +26,27 @@ export function listingStatusLabel(status: string): string {
     default:
       return status;
   }
+}
+
+export function projectMarketplaceFinalAmount(params: {
+  priceType: string;
+  agreedPricePerKg: number | null;
+  agreedFlatPrice: number | null;
+  realWeightKg: number | null;
+  draftWeightKg?: number | null;
+}): number | null {
+  if (params.priceType === "flat") {
+    return params.agreedFlatPrice;
+  }
+  const perKg = params.agreedPricePerKg;
+  if (perKg == null || perKg <= 0) {
+    return null;
+  }
+  const weight = params.realWeightKg ?? params.draftWeightKg ?? null;
+  if (weight == null || weight <= 0) {
+    return null;
+  }
+  return perKg * weight;
 }
 
 export function offerStatusLabel(status: string): string {
@@ -34,6 +61,18 @@ export function offerStatusLabel(status: string): string {
       return "Retirée";
     case "countered":
       return "Contre-proposition";
+    case "credit_agreed":
+      return "Accord crédit";
+    case "advance_confirmed":
+      return "Avance confirmée";
+    case "balance_pending":
+      return "Solde en attente";
+    case "balance_declared":
+      return "Solde déclaré";
+    case "arbitration":
+      return "Arbitrage";
+    case "completed":
+      return "Terminée";
     default:
       return status;
   }

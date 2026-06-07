@@ -444,6 +444,34 @@ export class FinanceController {
     );
   }
 
+  @Get("budget/ai-analysis")
+  @RequireFarmScopes(FARM_SCOPE.financeRead)
+  budgetAiAnalysis(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Query() q: BudgetMonthQueryDto
+  ) {
+    return this.budget.analyzeBudgetWithAi(user, farmId, q.year, q.month);
+  }
+
+  @Post("budget/ai-analysis/apply")
+  @RequireFarmScopes(FARM_SCOPE.financeWrite)
+  applyBudgetAiAnalysis(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Query() q: BudgetMonthQueryDto,
+    @Body()
+    body: { items: Array<{ categoryId: string; suggestedBudget: number }> }
+  ) {
+    return this.budget.applyAiBudgetRecommendations(
+      user,
+      farmId,
+      q.year,
+      q.month,
+      body.items ?? []
+    );
+  }
+
   @Get("budget/category-history")
   @RequireFarmScopes(FARM_SCOPE.financeRead)
   categoryHistory(

@@ -28,7 +28,7 @@ import { TechProfileModal } from "../../components/technician/TechProfileModal";
 import { TechWelcomeHeader } from "../../components/technician/TechWelcomeHeader";
 import { DashboardTaskWidget } from "../../components/tasks";
 import { TechQuickActionModals } from "../../components/technician/TechQuickActionModals";
-import { useTechBottomChromePad } from "../../context/TechBottomChromeContext";
+import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import {
   fetchTechnicianActivity,
@@ -81,7 +81,7 @@ export function TechDashboardScreen() {
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const bottomPad = useTechBottomChromePad();
+  const bottomInset = useBottomInset();
   const { accessToken, activeProfileId, authMe, refreshAuthMe, clientFeatures } =
     useSession();
   const [profileOpen, setProfileOpen] = useState(false);
@@ -174,7 +174,7 @@ export function TechDashboardScreen() {
       <ScrollView
         contentContainerStyle={[
           profileScreenScrollContent,
-          { paddingBottom: bottomPad + mobileSpacing.xl }
+          { paddingBottom: bottomInset }
         ]}
         refreshControl={
           <RefreshControl

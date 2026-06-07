@@ -90,6 +90,28 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(Array.isArray(res.body)).toBe(true);
   });
 
+  it("GET marketplace offres reçues (vendeur)", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/marketplace/offers/received")
+      .query({ farmId: ctx.farmId })
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it("GET marketplace compteurs propositions", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/marketplace/offers/counts")
+      .query({ farmId: ctx.farmId })
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId);
+    expect(res.status).toBe(200);
+    expect(typeof res.body.receivedPending).toBe("number");
+    expect(typeof res.body.sentPending).toBe("number");
+    expect(typeof res.body.total).toBe("number");
+  });
+
   it("GET /auth/me (session Supabase)", async () => {
     const res = await request(app.getHttpServer())
       .get("/api/v1/auth/me")
@@ -358,6 +380,14 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(posted.status).toBeGreaterThanOrEqual(200);
     expect(posted.status).toBeLessThan(300);
     expect(posted.body?.body).toBe("Message contrat e2e chat");
+
+    const masked = await request(app.getHttpServer())
+      .post(`/api/v1/chat/rooms/${roomId}/messages`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({ body: "Test 0708123456" });
+    expect(masked.status).toBeGreaterThanOrEqual(200);
+    expect(masked.status).toBeLessThan(300);
+    expect(masked.body?.body).toBe("Test ****");
   });
 
   it("POST /farms création (profil producteur)", async () => {

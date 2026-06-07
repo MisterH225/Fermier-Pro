@@ -3,9 +3,9 @@ import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import {
   FinanceDonutChart,
-  financeCategoryColor,
   type FinanceDonutSlice
 } from "../../finance/FinanceDonutChart";
+import { cheptelCategoryColor } from "./cheptelCategoryColors";
 import type { CheptelCategoryBreakdownRow } from "../../../lib/api";
 import {
   mobileColors,
@@ -26,7 +26,7 @@ export function CategoryBreakdownPanel({ rows }: Props) {
       rows.map((row, i) => ({
         label: t(`cheptel.category.${row.key}`, { defaultValue: row.key }),
         value: row.count,
-        color: financeCategoryColor(i)
+        color: cheptelCategoryColor(row.key, i)
       })),
     [rows, t]
   );

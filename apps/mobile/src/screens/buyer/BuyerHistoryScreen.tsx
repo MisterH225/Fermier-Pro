@@ -20,7 +20,7 @@ import {
   ScreenSection
 } from "../../components/layout";
 import { BuyerMobileShell } from "../../components/layout/BuyerMobileShell";
-import { useBuyerBottomChromePad } from "../../context/BuyerBottomChromeContext";
+import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import {
   fetchBuyerProposals,
@@ -45,7 +45,7 @@ function stars(score: number): string {
 
 export function BuyerHistoryScreen() {
   const { t } = useTranslation();
-  const bottomPad = useBuyerBottomChromePad();
+  const bottomInset = useBottomInset();
   const route = useRoute<Route>();
   const { accessToken, activeProfileId } = useSession();
   const [tab, setTab] = useState<Tab>(route.params?.initialTab ?? "proposals");
@@ -177,7 +177,7 @@ export function BuyerHistoryScreen() {
       <ScrollView
         contentContainerStyle={[
           profileScreenScrollContent,
-          { paddingBottom: bottomPad + mobileSpacing.xl }
+          { paddingBottom: bottomInset }
         ]}
         refreshControl={
           <RefreshControl

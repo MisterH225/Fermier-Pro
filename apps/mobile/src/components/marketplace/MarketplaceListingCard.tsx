@@ -131,6 +131,15 @@ export function MarketplaceListingCard({
             <Text style={styles.badgeNewTx}>{t("marketScreen.badgeNew")}</Text>
           </View>
         ) : null}
+        {!sold && (item.activeOfferCount ?? 0) >= 1 ? (
+          <View style={styles.badgeOffers}>
+            <Text style={styles.badgeOffersTx}>
+              {t("marketScreen.badgeActiveOffers", {
+                count: item.activeOfferCount
+              })}
+            </Text>
+          </View>
+        ) : null}
         {showFavorite ? (
           <Pressable
             style={styles.favBtn}
@@ -246,6 +255,22 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.sm
   },
   badgeNewTx: {
+    ...mobileTypography.meta,
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 11
+  },
+  badgeOffers: {
+    position: "absolute",
+    bottom: mobileSpacing.sm,
+    left: mobileSpacing.sm,
+    backgroundColor: "#D97706",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: mobileRadius.sm,
+    maxWidth: "70%"
+  },
+  badgeOffersTx: {
     ...mobileTypography.meta,
     color: "#fff",
     fontWeight: "700",

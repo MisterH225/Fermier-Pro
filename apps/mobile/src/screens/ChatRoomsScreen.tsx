@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { ChatModuleGate } from "../components/ChatModuleGate";
+import { useBottomInset } from "../hooks/useBottomInset";
 import { useSession } from "../context/SessionContext";
 import type { ChatRoomListItem } from "../lib/api";
 import { directConversationTitle, fetchChatRooms } from "../lib/api";
@@ -44,6 +45,7 @@ function lastPreview(room: ChatRoomListItem): string | null {
 
 export function ChatRoomsScreen({ navigation }: Props) {
   const { t } = useTranslation();
+  const bottomInset = useBottomInset();
   const { accessToken, activeProfileId, authMe } = useSession();
 
   useLayoutEffect(() => {
@@ -95,7 +97,9 @@ export function ChatRoomsScreen({ navigation }: Props) {
             data={rooms}
             keyExtractor={(item) => item.id}
             contentContainerStyle={
-              rooms.length === 0 ? styles.emptyList : styles.list
+              rooms.length === 0
+                ? [styles.emptyList, { paddingBottom: bottomInset }]
+                : [styles.list, { paddingBottom: bottomInset }]
             }
             refreshControl={
               <RefreshControl

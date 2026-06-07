@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
   attachLabel: { fontSize: 15, fontWeight: "600", color: mobileColors.accent },
   attachUrl: { fontSize: 12, color: mobileColors.textSecondary, marginTop: 4 },
   headerBtn: { marginRight: 4 },
-  headerBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: 15 },
   actionBox: {
     marginBottom: 14,
     backgroundColor: "#fff",

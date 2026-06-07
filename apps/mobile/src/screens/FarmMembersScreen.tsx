@@ -225,5 +225,5 @@ const styles = StyleSheet.create({
   dangerTxt: { color: "#b42318", fontWeight: "600", fontSize: 14 },
   error: { color: "#b42318", padding: 16 },
   headerBtn: { marginRight: 8 },
-  headerBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 }
+  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: 15 }
 });
