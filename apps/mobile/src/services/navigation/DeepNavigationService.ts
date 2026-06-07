@@ -453,6 +453,20 @@ export function navigateFromGenericPushData(
     return true;
   }
 
+  if (type === "vet_visit_scheduled" || type === "vet_visit_quote") {
+    const farmId = str(data.farmId);
+    const consultationId = str(data.consultationId);
+    if (!farmId || !consultationId) {
+      return false;
+    }
+    nav.navigate("VetConsultationDetail", {
+      farmId,
+      farmName: str(data.farmName) ?? "—",
+      consultationId
+    });
+    return true;
+  }
+
   if (
     type.startsWith("marketplace_") &&
     str(data.transactionId)
@@ -471,4 +485,31 @@ export function navigateFromGenericPushData(
   }
 
   return false;
+}
+
+/** Parse action_route IA (ex. FarmHealth:tab=vet_visit) et navigue si possible. */
+export function navigateFromInsightRoute(
+  navigation:
+    | NativeStackNavigationProp<RootStackParamList>
+    | NavigationContainerRef<RootStackParamList>,
+  actionRoute: string | null | undefined
+): boolean {
+  if (!actionRoute?.trim()) {
+    return false;
+  }
+  const [name, ...rest] = actionRoute.split(":");
+  const params: Record<string, string> = {};
+  for (const part of rest) {
+    const [k, v] = part.split("=");
+    if (k && v) {
+      params[k] = v;
+    }
+  }
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    navigation.navigate(name as any, params as any);
+    return true;
+  } catch {
+    return false;
+  }
 }

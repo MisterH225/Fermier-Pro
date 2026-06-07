@@ -83,21 +83,21 @@ export default function VetAppointmentsAdminPage() {
       <PageHeader title={t("title")} />
 
       <FilterPills
-        options={MAIN_TABS.map((id) => ({ id, label: t(`tabs.${id}`) }))}
+        items={[...MAIN_TABS]}
         value={mainTab}
-        onChange={(v) => setMainTab(v as MainTab)}
+        onChange={setMainTab}
+        label={(id) => t(`tabs.${id}`)}
       />
 
       {mainTab === "list" ? (
         <>
           <FilterPills
-            options={STATUS_FILTERS.map((id) => ({
-              id,
-              label:
-                id === "all" ? t("list.allStatuses") : t(`status.${id}`, { defaultValue: id })
-            }))}
+            items={[...STATUS_FILTERS]}
             value={statusFilter}
-            onChange={(v) => setStatusFilter(v as StatusFilter)}
+            onChange={setStatusFilter}
+            label={(id) =>
+              id === "all" ? t("list.allStatuses") : t(`status.${id}`, { defaultValue: id })
+            }
           />
           {loading ? (
             <p className="text-muted-foreground">…</p>
@@ -112,12 +112,10 @@ export default function VetAppointmentsAdminPage() {
       ) : (
         <>
           <FilterPills
-            options={PERIODS.map((id) => ({
-              id,
-              label: t(`revenue.period.${id}`)
-            }))}
+            items={[...PERIODS]}
             value={period}
-            onChange={(v) => setPeriod(v as (typeof PERIODS)[number])}
+            onChange={setPeriod}
+            label={(id) => t(`revenue.period.${id}`)}
           />
           {loading || !revenue ? (
             <p className="text-muted-foreground">…</p>

@@ -81,6 +81,20 @@ export function VetAgendaScreen() {
 
   const firstVisit = dashQ.data?.upcomingVisits[0];
 
+  const openUpcomingVisit = (
+    v: NonNullable<typeof dashQ.data>["upcomingVisits"][number]
+  ) => {
+    if (v.kind === "appointment") {
+      navigation.navigate("VetAppointmentDetail", { appointmentId: v.id });
+      return;
+    }
+    navigation.navigate("VetConsultationDetail", {
+      farmId: v.farmId,
+      farmName: v.farmName,
+      consultationId: v.id
+    });
+  };
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -151,13 +165,7 @@ export function VetAgendaScreen() {
                 scheduledAt={firstVisit.scheduledAt}
                 subject={firstVisit.subject}
                 location={firstVisit.location}
-                onPress={() =>
-                  navigation.navigate("VetConsultationDetail", {
-                    farmId: firstVisit.farmId,
-                    farmName: firstVisit.farmName,
-                    consultationId: firstVisit.id
-                  })
-                }
+                onPress={() => openUpcomingVisit(firstVisit)}
               />
             ) : null}
 
@@ -189,11 +197,7 @@ export function VetAgendaScreen() {
             onItemPress={(item) => {
               const v = dashQ.data?.upcomingVisits.find((x) => x.id === item.id);
               if (!v) return;
-              navigation.navigate("VetConsultationDetail", {
-                farmId: v.farmId,
-                farmName: v.farmName,
-                consultationId: v.id
-              });
+              openUpcomingVisit(v);
             }}
           />
         )}

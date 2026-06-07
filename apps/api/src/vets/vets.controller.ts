@@ -5,11 +5,14 @@ import {
   Param,
   Post,
   Query,
+  Res,
   UseGuards
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
+import type { Response } from "express";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
+import { setDeprecatedSuccessor } from "../common/http/deprecation.util";
 import { CreateVetRatingDto } from "./dto/create-vet-rating.dto";
 import { ScheduleVetVisitDto } from "./dto/schedule-vet-visit.dto";
 import { ProducerScheduleVetVisitDto } from "./dto/producer-schedule-vet-visit.dto";
@@ -32,7 +35,16 @@ export class VetsController {
   }
 
   @Post("vet-profiles/me/schedule-visit")
-  scheduleVisit(@CurrentUser() user: User, @Body() dto: ScheduleVetVisitDto) {
+  scheduleVisit(
+    @CurrentUser() user: User,
+    @Body() dto: ScheduleVetVisitDto,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    setDeprecatedSuccessor(
+      res,
+      "/api/v1/farms/:farmId/vet-appointments",
+      "Sat, 01 Jul 2027 00:00:00 GMT"
+    );
     return this.vets.scheduleVisit(user, dto);
   }
 
@@ -51,16 +63,27 @@ export class VetsController {
   scheduleFromProducer(
     @CurrentUser() user: User,
     @Param("farmId") farmId: string,
-    @Body() dto: ProducerScheduleVetVisitDto
+    @Body() dto: ProducerScheduleVetVisitDto,
+    @Res({ passthrough: true }) res: Response
   ) {
+    setDeprecatedSuccessor(
+      res,
+      `/api/v1/farms/${farmId}/vet-appointments`
+    );
     return this.vets.scheduleVisitFromProducer(user, farmId, dto);
   }
 
   @Get("farms/:farmId/vet-visit-quotes")
   listVisitQuotes(
     @CurrentUser() user: User,
-    @Param("farmId") farmId: string
+    @Param("farmId") farmId: string,
+    @Res({ passthrough: true }) res: Response
   ) {
+    setDeprecatedSuccessor(
+      res,
+      `/api/v1/farms/${farmId}/vet-appointments`,
+      "Sat, 01 Jul 2027 00:00:00 GMT"
+    );
     return this.vets.listPendingVisitQuotes(user, farmId);
   }
 
@@ -70,8 +93,14 @@ export class VetsController {
     @Param("farmId") farmId: string,
     @Param("consultationId") consultationId: string,
     @Body()
-    body: { action: "accept" | "refuse" | "counter"; counterPrice?: number }
+    body: { action: "accept" | "refuse" | "counter"; counterPrice?: number },
+    @Res({ passthrough: true }) res: Response
   ) {
+    setDeprecatedSuccessor(
+      res,
+      `/api/v1/farms/${farmId}/vet-appointments`,
+      "Sat, 01 Jul 2027 00:00:00 GMT"
+    );
     return this.vets.respondVisitQuote(
       user,
       farmId,
@@ -85,8 +114,14 @@ export class VetsController {
   submitVisitQuote(
     @CurrentUser() user: User,
     @Param("consultationId") consultationId: string,
-    @Body() body: { price: number; note?: string }
+    @Body() body: { price: number; note?: string },
+    @Res({ passthrough: true }) res: Response
   ) {
+    setDeprecatedSuccessor(
+      res,
+      "/api/v1/farms/:farmId/vet-appointments",
+      "Sat, 01 Jul 2027 00:00:00 GMT"
+    );
     return this.vets.submitVisitQuote(
       user,
       consultationId,

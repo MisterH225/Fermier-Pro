@@ -452,6 +452,19 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(Array.isArray(res.body?.weights)).toBe(true);
   });
 
+  it("PATCH statut animal (legacy livestock) — proxy cheptel + Deprecation", async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/api/v1/farms/${ctx.farmId}/animals/${ctx.animalId}/status`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({ status: "active", note: "e2e legacy proxy" });
+    expect(res.status).toBeGreaterThanOrEqual(200);
+    expect(res.status).toBeLessThan(300);
+    expect(res.body?.status).toBe("active");
+    expect(res.headers.deprecation).toBe("true");
+    expect(String(res.headers.link ?? "")).toContain("cheptel/animals");
+  });
+
   it("PATCH statut animal (cheptel) — vendu via /sell", async () => {
     const sell = await request(app.getHttpServer())
       .patch(`/api/v1/farms/${ctx.farmId}/cheptel/animals/${ctx.animalId}/sell`)
