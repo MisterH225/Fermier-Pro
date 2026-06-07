@@ -4870,6 +4870,80 @@ export function postMarketplaceOffer(
   );
 }
 
+export type BuyerCreditScoreDto = {
+  score: string;
+  emoji: string;
+  label: string;
+  color: string;
+  blocked: boolean;
+  creditTransactionsCount: number;
+  creditOnTimeCount: number;
+  creditLateCount: number;
+  creditDefaultCount: number;
+};
+
+export type MarketplaceCreditOfferDto = {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  currency: string;
+  offerType: string;
+  status: string;
+  offeredPrice: number;
+  advancePercentage: number | null;
+  advanceAmount: number | null;
+  balanceAmount: number | null;
+  balanceDueDays: number | null;
+  balanceDueAt: string | null;
+  message: string | null;
+  buyerCreditScore: BuyerCreditScoreDto | null;
+};
+
+export function fetchMyCreditScore(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<BuyerCreditScoreDto> {
+  return apiGetJson<BuyerCreditScoreDto>(
+    "/marketplace/buyers/me/credit-score",
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function postMarketplaceCreditOffer(
+  accessToken: string,
+  listingId: string,
+  payload: {
+    offeredPrice: number;
+    advancePercentage: number;
+    balanceDueDays: number;
+    message?: string;
+    buyerFarmId?: string;
+  },
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPostJson<MarketplaceCreditOfferDto>(
+    `/marketplace/listings/${listingId}/offers/credit`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function agreeMarketplaceCreditOffer(
+  accessToken: string,
+  listingId: string,
+  offerId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/listings/${listingId}/offers/${offerId}/agree-credit`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
 export type MarketplaceOfferMineRow = {
   id: string;
   offeredPrice: string | number;

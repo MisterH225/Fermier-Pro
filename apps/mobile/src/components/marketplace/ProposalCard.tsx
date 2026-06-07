@@ -26,6 +26,7 @@ type ProposalCardBase = {
   createdAt: string;
   currency: string;
   listingTitle: string;
+  offerType?: string | null;
   listingCategory?: string | null;
   listingWeightKg?: string | number | null;
   subtitle?: string | null;
@@ -88,6 +89,7 @@ export function ProposalCard(props: ProposalCardProps) {
     createdAt,
     currency,
     listingTitle,
+    offerType,
     listingCategory,
     listingWeightKg,
     subtitle,
@@ -148,6 +150,10 @@ export function ProposalCard(props: ProposalCardProps) {
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         </View>
       </Pressable>
+
+      {offerType === "credit" ? (
+        <Text style={styles.creditBadge}>💳 {t("marketScreen.creditModal.badge")}</Text>
+      ) : null}
 
       <View style={styles.amountRow}>
         <Text style={styles.amount}>
@@ -292,6 +298,12 @@ const styles = StyleSheet.create({
   badgeAccepted: { backgroundColor: "#E8F5E9" },
   badgeRejected: { backgroundColor: "#FFEBEE" },
   badgeCounter: { backgroundColor: mobileColors.accentSoft },
+  creditBadge: {
+    ...mobileTypography.meta,
+    color: "#BA7517",
+    fontWeight: "700",
+    marginBottom: mobileSpacing.xs
+  },
   badgeTx: {
     ...mobileTypography.meta,
     fontWeight: "700",

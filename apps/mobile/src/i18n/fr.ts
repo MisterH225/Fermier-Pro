@@ -405,6 +405,29 @@ export const fr = {
       successTitle: "Envoi confirmé",
       successBody: "L'acheteur a été notifié."
     },
+    creditModal: {
+      open: "💳 Offre à crédit",
+      title: "💳 Offre à crédit",
+      subtitle: "Proposez un accord de paiement en deux fois",
+      totalPrice: "Prix total proposé",
+      advancePct: "Pourcentage d'avance (%)",
+      advanceHelper: "Minimum 20 % — maximum 50 %",
+      advancePreview: "Avance : {{amount}}",
+      balancePreview: "Solde : {{amount}}",
+      balanceDays: "Délai de paiement du solde",
+      dayOption: "{{count}} jour",
+      message: "Message au vendeur",
+      messagePh: "Présentez-vous, expliquez votre activité de revendeur…",
+      scoreWarning:
+        "Votre score crédit actuel est fragile. Le vendeur sera informé de votre historique.",
+      yourScore: "Votre score crédit :",
+      submit: "Envoyer l'offre à crédit",
+      success: "Offre à crédit envoyée au vendeur.",
+      errorTitle: "Offre à crédit impossible",
+      blocked:
+        "Votre score crédit ne vous permet pas de faire des offres à crédit pour le moment.",
+      badge: "À CRÉDIT"
+    },
     transferModal: {
       open: "Ajouter à mon cheptel",
       title: "Importer dans ma ferme",

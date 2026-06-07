@@ -18,6 +18,7 @@ import {
   MarketplaceShipmentMethod,
   MarketplaceTransactionStatus,
   OfferStatus,
+  OfferType,
   Prisma,
   WeightValidatedBy
 } from "@prisma/client";
@@ -27,6 +28,7 @@ import type { ResolveDeliveryDisputeDto } from "../dto/resolve-delivery-dispute.
 import { PlatformSettingsService } from "../../platform-settings/platform-settings.service";
 import { PushNotificationsService } from "../../push-notifications/push-notifications.service";
 import { BuyerProfileDetectorService } from "../buyer-profile-detector.service";
+import { CreditOffersService } from "../credit/credit-offers.service";
 import { ListingsService } from "../listings.service";
 import { ReceiptService } from "../receipts/receipt.service";
 import { EscrowService } from "./escrow.service";
@@ -56,8 +58,68 @@ export class MarketplaceTransactionService {
     private readonly listings: ListingsService,
     private readonly receipts: ReceiptService,
     private readonly buyerProfiles: BuyerProfileDetectorService,
-    private readonly farmAccess: FarmAccessService
+    private readonly farmAccess: FarmAccessService,
+    @Inject(forwardRef(() => CreditOffersService))
+    private readonly creditOffers: CreditOffersService
   ) {}
+
+  /** Transaction livraison pour vente à crédit (sans escrow complet). */
+  async createCreditDeliveryTransaction(
+    offerId: string
+  ): Promise<{ transactionId: string }> {
+    const offer = await this.prisma.marketplaceOffer.findUnique({
+      where: { id: offerId },
+      include: { listing: true }
+    });
+    if (!offer || offer.offerType !== OfferType.credit) {
+      throw new BadRequestException("Offre crédit invalide");
+    }
+    const existing = await this.prisma.marketplaceTransaction.findUnique({
+      where: { offerId }
+    });
+    if (existing) {
+      return { transactionId: existing.id };
+    }
+    const listing = offer.listing;
+    const terms = agreedTermsFromOffer(offer, listing);
+    const blocked = calculateBlockedAmount({
+      priceType: terms.priceType,
+      agreedPricePerKg: terms.agreedPricePerKg,
+      agreedFlatPrice: terms.agreedFlatPrice,
+      estimatedWeightKg: terms.estimatedWeightKg
+    });
+    const commissionRate = await this.platformSettings.getMarketplaceCommissionRate();
+    const now = new Date();
+    const tx = await this.prisma.marketplaceTransaction.create({
+      data: {
+        offerId: offer.id,
+        listingId: listing.id,
+        buyerUserId: offer.buyerUserId,
+        sellerUserId: listing.sellerUserId,
+        status: MarketplaceTransactionStatus.PAYMENT_HELD,
+        priceType: terms.priceType,
+        agreedPricePerKg:
+          terms.agreedPricePerKg != null
+            ? new Prisma.Decimal(terms.agreedPricePerKg)
+            : null,
+        agreedFlatPrice:
+          terms.agreedFlatPrice != null
+            ? new Prisma.Decimal(terms.agreedFlatPrice)
+            : null,
+        estimatedWeightKg:
+          terms.estimatedWeightKg != null
+            ? new Prisma.Decimal(terms.estimatedWeightKg)
+            : null,
+        blockedAmount: new Prisma.Decimal(blocked),
+        commissionRate: new Prisma.Decimal(commissionRate),
+        offerExpiresAt: paymentExpiryDate(),
+        currency: listing.currency ?? "XOF",
+        isCredit: true,
+        paymentConfirmedAt: now
+      }
+    });
+    return { transactionId: tx.id };
+  }
 
   /** Crée une transaction escrow après acceptation d'offre (vendeur ou acheteur). */
   async createFromAcceptedOffer(offerId: string): Promise<{ transactionId: string }> {
@@ -854,7 +916,15 @@ export class MarketplaceTransactionService {
         }
       })
     ]);
-    if (nextStatus === MarketplaceTransactionStatus.WEIGHT_DECLARED) {
+    if (tx.isCredit) {
+      void this.creditOffers.onCreditDeliveryConfirmed(tx.offerId, receivedAt);
+      void this.push.sendToUser(
+        tx.sellerUserId,
+        "Réception confirmée (crédit)",
+        "Livraison enregistrée. Le solde reste en attente hors escrow.",
+        { type: "marketplace_credit_receipt_confirmed", transactionId: tx.id }
+      );
+    } else if (nextStatus === MarketplaceTransactionStatus.WEIGHT_DECLARED) {
       void this.push.sendToUser(
         tx.sellerUserId,
         "Réception confirmée",
@@ -1431,6 +1501,9 @@ export class MarketplaceTransactionService {
         return;
       }
       if (tx.status !== MarketplaceTransactionStatus.WEIGHT_VALIDATED) {
+        return;
+      }
+      if (tx.isCredit) {
         return;
       }
 

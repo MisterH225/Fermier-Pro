@@ -405,6 +405,29 @@ export const en = {
       successTitle: "Shipment confirmed",
       successBody: "The buyer has been notified."
     },
+    creditModal: {
+      open: "💳 Credit offer",
+      title: "💳 Credit offer",
+      subtitle: "Propose a two-part payment agreement",
+      totalPrice: "Proposed total price",
+      advancePct: "Advance percentage (%)",
+      advanceHelper: "Minimum 20% — maximum 50%",
+      advancePreview: "Advance: {{amount}}",
+      balancePreview: "Balance: {{amount}}",
+      balanceDays: "Balance payment deadline",
+      dayOption: "{{count}} day",
+      message: "Message to seller",
+      messagePh: "Introduce yourself and your reseller activity…",
+      scoreWarning:
+        "Your current credit score is weak. The seller will see your history.",
+      yourScore: "Your credit score:",
+      submit: "Send credit offer",
+      success: "Credit offer sent to the seller.",
+      errorTitle: "Credit offer failed",
+      blocked:
+        "Your credit score does not allow credit offers at this time.",
+      badge: "CREDIT"
+    },
     transferModal: {
       open: "Add to my herd",
       title: "Import to my farm",
