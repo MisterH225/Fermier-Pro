@@ -27,8 +27,8 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { useModal } from "../modals/useModal";
 import { BaseModal } from "./BaseModal";
-import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 import { MemberAvatar } from "./MemberAvatar";
 import { SuccessModal } from "./SuccessModal";
 
@@ -43,10 +43,10 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
+  const { open } = useModal();
 
   const [editMode, setEditMode] = useState(false);
   const [permissions, setPermissions] = useState<InvitationPermissions>({});
-  const [confirmRevoke, setConfirmRevoke] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
 
@@ -89,12 +89,12 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
       removeFarmMember(accessToken, farmId, member!.id, activeProfileId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["farmMembers", farmId] });
-      setConfirmRevoke(false);
-      onClose();
-    },
-    onError: (e: Error) => {
-      setConfirmRevoke(false);
-      Alert.alert("", e.message);
+      void qc.invalidateQueries({
+        queryKey: ["farmPendingInvitations", farmId]
+      });
+      void qc.invalidateQueries({ queryKey: ["farmActivityLogs", farmId] });
+      setSuccessMsg(t("collab.revokeSuccess"));
+      setShowSuccess(true);
     }
   });
 
@@ -102,6 +102,15 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
 
   const displayName =
     member.user.fullName?.trim() || member.user.email || "—";
+
+  const openRevokeConfirm = () => {
+    open("confirm-delete", {
+      title: t("collab.revokeConfirmTitle"),
+      message: t("collab.revokeConfirmBody", { name: displayName }),
+      confirmLabel: t("collab.revokeConfirmAction"),
+      onConfirm: async () => { await revokeMut.mutateAsync(); }
+    });
+  };
   const badgeColor = ROLE_BADGE_COLOR[member.role] ?? mobileColors.textSecondary;
   const roleLabel = ROLE_DISPLAY_FR[member.role] ?? member.role;
   const currentPerms = scopesToPermissions(member.scopes ?? []);
@@ -110,7 +119,7 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
   return (
     <>
       <BaseModal
-        visible={visible && !confirmRevoke && !showSuccess}
+        visible={visible && !showSuccess}
         title={displayName}
         onClose={onClose}
         {...(editMode
@@ -205,8 +214,9 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
 
         {!isOwner ? (
           <Pressable
-            onPress={() => setConfirmRevoke(true)}
-            style={styles.revokeBtn}
+            onPress={openRevokeConfirm}
+            disabled={revokeMut.isPending}
+            style={[styles.revokeBtn, revokeMut.isPending && styles.btnDisabled]}
             accessibilityRole="button"
           >
             <Ionicons name="ban-outline" size={16} color={mobileColors.error} />
@@ -215,20 +225,13 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
         ) : null}
       </BaseModal>
 
-      <ConfirmDeleteModal
-        visible={confirmRevoke}
-        title={t("collab.revokeConfirmTitle")}
-        body={t("collab.revokeConfirmBody", { name: displayName })}
-        confirmLabel={t("collab.revokeConfirmAction")}
-        onConfirm={() => revokeMut.mutate()}
-        onCancel={() => setConfirmRevoke(false)}
-        loading={revokeMut.isPending}
-      />
-
       <SuccessModal
         visible={showSuccess}
         message={successMsg}
-        onClose={() => setShowSuccess(false)}
+        onClose={() => {
+          setShowSuccess(false);
+          onClose();
+        }}
       />
     </>
   );
@@ -347,5 +350,8 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     color: mobileColors.error,
     fontWeight: "600"
+  },
+  btnDisabled: {
+    opacity: 0.5
   }
 });

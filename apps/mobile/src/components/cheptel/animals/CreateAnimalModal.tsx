@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +20,7 @@ import {
   fetchNextAnimalNumber,
   fetchTaxonomy,
   postAnimalWeight,
+  startPenPlacement,
   type AnimalDetail,
   type CreateAnimalPayload
 } from "../../../lib/api";
@@ -179,6 +181,19 @@ export function CreateAnimalModal({
     };
   };
 
+  const invalidateAnimalQueries = () => {
+    void qc.invalidateQueries({ queryKey: ["penContents", farmId] });
+    void qc.invalidateQueries({ queryKey: ["cheptelPens", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmAnimals", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmCheptel", farmId] });
+    void qc.invalidateQueries({ queryKey: ["cheptelHistory", farmId] });
+    if (targetPen?.penId) {
+      void qc.invalidateQueries({
+        queryKey: ["penContents", farmId, targetPen.penId]
+      });
+    }
+  };
+
   const saveMut = useOfflineMutation({
     farmId,
     type: "cheptel.createAnimal",
@@ -192,6 +207,15 @@ export function CreateAnimalModal({
         payload,
         activeProfileId
       );
+      if (targetPen?.penId) {
+        await startPenPlacement(
+          accessToken,
+          farmId,
+          targetPen.penId,
+          { animalId: created.id },
+          activeProfileId
+        );
+      }
       const w = Number.parseFloat(entryWeight.replace(",", "."));
       if (Number.isFinite(w) && w > 0) {
         await postAnimalWeight(
@@ -218,6 +242,13 @@ export function CreateAnimalModal({
           body: payload
         }
       ];
+      if (targetPen?.penId) {
+        calls.push({
+          method: "POST",
+          path: `/farms/${farmId}/pens/${targetPen.penId}/placements`,
+          body: { animalId: "{{0.id}}" }
+        });
+      }
       if (Number.isFinite(w) && w > 0) {
         calls.push({
           method: "POST",
@@ -231,7 +262,8 @@ export function CreateAnimalModal({
           "farmAnimals",
           "farmCheptel",
           "cheptelPens",
-          "cheptelHistory"
+          "cheptelHistory",
+          "penContents"
         ]
       };
     },
@@ -246,6 +278,7 @@ export function CreateAnimalModal({
       );
     },
     onSuccess: (data) => {
+      invalidateAnimalQueries();
       onCreated();
       onClose();
       open("success", {
@@ -256,6 +289,7 @@ export function CreateAnimalModal({
       });
     },
     onQueued: () => {
+      invalidateAnimalQueries();
       onCreated();
       onClose();
       open("success", {
@@ -264,7 +298,7 @@ export function CreateAnimalModal({
       });
     },
     onError: (e: Error) => {
-      Alert.alert(t("cheptel.animals.create.errorTitle"), e.message);
+      Alert.alert(t("cheptel.animals.create.errorTitle"), getUserFacingError(e, t));
     }
   });
 

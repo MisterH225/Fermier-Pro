@@ -3,6 +3,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -77,6 +78,7 @@ export function AcceptFarmInvitationScreen({ route, navigation }: Props) {
     onSuccess: (res) => {
       void qc.invalidateQueries({ queryKey: ["farms", activeProfileId] });
       void qc.invalidateQueries({ queryKey: ["farm"] });
+      void qc.invalidateQueries({ queryKey: ["vetDashboard"] });
       Alert.alert(
         res.alreadyMember ? t("invite.alreadyMemberTitle") : t("invite.welcomeTitle"),
         res.alreadyMember
@@ -90,7 +92,7 @@ export function AcceptFarmInvitationScreen({ route, navigation }: Props) {
         ]
       );
     },
-    onError: (e: Error) => Alert.alert(t("invite.refusedTitle"), e.message)
+    onError: (e: Error) => Alert.alert(t("invite.refusedTitle"), getUserFacingError(e, t))
   });
 
   const preview = previewQuery.data;

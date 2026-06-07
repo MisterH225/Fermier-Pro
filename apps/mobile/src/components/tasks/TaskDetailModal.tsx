@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -92,7 +93,7 @@ export function TaskDetailModal({
       invalidate();
       onClose();
     },
-    onError: (e: Error) => Alert.alert(t("tasksScreen.errorTitle"), e.message)
+    onError: (e: Error) => Alert.alert(t("tasksScreen.errorTitle"), getUserFacingError(e, t))
   });
 
   const deleteMut = useMutation({
@@ -102,7 +103,7 @@ export function TaskDetailModal({
       invalidate();
       onClose();
     },
-    onError: (e: Error) => Alert.alert(t("tasksScreen.errorTitle"), e.message)
+    onError: (e: Error) => Alert.alert(t("tasksScreen.errorTitle"), getUserFacingError(e, t))
   });
 
   if (!task) {

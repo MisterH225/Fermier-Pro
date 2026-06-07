@@ -29,6 +29,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { getUserFacingError } from "../../lib/userFacingError";
 
 export type StockModalProps = {
   visible: boolean;
@@ -506,7 +507,7 @@ export function StockModal({
           {mut.error ? (
             <Text style={styles.err}>
               {mut.error instanceof Error
-                ? mut.error.message
+                ? getUserFacingError(mut.error, t)
                 : String(mut.error)}
             </Text>
           ) : null}

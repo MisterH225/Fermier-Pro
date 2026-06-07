@@ -3,14 +3,15 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { ListSkeleton } from "../../components/common/SkeletonBlocks";
 import {
   ProfileSectionEmpty,
   profileScreenScrollContent,
   ScreenSection
 } from "../../components/layout";
 import { TechMobileShell } from "../../components/layout/TechMobileShell";
-import { useTechBottomChromePad } from "../../context/TechBottomChromeContext";
+import { useBottomChromePad } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import { fetchTechnicianDashboard } from "../../lib/api";
 import { techColors } from "../../theme/technicianTheme";
@@ -19,7 +20,7 @@ import type { RootStackParamList } from "../../types/navigation";
 /** Redirige vers l’écran tâches ferme (même composant que le producteur). */
 export function TechTasksScreen() {
   const { t } = useTranslation();
-  const bottomPad = useTechBottomChromePad();
+  const bottomChromePad = useBottomChromePad();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken, activeProfileId } = useSession();
@@ -45,10 +46,12 @@ export function TechTasksScreen() {
 
   return (
     <TechMobileShell hideTopBar>
-      <View style={[profileScreenScrollContent, styles.wrap, { paddingBottom: bottomPad }]}>
+      <View style={[profileScreenScrollContent, styles.wrap, { paddingBottom: bottomChromePad }]}>
         <ScreenSection title={t("tech.dashboard.tasksToday")}>
-          {dashQ.isLoading || farm ? (
-            <ActivityIndicator color={techColors.primary} />
+          {dashQ.isLoading ? (
+            <ListSkeleton count={3} />
+          ) : farm ? (
+            <ListSkeleton count={2} />
           ) : (
             <ProfileSectionEmpty>{t("tech.tasks.noFarm")}</ProfileSectionEmpty>
           )}

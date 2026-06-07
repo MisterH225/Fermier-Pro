@@ -23,6 +23,8 @@ import { CreateListingDto } from "./dto/create-listing.dto";
 import { PublishListingDto } from "./dto/publish-listing.dto";
 import { RenewListingDto } from "./dto/renew-listing.dto";
 import { FarmRatingsService } from "./farm-ratings.service";
+import { FarmMarketplaceLifecycleService } from "./farm-marketplace-lifecycle.service";
+import { MarketplacePigPriceIndexService } from "./pig-price-index.service";
 import {
   buildListingFarmInfo,
   buildListingHealthData
@@ -34,6 +36,7 @@ import {
   resolveListingMarketCategory,
   usesFlatListingPrice
 } from "./marketplace-listing-category.helper";
+import { LISTING_EDIT_LOCK_STATUSES } from "./escrow/transaction.utils";
 
 function privacyDisplayName(fullName: string | null | undefined): string {
   const raw = fullName?.trim();
@@ -68,7 +71,9 @@ export class ListingsService {
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
     private readonly farmRatings: FarmRatingsService,
-    private readonly push: PushNotificationsService
+    private readonly push: PushNotificationsService,
+    private readonly marketplaceLifecycle: FarmMarketplaceLifecycleService,
+    private readonly pigPriceIndex: MarketplacePigPriceIndexService
   ) {}
 
   private async resolveFarmAndAnimal(
@@ -357,15 +362,19 @@ export class ListingsService {
       });
       return this.formatListingsForApi(rows);
     }
+    const now = new Date();
     const publicStatus =
       status && status !== ListingStatus.draft
         ? status
         : ListingStatus.published;
-    const now = new Date();
     const rows = await this.prisma.marketplaceListing.findMany({
       where: {
-        status: publicStatus,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        ...(publicStatus === ListingStatus.published
+          ? this.marketplaceLifecycle.publicListingWhere(now)
+          : {
+              status: publicStatus,
+              OR: [{ expiresAt: null }, { expiresAt: { gt: now } }]
+            }),
         ...(category ? { category } : {}),
         ...textFilter
       },
@@ -503,12 +512,18 @@ export class ListingsService {
       throw new NotFoundException("Annonce introuvable");
     }
 
-    if (listing.status === ListingStatus.reserved) {
+    const lockedForBuyer = [
+      ListingStatus.reserved,
+      ListingStatus.shipped,
+      ListingStatus.delivered,
+      ListingStatus.disputed
+    ] as ListingStatus[];
+    if (lockedForBuyer.includes(listing.status)) {
       const accepted = await this.prisma.marketplaceOffer.findFirst({
         where: {
           listingId: id,
           buyerUserId: user.id,
-          status: OfferStatus.accepted
+          status: { in: [OfferStatus.accepted, OfferStatus.completed] }
         }
       });
       if (listing.sellerUserId !== user.id && !accepted) {
@@ -613,6 +628,19 @@ export class ListingsService {
     ) {
       throw new BadRequestException(
         "Annonce non modifiable (réservée, vendue ou annulée)"
+      );
+    }
+
+    const activeEscrow = await this.prisma.marketplaceTransaction.findFirst({
+      where: {
+        listingId: id,
+        status: { in: LISTING_EDIT_LOCK_STATUSES }
+      },
+      select: { id: true, status: true }
+    });
+    if (activeEscrow) {
+      throw new BadRequestException(
+        "Annonce non modifiable pendant un paiement ou une transaction en cours"
       );
     }
 
@@ -880,9 +908,13 @@ export class ListingsService {
   ) {
     const listing = await this.requireOwnerEditable(user, listingId);
     await this.requireMarketplaceWriteIfFarmListing(user.id, listing.farmId);
-    if (listing.status !== ListingStatus.reserved) {
+    if (
+      listing.status !== ListingStatus.reserved &&
+      listing.status !== ListingStatus.published &&
+      listing.status !== ListingStatus.delivered
+    ) {
       throw new BadRequestException(
-        "Cloture possible uniquement pour une annonce reservee"
+        "Cloture possible uniquement pour une annonce en cours de vente"
       );
     }
     if (!listing.farmId) {
@@ -930,7 +962,12 @@ export class ListingsService {
       const fresh = await tx.marketplaceListing.findUnique({
         where: { id: listingId }
       });
-      if (!fresh || fresh.status !== ListingStatus.reserved) {
+      if (
+        !fresh ||
+        (fresh.status !== ListingStatus.reserved &&
+          fresh.status !== ListingStatus.published &&
+          fresh.status !== ListingStatus.delivered)
+      ) {
         throw new BadRequestException("Annonce deja cloturee");
       }
 
@@ -1071,6 +1108,12 @@ export class ListingsService {
       `${amountLabel} enregistré dans Finance.`,
       { type: "marketplace_sale", listingId }
     );
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { completedTransactions: { increment: 1 } }
+    });
+    void this.pigPriceIndex.refreshSellerIndexWeight(user.id);
 
     return result.listing;
   }

@@ -6,9 +6,11 @@
   "nav": {
     "overview": "Vue d'ensemble",
     "vets": "Vétérinaires",
+    "vetAppointments": "RDV véto",
     "users": "Utilisateurs",
     "auditLogs": "Journal admin",
     "map": "Carte sanitaire",
+    "marketplace": "Marketplace",
     "stats": "Statistiques",
     "ai": "Assistant IA",
     "settings": "Paramètres",
@@ -18,7 +20,8 @@
     "title": "Notifications",
     "none": "Aucune notification",
     "pendingVets": "Vétérinaires en attente ({count})",
-    "activeAlerts": "Alertes sanitaires ({count})"
+    "activeAlerts": "Alertes sanitaires ({count})",
+    "marketplaceDisputes": "Litiges poids ({count})"
   },
   "login": {
     "title": "Connexion SuperAdmin",
@@ -374,7 +377,8 @@
     "sections": {
       "map": "Périmètre géographique",
       "alerts": "Seuils alertes sanitaires",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "marketplace": "Marketplace"
     },
     "fields": {
       "mapScope": "Zone visible sur la carte",
@@ -382,7 +386,9 @@
       "alertPeriod": "Période de calcul (jours)",
       "alertLevel": "Niveau alerte par défaut",
       "adminEmail": "Email SuperAdmin",
-      "reportFrequency": "Fréquence rapports (jours)"
+      "reportFrequency": "Fréquence rapports (jours)",
+      "marketplaceCommission": "Commission marketplace (%)",
+      "marketplaceCommissionHint": "Appliquée à chaque vente conclue sur le marché (ex. 5 = 5 %)."
     },
     "scopes": {
       "world": "Monde entier",
@@ -429,5 +435,130 @@
     "save": "Enregistrer",
     "cancel": "Annuler",
     "comingSoon": "Section en cours de déploiement."
+  },
+  "marketplace": {
+    "title": "Marketplace — transactions",
+    "tabs": {
+      "transactions": "Transactions",
+      "disputes": "Litiges poids",
+      "revenue": "Commissions",
+      "receipts": "Reçus PDF"
+    },
+    "receipts": {
+      "empty": "Aucune transaction clôturée.",
+      "summary": "{generated} reçus générés sur {total} transactions clôturées.",
+      "colListing": "Annonce",
+      "colReceipt": "N° reçu",
+      "colStatus": "Statut",
+      "colClosed": "Clôture",
+      "colActions": "Actions",
+      "download": "Télécharger",
+      "regenerate": "Régénérer",
+      "status": {
+        "pending": "En attente",
+        "generated": "Généré",
+        "failed": "Échec"
+      }
+    },
+    "transactions": {
+      "empty": "Aucune transaction.",
+      "allStatuses": "Tous les statuts",
+      "colListing": "Annonce",
+      "colStatus": "Statut",
+      "colBuyer": "Acheteur",
+      "colSeller": "Vendeur",
+      "colAmount": "Montant bloqué",
+      "colUpdated": "Mis à jour"
+    },
+    "status": {
+      "OFFER_ACCEPTED": "Offre acceptée",
+      "PAYMENT_PENDING": "Paiement en attente",
+      "PAYMENT_HELD": "Paiement sécurisé",
+      "PICKUP_SCHEDULED": "Livraison planifiée",
+      "WEIGHT_DECLARED": "Poids déclaré",
+      "WEIGHT_DISPUTED": "Litige poids",
+      "WEIGHT_VALIDATED": "Poids validé",
+      "TRANSACTION_CLOSED": "Clôturée",
+      "CANCELLED_BY_BUYER": "Annulée (acheteur)",
+      "CANCELLED_BY_SELLER": "Annulée (vendeur)",
+      "CANCELLED_SOLD_TO_OTHER": "Vendu à un autre",
+      "PAYMENT_FAILED": "Paiement échoué",
+      "OFFER_EXPIRED": "Offre expirée"
+    },
+    "disputes": {
+      "empty": "Aucun litige en cours.",
+      "buyer": "Acheteur",
+      "seller": "Vendeur",
+      "declaredWeight": "Poids déclaré",
+      "blockedAmount": "Montant bloqué",
+      "openedAt": "Ouvert le",
+      "arbitrate": "Arbitrer",
+      "arbitrateTitle": "Arbitrage du poids",
+      "arbitrationWeight": "Poids arbitré (kg)",
+      "cancel": "Annuler",
+      "confirm": "Valider l'arbitrage",
+      "invalidWeight": "Poids invalide.",
+      "error": "Arbitrage impossible."
+    },
+    "revenue": {
+      "totalCommission": "Commissions collectées",
+      "totalGross": "Volume brut",
+      "transactionCount": "Transactions clôturées",
+      "dailySeries": "Commissions par jour",
+      "colListing": "Annonce",
+      "colGross": "Montant brut",
+      "colCommission": "Commission",
+      "colDate": "Date",
+      "period": {
+        "7d": "7 jours",
+        "30d": "30 jours",
+        "90d": "90 jours",
+        "all": "Tout"
+      }
+    }
+  },
+  "vetAppointments": {
+    "title": "Rendez-vous vétérinaires",
+    "tabs": {
+      "list": "Liste",
+      "revenue": "Commissions & avis"
+    },
+    "list": {
+      "empty": "Aucun rendez-vous.",
+      "allStatuses": "Tous les statuts",
+      "colFarm": "Ferme",
+      "colVet": "Vétérinaire",
+      "colProducer": "Producteur",
+      "colStatus": "Statut",
+      "colAmount": "Montant",
+      "colWhen": "Date",
+      "refund": "Rembourser",
+      "refundConfirm": "Confirmer le remboursement intégral au producteur ?",
+      "refundError": "Remboursement impossible."
+    },
+    "status": {
+      "APPOINTMENT_REQUESTED": "Demande envoyée",
+      "AWAITING_PAYMENT": "En attente paiement",
+      "APPOINTMENT_CONFIRMED": "Confirmé",
+      "APPOINTMENT_IN_PROGRESS": "En cours",
+      "APPOINTMENT_COMPLETED": "Prestation terminée",
+      "APPOINTMENT_RATED": "Noté",
+      "APPOINTMENT_REFUSED": "Refusé",
+      "PAYMENT_EXPIRED": "Paiement expiré",
+      "CANCELLED_BY_PRODUCER": "Annulé (producteur)",
+      "CANCELLED_BY_VET": "Annulé (véto)"
+    },
+    "revenue": {
+      "totalCommission": "Commissions RDV",
+      "totalGross": "Volume brut",
+      "appointmentCount": "Prestations clôturées",
+      "lowRated": "Vétérinaires mal notés (< 3/5)",
+      "period": {
+        "7d": "7 jours",
+        "30d": "30 jours",
+        "90d": "90 jours",
+        "all": "Tout"
+      }
+    }
   }
 }

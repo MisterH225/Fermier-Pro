@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
@@ -12,13 +11,14 @@ import {
   Text,
   View
 } from "react-native";
+import { CardContentSkeleton } from "../../components/common/SkeletonBlocks";
 import {
   ProfileSectionEmpty,
   profileScreenScrollContent,
   ScreenSection
 } from "../../components/layout";
 import { TechMobileShell } from "../../components/layout/TechMobileShell";
-import { useTechBottomChromePad } from "../../context/TechBottomChromeContext";
+import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import { fetchTechnicianDashboard } from "../../lib/api";
 import {
@@ -34,7 +34,7 @@ const TABS = ["loges", "cheptel", "sante", "gestation"] as const;
 
 export function TechFarmScreen() {
   const { t } = useTranslation();
-  const bottomPad = useTechBottomChromePad();
+  const bottomInset = useBottomInset();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken, activeProfileId } = useSession();
@@ -80,11 +80,11 @@ export function TechFarmScreen() {
       <ScrollView
         contentContainerStyle={[
           profileScreenScrollContent,
-          { paddingBottom: bottomPad + mobileSpacing.xl }
+          { paddingBottom: bottomInset }
         ]}
       >
         {dashQ.isLoading ? (
-          <ActivityIndicator color={techColors.primary} style={styles.loader} />
+          <CardContentSkeleton lines={5} />
         ) : null}
         {!farm && !dashQ.isLoading ? (
           <ProfileSectionEmpty>{t("tech.tasks.noFarm")}</ProfileSectionEmpty>

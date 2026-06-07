@@ -46,6 +46,12 @@ export class GestationController {
     return this.gestation.listAvailableSows(user, farmId);
   }
 
+  @Get("ai-mating-plan")
+  @RequireFarmScopes(FARM_SCOPE.livestockRead)
+  aiMatingPlan(@CurrentUser() user: User, @Param("farmId") farmId: string) {
+    return this.gestation.getAiMatingPlan(user, farmId);
+  }
+
   @Get("history")
   @RequireFarmScopes(FARM_SCOPE.livestockRead)
   history(

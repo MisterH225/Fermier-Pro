@@ -25,7 +25,8 @@ import {
 } from "../../../theme/mobileTheme";
 import { formatBudgetMoney, globalStatusKey } from "./budgetUtils";
 import { isOfflineQueuedResult, useOfflineMutation } from "../../../hooks/useOfflineMutation";
-import { BUDGET_INVALIDATE_ROOTS } from "../../../lib/offline/budgetOffline";
+import { BUDGET_INVALIDATE_ROOTS } from "../../../lib/finance/financeQueryKeys";
+import { invalidateBudgetQueries } from "../../../lib/finance/invalidateFinanceQueries";
 
 type Props = {
   farmId: string;

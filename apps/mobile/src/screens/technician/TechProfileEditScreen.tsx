@@ -5,7 +5,6 @@ import * as ImagePicker from "expo-image-picker";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
   Alert,
   Image,
   Pressable,
@@ -16,6 +15,7 @@ import {
   TextInput,
   View
 } from "react-native";
+import { CardContentSkeleton } from "../../components/common/SkeletonBlocks";
 import { PrimaryButton } from "../../components/ui/PrimaryButton";
 import { useSession } from "../../context/SessionContext";
 import {
@@ -33,6 +33,7 @@ import {
 } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import { techColors } from "../../theme/technicianTheme";
+import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "TechProfileEdit">;
 
@@ -202,7 +203,7 @@ export function TechProfileEditScreen({ navigation }: Props) {
       void qc.invalidateQueries({ queryKey: ["technicianSearch"] });
       navigation.goBack();
     },
-    onError: (e: Error) => Alert.alert("Erreur", e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const photoSection = useMemo(
@@ -233,9 +234,10 @@ export function TechProfileEditScreen({ navigation }: Props) {
 
   if (profileQ.isPending) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator color={techColors.primary} />
-      </View>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.avatarSkeleton} />
+        <CardContentSkeleton lines={6} />
+      </ScrollView>
     );
   }
 
@@ -360,6 +362,14 @@ export function TechProfileEditScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   scroll: { padding: mobileSpacing.lg, gap: mobileSpacing.sm },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  avatarSkeleton: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: mobileColors.surfaceMuted,
+    alignSelf: "center",
+    marginBottom: mobileSpacing.lg
+  },
   photoRow: { alignItems: "center", marginBottom: mobileSpacing.md },
   avatarWrap: { position: "relative" },
   avatar: {

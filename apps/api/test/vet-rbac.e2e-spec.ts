@@ -156,7 +156,7 @@ describeOrSkip("RBAC vétérinaire (e2e)", () => {
     expect(Array.isArray(res.body?.items)).toBe(true);
   });
 
-  it("vétérinaire : GET dashboard → 200", async () => {
+  it("vétérinaire : GET dashboard → KPI fermes = memberships actives", async () => {
     const res = await request(app.getHttpServer())
       .get("/api/v1/vet-profiles/me/dashboard")
       .set("Authorization", `Bearer ${ctx.vetToken}`)
@@ -164,6 +164,15 @@ describeOrSkip("RBAC vétérinaire (e2e)", () => {
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body?.assignedFarms)).toBe(true);
+    expect(res.body.assignedFarms.length).toBeGreaterThanOrEqual(1);
+    expect(res.body.kpis?.farmsFollowed).toBeGreaterThanOrEqual(1);
+    expect(res.body.stats?.farmsFollowed).toBe(res.body.kpis.farmsFollowed);
+    expect(
+      res.body.assignedFarms.some(
+        (f: { farmId?: string; id?: string }) =>
+          f.farmId === ctx.farmId || f.id === ctx.farmId
+      )
+    ).toBe(true);
   });
 
   it("vétérinaire sans vet.write : POST schedule-visit → 403", async () => {

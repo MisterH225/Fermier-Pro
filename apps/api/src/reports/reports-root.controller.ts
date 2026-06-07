@@ -44,6 +44,11 @@ export class ReportsRootController {
     return this.reports.getReport(user, reportId);
   }
 
+  @Get(":reportId/download")
+  download(@CurrentUser() user: User, @Param("reportId") reportId: string) {
+    return this.reports.getReportDownloadUrl(user, reportId);
+  }
+
   @Get(":reportId/pdf")
   async pdf(
     @CurrentUser() user: User,

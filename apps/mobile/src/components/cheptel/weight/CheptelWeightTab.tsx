@@ -13,6 +13,7 @@ import { SmartChart, type SmartChartPeriod } from "../../charts";
 import {
   fetchCheptelGmqSummary,
   fetchCheptelWeightSeries,
+  fetchDetectedBatches,
   fetchFarmAnimals
 } from "../../../lib/api";
 import {
@@ -57,6 +58,11 @@ export function CheptelWeightTab({ farmId, accessToken, activeProfileId, readOnl
   const gmqQuery = useQuery({
     queryKey: ["cheptelGmq", farmId, activeProfileId],
     queryFn: () => fetchCheptelGmqSummary(accessToken, farmId, activeProfileId)
+  });
+
+  const batchesQ = useQuery({
+    queryKey: ["detectedBatches", farmId, activeProfileId],
+    queryFn: () => fetchDetectedBatches(accessToken, farmId, activeProfileId)
   });
 
   const chartLines = useMemo(() => {
@@ -141,6 +147,27 @@ export function CheptelWeightTab({ farmId, accessToken, activeProfileId, readOnl
         />
       )}
 
+      {(batchesQ.data?.batches?.length ?? 0) > 0 ? (
+        <>
+          <Text style={styles.sectionTitle}>{t("cheptel.batches.detectedTitle")}</Text>
+          {(batchesQ.data?.batches ?? []).map((b) => (
+            <View key={b.id} style={styles.batchCard}>
+              <Text style={styles.batchName}>{b.name}</Text>
+              <Text style={styles.batchMeta}>
+                {b.headcount} {t("health.diseases.unitSubjects")}
+                {b.avgAgeWeeks != null
+                  ? ` · ${b.avgAgeWeeks} ${t("cheptel.weight.weeksAbbr")}`
+                  : ""}
+                {b.avgWeightKg != null ? ` · ${b.avgWeightKg} kg` : ""}
+              </Text>
+              {b.penNames.length > 0 ? (
+                <Text style={styles.batchMeta}>{b.penNames.join(", ")}</Text>
+              ) : null}
+            </View>
+          ))}
+        </>
+      ) : null}
+
       <Text style={styles.sectionTitle}>{t("cheptel.weight.gmqSection")}</Text>
       {gmqQuery.isPending ? (
         <ActivityIndicator color={mobileColors.accent} />
@@ -197,6 +224,18 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.sm
   },
   empty: { ...mobileTypography.meta, color: mobileColors.textSecondary },
+  batchCard: {
+    backgroundColor: mobileColors.surfaceMuted,
+    borderRadius: mobileRadius.lg,
+    padding: mobileSpacing.md,
+    marginBottom: mobileSpacing.sm
+  },
+  batchName: { fontWeight: "700", color: mobileColors.textPrimary },
+  batchMeta: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: 4
+  },
   fab: {
     position: "absolute",
     right: 0,

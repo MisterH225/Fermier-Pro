@@ -20,6 +20,7 @@ import { SaleModal, type SaleResult } from "../components/cheptel/animals/SaleMo
 import { DiseaseModal } from "../components/shared/DiseaseModal";
 import { TransferModal } from "../components/cheptel/animals/TransferModal";
 import { CreateAnimalModal } from "../components/cheptel/animals/CreateAnimalModal";
+import { BulkAddAnimalsModal } from "../components/cheptel/animals/BulkAddAnimalsModal";
 import { AddWeightModal } from "../components/cheptel/weight/AddWeightModal";
 import { CreateGestationModal } from "../components/shared/CreateGestationModal";
 import { useModal } from "../components/modals/useModal";
@@ -29,6 +30,7 @@ import {
   fetchCheptelPens,
   fetchFarmAnimals,
   fetchPenContents,
+  patchPen,
   patchPenAverages,
   type AnimalListItem,
   type PenAnimalRowDto,
@@ -119,6 +121,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
   const [filter, setFilter] = useState<AnimalFilter>("all");
   const [avgWeight, setAvgWeight] = useState("");
   const [avgAge, setAvgAge] = useState("");
+  const [capacity, setCapacity] = useState("");
   const [actionAnimal, setActionAnimal] = useState<PenAnimalRowDto | null>(null);
   const [statusAnimal, setStatusAnimal] = useState<AnimalListItem | null>(null);
   const [saleAnimal, setSaleAnimal] = useState<AnimalListItem | null>(null);
@@ -127,6 +130,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
   const [weightAnimal, setWeightAnimal] = useState<AnimalListItem | null>(null);
   const [detailAnimal, setDetailAnimal] = useState<AnimalListItem | null>(null);
   const [isCreateAnimalVisible, setIsCreateAnimalVisible] = useState(false);
+  const [isBulkAnimalVisible, setIsBulkAnimalVisible] = useState(false);
   const [gestationSow, setGestationSow] = useState<PenAnimalRowDto | null>(null);
   const modal = useModal();
 
@@ -182,13 +186,37 @@ export function LogeDetailScreen({ route, navigation }: Props) {
     if (penMeta?.averageWeightKg != null) {
       setAvgWeight(String(penMeta.averageWeightKg));
     }
+    if (penMeta?.capacity != null) {
+      setCapacity(String(penMeta.capacity));
+    }
     const manual = penAgeData?.averageAgeWeeksManual;
     if (manual != null) {
       setAvgAge(String(manual));
     } else if (penAgeData?.isManual !== true) {
       setAvgAge("");
     }
-  }, [penMeta?.averageWeightKg, penAgeData?.averageAgeWeeksManual, penAgeData?.isManual]);
+  }, [penMeta?.averageWeightKg, penMeta?.capacity, penAgeData?.averageAgeWeeksManual, penAgeData?.isManual]);
+
+  const saveCapacityMut = useMutation({
+    mutationFn: () => {
+      const cap = capacity.trim()
+        ? Number.parseInt(capacity, 10)
+        : null;
+      return patchPen(
+        accessToken!,
+        farmId,
+        penId,
+        {
+          capacity: cap != null && Number.isFinite(cap) ? cap : null
+        },
+        activeProfileId
+      );
+    },
+    onSuccess: () => {
+      void pensQ.refetch();
+      void contentsQ.refetch();
+    }
+  });
 
   const saveAveragesMut = useMutation({
     mutationFn: () => {
@@ -289,6 +317,14 @@ export function LogeDetailScreen({ route, navigation }: Props) {
           <Text style={styles.infoVal}>
             {penMeta.occupancy} / {penMeta.capacity || "—"}
           </Text>
+          <Text style={styles.infoLab}>{t("cheptel.pens.capacity")}</Text>
+          <TextInput
+            style={styles.input}
+            value={capacity}
+            onChangeText={setCapacity}
+            keyboardType="number-pad"
+            onBlur={() => saveCapacityMut.mutate()}
+          />
           <Text style={styles.infoLab}>{t("cheptel.pens.avgWeightField")}</Text>
           <TextInput
             style={styles.input}
@@ -379,8 +415,18 @@ export function LogeDetailScreen({ route, navigation }: Props) {
           <Pressable
             style={styles.quickBtn}
             onPress={() => setIsCreateAnimalVisible(true)}
+            onLongPress={() => setIsBulkAnimalVisible(true)}
+            delayLongPress={400}
           >
             <Text style={styles.quickTx}>➕ {t("cheptel.pens.addAnimal")}</Text>
+          </Pressable>
+          <Pressable
+            style={styles.quickBtn}
+            onPress={() => setIsBulkAnimalVisible(true)}
+          >
+            <Text style={styles.quickTx}>
+              ➕➕ {t("cheptel.pens.addSeveral")}
+            </Text>
           </Pressable>
         </View>
 
@@ -614,7 +660,25 @@ export function LogeDetailScreen({ route, navigation }: Props) {
             : null
         }
         onClose={() => setIsCreateAnimalVisible(false)}
-        onCreated={invalidate}
+        onCreated={invalidateCheptel}
+      />
+
+      <BulkAddAnimalsModal
+        visible={isBulkAnimalVisible}
+        farmId={farmId}
+        accessToken={accessToken!}
+        activeProfileId={activeProfileId}
+        targetPen={
+          penMeta
+            ? {
+                penId,
+                penName: penMeta.name,
+                barnName: penMeta.barnName
+              }
+            : null
+        }
+        onClose={() => setIsBulkAnimalVisible(false)}
+        onCreated={invalidateCheptel}
       />
 
       <AnimalDetailModal

@@ -17,6 +17,7 @@ import { UpdateFarmCheptelConfigDto } from "./dto/update-farm-cheptel-config.dto
 import { TransferFarmOwnershipDto } from "./dto/transfer-farm-ownership.dto";
 import { ArchiveFarmDto } from "./dto/archive-farm.dto";
 import { FarmDeletionService } from "./farm-deletion.service";
+import { FarmMarketplaceLifecycleService } from "../marketplace/farm-marketplace-lifecycle.service";
 
 const MAX_ACTIVE_FARMS_PER_USER = 3;
 
@@ -27,7 +28,8 @@ export class FarmsService {
     private readonly audit: AuditService,
     private readonly farmAccess: FarmAccessService,
     private readonly invitations: InvitationsService,
-    private readonly farmDeletion: FarmDeletionService
+    private readonly farmDeletion: FarmDeletionService,
+    private readonly marketplaceLifecycle: FarmMarketplaceLifecycleService
   ) {}
 
   async create(user: User, dto: CreateFarmDto): Promise<Farm> {
@@ -508,15 +510,30 @@ export class FarmsService {
     }
 
     const categoryTotals: Record<string, number> = {
-      piglets: 0,
+      reproducteur_femelle: 0,
+      reproducteur_male: 0,
+      fattening: 0,
+      starter: 0,
       growth: 0,
-      finishing: 0,
-      breeders: 0,
       other: 0
     };
 
     const mapBatchCategory = (key: string | null): keyof typeof categoryTotals => {
       const k = (key ?? "").toLowerCase();
+      if (
+        k.includes("truie") ||
+        k.includes("sow") ||
+        (k.includes("breed") && k.includes("fem"))
+      ) {
+        return "reproducteur_femelle";
+      }
+      if (
+        k.includes("verrat") ||
+        k.includes("boar") ||
+        (k.includes("breed") && k.includes("male"))
+      ) {
+        return "reproducteur_male";
+      }
       if (
         k.includes("nursery") ||
         k.includes("porcelet") ||
@@ -524,16 +541,16 @@ export class FarmsService {
         k === "starter" ||
         k === "start"
       ) {
-        return "piglets";
+        return "starter";
       }
       if (k.includes("grow") || k.includes("croissance") || k === "grower") {
         return "growth";
       }
       if (k.includes("finish") || k.includes("engrais") || k === "finisher") {
-        return "finishing";
+        return "fattening";
       }
       if (k.includes("breed") || k.includes("reprod")) {
-        return "breeders";
+        return "reproducteur_femelle";
       }
       return "other";
     };
@@ -543,12 +560,13 @@ export class FarmsService {
     ): keyof typeof categoryTotals => {
       switch (cat) {
         case "breeding_female":
+          return "reproducteur_femelle";
         case "breeding_male":
-          return "breeders";
+          return "reproducteur_male";
         case "fattening":
-          return "finishing";
+          return "fattening";
         case "starter":
-          return "piglets";
+          return "starter";
         default:
           return "other";
       }
@@ -563,7 +581,14 @@ export class FarmsService {
     }
 
     const categoryBreakdown = (
-      ["piglets", "growth", "finishing", "breeders", "other"] as const
+      [
+        "reproducteur_femelle",
+        "reproducteur_male",
+        "fattening",
+        "starter",
+        "growth",
+        "other"
+      ] as const
     )
       .map((key) => ({ key, count: categoryTotals[key] }))
       .filter((row) => row.count > 0);
@@ -760,7 +785,15 @@ export class FarmsService {
       throw new BadRequestException("Ce projet est déjà archivé");
     }
 
+    let archiveNotices: Awaited<
+      ReturnType<FarmMarketplaceLifecycleService["applyFarmArchived"]>
+    > = [];
     const updated = await this.prisma.$transaction(async (tx) => {
+      archiveNotices = await this.marketplaceLifecycle.applyFarmArchived(
+        tx,
+        farmId,
+        farm.name
+      );
       const result = await tx.farm.update({
         where: { id: farmId },
         data: {
@@ -796,6 +829,8 @@ export class FarmsService {
       metadata: { reason: dto.reason ?? null }
     });
 
+    this.marketplaceLifecycle.dispatchBuyerNotices(archiveNotices);
+
     return updated;
   }
 
@@ -822,12 +857,23 @@ export class FarmsService {
       );
     }
 
-    const updated = await this.prisma.farm.update({
-      where: { id: farmId },
-      data: {
-        status: FarmStatus.active,
-        archivedAt: null
-      }
+    let restoreNotices: Awaited<
+      ReturnType<FarmMarketplaceLifecycleService["applyFarmRestored"]>
+    > = [];
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.farm.update({
+        where: { id: farmId },
+        data: {
+          status: FarmStatus.active,
+          archivedAt: null
+        }
+      });
+      restoreNotices = await this.marketplaceLifecycle.applyFarmRestored(
+        tx,
+        farmId,
+        farm.name
+      );
+      return result;
     });
 
     await this.audit.record({
@@ -837,6 +883,8 @@ export class FarmsService {
       resourceType: "Farm",
       resourceId: farmId
     });
+
+    this.marketplaceLifecycle.dispatchBuyerNotices(restoreNotices);
 
     return updated;
   }

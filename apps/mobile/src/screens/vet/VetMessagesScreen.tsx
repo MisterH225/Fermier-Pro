@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -15,7 +14,7 @@ import {
 import { ChatModuleGate } from "../../components/ChatModuleGate";
 import { ConversationRow } from "../../components/messaging/ConversationRow";
 import { ConversationSearchBar } from "../../components/messaging/ConversationSearchBar";
-import { useVetBottomChromePad } from "../../context/VetBottomChromeContext";
+import { useBottomChromePad } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import {
   directConversationTitle,
@@ -23,9 +22,11 @@ import {
   type ChatRoomListItem
 } from "../../lib/api";
 import { filterChatRooms } from "../../lib/filterChatRooms";
+import { ListSkeleton } from "../../components/common/SkeletonBlocks";
 import { vetColors } from "../../theme/vetTheme";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
 
 function roomHeadline(room: ChatRoomListItem, myUserId?: string): string {
   if (room.farm?.name) {
@@ -41,7 +42,7 @@ export function VetMessagesScreen() {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const bottomPad = useVetBottomChromePad();
+  const bottomChromePad = useBottomChromePad();
   const { accessToken, activeProfileId, authMe } = useSession();
 
   useLayoutEffect(() => {
@@ -88,17 +89,15 @@ export function VetMessagesScreen() {
 
   return (
     <ChatModuleGate>
-      <View style={[styles.wrap, { paddingBottom: bottomPad }]}>
+      <View style={[styles.wrap, { paddingBottom: bottomChromePad }]}>
         {roomsQ.isPending ? (
-          <View style={styles.centered}>
-            <ActivityIndicator size="large" color={vetColors.primary} />
+          <View style={styles.list}>
+            <ListSkeleton count={6} />
           </View>
         ) : roomsQ.error ? (
           <View style={styles.centered}>
             <Text style={styles.error}>
-              {roomsQ.error instanceof Error
-                ? roomsQ.error.message
-                : String(roomsQ.error)}
+              {getUserFacingError(roomsQ.error, t)}
             </Text>
           </View>
         ) : (

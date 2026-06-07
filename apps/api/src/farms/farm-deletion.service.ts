@@ -8,6 +8,8 @@ import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { SupabaseAdminService } from "../auth/supabase-admin.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
+import { FarmMarketplaceLifecycleService } from "../marketplace/farm-marketplace-lifecycle.service";
+import { REPORTS_STORAGE_BUCKET } from "../reports/reports.constants";
 
 function storagePathFromPublicUrl(
   url: string | null | undefined,
@@ -24,6 +26,23 @@ function storagePathFromPublicUrl(
   return decodeURIComponent(url.slice(idx + marker.length).split("?")[0]);
 }
 
+function reportPdfStoragePath(
+  pdfUrl: string | null | undefined
+): string | null {
+  if (!pdfUrl?.trim()) {
+    return null;
+  }
+  const trimmed = pdfUrl.trim();
+  const fromReports = storagePathFromPublicUrl(trimmed, REPORTS_STORAGE_BUCKET);
+  if (fromReports) {
+    return fromReports;
+  }
+  if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+    return trimmed.replace(/^\/+/, "");
+  }
+  return storagePathFromPublicUrl(trimmed, "finance-proofs");
+}
+
 @Injectable()
 export class FarmDeletionService {
   private readonly logger = new Logger(FarmDeletionService.name);
@@ -31,7 +50,8 @@ export class FarmDeletionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly supabaseAdmin: SupabaseAdminService,
-    private readonly push: PushNotificationsService
+    private readonly push: PushNotificationsService,
+    private readonly marketplaceLifecycle: FarmMarketplaceLifecycleService
   ) {}
 
   async deleteFarm(farmId: string, actorUserId: string): Promise<void> {
@@ -52,6 +72,7 @@ export class FarmDeletionService {
     });
 
     const storagePaths: string[] = [];
+    const reportPdfPaths: string[] = [];
 
     const [expenses, revenues, reports, listings, animals, healthRecords, vetProfiles] =
       await Promise.all([
@@ -94,8 +115,10 @@ export class FarmDeletionService {
       if (p) storagePaths.push(p);
     }
     for (const row of reports) {
-      const p = storagePathFromPublicUrl(row.pdfUrl, "finance-proofs");
-      if (p) storagePaths.push(p);
+      const p = reportPdfStoragePath(row.pdfUrl);
+      if (p) {
+        reportPdfPaths.push(p);
+      }
     }
     for (const listing of listings) {
       const urls = Array.isArray(listing.photoUrls)
@@ -132,6 +155,12 @@ export class FarmDeletionService {
     try {
       await this.supabaseAdmin.removeStorageObjects("finance-proofs", storagePaths);
       await this.supabaseAdmin.removeStorageObjects("avatars", storagePaths);
+      if (reportPdfPaths.length > 0) {
+        await this.supabaseAdmin.removeStorageObjects(
+          REPORTS_STORAGE_BUCKET,
+          reportPdfPaths
+        );
+      }
     } catch (err) {
       this.logger.warn(
         `Storage cleanup partial: ${err instanceof Error ? err.message : String(err)}`
@@ -139,13 +168,25 @@ export class FarmDeletionService {
     }
 
     try {
+      let deleteNotices: Awaited<
+        ReturnType<FarmMarketplaceLifecycleService["applyFarmDeleted"]>
+      >["notices"] = [];
+      let listingIds: string[] = [];
       await this.prisma.$transaction(
         async (tx) => {
+          const del = await this.marketplaceLifecycle.applyFarmDeleted(tx, farmId);
+          deleteNotices = del.notices;
+          listingIds = del.listingIds;
+          await this.marketplaceLifecycle.purgeListingsAfterFarmDelete(
+            tx,
+            listingIds
+          );
           await this.purgeFarmData(tx, farmId);
           await tx.farm.delete({ where: { id: farmId } });
         },
         { maxWait: 15_000, timeout: 120_000 }
       );
+      this.marketplaceLifecycle.dispatchBuyerNotices(deleteNotices);
     } catch (err) {
       this.logger.error(
         `Farm deletion rollback for farm ${farmId}`,
@@ -233,14 +274,6 @@ export class FarmDeletionService {
     await tx.feedType.deleteMany({ where: { farmId } });
 
     await tx.standardVaccine.deleteMany({ where: { farmId } });
-
-    await tx.marketplaceOffer.deleteMany({
-      where: { listing: { farmId } }
-    });
-    await tx.buyerFavorite.deleteMany({
-      where: { listing: { farmId } }
-    });
-    await tx.marketplaceListing.deleteMany({ where: { farmId } });
 
     await tx.memberActivityLog.deleteMany({ where: { farmId } });
     await tx.farmMembership.deleteMany({ where: { farmId } });

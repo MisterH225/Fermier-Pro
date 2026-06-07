@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -18,7 +19,7 @@ import {
   ScreenSection
 } from "../../components/layout";
 import { BuyerMobileShell } from "../../components/layout/BuyerMobileShell";
-import { useBuyerBottomChromePad } from "../../context/BuyerBottomChromeContext";
+import { useBottomChromePad, useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import {
   deleteBuyerPriceAlert,
@@ -30,7 +31,8 @@ import { buyerColors, buyerRadius, buyerShadow } from "../../theme/buyerTheme";
 
 export function BuyerAlertsScreen() {
   const { t } = useTranslation();
-  const bottomPad = useBuyerBottomChromePad();
+  const bottomChromePad = useBottomChromePad();
+  const bottomInset = useBottomInset();
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
@@ -51,7 +53,7 @@ export function BuyerAlertsScreen() {
       void qc.invalidateQueries({ queryKey: ["buyerPriceAlerts"] });
       void qc.invalidateQueries({ queryKey: ["buyerDashboard"] });
     },
-    onError: (e: Error) => Alert.alert(t("buyer.alerts.errorTitle"), e.message),
+    onError: (e: Error) => Alert.alert(t("buyer.alerts.errorTitle"), getUserFacingError(e, t)),
     onSettled: () => setTogglingId(null)
   });
 
@@ -62,7 +64,7 @@ export function BuyerAlertsScreen() {
       void qc.invalidateQueries({ queryKey: ["buyerPriceAlerts"] });
       void qc.invalidateQueries({ queryKey: ["buyerDashboard"] });
     },
-    onError: (e: Error) => Alert.alert(t("buyer.alerts.errorTitle"), e.message)
+    onError: (e: Error) => Alert.alert(t("buyer.alerts.errorTitle"), getUserFacingError(e, t))
   });
 
   const alerts = alertsQ.data ?? [];
@@ -72,7 +74,7 @@ export function BuyerAlertsScreen() {
       <ScrollView
         contentContainerStyle={[
           profileScreenScrollContent,
-          { paddingBottom: bottomPad + 88 }
+          { paddingBottom: bottomInset }
         ]}
         refreshControl={
           <RefreshControl
@@ -111,7 +113,7 @@ export function BuyerAlertsScreen() {
       </ScrollView>
 
       <Pressable
-        style={[styles.fab, buyerShadow.floating, { bottom: bottomPad + mobileSpacing.lg }]}
+        style={[styles.fab, buyerShadow.floating, { bottom: bottomChromePad + mobileSpacing.lg }]}
         onPress={() => setCreateOpen(true)}
         accessibilityLabel={t("buyer.alerts.createCta")}
       >

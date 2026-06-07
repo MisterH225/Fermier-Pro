@@ -1,8 +1,12 @@
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { KpiGridSkeleton } from "../../../components/common/SkeletonBlocks";
 import { SmartChart } from "../../../components/charts";
 import { FinanceDonutChart } from "../../../components/finance/FinanceDonutChart";
-import { FinanceKpiCard } from "../../../components/finance/FinanceKpiCard";
+import {
+  CheptelStyleKpiCard,
+  cheptelKpiGridStyles
+} from "../../../components/cheptel/overview/CheptelStyleKpiCard";
 import { ScreenSection } from "../../../components/layout";
 import { ModuleAIInsights } from "../../../components/ai/ModuleAIInsights";
 import {
@@ -13,6 +17,7 @@ import type {
   FarmHealthOverviewDto,
   FarmHealthUpcomingDto
 } from "../../../lib/api";
+import { getUserFacingError } from "../../../lib/userFacingError";
 import {
   mobileColors,
   mobileSpacing,
@@ -81,10 +86,10 @@ export function HealthOverviewTab({
   const { t } = useTranslation();
 
   if (isPending && !overview) {
-    return <ActivityIndicator color={mobileColors.accent} />;
+    return <KpiGridSkeleton count={4} />;
   }
   if (error) {
-    return <Text style={styles.err}>{error.message}</Text>;
+    return <Text style={styles.err}>{getUserFacingError(error, t)}</Text>;
   }
 
   return (
@@ -100,10 +105,13 @@ export function HealthOverviewTab({
         }
       />
       <ScreenSection plain>
-        <View style={styles.kpiGrid}>
-          <View style={styles.kpiHalf}>
-            <FinanceKpiCard
-              title={`💀 ${t("health.kpiMortality30")}`}
+        <View style={cheptelKpiGridStyles.grid}>
+          <View style={cheptelKpiGridStyles.half}>
+            <CheptelStyleKpiCard
+              icon="💀"
+              bg="#FFF3E0"
+              accent="#F57F17"
+              label={t("health.kpiMortality30")}
               value={
                 mortalityPct30 != null
                   ? `${mortalityPct30.toLocaleString(locale, {
@@ -111,56 +119,51 @@ export function HealthOverviewTab({
                     })} %`
                   : "—"
               }
-              deltaText={t("health.kpiMortality30Hint")}
-              variant={
-                mortalityPct30 != null && mortalityPct30 > MORTALITY_WARN_PCT
-                  ? "expense"
-                  : "green"
-              }
             />
           </View>
-          <View style={styles.kpiHalf}>
-            <FinanceKpiCard
-              title={`🤒 ${t("health.kpiActiveCases")}`}
+          <View style={cheptelKpiGridStyles.half}>
+            <CheptelStyleKpiCard
+              icon="🤒"
+              bg="#FCE4EC"
+              accent="#E91E8C"
+              label={t("health.kpiActiveCases")}
               value={String(overview?.activeDiseaseCount ?? 0)}
-              deltaText={null}
-              variant={
-                (overview?.activeDiseaseCount ?? 0) > 0 ? "orange" : "green"
-              }
             />
           </View>
-          <View style={styles.kpiHalf}>
-            <FinanceKpiCard
-              title={`💉 ${t("health.kpiOverdueVaccines")}`}
+          <View style={cheptelKpiGridStyles.half}>
+            <CheptelStyleKpiCard
+              icon="💉"
+              bg="#E8F5E9"
+              accent="#2E7D32"
+              label={t("health.kpiOverdueVaccines")}
               value={String(overview?.overdueVaccineCount ?? 0)}
-              deltaText={null}
-              variant={
-                (overview?.overdueVaccineCount ?? 0) > 0 ? "expense" : "green"
-              }
             />
           </View>
-          <View style={styles.kpiHalf}>
-            <FinanceKpiCard
-              title={`🩺 ${t("health.kpiNextVet")}`}
+          <View style={cheptelKpiGridStyles.half}>
+            <CheptelStyleKpiCard
+              icon="🩺"
+              bg="#E3F2FD"
+              accent="#1565C0"
+              label={t("health.kpiNextVet")}
               value={nextVetLabel}
-              deltaText={null}
-              variant="blue"
             />
           </View>
-          <View style={styles.kpiHalf}>
-            <FinanceKpiCard
-              title={`💊 ${t("health.kpiActiveTreatments")}`}
+          <View style={cheptelKpiGridStyles.half}>
+            <CheptelStyleKpiCard
+              icon="💊"
+              bg="#EDE7F6"
+              accent="#6A1B9A"
+              label={t("health.kpiActiveTreatments")}
               value={String(overview?.activeTreatmentCount ?? 0)}
-              deltaText={null}
-              variant="yellow"
             />
           </View>
-          <View style={styles.kpiHalf}>
-            <FinanceKpiCard
-              title={`🏥 ${t("health.kpiGlobalStatus")}`}
+          <View style={cheptelKpiGridStyles.half}>
+            <CheptelStyleKpiCard
+              icon="🏥"
+              bg="#FFF8E1"
+              accent="#FF8C00"
+              label={t("health.kpiGlobalStatus")}
               value={globalStatusLabel}
-              deltaText={null}
-              variant={globalStatusVariant}
             />
           </View>
         </View>

@@ -121,16 +121,19 @@ export function ProducerScheduleVetVisitScreen({ route, navigation }: Props) {
     onSuccess: async (res) => {
       await qc.invalidateQueries({ queryKey: ["vetDashboard"] });
       await qc.invalidateQueries({ queryKey: ["farmHealth"] });
+      await qc.invalidateQueries({ queryKey: ["vetAppointments"] });
       modal.open("success", {
         title: t("health.scheduleVet.successTitle"),
         message: t("health.scheduleVet.successBody", {
-          vet: profileQ.data?.fullName ?? "—",
-          farm: farmName,
-          date: new Date(res.scheduledAt).toLocaleString(locale)
+          vet: profileQ.data?.fullName ?? "—"
         }),
         autoDismissMs: 3200
       });
-      navigation.navigate("FarmHealth", { farmId, farmName });
+      if (res.id) {
+        navigation.navigate("VetAppointmentDetail", { appointmentId: res.id });
+      } else {
+        navigation.navigate("FarmHealth", { farmId, farmName });
+      }
     },
     onError: (e) => setError(formatApiError(e))
   });

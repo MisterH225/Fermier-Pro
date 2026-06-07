@@ -29,6 +29,7 @@ import {
   mobileTypography
 } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -81,7 +82,7 @@ export function CreateFarmInvitationScreen({ route, navigation }: Props) {
         { text: "OK", onPress: () => navigation.goBack() }
       ]);
     },
-    onError: (e: Error) => Alert.alert("", e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   return (

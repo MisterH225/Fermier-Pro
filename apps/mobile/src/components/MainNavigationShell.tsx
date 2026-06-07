@@ -1,6 +1,5 @@
 import {
   NavigationContainer,
-  createNavigationContainerRef,
   DefaultTheme,
   type LinkingOptions
 } from "@react-navigation/native";
@@ -37,7 +36,6 @@ import {
   ChatRoomsScreen,
   ChatSearchUserScreen,
   CollaborationScreen,
-  CreateBarnScreen,
   CreateFarmExpenseScreen,
   CreateFarmInvitationScreen,
   CreateFarmRevenueScreen,
@@ -48,7 +46,6 @@ import {
   CreateVetConsultationScreen,
   EditFarmExpenseScreen,
   EditFarmRevenueScreen,
-  EditMarketplaceListingScreen,
   FarmBarnsScreen,
   FarmDetailScreen,
   FarmFeedStockScreen,
@@ -59,6 +56,7 @@ import {
   FarmHealthScreen,
   VetSearchScreen,
   ProducerScheduleVetVisitScreen,
+  VetAppointmentDetailScreen,
   FarmMembersScreen,
   FarmTasksScreen,
   FarmVetConsultationsScreen,
@@ -66,6 +64,8 @@ import {
   MarketplaceListScreen,
   MarketplaceMyListingsScreen,
   MarketplaceMyOffersScreen,
+  MarketplaceTransactionScreen,
+  CreditDashboardScreen,
   ModuleRoadmapScreen,
   ProducerDashboardScreen,
   ProducerFarmSettingsScreen,
@@ -97,6 +97,7 @@ import {
 import type { RootStackParamList } from "../types/navigation";
 import { useSession } from "../context/SessionContext";
 import { dashboardRouteForActiveProfileType } from "../lib/dashboardHomeRoute";
+import { rootNavigationRef } from "../lib/navigationRef";
 import { defaultStackScreenOptions } from "../lib/navigationHeaderOptions";
 import { mobileColors } from "../theme/mobileTheme";
 import { techStackScreenOptions } from "../theme/technicianTheme";
@@ -331,6 +332,11 @@ function MainStack() {
         options={{ title: "Planifier une visite" }}
       />
       <Stack.Screen
+        name="VetAppointmentDetail"
+        component={VetAppointmentDetailScreen}
+        options={{ title: "Rendez-vous" }}
+      />
+      <Stack.Screen
         name="ProducerMessages"
         component={ProducerMessagesScreen}
         options={{ title: "Messages" }}
@@ -411,11 +417,6 @@ function MainStack() {
         options={{ title: "Loge" }}
       />
       <Stack.Screen
-        name="CreateBarn"
-        component={CreateBarnScreen}
-        options={{ title: "Nouveau bâtiment" }}
-      />
-      <Stack.Screen
         name="CreatePen"
         component={CreatePenScreen}
         options={{ title: "Nouvelle loge" }}
@@ -453,6 +454,16 @@ function MainStack() {
         })}
       />
       <Stack.Screen
+        name="MarketplaceTransaction"
+        component={MarketplaceTransactionScreen}
+        options={{ title: "Transaction" }}
+      />
+      <Stack.Screen
+        name="CreditDashboard"
+        component={CreditDashboardScreen}
+        options={{ title: "Score crédit" }}
+      />
+      <Stack.Screen
         name="MarketplaceMyOffers"
         component={MarketplaceMyOffersScreen}
         options={{ title: "Mes offres" }}
@@ -466,11 +477,6 @@ function MainStack() {
         name="CreateMarketplaceListing"
         component={CreateMarketplaceListingScreen}
         options={{ title: "Nouvelle annonce" }}
-      />
-      <Stack.Screen
-        name="EditMarketplaceListing"
-        component={EditMarketplaceListingScreen}
-        options={{ title: "Modifier l'annonce" }}
       />
       <Stack.Screen
         name="ChatRooms"
@@ -550,7 +556,7 @@ function MainNavigationWithChrome() {
         <BuyerBottomChromeProvider value={buyerPad}>
           <TechBottomChromeProvider value={techPad}>
             <AccountModerationGate>
-              <View style={styles.flex}>
+              <View key={activeProfileId ?? "none"} style={styles.flex}>
                 <View style={styles.flex}>
                   <MainStack />
                 </View>
@@ -568,14 +574,20 @@ function MainNavigationWithChrome() {
 }
 
 /** À l’intérieur de `PersistQueryClientProvider` (réhydratation cache offline). */
-const navigationRef = createNavigationContainerRef<RootStackParamList>();
-
 function MainNavigationShellInner() {
-  useSmartAlertPushNavigation(navigationRef);
+  const { activeProfileId } = useSession();
+  useSmartAlertPushNavigation(rootNavigationRef);
+  const navContainerKey = activeProfileId ?? "none";
+
   return (
     <View style={styles.flex}>
       <OfflineBanner />
-      <NavigationContainer ref={navigationRef} theme={navTheme} linking={linking}>
+      <NavigationContainer
+        key={navContainerKey}
+        ref={rootNavigationRef}
+        theme={navTheme}
+        linking={linking}
+      >
         <MainNavigationWithChrome />
       </NavigationContainer>
     </View>

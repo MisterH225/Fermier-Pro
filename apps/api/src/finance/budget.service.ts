@@ -14,6 +14,7 @@ import {
 type BudgetLineStatus = "ok" | "warning" | "exceeded";
 import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { AiGeminiService } from "../ai/ai-gemini.service";
 import { ensureFarmFinanceBootstrap } from "./finance-bootstrap";
 
 type MonthRef = { year: number; month: number };
@@ -66,7 +67,8 @@ function globalStatusFromPct(pct: number): BudgetStatus {
 export class BudgetService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly farmAccess: FarmAccessService
+    private readonly farmAccess: FarmAccessService,
+    private readonly gemini: AiGeminiService
   ) {}
 
   private async expenseCategories(farmId: string) {
@@ -814,5 +816,137 @@ export class BudgetService {
         }
       });
     }
+  }
+
+  async analyzeBudgetWithAi(
+    user: User,
+    farmId: string,
+    year: number,
+    month: number
+  ) {
+    const view = await this.getBudget(user, farmId, year, month);
+    const prev = prevMonth({ year, month });
+    const prevView = await this.getBudget(user, farmId, prev.year, prev.month);
+
+    const expenseLines = view.lines.filter(
+      (l) => Number(l.amountPlanned) >= 0 && l.categoryKey !== "uncategorized"
+    );
+    const historyByCategory = expenseLines.map((l) => ({
+      categoryId: l.categoryId,
+      categoryName: l.categoryName,
+      currentBudget: Number(l.amountPlanned),
+      realized: Number(l.amountRealized),
+      projected: Number(l.amountProjected),
+      prevBudget: Number(
+        prevView.lines.find((p) => p.categoryId === l.categoryId)
+          ?.amountPlanned ?? 0
+      )
+    }));
+
+    const herd = await this.prisma.animal.count({
+      where: { farmId, status: "active" }
+    });
+
+    const fallback = {
+      analysis:
+        "Analyse basée sur vos budgets et dépenses du mois. Ajustez les postes où la consommation dépasse 80 % du budget prévu.",
+      recommendations: expenseLines
+        .filter((l) => {
+          const pct =
+            Number(l.amountPlanned) > 0
+              ? (Number(l.amountRealized) / Number(l.amountPlanned)) * 100
+              : 0;
+          return pct >= 85;
+        })
+        .slice(0, 5)
+        .map((l) => {
+          const current = Number(l.amountPlanned);
+          const suggested = Math.round(current * 0.9);
+          return {
+            categoryId: l.categoryId,
+            categoryName: l.categoryName,
+            currentBudget: current,
+            suggestedBudget: suggested,
+            savings: current - suggested,
+            action: `Réduire le budget « ${l.categoryName} » de 10 %`,
+            justification: "Consommation proche ou au-dessus du budget actuel."
+          };
+        }),
+      totalSavingsEstimate: 0,
+      aiPowered: false
+    };
+    fallback.totalSavingsEstimate = fallback.recommendations.reduce(
+      (s, r) => s + r.savings,
+      0
+    );
+
+    if (!this.gemini.isConfigured()) {
+      return fallback;
+    }
+
+    const prompt = `Tu es un conseiller financier expert en élevage porcin. Analyse ces données et réponds UNIQUEMENT en JSON valide :
+{
+  "analysis": "string (3-4 phrases en français)",
+  "recommendations": [{
+    "categoryId": "string",
+    "categoryName": "string",
+    "currentBudget": number,
+    "suggestedBudget": number,
+    "savings": number,
+    "action": "string",
+    "justification": "string"
+  }],
+  "totalSavingsEstimate": number
+}
+Données budget mois ${month}/${year} : ${JSON.stringify(historyByCategory)}
+Effectif cheptel actif : ${herd}`;
+
+    const raw = await this.gemini.generateText(prompt);
+    if (!raw) {
+      return fallback;
+    }
+    try {
+      const parsed = JSON.parse(raw) as typeof fallback;
+      return {
+        ...parsed,
+        aiPowered: true,
+        recommendations: (parsed.recommendations ?? []).map((r, i) => ({
+          ...r,
+          categoryId:
+            r.categoryId ||
+            historyByCategory[i]?.categoryId ||
+            expenseLines[i]?.categoryId ||
+            ""
+        }))
+      };
+    } catch {
+      return fallback;
+    }
+  }
+
+  async applyAiBudgetRecommendations(
+    user: User,
+    farmId: string,
+    year: number,
+    month: number,
+    items: Array<{ categoryId: string; suggestedBudget: number }>
+  ) {
+    const view = await this.getBudget(user, farmId, year, month);
+    if (!view.budgetId) {
+      throw new BadRequestException("Budget non configuré pour ce mois");
+    }
+    for (const item of items) {
+      const line = view.lines.find((l) => l.categoryId === item.categoryId);
+      if (!line?.budgetLineId) {
+        continue;
+      }
+      await this.updateBudgetLine(
+        user,
+        farmId,
+        line.budgetLineId,
+        item.suggestedBudget
+      );
+    }
+    return this.getBudget(user, farmId, year, month);
   }
 }

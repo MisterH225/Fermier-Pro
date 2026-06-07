@@ -1,8 +1,7 @@
 import * as Notifications from "expo-notifications";
 import type { NavigationContainerRef } from "@react-navigation/native";
 import { useEffect, type RefObject } from "react";
-import { navigateFromPushData } from "../services/navigation/DeepNavigationService";
-import type { PushSmartAlertData } from "../services/navigation/deepNavigation.types";
+import { navigateFromGenericPushData } from "../services/navigation/DeepNavigationService";
 import type { RootStackParamList } from "../types/navigation";
 
 Notifications.setNotificationHandler({
@@ -20,14 +19,14 @@ export function useSmartAlertPushNavigation(
 ) {
   useEffect(() => {
     const navigateFromData = (data: Record<string, unknown> | undefined) => {
-      if (!data || data.type !== "smart_alert") {
+      if (!data?.type) {
         return;
       }
       const nav = navigationRef.current;
       if (!nav?.isReady()) {
         return;
       }
-      navigateFromPushData(nav, data as PushSmartAlertData);
+      navigateFromGenericPushData(nav, data);
     };
 
     void Notifications.getLastNotificationResponseAsync().then((response) => {

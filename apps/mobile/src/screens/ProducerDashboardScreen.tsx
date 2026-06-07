@@ -20,22 +20,27 @@ import { AlertBadge } from "../components/smartAlerts/AlertBadge";
 
 import { FeedStockLevelGauge, dashboardFeedItemToGauge } from "../components/feed";
 import { FinanceOverviewKpiGrid } from "../components/finance/FinanceOverviewKpiGrid";
+import { CategoryBreakdownPanel } from "../components/cheptel/overview/CategoryBreakdownPanel";
+import { ScreenSection } from "../components/layout/ScreenSection";
 import { EmptyStateCard } from "../components/common/EmptyStateCard";
+import { CardContentSkeleton } from "../components/common/SkeletonBlocks";
 import { OnboardingBanner } from "../components/onboarding/OnboardingBanner";
 import { AdminMessagesBanner } from "../components/admin/AdminMessagesBanner";
 import { PendingInvitationsBanner } from "../components/collaboration/PendingInvitationsBanner";
+import { VetAppointmentActionsBanner } from "../components/vet/VetAppointmentActionsBanner";
 import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
 import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
 import { ProjectIndicator } from "../components/projects";
 import { useOnboardingResume } from "../context/OnboardingResumeContext";
 import { useActiveProject, useActiveFarm } from "../context/ActiveProjectContext";
 import { getProducerOnboardingState } from "../lib/onboardingState";
-import { useProducerBottomChromePad } from "../context/ProducerBottomChromeContext";
+import { useBottomInset } from "../hooks/useBottomInset";
 import { resolveActiveProfileAvatarUrl } from "../lib/profileAvatar";
 import { useSession } from "../context/SessionContext";
 import {
   fetchDashboardFeedStock,
   fetchFinanceOverview,
+  fetchFarmCheptelOverview,
   fetchDashboardGestations,
   fetchDashboardHealth,
   fetchFarmSmartAlertsCount,
@@ -55,6 +60,7 @@ import {
   mobileTypography
 } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 function formatMoney(n: number, locale: string): string {
   try {
@@ -98,7 +104,7 @@ export function ProducerDashboardScreen() {
     clientFeatures
   } = useSession();
   const { activeFarm, activeFarmId, farms, refreshFarms } = useActiveProject();
-  const bottomChromePad = useProducerBottomChromePad();
+  const bottomInset = useBottomInset();
   const { requestResume } = useOnboardingResume();
   const onboardingState = getProducerOnboardingState(authMe, activeProfileId);
   const showOnboardingBanner = onboardingState === "skipped";
@@ -159,6 +165,14 @@ export function ProducerDashboardScreen() {
     refetchInterval: 60_000
   });
 
+  const cheptelOverviewQ = useQuery({
+    queryKey: ["cheptelOverview", farmId, activeProfileId],
+    queryFn: () =>
+      fetchFarmCheptelOverview(accessToken!, farmId!, activeProfileId),
+    enabled: Boolean(farmId && accessToken),
+    refetchInterval: 120_000
+  });
+
   const alertsCountQuery = useQuery({
     queryKey: ["smartAlertsCount", farmId, activeProfileId],
     queryFn: () =>
@@ -191,6 +205,7 @@ export function ProducerDashboardScreen() {
       tasks.push(financeQuery.refetch());
     }
     tasks.push(gestationsQuery.refetch(), healthQuery.refetch());
+    tasks.push(cheptelOverviewQ.refetch());
     if (feedEnabled) {
       tasks.push(feedQuery.refetch());
     }
@@ -294,7 +309,7 @@ export function ProducerDashboardScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.wrap,
-            { paddingBottom: mobileSpacing.xxl + bottomChromePad }
+            { paddingBottom: bottomInset }
           ]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -302,6 +317,13 @@ export function ProducerDashboardScreen() {
         >
           <AdminMessagesBanner />
           <PendingInvitationsBanner />
+          {accessToken && farmId ? (
+            <VetAppointmentActionsBanner
+              accessToken={accessToken}
+              activeProfileId={activeProfileId}
+              farmId={farmId}
+            />
+          ) : null}
           {showOnboardingBanner ? (
             <OnboardingBanner onComplete={requestResume} />
           ) : null}
@@ -336,7 +358,7 @@ export function ProducerDashboardScreen() {
                   isPending={financeQuery.isPending}
                   error={
                     financeQuery.error instanceof Error
-                      ? financeQuery.error.message
+                      ? getUserFacingError(financeQuery.error, t)
                       : null
                   }
                   sectionTitle={t("producer.dashboard.financeTitle")}
@@ -353,7 +375,7 @@ export function ProducerDashboardScreen() {
                   isPending={gestationsQuery.isPending}
                   error={
                     gestationsQuery.error instanceof Error
-                      ? gestationsQuery.error.message
+                      ? getUserFacingError(gestationsQuery.error, t)
                       : null
                   }
                   locale={locale}
@@ -372,7 +394,7 @@ export function ProducerDashboardScreen() {
                   isPending={healthQuery.isPending}
                   error={
                     healthQuery.error instanceof Error
-                      ? healthQuery.error.message
+                      ? getUserFacingError(healthQuery.error, t)
                       : null
                   }
                   locale={locale}
@@ -404,7 +426,7 @@ export function ProducerDashboardScreen() {
                   isPending={feedQuery.isPending}
                   error={
                     feedQuery.error instanceof Error
-                      ? feedQuery.error.message
+                      ? getUserFacingError(feedQuery.error, t)
                       : null
                   }
                   locale={locale}
@@ -416,6 +438,13 @@ export function ProducerDashboardScreen() {
                 />
               </View>
             </View>
+            {(cheptelOverviewQ.data?.categoryBreakdown?.length ?? 0) > 0 ? (
+              <ScreenSection title={t("cheptel.categoryBreakdown")}>
+                <CategoryBreakdownPanel
+                  rows={cheptelOverviewQ.data?.categoryBreakdown ?? []}
+                />
+              </ScreenSection>
+            ) : null}
             <SmartAlertsSection
               farmId={farmId}
               farmName={farmName}
@@ -503,7 +532,7 @@ function GestationsCard({
   if (isPending && !items) {
     return (
       <CardShell emoji="🐷" title={title} onPress={onPress}>
-        <ActivityIndicator color={mobileColors.accent} />
+        <CardContentSkeleton lines={3} />
       </CardShell>
     );
   }
@@ -577,7 +606,7 @@ function HealthCard({
   if (isPending && !data) {
     return (
       <CardShell emoji="🏥" title={title} onPress={onPress}>
-        <ActivityIndicator color={mobileColors.accent} />
+        <CardContentSkeleton lines={3} />
       </CardShell>
     );
   }
@@ -668,7 +697,7 @@ function FeedStockCard({
   if (isPending && !items) {
     return (
       <CardShell emoji="🌾" title={title} onPress={onPress}>
-        <ActivityIndicator color={mobileColors.accent} />
+        <CardContentSkeleton lines={3} />
       </CardShell>
     );
   }

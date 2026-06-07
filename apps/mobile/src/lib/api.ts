@@ -261,8 +261,15 @@ export type ChatMessageDto = {
   roomId: string;
   senderUserId: string;
   body: string;
+  wasModified?: boolean;
+  modificationType?: "phone_masked" | "image_blocked" | null;
   createdAt: string;
   sender: ChatSenderPreview;
+};
+
+export type ChatImageAnalysisResult = {
+  allowed: boolean;
+  reason?: string;
 };
 
 export function fetchChatRooms(
@@ -1336,6 +1343,20 @@ export function postChatMessage(
   );
 }
 
+export function analyzeChatImage(
+  accessToken: string,
+  imageBase64: string,
+  mimeType: string,
+  activeProfileId?: string | null
+): Promise<ChatImageAnalysisResult> {
+  return apiPostJson<ChatImageAnalysisResult>(
+    "/chat/analyze-image",
+    { imageBase64, mimeType },
+    accessToken,
+    activeProfileId
+  );
+}
+
 export type FarmDto = {
   id: string;
   name: string;
@@ -1872,6 +1893,29 @@ export function fetchCheptelGmqSummary(
   );
 }
 
+export type DetectedBatchDto = {
+  id: string;
+  name: string;
+  category: string;
+  headcount: number;
+  avgAgeWeeks: number | null;
+  avgWeightKg: number | null;
+  penNames: string[];
+  animalIds: string[];
+};
+
+export function fetchDetectedBatches(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<{ farmId: string; batches: DetectedBatchDto[] }> {
+  return apiGetJson(
+    `/farms/${farmId}/cheptel/detected-batches`,
+    accessToken,
+    activeProfileId
+  );
+}
+
 export type WeightSeriesPointDto = {
   id: string;
   animalId: string;
@@ -2074,6 +2118,64 @@ export function fetchNextAnimalNumber(
 }> {
   return apiGetJson(
     `/farms/${farmId}/next-animal-number?prefix=${encodeURIComponent(prefix)}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+
+export function fetchTagCodePreview(
+  accessToken: string,
+  farmId: string,
+  prefix: AnimalTagPrefixDto,
+  count: number,
+  activeProfileId?: string | null
+): Promise<{
+  prefix: AnimalTagPrefixDto;
+  firstTagCode: string;
+  lastTagCode: string;
+  count: number;
+  productionCategory: AnimalProductionCategoryDto;
+}> {
+  return apiGetJson(
+    `/farms/${farmId}/next-animal-number?prefix=${encodeURIComponent(prefix)}&count=${count}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type BulkCreateAnimalsPayload = {
+  penId?: string;
+  productionCategory: Exclude<AnimalProductionCategoryDto, "unknown">;
+  count: number;
+  sex?: "male" | "female" | "unknown";
+  breedId?: string;
+  entryWeightKg?: number;
+  ageWeeksAtEntry?: number;
+  entryDate: string;
+  origin: AnimalOriginDto;
+  supplier?: string;
+  notes?: string;
+};
+
+export type BulkCreateAnimalsResult = {
+  animalsCreated: Array<{ id: string; tagCode: string | null }>;
+  firstNumber: string;
+  lastNumber: string;
+  count: number;
+  placedInPenCount: number;
+  unplacedCount: number;
+};
+
+export function createBulkAnimals(
+  accessToken: string,
+  farmId: string,
+  payload: BulkCreateAnimalsPayload,
+  activeProfileId?: string | null
+): Promise<BulkCreateAnimalsResult> {
+  return apiPostJson<BulkCreateAnimalsResult>(
+    `/farms/${farmId}/animals/bulk`,
+    payload,
     accessToken,
     activeProfileId
   );
@@ -4117,6 +4219,59 @@ export function simulateFarmBudget(
   );
 }
 
+export type BudgetAiRecommendation = {
+  categoryId: string;
+  categoryName: string;
+  currentBudget: number;
+  suggestedBudget: number;
+  savings: number;
+  action: string;
+  justification: string;
+};
+
+export type BudgetAiAnalysisDto = {
+  analysis: string;
+  recommendations: BudgetAiRecommendation[];
+  totalSavingsEstimate: number;
+  aiPowered?: boolean;
+};
+
+export function fetchBudgetAiAnalysis(
+  accessToken: string,
+  farmId: string,
+  year: number,
+  month: number,
+  activeProfileId?: string | null
+): Promise<BudgetAiAnalysisDto> {
+  const qs = new URLSearchParams();
+  qs.set("year", String(year));
+  qs.set("month", String(month));
+  return apiGetJson<BudgetAiAnalysisDto>(
+    `/farms/${farmId}/finance/budget/ai-analysis?${qs.toString()}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function applyBudgetAiRecommendations(
+  accessToken: string,
+  farmId: string,
+  year: number,
+  month: number,
+  items: Array<{ categoryId: string; suggestedBudget: number }>,
+  activeProfileId?: string | null
+): Promise<FarmBudgetViewDto> {
+  const qs = new URLSearchParams();
+  qs.set("year", String(year));
+  qs.set("month", String(month));
+  return apiPostJson<FarmBudgetViewDto>(
+    `/farms/${farmId}/finance/budget/ai-analysis/apply?${qs.toString()}`,
+    { items },
+    accessToken,
+    activeProfileId
+  );
+}
+
 export function patchFarmBudgetSuggestion(
   accessToken: string,
   farmId: string,
@@ -4303,6 +4458,61 @@ export function createFarmBarn(
   );
 }
 
+export type UpdateBarnPayload = {
+  name?: string;
+  code?: string;
+  notes?: string;
+};
+
+export function updateFarmBarn(
+  accessToken: string,
+  farmId: string,
+  barnId: string,
+  payload: UpdateBarnPayload,
+  activeProfileId?: string | null
+): Promise<BarnMutationDto> {
+  return apiPatchJson<BarnMutationDto>(
+    `/farms/${farmId}/barns/${barnId}`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function deleteFarmBarn(
+  accessToken: string,
+  farmId: string,
+  barnId: string,
+  activeProfileId?: string | null
+): Promise<{ ok: boolean }> {
+  return apiDeleteJson<{ ok: boolean }>(
+    `/farms/${farmId}/barns/${barnId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type StartPenPlacementPayload = {
+  animalId?: string;
+  batchId?: string;
+  note?: string;
+};
+
+export function startPenPlacement(
+  accessToken: string,
+  farmId: string,
+  penId: string,
+  payload: StartPenPlacementPayload,
+  activeProfileId?: string | null
+): Promise<PenPlacementDto> {
+  return apiPostJson<PenPlacementDto>(
+    `/farms/${farmId}/pens/${penId}/placements`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
 export type CreatePenPayload = {
   name: string;
   code?: string;
@@ -4461,6 +4671,7 @@ export type MarketplaceListingListItem = {
   viewsCount?: number;
   consultationsCount?: number;
   expiresAt?: string | null;
+  activeOfferCount?: number;
   farm: { id: string; name: string } | null;
   animal: {
     id: string;
@@ -4680,13 +4891,236 @@ export function postMarketplaceOffer(
   );
 }
 
-export type MarketplaceOfferMineRow = {
+export type BuyerCreditScoreDto = {
+  score: string;
+  emoji: string;
+  label: string;
+  color: string;
+  blocked: boolean;
+  creditTransactionsCount: number;
+  creditOnTimeCount: number;
+  creditLateCount: number;
+  creditDefaultCount: number;
+};
+
+export type MarketplaceCreditOfferDto = {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  currency: string;
+  offerType: string;
+  status: string;
+  offeredPrice: number;
+  advancePercentage: number | null;
+  advanceAmount: number | null;
+  balanceAmount: number | null;
+  balanceDueDays: number | null;
+  balanceDueAt: string | null;
+  message: string | null;
+  buyerCreditScore: BuyerCreditScoreDto | null;
+  transactionId?: string | null;
+};
+
+export function fetchMyCreditScore(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<BuyerCreditScoreDto> {
+  return apiGetJson<BuyerCreditScoreDto>(
+    "/marketplace/buyers/me/credit-score",
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function postMarketplaceCreditOffer(
+  accessToken: string,
+  listingId: string,
+  payload: {
+    offeredPrice: number;
+    advancePercentage: number;
+    balanceDueDays: number;
+    message?: string;
+    buyerFarmId?: string;
+  },
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPostJson<MarketplaceCreditOfferDto>(
+    `/marketplace/listings/${listingId}/offers/credit`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function agreeMarketplaceCreditOffer(
+  accessToken: string,
+  listingId: string,
+  offerId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/listings/${listingId}/offers/${offerId}/agree-credit`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function counterMarketplaceCreditOffer(
+  accessToken: string,
+  listingId: string,
+  offerId: string,
+  payload: {
+    offeredPrice: number;
+    advancePercentage: number;
+    balanceDueDays: number;
+    message?: string;
+  },
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/listings/${listingId}/offers/${offerId}/counter-credit`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function initiateMarketplaceCreditBalancePayment(
+  accessToken: string,
+  offerId: string,
+  activeProfileId?: string | null
+): Promise<{
+  providerRef: string;
+  amount: number;
+  currency: string;
+  transactionId: string;
+}> {
+  return apiPostJson(
+    `/marketplace/offers/${offerId}/balance-payment/initiate`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmMarketplaceCreditBalancePayment(
+  accessToken: string,
+  offerId: string,
+  providerRef?: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/offers/${offerId}/balance-payment/confirm`,
+    providerRef ? { providerRef } : {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function declareMarketplaceAdvancePaid(
+  accessToken: string,
+  offerId: string,
+  payload: { paymentMode: string; paymentRef?: string },
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/offers/${offerId}/confirm-advance-paid`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmMarketplaceAdvanceReceived(
+  accessToken: string,
+  offerId: string,
+  received: boolean,
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/offers/${offerId}/confirm-advance-received`,
+    { received },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function declareMarketplaceBalancePaid(
+  accessToken: string,
+  offerId: string,
+  payload: { amount: number; paymentMode: string; paymentRef?: string },
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/offers/${offerId}/confirm-balance-paid`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmMarketplaceBalanceReceived(
+  accessToken: string,
+  offerId: string,
+  received: boolean,
+  activeProfileId?: string | null
+): Promise<MarketplaceCreditOfferDto> {
+  return apiPatchJson<MarketplaceCreditOfferDto>(
+    `/marketplace/offers/${offerId}/confirm-balance-received`,
+    { received },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type CreditPendingRow = {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  currency: string;
+  balanceAmount: number;
+  balanceDueAt: string | null;
+  status: string;
+  buyerName: string | null;
+};
+
+export function fetchCreditPendingOffers(
+  accessToken: string,
+  farmId?: string | null,
+  activeProfileId?: string | null
+): Promise<CreditPendingRow[]> {
+  const qs = farmId?.trim() ? `?farmId=${encodeURIComponent(farmId.trim())}` : "";
+  return apiGetJson<CreditPendingRow[]>(
+    `/marketplace/offers/credit-pending${qs}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type MarketplaceOfferCreditFields = {
+  offerType?: string | null;
+  advancePercentage?: number | null;
+  advanceAmount?: string | number | null;
+  balanceAmount?: string | number | null;
+  balanceDueDays?: number | null;
+  balanceDueAt?: string | null;
+  advancePaidDeclaredAt?: string | null;
+  advanceConfirmedAt?: string | null;
+  balancePaidDeclaredAt?: string | null;
+  balanceConfirmedAt?: string | null;
+  deliveredAt?: string | null;
+  buyerCreditScore?: BuyerCreditScoreDto | null;
+};
+
+export type MarketplaceOfferMineRow = MarketplaceOfferCreditFields & {
   id: string;
   offeredPrice: string | number;
   quantity: number | null;
   message: string | null;
   status: string;
   createdAt: string;
+  transaction?: { id: string } | null;
   listing: {
     id: string;
     title: string;
@@ -4710,14 +5144,77 @@ export function fetchMyMarketplaceOffers(
   );
 }
 
-/** Vendeur : accepter une offre (annonce → réservée, autres offres refusées). */
+export type MarketplaceOfferReceivedRow = MarketplaceOfferCreditFields & {
+  id: string;
+  offeredPrice: string | number;
+  proposedPricePerKg?: string | number | null;
+  counterPricePerKg?: string | number | null;
+  quantity: number | null;
+  message: string | null;
+  status: string;
+  createdAt: string;
+  buyer: { id: string; fullName: string | null; email: string | null };
+  listing: {
+    id: string;
+    title: string;
+    status: string;
+    currency: string;
+    category: string | null;
+    totalWeightKg: string | number | null;
+    pricePerKg?: string | number | null;
+    totalPrice?: string | number | null;
+    farm: { id: string; name: string } | null;
+    animal: { id: string; publicId: string; tagCode: string | null } | null;
+  };
+};
+
+export type MarketplaceOfferCounts = {
+  receivedPending: number;
+  sentPending: number;
+  total: number;
+};
+
+/** GET /marketplace/offers/received — propositions sur mes annonces. */
+export function fetchReceivedMarketplaceOffers(
+  accessToken: string,
+  activeProfileId?: string | null,
+  farmId?: string | null
+): Promise<MarketplaceOfferReceivedRow[]> {
+  const qs = farmId?.trim() ? `?farmId=${encodeURIComponent(farmId.trim())}` : "";
+  return apiGetJson<MarketplaceOfferReceivedRow[]>(
+    `/marketplace/offers/received${qs}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** GET /marketplace/offers/counts — badges propositions. */
+export function fetchMarketplaceOfferCounts(
+  accessToken: string,
+  activeProfileId?: string | null,
+  farmId?: string | null
+): Promise<MarketplaceOfferCounts> {
+  const qs = farmId?.trim() ? `?farmId=${encodeURIComponent(farmId.trim())}` : "";
+  return apiGetJson<MarketplaceOfferCounts>(
+    `/marketplace/offers/counts${qs}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** Réponse acceptation offre (vendeur ou acheteur contre-proposition). */
+export type MarketplaceAcceptOfferResponse = {
+  transactionId: string;
+};
+
+/** Vendeur : accepter une offre (crée la transaction escrow). */
 export function acceptMarketplaceOffer(
   accessToken: string,
   listingId: string,
   offerId: string,
   activeProfileId?: string | null
-): Promise<unknown> {
-  return apiPostJson<unknown>(
+): Promise<MarketplaceAcceptOfferResponse> {
+  return apiPostJson<MarketplaceAcceptOfferResponse>(
     `/marketplace/listings/${listingId}/offers/${offerId}/accept`,
     {},
     accessToken,
@@ -4766,10 +5263,291 @@ export function acceptMarketplaceOfferCounter(
   listingId: string,
   offerId: string,
   activeProfileId?: string | null
-): Promise<unknown> {
-  return apiPostJson<unknown>(
+): Promise<MarketplaceAcceptOfferResponse> {
+  return apiPostJson<MarketplaceAcceptOfferResponse>(
     `/marketplace/listings/${listingId}/offers/${offerId}/accept-counter`,
     {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type MarketplacePendingTransferDto = {
+  id: string;
+  transactionId: string;
+  buyerFarmId: string | null;
+  animalIds: string[];
+  expiresAt: string;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+};
+
+export type MarketplaceTransactionDto = {
+  id: string;
+  listingId: string;
+  offerId: string;
+  buyerUserId: string;
+  sellerUserId: string;
+  status: string;
+  priceType: string;
+  agreedPricePerKg: number | null;
+  agreedFlatPrice: number | null;
+  estimatedWeightKg: number | null;
+  blockedAmount: number;
+  finalAmount: number | null;
+  realWeightKg: number | null;
+  pickupDate: string | null;
+  pickupLocation: string | null;
+  sellerShippedAt?: string | null;
+  shipmentMethod?: string | null;
+  shipmentNotes?: string | null;
+  buyerReceivedAt?: string | null;
+  receiptCondition?: string | null;
+  receiptNotes?: string | null;
+  receivedAnimalIds?: string[];
+  listingStatus?: string | null;
+  listingAnimalIds?: string[];
+  currency: string;
+  offerExpiresAt: string;
+  listingTitle: string | null;
+  receiptGenerationStatus?: string;
+  receipt?: {
+    id: string;
+    receiptNumber: string;
+    generatedAt: string;
+  } | null;
+  pendingTransfer?: MarketplacePendingTransferDto | null;
+  isCredit?: boolean;
+};
+
+export type MarketplaceReceiptDto = {
+  receiptNumber: string | null;
+  generatedAt: string | null;
+  downloadUrl: string | null;
+  status: string;
+};
+
+export type MarketplaceFinanceSummaryDto = {
+  blockedFunds: number;
+  pendingRevenue: number;
+  totalSpent: number;
+  confirmedRevenue: number;
+  currency: string;
+  blockedTransactions: Array<{
+    id: string;
+    listingId: string;
+    listingTitle: string;
+    blockedAmount: number;
+    status: string;
+    sellerName: string | null;
+  }>;
+  pendingTransactions: Array<{
+    id: string;
+    listingId: string;
+    listingTitle: string;
+    blockedAmount: number;
+    status: string;
+    buyerName: string | null;
+  }>;
+  monthlySeries: Array<{
+    month: string;
+    confirmedRevenue: number;
+    pendingRevenue: number;
+    confirmedSpent: number;
+    blockedFunds: number;
+  }>;
+};
+
+export function fetchMarketplaceTransactions(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto[]> {
+  return apiGetJson<MarketplaceTransactionDto[]>(
+    "/marketplace/transactions",
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchMarketplaceTransactionSummary(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceFinanceSummaryDto> {
+  return apiGetJson<MarketplaceFinanceSummaryDto>(
+    "/marketplace/transactions/summary",
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchMarketplaceTransaction(
+  accessToken: string,
+  transactionId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiGetJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function initiateMarketplacePayment(
+  accessToken: string,
+  transactionId: string,
+  activeProfileId?: string | null
+): Promise<{ providerRef: string; amount: number; currency: string }> {
+  return apiPostJson<{ providerRef: string; amount: number; currency: string }>(
+    `/marketplace/transactions/${transactionId}/payment/initiate`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmMarketplacePayment(
+  accessToken: string,
+  transactionId: string,
+  providerRef?: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/payment/confirm`,
+    providerRef ? { providerRef } : {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function scheduleMarketplacePickup(
+  accessToken: string,
+  transactionId: string,
+  payload: { pickupDate: string; pickupLocation: string; notes?: string },
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/pickup`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmMarketplaceShipment(
+  accessToken: string,
+  transactionId: string,
+  payload: {
+    shippedAt: string;
+    method?: "handover" | "third_party" | "seller_delivery";
+    notes?: string;
+  },
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/confirm-shipment`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmMarketplaceReceipt(
+  accessToken: string,
+  transactionId: string,
+  payload: {
+    receivedAt: string;
+    condition: "conform" | "minor_issue" | "major_issue";
+    receivedAnimalIds: string[];
+    realWeightKg?: number;
+    notes?: string;
+  },
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/confirm-receipt`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function declareMarketplaceWeight(
+  accessToken: string,
+  transactionId: string,
+  realWeightKg: number,
+  activeProfileId?: string | null,
+  photoUrl?: string
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/weight/declare`,
+    { realWeightKg, photoUrl },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function validateMarketplaceWeight(
+  accessToken: string,
+  transactionId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/weight/validate`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function disputeMarketplaceWeight(
+  accessToken: string,
+  transactionId: string,
+  reason: string | undefined,
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/weight/dispute`,
+    reason ? { reason } : {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function cancelMarketplaceTransaction(
+  accessToken: string,
+  transactionId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/cancel`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function completeMarketplacePendingTransfer(
+  accessToken: string,
+  transactionId: string,
+  payload: { buyerFarmId: string; penId?: string },
+  activeProfileId?: string | null
+): Promise<{ ok: boolean; animalIds: string[] }> {
+  return apiPostJson<{ ok: boolean; animalIds: string[] }>(
+    `/marketplace/transactions/${transactionId}/pending-transfer/complete`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchMarketplaceReceipt(
+  accessToken: string,
+  transactionId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceReceiptDto> {
+  return apiGetJson<MarketplaceReceiptDto>(
+    `/marketplace/transactions/${transactionId}/receipt`,
     accessToken,
     activeProfileId
   );
@@ -5030,12 +5808,22 @@ export type VetPublicProfileDto = {
   isVerified: boolean;
   ratingAvg: number | null;
   ratingCount: number;
-  stats: { farmsFollowed: number; visitsCompleted: number };
+  stats: {
+    farmsFollowed: number;
+    visitsCompleted: number;
+    completedAppointments?: number;
+  };
+  servicePriceRange?: {
+    min: number;
+    max: number;
+    currency: string;
+  } | null;
   recentReviews: Array<{
     score: number;
     comment: string | null;
     authorName: string | null;
     createdAt: string;
+    tags?: string[];
   }>;
   canContact: boolean;
   isSelf: boolean;
@@ -5123,6 +5911,10 @@ export type VetDashboardDto = {
     subject: string;
     location: string | null;
     status: string;
+    kind?: "consultation" | "appointment";
+    conflictStatus?: string | null;
+    conflictLabel?: string | null;
+    servicePrice?: number | null;
   }>;
   assignedFarms: Array<{
     id: string;
@@ -5179,10 +5971,13 @@ export type ScheduleVetVisitPayload = {
 export type ScheduleVetVisitResult = {
   id: string;
   farmId: string;
-  farmName: string;
+  farmName?: string | null;
   scheduledAt: string;
-  subject: string;
+  requestedAt?: string;
+  subject?: string;
+  reason?: string;
   status: string;
+  vetName?: string | null;
 };
 
 export function scheduleVetVisit(
@@ -5239,6 +6034,231 @@ export function scheduleVetVisitFromProducer(
 ): Promise<ScheduleVetVisitResult> {
   return apiPostJson(
     `/farms/${encodeURIComponent(farmId)}/schedule-vet-visit`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type VetAppointmentDto = {
+  id: string;
+  farmId: string;
+  farmName?: string | null;
+  farmLocation?: string | null;
+  producerUserId: string;
+  producerName?: string | null;
+  vetProfileId: string;
+  vetUserId: string;
+  vetName?: string | null;
+  status: string;
+  requestedAt: string;
+  scheduledAt?: string;
+  confirmedAt?: string | null;
+  estimatedDurationHours: number;
+  reason: string;
+  notes?: string | null;
+  refusalReason?: string | null;
+  vetResponseNotes?: string | null;
+  servicePrice?: number | null;
+  blockedAmount?: number | null;
+  paymentDeadline?: string | null;
+  paymentConfirmedAt?: string | null;
+  completedAt?: string | null;
+  conflictStatus?: string | null;
+  conflictLabel?: string | null;
+  currency: string;
+  rating?: { rating: number; comment?: string | null; tags?: string[] } | null;
+  requiresRating?: boolean;
+};
+
+export type VetAppointmentFinanceSummaryDto = {
+  role: "producer" | "vet";
+  pendingEarnings: number;
+  confirmedEarnings: number;
+  blockedForAppointments: number;
+  currency: string;
+  pendingAppointments?: Array<{
+    id: string;
+    farmName: string;
+    producerName: string | null;
+    amount: number;
+    status: string;
+    confirmedAt: string | null;
+  }>;
+  blockedAppointments?: Array<{
+    id: string;
+    farmName: string;
+    vetName: string;
+    amount: number;
+    status: string;
+    confirmedAt: string | null;
+  }>;
+};
+
+export function fetchVetAppointmentFinanceSummary(
+  accessToken: string,
+  role: "producer" | "vet",
+  activeProfileId?: string | null
+): Promise<VetAppointmentFinanceSummaryDto> {
+  return apiGetJson(
+    `/vet-appointments/summary?role=${role}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchVetAppointments(
+  accessToken: string,
+  role: "producer" | "vet",
+  activeProfileId?: string | null
+): Promise<VetAppointmentDto[]> {
+  return apiGetJson(
+    `/vet-appointments/me?role=${role}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchVetAppointment(
+  accessToken: string,
+  appointmentId: string,
+  activeProfileId?: string | null
+): Promise<VetAppointmentDto> {
+  return apiGetJson(
+    `/vet-appointments/${encodeURIComponent(appointmentId)}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function vetAcceptAppointment(
+  accessToken: string,
+  appointmentId: string,
+  payload: { servicePrice: number; confirmedAt?: string; notes?: string },
+  activeProfileId?: string | null
+): Promise<VetAppointmentDto> {
+  return apiPostJson(
+    `/vet-appointments/${encodeURIComponent(appointmentId)}/accept`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function vetRefuseAppointment(
+  accessToken: string,
+  appointmentId: string,
+  refusalReason?: string,
+  activeProfileId?: string | null
+): Promise<VetAppointmentDto> {
+  return apiPostJson(
+    `/vet-appointments/${encodeURIComponent(appointmentId)}/refuse`,
+    refusalReason ? { refusalReason } : {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function initiateVetAppointmentPayment(
+  accessToken: string,
+  appointmentId: string,
+  activeProfileId?: string | null
+): Promise<{ providerRef: string; amount: number; currency: string }> {
+  return apiPostJson(
+    `/vet-appointments/${encodeURIComponent(appointmentId)}/payment/initiate`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmVetAppointmentPayment(
+  accessToken: string,
+  appointmentId: string,
+  providerRef?: string,
+  activeProfileId?: string | null
+): Promise<VetAppointmentDto> {
+  return apiPostJson(
+    `/vet-appointments/${encodeURIComponent(appointmentId)}/payment/confirm`,
+    providerRef ? { providerRef } : {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function completeVetAppointmentService(
+  accessToken: string,
+  appointmentId: string,
+  activeProfileId?: string | null
+): Promise<VetAppointmentDto & { requiresRating?: boolean }> {
+  return apiPostJson(
+    `/vet-appointments/${encodeURIComponent(appointmentId)}/complete`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function submitVetAppointmentRating(
+  accessToken: string,
+  appointmentId: string,
+  payload: { rating: number; comment?: string; tags?: string[] },
+  activeProfileId?: string | null
+): Promise<VetAppointmentDto> {
+  return apiPostJson(
+    `/vet-appointments/${encodeURIComponent(appointmentId)}/rating`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function cancelVetAppointment(
+  accessToken: string,
+  appointmentId: string,
+  reason?: string,
+  activeProfileId?: string | null
+): Promise<VetAppointmentDto> {
+  return apiPostJson(
+    `/vet-appointments/${encodeURIComponent(appointmentId)}/cancel`,
+    reason ? { reason } : {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type VetVisitQuoteDto = {
+  id: string;
+  scheduledAt: string;
+  vetName: string;
+  reason: unknown;
+  visitQuoteStatus: string;
+  consultationPrice: number | null;
+  counterPrice: number | null;
+  notes: string | null;
+};
+
+export function fetchVetVisitQuotes(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<VetVisitQuoteDto[]> {
+  return apiGetJson(
+    `/farms/${farmId}/vet-visit-quotes`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function respondVetVisitQuote(
+  accessToken: string,
+  farmId: string,
+  consultationId: string,
+  payload: { action: "accept" | "refuse" | "counter"; counterPrice?: number },
+  activeProfileId?: string | null
+): Promise<{ id: string; visitQuoteStatus: string }> {
+  return apiPostJson(
+    `/farms/${farmId}/vet-visit-quotes/${consultationId}/respond`,
     payload,
     accessToken,
     activeProfileId
@@ -5541,6 +6561,7 @@ export type FarmReportListItemDto = {
   generatedAt: string;
   scoreGlobal: number;
   contentHash: string | null;
+  pdfUrl?: string | null;
 };
 
 export function fetchFarmReportsList(
@@ -5563,7 +6584,13 @@ export function generateFarmReport(
     periodType: FarmReportPeriodType;
     anchor: { year: number; month?: number; quarter?: number };
   }
-): Promise<{ id: string; scoreGlobal: number; contentHash: string }> {
+): Promise<{
+  id: string;
+  reportId?: string;
+  scoreGlobal: number;
+  contentHash: string;
+  downloadUrl?: string | null;
+}> {
   return apiPostJson(
     `/farms/${farmId}/reports/generate`,
     body,
@@ -5599,6 +6626,18 @@ export function fetchFarmReportById(
 
 export function farmReportPdfAbsoluteUrl(reportId: string): string {
   return `${apiBaseUrl()}/api/v1/reports/${reportId}/pdf`;
+}
+
+export function fetchFarmReportDownloadUrl(
+  accessToken: string,
+  reportId: string,
+  activeProfileId?: string | null
+): Promise<{ downloadUrl: string }> {
+  return apiGetJson<{ downloadUrl: string }>(
+    `/reports/${reportId}/download`,
+    accessToken,
+    activeProfileId
+  );
 }
 
 export type AIInsightDto = {
@@ -5865,6 +6904,31 @@ export function fetchGestationAvailableSows(
     availableInDays: number;
   }> }>(
     `/farms/${farmId}/gestation/available-sows`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type GestationAiMatingRecommendation = {
+  sowId: string;
+  sowLabel: string;
+  boarId: string | null;
+  boarLabel: string | null;
+  suggestedDate: string;
+  expectedBirthDate: string | null;
+  reason: string;
+};
+
+export function fetchGestationAiMatingPlan(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<{
+  recommendations: GestationAiMatingRecommendation[];
+  aiPowered?: boolean;
+}> {
+  return apiGetJson(
+    `/farms/${farmId}/gestation/ai-mating-plan`,
     accessToken,
     activeProfileId
   );
@@ -6497,6 +7561,26 @@ export function fetchPigPriceIndexStats(
   );
 }
 
+export type HybridPigPriceIndexDto = {
+  price_per_kg: number | null;
+  trend: "up" | "down" | "stable";
+  variation_7d_pct: number | null;
+  calculated_at: string | null;
+  data_points_count: number;
+};
+
+/** GET /api/v1/marketplace/pig-price-index — indice hybride anti-manipulation */
+export function fetchHybridPigPriceIndex(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<HybridPigPriceIndexDto> {
+  return apiGetJson<HybridPigPriceIndexDto>(
+    "/marketplace/pig-price-index",
+    accessToken,
+    activeProfileId
+  );
+}
+
 // ─── Finance + stock aliment ─────────────────────────────────────────────────
 
 export type FinanceStockLineInput = {
@@ -6506,6 +7590,7 @@ export type FinanceStockLineInput = {
   quantityUnit: "kg" | "tonne" | "sac";
   unitPrice?: number;
   priceBasis?: "kg" | "sac";
+  weightPerBagKg?: number;
   supplier?: string;
 };
 

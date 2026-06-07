@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { mobileColors } from "../theme/mobileTheme";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
@@ -10,6 +11,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { ChatModuleGate } from "../components/ChatModuleGate";
 import { useSession } from "../context/SessionContext";
 import {
@@ -19,10 +21,12 @@ import {
   type UserSearchResultDto
 } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ChatSearchUser">;
 
 export function ChatSearchUserScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const { accessToken, activeProfileId, authMe } = useSession();
   const qc = useQueryClient();
   const myUserId = authMe?.user.id ?? "";
@@ -95,13 +99,13 @@ export function ChatSearchUserScreen({ navigation }: Props) {
           </Text>
         ) : searchQuery.isPending ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color="#5d7a1f" />
+            <ActivityIndicator size="large" color={mobileColors.accent} />
           </View>
         ) : searchQuery.error ? (
           <View style={styles.centered}>
             <Text style={styles.error}>
               {searchQuery.error instanceof Error
-                ? searchQuery.error.message
+                ? getUserFacingError(searchQuery.error, t)
                 : String(searchQuery.error)}
             </Text>
           </View>
@@ -121,7 +125,7 @@ export function ChatSearchUserScreen({ navigation }: Props) {
         {openDirect.error ? (
           <Text style={styles.mutationErr}>
             {openDirect.error instanceof Error
-              ? openDirect.error.message
+              ? getUserFacingError(openDirect.error, t)
               : String(openDirect.error)}
           </Text>
         ) : null}
@@ -131,7 +135,7 @@ export function ChatSearchUserScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: "#f9f8ea", paddingTop: 12 },
+  wrap: { flex: 1, backgroundColor: mobileColors.canvas, paddingTop: 12 },
   input: {
     marginHorizontal: 16,
     marginBottom: 10,
@@ -142,12 +146,12 @@ const styles = StyleSheet.create({
     borderColor: "#d4dac8",
     backgroundColor: "#fff",
     fontSize: 16,
-    color: "#1f2910"
+    color: mobileColors.textPrimary
   },
   hint: {
     paddingHorizontal: 20,
     fontSize: 13,
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     lineHeight: 18
   },
   list: { padding: 16, paddingBottom: 32 },
@@ -168,15 +172,15 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#1f2910"
+    color: mobileColors.textPrimary
   },
   cardSub: {
     marginTop: 6,
     fontSize: 14,
-    color: "#6d745b"
+    color: mobileColors.textSecondary
   },
   error: { color: "#b00020", textAlign: "center" },
-  empty: { fontSize: 15, color: "#6d745b" },
+  empty: { fontSize: 15, color: mobileColors.textSecondary },
   mutationErr: {
     paddingHorizontal: 16,
     paddingBottom: 12,

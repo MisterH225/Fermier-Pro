@@ -31,6 +31,7 @@ import {
   mobileTypography
 } from "../../theme/mobileTheme";
 import { apiStatusFromTab } from "./taskUtils";
+import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmTasks">;
 
@@ -162,7 +163,7 @@ export function TasksScreen({ route, navigation }: Props) {
           ) : tasksQ.error ? (
             <Text style={styles.err}>
               {tasksQ.error instanceof Error
-                ? tasksQ.error.message
+                ? getUserFacingError(tasksQ.error, t)
                 : t("tasksScreen.loadError")}
             </Text>
           ) : (

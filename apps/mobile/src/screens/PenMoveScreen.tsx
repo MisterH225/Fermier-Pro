@@ -1,6 +1,9 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { mobileColors } from "../theme/mobileTheme";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { getUserFacingError } from "../lib/userFacingError";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -21,6 +24,7 @@ import type { RootStackParamList } from "../types/navigation";
 type Props = NativeStackScreenProps<RootStackParamList, "PenMove">;
 
 export function PenMoveScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const {
     farmId,
     farmName,
@@ -75,7 +79,7 @@ export function PenMoveScreen({ route, navigation }: Props) {
       navigation.goBack();
     },
     onError: (e: Error) => {
-      Alert.alert("Déplacement impossible", e.message);
+      Alert.alert("Déplacement impossible", getUserFacingError(e, t));
     }
   });
 
@@ -206,16 +210,16 @@ export function PenMoveScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#f9f8ea" },
+  flex: { flex: 1, backgroundColor: mobileColors.canvas },
   content: { padding: 16, paddingBottom: 40 },
   centered: {
     flex: 1,
     justifyContent: "center",
     padding: 24,
-    backgroundColor: "#f9f8ea"
+    backgroundColor: mobileColors.canvas
   },
   error: { color: "#a34c24", textAlign: "center" },
-  hint: { fontSize: 13, color: "#6d745b", marginBottom: 6 },
+  hint: { fontSize: 13, color: mobileColors.textSecondary, marginBottom: 6 },
   fromLine: {
     fontSize: 14,
     color: "#5d7a1f",
@@ -236,14 +240,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     marginBottom: 16
   },
   noteInput: { minHeight: 72, textAlignVertical: "top" },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     marginBottom: 10
   },
   card: {
@@ -254,9 +258,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e8e4d4"
   },
-  cardTitle: { fontSize: 16, fontWeight: "700", color: "#1f2910" },
-  cardMeta: { fontSize: 13, color: "#6d745b", marginTop: 6 },
+  cardTitle: { fontSize: 16, fontWeight: "700", color: mobileColors.textPrimary },
+  cardMeta: { fontSize: 13, color: mobileColors.textSecondary, marginTop: 6 },
   backBarn: { marginBottom: 12 },
   backBarnText: { fontSize: 15, fontWeight: "700", color: "#5d7a1f" },
-  muted: { fontSize: 14, color: "#6d745b" }
+  muted: { fontSize: 14, color: mobileColors.textSecondary }
 });

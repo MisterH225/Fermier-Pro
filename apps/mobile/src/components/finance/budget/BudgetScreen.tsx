@@ -19,7 +19,7 @@ import { BudgetLineModal } from "./BudgetLineModal";
 import { BudgetSetupModal } from "./BudgetSetupModal";
 import { BudgetSuggestions } from "./BudgetSuggestions";
 import { GlobalBudgetGauge } from "./GlobalBudgetGauge";
-import { SimulationTool } from "./SimulationTool";
+import { BudgetAIAnalysis } from "./BudgetAIAnalysis";
 import { HighlightWrapper } from "../../common/HighlightWrapper";
 
 type Props = {
@@ -190,13 +190,13 @@ export function BudgetScreen({
         <Text style={styles.addTx}>{t("budgetScreen.addCategory")}</Text>
       </Pressable>
 
-      <SimulationTool
+      <BudgetAIAnalysis
         farmId={farmId}
         accessToken={accessToken}
         activeProfileId={activeProfileId}
         year={year}
         month={month}
-        budget={data}
+        currencySymbol={data.currencySymbol}
         onApplied={invalidate}
       />
 

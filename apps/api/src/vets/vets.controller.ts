@@ -56,6 +56,45 @@ export class VetsController {
     return this.vets.scheduleVisitFromProducer(user, farmId, dto);
   }
 
+  @Get("farms/:farmId/vet-visit-quotes")
+  listVisitQuotes(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string
+  ) {
+    return this.vets.listPendingVisitQuotes(user, farmId);
+  }
+
+  @Post("farms/:farmId/vet-visit-quotes/:consultationId/respond")
+  respondVisitQuote(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("consultationId") consultationId: string,
+    @Body()
+    body: { action: "accept" | "refuse" | "counter"; counterPrice?: number }
+  ) {
+    return this.vets.respondVisitQuote(
+      user,
+      farmId,
+      consultationId,
+      body.action,
+      body.counterPrice
+    );
+  }
+
+  @Post("vet-consultations/:consultationId/submit-quote")
+  submitVisitQuote(
+    @CurrentUser() user: User,
+    @Param("consultationId") consultationId: string,
+    @Body() body: { price: number; note?: string }
+  ) {
+    return this.vets.submitVisitQuote(
+      user,
+      consultationId,
+      body.price,
+      body.note
+    );
+  }
+
   @Post("vet-profiles")
   upsert(@CurrentUser() user: User, @Body() dto: UpsertVetProfileDto) {
     return this.vets.upsertProfile(user, dto);

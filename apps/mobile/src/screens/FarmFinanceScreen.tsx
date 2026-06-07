@@ -26,6 +26,8 @@ import {
   formatFinanceChartValue,
   financeMonthsToRevExpLines,
   financeMonthsToSingleLine,
+  marketplaceBuyerFinanceLines,
+  marketplaceSellerFinanceLines,
   budgetVsExpenseLines,
   type SmartChartPeriod
 } from "../components/finance";
@@ -37,6 +39,7 @@ type CategoryBreakdownItem = {
   color: string;
 };
 import { FinanceModuleGate } from "../components/FinanceModuleGate";
+import { KpiGridSkeleton, ListSkeleton } from "../components/common/SkeletonBlocks";
 import { EventList, type EventItem } from "../components/lists";
 import { useModal } from "../components/modals/useModal";
 import { useSession } from "../context/SessionContext";
@@ -64,7 +67,9 @@ import {
   fetchFinanceOverview,
   fetchFinanceProjection,
   fetchFinanceReport,
-  fetchFinanceTransactions
+  fetchFinanceTransactions,
+  fetchMarketplaceTransactionSummary,
+  fetchVetAppointmentFinanceSummary
 } from "../lib/api";
 import { invalidateFarmFinanceQueries } from "../lib/invalidateFarmFinanceQueries";
 import type { RootStackParamList } from "../types/navigation";
@@ -75,6 +80,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../theme/mobileTheme";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmFinance">;
 
@@ -228,6 +234,20 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
     enabled: enabled && Boolean(accessToken)
   });
 
+  const marketplaceEscrowQ = useQuery({
+    queryKey: ["marketplaceTransactionSummary", activeProfileId],
+    queryFn: () =>
+      fetchMarketplaceTransactionSummary(accessToken!, activeProfileId),
+    enabled: clientFeatures.marketplace && Boolean(accessToken)
+  });
+
+  const vetAppointmentFinanceQ = useQuery({
+    queryKey: ["vetAppointmentFinance", activeProfileId, "producer"],
+    queryFn: () =>
+      fetchVetAppointmentFinanceSummary(accessToken!, "producer", activeProfileId),
+    enabled: Boolean(accessToken)
+  });
+
   /** Mois de référence pour le budget (aligné sur le sélecteur de période). */
   const budgetAnchorRef = useMemo(() => {
     if (reportPeriod === "month") {
@@ -281,7 +301,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
     onSuccess: () => {
       invalidateFarmFinanceQueries(qc, farmId);
     },
-    onError: (e: Error) => Alert.alert("Suppression impossible", e.message)
+    onError: (e: Error) => Alert.alert("Suppression impossible", getUserFacingError(e, t))
   });
 
   const overview = overviewQ.data as FinanceOverviewDto | undefined;
@@ -593,6 +613,34 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
     [chartMonths, t]
   );
 
+  const marketplaceSellerChartLines = useMemo(() => {
+    const series = marketplaceEscrowQ.data?.monthlySeries;
+    if (!series?.length) return null;
+    const hasData = series.some(
+      (m) => (m.confirmedRevenue ?? 0) > 0 || (m.pendingRevenue ?? 0) > 0
+    );
+    if (!hasData) return null;
+    return marketplaceSellerFinanceLines(
+      series,
+      t("financeScreen.marketplaceConfirmedRevenue"),
+      t("financeScreen.marketplacePendingRevenue")
+    );
+  }, [marketplaceEscrowQ.data?.monthlySeries, t]);
+
+  const marketplaceBuyerChartLines = useMemo(() => {
+    const series = marketplaceEscrowQ.data?.monthlySeries;
+    if (!series?.length) return null;
+    const hasData = series.some(
+      (m) => (m.confirmedSpent ?? 0) > 0 || (m.blockedFunds ?? 0) > 0
+    );
+    if (!hasData) return null;
+    return marketplaceBuyerFinanceLines(
+      series,
+      t("financeScreen.marketplaceConfirmedPurchases"),
+      t("financeScreen.marketplaceBlockedPurchases")
+    );
+  }, [marketplaceEscrowQ.data?.monthlySeries, t]);
+
   const revDelta = useMemo(() => {
     if (months6.length < 2) {
       return null;
@@ -848,17 +896,23 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
 
   if (pending && !overview) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={mobileColors.accent} />
+      <View style={styles.screenRoot}>
+        <TabScreenHeader />
+        <ScrollView contentContainerStyle={styles.tabScrollGrow}>
+          <TabContent>
+            <KpiGridSkeleton count={4} />
+            <ListSkeleton count={5} style={{ marginTop: 16 }} />
+          </TabContent>
+        </ScrollView>
       </View>
     );
   }
 
   const errMsg =
     overviewQ.error instanceof Error
-      ? overviewQ.error.message
+      ? getUserFacingError(overviewQ.error, t)
       : txQ.error instanceof Error
-        ? txQ.error.message
+        ? getUserFacingError(txQ.error, t)
         : null;
 
   if (errMsg && !overview) {
@@ -887,7 +941,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
   );
 
   const reportSpinner = reportQ.isPending ? (
-    <ActivityIndicator color={mobileColors.accent} style={{ marginVertical: 12 }} />
+    <ListSkeleton count={2} style={{ marginVertical: 12 }} />
   ) : null;
 
   const txListBlock = (
@@ -1043,6 +1097,118 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                         />
                       </View>
                     </View>
+                    {marketplaceEscrowQ.data &&
+                    (marketplaceEscrowQ.data.pendingRevenue > 0 ||
+                      marketplaceEscrowQ.data.blockedFunds > 0) ? (
+                      <ScreenSection
+                        title={t("financeScreen.marketplaceSection")}
+                        plain
+                      >
+                        <View style={styles.kpiRow}>
+                          {marketplaceEscrowQ.data.pendingRevenue > 0 ? (
+                            <View style={styles.kpiHalf}>
+                              <FinanceKpiCard
+                                title={t("financeScreen.marketplacePending")}
+                                value={formatMoney(
+                                  marketplaceEscrowQ.data.pendingRevenue,
+                                  marketplaceEscrowQ.data.currency,
+                                  curSym
+                                )}
+                                deltaText={null}
+                                variant="yellow"
+                              />
+                            </View>
+                          ) : null}
+                          {marketplaceEscrowQ.data.blockedFunds > 0 ? (
+                            <View style={styles.kpiHalf}>
+                              <FinanceKpiCard
+                                title={t("financeScreen.marketplaceBlocked")}
+                                value={formatMoney(
+                                  marketplaceEscrowQ.data.blockedFunds,
+                                  marketplaceEscrowQ.data.currency,
+                                  curSym
+                                )}
+                                deltaText={null}
+                                variant="yellow"
+                              />
+                            </View>
+                          ) : null}
+                        </View>
+                        {[
+                          ...(marketplaceEscrowQ.data.pendingTransactions ?? []),
+                          ...(marketplaceEscrowQ.data.blockedTransactions ?? [])
+                        ]
+                          .slice(0, 5)
+                          .map((tx) => (
+                            <Pressable
+                              key={tx.id}
+                              style={styles.marketplaceTxRow}
+                              onPress={() =>
+                                navigation.navigate("MarketplaceTransaction", {
+                                  transactionId: tx.id
+                                })
+                              }
+                            >
+                              <Text style={styles.marketplaceTxTitle} numberOfLines={1}>
+                                {tx.listingTitle}
+                              </Text>
+                              <Text style={styles.marketplaceTxAmount}>
+                                {formatMoney(
+                                  tx.blockedAmount,
+                                  marketplaceEscrowQ.data!.currency,
+                                  curSym
+                                )}
+                              </Text>
+                            </Pressable>
+                          ))}
+                      </ScreenSection>
+                    ) : null}
+                    {vetAppointmentFinanceQ.data &&
+                    vetAppointmentFinanceQ.data.blockedForAppointments > 0 ? (
+                      <ScreenSection
+                        title={t("financeScreen.vetAppointmentsSection")}
+                        plain
+                      >
+                        <View style={styles.kpiRow}>
+                          <View style={styles.kpiHalf}>
+                            <FinanceKpiCard
+                              title={t("financeScreen.vetAppointmentsBlocked")}
+                              value={formatMoney(
+                                vetAppointmentFinanceQ.data.blockedForAppointments,
+                                vetAppointmentFinanceQ.data.currency,
+                                curSym
+                              )}
+                              deltaText={null}
+                              variant="yellow"
+                            />
+                          </View>
+                        </View>
+                        {(vetAppointmentFinanceQ.data.blockedAppointments ?? [])
+                          .slice(0, 5)
+                          .map((appt) => (
+                            <Pressable
+                              key={appt.id}
+                              style={styles.marketplaceTxRow}
+                              onPress={() =>
+                                navigation.navigate("VetAppointmentDetail", {
+                                  appointmentId: appt.id
+                                })
+                              }
+                            >
+                              <Text style={styles.marketplaceTxTitle} numberOfLines={1}>
+                                {appt.vetName} · {appt.farmName}
+                              </Text>
+                              <Text style={styles.marketplaceTxAmount}>
+                                {formatMoney(
+                                  appt.amount,
+                                  vetAppointmentFinanceQ.data!.currency,
+                                  curSym
+                                )}
+                              </Text>
+                            </Pressable>
+                          ))}
+                      </ScreenSection>
+                    ) : null}
                   </ScreenSection>
                 ) : null}
                 {overview ? (
@@ -1091,6 +1257,30 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                       formatValue={chartFmt}
                       monthLabel={(iso) => monthShort(iso, localeStr)}
                       unit={curSym}
+                    />
+                  </ScreenSection>
+                ) : null}
+                {marketplaceSellerChartLines ? (
+                  <ScreenSection title={t("financeScreen.marketplaceSellerChart")}>
+                    <SmartChart
+                      lines={marketplaceSellerChartLines}
+                      period={chartPeriod}
+                      onPeriodChange={setChartPeriod}
+                      formatValue={chartFmt}
+                      monthLabel={(iso) => monthShort(iso, localeStr)}
+                      unit={marketplaceEscrowQ.data?.currency ?? curSym}
+                    />
+                  </ScreenSection>
+                ) : null}
+                {marketplaceBuyerChartLines ? (
+                  <ScreenSection title={t("financeScreen.marketplaceBuyerChart")}>
+                    <SmartChart
+                      lines={marketplaceBuyerChartLines}
+                      period={chartPeriod}
+                      onPeriodChange={setChartPeriod}
+                      formatValue={chartFmt}
+                      monthLabel={(iso) => monthShort(iso, localeStr)}
+                      unit={marketplaceEscrowQ.data?.currency ?? curSym}
                     />
                   </ScreenSection>
                 ) : null}
@@ -1388,6 +1578,25 @@ const styles = StyleSheet.create({
     overflow: "hidden"
   },
   kpiRowSp: { marginTop: mobileSpacing.sm },
+  marketplaceTxRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: mobileSpacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: mobileColors.border
+  },
+  marketplaceTxTitle: {
+    ...mobileTypography.body,
+    flex: 1,
+    marginRight: mobileSpacing.sm,
+    color: mobileColors.textPrimary
+  },
+  marketplaceTxAmount: {
+    ...mobileTypography.body,
+    fontWeight: "600",
+    color: "#B45309"
+  },
   kpiHalf: {
     flex: 1,
     flexBasis: 0,

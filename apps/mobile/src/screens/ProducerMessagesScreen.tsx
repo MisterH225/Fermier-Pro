@@ -16,7 +16,7 @@ import {
 import { MobileAppShell } from "../components/layout";
 import { ConversationRow } from "../components/messaging/ConversationRow";
 import { ConversationSearchBar } from "../components/messaging/ConversationSearchBar";
-import { useProducerBottomChromePad } from "../context/ProducerBottomChromeContext";
+import { useBottomChromePad } from "../hooks/useBottomInset";
 import { useSession } from "../context/SessionContext";
 import {
   directConversationTitle,
@@ -32,6 +32,7 @@ import {
   mobileTypography
 } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 function roomTitle(room: ChatRoomListItem, myUserId?: string): string {
   if (room.farm?.name) return room.farm.name;
@@ -73,7 +74,7 @@ export function ProducerMessagesScreen() {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const bottomPad = useProducerBottomChromePad();
+  const bottomPad = useBottomChromePad();
   const { accessToken, activeProfileId, authMe } = useSession();
   const myUserId = authMe?.user.id;
   const [search, setSearch] = useState("");
@@ -122,7 +123,7 @@ export function ProducerMessagesScreen() {
           <View style={styles.centered}>
             <Text style={styles.error}>
               {roomsQ.error instanceof Error
-                ? roomsQ.error.message
+                ? getUserFacingError(roomsQ.error, t)
                 : String(roomsQ.error)}
             </Text>
           </View>

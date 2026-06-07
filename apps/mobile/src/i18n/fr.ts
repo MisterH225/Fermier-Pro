@@ -20,7 +20,16 @@ export const fr = {
     cancel: "Annuler",
     ok: "OK",
     close: "Fermer",
-    retry: "Réessayer"
+    retry: "Réessayer",
+    yes: "Oui",
+    no: "Non",
+    errors: {
+      generic: "Une erreur est survenue. Réessaie dans un instant.",
+      network: "Connexion impossible. Vérifie ton réseau et réessaie.",
+      unauthorized: "Session expirée. Reconnecte-toi.",
+      forbidden: "Tu n'as pas les droits pour cette action.",
+      notFound: "Élément introuvable."
+    }
   },
   cgu: {
     title: "Conditions d'utilisation",
@@ -261,6 +270,10 @@ export const fr = {
     badgeNew: "Nouveau",
     badgeSold: "Vendu",
     badgeExpired: "Expiré",
+    badgeActiveOffers: "{{count}} offre(s) en cours",
+    activeOfferCta: "Voir votre offre active",
+    activeTransactionCtaBuyer: "Suivre l'achat en cours",
+    activeTransactionCtaSeller: "Suivre la vente en cours",
     detailTitle: "Annonce",
     listingStatus: "Statut :",
     emptyListingsHint: "Publie une annonce depuis Mes annonces ou le cheptel.",
@@ -276,6 +289,8 @@ export const fr = {
     healthMortality: "Mortalité 30 j :",
     renewAction: "Renouveler 14 jours",
     renewSuccess: "Annonce renouvelée.",
+    cancelSuccess: "Annonce annulée.",
+    offerRejectSuccess: "Proposition refusée.",
     offerAccept: "Accepter",
     offerReject: "Refuser",
     offerCounter: "Contre-proposer",
@@ -283,7 +298,230 @@ export const fr = {
     myOffersTitle: "Mes offres sur cette annonce",
     acceptSuccessTitle: "Offre acceptée",
     acceptSuccessBody:
-      "L'annonce est réservée. Concluez la vente pour mettre à jour le cheptel et la finance.",
+      "Procédez au paiement pour sécuriser votre achat.",
+    acceptSuccessBodySeller:
+      "L'acheteur peut maintenant payer. Suivez la livraison et la clôture ici.",
+    transaction: {
+      agreedPrice: "Prix convenu :",
+      agreedPricePerKg: "Prix/kg convenu :",
+      amountAdjustHint:
+        "Ce montant sera ajusté au poids réel lors de la livraison.",
+      payCta: "Payer {{amount}} via Mobile Money",
+      paymentSuccessTitle: "Paiement confirmé",
+      paymentSuccessBody:
+        "Votre paiement est enregistré. Coordonnez la livraison avec le vendeur.",
+      paymentErrorTitle: "Paiement impossible",
+      pickupSection: "Livraison",
+      pickupDate: "Date de retrait",
+      pickupLocation: "Lieu de retrait",
+      pickupLocationPh: "Village, marché, ferme…",
+      confirmPickup: "Confirmer le rendez-vous",
+      pickupSuccessTitle: "Rendez-vous enregistré",
+      pickupSuccessBody: "Les deux parties sont informées.",
+      weightSection: "Poids à la livraison",
+      realWeight: "Poids réel (kg)",
+      declareWeight: "Confirmer le poids reçu",
+      invalidWeight: "Poids invalide",
+      weightDeclaredTitle: "Poids enregistré",
+      weightDeclaredBody:
+        "Le vendeur a 24 h pour valider ou contester ce poids.",
+      sellerWeightReview: "Poids déclaré par l'acheteur",
+      validateWeight: "Valider le poids",
+      disputeWeight: "Contester le poids",
+      cancel: "Annuler la transaction",
+      closed: "Transaction finalisée.",
+      receiptTitle: "Reçu de transaction",
+      receiptNumber: "N° {{number}}",
+      receiptGeneratedAt: "Généré le {{date}}",
+      receiptDownload: "Télécharger le reçu (PDF)",
+      receiptGenerating: "Génération en cours…",
+      receiptFailed: "Erreur — contacter le support ou réessayer.",
+      receiptRetry: "Réessayer",
+      receiptErrorTitle: "Téléchargement impossible",
+      receiptErrorBody: "Impossible de récupérer le reçu.",
+      receiptNotReady: "Reçu non disponible pour le moment.",
+      statusLabel: "Étape",
+      stepPayment: "Paiement",
+      stepDelivery: "Livraison",
+      stepShipment: "Envoi",
+      stepReceipt: "Réception",
+      stepWeight: "Poids réel",
+      stepClosing: "Clôture",
+      status: {
+        PAYMENT_PENDING: "En attente de paiement",
+        PAYMENT_HELD: "Paiement sécurisé — en attente d'envoi",
+        PICKUP_SCHEDULED: "Livraison planifiée",
+        SELLER_SHIPPED: "Envoi confirmé — en attente de réception",
+        BUYER_RECEIVED: "Réception confirmée — poids à valider",
+        DELIVERY_DISPUTED: "Litige livraison",
+        WEIGHT_DECLARED: "Poids déclaré — validation vendeur",
+        WEIGHT_DISPUTED: "Litige poids — arbitrage",
+        WEIGHT_VALIDATED: "Finalisation en cours",
+        TRANSACTION_CLOSED: "Vente conclue",
+        CANCELLED_BY_BUYER: "Annulée par l'acheteur",
+        CANCELLED_BY_SELLER: "Annulée par le vendeur",
+        PAYMENT_FAILED: "Paiement échoué"
+      },
+      scheduledPickup: "Rendez-vous : {{date}} — {{location}}",
+      schedulePickupHint:
+        "Planifiez la date et le lieu de livraison ou de récupération (cela peut être dans plusieurs jours ou semaines). Le poids réel sera renseigné uniquement le jour de la remise de l'animal.",
+      weightAtDeliveryHint:
+        "Le jour de la livraison ou de la récupération, confirmez le poids réel mesuré pour calculer le montant final.",
+      projectedFinalCost: "Coût final estimé : {{amount}}",
+      finalCost: "Montant final : {{amount}}",
+      sellerWaitPayment:
+        "En attente du paiement de l'acheteur. Vous serez notifié dès que les fonds sont sécurisés.",
+      sellerWaitSchedule:
+        "Paiement reçu. Planifiez la livraison avec l'acheteur — le poids réel sera confirmé le jour de la récupération.",
+      sellerWaitWeight:
+        "Livraison planifiée. L'acheteur confirmera le poids réel le jour de la récupération ; vous pourrez alors valider et conclure la vente.",
+      buyerWaitSchedule:
+        "Paiement sécurisé. Le vendeur confirmera l'envoi ; vous confirmerez la réception à la livraison.",
+      sellerWaitReceipt:
+        "Envoi confirmé. En attente de la confirmation de réception par l'acheteur.",
+      buyerWaitReceipt:
+        "Le vendeur a confirmé l'envoi. Confirmez la réception une fois les animaux livrés.",
+      deliveryDisputed:
+        "Un litige livraison est ouvert. Les fonds restent sécurisés en attendant la résolution.",
+      finalizing:
+        "Poids validé — libération des fonds et mise à jour du cheptel en cours.",
+      weightDisputed:
+        "Le poids est contesté. Un arbitrage est en cours — vous serez informé de la suite."
+    },
+    shipmentModal: {
+      open: "Confirmer l'envoi",
+      title: "Confirmer l'envoi",
+      info: "Indiquez que les animaux ont été remis à l'acheteur ou sont en cours de livraison.",
+      date: "Date d'envoi",
+      method: "Mode de livraison",
+      methods: {
+        handover: "Remise en main propre",
+        third_party: "Transport tiers",
+        seller_delivery: "Livraison vendeur"
+      },
+      notes: "Notes pour l'acheteur",
+      notesPh: "Instructions, contact transporteur…",
+      confirm: "Confirmer l'envoi",
+      successTitle: "Envoi confirmé",
+      successBody: "L'acheteur a été notifié."
+    },
+    creditModal: {
+      open: "💳 Offre à crédit",
+      title: "💳 Offre à crédit",
+      subtitle: "Proposez un accord de paiement en deux fois",
+      totalPrice: "Prix total proposé",
+      advancePct: "Pourcentage d'avance (%)",
+      advanceHelper: "Minimum 20 % — maximum 50 %",
+      balanceHelper: "Délai max 7 jours après livraison — rappels uniquement après échéance",
+      advancePreview: "Avance : {{amount}}",
+      balancePreview: "Solde : {{amount}}",
+      balanceDays: "Délai de paiement du solde",
+      dayOption: "{{count}} jour",
+      message: "Message au vendeur",
+      messagePh: "Présentez-vous, expliquez votre activité de revendeur…",
+      scoreWarning:
+        "Votre score crédit actuel est fragile. Le vendeur sera informé de votre historique.",
+      yourScore: "Votre score crédit :",
+      submit: "Envoyer l'offre à crédit",
+      success: "Offre à crédit envoyée au vendeur.",
+      errorTitle: "Offre à crédit impossible",
+      blocked:
+        "Votre score crédit ne vous permet pas de faire des offres à crédit pour le moment.",
+      badge: "À CRÉDIT"
+    },
+    credit: {
+      accept: "✅ Accepter",
+      counter: "🔄 Contre-proposer",
+      counterTitle: "🔄 Contre-proposition crédit",
+      counterSubmit: "Envoyer la contre-proposition",
+      counterSuccess: "Contre-proposition crédit envoyée.",
+      acceptCounter: "Accepter la contre-proposition",
+      agreedSuccess:
+        "Accord crédit conclu — sécurisez l'avance sur la plateforme pour lancer la livraison.",
+      escrow: {
+        transactionMissing: "Transaction escrow introuvable — réessayez dans un instant.",
+        advanceHeld: "L'avance reste bloquée sur la plateforme jusqu'à la livraison.",
+        balanceRecalculated:
+          "Le solde est recalculé au poids réel après validation par le vendeur."
+      },
+      buyerScore: "Score crédit acheteur :",
+      termsAdvance: "Avance : {{pct}} % = {{amount}}",
+      termsBalance: "Solde : {{amount}} dans {{days}} jours",
+      paymentMode: "Mode de paiement utilisé",
+      paymentRef: "Référence paiement",
+      paymentRefPh: "Numéro de transaction, reçu…",
+      advance: {
+        title: "Confirmer le paiement de l'avance",
+        info: "En confirmant, vous déclarez avoir effectué le virement ou la remise de l'avance au vendeur.",
+        due: "Avance due",
+        balance: "Solde restant",
+        delay: "Solde sous {{count}} jours après livraison",
+        confirm: "✅ J'ai payé l'avance",
+        declare: "💰 J'ai payé l'avance",
+        payEscrow: "💳 Payer l'avance (escrow)",
+        declaredSuccess: "Avance déclarée — le vendeur va confirmer la réception.",
+        confirmReceived: "✅ Confirmer la réception de l'avance",
+        notReceived: "❌ Je n'ai pas reçu l'avance",
+        confirmedSuccess: "Avance confirmée — la livraison peut commencer."
+      },
+      balance: {
+        title: "Confirmer le paiement du solde",
+        amount: "Montant payé",
+        confirm: "✅ J'ai payé le solde",
+        declare: "💰 J'ai payé le solde",
+        payEscrow: "💳 Payer le solde (escrow)",
+        remaining: "Solde restant",
+        dueOn: "Dû le {{date}}",
+        inDays: "dans {{count}} jour(s)",
+        statusPending: "En attente de paiement",
+        statusDeclared: "Paiement déclaré",
+        statusPaid: "Soldé",
+        statusArbitration: "Arbitrage en cours",
+        declaredSuccess: "Solde déclaré — le vendeur va confirmer la réception.",
+        confirmReceived: "✅ Confirmer la réception du solde",
+        notReceived: "❌ Je n'ai pas reçu le solde",
+        confirmedSuccess: "Transaction crédit soldée."
+      },
+      dashboard: {
+        scoreTitle: "Mon score crédit",
+        pendingTitle: "Soldes en attente",
+        empty: "Aucun solde crédit en cours.",
+        transactions: "{{count}} transaction(s) crédit",
+        onTime: "{{count}} paiement(s) à temps",
+        late: "{{count}} retard(s)"
+      }
+    },
+    transferModal: {
+      open: "Ajouter à mon cheptel",
+      title: "Importer dans ma ferme",
+      info:
+        "{{count}} animal(aux) prêt(s) à être ajouté(s) à votre cheptel après cette vente.",
+      farm: "Ferme destinataire",
+      penOptional: "Loge (optionnel)",
+      noPen: "Aucune loge — les animaux seront créés sans placement.",
+      confirm: "Importer les animaux",
+      successTitle: "Cheptel mis à jour",
+      successBody: "Vos animaux ont été ajoutés à la ferme sélectionnée."
+    },
+    receiptModal: {
+      open: "Confirmer la réception",
+      title: "Confirmer la réception",
+      info: "Vérifiez que vous avez bien reçu les animaux dans l'état prévu.",
+      animals: "Animaux reçus",
+      date: "Date de réception",
+      condition: "État des animaux",
+      conditions: {
+        conform: "Conforme",
+        minor_issue: "Problème mineur",
+        major_issue: "Problème majeur"
+      },
+      comment: "Commentaire",
+      commentPh: "Décrivez le problème…",
+      confirm: "Confirmer la réception",
+      reportProblem: "Signaler un problème",
+      successTitle: "Réception enregistrée",
+      successBody: "La transaction avance vers la clôture."
+    },
     categories: {
       all: "Tout",
       piglet: "Porcelets",
@@ -410,6 +648,23 @@ export const fr = {
     withdrawCancel: "Annuler",
     withdrawConfirm: "Retirer",
     withdrawAction: "Retirer mon offre",
+    proposals: {
+      tabReceived: "Reçues",
+      tabSent: "Envoyées",
+      emptyReceivedTitle: "Aucune proposition reçue",
+      emptyReceivedBody:
+        "Les acheteurs intéressés par vos annonces apparaîtront ici.",
+      emptySentTitle: "Aucune proposition envoyée",
+      emptySentBody:
+        "Faites une offre sur une annonce du marché pour commencer.",
+      groupCount: "{{count}} proposition(s)",
+      negotiate: "Négocier",
+      anonymousBuyer: "Acheteur",
+      receivedSection: "Propositions reçues",
+      viewReceived: "Voir les propositions",
+      viewSent: "Voir mes propositions",
+      withdrawSuccess: "Proposition retirée."
+    },
     createForm: {
       titleModal: "Nouvelle annonce",
       errorTitle: "Création impossible",
@@ -486,6 +741,9 @@ export const fr = {
     publishAction: "Publier sur le marché",
     publishing: "Publication…",
     publishSuccess: "Annonce publiée — visible sur le marché.",
+    editForm: {
+      success: "Annonce mise à jour."
+    },
   },
   pigPriceIndex: {
     title: "📊 Cours du porc",
@@ -510,6 +768,10 @@ export const fr = {
     statVolume: "Transactions",
     variationFlat: "0.0% ➡️",
     priceOnRequest: "—"
+  },
+  pigPriceIndexCard: {
+    title: "Indice PigPrice",
+    basedOn: "Basé sur {{count}} transactions"
   },
   smartAlerts: {
     moduleMarket: "Marché",
@@ -644,6 +906,7 @@ export const fr = {
       kpiVisits: "Visites ce mois",
       kpiAlerts: "Alertes santé",
       kpiTasks: "Tâches en attente",
+      pendingEarnings: "En attente de prestation",
       tasksTitle: "Mes tâches",
       taskFilter: { today: "Aujourd'hui", week: "Cette semaine", all: "Toutes" },
       activityTitle: "Activité clinique récente",
@@ -652,6 +915,46 @@ export const fr = {
       actionFarms: "Mes fermes",
       actionSchedule: "Planifier une visite",
       actionCase: "Déclarer un cas"
+    },
+    appointment: {
+      title: "Rendez-vous vétérinaire",
+      farm: "Ferme",
+      when: "Date et heure",
+      reason: "Motif",
+      notes: "Notes producteur",
+      vet: "Vétérinaire",
+      producer: "Producteur",
+      price: "Tarif prestation",
+      pricePlaceholder: "Tarif en FCFA (obligatoire)",
+      invalidPrice: "Tarif invalide",
+      vetAcceptTitle: "Répondre à la demande",
+      vetNotesPlaceholder: "Notes pour le producteur (optionnel)",
+      acceptCta: "Accepter et proposer un tarif",
+      acceptedTitle: "Proposition envoyée",
+      acceptedBody: "Le producteur a été notifié et doit payer pour confirmer le RDV.",
+      refuseCta: "Refuser la demande",
+      refusalPlaceholder: "Motif du refus (optionnel)",
+      paymentHint:
+        "Le paiement sécurise votre rendez-vous. Le vétérinaire sera payé après sa prestation.",
+      paymentDeadline: "Expire dans {{time}} si non payé",
+      payCta: "Payer {{amount}} via Mobile Money",
+      paymentSuccessTitle: "Paiement confirmé",
+      paymentSuccessBody: "Votre RDV est confirmé. Le vétérinaire a été informé.",
+      completeHint:
+        "Confirmez uniquement si la prestation a bien été effectuée. Cette action déclenche le paiement du vétérinaire.",
+      completeCta: "Confirmer que la prestation est terminée",
+      completeConfirmTitle: "Confirmer la prestation",
+      completeConfirmBody:
+        "Cette action déclenche le paiement du vétérinaire. Assurez-vous que la prestation est bien effectuée.",
+      cancelCta: "Annuler la demande",
+      cancelConfirmTitle: "Annuler le rendez-vous ?",
+      cancelConfirmBody: "Aucun paiement ne sera prélevé si vous n'avez pas encore payé.",
+      ratingTitle: "Noter le vétérinaire",
+      ratingRequired: "Choisissez une note entre 1 et 5",
+      ratingCommentPlaceholder: "Commentaire (optionnel)",
+      ratingSubmit: "Envoyer l'avis",
+      rated: "Avis enregistré",
+      requestPending: "Demande en attente"
     },
     profile: {
       title: "Profil vétérinaire",
@@ -836,7 +1139,7 @@ export const fr = {
     period12: "12M",
     statsTitle: "Statistiques par type",
     current: "Stock actuel",
-    avgDaily: "Conso. moy. / jour",
+    avgDaily: "Conso. moy. : {{kg}} kg/j",
     depletion: "Fin estimée",
     statusOk: "OK",
     statusWarn: "Attention",
@@ -896,8 +1199,12 @@ export const fr = {
       "Effectuez au moins 2 contrôles de stock pour voir les estimations",
     gaugeCenterDays: "{{count}} j",
     lastCheckAgo: "Dernier contrôle : il y a {{count}} j",
+    unknownFeedType: "Aliment",
     gaugeDashboardSubtitle: "{{kg}} kg · {{count}} j restants",
     gaugeDashboardNoDays: "{{kg}} kg · durée inconnue",
+    smartAlertsHintTitle: "Recommandations",
+    smartAlertsHintBody:
+      "Les alertes stock et consommation sont sur le tableau de bord (section Recommandations).",
     filterMissingCost: "Sans coût",
     badgeMissingCost: "Sans coût",
     editMovement: "Modifier",
@@ -972,13 +1279,20 @@ export const fr = {
     categoryPieCenter: "Effectif total",
     categoryPieTooltip: "{{count}} têtes — {{pct}} %",
     category: {
-      piglets: "Porcelets / démarrage",
+      reproducteur_femelle: "Truies",
+      reproducteur_male: "Verrats",
+      fattening: "Engraissement",
+      starter: "Démarrage",
       growth: "Croissance",
+      piglets: "Porcelets / démarrage",
       finishing: "Engraissement",
       breeders: "Reproducteurs",
       other: "Autres"
     },
     openBarns: "Gérer les bâtiments et loges",
+    batches: {
+      detectedTitle: "Bandes détectées automatiquement"
+    },
     pensOccupancyHint:
       "Occupation globale : {{rate}} · {{available}} loge(s) avec place libre.",
     actions: {
@@ -1063,6 +1377,7 @@ export const fr = {
       batchCategoryOther: "Lot",
       vaccinateLot: "Vacciner le lot",
       addAnimal: "Ajouter animal",
+      addSeveral: "Ajouter plusieurs",
       columnLeft: "Colonne gauche",
       columnRight: "Colonne droite",
       topToBottom: "Numérotation de haut en bas",
@@ -1102,6 +1417,7 @@ export const fr = {
       noChart: "Pas encore de pesées sur cette période.",
       gmqSection: "GMQ par animal",
       noGmq: "Ajoutez des pesées pour calculer le GMQ.",
+      weeksAbbr: "sem.",
       entry: "Entrée",
       current: "Actuel",
       gain: "Gain total",
@@ -1264,6 +1580,58 @@ export const fr = {
         success: "Transfert effectué",
         errorTitle: "Transfert impossible"
       },
+      bulk: {
+        title: "Ajouter plusieurs animaux",
+        step1Title: "Étape 1 — Informations",
+        step2Title: "Étape 2 — Confirmation",
+        step2Intro: "Vérifie les informations avant de créer les animaux.",
+        pen: "Loge",
+        penFixed: "Loge : {{name}}{{slots}}",
+        freeSlots: " — {{count}} place(s) libre(s)",
+        freeSlotsShort: "{{count}} libre(s)",
+        category: "Catégorie",
+        categoryTrui: "Truie",
+        categoryVer: "Verrat",
+        categoryEng: "Engraissement",
+        categoryDem: "Démarrage",
+        count: "Nombre d'animaux",
+        decrease: "Diminuer",
+        increase: "Augmenter",
+        capacityWarning: "Attention : {{count}} animaux pour {{capacity}} places disponibles.",
+        sex: "Sexe",
+        sexUnknown: "Sexe non défini",
+        breed: "Race",
+        breedPlaceholder: "Ex. Large White",
+        entryWeight: "Poids à l'entrée (kg)",
+        entryAge: "Âge à l'entrée (semaines)",
+        entryAgePlaceholder: "Ex. 8",
+        entryDate: "Date d'entrée",
+        origin: "Origine",
+        originFarm: "Naissance ferme",
+        originPurchased: "Achat extérieur",
+        supplier: "Fournisseur",
+        next: "Continuer",
+        back: "Retour",
+        confirm: "Créer {{count}} animaux",
+        creating: "Création de {{count}} animaux…",
+        successTitle: "Animaux créés avec succès",
+        successMessage: "{{count}} animal(aux) ajouté(s) à la loge.",
+        errorTitle: "Erreur",
+        countInvalid: "Indique un nombre valide d'animaux.",
+        previewError: "Impossible de prévisualiser la nomenclature.",
+        nomenclatureRange: "Numéros : {{from}} → {{to}}",
+        summaryCategory: "Catégorie",
+        summaryCount: "Nombre",
+        summaryCountValue: "{{count}} tête(s)",
+        summaryPen: "Loge",
+        summaryPenWithSlots: "{{name}} ({{free}} place(s) libre(s))",
+        summaryBreed: "Race",
+        summaryWeight: "Poids entrée",
+        summaryAge: "Âge entrée",
+        summaryAgeValue: "{{weeks}} sem.",
+        summaryNumbers: "Numéros",
+        summaryEntryDate: "Date d'entrée"
+      },
       detail: {
         identity: "Identité du sujet",
         save: "Enregistrer la fiche",
@@ -1402,6 +1770,13 @@ export const fr = {
       emptyTitle: "Aucun message",
       emptySub: "Envoyez un message à votre vétérinaire depuis la fiche de son profil.",
       noMessage: "Pas encore de message"
+    },
+    vetAppointments: {
+      title: "Rendez-vous vétérinaire",
+      payNow: "Payer maintenant",
+      confirmService: "Confirmer la prestation",
+      waitingForVet: "En attente du vétérinaire",
+      vetFallback: "Vétérinaire"
     },
     welcomeLine: "Bienvenue",
     settingsButton: "Paramètres",
@@ -1586,6 +1961,7 @@ export const fr = {
     revokeConfirmTitle: "Révoquer les accès ?",
     revokeConfirmBody: "{{name}} perdra tous ses accès immédiatement.",
     revokeConfirmAction: "Révoquer",
+    revokeSuccess: "Accès révoqué avec succès",
     historyTitle: "Historique des actions",
     historyEmpty: "Aucune action enregistrée.",
     historyShowMore: "Voir plus",
@@ -1673,6 +2049,17 @@ export const fr = {
     revenuesMonth: "Revenus (mois)",
     expensesMonth: "Dépenses (mois)",
     marginMonth: "Marge nette (mois)",
+    marketplaceSection: "Marketplace",
+    marketplacePending: "Transactions en attente",
+    marketplaceBlocked: "Fonds bloqués",
+    vetAppointmentsSection: "Rendez-vous vétérinaires",
+    vetAppointmentsBlocked: "RDV à venir (bloqués)",
+    marketplaceSellerChart: "Ventes marketplace (6 mois)",
+    marketplaceBuyerChart: "Achats marketplace (6 mois)",
+    marketplaceConfirmedRevenue: "Revenus confirmés",
+    marketplacePendingRevenue: "En attente",
+    marketplaceConfirmedPurchases: "Achats finalisés",
+    marketplaceBlockedPurchases: "Achats en cours",
     vsPrevShort: "{{pct}} vs mois préc.",
     insights: "Synthèse",
     tabRevenues: "Revenus",
@@ -1764,6 +2151,36 @@ export const fr = {
     marginPerHead: "Coût / tête :",
     marginPerKg: "Coût / kg :"
   },
+  financeStockLink: {
+    stockSectionTitle: "Détails de l'entrée en stock",
+    recordStock: "Enregistrer aussi en stock",
+    toggleOn: "Oui",
+    toggleOff: "Non",
+    quantity: "Quantité reçue",
+    unitPrice: "Prix unitaire",
+    line: "Ligne {{n}}",
+    lineSubtotal: "Sous-total : {{amount}} {{currency}}",
+    addLine: "+ Ajouter une ligne aliment",
+    totalGap:
+      "Écart de {{gap}} {{currency}} — ajustez les quantités ou le montant total",
+    newFeedType: "Nouveau type",
+    useExistingType: "Type existant",
+    weightPerBag: "Poids par sac (kg)",
+    weightPerBagHint: "Requis pour convertir les sacs en kg",
+    linkedStockTitle: "Stock lié",
+    unitPriceShort: "{{price}} / unité",
+    openStock: "Voir dans Stock aliment",
+    createFinanceExpense: "Créer aussi une dépense Finance",
+    financeLabel: "Libellé dépense",
+    financeBadge: "Finance liée",
+    linkedFinanceTitle: "Dépense finance liée",
+    deleteLinkedTitle: "Suppression liée",
+    deleteLinkedBody:
+      "Cette transaction est liée à une entrée stock. Supprimer aussi l'entrée stock ?",
+    deleteBoth: "Supprimer les deux",
+    deleteFinanceOnly: "Finance uniquement",
+    txWithStockSuccess: "Dépense enregistrée — stock mis à jour"
+  },
   budgetScreen: {
     status: {
       onTrack: "🟢 Sous contrôle",
@@ -1791,6 +2208,12 @@ export const fr = {
     addCategory: "➕ Configurer / ajouter des lignes",
     simTitle: "🔮 Simulation « Et si »",
     simSubtitle: "Et si je modifiais mon budget ?",
+    aiTitle: "💡 Analyse et recommandations IA",
+    aiSubtitle: "Optimisation budgétaire basée sur vos dépenses et votre cheptel",
+    aiCurrent: "Budget actuel",
+    aiSavings: "Économie : {{amount}}",
+    aiRefresh: "🔄 Régénérer l'analyse",
+    aiApply: "✅ Appliquer la sélection",
     simCurrent: "Budget actuel :",
     simNew: "Nouveau budget",
     simImpact: "Impact immédiat",
@@ -1904,6 +2327,11 @@ export const fr = {
     formSectionNotes: "Notes",
     vetVisits: {
       nextPlanned: "Prochaine visite planifiée"
+    },
+    vetQuotes: {
+      title: "Devis en attente",
+      accept: "✅ Accepter",
+      refuse: "❌ Refuser"
     },
     upcomingVaccines: "Rappels vaccins à venir",
     errorTitle: "Erreur",
@@ -2095,6 +2523,8 @@ export const fr = {
       verified: "✅ Vérifié",
       notVerified: "Profil en cours de validation",
       reviews: "avis",
+      completedAppointments: "{{count}} prestations réalisées",
+      priceRange: "Prestations entre {{min}} et {{max}} {{currency}}",
       statsFarms: "{{count}} fermes suivies",
       statsVisits: "{{count}} visites",
       planVisit: "Planifier une visite",
@@ -2117,7 +2547,8 @@ export const fr = {
       notesPlaceholder: "Décrivez le besoin (symptômes, lot concerné…)",
       confirm: "Demander le RDV",
       successTitle: "Demande envoyée",
-      successBody: "{{vet}} — {{farm}} le {{date}}",
+      successBody:
+        "Votre demande a été transmise à {{vet}}. Vous serez notifié dès qu'il aura répondu.",
       callErrorTitle: "Appel",
       callError: "Numéro indisponible."
     },
@@ -2201,6 +2632,10 @@ export const fr = {
     history: "Rapports générés",
     historyEmpty: "Aucun rapport enregistré. Utilise « Exporter en PDF » pour en créer un.",
     exportPdf: "Exporter en PDF",
+    generatePdf: "Générer le rapport",
+    compiling: "Compilation des données…",
+    downloading: "Téléchargement…",
+    downloadReport: "Télécharger le PDF",
     exportErrorTitle: "Export impossible",
     shareUnavailable: "Le partage système n’est pas disponible sur cet appareil.",
     scoreDetailTitle: "Détail du score ferme",
@@ -2318,6 +2753,14 @@ export const fr = {
     createSuccessWithDate:
       "Gestation enregistrée — mise bas prévue le {{date}}",
     pickSow: "Choisissez une truie",
+    invalidFarmId: "Projet actif invalide. Recharge l'application.",
+    invalidBoarId: "Verrat invalide.",
+    aiPlanningTitle: "💡 Planning saillies recommandé (IA)",
+    aiPlanningBoar: "Verrat suggéré",
+    aiPlanningDate: "Date saillie",
+    aiPlanningBirth: "Mise bas prévue",
+    aiPlanningApply: "Planifier",
+    aiPowered: "Analyse IA",
     sow: "Truie",
     boar: "Verrat",
     noBoar: "Non renseigné",
@@ -2577,6 +3020,17 @@ export const fr = {
       sectionCriteria: "Critères de prix",
       sectionZone: "Zone de recherche",
       freq: { immediate: "Immédiat", daily: "Quotidien" }
+    }
+  },
+  chat: {
+    inputPlaceholder: "Votre message…",
+    phoneWarning: {
+      realtime:
+        "Les numéros de téléphone sont automatiquement masqués pour votre sécurité.",
+      masked: "Numéro masqué automatiquement pour votre protection.",
+      imageBlocked:
+        "Cette image semble contenir un numéro de téléphone et ne peut pas être envoyée.",
+      analyzing: "Vérification sécurité…"
     }
   },
   techOnboarding: {

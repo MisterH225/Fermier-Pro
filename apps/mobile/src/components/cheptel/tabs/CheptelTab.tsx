@@ -16,6 +16,8 @@ import {
 
   Text,
 
+  Vibration,
+
   View
 
 } from "react-native";
@@ -53,11 +55,17 @@ import {
 } from "../../../theme/mobileTheme";
 
 import { ScreenSection } from "../../layout/ScreenSection";
+import { EmptyStateCard } from "../../common/EmptyStateCard";
+import { ListSkeleton } from "../../common/SkeletonBlocks";
 import { HighlightWrapper } from "../../common/HighlightWrapper";
 
 import { PenCard } from "../pens/PenCard";
 
 import { CreateLogeModal } from "../pens/CreateLogeModal";
+import { CreateBuildingModal } from "../pens/CreateBuildingModal";
+import { BuildingActionsSheet } from "../pens/BuildingActionsSheet";
+import { DeleteBuildingModal } from "../pens/DeleteBuildingModal";
+import { RenameBuildingModal } from "../pens/RenameBuildingModal";
 
 
 
@@ -217,7 +225,22 @@ export function CheptelTab({
 
   const [barnId, setBarnId] = useState<string | undefined>(undefined);
 
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createBuildingOpen, setCreateBuildingOpen] = useState(false);
+  const [createPenOpen, setCreatePenOpen] = useState(false);
+  const [barnActions, setBarnActions] = useState<{
+    id: string;
+    name: string;
+    code?: string | null;
+  } | null>(null);
+  const [renameBarn, setRenameBarn] = useState<{
+    id: string;
+    name: string;
+    code?: string | null;
+  } | null>(null);
+  const [deleteBarnTarget, setDeleteBarnTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [highlightActive, setHighlightActive] = useState(false);
 
   useEffect(() => {
@@ -424,6 +447,13 @@ export function CheptelTab({
 
   const twoColumnLayout = columns.length === 2 && !barnId;
 
+  const invalidatePens = () => {
+    void pensQuery.refetch();
+    void qc.invalidateQueries({ queryKey: ["cheptelPens", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmBarns", farmId] });
+    onInvalidateOverview?.();
+  };
+
 
 
   const openLoge = (pen: CheptelPenRowDto) => {
@@ -472,7 +502,7 @@ export function CheptelTab({
 
   if (pensQuery.isPending) {
 
-    return <ActivityIndicator color={mobileColors.accent} style={{ marginTop: 24 }} />;
+    return <ListSkeleton count={4} style={{ marginTop: 24 }} />;
 
   }
 
@@ -533,13 +563,13 @@ export function CheptelTab({
 
               style={styles.addPill}
 
-              onPress={() => setCreateOpen(true)}
+              onPress={() => setCreateBuildingOpen(true)}
 
               accessibilityRole="button"
 
             >
 
-              <Text style={styles.addPillTx}>+ {t("cheptel.pens.newPen")}</Text>
+              <Text style={styles.addPillTx}>+ Ajouter bâtiment</Text>
 
             </Pressable>
 
@@ -593,6 +623,12 @@ export function CheptelTab({
               style={[styles.barnPill, barnId === b.id && styles.barnPillOn]}
 
               onPress={() => setBarnId(b.id)}
+
+              onLongPress={() => {
+                Vibration.vibrate(20);
+                setBarnActions(b);
+              }}
+              delayLongPress={500}
 
             >
 
@@ -685,16 +721,23 @@ export function CheptelTab({
 
 
       {pens.length === 0 ? (
-
-        <Text style={styles.empty}>{t("cheptel.pens.empty")}</Text>
-
+        <EmptyStateCard title={t("cheptel.pens.empty")} />
       ) : null}
 
 
 
+      <CreateBuildingModal
+        visible={createBuildingOpen}
+        farmId={farmId}
+        accessToken={accessToken}
+        activeProfileId={activeProfileId}
+        onClose={() => setCreateBuildingOpen(false)}
+        onCreated={invalidatePens}
+      />
+
       <CreateLogeModal
 
-        visible={createOpen}
+        visible={createPenOpen}
 
         farmId={farmId}
 
@@ -704,18 +747,67 @@ export function CheptelTab({
 
         barns={barns}
 
-        onClose={() => setCreateOpen(false)}
+        onClose={() => setCreatePenOpen(false)}
 
-        onCreated={() => {
+        onCreated={invalidatePens}
 
-          void pensQuery.refetch();
+      />
 
-          void qc.invalidateQueries({ queryKey: ["cheptelPens", farmId] });
-
-          onInvalidateOverview?.();
-
+      <BuildingActionsSheet
+        visible={barnActions !== null}
+        barn={barnActions}
+        onClose={() => setBarnActions(null)}
+        onRename={() => {
+          if (barnActions) {
+            setRenameBarn(barnActions);
+          }
+          setBarnActions(null);
         }}
+        onAddPen={() => {
+          if (barnActions) {
+            setBarnId(barnActions.id);
+          }
+          setBarnActions(null);
+          setCreatePenOpen(true);
+        }}
+        onDelete={() => {
+          if (barnActions) {
+            setDeleteBarnTarget({ id: barnActions.id, name: barnActions.name });
+          }
+          setBarnActions(null);
+        }}
+      />
 
+      <RenameBuildingModal
+        visible={renameBarn !== null}
+        farmId={farmId}
+        accessToken={accessToken}
+        activeProfileId={activeProfileId}
+        barn={renameBarn}
+        onClose={() => setRenameBarn(null)}
+        onRenamed={invalidatePens}
+      />
+
+      <DeleteBuildingModal
+        visible={deleteBarnTarget !== null}
+        farmId={farmId}
+        accessToken={accessToken}
+        activeProfileId={activeProfileId}
+        barn={deleteBarnTarget}
+        pens={pens}
+        onClose={() => setDeleteBarnTarget(null)}
+        onDeleted={() => {
+          if (deleteBarnTarget && barnId === deleteBarnTarget.id) {
+            setBarnId(undefined);
+          }
+          invalidatePens();
+        }}
+        onTransferFirst={() => {
+          if (deleteBarnTarget) {
+            setBarnId(deleteBarnTarget.id);
+          }
+          setDeleteBarnTarget(null);
+        }}
       />
 
     </>

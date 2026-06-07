@@ -34,6 +34,7 @@ import {
 } from "../../lib/api";
 import { mobileColors, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ProducerFarmSettings">;
 
@@ -80,7 +81,7 @@ export function SettingsScreen({ route, navigation }: Props) {
       void qc.invalidateQueries({ queryKey: ["farmAlertSettings", farmId] });
       showSaved();
     },
-    onError: (e: Error) => Alert.alert(t("common.error"), e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const save = useCallback(
@@ -132,7 +133,7 @@ export function SettingsScreen({ route, navigation }: Props) {
   if (!s) {
     const errMsg =
       settingsQ.error instanceof Error
-        ? settingsQ.error.message
+        ? getUserFacingError(settingsQ.error, t)
         : t("settings.loadError");
     return (
       <View style={styles.centered}>

@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { ConfigClientModule } from "../config-client/config-client.module";
+import { AiModule } from "../ai/ai.module";
 import { BudgetService } from "./budget.service";
 import { FinanceController } from "./finance.controller";
 import { FinanceService } from "./finance.service";
@@ -11,6 +12,7 @@ import { FeedFinanceLinkModule } from "../feed-finance-link/feed-finance-link.mo
   imports: [
     AuthModule,
     ConfigClientModule,
+    AiModule,
     SmartAlertsModule,
     FeedFinanceLinkModule
   ],

@@ -5,6 +5,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import type { FarmInvitationChatPayload } from "../../lib/farmInvitationMessage";
 import { useSession } from "../../context/SessionContext";
 import { respondToMyInvitation } from "../../lib/api";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   mobileColors,
   mobileRadius,
@@ -41,7 +42,7 @@ export function InviteCardInChat({ payload, isMine }: Props) {
       void qc.invalidateQueries({ queryKey: ["myPendingInvitations"] });
     },
     onError: (e: Error) => {
-      Alert.alert(t("collab.directory.inviteModalTitle"), e.message);
+      Alert.alert(t("collab.directory.inviteModalTitle"), getUserFacingError(e, t));
     }
   });
 

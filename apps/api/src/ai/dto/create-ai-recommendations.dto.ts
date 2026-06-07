@@ -1,8 +1,9 @@
-import { IsIn, IsOptional, IsString, IsUUID } from "class-validator";
+import { IsIn, IsNotEmpty, IsOptional, IsString } from "class-validator";
 import { AI_MODULE_KEYS, type AiModuleKey } from "../ai.types";
 
 export class CreateAiRecommendationsDto {
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   farmId!: string;
 
   @IsIn([...AI_MODULE_KEYS])
