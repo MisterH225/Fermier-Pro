@@ -171,6 +171,7 @@ export class OffersService {
     return this.prisma.marketplaceOffer.findMany({
       where: { buyerUserId: user.id },
       orderBy: { createdAt: "desc" },
+      take: 100,
       include: {
         listing: {
           include: {
@@ -193,6 +194,7 @@ export class OffersService {
         }
       },
       orderBy: { createdAt: "desc" },
+      take: 100,
       include: {
         buyer: { select: { id: true, fullName: true, email: true } },
         listing: {
