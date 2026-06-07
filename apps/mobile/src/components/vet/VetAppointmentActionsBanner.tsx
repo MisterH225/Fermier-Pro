@@ -13,6 +13,7 @@ import {
 import type { RootStackParamList } from "../../types/navigation";
 
 const ACTION_STATUSES = new Set([
+  "APPOINTMENT_REQUESTED",
   "AWAITING_PAYMENT",
   "APPOINTMENT_CONFIRMED",
   "APPOINTMENT_IN_PROGRESS"
@@ -28,6 +29,9 @@ function statusLabel(
   status: string,
   t: (key: string) => string
 ): string {
+  if (status === "APPOINTMENT_REQUESTED") {
+    return t("producer.vetAppointments.waitingForVet");
+  }
   if (status === "AWAITING_PAYMENT") {
     return t("producer.vetAppointments.payNow");
   }
