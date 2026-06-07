@@ -272,6 +272,8 @@ export const fr = {
     badgeExpired: "Expiré",
     badgeActiveOffers: "{{count}} offre(s) en cours",
     activeOfferCta: "Voir votre offre active",
+    activeTransactionCtaBuyer: "Suivre l'achat en cours",
+    activeTransactionCtaSeller: "Suivre la vente en cours",
     detailTitle: "Annonce",
     listingStatus: "Statut :",
     emptyListingsHint: "Publie une annonce depuis Mes annonces ou le cheptel.",
@@ -297,6 +299,8 @@ export const fr = {
     acceptSuccessTitle: "Offre acceptée",
     acceptSuccessBody:
       "Procédez au paiement pour sécuriser votre achat.",
+    acceptSuccessBodySeller:
+      "L'acheteur peut maintenant payer. Suivez la livraison et la clôture ici.",
     transaction: {
       agreedPrice: "Prix convenu :",
       agreedPricePerKg: "Prix/kg convenu :",
@@ -335,7 +339,43 @@ export const fr = {
       receiptRetry: "Réessayer",
       receiptErrorTitle: "Téléchargement impossible",
       receiptErrorBody: "Impossible de récupérer le reçu.",
-      receiptNotReady: "Reçu non disponible pour le moment."
+      receiptNotReady: "Reçu non disponible pour le moment.",
+      statusLabel: "Étape",
+      stepPayment: "Paiement",
+      stepDelivery: "Livraison",
+      stepWeight: "Poids réel",
+      stepClosing: "Clôture",
+      status: {
+        PAYMENT_PENDING: "En attente de paiement",
+        PAYMENT_HELD: "Paiement sécurisé — livraison à planifier",
+        PICKUP_SCHEDULED: "Livraison planifiée",
+        WEIGHT_DECLARED: "Poids déclaré — validation vendeur",
+        WEIGHT_DISPUTED: "Litige poids — arbitrage",
+        WEIGHT_VALIDATED: "Finalisation en cours",
+        TRANSACTION_CLOSED: "Vente conclue",
+        CANCELLED_BY_BUYER: "Annulée par l'acheteur",
+        CANCELLED_BY_SELLER: "Annulée par le vendeur",
+        PAYMENT_FAILED: "Paiement échoué"
+      },
+      scheduledPickup: "Rendez-vous : {{date}} — {{location}}",
+      schedulePickupHint:
+        "Planifiez la date et le lieu de livraison ou de récupération (cela peut être dans plusieurs jours ou semaines). Le poids réel sera renseigné uniquement le jour de la remise de l'animal.",
+      weightAtDeliveryHint:
+        "Le jour de la livraison ou de la récupération, confirmez le poids réel mesuré pour calculer le montant final.",
+      projectedFinalCost: "Coût final estimé : {{amount}}",
+      finalCost: "Montant final : {{amount}}",
+      sellerWaitPayment:
+        "En attente du paiement de l'acheteur. Vous serez notifié dès que les fonds sont sécurisés.",
+      sellerWaitSchedule:
+        "Paiement reçu. Planifiez la livraison avec l'acheteur — le poids réel sera confirmé le jour de la récupération.",
+      sellerWaitWeight:
+        "Livraison planifiée. L'acheteur confirmera le poids réel le jour de la récupération ; vous pourrez alors valider et conclure la vente.",
+      buyerWaitSchedule:
+        "Paiement sécurisé. Planifiez la livraison ci-dessous — le poids réel ne sera demandé qu'une fois l'animal récupéré.",
+      finalizing:
+        "Poids validé — libération des fonds et mise à jour du cheptel en cours.",
+      weightDisputed:
+        "Le poids est contesté. Un arbitrage est en cours — vous serez informé de la suite."
     },
     categories: {
       all: "Tout",

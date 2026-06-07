@@ -20,6 +20,7 @@ import { useModal } from "../../../components/modals/useModal";
 import { useSession } from "../../../context/SessionContext";
 import {
   acceptMarketplaceOffer,
+  type MarketplaceAcceptOfferResponse,
   counterMarketplaceOffer,
   ensureDirectChatRoom,
   fetchMarketplaceListing,
@@ -121,13 +122,18 @@ export function PropositionsRecuesTab({
         row.id,
         activeProfileId
       ),
-    onSuccess: (_data, row) => {
+    onSuccess: (data: MarketplaceAcceptOfferResponse, row) => {
       invalidateAll(row.listing.id);
       open("success", {
         title: t("marketScreen.acceptSuccessTitle"),
-        message: t("marketScreen.acceptSuccessBody"),
+        message: t("marketScreen.acceptSuccessBodySeller"),
         autoDismissMs: 2200
       });
+      if (data.transactionId) {
+        navigation.navigate("MarketplaceTransaction", {
+          transactionId: data.transactionId
+        });
+      }
     },
     onError: (e: Error) =>
       Alert.alert(
