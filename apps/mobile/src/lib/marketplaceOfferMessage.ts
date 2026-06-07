@@ -1,3 +1,5 @@
+import { formatFarmMoney, formatPricePerKg } from "./formatMoney";
+
 export const MARKETPLACE_OFFER_MESSAGE_TYPE = "marketplace_offer" as const;
 
 export type MarketplaceOfferChatPayload = {
@@ -34,7 +36,7 @@ export function parseMarketplaceOfferMessage(
 export function formatOfferPreview(payload: MarketplaceOfferChatPayload): string {
   const price =
     payload.proposedPricePerKg != null
-      ? `${Math.round(payload.proposedPricePerKg).toLocaleString("fr-FR")} FCFA/kg`
-      : `${Math.round(payload.offeredPrice).toLocaleString("fr-FR")} ${payload.currency}`;
+      ? formatPricePerKg(payload.proposedPricePerKg, payload.currency)
+      : formatFarmMoney(payload.offeredPrice, payload.currency);
   return `Proposition · ${price}`;
 }

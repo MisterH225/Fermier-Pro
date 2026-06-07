@@ -15,6 +15,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { formatFarmMoney as formatMoney } from "../lib/formatMoney";
 import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
 import { TabContent, TabSelector } from "../components/tabs";
 import { BudgetScreen } from "../components/finance/budget";
@@ -110,28 +111,6 @@ function newFarmTransactionRef(): string {
     .toString(36)
     .slice(2, 10)
     .toUpperCase()}`;
-}
-
-function formatMoney(
-  amount: string | number,
-  currencyCode: string,
-  currencySymbol?: string
-): string {
-  const n = typeof amount === "string" ? Number.parseFloat(amount) : amount;
-  if (!Number.isFinite(n)) return String(amount);
-  const iso = currencyCode?.length === 3 ? currencyCode : "XOF";
-  try {
-    const s = new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: iso,
-      maximumFractionDigits: 0
-    }).format(n);
-    return currencySymbol && iso === "XOF" && currencySymbol !== "XOF"
-      ? s.replace("F CFA", currencySymbol).replace("FCFA", currencySymbol)
-      : s;
-  } catch {
-    return `${n} ${currencySymbol ?? currencyCode}`;
-  }
 }
 
 function currentMonthUtc(): string {

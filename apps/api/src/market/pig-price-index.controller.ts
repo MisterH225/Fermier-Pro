@@ -8,13 +8,17 @@ import {
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { RequirePlatformModule } from "../feature-flags/require-platform-module.decorator";
 import { PlatformModuleEnabledGuard } from "../feature-flags/platform-module-enabled.guard";
+import { MarketplacePigPriceIndexService } from "../marketplace/pig-price-index.service";
 import { PigPriceIndexService } from "./pig-price-index.service";
 
 @Controller("market/pig-price-index")
 @RequirePlatformModule("pig_price_index")
 @UseGuards(SupabaseJwtGuard, PlatformModuleEnabledGuard)
 export class PigPriceIndexController {
-  constructor(private readonly index: PigPriceIndexService) {}
+  constructor(
+    private readonly index: PigPriceIndexService,
+    private readonly hybridIndex: MarketplacePigPriceIndexService
+  ) {}
 
   @Get()
   getIndex(
@@ -37,5 +41,21 @@ export class PigPriceIndexController {
   @Get("ticker")
   getTicker() {
     return this.index.getTicker();
+  }
+
+  /** Indice hybride anti-manipulation (canonique sous /market). */
+  @Get("hybrid")
+  async getHybrid() {
+    const data = await this.hybridIndex.getPublicIndex();
+    if (!data) {
+      return {
+        price_per_kg: null,
+        trend: "stable" as const,
+        variation_7d_pct: null,
+        calculated_at: null,
+        data_points_count: 0
+      };
+    }
+    return data;
   }
 }

@@ -1,4 +1,6 @@
-import { Controller, Get, Post, UseGuards } from "@nestjs/common";
+import { Controller, Get, Res, UseGuards } from "@nestjs/common";
+import type { Response } from "express";
+import { setDeprecatedSuccessor } from "../common/http/deprecation.util";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { RequirePlatformModule } from "../feature-flags/require-platform-module.decorator";
 import { PlatformModuleEnabledGuard } from "../feature-flags/platform-module-enabled.guard";
@@ -11,7 +13,8 @@ export class MarketplacePigPriceIndexController {
   constructor(private readonly index: MarketplacePigPriceIndexService) {}
 
   @Get()
-  async getIndex() {
+  async getIndex(@Res({ passthrough: true }) res: Response) {
+    setDeprecatedSuccessor(res, "/api/v1/market/pig-price-index/hybrid");
     const data = await this.index.getPublicIndex();
     if (!data) {
       return {

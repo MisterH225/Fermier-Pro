@@ -1,5 +1,6 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
+import { CheptelModule } from "../cheptel/cheptel.module";
 import { HousingModule } from "../housing/housing.module";
 import { BatchesController } from "./batches.controller";
 import { BatchesService } from "./batches.service";
@@ -11,7 +12,7 @@ import { TaxonomyService } from "./taxonomy.service";
 import { AnimalProductionTagsService } from "./animal-production-tags.service";
 
 @Module({
-  imports: [AuthModule, HousingModule],
+  imports: [AuthModule, HousingModule, forwardRef(() => CheptelModule)],
   controllers: [LivestockController, BatchesController, TaxonomyController],
   providers: [
     LivestockStatusLogService,

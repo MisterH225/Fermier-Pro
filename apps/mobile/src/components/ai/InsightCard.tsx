@@ -17,6 +17,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { navigateFromInsightRoute } from "../../services/navigation/DeepNavigationService";
 import type { RootStackParamList } from "../../types/navigation";
 
 type Props = {
@@ -93,23 +94,7 @@ export function InsightCard({ insights, loading, onRefresh }: Props) {
   }
 
   const navigateAction = (route: string | null | undefined) => {
-    if (!route) {
-      return;
-    }
-    const [name, ...rest] = route.split(":");
-    const params: Record<string, string> = {};
-    for (const part of rest) {
-      const [k, v] = part.split("=");
-      if (k && v) {
-        params[k] = v;
-      }
-    }
-    try {
-      // @ts-expect-error — routes dynamiques optionnelles
-      navigation.navigate(name as keyof RootStackParamList, params);
-    } catch {
-      /* navigation silencieuse */
-    }
+    navigateFromInsightRoute(navigation, route);
   };
 
   return (

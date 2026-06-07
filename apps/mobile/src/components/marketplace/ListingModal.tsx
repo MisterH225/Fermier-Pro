@@ -6,6 +6,7 @@ import { useSession } from "../../context/SessionContext";
 import {
   createMarketplaceListing,
   fetchFarmAnimals,
+  fetchFarmFinanceSettings,
   fetchFarms,
   fetchMarketplaceListing,
   renewMarketplaceListing,
@@ -115,6 +116,23 @@ export function ListingModal({
     queryFn: () => fetchFarmAnimals(accessToken!, values.farmId!, activeProfileId),
     enabled: Boolean(visible && values.farmId && accessToken)
   });
+
+  const financeSettingsQ = useQuery({
+    queryKey: ["farmFinanceSettings", values.farmId, activeProfileId],
+    queryFn: () =>
+      fetchFarmFinanceSettings(accessToken!, values.farmId!, activeProfileId),
+    enabled: Boolean(visible && !isEdit && values.farmId && accessToken)
+  });
+
+  useEffect(() => {
+    const code = financeSettingsQ.data?.currencyCode;
+    if (!visible || isEdit || !code) {
+      return;
+    }
+    setValues((prev) =>
+      prev.currency === code ? prev : { ...prev, currency: code }
+    );
+  }, [visible, isEdit, financeSettingsQ.data?.currencyCode]);
 
   useEffect(() => {
     if (!visible || !isEdit || !animalsQ.data?.length) {

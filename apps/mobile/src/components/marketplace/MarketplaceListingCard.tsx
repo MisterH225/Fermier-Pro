@@ -10,6 +10,7 @@ import {
   type ViewStyle
 } from "react-native";
 import type { MarketplaceListingListItem } from "../../lib/api";
+import { formatMarketMoney } from "../../lib/formatMoney";
 import { ListingImage } from "./ListingImage";
 import {
   mobileColors,
@@ -27,9 +28,7 @@ export function parseMarketNum(
   return Number.isFinite(n) ? n : null;
 }
 
-export function formatMarketMoney(n: number, currency: string): string {
-  return `${n.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} ${currency}`;
-}
+export { formatMarketMoney } from "../../lib/formatMoney";
 
 export function isNewListing(publishedAt: string | null): boolean {
   if (!publishedAt) return false;

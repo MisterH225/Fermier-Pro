@@ -2175,21 +2175,6 @@ export type PatchAnimalStatusPayload = {
   note?: string | null;
 };
 
-export function patchAnimalStatus(
-  accessToken: string,
-  farmId: string,
-  animalId: string,
-  payload: PatchAnimalStatusPayload,
-  activeProfileId?: string | null
-): Promise<AnimalDetail> {
-  return apiPatchJson<AnimalDetail>(
-    `/farms/${farmId}/animals/${animalId}/status`,
-    payload,
-    accessToken,
-    activeProfileId
-  );
-}
-
 export function fetchFarmBatch(
   accessToken: string,
   farmId: string,
@@ -5781,18 +5766,28 @@ export type ProducerScheduleVetVisitPayload = {
   notes?: string;
 };
 
-export function scheduleVetVisitFromProducer(
+export function requestVetAppointment(
   accessToken: string,
   farmId: string,
   activeProfileId: string | null | undefined,
   payload: ProducerScheduleVetVisitPayload
 ): Promise<ScheduleVetVisitResult> {
   return apiPostJson(
-    `/farms/${encodeURIComponent(farmId)}/schedule-vet-visit`,
+    `/farms/${encodeURIComponent(farmId)}/vet-appointments`,
     payload,
     accessToken,
     activeProfileId
   );
+}
+
+/** @deprecated Préférer requestVetAppointment — alias conservé pour compatibilité. */
+export function scheduleVetVisitFromProducer(
+  accessToken: string,
+  farmId: string,
+  activeProfileId: string | null | undefined,
+  payload: ProducerScheduleVetVisitPayload
+): Promise<ScheduleVetVisitResult> {
+  return requestVetAppointment(accessToken, farmId, activeProfileId, payload);
 }
 
 export type VetAppointmentDto = {
@@ -7182,13 +7177,13 @@ export type HybridPigPriceIndexDto = {
   data_points_count: number;
 };
 
-/** GET /api/v1/marketplace/pig-price-index — indice hybride anti-manipulation */
+/** GET /api/v1/market/pig-price-index/hybrid — indice hybride anti-manipulation */
 export function fetchHybridPigPriceIndex(
   accessToken: string,
   activeProfileId?: string | null
 ): Promise<HybridPigPriceIndexDto> {
   return apiGetJson<HybridPigPriceIndexDto>(
-    "/marketplace/pig-price-index",
+    "/market/pig-price-index/hybrid",
     accessToken,
     activeProfileId
   );

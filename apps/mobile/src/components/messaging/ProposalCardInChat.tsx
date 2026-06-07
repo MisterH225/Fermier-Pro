@@ -1,6 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { formatFarmMoney, formatPricePerKg } from "../../lib/formatMoney";
 import type { MarketplaceOfferChatPayload } from "../../lib/marketplaceOfferMessage";
 import {
   mobileColors,
@@ -38,8 +39,8 @@ export function ProposalCardInChat({ payload, isMine }: Props) {
 
   const priceLine =
     payload.proposedPricePerKg != null
-      ? `${Math.round(payload.proposedPricePerKg).toLocaleString("fr-FR")} FCFA/kg`
-      : `${Math.round(payload.offeredPrice).toLocaleString("fr-FR")} ${payload.currency}`;
+      ? formatPricePerKg(payload.proposedPricePerKg, payload.currency)
+      : formatFarmMoney(payload.offeredPrice, payload.currency);
 
   return (
     <Pressable
