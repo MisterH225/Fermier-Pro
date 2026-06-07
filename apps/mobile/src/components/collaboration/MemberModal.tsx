@@ -93,12 +93,15 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
         queryKey: ["farmPendingInvitations", farmId]
       });
       void qc.invalidateQueries({ queryKey: ["farmActivityLogs", farmId] });
-      open("success", {
-        message: t("collab.revokeSuccess"),
-        autoDismissMs: 2200
-      });
       onClose();
-    }
+      setTimeout(() => {
+        open("success", {
+          message: t("collab.revokeSuccess"),
+          autoDismissMs: 2200
+        });
+      }, 300);
+    },
+    onError: (e: Error) => Alert.alert("", e.message)
   });
 
   if (!member) return null;
@@ -107,12 +110,18 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
     member.user.fullName?.trim() || member.user.email || "—";
 
   const openRevokeConfirm = () => {
-    open("confirm-delete", {
-      title: t("collab.revokeConfirmTitle"),
-      message: t("collab.revokeConfirmBody", { name: displayName }),
-      confirmLabel: t("collab.revokeConfirmAction"),
-      onConfirm: async () => { await revokeMut.mutateAsync(); }
-    });
+    Alert.alert(
+      t("collab.revokeConfirmTitle"),
+      t("collab.revokeConfirmBody", { name: displayName }),
+      [
+        { text: t("modals.confirmDelete.cancel"), style: "cancel" },
+        {
+          text: t("collab.revokeConfirmAction"),
+          style: "destructive",
+          onPress: () => revokeMut.mutate()
+        }
+      ]
+    );
   };
   const badgeColor = ROLE_BADGE_COLOR[member.role] ?? mobileColors.textSecondary;
   const roleLabel = ROLE_DISPLAY_FR[member.role] ?? member.role;
