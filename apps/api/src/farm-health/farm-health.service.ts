@@ -6,6 +6,7 @@ import {
 import type { User } from "@prisma/client";
 import {
   FarmDiseaseCaseStatus,
+  FarmDiseaseSeverity,
   FarmHealthEntityType,
   FarmHealthRecordKind,
   FarmMortalityCause,
@@ -19,7 +20,16 @@ import { FarmAccessService } from "../common/farm-access.service";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
 import { FinanceService } from "../finance/finance.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import { CreateFarmHealthRecordDto } from "./dto/create-farm-health-record.dto";
+import { CreateDiseaseCaseDto } from "./dto/create-disease-case.dto";
+import { AddDiseaseTreatmentDto } from "./dto/add-disease-treatment.dto";
+import { UpdateDiseaseCaseDto } from "./dto/update-disease-case.dto";
+import { FarmVaccineService } from "./farm-vaccine.service";
+import {
+  buildDiseaseDetailData,
+  syncAnimalHealthStatus
+} from "./disease-health.helper";
 
 function num(v: unknown): number | null {
   if (v == null) return null;
@@ -41,13 +51,35 @@ function parseCaseStatus(raw: unknown): FarmDiseaseCaseStatus {
   return FarmDiseaseCaseStatus.active;
 }
 
+function monthKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
+}
+
+function lastMonthKeys(count: number): string[] {
+  const keys: string[] = [];
+  const now = new Date();
+  for (let i = count - 1; i >= 0; i -= 1) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    keys.push(monthKey(d));
+  }
+  return keys;
+}
+
+function emptyMonthSeries(keys: string[]): Record<string, number> {
+  return Object.fromEntries(keys.map((k) => [k, 0]));
+}
+
 @Injectable()
 export class FarmHealthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
     private readonly audit: AuditService,
-    private readonly finance: FinanceService
+    private readonly finance: FinanceService,
+    private readonly smartAlerts: SmartAlertsService,
+    private readonly farmVaccine: FarmVaccineService
   ) {}
 
   private async loadFarm(farmId: string) {
@@ -209,18 +241,6 @@ export class FarmHealthService {
         ? (dead / Math.max(1, activeHead + dead)).toFixed(4)
         : "0";
 
-    const overdueVac = await this.prisma.healthVaccinationDetail.count({
-      where: {
-        healthRecord: { farmId },
-        nextReminderAt: { lt: now }
-      }
-    });
-
-    const alerts: string[] = [];
-    if (overdueVac > 0) {
-      alerts.push(`${overdueVac} rappel(s) vaccin en retard`);
-    }
-
     const nextOpenVet = await this.prisma.vetConsultation.findFirst({
       where: {
         farmId,
@@ -230,9 +250,115 @@ export class FarmHealthService {
       select: { id: true, subject: true, openedAt: true }
     });
 
+    const overdueVaccineCount =
+      await this.farmVaccine.countOverdueAdministrations(user, farmId);
+
+    const activeTreatmentCount = await this.prisma.healthTreatmentDetail.count({
+      where: {
+        healthRecord: { farmId },
+        OR: [{ endDate: null }, { endDate: { gte: now } }]
+      }
+    });
+
+    const months = lastMonthKeys(6);
+    const since6m = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
+    const mortalityExits = await this.prisma.livestockExit.findMany({
+      where: {
+        farmId,
+        kind: LivestockExitKind.mortality,
+        occurredAt: { gte: since6m }
+      },
+      select: { occurredAt: true, headcountAffected: true }
+    });
+
+    const healthRecords6m = await this.prisma.farmHealthRecord.findMany({
+      where: { farmId, occurredAt: { gte: since6m } },
+      select: {
+        kind: true,
+        occurredAt: true,
+        disease: { select: { caseStatus: true } },
+        mortality: { select: { cause: true } },
+        vaccination: { select: { nextReminderAt: true } }
+      }
+    });
+
+    const mortalityByMonth = emptyMonthSeries(months);
+    for (const ex of mortalityExits) {
+      const k = monthKey(ex.occurredAt);
+      if (k in mortalityByMonth) {
+        mortalityByMonth[k] += ex.headcountAffected ?? 1;
+      }
+    }
+
+    const diseaseNewByMonth = emptyMonthSeries(months);
+    const diseaseResolvedByMonth = emptyMonthSeries(months);
+    const vaccinationsDoneByMonth = emptyMonthSeries(months);
+    const vaccinationsPlannedByMonth = emptyMonthSeries(months);
+    const mortalityCauseCounts: Record<string, number> = {
+      disease: 0,
+      accident: 0,
+      unknown: 0,
+      other: 0
+    };
+
+    for (const rec of healthRecords6m) {
+      const k = monthKey(rec.occurredAt);
+      if (!(k in diseaseNewByMonth)) {
+        continue;
+      }
+      if (rec.kind === FarmHealthRecordKind.disease) {
+        diseaseNewByMonth[k] += 1;
+        if (rec.disease?.caseStatus === FarmDiseaseCaseStatus.recovered) {
+          diseaseResolvedByMonth[k] += 1;
+        }
+      }
+      if (rec.kind === FarmHealthRecordKind.vaccination) {
+        vaccinationsDoneByMonth[k] += 1;
+        if (rec.vaccination?.nextReminderAt) {
+          const pk = monthKey(rec.vaccination.nextReminderAt);
+          if (pk in vaccinationsPlannedByMonth) {
+            vaccinationsPlannedByMonth[pk] += 1;
+          }
+        }
+      }
+      if (rec.kind === FarmHealthRecordKind.mortality && rec.mortality) {
+        const cause = rec.mortality.cause;
+        if (cause in mortalityCauseCounts) {
+          mortalityCauseCounts[cause] += 1;
+        }
+      }
+    }
+
+    const activeHeadForRate = activeHead + dead;
+    const mortalityPct30 =
+      activeHeadForRate > 0 ? (dead / activeHeadForRate) * 100 : 0;
+
+    let globalHealthStatus: "good" | "warning" | "critical" = "good";
+    if (
+      overdueVaccineCount > 0 ||
+      activeDiseaseCount > 0 ||
+      activeTreatmentCount > 0
+    ) {
+      globalHealthStatus = "warning";
+    }
+    if (
+      mortalityPct30 > 5 ||
+      activeDiseaseCount >= 3 ||
+      overdueVaccineCount >= 5
+    ) {
+      globalHealthStatus = "critical";
+    }
+
+    const toSeries = (map: Record<string, number>) =>
+      months.map((month) => ({ month, value: map[month] ?? 0 }));
+
     return {
       farmId,
       activeDiseaseCount,
+      overdueVaccineCount,
+      activeTreatmentCount,
+      globalHealthStatus,
       nextVaccine: nextVac
         ? {
             at: nextVac.nextReminderAt?.toISOString() ?? null,
@@ -255,7 +381,16 @@ export class FarmHealthService {
           }
         : null,
       mortalityRate30d,
-      alerts
+      charts: {
+        mortalityHeadcount: toSeries(mortalityByMonth),
+        diseaseNew: toSeries(diseaseNewByMonth),
+        diseaseResolved: toSeries(diseaseResolvedByMonth),
+        vaccinationsDone: toSeries(vaccinationsDoneByMonth),
+        vaccinationsPlanned: toSeries(vaccinationsPlannedByMonth),
+        mortalityCauses: Object.entries(mortalityCauseCounts).map(
+          ([cause, value]) => ({ cause, value })
+        )
+      }
     };
   }
 
@@ -375,19 +510,25 @@ export class FarmHealthService {
           }
         });
       } else if (dto.kind === FarmHealthRecordKind.disease) {
-        const symptoms = d.symptoms;
+        const detail = buildDiseaseDetailData(d, parseCaseStatus);
         await tx.healthDiseaseDetail.create({
           data: {
             healthRecordId: rec.id,
-            symptoms:
-              symptoms != null && typeof symptoms === "object"
-                ? (symptoms as Prisma.InputJsonValue)
-                : undefined,
-            diagnosis: str(d.diagnosis, 2000) ?? undefined,
-            caseStatus: parseCaseStatus(d.caseStatus),
-            linkedTreatmentRecordId: str(d.linkedTreatmentRecordId, 64) ?? undefined
+            symptoms: detail.symptoms,
+            diagnosis: detail.diagnosis ?? undefined,
+            caseStatus: detail.caseStatus,
+            severity: detail.severity ?? undefined,
+            durationEstimate: detail.durationEstimate ?? undefined,
+            inIsolation: detail.inIsolation ?? false,
+            treatmentOngoing: detail.treatmentOngoing ?? false,
+            resolvedAt: detail.resolvedAt ?? undefined,
+            linkedTreatmentRecordId:
+              detail.linkedTreatmentRecordId ?? undefined
           }
         });
+        if (dto.entityType === FarmHealthEntityType.animal) {
+          await syncAnimalHealthStatus(tx, dto.entityId);
+        }
       } else if (dto.kind === FarmHealthRecordKind.vet_visit) {
         const vetName = str(d.vetName, 200);
         const reason = str(d.reason, 500);
@@ -534,6 +675,8 @@ export class FarmHealthService {
       metadata: { kind: dto.kind, entityType: dto.entityType }
     });
 
+    void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
+
     return this.prisma.farmHealthRecord.findUniqueOrThrow({
       where: { id: row.id },
       include: {
@@ -585,5 +728,509 @@ export class FarmHealthService {
       metadata: { expenseId }
     });
     return { ok: true };
+  }
+
+  async createDiseaseCase(
+    user: User,
+    farmId: string,
+    dto: CreateDiseaseCaseDto
+  ) {
+    if (!dto.symptoms?.length) {
+      throw new BadRequestException("symptoms requis");
+    }
+    const noteParts = [
+      dto.notes?.trim(),
+      dto.treatmentOngoing && dto.treatmentNotes?.trim()
+        ? `Traitement: ${dto.treatmentNotes.trim()}`
+        : null,
+      dto.isolationPenId?.trim()
+        ? `Isolement loge: ${dto.isolationPenId.trim()}`
+        : null
+    ].filter(Boolean);
+
+    return this.createRecord(user, farmId, {
+      kind: FarmHealthRecordKind.disease,
+      entityType: dto.entityType,
+      entityId: dto.entityId,
+      occurredAt: dto.occurredAt ?? `${dto.estimatedOnsetDate.slice(0, 10)}T12:00:00.000Z`,
+      notes: noteParts.length ? noteParts.join("\n") : undefined,
+      detail: {
+        symptoms: { tags: dto.symptoms },
+        diagnosis: dto.diagnosis?.trim() || undefined,
+        caseStatus: FarmDiseaseCaseStatus.active,
+        severity: dto.severity,
+        durationEstimate: dto.durationEstimate,
+        inIsolation: dto.inIsolation === true,
+        treatmentOngoing: dto.treatmentOngoing === true
+      }
+    });
+  }
+
+  async resolveDiseaseCase(user: User, farmId: string, recordId: string) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const rec = await this.prisma.farmHealthRecord.findFirst({
+      where: {
+        id: recordId,
+        farmId,
+        kind: FarmHealthRecordKind.disease
+      },
+      include: { disease: true }
+    });
+    if (!rec?.disease) {
+      throw new NotFoundException("Cas maladie introuvable");
+    }
+    if (rec.disease.caseStatus !== FarmDiseaseCaseStatus.active) {
+      throw new BadRequestException("Ce cas est déjà clos");
+    }
+
+    const now = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      await tx.healthDiseaseDetail.update({
+        where: { healthRecordId: recordId },
+        data: {
+          caseStatus: FarmDiseaseCaseStatus.recovered,
+          resolvedAt: now
+        }
+      });
+      if (rec.entityType === FarmHealthEntityType.animal) {
+        await syncAnimalHealthStatus(tx, rec.entityId);
+      }
+    });
+
+    void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
+
+    return this.prisma.farmHealthRecord.findUniqueOrThrow({
+      where: { id: recordId },
+      include: {
+        disease: true,
+        recorder: { select: { id: true, fullName: true, email: true } }
+      }
+    });
+  }
+
+  async getDiseasesOverview(user: User, farmId: string) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const now = new Date();
+    const monthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)
+    );
+
+    const [activeCases, resolvedThisMonth, isolationCount, activeHead, rows] =
+      await Promise.all([
+        this.prisma.farmHealthRecord.count({
+          where: {
+            farmId,
+            kind: FarmHealthRecordKind.disease,
+            disease: { caseStatus: FarmDiseaseCaseStatus.active }
+          }
+        }),
+        this.prisma.farmHealthRecord.count({
+          where: {
+            farmId,
+            kind: FarmHealthRecordKind.disease,
+            disease: {
+              caseStatus: FarmDiseaseCaseStatus.recovered,
+              resolvedAt: { gte: monthStart }
+            }
+          }
+        }),
+        this.prisma.healthDiseaseDetail.count({
+          where: {
+            caseStatus: FarmDiseaseCaseStatus.active,
+            inIsolation: true,
+            healthRecord: { farmId, kind: FarmHealthRecordKind.disease }
+          }
+        }),
+        this.prisma.animal.count({
+          where: { farmId, status: "active" }
+        }),
+        this.prisma.healthDiseaseDetail.findMany({
+          where: {
+            caseStatus: FarmDiseaseCaseStatus.active,
+            healthRecord: { farmId, kind: FarmHealthRecordKind.disease }
+          },
+          select: { diagnosis: true, symptoms: true, severity: true }
+        })
+      ]);
+
+    const labelCounts = new Map<string, number>();
+    for (const row of rows) {
+      const tags = (row.symptoms as { tags?: string[] } | null)?.tags;
+      const label =
+        row.diagnosis?.trim() ||
+        (Array.isArray(tags) && tags[0]?.trim()) ||
+        "Autre";
+      labelCounts.set(label, (labelCounts.get(label) ?? 0) + 1);
+    }
+
+    const pieChart = [...labelCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([label, count]) => ({ label, count }));
+
+    const diseaseRatePct =
+      activeHead > 0
+        ? Math.round((activeCases / activeHead) * 1000) / 10
+        : 0;
+
+    return {
+      farmId,
+      kpis: {
+        activeCases,
+        resolvedThisMonth,
+        diseaseRatePct,
+        isolationCount
+      },
+      pieChart
+    };
+  }
+
+  private diseaseHistoryCutoff(period?: string): Date | null {
+    const now = new Date();
+    const p = period?.trim().toLowerCase();
+    if (!p || p === "all") {
+      return null;
+    }
+    if (p === "month") {
+      return new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+    if (p === "3m") {
+      return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    }
+    if (p === "6m") {
+      return new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+    }
+    return null;
+  }
+
+  async getDiseaseHistory(
+    user: User,
+    farmId: string,
+    query: { period?: string }
+  ) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const cutoff = this.diseaseHistoryCutoff(query.period);
+
+    const records = await this.prisma.farmHealthRecord.findMany({
+      where: {
+        farmId,
+        kind: FarmHealthRecordKind.disease,
+        disease: {
+          caseStatus: {
+            in: [
+              FarmDiseaseCaseStatus.recovered,
+              FarmDiseaseCaseStatus.dead,
+              FarmDiseaseCaseStatus.slaughtered
+            ]
+          },
+          ...(cutoff ? { resolvedAt: { gte: cutoff } } : {})
+        }
+      },
+      orderBy: { occurredAt: "desc" },
+      include: {
+        disease: true,
+        recorder: { select: { id: true, fullName: true, email: true } }
+      },
+      take: 200
+    });
+
+    const treatmentIds = records
+      .map((r) => r.disease?.linkedTreatmentRecordId)
+      .filter((id): id is string => Boolean(id));
+
+    const treatments =
+      treatmentIds.length > 0
+        ? await this.prisma.farmHealthRecord.findMany({
+            where: { id: { in: treatmentIds } },
+            include: { treatment: true }
+          })
+        : [];
+    const treatmentById = new Map(treatments.map((t) => [t.id, t]));
+
+    return records.map((rec) => {
+      const disease = rec.disease!;
+      const resolvedAt = disease.resolvedAt ?? rec.occurredAt;
+      const durationMs = resolvedAt.getTime() - rec.occurredAt.getTime();
+      const durationDays = Math.max(
+        1,
+        Math.ceil(durationMs / (24 * 60 * 60 * 1000))
+      );
+      const linked = disease.linkedTreatmentRecordId
+        ? treatmentById.get(disease.linkedTreatmentRecordId)
+        : null;
+      return {
+        id: rec.id,
+        farmId: rec.farmId,
+        kind: rec.kind,
+        entityType: rec.entityType,
+        entityId: rec.entityId,
+        occurredAt: rec.occurredAt.toISOString(),
+        status: rec.status,
+        notes: rec.notes,
+        attachmentUrl: rec.attachmentUrl,
+        disease: {
+          diagnosis: disease.diagnosis,
+          caseStatus: disease.caseStatus,
+          severity: disease.severity,
+          durationEstimate: disease.durationEstimate,
+          inIsolation: disease.inIsolation,
+          treatmentOngoing: disease.treatmentOngoing,
+          resolvedAt: resolvedAt.toISOString(),
+          symptoms: disease.symptoms,
+          linkedTreatmentRecordId: disease.linkedTreatmentRecordId
+        },
+        recorder: rec.recorder,
+        durationDays,
+        treatmentLabel: linked?.treatment?.drugName ?? null
+      };
+    });
+  }
+
+  async getActiveDiseaseCases(
+    user: User,
+    farmId: string,
+    query: { severity?: string; isolation?: string }
+  ) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const sev = query.severity?.trim().toLowerCase();
+    const severityFilter =
+      sev &&
+      (Object.values(FarmDiseaseSeverity) as string[]).includes(sev)
+        ? (sev as FarmDiseaseSeverity)
+        : undefined;
+    const isolationOnly = query.isolation === "true" || query.isolation === "1";
+
+    return this.prisma.farmHealthRecord.findMany({
+      where: {
+        farmId,
+        kind: FarmHealthRecordKind.disease,
+        disease: {
+          caseStatus: FarmDiseaseCaseStatus.active,
+          ...(severityFilter ? { severity: severityFilter } : {}),
+          ...(isolationOnly ? { inIsolation: true } : {})
+        }
+      },
+      orderBy: { occurredAt: "desc" },
+      include: {
+        disease: true,
+        recorder: { select: { id: true, fullName: true, email: true } }
+      },
+      take: 200
+    });
+  }
+
+  async updateDiseaseCase(
+    user: User,
+    farmId: string,
+    recordId: string,
+    dto: UpdateDiseaseCaseDto
+  ) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const rec = await this.prisma.farmHealthRecord.findFirst({
+      where: {
+        id: recordId,
+        farmId,
+        kind: FarmHealthRecordKind.disease
+      },
+      include: { disease: true }
+    });
+    if (!rec?.disease) {
+      throw new NotFoundException("Cas maladie introuvable");
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      if (dto.notes !== undefined) {
+        await tx.farmHealthRecord.update({
+          where: { id: recordId },
+          data: { notes: dto.notes?.trim() || null }
+        });
+      }
+      await tx.healthDiseaseDetail.update({
+        where: { healthRecordId: recordId },
+        data: {
+          ...(dto.symptoms?.length
+            ? { symptoms: { tags: dto.symptoms } as Prisma.InputJsonValue }
+            : {}),
+          ...(dto.diagnosis !== undefined
+            ? { diagnosis: dto.diagnosis.trim() || null }
+            : {}),
+          ...(dto.severity !== undefined ? { severity: dto.severity } : {}),
+          ...(dto.durationEstimate !== undefined
+            ? { durationEstimate: dto.durationEstimate.trim() || null }
+            : {}),
+          ...(dto.treatmentOngoing !== undefined
+            ? { treatmentOngoing: dto.treatmentOngoing }
+            : {}),
+          ...(dto.inIsolation !== undefined
+            ? { inIsolation: dto.inIsolation }
+            : {})
+        }
+      });
+      if (
+        rec.entityType === FarmHealthEntityType.animal &&
+        rec.disease?.caseStatus === "active"
+      ) {
+        await syncAnimalHealthStatus(tx, rec.entityId);
+      }
+    });
+
+    return this.prisma.farmHealthRecord.findUniqueOrThrow({
+      where: { id: recordId },
+      include: {
+        disease: true,
+        recorder: { select: { id: true, fullName: true, email: true } }
+      }
+    });
+  }
+
+  async addTreatmentToDiseaseCase(
+    user: User,
+    farmId: string,
+    recordId: string,
+    dto: AddDiseaseTreatmentDto
+  ) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const rec = await this.prisma.farmHealthRecord.findFirst({
+      where: {
+        id: recordId,
+        farmId,
+        kind: FarmHealthRecordKind.disease,
+        disease: { caseStatus: FarmDiseaseCaseStatus.active }
+      },
+      include: { disease: true }
+    });
+    if (!rec?.disease) {
+      throw new NotFoundException("Cas maladie actif introuvable");
+    }
+
+    const drugName = dto.drugName.trim();
+    if (!drugName) {
+      throw new BadRequestException("drugName requis");
+    }
+
+    const now = new Date();
+    const treatmentRec = await this.prisma.$transaction(async (tx) => {
+      const treatment = await tx.farmHealthRecord.create({
+        data: {
+          farmId,
+          kind: FarmHealthRecordKind.treatment,
+          entityType: rec.entityType,
+          entityId: rec.entityId,
+          occurredAt: now,
+          status: "completed",
+          notes: dto.notes?.trim() || null,
+          recordedByUserId: user.id
+        }
+      });
+      await tx.healthTreatmentDetail.create({
+        data: {
+          healthRecordId: treatment.id,
+          drugName,
+          dosage: dto.dosage?.trim() || null,
+          startDate: now
+        }
+      });
+      await tx.healthDiseaseDetail.update({
+        where: { healthRecordId: recordId },
+        data: {
+          treatmentOngoing: true,
+          linkedTreatmentRecordId: treatment.id
+        }
+      });
+      return treatment;
+    });
+
+    void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
+
+    return this.prisma.farmHealthRecord.findUniqueOrThrow({
+      where: { id: treatmentRec.id },
+      include: {
+        treatment: true,
+        recorder: { select: { id: true, fullName: true, email: true } }
+      }
+    });
+  }
+
+  async declareDiseaseDeath(user: User, farmId: string, recordId: string) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const rec = await this.prisma.farmHealthRecord.findFirst({
+      where: {
+        id: recordId,
+        farmId,
+        kind: FarmHealthRecordKind.disease
+      },
+      include: { disease: true }
+    });
+    if (!rec?.disease) {
+      throw new NotFoundException("Cas maladie introuvable");
+    }
+    if (rec.disease.caseStatus !== FarmDiseaseCaseStatus.active) {
+      throw new BadRequestException("Ce cas est déjà clos");
+    }
+
+    const now = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      await tx.healthDiseaseDetail.update({
+        where: { healthRecordId: recordId },
+        data: {
+          caseStatus: FarmDiseaseCaseStatus.dead,
+          resolvedAt: now,
+          treatmentOngoing: false
+        }
+      });
+
+      const mortRec = await tx.farmHealthRecord.create({
+        data: {
+          farmId,
+          kind: FarmHealthRecordKind.mortality,
+          entityType: rec.entityType,
+          entityId: rec.entityId,
+          occurredAt: now,
+          status: "completed",
+          recordedByUserId: user.id
+        }
+      });
+
+      const exit = await tx.livestockExit.create({
+        data: {
+          farmId,
+          animalId:
+            rec.entityType === FarmHealthEntityType.animal ? rec.entityId : null,
+          batchId:
+            rec.entityType === FarmHealthEntityType.group ? rec.entityId : null,
+          kind: LivestockExitKind.mortality,
+          occurredAt: now,
+          recordedByUserId: user.id,
+          headcountAffected: 1,
+          deathCause: FarmMortalityCause.disease,
+          note: `Décès lié au cas maladie ${recordId}`
+        }
+      });
+
+      await tx.healthMortalityDetail.create({
+        data: {
+          healthRecordId: mortRec.id,
+          cause: FarmMortalityCause.disease,
+          linkedDiseaseRecordId: recordId,
+          livestockExitId: exit.id
+        }
+      });
+
+      if (rec.entityType === FarmHealthEntityType.animal) {
+        await tx.animal.update({
+          where: { id: rec.entityId },
+          data: { status: "dead", healthStatus: "healthy" }
+        });
+      }
+    });
+
+    void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
+
+    return this.prisma.farmHealthRecord.findUniqueOrThrow({
+      where: { id: recordId },
+      include: {
+        disease: true,
+        recorder: { select: { id: true, fullName: true, email: true } }
+      }
+    });
   }
 }

@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UseGuards
 } from "@nestjs/common";
@@ -19,6 +20,8 @@ import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.decorator";
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
 import { CreateTaskDto } from "./dto/create-task.dto";
+import { ListTasksQueryDto } from "./dto/list-tasks-query.dto";
+import { PatchTaskStatusDto } from "./dto/patch-task-status.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
 import { TasksService } from "./tasks.service";
 
@@ -33,9 +36,35 @@ export class TasksController {
   list(
     @CurrentUser() user: User,
     @Param("farmId") farmId: string,
-    @Query("status") status?: TaskStatus
+    @Query() query: ListTasksQueryDto
   ) {
-    return this.tasks.list(user, farmId, status);
+    return this.tasks.list(user, farmId, query);
+  }
+
+  @Get("summary")
+  @RequireFarmScopes(FARM_SCOPE.tasksRead)
+  summary(@CurrentUser() user: User, @Param("farmId") farmId: string) {
+    return this.tasks.pendingCount(user, farmId);
+  }
+
+  @Get("my-dashboard")
+  @RequireFarmScopes(FARM_SCOPE.tasksRead)
+  myDashboard(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Query("period") period?: string
+  ) {
+    return this.tasks.listMyDashboard(user, farmId, period);
+  }
+
+  @Get(":taskId")
+  @RequireFarmScopes(FARM_SCOPE.tasksRead)
+  getOne(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("taskId") taskId: string
+  ) {
+    return this.tasks.getOne(user, farmId, taskId);
   }
 
   @Post()
@@ -48,6 +77,7 @@ export class TasksController {
     return this.tasks.create(user, farmId, dto);
   }
 
+  @Put(":taskId")
   @Patch(":taskId")
   @RequireFarmScopes(FARM_SCOPE.tasksWrite)
   update(
@@ -57,6 +87,19 @@ export class TasksController {
     @Body() dto: UpdateTaskDto
   ) {
     return this.tasks.update(user, farmId, taskId, dto);
+  }
+
+  @Patch(":taskId/status")
+  @RequireFarmScopes(FARM_SCOPE.tasksWrite)
+  patchStatus(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("taskId") taskId: string,
+    @Body() dto: PatchTaskStatusDto
+  ) {
+    const status =
+      (dto.status as string) === "pending" ? TaskStatus.todo : dto.status;
+    return this.tasks.patchStatus(user, farmId, taskId, status);
   }
 
   @Delete(":taskId")

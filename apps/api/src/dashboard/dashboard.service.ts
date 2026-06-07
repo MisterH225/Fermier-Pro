@@ -1,7 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import type { User } from "@prisma/client";
-import { Prisma } from "@prisma/client";
+import {
+  FarmDiseaseCaseStatus,
+  FarmHealthRecordKind,
+  Prisma
+} from "@prisma/client";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
+import { buildFeedStockStatsForFarm } from "../feed-stock/feed-stock-stats.helper";
 import { FarmAccessService } from "../common/farm-access.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { PrismaService } from "../prisma/prisma.service";
@@ -154,23 +159,27 @@ export class DashboardService {
 
     const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const diseaseAgg = await this.prisma.animalHealthEvent.groupBy({
-      by: ["title"],
+    const diseaseAggRaw = await this.prisma.healthDiseaseDetail.groupBy({
+      by: ["diagnosis"],
       where: {
-        animal: { farmId },
-        severity: { in: ["watch", "urgent"] },
-        recordedAt: { gte: since30 }
+        caseStatus: FarmDiseaseCaseStatus.active,
+        healthRecord: {
+          farmId,
+          kind: FarmHealthRecordKind.disease,
+          occurredAt: { gte: since30 }
+        }
       },
-      _count: { _all: true },
-      orderBy: { _count: { title: "desc" } },
-      take: 5
+      _count: { _all: true }
     });
+    const diseaseAgg = diseaseAggRaw
+      .sort((a, b) => (b._count._all ?? 0) - (a._count._all ?? 0))
+      .slice(0, 5);
 
-    const diseaseActiveCount = await this.prisma.animalHealthEvent.count({
+    const diseaseActiveCount = await this.prisma.farmHealthRecord.count({
       where: {
-        animal: { farmId },
-        severity: { in: ["watch", "urgent"] },
-        recordedAt: { gte: since30 }
+        farmId,
+        kind: FarmHealthRecordKind.disease,
+        disease: { caseStatus: FarmDiseaseCaseStatus.active }
       }
     });
 
@@ -211,7 +220,7 @@ export class DashboardService {
       activeDiseaseCases: {
         count: diseaseActiveCount,
         byType: diseaseAgg.map((g) => ({
-          title: g.title,
+          title: g.diagnosis?.trim() || "Autre",
           count: g._count._all
         }))
       },
@@ -224,50 +233,41 @@ export class DashboardService {
     await this.farmAccess.requireFarmScopes(user.id, farmId, [
       FARM_SCOPE.livestockRead
     ]);
-    const lots = await this.prisma.feedStockLot.findMany({
-      where: { farmId },
-      select: {
-        productName: true,
-        remainingKg: true,
-        quantityKg: true
-      }
+    const st = await this.prisma.farmAlertSettings.findUnique({
+      where: { farmId }
+    });
+    const criticalDays = st?.stockCriticalDays ?? 15;
+    const warningDays = st?.stockWarningDays ?? 30;
+    const stats = await buildFeedStockStatsForFarm(this.prisma, farmId, {
+      criticalDays,
+      warningDays
     });
 
-    const byName = new Map<
-      string,
-      { remaining: Prisma.Decimal; initial: Prisma.Decimal }
-    >();
-    for (const l of lots) {
-      const cur =
-        byName.get(l.productName) ?? {
-          remaining: new Prisma.Decimal(0),
-          initial: new Prisma.Decimal(0)
-        };
-      cur.remaining = cur.remaining.plus(l.remainingKg);
-      cur.initial = cur.initial.plus(l.quantityKg);
-      byName.set(l.productName, cur);
-    }
-
-    const items = [...byName.entries()].map(([productName, v]) => {
-      const ratio = v.initial.gt(0)
-        ? v.remaining.div(v.initial).toNumber()
-        : 0;
-      const remainingNum = v.remaining.toNumber();
-      let level: "critical" | "medium" | "ok";
-      if (ratio < 0.15 || remainingNum < 50) {
-        level = "critical";
-      } else if (ratio < 0.45) {
-        level = "medium";
-      } else {
-        level = "ok";
-      }
+    const items = stats.map((t) => {
+      const days = t.daysRemaining;
+      const level: "critical" | "medium" | "ok" =
+        t.status === "critical"
+          ? "critical"
+          : t.status === "warning"
+            ? "medium"
+            : "ok";
+      const ratio =
+        t.percentRemaining != null
+          ? Math.min(1, Math.max(0, t.percentRemaining / 100))
+          : days != null
+            ? Math.min(1, Math.max(0, days / 30))
+            : 0;
       return {
-        productName,
-        remainingKg: v.remaining.toString(),
-        initialKg: v.initial.toString(),
+        productName: t.name,
+        remainingKg: t.currentStockKg,
+        initialKg: t.stockAtLastEntry ?? t.currentStockKg,
         ratio,
         level,
-        critical: level === "critical"
+        critical: level === "critical",
+        color: t.stockStatusColor ?? t.color,
+        daysRemaining: days,
+        percentRemaining: t.percentRemaining,
+        stockStatus: t.stockStatus
       };
     });
 

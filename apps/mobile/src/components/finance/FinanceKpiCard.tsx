@@ -1,35 +1,78 @@
 import { StyleSheet, Text, View } from "react-native";
-import { FinanceSparkline } from "./FinanceSparkline";
+import { SmartChart } from "../charts";
 import {
   mobileColors,
   mobileRadius,
-  mobileShadows,
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
 
-type Variant = "dark" | "income" | "expense" | "margin";
+/** Palettes pastel (réf. dashboard bien-être : orange, bleu, jaune, vert). */
+export type FinanceKpiPastelVariant = "orange" | "blue" | "yellow" | "green";
 
-const variantBg: Record<Variant, string> = {
-  dark: mobileColors.textPrimary,
-  income: mobileColors.accentSoft,
-  expense: mobileColors.surface,
-  margin: mobileColors.surfaceMuted
+/** Alias historiques — mappés vers les pastels ci-dessus. */
+export type FinanceKpiVariant =
+  | FinanceKpiPastelVariant
+  | "dark"
+  | "income"
+  | "expense"
+  | "margin";
+
+const PASTEL: Record<
+  FinanceKpiPastelVariant,
+  { bg: string; accent: string; title: string; value: string }
+> = {
+  orange: {
+    bg: "#FFF4EB",
+    accent: "#F97316",
+    title: mobileColors.textSecondary,
+    value: mobileColors.textPrimary
+  },
+  blue: {
+    bg: "#EFF6FF",
+    accent: "#3B82F6",
+    title: mobileColors.textSecondary,
+    value: mobileColors.textPrimary
+  },
+  yellow: {
+    bg: "#FFFBEB",
+    accent: "#EAB308",
+    title: mobileColors.textSecondary,
+    value: mobileColors.textPrimary
+  },
+  green: {
+    bg: "#ECFDF5",
+    accent: "#22C55E",
+    title: mobileColors.textSecondary,
+    value: mobileColors.textPrimary
+  }
 };
 
-const variantTitle: Record<Variant, string> = {
-  dark: "rgba(255,255,255,0.72)",
-  income: mobileColors.textSecondary,
-  expense: mobileColors.textSecondary,
-  margin: mobileColors.textSecondary
-};
+function resolvePastelVariant(variant: FinanceKpiVariant): FinanceKpiPastelVariant {
+  switch (variant) {
+    case "dark":
+      return "orange";
+    case "income":
+      return "blue";
+    case "expense":
+      return "yellow";
+    case "margin":
+      return "green";
+    default:
+      return variant;
+  }
+}
 
-const variantValue: Record<Variant, string> = {
-  dark: "#FFFFFF",
-  income: mobileColors.textPrimary,
-  expense: mobileColors.textPrimary,
-  margin: mobileColors.textPrimary
-};
+const CARD_MIN_HEIGHT = 156;
+const DELTA_SLOT_HEIGHT = 18;
+const SPARK_SLOT_HEIGHT = 48;
+
+function valueFontSize(value: string): number {
+  const len = value.trim().length;
+  if (len > 16) return 13;
+  if (len > 12) return 15;
+  return 17;
+}
 
 type Props = {
   title: string;
@@ -37,8 +80,7 @@ type Props = {
   deltaText?: string | null;
   sparklineValues?: number[];
   sparklineColor?: string;
-  variant: Variant;
-  onLayoutWidth?: number;
+  variant: FinanceKpiVariant;
 };
 
 export function FinanceKpiCard({
@@ -47,55 +89,75 @@ export function FinanceKpiCard({
   deltaText,
   sparklineValues,
   sparklineColor,
-  variant,
-  onLayoutWidth = 158
+  variant
 }: Props) {
-  const sparkW = Math.max(60, onLayoutWidth - mobileSpacing.md * 2);
-  const sparkH = 40;
-  const lineCol =
-    sparklineColor ??
-    (variant === "dark" ? mobileColors.accentSoft : mobileColors.accent);
+  const pastel = resolvePastelVariant(variant);
+  const theme = PASTEL[pastel];
+  const sparkH = 44;
+  const lineCol = sparklineColor ?? theme.accent;
+  const showSpark = Boolean(sparklineValues && sparklineValues.length > 1);
 
   return (
     <View
       style={[
         styles.card,
-        { backgroundColor: variantBg[variant] },
-        variant === "dark" ? styles.cardDark : styles.cardLight
+        { backgroundColor: theme.bg, minHeight: CARD_MIN_HEIGHT }
       ]}
     >
-      <Text style={[styles.title, { color: variantTitle[variant] }]} numberOfLines={2}>
+      <Text
+        style={[styles.title, { color: theme.title }]}
+        numberOfLines={2}
+        ellipsizeMode="tail"
+      >
         {title}
       </Text>
-      <Text style={[styles.value, { color: variantValue[variant] }]} numberOfLines={2}>
-        {value}
-      </Text>
-      {deltaText ? (
+      <View style={styles.valueWrap}>
         <Text
           style={[
-            styles.delta,
+            styles.value,
             {
-              color:
-                variant === "dark"
-                  ? "rgba(255,255,255,0.85)"
-                  : mobileColors.textSecondary
+              color: theme.value,
+              fontSize: valueFontSize(value)
             }
           ]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.55}
+          ellipsizeMode="tail"
         >
-          {deltaText}
+          {value}
         </Text>
-      ) : null}
-      {sparklineValues && sparklineValues.length > 1 ? (
-        <View style={styles.sparkWrap}>
-          <FinanceSparkline
-            values={sparklineValues}
-            width={sparkW}
+      </View>
+      <View style={styles.deltaSlot}>
+        {deltaText ? (
+          <Text
+            style={[styles.delta, { color: theme.title }]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {deltaText}
+          </Text>
+        ) : null}
+      </View>
+      <View style={styles.sparkSlot}>
+        {showSpark ? (
+          <SmartChart
+            compact
             height={sparkH}
-            strokeColor={lineCol}
-            showAxis={variant !== "dark"}
+            lines={[
+              {
+                key: "spark",
+                label: "",
+                color: lineCol,
+                data: sparklineValues!.map((v, i) => ({
+                  month: String(i),
+                  value: v
+                }))
+              }
+            ]}
           />
-        </View>
-      ) : null}
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -103,33 +165,48 @@ export function FinanceKpiCard({
 const styles = StyleSheet.create({
   card: {
     flex: 1,
+    alignSelf: "stretch",
     minWidth: 0,
+    maxWidth: "100%",
+    width: "100%",
+    flexShrink: 0,
+    overflow: "hidden",
     borderRadius: mobileRadius.lg,
     padding: mobileSpacing.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: mobileColors.border
-  },
-  cardLight: {
-    ...mobileShadows.card
-  },
-  cardDark: {
-    borderColor: "rgba(255,255,255,0.12)"
+    borderColor: "transparent"
   },
   title: {
     ...mobileTypography.meta,
     fontWeight: "600",
-    flex: 1
+    flexShrink: 1
+  },
+  valueWrap: {
+    width: "100%",
+    minWidth: 0,
+    flexShrink: 1,
+    marginTop: mobileSpacing.sm
   },
   value: {
-    fontSize: 17,
     fontWeight: "800",
-    marginTop: mobileSpacing.sm,
-    letterSpacing: -0.3
+    letterSpacing: -0.3,
+    flexShrink: 1
+  },
+  deltaSlot: {
+    minHeight: DELTA_SLOT_HEIGHT,
+    marginTop: mobileSpacing.xs,
+    justifyContent: "center"
   },
   delta: {
     ...mobileTypography.meta,
-    marginTop: mobileSpacing.xs,
     fontWeight: "600"
   },
-  sparkWrap: { marginTop: mobileSpacing.sm, alignItems: "flex-start" }
+  sparkSlot: {
+    minHeight: SPARK_SLOT_HEIGHT,
+    marginTop: mobileSpacing.sm,
+    justifyContent: "flex-end",
+    alignItems: "flex-start",
+    width: "100%",
+    overflow: "hidden"
+  }
 });

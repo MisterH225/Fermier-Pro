@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   UseGuards
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
@@ -12,6 +13,7 @@ import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { FeatureEnabledGuard } from "../config-client/feature-enabled.guard";
 import { RequireFeature } from "../config-client/require-feature.decorator";
 import { CreateOfferDto } from "./dto/create-offer.dto";
+import { CounterOfferDto } from "./dto/counter-offer.dto";
 import { OffersService } from "./offers.service";
 
 @Controller("marketplace")
@@ -23,6 +25,19 @@ export class OffersController {
   @Get("offers")
   listMine(@CurrentUser() user: User) {
     return this.offers.listMine(user);
+  }
+
+  @Get("offers/received")
+  listReceived(
+    @CurrentUser() user: User,
+    @Query("farmId") farmId?: string
+  ) {
+    return this.offers.listReceived(user, farmId?.trim() || undefined);
+  }
+
+  @Get("offers/counts")
+  counts(@CurrentUser() user: User, @Query("farmId") farmId?: string) {
+    return this.offers.counts(user, farmId?.trim() || undefined);
   }
 
   @Post("listings/:listingId/offers")
@@ -50,6 +65,25 @@ export class OffersController {
     @Param("offerId") offerId: string
   ) {
     return this.offers.reject(user, listingId, offerId);
+  }
+
+  @Post("listings/:listingId/offers/:offerId/counter")
+  counter(
+    @CurrentUser() user: User,
+    @Param("listingId") listingId: string,
+    @Param("offerId") offerId: string,
+    @Body() dto: CounterOfferDto
+  ) {
+    return this.offers.counter(user, listingId, offerId, dto);
+  }
+
+  @Post("listings/:listingId/offers/:offerId/accept-counter")
+  acceptCounter(
+    @CurrentUser() user: User,
+    @Param("listingId") listingId: string,
+    @Param("offerId") offerId: string
+  ) {
+    return this.offers.acceptCounter(user, listingId, offerId);
   }
 
   @Post("offers/:offerId/withdraw")

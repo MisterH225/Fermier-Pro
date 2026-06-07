@@ -15,13 +15,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useSession } from "../../context/SessionContext";
 import { createProfile, type ProfileTypeChoice } from "../../lib/api";
 import { formatAuthError } from "../../lib/authErrors";
-import { isDemoBypassToken } from "../../lib/demoBypass";
+import { profileTypeIcon } from "../../lib/profileTypeIcon";
 import {
   mobileColors,
   mobileRadius,
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { profileAccentColor } from "../../theme/profileTheme";
 
 const PROFILE_TYPES: ProfileTypeChoice[] = [
   "producer",
@@ -29,21 +30,6 @@ const PROFILE_TYPES: ProfileTypeChoice[] = [
   "veterinarian",
   "buyer"
 ];
-
-function profileIcon(type: string): keyof typeof Ionicons.glyphMap {
-  switch (type) {
-    case "producer":
-      return "leaf-outline";
-    case "technician":
-      return "construct-outline";
-    case "veterinarian":
-      return "medkit-outline";
-    case "buyer":
-      return "cart-outline";
-    default:
-      return "person-outline";
-  }
-}
 
 type ActiveProfileSwitcherModalProps = {
   visible: boolean;
@@ -63,7 +49,6 @@ export function ActiveProfileSwitcherModal({
   const [error, setError] = useState<string | null>(null);
 
   const profiles = authMe?.profiles ?? [];
-  const demo = isDemoBypassToken(accessToken);
 
   const onSelect = async (id: string) => {
     if (id === activeProfileId) {
@@ -83,10 +68,6 @@ export function ActiveProfileSwitcherModal({
   };
 
   const onAddType = async (type: ProfileTypeChoice) => {
-    if (demo) {
-      Alert.alert("", t("account.addProfileDemoBlocked"));
-      return;
-    }
     setCreating(true);
     setError(null);
     try {
@@ -130,6 +111,7 @@ export function ActiveProfileSwitcherModal({
           <View style={styles.group}>
             {profiles.map((p, index) => {
               const active = p.id === activeProfileId;
+              const accent = profileAccentColor(p.type);
               const loading = busyId === p.id;
               return (
                 <Pressable
@@ -137,7 +119,7 @@ export function ActiveProfileSwitcherModal({
                   style={({ pressed }) => [
                     styles.row,
                     index < profiles.length - 1 && styles.rowInnerDivider,
-                    active && styles.rowActive,
+                    active && { backgroundColor: accent },
                     pressed && styles.rowPressed
                   ]}
                   onPress={() => void onSelect(p.id)}
@@ -145,9 +127,9 @@ export function ActiveProfileSwitcherModal({
                 >
                   <View style={styles.rowIcon}>
                     <Ionicons
-                      name={profileIcon(p.type)}
+                      name={profileTypeIcon(p.type)}
                       size={22}
-                      color={active ? "#fff" : mobileColors.accent}
+                      color={active ? "#fff" : accent}
                     />
                   </View>
                   <View style={styles.rowText}>
@@ -168,7 +150,7 @@ export function ActiveProfileSwitcherModal({
                     ) : null}
                   </View>
                   {loading ? (
-                    <ActivityIndicator color={active ? "#fff" : mobileColors.accent} />
+                    <ActivityIndicator color={active ? "#fff" : accent} />
                   ) : active ? (
                     <Ionicons
                       name="checkmark-circle"
@@ -217,7 +199,7 @@ export function ActiveProfileSwitcherModal({
                       disabled={Boolean(busyId)}
                     >
                       <Ionicons
-                        name={profileIcon(type)}
+                        name={profileTypeIcon(type)}
                         size={20}
                         color={mobileColors.accent}
                       />

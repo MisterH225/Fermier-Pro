@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import type { Query } from "@tanstack/react-query";
+import { FINANCE_PERSIST_QUERY_ROOTS } from "./finance/financeQueryKeys";
 
 /** Clé AsyncStorage pour le cache TanStack persistant (logout = suppression). */
 export const QUERY_PERSIST_STORAGE_KEY = "@fermier_pro/tanstack_offline";
@@ -20,6 +21,29 @@ const PERSIST_QUERY_ROOTS = new Set([
   "farmAnimal",
   "farmBatch",
   "farmTasks",
+  "farmCheptel",
+  "farmCheptelLogs",
+  "cheptelPens",
+  "cheptelHistory",
+  "cheptelGmq",
+  "cheptelWeightSeries",
+  "farmBarns",
+  "farmBarn",
+  "farmBarnDetails",
+  "penDetail",
+  ...FINANCE_PERSIST_QUERY_ROOTS,
+  "farmHealthOverview",
+  "farmHealthEvents",
+  "farmHealthUpcoming",
+  "farmHealthMortality",
+  "farmDiseasesOverview",
+  "farmVaccineCoverage",
+  "gestation",
+  "dashboardGestations",
+  "dashboardHealth",
+  "dashboardFeedStock",
+  "smartAlerts",
+  "smartAlertsCount",
   "batchHealthEvents",
   "marketplaceListings",
   "marketplaceListing",
@@ -29,7 +53,9 @@ const PERSIST_QUERY_ROOTS = new Set([
   "chatMessages",
   "farmMembers",
   "farmPendingInvitations",
-  "feedStockLots"
+  "farmFeed",
+  "taxonomy",
+  "nextAnimalNumber"
 ]);
 
 export function shouldPersistQuery(query: Query): boolean {

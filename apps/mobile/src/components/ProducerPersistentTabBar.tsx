@@ -2,18 +2,24 @@ import { useNavigation, useNavigationState } from "@react-navigation/native";
 import type { NavigationState } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
-import { View } from "react-native";
+import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  BottomTabBar,
-  type AppTab
-} from "./layout/BottomTabBar";
+  ExtendedMenuGrid,
+  MainTabBar,
+  producerMainTabFromRoute,
+  producerMainTabs,
+  PRODUCER_NAV_FLOAT_BOTTOM,
+  type ExtendedNavMenuId,
+  type ProducerMainTab
+} from "./navigation";
 import { useSession } from "../context/SessionContext";
-import { fetchFarms } from "../lib/api";
-import { producerShellTabs } from "../lib/producerShellTabs";
+import { fetchFarmTasksPendingCount, fetchFarms } from "../lib/api";
+import { useFarmTasksSocket } from "../hooks/useFarmTasksSocket";
 import { resolveProducerHomeFarm } from "../lib/producerHomeFarm";
-import { mobileColors } from "../theme/mobileTheme";
+import { mobileSpacing } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
 function getFocusedRoute(
@@ -49,48 +55,13 @@ function farmPairFromParams(
   return { farmId: params.farmId, farmName: name };
 }
 
-function producerActiveTabFromRoute(
-  name: string,
-  financeEnabled: boolean
-): AppTab {
-  switch (name) {
-    case "FarmFinance":
-    case "CreateFarmExpense":
-    case "CreateFarmRevenue":
-    case "EditFarmExpense":
-    case "EditFarmRevenue":
-    case "ProducerFarmSettings":
-      return "home";
-    case "FarmLivestock":
-    case "AnimalDetail":
-    case "BatchDetail":
-    case "FarmBarns":
-    case "BarnDetail":
-    case "PenDetail":
-    case "CreateBarn":
-    case "CreatePen":
-    case "CreatePenLog":
-    case "PenMove":
-      return "cheptel";
-    case "FarmHealth":
-    case "FarmVetConsultations":
-    case "VetConsultationDetail":
-    case "CreateVetConsultation":
-    case "AddVetConsultationAttachment":
-      return "health";
-    default:
-      return "home";
-  }
-}
-
-/**
- * Barre d’onglets producteur fixée sous le stack : visible sur tous les écrans du profil producteur.
- */
 export function ProducerPersistentTabBar() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken, activeProfileId, authMe, clientFeatures } = useSession();
+  const [extendedOpen, setExtendedOpen] = useState(false);
 
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
   const isProducer = profileType === "producer";
@@ -109,10 +80,7 @@ export function ProducerPersistentTabBar() {
   );
 
   const financeEnabled = Boolean(isProducer && clientFeatures.finance);
-  const tabs = useMemo(
-    () => producerShellTabs(financeEnabled).filter((t) => t !== "profile"),
-    [financeEnabled]
-  );
+  const tabs = useMemo(() => producerMainTabs(financeEnabled), [financeEnabled]);
 
   const focused = useNavigationState((state) =>
     getFocusedRoute(state as NavigationState | undefined)
@@ -120,9 +88,9 @@ export function ProducerPersistentTabBar() {
 
   const activeTab = useMemo(() => {
     if (!focused?.name) {
-      return "home" as AppTab;
+      return null;
     }
-    return producerActiveTabFromRoute(focused.name, financeEnabled);
+    return producerMainTabFromRoute(focused.name, financeEnabled);
   }, [focused?.name, financeEnabled]);
 
   const farmContext = useMemo((): { farmId: string; farmName: string } | null => {
@@ -136,8 +104,31 @@ export function ProducerPersistentTabBar() {
     return null;
   }, [focused?.params, producerHome]);
 
-  const onChange = useCallback(
-    (tab: AppTab) => {
+  const tasksEnabled = Boolean(isProducer && clientFeatures.tasks && farmContext);
+
+  const { tasksSocketStatus } = useFarmTasksSocket({
+    farmId: farmContext?.farmId ?? "",
+    accessToken: accessToken ?? "",
+    enabled: tasksEnabled
+  });
+
+  const pendingTasksQ = useQuery({
+    queryKey: ["farmTasksPendingCount", farmContext?.farmId, activeProfileId],
+    queryFn: () =>
+      fetchFarmTasksPendingCount(
+        accessToken!,
+        farmContext!.farmId,
+        activeProfileId
+      ),
+    enabled: tasksEnabled && Boolean(accessToken),
+    refetchInterval:
+      tasksSocketStatus === "connected" ? false : 60_000
+  });
+
+  const pendingTasksCount = pendingTasksQ.data?.pendingCount ?? 0;
+
+  const onTabPress = useCallback(
+    (tab: ProducerMainTab) => {
       if (tab === "home") {
         navigation.navigate("ProducerDashboard");
         return;
@@ -176,9 +167,138 @@ export function ProducerPersistentTabBar() {
         } else {
           navigation.navigate("FarmList");
         }
+        return;
+      }
+      if (tab === "collaboration") {
+        if (farmContext) {
+          navigation.navigate("Collaboration", {
+            farmId: farmContext.farmId,
+            farmName: farmContext.farmName
+          });
+        } else {
+          navigation.navigate("FarmList");
+        }
       }
     },
     [navigation, farmContext, clientFeatures.finance]
+  );
+
+  const extendedItems = useMemo(
+    () =>
+      [
+        {
+          id: "nutrition" as const,
+          label: t("navigation.extended.nutrition"),
+          a11y: t("navigation.extended.nutrition")
+        },
+        {
+          id: "messages" as const,
+          label: t("navigation.extended.messages"),
+          a11y: t("navigation.extended.messages")
+        },
+        {
+          id: "collaboration" as const,
+          label: t("navigation.extended.collaboration"),
+          a11y: t("navigation.extended.collaboration")
+        },
+        {
+          id: "market" as const,
+          label: t("navigation.extended.market"),
+          a11y: t("navigation.extended.market")
+        },
+        {
+          id: "gestation" as const,
+          label: t("navigation.extended.gestation"),
+          a11y: t("navigation.extended.gestation")
+        },
+        {
+          id: "tasks" as const,
+          label: t("navigation.extended.tasks"),
+          a11y: t("navigation.extended.tasks"),
+          badgeCount: pendingTasksCount
+        },
+        {
+          id: "reports" as const,
+          label: t("navigation.extended.reports"),
+          a11y: t("navigation.extended.reports")
+        }
+      ] as const,
+    [t, pendingTasksCount]
+  );
+
+  const onExtendedSelect = useCallback(
+    (id: ExtendedNavMenuId) => {
+      setExtendedOpen(false);
+      const ctx = farmContext;
+      switch (id) {
+        case "messages":
+          navigation.navigate("ProducerMessages");
+          return;
+        case "nutrition":
+          if (!ctx) {
+            navigation.navigate("FarmList");
+            return;
+          }
+          if (!clientFeatures.feedStock) {
+            navigation.navigate("ModuleRoadmap", {
+              title: t("navigation.extended.nutrition"),
+              body: t("navigation.extended.nutritionRoadmap")
+            });
+            return;
+          }
+          navigation.navigate("FarmFeedStock", {
+            farmId: ctx.farmId,
+            farmName: ctx.farmName
+          });
+          return;
+        case "collaboration":
+          if (!ctx) {
+            navigation.navigate("FarmList");
+            return;
+          }
+          navigation.navigate("Collaboration", {
+            farmId: ctx.farmId,
+            farmName: ctx.farmName
+          });
+          return;
+        case "market":
+          navigation.navigate("MarketplaceList");
+          return;
+        case "gestation":
+          if (!ctx) {
+            navigation.navigate("FarmList");
+            return;
+          }
+          navigation.navigate("FarmGestation", {
+            farmId: ctx.farmId,
+            farmName: ctx.farmName
+          });
+          return;
+        case "tasks":
+          if (!ctx) {
+            navigation.navigate("FarmList");
+            return;
+          }
+          navigation.navigate("FarmTasks", {
+            farmId: ctx.farmId,
+            farmName: ctx.farmName
+          });
+          return;
+        case "reports":
+          if (!ctx) {
+            navigation.navigate("FarmList");
+            return;
+          }
+          navigation.navigate("FarmReports", {
+            farmId: ctx.farmId,
+            farmName: ctx.farmName
+          });
+          return;
+        default:
+          return;
+      }
+    },
+    [navigation, farmContext, clientFeatures.feedStock, t]
   );
 
   if (!isProducer) {
@@ -186,13 +306,44 @@ export function ProducerPersistentTabBar() {
   }
 
   return (
-    <View
-      style={{
-        paddingBottom: insets.bottom,
-        backgroundColor: mobileColors.background
-      }}
-    >
-      <BottomTabBar activeTab={activeTab} onChange={onChange} tabs={tabs} />
+    <View style={styles.overlay} pointerEvents="box-none">
+      <View
+        style={[
+          styles.barAnchor,
+          { bottom: insets.bottom + PRODUCER_NAV_FLOAT_BOTTOM }
+        ]}
+        pointerEvents="box-none"
+      >
+        <MainTabBar
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabPress={onTabPress}
+          onOpenExtended={() => setExtendedOpen(true)}
+          financeEnabled={financeEnabled}
+        />
+      </View>
+      <ExtendedMenuGrid
+        visible={extendedOpen}
+        onClose={() => setExtendedOpen(false)}
+        items={[...extendedItems]}
+        onSelect={onExtendedSelect}
+      />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    pointerEvents: "box-none"
+  },
+  barAnchor: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    width: "100%",
+    paddingHorizontal: mobileSpacing.xs,
+    alignItems: "stretch",
+    pointerEvents: "box-none"
+  }
+});

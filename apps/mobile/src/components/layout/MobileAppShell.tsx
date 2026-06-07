@@ -2,20 +2,21 @@ import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 import { mobileColors } from "../../theme/mobileTheme";
-import { BottomTabBar, type AppTab } from "./BottomTabBar";
 import { TopBar } from "./TopBar";
 
 type MobileAppShellProps = {
   title?: string;
+  /** Fond de l'écran (défaut : canvas producteur). */
+  canvasColor?: string;
+  /** Masque la TopBar interne quand le titre est déjà dans l'en-tête stack (`useScreenTitle`). */
+  hideTopBar?: boolean;
   /** Si défini, remplace la barre titre standard (ex. accueil producteur). */
   customHeader?: ReactNode;
-  activeTab?: AppTab;
-  onTabChange?: (tab: AppTab) => void;
-  /** Onglets affichés (défaut : les 4). Ex. producteur sans « Profil ». */
-  tabBarTabs?: AppTab[];
-  /** Masque la barre d’onglets du shell (barre globale producteur à la place). */
+  /**
+   * N’applique pas le safe area bas : le contenu s’étend sous la barre flottante producteur.
+   */
   omitBottomTabBar?: boolean;
-  /** Action flottante (ex. FAB événements), au-dessus du contenu, hors barre d’onglets. */
+  /** Action flottante (hors barre), au-dessus du contenu. */
   floatingAction?: ReactNode;
   topRight?: ReactNode;
   children: ReactNode;
@@ -23,22 +24,30 @@ type MobileAppShellProps = {
 
 export function MobileAppShell({
   title = "",
+  canvasColor = mobileColors.canvas,
+  hideTopBar = false,
   customHeader,
-  activeTab,
-  onTabChange,
-  tabBarTabs,
   omitBottomTabBar,
   floatingAction,
   topRight,
   children
 }: MobileAppShellProps) {
-  const safeEdges: readonly Edge[] = omitBottomTabBar
-    ? ["top"]
-    : ["top", "bottom"];
+  const safeEdges: readonly Edge[] = (() => {
+    const edges: Edge[] = [];
+    /** Pas de marge haute si le header stack natif est déjà affiché (`hideTopBar`). */
+    if (!hideTopBar) {
+      edges.push("top");
+    }
+    if (!omitBottomTabBar) {
+      edges.push("bottom");
+    }
+    return edges;
+  })();
+  const showTopBar = !hideTopBar && (customHeader != null || title.length > 0);
   return (
-    <SafeAreaView style={styles.safe} edges={safeEdges}>
-      {customHeader ?? <TopBar title={title} rightSlot={topRight} />}
-      <View style={styles.content}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: canvasColor }]} edges={safeEdges}>
+      {showTopBar ? (customHeader ?? <TopBar title={title} rightSlot={topRight} />) : null}
+      <View style={[styles.content, { backgroundColor: canvasColor }]}>
         {children}
         {floatingAction ? (
           <View style={styles.floatingLayer} pointerEvents="box-none">
@@ -46,13 +55,6 @@ export function MobileAppShell({
           </View>
         ) : null}
       </View>
-      {activeTab && onTabChange && !omitBottomTabBar ? (
-        <BottomTabBar
-          activeTab={activeTab}
-          onChange={onTabChange}
-          tabs={tabBarTabs}
-        />
-      ) : null}
     </SafeAreaView>
   );
 }
@@ -60,11 +62,11 @@ export function MobileAppShell({
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: mobileColors.background
+    backgroundColor: mobileColors.canvas
   },
   content: {
     flex: 1,
-    backgroundColor: mobileColors.surface,
+    backgroundColor: mobileColors.canvas,
     position: "relative"
   },
   floatingLayer: {

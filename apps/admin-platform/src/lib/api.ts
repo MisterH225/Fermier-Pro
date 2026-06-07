@@ -1,0 +1,555 @@
+import { API_BASE } from "./utils";
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number
+  ) {
+    super(message);
+  }
+}
+
+export async function apiFetch<T>(
+  path: string,
+  accessToken: string,
+  init?: RequestInit
+): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        ...(init?.headers ?? {})
+      },
+      cache: "no-store"
+    });
+  } catch (e) {
+    const hint =
+      e instanceof TypeError && /fetch/i.test(e.message)
+        ? `API injoignable (${API_BASE}). Lancez l’API : npm run dev:api depuis la racine du monorepo.`
+        : e instanceof Error
+          ? e.message
+          : String(e);
+    throw new ApiError(hint, 0);
+  }
+  if (!res.ok) {
+    const text = await res.text();
+    throw new ApiError(text || res.statusText, res.status);
+  }
+  return res.json() as Promise<T>;
+}
+
+export type AdminMe = {
+  userId: string;
+  email: string | null;
+  fullName: string | null;
+  role: "superadmin";
+};
+
+export type OverviewDto = {
+  kpis: {
+    activeFarms: number;
+    totalUsers: number;
+    verifiedVets: number;
+    pendingVets: number;
+    activeAnimals: number;
+    activeDiseases: number;
+    monthTransactions: number;
+    countriesCovered: number;
+  };
+  charts: {
+    signups30d: Array<{ day: string; count: number }>;
+    farmsByCountry: Array<{ country: string; count: number }>;
+    profileDistribution: Array<{ profile: string; count: number }>;
+  };
+  recentActivity: {
+    signups: Array<{ id: string; name: string; createdAt: string }>;
+    vetRequests: Array<{ id: string; name: string; country: string; createdAt: string }>;
+    sanitaryAlerts: Array<{ id: string; zoneName: string; level: string; message: string }>;
+  };
+};
+
+export type VetProfileRow = {
+  id: string;
+  fullName: string;
+  schoolName: string;
+  schoolCountry: string;
+  graduationYear: number;
+  locationCity: string;
+  locationCountry: string;
+  primarySpecialty: string;
+  verificationStatus: string;
+  diplomaPhotoUrl: string;
+  profilePhotoUrl: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  user: {
+    id: string;
+    email: string | null;
+    phone: string | null;
+    avatarUrl: string | null;
+    createdAt: string;
+  };
+};
+
+export type UserListItem = {
+  id: string;
+  fullName: string | null;
+  email: string | null;
+  phone: string | null;
+  avatarUrl: string | null;
+  isActive: boolean;
+  accountStatus?: "active" | "suspended" | "banned";
+  suspendedUntil?: string | null;
+  createdAt: string;
+  profiles: Array<{
+    id: string;
+    type: string;
+    displayName: string | null;
+    profileStatus?: string;
+    createdAt?: string;
+  }>;
+  vetProfile?: { id: string; verificationStatus: string } | null;
+  primaryFarm: { id: string; name: string } | null;
+};
+
+export type UsersListDto = {
+  total: number;
+  items: UserListItem[];
+};
+
+export type UserDetailDto = {
+  user: {
+    id: string;
+    fullName: string | null;
+    email: string | null;
+    phone: string | null;
+    avatarUrl: string | null;
+    isActive: boolean;
+    accountStatus?: "active" | "suspended" | "banned";
+    suspendedAt?: string | null;
+    suspendedReason?: string | null;
+    suspendedUntil?: string | null;
+    bannedAt?: string | null;
+    bannedReason?: string | null;
+    createdAt: string;
+    homeLocationLabel: string | null;
+  };
+  profiles: Array<{
+    id: string;
+    type: string;
+    displayName: string | null;
+    isDefault: boolean;
+    profileStatus?: string;
+    profileSuspendedReason?: string | null;
+    profileSuspendedAt?: string | null;
+    createdAt?: string;
+  }>;
+  vetProfile: VetProfileRow | null;
+  farms: Array<{
+    id: string;
+    name: string;
+    latitude: number | null;
+    longitude: number | null;
+    address: string | null;
+    activeAnimals: number;
+    healthRecords: number;
+  }>;
+  memberships: Array<{ id: string; farm: { id: string; name: string } }>;
+  healthSummary: {
+    activeDiseases: number;
+    mortalityRate30d: number;
+    overdueVaccines: number;
+  };
+  livestockSummary: {
+    totalActive: number;
+    byCategory: Array<{ category: string; count: number }>;
+  };
+  financeSummary: {
+    expenses3m: number;
+    revenues3m: number;
+    netMargin3m: number;
+  };
+  gestationSummary: {
+    active: number;
+    upcomingFarrowings: number;
+  };
+};
+
+export type StatsDto = {
+  period: "month" | "quarter" | "year";
+  since: string;
+  topDiseases: Array<{ label: string; count: number }>;
+  mortalityHeadcount: number;
+  newUsers: number;
+  activeAnimals: number;
+};
+
+export type PlatformSettingsDto = {
+  id: string;
+  mapGeographicScope: string;
+  mapCountryCodes: string[] | null;
+  alertCaseThreshold: number;
+  alertPeriodDays: number;
+  alertDefaultLevel: string;
+  adminNotifyEmail: string | null;
+  reportFrequencyDays: number;
+  marketplaceCommissionRate: number;
+};
+
+export type HealthMapDto = {
+  periodDays: number;
+  regions: Array<{
+    country: string;
+    activeCases: number;
+    totalCases: number;
+    farmCount: number;
+    topDiseases: Array<{ name: string; count: number }>;
+  }>;
+  points: Array<{
+    farmId: string;
+    lat: number;
+    lng: number;
+    diagnosis: string;
+    severity: string | null;
+  }>;
+};
+
+export type SanitaryAlertRow = {
+  id: string;
+  zoneName: string;
+  countryCode: string | null;
+  level: string;
+  alertType: string;
+  diseaseName: string | null;
+  caseCount: number | null;
+  message: string;
+  isActive: boolean;
+  createdAt: string;
+};
+
+export type AdminEpidemicAnalysis = {
+  summary: string;
+  emergingDiseases: string[];
+  riskZones: string[];
+  trends: string[];
+  recommendations: string[];
+  generatedAt: string;
+  unavailable?: boolean;
+};
+
+export type AdminAiAskResult = {
+  answer: string;
+  generatedAt: string;
+  unavailable?: boolean;
+};
+
+export type AdminVetAssistResult = {
+  readableDiploma: "yes" | "no" | "manual_check";
+  infoConsistent: boolean;
+  confidenceScore: number;
+  recommendation: "approve" | "review" | "reject";
+  notes: string;
+  generatedAt: string;
+  unavailable?: boolean;
+  diplomaImageAnalyzed?: boolean;
+};
+
+export type AdminPigPriceChartDto = {
+  period: string;
+  category: string;
+  insufficientData: boolean;
+  message: string | null;
+  series: Array<{
+    key: string;
+    label: string;
+    color: string;
+    dashed?: boolean;
+    points: Array<{
+      date: string;
+      avgPricePerKg: number;
+      listingAvgPrice: number | null;
+      transactionCount: number;
+      variationPct: number | null;
+      limitedData: boolean;
+    }>;
+  }>;
+  updatedAt: string;
+};
+
+export type AdminPigPriceStatsDto = {
+  rows: Array<{
+    category: string;
+    label: string;
+    todayPrice: number | null;
+    variation24h: number | null;
+    variation7d: number | null;
+    high30d: number | null;
+    low30d: number | null;
+    volume: number;
+  }>;
+};
+
+export function fetchAdminPigPriceChart(
+  token: string,
+  period = "30d",
+  category = "all"
+): Promise<AdminPigPriceChartDto> {
+  const q = new URLSearchParams({ period });
+  if (category !== "all") q.set("category", category);
+  return apiFetch(`/admin/pig-price-index?${q.toString()}`, token);
+}
+
+export function fetchAdminPigPriceStats(
+  token: string,
+  period = "30d"
+): Promise<AdminPigPriceStatsDto> {
+  return apiFetch(`/admin/pig-price-index/stats?period=${period}`, token);
+}
+
+export function fetchAdminPigPriceTicker(token: string) {
+  return apiFetch<{ items: Array<{ category: string; label: string; icon: string; pricePerKg: number | null; variationPct: number | null; color: string }> }>(
+    "/admin/pig-price-index/ticker",
+    token
+  );
+}
+
+export type AdminHybridPigPriceDto = {
+  current: {
+    price_per_kg: number;
+    trend: "up" | "down" | "stable";
+    variation_7d_pct: number | null;
+    calculated_at: string;
+    data_points_count: number;
+  } | null;
+  isFrozen: boolean;
+  freezeReason: string | null;
+  snapshots: Array<{
+    id: string;
+    calculatedAt: string;
+    indexValue: number;
+    confirmedCount: number;
+    listingCount: number;
+    totalWeightKg: number;
+    isFrozen: boolean;
+    freezeReason: string | null;
+  }>;
+  flaggedListings: Array<{
+    id: string;
+    listingId: string;
+    sellerUserId: string;
+    pricePerKg: number;
+    deviationPct: number;
+    flaggedAt: string;
+  }>;
+  topContributors: Array<{
+    sellerUserId: string;
+    sellerName: string;
+    volumeKg: number;
+    transactionCount: number;
+  }>;
+};
+
+export function fetchAdminHybridPigPrice(token: string) {
+  return apiFetch<AdminHybridPigPriceDto>("/admin/pig-price-index/hybrid", token);
+}
+
+export function adminUnfreezeHybridPigPrice(token: string) {
+  return apiFetch<{ ok: true; recalculated: boolean }>(
+    "/admin/pig-price-index/hybrid/unfreeze",
+    token,
+    { method: "POST" }
+  );
+}
+
+export function adminRecalculateHybridPigPrice(token: string) {
+  return apiFetch<unknown>("/admin/pig-price-index/hybrid/recalculate", token, {
+    method: "POST"
+  });
+}
+
+export type AdminMarketplaceTransactionRow = {
+  id: string;
+  status: string;
+  blockedAmount: string | number;
+  finalAmount?: string | number | null;
+  realWeightKg?: string | number | null;
+  arbitrationWeightKg?: string | number | null;
+  currency: string;
+  updatedAt: string;
+  weightDisputeOpenedAt?: string | null;
+  weightDeclaredByBuyerAt?: string | null;
+  listing: { id: string; title: string };
+  buyer: { id: string; fullName: string | null; email: string | null };
+  seller: { id: string; fullName: string | null; email: string | null };
+};
+
+export function fetchAdminMarketplaceTransactions(
+  token: string,
+  status?: string
+) {
+  const q = status ? `?status=${encodeURIComponent(status)}` : "";
+  return apiFetch<AdminMarketplaceTransactionRow[]>(
+    `/admin/marketplace/transactions${q}`,
+    token
+  );
+}
+
+export function fetchAdminMarketplaceDisputes(token: string) {
+  return apiFetch<AdminMarketplaceTransactionRow[]>(
+    "/admin/marketplace/disputes",
+    token
+  );
+}
+
+export type AdminMarketplaceReceiptRow = {
+  transactionId: string;
+  listingTitle: string;
+  sellerName: string | null;
+  buyerName: string | null;
+  closedAt: string | null;
+  receiptGenerationStatus: string;
+  receipt: {
+    id: string;
+    receiptNumber: string;
+    generatedAt: string;
+    pdfSizeBytes: number;
+  } | null;
+};
+
+export function fetchAdminMarketplaceReceipts(token: string) {
+  return apiFetch<AdminMarketplaceReceiptRow[]>(
+    "/admin/marketplace/receipts",
+    token
+  );
+}
+
+export function adminRegenerateReceipt(token: string, transactionId: string) {
+  return apiFetch<{ receiptNumber: string } | null>(
+    `/admin/marketplace/receipts/regenerate/${transactionId}`,
+    token,
+    { method: "POST" }
+  );
+}
+
+export function adminDownloadReceipt(token: string, receiptId: string) {
+  return apiFetch<{ receiptNumber: string; downloadUrl: string }>(
+    `/admin/marketplace/receipts/${receiptId}/download`,
+    token
+  );
+}
+
+export function adminArbitrateMarketplaceWeight(
+  token: string,
+  transactionId: string,
+  arbitrationWeightKg: number
+) {
+  return apiFetch<unknown>(
+    `/admin/marketplace/transactions/${transactionId}/arbitrate`,
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify({ arbitrationWeightKg })
+    }
+  );
+}
+
+export type AdminPlatformRevenueDto = {
+  period: string;
+  totalCommission: number;
+  totalGross: number;
+  transactionCount: number;
+  series: Array<{ date: string; commission: number }>;
+  recent: Array<{
+    id: string;
+    transactionId: string;
+    listingTitle: string;
+    commissionAmount: number;
+    grossAmount: number;
+    commissionRate: number;
+    collectedAt: string;
+  }>;
+};
+
+export function fetchAdminPlatformRevenue(
+  token: string,
+  period = "30d"
+) {
+  return apiFetch<AdminPlatformRevenueDto>(
+    `/admin/marketplace/revenue?period=${encodeURIComponent(period)}`,
+    token
+  );
+}
+
+export type AdminVetAppointmentRow = {
+  id: string;
+  status: string;
+  farmName?: string | null;
+  vetName?: string | null;
+  producerName?: string | null;
+  servicePrice?: number | null;
+  blockedAmount?: number | null;
+  currency: string;
+  requestedAt: string;
+  confirmedAt?: string | null;
+  conflictStatus?: string | null;
+};
+
+export function fetchAdminVetAppointments(token: string, status?: string) {
+  const q = status ? `?status=${encodeURIComponent(status)}` : "";
+  return apiFetch<AdminVetAppointmentRow[]>(
+    `/admin/vet-appointments${q}`,
+    token
+  );
+}
+
+export function adminRefundVetAppointment(
+  token: string,
+  appointmentId: string,
+  amount?: number
+) {
+  return apiFetch<{ ok: boolean; refundAmount: number }>(
+    `/admin/vet-appointments/${appointmentId}/refund`,
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify(amount != null ? { amount } : {})
+    }
+  );
+}
+
+export type AdminVetAppointmentRevenueDto = {
+  period: string;
+  totalCommission: number;
+  totalGross: number;
+  appointmentCount: number;
+  recent: Array<{
+    id: string;
+    appointmentId: string | null;
+    farmName: string;
+    vetName: string;
+    commissionAmount: number;
+    grossAmount: number;
+    collectedAt: string;
+  }>;
+  lowRatedVets: Array<{
+    id: string;
+    fullName: string;
+    ratingAvg: number | null;
+    ratingCount: number;
+    completedAppointments: number;
+  }>;
+};
+
+export function fetchAdminVetAppointmentRevenue(
+  token: string,
+  period?: string
+) {
+  const q = period ? `?period=${encodeURIComponent(period)}` : "";
+  return apiFetch<AdminVetAppointmentRevenueDto>(
+    `/admin/vet-appointments/revenue${q}`,
+    token
+  );
+}

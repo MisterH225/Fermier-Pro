@@ -1,23 +1,100 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useQuery } from "@tanstack/react-query";
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
+  Image,
+  Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { PigPriceIndex } from "../components/market/PigPriceIndex";
+import { PigPriceIndexCard } from "../components/market/PigPriceIndexCard";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
+import { ListingModal } from "../components/marketplace/ListingModal";
+import {
+  MarketplaceListingCard,
+  MarketplaceListingCardSkeleton
+} from "../components/marketplace/MarketplaceListingCard";
+import { EmptyStateCard } from "../components/common/EmptyStateCard";
+import { EventList, type EventItem } from "../components/lists";
+import { EventListFilter } from "../components/lists/EventListFilter";
+import type { FilterPill } from "../components/lists/types";
+import { TabContent, TabSelector } from "../components/tabs";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { useSession } from "../context/SessionContext";
 import type { MarketplaceListingListItem } from "../lib/api";
-import { fetchMarketplaceListings } from "../lib/api";
+import { useActiveProject } from "../context/ActiveProjectContext";
+import {
+  PropositionsScreen,
+  type ProposalsSubTab
+} from "./market/PropositionsScreen";
+import {
+  addBuyerFavorite,
+  fetchBuyerFavoriteIds,
+  fetchBuyerFavorites,
+  fetchMarketplaceListings,
+  fetchMarketplaceOfferCounts,
+  removeBuyerFavorite,
+  type BuyerFavoriteListingDto
+} from "../lib/api";
+import {
+  listingStatusLabel
+} from "../lib/marketplaceLabels";
+import {
+  mobileColors,
+  mobileRadius,
+  mobileShadows,
+  mobileSpacing,
+  mobileTypography
+} from "../theme/mobileTheme";
+import { buyerColors, buyerStackScreenOptions } from "../theme/buyerTheme";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MarketplaceList">;
+
+type MarketTab = "listings" | "mine" | "offers";
+type CatKey = "all" | "piglet" | "breeder" | "butcher" | "reformed";
+type ListingFilter = "all" | "draft" | "published" | "sold" | "cancelled";
+
+const PILL_ACTIVE = mobileColors.accent;
+
+const CATEGORY_PILLS: { id: CatKey; label: string }[] = [
+  { id: "all", label: "Tout" },
+  { id: "piglet", label: "Porcelets" },
+  { id: "breeder", label: "Reproducteurs" },
+  { id: "butcher", label: "Charcutiers" },
+  { id: "reformed", label: "Truies réformées" }
+];
+
+const MY_LISTING_FILTER_PILLS: FilterPill[] = [
+  { id: "all", label: "Toutes" },
+  { id: "draft", label: "Brouillons" },
+  { id: "published", label: "Publiées" },
+  { id: "sold", label: "Vendues" },
+  { id: "cancelled", label: "Annulées" }
+];
+
+function parseNum(v: string | number | null | undefined): number | null {
+  if (v === undefined || v === null) return null;
+  const n = typeof v === "string" ? Number.parseFloat(v) : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatMoney(n: number, currency: string): string {
+  return `${n.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} ${currency}`;
+}
 
 function formatPrice(
   unitPrice: string | number | null | undefined,
@@ -34,246 +111,797 @@ function formatPrice(
   return `${n.toLocaleString(undefined, { maximumFractionDigits: 0 })} ${currency}`;
 }
 
-function listingSearchHaystack(item: MarketplaceListingListItem): string {
-  return [
-    item.title,
-    item.locationLabel,
-    item.description,
-    item.farm?.name,
-    item.seller?.fullName,
-    item.animal?.publicId
-  ]
-    .filter((x): x is string => typeof x === "string" && x.length > 0)
-    .join(" ")
-    .toLowerCase();
+function isNewListing(publishedAt: string | null): boolean {
+  if (!publishedAt) return false;
+  const t = new Date(publishedAt).getTime();
+  return Date.now() - t < 48 * 60 * 60 * 1000;
 }
 
-export function MarketplaceListScreen({ navigation }: Props) {
-  const { accessToken, activeProfileId, clientFeatures } = useSession();
+function categoryLabel(cat: string | null | undefined): string {
+  switch (cat) {
+    case "piglet":
+      return "Porcelet";
+    case "breeder":
+      return "Reproducteur";
+    case "butcher":
+      return "Charcutier";
+    case "reformed":
+      return "Truie réformée";
+    default:
+      return "Lot";
+  }
+}
+
+function initialMarketTab(
+  param?: RootStackParamList["MarketplaceList"]
+): MarketTab {
+  const tab = param && "tab" in param ? param.tab : undefined;
+  if (tab === "mine" || tab === "offers" || tab === "listings") {
+    return tab;
+  }
+  return "listings";
+}
+
+function initialOffersSubTab(
+  param?: RootStackParamList["MarketplaceList"]
+): ProposalsSubTab {
+  const sub = param && "offersSubTab" in param ? param.offersSubTab : undefined;
+  return sub === "sent" ? "sent" : "received";
+}
+
+export function MarketplaceListScreen({ navigation, route }: Props) {
+  const { t } = useTranslation();
+  const { width } = useWindowDimensions();
+  const { accessToken, activeProfileId, authMe, clientFeatures } = useSession();
+  const { activeFarmId } = useActiveProject();
+  const qc = useQueryClient();
+
+  const buyerView = route.params?.buyerView === true;
+  const fromDashboard = route.params?.fromDashboard === true;
+  const favoritesOnly = route.params?.favoritesOnly === true;
+  const scrollBottomPad = useScrollBottomPad();
+  const [marketTab, setMarketTab] = useState<MarketTab>(() => {
+    const tab = initialMarketTab(route.params);
+    return buyerView && tab === "mine" ? "listings" : tab;
+  });
   const [search, setSearch] = useState("");
+  const [category, setCategory] = useState<CatKey>("all");
+  const isBuyerProfile =
+    authMe?.profiles.find((p) => p.id === activeProfileId)?.type === "buyer";
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: clientFeatures.marketplace
-        ? () => (
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <TouchableOpacity
-                onPress={() => navigation.navigate("MarketplaceMyListings")}
-                style={{ paddingHorizontal: 6 }}
-                hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
-              >
-                <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>
-                  Mes annonces
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => navigation.navigate("MarketplaceMyOffers")}
-                style={{ paddingHorizontal: 6 }}
-                hitSlop={{ top: 10, bottom: 10, left: 4, right: 8 }}
-              >
-                <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>
-                  Mes offres
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )
-        : undefined
-    });
-  }, [navigation, clientFeatures.marketplace]);
-
-  const listingsQuery = useQuery({
-    queryKey: ["marketplaceListings", activeProfileId],
-    queryFn: () =>
-      fetchMarketplaceListings(accessToken, activeProfileId, {
-        mine: false
-      }),
-    enabled: clientFeatures.marketplace
+  const favoriteIdsQ = useQuery({
+    queryKey: ["buyerFavoriteIds", activeProfileId],
+    queryFn: () => fetchBuyerFavoriteIds(accessToken!, activeProfileId),
+    enabled: Boolean(accessToken && isBuyerProfile && clientFeatures.marketplace)
   });
 
-  const err =
+  const favoriteIdSet = useMemo(
+    () => new Set(favoriteIdsQ.data ?? []),
+    [favoriteIdsQ.data]
+  );
+  const [myFilter, setMyFilter] = useState<ListingFilter>("all");
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [offersSubTab, setOffersSubTab] = useState<ProposalsSubTab>(() =>
+    initialOffersSubTab(route.params)
+  );
+  const offersListingFilter =
+    route.params && "offersListingId" in route.params
+      ? route.params.offersListingId
+      : undefined;
+
+  const routeTab =
+    route.params && "tab" in route.params ? route.params.tab : undefined;
+  const routeOffersSubTab =
+    route.params && "offersSubTab" in route.params
+      ? route.params.offersSubTab
+      : undefined;
+
+  useEffect(() => {
+    const tab = initialMarketTab(route.params);
+    setMarketTab(buyerView && tab === "mine" ? "listings" : tab);
+  }, [routeTab, buyerView]);
+
+  useEffect(() => {
+    setOffersSubTab(initialOffersSubTab(route.params));
+  }, [routeOffersSubTab]);
+
+  useEffect(() => {
+    const q = route.params?.searchQuery;
+    if (typeof q === "string" && q.trim()) {
+      setSearch(q.trim());
+    }
+  }, [route.params?.searchQuery]);
+
+  const cardW = useMemo(
+    () => Math.floor((width - mobileSpacing.lg * 6) / 2),
+    [width]
+  );
+
+  const qTrim = search.trim();
+  const searchParam = qTrim.length >= 2 ? qTrim : undefined;
+
+  const favoritesListQuery = useQuery({
+    queryKey: ["buyerFavoritesList", activeProfileId],
+    queryFn: () => fetchBuyerFavorites(accessToken!, activeProfileId),
+    enabled:
+      clientFeatures.marketplace &&
+      Boolean(isBuyerProfile && favoritesOnly && accessToken)
+  });
+
+  const listingsQuery = useQuery({
+    queryKey: ["marketplaceListings", activeProfileId, category, searchParam],
+    queryFn: () =>
+      fetchMarketplaceListings(accessToken!, activeProfileId, {
+        mine: false,
+        ...(category !== "all" ? { category } : {}),
+        ...(searchParam ? { q: searchParam } : {})
+      }),
+    enabled:
+      clientFeatures.marketplace &&
+      marketTab === "listings" &&
+      !favoritesOnly
+  });
+
+  const myListingsQuery = useQuery({
+    queryKey: ["marketplaceMyListings", activeProfileId, myFilter],
+    queryFn: () =>
+      fetchMarketplaceListings(accessToken!, activeProfileId, {
+        mine: true,
+        ...(myFilter !== "all" ? { status: myFilter } : {})
+      }),
+    enabled: clientFeatures.marketplace && marketTab === "mine"
+  });
+
+  const offerCountsQ = useQuery({
+    queryKey: ["marketplaceOffersCounts", activeProfileId, activeFarmId],
+    queryFn: () =>
+      fetchMarketplaceOfferCounts(accessToken!, activeProfileId, activeFarmId),
+    enabled: clientFeatures.marketplace && Boolean(accessToken)
+  });
+
+  useLayoutEffect(() => {
+    const backToDashboard = () => navigation.navigate("BuyerDashboard");
+
+    navigation.setOptions({
+      ...(buyerView ? buyerStackScreenOptions : {}),
+      title: buyerView ? t("buyer.nav.market") : "Market",
+      headerLeft:
+        fromDashboard
+          ? () => (
+              <TouchableOpacity
+                onPress={backToDashboard}
+                style={styles.headerBackBtn}
+                hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel={t("buyer.backToHome")}
+              >
+                <Ionicons
+                  name="chevron-back"
+                  size={22}
+                  color={buyerView ? buyerColors.primary : mobileColors.accent}
+                />
+                <Text
+                  style={[
+                    styles.headerBackTx,
+                    buyerView && { color: buyerColors.primary }
+                  ]}
+                >
+                  {t("buyer.backToHome")}
+                </Text>
+              </TouchableOpacity>
+            )
+          : undefined,
+      headerRight:
+        clientFeatures.marketplace && marketTab === "mine" && !buyerView
+          ? () => (
+              <TouchableOpacity
+                onPress={() => setCreateModalOpen(true)}
+                style={{ paddingHorizontal: 8 }}
+                hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+              >
+                <Text style={styles.headerAction}>{t("marketScreen.create")}</Text>
+              </TouchableOpacity>
+            )
+          : undefined
+    });
+  }, [navigation, clientFeatures.marketplace, marketTab, t, buyerView, fromDashboard]);
+
+  const categoryPills: FilterPill[] = useMemo(
+    () => CATEGORY_PILLS.map((p) => ({ id: p.id, label: p.label })),
+    []
+  );
+
+  const favMut = useMutation({
+    mutationFn: async ({
+      listingId,
+      remove
+    }: {
+      listingId: string;
+      remove: boolean;
+    }) => {
+      if (remove) {
+        return removeBuyerFavorite(accessToken!, activeProfileId, listingId);
+      }
+      return addBuyerFavorite(accessToken!, activeProfileId, listingId);
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["buyerFavoriteIds"] });
+      void qc.invalidateQueries({ queryKey: ["buyerFavorites"] });
+      void qc.invalidateQueries({ queryKey: ["buyerFavoritesList"] });
+      void qc.invalidateQueries({ queryKey: ["buyerDashboard"] });
+    },
+    onError: (e: Error) => Alert.alert("Favoris", getUserFacingError(e, t))
+  });
+
+  const toggleFav = (id: string) => {
+    if (!isBuyerProfile || !accessToken) {
+      return;
+    }
+    favMut.mutate({ listingId: id, remove: favoriteIdSet.has(id) });
+  };
+
+  const myRows = myListingsQuery.data ?? [];
+  const myKpis = useMemo(() => {
+    let views = 0;
+    let consults = 0;
+    for (const r of myRows) {
+      views += r.viewsCount ?? 0;
+      consults += r.consultationsCount ?? 0;
+    }
+    return { views, consults, n: myRows.length };
+  }, [myRows]);
+
+  const myEventItems = useMemo((): EventItem[] => {
+    return myRows.map((item) => {
+      const statusLab = listingStatusLabel(item.status);
+      const farm = item.farm?.name;
+      const priceLine =
+        item.totalPrice != null
+          ? `${typeof item.totalPrice === "string" ? item.totalPrice : String(item.totalPrice)} ${item.currency}`
+          : formatPrice(item.unitPrice, item.currency);
+      return {
+        id: item.id,
+        title: item.title,
+        subtitle: [statusLab, farm].filter(Boolean).join(" · "),
+        value: priceLine,
+        valueType: "neutral",
+        date: new Date(item.updatedAt).toLocaleDateString("fr-FR"),
+        iconType:
+          item.status === "sold" ? "out" : item.status === "published" ? "in" : "check",
+        meta: item
+      };
+    });
+  }, [myRows]);
+
+  const renderListingCard = ({ item }: { item: MarketplaceListingListItem }) => (
+    <MarketplaceListingCard
+      item={item}
+      width={cardW}
+      showFavorite={isBuyerProfile}
+      isFavorite={favoriteIdSet.has(item.id)}
+      onToggleFavorite={() => toggleFav(item.id)}
+      onPress={() =>
+        navigation.navigate("MarketplaceListingDetail", {
+          listingId: item.id,
+          headline: item.title
+        })
+      }
+    />
+  );
+
+  const listingsErr =
     listingsQuery.error instanceof Error
-      ? listingsQuery.error.message
+      ? getUserFacingError(listingsQuery.error, t)
       : listingsQuery.error
         ? String(listingsQuery.error)
         : null;
 
-  const list = listingsQuery.data ?? [];
-  const needle = search.trim().toLowerCase();
-  const displayed = useMemo(() => {
-    if (!needle) {
-      return list;
-    }
-    return list.filter((item) => listingSearchHaystack(item).includes(needle));
-  }, [list, needle]);
+const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
+    return (favoritesListQuery.data ?? []).map((f: BuyerFavoriteListingDto) => ({
+      id: f.id,
+      title: f.title,
+      description: null,
+      unitPrice: null,
+      quantity: null,
+      currency: "XOF",
+      locationLabel: null,
+      status: "published",
+      publishedAt: f.publishedAt,
+      createdAt: f.favoritedAt,
+      updatedAt: f.favoritedAt,
+      category: f.category,
+      photoUrls: Array.isArray(f.photoUrls)
+        ? (f.photoUrls as string[])
+        : [],
+      totalWeightKg: f.weightKg,
+      pricePerKg: f.pricePerKg,
+      totalPrice: f.totalPrice,
+      farm: f.farmName ? { id: "", name: f.farmName } : null,
+      animal: null
+    }));
+  }, [favoritesListQuery.data]);
 
-  if (listingsQuery.isPending) {
-    return (
-      <MarketplaceModuleGate>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#5d7a1f" />
+  const listingsList = favoritesOnly ? favoritesAsListings : (listingsQuery.data ?? []);
+  const listingsEmpty =
+    listingsList.length === 0
+      ? t("marketScreen.emptyListings")
+      : t("marketScreen.emptySearch");
+
+  const listingsTabContent = () => {
+    if (listingsQuery.isPending && !listingsQuery.data) {
+      return (
+        <View style={[styles.listingsPane, styles.skeletonGrid, { paddingHorizontal: mobileSpacing.lg }]}>
+          {[0, 1, 2, 3].map((i) => (
+            <MarketplaceListingCardSkeleton key={i} width={cardW} />
+          ))}
         </View>
-      </MarketplaceModuleGate>
+      );
+    }
+    if (listingsErr) {
+      return (
+        <View style={styles.tabCentered}>
+          <Text style={styles.error}>{listingsErr}</Text>
+        </View>
+      );
+    }
+    const listingsHeader = (
+      <View style={styles.listHeader}>
+        <View style={styles.pigPriceSection}>
+          <PigPriceIndexCard />
+          <PigPriceIndex />
+        </View>
+        <View style={styles.searchRow}>
+          <TextInput
+            style={styles.search}
+            value={search}
+            onChangeText={setSearch}
+            placeholder={t("marketScreen.searchPlaceholder")}
+            placeholderTextColor={mobileColors.textSecondary}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
+        <View style={styles.filterRow}>
+          <EventListFilter
+            pills={categoryPills}
+            activeId={category}
+            onChange={(id) => setCategory(id as CatKey)}
+            activeBackground={PILL_ACTIVE}
+          />
+        </View>
+      </View>
     );
-  }
 
-  if (err) {
     return (
-      <MarketplaceModuleGate>
-        <View style={styles.centered}>
+      <View style={styles.listingsPane}>
+        <FlatList
+          style={styles.listingsList}
+          data={listingsList}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          columnWrapperStyle={styles.colWrap}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom: scrollBottomPad }
+          ]}
+          ListHeaderComponent={listingsHeader}
+          refreshControl={
+            <RefreshControl
+              refreshing={favoritesOnly ? favoritesListQuery.isFetching : listingsQuery.isFetching}
+              onRefresh={() => void (favoritesOnly ? favoritesListQuery.refetch() : listingsQuery.refetch())}
+              tintColor={mobileColors.accent}
+            />
+          }
+          ListEmptyComponent={
+            <EmptyStateCard
+              title={listingsEmpty}
+              subtitle={
+                favoritesOnly
+                  ? undefined
+                  : t("marketScreen.emptyListingsHint")
+              }
+            />
+          }
+          renderItem={renderListingCard}
+        />
+      </View>
+    );
+  };
+
+  const myListingsTabContent = () => {
+    const err =
+      myListingsQuery.error instanceof Error
+        ? getUserFacingError(myListingsQuery.error, t)
+        : myListingsQuery.error
+          ? String(myListingsQuery.error)
+          : null;
+    if (myListingsQuery.isPending && !myListingsQuery.data) {
+      return (
+        <View style={styles.tabCentered}>
+          <ActivityIndicator size="large" color={mobileColors.accent} />
+        </View>
+      );
+    }
+    if (err) {
+      return (
+        <View style={styles.tabCentered}>
           <Text style={styles.error}>{err}</Text>
         </View>
-      </MarketplaceModuleGate>
-    );
-  }
-
-  const emptyMessage =
-    list.length === 0
-      ? "Aucune annonce publiée pour le moment."
-      : needle
-        ? "Aucun résultat pour cette recherche."
-        : "Aucune annonce publiée pour le moment.";
-
-  return (
-    <MarketplaceModuleGate>
-      <FlatList
-        data={displayed}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+      );
+    }
+    const emptyMessage =
+      myFilter === "all"
+        ? t("marketScreen.emptyMyListings")
+        : t("marketScreen.emptyMyFilter");
+    return (
+      <ScrollView
+        style={styles.tabScroll}
+        contentContainerStyle={[
+          styles.tabScrollGrow,
+          { paddingBottom: scrollBottomPad }
+        ]}
         refreshControl={
           <RefreshControl
-            refreshing={listingsQuery.isFetching}
-            onRefresh={() => void listingsQuery.refetch()}
+            refreshing={myListingsQuery.isFetching}
+            onRefresh={() => void myListingsQuery.refetch()}
+            tintColor={mobileColors.accent}
           />
         }
-        ListHeaderComponent={
-          <View style={styles.searchWrap}>
-            <TextInput
-              style={styles.searchInput}
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Rechercher (titre, lieu, ferme, vendeur…)"
-              placeholderTextColor="#999"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            {search.length > 0 ? (
-              <TouchableOpacity
-                style={styles.searchClearBtn}
-                onPress={() => setSearch("")}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              >
-                <Text style={styles.searchClearTxt}>Effacer</Text>
-              </TouchableOpacity>
-            ) : null}
+        showsVerticalScrollIndicator={false}
+      >
+        <TabContent>
+          <View style={styles.kpiRow}>
+            <View style={styles.kpiCard}>
+              <Text style={styles.kpiVal}>{myKpis.n}</Text>
+              <Text style={styles.kpiLab}>{t("marketScreen.kpiListings")}</Text>
+            </View>
+            <View style={styles.kpiCard}>
+              <Text style={styles.kpiVal}>{myKpis.views}</Text>
+              <Text style={styles.kpiLab}>{t("marketScreen.kpiViews")}</Text>
+            </View>
+            <View style={styles.kpiCard}>
+              <Text style={styles.kpiVal}>{myKpis.consults}</Text>
+              <Text style={styles.kpiLab}>{t("marketScreen.kpiConsults")}</Text>
+            </View>
           </View>
-        }
-        ListEmptyComponent={<Text style={styles.empty}>{emptyMessage}</Text>}
-        renderItem={({ item }: { item: MarketplaceListingListItem }) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() =>
+          <EventList
+            layout="embedded"
+            data={myEventItems}
+            filters={MY_LISTING_FILTER_PILLS}
+            activeFilterId={myFilter}
+            onFilterChange={(id) => setMyFilter(id as ListingFilter)}
+            emptyMessage={emptyMessage}
+            onItemPress={(it) => {
+              const item = it.meta as MarketplaceListingListItem;
               navigation.navigate("MarketplaceListingDetail", {
                 listingId: item.id,
                 headline: item.title
-              })
-            }
-          >
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={styles.price}>
-              {formatPrice(item.unitPrice, item.currency)}
-              {item.quantity != null ? ` · ${item.quantity} unité(s)` : ""}
-            </Text>
-            {item.locationLabel ? (
-              <Text style={styles.meta}>{item.locationLabel}</Text>
-            ) : null}
-            {item.farm ? (
-              <Text style={styles.meta}>Ferme : {item.farm.name}</Text>
-            ) : null}
-            {item.seller?.fullName ? (
-              <Text style={styles.seller}>Vendeur : {item.seller.fullName}</Text>
-            ) : null}
-          </TouchableOpacity>
+              });
+            }}
+          />
+        </TabContent>
+      </ScrollView>
+    );
+  };
+
+  const offersTabContent = () => (
+    <PropositionsScreen
+      navigation={navigation}
+      contentPaddingBottom={scrollBottomPad}
+      initialSubTab={offersSubTab}
+      listingIdFilter={offersListingFilter}
+    />
+  );
+
+  const offersTabBadge = offerCountsQ.data?.total ?? 0;
+
+  if (!clientFeatures.marketplace) {
+    return (
+      <MarketplaceModuleGate>
+        <View />
+      </MarketplaceModuleGate>
+    );
+  }
+
+  return (
+    <MarketplaceModuleGate>
+      <View style={styles.root}>
+        {buyerView ? (
+          listingsTabContent()
+        ) : (
+          <TabSelector
+            activeTab={marketTab}
+            onTabChange={(key) => setMarketTab(key as MarketTab)}
+            tabs={[
+              {
+                key: "listings",
+                label: t("marketScreen.tabListings"),
+                content: listingsTabContent()
+              },
+              {
+                key: "mine",
+                label: t("marketScreen.tabMyListings"),
+                content: myListingsTabContent()
+              },
+              {
+                key: "offers",
+                label: t("marketScreen.tabOffers"),
+                badge: offersTabBadge > 0 ? offersTabBadge : undefined,
+                content: offersTabContent()
+              }
+            ]}
+          />
         )}
+      </View>
+      <ListingModal
+        visible={createModalOpen}
+        mode="create"
+        onClose={() => setCreateModalOpen(false)}
+        onSuccess={(created) =>
+          navigation.navigate("MarketplaceListingDetail", {
+            listingId: created.id,
+            headline: created.title
+          })
+        }
       />
     </MarketplaceModuleGate>
   );
 }
 
 const styles = StyleSheet.create({
-  searchWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 14
-  },
-  searchInput: {
+  root: {
     flex: 1,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#e0e4d4",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    fontSize: 16,
-    color: "#1f2910"
+    backgroundColor: mobileColors.canvas
   },
-  searchClearBtn: {
-    marginLeft: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 4
-  },
-  searchClearTxt: {
-    color: "#5d7a1f",
+  headerAction: {
+    color: mobileColors.accent,
     fontWeight: "600",
     fontSize: 15
   },
-  list: {
-    padding: 16,
-    paddingBottom: 32
+  headerBackBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingLeft: 4,
+    gap: 2
   },
-  centered: {
+  headerBackTx: {
+    ...mobileTypography.body,
+    color: mobileColors.accent,
+    fontWeight: "600",
+    fontSize: 16
+  },
+  tabCentered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
-    backgroundColor: "#f9f8ea"
+    padding: mobileSpacing.lg
   },
-  error: {
-    color: "#b00020",
-    textAlign: "center"
+  tabScroll: { flex: 1 },
+  tabScrollGrow: { flexGrow: 1 },
+  listingsPane: {
+    flex: 1,
+    minHeight: 0
+  },
+  listingsList: { flex: 1 },
+  listHeader: {
+    flexGrow: 0,
+    flexShrink: 0,
+    paddingTop: mobileSpacing.sm,
+    paddingBottom: mobileSpacing.xs,
+    gap: mobileSpacing.sm
+  },
+  pigPriceSection: {
+    paddingHorizontal: mobileSpacing.lg
+  },
+  filterRow: {
+    flexGrow: 0,
+    flexShrink: 0,
+    paddingHorizontal: mobileSpacing.lg
+  },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.sm,
+    paddingHorizontal: mobileSpacing.lg
+  },
+  search: {
+    flex: 1,
+    backgroundColor: mobileColors.background,
+    borderRadius: mobileRadius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.border,
+    paddingHorizontal: mobileSpacing.md,
+    paddingVertical: mobileSpacing.sm,
+    ...mobileTypography.body,
+    color: mobileColors.textPrimary
+  },
+  filterAdv: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: mobileColors.background,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.border
+  },
+  filterAdvTx: { fontSize: 20 },
+  colWrap: {
+    justifyContent: "space-between",
+    marginBottom: mobileSpacing.md,
+    paddingHorizontal: mobileSpacing.lg
+  },
+  listContent: {},
+  skeletonGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: mobileSpacing.md,
+    paddingTop: mobileSpacing.sm
   },
   empty: {
+    ...mobileTypography.body,
+    color: mobileColors.textSecondary,
     textAlign: "center",
-    color: "#6d745b",
-    marginTop: 24,
-    fontStyle: "italic"
+    marginTop: mobileSpacing.xl,
+    paddingHorizontal: mobileSpacing.lg
+  },
+  error: {
+    color: mobileColors.error,
+    ...mobileTypography.body,
+    textAlign: "center"
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#e0e4d4"
+    overflow: "hidden",
+    ...mobileShadows.card
   },
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#1f2910"
+  photoWrap: {
+    position: "relative",
+    height: 140,
+    backgroundColor: mobileColors.surfaceMuted
   },
-  price: {
-    marginTop: 8,
-    fontSize: 15,
+  photo: {
+    width: "100%",
+    height: 140,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16
+  },
+  photoPh: {
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  photoPhTx: { fontSize: 36, opacity: 0.35 },
+  badgeCat: {
+    position: "absolute",
+    left: 8,
+    top: 8,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8
+  },
+  badgeCatTx: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "700"
+  },
+  badgeNew: {
+    position: "absolute",
+    left: 8,
+    bottom: 8,
+    backgroundColor: PILL_ACTIVE,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6
+  },
+  badgeNewTx: { color: "#fff", fontSize: 10, fontWeight: "800" },
+  favBtn: {
+    position: "absolute",
+    right: 8,
+    top: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,215,128,0.95)",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  favTx: { fontSize: 16 },
+  cardBody: {
+    padding: mobileSpacing.sm
+  },
+  lineMuted: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: 2
+  },
+  totalLine: {
+    ...mobileTypography.body,
+    fontWeight: "800",
+    color: mobileColors.textPrimary,
+    marginTop: mobileSpacing.xs
+  },
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: mobileSpacing.sm
+  },
+  statsTx: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary
+  },
+  kpiRow: {
+    flexDirection: "row",
+    gap: mobileSpacing.sm,
+    marginBottom: mobileSpacing.md
+  },
+  kpiCard: {
+    flex: 1,
+    backgroundColor: mobileColors.background,
+    borderRadius: mobileRadius.md,
+    padding: mobileSpacing.sm,
+    alignItems: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.border
+  },
+  kpiVal: {
+    ...mobileTypography.cardTitle,
+    fontSize: 18,
+    color: mobileColors.textPrimary
+  },
+  kpiLab: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: 2
+  },
+  offersList: {
+    paddingHorizontal: mobileSpacing.lg,
+    paddingTop: mobileSpacing.md
+  },
+  offerCard: {
+    backgroundColor: mobileColors.background,
+    borderRadius: mobileRadius.lg,
+    padding: mobileSpacing.md,
+    marginBottom: mobileSpacing.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.border,
+    ...mobileShadows.card
+  },
+  offerTitle: {
+    ...mobileTypography.cardTitle,
+    color: mobileColors.textPrimary
+  },
+  offerPrice: {
+    marginTop: mobileSpacing.sm,
+    ...mobileTypography.body,
     fontWeight: "600",
-    color: "#5d7a1f"
+    color: mobileColors.accent
   },
-  meta: {
-    marginTop: 6,
-    fontSize: 13,
-    color: "#6d745b"
+  offerMeta: {
+    marginTop: 4,
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary
   },
-  seller: {
-    marginTop: 8,
-    fontSize: 13,
-    color: "#4b513d"
+  offerLink: {
+    marginTop: mobileSpacing.sm,
+    ...mobileTypography.body,
+    color: mobileColors.accent,
+    fontWeight: "600"
+  },
+  withdraw: {
+    marginTop: mobileSpacing.md,
+    paddingVertical: mobileSpacing.sm,
+    alignItems: "center",
+    borderRadius: mobileRadius.md,
+    borderWidth: 2,
+    borderColor: mobileColors.warning
+  },
+  withdrawDisabled: { opacity: 0.55 },
+  withdrawTxt: {
+    color: mobileColors.warning,
+    fontWeight: "700",
+    fontSize: 14
   }
 });

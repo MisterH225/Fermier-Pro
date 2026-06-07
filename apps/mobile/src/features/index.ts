@@ -10,5 +10,7 @@ export * from "./housing";
 export * from "./livestock";
 export * from "./marketplace";
 export * from "./platform";
+export * from "./reports";
 export * from "./tasks";
 export * from "./vet";
+export * from "./gestation";

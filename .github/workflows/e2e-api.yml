@@ -1,6 +1,6 @@
 # Postgres de service = équivalent technique à une base Supabase (Postgres) pour CI,
 # sans dépendre du projet cloud du contributeur.
-name: API e2e (contrat mobile)
+name: API e2e (contrat mobile + SuperAdmin)
 
 on:
   push:

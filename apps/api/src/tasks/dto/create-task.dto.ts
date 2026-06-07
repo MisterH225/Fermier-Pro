@@ -1,11 +1,13 @@
-import { TaskPriority, TaskStatus } from "@prisma/client";
+import { TaskPriority, TaskReminder, TaskStatus } from "@prisma/client";
 import {
   IsDateString,
   IsEnum,
+  IsIn,
   IsOptional,
   IsString,
   MaxLength
 } from "class-validator";
+import { TASK_CATEGORIES } from "../task-categories.constants";
 
 export class CreateTaskDto {
   @IsString()
@@ -19,7 +21,7 @@ export class CreateTaskDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(64)
+  @IsIn([...TASK_CATEGORIES])
   category?: string;
 
   @IsOptional()
@@ -37,4 +39,12 @@ export class CreateTaskDto {
   @IsOptional()
   @IsString()
   assignedUserId?: string;
+
+  @IsOptional()
+  @IsString()
+  animalId?: string;
+
+  @IsOptional()
+  @IsEnum(TaskReminder)
+  reminder?: TaskReminder;
 }

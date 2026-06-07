@@ -158,7 +158,7 @@ export function FarmListScreen({ navigation }: Props) {
       <>
         {profileModal}
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#5d7a1f" />
+          <ActivityIndicator size="large" color={mobileColors.accent} />
           {authMe?.user.fullName ? (
             <Text style={styles.welcome}>
               Bonjour {authMe.user.fullName}
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
   list: {
     padding: mobileSpacing.lg,
     paddingBottom: 32,
-    backgroundColor: mobileColors.surface
+    backgroundColor: mobileColors.canvas
   },
   listWelcome: {
     fontSize: 15,
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
   marketInlineSub: {
     marginTop: 4,
     fontSize: 13,
-    color: "#6d745b"
+    color: mobileColors.textSecondary
   },
   inlineCta: {
     alignSelf: "flex-start",
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
   welcome: {
     marginTop: 16,
     fontSize: 15,
-    color: "#6d745b"
+    color: mobileColors.textSecondary
   },
   card: {
     backgroundColor: mobileColors.background,
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
   cardSub: {
     marginTop: 6,
     fontSize: 14,
-    color: "#6d745b"
+    color: mobileColors.textSecondary
   },
   cardAddr: {
     marginTop: 8,
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   hint: {
     marginTop: 12,
     fontSize: 12,
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     textAlign: "center"
   },
   emptyTitle: {
@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
   emptySub: {
     marginTop: 10,
     fontSize: 14,
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     textAlign: "center",
     lineHeight: 20
   },

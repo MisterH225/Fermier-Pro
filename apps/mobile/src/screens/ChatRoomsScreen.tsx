@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { mobileColors } from "../theme/mobileTheme";
 import { useFocusEffect } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useLayoutEffect } from "react";
@@ -11,11 +12,14 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { ChatModuleGate } from "../components/ChatModuleGate";
+import { useBottomInset } from "../hooks/useBottomInset";
 import { useSession } from "../context/SessionContext";
 import type { ChatRoomListItem } from "../lib/api";
 import { directConversationTitle, fetchChatRooms } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ChatRooms">;
 
@@ -40,6 +44,8 @@ function lastPreview(room: ChatRoomListItem): string | null {
 }
 
 export function ChatRoomsScreen({ navigation }: Props) {
+  const { t } = useTranslation();
+  const bottomInset = useBottomInset();
   const { accessToken, activeProfileId, authMe } = useSession();
 
   useLayoutEffect(() => {
@@ -76,13 +82,13 @@ export function ChatRoomsScreen({ navigation }: Props) {
       <View style={styles.wrap}>
         {roomsQuery.isPending ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color="#5d7a1f" />
+            <ActivityIndicator size="large" color={mobileColors.accent} />
           </View>
         ) : roomsQuery.error ? (
           <View style={styles.centered}>
             <Text style={styles.error}>
               {roomsQuery.error instanceof Error
-                ? roomsQuery.error.message
+                ? getUserFacingError(roomsQuery.error, t)
                 : String(roomsQuery.error)}
             </Text>
           </View>
@@ -91,13 +97,15 @@ export function ChatRoomsScreen({ navigation }: Props) {
             data={rooms}
             keyExtractor={(item) => item.id}
             contentContainerStyle={
-              rooms.length === 0 ? styles.emptyList : styles.list
+              rooms.length === 0
+                ? [styles.emptyList, { paddingBottom: bottomInset }]
+                : [styles.list, { paddingBottom: bottomInset }]
             }
             refreshControl={
               <RefreshControl
                 refreshing={roomsQuery.isRefetching}
                 onRefresh={() => void roomsQuery.refetch()}
-                tintColor="#5d7a1f"
+                tintColor={mobileColors.accent}
               />
             }
             ListEmptyComponent={
@@ -139,7 +147,7 @@ export function ChatRoomsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: "#f9f8ea" },
+  wrap: { flex: 1, backgroundColor: mobileColors.canvas },
   list: { padding: 16, paddingBottom: 32 },
   emptyList: { flexGrow: 1 },
   centered: {
@@ -160,7 +168,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#1f2910"
+    color: mobileColors.textPrimary
   },
   cardPreview: {
     marginTop: 8,
@@ -183,12 +191,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     marginBottom: 10
   },
   emptySub: {
     fontSize: 14,
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     lineHeight: 22
   }
 });

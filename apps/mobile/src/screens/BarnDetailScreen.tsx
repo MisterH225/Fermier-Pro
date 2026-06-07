@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
-import { useLayoutEffect } from "react";
+import { useLayoutEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -10,16 +10,56 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useTranslation } from "react-i18next";
+import { CreateLogeModal } from "../components/cheptel/pens/CreateLogeModal";
 import { HousingModuleGate } from "../components/HousingModuleGate";
+import { TechFarmAccessGate } from "../components/technician/TechFarmAccessGate";
 import { useSession } from "../context/SessionContext";
 import { fetchFarmBarn } from "../lib/api";
+import { getQueryErrorMessage } from "../lib/userFacingError";
 import type { RootStackParamList } from "../types/navigation";
+import { mobileColors } from "../theme/mobileTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "BarnDetail">;
 
 export function BarnDetailScreen({ route, navigation }: Props) {
+  const { clientFeatures } = useSession();
+  const { farmId } = route.params;
+
+  if (!clientFeatures.housing) {
+    return (
+      <HousingModuleGate>
+        <View />
+      </HousingModuleGate>
+    );
+  }
+
+  return (
+    <TechFarmAccessGate farmId={farmId} module="loges">
+      {({ readOnly }) => (
+        <BarnDetailContent
+          route={route}
+          navigation={navigation}
+          readOnly={readOnly}
+        />
+      )}
+    </TechFarmAccessGate>
+  );
+}
+
+function BarnDetailContent({
+  route,
+  navigation,
+  readOnly
+}: {
+  route: Props["route"];
+  navigation: Props["navigation"];
+  readOnly: boolean;
+}) {
+  const { t } = useTranslation();
   const { farmId, farmName, barnId, barnName } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
+  const [createOpen, setCreateOpen] = useState(false);
 
   const q = useQuery({
     queryKey: ["farmBarn", farmId, barnId, activeProfileId],
@@ -33,24 +73,18 @@ export function BarnDetailScreen({ route, navigation }: Props) {
     const title = barn?.name ?? barnName ?? "Bâtiment";
     navigation.setOptions({
       title,
-      headerRight: clientFeatures.housing
-        ? () => (
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("CreatePen", {
-                  farmId,
-                  farmName,
-                  barnId,
-                  barnName: title
-                })
-              }
-              style={styles.headerBtn}
-              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
-            >
-              <Text style={styles.headerBtnText}>+ Loge</Text>
-            </TouchableOpacity>
-          )
-        : undefined
+      headerRight:
+        clientFeatures.housing && !readOnly
+          ? () => (
+              <TouchableOpacity
+                onPress={() => setCreateOpen(true)}
+                style={styles.headerBtn}
+                hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+              >
+                <Text style={styles.headerBtnText}>+ Loge</Text>
+              </TouchableOpacity>
+            )
+          : undefined
     });
   }, [
     navigation,
@@ -59,27 +93,20 @@ export function BarnDetailScreen({ route, navigation }: Props) {
     farmId,
     farmName,
     barnId,
-    clientFeatures.housing
+    clientFeatures.housing,
+    readOnly
   ]);
-
-  if (!clientFeatures.housing) {
-    return (
-      <HousingModuleGate>
-        <View />
-      </HousingModuleGate>
-    );
-  }
 
   if (q.isPending) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#5d7a1f" />
+        <ActivityIndicator size="large" color={mobileColors.accent} />
       </View>
     );
   }
 
   const err =
-    q.error instanceof Error ? q.error.message : q.error ? String(q.error) : null;
+    getQueryErrorMessage(q.error, t);
 
   if (err || !barn) {
     return (
@@ -93,7 +120,6 @@ export function BarnDetailScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.flex}>
-      <Text style={styles.farmHint}>{farmName}</Text>
       {barn.notes ? (
         <Text style={styles.notes}>{barn.notes}</Text>
       ) : null}
@@ -108,7 +134,7 @@ export function BarnDetailScreen({ route, navigation }: Props) {
           <RefreshControl
             refreshing={q.isRefetching}
             onRefresh={() => void q.refetch()}
-            tintColor="#5d7a1f"
+            tintColor={mobileColors.accent}
           />
         }
         ListEmptyComponent={
@@ -146,18 +172,26 @@ export function BarnDetailScreen({ route, navigation }: Props) {
           </TouchableOpacity>
         )}
       />
+
+      <CreateLogeModal
+        visible={createOpen}
+        farmId={farmId}
+        accessToken={accessToken}
+        activeProfileId={activeProfileId}
+        barns={[{ id: barnId, name: barn?.name ?? barnName ?? "Bâtiment" }]}
+        defaultBarnId={barnId}
+        lockBarn
+        onClose={() => setCreateOpen(false)}
+        onCreated={() => {
+          void q.refetch();
+        }}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#f9f8ea" },
-  farmHint: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    fontSize: 13,
-    color: "#6d745b"
-  },
+  flex: { flex: 1, backgroundColor: mobileColors.canvas },
   notes: {
     paddingHorizontal: 16,
     paddingBottom: 8,
@@ -172,7 +206,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
-    backgroundColor: "#f9f8ea"
+    backgroundColor: mobileColors.canvas
   },
   error: { color: "#a34c24", textAlign: "center" },
   emptyBox: { padding: 32 },
@@ -193,7 +227,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 17, fontWeight: "700", color: "#1f2910" },
   cardMeta: { fontSize: 14, color: "#6d745b", marginTop: 6 },
-  cardStatus: { fontSize: 13, color: "#5d7a1f", marginTop: 8 },
+  cardStatus: { fontSize: 13, color: mobileColors.accent, marginTop: 8 },
   headerBtn: { marginRight: 4 },
-  headerBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 }
+  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: 15 }
 });

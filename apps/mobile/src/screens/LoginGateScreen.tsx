@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Image,
   KeyboardAvoidingView,
@@ -6,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   useWindowDimensions
 } from "react-native";
@@ -14,44 +12,20 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { GoogleOAuthButton } from "../components/GoogleOAuthButton";
 import { PhoneOtpAuth } from "../components/PhoneOtpAuth";
-import { getExpoPublicEnv, isApiUrlConfigured, isAuthEnvConfigured } from "../env";
+import { isAuthEnvConfigured } from "../env";
+import { getGoogleOAuthRedirectUri } from "../lib/googleAuth";
 import { authColors, authRadii } from "../theme/authTheme";
 
 const LOGO = require("../../assets/images/fermier-pro-logo-nobg.png");
 
-function supabaseHostLabel(): string {
-  const raw = getExpoPublicEnv().supabaseUrl.trim();
-  if (!raw) {
-    return "";
-  }
-  try {
-    return new URL(raw).host;
-  } catch {
-    return "(URL invalide)";
-  }
-}
-
-export type LoginGateScreenProps = {
-  /** Voir `isDemoNavigationOffered()` : `__DEV__` ou `EXPO_PUBLIC_AUTH_BYPASS`. */
-  bypassAllowed?: boolean;
-  /**
-   * Lance la navigation principale sans session Supabase (données démo factices),
-   * sauf si `getDevBypassApiAccessToken()` renvoie un JWT en Metro — alors API réelle.
-   */
-  onEnterDemoBypass?: () => void;
-};
-
 /**
- * Écran avant session : logo, charte maquette, configuration .env + OTP téléphone.
+ * Écran de connexion : Google OAuth ou SMS (Supabase Auth).
  */
-export function LoginGateScreen({
-  bypassAllowed = false,
-  onEnterDemoBypass
-}: LoginGateScreenProps) {
+export function LoginGateScreen() {
   const authOk = isAuthEnvConfigured();
-  const [showDiag, setShowDiag] = useState(false);
-  /** OTP masqué par défaut quand le mode démo est proposé (dev / AUTH_BYPASS). */
-  const [showSmsLogin, setShowSmsLogin] = useState(false);
+  const oauthRedirectUri = authOk ? getGoogleOAuthRedirectUri() : "";
+  const showDevRedirectHint =
+    typeof __DEV__ !== "undefined" && __DEV__ && authOk;
   const { width: winW } = useWindowDimensions();
   const logoW = Math.min(winW - 80, 340);
   const logoH = Math.round(logoW * (295 / 601));
@@ -75,145 +49,62 @@ export function LoginGateScreen({
               resizeMode="contain"
               accessibilityLabel="Fermier Pro"
             />
-
             <Text style={styles.lead}>
               Pilote tes fermes, ton cheptel et tes opérations au quotidien.
             </Text>
           </View>
 
-          {bypassAllowed && onEnterDemoBypass ? (
-            <View style={styles.bypassBlock}>
-              <Text style={styles.bypassHint}>
-                Parcours les écrans sans compte (données démo côté profil ; API
-                réelle si EXPO_PUBLIC_API_URL est joignable).
-              </Text>
-              <TouchableOpacity
-                style={styles.bypassBtn}
-                onPress={onEnterDemoBypass}
-                activeOpacity={0.88}
-              >
-                <Ionicons
-                  name="flask-outline"
-                  size={22}
-                  color={authColors.forest}
-                  style={styles.bypassBtnIcon}
-                />
-                <Text style={styles.bypassBtnText}>
-                  Explorer l’app — mode démo
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : null}
-
           {!authOk ? (
-            bypassAllowed ? (
-              <View style={styles.infoCard}>
-                <Ionicons
-                  name="information-circle-outline"
-                  size={22}
-                  color={authColors.forestMuted}
-                  style={styles.warnIcon}
-                />
-                <Text style={styles.infoCardText}>
-                  Supabase non configuré : la connexion Google ou par SMS sera
-                  disponible après copie de .env.example vers .env et renseignement des
-                  clés. En attendant, utilise le bouton ci-dessus.
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.warnCard}>
-                <Ionicons
-                  name="warning-outline"
-                  size={22}
-                  color={authColors.error}
-                  style={styles.warnIcon}
-                />
-                <Text style={styles.warnText}>
-                  Copiez apps/mobile/.env.example vers .env et renseignez
-                  EXPO_PUBLIC_SUPABASE_URL et EXPO_PUBLIC_SUPABASE_ANON_KEY.
-                </Text>
-              </View>
-            )
-          ) : null}
-
-          {authOk ? (
+            <View style={styles.warnCard}>
+              <Ionicons
+                name="warning-outline"
+                size={22}
+                color={authColors.error}
+                style={styles.warnIcon}
+              />
+              <Text style={styles.warnText}>
+                Configure EXPO_PUBLIC_SUPABASE_URL et
+                EXPO_PUBLIC_SUPABASE_ANON_KEY dans apps/mobile/.env avec l’URL
+                réelle du projet Supabase (pas le modèle avec &lt;project-ref&gt;),
+                puis redémarre Expo avec --clear.
+              </Text>
+            </View>
+          ) : (
             <>
-              <GoogleOAuthButton />
-              {(!bypassAllowed || showSmsLogin) ? (
-                <View style={styles.authOrRow}>
-                  <View style={styles.authOrLine} />
-                  <Text style={styles.authOrText}>ou</Text>
-                  <View style={styles.authOrLine} />
+              {showDevRedirectHint ? (
+                <View style={styles.redirectHint}>
+                  <Text style={styles.redirectHintTitle}>
+                    URL de redirection (Supabase)
+                  </Text>
+                  <Text style={styles.redirectHintUrl} selectable>
+                    {oauthRedirectUri}
+                  </Text>
+                  <Text style={styles.redirectHintBody}>
+                    Supabase → Authentication → URL configuration :{"\n"}
+                    1. Site URL = l’URL exp://… ci-dessus (pas localhost).{"\n"}
+                    2. Redirect URLs = la même URL (bouton +).{"\n"}
+                    Google : Providers → Google (Client ID / Secret).
+                  </Text>
+                  {oauthRedirectUri.includes("localhost") ? (
+                    <Text style={styles.redirectWarn}>
+                      Cette URL contient localhost : sur iPhone ça échouera.
+                      Relance Expo en LAN (même Wi‑Fi) et rescanne le QR code.
+                    </Text>
+                  ) : null}
                 </View>
               ) : null}
-            </>
-          ) : null}
 
-          {authOk && bypassAllowed && showSmsLogin ? (
-            <TouchableOpacity
-              style={styles.smsFold}
-              onPress={() => setShowSmsLogin(false)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.smsFoldText}>Masquer la connexion SMS</Text>
-            </TouchableOpacity>
-          ) : null}
+              <GoogleOAuthButton />
 
-          {authOk && (!bypassAllowed || showSmsLogin) ? <PhoneOtpAuth /> : null}
-
-          {authOk && bypassAllowed && !showSmsLogin ? (
-            <>
               <View style={styles.authOrRow}>
                 <View style={styles.authOrLine} />
                 <Text style={styles.authOrText}>ou</Text>
                 <View style={styles.authOrLine} />
               </View>
-              <TouchableOpacity
-                style={styles.smsReveal}
-                onPress={() => setShowSmsLogin(true)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.smsRevealText}>
-                  Connexion par SMS (numéro mobile)…
-                </Text>
-              </TouchableOpacity>
+
+              <PhoneOtpAuth />
             </>
-          ) : null}
-
-          <TouchableOpacity
-            style={styles.diagToggle}
-            onPress={() => setShowDiag((v) => !v)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.diagToggleText}>
-              {showDiag ? "Masquer la configuration" : "Configuration API"}
-            </Text>
-            <Ionicons
-              name={showDiag ? "chevron-up" : "chevron-down"}
-              size={18}
-              color={authColors.placeholder}
-              style={styles.diagChevron}
-            />
-          </TouchableOpacity>
-
-          {showDiag ? (
-            <View style={styles.diagBox}>
-              <Text style={styles.okInline} selectable>
-                Supabase (hôte) : {supabaseHostLabel() || "—"}
-              </Text>
-              {!isApiUrlConfigured() ? (
-                <Text style={[styles.warnInline, styles.diagSecond]}>
-                  Ajoutez EXPO_PUBLIC_API_URL pour charger vos fermes (ex.
-                  http://10.0.2.2:3000 sur émulateur Android, IP LAN sur
-                  téléphone).
-                </Text>
-              ) : (
-                <Text style={[styles.okInline, styles.diagSecond]} selectable>
-                  API : {process.env.EXPO_PUBLIC_API_URL}
-                </Text>
-              )}
-            </View>
-          ) : null}
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -245,9 +136,6 @@ const styles = StyleSheet.create({
     marginBottom: 0,
     alignSelf: "center"
   },
-  diagSecond: {
-    marginTop: 10
-  },
   lead: {
     fontSize: 15,
     color: authColors.body,
@@ -264,7 +152,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#FECACA",
     padding: 16,
-    marginTop: 8
+    marginTop: 16
   },
   warnIcon: {
     marginRight: 10,
@@ -275,53 +163,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: authColors.error,
     lineHeight: 20
-  },
-  infoCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: "#F0FDF4",
-    borderRadius: authRadii.input,
-    borderWidth: 1,
-    borderColor: "#BBF7D0",
-    padding: 16,
-    marginTop: 16
-  },
-  infoCardText: {
-    flex: 1,
-    fontSize: 14,
-    color: authColors.body,
-    lineHeight: 20
-  },
-  smsReveal: {
-    marginTop: 20,
-    alignItems: "center",
-    paddingVertical: 8
-  },
-  smsRevealText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: authColors.forest
-  },
-  smsFold: {
-    marginTop: 16,
-    alignItems: "center",
-    paddingVertical: 6
-  },
-  smsFoldText: {
-    fontSize: 14,
-    color: authColors.placeholder,
-    fontWeight: "500"
-  },
-  bypassBlock: {
-    marginTop: 16,
-    width: "100%"
-  },
-  bypassHint: {
-    fontSize: 12,
-    color: authColors.placeholder,
-    textAlign: "center",
-    lineHeight: 17,
-    marginBottom: 12
   },
   authOrRow: {
     flexDirection: "row",
@@ -339,51 +180,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: authColors.placeholder
   },
-  bypassBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: authColors.lime,
-    borderRadius: authRadii.pill,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    minHeight: 56
+  redirectHint: {
+    marginTop: 16,
+    marginBottom: 4,
+    padding: 14,
+    borderRadius: authRadii.input,
+    borderWidth: 1,
+    borderColor: authColors.border,
+    backgroundColor: "#F8FAFC"
   },
-  bypassBtnIcon: {
-    marginRight: 10
-  },
-  bypassBtnText: {
-    fontSize: 16,
+  redirectHintTitle: {
+    fontSize: 12,
     fontWeight: "700",
-    color: authColors.forest
-  },
-  diagToggle: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 28
-  },
-  diagToggleText: {
-    fontSize: 14,
-    color: authColors.placeholder,
-    fontWeight: "500"
-  },
-  diagChevron: {
-    marginLeft: 6
-  },
-  diagBox: {
-    marginTop: 12,
-    paddingHorizontal: 4
-  },
-  warnInline: {
-    fontSize: 13,
-    color: authColors.body,
-    lineHeight: 19,
-    textAlign: "center"
-  },
-  okInline: {
-    fontSize: 13,
     color: authColors.forestMuted,
-    textAlign: "center"
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+    marginBottom: 6
+  },
+  redirectHintUrl: {
+    fontSize: 13,
+    color: authColors.forest,
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+    marginBottom: 8
+  },
+  redirectHintBody: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: authColors.body
+  },
+  redirectWarn: {
+    marginTop: 10,
+    fontSize: 12,
+    lineHeight: 17,
+    color: authColors.error,
+    fontWeight: "600"
   }
 });

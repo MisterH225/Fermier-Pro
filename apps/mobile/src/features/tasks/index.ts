@@ -1,2 +1,2 @@
-export { CreateTaskScreen } from "../../screens/CreateTaskScreen";
-export { FarmTasksScreen } from "../../screens/FarmTasksScreen";
+export { TasksScreen as FarmTasksScreen } from "../../components/tasks";
+export { TasksScreen, DashboardTaskWidget } from "../../components/tasks";

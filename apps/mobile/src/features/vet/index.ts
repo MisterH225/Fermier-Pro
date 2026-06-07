@@ -2,3 +2,10 @@ export { AddVetConsultationAttachmentScreen } from "../../screens/AddVetConsulta
 export { CreateVetConsultationScreen } from "../../screens/CreateVetConsultationScreen";
 export { FarmVetConsultationsScreen } from "../../screens/FarmVetConsultationsScreen";
 export { VetConsultationDetailScreen } from "../../screens/VetConsultationDetailScreen";
+export { VetDashboardScreen } from "../../screens/vet/VetDashboardScreen";
+export { VetAgendaScreen } from "../../screens/vet/VetAgendaScreen";
+export { VetFarmsScreen } from "../../screens/vet/VetFarmsScreen";
+export { VetFarmDetailScreen } from "../../screens/vet/VetFarmDetailScreen";
+export { VetMessagesScreen } from "../../screens/vet/VetMessagesScreen";
+export { VetTasksScreen } from "../../screens/vet/VetTasksScreen";
+export { VetReportsScreen } from "../../screens/vet/VetReportsScreen";

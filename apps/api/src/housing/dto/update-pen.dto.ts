@@ -1,6 +1,10 @@
+import { PenCategory } from "@prisma/client";
 import { Type } from "class-transformer";
 import {
+  IsBoolean,
+  IsEnum,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   Max,
@@ -42,4 +46,26 @@ export class UpdatePenDto {
   @Min(0)
   @Max(99_999)
   sortOrder?: number;
+
+  @IsOptional()
+  @IsEnum(PenCategory)
+  category?: PenCategory;
+
+  @IsOptional()
+  @IsBoolean()
+  categoryForced?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  averageWeightKg?: number | null;
+
+  /** Âge moyen en SEMAINES entières (0 — 104). */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(104)
+  averageAgeWeeksManual?: number | null;
 }

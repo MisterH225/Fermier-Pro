@@ -17,14 +17,13 @@ import {
   buildInvitationShareUrl,
   fetchFarmDefaultInvitation
 } from "../../lib/api";
-import { isDemoBypassToken } from "../../lib/demoBypass";
 import {
   mobileColors,
   mobileRadius,
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
-import { CollaborativeAccessShareModal } from "./CollaborativeAccessShareModal";
+import { InviteModal as CollaborativeAccessShareModal } from "../collaboration/InviteModal";
 
 type Props = {
   farmId: string | null;
@@ -39,8 +38,6 @@ export function CollaborativeAccessPanel({ farmId, farmName }: Props) {
   const qc = useQueryClient();
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
-
-  const demo = isDemoBypassToken(accessToken);
 
   const defaultInvitationQuery = useQuery({
     queryKey: ["farmDefaultInvitation", farmId, activeProfileId],
@@ -135,9 +132,6 @@ export function CollaborativeAccessPanel({ farmId, farmName }: Props) {
       </View>
 
       <Text style={styles.hint}>{t("collab.scanHint")}</Text>
-      {demo && shareUrl ? (
-        <Text style={styles.demoFootnote}>{t("collab.demoQrFootnote")}</Text>
-      ) : null}
 
       {shareUrl ? (
         <View style={styles.linkCard}>
@@ -242,14 +236,6 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     color: mobileColors.textSecondary,
     textAlign: "center"
-  },
-  demoFootnote: {
-    ...mobileTypography.meta,
-    fontSize: 11,
-    lineHeight: 16,
-    color: mobileColors.textSecondary,
-    textAlign: "center",
-    fontStyle: "italic"
   },
   linkCard: {
     flexDirection: "row",

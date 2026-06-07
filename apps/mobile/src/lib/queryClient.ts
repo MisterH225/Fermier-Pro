@@ -17,6 +17,16 @@ export const queryClient = new QueryClient({
       staleTime: 30_000,
       /** Conservé assez longtemps pour la réhydratation cache offline (persist). */
       gcTime: 1000 * 60 * 60 * 24,
+      networkMode: "offlineFirst",
+      retry: (failureCount) => {
+        if (!onlineManager.isOnline()) {
+          return false;
+        }
+        return failureCount < 1;
+      }
+    },
+    mutations: {
+      networkMode: "offlineFirst",
       retry: (failureCount) => {
         if (!onlineManager.isOnline()) {
           return false;

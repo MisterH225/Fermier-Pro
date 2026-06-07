@@ -5,11 +5,11 @@ import {
 } from "@nestjs/common";
 import type { FarmExpense, FarmRevenue, User } from "@prisma/client";
 import { FinanceCategoryType, Prisma } from "@prisma/client";
-import PDFDocument from "pdfkit";
 import { AUDIT_ACTION } from "../common/audit.constants";
 import { AuditService } from "../common/audit.service";
 import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import { ensureFarmFinanceBootstrap } from "./finance-bootstrap";
 import { CreateExpenseDto } from "./dto/create-expense.dto";
 import { CreateRevenueDto } from "./dto/create-revenue.dto";
@@ -21,7 +21,8 @@ export class FinanceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
-    private readonly audit: AuditService
+    private readonly audit: AuditService,
+    private readonly smartAlerts: SmartAlertsService
   ) {}
 
   private expenseSnapshot(row: FarmExpense) {
@@ -145,6 +146,7 @@ export class FinanceService {
         label: row.label
       }
     });
+    void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
     return row;
   }
 
@@ -294,6 +296,7 @@ export class FinanceService {
         label: row.label
       }
     });
+    void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
     return row;
   }
 
@@ -522,7 +525,7 @@ export class FinanceService {
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)
     );
 
-    const [monthExp, monthRev, allExp, allRev, months3] = await Promise.all([
+    const [monthExp, monthRev, allExp, allRev, months6] = await Promise.all([
       this.prisma.farmExpense.aggregate({
         where: {
           farmId,
@@ -545,7 +548,7 @@ export class FinanceService {
         where: { farmId },
         _sum: { amount: true }
       }),
-      this.financeTimeseriesLast3Months(farmId)
+      this.financeTimeseriesMonths(farmId, 6)
     ]);
 
     const te = monthExp._sum.amount ?? new Prisma.Decimal(0);
@@ -572,24 +575,43 @@ export class FinanceService {
       },
       balanceAllTime: balance.toString(),
       lowBalanceWarning,
-      months3
+      months6,
+      /** @deprecated Préférer months6 — conserve les 3 derniers mois pour compatibilité. */
+      months3: months6.slice(-3)
     };
   }
 
-  private async financeTimeseriesLast3Months(farmId: string) {
-    const now = new Date();
+  private shiftMonthUtc(year: number, month: number, delta: number) {
+    const ref = new Date(Date.UTC(year, month - 1 + delta, 1));
+    return {
+      year: ref.getUTCFullYear(),
+      month: ref.getUTCMonth() + 1
+    };
+  }
+
+  /** Séries mensuelles sur `count` mois se terminant à `endYear`/`endMonth` (1–12). */
+  private async financeTimeseriesMonths(
+    farmId: string,
+    count: number,
+    endYear?: number,
+    endMonth?: number
+  ) {
+    const anchor =
+      endYear != null && endMonth != null
+        ? { year: endYear, month: endMonth }
+        : (() => {
+            const now = new Date();
+            return {
+              year: now.getUTCFullYear(),
+              month: now.getUTCMonth() + 1
+            };
+          })();
     const months: { label: string; start: Date; end: Date }[] = [];
-    for (let delta = 2; delta >= 0; delta -= 1) {
-      const ref = new Date(
-        Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - delta, 1)
-      );
-      const start = new Date(
-        Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), 1)
-      );
-      const end = new Date(
-        Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth() + 1, 1)
-      );
-      const label = `${ref.getUTCFullYear()}-${String(ref.getUTCMonth() + 1).padStart(2, "0")}`;
+    for (let delta = count - 1; delta >= 0; delta -= 1) {
+      const ref = this.shiftMonthUtc(anchor.year, anchor.month, -delta);
+      const start = new Date(Date.UTC(ref.year, ref.month - 1, 1));
+      const end = new Date(Date.UTC(ref.year, ref.month, 1));
+      const label = `${ref.year}-${String(ref.month).padStart(2, "0")}`;
       months.push({ label, start, end });
     }
     const settings = await this.prisma.farmFinanceSettings.findUniqueOrThrow({
@@ -616,6 +638,10 @@ export class FinanceService {
       })
     );
     return series;
+  }
+
+  private async financeTimeseriesLastMonths(farmId: string, count: number) {
+    return this.financeTimeseriesMonths(farmId, count);
   }
 
   async listMergedTransactions(
@@ -694,6 +720,7 @@ export class FinanceService {
       financeCategoryId: e.financeCategoryId,
       linkedEntityType: e.linkedEntityType,
       linkedEntityId: e.linkedEntityId,
+      linkedStockMovementIds: e.linkedStockMovementIds ?? [],
       attachmentUrl: e.attachmentUrl,
       note: e.note,
       creator: e.creator
@@ -712,6 +739,7 @@ export class FinanceService {
       linkedEntityId: r.linkedEntityId,
       attachmentUrl: r.attachmentUrl,
       note: r.note,
+      isAutoGenerated: r.isAutoGenerated,
       creator: r.creator
     });
 
@@ -884,18 +912,36 @@ export class FinanceService {
           net: rM.sub(eM).toString()
         });
       }
-      topExpenseCategories = [...rows]
-        .filter((r) => new Prisma.Decimal(r.expenses).gt(0))
-        .sort((a, b) =>
-          new Prisma.Decimal(b.expenses).cmp(new Prisma.Decimal(a.expenses))
-        )
-        .slice(0, 10)
-        .map((r) => ({
-          key: r.key,
-          label: r.label,
-          expenses: r.expenses
-        }));
+    } else {
+      const endYear = start.getUTCFullYear();
+      const endMonth = start.getUTCMonth() + 1;
+      const series = await this.financeTimeseriesMonths(
+        farmId,
+        6,
+        endYear,
+        endMonth
+      );
+      monthlyEvolution = series.map((m) => ({
+        month: m.month,
+        expenses: m.expenses,
+        revenues: m.revenues,
+        net: new Prisma.Decimal(m.revenues)
+          .sub(new Prisma.Decimal(m.expenses))
+          .toString()
+      }));
     }
+
+    topExpenseCategories = [...rows]
+      .filter((r) => new Prisma.Decimal(r.expenses).gt(0))
+      .sort((a, b) =>
+        new Prisma.Decimal(b.expenses).cmp(new Prisma.Decimal(a.expenses))
+      )
+      .slice(0, 10)
+      .map((r) => ({
+        key: r.key,
+        label: r.label,
+        expenses: r.expenses
+      }));
 
     return {
       farmId,
@@ -911,6 +957,87 @@ export class FinanceService {
       byCategory: rows,
       ...(monthlyEvolution ? { monthlyEvolution } : {}),
       ...(topExpenseCategories ? { topExpenseCategories } : {})
+    };
+  }
+
+  /**
+   * Agrégation finance sur une fenêtre [start, end) (trimestre, glissement, etc.).
+   * Réutilise la même logique de regroupement que `financeReport`.
+   */
+  async financeReportRange(user: User, farmId: string, start: Date, end: Date) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    await ensureFarmFinanceBootstrap(this.prisma, farmId);
+    const settings = await this.prisma.farmFinanceSettings.findUniqueOrThrow({
+      where: { farmId }
+    });
+
+    const [expenses, revenues] = await Promise.all([
+      this.prisma.farmExpense.findMany({
+        where: { farmId, occurredAt: { gte: start, lt: end } },
+        include: { financeCategory: true }
+      }),
+      this.prisma.farmRevenue.findMany({
+        where: { farmId, occurredAt: { gte: start, lt: end } },
+        include: { financeCategory: true }
+      })
+    ]);
+
+    const byCat = new Map<
+      string,
+      { label: string; expenses: Prisma.Decimal; revenues: Prisma.Decimal }
+    >();
+
+    for (const e of expenses) {
+      const key = e.financeCategoryId ?? `legacy:${e.category ?? "none"}`;
+      const lab = e.financeCategory?.name ?? e.category ?? "Sans categorie";
+      const cur = byCat.get(key) ?? {
+        label: lab,
+        expenses: new Prisma.Decimal(0),
+        revenues: new Prisma.Decimal(0)
+      };
+      cur.expenses = cur.expenses.add(e.amount);
+      byCat.set(key, cur);
+    }
+    for (const r of revenues) {
+      const key = r.financeCategoryId ?? `legacy:${r.category ?? "none"}`;
+      const lab = r.financeCategory?.name ?? r.category ?? "Sans categorie";
+      const cur = byCat.get(key) ?? {
+        label: lab,
+        expenses: new Prisma.Decimal(0),
+        revenues: new Prisma.Decimal(0)
+      };
+      cur.revenues = cur.revenues.add(r.amount);
+      byCat.set(key, cur);
+    }
+
+    const rows = [...byCat.entries()].map(([key, v]) => ({
+      key,
+      label: v.label,
+      expenses: v.expenses.toString(),
+      revenues: v.revenues.toString(),
+      net: v.revenues.sub(v.expenses).toString()
+    }));
+
+    const totalExp = expenses.reduce(
+      (s, e) => s.add(e.amount),
+      new Prisma.Decimal(0)
+    );
+    const totalRev = revenues.reduce(
+      (s, r) => s.add(r.amount),
+      new Prisma.Decimal(0)
+    );
+
+    return {
+      farmId,
+      range: { start: start.toISOString(), end: end.toISOString() },
+      currency: settings.currencyCode,
+      currencySymbol: settings.currencySymbol,
+      totals: {
+        expenses: totalExp.toString(),
+        revenues: totalRev.toString(),
+        net: totalRev.sub(totalExp).toString()
+      },
+      byCategory: rows
     };
   }
 
@@ -1106,70 +1233,6 @@ export class FinanceService {
       )
       .join("\n");
     return header + body;
-  }
-
-  async financeExportPdf(
-    user: User,
-    farmId: string,
-    period: "month" | "year",
-    month?: string,
-    year?: string
-  ): Promise<Buffer> {
-    const report = await this.financeReport(user, farmId, period, month, year);
-    return new Promise((resolve, reject) => {
-      const doc = new PDFDocument({ margin: 50, size: "A4" });
-      const chunks: Buffer[] = [];
-      doc.on("data", (chunk: Buffer) => chunks.push(chunk));
-      doc.on("end", () => resolve(Buffer.concat(chunks)));
-      doc.on("error", reject);
-
-      doc
-        .fontSize(18)
-        .text(`Rapport finance — ${report.period}`, { align: "center" });
-      doc.moveDown();
-      doc
-        .fontSize(10)
-        .text(`Periode: ${report.range.start} → ${report.range.end}`, {
-          align: "left"
-        });
-      doc.text(`Devise: ${report.currency} (${report.currencySymbol})`);
-      doc.moveDown();
-      doc.fontSize(12).text("Totaux", { underline: true });
-      doc.fontSize(10);
-      doc.text(`Revenus: ${report.totals.revenues}`);
-      doc.text(`Depenses: ${report.totals.expenses}`);
-      doc.text(`Net: ${report.totals.net}`);
-      doc.moveDown();
-      doc.fontSize(12).text("Par categorie", { underline: true });
-      doc.fontSize(9);
-      for (const row of report.byCategory.slice(0, 40)) {
-        doc.text(
-          `${row.label}: rev ${row.revenues} | dep ${row.expenses} | net ${row.net}`
-        );
-      }
-      if ("monthlyEvolution" in report && report.monthlyEvolution?.length) {
-        doc.addPage();
-        doc.fontSize(12).text("Evolution mensuelle", { underline: true });
-        doc.fontSize(9);
-        for (const m of report.monthlyEvolution) {
-          doc.text(
-            `${m.month}: rev ${m.revenues} dep ${m.expenses} net ${m.net}`
-          );
-        }
-      }
-      if (
-        "topExpenseCategories" in report &&
-        report.topExpenseCategories?.length
-      ) {
-        doc.moveDown();
-        doc.fontSize(12).text("Top depenses", { underline: true });
-        doc.fontSize(9);
-        for (const t of report.topExpenseCategories) {
-          doc.text(`${t.label}: ${t.expenses}`);
-        }
-      }
-      doc.end();
-    });
   }
 }
 

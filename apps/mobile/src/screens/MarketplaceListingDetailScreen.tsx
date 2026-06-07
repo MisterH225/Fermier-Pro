@@ -1,9 +1,13 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
+  Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,23 +15,61 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
-import { useSession } from "../context/SessionContext";
+import { ListingModal } from "../components/marketplace/ListingModal";
+import { isFlatPriceListing } from "../components/marketplace/listingPricing";
+import { CreditProposalModal } from "../components/marketplace/CreditProposalModal";
+import { CreditScoreBadge } from "../components/marketplace/CreditScoreBadge";
+import { ProposalModal } from "../components/marketplace/ProposalModal";
 import {
-  acceptMarketplaceOffer,
+  formatMarketMoney,
+  parseMarketNum
+} from "../components/marketplace/MarketplaceListingCard";
+import { ListingImage } from "../components/marketplace/ListingImage";
+import { listingPhotoUrlsArray } from "../lib/resolveListingImage";
+import { useModal } from "../components/modals/useModal";
+import { PrimaryButton } from "../components/ui/PrimaryButton";
+import { SecondaryButton } from "../components/ui/SecondaryButton";
+import { FarmInfoCard } from "../components/market/FarmInfoCard";
+import { HealthSummarySection } from "../components/market/HealthSummarySection";
+import {
+  DetailCard,
+  DetailRow,
+  DetailSectionLabel,
+  ListingStatusBadge
+} from "../components/marketplace/listingDetailUi";
+import { useSession } from "../context/SessionContext";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
+import { useBottomChromePad } from "../hooks/useBottomInset";
+import { formatAnimalDisplayLabel } from "../lib/animalDisplay";
+import {
   cancelMarketplaceListing,
-  completeMarketplaceHandover,
+  ensureDirectChatRoom,
   fetchMarketplaceListing,
-  patchMarketplacePickup,
+  fetchMarketplaceTransactions,
+  fetchMyCreditScore,
+  postMarketplaceListingConsult,
+  postMarketplaceListingView,
   postMarketplaceOffer,
+  postMarketplaceCreditOffer,
   publishMarketplaceListing,
-  rejectMarketplaceOffer
+  renewMarketplaceListing
 } from "../lib/api";
 import {
   listingStatusLabel,
   marketplaceActionErrorMessage,
   offerStatusLabel
 } from "../lib/marketplaceLabels";
+import { getUserFacingError } from "../lib/userFacingError";
+import {
+  mobileColors,
+  mobileRadius,
+  mobileShadows,
+  mobileSpacing,
+  mobileTypography
+} from "../theme/mobileTheme";
+import type { ListingDurationDays } from "../lib/marketplaceListingForm";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<
@@ -39,30 +81,32 @@ function formatMoney(
   v: string | number | null | undefined,
   currency: string
 ): string {
-  if (v === undefined || v === null) {
-    return "—";
-  }
-  const n = typeof v === "string" ? Number.parseFloat(v) : Number(v);
-  if (!Number.isFinite(n)) {
-    return String(v);
-  }
-  return `${n.toLocaleString(undefined, { maximumFractionDigits: 0 })} ${currency}`;
+  const n = parseMarketNum(v);
+  if (n == null) return "—";
+  return formatMarketMoney(n, currency);
 }
 
 export function MarketplaceListingDetailScreen({
   route,
   navigation
 }: Props) {
+  const { t } = useTranslation();
   const { listingId } = route.params;
   const { accessToken, activeProfileId, authMe, clientFeatures } =
     useSession();
   const qc = useQueryClient();
+  const bottomChromePad = useBottomChromePad();
+  const { open } = useModal();
 
-  const [offerPrice, setOfferPrice] = useState("");
-  const [offerQty, setOfferQty] = useState("");
-  const [offerMsg, setOfferMsg] = useState("");
-  const [pickupAtStr, setPickupAtStr] = useState("");
-  const [pickupNoteStr, setPickupNoteStr] = useState("");
+  const showSuccess = (message: string, title?: string) => {
+    open("success", { message, title, autoDismissMs: 2200 });
+  };
+
+  const [proposalOpen, setProposalOpen] = useState(false);
+  const [creditOpen, setCreditOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [publishDurationDays, setPublishDurationDays] =
+    useState<ListingDurationDays>(14);
 
   const q = useQuery({
     queryKey: ["marketplaceListing", listingId, activeProfileId],
@@ -71,123 +115,145 @@ export function MarketplaceListingDetailScreen({
     enabled: clientFeatures.marketplace
   });
 
+  const txQ = useQuery({
+    queryKey: ["marketplaceTransactions", activeProfileId],
+    queryFn: () => fetchMarketplaceTransactions(accessToken, activeProfileId),
+    enabled: Boolean(accessToken) && clientFeatures.marketplace
+  });
+
   useLayoutEffect(() => {
-    const t = q.data?.title ?? route.params.headline;
     navigation.setOptions({
-      title: t && t.length > 0 ? t : "Annonce"
+      title: route.params?.headline?.trim() || t("marketScreen.detailTitle")
     });
-  }, [navigation, q.data?.title, route.params.headline]);
+  }, [navigation, route.params?.headline, t]);
 
   useEffect(() => {
     const L = q.data;
-    if (!L) return;
-    setPickupAtStr(
-      L.pickupAt ? L.pickupAt.slice(0, 16).replace("T", " ") : ""
+    if (!L || L.status !== "published" || !accessToken) return;
+    void postMarketplaceListingView(accessToken, listingId, activeProfileId).catch(
+      () => undefined
     );
-    setPickupNoteStr(L.pickupNote ?? "");
-  }, [q.data?.pickupAt, q.data?.pickupNote, q.data?.id]);
-
-  const offerMutation = useMutation({
-    mutationFn: () => {
-      const raw = offerPrice.trim().replace(",", ".");
-      const priceNum = Number.parseFloat(raw);
-      if (!Number.isFinite(priceNum) || priceNum < 0) {
-        throw new Error("Indique un prix d’offre valide.");
-      }
-      let qty: number | undefined;
-      const qt = offerQty.trim();
-      if (qt) {
-        const n = Number.parseInt(qt, 10);
-        if (!Number.isFinite(n) || n < 1) {
-          throw new Error("Quantité : entier positif ou champ vide.");
-        }
-        qty = n;
-      }
-      return postMarketplaceOffer(
+    const myId = authMe?.user.id;
+    const isSeller = myId && L.sellerUserId === myId;
+    if (!isSeller) {
+      void postMarketplaceListingConsult(
         accessToken,
         listingId,
-        {
-          offeredPrice: priceNum,
-          quantity: qty,
-          message: offerMsg.trim() || undefined
-        },
         activeProfileId
-      );
-    },
-    onSuccess: () => {
-      setOfferPrice("");
-      setOfferQty("");
-      setOfferMsg("");
-      void qc.invalidateQueries({
-        queryKey: ["marketplaceListing", listingId]
+      ).catch(() => undefined);
+    }
+  }, [
+    q.data?.id,
+    q.data?.status,
+    q.data?.sellerUserId,
+    accessToken,
+    listingId,
+    activeProfileId,
+    authMe?.user.id
+  ]);
+
+  const contactSellerMutation = useMutation({
+    mutationFn: (sellerUserId: string) =>
+      ensureDirectChatRoom(
+        accessToken!,
+        sellerUserId,
+        activeProfileId,
+        listingId
+      ),
+    onSuccess: (room) => {
+      navigation.navigate("ChatRoom", {
+        roomId: room.id,
+        headline: room.title?.trim() || t("marketScreen.detail.chatTitle"),
+        listingId
       });
+    },
+    onError: (e: Error) =>
+      Alert.alert(t("marketScreen.detail.contactErrorTitle"), getUserFacingError(e, t))
+  });
+
+  const creditScoreQ = useQuery({
+    queryKey: ["myCreditScore", activeProfileId],
+    queryFn: () => fetchMyCreditScore(accessToken!, activeProfileId),
+    enabled: Boolean(accessToken) && clientFeatures.marketplace
+  });
+
+  const creditProposalMutation = useMutation({
+    mutationFn: (input: {
+      offeredPrice: number;
+      advancePercentage: number;
+      balanceDueDays: number;
+      message?: string;
+    }) =>
+      postMarketplaceCreditOffer(
+        accessToken,
+        listingId,
+        input,
+        activeProfileId
+      ),
+    onSuccess: () => {
+      setCreditOpen(false);
+      showSuccess(t("marketScreen.creditModal.success"));
+      void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
       void qc.invalidateQueries({ queryKey: ["marketplaceMyOffers"] });
-      Alert.alert("Envoyé", "Ton offre a été enregistrée.");
     },
     onError: (e: Error) => {
       Alert.alert(
-        "Impossible d’envoyer l’offre",
-        marketplaceActionErrorMessage(e.message)
+        t("marketScreen.creditModal.errorTitle"),
+        marketplaceActionErrorMessage(e, t)
       );
     }
   });
 
-  const acceptMutation = useMutation({
-    mutationFn: (offerId: string) =>
-      acceptMarketplaceOffer(
+  const proposalMutation = useMutation({
+    mutationFn: (input: {
+      proposedPricePerKg?: number;
+      offeredPrice?: number;
+      message?: string;
+    }) =>
+      postMarketplaceOffer(
         accessToken,
         listingId,
-        offerId,
+        {
+          ...(input.offeredPrice != null
+            ? { offeredPrice: input.offeredPrice }
+            : { proposedPricePerKg: input.proposedPricePerKg }),
+          message: input.message
+        },
         activeProfileId
       ),
     onSuccess: () => {
+      setProposalOpen(false);
+      showSuccess(t("marketScreen.proposalModal.success"));
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
-      void qc.invalidateQueries({ queryKey: ["marketplaceListings"] });
-      void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
+      void qc.invalidateQueries({ queryKey: ["marketplaceMyOffers"] });
+      void qc.invalidateQueries({ queryKey: ["marketplaceOffersCounts"] });
+    },
+    onError: (e: Error) => {
       Alert.alert(
-        "Offre acceptée",
-        "L’annonce est réservée pour cet acheteur. Fixez ensemble le rendez-vous de retrait (paiement hors application)."
+        t("marketScreen.proposalModal.errorTitle"),
+        marketplaceActionErrorMessage(e, t)
       );
-    },
-    onError: (e: Error) =>
-      Alert.alert(
-        "Action impossible",
-        marketplaceActionErrorMessage(e.message)
-      )
-  });
-
-  const rejectMutation = useMutation({
-    mutationFn: (offerId: string) =>
-      rejectMarketplaceOffer(
-        accessToken,
-        listingId,
-        offerId,
-        activeProfileId
-      ),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
-      void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
-    },
-    onError: (e: Error) =>
-      Alert.alert(
-        "Action impossible",
-        marketplaceActionErrorMessage(e.message)
-      )
+    }
   });
 
   const publishMutation = useMutation({
     mutationFn: () =>
-      publishMarketplaceListing(accessToken, listingId, activeProfileId),
+      publishMarketplaceListing(
+        accessToken,
+        listingId,
+        activeProfileId,
+        publishDurationDays
+      ),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
       void qc.invalidateQueries({ queryKey: ["marketplaceListings"] });
       void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
-      Alert.alert("Publiée", "Ton annonce est visible sur le marché.");
+      showSuccess(t("marketScreen.publishSuccess"));
     },
     onError: (e: Error) =>
       Alert.alert(
         "Publication impossible",
-        marketplaceActionErrorMessage(e.message)
+        marketplaceActionErrorMessage(e, t)
       )
   });
 
@@ -198,64 +264,40 @@ export function MarketplaceListingDetailScreen({
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
       void qc.invalidateQueries({ queryKey: ["marketplaceListings"] });
       void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
-      Alert.alert(
-        "Annulée",
-        "L’annonce est clôturée et les offres en attente ont été refusées."
-      );
+      showSuccess(t("marketScreen.cancelSuccess"));
     },
     onError: (e: Error) =>
       Alert.alert(
         "Annulation impossible",
-        marketplaceActionErrorMessage(e.message)
+        marketplaceActionErrorMessage(e, t)
       )
   });
 
-  const pickupMutation = useMutation({
-    mutationFn: () => {
-      const raw = pickupAtStr.trim();
-      let pickupAt: string | null = null;
-      if (raw.length > 0) {
-        const normalized = raw.includes("T") ? raw : raw.replace(" ", "T");
-        const d = new Date(normalized);
-        if (!Number.isFinite(d.getTime())) {
-          throw new Error(
-            "Date/heure invalide (ex. 2026-05-15T10:00:00 ou avec fuseau Z)."
-          );
-        }
-        pickupAt = d.toISOString();
-      }
-      return patchMarketplacePickup(
-        accessToken,
-        listingId,
-        {
-          pickupAt,
-          pickupNote: pickupNoteStr.trim() || null
-        },
-        activeProfileId
-      );
-    },
+  const renewMut = useMutation({
+    mutationFn: () =>
+      renewMarketplaceListing(accessToken, listingId, 14, activeProfileId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
-      Alert.alert("Enregistré", "Rendez-vous de retrait mis à jour.");
+      showSuccess(t("marketScreen.renewSuccess"));
     },
     onError: (e: Error) =>
-      Alert.alert("Impossible", marketplaceActionErrorMessage(e.message))
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
   });
 
-  const handoverMutation = useMutation({
-    mutationFn: () =>
-      completeMarketplaceHandover(accessToken, listingId, activeProfileId),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
-      void qc.invalidateQueries({ queryKey: ["marketplaceListings"] });
-      void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
-      Alert.alert(
-        "Retrait confirmé",
-        "L’annonce est marquée comme vendue (hors paiement sur la plateforme)."
-      );
-    },
-    onError: (e: Error) =>
-      Alert.alert("Impossible", marketplaceActionErrorMessage(e.message))
+  const buyerFooterHeight = useMemo(() => {
+    const L = q.data;
+    if (!L) {
+      return 0;
+    }
+    const myId = authMe?.user.id;
+    const isSeller = Boolean(myId && L.sellerUserId === myId);
+    const canSubmitOffer = Boolean(myId && !isSeller && L.status === "published");
+    const showFooter = !isSeller && (canSubmitOffer || L.status === "published");
+    return showFooter ? 140 : 0;
+  }, [q.data, authMe?.user.id]);
+
+  const scrollBottomPad = useScrollBottomPad({
+    stickyFooterHeight: buyerFooterHeight
   });
 
   const loading = q.isPending;
@@ -273,7 +315,7 @@ export function MarketplaceListingDetailScreen({
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#5d7a1f" />
+        <ActivityIndicator size="large" color={mobileColors.accent} />
       </View>
     );
   }
@@ -289,211 +331,287 @@ export function MarketplaceListingDetailScreen({
   const L = q.data;
   const myId = authMe?.user.id;
   const isSeller = Boolean(myId && L.sellerUserId === myId);
+  const photos = listingPhotoUrlsArray(L.photoUrls);
+  const wKg = parseMarketNum(L.totalWeightKg);
+  const pKg = parseMarketNum(L.pricePerKg);
+  const askTotal = parseMarketNum(L.totalPrice);
+  const flatPrice = isFlatPriceListing(L.category);
   const canSubmitOffer =
-    Boolean(myId) &&
-    !isSeller &&
-    L.status === "published";
+    Boolean(myId) && !isSeller && L.status === "published";
 
-  const isAcceptedBuyer =
-    Boolean(myId && L.myOffers?.some((o) => o.status === "accepted"));
-  const canEditPickup =
-    L.status === "reserved" && (isSeller || isAcceptedBuyer);
+  const activeTxStatuses = [
+    "PAYMENT_PENDING",
+    "PAYMENT_HELD",
+    "PICKUP_SCHEDULED",
+    "SELLER_SHIPPED",
+    "BUYER_RECEIVED",
+    "DELIVERY_DISPUTED",
+    "WEIGHT_DECLARED",
+    "WEIGHT_DISPUTED",
+    "WEIGHT_VALIDATED"
+  ];
+  const myListingTx = txQ.data?.find(
+    (tx) =>
+      tx.listingId === listingId &&
+      (tx.buyerUserId === myId || tx.sellerUserId === myId) &&
+      activeTxStatuses.includes(tx.status)
+  );
+  const canSubmitOfferWithEscrow =
+    canSubmitOffer && !myListingTx;
+  const isButcherListing = L.category === "butcher";
+  const creditBlocked = creditScoreQ.data?.blocked === true;
+  const canSubmitCreditOffer =
+    canSubmitOfferWithEscrow && isButcherListing && !creditBlocked;
+  const showCreditScoreWarning =
+    creditScoreQ.data?.score === "attention" ||
+    creditScoreQ.data?.score === "risque";
+
+  const categoryKey = L.category ?? "unknown";
+  const screenW = Dimensions.get("window").width;
+  const views = L.viewsCount ?? 0;
+  const consults = L.consultationsCount ?? 0;
+
+  const showBuyerFooter = buyerFooterHeight > 0;
 
   return (
+    <>
+    <View style={styles.screen}>
     <ScrollView
       style={styles.scroll}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: scrollBottomPad }]}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.status}>
-        Statut : {listingStatusLabel(L.status)}
-      </Text>
+      <View style={styles.heroWrap}>
+        {photos.length > 1 ? (
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+          >
+            {photos.map((uri) => (
+              <Image
+                key={uri}
+                source={{ uri }}
+                style={[styles.heroImg, { width: screenW }]}
+                resizeMode="cover"
+              />
+            ))}
+          </ScrollView>
+        ) : (
+          <ListingImage
+            photos={L.photoUrls}
+            fallbackPhotoUrl={L.fallbackPhotoUrl}
+            animal={L.animal}
+            height={240}
+            borderRadius={0}
+          />
+        )}
+        <View style={styles.heroCatBadge}>
+          <Text style={styles.heroCatBadgeTx}>
+            {t(`marketScreen.categories.${categoryKey}`, {
+              defaultValue: t("marketScreen.categories.unknown")
+            })}
+          </Text>
+        </View>
+      </View>
+
+      <DetailCard>
+        <ListingStatusBadge
+          status={L.status}
+          label={listingStatusLabel(L.status)}
+        />
+        {(L.activeOfferCount ?? 0) >= 1 ? (
+          <Text style={styles.offersBadge}>
+            {t("marketScreen.badgeActiveOffers", {
+              count: L.activeOfferCount
+            })}
+          </Text>
+        ) : null}
+        {myListingTx ? (
+          <View style={{ marginTop: mobileSpacing.sm }}>
+            <PrimaryButton
+              label={
+                myListingTx.sellerUserId === myId
+                  ? t("marketScreen.activeTransactionCtaSeller")
+                  : t("marketScreen.activeTransactionCtaBuyer")
+              }
+              onPress={() =>
+                navigation.navigate("MarketplaceTransaction", {
+                  transactionId: myListingTx.id
+                })
+              }
+            />
+          </View>
+        ) : null}
+        {flatPrice && askTotal != null ? (
+          <>
+            <Text style={styles.priceMain}>
+              {formatMoney(askTotal, L.currency)}
+            </Text>
+            <Text style={styles.priceSub}>{t("marketScreen.flatPriceLabel")}</Text>
+          </>
+        ) : pKg != null ? (
+          <>
+            <Text style={styles.priceMain}>
+              {formatMoney(pKg, L.currency)}
+              <Text style={styles.pricePerKg}>/kg</Text>
+            </Text>
+            {wKg != null ? (
+              <Text style={styles.priceSub}>
+                {t("marketScreen.totalWeight")}{" "}
+                {wKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg
+              </Text>
+            ) : null}
+            <Text style={styles.priceTotal}>
+              {t("marketScreen.totalPrice")}{" "}
+              {formatMoney(
+                L.totalPrice ?? (pKg != null && wKg != null ? pKg * wKg : null),
+                L.currency
+              )}
+            </Text>
+          </>
+        ) : askTotal != null ? (
+          <Text style={styles.priceMain}>{formatMoney(askTotal, L.currency)}</Text>
+        ) : null}
+        <Text style={styles.statsRow}>
+          👁 {views} · 💬 {consults}
+        </Text>
+      </DetailCard>
+      {L.status === "expired" && isSeller ? (
+        <View style={styles.section}>
+          <PrimaryButton
+            label={t("marketScreen.renewAction")}
+            onPress={() => renewMut.mutate()}
+            loading={renewMut.isPending}
+          />
+        </View>
+      ) : null}
+      <HealthSummarySection healthData={L.healthData} />
+      <FarmInfoCard
+        farmInfo={L.farmInfo}
+        onViewFarmListings={(farm) =>
+          navigation.navigate("MarketplaceList", {
+            searchQuery: farm.farmName
+          })
+        }
+      />
       {L.status === "sold" ? (
         <Text style={styles.closedBanner}>
-          Vente conclue — cette annonce est terminée.
+          {t("marketScreen.soldBanner")}
         </Text>
       ) : null}
       {L.status === "cancelled" ? (
-        <Text style={styles.closedBanner}>Cette annonce a été annulée.</Text>
-      ) : null}
-      {L.status === "reserved" ? (
-        <Text style={styles.reservedBanner}>
-          Accord conclu — l&apos;animal ou le lot est réservé. Convoyez le rendez-vous
-          de retrait ci-dessous (paiement et livraison ne passent pas par
-          l&apos;application pour l&apos;instant).
+        <Text style={styles.closedBanner}>
+          {t("marketScreen.cancelledBanner")}
         </Text>
-      ) : null}
-      <Text style={styles.price}>
-        {formatMoney(L.unitPrice, L.currency)}
-        {L.quantity != null ? ` · ${L.quantity} unité(s)` : ""}
-      </Text>
-      {L.locationLabel ? (
-        <Text style={styles.block}>Lieu : {L.locationLabel}</Text>
-      ) : null}
-      {L.description ? (
-        <Text style={styles.desc}>{L.description}</Text>
-      ) : (
-        <Text style={styles.muted}>Pas de description.</Text>
-      )}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Vendeur</Text>
-        <Text style={styles.block}>
-          {L.seller.fullName || "—"}
-          {L.seller.email ? ` · ${L.seller.email}` : ""}
-        </Text>
-      </View>
-      {L.farm ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Ferme</Text>
-          <Text style={styles.block}>{L.farm.name}</Text>
-        </View>
       ) : null}
       {L.animal ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Animal</Text>
-          <Text style={styles.block}>
-            ID {L.animal.publicId}
-            {L.animal.tagCode ? ` · ${L.animal.tagCode}` : ""}
-          </Text>
-        </View>
-      ) : null}
-
-      {canEditPickup ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Rendez-vous de retrait</Text>
-          <Text style={styles.hintSmall}>
-            Date/heure (ISO recommandé, ex. 2026-05-15T10:00:00) — vendeur et
-            acheteur peuvent mettre à jour après accord.
-          </Text>
-          <TextInput
-            style={styles.pickupInput}
-            value={pickupAtStr}
-            onChangeText={setPickupAtStr}
-            placeholder="2026-05-15T10:00:00"
-            autoCapitalize="none"
+        <DetailCard>
+          <DetailSectionLabel>{t("marketScreen.detail.animalSection")}</DetailSectionLabel>
+          <DetailRow
+            label={t("marketScreen.detail.animalId")}
+            value={formatAnimalDisplayLabel(L.animal)}
           />
-          <Text style={styles.labelSmall}>Note (lieu, créneau…)</Text>
-          <TextInput
-            style={[styles.pickupInput, styles.pickupNote]}
-            value={pickupNoteStr}
-            onChangeText={setPickupNoteStr}
-            multiline
-            placeholder="Ex. enlèvement à la porcherie, badge …"
+          {L.breedLabel ? (
+            <DetailRow label={t("marketScreen.detail.breed")} value={L.breedLabel} />
+          ) : null}
+          {wKg != null ? (
+            <DetailRow
+              label={t("marketScreen.detail.weight")}
+              value={`${wKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg`}
+            />
+          ) : null}
+          <DetailRow
+            label={t("marketScreen.detail.category")}
+            value={t(`marketScreen.categories.${categoryKey}`, {
+              defaultValue: categoryKey
+            })}
           />
-          <TouchableOpacity
-            style={styles.pickupSave}
-            disabled={pickupMutation.isPending}
-            onPress={() => pickupMutation.mutate()}
-          >
-            <Text style={styles.pickupSaveTxt}>
-              {pickupMutation.isPending ? "Enregistrement…" : "Enregistrer le RDV"}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        </DetailCard>
       ) : null}
 
-      {isSeller && L.status === "reserved" ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Après le retrait physique</Text>
-          <TouchableOpacity
-            style={styles.handoverBtn}
-            disabled={handoverMutation.isPending}
-            onPress={() =>
-              Alert.alert(
-                "Confirmer le retrait ?",
-                "L’annonce passera en « vendue ». Le paiement reste hors plateforme.",
-                [
-                  { text: "Annuler", style: "cancel" },
-                  {
-                    text: "Confirmer",
-                    onPress: () => handoverMutation.mutate()
-                  }
-                ]
-              )
-            }
-          >
-            <Text style={styles.handoverBtnTxt}>
-              {handoverMutation.isPending
-                ? "Confirmation…"
-                : "Confirmer que le retrait a eu lieu"}
-            </Text>
-          </TouchableOpacity>
-        </View>
+      {L.description ? (
+        <DetailCard>
+          <DetailSectionLabel>{t("marketScreen.detail.description")}</DetailSectionLabel>
+          <Text style={styles.desc}>{L.description}</Text>
+        </DetailCard>
       ) : null}
 
-      {isSeller &&
-      (L.status === "draft" || L.status === "published") ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Gestion vendeur</Text>
+      {isSeller && (L.status === "draft" || L.status === "published") ? (
+        <DetailCard>
+          <DetailSectionLabel>{t("marketScreen.detail.sellerActions")}</DetailSectionLabel>
           {L.status === "draft" ? (
             <Text style={styles.sellerHint}>
-              Brouillon : invisible sur le marché jusqu&apos;à publication.
+              {t("marketScreen.createForm.draftHint")}
             </Text>
           ) : null}
           {L.status === "draft" ? (
-            <TouchableOpacity
-              style={[
-                styles.sellerBtnPrimary,
-                publishMutation.isPending && styles.sellerBtnDisabled
-              ]}
-              disabled={
-                publishMutation.isPending ||
-                cancelMutation.isPending ||
-                acceptMutation.isPending ||
-                rejectMutation.isPending
-              }
-              onPress={() =>
-                Alert.alert(
-                  "Publier cette annonce ?",
-                  "Elle sera visible par tous les acheteurs.",
-                  [
-                    { text: "Annuler", style: "cancel" },
-                    {
-                      text: "Publier",
-                      onPress: () => publishMutation.mutate()
-                    }
-                  ]
-                )
-              }
-            >
-              <Text style={styles.sellerBtnPrimaryTxt}>
-                {publishMutation.isPending ? "Publication…" : "Publier sur le marché"}
+            <>
+              <Text style={styles.labelSmall}>
+                {t("marketScreen.createForm.sectionDuration")}
               </Text>
-            </TouchableOpacity>
+              <View style={styles.durationRow}>
+                {([7, 14, 30] as const).map((d) => (
+                  <TouchableOpacity
+                    key={d}
+                    style={[
+                      styles.durationChip,
+                      publishDurationDays === d && styles.durationChipOn
+                    ]}
+                    onPress={() => setPublishDurationDays(d)}
+                  >
+                    <Text
+                      style={[
+                        styles.durationChipTx,
+                        publishDurationDays === d && styles.durationChipTxOn
+                      ]}
+                    >
+                      {t("marketScreen.createForm.durationDays", { count: d })}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <PrimaryButton
+                label={
+                  publishMutation.isPending
+                    ? t("marketScreen.publishing")
+                    : t("marketScreen.publishAction")
+                }
+                onPress={() =>
+                  Alert.alert(
+                    t("marketScreen.publishConfirmTitle"),
+                    t("marketScreen.publishConfirmBody"),
+                    [
+                      { text: t("marketScreen.publishCancel"), style: "cancel" },
+                      {
+                        text: t("marketScreen.publishAction"),
+                        onPress: () => publishMutation.mutate()
+                      }
+                    ]
+                  )
+                }
+                loading={publishMutation.isPending}
+                disabled={cancelMutation.isPending}
+              />
+            </>
           ) : null}
-          <TouchableOpacity
-            style={styles.sellerBtnSecondary}
-            disabled={
-              publishMutation.isPending ||
-              cancelMutation.isPending ||
-              acceptMutation.isPending ||
-              rejectMutation.isPending
-            }
-            onPress={() =>
-              navigation.navigate("EditMarketplaceListing", { listingId })
-            }
-          >
-            <Text style={styles.sellerBtnSecondaryTxt}>Modifier le contenu</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.sellerBtnDanger,
-              cancelMutation.isPending && styles.sellerBtnDisabled
-            ]}
-            disabled={
-              publishMutation.isPending ||
-              cancelMutation.isPending ||
-              acceptMutation.isPending ||
-              rejectMutation.isPending
-            }
+          <SecondaryButton
+            label={t("marketScreen.detail.editListing")}
+            onPress={() => setEditModalOpen(true)}
+            disabled={publishMutation.isPending || cancelMutation.isPending}
+            style={{ marginTop: mobileSpacing.sm }}
+          />
+          <Pressable
+            style={styles.cancelTextBtn}
+            disabled={publishMutation.isPending || cancelMutation.isPending}
             onPress={() =>
               Alert.alert(
-                "Annuler cette annonce ?",
-                "Les offres encore en attente seront refusées.",
+                t("marketScreen.detail.cancelConfirmTitle"),
+                t("marketScreen.detail.cancelConfirmBody"),
                 [
-                  { text: "Retour", style: "cancel" },
+                  { text: t("marketScreen.publishCancel"), style: "cancel" },
                   {
-                    text: "Annuler l’annonce",
+                    text: t("marketScreen.detail.cancelAction"),
                     style: "destructive",
                     onPress: () => cancelMutation.mutate()
                   }
@@ -501,156 +619,245 @@ export function MarketplaceListingDetailScreen({
               )
             }
           >
-            <Text style={styles.sellerBtnDangerTxt}>
-              {cancelMutation.isPending ? "Annulation…" : "Annuler l’annonce"}
+            <Text style={styles.cancelTextBtnTx}>
+              {cancelMutation.isPending
+                ? t("marketScreen.detail.cancelling")
+                : t("marketScreen.detail.cancelAction")}
             </Text>
-          </TouchableOpacity>
-        </View>
+          </Pressable>
+        </DetailCard>
       ) : null}
 
-      {isSeller && L.offers && L.offers.length > 0 ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Offres reçues</Text>
-          {L.offers.map((o) => (
-            <View key={o.id} style={styles.offerCard}>
-              <Text style={styles.block}>
-                {formatMoney(o.offeredPrice, L.currency)}
-                {o.quantity != null ? ` × ${o.quantity}` : ""} —{" "}
-                {offerStatusLabel(o.status)}
-              </Text>
-              {o.buyer?.fullName ? (
-                <Text style={styles.offerBuyer}>Acheteur : {o.buyer.fullName}</Text>
-              ) : null}
-              {o.message ? (
-                <Text style={styles.offerMsg}>{o.message}</Text>
-              ) : null}
-              {o.status === "pending" &&
-              L.status === "published" &&
-              !acceptMutation.isPending &&
-              !rejectMutation.isPending ? (
-                <View style={styles.offerActions}>
-                  <TouchableOpacity
-                    style={styles.btnAccept}
-                    onPress={() =>
-                      Alert.alert(
-                        "Accepter cette offre ?",
-                        "Les autres offres en attente seront refusées et l’annonce sera réservée pour cet acheteur. Tu pourrez ensuite fixer le rendez-vous de retrait (paiement hors application).",
-                        [
-                          { text: "Annuler", style: "cancel" },
-                          {
-                            text: "Accepter",
-                            onPress: () => acceptMutation.mutate(o.id)
-                          }
-                        ]
-                      )
-                    }
-                  >
-                    <Text style={styles.btnAcceptTxt}>Accepter</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.btnReject}
-                    onPress={() => rejectMutation.mutate(o.id)}
-                  >
-                    <Text style={styles.btnRejectTxt}>Refuser</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : null}
-            </View>
-          ))}
-        </View>
+      {isSeller && (L.activeOfferCount ?? 0) > 0 ? (
+        <DetailCard>
+          <DetailSectionLabel>
+            {t("marketScreen.proposals.receivedSection")}
+          </DetailSectionLabel>
+          <Text style={styles.offersSummary}>
+            {t("marketScreen.badgeActiveOffers", {
+              count: L.activeOfferCount ?? L.offers?.length ?? 0
+            })}
+          </Text>
+          <SecondaryButton
+            label={t("marketScreen.proposals.viewReceived")}
+            onPress={() =>
+              navigation.navigate("MarketplaceList", {
+                tab: "offers",
+                offersSubTab: "received",
+                offersListingId: listingId
+              })
+            }
+            style={{ marginTop: mobileSpacing.sm }}
+          />
+        </DetailCard>
       ) : null}
 
       {!isSeller && L.myOffers && L.myOffers.length > 0 ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Mes offres sur cette annonce</Text>
+        <DetailCard>
+          <DetailSectionLabel>
+            {t("marketScreen.myOffersTitle")}
+          </DetailSectionLabel>
           {L.myOffers.map((o) => (
-            <Text key={o.id} style={styles.block}>
+            <Text key={o.id} style={styles.offersSummary}>
               {formatMoney(o.offeredPrice, L.currency)} —{" "}
               {offerStatusLabel(o.status)}
             </Text>
           ))}
-        </View>
+          <SecondaryButton
+            label={t("marketScreen.proposals.viewSent")}
+            onPress={() =>
+              navigation.navigate("MarketplaceList", {
+                tab: "offers",
+                offersSubTab: "sent"
+              })
+            }
+            style={{ marginTop: mobileSpacing.sm }}
+          />
+        </DetailCard>
       ) : null}
 
-      {canSubmitOffer ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Faire une offre</Text>
-          <Text style={styles.hint}>Prix proposé ({L.currency})</Text>
-          <TextInput
-            style={styles.input}
-            value={offerPrice}
-            onChangeText={setOfferPrice}
-            placeholder="Ex. 150000"
-            placeholderTextColor="#999"
-            keyboardType="decimal-pad"
-            editable={!offerMutation.isPending}
-          />
-          <Text style={styles.hint}>Quantité (optionnel)</Text>
-          <TextInput
-            style={styles.input}
-            value={offerQty}
-            onChangeText={setOfferQty}
-            placeholder="Nombre d’animaux / unités"
-            placeholderTextColor="#999"
-            keyboardType="number-pad"
-            editable={!offerMutation.isPending}
-          />
-          <Text style={styles.hint}>Message (optionnel)</Text>
-          <TextInput
-            style={[styles.input, styles.inputMulti]}
-            value={offerMsg}
-            onChangeText={setOfferMsg}
-            placeholder="Précisions pour le vendeur…"
-            placeholderTextColor="#999"
-            multiline
-            editable={!offerMutation.isPending}
-          />
-          <TouchableOpacity
-            style={[
-              styles.submit,
-              offerMutation.isPending && styles.submitDisabled
-            ]}
-            onPress={() => offerMutation.mutate()}
-            disabled={offerMutation.isPending}
-          >
-            <Text style={styles.submitText}>
-              {offerMutation.isPending ? "Envoi…" : "Envoyer l’offre"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
-      {isSeller && (!L.offers || L.offers.length === 0) ? (
-        <Text style={styles.note}>
-          C’est ton annonce. Les offres des acheteurs apparaîtront ici.
-        </Text>
-      ) : null}
-      {!canSubmitOffer && !isSeller && L.status !== "published" ? (
-        <Text style={styles.note}>
-          Les offres ne sont possibles que pour une annonce publiée.
-        </Text>
-      ) : null}
     </ScrollView>
+
+    {showBuyerFooter ? (
+      <View
+        style={[
+          styles.footerBar,
+          { paddingBottom: bottomChromePad + mobileSpacing.md }
+        ]}
+      >
+        {canSubmitOfferWithEscrow ? (
+          <SecondaryButton
+            label={t("marketScreen.detail.makeProposal")}
+            onPress={() => setProposalOpen(true)}
+          />
+        ) : null}
+        {isButcherListing && canSubmitOffer ? (
+          <View style={{ marginTop: mobileSpacing.sm }}>
+            <PrimaryButton
+              label={t("marketScreen.creditModal.open")}
+              onPress={() => setCreditOpen(true)}
+              disabled={!canSubmitCreditOffer}
+            />
+          </View>
+        ) : null}
+        {isButcherListing && creditBlocked ? (
+          <Text style={styles.creditBlocked}>
+            {t("marketScreen.creditModal.blocked")}
+          </Text>
+        ) : null}
+        {isButcherListing ? (
+          <Pressable onPress={() => navigation.navigate("CreditDashboard")}>
+            <CreditScoreBadge
+              score={creditScoreQ.data}
+              prefix={t("marketScreen.creditModal.yourScore")}
+            />
+          </Pressable>
+        ) : null}
+        {L.status === "published" && L.sellerUserId ? (
+          <SecondaryButton
+            label={t("marketScreen.detail.contactSeller")}
+            onPress={() => contactSellerMutation.mutate(L.sellerUserId)}
+            loading={contactSellerMutation.isPending}
+            style={{ marginTop: mobileSpacing.sm }}
+          />
+        ) : null}
+      </View>
+    ) : null}
+    </View>
+
+    <ProposalModal
+      visible={proposalOpen}
+      listing={L}
+      submitting={proposalMutation.isPending}
+      onClose={() => setProposalOpen(false)}
+      onSubmit={(payload) => proposalMutation.mutate(payload)}
+    />
+    <CreditProposalModal
+      visible={creditOpen}
+      listing={L}
+      submitting={creditProposalMutation.isPending}
+      buyerScoreWarning={showCreditScoreWarning}
+      onClose={() => setCreditOpen(false)}
+      onSubmit={(payload) => creditProposalMutation.mutate(payload)}
+    />
+    {isSeller ? (
+      <ListingModal
+        visible={editModalOpen}
+        mode="edit"
+        listingId={listingId}
+        lockFarm
+        onClose={() => setEditModalOpen(false)}
+        onSuccess={() => {
+          void q.refetch();
+        }}
+      />
+    ) : null}
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: mobileColors.canvas
+  },
   scroll: {
     flex: 1,
-    backgroundColor: "#f9f8ea"
+    backgroundColor: mobileColors.canvas
   },
-  content: {
-    padding: 16,
-    paddingBottom: 40
+  cardsPad: {
+    paddingHorizontal: mobileSpacing.lg
+  },
+  content: {},
+  heroWrap: {
+    position: "relative",
+    marginBottom: mobileSpacing.md,
+    backgroundColor: mobileColors.surfaceMuted
+  },
+  heroImg: { height: 240 },
+  heroCatBadge: {
+    position: "absolute",
+    top: mobileSpacing.md,
+    left: mobileSpacing.md,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    paddingHorizontal: mobileSpacing.sm,
+    paddingVertical: 4,
+    borderRadius: mobileRadius.sm
+  },
+  heroCatBadgeTx: {
+    ...mobileTypography.meta,
+    color: "#fff",
+    fontWeight: "700"
+  },
+  footerBar: {
+    padding: mobileSpacing.lg,
+    paddingBottom: mobileSpacing.md,
+    backgroundColor: mobileColors.background,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: mobileColors.border,
+    ...mobileShadows.card
+  },
+  sellerRow: {
+    flexDirection: "row",
+    gap: mobileSpacing.md,
+    alignItems: "flex-start"
+  },
+  sellerAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: mobileColors.accentSoft,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  sellerAvatarTx: {
+    fontWeight: "800",
+    color: mobileColors.accent,
+    fontSize: 16
+  },
+  sellerMeta: { flex: 1, gap: 2 },
+  sellerName: {
+    ...mobileTypography.cardTitle,
+    color: mobileColors.textPrimary
+  },
+  sellerFarm: {
+    ...mobileTypography.body,
+    color: mobileColors.textSecondary,
+    fontSize: 14
+  },
+  sellerLoc: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary
+  },
+  statsRow: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: mobileSpacing.sm
+  },
+  pricePerKg: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: mobileColors.textSecondary
+  },
+  cancelTextBtn: {
+    alignSelf: "center",
+    marginTop: mobileSpacing.md,
+    paddingVertical: mobileSpacing.sm
+  },
+  cancelTextBtnTx: {
+    ...mobileTypography.body,
+    color: mobileColors.error,
+    fontWeight: "700"
   },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
-    backgroundColor: "#f9f8ea"
+    padding: mobileSpacing.lg,
+    backgroundColor: mobileColors.canvas
   },
   error: {
-    color: "#b00020",
+    color: mobileColors.error,
     textAlign: "center"
   },
   status: {
@@ -667,6 +874,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 12,
     lineHeight: 20
+  },
+  offersBadge: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#B45309",
+    marginTop: 4,
+    marginBottom: 8
+  },
+  offersSummary: {
+    ...mobileTypography.body,
+    color: mobileColors.textSecondary,
+    marginTop: mobileSpacing.xs
   },
   reservedBanner: {
     fontSize: 14,
@@ -830,33 +1049,81 @@ const styles = StyleSheet.create({
   },
   offerActions: {
     flexDirection: "row",
-    marginTop: 12
+    flexWrap: "wrap",
+    marginTop: 12,
+    gap: 8
   },
   btnAccept: {
     flex: 1,
-    marginRight: 8,
-    backgroundColor: "#5d7a1f",
+    minWidth: "30%",
+    backgroundColor: mobileColors.accent,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     alignItems: "center"
   },
   btnAcceptTxt: {
     color: "#fff",
     fontWeight: "700",
-    fontSize: 14
+    fontSize: 13
+  },
+  btnCounter: {
+    flex: 1,
+    minWidth: "30%",
+    borderWidth: 1,
+    borderColor: mobileColors.accent,
+    paddingVertical: 10,
+    borderRadius: mobileRadius.md,
+    alignItems: "center",
+    backgroundColor: mobileColors.background
+  },
+  btnCounterTxt: {
+    color: mobileColors.accent,
+    fontWeight: "700",
+    fontSize: 13
   },
   btnReject: {
     flex: 1,
-    borderWidth: 2,
-    borderColor: "#b00020",
+    minWidth: "30%",
+    borderWidth: 1,
+    borderColor: mobileColors.error,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     alignItems: "center"
   },
   btnRejectTxt: {
-    color: "#b00020",
+    color: mobileColors.error,
     fontWeight: "700",
-    fontSize: 14
+    fontSize: 13
+  },
+  gallery: { marginBottom: mobileSpacing.md },
+  gallerySingle: { marginBottom: mobileSpacing.md },
+  galleryContent: { gap: mobileSpacing.sm },
+  galleryImg: {
+    width: 200,
+    height: 140,
+    borderRadius: mobileRadius.lg,
+    backgroundColor: mobileColors.surfaceMuted
+  },
+  priceBlock: {
+    marginBottom: mobileSpacing.md,
+    gap: 4
+  },
+  priceMain: {
+    ...mobileTypography.title,
+    color: mobileColors.accent
+  },
+  priceSub: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary
+  },
+  priceTotal: {
+    ...mobileTypography.body,
+    fontWeight: "700",
+    color: mobileColors.textPrimary
+  },
+  rating: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary
   },
   sellerHint: {
     fontSize: 13,
@@ -905,5 +1172,36 @@ const styles = StyleSheet.create({
   },
   sellerBtnDisabled: {
     opacity: 0.55
+  },
+  durationRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: mobileSpacing.xs,
+    marginBottom: mobileSpacing.md
+  },
+  durationChip: {
+    paddingHorizontal: mobileSpacing.md,
+    paddingVertical: 8,
+    borderRadius: mobileRadius.pill,
+    borderWidth: 1,
+    borderColor: mobileColors.border,
+    backgroundColor: mobileColors.surfaceMuted
+  },
+  durationChipOn: {
+    borderColor: mobileColors.accent,
+    backgroundColor: mobileColors.accentSoft
+  },
+  durationChipTx: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary
+  },
+  durationChipTxOn: {
+    color: mobileColors.accent,
+    fontWeight: "700"
+  },
+  creditBlocked: {
+    ...mobileTypography.meta,
+    color: mobileColors.error,
+    marginTop: mobileSpacing.xs
   }
 });

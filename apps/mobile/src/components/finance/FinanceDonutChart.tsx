@@ -1,21 +1,63 @@
-import type { ReactElement } from "react";
-import { Text, View } from "react-native";
-import Svg, { G, Path } from "react-native-svg";
+import { useMemo } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import {
   mobileColors,
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
 
-export type FinanceDonutSegment = {
+export type FinanceDonutSlice = {
   label: string;
   value: number;
-  /** Affichage du montant (ex. devise formatée). */
-  display?: string;
   color: string;
+  /** Montant formaté affiché dans la légende */
+  display?: string;
 };
 
-function slicePath(
+type Props = {
+  slices: FinanceDonutSlice[];
+  size?: number;
+  emptyLabel?: string;
+  /** Utilise slice.color au lieu de la palette finance. */
+  useSliceColors?: boolean;
+  /** Centre : segment dominant ou total des valeurs. */
+  centerMode?: "top" | "total";
+  centerTitle?: string;
+  selectedLabel?: string | null;
+  onSlicePress?: (label: string) => void;
+};
+
+const CHART_SIZE = 188;
+const OUTER_R = 82;
+const INNER_R = 54;
+
+/** Teintes éloignées (bleu, orange, violet…) — pas plusieurs verts. */
+export const FINANCE_CATEGORY_PALETTE = [
+  "#2563EB",
+  "#EA580C",
+  "#7C3AED",
+  "#DC2626",
+  "#0891B2",
+  "#DB2777",
+  "#CA8A04",
+  "#4F46E5",
+  "#0D9488",
+  "#64748B"
+] as const;
+
+export function financeCategoryColor(categoryIndex: number): string {
+  return FINANCE_CATEGORY_PALETTE[
+    categoryIndex % FINANCE_CATEGORY_PALETTE.length
+  ]!;
+}
+
+function degToRad(deg: number): number {
+  return (deg * Math.PI) / 180;
+}
+
+/** Segment d'anneau (donut) entre startAngle et endAngle (degrés, 0 = haut). */
+function donutSegmentPath(
   cx: number,
   cy: number,
   rOuter: number,
@@ -23,171 +65,132 @@ function slicePath(
   startAngle: number,
   endAngle: number
 ): string {
-  const rad = (deg: number) => ((deg - 90) * Math.PI) / 180;
-  const x1 = cx + rOuter * Math.cos(rad(startAngle));
-  const y1 = cy + rOuter * Math.sin(rad(startAngle));
-  const x2 = cx + rOuter * Math.cos(rad(endAngle));
-  const y2 = cy + rOuter * Math.sin(rad(endAngle));
-  const x3 = cx + rInner * Math.cos(rad(endAngle));
-  const y3 = cy + rInner * Math.sin(rad(endAngle));
-  const x4 = cx + rInner * Math.cos(rad(startAngle));
-  const y4 = cy + rInner * Math.sin(rad(startAngle));
-  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+  const sweep = endAngle - startAngle;
+  if (sweep >= 359.99) {
+    const mid = (startAngle + endAngle) / 2;
+    const a = donutSegmentPath(cx, cy, rOuter, rInner, startAngle, mid);
+    const b = donutSegmentPath(cx, cy, rOuter, rInner, mid, endAngle);
+    return `${a} ${b}`;
+  }
+
+  const sRad = degToRad(startAngle - 90);
+  const eRad = degToRad(endAngle - 90);
+  const xOs = cx + rOuter * Math.cos(sRad);
+  const yOs = cy + rOuter * Math.sin(sRad);
+  const xOe = cx + rOuter * Math.cos(eRad);
+  const yOe = cy + rOuter * Math.sin(eRad);
+  const xIe = cx + rInner * Math.cos(eRad);
+  const yIe = cy + rInner * Math.sin(eRad);
+  const xIs = cx + rInner * Math.cos(sRad);
+  const yIs = cy + rInner * Math.sin(sRad);
+  const large = sweep > 180 ? 1 : 0;
+
   return [
-    `M ${x1} ${y1}`,
-    `A ${rOuter} ${rOuter} 0 ${largeArc} 1 ${x2} ${y2}`,
-    `L ${x3} ${y3}`,
-    `A ${rInner} ${rInner} 0 ${largeArc} 0 ${x4} ${y4}`,
+    `M ${xOs} ${yOs}`,
+    `A ${rOuter} ${rOuter} 0 ${large} 1 ${xOe} ${yOe}`,
+    `L ${xIe} ${yIe}`,
+    `A ${rInner} ${rInner} 0 ${large} 0 ${xIs} ${yIs}`,
     "Z"
   ].join(" ");
 }
 
-type Props = {
-  segments: FinanceDonutSegment[];
-  size?: number;
-  innerRatio?: number;
-  centerTitle?: string;
-  centerValue?: string;
-  emptyLabel?: string;
-};
-
-/**
- * Anneau + légende (style « insights »).
- */
 export function FinanceDonutChart({
-  segments,
-  size = 132,
-  innerRatio = 0.58,
+  slices,
+  size = CHART_SIZE,
+  emptyLabel = "—",
+  useSliceColors = false,
+  centerMode = "top",
   centerTitle,
-  centerValue,
-  emptyLabel = "—"
+  selectedLabel = null,
+  onSlicePress
 }: Props) {
-  const positive = segments.filter((s) => s.value > 0);
-  const total = positive.reduce((a, s) => a + s.value, 0);
-
   const cx = size / 2;
   const cy = size / 2;
-  const rOuter = size / 2 - 6;
-  const rInner = rOuter * innerRatio;
+  const scale = size / CHART_SIZE;
+  const rOuter = OUTER_R * scale;
+  const rInner = INNER_R * scale;
 
-  let angle = 0;
-  const paths: ReactElement[] = [];
-  if (total > 0) {
-    for (const seg of positive) {
-      const sweep = (seg.value / total) * 360;
+  const { segments, topPct, total } = useMemo(() => {
+    const positive = slices.filter((s) => s.value > 0);
+    const sum = positive.reduce((acc, s) => acc + s.value, 0);
+    if (sum <= 0) {
+      return { segments: [], topPct: 0, total: 0 };
+    }
+
+    let angle = 0;
+    const segs = positive.map((slice, i) => {
+      const sweep = (slice.value / sum) * 360;
       const start = angle;
       const end = angle + sweep;
       angle = end;
-      paths.push(
-        <Path
-          key={`${seg.label}-${start}-${end}`}
-          d={slicePath(cx, cy, rOuter, rInner, start, end)}
-          fill={seg.color}
-        />
-      );
-    }
+      return {
+        ...slice,
+        color: useSliceColors && slice.color ? slice.color : financeCategoryColor(i),
+        startAngle: start,
+        endAngle: end,
+        pct: Math.round((slice.value / sum) * 100)
+      };
+    });
+
+    const top = segs[0]?.pct ?? 0;
+    return { segments: segs, topPct: top, total: sum };
+  }, [slices, useSliceColors]);
+
+  if (!segments.length) {
+    return <Text style={styles.empty}>{emptyLabel}</Text>;
   }
 
-  const showEmpty = total <= 0;
-
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: mobileSpacing.md }}>
-      <View style={{ width: size, height: size, position: "relative" }}>
-        {showEmpty ? (
-          <View
-            style={{
-              width: size,
-              height: size,
-              borderRadius: size / 2,
-              borderWidth: 10,
-              borderColor: mobileColors.border,
-              alignItems: "center",
-              justifyContent: "center"
-            }}
-          >
-            <Text
-              style={{
-                ...mobileTypography.meta,
-                color: mobileColors.textSecondary,
-                textAlign: "center",
-                paddingHorizontal: 8
-              }}
-            >
-              {emptyLabel}
-            </Text>
-          </View>
-        ) : (
-          <>
-            <Svg width={size} height={size}>
-              <G>{paths}</G>
-            </Svg>
-            <View
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                top: 0,
-                bottom: 0,
-                alignItems: "center",
-                justifyContent: "center",
-                pointerEvents: "none"
-              }}
-            >
-              {centerTitle ? (
-                <Text
-                  style={{
-                    ...mobileTypography.meta,
-                    color: mobileColors.textSecondary,
-                    fontSize: 10,
-                    textAlign: "center"
-                  }}
-                >
-                  {centerTitle}
-                </Text>
-              ) : null}
-              {centerValue ? (
-                <Text
-                  style={{
-                    fontSize: 13,
-                    fontWeight: "700",
-                    color: mobileColors.textPrimary,
-                    textAlign: "center",
-                    maxWidth: rInner * 2.2
-                  }}
-                  numberOfLines={2}
-                >
-                  {centerValue}
-                </Text>
-              ) : null}
-            </View>
-          </>
-        )}
-      </View>
-      <View style={{ flex: 1, gap: mobileSpacing.sm }}>
-        {positive.slice(0, 8).map((s) => (
-          <View
-            key={s.label}
-            style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-          >
-            <View
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: s.color
-              }}
+    <View style={styles.wrap}>
+      <View style={[styles.chartBox, { width: size, height: size }]}>
+        <Svg width={size} height={size}>
+          {segments.map((seg) => (
+            <Path
+              key={seg.label}
+              d={donutSegmentPath(
+                cx,
+                cy,
+                rOuter,
+                rInner,
+                seg.startAngle,
+                seg.endAngle
+              )}
+              fill={seg.color}
+              opacity={
+                selectedLabel && selectedLabel !== seg.label ? 0.35 : 1
+              }
+              onPress={onSlicePress ? () => onSlicePress(seg.label) : undefined}
             />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text
-                numberOfLines={1}
-                style={{ ...mobileTypography.meta, color: mobileColors.textPrimary }}
-              >
-                {s.label}
+          ))}
+        </Svg>
+        <View style={styles.center} pointerEvents="none">
+          {centerMode === "total" ? (
+            <>
+              <Text style={styles.centerPct}>{total}</Text>
+              <Text style={styles.centerLab} numberOfLines={1}>
+                {centerTitle ?? ""}
               </Text>
-            </View>
-            <Text style={{ ...mobileTypography.meta, fontWeight: "600" }}>
-              {s.display ??
-                s.value.toLocaleString("fr-FR", { maximumFractionDigits: 0 })}
+            </>
+          ) : (
+            <>
+              <Text style={styles.centerPct}>{topPct}%</Text>
+              <Text style={styles.centerLab} numberOfLines={1}>
+                {segments[0]?.label}
+              </Text>
+            </>
+          )}
+        </View>
+      </View>
+
+      <View style={styles.legend}>
+        {segments.map((seg) => (
+          <View key={seg.label} style={styles.legendRow}>
+            <View style={[styles.dot, { backgroundColor: seg.color }]} />
+            <Text style={styles.legendLab} numberOfLines={1}>
+              {seg.label}
+            </Text>
+            <Text style={styles.legendVal}>
+              {seg.display ?? String(seg.value)} ({seg.pct}%)
             </Text>
           </View>
         ))}
@@ -195,3 +198,66 @@ export function FinanceDonutChart({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  wrap: {
+    alignItems: "center",
+    gap: mobileSpacing.md,
+    width: "100%"
+  },
+  empty: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    paddingVertical: mobileSpacing.lg
+  },
+  chartBox: {
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  center: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: mobileSpacing.lg
+  },
+  centerPct: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: mobileColors.textPrimary,
+    letterSpacing: -0.5
+  },
+  centerLab: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    fontWeight: "600",
+    marginTop: 2,
+    textAlign: "center"
+  },
+  legend: {
+    width: "100%",
+    gap: mobileSpacing.xs
+  },
+  legendRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.sm,
+    paddingVertical: mobileSpacing.xs
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5
+  },
+  legendLab: {
+    ...mobileTypography.body,
+    flex: 1,
+    minWidth: 0,
+    color: mobileColors.textPrimary
+  },
+  legendVal: {
+    ...mobileTypography.meta,
+    fontWeight: "700",
+    color: mobileColors.textSecondary,
+    flexShrink: 0
+  }
+});

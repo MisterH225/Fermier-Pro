@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useFocusEffect } from "@react-navigation/native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useCallback,
@@ -9,6 +10,7 @@ import {
   useState
 } from "react";
 import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   FlatList,
@@ -22,14 +24,38 @@ import {
   View
 } from "react-native";
 import { ChatModuleGate } from "../components/ChatModuleGate";
+import { ChatInputBar } from "../components/messaging/ChatInputBar";
+import { ListingContextBanner } from "../components/messaging/ListingContextBanner";
+import { MessageBubble } from "../components/messaging/MessageBubble";
+import {
+  mobileColors,
+  mobileRadius,
+  mobileSpacing
+} from "../theme/mobileTheme";
 import { useSession } from "../context/SessionContext";
 import {
   type ChatSocketConnectionStatus,
   useChatRoomSocket
 } from "../hooks/useChatRoomSocket";
+import { useBottomChromePad } from "../hooks/useBottomInset";
+import { CHAT_INPUT_BAR_HEIGHT } from "../constants/layout";
 import type { ChatMessageDto } from "../lib/api";
-import { fetchChatMessages, postChatMessage } from "../lib/api";
+import {
+  analyzeChatImage,
+  fetchChatMessages,
+  fetchChatRoom,
+  fetchFarmMembers,
+  markChatRoomRead,
+  postChatMessage
+} from "../lib/api";
+import { buildChatImageMessageBody } from "../lib/chatImageMessage";
+import { getSupabase } from "../lib/supabase";
+import { uploadChatImageToSupabase } from "../lib/uploadChatImageToSupabase";
+import { maskPhoneNumbers } from "../services/chat/PhoneNumberDetector";
+import type { PhoneWarningVariant } from "../components/chat/PhoneWarningBanner";
+import { DirectInviteModal } from "../components/collaboration/DirectInviteModal";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 const CHAT_PAGE_SIZE = 40;
 
@@ -98,27 +124,50 @@ function liveStripProps(status: ChatSocketConnectionStatus): LiveStrip {
   }
 }
 
-function formatTime(iso: string): string {
+type ChatListItem =
+  | { kind: "date"; id: string; label: string }
+  | { kind: "message"; id: string; message: ChatMessageDto };
+
+function formatDaySeparator(iso: string): string {
   try {
     const d = new Date(iso);
-    return d.toLocaleString(undefined, {
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (d.toDateString() === now.toDateString()) {
+      return "Aujourd'hui";
+    }
+    if (d.toDateString() === yesterday.toDateString()) {
+      return "Hier";
+    }
+    return d.toLocaleDateString(undefined, {
+      weekday: "long",
       day: "numeric",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit"
+      month: "long"
     });
   } catch {
-    return iso;
+    return "";
   }
 }
 
 export function ChatRoomScreen({ route, navigation }: Props) {
-  const { roomId, headline } = route.params;
+  const { t } = useTranslation();
+  const {
+    roomId,
+    headline,
+    listingId: listingIdParam,
+    peerUserId,
+    farmId: farmIdParam
+  } = route.params;
+  const [inviteOpen, setInviteOpen] = useState(false);
   const { accessToken, activeProfileId, authMe, clientFeatures } =
     useSession();
   const qc = useQueryClient();
   const [draft, setDraft] = useState("");
-  const listRef = useRef<FlatList<ChatMessageDto>>(null);
+  const [phoneWarning, setPhoneWarning] = useState<PhoneWarningVariant | null>(
+    null
+  );
+  const listRef = useRef<FlatList<ChatListItem>>(null);
   /** Si l’utilisateur est proche du bas ; au chargement on colle au dernier message. */
   const stickToBottomRef = useRef(true);
   const prevOrderedLenRef = useRef(0);
@@ -127,6 +176,8 @@ export function ChatRoomScreen({ route, navigation }: Props) {
   /** Nombre de nouveaux messages (autres) arrivés hors vue en bas de liste. */
   const [pendingBelowCount, setPendingBelowCount] = useState(0);
   const hasMoreOlderRef = useRef(true);
+  const bottomChromePad = useBottomChromePad();
+  const listBottomPad = CHAT_INPUT_BAR_HEIGHT + mobileSpacing.sm;
   const loadingOlderRef = useRef(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
 
@@ -137,11 +188,65 @@ export function ChatRoomScreen({ route, navigation }: Props) {
     enabled: clientFeatures.chat && !!accessToken
   });
 
+  const roomQuery = useQuery({
+    queryKey: ["chatRoom", roomId, activeProfileId],
+    queryFn: () => fetchChatRoom(accessToken!, roomId, activeProfileId),
+    enabled: Boolean(accessToken)
+  });
+
+  const listingContext =
+    roomQuery.data?.marketplaceListing ?? null;
+  const effectiveListingId =
+    listingIdParam ??
+    roomQuery.data?.marketplaceListingId ??
+    listingContext?.id ??
+    null;
+
+  const membersQ = useQuery({
+    queryKey: ["farmMembers", farmIdParam, activeProfileId],
+    queryFn: () => fetchFarmMembers(accessToken!, farmIdParam!, activeProfileId),
+    enabled: Boolean(accessToken && farmIdParam)
+  });
+
+  const peerIsMember = Boolean(
+    peerUserId &&
+      membersQ.data?.some((m) => m.userId === peerUserId)
+  );
+
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: headline ?? "Conversation"
+      title: headline?.trim() || "Conversation",
+      headerRight:
+        farmIdParam && peerUserId && !peerIsMember
+          ? () => (
+              <TouchableOpacity
+                onPress={() => setInviteOpen(true)}
+                style={{ paddingHorizontal: 8 }}
+              >
+                <Text style={{ color: mobileColors.accent, fontWeight: "700" }}>
+                  Inviter
+                </Text>
+              </TouchableOpacity>
+            )
+          : undefined
     });
-  }, [navigation, headline]);
+  }, [navigation, headline, farmIdParam, peerUserId, peerIsMember]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!accessToken) {
+        return;
+      }
+      void markChatRoomRead(accessToken, roomId, activeProfileId).then(() => {
+        void qc.invalidateQueries({ queryKey: ["chatRooms"] });
+        void qc.setQueryData(
+          ["chatRoom", roomId, activeProfileId],
+          (prev: typeof roomQuery.data) =>
+            prev ? { ...prev, unreadCount: 0 } : prev
+        );
+      });
+    }, [accessToken, roomId, activeProfileId, qc])
+  );
 
   useEffect(() => {
     prevOrderedLenRef.current = 0;
@@ -226,6 +331,24 @@ export function ChatRoomScreen({ route, navigation }: Props) {
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
   }, [messagesQuery.data]);
+
+  const listItems = useMemo((): ChatListItem[] => {
+    const items: ChatListItem[] = [];
+    let lastDay: string | null = null;
+    for (const message of ordered) {
+      const day = new Date(message.createdAt).toDateString();
+      if (day !== lastDay) {
+        items.push({
+          kind: "date",
+          id: `date-${day}`,
+          label: formatDaySeparator(message.createdAt)
+        });
+        lastDay = day;
+      }
+      items.push({ kind: "message", id: message.id, message });
+    }
+    return items;
+  }, [ordered]);
 
   const myUserId = authMe?.user.id;
 
@@ -335,36 +458,81 @@ export function ChatRoomScreen({ route, navigation }: Props) {
   });
 
   const renderItem = useCallback(
-    ({ item }: { item: ChatMessageDto }) => {
-      const mine = item.senderUserId === myUserId;
-      return (
-        <View
-          style={[styles.bubbleRow, mine ? styles.bubbleRowMine : undefined]}
-        >
-          <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleOther]}>
-            {!mine ? (
-              <Text style={styles.senderName}>
-                {item.sender?.fullName?.trim() || "Participant"}
-              </Text>
-            ) : null}
-            <Text style={[styles.msgBody, mine ? styles.msgBodyMine : undefined]}>
-              {item.body}
-            </Text>
-            <Text style={[styles.msgMeta, mine ? styles.msgMetaMine : undefined]}>
-              {formatTime(item.createdAt)}
-            </Text>
+    ({ item }: { item: ChatListItem }) => {
+      if (item.kind === "date") {
+        return (
+          <View style={styles.dateSepWrap}>
+            <Text style={styles.dateSepText}>{item.label}</Text>
           </View>
-        </View>
+        );
+      }
+      return (
+        <MessageBubble
+          message={item.message}
+          isMine={item.message.senderUserId === myUserId}
+        />
       );
     },
     [myUserId]
   );
 
+  const openListingProposal = useCallback(() => {
+    if (!effectiveListingId) {
+      return;
+    }
+    navigation.navigate("MarketplaceListingDetail", {
+      listingId: effectiveListingId,
+      headline: listingContext?.title
+    });
+  }, [navigation, effectiveListingId, listingContext?.title]);
+
   const onSend = () => {
     const t = draft.trim();
     if (!t || sendMutation.isPending) return;
-    sendMutation.mutate(t);
+    const masked = maskPhoneNumbers(t);
+    if (masked.wasModified) {
+      setPhoneWarning("text_masked");
+      setTimeout(() => setPhoneWarning(null), 3000);
+    }
+    sendMutation.mutate(masked.maskedText);
   };
+
+  const onAnalyzeImage = useCallback(
+    async (imageBase64: string, mimeType: string) => {
+      if (!accessToken) {
+        return { allowed: false };
+      }
+      return analyzeChatImage(
+        accessToken,
+        imageBase64,
+        mimeType,
+        activeProfileId
+      );
+    },
+    [accessToken, activeProfileId]
+  );
+
+  const onSendImage = useCallback(
+    async (uri: string, mimeType: string) => {
+      if (!accessToken || !authMe?.user.id) {
+        throw new Error("Session requise");
+      }
+      const supabase = getSupabase();
+      if (!supabase) {
+        throw new Error("Stockage indisponible");
+      }
+      const url = await uploadChatImageToSupabase(
+        supabase,
+        authMe.user.id,
+        roomId,
+        uri,
+        mimeType
+      );
+      const body = buildChatImageMessageBody(url);
+      await sendMutation.mutateAsync(body);
+    },
+    [accessToken, authMe?.user.id, roomId, sendMutation]
+  );
 
   const liveStrip = liveStripProps(chatSocketStatus);
 
@@ -372,7 +540,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
     <ChatModuleGate>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
         {liveStrip ? (
@@ -396,15 +564,18 @@ export function ChatRoomScreen({ route, navigation }: Props) {
             </View>
           )
         ) : null}
+        {listingContext ? (
+          <ListingContextBanner listing={listingContext} />
+        ) : null}
         {messagesQuery.isPending ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color="#5d7a1f" />
+            <ActivityIndicator size="large" color={mobileColors.accent} />
           </View>
         ) : messagesQuery.error ? (
           <View style={styles.centered}>
             <Text style={styles.error}>
               {messagesQuery.error instanceof Error
-                ? messagesQuery.error.message
+                ? getUserFacingError(messagesQuery.error, t)
                 : String(messagesQuery.error)}
             </Text>
           </View>
@@ -412,11 +583,14 @@ export function ChatRoomScreen({ route, navigation }: Props) {
           <View style={styles.listWrap}>
             <FlatList
               ref={listRef}
-              data={ordered}
+              data={listItems}
               keyExtractor={(m) => m.id}
               renderItem={renderItem}
               style={styles.listFlex}
-              contentContainerStyle={styles.listContent}
+              contentContainerStyle={[
+                styles.listContent,
+                { paddingBottom: listBottomPad }
+              ]}
               onScroll={onListScroll}
               scrollEventThrottle={100}
               onContentSizeChange={onListContentSizeChange}
@@ -426,7 +600,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
               ListHeaderComponent={
                 loadingOlder ? (
                   <View style={styles.loadOlderBanner}>
-                    <ActivityIndicator size="small" color="#5d7a1f" />
+                    <ActivityIndicator size="small" color={mobileColors.accent} />
                     <Text style={styles.loadOlderText}>Messages plus anciens…</Text>
                   </View>
                 ) : null
@@ -448,7 +622,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
                       }
                     });
                   }}
-                  tintColor="#5d7a1f"
+                  tintColor={mobileColors.accent}
                 />
               }
             />
@@ -471,34 +645,63 @@ export function ChatRoomScreen({ route, navigation }: Props) {
             ) : null}
           </View>
         )}
-        <View style={styles.composer}>
-          <TextInput
-            style={styles.input}
-            value={draft}
-            onChangeText={setDraft}
-            placeholder="Écrire un message…"
-            placeholderTextColor="#9aa088"
-            multiline
-            maxLength={4000}
-            editable={!sendMutation.isPending}
-          />
+        {effectiveListingId ? (
           <TouchableOpacity
-            style={[
-              styles.sendBtn,
-              (!draft.trim() || sendMutation.isPending) && styles.sendBtnDisabled
-            ]}
-            onPress={onSend}
-            disabled={!draft.trim() || sendMutation.isPending}
+            style={styles.quickOfferBtn}
+            onPress={openListingProposal}
+            activeOpacity={0.88}
           >
-            <Text style={styles.sendBtnText}>Envoyer</Text>
+            <Text style={styles.quickOfferBtnText}>Faire une proposition</Text>
           </TouchableOpacity>
-        </View>
+        ) : null}
+        <ChatInputBar
+          value={draft}
+          onChangeText={setDraft}
+          onSend={onSend}
+          onAnalyzeImage={onAnalyzeImage}
+          onSendImage={onSendImage}
+          sending={sendMutation.isPending}
+          placeholder={t("chat.inputPlaceholder", "Votre message…")}
+          paddingBottom={bottomChromePad}
+          externalWarning={phoneWarning}
+          phoneWarningMessage={t(
+            "chat.phoneWarning.realtime",
+            "Les numéros de téléphone sont automatiquement masqués pour votre sécurité."
+          )}
+          phoneMaskedMessage={t(
+            "chat.phoneWarning.masked",
+            "Numéro masqué automatiquement pour votre protection."
+          )}
+          imageBlockedMessage={t(
+            "chat.phoneWarning.imageBlocked",
+            "Cette image semble contenir un numéro de téléphone et ne peut pas être envoyée."
+          )}
+          imageAnalyzingMessage={t(
+            "chat.phoneWarning.analyzing",
+            "Vérification sécurité…"
+          )}
+        />
         {sendMutation.error ? (
           <Text style={styles.sendError}>
             {sendMutation.error instanceof Error
-              ? sendMutation.error.message
+              ? getUserFacingError(sendMutation.error, t)
               : String(sendMutation.error)}
           </Text>
+        ) : null}
+        {farmIdParam && peerUserId ? (
+          <DirectInviteModal
+            visible={inviteOpen}
+            farmId={farmIdParam}
+            farmName={headline ?? "Ferme"}
+            peerUserId={peerUserId}
+            peerDisplayName={headline ?? "Contact"}
+            recipientKind="technician"
+            roomId={roomId}
+            onClose={() => setInviteOpen(false)}
+            onSuccess={() => {
+              void membersQ.refetch();
+            }}
+          />
         ) : null}
       </KeyboardAvoidingView>
     </ChatModuleGate>
@@ -506,7 +709,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#f9f8ea" },
+  flex: { flex: 1, backgroundColor: mobileColors.canvas },
   liveStrip: {
     paddingVertical: 8,
     paddingHorizontal: 14,
@@ -555,7 +758,7 @@ const styles = StyleSheet.create({
   },
   loadOlderText: {
     fontSize: 13,
-    color: "#6d745b"
+    color: mobileColors.textSecondary
   },
   newMessagesFab: {
     position: "absolute",
@@ -566,7 +769,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#5d7a1f",
+    backgroundColor: mobileColors.accent,
     paddingVertical: 10,
     paddingHorizontal: 18,
     paddingLeft: 14,
@@ -597,13 +800,39 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   newMessagesFabBadgeText: {
-    color: "#5d7a1f",
+    color: mobileColors.accent,
     fontSize: 12,
     fontWeight: "800"
   },
   listContent: {
     padding: 16,
     paddingBottom: 8
+  },
+  dateSepWrap: {
+    alignSelf: "center",
+    marginVertical: mobileSpacing.sm,
+    backgroundColor: "rgba(0,0,0,0.06)",
+    borderRadius: mobileRadius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 4
+  },
+  dateSepText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: mobileColors.textSecondary
+  },
+  quickOfferBtn: {
+    marginHorizontal: mobileSpacing.md,
+    marginBottom: mobileSpacing.xs,
+    paddingVertical: 10,
+    borderRadius: mobileRadius.pill,
+    backgroundColor: mobileColors.accentSoft,
+    alignItems: "center"
+  },
+  quickOfferBtnText: {
+    color: mobileColors.accent,
+    fontWeight: "700",
+    fontSize: 14
   },
   bubbleRow: {
     alignItems: "flex-start",
@@ -620,7 +849,7 @@ const styles = StyleSheet.create({
     borderWidth: 1
   },
   bubbleMine: {
-    backgroundColor: "#5d7a1f",
+    backgroundColor: mobileColors.accent,
     borderColor: "#4a6118"
   },
   bubbleOther: {
@@ -630,12 +859,12 @@ const styles = StyleSheet.create({
   senderName: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#5d7a1f",
+    color: mobileColors.accent,
     marginBottom: 4
   },
   msgBody: {
     fontSize: 16,
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     lineHeight: 22
   },
   msgBodyMine: {
@@ -644,7 +873,7 @@ const styles = StyleSheet.create({
   msgMeta: {
     marginTop: 6,
     fontSize: 11,
-    color: "#6d745b"
+    color: mobileColors.textSecondary
   },
   msgMetaMine: {
     color: "#dfe8c8"
@@ -671,10 +900,10 @@ const styles = StyleSheet.create({
     borderColor: "#d4dac8",
     backgroundColor: "#fff",
     fontSize: 16,
-    color: "#1f2910"
+    color: mobileColors.textPrimary
   },
   sendBtn: {
-    backgroundColor: "#5d7a1f",
+    backgroundColor: mobileColors.accent,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 14

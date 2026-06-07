@@ -8,14 +8,18 @@ import {
   useState,
   type ReactNode
 } from "react";
-import type { AuthMeResponse, ClientConfigDto } from "../lib/api";
+import { AppState, type AppStateStatus } from "react-native";
+import type {
+  AuthMeResponse,
+  ClientConfigDto,
+  PlatformModuleDto
+} from "../lib/api";
+import { formatApiError } from "../lib/apiErrors";
 import { fetchAuthMe, fetchClientConfig } from "../lib/api";
-import {
-  DEMO_AUTH_ME,
-  isDemoBypassToken
-} from "../lib/demoBypass";
-
+import { queryClient } from "../lib/queryClient";
+import { resetNavigationToProfileHome } from "../lib/profileNavigationReset";
 const STORAGE_PROFILE_KEY = "@fermier_pro/active_profile_id";
+const AUTH_ME_CACHE_KEY = "@fermier_pro/auth_me_cache";
 
 const DEFAULT_CLIENT_FEATURES: ClientConfigDto["features"] = {
   marketplace: true,
@@ -41,6 +45,7 @@ type SessionContextValue = {
   reloadAuth: () => Promise<void>;
   /** GET /config/client — défaut tout activé si échec réseau */
   clientFeatures: ClientConfigDto["features"];
+  platformModules: PlatformModuleDto[];
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -73,6 +78,9 @@ export function SessionProvider({
   );
   const [clientFeatures, setClientFeatures] =
     useState<ClientConfigDto["features"]>(DEFAULT_CLIENT_FEATURES);
+  const [platformModules, setPlatformModules] = useState<PlatformModuleDto[]>(
+    []
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -80,11 +88,13 @@ export function SessionProvider({
       .then((cfg) => {
         if (!cancelled) {
           setClientFeatures(cfg.features);
+          setPlatformModules(cfg.modules ?? []);
         }
       })
       .catch(() => {
         if (!cancelled) {
           setClientFeatures({ ...DEFAULT_CLIENT_FEATURES });
+          setPlatformModules([]);
         }
       });
     return () => {
@@ -95,24 +105,17 @@ export function SessionProvider({
   const bootstrap = useCallback(async () => {
     setAuthLoading(true);
     setAuthError(null);
-    if (isDemoBypassToken(accessToken)) {
-      setAuthMe(DEMO_AUTH_ME);
-      setActiveProfileIdState(DEMO_AUTH_ME.activeProfile?.id ?? null);
-      setAuthLoading(false);
-      setAuthError(null);
-      return;
-    }
     try {
       const stored = await AsyncStorage.getItem(STORAGE_PROFILE_KEY);
       const initial = await fetchAuthMe(accessToken);
       const ids = new Set(initial.profiles.map((p) => p.id));
-      /** Profil avec `isDefault` (choix de la premiere connexion), puis secours locaux. */
+      /** Dernier profil choisi (AsyncStorage), puis défaut serveur. */
       const fromServer = pickDefaultProfileId(initial);
       let chosen: string | null = null;
-      if (fromServer) {
-        chosen = fromServer;
-      } else if (stored && ids.has(stored)) {
+      if (stored && ids.has(stored)) {
         chosen = stored;
+      } else if (fromServer) {
+        chosen = fromServer;
       } else {
         chosen = initial.profiles[0]?.id ?? null;
       }
@@ -124,14 +127,39 @@ export function SessionProvider({
         const withProfile = await fetchAuthMe(accessToken, chosen);
         setAuthMe(withProfile);
         setActiveProfileIdState(chosen);
+        await AsyncStorage.setItem(
+          AUTH_ME_CACHE_KEY,
+          JSON.stringify({ me: withProfile, profileId: chosen })
+        );
       } else {
         setAuthMe(initial);
         setActiveProfileIdState(null);
+        await AsyncStorage.setItem(
+          AUTH_ME_CACHE_KEY,
+          JSON.stringify({ me: initial, profileId: null })
+        );
       }
     } catch (e) {
-      setAuthError(e instanceof Error ? e.message : String(e));
-      setAuthMe(null);
-      setActiveProfileIdState(null);
+      const cachedRaw = await AsyncStorage.getItem(AUTH_ME_CACHE_KEY);
+      if (cachedRaw) {
+        try {
+          const cached = JSON.parse(cachedRaw) as {
+            me: AuthMeResponse;
+            profileId: string | null;
+          };
+          setAuthMe(cached.me);
+          setActiveProfileIdState(cached.profileId);
+          setAuthError(null);
+        } catch {
+          setAuthError(formatApiError(e));
+          setAuthMe(null);
+          setActiveProfileIdState(null);
+        }
+      } else {
+        setAuthError(formatApiError(e));
+        setAuthMe(null);
+        setActiveProfileIdState(null);
+      }
     } finally {
       setAuthLoading(false);
     }
@@ -142,21 +170,40 @@ export function SessionProvider({
   }, [bootstrap]);
 
   const refreshAuthMe = useCallback(async () => {
-    if (isDemoBypassToken(accessToken)) {
-      setAuthError(null);
-      setAuthMe(DEMO_AUTH_ME);
-      return;
-    }
     try {
       setAuthError(null);
       const me = activeProfileId
         ? await fetchAuthMe(accessToken, activeProfileId)
         : await fetchAuthMe(accessToken);
       setAuthMe(me);
+      await AsyncStorage.setItem(
+        AUTH_ME_CACHE_KEY,
+        JSON.stringify({ me, profileId: activeProfileId })
+      );
     } catch (e) {
-      setAuthError(e instanceof Error ? e.message : String(e));
+      setAuthError(formatApiError(e));
     }
   }, [accessToken, activeProfileId]);
+
+  useEffect(() => {
+    const onAppState = (state: AppStateStatus) => {
+      if (state === "active") {
+        void refreshAuthMe();
+      }
+    };
+    const sub = AppState.addEventListener("change", onAppState);
+    return () => sub.remove();
+  }, [refreshAuthMe]);
+
+  useEffect(() => {
+    if (authMe?.vetProfessional?.verificationStatus !== "pending") {
+      return;
+    }
+    const id = setInterval(() => {
+      void refreshAuthMe();
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [authMe?.vetProfessional?.verificationStatus, refreshAuthMe]);
 
   const reloadAuth = useCallback(async () => {
     await bootstrap();
@@ -165,45 +212,44 @@ export function SessionProvider({
   const setActiveProfileId = useCallback(
     async (id: string | null) => {
       setAuthError(null);
-      if (isDemoBypassToken(accessToken)) {
-        setActiveProfileIdState(id);
-        if (id) {
-          await AsyncStorage.setItem(STORAGE_PROFILE_KEY, id);
-        } else {
-          await AsyncStorage.removeItem(STORAGE_PROFILE_KEY);
-        }
-        const match =
-          id != null ? DEMO_AUTH_ME.profiles.find((p) => p.id === id) : null;
-        setAuthMe({
-          ...DEMO_AUTH_ME,
-          activeProfile: match ?? null
-        });
-        return;
-      }
+      const profileType = id
+        ? authMe?.profiles.find((p) => p.id === id)?.type
+        : undefined;
       setActiveProfileIdState(id);
+      resetNavigationToProfileHome(profileType);
+      queryClient.removeQueries();
       if (id) {
         await AsyncStorage.setItem(STORAGE_PROFILE_KEY, id);
         try {
           const me = await fetchAuthMe(accessToken, id);
           setAuthMe(me);
+          await AsyncStorage.setItem(
+            AUTH_ME_CACHE_KEY,
+            JSON.stringify({ me, profileId: id })
+          );
         } catch (e) {
-          setAuthError(e instanceof Error ? e.message : String(e));
+          setAuthError(formatApiError(e));
         }
       } else {
         await AsyncStorage.removeItem(STORAGE_PROFILE_KEY);
         try {
           const me = await fetchAuthMe(accessToken);
           setAuthMe(me);
+          await AsyncStorage.setItem(
+            AUTH_ME_CACHE_KEY,
+            JSON.stringify({ me, profileId: null })
+          );
         } catch (e) {
-          setAuthError(e instanceof Error ? e.message : String(e));
+          setAuthError(formatApiError(e));
         }
       }
     },
-    [accessToken]
+    [accessToken, authMe?.profiles]
   );
 
   const signOut = useCallback(async () => {
     await AsyncStorage.removeItem(STORAGE_PROFILE_KEY).catch(() => undefined);
+    await AsyncStorage.removeItem(AUTH_ME_CACHE_KEY).catch(() => undefined);
     await signOutProp();
   }, [signOutProp]);
 
@@ -218,7 +264,8 @@ export function SessionProvider({
       setActiveProfileId,
       refreshAuthMe,
       reloadAuth,
-      clientFeatures
+      clientFeatures,
+      platformModules
     }),
     [
       accessToken,
@@ -230,7 +277,8 @@ export function SessionProvider({
       setActiveProfileId,
       refreshAuthMe,
       reloadAuth,
-      clientFeatures
+      clientFeatures,
+      platformModules
     ]
   );
 

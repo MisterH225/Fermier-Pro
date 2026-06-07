@@ -43,6 +43,10 @@ type FarmDetailNavTarget =
       params: RootStackParamList["FarmMembers"];
     }
   | {
+      screen: "Collaboration";
+      params: RootStackParamList["Collaboration"];
+    }
+  | {
       screen: "FarmFeedStock";
       params: RootStackParamList["FarmFeedStock"];
     };
@@ -145,10 +149,10 @@ export function buildFarmDetailMenuItems(args: {
       kind: "navigate",
       preset: "team",
       visible: true,
-      title: "Équipe et invitations",
-      subtitle: "Membres, rôles et liens d'invitation",
-      screen: "FarmMembers",
-      params: { farmId, farmName, effectiveScopes }
+      title: "Collaboration",
+      subtitle: "Membres, rôles, invitations et historique",
+      screen: "Collaboration",
+      params: { farmId, farmName }
     },
     {
       kind: "navigate",

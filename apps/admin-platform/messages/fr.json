@@ -1,0 +1,564 @@
+{
+  "app": {
+    "title": "Fermier Pro — SuperAdmin",
+    "subtitle": "Console d'administration"
+  },
+  "nav": {
+    "overview": "Vue d'ensemble",
+    "vets": "Vétérinaires",
+    "vetAppointments": "RDV véto",
+    "users": "Utilisateurs",
+    "auditLogs": "Journal admin",
+    "map": "Carte sanitaire",
+    "marketplace": "Marketplace",
+    "stats": "Statistiques",
+    "ai": "Assistant IA",
+    "settings": "Paramètres",
+    "logout": "Déconnexion"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "none": "Aucune notification",
+    "pendingVets": "Vétérinaires en attente ({count})",
+    "activeAlerts": "Alertes sanitaires ({count})",
+    "marketplaceDisputes": "Litiges poids ({count})"
+  },
+  "login": {
+    "title": "Connexion SuperAdmin",
+    "formYear": "2026",
+    "formTag": "Console admin",
+    "formLead": "Accédez au pilotage de toute la plateforme agricole.",
+    "navSignIn": "Connexion",
+    "navAbout": "À propos",
+    "email": "Email",
+    "password": "Mot de passe",
+    "submit": "Se connecter",
+    "forbidden": "Accès réservé aux SuperAdmin.",
+    "error": "Identifiants invalides.",
+    "errorGoogleHint": "Mot de passe invalide ou compte créé via Google. Utilisez « Continuer avec Google », puis définissez un mot de passe dans Paramètres.",
+    "google": "Continuer avec Google",
+    "googleHint": "Compte Google ? Connectez-vous une fois avec Google, puis créez un mot de passe dans Paramètres.",
+    "orEmail": "ou email",
+    "oauthRedirectError": "Connexion Google interrompue : Supabase renvoie vers l’app mobile (exp://). Ajoutez l’URL ci-dessous dans Redirect URLs (voir encadré orange).",
+    "oauthCallbackError": "Retour Google échoué : {reason}. Vérifiez Google Cloud Console → URI de redirection autorisée : https://VOTRE-PROJET.supabase.co/auth/v1/callback",
+    "apiUnreachable": "API inaccessible. Lancez l’API (npm run start:dev dans apps/api) puis réessayez.",
+    "oauthNoUrl": "Connexion Google impossible. Vérifiez Supabase → Redirect URLs (URL ci-dessous, pas /en/login) et redémarrez npm run dev:admin après .env.local.",
+    "oauthEnvMissing": "Variables Supabase manquantes côté navigateur. Vérifiez apps/admin-platform/.env.local puis redémarrez npm run dev:admin.",
+    "oauthSetupTitle": "Supabase — Redirect URL (console web)",
+    "oauthSetupBody": "Authentication → URL Configuration → Redirect URLs — ajoutez cette ligne (en plus des URLs exp:// mobile) :",
+    "oauthSetupWildcard": "Optionnel en dev (wildcard) :",
+    "oauthSetupWrong": "Ne pas utiliser /en/login. Si page blanche sur Google : la Site URL exp:// ne doit pas être utilisée pour le web — gardez redirect_to sans ?next= (corrigé dans l’app).",
+    "hero": {
+      "badge": "Console SuperAdmin Fermier Pro",
+      "titleHighlight": "Cultivez",
+      "titleRest": "l'avenir de l'élevage.",
+      "subtitle": "Fermes, producteurs, santé animale — tout depuis un seul tableau de bord.",
+      "stats": {
+        "farms": { "value": "500+", "label": "Fermes accompagnées" },
+        "producers": { "value": "12 000+", "label": "Producteurs actifs" },
+        "countries": { "value": "15+", "label": "Pays couverts" },
+        "growth": { "value": "98%", "label": "Satisfaction terrain" }
+      },
+      "tags": {
+        "organic": "Élevage durable",
+        "automation": "Suivi automatisé",
+        "health": "Santé animale"
+      }
+    }
+  },
+  "overview": {
+    "title": "Vue d'ensemble",
+    "subtitle": "Pilotez la plateforme agricole : fermes, producteurs et santé animale en un coup d'œil.",
+    "deltaPeriod": "vs. 15 jours préc.",
+    "activityEmpty": "Aucune activité récente.",
+    "actions": {
+      "export": "Exporter",
+      "filter": "Filtres"
+    },
+    "kpis": {
+      "farms": "Fermes actives",
+      "users": "Utilisateurs",
+      "vetsVerified": "Vétérinaires vérifiés",
+      "vetsPending": "En attente validation",
+      "animals": "Animaux actifs",
+      "diseases": "Cas maladies actifs",
+      "transactions": "Transactions ce mois",
+      "countries": "Pays couverts"
+    },
+    "charts": {
+      "signups": "Inscriptions (30 j)",
+      "profiles": "Répartition profils",
+      "period30d": "30 derniers jours",
+      "totalProfiles": "Profils"
+    },
+    "countries": {
+      "title": "Présence par pays",
+      "empty": "Aucune donnée géographique.",
+      "unknown": "Non renseigné"
+    },
+    "activity": "Activité récente",
+    "activityItems": {
+      "vetRequest": "🩺 Demande vétérinaire — {name} ({country})",
+      "signup": "👤 Inscription — {name}"
+    }
+  },
+  "vets": {
+    "title": "Validation vétérinaires",
+    "tabs": {
+      "pending": "En attente",
+      "verified": "Vérifiés",
+      "rejected": "Rejetés",
+      "all": "Tous"
+    },
+    "approve": "Approuver",
+    "reject": "Rejeter",
+    "view": "Voir dossier",
+    "diploma": "Diplôme",
+    "diplomaOpen": "Ouvrir le diplôme",
+    "rejectReason": "Motif du rejet",
+    "rejectPlaceholder": "Expliquez le motif…",
+    "statusLabels": {
+      "pending": "En attente",
+      "verified": "Vérifié",
+      "rejected": "Rejeté"
+    },
+    "empty": "Aucun vétérinaire dans cet onglet.",
+    "detail": {
+      "profileTitle": "Profil",
+      "fields": {
+        "email": "Email",
+        "phone": "Tél",
+        "specialty": "Spécialité",
+        "location": "Localisation",
+        "school": "École"
+      },
+      "schoolFormat": "{school} ({country}) — {year}",
+      "rejectDefaultReason": "Dossier incomplet"
+    }
+  },
+  "users": {
+    "title": "Utilisateurs",
+    "loading": "Chargement…",
+    "total": "{count} utilisateurs",
+    "searchPlaceholder": "Rechercher…",
+    "selectAll": "Tout sélectionner",
+    "since": "Depuis {date}",
+    "primaryFarm": "Ferme principale",
+    "view": "Voir",
+    "empty": "Aucun utilisateur trouvé.",
+    "statusFilters": {
+      "all": "Tous",
+      "active": "Actifs",
+      "suspended": "Suspendus",
+      "banned": "Bannis",
+      "inactive": "Inactifs"
+    },
+    "accountStatus": {
+      "active": "Actif",
+      "suspended": "Suspendu",
+      "banned": "Banni"
+    },
+    "actions": {
+      "menu": "Actions",
+      "close": "Fermer",
+      "view": "Voir le profil",
+      "message": "Envoyer un message",
+      "warn": "Avertir",
+      "suspend": "Suspendre le compte",
+      "unsuspend": "Lever la suspension",
+      "ban": "Bannir le compte",
+      "delete": "Supprimer le compte"
+    },
+    "moderation": {
+      "suspendTitle": "Suspendre {name}",
+      "unsuspendTitle": "Lever la suspension",
+      "banTitle": "Bannir {name}",
+      "banWarning": "Le bannissement désactive l'accès. Les données sont conservées.",
+      "warnTitle": "Envoyer un avertissement",
+      "messageTitle": "Envoyer un message",
+      "deleteAccountTitle": "Supprimer le compte",
+      "deleteAccountWarning": "Action irréversible. Toutes les données seront supprimées.",
+      "scope": "Portée",
+      "scopeAccount": "Compte global (tous les profils)",
+      "scopeVet": "Profil vétérinaire uniquement",
+      "scopeProducer": "Profil producteur uniquement",
+      "reason": "Raison",
+      "duration": "Durée",
+      "details": "Précisions",
+      "confirmPhrase": "Saisir {phrase} pour confirmer",
+      "subject": "Objet",
+      "cancel": "Annuler",
+      "confirm": "Confirmer",
+      "send": "Envoyer"
+    },
+    "pagination": {
+      "page": "Page {current} sur {total}"
+    },
+    "filters": {
+      "all": "Tous",
+      "producer": "Producteurs",
+      "technician": "Techniciens",
+      "veterinarian": "Vétérinaires",
+      "buyer": "Acheteurs"
+    },
+    "profiles": {
+      "producer": "Producteur",
+      "technician": "Technicien",
+      "veterinarian": "Vétérinaire",
+      "buyer": "Acheteur"
+    },
+    "columns": {
+      "member": "Membre",
+      "name": "Nom",
+      "email": "Email",
+      "profile": "Profil",
+      "farm": "Ferme",
+      "joined": "Inscription",
+      "status": "Statut"
+    },
+    "status": {
+      "active": "Actif",
+      "inactive": "Inactif"
+    },
+    "detail": {
+      "back": "Retour à la liste",
+      "noFarm": "Aucune ferme enregistrée.",
+      "tabs": {
+        "profil": "Profil",
+        "profiles": "Profils",
+        "history": "Historique admin",
+        "messages": "Messages admin",
+        "cheptel": "Cheptel",
+        "finance": "Finance",
+        "sante": "Santé",
+        "gestation": "Gestation",
+        "activite": "Activité"
+      },
+      "sections": {
+        "identity": "Identité",
+        "farms": "Fermes",
+        "collaborations": "Collaborations"
+      },
+      "fields": {
+        "phone": "Téléphone",
+        "location": "Localisation",
+        "joined": "Inscrit le",
+        "animals": "animaux actifs",
+        "healthRecords": "fiches santé"
+      },
+      "livestock": {
+        "total": "Effectif total",
+        "byCategory": "Répartition par catégorie"
+      },
+      "finance": {
+        "revenues": "Revenus (3 mois)",
+        "expenses": "Dépenses (3 mois)",
+        "margin": "Marge nette",
+        "note": "Données agrégées sur les 90 derniers jours."
+      },
+      "health": {
+        "activeDiseases": "Cas maladies actifs",
+        "mortality": "Taux mortalité (30 j)",
+        "overdueVaccines": "Vaccins en retard"
+      },
+      "gestation": {
+        "active": "Gestations actives",
+        "upcoming": "Mises bas à venir"
+      },
+      "activity": {
+        "placeholder": "Historique d'activité détaillé — prochaine itération."
+      }
+    }
+  },
+  "stats": {
+    "title": "Statistiques agrégées",
+    "topDiseases": "Top maladies",
+    "periods": {
+      "month": "Mensuel",
+      "quarter": "Trimestriel",
+      "year": "Annuel"
+    },
+    "kpis": {
+      "newUsers": "Nouveaux utilisateurs",
+      "activeAnimals": "Animaux actifs",
+      "mortality": "Mortalités (période)"
+    }
+  },
+  "map": {
+    "title": "Carte sanitaire",
+    "subtitle": "Carte interactive Mapbox + agrégation par zone.",
+    "regions": "Zones par pays",
+    "empty": "Aucun cas sur la période.",
+    "activeCases": "{count} cas actifs",
+    "farms": "{count} fermes",
+    "totalCases": "{count} cas total",
+    "activePoints": "Points actifs géolocalisés",
+    "pointsNote": "Cas actifs avec coordonnées GPS.",
+    "tokenMissing": "NEXT_PUBLIC_MAPBOX_TOKEN manquant dans apps/admin-platform/.env.local",
+    "unknownDiagnosis": "Maladie",
+    "alertsTitle": "Alertes actives",
+    "noAlerts": "Aucune alerte active.",
+    "alertModal": {
+      "create": "Créer une alerte",
+      "title": "Alerte manuelle",
+      "zone": "Zone concernée",
+      "level": "Niveau",
+      "message": "Message",
+      "cancel": "Annuler",
+      "submit": "Publier",
+      "levels": {
+        "info": "Info",
+        "warning": "Avertissement",
+        "critical": "Critique"
+      }
+    },
+    "periods": {
+      "7": "7 j",
+      "30": "30 j",
+      "90": "90 j",
+      "365": "12 mois"
+    }
+  },
+  "ai": {
+    "title": "Assistant IA",
+    "unavailable": "IA indisponible — vérifiez GEMINI_API_KEY côté API.",
+    "epidemic": {
+      "title": "Analyse épidémiologique",
+      "description": "Analyse des données sanitaires agrégées (30 derniers jours).",
+      "run": "Analyser la situation sanitaire",
+      "emerging": "Maladies émergentes",
+      "riskZones": "Zones à risque",
+      "trends": "Tendances",
+      "recommendations": "Recommandations prioritaires"
+    },
+    "ask": {
+      "title": "Aide à la décision",
+      "description": "Posez une question sur les statistiques agrégées de la plateforme.",
+      "placeholder": "Ex. : Quelles régions présentent les risques sanitaires les plus élevés ?",
+      "run": "Analyser"
+    },
+    "vetAssist": {
+      "title": "Assistance validation vétérinaires",
+      "description": "Analyse textuelle + vision du diplôme pour les dossiers en attente.",
+      "none": "Aucun dossier en attente.",
+      "run": "Analyser le dossier",
+      "imageAnalyzed": "Diplôme analysé par vision IA.",
+      "confidence": "Confiance",
+      "recommendation": "Recommandation",
+      "diploma": "Diplôme (texte)",
+      "consistent": "Cohérence infos",
+      "yes": "Oui",
+      "no": "Non",
+      "disclaimer": "Recommandation IA — décision finale humaine.",
+      "rec": {
+        "approve": "Approuver",
+        "review": "Vérifier manuellement",
+        "reject": "Rejeter"
+      }
+    }
+  },
+  "auditLogs": {
+    "title": "Journal des actions admin",
+    "subtitle": "Historique des suspensions, bannissements, messages et avertissements.",
+    "empty": "Aucune entrée.",
+    "columns": {
+      "date": "Date",
+      "admin": "Admin",
+      "target": "Utilisateur",
+      "action": "Action",
+      "profile": "Profil ciblé",
+      "reason": "Raison"
+    }
+  },
+  "settings": {
+    "title": "Paramètres plateforme",
+    "save": "Enregistrer",
+    "saved": "Paramètres enregistrés.",
+    "sections": {
+      "map": "Périmètre géographique",
+      "alerts": "Seuils alertes sanitaires",
+      "notifications": "Notifications",
+      "marketplace": "Marketplace"
+    },
+    "fields": {
+      "mapScope": "Zone visible sur la carte",
+      "alertThreshold": "Seuil déclenchement (cas)",
+      "alertPeriod": "Période de calcul (jours)",
+      "alertLevel": "Niveau alerte par défaut",
+      "adminEmail": "Email SuperAdmin",
+      "reportFrequency": "Fréquence rapports (jours)",
+      "marketplaceCommission": "Commission marketplace (%)",
+      "marketplaceCommissionHint": "Appliquée à chaque vente conclue sur le marché (ex. 5 = 5 %)."
+    },
+    "scopes": {
+      "world": "Monde entier",
+      "africa": "Afrique",
+      "west_africa": "Afrique de l'Ouest",
+      "countries": "Pays spécifiques"
+    },
+    "levels": {
+      "info": "Info",
+      "warning": "Avertissement",
+      "critical": "Critique"
+    },
+    "password": {
+      "title": "Mot de passe console",
+      "description": "Définissez un mot de passe email pour vous connecter sans Google. Modifiable à tout moment.",
+      "new": "Nouveau mot de passe",
+      "confirm": "Confirmer",
+      "placeholder": "Au moins 8 caractères",
+      "save": "Mettre à jour le mot de passe",
+      "saved": "Mot de passe enregistré.",
+      "tooShort": "Minimum 8 caractères.",
+      "mismatch": "Les mots de passe ne correspondent pas.",
+      "error": "Impossible de mettre à jour le mot de passe."
+    }
+  },
+  "modules": {
+    "title": "Modules plateforme",
+    "subtitle": "Activez ou désactivez les modules métier pour tous les utilisateurs.",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "disable": "Désactiver",
+    "reactivate": "Réactiver",
+    "disableTitle": "Désactiver {name}",
+    "reactivateTitle": "Réactiver {name}",
+    "impact": "Données concernées :",
+    "cascade": "Modules désactivés en cascade",
+    "reason": "Motif (obligatoire à la désactivation)",
+    "userMessage": "Message utilisateur (FR)",
+    "cancel": "Annuler",
+    "confirm": "Confirmer"
+  },
+  "common": {
+    "loading": "Chargement…",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "comingSoon": "Section en cours de déploiement."
+  },
+  "marketplace": {
+    "title": "Marketplace — transactions",
+    "tabs": {
+      "transactions": "Transactions",
+      "disputes": "Litiges poids",
+      "revenue": "Commissions",
+      "receipts": "Reçus PDF"
+    },
+    "receipts": {
+      "empty": "Aucune transaction clôturée.",
+      "summary": "{generated} reçus générés sur {total} transactions clôturées.",
+      "colListing": "Annonce",
+      "colReceipt": "N° reçu",
+      "colStatus": "Statut",
+      "colClosed": "Clôture",
+      "colActions": "Actions",
+      "download": "Télécharger",
+      "regenerate": "Régénérer",
+      "status": {
+        "pending": "En attente",
+        "generated": "Généré",
+        "failed": "Échec"
+      }
+    },
+    "transactions": {
+      "empty": "Aucune transaction.",
+      "allStatuses": "Tous les statuts",
+      "colListing": "Annonce",
+      "colStatus": "Statut",
+      "colBuyer": "Acheteur",
+      "colSeller": "Vendeur",
+      "colAmount": "Montant bloqué",
+      "colUpdated": "Mis à jour"
+    },
+    "status": {
+      "OFFER_ACCEPTED": "Offre acceptée",
+      "PAYMENT_PENDING": "Paiement en attente",
+      "PAYMENT_HELD": "Paiement sécurisé",
+      "PICKUP_SCHEDULED": "Livraison planifiée",
+      "WEIGHT_DECLARED": "Poids déclaré",
+      "WEIGHT_DISPUTED": "Litige poids",
+      "WEIGHT_VALIDATED": "Poids validé",
+      "TRANSACTION_CLOSED": "Clôturée",
+      "CANCELLED_BY_BUYER": "Annulée (acheteur)",
+      "CANCELLED_BY_SELLER": "Annulée (vendeur)",
+      "CANCELLED_SOLD_TO_OTHER": "Vendu à un autre",
+      "PAYMENT_FAILED": "Paiement échoué",
+      "OFFER_EXPIRED": "Offre expirée"
+    },
+    "disputes": {
+      "empty": "Aucun litige en cours.",
+      "buyer": "Acheteur",
+      "seller": "Vendeur",
+      "declaredWeight": "Poids déclaré",
+      "blockedAmount": "Montant bloqué",
+      "openedAt": "Ouvert le",
+      "arbitrate": "Arbitrer",
+      "arbitrateTitle": "Arbitrage du poids",
+      "arbitrationWeight": "Poids arbitré (kg)",
+      "cancel": "Annuler",
+      "confirm": "Valider l'arbitrage",
+      "invalidWeight": "Poids invalide.",
+      "error": "Arbitrage impossible."
+    },
+    "revenue": {
+      "totalCommission": "Commissions collectées",
+      "totalGross": "Volume brut",
+      "transactionCount": "Transactions clôturées",
+      "dailySeries": "Commissions par jour",
+      "colListing": "Annonce",
+      "colGross": "Montant brut",
+      "colCommission": "Commission",
+      "colDate": "Date",
+      "period": {
+        "7d": "7 jours",
+        "30d": "30 jours",
+        "90d": "90 jours",
+        "all": "Tout"
+      }
+    }
+  },
+  "vetAppointments": {
+    "title": "Rendez-vous vétérinaires",
+    "tabs": {
+      "list": "Liste",
+      "revenue": "Commissions & avis"
+    },
+    "list": {
+      "empty": "Aucun rendez-vous.",
+      "allStatuses": "Tous les statuts",
+      "colFarm": "Ferme",
+      "colVet": "Vétérinaire",
+      "colProducer": "Producteur",
+      "colStatus": "Statut",
+      "colAmount": "Montant",
+      "colWhen": "Date",
+      "refund": "Rembourser",
+      "refundConfirm": "Confirmer le remboursement intégral au producteur ?",
+      "refundError": "Remboursement impossible."
+    },
+    "status": {
+      "APPOINTMENT_REQUESTED": "Demande envoyée",
+      "AWAITING_PAYMENT": "En attente paiement",
+      "APPOINTMENT_CONFIRMED": "Confirmé",
+      "APPOINTMENT_IN_PROGRESS": "En cours",
+      "APPOINTMENT_COMPLETED": "Prestation terminée",
+      "APPOINTMENT_RATED": "Noté",
+      "APPOINTMENT_REFUSED": "Refusé",
+      "PAYMENT_EXPIRED": "Paiement expiré",
+      "CANCELLED_BY_PRODUCER": "Annulé (producteur)",
+      "CANCELLED_BY_VET": "Annulé (véto)"
+    },
+    "revenue": {
+      "totalCommission": "Commissions RDV",
+      "totalGross": "Volume brut",
+      "appointmentCount": "Prestations clôturées",
+      "lowRated": "Vétérinaires mal notés (< 3/5)",
+      "period": {
+        "7d": "7 jours",
+        "30d": "30 jours",
+        "90d": "90 jours",
+        "all": "Tout"
+      }
+    }
+  }
+}

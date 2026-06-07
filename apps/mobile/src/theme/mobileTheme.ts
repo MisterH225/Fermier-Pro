@@ -1,4 +1,6 @@
 export const mobileColors = {
+  /** Fond global des écrans (liste / formulaires), sous les cartes blanches. */
+  canvas: "#F2F2F7",
   background: "#FFFFFF",
   surface: "#FAFAFA",
   surfaceMuted: "#F7F7F7",
@@ -39,6 +41,11 @@ export const mobileTypography = {
     lineHeight: 22,
     fontWeight: "600" as const
   },
+  sectionTitle: {
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: "700" as const
+  },
   body: {
     fontSize: 15,
     lineHeight: 21,
@@ -58,5 +65,15 @@ export const mobileShadows = {
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 1
+  }
+} as const;
+
+/** Boutons texte en haut à droite des écrans (header). */
+export const mobileHeaderButton = {
+  btn: { marginRight: mobileSpacing.sm, paddingVertical: 4, paddingHorizontal: 2 },
+  text: {
+    color: mobileColors.accent,
+    fontWeight: "600" as const,
+    fontSize: 15
   }
 } as const;

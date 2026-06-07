@@ -1,7 +1,8 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -13,20 +14,41 @@ import {
   View
 } from "react-native";
 import { MobileAppShell } from "../components/layout";
-import { DashboardFinanceMiniChart } from "../components/producer/DashboardFinanceMiniChart";
+import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
+import { SmartAlertsSection } from "../components/smartAlerts/SmartAlertsSection";
+import { AlertBadge } from "../components/smartAlerts/AlertBadge";
+
+import { FeedStockLevelGauge, dashboardFeedItemToGauge } from "../components/feed";
+import { FinanceOverviewKpiGrid } from "../components/finance/FinanceOverviewKpiGrid";
+import { CategoryBreakdownPanel } from "../components/cheptel/overview/CategoryBreakdownPanel";
+import { ScreenSection } from "../components/layout/ScreenSection";
+import { EmptyStateCard } from "../components/common/EmptyStateCard";
+import { CardContentSkeleton } from "../components/common/SkeletonBlocks";
+import { OnboardingBanner } from "../components/onboarding/OnboardingBanner";
+import { AdminMessagesBanner } from "../components/admin/AdminMessagesBanner";
+import { PendingInvitationsBanner } from "../components/collaboration/PendingInvitationsBanner";
+import { VetAppointmentActionsBanner } from "../components/vet/VetAppointmentActionsBanner";
 import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
 import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
-import { ProducerEventsFab } from "../components/producer/ProducerEventsFab";
+import { ProjectIndicator } from "../components/projects";
+import { useOnboardingResume } from "../context/OnboardingResumeContext";
+import { useActiveProject, useActiveFarm } from "../context/ActiveProjectContext";
+import { getProducerOnboardingState } from "../lib/onboardingState";
+import { useBottomInset } from "../hooks/useBottomInset";
+import { resolveActiveProfileAvatarUrl } from "../lib/profileAvatar";
 import { useSession } from "../context/SessionContext";
 import {
   fetchDashboardFeedStock,
-  fetchDashboardFinanceTimeseries,
+  fetchFinanceOverview,
+  fetchFarmCheptelOverview,
   fetchDashboardGestations,
   fetchDashboardHealth,
+  fetchFarmSmartAlertsCount,
   fetchFarms,
+  postFarmSmartAlertsRefresh,
   type DashboardFeedStockItemDto,
-  type DashboardFinanceMonthPoint,
   type DashboardGestationItemDto,
+  type FinanceOverviewDto,
   type DashboardHealthDto
 } from "../lib/api";
 import { welcomeFirstName } from "../lib/userDisplay";
@@ -38,15 +60,7 @@ import {
   mobileTypography
 } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
-
-function formatMonthShort(isoMonth: string, locale: string): string {
-  const [y, m] = isoMonth.split("-").map((x) => Number(x));
-  if (!y || !m) {
-    return isoMonth;
-  }
-  const d = new Date(Date.UTC(y, m - 1, 1));
-  return d.toLocaleDateString(locale, { month: "short", year: "2-digit" });
-}
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 function formatMoney(n: number, locale: string): string {
   try {
@@ -74,6 +88,7 @@ function formatDay(iso: string | null | undefined, locale: string): string {
 
 /**
  * Tableau de bord producteur : cartes pilotées par l’API (aucune donnée locale fictive).
+ * Finance : grille KPI via FinanceOverviewKpiGrid (plus de SmartChart ici).
  */
 export function ProducerDashboardScreen() {
   const { t, i18n } = useTranslation();
@@ -88,10 +103,13 @@ export function ProducerDashboardScreen() {
     authMe,
     clientFeatures
   } = useSession();
+  const { activeFarm, activeFarmId, farms, refreshFarms } = useActiveProject();
+  const bottomInset = useBottomInset();
+  const { requestResume } = useOnboardingResume();
+  const onboardingState = getProducerOnboardingState(authMe, activeProfileId);
+  const showOnboardingBanner = onboardingState === "skipped";
   const [profileOpen, setProfileOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [financeChartW, setFinanceChartW] = useState(280);
-
   const user = authMe?.user;
   const firstName = useMemo(() => welcomeFirstName(user), [user]);
 
@@ -103,26 +121,10 @@ export function ProducerDashboardScreen() {
   }, [authMe, activeProfileId]);
 
   const isProducer = activeProfile?.type === "producer";
+  const showMultiProjectIndicator = farms.filter(f => f.status === "active").length > 1;
 
-  const farmsQuery = useQuery({
-    queryKey: ["farms", activeProfileId, "producerHome"],
-    queryFn: () => fetchFarms(accessToken!, activeProfileId),
-    enabled: Boolean(accessToken && isProducer && !authMe?.primaryFarm)
-  });
-
-  const resolvedFarm = useMemo(() => {
-    if (authMe?.primaryFarm) {
-      return authMe.primaryFarm;
-    }
-    const first = farmsQuery.data?.[0];
-    if (first) {
-      return { id: first.id, name: first.name };
-    }
-    return null;
-  }, [authMe?.primaryFarm, farmsQuery.data]);
-
-  const farmId = resolvedFarm?.id ?? null;
-  const farmName = resolvedFarm?.name ?? "";
+  const farmId = activeFarmId;
+  const farmName = activeFarm?.name ?? "";
 
   const financeEnabled = Boolean(
     farmId && accessToken && clientFeatures.finance
@@ -132,13 +134,9 @@ export function ProducerDashboardScreen() {
   );
 
   const financeQuery = useQuery({
-    queryKey: ["dashboardFinance", farmId, activeProfileId],
+    queryKey: ["financeOverview", farmId, activeProfileId],
     queryFn: () =>
-      fetchDashboardFinanceTimeseries(
-        accessToken!,
-        farmId!,
-        activeProfileId
-      ),
+      fetchFinanceOverview(accessToken!, farmId!, activeProfileId),
     enabled: financeEnabled,
     refetchInterval: 60_000
   });
@@ -167,6 +165,36 @@ export function ProducerDashboardScreen() {
     refetchInterval: 60_000
   });
 
+  const cheptelOverviewQ = useQuery({
+    queryKey: ["cheptelOverview", farmId, activeProfileId],
+    queryFn: () =>
+      fetchFarmCheptelOverview(accessToken!, farmId!, activeProfileId),
+    enabled: Boolean(farmId && accessToken),
+    refetchInterval: 120_000
+  });
+
+  const alertsCountQuery = useQuery({
+    queryKey: ["smartAlertsCount", farmId, activeProfileId],
+    queryFn: () =>
+      fetchFarmSmartAlertsCount(accessToken!, farmId!, activeProfileId),
+    enabled: Boolean(farmId && accessToken),
+    refetchInterval: 120_000
+  });
+
+  useEffect(() => {
+    if (!farmId || !accessToken) {
+      return;
+    }
+    void postFarmSmartAlertsRefresh(accessToken, farmId, activeProfileId)
+      .then(() => {
+        void qc.invalidateQueries({ queryKey: ["smartAlerts", farmId] });
+        void qc.invalidateQueries({
+          queryKey: ["smartAlertsCount", farmId, activeProfileId]
+        });
+      })
+      .catch(() => undefined);
+  }, [farmId, accessToken, activeProfileId, qc]);
+
   const onRefresh = useCallback(async () => {
     if (!farmId) {
       return;
@@ -177,108 +205,164 @@ export function ProducerDashboardScreen() {
       tasks.push(financeQuery.refetch());
     }
     tasks.push(gestationsQuery.refetch(), healthQuery.refetch());
+    tasks.push(cheptelOverviewQ.refetch());
     if (feedEnabled) {
       tasks.push(feedQuery.refetch());
     }
     await Promise.all(tasks.map((p) => p.catch(() => undefined)));
-    await farmsQuery.refetch().catch(() => undefined);
+    await refreshFarms().catch(() => undefined);
     void qc.invalidateQueries({ queryKey: ["farms", activeProfileId] });
+    if (farmId && accessToken) {
+      await postFarmSmartAlertsRefresh(
+        accessToken,
+        farmId,
+        activeProfileId
+      ).catch(() => undefined);
+      void qc.invalidateQueries({ queryKey: ["smartAlerts", farmId] });
+      void qc.invalidateQueries({
+        queryKey: ["smartAlertsCount", farmId, activeProfileId]
+      });
+    }
     setRefreshing(false);
   }, [
     farmId,
+    accessToken,
+    activeProfileId,
     financeEnabled,
     feedEnabled,
     financeQuery,
     gestationsQuery,
     healthQuery,
     feedQuery,
-    farmsQuery,
-    qc,
-    activeProfileId
+    refreshFarms,
+    qc
   ]);
 
-  const customHeader = (
+  const dashboardHeader = (
     <View style={styles.heroBar}>
-      <ProducerWelcomeHeader
-        welcomeLabel={t("producer.welcomeLine")}
-        firstName={firstName}
-        avatarUrl={user?.avatarUrl ?? null}
-        onPressAvatar={() => setProfileOpen(true)}
-      />
-      <Pressable
-        onPress={() => {
-          if (!farmId || !farmName) {
-            navigation.navigate("FarmList");
-            return;
-          }
-          navigation.navigate("ProducerFarmSettings", { farmId, farmName });
-        }}
-        style={({ pressed }) => [
-          styles.heroSettingsBtn,
-          pressed && styles.heroSettingsBtnPressed
-        ]}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        accessibilityRole="button"
-        accessibilityLabel={t("producer.settingsButton")}
-      >
-        <Text style={styles.heroSettingsTx}>{t("producer.settingsButton")}</Text>
-      </Pressable>
+      <View style={styles.heroTopRow}>
+        <ProducerWelcomeHeader
+          welcomeLabel={t("producer.welcomeLine")}
+          firstName={firstName}
+          avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
+          onPressAvatar={() => setProfileOpen(true)}
+        />
+        {showMultiProjectIndicator && (
+          <ProjectIndicator onPress={() => setProfileOpen(true)} />
+        )}
+      </View>
+      <View style={styles.heroActions}>
+        <Pressable
+          onPress={() => {
+            if (!farmId || !farmName) {
+              navigation.navigate("FarmList");
+              return;
+            }
+            navigation.navigate("SmartAlertsList", { farmId, farmName });
+          }}
+          style={({ pressed }) => [
+            styles.heroIconBtn,
+            pressed && styles.heroIconBtnPressed
+          ]}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel={t("smartAlerts.bellA11y", "Alertes")}
+        >
+          <View style={styles.bellWrap}>
+            <Ionicons
+              name="notifications-outline"
+              size={22}
+              color={mobileColors.accent}
+            />
+            <AlertBadge count={alertsCountQuery.data?.criticalUnread ?? 0} />
+          </View>
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            if (!farmId || !farmName) {
+              navigation.navigate("FarmList");
+              return;
+            }
+            navigation.navigate("ProducerFarmSettings", { farmId, farmName });
+          }}
+          style={({ pressed }) => [
+            styles.heroIconBtn,
+            pressed && styles.heroIconBtnPressed
+          ]}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel={t("producer.settingsButton")}
+        >
+          <Ionicons
+            name="settings-outline"
+            size={22}
+            color={mobileColors.accent}
+          />
+        </Pressable>
+      </View>
     </View>
   );
 
   return (
     <>
-      <MobileAppShell
-        customHeader={customHeader}
-        omitBottomTabBar
-        floatingAction={
-          <ProducerEventsFab
-            onPress={() => navigation.navigate("FarmEventsFeed")}
-          />
-        }
-      >
+      <MobileAppShell customHeader={dashboardHeader} omitBottomTabBar>
         <ScrollView
-          contentContainerStyle={styles.wrap}
+          contentContainerStyle={[
+            styles.wrap,
+            { paddingBottom: bottomInset }
+          ]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
+          <AdminMessagesBanner />
+          <PendingInvitationsBanner />
+          {accessToken && farmId ? (
+            <VetAppointmentActionsBanner
+              accessToken={accessToken}
+              activeProfileId={activeProfileId}
+              farmId={farmId}
+            />
+          ) : null}
+          {showOnboardingBanner ? (
+            <OnboardingBanner onComplete={requestResume} />
+          ) : null}
           {!farmId ? (
-            <View style={styles.emptyFarm}>
-              <Text style={styles.emptyTitle}>
-                {t("producer.dashboard.noFarmTitle")}
-              </Text>
-              <Text style={styles.emptyBody}>
-                {t("producer.dashboard.noFarmBody")}
-              </Text>
-              <Pressable
-                style={styles.linkBtn}
-                onPress={() => navigation.navigate("FarmList")}
-              >
-                <Text style={styles.linkBtnText}>
-                  {t("producer.dashboard.openFarmList")}
+            showOnboardingBanner ? (
+              <EmptyStateCard onConfigure={requestResume} />
+            ) : (
+              <View style={styles.emptyFarm}>
+                <Text style={styles.emptyTitle}>
+                  {t("producer.dashboard.noFarmTitle")}
                 </Text>
-              </Pressable>
-            </View>
+                <Text style={styles.emptyBody}>
+                  {t("producer.dashboard.noFarmBody")}
+                </Text>
+                <Pressable
+                  style={styles.linkBtn}
+                  onPress={() => navigation.navigate("FarmList")}
+                >
+                  <Text style={styles.linkBtnText}>
+                    {t("producer.dashboard.openFarmList")}
+                  </Text>
+                </Pressable>
+              </View>
+            )
           ) : (
+            <>
             <View style={styles.grid}>
               <View style={styles.gridItem}>
-                <FinanceCard
+                <FinanceOverviewKpiGrid
                   enabled={financeEnabled}
-                  months={financeQuery.data?.months}
+                  overview={financeQuery.data as FinanceOverviewDto | undefined}
                   isPending={financeQuery.isPending}
                   error={
                     financeQuery.error instanceof Error
-                      ? financeQuery.error.message
+                      ? getUserFacingError(financeQuery.error, t)
                       : null
                   }
-                  chartWidth={financeChartW}
-                  onLayoutChart={(w) => setFinanceChartW(w)}
-                  locale={locale}
-                  title={t("producer.dashboard.financeTitle")}
+                  sectionTitle={t("producer.dashboard.financeTitle")}
                   disabledHint={t("producer.dashboard.financeDisabled")}
-                  legendExpense={t("producer.dashboard.legendExpenses")}
-                  legendRevenue={t("producer.dashboard.legendRevenues")}
                   onPress={() =>
                     navigation.navigate("FarmFinance", { farmId, farmName })
                   }
@@ -291,7 +375,7 @@ export function ProducerDashboardScreen() {
                   isPending={gestationsQuery.isPending}
                   error={
                     gestationsQuery.error instanceof Error
-                      ? gestationsQuery.error.message
+                      ? getUserFacingError(gestationsQuery.error, t)
                       : null
                   }
                   locale={locale}
@@ -310,7 +394,7 @@ export function ProducerDashboardScreen() {
                   isPending={healthQuery.isPending}
                   error={
                     healthQuery.error instanceof Error
-                      ? healthQuery.error.message
+                      ? getUserFacingError(healthQuery.error, t)
                       : null
                   }
                   locale={locale}
@@ -323,7 +407,14 @@ export function ProducerDashboardScreen() {
                   }}
                   dayAbbr={t("producer.dashboard.dayAbbr")}
                   onPress={() =>
-                    navigation.navigate("FarmHealth", { farmId, farmName })
+                    navigation.navigate("FarmHealth", {
+                      farmId,
+                      farmName,
+                      initialTab:
+                        (healthQuery.data?.activeDiseaseCases?.count ?? 0) > 0
+                          ? "disease"
+                          : undefined
+                    })
                   }
                 />
               </View>
@@ -335,19 +426,45 @@ export function ProducerDashboardScreen() {
                   isPending={feedQuery.isPending}
                   error={
                     feedQuery.error instanceof Error
-                      ? feedQuery.error.message
+                      ? getUserFacingError(feedQuery.error, t)
                       : null
                   }
                   locale={locale}
                   title={t("producer.dashboard.feedTitle")}
                   disabledHint={t("producer.dashboard.feedDisabled")}
-                  criticalLabel={t("producer.dashboard.feedCritical")}
                   onPress={() =>
                     navigation.navigate("FarmFeedStock", { farmId, farmName })
                   }
                 />
               </View>
             </View>
+            {(cheptelOverviewQ.data?.categoryBreakdown?.length ?? 0) > 0 ? (
+              <ScreenSection title={t("cheptel.categoryBreakdown")}>
+                <CategoryBreakdownPanel
+                  rows={cheptelOverviewQ.data?.categoryBreakdown ?? []}
+                />
+              </ScreenSection>
+            ) : null}
+            <SmartAlertsSection
+              farmId={farmId}
+              farmName={farmName}
+              accessToken={accessToken!}
+              activeProfileId={activeProfileId}
+            />
+            <ModuleAIInsights
+              farmId={farmId}
+              module="global_dashboard"
+              accessToken={accessToken}
+              activeProfileId={activeProfileId}
+            />
+            <ModuleAIInsights
+              farmId={farmId}
+              module="gestation"
+              accessToken={accessToken}
+              activeProfileId={activeProfileId}
+              hasMinimalData={(gestationsQuery.data?.items?.length ?? 0) > 0}
+            />
+          </>
           )}
         </ScrollView>
       </MobileAppShell>
@@ -393,100 +510,6 @@ function CardShell({
   );
 }
 
-function FinanceCard({
-  enabled,
-  months,
-  isPending,
-  error,
-  chartWidth,
-  onLayoutChart,
-  locale,
-  title,
-  disabledHint,
-  legendExpense,
-  legendRevenue,
-  onPress
-}: {
-  enabled: boolean;
-  months: DashboardFinanceMonthPoint[] | undefined;
-  isPending: boolean;
-  error: string | null;
-  chartWidth: number;
-  onLayoutChart: (w: number) => void;
-  locale: string;
-  title: string;
-  disabledHint: string;
-  legendExpense: string;
-  legendRevenue: string;
-  onPress: () => void;
-}) {
-  if (!enabled) {
-    return (
-      <CardShell emoji="💰" title={title} onPress={onPress} disabled>
-        <Text style={styles.muted}>{disabledHint}</Text>
-      </CardShell>
-    );
-  }
-  if (isPending && !months) {
-    return (
-      <CardShell emoji="💰" title={title} onPress={onPress}>
-        <ActivityIndicator color={mobileColors.accent} />
-      </CardShell>
-    );
-  }
-  if (error) {
-    return (
-      <CardShell emoji="💰" title={title} onPress={onPress}>
-        <Text style={styles.errSmall}>{error}</Text>
-      </CardShell>
-    );
-  }
-  const pts = months ?? [];
-  return (
-    <CardShell emoji="💰" title={title} onPress={onPress}>
-      <View
-        onLayout={(e) => onLayoutChart(e.nativeEvent.layout.width)}
-        style={styles.chartBox}
-      >
-        {pts.length > 0 ? (
-          <DashboardFinanceMiniChart
-            months={pts}
-            width={Math.max(120, chartWidth)}
-            height={112}
-          />
-        ) : null}
-      </View>
-      <View style={styles.legendRow}>
-        <View style={styles.legendItem}>
-          <View style={[styles.dot, { backgroundColor: mobileColors.error }]} />
-          <Text style={styles.legendText}>{legendExpense}</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View
-            style={[styles.dot, { backgroundColor: mobileColors.success }]}
-          />
-          <Text style={styles.legendText}>{legendRevenue}</Text>
-        </View>
-      </View>
-      <View style={styles.monthRow}>
-        {pts.map((m) => (
-          <View key={m.month} style={styles.monthCol}>
-            <Text style={styles.monthLab} numberOfLines={1}>
-              {formatMonthShort(m.month, locale)}
-            </Text>
-            <Text style={styles.monthExp} numberOfLines={1}>
-              {formatMoney(Number(m.expenses), locale)}
-            </Text>
-            <Text style={styles.monthRev} numberOfLines={1}>
-              {formatMoney(Number(m.revenues), locale)}
-            </Text>
-          </View>
-        ))}
-      </View>
-    </CardShell>
-  );
-}
-
 function GestationsCard({
   items,
   isPending,
@@ -509,7 +532,7 @@ function GestationsCard({
   if (isPending && !items) {
     return (
       <CardShell emoji="🐷" title={title} onPress={onPress}>
-        <ActivityIndicator color={mobileColors.accent} />
+        <CardContentSkeleton lines={3} />
       </CardShell>
     );
   }
@@ -583,7 +606,7 @@ function HealthCard({
   if (isPending && !data) {
     return (
       <CardShell emoji="🏥" title={title} onPress={onPress}>
-        <ActivityIndicator color={mobileColors.accent} />
+        <CardContentSkeleton lines={3} />
       </CardShell>
     );
   }
@@ -652,7 +675,6 @@ function FeedStockCard({
   locale,
   title,
   disabledHint,
-  criticalLabel,
   onPress
 }: {
   enabled: boolean;
@@ -662,9 +684,9 @@ function FeedStockCard({
   locale: string;
   title: string;
   disabledHint: string;
-  criticalLabel: string;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   if (!enabled) {
     return (
       <CardShell emoji="🌾" title={title} onPress={onPress} disabled>
@@ -675,7 +697,7 @@ function FeedStockCard({
   if (isPending && !items) {
     return (
       <CardShell emoji="🌾" title={title} onPress={onPress}>
-        <ActivityIndicator color={mobileColors.accent} />
+        <CardContentSkeleton lines={3} />
       </CardShell>
     );
   }
@@ -696,39 +718,23 @@ function FeedStockCard({
   }
   return (
     <CardShell emoji="🌾" title={title} onPress={onPress}>
-      <View style={styles.feedList}>
-        {list.slice(0, 4).map((it) => (
-          <View key={it.productName} style={styles.feedRow}>
-            <View style={styles.feedTop}>
-              <Text style={styles.feedName} numberOfLines={1}>
-                {it.productName}
-              </Text>
-              <Text style={styles.feedKg}>
-                {formatMoney(Number(it.remainingKg), locale)} kg
-              </Text>
-            </View>
-            <View style={styles.barTrack}>
-              <View
-                style={[
-                  styles.barFill,
-                  it.level === "critical" && {
-                    backgroundColor: mobileColors.error
-                  },
-                  it.level === "medium" && {
-                    backgroundColor: mobileColors.warning
-                  },
-                  it.level === "ok" && { backgroundColor: mobileColors.success },
-                  {
-                    width: `${Math.round(Math.min(1, Math.max(0, it.ratio)) * 100)}%`
-                  }
-                ]}
-              />
-            </View>
-            {it.critical ? (
-              <Text style={styles.feedAlert}>{criticalLabel}</Text>
-            ) : null}
-          </View>
-        ))}
+      <View style={styles.feedGaugeList}>
+        {list.slice(0, 4).map((it, index) => {
+          const gauge = dashboardFeedItemToGauge(it, index, t, locale);
+          return (
+            <FeedStockLevelGauge
+              key={gauge.key}
+              name={gauge.name}
+              subtitle={gauge.subtitle}
+              displayValue={gauge.displayValue}
+              percent={gauge.percent}
+              gaugeColor={gauge.gaugeColor}
+              dotColor={gauge.dotColor}
+              daysLabel={gauge.daysLabel}
+              variant="embedded"
+            />
+          );
+        })}
       </View>
     </CardShell>
   );
@@ -744,7 +750,28 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: mobileColors.border,
     backgroundColor: mobileColors.background,
+  },
+  heroTopRow: {
+    flexDirection: "column",
+    alignItems: "flex-start",
     gap: mobileSpacing.sm
+  },
+  heroActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.xs
+  },
+  heroIconBtn: {
+    padding: mobileSpacing.sm,
+    borderRadius: mobileRadius.pill
+  },
+  heroIconBtnPressed: {
+    opacity: 0.85
+  },
+  bellWrap: {
+    position: "relative",
+    justifyContent: "center",
+    alignItems: "center"
   },
   heroSettingsBtn: {
     paddingHorizontal: mobileSpacing.md,
@@ -765,7 +792,6 @@ const styles = StyleSheet.create({
   },
   wrap: {
     padding: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl,
     gap: mobileSpacing.lg
   },
   grid: {
@@ -773,10 +799,12 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.md
   },
   gridItem: {
-    width: "100%"
+    width: "100%",
+    alignSelf: "stretch",
+    flexShrink: 0
   },
   card: {
-    backgroundColor: mobileColors.surface,
+    backgroundColor: mobileColors.background,
     borderRadius: mobileRadius.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: mobileColors.border,
@@ -811,44 +839,6 @@ const styles = StyleSheet.create({
   errSmall: {
     ...mobileTypography.meta,
     color: mobileColors.error
-  },
-  chartBox: {
-    width: "100%",
-    minHeight: 112,
-    marginBottom: mobileSpacing.xs
-  },
-  legendRow: {
-    flexDirection: "row",
-    gap: mobileSpacing.md,
-    marginBottom: mobileSpacing.xs
-  },
-  legendItem: { flexDirection: "row", alignItems: "center", gap: 4 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary,
-    fontSize: 10
-  },
-  monthRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: mobileSpacing.xs
-  },
-  monthCol: { flex: 1 },
-  monthLab: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary,
-    fontSize: 10
-  },
-  monthExp: {
-    ...mobileTypography.meta,
-    color: mobileColors.error,
-    fontSize: 11
-  },
-  monthRev: {
-    ...mobileTypography.meta,
-    color: mobileColors.success,
-    fontSize: 11
   },
   gestList: { gap: mobileSpacing.sm },
   gestRow: {
@@ -892,41 +882,14 @@ const styles = StyleSheet.create({
     fontSize: 13
   },
   feedList: { gap: mobileSpacing.md },
-  feedRow: { gap: 4 },
-  feedTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: mobileSpacing.sm
-  },
-  feedName: {
-    ...mobileTypography.body,
-    flex: 1,
-    fontSize: 14,
-    color: mobileColors.textPrimary
-  },
-  feedKg: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary
-  },
-  barTrack: {
-    height: 6,
-    borderRadius: 4,
-    backgroundColor: mobileColors.border,
-    overflow: "hidden"
-  },
-  barFill: {
-    height: "100%",
-    borderRadius: 4
-  },
-  feedAlert: {
-    ...mobileTypography.meta,
-    color: mobileColors.error,
-    fontSize: 11
-  },
+  feedGaugeList: { gap: mobileSpacing.xs },
   emptyFarm: {
     padding: mobileSpacing.lg,
     borderRadius: mobileRadius.md,
-    backgroundColor: mobileColors.surfaceMuted
+    backgroundColor: mobileColors.background,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.border,
+    ...mobileShadows.card
   },
   emptyTitle: {
     ...mobileTypography.cardTitle,

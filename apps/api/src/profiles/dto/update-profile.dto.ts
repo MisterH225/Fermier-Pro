@@ -7,6 +7,11 @@ export class UpdateProfileDto {
   displayName?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  avatarUrl?: string | null;
+
+  @IsOptional()
   @IsBoolean()
   isDefault?: boolean;
 }

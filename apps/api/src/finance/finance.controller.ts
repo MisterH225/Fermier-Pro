@@ -10,7 +10,8 @@ import {
   Put,
   Query,
   Res,
-  UseGuards
+  UseGuards,
+  ParseBoolPipe
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
 import type { Response } from "express";
@@ -28,13 +29,29 @@ import { CreateRevenueDto } from "./dto/create-revenue.dto";
 import { UpdateExpenseDto } from "./dto/update-expense.dto";
 import { UpdateFinanceSettingsDto } from "./dto/update-finance-settings.dto";
 import { UpdateRevenueDto } from "./dto/update-revenue.dto";
+import { BudgetService } from "./budget.service";
+import {
+  BudgetMonthQueryDto,
+  BudgetSimulateQueryDto,
+  PatchBudgetSuggestionDto,
+  UpdateBudgetLineDto,
+  UpsertFarmBudgetDto
+} from "./dto/upsert-farm-budget.dto";
 import { FinanceService } from "./finance.service";
+import { FeedFinanceLinkService } from "../feed-finance-link/feed-finance-link.service";
+import { ReconciliationEngine } from "../feed-finance-link/reconciliation-engine";
+import { CreateTransactionWithStockDto } from "../feed-finance-link/dto/feed-finance-link.dto";
 
 @Controller("farms/:farmId/finance")
 @RequireFeature("finance")
 @UseGuards(SupabaseJwtGuard, FeatureEnabledGuard, FarmScopesGuard)
 export class FinanceController {
-  constructor(private readonly finance: FinanceService) {}
+  constructor(
+    private readonly finance: FinanceService,
+    private readonly budget: BudgetService,
+    private readonly feedFinanceLink: FeedFinanceLinkService,
+    private readonly reconciliation: ReconciliationEngine
+  ) {}
 
   @Get("overview")
   @RequireFarmScopes(FARM_SCOPE.financeRead)
@@ -129,6 +146,54 @@ export class FinanceController {
     });
   }
 
+
+  @Post("transactions/with-stock")
+  @RequireFarmScopes(FARM_SCOPE.financeWrite)
+  createTransactionWithStock(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Body() dto: CreateTransactionWithStockDto
+  ) {
+    return this.feedFinanceLink.createTransactionWithStock(user, farmId, dto);
+  }
+
+  @Get("expenses/:expenseId/linked-stock")
+  @RequireFarmScopes(FARM_SCOPE.financeRead)
+  getLinkedStockForExpense(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("expenseId") expenseId: string
+  ) {
+    return this.feedFinanceLink.getLinkedStockForExpense(user, farmId, expenseId);
+  }
+
+  @Patch("expenses/:expenseId/sync-linked-stock")
+  @RequireFarmScopes(FARM_SCOPE.financeWrite)
+  syncLinkedStockFromExpense(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("expenseId") expenseId: string
+  ) {
+    return this.feedFinanceLink.syncLinkedStockFromExpense(user, farmId, expenseId);
+  }
+
+  @Delete("expenses/:expenseId/with-stock")
+  @RequireFarmScopes(FARM_SCOPE.financeWrite)
+  deleteExpenseWithStock(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("expenseId") expenseId: string,
+    @Query("deleteStock", new ParseBoolPipe({ optional: true }))
+    deleteStock?: boolean
+  ) {
+    return this.feedFinanceLink.deleteExpenseWithStock(
+      user,
+      farmId,
+      expenseId,
+      deleteStock === true
+    );
+  }
+
   @Get("report")
   @RequireFarmScopes(FARM_SCOPE.financeRead)
   report(
@@ -184,27 +249,13 @@ export class FinanceController {
     @Res() res: Response,
     @Query("format") format = "csv",
     @Query("from") from?: string,
-    @Query("to") to?: string,
-    @Query("period") period: "month" | "year" = "month",
-    @Query("month") month?: string,
-    @Query("year") year?: string
+    @Query("to") to?: string
   ) {
     const fmt = (format || "csv").toLowerCase();
     if (fmt === "pdf") {
-      const buf = await this.finance.financeExportPdf(
-        user,
-        farmId,
-        period,
-        month,
-        year
+      throw new BadRequestException(
+        "Export PDF finance retiré : utilisez le menu Rapports (rapport ferme unifié, PDF serveur)."
       );
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader(
-        "Content-Disposition",
-        'attachment; filename="rapport-finance.pdf"'
-      );
-      res.send(buf);
-      return;
     }
     const csv = await this.finance.financeExportCsv(user, farmId, from, to);
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
@@ -249,12 +300,18 @@ export class FinanceController {
 
   @Post("expenses")
   @RequireFarmScopes(FARM_SCOPE.financeWrite)
-  createExpense(
+  async createExpense(
     @CurrentUser() user: User,
     @Param("farmId") farmId: string,
     @Body() dto: CreateExpenseDto
   ) {
-    return this.finance.createExpense(user, farmId, dto);
+    const expense = await this.finance.createExpense(user, farmId, dto);
+    const offer = await this.reconciliation.buildOfferForExpense(expense.id);
+    return {
+      ...expense,
+      amount: expense.amount.toString(),
+      reconciliation: offer.status !== "none" ? offer : null
+    };
   }
 
   @Patch("expenses/:expenseId")
@@ -328,5 +385,137 @@ export class FinanceController {
     @Param("revenueId") revenueId: string
   ) {
     return this.finance.deleteRevenue(user, farmId, revenueId);
+  }
+
+  @Get("budget")
+  @RequireFarmScopes(FARM_SCOPE.financeRead)
+  getBudget(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Query() q: BudgetMonthQueryDto
+  ) {
+    return this.budget.getBudget(user, farmId, q.year, q.month);
+  }
+
+  @Post("budget")
+  @RequireFarmScopes(FARM_SCOPE.financeWrite)
+  upsertBudget(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Body() dto: UpsertFarmBudgetDto
+  ) {
+    return this.budget.upsertBudget(user, farmId, dto);
+  }
+
+  @Post("budget/copy-previous")
+  @RequireFarmScopes(FARM_SCOPE.financeWrite)
+  copyPreviousBudget(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Query() q: BudgetMonthQueryDto
+  ) {
+    return this.budget.copyPreviousMonth(user, farmId, q.year, q.month);
+  }
+
+  @Post("budget/suggestion-auto")
+  @RequireFarmScopes(FARM_SCOPE.financeWrite)
+  applyAutoSuggestion(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Query() q: BudgetMonthQueryDto
+  ) {
+    return this.budget.suggestionAuto(user, farmId, q.year, q.month);
+  }
+
+  @Get("budget/simulate")
+  @RequireFarmScopes(FARM_SCOPE.financeRead)
+  simulateBudget(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Query() q: BudgetSimulateQueryDto
+  ) {
+    return this.budget.simulate(
+      user,
+      farmId,
+      q.year,
+      q.month,
+      q.categoryId,
+      q.newAmount
+    );
+  }
+
+  @Get("budget/ai-analysis")
+  @RequireFarmScopes(FARM_SCOPE.financeRead)
+  budgetAiAnalysis(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Query() q: BudgetMonthQueryDto
+  ) {
+    return this.budget.analyzeBudgetWithAi(user, farmId, q.year, q.month);
+  }
+
+  @Post("budget/ai-analysis/apply")
+  @RequireFarmScopes(FARM_SCOPE.financeWrite)
+  applyBudgetAiAnalysis(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Query() q: BudgetMonthQueryDto,
+    @Body()
+    body: { items: Array<{ categoryId: string; suggestedBudget: number }> }
+  ) {
+    return this.budget.applyAiBudgetRecommendations(
+      user,
+      farmId,
+      q.year,
+      q.month,
+      body.items ?? []
+    );
+  }
+
+  @Get("budget/category-history")
+  @RequireFarmScopes(FARM_SCOPE.financeRead)
+  categoryHistory(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Query("categoryId") categoryId: string,
+    @Query() q: BudgetMonthQueryDto
+  ) {
+    return this.budget.getCategoryHistory(
+      user,
+      farmId,
+      categoryId,
+      q.year,
+      q.month
+    );
+  }
+
+  @Put("budget-lines/:lineId")
+  @RequireFarmScopes(FARM_SCOPE.financeWrite)
+  updateBudgetLine(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("lineId") lineId: string,
+    @Body() dto: UpdateBudgetLineDto
+  ) {
+    return this.budget.updateBudgetLine(
+      user,
+      farmId,
+      lineId,
+      dto.amountPlanned
+    );
+  }
+
+  @Patch("budget-suggestions/:suggestionId")
+  @RequireFarmScopes(FARM_SCOPE.financeWrite)
+  patchBudgetSuggestion(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("suggestionId") suggestionId: string,
+    @Body() dto: PatchBudgetSuggestionDto
+  ) {
+    return this.budget.patchSuggestion(user, farmId, suggestionId, {
+      apply: dto.apply,
+      dismiss: dto.dismiss
+    });
   }
 }

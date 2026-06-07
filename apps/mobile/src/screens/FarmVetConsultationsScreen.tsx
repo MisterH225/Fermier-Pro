@@ -1,7 +1,10 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { mobileColors } from "../theme/mobileTheme";
 import { useFocusEffect } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useLayoutEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useScreenTitle } from "../hooks/useScreenTitle";
 import {
   ActivityIndicator,
   FlatList,
@@ -17,6 +20,7 @@ import { useSession } from "../context/SessionContext";
 import type { VetConsultationStatusDto } from "../lib/api";
 import { fetchVetConsultations } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmVetConsultations">;
 
@@ -39,26 +43,25 @@ const FILTERS: { key: VetFilterKey; label: string }[] = [
 
 export function FarmVetConsultationsScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
+  const { t } = useTranslation();
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const [filter, setFilter] = useState<VetFilterKey>("all");
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: clientFeatures.vetConsultations
-        ? () => (
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("CreateVetConsultation", { farmId, farmName })
-              }
-              style={styles.headerBtn}
-              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
-            >
-              <Text style={styles.headerBtnText}>+ Dossier</Text>
-            </TouchableOpacity>
-          )
-        : undefined
-    });
-  }, [navigation, farmId, farmName, clientFeatures.vetConsultations]);
+  useScreenTitle(navigation, t("navigation.screenTitles.vetConsultations"), {
+    headerRight: clientFeatures.vetConsultations
+      ? () => (
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("CreateVetConsultation", { farmId, farmName })
+            }
+            style={styles.headerBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+          >
+            <Text style={styles.headerBtnText}>+ Dossier</Text>
+          </TouchableOpacity>
+        )
+      : undefined
+  });
 
   const q = useQuery({
     queryKey: ["vetConsultations", farmId, activeProfileId, filter],
@@ -89,13 +92,13 @@ export function FarmVetConsultationsScreen({ route, navigation }: Props) {
   if (q.isPending) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#5d7a1f" />
+        <ActivityIndicator size="large" color={mobileColors.accent} />
       </View>
     );
   }
 
   const err =
-    q.error instanceof Error ? q.error.message : q.error ? String(q.error) : null;
+    getQueryErrorMessage(q.error, t);
 
   if (err) {
     return (
@@ -112,7 +115,6 @@ export function FarmVetConsultationsScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.flex}>
-      <Text style={styles.farmHint}>{farmName}</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -149,7 +151,7 @@ export function FarmVetConsultationsScreen({ route, navigation }: Props) {
           <RefreshControl
             refreshing={q.isRefetching}
             onRefresh={() => void q.refetch()}
-            tintColor="#5d7a1f"
+            tintColor={mobileColors.accent}
           />
         }
         ListEmptyComponent={
@@ -198,13 +200,13 @@ export function FarmVetConsultationsScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#f9f8ea" },
+  flex: { flex: 1, backgroundColor: mobileColors.canvas },
   farmHint: {
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 4,
     fontSize: 13,
-    color: "#6d745b"
+    color: mobileColors.textSecondary
   },
   filterScroll: { maxHeight: 48, marginBottom: 4 },
   filterRow: {
@@ -223,7 +225,7 @@ const styles = StyleSheet.create({
     marginRight: 8
   },
   filterChipOn: {
-    borderColor: "#5d7a1f",
+    borderColor: mobileColors.accent,
     backgroundColor: "#e8efd9"
   },
   filterChipText: {
@@ -231,7 +233,7 @@ const styles = StyleSheet.create({
     color: "#4b513d"
   },
   filterChipTextOn: {
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     fontWeight: "600"
   },
   list: { padding: 16, paddingTop: 4, paddingBottom: 32 },
@@ -241,18 +243,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
-    backgroundColor: "#f9f8ea"
+    backgroundColor: mobileColors.canvas
   },
   error: { color: "#a34c24", textAlign: "center", marginBottom: 8 },
-  hint: { fontSize: 13, color: "#6d745b", textAlign: "center" },
+  hint: { fontSize: 13, color: mobileColors.textSecondary, textAlign: "center" },
   emptyBox: { padding: 32 },
   emptyTitle: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     marginBottom: 8
   },
-  emptySub: { fontSize: 14, color: "#6d745b", lineHeight: 20 },
+  emptySub: { fontSize: 14, color: mobileColors.textSecondary, lineHeight: 20 },
   card: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -261,10 +263,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e8e4d4"
   },
-  cardTitle: { fontSize: 16, fontWeight: "700", color: "#1f2910" },
-  cardMeta: { fontSize: 13, color: "#6d745b", marginTop: 6 },
-  cardAnimal: { fontSize: 13, color: "#5d7a1f", marginTop: 4 },
+  cardTitle: { fontSize: 16, fontWeight: "700", color: mobileColors.textPrimary },
+  cardMeta: { fontSize: 13, color: mobileColors.textSecondary, marginTop: 6 },
+  cardAnimal: { fontSize: 13, color: mobileColors.accent, marginTop: 4 },
   cardPreview: { fontSize: 14, color: "#4a5238", marginTop: 8 },
   headerBtn: { marginRight: 4 },
-  headerBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 }
+  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: 15 }
 });

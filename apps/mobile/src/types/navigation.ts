@@ -3,19 +3,63 @@ export type RootStackParamList = {
   /** Paramètres ferme (devise / seuils) — producteur. */
   ProducerFarmSettings: { farmId: string; farmName: string };
   BuyerDashboard: undefined;
+  BuyerMarket: { favoritesOnly?: boolean; searchQuery?: string } | undefined;
+  BuyerMessages: undefined;
+  BuyerHistory: { initialTab?: "proposals" | "purchases" | "reviews"; fromDashboard?: boolean } | undefined;
+  BuyerAlerts: undefined;
+  BuyerFavorites: undefined;
   VeterinarianDashboard: undefined;
+  VetAgenda: undefined;
+  VetFarms: undefined;
+  VetFarmDetail: { farmId: string; farmName: string };
+  VetMessages: undefined;
+  VetTasks: undefined;
+  VetReports: undefined;
   TechnicianDashboard: undefined;
+  TechTasks: undefined;
+  TechFarm: undefined;
+  TechTracking: undefined;
   FarmList: undefined;
-  /** Fil d’événements terrain (liste des dossiers santé ferme). */
-  FarmEventsFeed: undefined;
   /** Compte : déconnexion, langue, aide. */
   Account: undefined;
+  DeleteAccountProcess: undefined;
+  DeleteAccountComplete: undefined;
   /** Saisie du jeton d’invitation (lien partagé par un gestionnaire de ferme). */
   AcceptFarmInvitation: { prefilledToken?: string };
   FarmDetail: { farmId: string; farmName: string };
-  FarmLivestock: { farmId: string; farmName: string };
+  FarmLivestock: {
+    farmId: string;
+    farmName: string;
+    initialTab?: "overview" | "cheptel" | "weight" | "history";
+    openPenId?: string;
+    highlightPen?: boolean;
+    autoOpenTransfer?: boolean;
+    showRequalificationBanner?: boolean;
+  };
   /** Santé ferme (dossiers vaccins, maladies, véto, traitements, mortalités). */
-  FarmHealth: { farmId: string; farmName: string };
+  FarmHealth: {
+    farmId: string;
+    farmName: string;
+    initialTab?:
+      | "overview"
+      | "disease"
+      | "vaccination"
+      | "mortality"
+      | "vet_visit"
+      | "treatment";
+    /** Ouvre directement le formulaire d’ajout (ex. depuis dashboard technicien). */
+    openFormKind?: "mortality" | "vaccination" | "vet_visit" | "treatment";
+    openDiseaseId?: string;
+    openVisitId?: string;
+    openVaccineName?: string;
+  };
+  VetSearch: { farmId: string; farmName: string };
+  ProducerScheduleVetVisit: {
+    farmId: string;
+    farmName: string;
+    vetProfileId: string;
+  };
+  VetAppointmentDetail: { appointmentId: string };
   CreateFarm: undefined;
   AnimalDetail: {
     farmId: string;
@@ -31,17 +75,37 @@ export type RootStackParamList = {
   };
   FarmTasks: { farmId: string; farmName: string };
   CreateTask: { farmId: string; farmName: string };
-  MarketplaceList: undefined;
+  MarketplaceList:
+    | {
+        tab?: "listings" | "mine" | "offers";
+        offersSubTab?: "received" | "sent";
+        offersListingId?: string;
+        buyerView?: boolean;
+        fromDashboard?: boolean;
+        favoritesOnly?: boolean;
+        searchQuery?: string;
+      }
+    | undefined;
   MarketplaceListingDetail: { listingId: string; headline?: string };
+  MarketplaceTransaction: { transactionId: string };
+  CreditDashboard: undefined;
   MarketplaceMyOffers: undefined;
   MarketplaceMyListings: undefined;
   CreateMarketplaceListing: { farmId?: string };
-  EditMarketplaceListing: { listingId: string };
+  TechProfileEdit: undefined;
   ChatRooms: undefined;
-  ChatRoom: { roomId: string; headline?: string };
+  ChatRoom: {
+    roomId: string;
+    headline?: string;
+    listingId?: string;
+    peerUserId?: string;
+    farmId?: string;
+  };
   ChatPickFarm: undefined;
   ChatPickPeer: { farmId: string; farmName: string };
   ChatSearchUser: undefined;
+  /** Messagerie producteur — liste de toutes les conversations. */
+  ProducerMessages: undefined;
   /** Écran générique « module prévu » (véto, finance, loges…). */
   ModuleRoadmap: { title: string; body: string };
   FarmVetConsultations: { farmId: string; farmName: string };
@@ -56,7 +120,13 @@ export type RootStackParamList = {
     farmName: string;
     consultationId: string;
   };
-  FarmFinance: { farmId: string; farmName: string };
+  FarmFinance: {
+    farmId: string;
+    farmName: string;
+    initialTab?: "overview" | "revenus" | "depenses" | "budget";
+    openCategoryId?: string;
+    highlightOverrun?: boolean;
+  };
   CreateFarmExpense: { farmId: string; farmName: string };
   CreateFarmRevenue: { farmId: string; farmName: string };
   EditFarmExpense: {
@@ -70,7 +140,6 @@ export type RootStackParamList = {
     revenueId: string;
   };
   FarmBarns: { farmId: string; farmName: string };
-  CreateBarn: { farmId: string; farmName: string };
   CreatePen: {
     farmId: string;
     farmName: string;
@@ -84,6 +153,13 @@ export type RootStackParamList = {
     barnName?: string;
   };
   PenDetail: {
+    farmId: string;
+    farmName: string;
+    penId: string;
+    penLabel?: string;
+  };
+  /** Détail loge — cheptel fusionné (animaux par loge). */
+  LogeDetail: {
     farmId: string;
     farmName: string;
     penId: string;
@@ -110,6 +186,29 @@ export type RootStackParamList = {
     effectiveScopes?: string[];
   };
   CreateFarmInvitation: { farmId: string; farmName: string };
-  FarmFeedStock: { farmId: string; farmName: string };
-  CreateFeedPurchase: { farmId: string; farmName: string };
+  /** Écran principal Collaboration (onglet barre basse). */
+  Collaboration: { farmId: string; farmName: string };
+  FarmFeedStock: {
+    farmId: string;
+    farmName: string;
+    feedTab?: "overview" | "movements" | "controls";
+    openFeedTypeId?: string;
+    highlightFeedType?: boolean;
+    autoOpenControl?: boolean;
+    filterCostMissing?: boolean;
+    costFilter?: "missing";
+  };
+  FarmGestation: {
+    farmId: string;
+    farmName: string;
+    initialTab?: "overview" | "active" | "planning" | "birth" | "history";
+    openGestationId?: string;
+    autoOpenDetail?: boolean;
+    highlightUrgent?: boolean;
+    highlightSowId?: string;
+    tab?: string;
+  };
+  SmartAlertsList: { farmId: string; farmName: string };
+  FarmReports: { farmId: string; farmName: string };
+  SettingsExpenseCategories: { farmId: string; farmName: string };
 };

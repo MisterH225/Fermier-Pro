@@ -1,6 +1,8 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { mobileColors } from "../theme/mobileTheme";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLayoutEffect } from "react";
+import { useScreenTitle } from "../hooks/useScreenTitle";
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +21,7 @@ import {
 } from "../lib/api";
 import { hasFarmScope } from "../lib/menuVisibility";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmMembers">;
 
@@ -32,6 +35,7 @@ const ROLE_LABEL: Record<string, string> = {
 
 export function FarmMembersScreen({ route, navigation }: Props) {
   const { farmId, farmName, effectiveScopes } = route.params;
+  const { t } = useTranslation();
   const { accessToken, activeProfileId, authMe } = useSession();
   const qc = useQueryClient();
   const myId = authMe?.user.id;
@@ -56,30 +60,27 @@ export function FarmMembersScreen({ route, navigation }: Props) {
       void qc.invalidateQueries({ queryKey: ["farmMembers", farmId] });
       void qc.invalidateQueries({ queryKey: ["farmPendingInvitations", farmId] });
     },
-    onError: (e: Error) => Alert.alert("Impossible", e.message)
+    onError: (e: Error) => Alert.alert("Impossible", getUserFacingError(e, t))
   });
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      title: "Équipe",
-      headerRight: canInvite
-        ? () => (
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("CreateFarmInvitation", {
-                  farmId,
-                  farmName
-                })
-              }
-              style={styles.headerBtn}
-              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
-            >
-              <Text style={styles.headerBtnText}>Inviter</Text>
-            </TouchableOpacity>
-          )
-        : undefined
-    });
-  }, [navigation, farmId, farmName, canInvite]);
+  useScreenTitle(navigation, t("navigation.screenTitles.team"), {
+    headerRight: canInvite
+      ? () => (
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("CreateFarmInvitation", {
+                farmId,
+                farmName
+              })
+            }
+            style={styles.headerBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+          >
+            <Text style={styles.headerBtnText}>Inviter</Text>
+          </TouchableOpacity>
+        )
+      : undefined
+  });
 
   if (membersQ.isPending) {
     return (
@@ -91,7 +92,7 @@ export function FarmMembersScreen({ route, navigation }: Props) {
 
   const err =
     membersQ.error instanceof Error
-      ? membersQ.error.message
+      ? getUserFacingError(membersQ.error, t)
       : membersQ.error
         ? String(membersQ.error)
         : null;
@@ -108,7 +109,6 @@ export function FarmMembersScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.flex}>
-      <Text style={styles.hint}>{farmName}</Text>
       {canInvite && invitesQ.data && invitesQ.data.length > 0 ? (
         <View style={styles.inviteBanner}>
           <Text style={styles.inviteTitle}>Invitations en attente</Text>
@@ -186,18 +186,18 @@ export function FarmMembersScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#f9f8ea" },
+  flex: { flex: 1, backgroundColor: mobileColors.canvas },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f9f8ea"
+    backgroundColor: mobileColors.canvas
   },
   hint: {
     paddingHorizontal: 16,
     paddingTop: 12,
     fontSize: 14,
-    color: "#6d745b"
+    color: mobileColors.textSecondary
   },
   inviteBanner: {
     marginHorizontal: 16,
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#c5d99a"
   },
-  inviteTitle: { fontWeight: "700", marginBottom: 6, color: "#1f2910" },
+  inviteTitle: { fontWeight: "700", marginBottom: 6, color: mobileColors.textPrimary },
   inviteLine: { fontSize: 13, color: "#4a5238", marginBottom: 4 },
   listContent: { padding: 16, paddingBottom: 32 },
   card: {
@@ -219,11 +219,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e8e6d8"
   },
-  name: { fontSize: 16, fontWeight: "700", color: "#1f2910" },
-  meta: { fontSize: 14, color: "#6d745b", marginTop: 4 },
+  name: { fontSize: 16, fontWeight: "700", color: mobileColors.textPrimary },
+  meta: { fontSize: 14, color: mobileColors.textSecondary, marginTop: 4 },
   dangerBtn: { marginTop: 10, alignSelf: "flex-start" },
   dangerTxt: { color: "#b42318", fontWeight: "600", fontSize: 14 },
   error: { color: "#b42318", padding: 16 },
   headerBtn: { marginRight: 8 },
-  headerBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 }
+  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: 15 }
 });

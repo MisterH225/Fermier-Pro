@@ -1,0 +1,448 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards
+} from "@nestjs/common";
+import type { User } from "@prisma/client";
+import { CurrentUser } from "../auth/decorators/current-user.decorator";
+import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
+import { AccountStatus, AdminAuditAction } from "@prisma/client";
+import { AdminPlatformService } from "./admin-platform.service";
+import { AdminAiService } from "./admin-ai.service";
+import { AdminUserModerationService } from "./admin-user-moderation.service";
+import {
+  AdminAiAskDto,
+  AdminAiLocaleDto,
+  CreateSanitaryAlertDto,
+  RejectVetProfileAdminDto,
+  UpdatePlatformSettingsDto
+} from "./dto/admin-platform.dto";
+import {
+  BanUserDto,
+  BulkAdminMessageDto,
+  DeleteAccountAdminDto,
+  DeleteProfileAdminDto,
+  SendAdminMessageToUserDto,
+  SuspendUserDto,
+  UnbanUserDto,
+  UnsuspendUserDto,
+  WarnUserDto,
+  ModerationScopeDto
+} from "./dto/admin-user-moderation.dto";
+import { SuperAdminGuard } from "./super-admin.guard";
+import { PigPriceIndexService } from "../market/pig-price-index.service";
+import { MarketplacePigPriceIndexService } from "../marketplace/pig-price-index.service";
+import { ResolveDeliveryDisputeDto } from "../marketplace/dto/resolve-delivery-dispute.dto";
+import { MarketplaceTransactionService } from "../marketplace/escrow/marketplace-transaction.service";
+import { ReceiptService } from "../marketplace/receipts/receipt.service";
+import { VetAppointmentService } from "../vet-appointments/vet-appointment.service";
+
+@Controller("admin")
+@UseGuards(SupabaseJwtGuard, SuperAdminGuard)
+export class AdminPlatformController {
+  constructor(
+    private readonly admin: AdminPlatformService,
+    private readonly adminAi: AdminAiService,
+    private readonly moderation: AdminUserModerationService,
+    private readonly pigPriceIndex: PigPriceIndexService,
+    private readonly hybridPigPriceIndex: MarketplacePigPriceIndexService,
+    private readonly marketplaceTransactions: MarketplaceTransactionService,
+    private readonly receipts: ReceiptService,
+    private readonly vetAppointments: VetAppointmentService
+  ) {}
+
+  @Get("me")
+  me(@CurrentUser() user: User) {
+    return {
+      userId: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      role: "superadmin" as const
+    };
+  }
+
+  @Get("platform/overview")
+  overview() {
+    return this.admin.getOverview();
+  }
+
+  @Get("vet-profiles")
+  listVets(@Query("status") status?: string) {
+    return this.admin.listVetProfiles(status);
+  }
+
+  @Get("vet-profiles/:id")
+  getVet(@Param("id") id: string) {
+    return this.admin.getVetProfile(id);
+  }
+
+  @Post("vet-profiles/:id/verify")
+  verifyVet(@Param("id") id: string) {
+    return this.admin.verifyVetProfile(id);
+  }
+
+  @Post("vet-profiles/:id/reject")
+  rejectVet(@Param("id") id: string, @Body() dto: RejectVetProfileAdminDto) {
+    return this.admin.rejectVetProfile(id, dto.reason);
+  }
+
+  @Get("users")
+  listUsers(
+    @Query("search") search?: string,
+    @Query("profileType") profileType?: string,
+    @Query("isActive") isActive?: string,
+    @Query("accountStatus") accountStatus?: string,
+    @Query("skip") skip?: string,
+    @Query("take") take?: string
+  ) {
+    const activeFilter =
+      isActive === "true" ? true : isActive === "false" ? false : undefined;
+    const statusParsed =
+      accountStatus === "active" ||
+      accountStatus === "suspended" ||
+      accountStatus === "banned"
+        ? (accountStatus as AccountStatus)
+        : undefined;
+    return this.admin.listUsers({
+      search,
+      profileType,
+      isActive: statusParsed ? undefined : activeFilter,
+      accountStatus: statusParsed,
+      skip: skip ? Number.parseInt(skip, 10) : undefined,
+      take: take ? Number.parseInt(take, 10) : undefined
+    });
+  }
+
+  @Get("users/:id")
+  getUser(@Param("id") id: string) {
+    return this.admin.getUserDetail(id);
+  }
+
+  @Patch("users/:id/suspend")
+  suspendUser(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: SuspendUserDto
+  ) {
+    return this.moderation.suspendUser(admin.id, id, dto);
+  }
+
+  @Patch("users/:id/unsuspend")
+  unsuspendUser(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: UnsuspendUserDto
+  ) {
+    return this.moderation.unsuspendUser(admin.id, id, dto);
+  }
+
+  @Patch("users/:id/ban")
+  banUser(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: BanUserDto
+  ) {
+    return this.moderation.banUser(admin.id, id, dto);
+  }
+
+  @Patch("users/:id/unban")
+  unbanUser(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: UnbanUserDto
+  ) {
+    return this.moderation.unbanUser(admin.id, id, dto);
+  }
+
+  @Delete("users/:id/account")
+  deleteAccount(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: DeleteAccountAdminDto
+  ) {
+    return this.moderation.deleteAccount(admin.id, id, dto);
+  }
+
+  @Post("users/:id/warn")
+  warnUser(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: WarnUserDto
+  ) {
+    return this.moderation.warnUser(admin.id, id, dto);
+  }
+
+  @Post("messages")
+  sendMessage(@CurrentUser() admin: User, @Body() body: SendAdminMessageToUserDto) {
+    const { userId, ...dto } = body;
+    return this.moderation.sendMessage(admin.id, userId, dto);
+  }
+
+  @Post("messages/bulk")
+  bulkMessage(@CurrentUser() admin: User, @Body() dto: BulkAdminMessageDto) {
+    return this.moderation.sendBulkMessage(admin.id, dto);
+  }
+
+  @Get("messages")
+  listMessages(@Query("userId") userId: string, @Query("skip") skip?: string, @Query("take") take?: string) {
+    return this.moderation.listMessagesForUser(
+      userId,
+      skip ? Number.parseInt(skip, 10) : undefined,
+      take ? Number.parseInt(take, 10) : undefined
+    );
+  }
+
+  @Get("audit-logs")
+  auditLogs(
+    @Query("userId") userId?: string,
+    @Query("adminId") adminId?: string,
+    @Query("action") action?: string,
+    @Query("skip") skip?: string,
+    @Query("take") take?: string
+  ) {
+    const actionParsed = action
+      ? (Object.values(AdminAuditAction) as string[]).includes(action)
+        ? (action as AdminAuditAction)
+        : undefined
+      : undefined;
+    return this.moderation.listAuditLogs({
+      userId,
+      adminId,
+      action: actionParsed,
+      skip: skip ? Number.parseInt(skip, 10) : undefined,
+      take: take ? Number.parseInt(take, 10) : undefined
+    });
+  }
+
+  @Patch("profiles/veterinarian/:userId/suspend")
+  suspendVetProfile(
+    @CurrentUser() admin: User,
+    @Param("userId") userId: string,
+    @Body() dto: SuspendUserDto
+  ) {
+    return this.moderation.suspendUser(admin.id, userId, {
+      ...dto,
+      scope: ModerationScopeDto.veterinarian
+    });
+  }
+
+  @Delete("profiles/veterinarian/:userId")
+  deleteVetProfile(
+    @CurrentUser() admin: User,
+    @Param("userId") userId: string,
+    @Body() dto: DeleteProfileAdminDto
+  ) {
+    return this.moderation.deleteVetProfile(admin.id, userId, dto);
+  }
+
+  @Delete("profiles/producer/:userId")
+  deleteProducerProfile(
+    @CurrentUser() admin: User,
+    @Param("userId") userId: string,
+    @Body() dto: DeleteProfileAdminDto
+  ) {
+    return this.moderation.deleteProducerProfile(admin.id, userId, dto);
+  }
+
+  @Get("health-map")
+  healthMap(@Query("periodDays") periodDays?: string) {
+    const days = periodDays ? Number.parseInt(periodDays, 10) : 30;
+    return this.admin.getHealthMap(Number.isFinite(days) ? days : 30);
+  }
+
+  @Get("stats")
+  stats(@Query("period") period?: "month" | "quarter" | "year") {
+    return this.admin.getStats(period ?? "month");
+  }
+
+  @Get("settings")
+  settings() {
+    return this.admin.getSettings();
+  }
+
+  @Patch("settings")
+  updateSettings(@Body() dto: UpdatePlatformSettingsDto) {
+    return this.admin.updateSettings(dto);
+  }
+
+  @Get("sanitary-alerts")
+  sanitaryAlerts(@Query("all") all?: string) {
+    return this.admin.listSanitaryAlerts(all !== "true");
+  }
+
+  @Post("sanitary-alerts")
+  createAlert(@CurrentUser() user: User, @Body() dto: CreateSanitaryAlertDto) {
+    return this.admin.createSanitaryAlert(user, dto);
+  }
+
+  @Get("superadmins")
+  superAdmins() {
+    return this.admin.listSuperAdmins();
+  }
+
+  @Post("ai/epidemic-analysis")
+  aiEpidemic(@Body() dto: AdminAiLocaleDto) {
+    return this.adminAi.epidemicAnalysis(dto.locale ?? "fr");
+  }
+
+  @Post("ai/ask")
+  aiAsk(@Body() dto: AdminAiAskDto) {
+    return this.adminAi.ask(dto.question, dto.locale ?? "fr");
+  }
+
+  @Post("ai/vet-assist/:id")
+  aiVetAssist(@Param("id") id: string, @Body() dto: AdminAiLocaleDto) {
+    return this.adminAi.vetAssist(id, dto.locale ?? "fr");
+  }
+
+  @Get("pig-price-index")
+  adminPigPriceChart(
+    @Query("period") period?: string,
+    @Query("category") category?: string
+  ) {
+    return this.pigPriceIndex.getChart(period, category);
+  }
+
+  @Get("pig-price-index/stats")
+  adminPigPriceStats(@Query("period") period?: string) {
+    return this.pigPriceIndex.getStats(period);
+  }
+
+  @Get("pig-price-index/ticker")
+  adminPigPriceTicker() {
+    return this.pigPriceIndex.getTicker();
+  }
+
+  @Get("pig-price-index/hybrid")
+  async adminHybridIndex() {
+    const [current, snapshots, flagged, contributors] = await Promise.all([
+      this.hybridPigPriceIndex.getPublicIndex(),
+      this.hybridPigPriceIndex.getSnapshots(30),
+      this.hybridPigPriceIndex.getFlaggedListings(50),
+      this.hybridPigPriceIndex.getTopContributors(10)
+    ]);
+    const latestSnapshot = snapshots[0] ?? null;
+    return {
+      current,
+      isFrozen: latestSnapshot?.isFrozen ?? false,
+      freezeReason: latestSnapshot?.freezeReason ?? null,
+      snapshots: snapshots.map((s) => ({
+        id: s.id,
+        calculatedAt: s.calculatedAt.toISOString(),
+        indexValue: Number(s.indexValue),
+        confirmedCount: s.confirmedCount,
+        listingCount: s.listingCount,
+        totalWeightKg: Number(s.totalWeightKg),
+        isFrozen: s.isFrozen,
+        freezeReason: s.freezeReason
+      })),
+      flaggedListings: flagged.map((f) => ({
+        id: f.id,
+        listingId: f.listingId,
+        sellerUserId: f.sellerUserId,
+        pricePerKg: Number(f.pricePerKg),
+        deviationPct: Number(f.deviationPct),
+        flaggedAt: f.flaggedAt.toISOString()
+      })),
+      topContributors: contributors
+    };
+  }
+
+  @Post("pig-price-index/hybrid/unfreeze")
+  adminUnfreezeHybridIndex() {
+    return this.hybridPigPriceIndex.unfreezeIndex();
+  }
+
+  @Post("pig-price-index/hybrid/recalculate")
+  adminRecalculateHybridIndex() {
+    return this.hybridPigPriceIndex.calculateHybridIndex();
+  }
+
+  @Get("marketplace/transactions")
+  adminListTransactions(@Query("status") status?: string) {
+    return this.marketplaceTransactions.listForAdmin(status);
+  }
+
+  @Get("marketplace/disputes")
+  adminListDisputes() {
+    return this.marketplaceTransactions.listDisputesForAdmin();
+  }
+
+  @Patch("marketplace/disputes/:id/resolve")
+  adminResolveDeliveryDispute(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() body: ResolveDeliveryDisputeDto
+  ) {
+    return this.marketplaceTransactions.resolveDeliveryDispute(admin.id, id, body);
+  }
+
+  @Post("marketplace/transactions/:id/arbitrate")
+  adminArbitrateWeight(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() body: { arbitrationWeightKg: number }
+  ) {
+    return this.marketplaceTransactions.arbitrateWeight(
+      admin.id,
+      id,
+      body.arbitrationWeightKg
+    );
+  }
+
+  @Get("marketplace/revenue")
+  adminPlatformRevenue(@Query("period") period?: string) {
+    return this.marketplaceTransactions.getPlatformRevenueAdmin(period);
+  }
+
+  @Get("marketplace/receipts")
+  adminListReceipts(
+    @Query("status") status?: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string
+  ) {
+    const statusParsed =
+      status === "pending" || status === "generated" || status === "failed"
+        ? status
+        : undefined;
+    return this.receipts.listForAdmin({
+      status: statusParsed,
+      from: from ? new Date(from) : undefined,
+      to: to ? new Date(to) : undefined
+    });
+  }
+
+  @Post("marketplace/receipts/regenerate/:transactionId")
+  adminRegenerateReceipt(@Param("transactionId") transactionId: string) {
+    return this.receipts.generateReceipt(transactionId, { force: true });
+  }
+
+  @Get("marketplace/receipts/:receiptId/download")
+  adminDownloadReceipt(@Param("receiptId") receiptId: string) {
+    return this.receipts.adminDownload(receiptId);
+  }
+
+  @Get("vet-appointments")
+  adminListVetAppointments(@Query("status") status?: string) {
+    return this.vetAppointments.listForAdmin(status);
+  }
+
+  @Post("vet-appointments/:id/refund")
+  adminRefundVetAppointment(
+    @Param("id") id: string,
+    @Body() body: { amount?: number }
+  ) {
+    return this.vetAppointments.adminManualRefund(id, body.amount);
+  }
+
+  @Get("vet-appointments/revenue")
+  adminVetAppointmentRevenue(@Query("period") period?: string) {
+    return this.vetAppointments.getAdminRevenue(period);
+  }
+}

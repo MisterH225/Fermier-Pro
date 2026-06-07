@@ -1,6 +1,8 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { mobileColors } from "../theme/mobileTheme";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +18,10 @@ import {
 import { FinanceModuleGate } from "../components/FinanceModuleGate";
 import { useSession } from "../context/SessionContext";
 import { createFarmRevenue } from "../lib/api";
+import { invalidateFarmFinanceQueries } from "../lib/invalidateFarmFinanceQueries";
+import { offlineQueuedMessage, useOfflineMutation } from "../hooks/useOfflineMutation";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CreateFarmRevenue">;
 
@@ -27,6 +32,7 @@ function parseAmount(raw: string): number | null {
 
 export function CreateFarmRevenueScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
+  const { t } = useTranslation();
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
   const [amountText, setAmountText] = useState("");
@@ -34,29 +40,50 @@ export function CreateFarmRevenueScreen({ route, navigation }: Props) {
   const [category, setCategory] = useState("");
   const [note, setNote] = useState("");
 
-  const mutation = useMutation({
-    mutationFn: () => {
-      const amount = parseAmount(amountText);
-      if (amount == null) throw new Error("Montant invalide.");
-      return createFarmRevenue(
-        accessToken,
-        farmId,
+  const buildBody = () => {
+    const amount = parseAmount(amountText);
+    if (amount == null) {
+      throw new Error("Montant invalide.");
+    }
+    return {
+      amount,
+      label: label.trim(),
+      ...(category.trim() ? { category: category.trim() } : {}),
+      ...(note.trim() ? { note: note.trim() } : {})
+    };
+  };
+
+  const mutation = useOfflineMutation({
+    farmId,
+    type: "finance.createRevenue",
+    label: label.trim() || "Revenu",
+    mutationFn: async () =>
+      createFarmRevenue(accessToken, farmId, buildBody(), activeProfileId),
+    buildOfflineItem: () => ({
+      calls: [
         {
-          amount,
-          label: label.trim(),
-          ...(category.trim() ? { category: category.trim() } : {}),
-          ...(note.trim() ? { note: note.trim() } : {})
-        },
-        activeProfileId
-      );
-    },
+          method: "POST",
+          path: `/farms/${farmId}/finance/revenues`,
+          body: buildBody()
+        }
+      ],
+      invalidateRoots: [
+        "financeOverview",
+        "financeTransactions",
+        "financeReport"
+      ]
+    }),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["financeSummary", farmId] });
-      void qc.invalidateQueries({ queryKey: ["farmRevenues", farmId] });
+      invalidateFarmFinanceQueries(qc, farmId);
       navigation.goBack();
     },
+    onQueued: () => {
+      invalidateFarmFinanceQueries(qc, farmId);
+      navigation.goBack();
+      Alert.alert("", offlineQueuedMessage(t));
+    },
     onError: (e: Error) => {
-      Alert.alert("Enregistrement impossible", e.message);
+      Alert.alert(t("common.errors.saveFailed"), getUserFacingError(e, t));
     }
   });
 
@@ -90,8 +117,6 @@ export function CreateFarmRevenueScreen({ route, navigation }: Props) {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.content}
       >
-        <Text style={styles.hint}>{farmName}</Text>
-
         <Text style={styles.label}>Montant (XOF par défaut)</Text>
         <TextInput
           style={styles.input}
@@ -147,9 +172,9 @@ export function CreateFarmRevenueScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#f9f8ea" },
+  flex: { flex: 1, backgroundColor: mobileColors.canvas },
   content: { padding: 16, paddingBottom: 40 },
-  hint: { fontSize: 13, color: "#6d745b", marginBottom: 16 },
+  hint: { fontSize: 13, color: mobileColors.textSecondary, marginBottom: 16 },
   label: {
     fontSize: 13,
     fontWeight: "700",
@@ -164,12 +189,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     marginBottom: 16
   },
   multiline: { minHeight: 88, textAlignVertical: "top" },
   cta: {
-    backgroundColor: "#5d7a1f",
+    backgroundColor: mobileColors.accent,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",

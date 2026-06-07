@@ -4,10 +4,11 @@ import {
   type ClientFeatureFlags,
   FeatureFlagService
 } from "./feature-flags.service";
+import type { PlatformModulePublicDto } from "../feature-flags/platform-feature-flags.service";
 
-/** Configuration exposée au client (feature flags, sans données sensibles). */
 export type ClientConfigResponse = {
   features: ClientFeatureFlags;
+  modules: PlatformModulePublicDto[];
 };
 
 @Controller("config")
@@ -15,14 +16,12 @@ export type ClientConfigResponse = {
 export class ConfigClientController {
   constructor(private readonly featureFlags: FeatureFlagService) {}
 
-  /**
-   * GET /api/v1/config/client — public (pas de JWT requis).
-   * Le mobile peut appeler avant connexion pour adapter menus / navigation.
-   */
   @Get("client")
-  getClient(): ClientConfigResponse {
-    return {
-      features: this.featureFlags.getClientFeatureFlags()
-    };
+  async getClient(): Promise<ClientConfigResponse> {
+    const [features, modules] = await Promise.all([
+      this.featureFlags.getClientFeatureFlags(),
+      this.featureFlags.getPlatformModules()
+    ]);
+    return { features, modules };
   }
 }

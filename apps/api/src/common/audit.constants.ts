@@ -2,6 +2,9 @@
 export const AUDIT_ACTION = {
   animalDeleted: "animal.deleted",
   farmCreated: "farm.created",
+  farmArchived: "farm.archived",
+  farmRestored: "farm.restored",
+  farmDeleted: "farm.deleted",
   farmOwnershipTransferred: "farm.ownership.transferred",
   financeExpenseCreated: "finance.expense.created",
   financeExpenseUpdated: "finance.expense.updated",
@@ -16,6 +19,8 @@ export const AUDIT_ACTION = {
   farmInvitationAccepted: "farm.invitation.accepted",
   farmInvitationRejected: "farm.invitation.rejected",
   farmInvitationScanRequested: "farm.invitation.scan_requested",
+  farmInvitationIdentifierSearched: "farm.invitation.identifier_searched",
+  farmInvitationByIdentifierCreated: "farm.invitation.by_identifier_created",
   farmInvitationDefaultGenerated: "farm.invitation.default_generated",
   farmMemberUpdated: "farm.member.updated",
   farmMemberRemoved: "farm.member.removed",
@@ -23,7 +28,8 @@ export const AUDIT_ACTION = {
   vetConsultationUpdated: "vet.consultation.updated",
   vetConsultationAttachmentAdded: "vet.consultation.attachment_added",
   farmHealthRecordCreated: "farm.health_record.created",
-  farmHealthRecordLinkedFinance: "farm.health_record.linked_finance"
+  farmHealthRecordLinkedFinance: "farm.health_record.linked_finance",
+  accountDeleted: "account.deleted"
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTION)[keyof typeof AUDIT_ACTION];

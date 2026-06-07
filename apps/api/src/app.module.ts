@@ -1,6 +1,7 @@
 import { ThrottlerStorageRedisService } from "@nest-lab/throttler-storage-redis";
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
+import { ScheduleModule } from "@nestjs/schedule";
 import { APP_GUARD } from "@nestjs/core";
 import {
   ThrottlerGuard,
@@ -24,12 +25,30 @@ import { InvitationsModule } from "./invitations/invitations.module";
 import { LivestockModule } from "./livestock/livestock.module";
 import { LivestockExitsModule } from "./livestock-exits/livestock-exits.module";
 import { MarketplaceModule } from "./marketplace/marketplace.module";
+import { PlatformSettingsModule } from "./platform-settings/platform-settings.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { ProfilesModule } from "./profiles/profiles.module";
+import { PushNotificationsModule } from "./push-notifications/push-notifications.module";
 import { TasksModule } from "./tasks/tasks.module";
 import { VetConsultationsModule } from "./vet-consultations/vet-consultations.module";
 import { FeedStockModule } from "./feed-stock/feed-stock.module";
 import { FarmHealthModule } from "./farm-health/farm-health.module";
+import { MemberActivityLogsModule } from "./member-activity-logs/member-activity-logs.module";
+import { SmartAlertsModule } from "./smart-alerts/smart-alerts.module";
+import { ReportsModule } from "./reports/reports.module";
+import { OnboardingModule } from "./onboarding/onboarding.module";
+import { CheptelModule } from "./cheptel/cheptel.module";
+import { CguModule } from "./cgu/cgu.module";
+import { AiModule } from "./ai/ai.module";
+import { GestationModule } from "./gestation/gestation.module";
+import { VetsModule } from "./vets/vets.module";
+import { VetAppointmentsModule } from "./vet-appointments/vet-appointments.module";
+import { AdminPlatformModule } from "./admin-platform/admin-platform.module";
+import { FeatureFlagsModule } from "./feature-flags/feature-flags.module";
+import { MarketModule } from "./market/market.module";
+import { BuyerProfilesModule } from "./buyer-profiles/buyer-profiles.module";
+import { TechnicianProfilesModule } from "./technician-profiles/technician-profiles.module";
+import { FarmSettingsModule } from "./farm-settings/farm-settings.module";
 
 @Module({
   imports: [
@@ -42,6 +61,7 @@ import { FarmHealthModule } from "./farm-health/farm-health.module";
         "../../.env"
       ]
     }),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -66,10 +86,12 @@ import { FarmHealthModule } from "./farm-health/farm-health.module";
       }
     }),
     PrismaModule,
+    PlatformSettingsModule,
     CommonModule,
     ConfigClientModule,
     DashboardModule,
     AuthModule,
+    CguModule,
     ChatModule,
     ProfilesModule,
     FarmsModule,
@@ -77,6 +99,7 @@ import { FarmHealthModule } from "./farm-health/farm-health.module";
     InvitationsModule,
     LivestockModule,
     LivestockExitsModule,
+    PushNotificationsModule,
     TasksModule,
     FinanceModule,
     HealthEventsModule,
@@ -84,7 +107,22 @@ import { FarmHealthModule } from "./farm-health/farm-health.module";
     MarketplaceModule,
     VetConsultationsModule,
     FeedStockModule,
-    FarmHealthModule
+    FarmHealthModule,
+    MemberActivityLogsModule,
+    SmartAlertsModule,
+    ReportsModule,
+    OnboardingModule,
+    CheptelModule,
+    AiModule,
+    GestationModule,
+    VetsModule,
+    VetAppointmentsModule,
+    AdminPlatformModule,
+    FeatureFlagsModule,
+    MarketModule,
+    BuyerProfilesModule,
+    TechnicianProfilesModule,
+    FarmSettingsModule
   ],
   controllers: [AppController],
   providers: [
