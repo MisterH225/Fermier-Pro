@@ -4900,6 +4900,64 @@ export function fetchMyMarketplaceOffers(
   );
 }
 
+export type MarketplaceOfferReceivedRow = {
+  id: string;
+  offeredPrice: string | number;
+  proposedPricePerKg?: string | number | null;
+  counterPricePerKg?: string | number | null;
+  quantity: number | null;
+  message: string | null;
+  status: string;
+  createdAt: string;
+  buyer: { id: string; fullName: string | null; email: string | null };
+  listing: {
+    id: string;
+    title: string;
+    status: string;
+    currency: string;
+    category: string | null;
+    totalWeightKg: string | number | null;
+    pricePerKg?: string | number | null;
+    totalPrice?: string | number | null;
+    farm: { id: string; name: string } | null;
+    animal: { id: string; publicId: string; tagCode: string | null } | null;
+  };
+};
+
+export type MarketplaceOfferCounts = {
+  receivedPending: number;
+  sentPending: number;
+  total: number;
+};
+
+/** GET /marketplace/offers/received — propositions sur mes annonces. */
+export function fetchReceivedMarketplaceOffers(
+  accessToken: string,
+  activeProfileId?: string | null,
+  farmId?: string | null
+): Promise<MarketplaceOfferReceivedRow[]> {
+  const qs = farmId?.trim() ? `?farmId=${encodeURIComponent(farmId.trim())}` : "";
+  return apiGetJson<MarketplaceOfferReceivedRow[]>(
+    `/marketplace/offers/received${qs}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** GET /marketplace/offers/counts — badges propositions. */
+export function fetchMarketplaceOfferCounts(
+  accessToken: string,
+  activeProfileId?: string | null,
+  farmId?: string | null
+): Promise<MarketplaceOfferCounts> {
+  const qs = farmId?.trim() ? `?farmId=${encodeURIComponent(farmId.trim())}` : "";
+  return apiGetJson<MarketplaceOfferCounts>(
+    `/marketplace/offers/counts${qs}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
 /** Vendeur : accepter une offre (annonce → réservée, autres offres refusées). */
 export function acceptMarketplaceOffer(
   accessToken: string,

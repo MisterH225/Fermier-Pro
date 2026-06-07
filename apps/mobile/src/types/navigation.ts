@@ -78,6 +78,8 @@ export type RootStackParamList = {
   MarketplaceList:
     | {
         tab?: "listings" | "mine" | "offers";
+        offersSubTab?: "received" | "sent";
+        offersListingId?: string;
         buyerView?: boolean;
         fromDashboard?: boolean;
         favoritesOnly?: boolean;

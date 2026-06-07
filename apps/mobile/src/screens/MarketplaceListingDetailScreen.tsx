@@ -18,7 +18,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { AppDatePicker } from "../components/common/AppDatePicker";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
-import { CounterProposalModal } from "../components/marketplace/CounterProposalModal";
 import { ListingModal } from "../components/marketplace/ListingModal";
 import { isFlatPriceListing } from "../components/marketplace/listingPricing";
 import { ProposalModal } from "../components/marketplace/ProposalModal";
@@ -45,11 +44,8 @@ import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { useBottomChromePad } from "../hooks/useBottomInset";
 import { formatAnimalDisplayLabel } from "../lib/animalDisplay";
 import {
-  acceptMarketplaceOffer,
-  acceptMarketplaceOfferCounter,
   cancelMarketplaceListing,
   completeMarketplaceHandover,
-  counterMarketplaceOffer,
   ensureDirectChatRoom,
   fetchMarketplaceListing,
   fetchMarketplaceTransactions,
@@ -58,7 +54,6 @@ import {
   postMarketplaceListingView,
   postMarketplaceOffer,
   publishMarketplaceListing,
-  rejectMarketplaceOffer,
   renewMarketplaceListing,
   type MarketplaceOfferBrief
 } from "../lib/api";
@@ -111,7 +106,6 @@ export function MarketplaceListingDetailScreen({
   const [pickupAtStr, setPickupAtStr] = useState("");
   const [pickupNoteStr, setPickupNoteStr] = useState("");
   const [proposalOpen, setProposalOpen] = useState(false);
-  const [counterOpen, setCounterOpen] = useState(false);
   const [saleOpen, setSaleOpen] = useState(false);
   const [activeOffer, setActiveOffer] = useState<MarketplaceOfferBrief | null>(
     null
@@ -212,6 +206,7 @@ export function MarketplaceListingDetailScreen({
       showSuccess(t("marketScreen.proposalModal.success"));
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
       void qc.invalidateQueries({ queryKey: ["marketplaceMyOffers"] });
+      void qc.invalidateQueries({ queryKey: ["marketplaceOffersCounts"] });
     },
     onError: (e: Error) => {
       Alert.alert(
@@ -219,54 +214,6 @@ export function MarketplaceListingDetailScreen({
         marketplaceActionErrorMessage(e, t)
       );
     }
-  });
-
-  const acceptMutation = useMutation({
-    mutationFn: (offerId: string) =>
-      acceptMarketplaceOffer(
-        accessToken,
-        listingId,
-        offerId,
-        activeProfileId
-      ),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
-      void qc.invalidateQueries({ queryKey: ["marketplaceListings"] });
-      void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
-      if (activeOffer) {
-        setSaleOpen(true);
-      } else {
-        showSuccess(
-          t("marketScreen.acceptSuccessBody"),
-          t("marketScreen.acceptSuccessTitle")
-        );
-      }
-    },
-    onError: (e: Error) =>
-      Alert.alert(
-        "Action impossible",
-        marketplaceActionErrorMessage(e, t)
-      )
-  });
-
-  const rejectMutation = useMutation({
-    mutationFn: (offerId: string) =>
-      rejectMarketplaceOffer(
-        accessToken,
-        listingId,
-        offerId,
-        activeProfileId
-      ),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
-      void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
-      showSuccess(t("marketScreen.offerRejectSuccess"));
-    },
-    onError: (e: Error) =>
-      Alert.alert(
-        "Action impossible",
-        marketplaceActionErrorMessage(e, t)
-      )
   });
 
   const publishMutation = useMutation({
@@ -347,53 +294,6 @@ export function MarketplaceListingDetailScreen({
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
       void qc.invalidateQueries({ queryKey: ["marketplaceListings"] });
       void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
-    },
-    onError: (e: Error) =>
-      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
-  });
-
-  const counterMut = useMutation({
-    mutationFn: (input: {
-      offerId: string;
-      counterPricePerKg?: number;
-      counterOfferedPrice?: number;
-    }) =>
-      counterMarketplaceOffer(
-        accessToken,
-        listingId,
-        input.offerId,
-        {
-          ...(input.counterOfferedPrice != null
-            ? { counterOfferedPrice: input.counterOfferedPrice }
-            : { counterPricePerKg: input.counterPricePerKg })
-        },
-        activeProfileId
-      ),
-    onSuccess: () => {
-      setCounterOpen(false);
-      showSuccess(t("marketScreen.counterModal.success"));
-      void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
-    },
-    onError: (e: Error) =>
-      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
-  });
-
-  const acceptCounterMut = useMutation({
-    mutationFn: (offerId: string) =>
-      acceptMarketplaceOfferCounter(
-        accessToken,
-        listingId,
-        offerId,
-        activeProfileId
-      ),
-    onSuccess: (data) => {
-      showSuccess(t("marketScreen.counterModal.accepted"));
-      void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
-      if (data.transactionId) {
-        navigation.navigate("MarketplaceTransaction", {
-          transactionId: data.transactionId
-        });
-      }
     },
     onError: (e: Error) =>
       Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
@@ -745,33 +645,19 @@ export function MarketplaceListingDetailScreen({
                   )
                 }
                 loading={publishMutation.isPending}
-                disabled={
-                  cancelMutation.isPending ||
-                  acceptMutation.isPending ||
-                  rejectMutation.isPending
-                }
+                disabled={cancelMutation.isPending}
               />
             </>
           ) : null}
           <SecondaryButton
             label={t("marketScreen.detail.editListing")}
             onPress={() => setEditModalOpen(true)}
-            disabled={
-              publishMutation.isPending ||
-              cancelMutation.isPending ||
-              acceptMutation.isPending ||
-              rejectMutation.isPending
-            }
+            disabled={publishMutation.isPending || cancelMutation.isPending}
             style={{ marginTop: mobileSpacing.sm }}
           />
           <Pressable
             style={styles.cancelTextBtn}
-            disabled={
-              publishMutation.isPending ||
-              cancelMutation.isPending ||
-              acceptMutation.isPending ||
-              rejectMutation.isPending
-            }
+            disabled={publishMutation.isPending || cancelMutation.isPending}
             onPress={() =>
               Alert.alert(
                 t("marketScreen.detail.cancelConfirmTitle"),
@@ -796,85 +682,52 @@ export function MarketplaceListingDetailScreen({
         </DetailCard>
       ) : null}
 
-      {isSeller && L.offers && L.offers.length > 0 ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Offres reçues</Text>
-          {L.offers.map((o) => (
-            <View key={o.id} style={styles.offerCard}>
-              <Text style={styles.block}>
-                {formatMoney(o.offeredPrice, L.currency)}
-                {o.quantity != null ? ` × ${o.quantity}` : ""} —{" "}
-                {offerStatusLabel(o.status)}
-              </Text>
-              {o.buyer?.fullName ? (
-                <Text style={styles.offerBuyer}>Acheteur : {o.buyer.fullName}</Text>
-              ) : null}
-              {o.message ? (
-                <Text style={styles.offerMsg}>{o.message}</Text>
-              ) : null}
-              {o.status === "pending" &&
-              L.status === "published" &&
-              !acceptMutation.isPending &&
-              !rejectMutation.isPending ? (
-                <View style={styles.offerActions}>
-                  <TouchableOpacity
-                    style={styles.btnAccept}
-                    onPress={() => {
-                      setActiveOffer(o);
-                      acceptMutation.mutate(o.id);
-                    }}
-                  >
-                    <Text style={styles.btnAcceptTxt}>
-                      {t("marketScreen.offerAccept")}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.btnCounter}
-                    onPress={() => {
-                      setActiveOffer(o);
-                      setCounterOpen(true);
-                    }}
-                  >
-                    <Text style={styles.btnCounterTxt}>
-                      {t("marketScreen.offerCounter")}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.btnReject}
-                    onPress={() => rejectMutation.mutate(o.id)}
-                  >
-                    <Text style={styles.btnRejectTxt}>
-                      {t("marketScreen.offerReject")}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ) : null}
-            </View>
-          ))}
-        </View>
+      {isSeller && (L.activeOfferCount ?? 0) > 0 ? (
+        <DetailCard>
+          <DetailSectionLabel>
+            {t("marketScreen.proposals.receivedSection")}
+          </DetailSectionLabel>
+          <Text style={styles.offersSummary}>
+            {t("marketScreen.badgeActiveOffers", {
+              count: L.activeOfferCount ?? L.offers?.length ?? 0
+            })}
+          </Text>
+          <SecondaryButton
+            label={t("marketScreen.proposals.viewReceived")}
+            onPress={() =>
+              navigation.navigate("MarketplaceList", {
+                tab: "offers",
+                offersSubTab: "received",
+                offersListingId: listingId
+              })
+            }
+            style={{ marginTop: mobileSpacing.sm }}
+          />
+        </DetailCard>
       ) : null}
 
       {!isSeller && L.myOffers && L.myOffers.length > 0 ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
+        <DetailCard>
+          <DetailSectionLabel>
             {t("marketScreen.myOffersTitle")}
-          </Text>
+          </DetailSectionLabel>
           {L.myOffers.map((o) => (
-            <View key={o.id} style={styles.offerCard}>
-              <Text style={styles.block}>
-                {formatMoney(o.offeredPrice, L.currency)} —{" "}
-                {offerStatusLabel(o.status)}
-              </Text>
-              {o.status === "countered" ? (
-                <PrimaryButton
-                  label={t("marketScreen.acceptCounter")}
-                  onPress={() => acceptCounterMut.mutate(o.id)}
-                  loading={acceptCounterMut.isPending}
-                />
-              ) : null}
-            </View>
+            <Text key={o.id} style={styles.offersSummary}>
+              {formatMoney(o.offeredPrice, L.currency)} —{" "}
+              {offerStatusLabel(o.status)}
+            </Text>
           ))}
-        </View>
+          <SecondaryButton
+            label={t("marketScreen.proposals.viewSent")}
+            onPress={() =>
+              navigation.navigate("MarketplaceList", {
+                tab: "offers",
+                offersSubTab: "sent"
+              })
+            }
+            style={{ marginTop: mobileSpacing.sm }}
+          />
+        </DetailCard>
       ) : null}
 
       {isSeller && L.status === "reserved" ? (
@@ -924,21 +777,6 @@ export function MarketplaceListingDetailScreen({
       submitting={proposalMutation.isPending}
       onClose={() => setProposalOpen(false)}
       onSubmit={(payload) => proposalMutation.mutate(payload)}
-    />
-    <CounterProposalModal
-      visible={counterOpen}
-      listing={L}
-      offer={activeOffer}
-      submitting={counterMut.isPending}
-      onClose={() => setCounterOpen(false)}
-      onSubmit={(payload) => {
-        if (!activeOffer) return;
-        counterMut.mutate({
-          offerId: activeOffer.id,
-          counterPricePerKg: payload.counterPricePerKg,
-          counterOfferedPrice: payload.counterOfferedPrice
-        });
-      }}
     />
     <SaleConfirmModal
       visible={saleOpen}
@@ -1089,6 +927,11 @@ const styles = StyleSheet.create({
     color: "#B45309",
     marginTop: 4,
     marginBottom: 8
+  },
+  offersSummary: {
+    ...mobileTypography.body,
+    color: mobileColors.textSecondary,
+    marginTop: mobileSpacing.xs
   },
   reservedBanner: {
     fontSize: 14,

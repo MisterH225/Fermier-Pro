@@ -463,6 +463,23 @@ export const fr = {
     withdrawCancel: "Annuler",
     withdrawConfirm: "Retirer",
     withdrawAction: "Retirer mon offre",
+    proposals: {
+      tabReceived: "Reçues",
+      tabSent: "Envoyées",
+      emptyReceivedTitle: "Aucune proposition reçue",
+      emptyReceivedBody:
+        "Les acheteurs intéressés par vos annonces apparaîtront ici.",
+      emptySentTitle: "Aucune proposition envoyée",
+      emptySentBody:
+        "Faites une offre sur une annonce du marché pour commencer.",
+      groupCount: "{{count}} proposition(s)",
+      negotiate: "Négocier",
+      anonymousBuyer: "Acheteur",
+      receivedSection: "Propositions reçues",
+      viewReceived: "Voir les propositions",
+      viewSent: "Voir mes propositions",
+      withdrawSuccess: "Proposition retirée."
+    },
     createForm: {
       titleModal: "Nouvelle annonce",
       errorTitle: "Création impossible",

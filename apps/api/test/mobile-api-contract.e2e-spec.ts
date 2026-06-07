@@ -90,6 +90,28 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(Array.isArray(res.body)).toBe(true);
   });
 
+  it("GET marketplace offres reçues (vendeur)", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/marketplace/offers/received")
+      .query({ farmId: ctx.farmId })
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it("GET marketplace compteurs propositions", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/marketplace/offers/counts")
+      .query({ farmId: ctx.farmId })
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId);
+    expect(res.status).toBe(200);
+    expect(typeof res.body.receivedPending).toBe("number");
+    expect(typeof res.body.sentPending).toBe("number");
+    expect(typeof res.body.total).toBe("number");
+  });
+
   it("GET /auth/me (session Supabase)", async () => {
     const res = await request(app.getHttpServer())
       .get("/api/v1/auth/me")
