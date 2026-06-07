@@ -828,6 +828,8 @@ export const en = {
       missingFields: "Choose a farm and time slot.",
       successTitle: "Appointment confirmed",
       successBody: "Visit scheduled for {{farm}} — {{date}}",
+      successBodyPayment:
+        "Visit proposed for {{farm}} — {{date}}. The producer must complete payment to confirm.",
       reasons: {
         routine: "Routine",
         urgency: "Urgent",
@@ -2094,7 +2096,9 @@ export const en = {
       nextPlanned: "Next planned visit"
     },
     vetQuotes: {
-      title: "Pending quotes",
+      title: "Pending quotes (legacy flow)",
+      legacyNotice:
+        "These quotes are from older visits. New visits use secure appointment payments.",
       accept: "✅ Accept",
       refuse: "❌ Decline"
     },

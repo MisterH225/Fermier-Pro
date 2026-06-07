@@ -7245,6 +7245,32 @@ export type HybridPigPriceIndexDto = {
   data_points_count: number;
 };
 
+export type PigPriceIndexDashboardDto = {
+  hybrid: HybridPigPriceIndexDto;
+  ticker: PigPriceIndexTickerDto;
+  chart: PigPriceIndexChartDto;
+  stats: PigPriceIndexStatsDto;
+};
+
+/** GET /api/v1/market/pig-price-index/dashboard — agrégat marketplace (1 requête) */
+export function fetchPigPriceIndexDashboard(
+  accessToken: string,
+  activeProfileId?: string | null,
+  period: PigPriceIndexPeriod = "30d",
+  category?: string
+): Promise<PigPriceIndexDashboardDto> {
+  const q = new URLSearchParams();
+  q.set("period", period);
+  if (category) {
+    q.set("category", category);
+  }
+  return apiGetJson<PigPriceIndexDashboardDto>(
+    `/market/pig-price-index/dashboard?${q.toString()}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
 /** GET /api/v1/market/pig-price-index/hybrid — indice hybride anti-manipulation */
 export function fetchHybridPigPriceIndex(
   accessToken: string,

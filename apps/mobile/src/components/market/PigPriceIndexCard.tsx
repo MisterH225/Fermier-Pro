@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSession } from "../../context/SessionContext";
-import { fetchHybridPigPriceIndex } from "../../lib/api";
+import { fetchHybridPigPriceIndex, type HybridPigPriceIndexDto } from "../../lib/api";
 import {
   mobileColors,
   mobileRadius,
@@ -55,7 +55,12 @@ function trendColor(trend: "up" | "down" | "stable", variation: number | null) {
   return variation >= 0 ? "#2F9E44" : "#E03131";
 }
 
-export function PigPriceIndexCard() {
+type Props = {
+  /** Données pré-chargées (ex. via /pig-price-index/dashboard). */
+  hybrid?: HybridPigPriceIndexDto | null;
+};
+
+export function PigPriceIndexCard({ hybrid }: Props = {}) {
   const { t, i18n } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
@@ -63,11 +68,11 @@ export function PigPriceIndexCard() {
   const q = useQuery({
     queryKey: ["hybridPigPriceIndex", activeProfileId],
     queryFn: () => fetchHybridPigPriceIndex(accessToken!, activeProfileId),
-    enabled: Boolean(accessToken),
+    enabled: hybrid === undefined && Boolean(accessToken),
     staleTime: 3_600_000
   });
 
-  if (q.isLoading) {
+  if (hybrid === undefined && q.isLoading) {
     return (
       <View style={styles.card}>
         <ActivityIndicator color={mobileColors.accent} />
@@ -75,7 +80,7 @@ export function PigPriceIndexCard() {
     );
   }
 
-  const data = q.data;
+  const data = hybrid !== undefined ? hybrid : q.data;
   if (!data?.price_per_kg) {
     return null;
   }

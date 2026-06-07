@@ -831,6 +831,8 @@ export const fr = {
       missingFields: "Choisissez une ferme et un créneau.",
       successTitle: "RDV confirmé",
       successBody: "Visite planifiée pour {{farm}} — {{date}}",
+      successBodyPayment:
+        "Visite proposée pour {{farm}} — {{date}}. Le producteur doit valider le paiement pour confirmer.",
       reasons: {
         routine: "Routine",
         urgency: "Urgence",
@@ -2143,7 +2145,9 @@ export const fr = {
       nextPlanned: "Prochaine visite planifiée"
     },
     vetQuotes: {
-      title: "Devis en attente",
+      title: "Devis en attente (ancien flux)",
+      legacyNotice:
+        "Ces devis proviennent d'anciennes visites. Les nouvelles visites passent par les rendez-vous avec paiement sécurisé.",
       accept: "✅ Accepter",
       refuse: "❌ Refuser"
     },

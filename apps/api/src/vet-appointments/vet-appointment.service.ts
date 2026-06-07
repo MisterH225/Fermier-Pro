@@ -259,6 +259,200 @@ export class VetAppointmentService {
     return this.mapRow(row);
   }
 
+  /**
+   * Planification initiée par le vétérinaire (remplace VetConsultation scheduled_visit).
+   * Avec tarif → AWAITING_PAYMENT ; sans tarif → APPOINTMENT_CONFIRMED + calendrier bloqué.
+   */
+  async scheduleFromVet(
+    vetUserId: string,
+    vetProfileId: string,
+    farmId: string,
+    input: {
+      scheduledAt: string;
+      reason: string;
+      notes?: string;
+      servicePrice?: number;
+    }
+  ) {
+    const vetProfile = await this.prisma.vetProfile.findUnique({
+      where: { id: vetProfileId }
+    });
+    if (!vetProfile || vetProfile.userId !== vetUserId) {
+      throw new NotFoundException("Profil vétérinaire introuvable");
+    }
+    if (vetProfile.verificationStatus !== VetVerificationStatus.verified) {
+      throw new ForbiddenException("Profil vétérinaire non vérifié");
+    }
+
+    const farm = await this.prisma.farm.findUnique({
+      where: { id: farmId },
+      select: {
+        name: true,
+        address: true,
+        ownerId: true,
+        owner: { select: { fullName: true } }
+      }
+    });
+    if (!farm) {
+      throw new NotFoundException("Ferme introuvable");
+    }
+
+    const requestedAt = new Date(input.scheduledAt);
+    if (Number.isNaN(requestedAt.getTime())) {
+      throw new BadRequestException("Date de visite invalide");
+    }
+    if (requestedAt.getTime() < Date.now() - 60_000) {
+      throw new BadRequestException("La visite doit être planifiée dans le futur");
+    }
+
+    const conflict = await this.calendar.detectConflicts(vetUserId, requestedAt);
+    const farmLocation =
+      farm.address?.trim() || farm.name?.trim() || "—";
+    const duration = 1;
+    const hasPrice =
+      input.servicePrice != null &&
+      Number.isFinite(input.servicePrice) &&
+      input.servicePrice > 0;
+
+    if (hasPrice) {
+      const paymentDeadline = new Date();
+      paymentDeadline.setHours(
+        paymentDeadline.getHours() + PAYMENT_DEADLINE_HOURS
+      );
+      const price = input.servicePrice!;
+
+      const row = await this.prisma.vetAppointment.create({
+        data: {
+          farmId,
+          producerUserId: farm.ownerId,
+          vetProfileId: vetProfile.id,
+          vetUserId,
+          status: VetAppointmentStatus.AWAITING_PAYMENT,
+          requestedAt,
+          confirmedAt: requestedAt,
+          estimatedDurationHours: duration,
+          reason: input.reason,
+          notes: input.notes?.trim() || null,
+          farmLocation,
+          servicePrice: new Prisma.Decimal(price),
+          blockedAmount: new Prisma.Decimal(price),
+          paymentDeadline,
+          commissionRate: new Prisma.Decimal(this.commissionRate()),
+          conflictStatus: conflict.status,
+          conflictDetails: conflict.conflictingAppointment
+            ? (conflict.conflictingAppointment as Prisma.InputJsonValue)
+            : undefined
+        },
+        include: VET_APPOINTMENT_INCLUDE
+      });
+
+      const vetName = row.vetProfile?.fullName ?? "Vétérinaire";
+      const when = this.formatWhen(requestedAt);
+      const priceFmt = `${Math.round(price).toLocaleString("fr-FR")} FCFA`;
+
+      await this.push.sendToUser(
+        farm.ownerId,
+        "Visite planifiée — paiement requis",
+        `Dr ${vetName} vous propose une visite le ${when}. Montant: ${priceFmt}. Payez avant ${this.formatWhen(paymentDeadline)} pour confirmer.`,
+        {
+          type: "vet_appointment_accepted",
+          appointmentId: row.id,
+          farmId
+        }
+      );
+
+      await this.audit.record({
+        actorUserId: vetUserId,
+        farmId,
+        action: AUDIT_ACTION.vetConsultationCreated,
+        resourceType: "VetAppointment",
+        resourceId: row.id,
+        metadata: {
+          initiatedBy: "vet",
+          requestedAt: requestedAt.toISOString(),
+          servicePrice: price
+        }
+      });
+
+      return this.mapRow(row);
+    }
+
+    const row = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.vetAppointment.create({
+        data: {
+          farmId,
+          producerUserId: farm.ownerId,
+          vetProfileId: vetProfile.id,
+          vetUserId,
+          status: VetAppointmentStatus.APPOINTMENT_CONFIRMED,
+          requestedAt,
+          confirmedAt: requestedAt,
+          estimatedDurationHours: duration,
+          reason: input.reason,
+          notes: input.notes?.trim() || null,
+          farmLocation,
+          commissionRate: new Prisma.Decimal(this.commissionRate()),
+          conflictStatus: conflict.status,
+          conflictDetails: conflict.conflictingAppointment
+            ? (conflict.conflictingAppointment as Prisma.InputJsonValue)
+            : undefined
+        },
+        include: VET_APPOINTMENT_INCLUDE
+      });
+      await this.calendar.blockSlot(
+        tx,
+        created.id,
+        vetUserId,
+        requestedAt,
+        duration
+      );
+      return tx.vetAppointment.findUniqueOrThrow({
+        where: { id: created.id },
+        include: VET_APPOINTMENT_INCLUDE
+      });
+    });
+
+    const vetName = row.vetProfile?.fullName ?? "Vétérinaire";
+    const when = this.formatWhen(requestedAt);
+    const producerLabel = farm.owner.fullName?.trim() || "Producteur";
+
+    await this.push.sendToUser(
+      farm.ownerId,
+      "Visite vétérinaire confirmée",
+      `Dr ${vetName} le ${when} — ${farm.name}`,
+      {
+        type: "vet_appointment_confirmed",
+        appointmentId: row.id,
+        farmId
+      }
+    );
+    await this.push.sendToUser(
+      vetUserId,
+      "Visite planifiée",
+      `${producerLabel} — ${farm.name} le ${when}`,
+      {
+        type: "vet_appointment_confirmed",
+        appointmentId: row.id,
+        farmId
+      }
+    );
+
+    await this.audit.record({
+      actorUserId: vetUserId,
+      farmId,
+      action: AUDIT_ACTION.vetConsultationCreated,
+      resourceType: "VetAppointment",
+      resourceId: row.id,
+      metadata: {
+        initiatedBy: "vet",
+        requestedAt: requestedAt.toISOString(),
+        freeVisit: true
+      }
+    });
+
+    return this.mapRow(row);
+  }
+
   async listForUser(user: User, role: "producer" | "vet") {
     const where =
       role === "vet"

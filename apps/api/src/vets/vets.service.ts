@@ -929,17 +929,26 @@ export class VetsService {
       throw new BadRequestException("La visite doit être planifiée dans le futur");
     }
 
-    return this.createScheduledConsultation({
-      actorUserId: user.id,
-      farmId: dto.farmId,
-      vetUserId: user.id,
-      openedByUserId: user.id,
-      scheduledAt: scheduled,
-      reason: dto.reason,
-      notes: dto.notes,
-      consultationPrice: dto.consultationPrice,
-      initiatedBy: "vet"
-    });
+    const appt = await this.vetAppointments.scheduleFromVet(
+      user.id,
+      vetProfile.id,
+      dto.farmId,
+      {
+        scheduledAt: dto.scheduledAt,
+        reason: dto.reason,
+        notes: dto.notes,
+        servicePrice: dto.consultationPrice
+      }
+    );
+
+    return {
+      id: appt.id,
+      farmId: appt.farmId,
+      farmName: appt.farmName,
+      scheduledAt: appt.scheduledAt,
+      subject: appt.reason,
+      status: appt.status
+    };
   }
 
   async scheduleVisitFromProducer(

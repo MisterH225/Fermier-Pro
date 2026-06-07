@@ -58,4 +58,19 @@ export class PigPriceIndexController {
     }
     return data;
   }
+
+  /** Agrégat marketplace : indice hybride + ticker + graphique + stats (1 requête). */
+  @Get("dashboard")
+  async getDashboard(
+    @Query("period") period?: string,
+    @Query("category") category?: string
+  ) {
+    const [hybrid, ticker, chart, stats] = await Promise.all([
+      this.getHybrid(),
+      this.index.getTicker(),
+      this.index.getChart(period, category),
+      this.index.getStats(period)
+    ]);
+    return { hybrid, ticker, chart, stats };
+  }
 }
