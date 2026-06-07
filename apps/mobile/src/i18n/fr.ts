@@ -18,6 +18,7 @@ export const fr = {
   common: {
     error: "Erreur",
     cancel: "Annuler",
+    delete: "Supprimer",
     ok: "OK",
     close: "Fermer",
     retry: "Réessayer",
@@ -1233,7 +1234,11 @@ export const fr = {
       savedTitle: "Entrée mise à jour",
       checkSavedTitle: "Contrôle mis à jour",
       savedMessage: "L'entrée de stock a été enregistrée.",
-      checkSavedMessage: "Le contrôle de stock a été enregistré."
+      checkSavedMessage: "Le contrôle de stock a été enregistré.",
+      deleteDoneTitle: "Entrée supprimée",
+      deleteDoneMessage: "L'entrée de stock a été supprimée.",
+      checkDeleteDoneTitle: "Contrôle supprimé",
+      checkDeleteDoneMessage: "Le contrôle a été supprimé et le stock recalculé."
     },
     reconciliation: {
       title: "Rapprochement suggéré",
@@ -1251,7 +1256,8 @@ export const fr = {
       followMessage: "Pouvez-vous préciser le coût de cette entrée de stock ?"
     },
     errors: {
-      pickType: "Choisis un type d’aliment."
+      pickType: "Choisis un type d’aliment.",
+      invalidForm: "Vérifie les champs saisis (quantité, date…)."
     }
   },
   offline: {

@@ -6,6 +6,8 @@ import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Alert,
+  InteractionManager,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -39,6 +41,7 @@ import { useModal } from "../components/modals/useModal";
 import { useSession } from "../context/SessionContext";
 import type { FeedStockMovementDto } from "../lib/api";
 import {
+  deleteFarmFeedMovement,
   fetchFarmFeedChart,
   fetchFarmFeedMovements,
   fetchFarmFeedOverview,
@@ -311,6 +314,70 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
     [movFilterType, movFrom, movTo, types, t]
   );
 
+  const handleStockSaved = useCallback(
+    (res?: PostFarmFeedMovementResponse) => {
+      refetchAll();
+      if (res?.reconciliation && res.reconciliation.status !== "none") {
+        setReconciliationOffer(res.reconciliation);
+      }
+    },
+    [refetchAll]
+  );
+
+  const openEditMovement = useCallback((m: FeedStockMovementDto) => {
+    InteractionManager.runAfterInteractions(() => {
+      setEditMovement(m);
+    });
+  }, []);
+
+  const confirmDeleteMovement = useCallback(
+    (m: FeedStockMovementDto, closeDetail?: () => void) => {
+      const isCheck = m.kind === "stock_check";
+      Alert.alert(
+        t(isCheck ? "feedStock.edit.checkDeleteTitle" : "feedStock.edit.deleteTitle"),
+        t(isCheck ? "feedStock.edit.checkDeleteMessage" : "feedStock.edit.deleteMessage"),
+        [
+          { text: t("common.cancel"), style: "cancel" },
+          {
+            text: t("common.delete"),
+            style: "destructive",
+            onPress: () => {
+              void deleteFarmFeedMovement(
+                accessToken,
+                farmId,
+                m.id,
+                activeProfileId
+              )
+                .then(() => {
+                  closeDetail?.();
+                  refetchAll();
+                  open("success", {
+                    title: t(
+                      isCheck
+                        ? "feedStock.edit.checkDeleteDoneTitle"
+                        : "feedStock.edit.deleteDoneTitle"
+                    ),
+                    message: t(
+                      isCheck
+                        ? "feedStock.edit.checkDeleteDoneMessage"
+                        : "feedStock.edit.deleteDoneMessage"
+                    )
+                  });
+                })
+                .catch((e: unknown) =>
+                  Alert.alert(
+                    t("common.error"),
+                    getUserFacingError(e instanceof Error ? e : new Error(String(e)), t)
+                  )
+                );
+            }
+          }
+        ]
+      );
+    },
+    [accessToken, farmId, activeProfileId, open, refetchAll, t]
+  );
+
   const renderStockMovDetail = useCallback(
     (item: EventItem, ctx: { close: () => void }) => {
       const m = item.meta as FeedStockMovementDto;
@@ -331,19 +398,33 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
               movement={m}
             />
           ) : null}
-          <Pressable
-            style={styles.editBtn}
-            onPress={() => {
-              ctx.close();
-              setEditMovement(m);
-            }}
-          >
-            <Text style={styles.editBtnTx}>{t("feedStock.editMovement")}</Text>
-          </Pressable>
+          <View style={styles.detailActions}>
+            <Pressable
+              style={styles.editBtn}
+              onPress={() => {
+                ctx.close();
+                openEditMovement(m);
+              }}
+            >
+              <Text style={styles.editBtnTx}>{t("feedStock.editMovement")}</Text>
+            </Pressable>
+            <Pressable
+              style={styles.deleteBtn}
+              onPress={() => confirmDeleteMovement(m, ctx.close)}
+            >
+              <Text style={styles.deleteBtnTx}>
+                {t(
+                  m.kind === "stock_check"
+                    ? "feedStock.edit.checkDeleteBtn"
+                    : "feedStock.edit.deleteBtn"
+                )}
+              </Text>
+            </Pressable>
+          </View>
         </View>
       );
     },
-    [t, accessToken, farmId, activeProfileId]
+    [t, accessToken, farmId, activeProfileId, openEditMovement, confirmDeleteMovement]
   );
 
   const onStockKindFilter = useCallback((id: string) => {
@@ -353,23 +434,13 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
     else setMovKindFilter("all");
   }, []);
 
-  const handleStockSaved = useCallback(
-    (res?: PostFarmFeedMovementResponse) => {
-      refetchAll();
-      if (res?.reconciliation && res.reconciliation.status !== "none") {
-        setReconciliationOffer(res.reconciliation);
-      }
-    },
-    [refetchAll]
-  );
-
   const renderStockSwipeEdit = useCallback(
     (item: EventItem) => {
       const m = item.meta as FeedStockMovementDto;
       return (
         <Pressable
           style={styles.swipeEdit}
-          onPress={() => setEditMovement(m)}
+          onPress={() => openEditMovement(m)}
           accessibilityRole="button"
           accessibilityLabel={t("feedStock.editMovement")}
         >
@@ -378,7 +449,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
         </Pressable>
       );
     },
-    [t]
+    [openEditMovement, t]
   );
 
   const pending = results.some((r) => r.isPending) || movQ.isPending;
@@ -619,7 +690,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
         />
         {editMovement ? (
           <EditStockModal
-            visible
+            visible={Boolean(editMovement)}
             movement={editMovement}
             types={types}
             farmId={farmId}
@@ -628,6 +699,9 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
             onClose={() => setEditMovement(null)}
             onSaved={(res) => {
               handleStockSaved(res);
+            }}
+            onDeleted={() => {
+              refetchAll();
             }}
           />
         ) : null}
@@ -723,7 +797,6 @@ const styles = StyleSheet.create({
     color: mobileColors.textPrimary
   },
   editBtn: {
-    marginTop: mobileSpacing.md,
     alignSelf: "flex-start",
     paddingVertical: mobileSpacing.sm,
     paddingHorizontal: mobileSpacing.md,
@@ -733,6 +806,24 @@ const styles = StyleSheet.create({
   editBtnTx: {
     ...mobileTypography.meta,
     color: mobileColors.accent,
+    fontWeight: "700"
+  },
+  detailActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: mobileSpacing.sm,
+    marginTop: mobileSpacing.md
+  },
+  deleteBtn: {
+    paddingVertical: mobileSpacing.sm,
+    paddingHorizontal: mobileSpacing.md,
+    borderRadius: mobileRadius.md,
+    borderWidth: 1,
+    borderColor: mobileColors.error
+  },
+  deleteBtnTx: {
+    ...mobileTypography.meta,
+    color: mobileColors.error,
     fontWeight: "700"
   },
   swipeEdit: {

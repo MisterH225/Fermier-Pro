@@ -18,6 +18,7 @@ export const en = {
   common: {
     error: "Error",
     cancel: "Cancel",
+    delete: "Delete",
     ok: "OK",
     close: "Close",
     retry: "Retry",
@@ -1202,6 +1203,8 @@ export const en = {
     smartAlertsHintBody:
       "Feed and consumption alerts are on the dashboard (Recommendations section).",
     editMovement: "Edit",
+    sectionType: "Feed type",
+    fieldQuantity: "Quantity",
     edit: {
       title: "Edit stock entry",
       checkTitle: "Edit stock check",
@@ -1223,10 +1226,15 @@ export const en = {
       savedTitle: "Entry updated",
       checkSavedTitle: "Check updated",
       savedMessage: "Stock entry saved.",
-      checkSavedMessage: "Stock check saved."
+      checkSavedMessage: "Stock check saved.",
+      deleteDoneTitle: "Entry deleted",
+      deleteDoneMessage: "The stock entry was deleted.",
+      checkDeleteDoneTitle: "Check deleted",
+      checkDeleteDoneMessage: "The stock check was deleted and stock was recalculated."
     },
     errors: {
-      pickType: "Pick a feed type."
+      pickType: "Pick a feed type.",
+      invalidForm: "Check the fields (quantity, date…)."
     }
   },
   offline: {

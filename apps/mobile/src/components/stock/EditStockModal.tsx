@@ -37,6 +37,7 @@ type Props = {
   accessToken: string;
   activeProfileId?: string | null;
   onSaved: (result: PostFarmFeedMovementResponse) => void;
+  onDeleted?: () => void;
 };
 
 export function EditStockModal({
@@ -47,7 +48,8 @@ export function EditStockModal({
   farmId,
   accessToken,
   activeProfileId,
-  onSaved
+  onSaved,
+  onDeleted
 }: Props) {
   const { t } = useTranslation();
   const qc = useQueryClient();
@@ -94,18 +96,27 @@ export function EditStockModal({
     return (cost / kg).toFixed(2);
   }, [totalCost, qty]);
 
+  const parsedBags = Number.parseFloat(bagsCounted.replace(",", "."));
+  const parsedQty = Number.parseFloat(qty.replace(",", "."));
+  const canSave = isCheck
+    ? Number.isFinite(parsedBags) && parsedBags >= 0 && occurredAt.length > 0
+    : Number.isFinite(parsedQty) && parsedQty > 0 && occurredAt.length > 0;
+
   const saveMut = useMutation({
     mutationFn: () => {
+      if (!canSave) {
+        throw new Error(t("feedStock.errors.invalidForm"));
+      }
       const payload = isCheck
         ? {
             feedTypeId,
-            bagsCounted: Number.parseFloat(bagsCounted.replace(",", ".")),
+            bagsCounted: parsedBags,
             occurredAt: `${occurredAt}T12:00:00.000Z`,
             notes: notes.trim() || undefined
           }
         : {
             feedTypeId,
-            quantityInput: Number.parseFloat(qty.replace(",", ".")),
+            quantityInput: parsedQty,
             quantityUnit: qtyUnit,
             occurredAt: `${occurredAt}T12:00:00.000Z`,
             supplier: supplier.trim() || undefined,
@@ -142,6 +153,11 @@ export function EditStockModal({
       deleteFarmFeedMovement(accessToken, farmId, movement.id, activeProfileId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["farmFeed", farmId] });
+      open("success", {
+        title: t(isCheck ? "feedStock.edit.checkDeleteDoneTitle" : "feedStock.edit.deleteDoneTitle"),
+        message: t(isCheck ? "feedStock.edit.checkDeleteDoneMessage" : "feedStock.edit.deleteDoneMessage")
+      });
+      onDeleted?.();
       onClose();
     },
     onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
@@ -170,8 +186,8 @@ export function EditStockModal({
       sheetMaxHeight="92%"
       footerPrimary={
         <Pressable
-          style={styles.primaryBtn}
-          disabled={saveMut.isPending}
+          style={[styles.primaryBtn, !canSave && styles.primaryBtnDisabled]}
+          disabled={!canSave || saveMut.isPending}
           onPress={() => saveMut.mutate()}
         >
           {saveMut.isPending ? (
@@ -341,6 +357,7 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.md,
     alignItems: "center"
   },
+  primaryBtnDisabled: { opacity: 0.45 },
   primaryTx: { color: "#fff", fontWeight: "700" },
   deleteBtn: { marginTop: mobileSpacing.lg, paddingVertical: mobileSpacing.md },
   deleteTx: {
