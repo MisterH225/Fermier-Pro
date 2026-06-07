@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   UseGuards
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
@@ -24,6 +25,19 @@ export class OffersController {
   @Get("offers")
   listMine(@CurrentUser() user: User) {
     return this.offers.listMine(user);
+  }
+
+  @Get("offers/received")
+  listReceived(
+    @CurrentUser() user: User,
+    @Query("farmId") farmId?: string
+  ) {
+    return this.offers.listReceived(user, farmId?.trim() || undefined);
+  }
+
+  @Get("offers/counts")
+  counts(@CurrentUser() user: User, @Query("farmId") farmId?: string) {
+    return this.offers.counts(user, farmId?.trim() || undefined);
   }
 
   @Post("listings/:listingId/offers")

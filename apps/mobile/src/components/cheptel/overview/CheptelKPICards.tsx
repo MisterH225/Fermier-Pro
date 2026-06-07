@@ -120,7 +120,7 @@ export function CheptelKPICards({ overview }: Props) {
     },
     {
       key: "breeding",
-      icon: "🤱",
+      icon: "🐽",
       bg: "#FCE4EC",
       accent: "#E91E8C",
       labelKey: "cheptel.kpiBreedingFemales",

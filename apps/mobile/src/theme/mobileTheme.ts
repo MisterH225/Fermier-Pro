@@ -67,3 +67,13 @@ export const mobileShadows = {
     elevation: 1
   }
 } as const;
+
+/** Boutons texte en haut à droite des écrans (header). */
+export const mobileHeaderButton = {
+  btn: { marginRight: mobileSpacing.sm, paddingVertical: 4, paddingHorizontal: 2 },
+  text: {
+    color: mobileColors.accent,
+    fontWeight: "600" as const,
+    fontSize: 15
+  }
+} as const;

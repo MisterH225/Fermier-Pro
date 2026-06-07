@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Alert,
   Modal,
   Pressable,
   StyleSheet,
@@ -31,6 +32,10 @@ export function ConfirmDeleteModal({
     try {
       await Promise.resolve(payload.onConfirm());
       onClose();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : t("common.error");
+      Alert.alert(t("common.error"), message);
     } finally {
       setBusy(false);
     }
@@ -44,7 +49,10 @@ export function ConfirmDeleteModal({
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <Pressable style={styles.backdrop} onPress={onClose}>
+      <Pressable
+        style={styles.backdrop}
+        onPress={busy ? undefined : onClose}
+      >
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
           <View style={styles.iconWrap}>
             <Ionicons name="warning" size={32} color={mobileColors.error} />

@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   logTitle: { fontSize: 15, fontWeight: "700", color: mobileColors.textPrimary },
   logBody: { fontSize: 14, color: "#4a5238", marginTop: 8, lineHeight: 20 },
   headerBtn: { marginRight: 4 },
-  headerBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: 15 },
   moveBtn: { marginTop: 12, alignSelf: "flex-start" },
   moveBtnText: {
     fontSize: 14,

@@ -232,5 +232,5 @@ const styles = StyleSheet.create({
     marginTop: 6
   },
   headerBtn: { marginRight: 4 },
-  headerBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 }
+  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: 15 }
 });

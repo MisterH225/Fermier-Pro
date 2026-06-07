@@ -17,6 +17,7 @@ import type {
 import { formatApiError } from "../lib/apiErrors";
 import { fetchAuthMe, fetchClientConfig } from "../lib/api";
 import { queryClient } from "../lib/queryClient";
+import { resetNavigationToProfileHome } from "../lib/profileNavigationReset";
 const STORAGE_PROFILE_KEY = "@fermier_pro/active_profile_id";
 const AUTH_ME_CACHE_KEY = "@fermier_pro/auth_me_cache";
 
@@ -211,7 +212,11 @@ export function SessionProvider({
   const setActiveProfileId = useCallback(
     async (id: string | null) => {
       setAuthError(null);
+      const profileType = id
+        ? authMe?.profiles.find((p) => p.id === id)?.type
+        : undefined;
       setActiveProfileIdState(id);
+      resetNavigationToProfileHome(profileType);
       queryClient.removeQueries();
       if (id) {
         await AsyncStorage.setItem(STORAGE_PROFILE_KEY, id);
@@ -239,7 +244,7 @@ export function SessionProvider({
         }
       }
     },
-    [accessToken]
+    [accessToken, authMe?.profiles]
   );
 
   const signOut = useCallback(async () => {

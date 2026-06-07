@@ -11,7 +11,7 @@ import {
   ScreenSection
 } from "../../components/layout";
 import { TechMobileShell } from "../../components/layout/TechMobileShell";
-import { useTechBottomChromePad } from "../../context/TechBottomChromeContext";
+import { useBottomChromePad } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import { fetchTechnicianDashboard } from "../../lib/api";
 import { techColors } from "../../theme/technicianTheme";
@@ -20,7 +20,7 @@ import type { RootStackParamList } from "../../types/navigation";
 /** Redirige vers l’écran tâches ferme (même composant que le producteur). */
 export function TechTasksScreen() {
   const { t } = useTranslation();
-  const bottomPad = useTechBottomChromePad();
+  const bottomChromePad = useBottomChromePad();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken, activeProfileId } = useSession();
@@ -46,7 +46,7 @@ export function TechTasksScreen() {
 
   return (
     <TechMobileShell hideTopBar>
-      <View style={[profileScreenScrollContent, styles.wrap, { paddingBottom: bottomPad }]}>
+      <View style={[profileScreenScrollContent, styles.wrap, { paddingBottom: bottomChromePad }]}>
         <ScreenSection title={t("tech.dashboard.tasksToday")}>
           {dashQ.isLoading ? (
             <ListSkeleton count={3} />

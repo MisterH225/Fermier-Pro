@@ -9,6 +9,70 @@ export type FinanceMonthPoint = {
   net?: number;
 };
 
+export type MarketplaceFinanceMonthPoint = {
+  month: string;
+  confirmedRevenue?: number;
+  pendingRevenue?: number;
+  confirmedSpent?: number;
+  blockedFunds?: number;
+};
+
+const MARKETPLACE_PENDING_COLOR = "#D97706";
+
+export function marketplaceSellerFinanceLines(
+  months: MarketplaceFinanceMonthPoint[],
+  confirmedLabel: string,
+  pendingLabel: string
+): SmartChartLine[] {
+  return [
+    {
+      key: "confirmedRevenue",
+      label: confirmedLabel,
+      color: mobileColors.success,
+      data: months.map((m) => ({
+        month: m.month,
+        value: Number(m.confirmedRevenue ?? 0)
+      }))
+    },
+    {
+      key: "pendingRevenue",
+      label: pendingLabel,
+      color: MARKETPLACE_PENDING_COLOR,
+      data: months.map((m) => ({
+        month: m.month,
+        value: Number(m.pendingRevenue ?? 0)
+      }))
+    }
+  ];
+}
+
+export function marketplaceBuyerFinanceLines(
+  months: MarketplaceFinanceMonthPoint[],
+  confirmedLabel: string,
+  pendingLabel: string
+): SmartChartLine[] {
+  return [
+    {
+      key: "confirmedSpent",
+      label: confirmedLabel,
+      color: mobileColors.success,
+      data: months.map((m) => ({
+        month: m.month,
+        value: Number(m.confirmedSpent ?? 0)
+      }))
+    },
+    {
+      key: "blockedFunds",
+      label: pendingLabel,
+      color: MARKETPLACE_PENDING_COLOR,
+      data: months.map((m) => ({
+        month: m.month,
+        value: Number(m.blockedFunds ?? 0)
+      }))
+    }
+  ];
+}
+
 export function financeMonthsToRevExpLines(
   months: FinanceMonthPoint[],
   revenueLabel: string,
@@ -133,13 +197,15 @@ export function feedSeriesColor(seriesIndex: number): string {
 }
 
 export function feedChartToLines(chart: FarmFeedChartDto): SmartChartLine[] {
-  return chart.series.map((s, i) => ({
-    key: s.feedTypeId,
-    label: s.name,
+  const series = chart.series ?? [];
+  const weekKeys = chart.weekKeys ?? [];
+  return series.map((s, i) => ({
+    key: s.feedTypeId ?? `series-${i}`,
+    label: s.name ?? "—",
     color: feedSeriesColor(i),
-    data: chart.weekKeys.map((week, wi) => ({
+    data: weekKeys.map((week, wi) => ({
       month: week,
-      value: s.points[wi] ?? 0
+      value: s.points?.[wi] ?? 0
     }))
   }));
 }

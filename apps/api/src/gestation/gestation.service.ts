@@ -16,6 +16,7 @@ import {
 import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
+import { AiGeminiService } from "../ai/ai-gemini.service";
 import {
   DEFAULT_GESTATION_DAYS,
   DEFAULT_PRE_BIRTH_CHECKLIST,
@@ -107,7 +108,8 @@ export class GestationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
-    private readonly smartAlerts: SmartAlertsService
+    private readonly smartAlerts: SmartAlertsService,
+    private readonly gemini: AiGeminiService
   ) {}
 
   private async ensureSettings(farmId: string) {
@@ -1037,5 +1039,97 @@ export class GestationService {
             : undefined
       }
     });
+  }
+
+  async getAiMatingPlan(user: User, farmId: string) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const { items: sows } = await this.listAvailableSows(user, farmId);
+    const boars = await this.prisma.animal.findMany({
+      where: { farmId, sex: "male", status: "active" },
+      select: { id: true, tagCode: true, publicId: true }
+    });
+    const boarUsage = await Promise.all(
+      boars.map(async (b) => {
+        const count = await this.prisma.gestation.count({
+          where: {
+            farmId,
+            boarId: b.id,
+            matingDate: {
+              gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+            }
+          }
+        });
+        return {
+          id: b.id,
+          label: b.tagCode ?? b.publicId.slice(0, 8),
+          matingsLast30Days: count
+        };
+      })
+    );
+
+    const fallback = {
+      recommendations: sows.slice(0, 5).map((s, i) => {
+        const boar = boarUsage[i % Math.max(1, boarUsage.length)];
+        const date = new Date();
+        date.setDate(date.getDate() + i * 3);
+        const birth = addUtcDays(date, DEFAULT_GESTATION_DAYS);
+        return {
+          sowId: s.sowId,
+          sowLabel: s.label,
+          boarId: boar?.id ?? null,
+          boarLabel: boar?.label ?? null,
+          suggestedDate: date.toISOString().slice(0, 10),
+          expectedBirthDate: birth.toISOString().slice(0, 10),
+          reason:
+            s.availability === "now"
+              ? "Truie disponible — prioriser le rythme de reproduction"
+              : "Truie bientôt disponible"
+        };
+      }),
+      aiPowered: false
+    };
+
+    if (!this.gemini.isConfigured() || sows.length === 0) {
+      return fallback;
+    }
+
+    const prompt = `Tu es un expert en reproduction porcine. Propose un planning de saillie optimal. JSON uniquement :
+{"recommendations":[{"sow_id":"uuid","boar_id":"uuid","suggested_date":"YYYY-MM-DD","reason":"string","expected_birth_date":"YYYY-MM-DD"}]}
+Truies disponibles : ${JSON.stringify(sows.slice(0, 12))}
+Verrats : ${JSON.stringify(boarUsage)}`;
+
+    const raw = await this.gemini.generateText(prompt);
+    if (!raw) {
+      return fallback;
+    }
+    try {
+      const parsed = JSON.parse(raw) as {
+        recommendations: Array<{
+          sow_id: string;
+          boar_id?: string;
+          suggested_date: string;
+          reason: string;
+          expected_birth_date?: string;
+        }>;
+      };
+      return {
+        aiPowered: true,
+        recommendations: (parsed.recommendations ?? []).map((r) => {
+          const sow = sows.find((s) => s.sowId === r.sow_id);
+          const boar = boarUsage.find((b) => b.id === r.boar_id);
+          return {
+            sowId: r.sow_id,
+            sowLabel: sow?.label ?? r.sow_id.slice(0, 8),
+            boarId: r.boar_id ?? null,
+            boarLabel: boar?.label ?? null,
+            suggestedDate: r.suggested_date,
+            expectedBirthDate: r.expected_birth_date ?? null,
+            reason: r.reason
+          };
+        })
+      };
+    } catch {
+      return fallback;
+    }
   }
 }

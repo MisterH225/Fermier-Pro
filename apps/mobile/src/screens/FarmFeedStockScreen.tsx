@@ -228,7 +228,9 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
   }, [movements, movKindFilter, feedTab]);
 
   const feedMovementEvents = useMemo((): EventItem[] => {
-    return movementsFiltered.map((m) => {
+    return movementsFiltered
+      .filter((m) => m?.id)
+      .map((m) => {
       const kindLabel =
         m.kind === "in" ? t("feedStock.movementIn") : t("feedStock.movementCheck");
       const qty =
@@ -240,7 +242,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
       const dateShort = new Date(m.occurredAt).toLocaleDateString("fr-FR");
       return {
         id: m.id,
-        title: m.feedType.name,
+        title: m.feedType?.name ?? t("feedStock.unknownFeedType", "Aliment"),
         subtitle: [
           kindLabel,
           m.linkedExpenseId ? t("financeStockLink.financeBadge") : null,
@@ -256,6 +258,11 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
       };
     });
   }, [movementsFiltered, t]);
+
+  const safeStats = useMemo(
+    () => (Array.isArray(stats) ? stats.filter(Boolean) : []),
+    [stats]
+  );
 
   const stockKindPills = useMemo(
     () => [
@@ -498,7 +505,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
             content: tabScroll(
               <>
                 <ScreenSection title={t("feedStock.chartTitle")}>
-                  {chart ? (
+                  {chart && Array.isArray(chart.series) ? (
                     <SmartChart
                       lines={feedChartToLines(chart)}
                       period={feedPeriodToChartPeriod(period)}
@@ -533,13 +540,13 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
                   module="stock"
                   accessToken={accessToken}
                   activeProfileId={activeProfileId}
-                  hasMinimalData={stats.length > 0}
+                  hasMinimalData={safeStats.length > 0}
                 />
                 <ScreenSection title={t("feedStock.statsTitle")}>
-                {!stats || stats.length === 0 ? (
+                {safeStats.length === 0 ? (
                   <Text style={styles.muted}>{t("feedStock.noStats")}</Text>
                 ) : (
-                  stats.map((s, statIndex) => {
+                  safeStats.map((s, statIndex) => {
                     if (!s || !s.feedTypeId) return null;
                     try {
                       const gauge = farmFeedStatToGauge(s, statIndex, t);

@@ -416,9 +416,13 @@ Supprimés : CreatePenModal, PenGrid, CheptelPensTab, CreateBarnScreen, route Cr
 Conservé : CreatePenLogScreen (journal de loge)
 ```
 
-### P3 — Non traité
+### P3 — Traité (partiel)
 
-- Découpage `api.ts`, `DeepNavigationService`, `AppTextField`
+| # | Action | Statut | Détail |
+|---|--------|--------|--------|
+| 12 | Découpage `api.ts` | ✅ partiel | `lib/api/http.ts` + `lib/api/auth.ts` ; re-exports `lib/api` inchangés |
+| 13 | `DeepNavigationService` | ✅ partiel | `resolveDeepNavProfile` ; push notifications avec profil session |
+| 14 | `AppTextField` | ✅ partiel | Composant commun + pilote `CreateAnimalModal`, `AddWeightModal` |
 
 ### PR fonctionnelles fusionnées (après audit)
 
@@ -439,7 +443,7 @@ Conservé : CreatePenLogScreen (journal de loge)
 | Fichiers skeleton (`SkeletonBlocks`) | ~0 | **~17** |
 | `EmptyStateCard` (imports) | 2 | **5** |
 | `useModal` | ~25 | **~36** |
-| `collaboration/SuccessModal` | présent | **supprimé** |
+| `collaboration/ConfirmDeleteModal` | présent | **supprimé** |
 | Fichiers `Alert.alert` | 81 → ~77 | **~77** (confirmations / erreurs légitimes restantes) |
 
 ---
@@ -480,10 +484,10 @@ Conservé : CreatePenLogScreen (journal de loge)
 ### C. Prochaines étapes recommandées
 
 1. Clôturer [PR #18](https://github.com/MisterH225/Fermier-Pro/pull/18) (documentation seule, obsolète).
-2. Merger [PR #22](https://github.com/MisterH225/Fermier-Pro/pull/22) (P3 fondations : `api/http`, `AppTextField`, `DeepNav`).
-3. P2 restant : étendre le registre React Query aux autres domaines ; supprimer les shims `screens/Farm*Screen` si plus importés.
+2. Poursuivre P2 restant : étendre le registre React Query aux autres domaines ; supprimer les shims `screens/Farm*Screen` si plus importés.
+3. P3 suite : extraire `api/marketplace.ts`, migrer `AppTextField` (~74 fichiers restants), unifier `InsightCard` → `DeepNavigationService`.
 4. Valider en prod les migrations Prisma / Supabase (#17 : `marketplace_farm_lifecycle`, `PigPriceSnapshot`).
 
 ---
 
-*Rapport initial : audit lecture seule (3 juin 2026). Section 8 : PR #19–#21 (5 juin), PR #12–#14 housing/marketplace (6 juin).*
+*Rapport initial : audit lecture seule (3 juin 2026). Section 8 : PR #19–#21 (5 juin), PR #12–#14 housing/marketplace (6 juin), P3 fondations PR #22 (7 juin).*

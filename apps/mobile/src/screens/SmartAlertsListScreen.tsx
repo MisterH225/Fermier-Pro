@@ -11,6 +11,7 @@ import {
   Text,
   View
 } from "react-native";
+import { useBottomInset } from "../hooks/useBottomInset";
 import { MobileAppShell } from "../components/layout";
 import { AlertCard } from "../components/smartAlerts/AlertCard";
 import { useSession } from "../context/SessionContext";
@@ -31,6 +32,7 @@ export function SmartAlertsListScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
   useScreenTitle(navigation, t("navigation.screenTitles.recommendations"));
   const { accessToken, activeProfileId } = useSession();
+  const bottomInset = useBottomInset();
   const qc = useQueryClient();
 
   const listQuery = useQuery({
@@ -94,7 +96,7 @@ export function SmartAlertsListScreen({ route, navigation }: Props) {
           data={data}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: bottomInset }]}
           refreshControl={
             <RefreshControl
               refreshing={refreshMutation.isPending || listQuery.isFetching}
@@ -130,8 +132,7 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.lg
   },
   list: {
-    padding: mobileSpacing.lg,
-    paddingBottom: 40
+    padding: mobileSpacing.lg
   },
   empty: {
     ...mobileTypography.body,

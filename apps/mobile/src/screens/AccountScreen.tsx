@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet } from "react-native";
 import { AccountSettingsPanel } from "../components/account/AccountSettingsPanel";
 import { MobileAppShell } from "../components/layout";
-import { useProducerBottomChromePad } from "../context/ProducerBottomChromeContext";
+import { useBottomInset } from "../hooks/useBottomInset";
 import { useSession } from "../context/SessionContext";
 import { mobileSpacing } from "../theme/mobileTheme";
 
@@ -15,7 +15,7 @@ export function AccountScreen() {
   const { authMe, activeProfileId } = useSession();
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
   const isProducer = profileType === "producer";
-  const bottomChromePad = useProducerBottomChromePad();
+  const bottomInset = useBottomInset();
 
   return (
     <MobileAppShell
@@ -25,7 +25,7 @@ export function AccountScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.wrap,
-          { paddingBottom: mobileSpacing.xxl + bottomChromePad }
+          { paddingBottom: bottomInset }
         ]}
       >
         <AccountSettingsPanel />

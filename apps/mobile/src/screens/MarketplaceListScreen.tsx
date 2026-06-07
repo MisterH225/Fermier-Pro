@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { PigPriceIndex } from "../components/market/PigPriceIndex";
+import { PigPriceIndexCard } from "../components/market/PigPriceIndexCard";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
 import { ListingModal } from "../components/marketplace/ListingModal";
 import {
@@ -32,24 +33,23 @@ import type { FilterPill } from "../components/lists/types";
 import { TabContent, TabSelector } from "../components/tabs";
 import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { useSession } from "../context/SessionContext";
-import type {
-  MarketplaceListingListItem,
-  MarketplaceOfferMineRow
-} from "../lib/api";
+import type { MarketplaceListingListItem } from "../lib/api";
+import { useActiveProject } from "../context/ActiveProjectContext";
+import {
+  PropositionsScreen,
+  type ProposalsSubTab
+} from "./market/PropositionsScreen";
 import {
   addBuyerFavorite,
   fetchBuyerFavoriteIds,
   fetchBuyerFavorites,
   fetchMarketplaceListings,
-  fetchMyMarketplaceOffers,
+  fetchMarketplaceOfferCounts,
   removeBuyerFavorite,
-  withdrawMarketplaceOffer,
   type BuyerFavoriteListingDto
 } from "../lib/api";
 import {
-  listingStatusLabel,
-  marketplaceActionErrorMessage,
-  offerStatusLabel
+  listingStatusLabel
 } from "../lib/marketplaceLabels";
 import {
   mobileColors,
@@ -142,10 +142,18 @@ function initialMarketTab(
   return "listings";
 }
 
+function initialOffersSubTab(
+  param?: RootStackParamList["MarketplaceList"]
+): ProposalsSubTab {
+  const sub = param && "offersSubTab" in param ? param.offersSubTab : undefined;
+  return sub === "sent" ? "sent" : "received";
+}
+
 export function MarketplaceListScreen({ navigation, route }: Props) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
   const { accessToken, activeProfileId, authMe, clientFeatures } = useSession();
+  const { activeFarmId } = useActiveProject();
   const qc = useQueryClient();
 
   const buyerView = route.params?.buyerView === true;
@@ -173,14 +181,29 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
   );
   const [myFilter, setMyFilter] = useState<ListingFilter>("all");
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [offersSubTab, setOffersSubTab] = useState<ProposalsSubTab>(() =>
+    initialOffersSubTab(route.params)
+  );
+  const offersListingFilter =
+    route.params && "offersListingId" in route.params
+      ? route.params.offersListingId
+      : undefined;
 
   const routeTab =
     route.params && "tab" in route.params ? route.params.tab : undefined;
+  const routeOffersSubTab =
+    route.params && "offersSubTab" in route.params
+      ? route.params.offersSubTab
+      : undefined;
 
   useEffect(() => {
     const tab = initialMarketTab(route.params);
     setMarketTab(buyerView && tab === "mine" ? "listings" : tab);
   }, [routeTab, buyerView]);
+
+  useEffect(() => {
+    setOffersSubTab(initialOffersSubTab(route.params));
+  }, [routeOffersSubTab]);
 
   useEffect(() => {
     const q = route.params?.searchQuery;
@@ -229,29 +252,11 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     enabled: clientFeatures.marketplace && marketTab === "mine"
   });
 
-  const offersQuery = useQuery({
-    queryKey: ["marketplaceMyOffers", activeProfileId],
-    queryFn: () => fetchMyMarketplaceOffers(accessToken!, activeProfileId),
-    enabled: clientFeatures.marketplace && marketTab === "offers"
-  });
-
-  const withdrawMut = useMutation({
-    mutationFn: (offerId: string) =>
-      withdrawMarketplaceOffer(accessToken!, offerId, activeProfileId),
-    onSuccess: (_data, offerId) => {
-      void qc.invalidateQueries({ queryKey: ["marketplaceMyOffers"] });
-      const row = offersQuery.data?.find((r) => r.id === offerId);
-      if (row) {
-        void qc.invalidateQueries({
-          queryKey: ["marketplaceListing", row.listing.id]
-        });
-      }
-    },
-    onError: (e: Error) =>
-      Alert.alert(
-        "Impossible de retirer l’offre",
-        marketplaceActionErrorMessage(e, t)
-      )
+  const offerCountsQ = useQuery({
+    queryKey: ["marketplaceOffersCounts", activeProfileId, activeFarmId],
+    queryFn: () =>
+      fetchMarketplaceOfferCounts(accessToken!, activeProfileId, activeFarmId),
+    enabled: clientFeatures.marketplace && Boolean(accessToken)
   });
 
   useLayoutEffect(() => {
@@ -384,59 +389,6 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     />
   );
 
-  const renderOfferRow = ({ item }: { item: MarketplaceOfferMineRow }) => (
-    <View style={styles.offerCard}>
-      <TouchableOpacity
-        onPress={() =>
-          navigation.navigate("MarketplaceListingDetail", {
-            listingId: item.listing.id,
-            headline: item.listing.title
-          })
-        }
-      >
-        <Text style={styles.offerTitle}>{item.listing.title}</Text>
-        <Text style={styles.offerPrice}>
-          {t("marketScreen.myOffer")}{" "}
-          {formatMoney(
-            typeof item.offeredPrice === "string"
-              ? Number.parseFloat(item.offeredPrice)
-              : item.offeredPrice,
-            item.listing.currency
-          )}
-          {item.quantity != null ? ` × ${item.quantity}` : ""}
-        </Text>
-        <Text style={styles.offerMeta}>
-          {t("marketScreen.offerStatus")} {offerStatusLabel(item.status)}
-        </Text>
-        <Text style={styles.offerMeta}>
-          {t("marketScreen.offerListingLabel")} {listingStatusLabel(item.listing.status)}
-        </Text>
-        {item.listing.farm ? (
-          <Text style={styles.offerMeta}>{item.listing.farm.name}</Text>
-        ) : null}
-        <Text style={styles.offerLink}>{t("marketScreen.viewListing")}</Text>
-      </TouchableOpacity>
-      {item.status === "pending" ? (
-        <TouchableOpacity
-          style={[styles.withdraw, withdrawMut.isPending && styles.withdrawDisabled]}
-          disabled={withdrawMut.isPending}
-          onPress={() =>
-            Alert.alert(t("marketScreen.withdrawTitle"), t("marketScreen.withdrawBody"), [
-              { text: t("marketScreen.withdrawCancel"), style: "cancel" },
-              {
-                text: t("marketScreen.withdrawConfirm"),
-                style: "destructive",
-                onPress: () => withdrawMut.mutate(item.id)
-              }
-            ])
-          }
-        >
-          <Text style={styles.withdrawTxt}>{t("marketScreen.withdrawAction")}</Text>
-        </TouchableOpacity>
-      ) : null}
-    </View>
-  );
-
   const listingsErr =
     listingsQuery.error instanceof Error
       ? getUserFacingError(listingsQuery.error, t)
@@ -495,6 +447,7 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
     const listingsHeader = (
       <View style={styles.listHeader}>
         <View style={styles.pigPriceSection}>
+          <PigPriceIndexCard />
           <PigPriceIndex />
         </View>
         <View style={styles.searchRow}>
@@ -631,51 +584,16 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
     );
   };
 
-  const offersTabContent = () => {
-    const err =
-      offersQuery.error instanceof Error
-        ? getUserFacingError(offersQuery.error, t)
-        : offersQuery.error
-          ? String(offersQuery.error)
-          : null;
-    if (offersQuery.isPending && !offersQuery.data) {
-      return (
-        <View style={styles.tabCentered}>
-          <ActivityIndicator size="large" color={mobileColors.accent} />
-        </View>
-      );
-    }
-    if (err) {
-      return (
-        <View style={styles.tabCentered}>
-          <Text style={styles.error}>{err}</Text>
-        </View>
-      );
-    }
-    const rows = offersQuery.data ?? [];
-    return (
-      <FlatList
-        style={styles.tabScroll}
-        data={rows}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={[
-          styles.offersList,
-          { paddingBottom: scrollBottomPad }
-        ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={offersQuery.isFetching}
-            onRefresh={() => void offersQuery.refetch()}
-            tintColor={mobileColors.accent}
-          />
-        }
-        ListEmptyComponent={
-          <EmptyStateCard title={t("marketScreen.emptyOffers")} />
-        }
-        renderItem={renderOfferRow}
-      />
-    );
-  };
+  const offersTabContent = () => (
+    <PropositionsScreen
+      navigation={navigation}
+      contentPaddingBottom={scrollBottomPad}
+      initialSubTab={offersSubTab}
+      listingIdFilter={offersListingFilter}
+    />
+  );
+
+  const offersTabBadge = offerCountsQ.data?.total ?? 0;
 
   if (!clientFeatures.marketplace) {
     return (
@@ -708,6 +626,7 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
               {
                 key: "offers",
                 label: t("marketScreen.tabOffers"),
+                badge: offersTabBadge > 0 ? offersTabBadge : undefined,
                 content: offersTabContent()
               }
             ]}

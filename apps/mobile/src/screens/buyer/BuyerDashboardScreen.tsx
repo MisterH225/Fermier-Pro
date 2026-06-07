@@ -24,7 +24,7 @@ import {
   ScreenSection
 } from "../../components/layout";
 import { BuyerMobileShell } from "../../components/layout/BuyerMobileShell";
-import { useBuyerBottomChromePad } from "../../context/BuyerBottomChromeContext";
+import { useBottomChromePad, useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import { fetchBuyerDashboard } from "../../lib/api";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
@@ -37,7 +37,7 @@ export function BuyerDashboardScreen() {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const bottomPad = useBuyerBottomChromePad();
+  const bottomInset = useBottomInset();
   const { accessToken, activeProfileId, authMe, refreshAuthMe } = useSession();
   const [profileOpen, setProfileOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -85,7 +85,7 @@ export function BuyerDashboardScreen() {
       <ScrollView
         contentContainerStyle={[
           profileScreenScrollContent,
-          { paddingBottom: bottomPad + mobileSpacing.xl }
+          { paddingBottom: bottomInset }
         ]}
         refreshControl={
           <RefreshControl

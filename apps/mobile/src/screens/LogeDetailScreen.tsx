@@ -30,6 +30,7 @@ import {
   fetchCheptelPens,
   fetchFarmAnimals,
   fetchPenContents,
+  patchPen,
   patchPenAverages,
   type AnimalListItem,
   type PenAnimalRowDto,
@@ -120,6 +121,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
   const [filter, setFilter] = useState<AnimalFilter>("all");
   const [avgWeight, setAvgWeight] = useState("");
   const [avgAge, setAvgAge] = useState("");
+  const [capacity, setCapacity] = useState("");
   const [actionAnimal, setActionAnimal] = useState<PenAnimalRowDto | null>(null);
   const [statusAnimal, setStatusAnimal] = useState<AnimalListItem | null>(null);
   const [saleAnimal, setSaleAnimal] = useState<AnimalListItem | null>(null);
@@ -184,13 +186,37 @@ export function LogeDetailScreen({ route, navigation }: Props) {
     if (penMeta?.averageWeightKg != null) {
       setAvgWeight(String(penMeta.averageWeightKg));
     }
+    if (penMeta?.capacity != null) {
+      setCapacity(String(penMeta.capacity));
+    }
     const manual = penAgeData?.averageAgeWeeksManual;
     if (manual != null) {
       setAvgAge(String(manual));
     } else if (penAgeData?.isManual !== true) {
       setAvgAge("");
     }
-  }, [penMeta?.averageWeightKg, penAgeData?.averageAgeWeeksManual, penAgeData?.isManual]);
+  }, [penMeta?.averageWeightKg, penMeta?.capacity, penAgeData?.averageAgeWeeksManual, penAgeData?.isManual]);
+
+  const saveCapacityMut = useMutation({
+    mutationFn: () => {
+      const cap = capacity.trim()
+        ? Number.parseInt(capacity, 10)
+        : null;
+      return patchPen(
+        accessToken!,
+        farmId,
+        penId,
+        {
+          capacity: cap != null && Number.isFinite(cap) ? cap : null
+        },
+        activeProfileId
+      );
+    },
+    onSuccess: () => {
+      void pensQ.refetch();
+      void contentsQ.refetch();
+    }
+  });
 
   const saveAveragesMut = useMutation({
     mutationFn: () => {
@@ -291,6 +317,14 @@ export function LogeDetailScreen({ route, navigation }: Props) {
           <Text style={styles.infoVal}>
             {penMeta.occupancy} / {penMeta.capacity || "—"}
           </Text>
+          <Text style={styles.infoLab}>{t("cheptel.pens.capacity")}</Text>
+          <TextInput
+            style={styles.input}
+            value={capacity}
+            onChangeText={setCapacity}
+            keyboardType="number-pad"
+            onBlur={() => saveCapacityMut.mutate()}
+          />
           <Text style={styles.infoLab}>{t("cheptel.pens.avgWeightField")}</Text>
           <TextInput
             style={styles.input}

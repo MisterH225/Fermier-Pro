@@ -93,14 +93,23 @@ export class AiGeminiService {
     prompt: string,
     imageUrl: string
   ): Promise<string | null> {
-    const apiKey = this.config.get<string>("GEMINI_API_KEY")?.trim();
-    if (!apiKey) {
-      return null;
-    }
     const image = await this.fetchImageBase64(imageUrl);
     if (!image) {
       return null;
     }
+    return this.generateWithImageBase64(prompt, image.base64, image.mimeType);
+  }
+
+  async generateWithImageBase64(
+    prompt: string,
+    base64: string,
+    mimeType: string
+  ): Promise<string | null> {
+    const apiKey = this.config.get<string>("GEMINI_API_KEY")?.trim();
+    if (!apiKey) {
+      return null;
+    }
+    const normalizedMime = mimeType.split(";")[0]?.trim() || "image/jpeg";
 
     for (const model of this.modelChain()) {
       const controller = new AbortController();
@@ -119,8 +128,8 @@ export class AiGeminiService {
                   { text: prompt },
                   {
                     inline_data: {
-                      mime_type: image.mimeType,
-                      data: image.base64
+                      mime_type: normalizedMime,
+                      data: base64
                     }
                   }
                 ]

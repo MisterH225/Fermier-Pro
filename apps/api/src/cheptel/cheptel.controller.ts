@@ -133,6 +133,12 @@ export class CheptelController {
     return this.cheptel.getGmqSummary(user, farmId);
   }
 
+  @Get("detected-batches")
+  @RequireFarmScopes(FARM_SCOPE.livestockRead)
+  detectedBatches(@CurrentUser() user: User, @Param("farmId") farmId: string) {
+    return this.cheptel.detectPotentialBatches(user, farmId);
+  }
+
   @Get("gmq/settings")
   @RequireFarmScopes(FARM_SCOPE.livestockRead)
   gmqSettings(@CurrentUser() user: User, @Param("farmId") farmId: string) {
