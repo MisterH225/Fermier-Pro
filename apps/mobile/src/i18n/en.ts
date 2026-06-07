@@ -405,6 +405,18 @@ export const en = {
       successTitle: "Shipment confirmed",
       successBody: "The buyer has been notified."
     },
+    transferModal: {
+      open: "Add to my herd",
+      title: "Import to my farm",
+      info:
+        "{{count}} animal(s) ready to be added to your herd after this sale.",
+      farm: "Destination farm",
+      penOptional: "Pen (optional)",
+      noPen: "No pen — animals will be created without placement.",
+      confirm: "Import animals",
+      successTitle: "Herd updated",
+      successBody: "Your animals have been added to the selected farm."
+    },
     receiptModal: {
       open: "Confirm receipt",
       title: "Confirm receipt",

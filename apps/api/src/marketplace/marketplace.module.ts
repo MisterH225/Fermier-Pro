@@ -24,7 +24,9 @@ import { MarketplaceCronService } from "./marketplace-cron.service";
 import { MarketplacePigPriceIndexController } from "./pig-price-index.controller";
 import { MarketplacePigPriceIndexCronService } from "./pig-price-index.cron";
 import { MarketplacePigPriceIndexService } from "./pig-price-index.service";
+import { SuperAdminGuard } from "../admin-platform/super-admin.guard";
 import { BuyerProfileDetectorService } from "./buyer-profile-detector.service";
+import { MarketplaceDisputesController } from "./marketplace-disputes.controller";
 import { OffersController } from "./offers.controller";
 import { OffersService } from "./offers.service";
 
@@ -42,10 +44,12 @@ import { OffersService } from "./offers.service";
     FarmRatingsController,
     MarketplacePigPriceIndexController,
     MarketplaceTransactionController,
+    MarketplaceDisputesController,
     MobileMoneyWebhookController,
     ReceiptController
   ],
   providers: [
+    SuperAdminGuard,
     FarmMarketplaceLifecycleService,
     ListingsService,
     OffersService,

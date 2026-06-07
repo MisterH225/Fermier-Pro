@@ -13,6 +13,7 @@ import { RequirePlatformModule } from "../../feature-flags/require-platform-modu
 import { PlatformModuleEnabledGuard } from "../../feature-flags/platform-module-enabled.guard";
 import { ConfirmReceiptDto } from "../dto/confirm-receipt.dto";
 import { ConfirmShipmentDto } from "../dto/confirm-shipment.dto";
+import { CompletePendingTransferDto } from "../dto/complete-pending-transfer.dto";
 import { DeliveryDisputeDto } from "../dto/delivery-dispute.dto";
 import { MarketplaceTransactionService } from "./marketplace-transaction.service";
 
@@ -120,6 +121,20 @@ export class MarketplaceTransactionController {
     @Body() body: { reason?: string }
   ) {
     return this.transactions.disputeWeight(user, id, body.reason);
+  }
+
+  @Get(":id/pending-transfer")
+  getPendingTransfer(@CurrentUser() user: User, @Param("id") id: string) {
+    return this.transactions.getPendingTransfer(user, id);
+  }
+
+  @Post(":id/pending-transfer/complete")
+  completePendingTransfer(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() body: CompletePendingTransferDto
+  ) {
+    return this.transactions.completePendingTransfer(user, id, body);
   }
 
   @Post(":id/cancel")

@@ -19,6 +19,7 @@ import {
 } from "../components/marketplace/MarketplaceListingCard";
 import { ConfirmReceiptModal } from "../components/marketplace/ConfirmReceiptModal";
 import { ConfirmShipmentModal } from "../components/marketplace/ConfirmShipmentModal";
+import { TransferToFarmModal } from "../components/marketplace/TransferToFarmModal";
 import { PrimaryButton } from "../components/ui/PrimaryButton";
 import { SecondaryButton } from "../components/ui/SecondaryButton";
 import { TransactionReceiptCard } from "../components/marketplace/TransactionReceiptCard";
@@ -26,6 +27,7 @@ import { useBottomInset } from "../hooks/useBottomInset";
 import { useSession } from "../context/SessionContext";
 import {
   cancelMarketplaceTransaction,
+  completeMarketplacePendingTransfer,
   confirmMarketplacePayment,
   confirmMarketplaceReceipt,
   confirmMarketplaceShipment,
@@ -104,6 +106,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   const [realWeight, setRealWeight] = useState("");
   const [shipmentOpen, setShipmentOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
 
   const q = useQuery({
     queryKey: ["marketplaceTransaction", transactionId, activeProfileId],
@@ -284,6 +287,26 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
       Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
   });
 
+  const transferMut = useMutation({
+    mutationFn: (payload: { buyerFarmId: string; penId?: string }) =>
+      completeMarketplacePendingTransfer(
+        accessToken,
+        transactionId,
+        payload,
+        activeProfileId
+      ),
+    onSuccess: () => {
+      setTransferOpen(false);
+      invalidate();
+      Alert.alert(
+        t("marketScreen.transferModal.successTitle"),
+        t("marketScreen.transferModal.successBody")
+      );
+    },
+    onError: (e: Error) =>
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
+  });
+
   const tx = q.data;
   const draftKg = useMemo(() => {
     const kg = Number.parseFloat(realWeight.replace(",", "."));
@@ -346,6 +369,13 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
     (tx.status === "PAYMENT_HELD" || tx.status === "PICKUP_SCHEDULED");
   const canConfirmReceipt = isBuyer && tx.status === "SELLER_SHIPPED";
   const canDeclareWeight = isBuyer && tx.status === "BUYER_RECEIVED";
+  const pendingTransfer = tx.pendingTransfer;
+  const canCompleteTransfer =
+    isBuyer &&
+    tx.status === "TRANSACTION_CLOSED" &&
+    pendingTransfer != null &&
+    pendingTransfer.completedAt == null &&
+    pendingTransfer.cancelledAt == null;
   const showPickupForm =
     tx.status === "PAYMENT_HELD" || tx.status === "PICKUP_SCHEDULED";
   const showScheduledPickup =
@@ -658,6 +688,14 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
           <Text style={styles.success}>
             {t("marketScreen.transaction.closed")}
           </Text>
+          {canCompleteTransfer ? (
+            <View style={{ marginTop: mobileSpacing.md }}>
+              <PrimaryButton
+                label={t("marketScreen.transferModal.open")}
+                onPress={() => setTransferOpen(true)}
+              />
+            </View>
+          ) : null}
           <TransactionReceiptCard
             transactionId={transactionId}
             accessToken={accessToken!}
@@ -682,6 +720,17 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         onClose={() => setReceiptOpen(false)}
         onConfirm={(payload) => receiptMut.mutate(payload)}
       />
+      {pendingTransfer ? (
+        <TransferToFarmModal
+          visible={transferOpen}
+          submitting={transferMut.isPending}
+          pendingTransfer={pendingTransfer}
+          accessToken={accessToken!}
+          activeProfileId={activeProfileId}
+          onClose={() => setTransferOpen(false)}
+          onConfirm={(payload) => transferMut.mutate(payload)}
+        />
+      ) : null}
     </ScrollView>
   );
 }

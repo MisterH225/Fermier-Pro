@@ -5028,6 +5028,17 @@ export function acceptMarketplaceOfferCounter(
   );
 }
 
+export type MarketplacePendingTransferDto = {
+  id: string;
+  transactionId: string;
+  buyerFarmId: string | null;
+  animalIds: string[];
+  expiresAt: string;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+};
+
 export type MarketplaceTransactionDto = {
   id: string;
   listingId: string;
@@ -5062,6 +5073,7 @@ export type MarketplaceTransactionDto = {
     receiptNumber: string;
     generatedAt: string;
   } | null;
+  pendingTransfer?: MarketplacePendingTransferDto | null;
 };
 
 export type MarketplaceReceiptDto = {
@@ -5265,6 +5277,20 @@ export function cancelMarketplaceTransaction(
   return apiPostJson<MarketplaceTransactionDto>(
     `/marketplace/transactions/${transactionId}/cancel`,
     {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function completeMarketplacePendingTransfer(
+  accessToken: string,
+  transactionId: string,
+  payload: { buyerFarmId: string; penId?: string },
+  activeProfileId?: string | null
+): Promise<{ ok: boolean; animalIds: string[] }> {
+  return apiPostJson<{ ok: boolean; animalIds: string[] }>(
+    `/marketplace/transactions/${transactionId}/pending-transfer/complete`,
+    payload,
     accessToken,
     activeProfileId
   );

@@ -405,6 +405,18 @@ export const fr = {
       successTitle: "Envoi confirmé",
       successBody: "L'acheteur a été notifié."
     },
+    transferModal: {
+      open: "Ajouter à mon cheptel",
+      title: "Importer dans ma ferme",
+      info:
+        "{{count}} animal(aux) prêt(s) à être ajouté(s) à votre cheptel après cette vente.",
+      farm: "Ferme destinataire",
+      penOptional: "Loge (optionnel)",
+      noPen: "Aucune loge — les animaux seront créés sans placement.",
+      confirm: "Importer les animaux",
+      successTitle: "Cheptel mis à jour",
+      successBody: "Vos animaux ont été ajoutés à la ferme sélectionnée."
+    },
     receiptModal: {
       open: "Confirmer la réception",
       title: "Confirmer la réception",

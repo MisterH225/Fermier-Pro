@@ -9,7 +9,9 @@ import {
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
 import {
+  AnimalOrigin,
   ListingStatus,
+  MarketplaceDeliveryDisputeStatus,
   MarketplaceFundMovementKind,
   MarketplacePriceType,
   MarketplaceReceiptCondition,
@@ -19,7 +21,9 @@ import {
   Prisma,
   WeightValidatedBy
 } from "@prisma/client";
+import { FarmAccessService } from "../../common/farm-access.service";
 import { PrismaService } from "../../prisma/prisma.service";
+import type { ResolveDeliveryDisputeDto } from "../dto/resolve-delivery-dispute.dto";
 import { PlatformSettingsService } from "../../platform-settings/platform-settings.service";
 import { PushNotificationsService } from "../../push-notifications/push-notifications.service";
 import { BuyerProfileDetectorService } from "../buyer-profile-detector.service";
@@ -51,7 +55,8 @@ export class MarketplaceTransactionService {
     @Inject(forwardRef(() => ListingsService))
     private readonly listings: ListingsService,
     private readonly receipts: ReceiptService,
-    private readonly buyerProfiles: BuyerProfileDetectorService
+    private readonly buyerProfiles: BuyerProfileDetectorService,
+    private readonly farmAccess: FarmAccessService
   ) {}
 
   /** Crée une transaction escrow après acceptation d'offre (vendeur ou acheteur). */
@@ -131,6 +136,10 @@ export class MarketplaceTransactionService {
             receiptNumber: true,
             generatedAt: true
           }
+        },
+        pendingTransfers: {
+          orderBy: { createdAt: "desc" },
+          take: 1
         }
       }
     });
@@ -141,6 +150,372 @@ export class MarketplaceTransactionService {
       throw new ForbiddenException();
     }
     return this.serialize(tx);
+  }
+
+  async getPendingTransfer(user: User, transactionId: string) {
+    const tx = await this.requireBuyer(transactionId, user.id);
+    const pending = await this.prisma.marketplacePendingTransfer.findFirst({
+      where: {
+        transactionId: tx.id,
+        buyerUserId: user.id,
+        completedAt: null,
+        cancelledAt: null
+      },
+      orderBy: { createdAt: "desc" }
+    });
+    if (!pending) {
+      throw new NotFoundException("Aucun transfert en attente");
+    }
+    return this.serializePendingTransfer(pending);
+  }
+
+  async completePendingTransfer(
+    user: User,
+    transactionId: string,
+    params: { buyerFarmId?: string; penId?: string }
+  ) {
+    const tx = await this.requireBuyer(transactionId, user.id);
+    if (tx.status !== MarketplaceTransactionStatus.TRANSACTION_CLOSED) {
+      throw new BadRequestException(
+        "Le transfert cheptel n'est disponible qu'après clôture de la transaction"
+      );
+    }
+    const pending = await this.prisma.marketplacePendingTransfer.findFirst({
+      where: {
+        transactionId: tx.id,
+        buyerUserId: user.id,
+        completedAt: null,
+        cancelledAt: null
+      },
+      include: {
+        transaction: {
+          include: {
+            listing: { include: { farm: { select: { name: true } } } }
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+    if (!pending) {
+      throw new NotFoundException("Aucun transfert en attente");
+    }
+    if (pending.expiresAt.getTime() < Date.now()) {
+      throw new BadRequestException("Ce transfert a expiré");
+    }
+
+    const farmId = params.buyerFarmId?.trim() || pending.buyerFarmId;
+    if (!farmId) {
+      throw new BadRequestException(
+        "Sélectionnez la ferme destinataire de vos animaux"
+      );
+    }
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+
+    if (params.penId) {
+      const pen = await this.prisma.pen.findFirst({
+        where: { id: params.penId, barn: { farmId } }
+      });
+      if (!pen) {
+        throw new BadRequestException("Loge introuvable sur cette ferme");
+      }
+    }
+
+    const sourceIds = Array.isArray(pending.animalIds)
+      ? pending.animalIds.filter((v): v is string => typeof v === "string")
+      : [];
+    if (sourceIds.length === 0) {
+      throw new BadRequestException("Aucun animal à transférer");
+    }
+
+    const sourceAnimals = await this.prisma.animal.findMany({
+      where: { id: { in: sourceIds } }
+    });
+    if (sourceAnimals.length === 0) {
+      throw new BadRequestException("Animaux source introuvables");
+    }
+
+    const sellerFarmName =
+      pending.transaction.listing.farm?.name ?? "Marketplace";
+    const entryDate = new Date();
+    entryDate.setUTCHours(0, 0, 0, 0);
+
+    const createdAnimalIds = await this.prisma.$transaction(async (db) => {
+      const imported: string[] = [];
+      for (const src of sourceAnimals) {
+        const tag = src.tagCode ?? src.publicId.slice(0, 8);
+        const created = await db.animal.create({
+          data: {
+            farmId,
+            speciesId: src.speciesId,
+            breedId: src.breedId,
+            sex: src.sex,
+            productionCategory: src.productionCategory,
+            birthDate: src.birthDate,
+            ageWeeksAtEntry: src.ageWeeksAtEntry,
+            entryDate,
+            entryWeightKg: src.soldWeightKg ?? src.entryWeightKg,
+            origin: AnimalOrigin.purchased,
+            supplier: sellerFarmName,
+            notes: `Achat marketplace — transaction ${tx.id} (source ${tag})`,
+            status: "active",
+            photoUrl: src.photoUrl
+          }
+        });
+        if (params.penId) {
+          await db.penPlacement.create({
+            data: {
+              penId: params.penId,
+              animalId: created.id,
+              createdByUserId: user.id
+            }
+          });
+        }
+        imported.push(created.id);
+      }
+      await db.marketplacePendingTransfer.update({
+        where: { id: pending.id },
+        data: {
+          completedAt: new Date(),
+          buyerFarmId: farmId
+        }
+      });
+      return imported;
+    });
+
+    void this.push.sendToUser(
+      user.id,
+      "Animaux ajoutés au cheptel",
+      `${createdAnimalIds.length} animal(aux) importé(s) dans votre ferme.`,
+      {
+        type: "marketplace_pending_transfer_completed",
+        transactionId: tx.id,
+        buyerFarmId: farmId
+      }
+    );
+
+    return {
+      ok: true,
+      animalIds: createdAnimalIds,
+      pendingTransfer: await this.prisma.marketplacePendingTransfer.findUnique({
+        where: { id: pending.id }
+      }).then((row) => (row ? this.serializePendingTransfer(row) : null))
+    };
+  }
+
+  async resolveDeliveryDispute(
+    adminUserId: string,
+    disputeId: string,
+    dto: ResolveDeliveryDisputeDto
+  ) {
+    const dispute = await this.prisma.marketplaceDeliveryDispute.findUnique({
+      where: { id: disputeId },
+      include: {
+        transaction: true,
+        listing: true
+      }
+    });
+    if (!dispute) {
+      throw new NotFoundException("Litige introuvable");
+    }
+    if (dispute.status !== MarketplaceDeliveryDisputeStatus.open) {
+      throw new BadRequestException("Litige déjà résolu");
+    }
+    const tx = dispute.transaction;
+    if (tx.status !== MarketplaceTransactionStatus.DELIVERY_DISPUTED) {
+      throw new BadRequestException("Transaction non en litige livraison");
+    }
+
+    const now = new Date();
+    const notes = dto.notes?.trim() || null;
+
+    if (
+      dto.outcome === MarketplaceDeliveryDisputeStatus.resolved_vendor
+    ) {
+      await this.prisma.$transaction([
+        this.prisma.marketplaceDeliveryDispute.update({
+          where: { id: dispute.id },
+          data: {
+            status: MarketplaceDeliveryDisputeStatus.resolved_vendor,
+            resolvedAt: now
+          }
+        }),
+        this.prisma.marketplaceTransaction.update({
+          where: { id: tx.id },
+          data: { status: MarketplaceTransactionStatus.BUYER_RECEIVED }
+        }),
+        this.prisma.marketplaceListing.update({
+          where: { id: dispute.listingId },
+          data: {
+            status: ListingStatus.delivered,
+            disputedAt: null,
+            deliveredAt: tx.buyerReceivedAt ?? now
+          }
+        })
+      ]);
+      void this.push.sendToUser(
+        tx.buyerUserId,
+        "Litige résolu",
+        "Le litige livraison est clos en faveur du vendeur. Déclarez le poids réel pour poursuivre.",
+        { type: "marketplace_delivery_dispute_resolved", transactionId: tx.id }
+      );
+      void this.push.sendToUser(
+        tx.sellerUserId,
+        "Litige résolu",
+        "Le litige livraison est clos. En attente du poids déclaré par l'acheteur.",
+        { type: "marketplace_delivery_dispute_resolved", transactionId: tx.id }
+      );
+      return { ok: true, outcome: dto.outcome, adminUserId, notes };
+    }
+
+    if (
+      dto.outcome === MarketplaceDeliveryDisputeStatus.resolved_buyer ||
+      dto.outcome === MarketplaceDeliveryDisputeStatus.cancelled
+    ) {
+      await this.refundAndCancelDeliveryDispute(tx, dispute.id, dto.outcome, notes);
+      return { ok: true, outcome: dto.outcome, adminUserId, notes };
+    }
+
+    if (dto.outcome === MarketplaceDeliveryDisputeStatus.resolved_split) {
+      const pct = dto.buyerRefundPercent ?? 50;
+      const blocked = Number(tx.blockedAmount);
+      const buyerRefund = Math.round((blocked * pct) / 100);
+      const sellerGross = blocked - buyerRefund;
+      const commission = Math.round(
+        sellerGross * Number(tx.commissionRate)
+      );
+      const sellerNet = sellerGross - commission;
+
+      if (buyerRefund > 0) {
+        await this.escrow.refundBuyer(
+          tx.id,
+          tx.buyerUserId,
+          buyerRefund,
+          tx.currency,
+          tx.paymentProviderRef
+        );
+      }
+      if (sellerNet > 0) {
+        await this.escrow.releaseFundsToSeller(
+          tx.id,
+          tx.sellerUserId,
+          sellerNet,
+          tx.currency
+        );
+      }
+      if (commission > 0) {
+        await this.escrow.collectCommission(tx.id, commission, tx.currency);
+      }
+
+      await this.prisma.$transaction([
+        this.prisma.marketplaceDeliveryDispute.update({
+          where: { id: dispute.id },
+          data: {
+            status: MarketplaceDeliveryDisputeStatus.resolved_split,
+            resolvedAt: now
+          }
+        }),
+        this.prisma.marketplaceTransaction.update({
+          where: { id: tx.id },
+          data: {
+            status: MarketplaceTransactionStatus.CANCELLED_BY_SELLER,
+            cancelledAt: now,
+            cancelReason:
+              notes ??
+              `Arbitrage partagé — remboursement acheteur ${pct}%`,
+            buyerRefundAmount: new Prisma.Decimal(buyerRefund),
+            sellerReceivedAmount: new Prisma.Decimal(sellerNet),
+            commissionAmount: new Prisma.Decimal(commission)
+          }
+        }),
+        this.prisma.marketplaceListing.update({
+          where: { id: dispute.listingId },
+          data: {
+            status: ListingStatus.published,
+            reservedForBuyerUserId: null,
+            shippedAt: null,
+            deliveredAt: null,
+            disputedAt: null
+          }
+        })
+      ]);
+
+      void this.push.sendToUser(
+        tx.buyerUserId,
+        "Litige résolu (partagé)",
+        `Remboursement de ${buyerRefund.toLocaleString("fr-FR")} ${tx.currency}.`,
+        { type: "marketplace_delivery_dispute_resolved", transactionId: tx.id }
+      );
+      void this.push.sendToUser(
+        tx.sellerUserId,
+        "Litige résolu (partagé)",
+        `Versement de ${sellerNet.toLocaleString("fr-FR")} ${tx.currency}.`,
+        { type: "marketplace_delivery_dispute_resolved", transactionId: tx.id }
+      );
+      return { ok: true, outcome: dto.outcome, adminUserId, notes, buyerRefund, sellerNet };
+    }
+
+    throw new BadRequestException("Issue de résolution invalide");
+  }
+
+  private async refundAndCancelDeliveryDispute(
+    tx: Prisma.MarketplaceTransactionGetPayload<object>,
+    disputeId: string,
+    outcome:
+      | typeof MarketplaceDeliveryDisputeStatus.resolved_buyer
+      | typeof MarketplaceDeliveryDisputeStatus.cancelled,
+    notes: string | null
+  ): Promise<void> {
+    await this.escrow.refundBuyer(
+      tx.id,
+      tx.buyerUserId,
+      Number(tx.blockedAmount),
+      tx.currency,
+      tx.paymentProviderRef
+    );
+    const now = new Date();
+    await this.prisma.$transaction([
+      this.prisma.marketplaceDeliveryDispute.update({
+        where: { id: disputeId },
+        data: { status: outcome, resolvedAt: now }
+      }),
+      this.prisma.marketplaceTransaction.update({
+        where: { id: tx.id },
+        data: {
+          status: MarketplaceTransactionStatus.CANCELLED_BY_SELLER,
+          cancelledAt: now,
+          cancelReason:
+            notes ??
+            (outcome === MarketplaceDeliveryDisputeStatus.cancelled
+              ? "Litige annulé par arbitrage"
+              : "Litige résolu en faveur de l'acheteur"),
+          buyerRefundAmount: tx.blockedAmount
+        }
+      }),
+      this.prisma.marketplaceListing.update({
+        where: { id: tx.listingId },
+        data: {
+          status: ListingStatus.published,
+          reservedForBuyerUserId: null,
+          shippedAt: null,
+          deliveredAt: null,
+          disputedAt: null
+        }
+      })
+    ]);
+    await this.decrementActiveOfferCount(tx.listingId);
+    const amountLabel = `${Math.round(Number(tx.blockedAmount)).toLocaleString("fr-FR")} ${tx.currency}`;
+    void this.push.sendToUser(
+      tx.buyerUserId,
+      "Litige résolu",
+      `Remboursement de ${amountLabel} en cours.`,
+      { type: "marketplace_delivery_dispute_resolved", transactionId: tx.id }
+    );
+    void this.push.sendToUser(
+      tx.sellerUserId,
+      "Litige résolu",
+      "La transaction a été annulée suite à l'arbitrage.",
+      { type: "marketplace_delivery_dispute_resolved", transactionId: tx.id }
+    );
   }
 
   async initiatePayment(user: User, transactionId: string) {
@@ -1364,6 +1739,23 @@ export class MarketplaceTransactionService {
     return tx;
   }
 
+  private serializePendingTransfer(
+    pending: Prisma.MarketplacePendingTransferGetPayload<object>
+  ) {
+    return {
+      id: pending.id,
+      transactionId: pending.transactionId,
+      buyerFarmId: pending.buyerFarmId,
+      animalIds: Array.isArray(pending.animalIds)
+        ? pending.animalIds.filter((v): v is string => typeof v === "string")
+        : [],
+      expiresAt: pending.expiresAt.toISOString(),
+      completedAt: pending.completedAt?.toISOString() ?? null,
+      cancelledAt: pending.cancelledAt?.toISOString() ?? null,
+      createdAt: pending.createdAt.toISOString()
+    };
+  }
+
   private serialize(
     tx: Awaited<
       ReturnType<PrismaService["marketplaceTransaction"]["findUnique"]>
@@ -1381,9 +1773,11 @@ export class MarketplaceTransactionService {
         receiptNumber: string;
         generatedAt: Date;
       } | null;
+      pendingTransfers?: Prisma.MarketplacePendingTransferGetPayload<object>[];
     }
   ) {
     if (!tx) return null;
+    const pending = tx.pendingTransfers?.[0] ?? null;
     return {
       id: tx.id,
       listingId: tx.listingId,
@@ -1432,7 +1826,8 @@ export class MarketplaceTransactionService {
             receiptNumber: tx.receipt.receiptNumber,
             generatedAt: tx.receipt.generatedAt.toISOString()
           }
-        : null
+        : null,
+      pendingTransfer: pending ? this.serializePendingTransfer(pending) : null
     };
   }
 
@@ -1624,15 +2019,59 @@ export class MarketplaceTransactionService {
   }
 
   async listDisputesForAdmin() {
-    return this.prisma.marketplaceTransaction.findMany({
-      where: { status: MarketplaceTransactionStatus.WEIGHT_DISPUTED },
-      orderBy: { weightDisputeOpenedAt: "asc" },
-      include: {
-        listing: { select: { title: true } },
-        buyer: { select: { fullName: true, email: true } },
-        seller: { select: { fullName: true, email: true } }
-      }
-    });
+    const [weightDisputes, deliveryDisputes] = await Promise.all([
+      this.prisma.marketplaceTransaction.findMany({
+        where: { status: MarketplaceTransactionStatus.WEIGHT_DISPUTED },
+        orderBy: { weightDisputeOpenedAt: "asc" },
+        include: {
+          listing: { select: { title: true } },
+          buyer: { select: { fullName: true, email: true } },
+          seller: { select: { fullName: true, email: true } }
+        }
+      }),
+      this.prisma.marketplaceDeliveryDispute.findMany({
+        where: { status: MarketplaceDeliveryDisputeStatus.open },
+        orderBy: { createdAt: "asc" },
+        include: {
+          transaction: {
+            include: {
+              listing: { select: { title: true } },
+              buyer: { select: { fullName: true, email: true } },
+              seller: { select: { fullName: true, email: true } }
+            }
+          }
+        }
+      })
+    ]);
+
+    return [
+      ...weightDisputes.map((tx) => ({
+        kind: "weight" as const,
+        id: tx.id,
+        transactionId: tx.id,
+        listingTitle: tx.listing.title,
+        buyerName: tx.buyer.fullName,
+        buyerEmail: tx.buyer.email,
+        sellerName: tx.seller.fullName,
+        sellerEmail: tx.seller.email,
+        status: tx.status,
+        openedAt: tx.weightDisputeOpenedAt?.toISOString() ?? null
+      })),
+      ...deliveryDisputes.map((d) => ({
+        kind: "delivery" as const,
+        id: d.id,
+        transactionId: d.transactionId,
+        listingTitle: d.transaction.listing.title,
+        buyerName: d.transaction.buyer.fullName,
+        buyerEmail: d.transaction.buyer.email,
+        sellerName: d.transaction.seller.fullName,
+        sellerEmail: d.transaction.seller.email,
+        disputeType: d.disputeType,
+        description: d.description,
+        status: d.status,
+        openedAt: d.createdAt.toISOString()
+      }))
+    ];
   }
 
   async listForAdmin(status?: string) {
