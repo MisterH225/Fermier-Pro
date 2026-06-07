@@ -272,6 +272,8 @@ export const en = {
     badgeExpired: "Expired",
     badgeActiveOffers: "{{count}} active offer(s)",
     activeOfferCta: "View your active offer",
+    activeTransactionCtaBuyer: "Track purchase in progress",
+    activeTransactionCtaSeller: "Track sale in progress",
     detailTitle: "Listing",
     listingStatus: "Status:",
     emptyListingsHint: "Publish a listing from My listings or livestock.",
@@ -297,6 +299,8 @@ export const en = {
     acceptSuccessTitle: "Offer accepted",
     acceptSuccessBody:
       "Proceed to payment to secure your purchase.",
+    acceptSuccessBodySeller:
+      "The buyer can now pay. Track delivery and closing here.",
     transaction: {
       agreedPrice: "Agreed price:",
       agreedPricePerKg: "Agreed price/kg:",
@@ -335,7 +339,187 @@ export const en = {
       receiptRetry: "Retry",
       receiptErrorTitle: "Download failed",
       receiptErrorBody: "Could not fetch the receipt.",
-      receiptNotReady: "Receipt not available yet."
+      receiptNotReady: "Receipt not available yet.",
+      statusLabel: "Step",
+      stepPayment: "Payment",
+      stepDelivery: "Delivery",
+      stepShipment: "Shipment",
+      stepReceipt: "Receipt",
+      stepWeight: "Actual weight",
+      stepClosing: "Closing",
+      status: {
+        PAYMENT_PENDING: "Awaiting payment",
+        PAYMENT_HELD: "Payment secured — awaiting shipment",
+        PICKUP_SCHEDULED: "Delivery scheduled",
+        SELLER_SHIPPED: "Shipped — awaiting buyer receipt",
+        BUYER_RECEIVED: "Receipt confirmed — weight validation",
+        DELIVERY_DISPUTED: "Delivery dispute",
+        WEIGHT_DECLARED: "Weight declared — seller validation",
+        WEIGHT_DISPUTED: "Weight dispute — arbitration",
+        WEIGHT_VALIDATED: "Finalizing",
+        TRANSACTION_CLOSED: "Sale completed",
+        CANCELLED_BY_BUYER: "Cancelled by buyer",
+        CANCELLED_BY_SELLER: "Cancelled by seller",
+        PAYMENT_FAILED: "Payment failed"
+      },
+      scheduledPickup: "Pickup: {{date}} — {{location}}",
+      schedulePickupHint:
+        "Schedule delivery or pickup date and location (this may be days or weeks away). Actual weight is entered only on the day the animal is handed over.",
+      weightAtDeliveryHint:
+        "On delivery or pickup day, confirm the measured actual weight to calculate the final amount.",
+      projectedFinalCost: "Estimated final cost: {{amount}}",
+      finalCost: "Final amount: {{amount}}",
+      sellerWaitPayment:
+        "Waiting for the buyer to pay. You will be notified once funds are secured.",
+      sellerWaitSchedule:
+        "Payment received. Schedule delivery with the buyer — actual weight is confirmed on pickup day.",
+      sellerWaitWeight:
+        "Delivery scheduled. The buyer will confirm actual weight on pickup day; you can then validate and close the sale.",
+      buyerWaitSchedule:
+        "Payment secured. The seller will confirm shipment; you confirm receipt on delivery.",
+      sellerWaitReceipt:
+        "Shipment confirmed. Waiting for the buyer to confirm receipt.",
+      buyerWaitReceipt:
+        "The seller confirmed shipment. Confirm receipt once animals are delivered.",
+      deliveryDisputed:
+        "A delivery dispute is open. Funds remain secured pending resolution.",
+      finalizing:
+        "Weight validated — releasing funds and updating livestock records.",
+      weightDisputed:
+        "Weight is disputed. Arbitration is in progress — you will be notified."
+    },
+    shipmentModal: {
+      open: "Confirm shipment",
+      title: "Confirm shipment",
+      info: "Confirm that animals have been handed over or are in transit.",
+      date: "Shipment date",
+      method: "Delivery method",
+      methods: {
+        handover: "Handover",
+        third_party: "Third-party transport",
+        seller_delivery: "Seller delivery"
+      },
+      notes: "Notes for buyer",
+      notesPh: "Instructions, carrier contact…",
+      confirm: "Confirm shipment",
+      successTitle: "Shipment confirmed",
+      successBody: "The buyer has been notified."
+    },
+    creditModal: {
+      open: "💳 Credit offer",
+      title: "💳 Credit offer",
+      subtitle: "Propose a two-part payment agreement",
+      totalPrice: "Proposed total price",
+      advancePct: "Advance percentage (%)",
+      advanceHelper: "Minimum 20% — maximum 50%",
+      advancePreview: "Advance: {{amount}}",
+      balancePreview: "Balance: {{amount}}",
+      balanceDays: "Balance payment deadline",
+      dayOption: "{{count}} day",
+      message: "Message to seller",
+      messagePh: "Introduce yourself and your reseller activity…",
+      scoreWarning:
+        "Your current credit score is weak. The seller will see your history.",
+      yourScore: "Your credit score:",
+      submit: "Send credit offer",
+      success: "Credit offer sent to the seller.",
+      errorTitle: "Credit offer failed",
+      blocked:
+        "Your credit score does not allow credit offers at this time.",
+      badge: "CREDIT"
+    },
+    credit: {
+      accept: "✅ Accept",
+      counter: "🔄 Counter-offer",
+      counterTitle: "🔄 Credit counter-offer",
+      counterSubmit: "Send counter-offer",
+      counterSuccess: "Credit counter-offer sent.",
+      acceptCounter: "Accept counter-offer",
+      agreedSuccess:
+        "Credit deal agreed — secure the advance on the platform to start delivery.",
+      escrow: {
+        transactionMissing: "Escrow transaction not found — try again shortly.",
+        advanceHeld: "The advance stays held on the platform until delivery.",
+        balanceRecalculated:
+          "The balance is recalculated from real weight after seller validation."
+      },
+      buyerScore: "Buyer credit score:",
+      termsAdvance: "Advance: {{pct}}% = {{amount}}",
+      termsBalance: "Balance: {{amount}} in {{days}} days",
+      paymentMode: "Payment method used",
+      paymentRef: "Payment reference",
+      paymentRefPh: "Transaction number, receipt…",
+      advance: {
+        title: "Confirm advance payment",
+        info: "By confirming, you declare that you have paid or transferred the advance to the seller.",
+        due: "Advance due",
+        balance: "Remaining balance",
+        delay: "Balance due {{count}} days after delivery",
+        confirm: "✅ I paid the advance",
+        declare: "💰 I paid the advance",
+        payEscrow: "💳 Pay advance (escrow)",
+        declaredSuccess: "Advance declared — the seller will confirm receipt.",
+        confirmReceived: "✅ Confirm advance received",
+        notReceived: "❌ I did not receive the advance",
+        confirmedSuccess: "Advance confirmed — delivery can start."
+      },
+      balance: {
+        title: "Confirm balance payment",
+        amount: "Amount paid",
+        confirm: "✅ I paid the balance",
+        declare: "💰 I paid the balance",
+        payEscrow: "💳 Pay balance (escrow)",
+        remaining: "Remaining balance",
+        dueOn: "Due on {{date}}",
+        inDays: "in {{count}} day(s)",
+        statusPending: "Awaiting payment",
+        statusDeclared: "Payment declared",
+        statusPaid: "Settled",
+        statusArbitration: "Arbitration in progress",
+        declaredSuccess: "Balance declared — the seller will confirm receipt.",
+        confirmReceived: "✅ Confirm balance received",
+        notReceived: "❌ I did not receive the balance",
+        confirmedSuccess: "Credit transaction settled."
+      },
+      dashboard: {
+        scoreTitle: "My credit score",
+        pendingTitle: "Pending balances",
+        empty: "No credit balance in progress.",
+        transactions: "{{count}} credit transaction(s)",
+        onTime: "{{count}} on-time payment(s)",
+        late: "{{count}} late payment(s)"
+      }
+    },
+    transferModal: {
+      open: "Add to my herd",
+      title: "Import to my farm",
+      info:
+        "{{count}} animal(s) ready to be added to your herd after this sale.",
+      farm: "Destination farm",
+      penOptional: "Pen (optional)",
+      noPen: "No pen — animals will be created without placement.",
+      confirm: "Import animals",
+      successTitle: "Herd updated",
+      successBody: "Your animals have been added to the selected farm."
+    },
+    receiptModal: {
+      open: "Confirm receipt",
+      title: "Confirm receipt",
+      info: "Confirm you received the animals as expected.",
+      animals: "Animals received",
+      date: "Receipt date",
+      condition: "Animal condition",
+      conditions: {
+        conform: "Conform",
+        minor_issue: "Minor issue",
+        major_issue: "Major issue"
+      },
+      comment: "Comment",
+      commentPh: "Describe the issue…",
+      confirm: "Confirm receipt",
+      reportProblem: "Report a problem",
+      successTitle: "Receipt recorded",
+      successBody: "The transaction is moving toward closing."
     },
     categories: {
       all: "All",
@@ -1000,15 +1184,16 @@ export const en = {
     previewDepletion: "Estimated stock-out: {{date}}",
     gaugePercent: "{{value}}%",
     gaugePercentRemaining: "{{value}}% remaining",
-    gaugeInsufficientData: "insufficient data",
-    gaugeDaysEstimate: "{{count}} d left",
+    gaugeDaily: "{{kg}} kg/d",
+    gaugeNoDaily: "consumption —",
+    gaugeDaysLeft: "{{count}} d left",
+    gaugeDaysEstimate: "~{{count}} days remaining",
+    gaugeUnknownDays: "estimate —",
+    gaugeInsufficientData:
+      "Record at least 2 stock checks to see estimates",
+    gaugeCenterDays: "{{count}} d",
     lastCheckAgo: "Last check: {{count}} d ago",
     unknownFeedType: "Feed",
-    gaugeDaily: "{{kg}} kg/d",
-    gaugeNoDaily: "unknown use",
-    gaugeDaysLeft: "{{count}} d left",
-    gaugeUnknownDays: "unknown duration",
-    gaugeCenterDays: "{{count}} d",
     gaugeDashboardSubtitle: "{{kg}} kg · {{count}} d left",
     gaugeDashboardNoDays: "{{kg}} kg · unknown duration",
     smartAlertsHintTitle: "Recommendations",
@@ -2770,6 +2955,17 @@ export const en = {
       sectionCriteria: "Price criteria",
       sectionZone: "Search area",
       freq: { immediate: "Immediate", daily: "Daily" }
+    }
+  },
+  chat: {
+    inputPlaceholder: "Your message…",
+    phoneWarning: {
+      realtime:
+        "Phone numbers are automatically masked for your security.",
+      masked: "Phone number masked automatically for your protection.",
+      imageBlocked:
+        "This image appears to contain a phone number and cannot be sent.",
+      analyzing: "Security check…"
     }
   },
   techOnboarding: {

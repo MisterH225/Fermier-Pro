@@ -380,6 +380,14 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(posted.status).toBeGreaterThanOrEqual(200);
     expect(posted.status).toBeLessThan(300);
     expect(posted.body?.body).toBe("Message contrat e2e chat");
+
+    const masked = await request(app.getHttpServer())
+      .post(`/api/v1/chat/rooms/${roomId}/messages`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({ body: "Test 0708123456" });
+    expect(masked.status).toBeGreaterThanOrEqual(200);
+    expect(masked.status).toBeLessThan(300);
+    expect(masked.body?.body).toBe("Test ****");
   });
 
   it("POST /farms création (profil producteur)", async () => {

@@ -41,12 +41,18 @@ import { useBottomChromePad } from "../hooks/useBottomInset";
 import { CHAT_INPUT_BAR_HEIGHT } from "../constants/layout";
 import type { ChatMessageDto } from "../lib/api";
 import {
+  analyzeChatImage,
   fetchChatMessages,
   fetchChatRoom,
   fetchFarmMembers,
   markChatRoomRead,
   postChatMessage
 } from "../lib/api";
+import { buildChatImageMessageBody } from "../lib/chatImageMessage";
+import { getSupabase } from "../lib/supabase";
+import { uploadChatImageToSupabase } from "../lib/uploadChatImageToSupabase";
+import { maskPhoneNumbers } from "../services/chat/PhoneNumberDetector";
+import type { PhoneWarningVariant } from "../components/chat/PhoneWarningBanner";
 import { DirectInviteModal } from "../components/collaboration/DirectInviteModal";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
@@ -158,6 +164,9 @@ export function ChatRoomScreen({ route, navigation }: Props) {
     useSession();
   const qc = useQueryClient();
   const [draft, setDraft] = useState("");
+  const [phoneWarning, setPhoneWarning] = useState<PhoneWarningVariant | null>(
+    null
+  );
   const listRef = useRef<FlatList<ChatListItem>>(null);
   /** Si l’utilisateur est proche du bas ; au chargement on colle au dernier message. */
   const stickToBottomRef = useRef(true);
@@ -480,8 +489,50 @@ export function ChatRoomScreen({ route, navigation }: Props) {
   const onSend = () => {
     const t = draft.trim();
     if (!t || sendMutation.isPending) return;
-    sendMutation.mutate(t);
+    const masked = maskPhoneNumbers(t);
+    if (masked.wasModified) {
+      setPhoneWarning("text_masked");
+      setTimeout(() => setPhoneWarning(null), 3000);
+    }
+    sendMutation.mutate(masked.maskedText);
   };
+
+  const onAnalyzeImage = useCallback(
+    async (imageBase64: string, mimeType: string) => {
+      if (!accessToken) {
+        return { allowed: false };
+      }
+      return analyzeChatImage(
+        accessToken,
+        imageBase64,
+        mimeType,
+        activeProfileId
+      );
+    },
+    [accessToken, activeProfileId]
+  );
+
+  const onSendImage = useCallback(
+    async (uri: string, mimeType: string) => {
+      if (!accessToken || !authMe?.user.id) {
+        throw new Error("Session requise");
+      }
+      const supabase = getSupabase();
+      if (!supabase) {
+        throw new Error("Stockage indisponible");
+      }
+      const url = await uploadChatImageToSupabase(
+        supabase,
+        authMe.user.id,
+        roomId,
+        uri,
+        mimeType
+      );
+      const body = buildChatImageMessageBody(url);
+      await sendMutation.mutateAsync(body);
+    },
+    [accessToken, authMe?.user.id, roomId, sendMutation]
+  );
 
   const liveStrip = liveStripProps(chatSocketStatus);
 
@@ -607,9 +658,28 @@ export function ChatRoomScreen({ route, navigation }: Props) {
           value={draft}
           onChangeText={setDraft}
           onSend={onSend}
+          onAnalyzeImage={onAnalyzeImage}
+          onSendImage={onSendImage}
           sending={sendMutation.isPending}
-          placeholder="Votre message…"
+          placeholder={t("chat.inputPlaceholder", "Votre message…")}
           paddingBottom={bottomChromePad}
+          externalWarning={phoneWarning}
+          phoneWarningMessage={t(
+            "chat.phoneWarning.realtime",
+            "Les numéros de téléphone sont automatiquement masqués pour votre sécurité."
+          )}
+          phoneMaskedMessage={t(
+            "chat.phoneWarning.masked",
+            "Numéro masqué automatiquement pour votre protection."
+          )}
+          imageBlockedMessage={t(
+            "chat.phoneWarning.imageBlocked",
+            "Cette image semble contenir un numéro de téléphone et ne peut pas être envoyée."
+          )}
+          imageAnalyzingMessage={t(
+            "chat.phoneWarning.analyzing",
+            "Vérification sécurité…"
+          )}
         />
         {sendMutation.error ? (
           <Text style={styles.sendError}>

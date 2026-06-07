@@ -400,9 +400,13 @@ components/collaboration/BaseModal.tsx ← duplicate API/UX
 | 10 | Registre React Query | ✅ partiel | `lib/finance/financeQueryKeys.ts` + `invalidateFinanceQueries` ; budget modals unifiés |
 | 11 | Routes `@deprecated` | ✅ partiel | Barrels `features/*` pointent vers écrans canoniques (`SanteScreen`, `TasksScreen`, etc.) |
 
-### P3 — Non traité
+### P3 — Traité (partiel)
 
-- Découpage `api.ts`, `DeepNavigationService`, `AppTextField`
+| # | Action | Statut | Détail |
+|---|--------|--------|--------|
+| 12 | Découpage `api.ts` | ✅ partiel | `lib/api/http.ts` + `lib/api/auth.ts` ; re-exports `lib/api` inchangés |
+| 13 | `DeepNavigationService` | ✅ partiel | `resolveDeepNavProfile` ; push notifications avec profil session |
+| 14 | `AppTextField` | ✅ partiel | Composant commun + pilote `CreateAnimalModal`, `AddWeightModal` |
 
 ### PR fonctionnelles fusionnées (après audit)
 
@@ -420,7 +424,7 @@ components/collaboration/BaseModal.tsx ← duplicate API/UX
 | Fichiers skeleton (`SkeletonBlocks`) | ~0 | **~17** |
 | `EmptyStateCard` (imports) | 2 | **5** |
 | `useModal` | ~25 | **~36** |
-| `collaboration/SuccessModal` | présent | **supprimé** |
+| `collaboration/ConfirmDeleteModal` | présent | **supprimé** |
 | Fichiers `Alert.alert` | 81 → ~77 | **~77** (confirmations / erreurs légitimes restantes) |
 
 ---
@@ -460,9 +464,9 @@ components/collaboration/BaseModal.tsx ← duplicate API/UX
 
 1. Clôturer [PR #18](https://github.com/MisterH225/Fermier-Pro/pull/18) (documentation seule, obsolète).
 2. Poursuivre P2 restant : étendre le registre React Query aux autres domaines ; supprimer les shims `screens/Farm*Screen` si plus importés.
-3. P3 : découpage `api.ts`, `AppTextField`, `DeepNavigationService`.
+3. P3 suite : extraire `api/marketplace.ts`, migrer `AppTextField` (~74 fichiers restants), unifier `InsightCard` → `DeepNavigationService`.
 4. Valider en prod les migrations Prisma / Supabase (#17 : `marketplace_farm_lifecycle`, `PigPriceSnapshot`).
 
 ---
 
-*Rapport initial : audit lecture seule (3 juin 2026). Section 8 mise à jour : PR #19 (5 juin), PR #16/#17 (5 juin), P2 restant (5 juin).*
+*Rapport initial : audit lecture seule (3 juin 2026). Section 8 mise à jour : PR #19 (5 juin), PR #16/#17 (5 juin), P2 (5 juin), P3 fondations (5 juin).*
