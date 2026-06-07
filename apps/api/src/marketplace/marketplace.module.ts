@@ -24,6 +24,7 @@ import { MarketplaceCronService } from "./marketplace-cron.service";
 import { MarketplacePigPriceIndexController } from "./pig-price-index.controller";
 import { MarketplacePigPriceIndexCronService } from "./pig-price-index.cron";
 import { MarketplacePigPriceIndexService } from "./pig-price-index.service";
+import { BuyerProfileDetectorService } from "./buyer-profile-detector.service";
 import { OffersController } from "./offers.controller";
 import { OffersService } from "./offers.service";
 
@@ -59,7 +60,8 @@ import { OffersService } from "./offers.service";
     mobileMoneyGatewayGuardProvider,
     mobileMoneyGatewayProvider,
     ReceiptService,
-    ReceiptPdfService
+    ReceiptPdfService,
+    BuyerProfileDetectorService
   ],
   exports: [
     FarmMarketplaceLifecycleService,

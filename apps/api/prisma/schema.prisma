@@ -117,7 +117,10 @@ model User {
   revenuesCreated       FarmRevenue[]
   batchHealthEventsRecorded LivestockBatchHealthEvent[]
   listingsAsSeller      MarketplaceListing[] @relation("ListingSeller")
+  listingsReservedAsBuyer MarketplaceListing[] @relation("ListingReservedBuyer")
   offersAsBuyer         MarketplaceOffer[]   @relation("OfferBuyer")
+  marketplaceDeliveryDisputesRaised MarketplaceDeliveryDispute[] @relation("DeliveryDisputeRaisedBy")
+  marketplacePendingTransfersAsBuyer MarketplacePendingTransfer[] @relation("PendingTransferBuyer")
   marketplaceTransactionsAsBuyer  MarketplaceTransaction[] @relation("TransactionBuyer")
   marketplaceTransactionsAsSeller MarketplaceTransaction[] @relation("TransactionSeller")
   marketplaceReceiptsAsSeller     MarketplaceTransactionReceipt[] @relation("ReceiptSeller")
@@ -316,6 +319,7 @@ model Farm {
   gestationSettings        GestationSettings?
   profitabilitySettings    FarmProfitabilitySettings?
   appSettings              FarmAppSettings?
+  marketplacePendingTransfers MarketplacePendingTransfer[]
 
   @@index([ownerId, status])
   @@index([status])
@@ -1283,6 +1287,9 @@ enum ListingStatus {
   published
   paused
   reserved
+  shipped
+  delivered
+  disputed
   sold
   cancelled
   expired
@@ -1296,6 +1303,7 @@ enum OfferStatus {
   countered
   on_hold
   cancelled
+  completed
 }
 
 enum MarketplaceTransactionStatus {
@@ -1303,6 +1311,9 @@ enum MarketplaceTransactionStatus {
   PAYMENT_PENDING
   PAYMENT_HELD
   PICKUP_SCHEDULED
+  SELLER_SHIPPED
+  BUYER_RECEIVED
+  DELIVERY_DISPUTED
   WEIGHT_DECLARED
   WEIGHT_DISPUTED
   WEIGHT_VALIDATED
@@ -1312,6 +1323,26 @@ enum MarketplaceTransactionStatus {
   CANCELLED_SOLD_TO_OTHER
   PAYMENT_FAILED
   OFFER_EXPIRED
+}
+
+enum MarketplaceDeliveryDisputeStatus {
+  open
+  resolved_vendor
+  resolved_buyer
+  resolved_split
+  cancelled
+}
+
+enum MarketplaceShipmentMethod {
+  handover
+  third_party
+  seller_delivery
+}
+
+enum MarketplaceReceiptCondition {
+  conform
+  minor_issue
+  major_issue
 }
 
 enum MarketplacePriceType {
@@ -1384,11 +1415,18 @@ model MarketplaceListing {
   pickupNote    String?
   /// Nombre d'offres avec fonds sécurisés (PAYMENT_HELD+).
   activeOfferCount Int             @default(0)
+  /// Acheteur retenu après acceptation d'offre (escrow).
+  reservedForBuyerUserId String?
+  reservedForBuyer       User?    @relation("ListingReservedBuyer", fields: [reservedForBuyerUserId], references: [id], onDelete: SetNull)
+  shippedAt     DateTime?
+  deliveredAt   DateTime?
+  disputedAt    DateTime?
   createdAt     DateTime        @default(now())
   archived      Boolean         @default(false)
   updatedAt     DateTime        @updatedAt
   offers        MarketplaceOffer[]
   transactions  MarketplaceTransaction[]
+  deliveryDisputes MarketplaceDeliveryDispute[]
   favorites     BuyerFavorite[]
   chatRooms     ChatRoom[]
 
@@ -1500,10 +1538,12 @@ model MarketplaceOffer {
   /// Contre-proposition vendeur : prix / kg.
   counterPricePerKg Decimal?     @db.Decimal(14, 4)
   status       OfferStatus        @default(pending)
+  completedAt  DateTime?
   archived     Boolean            @default(false)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   transaction  MarketplaceTransaction?
+  deliveryDisputes MarketplaceDeliveryDispute[]
 
   @@index([listingId])
   @@index([buyerUserId])
@@ -1543,6 +1583,13 @@ model MarketplaceTransaction {
   weightScalePhotoUrl     String?
   pickupDate              DateTime?                    @db.Date
   pickupLocation          String?
+  sellerShippedAt         DateTime?
+  shipmentMethod          MarketplaceShipmentMethod?
+  shipmentNotes           String?
+  buyerReceivedAt         DateTime?
+  receiptCondition        MarketplaceReceiptCondition?
+  receiptNotes            String?
+  receivedAnimalIds       Json                         @default("[]")
   commissionRate          Decimal                      @db.Decimal(5, 4)
   commissionAmount        Decimal?                     @db.Decimal(14, 2)
   sellerReceivedAmount    Decimal?                     @db.Decimal(14, 2)
@@ -1562,12 +1609,59 @@ model MarketplaceTransaction {
   fundMovements           MarketplaceFundMovement[]
   platformRevenue         PlatformRevenue?
   receipt                 MarketplaceTransactionReceipt?
+  deliveryDisputes        MarketplaceDeliveryDispute[]
+  pendingTransfers        MarketplacePendingTransfer[]
 
   @@index([listingId, status])
   @@index([buyerUserId, status])
   @@index([sellerUserId, status])
   @@index([status])
   @@index([offerExpiresAt])
+}
+
+/// Litige livraison marketplace (double confirmation).
+model MarketplaceDeliveryDispute {
+  id              String                         @id @default(cuid())
+  listingId       String
+  listing         MarketplaceListing             @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  offerId         String
+  offer           MarketplaceOffer               @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  transactionId   String
+  transaction     MarketplaceTransaction         @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  raisedByUserId  String
+  raisedBy        User                           @relation("DeliveryDisputeRaisedBy", fields: [raisedByUserId], references: [id], onDelete: Restrict)
+  disputeType     String
+  description     String
+  photoUrls       Json                           @default("[]")
+  status          MarketplaceDeliveryDisputeStatus @default(open)
+  resolvedAt      DateTime?
+  createdAt       DateTime                       @default(now())
+  updatedAt       DateTime                       @updatedAt
+
+  @@index([listingId])
+  @@index([transactionId])
+  @@index([status])
+}
+
+/// Transfert cheptel acheteur en attente après clôture transaction.
+model MarketplacePendingTransfer {
+  id              String                 @id @default(cuid())
+  transactionId   String
+  transaction     MarketplaceTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  buyerUserId     String
+  buyer           User                   @relation("PendingTransferBuyer", fields: [buyerUserId], references: [id], onDelete: Restrict)
+  buyerFarmId     String?
+  buyerFarm       Farm?                  @relation(fields: [buyerFarmId], references: [id], onDelete: SetNull)
+  animalIds       Json                   @default("[]")
+  expiresAt       DateTime
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([buyerUserId])
+  @@index([transactionId])
+  @@index([expiresAt])
 }
 
 model MarketplaceFundMovement {

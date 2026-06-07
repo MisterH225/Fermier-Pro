@@ -305,6 +305,9 @@ export function MarketplaceListingDetailScreen({
     "PAYMENT_PENDING",
     "PAYMENT_HELD",
     "PICKUP_SCHEDULED",
+    "SELLER_SHIPPED",
+    "BUYER_RECEIVED",
+    "DELIVERY_DISPUTED",
     "WEIGHT_DECLARED",
     "WEIGHT_DISPUTED",
     "WEIGHT_VALIDATED"

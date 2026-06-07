@@ -343,12 +343,17 @@ export const en = {
       statusLabel: "Step",
       stepPayment: "Payment",
       stepDelivery: "Delivery",
+      stepShipment: "Shipment",
+      stepReceipt: "Receipt",
       stepWeight: "Actual weight",
       stepClosing: "Closing",
       status: {
         PAYMENT_PENDING: "Awaiting payment",
-        PAYMENT_HELD: "Payment secured — schedule delivery",
+        PAYMENT_HELD: "Payment secured — awaiting shipment",
         PICKUP_SCHEDULED: "Delivery scheduled",
+        SELLER_SHIPPED: "Shipped — awaiting buyer receipt",
+        BUYER_RECEIVED: "Receipt confirmed — weight validation",
+        DELIVERY_DISPUTED: "Delivery dispute",
         WEIGHT_DECLARED: "Weight declared — seller validation",
         WEIGHT_DISPUTED: "Weight dispute — arbitration",
         WEIGHT_VALIDATED: "Finalizing",
@@ -371,11 +376,53 @@ export const en = {
       sellerWaitWeight:
         "Delivery scheduled. The buyer will confirm actual weight on pickup day; you can then validate and close the sale.",
       buyerWaitSchedule:
-        "Payment secured. Schedule delivery below — actual weight is only required once the animal is collected.",
+        "Payment secured. The seller will confirm shipment; you confirm receipt on delivery.",
+      sellerWaitReceipt:
+        "Shipment confirmed. Waiting for the buyer to confirm receipt.",
+      buyerWaitReceipt:
+        "The seller confirmed shipment. Confirm receipt once animals are delivered.",
+      deliveryDisputed:
+        "A delivery dispute is open. Funds remain secured pending resolution.",
       finalizing:
         "Weight validated — releasing funds and updating livestock records.",
       weightDisputed:
         "Weight is disputed. Arbitration is in progress — you will be notified."
+    },
+    shipmentModal: {
+      open: "Confirm shipment",
+      title: "Confirm shipment",
+      info: "Confirm that animals have been handed over or are in transit.",
+      date: "Shipment date",
+      method: "Delivery method",
+      methods: {
+        handover: "Handover",
+        third_party: "Third-party transport",
+        seller_delivery: "Seller delivery"
+      },
+      notes: "Notes for buyer",
+      notesPh: "Instructions, carrier contact…",
+      confirm: "Confirm shipment",
+      successTitle: "Shipment confirmed",
+      successBody: "The buyer has been notified."
+    },
+    receiptModal: {
+      open: "Confirm receipt",
+      title: "Confirm receipt",
+      info: "Confirm you received the animals as expected.",
+      animals: "Animals received",
+      date: "Receipt date",
+      condition: "Animal condition",
+      conditions: {
+        conform: "Conform",
+        minor_issue: "Minor issue",
+        major_issue: "Major issue"
+      },
+      comment: "Comment",
+      commentPh: "Describe the issue…",
+      confirm: "Confirm receipt",
+      reportProblem: "Report a problem",
+      successTitle: "Receipt recorded",
+      successBody: "The transaction is moving toward closing."
     },
     categories: {
       all: "All",

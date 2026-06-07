@@ -11,6 +11,12 @@ export function listingStatusLabel(status: string): string {
       return "Publiée";
     case "reserved":
       return "Réservée";
+    case "shipped":
+      return "Envoi confirmé";
+    case "delivered":
+      return "Livraison confirmée";
+    case "disputed":
+      return "Litige en cours";
     case "sold":
       return "Vendue";
     case "cancelled":
