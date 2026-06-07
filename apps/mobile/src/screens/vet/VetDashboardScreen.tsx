@@ -19,7 +19,7 @@ import type { EventItem } from "../../components/lists/types";
 import { VetMobileShell } from "../../components/layout";
 import { AlertBadge } from "../../components/smartAlerts/AlertBadge";
 import { DashboardTaskWidget } from "../../components/tasks";
-import { VetProfileModal } from "../../components/vet/VetProfileModal";
+import { VetAccountModal } from "../../components/vet/VetAccountModal";
 import { VetWelcomeHeader } from "../../components/vet/VetWelcomeHeader";
 import { VisitCard } from "../../components/vet/VisitCard";
 import { AdminMessagesBanner } from "../../components/admin/AdminMessagesBanner";
@@ -375,7 +375,7 @@ export function VetDashboardScreen() {
           </>
         )}
       </ScrollView>
-      <VetProfileModal visible={profileOpen} onClose={() => setProfileOpen(false)} />
+      <VetAccountModal visible={profileOpen} onClose={() => setProfileOpen(false)} />
     </VetMobileShell>
   );
 }

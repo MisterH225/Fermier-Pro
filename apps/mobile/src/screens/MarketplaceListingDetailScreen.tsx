@@ -161,6 +161,7 @@ export function MarketplaceListingDetailScreen({
         listingId
       ),
     onSuccess: (room) => {
+      void qc.invalidateQueries({ queryKey: ["chatRooms", activeProfileId] });
       navigation.navigate("ChatRoom", {
         roomId: room.id,
         headline: room.title?.trim() || t("marketScreen.detail.chatTitle"),

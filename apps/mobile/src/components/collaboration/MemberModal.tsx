@@ -30,7 +30,6 @@ import {
 import { useModal } from "../modals/useModal";
 import { BaseModal } from "./BaseModal";
 import { MemberAvatar } from "./MemberAvatar";
-import { SuccessModal } from "./SuccessModal";
 
 type Props = {
   visible: boolean;
@@ -47,8 +46,6 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
 
   const [editMode, setEditMode] = useState(false);
   const [permissions, setPermissions] = useState<InvitationPermissions>({});
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [successMsg, setSuccessMsg] = useState("");
 
   const startEdit = () => {
     if (!member) return;
@@ -78,8 +75,11 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["farmMembers", farmId] });
       setEditMode(false);
-      setSuccessMsg(t("collab.memberPermsSaved"));
-      setShowSuccess(true);
+      open("success", {
+        message: t("collab.memberPermsSaved"),
+        autoDismissMs: 2200
+      });
+      onClose();
     },
     onError: (e: Error) => Alert.alert("", e.message)
   });
@@ -93,8 +93,11 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
         queryKey: ["farmPendingInvitations", farmId]
       });
       void qc.invalidateQueries({ queryKey: ["farmActivityLogs", farmId] });
-      setSuccessMsg(t("collab.revokeSuccess"));
-      setShowSuccess(true);
+      open("success", {
+        message: t("collab.revokeSuccess"),
+        autoDismissMs: 2200
+      });
+      onClose();
     }
   });
 
@@ -117,19 +120,18 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
   const isOwner = member.role === "owner";
 
   return (
-    <>
-      <BaseModal
-        visible={visible && !showSuccess}
-        title={displayName}
-        onClose={onClose}
-        {...(editMode
-          ? {
-              confirmLabel: t("collab.savePermissions"),
-              onConfirm: () => saveMut.mutate(),
-              confirmLoading: saveMut.isPending
-            }
-          : {})}
-      >
+    <BaseModal
+      visible={visible}
+      title={displayName}
+      onClose={onClose}
+      {...(editMode
+        ? {
+            confirmLabel: t("collab.savePermissions"),
+            onConfirm: () => saveMut.mutate(),
+            confirmLoading: saveMut.isPending
+          }
+        : {})}
+    >
         {/* Avatar + Nom + Rôle */}
         <View style={styles.heroRow}>
           <MemberAvatar name={displayName} size={56} />
@@ -223,17 +225,7 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
             <Text style={styles.revokeBtnTxt}>{t("collab.revokeAccess")}</Text>
           </Pressable>
         ) : null}
-      </BaseModal>
-
-      <SuccessModal
-        visible={showSuccess}
-        message={successMsg}
-        onClose={() => {
-          setShowSuccess(false);
-          onClose();
-        }}
-      />
-    </>
+    </BaseModal>
   );
 }
 
