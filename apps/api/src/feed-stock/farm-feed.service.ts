@@ -622,11 +622,15 @@ export class FarmFeedService {
       FARM_SCOPE.livestockWrite
     ]);
     const existing = await this.prisma.feedStockMovement.findFirst({
-      where: { id: movementId, farmId, kind: FeedMovementKind.in },
+      where: { id: movementId, farmId },
       include: { feedType: true }
     });
     if (!existing) {
-      throw new NotFoundException("Entrée de stock introuvable");
+      throw new NotFoundException("Mouvement de stock introuvable");
+    }
+
+    if (existing.kind === FeedMovementKind.stock_check) {
+      return this.updateStockCheckMovement(user, farmId, movementId, existing, dto);
     }
 
     const feedTypeId = dto.feedTypeId ?? existing.feedTypeId;
@@ -748,6 +752,77 @@ export class FarmFeedService {
     };
   }
 
+  private async updateStockCheckMovement(
+    _user: User,
+    farmId: string,
+    movementId: string,
+    existing: {
+      feedTypeId: string;
+      bagsCounted: Prisma.Decimal | null;
+      occurredAt: Date;
+      notes: string | null;
+    },
+    dto: UpdateFeedMovementDto
+  ): Promise<{
+    movement: ReturnType<typeof serializeFeedMovement>;
+    reconciliation: ReconciliationOfferDto | null;
+  }> {
+    const feedTypeId = dto.feedTypeId ?? existing.feedTypeId;
+    const feedType = await this.prisma.feedType.findFirst({
+      where: { id: feedTypeId, farmId }
+    });
+    if (!feedType) {
+      throw new NotFoundException("Type d'aliment introuvable");
+    }
+    if (!feedType.weightPerBagKg) {
+      throw new BadRequestException(
+        "Définir weightPerBagKg sur le type avant un contrôle"
+      );
+    }
+
+    const bagsCounted =
+      dto.bagsCounted != null
+        ? new Prisma.Decimal(dto.bagsCounted)
+        : existing.bagsCounted;
+    if (bagsCounted == null) {
+      throw new BadRequestException("bagsCounted requis pour un contrôle");
+    }
+
+    const occurredAt = dto.occurredAt
+      ? new Date(dto.occurredAt)
+      : existing.occurredAt;
+
+    const movement = await this.prisma.$transaction(async (tx) => {
+      const m = await tx.feedStockMovement.update({
+        where: { id: movementId },
+        data: {
+          feedTypeId,
+          bagsCounted,
+          occurredAt,
+          notes:
+            dto.notes !== undefined
+              ? dto.notes?.trim() || null
+              : existing.notes
+        },
+        include: {
+          feedType: { select: { id: true, name: true, unit: true } }
+        }
+      });
+      await recalculateFeedTypeStock(tx, farmId, feedTypeId);
+      if (feedTypeId !== existing.feedTypeId) {
+        await recalculateFeedTypeStock(tx, farmId, existing.feedTypeId);
+      }
+      return m;
+    });
+
+    void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
+
+    return {
+      movement: serializeFeedMovement(movement),
+      reconciliation: null
+    };
+  }
+
   async deleteMovement(
     user: User,
     farmId: string,
@@ -757,14 +832,17 @@ export class FarmFeedService {
       FARM_SCOPE.livestockWrite
     ]);
     const existing = await this.prisma.feedStockMovement.findFirst({
-      where: { id: movementId, farmId, kind: FeedMovementKind.in }
+      where: { id: movementId, farmId }
     });
     if (!existing) {
-      throw new NotFoundException("Entrée de stock introuvable");
+      throw new NotFoundException("Mouvement de stock introuvable");
     }
 
     await this.prisma.$transaction(async (tx) => {
-      if (existing.linkedExpenseId) {
+      if (
+        existing.kind === FeedMovementKind.in &&
+        existing.linkedExpenseId
+      ) {
         const expense = await tx.farmExpense.findUnique({
           where: { id: existing.linkedExpenseId }
         });
@@ -780,7 +858,9 @@ export class FarmFeedService {
       }
       await tx.feedStockMovement.delete({ where: { id: movementId } });
       await recalculateFeedTypeStock(tx, farmId, existing.feedTypeId);
-      await this.pump.recalculateForFeedType(tx, farmId, existing.feedTypeId);
+      if (existing.kind === FeedMovementKind.in) {
+        await this.pump.recalculateForFeedType(tx, farmId, existing.feedTypeId);
+      }
     });
 
     void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);

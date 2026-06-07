@@ -1040,6 +1040,7 @@ export type PatchFarmFeedMovementPayload = {
   quantityInput?: number;
   quantityUnit?: "kg" | "tonne" | "sac";
   weightPerBagKg?: number;
+  bagsCounted?: number;
   supplier?: string;
   unitPrice?: number;
   totalCost?: number;

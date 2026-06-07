@@ -53,9 +53,12 @@ export function EditStockModal({
   const qc = useQueryClient();
   const { open } = useModal();
 
+  const isCheck = movement.kind === "stock_check";
+
   const [feedTypeId, setFeedTypeId] = useState(movement.feedTypeId);
   const [qty, setQty] = useState("");
   const [qtyUnit, setQtyUnit] = useState<"kg" | "tonne" | "sac">("kg");
+  const [bagsCounted, setBagsCounted] = useState("");
   const [occurredAt, setOccurredAt] = useState("");
   const [totalCost, setTotalCost] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
@@ -67,14 +70,18 @@ export function EditStockModal({
       return;
     }
     setFeedTypeId(movement.feedTypeId);
-    const kg = Number.parseFloat(movement.quantityKg ?? "0");
-    const unit = movement.feedType.unit as "kg" | "tonne" | "sac";
-    setQtyUnit(unit === "tonne" ? "tonne" : unit === "sac" ? "sac" : "kg");
-    setQty(String(kg || ""));
+    if (movement.kind === "stock_check") {
+      setBagsCounted(movement.bagsCounted ?? "");
+    } else {
+      const kg = Number.parseFloat(movement.quantityKg ?? "0");
+      const unit = movement.feedType.unit as "kg" | "tonne" | "sac";
+      setQtyUnit(unit === "tonne" ? "tonne" : unit === "sac" ? "sac" : "kg");
+      setQty(String(kg || ""));
+      setTotalCost(movement.totalCost ?? "");
+      setUnitPrice(movement.unitPrice ?? "");
+      setSupplier(movement.supplier ?? "");
+    }
     setOccurredAt(movement.occurredAt.slice(0, 10));
-    setTotalCost(movement.totalCost ?? "");
-    setUnitPrice(movement.unitPrice ?? "");
-    setSupplier(movement.supplier ?? "");
     setNotes(movement.notes ?? "");
   }, [visible, movement]);
 
@@ -89,20 +96,27 @@ export function EditStockModal({
 
   const saveMut = useMutation({
     mutationFn: () => {
-      const payload = {
-        feedTypeId,
-        quantityInput: Number.parseFloat(qty.replace(",", ".")),
-        quantityUnit: qtyUnit,
-        occurredAt: `${occurredAt}T12:00:00.000Z`,
-        supplier: supplier.trim() || undefined,
-        notes: notes.trim() || undefined,
-        totalCost: totalCost.trim()
-          ? Number.parseFloat(totalCost.replace(",", "."))
-          : undefined,
-        unitPrice: unitPrice.trim()
-          ? Number.parseFloat(unitPrice.replace(",", "."))
-          : undefined
-      };
+      const payload = isCheck
+        ? {
+            feedTypeId,
+            bagsCounted: Number.parseFloat(bagsCounted.replace(",", ".")),
+            occurredAt: `${occurredAt}T12:00:00.000Z`,
+            notes: notes.trim() || undefined
+          }
+        : {
+            feedTypeId,
+            quantityInput: Number.parseFloat(qty.replace(",", ".")),
+            quantityUnit: qtyUnit,
+            occurredAt: `${occurredAt}T12:00:00.000Z`,
+            supplier: supplier.trim() || undefined,
+            notes: notes.trim() || undefined,
+            totalCost: totalCost.trim()
+              ? Number.parseFloat(totalCost.replace(",", "."))
+              : undefined,
+            unitPrice: unitPrice.trim()
+              ? Number.parseFloat(unitPrice.replace(",", "."))
+              : undefined
+          };
       return patchFarmFeedMovement(
         accessToken,
         farmId,
@@ -114,8 +128,8 @@ export function EditStockModal({
     onSuccess: (res) => {
       void qc.invalidateQueries({ queryKey: ["farmFeed", farmId] });
       open("success", {
-        title: t("feedStock.edit.savedTitle"),
-        message: t("feedStock.edit.savedMessage")
+        title: t(isCheck ? "feedStock.edit.checkSavedTitle" : "feedStock.edit.savedTitle"),
+        message: t(isCheck ? "feedStock.edit.checkSavedMessage" : "feedStock.edit.savedMessage")
       });
       onSaved(res);
       onClose();
@@ -135,8 +149,8 @@ export function EditStockModal({
 
   const confirmDelete = () => {
     Alert.alert(
-      t("feedStock.edit.deleteTitle"),
-      t("feedStock.edit.deleteMessage"),
+      t(isCheck ? "feedStock.edit.checkDeleteTitle" : "feedStock.edit.deleteTitle"),
+      t(isCheck ? "feedStock.edit.checkDeleteMessage" : "feedStock.edit.deleteMessage"),
       [
         { text: t("common.cancel"), style: "cancel" },
         {
@@ -152,7 +166,7 @@ export function EditStockModal({
     <BaseModal
       visible={visible}
       onClose={onClose}
-      title={t("feedStock.edit.title")}
+      title={t(isCheck ? "feedStock.edit.checkTitle" : "feedStock.edit.title")}
       sheetMaxHeight="92%"
       footerPrimary={
         <Pressable
@@ -168,7 +182,7 @@ export function EditStockModal({
         </Pressable>
       }
     >
-      {movement.linkedExpenseId ? (
+      {!isCheck && movement.linkedExpenseId ? (
         <View style={styles.warnBox}>
           <Text style={styles.warnTx}>{t("feedStock.edit.linkedWarning")}</Text>
         </View>
@@ -195,22 +209,65 @@ export function EditStockModal({
         </View>
       </ModalSection>
 
-      <ModalSection title={t("feedStock.fieldQuantity")} plain>
-        <TextInput style={styles.input} value={qty} onChangeText={setQty} keyboardType="decimal-pad" />
-        <View style={styles.pillRow}>
-          {(["kg", "sac", "tonne"] as const).map((u) => (
-            <Pressable
-              key={u}
-              style={[styles.pill, qtyUnit === u && styles.pillOn]}
-              onPress={() => setQtyUnit(u)}
-            >
-              <Text style={[styles.pillTx, qtyUnit === u && styles.pillTxOn]}>
-                {u}
+      {isCheck ? (
+        <ModalSection title={t("feedStock.fieldBagsCounted")} plain>
+          <TextInput
+            style={styles.input}
+            value={bagsCounted}
+            onChangeText={setBagsCounted}
+            keyboardType="decimal-pad"
+          />
+        </ModalSection>
+      ) : (
+        <>
+          <ModalSection title={t("feedStock.fieldQuantity")} plain>
+            <TextInput style={styles.input} value={qty} onChangeText={setQty} keyboardType="decimal-pad" />
+            <View style={styles.pillRow}>
+              {(["kg", "sac", "tonne"] as const).map((u) => (
+                <Pressable
+                  key={u}
+                  style={[styles.pill, qtyUnit === u && styles.pillOn]}
+                  onPress={() => setQtyUnit(u)}
+                >
+                  <Text style={[styles.pillTx, qtyUnit === u && styles.pillTxOn]}>
+                    {u}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </ModalSection>
+
+          <ModalSection title={t("feedStock.edit.costSection")} plain>
+            <Text style={styles.helper}>{t("feedStock.edit.costHelper")}</Text>
+            <TextInput
+              style={styles.input}
+              value={totalCost}
+              onChangeText={setTotalCost}
+              keyboardType="decimal-pad"
+              placeholder={t("feedStock.edit.totalCostPh")}
+            />
+            <TextInput
+              style={styles.input}
+              value={unitPrice}
+              onChangeText={setUnitPrice}
+              keyboardType="decimal-pad"
+              placeholder={t("feedStock.edit.unitPricePh")}
+            />
+            {unitPricePreview ? (
+              <Text style={styles.preview}>
+                {t("feedStock.edit.calculatedPerKg", { price: unitPricePreview })}
               </Text>
-            </Pressable>
-          ))}
-        </View>
-      </ModalSection>
+            ) : null}
+          </ModalSection>
+
+          <TextInput
+            style={styles.input}
+            value={supplier}
+            onChangeText={setSupplier}
+            placeholder={t("feedStock.fieldSupplier")}
+          />
+        </>
+      )}
 
       <AppDatePicker
         label={t("feedStock.fieldDate")}
@@ -220,35 +277,6 @@ export function EditStockModal({
         maxDate={new Date()}
       />
 
-      <ModalSection title={t("feedStock.edit.costSection")} plain>
-        <Text style={styles.helper}>{t("feedStock.edit.costHelper")}</Text>
-        <TextInput
-          style={styles.input}
-          value={totalCost}
-          onChangeText={setTotalCost}
-          keyboardType="decimal-pad"
-          placeholder={t("feedStock.edit.totalCostPh")}
-        />
-        <TextInput
-          style={styles.input}
-          value={unitPrice}
-          onChangeText={setUnitPrice}
-          keyboardType="decimal-pad"
-          placeholder={t("feedStock.edit.unitPricePh")}
-        />
-        {unitPricePreview ? (
-          <Text style={styles.preview}>
-            {t("feedStock.edit.calculatedPerKg", { price: unitPricePreview })}
-          </Text>
-        ) : null}
-      </ModalSection>
-
-      <TextInput
-        style={styles.input}
-        value={supplier}
-        onChangeText={setSupplier}
-        placeholder={t("feedStock.fieldSupplier")}
-      />
       <TextInput
         style={[styles.input, styles.notes]}
         value={notes}
@@ -258,7 +286,9 @@ export function EditStockModal({
       />
 
       <Pressable onPress={confirmDelete} style={styles.deleteBtn}>
-        <Text style={styles.deleteTx}>{t("feedStock.edit.deleteBtn")}</Text>
+        <Text style={styles.deleteTx}>
+          {t(isCheck ? "feedStock.edit.checkDeleteBtn" : "feedStock.edit.deleteBtn")}
+        </Text>
       </Pressable>
     </BaseModal>
   );

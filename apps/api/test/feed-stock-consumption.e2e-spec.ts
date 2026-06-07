@@ -231,6 +231,70 @@ describeOrSkip("Stock aliment — consommation avec entrées (e2e)", () => {
     await ctx.prisma.feedType.delete({ where: { id: intervalTypeId } });
   });
 
+  it("permet de modifier et supprimer un contrôle de stock", async () => {
+    const typeRes = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/feed/types`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        name: "Aliment edit check e2e",
+        unit: "sac",
+        weightPerBagKg: 25,
+        color: "#112233"
+      });
+    const editTypeId = typeRes.body.id as string;
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/feed/movements`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        kind: "in",
+        feedTypeId: editTypeId,
+        quantityInput: 40,
+        quantityUnit: "sac",
+        occurredAt: daysAgo(12)
+      });
+
+    const check = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/feed/movements`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        kind: "stock_check",
+        feedTypeId: editTypeId,
+        bagsCounted: 30,
+        occurredAt: daysAgo(8)
+      });
+    const checkId = check.body?.movement?.id as string;
+
+    const patched = await request(app.getHttpServer())
+      .patch(`/api/v1/farms/${ctx.farmId}/feed/movements/${checkId}`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        bagsCounted: 28,
+        occurredAt: daysAgo(7)
+      });
+    expect(patched.status).toBeGreaterThanOrEqual(200);
+    expect(Number(patched.body?.movement?.bagsCounted ?? 0)).toBe(28);
+    expect(Number(patched.body?.movement?.stockAfterKg ?? 0)).toBeCloseTo(700, 1);
+
+    const deleted = await request(app.getHttpServer())
+      .delete(`/api/v1/farms/${ctx.farmId}/feed/movements/${checkId}`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(deleted.status).toBeGreaterThanOrEqual(200);
+
+    const stats = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/feed/stats`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    const row = (stats.body.items as Array<Record<string, unknown>>).find(
+      (x) => x.feedTypeId === editTypeId
+    );
+    expect(Number.parseFloat(String(row?.currentStockKg ?? ""))).toBeCloseTo(1000, 1);
+
+    await ctx.prisma.feedStockMovement.deleteMany({
+      where: { feedTypeId: editTypeId }
+    });
+    await ctx.prisma.feedType.delete({ where: { id: editTypeId } });
+  });
+
   it("refuse les candidats de rapprochement pour un mouvement d'une autre ferme", async () => {
     const otherFarm = await ctx.prisma.farm.create({
       data: {

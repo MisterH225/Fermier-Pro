@@ -1214,6 +1214,7 @@ export const fr = {
     fieldQuantity: "Quantité",
     edit: {
       title: "Modifier l'entrée de stock",
+      checkTitle: "Modifier le contrôle de stock",
       linkedWarning:
         "Cette entrée est liée à une dépense Finance. Modifier le coût ici mettra aussi à jour la transaction Finance.",
       costSection: "Coût",
@@ -1222,11 +1223,17 @@ export const fr = {
       unitPricePh: "Prix unitaire / kg",
       calculatedPerKg: "Prix/kg calculé : {{price}}",
       deleteBtn: "Supprimer cette entrée",
+      checkDeleteBtn: "Supprimer ce contrôle",
       deleteTitle: "Supprimer l'entrée ?",
+      checkDeleteTitle: "Supprimer le contrôle ?",
       deleteMessage:
         "Cette entrée sera supprimée. Si elle est liée à une dépense Finance, la liaison sera rompue (la dépense reste).",
+      checkDeleteMessage:
+        "Ce contrôle sera supprimé et le stock sera recalculé à partir des autres mouvements.",
       savedTitle: "Entrée mise à jour",
-      savedMessage: "L'entrée de stock a été enregistrée."
+      checkSavedTitle: "Contrôle mis à jour",
+      savedMessage: "L'entrée de stock a été enregistrée.",
+      checkSavedMessage: "Le contrôle de stock a été enregistré."
     },
     reconciliation: {
       title: "Rapprochement suggéré",

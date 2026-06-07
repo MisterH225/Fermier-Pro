@@ -66,4 +66,12 @@ export class UpdateFeedMovementDto {
   @IsOptional()
   @IsDateString()
   occurredAt?: string;
+
+  /** Nombre de sacs comptés (contrôle de stock uniquement). */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(1e6)
+  bagsCounted?: number;
 }

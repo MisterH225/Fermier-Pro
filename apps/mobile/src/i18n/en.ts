@@ -1201,6 +1201,30 @@ export const en = {
     smartAlertsHintTitle: "Recommendations",
     smartAlertsHintBody:
       "Feed and consumption alerts are on the dashboard (Recommendations section).",
+    editMovement: "Edit",
+    edit: {
+      title: "Edit stock entry",
+      checkTitle: "Edit stock check",
+      linkedWarning:
+        "This entry is linked to a Finance expense. Editing the cost here also updates the Finance transaction.",
+      costSection: "Cost",
+      costHelper: "Leave empty if unknown",
+      totalCostPh: "Total cost",
+      unitPricePh: "Unit price / kg",
+      calculatedPerKg: "Calculated price/kg: {{price}}",
+      deleteBtn: "Delete this entry",
+      checkDeleteBtn: "Delete this check",
+      deleteTitle: "Delete entry?",
+      checkDeleteTitle: "Delete check?",
+      deleteMessage:
+        "This entry will be deleted. If linked to Finance, the link is removed (expense remains).",
+      checkDeleteMessage:
+        "This check will be deleted and stock will be recalculated from other movements.",
+      savedTitle: "Entry updated",
+      checkSavedTitle: "Check updated",
+      savedMessage: "Stock entry saved.",
+      checkSavedMessage: "Stock check saved."
+    },
     errors: {
       pickType: "Pick a feed type."
     }

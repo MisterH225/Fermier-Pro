@@ -331,17 +331,15 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
               movement={m}
             />
           ) : null}
-          {m.kind === "in" ? (
-            <Pressable
-              style={styles.editBtn}
-              onPress={() => {
-                ctx.close();
-                setEditMovement(m);
-              }}
-            >
-              <Text style={styles.editBtnTx}>{t("feedStock.editMovement")}</Text>
-            </Pressable>
-          ) : null}
+          <Pressable
+            style={styles.editBtn}
+            onPress={() => {
+              ctx.close();
+              setEditMovement(m);
+            }}
+          >
+            <Text style={styles.editBtnTx}>{t("feedStock.editMovement")}</Text>
+          </Pressable>
         </View>
       );
     },
@@ -368,9 +366,6 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
   const renderStockSwipeEdit = useCallback(
     (item: EventItem) => {
       const m = item.meta as FeedStockMovementDto;
-      if (m.kind !== "in") {
-        return null;
-      }
       return (
         <Pressable
           style={styles.swipeEdit}
