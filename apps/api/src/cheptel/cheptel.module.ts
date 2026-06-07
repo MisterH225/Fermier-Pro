@@ -13,7 +13,7 @@ import { CheptelService } from "./cheptel.service";
   imports: [
     AuthModule,
     CommonModule,
-    LivestockModule,
+    forwardRef(() => LivestockModule),
     FinanceModule,
     HousingModule,
     AgeCalculationModule,
