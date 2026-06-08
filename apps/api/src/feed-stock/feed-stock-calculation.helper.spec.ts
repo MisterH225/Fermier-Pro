@@ -1,6 +1,10 @@
+import { FeedMovementKind } from "@prisma/client";
 import {
   buildConsumptionIntervals,
+  buildFeedStockSnapshotAtAsOf,
   calendarDaysElapsed,
+  computeFeedStockKgAtAsOf,
+  computeFeedStockMetricsCore,
   computeWeightedAvgDailyKg,
   daysBetweenUtc,
   filterConsumptionIntervalsAfterEntry,
@@ -10,7 +14,8 @@ import {
   resolveFeedStockStatus,
   resolveStockAnchor,
   selectConsumptionRateIntervals,
-  sumEntryKgFromMovements
+  sumEntryKgFromMovements,
+  type FeedStockMovementSnapshot
 } from "./feed-stock-calculation.helper";
 
 describe("feed-stock-calculation.helper", () => {
@@ -414,6 +419,126 @@ describe("feed-stock-calculation.helper", () => {
       );
       expect(filtered).toHaveLength(1);
       expect(filtered[0]!.toCheckId).toBe("c3");
+    });
+  });
+
+  describe("computeFeedStockMetricsCore", () => {
+    const wp = 25;
+    const feedTypeId = "ft1";
+
+    it("calcule percentRemaining avec contrôle seul (sans entrée)", () => {
+      const checkAt = new Date("2026-06-01T12:00:00.000Z");
+      const asOf = new Date("2026-06-11T12:00:00.000Z");
+      const snap = buildFeedStockSnapshotAtAsOf(
+        [
+          {
+            id: "c1",
+            kind: FeedMovementKind.stock_check,
+            occurredAt: checkAt,
+            stockAfterKg: 800,
+            bagsCounted: 32,
+            quantityKg: null
+          }
+        ],
+        asOf
+      );
+
+      const result = computeFeedStockMetricsCore({
+        feedTypeId,
+        weightPerBagKg: wp,
+        ...snap,
+        asOf
+      });
+
+      expect(result.stockAtLastEntryKg).toBeNull();
+      // Baseline = stock du contrôle ; sans 2e contrôle, pas de projection → jauge non vide
+      expect(result.percentRemaining).toBe(100);
+      expect(result.percentConsumed).toBe(0);
+      expect(result.currentStockKg).toBe(800);
+    });
+
+    it("aligne currentStockKg et percentRemaining sur une entrée récente", () => {
+      const checkAt = new Date("2026-06-01T12:00:00.000Z");
+      const entryAt = new Date("2026-06-09T12:00:00.000Z");
+      const asOf = new Date("2026-06-11T12:00:00.000Z");
+      const movements: FeedStockMovementSnapshot[] = [
+        {
+          id: "c1",
+          kind: FeedMovementKind.stock_check,
+          occurredAt: checkAt,
+          stockAfterKg: 800,
+          bagsCounted: 32,
+          quantityKg: null
+        },
+        {
+          id: "in1",
+          kind: FeedMovementKind.in,
+          occurredAt: entryAt,
+          stockAfterKg: 1000,
+          bagsCounted: null,
+          quantityKg: 200
+        }
+      ];
+      const snap = buildFeedStockSnapshotAtAsOf(movements, asOf);
+
+      const result = computeFeedStockMetricsCore({
+        feedTypeId,
+        weightPerBagKg: wp,
+        ...snap,
+        asOf
+      });
+
+      expect(result.stockAtLastEntryKg).toBe(1000);
+      expect(result.currentStockKg).toBe(1000);
+      expect(result.percentRemaining).toBe(100);
+      expect(result.percentConsumed).toBe(0);
+    });
+  });
+
+  describe("computeFeedStockKgAtAsOf", () => {
+    const wp = 25;
+    const feedTypeId = "ft1";
+
+    it("projette le stock après le dernier contrôle connu", () => {
+      const d0 = new Date("2026-06-01T12:00:00.000Z");
+      const d20 = new Date("2026-06-21T12:00:00.000Z");
+      const d25 = new Date("2026-06-26T12:00:00.000Z");
+
+      const movements: FeedStockMovementSnapshot[] = [
+        {
+          id: "c1",
+          kind: FeedMovementKind.stock_check,
+          occurredAt: d0,
+          stockAfterKg: 1000,
+          bagsCounted: 40,
+          quantityKg: null
+        },
+        {
+          id: "c2",
+          kind: FeedMovementKind.stock_check,
+          occurredAt: d20,
+          stockAfterKg: 800,
+          bagsCounted: 32,
+          quantityKg: null
+        }
+      ];
+
+      const atCheck = computeFeedStockKgAtAsOf(
+        movements,
+        feedTypeId,
+        wp,
+        d20
+      );
+      const projected = computeFeedStockKgAtAsOf(
+        movements,
+        feedTypeId,
+        wp,
+        d25
+      );
+
+      // 200 kg / 20 j = 10 kg/j ; 5 j après c2 → ~750 kg
+      expect(atCheck).toBe(800);
+      expect(projected).toBeCloseTo(750, 0);
     });
   });
 

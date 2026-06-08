@@ -437,94 +437,113 @@ export function resolveFeedStockStatus(
   return "ok";
 }
 
-/**
- * Calcule les métriques stock à partir des mouvements réels (contrôles + entrées).
- */
-export async function computeFeedStockMetrics(
-  prisma: PrismaClient,
-  farmId: string,
-  feedTypeId: string,
-  thresholds?: FeedStockStatusThresholds,
-  asOf?: Date
-): Promise<FeedStockCalculationResult> {
-  const debug = await computeFeedStockMetricsDebug(
-    prisma,
-    farmId,
-    feedTypeId,
-    thresholds,
-    asOf
-  );
-  const {
-    checks: _c,
-    intervals: _i,
-    lastEntry: _l,
-    ...result
-  } = debug;
-  return result;
-}
+export type FeedStockMovementSnapshot = {
+  id: string;
+  kind: FeedMovementKind;
+  occurredAt: Date;
+  stockAfterKg: number | null;
+  bagsCounted: number | null;
+  quantityKg: number | null;
+};
 
-export async function computeFeedStockMetricsDebug(
-  prisma: PrismaClient,
-  farmId: string,
-  feedTypeId: string,
-  thresholds?: FeedStockStatusThresholds,
-  asOf: Date = new Date()
-): Promise<FeedStockCalculationDebug> {
-  const warnings: string[] = [];
+export type FeedStockSnapshotAtAsOf = {
+  ledgerStockKg: number;
+  checksDesc: Array<{
+    id: string;
+    occurredAt: Date;
+    stockAfterKg: number | null;
+    bagsCounted: number | null;
+  }>;
+  entryRows: Array<{
+    id: string;
+    occurredAt: Date;
+    quantityKg: number | null;
+    stockAfterKg: number | null;
+  }>;
+};
 
-  const feedType = await prisma.feedType.findFirst({
-    where: { id: feedTypeId, farmId }
-  });
-  if (!feedType) {
-    throw new Error("Feed type not found");
+/** Registre et événements filtrés à une date (pour graphique historique). */
+export function buildFeedStockSnapshotAtAsOf(
+  movementsChron: FeedStockMovementSnapshot[],
+  asOf: Date
+): FeedStockSnapshotAtAsOf {
+  let ledgerStockKg = 0;
+  const checksAsc: FeedStockSnapshotAtAsOf["checksDesc"] = [];
+  const entryRows: FeedStockSnapshotAtAsOf["entryRows"] = [];
+
+  for (const m of movementsChron) {
+    if (m.occurredAt > asOf) {
+      break;
+    }
+    ledgerStockKg = m.stockAfterKg ?? ledgerStockKg;
+    if (m.kind === FeedMovementKind.stock_check) {
+      checksAsc.push({
+        id: m.id,
+        occurredAt: m.occurredAt,
+        stockAfterKg: m.stockAfterKg,
+        bagsCounted: m.bagsCounted
+      });
+    } else if (m.kind === FeedMovementKind.in) {
+      entryRows.push({
+        id: m.id,
+        occurredAt: m.occurredAt,
+        quantityKg: m.quantityKg,
+        stockAfterKg: m.stockAfterKg
+      });
+    }
   }
 
-  const checksDesc = await prisma.feedStockMovement.findMany({
-    where: { farmId, feedTypeId, kind: FeedMovementKind.stock_check },
-    orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
-    take: 10,
-    select: {
-      id: true,
-      occurredAt: true,
-      stockAfterKg: true,
-      bagsCounted: true
-    }
-  });
+  return {
+    ledgerStockKg,
+    checksDesc: checksAsc.slice(-10).reverse(),
+    entryRows
+  };
+}
 
-  const lastIn = await prisma.feedStockMovement.findFirst({
-    where: { farmId, feedTypeId, kind: FeedMovementKind.in },
-    orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
-    select: {
-      id: true,
-      occurredAt: true,
-      stockAfterKg: true,
-      quantityKg: true
-    }
-  });
+export type FeedStockMetricsCoreInput = FeedStockSnapshotAtAsOf & {
+  feedTypeId: string;
+  weightPerBagKg: number | null;
+  asOf: Date;
+  thresholds?: FeedStockStatusThresholds;
+};
 
-  const entryMovements = await prisma.feedStockMovement.findMany({
-    where: { farmId, feedTypeId, kind: FeedMovementKind.in },
-    select: { id: true, occurredAt: true, quantityKg: true, stockAfterKg: true },
-    orderBy: [{ occurredAt: "asc" }, { id: "asc" }]
-  });
-  const entryRows = entryMovements.map((e) => ({
-    id: e.id,
-    occurredAt: e.occurredAt,
-    quantityKg: toNum(e.quantityKg),
-    stockAfterKg: toNum(e.stockAfterKg)
-  }));
+/** Moteur pur partagé par stats, overview et graphique. */
+export function computeFeedStockMetricsCore(
+  input: FeedStockMetricsCoreInput
+): FeedStockCalculationResult & {
+  intervals: ConsumptionInterval[];
+  lastEntry: FeedStockCalculationDebug["lastEntry"];
+} {
+  const warnings: string[] = [];
+  const {
+    feedTypeId,
+    weightPerBagKg: wp,
+    ledgerStockKg,
+    checksDesc,
+    entryRows,
+    asOf,
+    thresholds
+  } = input;
 
-  const wp = toNum(feedType.weightPerBagKg);
   const latestCheck = checksDesc[0] ?? null;
-  const ledgerStockKg = toNum(feedType.currentStockKg) ?? 0;
-
-  const stockAtLastEntryKg = lastIn ? toNum(lastIn.stockAfterKg) : null;
+  const lastIn = entryRows.length > 0 ? entryRows[entryRows.length - 1]! : null;
+  const stockAtLastEntryKg = lastIn ? lastIn.stockAfterKg : null;
+  const stockAtLastCheckKg =
+    latestCheck != null
+      ? resolveCheckStockKg(
+          {
+            bagsCounted: latestCheck.bagsCounted,
+            stockAfterKg: latestCheck.stockAfterKg
+          },
+          wp
+        )
+      : null;
 
   const checksChron = [...checksDesc].reverse().map((c) => ({
     id: c.id,
     occurredAt: c.occurredAt,
-    stockAfterKg: toNum(c.stockAfterKg),
-    bagsCounted: toNum(c.bagsCounted)
+    stockAfterKg: c.stockAfterKg,
+    bagsCounted: c.bagsCounted
   }));
 
   const built = buildConsumptionIntervals({
@@ -571,14 +590,14 @@ export async function computeFeedStockMetricsDebug(
     latestCheck: latestCheck
       ? {
           occurredAt: latestCheck.occurredAt,
-          bagsCounted: toNum(latestCheck.bagsCounted),
-          stockAfterKg: toNum(latestCheck.stockAfterKg)
+          bagsCounted: latestCheck.bagsCounted,
+          stockAfterKg: latestCheck.stockAfterKg
         }
       : null,
     lastIn: lastIn
       ? {
           occurredAt: lastIn.occurredAt,
-          stockAfterKg: toNum(lastIn.stockAfterKg)
+          stockAfterKg: lastIn.stockAfterKg
         }
       : null,
     weightPerBagKg: wp,
@@ -598,11 +617,17 @@ export async function computeFeedStockMetricsDebug(
     );
   }
 
+  const baselineKg =
+    stockAtLastEntryKg != null && stockAtLastEntryKg > 0
+      ? stockAtLastEntryKg
+      : stockAtLastCheckKg != null && stockAtLastCheckKg > 0
+        ? stockAtLastCheckKg
+        : null;
+
   let percentConsumed: number | null = null;
   let percentRemaining: number | null = null;
-  if (stockAtLastEntryKg != null && stockAtLastEntryKg > 0) {
-    const raw =
-      ((stockAtLastEntryKg - currentStockKg) / stockAtLastEntryKg) * 100;
+  if (baselineKg != null && baselineKg > 0) {
+    const raw = ((baselineKg - currentStockKg) / baselineKg) * 100;
     percentConsumed = clampPercent(raw);
     percentRemaining = clampPercent(100 - percentConsumed);
   }
@@ -643,20 +668,127 @@ export async function computeFeedStockMetricsDebug(
     hasSufficientData,
     status,
     warnings,
-    checks: checksDesc.map((c) => ({
-      id: c.id,
-      occurredAt: c.occurredAt.toISOString(),
-      stockAfterKg: toNum(c.stockAfterKg) ?? 0,
-      bagsCounted: toNum(c.bagsCounted)
-    })),
     intervals,
     lastEntry: lastIn
       ? {
           id: lastIn.id,
           occurredAt: lastIn.occurredAt.toISOString(),
-          stockAfterKg: toNum(lastIn.stockAfterKg) ?? 0,
-          quantityKg: toNum(lastIn.quantityKg) ?? 0
+          stockAfterKg: lastIn.stockAfterKg ?? 0,
+          quantityKg: lastIn.quantityKg ?? 0
         }
       : null
+  };
+}
+
+/** Stock calculé à une date (graphique — même moteur que les jauges). */
+export function computeFeedStockKgAtAsOf(
+  movementsChron: FeedStockMovementSnapshot[],
+  feedTypeId: string,
+  weightPerBagKg: number | null,
+  asOf: Date,
+  thresholds?: FeedStockStatusThresholds
+): number {
+  const snap = buildFeedStockSnapshotAtAsOf(movementsChron, asOf);
+  return computeFeedStockMetricsCore({
+    feedTypeId,
+    weightPerBagKg,
+    ...snap,
+    asOf,
+    thresholds
+  }).currentStockKg;
+}
+
+/**
+ * Calcule les métriques stock à partir des mouvements réels (contrôles + entrées).
+ */
+export async function computeFeedStockMetrics(
+  prisma: PrismaClient,
+  farmId: string,
+  feedTypeId: string,
+  thresholds?: FeedStockStatusThresholds,
+  asOf?: Date
+): Promise<FeedStockCalculationResult> {
+  const debug = await computeFeedStockMetricsDebug(
+    prisma,
+    farmId,
+    feedTypeId,
+    thresholds,
+    asOf
+  );
+  const {
+    checks: _c,
+    intervals: _i,
+    lastEntry: _l,
+    ...result
+  } = debug;
+  return result;
+}
+
+export async function computeFeedStockMetricsDebug(
+  prisma: PrismaClient,
+  farmId: string,
+  feedTypeId: string,
+  thresholds?: FeedStockStatusThresholds,
+  asOf: Date = new Date()
+): Promise<FeedStockCalculationDebug> {
+  const feedType = await prisma.feedType.findFirst({
+    where: { id: feedTypeId, farmId }
+  });
+  if (!feedType) {
+    throw new Error("Feed type not found");
+  }
+
+  const movements = await prisma.feedStockMovement.findMany({
+    where: { farmId, feedTypeId, occurredAt: { lte: asOf } },
+    orderBy: [{ occurredAt: "asc" }, { id: "asc" }],
+    select: {
+      id: true,
+      kind: true,
+      occurredAt: true,
+      stockAfterKg: true,
+      bagsCounted: true,
+      quantityKg: true
+    }
+  });
+
+  const movementsChron: FeedStockMovementSnapshot[] = movements.map((m) => ({
+    id: m.id,
+    kind: m.kind,
+    occurredAt: m.occurredAt,
+    stockAfterKg: toNum(m.stockAfterKg),
+    bagsCounted: toNum(m.bagsCounted),
+    quantityKg: toNum(m.quantityKg)
+  }));
+
+  const snap = buildFeedStockSnapshotAtAsOf(movementsChron, asOf);
+  const wp = toNum(feedType.weightPerBagKg);
+  const core = computeFeedStockMetricsCore({
+    feedTypeId,
+    weightPerBagKg: wp,
+    ...snap,
+    asOf,
+    thresholds
+  });
+
+  return {
+    feedTypeId: core.feedTypeId,
+    currentStockKg: core.currentStockKg,
+    stockAtLastEntryKg: core.stockAtLastEntryKg,
+    percentConsumed: core.percentConsumed,
+    percentRemaining: core.percentRemaining,
+    avgDailyConsumptionKg: core.avgDailyConsumptionKg,
+    estimatedDaysRemaining: core.estimatedDaysRemaining,
+    daysSinceLastCheck: core.daysSinceLastCheck,
+    hasSufficientData: core.hasSufficientData,
+    status: core.status,
+    warnings: core.warnings,
+    checks: snap.checksDesc.map((c) => ({
+      id: c.id,
+      occurredAt: c.occurredAt.toISOString(),
+      stockAfterKg: c.stockAfterKg ?? 0,
+      bagsCounted: c.bagsCounted
+    })),
+    intervals: core.intervals,
+    lastEntry: core.lastEntry
   };
 }

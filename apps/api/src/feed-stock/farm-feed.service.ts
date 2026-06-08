@@ -24,6 +24,10 @@ import { FinanceService } from "../finance/finance.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import { CreateFeedMovementDto } from "./dto/create-feed-movement.dto";
 import { CreateFeedTypeDto } from "./dto/create-feed-type.dto";
+import {
+  computeFeedStockKgAtAsOf,
+  type FeedStockMovementSnapshot
+} from "./feed-stock-calculation.helper";
 import { buildFeedStockStatsForFarm } from "./feed-stock-stats.helper";
 import { feedTypeColorAtIndex } from "./feed-type-colors";
 
@@ -149,10 +153,11 @@ export class FarmFeedService {
     const weekCount = periodToWeekCount(periodRaw);
     const weeks = weekEndsSliding(weekCount);
     const lastEnd = weeks[weeks.length - 1]?.end ?? new Date();
+    const th = await this.feedAlertThresholds(farmId);
 
     const types = await this.prisma.feedType.findMany({
       where: { farmId },
-      select: { id: true, name: true, color: true }
+      select: { id: true, name: true, color: true, weightPerBagKg: true }
     });
 
     const movements = await this.prisma.feedStockMovement.findMany({
@@ -160,30 +165,36 @@ export class FarmFeedService {
       orderBy: [{ occurredAt: "asc" }, { id: "asc" }],
       select: {
         feedTypeId: true,
+        id: true,
+        kind: true,
         occurredAt: true,
-        stockAfterKg: true
+        stockAfterKg: true,
+        bagsCounted: true,
+        quantityKg: true
       }
     });
 
-    const byType = new Map<string, typeof movements>();
+    const byType = new Map<string, FeedStockMovementSnapshot[]>();
     for (const m of movements) {
       const arr = byType.get(m.feedTypeId) ?? [];
-      arr.push(m);
+      arr.push({
+        id: m.id,
+        kind: m.kind,
+        occurredAt: m.occurredAt,
+        stockAfterKg: m.stockAfterKg.toNumber(),
+        bagsCounted: m.bagsCounted?.toNumber() ?? null,
+        quantityKg: m.quantityKg?.toNumber() ?? null
+      });
       byType.set(m.feedTypeId, arr);
     }
 
+    const now = new Date();
     const series = types.map((t, index) => {
-      const arr = (byType.get(t.id) ?? []).slice();
-      const points = weeks.map(({ end }) => {
-        let v = 0;
-        for (const m of arr) {
-          if (m.occurredAt <= end) {
-            v = m.stockAfterKg.toNumber();
-          } else {
-            break;
-          }
-        }
-        return v;
+      const arr = byType.get(t.id) ?? [];
+      const wp = t.weightPerBagKg?.toNumber() ?? null;
+      const points = weeks.map(({ end }, wi) => {
+        const asOf = wi === weeks.length - 1 ? now : end;
+        return computeFeedStockKgAtAsOf(arr, t.id, wp, asOf, th);
       });
       return {
         feedTypeId: t.id,

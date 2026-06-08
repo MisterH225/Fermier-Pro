@@ -29,6 +29,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { refreshFarmFeedQueries } from "../../lib/feedStockQuery";
 import { getUserFacingError } from "../../lib/userFacingError";
 
 export type StockModalProps = {
@@ -231,12 +232,12 @@ export function StockModal({
       invalidateRoots: ["farmFeed", "dashboardFeedStock"]
     }),
     onSuccess: (res) => {
-      void qc.invalidateQueries({ queryKey: ["farmFeed", farmId] });
+      void refreshFarmFeedQueries(qc, farmId, activeProfileId);
       onSuccess?.(res as PostFarmFeedMovementResponse);
       onClose();
     },
     onQueued: () => {
-      void qc.invalidateQueries({ queryKey: ["farmFeed", farmId] });
+      void refreshFarmFeedQueries(qc, farmId, activeProfileId);
       onSuccess?.();
       onClose();
       Alert.alert("", offlineQueuedMessage(t));

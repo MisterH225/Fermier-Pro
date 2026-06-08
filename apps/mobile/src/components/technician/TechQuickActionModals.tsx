@@ -26,6 +26,7 @@ import {
   type VaccineCatalogItemDto,
   type VaccineSubjectRowDto
 } from "../../lib/api";
+import { refreshFarmFeedQueries } from "../../lib/feedStockQuery";
 import type { TechQuickActionKey } from "../../lib/technicianPermissions";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import { techColors } from "../../theme/technicianTheme";
@@ -118,7 +119,7 @@ export function TechQuickActionModals({
     if (!farmId) return;
     void qc.invalidateQueries({ queryKey: ["techDashboard"] });
     void qc.invalidateQueries({ queryKey: ["techActivity"] });
-    void qc.invalidateQueries({ queryKey: ["farmFeedStock", farmId] });
+    void refreshFarmFeedQueries(qc, farmId, activeProfileId);
     void qc.invalidateQueries({ queryKey: ["farmHealthEvents", farmId] });
     void qc.invalidateQueries({ queryKey: ["farmAnimals", farmId] });
     void qc.invalidateQueries({ queryKey: ["farmVaccineCoverage", farmId] });

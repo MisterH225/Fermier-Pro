@@ -1,6 +1,8 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { TabScreenHeader } from "../components/layout";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useTranslation } from "react-i18next";
@@ -48,6 +50,10 @@ import {
   fetchFarmFeedStats,
   fetchFarmFeedTypes
 } from "../lib/api";
+import {
+  feedStockLiveQueryOptions,
+  refreshFarmFeedQueries
+} from "../lib/feedStockQuery";
 import type { RootStackParamList } from "../types/navigation";
 import {
   mobileColors,
@@ -93,6 +99,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
     costFilter
   } = params;
   const session = useSession();
+  const qc = useQueryClient();
   const accessToken = session?.accessToken ?? "";
   const activeProfileId = session?.activeProfileId ?? null;
   const clientFeatures = session?.clientFeatures ?? { feedStock: false };
@@ -151,31 +158,46 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
 
   const enabled = clientFeatures.feedStock && Boolean(accessToken);
 
+  const live = feedStockLiveQueryOptions;
+
   const results = useQueries({
     queries: [
       {
         queryKey: ["farmFeed", farmId, "types", activeProfileId],
         queryFn: () => fetchFarmFeedTypes(accessToken!, farmId, activeProfileId),
-        enabled
+        enabled,
+        ...live
       },
       {
         queryKey: ["farmFeed", farmId, "overview", activeProfileId],
         queryFn: () => fetchFarmFeedOverview(accessToken!, farmId, activeProfileId),
-        enabled
+        enabled,
+        ...live
       },
       {
         queryKey: ["farmFeed", farmId, "chart", period, activeProfileId],
         queryFn: () =>
           fetchFarmFeedChart(accessToken!, farmId, period, activeProfileId),
-        enabled
+        enabled,
+        ...live
       },
       {
         queryKey: ["farmFeed", farmId, "stats", activeProfileId],
         queryFn: () => fetchFarmFeedStats(accessToken!, farmId, activeProfileId),
-        enabled
+        enabled,
+        ...live
       }
     ]
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!enabled) {
+        return;
+      }
+      void refreshFarmFeedQueries(qc, farmId, activeProfileId);
+    }, [qc, farmId, activeProfileId, enabled])
+  );
 
   const [typesQ, overviewQ, chartQ, statsQ] = results;
 
@@ -203,7 +225,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
 
   const refetchAll = () => {
     void Promise.all([
-      ...results.map((r) => r.refetch()),
+      refreshFarmFeedQueries(qc, farmId, activeProfileId),
       movQ.refetch()
     ]);
   };
@@ -348,9 +370,10 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
                 m.id,
                 activeProfileId
               )
-                .then(() => {
+                .then(async () => {
                   closeDetail?.();
-                  refetchAll();
+                  await refreshFarmFeedQueries(qc, farmId, activeProfileId);
+                  void movQ.refetch();
                   open("success", {
                     title: t(
                       isCheck
@@ -375,7 +398,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
         ]
       );
     },
-    [accessToken, farmId, activeProfileId, open, refetchAll, t]
+    [accessToken, farmId, activeProfileId, open, qc, movQ, t]
   );
 
   const renderStockMovDetail = useCallback(

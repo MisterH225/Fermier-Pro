@@ -26,6 +26,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { refreshFarmFeedQueries } from "../../lib/feedStockQuery";
 import { getUserFacingError } from "../../lib/userFacingError";
 
 type Props = {
@@ -137,7 +138,7 @@ export function EditStockModal({
       );
     },
     onSuccess: (res) => {
-      void qc.invalidateQueries({ queryKey: ["farmFeed", farmId] });
+      void refreshFarmFeedQueries(qc, farmId, activeProfileId);
       open("success", {
         title: t(isCheck ? "feedStock.edit.checkSavedTitle" : "feedStock.edit.savedTitle"),
         message: t(isCheck ? "feedStock.edit.checkSavedMessage" : "feedStock.edit.savedMessage")
@@ -152,7 +153,7 @@ export function EditStockModal({
     mutationFn: () =>
       deleteFarmFeedMovement(accessToken, farmId, movement.id, activeProfileId),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["farmFeed", farmId] });
+      void refreshFarmFeedQueries(qc, farmId, activeProfileId);
       open("success", {
         title: t(isCheck ? "feedStock.edit.checkDeleteDoneTitle" : "feedStock.edit.deleteDoneTitle"),
         message: t(isCheck ? "feedStock.edit.checkDeleteDoneMessage" : "feedStock.edit.deleteDoneMessage")
