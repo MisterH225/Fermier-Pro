@@ -6328,6 +6328,7 @@ export type GestationListItemDto = {
     breed?: { name: string } | null;
   };
   checklistCompletionPct: number;
+  sowPen?: { id: string; name: string; code: string | null } | null;
 };
 
 export type GestationDetailDto = GestationListItemDto & {
@@ -6458,6 +6459,8 @@ export function recordGestationLitter(
     deliveryType: "normal" | "difficult" | "cesarean";
     vetAssistance?: boolean;
     notes?: string;
+    penId?: string;
+    transferSowWithLitter?: boolean;
   },
   activeProfileId?: string | null
 ): Promise<GestationDetailDto> {

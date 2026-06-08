@@ -27,7 +27,12 @@ type Props = {
   farmId: string;
   onClose: () => void;
   onRefresh: () => void;
-  onRecordLitter: (gestationId: string, sowLabel: string) => void;
+  onRecordLitter: (
+    gestationId: string,
+    sowLabel: string,
+    sowId: string,
+    sowPenId?: string | null
+  ) => void;
   onOpenAnimal: (animalId: string, label: string) => void;
 };
 
@@ -180,7 +185,14 @@ export function GestationDetailModal({
         g?.status === "active" ? (
           <Pressable
             style={styles.btn}
-            onPress={() => onRecordLitter(g.id, g.sowLabel)}
+            onPress={() =>
+              onRecordLitter(
+                g.id,
+                g.sowLabel,
+                g.sowId,
+                g.sowPen?.id ?? null
+              )
+            }
           >
             <Text style={styles.btnText}>
               {t("gestationScreen.recordLitter")}

@@ -14,6 +14,7 @@ import {
   type User
 } from "@prisma/client";
 import { FarmAccessService } from "../common/farm-access.service";
+import { HousingService } from "../housing/housing.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import { AiGeminiService } from "../ai/ai-gemini.service";
@@ -108,6 +109,7 @@ export class GestationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
+    private readonly housing: HousingService,
     private readonly smartAlerts: SmartAlertsService,
     private readonly gemini: AiGeminiService
   ) {}
@@ -586,6 +588,56 @@ export class GestationService {
     return this.getOne(user, gestationId);
   }
 
+  /** Loge vide ou avec assez de places pour une portée. */
+  private async findPenForLitter(
+    farmId: string,
+    headcount: number,
+    preferredPenId?: string | null
+  ): Promise<string | null> {
+    if (preferredPenId) {
+      const pen = await this.prisma.pen.findFirst({
+        where: { id: preferredPenId, barn: { farmId } }
+      });
+      if (pen) {
+        return pen.id;
+      }
+    }
+
+    const pens = await this.prisma.pen.findMany({
+      where: { barn: { farmId } },
+      include: {
+        placements: {
+          where: { endedAt: null },
+          include: { batch: { select: { headcount: true } } }
+        }
+      },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }]
+    });
+
+    const scored = pens.map((pen) => {
+      let occupancy = 0;
+      for (const pl of pen.placements) {
+        if (pl.animalId) {
+          occupancy += 1;
+        } else if (pl.batch) {
+          occupancy += pl.batch.headcount;
+        }
+      }
+      const capacity = pen.capacity ?? 0;
+      const free =
+        capacity > 0 ? Math.max(0, capacity - occupancy) : Number.MAX_SAFE_INTEGER;
+      const fits = capacity <= 0 || free >= headcount;
+      return { id: pen.id, occupancy, fits, free };
+    });
+
+    const emptyFit = scored.find((p) => p.occupancy === 0 && p.fits);
+    if (emptyFit) {
+      return emptyFit.id;
+    }
+    const anyFit = scored.find((p) => p.fits);
+    return anyFit?.id ?? null;
+  }
+
   async recordLitter(
     user: User,
     gestationId: string,
@@ -617,6 +669,8 @@ export class GestationService {
     const neonatalDeaths = stillborn + mummified;
 
     const batchName = `Portée ${animalLabel(g.sow)} ${actualBirthDate.toISOString().slice(0, 10)}`;
+
+    let starterBatchId: string | null = null;
 
     await this.prisma.$transaction(async (tx) => {
       const batch = await tx.livestockBatch.create({
@@ -699,8 +753,50 @@ export class GestationService {
         });
       }
 
+      starterBatchId = batch.id;
       void litter;
     });
+
+    if (dto.bornAlive > 0 && starterBatchId) {
+      const penId = await this.findPenForLitter(
+        g.farmId,
+        dto.bornAlive,
+        dto.penId
+      );
+      if (penId) {
+        await this.housing.startPlacement(user, g.farmId, penId, {
+          batchId: starterBatchId,
+          note: "Mise bas — portée"
+        });
+
+        if (dto.transferSowWithLitter) {
+          const sowPlacement = await this.prisma.penPlacement.findFirst({
+            where: {
+              animalId: g.sowId,
+              endedAt: null,
+              pen: { barn: { farmId: g.farmId } }
+            },
+            orderBy: { startedAt: "desc" }
+          });
+          if (!sowPlacement || sowPlacement.penId !== penId) {
+            try {
+              await this.housing.moveOccupant(user, g.farmId, {
+                animalId: g.sowId,
+                toPenId: penId,
+                fromPenId: sowPlacement?.penId,
+                note: "Mise bas — avec la portée"
+              });
+            } catch {
+              // Truie sans loge active : première affectation
+              await this.housing.startPlacement(user, g.farmId, penId, {
+                animalId: g.sowId,
+                note: "Mise bas — avec la portée"
+              });
+            }
+          }
+        }
+      }
+    }
 
     await this.refreshAlerts(g.farmId);
     return this.getOne(user, gestationId);

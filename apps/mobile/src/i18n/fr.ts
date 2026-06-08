@@ -2818,8 +2818,22 @@ export const fr = {
     },
     vetAssistance: "Assistance vétérinaire",
     invalidBornAlive: "Nombre de vivants invalide",
+    continueToPen: "Continuer — choisir la loge",
+    back: "Retour",
+    penStepTitle: "Loge de la portée",
+    penStepHint:
+      "Choisissez la loge pour {{count}} porcelet(s) nés vivants. Une loge vide est proposée par défaut si disponible.",
+    penRequired: "Choisissez une loge pour la portée",
+    penFull: "Cette loge n'a pas assez de places pour toute la portée",
+    penCapacityWarn: "La loge sera proche de sa capacité maximale",
+    penFree: "{{count}} place(s) libre(s)",
+    penEmpty: "vide",
+    noPens: "Aucune loge disponible sur cette ferme",
+    transferSowWithLitter: "Transférer la truie dans la même loge",
     litterSuccessTitle: "Mise bas enregistrée",
     litterSuccessBody: "{{count}} porcelet(s) ajouté(s) au cheptel",
+    litterSuccessWithPen:
+      "{{count}} porcelet(s) enregistré(s) et placés dans la loge choisie",
     eventTypes: {
       mating: "Saillie",
       farrowing: "Mise bas",

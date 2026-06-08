@@ -2786,8 +2786,22 @@ export const en = {
     },
     vetAssistance: "Vet assistance",
     invalidBornAlive: "Invalid live count",
+    continueToPen: "Continue — choose pen",
+    back: "Back",
+    penStepTitle: "Litter pen",
+    penStepHint:
+      "Choose a pen for {{count}} live-born piglet(s). An empty pen is suggested when available.",
+    penRequired: "Select a pen for the litter",
+    penFull: "This pen does not have enough space for the whole litter",
+    penCapacityWarn: "The pen will be near maximum capacity",
+    penFree: "{{count}} free slot(s)",
+    penEmpty: "empty",
+    noPens: "No pens available on this farm",
+    transferSowWithLitter: "Move the sow to the same pen",
     litterSuccessTitle: "Farrowing recorded",
     litterSuccessBody: "{{count}} piglet(s) added to herd",
+    litterSuccessWithPen:
+      "{{count}} piglet(s) recorded and placed in the selected pen",
     eventTypes: {
       mating: "Mating",
       farrowing: "Farrowing",
