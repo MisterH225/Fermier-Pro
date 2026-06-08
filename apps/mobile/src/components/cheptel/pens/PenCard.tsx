@@ -37,6 +37,7 @@ type Props = {
   /** stacked = colonne verticale ; grid = 2 cartes par ligne */
   layout?: "stacked" | "grid";
   onPress: () => void;
+  onEditCapacity?: (pen: CheptelPenRowDto) => void;
   onToggleActive: (pen: CheptelPenRowDto, next: boolean) => void;
   onDelete: (pen: CheptelPenRowDto) => void;
   readOnly?: boolean;
@@ -47,6 +48,7 @@ export function PenCard({
   displayName,
   layout = "grid",
   onPress,
+  onEditCapacity,
   onToggleActive,
   onDelete,
   readOnly = false
@@ -199,13 +201,28 @@ export function PenCard({
 
       {!readOnly ? (
         <View style={styles.footer}>
-          <Pressable
-            onPress={onDeletePress}
-            hitSlop={8}
-            accessibilityLabel={t("cheptel.pens.deleteA11y")}
-          >
-            <Ionicons name="trash-outline" size={18} color={mobileColors.textSecondary} />
-          </Pressable>
+          <View style={styles.footerLeft}>
+            {onEditCapacity ? (
+              <Pressable
+                onPress={() => onEditCapacity(pen)}
+                hitSlop={8}
+                accessibilityLabel={t("cheptel.pens.editCapacityA11y")}
+              >
+                <Ionicons
+                  name="create-outline"
+                  size={18}
+                  color={mobileColors.textSecondary}
+                />
+              </Pressable>
+            ) : null}
+            <Pressable
+              onPress={onDeletePress}
+              hitSlop={8}
+              accessibilityLabel={t("cheptel.pens.deleteA11y")}
+            >
+              <Ionicons name="trash-outline" size={18} color={mobileColors.textSecondary} />
+            </Pressable>
+          </View>
           <Switch
             value={pen.isActive}
             onValueChange={(v) => onToggleActive(pen, v)}
@@ -293,5 +310,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginTop: 10
+  },
+  footerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12
   }
 });

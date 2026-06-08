@@ -1390,6 +1390,19 @@ export const en = {
       penName: "Pen name",
       capacity: "Max capacity",
       capacityLine: "{{occ}} / {{cap}} places",
+      editCapacityTitle: "Edit pen capacity",
+      editCapacitySection: "Available slots",
+      editCapacitySave: "Save",
+      editCapacityAction: "Edit",
+      editCapacityA11y: "Edit pen capacity",
+      editCapacityHint:
+        "Leave empty for unlimited capacity. The occupancy gauge uses this value.",
+      editCapacityPlaceholder: "e.g. 15",
+      editCapacityInvalid: "Invalid capacity",
+      editCapacityMissingPen: "Pen not found",
+      editCapacitySuccess: "Capacity updated",
+      editCapacityBelowOccupancy:
+        "Warning: {{occupancy}} subjects are already in this pen (capacity below current occupancy).",
       noAnimals: "No animals in this pen."
     },
     weight: {

@@ -1415,6 +1415,19 @@ export const fr = {
       penName: "Nom de la loge",
       capacity: "Capacité max",
       capacityLine: "{{occ}} / {{cap}} places",
+      editCapacityTitle: "Modifier la capacité",
+      editCapacitySection: "Places disponibles",
+      editCapacitySave: "Enregistrer",
+      editCapacityAction: "Modifier",
+      editCapacityA11y: "Modifier la capacité de la loge",
+      editCapacityHint:
+        "Laissez vide pour une capacité illimitée. La jauge d'occupation utilise ce nombre.",
+      editCapacityPlaceholder: "Ex. 15",
+      editCapacityInvalid: "Capacité invalide",
+      editCapacityMissingPen: "Loge introuvable",
+      editCapacitySuccess: "Capacité mise à jour",
+      editCapacityBelowOccupancy:
+        "Attention : {{occupancy}} sujets sont déjà dans cette loge (capacité inférieure à l'occupation actuelle).",
       noAnimals: "Aucun animal dans cette loge."
     },
     weight: {
