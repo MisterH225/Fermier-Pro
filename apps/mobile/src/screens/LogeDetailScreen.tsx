@@ -21,6 +21,7 @@ import { DiseaseModal } from "../components/shared/DiseaseModal";
 import { TransferModal } from "../components/cheptel/animals/TransferModal";
 import { CreateAnimalModal } from "../components/cheptel/animals/CreateAnimalModal";
 import { BulkAddAnimalsModal } from "../components/cheptel/animals/BulkAddAnimalsModal";
+import { EditPenCapacityModal } from "../components/cheptel/pens/EditPenCapacityModal";
 import { AddWeightModal } from "../components/cheptel/weight/AddWeightModal";
 import { CreateGestationModal } from "../components/shared/CreateGestationModal";
 import { useModal } from "../components/modals/useModal";
@@ -30,7 +31,6 @@ import {
   fetchCheptelPens,
   fetchFarmAnimals,
   fetchPenContents,
-  patchPen,
   patchPenAverages,
   type AnimalListItem,
   type PenAnimalRowDto,
@@ -121,7 +121,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
   const [filter, setFilter] = useState<AnimalFilter>("all");
   const [avgWeight, setAvgWeight] = useState("");
   const [avgAge, setAvgAge] = useState("");
-  const [capacity, setCapacity] = useState("");
+  const [capacityEditOpen, setCapacityEditOpen] = useState(false);
   const [actionAnimal, setActionAnimal] = useState<PenAnimalRowDto | null>(null);
   const [statusAnimal, setStatusAnimal] = useState<AnimalListItem | null>(null);
   const [saleAnimal, setSaleAnimal] = useState<AnimalListItem | null>(null);
@@ -186,37 +186,13 @@ export function LogeDetailScreen({ route, navigation }: Props) {
     if (penMeta?.averageWeightKg != null) {
       setAvgWeight(String(penMeta.averageWeightKg));
     }
-    if (penMeta?.capacity != null) {
-      setCapacity(String(penMeta.capacity));
-    }
     const manual = penAgeData?.averageAgeWeeksManual;
     if (manual != null) {
       setAvgAge(String(manual));
     } else if (penAgeData?.isManual !== true) {
       setAvgAge("");
     }
-  }, [penMeta?.averageWeightKg, penMeta?.capacity, penAgeData?.averageAgeWeeksManual, penAgeData?.isManual]);
-
-  const saveCapacityMut = useMutation({
-    mutationFn: () => {
-      const cap = capacity.trim()
-        ? Number.parseInt(capacity, 10)
-        : null;
-      return patchPen(
-        accessToken!,
-        farmId,
-        penId,
-        {
-          capacity: cap != null && Number.isFinite(cap) ? cap : null
-        },
-        activeProfileId
-      );
-    },
-    onSuccess: () => {
-      void pensQ.refetch();
-      void contentsQ.refetch();
-    }
-  });
+  }, [penMeta?.averageWeightKg, penAgeData?.averageAgeWeeksManual, penAgeData?.isManual]);
 
   const saveAveragesMut = useMutation({
     mutationFn: () => {
@@ -318,13 +294,19 @@ export function LogeDetailScreen({ route, navigation }: Props) {
             {penMeta.occupancy} / {penMeta.capacity || "—"}
           </Text>
           <Text style={styles.infoLab}>{t("cheptel.pens.capacity")}</Text>
-          <TextInput
-            style={styles.input}
-            value={capacity}
-            onChangeText={setCapacity}
-            keyboardType="number-pad"
-            onBlur={() => saveCapacityMut.mutate()}
-          />
+          <View style={styles.capacityRow}>
+            <Text style={styles.infoVal}>
+              {penMeta.capacity > 0 ? penMeta.capacity : "—"}
+            </Text>
+            <Pressable
+              style={styles.editCapBtn}
+              onPress={() => setCapacityEditOpen(true)}
+            >
+              <Text style={styles.editCapBtnText}>
+                {t("cheptel.pens.editCapacityAction")}
+              </Text>
+            </Pressable>
+          </View>
           <Text style={styles.infoLab}>{t("cheptel.pens.avgWeightField")}</Text>
           <TextInput
             style={styles.input}
@@ -681,6 +663,16 @@ export function LogeDetailScreen({ route, navigation }: Props) {
         onCreated={invalidateCheptel}
       />
 
+      <EditPenCapacityModal
+        visible={capacityEditOpen && penMeta != null}
+        pen={penMeta ?? null}
+        farmId={farmId}
+        accessToken={accessToken!}
+        activeProfileId={activeProfileId}
+        onClose={() => setCapacityEditOpen(false)}
+        onSaved={invalidateCheptel}
+      />
+
       <AnimalDetailModal
         visible={Boolean(detailAnimal)}
         animal={detailAnimal}
@@ -735,6 +727,23 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     fontWeight: "600",
     color: mobileColors.textPrimary
+  },
+  capacityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: mobileSpacing.sm
+  },
+  editCapBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: mobileRadius.pill,
+    backgroundColor: mobileColors.accentSoft
+  },
+  editCapBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: mobileColors.accent
   },
   input: {
     borderWidth: 1,

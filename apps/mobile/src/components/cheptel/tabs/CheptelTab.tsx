@@ -62,6 +62,7 @@ import { HighlightWrapper } from "../../common/HighlightWrapper";
 import { PenCard } from "../pens/PenCard";
 
 import { CreateLogeModal } from "../pens/CreateLogeModal";
+import { EditPenCapacityModal } from "../pens/EditPenCapacityModal";
 import { CreateBuildingModal } from "../pens/CreateBuildingModal";
 import { BuildingActionsSheet } from "../pens/BuildingActionsSheet";
 import { DeleteBuildingModal } from "../pens/DeleteBuildingModal";
@@ -242,6 +243,8 @@ export function CheptelTab({
     name: string;
   } | null>(null);
   const [highlightActive, setHighlightActive] = useState(false);
+  const [capacityEditPen, setCapacityEditPen] =
+    useState<CheptelPenRowDto | null>(null);
 
   useEffect(() => {
     if (!highlightPenId) {
@@ -523,6 +526,7 @@ export function CheptelTab({
               displayName={penDisplayLabel(pen)}
               layout={stacked ? "stacked" : "grid"}
               onPress={() => openLoge(pen)}
+              onEditCapacity={(p) => setCapacityEditPen(p)}
               onToggleActive={(p, next) => {
                 if (p.isActive !== next) {
                   toggleMut.mutate({ penId: p.id });
@@ -733,6 +737,16 @@ export function CheptelTab({
         activeProfileId={activeProfileId}
         onClose={() => setCreateBuildingOpen(false)}
         onCreated={invalidatePens}
+      />
+
+      <EditPenCapacityModal
+        visible={capacityEditPen !== null}
+        pen={capacityEditPen}
+        farmId={farmId}
+        accessToken={accessToken}
+        activeProfileId={activeProfileId}
+        onClose={() => setCapacityEditPen(null)}
+        onSaved={invalidatePens}
       />
 
       <CreateLogeModal
