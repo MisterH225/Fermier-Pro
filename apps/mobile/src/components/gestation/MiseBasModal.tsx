@@ -28,7 +28,6 @@ type Props = {
   visible: boolean;
   farmId: string;
   gestationId: string;
-  sowId: string;
   sowLabel: string;
   sowPenId?: string | null;
   accessToken: string;
@@ -43,7 +42,6 @@ export function MiseBasModal({
   visible,
   farmId,
   gestationId,
-  sowId,
   sowLabel,
   sowPenId,
   accessToken,

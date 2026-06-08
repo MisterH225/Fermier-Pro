@@ -610,7 +610,6 @@ export function FarmGestationScreen({ route, navigation }: Props) {
         visible={Boolean(litterTarget)}
         farmId={farmId}
         gestationId={litterTarget?.id ?? ""}
-        sowId={litterTarget?.sowId ?? ""}
         sowLabel={litterTarget?.label ?? ""}
         sowPenId={litterTarget?.sowPenId}
         accessToken={accessToken!}
