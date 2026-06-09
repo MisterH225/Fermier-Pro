@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
   },
   actionTxtAccept: {
     ...mobileTypography.body,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700"
   }
 });

@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   },
   ctaDisabled: { opacity: 0.6 },
   ctaTxt: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700",
     fontSize: 16
   }

@@ -186,13 +186,13 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.md,
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.lg,
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: mobileColors.border
   },
   cardUnread: {
     borderColor: mobileColors.accent,
-    backgroundColor: "#FFFFFF"
+    backgroundColor: mobileColors.background
   },
   iconWrap: {
     width: 40,

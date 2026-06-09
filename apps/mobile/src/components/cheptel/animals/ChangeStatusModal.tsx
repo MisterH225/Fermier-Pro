@@ -191,7 +191,7 @@ export function ChangeStatusModal({
           disabled={saveMut.isPending || status === "sold"}
         >
           {saveMut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.primaryBtnText}>
               {t("cheptel.animals.status.submit")}
@@ -293,5 +293,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.6 },
-  primaryBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
 });

@@ -63,7 +63,7 @@ export function MainTabBar({
   const pillBorder = dark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.06)";
   const pillOverlay = dark ? "rgba(34,34,36,0.28)" : "rgba(255,255,255,0.22)";
   const plusOverlay = dark ? "rgba(45,45,48,0.32)" : "rgba(255,255,255,0.28)";
-  const plusIcon = dark ? "#FFFFFF" : mobileColors.accent;
+  const plusIcon = dark ? mobileColors.onAccent : mobileColors.accent;
   const blurTint = dark ? "dark" : "light";
 
   const ordered = TAB_ORDER.filter((tab) => tabs.includes(tab));

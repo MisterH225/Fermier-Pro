@@ -199,7 +199,7 @@ export function ReconciliationAlertModal({
             onPress={() => mergeMut.mutate()}
           >
             {mergeMut.isPending ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={mobileColors.onAccent} />
             ) : (
               <Text style={styles.primaryTx}>
                 {t("feedStock.reconciliation.mergeBtn")}
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.md,
     alignItems: "center"
   },
-  primaryTx: { color: "#fff", fontWeight: "700" },
+  primaryTx: { color: mobileColors.onAccent, fontWeight: "700" },
   secondaryBtn: {
     borderWidth: 1,
     borderColor: mobileColors.border,

@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   submitDisabled: { opacity: 0.55 },
   submitTx: {
     ...mobileTypography.body,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700"
   },
   loadingTx: {

@@ -188,7 +188,7 @@ export function CreateBuildingModal({
           disabled={saveMut.isPending}
         >
           {saveMut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.primaryTx}>Créer le bâtiment</Text>
           )}
@@ -334,5 +334,5 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center"
   },
-  primaryTx: { color: "#fff", fontWeight: "700" }
+  primaryTx: { color: mobileColors.onAccent, fontWeight: "700" }
 });

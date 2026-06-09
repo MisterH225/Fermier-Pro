@@ -155,7 +155,7 @@ export function ActiveProfileSwitcherModal({
                     <Ionicons
                       name="checkmark-circle"
                       size={24}
-                      color="#fff"
+                      color={mobileColors.onAccent}
                     />
                   ) : (
                     <Ionicons

@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   tasksCta: {
     borderWidth: 2,
     borderColor: mobileColors.accent,
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     marginTop: 4
   },
   cheptelCtaText: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 17,
     fontWeight: "700"
   },

@@ -344,5 +344,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   saveDisabled: { opacity: 0.5 },
-  saveTx: { color: "#fff", fontWeight: "700" }
+  saveTx: { color: mobileColors.onAccent, fontWeight: "700" }
 });

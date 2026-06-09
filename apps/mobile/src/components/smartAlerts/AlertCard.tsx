@@ -79,7 +79,7 @@ export function AlertCard({ alert, navigation, onMarkRead }: AlertCardProps) {
         accessibilityRole="button"
         accessibilityLabel="Marquer comme lu"
       >
-        <Ionicons name="checkmark-done" size={22} color="#fff" />
+        <Ionicons name="checkmark-done" size={22} color={mobileColors.onAccent} />
       </Pressable>
     );
   }, [alert.id, alert.isRead, onMarkRead]);

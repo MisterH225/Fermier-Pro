@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end"
   },
   sheet: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4
   },
   miniBtnText: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 14,
     fontWeight: "600"
   }

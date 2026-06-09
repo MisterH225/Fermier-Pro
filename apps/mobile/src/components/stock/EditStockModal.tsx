@@ -192,7 +192,7 @@ export function EditStockModal({
           onPress={() => saveMut.mutate()}
         >
           {saveMut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.primaryTx}>{t("feedStock.confirm")}</Text>
           )}
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   },
   pillOn: { backgroundColor: mobileColors.accent },
   pillTx: { ...mobileTypography.meta, color: mobileColors.textPrimary },
-  pillTxOn: { color: "#fff", fontWeight: "700" },
+  pillTxOn: { color: mobileColors.onAccent, fontWeight: "700" },
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   primaryBtnDisabled: { opacity: 0.45 },
-  primaryTx: { color: "#fff", fontWeight: "700" },
+  primaryTx: { color: mobileColors.onAccent, fontWeight: "700" },
   deleteBtn: { marginTop: mobileSpacing.lg, paddingVertical: mobileSpacing.md },
   deleteTx: {
     ...mobileTypography.body,

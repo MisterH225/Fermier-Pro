@@ -499,5 +499,5 @@ const styles = StyleSheet.create({
   },
   tagOn: { backgroundColor: mobileColors.accent, borderColor: mobileColors.accent },
   tagTx: { fontSize: 13, color: mobileColors.textSecondary },
-  tagTxOn: { color: "#fff", fontWeight: "600" }
+  tagTxOn: { color: mobileColors.onAccent, fontWeight: "600" }
 });

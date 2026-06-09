@@ -163,7 +163,7 @@ export function BulkVaccineModal({
           onPress={() => mut.mutate()}
         >
           {mut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.saveTx}>{t("health.vaccines.bulkSave")}</Text>
           )}
@@ -292,5 +292,5 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.sm
   },
   saveDisabled: { opacity: 0.5 },
-  saveTx: { color: "#fff", fontWeight: "700" }
+  saveTx: { color: mobileColors.onAccent, fontWeight: "700" }
 });

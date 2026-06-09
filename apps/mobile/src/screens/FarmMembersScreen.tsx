@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   inviteLine: { fontSize: 13, color: "#4a5238", marginBottom: 4 },
   listContent: { padding: 16, paddingBottom: 32 },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 14,
     padding: 14,
     marginBottom: 12,

@@ -95,7 +95,7 @@ export function TreatmentModal({
           onPress={() => saveMut.mutate()}
         >
           {saveMut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.primaryBtnText}>{t("health.treatmentModal.submit")}</Text>
           )}
@@ -153,5 +153,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.5 },
-  primaryBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
 });

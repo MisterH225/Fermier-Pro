@@ -845,5 +845,5 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.sm,
     borderRadius: mobileRadius.sm
   },
-  saveTx: { color: "#fff", fontWeight: "700" }
+  saveTx: { color: mobileColors.onAccent, fontWeight: "700" }
 });

@@ -186,7 +186,7 @@ export function CreateGestationModal({
           disabled={mut.isPending}
         >
           {mut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.btnText}>{t("gestationScreen.save")}</Text>
           )}
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border,
     borderRadius: 10,
     padding: mobileSpacing.sm,
-    backgroundColor: "#fff"
+    backgroundColor: mobileColors.background
   },
   notes: { minHeight: 72, textAlignVertical: "top" },
   pills: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   },
   pillOn: { backgroundColor: mobileColors.accent },
   pillText: { fontSize: 13, color: mobileColors.textPrimary },
-  pillTextOn: { color: "#fff" },
+  pillTextOn: { color: mobileColors.onAccent },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   hint: { fontSize: 12, color: mobileColors.textSecondary },
   readonlySow: {
@@ -327,5 +327,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.6 },
-  btnText: { color: "#fff", fontWeight: "600" }
+  btnText: { color: mobileColors.onAccent, fontWeight: "600" }
 });

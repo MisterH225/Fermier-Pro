@@ -270,5 +270,5 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center"
   },
-  primaryBtnTx: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  primaryBtnTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
 });

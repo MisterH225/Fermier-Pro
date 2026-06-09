@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   },
   emptySub: { fontSize: 14, color: "#6d745b", lineHeight: 20 },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 12,
     padding: 14,
     marginBottom: 12,

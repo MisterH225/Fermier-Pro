@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   },
   periodChipOn: { backgroundColor: mobileColors.accent },
   periodTx: { ...mobileTypography.meta, fontWeight: "600", color: "#495057" },
-  periodTxOn: { color: "#fff" },
+  periodTxOn: { color: mobileColors.onAccent },
   empty: {
     ...mobileTypography.body,
     color: mobileColors.textSecondary,

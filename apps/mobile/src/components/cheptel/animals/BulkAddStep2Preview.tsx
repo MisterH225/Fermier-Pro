@@ -162,7 +162,7 @@ export function BulkAddStep2Preview({
           disabled={isSubmitting}
         >
           {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.primaryBtnTx}>
               {t("cheptel.animals.bulk.confirm", { count: form.count })}
@@ -227,5 +227,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.6 },
-  primaryBtnTx: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  primaryBtnTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
 });

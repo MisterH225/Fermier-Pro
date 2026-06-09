@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
   farmHint: { fontSize: 13, color: mobileColors.textSecondary, marginBottom: 12 },
   block: {
     marginBottom: 14,
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
   },
   muted: { fontSize: 14, color: mobileColors.textSecondary },
   attachRow: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 12,
     padding: 14,
     marginBottom: 10,
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: 15 },
   actionBox: {
     marginBottom: 14,
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
@@ -382,19 +382,19 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   actionBtnDanger: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#c47a6a"
   },
-  actionBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  actionBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 15 },
   actionBtnDangerText: { color: "#a34c24", fontWeight: "700", fontSize: 15 },
   actionBtnDisabled: { opacity: 0.55 },
   editCard: {
     marginBottom: 14,
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
@@ -431,5 +431,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 4
   },
-  saveBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 }
+  saveBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 15 }
 });

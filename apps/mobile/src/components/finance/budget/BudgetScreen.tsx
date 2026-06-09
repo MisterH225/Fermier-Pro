@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.xs,
     borderRadius: 8
   },
-  bannerBtnTx: { color: "#fff", fontWeight: "600" },
+  bannerBtnTx: { color: mobileColors.onAccent, fontWeight: "600" },
   section: {
     ...mobileTypography.cardTitle,
     color: mobileColors.textPrimary,

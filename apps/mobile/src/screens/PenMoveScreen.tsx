@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     marginBottom: 8
   },
   input: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#e8e4d4",
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 12,
     padding: 14,
     marginBottom: 10,

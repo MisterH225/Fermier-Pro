@@ -394,7 +394,7 @@ export function AnimalDetailModal({
       disabled={saveMut.isPending || detailQuery.isPending}
     >
       {saveMut.isPending ? (
-        <ActivityIndicator color="#fff" />
+        <ActivityIndicator color={mobileColors.onAccent} />
       ) : (
         <Text style={styles.primaryBtnText}>
           {t("cheptel.animals.detail.save")}
@@ -433,7 +433,7 @@ export function AnimalDetailModal({
                 />
               )}
               <View style={styles.photoBadge}>
-                <Ionicons name="camera" size={14} color="#fff" />
+                <Ionicons name="camera" size={14} color={mobileColors.onAccent} />
               </View>
             </Pressable>
             <View style={{ flex: 1 }}>
@@ -927,7 +927,7 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.6 },
-  primaryBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 },
   linkBtn: {
     alignSelf: "flex-start",
     marginTop: 6,

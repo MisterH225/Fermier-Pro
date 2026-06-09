@@ -43,6 +43,7 @@ import {
   mobileColors,
   mobileRadius,
   mobileSpacing,
+  mobileStatusSurfaces,
   mobileTypography
 } from "../theme/mobileTheme";
 
@@ -782,9 +783,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: mobileRadius.pill,
-    backgroundColor: "#DCFCE7"
+    backgroundColor: mobileStatusSurfaces.successBg
   },
-  autoBadgeTx: { fontSize: 12, fontWeight: "600", color: "#166534" },
+  autoBadgeTx: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: mobileStatusSurfaces.successText
+  },
   manualBadge: {
     alignSelf: "flex-start",
     marginTop: 8,

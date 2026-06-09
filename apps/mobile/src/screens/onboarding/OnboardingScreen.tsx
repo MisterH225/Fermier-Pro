@@ -163,7 +163,7 @@ export function OnboardingScreen({ onFinished }: Props) {
           disabled={busy || (!isCompletion && !ob.canNext)}
         >
           {busy ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.primaryText}>
               {isCompletion
@@ -231,6 +231,6 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   primaryFull: { flex: 1 },
-  primaryText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  primaryText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 },
   disabled: { opacity: 0.5 }
 });

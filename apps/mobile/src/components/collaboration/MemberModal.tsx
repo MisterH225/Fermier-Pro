@@ -178,7 +178,7 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
               >
                 <View style={[styles.permTick, on && styles.permTickOn]}>
                   {on ? (
-                    <Ionicons name="checkmark" size={14} color="#fff" />
+                    <Ionicons name="checkmark" size={14} color={mobileColors.onAccent} />
                   ) : null}
                 </View>
                 <Text
@@ -248,7 +248,7 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
                   accessibilityRole="button"
                 >
                   {revokeMut.isPending ? (
-                    <ActivityIndicator color="#fff" size="small" />
+                    <ActivityIndicator color={mobileColors.onAccent} size="small" />
                   ) : (
                     <Text style={styles.revokeConfirmTxt}>
                       {t("collab.revokeConfirmAction")}
@@ -438,6 +438,6 @@ const styles = StyleSheet.create({
   revokeConfirmTxt: {
     ...mobileTypography.body,
     fontWeight: "700",
-    color: "#fff"
+    color: mobileColors.onAccent
   }
 });

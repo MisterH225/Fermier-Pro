@@ -115,7 +115,7 @@ export function EditPenCapacityModal({
           disabled={saveMut.isPending}
         >
           {saveMut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.btnText}>{t("cheptel.pens.editCapacitySave")}</Text>
           )}
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border,
     borderRadius: mobileRadius.md,
     padding: mobileSpacing.sm,
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     fontSize: 16
   },
   hint: {
@@ -184,5 +184,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.6 },
-  btnText: { color: "#fff", fontWeight: "600" }
+  btnText: { color: mobileColors.onAccent, fontWeight: "600" }
 });

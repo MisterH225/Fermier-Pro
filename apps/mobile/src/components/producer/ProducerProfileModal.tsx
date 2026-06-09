@@ -370,7 +370,7 @@ export function ProducerProfileModal({
                       accessibilityRole="button"
                       accessibilityLabel={t("producer.changePhotoTitle")}
                     >
-                      <Ionicons name="pencil" size={18} color="#fff" />
+                      <Ionicons name="pencil" size={18} color={mobileColors.onAccent} />
                     </Pressable>
                   </View>
 

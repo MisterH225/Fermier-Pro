@@ -137,7 +137,7 @@ export function CreatePenLogScreen({ route, navigation }: Props) {
           disabled={mutation.isPending}
         >
           {mutation.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.ctaText}>Enregistrer dans le journal</Text>
           )}
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "#e8e4d4",
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     marginRight: 8,
     marginBottom: 8
   },
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   typeChipText: { fontSize: 13, color: "#4a5238" },
   typeChipTextOn: { fontWeight: "700", color: mobileColors.textPrimary },
   input: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#e8e4d4",
@@ -204,5 +204,5 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   ctaDisabled: { opacity: 0.7 },
-  ctaText: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  ctaText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
 });

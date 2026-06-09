@@ -90,7 +90,7 @@ export function EventListItem({ item, onPress }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: mobileColors.background,
     borderRadius: 16,
     padding: mobileSpacing.md,
     marginBottom: mobileSpacing.sm,

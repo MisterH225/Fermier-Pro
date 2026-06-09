@@ -15,7 +15,42 @@ export const mobileColors = {
   /** Texte sur fond accent ou header sombre. */
   onAccent: "#FFFFFF",
   /** Texte tertiaire (adresses, labels discrets). */
-  textTertiary: "#4B513D"
+  textTertiary: "#4B513D",
+  shadow: "#000000"
+} as const;
+
+/** Surfaces et textes pour badges / alertes d'état. */
+export const mobileStatusSurfaces = {
+  successBg: "#DCFCE7",
+  successText: "#166534",
+  warningBg: "#FFF3E0",
+  warningText: "#F57F17",
+  infoBg: "#E3F2FD",
+  infoText: "#1565C0",
+  positiveBg: "#E8F5E9",
+  positiveText: "#2E7D32"
+} as const;
+
+/** Paires bg/accent pour cartes KPI (gestation, dashboards). */
+export const mobileKpiPalette = {
+  gestation: { bg: mobileStatusSurfaces.warningBg, accent: "#FF8C00" },
+  dueSoon: { bg: mobileStatusSurfaces.infoBg, accent: mobileStatusSurfaces.infoText },
+  dueMonth: { bg: "#FFF8E1", accent: mobileStatusSurfaces.warningText },
+  available: { bg: mobileStatusSurfaces.positiveBg, accent: mobileStatusSurfaces.positiveText }
+} as const;
+
+/** CTA primaire plein (boutons accent). */
+export const mobilePrimaryCta = {
+  button: {
+    backgroundColor: mobileColors.accent,
+    alignItems: "center" as const,
+    justifyContent: "center" as const
+  },
+  label: {
+    color: mobileColors.onAccent,
+    fontWeight: "700" as const
+  },
+  spinner: mobileColors.onAccent
 } as const;
 
 export const mobileSpacing = {
@@ -64,7 +99,7 @@ export const mobileTypography = {
 
 export const mobileShadows = {
   card: {
-    shadowColor: "#000",
+    shadowColor: mobileColors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 4,

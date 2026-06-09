@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accent,
     borderRadius: 8
   },
-  smallBtnText: { color: "#fff", fontSize: 12 },
+  smallBtnText: { color: mobileColors.onAccent, fontSize: 12 },
   checkRow: { flexDirection: "row", gap: 8, alignItems: "center" },
   checkLabel: { flex: 1, fontSize: 14 },
   btn: {
@@ -320,5 +320,5 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center"
   },
-  btnText: { color: "#fff", fontWeight: "600" }
+  btnText: { color: mobileColors.onAccent, fontWeight: "600" }
 });

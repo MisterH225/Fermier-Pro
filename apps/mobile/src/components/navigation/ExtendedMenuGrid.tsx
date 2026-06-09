@@ -22,7 +22,7 @@ import { useTranslation } from "react-i18next";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
 
 import { EXTENDED_MENU_ICONS } from "./extendedMenuIcons";
 
@@ -467,7 +467,7 @@ export function ExtendedMenuGrid({
 
             >
 
-              <Ionicons name="close" size={26} color="#FFFFFF" />
+              <Ionicons name="close" size={26} color={mobileColors.onAccent} />
 
             </Pressable>
 

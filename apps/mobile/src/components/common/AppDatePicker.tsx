@@ -484,7 +484,7 @@ const pickerStyles = StyleSheet.create({
   },
   confirmTx: {
     ...mobileTypography.body,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700"
   },
   shortcutScroll: { marginBottom: mobileSpacing.sm },
@@ -526,7 +526,7 @@ const pickerStyles = StyleSheet.create({
     color: mobileColors.textPrimary
   },
   pillTxOn: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700"
   }
 });

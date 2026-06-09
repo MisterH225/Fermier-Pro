@@ -82,7 +82,7 @@ export function HealthRecordFormModal({
             style={styles.saveBtn}
           >
             {saving ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={mobileColors.onAccent} />
             ) : (
               <Text style={styles.saveTx}>{t("health.save")}</Text>
             )}
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.sm,
     borderRadius: mobileRadius.sm
   },
-  saveTx: { color: "#fff", fontWeight: "700" },
+  saveTx: { color: mobileColors.onAccent, fontWeight: "700" },
   mortHint: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary

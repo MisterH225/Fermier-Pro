@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#f2f2f7" },
   content: { padding: mobileSpacing.md, gap: mobileSpacing.sm },
   row: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 12,
     padding: mobileSpacing.md,
     flexDirection: "row",
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.lg
   },
   input: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 10,
     padding: mobileSpacing.md,
     ...mobileTypography.body
@@ -156,5 +156,5 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.md,
     alignItems: "center"
   },
-  addBtnTx: { color: "#fff", fontWeight: "600" }
+  addBtnTx: { color: mobileColors.onAccent, fontWeight: "600" }
 });

@@ -377,7 +377,7 @@ export function ProposalCard(props: ProposalCardProps) {
             disabled={!props.onAcceptCounter || props.acceptCounterLoading}
           >
             {props.acceptCounterLoading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={mobileColors.onAccent} />
             ) : (
               <Text style={styles.btnPrimaryTx}>
                 {t("marketScreen.acceptCounter")}
@@ -405,7 +405,7 @@ export function ProposalCard(props: ProposalCardProps) {
             disabled={!props.onAcceptCounter || props.acceptCounterLoading}
           >
             {props.acceptCounterLoading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={mobileColors.onAccent} />
             ) : (
               <Text style={styles.btnPrimaryTx}>
                 {t("marketScreen.credit.acceptCounter")}
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
     minHeight: 44
   },
   btnPrimary: { backgroundColor: mobileColors.accent },
-  btnPrimaryTx: { color: "#fff", fontWeight: "700" },
+  btnPrimaryTx: { color: mobileColors.onAccent, fontWeight: "700" },
   btnOutline: {
     borderWidth: 1,
     borderColor: mobileColors.accent,

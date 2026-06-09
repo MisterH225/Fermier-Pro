@@ -147,7 +147,7 @@ export function BudgetAIAnalysis({
           onPress={() => applyMut.mutate(selectedItems)}
         >
           {applyMut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.applyTx}>{t("budgetScreen.aiApply")}</Text>
           )}
@@ -209,6 +209,6 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accent,
     alignItems: "center"
   },
-  applyTx: { fontWeight: "700", color: "#fff" },
+  applyTx: { fontWeight: "700", color: mobileColors.onAccent },
   disabled: { opacity: 0.5 }
 });

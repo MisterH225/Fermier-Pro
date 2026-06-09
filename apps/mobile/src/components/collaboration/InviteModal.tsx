@@ -172,7 +172,7 @@ export function InviteModal({ visible, farmId, farmName, onClose }: Props) {
               >
                 <View style={[styles.permTick, on && styles.permTickOn]}>
                   {on ? (
-                    <Ionicons name="checkmark" size={16} color="#fff" />
+                    <Ionicons name="checkmark" size={16} color={mobileColors.onAccent} />
                   ) : null}
                 </View>
                 <View style={styles.permTexts}>

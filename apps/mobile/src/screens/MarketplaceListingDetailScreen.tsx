@@ -787,7 +787,7 @@ const styles = StyleSheet.create({
   },
   heroCatBadgeTx: {
     ...mobileTypography.meta,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700"
   },
   footerBar: {
@@ -912,7 +912,7 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   pickupInput: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderWidth: 1,
     borderColor: "#e0e4d4",
     borderRadius: 12,
@@ -934,7 +934,7 @@ const styles = StyleSheet.create({
     borderRadius: 12
   },
   pickupSaveTxt: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700",
     fontSize: 15
   },
@@ -947,7 +947,7 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   handoverBtnTxt: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700",
     fontSize: 15
   },
@@ -990,7 +990,7 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   input: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderWidth: 1,
     borderColor: "#e0e4d4",
     borderRadius: 12,
@@ -1014,7 +1014,7 @@ const styles = StyleSheet.create({
     opacity: 0.65
   },
   submitText: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700",
     fontSize: 16
   },
@@ -1030,7 +1030,7 @@ const styles = StyleSheet.create({
     lineHeight: 22
   },
   offerCard: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 12,
     padding: 12,
     marginBottom: 10,
@@ -1063,7 +1063,7 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnAcceptTxt: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700",
     fontSize: 13
   },
@@ -1140,7 +1140,7 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   sellerBtnPrimaryTxt: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700",
     fontSize: 16
   },
@@ -1151,7 +1151,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     marginBottom: 10,
-    backgroundColor: "#fff"
+    backgroundColor: mobileColors.background
   },
   sellerBtnSecondaryTxt: {
     color: "#5d7a1f",
@@ -1164,7 +1164,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
-    backgroundColor: "#fff"
+    backgroundColor: mobileColors.background
   },
   sellerBtnDangerTxt: {
     color: "#b00020",

@@ -98,7 +98,7 @@ export function VetProfileModal({
                   disabled={chatMutation.isPending}
                 >
                   {chatMutation.isPending ? (
-                    <ActivityIndicator size="small" color="#fff" />
+                    <ActivityIndicator size="small" color={mobileColors.onAccent} />
                   ) : (
                     <Text style={styles.btnPrimaryTx}>
                       {t("collab.directory.message")}
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center"
   },
-  btnPrimaryTx: { color: "#fff", fontWeight: "700" },
+  btnPrimaryTx: { color: mobileColors.onAccent, fontWeight: "700" },
   btnSecondary: {
     borderWidth: 1,
     borderColor: mobileColors.accent,

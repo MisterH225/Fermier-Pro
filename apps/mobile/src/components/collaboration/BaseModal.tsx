@@ -54,7 +54,7 @@ export function BaseModal({
         accessibilityRole="button"
       >
         {confirmLoading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={mobileColors.onAccent} />
         ) : (
           <Text style={styles.primaryTxt}>{confirmLabel}</Text>
         )}
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   primaryDisabled: { opacity: 0.45 },
   primaryTxt: {
     ...mobileTypography.body,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700"
   }
 });

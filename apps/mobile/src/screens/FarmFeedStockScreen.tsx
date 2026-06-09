@@ -468,7 +468,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
           accessibilityRole="button"
           accessibilityLabel={t("feedStock.editMovement")}
         >
-          <Ionicons name="pencil" size={20} color="#fff" />
+          <Ionicons name="pencil" size={20} color={mobileColors.onAccent} />
           <Text style={styles.swipeEditTx}>{t("feedStock.editMovement")}</Text>
         </Pressable>
       );
@@ -873,7 +873,7 @@ const styles = StyleSheet.create({
     gap: 4
   },
   swipeEditTx: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 11,
     fontWeight: "700",
     textAlign: "center"

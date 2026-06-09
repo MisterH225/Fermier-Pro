@@ -125,7 +125,7 @@ export function ExportPDFButton({
       >
         {busy ? (
           <View style={styles.busyRow}>
-            <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color={mobileColors.onAccent} />
             <Text style={styles.btnTx}>{label}</Text>
           </View>
         ) : (
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
   },
   btnTx: {
     ...mobileTypography.body,
-    color: "#FFFFFF",
+    color: mobileColors.onAccent,
     fontWeight: "800"
   },
   dlBtn: {

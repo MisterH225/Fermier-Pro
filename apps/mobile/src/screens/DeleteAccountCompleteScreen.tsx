@@ -49,7 +49,7 @@ export function DeleteAccountCompleteScreen({ navigation }: Props) {
         disabled={closing}
       >
         {closing ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={mobileColors.onAccent} />
         ) : (
           <Text style={styles.btnTx}>{t("account.deleteAccount.close")}</Text>
         )}
@@ -98,6 +98,6 @@ const styles = StyleSheet.create({
   btnTx: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#fff"
+    color: mobileColors.onAccent
   }
 });

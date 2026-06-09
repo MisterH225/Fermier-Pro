@@ -166,7 +166,7 @@ export function CreateFarmScreen({ navigation }: Props) {
         disabled={mutation.isPending}
       >
         {mutation.isPending ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={mobileColors.onAccent} />
         ) : (
           <Text style={styles.submitText}>Créer la ferme</Text>
         )}
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     opacity: 0.7
   },
   submitText: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 17,
     fontWeight: "700"
   }

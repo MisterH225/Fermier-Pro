@@ -39,6 +39,6 @@ const styles = StyleSheet.create({
   group: {
     borderRadius: 12,
     overflow: "hidden",
-    backgroundColor: "#fff"
+    backgroundColor: mobileColors.background
   }
 });

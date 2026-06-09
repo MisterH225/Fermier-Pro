@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "#d4dac8",
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     fontSize: 16,
     color: mobileColors.textPrimary
   },
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     padding: 24
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,

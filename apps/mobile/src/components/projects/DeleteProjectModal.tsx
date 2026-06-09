@@ -141,7 +141,7 @@ export function DeleteProjectModal({
                 onPress={handleConfirm}
                 disabled={!nameMatches || loading}
               >
-                <Ionicons name="trash" size={18} color="#fff" />
+                <Ionicons name="trash" size={18} color={mobileColors.onAccent} />
                 <Text style={styles.deleteText}>
                   {loading ? "..." : "Supprimer définitivement"}
                 </Text>
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
   continueText: {
     ...mobileTypography.body,
     fontWeight: "600",
-    color: "#fff"
+    color: mobileColors.onAccent
   },
   deleteBtn: {
     flex: 2,
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   deleteText: {
     ...mobileTypography.body,
     fontWeight: "600",
-    color: "#fff"
+    color: mobileColors.onAccent
   },
   btnDisabled: {
     opacity: 0.5

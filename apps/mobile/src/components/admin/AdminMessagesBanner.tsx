@@ -50,7 +50,7 @@ export function AdminMessagesBanner() {
         accessibilityLabel={t("adminMessages.bannerA11y", "Voir les messages admin")}
       >
         <View style={styles.iconBox}>
-          <Ionicons name="megaphone" size={20} color="#fff" />
+          <Ionicons name="megaphone" size={20} color={mobileColors.onAccent} />
         </View>
         <View style={styles.txCol}>
           <Text style={styles.title} numberOfLines={1}>
@@ -62,7 +62,7 @@ export function AdminMessagesBanner() {
               : t("adminMessages.bannerOne", "1 nouveau message — appuyez pour ouvrir")}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color="#fff" />
+        <Ionicons name="chevron-forward" size={20} color={mobileColors.onAccent} />
       </Pressable>
       <AdminMessagesModal visible={open} onClose={() => setOpen(false)} />
     </>
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   txCol: { flex: 1, minWidth: 0 },
   title: {
     ...mobileTypography.body,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700"
   },
   body: {

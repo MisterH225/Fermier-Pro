@@ -143,7 +143,7 @@ export function TasksScreen({ route, navigation }: Props) {
                 accessibilityRole="button"
                 accessibilityLabel={t("tasksScreen.createCta")}
               >
-                <Ionicons name="person-add-outline" size={18} color="#fff" />
+                <Ionicons name="person-add-outline" size={18} color={mobileColors.onAccent} />
                 <Text style={styles.addBtnTxt}>{t("collab.addMember")}</Text>
               </Pressable>
             </View>
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   },
   addBtnTxt: {
     ...mobileTypography.meta,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700"
   },
   viewModeRow: {

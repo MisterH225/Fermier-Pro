@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21
   },
-  bodyMine: { color: "#FFFFFF" },
+  bodyMine: { color: mobileColors.onAccent },
   time: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,

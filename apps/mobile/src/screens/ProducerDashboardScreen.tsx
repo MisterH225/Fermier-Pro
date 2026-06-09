@@ -876,7 +876,7 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   badgeUrgentText: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 10,
     fontWeight: "800"
   },

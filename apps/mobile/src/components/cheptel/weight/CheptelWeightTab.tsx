@@ -247,5 +247,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center"
   },
-  fabTx: { color: "#fff", fontSize: 28 }
+  fabTx: { color: mobileColors.onAccent, fontSize: 28 }
 });

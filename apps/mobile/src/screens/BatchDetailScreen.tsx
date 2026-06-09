@@ -647,7 +647,7 @@ const styles = StyleSheet.create({
     opacity: 0.7
   },
   btnText: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700",
     fontSize: 16
   },

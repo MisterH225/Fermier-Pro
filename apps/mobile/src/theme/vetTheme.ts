@@ -13,6 +13,7 @@ export const vetColors = {
   canvas: "#EFF3F9",
   background: "#F5F8FC",
   cardBg: "#FFFFFF",
+  onPrimary: mobileColors.onAccent,
   textPrimary: "#1A1D23",
   textSecondary: "#8B95A8",
   textMuted: "#B0B8C4",

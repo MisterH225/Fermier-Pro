@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   },
   badgeCatTx: {
     ...mobileTypography.meta,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "600",
     fontSize: 11
   },
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   },
   badgeNewTx: {
     ...mobileTypography.meta,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700",
     fontSize: 11
   },
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   },
   badgeOffersTx: {
     ...mobileTypography.meta,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700",
     fontSize: 11
   },
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   },
   badgeSoldTx: {
     ...mobileTypography.meta,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700",
     fontSize: 11
   },
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   },
   badgeExpiredTx: {
     ...mobileTypography.meta,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700",
     fontSize: 11
   },

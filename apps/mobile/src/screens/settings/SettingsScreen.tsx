@@ -708,7 +708,7 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accent
   },
   retryBtnTx: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700"
   },
   toast: {
@@ -722,14 +722,14 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.sm,
     alignItems: "center"
   },
-  toastTx: { color: "#fff", fontWeight: "600" },
+  toastTx: { color: mobileColors.onAccent, fontWeight: "600" },
   saveBtn: {
     backgroundColor: mobileColors.accent,
     borderRadius: 10,
     paddingVertical: mobileSpacing.md,
     alignItems: "center"
   },
-  saveBtnTx: { color: "#fff", fontWeight: "600" },
+  saveBtnTx: { color: mobileColors.onAccent, fontWeight: "600" },
   nameInput: {
     borderWidth: 1,
     borderColor: mobileColors.border,

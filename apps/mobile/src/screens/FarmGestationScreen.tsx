@@ -46,6 +46,7 @@ import { TechReadOnlyBanner } from "../components/technician/TechReadOnlyBanner"
 import type { RootStackParamList } from "../types/navigation";
 import {
   mobileColors,
+  mobileKpiPalette,
   mobileRadius,
   mobileShadows,
   mobileSpacing,
@@ -297,8 +298,8 @@ export function FarmGestationScreen({ route, navigation }: Props) {
               <View style={cheptelKpiGridStyles.half}>
                 <CheptelStyleKpiCard
                   icon="🤰"
-                  bg="#FFF3E0"
-                  accent="#FF8C00"
+                  bg={mobileKpiPalette.gestation.bg}
+                  accent={mobileKpiPalette.gestation.accent}
                   label={t("gestationScreen.kpiActive")}
                   value={String(kpis?.activeGestations ?? 0)}
                 />
@@ -306,8 +307,8 @@ export function FarmGestationScreen({ route, navigation }: Props) {
               <View style={cheptelKpiGridStyles.half}>
                 <CheptelStyleKpiCard
                   icon="⏰"
-                  bg="#E3F2FD"
-                  accent="#1565C0"
+                  bg={mobileKpiPalette.dueSoon.bg}
+                  accent={mobileKpiPalette.dueSoon.accent}
                   label={t("gestationScreen.kpiDue7")}
                   value={String(kpis?.birthsDueIn7Days ?? 0)}
                 />
@@ -315,8 +316,8 @@ export function FarmGestationScreen({ route, navigation }: Props) {
               <View style={cheptelKpiGridStyles.half}>
                 <CheptelStyleKpiCard
                   icon="📅"
-                  bg="#FFF8E1"
-                  accent="#F57F17"
+                  bg={mobileKpiPalette.dueMonth.bg}
+                  accent={mobileKpiPalette.dueMonth.accent}
                   label={t("gestationScreen.kpiDueMonth")}
                   value={String(kpis?.birthsDueThisMonth ?? 0)}
                 />
@@ -324,8 +325,8 @@ export function FarmGestationScreen({ route, navigation }: Props) {
               <View style={cheptelKpiGridStyles.half}>
                 <CheptelStyleKpiCard
                   icon="🐽"
-                  bg="#E8F5E9"
-                  accent="#2E7D32"
+                  bg={mobileKpiPalette.available.bg}
+                  accent={mobileKpiPalette.available.accent}
                   label={t("gestationScreen.kpiAvailable")}
                   value={String(kpis?.sowsAvailableForMating ?? 0)}
                 />
@@ -687,7 +688,7 @@ const styles = StyleSheet.create({
   },
   link: { color: mobileColors.accent, fontWeight: "600" },
   upcomingCard: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.lg,
     ...mobileShadows.card
@@ -699,11 +700,11 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border,
     borderRadius: mobileRadius.md,
     padding: mobileSpacing.sm,
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     marginBottom: mobileSpacing.sm
   },
   planCard: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.lg,
     marginBottom: mobileSpacing.sm,

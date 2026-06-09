@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: mobileSpacing.lg
   },
   skelCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: mobileColors.background,
     borderRadius: 16,
     padding: mobileSpacing.md,
     marginBottom: mobileSpacing.sm

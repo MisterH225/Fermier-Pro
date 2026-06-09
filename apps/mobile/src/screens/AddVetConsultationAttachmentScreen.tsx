@@ -132,7 +132,7 @@ export function AddVetConsultationAttachmentScreen({
           disabled={mutation.isPending}
         >
           {mutation.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.ctaText}>Ajouter la pièce jointe</Text>
           )}
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     marginBottom: 8
   },
   input: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#e8e4d4",
@@ -178,5 +178,5 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   ctaDisabled: { opacity: 0.7 },
-  ctaText: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  ctaText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
 });

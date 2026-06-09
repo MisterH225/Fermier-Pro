@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   barnLine: { fontSize: 14, color: mobileColors.accent, marginBottom: 14 },
   block: {
     marginBottom: 12,
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,

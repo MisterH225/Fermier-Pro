@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2
   },
-  badgeTx: { color: "#fff", fontWeight: "700", fontSize: 12 },
+  badgeTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 12 },
   chips: { flexDirection: "row", gap: mobileSpacing.sm, marginBottom: mobileSpacing.sm },
   chip: {
     paddingHorizontal: mobileSpacing.md,
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   },
   chipOn: { backgroundColor: mobileColors.accent, borderColor: mobileColors.accent },
   chipTx: { ...mobileTypography.meta, color: mobileColors.textSecondary },
-  chipTxOn: { color: "#fff", fontWeight: "700" },
+  chipTxOn: { color: mobileColors.onAccent, fontWeight: "700" },
   empty: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,

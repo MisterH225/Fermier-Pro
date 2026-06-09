@@ -780,13 +780,13 @@ const styles = StyleSheet.create({
     shadowRadius: 5
   },
   newMessagesFabChevron: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 16,
     fontWeight: "700",
     marginTop: 1
   },
   newMessagesFabText: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 14,
     fontWeight: "700"
   },
@@ -795,7 +795,7 @@ const styles = StyleSheet.create({
     height: 22,
     paddingHorizontal: 6,
     borderRadius: 11,
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     alignItems: "center",
     justifyContent: "center"
   },
@@ -853,7 +853,7 @@ const styles = StyleSheet.create({
     borderColor: "#4a6118"
   },
   bubbleOther: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderColor: "#e0e4d4"
   },
   senderName: {
@@ -868,7 +868,7 @@ const styles = StyleSheet.create({
     lineHeight: 22
   },
   msgBodyMine: {
-    color: "#fff"
+    color: mobileColors.onAccent
   },
   msgMeta: {
     marginTop: 6,
@@ -898,7 +898,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "#d4dac8",
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     fontSize: 16,
     color: mobileColors.textPrimary
   },
@@ -912,7 +912,7 @@ const styles = StyleSheet.create({
     opacity: 0.45
   },
   sendBtnText: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700",
     fontSize: 15
   },

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileTypography } from "../../theme/mobileTheme";
 
 export const EXTENDED_MENU_TILE_WIDTH = 58;
 export const EXTENDED_MENU_TILE_HEIGHT = 56;
@@ -33,7 +33,7 @@ export function ExtendedMenuItem({
       style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}
     >
       <View style={styles.iconWrap}>
-        <Ionicons name={icon} size={22} color="#FFFFFF" />
+        <Ionicons name={icon} size={22} color={mobileColors.onAccent} />
         {showBadge ? (
           <View style={styles.badge}>
             <Text style={styles.badgeTx}>
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   badgeTx: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 9,
     fontWeight: "800"
   },

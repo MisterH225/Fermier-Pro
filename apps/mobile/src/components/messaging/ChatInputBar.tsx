@@ -197,13 +197,13 @@ export function ChatInputBar({
           <Image source={{ uri: pendingImage.uri }} style={styles.preview} />
           {pendingImage.analyzing ? (
             <View style={styles.previewOverlay}>
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={mobileColors.onAccent} />
               <Text style={styles.previewOverlayText}>{imageAnalyzingMessage}</Text>
             </View>
           ) : null}
           {!pendingImage.analyzing ? (
             <Pressable style={styles.previewClose} onPress={clearPendingImage} hitSlop={8}>
-              <Ionicons name="close-circle" size={22} color="#fff" />
+              <Ionicons name="close-circle" size={22} color={mobileColors.onAccent} />
             </Pressable>
           ) : null}
         </View>
@@ -241,9 +241,9 @@ export function ChatInputBar({
           hitSlop={8}
         >
           {sending ? (
-            <ActivityIndicator color="#fff" size="small" />
+            <ActivityIndicator color={mobileColors.onAccent} size="small" />
           ) : (
-            <Ionicons name="send" size={18} color="#fff" />
+            <Ionicons name="send" size={18} color={mobileColors.onAccent} />
           )}
         </Pressable>
       </View>
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     gap: 8
   },
   previewOverlayText: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 12,
     fontWeight: "600"
   },

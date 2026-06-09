@@ -793,7 +793,7 @@ const styles = StyleSheet.create({
     borderRadius: 8
   },
   badgeCatTx: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 11,
     fontWeight: "700"
   },
@@ -806,7 +806,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 6
   },
-  badgeNewTx: { color: "#fff", fontSize: 10, fontWeight: "800" },
+  badgeNewTx: { color: mobileColors.onAccent, fontSize: 10, fontWeight: "800" },
   favBtn: {
     position: "absolute",
     right: 8,

@@ -11,6 +11,7 @@ export const buyerColors = {
   canvas: "#FAF7FF",
   background: "#FFFFFF",
   cardBg: "#FFFFFF",
+  onPrimary: mobileColors.onAccent,
   textPrimary: mobileColors.textPrimary,
   textSecondary: mobileColors.textSecondary,
   textMuted: "#B0B8C4",

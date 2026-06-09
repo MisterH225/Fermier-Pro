@@ -182,7 +182,7 @@ export function BudgetSetupModal({
           disabled={busy}
         >
           {saveMut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.saveTx}>{t("budgetScreen.save")}</Text>
           )}
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
   },
   saveTx: {
     ...mobileTypography.body,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "600"
   }
 });

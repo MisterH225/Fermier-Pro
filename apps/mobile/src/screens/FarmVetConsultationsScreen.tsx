@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "#e0e4d4",
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     marginRight: 8
   },
   filterChipOn: {
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   },
   emptySub: { fontSize: 14, color: mobileColors.textSecondary, lineHeight: 20 },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 12,
     padding: 14,
     marginBottom: 12,

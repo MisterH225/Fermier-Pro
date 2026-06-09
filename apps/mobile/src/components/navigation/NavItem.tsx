@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View, useColorScheme } from "react-native";
-import { mobileRadius, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileTypography } from "../../theme/mobileTheme";
 
 type NavItemProps = {
   emoji: string;
@@ -25,8 +25,8 @@ export function NavItem({
   const activeBg = dark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.08)";
   const labelColor = active
     ? dark
-      ? "#FFFFFF"
-      : "#111111"
+      ? mobileColors.onAccent
+      : mobileColors.textPrimary
     : dark
       ? "rgba(255,255,255,0.55)"
       : "rgba(0,0,0,0.45)";

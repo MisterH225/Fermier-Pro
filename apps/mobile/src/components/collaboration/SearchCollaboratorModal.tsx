@@ -260,7 +260,7 @@ export function SearchCollaboratorModal({ visible, farmId, onClose }: Props) {
               accessibilityRole="button"
             >
               {searchMut.isPending ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={mobileColors.onAccent} />
               ) : (
                 <Text style={styles.primaryBtnTxt}>
                   {t("collab.searchByIdentifier.searchAction")}
@@ -407,7 +407,7 @@ export function SearchCollaboratorModal({ visible, farmId, onClose }: Props) {
                   >
                     <View style={[styles.permTick, on && styles.permTickOn]}>
                       {on ? (
-                        <Ionicons name="checkmark" size={16} color="#fff" />
+                        <Ionicons name="checkmark" size={16} color={mobileColors.onAccent} />
                       ) : null}
                     </View>
                     <View style={styles.permTexts}>
@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
   },
   primaryBtnTxt: {
     ...mobileTypography.body,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700"
   },
   errorTxt: {

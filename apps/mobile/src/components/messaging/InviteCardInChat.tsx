@@ -134,6 +134,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: mobileColors.border
   },
-  btnTxAccept: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  btnTxAccept: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 13 },
   btnTxDecline: { color: mobileColors.textPrimary, fontWeight: "600", fontSize: 13 }
 });

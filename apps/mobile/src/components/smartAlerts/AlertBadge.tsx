@@ -35,6 +35,6 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     fontSize: 10,
     fontWeight: "800",
-    color: "#fff"
+    color: mobileColors.onAccent
   }
 });

@@ -291,7 +291,7 @@ export function MiseBasModal({
             disabled={mut.isPending}
           >
             {mut.isPending ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={mobileColors.onAccent} />
             ) : (
               <Text style={styles.btnText}>{primaryLabel}</Text>
             )}
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border,
     borderRadius: 10,
     padding: mobileSpacing.sm,
-    backgroundColor: "#fff"
+    backgroundColor: mobileColors.background
   },
   notes: { minHeight: 64 },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: mobileSpacing.sm,
     marginBottom: 8,
-    backgroundColor: "#fff"
+    backgroundColor: mobileColors.background
   },
   penCardOn: {
     borderColor: mobileColors.accent,
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
   },
   btnFlex: { flex: 1 },
   btnDisabled: { opacity: 0.6 },
-  btnText: { color: "#fff", fontWeight: "600" },
+  btnText: { color: mobileColors.onAccent, fontWeight: "600" },
   btnSecondary: {
     padding: 14,
     borderRadius: 12,

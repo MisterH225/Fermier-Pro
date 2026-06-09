@@ -263,5 +263,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   ctaDisabled: { opacity: 0.55 },
-  ctaTxt: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  ctaTxt: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
 });

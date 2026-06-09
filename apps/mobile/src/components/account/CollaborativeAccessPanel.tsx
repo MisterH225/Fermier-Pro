@@ -124,7 +124,7 @@ export function CollaborativeAccessPanel({ farmId, farmName }: Props) {
             <QRCode
               value={shareUrl}
               size={QR_SIZE}
-              backgroundColor="#FFFFFF"
+              backgroundColor={mobileColors.background}
               color={mobileColors.textPrimary}
             />
           </View>
@@ -186,7 +186,7 @@ export function CollaborativeAccessPanel({ farmId, farmName }: Props) {
           style={[styles.cta, styles.ctaPrimary]}
           accessibilityRole="button"
         >
-          <Ionicons name="person-add-outline" size={18} color="#fff" />
+          <Ionicons name="person-add-outline" size={18} color={mobileColors.onAccent} />
           <Text style={styles.ctaPrimaryTxt}>{t("collab.openShareModal")}</Text>
         </Pressable>
       </View>
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   },
   qrCard: {
     padding: mobileSpacing.md,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: mobileColors.background,
     borderRadius: mobileRadius.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: mobileColors.border
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     fontSize: 14,
     fontWeight: "700",
-    color: "#fff"
+    color: mobileColors.onAccent
   },
   subHint: {
     ...mobileTypography.meta,

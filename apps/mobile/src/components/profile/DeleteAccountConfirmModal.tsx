@@ -120,6 +120,6 @@ const styles = StyleSheet.create({
   deleteTx: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#fff"
+    color: mobileColors.onAccent
   }
 });

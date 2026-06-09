@@ -109,7 +109,7 @@ export function DeleteBuildingModal({
             disabled={deleteMut.isPending}
           >
             {deleteMut.isPending ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={mobileColors.onAccent} />
             ) : (
               <Text style={styles.primaryTx}>Confirmer la suppression</Text>
             )}
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center"
   },
-  primaryTx: { color: "#fff", fontWeight: "700" },
+  primaryTx: { color: mobileColors.onAccent, fontWeight: "700" },
   outlineDanger: {
     borderWidth: 1,
     borderColor: mobileColors.error,

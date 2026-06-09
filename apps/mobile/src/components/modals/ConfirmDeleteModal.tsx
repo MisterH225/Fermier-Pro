@@ -79,7 +79,7 @@ export function ConfirmDeleteModal({
               accessibilityRole="button"
             >
               {busy ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={mobileColors.onAccent} />
               ) : (
                 <Text style={styles.btnDangerTx}>
                   {payload.confirmLabel ?? t("modals.confirmDelete.confirm")}
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.error
   },
   btnDangerTx: {
-    color: "#FFFFFF",
+    color: mobileColors.onAccent,
     fontWeight: "800"
   }
 });

@@ -223,7 +223,7 @@ export function TechProfileEditScreen({ navigation }: Props) {
             </View>
           )}
           <View style={styles.pencilFab}>
-            <Ionicons name="pencil" size={16} color="#fff" />
+            <Ionicons name="pencil" size={16} color={mobileColors.onAccent} />
           </View>
         </Pressable>
         <Text style={styles.photoHint}>{t("tech.profileEdit.changePhoto")}</Text>

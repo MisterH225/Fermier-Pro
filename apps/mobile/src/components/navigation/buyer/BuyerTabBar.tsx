@@ -35,7 +35,7 @@ function NavItem({ icon, iconOutline, label, active, onPress, a11y }: {
     <Pressable accessibilityRole="button" accessibilityLabel={a11y} onPress={onPress} style={({ pressed }) => [styles.hit, pressed && { opacity: 0.9 }]}>
       {active ? (
         <View style={styles.activePill}>
-          <Ionicons name={icon} size={17} color="#fff" />
+          <Ionicons name={icon} size={17} color={buyerColors.onPrimary} />
           <Text style={styles.labelActive} numberOfLines={1}>{label}</Text>
         </View>
       ) : (
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   hit: { flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center", paddingVertical: 4, gap: 2 },
   activePill: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, backgroundColor: buyerColors.primary, paddingHorizontal: 12, paddingVertical: 7, borderRadius: buyerRadius.pill, maxWidth: "100%" },
   label: { ...mobileTypography.meta, fontSize: 9, lineHeight: 11, fontWeight: "600", color: buyerColors.textMuted },
-  labelActive: { ...mobileTypography.meta, fontSize: 11, lineHeight: 13, fontWeight: "700", color: "#fff" },
+  labelActive: { ...mobileTypography.meta, fontSize: 11, lineHeight: 13, fontWeight: "700", color: buyerColors.onPrimary },
   plusOuter: { alignItems: "center", justifyContent: "center", gap: 1, paddingVertical: 4, backgroundColor: buyerColors.cardBg, borderWidth: StyleSheet.hairlineWidth, borderColor: buyerColors.border },
   plusLabel: { ...mobileTypography.meta, fontSize: 9, lineHeight: 11, fontWeight: "600", color: buyerColors.textSecondary }
 });

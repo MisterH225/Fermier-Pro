@@ -64,7 +64,7 @@ function VetNavItem({
     >
       {active ? (
         <View style={styles.activePill}>
-          <Ionicons name={icon} size={17} color="#fff" />
+          <Ionicons name={icon} size={17} color={vetColors.onPrimary} />
           <Text style={styles.labelActive} numberOfLines={1}>
             {label}
           </Text>
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 13,
     fontWeight: "700",
-    color: "#fff"
+    color: vetColors.onPrimary
   },
   plusOuter: {
     alignItems: "center",

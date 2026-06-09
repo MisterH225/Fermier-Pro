@@ -259,7 +259,7 @@ export function SimulationTool({
           disabled={applyMut.isPending}
         >
           {applyMut.isPending ? (
-            <ActivityIndicator color="#fff" size="small" />
+            <ActivityIndicator color={mobileColors.onAccent} size="small" />
           ) : (
             <Text style={styles.btnPrimaryTx}>{t("budgetScreen.simApply")}</Text>
           )}
@@ -347,5 +347,5 @@ const styles = StyleSheet.create({
   },
   btnPrimary: { backgroundColor: mobileColors.accent },
   btnTx: { ...mobileTypography.body, color: mobileColors.textPrimary },
-  btnPrimaryTx: { ...mobileTypography.body, color: "#fff", fontWeight: "600" }
+  btnPrimaryTx: { ...mobileTypography.body, color: mobileColors.onAccent, fontWeight: "600" }
 });

@@ -85,7 +85,7 @@ export function ProducerScheduleVetVisitScreen({ route, navigation }: Props) {
           }
           style={{ paddingHorizontal: 10 }}
         >
-          <Text style={{ color: "#fff", fontWeight: "600" }}>📞</Text>
+          <Text style={{ color: mobileColors.onAccent, fontWeight: "600" }}>📞</Text>
         </Pressable>
       )
     });
@@ -260,7 +260,7 @@ export function ProducerScheduleVetVisitScreen({ route, navigation }: Props) {
           }}
         >
           {scheduleMut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.submitTx}>{t("health.scheduleVet.confirm")}</Text>
           )}
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   dayName: { fontSize: 11, color: mobileColors.textSecondary },
   dayNameActive: { color: "rgba(255,255,255,0.9)" },
   dayNum: { fontSize: 16, fontWeight: "700", color: mobileColors.textPrimary },
-  dayNumActive: { color: "#fff" },
+  dayNumActive: { color: mobileColors.onAccent },
   label: {
     fontWeight: "700",
     color: mobileColors.textPrimary,
@@ -348,6 +348,6 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.md
   },
   submitDisabled: { opacity: 0.5 },
-  submitTx: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  submitTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 },
   error: { color: mobileColors.error }
 });

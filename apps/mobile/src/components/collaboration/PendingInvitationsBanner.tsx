@@ -49,7 +49,7 @@ export function PendingInvitationsBanner() {
         accessibilityLabel={t("collab.pendingInvitations.bannerA11y")}
       >
         <View style={styles.iconBox}>
-          <Ionicons name="mail" size={20} color="#fff" />
+          <Ionicons name="mail" size={20} color={mobileColors.onAccent} />
         </View>
         <View style={styles.txCol}>
           <Text style={styles.title} numberOfLines={1}>
@@ -61,7 +61,7 @@ export function PendingInvitationsBanner() {
               : t("collab.pendingInvitations.bannerOne")}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color="#fff" />
+        <Ionicons name="chevron-forward" size={20} color={mobileColors.onAccent} />
       </Pressable>
       <PendingInvitationsModal
         visible={open}
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   txCol: { flex: 1, minWidth: 0 },
   title: {
     ...mobileTypography.body,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700"
   },
   body: {

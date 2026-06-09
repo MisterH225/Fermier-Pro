@@ -272,7 +272,7 @@ export function StockModal({
             onPress={() => mut.mutate()}
           >
             {mut.isPending ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={mobileColors.onAccent} />
             ) : (
               <Text style={styles.primaryTx}>{t("feedStock.confirm")}</Text>
             )}
@@ -546,7 +546,7 @@ const styles = StyleSheet.create({
   },
   chipOn: { backgroundColor: mobileColors.accent },
   chipTx: { fontWeight: "700", color: mobileColors.textPrimary },
-  chipTxOn: { color: "#fff" },
+  chipTxOn: { color: mobileColors.onAccent },
   fieldLabel: {
     ...mobileTypography.meta,
     fontSize: 13,
@@ -598,6 +598,6 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.sm,
     borderRadius: mobileRadius.md
   },
-  primaryTx: { color: "#fff", fontWeight: "800" },
+  primaryTx: { color: mobileColors.onAccent, fontWeight: "800" },
   err: { color: mobileColors.error }
 });

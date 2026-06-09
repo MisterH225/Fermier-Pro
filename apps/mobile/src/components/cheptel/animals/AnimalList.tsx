@@ -324,5 +324,5 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 }
   },
-  fabText: { color: "#fff", fontSize: 28, fontWeight: "300", marginTop: -2 }
+  fabText: { color: mobileColors.onAccent, fontSize: 28, fontWeight: "300", marginTop: -2 }
 });

@@ -106,7 +106,7 @@ export function ArchiveProjectModal({
             onPress={handleConfirm}
             disabled={loading}
           >
-            <Ionicons name="archive" size={18} color="#fff" />
+            <Ionicons name="archive" size={18} color={mobileColors.onAccent} />
             <Text style={styles.confirmText}>
               {loading ? "..." : "Archiver"}
             </Text>
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   confirmText: {
     ...mobileTypography.body,
     fontWeight: "600",
-    color: "#fff"
+    color: mobileColors.onAccent
   },
   btnDisabled: {
     opacity: 0.6

@@ -227,7 +227,7 @@ export function ProjectSwitcher({
 
       {processing && (
         <View style={styles.processingOverlay}>
-          <ActivityIndicator size="large" color="#fff" />
+          <ActivityIndicator size="large" color={mobileColors.onAccent} />
         </View>
       )}
     </View>
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   createBtnText: {
     ...mobileTypography.body,
     fontWeight: "700",
-    color: "#fff"
+    color: mobileColors.onAccent
   },
   createBtnTextDisabled: {
     color: mobileColors.textSecondary

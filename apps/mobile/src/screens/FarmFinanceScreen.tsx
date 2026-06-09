@@ -1722,7 +1722,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: mobileSpacing.sm
   },
-  primaryBtnTx: { color: "#fff", fontWeight: "800" },
+  primaryBtnTx: { color: mobileColors.onAccent, fontWeight: "800" },
   headerBtn: { marginRight: mobileSpacing.sm },
   headerBtnText: {
     color: mobileColors.accent,

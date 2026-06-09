@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.pill,
     alignItems: "center"
   },
-  acceptTx: { color: "#fff", fontWeight: "700" },
+  acceptTx: { color: mobileColors.onAccent, fontWeight: "700" },
   refuse: {
     flex: 1,
     borderWidth: 1,
