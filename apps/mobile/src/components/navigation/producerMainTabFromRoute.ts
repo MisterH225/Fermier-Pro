@@ -29,10 +29,8 @@ export function producerMainTabFromRoute(
     case "CreateVetConsultation":
     case "AddVetConsultationAttachment":
       return "health";
-    case "Collaboration":
-    case "FarmMembers":
-    case "CreateFarmInvitation":
-      return "collaboration";
+    case "CommunityFeed":
+      return "feed";
     default:
       return null;
   }

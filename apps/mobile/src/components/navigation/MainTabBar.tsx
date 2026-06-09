@@ -18,13 +18,14 @@ type MainTabBarProps = {
   onTabPress: (tab: ProducerMainTab) => void;
   onOpenExtended: () => void;
   financeEnabled: boolean;
+  feedBadgeCount?: number;
 };
 
 const TAB_ORDER: ProducerMainTab[] = [
   "home",
   "cheptel",
   "health",
-  "collaboration",
+  "feed",
   "finance"
 ];
 
@@ -35,7 +36,7 @@ const TAB_META: Record<
   home: { emoji: "🏠", labelKey: "navigation.main.home" },
   cheptel: { emoji: "🐷", labelKey: "navigation.main.cheptel" },
   health: { emoji: "🏥", labelKey: "navigation.main.health" },
-  collaboration: { emoji: "🤝", labelKey: "navigation.main.collaboration" },
+  feed: { emoji: "🌱", labelKey: "navigation.main.feed" },
   finance: { emoji: "💰", labelKey: "navigation.main.finance" }
 };
 
@@ -54,7 +55,8 @@ export function MainTabBar({
   activeTab,
   onTabPress,
   onOpenExtended,
-  financeEnabled
+  financeEnabled,
+  feedBadgeCount = 0
 }: MainTabBarProps) {
   const { t } = useTranslation();
   const scheme = useColorScheme();
@@ -99,6 +101,7 @@ export function MainTabBar({
                 active={activeTab === tab}
                 onPress={() => onTabPress(tab)}
                 accessibilityLabel={t(meta.labelKey)}
+                badgeCount={tab === "feed" ? feedBadgeCount : undefined}
               />
             );
           })}

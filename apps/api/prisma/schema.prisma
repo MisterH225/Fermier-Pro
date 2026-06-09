@@ -152,9 +152,19 @@ model User {
   adminAuditTargets     AdminAuditLog[]      @relation("AdminAuditTarget")
   adminMessagesSent     AdminMessage[]       @relation("AdminMessageSender")
   adminMessagesReceived AdminMessage[]       @relation("AdminMessageRecipient")
+  feedStatus            FeedUserStatus       @default(active)
+  feedSuspensionUntil   DateTime?
+  feedViolationCount    Int                  @default(0)
+  feedViolationLastReset DateTime?
+  communityFeedPosts    CommunityFeedPost[]
+  communityFeedComments CommunityFeedComment[]
+  moderationEvents      ModerationEvent[]
+  sanctionAppeals       SanctionAppeal[]
+  communityFeedReads    CommunityFeedRead[]
 
   @@index([email])
   @@index([accountStatus])
+  @@index([feedStatus])
   @@index([phone])
   @@index([activeFarmId])
 }
@@ -2588,5 +2598,133 @@ model FarmPrediction {
   updatedAt        DateTime @updatedAt
 
   @@index([generatedAt])
+}
+
+enum FeedUserStatus {
+  active
+  warned_1
+  warned_2
+  suspended_7d
+  suspended_30d
+  banned_permanent
+}
+
+enum ModerationSeverity {
+  low
+  medium
+  high
+}
+
+enum SanctionAppealStatus {
+  pending
+  accepted
+  rejected
+}
+
+enum CommunityFeedPostType {
+  question
+  tip
+  observation
+  alert
+  success
+  medical_tip
+  technical_tip
+}
+
+/// Publication communautaire (Feed social — distinct du stock aliments).
+model CommunityFeedPost {
+  id              String                @id @default(cuid())
+  authorUserId    String
+  authorUser      User                  @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  authorProfileId String
+  authorProfileType ProfileType
+  authorDisplayName String?
+  authorRegion    String?
+  postType        CommunityFeedPostType
+  body            String
+  isAnonymous     Boolean               @default(false)
+  isRemoved       Boolean               @default(false)
+  removedReason   String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  comments        CommunityFeedComment[]
+  moderationEvents ModerationEvent[]
+  reads           CommunityFeedRead[]
+
+  @@index([authorUserId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@index([isRemoved])
+}
+
+model CommunityFeedComment {
+  id              String            @id @default(cuid())
+  postId          String
+  post            CommunityFeedPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorUserId    String
+  authorUser      User              @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  authorProfileId String
+  authorProfileType ProfileType
+  authorDisplayName String?
+  authorRegion    String?
+  body            String
+  isAnonymous     Boolean           @default(false)
+  isRemoved       Boolean           @default(false)
+  removedReason   String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  moderationEvents ModerationEvent[]
+
+  @@index([postId, createdAt(sort: Asc)])
+  @@index([authorUserId])
+}
+
+/// Suivi des publications lues (badge Feed).
+model CommunityFeedRead {
+  id        String            @id @default(cuid())
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String
+  post      CommunityFeedPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  readAt    DateTime          @default(now())
+
+  @@unique([userId, postId])
+  @@index([userId])
+}
+
+/// Journal des infractions détectées par l'agent modérateur IA.
+model ModerationEvent {
+  id               String            @id @default(cuid())
+  userId           String
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId           String?
+  post             CommunityFeedPost? @relation(fields: [postId], references: [id], onDelete: SetNull)
+  commentId        String?
+  comment          CommunityFeedComment? @relation(fields: [commentId], references: [id], onDelete: SetNull)
+  violationType    String
+  severity         ModerationSeverity
+  actionTaken      String
+  contentSnapshot  String
+  aiConfidence     Decimal?          @db.Decimal(4, 3)
+  reviewedByAdmin  Boolean           @default(false)
+  createdAt        DateTime          @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([reviewedByAdmin, createdAt(sort: Desc)])
+}
+
+/// Contestation d'une sanction Feed.
+model SanctionAppeal {
+  id             String               @id @default(cuid())
+  userId         String
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sanctionLevel  Int
+  appealMessage  String
+  status         SanctionAppealStatus @default(pending)
+  adminResponse  String?
+  createdAt      DateTime             @default(now())
+  resolvedAt     DateTime?
+
+  @@index([userId, status])
+  @@index([status, createdAt(sort: Desc)])
 }
 

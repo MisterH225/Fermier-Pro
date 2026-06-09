@@ -863,3 +863,75 @@ export function fetchAuditLogs(
     token
   );
 }
+
+export type FeedModerationEventDto = {
+  id: string;
+  userId: string;
+  userEmail: string | null;
+  userName: string | null;
+  postId: string | null;
+  commentId: string | null;
+  violationType: string;
+  severity: string;
+  actionTaken: string;
+  contentSnapshot: string;
+  aiConfidence: number | null;
+  reviewedByAdmin: boolean;
+  createdAt: string;
+};
+
+export type FeedSanctionedUserDto = {
+  id: string;
+  email: string | null;
+  fullName: string | null;
+  feedStatus: string;
+  feedSuspensionUntil: string | null;
+  feedViolationCount: number;
+};
+
+export type FeedAppealDto = {
+  id: string;
+  userId: string;
+  userEmail: string | null;
+  userName: string | null;
+  feedStatus: string;
+  sanctionLevel: number;
+  appealMessage: string;
+  status: string;
+  adminResponse: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+};
+
+export function fetchFeedModerationEvents(token: string, limit = 50) {
+  return apiFetch<FeedModerationEventDto[]>(
+    `/admin/feed/moderation-events?limit=${limit}`,
+    token
+  );
+}
+
+export function fetchFeedSanctionedUsers(token: string) {
+  return apiFetch<FeedSanctionedUserDto[]>(`/admin/feed/sanctioned-users`, token);
+}
+
+export function fetchFeedAppeals(token: string, status?: string) {
+  const q = status ? `?status=${encodeURIComponent(status)}` : "";
+  return apiFetch<FeedAppealDto[]>(`/admin/feed/appeals${q}`, token);
+}
+
+export function adminUnsanctionFeedUser(token: string, userId: string) {
+  return apiFetch(`/admin/feed/users/${userId}/unsanction`, token, {
+    method: "PATCH"
+  });
+}
+
+export function resolveFeedAppeal(
+  token: string,
+  appealId: string,
+  body: { accepted: boolean; adminResponse: string }
+) {
+  return apiFetch(`/admin/feed/appeals/${appealId}/resolve`, token, {
+    method: "POST",
+    body: JSON.stringify(body)
+  });
+}

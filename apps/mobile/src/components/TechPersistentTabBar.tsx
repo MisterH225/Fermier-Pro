@@ -79,6 +79,11 @@ export function TechPersistentTabBar() {
 
   const extendedItems = useMemo(
     (): { id: ExtendedNavMenuId; label: string; a11y: string }[] => [
+      {
+        id: "communityFeed",
+        label: t("navigation.main.feed"),
+        a11y: t("navigation.main.feed")
+      },
       { id: "vaccinations", label: t("tech.extended.vaccinations"), a11y: t("tech.extended.vaccinations") },
       { id: "weighings", label: t("tech.extended.weighings"), a11y: t("tech.extended.weighings") },
       { id: "feedStock", label: t("tech.extended.feedStock"), a11y: t("tech.extended.feedStock") },
@@ -95,6 +100,9 @@ export function TechPersistentTabBar() {
       const farmName =
         typeof focused?.params?.farmName === "string" ? focused.params.farmName : "—";
       switch (id) {
+        case "communityFeed":
+          navigation.navigate("CommunityFeed");
+          return;
         case "vaccinations":
         case "weighings":
           if (farmId) {

@@ -1108,11 +1108,15 @@ export const en = {
       messages: "Messages",
       finance: "Finance",
       collaboration: "Team",
+      feed: "Feed",
       profile: "Profile"
     },
     extended: {
       menuShort: "Menu",
       openA11y: "More actions",
+      team: "Team",
+      teamDescription: "Manage your collaborators",
+      settings: "Settings",
       nutrition: "Stock",
       nutritionRoadmap:
         "Feed purchases and stock tracking will be available when the stock module is enabled for your farm.",
@@ -1127,6 +1131,7 @@ export const en = {
     },
     screenTitles: {
       feedStock: "Feed stock",
+      communityFeed: "Feed",
       recommendations: "Recommendations",
       reports: "Reports",
       messages: "Messages",

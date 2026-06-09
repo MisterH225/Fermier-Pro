@@ -6,6 +6,7 @@ import { AccountDeletionService } from "./account-deletion.service";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { OptionalActiveProfileGuard } from "./guards/optional-active-profile.guard";
+import { ActiveProfileGuard } from "./guards/active-profile.guard";
 import { ProducerProfileGuard } from "./guards/producer-profile.guard";
 import { SupabaseAdminService } from "./supabase-admin.service";
 import { SupabaseJwtGuard } from "./guards/supabase-jwt.guard";
@@ -23,6 +24,7 @@ import { SupabaseJwtGuard } from "./guards/supabase-jwt.guard";
     SupabaseAdminService,
     SupabaseJwtGuard,
     OptionalActiveProfileGuard,
+    ActiveProfileGuard,
     ProducerProfileGuard
   ],
   exports: [
@@ -31,6 +33,7 @@ import { SupabaseJwtGuard } from "./guards/supabase-jwt.guard";
     SupabaseAdminService,
     SupabaseJwtGuard,
     OptionalActiveProfileGuard,
+    ActiveProfileGuard,
     ProducerProfileGuard
   ]
 })
