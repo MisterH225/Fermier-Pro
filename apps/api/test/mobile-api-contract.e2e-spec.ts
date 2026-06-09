@@ -1203,6 +1203,11 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(res.status).toBe(200);
     expect(typeof res.body.sufficient_data).toBe("boolean");
     expect(typeof res.body.days_of_data).toBe("number");
+    if (!process.env.GEMINI_API_KEY?.trim()) {
+      expect(res.body.unavailable === true || res.body.predictions == null).toBe(
+        true
+      );
+    }
   });
 
   it("GET /farms/:id/predictions/cheptel — slice menu cheptel", async () => {

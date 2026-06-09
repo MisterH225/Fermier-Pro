@@ -1,5 +1,4 @@
 import {
-  fetchFarmPredictions,
   fetchFarmPredictionsMenu,
   generateFarmPredictions
 } from "../../lib/api/predictions";
@@ -16,26 +15,42 @@ export type LoadPredictionsParams = {
   forceRefresh?: boolean;
 };
 
-/** Client léger — récupère les prévisions en cache ou force la régénération. */
+/**
+ * Même logique que AIRecommendationService :
+ * - lecture cache serveur (GET)
+ * - génération à la demande (POST) si données suffisantes mais cache vide
+ * - la clé GEMINI_API_KEY est lue côté API via AiGeminiService
+ */
 export async function loadPredictions(
   params: LoadPredictionsParams
 ): Promise<FarmPredictionsResult> {
   const { farmId, menu, accessToken, activeProfileId, forceRefresh } = params;
 
   if (forceRefresh) {
-    return generateFarmPredictions(
-      accessToken,
-      farmId,
-      activeProfileId
-    );
+    return generateFarmPredictions(accessToken, farmId, activeProfileId);
   }
 
-  return fetchFarmPredictionsMenu(
+  const cached = await fetchFarmPredictionsMenu(
     accessToken,
     farmId,
     menu,
     activeProfileId
   );
+
+  if (cached.insufficient_data || cached.unavailable) {
+    return cached;
+  }
+
+  if (cached.predictions) {
+    return cached;
+  }
+
+  // Cache vide : déclencher la génération (comme POST /ai/recommendations)
+  try {
+    return await generateFarmPredictions(accessToken, farmId, activeProfileId);
+  } catch {
+    return cached;
+  }
 }
 
 export async function refreshPredictionsInBackground(
@@ -44,11 +59,7 @@ export async function refreshPredictionsInBackground(
   }
 ): Promise<void> {
   try {
-    const fresh = await fetchFarmPredictions(
-      params.accessToken,
-      params.farmId,
-      params.activeProfileId
-    );
+    const fresh = await loadPredictions({ ...params, forceRefresh: true });
     params.onUpdate?.(fresh);
   } catch {
     /* silencieux — pas de crash */

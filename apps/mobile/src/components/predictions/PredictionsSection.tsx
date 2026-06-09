@@ -88,11 +88,13 @@ export function PredictionsSection({
   }
 
   if (!data.predictions) {
-    if (data.gemini_error) {
+    if (data.unavailable || data.gemini_error) {
       return (
         <ScreenSection title={title} headerRight={headerRight}>
           <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{data.gemini_error}</Text>
+            <Text style={styles.errorText}>
+              {data.gemini_error ?? t("predictions.unavailable")}
+            </Text>
           </View>
         </ScreenSection>
       );

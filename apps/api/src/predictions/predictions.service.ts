@@ -136,7 +136,40 @@ export class PredictionsService {
     }
   }
 
+  /**
+   * Génère les prévisions si le cache est vide — même clé GEMINI_API_KEY que AiService.
+   */
+  private async ensureGeneratedIfNeeded(farmId: string): Promise<void> {
+    if (!this.agent.isConfigured()) {
+      return;
+    }
+    if (this.regenerating.has(farmId)) {
+      return;
+    }
+
+    const collected = await this.collector.collect(farmId);
+    if (collected.days_of_data < PREDICTION_MIN_DAYS) {
+      return;
+    }
+
+    const cached = await this.prisma.farmPrediction.findUnique({
+      where: { farmId }
+    });
+    if (this.parsePayload(cached?.predictionsJson)) {
+      return;
+    }
+
+    this.regenerating.add(farmId);
+    try {
+      await this.generateInternal(farmId);
+    } finally {
+      this.regenerating.delete(farmId);
+    }
+  }
+
   private async buildResult(farmId: string): Promise<FarmPredictionsResult> {
+    await this.ensureGeneratedIfNeeded(farmId);
+
     const [cached, collected] = await Promise.all([
       this.prisma.farmPrediction.findUnique({ where: { farmId } }),
       this.collector.collect(farmId)
@@ -152,16 +185,14 @@ export class PredictionsService {
     const hasPredictions =
       sufficient && payload != null && Object.keys(payload).length > 0;
 
+    const unavailable = sufficient && !this.agent.isConfigured();
     let geminiError: string | null = null;
-    if (
-      sufficient &&
-      !hasPredictions &&
-      this.agent.isConfigured()
-    ) {
+    if (unavailable) {
+      geminiError =
+        "IA indisponible — vérifiez GEMINI_API_KEY côté API.";
+    } else if (sufficient && !hasPredictions) {
       geminiError =
         "Les prévisions n'ont pas pu être calculées. Réessayez plus tard.";
-    } else if (sufficient && !this.agent.isConfigured()) {
-      geminiError = "IA indisponible — vérifiez la configuration Gemini.";
     }
 
     return {
@@ -183,6 +214,7 @@ export class PredictionsService {
             missing: collected.missing
           },
       predictions: hasPredictions ? payload : null,
+      unavailable,
       gemini_error: geminiError,
       currency: collected.currency
     };

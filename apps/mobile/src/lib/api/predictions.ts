@@ -131,6 +131,7 @@ export type FarmPredictionsResult = {
     missing?: { gmq?: boolean; price?: boolean; feed?: boolean };
   };
   predictions: FarmPredictionsPayload | null;
+  unavailable?: boolean;
   gemini_error?: string | null;
   currency?: string;
 };

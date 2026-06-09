@@ -3196,6 +3196,7 @@ export const en = {
     vol: { "1-5": "1-5", "5-20": "5-20", "20-50": "20-50", "50+": "50+" }
   },
   predictions: {
+    unavailable: "AI unavailable — check GEMINI_API_KEY on the API.",
     refresh: "Refresh forecasts",
     generatedAt: "Calculated on {{datetime}}",
     insufficientTitle: "Forecasts in preparation",

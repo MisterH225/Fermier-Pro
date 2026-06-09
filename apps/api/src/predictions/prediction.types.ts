@@ -141,6 +141,8 @@ export type FarmPredictionsResult = {
   sufficient_data: boolean;
   insufficient_data?: InsufficientDataInfo;
   predictions: FarmPredictionsPayload | null;
+  /** Aligné sur `AiService` — true si GEMINI_API_KEY absente côté API. */
+  unavailable?: boolean;
   gemini_error?: string | null;
   currency?: string;
 };
