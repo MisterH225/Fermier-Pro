@@ -13,6 +13,7 @@ import type { User } from "@prisma/client";
 import type { Response } from "express";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
+import { setDeprecatedSuccessor } from "../common/http/deprecation.util";
 import { FarmAccessService } from "../common/farm-access.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { GenerateFarmReportDto } from "./dto/generate-farm-report.dto";
@@ -31,7 +32,15 @@ export class ReportsRootController {
 
   @Post("generate")
   @HttpCode(HttpStatus.CREATED)
-  async generate(@CurrentUser() user: User, @Body() dto: GenerateFarmReportDto) {
+  async generate(
+    @CurrentUser() user: User,
+    @Body() dto: GenerateFarmReportDto,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    setDeprecatedSuccessor(
+      res,
+      `/api/v1/farms/${dto.farmId}/reports/generate`
+    );
     await this.farmAccess.requireFarmScopes(user.id, dto.farmId, [
       FARM_SCOPE.financeRead,
       FARM_SCOPE.livestockRead

@@ -24,6 +24,23 @@ export type HybridIndexPublicDto = {
   data_points_count: number;
 };
 
+/** Réponse API hybride (vide ou remplie). */
+export type HybridIndexPublicResponse = {
+  price_per_kg: number | null;
+  trend: HybridIndexTrend;
+  variation_7d_pct: number | null;
+  calculated_at: string | null;
+  data_points_count: number;
+};
+
+export const EMPTY_HYBRID_INDEX: HybridIndexPublicResponse = {
+  price_per_kg: null,
+  trend: "stable",
+  variation_7d_pct: null,
+  calculated_at: null,
+  data_points_count: 0
+};
+
 export type HybridIndexCalculationResult = {
   indexValue: number | null;
   confirmedCount: number;
@@ -176,6 +193,10 @@ export class MarketplacePigPriceIndexService {
       calculated_at: snapshot.calculatedAt.toISOString(),
       data_points_count: snapshot.confirmedCount + snapshot.listingCount
     };
+  }
+
+  async getPublicIndexOrDefault(): Promise<HybridIndexPublicResponse> {
+    return (await this.getPublicIndex()) ?? EMPTY_HYBRID_INDEX;
   }
 
   async getLastValidSnapshot() {

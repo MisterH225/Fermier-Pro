@@ -45,18 +45,8 @@ export class PigPriceIndexController {
 
   /** Indice hybride anti-manipulation (canonique sous /market). */
   @Get("hybrid")
-  async getHybrid() {
-    const data = await this.hybridIndex.getPublicIndex();
-    if (!data) {
-      return {
-        price_per_kg: null,
-        trend: "stable" as const,
-        variation_7d_pct: null,
-        calculated_at: null,
-        data_points_count: 0
-      };
-    }
-    return data;
+  getHybrid() {
+    return this.hybridIndex.getPublicIndexOrDefault();
   }
 
   /** Agrégat marketplace : indice hybride + ticker + graphique + stats (1 requête). */

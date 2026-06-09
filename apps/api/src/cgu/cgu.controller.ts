@@ -5,8 +5,11 @@ import {
   Get,
   Param,
   Post,
+  Res,
   UseGuards
 } from "@nestjs/common";
+import type { Response } from "express";
+import { setDeprecatedSuccessor } from "../common/http/deprecation.util";
 import type { User } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
@@ -26,11 +29,13 @@ export class CguController {
   @UseGuards(SupabaseJwtGuard)
   async userCguStatus(
     @CurrentUser() user: User,
-    @Param("userId") userId: string
+    @Param("userId") userId: string,
+    @Res({ passthrough: true }) res: Response
   ) {
     if (user.id !== userId) {
       throw new ForbiddenException();
     }
+    setDeprecatedSuccessor(res, "/api/v1/auth/me/cgu-status");
     return this.cgu.getStatusForUser(userId);
   }
 
@@ -39,11 +44,13 @@ export class CguController {
   acceptForUser(
     @CurrentUser() user: User,
     @Param("userId") userId: string,
-    @Body() dto: AcceptCguDto
+    @Body() dto: AcceptCguDto,
+    @Res({ passthrough: true }) res: Response
   ) {
     if (user.id !== userId) {
       throw new ForbiddenException();
     }
+    setDeprecatedSuccessor(res, "/api/v1/auth/me/accept-cgu");
     return this.cgu.acceptCgu(userId, dto.version);
   }
 }

@@ -15,16 +15,6 @@ export class MarketplacePigPriceIndexController {
   @Get()
   async getIndex(@Res({ passthrough: true }) res: Response) {
     setDeprecatedSuccessor(res, "/api/v1/market/pig-price-index/hybrid");
-    const data = await this.index.getPublicIndex();
-    if (!data) {
-      return {
-        price_per_kg: null,
-        trend: "stable" as const,
-        variation_7d_pct: null,
-        calculated_at: null,
-        data_points_count: 0
-      };
-    }
-    return data;
+    return this.index.getPublicIndexOrDefault();
   }
 }

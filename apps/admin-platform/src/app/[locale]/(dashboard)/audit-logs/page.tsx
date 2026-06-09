@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { fetchAuditLogs, type AuditLogItem } from "@/lib/moderation";
+import { fetchAuditLogs, type AuditLogItem } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageSkeleton } from "@/components/layout/PageSkeleton";
 import { Card } from "@/components/ui/card";
