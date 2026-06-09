@@ -12,6 +12,7 @@ import {
 import type { MarketplaceListingListItem } from "../../lib/api";
 import { formatMarketMoney } from "../../lib/formatMoney";
 import { ListingImage } from "./ListingImage";
+import { marketplaceColors } from "../../theme/marketplaceTheme";
 import {
   mobileColors,
   mobileRadius,
@@ -263,7 +264,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: mobileSpacing.sm,
     left: mobileSpacing.sm,
-    backgroundColor: "#D97706",
+    backgroundColor: marketplaceColors.pending,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: mobileRadius.sm,

@@ -1,3 +1,7 @@
+import {
+  chartSemanticColors,
+  feedSeriesColor
+} from "../../theme/chartPalette";
 import { mobileColors } from "../../theme/mobileTheme";
 import type { FarmFeedChartDto } from "../../lib/api";
 import type { SmartChartLine, SmartChartPeriod } from "./SmartChart";
@@ -17,8 +21,6 @@ export type MarketplaceFinanceMonthPoint = {
   blockedFunds?: number;
 };
 
-const MARKETPLACE_PENDING_COLOR = "#D97706";
-
 export function marketplaceSellerFinanceLines(
   months: MarketplaceFinanceMonthPoint[],
   confirmedLabel: string,
@@ -37,7 +39,7 @@ export function marketplaceSellerFinanceLines(
     {
       key: "pendingRevenue",
       label: pendingLabel,
-      color: MARKETPLACE_PENDING_COLOR,
+      color: chartSemanticColors.pending,
       data: months.map((m) => ({
         month: m.month,
         value: Number(m.pendingRevenue ?? 0)
@@ -64,7 +66,7 @@ export function marketplaceBuyerFinanceLines(
     {
       key: "blockedFunds",
       label: pendingLabel,
-      color: MARKETPLACE_PENDING_COLOR,
+      color: chartSemanticColors.pending,
       data: months.map((m) => ({
         month: m.month,
         value: Number(m.blockedFunds ?? 0)
@@ -175,26 +177,7 @@ export function barDataToLine(
   ];
 }
 
-/**
- * Teintes volontairement éloignées (bleu, orange, violet… — pas deux verts).
- * Alignée sur `apps/api/src/feed-stock/feed-type-colors.ts`.
- */
-export const FEED_SERIES_PALETTE = [
-  "#2563EB",
-  "#EA580C",
-  "#7C3AED",
-  "#DC2626",
-  "#0891B2",
-  "#DB2777",
-  "#CA8A04",
-  "#4F46E5",
-  "#0D9488",
-  "#64748B"
-] as const;
-
-export function feedSeriesColor(seriesIndex: number): string {
-  return FEED_SERIES_PALETTE[seriesIndex % FEED_SERIES_PALETTE.length]!;
-}
+export { feedSeriesColor, feedSeriesPalette } from "../../theme/chartPalette";
 
 export function feedChartToLines(chart: FarmFeedChartDto): SmartChartLine[] {
   const series = chart.series ?? [];

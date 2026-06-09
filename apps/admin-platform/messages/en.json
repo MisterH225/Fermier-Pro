@@ -126,6 +126,7 @@
     },
     "empty": "No veterinarians in this tab.",
     "detail": {
+      "pageTitle": "Veterinarian profile",
       "profileTitle": "Profile",
       "fields": {
         "email": "Email",
@@ -147,6 +148,7 @@
     "since": "Since {date}",
     "primaryFarm": "Primary farm",
     "view": "View",
+    "detailPageTitle": "User profile",
     "empty": "No users found.",
     "statusFilters": {
       "all": "All",

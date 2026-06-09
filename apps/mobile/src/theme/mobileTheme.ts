@@ -28,7 +28,8 @@ export const mobileStatusSurfaces = {
   infoBg: "#E3F2FD",
   infoText: "#1565C0",
   positiveBg: "#E8F5E9",
-  positiveText: "#2E7D32"
+  positiveText: "#2E7D32",
+  errorBg: "#FEE2E2"
 } as const;
 
 /** Paires bg/accent pour cartes KPI (gestation, dashboards). */

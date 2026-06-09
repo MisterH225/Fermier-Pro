@@ -62,6 +62,7 @@ import {
   offerStatusLabel
 } from "../lib/marketplaceLabels";
 import { getUserFacingError } from "../lib/userFacingError";
+import { marketplaceColors } from "../theme/marketplaceTheme";
 import {
   mobileColors,
   mobileRadius,
@@ -863,14 +864,14 @@ const styles = StyleSheet.create({
   },
   status: {
     fontSize: 13,
-    color: "#6d745b",
+    color: marketplaceColors.muted,
     marginBottom: 8
   },
   closedBanner: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#6b5420",
-    backgroundColor: "#f0e8d8",
+    color: marketplaceColors.closedText,
+    backgroundColor: marketplaceColors.closedBg,
     padding: 12,
     borderRadius: 12,
     marginBottom: 12,
@@ -879,7 +880,7 @@ const styles = StyleSheet.create({
   offersBadge: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#B45309",
+    color: marketplaceColors.offers,
     marginTop: 4,
     marginBottom: 8
   },
@@ -891,8 +892,8 @@ const styles = StyleSheet.create({
   reservedBanner: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#2d5a6e",
-    backgroundColor: "#e8f4f8",
+    color: marketplaceColors.reservedText,
+    backgroundColor: marketplaceColors.reservedBg,
     padding: 12,
     borderRadius: 12,
     marginBottom: 12,
@@ -900,26 +901,26 @@ const styles = StyleSheet.create({
   },
   hintSmall: {
     fontSize: 12,
-    color: "#6d745b",
+    color: marketplaceColors.muted,
     marginBottom: 8,
     lineHeight: 17
   },
   labelSmall: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#6d745b",
+    color: marketplaceColors.muted,
     marginBottom: 4,
     marginTop: 8
   },
   pickupInput: {
     backgroundColor: mobileColors.background,
     borderWidth: 1,
-    borderColor: "#e0e4d4",
+    borderColor: marketplaceColors.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: "#1f2910"
+    color: marketplaceColors.primaryDark
   },
   pickupNote: {
     minHeight: 72,
@@ -928,7 +929,7 @@ const styles = StyleSheet.create({
   pickupSave: {
     marginTop: 12,
     alignSelf: "flex-start",
-    backgroundColor: "#5d7a1f",
+    backgroundColor: marketplaceColors.primary,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12
@@ -940,7 +941,7 @@ const styles = StyleSheet.create({
   },
   handoverBtn: {
     marginTop: 8,
-    backgroundColor: "#c4a574",
+    backgroundColor: marketplaceColors.handover,
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 12,
@@ -954,18 +955,18 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#5d7a1f",
+    color: marketplaceColors.primary,
     marginBottom: 12
   },
   desc: {
     fontSize: 16,
-    color: "#1f2910",
+    color: marketplaceColors.primaryDark,
     lineHeight: 24,
     marginBottom: 16
   },
   muted: {
     fontSize: 14,
-    color: "#999",
+    color: marketplaceColors.placeholder,
     fontStyle: "italic",
     marginBottom: 16
   },
@@ -973,31 +974,31 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "#e0e4d4"
+    borderTopColor: marketplaceColors.border
   },
   sectionTitle: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#6d745b",
+    color: marketplaceColors.muted,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 8
   },
   hint: {
     fontSize: 12,
-    color: "#6d745b",
+    color: marketplaceColors.muted,
     marginBottom: 6,
     marginTop: 8
   },
   input: {
     backgroundColor: mobileColors.background,
     borderWidth: 1,
-    borderColor: "#e0e4d4",
+    borderColor: marketplaceColors.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#1f2910"
+    color: marketplaceColors.primaryDark
   },
   inputMulti: {
     minHeight: 88,
@@ -1005,7 +1006,7 @@ const styles = StyleSheet.create({
   },
   submit: {
     marginTop: 16,
-    backgroundColor: "#5d7a1f",
+    backgroundColor: marketplaceColors.primary,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center"
@@ -1021,12 +1022,12 @@ const styles = StyleSheet.create({
   note: {
     marginTop: 16,
     fontSize: 13,
-    color: "#8b4513",
+    color: marketplaceColors.note,
     lineHeight: 18
   },
   block: {
     fontSize: 15,
-    color: "#4b513d",
+    color: marketplaceColors.textMuted,
     lineHeight: 22
   },
   offerCard: {
@@ -1035,16 +1036,16 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: "#e0e4d4"
+    borderColor: marketplaceColors.border
   },
   offerBuyer: {
     fontSize: 13,
-    color: "#6d745b",
+    color: marketplaceColors.muted,
     marginTop: 6
   },
   offerMsg: {
     fontSize: 13,
-    color: "#4b513d",
+    color: marketplaceColors.textMuted,
     marginTop: 6,
     fontStyle: "italic"
   },
@@ -1128,12 +1129,12 @@ const styles = StyleSheet.create({
   },
   sellerHint: {
     fontSize: 13,
-    color: "#8b4513",
+    color: marketplaceColors.note,
     marginBottom: 12,
     lineHeight: 18
   },
   sellerBtnPrimary: {
-    backgroundColor: "#5d7a1f",
+    backgroundColor: marketplaceColors.primary,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
@@ -1146,7 +1147,7 @@ const styles = StyleSheet.create({
   },
   sellerBtnSecondary: {
     borderWidth: 2,
-    borderColor: "#5d7a1f",
+    borderColor: marketplaceColors.primary,
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
@@ -1154,20 +1155,20 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.background
   },
   sellerBtnSecondaryTxt: {
-    color: "#5d7a1f",
+    color: marketplaceColors.primary,
     fontWeight: "700",
     fontSize: 15
   },
   sellerBtnDanger: {
     borderWidth: 2,
-    borderColor: "#b00020",
+    borderColor: mobileColors.error,
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
     backgroundColor: mobileColors.background
   },
   sellerBtnDangerTxt: {
-    color: "#b00020",
+    color: mobileColors.error,
     fontWeight: "700",
     fontSize: 15
   },

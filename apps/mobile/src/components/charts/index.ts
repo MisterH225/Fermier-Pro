@@ -17,7 +17,7 @@ export {
   barDataToLine,
   feedChartToLines,
   feedSeriesColor,
-  FEED_SERIES_PALETTE,
+  feedSeriesPalette,
   feedPeriodToChartPeriod,
   chartPeriodToFeedPeriod,
   type FinanceMonthPoint,

@@ -125,6 +125,7 @@
     },
     "empty": "Aucun vétérinaire dans cet onglet.",
     "detail": {
+      "pageTitle": "Fiche vétérinaire",
       "profileTitle": "Profil",
       "fields": {
         "email": "Email",
@@ -146,6 +147,7 @@
     "since": "Depuis {date}",
     "primaryFarm": "Ferme principale",
     "view": "Voir",
+    "detailPageTitle": "Fiche utilisateur",
     "empty": "Aucun utilisateur trouvé.",
     "statusFilters": {
       "all": "Tous",
