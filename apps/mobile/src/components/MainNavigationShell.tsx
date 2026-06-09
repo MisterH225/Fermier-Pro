@@ -104,6 +104,7 @@ import { AccountModerationGate } from "./auth/AccountModerationGate";
 import { OfflineBanner } from "./OfflineBanner";
 import { useSmartAlertPushNavigation } from "../hooks/useSmartAlertPushNavigation";
 import { ExpenseCategoriesScreen } from "../screens/settings/ExpenseCategoriesScreen";
+import { FeedScreen } from "../screens/feed/FeedScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -339,6 +340,11 @@ function MainStack() {
         name="ProducerMessages"
         component={ProducerMessagesScreen}
         options={{ title: st("messages") }}
+      />
+      <Stack.Screen
+        name="CommunityFeed"
+        component={FeedScreen}
+        options={{ title: st("communityFeed") }}
       />
       <Stack.Screen
         name="FarmTasks"

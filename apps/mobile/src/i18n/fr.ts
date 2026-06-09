@@ -1112,11 +1112,15 @@ export const fr = {
       messages: "Messages",
       finance: "Finance",
       collaboration: "Équipe",
+      feed: "Feed",
       profile: "Profil"
     },
     extended: {
       menuShort: "Menu",
       openA11y: "Plus d’actions",
+      team: "Équipe",
+      teamDescription: "Gérer vos collaborateurs",
+      settings: "Paramètres",
       nutrition: "Stock",
       nutritionRoadmap:
         "Le suivi des achats et du stock d’aliments sera disponible lorsque le module stock sera activé pour ta ferme.",
@@ -1131,6 +1135,7 @@ export const fr = {
     },
     screenTitles: {
       feedStock: "Stock aliment",
+      communityFeed: "Feed",
       recommendations: "Recommandations",
       reports: "Rapports",
       messages: "Messages",

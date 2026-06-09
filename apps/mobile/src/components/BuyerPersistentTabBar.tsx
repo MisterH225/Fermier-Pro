@@ -79,6 +79,11 @@ export function BuyerPersistentTabBar() {
 
   const extendedItems = useMemo(
     (): { id: ExtendedNavMenuId; label: string; a11y: string }[] => [
+      {
+        id: "communityFeed",
+        label: t("navigation.main.feed"),
+        a11y: t("navigation.main.feed")
+      },
       { id: "favorites", label: t("buyer.extended.favorites"), a11y: t("buyer.extended.favorites") },
       { id: "priceAlerts", label: t("buyer.extended.priceAlerts"), a11y: t("buyer.extended.priceAlerts") },
       { id: "reviews", label: t("buyer.extended.reviews"), a11y: t("buyer.extended.reviews") },
@@ -91,6 +96,9 @@ export function BuyerPersistentTabBar() {
     (id: ExtendedNavMenuId) => {
       setExtendedOpen(false);
       switch (id) {
+        case "communityFeed":
+          navigation.navigate("CommunityFeed");
+          return;
         case "favorites":
           navigation.navigate("BuyerFavorites");
           return;

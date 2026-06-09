@@ -13,7 +13,8 @@ import {
   Users,
   ClipboardList,
   Store,
-  Calendar
+  Calendar,
+  MessageSquareWarning
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
@@ -27,6 +28,7 @@ const NAV_KEYS = [
   "vets",
   "vetAppointments",
   "users",
+  "feedModeration",
   "auditLogs",
   "map",
   "marketplace",
@@ -46,6 +48,7 @@ const NAV: Array<{
   { href: "/veterinaires", icon: Shield, key: "vets", badgeKey: "pendingVets" },
   { href: "/veterinaires/rendez-vous", icon: Calendar, key: "vetAppointments" },
   { href: "/utilisateurs", icon: Users, key: "users" },
+  { href: "/moderation-feed", icon: MessageSquareWarning, key: "feedModeration" },
   { href: "/audit-logs", icon: ClipboardList, key: "auditLogs" },
   { href: "/carte-sanitaire", icon: Map, key: "map", badgeKey: "activeAlerts" },
   {

@@ -17,6 +17,7 @@ import {
 } from "./navigation";
 import { useSession } from "../context/SessionContext";
 import { fetchFarmTasksPendingCount, fetchFarms } from "../lib/api";
+import { fetchFeedUnreadCount } from "../lib/api/community-feed";
 import { useFarmTasksSocket } from "../hooks/useFarmTasksSocket";
 import { resolveProducerHomeFarm } from "../lib/producerHomeFarm";
 import { mobileSpacing } from "../theme/mobileTheme";
@@ -127,6 +128,15 @@ export function ProducerPersistentTabBar() {
 
   const pendingTasksCount = pendingTasksQ.data?.pendingCount ?? 0;
 
+  const feedUnreadQ = useQuery({
+    queryKey: ["feedUnreadCount", activeProfileId],
+    queryFn: () => fetchFeedUnreadCount(accessToken!, activeProfileId!),
+    enabled: Boolean(accessToken && activeProfileId && isProducer),
+    refetchInterval: 60_000
+  });
+
+  const feedUnreadCount = feedUnreadQ.data?.count ?? 0;
+
   const onTabPress = useCallback(
     (tab: ProducerMainTab) => {
       if (tab === "home") {
@@ -169,15 +179,8 @@ export function ProducerPersistentTabBar() {
         }
         return;
       }
-      if (tab === "collaboration") {
-        if (farmContext) {
-          navigation.navigate("Collaboration", {
-            farmId: farmContext.farmId,
-            farmName: farmContext.farmName
-          });
-        } else {
-          navigation.navigate("FarmList");
-        }
+      if (tab === "feed") {
+        navigation.navigate("CommunityFeed");
       }
     },
     [navigation, farmContext, clientFeatures.finance]
@@ -187,24 +190,19 @@ export function ProducerPersistentTabBar() {
     () =>
       [
         {
-          id: "nutrition" as const,
-          label: t("navigation.extended.nutrition"),
-          a11y: t("navigation.extended.nutrition")
-        },
-        {
-          id: "messages" as const,
-          label: t("navigation.extended.messages"),
-          a11y: t("navigation.extended.messages")
-        },
-        {
-          id: "collaboration" as const,
-          label: t("navigation.extended.collaboration"),
-          a11y: t("navigation.extended.collaboration")
+          id: "team" as const,
+          label: t("navigation.extended.team"),
+          a11y: t("navigation.extended.teamDescription")
         },
         {
           id: "market" as const,
           label: t("navigation.extended.market"),
           a11y: t("navigation.extended.market")
+        },
+        {
+          id: "nutrition" as const,
+          label: t("navigation.extended.nutrition"),
+          a11y: t("navigation.extended.nutrition")
         },
         {
           id: "gestation" as const,
@@ -221,6 +219,11 @@ export function ProducerPersistentTabBar() {
           id: "reports" as const,
           label: t("navigation.extended.reports"),
           a11y: t("navigation.extended.reports")
+        },
+        {
+          id: "settings" as const,
+          label: t("navigation.extended.settings"),
+          a11y: t("navigation.extended.settings")
         }
       ] as const,
     [t, pendingTasksCount]
@@ -231,8 +234,25 @@ export function ProducerPersistentTabBar() {
       setExtendedOpen(false);
       const ctx = farmContext;
       switch (id) {
-        case "messages":
-          navigation.navigate("ProducerMessages");
+        case "team":
+          if (!ctx) {
+            navigation.navigate("FarmList");
+            return;
+          }
+          navigation.navigate("Collaboration", {
+            farmId: ctx.farmId,
+            farmName: ctx.farmName
+          });
+          return;
+        case "settings":
+          if (!ctx) {
+            navigation.navigate("FarmList");
+            return;
+          }
+          navigation.navigate("ProducerFarmSettings", {
+            farmId: ctx.farmId,
+            farmName: ctx.farmName
+          });
           return;
         case "nutrition":
           if (!ctx) {
@@ -247,16 +267,6 @@ export function ProducerPersistentTabBar() {
             return;
           }
           navigation.navigate("FarmFeedStock", {
-            farmId: ctx.farmId,
-            farmName: ctx.farmName
-          });
-          return;
-        case "collaboration":
-          if (!ctx) {
-            navigation.navigate("FarmList");
-            return;
-          }
-          navigation.navigate("Collaboration", {
             farmId: ctx.farmId,
             farmName: ctx.farmName
           });
@@ -320,6 +330,7 @@ export function ProducerPersistentTabBar() {
           onTabPress={onTabPress}
           onOpenExtended={() => setExtendedOpen(true)}
           financeEnabled={financeEnabled}
+          feedBadgeCount={feedUnreadCount}
         />
       </View>
       <ExtendedMenuGrid

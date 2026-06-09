@@ -49,6 +49,7 @@ import { MarketModule } from "./market/market.module";
 import { BuyerProfilesModule } from "./buyer-profiles/buyer-profiles.module";
 import { TechnicianProfilesModule } from "./technician-profiles/technician-profiles.module";
 import { FarmSettingsModule } from "./farm-settings/farm-settings.module";
+import { CommunityFeedModule } from "./community-feed/community-feed.module";
 
 @Module({
   imports: [
@@ -122,7 +123,8 @@ import { FarmSettingsModule } from "./farm-settings/farm-settings.module";
     MarketModule,
     BuyerProfilesModule,
     TechnicianProfilesModule,
-    FarmSettingsModule
+    FarmSettingsModule,
+    CommunityFeedModule
   ],
   controllers: [AppController],
   providers: [

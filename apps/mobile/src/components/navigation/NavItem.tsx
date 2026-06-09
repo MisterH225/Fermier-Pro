@@ -10,6 +10,7 @@ type NavItemProps = {
   label?: string;
   /** Réduit l’empreinte pour une pill basse (hauteur homogène avec le bouton +). */
   dense?: boolean;
+  badgeCount?: number;
 };
 
 export function NavItem({
@@ -18,7 +19,8 @@ export function NavItem({
   onPress,
   accessibilityLabel,
   label,
-  dense
+  dense,
+  badgeCount
 }: NavItemProps) {
   const scheme = useColorScheme();
   const dark = scheme === "dark";
@@ -44,6 +46,13 @@ export function NavItem({
     >
       <View style={[wrap, active && { backgroundColor: activeBg }]}>
         <Text style={[emojiStyle, { opacity: active ? 1 : 0.45 }]}>{emoji}</Text>
+        {badgeCount && badgeCount > 0 ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeTx}>
+              {badgeCount > 99 ? "99+" : String(badgeCount)}
+            </Text>
+          </View>
+        ) : null}
       </View>
       {label ? (
         <Text style={[styles.label, { color: labelColor }]} numberOfLines={1}>
@@ -82,7 +91,26 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: mobileRadius.pill,
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
+    position: "relative"
+  },
+  badge: {
+    position: "absolute",
+    top: -2,
+    right: -6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#E03131",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 3
+  },
+  badgeTx: {
+    color: "#fff",
+    fontSize: 9,
+    fontWeight: "700",
+    lineHeight: 11
   },
   emoji: {
     fontSize: 22,

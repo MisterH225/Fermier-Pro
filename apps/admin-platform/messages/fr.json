@@ -8,6 +8,7 @@
     "vets": "Vétérinaires",
     "vetAppointments": "RDV véto",
     "users": "Utilisateurs",
+    "feedModeration": "Modération Feed",
     "auditLogs": "Journal admin",
     "map": "Carte sanitaire",
     "marketplace": "Marketplace",
@@ -597,5 +598,35 @@
       "txCount": "{kg} kg · {count} tx",
       "deviation": "{price} FCFA/kg · +{pct} %"
     }
+  },
+  "feedModeration": {
+    "title": "Modération Feed",
+    "subtitle": "Infractions détectées par l'IA, utilisateurs sanctionnés et contestations.",
+    "sections": {
+      "events": "Infractions récentes",
+      "sanctioned": "Utilisateurs sanctionnés",
+      "appeals": "Contestations en attente"
+    },
+    "columns": {
+      "date": "Date",
+      "user": "Utilisateur",
+      "type": "Type",
+      "severity": "Gravité",
+      "confidence": "Confiance IA",
+      "status": "Statut",
+      "until": "Fin suspension"
+    },
+    "actions": {
+      "unsanction": "Lever la sanction",
+      "acceptAppeal": "Accepter",
+      "rejectAppeal": "Rejeter"
+    },
+    "empty": {
+      "events": "Aucune infraction enregistrée.",
+      "sanctioned": "Aucun utilisateur sanctionné.",
+      "appeals": "Aucune contestation en attente."
+    },
+    "appealAcceptedDefault": "Votre contestation a été acceptée. Votre accès au Feed est rétabli.",
+    "appealRejectedDefault": "Votre contestation a été examinée et maintenue."
   }
 }

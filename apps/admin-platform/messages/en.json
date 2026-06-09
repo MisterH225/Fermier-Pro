@@ -8,6 +8,7 @@
     "vets": "Veterinarians",
     "vetAppointments": "Vet appointments",
     "users": "Users",
+    "feedModeration": "Feed moderation",
     "auditLogs": "Admin log",
     "map": "Health map",
     "marketplace": "Marketplace",
@@ -579,5 +580,35 @@
       "txCount": "{kg} kg · {count} tx",
       "deviation": "{price} FCFA/kg · +{pct} %"
     }
+  },
+  "feedModeration": {
+    "title": "Feed moderation",
+    "subtitle": "AI-detected violations, sanctioned users, and appeals.",
+    "sections": {
+      "events": "Recent violations",
+      "sanctioned": "Sanctioned users",
+      "appeals": "Pending appeals"
+    },
+    "columns": {
+      "date": "Date",
+      "user": "User",
+      "type": "Type",
+      "severity": "Severity",
+      "confidence": "AI confidence",
+      "status": "Status",
+      "until": "Suspension end"
+    },
+    "actions": {
+      "unsanction": "Lift sanction",
+      "acceptAppeal": "Accept",
+      "rejectAppeal": "Reject"
+    },
+    "empty": {
+      "events": "No violations recorded.",
+      "sanctioned": "No sanctioned users.",
+      "appeals": "No pending appeals."
+    },
+    "appealAcceptedDefault": "Your appeal was accepted. Feed access is restored.",
+    "appealRejectedDefault": "Your appeal was reviewed and upheld."
   }
 }
