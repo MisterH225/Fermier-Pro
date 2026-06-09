@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   adminRecalculateHybridPigPrice,
   adminUnfreezeHybridPigPrice,
@@ -23,6 +24,8 @@ type Props = {
 };
 
 export function HybridPigPriceAdminSection({ token }: Props) {
+  const t = useTranslations("pigPrice.hybrid");
+  const tRoot = useTranslations("pigPrice");
   const [data, setData] = useState<AdminHybridPigPriceDto | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -57,7 +60,7 @@ export function HybridPigPriceAdminSection({ token }: Props) {
   };
 
   if (!data) {
-    return <p className="text-muted-foreground text-sm">…</p>;
+    return <p className="text-muted-foreground text-sm">{tRoot("loading")}</p>;
   }
 
   const chartData = [...data.snapshots]
@@ -72,14 +75,14 @@ export function HybridPigPriceAdminSection({ token }: Props) {
     <div className="space-y-4">
       <Card>
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Indice hybride (anti-manipulation)</CardTitle>
+          <CardTitle className="text-base">{t("title")}</CardTitle>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" disabled={busy} onClick={onRecalculate}>
-              Recalculer
+              {t("recalculate")}
             </Button>
             {data.isFrozen ? (
               <Button size="sm" disabled={busy} onClick={onUnfreeze}>
-                Débloquer
+                {t("unfreeze")}
               </Button>
             ) : null}
           </div>
@@ -92,17 +95,19 @@ export function HybridPigPriceAdminSection({ token }: Props) {
           </p>
           {data.isFrozen ? (
             <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
-              Gelé — {data.freezeReason ?? "circuit breaker"}
+              {t("frozen", {
+                reason: data.freezeReason ?? "circuit breaker"
+              })}
             </p>
           ) : (
-            <p className="text-sm text-muted-foreground">Indice actif</p>
+            <p className="text-sm text-muted-foreground">{t("active")}</p>
           )}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Historique (30 snapshots)</CardTitle>
+          <CardTitle className="text-base">{t("history")}</CardTitle>
         </CardHeader>
         <CardContent className="h-64">
           <ResponsiveContainer width="100%" height="100%">
@@ -119,18 +124,21 @@ export function HybridPigPriceAdminSection({ token }: Props) {
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Annonces signalées (&gt; 30 %)</CardTitle>
+            <CardTitle className="text-base">{t("flagged")}</CardTitle>
           </CardHeader>
           <CardContent className="max-h-64 overflow-y-auto text-sm">
             {data.flaggedListings.length === 0 ? (
-              <p className="text-muted-foreground">Aucune</p>
+              <p className="text-muted-foreground">{t("none")}</p>
             ) : (
               <ul className="space-y-2">
                 {data.flaggedListings.map((f) => (
                   <li key={f.id} className="border-b border-border/40 pb-2">
                     <span className="font-mono text-xs">{f.listingId.slice(0, 10)}…</span>
                     <br />
-                    {Math.round(f.pricePerKg)} FCFA/kg · +{f.deviationPct.toFixed(1)} %
+                    {t("deviation", {
+                      price: Math.round(f.pricePerKg),
+                      pct: f.deviationPct.toFixed(1)
+                    })}
                   </li>
                 ))}
               </ul>
@@ -140,7 +148,7 @@ export function HybridPigPriceAdminSection({ token }: Props) {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Top contributeurs (volume)</CardTitle>
+            <CardTitle className="text-base">{t("contributors")}</CardTitle>
           </CardHeader>
           <CardContent className="text-sm">
             {data.topContributors.length === 0 ? (
@@ -151,7 +159,10 @@ export function HybridPigPriceAdminSection({ token }: Props) {
                   <li key={c.sellerUserId} className="flex justify-between gap-2">
                     <span>{c.sellerName}</span>
                     <span className="text-muted-foreground">
-                      {Math.round(c.volumeKg)} kg · {c.transactionCount} tx
+                      {t("txCount", {
+                        kg: Math.round(c.volumeKg),
+                        count: c.transactionCount
+                      })}
                     </span>
                   </li>
                 ))}

@@ -560,5 +560,42 @@
         "all": "Tout"
       }
     }
+  },
+  "pigPrice": {
+    "loading": "…",
+    "compactTitle": "📊 PigPrice Index",
+    "title": "📊 PigPrice Index — Cours du marché porcin",
+    "subtitle": "Indice calculé depuis les transactions réelles sur la plateforme",
+    "globalView": "Vue globale — Toutes catégories",
+    "marketStats": "Statistiques de marché",
+    "categories": {
+      "porcelet": "🐣 Porcelets",
+      "croissance": "📈 Croissance",
+      "charcutier": "🐷 Charcutier",
+      "reproducteur": "♻️ Reproducteurs"
+    },
+    "table": {
+      "category": "Catégorie",
+      "today": "Aujourd'hui",
+      "var24h": "Var. 24h",
+      "var7d": "Var. 7j",
+      "high30d": "Max 30j",
+      "low30d": "Min 30j",
+      "volume": "Volume"
+    },
+    "tickerItem": "{icon} {label}: {price} FCFA/kg",
+    "hybrid": {
+      "title": "Indice hybride (anti-manipulation)",
+      "recalculate": "Recalculer",
+      "unfreeze": "Débloquer",
+      "frozen": "Gelé — {reason}",
+      "active": "Indice actif",
+      "history": "Historique (30 snapshots)",
+      "flagged": "Annonces signalées (> 30 %)",
+      "none": "Aucune",
+      "contributors": "Top contributeurs (volume)",
+      "txCount": "{kg} kg · {count} tx",
+      "deviation": "{price} FCFA/kg · +{pct} %"
+    }
   }
 }

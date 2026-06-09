@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import {
   Area,
@@ -24,11 +25,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilterPills } from "@/components/layout/FilterPills";
 
 const PERIODS = ["7d", "30d", "3m", "12m"] as const;
-const CATEGORIES = [
-  { key: "porcelet", title: "🐣 Porcelets", color: "#FF6B35" },
-  { key: "croissance", title: "📈 Croissance", color: "#00C9A7" },
-  { key: "charcutier", title: "🐷 Charcutier", color: "#7C3AED" },
-  { key: "reproducteur", title: "♻️ Reproducteurs", color: "#FFB800" }
+const CATEGORY_KEYS = [
+  { key: "porcelet", color: "#FF6B35" },
+  { key: "croissance", color: "#00C9A7" },
+  { key: "charcutier", color: "#7C3AED" },
+  { key: "reproducteur", color: "#FFB800" }
 ] as const;
 
 type Props = {
@@ -37,6 +38,7 @@ type Props = {
 };
 
 export function PigPriceIndexSection({ token, compact = false }: Props) {
+  const t = useTranslations("pigPrice");
   const [period, setPeriod] = useState<(typeof PERIODS)[number]>("30d");
   const [chart, setChart] = useState<AdminPigPriceChartDto | null>(null);
   const [stats, setStats] = useState<AdminPigPriceStatsDto | null>(null);
@@ -48,22 +50,25 @@ export function PigPriceIndexSection({ token, compact = false }: Props) {
       fetchAdminPigPriceChart(token, period, "all"),
       fetchAdminPigPriceStats(token, period),
       fetchAdminPigPriceTicker(token)
-    ]).then(([c, s, t]) => {
+    ]).then(([c, s, tickerRes]) => {
       setChart(c);
       setStats(s);
       setTicker(
-        t.items
-          .map(
-            (i) =>
-              `${i.icon} ${i.label}: ${i.pricePerKg != null ? Math.round(i.pricePerKg) : "—"} FCFA/kg`
+        tickerRes.items
+          .map((i) =>
+            t("tickerItem", {
+              icon: i.icon,
+              label: i.label,
+              price: i.pricePerKg != null ? Math.round(i.pricePerKg) : "—"
+            })
           )
           .join(" · ")
       );
     });
-  }, [token, period]);
+  }, [token, period, t]);
 
   if (!chart) {
-    return <p className="text-muted-foreground text-sm">…</p>;
+    return <p className="text-muted-foreground text-sm">{t("loading")}</p>;
   }
 
   if (compact) {
@@ -72,7 +77,7 @@ export function PigPriceIndexSection({ token, compact = false }: Props) {
     return (
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">📊 PigPrice Index</CardTitle>
+          <CardTitle className="text-base">{t("compactTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground mb-2 truncate">{ticker || "—"}</p>
@@ -113,10 +118,8 @@ export function PigPriceIndexSection({ token, compact = false }: Props) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold">📊 PigPrice Index — Cours du marché porcin</h2>
-          <p className="text-sm text-muted-foreground">
-            Indice calculé depuis les transactions réelles sur la plateforme
-          </p>
+          <h2 className="text-xl font-semibold">{t("title")}</h2>
+          <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
         <FilterPills
           items={[...PERIODS]}
@@ -135,13 +138,15 @@ export function PigPriceIndexSection({ token, compact = false }: Props) {
       ) : (
         <>
           <div className="grid md:grid-cols-2 gap-4">
-            {CATEGORIES.map((cat) => {
+            {CATEGORY_KEYS.map((cat) => {
               const series = chart.series.find((s) => s.key === cat.key);
               const data = series?.points ?? [];
               return (
                 <Card key={cat.key}>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-base">{cat.title}</CardTitle>
+                    <CardTitle className="text-base">
+                      {t(`categories.${cat.key}`)}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="h-56">
                     <ResponsiveContainer width="100%" height="100%">
@@ -174,7 +179,7 @@ export function PigPriceIndexSection({ token, compact = false }: Props) {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Vue globale — Toutes catégories</CardTitle>
+              <CardTitle className="text-base">{t("globalView")}</CardTitle>
             </CardHeader>
             <CardContent className="h-80">
               <ResponsiveContainer width="100%" height="100%">
@@ -184,7 +189,7 @@ export function PigPriceIndexSection({ token, compact = false }: Props) {
                   <YAxis tick={{ fontSize: 10 }} width={48} />
                   <Tooltip />
                   <Legend />
-                  {CATEGORIES.map((cat) => (
+                  {CATEGORY_KEYS.map((cat) => (
                     <Line
                       key={cat.key}
                       type="monotone"
@@ -202,19 +207,19 @@ export function PigPriceIndexSection({ token, compact = false }: Props) {
           {stats ? (
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Statistiques de marché</CardTitle>
+                <CardTitle className="text-base">{t("marketStats")}</CardTitle>
               </CardHeader>
               <CardContent className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-muted-foreground border-b">
-                      <th className="py-2 pr-4">Catégorie</th>
-                      <th className="py-2 pr-4">Aujourd&apos;hui</th>
-                      <th className="py-2 pr-4">Var. 24h</th>
-                      <th className="py-2 pr-4">Var. 7j</th>
-                      <th className="py-2 pr-4">Max 30j</th>
-                      <th className="py-2 pr-4">Min 30j</th>
-                      <th className="py-2">Volume</th>
+                      <th className="py-2 pr-4">{t("table.category")}</th>
+                      <th className="py-2 pr-4">{t("table.today")}</th>
+                      <th className="py-2 pr-4">{t("table.var24h")}</th>
+                      <th className="py-2 pr-4">{t("table.var7d")}</th>
+                      <th className="py-2 pr-4">{t("table.high30d")}</th>
+                      <th className="py-2 pr-4">{t("table.low30d")}</th>
+                      <th className="py-2">{t("table.volume")}</th>
                     </tr>
                   </thead>
                   <tbody>

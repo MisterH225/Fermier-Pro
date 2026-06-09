@@ -74,6 +74,22 @@ export const en = {
     inviteCode: "I have an invitation code",
     createFarmCta: "Create a farm"
   },
+  loginGate: {
+    logoA11y: "Fermier Pro",
+    lead: "Run your farms, herd and daily operations from one place.",
+    envWarn:
+      "Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in apps/mobile/.env to your real Supabase project URL (not the <project-ref> placeholder), then restart Expo with --clear.",
+    redirectTitle: "Redirect URL (Supabase)",
+    redirectBody:
+      "Supabase → Authentication → URL configuration:\n1. Site URL = the exp://… URL above (not localhost).\n2. Redirect URLs = the same URL (+ button).\nGoogle: Providers → Google (Client ID / Secret).",
+    redirectLocalhostWarn:
+      "This URL contains localhost — it will fail on iPhone. Restart Expo on LAN (same Wi‑Fi) and rescan the QR code.",
+    or: "or"
+  },
+  moduleRoadmap: {
+    note:
+      "Matching API routes are already protected by server-side feature flags; this screen prepares full mobile integration."
+  },
   firstConnection: {
     title: "First sign-in",
     subtitle:

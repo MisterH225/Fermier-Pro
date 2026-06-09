@@ -1,3 +1,4 @@
+import { routing } from "@/i18n/routing";
 import { ADMIN_OAUTH_NEXT_COOKIE } from "@/lib/admin-oauth";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
@@ -12,13 +13,14 @@ function loginErrorRedirect(origin: string, locale: string, reason?: string) {
 }
 
 function resolveLocale(next: string | null): string {
-  const match = next?.match(/^\/(en|fr)\//);
-  return match?.[1] ?? "fr";
+  const locales = routing.locales.join("|");
+  const match = next?.match(new RegExp(`^/(${locales})/`));
+  return match?.[1] ?? routing.defaultLocale;
 }
 
 function sanitizeNext(next: string | null): string {
   if (!next || !next.startsWith("/") || next.startsWith("//")) {
-    return "/fr/auth/complete";
+    return `/${routing.defaultLocale}/auth/complete`;
   }
   return next;
 }
