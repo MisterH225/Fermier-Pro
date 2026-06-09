@@ -56,6 +56,48 @@ export const fr = {
       back: "Retour aux CGU"
     }
   },
+  farmListScreen: {
+    addFarm: "+ Ferme",
+    signOut: "Déconnexion",
+    apiHint:
+      "Vérifie EXPO_PUBLIC_API_URL (émulateur : souvent http://10.0.2.2:3000).",
+    welcome: "Bonjour {{name}}",
+    emptyTitle: "Aucune ferme",
+    emptySub:
+      "Crée une ferme avec le bouton « + Ferme » (profil producteur), ou depuis un client API POST /farms. Tu peux aussi parcourir le marché.",
+    cardMode: "{{species}} · mode {{mode}}",
+    headerMessages: "Messages",
+    headerMarket: "Marché",
+    marketBannerTitle: "Voir le marché",
+    marketBannerSub: "Annonces publiées · achat / inspiration",
+    newFarm: "+ Nouvelle ferme",
+    inviteCode: "J'ai un code d'invitation",
+    createFarmCta: "Créer une ferme"
+  },
+  firstConnection: {
+    title: "Première connexion",
+    subtitle:
+      "Choisis ton métier : tu accéderas ensuite à un tableau de bord adapté. Tu pourras ajouter d’autres rôles plus tard depuis ton profil.",
+    continue: "Continuer",
+    signOut: "Utiliser un autre compte",
+    pickProfile: "Choisis un profil pour continuer.",
+    producer: {
+      title: "Producteur",
+      subtitle: "Gérer tes fermes, animaux et équipe."
+    },
+    technician: {
+      title: "Technicien",
+      subtitle: "Suivi terrain et interventions chez les éleveurs."
+    },
+    veterinarian: {
+      title: "Vétérinaire",
+      subtitle: "Consultations, dossiers sanitaires et échanges."
+    },
+    buyer: {
+      title: "Acheteur",
+      subtitle: "Marché, offres et négociations."
+    }
+  },
   onboarding: {
     progress: "Étape {{current}} / {{total}}",
     next: "Suivant",

@@ -1077,18 +1077,6 @@ export function deleteFarmFeedMovement(
   );
 }
 
-export function fetchIncompleteFeedMovements(
-  accessToken: string,
-  farmId: string,
-  activeProfileId?: string | null
-): Promise<FeedStockMovementDto[]> {
-  return apiGetJson<FeedStockMovementDto[]>(
-    `/farms/${farmId}/feed/movements/incomplete`,
-    accessToken,
-    activeProfileId
-  );
-}
-
 export function reconcileFeedMovement(
   accessToken: string,
   farmId: string,
@@ -1384,72 +1372,6 @@ export function fetchFarmCheptelOverview(
     accessToken,
     activeProfileId
   );
-}
-
-export type UpdateFarmCheptelConfigPayload = {
-  livestockMode?: "individual" | "batch" | "hybrid";
-  housingBuildingsCount?: number | null;
-  housingPensPerBuilding?: number | null;
-  housingMaxPigsPerPen?: number | null;
-};
-
-export function updateFarmCheptelConfig(
-  accessToken: string,
-  farmId: string,
-  payload: UpdateFarmCheptelConfigPayload,
-  activeProfileId?: string | null
-): Promise<FarmDto> {
-  return apiPutJson<FarmDto>(
-    `/farms/${farmId}/cheptel-config`,
-    payload,
-    accessToken,
-    activeProfileId
-  );
-}
-
-export type CheptelStatusLogRow = {
-  id: string;
-  farmId: string;
-  entityType: string;
-  entityId: string;
-  oldStatus: string | null;
-  newStatus: string;
-  note: string | null;
-  createdAt: string;
-  recorder: { id: string; fullName: string | null; email: string | null };
-};
-
-export function fetchFarmCheptelStatusLogs(
-  accessToken: string,
-  farmId: string,
-  activeProfileId: string | null | undefined,
-  query?: {
-    from?: string;
-    to?: string;
-    entityType?: string;
-    newStatus?: string;
-    limit?: number;
-  }
-): Promise<CheptelStatusLogRow[]> {
-  const q = new URLSearchParams();
-  if (query?.from) {
-    q.set("from", query.from);
-  }
-  if (query?.to) {
-    q.set("to", query.to);
-  }
-  if (query?.entityType) {
-    q.set("entityType", query.entityType);
-  }
-  if (query?.newStatus) {
-    q.set("newStatus", query.newStatus);
-  }
-  if (query?.limit != null) {
-    q.set("limit", String(query.limit));
-  }
-  const qs = q.toString();
-  const path = `/farms/${farmId}/cheptel/status-logs${qs ? `?${qs}` : ""}`;
-  return apiGetJson<CheptelStatusLogRow[]>(path, accessToken, activeProfileId);
 }
 
 export type PenCategoryKey =
@@ -1854,29 +1776,6 @@ export function sellCheptelAnimal(
 ): Promise<AnimalSaleResultDto> {
   return apiPatchJson<AnimalSaleResultDto>(
     `/farms/${farmId}/cheptel/animals/${animalId}/sell`,
-    payload,
-    accessToken,
-    activeProfileId
-  );
-}
-
-export type UpsertGmqSettingsPayload = {
-  categories: Array<{
-    categoryKey: string;
-    targetGmqGPerDay?: number | null;
-    targetSaleWeightKg?: number | null;
-    alertThresholdGmq?: number | null;
-  }>;
-};
-
-export function putCheptelGmqSettings(
-  accessToken: string,
-  farmId: string,
-  payload: UpsertGmqSettingsPayload,
-  activeProfileId?: string | null
-): Promise<CheptelGmqSummaryDto["settings"]> {
-  return apiPutJson(
-    `/farms/${farmId}/cheptel/gmq/settings`,
     payload,
     accessToken,
     activeProfileId
@@ -2620,18 +2519,6 @@ export function patchVetConsultation(
 }
 
 /** Dashboard accueil producteur — scopes selon endpoint (finance, livestock, health). */
-export type DashboardFinanceMonthPoint = {
-  month: string;
-  expenses: string;
-  revenues: string;
-  currency: "XOF" | string;
-};
-
-export type DashboardFinanceTimeseriesDto = {
-  farmId: string;
-  months: DashboardFinanceMonthPoint[];
-};
-
 export type DashboardGestationItemDto = {
   animalId: string;
   label: string;
@@ -2684,18 +2571,6 @@ export type DashboardFeedStockDto = {
   farmId: string;
   items: DashboardFeedStockItemDto[];
 };
-
-export function fetchDashboardFinanceTimeseries(
-  accessToken: string,
-  farmId: string,
-  activeProfileId?: string | null
-): Promise<DashboardFinanceTimeseriesDto> {
-  return apiGetJson<DashboardFinanceTimeseriesDto>(
-    `/farms/${farmId}/dashboard/finance-timeseries`,
-    accessToken,
-    activeProfileId
-  );
-}
 
 export function fetchDashboardGestations(
   accessToken: string,

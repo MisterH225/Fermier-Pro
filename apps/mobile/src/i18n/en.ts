@@ -56,6 +56,48 @@ export const en = {
       back: "Back to terms"
     }
   },
+  farmListScreen: {
+    addFarm: "+ Farm",
+    signOut: "Sign out",
+    apiHint:
+      "Check EXPO_PUBLIC_API_URL (emulator: often http://10.0.2.2:3000).",
+    welcome: "Hello {{name}}",
+    emptyTitle: "No farms yet",
+    emptySub:
+      "Create a farm with the “+ Farm” button (producer profile), or via API POST /farms. You can also browse the market.",
+    cardMode: "{{species}} · {{mode}} mode",
+    headerMessages: "Messages",
+    headerMarket: "Market",
+    marketBannerTitle: "Browse the market",
+    marketBannerSub: "Published listings · buy / inspiration",
+    newFarm: "+ New farm",
+    inviteCode: "I have an invitation code",
+    createFarmCta: "Create a farm"
+  },
+  firstConnection: {
+    title: "First sign-in",
+    subtitle:
+      "Choose your role: you’ll get a tailored dashboard. You can add more roles later from your profile.",
+    continue: "Continue",
+    signOut: "Use another account",
+    pickProfile: "Choose a profile to continue.",
+    producer: {
+      title: "Producer",
+      subtitle: "Manage your farms, animals and team."
+    },
+    technician: {
+      title: "Technician",
+      subtitle: "Field follow-up and interventions on farms."
+    },
+    veterinarian: {
+      title: "Veterinarian",
+      subtitle: "Consultations, health records and messaging."
+    },
+    buyer: {
+      title: "Buyer",
+      subtitle: "Market, offers and negotiations."
+    }
+  },
   onboarding: {
     progress: "Step {{current}} / {{total}}",
     next: "Next",

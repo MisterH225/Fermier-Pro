@@ -5,6 +5,7 @@ import type {
 } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
 import { useLayoutEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   FlatList,
@@ -35,6 +36,7 @@ const PRODUCER = "producer";
 type Props = NativeStackScreenProps<RootStackParamList, "FarmList">;
 
 export function FarmListScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const stackNavigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const {
@@ -49,8 +51,7 @@ export function FarmListScreen({ navigation }: Props) {
   } = useSession();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const menuFlags = farmDetailMenuVisibility(clientFeatures);
-  const headerSecondaryItems =
-    buildFarmListHeaderSecondaryItems(menuFlags);
+  const headerSecondaryItems = buildFarmListHeaderSecondaryItems(menuFlags, t);
 
   const farmsQuery = useQuery({
     queryKey: ["farms", activeProfileId],
@@ -99,7 +100,9 @@ export function FarmListScreen({ navigation }: Props) {
               style={styles.headerSecondary}
               hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
             >
-              <Text style={styles.headerSecondaryText}>+ Ferme</Text>
+              <Text style={styles.headerSecondaryText}>
+                {t("farmListScreen.addFarm")}
+              </Text>
             </TouchableOpacity>
           ) : null}
           <TouchableOpacity
@@ -107,7 +110,7 @@ export function FarmListScreen({ navigation }: Props) {
             style={styles.headerBtn}
             hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
           >
-            <Text style={styles.headerBtnText}>Déconnexion</Text>
+            <Text style={styles.headerBtnText}>{t("farmListScreen.signOut")}</Text>
           </TouchableOpacity>
         </View>
       )
@@ -120,7 +123,8 @@ export function FarmListScreen({ navigation }: Props) {
     producerProfile,
     stackNavigation,
     menuFlags.marketplace,
-    menuFlags.chat
+    menuFlags.chat,
+    t
   ]);
 
   const displayError = authError || farmsQuery.error;
@@ -146,9 +150,7 @@ export function FarmListScreen({ navigation }: Props) {
     return (
       <View style={styles.centered}>
         <Text style={styles.errorText}>{msg}</Text>
-        <Text style={styles.hint}>
-          Vérifie EXPO_PUBLIC_API_URL (émulateur : souvent http://10.0.2.2:3000).
-        </Text>
+        <Text style={styles.hint}>{t("farmListScreen.apiHint")}</Text>
       </View>
     );
   }
@@ -161,7 +163,7 @@ export function FarmListScreen({ navigation }: Props) {
           <ActivityIndicator size="large" color={mobileColors.accent} />
           {authMe?.user.fullName ? (
             <Text style={styles.welcome}>
-              Bonjour {authMe.user.fullName}
+              {t("farmListScreen.welcome", { name: authMe.user.fullName })}
             </Text>
           ) : null}
         </View>
@@ -172,20 +174,20 @@ export function FarmListScreen({ navigation }: Props) {
   const farms = farmsQuery.data ?? [];
 
   if (farms.length === 0) {
-    const emptyRows = buildFarmListEmptyRows({
-      menu: menuFlags,
-      hasProducerProfile: Boolean(producerProfile)
-    });
+    const emptyRows = buildFarmListEmptyRows(
+      {
+        menu: menuFlags,
+        hasProducerProfile: Boolean(producerProfile)
+      },
+      t
+    );
 
     return (
       <>
         {profileModal}
         <View style={styles.centered}>
-          <Text style={styles.emptyTitle}>Aucune ferme</Text>
-          <Text style={styles.emptySub}>
-            Crée une ferme avec le bouton « + Ferme » (profil producteur), ou
-            depuis un client API POST /farms. Tu peux aussi parcourir le marché.
-          </Text>
+          <Text style={styles.emptyTitle}>{t("farmListScreen.emptyTitle")}</Text>
+          <Text style={styles.emptySub}>{t("farmListScreen.emptySub")}</Text>
           {emptyRows
             .filter((row) => row.visible)
             .map((row) => {
@@ -232,10 +234,13 @@ export function FarmListScreen({ navigation }: Props) {
     );
   }
 
-  const listHeaderRows = buildFarmListListHeaderRows({
-    menu: menuFlags,
-    hasProducerProfile: Boolean(producerProfile)
-  });
+  const listHeaderRows = buildFarmListListHeaderRows(
+    {
+      menu: menuFlags,
+      hasProducerProfile: Boolean(producerProfile)
+    },
+    t
+  );
 
   return (
     <>
@@ -248,7 +253,7 @@ export function FarmListScreen({ navigation }: Props) {
           <>
             {authMe?.user.fullName ? (
               <Text style={styles.listWelcome}>
-                Bonjour {authMe.user.fullName}
+                {t("farmListScreen.welcome", { name: authMe.user.fullName })}
               </Text>
             ) : null}
             {listHeaderRows
@@ -307,7 +312,10 @@ export function FarmListScreen({ navigation }: Props) {
           >
             <Text style={styles.cardTitle}>{item.name}</Text>
             <Text style={styles.cardSub}>
-              {item.speciesFocus} · mode {item.livestockMode}
+              {t("farmListScreen.cardMode", {
+                species: item.speciesFocus,
+                mode: item.livestockMode
+              })}
             </Text>
             {item.address ? (
               <Text style={styles.cardAddr} numberOfLines={2}>
