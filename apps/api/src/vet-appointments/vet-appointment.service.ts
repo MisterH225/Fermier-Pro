@@ -9,6 +9,7 @@ import {
 import { ConfigService } from "@nestjs/config";
 import type { User } from "@prisma/client";
 import {
+  MembershipRole,
   Prisma,
   VetAppointmentFundMovementKind,
   VetAppointmentStatus,
@@ -17,6 +18,7 @@ import {
 import { AUDIT_ACTION } from "../common/audit.constants";
 import { AuditService } from "../common/audit.service";
 import { FarmAccessService } from "../common/farm-access.service";
+import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { PrismaService } from "../prisma/prisma.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import {
@@ -257,6 +259,60 @@ export class VetAppointmentService {
     });
 
     return this.mapRow(row);
+  }
+
+  /** Planification initiée par le vétérinaire connecté (successeur de vet-profiles/me/schedule-visit). */
+  async scheduleFromVetForCurrentUser(
+    user: User,
+    farmId: string,
+    input: {
+      scheduledAt: string;
+      reason: string;
+      notes?: string;
+      servicePrice?: number;
+    }
+  ) {
+    const vetProfile = await this.prisma.vetProfile.findUnique({
+      where: { userId: user.id }
+    });
+    if (!vetProfile) {
+      throw new NotFoundException("Profil vétérinaire non créé");
+    }
+    if (vetProfile.verificationStatus !== VetVerificationStatus.verified) {
+      throw new ForbiddenException(
+        "Profil vétérinaire non vérifié — planification impossible"
+      );
+    }
+
+    const membership = await this.prisma.farmMembership.findFirst({
+      where: {
+        farmId,
+        userId: user.id,
+        role: MembershipRole.veterinarian
+      }
+    });
+    if (!membership) {
+      throw new ForbiddenException("Ferme non assignée à ce vétérinaire");
+    }
+    await this.farmAccess.requireFarmScopes(user.id, farmId, [
+      FARM_SCOPE.vetWrite
+    ]);
+
+    const appt = await this.scheduleFromVet(
+      user.id,
+      vetProfile.id,
+      farmId,
+      input
+    );
+
+    return {
+      id: appt.id,
+      farmId: appt.farmId,
+      farmName: appt.farmName,
+      scheduledAt: appt.scheduledAt,
+      subject: appt.reason,
+      status: appt.status
+    };
   }
 
   /**

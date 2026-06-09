@@ -112,6 +112,28 @@ export class ReportsService {
     return row;
   }
 
+  async getReportForFarm(user: User, farmId: string, reportId: string) {
+    const row = await this.getReport(user, reportId);
+    if (row.farmId !== farmId) {
+      throw new NotFoundException("Rapport introuvable");
+    }
+    return row;
+  }
+
+  async getReportDownloadUrlForFarm(
+    user: User,
+    farmId: string,
+    reportId: string
+  ): Promise<{ downloadUrl: string }> {
+    await this.getReportForFarm(user, farmId, reportId);
+    return this.getReportDownloadUrl(user, reportId);
+  }
+
+  async buildReportPdfForFarm(user: User, farmId: string, reportId: string) {
+    await this.getReportForFarm(user, farmId, reportId);
+    return this.buildReportPdf(user, reportId);
+  }
+
   async generateReport(
     user: User,
     farmId: string,

@@ -87,6 +87,7 @@ export function ExportPDFButton({
       if (!url) {
         const dl = await fetchFarmReportDownloadUrl(
           accessToken,
+          farmId,
           gen.id,
           activeProfileId
         );
@@ -137,10 +138,12 @@ export function ExportPDFButton({
 }
 
 export function ReportDownloadButton({
+  farmId,
   reportId,
   accessToken,
   activeProfileId
 }: {
+  farmId: string;
   reportId: string;
   accessToken: string;
   activeProfileId: string | null | undefined;
@@ -153,6 +156,7 @@ export function ReportDownloadButton({
     try {
       const { downloadUrl } = await fetchFarmReportDownloadUrl(
         accessToken,
+        farmId,
         reportId,
         activeProfileId
       );

@@ -13,6 +13,7 @@ import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { VetAcceptAppointmentDto } from "./dto/vet-accept-appointment.dto";
 import { VetRefuseAppointmentDto } from "./dto/vet-refuse-appointment.dto";
 import { RequestVetAppointmentDto } from "./dto/request-vet-appointment.dto";
+import { ScheduleFromVetAppointmentDto } from "./dto/schedule-from-vet-appointment.dto";
 import { SubmitAppointmentRatingDto } from "./dto/submit-appointment-rating.dto";
 import { VetAppointmentService } from "./vet-appointment.service";
 
@@ -33,6 +34,20 @@ export class VetAppointmentController {
       reason: dto.reason,
       notes: dto.notes,
       estimatedDurationHours: dto.estimatedDurationHours
+    });
+  }
+
+  @Post("farms/:farmId/vet-appointments/schedule-from-vet")
+  scheduleFromVet(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Body() dto: ScheduleFromVetAppointmentDto
+  ) {
+    return this.appointments.scheduleFromVetForCurrentUser(user, farmId, {
+      scheduledAt: dto.scheduledAt,
+      reason: dto.reason,
+      notes: dto.notes,
+      servicePrice: dto.consultationPrice
     });
   }
 

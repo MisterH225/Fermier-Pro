@@ -41,18 +41,21 @@ function utcAnchor(): ReportAnchorState {
 }
 
 function ReportHistoryBody({
+  farmId,
   reportId,
   accessToken,
   activeProfileId
 }: {
+  farmId: string;
   reportId: string;
   accessToken: string;
   activeProfileId: string | null | undefined;
 }) {
   const { t } = useTranslation();
   const q = useQuery({
-    queryKey: ["farmReportDetail", reportId, activeProfileId],
-    queryFn: () => fetchFarmReportById(accessToken, reportId, activeProfileId)
+    queryKey: ["farmReportDetail", farmId, reportId, activeProfileId],
+    queryFn: () =>
+      fetchFarmReportById(accessToken, farmId, reportId, activeProfileId)
   });
   if (q.isLoading) {
     return (
@@ -76,6 +79,7 @@ function ReportHistoryBody({
       <Text style={styles.modalMuted}>{t("reportsScreen.detailHash")}</Text>
       <Text style={styles.modalMono}>{q.data.contentHash ?? "—"}</Text>
       <ReportDownloadButton
+        farmId={farmId}
         reportId={reportId}
         accessToken={accessToken}
         activeProfileId={activeProfileId}
@@ -189,6 +193,7 @@ function ReportPeriodPane({
           emptyMessage={t("reportsScreen.historyEmpty")}
           renderDetail={(item) => (
             <ReportHistoryBody
+              farmId={farmId}
               reportId={item.id}
               accessToken={accessToken}
               activeProfileId={activeProfileId}

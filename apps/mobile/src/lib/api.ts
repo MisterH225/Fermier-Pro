@@ -5603,9 +5603,10 @@ export function scheduleVetVisit(
   activeProfileId: string | null | undefined,
   payload: ScheduleVetVisitPayload
 ): Promise<ScheduleVetVisitResult> {
+  const { farmId, ...body } = payload;
   return apiPostJson(
-    "/vet-profiles/me/schedule-visit",
-    payload,
+    `/farms/${encodeURIComponent(farmId)}/vet-appointments/schedule-from-vet`,
+    body,
     accessToken,
     activeProfileId
   );
@@ -6100,27 +6101,29 @@ export type FarmReportDetailDto = {
 
 export function fetchFarmReportById(
   accessToken: string,
+  farmId: string,
   reportId: string,
   activeProfileId?: string | null
 ): Promise<FarmReportDetailDto> {
   return apiGetJson<FarmReportDetailDto>(
-    `/reports/${reportId}`,
+    `/farms/${encodeURIComponent(farmId)}/reports/${encodeURIComponent(reportId)}`,
     accessToken,
     activeProfileId
   );
 }
 
-export function farmReportPdfAbsoluteUrl(reportId: string): string {
-  return `${apiBaseUrl()}/api/v1/reports/${reportId}/pdf`;
+export function farmReportPdfAbsoluteUrl(farmId: string, reportId: string): string {
+  return `${apiBaseUrl()}/api/v1/farms/${encodeURIComponent(farmId)}/reports/${encodeURIComponent(reportId)}/pdf`;
 }
 
 export function fetchFarmReportDownloadUrl(
   accessToken: string,
+  farmId: string,
   reportId: string,
   activeProfileId?: string | null
 ): Promise<{ downloadUrl: string }> {
   return apiGetJson<{ downloadUrl: string }>(
-    `/reports/${reportId}/download`,
+    `/farms/${encodeURIComponent(farmId)}/reports/${encodeURIComponent(reportId)}/download`,
     accessToken,
     activeProfileId
   );

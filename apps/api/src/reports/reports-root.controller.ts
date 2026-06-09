@@ -49,12 +49,30 @@ export class ReportsRootController {
   }
 
   @Get(":reportId")
-  getOne(@CurrentUser() user: User, @Param("reportId") reportId: string) {
-    return this.reports.getReport(user, reportId);
+  async getOne(
+    @CurrentUser() user: User,
+    @Param("reportId") reportId: string,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const row = await this.reports.getReport(user, reportId);
+    setDeprecatedSuccessor(
+      res,
+      `/api/v1/farms/${row.farmId}/reports/${reportId}`
+    );
+    return row;
   }
 
   @Get(":reportId/download")
-  download(@CurrentUser() user: User, @Param("reportId") reportId: string) {
+  async download(
+    @CurrentUser() user: User,
+    @Param("reportId") reportId: string,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const row = await this.reports.getReport(user, reportId);
+    setDeprecatedSuccessor(
+      res,
+      `/api/v1/farms/${row.farmId}/reports/${reportId}/download`
+    );
     return this.reports.getReportDownloadUrl(user, reportId);
   }
 
@@ -64,6 +82,11 @@ export class ReportsRootController {
     @Param("reportId") reportId: string,
     @Res() res: Response
   ) {
+    const row = await this.reports.getReport(user, reportId);
+    setDeprecatedSuccessor(
+      res,
+      `/api/v1/farms/${row.farmId}/reports/${reportId}/pdf`
+    );
     const { buffer, filename } = await this.reports.buildReportPdf(user, reportId);
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);

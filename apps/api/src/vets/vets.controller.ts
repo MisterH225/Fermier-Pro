@@ -35,7 +35,16 @@ export class VetsController {
   }
 
   @Post("vet-profiles/me/schedule-visit")
-  scheduleVisit(@CurrentUser() user: User, @Body() dto: ScheduleVetVisitDto) {
+  scheduleVisit(
+    @CurrentUser() user: User,
+    @Body() dto: ScheduleVetVisitDto,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    setDeprecatedSuccessor(
+      res,
+      `/api/v1/farms/${dto.farmId}/vet-appointments/schedule-from-vet`,
+      "Sat, 01 Jul 2027 00:00:00 GMT"
+    );
     return this.vets.scheduleVisit(user, dto);
   }
 
@@ -72,7 +81,7 @@ export class VetsController {
   ) {
     setDeprecatedSuccessor(
       res,
-      `/api/v1/farms/${farmId}/vet-appointments`,
+      `/api/v1/vet-appointments/me?role=producer`,
       "Sat, 01 Jul 2027 00:00:00 GMT"
     );
     return this.vets.listPendingVisitQuotes(user, farmId);
@@ -89,7 +98,7 @@ export class VetsController {
   ) {
     setDeprecatedSuccessor(
       res,
-      `/api/v1/farms/${farmId}/vet-appointments`,
+      `/api/v1/vet-appointments/me?role=producer`,
       "Sat, 01 Jul 2027 00:00:00 GMT"
     );
     return this.vets.respondVisitQuote(
@@ -110,7 +119,7 @@ export class VetsController {
   ) {
     setDeprecatedSuccessor(
       res,
-      "/api/v1/farms/:farmId/vet-appointments",
+      `/api/v1/vet-appointments/me?role=vet`,
       "Sat, 01 Jul 2027 00:00:00 GMT"
     );
     return this.vets.submitVisitQuote(
