@@ -3,7 +3,8 @@ import {
   PigPriceIndexCategory
 } from "@prisma/client";
 
-function indexCategoryFromWeightKg(
+/** Catégorie indice porc depuis poids + catégorie production (source unique des seuils). */
+export function pigPriceIndexCategoryFromWeightKg(
   productionCategory: string | null | undefined,
   weightKg: number
 ): PigPriceIndexCategory | null {
@@ -130,5 +131,5 @@ export function categoryForPriceIndexFromListing(
     return null;
   }
 
-  return indexCategoryFromWeightKg(productionCategory ?? "fattening", w);
+  return pigPriceIndexCategoryFromWeightKg(productionCategory ?? "fattening", w);
 }

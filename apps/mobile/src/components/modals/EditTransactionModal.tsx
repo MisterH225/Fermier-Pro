@@ -26,6 +26,7 @@ import {
   offlineQueuedMessage,
   useOfflineMutation
 } from "../../hooks/useOfflineMutation";
+import { amountToInput, parseAmount } from "../../lib/finance/amountUtils";
 import {
   mobileColors,
   mobileRadius,
@@ -37,17 +38,6 @@ type Props = {
   payload: EditTransactionModalPayload;
   onClose: () => void;
 };
-
-function amountToInput(amount: string | number): string {
-  if (typeof amount === "number") return String(amount);
-  const n = Number.parseFloat(amount);
-  return Number.isFinite(n) ? String(n) : amount;
-}
-
-function parseAmount(raw: string): number | null {
-  const n = Number.parseFloat(raw.trim().replace(",", "."));
-  return Number.isFinite(n) && n >= 0 ? n : null;
-}
 
 export function EditTransactionModal({ visible, payload, onClose }: Props) {
   const { t } = useTranslation();

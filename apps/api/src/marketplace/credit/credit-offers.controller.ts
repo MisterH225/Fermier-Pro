@@ -155,17 +155,6 @@ export class CreditOffersController {
     return this.creditOffers.listCreditPending(user, farmId?.trim());
   }
 
-  @Get("buyers/:buyerUserId/credit-score")
-  getBuyerScore(
-    @CurrentUser() user: User,
-    @Param("buyerUserId") buyerUserId: string
-  ) {
-    if (user.id !== buyerUserId) {
-      return this.creditScore.getForUser(buyerUserId);
-    }
-    return this.creditScore.getForUser(buyerUserId);
-  }
-
   @Get("buyers/me/credit-score")
   myScore(@CurrentUser() user: User) {
     return this.creditScore.getForUser(user.id);

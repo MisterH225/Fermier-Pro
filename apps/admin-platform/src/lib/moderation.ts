@@ -85,39 +85,12 @@ export async function sendAdminMessage(
   });
 }
 
-export async function bulkAdminMessage(
-  token: string,
-  body: {
-    userIds: string[];
-    subject: string;
-    type: "notification" | "warning" | "info";
-    message: string;
-    sendPush?: boolean;
-  }
-) {
-  return apiFetch(`/admin/messages/bulk`, token, {
-    method: "POST",
-    body: JSON.stringify(body)
-  });
-}
-
 export async function deleteUserAccount(
   token: string,
   userId: string,
   body: { reason: string; notifyUser?: boolean }
 ) {
   return apiFetch(`/admin/users/${userId}/account`, token, {
-    method: "DELETE",
-    body: JSON.stringify(body)
-  });
-}
-
-export async function deleteVetProfile(
-  token: string,
-  userId: string,
-  body: { reason: string; notifyUser?: boolean }
-) {
-  return apiFetch(`/admin/profiles/veterinarian/${userId}`, token, {
     method: "DELETE",
     body: JSON.stringify(body)
   });
@@ -148,16 +121,3 @@ export async function fetchAuditLogs(
   );
 }
 
-export async function fetchAdminMessages(token: string, userId: string) {
-  return apiFetch<{
-    total: number;
-    items: Array<{
-      id: string;
-      subject: string;
-      message: string;
-      type: string;
-      isRead: boolean;
-      sentAt: string;
-    }>;
-  }>(`/admin/messages?userId=${userId}`, token);
-}

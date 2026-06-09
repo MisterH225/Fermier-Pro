@@ -74,7 +74,6 @@ export type RootStackParamList = {
     batchName: string;
   };
   FarmTasks: { farmId: string; farmName: string };
-  CreateTask: { farmId: string; farmName: string };
   MarketplaceList:
     | {
         tab?: "listings" | "mine" | "offers";
@@ -126,18 +125,6 @@ export type RootStackParamList = {
     initialTab?: "overview" | "revenus" | "depenses" | "budget";
     openCategoryId?: string;
     highlightOverrun?: boolean;
-  };
-  CreateFarmExpense: { farmId: string; farmName: string };
-  CreateFarmRevenue: { farmId: string; farmName: string };
-  EditFarmExpense: {
-    farmId: string;
-    farmName: string;
-    expenseId: string;
-  };
-  EditFarmRevenue: {
-    farmId: string;
-    farmName: string;
-    revenueId: string;
   };
   FarmBarns: { farmId: string; farmName: string };
   CreatePen: {

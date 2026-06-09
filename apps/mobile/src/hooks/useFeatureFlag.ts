@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { PlatformModuleId, PlatformModuleDto } from "../lib/api";
+import type { PlatformModuleId } from "../lib/api";
 import { useSession } from "../context/SessionContext";
 
 export function useFeatureFlag(moduleId: PlatformModuleId) {
@@ -14,9 +14,4 @@ export function useFeatureFlag(moduleId: PlatformModuleId) {
       message: isActive ? null : row?.userMessageFr ?? row?.userMessageEn ?? null
     };
   }, [moduleId, platformModules]);
-}
-
-export function usePlatformModules(): PlatformModuleDto[] {
-  const { platformModules } = useSession();
-  return platformModules;
 }

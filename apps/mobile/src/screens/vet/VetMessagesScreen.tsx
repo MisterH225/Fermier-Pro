@@ -1,7 +1,6 @@
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useQuery } from "@tanstack/react-query";
-import { useCallback, useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   FlatList,
@@ -14,36 +13,27 @@ import {
 import { ChatModuleGate } from "../../components/ChatModuleGate";
 import { ConversationRow } from "../../components/messaging/ConversationRow";
 import { ConversationSearchBar } from "../../components/messaging/ConversationSearchBar";
-import { useBottomChromePad } from "../../hooks/useBottomInset";
-import { useSession } from "../../context/SessionContext";
-import {
-  directConversationTitle,
-  fetchChatRooms,
-  type ChatRoomListItem
-} from "../../lib/api";
-import { filterChatRooms } from "../../lib/filterChatRooms";
 import { ListSkeleton } from "../../components/common/SkeletonBlocks";
+import { useBottomChromePad } from "../../hooks/useBottomInset";
+import { useChatRoomsQuery } from "../../hooks/useChatRoomsQuery";
+import { useSession } from "../../context/SessionContext";
+import type { ChatRoomListItem } from "../../lib/api";
+import { filterChatRooms } from "../../lib/filterChatRooms";
+import { chatRoomTitle } from "../../lib/messaging/chatRoomDisplay";
 import { vetColors } from "../../theme/vetTheme";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
-import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
-
-function roomHeadline(room: ChatRoomListItem, myUserId?: string): string {
-  if (room.farm?.name) {
-    return room.farm.name;
-  }
-  if (room.kind === "direct" && myUserId) {
-    return directConversationTitle(room, myUserId);
-  }
-  return room.title?.trim() || "Conversation";
-}
+import { getUserFacingError } from "../../lib/userFacingError";
 
 export function VetMessagesScreen() {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const bottomChromePad = useBottomChromePad();
-  const { accessToken, activeProfileId, authMe } = useSession();
+  const { authMe } = useSession();
+  const myUserId = authMe?.user.id;
+  const [search, setSearch] = useState("");
+  const roomsQ = useChatRoomsQuery("vetMessages");
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -60,21 +50,6 @@ export function VetMessagesScreen() {
     });
   }, [navigation, t]);
 
-  const roomsQ = useQuery({
-    queryKey: ["chatRooms", activeProfileId, "vetMessages"],
-    queryFn: () => fetchChatRooms(accessToken!, activeProfileId),
-    enabled: Boolean(accessToken)
-  });
-
-  useFocusEffect(
-    useCallback(() => {
-      void roomsQ.refetch();
-    }, [roomsQ.refetch])
-  );
-
-  const [search, setSearch] = useState("");
-  const myUserId = authMe?.user.id;
-
   const rooms = useMemo(
     () => filterChatRooms(roomsQ.data ?? [], search, myUserId),
     [roomsQ.data, search, myUserId]
@@ -83,7 +58,7 @@ export function VetMessagesScreen() {
   const openRoom = (room: ChatRoomListItem) => {
     navigation.navigate("ChatRoom", {
       roomId: room.id,
-      headline: roomHeadline(room, myUserId)
+      headline: chatRoomTitle(room, myUserId)
     });
   };
 
@@ -121,7 +96,9 @@ export function VetMessagesScreen() {
                 tintColor={vetColors.primary}
               />
             }
-            ItemSeparatorComponent={() => <View style={{ height: mobileSpacing.sm }} />}
+            ItemSeparatorComponent={() => (
+              <View style={{ height: mobileSpacing.sm }} />
+            )}
             ListEmptyComponent={
               <View style={styles.emptyBox}>
                 <Text style={styles.emptyTitle}>{t("vet.messages.emptyTitle")}</Text>

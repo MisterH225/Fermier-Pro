@@ -12,10 +12,6 @@ export function producerMainTabFromRoute(
     case "ProducerFarmSettings":
       return "home";
     case "FarmFinance":
-    case "CreateFarmExpense":
-    case "CreateFarmRevenue":
-    case "EditFarmExpense":
-    case "EditFarmRevenue":
       return financeEnabled ? "finance" : null;
     case "FarmLivestock":
     case "AnimalDetail":

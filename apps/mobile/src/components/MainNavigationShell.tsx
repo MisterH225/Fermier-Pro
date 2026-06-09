@@ -6,6 +6,7 @@ import {
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import * as Linking from "expo-linking";
 import { useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProducerPersistentTabBar } from "./ProducerPersistentTabBar";
@@ -36,16 +37,12 @@ import {
   ChatRoomsScreen,
   ChatSearchUserScreen,
   CollaborationScreen,
-  CreateFarmExpenseScreen,
   CreateFarmInvitationScreen,
-  CreateFarmRevenueScreen,
   CreateFarmScreen,
   CreateMarketplaceListingScreen,
   CreatePenLogScreen,
   CreatePenScreen,
   CreateVetConsultationScreen,
-  EditFarmExpenseScreen,
-  EditFarmRevenueScreen,
   FarmBarnsScreen,
   FarmDetailScreen,
   FarmFeedStockScreen,
@@ -146,9 +143,11 @@ const linking: LinkingOptions<RootStackParamList> = {
 };
 
 function MainStack() {
+  const { t } = useTranslation();
   const { authMe, activeProfileId } = useSession();
   const activeType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
   const initialRouteName = dashboardRouteForActiveProfileType(activeType);
+  const st = (key: string) => t(`navigation.screenTitles.${key}`);
   return (
     <Stack.Navigator
       key={activeProfileId ?? "none"}
@@ -173,12 +172,12 @@ function MainStack() {
       <Stack.Screen
         name="SmartAlertsList"
         component={SmartAlertsListScreen}
-        options={{ title: "Recommandations" }}
+        options={{ title: st("recommendations") }}
       />
       <Stack.Screen
         name="FarmReports"
         component={FarmReportsScreen}
-        options={{ title: "Rapports" }}
+        options={{ title: st("reports") }}
       />
       <Stack.Screen
         name="BuyerDashboard"
@@ -193,42 +192,42 @@ function MainStack() {
       <Stack.Screen
         name="BuyerMessages"
         component={BuyerMessagesScreen}
-        options={{ ...buyerStackScreenOptions, title: "Messages" }}
+        options={{ ...buyerStackScreenOptions, title: st("messages") }}
       />
       <Stack.Screen
         name="BuyerHistory"
         component={BuyerHistoryScreen}
-        options={{ ...buyerStackScreenOptions, title: "Mes achats" }}
+        options={{ ...buyerStackScreenOptions, title: st("buyerHistory") }}
       />
       <Stack.Screen
         name="BuyerAlerts"
         component={BuyerAlertsScreen}
-        options={{ ...buyerStackScreenOptions, title: "Alertes prix" }}
+        options={{ ...buyerStackScreenOptions, title: st("buyerAlerts") }}
       />
       <Stack.Screen
         name="BuyerFavorites"
         component={BuyerFavoritesScreen}
-        options={{ ...buyerStackScreenOptions, title: "Favoris" }}
+        options={{ ...buyerStackScreenOptions, title: st("buyerFavorites") }}
       />
       <Stack.Screen
         name="TechTasks"
         component={TechTasksScreen}
-        options={{ ...techStackScreenOptions, title: "Tâches" }}
+        options={{ ...techStackScreenOptions, title: st("tasks") }}
       />
       <Stack.Screen
         name="TechFarm"
         component={TechFarmScreen}
-        options={{ ...techStackScreenOptions, title: "Ma ferme" }}
+        options={{ ...techStackScreenOptions, title: st("techFarm") }}
       />
       <Stack.Screen
         name="TechTracking"
         component={TechTrackingScreen}
-        options={{ ...techStackScreenOptions, title: "Suivi" }}
+        options={{ ...techStackScreenOptions, title: st("techTracking") }}
       />
       <Stack.Screen
         name="TechProfileEdit"
         component={TechProfileEditScreen}
-        options={{ ...techStackScreenOptions, title: "Mon profil" }}
+        options={{ ...techStackScreenOptions, title: st("techProfile") }}
       />
       <Stack.Screen
         name="VeterinarianDashboard"
@@ -238,12 +237,12 @@ function MainStack() {
       <Stack.Screen
         name="VetAgenda"
         component={VetAgendaScreen}
-        options={{ ...vetStackScreenOptions, title: "Agenda" }}
+        options={{ ...vetStackScreenOptions, title: st("vetAgenda") }}
       />
       <Stack.Screen
         name="VetFarms"
         component={VetFarmsScreen}
-        options={{ ...vetStackScreenOptions, title: "Mes fermes" }}
+        options={{ ...vetStackScreenOptions, title: st("farmList") }}
       />
       <Stack.Screen
         name="VetFarmDetail"
@@ -256,17 +255,17 @@ function MainStack() {
       <Stack.Screen
         name="VetMessages"
         component={VetMessagesScreen}
-        options={{ ...vetStackScreenOptions, title: "Messages" }}
+        options={{ ...vetStackScreenOptions, title: st("messages") }}
       />
       <Stack.Screen
         name="VetTasks"
         component={VetTasksScreen}
-        options={{ ...vetStackScreenOptions, title: "Tâches" }}
+        options={{ ...vetStackScreenOptions, title: st("tasks") }}
       />
       <Stack.Screen
         name="VetReports"
         component={VetReportsScreen}
-        options={{ ...vetStackScreenOptions, title: "Rapports" }}
+        options={{ ...vetStackScreenOptions, title: st("vetReports") }}
       />
       <Stack.Screen
         name="TechnicianDashboard"
@@ -276,7 +275,7 @@ function MainStack() {
       <Stack.Screen
         name="FarmList"
         component={FarmListScreen}
-        options={{ title: "Mes fermes" }}
+        options={{ title: st("farmList") }}
       />
       <Stack.Screen
         name="Account"
@@ -304,204 +303,184 @@ function MainStack() {
       <Stack.Screen
         name="AcceptFarmInvitation"
         component={AcceptFarmInvitationScreen}
-        options={{ title: "Invitation" }}
+        options={{ title: st("invitation") }}
       />
       <Stack.Screen
         name="FarmDetail"
         component={FarmDetailScreen}
-        options={{ title: "Ferme" }}
+        options={{ title: st("farm") }}
       />
       <Stack.Screen
         name="FarmLivestock"
         component={FarmLivestockScreen}
-        options={{ title: "Cheptel" }}
+        options={{ title: st("cheptel") }}
       />
       <Stack.Screen
         name="FarmHealth"
         component={FarmHealthScreen}
-        options={{ title: "Santé" }}
+        options={{ title: st("health") }}
       />
       <Stack.Screen
         name="VetSearch"
         component={VetSearchScreen}
-        options={{ title: "Trouver un vétérinaire" }}
+        options={{ title: st("vetSearch") }}
       />
       <Stack.Screen
         name="ProducerScheduleVetVisit"
         component={ProducerScheduleVetVisitScreen}
-        options={{ title: "Planifier une visite" }}
+        options={{ title: st("scheduleVetVisit") }}
       />
       <Stack.Screen
         name="VetAppointmentDetail"
         component={VetAppointmentDetailScreen}
-        options={{ title: "Rendez-vous" }}
+        options={{ title: st("vetAppointment") }}
       />
       <Stack.Screen
         name="ProducerMessages"
         component={ProducerMessagesScreen}
-        options={{ title: "Messages" }}
+        options={{ title: st("messages") }}
       />
       <Stack.Screen
         name="FarmTasks"
         component={FarmTasksScreen}
-        options={{ title: "Tâches" }}
+        options={{ title: st("tasks") }}
       />
       <Stack.Screen
         name="FarmVetConsultations"
         component={FarmVetConsultationsScreen}
-        options={{ title: "Suivi vétérinaire" }}
+        options={{ title: st("vetConsultations") }}
       />
       <Stack.Screen
         name="VetConsultationDetail"
         component={VetConsultationDetailScreen}
-        options={{ title: "Consultation" }}
+        options={{ title: st("vetConsultation") }}
       />
       <Stack.Screen
         name="CreateVetConsultation"
         component={CreateVetConsultationScreen}
-        options={{ title: "Nouveau dossier véto" }}
+        options={{ title: st("createVetConsultation") }}
       />
       <Stack.Screen
         name="AddVetConsultationAttachment"
         component={AddVetConsultationAttachmentScreen}
-        options={{ title: "Pièce jointe" }}
+        options={{ title: st("attachment") }}
       />
       <Stack.Screen
         name="FarmFinance"
         component={FarmFinanceScreen}
-        options={{ title: "Finance" }}
-      />
-      <Stack.Screen
-        name="CreateFarmExpense"
-        component={CreateFarmExpenseScreen}
-        options={{ title: "Nouvelle dépense" }}
-      />
-      <Stack.Screen
-        name="CreateFarmRevenue"
-        component={CreateFarmRevenueScreen}
-        options={{ title: "Nouveau revenu" }}
-      />
-      <Stack.Screen
-        name="EditFarmExpense"
-        component={EditFarmExpenseScreen}
-        options={{ title: "Modifier dépense" }}
-      />
-      <Stack.Screen
-        name="EditFarmRevenue"
-        component={EditFarmRevenueScreen}
-        options={{ title: "Modifier revenu" }}
+        options={{ title: st("finance") }}
       />
       <Stack.Screen
         name="PenMove"
         component={PenMoveScreen}
-        options={{ title: "Déplacer" }}
+        options={{ title: st("movePen") }}
       />
       <Stack.Screen
         name="FarmBarns"
         component={FarmBarnsScreen}
-        options={{ title: "Loges et parcours" }}
+        options={{ title: st("barns") }}
       />
       <Stack.Screen
         name="BarnDetail"
         component={BarnDetailScreen}
-        options={{ title: "Bâtiment" }}
+        options={{ title: st("barn") }}
       />
       <Stack.Screen
         name="PenDetail"
         component={PenDetailScreen}
-        options={{ title: "Loge" }}
+        options={{ title: st("pen") }}
       />
       <Stack.Screen
         name="LogeDetail"
         component={LogeDetailScreen}
-        options={{ title: "Loge" }}
+        options={{ title: st("pen") }}
       />
       <Stack.Screen
         name="CreatePen"
         component={CreatePenScreen}
-        options={{ title: "Nouvelle loge" }}
+        options={{ title: st("createPen") }}
       />
       <Stack.Screen
         name="CreatePenLog"
         component={CreatePenLogScreen}
-        options={{ title: "Entrée journal" }}
+        options={{ title: st("penLog") }}
       />
       <Stack.Screen
         name="CreateFarm"
         component={CreateFarmScreen}
-        options={{ title: "Nouvelle ferme" }}
+        options={{ title: st("createFarm") }}
       />
       <Stack.Screen
         name="AnimalDetail"
         component={AnimalDetailScreen}
-        options={{ title: "Fiche animal" }}
+        options={{ title: st("animalDetail") }}
       />
       <Stack.Screen
         name="BatchDetail"
         component={BatchDetailScreen}
-        options={{ title: "Lot" }}
+        options={{ title: st("batch") }}
       />
       <Stack.Screen
         name="MarketplaceList"
         component={MarketplaceListScreen}
-        options={{ title: "Market" }}
+        options={{ title: st("market") }}
       />
       <Stack.Screen
         name="MarketplaceListingDetail"
         component={MarketplaceListingDetailScreen}
         options={({ route }) => ({
-          title: route.params.headline ?? "Annonce"
+          title: route.params.headline ?? st("listing")
         })}
       />
       <Stack.Screen
         name="MarketplaceTransaction"
         component={MarketplaceTransactionScreen}
-        options={{ title: "Transaction" }}
+        options={{ title: st("transaction") }}
       />
       <Stack.Screen
         name="CreditDashboard"
         component={CreditDashboardScreen}
-        options={{ title: "Score crédit" }}
+        options={{ title: st("creditScore") }}
       />
       <Stack.Screen
         name="MarketplaceMyOffers"
         component={MarketplaceMyOffersScreen}
-        options={{ title: "Mes offres" }}
+        options={{ title: st("myOffers") }}
       />
       <Stack.Screen
         name="MarketplaceMyListings"
         component={MarketplaceMyListingsScreen}
-        options={{ title: "Mes annonces" }}
+        options={{ title: st("myListings") }}
       />
       <Stack.Screen
         name="CreateMarketplaceListing"
         component={CreateMarketplaceListingScreen}
-        options={{ title: "Nouvelle annonce" }}
+        options={{ title: st("createListing") }}
       />
       <Stack.Screen
         name="ChatRooms"
         component={ChatRoomsScreen}
-        options={{ title: "Messages" }}
+        options={{ title: st("messages") }}
       />
       <Stack.Screen
         name="ChatRoom"
         component={ChatRoomScreen}
-        options={{ title: "Conversation" }}
+        options={{ title: st("conversation") }}
       />
       <Stack.Screen
         name="ChatPickFarm"
         component={ChatPickFarmScreen}
-        options={{ title: "Nouvelle conversation" }}
+        options={{ title: st("newConversation") }}
       />
       <Stack.Screen
         name="ChatPickPeer"
         component={ChatPickPeerScreen}
-        options={{ title: "Nouvelle conversation" }}
+        options={{ title: st("newConversation") }}
       />
       <Stack.Screen
         name="ChatSearchUser"
         component={ChatSearchUserScreen}
-        options={{ title: "Rechercher une personne" }}
+        options={{ title: st("searchUser") }}
       />
       <Stack.Screen
         name="ModuleRoadmap"
@@ -511,27 +490,27 @@ function MainStack() {
       <Stack.Screen
         name="Collaboration"
         component={CollaborationScreen}
-        options={{ title: "Collaboration" }}
+        options={{ title: st("collaboration") }}
       />
       <Stack.Screen
         name="FarmMembers"
         component={FarmMembersScreen}
-        options={{ title: "Équipe" }}
+        options={{ title: st("team") }}
       />
       <Stack.Screen
         name="CreateFarmInvitation"
         component={CreateFarmInvitationScreen}
-        options={{ title: "Inviter" }}
+        options={{ title: st("invite") }}
       />
       <Stack.Screen
         name="FarmFeedStock"
         component={FarmFeedStockScreen}
-        options={{ title: "Stock aliment" }}
+        options={{ title: st("feedStock") }}
       />
       <Stack.Screen
         name="FarmGestation"
         component={FarmGestationScreen}
-        options={{ title: "Gestation" }}
+        options={{ title: st("gestation") }}
       />
     </Stack.Navigator>
   );

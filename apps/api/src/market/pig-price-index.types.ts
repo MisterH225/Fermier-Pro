@@ -1,4 +1,5 @@
 import { PigPriceIndexCategory, ListingMarketCategory } from "@prisma/client";
+import { pigPriceIndexCategoryFromWeightKg } from "../marketplace/marketplace-listing-category.helper";
 
 export type PigPriceIndexPeriod = "7d" | "30d" | "3m" | "12m";
 
@@ -56,22 +57,7 @@ export function categoryFromSale(
   productionCategory: string,
   weightKg: number
 ): PigPriceIndexCategory | null {
-  if (
-    productionCategory === "breeding_female" ||
-    productionCategory === "breeding_male"
-  ) {
-    return PigPriceIndexCategory.reproducteur;
-  }
-  if (weightKg < 15) {
-    return PigPriceIndexCategory.porcelet;
-  }
-  if (weightKg <= 50) {
-    return PigPriceIndexCategory.croissance;
-  }
-  if (weightKg <= 110) {
-    return PigPriceIndexCategory.charcutier;
-  }
-  return null;
+  return pigPriceIndexCategoryFromWeightKg(productionCategory, weightKg);
 }
 
 /** Catégorie indice depuis une annonce (délégué au helper marketplace). */

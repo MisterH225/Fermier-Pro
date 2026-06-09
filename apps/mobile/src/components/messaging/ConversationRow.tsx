@@ -1,12 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ChatRoomListItem } from "../../lib/api";
-import { directConversationTitle } from "../../lib/api";
 import {
-  formatOfferPreview,
-  parseMarketplaceOfferMessage
-} from "../../lib/marketplaceOfferMessage";
-import { formatPrivacyDisplayName } from "../../lib/userDisplay";
+  chatRoomInitials,
+  chatRoomLastPreview,
+  chatRoomLastTime,
+  chatRoomListingPill,
+  chatRoomTitle
+} from "../../lib/messaging/chatRoomDisplay";
 import {
   mobileColors,
   mobileRadius,
@@ -23,65 +24,6 @@ export type ConversationRowProps = {
   unreadCount?: number;
 };
 
-function roomTitle(room: ChatRoomListItem, myUserId?: string): string {
-  if (room.kind === "direct" && myUserId) {
-    const peer = room.members?.find((m) => m.userId !== myUserId)?.user;
-    if (peer?.fullName) {
-      return formatPrivacyDisplayName(peer.fullName);
-    }
-    return directConversationTitle(room, myUserId);
-  }
-  if (room.farm?.name) {
-    return room.farm.name;
-  }
-  return room.title?.trim() || "Conversation";
-}
-
-function lastPreview(room: ChatRoomListItem): string | null {
-  const last = room.messages?.[0];
-  if (!last?.body?.trim()) {
-    return null;
-  }
-  const body = last.body.trim();
-  const offer = parseMarketplaceOfferMessage(body);
-  const text = offer ? formatOfferPreview(offer) : body;
-  return text.length > 80 ? `${text.slice(0, 78)}…` : text;
-}
-
-function listingContextPill(
-  room: ChatRoomListItem,
-  contextPill?: string | null
-): string | null {
-  if (contextPill) {
-    return contextPill;
-  }
-  const title = room.marketplaceListing?.title?.trim();
-  return title ? `Annonce · ${title}` : null;
-}
-
-function lastTime(room: ChatRoomListItem): string | null {
-  const last = room.messages?.[0];
-  if (!last?.createdAt) {
-    return null;
-  }
-  const d = new Date(last.createdAt);
-  if (Number.isNaN(d.getTime())) {
-    return null;
-  }
-  const now = new Date();
-  const sameDay = d.toDateString() === now.toDateString();
-  return d.toLocaleString(undefined, {
-    ...(sameDay
-      ? { hour: "2-digit", minute: "2-digit" }
-      : { day: "numeric", month: "short" })
-  });
-}
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).slice(0, 2);
-  return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
-}
-
 export function ConversationRow({
   room,
   myUserId,
@@ -89,10 +31,10 @@ export function ConversationRow({
   contextPill,
   unreadCount = 0
 }: ConversationRowProps) {
-  const title = roomTitle(room, myUserId);
-  const preview = lastPreview(room);
-  const time = lastTime(room);
-  const pill = listingContextPill(room, contextPill);
+  const title = chatRoomTitle(room, myUserId);
+  const preview = chatRoomLastPreview(room);
+  const time = chatRoomLastTime(room);
+  const pill = chatRoomListingPill(room, contextPill);
   const unread = (room.unreadCount ?? unreadCount) > 0;
   const badgeCount = room.unreadCount ?? unreadCount;
 
@@ -107,7 +49,7 @@ export function ConversationRow({
     >
       <View style={styles.avatarWrap}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarTx}>{initials(title)}</Text>
+          <Text style={styles.avatarTx}>{chatRoomInitials(title)}</Text>
         </View>
         <View style={styles.avatarBadge}>
           <Text style={styles.avatarBadgeTx}>🐷</Text>

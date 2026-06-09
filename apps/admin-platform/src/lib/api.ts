@@ -41,12 +41,7 @@ export async function apiFetch<T>(
   return res.json() as Promise<T>;
 }
 
-export type AdminMe = {
-  userId: string;
-  email: string | null;
-  fullName: string | null;
-  role: "superadmin";
-};
+export type { AdminMeDto } from "./admin-auth";
 
 export type OverviewDto = {
   kpis: {

@@ -6,7 +6,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { API_BASE } from "@/lib/utils";
+import { verifyAdminSuperUser } from "@/lib/admin-auth";
 import { useRouter } from "@/i18n/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -137,13 +137,6 @@ export function LoginScreen() {
     }
   }, [searchParams, t]);
 
-  const verifySuperAdmin = async (accessToken: string) => {
-    const meRes = await fetch(`${API_BASE}/admin/me`, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-    return meRes.ok;
-  };
-
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -158,7 +151,7 @@ export function LoginScreen() {
         setError(t("errorGoogleHint"));
         return;
       }
-      if (!(await verifySuperAdmin(data.session.access_token))) {
+      if (!(await verifyAdminSuperUser(data.session.access_token))) {
         await supabase.auth.signOut();
         setError(t("forbidden"));
         return;
