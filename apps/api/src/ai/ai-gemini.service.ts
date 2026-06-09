@@ -25,6 +25,25 @@ export class AiGeminiService {
     return [...new Set(chain)];
   }
 
+  /** Génération JSON volumineuse (prévisions IA) — tokens étendus. */
+  async generatePredictionJson(prompt: string): Promise<string | null> {
+    const apiKey = this.config.get<string>("GEMINI_API_KEY")?.trim();
+    if (!apiKey) {
+      return null;
+    }
+
+    for (const model of this.modelChain()) {
+      const text = await this.callModel(apiKey, model, prompt, {
+        maxOutputTokens: 8192,
+        timeoutMs: 30_000
+      });
+      if (text) {
+        return text;
+      }
+    }
+    return null;
+  }
+
   async generateText(prompt: string): Promise<string | null> {
     const apiKey = this.config.get<string>("GEMINI_API_KEY")?.trim();
     if (!apiKey) {
@@ -46,10 +65,12 @@ export class AiGeminiService {
   private async callModel(
     apiKey: string,
     model: string,
-    prompt: string
+    prompt: string,
+    options?: { maxOutputTokens?: number; timeoutMs?: number }
   ): Promise<string | null> {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    const timeout = options?.timeoutMs ?? TIMEOUT_MS;
+    const timer = setTimeout(() => controller.abort(), timeout);
 
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
@@ -61,7 +82,7 @@ export class AiGeminiService {
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.4,
-            maxOutputTokens: 1024,
+            maxOutputTokens: options?.maxOutputTokens ?? 1024,
             responseMimeType: "application/json"
           }
         })
