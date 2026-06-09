@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
-  apiFetch,
+  adminAiAsk,
+  adminVetAssist,
+  fetchAdminEpidemicAnalysis,
+  fetchVetProfiles,
   type AdminAiAskResult,
   type AdminEpidemicAnalysis,
   type AdminVetAssistResult,
@@ -40,7 +43,7 @@ export default function IaPage() {
 
   useEffect(() => {
     if (!token) return;
-    apiFetch<VetProfileRow[]>("/admin/vet-profiles?status=pending", token).then(
+    fetchVetProfiles(token, { status: "pending" }).then(
       (rows) => {
         setPendingVets(rows);
         if (rows[0]) setSelectedVet(rows[0].id);
@@ -52,11 +55,7 @@ export default function IaPage() {
     if (!token) return;
     setEpidemicLoading(true);
     try {
-      const res = await apiFetch<AdminEpidemicAnalysis>(
-        "/admin/ai/epidemic-analysis",
-        token,
-        { method: "POST", body: JSON.stringify({ locale }) }
-      );
+      const res = await fetchAdminEpidemicAnalysis(token, locale);
       setEpidemic(res);
     } finally {
       setEpidemicLoading(false);
@@ -67,10 +66,7 @@ export default function IaPage() {
     if (!token || !question.trim()) return;
     setAskLoading(true);
     try {
-      const res = await apiFetch<AdminAiAskResult>("/admin/ai/ask", token, {
-        method: "POST",
-        body: JSON.stringify({ question: question.trim(), locale })
-      });
+      const res = await adminAiAsk(token, question.trim(), locale);
       setAskResult(res);
     } finally {
       setAskLoading(false);
@@ -81,11 +77,7 @@ export default function IaPage() {
     if (!token || !selectedVet) return;
     setVetLoading(true);
     try {
-      const res = await apiFetch<AdminVetAssistResult>(
-        `/admin/ai/vet-assist/${selectedVet}`,
-        token,
-        { method: "POST", body: JSON.stringify({ locale }) }
-      );
+      const res = await adminVetAssist(token, selectedVet, locale);
       setVetAssist(res);
     } finally {
       setVetLoading(false);

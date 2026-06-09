@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { apiFetch, type PlatformSettingsDto } from "@/lib/api";
+import {
+  fetchPlatformSettings,
+  patchPlatformSettings,
+  type PlatformSettingsDto
+} from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +31,7 @@ export default function ParametresPage() {
 
   useEffect(() => {
     if (!token) return;
-    apiFetch<PlatformSettingsDto>("/admin/settings", token).then((row) => {
+    fetchPlatformSettings(token).then((row) => {
       setForm({
         ...row,
         marketplaceCommissionRate: Number(row.marketplaceCommissionRate ?? 0.05)
@@ -48,17 +52,14 @@ export default function ParametresPage() {
     setSaving(true);
     setSaved(false);
     try {
-      const next = await apiFetch<PlatformSettingsDto>("/admin/settings", token, {
-        method: "PATCH",
-        body: JSON.stringify({
-          mapGeographicScope: form.mapGeographicScope,
-          alertCaseThreshold: form.alertCaseThreshold,
-          alertPeriodDays: form.alertPeriodDays,
-          alertDefaultLevel: form.alertDefaultLevel,
-          adminNotifyEmail: form.adminNotifyEmail ?? "",
-          reportFrequencyDays: form.reportFrequencyDays,
-          marketplaceCommissionRate: form.marketplaceCommissionRate
-        })
+      const next = await patchPlatformSettings(token, {
+        mapGeographicScope: form.mapGeographicScope,
+        alertCaseThreshold: form.alertCaseThreshold,
+        alertPeriodDays: form.alertPeriodDays,
+        alertDefaultLevel: form.alertDefaultLevel,
+        adminNotifyEmail: form.adminNotifyEmail ?? "",
+        reportFrequencyDays: form.reportFrequencyDays,
+        marketplaceCommissionRate: form.marketplaceCommissionRate
       });
       setForm(next);
       setSaved(true);

@@ -14,8 +14,7 @@ import {
   YAxis
 } from "recharts";
 import { Download, Filter, Sprout, Tractor, Users } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { apiFetch, type OverviewDto } from "@/lib/api";
+import { fetchPlatformOverview, type OverviewDto } from "@/lib/api";
 import { computeSignupDelta, OverviewStatCard } from "@/components/dashboard/OverviewStatCard";
 import { PageSkeleton } from "@/components/layout/PageSkeleton";
 import { Button } from "@/components/ui/button";
@@ -28,21 +27,15 @@ const PROFILE_COLORS = ["#1B3B2E", "#FF8C00", "#8B9A5B", "#1565C0", "#6A1B9A"];
 
 export default function OverviewPage() {
   const t = useTranslations("overview");
-  const { token } = useAdminToken();
+  const { token, ready } = useAdminToken();
   const [data, setData] = useState<OverviewDto | null>(null);
 
   useEffect(() => {
-    createSupabaseBrowserClient()
-      .auth.getSession()
-      .then(({ data: s }) => {
-        const token = s.session?.access_token;
-        if (!token) return;
-        return apiFetch<OverviewDto>("/admin/platform/overview", token);
-      })
-      .then((d) => d && setData(d));
-  }, []);
+    if (!token) return;
+    void fetchPlatformOverview(token).then(setData);
+  }, [token]);
 
-  if (!data) {
+  if (!ready || !data) {
     return <PageSkeleton />;
   }
 

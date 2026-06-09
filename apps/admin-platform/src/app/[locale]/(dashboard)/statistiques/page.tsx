@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis
 } from "recharts";
-import { apiFetch, type StatsDto } from "@/lib/api";
+import { fetchAdminStats, type StatsDto } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FilterPills } from "@/components/layout/FilterPills";
@@ -31,7 +31,7 @@ export default function StatistiquesPage() {
   useEffect(() => {
     if (!token) return;
     setLoading(true);
-    apiFetch<StatsDto>(`/admin/stats?period=${period}`, token)
+    fetchAdminStats(token, period)
       .then(setData)
       .finally(() => setLoading(false));
   }, [token, period]);

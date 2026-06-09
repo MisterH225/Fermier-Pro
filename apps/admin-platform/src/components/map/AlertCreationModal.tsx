@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { apiFetch } from "@/lib/api";
+import { createSanitaryAlert } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,14 +32,11 @@ export function AlertCreationModal({ accessToken, onCreated }: Props) {
     if (!zoneName.trim() || !message.trim()) return;
     setBusy(true);
     try {
-      await apiFetch("/admin/sanitary-alerts", accessToken, {
-        method: "POST",
-        body: JSON.stringify({
-          zoneName: zoneName.trim(),
-          alertType: "manual",
-          level,
-          message: message.trim()
-        })
+      await createSanitaryAlert(accessToken, {
+        zoneName: zoneName.trim(),
+        alertType: "manual",
+        level,
+        message: message.trim()
       });
       setOpen(false);
       setZoneName("");

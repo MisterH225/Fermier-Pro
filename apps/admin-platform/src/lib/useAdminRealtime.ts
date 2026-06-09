@@ -2,7 +2,11 @@
 
 import { useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { apiFetch, type OverviewDto } from "@/lib/api";
+import {
+  fetchAdminMarketplaceDisputes,
+  fetchPlatformOverview,
+  fetchSanitaryAlerts
+} from "@/lib/api";
 
 type Counts = {
   pendingVets: number;
@@ -21,9 +25,9 @@ export function useAdminRealtime(onChange: (counts: Counts) => void) {
       if (!token || cancelled) return;
       try {
         const [overview, alerts, disputes] = await Promise.all([
-          apiFetch<OverviewDto>("/admin/platform/overview", token),
-          apiFetch<Array<{ id: string }>>("/admin/sanitary-alerts", token),
-          apiFetch<Array<{ id: string }>>("/admin/marketplace/disputes", token)
+          fetchPlatformOverview(token),
+          fetchSanitaryAlerts(token),
+          fetchAdminMarketplaceDisputes(token)
         ]);
         if (!cancelled) {
           onChange({

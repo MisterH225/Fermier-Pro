@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { apiFetch } from "@/lib/api";
+import {
+  disableFeatureFlag,
+  fetchAdminFeatureFlags,
+  previewDisableFeatureFlag,
+  reactivateFeatureFlag,
+  type AdminPlatformModuleDto,
+  type FeatureFlagDisablePreviewDto
+} from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -18,37 +25,13 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-export type AdminPlatformModuleDto = {
-  moduleId: string;
-  moduleName: string;
-  icon: string | null;
-  isActive: boolean;
-  canDisable: boolean;
-  userMessageFr: string | null;
-  userMessageEn: string | null;
-  scheduledReactivation: string | null;
-  disabledAt: string | null;
-  disableReason: string | null;
-  reactivatedAt: string | null;
-  waitlistCount: number;
-};
-
-type PreviewDto = {
-  moduleId: string;
-  cascade: string[];
-  previews: Array<{
-    moduleId: string;
-    tables: Array<{ tableName: string; count: number }>;
-  }>;
-};
-
 export function ModulesSettingsPanel() {
   const t = useTranslations("modules");
   const { token, ready } = useAdminToken();
   const [modules, setModules] = useState<AdminPlatformModuleDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<AdminPlatformModuleDto | null>(null);
-  const [preview, setPreview] = useState<PreviewDto | null>(null);
+  const [preview, setPreview] = useState<FeatureFlagDisablePreviewDto | null>(null);
   const [reason, setReason] = useState("");
   const [userMessageFr, setUserMessageFr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -58,10 +41,7 @@ export function ModulesSettingsPanel() {
     if (!token) return;
     setLoading(true);
     try {
-      const rows = await apiFetch<AdminPlatformModuleDto[]>(
-        "/admin/feature-flags",
-        token
-      );
+      const rows = await fetchAdminFeatureFlags(token);
       setModules(rows);
     } finally {
       setLoading(false);
@@ -78,10 +58,7 @@ export function ModulesSettingsPanel() {
     setMode("disable");
     setReason("");
     setUserMessageFr("");
-    const p = await apiFetch<PreviewDto>(
-      `/admin/feature-flags/${mod.moduleId}/preview-disable`,
-      token
-    );
+    const p = await previewDisableFeatureFlag(token, mod.moduleId);
     setPreview(p);
   };
 
@@ -103,26 +80,14 @@ export function ModulesSettingsPanel() {
     setBusy(true);
     try {
       if (mode === "disable") {
-        await apiFetch<AdminPlatformModuleDto[]>(
-          `/admin/feature-flags/${selected.moduleId}/disable`,
-          token,
-          {
-            method: "POST",
-            body: JSON.stringify({
-              reason,
-              userMessageFr: userMessageFr || undefined
-            })
-          }
-        );
+        await disableFeatureFlag(token, selected.moduleId, {
+          reason,
+          userMessageFr: userMessageFr || undefined
+        });
       } else {
-        await apiFetch<AdminPlatformModuleDto[]>(
-          `/admin/feature-flags/${selected.moduleId}/reactivate`,
-          token,
-          {
-            method: "POST",
-            body: JSON.stringify({ reason: reason || undefined })
-          }
-        );
+        await reactivateFeatureFlag(token, selected.moduleId, {
+          reason: reason || undefined
+        });
       }
       closeDialog();
       await load();

@@ -4,7 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
 import { AlertCreationModal } from "@/components/map/AlertCreationModal";
-import { apiFetch, type HealthMapDto, type SanitaryAlertRow } from "@/lib/api";
+import {
+  fetchHealthMap,
+  fetchSanitaryAlerts,
+  type HealthMapDto,
+  type SanitaryAlertRow
+} from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FilterPills } from "@/components/layout/FilterPills";
@@ -58,8 +63,8 @@ export default function CarteSanitairePage() {
     if (!token) return;
     setLoading(true);
     Promise.all([
-      apiFetch<HealthMapDto>(`/admin/health-map?periodDays=${periodDays}`, token),
-      apiFetch<SanitaryAlertRow[]>("/admin/sanitary-alerts", token)
+      fetchHealthMap(token, periodDays),
+      fetchSanitaryAlerts(token)
     ])
       .then(([map, list]) => {
         setData(map);

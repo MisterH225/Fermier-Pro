@@ -11,7 +11,7 @@ import {
   Tooltip
 } from "recharts";
 import { Link } from "@/i18n/navigation";
-import { apiFetch, type UserDetailDto } from "@/lib/api";
+import { fetchUserDetail, type UserDetailDto } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { UserAvatar } from "@/components/users/UserAvatar";
 import { PageSkeleton } from "@/components/layout/PageSkeleton";
@@ -58,7 +58,7 @@ export default function UserDetailPage() {
 
   useEffect(() => {
     if (!token) return;
-    apiFetch<UserDetailDto>(`/admin/users/${id}`, token).then(setData);
+    fetchUserDetail(token, id).then(setData);
   }, [token, id]);
 
   if (!ready || !data) {

@@ -6,8 +6,11 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards
 } from "@nestjs/common";
+import type { Response } from "express";
+import { setDeprecatedSuccessor } from "../common/http/deprecation.util";
 import type { User } from "@prisma/client";
 import { ListingMarketCategory, ListingStatus } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
@@ -130,7 +133,19 @@ export class ListingsController {
   }
 
   @Get(":id/transaction-status")
-  transactionStatus(@CurrentUser() user: User, @Param("id") id: string) {
+  async transactionStatus(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const txId = await this.transactions.requireActiveTransactionIdForListing(
+      user,
+      id
+    );
+    setDeprecatedSuccessor(
+      res,
+      `/api/v1/marketplace/transactions/${txId}`
+    );
     return this.transactions.getTransactionStatusForListing(user, id);
   }
 
@@ -138,11 +153,16 @@ export class ListingsController {
   async confirmShipment(
     @CurrentUser() user: User,
     @Param("id") id: string,
-    @Body() dto: ConfirmShipmentDto
+    @Body() dto: ConfirmShipmentDto,
+    @Res({ passthrough: true }) res: Response
   ) {
     const txId = await this.transactions.requireActiveTransactionIdForListing(
       user,
       id
+    );
+    setDeprecatedSuccessor(
+      res,
+      `/api/v1/marketplace/transactions/${txId}/confirm-shipment`
     );
     return this.transactions.confirmShipment(user, txId, dto);
   }
@@ -151,11 +171,16 @@ export class ListingsController {
   async confirmReceipt(
     @CurrentUser() user: User,
     @Param("id") id: string,
-    @Body() dto: ConfirmReceiptDto
+    @Body() dto: ConfirmReceiptDto,
+    @Res({ passthrough: true }) res: Response
   ) {
     const txId = await this.transactions.requireActiveTransactionIdForListing(
       user,
       id
+    );
+    setDeprecatedSuccessor(
+      res,
+      `/api/v1/marketplace/transactions/${txId}/confirm-receipt`
     );
     return this.transactions.confirmReceipt(user, txId, dto);
   }
@@ -164,11 +189,16 @@ export class ListingsController {
   async openDispute(
     @CurrentUser() user: User,
     @Param("id") id: string,
-    @Body() dto: DeliveryDisputeDto
+    @Body() dto: DeliveryDisputeDto,
+    @Res({ passthrough: true }) res: Response
   ) {
     const txId = await this.transactions.requireActiveTransactionIdForListing(
       user,
       id
+    );
+    setDeprecatedSuccessor(
+      res,
+      `/api/v1/marketplace/transactions/${txId}/delivery-dispute`
     );
     return this.transactions.openDeliveryDispute(user, txId, dto);
   }

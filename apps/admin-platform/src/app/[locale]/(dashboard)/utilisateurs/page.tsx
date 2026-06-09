@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { ChevronLeft, ChevronRight, Search, Tractor } from "lucide-react";
-import { apiFetch, type UsersListDto } from "@/lib/api";
+import { fetchUsersList, type UsersListDto } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { AccountStatusBadge } from "@/components/users/AccountStatusBadge";
 import { UserActionsMenu } from "@/components/users/UserActionsMenu";
@@ -61,17 +61,17 @@ export default function UtilisateursPage() {
   const reload = useCallback(() => {
     if (!token) return;
     setLoading(true);
-    const params = new URLSearchParams();
-    if (debounced) params.set("search", debounced);
-    if (profile !== "all") params.set("profileType", profile);
-    if (status === "active" || status === "suspended" || status === "banned") {
-      params.set("accountStatus", status);
-    } else if (status === "inactive") {
-      params.set("isActive", "false");
-    }
-    params.set("skip", String(page * PAGE_SIZE));
-    params.set("take", String(PAGE_SIZE));
-    apiFetch<UsersListDto>(`/admin/users?${params}`, token)
+    fetchUsersList(token, {
+      search: debounced || undefined,
+      profileType: profile !== "all" ? profile : undefined,
+      accountStatus:
+        status === "active" || status === "suspended" || status === "banned"
+          ? status
+          : undefined,
+      isActive: status === "inactive" ? false : undefined,
+      skip: page * PAGE_SIZE,
+      take: PAGE_SIZE
+    })
       .then(setData)
       .finally(() => setLoading(false));
   }, [token, debounced, profile, status, page]);

@@ -548,3 +548,197 @@ export function fetchAdminVetAppointmentRevenue(
     token
   );
 }
+
+export function fetchPlatformOverview(token: string) {
+  return apiFetch<OverviewDto>("/admin/platform/overview", token);
+}
+
+export function fetchSanitaryAlerts(token: string) {
+  return apiFetch<SanitaryAlertRow[]>("/admin/sanitary-alerts", token);
+}
+
+export function createSanitaryAlert(
+  token: string,
+  body: Record<string, unknown>
+) {
+  return apiFetch<SanitaryAlertRow>("/admin/sanitary-alerts", token, {
+    method: "POST",
+    body: JSON.stringify(body)
+  });
+}
+
+export function fetchPlatformSettings(token: string) {
+  return apiFetch<PlatformSettingsDto>("/admin/settings", token);
+}
+
+export function patchPlatformSettings(
+  token: string,
+  body: Partial<PlatformSettingsDto>
+) {
+  return apiFetch<PlatformSettingsDto>("/admin/settings", token, {
+    method: "PATCH",
+    body: JSON.stringify(body)
+  });
+}
+
+export function fetchAdminStats(
+  token: string,
+  period: StatsDto["period"] = "month"
+) {
+  return apiFetch<StatsDto>(`/admin/stats?period=${period}`, token);
+}
+
+export function fetchHealthMap(token: string, periodDays: number) {
+  return apiFetch<HealthMapDto>(
+    `/admin/health-map?periodDays=${periodDays}`,
+    token
+  );
+}
+
+export function fetchVetProfiles(
+  token: string,
+  query?: { status?: string }
+) {
+  const q = query?.status
+    ? `?status=${encodeURIComponent(query.status)}`
+    : "";
+  return apiFetch<VetProfileRow[]>(`/admin/vet-profiles${q}`, token);
+}
+
+export function fetchVetProfile(token: string, vetProfileId: string) {
+  return apiFetch<VetProfileRow>(`/admin/vet-profiles/${vetProfileId}`, token);
+}
+
+export function verifyVetProfile(token: string, vetProfileId: string) {
+  return apiFetch<unknown>(`/admin/vet-profiles/${vetProfileId}/verify`, token, {
+    method: "POST"
+  });
+}
+
+export function rejectVetProfile(
+  token: string,
+  vetProfileId: string,
+  body: { reason: string }
+) {
+  return apiFetch<unknown>(`/admin/vet-profiles/${vetProfileId}/reject`, token, {
+    method: "POST",
+    body: JSON.stringify(body)
+  });
+}
+
+export type UsersListQuery = {
+  search?: string;
+  profileType?: string;
+  accountStatus?: string;
+  isActive?: boolean;
+  skip?: number;
+  take?: number;
+};
+
+export function fetchUsersList(token: string, query: UsersListQuery = {}) {
+  const params = new URLSearchParams();
+  if (query.search) params.set("search", query.search);
+  if (query.profileType) params.set("profileType", query.profileType);
+  if (query.accountStatus) params.set("accountStatus", query.accountStatus);
+  if (query.isActive === false) params.set("isActive", "false");
+  if (query.skip != null) params.set("skip", String(query.skip));
+  if (query.take != null) params.set("take", String(query.take));
+  const qs = params.toString();
+  return apiFetch<UsersListDto>(`/admin/users${qs ? `?${qs}` : ""}`, token);
+}
+
+export function fetchUserDetail(token: string, userId: string) {
+  return apiFetch<UserDetailDto>(`/admin/users/${userId}`, token);
+}
+
+export function fetchAdminEpidemicAnalysis(
+  token: string,
+  locale: string
+) {
+  return apiFetch<AdminEpidemicAnalysis>("/admin/ai/epidemic-analysis", token, {
+    method: "POST",
+    body: JSON.stringify({ locale })
+  });
+}
+
+export function adminAiAsk(
+  token: string,
+  question: string,
+  locale: string
+) {
+  return apiFetch<AdminAiAskResult>("/admin/ai/ask", token, {
+    method: "POST",
+    body: JSON.stringify({ question, locale })
+  });
+}
+
+export function adminVetAssist(
+  token: string,
+  vetProfileId: string,
+  locale: string
+) {
+  return apiFetch<AdminVetAssistResult>(
+    `/admin/ai/vet-assist/${vetProfileId}`,
+    token,
+    { method: "POST", body: JSON.stringify({ locale }) }
+  );
+}
+
+export type AdminPlatformModuleDto = {
+  moduleId: string;
+  moduleName: string;
+  icon: string | null;
+  isActive: boolean;
+  canDisable: boolean;
+  userMessageFr: string | null;
+  userMessageEn: string | null;
+  scheduledReactivation: string | null;
+  disabledAt: string | null;
+  disableReason: string | null;
+  reactivatedAt: string | null;
+  waitlistCount: number;
+};
+
+export type FeatureFlagDisablePreviewDto = {
+  moduleId: string;
+  cascade: string[];
+  previews: Array<{
+    moduleId: string;
+    tables: Array<{ tableName: string; count: number }>;
+  }>;
+};
+
+export function fetchAdminFeatureFlags(token: string) {
+  return apiFetch<AdminPlatformModuleDto[]>("/admin/feature-flags", token);
+}
+
+export function previewDisableFeatureFlag(token: string, moduleId: string) {
+  return apiFetch<FeatureFlagDisablePreviewDto>(
+    `/admin/feature-flags/${moduleId}/preview-disable`,
+    token
+  );
+}
+
+export function disableFeatureFlag(
+  token: string,
+  moduleId: string,
+  body: { reason: string; userMessageFr?: string }
+) {
+  return apiFetch<AdminPlatformModuleDto[]>(
+    `/admin/feature-flags/${moduleId}/disable`,
+    token,
+    { method: "POST", body: JSON.stringify(body) }
+  );
+}
+
+export function reactivateFeatureFlag(
+  token: string,
+  moduleId: string,
+  body?: { reason?: string }
+) {
+  return apiFetch<AdminPlatformModuleDto[]>(
+    `/admin/feature-flags/${moduleId}/reactivate`,
+    token,
+    { method: "POST", body: JSON.stringify(body ?? {}) }
+  );
+}
