@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   unreadBadgeTx: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 11,
     fontWeight: "800"
   }

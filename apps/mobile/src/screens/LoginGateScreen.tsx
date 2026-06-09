@@ -138,10 +138,10 @@ const styles = StyleSheet.create({
   warnCard: {
     flexDirection: "row",
     alignItems: "flex-start",
-    backgroundColor: "#FEF2F2",
+    backgroundColor: authColors.warnSurface,
     borderRadius: authRadii.input,
     borderWidth: 1,
-    borderColor: "#FECACA",
+    borderColor: authColors.warnBorder,
     padding: 16,
     marginTop: 16
   },
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     borderRadius: authRadii.input,
     borderWidth: 1,
     borderColor: authColors.border,
-    backgroundColor: "#F8FAFC"
+    backgroundColor: authColors.surfaceSubtle
   },
   redirectHintTitle: {
     fontSize: 12,

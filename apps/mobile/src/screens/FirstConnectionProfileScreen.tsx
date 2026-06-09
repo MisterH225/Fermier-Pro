@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   },
   cardActive: {
     borderColor: authColors.forest,
-    backgroundColor: "#f4faf6"
+    backgroundColor: authColors.cardActiveBg
   },
   iconWrap: {
     width: 48,
@@ -196,10 +196,10 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f0f4f2"
+    backgroundColor: authColors.iconWrapBg
   },
   iconWrapActive: {
-    backgroundColor: "#e2f0e8"
+    backgroundColor: authColors.iconWrapActiveBg
   },
   cardText: {
     flex: 1,

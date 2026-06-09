@@ -11,7 +11,13 @@ export const authColors = {
   error: "#B91C1C",
   success: "#166534",
   white: "#FFFFFF",
-  brandGreen: "#2E9E5F"
+  brandGreen: "#2E9E5F",
+  warnSurface: "#FEF2F2",
+  warnBorder: "#FECACA",
+  surfaceSubtle: "#F8FAFC",
+  cardActiveBg: "#F4FAF6",
+  iconWrapBg: "#F0F4F2",
+  iconWrapActiveBg: "#E2F0E8"
 } as const;
 
 export const authRadii = {

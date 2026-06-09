@@ -22,6 +22,7 @@ import { filterChatRooms } from "../lib/filterChatRooms";
 import { chatRoomTitle } from "../lib/messaging/chatRoomDisplay";
 import {
   mobileColors,
+  mobileHeaderButtonOnDark,
   mobileSpacing,
   mobileTypography
 } from "../theme/mobileTheme";
@@ -43,10 +44,12 @@ export function ProducerMessagesScreen() {
       headerRight: () => (
         <TouchableOpacity
           onPress={() => navigation.navigate("ChatSearchUser")}
-          style={{ paddingHorizontal: 8 }}
+          style={mobileHeaderButtonOnDark.btn}
           hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
         >
-          <Text style={styles.headerNewBtn}>{t("producer.messages.new")}</Text>
+          <Text style={mobileHeaderButtonOnDark.text}>
+            {t("producer.messages.new")}
+          </Text>
         </TouchableOpacity>
       )
     });
@@ -157,9 +160,4 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 22
   },
-  headerNewBtn: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 15
-  }
 });

@@ -16,7 +16,7 @@ import { useBottomInset } from "../hooks/useBottomInset";
 import { useChatRoomsQuery } from "../hooks/useChatRoomsQuery";
 import { useSession } from "../context/SessionContext";
 import { chatRoomTitle } from "../lib/messaging/chatRoomDisplay";
-import { mobileColors } from "../theme/mobileTheme";
+import { mobileColors, mobileHeaderButtonOnDark } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 import { getUserFacingError } from "../lib/userFacingError";
 
@@ -34,10 +34,10 @@ export function ChatRoomsScreen({ navigation }: Props) {
       headerRight: () => (
         <TouchableOpacity
           onPress={() => navigation.navigate("ChatPickFarm")}
-          style={{ paddingHorizontal: 8 }}
+          style={mobileHeaderButtonOnDark.btn}
           hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
         >
-          <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
+          <Text style={mobileHeaderButtonOnDark.text}>
             {t("chat.newConversation")}
           </Text>
         </TouchableOpacity>

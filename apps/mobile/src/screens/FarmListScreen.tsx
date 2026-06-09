@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
   cardAddr: {
     marginTop: 8,
     fontSize: 13,
-    color: "#4b513d"
+    color: mobileColors.textTertiary
   },
   centered: {
     flex: 1,
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     alignSelf: "stretch"
   },
   ctaText: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700",
     fontSize: 16
   },

@@ -21,7 +21,11 @@ import type { ChatRoomListItem } from "../../lib/api";
 import { filterChatRooms } from "../../lib/filterChatRooms";
 import { chatRoomTitle } from "../../lib/messaging/chatRoomDisplay";
 import { vetColors } from "../../theme/vetTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import {
+  mobileHeaderButtonOnDark,
+  mobileSpacing,
+  mobileTypography
+} from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import { getUserFacingError } from "../../lib/userFacingError";
 
@@ -40,9 +44,9 @@ export function VetMessagesScreen() {
       headerRight: () => (
         <TouchableOpacity
           onPress={() => navigation.navigate("ChatPickFarm")}
-          style={{ paddingHorizontal: 8 }}
+          style={mobileHeaderButtonOnDark.btn}
         >
-          <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
+          <Text style={mobileHeaderButtonOnDark.text}>
             {t("vet.messages.new")}
           </Text>
         </TouchableOpacity>

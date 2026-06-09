@@ -11,7 +11,11 @@ export const mobileColors = {
   border: "#E8E8E8",
   success: "#1F8A3B",
   error: "#D64545",
-  warning: "#E3A008"
+  warning: "#E3A008",
+  /** Texte sur fond accent ou header sombre. */
+  onAccent: "#FFFFFF",
+  /** Texte tertiaire (adresses, labels discrets). */
+  textTertiary: "#4B513D"
 } as const;
 
 export const mobileSpacing = {
@@ -73,6 +77,16 @@ export const mobileHeaderButton = {
   btn: { marginRight: mobileSpacing.sm, paddingVertical: 4, paddingHorizontal: 2 },
   text: {
     color: mobileColors.accent,
+    fontWeight: "600" as const,
+    fontSize: 15
+  }
+} as const;
+
+/** Bouton header sur fond accent / header sombre. */
+export const mobileHeaderButtonOnDark = {
+  btn: { paddingHorizontal: 8 },
+  text: {
+    color: mobileColors.onAccent,
     fontWeight: "600" as const,
     fontSize: 15
   }
