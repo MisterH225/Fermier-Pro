@@ -1,30 +1,39 @@
 -- Mirror of apps/api/prisma/migrations/20260607120000_vet_appointments/migration.sql
 
-CREATE TYPE "VetAppointmentStatus" AS ENUM (
-  'APPOINTMENT_REQUESTED',
-  'AWAITING_PAYMENT',
-  'APPOINTMENT_CONFIRMED',
-  'APPOINTMENT_IN_PROGRESS',
-  'APPOINTMENT_COMPLETED',
-  'APPOINTMENT_RATED',
-  'APPOINTMENT_REFUSED',
-  'PAYMENT_EXPIRED',
-  'CANCELLED_BY_PRODUCER',
-  'CANCELLED_BY_VET'
-);
+DO $$ BEGIN
+  CREATE TYPE "VetAppointmentStatus" AS ENUM (
+    'APPOINTMENT_REQUESTED',
+    'AWAITING_PAYMENT',
+    'APPOINTMENT_CONFIRMED',
+    'APPOINTMENT_IN_PROGRESS',
+    'APPOINTMENT_COMPLETED',
+    'APPOINTMENT_RATED',
+    'APPOINTMENT_REFUSED',
+    'PAYMENT_EXPIRED',
+    'CANCELLED_BY_PRODUCER',
+    'CANCELLED_BY_VET'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE "VetAppointmentConflictStatus" AS ENUM (
-  'AVAILABLE',
-  'CONFLICT_NEARBY',
-  'CONFLICT_EXACT'
-);
+DO $$ BEGIN
+  CREATE TYPE "VetAppointmentConflictStatus" AS ENUM (
+    'AVAILABLE',
+    'CONFLICT_NEARBY',
+    'CONFLICT_EXACT'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE "VetAppointmentFundMovementKind" AS ENUM (
-  'HOLD',
-  'RELEASE_TO_VET',
-  'REFUND_PRODUCER',
-  'COMMISSION'
-);
+DO $$ BEGIN
+  CREATE TYPE "VetAppointmentFundMovementKind" AS ENUM (
+    'HOLD',
+    'RELEASE_TO_VET',
+    'REFUND_PRODUCER',
+    'COMMISSION'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 ALTER TABLE "VetProfile"
   ADD COLUMN IF NOT EXISTS "completedAppointments" INTEGER NOT NULL DEFAULT 0,
@@ -107,22 +116,50 @@ CREATE INDEX IF NOT EXISTS "VetAppointment_status_confirmedAt_idx" ON "VetAppoin
 CREATE INDEX IF NOT EXISTS "VetAppointmentRating_vetProfileId_idx" ON "VetAppointmentRating"("vetProfileId");
 CREATE INDEX IF NOT EXISTS "VetAppointmentFundMovement_appointmentId_idx" ON "VetAppointmentFundMovement"("appointmentId");
 
-ALTER TABLE "VetAppointment" ADD CONSTRAINT "VetAppointment_farmId_fkey"
-  FOREIGN KEY ("farmId") REFERENCES "Farm"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "VetAppointment" ADD CONSTRAINT "VetAppointment_producerUserId_fkey"
-  FOREIGN KEY ("producerUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-ALTER TABLE "VetAppointment" ADD CONSTRAINT "VetAppointment_vetProfileId_fkey"
-  FOREIGN KEY ("vetProfileId") REFERENCES "VetProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-ALTER TABLE "VetAppointment" ADD CONSTRAINT "VetAppointment_vetUserId_fkey"
-  FOREIGN KEY ("vetUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "VetAppointment" ADD CONSTRAINT "VetAppointment_farmId_fkey"
+    FOREIGN KEY ("farmId") REFERENCES "Farm"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-ALTER TABLE "VetAppointmentRating" ADD CONSTRAINT "VetAppointmentRating_appointmentId_fkey"
-  FOREIGN KEY ("appointmentId") REFERENCES "VetAppointment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "VetAppointmentRating" ADD CONSTRAINT "VetAppointmentRating_vetProfileId_fkey"
-  FOREIGN KEY ("vetProfileId") REFERENCES "VetProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "VetAppointment" ADD CONSTRAINT "VetAppointment_producerUserId_fkey"
+    FOREIGN KEY ("producerUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-ALTER TABLE "VetAppointmentFundMovement" ADD CONSTRAINT "VetAppointmentFundMovement_appointmentId_fkey"
-  FOREIGN KEY ("appointmentId") REFERENCES "VetAppointment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "VetAppointment" ADD CONSTRAINT "VetAppointment_vetProfileId_fkey"
+    FOREIGN KEY ("vetProfileId") REFERENCES "VetProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-ALTER TABLE "PlatformRevenue" ADD CONSTRAINT "PlatformRevenue_vetAppointmentId_fkey"
-  FOREIGN KEY ("vetAppointmentId") REFERENCES "VetAppointment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "VetAppointment" ADD CONSTRAINT "VetAppointment_vetUserId_fkey"
+    FOREIGN KEY ("vetUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "VetAppointmentRating" ADD CONSTRAINT "VetAppointmentRating_appointmentId_fkey"
+    FOREIGN KEY ("appointmentId") REFERENCES "VetAppointment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "VetAppointmentRating" ADD CONSTRAINT "VetAppointmentRating_vetProfileId_fkey"
+    FOREIGN KEY ("vetProfileId") REFERENCES "VetProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "VetAppointmentFundMovement" ADD CONSTRAINT "VetAppointmentFundMovement_appointmentId_fkey"
+    FOREIGN KEY ("appointmentId") REFERENCES "VetAppointment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "PlatformRevenue" ADD CONSTRAINT "PlatformRevenue_vetAppointmentId_fkey"
+    FOREIGN KEY ("vetAppointmentId") REFERENCES "VetAppointment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

@@ -1,31 +1,45 @@
 -- Marketplace escrow: transactions, fund movements, platform revenue
 -- Mirror of apps/api/prisma/migrations/20260606180000_marketplace_escrow
 
-CREATE TYPE "MarketplaceTransactionStatus" AS ENUM (
-  'OFFER_ACCEPTED',
-  'PAYMENT_PENDING',
-  'PAYMENT_HELD',
-  'PICKUP_SCHEDULED',
-  'WEIGHT_DECLARED',
-  'WEIGHT_DISPUTED',
-  'WEIGHT_VALIDATED',
-  'TRANSACTION_CLOSED',
-  'CANCELLED_BY_BUYER',
-  'CANCELLED_BY_SELLER',
-  'CANCELLED_SOLD_TO_OTHER',
-  'PAYMENT_FAILED',
-  'OFFER_EXPIRED'
-);
+DO $$ BEGIN
+  CREATE TYPE "MarketplaceTransactionStatus" AS ENUM (
+    'OFFER_ACCEPTED',
+    'PAYMENT_PENDING',
+    'PAYMENT_HELD',
+    'PICKUP_SCHEDULED',
+    'WEIGHT_DECLARED',
+    'WEIGHT_DISPUTED',
+    'WEIGHT_VALIDATED',
+    'TRANSACTION_CLOSED',
+    'CANCELLED_BY_BUYER',
+    'CANCELLED_BY_SELLER',
+    'CANCELLED_SOLD_TO_OTHER',
+    'PAYMENT_FAILED',
+    'OFFER_EXPIRED'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE "MarketplacePriceType" AS ENUM ('per_kg', 'flat');
-CREATE TYPE "WeightValidatedBy" AS ENUM ('auto', 'seller', 'superadmin');
-CREATE TYPE "MarketplaceFundMovementKind" AS ENUM (
-  'HOLD',
-  'RELEASE_TO_SELLER',
-  'REFUND_BUYER',
-  'ADDITIONAL_CHARGE',
-  'COMMISSION'
-);
+DO $$ BEGIN
+  CREATE TYPE "MarketplacePriceType" AS ENUM ('per_kg', 'flat');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "WeightValidatedBy" AS ENUM ('auto', 'seller', 'superadmin');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "MarketplaceFundMovementKind" AS ENUM (
+    'HOLD',
+    'RELEASE_TO_SELLER',
+    'REFUND_BUYER',
+    'ADDITIONAL_CHARGE',
+    'COMMISSION'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "reputationScore" INTEGER NOT NULL DEFAULT 100;
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "cancelledAsSellerCount" INTEGER NOT NULL DEFAULT 0;

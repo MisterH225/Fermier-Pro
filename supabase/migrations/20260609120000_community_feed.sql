@@ -1,10 +1,25 @@
 -- Feed communautaire : statuts utilisateur, publications, modération et appels.
 -- Aligné sur apps/api/prisma/migrations/20260609120000_community_feed/migration.sql
 
-CREATE TYPE "FeedUserStatus" AS ENUM ('active', 'warned_1', 'warned_2', 'suspended_7d', 'suspended_30d', 'banned_permanent');
-CREATE TYPE "ModerationSeverity" AS ENUM ('low', 'medium', 'high');
-CREATE TYPE "SanctionAppealStatus" AS ENUM ('pending', 'accepted', 'rejected');
-CREATE TYPE "CommunityFeedPostType" AS ENUM ('question', 'tip', 'observation', 'alert', 'success', 'medical_tip', 'technical_tip');
+DO $$ BEGIN
+  CREATE TYPE "FeedUserStatus" AS ENUM ('active', 'warned_1', 'warned_2', 'suspended_7d', 'suspended_30d', 'banned_permanent');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "ModerationSeverity" AS ENUM ('low', 'medium', 'high');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "SanctionAppealStatus" AS ENUM ('pending', 'accepted', 'rejected');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "CommunityFeedPostType" AS ENUM ('question', 'tip', 'observation', 'alert', 'success', 'medical_tip', 'technical_tip');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "feedStatus" "FeedUserStatus" NOT NULL DEFAULT 'active';
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "feedSuspensionUntil" TIMESTAMP(3);
