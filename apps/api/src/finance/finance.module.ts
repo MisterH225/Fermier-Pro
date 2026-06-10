@@ -7,6 +7,7 @@ import { FinanceController } from "./finance.controller";
 import { FinanceService } from "./finance.service";
 import { SmartAlertsModule } from "../smart-alerts/smart-alerts.module";
 import { FeedFinanceLinkModule } from "../feed-finance-link/feed-finance-link.module";
+import { ProfitabilityModule } from "../profitability/profitability.module";
 
 @Module({
   imports: [
@@ -14,7 +15,8 @@ import { FeedFinanceLinkModule } from "../feed-finance-link/feed-finance-link.mo
     ConfigClientModule,
     AiModule,
     SmartAlertsModule,
-    FeedFinanceLinkModule
+    FeedFinanceLinkModule,
+    ProfitabilityModule
   ],
   controllers: [FinanceController],
   providers: [FinanceService, BudgetService],

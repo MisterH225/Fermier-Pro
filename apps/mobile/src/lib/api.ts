@@ -7286,3 +7286,4 @@ export function patchProfitabilitySettings(
 }
 
 export * from "./api/predictions";
+export * from "./api/profitability";

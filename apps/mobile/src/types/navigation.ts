@@ -124,7 +124,7 @@ export type RootStackParamList = {
   FarmFinance: {
     farmId: string;
     farmName: string;
-    initialTab?: "overview" | "revenus" | "depenses" | "budget";
+    initialTab?: "overview" | "rentabilite" | "revenus" | "depenses" | "budget";
     openCategoryId?: string;
     highlightOverrun?: boolean;
   };

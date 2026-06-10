@@ -45,6 +45,8 @@ import {
   CheptelStyleKpiCard,
   cheptelKpiGridStyles
 } from "../components/cheptel/overview/CheptelStyleKpiCard";
+import { RentabilityHeroCard } from "../components/profitability/RentabilityHeroCard";
+import { RentabilityScreen } from "../components/profitability/RentabilityScreen";
 import { KpiGridSkeleton, ListSkeleton } from "../components/common/SkeletonBlocks";
 import { EventList, type EventItem } from "../components/lists";
 import { useModal } from "../components/modals/useModal";
@@ -74,6 +76,7 @@ import {
   fetchFinanceProjection,
   fetchFinanceReport,
   fetchFinanceTransactions,
+  fetchFarmProfitabilityDashboard,
   fetchMarketplaceTransactionSummary,
   fetchVetAppointmentFinanceSummary
 } from "../lib/api";
@@ -157,7 +160,12 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
   const [reportYear, setReportYear] = useState(() => currentYearUtc());
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
 
-  const [financeTab, setFinanceTab] = useState("overview");
+  const [financeTab, setFinanceTab] = useState(
+    initialTabParam ?? "overview"
+  );
+  const [profitabilityPeriod, setProfitabilityPeriod] = useState<
+    "current_month" | "current_quarter" | "current_year"
+  >("current_month");
   const [chartPeriod, setChartPeriod] = useState<SmartChartPeriod>("6M");
   const [showAllTransactions, setShowAllTransactions] = useState(false);
 
@@ -224,6 +232,29 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
       fetchMarketplaceTransactionSummary(accessToken!, activeProfileId),
     enabled: clientFeatures.marketplace && Boolean(accessToken)
   });
+
+  const profitabilityDashQ = useQuery({
+    queryKey: [
+      "profitabilityDashboard",
+      farmId,
+      profitabilityPeriod,
+      activeProfileId
+    ],
+    queryFn: () =>
+      fetchFarmProfitabilityDashboard(
+        accessToken!,
+        farmId,
+        activeProfileId,
+        profitabilityPeriod
+      ),
+    enabled: enabled && Boolean(accessToken)
+  });
+
+  useEffect(() => {
+    if (initialTabParam) {
+      setFinanceTab(initialTabParam);
+    }
+  }, [initialTabParam]);
 
   const vetAppointmentFinanceQ = useQuery({
     queryKey: ["vetAppointmentFinance", activeProfileId, "producer"],
@@ -958,7 +989,9 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
       <TabSelector
         activeTab={financeTab}
         onTabChange={(key) => {
-          setFinanceTab(key);
+          setFinanceTab(
+            key as "overview" | "rentabilite" | "revenus" | "depenses" | "budget"
+          );
           setShowAllTransactions(false);
         }}
         header={
@@ -1035,7 +1068,15 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
               <>
                 {overview ? (
                   <ScreenSection plain>
-                    <View style={styles.kpiRow}>
+                    <RentabilityHeroCard
+                      data={profitabilityDashQ.data}
+                      isLoading={profitabilityDashQ.isPending}
+                      currencySymbol={curSym}
+                      period={profitabilityPeriod}
+                      onPeriodChange={setProfitabilityPeriod}
+                      onPressDetail={() => setFinanceTab("rentabilite")}
+                    />
+                    <View style={[styles.kpiRow, { marginTop: mobileSpacing.md }]}>
                       <View style={styles.kpiHalf}>
                         <FinanceKpiCard
                           title={t("financeScreen.balance")}
@@ -1416,6 +1457,20 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                   </>
                 ) : null}
               </>
+            )
+          },
+          {
+            key: "rentabilite",
+            label: t("financeScreen.tabRentability"),
+            content: tabScroll(
+              accessToken ? (
+                <RentabilityScreen
+                  farmId={farmId}
+                  accessToken={accessToken}
+                  activeProfileId={activeProfileId}
+                  currencySymbol={curSym}
+                />
+              ) : null
             )
           },
           {

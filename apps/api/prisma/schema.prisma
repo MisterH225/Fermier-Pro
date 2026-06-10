@@ -332,6 +332,8 @@ model Farm {
   gestations               Gestation[]
   gestationSettings        GestationSettings?
   profitabilitySettings    FarmProfitabilitySettings?
+  farmProfitabilitySnapshots FarmProfitabilitySnapshot[]
+  batchProfitabilitySnapshots BatchProfitabilitySnapshot[]
   appSettings              FarmAppSettings?
   marketplacePendingTransfers MarketplacePendingTransfer[]
   predictions              FarmPrediction?
@@ -371,6 +373,81 @@ model FarmProfitabilitySettings {
   gmqRefFattening    Int      @default(650)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+}
+
+enum ProfitabilityBatchStatus {
+  open
+  closed
+}
+
+/// Snapshot global de rentabilité ferme (cache recalculé à chaque événement clé).
+model FarmProfitabilitySnapshot {
+  id                    String   @id @default(cuid())
+  farmId                String
+  farm                  Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  period                String
+  snapshotDate          DateTime @default(now())
+  grossMarginRealized   Decimal  @db.Decimal(16, 2)
+  grossMarginPct        Decimal? @db.Decimal(8, 4)
+  netMarginRealized     Decimal  @db.Decimal(16, 2)
+  netMarginPct          Decimal? @db.Decimal(8, 4)
+  costPerKgRealized     Decimal? @db.Decimal(14, 4)
+  costPerKgProjected    Decimal? @db.Decimal(14, 4)
+  roiRealized           Decimal? @db.Decimal(10, 4)
+  roiProjected          Decimal? @db.Decimal(10, 4)
+  breakevenPricePerKg   Decimal? @db.Decimal(14, 4)
+  revenuesRealized      Decimal  @db.Decimal(16, 2)
+  revenuesProjected     Decimal? @db.Decimal(16, 2)
+  costsDirectRealized   Decimal  @db.Decimal(16, 2)
+  costsIndirectRealized Decimal  @db.Decimal(16, 2)
+  costsProjected        Decimal? @db.Decimal(16, 2)
+  grossMarginProjected  Decimal? @db.Decimal(16, 2)
+  netMarginProjected    Decimal? @db.Decimal(16, 2)
+  kgProducedRealized    Decimal? @db.Decimal(14, 4)
+  kgProjected           Decimal? @db.Decimal(14, 4)
+  marketPricePerKg      Decimal? @db.Decimal(14, 4)
+  dataQuality           String   @default("insufficient")
+  detailJson            Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([farmId, period])
+  @@index([farmId, snapshotDate(sort: Desc)])
+}
+
+/// Snapshot rentabilité par bande.
+model BatchProfitabilitySnapshot {
+  id                    String                   @id @default(cuid())
+  farmId                String
+  farm                  Farm                     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  batchId               String                   @unique
+  batch                 LivestockBatch           @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  snapshotDate          DateTime                 @default(now())
+  status                ProfitabilityBatchStatus @default(open)
+  revenuesRealized      Decimal                  @default(0) @db.Decimal(16, 2)
+  revenuesProjected     Decimal?                 @db.Decimal(16, 2)
+  costsDirectRealized   Decimal                  @default(0) @db.Decimal(16, 2)
+  costsIndirectRealized Decimal                  @default(0) @db.Decimal(16, 2)
+  costsProjected        Decimal?                 @db.Decimal(16, 2)
+  grossMarginRealized   Decimal                  @default(0) @db.Decimal(16, 2)
+  netMarginRealized     Decimal                  @default(0) @db.Decimal(16, 2)
+  netMarginPctRealized  Decimal?                 @db.Decimal(8, 4)
+  costPerKgRealized     Decimal?                 @db.Decimal(14, 4)
+  costPerKgProjected    Decimal?                 @db.Decimal(14, 4)
+  roiRealized           Decimal?                 @db.Decimal(10, 4)
+  roiProjected          Decimal?                 @db.Decimal(10, 4)
+  icActual              Decimal?                 @db.Decimal(8, 4)
+  gmqActual             Decimal?                 @db.Decimal(10, 2)
+  kgProducedRealized    Decimal?                 @db.Decimal(14, 4)
+  kgProjected           Decimal?                 @db.Decimal(14, 4)
+  breakevenPricePerKg   Decimal?                 @db.Decimal(14, 4)
+  isProfitable          Boolean?
+  dataQuality           String                   @default("insufficient")
+  detailJson            Json?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  @@index([farmId, snapshotDate(sort: Desc)])
 }
 
 /// Objectifs GMQ / poids cible par catégorie (ferme).
@@ -994,6 +1071,7 @@ model LivestockBatch {
   healthEvents   LivestockBatchHealthEvent[]
   penPlacements  PenPlacement[]
   livestockExits LivestockExit[]
+  profitabilitySnapshot BatchProfitabilitySnapshot?
 
   @@index([farmId])
   @@index([farmId, status])

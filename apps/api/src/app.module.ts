@@ -51,6 +51,7 @@ import { TechnicianProfilesModule } from "./technician-profiles/technician-profi
 import { FarmSettingsModule } from "./farm-settings/farm-settings.module";
 import { PredictionsModule } from "./predictions/predictions.module";
 import { CommunityFeedModule } from "./community-feed/community-feed.module";
+import { ProfitabilityModule } from "./profitability/profitability.module";
 
 @Module({
   imports: [
@@ -126,7 +127,8 @@ import { CommunityFeedModule } from "./community-feed/community-feed.module";
     TechnicianProfilesModule,
     FarmSettingsModule,
     PredictionsModule,
-    CommunityFeedModule
+    CommunityFeedModule,
+    ProfitabilityModule
   ],
   controllers: [AppController],
   providers: [

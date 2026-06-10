@@ -7,8 +7,5 @@
   "include": [
     "**/*.ts",
     "**/*.tsx"
-  ],
-  "exclude": [
-    "src/components/profitability"
   ]
 }

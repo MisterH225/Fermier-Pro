@@ -2177,6 +2177,7 @@ export const fr = {
   financeScreen: {
     overview: "Vue d’ensemble",
     tabOverview: "Vue d’ensemble",
+    tabRentability: "Rentabilité",
     balance: "Solde (cumul)",
     revenuesMonth: "Revenus (mois)",
     expensesMonth: "Dépenses (mois)",
@@ -3312,5 +3313,63 @@ export const fr = {
     kpiRevenue: "Revenu estimé",
     kpiFeed: "Aliment à commander",
     kpiBirths: "Naissances prévues"
+  },
+  profitability: {
+    heroTitle: "💰 Rentabilité",
+    periodMonth: "Ce mois",
+    periodQuarter: "Trimestre",
+    periodYear: "Année",
+    netMarginLabel: "Marge nette",
+    grossMargin: "Marge brute",
+    netMargin: "Marge nette",
+    costPerKg: "Coût/kg",
+    breakeven: "Seuil",
+    minPrice: "Prix min rentable",
+    vsMarket: "Marché {{price}}/kg",
+    batchSummary:
+      "{{count}} bandes actives — Meilleure : {{best}} ({{bestPct}}%) / Moins bonne : {{worst}} ({{worstPct}}%)",
+    viewDetail: "Voir détail par bande",
+    insufficientData: "Données insuffisantes pour calculer la rentabilité.",
+    globalTitle: "📊 Rentabilité globale",
+    byBatchTitle: "🐷 Rentabilité par bande",
+    period: {
+      current_month: "Mois en cours",
+      current_quarter: "Trimestre",
+      current_year: "Année",
+      all_time: "Tout"
+    },
+    view: {
+      realized: "Réalisé",
+      projected: "Prévisionnel",
+      combined: "Combiné"
+    },
+    revenues: "Revenus",
+    costs: "Coûts",
+    roiHint: "Retour sur investissement",
+    market: "Marché",
+    costBreakdown: "Répartition des coûts",
+    revenueVsCosts: "Revenus vs Coûts",
+    noBatches: "Aucune bande enregistrée.",
+    realized: "✅ Réalisé",
+    projected: "🔮 Prévisionnel",
+    combinedTotal: "📊 Total bande (réalisé + prévisionnel)",
+    finalSummary: "Bilan final",
+    duration: "Durée totale",
+    animalsSold: "Animaux vendus",
+    animals: "animaux",
+    batchOpen: "En cours",
+    batchClosed: "Clôturée",
+    remainingDays: "Durée restante estimée",
+    icActual: "IC réel",
+    gmqActual: "GMQ réel",
+    resultProfit: "✅ Bénéfice",
+    resultLoss: "❌ Perte",
+    breakevenTitle: "📍 Seuil de rentabilité",
+    breakevenExplain:
+      "Vous devez vendre à minimum {{price}} {{currency}}/kg pour couvrir vos coûts.",
+    currentMarket: "Prix marché actuel : {{price}} {{currency}}/kg",
+    safetyMargin: "Marge de sécurité : {{direction}}{{delta}} {{currency}}/kg",
+    aiTitle: "💡 Analyse IA",
+    aiRefresh: "🔄 Actualiser"
   }
 } as const;

@@ -15,6 +15,7 @@ import { CreateExpenseDto } from "./dto/create-expense.dto";
 import { CreateRevenueDto } from "./dto/create-revenue.dto";
 import { UpdateExpenseDto } from "./dto/update-expense.dto";
 import { UpdateRevenueDto } from "./dto/update-revenue.dto";
+import { ProfitabilityEngine } from "../profitability/profitability.engine";
 
 @Injectable()
 export class FinanceService {
@@ -22,7 +23,8 @@ export class FinanceService {
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
     private readonly audit: AuditService,
-    private readonly smartAlerts: SmartAlertsService
+    private readonly smartAlerts: SmartAlertsService,
+    private readonly profitability: ProfitabilityEngine
   ) {}
 
   private expenseSnapshot(row: FarmExpense) {
@@ -147,6 +149,7 @@ export class FinanceService {
       }
     });
     void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
+    this.profitability.scheduleRecalculate(farmId);
     return row;
   }
 
@@ -297,6 +300,7 @@ export class FinanceService {
       }
     });
     void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
+    this.profitability.scheduleRecalculate(farmId);
     return row;
   }
 

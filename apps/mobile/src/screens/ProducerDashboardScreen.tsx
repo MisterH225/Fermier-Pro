@@ -21,6 +21,7 @@ import { AlertBadge } from "../components/smartAlerts/AlertBadge";
 
 import { FeedStockLevelGauge, dashboardFeedItemToGauge } from "../components/feed";
 import { FinanceOverviewKpiGrid } from "../components/finance/FinanceOverviewKpiGrid";
+import { RentabilityHeroCard } from "../components/profitability/RentabilityHeroCard";
 import { CategoryBreakdownPanel } from "../components/cheptel/overview/CategoryBreakdownPanel";
 import { ScreenSection } from "../components/layout/ScreenSection";
 import { EmptyStateCard } from "../components/common/EmptyStateCard";
@@ -42,6 +43,7 @@ import {
   fetchDashboardFeedStock,
   fetchFinanceOverview,
   fetchFarmCheptelOverview,
+  fetchFarmProfitabilityDashboard,
   fetchDashboardGestations,
   fetchDashboardHealth,
   fetchFarmSmartAlertsCount,
@@ -111,6 +113,9 @@ export function ProducerDashboardScreen() {
   const showOnboardingBanner = onboardingState === "skipped";
   const [profileOpen, setProfileOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [profitabilityPeriod, setProfitabilityPeriod] = useState<
+    "current_month" | "current_quarter" | "current_year"
+  >("current_month");
   const user = authMe?.user;
   const firstName = useMemo(() => welcomeFirstName(user), [user]);
 
@@ -140,6 +145,24 @@ export function ProducerDashboardScreen() {
       fetchFinanceOverview(accessToken!, farmId!, activeProfileId),
     enabled: financeEnabled,
     refetchInterval: 60_000
+  });
+
+  const profitabilityQuery = useQuery({
+    queryKey: [
+      "profitabilityDashboard",
+      farmId,
+      profitabilityPeriod,
+      activeProfileId
+    ],
+    queryFn: () =>
+      fetchFarmProfitabilityDashboard(
+        accessToken!,
+        farmId!,
+        activeProfileId,
+        profitabilityPeriod
+      ),
+    enabled: financeEnabled,
+    refetchInterval: 120_000
   });
 
   const gestationsQuery = useQuery({
@@ -203,7 +226,7 @@ export function ProducerDashboardScreen() {
     setRefreshing(true);
     const tasks: Promise<unknown>[] = [];
     if (financeEnabled) {
-      tasks.push(financeQuery.refetch());
+      tasks.push(financeQuery.refetch(), profitabilityQuery.refetch());
     }
     tasks.push(gestationsQuery.refetch(), healthQuery.refetch());
     tasks.push(cheptelOverviewQ.refetch());
@@ -232,6 +255,7 @@ export function ProducerDashboardScreen() {
     financeEnabled,
     feedEnabled,
     financeQuery,
+    profitabilityQuery,
     gestationsQuery,
     healthQuery,
     feedQuery,
@@ -351,6 +375,27 @@ export function ProducerDashboardScreen() {
             )
           ) : (
             <>
+            {financeEnabled ? (
+              <View style={styles.heroRentability}>
+                <RentabilityHeroCard
+                  data={profitabilityQuery.data}
+                  isLoading={profitabilityQuery.isPending}
+                  currencySymbol={
+                    (financeQuery.data as FinanceOverviewDto | undefined)
+                      ?.settings.currencySymbol ?? "FCFA"
+                  }
+                  period={profitabilityPeriod}
+                  onPeriodChange={setProfitabilityPeriod}
+                  onPressDetail={() =>
+                    navigation.navigate("FarmFinance", {
+                      farmId,
+                      farmName,
+                      initialTab: "rentabilite"
+                    })
+                  }
+                />
+              </View>
+            ) : null}
             <View style={styles.grid}>
               <View style={styles.gridItem}>
                 <FinanceOverviewKpiGrid
@@ -803,6 +848,9 @@ const styles = StyleSheet.create({
   wrap: {
     padding: mobileSpacing.lg,
     gap: mobileSpacing.lg
+  },
+  heroRentability: {
+    width: "100%"
   },
   grid: {
     flexDirection: "column",
