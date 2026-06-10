@@ -84,6 +84,45 @@ export function buildGaugeSvg(
   </svg>`;
 }
 
+/** Barres groupées revenus (vert) / dépenses (rouge). */
+export function buildDualBarChartSvg(
+  data: { label: string; revenues: number; expenses: number }[],
+  width: number,
+  height: number
+): string {
+  if (data.length === 0) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="${REPORT_COLORS.lightBg}" rx="4"/></svg>`;
+  }
+  const max = Math.max(
+    ...data.flatMap((d) => [d.revenues, d.expenses]),
+    1
+  );
+  const pad = 8;
+  const chartH = height - 28;
+  const groupW = (width - pad * 2) / data.length;
+  const barW = Math.max(4, groupW / 2 - 2);
+  const bars = data
+    .flatMap((d, i) => {
+      const gx = pad + i * groupW;
+      const revH = Math.max(2, (d.revenues / max) * (chartH - pad));
+      const expH = Math.max(2, (d.expenses / max) * (chartH - pad));
+      return [
+        `<rect x="${gx}" y="${chartH - revH + pad}" width="${barW}" height="${revH}" fill="${REPORT_COLORS.success}" rx="2"/>`,
+        `<rect x="${gx + barW + 2}" y="${chartH - expH + pad}" width="${barW}" height="${expH}" fill="${REPORT_COLORS.danger}" rx="2"/>`
+      ];
+    })
+    .join("");
+  const labels = data
+    .map((d, i) => {
+      const x = pad + i * groupW + groupW / 2;
+      const short = d.label.length > 5 ? d.label.slice(-5) : d.label;
+      return `<text x="${x}" y="${height - 6}" font-size="6" text-anchor="middle" fill="${REPORT_COLORS.greyText}">${short}</text>`;
+    })
+    .join("");
+  const legend = `<text x="${pad}" y="10" font-size="6" fill="${REPORT_COLORS.success}">■ Rev.</text><text x="${pad + 36}" y="10" font-size="6" fill="${REPORT_COLORS.danger}">■ Dép.</text>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="${REPORT_COLORS.lightBg}" rx="4"/>${legend}${bars}${labels}</svg>`;
+}
+
 export function buildHorizontalBarSvg(
   value: number,
   max: number,

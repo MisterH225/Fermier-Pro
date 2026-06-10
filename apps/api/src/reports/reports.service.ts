@@ -18,7 +18,10 @@ import { FinanceService } from "../finance/finance.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import { previousPeriod, resolveReportPeriod } from "./reports-period.util";
+import { buildReportEnrichmentData } from "./reports-enrichment";
 import { buildExtendedReportData } from "./reports-snapshot-extended";
+import { ProfitabilityService } from "../profitability/profitability.service";
+import { PredictionsService } from "../predictions/predictions.service";
 import { computeFarmScore } from "./reports-score.util";
 import { REPORTS_STORAGE_BUCKET } from "./reports.constants";
 import { ReportsPdfmakeService } from "./reports-pdfmake.service";
@@ -41,7 +44,9 @@ export class ReportsService {
     private readonly finance: FinanceService,
     private readonly smartAlerts: SmartAlertsService,
     private readonly pdf: ReportsPdfmakeService,
-    private readonly supabaseAdmin: SupabaseAdminService
+    private readonly supabaseAdmin: SupabaseAdminService,
+    private readonly profitability: ProfitabilityService,
+    private readonly predictions: PredictionsService
   ) {}
 
   private async requireFarmRead(user: User, farmId: string) {
@@ -154,16 +159,26 @@ export class ReportsService {
     const curHead = Number(
       (sections.cheptel as { headcountEnd?: number })?.headcountEnd ?? 0
     );
-    const extended = await buildExtendedReportData(
-      this.prisma,
-      farmId,
-      start,
-      end,
-      sections as Record<string, unknown>,
-      score,
-      prevHead,
-      curHead
-    );
+    const [extended, enrichment] = await Promise.all([
+      buildExtendedReportData(
+        this.prisma,
+        farmId,
+        start,
+        end,
+        sections as Record<string, unknown>,
+        score,
+        prevHead,
+        curHead
+      ),
+      buildReportEnrichmentData(
+        user,
+        farmId,
+        start,
+        end,
+        this.profitability,
+        this.predictions
+      )
+    ]);
 
     const snapshot = {
       farmId,
@@ -171,7 +186,8 @@ export class ReportsService {
       period: { start: start.toISOString(), end: end.toISOString() },
       score,
       sections,
-      ...extended
+      ...extended,
+      ...enrichment
     };
     const json = JSON.stringify(snapshot);
     const contentHash = createHash("sha256").update(json).digest("hex");
