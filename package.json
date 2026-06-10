@@ -19,7 +19,7 @@
     "packages/*"
   ],
   "scripts": {
-    "postinstall": "npm exec -w @fermier/api -- prisma generate",
+    "prisma:generate": "npm exec -w @fermier/api -- prisma generate",
     "build": "npm run build --workspace @fermier/phone && npm run build --workspace @fermier/api",
     "start": "npm run start --workspace @fermier/api",
     "dev:mobile": "npx expo start apps/mobile",
@@ -34,7 +34,7 @@
     "typecheck:admin": "npm run typecheck --workspace @fermier/admin-platform",
     "test:e2e": "npm run test:e2e --workspace @fermier/api",
     "test:unit": "npm run test:unit --workspace @fermier/api",
-    "ci:quality": "npm exec -w @fermier/api -- prisma generate && npm run lint:api && npm run build:api && npm run test:unit && npm run typecheck:mobile && npm run typecheck:admin",
+    "ci:quality": "npm run prisma:generate && npm run lint:api && npm run build:api && npm run test:unit && npm run typecheck:mobile && npm run typecheck:admin",
     "ota:preview": "bash scripts/ota-preview.sh",
     "ota:production": "bash scripts/ota-production.sh"
   },
