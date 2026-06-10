@@ -17,7 +17,7 @@
     ],
     "ios": {
       "bundleIdentifier": "com.fermierpro.app",
-      "buildNumber": "14",
+      "buildNumber": "12",
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -30,7 +30,7 @@
     },
     "android": {
       "package": "com.fermierpro.app",
-      "versionCode": 14,
+      "versionCode": 12,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a1a1a"
