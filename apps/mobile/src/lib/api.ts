@@ -7285,4 +7285,5 @@ export function patchProfitabilitySettings(
   ).then((s) => s.profitability);
 }
 
+export * from "./api/predictions";
 export * from "./api/profitability";

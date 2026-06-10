@@ -28,6 +28,7 @@ import {
 } from "../components/charts";
 import { AppDateRangePicker } from "../components/common/AppDateRangePicker";
 import { StockModal, FeedStockLevelGauge, farmFeedStatToGauge } from "../components/feed";
+import { PredictionsSection } from "../components/predictions/PredictionsSection";
 import { HighlightWrapper } from "../components/common/HighlightWrapper";
 import { EditStockModal } from "../components/stock/EditStockModal";
 import { LinkedFinanceSection } from "../components/stock/LinkedFinanceSection";
@@ -624,6 +625,17 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
                     <Text style={styles.muted}>—</Text>
                   )}
                 </ScreenSection>
+                <PredictionsSection
+                  farmId={farmId}
+                  menu="stock"
+                  accessToken={accessToken}
+                  activeProfileId={activeProfileId}
+                  title={t("predictions.sectionStock")}
+                  onStockOrderPress={() => {
+                    setStockModalDefaultTab("in");
+                    setStockOpen(true);
+                  }}
+                />
                 <ModuleAIInsights
                   farmId={farmId}
                   module="stock"

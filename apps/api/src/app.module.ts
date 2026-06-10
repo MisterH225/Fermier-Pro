@@ -49,6 +49,7 @@ import { MarketModule } from "./market/market.module";
 import { BuyerProfilesModule } from "./buyer-profiles/buyer-profiles.module";
 import { TechnicianProfilesModule } from "./technician-profiles/technician-profiles.module";
 import { FarmSettingsModule } from "./farm-settings/farm-settings.module";
+import { PredictionsModule } from "./predictions/predictions.module";
 import { CommunityFeedModule } from "./community-feed/community-feed.module";
 import { ProfitabilityModule } from "./profitability/profitability.module";
 
@@ -125,6 +126,7 @@ import { ProfitabilityModule } from "./profitability/profitability.module";
     BuyerProfilesModule,
     TechnicianProfilesModule,
     FarmSettingsModule,
+    PredictionsModule,
     CommunityFeedModule,
     ProfitabilityModule
   ],

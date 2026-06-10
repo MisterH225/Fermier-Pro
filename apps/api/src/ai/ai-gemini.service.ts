@@ -25,6 +25,25 @@ export class AiGeminiService {
     return [...new Set(chain)];
   }
 
+  /** Génération JSON volumineuse (prévisions IA) — tokens étendus. */
+  async generatePredictionJson(prompt: string): Promise<string | null> {
+    const apiKey = this.config.get<string>("GEMINI_API_KEY")?.trim();
+    if (!apiKey) {
+      return null;
+    }
+
+    for (const model of this.modelChain()) {
+      const text = await this.callModel(apiKey, model, prompt, {
+        maxOutputTokens: 8192,
+        timeoutMs: 30_000
+      });
+      if (text) {
+        return text;
+      }
+    }
+    return null;
+  }
+
   async generateText(prompt: string): Promise<string | null> {
     const apiKey = this.config.get<string>("GEMINI_API_KEY")?.trim();
     if (!apiKey) {

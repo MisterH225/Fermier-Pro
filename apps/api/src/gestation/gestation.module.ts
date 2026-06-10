@@ -5,6 +5,7 @@ import { FeatureFlagsModule } from "../feature-flags/feature-flags.module";
 import { HousingModule } from "../housing/housing.module";
 import { SmartAlertsModule } from "../smart-alerts/smart-alerts.module";
 import { AiModule } from "../ai/ai.module";
+import { PredictionsModule } from "../predictions/predictions.module";
 import { GestationController } from "./gestation.controller";
 import { GestationService } from "./gestation.service";
 
@@ -15,7 +16,8 @@ import { GestationService } from "./gestation.service";
     HousingModule,
     SmartAlertsModule,
     FeatureFlagsModule,
-    AiModule
+    AiModule,
+    PredictionsModule
   ],
   controllers: [GestationController],
   providers: [GestationService],
