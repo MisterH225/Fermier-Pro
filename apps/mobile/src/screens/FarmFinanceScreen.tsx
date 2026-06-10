@@ -16,8 +16,7 @@ import {
   View
 } from "react-native";
 import { formatFarmMoney as formatMoney } from "../lib/formatMoney";
-import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
-import { PredictionsSection } from "../components/predictions/PredictionsSection";
+import { FarmModuleAISection } from "../components/ai/FarmModuleAISection";
 import { TabContent, TabSelector } from "../components/tabs";
 import { BudgetScreen } from "../components/finance/budget";
 import {
@@ -1240,19 +1239,13 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                 ) : null}
                 {overview ? (
                   <>
-                    <PredictionsSection
+                    <FarmModuleAISection
                       farmId={farmId}
                       menu="finance"
                       accessToken={accessToken}
                       activeProfileId={activeProfileId}
-                      title={t("predictions.sectionFinance")}
-                    />
-                    <ModuleAIInsights
-                      farmId={farmId}
-                      module="finance"
-                      accessToken={accessToken}
-                      activeProfileId={activeProfileId}
-                      enabled={clientFeatures.finance}
+                      predictionTitle={t("predictions.sectionFinance")}
+                      recommendationsEnabled={clientFeatures.finance}
                     />
                   </>
                 ) : null}

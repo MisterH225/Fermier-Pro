@@ -28,7 +28,6 @@ import {
 } from "../components/charts";
 import { AppDateRangePicker } from "../components/common/AppDateRangePicker";
 import { StockModal, FeedStockLevelGauge, farmFeedStatToGauge } from "../components/feed";
-import { PredictionsSection } from "../components/predictions/PredictionsSection";
 import { HighlightWrapper } from "../components/common/HighlightWrapper";
 import { EditStockModal } from "../components/stock/EditStockModal";
 import { LinkedFinanceSection } from "../components/stock/LinkedFinanceSection";
@@ -36,7 +35,7 @@ import { ReconciliationAlertModal } from "../components/stock/ReconciliationAler
 import type { PostFarmFeedMovementResponse, ReconciliationOfferDto } from "../lib/api";
 import { FeedStockModuleGate } from "../components/FeedStockModuleGate";
 import { EventList, type EventItem } from "../components/lists";
-import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
+import { FarmModuleAISection } from "../components/ai/FarmModuleAISection";
 import { ScreenSection } from "../components/layout/ScreenSection";
 import { TabContent, TabSelector } from "../components/tabs";
 import { invalidateAIInsights } from "../services/ai/AIRecommendationService";
@@ -625,22 +624,16 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
                     <Text style={styles.muted}>—</Text>
                   )}
                 </ScreenSection>
-                <PredictionsSection
+                <FarmModuleAISection
                   farmId={farmId}
                   menu="stock"
                   accessToken={accessToken}
                   activeProfileId={activeProfileId}
-                  title={t("predictions.sectionStock")}
+                  predictionTitle={t("predictions.sectionStock")}
                   onStockOrderPress={() => {
                     setStockModalDefaultTab("in");
                     setStockOpen(true);
                   }}
-                />
-                <ModuleAIInsights
-                  farmId={farmId}
-                  module="stock"
-                  accessToken={accessToken}
-                  activeProfileId={activeProfileId}
                   hasMinimalData={safeStats.length > 0}
                 />
                 <ScreenSection title={t("feedStock.statsTitle")}>
