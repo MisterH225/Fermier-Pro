@@ -17,7 +17,6 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
-import { PredictionsSection } from "../components/predictions/PredictionsSection";
 import { HighlightWrapper } from "../components/common/HighlightWrapper";
 import { SmartChart, type SmartChartPeriod } from "../components/charts";
 import { CreateGestationModal } from "../components/shared/CreateGestationModal";
@@ -333,14 +332,6 @@ export function FarmGestationScreen({ route, navigation }: Props) {
               </View>
             </View>
           </ScreenSection>
-          <PredictionsSection
-            farmId={farmId}
-            farmName={farmName}
-            menu="gestation"
-            accessToken={accessToken}
-            activeProfileId={activeProfileId}
-            title={t("predictions.sectionGestation")}
-          />
           <ModuleAIInsights
             farmId={farmId}
             module="gestation"

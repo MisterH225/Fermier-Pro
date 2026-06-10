@@ -204,28 +204,6 @@ async function estimateKgProjected(
   return total;
 }
 
-async function loadProjectedFromPredictions(
-  prisma: PrismaClient,
-  farmId: string
-): Promise<{ revenue: number | null; costs: number | null }> {
-  const row = await prisma.farmPrediction.findUnique({ where: { farmId } });
-  if (!row?.predictionsJson) {
-    return { revenue: null, costs: null };
-  }
-  const json = row.predictionsJson as {
-    finance_predictions?: {
-      revenue_estimates?: { "30j"?: { amount?: number } };
-      expense_projections?: { "30j"?: { total?: number } };
-    };
-  };
-  const rev = json.finance_predictions?.revenue_estimates?.["30j"]?.amount;
-  const costs = json.finance_predictions?.expense_projections?.["30j"]?.total;
-  return {
-    revenue: rev != null && Number.isFinite(rev) ? rev : null,
-    costs: costs != null && Number.isFinite(costs) ? costs : null
-  };
-}
-
 async function buildMonthlySeries(
   prisma: PrismaClient,
   farmId: string,
@@ -301,13 +279,11 @@ export async function calculateFarmProfitability(
   custom?: { start: string; end: string }
 ): Promise<FarmProfitabilityResult> {
   const bounds = resolvePeriodBounds(period, custom);
-  const [categoryMap, settings, profitabilitySettings, projectedPred] =
-    await Promise.all([
-      loadCategoryMap(prisma, farmId),
-      prisma.farmFinanceSettings.findUnique({ where: { farmId } }),
-      prisma.farmProfitabilitySettings.findUnique({ where: { farmId } }),
-      loadProjectedFromPredictions(prisma, farmId)
-    ]);
+  const [categoryMap, settings, profitabilitySettings] = await Promise.all([
+    loadCategoryMap(prisma, farmId),
+    prisma.farmFinanceSettings.findUnique({ where: { farmId } }),
+    prisma.farmProfitabilitySettings.findUnique({ where: { farmId } })
+  ]);
 
   const currency = settings?.currencyCode ?? "XOF";
   const marketPricePerKg = profitabilitySettings?.marketPricePerKg
@@ -331,13 +307,10 @@ export async function calculateFarmProfitability(
     kgProduced: kgRealized > 0 ? kgRealized : null
   });
 
-  let projectedRevenues = projectedPred.revenue;
-  let projectedCosts = projectedPred.costs;
+  let projectedRevenues: number | null = null;
+  const projectedCosts: number | null = null;
   if (projectedRevenues == null && kgProjected != null && marketPricePerKg) {
     projectedRevenues = kgProjected * marketPricePerKg;
-  }
-  if (projectedCosts == null && projectedPred.costs == null) {
-    projectedCosts = null;
   }
 
   const projected = buildMetrics({

@@ -18,7 +18,6 @@ import { HousingService } from "../housing/housing.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import { AiGeminiService } from "../ai/ai-gemini.service";
-import { PredictionsService } from "../predictions/predictions.service";
 import {
   DEFAULT_GESTATION_DAYS,
   DEFAULT_PRE_BIRTH_CHECKLIST,
@@ -112,8 +111,7 @@ export class GestationService {
     private readonly farmAccess: FarmAccessService,
     private readonly housing: HousingService,
     private readonly smartAlerts: SmartAlertsService,
-    private readonly gemini: AiGeminiService,
-    private readonly predictions: PredictionsService
+    private readonly gemini: AiGeminiService
   ) {}
 
   private async ensureSettings(farmId: string) {
@@ -801,7 +799,6 @@ export class GestationService {
     }
 
     await this.refreshAlerts(g.farmId);
-    this.predictions.invalidateAndRegenerateAsync(g.farmId);
     return this.getOne(user, gestationId);
   }
 

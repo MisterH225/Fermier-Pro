@@ -1192,42 +1192,6 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     }
   });
 
-  it("GET /farms/:id/predictions — prévisions en cache", async () => {
-    const auth = {
-      Authorization: `Bearer ${ctx.token}`,
-      "X-Profile-Id": ctx.producerProfileId
-    };
-    const res = await request(app.getHttpServer())
-      .get(`/api/v1/farms/${ctx.farmId}/predictions`)
-      .set(auth);
-    expect(res.status).toBe(200);
-    expect(typeof res.body.sufficient_data).toBe("boolean");
-    expect(typeof res.body.days_of_data).toBe("number");
-    if (!process.env.GEMINI_API_KEY?.trim()) {
-      expect(res.body.unavailable === true || res.body.predictions == null).toBe(
-        true
-      );
-    }
-  });
-
-  it("GET /farms/:id/predictions/cheptel — slice menu cheptel", async () => {
-    const res = await request(app.getHttpServer())
-      .get(`/api/v1/farms/${ctx.farmId}/predictions/cheptel`)
-      .set("Authorization", `Bearer ${ctx.token}`)
-      .set("X-Profile-Id", ctx.producerProfileId);
-    expect(res.status).toBe(200);
-    expect(res.body.farm_id).toBe(ctx.farmId);
-  });
-
-  it("POST /farms/:id/predictions/generate — régénération manuelle", async () => {
-    const res = await request(app.getHttpServer())
-      .post(`/api/v1/farms/${ctx.farmId}/predictions/generate`)
-      .set("Authorization", `Bearer ${ctx.token}`)
-      .set("X-Profile-Id", ctx.producerProfileId)
-      .send({});
-    expect(res.status).toBeGreaterThanOrEqual(200);
-    expect(res.status).toBeLessThan(300);
-    expect(typeof res.body.days_of_data).toBe("number");
   });
 });
 

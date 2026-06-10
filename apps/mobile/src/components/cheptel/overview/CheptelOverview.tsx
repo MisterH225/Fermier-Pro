@@ -13,7 +13,6 @@ import {
   mobileTypography
 } from "../../../theme/mobileTheme";
 import { ModuleAIInsights } from "../../ai/ModuleAIInsights";
-import { PredictionsSection } from "../../predictions/PredictionsSection";
 import { ScreenSection } from "../../layout/ScreenSection";
 import { CategoryBreakdownPanel } from "./CategoryBreakdownPanel";
 import { CheptelKPICards } from "./CheptelKPICards";
@@ -79,13 +78,6 @@ export function CheptelOverview({
 
       {farmId && accessToken ? (
         <>
-          <PredictionsSection
-            farmId={farmId}
-            menu="cheptel"
-            accessToken={accessToken}
-            activeProfileId={activeProfileId}
-            title={t("predictions.sectionCheptel")}
-          />
           <ModuleAIInsights
             farmId={farmId}
             module="cheptel"

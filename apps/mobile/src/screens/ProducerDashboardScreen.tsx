@@ -15,7 +15,6 @@ import {
 } from "react-native";
 import { MobileAppShell } from "../components/layout";
 import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
-import { PredictionsSection } from "../components/predictions/PredictionsSection";
 import { SmartAlertsSection } from "../components/smartAlerts/SmartAlertsSection";
 import { AlertBadge } from "../components/smartAlerts/AlertBadge";
 
@@ -490,15 +489,6 @@ export function ProducerDashboardScreen() {
                   rows={cheptelOverviewQ.data?.categoryBreakdown ?? []}
                 />
               </ScreenSection>
-            ) : null}
-            {accessToken ? (
-              <PredictionsSection
-                farmId={farmId}
-                menu="summary"
-                accessToken={accessToken}
-                activeProfileId={activeProfileId}
-                title={t("predictions.sectionDashboard")}
-              />
             ) : null}
             <SmartAlertsSection
               farmId={farmId}

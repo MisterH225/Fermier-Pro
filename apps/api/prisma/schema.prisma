@@ -336,7 +336,6 @@ model Farm {
   batchProfitabilitySnapshots BatchProfitabilitySnapshot[]
   appSettings              FarmAppSettings?
   marketplacePendingTransfers MarketplacePendingTransfer[]
-  predictions              FarmPrediction?
 
   @@index([ownerId, status])
   @@index([status])
@@ -2660,22 +2659,6 @@ model ReactivationWaitlist {
 
   @@unique([moduleId, userId])
   @@index([moduleId])
-}
-
-/// Cache des prévisions IA prédictives — une ligne par ferme.
-model FarmPrediction {
-  id               String   @id @default(cuid())
-  farmId           String   @unique
-  farm             Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
-  predictionsJson  Json
-  generatedAt      DateTime @default(now())
-  dataQualityScore Decimal  @default(0) @db.Decimal(5, 4)
-  daysOfData       Int      @default(0)
-  horizonDays      Int      @default(90)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  @@index([generatedAt])
 }
 
 enum FeedUserStatus {
