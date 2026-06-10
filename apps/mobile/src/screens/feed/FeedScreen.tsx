@@ -43,6 +43,13 @@ const POST_TYPE_LABELS: Record<CommunityFeedPostType, string> = {
   technical_tip: "Conseil technique"
 };
 
+function postTypeLabel(type: CommunityFeedPostType | string | null | undefined): string {
+  if (type && type in POST_TYPE_LABELS) {
+    return POST_TYPE_LABELS[type as CommunityFeedPostType];
+  }
+  return "Publication";
+}
+
 function PostCard({
   post,
   canComment,
@@ -69,7 +76,7 @@ function PostCard({
         <Text style={styles.authorName}>{displayName}</Text>
         <ProfileBadge profileType={post.authorProfileType} anonymous={post.isAnonymous} />
       </View>
-      <Text style={styles.postType}>{POST_TYPE_LABELS[post.postType]}</Text>
+      <Text style={styles.postType}>{postTypeLabel(post.postType)}</Text>
       <Text style={styles.postBody}>{post.body}</Text>
       {post.medicalDisclaimer ? (
         <Text style={styles.disclaimer}>{post.medicalDisclaimer}</Text>
@@ -79,7 +86,7 @@ function PostCard({
           Cette alerte est partagée à titre informatif — consultez un professionnel si besoin.
         </Text>
       ) : null}
-      {post.comments.map((c) => (
+      {(post.comments ?? []).map((c) => (
         <View key={c.id} style={styles.comment}>
           <View style={styles.postHeader}>
             <Text style={styles.commentAuthor}>
@@ -139,25 +146,29 @@ export function FeedScreen() {
   const statusQ = useQuery({
     queryKey: ["feedMyStatus", activeProfileId],
     queryFn: () => getMyFeedStatus(accessToken!, activeProfileId!),
-    enabled
+    enabled,
+    retry: false
   });
 
   const postsQ = useQuery({
     queryKey: ["feedPosts", activeProfileId],
     queryFn: () => fetchFeedPosts(accessToken!, activeProfileId!),
-    enabled: enabled && (statusQ.data?.canRead ?? true)
+    enabled: enabled && (statusQ.data?.canRead ?? true),
+    retry: false
   });
 
   const typesQ = useQuery({
     queryKey: ["feedPostTypes", activeProfileId],
     queryFn: () => fetchFeedPostTypes(accessToken!, activeProfileId!),
-    enabled
+    enabled,
+    retry: false
   });
 
   const rulesQ = useQuery({
     queryKey: ["feedRules", activeProfileId],
     queryFn: () => fetchFeedRules(accessToken!, activeProfileId!),
-    enabled
+    enabled,
+    retry: false
   });
 
   const createPostM = useMutation({
@@ -220,16 +231,29 @@ export function FeedScreen() {
 
   const canPost = statusQ.data?.canPost ?? false;
   const canComment = statusQ.data?.canComment ?? false;
-  const postTypes = typesQ.data?.types ?? [];
+  const postTypes = Array.isArray(typesQ.data?.types) ? typesQ.data.types : [];
 
   const selectedType = useMemo(
     () => (postTypes.includes(postType) ? postType : postTypes[0] ?? "question"),
     [postTypes, postType]
   );
 
+  const loadError =
+    statusQ.isError || postsQ.isError
+      ? t(
+          "feed.loadError",
+          "Impossible de charger le Feed pour le moment. Vérifiez votre connexion ou réessayez plus tard."
+        )
+      : null;
+
   return (
-    <MobileAppShell>
+    <MobileAppShell hideTopBar omitBottomTabBar>
       <View style={styles.container}>
+        {loadError ? (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorBannerTx}>{loadError}</Text>
+          </View>
+        ) : null}
         {statusQ.data ? (
           <SuspensionBanner
             feedStatus={statusQ.data.feedStatus}
@@ -257,7 +281,7 @@ export function FeedScreen() {
                   onPress={() => setPostType(type)}
                   style={[styles.typeChip, selectedType === type && styles.typeChipActive]}
                 >
-                  <Text style={styles.typeChipTx}>{POST_TYPE_LABELS[type]}</Text>
+                  <Text style={styles.typeChipTx}>{postTypeLabel(type)}</Text>
                 </Pressable>
               ))}
             </View>
@@ -322,10 +346,11 @@ export function FeedScreen() {
         ) : null}
 
         {postsQ.isPending ? (
-          <ActivityIndicator style={{ marginTop: 24 }} />
+          <ActivityIndicator style={styles.loader} />
         ) : (
           <FlatList
-            data={postsQ.data?.items ?? []}
+            style={styles.listFlex}
+            data={Array.isArray(postsQ.data?.items) ? postsQ.data.items : []}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.list}
             renderItem={({ item }) => (
@@ -352,7 +377,20 @@ export function FeedScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: mobileSpacing.md },
+  listFlex: { flex: 1 },
   list: { paddingBottom: 120, gap: mobileSpacing.md },
+  loader: { marginTop: 24 },
+  errorBanner: {
+    backgroundColor: "#FEE2E2",
+    borderRadius: mobileRadius.md,
+    padding: mobileSpacing.sm,
+    marginBottom: mobileSpacing.sm
+  },
+  errorBannerTx: {
+    ...mobileTypography.meta,
+    color: mobileColors.error,
+    textAlign: "center"
+  },
   postCard: {
     backgroundColor: mobileColors.surface,
     borderRadius: mobileRadius.lg,

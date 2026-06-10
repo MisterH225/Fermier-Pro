@@ -22,6 +22,9 @@ export function ProfileBadge({ profileType, anonymous }: Props) {
     return null;
   }
   const meta = BADGE_META[profileType];
+  if (!meta) {
+    return null;
+  }
   return (
     <View style={[styles.badge, { borderColor: meta.color }]}>
       <Text style={[styles.text, { color: meta.color }]}>

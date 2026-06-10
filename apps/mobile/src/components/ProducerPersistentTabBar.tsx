@@ -130,7 +130,13 @@ export function ProducerPersistentTabBar() {
 
   const feedUnreadQ = useQuery({
     queryKey: ["feedUnreadCount", activeProfileId],
-    queryFn: () => fetchFeedUnreadCount(accessToken!, activeProfileId!),
+    queryFn: async () => {
+      try {
+        return await fetchFeedUnreadCount(accessToken!, activeProfileId!);
+      } catch {
+        return { count: 0 };
+      }
+    },
     enabled: Boolean(accessToken && activeProfileId && isProducer),
     refetchInterval: 60_000
   });
