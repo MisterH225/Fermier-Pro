@@ -207,6 +207,11 @@ export class ReportsService {
 
   async getReportDownloadUrl(user: User, reportId: string): Promise<{ downloadUrl: string }> {
     const row = await this.getReport(user, reportId);
+    if (!this.supabaseAdmin.isConfigured()) {
+      throw new NotFoundException(
+        "Stockage PDF indisponible — utilisez GET .../reports/:id/pdf"
+      );
+    }
     if (row.pdfUrl) {
       const signed = await this.supabaseAdmin.createSignedStoragePathUrl(
         REPORTS_STORAGE_BUCKET,
@@ -216,23 +221,33 @@ export class ReportsService {
       if (signed) {
         return { downloadUrl: signed };
       }
+      this.log.warn(
+        `Signed URL failed for stored PDF report ${reportId}, regenerating`
+      );
     }
-    const { buffer, filename } = await this.buildReportPdf(user, reportId);
-    const storagePath = await this.uploadReportPdf(row.farmId, reportId, buffer);
-    await this.prisma.farmReport.update({
-      where: { id: reportId },
-      data: { pdfUrl: storagePath }
-    });
-    const signed = await this.supabaseAdmin.createSignedStoragePathUrl(
-      REPORTS_STORAGE_BUCKET,
-      storagePath,
-      3600
-    );
-    if (!signed) {
-      throw new NotFoundException("Impossible de générer l'URL de téléchargement");
+    try {
+      const { buffer } = await this.buildReportPdf(user, reportId);
+      const storagePath = await this.uploadReportPdf(row.farmId, reportId, buffer);
+      await this.prisma.farmReport.update({
+        where: { id: reportId },
+        data: { pdfUrl: storagePath }
+      });
+      const signed = await this.supabaseAdmin.createSignedStoragePathUrl(
+        REPORTS_STORAGE_BUCKET,
+        storagePath,
+        3600
+      );
+      if (!signed) {
+        throw new NotFoundException("Impossible de générer l'URL de téléchargement");
+      }
+      return { downloadUrl: signed };
+    } catch (e) {
+      if (e instanceof NotFoundException) {
+        throw e;
+      }
+      this.log.warn(`PDF storage pipeline failed for report ${reportId}: ${String(e)}`);
+      throw new NotFoundException("Impossible de générer l'URL de téléchargement du rapport");
     }
-    void filename;
-    return { downloadUrl: signed };
   }
 
   private async persistReportPdf(reportId: string, user: User): Promise<string | null> {
