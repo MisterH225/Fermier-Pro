@@ -99,6 +99,16 @@ export class FarmHealthController {
     return this.farmHealth.deleteRecord(user, farmId, recordId);
   }
 
+  @Post("events/:recordId/dismiss-vet-visit")
+  @RequireFarmScopes(FARM_SCOPE.healthWrite)
+  dismissVetVisit(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("recordId") recordId: string
+  ) {
+    return this.farmHealth.dismissPlannedVetVisit(user, farmId, recordId);
+  }
+
   @Get("diseases/overview")
   @RequireFarmScopes(FARM_SCOPE.healthRead)
   diseasesOverview(

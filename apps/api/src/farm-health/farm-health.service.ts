@@ -117,10 +117,23 @@ export class FarmHealthService {
     return farm;
   }
 
+  private async expirePastPlannedVetVisits(farmId: string, now: Date) {
+    await this.prisma.farmHealthRecord.updateMany({
+      where: {
+        farmId,
+        kind: FarmHealthRecordKind.vet_visit,
+        status: "planned",
+        occurredAt: { lt: now }
+      },
+      data: { status: "missed" }
+    });
+  }
+
   private async resolveNextVetVisit(
     farmId: string,
     now: Date
   ): Promise<NextVetVisitPayload | null> {
+    await this.expirePastPlannedVetVisits(farmId, now);
     const [healthNext, apptNext] = await Promise.all([
       this.prisma.farmHealthRecord.findFirst({
         where: upcomingPlannedVetVisitWhere(farmId, now),
@@ -483,6 +496,7 @@ export class FarmHealthService {
   async getUpcoming(user: User, farmId: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
     const now = new Date();
+    await this.expirePastPlannedVetVisits(farmId, now);
     const vaccines = await this.prisma.healthVaccinationDetail.findMany({
       where: {
         healthRecord: { farmId },
@@ -839,7 +853,7 @@ export class FarmHealthService {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
     const rec = await this.prisma.farmHealthRecord.findFirst({
       where: { id: recordId, farmId },
-      include: { mortality: true }
+      include: { mortality: true, vetVisit: true }
     });
     if (!rec) {
       throw new NotFoundException("Dossier introuvable");
@@ -849,13 +863,19 @@ export class FarmHealthService {
         "Seules les visites vétérinaires peuvent être supprimées"
       );
     }
-    if (rec.status !== "planned") {
-      throw new BadRequestException(
-        "Seules les visites planifiées peuvent être supprimées"
-      );
-    }
     if (rec.mortality) {
       throw new BadRequestException("Dossier lié à une mortalité");
+    }
+    if (rec.vetVisit?.financeExpenseId) {
+      throw new BadRequestException(
+        "Visite liée à une dépense — retirez le lien finance avant suppression"
+      );
+    }
+    const deletableStatuses = new Set(["planned", "missed"]);
+    if (!deletableStatuses.has(rec.status)) {
+      throw new BadRequestException(
+        "Seules les visites planifiées ou manquées peuvent être supprimées"
+      );
     }
 
     await this.prisma.farmHealthRecord.delete({ where: { id: recordId } });
@@ -871,6 +891,11 @@ export class FarmHealthService {
 
     void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
     return { ok: true };
+  }
+
+  /** Alias POST pour clients / proxies qui bloquent DELETE. */
+  async dismissPlannedVetVisit(user: User, farmId: string, recordId: string) {
+    return this.deleteRecord(user, farmId, recordId);
   }
 
   async createDiseaseCase(

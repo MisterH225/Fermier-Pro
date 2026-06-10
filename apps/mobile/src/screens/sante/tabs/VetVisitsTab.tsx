@@ -1,8 +1,11 @@
 import { useTranslation } from "react-i18next";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { formatHealthDay } from "../../../components/sante/healthUtils";
+import {
+  formatHealthDay,
+  isUpcomingPlannedVetVisit
+} from "../../../components/sante/healthUtils";
 import { VetVisitQuotesPanel } from "../../../components/sante/VetVisitQuotesPanel";
 import { VetAppointmentActionsBanner } from "../../../components/vet/VetAppointmentActionsBanner";
 import type { FarmHealthUpcomingDto } from "../../../lib/api";
@@ -29,6 +32,7 @@ type Props = ListProps & {
   accessToken: string;
   activeProfileId?: string | null;
   initialOpenVisitId?: string;
+  onDeleteVisit?: (recordId: string) => void;
 };
 
 function appointmentStatusLabel(
@@ -57,13 +61,31 @@ export function VetVisitsTab({
   accessToken,
   activeProfileId,
   initialOpenVisitId,
+  onDeleteVisit,
   ...listProps
 }: Props) {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const next = upcoming?.vetVisits?.[0];
+  const next = upcoming?.vetVisits?.find((v) =>
+    isUpcomingPlannedVetVisit(v.occurredAt, v.status)
+  );
   const pendingAppointments = upcoming?.vetAppointments ?? [];
+
+  const confirmDelete = (recordId: string) => {
+    Alert.alert(
+      t("health.deleteVisitTitle"),
+      t("health.deleteVisitBody"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("common.delete"),
+          style: "destructive",
+          onPress: () => onDeleteVisit?.(recordId)
+        }
+      ]
+    );
+  };
 
   const prepend = (
     <>
@@ -117,6 +139,16 @@ export function VetVisitsTab({
           <Text style={styles.highlightMeta}>
             {formatHealthDay(next.occurredAt, locale)}
           </Text>
+          {onDeleteVisit ? (
+            <Pressable
+              style={styles.deleteBtn}
+              onPress={() => confirmDelete(next.id)}
+            >
+              <Text style={styles.deleteBtnText}>
+                {t("health.deleteVisitCta")}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
     </>
@@ -187,5 +219,14 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
     marginTop: 4
+  },
+  deleteBtn: {
+    marginTop: mobileSpacing.sm,
+    alignSelf: "flex-start"
+  },
+  deleteBtnText: {
+    ...mobileTypography.meta,
+    color: "#D64545",
+    fontWeight: "700"
   }
 });

@@ -2830,6 +2830,48 @@ export function deleteFarmHealthRecord(
   );
 }
 
+export function dismissFarmHealthVetVisit(
+  accessToken: string,
+  farmId: string,
+  recordId: string,
+  activeProfileId?: string | null
+): Promise<{ ok: true }> {
+  return apiPostJson<{ ok: true }>(
+    `/farms/${farmId}/health/events/${encodeURIComponent(recordId)}/dismiss-vet-visit`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** DELETE avec repli POST si l'API n'expose pas encore DELETE (404). */
+export async function removeFarmHealthVetVisit(
+  accessToken: string,
+  farmId: string,
+  recordId: string,
+  activeProfileId?: string | null
+): Promise<{ ok: true }> {
+  try {
+    return await deleteFarmHealthRecord(
+      accessToken,
+      farmId,
+      recordId,
+      activeProfileId
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!/\b404\b|not found|introuvable|cannot delete/i.test(msg)) {
+      throw err;
+    }
+    return dismissFarmHealthVetVisit(
+      accessToken,
+      farmId,
+      recordId,
+      activeProfileId
+    );
+  }
+}
+
 export type CreateDiseaseCaseBody = {
   entityType: FarmHealthEntityType;
   entityId: string;

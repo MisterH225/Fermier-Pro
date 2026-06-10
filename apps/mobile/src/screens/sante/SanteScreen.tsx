@@ -46,7 +46,7 @@ import { useSession } from "../../context/SessionContext";
 import { VetAppointmentActionsBanner } from "../../components/vet/VetAppointmentActionsBanner";
 import {
   createFarmHealthRecord,
-  deleteFarmHealthRecord,
+  removeFarmHealthVetVisit,
   type CreateFarmHealthRecordBody,
   type FarmHealthEntityType,
   type FarmHealthRecordKind,
@@ -73,7 +73,7 @@ import { DiseasesTab } from "./tabs/DiseasesTab";
 import { VetVisitsTab } from "./tabs/VetVisitsTab";
 import { MortalitiesTab } from "./tabs/MortalitiesTab";
 import { VaccinesTab } from "./tabs/VaccinesTab";
-import { formatHealthDay } from "../../components/sante/healthUtils";
+import { formatHealthDay, canDeleteVetVisit } from "../../components/sante/healthUtils";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmHealth">;
 
@@ -302,7 +302,7 @@ export function SanteScreen({ route, navigation }: Props) {
 
   const deleteMut = useMutation({
     mutationFn: (recordId: string) =>
-      deleteFarmHealthRecord(accessToken!, farmId, recordId, activeProfileId),
+      removeFarmHealthVetVisit(accessToken!, farmId, recordId, activeProfileId),
     onSuccess: () => {
       invalidateHealth();
       void qc.invalidateQueries({ queryKey: ["vetAppointments"] });
@@ -424,7 +424,7 @@ export function SanteScreen({ route, navigation }: Props) {
               </Text>
             </Pressable>
           ) : null}
-          {isProducer && r.kind === "vet_visit" && r.status === "planned" ? (
+          {isProducer && canDeleteVetVisit(r) ? (
             <Pressable
               onPress={() => {
                 Alert.alert(
@@ -493,6 +493,15 @@ export function SanteScreen({ route, navigation }: Props) {
   const nextVetLabel = useMemo(() => {
     const n = overview?.nextVetVisitModule;
     if (!n) {
+      return "—";
+    }
+    const at = new Date(n.at);
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    if (
+      n.source === "health_record" &&
+      (Number.isNaN(at.getTime()) || at < startOfToday)
+    ) {
       return "—";
     }
     let label = formatHealthDay(n.at, locale);
@@ -759,6 +768,7 @@ export function SanteScreen({ route, navigation }: Props) {
                 activeProfileId={activeProfileId}
                 onAddPress={readOnly ? undefined : () => openForm("vet_visit")}
                 initialOpenVisitId={openVisitId}
+                onDeleteVisit={(recordId) => deleteMut.mutate(recordId)}
                 {...listCommon}
               />
             )
