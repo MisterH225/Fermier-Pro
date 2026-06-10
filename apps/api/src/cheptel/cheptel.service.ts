@@ -35,6 +35,10 @@ import {
 import { AgeCalculationService } from "./age-calculation.service";
 import type { PenAgeData } from "./age-calculation.types";
 import { calculateAnimalAgeWeeks } from "./age-calculation.util";
+import {
+  buildGrowthStandardsFromFarm,
+  estimateAnimalWeightKg
+} from "./growth-estimation.util";
 import { PenAllocationService } from "../housing/pen-allocation.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 
@@ -217,6 +221,25 @@ export class CheptelService {
     const gestationSoon = new Date(now);
     gestationSoon.setDate(gestationSoon.getDate() + 7);
 
+    const [profitability, alertSettings, gmqRows] = await Promise.all([
+      this.prisma.farmProfitabilitySettings.findUnique({ where: { farmId } }),
+      this.prisma.farmAlertSettings.findUnique({ where: { farmId } }),
+      this.prisma.farmGmqSettings.findMany({ where: { farmId } })
+    ]);
+    const gmqByKey = new Map(gmqRows.map((r) => [r.categoryKey, r]));
+    const growthStandards = buildGrowthStandardsFromFarm({
+      gmqRefStarter: profitability?.gmqRefStarter,
+      gmqRefGrowth: profitability?.gmqRefGrowth,
+      gmqRefFattening: profitability?.gmqRefFattening,
+      gmqTargetStarter: gmqByKey.get("starter")?.targetGmqGPerDay?.toNumber(),
+      gmqTargetGrowth: gmqByKey.get("growth")?.targetGmqGPerDay?.toNumber(),
+      gmqTargetFattening:
+        gmqByKey.get("finishing")?.targetGmqGPerDay?.toNumber() ??
+        gmqByKey.get("fattening")?.targetGmqGPerDay?.toNumber(),
+      starterMaxAvgWeightKg: alertSettings?.starterMaxAvgWeightKg?.toNumber(),
+      starterMaxAvgAgeWeeks: alertSettings?.starterMaxAvgAgeWeeks
+    });
+
     const pens = await this.prisma.pen.findMany({
       where: {
         barn: {
@@ -246,11 +269,12 @@ export class CheptelService {
                 birthDate: true,
                 ageWeeksAtEntry: true,
                 entryDate: true,
+                entryWeightKg: true,
                 expectedFarrowingAt: true,
                 weights: {
                   orderBy: { measuredAt: "desc" },
                   take: 1,
-                  select: { weightKg: true }
+                  select: { weightKg: true, measuredAt: true }
                 },
                 gestationsAsSow: {
                   where: { status: GestationStatus.active },
@@ -335,6 +359,23 @@ export class CheptelService {
           const w = pl.animal.weights[0];
           if (w) {
             weights.push(decimalToNum(w.weightKg));
+          } else {
+            const estimated = estimateAnimalWeightKg(
+              {
+                birthDate: pl.animal.birthDate,
+                ageWeeksAtEntry: pl.animal.ageWeeksAtEntry,
+                entryDate: pl.animal.entryDate,
+                entryWeightKg: pl.animal.entryWeightKg
+                  ? decimalToNum(pl.animal.entryWeightKg)
+                  : null,
+                productionCategory: pl.animal.productionCategory
+              },
+              now,
+              growthStandards
+            );
+            if (estimated != null) {
+              weights.push(estimated);
+            }
           }
           const g = pl.animal.gestationsAsSow[0];
           if (g || pl.animal.expectedFarrowingAt) {

@@ -2,10 +2,10 @@ import type { PrismaClient } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { gmqBetween } from "../cheptel/cheptel-gmq.util";
 import { calculateAnimalAgeWeeks } from "../cheptel/age-calculation.util";
+import { buildGrowthStandardsFromFarm, resolveBatchFeedPhaseFromStandards } from "../cheptel/growth-estimation.util";
 import {
   effectiveFeedPhase,
-  feedPhasesCompatible,
-  resolveBatchFeedPhase
+  feedPhasesCompatible
 } from "../feed-stock/feed-production-phase.util";
 import { dec, pct, safeDiv } from "./profitability-period.util";
 import type {
@@ -65,6 +65,25 @@ async function allocateFarmFeedCost(
   }
 
   const now = Date.now();
+  const [profitability, alertSettings, gmqRows] = await Promise.all([
+    prisma.farmProfitabilitySettings.findUnique({ where: { farmId } }),
+    prisma.farmAlertSettings.findUnique({ where: { farmId } }),
+    prisma.farmGmqSettings.findMany({ where: { farmId } })
+  ]);
+  const gmqByKey = new Map(gmqRows.map((r) => [r.categoryKey, r]));
+  const growthStandards = buildGrowthStandardsFromFarm({
+    gmqRefStarter: profitability?.gmqRefStarter,
+    gmqRefGrowth: profitability?.gmqRefGrowth,
+    gmqRefFattening: profitability?.gmqRefFattening,
+    gmqTargetStarter: gmqByKey.get("starter")?.targetGmqGPerDay?.toNumber(),
+    gmqTargetGrowth: gmqByKey.get("growth")?.targetGmqGPerDay?.toNumber(),
+    gmqTargetFattening:
+      gmqByKey.get("finishing")?.targetGmqGPerDay?.toNumber() ??
+      gmqByKey.get("fattening")?.targetGmqGPerDay?.toNumber(),
+    starterMaxAvgWeightKg: alertSettings?.starterMaxAvgWeightKg?.toNumber(),
+    starterMaxAvgAgeWeeks: alertSettings?.starterMaxAvgAgeWeeks
+  });
+
   const batches = await prisma.livestockBatch.findMany({
     where: { farmId, status: { in: ["active", "open"] } },
     select: {
@@ -78,7 +97,7 @@ async function allocateFarmFeedCost(
 
   const batchAnimalDays = new Map<string, number>();
   let farmAnimalDays = 0;
-  const batchPhases = new Map<string, ReturnType<typeof resolveBatchFeedPhase>>();
+  const batchPhases = new Map<string, ReturnType<typeof resolveBatchFeedPhaseFromStandards>>();
 
   for (const b of batches) {
     const days = Math.max(
@@ -97,10 +116,10 @@ async function allocateFarmFeedCost(
       : null;
     batchPhases.set(
       b.id,
-      resolveBatchFeedPhase({
-        categoryKey: b.categoryKey,
-        avgAgeWeeks
-      })
+      resolveBatchFeedPhaseFromStandards(
+        { categoryKey: b.categoryKey, avgAgeWeeks },
+        growthStandards
+      )
     );
   }
 
@@ -113,19 +132,22 @@ async function allocateFarmFeedCost(
     batchAnimalDays.set(batchId, targetAnimalDays);
   }
 
-  const targetPhase = resolveBatchFeedPhase({
-    categoryKey: batchCategoryKey,
-    avgAgeWeeks: batchAvgBirthDate
-      ? calculateAnimalAgeWeeks(
-          {
-            birthDate: batchAvgBirthDate,
-            ageWeeksAtEntry: null,
-            entryDate: null
-          },
-          new Date(now)
-        )
-      : null
-  });
+  const targetPhase = resolveBatchFeedPhaseFromStandards(
+    {
+      categoryKey: batchCategoryKey,
+      avgAgeWeeks: batchAvgBirthDate
+        ? calculateAnimalAgeWeeks(
+            {
+              birthDate: batchAvgBirthDate,
+              ageWeeksAtEntry: null,
+              entryDate: null
+            },
+            new Date(now)
+          )
+        : null
+    },
+    growthStandards
+  );
   batchPhases.set(batchId, targetPhase);
 
   const feedTypes = await prisma.feedType.findMany({
@@ -207,9 +229,7 @@ async function allocateFarmFeedCost(
   return {
     amount: (totalFeed * targetAnimalDays) / farmAnimalDays,
     warning:
-      targetPhase !== "unknown"
-        ? "Coût aliment réparti au prorata — précisez la phase de vos types d'aliment pour une affectation par bande."
-        : null
+      "Coût aliment réparti au prorata — précisez la phase de vos types d'aliment pour une affectation par bande."
   };
 }
 

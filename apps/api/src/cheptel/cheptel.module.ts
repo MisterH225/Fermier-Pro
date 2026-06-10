@@ -8,6 +8,8 @@ import { SmartAlertsModule } from "../smart-alerts/smart-alerts.module";
 import { AgeCalculationModule } from "./age-calculation.module";
 import { CheptelController } from "./cheptel.controller";
 import { CheptelService } from "./cheptel.service";
+import { GrowthSimulationCronService } from "./growth-simulation-cron.service";
+import { GrowthSimulationService } from "./growth-simulation.service";
 
 @Module({
   imports: [
@@ -20,7 +22,11 @@ import { CheptelService } from "./cheptel.service";
     forwardRef(() => SmartAlertsModule)
   ],
   controllers: [CheptelController],
-  providers: [CheptelService],
-  exports: [CheptelService, AgeCalculationModule]
+  providers: [
+    CheptelService,
+    GrowthSimulationService,
+    GrowthSimulationCronService
+  ],
+  exports: [CheptelService, AgeCalculationModule, GrowthSimulationService]
 })
 export class CheptelModule {}
