@@ -1,3 +1,5 @@
+import type { FarmPredictionsPayload } from "../../lib/api/predictions";
+
 export function formatPredictionDate(iso: string, locale: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) {
@@ -41,6 +43,14 @@ export function formatCurrency(
   } catch {
     return `${Math.round(amount)} ${currency}`;
   }
+}
+
+/** Prix/kg issu des prévisions — absent si la réponse IA est incomplète. */
+export function getPredictionPricePerKg(
+  payload: FarmPredictionsPayload
+): number | undefined {
+  const value = payload.sale_timing?.optimal_window?.expected_price_per_kg;
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 export function confidenceLevel(

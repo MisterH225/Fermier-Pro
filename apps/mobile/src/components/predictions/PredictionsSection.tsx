@@ -24,7 +24,7 @@ import { ProjectionPoidsCard } from "./ProjectionPoidsCard";
 import { RentabilitePrevuCard } from "./RentabilitePrevuCard";
 import { RevenusEstimesCard } from "./RevenusEstimesCard";
 import { SailliesRecommandeesCard } from "./SailliesRecommandeesCard";
-import { formatGeneratedAt } from "./predictionFormatters";
+import { formatGeneratedAt, getPredictionPricePerKg } from "./predictionFormatters";
 
 type Props = {
   farmId: string;
@@ -104,7 +104,7 @@ export function PredictionsSection({
 
   const payload = data.predictions;
   const currency = data.currency ?? "XOF";
-  const pricePerKg = payload.sale_timing.optimal_window.expected_price_per_kg;
+  const pricePerKg = getPredictionPricePerKg(payload);
 
   return (
     <ScreenSection title={title} headerRight={headerRight}>

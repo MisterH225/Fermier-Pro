@@ -18,14 +18,25 @@ type Props = {
 export function PredictiveSummaryCard({ payload, currency, locale }: Props) {
   const { t } = useTranslation();
   const ready30 =
-    payload.cheptel_predictions.animals_ready_to_sell["30j"].count;
+    payload.cheptel_predictions?.animals_ready_to_sell?.["30j"]?.count;
   const revenue30 =
-    payload.finance_predictions.revenue_estimates["30j"].amount;
-  const feedReorder = payload.stock_predictions.feed_needs.reduce(
+    payload.finance_predictions?.revenue_estimates?.["30j"]?.amount;
+  const feedNeeds = payload.stock_predictions?.feed_needs;
+  const piglets30 = payload.gestation_predictions?.projected_new_animals_30j;
+
+  if (
+    ready30 == null ||
+    revenue30 == null ||
+    !Array.isArray(feedNeeds) ||
+    piglets30 == null
+  ) {
+    return null;
+  }
+
+  const feedReorder = feedNeeds.reduce(
     (s, f) => s + (f.reorder_quantity_kg > 0 ? f.reorder_quantity_kg : 0),
     0
   );
-  const piglets30 = payload.gestation_predictions.projected_new_animals_30j;
 
   const kpis = [
     { icon: "🐷", label: t("predictions.kpiReady"), value: `${ready30} / 30j` },
