@@ -171,17 +171,9 @@ export class FarmDeletionService {
       let deleteNotices: Awaited<
         ReturnType<FarmMarketplaceLifecycleService["applyFarmDeleted"]>
       >["notices"] = [];
-      let listingIds: string[] = [];
       await this.prisma.$transaction(
         async (tx) => {
-          const del = await this.marketplaceLifecycle.applyFarmDeleted(tx, farmId);
-          deleteNotices = del.notices;
-          listingIds = del.listingIds;
-          await this.marketplaceLifecycle.purgeListingsAfterFarmDelete(
-            tx,
-            listingIds
-          );
-          await this.purgeFarmData(tx, farmId);
+          deleteNotices = await this.purgeFarmWithinTransaction(tx, farmId);
           await tx.farm.delete({ where: { id: farmId } });
         },
         { maxWait: 15_000, timeout: 120_000 }
@@ -196,6 +188,89 @@ export class FarmDeletionService {
         "La suppression du projet a échoué. Aucune donnée n'a été modifiée."
       );
     }
+  }
+
+  /**
+   * Purge complète d'une ferme dans une transaction existante (sans supprimer la ferme).
+   * Réutilisé par la suppression de compte.
+   */
+  async purgeFarmWithinTransaction(
+    tx: Prisma.TransactionClient,
+    farmId: string
+  ): Promise<
+    Awaited<ReturnType<FarmMarketplaceLifecycleService["applyFarmDeleted"]>>["notices"]
+  > {
+    const del = await this.marketplaceLifecycle.applyFarmDeleted(tx, farmId);
+    await this.marketplaceLifecycle.purgeListingsAfterFarmDelete(
+      tx,
+      del.listingIds
+    );
+    await this.purgeFarmData(tx, farmId);
+    return del.notices;
+  }
+
+  /** Marketplace restant lié à l'utilisateur (hors fermes déjà purgées). */
+  async purgeUserMarketplaceData(
+    tx: Prisma.TransactionClient,
+    userId: string
+  ): Promise<void> {
+    const sellerListings = await tx.marketplaceListing.findMany({
+      where: { sellerUserId: userId },
+      select: { id: true }
+    });
+    const sellerListingIds = sellerListings.map((l) => l.id);
+    if (sellerListingIds.length > 0) {
+      await this.marketplaceLifecycle.purgeListingsAfterFarmDelete(
+        tx,
+        sellerListingIds
+      );
+    }
+
+    const transactions = await tx.marketplaceTransaction.findMany({
+      where: { OR: [{ buyerUserId: userId }, { sellerUserId: userId }] },
+      select: { id: true }
+    });
+    const transactionIds = transactions.map((t) => t.id);
+    if (transactionIds.length > 0) {
+      await tx.platformRevenue.deleteMany({
+        where: { transactionId: { in: transactionIds } }
+      });
+      await tx.marketplaceDeliveryDispute.deleteMany({
+        where: { transactionId: { in: transactionIds } }
+      });
+      await tx.marketplaceFundMovement.deleteMany({
+        where: { transactionId: { in: transactionIds } }
+      });
+      await tx.marketplacePendingTransfer.deleteMany({
+        where: { transactionId: { in: transactionIds } }
+      });
+      await tx.marketplaceTransactionReceipt.deleteMany({
+        where: { transactionId: { in: transactionIds } }
+      });
+      await tx.marketplaceTransaction.deleteMany({
+        where: { id: { in: transactionIds } }
+      });
+    }
+
+    await tx.marketplaceCreditArbitration.deleteMany({
+      where: { OR: [{ buyerUserId: userId }, { sellerUserId: userId }] }
+    });
+    await tx.marketplaceDeliveryDispute.deleteMany({
+      where: { raisedByUserId: userId }
+    });
+    await tx.marketplacePendingTransfer.deleteMany({
+      where: { buyerUserId: userId }
+    });
+    await tx.marketplaceOffer.deleteMany({ where: { buyerUserId: userId } });
+    await tx.marketplaceListing.deleteMany({ where: { sellerUserId: userId } });
+  }
+
+  dispatchBuyerNotices(
+    notices: Awaited<
+      ReturnType<FarmMarketplaceLifecycleService["applyFarmDeleted"]>
+    >["notices"]
+  ): void {
+    this.marketplaceLifecycle.dispatchBuyerNotices(notices);
   }
 
   private async purgeFarmData(

@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { InvitationsModule } from "../invitations/invitations.module";
 import { LivestockModule } from "../livestock/livestock.module";
@@ -9,9 +9,15 @@ import { FarmsService } from "./farms.service";
 import { FarmDeletionService } from "./farm-deletion.service";
 
 @Module({
-  imports: [AuthModule, InvitationsModule, LivestockModule, PushNotificationsModule, MarketplaceModule],
+  imports: [
+    forwardRef(() => AuthModule),
+    InvitationsModule,
+    LivestockModule,
+    PushNotificationsModule,
+    MarketplaceModule
+  ],
   controllers: [FarmsController],
   providers: [FarmsService, FarmDeletionService],
-  exports: [FarmsService]
+  exports: [FarmsService, FarmDeletionService]
 })
 export class FarmsModule {}

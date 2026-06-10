@@ -8,6 +8,7 @@ import type { User } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { AuditService } from "../common/audit.service";
 import { AUDIT_ACTION } from "../common/audit.constants";
+import { FarmDeletionService } from "../farms/farm-deletion.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import { SupabaseAdminService } from "./supabase-admin.service";
@@ -35,7 +36,8 @@ export class AccountDeletionService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly push: PushNotificationsService,
-    private readonly supabaseAdmin: SupabaseAdminService
+    private readonly supabaseAdmin: SupabaseAdminService,
+    private readonly farmDeletion: FarmDeletionService
   ) {}
 
   async deleteAccount(user: User): Promise<void> {
@@ -175,19 +177,32 @@ export class AccountDeletionService {
     const supabaseUserId = user.supabaseUserId;
 
     try {
+      const buyerNotices: Awaited<
+        ReturnType<FarmDeletionService["purgeFarmWithinTransaction"]>
+      > = [];
       await this.prisma.$transaction(
         async (tx) => {
           for (const farmId of ownedFarmIds) {
-            await this.purgeOwnedFarmForDeletion(tx, farmId);
+            const notices = await this.farmDeletion.purgeFarmWithinTransaction(
+              tx,
+              farmId
+            );
+            buyerNotices.push(...notices);
             await tx.farm.delete({ where: { id: farmId } });
           }
 
+          await this.farmDeletion.purgeUserMarketplaceData(tx, user.id);
           await this.purgeUserScopedRows(tx, user.id);
 
+          await tx.user.update({
+            where: { id: user.id },
+            data: { activeFarmId: null }
+          });
           await tx.user.delete({ where: { id: user.id } });
         },
         { maxWait: 15_000, timeout: 120_000 }
       );
+      this.farmDeletion.dispatchBuyerNotices(buyerNotices);
     } catch (err) {
       this.logger.error(
         `Account deletion rollback for user ${user.id}`,
@@ -211,56 +226,45 @@ export class AccountDeletionService {
     }
   }
 
-  /**
-   * Supprime les lignes qui bloquent le CASCADE Prisma sur `Farm`
-   * (ex. `FarmBudgetLine` → `FinanceCategory` en Restrict).
-   */
-  private async purgeOwnedFarmForDeletion(
-    tx: Prisma.TransactionClient,
-    farmId: string
-  ): Promise<void> {
-    await tx.farmBudgetLine.deleteMany({
-      where: { budget: { farmId } }
-    });
-    await tx.farmBudgetSuggestion.deleteMany({ where: { farmId } });
-    await tx.farmBudget.deleteMany({ where: { farmId } });
-
-    await tx.litter.deleteMany({ where: { farmId } });
-    await tx.gestationVaccine.deleteMany({
-      where: { gestation: { farmId } }
-    });
-    await tx.gestationChecklistItem.deleteMany({
-      where: { gestation: { farmId } }
-    });
-    await tx.gestation.deleteMany({ where: { farmId } });
-
-    await tx.livestockExit.deleteMany({
-      where: { OR: [{ farmId }, { toFarmId: farmId }] }
-    });
-
-    await tx.marketplaceOffer.deleteMany({
-      where: { listing: { farmId } }
-    });
-    await tx.marketplaceListing.deleteMany({ where: { farmId } });
-
-    await tx.farmMembership.deleteMany({ where: { farmId } });
-    await tx.farmInvitation.deleteMany({ where: { farmId } });
-    await tx.farmMarketRating.deleteMany({ where: { farmId } });
-    await tx.chatMessage.deleteMany({ where: { room: { farmId } } });
-    await tx.chatRoomMember.deleteMany({ where: { room: { farmId } } });
-    await tx.chatRoom.deleteMany({ where: { farmId } });
-  }
-
   /** Données liées à l'utilisateur hors fermes déjà supprimées. */
   private async purgeUserScopedRows(
     tx: Prisma.TransactionClient,
     userId: string
   ): Promise<void> {
-    await tx.marketplaceOffer.deleteMany({ where: { buyerUserId: userId } });
-    await tx.marketplaceListing.deleteMany({ where: { sellerUserId: userId } });
+    const vetAppointments = await tx.vetAppointment.findMany({
+      where: { OR: [{ producerUserId: userId }, { vetUserId: userId }] },
+      select: { id: true }
+    });
+    const vetAppointmentIds = vetAppointments.map((a) => a.id);
+    if (vetAppointmentIds.length > 0) {
+      await tx.platformRevenue.deleteMany({
+        where: { vetAppointmentId: { in: vetAppointmentIds } }
+      });
+      await tx.vetAppointmentFundMovement.deleteMany({
+        where: { appointmentId: { in: vetAppointmentIds } }
+      });
+      await tx.vetAppointmentRating.deleteMany({
+        where: { appointmentId: { in: vetAppointmentIds } }
+      });
+      await tx.vetAppointment.deleteMany({
+        where: { id: { in: vetAppointmentIds } }
+      });
+    }
+
+    await tx.vetConsultation.updateMany({
+      where: { primaryVetUserId: userId },
+      data: { primaryVetUserId: null }
+    });
+    await tx.vetConsultationAttachment.deleteMany({
+      where: { uploadedByUserId: userId }
+    });
+    await tx.vetConsultation.deleteMany({ where: { openedByUserId: userId } });
+
     await tx.chatMessage.deleteMany({ where: { senderUserId: userId } });
     await tx.farmMarketRating.deleteMany({ where: { ratedByUserId: userId } });
     await tx.auditLog.deleteMany({ where: { actorUserId: userId } });
+    await tx.adminAuditLog.deleteMany({ where: { adminUserId: userId } });
+    await tx.adminMessage.deleteMany({ where: { adminUserId: userId } });
     await tx.farmMembership.deleteMany({ where: { userId } });
     await tx.farmInvitation.deleteMany({ where: { createdById: userId } });
     await tx.taskNotification.deleteMany({ where: { userId } });
@@ -268,6 +272,9 @@ export class AccountDeletionService {
     await tx.farmExpense.deleteMany({ where: { createdByUserId: userId } });
     await tx.farmRevenue.deleteMany({ where: { createdByUserId: userId } });
     await tx.feedStockMovement.deleteMany({ where: { createdByUserId: userId } });
+    await tx.feedReconciliationRejection.deleteMany({
+      where: { rejectedByUserId: userId }
+    });
     await tx.livestockStatusLog.deleteMany({
       where: { recordedByUserId: userId }
     });
@@ -280,9 +287,5 @@ export class AccountDeletionService {
     await tx.farmHealthRecord.deleteMany({
       where: { recordedByUserId: userId }
     });
-    await tx.vetConsultationAttachment.deleteMany({
-      where: { uploadedByUserId: userId }
-    });
-    await tx.vetConsultation.deleteMany({ where: { openedByUserId: userId } });
   }
 }
