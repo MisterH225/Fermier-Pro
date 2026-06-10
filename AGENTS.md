@@ -17,6 +17,25 @@ Fermier Pro is an npm workspaces monorepo with two apps and two shared packages.
 
 Use **Node 20 LTS**. Node 25 causes memory crashes with `nest start --watch`. The VM has nvm pre-configured with Node 20 as default.
 
+### Cloud Agent install script
+
+Do **not** run bare `npm install` as the install script: the monorepo no longer uses a root `postinstall` hook (Prisma auto-install during `npm install` fails in cloud snapshots).
+
+Use instead:
+
+```bash
+bash scripts/cloud-install.sh
+```
+
+Or manually:
+
+```bash
+npm install --ignore-scripts
+PRISMA_GENERATE_SKIP_AUTOINSTALL=true npm run prisma:generate
+```
+
+After install, generate the Prisma client locally with `npm run prisma:generate` if you skipped the cloud script.
+
 ### Database (local Docker Postgres)
 
 The cloud VM uses a local Docker Postgres (via `docker-compose.yml`) instead of Supabase cloud. Docker and the Postgres container are started before the agent session begins via the update script.
