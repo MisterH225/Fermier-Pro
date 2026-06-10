@@ -3,6 +3,7 @@ import {
   FeedUserStatus,
   ProfileType
 } from "@prisma/client";
+import { Type } from "class-transformer";
 import {
   IsBoolean,
   IsEnum,
@@ -87,11 +88,13 @@ export class AdminFeedSanctionDto {
 
 export class ListFeedPostsQueryDto {
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   page?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   limit?: number;

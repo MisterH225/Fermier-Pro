@@ -86,4 +86,15 @@ describeOrSkip("Community Feed (e2e)", () => {
     expect(res.body?.feedStatus).toBe("active");
     expect(res.body?.canPost).toBe(true);
   });
+
+  it("GET /feed/posts?page=1 retourne la liste paginée", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/feed/posts?page=1")
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId);
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body?.items)).toBe(true);
+    expect(res.body?.page).toBe(1);
+  });
 });

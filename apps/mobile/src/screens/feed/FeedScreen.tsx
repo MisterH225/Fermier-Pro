@@ -1,4 +1,4 @@
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
@@ -147,15 +147,25 @@ export function FeedScreen() {
     queryKey: ["feedMyStatus", activeProfileId],
     queryFn: () => getMyFeedStatus(accessToken!, activeProfileId!),
     enabled,
-    retry: false
+    retry: 1
   });
 
   const postsQ = useQuery({
     queryKey: ["feedPosts", activeProfileId],
     queryFn: () => fetchFeedPosts(accessToken!, activeProfileId!),
     enabled: enabled && (statusQ.data?.canRead ?? true),
-    retry: false
+    retry: 1
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!enabled) {
+        return;
+      }
+      void queryClient.invalidateQueries({ queryKey: ["feedMyStatus", activeProfileId] });
+      void queryClient.invalidateQueries({ queryKey: ["feedPosts", activeProfileId] });
+    }, [enabled, activeProfileId, queryClient])
+  );
 
   const typesQ = useQuery({
     queryKey: ["feedPostTypes", activeProfileId],
@@ -239,12 +249,22 @@ export function FeedScreen() {
   );
 
   const loadError =
-    statusQ.isError || postsQ.isError
+    postsQ.isError
       ? t(
           "feed.loadError",
           "Impossible de charger le Feed pour le moment. Vérifiez votre connexion ou réessayez plus tard."
         )
-      : null;
+      : statusQ.isError
+        ? t(
+            "feed.statusError",
+            "Impossible de vérifier votre statut Feed. Les publications peuvent quand même s'afficher."
+          )
+        : null;
+
+  const retryFeed = () => {
+    void statusQ.refetch();
+    void postsQ.refetch();
+  };
 
   return (
     <MobileAppShell hideTopBar omitBottomTabBar>
@@ -252,6 +272,9 @@ export function FeedScreen() {
         {loadError ? (
           <View style={styles.errorBanner}>
             <Text style={styles.errorBannerTx}>{loadError}</Text>
+            <Pressable onPress={retryFeed} style={styles.retryBtn}>
+              <Text style={styles.retryTx}>Réessayer</Text>
+            </Pressable>
           </View>
         ) : null}
         {statusQ.data ? (
@@ -390,6 +413,17 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     color: mobileColors.error,
     textAlign: "center"
+  },
+  retryBtn: {
+    marginTop: mobileSpacing.xs,
+    alignSelf: "center",
+    paddingHorizontal: mobileSpacing.sm,
+    paddingVertical: 4
+  },
+  retryTx: {
+    ...mobileTypography.meta,
+    color: mobileColors.accent,
+    fontWeight: "600"
   },
   postCard: {
     backgroundColor: mobileColors.surface,
