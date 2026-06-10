@@ -5054,6 +5054,7 @@ export type MarketplaceFinanceSummaryDto = {
     id: string;
     listingId: string;
     listingTitle: string;
+    agreedAmount: number;
     blockedAmount: number;
     status: string;
     sellerName: string | null;
@@ -5062,6 +5063,7 @@ export type MarketplaceFinanceSummaryDto = {
     id: string;
     listingId: string;
     listingTitle: string;
+    agreedAmount: number;
     blockedAmount: number;
     status: string;
     buyerName: string | null;

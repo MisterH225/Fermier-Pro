@@ -38,6 +38,7 @@ import {
   CANCELLABLE_BY_SELLER,
   SHIPMENT_CONFIRM_STATUSES,
   agreedTermsFromOffer,
+  calculateAgreedDealAmount,
   calculateBlockedAmount,
   calculateFinalAmount,
   lastNMonthKeys,
@@ -2109,6 +2110,36 @@ export class MarketplaceTransactionService {
       MarketplaceTransactionStatus.WEIGHT_VALIDATED
     ];
 
+    const financeTxSelect = {
+      priceType: true,
+      agreedPricePerKg: true,
+      agreedFlatPrice: true,
+      estimatedWeightKg: true,
+      blockedAmount: true,
+      offer: { select: { offeredPrice: true } }
+    } as const;
+
+    const resolveAgreedAmount = (tx: {
+      priceType: MarketplacePriceType;
+      agreedPricePerKg: Prisma.Decimal | null;
+      agreedFlatPrice: Prisma.Decimal | null;
+      estimatedWeightKg: Prisma.Decimal | null;
+      offer: { offeredPrice: Prisma.Decimal };
+    }) =>
+      calculateAgreedDealAmount({
+        priceType: tx.priceType,
+        agreedPricePerKg: tx.agreedPricePerKg
+          ? Number(tx.agreedPricePerKg)
+          : null,
+        agreedFlatPrice: tx.agreedFlatPrice
+          ? Number(tx.agreedFlatPrice)
+          : null,
+        estimatedWeightKg: tx.estimatedWeightKg
+          ? Number(tx.estimatedWeightKg)
+          : null,
+        offeredPrice: Number(tx.offer.offeredPrice)
+      });
+
     const [asBuyer, asSeller, closedBuyer, closedSeller, closedRows, heldRows] =
       await Promise.all([
       this.prisma.marketplaceTransaction.findMany({
@@ -2118,7 +2149,8 @@ export class MarketplaceTransactionService {
         },
         include: {
           listing: { select: { id: true, title: true } },
-          seller: { select: { id: true, fullName: true } }
+          seller: { select: { id: true, fullName: true } },
+          offer: { select: { offeredPrice: true } }
         },
         orderBy: { updatedAt: "desc" }
       }),
@@ -2129,7 +2161,8 @@ export class MarketplaceTransactionService {
         },
         include: {
           listing: { select: { id: true, title: true } },
-          buyer: { select: { id: true, fullName: true } }
+          buyer: { select: { id: true, fullName: true } },
+          offer: { select: { offeredPrice: true } }
         },
         orderBy: { updatedAt: "desc" }
       }),
@@ -2177,19 +2210,19 @@ export class MarketplaceTransactionService {
         select: {
           buyerUserId: true,
           sellerUserId: true,
-          blockedAmount: true,
           paymentConfirmedAt: true,
-          updatedAt: true
+          updatedAt: true,
+          ...financeTxSelect
         }
       })
     ]);
 
     const blockedFunds = asBuyer.reduce(
-      (sum, tx) => sum + Number(tx.blockedAmount),
+      (sum, tx) => sum + resolveAgreedAmount(tx),
       0
     );
     const pendingRevenue = asSeller.reduce(
-      (sum, tx) => sum + Number(tx.blockedAmount),
+      (sum, tx) => sum + resolveAgreedAmount(tx),
       0
     );
 
@@ -2224,11 +2257,12 @@ export class MarketplaceTransactionService {
       const month = ref.toISOString().slice(0, 7);
       const bucket = monthlyMap.get(month);
       if (!bucket) continue;
+      const agreed = resolveAgreedAmount(tx);
       if (tx.sellerUserId === user.id) {
-        bucket.pendingRevenue += Number(tx.blockedAmount);
+        bucket.pendingRevenue += agreed;
       }
       if (tx.buyerUserId === user.id) {
-        bucket.blockedFunds += Number(tx.blockedAmount);
+        bucket.blockedFunds += agreed;
       }
     }
 
@@ -2245,6 +2279,7 @@ export class MarketplaceTransactionService {
         id: tx.id,
         listingId: tx.listingId,
         listingTitle: tx.listing.title,
+        agreedAmount: resolveAgreedAmount(tx),
         blockedAmount: Number(tx.blockedAmount),
         status: tx.status,
         sellerName: tx.seller.fullName
@@ -2253,6 +2288,7 @@ export class MarketplaceTransactionService {
         id: tx.id,
         listingId: tx.listingId,
         listingTitle: tx.listing.title,
+        agreedAmount: resolveAgreedAmount(tx),
         blockedAmount: Number(tx.blockedAmount),
         status: tx.status,
         buyerName: tx.buyer.fullName

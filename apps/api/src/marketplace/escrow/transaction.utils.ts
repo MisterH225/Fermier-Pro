@@ -26,6 +26,32 @@ export function resolvePriceType(
     : MarketplacePriceType.per_kg;
 }
 
+/** Montant convenu entre acheteur et vendeur (hors marge escrow 10 % au kg). */
+export function calculateAgreedDealAmount(params: {
+  priceType: MarketplacePriceType;
+  agreedPricePerKg: number | null;
+  agreedFlatPrice: number | null;
+  estimatedWeightKg: number | null;
+  offeredPrice?: number | null;
+}): number {
+  if (params.priceType === MarketplacePriceType.flat) {
+    if (params.agreedFlatPrice != null && params.agreedFlatPrice > 0) {
+      return params.agreedFlatPrice;
+    }
+  } else if (
+    params.agreedPricePerKg != null &&
+    params.estimatedWeightKg != null &&
+    params.agreedPricePerKg > 0 &&
+    params.estimatedWeightKg > 0
+  ) {
+    return params.agreedPricePerKg * params.estimatedWeightKg;
+  }
+  if (params.offeredPrice != null && params.offeredPrice > 0) {
+    return params.offeredPrice;
+  }
+  return 0;
+}
+
 export function calculateBlockedAmount(params: {
   priceType: MarketplacePriceType;
   agreedPricePerKg: number | null;

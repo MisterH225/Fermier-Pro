@@ -41,6 +41,10 @@ type CategoryBreakdownItem = {
   color: string;
 };
 import { FinanceModuleGate } from "../components/FinanceModuleGate";
+import {
+  CheptelStyleKpiCard,
+  cheptelKpiGridStyles
+} from "../components/cheptel/overview/CheptelStyleKpiCard";
 import { KpiGridSkeleton, ListSkeleton } from "../components/common/SkeletonBlocks";
 import { EventList, type EventItem } from "../components/lists";
 import { useModal } from "../components/modals/useModal";
@@ -1084,32 +1088,34 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                         title={t("financeScreen.marketplaceSection")}
                         plain
                       >
-                        <View style={styles.kpiRow}>
+                        <View style={cheptelKpiGridStyles.grid}>
                           {marketplaceEscrowQ.data.pendingRevenue > 0 ? (
-                            <View style={styles.kpiHalf}>
-                              <FinanceKpiCard
-                                title={t("financeScreen.marketplacePending")}
+                            <View style={cheptelKpiGridStyles.half}>
+                              <CheptelStyleKpiCard
+                                icon="⏳"
+                                bg="#FFF8E1"
+                                accent="#F57F17"
+                                label={t("financeScreen.marketplacePending")}
                                 value={formatMoney(
                                   marketplaceEscrowQ.data.pendingRevenue,
                                   marketplaceEscrowQ.data.currency,
                                   curSym
                                 )}
-                                deltaText={null}
-                                variant="yellow"
                               />
                             </View>
                           ) : null}
                           {marketplaceEscrowQ.data.blockedFunds > 0 ? (
-                            <View style={styles.kpiHalf}>
-                              <FinanceKpiCard
-                                title={t("financeScreen.marketplaceBlocked")}
+                            <View style={cheptelKpiGridStyles.half}>
+                              <CheptelStyleKpiCard
+                                icon="🔒"
+                                bg="#E3F2FD"
+                                accent="#1565C0"
+                                label={t("financeScreen.marketplaceBlocked")}
                                 value={formatMoney(
                                   marketplaceEscrowQ.data.blockedFunds,
                                   marketplaceEscrowQ.data.currency,
                                   curSym
                                 )}
-                                deltaText={null}
-                                variant="yellow"
                               />
                             </View>
                           ) : null}
@@ -1134,7 +1140,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                               </Text>
                               <Text style={styles.marketplaceTxAmount}>
                                 {formatMoney(
-                                  tx.blockedAmount,
+                                  tx.agreedAmount ?? tx.blockedAmount,
                                   marketplaceEscrowQ.data!.currency,
                                   curSym
                                 )}
