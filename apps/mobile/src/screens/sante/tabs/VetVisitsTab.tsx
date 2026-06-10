@@ -1,6 +1,10 @@
 import { useTranslation } from "react-i18next";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { formatHealthDay } from "../../../components/sante/healthUtils";
+import { VetVisitQuotesPanel } from "../../../components/sante/VetVisitQuotesPanel";
+import { VetAppointmentActionsBanner } from "../../../components/vet/VetAppointmentActionsBanner";
 import type { FarmHealthUpcomingDto } from "../../../lib/api";
 import {
   mobileColors,
@@ -9,7 +13,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../../theme/mobileTheme";
-import { VetVisitQuotesPanel } from "../../../components/sante/VetVisitQuotesPanel";
+import type { RootStackParamList } from "../../../types/navigation";
 import { HealthKindListTab } from "./HealthKindListTab";
 import type { ComponentProps } from "react";
 
@@ -27,6 +31,25 @@ type Props = ListProps & {
   initialOpenVisitId?: string;
 };
 
+function appointmentStatusLabel(
+  status: string,
+  t: (key: string) => string
+): string {
+  if (status === "APPOINTMENT_REQUESTED") {
+    return t("producer.vetAppointments.waitingForVet");
+  }
+  if (status === "AWAITING_PAYMENT") {
+    return t("producer.vetAppointments.payNow");
+  }
+  if (
+    status === "APPOINTMENT_CONFIRMED" ||
+    status === "APPOINTMENT_IN_PROGRESS"
+  ) {
+    return t("producer.vetAppointments.confirmService");
+  }
+  return status.replace(/_/g, " ");
+}
+
 export function VetVisitsTab({
   upcoming,
   locale,
@@ -37,15 +60,52 @@ export function VetVisitsTab({
   ...listProps
 }: Props) {
   const { t } = useTranslation();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const next = upcoming?.vetVisits?.[0];
+  const pendingAppointments = upcoming?.vetAppointments ?? [];
 
   const prepend = (
     <>
+      <VetAppointmentActionsBanner
+        accessToken={accessToken}
+        activeProfileId={activeProfileId}
+        farmId={farmId}
+      />
       <VetVisitQuotesPanel
         farmId={farmId}
         accessToken={accessToken}
         activeProfileId={activeProfileId}
       />
+      {pendingAppointments.length > 0 ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            {t("health.vetVisits.pendingAppointments")}
+          </Text>
+          {pendingAppointments.map((appt) => (
+            <Pressable
+              key={appt.id}
+              style={styles.apptCard}
+              onPress={() =>
+                navigation.navigate("VetAppointmentDetail", {
+                  appointmentId: appt.id
+                })
+              }
+            >
+              <Text style={styles.apptTitle} numberOfLines={1}>
+                {appt.vetName ?? t("producer.vetAppointments.vetFallback")}
+              </Text>
+              <Text style={styles.apptMeta} numberOfLines={2}>
+                {formatHealthDay(appt.confirmedAt ?? appt.requestedAt, locale)}
+                {appt.reason ? ` · ${appt.reason}` : ""}
+              </Text>
+              <Text style={styles.apptStatus}>
+                {appointmentStatusLabel(appt.status, t)} →
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
       {next ? (
         <View style={styles.highlight}>
           <Text style={styles.highlightLabel}>
@@ -75,6 +135,35 @@ export function VetVisitsTab({
 }
 
 const styles = StyleSheet.create({
+  section: {
+    gap: mobileSpacing.sm,
+    marginBottom: mobileSpacing.md
+  },
+  sectionTitle: {
+    ...mobileTypography.title,
+    fontSize: 16
+  },
+  apptCard: {
+    backgroundColor: mobileColors.background,
+    borderRadius: mobileRadius.md,
+    padding: mobileSpacing.md,
+    borderWidth: 1,
+    borderColor: mobileColors.border,
+    gap: 4
+  },
+  apptTitle: {
+    ...mobileTypography.body,
+    fontWeight: "700"
+  },
+  apptMeta: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary
+  },
+  apptStatus: {
+    ...mobileTypography.meta,
+    color: mobileColors.accent,
+    fontWeight: "700"
+  },
   highlight: {
     backgroundColor: "#EFF6FF",
     borderRadius: mobileRadius.lg,

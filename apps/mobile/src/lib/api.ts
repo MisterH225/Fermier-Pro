@@ -2625,7 +2625,11 @@ export type FarmHealthOverviewDto = {
   nextVetVisitModule: {
     at: string;
     reason: string | null;
-    healthRecordId: string;
+    healthRecordId: string | null;
+    appointmentId: string | null;
+    source: "health_record" | "vet_appointment";
+    appointmentStatus: string | null;
+    vetName: string | null;
   } | null;
   nextVetConsultationLegacy: {
     id: string;
@@ -2655,6 +2659,14 @@ export type FarmHealthUpcomingDto = {
     occurredAt: string;
     status: string;
     vetVisit: { vetName: string; reason: string } | null;
+  }>;
+  vetAppointments: Array<{
+    id: string;
+    status: string;
+    requestedAt: string;
+    confirmedAt: string | null;
+    reason: string;
+    vetName: string | null;
   }>;
 };
 
@@ -2800,6 +2812,19 @@ export function createFarmHealthRecord(
   return apiPostJson<FarmHealthRecordRowDto>(
     `/farms/${farmId}/health/events`,
     body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function deleteFarmHealthRecord(
+  accessToken: string,
+  farmId: string,
+  recordId: string,
+  activeProfileId?: string | null
+): Promise<{ ok: true }> {
+  return apiDeleteJson<{ ok: true }>(
+    `/farms/${farmId}/health/events/${encodeURIComponent(recordId)}`,
     accessToken,
     activeProfileId
   );

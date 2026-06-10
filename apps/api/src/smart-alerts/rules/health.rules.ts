@@ -99,7 +99,7 @@ export async function evaluateHealthRules(
         gte: now,
         lte: new Date(now.getTime() + 3 * MS_DAY)
       },
-      OR: [{ status: "planned" }, { occurredAt: { gte: now } }]
+      status: "planned"
     },
     orderBy: { occurredAt: "asc" },
     take: 5,

@@ -1004,6 +1004,8 @@ export const en = {
       cancelCta: "Cancel request",
       cancelConfirmTitle: "Cancel appointment?",
       cancelConfirmBody: "No charge if you have not paid yet.",
+      waitingVetHint:
+        "Your request was sent to the veterinarian. You can cancel it while waiting for their response.",
       ratingTitle: "Rate the veterinarian",
       ratingRequired: "Choose a rating from 1 to 5",
       ratingCommentPlaceholder: "Comment (optional)",
@@ -2428,7 +2430,8 @@ export const en = {
     formSectionMortality: "Mortality",
     formSectionNotes: "Notes",
     vetVisits: {
-      nextPlanned: "Next planned visit"
+      nextPlanned: "Next planned visit",
+      pendingAppointments: "Pending vet appointments"
     },
     vetQuotes: {
       title: "Pending quotes (legacy flow)",
@@ -2467,6 +2470,9 @@ export const en = {
     mortalityHint:
       "After saving, animal status / exit is updated on the server — pull to refresh.",
     linkShort: "Link expense",
+    deleteVisitTitle: "Delete planned visit?",
+    deleteVisitBody: "This planned visit will be permanently removed.",
+    deleteVisitCta: "Delete visit",
     linkExpenseTitle: "Link an expense",
     linkSubmit: "Associate",
     linkOk: "Link saved.",

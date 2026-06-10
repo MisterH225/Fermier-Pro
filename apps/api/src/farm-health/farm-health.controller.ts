@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -86,6 +87,16 @@ export class FarmHealthController {
     @Body() dto: LinkHealthFinanceDto
   ) {
     return this.farmHealth.linkExpense(user, farmId, recordId, dto.expenseId);
+  }
+
+  @Delete("events/:recordId")
+  @RequireFarmScopes(FARM_SCOPE.healthWrite)
+  deleteEvent(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("recordId") recordId: string
+  ) {
+    return this.farmHealth.deleteRecord(user, farmId, recordId);
   }
 
   @Get("diseases/overview")

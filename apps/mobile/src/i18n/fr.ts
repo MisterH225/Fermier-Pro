@@ -1008,6 +1008,8 @@ export const fr = {
       cancelCta: "Annuler la demande",
       cancelConfirmTitle: "Annuler le rendez-vous ?",
       cancelConfirmBody: "Aucun paiement ne sera prélevé si vous n'avez pas encore payé.",
+      waitingVetHint:
+        "Votre demande a été envoyée au vétérinaire. Vous pouvez l'annuler en attendant sa réponse.",
       ratingTitle: "Noter le vétérinaire",
       ratingRequired: "Choisissez une note entre 1 et 5",
       ratingCommentPlaceholder: "Commentaire (optionnel)",
@@ -2459,7 +2461,8 @@ export const fr = {
     formSectionMortality: "Mortalité",
     formSectionNotes: "Notes",
     vetVisits: {
-      nextPlanned: "Prochaine visite planifiée"
+      nextPlanned: "Prochaine visite planifiée",
+      pendingAppointments: "Demandes de rendez-vous en cours"
     },
     vetQuotes: {
       title: "Devis en attente (ancien flux)",
@@ -2498,6 +2501,9 @@ export const fr = {
     mortalityHint:
       "Après enregistrement, le statut animal / sortie est mis à jour côté serveur : tire vers le bas pour rafraîchir.",
     linkShort: "Lier dépense",
+    deleteVisitTitle: "Supprimer la visite planifiée ?",
+    deleteVisitBody: "Cette visite planifiée sera définitivement retirée.",
+    deleteVisitCta: "Supprimer la visite",
     linkExpenseTitle: "Lier une dépense",
     linkSubmit: "Associer",
     linkOk: "Liaison enregistrée.",

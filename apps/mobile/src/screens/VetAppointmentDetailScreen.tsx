@@ -334,6 +334,26 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
           </View>
         ) : null}
 
+        {isProducer && appt.status === "APPOINTMENT_REQUESTED" ? (
+          <View style={styles.section}>
+            <Text style={styles.hint}>{t("vet.appointment.waitingVetHint")}</Text>
+            <SecondaryButton
+              label={t("vet.appointment.cancelCta")}
+              onPress={() =>
+                Alert.alert(
+                  t("vet.appointment.cancelConfirmTitle"),
+                  t("vet.appointment.cancelConfirmBody"),
+                  [
+                    { text: t("common.cancel"), style: "cancel" },
+                    { text: t("vet.appointment.cancelCta"), onPress: () => cancelMut.mutate() }
+                  ]
+                )
+              }
+              loading={cancelMut.isPending}
+            />
+          </View>
+        ) : null}
+
         {isProducer && appt.status === "AWAITING_PAYMENT" ? (
           <View style={styles.section}>
             <Text style={styles.hint}>{t("vet.appointment.paymentHint")}</Text>
