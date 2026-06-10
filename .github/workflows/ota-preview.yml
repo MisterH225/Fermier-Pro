@@ -1,6 +1,13 @@
 name: OTA Preview
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/mobile/**"
+      - "packages/**"
+      - "scripts/ota*.sh"
+      - ".github/workflows/ota-preview.yml"
   workflow_dispatch:
     inputs:
       message:
@@ -28,6 +35,6 @@ jobs:
         run: |
           MSG="${{ github.event.inputs.message }}"
           if [[ -z "$MSG" ]]; then
-            MSG="OTA preview fix crash démarrage (${GITHUB_SHA:0:7})"
+            MSG="OTA preview (${GITHUB_SHA:0:7}) — $(date -u +%Y-%m-%dT%H:%MZ)"
           fi
           bash scripts/ota.sh preview "$MSG"
