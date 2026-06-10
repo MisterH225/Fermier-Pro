@@ -35,7 +35,8 @@
     "test:e2e": "npm run test:e2e --workspace @fermier/api",
     "test:unit": "npm run test:unit --workspace @fermier/api",
     "ci:quality": "npm exec -w @fermier/api -- prisma generate && npm run lint:api && npm run build:api && npm run test:unit && npm run typecheck:mobile && npm run typecheck:admin",
-    "ota:preview": "bash scripts/ota-preview.sh"
+    "ota:preview": "bash scripts/ota-preview.sh",
+    "ota:production": "bash scripts/ota-production.sh"
   },
   "devDependencies": {
     "@nestjs/common": "11.1.19",
