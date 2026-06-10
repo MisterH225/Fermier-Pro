@@ -207,6 +207,41 @@ export class FarmDeletionService {
       data: { activeFarmId: null }
     });
 
+    await tx.marketplacePendingTransfer.deleteMany({
+      where: { buyerFarmId: farmId }
+    });
+
+    const vetAppointments = await tx.vetAppointment.findMany({
+      where: { farmId },
+      select: { id: true }
+    });
+    const vetAppointmentIds = vetAppointments.map((a) => a.id);
+    if (vetAppointmentIds.length > 0) {
+      await tx.platformRevenue.deleteMany({
+        where: { vetAppointmentId: { in: vetAppointmentIds } }
+      });
+      await tx.vetAppointmentFundMovement.deleteMany({
+        where: { appointmentId: { in: vetAppointmentIds } }
+      });
+      await tx.vetAppointmentRating.deleteMany({
+        where: { appointmentId: { in: vetAppointmentIds } }
+      });
+    }
+    await tx.vetAppointment.deleteMany({ where: { farmId } });
+
+    await tx.batchProfitabilitySnapshot.deleteMany({ where: { farmId } });
+    await tx.farmProfitabilitySnapshot.deleteMany({ where: { farmId } });
+    await tx.farmPrediction.deleteMany({ where: { farmId } });
+
+    await tx.pigPriceSnapshot.updateMany({
+      where: { farmId },
+      data: { farmId: null }
+    });
+    await tx.chatSecurityEvent.updateMany({
+      where: { farmId },
+      data: { farmId: null }
+    });
+
     await tx.farmBudgetLine.deleteMany({
       where: { budget: { farmId } }
     });
