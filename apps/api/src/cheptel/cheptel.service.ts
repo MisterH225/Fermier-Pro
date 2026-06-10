@@ -20,6 +20,7 @@ import { FinanceService } from "../finance/finance.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { PatchAnimalStatusDto } from "../livestock/dto/patch-animal-status.dto";
 import { LivestockService } from "../livestock/livestock.service";
+import { ConfirmDetectedBatchDto } from "./dto/confirm-detected-batch.dto";
 import { UpsertGmqSettingsDto } from "./dto/upsert-gmq-settings.dto";
 import { SellAnimalDto } from "./dto/sell-animal.dto";
 import { decimalToNum, summarizeWeights } from "./cheptel-gmq.util";
@@ -1352,6 +1353,7 @@ export class CheptelService {
       where: {
         farmId,
         status: "active",
+        livestockBatchId: null,
         productionCategory: { in: ["starter", "fattening"] }
       },
       select: {
@@ -1508,5 +1510,145 @@ export class CheptelService {
     }
 
     return { farmId, batches };
+  }
+
+  async confirmDetectedBatch(
+    user: User,
+    farmId: string,
+    dto: ConfirmDetectedBatchDto
+  ) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+
+    const uniqueIds = [...new Set(dto.animalIds)];
+    const animals = await this.prisma.animal.findMany({
+      where: {
+        id: { in: uniqueIds },
+        farmId,
+        status: "active",
+        livestockBatchId: null,
+        productionCategory: { in: ["starter", "fattening"] }
+      },
+      select: {
+        id: true,
+        speciesId: true,
+        breedId: true,
+        birthDate: true,
+        ageWeeksAtEntry: true,
+        entryDate: true,
+        productionCategory: true,
+        entryWeightKg: true,
+        weights: { orderBy: { measuredAt: "desc" }, take: 1 }
+      }
+    });
+
+    if (animals.length !== uniqueIds.length) {
+      throw new BadRequestException(
+        "Un ou plusieurs sujets sont introuvables ou déjà rattachés à une bande"
+      );
+    }
+
+    const mismatched = animals.filter(
+      (a) => a.productionCategory !== dto.category
+    );
+    if (mismatched.length > 0) {
+      throw new BadRequestException(
+        "Tous les sujets doivent appartenir à la même catégorie (démarrage ou engraissement)"
+      );
+    }
+
+    const now = new Date();
+    let avgBirthDate: Date | null = dto.avgBirthDate
+      ? new Date(dto.avgBirthDate)
+      : null;
+    if (!avgBirthDate) {
+      const birthDates = animals
+        .map((a) => {
+          if (a.birthDate) {
+            return a.birthDate;
+          }
+          const ageWeeks = calculateAnimalAgeWeeks(
+            {
+              birthDate: a.birthDate,
+              ageWeeksAtEntry: a.ageWeeksAtEntry,
+              entryDate: a.entryDate
+            },
+            now
+          );
+          if (ageWeeks == null) {
+            return null;
+          }
+          const d = new Date(now);
+          d.setUTCDate(d.getUTCDate() - ageWeeks * 7);
+          return d;
+        })
+        .filter((d): d is Date => d != null);
+      if (birthDates.length > 0) {
+        const avgMs =
+          birthDates.reduce((s, d) => s + d.getTime(), 0) / birthDates.length;
+        avgBirthDate = new Date(avgMs);
+      }
+    }
+
+    const weights = animals
+      .map((a) => {
+        if (a.weights[0]) {
+          return decimalToNum(a.weights[0].weightKg);
+        }
+        if (a.entryWeightKg) {
+          return decimalToNum(a.entryWeightKg);
+        }
+        return null;
+      })
+      .filter((w): w is number => w != null);
+    const avgWeightKg =
+      weights.length > 0
+        ? Math.round(
+            (weights.reduce((a, b) => a + b, 0) / weights.length) * 10
+          ) / 10
+        : null;
+
+    const speciesId = animals[0].speciesId;
+    const breedIds = [...new Set(animals.map((a) => a.breedId).filter(Boolean))];
+    const breedId = breedIds.length === 1 ? breedIds[0] : null;
+
+    const batch = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.livestockBatch.create({
+        data: {
+          farmId,
+          speciesId,
+          breedId,
+          name: dto.name.trim(),
+          categoryKey: dto.category,
+          headcount: animals.length,
+          avgBirthDate,
+          sourceTag: "detected:legacy",
+          notes: dto.notes?.trim() || null
+        }
+      });
+
+      await tx.animal.updateMany({
+        where: { id: { in: uniqueIds } },
+        data: { livestockBatchId: created.id }
+      });
+
+      if (avgWeightKg != null) {
+        await tx.livestockBatchWeight.create({
+          data: {
+            batchId: created.id,
+            avgWeightKg: new Prisma.Decimal(avgWeightKg),
+            headcountSnapshot: animals.length,
+            note: "Poids moyen estimé à la création de la bande"
+          }
+        });
+      }
+
+      return created;
+    });
+
+    return {
+      batch,
+      animalIds: uniqueIds,
+      avgWeightKg
+    };
   }
 }

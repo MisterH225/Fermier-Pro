@@ -1,6 +1,12 @@
 import type { PrismaClient } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { gmqBetween } from "../cheptel/cheptel-gmq.util";
+import { calculateAnimalAgeWeeks } from "../cheptel/age-calculation.util";
+import {
+  effectiveFeedPhase,
+  feedPhasesCompatible,
+  resolveBatchFeedPhase
+} from "../feed-stock/feed-production-phase.util";
 import { dec, pct, safeDiv } from "./profitability-period.util";
 import type {
   BatchProfitabilityResult,
@@ -40,7 +46,9 @@ async function allocateFarmFeedCost(
   farmId: string,
   batchId: string,
   batchHeadcount: number,
-  batchStart: Date
+  batchStart: Date,
+  batchCategoryKey: string | null,
+  batchAvgBirthDate: Date | null
 ): Promise<{ amount: number; warning: string | null }> {
   const linkedFeed = await prisma.farmExpense.aggregate({
     where: {
@@ -56,40 +64,139 @@ async function allocateFarmFeedCost(
     return { amount: linked, warning: null };
   }
 
+  const now = Date.now();
   const batches = await prisma.livestockBatch.findMany({
     where: { farmId, status: { in: ["active", "open"] } },
-    select: { id: true, headcount: true, createdAt: true }
+    select: {
+      id: true,
+      headcount: true,
+      createdAt: true,
+      categoryKey: true,
+      avgBirthDate: true
+    }
   });
-  const now = Date.now();
+
+  const batchAnimalDays = new Map<string, number>();
   let farmAnimalDays = 0;
-  let batchAnimalDays = 0;
+  const batchPhases = new Map<string, ReturnType<typeof resolveBatchFeedPhase>>();
+
   for (const b of batches) {
     const days = Math.max(
       1,
       (now - b.createdAt.getTime()) / (1000 * 60 * 60 * 24)
     );
     const ad = b.headcount * days;
+    batchAnimalDays.set(b.id, ad);
     farmAnimalDays += ad;
-    if (b.id === batchId) {
-      batchAnimalDays = ad;
-    }
-  }
-  if (batchAnimalDays === 0) {
-    batchAnimalDays = batchHeadcount * Math.max(
-      1,
-      (now - batchStart.getTime()) / (1000 * 60 * 60 * 24)
+
+    const avgAgeWeeks = b.avgBirthDate
+      ? calculateAnimalAgeWeeks(
+          { birthDate: b.avgBirthDate, ageWeeksAtEntry: null, entryDate: null },
+          new Date(now)
+        )
+      : null;
+    batchPhases.set(
+      b.id,
+      resolveBatchFeedPhase({
+        categoryKey: b.categoryKey,
+        avgAgeWeeks
+      })
     );
-    farmAnimalDays += batchAnimalDays;
   }
 
-  const feedAgg = await prisma.farmExpense.aggregate({
+  let targetAnimalDays = batchAnimalDays.get(batchId) ?? 0;
+  if (targetAnimalDays === 0) {
+    targetAnimalDays =
+      batchHeadcount *
+      Math.max(1, (now - batchStart.getTime()) / (1000 * 60 * 60 * 24));
+    farmAnimalDays += targetAnimalDays;
+    batchAnimalDays.set(batchId, targetAnimalDays);
+  }
+
+  const targetPhase = resolveBatchFeedPhase({
+    categoryKey: batchCategoryKey,
+    avgAgeWeeks: batchAvgBirthDate
+      ? calculateAnimalAgeWeeks(
+          {
+            birthDate: batchAvgBirthDate,
+            ageWeeksAtEntry: null,
+            entryDate: null
+          },
+          new Date(now)
+        )
+      : null
+  });
+  batchPhases.set(batchId, targetPhase);
+
+  const feedTypes = await prisma.feedType.findMany({
+    where: { farmId },
+    select: { id: true, name: true, productionPhase: true }
+  });
+  const feedPhaseById = new Map(
+    feedTypes.map((f) => [
+      f.id,
+      effectiveFeedPhase(f.productionPhase, f.name)
+    ])
+  );
+
+  const feedExpenses = await prisma.farmExpense.findMany({
     where: {
       farmId,
-      financeCategory: { key: "feed" }
+      financeCategory: { key: "feed" },
+      NOT: {
+        linkedEntityType: "batch",
+        linkedEntityId: batchId
+      }
     },
-    _sum: { amount: true }
+    select: {
+      amount: true,
+      linkedEntityType: true,
+      linkedEntityId: true
+    }
   });
-  const totalFeed = dec(feedAgg._sum.amount);
+
+  let phaseMatchedAmount = 0;
+  let generalAmount = 0;
+
+  for (const exp of feedExpenses) {
+    const amount = dec(exp.amount);
+    if (amount <= 0) {
+      continue;
+    }
+    if (exp.linkedEntityType === "feed_type" && exp.linkedEntityId) {
+      const feedPhase = feedPhaseById.get(exp.linkedEntityId) ?? "unknown";
+      if (
+        feedPhase !== "unknown" &&
+        !feedPhasesCompatible(feedPhase, targetPhase)
+      ) {
+        continue;
+      }
+      let phaseDenominator = 0;
+      for (const [id, ad] of batchAnimalDays) {
+        const bp = batchPhases.get(id) ?? "unknown";
+        if (feedPhasesCompatible(feedPhase, bp)) {
+          phaseDenominator += ad;
+        }
+      }
+      if (phaseDenominator <= 0) {
+        generalAmount += amount;
+        continue;
+      }
+      phaseMatchedAmount += (amount * targetAnimalDays) / phaseDenominator;
+    } else {
+      generalAmount += amount;
+    }
+  }
+
+  if (phaseMatchedAmount > 0) {
+    const generalShare =
+      generalAmount > 0 && farmAnimalDays > 0
+        ? (generalAmount * targetAnimalDays) / farmAnimalDays
+        : 0;
+    return { amount: phaseMatchedAmount + generalShare, warning: null };
+  }
+
+  const totalFeed = feedExpenses.reduce((s, e) => s + dec(e.amount), 0);
   if (totalFeed <= 0 || farmAnimalDays <= 0) {
     return {
       amount: 0,
@@ -98,8 +205,11 @@ async function allocateFarmFeedCost(
     };
   }
   return {
-    amount: (totalFeed * batchAnimalDays) / farmAnimalDays,
-    warning: null
+    amount: (totalFeed * targetAnimalDays) / farmAnimalDays,
+    warning:
+      targetPhase !== "unknown"
+        ? "Coût aliment réparti au prorata — précisez la phase de vos types d'aliment pour une affectation par bande."
+        : null
   };
 }
 
@@ -166,7 +276,9 @@ export async function calculateBatchProfitability(
       farmId,
       batchId,
       batch.headcount,
-      batch.createdAt
+      batch.createdAt,
+      batch.categoryKey,
+      batch.avgBirthDate
     )
   ]);
 

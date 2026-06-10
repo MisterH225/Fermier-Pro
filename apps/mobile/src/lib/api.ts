@@ -652,8 +652,26 @@ export type FeedTypeDto = {
   lastCheckDate: string | null;
   lastEntryDate?: string | null;
   currentStockKg: string;
+  productionPhase?: FeedProductionPhaseDto;
+  phaseSuggestion?: FeedPhaseSuggestionDto | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type FeedProductionPhaseDto =
+  | "sous_mere"
+  | "transition"
+  | "starter"
+  | "growth"
+  | "fattening"
+  | "breeder"
+  | "unknown";
+
+export type FeedPhaseSuggestionDto = {
+  phase: FeedProductionPhaseDto;
+  confidence: "high" | "medium" | "low";
+  alternatives: FeedProductionPhaseDto[];
+  label: string;
 };
 
 export type FeedStockComputedStatus = "ok" | "warning" | "critical" | "no_data";
@@ -841,12 +859,43 @@ export function createFarmFeedType(
     color?: string;
     weightPerBagKg?: number;
     lowStockThresholdDays?: number;
+    productionPhase?: FeedProductionPhaseDto;
   },
   activeProfileId?: string | null
 ): Promise<FeedTypeDto> {
   return apiPostJson<FeedTypeDto>(
     `/farms/${farmId}/feed/types`,
     payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function updateFarmFeedType(
+  accessToken: string,
+  farmId: string,
+  feedTypeId: string,
+  payload: {
+    name?: string;
+    productionPhase?: FeedProductionPhaseDto;
+  },
+  activeProfileId?: string | null
+): Promise<FeedTypeDto> {
+  return apiPatchJson<FeedTypeDto>(
+    `/farms/${farmId}/feed/types/${feedTypeId}`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchFeedTypesPhaseReview(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<FeedTypeDto[]> {
+  return apiGetJson<FeedTypeDto[]>(
+    `/farms/${farmId}/feed/types/phase-review`,
     accessToken,
     activeProfileId
   );
@@ -1689,6 +1738,26 @@ export function fetchDetectedBatches(
 ): Promise<{ farmId: string; batches: DetectedBatchDto[] }> {
   return apiGetJson(
     `/farms/${farmId}/cheptel/detected-batches`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmDetectedBatch(
+  accessToken: string,
+  farmId: string,
+  payload: {
+    name: string;
+    category: "starter" | "fattening";
+    animalIds: string[];
+    avgBirthDate?: string;
+    notes?: string;
+  },
+  activeProfileId?: string | null
+): Promise<{ batch: { id: string; name: string }; animalIds: string[] }> {
+  return apiPostJson(
+    `/farms/${farmId}/cheptel/detected-batches/confirm`,
+    payload,
     accessToken,
     activeProfileId
   );

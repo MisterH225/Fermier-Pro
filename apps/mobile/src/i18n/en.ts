@@ -1303,6 +1303,19 @@ export const en = {
     gaugeCenterDays: "{{count}} d",
     lastCheckAgo: "Last check: {{count}} d ago",
     unknownFeedType: "Feed",
+    phaseReviewTitle: "Specify feed phase",
+    phaseReviewBody:
+      "Set each feed type's production phase to allocate costs to the right batches (under sow, transition, starter…).",
+    phaseSuggestion: "Suggested: {{phase}}",
+    phases: {
+      sous_mere: "Under sow",
+      transition: "Transition",
+      starter: "Starter",
+      growth: "Growth",
+      fattening: "Finishing",
+      breeder: "Breeding",
+      unknown: "Unspecified"
+    },
     gaugeDashboardSubtitle: "{{kg}} kg · {{count}} d left",
     gaugeDashboardNoDays: "{{kg}} kg · unknown duration",
     smartAlertsHintTitle: "Recommendations",
@@ -1388,7 +1401,12 @@ export const en = {
     },
     openBarns: "Manage barns and pens",
     batches: {
-      detectedTitle: "Automatically detected batches"
+      detectedTitle: "Automatically detected batches",
+      confirmTitle: "Confirm this batch",
+      confirmBody:
+        "These animals will be grouped as a batch for tracking and profitability (like a gestation litter).",
+      confirmName: "Batch name",
+      confirmAction: "Confirm"
     },
     pensOccupancyHint:
       "Overall occupancy: {{rate}} · {{available}} pen(s) with free space.",

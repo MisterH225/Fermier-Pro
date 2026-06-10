@@ -20,6 +20,7 @@ import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.deco
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
 import { CreateFeedMovementDto } from "./dto/create-feed-movement.dto";
 import { CreateFeedTypeDto } from "./dto/create-feed-type.dto";
+import { UpdateFeedTypeDto } from "./dto/update-feed-type.dto";
 import { ListFeedMovementsQueryDto } from "./dto/list-feed-movements-query.dto";
 import {
   ReconcileFeedMovementDto,
@@ -55,6 +56,26 @@ export class FarmFeedController {
     @Body() dto: CreateFeedTypeDto
   ) {
     return this.farmFeed.createType(user, farmId, dto);
+  }
+
+  @Get("types/phase-review")
+  @RequireFarmScopes(FARM_SCOPE.livestockRead)
+  feedTypesPhaseReview(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string
+  ) {
+    return this.farmFeed.listTypesNeedingPhaseReview(user, farmId);
+  }
+
+  @Patch("types/:feedTypeId")
+  @RequireFarmScopes(FARM_SCOPE.livestockWrite)
+  updateType(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("feedTypeId") feedTypeId: string,
+    @Body() dto: UpdateFeedTypeDto
+  ) {
+    return this.farmFeed.updateType(user, farmId, feedTypeId, dto);
   }
 
   @Get("overview")

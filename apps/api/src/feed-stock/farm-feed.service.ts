@@ -30,6 +30,11 @@ import {
 } from "./feed-stock-calculation.helper";
 import { buildFeedStockStatsForFarm } from "./feed-stock-stats.helper";
 import { feedTypeColorAtIndex } from "./feed-type-colors";
+import {
+  feedPhaseLabel,
+  inferFeedPhaseFromName
+} from "./feed-production-phase.util";
+import { UpdateFeedTypeDto } from "./dto/update-feed-type.dto";
 
 const MS_PER_DAY = 86_400_000;
 
@@ -103,10 +108,64 @@ export class FarmFeedService {
     const lastEntryByType = new Map(
       lastEntries.map((m) => [m.feedTypeId, m.occurredAt.toISOString()])
     );
-    return types.map((t) => ({
-      ...t,
-      lastEntryDate: lastEntryByType.get(t.id) ?? null
-    }));
+    return types.map((t) => {
+      const inferred =
+        t.productionPhase === "unknown"
+          ? inferFeedPhaseFromName(t.name)
+          : null;
+      return {
+        ...t,
+        lastEntryDate: lastEntryByType.get(t.id) ?? null,
+        phaseSuggestion: inferred
+          ? {
+              phase: inferred.phase,
+              confidence: inferred.confidence,
+              alternatives: inferred.alternatives,
+              label: feedPhaseLabel(inferred.phase)
+            }
+          : null
+      };
+    });
+  }
+
+  async listTypesNeedingPhaseReview(user: User, farmId: string) {
+    const types = await this.listTypes(user, farmId);
+    return types.filter(
+      (t) =>
+        t.productionPhase === "unknown" &&
+        (t.phaseSuggestion?.confidence === "low" ||
+          t.phaseSuggestion?.alternatives.length)
+    );
+  }
+
+  async updateType(
+    user: User,
+    farmId: string,
+    feedTypeId: string,
+    dto: UpdateFeedTypeDto
+  ) {
+    await this.farmAccess.requireFarmScopes(user.id, farmId, [
+      FARM_SCOPE.livestockWrite
+    ]);
+    const row = await this.prisma.feedType.findFirst({
+      where: { id: feedTypeId, farmId }
+    });
+    if (!row) {
+      throw new NotFoundException("Type d'aliment introuvable");
+    }
+    return this.prisma.feedType.update({
+      where: { id: feedTypeId },
+      data: {
+        ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
+        ...(dto.color !== undefined ? { color: dto.color.trim() } : {}),
+        ...(dto.lowStockThresholdDays !== undefined
+          ? { lowStockThresholdDays: dto.lowStockThresholdDays }
+          : {}),
+        ...(dto.productionPhase !== undefined
+          ? { productionPhase: dto.productionPhase }
+          : {})
+      }
+    });
   }
 
   async createType(user: User, farmId: string, dto: CreateFeedTypeDto) {
@@ -114,6 +173,14 @@ export class FarmFeedService {
       FARM_SCOPE.livestockWrite
     ]);
     const existingCount = await this.prisma.feedType.count({ where: { farmId } });
+    const inferred = dto.productionPhase
+      ? null
+      : inferFeedPhaseFromName(dto.name.trim());
+    const productionPhase =
+      dto.productionPhase ??
+      (inferred && inferred.confidence === "high"
+        ? inferred.phase
+        : "unknown");
     return this.prisma.feedType.create({
       data: {
         farmId,
@@ -124,7 +191,8 @@ export class FarmFeedService {
           dto.weightPerBagKg != null
             ? new Prisma.Decimal(dto.weightPerBagKg)
             : null,
-        lowStockThresholdDays: dto.lowStockThresholdDays ?? 15
+        lowStockThresholdDays: dto.lowStockThresholdDays ?? 15,
+        productionPhase
       }
     });
   }

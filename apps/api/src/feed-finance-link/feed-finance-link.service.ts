@@ -15,6 +15,7 @@ import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
 import { PrismaService } from "../prisma/prisma.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import { feedTypeColorAtIndex } from "../feed-stock/feed-type-colors";
+import { inferFeedPhaseFromName } from "../feed-stock/feed-production-phase.util";
 import type { CreateFeedTypeDto } from "../feed-stock/dto/create-feed-type.dto";
 import {
   lineAmountFromUnitPrice,
@@ -71,6 +72,9 @@ export class FeedFinanceLinkService {
     dto: CreateFeedTypeDto
   ) {
     const existingCount = await tx.feedType.count({ where: { farmId } });
+    const inferred = inferFeedPhaseFromName(dto.name.trim());
+    const productionPhase =
+      inferred.confidence === "high" ? inferred.phase : "unknown";
     return tx.feedType.create({
       data: {
         farmId,
@@ -82,6 +86,7 @@ export class FeedFinanceLinkService {
             ? new Prisma.Decimal(dto.weightPerBagKg)
             : null,
         lowStockThresholdDays: dto.lowStockThresholdDays ?? 15,
+        productionPhase
       }
     });
   }

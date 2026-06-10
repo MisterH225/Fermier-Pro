@@ -1,14 +1,6 @@
 import { Type } from "class-transformer";
-import {
-  IsEnum,
-  IsNumber,
-  IsOptional,
-  IsString,
-  Max,
-  MaxLength,
-  Min
-} from "class-validator";
-import { FeedTypeUnit } from "@prisma/client";
+import { IsEnum, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
+import { FeedProductionPhase, FeedTypeUnit } from "@prisma/client";
 
 export class CreateFeedTypeDto {
   @IsString()
@@ -37,4 +29,7 @@ export class CreateFeedTypeDto {
   @Max(365)
   lowStockThresholdDays?: number;
 
+  @IsOptional()
+  @IsEnum(FeedProductionPhase)
+  productionPhase?: FeedProductionPhase;
 }

@@ -28,6 +28,7 @@ import {
 } from "../components/charts";
 import { AppDateRangePicker } from "../components/common/AppDateRangePicker";
 import { StockModal, FeedStockLevelGauge, farmFeedStatToGauge } from "../components/feed";
+import { FeedPhaseReviewBanner } from "../components/feed/FeedPhaseReviewBanner";
 import { HighlightWrapper } from "../components/common/HighlightWrapper";
 import { EditStockModal } from "../components/stock/EditStockModal";
 import { LinkedFinanceSection } from "../components/stock/LinkedFinanceSection";
@@ -593,6 +594,13 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
             label: t("feedStock.tabOverview"),
             content: tabScroll(
               <>
+                {accessToken ? (
+                  <FeedPhaseReviewBanner
+                    farmId={farmId}
+                    accessToken={accessToken}
+                    activeProfileId={activeProfileId}
+                  />
+                ) : null}
                 <ScreenSection title={t("feedStock.chartTitle")}>
                   {chart && Array.isArray(chart.series) ? (
                     <SmartChart

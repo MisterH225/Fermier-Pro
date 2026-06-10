@@ -973,6 +973,9 @@ model Animal {
   soldCurrency    String?
   buyerName       String?
   notes     String?
+  /// Bande de croissance associée (portée confirmée ou bande préexistante).
+  livestockBatchId String?
+  livestockBatch   LivestockBatch? @relation("BatchMembers", fields: [livestockBatchId], references: [id], onDelete: SetNull)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   weights      AnimalWeight[]
@@ -992,6 +995,7 @@ model Animal {
   offspringAsSire  Animal[]  @relation("AnimalSire")
 
   @@index([farmId])
+  @@index([livestockBatchId])
   @@index([damId])
   @@index([sireId])
   @@index([farmId, status])
@@ -1072,6 +1076,7 @@ model LivestockBatch {
   penPlacements  PenPlacement[]
   livestockExits LivestockExit[]
   profitabilitySnapshot BatchProfitabilitySnapshot?
+  members        Animal[] @relation("BatchMembers")
 
   @@index([farmId])
   @@index([farmId, status])
@@ -1561,6 +1566,17 @@ enum FeedTypeUnit {
   sac
 }
 
+/// Phase de production cible d'un aliment (affectation coûts par bande).
+enum FeedProductionPhase {
+  sous_mere
+  transition
+  starter
+  growth
+  fattening
+  breeder
+  unknown
+}
+
 enum FeedMovementKind {
   in
   stock_check
@@ -1585,6 +1601,8 @@ model FeedType {
   currentStockKg        Decimal       @default(0) @db.Decimal(14, 4)
   /// Prix unitaire moyen pondéré (kg) — mois en cours, entrées avec coût.
   currentPumpPrice      Decimal?      @db.Decimal(14, 4)
+  /// Phase de production (démarrage, transition, etc.) pour affectation coûts par bande.
+  productionPhase       FeedProductionPhase @default(unknown)
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
   movements             FeedStockMovement[]

@@ -1309,6 +1309,19 @@ export const fr = {
     gaugeCenterDays: "{{count}} j",
     lastCheckAgo: "Dernier contrôle : il y a {{count}} j",
     unknownFeedType: "Aliment",
+    phaseReviewTitle: "Phase aliment à préciser",
+    phaseReviewBody:
+      "Indiquez la phase de chaque aliment pour affecter les coûts aux bonnes bandes (sous mère, transition, démarrage…).",
+    phaseSuggestion: "Suggestion : {{phase}}",
+    phases: {
+      sous_mere: "Sous mère",
+      transition: "Transition",
+      starter: "Démarrage",
+      growth: "Croissance",
+      fattening: "Engraissement",
+      breeder: "Reproducteurs",
+      unknown: "Non précisé"
+    },
     gaugeDashboardSubtitle: "{{kg}} kg · {{count}} j restants",
     gaugeDashboardNoDays: "{{kg}} kg · durée inconnue",
     smartAlertsHintTitle: "Recommandations",
@@ -1412,7 +1425,12 @@ export const fr = {
     },
     openBarns: "Gérer les bâtiments et loges",
     batches: {
-      detectedTitle: "Bandes détectées automatiquement"
+      detectedTitle: "Bandes détectées automatiquement",
+      confirmTitle: "Confirmer cette bande",
+      confirmBody:
+        "Ces sujets seront regroupés en bande pour le suivi et la rentabilité (comme une portée de gestation).",
+      confirmName: "Nom de la bande",
+      confirmAction: "Confirmer"
     },
     pensOccupancyHint:
       "Occupation globale : {{rate}} · {{available}} loge(s) avec place libre.",
