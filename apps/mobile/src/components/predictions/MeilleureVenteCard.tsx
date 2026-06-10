@@ -28,8 +28,10 @@ export function MeilleureVenteCard({ payload, currency, locale }: Props) {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const timing = payload.sale_timing;
-  const optimal = timing.optimal_window;
+  const optimal = payload.sale_timing?.optimal_window;
+  if (!optimal) {
+    return null;
+  }
 
   return (
     <View style={styles.card}>
@@ -47,11 +49,19 @@ export function MeilleureVenteCard({ payload, currency, locale }: Props) {
         /kg
       </Text>
       <Text style={styles.reason}>{optimal.reason}</Text>
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>{TREND_BADGE[timing.price_trend]}</Text>
-      </View>
-      <Text style={styles.trendExpl}>{timing.price_trend_explanation}</Text>
-      {timing.avoid_windows.slice(0, 2).map((w, i) => (
+      {payload.sale_timing?.price_trend ? (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>
+            {TREND_BADGE[payload.sale_timing.price_trend]}
+          </Text>
+        </View>
+      ) : null}
+      {payload.sale_timing?.price_trend_explanation ? (
+        <Text style={styles.trendExpl}>
+          {payload.sale_timing.price_trend_explanation}
+        </Text>
+      ) : null}
+      {(payload.sale_timing?.avoid_windows ?? []).slice(0, 2).map((w, i) => (
         <Text key={i} style={styles.avoid}>
           ⚠️ {formatPredictionDate(w.start_date, locale)} — {w.reason}
         </Text>
