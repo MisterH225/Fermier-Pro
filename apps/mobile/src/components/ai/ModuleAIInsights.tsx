@@ -11,6 +11,8 @@ type Props = {
   activeProfileId?: string | null;
   enabled?: boolean;
   hasMinimalData?: boolean;
+  /** Titre « Conseils » quand affiché en secours des prévisions. */
+  variant?: "default" | "fallback";
 };
 
 /** Bloc insights IA — masqué silencieusement si vide ou erreur. */
@@ -20,7 +22,8 @@ export function ModuleAIInsights({
   accessToken,
   activeProfileId,
   enabled = true,
-  hasMinimalData = true
+  hasMinimalData = true,
+  variant = "default"
 }: Props) {
   const { t } = useTranslation();
   const { items, loading, refresh, visible } = useAIInsights({
@@ -37,7 +40,14 @@ export function ModuleAIInsights({
   }
 
   return (
-    <ScreenSection title={t("financeScreen.insights")} plain>
+    <ScreenSection
+      title={
+        variant === "fallback"
+          ? t("ai.fallbackInsightsTitle")
+          : t("financeScreen.insights")
+      }
+      plain
+    >
       <InsightCard
         insights={items}
         loading={loading}

@@ -2967,6 +2967,7 @@ export const fr = {
   },
   ai: {
     insightTitle: "En bref",
+    fallbackInsightsTitle: "💡 Conseils IA",
     refresh: "Actualiser les recommandations"
   },
   tech: {

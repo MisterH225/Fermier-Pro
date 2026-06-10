@@ -12,8 +12,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../../theme/mobileTheme";
-import { ModuleAIInsights } from "../../ai/ModuleAIInsights";
-import { PredictionsSection } from "../../predictions/PredictionsSection";
+import { FarmModuleAISection } from "../../ai/FarmModuleAISection";
 import { ScreenSection } from "../../layout/ScreenSection";
 import { CategoryBreakdownPanel } from "./CategoryBreakdownPanel";
 import { CheptelKPICards } from "./CheptelKPICards";
@@ -79,18 +78,12 @@ export function CheptelOverview({
 
       {farmId && accessToken ? (
         <>
-          <PredictionsSection
+          <FarmModuleAISection
             farmId={farmId}
             menu="cheptel"
             accessToken={accessToken}
             activeProfileId={activeProfileId}
-            title={t("predictions.sectionCheptel")}
-          />
-          <ModuleAIInsights
-            farmId={farmId}
-            module="cheptel"
-            accessToken={accessToken}
-            activeProfileId={activeProfileId}
+            predictionTitle={t("predictions.sectionCheptel")}
             hasMinimalData={(kpis?.totalHeadcount ?? 0) > 0}
           />
         </>

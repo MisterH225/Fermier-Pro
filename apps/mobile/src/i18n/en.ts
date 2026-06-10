@@ -3333,6 +3333,7 @@ export const en = {
   },
   ai: {
     insightTitle: "In brief",
+    fallbackInsightsTitle: "💡 AI advice",
     refresh: "Refresh recommendations"
   }
 } as const;

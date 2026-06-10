@@ -14,8 +14,7 @@ import {
   View
 } from "react-native";
 import { MobileAppShell } from "../components/layout";
-import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
-import { PredictionsSection } from "../components/predictions/PredictionsSection";
+import { FarmDashboardAISection } from "../components/ai/FarmModuleAISection";
 import { SmartAlertsSection } from "../components/smartAlerts/SmartAlertsSection";
 import { AlertBadge } from "../components/smartAlerts/AlertBadge";
 
@@ -492,12 +491,11 @@ export function ProducerDashboardScreen() {
               </ScreenSection>
             ) : null}
             {accessToken ? (
-              <PredictionsSection
+              <FarmDashboardAISection
                 farmId={farmId}
-                menu="summary"
                 accessToken={accessToken}
                 activeProfileId={activeProfileId}
-                title={t("predictions.sectionDashboard")}
+                predictionTitle={t("predictions.sectionDashboard")}
               />
             ) : null}
             <SmartAlertsSection
@@ -505,19 +503,6 @@ export function ProducerDashboardScreen() {
               farmName={farmName}
               accessToken={accessToken!}
               activeProfileId={activeProfileId}
-            />
-            <ModuleAIInsights
-              farmId={farmId}
-              module="global_dashboard"
-              accessToken={accessToken}
-              activeProfileId={activeProfileId}
-            />
-            <ModuleAIInsights
-              farmId={farmId}
-              module="gestation"
-              accessToken={accessToken}
-              activeProfileId={activeProfileId}
-              hasMinimalData={(gestationsQuery.data?.items?.length ?? 0) > 0}
             />
           </>
           )}

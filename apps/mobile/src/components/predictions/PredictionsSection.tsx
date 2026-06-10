@@ -26,6 +26,8 @@ import { RevenusEstimesCard } from "./RevenusEstimesCard";
 import { SailliesRecommandeesCard } from "./SailliesRecommandeesCard";
 import { formatGeneratedAt, getPredictionPricePerKg } from "./predictionFormatters";
 
+type PredictionsControl = ReturnType<typeof usePredictions>;
+
 type Props = {
   farmId: string;
   menu: PredictionMenuKey;
@@ -34,6 +36,8 @@ type Props = {
   title: string;
   farmName?: string;
   onStockOrderPress?: (feedTypeId: string, quantityKg: number) => void;
+  /** Évite un second fetch quand les prévisions sont partagées avec un bloc recommandations. */
+  predictionsControl?: PredictionsControl;
 };
 
 export function PredictionsSection({
@@ -43,16 +47,19 @@ export function PredictionsSection({
   activeProfileId,
   title,
   farmName = "",
-  onStockOrderPress
+  onStockOrderPress,
+  predictionsControl
 }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
-  const { data, refreshing, refresh } = usePredictions({
+  const internal = usePredictions({
     farmId,
     menu,
     accessToken,
-    activeProfileId
+    activeProfileId,
+    enabled: !predictionsControl
   });
+  const { data, refreshing, refresh } = predictionsControl ?? internal;
 
   const generatedLabel = data?.generated_at
     ? t("predictions.generatedAt", {
