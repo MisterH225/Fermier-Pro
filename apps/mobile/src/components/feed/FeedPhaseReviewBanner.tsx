@@ -66,7 +66,7 @@ export function FeedPhaseReviewBanner({
   });
 
   const items = reviewQ.data ?? [];
-  if (reviewQ.isPending || items.length === 0) {
+  if (reviewQ.isPending || reviewQ.isError || items.length === 0) {
     return null;
   }
 
