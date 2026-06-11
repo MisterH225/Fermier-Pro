@@ -18,6 +18,7 @@ import {
   MarketplaceShipmentMethod,
   MarketplaceTransactionStatus,
   OfferStatus,
+  LivestockExitKind,
   OfferType,
   Prisma,
   WeightValidatedBy
@@ -2550,9 +2551,28 @@ export class MarketplaceTransactionService {
   }
 
   /**
-   * Partenaires marketplace dédupliqués (acheteurs pour le vendeur, vendeurs pour l'acheteur).
+   * Partenaires dédupliqués : transactions escrow marketplace + ventes directes cheptel.
    */
   async listPartners(user: User, role: "seller" | "buyer") {
+    const partners = new Map<string, MarketplacePartnerAgg>();
+    await this.mergeMarketplacePartners(user, role, partners);
+
+    if (role === "seller") {
+      await this.mergeDirectSaleClients(user, partners);
+    } else {
+      await this.mergeDirectSaleSuppliers(user, partners);
+    }
+
+    return [...partners.values()].sort((a, b) =>
+      b.lastTransactionAt.localeCompare(a.lastTransactionAt)
+    );
+  }
+
+  private async mergeMarketplacePartners(
+    user: User,
+    role: "seller" | "buyer",
+    partners: Map<string, MarketplacePartnerAgg>
+  ) {
     const asSeller = role === "seller";
 
     const rows = await this.prisma.marketplaceTransaction.findMany({
@@ -2587,28 +2607,22 @@ export class MarketplaceTransactionService {
       orderBy: { updatedAt: "desc" }
     });
 
-    type PartnerAgg = {
-      userId: string;
-      displayName: string;
-      subtitle: string | null;
-      transactionCount: number;
-      closedCount: number;
-      lastTransactionAt: string;
-    };
-
-    const partners = new Map<string, PartnerAgg>();
-
     for (const row of rows) {
       const counterparty = asSeller ? row.buyer : row.seller;
       const partnerId = counterparty.id;
       const isClosed =
         row.status === MarketplaceTransactionStatus.TRANSACTION_CLOSED;
+      const at = row.updatedAt.toISOString();
 
       const existing = partners.get(partnerId);
       if (existing) {
         existing.transactionCount += 1;
+        existing.marketplaceCount += 1;
         if (isClosed) {
           existing.closedCount += 1;
+        }
+        if (at > existing.lastTransactionAt) {
+          existing.lastTransactionAt = at;
         }
         continue;
       }
@@ -2634,17 +2648,366 @@ export class MarketplaceTransactionService {
       }
 
       partners.set(partnerId, {
+        partnerKey: partnerId,
         userId: partnerId,
         displayName,
         subtitle,
         transactionCount: 1,
         closedCount: isClosed ? 1 : 0,
-        lastTransactionAt: row.updatedAt.toISOString()
+        marketplaceCount: 1,
+        directSaleCount: 0,
+        lastTransactionAt: at
       });
     }
-
-    return [...partners.values()].sort((a, b) =>
-      b.lastTransactionAt.localeCompare(a.lastTransactionAt)
-    );
   }
+
+  private async mergeDirectSaleClients(
+    user: User,
+    partners: Map<string, MarketplacePartnerAgg>
+  ) {
+    const farms = await this.prisma.farm.findMany({
+      where: {
+        OR: [
+          { ownerId: user.id },
+          { memberships: { some: { userId: user.id } } }
+        ]
+      },
+      select: { id: true }
+    });
+    const farmIds = farms.map((f) => f.id);
+    if (farmIds.length === 0) {
+      return;
+    }
+
+    const marketplaceAnimalIds = await this.loadMarketplaceAnimalIdsForSeller(
+      user.id
+    );
+
+    const exits = await this.prisma.livestockExit.findMany({
+      where: {
+        farmId: { in: farmIds },
+        kind: LivestockExitKind.sale,
+        buyerName: { not: null }
+      },
+      select: {
+        animalId: true,
+        buyerName: true,
+        occurredAt: true
+      },
+      orderBy: { occurredAt: "desc" }
+    });
+
+    const directExits = exits.filter((exit) => {
+      const name = exit.buyerName?.trim();
+      if (!name) {
+        return false;
+      }
+      if (exit.animalId && marketplaceAnimalIds.has(exit.animalId)) {
+        return false;
+      }
+      return true;
+    });
+
+    const nameToUserId = this.buildPartnerNameIndex(partners);
+    const unresolvedNames = new Set<string>();
+    for (const exit of directExits) {
+      const norm = normalizePartnerName(exit.buyerName);
+      if (norm && !nameToUserId.has(norm)) {
+        unresolvedNames.add(exit.buyerName!.trim());
+      }
+    }
+    if (unresolvedNames.size > 0) {
+      const resolved = await this.resolveUsersByDisplayNames([
+        ...unresolvedNames
+      ]);
+      for (const [norm, userId] of resolved) {
+        nameToUserId.set(norm, userId);
+      }
+    }
+
+    for (const exit of directExits) {
+      const name = exit.buyerName!.trim();
+      const norm = normalizePartnerName(name);
+      const at = exit.occurredAt.toISOString();
+      const matchedUserId = norm ? nameToUserId.get(norm) : undefined;
+
+      if (matchedUserId) {
+        this.bumpDirectSalePartner(partners, matchedUserId, {
+          userId: matchedUserId,
+          displayName: name,
+          at
+        });
+        continue;
+      }
+
+      const key = directPartnerKey(norm || name);
+      this.bumpDirectSalePartner(partners, key, {
+        userId: null,
+        displayName: name,
+        at
+      });
+    }
+  }
+
+  private async mergeDirectSaleSuppliers(
+    user: User,
+    partners: Map<string, MarketplacePartnerAgg>
+  ) {
+    const identityNames = await this.loadBuyerIdentityNames(user.id);
+    const buyerNameSet = new Set(
+      identityNames.map(normalizePartnerName).filter(Boolean)
+    );
+    if (buyerNameSet.size === 0) {
+      return;
+    }
+
+    const marketplaceAnimalIds = await this.loadMarketplaceAnimalIdsForBuyer(
+      user.id
+    );
+
+    const exits = await this.prisma.livestockExit.findMany({
+      where: {
+        kind: LivestockExitKind.sale,
+        buyerName: { not: null }
+      },
+      select: {
+        animalId: true,
+        buyerName: true,
+        occurredAt: true,
+        farm: {
+          select: {
+            name: true,
+            owner: {
+              select: {
+                id: true,
+                fullName: true,
+                producerHomeFarmName: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { occurredAt: "desc" },
+      take: 500
+    });
+
+    for (const exit of exits) {
+      const norm = normalizePartnerName(exit.buyerName);
+      if (!norm || !buyerNameSet.has(norm)) {
+        continue;
+      }
+      if (exit.animalId && marketplaceAnimalIds.has(exit.animalId)) {
+        continue;
+      }
+
+      const owner = exit.farm.owner;
+      const at = exit.occurredAt.toISOString();
+      const farmName = exit.farm.name?.trim();
+      const homeFarm = owner.producerHomeFarmName?.trim();
+      const sellerName = owner.fullName?.trim();
+      const displayName = farmName || homeFarm || sellerName || "—";
+      const subtitle =
+        (farmName || homeFarm) && sellerName ? sellerName : null;
+
+      this.bumpDirectSalePartner(partners, owner.id, {
+        userId: owner.id,
+        displayName,
+        subtitle,
+        at
+      });
+    }
+  }
+
+  private bumpDirectSalePartner(
+    partners: Map<string, MarketplacePartnerAgg>,
+    key: string,
+    params: {
+      userId: string | null;
+      displayName: string;
+      subtitle?: string | null;
+      at: string;
+    }
+  ) {
+    const existing = partners.get(key);
+    if (existing) {
+      existing.transactionCount += 1;
+      existing.directSaleCount += 1;
+      existing.closedCount += 1;
+      if (params.at > existing.lastTransactionAt) {
+        existing.lastTransactionAt = params.at;
+      }
+      return;
+    }
+
+    partners.set(key, {
+      partnerKey: key,
+      userId: params.userId,
+      displayName: params.displayName,
+      subtitle: params.subtitle ?? null,
+      transactionCount: 1,
+      closedCount: 1,
+      marketplaceCount: 0,
+      directSaleCount: 1,
+      lastTransactionAt: params.at
+    });
+  }
+
+  private buildPartnerNameIndex(
+    partners: Map<string, MarketplacePartnerAgg>
+  ): Map<string, string> {
+    const index = new Map<string, string>();
+    for (const partner of partners.values()) {
+      if (!partner.userId) {
+        continue;
+      }
+      const display = normalizePartnerName(partner.displayName);
+      const subtitle = normalizePartnerName(partner.subtitle);
+      if (display) {
+        index.set(display, partner.userId);
+      }
+      if (subtitle) {
+        index.set(subtitle, partner.userId);
+      }
+    }
+    return index;
+  }
+
+  private async resolveUsersByDisplayNames(
+    names: string[]
+  ): Promise<Map<string, string>> {
+    const result = new Map<string, string>();
+    if (names.length === 0) {
+      return result;
+    }
+
+    const users = await this.prisma.user.findMany({
+      where: {
+        OR: [
+          ...names.map((name) => ({
+            fullName: { equals: name, mode: "insensitive" as const }
+          })),
+          ...names.map((name) => ({
+            buyerProfile: {
+              businessName: { equals: name, mode: "insensitive" as const }
+            }
+          }))
+        ]
+      },
+      select: {
+        id: true,
+        fullName: true,
+        buyerProfile: { select: { businessName: true } }
+      }
+    });
+
+    for (const row of users) {
+      if (row.fullName?.trim()) {
+        result.set(normalizePartnerName(row.fullName), row.id);
+      }
+      if (row.buyerProfile?.businessName?.trim()) {
+        result.set(
+          normalizePartnerName(row.buyerProfile.businessName),
+          row.id
+        );
+      }
+    }
+    return result;
+  }
+
+  private async loadBuyerIdentityNames(userId: string): Promise<string[]> {
+    const row = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        fullName: true,
+        buyerProfile: { select: { businessName: true } }
+      }
+    });
+    if (!row) {
+      return [];
+    }
+    const names: string[] = [];
+    if (row.fullName?.trim()) {
+      names.push(row.fullName.trim());
+    }
+    if (row.buyerProfile?.businessName?.trim()) {
+      names.push(row.buyerProfile.businessName.trim());
+    }
+    return names;
+  }
+
+  private async loadMarketplaceAnimalIdsForSeller(
+    sellerUserId: string
+  ): Promise<Set<string>> {
+    return this.loadMarketplaceAnimalIds({
+      sellerUserId
+    });
+  }
+
+  private async loadMarketplaceAnimalIdsForBuyer(
+    buyerUserId: string
+  ): Promise<Set<string>> {
+    return this.loadMarketplaceAnimalIds({
+      buyerUserId
+    });
+  }
+
+  private async loadMarketplaceAnimalIds(
+    filter: { sellerUserId: string } | { buyerUserId: string }
+  ): Promise<Set<string>> {
+    const cancelledStatuses: MarketplaceTransactionStatus[] = [
+      MarketplaceTransactionStatus.CANCELLED_BY_BUYER,
+      MarketplaceTransactionStatus.CANCELLED_BY_SELLER,
+      MarketplaceTransactionStatus.CANCELLED_SOLD_TO_OTHER,
+      MarketplaceTransactionStatus.PAYMENT_FAILED,
+      MarketplaceTransactionStatus.OFFER_EXPIRED
+    ];
+
+    const rows = await this.prisma.marketplaceTransaction.findMany({
+      where: {
+        ...filter,
+        status: { notIn: cancelledStatuses }
+      },
+      select: {
+        listing: {
+          select: { animalId: true, animalIds: true }
+        }
+      }
+    });
+
+    const ids = new Set<string>();
+    for (const row of rows) {
+      for (const animalId of this.listingAnimalIds(row.listing)) {
+        ids.add(animalId);
+      }
+    }
+    return ids;
+  }
+}
+
+type MarketplacePartnerAgg = {
+  partnerKey: string;
+  userId: string | null;
+  displayName: string;
+  subtitle: string | null;
+  transactionCount: number;
+  closedCount: number;
+  marketplaceCount: number;
+  directSaleCount: number;
+  lastTransactionAt: string;
+};
+
+function normalizePartnerName(value: string | null | undefined): string {
+  if (!value?.trim()) {
+    return "";
+  }
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function directPartnerKey(normalizedName: string): string {
+  return `direct:${normalizedName}`;
 }

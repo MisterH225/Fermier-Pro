@@ -58,6 +58,9 @@ function PartnerRow({
 }) {
   const { t } = useTranslation();
   const accent = buyerView ? buyerColors.primary : mobileColors.accent;
+  const canMessage = Boolean(item.userId);
+  const directOnly =
+    item.directSaleCount > 0 && item.marketplaceCount === 0;
 
   return (
     <View style={styles.row}>
@@ -82,18 +85,25 @@ function PartnerRow({
           {item.closedCount > 0
             ? ` · ${t("marketScreen.partners.closedCount", { count: item.closedCount })}`
             : ""}
+          {directOnly
+            ? ` · ${t("marketScreen.partners.directSale")}`
+            : ""}
           {" · "}
           {formatRelativeDate(item.lastTransactionAt)}
         </Text>
       </View>
-      <Pressable
-        onPress={onMessage}
-        style={[styles.messageBtn, { borderColor: accent }]}
-        accessibilityRole="button"
-        accessibilityLabel={t("marketScreen.partners.message")}
-      >
-        <Ionicons name="chatbubble-outline" size={18} color={accent} />
-      </Pressable>
+      {canMessage ? (
+        <Pressable
+          onPress={onMessage}
+          style={[styles.messageBtn, { borderColor: accent }]}
+          accessibilityRole="button"
+          accessibilityLabel={t("marketScreen.partners.message")}
+        >
+          <Ionicons name="chatbubble-outline" size={18} color={accent} />
+        </Pressable>
+      ) : (
+        <View style={styles.messageBtnPlaceholder} />
+      )}
     </View>
   );
 }
@@ -115,6 +125,9 @@ export function MarketplacePartnersTab({
   });
 
   const openChat = async (partner: MarketplacePartnerDto) => {
+    if (!partner.userId) {
+      return;
+    }
     try {
       const room = await ensureDirectChatRoom(
         accessToken!,
@@ -157,7 +170,7 @@ export function MarketplacePartnersTab({
   return (
     <FlatList
       data={items}
-      keyExtractor={(item) => item.userId}
+      keyExtractor={(item) => item.partnerKey}
       contentContainerStyle={[
         styles.listContent,
         items.length === 0 && styles.listContentEmpty,
@@ -262,5 +275,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center"
+  },
+  messageBtnPlaceholder: {
+    width: 40,
+    height: 40
   }
 });

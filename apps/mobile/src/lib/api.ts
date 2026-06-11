@@ -5222,11 +5222,14 @@ export type MarketplaceFinanceSummaryDto = {
 };
 
 export type MarketplacePartnerDto = {
-  userId: string;
+  partnerKey: string;
+  userId: string | null;
   displayName: string;
   subtitle: string | null;
   transactionCount: number;
   closedCount: number;
+  marketplaceCount: number;
+  directSaleCount: number;
   lastTransactionAt: string;
 };
 

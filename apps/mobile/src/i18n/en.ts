@@ -344,13 +344,14 @@ export const en = {
       transactionCount: "{{count}} transaction(s)",
       closedCount: "{{count}} completed",
       message: "Send a message",
+      directSale: "Direct livestock sale",
       messageErrorTitle: "Messaging unavailable",
       emptyClientsTitle: "No clients yet",
       emptyClientsBody:
-        "Buyers you complete a sale with will appear here.",
+        "Buyers you complete a sale with (marketplace or direct livestock sale) will appear here.",
       emptySuppliersTitle: "No suppliers yet",
       emptySuppliersBody:
-        "Producers you complete a purchase with will appear here."
+        "Producers you complete a purchase with (marketplace or direct sale) will appear here."
     },
     create: "Create",
     searchPlaceholder: "Farm, location, breed…",
