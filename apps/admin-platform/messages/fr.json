@@ -384,6 +384,11 @@
     "title": "Paramètres plateforme",
     "save": "Enregistrer",
     "saved": "Paramètres enregistrés.",
+    "tabs": {
+      "navLabel": "Sections des paramètres",
+      "platform": "Plateforme",
+      "modules": "Modules"
+    },
     "sections": {
       "map": "Périmètre géographique",
       "alerts": "Seuils alertes sanitaires",
@@ -391,6 +396,7 @@
       "support": "Support mobile",
       "marketplace": "Marketplace"
     },
+    "loadError": "Impossible de charger les paramètres. Vérifiez que l’API est à jour et que les migrations Prisma sont appliquées.",
     "fields": {
       "mapScope": "Zone visible sur la carte",
       "alertThreshold": "Seuil déclenchement (cas)",

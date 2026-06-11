@@ -24,18 +24,25 @@ export default function ParametresPage() {
   const t = useTranslations("settings");
   const { token, ready } = useAdminToken();
   const [form, setForm] = useState<PlatformSettingsDto | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (!token) return;
-    fetchPlatformSettings(token).then((row) => {
-      setForm({
-        ...row,
-        marketplaceCommissionRate: Number(row.marketplaceCommissionRate ?? 0.05)
+    setLoadError(null);
+    fetchPlatformSettings(token)
+      .then((row) => {
+        setForm({
+          ...row,
+          marketplaceCommissionRate: Number(row.marketplaceCommissionRate ?? 0.05)
+        });
+      })
+      .catch(() => {
+        setLoadError(t("loadError"));
+        setForm(null);
       });
-    });
-  }, [token]);
+  }, [token, t]);
 
   const update = <K extends keyof PlatformSettingsDto>(
     key: K,
@@ -68,7 +75,22 @@ export default function ParametresPage() {
     }
   };
 
-  if (!ready || !form) {
+  if (!ready) {
+    return <p className="text-muted-foreground">…</p>;
+  }
+
+  if (loadError) {
+    return (
+      <div className="space-y-4 max-w-2xl">
+        <PageHeader title={t("title")} />
+        <p className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {loadError}
+        </p>
+      </div>
+    );
+  }
+
+  if (!form) {
     return <p className="text-muted-foreground">…</p>;
   }
 
@@ -77,6 +99,54 @@ export default function ParametresPage() {
       <PageHeader title={t("title")} />
 
       <AccountPasswordCard />
+
+      <Card id="support">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">{t("sections.support")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="support-phone">{t("fields.supportPhone")}</Label>
+            <Input
+              id="support-phone"
+              type="tel"
+              placeholder="+221771234567"
+              value={form.supportPhone ?? ""}
+              onChange={(e) => update("supportPhone", e.target.value || null)}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("fields.supportPhoneHint")}
+            </p>
+            {!form.supportPhone?.trim() && form.supportEffective?.phone ? (
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                {t("fields.supportPhoneEffective", {
+                  value: form.supportEffective.phone
+                })}
+              </p>
+            ) : null}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="support-telegram">{t("fields.supportTelegram")}</Label>
+            <Input
+              id="support-telegram"
+              type="url"
+              placeholder="https://t.me/fermierpro ou @fermierpro"
+              value={form.supportTelegramUrl ?? ""}
+              onChange={(e) => update("supportTelegramUrl", e.target.value || null)}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("fields.supportTelegramHint")}
+            </p>
+            {!form.supportTelegramUrl?.trim() && form.supportEffective?.telegramUrl ? (
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                {t("fields.supportTelegramEffective", {
+                  value: form.supportEffective.telegramUrl
+                })}
+              </p>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="pb-2">
@@ -167,54 +237,6 @@ export default function ParametresPage() {
               value={form.reportFrequencyDays}
               onChange={(e) => update("reportFrequencyDays", Number(e.target.value))}
             />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">{t("sections.support")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="support-phone">{t("fields.supportPhone")}</Label>
-            <Input
-              id="support-phone"
-              type="tel"
-              placeholder="+221771234567"
-              value={form.supportPhone ?? ""}
-              onChange={(e) => update("supportPhone", e.target.value || null)}
-            />
-            <p className="text-xs text-muted-foreground">
-              {t("fields.supportPhoneHint")}
-            </p>
-            {!form.supportPhone?.trim() && form.supportEffective?.phone ? (
-              <p className="text-xs text-amber-700 dark:text-amber-400">
-                {t("fields.supportPhoneEffective", {
-                  value: form.supportEffective.phone
-                })}
-              </p>
-            ) : null}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="support-telegram">{t("fields.supportTelegram")}</Label>
-            <Input
-              id="support-telegram"
-              type="url"
-              placeholder="https://t.me/fermierpro ou @fermierpro"
-              value={form.supportTelegramUrl ?? ""}
-              onChange={(e) => update("supportTelegramUrl", e.target.value || null)}
-            />
-            <p className="text-xs text-muted-foreground">
-              {t("fields.supportTelegramHint")}
-            </p>
-            {!form.supportTelegramUrl?.trim() && form.supportEffective?.telegramUrl ? (
-              <p className="text-xs text-amber-700 dark:text-amber-400">
-                {t("fields.supportTelegramEffective", {
-                  value: form.supportEffective.telegramUrl
-                })}
-              </p>
-            ) : null}
           </div>
         </CardContent>
       </Card>
