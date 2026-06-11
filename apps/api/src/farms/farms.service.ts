@@ -19,6 +19,7 @@ import { ArchiveFarmDto } from "./dto/archive-farm.dto";
 import { FarmDeletionService } from "./farm-deletion.service";
 import { FarmMarketplaceLifecycleService } from "../marketplace/farm-marketplace-lifecycle.service";
 import { countCheptelHeadcountAt } from "./cheptel-headcount.util";
+import { mapBatchCategoryKey } from "../cheptel/batch-category.util";
 
 const MAX_ACTIVE_FARMS_PER_USER = 3;
 
@@ -524,42 +525,10 @@ export class FarmsService {
       other: 0
     };
 
-    const mapBatchCategory = (key: string | null): keyof typeof categoryTotals => {
-      const k = (key ?? "").toLowerCase();
-      if (
-        k.includes("truie") ||
-        k.includes("sow") ||
-        (k.includes("breed") && k.includes("fem"))
-      ) {
-        return "reproducteur_femelle";
-      }
-      if (
-        k.includes("verrat") ||
-        k.includes("boar") ||
-        (k.includes("breed") && k.includes("male"))
-      ) {
-        return "reproducteur_male";
-      }
-      if (
-        k.includes("nursery") ||
-        k.includes("porcelet") ||
-        k.includes("demarrage") ||
-        k === "starter" ||
-        k === "start"
-      ) {
-        return "starter";
-      }
-      if (k.includes("grow") || k.includes("croissance") || k === "grower") {
-        return "growth";
-      }
-      if (k.includes("finish") || k.includes("engrais") || k === "finisher") {
-        return "fattening";
-      }
-      if (k.includes("breed") || k.includes("reprod")) {
-        return "reproducteur_femelle";
-      }
-      return "other";
-    };
+    for (const b of activeBatches) {
+      const slot = mapBatchCategoryKey(b.categoryKey);
+      categoryTotals[slot] += b.headcount;
+    }
 
     const mapAnimalProductionCategory = (
       cat: string
@@ -578,10 +547,6 @@ export class FarmsService {
       }
     };
 
-    for (const b of activeBatches) {
-      const slot = mapBatchCategory(b.categoryKey);
-      categoryTotals[slot] += b.headcount;
-    }
     for (const a of activeAnimalsNotInBatch) {
       categoryTotals[mapAnimalProductionCategory(a.productionCategory)] += 1;
     }
@@ -632,14 +597,14 @@ export class FarmsService {
       activeAnimalsNotInBatch.filter((a) => a.productionCategory === "fattening")
         .length +
       activeBatches
-        .filter((b) => mapBatchCategory(b.categoryKey) === "fattening")
+        .filter((b) => mapBatchCategoryKey(b.categoryKey) === "fattening")
         .reduce((s, b) => s + b.headcount, 0);
     const starterCount =
       activeAnimalsNotInBatch.filter((a) => a.productionCategory === "starter")
         .length +
       activeBatches
         .filter((b) => {
-          const slot = mapBatchCategory(b.categoryKey);
+          const slot = mapBatchCategoryKey(b.categoryKey);
           return slot === "starter" || slot === "growth";
         })
         .reduce((s, b) => s + b.headcount, 0);
@@ -671,7 +636,7 @@ export class FarmsService {
                 new Date(b.createdAt) <= end &&
                 (b.status === "active" ||
                   (b.closedAt != null && new Date(b.closedAt) > end)) &&
-                mapBatchCategory(b.categoryKey) === "fattening"
+                mapBatchCategoryKey(b.categoryKey) === "fattening"
             )
             .reduce((s, b) => s + b.headcount, 0);
           out.push(individual + batchHead);
@@ -687,8 +652,8 @@ export class FarmsService {
                 new Date(b.createdAt) <= end &&
                 (b.status === "active" ||
                   (b.closedAt != null && new Date(b.closedAt) > end)) &&
-                (mapBatchCategory(b.categoryKey) === "starter" ||
-                  mapBatchCategory(b.categoryKey) === "growth")
+                (mapBatchCategoryKey(b.categoryKey) === "starter" ||
+                  mapBatchCategoryKey(b.categoryKey) === "growth")
             )
             .reduce((s, b) => s + b.headcount, 0);
           out.push(individual + batchHead);
