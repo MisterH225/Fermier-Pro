@@ -18,6 +18,7 @@ import { TransferFarmOwnershipDto } from "./dto/transfer-farm-ownership.dto";
 import { ArchiveFarmDto } from "./dto/archive-farm.dto";
 import { FarmDeletionService } from "./farm-deletion.service";
 import { FarmMarketplaceLifecycleService } from "../marketplace/farm-marketplace-lifecycle.service";
+import { countCheptelHeadcountAt } from "./cheptel-headcount.util";
 
 const MAX_ACTIVE_FARMS_PER_USER = 3;
 
@@ -380,13 +381,15 @@ export class FarmsService {
         healthStatus: true,
         productionCategory: true,
         expectedFarrowingAt: true,
-        createdAt: true
+        createdAt: true,
+        livestockBatchId: true
       }
     });
 
     const batches = await this.prisma.livestockBatch.findMany({
       where: { farmId },
       select: {
+        id: true,
         headcount: true,
         status: true,
         closedAt: true,
@@ -481,6 +484,9 @@ export class FarmsService {
     const barnCount = await this.prisma.barn.count({ where: { farmId } });
 
     const activeAnimals = animals.filter((a) => a.status === "active");
+    const activeAnimalsNotInBatch = activeAnimals.filter(
+      (a) => !a.livestockBatchId
+    );
     const placedAnimalIds = new Set(
       activePlacements
         .map((p) => p.animalId)
@@ -576,7 +582,7 @@ export class FarmsService {
       const slot = mapBatchCategory(b.categoryKey);
       categoryTotals[slot] += b.headcount;
     }
-    for (const a of activeAnimals) {
+    for (const a of activeAnimalsNotInBatch) {
       categoryTotals[mapAnimalProductionCategory(a.productionCategory)] += 1;
     }
 
@@ -611,33 +617,32 @@ export class FarmsService {
         )
       );
       const monthKey = `${monthStart.getUTCFullYear()}-${String(monthStart.getUTCMonth() + 1).padStart(2, "0")}`;
-      const animalsToDate = animals.filter(
-        (a) => new Date(a.createdAt) <= monthEnd
-      ).length;
-      const batchHeadToDate = batches
-        .filter(
-          (b) =>
-            new Date(b.createdAt) <= monthEnd &&
-            (b.status === "active" || (b.closedAt && new Date(b.closedAt) > monthEnd))
-        )
-        .reduce((s, b) => s + b.headcount, 0);
       headcountTrend.push({
         month: monthKey,
-        total: animalsToDate + batchHeadToDate
+        total: countCheptelHeadcountAt(animals, batches, monthEnd)
       });
     }
 
-    const totalHeadcount = activeAnimals.length + totalBatchHeadcount;
+    const totalHeadcount = countCheptelHeadcountAt(animals, batches, now);
 
     const sickAnimalsCount = activeAnimals.filter(
       (a) => a.healthStatus === "sick"
     ).length;
-    const fatteningCount = activeAnimals.filter(
-      (a) => a.productionCategory === "fattening"
-    ).length;
-    const starterCount = activeAnimals.filter(
-      (a) => a.productionCategory === "starter"
-    ).length;
+    const fatteningCount =
+      activeAnimalsNotInBatch.filter((a) => a.productionCategory === "fattening")
+        .length +
+      activeBatches
+        .filter((b) => mapBatchCategory(b.categoryKey) === "fattening")
+        .reduce((s, b) => s + b.headcount, 0);
+    const starterCount =
+      activeAnimalsNotInBatch.filter((a) => a.productionCategory === "starter")
+        .length +
+      activeBatches
+        .filter((b) => {
+          const slot = mapBatchCategory(b.categoryKey);
+          return slot === "starter" || slot === "growth";
+        })
+        .reduce((s, b) => s + b.headcount, 0);
     const breedingFemalesCount = activeAnimals.filter(
       (a) => a.productionCategory === "breeding_female"
     ).length;
@@ -654,13 +659,40 @@ export class FarmsService {
       for (let w = 3; w >= 0; w -= 1) {
         const end = new Date(now);
         end.setUTCDate(end.getUTCDate() - w * 7);
-        out.push(
-          activeAnimals.filter(
+        if (category === "fattening") {
+          const individual = activeAnimalsNotInBatch.filter(
             (a) =>
-              a.productionCategory === category &&
+              a.productionCategory === "fattening" &&
               new Date(a.createdAt) <= end
-          ).length
-        );
+          ).length;
+          const batchHead = batches
+            .filter(
+              (b) =>
+                new Date(b.createdAt) <= end &&
+                (b.status === "active" ||
+                  (b.closedAt != null && new Date(b.closedAt) > end)) &&
+                mapBatchCategory(b.categoryKey) === "fattening"
+            )
+            .reduce((s, b) => s + b.headcount, 0);
+          out.push(individual + batchHead);
+        } else {
+          const individual = activeAnimalsNotInBatch.filter(
+            (a) =>
+              a.productionCategory === "starter" &&
+              new Date(a.createdAt) <= end
+          ).length;
+          const batchHead = batches
+            .filter(
+              (b) =>
+                new Date(b.createdAt) <= end &&
+                (b.status === "active" ||
+                  (b.closedAt != null && new Date(b.closedAt) > end)) &&
+                (mapBatchCategory(b.categoryKey) === "starter" ||
+                  mapBatchCategory(b.categoryKey) === "growth")
+            )
+            .reduce((s, b) => s + b.headcount, 0);
+          out.push(individual + batchHead);
+        }
       }
       return out;
     };
