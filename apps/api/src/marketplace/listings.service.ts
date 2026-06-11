@@ -16,6 +16,7 @@ import {
 import { FarmAccessService } from "../common/farm-access.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
+import { decrementLivestockBatchHeadcount } from "../livestock/livestock-batch-headcount.helper";
 import { PrismaService } from "../prisma/prisma.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import { CompleteHandoverDto } from "./dto/complete-handover.dto";
@@ -1039,10 +1040,19 @@ export class ListingsService {
           });
         }
 
+        if (animal.livestockBatchId) {
+          await decrementLivestockBatchHeadcount(tx, {
+            batchId: animal.livestockBatchId,
+            farmId: listing.farmId!,
+            endedAt: soldAt
+          });
+        }
+
         await tx.livestockExit.create({
           data: {
             farmId: listing.farmId!,
             animalId,
+            batchId: animal.livestockBatchId,
             kind: LivestockExitKind.sale,
             occurredAt: soldAt,
             recordedByUserId: user.id,

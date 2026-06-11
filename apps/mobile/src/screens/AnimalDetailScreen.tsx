@@ -65,6 +65,7 @@ export function AnimalDetailScreen({ route, navigation }: Props) {
     void queryClient.invalidateQueries({ queryKey: ["farmAnimals", farmId] });
     void queryClient.invalidateQueries({ queryKey: ["penContents", farmId] });
     void queryClient.invalidateQueries({ queryKey: ["cheptelPens", farmId] });
+    void queryClient.invalidateQueries({ queryKey: ["farmCheptel", farmId] });
   };
 
   if (animalsQuery.isPending) {

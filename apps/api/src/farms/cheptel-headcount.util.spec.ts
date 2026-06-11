@@ -24,11 +24,28 @@ describe("countCheptelHeadcountAt", () => {
     expect(countCheptelHeadcountAt(animals, batches, now)).toBe(4);
   });
 
-  it("ignore les sujets vendus ou inactifs", () => {
+  it("ignore les sujets vendus hors bande", () => {
     const animals = [
       { status: "sold", createdAt: earlier, livestockBatchId: null },
       { status: "active", createdAt: earlier, livestockBatchId: null }
     ];
     expect(countCheptelHeadcountAt(animals, [], now)).toBe(1);
+  });
+
+  it("ignore les sujets vendus rattachés à une bande dont l'effectif a été décrémenté", () => {
+    const animals = [
+      { status: "sold", createdAt: earlier, livestockBatchId: "batch-1" },
+      { status: "active", createdAt: earlier, livestockBatchId: "batch-1" }
+    ];
+    const batches = [
+      {
+        id: "batch-1",
+        headcount: 1,
+        status: "active",
+        closedAt: null,
+        createdAt: earlier
+      }
+    ];
+    expect(countCheptelHeadcountAt(animals, batches, now)).toBe(1);
   });
 });

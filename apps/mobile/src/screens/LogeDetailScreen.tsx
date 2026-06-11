@@ -268,6 +268,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
     void qc.invalidateQueries({ queryKey: ["penContents", farmId, penId] });
     void qc.invalidateQueries({ queryKey: ["cheptelPens", farmId] });
     void qc.invalidateQueries({ queryKey: ["farmAnimals", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmCheptel", farmId] });
   };
 
   if (contentsQ.isPending || !penMeta) {

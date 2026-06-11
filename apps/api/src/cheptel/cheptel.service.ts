@@ -26,6 +26,7 @@ import { UpsertGmqSettingsDto } from "./dto/upsert-gmq-settings.dto";
 import { SellAnimalDto } from "./dto/sell-animal.dto";
 import { decimalToNum, summarizeWeights } from "./cheptel-gmq.util";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
+import { decrementLivestockBatchHeadcount } from "../livestock/livestock-batch-headcount.helper";
 import {
   migrateOnboardingBatchesToIndividualAnimals,
   normalizeFarmPenNaming,
@@ -1113,10 +1114,19 @@ export class CheptelService {
         });
       }
 
+      if (animal.livestockBatchId) {
+        await decrementLivestockBatchHeadcount(tx, {
+          batchId: animal.livestockBatchId,
+          farmId,
+          endedAt: soldAt
+        });
+      }
+
       await tx.livestockExit.create({
         data: {
           farmId,
           animalId,
+          batchId: animal.livestockBatchId,
           kind: LivestockExitKind.sale,
           occurredAt: soldAt,
           recordedByUserId: user.id,
