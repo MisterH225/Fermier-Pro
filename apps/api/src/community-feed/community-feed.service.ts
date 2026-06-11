@@ -223,6 +223,8 @@ export class CommunityFeedService {
       }
     });
 
+    void this.reviewCommentAsync(comment.id, comment.body, user.id, dto.postId);
+
     return this.mapComment(comment);
   }
 
@@ -377,6 +379,41 @@ export class CommunityFeedService {
 
   getPostTypesForProfile(profileType: ProfileType) {
     return FEED_POST_TYPES_BY_PROFILE[profileType];
+  }
+
+  private async reviewCommentAsync(
+    commentId: string,
+    body: string,
+    userId: string,
+    postId: string
+  ) {
+    const review = await this.moderation.postSendReview(body);
+    if (!review.isViolation || review.actionRecommended === "none") {
+      return;
+    }
+
+    if (review.actionRecommended === "remove") {
+      await this.prisma.communityFeedComment.update({
+        where: { id: commentId },
+        data: {
+          isRemoved: true,
+          removedReason: review.violationType ?? "comment_post_send_review"
+        }
+      });
+    }
+
+    if (review.severity) {
+      await this.sanctions.recordViolation({
+        userId,
+        postId,
+        commentId,
+        violationType: review.violationType ?? "comment_post_send",
+        severity: review.severity,
+        actionTaken: review.actionRecommended,
+        contentSnapshot: body,
+        aiConfidence: review.aiConfidence
+      });
+    }
   }
 
   private async reviewPostAsync(postId: string, body: string, userId: string) {

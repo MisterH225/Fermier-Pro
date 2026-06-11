@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -59,8 +60,10 @@ function PostCard({
   canComment: boolean;
   onComment: (postId: string, body: string) => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [comment, setComment] = useState("");
   const [sending, setSending] = useState(false);
+  const [commentModWarning, setCommentModWarning] = useState<string | null>(null);
   const displayName = post.isAnonymous
     ? post.authorRegion ?? "Région"
     : post.authorDisplayName ?? "Membre";
@@ -102,7 +105,10 @@ function PostCard({
           <TextInput
             style={styles.commentInput}
             value={comment}
-            onChangeText={setComment}
+            onChangeText={(value) => {
+              setComment(value);
+              setCommentModWarning(null);
+            }}
             placeholder="Commenter…"
             placeholderTextColor={mobileColors.textSecondary}
           />
@@ -110,16 +116,37 @@ function PostCard({
             disabled={!comment.trim() || sending}
             onPress={() => {
               setSending(true);
-              void onComment(post.id, comment.trim()).finally(() => {
-                setComment("");
-                setSending(false);
-              });
+              void onComment(post.id, comment.trim())
+                .then(() => {
+                  setComment("");
+                  setCommentModWarning(null);
+                })
+                .catch((err: unknown) => {
+                  const message =
+                    err instanceof Error
+                      ? err.message
+                      : t(
+                          "feed.commentBlocked",
+                          "Commentaire bloqué par la modération."
+                        );
+                  setCommentModWarning(message);
+                  Alert.alert(
+                    t("moderation.blockedTitle", "Message bloqué"),
+                    message
+                  );
+                })
+                .finally(() => {
+                  setSending(false);
+                });
             }}
             style={[styles.commentBtn, (!comment.trim() || sending) && styles.disabledBtn]}
           >
             <Text style={styles.commentBtnTx}>Envoyer</Text>
           </Pressable>
         </View>
+      ) : null}
+      {commentModWarning ? (
+        <ModerationWarningBanner message={commentModWarning} severity="high" />
       ) : null}
     </View>
   );
