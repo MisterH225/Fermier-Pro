@@ -33,6 +33,7 @@ import { CreditScoreService } from "./credit/credit-score.service";
 import { MarketplaceDisputesController } from "./marketplace-disputes.controller";
 import { OffersController } from "./offers.controller";
 import { OffersService } from "./offers.service";
+import { ListingAnimalSyncService } from "./listing-animal-sync.service";
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { OffersService } from "./offers.service";
     SuperAdminGuard,
     FarmMarketplaceLifecycleService,
     ListingsService,
+    ListingAnimalSyncService,
     OffersService,
     FarmRatingsService,
     MarketplaceCronService,
@@ -80,6 +82,7 @@ import { OffersService } from "./offers.service";
   exports: [
     FarmMarketplaceLifecycleService,
     ListingsService,
+    ListingAnimalSyncService,
     MarketplacePigPriceIndexService,
     MarketplaceTransactionService,
     ReceiptService,

@@ -10,6 +10,7 @@ import { CheptelController } from "./cheptel.controller";
 import { CheptelService } from "./cheptel.service";
 import { GrowthSimulationCronService } from "./growth-simulation-cron.service";
 import { GrowthSimulationService } from "./growth-simulation.service";
+import { MarketplaceModule } from "../marketplace/marketplace.module";
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { GrowthSimulationService } from "./growth-simulation.service";
     FinanceModule,
     HousingModule,
     AgeCalculationModule,
-    forwardRef(() => SmartAlertsModule)
+    forwardRef(() => SmartAlertsModule),
+    forwardRef(() => MarketplaceModule)
   ],
   controllers: [CheptelController],
   providers: [

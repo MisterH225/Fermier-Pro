@@ -44,6 +44,7 @@ import {
   usesFlatListingPrice
 } from "./marketplace-listing-category.helper";
 import { LISTING_EDIT_LOCK_STATUSES } from "./escrow/transaction.utils";
+import { ListingAnimalSyncService } from "./listing-animal-sync.service";
 
 function privacyDisplayName(fullName: string | null | undefined): string {
   const raw = fullName?.trim();
@@ -80,7 +81,8 @@ export class ListingsService {
     private readonly farmRatings: FarmRatingsService,
     private readonly push: PushNotificationsService,
     private readonly marketplaceLifecycle: FarmMarketplaceLifecycleService,
-    private readonly pigPriceIndex: MarketplacePigPriceIndexService
+    private readonly pigPriceIndex: MarketplacePigPriceIndexService,
+    private readonly listingAnimalSync: ListingAnimalSyncService
   ) {}
 
   private async resolveFarmAndAnimal(
@@ -290,7 +292,9 @@ export class ListingsService {
   async create(user: User, dto: CreateListingDto) {
     const refs = await this.resolveFarmAndAnimal(user, dto);
     const photoUrls = dto.photoUrls ?? [];
-    const animalIds = dto.animalIds ?? [];
+    const animalIds =
+      dto.animalIds ??
+      (refs.animalId ? [refs.animalId] : []);
     const category = this.resolvedListingCategory(
       dto.category,
       dto.totalWeightKg ?? null,
@@ -305,6 +309,10 @@ export class ListingsService {
       totalPrice: dto.totalPrice ?? null,
       unitPrice: dto.unitPrice ?? null,
       headcount: listingHeadcount(animalIds, refs.animalId, dto.quantity)
+    });
+    await this.listingAnimalSync.assertListingAnimalRules({
+      category,
+      animalIds
     });
     const created = await this.prisma.marketplaceListing.create({
       data: {
@@ -676,6 +684,21 @@ export class ListingsService {
         "Annonce non modifiable pendant un paiement ou une transaction en cours"
       );
     }
+
+    const effectiveAnimalIds =
+      dto.animalIds !== undefined
+        ? dto.animalIds
+        : jsonStringArray(listing.animalIds);
+    if (effectiveAnimalIds.length === 0 && listing.animalId) {
+      effectiveAnimalIds.push(listing.animalId);
+    }
+    const effectiveCategory =
+      dto.category !== undefined ? dto.category : listing.category;
+    await this.listingAnimalSync.assertListingAnimalRules({
+      category: effectiveCategory,
+      animalIds: effectiveAnimalIds,
+      excludeListingId: id
+    });
 
     const pricingFieldsPresent =
       dto.category !== undefined ||
@@ -1234,6 +1257,14 @@ export class ListingsService {
       data: { completedTransactions: { increment: 1 } }
     });
     void this.pigPriceIndex.refreshSellerIndexWeight(user.id);
+
+    const soldAnimalIds = this.resolveListingAnimalIds(listing);
+    if (soldAnimalIds.length > 0) {
+      await this.listingAnimalSync.cancelIndividualListingsForAnimals(
+        soldAnimalIds,
+        listingId
+      );
+    }
 
     return result.listing;
   }

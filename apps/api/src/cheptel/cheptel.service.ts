@@ -24,6 +24,7 @@ import { LivestockService } from "../livestock/livestock.service";
 import { ConfirmDetectedBatchDto } from "./dto/confirm-detected-batch.dto";
 import { UpsertGmqSettingsDto } from "./dto/upsert-gmq-settings.dto";
 import { SellAnimalDto } from "./dto/sell-animal.dto";
+import { ListingAnimalSyncService } from "../marketplace/listing-animal-sync.service";
 import { decimalToNum, summarizeWeights } from "./cheptel-gmq.util";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
 import {
@@ -115,7 +116,9 @@ export class CheptelService {
     private readonly penAllocation: PenAllocationService,
     private readonly ageCalculation: AgeCalculationService,
     @Inject(forwardRef(() => SmartAlertsService))
-    private readonly smartAlerts: SmartAlertsService
+    private readonly smartAlerts: SmartAlertsService,
+    @Inject(forwardRef(() => ListingAnimalSyncService))
+    private readonly listingAnimalSync: ListingAnimalSyncService
   ) {}
 
   private resolvePenCategoryForDisplay(
@@ -1179,6 +1182,13 @@ export class CheptelService {
     });
 
     const animal = await this.livestock.getAnimal(user, farmId, animalId);
+    try {
+      await this.listingAnimalSync.onAnimalSoldViaCheptel(animalId);
+    } catch (e) {
+      this.logger.warn(
+        `marketplace sync after cheptel sell ${animalId}: ${(e as Error).message}`
+      );
+    }
     return { animal, transaction: result.transaction };
   }
 
