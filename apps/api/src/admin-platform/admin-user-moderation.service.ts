@@ -486,6 +486,16 @@ export class AdminUserModerationService {
       action: AdminAuditAction.unban,
       reason: dto.note ?? null
     });
+    await this.notifyUser({
+      adminUserId: adminId,
+      userId,
+      title: "Profil réactivé",
+      body: dto.note?.trim()
+        ? `Votre profil a été réactivé. ${dto.note}`
+        : "Votre profil a été réactivé.",
+      type: AdminMessageType.info,
+      notify: dto.notifyUser
+    });
     return { ok: true };
   }
 
@@ -553,12 +563,14 @@ export class AdminUserModerationService {
   async deleteAccount(adminId: string, userId: string, dto: DeleteAccountAdminDto) {
     const user = await this.getUserOrThrow(userId);
     if (dto.notifyUser !== false) {
-      await this.push.sendToUser(
+      await this.notifyUser({
+        adminUserId: adminId,
         userId,
-        "Suppression de compte",
-        dto.reason.slice(0, 180),
-        { type: "admin_moderation" }
-      );
+        title: "Suppression de compte",
+        body: dto.reason.slice(0, 500),
+        type: AdminMessageType.warning,
+        notify: true
+      });
     }
     await this.logAction({
       adminUserId: adminId,

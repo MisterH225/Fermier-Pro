@@ -2,9 +2,9 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
+  IsNotEmpty,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
   ArrayMinSize
 } from "class-validator";
@@ -141,13 +141,16 @@ export class SendAdminMessageDto {
 }
 
 export class SendAdminMessageToUserDto extends SendAdminMessageDto {
-  @IsUUID("4")
+  /** Identifiant interne `User.id` (cuid Prisma), pas le sub Supabase. */
+  @IsString()
+  @IsNotEmpty()
   userId!: string;
 }
 
 export class BulkAdminMessageDto extends SendAdminMessageDto {
   @IsArray()
   @ArrayMinSize(1)
-  @IsUUID("4", { each: true })
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
   userIds!: string[];
 }

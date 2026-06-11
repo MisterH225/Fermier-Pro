@@ -924,6 +924,17 @@ export function banUser(
   });
 }
 
+export function unbanUser(
+  token: string,
+  userId: string,
+  body: { scope: ModerationScope; note?: string; notifyUser?: boolean }
+) {
+  return apiFetch(`/admin/users/${userId}/unban`, token, {
+    method: "PATCH",
+    body: JSON.stringify(body)
+  });
+}
+
 export function warnUser(
   token: string,
   userId: string,

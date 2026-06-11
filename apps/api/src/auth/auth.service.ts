@@ -4,7 +4,7 @@ import {
   UnauthorizedException
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { Prisma } from "@prisma/client";
+import { AccountStatus, Prisma, ProfileModerationStatus } from "@prisma/client";
 import type { Profile, User } from "@prisma/client";
 import type { Decimal } from "@prisma/client/runtime/library";
 import { CguService } from "../cgu/cgu.service";
@@ -114,7 +114,41 @@ export class AuthService {
      * Pas de profil crée automatiquement : la premiere connexion mobile impose un choix
      * (producteur, veterinaire, etc.) via POST /profiles — premier profil `isDefault: true`.
      */
-    return user;
+    return this.liftExpiredAccountSuspension(user);
+  }
+
+  /** Réactive automatiquement un compte dont la suspension temporaire est expirée. */
+  async liftExpiredAccountSuspension(user: User): Promise<User> {
+    if (
+      user.accountStatus !== AccountStatus.suspended ||
+      !user.suspendedUntil ||
+      user.suspendedUntil > new Date()
+    ) {
+      return user;
+    }
+
+    const lifted = await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        accountStatus: AccountStatus.active,
+        isActive: true,
+        suspendedAt: null,
+        suspendedReason: null,
+        suspendedUntil: null
+      }
+    });
+    await this.prisma.profile.updateMany({
+      where: {
+        userId: user.id,
+        profileStatus: ProfileModerationStatus.suspended
+      },
+      data: {
+        profileStatus: ProfileModerationStatus.active,
+        profileSuspendedAt: null,
+        profileSuspendedReason: null
+      }
+    });
+    return lifted;
   }
 
   async updateMeProfile(
@@ -222,6 +256,7 @@ export class AuthService {
     user: User,
     activeProfile?: Profile | null
   ) {
+    user = await this.liftExpiredAccountSuspension(user);
     const profiles = await this.prisma.profile.findMany({
       where: { userId: user.id },
       orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }]
