@@ -353,10 +353,12 @@ export function SendMessageDialog({
   const [message, setMessage] = useState("");
   const [type, setType] = useState<"info" | "warning" | "notification">("info");
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   const submit = async () => {
     if (!subject.trim() || !message.trim()) return;
     setBusy(true);
+    setErr(null);
     try {
       await sendAdminMessage(token, {
         userId,
@@ -367,6 +369,8 @@ export function SendMessageDialog({
       });
       onSuccess();
       onClose();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -390,12 +394,13 @@ export function SendMessageDialog({
             <option value="notification">📢 Notification</option>
           </select>
           <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={6} />
+          {err ? <p className="text-sm text-destructive">{err}</p> : null}
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={onClose}>
             {t("cancel")}
           </Button>
-          <Button disabled={busy} onClick={() => void submit()}>
+          <Button disabled={busy || !subject.trim() || !message.trim()} onClick={() => void submit()}>
             {t("send")}
           </Button>
         </div>

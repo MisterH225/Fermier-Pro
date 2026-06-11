@@ -5,14 +5,17 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards
 } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import type { User } from "@prisma/client";
 import type { Request } from "express";
+import { AdminUserModerationService } from "../admin-platform/admin-user-moderation.service";
 import { CguService } from "../cgu/cgu.service";
 import { AcceptCguDto } from "../cgu/dto/accept-cgu.dto";
 import { AccountDeletionService } from "./account-deletion.service";
@@ -27,7 +30,8 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly accountDeletion: AccountDeletionService,
-    private readonly cgu: CguService
+    private readonly cgu: CguService,
+    private readonly adminModeration: AdminUserModerationService
   ) {}
 
   @Get("me")
@@ -76,5 +80,34 @@ export class AuthController {
       req.activeProfile?.id
     );
     return this.authService.buildMeResponse(updated, req.activeProfile);
+  }
+
+  @Get("me/admin-messages/unread-count")
+  @UseGuards(SupabaseJwtGuard, OptionalActiveProfileGuard)
+  async myAdminMessagesUnreadCount(@CurrentUser() user: User) {
+    return this.adminModeration.countUnreadMessages(user.id);
+  }
+
+  @Get("me/admin-messages")
+  @UseGuards(SupabaseJwtGuard, OptionalActiveProfileGuard)
+  async myAdminMessages(
+    @CurrentUser() user: User,
+    @Query("skip") skip?: string,
+    @Query("take") take?: string
+  ) {
+    return this.adminModeration.listMessagesForRecipient(
+      user,
+      skip ? Number.parseInt(skip, 10) : undefined,
+      take ? Number.parseInt(take, 10) : undefined
+    );
+  }
+
+  @Patch("me/admin-messages/:id/read")
+  @UseGuards(SupabaseJwtGuard, OptionalActiveProfileGuard)
+  async markMyAdminMessageRead(
+    @CurrentUser() user: User,
+    @Param("id") messageId: string
+  ) {
+    return this.adminModeration.markMessageRead(user.id, messageId);
   }
 }

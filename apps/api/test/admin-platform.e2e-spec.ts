@@ -187,4 +187,43 @@ describeOrSkip("Console SuperAdmin API (e2e)", () => {
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.some((r: { userId: string }) => r.userId === ctx.userId)).toBe(true);
   });
+
+  it("POST /admin/messages puis lecture mobile /auth/me/admin-messages", async () => {
+    const send = await request(app.getHttpServer())
+      .post("/api/v1/admin/messages")
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        userId: ctx.peerUserId,
+        subject: "Message test e2e",
+        message: "Contenu du message admin pour l'utilisateur mobile.",
+        type: "info",
+        sendPush: false
+      });
+    expect([200, 201]).toContain(send.status);
+    expect(send.body?.messageId).toBeDefined();
+
+    const unread = await request(app.getHttpServer())
+      .get("/api/v1/auth/me/admin-messages/unread-count")
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(unread.status).toBe(200);
+    expect(unread.body.count).toBeGreaterThanOrEqual(1);
+
+    const list = await request(app.getHttpServer())
+      .get("/api/v1/auth/me/admin-messages")
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(list.status).toBe(200);
+    expect(Array.isArray(list.body?.items)).toBe(true);
+    const row = list.body.items.find(
+      (m: { id: string }) => m.id === send.body.messageId
+    );
+    expect(row).toBeDefined();
+    expect(row.subject).toBe("Message test e2e");
+    expect(row.isRead).toBe(false);
+
+    const read = await request(app.getHttpServer())
+      .patch(`/api/v1/auth/me/admin-messages/${send.body.messageId}/read`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(read.status).toBe(200);
+    expect(read.body.ok).toBe(true);
+  });
 });
