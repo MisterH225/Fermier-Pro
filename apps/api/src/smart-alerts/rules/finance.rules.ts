@@ -1,5 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
-import { Prisma, SmartAlertModule, SmartAlertPriority } from "@prisma/client";
+import { FeedMovementKind, Prisma, SmartAlertModule, SmartAlertPriority } from "@prisma/client";
 import { ensureFarmFinanceBootstrap } from "../../finance/finance-bootstrap";
 import type { ComputedSmartAlert, FarmAlertThresholds } from "../smart-alerts.types";
 
@@ -177,6 +177,28 @@ export async function evaluateFinanceRules(
         label: "Finance",
         route: "FarmFinance",
         params: { farmId }
+      }
+    });
+  }
+
+  const missingFeedCostCount = await prisma.feedStockMovement.count({
+    where: {
+      farmId,
+      kind: FeedMovementKind.in,
+      linkedExpenseId: null
+    }
+  });
+  if (missingFeedCostCount > 0) {
+    out.push({
+      ruleKey: `finance-stock-cost-missing:${farmId}`,
+      module: SmartAlertModule.finance,
+      priority: SmartAlertPriority.warning,
+      title: "Coûts aliment manquants",
+      message: `${missingFeedCostCount} entrée(s) de stock sans dépense associée — ajoutez le montant pour alimenter vos indicateurs finance.`,
+      action: {
+        label: "Compléter les coûts",
+        route: "FarmFeedStock",
+        params: { farmId, feedTab: "movements", costFilter: "missing" }
       }
     });
   }

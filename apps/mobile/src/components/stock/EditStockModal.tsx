@@ -27,6 +27,7 @@ import {
   mobileTypography
 } from "../../theme/mobileTheme";
 import { refreshFarmFeedQueries } from "../../lib/feedStockQuery";
+import { invalidateFarmFinanceQueries } from "../../lib/invalidateFarmFinanceQueries";
 import { getUserFacingError } from "../../lib/userFacingError";
 
 type Props = {
@@ -68,6 +69,11 @@ export function EditStockModal({
   const [supplier, setSupplier] = useState("");
   const [notes, setNotes] = useState("");
 
+  const selectedType = useMemo(
+    () => types.find((ft) => ft.id === feedTypeId),
+    [types, feedTypeId]
+  );
+
   useEffect(() => {
     if (!visible) {
       return;
@@ -76,26 +82,48 @@ export function EditStockModal({
     if (movement.kind === "stock_check") {
       setBagsCounted(movement.bagsCounted ?? "");
     } else {
+      const feedType = types.find((ft) => ft.id === movement.feedTypeId);
       const kg = Number.parseFloat(movement.quantityKg ?? "0");
       const unit = movement.feedType.unit as "kg" | "tonne" | "sac";
-      setQtyUnit(unit === "tonne" ? "tonne" : unit === "sac" ? "sac" : "kg");
-      setQty(String(kg || ""));
+      const displayUnit =
+        unit === "tonne" ? "tonne" : unit === "sac" ? "sac" : "kg";
+      let displayQty = kg;
+      if (unit === "sac") {
+        const wp = Number.parseFloat(feedType?.weightPerBagKg ?? "0");
+        if (wp > 0) {
+          displayQty = kg / wp;
+        }
+      } else if (unit === "tonne") {
+        displayQty = kg / 1000;
+      }
+      setQtyUnit(displayUnit);
+      setQty(displayQty > 0 ? String(displayQty) : "");
       setTotalCost(movement.totalCost ?? "");
       setUnitPrice(movement.unitPrice ?? "");
       setSupplier(movement.supplier ?? "");
     }
     setOccurredAt(movement.occurredAt.slice(0, 10));
     setNotes(movement.notes ?? "");
-  }, [visible, movement]);
+  }, [visible, movement, types]);
 
   const unitPricePreview = useMemo(() => {
     const cost = Number.parseFloat(totalCost.replace(",", "."));
-    const kg = Number.parseFloat(qty.replace(",", "."));
-    if (!Number.isFinite(cost) || !Number.isFinite(kg) || kg <= 0) {
+    const qtyNum = Number.parseFloat(qty.replace(",", "."));
+    if (!Number.isFinite(cost) || !Number.isFinite(qtyNum) || qtyNum <= 0) {
       return null;
     }
-    return (cost / kg).toFixed(2);
-  }, [totalCost, qty]);
+    const wp = Number.parseFloat(selectedType?.weightPerBagKg ?? "0");
+    let kgEquiv = qtyNum;
+    if (qtyUnit === "sac" && wp > 0) {
+      kgEquiv = qtyNum * wp;
+    } else if (qtyUnit === "tonne") {
+      kgEquiv = qtyNum * 1000;
+    }
+    if (kgEquiv <= 0) {
+      return null;
+    }
+    return (cost / kgEquiv).toFixed(2);
+  }, [totalCost, qty, qtyUnit, selectedType?.weightPerBagKg]);
 
   const parsedBags = Number.parseFloat(bagsCounted.replace(",", "."));
   const parsedQty = Number.parseFloat(qty.replace(",", "."));
@@ -139,6 +167,7 @@ export function EditStockModal({
     },
     onSuccess: (res) => {
       void refreshFarmFeedQueries(qc, farmId, activeProfileId);
+      invalidateFarmFinanceQueries(qc, farmId);
       open("success", {
         title: t(isCheck ? "feedStock.edit.checkSavedTitle" : "feedStock.edit.savedTitle"),
         message: t(isCheck ? "feedStock.edit.checkSavedMessage" : "feedStock.edit.savedMessage")
