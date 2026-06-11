@@ -54,6 +54,14 @@ export function countCheptelHeadcountAt(
     return created != null && created > asOf;
   }).length;
 
-  const batchHead = batchesAt.reduce((s, b) => s + b.headcount, 0);
+  const batchHead = batchesAt.reduce((sum, b) => {
+    const linkedActive = animals.filter(
+      (a) =>
+        a.status === "active" &&
+        a.livestockBatchId === b.id &&
+        new Date(a.createdAt) <= asOf
+    ).length;
+    return sum + (linkedActive > 0 ? linkedActive : b.headcount);
+  }, 0);
   return individual + batchHead;
 }

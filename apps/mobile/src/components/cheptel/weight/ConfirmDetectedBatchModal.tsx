@@ -61,6 +61,8 @@ export function ConfirmDetectedBatchModal({
       void qc.invalidateQueries({ queryKey: ["detectedBatches", farmId] });
       void qc.invalidateQueries({ queryKey: ["farmBatches", farmId] });
       void qc.invalidateQueries({ queryKey: ["batchProfitability", farmId] });
+      void qc.invalidateQueries({ queryKey: ["farmCheptel", farmId] });
+      void qc.invalidateQueries({ queryKey: ["farmAnimals", farmId] });
       onConfirmed();
       onClose();
     }

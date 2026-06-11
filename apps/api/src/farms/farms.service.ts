@@ -19,6 +19,7 @@ import { ArchiveFarmDto } from "./dto/archive-farm.dto";
 import { FarmDeletionService } from "./farm-deletion.service";
 import { FarmMarketplaceLifecycleService } from "../marketplace/farm-marketplace-lifecycle.service";
 import { countCheptelHeadcountAt } from "./cheptel-headcount.util";
+import { repairOrphanMigrationDuplicateAnimals } from "../livestock/livestock-batch-headcount.helper";
 import { mapBatchCategoryKey } from "../cheptel/batch-category.util";
 
 const MAX_ACTIVE_FARMS_PER_USER = 3;
@@ -358,6 +359,9 @@ export class FarmsService {
 
   async getCheptelOverview(user: User, farmId: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
+    await this.prisma.$transaction(async (tx) =>
+      repairOrphanMigrationDuplicateAnimals(tx, farmId)
+    );
     const farm = await this.prisma.farm.findUnique({
       where: { id: farmId },
       select: {

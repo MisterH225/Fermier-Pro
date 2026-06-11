@@ -48,4 +48,21 @@ describe("countCheptelHeadcountAt", () => {
     ];
     expect(countCheptelHeadcountAt(animals, batches, now)).toBe(1);
   });
+
+  it("utilise le décompte des sujets liés plutôt qu'un headcount de bande obsolète", () => {
+    const animals = [
+      { status: "active", createdAt: earlier, livestockBatchId: "batch-1" },
+      { status: "active", createdAt: earlier, livestockBatchId: "batch-1" }
+    ];
+    const batches = [
+      {
+        id: "batch-1",
+        headcount: 10,
+        status: "active",
+        closedAt: null,
+        createdAt: earlier
+      }
+    ];
+    expect(countCheptelHeadcountAt(animals, batches, now)).toBe(2);
+  });
 });
