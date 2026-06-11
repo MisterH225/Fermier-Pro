@@ -212,6 +212,8 @@ export function SaleModal({
         onSuccess({} as SaleResult);
         return;
       }
+      void qc.invalidateQueries({ queryKey: ["farmCheptel", farmId] });
+      void qc.invalidateQueries({ queryKey: ["cheptelHistory", farmId] });
       onSuccess(result as SaleResult);
     },
     onQueued: () => {

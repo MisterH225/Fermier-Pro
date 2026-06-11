@@ -16,6 +16,11 @@ import {
 import { FarmAccessService } from "../common/farm-access.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
+import {
+  decrementLivestockBatchHeadcount,
+  resolveBatchIdForAnimalExit,
+  syncLivestockBatchHeadcountFromMembers
+} from "../livestock/livestock-batch-headcount.helper";
 import { PrismaService } from "../prisma/prisma.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import { CompleteHandoverDto } from "./dto/complete-handover.dto";
@@ -986,7 +991,10 @@ export class ListingsService {
           where: { id: animalId, farmId: listing.farmId! },
           include: {
             breed: { select: { name: true } },
-            penPlacements: { where: { endedAt: null } }
+            penPlacements: {
+              where: { endedAt: null },
+              select: { id: true, penId: true }
+            }
           }
         });
         if (!animal) {
@@ -1039,10 +1047,32 @@ export class ListingsService {
           });
         }
 
+        const penIds = animal.penPlacements.map((pl) => pl.penId);
+        const batchIdForExit = await resolveBatchIdForAnimalExit(tx, {
+          farmId: listing.farmId!,
+          animalId,
+          livestockBatchId: animal.livestockBatchId,
+          penIds
+        });
+
+        if (batchIdForExit) {
+          await decrementLivestockBatchHeadcount(tx, {
+            batchId: batchIdForExit,
+            farmId: listing.farmId!,
+            endedAt: soldAt
+          });
+          await syncLivestockBatchHeadcountFromMembers(
+            tx,
+            batchIdForExit,
+            listing.farmId!
+          );
+        }
+
         await tx.livestockExit.create({
           data: {
             farmId: listing.farmId!,
             animalId,
+            batchId: batchIdForExit,
             kind: LivestockExitKind.sale,
             occurredAt: soldAt,
             recordedByUserId: user.id,

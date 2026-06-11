@@ -27,6 +27,12 @@ import { SellAnimalDto } from "./dto/sell-animal.dto";
 import { decimalToNum, summarizeWeights } from "./cheptel-gmq.util";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
 import {
+  decrementLivestockBatchHeadcount,
+  repairOrphanMigrationDuplicateAnimals,
+  resolveBatchIdForAnimalExit,
+  syncLivestockBatchHeadcountFromMembers
+} from "../livestock/livestock-batch-headcount.helper";
+import {
   migrateOnboardingBatchesToIndividualAnimals,
   normalizeFarmPenNaming,
   rebalanceOvercrowdedBatchPlacements,
@@ -97,6 +103,7 @@ export type CheptelHistoryItem = {
 export class CheptelService {
   /** Évite deux migrations legacy concurrentes (ex. listPens + listPenContents). */
   private readonly legacyBatchMigrationFlights = new Map<string, Promise<void>>();
+  private readonly duplicateRepairFlights = new Map<string, Promise<number>>();
 
   private readonly logger = new Logger(CheptelService.name);
 
@@ -219,6 +226,7 @@ export class CheptelService {
   async listPens(user: User, farmId: string, barnId?: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
     await this.migrateLegacyBatchPlacementsIfNeeded(user, farmId);
+    await this.repairDuplicateAnimalsIfNeeded(user, farmId);
     const now = new Date();
     const gestationSoon = new Date(now);
     gestationSoon.setDate(gestationSoon.getDate() + 7);
@@ -389,7 +397,6 @@ export class CheptelService {
             }
           }
         } else if (pl.batch) {
-          occupancy += pl.batch.headcount;
           const tag = mapBatchTypeTag(pl.batch.categoryKey);
           if (tag) {
             batchTypeTag = tag;
@@ -555,6 +562,7 @@ export class CheptelService {
   async listPenContents(user: User, farmId: string, penId: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
     await this.migrateLegacyBatchPlacementsIfNeeded(user, farmId);
+    await this.repairDuplicateAnimalsIfNeeded(user, farmId);
     const pen = await this.prisma.pen.findFirst({
       where: { id: penId, barn: { farmId } }
     });
@@ -1047,7 +1055,10 @@ export class CheptelService {
         where: { id: animalId, farmId },
         include: {
           breed: { select: { name: true } },
-          penPlacements: { where: { endedAt: null } }
+          penPlacements: {
+            where: { endedAt: null },
+            select: { id: true, penId: true }
+          }
         }
       });
       if (!animal) {
@@ -1113,10 +1124,28 @@ export class CheptelService {
         });
       }
 
+      const penIds = animal.penPlacements.map((pl) => pl.penId).filter(Boolean);
+      const batchIdForExit = await resolveBatchIdForAnimalExit(tx, {
+        farmId,
+        animalId,
+        livestockBatchId: animal.livestockBatchId,
+        penIds
+      });
+
+      if (batchIdForExit) {
+        await decrementLivestockBatchHeadcount(tx, {
+          batchId: batchIdForExit,
+          farmId,
+          endedAt: soldAt
+        });
+        await syncLivestockBatchHeadcountFromMembers(tx, batchIdForExit, farmId);
+      }
+
       await tx.livestockExit.create({
         data: {
           farmId,
           animalId,
+          batchId: batchIdForExit,
           kind: LivestockExitKind.sale,
           occurredAt: soldAt,
           recordedByUserId: user.id,
@@ -1338,6 +1367,28 @@ export class CheptelService {
     return flight;
   }
 
+  /** Archive les doublons fictifs (migration onboarding) cohabitant avec une bande confirmée. */
+  repairDuplicateAnimalsIfNeeded(user: User, farmId: string): Promise<number> {
+    void user;
+    const inFlight = this.duplicateRepairFlights.get(farmId);
+    if (inFlight) {
+      return inFlight;
+    }
+    const flight = this.prisma
+      .$transaction(async (tx) => repairOrphanMigrationDuplicateAnimals(tx, farmId))
+      .finally(() => {
+        this.duplicateRepairFlights.delete(farmId);
+      });
+    this.duplicateRepairFlights.set(farmId, flight);
+    return flight;
+  }
+
+  async repairDuplicateAnimals(user: User, farmId: string): Promise<{ archived: number }> {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const archived = await this.repairDuplicateAnimalsIfNeeded(user, farmId);
+    return { archived };
+  }
+
   private async runLegacyBatchMigration(
     user: User,
     farmId: string
@@ -1376,6 +1427,12 @@ export class CheptelService {
           species.id,
           user.id
         );
+        const repaired = await repairOrphanMigrationDuplicateAnimals(tx, farmId);
+        if (repaired > 0) {
+          this.logger.log(
+            `Ferme ${farmId}: ${repaired} doublon(s) migration archivé(s)`
+          );
+        }
         if (migrated > 0) {
           await relocateProductionAnimalsToDefaultPlan(tx, {
             farmId,

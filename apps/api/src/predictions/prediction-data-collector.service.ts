@@ -196,8 +196,7 @@ export class PredictionDataCollectorService {
       })
     ]);
 
-    const headcount =
-      animals.length + batches.reduce((s, b) => s + b.headcount, 0);
+    const headcount = animals.length;
 
     return {
       active_animals: animals.length,
