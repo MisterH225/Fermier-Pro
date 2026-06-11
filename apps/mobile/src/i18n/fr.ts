@@ -811,7 +811,11 @@ export const fr = {
         pricePerKgRequired: "Indique le prix au kg.",
         flatPriceRequired: "Indique le prix forfaitaire.",
         totalRequired: "Indique un prix total valide."
-      }
+      },
+      sectionCredit: "Vente à crédit",
+      creditEnabledLabel: "Accepter les offres à crédit",
+      creditEnabledHint:
+        "Les acheteurs pourront proposer un paiement en plusieurs fois (avance sécurisée + solde sous 7 jours). Réservé aux annonces charcutier."
     },
     publishConfirmTitle: "Publier cette annonce ?",
     publishConfirmBody:

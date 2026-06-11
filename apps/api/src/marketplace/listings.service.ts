@@ -39,6 +39,7 @@ import { UpdateListingDto } from "./dto/update-listing.dto";
 import {
   listingHeadcount,
   resolveFlatListingPricing,
+  resolveListingCreditEnabled,
   resolveListingMarketCategory,
   usesFlatListingPrice
 } from "./marketplace-listing-category.helper";
@@ -332,6 +333,7 @@ export class ListingsService {
             : null,
         totalPrice: new Prisma.Decimal(pricing.totalPrice),
         breedLabel: dto.breedLabel,
+        creditEnabled: resolveListingCreditEnabled(category, dto.creditEnabled),
         status: ListingStatus.draft
       },
       include: {
@@ -764,6 +766,19 @@ export class ListingsService {
       };
     }
 
+    const nextCategory = pricingUpdate.category ?? listing.category;
+    const creditEnabledUpdate =
+      dto.creditEnabled !== undefined ||
+      dto.category !== undefined ||
+      pricingFieldsPresent
+        ? resolveListingCreditEnabled(
+            nextCategory,
+            dto.creditEnabled !== undefined
+              ? dto.creditEnabled
+              : listing.creditEnabled
+          )
+        : undefined;
+
     return this.prisma.marketplaceListing.update({
       where: { id },
       data: {
@@ -791,7 +806,10 @@ export class ListingsService {
           ? { animalIds: dto.animalIds as Prisma.InputJsonValue }
           : {}),
         ...pricingUpdate,
-        ...(dto.breedLabel !== undefined ? { breedLabel: dto.breedLabel } : {})
+        ...(dto.breedLabel !== undefined ? { breedLabel: dto.breedLabel } : {}),
+        ...(creditEnabledUpdate !== undefined
+          ? { creditEnabled: creditEnabledUpdate }
+          : {})
       }
     });
   }
@@ -866,6 +884,10 @@ export class ListingsService {
             ? new Prisma.Decimal(pricing.unitPrice)
             : null,
         totalPrice: new Prisma.Decimal(pricing.totalPrice),
+        creditEnabled: resolveListingCreditEnabled(
+          normalizedCategory,
+          listing.creditEnabled
+        ),
         ...(healthSummary !== undefined ? { healthSummary } : {})
       }
     });

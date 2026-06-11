@@ -43,6 +43,18 @@ export class CreditOffersService {
     private readonly transactions: MarketplaceTransactionService
   ) {}
 
+  private assertCreditEligible(listing: {
+    category: ListingMarketCategory | null;
+    creditEnabled: boolean;
+  }) {
+    this.assertCreditCategory(listing.category);
+    if (!listing.creditEnabled) {
+      throw new BadRequestException(
+        "Cette annonce n'accepte pas les ventes à crédit"
+      );
+    }
+  }
+
   private assertCreditCategory(category: ListingMarketCategory | null) {
     if (category !== CREDIT_CATEGORY) {
       throw new BadRequestException(
@@ -104,7 +116,7 @@ export class CreditOffersService {
     if (listing.sellerUserId === user.id) {
       throw new ForbiddenException("Offre impossible sur votre annonce");
     }
-    this.assertCreditCategory(listing.category);
+    this.assertCreditEligible(listing);
     const terms = this.parseCreditTerms(dto);
 
     const created = await this.prisma.marketplaceOffer.create({

@@ -111,6 +111,28 @@ describeOrSkip("Marketplace vente à crédit escrow (e2e)", () => {
     expect(res.status).toBeGreaterThanOrEqual(400);
   });
 
+  it("refuse crédit sans opt-in vendeur", async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/listings/${listingId}/offers/credit`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({
+        offeredPrice: 100_000,
+        advancePercentage: 30,
+        balanceDueDays: 7
+      });
+    expect(res.status).toBeGreaterThanOrEqual(400);
+  });
+
+  it("active crédit sur annonce charcutier", async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/api/v1/marketplace/listings/${listingId}`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({ creditEnabled: true });
+    expect(res.status).toBe(200);
+    expect(res.body.creditEnabled).toBe(true);
+  });
+
   it("accord crédit crée transaction escrow avance", async () => {
     const create = await request(app.getHttpServer())
       .post(`/api/v1/marketplace/listings/${listingId}/offers/credit`)
