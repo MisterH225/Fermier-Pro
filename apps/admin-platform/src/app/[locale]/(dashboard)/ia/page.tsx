@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { AlertTriangle, Bot, CheckCircle2, Sparkles } from "lucide-react";
 import {
   adminAiAsk,
   adminVetAssist,
+  fetchAdminAiStatus,
   fetchAdminEpidemicAnalysis,
   fetchVetProfiles,
   type AdminAiAskResult,
@@ -27,6 +29,7 @@ export default function IaPage() {
   const locale = useLocale();
   const { token, ready } = useAdminToken();
 
+  const [aiConfigured, setAiConfigured] = useState<boolean | null>(null);
   const [epidemic, setEpidemic] = useState<AdminEpidemicAnalysis | null>(null);
   const [epidemicLoading, setEpidemicLoading] = useState(false);
 
@@ -41,16 +44,17 @@ export default function IaPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetchVetProfiles(token, { status: "pending" }).then(
-      (rows) => {
-        setPendingVets(rows);
-        if (rows[0]) setSelectedVet(rows[0].id);
-      }
-    );
+    fetchAdminAiStatus(token)
+      .then((res) => setAiConfigured(res.configured))
+      .catch(() => setAiConfigured(false));
+    fetchVetProfiles(token, { status: "pending" }).then((rows) => {
+      setPendingVets(rows);
+      if (rows[0]) setSelectedVet(rows[0].id);
+    });
   }, [token]);
 
   const runEpidemic = async () => {
-    if (!token) return;
+    if (!token || !aiConfigured) return;
     setEpidemicLoading(true);
     try {
       const res = await fetchAdminEpidemicAnalysis(token, locale);
@@ -61,7 +65,7 @@ export default function IaPage() {
   };
 
   const runAsk = async () => {
-    if (!token || !question.trim()) return;
+    if (!token || !question.trim() || !aiConfigured) return;
     setAskLoading(true);
     try {
       const res = await adminAiAsk(token, question.trim(), locale);
@@ -72,7 +76,7 @@ export default function IaPage() {
   };
 
   const runVetAssist = async () => {
-    if (!token || !selectedVet) return;
+    if (!token || !selectedVet || !aiConfigured) return;
     setVetLoading(true);
     try {
       const res = await adminVetAssist(token, selectedVet, locale);
@@ -86,17 +90,37 @@ export default function IaPage() {
     return <p className="text-muted-foreground">…</p>;
   }
 
+  const aiDisabled = aiConfigured === false;
+
   return (
     <div className="space-y-8">
       <PageHeader title={t("title")} />
 
+      {aiConfigured === null ? (
+        <p className="text-sm text-muted-foreground">…</p>
+      ) : aiConfigured ? (
+        <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/25 bg-emerald-500/8 px-4 py-3 text-sm text-emerald-800">
+          <CheckCircle2 className="size-4 shrink-0" />
+          {t("configured")}
+        </div>
+      ) : (
+        <AiSetupBanner t={t} />
+      )}
+
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t("epidemic.title")}</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Sparkles className="size-4 text-primary" />
+            {t("epidemic.title")}
+          </CardTitle>
           <CardDescription>{t("epidemic.description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button type="button" disabled={epidemicLoading} onClick={runEpidemic}>
+          <Button
+            type="button"
+            disabled={epidemicLoading || aiDisabled}
+            onClick={runEpidemic}
+          >
             {epidemicLoading ? "…" : t("epidemic.run")}
           </Button>
           {epidemic?.unavailable ? (
@@ -119,7 +143,10 @@ export default function IaPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t("ask.title")}</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Bot className="size-4 text-primary" />
+            {t("ask.title")}
+          </CardTitle>
           <CardDescription>{t("ask.description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -131,9 +158,10 @@ export default function IaPage() {
               onChange={(e) => setQuestion(e.target.value)}
               placeholder={t("ask.placeholder")}
               className="min-h-[100px]"
+              disabled={aiDisabled}
             />
           </div>
-          <Button type="button" disabled={askLoading} onClick={runAsk}>
+          <Button type="button" disabled={askLoading || aiDisabled} onClick={runAsk}>
             {askLoading ? "…" : t("ask.run")}
           </Button>
           {askResult?.unavailable ? (
@@ -164,6 +192,7 @@ export default function IaPage() {
                   value={selectedVet}
                   onChange={(e) => setSelectedVet(e.target.value)}
                   className={selectClass}
+                  disabled={aiDisabled}
                 >
                   {pendingVets.map((v) => (
                     <option key={v.id} value={v.id}>
@@ -175,7 +204,7 @@ export default function IaPage() {
               <Button
                 type="button"
                 variant="outline"
-                disabled={vetLoading}
+                disabled={vetLoading || aiDisabled}
                 onClick={runVetAssist}
               >
                 {vetLoading ? "…" : t("vetAssist.run")}
@@ -214,9 +243,7 @@ export default function IaPage() {
               ) : null}
               {vetAssist.diplomaImageAnalyzed ? (
                 <div className="sm:col-span-2">
-                  <Badge variant="success">
-                    {t("vetAssist.imageAnalyzed")}
-                  </Badge>
+                  <Badge variant="success">{t("vetAssist.imageAnalyzed")}</Badge>
                 </div>
               ) : null}
             </div>
@@ -228,11 +255,47 @@ export default function IaPage() {
   );
 }
 
+function AiSetupBanner({ t }: { t: ReturnType<typeof useTranslations<"ai">> }) {
+  return (
+    <div className="rounded-3xl border border-amber-500/30 bg-amber-500/8 p-5 space-y-3">
+      <div className="flex items-start gap-3">
+        <span className="size-10 rounded-2xl bg-amber-500/15 flex items-center justify-center shrink-0">
+          <AlertTriangle className="size-5 text-amber-600" />
+        </span>
+        <div className="space-y-1 min-w-0">
+          <p className="font-bold text-foreground">{t("setupTitle")}</p>
+          <p className="text-sm text-muted-foreground">{t("setupBody")}</p>
+        </div>
+      </div>
+      <ul className="text-sm text-muted-foreground space-y-2 pl-1">
+        <li className="flex gap-2">
+          <span className="font-mono text-xs bg-white/60 border border-white/60 rounded-lg px-2 py-1 shrink-0">
+            GEMINI_API_KEY
+          </span>
+          <span>{t("setupLocal")}</span>
+        </li>
+        <li>{t("setupRailway")}</li>
+        <li>
+          <a
+            href="https://aistudio.google.com/apikey"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary font-medium hover:underline"
+          >
+            {t("setupLink")}
+          </a>
+        </li>
+      </ul>
+    </div>
+  );
+}
+
 function UnavailableNotice({ message }: { message: string }) {
   return (
-    <Badge variant="warning">
+    <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-900">
+      <AlertTriangle className="size-4 shrink-0" />
       {message}
-    </Badge>
+    </div>
   );
 }
 

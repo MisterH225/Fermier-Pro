@@ -762,6 +762,14 @@ export function fetchUserDetail(token: string, userId: string) {
   return apiFetch<UserDetailDto>(`/admin/users/${userId}`, token);
 }
 
+export type AdminAiStatusDto = {
+  configured: boolean;
+};
+
+export function fetchAdminAiStatus(token: string) {
+  return apiFetch<AdminAiStatusDto>("/admin/ai/status", token);
+}
+
 export function fetchAdminEpidemicAnalysis(
   token: string,
   locale: string

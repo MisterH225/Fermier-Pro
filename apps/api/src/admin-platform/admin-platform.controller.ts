@@ -288,6 +288,11 @@ export class AdminPlatformController {
     return this.admin.listSuperAdmins();
   }
 
+  @Get("ai/status")
+  aiStatus() {
+    return this.adminAi.getStatus();
+  }
+
   @Post("ai/epidemic-analysis")
   aiEpidemic(@Body() dto: AdminAiLocaleDto) {
     return this.adminAi.epidemicAnalysis(dto.locale ?? "fr");

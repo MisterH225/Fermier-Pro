@@ -324,6 +324,12 @@
   "ai": {
     "title": "AI assistant",
     "unavailable": "AI unavailable — check GEMINI_API_KEY on the API.",
+    "setupTitle": "Configure the AI assistant",
+    "setupBody": "The Google Gemini key must be set on the API server (not in the admin console).",
+    "setupLocal": "Locally: add GEMINI_API_KEY=your_key to the root .env file, then restart npm run dev:api.",
+    "setupRailway": "In production (Railway): Variables → add GEMINI_API_KEY, then redeploy the API.",
+    "setupLink": "Get a key: Google AI Studio → API Keys.",
+    "configured": "AI assistant connected.",
     "epidemic": {
       "title": "Epidemiological analysis",
       "description": "Analysis of aggregated health data (last 30 days).",

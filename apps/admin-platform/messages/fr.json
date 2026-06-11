@@ -326,6 +326,12 @@
   "ai": {
     "title": "Assistant IA",
     "unavailable": "IA indisponible — vérifiez GEMINI_API_KEY côté API.",
+    "setupTitle": "Configurer l'assistant IA",
+    "setupBody": "La clé Google Gemini doit être définie sur le serveur API (pas dans la console admin).",
+    "setupLocal": "En local : ajoutez GEMINI_API_KEY=votre_clé dans le fichier .env à la racine du monorepo, puis redémarrez npm run dev:api.",
+    "setupRailway": "En production (Railway) : Variables → ajoutez GEMINI_API_KEY, redéployez l'API.",
+    "setupLink": "Obtenir une clé : Google AI Studio → API Keys.",
+    "configured": "Assistant IA connecté.",
     "epidemic": {
       "title": "Analyse épidémiologique",
       "description": "Analyse des données sanitaires agrégées (30 derniers jours).",
