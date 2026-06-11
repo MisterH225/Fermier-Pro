@@ -6,7 +6,7 @@ type Props = {
 
 export function PageHeader({ title, description, action }: Props) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4 mb-2">
+    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between mb-2">
       <div>
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
           {title}

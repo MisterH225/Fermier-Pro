@@ -58,7 +58,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen dashboard-bg">
+    <div className="min-h-screen w-full overflow-x-hidden dashboard-bg">
       <TopNav
         pendingVets={pendingVets}
         activeAlerts={activeAlerts}
@@ -67,8 +67,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         userEmail={userEmail}
         onLogout={logout}
       />
-      <main className="px-4 sm:px-6 pb-8">
-        <div className="glass-panel rounded-[2rem] p-5 sm:p-8 max-w-[1400px] mx-auto min-h-[calc(100vh-7rem)]">
+      <main className="w-full px-3 sm:px-4 lg:px-6 pb-6 sm:pb-8">
+        <div className="glass-panel mx-auto w-full max-w-[1400px] rounded-2xl sm:rounded-[2rem] p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-8rem)] lg:min-h-[calc(100vh-9.5rem)]">
           {children}
         </div>
       </main>
