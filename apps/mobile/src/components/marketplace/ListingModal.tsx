@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, Pressable, StyleSheet, Text } from "react-native";
 import { useSession } from "../../context/SessionContext";
@@ -9,6 +9,7 @@ import {
   fetchFarmFinanceSettings,
   fetchFarms,
   fetchMarketplaceListing,
+  fetchMarketplaceListings,
   renewMarketplaceListing,
   updateMarketplaceListing,
   type MarketplaceListingListItem
@@ -16,8 +17,10 @@ import {
 import {
   buildMarketplaceListingPayload,
   buildUpdateMarketplaceListingPayload,
+  collectIndividualListingAnimalIds,
   EMPTY_MARKETPLACE_LISTING_FORM,
   filterSelectableAnimalIds,
+  isIndividualSelectionBlocked,
   listingToFormValues,
   usesFlatListingPrice,
   type MarketplaceListingFormValues
@@ -117,6 +120,22 @@ export function ListingModal({
     enabled: Boolean(visible && values.farmId && accessToken)
   });
 
+  const myListingsQ = useQuery({
+    queryKey: ["marketplaceListings", activeProfileId, "mine", "listingForm"],
+    queryFn: () =>
+      fetchMarketplaceListings(accessToken!, activeProfileId, { mine: true }),
+    enabled: Boolean(visible && accessToken)
+  });
+
+  const individualBlockedAnimalIds = useMemo(
+    () =>
+      collectIndividualListingAnimalIds(
+        myListingsQ.data ?? [],
+        isEdit ? listingId : undefined
+      ),
+    [myListingsQ.data, isEdit, listingId]
+  );
+
   const financeSettingsQ = useQuery({
     queryKey: ["farmFinanceSettings", values.farmId, activeProfileId],
     queryFn: () =>
@@ -161,6 +180,14 @@ export function ListingModal({
     mutationFn: async () => {
       if (!accessToken) {
         throw new Error("Session expirée.");
+      }
+      if (
+        isIndividualSelectionBlocked(
+          values.selectedAnimalIds,
+          individualBlockedAnimalIds
+        )
+      ) {
+        throw new Error(t("marketScreen.createForm.animalIndividualBlockedBody"));
       }
       if (isEdit) {
         if (!listingId) {
@@ -317,6 +344,7 @@ export function ListingModal({
             editExpiresAt={isEdit ? (listingQ.data?.expiresAt ?? null) : null}
             extendDuration={extendDuration}
             onExtendDurationChange={setExtendDuration}
+            individualBlockedAnimalIds={individualBlockedAnimalIds}
           />
         </>
       )}

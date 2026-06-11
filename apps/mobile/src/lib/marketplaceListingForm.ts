@@ -421,3 +421,47 @@ export function filterSelectableAnimalIds(
   );
   return selectedIds.filter((id) => activeIds.has(id));
 }
+
+const CLOSED_LISTING_STATUSES = new Set(["cancelled", "sold"]);
+
+/** IDs animaux des annonces individuelles ouvertes (hors annonce en édition). */
+export function parseListingAnimalIdsFromItem(item: {
+  animalIds?: string[] | null;
+  animal?: { id: string } | null;
+}): string[] {
+  const ids = [...(item.animalIds ?? [])];
+  if (item.animal?.id && !ids.includes(item.animal.id)) {
+    ids.unshift(item.animal.id);
+  }
+  return ids.filter((id) => typeof id === "string" && id.length > 0);
+}
+
+export function collectIndividualListingAnimalIds(
+  listings: MarketplaceListingListItem[],
+  excludeListingId?: string | null
+): Set<string> {
+  const blocked = new Set<string>();
+  for (const listing of listings) {
+    if (excludeListingId && listing.id === excludeListingId) {
+      continue;
+    }
+    if (CLOSED_LISTING_STATUSES.has(listing.status)) {
+      continue;
+    }
+    const ids = parseListingAnimalIdsFromItem(listing);
+    if (ids.length === 1) {
+      blocked.add(ids[0]!);
+    }
+  }
+  return blocked;
+}
+
+export function isIndividualSelectionBlocked(
+  selectedAnimalIds: string[],
+  blockedAnimalIds: ReadonlySet<string>
+): boolean {
+  return (
+    selectedAnimalIds.length === 1 &&
+    blockedAnimalIds.has(selectedAnimalIds[0]!)
+  );
+}

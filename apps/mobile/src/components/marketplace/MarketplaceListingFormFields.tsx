@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { AnimalListItem } from "../../lib/api";
 import {
@@ -7,6 +7,7 @@ import {
   computeFlatLotTotal,
   computeTotalFromWeightAndPrice,
   formatDecimalForInput,
+  isIndividualSelectionBlocked,
   listingFormHeadcount,
   parseDecimalField,
   suggestListingCategoryFromWeight,
@@ -53,6 +54,8 @@ type Props = {
   /** Prolonger l'annonce de X jours supplémentaires. */
   extendDuration?: boolean;
   onExtendDurationChange?: (extend: boolean) => void;
+  /** Animaux déjà présents sur une annonce individuelle ouverte. */
+  individualBlockedAnimalIds?: ReadonlySet<string>;
 };
 
 export function MarketplaceListingFormFields({
@@ -66,7 +69,8 @@ export function MarketplaceListingFormFields({
   showDuration,
   editExpiresAt,
   extendDuration,
-  onExtendDurationChange
+  onExtendDurationChange,
+  individualBlockedAnimalIds
 }: Props) {
   const { t } = useTranslation();
 
@@ -77,6 +81,31 @@ export function MarketplaceListingFormFields({
     () => animals.filter((a) => a.status === "active"),
     [animals]
   );
+
+  const showIndividualListedHint = useMemo(
+    () =>
+      Boolean(
+        individualBlockedAnimalIds?.size &&
+          activeAnimals.some((a) => individualBlockedAnimalIds.has(a.id))
+      ),
+    [activeAnimals, individualBlockedAnimalIds]
+  );
+
+  const handleAnimalPress = (animal: AnimalListItem) => {
+    const patch = applyAnimalSelection(values, animal, activeAnimals, true);
+    const nextIds = patch.selectedAnimalIds ?? [];
+    if (
+      individualBlockedAnimalIds &&
+      isIndividualSelectionBlocked(nextIds, individualBlockedAnimalIds)
+    ) {
+      Alert.alert(
+        t("marketScreen.createForm.animalIndividualBlockedTitle"),
+        t("marketScreen.createForm.animalIndividualBlockedBody")
+      );
+      return;
+    }
+    set(patch);
+  };
 
   const computedTotal = useMemo(
     () => computeTotalFromWeightAndPrice(values.totalWeightKg, values.pricePerKg),
@@ -243,6 +272,11 @@ export function MarketplaceListingFormFields({
       {values.farmId ? (
         <ModalSection title={t("marketScreen.createForm.sectionAnimal")}>
           <Text style={styles.hint}>{t("marketScreen.createForm.animalMultiHint")}</Text>
+          {showIndividualListedHint ? (
+            <Text style={styles.hint}>
+              {t("marketScreen.createForm.animalIndividualListedHint")}
+            </Text>
+          ) : null}
           {animalsLoading ? (
             <ActivityIndicator color={mobileColors.accent} />
           ) : activeAnimals.length === 0 ? (
@@ -253,25 +287,27 @@ export function MarketplaceListingFormFields({
             <View style={styles.chipRow}>
               {activeAnimals.map((a) => {
                 const selected = values.selectedAnimalIds.includes(a.id);
+                const hasIndividualElsewhere =
+                  individualBlockedAnimalIds?.has(a.id) ?? false;
                 return (
                   <Pressable
                     key={a.id}
-                    style={[styles.chip, selected && styles.chipOn]}
-                    onPress={() =>
-                      set(
-                        applyAnimalSelection(
-                          values,
-                          a,
-                          activeAnimals,
-                          true
-                        )
-                      )
-                    }
+                    style={[
+                      styles.chip,
+                      selected && styles.chipOn,
+                      hasIndividualElsewhere && !selected && styles.chipSolo
+                    ]}
+                    onPress={() => handleAnimalPress(a)}
                   >
                     <Text
-                      style={[styles.chipTx, selected && styles.chipTxOn]}
+                      style={[
+                        styles.chipTx,
+                        selected && styles.chipTxOn,
+                        hasIndividualElsewhere && !selected && styles.chipTxSolo
+                      ]}
                       numberOfLines={1}
                     >
+                      {hasIndividualElsewhere && !selected ? "solo · " : ""}
                       {a.tagCode?.trim() || a.publicId.slice(0, 8)}
                     </Text>
                   </Pressable>
@@ -593,6 +629,10 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.accent,
     backgroundColor: mobileColors.accentSoft
   },
+  chipSolo: {
+    borderStyle: "dashed",
+    opacity: 0.92
+  },
   chipTx: {
     ...mobileTypography.body,
     fontSize: 14,
@@ -601,6 +641,9 @@ const styles = StyleSheet.create({
   chipTxOn: {
     color: mobileColors.accent,
     fontWeight: "600"
+  },
+  chipTxSolo: {
+    color: mobileColors.textSecondary
   },
   hint: {
     ...mobileTypography.meta,

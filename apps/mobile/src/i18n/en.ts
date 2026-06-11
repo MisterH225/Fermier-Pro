@@ -768,6 +768,11 @@ export const en = {
         "Piglet: auto-classified from average weight (< 15 kg). Breeder, butcher, or culled sow: your sale intent is kept.",
       sectionAnimal: "Lot animals",
       animalMultiHint: "Select one or more active animals (required).",
+      animalIndividualListedHint:
+        "Animals marked « solo » already have an individual listing — add more animals to create a lot.",
+      animalIndividualBlockedTitle: "Individual listing already exists",
+      animalIndividualBlockedBody:
+        "This animal already has an individual marketplace listing. Remove the other listing or select multiple animals for a lot.",
       noActiveAnimals: "No active animals on this farm.",
       noAnimal: "None",
       sectionListing: "Listing",

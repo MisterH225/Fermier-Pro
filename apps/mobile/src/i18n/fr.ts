@@ -772,6 +772,11 @@ export const fr = {
         "Porcelet : classement automatique selon le poids moyen (< 15 kg). Reproducteur, charcutier ou réformée : votre intention de vente est conservée.",
       sectionAnimal: "Animaux du lot",
       animalMultiHint: "Sélectionne un ou plusieurs animaux actifs (obligatoire).",
+      animalIndividualListedHint:
+        "Les sujets marqués « solo » ont déjà une annonce individuelle — ajoute d'autres animaux pour créer un lot.",
+      animalIndividualBlockedTitle: "Annonce individuelle existante",
+      animalIndividualBlockedBody:
+        "Cet animal a déjà une annonce individuelle sur le marketplace. Retire l'autre annonce ou sélectionne plusieurs sujets pour un lot.",
       noActiveAnimals: "Aucun animal actif sur cette ferme.",
       noAnimal: "Aucun",
       sectionListing: "Annonce",
