@@ -441,12 +441,47 @@
     "comingSoon": "Section en cours de déploiement."
   },
   "marketplace": {
-    "title": "Marketplace — transactions",
+    "title": "Marketplace",
+    "loading": "Chargement…",
+    "loadError": "Impossible de charger les données marketplace.",
     "tabs": {
+      "listings": "Annonces",
       "transactions": "Transactions",
       "disputes": "Litiges poids",
       "revenue": "Commissions",
       "receipts": "Reçus PDF"
+    },
+    "overview": {
+      "publishedListings": "Annonces publiées",
+      "totalListings": "Annonces totales",
+      "activeTransactions": "Transactions actives",
+      "openDisputes": "Litiges en cours"
+    },
+    "listings": {
+      "empty": "Aucune annonce.",
+      "allStatuses": "Tous les statuts",
+      "active": "actives",
+      "colTitle": "Annonce",
+      "colStatus": "Statut",
+      "colSeller": "Vendeur",
+      "colFarm": "Ferme",
+      "colPrice": "Prix",
+      "colViews": "Vues",
+      "colOffers": "Offres",
+      "colUpdated": "Mis à jour"
+    },
+    "listingStatus": {
+      "draft": "Brouillon",
+      "published": "Publiée",
+      "paused": "En pause",
+      "reserved": "Réservée",
+      "reserved_credit": "Réservée (crédit)",
+      "shipped": "Expédiée",
+      "delivered": "Livrée",
+      "disputed": "Litige",
+      "sold": "Vendue",
+      "cancelled": "Annulée",
+      "expired": "Expirée"
     },
     "receipts": {
       "empty": "Aucune transaction clôturée.",

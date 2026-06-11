@@ -365,6 +365,40 @@ export function adminRecalculateHybridPigPrice(token: string) {
   });
 }
 
+export type AdminMarketplaceOverviewDto = {
+  listings: {
+    total: number;
+    published: number;
+    byStatus: Record<string, number>;
+  };
+  transactions: {
+    active: number;
+    openDisputes: number;
+    byStatus: Record<string, number>;
+  };
+  totalViews: number;
+};
+
+export type AdminMarketplaceListingRow = {
+  id: string;
+  title: string;
+  status: string;
+  category: string | null;
+  totalPrice: number | null;
+  pricePerKg: number | null;
+  totalWeightKg: number | null;
+  currency: string;
+  locationLabel: string | null;
+  viewsCount: number;
+  activeOfferCount: number;
+  publishedAt: string | null;
+  updatedAt: string;
+  seller: { id: string; fullName: string | null; email: string | null };
+  farm: { id: string; name: string } | null;
+  transactionCount: number;
+  offerCount: number;
+};
+
 export type AdminMarketplaceTransactionRow = {
   id: string;
   status: string;
@@ -380,6 +414,18 @@ export type AdminMarketplaceTransactionRow = {
   buyer: { id: string; fullName: string | null; email: string | null };
   seller: { id: string; fullName: string | null; email: string | null };
 };
+
+export function fetchAdminMarketplaceOverview(token: string) {
+  return apiFetch<AdminMarketplaceOverviewDto>("/admin/marketplace/overview", token);
+}
+
+export function fetchAdminMarketplaceListings(token: string, status?: string) {
+  const q = status ? `?status=${encodeURIComponent(status)}` : "";
+  return apiFetch<AdminMarketplaceListingRow[]>(
+    `/admin/marketplace/listings${q}`,
+    token
+  );
+}
 
 export function fetchAdminMarketplaceTransactions(
   token: string,

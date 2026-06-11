@@ -423,12 +423,47 @@
     "comingSoon": "Section coming soon."
   },
   "marketplace": {
-    "title": "Marketplace — transactions",
+    "title": "Marketplace",
+    "loading": "Loading…",
+    "loadError": "Could not load marketplace data.",
     "tabs": {
+      "listings": "Listings",
       "transactions": "Transactions",
       "disputes": "Weight disputes",
       "revenue": "Commissions",
       "receipts": "PDF receipts"
+    },
+    "overview": {
+      "publishedListings": "Published listings",
+      "totalListings": "Total listings",
+      "activeTransactions": "Active transactions",
+      "openDisputes": "Open disputes"
+    },
+    "listings": {
+      "empty": "No listings.",
+      "allStatuses": "All statuses",
+      "active": "active",
+      "colTitle": "Listing",
+      "colStatus": "Status",
+      "colSeller": "Seller",
+      "colFarm": "Farm",
+      "colPrice": "Price",
+      "colViews": "Views",
+      "colOffers": "Offers",
+      "colUpdated": "Updated"
+    },
+    "listingStatus": {
+      "draft": "Draft",
+      "published": "Published",
+      "paused": "Paused",
+      "reserved": "Reserved",
+      "reserved_credit": "Reserved (credit)",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "disputed": "Disputed",
+      "sold": "Sold",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
     },
     "receipts": {
       "empty": "No closed transactions.",

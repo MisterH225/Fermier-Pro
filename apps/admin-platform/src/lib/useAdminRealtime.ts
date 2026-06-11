@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
-  fetchAdminMarketplaceDisputes,
+  fetchAdminMarketplaceOverview,
   fetchPlatformOverview,
   fetchSanitaryAlerts
 } from "@/lib/api";
@@ -24,16 +24,16 @@ export function useAdminRealtime(onChange: (counts: Counts) => void) {
       const token = data.session?.access_token;
       if (!token || cancelled) return;
       try {
-        const [overview, alerts, disputes] = await Promise.all([
+        const [overview, alerts, marketplace] = await Promise.all([
           fetchPlatformOverview(token),
           fetchSanitaryAlerts(token),
-          fetchAdminMarketplaceDisputes(token)
+          fetchAdminMarketplaceOverview(token)
         ]);
         if (!cancelled) {
           onChange({
             pendingVets: overview.kpis.pendingVets,
             activeAlerts: alerts.length,
-            marketplaceDisputes: disputes.length
+            marketplaceDisputes: marketplace.transactions.openDisputes
           });
         }
       } catch {

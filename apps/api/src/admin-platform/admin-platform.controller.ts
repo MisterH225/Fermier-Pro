@@ -364,6 +364,16 @@ export class AdminPlatformController {
     return this.hybridPigPriceIndex.calculateHybridIndex();
   }
 
+  @Get("marketplace/overview")
+  adminMarketplaceOverview() {
+    return this.marketplaceTransactions.getOverviewForAdmin();
+  }
+
+  @Get("marketplace/listings")
+  adminListListings(@Query("status") status?: string) {
+    return this.marketplaceTransactions.listListingsForAdmin(status);
+  }
+
   @Get("marketplace/transactions")
   adminListTransactions(@Query("status") status?: string) {
     return this.marketplaceTransactions.listForAdmin(status);
