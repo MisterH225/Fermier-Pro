@@ -150,6 +150,15 @@ export class CheptelController {
     return this.cheptel.confirmDetectedBatch(user, farmId, dto);
   }
 
+  @Post("repair-duplicate-animals")
+  @RequireFarmScopes(FARM_SCOPE.livestockWrite)
+  repairDuplicateAnimals(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string
+  ) {
+    return this.cheptel.repairDuplicateAnimals(user, farmId);
+  }
+
   @Get("gmq/settings")
   @RequireFarmScopes(FARM_SCOPE.livestockRead)
   gmqSettings(@CurrentUser() user: User, @Param("farmId") farmId: string) {

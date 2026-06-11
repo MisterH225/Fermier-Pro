@@ -34,9 +34,13 @@ import {
   patchPenAverages,
   type AnimalListItem,
   type PenAnimalRowDto,
-  type PenBatchRowDto,
-  type PenUsageTag
+  type PenBatchRowDto
 } from "../lib/api";
+import {
+  getPenVisualForPen,
+  penVisualI18nKey,
+  resolvePenVisualKey
+} from "../components/cheptel/pens/penUsageVisual";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import type { RootStackParamList } from "../types/navigation";
 import {
@@ -223,19 +227,9 @@ export function LogeDetailScreen({ route, navigation }: Props) {
     }
   });
 
-  const penUsage: PenUsageTag =
-    penMeta?.usageTag ??
-    (penMeta?.category === "maternity"
-      ? "sows"
-      : penMeta?.category === "starter" ||
-          penMeta?.category === "fattening" ||
-          penMeta?.category === "empty"
-        ? penMeta.category
-        : "mixed");
-
-  const usageLabel = t(`cheptel.pens.usage.${penUsage}`, {
-    defaultValue: t(`cheptel.pens.category.${penMeta?.category ?? "mixed"}`)
-  });
+  const penVisual = penMeta ? getPenVisualForPen(penMeta) : null;
+  const penVisualKey = penMeta ? resolvePenVisualKey(penMeta) : "empty";
+  const usageLabel = t(`cheptel.pens.visual.${penVisualI18nKey(penVisualKey)}`);
 
   const filteredAnimals = useMemo(() => {
     const rows = contentsQ.data?.animals ?? [];
@@ -274,6 +268,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
     void qc.invalidateQueries({ queryKey: ["penContents", farmId, penId] });
     void qc.invalidateQueries({ queryKey: ["cheptelPens", farmId] });
     void qc.invalidateQueries({ queryKey: ["farmAnimals", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmCheptel", farmId] });
   };
 
   if (contentsQ.isPending || !penMeta) {
@@ -287,9 +282,35 @@ export function LogeDetailScreen({ route, navigation }: Props) {
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.infoCard}>
+        <View
+          style={[
+            styles.infoCard,
+            penVisual
+              ? {
+                  backgroundColor: penVisual.bg,
+                  borderColor: penVisual.border,
+                  borderLeftWidth: 4,
+                  borderLeftColor: penVisual.accent
+                }
+              : null
+          ]}
+        >
           <Text style={styles.infoLab}>{t("cheptel.pens.categoryLabel")}</Text>
-          <Text style={styles.infoVal}>{usageLabel}</Text>
+          <View
+            style={[
+              styles.categoryBadge,
+              penVisual ? { backgroundColor: penVisual.iconBg } : null
+            ]}
+          >
+            <Text
+              style={[
+                styles.infoVal,
+                penVisual ? { color: penVisual.accent, fontWeight: "700" } : null
+              ]}
+            >
+              {usageLabel}
+            </Text>
+          </View>
           <Text style={styles.infoLab}>{t("cheptel.pens.occupancy")}</Text>
           <Text style={styles.infoVal}>
             {penMeta.occupancy} / {penMeta.capacity || "—"}
@@ -728,6 +749,14 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     fontWeight: "600",
     color: mobileColors.textPrimary
+  },
+  categoryBadge: {
+    alignSelf: "flex-start",
+    borderRadius: mobileRadius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginTop: 2,
+    marginBottom: 4
   },
   capacityRow: {
     flexDirection: "row",

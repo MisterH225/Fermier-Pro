@@ -15,6 +15,7 @@
     "stats": "Statistiques",
     "ai": "Assistant IA",
     "settings": "Paramètres",
+    "more": "Plus",
     "logout": "Déconnexion"
   },
   "notifications": {
@@ -325,6 +326,12 @@
   "ai": {
     "title": "Assistant IA",
     "unavailable": "IA indisponible — vérifiez GEMINI_API_KEY côté API.",
+    "setupTitle": "Configurer l'assistant IA",
+    "setupBody": "La clé Google Gemini doit être définie sur le serveur API (pas dans la console admin).",
+    "setupLocal": "En local : ajoutez GEMINI_API_KEY=votre_clé dans le fichier .env à la racine du monorepo, puis redémarrez npm run dev:api.",
+    "setupRailway": "En production (Railway) : Variables → ajoutez GEMINI_API_KEY, redéployez l'API.",
+    "setupLink": "Obtenir une clé : Google AI Studio → API Keys.",
+    "configured": "Assistant IA connecté.",
     "epidemic": {
       "title": "Analyse épidémiologique",
       "description": "Analyse des données sanitaires agrégées (30 derniers jours).",
@@ -381,6 +388,7 @@
       "map": "Périmètre géographique",
       "alerts": "Seuils alertes sanitaires",
       "notifications": "Notifications",
+      "support": "Support mobile",
       "marketplace": "Marketplace"
     },
     "fields": {
@@ -391,7 +399,11 @@
       "adminEmail": "Email SuperAdmin",
       "reportFrequency": "Fréquence rapports (jours)",
       "marketplaceCommission": "Commission marketplace (%)",
-      "marketplaceCommissionHint": "Appliquée à chaque vente conclue sur le marché (ex. 5 = 5 %)."
+      "marketplaceCommissionHint": "Appliquée à chaque vente conclue sur le marché (ex. 5 = 5 %).",
+      "supportPhone": "Téléphone support",
+      "supportPhoneHint": "Numéro affiché dans l’app mobile (bouton appel). Laissez vide pour utiliser la variable d’environnement SUPPORT_PHONE.",
+      "supportTelegram": "Lien Telegram",
+      "supportTelegramHint": "URL ou @username du compte support. Laissez vide pour utiliser SUPPORT_TELEGRAM_URL côté API."
     },
     "scopes": {
       "world": "Monde entier",
@@ -440,12 +452,77 @@
     "comingSoon": "Section en cours de déploiement."
   },
   "marketplace": {
-    "title": "Marketplace — transactions",
+    "title": "Marketplace",
+    "loading": "Chargement…",
+    "loadError": "Impossible de charger les données marketplace.",
     "tabs": {
+      "listings": "Annonces",
       "transactions": "Transactions",
       "disputes": "Litiges poids",
       "revenue": "Commissions",
       "receipts": "Reçus PDF"
+    },
+    "overview": {
+      "publishedListings": "Annonces publiées",
+      "totalListings": "Annonces totales",
+      "activeTransactions": "Transactions actives",
+      "openDisputes": "Litiges en cours"
+    },
+    "listingDetail": {
+      "title": "Détail de l'annonce",
+      "error": "Impossible de charger le détail.",
+      "archived": "Archivée",
+      "seller": "Vendeur",
+      "farm": "Ferme",
+      "location": "Localisation",
+      "totalPrice": "Prix total",
+      "pricePerKg": "Prix au kg",
+      "weight": "Poids total",
+      "views": "Vues",
+      "consultations": "Consultations",
+      "publishedAt": "Publiée le",
+      "expiresAt": "Expire le",
+      "updatedAt": "Mis à jour",
+      "reservedBuyer": "Acheteur retenu",
+      "animal": "Animal principal",
+      "animalId": "Identifiant",
+      "animalTag": "Boucle",
+      "animalSex": "Sexe",
+      "animalStatus": "Statut animal",
+      "offers": "Offres",
+      "noOffers": "Aucune offre.",
+      "transactions": "Transactions",
+      "noTransactions": "Aucune transaction.",
+      "colBuyer": "Acheteur",
+      "colOfferStatus": "Statut offre",
+      "colPrice": "Prix",
+      "colDate": "Date"
+    },
+    "listings": {
+      "empty": "Aucune annonce.",
+      "allStatuses": "Tous les statuts",
+      "active": "actives",
+      "colTitle": "Annonce",
+      "colStatus": "Statut",
+      "colSeller": "Vendeur",
+      "colFarm": "Ferme",
+      "colPrice": "Prix",
+      "colViews": "Vues",
+      "colOffers": "Offres",
+      "colUpdated": "Mis à jour"
+    },
+    "listingStatus": {
+      "draft": "Brouillon",
+      "published": "Publiée",
+      "paused": "En pause",
+      "reserved": "Réservée",
+      "reserved_credit": "Réservée (crédit)",
+      "shipped": "Expédiée",
+      "delivered": "Livrée",
+      "disputed": "Litige",
+      "sold": "Vendue",
+      "cancelled": "Annulée",
+      "expired": "Expirée"
     },
     "receipts": {
       "empty": "Aucune transaction clôturée.",

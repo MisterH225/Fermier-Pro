@@ -4,7 +4,7 @@ import {
   LivestockExitKind,
   PigPriceIndexCategory
 } from "@prisma/client";
-import { buildFeedStockStatsForFarm } from "../feed-stock/feed-stock-stats.helper";
+import { computeFeedStockMetrics } from "../feed-stock/feed-stock-calculation.helper";
 import { decimalToNum, gmqBetween } from "../cheptel/cheptel-gmq.util";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
 import { PrismaService } from "../prisma/prisma.service";
@@ -196,8 +196,7 @@ export class PredictionDataCollectorService {
       })
     ]);
 
-    const headcount =
-      animals.length + batches.reduce((s, b) => s + b.headcount, 0);
+    const headcount = animals.length;
 
     return {
       active_animals: animals.length,
@@ -467,24 +466,71 @@ export class PredictionDataCollectorService {
     const settings = await this.prisma.farmAlertSettings.findUnique({
       where: { farmId }
     });
-    const stats = await buildFeedStockStatsForFarm(this.prisma, farmId, {
-      criticalDays: settings?.stockCriticalDays ?? 7,
-      warningDays: settings?.stockWarningDays ?? 15
+    const types = await this.prisma.feedType.findMany({
+      where: { farmId },
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        productionPhase: true,
+        currentStockKg: true
+      }
     });
-    const hasData = stats.some((s) => s.hasSufficientData);
+
+    const feedTypes = await Promise.all(
+      types.map(async (t) => {
+        const [metrics, recentChecks] = await Promise.all([
+          computeFeedStockMetrics(this.prisma, farmId, t.id, {
+            criticalDays: settings?.stockCriticalDays ?? 7,
+            warningDays: settings?.stockWarningDays ?? 15
+          }),
+          this.prisma.feedStockMovement.findMany({
+            where: {
+              farmId,
+              feedTypeId: t.id,
+              kind: "stock_check",
+              dailyConsumptionKg: { not: null }
+            },
+            orderBy: { occurredAt: "asc" },
+            take: 6,
+            select: { dailyConsumptionKg: true, occurredAt: true }
+          })
+        ]);
+        const rates = recentChecks
+          .map((c) => decimalToNum(c.dailyConsumptionKg))
+          .filter((n) => n > 0);
+
+        return {
+          id: t.id,
+          name: t.name,
+          production_phase: t.productionPhase,
+          current_stock_kg: decimalToNum(t.currentStockKg),
+          avg_daily_consumption_kg: metrics.avgDailyConsumptionKg,
+          consumption_trend_per_30d:
+            rates.length >= 2
+              ? (rates[rates.length - 1]! - rates[0]!) / Math.max(rates[0]!, 1)
+              : 0,
+          estimated_days_remaining: metrics.estimatedDaysRemaining,
+          estimated_depletion_date:
+            metrics.estimatedDaysRemaining != null &&
+            metrics.estimatedDaysRemaining > 0
+              ? new Date(
+                  Date.now() + metrics.estimatedDaysRemaining * MS_DAY
+                )
+                  .toISOString()
+                  .slice(0, 10)
+              : null
+        };
+      })
+    );
+
+    const hasData = feedTypes.some(
+      (f) => f.avg_daily_consumption_kg != null && f.avg_daily_consumption_kg > 0
+    );
 
     return {
       has_data: hasData,
-      feed_types: stats.map((s) => ({
-        id: s.feedTypeId,
-        name: s.name,
-        current_stock_kg: decimalToNum(s.currentStockKg),
-        avg_daily_consumption_kg: s.avgDailyConsumptionKg
-          ? decimalToNum(s.avgDailyConsumptionKg)
-          : null,
-        estimated_days_remaining: s.daysRemaining,
-        estimated_depletion_date: s.estimatedDepletionDate
-      }))
+      feed_types: feedTypes
     };
   }
 

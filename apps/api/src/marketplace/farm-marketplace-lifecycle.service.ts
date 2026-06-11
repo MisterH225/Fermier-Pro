@@ -387,17 +387,64 @@ export class FarmMarketplaceLifecycleService {
     if (listingIds.length === 0) {
       return;
     }
-    await tx.marketplaceOffer.deleteMany({
+
+    const transactions = await tx.marketplaceTransaction.findMany({
+      where: { listingId: { in: listingIds } },
+      select: { id: true }
+    });
+    const transactionIds = transactions.map((t) => t.id);
+
+    if (transactionIds.length > 0) {
+      await tx.platformRevenue.deleteMany({
+        where: { transactionId: { in: transactionIds } }
+      });
+      await tx.marketplaceDeliveryDispute.deleteMany({
+        where: { transactionId: { in: transactionIds } }
+      });
+      await tx.marketplaceFundMovement.deleteMany({
+        where: { transactionId: { in: transactionIds } }
+      });
+      await tx.marketplacePendingTransfer.deleteMany({
+        where: { transactionId: { in: transactionIds } }
+      });
+      await tx.marketplaceTransactionReceipt.deleteMany({
+        where: { transactionId: { in: transactionIds } }
+      });
+      await tx.marketplaceTransaction.deleteMany({
+        where: { id: { in: transactionIds } }
+      });
+    }
+
+    await tx.marketplaceCreditArbitration.deleteMany({
+      where: { listingId: { in: listingIds } }
+    });
+    await tx.marketplaceDeliveryDispute.deleteMany({
       where: { listingId: { in: listingIds } }
     });
     await tx.buyerFavorite.deleteMany({
       where: { listingId: { in: listingIds } }
     });
+    await tx.marketplaceOffer.deleteMany({
+      where: { listingId: { in: listingIds } }
+    });
+
+    const listingRooms = await tx.chatRoom.findMany({
+      where: { marketplaceListingId: { in: listingIds } },
+      select: { id: true }
+    });
+    const roomIds = listingRooms.map((r) => r.id);
+    if (roomIds.length > 0) {
+      await tx.chatMessage.deleteMany({ where: { roomId: { in: roomIds } } });
+      await tx.chatRoomMember.deleteMany({ where: { roomId: { in: roomIds } } });
+      await tx.chatRoom.deleteMany({ where: { id: { in: roomIds } } });
+    }
+
+    await tx.pigPriceIndexFlaggedListing.deleteMany({
+      where: { listingId: { in: listingIds } }
+    });
+
     await tx.marketplaceListing.deleteMany({
-      where: {
-        id: { in: listingIds },
-        status: { not: ListingStatus.sold }
-      }
+      where: { id: { in: listingIds } }
     });
   }
 

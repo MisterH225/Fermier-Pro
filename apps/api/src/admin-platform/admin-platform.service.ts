@@ -716,7 +716,9 @@ export class AdminPlatformService {
         adminNotifyEmail: dto.adminNotifyEmail ?? null,
         reportFrequencyDays: dto.reportFrequencyDays ?? 7,
         marketplaceCommissionRate:
-          dto.marketplaceCommissionRate ?? 0.05
+          dto.marketplaceCommissionRate ?? 0.05,
+        supportPhone: dto.supportPhone ?? null,
+        supportTelegramUrl: dto.supportTelegramUrl ?? null
       },
       update: {
         ...(dto.mapGeographicScope !== undefined
@@ -742,6 +744,12 @@ export class AdminPlatformService {
           : {}),
         ...(dto.marketplaceCommissionRate !== undefined
           ? { marketplaceCommissionRate: dto.marketplaceCommissionRate }
+          : {}),
+        ...(dto.supportPhone !== undefined
+          ? { supportPhone: dto.supportPhone || null }
+          : {}),
+        ...(dto.supportTelegramUrl !== undefined
+          ? { supportTelegramUrl: dto.supportTelegramUrl || null }
           : {})
       }
     });

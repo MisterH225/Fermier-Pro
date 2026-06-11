@@ -67,6 +67,7 @@ import {
   ModuleRoadmapScreen,
   ProducerDashboardScreen,
   ProducerFarmSettingsScreen,
+  SupportScreen,
   ProducerMessagesScreen,
   SmartAlertsListScreen,
   FarmReportsScreen,
@@ -165,6 +166,11 @@ function MainStack() {
         name="ProducerFarmSettings"
         component={ProducerFarmSettingsScreen}
         options={{ title: "" }}
+      />
+      <Stack.Screen
+        name="Support"
+        component={SupportScreen}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="SettingsExpenseCategories"

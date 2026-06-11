@@ -27,12 +27,32 @@ export type PostSendModerationResult = {
 
 const PRE_SEND_PROMPT = `Analyse ce message d'un utilisateur dans une communauté d'éleveurs porcins. Évalue s'il contient : insultes ou attaques personnelles, fausses informations médicales dangereuses, contenu publicitaire déguisé, spam. Réponds JSON uniquement : { "is_violation": boolean, "violation_type": string | null, "severity": "low" | "medium" | "high" | null, "should_block": boolean, "warning_message_fr": string | null, "rule_id": string | null, "confidence": number }`;
 
-const POST_SEND_PROMPT = `Analyse ce post publié dans une communauté d'éleveurs. Cherche des violations subtiles : contenu offensant camouflé, désinformation médicale présentée comme vraie, attaque indirecte, manipulation de la communauté. Réponds JSON : { "is_violation": boolean, "violation_type": string | null, "severity": "low" | "medium" | "high" | null, "action_recommended": "none" | "warn" | "remove" | "ban_temp", "rule_id": string | null, "confidence": number }`;
+const POST_SEND_PROMPT = `Analyse ce message publié dans une communauté d'éleveurs (post ou commentaire). Cherche des violations subtiles : contenu offensant camouflé, désinformation médicale présentée comme vraie, attaque indirecte, manipulation de la communauté. Réponds JSON : { "is_violation": boolean, "violation_type": string | null, "severity": "low" | "medium" | "high" | null, "action_recommended": "none" | "warn" | "remove" | "ban_temp", "rule_id": string | null, "confidence": number }`;
 
-const INSULT_PATTERNS = [
-  /\b(idiot|imbécile|connard|débile|nul+|pourri|sale\s+\w+)\b/i,
-  /\b(stupide|crétin|merde)\b/i
+/** Normalise le texte (minuscules, sans accents) pour les heuristiques. */
+export function normalizeModerationText(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+const INSULT_TERM_PATTERN =
+  /\b(idiot|imbecile|connard|debile|stupide|cretin|merde|salope|salaud|encule|batard|connasse|nul+|pourri|abruti|degueulasse|degoulinant)\b/;
+
+const INSULT_PHRASE_PATTERNS = [
+  /\btu\s+es\s+(trop\s+)?(bete|stupide|nul+|idiot|imbecile|debile|con)\b/,
+  /\b(vous\s+etes|t'es|tes)\s+(trop\s+)?(bete|stupide|nul+|con|idiot|imbecile)\b/,
+  /\b(es|sais)\s+(trop\s+)?(bete|stupide|nul+)\b/
 ];
+
+export function containsInsult(body: string): boolean {
+  const normalized = normalizeModerationText(body);
+  if (INSULT_TERM_PATTERN.test(normalized)) {
+    return true;
+  }
+  return INSULT_PHRASE_PATTERNS.some((pattern) => pattern.test(normalized));
+}
 
 const AD_PATTERNS = [
   /\b(promo|promotion|achetez|commandez|whatsapp|telegram)\b/i,
@@ -78,6 +98,10 @@ export class FeedModerationAgentService {
       return ai;
     }
 
+    if (containsInsult(trimmed)) {
+      return this.insultBlockResult(trimmed);
+    }
+
     return this.cleanResult(trimmed, false);
   }
 
@@ -90,6 +114,16 @@ export class FeedModerationAgentService {
         severity: null,
         actionRecommended: "none",
         aiConfidence: null
+      };
+    }
+
+    if (containsInsult(trimmed)) {
+      return {
+        isViolation: true,
+        violationType: "insulte",
+        severity: ModerationSeverity.high,
+        actionRecommended: "remove",
+        aiConfidence: 0.95
       };
     }
 
@@ -126,20 +160,8 @@ export class FeedModerationAgentService {
   }
 
   private heuristicPreSend(body: string): PreSendModerationResult | null {
-    if (INSULT_PATTERNS.some((p) => p.test(body))) {
-      return {
-        allowed: false,
-        maskedBody: body,
-        wasPhoneMasked: false,
-        isViolation: true,
-        violationType: "insulte",
-        severity: ModerationSeverity.high,
-        shouldBlock: true,
-        warningMessageFr:
-          "Ce message a été bloqué car il contient du contenu inapproprié.",
-        ruleId: "R001",
-        aiConfidence: 0.95
-      };
+    if (containsInsult(body)) {
+      return this.insultBlockResult(body);
     }
 
     if (AD_PATTERNS.some((p) => p.test(body))) {
@@ -175,6 +197,22 @@ export class FeedModerationAgentService {
     }
 
     return null;
+  }
+
+  private insultBlockResult(body: string): PreSendModerationResult {
+    return {
+      allowed: false,
+      maskedBody: body,
+      wasPhoneMasked: false,
+      isViolation: true,
+      violationType: "insulte",
+      severity: ModerationSeverity.high,
+      shouldBlock: true,
+      warningMessageFr:
+        "Ce message a été bloqué car il contient du contenu inapproprié.",
+      ruleId: "R001",
+      aiConfidence: 0.95
+    };
   }
 
   private async geminiPreSend(body: string): Promise<PreSendModerationResult | null> {

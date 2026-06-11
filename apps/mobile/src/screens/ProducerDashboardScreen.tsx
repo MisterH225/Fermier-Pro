@@ -31,6 +31,7 @@ import { PendingInvitationsBanner } from "../components/collaboration/PendingInv
 import { VetAppointmentActionsBanner } from "../components/vet/VetAppointmentActionsBanner";
 import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
 import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
+import { SupportHeaderButton } from "../components/support/SupportHeaderButton";
 import { ProjectIndicator } from "../components/projects";
 import { useOnboardingResume } from "../context/OnboardingResumeContext";
 import { useActiveProject, useActiveFarm } from "../context/ActiveProjectContext";
@@ -301,6 +302,10 @@ export function ProducerDashboardScreen() {
             <AlertBadge count={alertsCountQuery.data?.criticalUnread ?? 0} />
           </View>
         </Pressable>
+        <SupportHeaderButton
+          iconColor={mobileColors.accent}
+          style={styles.heroIconBtn}
+        />
         <Pressable
           onPress={() => {
             if (!farmId || !farmName) {

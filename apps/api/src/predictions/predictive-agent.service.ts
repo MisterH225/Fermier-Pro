@@ -57,6 +57,7 @@ export class PredictiveAgentService {
       `consommation_aliment=${JSON.stringify(data.feed_data)},`,
       `historique_financier=${JSON.stringify(data.finance_data)},`,
       `objectifs_ferme=${JSON.stringify(data.settings_data)}.`,
+      "Note : stock_predictions.feed_needs est recalculé côté serveur (IC×GMQ×effectif, migration de phases, tendance conso) — mets des valeurs placeholder cohérentes.",
       "Réponds UNIQUEMENT en JSON valide sans markdown selon ce schéma exact :",
       "{ cheptel_predictions: {...}, finance_predictions: {...}, stock_predictions: {...}, gestation_predictions: {...}, sale_timing: {...}, alerts: [...] }",
       "Utilise les clés d'horizon 30j, 60j, 90j. Montants en devise de la ferme.",

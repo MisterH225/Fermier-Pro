@@ -3,14 +3,15 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/navigation";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { DashboardHeader } from "@/components/layout/DashboardHeader";
+import { TopNav } from "@/components/layout/TopNav";
 import { ShellLoading } from "@/components/layout/PageSkeleton";
 import { useAdminRealtime } from "@/lib/useAdminRealtime";
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [pendingVets, setPendingVets] = useState(0);
   const [activeAlerts, setActiveAlerts] = useState(0);
   const [marketplaceDisputes, setMarketplaceDisputes] = useState(0);
@@ -33,6 +34,14 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         return;
       }
       setToken(t);
+      const user = data.session?.user;
+      if (user) {
+        setUserEmail(user.email ?? null);
+        const meta = user.user_metadata as { full_name?: string } | undefined;
+        setUserName(
+          meta?.full_name ?? user.email?.split("@")[0] ?? "Admin"
+        );
+      }
     });
   }, [router]);
 
@@ -49,16 +58,17 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-brand-cream">
-      <Sidebar
+    <div className="min-h-screen w-full overflow-x-hidden dashboard-bg">
+      <TopNav
         pendingVets={pendingVets}
         activeAlerts={activeAlerts}
         marketplaceDisputes={marketplaceDisputes}
+        userName={userName}
+        userEmail={userEmail}
         onLogout={logout}
       />
-      <main className="flex-1 overflow-auto">
-        <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-          <DashboardHeader pendingVets={pendingVets} activeAlerts={activeAlerts} />
+      <main className="w-full px-3 sm:px-4 lg:px-6 pb-6 sm:pb-8">
+        <div className="glass-panel mx-auto w-full max-w-[1400px] rounded-2xl sm:rounded-[2rem] p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-8rem)] lg:min-h-[calc(100vh-9.5rem)]">
           {children}
         </div>
       </main>

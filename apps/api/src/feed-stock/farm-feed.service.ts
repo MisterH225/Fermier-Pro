@@ -1,7 +1,9 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
-  NotFoundException
+  NotFoundException,
+  forwardRef
 } from "@nestjs/common";
 import {
   lineAmountFromUnitPrice,
@@ -22,6 +24,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
 import { FinanceService } from "../finance/finance.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
+import { PredictionsService } from "../predictions/predictions.service";
 import { CreateFeedMovementDto } from "./dto/create-feed-movement.dto";
 import { CreateFeedTypeDto } from "./dto/create-feed-type.dto";
 import {
@@ -88,7 +91,9 @@ export class FarmFeedService {
     private readonly finance: FinanceService,
     private readonly smartAlerts: SmartAlertsService,
     private readonly pump: PumpCalculator,
-    private readonly reconciliation: ReconciliationEngine
+    private readonly reconciliation: ReconciliationEngine,
+    @Inject(forwardRef(() => PredictionsService))
+    private readonly predictions: PredictionsService
   ) {}
 
   async listTypes(user: User, farmId: string) {
@@ -134,7 +139,7 @@ export class FarmFeedService {
       (t) =>
         t.productionPhase === "unknown" &&
         (t.phaseSuggestion?.confidence === "low" ||
-          t.phaseSuggestion?.alternatives.length)
+          (t.phaseSuggestion?.alternatives?.length ?? 0) > 0)
     );
   }
 
@@ -567,6 +572,7 @@ export class FarmFeedService {
       });
 
       void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
+      this.predictions.invalidateAndRegenerateAsync(farmId);
 
       let reconciliation: ReconciliationOfferDto | null = null;
       if (missingCost) {
@@ -677,6 +683,7 @@ export class FarmFeedService {
       });
 
       void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
+      this.predictions.invalidateAndRegenerateAsync(farmId);
       return {
         movement: serializeFeedMovement(movement),
         reconciliation: null
@@ -761,11 +768,11 @@ export class FarmFeedService {
       unitPrice = perKg != null ? new Prisma.Decimal(perKg) : null;
     }
 
-    const hadCost = movementHasCost(existing);
-    const hasCost =
-      totalCost != null ||
-      (unitPrice != null && unitPrice.toNumber() > 0) ||
-      Boolean(existing.linkedExpenseId);
+    const costOnMovement = movementHasCost({
+      totalCost,
+      unitPrice,
+      linkedExpenseId: null
+    });
 
     const movement = await this.prisma.$transaction(async (tx) => {
       const m = await tx.feedStockMovement.update({
@@ -784,7 +791,7 @@ export class FarmFeedService {
               ? dto.notes?.trim() || null
               : existing.notes,
           occurredAt,
-          isCostMissing: !hasCost
+          isCostMissing: !existing.linkedExpenseId
         },
         include: {
           feedType: { select: { id: true, name: true, unit: true } }
@@ -793,12 +800,14 @@ export class FarmFeedService {
 
       if (
         existing.linkedExpenseId &&
-        dto.totalCost != null &&
-        totalCost != null
+        (dto.totalCost != null || dto.occurredAt != null)
       ) {
         await tx.farmExpense.update({
           where: { id: existing.linkedExpenseId },
-          data: { amount: totalCost }
+          data: {
+            ...(totalCost != null ? { amount: totalCost } : {}),
+            ...(dto.occurredAt != null ? { occurredAt } : {})
+          }
         });
       }
 
@@ -813,9 +822,33 @@ export class FarmFeedService {
     void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
 
     let reconciliation: ReconciliationOfferDto | null = null;
-    if (!hadCost && hasCost && !existing.linkedExpenseId) {
-      // coût ajouté sans liaison — pas de rapprochement nécessaire
-    } else if (!hasCost) {
+    const costAmount =
+      totalCost?.toNumber() ??
+      (costOnMovement && deltaKg.gt(0) && unitPrice != null
+        ? unitPrice.toNumber() * deltaKg.toNumber()
+        : 0);
+
+    if (!existing.linkedExpenseId && costAmount > 0) {
+      await this.reconciliation.addCostFromFollowUp(
+        user,
+        farmId,
+        movementId,
+        costAmount,
+        dto.supplier ?? existing.supplier ?? undefined
+      );
+      const linked = await this.prisma.feedStockMovement.findFirst({
+        where: { id: movementId, farmId },
+        include: {
+          feedType: { select: { id: true, name: true, unit: true } }
+        }
+      });
+      return {
+        movement: serializeFeedMovement(linked ?? movement),
+        reconciliation: null
+      };
+    }
+
+    if (!existing.linkedExpenseId && !costOnMovement) {
       const offer = await this.reconciliation.buildOfferForMovement(movementId);
       reconciliation = offer.status !== "none" ? offer : null;
       if (!reconciliation) {

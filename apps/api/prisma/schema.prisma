@@ -2405,6 +2405,10 @@ model PlatformSettings {
   adminNotifyEmail      String?
   reportFrequencyDays   Int      @default(7)
   marketplaceCommissionRate Decimal @default(0.05) @db.Decimal(5, 4)
+  /// Numéro support (appel mobile). Fallback env `SUPPORT_PHONE` si vide.
+  supportPhone          String?
+  /// Lien Telegram support (https://t.me/… ou @username). Fallback env `SUPPORT_TELEGRAM_URL`.
+  supportTelegramUrl    String?
   updatedAt             DateTime @updatedAt
 }
 

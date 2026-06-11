@@ -37,6 +37,31 @@ import type {
 import type { ScoreBreakdown } from "./reports-score.util";
 import { riskLevelLabel } from "./templates/formatters";
 
+function normalizeScoreBreakdown(
+  raw: Partial<ScoreBreakdown> | null | undefined,
+  scoreGlobal: number
+): ScoreBreakdown {
+  if (
+    raw?.dataRegularity?.score != null &&
+    raw?.financialHealth?.score != null &&
+    raw?.herdHealth?.score != null &&
+    raw?.productivity?.score != null &&
+    raw?.historyCompleteness?.score != null
+  ) {
+    return raw as ScoreBreakdown;
+  }
+  const g = Math.max(0, Math.min(100, scoreGlobal));
+  const slot = (detail: string) => ({ score: g, detail });
+  return {
+    dataRegularity: raw?.dataRegularity ?? slot("Densité de saisie sur la période."),
+    financialHealth: raw?.financialHealth ?? slot("Marge nette relative sur la période."),
+    herdHealth: raw?.herdHealth ?? slot("Mortalité et vaccins en retard."),
+    productivity: raw?.productivity ?? slot("Mises bas enregistrées sur la période."),
+    historyCompleteness:
+      raw?.historyCompleteness ?? slot("Ancienneté de la ferme et continuité des données.")
+  };
+}
+
 const VERIFY_BASE =
   process.env.REPORT_VERIFY_BASE_URL?.trim() ??
   "https://fermierpro.com/verify/report";
@@ -71,9 +96,14 @@ export class ReportsPdfmakeService {
       this.log.warn(`QR code generation failed: ${String(e)}`);
     }
 
-    const breakdown = (snap.score?.breakdown ??
-      input.report.scoreBreakdown) as ScoreBreakdown;
     const scoreGlobal = snap.score?.global ?? input.report.scoreGlobal;
+    const breakdown = normalizeScoreBreakdown(
+      (snap.score?.breakdown ?? input.report.scoreBreakdown) as
+        | Partial<ScoreBreakdown>
+        | null
+        | undefined,
+      scoreGlobal
+    );
 
     const ctx: FarmReportPdfContext = {
       farmName: input.farmName,
@@ -119,6 +149,8 @@ export class ReportsPdfmakeService {
         fcr: null,
         adg: null
       },
+      profitability: snap.profitability ?? this.defaultProfitability(),
+      predictions: snap.predictions ?? this.defaultPredictions(),
       qrCodeDataUrl
     };
 
@@ -143,6 +175,51 @@ export class ReportsPdfmakeService {
       pendingEscrowCount: 0,
       pendingEscrowAmount: 0,
       pendingDeliveryCount: 0
+    };
+  }
+
+  private defaultProfitability() {
+    return {
+      available: false,
+      dataQuality: "insufficient",
+      currency: "XOF",
+      marketPricePerKg: null,
+      realized: {
+        grossMargin: null,
+        grossMarginPct: null,
+        netMargin: null,
+        netMarginPct: null,
+        costPerKg: null,
+        roi: null,
+        breakevenPricePerKg: null,
+        revenues: null,
+        costsTotal: null
+      },
+      trendNetMarginPctDelta: null,
+      trendGrossMarginPctDelta: null,
+      costBreakdown: [],
+      monthlySeries: [],
+      topBatches: []
+    };
+  }
+
+  private defaultPredictions() {
+    return {
+      available: false,
+      generatedAt: null,
+      insufficientData: false,
+      insufficientMessage: null,
+      financeForecast: {
+        horizon30: null,
+        horizon60: null,
+        horizon90: null,
+        cashFlowAlert: { hasAlert: false, message: null }
+      },
+      saleTiming: null,
+      alerts: [],
+      herdEvolution: null,
+      animalsReady30: null,
+      upcomingBirths: []
     };
   }
 

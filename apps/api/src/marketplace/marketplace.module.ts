@@ -36,7 +36,7 @@ import { OffersService } from "./offers.service";
 
 @Module({
   imports: [
-    AuthModule,
+    forwardRef(() => AuthModule),
     ChatModule,
     ConfigClientModule,
     FeatureFlagsModule,

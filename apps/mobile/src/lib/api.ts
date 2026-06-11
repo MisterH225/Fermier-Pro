@@ -44,6 +44,11 @@ export type PlatformModuleDto = {
   scheduledReactivation: string | null;
 };
 
+export type SupportContactDto = {
+  phone: string | null;
+  telegramUrl: string | null;
+};
+
 export type ClientConfigDto = {
   features: {
     marketplace: boolean;
@@ -55,6 +60,7 @@ export type ClientConfigDto = {
     feedStock: boolean;
   };
   modules: PlatformModuleDto[];
+  support?: SupportContactDto;
 };
 
 export async function fetchClientConfig(): Promise<ClientConfigDto> {

@@ -22,7 +22,7 @@ const HealthMapbox = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-96 rounded-xl border bg-muted animate-pulse" />
+      <div className="h-96 rounded-3xl glass-card animate-pulse" />
     )
   }
 );
@@ -45,7 +45,7 @@ function heatColor(active: number, max: number) {
 }
 
 const ALERT_LEVEL_CLASS: Record<string, string> = {
-  info: "bg-blue-100 text-blue-900 border-blue-200",
+  info: "bg-primary/10 text-primary border-primary/25",
   warning: "bg-amber-100 text-amber-900 border-amber-200",
   critical: "bg-red-100 text-red-900 border-red-200"
 };
@@ -105,9 +105,12 @@ export default function CarteSanitairePage() {
       />
 
       {loading || !data ? (
-        <div className="h-[420px] rounded-xl border bg-muted animate-pulse" />
+        <div className="h-[420px] rounded-3xl glass-card animate-pulse" />
       ) : (
-        <HealthMapbox points={data.points} className="h-[420px] w-full rounded-xl border" />
+        <HealthMapbox
+          points={data.points}
+          className="h-[420px] w-full rounded-3xl border border-white/60 shadow-glass"
+        />
       )}
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -126,7 +129,7 @@ export default function CarteSanitairePage() {
                     <div
                       key={r.country}
                       className={cn(
-                        "rounded-xl p-4 border transition",
+                        "rounded-2xl p-4 border transition",
                         heatColor(r.activeCases, maxActive)
                       )}
                     >

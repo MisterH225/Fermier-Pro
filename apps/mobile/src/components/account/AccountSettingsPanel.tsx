@@ -68,12 +68,9 @@ export function AccountSettingsPanel({
     }
   };
 
-  const goHelp = () => {
+  const goSupport = () => {
     onBeforeNavigate?.();
-    navigation.navigate("ModuleRoadmap", {
-      title: t("account.helpTitle"),
-      body: t("account.helpBody")
-    });
+    navigation.navigate("Support");
   };
 
   return (
@@ -136,8 +133,8 @@ export function AccountSettingsPanel({
 
       <NotificationSettingsRow />
 
-      <Pressable style={styles.secondaryRow} onPress={goHelp}>
-        <Text style={styles.secondaryLabel}>{t("account.help")}</Text>
+      <Pressable style={styles.secondaryRow} onPress={goSupport}>
+        <Text style={styles.secondaryLabel}>{t("support.title")}</Text>
         <Text style={styles.secondaryChevron}>›</Text>
       </Pressable>
 

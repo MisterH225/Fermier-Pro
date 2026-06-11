@@ -40,6 +40,7 @@ import { PigPriceIndexService } from "../market/pig-price-index.service";
 import { MarketplacePigPriceIndexService } from "../marketplace/pig-price-index.service";
 import { ResolveDeliveryDisputeDto } from "../marketplace/dto/resolve-delivery-dispute.dto";
 import { MarketplaceTransactionService } from "../marketplace/escrow/marketplace-transaction.service";
+import { ListingsService } from "../marketplace/listings.service";
 import { ReceiptService } from "../marketplace/receipts/receipt.service";
 import { VetAppointmentService } from "../vet-appointments/vet-appointment.service";
 
@@ -53,6 +54,7 @@ export class AdminPlatformController {
     private readonly pigPriceIndex: PigPriceIndexService,
     private readonly hybridPigPriceIndex: MarketplacePigPriceIndexService,
     private readonly marketplaceTransactions: MarketplaceTransactionService,
+    private readonly listings: ListingsService,
     private readonly receipts: ReceiptService,
     private readonly vetAppointments: VetAppointmentService
   ) {}
@@ -286,6 +288,11 @@ export class AdminPlatformController {
     return this.admin.listSuperAdmins();
   }
 
+  @Get("ai/status")
+  aiStatus() {
+    return this.adminAi.getStatus();
+  }
+
   @Post("ai/epidemic-analysis")
   aiEpidemic(@Body() dto: AdminAiLocaleDto) {
     return this.adminAi.epidemicAnalysis(dto.locale ?? "fr");
@@ -362,6 +369,21 @@ export class AdminPlatformController {
   @Post("pig-price-index/hybrid/recalculate")
   adminRecalculateHybridIndex() {
     return this.hybridPigPriceIndex.calculateHybridIndex();
+  }
+
+  @Get("marketplace/overview")
+  adminMarketplaceOverview() {
+    return this.marketplaceTransactions.getOverviewForAdmin();
+  }
+
+  @Get("marketplace/listings")
+  adminListListings(@Query("status") status?: string) {
+    return this.marketplaceTransactions.listListingsForAdmin(status);
+  }
+
+  @Get("marketplace/listings/:id")
+  adminGetListing(@Param("id") id: string) {
+    return this.listings.getForAdmin(id);
   }
 
   @Get("marketplace/transactions")

@@ -14,6 +14,7 @@ import {
 import {
   buildBarChartSvg,
   buildDonutSvg,
+  buildDualBarChartSvg,
   buildGaugeSvg,
   buildHorizontalBarSvg
 } from "./charts";
@@ -112,7 +113,7 @@ function pageCover(ctx: FarmReportPdfContext): PdfContent[] {
           columns: [
             buildKpiCard("Cheptel total", String(ctx.cheptelCategories.total), "têtes", REPORT_COLORS.primary),
             buildKpiCard("Revenu période", formatFcfa(rev).replace(" FCFA", ""), "FCFA", REPORT_COLORS.secondary),
-            buildKpiCard("Score ferme", String(ctx.scoreGlobal), "/100", REPORT_COLORS.success)
+            buildKpiCard("Score ferme", `${ctx.scoreGlobal} (${ctx.scoreBand})`, "/100", REPORT_COLORS.success)
           ],
           columnGap: 8
         },
@@ -135,18 +136,38 @@ function pageCover(ctx: FarmReportPdfContext): PdfContent[] {
   ];
 }
 
+function projection(ctx: FarmReportPdfContext) {
+  return (ctx.sections.projection ?? {}) as {
+    marginTrend?: string;
+    deficitAlert?: boolean | null;
+    nextMonths?: Array<{
+      monthOffset: number;
+      projectedRevenues: number;
+      projectedExpenses: number;
+      projectedNet: number;
+    }>;
+  };
+}
+
 function pageFinance(ctx: FarmReportPdfContext): PdfContent[] {
   const finSec = fin(ctx);
   const cur = (finSec.current as { totals?: { revenues: string; expenses: string } })?.totals;
   const rev = Number(cur?.revenues ?? 0);
   const exp = Number(cur?.expenses ?? 0);
   const net = rev - exp;
-  const trend = (finSec.monthlyTrend ?? []) as Array<{ month: string; revenues: string }>;
-  const barData = trend.slice(-6).map((r) => ({
+  const marginPct = (finSec.marginPct as number | null | undefined) ?? null;
+  const trend = (finSec.monthlyTrend ?? []) as Array<{
+    month: string;
+    revenues: string;
+    expenses: string;
+  }>;
+  const dualBarData = trend.slice(-6).map((r) => ({
     label: r.month.length > 6 ? r.month.slice(5) : r.month,
-    value: Number(r.revenues)
+    revenues: Number(r.revenues),
+    expenses: Number(r.expenses)
   }));
   const topRev = (finSec.topRevenues ?? []) as Array<{ label: string; revenues: number }>;
+  const topExp = (finSec.topExpenses ?? []) as Array<{ label: string; expenses: number }>;
   const revSegments = topRev.length
     ? topRev.map((r, i) => ({
         label: r.label,
@@ -154,13 +175,33 @@ function pageFinance(ctx: FarmReportPdfContext): PdfContent[] {
         color: [REPORT_COLORS.primary, REPORT_COLORS.secondary, REPORT_COLORS.accent][i % 3]
       }))
     : [{ label: "Revenus", value: rev || 1, color: REPORT_COLORS.primary }];
+  const expBarData = topExp.slice(0, 5).map((r) => ({
+    label: r.label.slice(0, 10),
+    value: r.expenses
+  }));
 
   const left: PdfContent[] = [
     buildSectionHeader("Synthèse financière"),
-    { svg: buildBarChartSvg(barData, 280, 100), width: 280, margin: [0, 0, 0, 8] },
+    { svg: buildDualBarChartSvg(dualBarData, 280, 110), width: 280, margin: [0, 0, 0, 8] },
     buildKpiRow("Revenus totaux période", formatFcfa(rev), REPORT_COLORS.success),
     buildKpiRow("Dépenses totales période", formatFcfa(exp), REPORT_COLORS.danger),
     buildKpiRow("Bénéfice net période", formatFcfa(net), net >= 0 ? REPORT_COLORS.success : REPORT_COLORS.danger),
+    buildKpiRow(
+      "Marge nette %",
+      marginPct != null ? formatPct(marginPct) : "—",
+      marginPct != null && marginPct >= 0 ? REPORT_COLORS.success : REPORT_COLORS.danger
+    ),
+    ...(finSec.deltaRevenuesPct != null
+      ? [buildKpiRow("Évolution revenus", formatPct(Number(finSec.deltaRevenuesPct)), REPORT_COLORS.greyText)]
+      : []),
+    ...(finSec.deltaExpensesPct != null
+      ? [buildKpiRow("Évolution dépenses", formatPct(Number(finSec.deltaExpensesPct)), REPORT_COLORS.greyText)]
+      : []),
+    buildDivider(),
+    buildSectionHeader("Top dépenses", REPORT_COLORS.danger),
+    ...(expBarData.length
+      ? [{ svg: buildBarChartSvg(expBarData, 280, 80, REPORT_COLORS.danger), width: 280, margin: [0, 0, 0, 8] }]
+      : [{ text: "Aucune dépense enregistrée sur la période.", style: "small" }]),
     buildDivider(),
     buildSectionHeader("Top ventes marketplace", REPORT_COLORS.secondary),
     buildDataTable(
@@ -271,9 +312,9 @@ function pageFeedPerformance(ctx: FarmReportPdfContext): PdfContent[] {
   const scoreCats = [
     { label: "Santé animale", score: ctx.scoreBreakdown.herdHealth.score },
     { label: "Gestion financière", score: ctx.scoreBreakdown.financialHealth.score },
-    { label: "Alimentation", score: ctx.scoreBreakdown.dataRegularity.score },
+    { label: "Régularité des saisies", score: ctx.scoreBreakdown.dataRegularity.score },
     { label: "Reproduction", score: ctx.scoreBreakdown.productivity.score },
-    { label: "Ventes", score: ctx.scoreBreakdown.financialHealth.score }
+    { label: "Historique des données", score: ctx.scoreBreakdown.historyCompleteness.score }
   ];
 
   const stockDays = ctx.feedExtended.stockDaysRemaining ?? 0;
@@ -337,6 +378,216 @@ function pageFeedPerformance(ctx: FarmReportPdfContext): PdfContent[] {
   return [buildTwoColumnLayout(50, left, right), buildPageFooter(ctx.reportRef, ctx.generatedAt)];
 }
 
+function pageProfitability(ctx: FarmReportPdfContext): PdfContent[] {
+  const p = ctx.profitability;
+  const proj = projection(ctx);
+  const profMonthly =
+    p.monthlySeries.length > 0
+      ? p.monthlySeries.slice(-6).map((m) => ({
+          label: m.month.length > 6 ? m.month.slice(5) : m.month,
+          value: Math.max(0, m.netMargin)
+        }))
+      : [];
+
+  const costSegments = p.costBreakdown.slice(0, 5).map((c, i) => ({
+    label: c.label,
+    value: c.amount,
+    color: [REPORT_COLORS.primary, REPORT_COLORS.secondary, REPORT_COLORS.accent, REPORT_COLORS.danger, REPORT_COLORS.success][i % 5]
+  }));
+
+  const left: PdfContent[] = [
+    buildSectionHeader("Rentabilité sur la période", REPORT_COLORS.accent),
+    ...(p.available
+      ? [
+          buildKpiRow("Marge brute", p.realized.grossMargin != null ? formatFcfa(p.realized.grossMargin) : "—"),
+          buildKpiRow(
+            "Marge brute %",
+            p.realized.grossMarginPct != null ? formatPct(p.realized.grossMarginPct) : "—"
+          ),
+          buildKpiRow(
+            "Marge nette",
+            p.realized.netMargin != null ? formatFcfa(p.realized.netMargin) : "—",
+            (p.realized.netMargin ?? 0) >= 0 ? REPORT_COLORS.success : REPORT_COLORS.danger
+          ),
+          buildKpiRow(
+            "Marge nette %",
+            p.realized.netMarginPct != null ? formatPct(p.realized.netMarginPct) : "—",
+            (p.realized.netMarginPct ?? 0) >= 0 ? REPORT_COLORS.success : REPORT_COLORS.danger
+          ),
+          buildKpiRow("Coût de revient / kg", p.realized.costPerKg != null ? formatFcfa(p.realized.costPerKg) : "—"),
+          buildKpiRow("ROI", p.realized.roi != null ? formatPct(p.realized.roi) : "—"),
+          buildKpiRow(
+            "Seuil de rentabilité / kg",
+            p.realized.breakevenPricePerKg != null ? formatFcfa(p.realized.breakevenPricePerKg) : "—"
+          ),
+          ...(p.trendNetMarginPctDelta != null
+            ? [buildKpiRow("Tendance marge nette", formatPct(p.trendNetMarginPctDelta))]
+            : [])
+        ]
+      : [
+          {
+            text: "Données de rentabilité insuffisantes pour cette période. Enregistrez davantage de ventes et de coûts.",
+            style: "small",
+            italics: true
+          }
+        ]),
+    buildDivider(),
+    buildSectionHeader("Projection court terme"),
+    buildKpiRow(
+      "Tendance marge",
+      proj.marginTrend === "hausse"
+        ? "Hausse"
+        : proj.marginTrend === "baisse"
+          ? "Baisse"
+          : "Stable"
+    ),
+    ...(proj.nextMonths ?? []).slice(0, 3).map((m) =>
+      buildKpiRow(
+        `M+${m.monthOffset}`,
+        `rev. ${Math.round(m.projectedRevenues)} / dép. ${Math.round(m.projectedExpenses)} (net ${Math.round(m.projectedNet)})`
+      )
+    ),
+    ...(proj.deficitAlert
+      ? [{ text: "⚠ Alerte : projection de déficit sur les prochains mois.", color: REPORT_COLORS.danger, style: "small" }]
+      : [])
+  ];
+
+  const right: PdfContent[] = [
+    buildSectionHeader("Répartition des coûts"),
+    ...(costSegments.length
+      ? [
+          { svg: buildDonutSvg(costSegments, 120), width: 120, alignment: "center", margin: [0, 0, 0, 6] },
+          ...p.costBreakdown.slice(0, 5).map((c) => buildKpiRow(c.label, formatPct(c.pct)))
+        ]
+      : [{ text: "—", style: "small" }]),
+    buildDivider(),
+    buildSectionHeader("Marge nette mensuelle"),
+    ...(profMonthly.length
+      ? [{ svg: buildBarChartSvg(profMonthly, 260, 90, REPORT_COLORS.primary), width: 260, margin: [0, 0, 0, 8] }]
+      : [{ text: "—", style: "small" }]),
+    buildDivider(),
+    buildSectionHeader("Top bandes (rentabilité)"),
+    ...(p.topBatches.length
+      ? [
+          buildDataTable(
+            ["Bande", "Marge %", "IC", "GMQ"],
+            p.topBatches.map((b) => [
+              b.name,
+              b.netMarginPct != null ? formatPct(b.netMarginPct) : "—",
+              b.icActual != null ? String(b.icActual) : "—",
+              b.gmqActual != null ? String(b.gmqActual) : "—"
+            ])
+          )
+        ]
+      : [{ text: "Aucune bande avec données.", style: "small" }])
+  ];
+
+  return [buildTwoColumnLayout(52, left, right), buildPageFooter(ctx.reportRef, ctx.generatedAt)];
+}
+
+function pagePredictions(ctx: FarmReportPdfContext): PdfContent[] {
+  const pred = ctx.predictions;
+  const horizons = [
+    { label: "30 j", data: pred.financeForecast.horizon30 },
+    { label: "60 j", data: pred.financeForecast.horizon60 },
+    { label: "90 j", data: pred.financeForecast.horizon90 }
+  ].filter((h) => h.data != null) as Array<{
+    label: string;
+    data: { revenue: number; expenses: number; margin: number; marginPct: number };
+  }>;
+
+  const marginBar = horizons.map((h) => ({
+    label: h.label,
+    value: Math.max(0, h.data.margin)
+  }));
+
+  const herd = pred.herdEvolution;
+  const herdBar = herd
+    ? [
+        { label: "Actuel", value: herd.current },
+        { label: "30j", value: herd.projected30 },
+        { label: "60j", value: herd.projected60 },
+        { label: "90j", value: herd.projected90 }
+      ]
+    : [];
+
+  const left: PdfContent[] = [
+    buildSectionHeader("Prévisions agent IA — Finance"),
+    ...(pred.available
+      ? [
+          ...(pred.generatedAt
+            ? [{ text: `Généré le ${new Date(pred.generatedAt).toLocaleString("fr-FR")}`, style: "small", margin: [0, 0, 0, 6] }]
+            : []),
+          ...(marginBar.length
+            ? [{ svg: buildBarChartSvg(marginBar, 280, 90, REPORT_COLORS.primary), width: 280, margin: [0, 0, 0, 8] }]
+            : []),
+          ...horizons.map((h) =>
+            buildKpiRow(
+              `Horizon ${h.label}`,
+              `rev. ${formatFcfa(h.data.revenue)} · dép. ${formatFcfa(h.data.expenses)} · marge ${formatPct(h.data.marginPct)}`
+            )
+          ),
+          ...(pred.financeForecast.cashFlowAlert.hasAlert
+            ? [
+                {
+                  text: `⚠ Trésorerie : ${pred.financeForecast.cashFlowAlert.message ?? "alerte détectée"}`,
+                  color: REPORT_COLORS.danger,
+                  style: "small",
+                  margin: [0, 4, 0, 0]
+                }
+              ]
+            : [])
+        ]
+      : pred.insufficientData
+        ? [{ text: pred.insufficientMessage ?? "Données insuffisantes pour les prévisions IA (30 jours requis).", style: "small", italics: true }]
+        : [{ text: "Prévisions IA non disponibles.", style: "small", italics: true }]),
+    buildDivider(),
+    buildSectionHeader("Timing des ventes"),
+    ...(pred.saleTiming
+      ? [
+          buildKpiRow("Tendance prix", pred.saleTiming.priceTrend),
+          buildKpiRow("Fenêtre optimale", pred.saleTiming.optimalWindow),
+          buildKpiRow("Prix attendu / kg", formatFcfa(pred.saleTiming.expectedPricePerKg)),
+          { text: pred.saleTiming.explanation, style: "small", margin: [0, 4, 0, 0] }
+        ]
+      : [{ text: "—", style: "small" }])
+  ];
+
+  const right: PdfContent[] = [
+    buildSectionHeader("Évolution cheptel prévue"),
+    ...(herdBar.length
+      ? [{ svg: buildBarChartSvg(herdBar, 260, 90, REPORT_COLORS.secondary), width: 260, margin: [0, 0, 0, 8] }]
+      : []),
+    ...(pred.animalsReady30 != null
+      ? [buildKpiRow("Animaux prêts à vendre (30 j)", String(pred.animalsReady30))]
+      : []),
+    ...(herd
+      ? [buildKpiRow("Taux de croissance", formatPct(herd.growthRate * 100))]
+      : []),
+    buildDivider(),
+    buildSectionHeader("Mises bas prévues"),
+    ...(pred.upcomingBirths.length
+      ? pred.upcomingBirths.map((b) =>
+          buildKpiRow(`${b.label} (${b.piglets} porcelets)`, new Date(b.date).toLocaleDateString("fr-FR"))
+        )
+      : [{ text: "Aucune mise bas prévue.", style: "small" }]),
+    buildDivider(),
+    buildSectionHeader("Alertes agent IA"),
+    ...(pred.alerts.length
+      ? pred.alerts.map((a) =>
+          buildRecommendationCard({
+            icon: a.priority === "high" ? "⚠" : a.priority === "medium" ? "◆" : "●",
+            title: a.message.slice(0, 60),
+            description: a.action,
+            priority: a.priority === "high" ? "URGENT" : a.priority === "medium" ? "IMPORTANT" : "CONSEIL"
+          })
+        )
+      : ctx.recommendations.slice(0, 3).map((r) => buildRecommendationCard(r)))
+  ];
+
+  return [buildTwoColumnLayout(52, left, right), buildPageFooter(ctx.reportRef, ctx.generatedAt)];
+}
+
 function pageMarketplaceAi(ctx: FarmReportPdfContext): PdfContent[] {
   const mp = ctx.marketplace;
   const salesBar = mp.salesByCategory.map((c) => ({ label: c.label.slice(0, 8), value: c.count }));
@@ -355,7 +606,7 @@ function pageMarketplaceAi(ctx: FarmReportPdfContext): PdfContent[] {
   ];
 
   const right: PdfContent[] = [
-    buildSectionHeader("Recommandations IA"),
+    buildSectionHeader("Recommandations opérationnelles"),
     ...ctx.recommendations.slice(0, 5).map((r) => buildRecommendationCard(r)),
     buildDivider(),
     buildSectionHeader("Objectifs période suivante"),
@@ -487,6 +738,10 @@ export function buildFarmReportDocDefinition(
       ...pageCheptelHealth(ctx),
       { text: "", pageBreak: "after" },
       ...pageFeedPerformance(ctx),
+      { text: "", pageBreak: "after" },
+      ...pageProfitability(ctx),
+      { text: "", pageBreak: "after" },
+      ...pagePredictions(ctx),
       { text: "", pageBreak: "after" },
       ...pageMarketplaceAi(ctx),
       { text: "", pageBreak: "after" },

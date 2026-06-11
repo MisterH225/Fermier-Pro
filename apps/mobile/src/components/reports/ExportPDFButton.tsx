@@ -11,7 +11,8 @@ import {
 import { cacheDirectory, downloadAsync } from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import {
-  fetchFarmReportDownloadUrl,
+  apiAuthHeaders,
+  farmReportPdfAbsoluteUrl,
   generateFarmReport,
   type FarmReportPeriodType
 } from "../../lib/api";
@@ -33,13 +34,18 @@ type Props = {
   onGenerated?: () => void;
 };
 
-async function downloadAndShare(
-  url: string,
+async function downloadAndShareFarmReport(
+  farmId: string,
   reportId: string,
+  accessToken: string,
+  activeProfileId: string | null | undefined,
   dialogTitle: string
 ): Promise<void> {
+  const url = farmReportPdfAbsoluteUrl(farmId, reportId);
   const target = `${cacheDirectory ?? ""}rapport-${reportId}.pdf`;
-  const res = await downloadAsync(url, target);
+  const res = await downloadAsync(url, target, {
+    headers: apiAuthHeaders(accessToken, activeProfileId)
+  });
   if (res.status !== 200) {
     throw new Error(String(res.status));
   }
@@ -83,17 +89,13 @@ export function ExportPDFButton({
       });
       onGenerated?.();
       setPhase("sharing");
-      let url = gen.downloadUrl ?? null;
-      if (!url) {
-        const dl = await fetchFarmReportDownloadUrl(
-          accessToken,
-          farmId,
-          gen.id,
-          activeProfileId
-        );
-        url = dl.downloadUrl;
-      }
-      await downloadAndShare(url, gen.id, t("reportsScreen.exportPdf"));
+      await downloadAndShareFarmReport(
+        farmId,
+        gen.id,
+        accessToken,
+        activeProfileId,
+        t("reportsScreen.exportPdf")
+      );
     } catch (e) {
       Alert.alert(
         t("reportsScreen.exportErrorTitle"),
@@ -154,13 +156,13 @@ export function ReportDownloadButton({
   const run = async () => {
     setBusy(true);
     try {
-      const { downloadUrl } = await fetchFarmReportDownloadUrl(
-        accessToken,
+      await downloadAndShareFarmReport(
         farmId,
         reportId,
-        activeProfileId
+        accessToken,
+        activeProfileId,
+        t("reportsScreen.exportPdf")
       );
-      await downloadAndShare(downloadUrl, reportId, t("reportsScreen.exportPdf"));
     } catch (e) {
       Alert.alert(
         t("reportsScreen.exportErrorTitle"),

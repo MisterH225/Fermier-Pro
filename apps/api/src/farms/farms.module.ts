@@ -7,9 +7,17 @@ import { MarketplaceModule } from "../marketplace/marketplace.module";
 import { FarmsController } from "./farms.controller";
 import { FarmsService } from "./farms.service";
 import { FarmDeletionService } from "./farm-deletion.service";
+import { FarmDataPurgeModule } from "./farm-data-purge.module";
 
 @Module({
-  imports: [AuthModule, InvitationsModule, LivestockModule, PushNotificationsModule, MarketplaceModule],
+  imports: [
+    AuthModule,
+    FarmDataPurgeModule,
+    InvitationsModule,
+    LivestockModule,
+    PushNotificationsModule,
+    MarketplaceModule
+  ],
   controllers: [FarmsController],
   providers: [FarmsService, FarmDeletionService],
   exports: [FarmsService]

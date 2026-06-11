@@ -235,6 +235,20 @@ export const en = {
     bannerA11y: "Open admin messages",
     openCta: "View admin messages"
   },
+  support: {
+    title: "Support",
+    buttonA11y: "Support",
+    lead: "Need help? Contact our team by phone or on Telegram.",
+    callButton: "Call support",
+    callHint: "Starts a call using your phone line.",
+    telegramButton: "Message on Telegram",
+    telegramHint: "Opens a chat with support.",
+    unavailable: "Support is not configured yet. Please try again later.",
+    phoneErrorTitle: "Phone",
+    phoneUnavailable: "Support phone number unavailable.",
+    telegramErrorTitle: "Telegram",
+    telegramUnavailable: "Telegram link unavailable."
+  },
   account: {
     title: "Profile",
     identity: "Identity",
@@ -625,6 +639,8 @@ export const en = {
       success: "Sale recorded — Finance and livestock updated."
     },
     flatPriceLabel: "Flat price",
+    flatLotPricing: "{{perHead}} / head × {{count}} head(s)",
+    pricePerHeadShort: "{{amount}} / head",
     totalWeight: "Total weight:",
     totalWeightEmpty: "Total weight: —",
     pricePerKg: "Price/kg:",
@@ -764,7 +780,11 @@ export const en = {
       sectionPricingPork: "Weight and price",
       sectionPricingFlat: "Flat price",
       flatPriceHint:
-        "For piglets or breeding stock, enter a total amount (e.g. 20,000 XOF per piglet, 200,000 XOF per sow).",
+        "Flat price per head (e.g. 28,000 XOF per piglet). The lot total is calculated automatically from the number of animals selected.",
+      pricePerHead: "Price per head (flat rate)",
+      lotTotalPrice: "Total lot price",
+      flatLotAuto:
+        "{{count}} head(s) × {{perHead}} = {{amount}}",
       flatPrice: "Flat price",
       weightOptional: "Weight (kg, optional)",
       totalWeight: "Total weight (kg)",
@@ -1148,6 +1168,7 @@ export const en = {
       vetAgenda: "Agenda",
       farmList: "My farms",
       vetReports: "Reports",
+      support: "Support",
       invitation: "Invitation",
       animalDetail: "Animal record",
       farm: "Farm",
@@ -1455,9 +1476,20 @@ export const en = {
       cancel: "Cancel",
       categoryLabel: "Category",
       category: {
-        starter: "Starter / growth",
+        starter: "Starter",
         fattening: "Finishing",
         maternity: "Maternity",
+        quarantine: "Quarantine",
+        mixed: "Mixed",
+        empty: "Empty"
+      },
+      visual: {
+        maternity: "Maternity",
+        starter: "Starter",
+        growth: "Grower",
+        fattening: "Finishing",
+        boar: "Boar",
+        boars: "Boars",
         quarantine: "Quarantine",
         mixed: "Mixed",
         empty: "Empty"

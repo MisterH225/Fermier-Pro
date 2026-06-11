@@ -1,19 +1,26 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-const AVATAR_COLORS = [
-  "bg-brand/15 text-brand",
-  "bg-brand-accent/15 text-orange-800",
-  "bg-brand-olive/15 text-brand-olive-dark",
-  "bg-blue-100 text-blue-800",
-  "bg-purple-100 text-purple-800"
-];
+const PALETTE = [
+  "bg-primary/15 text-primary",
+  "bg-sky-500/15 text-sky-700",
+  "bg-indigo-500/15 text-indigo-700"
+] as const;
 
-function colorForSeed(seed: string) {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = seed.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+function initials(name: string | null | undefined, email: string | null | undefined) {
+  const base = name?.trim() || email?.split("@")[0] || "?";
+  return base
+    .split(/[\s@._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join("");
+}
+
+function paletteIndex(seed: string) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h + seed.charCodeAt(i)) % 997;
+  return h % PALETTE.length;
 }
 
 type Props = {
@@ -27,38 +34,36 @@ type Props = {
 const SIZES = {
   sm: "size-8 text-xs",
   md: "size-10 text-sm",
-  lg: "size-12 text-base"
+  lg: "size-14 text-base"
 };
 
 export function UserAvatar({ name, email, avatarUrl, size = "md", className }: Props) {
-  const seed = name ?? email ?? "?";
-  const initials = (name ?? email ?? "?")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? "")
-    .join("");
+  const seed = name ?? email ?? "";
+  const color = PALETTE[paletteIndex(seed)];
 
   if (avatarUrl) {
+    const px = size === "lg" ? 56 : size === "md" ? 40 : 32;
     return (
-      <img
+      <Image
         src={avatarUrl}
-        alt={name ?? email ?? ""}
+        alt={name ?? email ?? "Avatar"}
+        width={px}
+        height={px}
         className={cn("rounded-full object-cover shrink-0", SIZES[size], className)}
       />
     );
   }
 
   return (
-    <div
+    <span
       className={cn(
-        "rounded-full flex items-center justify-center font-bold shrink-0",
+        "inline-flex items-center justify-center rounded-full font-bold shrink-0",
         SIZES[size],
-        colorForSeed(seed),
+        color,
         className
       )}
     >
-      {initials || "?"}
-    </div>
+      {initials(name, email)}
+    </span>
   );
 }

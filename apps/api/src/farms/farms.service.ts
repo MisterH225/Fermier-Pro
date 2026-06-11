@@ -18,6 +18,9 @@ import { TransferFarmOwnershipDto } from "./dto/transfer-farm-ownership.dto";
 import { ArchiveFarmDto } from "./dto/archive-farm.dto";
 import { FarmDeletionService } from "./farm-deletion.service";
 import { FarmMarketplaceLifecycleService } from "../marketplace/farm-marketplace-lifecycle.service";
+import { countCheptelHeadcountAt } from "./cheptel-headcount.util";
+import { repairOrphanMigrationDuplicateAnimals } from "../livestock/livestock-batch-headcount.helper";
+import { migrateOnboardingBatchesToIndividualAnimals } from "../onboarding/onboarding-pen-layout";
 
 const MAX_ACTIVE_FARMS_PER_USER = 3;
 
@@ -356,6 +359,24 @@ export class FarmsService {
 
   async getCheptelOverview(user: User, farmId: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
+    await this.prisma.$transaction(async (tx) => {
+      const farmRow = await tx.farm.findUnique({
+        where: { id: farmId },
+        select: { speciesFocus: true }
+      });
+      const species = await tx.species.findFirst({
+        where: { code: farmRow?.speciesFocus ?? "porcin" }
+      });
+      if (species) {
+        await migrateOnboardingBatchesToIndividualAnimals(
+          tx,
+          farmId,
+          species.id,
+          user.id
+        );
+      }
+      await repairOrphanMigrationDuplicateAnimals(tx, farmId);
+    });
     const farm = await this.prisma.farm.findUnique({
       where: { id: farmId },
       select: {
@@ -380,13 +401,15 @@ export class FarmsService {
         healthStatus: true,
         productionCategory: true,
         expectedFarrowingAt: true,
-        createdAt: true
+        createdAt: true,
+        livestockBatchId: true
       }
     });
 
     const batches = await this.prisma.livestockBatch.findMany({
       where: { farmId },
       select: {
+        id: true,
         headcount: true,
         status: true,
         closedAt: true,
@@ -413,10 +436,10 @@ export class FarmsService {
     ).length;
 
     const activeBatches = batches.filter((b) => b.status === "active");
-    const totalBatchHeadcount = activeBatches.reduce(
-      (s, b) => s + b.headcount,
-      0
-    );
+    const activeAnimals = animals.filter((a) => a.status === "active");
+    const animalsInBatchesCount = activeAnimals.filter(
+      (a) => a.livestockBatchId
+    ).length;
 
     const penCap = await this.prisma.pen.aggregate({
       where: { barn: { farmId } },
@@ -438,12 +461,11 @@ export class FarmsService {
     const activePlacements = await this.prisma.penPlacement.findMany({
       where: {
         endedAt: null,
-        pen: { barn: { farmId } }
+        pen: { barn: { farmId } },
+        animal: { is: { status: "active" } }
       },
       select: {
-        animalId: true,
-        batchId: true,
-        batch: { select: { headcount: true } }
+        animalId: true
       }
     });
 
@@ -453,22 +475,17 @@ export class FarmsService {
         id: true,
         capacity: true,
         placements: {
-          where: { endedAt: null },
+          where: {
+            endedAt: null,
+            animal: { is: { status: "active" } }
+          },
           select: {
-            animalId: true,
-            batch: { select: { headcount: true } }
+            animalId: true
           }
         }
       }
     });
-    let penOccupancyHeadcount = 0;
-    for (const pl of activePlacements) {
-      if (pl.animalId) {
-        penOccupancyHeadcount += 1;
-      } else if (pl.batchId && pl.batch) {
-        penOccupancyHeadcount += pl.batch.headcount;
-      }
-    }
+    let penOccupancyHeadcount = activePlacements.length;
 
     const occupancyRate =
       penCapacityTotal > 0
@@ -480,7 +497,6 @@ export class FarmsService {
 
     const barnCount = await this.prisma.barn.count({ where: { farmId } });
 
-    const activeAnimals = animals.filter((a) => a.status === "active");
     const placedAnimalIds = new Set(
       activePlacements
         .map((p) => p.animalId)
@@ -496,14 +512,7 @@ export class FarmsService {
       if (cap <= 0) {
         continue;
       }
-      let occ = 0;
-      for (const pl of pen.placements) {
-        if (pl.animalId) {
-          occ += 1;
-        } else if (pl.batch?.headcount) {
-          occ += pl.batch.headcount;
-        }
-      }
+      const occ = pen.placements.length;
       if (occ < cap) {
         availablePensCount += 1;
       }
@@ -516,43 +525,6 @@ export class FarmsService {
       starter: 0,
       growth: 0,
       other: 0
-    };
-
-    const mapBatchCategory = (key: string | null): keyof typeof categoryTotals => {
-      const k = (key ?? "").toLowerCase();
-      if (
-        k.includes("truie") ||
-        k.includes("sow") ||
-        (k.includes("breed") && k.includes("fem"))
-      ) {
-        return "reproducteur_femelle";
-      }
-      if (
-        k.includes("verrat") ||
-        k.includes("boar") ||
-        (k.includes("breed") && k.includes("male"))
-      ) {
-        return "reproducteur_male";
-      }
-      if (
-        k.includes("nursery") ||
-        k.includes("porcelet") ||
-        k.includes("demarrage") ||
-        k === "starter" ||
-        k === "start"
-      ) {
-        return "starter";
-      }
-      if (k.includes("grow") || k.includes("croissance") || k === "grower") {
-        return "growth";
-      }
-      if (k.includes("finish") || k.includes("engrais") || k === "finisher") {
-        return "fattening";
-      }
-      if (k.includes("breed") || k.includes("reprod")) {
-        return "reproducteur_femelle";
-      }
-      return "other";
     };
 
     const mapAnimalProductionCategory = (
@@ -572,10 +544,6 @@ export class FarmsService {
       }
     };
 
-    for (const b of activeBatches) {
-      const slot = mapBatchCategory(b.categoryKey);
-      categoryTotals[slot] += b.headcount;
-    }
     for (const a of activeAnimals) {
       categoryTotals[mapAnimalProductionCategory(a.productionCategory)] += 1;
     }
@@ -611,23 +579,13 @@ export class FarmsService {
         )
       );
       const monthKey = `${monthStart.getUTCFullYear()}-${String(monthStart.getUTCMonth() + 1).padStart(2, "0")}`;
-      const animalsToDate = animals.filter(
-        (a) => new Date(a.createdAt) <= monthEnd
-      ).length;
-      const batchHeadToDate = batches
-        .filter(
-          (b) =>
-            new Date(b.createdAt) <= monthEnd &&
-            (b.status === "active" || (b.closedAt && new Date(b.closedAt) > monthEnd))
-        )
-        .reduce((s, b) => s + b.headcount, 0);
       headcountTrend.push({
         month: monthKey,
-        total: animalsToDate + batchHeadToDate
+        total: countCheptelHeadcountAt(animals, batches, monthEnd)
       });
     }
 
-    const totalHeadcount = activeAnimals.length + totalBatchHeadcount;
+    const totalHeadcount = countCheptelHeadcountAt(animals, batches, now);
 
     const sickAnimalsCount = activeAnimals.filter(
       (a) => a.healthStatus === "sick"
@@ -647,18 +605,19 @@ export class FarmsService {
         a.expectedFarrowingAt != null
     ).length;
 
-    const weekTrend = (
-      category: "fattening" | "starter"
-    ): number[] => {
+    const weekTrend = (category: "fattening" | "starter"): number[] => {
       const out: number[] = [];
       for (let w = 3; w >= 0; w -= 1) {
         const end = new Date(now);
         end.setUTCDate(end.getUTCDate() - w * 7);
         out.push(
-          activeAnimals.filter(
+          animals.filter(
             (a) =>
-              a.productionCategory === category &&
-              new Date(a.createdAt) <= end
+              a.status === "active" &&
+              new Date(a.createdAt) <= end &&
+              (category === "fattening"
+                ? a.productionCategory === "fattening"
+                : a.productionCategory === "starter")
           ).length
         );
       }
@@ -679,7 +638,7 @@ export class FarmsService {
         femaleAnimals,
         unknownSexAnimals,
         gestatingFemales,
-        totalBatchHeadcount,
+        totalBatchHeadcount: animalsInBatchesCount,
         activeBatchesCount: activeBatches.length,
         closedBatchesCount: batches.filter(
           (b) => b.closedAt != null || b.status !== "active"

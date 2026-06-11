@@ -764,6 +764,46 @@ export async function migrateOnboardingBatchesToIndividualAnimals(
     if (!pl.batch || pl.batch.headcount <= 0) {
       continue;
     }
+
+    const linkedMembers = await tx.animal.count({
+      where: {
+        farmId,
+        livestockBatchId: pl.batch.id,
+        status: "active"
+      }
+    });
+    if (linkedMembers > 0) {
+      await tx.penPlacement.update({
+        where: { id: pl.id },
+        data: { endedAt: new Date() }
+      });
+      await tx.livestockBatch.update({
+        where: { id: pl.batch.id },
+        data: { status: "inactive", headcount: 0 }
+      });
+      continue;
+    }
+
+    const existingIndividuals = await tx.penPlacement.count({
+      where: {
+        penId: pl.pen.id,
+        endedAt: null,
+        animalId: { not: null },
+        animal: { is: { status: "active" } }
+      }
+    });
+    if (existingIndividuals > 0) {
+      await tx.penPlacement.update({
+        where: { id: pl.id },
+        data: { endedAt: new Date() }
+      });
+      await tx.livestockBatch.update({
+        where: { id: pl.batch.id },
+        data: { status: "inactive", headcount: 0 }
+      });
+      continue;
+    }
+
     const prefix: "Eng" | "Dem" = isNurseryCategoryKey(pl.batch.categoryKey)
       ? "Dem"
       : "Eng";

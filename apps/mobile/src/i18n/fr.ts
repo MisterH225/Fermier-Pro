@@ -235,6 +235,20 @@ export const fr = {
     bannerA11y: "Voir les messages admin",
     openCta: "Voir les messages de l'administration"
   },
+  support: {
+    title: "Support",
+    buttonA11y: "Support",
+    lead: "Besoin d’aide ? Contactez notre équipe par téléphone ou sur Telegram.",
+    callButton: "Appeler le support",
+    callHint: "Lance un appel via votre ligne téléphonique.",
+    telegramButton: "Écrire sur Telegram",
+    telegramHint: "Ouvre une discussion avec le support.",
+    unavailable: "Le support n’est pas configuré pour le moment. Réessayez plus tard.",
+    phoneErrorTitle: "Téléphone",
+    phoneUnavailable: "Numéro de support indisponible.",
+    telegramErrorTitle: "Telegram",
+    telegramUnavailable: "Lien Telegram indisponible."
+  },
   account: {
     title: "Profil",
     identity: "Identité",
@@ -626,6 +640,8 @@ export const fr = {
       success: "Vente enregistrée — Finance et Cheptel mis à jour."
     },
     flatPriceLabel: "Prix forfaitaire",
+    flatLotPricing: "{{perHead}} / tête × {{count}} sujet(s)",
+    pricePerHeadShort: "{{amount}} / tête",
     totalWeight: "Poids total :",
     totalWeightEmpty: "Poids total : —",
     pricePerKg: "Prix/kg :",
@@ -768,7 +784,11 @@ export const fr = {
       sectionPricingPork: "Poids et prix",
       sectionPricingFlat: "Prix forfaitaire",
       flatPriceHint:
-        "Pour un porcelet ou un reproducteur, indiquez un montant global (ex. 20 000 FCFA le porcelet, 200 000 FCFA la truie).",
+        "Prix forfaitaire à la tête (ex. 28 000 FCFA par porcelet). Le total du lot est calculé automatiquement selon le nombre de sujets sélectionnés.",
+      pricePerHead: "Prix à la tête (forfait)",
+      lotTotalPrice: "Prix total du lot",
+      flatLotAuto:
+        "{{count}} sujet(s) × {{perHead}} = {{amount}}",
       flatPrice: "Prix forfaitaire",
       weightOptional: "Poids (kg, optionnel)",
       totalWeight: "Poids total (kg)",
@@ -1152,6 +1172,7 @@ export const fr = {
       vetAgenda: "Agenda",
       farmList: "Mes fermes",
       vetReports: "Rapports",
+      support: "Support",
       invitation: "Invitation",
       animalDetail: "Fiche animal",
       farm: "Ferme",
@@ -1480,9 +1501,20 @@ export const fr = {
       cancel: "Annuler",
       categoryLabel: "Catégorie",
       category: {
-        starter: "Démarrage / croissance",
+        starter: "Démarrage",
         fattening: "Engraissement",
         maternity: "Maternité",
+        quarantine: "Quarantaine",
+        mixed: "Mixte",
+        empty: "Vide"
+      },
+      visual: {
+        maternity: "Maternité",
+        starter: "Démarrage",
+        growth: "Croissance",
+        fattening: "Engraissement",
+        boar: "Verrat",
+        boars: "Verrats",
         quarantine: "Quarantaine",
         mixed: "Mixte",
         empty: "Vide"

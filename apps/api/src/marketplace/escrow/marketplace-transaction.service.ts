@@ -2356,7 +2356,7 @@ export class MarketplaceTransactionService {
     const where: Prisma.MarketplaceTransactionWhereInput = status
       ? { status: status as MarketplaceTransactionStatus }
       : {};
-    return this.prisma.marketplaceTransaction.findMany({
+    const rows = await this.prisma.marketplaceTransaction.findMany({
       where,
       orderBy: { updatedAt: "desc" },
       take: 200,
@@ -2366,6 +2366,127 @@ export class MarketplaceTransactionService {
         seller: { select: { id: true, fullName: true, email: true } }
       }
     });
+    return rows.map((tx) => ({
+      id: tx.id,
+      status: tx.status,
+      blockedAmount: Number(tx.blockedAmount),
+      finalAmount: tx.finalAmount != null ? Number(tx.finalAmount) : null,
+      realWeightKg: tx.realWeightKg != null ? Number(tx.realWeightKg) : null,
+      arbitrationWeightKg:
+        tx.arbitrationWeightKg != null ? Number(tx.arbitrationWeightKg) : null,
+      currency: tx.currency,
+      updatedAt: tx.updatedAt.toISOString(),
+      weightDisputeOpenedAt: tx.weightDisputeOpenedAt?.toISOString() ?? null,
+      weightDeclaredByBuyerAt: tx.weightDeclaredByBuyerAt?.toISOString() ?? null,
+      listing: tx.listing,
+      buyer: tx.buyer,
+      seller: tx.seller
+    }));
+  }
+
+  async getOverviewForAdmin() {
+    const closedStatuses: MarketplaceTransactionStatus[] = [
+      MarketplaceTransactionStatus.TRANSACTION_CLOSED,
+      MarketplaceTransactionStatus.CANCELLED_BY_BUYER,
+      MarketplaceTransactionStatus.CANCELLED_BY_SELLER,
+      MarketplaceTransactionStatus.CANCELLED_SOLD_TO_OTHER,
+      MarketplaceTransactionStatus.PAYMENT_FAILED,
+      MarketplaceTransactionStatus.OFFER_EXPIRED
+    ];
+
+    const [
+      listingByStatus,
+      transactionByStatus,
+      activeTransactions,
+      openDisputes,
+      totalViews
+    ] = await Promise.all([
+      this.prisma.marketplaceListing.groupBy({
+        by: ["status"],
+        where: { archived: false },
+        _count: { _all: true }
+      }),
+      this.prisma.marketplaceTransaction.groupBy({
+        by: ["status"],
+        _count: { _all: true }
+      }),
+      this.prisma.marketplaceTransaction.count({
+        where: { status: { notIn: closedStatuses } }
+      }),
+      this.prisma.marketplaceTransaction.count({
+        where: { status: MarketplaceTransactionStatus.WEIGHT_DISPUTED }
+      }),
+      this.prisma.marketplaceListing.aggregate({
+        where: { archived: false },
+        _sum: { viewsCount: true }
+      })
+    ]);
+
+    const listingCounts: Record<string, number> = {};
+    for (const row of listingByStatus) {
+      listingCounts[row.status] = row._count._all;
+    }
+
+    const transactionCounts: Record<string, number> = {};
+    for (const row of transactionByStatus) {
+      transactionCounts[row.status] = row._count._all;
+    }
+
+    const totalListings = Object.values(listingCounts).reduce((sum, n) => sum + n, 0);
+
+    return {
+      listings: {
+        total: totalListings,
+        published: listingCounts[ListingStatus.published] ?? 0,
+        byStatus: listingCounts
+      },
+      transactions: {
+        active: activeTransactions,
+        openDisputes,
+        byStatus: transactionCounts
+      },
+      totalViews: totalViews._sum.viewsCount ?? 0
+    };
+  }
+
+  async listListingsForAdmin(status?: string) {
+    const where: Prisma.MarketplaceListingWhereInput = {
+      archived: false,
+      ...(status && status !== "all"
+        ? { status: status as ListingStatus }
+        : {})
+    };
+
+    const rows = await this.prisma.marketplaceListing.findMany({
+      where,
+      orderBy: { updatedAt: "desc" },
+      take: 200,
+      include: {
+        seller: { select: { id: true, fullName: true, email: true } },
+        farm: { select: { id: true, name: true } },
+        _count: { select: { transactions: true, offers: true } }
+      }
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      status: row.status,
+      category: row.category,
+      totalPrice: row.totalPrice != null ? Number(row.totalPrice) : null,
+      pricePerKg: row.pricePerKg != null ? Number(row.pricePerKg) : null,
+      totalWeightKg: row.totalWeightKg != null ? Number(row.totalWeightKg) : null,
+      currency: row.currency,
+      locationLabel: row.locationLabel,
+      viewsCount: row.viewsCount,
+      activeOfferCount: row.activeOfferCount,
+      publishedAt: row.publishedAt?.toISOString() ?? null,
+      updatedAt: row.updatedAt.toISOString(),
+      seller: row.seller,
+      farm: row.farm,
+      transactionCount: row._count.transactions,
+      offerCount: row._count.offers
+    }));
   }
 
   /** Dashboard commissions plateforme (superadmin). */

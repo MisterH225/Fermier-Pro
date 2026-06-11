@@ -16,6 +16,7 @@
     "ai": "AI assistant",
     "modules": "Modules",
     "settings": "Settings",
+    "more": "More",
     "logout": "Sign out"
   },
   "notifications": {
@@ -323,6 +324,12 @@
   "ai": {
     "title": "AI assistant",
     "unavailable": "AI unavailable — check GEMINI_API_KEY on the API.",
+    "setupTitle": "Configure the AI assistant",
+    "setupBody": "The Google Gemini key must be set on the API server (not in the admin console).",
+    "setupLocal": "Locally: add GEMINI_API_KEY=your_key to the root .env file, then restart npm run dev:api.",
+    "setupRailway": "In production (Railway): Variables → add GEMINI_API_KEY, then redeploy the API.",
+    "setupLink": "Get a key: Google AI Studio → API Keys.",
+    "configured": "AI assistant connected.",
     "epidemic": {
       "title": "Epidemiological analysis",
       "description": "Analysis of aggregated health data (last 30 days).",
@@ -379,6 +386,7 @@
       "map": "Geographic scope",
       "alerts": "Health alert thresholds",
       "notifications": "Notifications",
+      "support": "Mobile support",
       "marketplace": "Marketplace"
     },
     "fields": {
@@ -389,7 +397,11 @@
       "adminEmail": "SuperAdmin email",
       "reportFrequency": "Report frequency (days)",
       "marketplaceCommission": "Marketplace commission (%)",
-      "marketplaceCommissionHint": "Applied to each completed marketplace sale (e.g. 5 = 5%)."
+      "marketplaceCommissionHint": "Applied to each completed marketplace sale (e.g. 5 = 5%).",
+      "supportPhone": "Support phone",
+      "supportPhoneHint": "Number shown in the mobile app (call button). Leave empty to use the SUPPORT_PHONE environment variable.",
+      "supportTelegram": "Telegram link",
+      "supportTelegramHint": "URL or @username for support. Leave empty to use SUPPORT_TELEGRAM_URL on the API."
     },
     "scopes": {
       "world": "Worldwide",
@@ -422,12 +434,77 @@
     "comingSoon": "Section coming soon."
   },
   "marketplace": {
-    "title": "Marketplace — transactions",
+    "title": "Marketplace",
+    "loading": "Loading…",
+    "loadError": "Could not load marketplace data.",
     "tabs": {
+      "listings": "Listings",
       "transactions": "Transactions",
       "disputes": "Weight disputes",
       "revenue": "Commissions",
       "receipts": "PDF receipts"
+    },
+    "overview": {
+      "publishedListings": "Published listings",
+      "totalListings": "Total listings",
+      "activeTransactions": "Active transactions",
+      "openDisputes": "Open disputes"
+    },
+    "listingDetail": {
+      "title": "Listing detail",
+      "error": "Could not load listing detail.",
+      "archived": "Archived",
+      "seller": "Seller",
+      "farm": "Farm",
+      "location": "Location",
+      "totalPrice": "Total price",
+      "pricePerKg": "Price per kg",
+      "weight": "Total weight",
+      "views": "Views",
+      "consultations": "Consultations",
+      "publishedAt": "Published at",
+      "expiresAt": "Expires at",
+      "updatedAt": "Updated at",
+      "reservedBuyer": "Reserved buyer",
+      "animal": "Primary animal",
+      "animalId": "Identifier",
+      "animalTag": "Tag",
+      "animalSex": "Sex",
+      "animalStatus": "Animal status",
+      "offers": "Offers",
+      "noOffers": "No offers.",
+      "transactions": "Transactions",
+      "noTransactions": "No transactions.",
+      "colBuyer": "Buyer",
+      "colOfferStatus": "Offer status",
+      "colPrice": "Price",
+      "colDate": "Date"
+    },
+    "listings": {
+      "empty": "No listings.",
+      "allStatuses": "All statuses",
+      "active": "active",
+      "colTitle": "Listing",
+      "colStatus": "Status",
+      "colSeller": "Seller",
+      "colFarm": "Farm",
+      "colPrice": "Price",
+      "colViews": "Views",
+      "colOffers": "Offers",
+      "colUpdated": "Updated"
+    },
+    "listingStatus": {
+      "draft": "Draft",
+      "published": "Published",
+      "paused": "Paused",
+      "reserved": "Reserved",
+      "reserved_credit": "Reserved (credit)",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "disputed": "Disputed",
+      "sold": "Sold",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
     },
     "receipts": {
       "empty": "No closed transactions.",

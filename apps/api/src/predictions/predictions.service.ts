@@ -3,6 +3,7 @@ import type { User } from "@prisma/client";
 import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { PredictionDataCollectorService } from "./prediction-data-collector.service";
+import { FeedPurchaseForecastService } from "./feed-purchase-forecast.service";
 import { PredictiveAgentService } from "./predictive-agent.service";
 import {
   PREDICTION_HORIZON_DAYS,
@@ -21,7 +22,8 @@ export class PredictionsService {
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
     private readonly collector: PredictionDataCollectorService,
-    private readonly agent: PredictiveAgentService
+    private readonly agent: PredictiveAgentService,
+    private readonly feedForecast: FeedPurchaseForecastService
   ) {}
 
   async getPredictions(
@@ -97,7 +99,14 @@ export class PredictionsService {
       return;
     }
 
-    const predictions = await this.agent.generatePredictions(collected);
+    const geminiPredictions = await this.agent.generatePredictions(collected);
+    const stockPredictions =
+      await this.feedForecast.computeStockPredictions(farmId);
+    const predictions = this.mergeStockPredictions(
+      geminiPredictions,
+      stockPredictions
+    );
+
     await this.prisma.farmPrediction.upsert({
       where: { farmId },
       create: {
@@ -217,6 +226,22 @@ export class PredictionsService {
       unavailable,
       gemini_error: geminiError,
       currency: collected.currency
+    };
+  }
+
+  private mergeStockPredictions(
+    gemini: FarmPredictionsPayload | null,
+    stock: FarmPredictionsPayload["stock_predictions"] | null
+  ): FarmPredictionsPayload | null {
+    if (!stock) {
+      return gemini;
+    }
+    if (!gemini) {
+      return null;
+    }
+    return {
+      ...gemini,
+      stock_predictions: stock
     };
   }
 

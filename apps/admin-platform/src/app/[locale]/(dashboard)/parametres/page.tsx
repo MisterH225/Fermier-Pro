@@ -15,12 +15,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AccountPasswordCard } from "@/components/settings/AccountPasswordCard";
+import { selectClass } from "@/lib/ui-styles";
 
 const SCOPES = ["world", "africa", "west_africa", "countries"] as const;
 const LEVELS = ["info", "warning", "critical"] as const;
-
-const selectClass =
-  "flex h-10 w-full rounded-lg border border-input bg-card px-3 py-2 text-sm";
 
 export default function ParametresPage() {
   const t = useTranslations("settings");
@@ -59,7 +57,9 @@ export default function ParametresPage() {
         alertDefaultLevel: form.alertDefaultLevel,
         adminNotifyEmail: form.adminNotifyEmail ?? "",
         reportFrequencyDays: form.reportFrequencyDays,
-        marketplaceCommissionRate: form.marketplaceCommissionRate
+        marketplaceCommissionRate: form.marketplaceCommissionRate,
+        supportPhone: form.supportPhone ?? "",
+        supportTelegramUrl: form.supportTelegramUrl ?? ""
       });
       setForm(next);
       setSaved(true);
@@ -173,6 +173,40 @@ export default function ParametresPage() {
 
       <Card>
         <CardHeader className="pb-2">
+          <CardTitle className="text-base">{t("sections.support")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="support-phone">{t("fields.supportPhone")}</Label>
+            <Input
+              id="support-phone"
+              type="tel"
+              placeholder="+221771234567"
+              value={form.supportPhone ?? ""}
+              onChange={(e) => update("supportPhone", e.target.value || null)}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("fields.supportPhoneHint")}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="support-telegram">{t("fields.supportTelegram")}</Label>
+            <Input
+              id="support-telegram"
+              type="url"
+              placeholder="https://t.me/fermierpro ou @fermierpro"
+              value={form.supportTelegramUrl ?? ""}
+              onChange={(e) => update("supportTelegramUrl", e.target.value || null)}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("fields.supportTelegramHint")}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
           <CardTitle className="text-base">{t("sections.marketplace")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -207,7 +241,7 @@ export default function ParametresPage() {
           {saving ? "…" : t("save")}
         </Button>
         {saved ? (
-          <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200">
+          <Badge variant="success">
             {t("saved")}
           </Badge>
         ) : null}

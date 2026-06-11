@@ -60,6 +60,46 @@ describeOrSkip("Community Feed (e2e)", () => {
     expect(res.status).toBeLessThan(500);
   });
 
+  it("POST /feed/comments bloque une insulte sans accent", async () => {
+    const postRes = await request(app.getHttpServer())
+      .post("/api/v1/feed/posts")
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({
+        postType: "question",
+        body: "Question test modération commentaire e2e"
+      });
+
+    expect(postRes.status).toBeGreaterThanOrEqual(200);
+    expect(postRes.status).toBeLessThan(300);
+
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/feed/comments")
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({
+        postId: postRes.body.id,
+        body: "Imbecile tu es trop bete"
+      });
+
+    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect(res.status).toBeLessThan(500);
+  });
+
+  it("POST /feed/moderate/pre-check bloque imbecile sans accent", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/feed/moderate/pre-check")
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({
+        body: "Imbecile tu es trop bête"
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body?.shouldBlock).toBe(true);
+    expect(res.body?.allowed).toBe(false);
+  });
+
   it("POST /feed/posts accepte un contenu normal", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/feed/posts")
