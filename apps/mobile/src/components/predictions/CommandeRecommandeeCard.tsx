@@ -21,9 +21,10 @@ export function CommandeRecommandeeCard({
   onOrderPress
 }: Props) {
   const { t } = useTranslation();
-  const recommendations = payload.stock_predictions.feed_needs.filter(
-    (f) => f.reorder_quantity_kg > 0
-  );
+  const feedNeeds = payload.stock_predictions?.feed_needs;
+  const recommendations = Array.isArray(feedNeeds)
+    ? feedNeeds.filter((f) => f.reorder_quantity_kg > 0)
+    : [];
 
   if (!recommendations.length) {
     return null;

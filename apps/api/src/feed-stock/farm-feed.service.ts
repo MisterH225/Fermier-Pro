@@ -134,7 +134,7 @@ export class FarmFeedService {
       (t) =>
         t.productionPhase === "unknown" &&
         (t.phaseSuggestion?.confidence === "low" ||
-          t.phaseSuggestion?.alternatives.length)
+          (t.phaseSuggestion?.alternatives?.length ?? 0) > 0)
     );
   }
 

@@ -22,9 +22,9 @@ type Props = {
 export function BesoinsAlimentCard({ payload, locale }: Props) {
   const { t } = useTranslation();
   const [horizon, setHorizon] = useState<PredictionHorizonKey>("30j");
-  const needs = payload.stock_predictions.feed_needs;
+  const needs = payload.stock_predictions?.feed_needs;
 
-  if (!needs.length) {
+  if (!Array.isArray(needs) || needs.length === 0) {
     return null;
   }
 
