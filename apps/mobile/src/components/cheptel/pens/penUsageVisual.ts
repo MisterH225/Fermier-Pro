@@ -95,7 +95,18 @@ const PEN_VISUALS: Record<PenVisualKey, PenVisual> = {
   }
 };
 
-export function resolvePenUsageTag(pen: Pick<CheptelPenRowDto, "usageTag" | "category">): PenUsageTag {
+export function resolvePenUsageTag(
+  pen: Pick<CheptelPenRowDto, "usageTag" | "category" | "batchTypeTag">
+): PenUsageTag {
+  if (pen.usageTag && pen.usageTag !== "mixed") {
+    return pen.usageTag;
+  }
+  if (pen.batchTypeTag === "fattening") {
+    return "fattening";
+  }
+  if (pen.batchTypeTag === "starter") {
+    return "starter";
+  }
   return (
     pen.usageTag ??
     (pen.category === "maternity"
@@ -126,10 +137,11 @@ export function resolvePenVisualKey(
     | "averageWeightKg"
     | "ageData"
     | "categoryForced"
+    | "batchTypeTag"
   >
 ): PenVisualKey {
   if (pen.occupancy === 0 || pen.category === "empty") {
-    if (pen.categoryForced && pen.category !== "empty") {
+    if (pen.category && pen.category !== "empty") {
       return categoryToVisualKey(pen.category);
     }
     return "empty";
@@ -193,6 +205,7 @@ export function getPenVisualForPen(
     | "averageWeightKg"
     | "ageData"
     | "categoryForced"
+    | "batchTypeTag"
   >
 ): PenVisual {
   return getPenVisual(resolvePenVisualKey(pen));

@@ -17,6 +17,7 @@ import {
 } from "@prisma/client";
 import { FarmAccessService } from "../common/farm-access.service";
 import { FinanceService } from "../finance/finance.service";
+import { mapBatchTypeTag } from "./batch-category.util";
 import { PrismaService } from "../prisma/prisma.service";
 import { PatchAnimalStatusDto } from "../livestock/dto/patch-animal-status.dto";
 import { LivestockService } from "../livestock/livestock.service";
@@ -110,22 +111,23 @@ export class CheptelService {
     private readonly smartAlerts: SmartAlertsService
   ) {}
 
-  private mapBatchType(
-    categoryKey: string | null | undefined
-  ): "starter" | "fattening" | null {
-    const k = (categoryKey ?? "").toLowerCase();
+  private resolvePenCategoryForDisplay(
+    pen: { category: PenCategory | null; categoryForced: boolean },
+    autoCategory: PenCategory
+  ): PenCategory {
+    if (pen.categoryForced && pen.category) {
+      return pen.category;
+    }
+    const stored = pen.category;
     if (
-      k.includes("nursery") ||
-      k.includes("demarrage") ||
-      k === "starter" ||
-      k.includes("porcelet")
+      stored &&
+      stored !== PenCategory.mixed &&
+      stored !== PenCategory.empty &&
+      autoCategory === PenCategory.mixed
     ) {
-      return "starter";
+      return stored;
     }
-    if (k.includes("finish") || k.includes("engrais") || k === "finisher") {
-      return "fattening";
-    }
-    return null;
+    return autoCategory;
   }
 
   private detectPenUsageTag(params: {
@@ -388,7 +390,7 @@ export class CheptelService {
           }
         } else if (pl.batch) {
           occupancy += pl.batch.headcount;
-          const tag = this.mapBatchType(pl.batch.categoryKey);
+          const tag = mapBatchTypeTag(pl.batch.categoryKey);
           if (tag) {
             batchTypeTag = tag;
             allocationRoles.add(tag);
@@ -454,8 +456,7 @@ export class CheptelService {
         averageWeightKg,
         usageTag
       );
-      const category =
-        pen.categoryForced && pen.category ? pen.category : autoCategory;
+      const category = this.resolvePenCategoryForDisplay(pen, autoCategory);
 
       return {
         id: pen.id,
