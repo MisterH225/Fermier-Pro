@@ -24,7 +24,11 @@ export function FilterPills<T extends string>({
           type="button"
           size={size}
           variant={value === id ? "default" : "outline"}
-          className={cn("rounded-full", size === "sm" && "h-8 px-3 text-xs")}
+          className={cn(
+            "rounded-full",
+            size === "sm" && "h-8 px-4 text-xs",
+            value !== id && "border-white/70 bg-white/40"
+          )}
           onClick={() => onChange(id)}
         >
           {label(id)}

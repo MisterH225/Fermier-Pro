@@ -21,7 +21,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-const PIE_COLORS = ["#FF8C00", "#1565C0", "#2E7D32", "#6A1B9A", "#E53935"];
+import { CHART_COLORS } from "@/lib/ui-styles";
+
+const PIE_COLORS = CHART_COLORS;
 
 function formatMoney(n: number) {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n);
@@ -42,7 +44,7 @@ function DetailSection({
 }) {
   return (
     <section className={cn("space-y-4", className)}>
-      <h2 className="text-lg font-bold text-brand border-b border-border/60 pb-2">{title}</h2>
+      <h2 className="text-lg font-bold text-foreground border-b border-white/60 pb-2">{title}</h2>
       {children}
     </section>
   );
@@ -91,38 +93,33 @@ export default function UserDetailPage() {
             size="lg"
           />
           <div className="min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-brand truncate">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground truncate">
               {user.fullName ?? user.email ?? user.id}
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5 truncate">{user.email ?? "—"}</p>
             <div className="flex flex-wrap items-center gap-2 mt-2">
               <Badge
-                variant="outline"
-                className={cn(
-                  "rounded-lg",
-                  user.isActive
-                    ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                    : "bg-muted text-muted-foreground"
-                )}
+                variant={user.isActive ? "success" : "outline"}
+                className={cn(!user.isActive && "bg-muted text-muted-foreground")}
               >
                 {user.isActive ? tUsers("status.active") : tUsers("status.inactive")}
               </Badge>
               {data.profiles.map((p) => (
-                <Badge key={p.id} variant="secondary" className="rounded-lg">
+                <Badge key={p.id} variant="secondary">
                   {profileLabel(p.type)}
                 </Badge>
               ))}
             </div>
           </div>
         </div>
-        <Button variant="outline" className="rounded-xl shrink-0" asChild>
+        <Button variant="outline" className="shrink-0" asChild>
           <Link href="/utilisateurs">← {t("back")}</Link>
         </Button>
       </div>
 
       <DetailSection title={t("tabs.profil")}>
         <div className="grid md:grid-cols-2 gap-6">
-          <Card className="rounded-2xl border-border/60 shadow-sm">
+          <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base">{t("sections.identity")}</CardTitle>
             </CardHeader>
@@ -142,7 +139,7 @@ export default function UserDetailPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl border-border/60 shadow-sm">
+          <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base">{t("sections.farms")}</CardTitle>
             </CardHeader>
@@ -151,7 +148,7 @@ export default function UserDetailPage() {
                 <p className="text-muted-foreground">{t("noFarm")}</p>
               ) : (
                 farms.map((f) => (
-                  <div key={f.id} className="border border-border/60 rounded-xl p-4 bg-muted/20">
+                  <div key={f.id} className="border border-white/60 rounded-2xl p-4 bg-white/40 backdrop-blur-sm">
                     <p className="font-semibold">{f.name}</p>
                     <p className="text-muted-foreground text-xs mt-1">{f.address ?? "—"}</p>
                     <p className="text-xs mt-2 text-muted-foreground">
@@ -165,7 +162,7 @@ export default function UserDetailPage() {
           </Card>
 
           {data.memberships.length > 0 ? (
-            <Card className="md:col-span-2 rounded-2xl border-border/60 shadow-sm">
+            <Card className="md:col-span-2">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">{t("sections.collaborations")}</CardTitle>
               </CardHeader>
@@ -187,13 +184,8 @@ export default function UserDetailPage() {
 
       <DetailSection title={t("tabs.cheptel")}>
         <div className="grid lg:grid-cols-3 gap-4">
-          <KpiCard
-            label={t("livestock.total")}
-            value={livestockSummary.totalActive}
-            accent="#FF8C00"
-            background="#FFF3E0"
-          />
-          <Card className="lg:col-span-2 rounded-2xl border-border/60 shadow-sm">
+          <KpiCard label={t("livestock.total")} value={livestockSummary.totalActive} variant="warning" />
+          <Card className="lg:col-span-2">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">{t("livestock.byCategory")}</CardTitle>
             </CardHeader>
@@ -233,20 +225,17 @@ export default function UserDetailPage() {
           <KpiCard
             label={t("finance.revenues")}
             value={formatMoney(financeSummary.revenues3m)}
-            accent="#2E7D32"
-            background="#E8F5E9"
+            variant="blue"
           />
           <KpiCard
             label={t("finance.expenses")}
             value={formatMoney(financeSummary.expenses3m)}
-            accent="#E53935"
-            background="#FFEBEE"
+            variant="danger"
           />
           <KpiCard
             label={t("finance.margin")}
             value={formatMoney(financeSummary.netMargin3m)}
-            accent="#1565C0"
-            background="#E3F2FD"
+            variant="indigo"
           />
         </div>
         <p className="text-xs text-muted-foreground">{t("finance.note")}</p>
@@ -257,20 +246,17 @@ export default function UserDetailPage() {
           <KpiCard
             label={t("health.activeDiseases")}
             value={String(healthSummary.activeDiseases)}
-            accent="#E53935"
-            background="#FFEBEE"
+            variant="danger"
           />
           <KpiCard
             label={t("health.mortality")}
             value={formatPct(healthSummary.mortalityRate30d)}
-            accent="#6A1B9A"
-            background="#F3E5F5"
+            variant="purple"
           />
           <KpiCard
             label={t("health.overdueVaccines")}
             value={String(healthSummary.overdueVaccines)}
-            accent="#F57F17"
-            background="#FFF8E1"
+            variant="warning"
           />
         </div>
       </DetailSection>
@@ -280,14 +266,12 @@ export default function UserDetailPage() {
           <KpiCard
             label={t("gestation.active")}
             value={String(gestationSummary.active)}
-            accent="#C2185B"
-            background="#FCE4EC"
+            variant="danger"
           />
           <KpiCard
             label={t("gestation.upcoming")}
             value={String(gestationSummary.upcomingFarrowings)}
-            accent="#00838F"
-            background="#E0F7FA"
+            variant="sky"
           />
         </div>
       </DetailSection>

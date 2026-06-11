@@ -20,9 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-
-const selectClass =
-  "flex h-10 w-full max-w-md rounded-lg border border-input bg-card px-3 py-2 text-sm";
+import { selectClass } from "@/lib/ui-styles";
 
 export default function IaPage() {
   const t = useTranslations("ai");
@@ -142,7 +140,7 @@ export default function IaPage() {
             <UnavailableNotice message={t("unavailable")} />
           ) : null}
           {askResult?.answer ? (
-            <p className="text-sm whitespace-pre-wrap rounded-lg bg-muted/50 p-4">
+            <p className="text-sm whitespace-pre-wrap rounded-2xl glass-card p-4">
               {askResult.answer}
             </p>
           ) : null}
@@ -192,35 +190,31 @@ export default function IaPage() {
               <KpiCard
                 label={t("vetAssist.confidence")}
                 value={`${vetAssist.confidenceScore} %`}
-                accent="#1565C0"
-                background="#E3F2FD"
+                variant="blue"
               />
               <KpiCard
                 label={t("vetAssist.recommendation")}
                 value={t(`vetAssist.rec.${vetAssist.recommendation}` as "vetAssist.rec.review")}
-                accent="#2E7D32"
-                background="#E8F5E9"
+                variant="sky"
               />
               <KpiCard
                 label={t("vetAssist.diploma")}
                 value={vetAssist.readableDiploma}
-                accent="#6A1B9A"
-                background="#F3E5F5"
+                variant="purple"
               />
               <KpiCard
                 label={t("vetAssist.consistent")}
                 value={vetAssist.infoConsistent ? t("vetAssist.yes") : t("vetAssist.no")}
-                accent="#F57F17"
-                background="#FFF8E1"
+                variant="warning"
               />
               {vetAssist.notes ? (
-                <p className="sm:col-span-2 text-sm text-muted-foreground rounded-lg border p-3">
+                <p className="sm:col-span-2 text-sm text-muted-foreground rounded-2xl border border-white/60 bg-white/40 p-3">
                   {vetAssist.notes}
                 </p>
               ) : null}
               {vetAssist.diplomaImageAnalyzed ? (
                 <div className="sm:col-span-2">
-                  <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200">
+                  <Badge variant="success">
                     {t("vetAssist.imageAnalyzed")}
                   </Badge>
                 </div>
@@ -236,7 +230,7 @@ export default function IaPage() {
 
 function UnavailableNotice({ message }: { message: string }) {
   return (
-    <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-200">
+    <Badge variant="warning">
       {message}
     </Badge>
   );

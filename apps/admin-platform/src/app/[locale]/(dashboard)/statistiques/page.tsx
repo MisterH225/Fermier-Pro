@@ -59,24 +59,9 @@ export default function StatistiquesPage() {
       ) : (
         <>
           <div className="grid md:grid-cols-3 gap-4">
-            <KpiCard
-              label={t("kpis.newUsers")}
-              value={data.newUsers}
-              accent="#1565C0"
-              background="#E3F2FD"
-            />
-            <KpiCard
-              label={t("kpis.activeAnimals")}
-              value={data.activeAnimals}
-              accent="#FF8C00"
-              background="#FFF3E0"
-            />
-            <KpiCard
-              label={t("kpis.mortality")}
-              value={data.mortalityHeadcount}
-              accent="#E53935"
-              background="#FFEBEE"
-            />
+            <KpiCard label={t("kpis.newUsers")} value={data.newUsers} variant="blue" />
+            <KpiCard label={t("kpis.activeAnimals")} value={data.activeAnimals} variant="warning" />
+            <KpiCard label={t("kpis.mortality")} value={data.mortalityHeadcount} variant="danger" />
           </div>
 
           <Card>

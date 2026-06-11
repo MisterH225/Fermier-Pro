@@ -124,8 +124,7 @@ export function UserActionsMenu({ user, token, onRefresh }: Props) {
             ref={menuRef}
             role="menu"
             className={cn(
-              "fixed z-[100] min-w-[200px] rounded-xl border border-border/60",
-              "bg-card shadow-lg py-1 text-sm overflow-y-auto overscroll-contain"
+              "glass-dropdown fixed z-[100] min-w-[200px] rounded-2xl py-1 text-sm overflow-y-auto overscroll-contain"
             )}
             style={{
               top: pos.top,
@@ -137,7 +136,7 @@ export function UserActionsMenu({ user, token, onRefresh }: Props) {
             <Link
               href={`/utilisateurs/${user.id}`}
               role="menuitem"
-              className="block px-3 py-2 hover:bg-muted"
+              className="block px-3 py-2 hover:bg-white/60"
               onClick={() => setOpen(false)}
             >
               {t("view")}
@@ -145,7 +144,7 @@ export function UserActionsMenu({ user, token, onRefresh }: Props) {
             <button
               type="button"
               role="menuitem"
-              className="w-full text-left px-3 py-2 hover:bg-muted"
+              className="w-full text-left px-3 py-2 hover:bg-white/60"
               onClick={() => closeAnd(() => setDlg("message"))}
             >
               {t("message")}
@@ -153,17 +152,17 @@ export function UserActionsMenu({ user, token, onRefresh }: Props) {
             <button
               type="button"
               role="menuitem"
-              className="w-full text-left px-3 py-2 hover:bg-muted"
+              className="w-full text-left px-3 py-2 hover:bg-white/60"
               onClick={() => closeAnd(() => setDlg("warn"))}
             >
               {t("warn")}
             </button>
-            <hr className="my-1 border-border/60" />
+            <hr className="my-1 border-white/50" />
             {status === "active" ? (
               <button
                 type="button"
                 role="menuitem"
-                className="w-full text-left px-3 py-2 hover:bg-muted"
+                className="w-full text-left px-3 py-2 hover:bg-white/60"
                 onClick={() => closeAnd(() => setDlg("suspend"))}
               >
                 {t("suspend")}
@@ -172,7 +171,7 @@ export function UserActionsMenu({ user, token, onRefresh }: Props) {
               <button
                 type="button"
                 role="menuitem"
-                className="w-full text-left px-3 py-2 hover:bg-muted"
+                className="w-full text-left px-3 py-2 hover:bg-white/60"
                 onClick={() => closeAnd(() => setDlg("unsuspend"))}
               >
                 {t("unsuspend")}
@@ -182,7 +181,7 @@ export function UserActionsMenu({ user, token, onRefresh }: Props) {
               <button
                 type="button"
                 role="menuitem"
-                className="w-full text-left px-3 py-2 hover:bg-muted"
+                className="w-full text-left px-3 py-2 hover:bg-white/60"
                 onClick={() => closeAnd(() => setDlg("ban"))}
               >
                 {t("ban")}
@@ -191,7 +190,7 @@ export function UserActionsMenu({ user, token, onRefresh }: Props) {
             <button
               type="button"
               role="menuitem"
-              className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50"
+              className="w-full text-left px-3 py-2 text-destructive hover:bg-destructive/10"
               onClick={() => closeAnd(() => setDlg("delete"))}
             >
               {t("delete")}

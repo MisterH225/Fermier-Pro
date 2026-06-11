@@ -13,6 +13,7 @@ import {
   type FeedSanctionedUserDto
 } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { PageSkeleton } from "@/components/layout/PageSkeleton";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -52,18 +53,15 @@ export default function FeedModerationPage() {
 
   return (
     <div className="space-y-8 max-w-6xl">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-brand">{t("title")}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{t("subtitle")}</p>
-      </div>
+      <PageHeader title={t("title")} description={t("subtitle")} />
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">{t("sections.events")}</h2>
-        <Card className="rounded-2xl overflow-hidden">
+        <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-muted/30 text-left text-xs uppercase text-muted-foreground">
+                <tr className="border-b bg-white/40 backdrop-blur-sm text-left text-xs uppercase text-muted-foreground">
                   <th className="px-4 py-3">{t("columns.date")}</th>
                   <th className="px-4 py-3">{t("columns.user")}</th>
                   <th className="px-4 py-3">{t("columns.type")}</th>
@@ -100,11 +98,11 @@ export default function FeedModerationPage() {
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">{t("sections.sanctioned")}</h2>
-        <Card className="rounded-2xl overflow-hidden">
+        <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-muted/30 text-left text-xs uppercase text-muted-foreground">
+                <tr className="border-b bg-white/40 backdrop-blur-sm text-left text-xs uppercase text-muted-foreground">
                   <th className="px-4 py-3">{t("columns.user")}</th>
                   <th className="px-4 py-3">{t("columns.status")}</th>
                   <th className="px-4 py-3">{t("columns.until")}</th>
@@ -150,7 +148,7 @@ export default function FeedModerationPage() {
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">{t("sections.appeals")}</h2>
-        <Card className="rounded-2xl overflow-hidden divide-y">
+        <Card className="overflow-hidden divide-y">
           {appeals.map((a) => (
             <div key={a.id} className="p-4 space-y-2">
               <div className="text-sm font-medium">

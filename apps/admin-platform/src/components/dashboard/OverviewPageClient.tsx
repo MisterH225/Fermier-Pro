@@ -23,7 +23,8 @@ import { Link } from "@/i18n/navigation";
 import { PigPriceIndexSection } from "@/components/market/PigPriceIndexSection";
 import { useAdminToken } from "@/lib/useAdminToken";
 
-const PROFILE_COLORS = ["#1B3B2E", "#FF8C00", "#8B9A5B", "#1565C0", "#6A1B9A"];
+const PROFILE_COLORS = ["#2563EB", "#3B82F6", "#60A5FA", "#818CF8", "#6366F1"];
+const CHART_BLUE = "#2563EB";
 
 export function OverviewPageClient() {
   const t = useTranslations("overview");
@@ -43,21 +44,9 @@ export function OverviewPageClient() {
   const profileTotal = data.charts.profileDistribution.reduce((s, p) => s + p.count, 0);
 
   const secondaryKpis = [
-    {
-      label: t("kpis.farms"),
-      value: data.kpis.activeFarms,
-      accent: "#FF8C00"
-    },
-    {
-      label: t("kpis.animals"),
-      value: data.kpis.activeAnimals,
-      accent: "#6A1B9A"
-    },
-    {
-      label: t("kpis.transactions"),
-      value: data.kpis.monthTransactions,
-      accent: "#00838F"
-    }
+    { label: t("kpis.farms"), value: data.kpis.activeFarms, accent: "#3B82F6" },
+    { label: t("kpis.animals"), value: data.kpis.activeAnimals, accent: "#6366F1" },
+    { label: t("kpis.transactions"), value: data.kpis.monthTransactions, accent: "#0EA5E9" }
   ];
 
   const topCountries = [...data.charts.farmsByCountry]
@@ -69,19 +58,19 @@ export function OverviewPageClient() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-brand">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
             {t("title")}
           </h1>
           <p className="text-sm text-muted-foreground mt-1 max-w-xl">{t("subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="rounded-xl" asChild>
+          <Button variant="outline" size="sm" asChild>
             <Link href="/statistiques">
               <Download className="size-4" />
               {t("actions.export")}
             </Link>
           </Button>
-          <Button variant="outline" size="sm" className="rounded-xl" asChild>
+          <Button variant="outline" size="sm" asChild>
             <Link href="/parametres">
               <Filter className="size-4" />
               {t("actions.filter")}
@@ -90,16 +79,14 @@ export function OverviewPageClient() {
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-4 gap-4">
-        <div className="lg:col-span-1">
-          <OverviewStatCard
-            featured
-            label={t("kpis.users")}
-            value={data.kpis.totalUsers}
-            delta={signupDelta}
-            deltaLabel={t("deltaPeriod")}
-          />
-        </div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <OverviewStatCard
+          featured
+          label={t("kpis.users")}
+          value={data.kpis.totalUsers}
+          delta={signupDelta}
+          deltaLabel={t("deltaPeriod")}
+        />
         {secondaryKpis.map((k) => (
           <OverviewStatCard key={k.label} label={k.label} value={k.value} accent={k.accent} />
         ))}
@@ -111,27 +98,36 @@ export function OverviewPageClient() {
         </div>
       ) : null}
 
-      <div className="grid lg:grid-cols-5 gap-6">
-        <Card className="lg:col-span-3 rounded-2xl border-border/60 shadow-sm">
+      <div className="grid lg:grid-cols-5 gap-5">
+        <Card className="lg:col-span-3">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-base font-bold">{t("charts.signups")}</CardTitle>
-            <span className="text-xs text-muted-foreground">{t("charts.period30d")}</span>
+            <CardTitle>{t("charts.signups")}</CardTitle>
+            <span className="text-xs font-medium text-muted-foreground rounded-full bg-white/60 px-3 py-1">
+              {t("charts.period30d")}
+            </span>
           </CardHeader>
           <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.charts.signups30d} barSize={14}>
+              <BarChart data={data.charts.signups30d} barSize={12}>
                 <XAxis dataKey="day" hide />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Bar dataKey="count" fill="#1B3B2E" radius={[6, 6, 0, 0]} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#64748B" }} />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: "12px",
+                    border: "1px solid rgba(255,255,255,0.6)",
+                    background: "rgba(255,255,255,0.9)",
+                    backdropFilter: "blur(8px)"
+                  }}
+                />
+                <Bar dataKey="count" fill={CHART_BLUE} radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2 rounded-2xl border-border/60 shadow-sm">
+        <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-bold">{t("charts.profiles")}</CardTitle>
+            <CardTitle>{t("charts.profiles")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col sm:flex-row items-center gap-4 h-72">
             <div className="relative w-44 h-44 shrink-0">
@@ -145,7 +141,7 @@ export function OverviewPageClient() {
                     cy="50%"
                     innerRadius={52}
                     outerRadius={72}
-                    paddingAngle={2}
+                    paddingAngle={3}
                   >
                     {data.charts.profileDistribution.map((_, i) => (
                       <Cell key={i} fill={PROFILE_COLORS[i % PROFILE_COLORS.length]} />
@@ -155,13 +151,15 @@ export function OverviewPageClient() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-2xl font-extrabold text-brand tabular-nums">{profileTotal}</span>
+                <span className="text-2xl font-extrabold text-primary tabular-nums">
+                  {profileTotal}
+                </span>
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
                   {t("charts.totalProfiles")}
                 </span>
               </div>
             </div>
-            <ul className="flex-1 space-y-2 text-sm w-full">
+            <ul className="flex-1 space-y-2.5 text-sm w-full">
               {data.charts.profileDistribution.map((p, i) => (
                 <li key={p.profile} className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-2 min-w-0">
@@ -179,11 +177,11 @@ export function OverviewPageClient() {
         </Card>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <Card className="rounded-2xl border-border/60 shadow-sm">
+      <div className="grid lg:grid-cols-2 gap-5">
+        <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-bold flex items-center gap-2">
-              <Tractor className="size-4 text-brand" />
+            <CardTitle className="flex items-center gap-2">
+              <Tractor className="size-4 text-primary" />
               {t("countries.title")}
             </CardTitle>
           </CardHeader>
@@ -199,9 +197,9 @@ export function OverviewPageClient() {
                       {Math.round((c.count / countryMax) * 100)}%
                     </span>
                   </div>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div className="h-2 rounded-full bg-white/60 overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-brand to-brand-olive-light"
+                      className="h-full rounded-full bg-gradient-to-r from-primary to-blue-400"
                       style={{ width: `${Math.max(8, (c.count / countryMax) * 100)}%` }}
                     />
                   </div>
@@ -211,10 +209,10 @@ export function OverviewPageClient() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border-border/60 shadow-sm">
+        <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-bold flex items-center gap-2">
-              <Users className="size-4 text-brand" />
+            <CardTitle className="flex items-center gap-2">
+              <Users className="size-4 text-primary" />
               {t("activity")}
             </CardTitle>
           </CardHeader>
@@ -223,10 +221,10 @@ export function OverviewPageClient() {
               {data.recentActivity.vetRequests.map((v) => (
                 <li
                   key={v.id}
-                  className="flex items-start gap-3 rounded-xl px-3 py-2.5 text-sm hover:bg-muted/60 transition"
+                  className="flex items-start gap-3 rounded-2xl px-3 py-2.5 text-sm hover:bg-white/50 transition"
                 >
-                  <span className="mt-0.5 size-8 rounded-full bg-brand-accent/15 flex items-center justify-center shrink-0">
-                    <Sprout className="size-4 text-brand-accent" />
+                  <span className="mt-0.5 size-8 rounded-full bg-amber-500/15 flex items-center justify-center shrink-0">
+                    <Sprout className="size-4 text-amber-500" />
                   </span>
                   <div className="min-w-0">
                     <p className="font-medium text-foreground leading-snug">
@@ -238,10 +236,10 @@ export function OverviewPageClient() {
               {data.recentActivity.signups.map((u) => (
                 <li
                   key={u.id}
-                  className="flex items-start gap-3 rounded-xl px-3 py-2.5 text-sm hover:bg-muted/60 transition"
+                  className="flex items-start gap-3 rounded-2xl px-3 py-2.5 text-sm hover:bg-white/50 transition"
                 >
-                  <span className="mt-0.5 size-8 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
-                    <Users className="size-4 text-brand" />
+                  <span className="mt-0.5 size-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Users className="size-4 text-primary" />
                   </span>
                   <div className="min-w-0">
                     <p className="font-medium text-foreground leading-snug">

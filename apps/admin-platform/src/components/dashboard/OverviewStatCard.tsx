@@ -16,23 +16,23 @@ export function OverviewStatCard({
   delta,
   deltaLabel,
   featured = false,
-  accent = "#1B3B2E"
+  accent = "#2563EB"
 }: Props) {
   const positive = delta != null && delta >= 0;
 
   if (featured) {
     return (
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand via-brand-light to-brand-olive p-6 text-white shadow-lg shadow-brand/20 min-h-[160px] flex flex-col justify-between">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-brand-light to-blue-400 p-6 text-white shadow-glow-blue min-h-[168px] flex flex-col justify-between">
         <div
-          className="absolute inset-0 opacity-20"
+          className="absolute inset-0 opacity-25"
           style={{
             backgroundImage:
-              "linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px)",
-            backgroundSize: "24px 24px"
+              "linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)",
+            backgroundSize: "28px 28px"
           }}
         />
         <div className="relative">
-          <p className="text-sm font-medium text-white/80">{label}</p>
+          <p className="text-sm font-medium text-white/85">{label}</p>
           <p className="text-4xl font-extrabold mt-2 tabular-nums tracking-tight">{value}</p>
         </div>
         {delta != null ? (
@@ -40,14 +40,14 @@ export function OverviewStatCard({
             <span
               className={cn(
                 "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-semibold",
-                positive ? "bg-white/20 text-brand-gold" : "bg-red-500/30 text-red-100"
+                positive ? "bg-white/25 text-white" : "bg-red-500/30 text-red-100"
               )}
             >
               {positive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
               {positive ? "+" : ""}
               {delta}%
             </span>
-            {deltaLabel ? <span className="text-white/70 text-xs">{deltaLabel}</span> : null}
+            {deltaLabel ? <span className="text-white/75 text-xs">{deltaLabel}</span> : null}
           </div>
         ) : null}
       </div>
@@ -55,10 +55,13 @@ export function OverviewStatCard({
   }
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm min-h-[160px] flex flex-col justify-between">
+    <div className="rounded-3xl border border-white/60 bg-white/70 backdrop-blur-md p-5 shadow-glass min-h-[168px] flex flex-col justify-between">
       <div>
         <p className="text-sm font-medium text-muted-foreground">{label}</p>
-        <p className="text-3xl font-extrabold mt-2 tabular-nums tracking-tight" style={{ color: accent }}>
+        <p
+          className="text-3xl font-extrabold mt-2 tabular-nums tracking-tight"
+          style={{ color: accent }}
+        >
           {value}
         </p>
       </div>
@@ -67,7 +70,7 @@ export function OverviewStatCard({
           <span
             className={cn(
               "inline-flex items-center gap-1 font-semibold",
-              positive ? "text-emerald-600" : "text-red-600"
+              positive ? "text-primary" : "text-destructive"
             )}
           >
             {positive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}

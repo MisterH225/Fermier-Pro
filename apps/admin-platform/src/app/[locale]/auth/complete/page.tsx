@@ -38,8 +38,9 @@ export default function AuthCompletePage() {
   }, [router, t]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-      {message}
+    <div className="min-h-screen dashboard-bg flex flex-col items-center justify-center gap-4 text-muted-foreground">
+      <div className="size-10 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+      <p>{message}</p>
     </div>
   );
 }

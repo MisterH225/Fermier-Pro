@@ -14,10 +14,10 @@ export function AccountStatusBadge({
 }) {
   const t = useTranslations("users.accountStatus");
   const key = status as AccountStatus;
-  const styles: Record<AccountStatus, string> = {
-    active: "bg-emerald-50 text-emerald-800 border-emerald-200",
-    suspended: "bg-amber-50 text-amber-900 border-amber-200",
-    banned: "bg-red-50 text-red-800 border-red-200"
+  const variants: Record<AccountStatus, "success" | "warning" | "danger"> = {
+    active: "success",
+    suspended: "warning",
+    banned: "danger"
   };
   const label =
     key === "active" || key === "suspended" || key === "banned"
@@ -25,12 +25,8 @@ export function AccountStatusBadge({
       : status;
   return (
     <Badge
-      variant="outline"
-      className={cn(
-        "rounded-lg font-medium",
-        styles[key as AccountStatus] ?? "bg-muted",
-        className
-      )}
+      variant={variants[key as AccountStatus] ?? "outline"}
+      className={cn("font-medium", className)}
     >
       {label}
     </Badge>

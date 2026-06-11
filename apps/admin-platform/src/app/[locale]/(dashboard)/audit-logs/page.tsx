@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { fetchAuditLogs, type AuditLogItem } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { PageSkeleton } from "@/components/layout/PageSkeleton";
 import { Card } from "@/components/ui/card";
 
@@ -27,15 +28,12 @@ export default function AuditLogsPage() {
 
   return (
     <div className="space-y-6 max-w-6xl">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-brand">{t("title")}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{t("subtitle")}</p>
-      </div>
-      <Card className="rounded-2xl overflow-hidden">
+      <PageHeader title={t("title")} description={t("subtitle")} />
+      <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/30 text-left text-xs uppercase text-muted-foreground">
+              <tr className="border-b bg-white/40 backdrop-blur-sm text-left text-xs uppercase text-muted-foreground">
                 <th className="px-4 py-3">{t("columns.date")}</th>
                 <th className="px-4 py-3">{t("columns.admin")}</th>
                 <th className="px-4 py-3">{t("columns.target")}</th>

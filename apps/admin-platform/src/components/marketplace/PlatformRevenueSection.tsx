@@ -55,20 +55,17 @@ export function PlatformRevenueSection({ token }: Props) {
             <KpiCard
               label={t("revenue.totalCommission")}
               value={`${Math.round(data.totalCommission).toLocaleString("fr-FR")} XOF`}
-              accent="#166534"
-              background="#ecfdf5"
+              variant="blue"
             />
             <KpiCard
               label={t("revenue.totalGross")}
               value={`${Math.round(data.totalGross).toLocaleString("fr-FR")} XOF`}
-              accent="#1d4ed8"
-              background="#eff6ff"
+              variant="indigo"
             />
             <KpiCard
               label={t("revenue.transactionCount")}
               value={String(data.transactionCount)}
-              accent="#b45309"
-              background="#fffbeb"
+              variant="warning"
             />
           </div>
 
@@ -80,7 +77,7 @@ export function PlatformRevenueSection({ token }: Props) {
                   {data.series.map((p) => (
                     <span
                       key={p.date}
-                      className="text-xs rounded-md bg-brand/10 px-2 py-1"
+                      className="text-xs rounded-full bg-primary/10 border border-primary/15 px-2.5 py-1"
                     >
                       {p.date}: {Math.round(p.commission).toLocaleString("fr-FR")} XOF
                     </span>
@@ -108,7 +105,7 @@ export function PlatformRevenueSection({ token }: Props) {
                       <TableCell className="text-right">
                         {Math.round(r.grossAmount).toLocaleString("fr-FR")} XOF
                       </TableCell>
-                      <TableCell className="text-right font-medium text-brand">
+                      <TableCell className="text-right font-medium text-primary">
                         {Math.round(r.commissionAmount).toLocaleString("fr-FR")} XOF
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">

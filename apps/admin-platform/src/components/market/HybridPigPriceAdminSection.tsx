@@ -94,7 +94,7 @@ export function HybridPigPriceAdminSection({ token }: Props) {
               : "—"}
           </p>
           {data.isFrozen ? (
-            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+            <p className="text-sm text-amber-800 bg-amber-500/10 border border-amber-500/25 rounded-2xl px-3 py-2">
               {t("frozen", {
                 reason: data.freezeReason ?? "circuit breaker"
               })}
@@ -115,7 +115,7 @@ export function HybridPigPriceAdminSection({ token }: Props) {
               <XAxis dataKey="date" tick={{ fontSize: 10 }} hide />
               <YAxis tick={{ fontSize: 10 }} width={56} />
               <Tooltip />
-              <Line type="monotone" dataKey="value" stroke="#7C3AED" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="value" stroke="#2563EB" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>

@@ -75,10 +75,12 @@ export function AccountPasswordCard() {
           />
         </div>
         {error ? (
-          <p className="text-sm text-destructive bg-red-50 rounded-lg px-3 py-2">{error}</p>
+          <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-2xl px-3 py-2">
+            {error}
+          </p>
         ) : null}
         {saved ? (
-          <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200">
+          <Badge variant="success">
             {t("saved")}
           </Badge>
         ) : null}

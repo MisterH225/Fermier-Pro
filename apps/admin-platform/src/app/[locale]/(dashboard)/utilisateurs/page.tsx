@@ -10,6 +10,7 @@ import { AccountStatusBadge } from "@/components/users/AccountStatusBadge";
 import { UserActionsMenu } from "@/components/users/UserActionsMenu";
 import { UserAvatar } from "@/components/users/UserAvatar";
 import { FilterPills } from "@/components/layout/FilterPills";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { PageSkeleton } from "@/components/layout/PageSkeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -108,17 +109,13 @@ export default function UtilisateursPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-brand">
-          {t("title")}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {data ? t("total", { count: data.total }) : t("loading")}
-        </p>
-      </div>
+      <PageHeader
+        title={t("title")}
+        description={data ? t("total", { count: data.total }) : t("loading")}
+      />
 
-      <Card className="rounded-2xl border-border/60 shadow-sm overflow-hidden">
-        <div className="flex flex-col gap-4 p-4 sm:p-5 border-b border-border/60 bg-card">
+      <Card className="overflow-hidden">
+        <div className="flex flex-col gap-4 p-4 sm:p-5 border-b border-white/50 bg-white/30 backdrop-blur-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <FilterPills
               items={STATUS_FILTERS}
@@ -135,7 +132,7 @@ export default function UtilisateursPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={t("searchPlaceholder")}
-                className="pl-10 rounded-xl bg-muted/30 border-border/60"
+                className="pl-10"
               />
             </div>
           </div>
@@ -151,13 +148,13 @@ export default function UtilisateursPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border/60 bg-muted/20 text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b border-white/50 bg-white/40 backdrop-blur-sm text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="w-12 px-4 py-3">
                   <input
                     type="checkbox"
                     checked={allSelected}
                     onChange={toggleAll}
-                    className="size-4 rounded border-border accent-brand cursor-pointer"
+                    className="size-4 rounded border-white/60 accent-primary cursor-pointer"
                     aria-label={t("selectAll")}
                   />
                 </th>
@@ -193,8 +190,8 @@ export default function UtilisateursPage() {
                     <tr
                       key={u.id}
                       className={cn(
-                        "border-b border-border/40 transition-colors group",
-                        isSelected ? "bg-brand/5" : "hover:bg-muted/40"
+                        "border-b border-white/40 transition-colors group",
+                        isSelected ? "bg-primary/5" : "hover:bg-white/50"
                       )}
                     >
                       <td className="px-4 py-3">
@@ -202,7 +199,7 @@ export default function UtilisateursPage() {
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleOne(u.id)}
-                          className="size-4 rounded border-border accent-brand cursor-pointer"
+                          className="size-4 rounded border-white/60 accent-primary cursor-pointer"
                           aria-label={u.fullName ?? u.email ?? u.id}
                         />
                       </td>
@@ -218,7 +215,7 @@ export default function UtilisateursPage() {
                             size="md"
                           />
                           <div className="min-w-0">
-                            <p className="font-semibold text-foreground truncate group-hover:text-brand transition">
+                            <p className="font-semibold text-foreground truncate group-hover:text-primary transition">
                               {u.fullName ?? "—"}
                             </p>
                             <p className="text-xs text-muted-foreground truncate">
@@ -230,7 +227,7 @@ export default function UtilisateursPage() {
                       <td className="px-4 py-3 hidden md:table-cell">
                         <div className="flex flex-wrap gap-1">
                           {u.profiles.map((p) => (
-                            <Badge key={p.id} variant="secondary" className="rounded-lg text-xs">
+                            <Badge key={p.id} variant="secondary" className="text-xs">
                               {t(`profiles.${p.type}` as "profiles.producer")}
                             </Badge>
                           ))}
@@ -242,8 +239,8 @@ export default function UtilisateursPage() {
                       <td className="px-4 py-3 hidden lg:table-cell">
                         {u.primaryFarm ? (
                           <div className="flex items-center gap-2 text-muted-foreground">
-                            <span className="size-8 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
-                              <Tractor className="size-4 text-brand" />
+                            <span className="size-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                              <Tractor className="size-4 text-primary" />
                             </span>
                             <div className="min-w-0">
                               <p className="font-medium text-foreground truncate">
@@ -274,7 +271,7 @@ export default function UtilisateursPage() {
           </table>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-5 py-4 border-t border-border/60 bg-muted/10">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-5 py-4 border-t border-white/50 bg-white/30">
           <p className="text-sm text-muted-foreground">
             {t("pagination.page", { current: page + 1, total: pageCount })}
           </p>

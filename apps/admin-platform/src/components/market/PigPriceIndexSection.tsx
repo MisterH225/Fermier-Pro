@@ -87,8 +87,8 @@ export function PigPriceIndexSection({ token, compact = false }: Props) {
                 <Area
                   type="monotone"
                   dataKey="avgPricePerKg"
-                  stroke="#7C3AED"
-                  fill="#7C3AED33"
+                  stroke="#2563EB"
+                  fill="#2563EB33"
                   strokeWidth={2}
                   dot={false}
                 />
@@ -231,7 +231,7 @@ export function PigPriceIndexSection({ token, compact = false }: Props) {
                         </td>
                         <td
                           className={`py-2 pr-4 ${
-                            (row.variation24h ?? 0) >= 0 ? "text-green-600" : "text-red-600"
+                            (row.variation24h ?? 0) >= 0 ? "text-primary" : "text-destructive"
                           }`}
                         >
                           {row.variation24h != null

@@ -15,12 +15,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AccountPasswordCard } from "@/components/settings/AccountPasswordCard";
+import { selectClass } from "@/lib/ui-styles";
 
 const SCOPES = ["world", "africa", "west_africa", "countries"] as const;
 const LEVELS = ["info", "warning", "critical"] as const;
-
-const selectClass =
-  "flex h-10 w-full rounded-lg border border-input bg-card px-3 py-2 text-sm";
 
 export default function ParametresPage() {
   const t = useTranslations("settings");
@@ -207,7 +205,7 @@ export default function ParametresPage() {
           {saving ? "…" : t("save")}
         </Button>
         {saved ? (
-          <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200">
+          <Badge variant="success">
             {t("saved")}
           </Badge>
         ) : null}

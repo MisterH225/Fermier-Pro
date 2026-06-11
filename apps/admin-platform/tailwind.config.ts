@@ -9,7 +9,14 @@ const config: Config = {
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)"
+        sm: "calc(var(--radius) - 4px)",
+        "2xl": "1.25rem",
+        "3xl": "1.75rem",
+        "4xl": "2rem"
+      },
+      boxShadow: {
+        "glow-blue": "0 4px 20px rgba(37, 99, 235, 0.35)",
+        glass: "0 8px 32px rgba(37, 99, 235, 0.08)"
       },
       colors: {
         border: "hsl(var(--border))",
@@ -42,15 +49,23 @@ const config: Config = {
           foreground: "hsl(var(--card-foreground))"
         },
         brand: {
-          DEFAULT: "#1B3B2E",
-          light: "#2d5a47",
-          lighter: "#3d6b54",
-          accent: "#FF8C00",
-          cream: "#F4F7EF",
+          DEFAULT: "#2563EB",
+          light: "#3B82F6",
+          lighter: "#60A5FA",
+          accent: "#2563EB",
+          cream: "#F0F4FF",
           olive: "#5C6B3A",
           "olive-light": "#8B9A5B",
           "olive-dark": "#3D4A28",
-          gold: "#E8A838"
+          gold: "#F59E0B"
+        },
+        success: {
+          DEFAULT: "#10B981",
+          foreground: "#FFFFFF"
+        },
+        danger: {
+          DEFAULT: "#EF4444",
+          foreground: "#FFFFFF"
         }
       },
       fontFamily: {

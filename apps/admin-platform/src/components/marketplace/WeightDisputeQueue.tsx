@@ -80,7 +80,7 @@ export function WeightDisputeQueue({ token, rows, onReload }: Props) {
     <>
       <div className="grid gap-4">
         {rows.map((row) => (
-          <Card key={row.id} className="border-amber-200">
+          <Card key={row.id} className="border-amber-500/30 bg-amber-500/5">
             <CardContent className="p-5 space-y-3">
               <div className="flex flex-wrap gap-3 items-start justify-between">
                 <div>
@@ -95,17 +95,17 @@ export function WeightDisputeQueue({ token, rows, onReload }: Props) {
                 </Button>
               </div>
               <div className="grid sm:grid-cols-3 gap-3 text-sm">
-                <div className="rounded-lg bg-muted/50 p-3">
+                <div className="rounded-2xl border border-white/60 bg-white/50 backdrop-blur-sm p-3">
                   <p className="text-muted-foreground">{t("disputes.declaredWeight")}</p>
                   <p className="font-semibold">{num(row.realWeightKg)} kg</p>
                 </div>
-                <div className="rounded-lg bg-muted/50 p-3">
+                <div className="rounded-2xl border border-white/60 bg-white/50 backdrop-blur-sm p-3">
                   <p className="text-muted-foreground">{t("disputes.blockedAmount")}</p>
                   <p className="font-semibold">
                     {num(row.blockedAmount)} {row.currency}
                   </p>
                 </div>
-                <div className="rounded-lg bg-muted/50 p-3">
+                <div className="rounded-2xl border border-white/60 bg-white/50 backdrop-blur-sm p-3">
                   <p className="text-muted-foreground">{t("disputes.openedAt")}</p>
                   <p className="font-semibold">
                     {row.weightDisputeOpenedAt
