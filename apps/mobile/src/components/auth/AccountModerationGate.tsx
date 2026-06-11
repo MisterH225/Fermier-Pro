@@ -7,6 +7,20 @@ import { AdminMessagesModal } from "../admin/AdminMessagesModal";
 
 const SUPPORT_EMAIL = "support@fermierpro.com";
 
+function isAccountSuspended(user: {
+  accountStatus?: string;
+  suspendedUntil?: string | null;
+}): boolean {
+  if (user.accountStatus !== "suspended") {
+    return false;
+  }
+  const until = user.suspendedUntil;
+  if (until && new Date(until) <= new Date()) {
+    return false;
+  }
+  return true;
+}
+
 function ViewMessagesButton({ label }: { label: string }) {
   const [open, setOpen] = useState(false);
   return (
@@ -49,7 +63,7 @@ export function AccountModerationGate({ children }: { children: React.ReactNode 
     );
   }
 
-  if (user.accountStatus === "suspended") {
+  if (isAccountSuspended(user)) {
     const until = user.suspendedUntil;
     return (
       <View style={styles.wrap}>

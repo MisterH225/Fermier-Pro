@@ -171,11 +171,13 @@
       "suspend": "Suspendre le compte",
       "unsuspend": "Lever la suspension",
       "ban": "Bannir le compte",
+      "unban": "Débannir le compte",
       "delete": "Supprimer le compte"
     },
     "moderation": {
       "suspendTitle": "Suspendre {name}",
       "unsuspendTitle": "Lever la suspension",
+      "unbanTitle": "Débannir le compte",
       "banTitle": "Bannir {name}",
       "banWarning": "Le bannissement désactive l'accès. Les données sont conservées.",
       "warnTitle": "Envoyer un avertissement",
@@ -186,6 +188,9 @@
       "scopeAccount": "Compte global (tous les profils)",
       "scopeVet": "Profil vétérinaire uniquement",
       "scopeProducer": "Profil producteur uniquement",
+      "scopeTechnician": "Profil technicien uniquement",
+      "scopeBuyer": "Profil acheteur uniquement",
+      "durationAccountOnly": "La durée ne s’applique qu’à une suspension de compte global.",
       "reason": "Raison",
       "duration": "Durée",
       "details": "Précisions",

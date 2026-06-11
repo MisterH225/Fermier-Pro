@@ -172,11 +172,13 @@
       "suspend": "Suspend account",
       "unsuspend": "Lift suspension",
       "ban": "Ban account",
+      "unban": "Unban account",
       "delete": "Delete account"
     },
     "moderation": {
       "suspendTitle": "Suspend {name}",
       "unsuspendTitle": "Lift suspension",
+      "unbanTitle": "Unban account",
       "banTitle": "Ban {name}",
       "banWarning": "Banning disables access. Data is retained.",
       "warnTitle": "Send a warning",
@@ -187,6 +189,9 @@
       "scopeAccount": "Global account (all profiles)",
       "scopeVet": "Veterinarian profile only",
       "scopeProducer": "Producer profile only",
+      "scopeTechnician": "Technician profile only",
+      "scopeBuyer": "Buyer profile only",
+      "durationAccountOnly": "Duration only applies to a global account suspension.",
       "reason": "Reason",
       "duration": "Duration",
       "details": "Details",

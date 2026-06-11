@@ -10,6 +10,7 @@ export {
   fetchAuditLogs,
   sendAdminMessage,
   suspendUser,
+  unbanUser,
   unsuspendUser,
   warnUser
 } from "./api";

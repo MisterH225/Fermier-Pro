@@ -18,9 +18,11 @@ import {
   deleteUserAccount,
   sendAdminMessage,
   suspendUser,
+  unbanUser,
   unsuspendUser,
   warnUser
 } from "@/lib/moderation";
+import { ProfileScopeSelect } from "./ProfileScopeSelect";
 
 const REASONS = [
   "Violation des CGU",
@@ -83,24 +85,11 @@ export function SuspendUserDialog({
           <DialogTitle>{t("suspendTitle", { name: userName })}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3 text-sm">
-          {profileTypes.length > 1 ? (
-            <div>
-              <Label>{t("scope")}</Label>
-              <select
-                className="mt-1 w-full rounded-xl border px-3 py-2"
-                value={scope}
-                onChange={(e) => setScope(e.target.value as ModerationScope)}
-              >
-                <option value="account">{t("scopeAccount")}</option>
-                {profileTypes.includes("veterinarian") ? (
-                  <option value="veterinarian">{t("scopeVet")}</option>
-                ) : null}
-                {profileTypes.includes("producer") ? (
-                  <option value="producer">{t("scopeProducer")}</option>
-                ) : null}
-              </select>
-            </div>
-          ) : null}
+          <ProfileScopeSelect
+            profileTypes={profileTypes}
+            value={scope}
+            onChange={setScope}
+          />
           <div>
             <Label>{t("reason")}</Label>
             <select
@@ -115,20 +104,24 @@ export function SuspendUserDialog({
               ))}
             </select>
           </div>
-          <div>
-            <Label>{t("duration")}</Label>
-            <select
-              className="mt-1 w-full rounded-xl border px-3 py-2"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-            >
-              {DURATIONS.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </div>
+          {scope === "account" ? (
+            <div>
+              <Label>{t("duration")}</Label>
+              <select
+                className="mt-1 w-full rounded-xl border px-3 py-2"
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+              >
+                {DURATIONS.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">{t("durationAccountOnly")}</p>
+          )}
           <Textarea value={details} onChange={(e) => setDetails(e.target.value)} placeholder={t("details")} />
           <div>
             <Label>{t("confirmPhrase", { phrase: "SUSPENDRE" })}</Label>
@@ -154,16 +147,22 @@ export function UnsuspendUserDialog({
   onClose,
   token,
   userId,
+  profileTypes,
   onSuccess
-}: Omit<BaseProps, "userName" | "profileTypes">) {
+}: Omit<BaseProps, "userName">) {
   const t = useTranslations("users.moderation");
+  const [scope, setScope] = useState<ModerationScope>("account");
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   const submit = async () => {
     setBusy(true);
+    setErr(null);
     try {
-      await unsuspendUser(token, userId, { scope: "account", notifyUser: true });
+      await unsuspendUser(token, userId, { scope, notifyUser: true });
       onSuccess();
       onClose();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -174,6 +173,68 @@ export function UnsuspendUserDialog({
         <DialogHeader>
           <DialogTitle>{t("unsuspendTitle")}</DialogTitle>
         </DialogHeader>
+        <div className="space-y-3 text-sm">
+          <ProfileScopeSelect
+            profileTypes={profileTypes}
+            value={scope}
+            onChange={setScope}
+          />
+          {err ? <p className="text-destructive text-xs">{err}</p> : null}
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={onClose}>
+            {t("cancel")}
+          </Button>
+          <Button disabled={busy} onClick={() => void submit()}>
+            {t("confirm")}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function UnbanUserDialog({
+  open,
+  onClose,
+  token,
+  userId,
+  profileTypes,
+  onSuccess
+}: Omit<BaseProps, "userName">) {
+  const t = useTranslations("users.moderation");
+  const [scope, setScope] = useState<ModerationScope>("account");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const submit = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      await unbanUser(token, userId, { scope, notifyUser: true });
+      onSuccess();
+      onClose();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>{t("unbanTitle")}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 text-sm">
+          <ProfileScopeSelect
+            profileTypes={profileTypes}
+            value={scope}
+            onChange={setScope}
+          />
+          {err ? <p className="text-destructive text-xs">{err}</p> : null}
+        </div>
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={onClose}>
             {t("cancel")}
@@ -202,14 +263,18 @@ export function BanUserDialog({
   const [details, setDetails] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   const submit = async () => {
     if (confirm !== "BANNIR" || !details.trim()) return;
     setBusy(true);
+    setErr(null);
     try {
       await banUser(token, userId, { scope, reason, details, notifyUser: true });
       onSuccess();
       onClose();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -225,21 +290,12 @@ export function BanUserDialog({
           {t("banWarning")}
         </p>
         <div className="space-y-3 text-sm">
-          {profileTypes.length > 1 ? (
-            <select
-              className="w-full rounded-xl border px-3 py-2"
-              value={scope}
-              onChange={(e) => setScope(e.target.value as ModerationScope)}
-            >
-              <option value="account">{t("scopeAccount")}</option>
-              {profileTypes.includes("veterinarian") ? (
-                <option value="veterinarian">{t("scopeVet")}</option>
-              ) : null}
-              {profileTypes.includes("producer") ? (
-                <option value="producer">{t("scopeProducer")}</option>
-              ) : null}
-            </select>
-          ) : null}
+          <ProfileScopeSelect
+            profileTypes={profileTypes}
+            value={scope}
+            onChange={setScope}
+            showLabel={false}
+          />
           <select
             className="w-full rounded-xl border px-3 py-2"
             value={reason}
@@ -257,6 +313,7 @@ export function BanUserDialog({
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
           />
+          {err ? <p className="text-destructive text-xs">{err}</p> : null}
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={onClose}>
@@ -281,10 +338,12 @@ export function WarnUserDialog({ open, onClose, token, userId, onSuccess }: Omit
   const [message, setMessage] = useState("");
   const [level, setLevel] = useState("1er avertissement");
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   const submit = async () => {
     if (!message.trim()) return;
     setBusy(true);
+    setErr(null);
     try {
       await warnUser(token, userId, {
         motive,
@@ -294,6 +353,8 @@ export function WarnUserDialog({ open, onClose, token, userId, onSuccess }: Omit
       });
       onSuccess();
       onClose();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -327,6 +388,7 @@ export function WarnUserDialog({ open, onClose, token, userId, onSuccess }: Omit
             <option>Avertissement final</option>
           </select>
           <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={5} />
+          {err ? <p className="text-sm text-destructive">{err}</p> : null}
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={onClose}>
@@ -421,14 +483,18 @@ export function DeleteAccountDialog({
   const [reason, setReason] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   const submit = async () => {
     if (confirm !== userName || !reason.trim()) return;
     setBusy(true);
+    setErr(null);
     try {
       await deleteUserAccount(token, userId, { reason, notifyUser: true });
       onSuccess();
       onClose();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -449,6 +515,7 @@ export function DeleteAccountDialog({
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
         />
+        {err ? <p className="text-sm text-destructive">{err}</p> : null}
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={onClose}>
             {t("cancel")}

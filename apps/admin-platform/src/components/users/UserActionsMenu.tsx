@@ -13,6 +13,7 @@ import {
   DeleteAccountDialog,
   SendMessageDialog,
   SuspendUserDialog,
+  UnbanUserDialog,
   UnsuspendUserDialog,
   WarnUserDialog
 } from "./UserModerationDialogs";
@@ -60,7 +61,7 @@ export function UserActionsMenu({ user, token, onRefresh }: Props) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<MenuPos | null>(null);
   const [dlg, setDlg] = useState<
-    null | "suspend" | "unsuspend" | "ban" | "warn" | "message" | "delete"
+    null | "suspend" | "unsuspend" | "unban" | "ban" | "warn" | "message" | "delete"
   >(null);
 
   const name = user.fullName ?? user.email ?? user.id;
@@ -177,7 +178,16 @@ export function UserActionsMenu({ user, token, onRefresh }: Props) {
                 {t("unsuspend")}
               </button>
             ) : null}
-            {status !== "banned" ? (
+            {status === "banned" ? (
+              <button
+                type="button"
+                role="menuitem"
+                className="w-full text-left px-3 py-2 hover:bg-white/60"
+                onClick={() => closeAnd(() => setDlg("unban"))}
+              >
+                {t("unban")}
+              </button>
+            ) : (
               <button
                 type="button"
                 role="menuitem"
@@ -186,7 +196,7 @@ export function UserActionsMenu({ user, token, onRefresh }: Props) {
               >
                 {t("ban")}
               </button>
-            ) : null}
+            )}
             <button
               type="button"
               role="menuitem"
@@ -234,6 +244,17 @@ export function UserActionsMenu({ user, token, onRefresh }: Props) {
           onClose={() => setDlg(null)}
           token={token}
           userId={user.id}
+          profileTypes={profileTypes}
+          onSuccess={onRefresh}
+        />
+      ) : null}
+      {dlg === "unban" ? (
+        <UnbanUserDialog
+          open
+          onClose={() => setDlg(null)}
+          token={token}
+          userId={user.id}
+          profileTypes={profileTypes}
           onSuccess={onRefresh}
         />
       ) : null}
