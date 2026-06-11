@@ -1454,9 +1454,20 @@ export const en = {
       cancel: "Cancel",
       categoryLabel: "Category",
       category: {
-        starter: "Starter / growth",
+        starter: "Starter",
         fattening: "Finishing",
         maternity: "Maternity",
+        quarantine: "Quarantine",
+        mixed: "Mixed",
+        empty: "Empty"
+      },
+      visual: {
+        maternity: "Maternity",
+        starter: "Starter",
+        growth: "Grower",
+        fattening: "Finishing",
+        boar: "Boar",
+        boars: "Boars",
         quarantine: "Quarantine",
         mixed: "Mixed",
         empty: "Empty"

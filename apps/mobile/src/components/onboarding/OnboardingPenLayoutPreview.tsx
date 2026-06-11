@@ -20,11 +20,11 @@ const KIND_STYLE: Record<
   PenAssignmentKind,
   { bg: string; border: string; dot: string }
 > = {
-  females: { bg: "#FCE7F3", border: "#F9A8D4", dot: "#DB2777" },
-  male: { bg: "#DBEAFE", border: "#93C5FD", dot: "#2563EB" },
-  starter: { bg: "#E0E7FF", border: "#A5B4FC", dot: "#4F46E5" },
-  fattening: { bg: "#DCFCE7", border: "#86EFAC", dot: "#16A34A" },
-  mixed: { bg: "#FEF3C7", border: "#FCD34D", dot: "#D97706" }
+  females: { bg: "#FDF2F8", border: "#F9A8D4", dot: "#DB2777" },
+  male: { bg: "#FFF7ED", border: "#FDBA74", dot: "#EA580C" },
+  starter: { bg: "#EFF6FF", border: "#93C5FD", dot: "#2563EB" },
+  fattening: { bg: "#F0FDF4", border: "#86EFAC", dot: "#16A34A" },
+  mixed: { bg: "#FFFBEB", border: "#FCD34D", dot: "#D97706" }
 };
 
 type Props = {

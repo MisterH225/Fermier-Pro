@@ -25,6 +25,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../../theme/mobileTheme";
+import { getPenVisualForCategory } from "./penUsageVisual";
 
 const CATEGORIES: PenCategoryKey[] = [
   "starter",
@@ -207,17 +208,32 @@ export function CreateLogeModal({
         />
         <Text style={styles.label}>{t("cheptel.pens.categoryLabel")}</Text>
         <View style={styles.pillRow}>
-          {CATEGORIES.map((c) => (
-            <Pressable
-              key={c}
-              style={[styles.pill, category === c && styles.pillOn]}
-              onPress={() => setCategory(c)}
-            >
-              <Text style={[styles.pillTx, category === c && styles.pillTxOn]}>
-                {t(`cheptel.pens.category.${c}`)}
-              </Text>
-            </Pressable>
-          ))}
+          {CATEGORIES.map((c) => {
+            const visual = getPenVisualForCategory(c);
+            const selected = category === c;
+            return (
+              <Pressable
+                key={c}
+                style={[
+                  styles.pill,
+                  {
+                    backgroundColor: selected ? visual.bg : mobileColors.background,
+                    borderColor: selected ? visual.accent : mobileColors.border
+                  }
+                ]}
+                onPress={() => setCategory(c)}
+              >
+                <Text
+                  style={[
+                    styles.pillTx,
+                    selected ? { color: visual.accent, fontWeight: "700" } : null
+                  ]}
+                >
+                  {t(`cheptel.pens.category.${c}`)}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       </ModalSection>
 

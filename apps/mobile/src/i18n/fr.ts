@@ -1479,9 +1479,20 @@ export const fr = {
       cancel: "Annuler",
       categoryLabel: "Catégorie",
       category: {
-        starter: "Démarrage / croissance",
+        starter: "Démarrage",
         fattening: "Engraissement",
         maternity: "Maternité",
+        quarantine: "Quarantaine",
+        mixed: "Mixte",
+        empty: "Vide"
+      },
+      visual: {
+        maternity: "Maternité",
+        starter: "Démarrage",
+        growth: "Croissance",
+        fattening: "Engraissement",
+        boar: "Verrat",
+        boars: "Verrats",
         quarantine: "Quarantaine",
         mixed: "Mixte",
         empty: "Vide"
