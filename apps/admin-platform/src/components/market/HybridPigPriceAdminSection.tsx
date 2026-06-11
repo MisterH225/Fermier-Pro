@@ -8,16 +8,10 @@ import {
   fetchAdminHybridPigPrice,
   type AdminHybridPigPriceDto
 } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartCard } from "@/components/charts/ChartCard";
+import { AreaTrendChart } from "@/components/charts/AreaTrendChart";
 import { Button } from "@/components/ui/button";
-import {
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
-} from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type Props = {
   token: string;
@@ -66,9 +60,8 @@ export function HybridPigPriceAdminSection({ token }: Props) {
   const chartData = [...data.snapshots]
     .reverse()
     .map((s) => ({
-      date: s.calculatedAt.slice(0, 16).replace("T", " "),
-      value: s.indexValue,
-      frozen: s.isFrozen
+      date: s.calculatedAt.slice(5, 16).replace("T", " "),
+      value: s.indexValue
     }));
 
   return (
@@ -88,7 +81,7 @@ export function HybridPigPriceAdminSection({ token }: Props) {
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
-          <p className="text-2xl font-bold">
+          <p className="text-3xl font-extrabold text-primary tabular-nums">
             {data.current?.price_per_kg != null
               ? `${Math.round(data.current.price_per_kg).toLocaleString("fr-FR")} FCFA/kg`
               : "—"}
@@ -105,21 +98,9 @@ export function HybridPigPriceAdminSection({ token }: Props) {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">{t("history")}</CardTitle>
-        </CardHeader>
-        <CardContent className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <XAxis dataKey="date" tick={{ fontSize: 10 }} hide />
-              <YAxis tick={{ fontSize: 10 }} width={56} />
-              <Tooltip />
-              <Line type="monotone" dataKey="value" stroke="#2563EB" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      <ChartCard title={t("history")} contentClassName="pb-4">
+        <AreaTrendChart data={chartData} dataKey="value" height={256} />
+      </ChartCard>
 
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
@@ -132,7 +113,7 @@ export function HybridPigPriceAdminSection({ token }: Props) {
             ) : (
               <ul className="space-y-2">
                 {data.flaggedListings.map((f) => (
-                  <li key={f.id} className="border-b border-border/40 pb-2">
+                  <li key={f.id} className="border-b border-white/50 pb-2">
                     <span className="font-mono text-xs">{f.listingId.slice(0, 10)}…</span>
                     <br />
                     {t("deviation", {

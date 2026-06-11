@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { Coins, Receipt, TrendingUp } from "lucide-react";
 import {
   fetchAdminPlatformRevenue,
   type AdminPlatformRevenueDto
 } from "@/lib/api";
 import { FilterPills } from "@/components/layout/FilterPills";
 import { KpiCard } from "@/components/dashboard/KpiCard";
+import { ChartCard } from "@/components/charts/ChartCard";
+import { TrackBarChart } from "@/components/charts/TrackBarChart";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -38,6 +41,11 @@ export function PlatformRevenueSection({ token }: Props) {
       .finally(() => setLoading(false));
   }, [token, period]);
 
+  const seriesChart = (data?.series ?? []).map((p) => ({
+    label: p.date.slice(5),
+    value: Math.round(p.commission)
+  }));
+
   return (
     <div className="space-y-6">
       <FilterPills
@@ -56,35 +64,30 @@ export function PlatformRevenueSection({ token }: Props) {
               label={t("revenue.totalCommission")}
               value={`${Math.round(data.totalCommission).toLocaleString("fr-FR")} XOF`}
               variant="blue"
+              icon={<Coins className="size-4" />}
             />
             <KpiCard
               label={t("revenue.totalGross")}
               value={`${Math.round(data.totalGross).toLocaleString("fr-FR")} XOF`}
               variant="indigo"
+              icon={<TrendingUp className="size-4" />}
             />
             <KpiCard
               label={t("revenue.transactionCount")}
               value={String(data.transactionCount)}
               variant="warning"
+              icon={<Receipt className="size-4" />}
             />
           </div>
 
-          {data.series.length > 0 ? (
-            <Card>
-              <CardContent className="p-5">
-                <p className="font-semibold mb-3">{t("revenue.dailySeries")}</p>
-                <div className="flex flex-wrap gap-2">
-                  {data.series.map((p) => (
-                    <span
-                      key={p.date}
-                      className="text-xs rounded-full bg-primary/10 border border-primary/15 px-2.5 py-1"
-                    >
-                      {p.date}: {Math.round(p.commission).toLocaleString("fr-FR")} XOF
-                    </span>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+          {seriesChart.length > 0 ? (
+            <ChartCard title={t("revenue.dailySeries")} contentClassName="pb-6">
+              <TrackBarChart
+                data={seriesChart}
+                height={240}
+                formatValue={(v) => `${v.toLocaleString("fr-FR")} XOF`}
+              />
+            </ChartCard>
           ) : null}
 
           <Card>

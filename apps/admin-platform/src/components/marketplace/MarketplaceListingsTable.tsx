@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import type { AdminMarketplaceListingRow } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,9 +12,11 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
+import { MarketplaceListingDetailDialog } from "./MarketplaceListingDetailDialog";
 
 type Props = {
   rows: AdminMarketplaceListingRow[];
+  token: string;
 };
 
 function money(v: number | null, currency: string): string {
@@ -21,8 +24,9 @@ function money(v: number | null, currency: string): string {
   return `${Math.round(v).toLocaleString("fr-FR")} ${currency}`;
 }
 
-export function MarketplaceListingsTable({ rows }: Props) {
+export function MarketplaceListingsTable({ rows, token }: Props) {
   const t = useTranslations("marketplace");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   if (rows.length === 0) {
     return (
@@ -35,6 +39,7 @@ export function MarketplaceListingsTable({ rows }: Props) {
   }
 
   return (
+    <>
     <Card>
       <CardContent className="p-0 overflow-x-auto">
         <Table>
@@ -52,7 +57,11 @@ export function MarketplaceListingsTable({ rows }: Props) {
           </TableHeader>
           <TableBody>
             {rows.map((row) => (
-              <TableRow key={row.id}>
+              <TableRow
+                key={row.id}
+                className="cursor-pointer hover:bg-white/40"
+                onClick={() => setSelectedId(row.id)}
+              >
                 <TableCell className="font-medium max-w-[200px]">
                   <p className="truncate">{row.title}</p>
                   {row.locationLabel ? (
@@ -94,5 +103,12 @@ export function MarketplaceListingsTable({ rows }: Props) {
         </Table>
       </CardContent>
     </Card>
+
+    <MarketplaceListingDetailDialog
+      token={token}
+      listingId={selectedId}
+      onClose={() => setSelectedId(null)}
+    />
+    </>
   );
 }

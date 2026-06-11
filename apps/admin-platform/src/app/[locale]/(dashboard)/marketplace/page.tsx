@@ -159,7 +159,7 @@ export default function MarketplaceAdminPage() {
           {loading ? (
             <p className="text-muted-foreground">{t("loading")}</p>
           ) : (
-            <MarketplaceListingsTable rows={listings} />
+            <MarketplaceListingsTable rows={listings} token={token!} />
           )}
         </>
       ) : null}

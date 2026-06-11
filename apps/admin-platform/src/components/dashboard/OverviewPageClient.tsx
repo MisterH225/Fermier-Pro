@@ -2,18 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import {
-  Bar,
-  BarChart,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
-} from "recharts";
-import { Download, Filter, Sprout, Tractor, Users } from "lucide-react";
+import { Download, Filter, Sprout, Users } from "lucide-react";
 import { fetchPlatformOverview, type OverviewDto } from "@/lib/api";
 import { computeSignupDelta, OverviewStatCard } from "@/components/dashboard/OverviewStatCard";
 import { PageSkeleton } from "@/components/layout/PageSkeleton";
@@ -22,9 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "@/i18n/navigation";
 import { PigPriceIndexSection } from "@/components/market/PigPriceIndexSection";
 import { useAdminToken } from "@/lib/useAdminToken";
-
-const PROFILE_COLORS = ["#2563EB", "#3B82F6", "#60A5FA", "#818CF8", "#6366F1"];
-const CHART_BLUE = "#2563EB";
+import { ChartCard } from "@/components/charts/ChartCard";
+import { TrackBarChart } from "@/components/charts/TrackBarChart";
+import { SemiGaugeChart } from "@/components/charts/SemiGaugeChart";
+import { HorizontalRankChart } from "@/components/charts/HorizontalRankChart";
+import { CHART_PALETTE } from "@/components/charts/chart-theme";
 
 export function OverviewPageClient() {
   const t = useTranslations("overview");
@@ -49,10 +40,24 @@ export function OverviewPageClient() {
     { label: t("kpis.transactions"), value: data.kpis.monthTransactions, accent: "#0EA5E9" }
   ];
 
+  const signupChartData = data.charts.signups30d.map((row) => ({
+    label: row.day.slice(5),
+    value: row.count
+  }));
+
+  const profileGaugeData = data.charts.profileDistribution.map((p, i) => ({
+    name: p.profile,
+    value: p.count,
+    color: CHART_PALETTE[i % CHART_PALETTE.length]
+  }));
+
   const topCountries = [...data.charts.farmsByCountry]
     .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
-  const countryMax = topCountries[0]?.count ?? 1;
+    .slice(0, 5)
+    .map((c) => ({
+      label: c.country || t("countries.unknown"),
+      value: c.count
+    }));
 
   return (
     <div className="space-y-8">
@@ -99,115 +104,37 @@ export function OverviewPageClient() {
       ) : null}
 
       <div className="grid lg:grid-cols-5 gap-5">
-        <Card className="lg:col-span-3">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle>{t("charts.signups")}</CardTitle>
-            <span className="text-xs font-medium text-muted-foreground rounded-full bg-white/60 px-3 py-1">
-              {t("charts.period30d")}
-            </span>
-          </CardHeader>
-          <CardContent className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.charts.signups30d} barSize={12}>
-                <XAxis dataKey="day" hide />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#64748B" }} />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: "12px",
-                    border: "1px solid rgba(255,255,255,0.6)",
-                    background: "rgba(255,255,255,0.9)",
-                    backdropFilter: "blur(8px)"
-                  }}
-                />
-                <Bar dataKey="count" fill={CHART_BLUE} radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <ChartCard
+          className="lg:col-span-3"
+          title={t("charts.signups")}
+          badge={t("charts.period30d")}
+          contentClassName="pb-6"
+        >
+          <TrackBarChart data={signupChartData} height={288} />
+        </ChartCard>
 
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-2">
-            <CardTitle>{t("charts.profiles")}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row items-center gap-4 h-72">
-            <div className="relative w-44 h-44 shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={data.charts.profileDistribution}
-                    dataKey="count"
-                    nameKey="profile"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={52}
-                    outerRadius={72}
-                    paddingAngle={3}
-                  >
-                    {data.charts.profileDistribution.map((_, i) => (
-                      <Cell key={i} fill={PROFILE_COLORS[i % PROFILE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-2xl font-extrabold text-primary tabular-nums">
-                  {profileTotal}
-                </span>
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  {t("charts.totalProfiles")}
-                </span>
-              </div>
-            </div>
-            <ul className="flex-1 space-y-2.5 text-sm w-full">
-              {data.charts.profileDistribution.map((p, i) => (
-                <li key={p.profile} className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-2 min-w-0">
-                    <span
-                      className="size-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: PROFILE_COLORS[i % PROFILE_COLORS.length] }}
-                    />
-                    <span className="truncate capitalize">{p.profile}</span>
-                  </span>
-                  <span className="font-semibold tabular-nums">{p.count}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+        <ChartCard
+          className="lg:col-span-2"
+          title={t("charts.profiles")}
+          contentClassName="pb-6"
+        >
+          <SemiGaugeChart
+            data={profileGaugeData}
+            centerValue={profileTotal}
+            centerLabel={t("charts.totalProfiles")}
+            height={200}
+          />
+        </ChartCard>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2">
-              <Tractor className="size-4 text-primary" />
-              {t("countries.title")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {topCountries.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("countries.empty")}</p>
-            ) : (
-              topCountries.map((c) => (
-                <div key={c.country} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">{c.country || t("countries.unknown")}</span>
-                    <span className="text-muted-foreground tabular-nums">
-                      {Math.round((c.count / countryMax) * 100)}%
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full bg-white/60 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-primary to-blue-400"
-                      style={{ width: `${Math.max(8, (c.count / countryMax) * 100)}%` }}
-                    />
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+        <ChartCard title={t("countries.title")} contentClassName="pb-6">
+          {topCountries.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("countries.empty")}</p>
+          ) : (
+            <HorizontalRankChart data={topCountries} />
+          )}
+        </ChartCard>
 
         <Card>
           <CardHeader className="pb-2">

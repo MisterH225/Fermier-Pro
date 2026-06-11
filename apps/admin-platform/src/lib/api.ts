@@ -427,6 +427,71 @@ export function fetchAdminMarketplaceListings(token: string, status?: string) {
   );
 }
 
+export type AdminMarketplaceListingDetailDto = AdminMarketplaceListingRow & {
+  description: string | null;
+  breedLabel: string | null;
+  pricePerKg: number | null;
+  totalWeightKg: number | null;
+  unitPrice: number | null;
+  quantity: number | null;
+  photoUrls: string[];
+  animalIds: string[];
+  fallbackPhotoUrl: string | null;
+  consultationsCount: number;
+  publishedAt: string | null;
+  expiresAt: string | null;
+  pickupAt: string | null;
+  pickupNote: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
+  disputedAt: string | null;
+  createdAt: string;
+  archived: boolean;
+  animal: {
+    id: string;
+    publicId: string;
+    tagCode: string | null;
+    sex: string | null;
+    status: string;
+    photoUrl: string | null;
+  } | null;
+  reservedForBuyer: {
+    id: string;
+    fullName: string | null;
+    email: string | null;
+  } | null;
+  healthData: unknown;
+  farmInfo: unknown;
+  farmRatingSummary: { avg: number | null; count: number } | null;
+  offers: Array<{
+    id: string;
+    status: string;
+    offerType: string;
+    offeredPrice: number;
+    message: string | null;
+    createdAt: string;
+    buyer: { id: string; fullName: string | null; email: string | null };
+    transaction: { id: string; status: string } | null;
+  }>;
+  transactions: Array<{
+    id: string;
+    status: string;
+    blockedAmount: number;
+    finalAmount: number | null;
+    currency: string;
+    updatedAt: string;
+    buyer: { id: string; fullName: string | null; email: string | null };
+    seller: { id: string; fullName: string | null; email: string | null };
+  }>;
+};
+
+export function fetchAdminMarketplaceListingDetail(token: string, id: string) {
+  return apiFetch<AdminMarketplaceListingDetailDto>(
+    `/admin/marketplace/listings/${id}`,
+    token
+  );
+}
+
 export function fetchAdminMarketplaceTransactions(
   token: string,
   status?: string

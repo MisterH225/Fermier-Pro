@@ -9,7 +9,7 @@ export const KPI_VARIANTS = {
 
 export type KpiVariant = keyof typeof KPI_VARIANTS;
 
-export const CHART_COLORS = ["#2563EB", "#3B82F6", "#60A5FA", "#818CF8", "#6366F1"];
+export const CHART_COLORS = ["#2563EB", "#84CC16", "#1E293B", "#6366F1", "#0EA5E9", "#F59E0B"];
 
 export const selectClass =
   "flex h-10 w-full max-w-md rounded-2xl border border-white/60 bg-white/50 backdrop-blur-sm px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary";

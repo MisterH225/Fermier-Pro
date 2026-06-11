@@ -1261,4 +1261,121 @@ export class ListingsService {
     }
     return stale.length;
   }
+
+  /** Détail annonce pour la console superadmin (sans restriction de visibilité). */
+  async getForAdmin(id: string) {
+    const listing = await this.prisma.marketplaceListing.findUnique({
+      where: { id },
+      include: {
+        seller: { select: { id: true, fullName: true, email: true } },
+        farm: { select: { id: true, name: true } },
+        animal: {
+          select: {
+            id: true,
+            publicId: true,
+            tagCode: true,
+            sex: true,
+            status: true,
+            photoUrl: true
+          }
+        },
+        reservedForBuyer: { select: { id: true, fullName: true, email: true } },
+        offers: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            buyer: { select: { id: true, fullName: true, email: true } },
+            transaction: { select: { id: true, status: true } }
+          }
+        },
+        transactions: {
+          orderBy: { updatedAt: "desc" },
+          include: {
+            buyer: { select: { id: true, fullName: true, email: true } },
+            seller: { select: { id: true, fullName: true, email: true } }
+          }
+        }
+      }
+    });
+    if (!listing) {
+      throw new NotFoundException("Annonce introuvable");
+    }
+
+    const extra = await this.enrichListingPayload(
+      listing,
+      listing.seller.fullName
+    );
+    const [formatted] = await this.formatListingsForApi([listing]);
+    const {
+      seller: _seller,
+      farm: _farm,
+      animal: _animal,
+      reservedForBuyer: _reserved,
+      offers: _offers,
+      transactions: _transactions,
+      ...listingFields
+    } = formatted;
+
+    return {
+      ...this.serializeListingScalars(listingFields),
+      seller: listing.seller,
+      farm: listing.farm,
+      animal: listing.animal,
+      reservedForBuyer: listing.reservedForBuyer,
+      ...extra,
+      offers: listing.offers.map((offer) => ({
+        id: offer.id,
+        status: offer.status,
+        offerType: offer.offerType,
+        offeredPrice: Number(offer.offeredPrice),
+        message: offer.message,
+        createdAt: offer.createdAt.toISOString(),
+        buyer: offer.buyer,
+        transaction: offer.transaction
+      })),
+      transactions: listing.transactions.map((tx) => ({
+        id: tx.id,
+        status: tx.status,
+        blockedAmount: Number(tx.blockedAmount),
+        finalAmount: tx.finalAmount != null ? Number(tx.finalAmount) : null,
+        currency: tx.currency,
+        updatedAt: tx.updatedAt.toISOString(),
+        buyer: tx.buyer,
+        seller: tx.seller
+      }))
+    };
+  }
+
+  private serializeListingScalars<
+    T extends {
+      totalWeightKg?: unknown;
+      pricePerKg?: unknown;
+      totalPrice?: unknown;
+      unitPrice?: unknown;
+      publishedAt?: Date | null;
+      expiresAt?: Date | null;
+      pickupAt?: Date | null;
+      shippedAt?: Date | null;
+      deliveredAt?: Date | null;
+      disputedAt?: Date | null;
+      createdAt?: Date;
+      updatedAt?: Date;
+    }
+  >(row: T) {
+    return {
+      ...row,
+      totalWeightKg:
+        row.totalWeightKg != null ? Number(row.totalWeightKg) : null,
+      pricePerKg: row.pricePerKg != null ? Number(row.pricePerKg) : null,
+      totalPrice: row.totalPrice != null ? Number(row.totalPrice) : null,
+      unitPrice: row.unitPrice != null ? Number(row.unitPrice) : null,
+      publishedAt: row.publishedAt?.toISOString() ?? null,
+      expiresAt: row.expiresAt?.toISOString() ?? null,
+      pickupAt: row.pickupAt?.toISOString() ?? null,
+      shippedAt: row.shippedAt?.toISOString() ?? null,
+      deliveredAt: row.deliveredAt?.toISOString() ?? null,
+      disputedAt: row.disputedAt?.toISOString() ?? null,
+      createdAt: row.createdAt?.toISOString() ?? null,
+      updatedAt: row.updatedAt?.toISOString() ?? null
+    };
+  }
 }

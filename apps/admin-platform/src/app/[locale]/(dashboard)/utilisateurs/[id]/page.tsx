@@ -3,27 +3,20 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
-import {
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip
-} from "recharts";
+import { Baby, HeartPulse, PiggyBank, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { fetchUserDetail, type UserDetailDto } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { UserAvatar } from "@/components/users/UserAvatar";
 import { PageSkeleton } from "@/components/layout/PageSkeleton";
 import { KpiCard } from "@/components/dashboard/KpiCard";
+import { ChartCard } from "@/components/charts/ChartCard";
+import { SemiGaugeChart } from "@/components/charts/SemiGaugeChart";
+import { CHART_PALETTE } from "@/components/charts/chart-theme";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-
-import { CHART_COLORS } from "@/lib/ui-styles";
-
-const PIE_COLORS = CHART_COLORS;
 
 function formatMoney(n: number) {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n);
@@ -184,39 +177,32 @@ export default function UserDetailPage() {
 
       <DetailSection title={t("tabs.cheptel")}>
         <div className="grid lg:grid-cols-3 gap-4">
-          <KpiCard label={t("livestock.total")} value={livestockSummary.totalActive} variant="warning" />
-          <Card className="lg:col-span-2">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">{t("livestock.byCategory")}</CardTitle>
-            </CardHeader>
-            <CardContent className="h-64">
-              {livestockSummary.byCategory.length === 0 ? (
-                <p className="text-muted-foreground text-sm">—</p>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={livestockSummary.byCategory.map((c) => ({
-                        name: c.category,
-                        value: c.count
-                      }))}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      label
-                    >
-                      {livestockSummary.byCategory.map((_, i) => (
-                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
+          <KpiCard
+            label={t("livestock.total")}
+            value={livestockSummary.totalActive}
+            variant="warning"
+            icon={<PiggyBank className="size-4" />}
+          />
+          <ChartCard
+            className="lg:col-span-2"
+            title={t("livestock.byCategory")}
+            contentClassName="pb-4"
+          >
+            {livestockSummary.byCategory.length === 0 ? (
+              <p className="text-muted-foreground text-sm">—</p>
+            ) : (
+              <SemiGaugeChart
+                data={livestockSummary.byCategory.map((c, i) => ({
+                  name: c.category,
+                  value: c.count,
+                  color: CHART_PALETTE[i % CHART_PALETTE.length]
+                }))}
+                centerValue={livestockSummary.totalActive}
+                centerLabel={t("livestock.total")}
+                height={200}
+              />
+            )}
+          </ChartCard>
         </div>
       </DetailSection>
 
@@ -226,16 +212,19 @@ export default function UserDetailPage() {
             label={t("finance.revenues")}
             value={formatMoney(financeSummary.revenues3m)}
             variant="blue"
+            icon={<TrendingUp className="size-4" />}
           />
           <KpiCard
             label={t("finance.expenses")}
             value={formatMoney(financeSummary.expenses3m)}
             variant="danger"
+            icon={<TrendingDown className="size-4" />}
           />
           <KpiCard
             label={t("finance.margin")}
             value={formatMoney(financeSummary.netMargin3m)}
             variant="indigo"
+            icon={<Wallet className="size-4" />}
           />
         </div>
         <p className="text-xs text-muted-foreground">{t("finance.note")}</p>
@@ -247,16 +236,19 @@ export default function UserDetailPage() {
             label={t("health.activeDiseases")}
             value={String(healthSummary.activeDiseases)}
             variant="danger"
+            icon={<HeartPulse className="size-4" />}
           />
           <KpiCard
             label={t("health.mortality")}
             value={formatPct(healthSummary.mortalityRate30d)}
             variant="purple"
+            icon={<TrendingDown className="size-4" />}
           />
           <KpiCard
             label={t("health.overdueVaccines")}
             value={String(healthSummary.overdueVaccines)}
             variant="warning"
+            icon={<HeartPulse className="size-4" />}
           />
         </div>
       </DetailSection>
@@ -267,11 +259,13 @@ export default function UserDetailPage() {
             label={t("gestation.active")}
             value={String(gestationSummary.active)}
             variant="danger"
+            icon={<Baby className="size-4" />}
           />
           <KpiCard
             label={t("gestation.upcoming")}
             value={String(gestationSummary.upcomingFarrowings)}
             variant="sky"
+            icon={<Baby className="size-4" />}
           />
         </div>
       </DetailSection>
