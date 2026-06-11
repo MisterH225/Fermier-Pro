@@ -41,4 +41,4 @@ fi
 
 MESSAGE="${2:-OTA $CHANNEL $(date -u +%Y-%m-%dT%H:%MZ)}"
 echo "Publication OTA sur le canal « $CHANNEL »…"
-npx eas-cli update --channel "$CHANNEL" --non-interactive --message "$MESSAGE"
+npx eas update --channel "$CHANNEL" --non-interactive --message "$MESSAGE"
