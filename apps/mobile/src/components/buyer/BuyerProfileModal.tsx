@@ -1,8 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import * as ImagePicker from "expo-image-picker";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   Modal,
   Pressable,
@@ -16,13 +19,16 @@ import { AccountSettingsPanel } from "../account/AccountSettingsPanel";
 import { ActiveProfileSwitcherControl } from "../account/ActiveProfileSwitcherControl";
 import { ProfileLanguagePill } from "../account/ProfileLanguagePill";
 import { useSession } from "../../context/SessionContext";
-import { fetchBuyerDashboard } from "../../lib/api";
+import { fetchBuyerDashboard, patchAuthProfile } from "../../lib/api";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
+import { getSupabase } from "../../lib/supabase";
+import { uploadUserAvatarToSupabase } from "../../lib/uploadAvatarToSupabase";
 import { welcomeFirstName } from "../../lib/userDisplay";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
 
 const AVATAR = 108;
+const PENCIL = 36;
 
 type BuyerProfileModalProps = {
   visible: boolean;
@@ -48,7 +54,9 @@ function InfoBlock({ label, value }: { label: string; value: string }) {
 
 export function BuyerProfileModal({ visible, onClose }: BuyerProfileModalProps) {
   const { t } = useTranslation();
-  const { accessToken, activeProfileId, authMe } = useSession();
+  const { accessToken, activeProfileId, authMe, refreshAuthMe } = useSession();
+  const [pendingAvatarUri, setPendingAvatarUri] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const dashQ = useQuery({
     queryKey: ["buyerDashboard", activeProfileId, "profileModal"],
@@ -59,10 +67,19 @@ export function BuyerProfileModal({ visible, onClose }: BuyerProfileModalProps) 
   const profile = dashQ.data?.profile;
   const kpis = dashQ.data?.kpis;
 
-  const avatarUri = useMemo(
-    () => resolveActiveProfileAvatarUrl(authMe, activeProfileId),
-    [authMe, activeProfileId]
-  );
+  const resetAvatar = useCallback(() => {
+    setPendingAvatarUri(null);
+  }, []);
+
+  useEffect(() => {
+    if (visible) {
+      resetAvatar();
+    }
+  }, [visible, resetAvatar]);
+
+  const displayAvatarUri =
+    pendingAvatarUri ??
+    resolveActiveProfileAvatarUrl(authMe, activeProfileId);
 
   const displayName =
     welcomeFirstName(authMe?.user ?? null) ?? t("buyer.dashboard.defaultName");
@@ -79,6 +96,97 @@ export function BuyerProfileModal({ visible, onClose }: BuyerProfileModalProps) 
       ? profile.preferredCategories.join(", ")
       : "—";
 
+  const pickImage = async (source: "library" | "camera") => {
+    const perm =
+      source === "library"
+        ? await ImagePicker.requestMediaLibraryPermissionsAsync()
+        : await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      return;
+    }
+    const result =
+      source === "library"
+        ? await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ["images"],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.85
+          })
+        : await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.85
+          });
+    if (!result.canceled && result.assets[0]?.uri) {
+      setPendingAvatarUri(result.assets[0].uri);
+    }
+  };
+
+  const openPhotoMenu = () => {
+    Alert.alert(
+      t("buyer.profile.changePhotoTitle"),
+      t("buyer.profile.changePhotoMessage"),
+      [
+        {
+          text: t("buyer.profile.pickGallery"),
+          onPress: () => void pickImage("library")
+        },
+        {
+          text: t("buyer.profile.pickCamera"),
+          onPress: () => void pickImage("camera")
+        },
+        { text: t("buyer.profile.cancelPhoto"), style: "cancel" }
+      ]
+    );
+  };
+
+  const onSave = async () => {
+    if (!pendingAvatarUri) {
+      onClose();
+      return;
+    }
+    if (!accessToken) {
+      return;
+    }
+    setSaving(true);
+    try {
+      const supabase = getSupabase();
+      if (!supabase || !authMe?.user.supabaseUserId) {
+        Alert.alert("", t("buyer.profile.photoUploadError"));
+        setSaving(false);
+        return;
+      }
+      const mime =
+        pendingAvatarUri.toLowerCase().endsWith(".png") ||
+        pendingAvatarUri.includes("png")
+          ? "image/png"
+          : "image/jpeg";
+      const profileType =
+        authMe?.profiles.find((p) => p.id === activeProfileId)?.type ??
+        authMe?.activeProfile?.type ??
+        "buyer";
+      const avatarUrl = await uploadUserAvatarToSupabase(
+        supabase,
+        authMe.user.supabaseUserId,
+        pendingAvatarUri,
+        mime,
+        profileType
+      );
+      await patchAuthProfile(accessToken, { avatarUrl }, activeProfileId);
+      await refreshAuthMe();
+      onClose();
+    } catch (e) {
+      Alert.alert(
+        "",
+        e instanceof Error ? e.message : t("buyer.profile.saveError")
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const showSave = Boolean(pendingAvatarUri);
+
   return (
     <Modal
       visible={visible}
@@ -92,15 +200,33 @@ export function BuyerProfileModal({ visible, onClose }: BuyerProfileModalProps) 
             alignMenuWithCloseRow
             edgePadding={mobileSpacing.lg}
           />
-          <Pressable
-            onPress={onClose}
-            hitSlop={14}
-            accessibilityRole="button"
-            accessibilityLabel={t("producer.close")}
-            style={styles.closeHit}
-          >
-            <Text style={styles.closeText}>{t("producer.close")}</Text>
-          </Pressable>
+          <View style={styles.topBarActions}>
+            {showSave ? (
+              <Pressable
+                onPress={() => void onSave()}
+                disabled={saving}
+                hitSlop={14}
+                accessibilityRole="button"
+                accessibilityLabel={t("buyer.profile.save")}
+                style={styles.saveHit}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color={buyerColors.primary} />
+                ) : (
+                  <Text style={styles.saveText}>{t("buyer.profile.save")}</Text>
+                )}
+              </Pressable>
+            ) : null}
+            <Pressable
+              onPress={onClose}
+              hitSlop={14}
+              accessibilityRole="button"
+              accessibilityLabel={t("producer.close")}
+              style={styles.closeHit}
+            >
+              <Text style={styles.closeText}>{t("producer.close")}</Text>
+            </Pressable>
+          </View>
         </View>
 
         <ScrollView
@@ -108,13 +234,23 @@ export function BuyerProfileModal({ visible, onClose }: BuyerProfileModalProps) 
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.hero}>
-            {avatarUri ? (
-              <Image source={{ uri: avatarUri }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPh]}>
-                <Ionicons name="cart" size={44} color={buyerColors.primary} />
-              </View>
-            )}
+            <View style={styles.avatarRing}>
+              {displayAvatarUri ? (
+                <Image source={{ uri: displayAvatarUri }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPh]}>
+                  <Ionicons name="cart" size={44} color={buyerColors.primary} />
+                </View>
+              )}
+              <Pressable
+                style={styles.pencilFab}
+                onPress={openPhotoMenu}
+                accessibilityRole="button"
+                accessibilityLabel={t("buyer.profile.changePhotoTitle")}
+              >
+                <Ionicons name="pencil" size={18} color="#fff" />
+              </Pressable>
+            </View>
             <Text style={styles.heroName} numberOfLines={2}>
               {displayName}
             </Text>
@@ -174,6 +310,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: mobileSpacing.lg,
     paddingVertical: mobileSpacing.sm
   },
+  topBarActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.sm
+  },
+  saveHit: {
+    minWidth: 72,
+    alignItems: "flex-end",
+    justifyContent: "center",
+    minHeight: 36
+  },
+  saveText: {
+    ...mobileTypography.body,
+    color: buyerColors.primary,
+    fontWeight: "600",
+    fontSize: 17
+  },
   closeHit: {
     minWidth: 72,
     alignItems: "flex-end",
@@ -196,6 +349,11 @@ const styles = StyleSheet.create({
     paddingTop: mobileSpacing.md,
     paddingBottom: mobileSpacing.lg
   },
+  avatarRing: {
+    width: AVATAR,
+    height: AVATAR,
+    position: "relative"
+  },
   avatar: {
     width: AVATAR,
     height: AVATAR,
@@ -207,6 +365,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: buyerColors.border
+  },
+  pencilFab: {
+    position: "absolute",
+    right: -4,
+    bottom: -4,
+    width: PENCIL,
+    height: PENCIL,
+    borderRadius: PENCIL / 2,
+    backgroundColor: buyerColors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: buyerColors.canvas,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 4
   },
   heroName: {
     marginTop: mobileSpacing.lg,

@@ -3118,7 +3118,15 @@ export const en = {
       buyerType: "Buyer type",
       preferredCategories: "Preferred categories",
       typeIndividual: "Individual",
-      typeProfessional: "Professional"
+      typeProfessional: "Professional",
+      changePhotoTitle: "Profile photo",
+      changePhotoMessage: "Choose a source to update your photo.",
+      pickGallery: "Gallery",
+      pickCamera: "Camera",
+      cancelPhoto: "Cancel",
+      save: "Save",
+      photoUploadError: "Could not upload the photo. Check the Supabase « avatars » bucket.",
+      saveError: "Could not save. Try again in a moment."
     },
     kpi: {
       pending: "Proposals",

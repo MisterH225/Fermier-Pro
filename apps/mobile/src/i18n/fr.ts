@@ -3165,7 +3165,15 @@ export const fr = {
       buyerType: "Type d'acheteur",
       preferredCategories: "Catégories préférées",
       typeIndividual: "Particulier",
-      typeProfessional: "Professionnel"
+      typeProfessional: "Professionnel",
+      changePhotoTitle: "Photo de profil",
+      changePhotoMessage: "Choisis une source pour mettre à jour ta photo.",
+      pickGallery: "Galerie",
+      pickCamera: "Caméra",
+      cancelPhoto: "Annuler",
+      save: "Enregistrer",
+      photoUploadError: "Impossible d'envoyer la photo. Vérifie le bucket Supabase « avatars ».",
+      saveError: "Enregistrement impossible. Réessaie dans un instant."
     },
     kpi: {
       pending: "Propositions",
