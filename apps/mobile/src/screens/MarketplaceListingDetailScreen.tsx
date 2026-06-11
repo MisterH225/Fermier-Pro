@@ -18,7 +18,11 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
 import { ListingModal } from "../components/marketplace/ListingModal";
-import { isFlatPriceListing } from "../components/marketplace/listingPricing";
+import {
+  flatListingUnitPrice,
+  isFlatPriceListing,
+  listingDisplayHeadcount
+} from "../components/marketplace/listingPricing";
 import { CreditProposalModal } from "../components/marketplace/CreditProposalModal";
 import { CreditScoreBadge } from "../components/marketplace/CreditScoreBadge";
 import { ProposalModal } from "../components/marketplace/ProposalModal";
@@ -338,6 +342,8 @@ export function MarketplaceListingDetailScreen({
   const pKg = parseMarketNum(L.pricePerKg);
   const askTotal = parseMarketNum(L.totalPrice);
   const flatPrice = isFlatPriceListing(L.category);
+  const headcount = listingDisplayHeadcount(L);
+  const perHead = flatPrice ? flatListingUnitPrice(L) : null;
   const canSubmitOffer =
     Boolean(myId) && !isSeller && L.status === "published";
 
@@ -450,7 +456,24 @@ export function MarketplaceListingDetailScreen({
             <Text style={styles.priceMain}>
               {formatMoney(askTotal, L.currency)}
             </Text>
-            <Text style={styles.priceSub}>{t("marketScreen.flatPriceLabel")}</Text>
+            {perHead != null ? (
+              <Text style={styles.priceSub}>
+                {headcount > 1
+                  ? t("marketScreen.flatLotPricing", {
+                      perHead: formatMoney(perHead, L.currency),
+                      count: headcount
+                    })
+                  : t("marketScreen.pricePerHeadShort", {
+                      amount: formatMoney(perHead, L.currency)
+                    })}
+              </Text>
+            ) : (
+              <Text style={styles.priceSub}>{t("marketScreen.flatPriceLabel")}</Text>
+            )}
+            <Text style={styles.priceTotal}>
+              {t("marketScreen.totalPrice")}{" "}
+              {formatMoney(askTotal, L.currency)}
+            </Text>
           </>
         ) : pKg != null ? (
           <>

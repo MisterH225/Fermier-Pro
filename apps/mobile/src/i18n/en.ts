@@ -625,6 +625,8 @@ export const en = {
       success: "Sale recorded — Finance and livestock updated."
     },
     flatPriceLabel: "Flat price",
+    flatLotPricing: "{{perHead}} / head × {{count}} head(s)",
+    pricePerHeadShort: "{{amount}} / head",
     totalWeight: "Total weight:",
     totalWeightEmpty: "Total weight: —",
     pricePerKg: "Price/kg:",
@@ -764,7 +766,11 @@ export const en = {
       sectionPricingPork: "Weight and price",
       sectionPricingFlat: "Flat price",
       flatPriceHint:
-        "For piglets or breeding stock, enter a total amount (e.g. 20,000 XOF per piglet, 200,000 XOF per sow).",
+        "Flat price per head (e.g. 28,000 XOF per piglet). The lot total is calculated automatically from the number of animals selected.",
+      pricePerHead: "Price per head (flat rate)",
+      lotTotalPrice: "Total lot price",
+      flatLotAuto:
+        "{{count}} head(s) × {{perHead}} = {{amount}}",
       flatPrice: "Flat price",
       weightOptional: "Weight (kg, optional)",
       totalWeight: "Total weight (kg)",
