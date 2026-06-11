@@ -338,6 +338,20 @@ export const en = {
     tabListings: "Listings",
     tabMyListings: "My listings",
     tabOffers: "Offers",
+    tabClients: "Clients",
+    tabSuppliers: "Suppliers",
+    partners: {
+      transactionCount: "{{count}} transaction(s)",
+      closedCount: "{{count}} completed",
+      message: "Send a message",
+      messageErrorTitle: "Messaging unavailable",
+      emptyClientsTitle: "No clients yet",
+      emptyClientsBody:
+        "Buyers you complete a sale with will appear here.",
+      emptySuppliersTitle: "No suppliers yet",
+      emptySuppliersBody:
+        "Producers you complete a purchase with will appear here."
+    },
     create: "Create",
     searchPlaceholder: "Farm, location, breed…",
     badgeNew: "New",

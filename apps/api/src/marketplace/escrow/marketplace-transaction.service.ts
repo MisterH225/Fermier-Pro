@@ -2548,4 +2548,103 @@ export class MarketplaceTransactionService {
       }))
     };
   }
+
+  /**
+   * Partenaires marketplace dédupliqués (acheteurs pour le vendeur, vendeurs pour l'acheteur).
+   */
+  async listPartners(user: User, role: "seller" | "buyer") {
+    const asSeller = role === "seller";
+
+    const rows = await this.prisma.marketplaceTransaction.findMany({
+      where: asSeller
+        ? { sellerUserId: user.id }
+        : { buyerUserId: user.id },
+      select: {
+        updatedAt: true,
+        status: true,
+        buyer: {
+          select: {
+            id: true,
+            fullName: true,
+            buyerProfile: {
+              select: { businessName: true, buyerType: true }
+            }
+          }
+        },
+        seller: {
+          select: {
+            id: true,
+            fullName: true,
+            producerHomeFarmName: true
+          }
+        },
+        listing: {
+          select: {
+            farm: { select: { name: true } }
+          }
+        }
+      },
+      orderBy: { updatedAt: "desc" }
+    });
+
+    type PartnerAgg = {
+      userId: string;
+      displayName: string;
+      subtitle: string | null;
+      transactionCount: number;
+      closedCount: number;
+      lastTransactionAt: string;
+    };
+
+    const partners = new Map<string, PartnerAgg>();
+
+    for (const row of rows) {
+      const counterparty = asSeller ? row.buyer : row.seller;
+      const partnerId = counterparty.id;
+      const isClosed =
+        row.status === MarketplaceTransactionStatus.TRANSACTION_CLOSED;
+
+      const existing = partners.get(partnerId);
+      if (existing) {
+        existing.transactionCount += 1;
+        if (isClosed) {
+          existing.closedCount += 1;
+        }
+        continue;
+      }
+
+      let displayName: string;
+      let subtitle: string | null = null;
+
+      if (asSeller) {
+        const businessName = row.buyer.buyerProfile?.businessName?.trim();
+        const fullName = row.buyer.fullName?.trim();
+        displayName = businessName || fullName || "—";
+        subtitle =
+          businessName && fullName && businessName !== fullName
+            ? fullName
+            : null;
+      } else {
+        const farmName = row.listing.farm?.name?.trim();
+        const homeFarm = row.seller.producerHomeFarmName?.trim();
+        const sellerName = row.seller.fullName?.trim();
+        displayName = farmName || homeFarm || sellerName || "—";
+        subtitle =
+          (farmName || homeFarm) && sellerName ? sellerName : null;
+      }
+
+      partners.set(partnerId, {
+        userId: partnerId,
+        displayName,
+        subtitle,
+        transactionCount: 1,
+        closedCount: isClosed ? 1 : 0,
+        lastTransactionAt: row.updatedAt.toISOString()
+      });
+    }
+
+    return [...partners.values()].sort((a, b) =>
+      b.lastTransactionAt.localeCompare(a.lastTransactionAt)
+    );
+  }
 }

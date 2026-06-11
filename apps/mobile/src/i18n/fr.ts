@@ -338,6 +338,20 @@ export const fr = {
     tabListings: "Annonces",
     tabMyListings: "Mes annonces",
     tabOffers: "Propositions",
+    tabClients: "Clients",
+    tabSuppliers: "Fournisseurs",
+    partners: {
+      transactionCount: "{{count}} transaction(s)",
+      closedCount: "{{count}} finalisée(s)",
+      message: "Envoyer un message",
+      messageErrorTitle: "Messagerie indisponible",
+      emptyClientsTitle: "Aucun client pour l'instant",
+      emptyClientsBody:
+        "Les acheteurs avec lesquels vous concluez une vente apparaîtront ici.",
+      emptySuppliersTitle: "Aucun fournisseur pour l'instant",
+      emptySuppliersBody:
+        "Les producteurs avec lesquels vous concluez un achat apparaîtront ici."
+    },
     create: "Créer",
     searchPlaceholder: "Ferme, lieu, race…",
     badgeNew: "Nouveau",

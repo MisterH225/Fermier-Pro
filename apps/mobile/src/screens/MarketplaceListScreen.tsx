@@ -39,6 +39,7 @@ import {
   PropositionsScreen,
   type ProposalsSubTab
 } from "./market/PropositionsScreen";
+import { MarketplacePartnersTab } from "./market/tabs/MarketplacePartnersTab";
 import {
   addBuyerFavorite,
   fetchBuyerFavoriteIds,
@@ -65,7 +66,7 @@ import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError
 
 type Props = NativeStackScreenProps<RootStackParamList, "MarketplaceList">;
 
-type MarketTab = "listings" | "mine" | "offers";
+type MarketTab = "listings" | "mine" | "offers" | "partners";
 type CatKey = "all" | "piglet" | "breeder" | "butcher" | "reformed";
 type ListingFilter = "all" | "draft" | "published" | "sold" | "cancelled";
 
@@ -137,7 +138,12 @@ function initialMarketTab(
   param?: RootStackParamList["MarketplaceList"]
 ): MarketTab {
   const tab = param && "tab" in param ? param.tab : undefined;
-  if (tab === "mine" || tab === "offers" || tab === "listings") {
+  if (
+    tab === "mine" ||
+    tab === "offers" ||
+    tab === "listings" ||
+    tab === "partners"
+  ) {
     return tab;
   }
   return "listings";
@@ -163,7 +169,10 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
   const scrollBottomPad = useScrollBottomPad();
   const [marketTab, setMarketTab] = useState<MarketTab>(() => {
     const tab = initialMarketTab(route.params);
-    return buyerView && tab === "mine" ? "listings" : tab;
+    if (buyerView && (tab === "mine" || tab === "offers")) {
+      return "listings";
+    }
+    return tab;
   });
 
   const pigDashboardQ = useQuery({
@@ -208,7 +217,11 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     const tab = initialMarketTab(route.params);
-    setMarketTab(buyerView && tab === "mine" ? "listings" : tab);
+    if (buyerView && (tab === "mine" || tab === "offers")) {
+      setMarketTab("listings");
+      return;
+    }
+    setMarketTab(tab);
   }, [routeTab, buyerView]);
 
   useEffect(() => {
@@ -619,6 +632,15 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
     />
   );
 
+  const partnersTabContent = () => (
+    <MarketplacePartnersTab
+      navigation={navigation}
+      role={buyerView ? "buyer" : "seller"}
+      buyerView={buyerView}
+      contentPaddingBottom={scrollBottomPad}
+    />
+  );
+
   const offersTabBadge = offerCountsQ.data?.total ?? 0;
 
   if (!clientFeatures.marketplace) {
@@ -633,7 +655,22 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
     <MarketplaceModuleGate>
       <View style={styles.root}>
         {buyerView ? (
-          listingsTabContent()
+          <TabSelector
+            activeTab={marketTab}
+            onTabChange={(key) => setMarketTab(key as MarketTab)}
+            tabs={[
+              {
+                key: "listings",
+                label: t("marketScreen.tabListings"),
+                content: listingsTabContent()
+              },
+              {
+                key: "partners",
+                label: t("marketScreen.tabSuppliers"),
+                content: partnersTabContent()
+              }
+            ]}
+          />
         ) : (
           <TabSelector
             activeTab={marketTab}
@@ -654,6 +691,11 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
                 label: t("marketScreen.tabOffers"),
                 badge: offersTabBadge > 0 ? offersTabBadge : undefined,
                 content: offersTabContent()
+              },
+              {
+                key: "partners",
+                label: t("marketScreen.tabClients"),
+                content: partnersTabContent()
               }
             ]}
           />

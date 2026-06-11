@@ -78,7 +78,7 @@ export type RootStackParamList = {
   FarmTasks: { farmId: string; farmName: string };
   MarketplaceList:
     | {
-        tab?: "listings" | "mine" | "offers";
+        tab?: "listings" | "mine" | "offers" | "partners";
         offersSubTab?: "received" | "sent";
         offersListingId?: string;
         buyerView?: boolean;

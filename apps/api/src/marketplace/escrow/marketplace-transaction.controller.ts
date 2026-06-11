@@ -1,9 +1,11 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
   Param,
   Post,
+  Query,
   UseGuards
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
@@ -31,6 +33,19 @@ export class MarketplaceTransactionController {
   @Get("summary")
   financeSummary(@CurrentUser() user: User) {
     return this.transactions.getFinanceSummary(user);
+  }
+
+  @Get("partners")
+  listPartners(
+    @CurrentUser() user: User,
+    @Query("role") role?: string
+  ) {
+    if (role !== "seller" && role !== "buyer") {
+      throw new BadRequestException(
+        'Le paramètre "role" doit valoir "seller" ou "buyer".'
+      );
+    }
+    return this.transactions.listPartners(user, role);
   }
 
   @Get(":id")
