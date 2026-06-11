@@ -257,11 +257,17 @@ export class AiDataAggregatorService {
     const [animals, batches, pens, gmqSettings] = await Promise.all([
       this.prisma.animal.findMany({
         where: { farmId, status: "active" },
-        select: { id: true, sex: true, status: true }
+        select: {
+          id: true,
+          sex: true,
+          status: true,
+          productionCategory: true,
+          livestockBatchId: true
+        }
       }),
       this.prisma.livestockBatch.findMany({
         where: { farmId, status: "active" },
-        select: { headcount: true, categoryKey: true }
+        select: { id: true, headcount: true, categoryKey: true }
       }),
       this.prisma.pen.findMany({
         where: { barn: { farmId } },
@@ -270,10 +276,9 @@ export class AiDataAggregatorService {
           name: true,
           capacity: true,
           placements: {
-            where: { endedAt: null },
+            where: { endedAt: null, animal: { is: { status: "active" } } },
             select: {
-              animalId: true,
-              batch: { select: { headcount: true } }
+              animalId: true
             }
           }
         }
@@ -282,21 +287,13 @@ export class AiDataAggregatorService {
     ]);
 
     const categoryHeadcount: Record<string, number> = {};
-    for (const b of batches) {
-      const k = b.categoryKey ?? "other";
-      categoryHeadcount[k] = (categoryHeadcount[k] ?? 0) + b.headcount;
+    for (const a of animals) {
+      const k = a.productionCategory ?? "other";
+      categoryHeadcount[k] = (categoryHeadcount[k] ?? 0) + 1;
     }
-    categoryHeadcount.active_animals = animals.length;
 
     const penRows = pens.map((pen) => {
-      let occ = 0;
-      for (const pl of pen.placements) {
-        if (pl.animalId) {
-          occ += 1;
-        } else if (pl.batch?.headcount) {
-          occ += pl.batch.headcount;
-        }
-      }
+      const occ = pen.placements.length;
       const cap = pen.capacity ?? 0;
       const rate = cap > 0 ? Math.round((occ / cap) * 100) : null;
       return {
@@ -336,7 +333,7 @@ export class AiDataAggregatorService {
     return {
       headcountByCategory: categoryHeadcount,
       totalActiveAnimals: animals.length,
-      totalBatchHeadcount: batches.reduce((s, b) => s + b.headcount, 0),
+      totalBatchHeadcount: animals.filter((a) => a.livestockBatchId).length,
       pens: penRows.slice(0, 12),
       overcrowdedPens: penRows.filter((p) => p.status === "overcrowded").length,
       underusedPens: penRows.filter((p) => p.status === "underused").length,

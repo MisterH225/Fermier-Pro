@@ -1,10 +1,11 @@
-/** Données minimales pour calculer l'effectif sans double-compter bandes et sujets. */
+/** Données minimales pour calculer l'effectif cheptel. */
 export type CheptelHeadcountAnimal = {
   status: string;
   createdAt: Date;
-  livestockBatchId: string | null;
+  livestockBatchId?: string | null;
 };
 
+/** Conservé pour compatibilité des signatures ; n'entre plus dans le calcul d'effectif. */
 export type CheptelHeadcountBatch = {
   id: string;
   headcount: number;
@@ -13,55 +14,28 @@ export type CheptelHeadcountBatch = {
   createdAt: Date;
 };
 
-function batchesActiveAt(
-  batches: CheptelHeadcountBatch[],
-  asOf: Date
-): CheptelHeadcountBatch[] {
-  return batches.filter(
-    (b) =>
-      new Date(b.createdAt) <= asOf &&
-      (b.status === "active" ||
-        (b.closedAt != null && new Date(b.closedAt) > asOf))
-  );
-}
-
 /**
- * Effectif à une date : sujets hors bande + effectifs des bandes actives.
- * Les animaux rattachés à une bande ne sont pas recomptés individuellement.
+ * Effectif à une date : uniquement les sujets actifs en base.
+ * Une bande est un regroupement logique (livestockBatchId) — pas un effectif parallèle.
  */
 export function countCheptelHeadcountAt(
   animals: CheptelHeadcountAnimal[],
-  batches: CheptelHeadcountBatch[],
-  asOf: Date
+  _batches?: CheptelHeadcountBatch[],
+  asOf?: Date
 ): number {
-  const activeAt = animals.filter(
-    (a) => a.status === "active" && new Date(a.createdAt) <= asOf
-  );
-  const batchesAt = batchesActiveAt(batches, asOf);
-  const batchIdsAt = new Set(batchesAt.map((b) => b.id));
-  const batchCreatedAt = new Map(
-    batches.map((b) => [b.id, new Date(b.createdAt)] as const)
-  );
+  void _batches;
+  const ref = asOf ?? new Date();
+  return animals.filter(
+    (a) => a.status === "active" && new Date(a.createdAt) <= ref
+  ).length;
+}
 
-  const individual = activeAt.filter((a) => {
-    if (!a.livestockBatchId) {
-      return true;
-    }
-    if (!batchIdsAt.has(a.livestockBatchId)) {
-      return true;
-    }
-    const created = batchCreatedAt.get(a.livestockBatchId);
-    return created != null && created > asOf;
-  }).length;
-
-  const batchHead = batchesAt.reduce((sum, b) => {
-    const linkedActive = animals.filter(
-      (a) =>
-        a.status === "active" &&
-        a.livestockBatchId === b.id &&
-        new Date(a.createdAt) <= asOf
-    ).length;
-    return sum + (linkedActive > 0 ? linkedActive : b.headcount);
-  }, 0);
-  return individual + batchHead;
+/** Nombre de sujets actifs rattachés à une bande (informationnel, pas un second effectif). */
+export function countActiveAnimalsInBatch(
+  animals: Pick<CheptelHeadcountAnimal, "status" | "livestockBatchId">[],
+  batchId: string
+): number {
+  return animals.filter(
+    (a) => a.status === "active" && a.livestockBatchId === batchId
+  ).length;
 }

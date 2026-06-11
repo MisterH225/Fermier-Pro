@@ -20,7 +20,7 @@ import { FarmDeletionService } from "./farm-deletion.service";
 import { FarmMarketplaceLifecycleService } from "../marketplace/farm-marketplace-lifecycle.service";
 import { countCheptelHeadcountAt } from "./cheptel-headcount.util";
 import { repairOrphanMigrationDuplicateAnimals } from "../livestock/livestock-batch-headcount.helper";
-import { mapBatchCategoryKey } from "../cheptel/batch-category.util";
+import { migrateOnboardingBatchesToIndividualAnimals } from "../onboarding/onboarding-pen-layout";
 
 const MAX_ACTIVE_FARMS_PER_USER = 3;
 
@@ -359,9 +359,24 @@ export class FarmsService {
 
   async getCheptelOverview(user: User, farmId: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
-    await this.prisma.$transaction(async (tx) =>
-      repairOrphanMigrationDuplicateAnimals(tx, farmId)
-    );
+    await this.prisma.$transaction(async (tx) => {
+      const farmRow = await tx.farm.findUnique({
+        where: { id: farmId },
+        select: { speciesFocus: true }
+      });
+      const species = await tx.species.findFirst({
+        where: { code: farmRow?.speciesFocus ?? "porcin" }
+      });
+      if (species) {
+        await migrateOnboardingBatchesToIndividualAnimals(
+          tx,
+          farmId,
+          species.id,
+          user.id
+        );
+      }
+      await repairOrphanMigrationDuplicateAnimals(tx, farmId);
+    });
     const farm = await this.prisma.farm.findUnique({
       where: { id: farmId },
       select: {
@@ -421,10 +436,10 @@ export class FarmsService {
     ).length;
 
     const activeBatches = batches.filter((b) => b.status === "active");
-    const totalBatchHeadcount = activeBatches.reduce(
-      (s, b) => s + b.headcount,
-      0
-    );
+    const activeAnimals = animals.filter((a) => a.status === "active");
+    const animalsInBatchesCount = activeAnimals.filter(
+      (a) => a.livestockBatchId
+    ).length;
 
     const penCap = await this.prisma.pen.aggregate({
       where: { barn: { farmId } },
@@ -446,12 +461,11 @@ export class FarmsService {
     const activePlacements = await this.prisma.penPlacement.findMany({
       where: {
         endedAt: null,
-        pen: { barn: { farmId } }
+        pen: { barn: { farmId } },
+        animal: { is: { status: "active" } }
       },
       select: {
-        animalId: true,
-        batchId: true,
-        batch: { select: { headcount: true } }
+        animalId: true
       }
     });
 
@@ -461,22 +475,17 @@ export class FarmsService {
         id: true,
         capacity: true,
         placements: {
-          where: { endedAt: null },
+          where: {
+            endedAt: null,
+            animal: { is: { status: "active" } }
+          },
           select: {
-            animalId: true,
-            batch: { select: { headcount: true } }
+            animalId: true
           }
         }
       }
     });
-    let penOccupancyHeadcount = 0;
-    for (const pl of activePlacements) {
-      if (pl.animalId) {
-        penOccupancyHeadcount += 1;
-      } else if (pl.batchId && pl.batch) {
-        penOccupancyHeadcount += pl.batch.headcount;
-      }
-    }
+    let penOccupancyHeadcount = activePlacements.length;
 
     const occupancyRate =
       penCapacityTotal > 0
@@ -488,10 +497,6 @@ export class FarmsService {
 
     const barnCount = await this.prisma.barn.count({ where: { farmId } });
 
-    const activeAnimals = animals.filter((a) => a.status === "active");
-    const activeAnimalsNotInBatch = activeAnimals.filter(
-      (a) => !a.livestockBatchId
-    );
     const placedAnimalIds = new Set(
       activePlacements
         .map((p) => p.animalId)
@@ -507,14 +512,7 @@ export class FarmsService {
       if (cap <= 0) {
         continue;
       }
-      let occ = 0;
-      for (const pl of pen.placements) {
-        if (pl.animalId) {
-          occ += 1;
-        } else if (pl.batch?.headcount) {
-          occ += pl.batch.headcount;
-        }
-      }
+      const occ = pen.placements.length;
       if (occ < cap) {
         availablePensCount += 1;
       }
@@ -528,11 +526,6 @@ export class FarmsService {
       growth: 0,
       other: 0
     };
-
-    for (const b of activeBatches) {
-      const slot = mapBatchCategoryKey(b.categoryKey);
-      categoryTotals[slot] += b.headcount;
-    }
 
     const mapAnimalProductionCategory = (
       cat: string
@@ -551,7 +544,7 @@ export class FarmsService {
       }
     };
 
-    for (const a of activeAnimalsNotInBatch) {
+    for (const a of activeAnimals) {
       categoryTotals[mapAnimalProductionCategory(a.productionCategory)] += 1;
     }
 
@@ -597,21 +590,12 @@ export class FarmsService {
     const sickAnimalsCount = activeAnimals.filter(
       (a) => a.healthStatus === "sick"
     ).length;
-    const fatteningCount =
-      activeAnimalsNotInBatch.filter((a) => a.productionCategory === "fattening")
-        .length +
-      activeBatches
-        .filter((b) => mapBatchCategoryKey(b.categoryKey) === "fattening")
-        .reduce((s, b) => s + b.headcount, 0);
-    const starterCount =
-      activeAnimalsNotInBatch.filter((a) => a.productionCategory === "starter")
-        .length +
-      activeBatches
-        .filter((b) => {
-          const slot = mapBatchCategoryKey(b.categoryKey);
-          return slot === "starter" || slot === "growth";
-        })
-        .reduce((s, b) => s + b.headcount, 0);
+    const fatteningCount = activeAnimals.filter(
+      (a) => a.productionCategory === "fattening"
+    ).length;
+    const starterCount = activeAnimals.filter(
+      (a) => a.productionCategory === "starter"
+    ).length;
     const breedingFemalesCount = activeAnimals.filter(
       (a) => a.productionCategory === "breeding_female"
     ).length;
@@ -621,47 +605,21 @@ export class FarmsService {
         a.expectedFarrowingAt != null
     ).length;
 
-    const weekTrend = (
-      category: "fattening" | "starter"
-    ): number[] => {
+    const weekTrend = (category: "fattening" | "starter"): number[] => {
       const out: number[] = [];
       for (let w = 3; w >= 0; w -= 1) {
         const end = new Date(now);
         end.setUTCDate(end.getUTCDate() - w * 7);
-        if (category === "fattening") {
-          const individual = activeAnimalsNotInBatch.filter(
+        out.push(
+          animals.filter(
             (a) =>
-              a.productionCategory === "fattening" &&
-              new Date(a.createdAt) <= end
-          ).length;
-          const batchHead = batches
-            .filter(
-              (b) =>
-                new Date(b.createdAt) <= end &&
-                (b.status === "active" ||
-                  (b.closedAt != null && new Date(b.closedAt) > end)) &&
-                mapBatchCategoryKey(b.categoryKey) === "fattening"
-            )
-            .reduce((s, b) => s + b.headcount, 0);
-          out.push(individual + batchHead);
-        } else {
-          const individual = activeAnimalsNotInBatch.filter(
-            (a) =>
-              a.productionCategory === "starter" &&
-              new Date(a.createdAt) <= end
-          ).length;
-          const batchHead = batches
-            .filter(
-              (b) =>
-                new Date(b.createdAt) <= end &&
-                (b.status === "active" ||
-                  (b.closedAt != null && new Date(b.closedAt) > end)) &&
-                (mapBatchCategoryKey(b.categoryKey) === "starter" ||
-                  mapBatchCategoryKey(b.categoryKey) === "growth")
-            )
-            .reduce((s, b) => s + b.headcount, 0);
-          out.push(individual + batchHead);
-        }
+              a.status === "active" &&
+              new Date(a.createdAt) <= end &&
+              (category === "fattening"
+                ? a.productionCategory === "fattening"
+                : a.productionCategory === "starter")
+          ).length
+        );
       }
       return out;
     };
@@ -680,7 +638,7 @@ export class FarmsService {
         femaleAnimals,
         unknownSexAnimals,
         gestatingFemales,
-        totalBatchHeadcount,
+        totalBatchHeadcount: animalsInBatchesCount,
         activeBatchesCount: activeBatches.length,
         closedBatchesCount: batches.filter(
           (b) => b.closedAt != null || b.status !== "active"

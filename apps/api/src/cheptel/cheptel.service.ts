@@ -397,7 +397,6 @@ export class CheptelService {
             }
           }
         } else if (pl.batch) {
-          occupancy += pl.batch.headcount;
           const tag = mapBatchTypeTag(pl.batch.categoryKey);
           if (tag) {
             batchTypeTag = tag;
