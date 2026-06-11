@@ -149,6 +149,8 @@ export class ReportsPdfmakeService {
         fcr: null,
         adg: null
       },
+      profitability: snap.profitability ?? this.defaultProfitability(),
+      predictions: snap.predictions ?? this.defaultPredictions(),
       qrCodeDataUrl
     };
 
@@ -173,6 +175,51 @@ export class ReportsPdfmakeService {
       pendingEscrowCount: 0,
       pendingEscrowAmount: 0,
       pendingDeliveryCount: 0
+    };
+  }
+
+  private defaultProfitability() {
+    return {
+      available: false,
+      dataQuality: "insufficient",
+      currency: "XOF",
+      marketPricePerKg: null,
+      realized: {
+        grossMargin: null,
+        grossMarginPct: null,
+        netMargin: null,
+        netMarginPct: null,
+        costPerKg: null,
+        roi: null,
+        breakevenPricePerKg: null,
+        revenues: null,
+        costsTotal: null
+      },
+      trendNetMarginPctDelta: null,
+      trendGrossMarginPctDelta: null,
+      costBreakdown: [],
+      monthlySeries: [],
+      topBatches: []
+    };
+  }
+
+  private defaultPredictions() {
+    return {
+      available: false,
+      generatedAt: null,
+      insufficientData: false,
+      insufficientMessage: null,
+      financeForecast: {
+        horizon30: null,
+        horizon60: null,
+        horizon90: null,
+        cashFlowAlert: { hasAlert: false, message: null }
+      },
+      saleTiming: null,
+      alerts: [],
+      herdEvolution: null,
+      animalsReady30: null,
+      upcomingBirths: []
     };
   }
 

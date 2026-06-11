@@ -54,6 +54,78 @@ export type ReportFeedExtended = {
   adg: number | null;
 };
 
+export type ReportProfitabilitySection = {
+  available: boolean;
+  dataQuality: string;
+  currency: string;
+  marketPricePerKg: number | null;
+  realized: {
+    grossMargin: number | null;
+    grossMarginPct: number | null;
+    netMargin: number | null;
+    netMarginPct: number | null;
+    costPerKg: number | null;
+    roi: number | null;
+    breakevenPricePerKg: number | null;
+    revenues: number | null;
+    costsTotal: number | null;
+  };
+  trendNetMarginPctDelta: number | null;
+  trendGrossMarginPctDelta: number | null;
+  costBreakdown: { label: string; amount: number; pct: number }[];
+  monthlySeries: { month: string; revenues: number; costs: number; netMargin: number }[];
+  topBatches: {
+    name: string;
+    netMarginPct: number | null;
+    icActual: number | null;
+    gmqActual: number | null;
+  }[];
+};
+
+export type ReportPredictionsSection = {
+  available: boolean;
+  generatedAt: string | null;
+  insufficientData: boolean;
+  insufficientMessage: string | null;
+  financeForecast: {
+    horizon30: {
+      revenue: number;
+      expenses: number;
+      margin: number;
+      marginPct: number;
+    } | null;
+    horizon60: {
+      revenue: number;
+      expenses: number;
+      margin: number;
+      marginPct: number;
+    } | null;
+    horizon90: {
+      revenue: number;
+      expenses: number;
+      margin: number;
+      marginPct: number;
+    } | null;
+    cashFlowAlert: { hasAlert: boolean; message: string | null };
+  };
+  saleTiming: {
+    priceTrend: string;
+    explanation: string;
+    optimalWindow: string;
+    expectedPricePerKg: number;
+  } | null;
+  alerts: { priority: string; message: string; action: string }[];
+  herdEvolution: {
+    current: number;
+    projected30: number;
+    projected60: number;
+    projected90: number;
+    growthRate: number;
+  } | null;
+  animalsReady30: number | null;
+  upcomingBirths: { label: string; date: string; piglets: number }[];
+};
+
 export type FarmReportPdfContext = {
   farmName: string;
   ownerName: string;
@@ -78,6 +150,8 @@ export type FarmReportPdfContext = {
   cheptelCategories: ReportCheptelCategories;
   gestationExtended: ReportGestationExtended;
   feedExtended: ReportFeedExtended;
+  profitability: ReportProfitabilitySection;
+  predictions: ReportPredictionsSection;
   qrCodeDataUrl: string | null;
 };
 
@@ -96,4 +170,6 @@ export type StoredReportSnapshot = {
   cheptelCategories?: ReportCheptelCategories;
   gestationExtended?: ReportGestationExtended;
   feedExtended?: ReportFeedExtended;
+  profitability?: ReportProfitabilitySection;
+  predictions?: ReportPredictionsSection;
 };
