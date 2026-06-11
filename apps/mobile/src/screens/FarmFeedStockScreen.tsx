@@ -675,11 +675,11 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
                   })
                 )}
                 </ScreenSection>
-                <ScreenSection title={t("feedStock.smartAlertsHintTitle", "Recommandations")}>
+                <ScreenSection title={t("feedStock.smartAlertsHintTitle", "Notifications")}>
                   <Text style={styles.muted}>
                     {t(
                       "feedStock.smartAlertsHintBody",
-                      "Les alertes stock et consommation sont sur le tableau de bord (section Recommandations)."
+                      "Les alertes stock et consommation sont sur le tableau de bord (section Notifications)."
                     )}
                   </Text>
                 </ScreenSection>

@@ -14,6 +14,7 @@ import {
   View
 } from "react-native";
 import { AdminMessagesBanner } from "../../components/admin/AdminMessagesBanner";
+import { AccountNotificationsSection } from "../../components/notifications/AccountNotificationsSection";
 import { PendingInvitationsBanner } from "../../components/collaboration/PendingInvitationsBanner";
 import { PigPriceIndex } from "../../components/market/PigPriceIndex";
 import { BuyerProfileModal } from "../../components/buyer/BuyerProfileModal";
@@ -102,6 +103,7 @@ export function BuyerDashboardScreen() {
       >
         <AdminMessagesBanner />
         <PendingInvitationsBanner />
+        <AccountNotificationsSection />
 
         <ProfileHeroCard>
           <View style={styles.searchWrap}>

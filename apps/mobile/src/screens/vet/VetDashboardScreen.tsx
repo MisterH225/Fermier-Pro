@@ -24,6 +24,8 @@ import { VetWelcomeHeader } from "../../components/vet/VetWelcomeHeader";
 import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import { VisitCard } from "../../components/vet/VisitCard";
 import { AdminMessagesBanner } from "../../components/admin/AdminMessagesBanner";
+import { AccountNotificationsSection } from "../../components/notifications/AccountNotificationsSection";
+import { SmartAlertsSection } from "../../components/smartAlerts/SmartAlertsSection";
 import { PendingInvitationsBanner } from "../../components/collaboration/PendingInvitationsBanner";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
@@ -297,6 +299,17 @@ export function VetDashboardScreen() {
                 accent="#DB2777"
               />
             </View>
+            )}
+
+            {primaryFarm && accessToken ? (
+              <SmartAlertsSection
+                farmId={primaryFarm.id}
+                farmName={primaryFarm.name}
+                accessToken={accessToken}
+                activeProfileId={activeProfileId}
+              />
+            ) : (
+              <AccountNotificationsSection />
             )}
 
             {(financeQ.data?.pendingEarnings ?? 0) > 0 ? (

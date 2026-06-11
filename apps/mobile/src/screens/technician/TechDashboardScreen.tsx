@@ -29,6 +29,9 @@ import { TechWelcomeHeader } from "../../components/technician/TechWelcomeHeader
 import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import { DashboardTaskWidget } from "../../components/tasks";
 import { TechQuickActionModals } from "../../components/technician/TechQuickActionModals";
+import { AccountNotificationsSection } from "../../components/notifications/AccountNotificationsSection";
+import { SmartAlertsSection } from "../../components/smartAlerts/SmartAlertsSection";
+import { AdminMessagesBanner } from "../../components/admin/AdminMessagesBanner";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import {
@@ -221,6 +224,8 @@ export function TechDashboardScreen() {
           ) : null}
         </ProfileHeroCard>
 
+        <AdminMessagesBanner />
+
         <View style={styles.sectionBlock}>
           <ScreenSection title={t("tech.dashboard.tasksToday")}>
             {activeFarm && clientFeatures.tasks && accessToken ? (
@@ -321,6 +326,17 @@ export function TechDashboardScreen() {
           </View>
           )}
         </ScreenSection>
+
+        {activeFarm && accessToken ? (
+          <SmartAlertsSection
+            farmId={activeFarm.farmId}
+            farmName={activeFarm.farmName}
+            accessToken={accessToken}
+            activeProfileId={activeProfileId}
+          />
+        ) : (
+          <AccountNotificationsSection />
+        )}
 
         <View style={styles.sectionBlock}>
           <ScreenSection title={t("tech.dashboard.recentActivity")}>

@@ -200,7 +200,7 @@ export type RootStackParamList = {
     highlightSowId?: string;
     tab?: string;
   };
-  SmartAlertsList: { farmId: string; farmName: string };
+  SmartAlertsList: { farmId?: string; farmName?: string };
   FarmReports: { farmId: string; farmName: string };
   SettingsExpenseCategories: { farmId: string; farmName: string };
 };

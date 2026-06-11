@@ -862,6 +862,14 @@ export const fr = {
     basedOn: "Basé sur {{count}} transactions"
   },
   smartAlerts: {
+    sectionTitle: "Notifications",
+    seeAll: "Tout voir",
+    empty: "Aucune notification pour l'instant.",
+    adminEmpty: "Aucun message de l'administration.",
+    adminTag: "Administration",
+    hideInfo: "Masquer les infos",
+    showInfo: "Voir {{n}} info(s)",
+    bellA11y: "Notifications",
     moduleMarket: "Marché",
     market: {
       priceUp: {
@@ -1168,7 +1176,7 @@ export const fr = {
       marketplacePaymentDashboard: "Portefeuille & Paiements",
       feedStock: "Stock aliment",
       communityFeed: "Feed",
-      recommendations: "Recommandations",
+      notifications: "Notifications",
       reports: "Rapports",
       messages: "Messages",
       buyerHistory: "Mes achats",
@@ -1355,9 +1363,9 @@ export const fr = {
     },
     gaugeDashboardSubtitle: "{{kg}} kg · {{count}} j restants",
     gaugeDashboardNoDays: "{{kg}} kg · durée inconnue",
-    smartAlertsHintTitle: "Recommandations",
+    smartAlertsHintTitle: "Notifications",
     smartAlertsHintBody:
-      "Les alertes stock et consommation sont sur le tableau de bord (section Recommandations).",
+      "Les alertes stock et consommation sont sur le tableau de bord (section Notifications).",
     filterMissingCost: "Sans coût",
     badgeMissingCost: "Sans coût",
     editMovement: "Modifier",

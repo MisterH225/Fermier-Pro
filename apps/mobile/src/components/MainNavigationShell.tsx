@@ -180,7 +180,7 @@ function MainStack() {
       <Stack.Screen
         name="SmartAlertsList"
         component={SmartAlertsListScreen}
-        options={{ title: st("recommendations") }}
+        options={{ title: st("notifications") }}
       />
       <Stack.Screen
         name="FarmReports"

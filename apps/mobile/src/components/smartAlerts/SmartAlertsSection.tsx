@@ -10,6 +10,8 @@ import {
   Text,
   View
 } from "react-native";
+import { AdminMessageCard } from "../admin/AdminMessageCard";
+import { useAdminMessagesInbox } from "../../hooks/useAdminMessagesInbox";
 import {
   fetchFarmSmartAlerts,
   patchFarmSmartAlertRead
@@ -23,6 +25,8 @@ import {
 import type { RootStackParamList } from "../../types/navigation";
 import { partitionSmartAlertsByPriority } from "../../services/smartAlerts/SmartAlertsEngine";
 import { AlertCard } from "./AlertCard";
+
+const DASHBOARD_ADMIN_PREVIEW = 5;
 
 type SmartAlertsSectionProps = {
   farmId: string;
@@ -42,6 +46,11 @@ export function SmartAlertsSection({
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [infoOpen, setInfoOpen] = useState(false);
+  const {
+    items: adminMessages,
+    isLoading: adminLoading,
+    markRead: markAdminRead
+  } = useAdminMessagesInbox();
 
   const alertsQuery = useQuery({
     queryKey: ["smartAlerts", farmId, activeProfileId],
@@ -74,12 +83,21 @@ export function SmartAlertsSection({
   );
 
   const visibleInfo = infoOpen ? parts.info : [];
+  const adminPreview = adminMessages.slice(0, DASHBOARD_ADMIN_PREVIEW);
+  const hasAlerts = (alertsQuery.data?.items.length ?? 0) > 0;
+  const hasAdmin = adminMessages.length > 0;
+  const showEmpty =
+    !adminLoading &&
+    !alertsQuery.isPending &&
+    !hasAdmin &&
+    !hasAlerts &&
+    !alertsQuery.error;
 
   return (
     <View style={styles.wrap}>
       <View style={styles.headRow}>
         <Text style={styles.sectionTitle}>
-          {t("smartAlerts.sectionTitle", "💡 Recommandations")}
+          {t("smartAlerts.sectionTitle")}
         </Text>
         <Pressable
           onPress={() =>
@@ -88,10 +106,19 @@ export function SmartAlertsSection({
           hitSlop={12}
         >
           <Text style={styles.linkAll}>
-            {t("smartAlerts.seeAll", "Tout voir")}
+            {t("smartAlerts.seeAll")}
           </Text>
         </Pressable>
       </View>
+
+      {adminPreview.map((m) => (
+        <AdminMessageCard
+          key={`admin-${m.id}`}
+          msg={m}
+          onMarkRead={(id) => void markAdminRead(id)}
+          adminTag={t("smartAlerts.adminTag")}
+        />
+      ))}
 
       {alertsQuery.isPending && !alertsQuery.data ? (
         <ActivityIndicator color={mobileColors.accent} />
@@ -125,10 +152,8 @@ export function SmartAlertsSection({
               >
                 <Text style={styles.infoToggleTx}>
                   {infoOpen
-                    ? t("smartAlerts.hideInfo", "Masquer infos")
-                    : t("smartAlerts.showInfo", "Infos ({{n}})", {
-                        n: parts.info.length
-                      })}
+                    ? t("smartAlerts.hideInfo")
+                    : t("smartAlerts.showInfo", { n: parts.info.length })}
                 </Text>
               </Pressable>
               {visibleInfo.map((a) => (
@@ -141,9 +166,9 @@ export function SmartAlertsSection({
               ))}
             </>
           ) : null}
-          {alertsQuery.data?.items.length === 0 ? (
+          {showEmpty ? (
             <Text style={styles.empty}>
-              {t("smartAlerts.empty", "Aucune recommandation pour le moment.")}
+              {t("smartAlerts.empty")}
             </Text>
           ) : null}
         </>

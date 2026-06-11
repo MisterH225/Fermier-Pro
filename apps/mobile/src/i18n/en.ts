@@ -858,6 +858,14 @@ export const en = {
     basedOn: "Based on {{count}} transactions"
   },
   smartAlerts: {
+    sectionTitle: "Notifications",
+    seeAll: "See all",
+    empty: "No notifications yet.",
+    adminEmpty: "No messages from administration.",
+    adminTag: "Administration",
+    hideInfo: "Hide info alerts",
+    showInfo: "Show {{n}} info alert(s)",
+    bellA11y: "Notifications",
     moduleMarket: "Market",
     market: {
       priceUp: {
@@ -1164,7 +1172,7 @@ export const en = {
       marketplacePaymentDashboard: "Wallet & Payments",
       feedStock: "Feed stock",
       communityFeed: "Feed",
-      recommendations: "Recommendations",
+      notifications: "Notifications",
       reports: "Reports",
       messages: "Messages",
       buyerHistory: "My purchases",
@@ -1349,9 +1357,9 @@ export const en = {
     },
     gaugeDashboardSubtitle: "{{kg}} kg · {{count}} d left",
     gaugeDashboardNoDays: "{{kg}} kg · unknown duration",
-    smartAlertsHintTitle: "Recommendations",
+    smartAlertsHintTitle: "Notifications",
     smartAlertsHintBody:
-      "Feed and consumption alerts are on the dashboard (Recommendations section).",
+      "Feed and consumption alerts are on the dashboard (Notifications section).",
     editMovement: "Edit",
     sectionType: "Feed type",
     fieldQuantity: "Quantity",
