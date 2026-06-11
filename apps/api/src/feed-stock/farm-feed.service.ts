@@ -1,7 +1,9 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
-  NotFoundException
+  NotFoundException,
+  forwardRef
 } from "@nestjs/common";
 import {
   lineAmountFromUnitPrice,
@@ -22,6 +24,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
 import { FinanceService } from "../finance/finance.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
+import { PredictionsService } from "../predictions/predictions.service";
 import { CreateFeedMovementDto } from "./dto/create-feed-movement.dto";
 import { CreateFeedTypeDto } from "./dto/create-feed-type.dto";
 import {
@@ -88,7 +91,9 @@ export class FarmFeedService {
     private readonly finance: FinanceService,
     private readonly smartAlerts: SmartAlertsService,
     private readonly pump: PumpCalculator,
-    private readonly reconciliation: ReconciliationEngine
+    private readonly reconciliation: ReconciliationEngine,
+    @Inject(forwardRef(() => PredictionsService))
+    private readonly predictions: PredictionsService
   ) {}
 
   async listTypes(user: User, farmId: string) {
@@ -567,6 +572,7 @@ export class FarmFeedService {
       });
 
       void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
+      this.predictions.invalidateAndRegenerateAsync(farmId);
 
       let reconciliation: ReconciliationOfferDto | null = null;
       if (missingCost) {
@@ -677,6 +683,7 @@ export class FarmFeedService {
       });
 
       void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
+      this.predictions.invalidateAndRegenerateAsync(farmId);
       return {
         movement: serializeFeedMovement(movement),
         reconciliation: null
