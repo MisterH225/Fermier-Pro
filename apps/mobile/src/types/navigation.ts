@@ -87,6 +87,7 @@ export type RootStackParamList = {
     | undefined;
   MarketplaceListingDetail: { listingId: string; headline?: string };
   MarketplaceTransaction: { transactionId: string };
+  MarketplacePaymentDashboard: undefined;
   CreditDashboard: undefined;
   MarketplaceMyOffers: undefined;
   MarketplaceMyListings: undefined;

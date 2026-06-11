@@ -301,18 +301,34 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
               </TouchableOpacity>
             )
           : undefined,
-      headerRight:
-        clientFeatures.marketplace && marketTab === "mine" && !buyerView
-          ? () => (
-              <TouchableOpacity
-                onPress={() => setCreateModalOpen(true)}
-                style={{ paddingHorizontal: 8 }}
-                hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
-              >
-                <Text style={styles.headerAction}>{t("marketScreen.create")}</Text>
-              </TouchableOpacity>
-            )
-          : undefined
+      headerRight: () => (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          {clientFeatures.marketplace && marketTab === "mine" && !buyerView && (
+            <TouchableOpacity
+              onPress={() => setCreateModalOpen(true)}
+              style={{ paddingHorizontal: 4 }}
+              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+            >
+              <Text style={styles.headerAction}>{t("marketScreen.create")}</Text>
+            </TouchableOpacity>
+          )}
+          {clientFeatures.marketplace && (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("MarketplacePaymentDashboard")}
+              style={{ paddingHorizontal: 8 }}
+              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+              accessibilityLabel="Portefeuille"
+              accessibilityRole="button"
+            >
+              <Ionicons
+                name="wallet-outline"
+                size={24}
+                color={buyerView ? buyerColors.primary : mobileColors.accent}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+      )
     });
   }, [navigation, clientFeatures.marketplace, marketTab, t, buyerView, fromDashboard]);
 

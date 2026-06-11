@@ -9,3 +9,4 @@ export { MarketplaceMyListingsScreen } from "../../screens/MarketplaceMyListings
 export { MarketplaceMyOffersScreen } from "../../screens/MarketplaceMyOffersScreen";
 export { MarketplaceTransactionScreen } from "../../screens/MarketplaceTransactionScreen";
 export { CreditDashboardScreen } from "../../screens/marketplace/CreditDashboard";
+export { MarketplacePaymentDashboardScreen } from "../../screens/marketplace/MarketplacePaymentDashboardScreen";

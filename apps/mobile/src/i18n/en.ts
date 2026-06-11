@@ -1132,6 +1132,7 @@ export const en = {
       closeA11y: "Close"
     },
     screenTitles: {
+      marketplacePaymentDashboard: "Wallet & Payments",
       feedStock: "Feed stock",
       communityFeed: "Feed",
       recommendations: "Recommendations",
@@ -3353,5 +3354,38 @@ export const en = {
     insightTitle: "In brief",
     fallbackInsightsTitle: "💡 AI advice",
     refresh: "Refresh recommendations"
+  },
+  paymentsDashboard: {
+    title: "My Payments",
+    roleSeller: "Sales (Producer)",
+    roleBuyer: "Purchases (Buyer)",
+    tabSold: "Sold products",
+    tabBought: "Purchased products",
+    tabInProgress: "In progress",
+    tabHistory: "History & Negotiations",
+    emptySold: "No completed sales.",
+    emptyBought: "No completed purchases.",
+    emptyInProgress: "No transactions in progress.",
+    emptyHistory: "No history available.",
+    transactionLabel: "Transaction {{id}}",
+    listingLabel: "Listing: {{title}}",
+    amountLabel: "Amount: {{amount}}",
+    statusLabel: "Status: {{status}}",
+    dateLabel: "Updated on {{date}}",
+    buyerLabel: "Buyer: {{name}}",
+    sellerLabel: "Seller: {{name}}",
+    status: {
+      pending: "Pending",
+      accepted: "Accepted",
+      rejected: "Rejected",
+      withdrawn: "Withdrawn",
+      countered: "Countered",
+      credit_agreed: "Credit agreed",
+      advance_confirmed: "Advance confirmed",
+      balance_pending: "Balance pending",
+      balance_declared: "Balance declared",
+      arbitration: "Arbitration",
+      completed: "Completed"
+    }
   }
 } as const;
