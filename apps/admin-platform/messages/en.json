@@ -382,6 +382,11 @@
     "title": "Platform settings",
     "save": "Save",
     "saved": "Settings saved.",
+    "tabs": {
+      "navLabel": "Settings sections",
+      "platform": "Platform",
+      "modules": "Modules"
+    },
     "sections": {
       "map": "Geographic scope",
       "alerts": "Health alert thresholds",
@@ -389,6 +394,7 @@
       "support": "Mobile support",
       "marketplace": "Marketplace"
     },
+    "loadError": "Could not load settings. Check that the API is up to date and Prisma migrations have been applied.",
     "fields": {
       "mapScope": "Map visible area",
       "alertThreshold": "Trigger threshold (cases)",

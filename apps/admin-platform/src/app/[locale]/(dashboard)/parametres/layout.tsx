@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { SettingsSubNav } from "@/components/settings/SettingsSubNav";
 import { dashboardPageMetadata } from "@/lib/dashboard-page-metadata";
 
 export async function generateMetadata() {
@@ -6,5 +7,10 @@ export async function generateMetadata() {
 }
 
 export default function Layout({ children }: { children: ReactNode }) {
-  return children;
+  return (
+    <div className="space-y-6">
+      <SettingsSubNav />
+      {children}
+    </div>
+  );
 }

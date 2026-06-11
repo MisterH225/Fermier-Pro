@@ -103,6 +103,12 @@ describeOrSkip("Console SuperAdmin API (e2e)", () => {
     expect(res.status).toBe(200);
     expect(res.body?.id).toBe("default");
     expect(typeof res.body.alertCaseThreshold).toBe("number");
+    expect(res.body).toHaveProperty("supportPhone");
+    expect(res.body).toHaveProperty("supportTelegramUrl");
+    expect(res.body.supportEffective).toMatchObject({
+      phone: expect.anything(),
+      telegramUrl: expect.anything()
+    });
   });
 
   it("PATCH /admin/settings met à jour les seuils", async () => {
@@ -113,6 +119,23 @@ describeOrSkip("Console SuperAdmin API (e2e)", () => {
     expect(res.status).toBe(200);
     expect(res.body.alertCaseThreshold).toBe(7);
     expect(res.body.alertPeriodDays).toBe(14);
+  });
+
+  it("PATCH /admin/settings met à jour le contact support", async () => {
+    const res = await request(app.getHttpServer())
+      .patch("/api/v1/admin/settings")
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        supportPhone: "+221771234567",
+        supportTelegramUrl: "@fermierpro_test"
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.supportPhone).toBe("+221771234567");
+    expect(res.body.supportTelegramUrl).toBe("https://t.me/fermierpro_test");
+    expect(res.body.supportEffective.phone).toBe("+221771234567");
+    expect(res.body.supportEffective.telegramUrl).toBe(
+      "https://t.me/fermierpro_test"
+    );
   });
 
   it("GET /admin/health-map et /admin/stats", async () => {
