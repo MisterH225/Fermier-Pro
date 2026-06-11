@@ -29,6 +29,8 @@ export type MarketplaceListingFormValues = {
   description: string;
   totalWeightKg: string;
   pricePerKg: string;
+  /** Prix forfaitaire à la tête (porcelet / reproducteur). */
+  pricePerHead: string;
   totalPrice: string;
   /** true si l'utilisateur a modifié le prix total à la main. */
   totalPriceManual: boolean;
@@ -50,6 +52,7 @@ export const EMPTY_MARKETPLACE_LISTING_FORM: MarketplaceListingFormValues = {
   description: "",
   totalWeightKg: "",
   pricePerKg: "",
+  pricePerHead: "",
   totalPrice: "",
   totalPriceManual: false,
   currency: "XOF",
@@ -139,6 +142,27 @@ export function sumSelectedAnimalsWeightKg(
   return any ? sum : null;
 }
 
+export function computeFlatLotTotal(
+  pricePerHead: string,
+  headcount: number
+): number | null {
+  const perHead = parseDecimalField(pricePerHead);
+  if (perHead == null || perHead <= 0 || headcount <= 0) {
+    return null;
+  }
+  return perHead * headcount;
+}
+
+export function listingFormHeadcount(values: MarketplaceListingFormValues): number {
+  if (values.selectedAnimalIds.length > 0) {
+    return values.selectedAnimalIds.length;
+  }
+  if (values.animalId) {
+    return 1;
+  }
+  return 1;
+}
+
 export function buildMarketplaceListingPayload(
   values: MarketplaceListingFormValues,
   t: (key: string) => string
@@ -149,11 +173,18 @@ export function buildMarketplaceListingPayload(
   }
 
   const flatPrice = usesFlatListingPrice(values.category);
+  const headcount = listingFormHeadcount(values);
   const totalWeightKg = parseDecimalField(values.totalWeightKg);
   const pricePerKg = parseDecimalField(values.pricePerKg);
+  const pricePerHead = parseDecimalField(values.pricePerHead);
   let totalPrice = parseDecimalField(values.totalPrice);
-  if (
-    !flatPrice &&
+
+  if (flatPrice) {
+    if (pricePerHead == null || pricePerHead <= 0) {
+      throw new Error(t("marketScreen.createForm.errors.flatPriceRequired"));
+    }
+    totalPrice = pricePerHead * headcount;
+  } else if (
     totalPrice == null &&
     totalWeightKg != null &&
     pricePerKg != null
@@ -168,11 +199,7 @@ export function buildMarketplaceListingPayload(
     throw new Error(t("marketScreen.createForm.errors.pricePerKgRequired"));
   }
   if (totalPrice == null || totalPrice <= 0) {
-    throw new Error(
-      flatPrice
-        ? t("marketScreen.createForm.errors.flatPriceRequired")
-        : t("marketScreen.createForm.errors.totalRequired")
-    );
+    throw new Error(t("marketScreen.createForm.errors.totalRequired"));
   }
 
   const animalIds =
@@ -190,6 +217,7 @@ export function buildMarketplaceListingPayload(
     category: values.category,
     totalWeightKg: totalWeightKg ?? undefined,
     pricePerKg: flatPrice ? undefined : pricePerKg ?? undefined,
+    unitPrice: flatPrice && pricePerHead != null ? pricePerHead : undefined,
     totalPrice,
     breedLabel: values.breedLabel.trim() || undefined,
     animalIds: animalIds.length > 0 ? animalIds : undefined
@@ -242,13 +270,25 @@ export function applyAnimalSelection(
       ids.length || 1,
       prev.category
     );
-    patch.totalPriceManual = false;
-    const computed = computeTotalFromWeightAndPrice(
-      patch.totalWeightKg,
-      prev.pricePerKg
-    );
-    if (computed != null) {
-      patch.totalPrice = formatDecimalForInput(computed, 0);
+    if (usesFlatListingPrice(prev.category)) {
+      const lotTotal = computeFlatLotTotal(prev.pricePerHead, ids.length || 1);
+      if (lotTotal != null) {
+        patch.totalPrice = formatDecimalForInput(lotTotal, 0);
+      }
+    } else {
+      patch.totalPriceManual = false;
+      const computed = computeTotalFromWeightAndPrice(
+        patch.totalWeightKg,
+        prev.pricePerKg
+      );
+      if (computed != null) {
+        patch.totalPrice = formatDecimalForInput(computed, 0);
+      }
+    }
+  } else if (usesFlatListingPrice(prev.category)) {
+    const lotTotal = computeFlatLotTotal(prev.pricePerHead, ids.length || 1);
+    if (lotTotal != null) {
+      patch.totalPrice = formatDecimalForInput(lotTotal, 0);
     }
   } else if (ids.length === 0) {
     patch.animalId = null;
@@ -292,13 +332,22 @@ export function listingToFormValues(
       : listing.animal
         ? [listing.animal.id]
         : [];
+  const headcount = animalIds.length > 0 ? animalIds.length : 1;
   const flatPrice = usesFlatListingPrice(category);
-  const totalPriceRaw =
+  const unitRaw =
+    listing.unitPrice != null
+      ? Number.parseFloat(String(listing.unitPrice))
+      : null;
+  const totalRaw =
     listing.totalPrice != null
-      ? listing.totalPrice
-      : listing.unitPrice != null
-        ? listing.unitPrice
-        : null;
+      ? Number.parseFloat(String(listing.totalPrice))
+      : null;
+  const pricePerHead =
+    unitRaw != null && Number.isFinite(unitRaw)
+      ? unitRaw
+      : flatPrice && totalRaw != null && headcount > 0
+        ? totalRaw / headcount
+        : totalRaw;
 
   return {
     farmId: listing.farm?.id ?? null,
@@ -309,8 +358,16 @@ export function listingToFormValues(
     description: listing.description ?? "",
     totalWeightKg: parseListingNumberField(listing.totalWeightKg, 1),
     pricePerKg: flatPrice ? "" : parseListingNumberField(listing.pricePerKg),
-    totalPrice: parseListingNumberField(totalPriceRaw, 0),
-    totalPriceManual: flatPrice || totalPriceRaw != null,
+    pricePerHead: flatPrice
+      ? parseListingNumberField(pricePerHead, 0)
+      : "",
+    totalPrice: flatPrice
+      ? parseListingNumberField(
+          unitRaw != null ? unitRaw * headcount : totalRaw,
+          0
+        )
+      : parseListingNumberField(totalRaw, 0),
+    totalPriceManual: !flatPrice && totalRaw != null,
     currency: listing.currency?.trim() || "XOF",
     locationLabel: listing.locationLabel ?? "",
     breedLabel: listing.breedLabel ?? "",
@@ -334,6 +391,7 @@ export function buildUpdateMarketplaceListingPayload(
     animalIds: createPayload.animalIds,
     totalWeightKg: createPayload.totalWeightKg ?? null,
     pricePerKg: createPayload.pricePerKg ?? null,
+    unitPrice: createPayload.unitPrice ?? null,
     totalPrice: createPayload.totalPrice,
     breedLabel: createPayload.breedLabel ?? null
   };

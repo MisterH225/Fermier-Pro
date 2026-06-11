@@ -626,6 +626,8 @@ export const fr = {
       success: "Vente enregistrée — Finance et Cheptel mis à jour."
     },
     flatPriceLabel: "Prix forfaitaire",
+    flatLotPricing: "{{perHead}} / tête × {{count}} sujet(s)",
+    pricePerHeadShort: "{{amount}} / tête",
     totalWeight: "Poids total :",
     totalWeightEmpty: "Poids total : —",
     pricePerKg: "Prix/kg :",
@@ -768,7 +770,11 @@ export const fr = {
       sectionPricingPork: "Poids et prix",
       sectionPricingFlat: "Prix forfaitaire",
       flatPriceHint:
-        "Pour un porcelet ou un reproducteur, indiquez un montant global (ex. 20 000 FCFA le porcelet, 200 000 FCFA la truie).",
+        "Prix forfaitaire à la tête (ex. 28 000 FCFA par porcelet). Le total du lot est calculé automatiquement selon le nombre de sujets sélectionnés.",
+      pricePerHead: "Prix à la tête (forfait)",
+      lotTotalPrice: "Prix total du lot",
+      flatLotAuto:
+        "{{count}} sujet(s) × {{perHead}} = {{amount}}",
       flatPrice: "Prix forfaitaire",
       weightOptional: "Poids (kg, optionnel)",
       totalWeight: "Poids total (kg)",

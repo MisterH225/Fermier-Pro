@@ -38,6 +38,7 @@ import { PickupListingDto } from "./dto/pickup-listing.dto";
 import { UpdateListingDto } from "./dto/update-listing.dto";
 import {
   listingHeadcount,
+  resolveFlatListingPricing,
   resolveListingMarketCategory,
   usesFlatListingPrice
 } from "./marketplace-listing-category.helper";
@@ -219,20 +220,39 @@ export class ListingsService {
     return resolved ?? undefined;
   }
 
-  private normalizeListingPricing(
-    category: ListingMarketCategory | undefined,
-    totalWeightKg: number | null | undefined,
-    pricePerKg: number | null | undefined,
-    totalPrice: number | null | undefined
-  ): {
+  private normalizeListingPricing(params: {
+    category: ListingMarketCategory | undefined;
+    totalWeightKg: number | null | undefined;
+    pricePerKg: number | null | undefined;
+    totalPrice: number | null | undefined;
+    unitPrice: number | null | undefined;
+    headcount: number;
+  }): {
     totalWeightKg: number | null;
     pricePerKg: number | null;
+    unitPrice: number | null;
     totalPrice: number;
   } {
+    const {
+      category,
+      totalWeightKg,
+      pricePerKg,
+      totalPrice,
+      unitPrice,
+      headcount
+    } = params;
+
     if (category && usesFlatListingPrice(category)) {
-      if (totalPrice == null || totalPrice <= 0 || !Number.isFinite(totalPrice)) {
+      let flat: { unitPrice: number; totalPrice: number };
+      try {
+        flat = resolveFlatListingPricing({
+          unitPrice,
+          totalPrice,
+          headcount
+        });
+      } catch {
         throw new BadRequestException(
-          "Prix forfaitaire requis pour un porcelet ou un reproducteur."
+          "Prix forfaitaire à la tête requis pour un porcelet ou un reproducteur."
         );
       }
       const weight =
@@ -240,7 +260,8 @@ export class ListingsService {
       return {
         totalWeightKg: weight,
         pricePerKg: null,
-        totalPrice
+        unitPrice: flat.unitPrice,
+        totalPrice: flat.totalPrice
       };
     }
 
@@ -260,6 +281,7 @@ export class ListingsService {
     return {
       totalWeightKg,
       pricePerKg,
+      unitPrice: null,
       totalPrice: resolvedTotal
     };
   }
@@ -275,12 +297,14 @@ export class ListingsService {
       refs.animalId,
       dto.quantity
     );
-    const pricing = this.normalizeListingPricing(
+    const pricing = this.normalizeListingPricing({
       category,
-      dto.totalWeightKg ?? null,
-      dto.pricePerKg ?? null,
-      dto.totalPrice ?? null
-    );
+      totalWeightKg: dto.totalWeightKg ?? null,
+      pricePerKg: dto.pricePerKg ?? null,
+      totalPrice: dto.totalPrice ?? null,
+      unitPrice: dto.unitPrice ?? null,
+      headcount: listingHeadcount(animalIds, refs.animalId, dto.quantity)
+    });
     const created = await this.prisma.marketplaceListing.create({
       data: {
         sellerUserId: user.id,
@@ -289,7 +313,9 @@ export class ListingsService {
         title: dto.title,
         description: dto.description,
         unitPrice:
-          dto.unitPrice != null ? new Prisma.Decimal(dto.unitPrice) : null,
+          pricing.unitPrice != null
+            ? new Prisma.Decimal(pricing.unitPrice)
+            : null,
         quantity: dto.quantity,
         currency: dto.currency ?? "XOF",
         locationLabel: dto.locationLabel,
@@ -654,6 +680,7 @@ export class ListingsService {
       dto.totalWeightKg !== undefined ||
       dto.pricePerKg !== undefined ||
       dto.totalPrice !== undefined ||
+      dto.unitPrice !== undefined ||
       dto.quantity !== undefined ||
       dto.animalIds !== undefined;
 
@@ -661,6 +688,7 @@ export class ListingsService {
       category?: ListingMarketCategory | undefined;
       totalWeightKg?: Prisma.Decimal | null;
       pricePerKg?: Prisma.Decimal | null;
+      unitPrice?: Prisma.Decimal | null;
       totalPrice?: Prisma.Decimal;
     } = {};
 
@@ -699,12 +727,24 @@ export class ListingsService {
           : listing.totalPrice != null
             ? Number(listing.totalPrice)
             : null;
-      const pricing = this.normalizeListingPricing(
-        normalizedCategory,
-        nextWeight,
-        nextPricePerKg,
-        nextTotalPrice
-      );
+      const nextUnitPrice =
+        dto.unitPrice !== undefined
+          ? dto.unitPrice
+          : listing.unitPrice != null
+            ? Number(listing.unitPrice)
+            : null;
+      const pricing = this.normalizeListingPricing({
+        category: normalizedCategory,
+        totalWeightKg: nextWeight,
+        pricePerKg: nextPricePerKg,
+        totalPrice: nextTotalPrice,
+        unitPrice: nextUnitPrice,
+        headcount: listingHeadcount(
+          nextAnimalIds,
+          nextAnimalId,
+          nextQuantity
+        )
+      });
 
       pricingUpdate = {
         category: normalizedCategory,
@@ -715,6 +755,10 @@ export class ListingsService {
         pricePerKg:
           pricing.pricePerKg != null
             ? new Prisma.Decimal(pricing.pricePerKg)
+            : null,
+        unitPrice:
+          pricing.unitPrice != null
+            ? new Prisma.Decimal(pricing.unitPrice)
             : null,
         totalPrice: new Prisma.Decimal(pricing.totalPrice)
       };
@@ -785,12 +829,22 @@ export class ListingsService {
       listing.animalId,
       listing.quantity
     );
-    const pricing = this.normalizeListingPricing(
-      normalizedCategory,
-      listing.totalWeightKg != null ? Number(listing.totalWeightKg) : null,
-      listing.pricePerKg != null ? Number(listing.pricePerKg) : null,
-      listing.totalPrice != null ? Number(listing.totalPrice) : null
-    );
+    const pricing = this.normalizeListingPricing({
+      category: normalizedCategory,
+      totalWeightKg:
+        listing.totalWeightKg != null ? Number(listing.totalWeightKg) : null,
+      pricePerKg:
+        listing.pricePerKg != null ? Number(listing.pricePerKg) : null,
+      totalPrice:
+        listing.totalPrice != null ? Number(listing.totalPrice) : null,
+      unitPrice:
+        listing.unitPrice != null ? Number(listing.unitPrice) : null,
+      headcount: listingHeadcount(
+        animalIds,
+        listing.animalId,
+        listing.quantity
+      )
+    });
 
     return this.prisma.marketplaceListing.update({
       where: { id },
@@ -806,6 +860,10 @@ export class ListingsService {
         pricePerKg:
           pricing.pricePerKg != null
             ? new Prisma.Decimal(pricing.pricePerKg)
+            : null,
+        unitPrice:
+          pricing.unitPrice != null
+            ? new Prisma.Decimal(pricing.unitPrice)
             : null,
         totalPrice: new Prisma.Decimal(pricing.totalPrice),
         ...(healthSummary !== undefined ? { healthSummary } : {})
@@ -960,8 +1018,18 @@ export class ListingsService {
       offer.buyer.fullName?.trim() || offer.buyer.id.slice(0, 8);
     const weightPerAnimal =
       animalIds.length > 0 ? dto.soldWeightKg / animalIds.length : dto.soldWeightKg;
+    const flatListing =
+      listing.category != null && usesFlatListingPrice(listing.category);
+    const unitPerHead =
+      flatListing && listing.unitPrice != null
+        ? Number(listing.unitPrice)
+        : null;
     const pricePerAnimal =
-      animalIds.length > 0 ? dto.totalPrice / animalIds.length : dto.totalPrice;
+      unitPerHead != null
+        ? unitPerHead
+        : animalIds.length > 0
+          ? dto.totalPrice / animalIds.length
+          : dto.totalPrice;
 
     const result = await this.prisma.$transaction(async (tx) => {
       const fresh = await tx.marketplaceListing.findUnique({

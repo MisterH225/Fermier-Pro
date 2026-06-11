@@ -56,6 +56,39 @@ export function listingHeadcount(
   return 1;
 }
 
+/** Prix forfaitaire à la tête × effectif du lot (porcelet / reproducteur). */
+export function resolveFlatListingPricing(params: {
+  unitPrice?: number | null;
+  totalPrice?: number | null;
+  headcount: number;
+}): { unitPrice: number; totalPrice: number } {
+  const headcount = Math.max(1, params.headcount);
+  let perHead = params.unitPrice;
+
+  if (perHead == null || perHead <= 0 || !Number.isFinite(perHead)) {
+    if (
+      params.totalPrice != null &&
+      params.totalPrice > 0 &&
+      Number.isFinite(params.totalPrice)
+    ) {
+      if (headcount === 1) {
+        perHead = params.totalPrice;
+      } else {
+        perHead = params.totalPrice / headcount;
+      }
+    }
+  }
+
+  if (perHead == null || perHead <= 0 || !Number.isFinite(perHead)) {
+    throw new Error("FLAT_UNIT_PRICE_REQUIRED");
+  }
+
+  return {
+    unitPrice: perHead,
+    totalPrice: perHead * headcount
+  };
+}
+
 export function averageWeightKg(
   totalWeightKg: number,
   headcount: number

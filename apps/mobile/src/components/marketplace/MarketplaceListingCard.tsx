@@ -1,6 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { isFlatPriceListing } from "./listingPricing";
+import {
+  flatListingUnitPrice,
+  isFlatPriceListing,
+  listingDisplayHeadcount
+} from "./listingPricing";
 import {
   Pressable,
   StyleSheet,
@@ -86,6 +90,8 @@ export function MarketplaceListingCard({
 
   const categoryKey = item.category ?? "unknown";
   const flatPrice = isFlatPriceListing(item.category);
+  const headcount = listingDisplayHeadcount(item);
+  const perHead = flatPrice ? flatListingUnitPrice(item) : null;
 
   return (
     <Pressable
@@ -182,9 +188,16 @@ export function MarketplaceListingCard({
             {`${wKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg`}
           </Text>
         ) : null}
-        {flatPrice && total != null ? (
+        {flatPrice && perHead != null ? (
           <Text style={styles.lineMuted}>
-            {t("marketScreen.flatPriceLabel")}
+            {headcount > 1
+              ? t("marketScreen.flatLotPricing", {
+                  perHead: formatMarketMoney(perHead, cur),
+                  count: headcount
+                })
+              : t("marketScreen.pricePerHeadShort", {
+                  amount: formatMarketMoney(perHead, cur)
+                })}
           </Text>
         ) : pKg != null ? (
           <Text style={styles.lineMuted}>

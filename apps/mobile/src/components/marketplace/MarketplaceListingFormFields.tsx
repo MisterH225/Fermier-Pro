@@ -4,8 +4,10 @@ import { useTranslation } from "react-i18next";
 import type { AnimalListItem } from "../../lib/api";
 import {
   applyAnimalSelection,
+  computeFlatLotTotal,
   computeTotalFromWeightAndPrice,
   formatDecimalForInput,
+  listingFormHeadcount,
   parseDecimalField,
   suggestListingCategoryFromWeight,
   usesFlatListingPrice,
@@ -81,9 +83,18 @@ export function MarketplaceListingFormFields({
   );
 
   const flatPrice = usesFlatListingPrice(values.category);
+  const headcount = listingFormHeadcount(values);
 
-  const displayTotal =
-    flatPrice || (values.totalPriceManual && values.totalPrice.trim())
+  const flatLotTotal = useMemo(
+    () => computeFlatLotTotal(values.pricePerHead, headcount),
+    [values.pricePerHead, headcount]
+  );
+
+  const displayTotal = flatPrice
+    ? flatLotTotal != null
+      ? formatDecimalForInput(flatLotTotal, 0)
+      : values.totalPrice
+    : values.totalPriceManual && values.totalPrice.trim()
       ? values.totalPrice
       : computedTotal != null
         ? formatDecimalForInput(computedTotal, 0)
@@ -124,11 +135,26 @@ export function MarketplaceListingFormFields({
     const patch: Partial<MarketplaceListingFormValues> = { category };
     if (usesFlatListingPrice(category)) {
       patch.pricePerKg = "";
-      patch.totalPriceManual = true;
+      patch.totalPriceManual = false;
+      const lotTotal = computeFlatLotTotal(values.pricePerHead, headcount);
+      if (lotTotal != null) {
+        patch.totalPrice = formatDecimalForInput(lotTotal, 0);
+      }
     } else if (usesFlatListingPrice(values.category)) {
+      patch.pricePerHead = "";
       patch.totalPriceManual = false;
     }
     onChange(patch);
+  };
+
+  const onPricePerHeadChange = (pricePerHead: string) => {
+    const lotTotal = computeFlatLotTotal(pricePerHead, headcount);
+    onChange({
+      pricePerHead,
+      ...(lotTotal != null
+        ? { totalPrice: formatDecimalForInput(lotTotal, 0) }
+        : {})
+    });
   };
 
   return (
@@ -329,23 +355,55 @@ export function MarketplaceListingFormFields({
               keyboardType="decimal-pad"
             />
           </>
-        ) : null}
+        ) : (
+          <>
+            <Text style={styles.lab}>
+              {t("marketScreen.createForm.pricePerHead")} *
+            </Text>
+            <TextInput
+              style={styles.input}
+              value={values.pricePerHead}
+              onChangeText={onPricePerHeadChange}
+              placeholder="28000"
+              placeholderTextColor={mobileColors.textSecondary}
+              keyboardType="decimal-pad"
+            />
+          </>
+        )}
 
         <Text style={styles.lab}>
           {flatPrice
-            ? `${t("marketScreen.createForm.flatPrice")} *`
+            ? t("marketScreen.createForm.lotTotalPrice")
             : `${t("marketScreen.createForm.totalPrice")} *`}
         </Text>
-        <TextInput
-          style={styles.input}
-          value={displayTotal}
-          onChangeText={(totalPrice) =>
-            set({ totalPrice, totalPriceManual: true })
-          }
-          placeholder={flatPrice ? "20000" : "0"}
-          placeholderTextColor={mobileColors.textSecondary}
-          keyboardType="decimal-pad"
-        />
+        {flatPrice ? (
+          <>
+            <Text style={styles.totalReadonly}>{displayTotal || "—"}</Text>
+            {flatLotTotal != null && headcount > 0 ? (
+              <Text style={styles.calcHint}>
+                {t("marketScreen.createForm.flatLotAuto", {
+                  count: headcount,
+                  perHead: formatMarketMoney(
+                    parseDecimalField(values.pricePerHead) ?? 0,
+                    values.currency
+                  ),
+                  amount: formatMarketMoney(flatLotTotal, values.currency)
+                })}
+              </Text>
+            ) : null}
+          </>
+        ) : (
+          <TextInput
+            style={styles.input}
+            value={displayTotal}
+            onChangeText={(totalPrice) =>
+              set({ totalPrice, totalPriceManual: true })
+            }
+            placeholder="0"
+            placeholderTextColor={mobileColors.textSecondary}
+            keyboardType="decimal-pad"
+          />
+        )}
         {!flatPrice && !values.totalPriceManual && computedTotal != null ? (
           <Text style={styles.calcHint}>
             {t("marketScreen.createForm.totalAuto", {
@@ -528,6 +586,13 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     color: mobileColors.accent,
     marginTop: 4
+  },
+  totalReadonly: {
+    ...mobileTypography.body,
+    fontWeight: "700",
+    fontSize: 20,
+    color: mobileColors.textPrimary,
+    paddingVertical: mobileSpacing.sm
   },
   footerNote: {
     ...mobileTypography.meta,
