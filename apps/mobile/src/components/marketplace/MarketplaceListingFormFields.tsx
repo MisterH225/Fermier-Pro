@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { AnimalListItem } from "../../lib/api";
 import {
@@ -11,6 +11,7 @@ import {
   parseDecimalField,
   suggestListingCategoryFromWeight,
   usesFlatListingPrice,
+  listingCategoryAllowsCredit,
   type ListingCategory,
   type ListingDurationDays,
   type MarketplaceListingFormValues
@@ -133,6 +134,9 @@ export function MarketplaceListingFormFields({
 
   const onCategoryChange = (category: ListingCategory) => {
     const patch: Partial<MarketplaceListingFormValues> = { category };
+    if (!listingCategoryAllowsCredit(category)) {
+      patch.creditEnabled = false;
+    }
     if (usesFlatListingPrice(category)) {
       patch.pricePerKg = "";
       patch.totalPriceManual = false;
@@ -423,6 +427,28 @@ export function MarketplaceListingFormFields({
         />
       </ModalSection>
 
+      {listingCategoryAllowsCredit(values.category) ? (
+        <ModalSection title={t("marketScreen.createForm.sectionCredit")}>
+          <Text style={styles.hint}>
+            {t("marketScreen.createForm.creditEnabledHint")}
+          </Text>
+          <View style={styles.switchRow}>
+            <Text style={styles.switchLabel}>
+              {t("marketScreen.createForm.creditEnabledLabel")}
+            </Text>
+            <Switch
+              value={values.creditEnabled}
+              onValueChange={(creditEnabled) => set({ creditEnabled })}
+              trackColor={{
+                false: mobileColors.border,
+                true: mobileColors.accent
+              }}
+              thumbColor={mobileColors.background}
+            />
+          </View>
+        </ModalSection>
+      ) : null}
+
       <ModalSection title={t("marketScreen.createForm.sectionLocation")}>
         <Text style={styles.lab}>{t("marketScreen.createForm.location")}</Text>
         <TextInput
@@ -581,6 +607,19 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary,
     lineHeight: 18,
     marginBottom: mobileSpacing.xs
+  },
+  switchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: mobileSpacing.md,
+    paddingVertical: mobileSpacing.xs
+  },
+  switchLabel: {
+    flex: 1,
+    ...mobileTypography.body,
+    color: mobileColors.textPrimary,
+    fontWeight: "600"
   },
   calcHint: {
     ...mobileTypography.meta,

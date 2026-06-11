@@ -1,6 +1,7 @@
 import { Type } from "class-transformer";
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNumber,
@@ -93,4 +94,9 @@ export class CreateListingDto {
   @IsString()
   @MaxLength(120)
   breedLabel?: string;
+
+  /** Accepter les offres à crédit (charcutier uniquement). */
+  @IsOptional()
+  @IsBoolean()
+  creditEnabled?: boolean;
 }

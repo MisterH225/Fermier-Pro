@@ -807,7 +807,11 @@ export const en = {
         pricePerKgRequired: "Enter price per kg.",
         flatPriceRequired: "Enter the flat price.",
         totalRequired: "Enter a valid total price."
-      }
+      },
+      sectionCredit: "Credit sales",
+      creditEnabledLabel: "Accept credit offers",
+      creditEnabledHint:
+        "Buyers can propose split payment (secured advance + balance within 7 days). Butcher listings only."
     },
     publishConfirmTitle: "Publish this listing?",
     publishConfirmBody:

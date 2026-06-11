@@ -16,6 +16,11 @@ export function usesFlatListingPrice(category: ListingCategory): boolean {
   return category === "piglet" || category === "breeder";
 }
 
+/** Vente à crédit : opt-in vendeur, charcutier uniquement. */
+export function listingCategoryAllowsCredit(category: ListingCategory): boolean {
+  return category === "butcher";
+}
+
 export type ListingDurationDays = 7 | 14 | 30;
 
 export type MarketplaceListingFormValues = {
@@ -39,6 +44,8 @@ export type MarketplaceListingFormValues = {
   breedLabel: string;
   /** Durée appliquée à la publication (écran détail). */
   publishDurationDays: ListingDurationDays;
+  /** Accepter les offres à crédit (charcutier uniquement). */
+  creditEnabled: boolean;
   /** URLs Supabase (ordre = affichage ; [0] = principale). */
   photoUrls: string[];
 };
@@ -59,6 +66,7 @@ export const EMPTY_MARKETPLACE_LISTING_FORM: MarketplaceListingFormValues = {
   locationLabel: "",
   breedLabel: "",
   publishDurationDays: 14,
+  creditEnabled: false,
   photoUrls: []
 };
 
@@ -220,6 +228,9 @@ export function buildMarketplaceListingPayload(
     unitPrice: flatPrice && pricePerHead != null ? pricePerHead : undefined,
     totalPrice,
     breedLabel: values.breedLabel.trim() || undefined,
+    creditEnabled: listingCategoryAllowsCredit(values.category)
+      ? values.creditEnabled
+      : false,
     animalIds: animalIds.length > 0 ? animalIds : undefined
   };
 
@@ -372,6 +383,8 @@ export function listingToFormValues(
     locationLabel: listing.locationLabel ?? "",
     breedLabel: listing.breedLabel ?? "",
     publishDurationDays: 14,
+    creditEnabled:
+      listingCategoryAllowsCredit(category) && listing.creditEnabled === true,
     photoUrls: listingPhotoUrlsArray(listing.photoUrls)
   };
 }
@@ -393,7 +406,8 @@ export function buildUpdateMarketplaceListingPayload(
     pricePerKg: createPayload.pricePerKg ?? null,
     unitPrice: createPayload.unitPrice ?? null,
     totalPrice: createPayload.totalPrice,
-    breedLabel: createPayload.breedLabel ?? null
+    breedLabel: createPayload.breedLabel ?? null,
+    creditEnabled: createPayload.creditEnabled ?? false
   };
 }
 

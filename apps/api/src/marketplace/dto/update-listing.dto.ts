@@ -1,6 +1,7 @@
 import { Type } from "class-transformer";
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNumber,
@@ -86,4 +87,9 @@ export class UpdateListingDto {
   @IsString()
   @MaxLength(120)
   breedLabel?: string | null;
+
+  /** Accepter les offres à crédit (charcutier uniquement). */
+  @IsOptional()
+  @IsBoolean()
+  creditEnabled?: boolean;
 }

@@ -39,6 +39,17 @@ export function usesFlatListingPrice(
   );
 }
 
+/** Vente à crédit : opt-in vendeur, charcutier uniquement. */
+export function resolveListingCreditEnabled(
+  category: ListingMarketCategory | null | undefined,
+  creditEnabled?: boolean | null
+): boolean {
+  if (category !== ListingMarketCategory.butcher) {
+    return false;
+  }
+  return creditEnabled === true;
+}
+
 export function listingHeadcount(
   animalIds: string[],
   animalId: string | null,

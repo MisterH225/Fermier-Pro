@@ -4530,6 +4530,8 @@ export type MarketplaceListingListItem = {
   consultationsCount?: number;
   expiresAt?: string | null;
   activeOfferCount?: number;
+  /** Vendeur accepte les offres à crédit (charcutier). */
+  creditEnabled?: boolean;
   farm: { id: string; name: string } | null;
   animal: {
     id: string;
@@ -5443,6 +5445,7 @@ export type CreateMarketplaceListingPayload = {
   pricePerKg?: number;
   totalPrice?: number;
   breedLabel?: string;
+  creditEnabled?: boolean;
 };
 
 /** POST /marketplace/listings — brouillon ; publication séparée. */
@@ -5473,6 +5476,7 @@ export type UpdateMarketplaceListingPayload = {
   pricePerKg?: number | null;
   totalPrice?: number | null;
   breedLabel?: string | null;
+  creditEnabled?: boolean;
 };
 
 /** PATCH /marketplace/listings/:id — vendeur, annonce non vendue / non annulée. */

@@ -367,9 +367,13 @@ export function MarketplaceListingDetailScreen({
   const canSubmitOfferWithEscrow =
     canSubmitOffer && !myListingTx;
   const isButcherListing = L.category === "butcher";
+  const creditAccepted = L.creditEnabled === true;
   const creditBlocked = creditScoreQ.data?.blocked === true;
   const canSubmitCreditOffer =
-    canSubmitOfferWithEscrow && isButcherListing && !creditBlocked;
+    canSubmitOfferWithEscrow &&
+    isButcherListing &&
+    creditAccepted &&
+    !creditBlocked;
   const showCreditScoreWarning =
     creditScoreQ.data?.score === "attention" ||
     creditScoreQ.data?.score === "risque";

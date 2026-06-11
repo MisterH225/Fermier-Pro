@@ -1538,6 +1538,8 @@ model MarketplaceListing {
   pickupNote    String?
   /// Nombre d'offres avec fonds sécurisés (PAYMENT_HELD+).
   activeOfferCount Int             @default(0)
+  /// Vendeur accepte les offres à crédit (charcutier uniquement).
+  creditEnabled   Boolean          @default(false)
   /// Acheteur retenu après acceptation d'offre (escrow).
   reservedForBuyerUserId String?
   reservedForBuyer       User?    @relation("ListingReservedBuyer", fields: [reservedForBuyerUserId], references: [id], onDelete: SetNull)
