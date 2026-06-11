@@ -188,6 +188,13 @@ export default function ParametresPage() {
             <p className="text-xs text-muted-foreground">
               {t("fields.supportPhoneHint")}
             </p>
+            {!form.supportPhone?.trim() && form.supportEffective?.phone ? (
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                {t("fields.supportPhoneEffective", {
+                  value: form.supportEffective.phone
+                })}
+              </p>
+            ) : null}
           </div>
           <div className="space-y-2">
             <Label htmlFor="support-telegram">{t("fields.supportTelegram")}</Label>
@@ -201,6 +208,13 @@ export default function ParametresPage() {
             <p className="text-xs text-muted-foreground">
               {t("fields.supportTelegramHint")}
             </p>
+            {!form.supportTelegramUrl?.trim() && form.supportEffective?.telegramUrl ? (
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                {t("fields.supportTelegramEffective", {
+                  value: form.supportEffective.telegramUrl
+                })}
+              </p>
+            ) : null}
           </div>
         </CardContent>
       </Card>

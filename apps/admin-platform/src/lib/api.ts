@@ -182,6 +182,11 @@ export type StatsDto = {
   activeAnimals: number;
 };
 
+export type SupportContactDto = {
+  phone: string | null;
+  telegramUrl: string | null;
+};
+
 export type PlatformSettingsDto = {
   id: string;
   mapGeographicScope: string;
@@ -194,6 +199,8 @@ export type PlatformSettingsDto = {
   marketplaceCommissionRate: number;
   supportPhone: string | null;
   supportTelegramUrl: string | null;
+  /** Valeurs réellement servies au mobile (DB + fallback env). */
+  supportEffective: SupportContactDto;
 };
 
 export type HealthMapDto = {

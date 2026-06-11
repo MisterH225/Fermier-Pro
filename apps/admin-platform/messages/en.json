@@ -400,8 +400,10 @@
       "marketplaceCommissionHint": "Applied to each completed marketplace sale (e.g. 5 = 5%).",
       "supportPhone": "Support phone",
       "supportPhoneHint": "Number shown in the mobile app (call button). Leave empty to use the SUPPORT_PHONE environment variable.",
+      "supportPhoneEffective": "Active value on mobile (env fallback): {value}",
       "supportTelegram": "Telegram link",
-      "supportTelegramHint": "URL or @username for support. Leave empty to use SUPPORT_TELEGRAM_URL on the API."
+      "supportTelegramHint": "URL or @username for support. Leave empty to use SUPPORT_TELEGRAM_URL on the API.",
+      "supportTelegramEffective": "Active link on mobile (env fallback): {value}"
     },
     "scopes": {
       "world": "Worldwide",

@@ -692,18 +692,21 @@ export class AdminPlatformService {
   }
 
   async getSettings() {
-    let row = await this.prisma.platformSettings.findUnique({
-      where: { id: "default" }
-    });
-    if (!row) {
-      row = await this.prisma.platformSettings.create({
-        data: { id: "default" }
-      });
-    }
-    return row;
+    return this.platformSettings.getAdminSettingsView();
   }
 
   async updateSettings(dto: UpdatePlatformSettingsDto) {
+    const supportPhone =
+      dto.supportPhone !== undefined
+        ? this.platformSettings.sanitizeSupportPhoneForStorage(dto.supportPhone)
+        : undefined;
+    const supportTelegramUrl =
+      dto.supportTelegramUrl !== undefined
+        ? this.platformSettings.sanitizeSupportTelegramForStorage(
+            dto.supportTelegramUrl
+          )
+        : undefined;
+
     const row = await this.prisma.platformSettings.upsert({
       where: { id: "default" },
       create: {
@@ -717,8 +720,8 @@ export class AdminPlatformService {
         reportFrequencyDays: dto.reportFrequencyDays ?? 7,
         marketplaceCommissionRate:
           dto.marketplaceCommissionRate ?? 0.05,
-        supportPhone: dto.supportPhone ?? null,
-        supportTelegramUrl: dto.supportTelegramUrl ?? null
+        supportPhone: supportPhone ?? null,
+        supportTelegramUrl: supportTelegramUrl ?? null
       },
       update: {
         ...(dto.mapGeographicScope !== undefined
@@ -745,16 +748,12 @@ export class AdminPlatformService {
         ...(dto.marketplaceCommissionRate !== undefined
           ? { marketplaceCommissionRate: dto.marketplaceCommissionRate }
           : {}),
-        ...(dto.supportPhone !== undefined
-          ? { supportPhone: dto.supportPhone || null }
-          : {}),
-        ...(dto.supportTelegramUrl !== undefined
-          ? { supportTelegramUrl: dto.supportTelegramUrl || null }
-          : {})
+        ...(supportPhone !== undefined ? { supportPhone } : {}),
+        ...(supportTelegramUrl !== undefined ? { supportTelegramUrl } : {})
       }
     });
     this.platformSettings.invalidateCache();
-    return row;
+    return this.platformSettings.getAdminSettingsView();
   }
 
   async listSanitaryAlerts(activeOnly = true) {

@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import type { PlatformSettings } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
 const DEFAULT_MARKETPLACE_COMMISSION_RATE = 0.05;
@@ -7,6 +8,11 @@ const CACHE_TTL_MS = 60_000;
 export type SupportContactDto = {
   phone: string | null;
   telegramUrl: string | null;
+};
+
+/** Réponse admin : valeurs DB éditables + coordonnées effectives servies au mobile. */
+export type PlatformSettingsAdminDto = PlatformSettings & {
+  supportEffective: SupportContactDto;
 };
 
 @Injectable()
@@ -54,6 +60,45 @@ export class PlatformSettingsService {
     this.cachedCommissionRate = rate;
     this.cachedAt = now;
     return rate;
+  }
+
+  async getOrCreateSettingsRow(): Promise<PlatformSettings> {
+    let row = await this.prisma.platformSettings.findUnique({
+      where: { id: "default" }
+    });
+    if (!row) {
+      row = await this.prisma.platformSettings.create({
+        data: { id: "default" }
+      });
+    }
+    return row;
+  }
+
+  /** Valeurs DB + `supportEffective` (même logique que `GET /config/client`). */
+  async getAdminSettingsView(): Promise<PlatformSettingsAdminDto> {
+    const row = await this.getOrCreateSettingsRow();
+    const supportEffective = await this.getSupportContact();
+    return { ...row, supportEffective };
+  }
+
+  sanitizeSupportPhoneForStorage(
+    raw: string | null | undefined
+  ): string | null {
+    const trimmed = raw?.trim();
+    if (!trimmed) {
+      return null;
+    }
+    return normalizePhone(trimmed) ?? trimmed;
+  }
+
+  sanitizeSupportTelegramForStorage(
+    raw: string | null | undefined
+  ): string | null {
+    const trimmed = raw?.trim();
+    if (!trimmed) {
+      return null;
+    }
+    return normalizeTelegramUrl(trimmed) ?? trimmed;
   }
 
   async getSupportContact(): Promise<SupportContactDto> {
