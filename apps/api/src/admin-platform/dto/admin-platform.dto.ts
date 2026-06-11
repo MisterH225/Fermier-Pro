@@ -46,6 +46,18 @@ export class UpdatePlatformSettingsDto {
   @Min(0)
   @Max(0.99)
   marketplaceCommissionRate?: number;
+
+  /** Numéro support (appel mobile). Vide = fallback env `SUPPORT_PHONE`. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  supportPhone?: string | null;
+
+  /** Lien Telegram (https://t.me/… ou @username). Vide = fallback env. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(512)
+  supportTelegramUrl?: string | null;
 }
 
 export class AdminAiAskDto {

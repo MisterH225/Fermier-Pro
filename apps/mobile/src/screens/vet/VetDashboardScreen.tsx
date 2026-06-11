@@ -21,6 +21,7 @@ import { AlertBadge } from "../../components/smartAlerts/AlertBadge";
 import { DashboardTaskWidget } from "../../components/tasks";
 import { VetAccountModal } from "../../components/vet/VetAccountModal";
 import { VetWelcomeHeader } from "../../components/vet/VetWelcomeHeader";
+import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import { VisitCard } from "../../components/vet/VisitCard";
 import { AdminMessagesBanner } from "../../components/admin/AdminMessagesBanner";
 import { PendingInvitationsBanner } from "../../components/collaboration/PendingInvitationsBanner";
@@ -147,31 +148,37 @@ export function VetDashboardScreen() {
         verified={isVerified}
         onPressAvatar={() => setProfileOpen(true)}
       />
-      <Pressable
-        onPress={() => {
-          if (primaryFarm) {
-            navigation.navigate("SmartAlertsList", {
-              farmId: primaryFarm.id,
-              farmName: primaryFarm.name
-            });
-            return;
-          }
-          navigation.navigate("VetFarms");
-        }}
-        style={({ pressed }) => [
-          styles.heroIconBtn,
-          vetShadow.soft,
-          pressed && { opacity: 0.85 }
-        ]}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        accessibilityRole="button"
-        accessibilityLabel={t("smartAlerts.bellA11y", "Notifications")}
-      >
-        <View style={styles.bellWrap}>
-          <Ionicons name="notifications-outline" size={22} color={vetColors.primary} />
-          {notificationCount > 0 ? <AlertBadge count={notificationCount} /> : null}
-        </View>
-      </Pressable>
+      <View style={styles.heroActions}>
+        <SupportHeaderButton
+          iconColor={vetColors.primary}
+          style={[styles.heroIconBtn, vetShadow.soft]}
+        />
+        <Pressable
+          onPress={() => {
+            if (primaryFarm) {
+              navigation.navigate("SmartAlertsList", {
+                farmId: primaryFarm.id,
+                farmName: primaryFarm.name
+              });
+              return;
+            }
+            navigation.navigate("VetFarms");
+          }}
+          style={({ pressed }) => [
+            styles.heroIconBtn,
+            vetShadow.soft,
+            pressed && { opacity: 0.85 }
+          ]}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel={t("smartAlerts.bellA11y", "Notifications")}
+        >
+          <View style={styles.bellWrap}>
+            <Ionicons name="notifications-outline" size={22} color={vetColors.primary} />
+            {notificationCount > 0 ? <AlertBadge count={notificationCount} /> : null}
+          </View>
+        </Pressable>
+      </View>
     </View>
   );
 
@@ -433,6 +440,11 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.sm,
     backgroundColor: vetColors.canvas,
     gap: mobileSpacing.sm
+  },
+  heroActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.xs
   },
   heroIconBtn: {
     width: 44,

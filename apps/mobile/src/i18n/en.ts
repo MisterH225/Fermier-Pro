@@ -235,6 +235,20 @@ export const en = {
     bannerA11y: "Open admin messages",
     openCta: "View admin messages"
   },
+  support: {
+    title: "Support",
+    buttonA11y: "Support",
+    lead: "Need help? Contact our team by phone or on Telegram.",
+    callButton: "Call support",
+    callHint: "Starts a call using your phone line.",
+    telegramButton: "Message on Telegram",
+    telegramHint: "Opens a chat with support.",
+    unavailable: "Support is not configured yet. Please try again later.",
+    phoneErrorTitle: "Phone",
+    phoneUnavailable: "Support phone number unavailable.",
+    telegramErrorTitle: "Telegram",
+    telegramUnavailable: "Telegram link unavailable."
+  },
   account: {
     title: "Profile",
     identity: "Identity",
@@ -1153,6 +1167,7 @@ export const en = {
       vetAgenda: "Agenda",
       farmList: "My farms",
       vetReports: "Reports",
+      support: "Support",
       invitation: "Invitation",
       animalDetail: "Animal record",
       farm: "Farm",

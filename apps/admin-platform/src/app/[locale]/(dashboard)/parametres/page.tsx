@@ -57,7 +57,9 @@ export default function ParametresPage() {
         alertDefaultLevel: form.alertDefaultLevel,
         adminNotifyEmail: form.adminNotifyEmail ?? "",
         reportFrequencyDays: form.reportFrequencyDays,
-        marketplaceCommissionRate: form.marketplaceCommissionRate
+        marketplaceCommissionRate: form.marketplaceCommissionRate,
+        supportPhone: form.supportPhone ?? "",
+        supportTelegramUrl: form.supportTelegramUrl ?? ""
       });
       setForm(next);
       setSaved(true);
@@ -165,6 +167,40 @@ export default function ParametresPage() {
               value={form.reportFrequencyDays}
               onChange={(e) => update("reportFrequencyDays", Number(e.target.value))}
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">{t("sections.support")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="support-phone">{t("fields.supportPhone")}</Label>
+            <Input
+              id="support-phone"
+              type="tel"
+              placeholder="+221771234567"
+              value={form.supportPhone ?? ""}
+              onChange={(e) => update("supportPhone", e.target.value || null)}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("fields.supportPhoneHint")}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="support-telegram">{t("fields.supportTelegram")}</Label>
+            <Input
+              id="support-telegram"
+              type="url"
+              placeholder="https://t.me/fermierpro ou @fermierpro"
+              value={form.supportTelegramUrl ?? ""}
+              onChange={(e) => update("supportTelegramUrl", e.target.value || null)}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("fields.supportTelegramHint")}
+            </p>
           </div>
         </CardContent>
       </Card>

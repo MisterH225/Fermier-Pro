@@ -192,6 +192,8 @@ export type PlatformSettingsDto = {
   adminNotifyEmail: string | null;
   reportFrequencyDays: number;
   marketplaceCommissionRate: number;
+  supportPhone: string | null;
+  supportTelegramUrl: string | null;
 };
 
 export type HealthMapDto = {

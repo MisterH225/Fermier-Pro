@@ -388,6 +388,7 @@
       "map": "Périmètre géographique",
       "alerts": "Seuils alertes sanitaires",
       "notifications": "Notifications",
+      "support": "Support mobile",
       "marketplace": "Marketplace"
     },
     "fields": {
@@ -398,7 +399,11 @@
       "adminEmail": "Email SuperAdmin",
       "reportFrequency": "Fréquence rapports (jours)",
       "marketplaceCommission": "Commission marketplace (%)",
-      "marketplaceCommissionHint": "Appliquée à chaque vente conclue sur le marché (ex. 5 = 5 %)."
+      "marketplaceCommissionHint": "Appliquée à chaque vente conclue sur le marché (ex. 5 = 5 %).",
+      "supportPhone": "Téléphone support",
+      "supportPhoneHint": "Numéro affiché dans l’app mobile (bouton appel). Laissez vide pour utiliser la variable d’environnement SUPPORT_PHONE.",
+      "supportTelegram": "Lien Telegram",
+      "supportTelegramHint": "URL ou @username du compte support. Laissez vide pour utiliser SUPPORT_TELEGRAM_URL côté API."
     },
     "scopes": {
       "world": "Monde entier",

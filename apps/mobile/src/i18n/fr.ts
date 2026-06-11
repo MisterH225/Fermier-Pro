@@ -235,6 +235,20 @@ export const fr = {
     bannerA11y: "Voir les messages admin",
     openCta: "Voir les messages de l'administration"
   },
+  support: {
+    title: "Support",
+    buttonA11y: "Support",
+    lead: "Besoin d’aide ? Contactez notre équipe par téléphone ou sur Telegram.",
+    callButton: "Appeler le support",
+    callHint: "Lance un appel via votre ligne téléphonique.",
+    telegramButton: "Écrire sur Telegram",
+    telegramHint: "Ouvre une discussion avec le support.",
+    unavailable: "Le support n’est pas configuré pour le moment. Réessayez plus tard.",
+    phoneErrorTitle: "Téléphone",
+    phoneUnavailable: "Numéro de support indisponible.",
+    telegramErrorTitle: "Telegram",
+    telegramUnavailable: "Lien Telegram indisponible."
+  },
   account: {
     title: "Profil",
     identity: "Identité",
@@ -1157,6 +1171,7 @@ export const fr = {
       vetAgenda: "Agenda",
       farmList: "Mes fermes",
       vetReports: "Rapports",
+      support: "Support",
       invitation: "Invitation",
       animalDetail: "Fiche animal",
       farm: "Ferme",

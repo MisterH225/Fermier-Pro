@@ -386,6 +386,7 @@
       "map": "Geographic scope",
       "alerts": "Health alert thresholds",
       "notifications": "Notifications",
+      "support": "Mobile support",
       "marketplace": "Marketplace"
     },
     "fields": {
@@ -396,7 +397,11 @@
       "adminEmail": "SuperAdmin email",
       "reportFrequency": "Report frequency (days)",
       "marketplaceCommission": "Marketplace commission (%)",
-      "marketplaceCommissionHint": "Applied to each completed marketplace sale (e.g. 5 = 5%)."
+      "marketplaceCommissionHint": "Applied to each completed marketplace sale (e.g. 5 = 5%).",
+      "supportPhone": "Support phone",
+      "supportPhoneHint": "Number shown in the mobile app (call button). Leave empty to use the SUPPORT_PHONE environment variable.",
+      "supportTelegram": "Telegram link",
+      "supportTelegramHint": "URL or @username for support. Leave empty to use SUPPORT_TELEGRAM_URL on the API."
     },
     "scopes": {
       "world": "Worldwide",

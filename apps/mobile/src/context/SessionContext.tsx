@@ -12,7 +12,8 @@ import { AppState, type AppStateStatus } from "react-native";
 import type {
   AuthMeResponse,
   ClientConfigDto,
-  PlatformModuleDto
+  PlatformModuleDto,
+  SupportContactDto
 } from "../lib/api";
 import { formatApiError } from "../lib/apiErrors";
 import { fetchAuthMe, fetchClientConfig } from "../lib/api";
@@ -46,6 +47,8 @@ type SessionContextValue = {
   /** GET /config/client — défaut tout activé si échec réseau */
   clientFeatures: ClientConfigDto["features"];
   platformModules: PlatformModuleDto[];
+  /** Coordonnées support (téléphone / Telegram) depuis `/config/client`. */
+  supportContact: SupportContactDto;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -81,6 +84,10 @@ export function SessionProvider({
   const [platformModules, setPlatformModules] = useState<PlatformModuleDto[]>(
     []
   );
+  const [supportContact, setSupportContact] = useState<SupportContactDto>({
+    phone: null,
+    telegramUrl: null
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -89,12 +96,16 @@ export function SessionProvider({
         if (!cancelled) {
           setClientFeatures(cfg.features);
           setPlatformModules(cfg.modules ?? []);
+          setSupportContact(
+            cfg.support ?? { phone: null, telegramUrl: null }
+          );
         }
       })
       .catch(() => {
         if (!cancelled) {
           setClientFeatures({ ...DEFAULT_CLIENT_FEATURES });
           setPlatformModules([]);
+          setSupportContact({ phone: null, telegramUrl: null });
         }
       });
     return () => {
@@ -265,7 +276,8 @@ export function SessionProvider({
       refreshAuthMe,
       reloadAuth,
       clientFeatures,
-      platformModules
+      platformModules,
+      supportContact
     }),
     [
       accessToken,
@@ -278,7 +290,8 @@ export function SessionProvider({
       refreshAuthMe,
       reloadAuth,
       clientFeatures,
-      platformModules
+      platformModules,
+      supportContact
     ]
   );
 

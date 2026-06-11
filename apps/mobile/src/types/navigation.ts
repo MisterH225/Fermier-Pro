@@ -22,6 +22,8 @@ export type RootStackParamList = {
   FarmList: undefined;
   /** Compte : déconnexion, langue, aide. */
   Account: undefined;
+  /** Support : appel téléphonique ou Telegram. */
+  Support: undefined;
   DeleteAccountProcess: undefined;
   DeleteAccountComplete: undefined;
   /** Saisie du jeton d’invitation (lien partagé par un gestionnaire de ferme). */

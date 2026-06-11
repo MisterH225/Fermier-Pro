@@ -18,6 +18,7 @@ import { PendingInvitationsBanner } from "../../components/collaboration/Pending
 import { PigPriceIndex } from "../../components/market/PigPriceIndex";
 import { BuyerProfileModal } from "../../components/buyer/BuyerProfileModal";
 import { BuyerWelcomeHeader } from "../../components/buyer/BuyerWelcomeHeader";
+import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import {
   ProfileHeroCard,
   profileScreenScrollContent,
@@ -76,6 +77,10 @@ export function BuyerDashboardScreen() {
         displayName={displayName}
         avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
         onPressAvatar={() => setProfileOpen(true)}
+      />
+      <SupportHeaderButton
+        iconColor={buyerColors.primary}
+        style={styles.heroIconBtn}
       />
     </View>
   );
@@ -165,6 +170,10 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.sm,
     backgroundColor: buyerColors.canvas,
     gap: mobileSpacing.sm
+  },
+  heroIconBtn: {
+    padding: mobileSpacing.sm,
+    borderRadius: buyerRadius.pill
   },
   searchWrap: {
     flexDirection: "row",

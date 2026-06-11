@@ -26,6 +26,7 @@ import {
 import { TechMobileShell } from "../../components/layout/TechMobileShell";
 import { TechProfileModal } from "../../components/technician/TechProfileModal";
 import { TechWelcomeHeader } from "../../components/technician/TechWelcomeHeader";
+import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import { DashboardTaskWidget } from "../../components/tasks";
 import { TechQuickActionModals } from "../../components/technician/TechQuickActionModals";
 import { useBottomInset } from "../../hooks/useBottomInset";
@@ -145,27 +146,33 @@ export function TechDashboardScreen() {
         avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
         onPressAvatar={() => setProfileOpen(true)}
       />
-      <Pressable
-        onPress={() => {
-          if (activeFarm) {
-            navigation.navigate("SmartAlertsList", {
-              farmId: activeFarm.farmId,
-              farmName: activeFarm.farmName
-            });
-          }
-        }}
-        style={({ pressed }) => [styles.bell, pressed && { opacity: 0.85 }]}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        accessibilityRole="button"
-        accessibilityLabel={t("smartAlerts.bellA11y", "Notifications")}
-      >
-        <Ionicons name="notifications-outline" size={22} color={techColors.primary} />
-        {(dashQ.data?.alertsCount ?? 0) > 0 ? (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{dashQ.data?.alertsCount}</Text>
-          </View>
-        ) : null}
-      </Pressable>
+      <View style={styles.heroActions}>
+        <SupportHeaderButton
+          iconColor={techColors.primary}
+          style={styles.heroIconBtn}
+        />
+        <Pressable
+          onPress={() => {
+            if (activeFarm) {
+              navigation.navigate("SmartAlertsList", {
+                farmId: activeFarm.farmId,
+                farmName: activeFarm.farmName
+              });
+            }
+          }}
+          style={({ pressed }) => [styles.bell, pressed && { opacity: 0.85 }]}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel={t("smartAlerts.bellA11y", "Notifications")}
+        >
+          <Ionicons name="notifications-outline" size={22} color={techColors.primary} />
+          {(dashQ.data?.alertsCount ?? 0) > 0 ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{dashQ.data?.alertsCount}</Text>
+            </View>
+          ) : null}
+        </Pressable>
+      </View>
     </View>
   );
 
@@ -367,6 +374,15 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.sm,
     backgroundColor: techColors.canvas,
     gap: mobileSpacing.sm
+  },
+  heroActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.xs
+  },
+  heroIconBtn: {
+    padding: mobileSpacing.sm,
+    borderRadius: techRadius.pill
   },
   sectionBlock: { gap: mobileSpacing.sm },
   subtitle: { ...mobileTypography.meta, color: techColors.textSecondary },
