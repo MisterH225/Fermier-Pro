@@ -8,7 +8,7 @@ import type { User } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { AuditService } from "../common/audit.service";
 import { AUDIT_ACTION } from "../common/audit.constants";
-import { FarmDeletionService } from "../farms/farm-deletion.service";
+import { FarmDataPurgeService } from "../farms/farm-data-purge.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import { SupabaseAdminService } from "./supabase-admin.service";
@@ -37,7 +37,7 @@ export class AccountDeletionService {
     private readonly audit: AuditService,
     private readonly push: PushNotificationsService,
     private readonly supabaseAdmin: SupabaseAdminService,
-    private readonly farmDeletion: FarmDeletionService
+    private readonly farmDataPurge: FarmDataPurgeService
   ) {}
 
   async deleteAccount(user: User): Promise<void> {
@@ -178,12 +178,12 @@ export class AccountDeletionService {
 
     try {
       const buyerNotices: Awaited<
-        ReturnType<FarmDeletionService["purgeFarmWithinTransaction"]>
+        ReturnType<FarmDataPurgeService["purgeFarmWithinTransaction"]>
       > = [];
       await this.prisma.$transaction(
         async (tx) => {
           for (const farmId of ownedFarmIds) {
-            const notices = await this.farmDeletion.purgeFarmWithinTransaction(
+            const notices = await this.farmDataPurge.purgeFarmWithinTransaction(
               tx,
               farmId
             );
@@ -191,7 +191,7 @@ export class AccountDeletionService {
             await tx.farm.delete({ where: { id: farmId } });
           }
 
-          await this.farmDeletion.purgeUserMarketplaceData(tx, user.id);
+          await this.farmDataPurge.purgeUserMarketplaceData(tx, user.id);
           await this.purgeUserScopedRows(tx, user.id);
 
           await tx.user.update({
@@ -202,7 +202,7 @@ export class AccountDeletionService {
         },
         { maxWait: 15_000, timeout: 120_000 }
       );
-      this.farmDeletion.dispatchBuyerNotices(buyerNotices);
+      this.farmDataPurge.dispatchBuyerNotices(buyerNotices);
     } catch (err) {
       this.logger.error(
         `Account deletion rollback for user ${user.id}`,

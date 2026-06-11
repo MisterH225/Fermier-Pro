@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { CommonModule } from "../common/common.module";
 import { FeatureFlagsModule } from "../feature-flags/feature-flags.module";
@@ -10,7 +10,7 @@ import { AiResponseParserService } from "./ai-response-parser.service";
 import { AiService } from "./ai.service";
 
 @Module({
-  imports: [AuthModule, CommonModule, FeatureFlagsModule],
+  imports: [forwardRef(() => AuthModule), CommonModule, FeatureFlagsModule],
   controllers: [AiController],
   providers: [
     AiService,

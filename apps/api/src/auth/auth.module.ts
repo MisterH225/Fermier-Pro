@@ -1,7 +1,7 @@
 import { Module, forwardRef } from "@nestjs/common";
 import { AdminModerationModule } from "../admin-moderation/admin-moderation.module";
 import { CguModule } from "../cgu/cgu.module";
-import { FarmsModule } from "../farms/farms.module";
+import { FarmDataPurgeModule } from "../farms/farm-data-purge.module";
 import { PushNotificationsModule } from "../push-notifications/push-notifications.module";
 import { AccountDeletionService } from "./account-deletion.service";
 import { AuthController } from "./auth.controller";
@@ -17,7 +17,7 @@ import { SupabaseJwtGuard } from "./guards/supabase-jwt.guard";
     PushNotificationsModule,
     forwardRef(() => AdminModerationModule),
     forwardRef(() => CguModule),
-    forwardRef(() => FarmsModule)
+    forwardRef(() => FarmDataPurgeModule)
   ],
   controllers: [AuthController],
   providers: [
