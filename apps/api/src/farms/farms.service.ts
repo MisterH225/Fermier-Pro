@@ -20,7 +20,7 @@ import { FarmDeletionService } from "./farm-deletion.service";
 import { FarmMarketplaceLifecycleService } from "../marketplace/farm-marketplace-lifecycle.service";
 import { countCheptelHeadcountAt } from "./cheptel-headcount.util";
 import { mapBatchCategoryKey } from "../cheptel/batch-category.util";
-import { syncLitterBatchCategories } from "../gestation/litter-weaning.util";
+import { maintainLitterBatches } from "../gestation/litter-weaning.util";
 import { countPlacementOccupancy } from "../housing/placement-occupancy.util";
 import { repairOrphanMigrationDuplicateAnimals } from "../livestock/livestock-batch-headcount.helper";
 import { migrateOnboardingBatchesToIndividualAnimals } from "../onboarding/onboarding-pen-layout";
@@ -396,7 +396,7 @@ export class FarmsService {
     }
 
     await this.farmAccess.requireFarmAccess(user.id, farmId);
-    await syncLitterBatchCategories(this.prisma, farmId);
+    await maintainLitterBatches(this.prisma, farmId);
 
     const animals = await this.prisma.animal.findMany({
       where: { farmId },
@@ -564,6 +564,17 @@ export class FarmsService {
         .map((a) => a.livestockBatchId)
         .filter((id): id is string => Boolean(id))
     );
+    const batchHeadcountFor = (
+      slot: ReturnType<typeof mapBatchCategoryKey>
+    ) =>
+      activeBatches
+        .filter(
+          (b) =>
+            !batchIdsWithAnimals.has(b.id) &&
+            mapBatchCategoryKey(b.categoryKey) === slot
+        )
+        .reduce((sum, b) => sum + b.headcount, 0);
+
     for (const b of activeBatches) {
       if (batchIdsWithAnimals.has(b.id)) {
         continue;
@@ -615,12 +626,13 @@ export class FarmsService {
     const sickAnimalsCount = activeAnimals.filter(
       (a) => a.healthStatus === "sick"
     ).length;
-    const fatteningCount = activeAnimals.filter(
-      (a) => a.productionCategory === "fattening"
-    ).length;
-    const starterCount = activeAnimals.filter(
-      (a) => a.productionCategory === "starter"
-    ).length;
+    const fatteningCount =
+      activeAnimals.filter((a) => a.productionCategory === "fattening")
+        .length + batchHeadcountFor("fattening");
+    const starterCount =
+      activeAnimals.filter((a) => a.productionCategory === "starter").length +
+      batchHeadcountFor("starter");
+    const nursingCount = batchHeadcountFor("sous_mere");
     const breedingFemalesCount = activeAnimals.filter(
       (a) => a.productionCategory === "breeding_female"
     ).length;
@@ -677,6 +689,7 @@ export class FarmsService {
         sickAnimalsCount,
         fatteningCount,
         starterCount,
+        nursingCount,
         breedingFemalesCount,
         breedingFemalesGestating
       },

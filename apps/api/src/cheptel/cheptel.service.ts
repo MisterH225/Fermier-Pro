@@ -18,7 +18,7 @@ import {
 import { FarmAccessService } from "../common/farm-access.service";
 import { FinanceService } from "../finance/finance.service";
 import { mapBatchTypeTag } from "./batch-category.util";
-import { syncLitterBatchCategories } from "../gestation/litter-weaning.util";
+import { maintainLitterBatches } from "../gestation/litter-weaning.util";
 import { PrismaService } from "../prisma/prisma.service";
 import { PatchAnimalStatusDto } from "../livestock/dto/patch-animal-status.dto";
 import { LivestockService } from "../livestock/livestock.service";
@@ -245,7 +245,7 @@ export class CheptelService {
 
   async listPens(user: User, farmId: string, barnId?: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
-    await syncLitterBatchCategories(this.prisma, farmId);
+    await maintainLitterBatches(this.prisma, farmId);
     await this.migrateLegacyBatchPlacementsIfNeeded(user, farmId);
     await this.repairDuplicateAnimalsIfNeeded(user, farmId);
     const now = new Date();
@@ -1443,7 +1443,17 @@ export class CheptelService {
             endedAt: null,
             batchId: { not: null },
             pen: { barn: { farmId } },
-            batch: { is: { headcount: { gt: 0 } } }
+            batch: {
+              is: {
+                headcount: { gt: 0 },
+                NOT: {
+                  OR: [
+                    { sourceTag: { startsWith: "gestation:" } },
+                    { categoryKey: "sous_mere" }
+                  ]
+                }
+              }
+            }
           }
         });
         if (legacyBatchCount === 0) {
