@@ -1620,6 +1620,12 @@ model FeedStockMovement {
   feedTypeId           String
   feedType             FeedType         @relation(fields: [feedTypeId], references: [id], onDelete: Cascade)
   kind                 FeedMovementKind
+  /// Quantité saisie à l'enregistrement (sacs, kg ou tonnes selon `quantityUnit`).
+  quantityInput        Decimal?         @db.Decimal(14, 4)
+  /// Unité de saisie à l'enregistrement (`kg`, `sac`, `tonne`).
+  quantityUnit         FeedTypeUnit?
+  /// Base du prix unitaire enregistré (`kg` ou `sac`).
+  priceBasis           String?
   /// Quantité ajoutée (kg) pour une entrée `in`.
   quantityKg           Decimal?         @db.Decimal(14, 4)
   bagsCounted          Decimal?         @db.Decimal(14, 4)

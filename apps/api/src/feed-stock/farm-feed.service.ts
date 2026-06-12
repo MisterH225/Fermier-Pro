@@ -523,11 +523,16 @@ export class FarmFeedService {
       const missingCost = !linkedExpenseId && totalCost == null;
 
       const movement = await this.prisma.$transaction(async (tx) => {
+        const basis =
+          dto.priceBasis ?? (qUnit === FeedTypeUnit.sac ? "sac" : "kg");
         const m = await tx.feedStockMovement.create({
           data: {
             farmId,
             feedTypeId: feedType.id,
             kind: FeedMovementKind.in,
+            quantityInput: new Prisma.Decimal(dto.quantityInput!),
+            quantityUnit: qUnit,
+            priceBasis: basis,
             quantityKg: deltaKg,
             stockAfterKg: newStock,
             supplier: dto.supplier?.trim() || null,
@@ -725,19 +730,32 @@ export class FarmFeedService {
       throw new NotFoundException("Type d'aliment introuvable");
     }
 
-    const qUnit = dto.quantityUnit ?? feedType.unit;
-    const qtyInput =
-      dto.quantityInput ??
-      (existing.quantityKg
-        ? qUnit === FeedTypeUnit.sac && feedType.weightPerBagKg
-          ? existing.quantityKg.div(feedType.weightPerBagKg).toNumber()
-          : existing.quantityKg.toNumber()
-        : 0);
+    const storedUnit = existing.quantityUnit ?? feedType.unit;
+    const qUnit = dto.quantityUnit ?? storedUnit;
     const wp =
       dto.weightPerBagKg != null
         ? new Prisma.Decimal(dto.weightPerBagKg)
         : feedType.weightPerBagKg;
+    const reverseUnit = dto.quantityUnit ?? storedUnit;
+    const qtyInput =
+      dto.quantityInput ??
+      (existing.quantityInput != null
+        ? existing.quantityInput.toNumber()
+        : existing.quantityKg
+          ? reverseUnit === FeedTypeUnit.sac && wp
+            ? existing.quantityKg.div(wp).toNumber()
+            : reverseUnit === FeedTypeUnit.tonne
+              ? existing.quantityKg.div(1000).toNumber()
+              : existing.quantityKg.toNumber()
+          : 0);
     const deltaKg = quantityInputToKg(qtyInput, qUnit, wp);
+    const priceBasis: "kg" | "sac" =
+      dto.priceBasis ??
+      (existing.priceBasis === "sac" || existing.priceBasis === "kg"
+        ? existing.priceBasis
+        : qUnit === FeedTypeUnit.sac
+          ? "sac"
+          : "kg");
     const occurredAt = dto.occurredAt
       ? new Date(dto.occurredAt)
       : existing.occurredAt;
@@ -752,20 +770,23 @@ export class FarmFeedService {
         : existing.unitPrice;
 
     if (dto.totalCost == null && dto.unitPrice != null) {
-      const basis = dto.priceBasis ?? (qUnit === FeedTypeUnit.sac ? "sac" : "kg");
       const amount = lineAmountFromUnitPrice(
         qtyInput,
         qUnit,
         deltaKg,
         dto.unitPrice,
-        basis
+        priceBasis
       );
       totalCost = new Prisma.Decimal(amount);
     } else if (dto.totalCost != null && dto.unitPrice == null) {
-      const perKg = deltaKg.gt(0)
-        ? dto.totalCost / deltaKg.toNumber()
-        : null;
-      unitPrice = perKg != null ? new Prisma.Decimal(perKg) : null;
+      if (priceBasis === "sac" && qUnit === FeedTypeUnit.sac && qtyInput > 0) {
+        unitPrice = new Prisma.Decimal(dto.totalCost / qtyInput);
+      } else {
+        const perKg = deltaKg.gt(0)
+          ? dto.totalCost / deltaKg.toNumber()
+          : null;
+        unitPrice = perKg != null ? new Prisma.Decimal(perKg) : null;
+      }
     }
 
     const costOnMovement = movementHasCost({
@@ -779,6 +800,9 @@ export class FarmFeedService {
         where: { id: movementId },
         data: {
           feedTypeId,
+          quantityInput: new Prisma.Decimal(qtyInput),
+          quantityUnit: qUnit,
+          priceBasis,
           quantityKg: deltaKg,
           supplier:
             dto.supplier !== undefined

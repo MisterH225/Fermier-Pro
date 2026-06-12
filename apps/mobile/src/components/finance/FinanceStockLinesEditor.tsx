@@ -42,11 +42,27 @@ function lineSubtotal(line: StockLineForm, types: FeedTypeDto[]): number {
   if (!Number.isFinite(q) || !Number.isFinite(p)) {
     return 0;
   }
-  const ft = types.find((t) => t.id === line.feedTypeId);
-  if (line.quantityUnit === "sac" && ft?.unit === "sac") {
+  if (line.quantityUnit === "sac") {
     return q * p;
   }
+  if (line.quantityUnit === "tonne") {
+    return q * 1000 * p;
+  }
   return q * p;
+}
+
+function unitLabel(
+  unit: StockLineForm["quantityUnit"],
+  t: (key: string) => string
+): string {
+  switch (unit) {
+    case "sac":
+      return t("financeStockLink.unitSac");
+    case "tonne":
+      return t("financeStockLink.unitTonne");
+    default:
+      return t("financeStockLink.unitKg");
+  }
 }
 
 export function stockLinesToPayload(
@@ -83,11 +99,17 @@ export function stockLinesToPayload(
         return {
           newFeedType: {
             name: l.newFeedName.trim(),
-            unit: l.quantityUnit === "sac" ? "sac" : "kg"
+            unit:
+              l.quantityUnit === "sac"
+                ? "sac"
+                : l.quantityUnit === "tonne"
+                  ? "kg"
+                  : "kg"
           },
           quantityInput: q,
           quantityUnit: l.quantityUnit,
           unitPrice,
+          priceBasis: l.quantityUnit === "sac" ? ("sac" as const) : ("kg" as const),
           weightPerBagKg,
           supplier: (l.supplier || defaultSupplier)?.trim() || undefined
         };
@@ -199,9 +221,11 @@ export function FinanceStockLinesEditor({
                     updateLine(idx, {
                       feedTypeId: ft.id,
                       quantityUnit:
-                        ft.unit === "kg" || ft.unit === "tonne"
-                          ? "kg"
-                          : "sac",
+                        ft.unit === "tonne"
+                          ? "tonne"
+                          : ft.unit === "kg"
+                            ? "kg"
+                            : "sac",
                       weightPerBagKg: ft.weightPerBagKg
                         ? String(ft.weightPerBagKg)
                         : ""
@@ -213,7 +237,11 @@ export function FinanceStockLinesEditor({
               ))}
             </View>
           )}
-          <Text style={styles.lab}>{t("financeStockLink.quantity")}</Text>
+          <Text style={styles.lab}>
+            {t("financeStockLink.quantityWithUnit", {
+              unit: unitLabel(line.quantityUnit, t)
+            })}
+          </Text>
           <TextInput
             style={styles.input}
             value={line.quantity}
@@ -235,7 +263,32 @@ export function FinanceStockLinesEditor({
             }}
             keyboardType="decimal-pad"
           />
-          <Text style={styles.lab}>{t("financeStockLink.unitPrice")}</Text>
+          <View style={styles.unitRow}>
+            {(["sac", "kg", "tonne"] as const).map((u) => (
+              <Pressable
+                key={u}
+                style={[
+                  styles.unitChip,
+                  line.quantityUnit === u && styles.unitChipOn
+                ]}
+                onPress={() => updateLine(idx, { quantityUnit: u })}
+              >
+                <Text
+                  style={[
+                    styles.unitChipTx,
+                    line.quantityUnit === u && styles.unitChipTxOn
+                  ]}
+                >
+                  {unitLabel(u, t)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.lab}>
+            {line.quantityUnit === "sac"
+              ? t("financeStockLink.unitPriceSac")
+              : t("financeStockLink.unitPrice")}
+          </Text>
           <TextInput
             style={styles.input}
             value={line.unitPrice}
@@ -318,6 +371,25 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accentSoft
   },
   typeChipTx: { fontSize: 12, fontWeight: "600" },
+  unitRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: mobileSpacing.xs,
+    marginTop: mobileSpacing.xs
+  },
+  unitChip: {
+    paddingHorizontal: mobileSpacing.sm,
+    paddingVertical: 6,
+    borderRadius: mobileRadius.pill,
+    borderWidth: 1,
+    borderColor: mobileColors.border
+  },
+  unitChipOn: {
+    borderColor: mobileColors.accent,
+    backgroundColor: mobileColors.accentSoft
+  },
+  unitChipTx: { fontSize: 12, fontWeight: "600" },
+  unitChipTxOn: { color: mobileColors.accent },
   lab: {
     fontSize: 12,
     fontWeight: "700",
