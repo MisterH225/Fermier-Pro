@@ -238,7 +238,7 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
           {
             key: "cheptel",
             label: t("cheptel.navCheptel"),
-            badge: animals.length || undefined,
+            badge: cheptelQuery.data?.kpis.totalHeadcount || undefined,
             content: tabScroll(
               accessToken ? (
                 <CheptelTab

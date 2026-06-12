@@ -4,6 +4,7 @@ import {
   Prisma
 } from "@prisma/client";
 import { allocateTagCodesInTransaction } from "../livestock/allocate-tag-codes";
+import { isGestationLitterBatch } from "../gestation/litter-batch.util";
 import {
   PenAllocationService,
   type OnboardingPlacementPlan,
@@ -751,7 +752,8 @@ export async function migrateOnboardingBatchesToIndividualAnimals(
           id: true,
           headcount: true,
           categoryKey: true,
-          name: true
+          name: true,
+          sourceTag: true
         }
       },
       pen: { select: { id: true } }
@@ -762,6 +764,9 @@ export async function migrateOnboardingBatchesToIndividualAnimals(
 
   for (const pl of batchPlacements) {
     if (!pl.batch || pl.batch.headcount <= 0) {
+      continue;
+    }
+    if (isGestationLitterBatch(pl.batch)) {
       continue;
     }
 
