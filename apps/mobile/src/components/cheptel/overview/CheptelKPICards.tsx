@@ -156,6 +156,15 @@ export function CheptelKPICards({ overview }: Props) {
       widget: (o) => miniBars(o.miniWidgets?.starterTrend ?? [], "#1565C0")
     },
     {
+      key: "nursing",
+      icon: "🍼",
+      bg: "#FCE4EC",
+      accent: "#EC407A",
+      labelKey: "cheptel.kpiNursing",
+      unitKey: "health.diseases.unitSubjects",
+      value: (o) => String(o.kpis.nursingCount ?? "—")
+    },
+    {
       key: "occupancy",
       icon: "🏠",
       bg: "#EDE7F6",

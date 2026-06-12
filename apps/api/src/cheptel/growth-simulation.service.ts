@@ -3,6 +3,10 @@ import { AnimalProductionCategory, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { PenAllocationService } from "../housing/pen-allocation.service";
 import {
+  retagAnimalsInTransaction,
+  tagPrefixFromCode
+} from "../livestock/retag-animals.util";
+import {
   buildGrowthStandardsFromFarm,
   estimateAnimalWeightKg,
   resolveAutoProductionCategory
@@ -63,6 +67,7 @@ export class GrowthSimulationService {
       },
       select: {
         id: true,
+        tagCode: true,
         productionCategory: true,
         birthDate: true,
         ageWeeksAtEntry: true,
@@ -74,6 +79,7 @@ export class GrowthSimulationService {
     });
 
     const batchIdsToReclassify = new Set<string>();
+    const animalsToRetagEng: string[] = [];
 
     await this.prisma.$transaction(async (tx) => {
       for (const a of animals) {
@@ -90,6 +96,7 @@ export class GrowthSimulationService {
 
         const nextCat = resolveAutoProductionCategory(input, now, standards);
         if (nextCat === "fattening" && a.productionCategory === "starter") {
+          animalsToRetagEng.push(a.id);
           await tx.animal.update({
             where: { id: a.id },
             data: { productionCategory: AnimalProductionCategory.fattening }
@@ -98,6 +105,26 @@ export class GrowthSimulationService {
           if (a.livestockBatchId) {
             batchIdsToReclassify.add(a.livestockBatchId);
           }
+        }
+      }
+
+      if (animalsToRetagEng.length > 0) {
+        const idsForEng = animalsToRetagEng.filter((id) => {
+          const row = animals.find((a) => a.id === id);
+          if (!row) {
+            return false;
+          }
+          const prefix = tagPrefixFromCode(row.tagCode);
+          return prefix === "DEM" || prefix === null;
+        });
+        if (idsForEng.length > 0) {
+          await retagAnimalsInTransaction(
+            tx,
+            farmId,
+            idsForEng,
+            "Eng",
+            AnimalProductionCategory.fattening
+          );
         }
       }
 

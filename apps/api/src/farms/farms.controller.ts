@@ -29,7 +29,7 @@ import {
 } from "../livestock/animal-production-tags.service";
 import { FarmsService } from "./farms.service";
 
-const TAG_PREFIXES = new Set<AnimalTagPrefix>(["Trui", "Ver", "Eng", "Dem"]);
+const TAG_PREFIXES = new Set<AnimalTagPrefix>(["Trui", "Ver", "Eng", "Dem", "All"]);
 
 @Controller("farms")
 @UseGuards(SupabaseJwtGuard)
@@ -141,7 +141,7 @@ export class FarmsController {
     const prefix = (prefixRaw ?? "").trim() as AnimalTagPrefix;
     if (!TAG_PREFIXES.has(prefix)) {
       throw new BadRequestException(
-        "Préfixe invalide — utilisez Trui, Ver, Eng ou Dem"
+        "Préfixe invalide — utilisez Trui, Ver, Eng, Dem ou All"
       );
     }
     await this.farms.findOneForUser(user, farmId);

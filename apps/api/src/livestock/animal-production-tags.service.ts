@@ -2,17 +2,19 @@ import { Injectable } from "@nestjs/common";
 import type { AnimalProductionCategory, Prisma } from "@prisma/client";
 import {
   allocateTagCodesInTransaction,
-  peekTagCodeRange
+  peekTagCodeRange,
+  type AnimalTagPrefix
 } from "./allocate-tag-codes";
 import { PrismaService } from "../prisma/prisma.service";
 
-export type AnimalTagPrefix = "Trui" | "Ver" | "Eng" | "Dem";
+export type { AnimalTagPrefix };
 
 const PREFIX_TO_CATEGORY: Record<AnimalTagPrefix, AnimalProductionCategory> = {
   Trui: "breeding_female",
   Ver: "breeding_male",
   Eng: "fattening",
-  Dem: "starter"
+  Dem: "starter",
+  All: "nursing"
 };
 
 @Injectable()

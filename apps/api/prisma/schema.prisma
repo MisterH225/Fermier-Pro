@@ -274,11 +274,12 @@ model Farm {
   housingBuildingsCount Int?
   housingPensPerBuilding Int?
   housingMaxPigsPerPen   Int?
-  /// Derniers numéros de tag par préfixe (Trui, Ver, Eng, Dem).
+  /// Derniers numéros de tag par préfixe (Trui, Ver, Eng, Dem, All).
   lastTruiTagNumber      Int                @default(0)
   lastVerTagNumber       Int                @default(0)
   lastEngTagNumber       Int                @default(0)
   lastDemTagNumber       Int                @default(0)
+  lastAllTagNumber       Int                @default(0)
   latitude     Decimal?
   longitude    Decimal?
   address      String?
@@ -894,6 +895,7 @@ enum AnimalProductionCategory {
   breeding_male
   fattening
   starter
+  nursing
   unknown
 }
 

@@ -20,7 +20,7 @@ import { FarmDeletionService } from "./farm-deletion.service";
 import { FarmMarketplaceLifecycleService } from "../marketplace/farm-marketplace-lifecycle.service";
 import { countCheptelHeadcountAt } from "./cheptel-headcount.util";
 import { mapBatchCategoryKey } from "../cheptel/batch-category.util";
-import { maintainLitterBatches } from "../gestation/litter-weaning.util";
+import { activeNursingLitterBatchIds, maintainLitterBatches } from "../gestation/litter-weaning.util";
 import { countPlacementOccupancy } from "../housing/placement-occupancy.util";
 import { repairOrphanMigrationDuplicateAnimals } from "../livestock/livestock-batch-headcount.helper";
 import { migrateOnboardingBatchesToIndividualAnimals } from "../onboarding/onboarding-pen-layout";
@@ -538,6 +538,8 @@ export class FarmsService {
       other: 0
     };
 
+    const now = new Date();
+
     const mapAnimalProductionCategory = (
       cat: string
     ): keyof typeof categoryTotals => {
@@ -550,13 +552,34 @@ export class FarmsService {
           return "fattening";
         case "starter":
           return "starter";
+        case "nursing":
+          return "sous_mere";
         default:
           return "other";
       }
     };
 
+    const nursingBatchIds = await activeNursingLitterBatchIds(
+      this.prisma,
+      farmId,
+      now
+    );
+
+    const isNursingAnimal = (a: {
+      livestockBatchId: string | null;
+      productionCategory: string;
+    }) =>
+      a.productionCategory === "nursing" ||
+      Boolean(
+        a.livestockBatchId && nursingBatchIds.has(a.livestockBatchId)
+      );
+
     for (const a of activeAnimals) {
-      categoryTotals[mapAnimalProductionCategory(a.productionCategory)] += 1;
+      if (isNursingAnimal(a)) {
+        categoryTotals.sous_mere += 1;
+      } else {
+        categoryTotals[mapAnimalProductionCategory(a.productionCategory)] += 1;
+      }
     }
 
     const batchIdsWithAnimals = new Set(
@@ -598,7 +621,6 @@ export class FarmsService {
       .filter((row) => row.count > 0);
 
     const headcountTrend: { month: string; total: number }[] = [];
-    const now = new Date();
     for (let i = 11; i >= 0; i--) {
       const monthStart = new Date(
         Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1)
@@ -630,9 +652,13 @@ export class FarmsService {
       activeAnimals.filter((a) => a.productionCategory === "fattening")
         .length + batchHeadcountFor("fattening");
     const starterCount =
-      activeAnimals.filter((a) => a.productionCategory === "starter").length +
-      batchHeadcountFor("starter");
-    const nursingCount = batchHeadcountFor("sous_mere");
+      activeAnimals.filter(
+        (a) =>
+          a.productionCategory === "starter" && !isNursingAnimal(a)
+      ).length + batchHeadcountFor("starter");
+    const nursingCount =
+      batchHeadcountFor("sous_mere") +
+      activeAnimals.filter((a) => isNursingAnimal(a)).length;
     const breedingFemalesCount = activeAnimals.filter(
       (a) => a.productionCategory === "breeding_female"
     ).length;

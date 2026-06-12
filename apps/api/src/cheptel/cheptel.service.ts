@@ -302,6 +302,9 @@ export class CheptelService {
                 entryDate: true,
                 entryWeightKg: true,
                 expectedFarrowingAt: true,
+                livestockBatch: {
+                  select: { categoryKey: true }
+                },
                 weights: {
                   orderBy: { measuredAt: "desc" },
                   take: 1,
@@ -377,6 +380,14 @@ export class CheptelService {
           const role = PenAllocationService.roleFromAnimal(pl.animal);
           if (role) {
             allocationRoles.add(role);
+          }
+          const litterBatchTag = pl.animal.livestockBatch
+            ? mapBatchTypeTag(pl.animal.livestockBatch.categoryKey)
+            : null;
+          const tagPrefix = (pl.animal.tagCode ?? "").trim().slice(0, 3).toLowerCase();
+          if (litterBatchTag === "sous_mere" || tagPrefix === "all") {
+            batchTypeTag = "sous_mere";
+            allocationRoles.add("sous_mere");
           }
           if (pl.animal.sex === "female") {
             femaleCount += 1;

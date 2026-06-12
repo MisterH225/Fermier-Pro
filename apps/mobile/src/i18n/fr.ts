@@ -1457,6 +1457,7 @@ export const fr = {
     kpiBreedingFemales: "Reproductrices",
     kpiFattening: "Engraissement",
     kpiStarter: "Démarrage",
+    kpiNursing: "Allaitement",
     kpiSick: "Sujets malades",
     kpiUnitSows: "truies",
     sexSplit: "Verrats / truies",

@@ -1,15 +1,21 @@
 import type { Prisma } from "@prisma/client";
 import { formatTagCode } from "./animal-tag.helper";
-import type { AnimalTagPrefix } from "./animal-production-tags.service";
+
+export type AnimalTagPrefix = "Trui" | "Ver" | "Eng" | "Dem" | "All";
 
 const PREFIX_TO_COUNTER: Record<
   AnimalTagPrefix,
-  "lastTruiTagNumber" | "lastVerTagNumber" | "lastEngTagNumber" | "lastDemTagNumber"
+  | "lastTruiTagNumber"
+  | "lastVerTagNumber"
+  | "lastEngTagNumber"
+  | "lastDemTagNumber"
+  | "lastAllTagNumber"
 > = {
   Trui: "lastTruiTagNumber",
   Ver: "lastVerTagNumber",
   Eng: "lastEngTagNumber",
-  Dem: "lastDemTagNumber"
+  Dem: "lastDemTagNumber",
+  All: "lastAllTagNumber"
 };
 
 type FarmTagCounterClient = Pick<Prisma.TransactionClient, "farm">;
@@ -30,7 +36,8 @@ export async function peekTagCodeRange(
       lastTruiTagNumber: true,
       lastVerTagNumber: true,
       lastEngTagNumber: true,
-      lastDemTagNumber: true
+      lastDemTagNumber: true,
+      lastAllTagNumber: true
     }
   });
   if (!farm) {
@@ -68,7 +75,8 @@ export async function allocateTagCodesInTransaction(
       lastTruiTagNumber: true,
       lastVerTagNumber: true,
       lastEngTagNumber: true,
-      lastDemTagNumber: true
+      lastDemTagNumber: true,
+      lastAllTagNumber: true
     }
   });
   const seqEnd = updated[counterKey];

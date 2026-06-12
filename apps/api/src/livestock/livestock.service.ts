@@ -42,6 +42,8 @@ function prefixForCategory(
       return "Eng";
     case "starter":
       return "Dem";
+    case "nursing":
+      return "All";
     default:
       return null;
   }
