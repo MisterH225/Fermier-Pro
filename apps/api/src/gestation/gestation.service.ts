@@ -15,6 +15,7 @@ import {
 } from "@prisma/client";
 import { FarmAccessService } from "../common/farm-access.service";
 import { HousingService } from "../housing/housing.service";
+import { PenAllocationService } from "../housing/pen-allocation.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import { AiGeminiService } from "../ai/ai-gemini.service";
@@ -33,6 +34,7 @@ import type { UpdateGestationDto } from "./dto/update-gestation.dto";
 import type { PatchGestationStatusDto } from "./dto/patch-gestation-status.dto";
 import type { RecordLitterDto } from "./dto/record-litter.dto";
 import type { UpdateGestationSettingsDto } from "./dto/update-gestation-settings.dto";
+import { createLitterPigletsInTransaction } from "./litter-individuals.util";
 import { maintainLitterBatches } from "./litter-weaning.util";
 
 const MS_DAY = 86_400_000;
@@ -112,6 +114,7 @@ export class GestationService {
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
     private readonly housing: HousingService,
+    private readonly penAllocation: PenAllocationService,
     private readonly smartAlerts: SmartAlertsService,
     private readonly gemini: AiGeminiService,
     private readonly predictions: PredictionsService
@@ -674,7 +677,11 @@ export class GestationService {
 
     const batchName = `Portée ${animalLabel(g.sow)} ${actualBirthDate.toISOString().slice(0, 10)}`;
 
-    let starterBatchId: string | null = null;
+    const penId =
+      dto.bornAlive > 0
+        ? await this.findPenForLitter(g.farmId, dto.bornAlive, dto.penId)
+        : null;
+    const pensToRecalculate = new Set<string>();
 
     await this.prisma.$transaction(async (tx) => {
       const batch = await tx.livestockBatch.create({
@@ -684,7 +691,7 @@ export class GestationService {
           breedId: g.sow.breedId,
           name: batchName,
           categoryKey: "sous_mere",
-          headcount: dto.bornAlive,
+          headcount: 0,
           avgBirthDate: actualBirthDate,
           sourceTag: `gestation:${gestationId}`,
           notes: dto.notes?.trim() || null
@@ -757,49 +764,36 @@ export class GestationService {
         });
       }
 
-      starterBatchId = batch.id;
+      if (dto.bornAlive > 0 && penId) {
+        const placed = await createLitterPigletsInTransaction(tx, {
+          farmId: g.farmId,
+          userId: user.id,
+          batchId: batch.id,
+          speciesId: g.sow.speciesId,
+          breedId: g.sow.breedId,
+          count: dto.bornAlive,
+          birthDate: actualBirthDate,
+          averageBirthWeightKg: dto.averageBirthWeightKg,
+          penId,
+          sowId: g.sowId,
+          sireId: g.boarId,
+          transferSowWithLitter: dto.transferSowWithLitter ?? true
+        });
+        for (const pid of placed.pensToRecalculate) {
+          pensToRecalculate.add(pid);
+        }
+      }
+
       void litter;
     });
 
-    if (dto.bornAlive > 0 && starterBatchId) {
-      const penId = await this.findPenForLitter(
-        g.farmId,
-        dto.bornAlive,
-        dto.penId
-      );
-      if (penId) {
-        await this.housing.startPlacement(user, g.farmId, penId, {
-          batchId: starterBatchId,
-          note: "Mise bas — portée"
-        });
-
-        if (dto.transferSowWithLitter) {
-          const sowPlacement = await this.prisma.penPlacement.findFirst({
-            where: {
-              animalId: g.sowId,
-              endedAt: null,
-              pen: { barn: { farmId: g.farmId } }
-            },
-            orderBy: { startedAt: "desc" }
-          });
-          if (!sowPlacement || sowPlacement.penId !== penId) {
-            try {
-              await this.housing.moveOccupant(user, g.farmId, {
-                animalId: g.sowId,
-                toPenId: penId,
-                fromPenId: sowPlacement?.penId,
-                note: "Mise bas — avec la portée"
-              });
-            } catch {
-              // Truie sans loge active : première affectation
-              await this.housing.startPlacement(user, g.farmId, penId, {
-                animalId: g.sowId,
-                note: "Mise bas — avec la portée"
-              });
-            }
-          }
+    if (pensToRecalculate.size > 0) {
+      await this.prisma.$transaction(async (tx) => {
+        for (const pid of pensToRecalculate) {
+          await this.penAllocation.recalculatePenCategory(tx, pid);
+          await this.penAllocation.recalculatePenAverageWeight(tx, pid);
         }
-      }
+      });
     }
 
     await this.refreshAlerts(g.farmId);

@@ -1433,6 +1433,7 @@ export const en = {
     kpiBreedingFemales: "Breeding females",
     kpiFattening: "Finishing",
     kpiStarter: "Starter",
+    kpiNursing: "Nursing",
     kpiSick: "Sick animals",
     kpiUnitSows: "sows",
     sexSplit: "Boars / sows",
