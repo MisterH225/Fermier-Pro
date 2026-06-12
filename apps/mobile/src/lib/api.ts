@@ -2149,7 +2149,7 @@ export function fetchFarmAnimal(
 }
 
 export type PatchAnimalStatusPayload = {
-  status: "active" | "dead" | "sold" | "reformed" | "transferred";
+  status: "active" | "dead" | "sold" | "exited" | "transferred";
   note?: string | null;
 };
 

@@ -1642,7 +1642,7 @@ export const en = {
         active: "Active",
         sold: "Sold",
         dead: "Dead",
-        reformed: "Culled"
+        exited: "Exited from herd"
       },
       sexMale: "Boar",
       sexFemale: "Sow",
@@ -1675,7 +1675,7 @@ export const en = {
         sick: "Sick",
         dead: "Dead",
         sold: "Sold",
-        reformed: "Culled",
+        exited: "Exited from herd",
         transferred: "Transferred",
         salePrice: "Sale price",
         buyer: "Buyer",
@@ -1685,7 +1685,9 @@ export const en = {
         success: "Status updated",
         errorTitle: "Could not update",
         financeLinked: "A revenue entry is created in Finance when a sale price is set.",
-        healthLinked: "A mortality exit is recorded (Health module)."
+        healthLinked: "A mortality exit is recorded (Health module).",
+        exitedHint:
+          "The animal leaves the herd headcount. This is neither a sale nor a death. Open marketplace listings will be delisted."
       },
       sale: {
         title: "Record sale",

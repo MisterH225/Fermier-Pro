@@ -20,7 +20,10 @@ import { FinanceService } from "../finance/finance.service";
 import { mapBatchTypeTag } from "./batch-category.util";
 import { maintainLitterBatches } from "../gestation/litter-weaning.util";
 import { PrismaService } from "../prisma/prisma.service";
-import { PatchAnimalStatusDto } from "../livestock/dto/patch-animal-status.dto";
+import {
+  normalizeAnimalLifecycleStatus,
+  PatchAnimalStatusDto
+} from "../livestock/dto/patch-animal-status.dto";
 import { LivestockService } from "../livestock/livestock.service";
 import { ConfirmDetectedBatchDto } from "./dto/confirm-detected-batch.dto";
 import { UpsertGmqSettingsDto } from "./dto/upsert-gmq-settings.dto";
@@ -1238,14 +1241,59 @@ export class CheptelService {
       );
     }
 
+    const status = normalizeAnimalLifecycleStatus(dto.status);
+    const normalizedDto = { ...dto, status };
+
     const animal = await this.livestock.patchAnimalStatus(
       user,
       farmId,
       animalId,
-      dto
+      normalizedDto
     );
 
-    if (dto.status === "dead") {
+    const occurredAt = new Date();
+
+    if (status === "exited") {
+      await this.prisma.$transaction(async (tx) => {
+        const placements = await tx.penPlacement.findMany({
+          where: {
+            animalId,
+            endedAt: null,
+            pen: { barn: { farmId } }
+          },
+          select: { id: true, penId: true }
+        });
+        if (placements.length > 0) {
+          await tx.penPlacement.updateMany({
+            where: {
+              animalId,
+              endedAt: null,
+              pen: { barn: { farmId } }
+            },
+            data: { endedAt: occurredAt }
+          });
+          const penIds = [...new Set(placements.map((p) => p.penId))];
+          for (const penId of penIds) {
+            await this.penAllocation.recalculatePenCategory(tx, penId);
+            await this.penAllocation.recalculatePenAverageWeight(tx, penId);
+          }
+        }
+        await tx.animal.update({
+          where: { id: animalId },
+          data: { statusChangedAt: occurredAt }
+        });
+      });
+      try {
+        await this.listingAnimalSync.onAnimalExitedFromCheptel(animalId);
+      } catch (e) {
+        this.logger.warn(
+          `marketplace sync after cheptel exit ${animalId}: ${(e as Error).message}`
+        );
+      }
+      return this.livestock.getAnimal(user, farmId, animalId);
+    }
+
+    if (status === "dead") {
       await this.prisma.livestockExit.create({
         data: {
           farmId,
@@ -1261,7 +1309,7 @@ export class CheptelService {
 
     await this.prisma.animal.update({
       where: { id: animalId },
-      data: { statusChangedAt: new Date() }
+      data: { statusChangedAt: occurredAt }
     });
 
     return animal;

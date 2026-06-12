@@ -29,7 +29,7 @@ import {
   mobileTypography
 } from "../../../theme/mobileTheme";
 import type { AnimalStatusKey } from "./animalUtils";
-import { animalDisplayTag } from "./animalUtils";
+import { animalDisplayTag, normalizeAnimalStatusKey } from "./animalUtils";
 
 type Props = {
   visible: boolean;
@@ -48,7 +48,7 @@ const STATUS_OPTIONS: { key: AnimalStatusKey | "sick"; emoji: string }[] = [
   { key: "sick", emoji: "🤒" },
   { key: "dead", emoji: "💀" },
   { key: "sold", emoji: "💰" },
-  { key: "reformed", emoji: "♻️" },
+  { key: "exited", emoji: "🚪" },
   { key: "transferred", emoji: "🚚" }
 ];
 
@@ -72,7 +72,9 @@ export function ChangeStatusModal({
 
   useEffect(() => {
     if (visible && animal) {
-      setStatus((animal.status as AnimalStatusKey) || "active");
+      setStatus(
+        (normalizeAnimalStatusKey(animal.status) as AnimalStatusKey) || "active"
+      );
       setNote("");
       setDeathCause("");
     }
@@ -234,6 +236,12 @@ export function ChangeStatusModal({
             onChangeText={setDeathCause}
           />
           <Text style={styles.hint}>{t("cheptel.animals.status.healthLinked")}</Text>
+        </ModalSection>
+      ) : null}
+
+      {status === "exited" ? (
+        <ModalSection title={t("cheptel.animals.status.exited")}>
+          <Text style={styles.hint}>{t("cheptel.animals.status.exitedHint")}</Text>
         </ModalSection>
       ) : null}
 
