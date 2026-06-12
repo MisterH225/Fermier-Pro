@@ -17,7 +17,7 @@ describe("countCheptelHeadcountAt", () => {
     expect(countCheptelHeadcountAt(animals, [], now)).toBe(2);
   });
 
-  it("ignore le headcount de bande (pas d'effectif parallèle)", () => {
+  it("ignore le headcount de bande si des animaux y sont rattachés", () => {
     const animals = [
       { status: "active", createdAt: earlier, livestockBatchId: "batch-1" }
     ];
@@ -31,6 +31,19 @@ describe("countCheptelHeadcountAt", () => {
       }
     ];
     expect(countCheptelHeadcountAt(animals, batches, now)).toBe(1);
+  });
+
+  it("compte le headcount des bandes sans animaux individuels (portées)", () => {
+    const batches = [
+      {
+        id: "batch-litter",
+        headcount: 10,
+        status: "active",
+        closedAt: null,
+        createdAt: earlier
+      }
+    ];
+    expect(countCheptelHeadcountAt([], batches, now)).toBe(10);
   });
 
   it("countActiveAnimalsInBatch compte les membres actifs d'une bande", () => {

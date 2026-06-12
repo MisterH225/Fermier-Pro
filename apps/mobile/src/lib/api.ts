@@ -1446,6 +1446,7 @@ export type PenUsageTag =
   | "sows"
   | "boar"
   | "boars"
+  | "nursing"
   | "starter"
   | "fattening"
   | "mixed";
@@ -1470,7 +1471,7 @@ export type CheptelPenRowDto = {
   occupancy: number;
   occupancyRate: number | null;
   borderStatus: "healthy" | "warning" | "critical" | "empty";
-  batchTypeTag: "starter" | "fattening" | null;
+  batchTypeTag: "sous_mere" | "starter" | "fattening" | null;
   sanitaryTag: "healthy" | "alert" | "critical" | "overcrowded" | "empty";
   category: PenCategoryKey;
   categoryForced: boolean;

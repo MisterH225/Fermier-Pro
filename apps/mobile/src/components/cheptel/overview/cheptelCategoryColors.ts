@@ -2,6 +2,7 @@
 export const CHEPTEL_CATEGORY_COLORS: Record<string, string> = {
   reproducteur_femelle: "#FF6B8A",
   reproducteur_male: "#4A90D9",
+  sous_mere: "#F472B6",
   fattening: "#7C3AED",
   starter: "#FF8C00",
   growth: "#1D9E75",

@@ -18,6 +18,7 @@ import {
 import { FarmAccessService } from "../common/farm-access.service";
 import { FinanceService } from "../finance/finance.service";
 import { mapBatchTypeTag } from "./batch-category.util";
+import { syncLitterBatchCategories } from "../gestation/litter-weaning.util";
 import { PrismaService } from "../prisma/prisma.service";
 import { PatchAnimalStatusDto } from "../livestock/dto/patch-animal-status.dto";
 import { LivestockService } from "../livestock/livestock.service";
@@ -61,7 +62,7 @@ export type CheptelPenOverviewRow = {
   occupancy: number;
   occupancyRate: number | null;
   borderStatus: "healthy" | "warning" | "critical" | "empty";
-  batchTypeTag: "starter" | "fattening" | null;
+  batchTypeTag: "sous_mere" | "starter" | "fattening" | null;
   sanitaryTag: "healthy" | "alert" | "critical" | "overcrowded" | "empty";
   category: PenCategory;
   categoryForced: boolean;
@@ -70,6 +71,7 @@ export type CheptelPenOverviewRow = {
     | "sows"
     | "boar"
     | "boars"
+    | "nursing"
     | "starter"
     | "fattening"
     | "mixed";
@@ -143,7 +145,7 @@ export class CheptelService {
   private detectPenUsageTag(params: {
     occupancy: number;
     hasGestationSow: boolean;
-    batchTypeTag: "starter" | "fattening" | null;
+    batchTypeTag: "sous_mere" | "starter" | "fattening" | null;
     femaleCount: number;
     maleCount: number;
     allocationRoles: Set<string>;
@@ -153,6 +155,13 @@ export class CheptelService {
     }
     if (params.allocationRoles.size > 1) {
       return "mixed";
+    }
+    if (
+      params.batchTypeTag === "sous_mere" &&
+      params.femaleCount === 0 &&
+      params.maleCount === 0
+    ) {
+      return "nursing";
     }
     if (
       params.batchTypeTag === "fattening" &&
@@ -172,6 +181,9 @@ export class CheptelService {
       const [only] = [...params.allocationRoles];
       if (only === "fattening") {
         return "fattening";
+      }
+      if (only === "sous_mere") {
+        return "nursing";
       }
       if (only === "starter") {
         return "starter";
@@ -201,14 +213,19 @@ export class CheptelService {
   private detectPenCategory(
     occupancy: number,
     hasGestationSow: boolean,
-    batchTypeTag: "starter" | "fattening" | null,
+    batchTypeTag: "sous_mere" | "starter" | "fattening" | null,
     avgWeightKg: number | null,
     usageTag: CheptelPenOverviewRow["usageTag"]
   ): PenCategory {
     if (occupancy === 0) {
       return PenCategory.empty;
     }
-    if (usageTag === "sows" || hasGestationSow) {
+    if (
+      usageTag === "sows" ||
+      usageTag === "nursing" ||
+      hasGestationSow ||
+      batchTypeTag === "sous_mere"
+    ) {
       return PenCategory.maternity;
     }
     if (usageTag === "fattening" || batchTypeTag === "fattening") {
@@ -228,6 +245,7 @@ export class CheptelService {
 
   async listPens(user: User, farmId: string, barnId?: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
+    await syncLitterBatchCategories(this.prisma, farmId);
     await this.migrateLegacyBatchPlacementsIfNeeded(user, farmId);
     await this.repairDuplicateAnimalsIfNeeded(user, farmId);
     const now = new Date();
@@ -330,7 +348,7 @@ export class CheptelService {
 
     const rows: CheptelPenOverviewRow[] = pens.map((pen) => {
       let occupancy = 0;
-      let batchTypeTag: "starter" | "fattening" | null = null;
+      let batchTypeTag: "sous_mere" | "starter" | "fattening" | null = null;
       let vaccineOverdueCount = 0;
       let activeDiseaseCount = 0;
       let gestationImminent = false;
@@ -400,6 +418,7 @@ export class CheptelService {
             }
           }
         } else if (pl.batch) {
+          occupancy += pl.batch.headcount;
           const tag = mapBatchTypeTag(pl.batch.categoryKey);
           if (tag) {
             batchTypeTag = tag;

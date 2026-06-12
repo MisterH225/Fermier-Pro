@@ -104,6 +104,9 @@ export function resolvePenUsageTag(
   if (pen.batchTypeTag === "fattening") {
     return "fattening";
   }
+  if (pen.batchTypeTag === "sous_mere") {
+    return "nursing";
+  }
   if (pen.batchTypeTag === "starter") {
     return "starter";
   }
@@ -153,7 +156,7 @@ export function resolvePenVisualKey(
 
   const usage = resolvePenUsageTag(pen);
 
-  if (usage === "sows" || pen.category === "maternity") {
+  if (usage === "sows" || usage === "nursing" || pen.category === "maternity") {
     return "maternity";
   }
   if (usage === "boar" || usage === "boars") {

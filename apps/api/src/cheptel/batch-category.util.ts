@@ -2,13 +2,14 @@
 export type CheptelBatchCategorySlot =
   | "reproducteur_femelle"
   | "reproducteur_male"
+  | "sous_mere"
   | "fattening"
   | "starter"
   | "growth"
   | "other";
 
-/** Tag bande pour loges / détection (démarrage vs engraissement). */
-export type BatchTypeTag = "starter" | "fattening";
+/** Tag bande pour loges / détection (lactation, démarrage, engraissement). */
+export type BatchTypeTag = "sous_mere" | "starter" | "fattening";
 
 /**
  * Classe une bande selon son `categoryKey` Prisma.
@@ -31,6 +32,15 @@ export function mapBatchCategoryKey(
     (k.includes("breed") && k.includes("male"))
   ) {
     return "reproducteur_male";
+  }
+  if (
+    k.includes("sous_mere") ||
+    k.includes("sous-mere") ||
+    k.includes("lactation") ||
+    k.includes("allaitement") ||
+    k.includes("nursing")
+  ) {
+    return "sous_mere";
   }
   if (
     k.includes("nursery") ||
@@ -62,6 +72,9 @@ export function mapBatchTypeTag(
   key: string | null | undefined
 ): BatchTypeTag | null {
   const slot = mapBatchCategoryKey(key);
+  if (slot === "sous_mere") {
+    return "sous_mere";
+  }
   if (slot === "starter" || slot === "growth") {
     return "starter";
   }

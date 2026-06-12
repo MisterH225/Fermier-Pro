@@ -60,6 +60,14 @@ function batchCategoryLabel(
 ): string {
   const k = (categoryKey ?? "").toLowerCase();
   if (
+    k.includes("sous_mere") ||
+    k.includes("lactation") ||
+    k.includes("allaitement") ||
+    k.includes("nursing")
+  ) {
+    return t("cheptel.pens.batchCategoryNursing");
+  }
+  if (
     k === "nursery" ||
     k.includes("starter") ||
     k.includes("demarrage") ||

@@ -33,6 +33,7 @@ import type { UpdateGestationDto } from "./dto/update-gestation.dto";
 import type { PatchGestationStatusDto } from "./dto/patch-gestation-status.dto";
 import type { RecordLitterDto } from "./dto/record-litter.dto";
 import type { UpdateGestationSettingsDto } from "./dto/update-gestation-settings.dto";
+import { syncLitterBatchCategories } from "./litter-weaning.util";
 
 const MS_DAY = 86_400_000;
 const SOW_INCLUDE = {
@@ -653,6 +654,7 @@ export class GestationService {
       throw new NotFoundException();
     }
     await this.farmAccess.requireFarmAccess(user.id, g.farmId);
+    await syncLitterBatchCategories(this.prisma, g.farmId);
     if (g.status !== GestationStatus.active) {
       throw new BadRequestException("Gestation déjà clôturée");
     }
@@ -681,7 +683,7 @@ export class GestationService {
           speciesId: g.sow.speciesId,
           breedId: g.sow.breedId,
           name: batchName,
-          categoryKey: "starter",
+          categoryKey: "sous_mere",
           headcount: dto.bornAlive,
           avgBirthDate: actualBirthDate,
           sourceTag: `gestation:${gestationId}`,

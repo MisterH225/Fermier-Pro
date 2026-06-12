@@ -15,19 +15,40 @@ export type CheptelHeadcountBatch = {
 };
 
 /**
- * Effectif à une date : uniquement les sujets actifs en base.
- * Une bande est un regroupement logique (livestockBatchId) — pas un effectif parallèle.
+ * Effectif à une date : sujets actifs + bandes sans animaux individuels rattachés.
+ * Une bande avec des membres actifs est comptée via ses animaux (pas en double).
  */
 export function countCheptelHeadcountAt(
   animals: CheptelHeadcountAnimal[],
-  _batches?: CheptelHeadcountBatch[],
+  batches?: CheptelHeadcountBatch[],
   asOf?: Date
 ): number {
-  void _batches;
   const ref = asOf ?? new Date();
-  return animals.filter(
+  const activeAnimals = animals.filter(
     (a) => a.status === "active" && new Date(a.createdAt) <= ref
-  ).length;
+  );
+  const animalCount = activeAnimals.length;
+  if (!batches?.length) {
+    return animalCount;
+  }
+
+  const batchIdsWithAnimals = new Set(
+    activeAnimals
+      .map((a) => a.livestockBatchId)
+      .filter((id): id is string => Boolean(id))
+  );
+
+  const batchOnlyHeadcount = batches
+    .filter(
+      (b) =>
+        b.status === "active" &&
+        !b.closedAt &&
+        new Date(b.createdAt) <= ref &&
+        !batchIdsWithAnimals.has(b.id)
+    )
+    .reduce((sum, b) => sum + b.headcount, 0);
+
+  return animalCount + batchOnlyHeadcount;
 }
 
 /** Nombre de sujets actifs rattachés à une bande (informationnel, pas un second effectif). */

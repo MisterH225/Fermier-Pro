@@ -1445,6 +1445,7 @@ export const en = {
     category: {
       reproducteur_femelle: "Truies",
       reproducteur_male: "Boars",
+      sous_mere: "Nursing piglets",
       fattening: "Finishing",
       starter: "Starter",
       growth: "Growth",
@@ -1530,6 +1531,7 @@ export const en = {
         starter: "Starter / growth",
         fattening: "Finishing",
         sows: "Sows",
+        nursing: "Nursing piglets",
         boar: "Boar",
         boars: "Boars",
         mixed: "Mixed",
@@ -1551,6 +1553,7 @@ export const en = {
       batchesInPen: "Batches (groups)",
       animalsInPen: "Individual animals",
       batchHeadcount: "{{count}} head",
+      batchCategoryNursing: "Nursing piglets",
       batchCategoryNursery: "Starter / growth",
       batchCategoryFinisher: "Finishing",
       batchCategoryOther: "Batch",
