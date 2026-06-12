@@ -6,7 +6,6 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  IsUUID,
   Min
 } from "class-validator";
 import { GestationDeliveryType } from "@prisma/client";
@@ -45,7 +44,7 @@ export class RecordLitterDto {
 
   /** Loge de destination pour la portée (bande starter). */
   @IsOptional()
-  @IsUUID()
+  @IsString()
   penId?: string;
 
   /** Transférer la truie dans la même loge que la portée. */
