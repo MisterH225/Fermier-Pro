@@ -122,9 +122,11 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
           newFeedMode: false,
           quantity: "",
           quantityUnit:
-            feedTypes[0].unit === "kg" || feedTypes[0].unit === "tonne"
-              ? "kg"
-              : "sac",
+            feedTypes[0].unit === "tonne"
+              ? "tonne"
+              : feedTypes[0].unit === "kg"
+                ? "kg"
+                : "sac",
           unitPrice: "",
           weightPerBagKg: feedTypes[0].weightPerBagKg
             ? String(feedTypes[0].weightPerBagKg)

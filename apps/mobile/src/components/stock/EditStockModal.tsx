@@ -62,10 +62,12 @@ export function EditStockModal({
   const [feedTypeId, setFeedTypeId] = useState(movement.feedTypeId);
   const [qty, setQty] = useState("");
   const [qtyUnit, setQtyUnit] = useState<"kg" | "tonne" | "sac">("kg");
+  const [priceBasis, setPriceBasis] = useState<"kg" | "sac">("kg");
   const [bagsCounted, setBagsCounted] = useState("");
   const [occurredAt, setOccurredAt] = useState("");
   const [totalCost, setTotalCost] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
+  const [weightPerBagKg, setWeightPerBagKg] = useState("");
   const [supplier, setSupplier] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -84,20 +86,36 @@ export function EditStockModal({
     } else {
       const feedType = types.find((ft) => ft.id === movement.feedTypeId);
       const kg = Number.parseFloat(movement.quantityKg ?? "0");
-      const unit = movement.feedType.unit as "kg" | "tonne" | "sac";
+      const storedUnit = (movement.quantityUnit ??
+        movement.feedType.unit) as "kg" | "tonne" | "sac";
       const displayUnit =
-        unit === "tonne" ? "tonne" : unit === "sac" ? "sac" : "kg";
-      let displayQty = kg;
-      if (unit === "sac") {
-        const wp = Number.parseFloat(feedType?.weightPerBagKg ?? "0");
-        if (wp > 0) {
-          displayQty = kg / wp;
+        storedUnit === "tonne"
+          ? "tonne"
+          : storedUnit === "sac"
+            ? "sac"
+            : "kg";
+      let displayQty = movement.quantityInput
+        ? Number.parseFloat(movement.quantityInput)
+        : kg;
+      if (!movement.quantityInput) {
+        if (displayUnit === "sac") {
+          const wp = Number.parseFloat(feedType?.weightPerBagKg ?? "0");
+          if (wp > 0) {
+            displayQty = kg / wp;
+          }
+        } else if (displayUnit === "tonne") {
+          displayQty = kg / 1000;
         }
-      } else if (unit === "tonne") {
-        displayQty = kg / 1000;
       }
       setQtyUnit(displayUnit);
       setQty(displayQty > 0 ? String(displayQty) : "");
+      setPriceBasis(
+        movement.priceBasis ??
+          (displayUnit === "sac" ? "sac" : "kg")
+      );
+      setWeightPerBagKg(
+        feedType?.weightPerBagKg ? String(feedType.weightPerBagKg) : ""
+      );
       setTotalCost(movement.totalCost ?? "");
       setUnitPrice(movement.unitPrice ?? "");
       setSupplier(movement.supplier ?? "");
@@ -147,6 +165,11 @@ export function EditStockModal({
             feedTypeId,
             quantityInput: parsedQty,
             quantityUnit: qtyUnit,
+            priceBasis,
+            weightPerBagKg:
+              qtyUnit === "sac" && weightPerBagKg.trim()
+                ? Number.parseFloat(weightPerBagKg.replace(",", "."))
+                : undefined,
             occurredAt: `${occurredAt}T12:00:00.000Z`,
             supplier: supplier.trim() || undefined,
             notes: notes.trim() || undefined,
@@ -273,7 +296,10 @@ export function EditStockModal({
                 <Pressable
                   key={u}
                   style={[styles.pill, qtyUnit === u && styles.pillOn]}
-                  onPress={() => setQtyUnit(u)}
+                  onPress={() => {
+                    setQtyUnit(u);
+                    setPriceBasis(u === "sac" ? "sac" : "kg");
+                  }}
                 >
                   <Text style={[styles.pillTx, qtyUnit === u && styles.pillTxOn]}>
                     {u}
@@ -281,6 +307,15 @@ export function EditStockModal({
                 </Pressable>
               ))}
             </View>
+            {qtyUnit === "sac" && !selectedType?.weightPerBagKg ? (
+              <TextInput
+                style={styles.input}
+                value={weightPerBagKg}
+                onChangeText={setWeightPerBagKg}
+                keyboardType="decimal-pad"
+                placeholder={t("financeStockLink.weightPerBag")}
+              />
+            ) : null}
           </ModalSection>
 
           <ModalSection title={t("feedStock.edit.costSection")} plain>

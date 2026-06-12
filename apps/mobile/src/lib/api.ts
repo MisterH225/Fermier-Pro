@@ -790,6 +790,9 @@ export type FeedStockMovementDto = {
   farmId: string;
   feedTypeId: string;
   kind: "in" | "stock_check";
+  quantityInput: string | null;
+  quantityUnit: "kg" | "tonne" | "sac" | null;
+  priceBasis: "kg" | "sac" | null;
   quantityKg: string | null;
   bagsCounted: string | null;
   bagsConsumed: string | null;
