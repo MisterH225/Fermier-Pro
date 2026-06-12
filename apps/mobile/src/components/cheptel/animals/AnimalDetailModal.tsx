@@ -38,6 +38,7 @@ import {
   animalDisplayTag,
   breederCategoryForSex,
   formatAnimalKg,
+  normalizeAnimalStatusKey,
   sexDisplayLabel,
   sexIconColor,
   sexIconName,
@@ -772,7 +773,9 @@ export function AnimalDetailModal({
       onClose={onClose}
       title={tag}
       statusBadge={{
-        label: t(`cheptel.animals.status.${animal.status}`),
+        label: t(
+          `cheptel.animals.status.${normalizeAnimalStatusKey(animal.status)}`
+        ),
         tone: animal.status === "active" ? "neutral" : "warning"
       }}
       footerPrimary={saveFooter}

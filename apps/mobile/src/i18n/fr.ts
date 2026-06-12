@@ -1713,7 +1713,7 @@ export const fr = {
         active: "Actifs",
         sold: "Vendus",
         dead: "Morts",
-        reformed: "Réformés"
+        exited: "Sortis du cheptel"
       },
       sexMale: "Verrat",
       sexFemale: "Truie",
@@ -1747,7 +1747,7 @@ export const fr = {
         sick: "Malade",
         dead: "Mort",
         sold: "Vendu",
-        reformed: "Réformé",
+        exited: "Sortie du cheptel",
         transferred: "Transféré",
         salePrice: "Prix de vente",
         buyer: "Acheteur",
@@ -1757,7 +1757,9 @@ export const fr = {
         success: "Statut mis à jour",
         errorTitle: "Mise à jour impossible",
         financeLinked: "Un revenu sera créé dans Finance si un prix de vente est indiqué.",
-        healthLinked: "Une sortie mortalité sera enregistrée (module Santé)."
+        healthLinked: "Une sortie mortalité sera enregistrée (module Santé).",
+        exitedHint:
+          "L'animal quitte l'effectif du cheptel. Ce n'est ni une vente ni une mortalité. Les annonces marketplace ouvertes seront retirées."
       },
       sale: {
         title: "Enregistrer la vente",

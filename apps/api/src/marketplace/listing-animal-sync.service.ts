@@ -116,14 +116,29 @@ export class ListingAnimalSyncService {
    * Vente hors market (cheptel) : synchronise annonces individuelles et lots.
    */
   async onAnimalSoldViaCheptel(animalId: string): Promise<void> {
+    await this.delistAnimalFromOpenListings(
+      animalId,
+      "Animal vendu hors marketplace (cheptel)."
+    );
+  }
+
+  /** Sortie du cheptel (hors vente / mortalité) : retire l'animal des annonces ouvertes. */
+  async onAnimalExitedFromCheptel(animalId: string): Promise<void> {
+    await this.delistAnimalFromOpenListings(
+      animalId,
+      "Animal sorti du cheptel — annonce retirée."
+    );
+  }
+
+  private async delistAnimalFromOpenListings(
+    animalId: string,
+    cancelReason: string
+  ): Promise<void> {
     const listings = await this.findOpenListingsContainingAnimal(animalId);
     for (const listing of listings) {
       const ids = parseListingAnimalIds(listing);
       if (isIndividualListing(ids)) {
-        await this.cancelListingCompletely(
-          listing,
-          "Animal vendu hors marketplace (cheptel)."
-        );
+        await this.cancelListingCompletely(listing, cancelReason);
         continue;
       }
       if (isLotListing(ids)) {

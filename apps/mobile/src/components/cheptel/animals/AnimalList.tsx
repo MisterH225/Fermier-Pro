@@ -26,6 +26,7 @@ import { TransferModal } from "./TransferModal";
 import {
   animalToEventItem,
   filterAnimals,
+  normalizeAnimalStatusKey,
   type AnimalFilterId
 } from "./animalUtils";
 import type { AnimalListItem } from "../../../lib/api";
@@ -85,7 +86,7 @@ export function AnimalList({
       { id: "active", label: t("cheptel.animals.filter.active") },
       { id: "sold", label: t("cheptel.animals.filter.sold") },
       { id: "dead", label: t("cheptel.animals.filter.dead") },
-      { id: "reformed", label: t("cheptel.animals.filter.reformed") }
+      { id: "exited", label: t("cheptel.animals.filter.exited") }
     ],
     [t]
   );
@@ -98,7 +99,8 @@ export function AnimalList({
   const events = useMemo((): EventItem[] => {
     return filtered.map((a) =>
       animalToEventItem(a, {
-        status: (s) => t(`cheptel.animals.status.${s}`),
+        status: (s) =>
+          t(`cheptel.animals.status.${normalizeAnimalStatusKey(s)}`),
         noPen: t("cheptel.animals.noPen"),
         penLine: (barn, pen) => `${barn} · ${pen}`
       })

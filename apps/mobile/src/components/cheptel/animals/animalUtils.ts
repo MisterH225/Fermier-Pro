@@ -5,7 +5,7 @@ export type AnimalStatusKey =
   | "active"
   | "dead"
   | "sold"
-  | "reformed"
+  | "exited"
   | "transferred";
 
 export type AnimalFilterId =
@@ -15,7 +15,15 @@ export type AnimalFilterId =
   | "active"
   | "sold"
   | "dead"
-  | "reformed";
+  | "exited";
+
+/** Statut API canonique (legacy `reformed` → `exited`). */
+export function normalizeAnimalStatusKey(status: string): AnimalStatusKey | string {
+  if (status === "reformed") {
+    return "exited";
+  }
+  return status;
+}
 
 export function animalDisplayTag(a: AnimalListItem): string {
   const tag = a.tagCode?.trim();
@@ -190,8 +198,10 @@ export function filterAnimals(
     case "dead":
       list = list.filter((a) => a.status === "dead");
       break;
-    case "reformed":
-      list = list.filter((a) => a.status === "reformed");
+    case "exited":
+      list = list.filter(
+        (a) => a.status === "exited" || a.status === "reformed"
+      );
       break;
     default:
       break;
