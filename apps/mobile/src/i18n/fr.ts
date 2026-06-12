@@ -1469,6 +1469,7 @@ export const fr = {
     category: {
       reproducteur_femelle: "Truies",
       reproducteur_male: "Verrats",
+      sous_mere: "Porcelets en allaitement",
       fattening: "Engraissement",
       starter: "Démarrage",
       growth: "Croissance",
@@ -1555,6 +1556,7 @@ export const fr = {
         starter: "Démarrage / croissance",
         fattening: "Engraissement",
         sows: "Truies",
+        nursing: "Porcelets en allaitement",
         boar: "Verrat",
         boars: "Verrats",
         mixed: "Mixte",
@@ -1576,6 +1578,7 @@ export const fr = {
       batchesInPen: "Lots (bandes)",
       animalsInPen: "Animaux individuels",
       batchHeadcount: "{{count}} sujets",
+      batchCategoryNursing: "Porcelets en allaitement",
       batchCategoryNursery: "Démarrage / croissance",
       batchCategoryFinisher: "Engraissement",
       batchCategoryOther: "Lot",

@@ -19,6 +19,9 @@ import { ArchiveFarmDto } from "./dto/archive-farm.dto";
 import { FarmDeletionService } from "./farm-deletion.service";
 import { FarmMarketplaceLifecycleService } from "../marketplace/farm-marketplace-lifecycle.service";
 import { countCheptelHeadcountAt } from "./cheptel-headcount.util";
+import { mapBatchCategoryKey } from "../cheptel/batch-category.util";
+import { syncLitterBatchCategories } from "../gestation/litter-weaning.util";
+import { countPlacementOccupancy } from "../housing/placement-occupancy.util";
 import { repairOrphanMigrationDuplicateAnimals } from "../livestock/livestock-batch-headcount.helper";
 import { migrateOnboardingBatchesToIndividualAnimals } from "../onboarding/onboarding-pen-layout";
 
@@ -392,6 +395,9 @@ export class FarmsService {
       throw new NotFoundException("Ferme introuvable");
     }
 
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    await syncLitterBatchCategories(this.prisma, farmId);
+
     const animals = await this.prisma.animal.findMany({
       where: { farmId },
       select: {
@@ -462,10 +468,15 @@ export class FarmsService {
       where: {
         endedAt: null,
         pen: { barn: { farmId } },
-        animal: { is: { status: "active" } }
+        OR: [
+          { animal: { is: { status: "active" } } },
+          { batch: { is: { status: "active" } } }
+        ]
       },
       select: {
-        animalId: true
+        animalId: true,
+        animal: { select: { status: true } },
+        batch: { select: { headcount: true, status: true } }
       }
     });
 
@@ -475,17 +486,16 @@ export class FarmsService {
         id: true,
         capacity: true,
         placements: {
-          where: {
-            endedAt: null,
-            animal: { is: { status: "active" } }
-          },
+          where: { endedAt: null },
           select: {
-            animalId: true
+            animalId: true,
+            animal: { select: { status: true } },
+            batch: { select: { headcount: true, status: true } }
           }
         }
       }
     });
-    let penOccupancyHeadcount = activePlacements.length;
+    const penOccupancyHeadcount = countPlacementOccupancy(activePlacements);
 
     const occupancyRate =
       penCapacityTotal > 0
@@ -512,7 +522,7 @@ export class FarmsService {
       if (cap <= 0) {
         continue;
       }
-      const occ = pen.placements.length;
+      const occ = countPlacementOccupancy(pen.placements);
       if (occ < cap) {
         availablePensCount += 1;
       }
@@ -521,6 +531,7 @@ export class FarmsService {
     const categoryTotals: Record<string, number> = {
       reproducteur_femelle: 0,
       reproducteur_male: 0,
+      sous_mere: 0,
       fattening: 0,
       starter: 0,
       growth: 0,
@@ -548,10 +559,24 @@ export class FarmsService {
       categoryTotals[mapAnimalProductionCategory(a.productionCategory)] += 1;
     }
 
+    const batchIdsWithAnimals = new Set(
+      activeAnimals
+        .map((a) => a.livestockBatchId)
+        .filter((id): id is string => Boolean(id))
+    );
+    for (const b of activeBatches) {
+      if (batchIdsWithAnimals.has(b.id)) {
+        continue;
+      }
+      const slot = mapBatchCategoryKey(b.categoryKey);
+      categoryTotals[slot] += b.headcount;
+    }
+
     const categoryBreakdown = (
       [
         "reproducteur_femelle",
         "reproducteur_male",
+        "sous_mere",
         "fattening",
         "starter",
         "growth",
