@@ -26,6 +26,7 @@ import {
   offlineQueuedMessage,
   useOfflineMutation
 } from "../../hooks/useOfflineMutation";
+import { isoDateWithLocalTime } from "../../lib/dateTime";
 import { amountToInput, parseAmount } from "../../lib/finance/amountUtils";
 import {
   mobileColors,
@@ -107,7 +108,7 @@ export function EditTransactionModal({ visible, payload, onClose }: Props) {
       label: txLabel.trim(),
       category: categoryValue,
       note: txNote.trim() || null,
-      occurredAt: `${txDate}T12:00:00.000Z`
+      occurredAt: isoDateWithLocalTime(txDate, tx.occurredAt)
     };
   };
 
