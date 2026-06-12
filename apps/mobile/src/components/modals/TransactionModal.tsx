@@ -35,6 +35,7 @@ import {
   stockLinesToPayload,
   type StockLineForm
 } from "../finance/FinanceStockLinesEditor";
+import { isoDateWithLocalTime } from "../../lib/dateTime";
 import { invalidateFarmFinanceQueries } from "../../lib/invalidateFarmFinanceQueries";
 import {
   offlineQueuedMessage,
@@ -204,7 +205,7 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
       financeCategoryId: txCategoryId || undefined,
       amount: Number(txAmount.replace(",", ".")),
       label: txLabel.trim(),
-      occurredAt: `${txDate}T12:00:00.000Z`,
+      occurredAt: isoDateWithLocalTime(txDate),
       attachmentUrl,
       note,
       linkedEntityType,
@@ -253,7 +254,7 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
               currency: payload.currencyCode,
               label: txLabel.trim(),
               financeCategoryId: txCategoryId || undefined,
-              occurredAt: `${txDate}T12:00:00.000Z`,
+              occurredAt: isoDateWithLocalTime(txDate),
               note,
               attachmentUrl,
               recordStock: true,
