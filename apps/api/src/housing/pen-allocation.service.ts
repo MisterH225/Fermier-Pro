@@ -63,6 +63,8 @@ export class PenAllocationService {
         return "fattening";
       case "starter":
         return "starter";
+      case "nursing":
+        return "starter";
       default:
         break;
     }
@@ -77,6 +79,9 @@ export class PenAllocationService {
       return "fattening";
     }
     if (tag.startsWith("Dem")) {
+      return "starter";
+    }
+    if (tag.startsWith("All")) {
       return "starter";
     }
     if (animal.sex === "female") {

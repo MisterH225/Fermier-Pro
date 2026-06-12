@@ -384,7 +384,8 @@ export class CheptelService {
           const litterBatchTag = pl.animal.livestockBatch
             ? mapBatchTypeTag(pl.animal.livestockBatch.categoryKey)
             : null;
-          if (litterBatchTag === "sous_mere") {
+          const tagPrefix = (pl.animal.tagCode ?? "").trim().slice(0, 3).toLowerCase();
+          if (litterBatchTag === "sous_mere" || tagPrefix === "all") {
             batchTypeTag = "sous_mere";
             allocationRoles.add("sous_mere");
           }

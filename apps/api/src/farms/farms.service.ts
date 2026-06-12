@@ -552,6 +552,8 @@ export class FarmsService {
           return "fattening";
         case "starter":
           return "starter";
+        case "nursing":
+          return "sous_mere";
         default:
           return "other";
       }
@@ -563,7 +565,11 @@ export class FarmsService {
       now
     );
 
-    const isNursingAnimal = (a: { livestockBatchId: string | null }) =>
+    const isNursingAnimal = (a: {
+      livestockBatchId: string | null;
+      productionCategory: string;
+    }) =>
+      a.productionCategory === "nursing" ||
       Boolean(
         a.livestockBatchId && nursingBatchIds.has(a.livestockBatchId)
       );

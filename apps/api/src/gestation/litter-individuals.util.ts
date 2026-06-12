@@ -22,7 +22,7 @@ export type CreateLitterPigletsResult = {
   pensToRecalculate: string[];
 };
 
-/** Crée des porcelets individuels (tags Dem) et les place dans la loge de portée. */
+/** Crée des porcelets individuels (tags All) et les place dans la loge de portée. */
 export async function createLitterPigletsInTransaction(
   tx: Prisma.TransactionClient,
   params: CreateLitterPigletsParams
@@ -34,7 +34,7 @@ export async function createLitterPigletsInTransaction(
   const tags = await allocateTagCodesInTransaction(
     tx,
     params.farmId,
-    "Dem",
+    "All",
     params.count
   );
   const entryWeight =
@@ -71,7 +71,7 @@ export async function createLitterPigletsInTransaction(
         sex: "unknown",
         status: "active",
         tagCode,
-        productionCategory: "starter",
+        productionCategory: "nursing",
         birthDate: params.birthDate,
         entryDate: params.birthDate,
         origin: "farm_born",

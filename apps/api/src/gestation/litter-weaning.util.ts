@@ -1,6 +1,10 @@
 import type { Prisma } from "@prisma/client";
 import type { PrismaService } from "../prisma/prisma.service";
 import { PenAllocationService } from "../housing/pen-allocation.service";
+import {
+  retagAnimalsInTransaction,
+  tagPrefixFromCode
+} from "../livestock/retag-animals.util";
 import { createLitterPigletsInTransaction } from "./litter-individuals.util";
 
 /** IDs des bandes de portée encore en lactation (weaningDate future). */
@@ -256,10 +260,109 @@ export async function syncLitterBatchCategories(
   });
 }
 
+/** Porcelets sevrés : préfixe All → Dem et catégorie nursing → starter. */
+export async function graduateWeanedLitterAnimals(
+  prisma: PrismaService,
+  farmId: string
+): Promise<void> {
+  const now = new Date();
+  const weaned = await prisma.litter.findMany({
+    where: {
+      farmId,
+      weaningDate: { lte: now },
+      starterBatchId: { not: null }
+    },
+    select: { starterBatchId: true }
+  });
+  const weanedBatchIds = [
+    ...new Set(
+      weaned
+        .map((l) => l.starterBatchId)
+        .filter((id): id is string => Boolean(id))
+    )
+  ];
+  if (weanedBatchIds.length === 0) {
+    return;
+  }
+
+  const toGraduate = await prisma.animal.findMany({
+    where: {
+      farmId,
+      status: "active",
+      livestockBatchId: { in: weanedBatchIds },
+      OR: [
+        { productionCategory: "nursing" },
+        { tagCode: { startsWith: "All-", mode: "insensitive" } }
+      ]
+    },
+    select: { id: true }
+  });
+  if (toGraduate.length === 0) {
+    return;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await retagAnimalsInTransaction(
+      tx,
+      farmId,
+      toGraduate.map((a) => a.id),
+      "Dem",
+      "starter"
+    );
+  });
+}
+
+/**
+ * Portées encore en lactation : corrige les porcelets créés en Dem/starter
+ * (legacy) vers All/nursing.
+ */
+export async function repairNursingAnimalTags(
+  prisma: PrismaService,
+  farmId: string
+): Promise<void> {
+  const nursingBatchIds = await activeNursingLitterBatchIds(prisma, farmId);
+  if (nursingBatchIds.size === 0) {
+    return;
+  }
+
+  const misplaced = await prisma.animal.findMany({
+    where: {
+      farmId,
+      status: "active",
+      livestockBatchId: { in: [...nursingBatchIds] },
+      OR: [
+        { productionCategory: "starter" },
+        { tagCode: { startsWith: "Dem-", mode: "insensitive" } }
+      ]
+    },
+    select: { id: true, tagCode: true, productionCategory: true }
+  });
+
+  const needsAll = misplaced.filter((a) => {
+    const prefix = tagPrefixFromCode(a.tagCode);
+    return a.productionCategory === "starter" || prefix === "DEM";
+  });
+  if (needsAll.length === 0) {
+    return;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await retagAnimalsInTransaction(
+      tx,
+      farmId,
+      needsAll.map((a) => a.id),
+      "All",
+      "nursing"
+    );
+  });
+}
+
 export async function maintainLitterBatches(
   prisma: PrismaService,
   farmId: string
 ): Promise<void> {
   await repairLitterBatches(prisma, farmId);
+  await repairNursingAnimalTags(prisma, farmId);
   await syncLitterBatchCategories(prisma, farmId);
+  await graduateWeanedLitterAnimals(prisma, farmId);
 }

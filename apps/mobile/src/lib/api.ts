@@ -1877,12 +1877,7 @@ export type AnimalListItem = {
   publicId: string;
   tagCode: string | null;
   sex: "male" | "female" | "unknown";
-  productionCategory?:
-    | "breeding_female"
-    | "breeding_male"
-    | "fattening"
-    | "starter"
-    | "unknown";
+  productionCategory?: AnimalProductionCategoryDto;
   status: string;
   healthStatus?: "healthy" | "sick" | "recovering";
   species: { id: string; code: string; name: string };
@@ -1932,13 +1927,14 @@ export function createAnimal(
   );
 }
 
-export type AnimalTagPrefixDto = "Trui" | "Ver" | "Eng" | "Dem";
+export type AnimalTagPrefixDto = "Trui" | "Ver" | "Eng" | "Dem" | "All";
 
 export type AnimalProductionCategoryDto =
   | "breeding_female"
   | "breeding_male"
   | "fattening"
   | "starter"
+  | "nursing"
   | "unknown";
 
 export function fetchNextAnimalNumber(
