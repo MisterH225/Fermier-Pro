@@ -1407,7 +1407,7 @@ export type CheptelOverviewDto = {
     sickAnimalsCount?: number;
     fatteningCount?: number;
     starterCount?: number;
-    nursingCount?: number;
+    nursingCount: number;
     breedingFemalesCount?: number;
     breedingFemalesGestating?: number;
   };

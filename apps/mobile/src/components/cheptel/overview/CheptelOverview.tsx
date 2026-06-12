@@ -72,7 +72,7 @@ export function CheptelOverview({
 
   return (
     <>
-      <ScreenSection plain>
+      <ScreenSection plain title={t("cheptel.kpiSectionTitle")}>
         <CheptelKPICards overview={overview} />
       </ScreenSection>
 

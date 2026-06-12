@@ -1430,6 +1430,7 @@ export const en = {
     navBatches: "Batches",
     navStatuses: "Statuses",
     totalHeadcount: "Total headcount",
+    kpiSectionTitle: "Key indicators",
     kpiBreedingFemales: "Breeding females",
     kpiFattening: "Finishing",
     kpiStarter: "Starter",

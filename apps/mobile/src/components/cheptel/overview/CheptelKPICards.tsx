@@ -19,6 +19,7 @@ type CardDef = {
   accent: string;
   labelKey: string;
   unitKey?: string;
+  fullWidth?: boolean;
   value: (o: CheptelOverviewDto) => string;
   widget?: (o: CheptelOverviewDto) => React.ReactNode;
 };
@@ -102,6 +103,21 @@ export function CheptelKPICards({ overview }: Props) {
 
   const cards: CardDef[] = [
     {
+      key: "nursing",
+      icon: "🍼",
+      bg: "#FCE4EC",
+      accent: "#EC407A",
+      labelKey: "cheptel.kpiNursing",
+      unitKey: "health.diseases.unitSubjects",
+      fullWidth: true,
+      value: (o) => String(o.kpis.nursingCount ?? 0),
+      widget: (o) =>
+        miniDonut(
+          [{ value: o.kpis.nursingCount ?? 0, color: "#EC407A" }],
+          "#EC407A"
+        )
+    },
+    {
       key: "total",
       icon: "🐷",
       bg: "#FFF3E0",
@@ -156,15 +172,6 @@ export function CheptelKPICards({ overview }: Props) {
       widget: (o) => miniBars(o.miniWidgets?.starterTrend ?? [], "#1565C0")
     },
     {
-      key: "nursing",
-      icon: "🍼",
-      bg: "#FCE4EC",
-      accent: "#EC407A",
-      labelKey: "cheptel.kpiNursing",
-      unitKey: "health.diseases.unitSubjects",
-      value: (o) => String(o.kpis.nursingCount ?? "—")
-    },
-    {
       key: "occupancy",
       icon: "🏠",
       bg: "#EDE7F6",
@@ -206,7 +213,14 @@ export function CheptelKPICards({ overview }: Props) {
   return (
     <View style={styles.grid}>
       {cards.map((card) => (
-        <View key={card.key} style={[styles.card, { backgroundColor: card.bg }]}>
+        <View
+          key={card.key}
+          style={[
+            styles.card,
+            card.fullWidth && styles.cardFullWidth,
+            { backgroundColor: card.bg }
+          ]}
+        >
           <View style={styles.topRow}>
             <Text style={styles.icon}>{card.icon}</Text>
             <Text style={styles.label}>{t(card.labelKey)}</Text>
@@ -246,6 +260,11 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2
+  },
+  cardFullWidth: {
+    width: "100%",
+    minWidth: "100%",
+    flexGrow: 0
   },
   topRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   icon: { fontSize: 18 },

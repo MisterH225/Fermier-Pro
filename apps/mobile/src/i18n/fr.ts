@@ -1454,6 +1454,7 @@ export const fr = {
     navBatches: "Bandes",
     navStatuses: "Statuts",
     totalHeadcount: "Effectif total",
+    kpiSectionTitle: "Indicateurs clés",
     kpiBreedingFemales: "Reproductrices",
     kpiFattening: "Engraissement",
     kpiStarter: "Démarrage",
