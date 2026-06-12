@@ -338,6 +338,21 @@ export const en = {
     tabListings: "Listings",
     tabMyListings: "My listings",
     tabOffers: "Offers",
+    tabClients: "Clients",
+    tabSuppliers: "Suppliers",
+    partners: {
+      transactionCount: "{{count}} transaction(s)",
+      closedCount: "{{count}} completed",
+      message: "Send a message",
+      directSale: "Direct livestock sale",
+      messageErrorTitle: "Messaging unavailable",
+      emptyClientsTitle: "No clients yet",
+      emptyClientsBody:
+        "Buyers you complete a sale with (marketplace or direct livestock sale) will appear here.",
+      emptySuppliersTitle: "No suppliers yet",
+      emptySuppliersBody:
+        "Producers you complete a purchase with (marketplace or direct sale) will appear here."
+    },
     create: "Create",
     searchPlaceholder: "Farm, location, breed…",
     badgeNew: "New",

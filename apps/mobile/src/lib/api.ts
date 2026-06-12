@@ -5221,6 +5221,30 @@ export type MarketplaceFinanceSummaryDto = {
   }>;
 };
 
+export type MarketplacePartnerDto = {
+  partnerKey: string;
+  userId: string | null;
+  displayName: string;
+  subtitle: string | null;
+  transactionCount: number;
+  closedCount: number;
+  marketplaceCount: number;
+  directSaleCount: number;
+  lastTransactionAt: string;
+};
+
+export function fetchMarketplacePartners(
+  accessToken: string,
+  role: "seller" | "buyer",
+  activeProfileId?: string | null
+): Promise<MarketplacePartnerDto[]> {
+  return apiGetJson<MarketplacePartnerDto[]>(
+    `/marketplace/transactions/partners?role=${role}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
 export function fetchMarketplaceTransactions(
   accessToken: string,
   activeProfileId?: string | null
