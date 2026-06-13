@@ -66,11 +66,18 @@ type SentProps = ProposalCardBase & {
   onAcceptCounter?: () => void;
   onDeclareAdvance?: () => void;
   onDeclareBalance?: () => void;
+  onContactSeller?: () => void;
   withdrawLoading?: boolean;
   acceptCounterLoading?: boolean;
 };
 
 export type ProposalCardProps = ReceivedProps | SentProps;
+
+const TERMINAL_OFFER_STATUSES = new Set(["completed", "cancelled"]);
+
+function offerAllowsFollowUpMessage(status: string): boolean {
+  return !TERMINAL_OFFER_STATUSES.has(status);
+}
 
 function formatOfferAmount(
   offeredPrice: string | number,
@@ -143,6 +150,19 @@ export function ProposalCard(props: ProposalCardProps) {
     month: "short",
     year: "numeric"
   });
+
+  const showReceivedContactButton =
+    variant === "received" &&
+    !actionsDisabled &&
+    props.onNegotiate &&
+    offerAllowsFollowUpMessage(status) &&
+    !(status === "pending" && !isCredit);
+
+  const showSentContactButton =
+    variant === "sent" &&
+    !actionsDisabled &&
+    props.onContactSeller &&
+    offerAllowsFollowUpMessage(status);
 
   return (
     <View style={styles.card}>
@@ -465,6 +485,28 @@ export function ProposalCard(props: ProposalCardProps) {
           </Text>
         </Pressable>
       ) : null}
+
+      {showReceivedContactButton ? (
+        <Pressable
+          style={[styles.btn, styles.btnGhost, styles.contactBtn]}
+          onPress={props.onNegotiate}
+        >
+          <Text style={styles.btnGhostTx}>
+            {t("marketScreen.proposals.contactBuyer")}
+          </Text>
+        </Pressable>
+      ) : null}
+
+      {showSentContactButton ? (
+        <Pressable
+          style={[styles.btn, styles.btnGhost, styles.contactBtn]}
+          onPress={props.onContactSeller}
+        >
+          <Text style={styles.btnGhostTx}>
+            {t("marketScreen.detail.contactSeller")}
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -573,6 +615,7 @@ const styles = StyleSheet.create({
   },
   btnDangerTx: { color: mobileColors.error, fontWeight: "700" },
   btnGhost: { backgroundColor: mobileColors.surfaceMuted },
+  contactBtn: { marginTop: mobileSpacing.sm },
   btnGhostTx: { color: mobileColors.textPrimary, fontWeight: "600" },
   withdrawBtn: {
     alignSelf: "flex-start",

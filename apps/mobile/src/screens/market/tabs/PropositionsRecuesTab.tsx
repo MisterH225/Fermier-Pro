@@ -289,6 +289,7 @@ export function PropositionsRecuesTab({
         row.listing.id
       ),
     onSuccess: (room, row) => {
+      void qc.invalidateQueries({ queryKey: ["chatRooms", activeProfileId] });
       navigation.navigate("ChatRoom", {
         roomId: room.id,
         headline: room.title?.trim() || t("marketScreen.detail.chatTitle"),

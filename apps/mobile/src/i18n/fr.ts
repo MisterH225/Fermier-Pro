@@ -749,6 +749,7 @@ export const fr = {
         "Faites une offre sur une annonce du marché pour commencer.",
       groupCount: "{{count}} proposition(s)",
       negotiate: "Négocier",
+      contactBuyer: "Contacter l'acheteur",
       anonymousBuyer: "Acheteur",
       receivedSection: "Propositions reçues",
       viewReceived: "Voir les propositions",
@@ -1992,7 +1993,8 @@ export const fr = {
     messages: {
       new: "Nouveau",
       emptyTitle: "Aucun message",
-      emptySub: "Envoyez un message à votre vétérinaire depuis la fiche de son profil.",
+      emptySub:
+        "Retrouvez ici vos échanges avec les acheteurs (marché) et vos contacts professionnels.",
       noMessage: "Pas encore de message"
     },
     vetAppointments: {

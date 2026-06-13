@@ -20,6 +20,7 @@ import {
   agreeMarketplaceCreditOffer,
   confirmMarketplaceCreditBalancePayment,
   initiateMarketplaceCreditBalancePayment,
+  ensureDirectChatRoom,
   fetchMyMarketplaceOffers,
   withdrawMarketplaceOffer,
   type MarketplaceOfferMineRow
@@ -77,6 +78,7 @@ export function PropositionsEnvoyeesTab({
       withdrawMarketplaceOffer(accessToken!, row.id, activeProfileId),
     onSuccess: (_data, row) => {
       invalidateAll(row.listing.id);
+      void qc.invalidateQueries({ queryKey: ["chatRooms", activeProfileId] });
       open("success", {
         message: t("marketScreen.proposals.withdrawSuccess"),
         autoDismissMs: 2000
@@ -157,6 +159,29 @@ export function PropositionsEnvoyeesTab({
       Alert.alert(t("common.error"), marketplaceActionErrorMessage(e, t))
   });
 
+  const contactSellerMut = useMutation({
+    mutationFn: (row: MarketplaceOfferMineRow) =>
+      ensureDirectChatRoom(
+        accessToken!,
+        row.listing.seller.id,
+        activeProfileId,
+        row.listing.id
+      ),
+    onSuccess: (room, row) => {
+      void qc.invalidateQueries({ queryKey: ["chatRooms", activeProfileId] });
+      navigation.navigate("ChatRoom", {
+        roomId: room.id,
+        headline: room.title?.trim() || t("marketScreen.detail.chatTitle"),
+        listingId: row.listing.id
+      });
+    },
+    onError: (e: Error) =>
+      Alert.alert(
+        t("marketScreen.detail.contactErrorTitle"),
+        getUserFacingError(e, t)
+      )
+  });
+
   const confirmWithdraw = (row: MarketplaceOfferMineRow) => {
     Alert.alert(t("marketScreen.withdrawTitle"), t("marketScreen.withdrawBody"), [
       { text: t("marketScreen.withdrawCancel"), style: "cancel" },
@@ -195,7 +220,8 @@ export function PropositionsEnvoyeesTab({
   const busy =
     withdrawMut.isPending ||
     acceptCounterMut.isPending ||
-    payBalanceMut.isPending;
+    payBalanceMut.isPending ||
+    contactSellerMut.isPending;
 
   return (
     <FlatList
@@ -258,6 +284,7 @@ export function PropositionsEnvoyeesTab({
           onAcceptCounter={() => acceptCounterMut.mutate(item)}
           onDeclareAdvance={() => openCreditTransaction(item)}
           onDeclareBalance={() => payBalanceMut.mutate(item)}
+          onContactSeller={() => contactSellerMut.mutate(item)}
         />
       )}
     />

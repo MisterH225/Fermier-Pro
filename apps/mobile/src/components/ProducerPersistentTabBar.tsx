@@ -227,6 +227,11 @@ export function ProducerPersistentTabBar() {
           a11y: t("navigation.extended.reports")
         },
         {
+          id: "messages" as const,
+          label: t("navigation.extended.messages"),
+          a11y: t("navigation.screenTitles.messages")
+        },
+        {
           id: "settings" as const,
           label: t("navigation.extended.settings"),
           a11y: t("navigation.extended.settings")
@@ -309,6 +314,9 @@ export function ProducerPersistentTabBar() {
             farmId: ctx.farmId,
             farmName: ctx.farmName
           });
+          return;
+        case "messages":
+          navigation.navigate("ProducerMessages");
           return;
         default:
           return;

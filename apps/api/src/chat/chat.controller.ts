@@ -104,6 +104,7 @@ export class ChatController {
     @Body() dto: SendChatMessageDto
   ) {
     const msg = await this.chat.createMessage(user.id, roomId, dto.body);
+    this.chat.notifyPeersOfNewMessage(user.id, roomId, msg.body);
     this.gateway.broadcastNewMessage(roomId, msg);
     return msg;
   }
