@@ -6,19 +6,26 @@
   "nav": {
     "overview": "Overview",
     "vets": "Veterinarians",
+    "vetAppointments": "Vet appointments",
     "users": "Users",
+    "feedModeration": "Feed moderation",
+    "chatModeration": "Chat moderation",
     "auditLogs": "Admin log",
     "map": "Health map",
+    "marketplace": "Marketplace",
     "stats": "Statistics",
     "ai": "AI assistant",
+    "modules": "Modules",
     "settings": "Settings",
+    "more": "More",
     "logout": "Sign out"
   },
   "notifications": {
     "title": "Notifications",
     "none": "No notifications",
     "pendingVets": "Pending veterinarians ({count})",
-    "activeAlerts": "Health alerts ({count})"
+    "activeAlerts": "Health alerts ({count})",
+    "marketplaceDisputes": "Weight disputes ({count})"
   },
   "login": {
     "title": "SuperAdmin sign in",
@@ -121,6 +128,7 @@
     },
     "empty": "No veterinarians in this tab.",
     "detail": {
+      "pageTitle": "Veterinarian profile",
       "profileTitle": "Profile",
       "fields": {
         "email": "Email",
@@ -142,6 +150,7 @@
     "since": "Since {date}",
     "primaryFarm": "Primary farm",
     "view": "View",
+    "detailPageTitle": "User profile",
     "empty": "No users found.",
     "statusFilters": {
       "all": "All",
@@ -164,11 +173,13 @@
       "suspend": "Suspend account",
       "unsuspend": "Lift suspension",
       "ban": "Ban account",
+      "unban": "Unban account",
       "delete": "Delete account"
     },
     "moderation": {
       "suspendTitle": "Suspend {name}",
       "unsuspendTitle": "Lift suspension",
+      "unbanTitle": "Unban account",
       "banTitle": "Ban {name}",
       "banWarning": "Banning disables access. Data is retained.",
       "warnTitle": "Send a warning",
@@ -179,6 +190,9 @@
       "scopeAccount": "Global account (all profiles)",
       "scopeVet": "Veterinarian profile only",
       "scopeProducer": "Producer profile only",
+      "scopeTechnician": "Technician profile only",
+      "scopeBuyer": "Buyer profile only",
+      "durationAccountOnly": "Duration only applies to a global account suspension.",
       "reason": "Reason",
       "duration": "Duration",
       "details": "Details",
@@ -316,6 +330,12 @@
   "ai": {
     "title": "AI assistant",
     "unavailable": "AI unavailable — check GEMINI_API_KEY on the API.",
+    "setupTitle": "Configure the AI assistant",
+    "setupBody": "The Google Gemini key must be set on the API server (not in the admin console).",
+    "setupLocal": "Locally: add GEMINI_API_KEY=your_key to the root .env file, then restart npm run dev:api.",
+    "setupRailway": "In production (Railway): Variables → add GEMINI_API_KEY, then redeploy the API.",
+    "setupLink": "Get a key: Google AI Studio → API Keys.",
+    "configured": "AI assistant connected.",
     "epidemic": {
       "title": "Epidemiological analysis",
       "description": "Analysis of aggregated health data (last 30 days).",
@@ -368,18 +388,34 @@
     "title": "Platform settings",
     "save": "Save",
     "saved": "Settings saved.",
+    "tabs": {
+      "navLabel": "Settings sections",
+      "platform": "Platform",
+      "modules": "Modules"
+    },
     "sections": {
       "map": "Geographic scope",
       "alerts": "Health alert thresholds",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "support": "Mobile support",
+      "marketplace": "Marketplace"
     },
+    "loadError": "Could not load settings. Check that the API is up to date and Prisma migrations have been applied.",
     "fields": {
       "mapScope": "Map visible area",
       "alertThreshold": "Trigger threshold (cases)",
       "alertPeriod": "Calculation period (days)",
       "alertLevel": "Default alert level",
       "adminEmail": "SuperAdmin email",
-      "reportFrequency": "Report frequency (days)"
+      "reportFrequency": "Report frequency (days)",
+      "marketplaceCommission": "Marketplace commission (%)",
+      "marketplaceCommissionHint": "Applied to each completed marketplace sale (e.g. 5 = 5%).",
+      "supportPhone": "Support phone",
+      "supportPhoneHint": "Number shown in the mobile app (call button). Leave empty to use the SUPPORT_PHONE environment variable.",
+      "supportPhoneEffective": "Active value on mobile (env fallback): {value}",
+      "supportTelegram": "Telegram link",
+      "supportTelegramHint": "URL or @username for support. Leave empty to use SUPPORT_TELEGRAM_URL on the API.",
+      "supportTelegramEffective": "Active link on mobile (env fallback): {value}"
     },
     "scopes": {
       "world": "Worldwide",
@@ -410,5 +446,292 @@
     "save": "Save",
     "cancel": "Cancel",
     "comingSoon": "Section coming soon."
+  },
+  "marketplace": {
+    "title": "Marketplace",
+    "loading": "Loading…",
+    "loadError": "Could not load marketplace data.",
+    "tabs": {
+      "listings": "Listings",
+      "transactions": "Transactions",
+      "disputes": "Weight disputes",
+      "revenue": "Commissions",
+      "receipts": "PDF receipts"
+    },
+    "overview": {
+      "publishedListings": "Published listings",
+      "totalListings": "Total listings",
+      "activeTransactions": "Active transactions",
+      "openDisputes": "Open disputes"
+    },
+    "listingDetail": {
+      "title": "Listing detail",
+      "error": "Could not load listing detail.",
+      "archived": "Archived",
+      "seller": "Seller",
+      "farm": "Farm",
+      "location": "Location",
+      "totalPrice": "Total price",
+      "pricePerKg": "Price per kg",
+      "weight": "Total weight",
+      "views": "Views",
+      "consultations": "Consultations",
+      "publishedAt": "Published at",
+      "expiresAt": "Expires at",
+      "updatedAt": "Updated at",
+      "reservedBuyer": "Reserved buyer",
+      "animal": "Primary animal",
+      "animalId": "Identifier",
+      "animalTag": "Tag",
+      "animalSex": "Sex",
+      "animalStatus": "Animal status",
+      "offers": "Offers",
+      "noOffers": "No offers.",
+      "transactions": "Transactions",
+      "noTransactions": "No transactions.",
+      "colBuyer": "Buyer",
+      "colOfferStatus": "Offer status",
+      "colPrice": "Price",
+      "colDate": "Date"
+    },
+    "listings": {
+      "empty": "No listings.",
+      "allStatuses": "All statuses",
+      "active": "active",
+      "colTitle": "Listing",
+      "colStatus": "Status",
+      "colSeller": "Seller",
+      "colFarm": "Farm",
+      "colPrice": "Price",
+      "colViews": "Views",
+      "colOffers": "Offers",
+      "colUpdated": "Updated"
+    },
+    "listingStatus": {
+      "draft": "Draft",
+      "published": "Published",
+      "paused": "Paused",
+      "reserved": "Reserved",
+      "reserved_credit": "Reserved (credit)",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "disputed": "Disputed",
+      "sold": "Sold",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
+    },
+    "receipts": {
+      "empty": "No closed transactions.",
+      "summary": "{generated} receipts generated out of {total} closed transactions.",
+      "colListing": "Listing",
+      "colReceipt": "Receipt no.",
+      "colStatus": "Status",
+      "colClosed": "Closed",
+      "colActions": "Actions",
+      "download": "Download",
+      "regenerate": "Regenerate",
+      "status": {
+        "pending": "Pending",
+        "generated": "Generated",
+        "failed": "Failed"
+      }
+    },
+    "transactions": {
+      "empty": "No transactions.",
+      "allStatuses": "All statuses",
+      "colListing": "Listing",
+      "colStatus": "Status",
+      "colBuyer": "Buyer",
+      "colSeller": "Seller",
+      "colAmount": "Held amount",
+      "colUpdated": "Updated"
+    },
+    "status": {
+      "OFFER_ACCEPTED": "Offer accepted",
+      "PAYMENT_PENDING": "Payment pending",
+      "PAYMENT_HELD": "Payment secured",
+      "PICKUP_SCHEDULED": "Pickup scheduled",
+      "WEIGHT_DECLARED": "Weight declared",
+      "WEIGHT_DISPUTED": "Weight disputed",
+      "WEIGHT_VALIDATED": "Weight validated",
+      "TRANSACTION_CLOSED": "Closed",
+      "CANCELLED_BY_BUYER": "Cancelled (buyer)",
+      "CANCELLED_BY_SELLER": "Cancelled (seller)",
+      "CANCELLED_SOLD_TO_OTHER": "Sold to another",
+      "PAYMENT_FAILED": "Payment failed",
+      "OFFER_EXPIRED": "Offer expired"
+    },
+    "disputes": {
+      "empty": "No open disputes.",
+      "buyer": "Buyer",
+      "seller": "Seller",
+      "declaredWeight": "Declared weight",
+      "blockedAmount": "Held amount",
+      "openedAt": "Opened at",
+      "arbitrate": "Arbitrate",
+      "arbitrateTitle": "Weight arbitration",
+      "arbitrationWeight": "Arbitrated weight (kg)",
+      "cancel": "Cancel",
+      "confirm": "Submit arbitration",
+      "invalidWeight": "Invalid weight.",
+      "error": "Arbitration failed."
+    },
+    "revenue": {
+      "totalCommission": "Commissions collected",
+      "totalGross": "Gross volume",
+      "transactionCount": "Closed transactions",
+      "dailySeries": "Daily commissions",
+      "colListing": "Listing",
+      "colGross": "Gross amount",
+      "colCommission": "Commission",
+      "colDate": "Date",
+      "period": {
+        "7d": "7 days",
+        "30d": "30 days",
+        "90d": "90 days",
+        "all": "All time"
+      }
+    }
+  },
+  "vetAppointments": {
+    "title": "Veterinary appointments",
+    "tabs": {
+      "list": "List",
+      "revenue": "Commissions & ratings"
+    },
+    "list": {
+      "empty": "No appointments.",
+      "allStatuses": "All statuses",
+      "colFarm": "Farm",
+      "colVet": "Veterinarian",
+      "colProducer": "Producer",
+      "colStatus": "Status",
+      "colAmount": "Amount",
+      "colWhen": "Date",
+      "refund": "Refund",
+      "refundConfirm": "Confirm full refund to the producer?",
+      "refundError": "Refund failed."
+    },
+    "status": {
+      "APPOINTMENT_REQUESTED": "Requested",
+      "AWAITING_PAYMENT": "Awaiting payment",
+      "APPOINTMENT_CONFIRMED": "Confirmed",
+      "APPOINTMENT_IN_PROGRESS": "In progress",
+      "APPOINTMENT_COMPLETED": "Completed",
+      "APPOINTMENT_RATED": "Rated",
+      "APPOINTMENT_REFUSED": "Refused",
+      "PAYMENT_EXPIRED": "Payment expired",
+      "CANCELLED_BY_PRODUCER": "Cancelled (producer)",
+      "CANCELLED_BY_VET": "Cancelled (vet)"
+    },
+    "revenue": {
+      "totalCommission": "Appointment commissions",
+      "totalGross": "Gross volume",
+      "appointmentCount": "Completed appointments",
+      "lowRated": "Low-rated vets (< 3/5)",
+      "period": {
+        "7d": "7 days",
+        "30d": "30 days",
+        "90d": "90 days",
+        "all": "All time"
+      }
+    }
+  },
+  "pigPrice": {
+    "loading": "…",
+    "compactTitle": "📊 PigPrice Index",
+    "title": "📊 PigPrice Index — Pig market prices",
+    "subtitle": "Index computed from real transactions on the platform",
+    "globalView": "Global view — All categories",
+    "marketStats": "Market statistics",
+    "categories": {
+      "porcelet": "🐣 Piglets",
+      "croissance": "📈 Growers",
+      "charcutier": "🐷 Finisher",
+      "reproducteur": "♻️ Breeders"
+    },
+    "table": {
+      "category": "Category",
+      "today": "Today",
+      "var24h": "24h chg.",
+      "var7d": "7d chg.",
+      "high30d": "30d high",
+      "low30d": "30d low",
+      "volume": "Volume"
+    },
+    "tickerItem": "{icon} {label}: {price} FCFA/kg",
+    "hybrid": {
+      "title": "Hybrid index (anti-manipulation)",
+      "recalculate": "Recalculate",
+      "unfreeze": "Unfreeze",
+      "frozen": "Frozen — {reason}",
+      "active": "Index active",
+      "history": "History (30 snapshots)",
+      "flagged": "Flagged listings (> 30%)",
+      "none": "None",
+      "contributors": "Top contributors (volume)",
+      "txCount": "{kg} kg · {count} tx",
+      "deviation": "{price} FCFA/kg · +{pct} %"
+    }
+  },
+  "feedModeration": {
+    "title": "Feed moderation",
+    "subtitle": "AI-detected violations, sanctioned users, and appeals.",
+    "sections": {
+      "events": "Recent violations",
+      "sanctioned": "Sanctioned users",
+      "appeals": "Pending appeals",
+      "content": "Feed content"
+    },
+    "columns": {
+      "date": "Date",
+      "user": "User",
+      "type": "Type",
+      "severity": "Severity",
+      "confidence": "AI confidence",
+      "status": "Status",
+      "until": "Suspension end"
+    },
+    "actions": {
+      "unsanction": "Lift sanction",
+      "acceptAppeal": "Accept",
+      "rejectAppeal": "Reject",
+      "deletePost": "Delete post",
+      "deleteComment": "Delete comment",
+      "showRemoved": "Show removed content"
+    },
+    "empty": {
+      "events": "No violations recorded.",
+      "sanctioned": "No sanctioned users.",
+      "appeals": "No pending appeals.",
+      "content": "No posts in the feed."
+    },
+    "content": {
+      "likes": "{count} likes",
+      "comments": "{count} comments",
+      "removed": "Removed",
+      "confirmDeletePost": "Delete this post and hide it from the feed?",
+      "confirmDeleteComment": "Delete this comment?"
+    },
+    "appealAcceptedDefault": "Your appeal was accepted. Feed access is restored.",
+    "appealRejectedDefault": "Your appeal was reviewed and upheld."
+  },
+  "chatModeration": {
+    "title": "Chat moderation",
+    "subtitle": "Discussion rooms (farm and direct messages) — SuperAdmin deletion.",
+    "sections": {
+      "rooms": "Active rooms"
+    },
+    "labels": {
+      "untitled": "Untitled room",
+      "meta": "{members} members · {messages} messages"
+    },
+    "actions": {
+      "deleteRoom": "Delete room"
+    },
+    "empty": {
+      "rooms": "No chat rooms."
+    },
+    "confirmDelete": "Permanently delete this room and all its messages?"
   }
 }

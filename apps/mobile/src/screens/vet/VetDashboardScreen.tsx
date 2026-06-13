@@ -13,18 +13,21 @@ import {
   TextInput,
   View
 } from "react-native";
+import { CardContentSkeleton, KpiGridSkeleton, ListSkeleton } from "../../components/common/SkeletonBlocks";
 import { EventList } from "../../components/lists/EventList";
 import type { EventItem } from "../../components/lists/types";
 import { VetMobileShell } from "../../components/layout";
-import { AlertBadge } from "../../components/smartAlerts/AlertBadge";
 import { DashboardTaskWidget } from "../../components/tasks";
-import { VetProfileModal } from "../../components/vet/VetProfileModal";
+import { VetAccountModal } from "../../components/vet/VetAccountModal";
 import { VetWelcomeHeader } from "../../components/vet/VetWelcomeHeader";
+import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
+import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import { VisitCard } from "../../components/vet/VisitCard";
-import { useVetBottomChromePad } from "../../context/VetBottomChromeContext";
+import { PendingInvitationsBanner } from "../../components/collaboration/PendingInvitationsBanner";
+import { useBottomInset } from "../../hooks/useBottomInset";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { useSession } from "../../context/SessionContext";
-import { fetchFarms, fetchVetDashboard } from "../../lib/api";
+import { fetchFarms, fetchVetDashboard, fetchVetAppointmentFinanceSummary } from "../../lib/api";
 import { welcomeFirstName } from "../../lib/userDisplay";
 import { vetColors, vetRadius, vetShadow } from "../../theme/vetTheme";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
@@ -71,7 +74,7 @@ export function VetDashboardScreen() {
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const bottomPad = useVetBottomChromePad();
+  const bottomInset = useBottomInset();
   const { accessToken, activeProfileId, authMe, refreshAuthMe, clientFeatures } =
     useSession();
   const [profileOpen, setProfileOpen] = useState(false);
@@ -86,6 +89,13 @@ export function VetDashboardScreen() {
   const dashQ = useQuery({
     queryKey: ["vetDashboard", activeProfileId],
     queryFn: () => fetchVetDashboard(accessToken!, activeProfileId),
+    enabled: Boolean(accessToken && !isPending)
+  });
+
+  const financeQ = useQuery({
+    queryKey: ["vetAppointmentFinance", activeProfileId, "vet"],
+    queryFn: () =>
+      fetchVetAppointmentFinanceSummary(accessToken!, "vet", activeProfileId),
     enabled: Boolean(accessToken && !isPending)
   });
 
@@ -123,9 +133,6 @@ export function VetDashboardScreen() {
     [dashQ.data?.recentActivity, locale]
   );
 
-  const notificationCount =
-    (dashQ.data?.kpis.healthAlerts ?? 0) + (dashQ.data?.kpis.pendingTasks ?? 0);
-
   const kpis = dashQ.data?.kpis;
 
   const dashboardHeader: ReactNode = (
@@ -137,42 +144,30 @@ export function VetDashboardScreen() {
         verified={isVerified}
         onPressAvatar={() => setProfileOpen(true)}
       />
-      <Pressable
-        onPress={() => {
-          if (primaryFarm) {
-            navigation.navigate("SmartAlertsList", {
-              farmId: primaryFarm.id,
-              farmName: primaryFarm.name
-            });
-            return;
-          }
-          navigation.navigate("VetFarms");
-        }}
-        style={({ pressed }) => [
-          styles.heroIconBtn,
-          vetShadow.soft,
-          pressed && { opacity: 0.85 }
-        ]}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        accessibilityRole="button"
-        accessibilityLabel={t("smartAlerts.bellA11y", "Notifications")}
-      >
-        <View style={styles.bellWrap}>
-          <Ionicons name="notifications-outline" size={22} color={vetColors.primary} />
-          {notificationCount > 0 ? <AlertBadge count={notificationCount} /> : null}
-        </View>
-      </Pressable>
+      <View style={styles.heroActions}>
+        <SupportHeaderButton
+          iconColor={vetColors.primary}
+          style={[styles.heroIconBtn, vetShadow.soft]}
+        />
+        <NotificationsHeaderButton
+          iconColor={vetColors.primary}
+          farmId={primaryFarm?.id}
+          farmName={primaryFarm?.name}
+          style={[styles.heroIconBtn, vetShadow.soft]}
+        />
+      </View>
     </View>
   );
 
   return (
     <VetMobileShell customHeader={dashboardHeader} omitBottomTabBar>
       <ScrollView
-        contentContainerStyle={[styles.wrap, { paddingBottom: bottomPad + 24 }]}
+        contentContainerStyle={[styles.wrap, { paddingBottom: bottomInset }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} />
         }
       >
+        <PendingInvitationsBanner />
         {isPending ? (
           <View style={styles.pendingBanner}>
             <Text style={styles.pendingTx}>⏳ {t("vet.dashboard.pendingBanner")}</Text>
@@ -197,7 +192,9 @@ export function VetDashboardScreen() {
                 <Text style={styles.sectionCta}>{t("vet.dashboard.seeAll")}</Text>
               </Pressable>
             </View>
-            {(dashQ.data?.upcomingVisits.length ?? 0) === 0 ? (
+            {dashQ.isPending && !dashQ.data ? (
+              <CardContentSkeleton lines={2} />
+            ) : (dashQ.data?.upcomingVisits.length ?? 0) === 0 ? (
               <Pressable
                 style={styles.emptyCard}
                 onPress={() => navigation.navigate("VetFarms")}
@@ -215,13 +212,25 @@ export function VetDashboardScreen() {
                     scheduledAt={v.scheduledAt}
                     subject={v.subject}
                     location={v.location}
-                    onPress={() =>
+                    conflictLabel={v.conflictLabel}
+                    statusLabel={
+                      v.kind === "appointment" && v.status === "APPOINTMENT_REQUESTED"
+                        ? t("vet.appointment.requestPending")
+                        : undefined
+                    }
+                    onPress={() => {
+                      if (v.kind === "appointment") {
+                        navigation.navigate("VetAppointmentDetail", {
+                          appointmentId: v.id
+                        });
+                        return;
+                      }
                       navigation.navigate("VetConsultationDetail", {
                         farmId: v.farmId,
                         farmName: v.farmName,
                         consultationId: v.id
-                      })
-                    }
+                      });
+                    }}
                     onMessage={() => navigation.navigate("VetMessages")}
                   />
                 ))}
@@ -231,6 +240,9 @@ export function VetDashboardScreen() {
             <Text style={[styles.sectionTitle, styles.sectionGap]}>
               {t("vet.dashboard.kpisTitle")}
             </Text>
+            {dashQ.isPending && !dashQ.data ? (
+              <KpiGridSkeleton count={4} />
+            ) : (
             <View style={styles.kpiGrid}>
               <KpiTile
                 label={t("vet.dashboard.kpiFarms")}
@@ -261,6 +273,19 @@ export function VetDashboardScreen() {
                 accent="#DB2777"
               />
             </View>
+            )}
+
+            {(financeQ.data?.pendingEarnings ?? 0) > 0 ? (
+              <View style={styles.earningsCard}>
+                <Text style={styles.earningsLabel}>
+                  {t("vet.dashboard.pendingEarnings")}
+                </Text>
+                <Text style={styles.earningsValue}>
+                  {Math.round(financeQ.data!.pendingEarnings).toLocaleString("fr-FR")}{" "}
+                  {financeQ.data!.currency}
+                </Text>
+              </View>
+            ) : null}
 
             {primaryFarm && clientFeatures.tasks && accessToken ? (
               <>
@@ -302,11 +327,15 @@ export function VetDashboardScreen() {
             <Text style={[styles.sectionTitle, styles.sectionGap]}>
               {t("vet.dashboard.activityTitle")}
             </Text>
+            {dashQ.isPending && !dashQ.data ? (
+              <ListSkeleton count={3} />
+            ) : (
             <EventList
               data={events}
               layout="embedded"
               emptyMessage={t("vet.dashboard.activityEmpty")}
             />
+            )}
 
             <Text style={[styles.sectionTitle, styles.sectionGap]}>
               {t("vet.dashboard.quickActions")}
@@ -329,7 +358,7 @@ export function VetDashboardScreen() {
           </>
         )}
       </ScrollView>
-      <VetProfileModal visible={profileOpen} onClose={() => setProfileOpen(false)} />
+      <VetAccountModal visible={profileOpen} onClose={() => setProfileOpen(false)} />
     </VetMobileShell>
   );
 }
@@ -387,6 +416,11 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.sm,
     backgroundColor: vetColors.canvas,
     gap: mobileSpacing.sm
+  },
+  heroActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.xs
   },
   heroIconBtn: {
     width: 44,
@@ -498,5 +532,23 @@ const styles = StyleSheet.create({
     backgroundColor: vetColors.cardBg
   },
   quickBtnTx: { fontWeight: "700", color: vetColors.primary, fontSize: 15 },
-  quickBtnTxPrimary: { color: "#fff" }
+  quickBtnTxPrimary: { color: "#fff" },
+  earningsCard: {
+    marginTop: mobileSpacing.md,
+    backgroundColor: vetColors.kpiGreen,
+    borderRadius: 12,
+    padding: mobileSpacing.lg,
+    gap: 4
+  },
+  earningsLabel: {
+    ...mobileTypography.meta,
+    color: "#2E7D32",
+    fontWeight: "600"
+  },
+  earningsValue: {
+    ...mobileTypography.title,
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#166534"
+  }
 });

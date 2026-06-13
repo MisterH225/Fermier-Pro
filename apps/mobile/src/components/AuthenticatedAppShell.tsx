@@ -7,6 +7,7 @@ import {
   View
 } from "react-native";
 import { useSession } from "../context/SessionContext";
+import { ActiveProjectProvider } from "../context/ActiveProjectContext";
 import {
   asyncStoragePersister,
   shouldPersistQuery
@@ -21,6 +22,7 @@ import {
   getProducerOnboardingState,
   shouldShowOnboardingScreen
 } from "../lib/onboardingState";
+import { AppErrorBoundary } from "./AppErrorBoundary";
 import { MainNavigationShell } from "./MainNavigationShell";
 import { useCGUStatus } from "../hooks/useCGUStatus";
 import { CGUScreen } from "../screens/onboarding/CGUScreen";
@@ -28,6 +30,10 @@ import { FirstConnectionProfileScreen } from "../screens/FirstConnectionProfileS
 import { OnboardingScreen } from "../screens/onboarding/OnboardingScreen";
 import { VetOnboardingScreen } from "../screens/onboarding/vet/VetOnboardingScreen";
 import { needsVetOnboarding } from "../lib/vetOnboardingState";
+import { TechOnboardingScreen } from "../screens/onboarding/technician/TechOnboardingScreen";
+import { BuyerOnboardingScreen } from "../screens/onboarding/buyer/BuyerOnboardingScreen";
+import { needsTechOnboarding } from "../lib/techOnboardingState";
+import { needsBuyerOnboarding } from "../lib/buyerOnboardingState";
 
 /**
  * Après SessionProvider : onboarding profil si aucun profil API, sinon navigation principale.
@@ -91,6 +97,32 @@ function AuthenticatedAppShellInner() {
     );
   }
 
+  if (needsTechOnboarding(authMe, activeProfileId)) {
+    return (
+      <TechOnboardingScreen
+        onFinished={() => {
+          void refreshAuthMe();
+        }}
+        onCancel={() => {
+          void refreshAuthMe();
+        }}
+      />
+    );
+  }
+
+  if (needsBuyerOnboarding(authMe, activeProfileId)) {
+    return (
+      <BuyerOnboardingScreen
+        onFinished={() => {
+          void refreshAuthMe();
+        }}
+        onCancel={() => {
+          void refreshAuthMe();
+        }}
+      />
+    );
+  }
+
   const onboardingState = getProducerOnboardingState(authMe, activeProfileId);
   if (authMe && shouldShowOnboardingScreen(onboardingState, resumeActive)) {
     return (
@@ -102,7 +134,11 @@ function AuthenticatedAppShellInner() {
     );
   }
 
-  return <MainNavigationShell />;
+  return (
+    <AppErrorBoundary>
+      <MainNavigationShell />
+    </AppErrorBoundary>
+  );
 }
 
 const queryPersistOptions = {
@@ -122,8 +158,10 @@ export function AuthenticatedAppShell() {
       >
         <OfflineSyncProvider>
           <ModalProvider>
-            <AuthenticatedAppShellInner />
-            <AppModalsLayer />
+            <ActiveProjectProvider>
+              <AuthenticatedAppShellInner />
+              <AppModalsLayer />
+            </ActiveProjectProvider>
           </ModalProvider>
         </OfflineSyncProvider>
       </PersistQueryClientProvider>

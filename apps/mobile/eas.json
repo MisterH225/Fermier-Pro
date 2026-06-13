@@ -1,16 +1,66 @@
 {
   "cli": {
-    "version": ">= 16.0.0",
-    "appVersionSource": "remote"
+    "version": ">= 16.17.4",
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "APP_ENV": "development"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "channel": "preview",
+      "distribution": "internal",
+      "env": {
+        "APP_ENV": "preview",
+        "EXPO_PUBLIC_API_URL": "https://fermierapi-production.up.railway.app",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://rwtrebeujkacbwwpuwpz.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3dHJlYmV1amthY2J3d3B1d3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NjA1MTcsImV4cCI6MjA5MzMzNjUxN30.mGW50cpaKrqTyS1-N5Vb7S_iaHWZ5kslRaHikWlCp54",
+        "EXPO_PUBLIC_EAS_PROJECT_ID": "ebb8a3e5-e17a-4a66-ae0a-f7624ab6c12a",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "742075194736-0hcd73lku61a5t2vma7ggf6evtk8bqkl.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "742075194736-76b019pl2eu7k39ocp4lfnjlcqqhi227.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "742075194736-ukme83465m4g39r3s8ghoib7cusu1v1r.apps.googleusercontent.com"
+      },
+      "ios": {
+        "simulator": false,
+        "image": "latest"
+      },
+      "android": {
+        "buildType": "apk"
+      }
     },
-    "production": {}
+    "production": {
+      "channel": "production",
+      "autoIncrement": true,
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_API_URL": "https://fermierapi-production.up.railway.app",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://rwtrebeujkacbwwpuwpz.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3dHJlYmV1amthY2J3d3B1d3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NjA1MTcsImV4cCI6MjA5MzMzNjUxN30.mGW50cpaKrqTyS1-N5Vb7S_iaHWZ5kslRaHikWlCp54",
+        "EXPO_PUBLIC_EAS_PROJECT_ID": "ebb8a3e5-e17a-4a66-ae0a-f7624ab6c12a",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "742075194736-0hcd73lku61a5t2vma7ggf6evtk8bqkl.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "742075194736-76b019pl2eu7k39ocp4lfnjlcqqhi227.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "742075194736-ukme83465m4g39r3s8ghoib7cusu1v1r.apps.googleusercontent.com"
+      }
+    }
+  },
+  "submit": {
+    "preview": {
+      "ios": {
+        "appleId": "podcast.harold@gmail.com",
+        "ascAppId": "6775011670",
+        "appleTeamId": "W9YDMQML3G"
+      }
+    },
+    "production": {
+      "ios": {
+        "appleId": "podcast.harold@gmail.com",
+        "ascAppId": "6775011670",
+        "appleTeamId": "W9YDMQML3G"
+      }
+    }
   }
 }

@@ -1,16 +1,58 @@
 import type { Prisma } from "@prisma/client";
 import { formatTagCode } from "./animal-tag.helper";
-import type { AnimalTagPrefix } from "./animal-production-tags.service";
+
+export type AnimalTagPrefix = "Trui" | "Ver" | "Eng" | "Dem" | "All";
 
 const PREFIX_TO_COUNTER: Record<
   AnimalTagPrefix,
-  "lastTruiTagNumber" | "lastVerTagNumber" | "lastEngTagNumber" | "lastDemTagNumber"
+  | "lastTruiTagNumber"
+  | "lastVerTagNumber"
+  | "lastEngTagNumber"
+  | "lastDemTagNumber"
+  | "lastAllTagNumber"
 > = {
   Trui: "lastTruiTagNumber",
   Ver: "lastVerTagNumber",
   Eng: "lastEngTagNumber",
-  Dem: "lastDemTagNumber"
+  Dem: "lastDemTagNumber",
+  All: "lastAllTagNumber"
 };
+
+type FarmTagCounterClient = Pick<Prisma.TransactionClient, "farm">;
+
+/** Aperçu sans consommer de numéros (lecture seule des compteurs ferme). */
+export async function peekTagCodeRange(
+  client: FarmTagCounterClient,
+  farmId: string,
+  prefix: AnimalTagPrefix,
+  count: number
+): Promise<{ firstTagCode: string; lastTagCode: string; count: number }> {
+  if (count < 1) {
+    throw new Error("count must be >= 1");
+  }
+  const farm = await client.farm.findUnique({
+    where: { id: farmId },
+    select: {
+      lastTruiTagNumber: true,
+      lastVerTagNumber: true,
+      lastEngTagNumber: true,
+      lastDemTagNumber: true,
+      lastAllTagNumber: true
+    }
+  });
+  if (!farm) {
+    throw new Error("Farm not found");
+  }
+  const counterKey = PREFIX_TO_COUNTER[prefix];
+  const current = farm[counterKey];
+  const seqStart = current + 1;
+  const seqEnd = current + count;
+  return {
+    firstTagCode: formatTagCode(prefix, seqStart),
+    lastTagCode: formatTagCode(prefix, seqEnd),
+    count
+  };
+}
 
 /**
  * Allocation atomique de numéros de boucle (increment SQL) — safe en transaction
@@ -33,7 +75,8 @@ export async function allocateTagCodesInTransaction(
       lastTruiTagNumber: true,
       lastVerTagNumber: true,
       lastEngTagNumber: true,
-      lastDemTagNumber: true
+      lastDemTagNumber: true,
+      lastAllTagNumber: true
     }
   });
   const seqEnd = updated[counterKey];

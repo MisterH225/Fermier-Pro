@@ -36,6 +36,13 @@ import {
   ModerationScopeDto
 } from "./dto/admin-user-moderation.dto";
 import { SuperAdminGuard } from "./super-admin.guard";
+import { PigPriceIndexService } from "../market/pig-price-index.service";
+import { MarketplacePigPriceIndexService } from "../marketplace/pig-price-index.service";
+import { ResolveDeliveryDisputeDto } from "../marketplace/dto/resolve-delivery-dispute.dto";
+import { MarketplaceTransactionService } from "../marketplace/escrow/marketplace-transaction.service";
+import { ListingsService } from "../marketplace/listings.service";
+import { ReceiptService } from "../marketplace/receipts/receipt.service";
+import { VetAppointmentService } from "../vet-appointments/vet-appointment.service";
 
 @Controller("admin")
 @UseGuards(SupabaseJwtGuard, SuperAdminGuard)
@@ -43,7 +50,13 @@ export class AdminPlatformController {
   constructor(
     private readonly admin: AdminPlatformService,
     private readonly adminAi: AdminAiService,
-    private readonly moderation: AdminUserModerationService
+    private readonly moderation: AdminUserModerationService,
+    private readonly pigPriceIndex: PigPriceIndexService,
+    private readonly hybridPigPriceIndex: MarketplacePigPriceIndexService,
+    private readonly marketplaceTransactions: MarketplaceTransactionService,
+    private readonly listings: ListingsService,
+    private readonly receipts: ReceiptService,
+    private readonly vetAppointments: VetAppointmentService
   ) {}
 
   @Get("me")
@@ -275,6 +288,11 @@ export class AdminPlatformController {
     return this.admin.listSuperAdmins();
   }
 
+  @Get("ai/status")
+  aiStatus() {
+    return this.adminAi.getStatus();
+  }
+
   @Post("ai/epidemic-analysis")
   aiEpidemic(@Body() dto: AdminAiLocaleDto) {
     return this.adminAi.epidemicAnalysis(dto.locale ?? "fr");
@@ -288,5 +306,165 @@ export class AdminPlatformController {
   @Post("ai/vet-assist/:id")
   aiVetAssist(@Param("id") id: string, @Body() dto: AdminAiLocaleDto) {
     return this.adminAi.vetAssist(id, dto.locale ?? "fr");
+  }
+
+  @Get("pig-price-index")
+  adminPigPriceChart(
+    @Query("period") period?: string,
+    @Query("category") category?: string
+  ) {
+    return this.pigPriceIndex.getChart(period, category);
+  }
+
+  @Get("pig-price-index/stats")
+  adminPigPriceStats(@Query("period") period?: string) {
+    return this.pigPriceIndex.getStats(period);
+  }
+
+  @Get("pig-price-index/ticker")
+  adminPigPriceTicker() {
+    return this.pigPriceIndex.getTicker();
+  }
+
+  @Get("pig-price-index/hybrid")
+  async adminHybridIndex() {
+    const [current, snapshots, flagged, contributors] = await Promise.all([
+      this.hybridPigPriceIndex.getPublicIndex(),
+      this.hybridPigPriceIndex.getSnapshots(30),
+      this.hybridPigPriceIndex.getFlaggedListings(50),
+      this.hybridPigPriceIndex.getTopContributors(10)
+    ]);
+    const latestSnapshot = snapshots[0] ?? null;
+    return {
+      current,
+      isFrozen: latestSnapshot?.isFrozen ?? false,
+      freezeReason: latestSnapshot?.freezeReason ?? null,
+      snapshots: snapshots.map((s) => ({
+        id: s.id,
+        calculatedAt: s.calculatedAt.toISOString(),
+        indexValue: Number(s.indexValue),
+        confirmedCount: s.confirmedCount,
+        listingCount: s.listingCount,
+        totalWeightKg: Number(s.totalWeightKg),
+        isFrozen: s.isFrozen,
+        freezeReason: s.freezeReason
+      })),
+      flaggedListings: flagged.map((f) => ({
+        id: f.id,
+        listingId: f.listingId,
+        sellerUserId: f.sellerUserId,
+        pricePerKg: Number(f.pricePerKg),
+        deviationPct: Number(f.deviationPct),
+        flaggedAt: f.flaggedAt.toISOString()
+      })),
+      topContributors: contributors
+    };
+  }
+
+  @Post("pig-price-index/hybrid/unfreeze")
+  adminUnfreezeHybridIndex() {
+    return this.hybridPigPriceIndex.unfreezeIndex();
+  }
+
+  @Post("pig-price-index/hybrid/recalculate")
+  adminRecalculateHybridIndex() {
+    return this.hybridPigPriceIndex.calculateHybridIndex();
+  }
+
+  @Get("marketplace/overview")
+  adminMarketplaceOverview() {
+    return this.marketplaceTransactions.getOverviewForAdmin();
+  }
+
+  @Get("marketplace/listings")
+  adminListListings(@Query("status") status?: string) {
+    return this.marketplaceTransactions.listListingsForAdmin(status);
+  }
+
+  @Get("marketplace/listings/:id")
+  adminGetListing(@Param("id") id: string) {
+    return this.listings.getForAdmin(id);
+  }
+
+  @Get("marketplace/transactions")
+  adminListTransactions(@Query("status") status?: string) {
+    return this.marketplaceTransactions.listForAdmin(status);
+  }
+
+  @Get("marketplace/disputes")
+  adminListDisputes() {
+    return this.marketplaceTransactions.listDisputesForAdmin();
+  }
+
+  @Patch("marketplace/disputes/:id/resolve")
+  adminResolveDeliveryDispute(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() body: ResolveDeliveryDisputeDto
+  ) {
+    return this.marketplaceTransactions.resolveDeliveryDispute(admin.id, id, body);
+  }
+
+  @Post("marketplace/transactions/:id/arbitrate")
+  adminArbitrateWeight(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() body: { arbitrationWeightKg: number }
+  ) {
+    return this.marketplaceTransactions.arbitrateWeight(
+      admin.id,
+      id,
+      body.arbitrationWeightKg
+    );
+  }
+
+  @Get("marketplace/revenue")
+  adminPlatformRevenue(@Query("period") period?: string) {
+    return this.marketplaceTransactions.getPlatformRevenueAdmin(period);
+  }
+
+  @Get("marketplace/receipts")
+  adminListReceipts(
+    @Query("status") status?: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string
+  ) {
+    const statusParsed =
+      status === "pending" || status === "generated" || status === "failed"
+        ? status
+        : undefined;
+    return this.receipts.listForAdmin({
+      status: statusParsed,
+      from: from ? new Date(from) : undefined,
+      to: to ? new Date(to) : undefined
+    });
+  }
+
+  @Post("marketplace/receipts/regenerate/:transactionId")
+  adminRegenerateReceipt(@Param("transactionId") transactionId: string) {
+    return this.receipts.generateReceipt(transactionId, { force: true });
+  }
+
+  @Get("marketplace/receipts/:receiptId/download")
+  adminDownloadReceipt(@Param("receiptId") receiptId: string) {
+    return this.receipts.adminDownload(receiptId);
+  }
+
+  @Get("vet-appointments")
+  adminListVetAppointments(@Query("status") status?: string) {
+    return this.vetAppointments.listForAdmin(status);
+  }
+
+  @Post("vet-appointments/:id/refund")
+  adminRefundVetAppointment(
+    @Param("id") id: string,
+    @Body() body: { amount?: number }
+  ) {
+    return this.vetAppointments.adminManualRefund(id, body.amount);
+  }
+
+  @Get("vet-appointments/revenue")
+  adminVetAppointmentRevenue(@Query("period") period?: string) {
+    return this.vetAppointments.getAdminRevenue(period);
   }
 }

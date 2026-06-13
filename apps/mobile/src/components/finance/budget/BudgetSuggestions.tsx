@@ -9,7 +9,7 @@ import {
   mobileTypography
 } from "../../../theme/mobileTheme";
 import { useOfflineMutation } from "../../../hooks/useOfflineMutation";
-import { BUDGET_INVALIDATE_ROOTS } from "../../../lib/offline/budgetOffline";
+import { BUDGET_INVALIDATE_ROOTS } from "../../../lib/finance/financeQueryKeys";
 
 type Props = {
   farmId: string;
@@ -75,7 +75,7 @@ export function BudgetSuggestions({
               disabled={patchMut.isPending}
             >
               {patchMut.isPending ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={mobileColors.onAccent} />
               ) : (
                 <Text style={styles.applyTx}>{t("budgetScreen.suggestionApply")}</Text>
               )}
@@ -119,6 +119,6 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.surfaceMuted
   },
   apply: { backgroundColor: mobileColors.accent },
-  applyTx: { ...mobileTypography.meta, color: "#fff", fontWeight: "600" },
+  applyTx: { ...mobileTypography.meta, color: mobileColors.onAccent, fontWeight: "600" },
   btnTx: { ...mobileTypography.meta, color: mobileColors.textPrimary }
 });

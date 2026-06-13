@@ -118,16 +118,37 @@ export class AdminUserModerationService {
     });
   }
 
-  private async notifyUser(
-    userId: string,
-    title: string,
-    body: string,
-    enabled: boolean | undefined
-  ) {
-    if (enabled === false) {
-      return;
+  /**
+   * Notifie l'utilisateur d'une action de modération :
+   *  - crée **toujours** un `AdminMessage` (visible in-app, indépendant du push),
+   *  - envoie un push uniquement si `notify !== false`.
+   *
+   * `notify = false` signifie « ne pas envoyer de push », pas « ne rien faire ».
+   * L'historique in-app doit rester complet même quand l'admin coche
+   * « ne pas notifier ».
+   */
+  private async notifyUser(input: {
+    adminUserId: string;
+    userId: string;
+    title: string;
+    body: string;
+    type?: AdminMessageType;
+    notify: boolean | undefined;
+  }) {
+    await this.prisma.adminMessage.create({
+      data: {
+        adminUserId: input.adminUserId,
+        recipientUserId: input.userId,
+        subject: input.title,
+        message: input.body,
+        type: input.type ?? AdminMessageType.notification
+      }
+    });
+    if (input.notify !== false) {
+      await this.push.sendToUser(input.userId, input.title, input.body, {
+        type: "admin_moderation"
+      });
     }
-    await this.push.sendToUser(userId, title, body, { type: "admin_moderation" });
   }
 
   private async getUserOrThrow(userId: string) {
@@ -172,12 +193,14 @@ export class AdminUserModerationService {
         reason,
         metadata: { scope: dto.scope, duration: dto.duration, until: until?.toISOString() ?? null }
       });
-      await this.notifyUser(
+      await this.notifyUser({
+        adminUserId: adminId,
         userId,
-        "Compte suspendu",
-        reason.slice(0, 180),
-        dto.notifyUser
-      );
+        title: "Compte suspendu",
+        body: reason.slice(0, 500),
+        type: AdminMessageType.warning,
+        notify: dto.notifyUser
+      });
       return { ok: true };
     }
 
@@ -214,12 +237,14 @@ export class AdminUserModerationService {
       reason,
       metadata: { scope: dto.scope, duration: dto.duration, until: until?.toISOString() ?? null }
     });
-    await this.notifyUser(
+    await this.notifyUser({
+      adminUserId: adminId,
       userId,
-      "Profil suspendu",
-      reason.slice(0, 180),
-      dto.notifyUser
-    );
+      title: "Profil suspendu",
+      body: reason.slice(0, 500),
+      type: AdminMessageType.warning,
+      notify: dto.notifyUser
+    });
     return { ok: true, profileId: profile.id };
   }
 
@@ -252,12 +277,16 @@ export class AdminUserModerationService {
         action: AdminAuditAction.unsuspend,
         reason: dto.note ?? null
       });
-      await this.notifyUser(
+      await this.notifyUser({
+        adminUserId: adminId,
         userId,
-        "Compte réactivé",
-        "Votre compte a été réactivé.",
-        dto.notifyUser
-      );
+        title: "Compte réactivé",
+        body: dto.note?.trim()
+          ? `Votre compte a été réactivé. ${dto.note}`
+          : "Votre compte a été réactivé.",
+        type: AdminMessageType.info,
+        notify: dto.notifyUser
+      });
       return { ok: true };
     }
 
@@ -293,12 +322,14 @@ export class AdminUserModerationService {
       action: AdminAuditAction.unsuspend,
       reason: dto.note ?? null
     });
-    await this.notifyUser(
+    await this.notifyUser({
+      adminUserId: adminId,
       userId,
-      "Profil réactivé",
-      "Votre profil a été réactivé.",
-      dto.notifyUser
-    );
+      title: "Profil réactivé",
+      body: "Votre profil a été réactivé.",
+      type: AdminMessageType.info,
+      notify: dto.notifyUser
+    });
     return { ok: true };
   }
 
@@ -334,12 +365,14 @@ export class AdminUserModerationService {
         action: AdminAuditAction.ban,
         reason
       });
-      await this.notifyUser(
+      await this.notifyUser({
+        adminUserId: adminId,
         userId,
-        "Compte désactivé",
-        reason.slice(0, 180),
-        dto.notifyUser
-      );
+        title: "Compte désactivé",
+        body: reason.slice(0, 500),
+        type: AdminMessageType.warning,
+        notify: dto.notifyUser
+      });
       return { ok: true };
     }
 
@@ -375,12 +408,14 @@ export class AdminUserModerationService {
       action: AdminAuditAction.ban,
       reason
     });
-    await this.notifyUser(
+    await this.notifyUser({
+      adminUserId: adminId,
       userId,
-      "Profil désactivé",
-      reason.slice(0, 180),
-      dto.notifyUser
-    );
+      title: "Profil désactivé",
+      body: reason.slice(0, 500),
+      type: AdminMessageType.warning,
+      notify: dto.notifyUser
+    });
     return { ok: true };
   }
 
@@ -412,12 +447,16 @@ export class AdminUserModerationService {
         action: AdminAuditAction.unban,
         reason: dto.note ?? null
       });
-      await this.notifyUser(
+      await this.notifyUser({
+        adminUserId: adminId,
         userId,
-        "Compte réactivé",
-        "Votre compte a été réactivé.",
-        dto.notifyUser
-      );
+        title: "Compte réactivé",
+        body: dto.note?.trim()
+          ? `Votre compte a été réactivé. ${dto.note}`
+          : "Votre compte a été réactivé.",
+        type: AdminMessageType.info,
+        notify: dto.notifyUser
+      });
       return { ok: true };
     }
 
@@ -447,6 +486,16 @@ export class AdminUserModerationService {
       action: AdminAuditAction.unban,
       reason: dto.note ?? null
     });
+    await this.notifyUser({
+      adminUserId: adminId,
+      userId,
+      title: "Profil réactivé",
+      body: dto.note?.trim()
+        ? `Votre profil a été réactivé. ${dto.note}`
+        : "Votre profil a été réactivé.",
+      type: AdminMessageType.info,
+      notify: dto.notifyUser
+    });
     return { ok: true };
   }
 
@@ -469,12 +518,14 @@ export class AdminUserModerationService {
       reason: dto.reason
     });
     if (dto.notifyUser !== false) {
-      await this.notifyUser(
+      await this.notifyUser({
+        adminUserId: adminId,
         userId,
-        "Profil vétérinaire supprimé",
-        dto.reason.slice(0, 180),
-        true
-      );
+        title: "Profil vétérinaire supprimé",
+        body: dto.reason.slice(0, 500),
+        type: AdminMessageType.warning,
+        notify: true
+      });
     }
     return { ok: true };
   }
@@ -497,12 +548,14 @@ export class AdminUserModerationService {
       reason: dto.reason
     });
     if (dto.notifyUser !== false) {
-      await this.notifyUser(
+      await this.notifyUser({
+        adminUserId: adminId,
         userId,
-        "Profil producteur supprimé",
-        dto.reason.slice(0, 180),
-        true
-      );
+        title: "Profil producteur supprimé",
+        body: dto.reason.slice(0, 500),
+        type: AdminMessageType.warning,
+        notify: true
+      });
     }
     return { ok: true };
   }
@@ -510,12 +563,14 @@ export class AdminUserModerationService {
   async deleteAccount(adminId: string, userId: string, dto: DeleteAccountAdminDto) {
     const user = await this.getUserOrThrow(userId);
     if (dto.notifyUser !== false) {
-      await this.notifyUser(
+      await this.notifyUser({
+        adminUserId: adminId,
         userId,
-        "Suppression de compte",
-        dto.reason.slice(0, 180),
-        true
-      );
+        title: "Suppression de compte",
+        body: dto.reason.slice(0, 500),
+        type: AdminMessageType.warning,
+        notify: true
+      });
     }
     await this.logAction({
       adminUserId: adminId,
@@ -548,12 +603,14 @@ export class AdminUserModerationService {
       reason: dto.motive,
       metadata: { warningLevel: dto.warningLevel, messageId: row.id }
     });
-    await this.notifyUser(
-      userId,
-      "Avertissement",
-      dto.message.slice(0, 180),
-      dto.notifyUser
-    );
+    if (dto.notifyUser !== false) {
+      await this.push.sendToUser(
+        userId,
+        "Avertissement",
+        dto.message.slice(0, 180),
+        { type: "admin_message", messageId: row.id }
+      );
+    }
     return { ok: true, messageId: row.id };
   }
 
@@ -688,6 +745,17 @@ export class AdminUserModerationService {
         data: { isRead: true, readAt: new Date() }
       });
     }
+    return { ok: true };
+  }
+
+  async deleteMessageForRecipient(recipientId: string, messageId: string) {
+    const row = await this.prisma.adminMessage.findFirst({
+      where: { id: messageId, recipientUserId: recipientId }
+    });
+    if (!row) {
+      throw new NotFoundException("Message introuvable");
+    }
+    await this.prisma.adminMessage.delete({ where: { id: messageId } });
     return { ok: true };
   }
 

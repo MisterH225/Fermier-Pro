@@ -1,0 +1,265 @@
+import type { NestExpressApplication } from "@nestjs/platform-express";
+import { AnimalSex, PrismaClient } from "@prisma/client";
+import request from "supertest";
+import { createTestApp } from "./helpers/create-test-app";
+import {
+  cleanupE2eFixtures,
+  seedE2eFixtures,
+  type E2ESeedResult
+} from "./helpers/e2e-seed";
+
+const hasDb = Boolean(process.env.DATABASE_URL?.trim());
+const hasJwt = Boolean(process.env.SUPABASE_JWT_SECRET?.trim());
+const describeOrSkip = hasDb && hasJwt ? describe : describe.skip;
+
+describeOrSkip("Marketplace vente à crédit escrow (e2e)", () => {
+  let app: NestExpressApplication;
+  let ctx: E2ESeedResult;
+  let listingId: string;
+  let offerId: string;
+  let transactionId: string;
+
+  beforeAll(async () => {
+    process.env.THROTTLE_LIMIT = "100000";
+    ctx = await seedE2eFixtures(PrismaClient);
+    app = await createTestApp();
+
+    const species = await ctx.prisma.species.findUniqueOrThrow({
+      where: { code: "porcin" }
+    });
+    const animal = await ctx.prisma.animal.create({
+      data: {
+        farmId: ctx.farmId,
+        speciesId: species.id,
+        sex: AnimalSex.unknown,
+        status: "active"
+      }
+    });
+
+    const listingRes = await request(app.getHttpServer())
+      .post("/api/v1/marketplace/listings")
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({
+        title: "E2E charcutier crédit escrow",
+        farmId: ctx.farmId,
+        animalId: animal.id,
+        category: "butcher",
+        totalPrice: 100_000,
+        totalWeightKg: 80
+      });
+    listingId = listingRes.body.id;
+    await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/listings/${listingId}/publish`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({ durationDays: 14 });
+  });
+
+  afterAll(async () => {
+    if (app) await app.close();
+    if (ctx?.prisma) {
+      await ctx.prisma.marketplaceCreditArbitration.deleteMany({
+        where: { listing: { sellerUserId: ctx.userId } }
+      });
+      await ctx.prisma.marketplaceOffer.deleteMany({
+        where: { listing: { sellerUserId: ctx.userId } }
+      });
+      await cleanupE2eFixtures(ctx.prisma, {
+        farmId: ctx.farmId,
+        userId: ctx.userId,
+        peerUserId: ctx.peerUserId
+      });
+    }
+  });
+
+  it("refuse crédit sur porcelet", async () => {
+    const pigletAnimal = await ctx.prisma.animal.create({
+      data: {
+        farmId: ctx.farmId,
+        speciesId: (
+          await ctx.prisma.species.findUniqueOrThrow({ where: { code: "porcin" } })
+        ).id,
+        sex: AnimalSex.unknown,
+        status: "active"
+      }
+    });
+    const piglet = await request(app.getHttpServer())
+      .post("/api/v1/marketplace/listings")
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({
+        title: "Porcelet",
+        farmId: ctx.farmId,
+        animalId: pigletAnimal.id,
+        category: "piglet",
+        totalPrice: 50_000
+      });
+    await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/listings/${piglet.body.id}/publish`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({ durationDays: 14 });
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/listings/${piglet.body.id}/offers/credit`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({
+        offeredPrice: 50_000,
+        advancePercentage: 30,
+        balanceDueDays: 7
+      });
+    expect(res.status).toBeGreaterThanOrEqual(400);
+  });
+
+  it("refuse crédit sans opt-in vendeur", async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/listings/${listingId}/offers/credit`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({
+        offeredPrice: 100_000,
+        advancePercentage: 30,
+        balanceDueDays: 7
+      });
+    expect(res.status).toBeGreaterThanOrEqual(400);
+  });
+
+  it("active crédit sur annonce charcutier", async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/api/v1/marketplace/listings/${listingId}`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({ creditEnabled: true });
+    expect(res.status).toBe(200);
+    expect(res.body.creditEnabled).toBe(true);
+  });
+
+  it("accord crédit crée transaction escrow avance", async () => {
+    const create = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/listings/${listingId}/offers/credit`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({
+        offeredPrice: 100_000,
+        advancePercentage: 30,
+        balanceDueDays: 7,
+        message: "Revendeur E2E escrow"
+      });
+    expect([200, 201]).toContain(create.status);
+    offerId = create.body.id;
+
+    const agree = await request(app.getHttpServer())
+      .patch(
+        `/api/v1/marketplace/listings/${listingId}/offers/${offerId}/agree-credit`
+      )
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId);
+    expect(agree.status).toBe(200);
+    expect(agree.body.status).toBe("credit_agreed");
+    expect(agree.body.transactionId).toBeTruthy();
+    transactionId = agree.body.transactionId;
+
+    const tx = await request(app.getHttpServer())
+      .get(`/api/v1/marketplace/transactions/${transactionId}`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(tx.body.status).toBe("PAYMENT_PENDING");
+    expect(tx.body.isCredit).toBe(true);
+    expect(Number(tx.body.blockedAmount)).toBe(30_000);
+  });
+
+  it("refuse déclaration avance hors escrow", async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/api/v1/marketplace/offers/${offerId}/confirm-advance-paid`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ paymentMode: "Espèces" });
+    expect(res.status).toBeGreaterThanOrEqual(400);
+  });
+
+  it("avance payée via escrow puis livraison et solde recalculé", async () => {
+    const init = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${transactionId}/payment/initiate`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(init.status).toBe(201);
+    const pay = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${transactionId}/payment/confirm`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ providerRef: init.body.providerRef });
+    expect(pay.status).toBe(201);
+    expect(pay.body.status).toBe("PAYMENT_HELD");
+
+    const offerAfterPay = await ctx.prisma.marketplaceOffer.findUniqueOrThrow({
+      where: { id: offerId }
+    });
+    expect(offerAfterPay.status).toBe("advance_confirmed");
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${transactionId}/pickup`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({
+        pickupDate: new Date().toISOString().slice(0, 10),
+        pickupLocation: "Ferme crédit E2E"
+      });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${transactionId}/pickup/confirm`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${transactionId}/weight/declare`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ realWeightKg: 80 });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${transactionId}/weight/validate`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${transactionId}/confirm-shipment`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({ shippedAt: new Date().toISOString().slice(0, 10) });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${transactionId}/confirm-receipt`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({
+        receivedAt: new Date().toISOString().slice(0, 10),
+        condition: "conform",
+        receivedAnimalIds: []
+      });
+
+    const offerBalanced = await ctx.prisma.marketplaceOffer.findUniqueOrThrow({
+      where: { id: offerId }
+    });
+    expect(offerBalanced.status).toBe("balance_pending");
+    expect(Number(offerBalanced.balanceAmount)).toBe(70_000);
+    expect(offerBalanced.balanceDueAt).toBeTruthy();
+  });
+
+  it("solde payé via escrow et clôture vendeur", async () => {
+    const initBal = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/offers/${offerId}/balance-payment/initiate`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(initBal.status).toBe(201);
+
+    const confirmBal = await request(app.getHttpServer())
+      .patch(`/api/v1/marketplace/offers/${offerId}/balance-payment/confirm`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ providerRef: initBal.body.providerRef });
+    expect(confirmBal.status).toBe(200);
+    expect(confirmBal.body.status).toBe("balance_declared");
+
+    const close = await request(app.getHttpServer())
+      .patch(`/api/v1/marketplace/offers/${offerId}/confirm-balance-received`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({ received: true });
+    expect(close.status).toBe(200);
+    expect(close.body.status).toBe("completed");
+
+    const txClosed = await ctx.prisma.marketplaceTransaction.findUniqueOrThrow({
+      where: { id: transactionId }
+    });
+    expect(txClosed.status).toBe("TRANSACTION_CLOSED");
+  });
+});

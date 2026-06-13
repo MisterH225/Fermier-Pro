@@ -79,13 +79,20 @@ export function ScheduleVisitModal({
     },
     onSuccess: async (res) => {
       await qc.invalidateQueries({ queryKey: ["vetDashboard"] });
+      await qc.invalidateQueries({ queryKey: ["vetAppointments"] });
       onClose();
+      const needsPayment = res.status === "AWAITING_PAYMENT";
       modal.open("success", {
         title: t("vet.schedule.successTitle"),
-        message: t("vet.schedule.successBody", {
-          farm: res.farmName,
-          date: new Date(res.scheduledAt).toLocaleString()
-        }),
+        message: needsPayment
+          ? t("vet.schedule.successBodyPayment", {
+              farm: res.farmName ?? "—",
+              date: new Date(res.scheduledAt).toLocaleString()
+            })
+          : t("vet.schedule.successBody", {
+              farm: res.farmName ?? "—",
+              date: new Date(res.scheduledAt).toLocaleString()
+            }),
         autoDismissMs: 3200
       });
     },

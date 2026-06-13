@@ -1,38 +1,35 @@
-import { Ionicons } from "@expo/vector-icons";
 import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
+  ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import {
   mobileColors,
   mobileRadius,
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import {
+  BaseModal as DesignBaseModal,
+  type BaseModalProps as DesignBaseModalProps
+} from "../modals/BaseModal";
 
 export type BaseModalProps = {
   visible: boolean;
   title: string;
   onClose: () => void;
-  /** Contenu scrollable */
   children: React.ReactNode;
-  /** Bouton confirmation (optionnel) */
   confirmLabel?: string;
   onConfirm?: () => void;
   confirmDisabled?: boolean;
   confirmLoading?: boolean;
-  /** Bouton destructif rouge (optionnel) */
   dangerLabel?: string;
   onDanger?: () => void;
 };
 
+/** Adaptateur collaboration → design system `modals/BaseModal`. */
 export function BaseModal({
   visible,
   title,
@@ -45,130 +42,54 @@ export function BaseModal({
   dangerLabel,
   onDanger
 }: BaseModalProps) {
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
-        <View style={styles.header}>
-          <Pressable
-            onPress={onClose}
-            hitSlop={14}
-            style={styles.closeBtn}
-            accessibilityRole="button"
-          >
-            <Ionicons
-              name="close"
-              size={24}
-              color={mobileColors.textSecondary}
-            />
-          </Pressable>
-          <Text style={styles.title} numberOfLines={1}>
-            {title}
-          </Text>
-          {confirmLabel && onConfirm ? (
-            <Pressable
-              onPress={onConfirm}
-              disabled={confirmDisabled || confirmLoading}
-              hitSlop={14}
-              accessibilityRole="button"
-            >
-              <Text
-                style={[
-                  styles.confirmTxt,
-                  (confirmDisabled || confirmLoading) && styles.confirmDisabled
-                ]}
-              >
-                {confirmLoading ? "…" : confirmLabel}
-              </Text>
-            </Pressable>
-          ) : (
-            <View style={styles.headerSpacer} />
-          )}
-        </View>
+  const footerPrimary =
+    confirmLabel && onConfirm ? (
+      <Pressable
+        onPress={onConfirm}
+        disabled={confirmDisabled || confirmLoading}
+        style={[
+          styles.primaryBtn,
+          (confirmDisabled || confirmLoading) && styles.primaryDisabled
+        ]}
+        accessibilityRole="button"
+      >
+        {confirmLoading ? (
+          <ActivityIndicator color={mobileColors.onAccent} />
+        ) : (
+          <Text style={styles.primaryTxt}>{confirmLabel}</Text>
+        )}
+      </Pressable>
+    ) : undefined;
 
-        <ScrollView
-          style={styles.flex}
-          contentContainerStyle={styles.scroll}
-          automaticallyAdjustKeyboardInsets
-          keyboardShouldPersistTaps="handled"
-        >
-          {children}
+  const destructiveAction =
+    dangerLabel && onDanger
+      ? { label: dangerLabel, onPress: onDanger }
+      : undefined;
 
-          {dangerLabel && onDanger ? (
-            <Pressable
-              onPress={onDanger}
-              style={styles.dangerBtn}
-              accessibilityRole="button"
-            >
-              <Text style={styles.dangerTxt}>{dangerLabel}</Text>
-            </Pressable>
-          ) : null}
-        </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </Modal>
-  );
+  const sheetProps: DesignBaseModalProps = {
+    visible,
+    onClose,
+    title,
+    children,
+    footerPrimary,
+    destructiveAction,
+    sheetMaxHeight: "92%"
+  };
+
+  return <DesignBaseModal {...sheetProps} />;
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: mobileColors.background
-  },
-  flex: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: mobileSpacing.lg,
-    paddingVertical: mobileSpacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: mobileColors.border
-  },
-  closeBtn: {
-    padding: 4
-  },
-  title: {
-    flex: 1,
-    ...mobileTypography.cardTitle,
-    color: mobileColors.textPrimary,
-    textAlign: "center",
-    marginHorizontal: mobileSpacing.sm
-  },
-  headerSpacer: {
-    width: 32
-  },
-  confirmTxt: {
-    ...mobileTypography.body,
-    color: mobileColors.accent,
-    fontWeight: "700"
-  },
-  confirmDisabled: {
-    opacity: 0.4
-  },
-  scroll: {
-    paddingHorizontal: mobileSpacing.lg,
-    paddingTop: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl
-  },
-  dangerBtn: {
-    marginTop: mobileSpacing.xl,
+  primaryBtn: {
+    backgroundColor: mobileColors.accent,
+    borderRadius: mobileRadius.pill,
     paddingVertical: mobileSpacing.md,
-    alignItems: "center",
-    borderRadius: mobileRadius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: mobileColors.error
+    alignItems: "center"
   },
-  dangerTxt: {
+  primaryDisabled: { opacity: 0.45 },
+  primaryTxt: {
     ...mobileTypography.body,
-    color: mobileColors.error,
-    fontWeight: "600"
+    color: mobileColors.onAccent,
+    fontWeight: "700"
   }
 });

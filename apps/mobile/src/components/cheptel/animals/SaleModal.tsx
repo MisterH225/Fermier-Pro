@@ -10,6 +10,7 @@ import {
   TextInput,
   View
 } from "react-native";
+import { AppDatePicker } from "../../common/AppDatePicker";
 import { BaseModal } from "../../modals/BaseModal";
 import { ModalSection } from "../../modals/ModalSection";
 import type { AnimalListItem, AnimalSaleResultDto } from "../../../lib/api";
@@ -211,6 +212,8 @@ export function SaleModal({
         onSuccess({} as SaleResult);
         return;
       }
+      void qc.invalidateQueries({ queryKey: ["farmCheptel", farmId] });
+      void qc.invalidateQueries({ queryKey: ["cheptelHistory", farmId] });
       onSuccess(result as SaleResult);
     },
     onQueued: () => {
@@ -250,7 +253,7 @@ export function SaleModal({
             onPress={() => saveMut.mutate()}
           >
             {saveMut.isPending ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={mobileColors.onAccent} />
             ) : (
               <Text style={styles.primaryBtnText}>
                 {t("cheptel.animals.sale.confirm")}
@@ -293,11 +296,12 @@ export function SaleModal({
           onChange={setBuyerName}
           placeholder={t("cheptel.animals.sale.buyerPlaceholder")}
         />
-        <Field
+        <AppDatePicker
           label={t("cheptel.animals.sale.soldAt")}
-          value={soldAt}
-          onChange={setSoldAt}
-          placeholder="YYYY-MM-DD"
+          isoValue={soldAt}
+          onIsoChange={setSoldAt}
+          farmId={farmId}
+          maxDate={new Date()}
         />
         <Field
           label={t("cheptel.animals.sale.notes")}
@@ -443,5 +447,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.5 },
-  primaryBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
 });

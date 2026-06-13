@@ -3,17 +3,61 @@
     "name": "Fermier Pro",
     "slug": "fermier-pro",
     "scheme": "fermier-pro",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#1a1a1a"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
+    "ios": {
+      "bundleIdentifier": "com.fermierpro.app",
+      "buildNumber": "14",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": ["fermier-pro"]
+          }
+        ]
+      }
+    },
+    "android": {
+      "package": "com.fermierpro.app",
+      "versionCode": 14,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1a1a1a"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "fermier-pro"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ebb8a3e5-e17a-4a66-ae0a-f7624ab6c12a",
+      "enabled": true,
+      "fallbackToCacheTimeout": 0
+    },
     "plugins": [
+      "expo-dev-client",
       "expo-web-browser",
       [
         "expo-notifications",
@@ -24,8 +68,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Autoriser l’accès à la photothèque pour choisir une photo de profil.",
-          "cameraPermission": "Autoriser l’accès à la caméra pour prendre une photo de profil."
+          "photosPermission": "Autoriser l'accès à la photothèque pour choisir une photo de profil.",
+          "cameraPermission": "Autoriser l'accès à la caméra pour prendre une photo de profil."
         }
       ],
       [
@@ -34,6 +78,13 @@
           "locationWhenInUsePermission": "Autoriser la localisation pour enregistrer la position de votre exploitation."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "ebb8a3e5-e17a-4a66-ae0a-f7624ab6c12a"
+      },
+      "lastOtaRelease": "2026-06-12-cheptel-nursing-kpi"
+    },
+    "owner": "misterh225"
   }
 }

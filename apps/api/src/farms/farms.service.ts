@@ -5,7 +5,7 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import type { Farm, User } from "@prisma/client";
-import { MembershipRole, Prisma } from "@prisma/client";
+import { FarmStatus, MembershipRole, Prisma } from "@prisma/client";
 import { AUDIT_ACTION } from "../common/audit.constants";
 import { AuditService } from "../common/audit.service";
 import { FarmAccessService } from "../common/farm-access.service";
@@ -15,6 +15,17 @@ import { PrismaService } from "../prisma/prisma.service";
 import { CreateFarmDto } from "./dto/create-farm.dto";
 import { UpdateFarmCheptelConfigDto } from "./dto/update-farm-cheptel-config.dto";
 import { TransferFarmOwnershipDto } from "./dto/transfer-farm-ownership.dto";
+import { ArchiveFarmDto } from "./dto/archive-farm.dto";
+import { FarmDeletionService } from "./farm-deletion.service";
+import { FarmMarketplaceLifecycleService } from "../marketplace/farm-marketplace-lifecycle.service";
+import { countCheptelHeadcountAt } from "./cheptel-headcount.util";
+import { mapBatchCategoryKey } from "../cheptel/batch-category.util";
+import { activeNursingLitterBatchIds, maintainLitterBatches } from "../gestation/litter-weaning.util";
+import { countPlacementOccupancy } from "../housing/placement-occupancy.util";
+import { repairOrphanMigrationDuplicateAnimals } from "../livestock/livestock-batch-headcount.helper";
+import { migrateOnboardingBatchesToIndividualAnimals } from "../onboarding/onboarding-pen-layout";
+
+const MAX_ACTIVE_FARMS_PER_USER = 3;
 
 @Injectable()
 export class FarmsService {
@@ -22,10 +33,21 @@ export class FarmsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly farmAccess: FarmAccessService,
-    private readonly invitations: InvitationsService
+    private readonly invitations: InvitationsService,
+    private readonly farmDeletion: FarmDeletionService,
+    private readonly marketplaceLifecycle: FarmMarketplaceLifecycleService
   ) {}
 
   async create(user: User, dto: CreateFarmDto): Promise<Farm> {
+    const activeFarmCount = await this.prisma.farm.count({
+      where: { ownerId: user.id, status: FarmStatus.active }
+    });
+    if (activeFarmCount >= MAX_ACTIVE_FARMS_PER_USER) {
+      throw new ForbiddenException(
+        `Limite de ${MAX_ACTIVE_FARMS_PER_USER} projets actifs atteinte. Archivez un projet pour en créer un nouveau.`
+      );
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const farm = await tx.farm.create({
         data: {
@@ -65,6 +87,14 @@ export class FarmsService {
       // demande `scan_request` que l'owner valide ensuite.
       await this.invitations.createDefaultInvitation(tx, farm.id, user.id);
 
+      // Si c'est le premier projet ou si l'utilisateur n'a pas de projet actif, on le définit comme actif
+      if (!user.activeFarmId) {
+        await tx.user.update({
+          where: { id: user.id },
+          data: { activeFarmId: farm.id }
+        });
+      }
+
       return farm;
     }).then(async (farm) => {
       await this.audit.record({
@@ -91,7 +121,27 @@ export class FarmsService {
     });
   }
 
-  async listForUser(user: User): Promise<Farm[]> {
+  async listForUser(
+    user: User,
+    options?: { includeArchived?: boolean }
+  ): Promise<Farm[]> {
+    const statusFilter = options?.includeArchived
+      ? undefined
+      : { status: FarmStatus.active };
+
+    return this.prisma.farm.findMany({
+      where: {
+        ...statusFilter,
+        OR: [
+          { ownerId: user.id },
+          { memberships: { some: { userId: user.id } } }
+        ]
+      },
+      orderBy: [{ displayOrder: "asc" }, { updatedAt: "desc" }]
+    });
+  }
+
+  async listAllForUser(user: User): Promise<Farm[]> {
     return this.prisma.farm.findMany({
       where: {
         OR: [
@@ -99,7 +149,7 @@ export class FarmsService {
           { memberships: { some: { userId: user.id } } }
         ]
       },
-      orderBy: { updatedAt: "desc" }
+      orderBy: [{ status: "asc" }, { displayOrder: "asc" }, { updatedAt: "desc" }]
     });
   }
 
@@ -312,6 +362,24 @@ export class FarmsService {
 
   async getCheptelOverview(user: User, farmId: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
+    await this.prisma.$transaction(async (tx) => {
+      const farmRow = await tx.farm.findUnique({
+        where: { id: farmId },
+        select: { speciesFocus: true }
+      });
+      const species = await tx.species.findFirst({
+        where: { code: farmRow?.speciesFocus ?? "porcin" }
+      });
+      if (species) {
+        await migrateOnboardingBatchesToIndividualAnimals(
+          tx,
+          farmId,
+          species.id,
+          user.id
+        );
+      }
+      await repairOrphanMigrationDuplicateAnimals(tx, farmId);
+    });
     const farm = await this.prisma.farm.findUnique({
       where: { id: farmId },
       select: {
@@ -327,6 +395,9 @@ export class FarmsService {
       throw new NotFoundException("Ferme introuvable");
     }
 
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    await maintainLitterBatches(this.prisma, farmId);
+
     const animals = await this.prisma.animal.findMany({
       where: { farmId },
       select: {
@@ -336,13 +407,15 @@ export class FarmsService {
         healthStatus: true,
         productionCategory: true,
         expectedFarrowingAt: true,
-        createdAt: true
+        createdAt: true,
+        livestockBatchId: true
       }
     });
 
     const batches = await this.prisma.livestockBatch.findMany({
       where: { farmId },
       select: {
+        id: true,
         headcount: true,
         status: true,
         closedAt: true,
@@ -369,10 +442,10 @@ export class FarmsService {
     ).length;
 
     const activeBatches = batches.filter((b) => b.status === "active");
-    const totalBatchHeadcount = activeBatches.reduce(
-      (s, b) => s + b.headcount,
-      0
-    );
+    const activeAnimals = animals.filter((a) => a.status === "active");
+    const animalsInBatchesCount = activeAnimals.filter(
+      (a) => a.livestockBatchId
+    ).length;
 
     const penCap = await this.prisma.pen.aggregate({
       where: { barn: { farmId } },
@@ -394,12 +467,16 @@ export class FarmsService {
     const activePlacements = await this.prisma.penPlacement.findMany({
       where: {
         endedAt: null,
-        pen: { barn: { farmId } }
+        pen: { barn: { farmId } },
+        OR: [
+          { animal: { is: { status: "active" } } },
+          { batch: { is: { status: "active" } } }
+        ]
       },
       select: {
         animalId: true,
-        batchId: true,
-        batch: { select: { headcount: true } }
+        animal: { select: { status: true } },
+        batch: { select: { headcount: true, status: true } }
       }
     });
 
@@ -412,19 +489,13 @@ export class FarmsService {
           where: { endedAt: null },
           select: {
             animalId: true,
-            batch: { select: { headcount: true } }
+            animal: { select: { status: true } },
+            batch: { select: { headcount: true, status: true } }
           }
         }
       }
     });
-    let penOccupancyHeadcount = 0;
-    for (const pl of activePlacements) {
-      if (pl.animalId) {
-        penOccupancyHeadcount += 1;
-      } else if (pl.batchId && pl.batch) {
-        penOccupancyHeadcount += pl.batch.headcount;
-      }
-    }
+    const penOccupancyHeadcount = countPlacementOccupancy(activePlacements);
 
     const occupancyRate =
       penCapacityTotal > 0
@@ -436,7 +507,6 @@ export class FarmsService {
 
     const barnCount = await this.prisma.barn.count({ where: { farmId } });
 
-    const activeAnimals = animals.filter((a) => a.status === "active");
     const placedAnimalIds = new Set(
       activePlacements
         .map((p) => p.animalId)
@@ -452,82 +522,105 @@ export class FarmsService {
       if (cap <= 0) {
         continue;
       }
-      let occ = 0;
-      for (const pl of pen.placements) {
-        if (pl.animalId) {
-          occ += 1;
-        } else if (pl.batch?.headcount) {
-          occ += pl.batch.headcount;
-        }
-      }
+      const occ = countPlacementOccupancy(pen.placements);
       if (occ < cap) {
         availablePensCount += 1;
       }
     }
 
     const categoryTotals: Record<string, number> = {
-      piglets: 0,
+      reproducteur_femelle: 0,
+      reproducteur_male: 0,
+      sous_mere: 0,
+      fattening: 0,
+      starter: 0,
       growth: 0,
-      finishing: 0,
-      breeders: 0,
       other: 0
     };
 
-    const mapBatchCategory = (key: string | null): keyof typeof categoryTotals => {
-      const k = (key ?? "").toLowerCase();
-      if (
-        k.includes("nursery") ||
-        k.includes("porcelet") ||
-        k.includes("demarrage") ||
-        k === "starter" ||
-        k === "start"
-      ) {
-        return "piglets";
-      }
-      if (k.includes("grow") || k.includes("croissance") || k === "grower") {
-        return "growth";
-      }
-      if (k.includes("finish") || k.includes("engrais") || k === "finisher") {
-        return "finishing";
-      }
-      if (k.includes("breed") || k.includes("reprod")) {
-        return "breeders";
-      }
-      return "other";
-    };
+    const now = new Date();
 
     const mapAnimalProductionCategory = (
       cat: string
     ): keyof typeof categoryTotals => {
       switch (cat) {
         case "breeding_female":
+          return "reproducteur_femelle";
         case "breeding_male":
-          return "breeders";
+          return "reproducteur_male";
         case "fattening":
-          return "finishing";
+          return "fattening";
         case "starter":
-          return "piglets";
+          return "starter";
+        case "nursing":
+          return "sous_mere";
         default:
           return "other";
       }
     };
 
-    for (const b of activeBatches) {
-      const slot = mapBatchCategory(b.categoryKey);
-      categoryTotals[slot] += b.headcount;
-    }
+    const nursingBatchIds = await activeNursingLitterBatchIds(
+      this.prisma,
+      farmId,
+      now
+    );
+
+    const isNursingAnimal = (a: {
+      livestockBatchId: string | null;
+      productionCategory: string;
+    }) =>
+      a.productionCategory === "nursing" ||
+      Boolean(
+        a.livestockBatchId && nursingBatchIds.has(a.livestockBatchId)
+      );
+
     for (const a of activeAnimals) {
-      categoryTotals[mapAnimalProductionCategory(a.productionCategory)] += 1;
+      if (isNursingAnimal(a)) {
+        categoryTotals.sous_mere += 1;
+      } else {
+        categoryTotals[mapAnimalProductionCategory(a.productionCategory)] += 1;
+      }
+    }
+
+    const batchIdsWithAnimals = new Set(
+      activeAnimals
+        .map((a) => a.livestockBatchId)
+        .filter((id): id is string => Boolean(id))
+    );
+    const batchHeadcountFor = (
+      slot: ReturnType<typeof mapBatchCategoryKey>
+    ) =>
+      activeBatches
+        .filter(
+          (b) =>
+            !batchIdsWithAnimals.has(b.id) &&
+            mapBatchCategoryKey(b.categoryKey) === slot
+        )
+        .reduce((sum, b) => sum + b.headcount, 0);
+
+    for (const b of activeBatches) {
+      if (batchIdsWithAnimals.has(b.id)) {
+        continue;
+      }
+      const slot = mapBatchCategoryKey(b.categoryKey);
+      categoryTotals[slot] += b.headcount;
     }
 
     const categoryBreakdown = (
-      ["piglets", "growth", "finishing", "breeders", "other"] as const
+      [
+        "reproducteur_femelle",
+        "reproducteur_male",
+        "sous_mere",
+        "fattening",
+        "starter",
+        "growth",
+        "other"
+      ] as const
     )
       .map((key) => ({ key, count: categoryTotals[key] }))
       .filter((row) => row.count > 0);
 
     const headcountTrend: { month: string; total: number }[] = [];
-    const now = new Date();
     for (let i = 11; i >= 0; i--) {
       const monthStart = new Date(
         Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1)
@@ -544,33 +637,28 @@ export class FarmsService {
         )
       );
       const monthKey = `${monthStart.getUTCFullYear()}-${String(monthStart.getUTCMonth() + 1).padStart(2, "0")}`;
-      const animalsToDate = animals.filter(
-        (a) => new Date(a.createdAt) <= monthEnd
-      ).length;
-      const batchHeadToDate = batches
-        .filter(
-          (b) =>
-            new Date(b.createdAt) <= monthEnd &&
-            (b.status === "active" || (b.closedAt && new Date(b.closedAt) > monthEnd))
-        )
-        .reduce((s, b) => s + b.headcount, 0);
       headcountTrend.push({
         month: monthKey,
-        total: animalsToDate + batchHeadToDate
+        total: countCheptelHeadcountAt(animals, batches, monthEnd)
       });
     }
 
-    const totalHeadcount = activeAnimals.length + totalBatchHeadcount;
+    const totalHeadcount = countCheptelHeadcountAt(animals, batches, now);
 
     const sickAnimalsCount = activeAnimals.filter(
       (a) => a.healthStatus === "sick"
     ).length;
-    const fatteningCount = activeAnimals.filter(
-      (a) => a.productionCategory === "fattening"
-    ).length;
-    const starterCount = activeAnimals.filter(
-      (a) => a.productionCategory === "starter"
-    ).length;
+    const fatteningCount =
+      activeAnimals.filter((a) => a.productionCategory === "fattening")
+        .length + batchHeadcountFor("fattening");
+    const starterCount =
+      activeAnimals.filter(
+        (a) =>
+          a.productionCategory === "starter" && !isNursingAnimal(a)
+      ).length + batchHeadcountFor("starter");
+    const nursingCount =
+      batchHeadcountFor("sous_mere") +
+      activeAnimals.filter((a) => isNursingAnimal(a)).length;
     const breedingFemalesCount = activeAnimals.filter(
       (a) => a.productionCategory === "breeding_female"
     ).length;
@@ -580,18 +668,19 @@ export class FarmsService {
         a.expectedFarrowingAt != null
     ).length;
 
-    const weekTrend = (
-      category: "fattening" | "starter"
-    ): number[] => {
+    const weekTrend = (category: "fattening" | "starter"): number[] => {
       const out: number[] = [];
       for (let w = 3; w >= 0; w -= 1) {
         const end = new Date(now);
         end.setUTCDate(end.getUTCDate() - w * 7);
         out.push(
-          activeAnimals.filter(
+          animals.filter(
             (a) =>
-              a.productionCategory === category &&
-              new Date(a.createdAt) <= end
+              a.status === "active" &&
+              new Date(a.createdAt) <= end &&
+              (category === "fattening"
+                ? a.productionCategory === "fattening"
+                : a.productionCategory === "starter")
           ).length
         );
       }
@@ -612,7 +701,7 @@ export class FarmsService {
         femaleAnimals,
         unknownSexAnimals,
         gestatingFemales,
-        totalBatchHeadcount,
+        totalBatchHeadcount: animalsInBatchesCount,
         activeBatchesCount: activeBatches.length,
         closedBatchesCount: batches.filter(
           (b) => b.closedAt != null || b.status !== "active"
@@ -626,6 +715,7 @@ export class FarmsService {
         sickAnimalsCount,
         fatteningCount,
         starterCount,
+        nursingCount,
         breedingFemalesCount,
         breedingFemalesGestating
       },
@@ -698,5 +788,219 @@ export class FarmsService {
         recorder: { select: { id: true, fullName: true, email: true } }
       }
     });
+  }
+
+  async archiveFarm(
+    user: User,
+    farmId: string,
+    dto: ArchiveFarmDto
+  ): Promise<Farm> {
+    const farm = await this.prisma.farm.findFirst({
+      where: { id: farmId }
+    });
+    if (!farm) {
+      throw new NotFoundException("Projet introuvable");
+    }
+    if (farm.ownerId !== user.id) {
+      throw new ForbiddenException("Seul le propriétaire peut archiver le projet");
+    }
+    if (farm.status === FarmStatus.archived) {
+      throw new BadRequestException("Ce projet est déjà archivé");
+    }
+
+    let archiveNotices: Awaited<
+      ReturnType<FarmMarketplaceLifecycleService["applyFarmArchived"]>
+    > = [];
+    const updated = await this.prisma.$transaction(async (tx) => {
+      archiveNotices = await this.marketplaceLifecycle.applyFarmArchived(
+        tx,
+        farmId,
+        farm.name
+      );
+      const result = await tx.farm.update({
+        where: { id: farmId },
+        data: {
+          status: FarmStatus.archived,
+          archivedAt: new Date()
+        }
+      });
+
+      if (user.activeFarmId === farmId) {
+        const nextActiveFarm = await tx.farm.findFirst({
+          where: {
+            ownerId: user.id,
+            status: FarmStatus.active,
+            id: { not: farmId }
+          },
+          orderBy: { createdAt: "asc" }
+        });
+        await tx.user.update({
+          where: { id: user.id },
+          data: { activeFarmId: nextActiveFarm?.id ?? null }
+        });
+      }
+
+      return result;
+    });
+
+    await this.audit.record({
+      actorUserId: user.id,
+      farmId,
+      action: AUDIT_ACTION.farmArchived,
+      resourceType: "Farm",
+      resourceId: farmId,
+      metadata: { reason: dto.reason ?? null }
+    });
+
+    this.marketplaceLifecycle.dispatchBuyerNotices(archiveNotices);
+
+    return updated;
+  }
+
+  async restoreFarm(user: User, farmId: string): Promise<Farm> {
+    const farm = await this.prisma.farm.findFirst({
+      where: { id: farmId }
+    });
+    if (!farm) {
+      throw new NotFoundException("Projet introuvable");
+    }
+    if (farm.ownerId !== user.id) {
+      throw new ForbiddenException("Seul le propriétaire peut restaurer le projet");
+    }
+    if (farm.status !== FarmStatus.archived) {
+      throw new BadRequestException("Ce projet n'est pas archivé");
+    }
+
+    const activeFarmCount = await this.prisma.farm.count({
+      where: { ownerId: user.id, status: FarmStatus.active }
+    });
+    if (activeFarmCount >= MAX_ACTIVE_FARMS_PER_USER) {
+      throw new ForbiddenException(
+        `Limite de ${MAX_ACTIVE_FARMS_PER_USER} projets actifs atteinte. Archivez un projet pour restaurer celui-ci.`
+      );
+    }
+
+    let restoreNotices: Awaited<
+      ReturnType<FarmMarketplaceLifecycleService["applyFarmRestored"]>
+    > = [];
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.farm.update({
+        where: { id: farmId },
+        data: {
+          status: FarmStatus.active,
+          archivedAt: null
+        }
+      });
+      restoreNotices = await this.marketplaceLifecycle.applyFarmRestored(
+        tx,
+        farmId,
+        farm.name
+      );
+      return result;
+    });
+
+    await this.audit.record({
+      actorUserId: user.id,
+      farmId,
+      action: AUDIT_ACTION.farmRestored,
+      resourceType: "Farm",
+      resourceId: farmId
+    });
+
+    this.marketplaceLifecycle.dispatchBuyerNotices(restoreNotices);
+
+    return updated;
+  }
+
+  async deleteFarm(user: User, farmId: string): Promise<{ ok: boolean }> {
+    const farm = await this.prisma.farm.findFirst({
+      where: { id: farmId }
+    });
+    if (!farm) {
+      throw new NotFoundException("Projet introuvable");
+    }
+    if (farm.ownerId !== user.id) {
+      throw new ForbiddenException("Seul le propriétaire peut supprimer le projet");
+    }
+
+    await this.audit.record({
+      actorUserId: user.id,
+      farmId,
+      action: AUDIT_ACTION.farmDeleted,
+      resourceType: "Farm",
+      resourceId: farmId,
+      metadata: { name: farm.name }
+    });
+
+    await this.farmDeletion.deleteFarm(farmId, user.id);
+
+    return { ok: true };
+  }
+
+  async setActiveFarm(user: User, farmId: string): Promise<{ activeFarmId: string }> {
+    const farm = await this.prisma.farm.findFirst({
+      where: { id: farmId }
+    });
+    if (!farm) {
+      throw new NotFoundException("Projet introuvable");
+    }
+
+    const hasAccess =
+      farm.ownerId === user.id ||
+      (await this.prisma.farmMembership.findFirst({
+        where: { farmId, userId: user.id }
+      }));
+    if (!hasAccess) {
+      throw new ForbiddenException("Vous n'avez pas accès à ce projet");
+    }
+
+    if (farm.status === FarmStatus.archived) {
+      throw new BadRequestException("Impossible d'activer un projet archivé");
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { activeFarmId: farmId }
+    });
+
+    return { activeFarmId: farmId };
+  }
+
+  async getActiveFarm(user: User): Promise<Farm | null> {
+    if (!user.activeFarmId) {
+      return null;
+    }
+    return this.prisma.farm.findFirst({
+      where: { id: user.activeFarmId, status: FarmStatus.active }
+    });
+  }
+
+  async getActiveOrFirstFarm(user: User): Promise<Farm | null> {
+    if (user.activeFarmId) {
+      const active = await this.prisma.farm.findFirst({
+        where: { id: user.activeFarmId, status: FarmStatus.active }
+      });
+      if (active) return active;
+    }
+
+    const firstActive = await this.prisma.farm.findFirst({
+      where: {
+        OR: [
+          { ownerId: user.id },
+          { memberships: { some: { userId: user.id } } }
+        ],
+        status: FarmStatus.active
+      },
+      orderBy: { createdAt: "asc" }
+    });
+
+    if (firstActive && !user.activeFarmId) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { activeFarmId: firstActive.id }
+      });
+    }
+
+    return firstActive;
   }
 }

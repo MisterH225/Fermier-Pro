@@ -4,25 +4,33 @@ import {
   type ClientFeatureFlags,
   FeatureFlagService
 } from "./feature-flags.service";
+import type { PlatformModulePublicDto } from "../feature-flags/platform-feature-flags.service";
+import {
+  PlatformSettingsService,
+  type SupportContactDto
+} from "../platform-settings/platform-settings.service";
 
-/** Configuration exposée au client (feature flags, sans données sensibles). */
 export type ClientConfigResponse = {
   features: ClientFeatureFlags;
+  modules: PlatformModulePublicDto[];
+  support: SupportContactDto;
 };
 
 @Controller("config")
 @SkipThrottle()
 export class ConfigClientController {
-  constructor(private readonly featureFlags: FeatureFlagService) {}
+  constructor(
+    private readonly featureFlags: FeatureFlagService,
+    private readonly platformSettings: PlatformSettingsService
+  ) {}
 
-  /**
-   * GET /api/v1/config/client — public (pas de JWT requis).
-   * Le mobile peut appeler avant connexion pour adapter menus / navigation.
-   */
   @Get("client")
-  getClient(): ClientConfigResponse {
-    return {
-      features: this.featureFlags.getClientFeatureFlags()
-    };
+  async getClient(): Promise<ClientConfigResponse> {
+    const [features, modules, support] = await Promise.all([
+      this.featureFlags.getClientFeatureFlags(),
+      this.featureFlags.getPlatformModules(),
+      this.platformSettings.getSupportContact()
+    ]);
+    return { features, modules, support };
   }
 }

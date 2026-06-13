@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   card: {
     width: "88%",
     maxWidth: 400,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: mobileColors.background,
     borderRadius: 28,
     padding: mobileSpacing.xl,
     alignItems: "center",
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#111111",
+    color: mobileColors.textPrimary,
     textAlign: "center",
     marginBottom: mobileSpacing.sm
   },
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnTx: {
-    color: "#FFFFFF",
+    color: mobileColors.onAccent,
     fontWeight: "700",
     fontSize: 16
   }

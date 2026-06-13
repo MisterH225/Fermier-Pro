@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState, useCallback, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useTranslation } from "react-i18next";
 import {
@@ -16,13 +16,19 @@ import {
   View
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
+import { FarmModuleAISection } from "../components/ai/FarmModuleAISection";
+import { HighlightWrapper } from "../components/common/HighlightWrapper";
 import { SmartChart, type SmartChartPeriod } from "../components/charts";
 import { CreateGestationModal } from "../components/shared/CreateGestationModal";
 import { GestationDetailModal } from "../components/gestation/GestationDetailModal";
 import { MiseBasModal } from "../components/gestation/MiseBasModal";
-import { FinanceKpiCard } from "../components/finance/FinanceKpiCard";
+import {
+  CheptelStyleKpiCard,
+  cheptelKpiGridStyles
+} from "../components/cheptel/overview/CheptelStyleKpiCard";
+import { SailliePlanningAI } from "../components/gestation/SailliePlanningAI";
 import { EventList, type EventItem } from "../components/lists";
+import { useModal } from "../components/modals/useModal";
 import { ScreenSection } from "../components/layout/ScreenSection";
 import { TabContent, TabSelector } from "../components/tabs";
 import { useSession } from "../context/SessionContext";
@@ -34,9 +40,12 @@ import {
   fetchGestations,
   type GestationListItemDto
 } from "../lib/api";
+import { useTechFarmPermissions } from "../hooks/useTechFarmPermissions";
+import { TechReadOnlyBanner } from "../components/technician/TechReadOnlyBanner";
 import type { RootStackParamList } from "../types/navigation";
 import {
   mobileColors,
+  mobileKpiPalette,
   mobileRadius,
   mobileShadows,
   mobileSpacing,
@@ -54,11 +63,20 @@ function urgencyEmoji(u?: string | null): string {
 }
 
 export function FarmGestationScreen({ route, navigation }: Props) {
-  const { farmId, farmName } = route.params;
+  const {
+    farmId,
+    farmName,
+    initialTab,
+    openGestationId,
+    autoOpenDetail,
+    tab: tabParam,
+    highlightSowId
+  } = route.params;
   const { accessToken, activeProfileId } = useSession();
   const { t } = useTranslation();
+  const modal = useModal();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<TabId>("overview");
+  const [tab, setTab] = useState<TabId>(initialTab ?? "overview");
   const [chartPeriod, setChartPeriod] = useState<SmartChartPeriod>("6M");
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -68,19 +86,70 @@ export function FarmGestationScreen({ route, navigation }: Props) {
   const [litterTarget, setLitterTarget] = useState<{
     id: string;
     label: string;
+    sowId: string;
+    sowPenId?: string | null;
   } | null>(null);
+  const [highlightSow, setHighlightSow] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!highlightSowId) {
+      setHighlightSow(null);
+      return;
+    }
+    setHighlightSow(highlightSowId);
+    const t = setTimeout(() => setHighlightSow(null), 2200);
+    return () => clearTimeout(t);
+  }, [highlightSowId]);
+
+  useEffect(() => {
+    if (tabParam === "planning") {
+      setTab("planning");
+    } else if (initialTab) {
+      setTab(initialTab);
+    }
+    if (openGestationId) {
+      if (autoOpenDetail) {
+        const open = setTimeout(() => setDetailId(openGestationId), 300);
+        return () => clearTimeout(open);
+      }
+      setTab("active");
+    }
+    return undefined;
+  }, [initialTab, openGestationId, autoOpenDetail, tabParam]);
+
+  const techPerms = useTechFarmPermissions(farmId, "gestation");
+  const readOnly = techPerms.readOnly;
 
   useScreenTitle(navigation, t("navigation.extended.gestation"), {
-    headerRight: () => (
-      <Pressable
-        onPress={() => setCreateOpen(true)}
-        accessibilityLabel={t("gestationScreen.createTitle")}
-        style={{ padding: 8 }}
-      >
-        <Ionicons name="add-circle-outline" size={26} color={mobileColors.accent} />
-      </Pressable>
-    )
+    headerRight:
+      readOnly
+        ? undefined
+        : () => (
+            <Pressable
+              onPress={() => setCreateOpen(true)}
+              accessibilityLabel={t("gestationScreen.createTitle")}
+              style={{ padding: 8 }}
+            >
+              <Ionicons name="add-circle-outline" size={26} color={mobileColors.accent} />
+            </Pressable>
+          )
   });
+
+  if (techPerms.isTech && techPerms.loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={mobileColors.accent} />
+      </View>
+    );
+  }
+
+  if (techPerms.isTech && !techPerms.canView) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.denied}>{t("tech.permissionDenied")}</Text>
+      </View>
+    );
+  }
 
   const enabled = Boolean(accessToken);
 
@@ -224,46 +293,52 @@ export function FarmGestationScreen({ route, navigation }: Props) {
       ) : (
         <>
           <ScreenSection plain>
-            <View style={styles.kpiGrid}>
-              <View style={styles.kpiHalf}>
-                <FinanceKpiCard
-                  title={t("gestationScreen.kpiActive")}
+            <View style={cheptelKpiGridStyles.grid}>
+              <View style={cheptelKpiGridStyles.half}>
+                <CheptelStyleKpiCard
+                  icon="🤰"
+                  bg={mobileKpiPalette.gestation.bg}
+                  accent={mobileKpiPalette.gestation.accent}
+                  label={t("gestationScreen.kpiActive")}
                   value={String(kpis?.activeGestations ?? 0)}
-                  deltaText={null}
-                  variant="orange"
                 />
               </View>
-              <View style={styles.kpiHalf}>
-                <FinanceKpiCard
-                  title={t("gestationScreen.kpiDue7")}
+              <View style={cheptelKpiGridStyles.half}>
+                <CheptelStyleKpiCard
+                  icon="⏰"
+                  bg={mobileKpiPalette.dueSoon.bg}
+                  accent={mobileKpiPalette.dueSoon.accent}
+                  label={t("gestationScreen.kpiDue7")}
                   value={String(kpis?.birthsDueIn7Days ?? 0)}
-                  deltaText={null}
-                  variant="blue"
                 />
               </View>
-              <View style={styles.kpiHalf}>
-                <FinanceKpiCard
-                  title={t("gestationScreen.kpiDueMonth")}
+              <View style={cheptelKpiGridStyles.half}>
+                <CheptelStyleKpiCard
+                  icon="📅"
+                  bg={mobileKpiPalette.dueMonth.bg}
+                  accent={mobileKpiPalette.dueMonth.accent}
+                  label={t("gestationScreen.kpiDueMonth")}
                   value={String(kpis?.birthsDueThisMonth ?? 0)}
-                  deltaText={null}
-                  variant="yellow"
                 />
               </View>
-              <View style={styles.kpiHalf}>
-                <FinanceKpiCard
-                  title={t("gestationScreen.kpiAvailable")}
+              <View style={cheptelKpiGridStyles.half}>
+                <CheptelStyleKpiCard
+                  icon="🐽"
+                  bg={mobileKpiPalette.available.bg}
+                  accent={mobileKpiPalette.available.accent}
+                  label={t("gestationScreen.kpiAvailable")}
                   value={String(kpis?.sowsAvailableForMating ?? 0)}
-                  deltaText={null}
-                  variant="green"
                 />
               </View>
             </View>
           </ScreenSection>
-          <ModuleAIInsights
+          <FarmModuleAISection
             farmId={farmId}
-            module="gestation"
+            farmName={farmName}
+            menu="gestation"
             accessToken={accessToken}
             activeProfileId={activeProfileId}
+            predictionTitle={t("predictions.sectionGestation")}
             hasMinimalData={(overviewQ.data?.kpis?.activeGestations ?? 0) > 0}
           />
           <ScreenSection title={t("gestationScreen.chartTitle")}>
@@ -326,7 +401,7 @@ export function FarmGestationScreen({ route, navigation }: Props) {
         activeFilterId={activeFilter}
         onFilterChange={setActiveFilter}
         onItemPress={(item) => setDetailId(item.id)}
-        onAddPress={() => setCreateOpen(true)}
+        onAddPress={readOnly ? undefined : () => setCreateOpen(true)}
         isLoading={activeQ.isPending}
         emptyMessage={t("gestationScreen.emptyActive")}
         refreshing={activeQ.isFetching}
@@ -337,19 +412,35 @@ export function FarmGestationScreen({ route, navigation }: Props) {
 
   const planningTab = (
     <>
+      {!readOnly ? (
+        <ScreenSection plain>
+          <SailliePlanningAI
+            farmId={farmId}
+            accessToken={accessToken!}
+            activeProfileId={activeProfileId}
+            onApplyRow={(sowId, boarId, date) => {
+              setCreateOpen(true);
+            }}
+          />
+        </ScreenSection>
+      ) : null}
       <ScreenSection title={t("gestationScreen.availableSows")}>
         {availableQ.isPending ? (
           <ActivityIndicator />
         ) : (
           (availableQ.data?.items ?? []).map((s) => (
-            <View key={s.sowId} style={styles.planCard}>
-              <Text style={styles.planTitle}>{s.label}</Text>
-              <Text style={styles.planMeta}>
-                {t("gestationScreen.gestationCount", { count: s.gestationCount })}
-                {s.lastFarrowingDate
-                  ? ` · ${s.lastFarrowingDate.slice(0, 10)}`
-                  : ""}
-              </Text>
+            <HighlightWrapper
+              key={s.sowId}
+              active={highlightSow === s.sowId}
+            >
+              <View style={styles.planCard}>
+                <Text style={styles.planTitle}>{s.label}</Text>
+                <Text style={styles.planMeta}>
+                  {t("gestationScreen.gestationCount", { count: s.gestationCount })}
+                  {s.lastFarrowingDate
+                    ? ` · ${s.lastFarrowingDate.slice(0, 10)}`
+                    : ""}
+                </Text>
               <Text style={styles.planStatus}>
                 {s.availability === "now"
                   ? `✅ ${t("gestationScreen.availableNow")}`
@@ -357,7 +448,8 @@ export function FarmGestationScreen({ route, navigation }: Props) {
                       days: s.availableInDays
                     })}`}
               </Text>
-            </View>
+              </View>
+            </HighlightWrapper>
           ))
         )}
       </ScreenSection>
@@ -413,6 +505,11 @@ export function FarmGestationScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.root}>
+      {readOnly ? (
+        <View style={styles.bannerWrap}>
+          <TechReadOnlyBanner />
+        </View>
+      ) : null}
       <TabSelector
         activeTab={tab}
         onTabChange={(key) => setTab(key as TabId)}
@@ -440,14 +537,23 @@ export function FarmGestationScreen({ route, navigation }: Props) {
                 layout="embedded"
                 data={activeEvents}
                 onItemPress={(item) => setDetailId(item.id)}
-                onAddPress={() => {
-                  const first = activeQ.data?.items?.[0];
-                  if (first) {
-                    setLitterTarget({ id: first.id, label: first.sowLabel });
-                  } else {
-                    setCreateOpen(true);
-                  }
-                }}
+                onAddPress={
+                  readOnly
+                    ? undefined
+                    : () => {
+                        const first = activeQ.data?.items?.[0];
+                        if (first) {
+                          setLitterTarget({
+                            id: first.id,
+                            label: first.sowLabel,
+                            sowId: first.sowId,
+                            sowPenId: first.sowPen?.id ?? null
+                          });
+                        } else {
+                          setCreateOpen(true);
+                        }
+                      }
+                }
                 isLoading={activeQ.isPending}
                 emptyMessage={t("gestationScreen.emptyBirth")}
                 sectionTitle={t("gestationScreen.imminentBirths")}
@@ -462,10 +568,6 @@ export function FarmGestationScreen({ route, navigation }: Props) {
         ]}
       />
 
-      <Pressable style={styles.fab} onPress={() => setCreateOpen(true)}>
-        <Ionicons name="add" size={28} color="#fff" />
-      </Pressable>
-
       <CreateGestationModal
         visible={createOpen}
         farmId={farmId}
@@ -477,7 +579,10 @@ export function FarmGestationScreen({ route, navigation }: Props) {
         onCreated={invalidate}
         onSuccess={() => {
           invalidate();
-          Alert.alert(t("gestationScreen.createSuccessTitle"));
+          modal.open("success", {
+            message: t("gestationScreen.createSuccessTitle"),
+            autoDismissMs: 2200
+          });
         }}
       />
 
@@ -489,9 +594,9 @@ export function FarmGestationScreen({ route, navigation }: Props) {
         farmId={farmId}
         onClose={() => setDetailId(null)}
         onRefresh={invalidate}
-        onRecordLitter={(id, label) => {
+        onRecordLitter={(id, label, sowId, sowPenId) => {
           setDetailId(null);
-          setLitterTarget({ id, label });
+          setLitterTarget({ id, label, sowId, sowPenId });
         }}
         onOpenAnimal={(animalId, headline) => {
           setDetailId(null);
@@ -509,6 +614,7 @@ export function FarmGestationScreen({ route, navigation }: Props) {
         farmId={farmId}
         gestationId={litterTarget?.id ?? ""}
         sowLabel={litterTarget?.label ?? ""}
+        sowPenId={litterTarget?.sowPenId}
         accessToken={accessToken!}
         activeProfileId={activeProfileId}
         onClose={() => setLitterTarget(null)}
@@ -543,6 +649,15 @@ function gestationToEvent(
 }
 
 const styles = StyleSheet.create({
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: mobileSpacing.lg,
+    backgroundColor: mobileColors.canvas
+  },
+  denied: { ...mobileTypography.body, color: mobileColors.error, textAlign: "center" },
+  bannerWrap: { paddingHorizontal: mobileSpacing.md, paddingTop: mobileSpacing.sm },
   root: { flex: 1, backgroundColor: mobileColors.canvas },
   scroll: {
     padding: mobileSpacing.md,
@@ -566,7 +681,7 @@ const styles = StyleSheet.create({
   },
   link: { color: mobileColors.accent, fontWeight: "600" },
   upcomingCard: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.lg,
     ...mobileShadows.card
@@ -578,11 +693,11 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border,
     borderRadius: mobileRadius.md,
     padding: mobileSpacing.sm,
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     marginBottom: mobileSpacing.sm
   },
   planCard: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.lg,
     marginBottom: mobileSpacing.sm,
@@ -597,17 +712,5 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.lg,
     gap: 4
   },
-  statsLine: { fontSize: 13 },
-  fab: {
-    position: "absolute",
-    right: 20,
-    bottom: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: mobileColors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-    ...mobileShadows.card
-  }
+  statsLine: { fontSize: 13 }
 });

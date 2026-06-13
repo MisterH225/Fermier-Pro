@@ -1,6 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +17,9 @@ import {
 import { VetModuleGate } from "../components/VetModuleGate";
 import { useSession } from "../context/SessionContext";
 import { addVetConsultationAttachment } from "../lib/api";
+import { getUserFacingError } from "../lib/userFacingError";
 import type { RootStackParamList } from "../types/navigation";
+import { mobileColors } from "../theme/mobileTheme";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -27,6 +30,7 @@ export function AddVetConsultationAttachmentScreen({
   route,
   navigation
 }: Props) {
+  const { t } = useTranslation();
   const { farmId, farmName, consultationId } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
@@ -55,7 +59,7 @@ export function AddVetConsultationAttachmentScreen({
       navigation.goBack();
     },
     onError: (e: Error) => {
-      Alert.alert("Ajout impossible", e.message);
+      Alert.alert(t("common.errors.saveFailed"), getUserFacingError(e, t));
     }
   });
 
@@ -128,7 +132,7 @@ export function AddVetConsultationAttachmentScreen({
           disabled={mutation.isPending}
         >
           {mutation.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.ctaText}>Ajouter la pièce jointe</Text>
           )}
@@ -139,7 +143,7 @@ export function AddVetConsultationAttachmentScreen({
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#f9f8ea" },
+  flex: { flex: 1, backgroundColor: mobileColors.canvas },
   content: { padding: 16, paddingBottom: 40 },
   hint: { fontSize: 13, color: "#6d745b", marginBottom: 8 },
   info: {
@@ -155,7 +159,7 @@ const styles = StyleSheet.create({
     marginBottom: 8
   },
   input: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#e8e4d4",
@@ -174,5 +178,5 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   ctaDisabled: { opacity: 0.7 },
-  ctaText: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  ctaText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
 });

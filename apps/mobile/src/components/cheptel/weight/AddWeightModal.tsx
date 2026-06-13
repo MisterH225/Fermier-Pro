@@ -7,13 +7,15 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View
 } from "react-native";
+import { AppTextField } from "../../common/AppTextField";
 import { BaseModal } from "../../modals/BaseModal";
 import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
+import { AppDatePicker } from "../../common/AppDatePicker";
 import { fetchFarmAnimals, postAnimalWeight } from "../../../lib/api";
+import { toIsoDateString } from "../../../lib/appDate";
 import {
   offlineQueuedMessage,
   useOfflineMutation
@@ -26,6 +28,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../../theme/mobileTheme";
+import { getQueryErrorMessage, getUserFacingError } from "../../../lib/userFacingError";
 
 type Props = {
   visible: boolean;
@@ -51,6 +54,7 @@ export function AddWeightModal({
   const qc = useQueryClient();
   const [animalId, setAnimalId] = useState(preselectedAnimalId ?? "");
   const [weightKg, setWeightKg] = useState("");
+  const [measuredAtIso, setMeasuredAtIso] = useState(() => toIsoDateString(new Date()));
   const [note, setNote] = useState("");
 
   const animalsQuery = useQuery({
@@ -64,7 +68,12 @@ export function AddWeightModal({
     if (!animalId || !Number.isFinite(w) || w <= 0) {
       throw new Error(t("cheptel.weight.invalid"));
     }
-    return { animalId, weightKg: w, note: note.trim() || undefined };
+    return {
+      animalId,
+      weightKg: w,
+      measuredAt: measuredAtIso.trim() || undefined,
+      note: note.trim() || undefined
+    };
   };
 
   const saveMut = useOfflineMutation({
@@ -77,7 +86,11 @@ export function AddWeightModal({
         accessToken,
         farmId,
         p.animalId,
-        { weightKg: p.weightKg, note: p.note },
+        {
+          weightKg: p.weightKg,
+          measuredAt: p.measuredAt,
+          note: p.note
+        },
         activeProfileId
       );
     },
@@ -88,7 +101,11 @@ export function AddWeightModal({
           {
             method: "POST",
             path: `/farms/${farmId}/animals/${p.animalId}/weights`,
-            body: { weightKg: p.weightKg, note: p.note }
+            body: {
+              weightKg: p.weightKg,
+              measuredAt: p.measuredAt,
+              note: p.note
+            }
           }
         ],
         invalidateRoots: [
@@ -121,7 +138,7 @@ export function AddWeightModal({
         autoDismissMs: 2600
       });
     },
-    onError: (e: Error) => Alert.alert("", e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const animals = (animalsQuery.data ?? []).filter((a) => a.status === "active");
@@ -138,7 +155,7 @@ export function AddWeightModal({
           disabled={saveMut.isPending}
         >
           {saveMut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.primaryTx}>{t("cheptel.weight.save")}</Text>
           )}
@@ -163,15 +180,24 @@ export function AddWeightModal({
       </ModalSection>
 
       <ModalSection title={t("modals.sections.measurement")}>
-        <Text style={styles.label}>{t("cheptel.weight.weightKg")}</Text>
-        <TextInput
-          style={styles.input}
+        <AppTextField
+          label={t("cheptel.weight.weightKg")}
           value={weightKg}
           onChangeText={setWeightKg}
           keyboardType="decimal-pad"
         />
-        <Text style={styles.label}>{t("cheptel.weight.note")}</Text>
-        <TextInput style={styles.input} value={note} onChangeText={setNote} />
+        <AppDatePicker
+          farmId={farmId}
+          isoValue={measuredAtIso}
+          onIsoChange={setMeasuredAtIso}
+          label={t("cheptel.weight.measuredAt")}
+          maxDate={new Date()}
+        />
+        <AppTextField
+          label={t("cheptel.weight.note")}
+          value={note}
+          onChangeText={setNote}
+        />
       </ModalSection>
     </BaseModal>
   );
@@ -179,12 +205,6 @@ export function AddWeightModal({
 
 const styles = StyleSheet.create({
   label: { ...mobileTypography.meta, fontWeight: "600" },
-  input: {
-    borderWidth: 1,
-    borderColor: mobileColors.border,
-    borderRadius: mobileRadius.md,
-    padding: 12
-  },
   pillRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   pill: {
     paddingHorizontal: 10,
@@ -202,5 +222,5 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center"
   },
-  primaryTx: { color: "#fff", fontWeight: "700" }
+  primaryTx: { color: mobileColors.onAccent, fontWeight: "700" }
 });

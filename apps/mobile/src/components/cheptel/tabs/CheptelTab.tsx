@@ -16,6 +16,8 @@ import {
 
   Text,
 
+  Vibration,
+
   View
 
 } from "react-native";
@@ -53,10 +55,18 @@ import {
 } from "../../../theme/mobileTheme";
 
 import { ScreenSection } from "../../layout/ScreenSection";
+import { EmptyStateCard } from "../../common/EmptyStateCard";
+import { ListSkeleton } from "../../common/SkeletonBlocks";
+import { HighlightWrapper } from "../../common/HighlightWrapper";
 
 import { PenCard } from "../pens/PenCard";
 
 import { CreateLogeModal } from "../pens/CreateLogeModal";
+import { EditPenCapacityModal } from "../pens/EditPenCapacityModal";
+import { CreateBuildingModal } from "../pens/CreateBuildingModal";
+import { BuildingActionsSheet } from "../pens/BuildingActionsSheet";
+import { DeleteBuildingModal } from "../pens/DeleteBuildingModal";
+import { RenameBuildingModal } from "../pens/RenameBuildingModal";
 
 
 
@@ -73,6 +83,10 @@ type Props = {
   navigation: Nav;
 
   onInvalidateOverview?: () => void;
+  readOnly?: boolean;
+  openPenId?: string;
+  highlightPenId?: string;
+  showRequalificationBanner?: boolean;
 
 };
 
@@ -196,7 +210,11 @@ export function CheptelTab({
 
   navigation,
 
-  onInvalidateOverview
+  onInvalidateOverview,
+  readOnly = false,
+  openPenId,
+  highlightPenId,
+  showRequalificationBanner = false
 
 }: Props) {
 
@@ -208,9 +226,35 @@ export function CheptelTab({
 
   const [barnId, setBarnId] = useState<string | undefined>(undefined);
 
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createBuildingOpen, setCreateBuildingOpen] = useState(false);
+  const [createPenOpen, setCreatePenOpen] = useState(false);
+  const [barnActions, setBarnActions] = useState<{
+    id: string;
+    name: string;
+    code?: string | null;
+  } | null>(null);
+  const [renameBarn, setRenameBarn] = useState<{
+    id: string;
+    name: string;
+    code?: string | null;
+  } | null>(null);
+  const [deleteBarnTarget, setDeleteBarnTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [highlightActive, setHighlightActive] = useState(false);
+  const [capacityEditPen, setCapacityEditPen] =
+    useState<CheptelPenRowDto | null>(null);
 
-
+  useEffect(() => {
+    if (!highlightPenId) {
+      setHighlightActive(false);
+      return;
+    }
+    setHighlightActive(true);
+    const t = setTimeout(() => setHighlightActive(false), 2200);
+    return () => clearTimeout(t);
+  }, [highlightPenId]);
 
   const pensQuery = useQuery({
 
@@ -267,6 +311,16 @@ export function CheptelTab({
   const barns = pensQuery.data?.barns ?? [];
 
   const total = pensQuery.data?.totalPens ?? pens.length;
+
+  useEffect(() => {
+    if (!openPenId || !pens.length) {
+      return;
+    }
+    const pen = pens.find((p) => p.id === openPenId);
+    if (pen?.barnId && pen.barnId !== barnId) {
+      setBarnId(pen.barnId);
+    }
+  }, [openPenId, pens, barnId]);
 
   const layoutRepairDone = useRef<string | null>(null);
 
@@ -396,6 +450,13 @@ export function CheptelTab({
 
   const twoColumnLayout = columns.length === 2 && !barnId;
 
+  const invalidatePens = () => {
+    void pensQuery.refetch();
+    void qc.invalidateQueries({ queryKey: ["cheptelPens", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmBarns", farmId] });
+    onInvalidateOverview?.();
+  };
+
 
 
   const openLoge = (pen: CheptelPenRowDto) => {
@@ -444,7 +505,7 @@ export function CheptelTab({
 
   if (pensQuery.isPending) {
 
-    return <ActivityIndicator color={mobileColors.accent} style={{ marginTop: 24 }} />;
+    return <ListSkeleton count={4} style={{ marginTop: 24 }} />;
 
   }
 
@@ -454,35 +515,29 @@ export function CheptelTab({
 
     <View style={stacked ? styles.penStack : styles.penGrid}>
 
-      {colPens.map((pen) => (
-
-        <PenCard
-
-          key={pen.id}
-
-          pen={pen}
-
-          displayName={penDisplayLabel(pen)}
-
-          layout={stacked ? "stacked" : "grid"}
-
-          onPress={() => openLoge(pen)}
-
-          onToggleActive={(p, next) => {
-
-            if (p.isActive !== next) {
-
-              toggleMut.mutate({ penId: p.id });
-
-            }
-
-          }}
-
-          onDelete={(p) => deleteMut.mutate(p.id)}
-
-        />
-
-      ))}
+      {colPens.map((pen) => {
+        const highlighted =
+          highlightActive &&
+          (pen.id === highlightPenId || pen.id === openPenId);
+        return (
+          <HighlightWrapper key={pen.id} active={highlighted}>
+            <PenCard
+              pen={pen}
+              displayName={penDisplayLabel(pen)}
+              layout={stacked ? "stacked" : "grid"}
+              onPress={() => openLoge(pen)}
+              onEditCapacity={(p) => setCapacityEditPen(p)}
+              onToggleActive={(p, next) => {
+                if (p.isActive !== next) {
+                  toggleMut.mutate({ penId: p.id });
+                }
+              }}
+              onDelete={(p) => deleteMut.mutate(p.id)}
+              readOnly={readOnly}
+            />
+          </HighlightWrapper>
+        );
+      })}
 
     </View>
 
@@ -506,23 +561,36 @@ export function CheptelTab({
 
           </Text>
 
-          <Pressable
+          {!readOnly ? (
 
-            style={styles.addPill}
+            <Pressable
 
-            onPress={() => setCreateOpen(true)}
+              style={styles.addPill}
 
-            accessibilityRole="button"
+              onPress={() => setCreateBuildingOpen(true)}
 
-          >
+              accessibilityRole="button"
 
-            <Text style={styles.addPillTx}>+ {t("cheptel.pens.newPen")}</Text>
+            >
 
-          </Pressable>
+              <Text style={styles.addPillTx}>+ Ajouter bâtiment</Text>
+
+            </Pressable>
+
+          ) : null}
 
         </View>
 
-
+        {showRequalificationBanner ? (
+          <View style={styles.requalBanner}>
+            <Text style={styles.requalBannerTx}>
+              {t(
+                "cheptel.requalificationBanner",
+                "Une requalification de cette loge est recommandée (seuil démarrage / type d’usage)."
+              )}
+            </Text>
+          </View>
+        ) : null}
 
         <ScrollView
 
@@ -559,6 +627,12 @@ export function CheptelTab({
               style={[styles.barnPill, barnId === b.id && styles.barnPillOn]}
 
               onPress={() => setBarnId(b.id)}
+
+              onLongPress={() => {
+                Vibration.vibrate(20);
+                setBarnActions(b);
+              }}
+              delayLongPress={500}
 
             >
 
@@ -651,16 +725,33 @@ export function CheptelTab({
 
 
       {pens.length === 0 ? (
-
-        <Text style={styles.empty}>{t("cheptel.pens.empty")}</Text>
-
+        <EmptyStateCard title={t("cheptel.pens.empty")} />
       ) : null}
 
 
 
+      <CreateBuildingModal
+        visible={createBuildingOpen}
+        farmId={farmId}
+        accessToken={accessToken}
+        activeProfileId={activeProfileId}
+        onClose={() => setCreateBuildingOpen(false)}
+        onCreated={invalidatePens}
+      />
+
+      <EditPenCapacityModal
+        visible={capacityEditPen !== null}
+        pen={capacityEditPen}
+        farmId={farmId}
+        accessToken={accessToken}
+        activeProfileId={activeProfileId}
+        onClose={() => setCapacityEditPen(null)}
+        onSaved={invalidatePens}
+      />
+
       <CreateLogeModal
 
-        visible={createOpen}
+        visible={createPenOpen}
 
         farmId={farmId}
 
@@ -670,18 +761,67 @@ export function CheptelTab({
 
         barns={barns}
 
-        onClose={() => setCreateOpen(false)}
+        onClose={() => setCreatePenOpen(false)}
 
-        onCreated={() => {
+        onCreated={invalidatePens}
 
-          void pensQuery.refetch();
+      />
 
-          void qc.invalidateQueries({ queryKey: ["cheptelPens", farmId] });
-
-          onInvalidateOverview?.();
-
+      <BuildingActionsSheet
+        visible={barnActions !== null}
+        barn={barnActions}
+        onClose={() => setBarnActions(null)}
+        onRename={() => {
+          if (barnActions) {
+            setRenameBarn(barnActions);
+          }
+          setBarnActions(null);
         }}
+        onAddPen={() => {
+          if (barnActions) {
+            setBarnId(barnActions.id);
+          }
+          setBarnActions(null);
+          setCreatePenOpen(true);
+        }}
+        onDelete={() => {
+          if (barnActions) {
+            setDeleteBarnTarget({ id: barnActions.id, name: barnActions.name });
+          }
+          setBarnActions(null);
+        }}
+      />
 
+      <RenameBuildingModal
+        visible={renameBarn !== null}
+        farmId={farmId}
+        accessToken={accessToken}
+        activeProfileId={activeProfileId}
+        barn={renameBarn}
+        onClose={() => setRenameBarn(null)}
+        onRenamed={invalidatePens}
+      />
+
+      <DeleteBuildingModal
+        visible={deleteBarnTarget !== null}
+        farmId={farmId}
+        accessToken={accessToken}
+        activeProfileId={activeProfileId}
+        barn={deleteBarnTarget}
+        pens={pens}
+        onClose={() => setDeleteBarnTarget(null)}
+        onDeleted={() => {
+          if (deleteBarnTarget && barnId === deleteBarnTarget.id) {
+            setBarnId(undefined);
+          }
+          invalidatePens();
+        }}
+        onTransferFirst={() => {
+          if (deleteBarnTarget) {
+            setBarnId(deleteBarnTarget.id);
+          }
+          setDeleteBarnTarget(null);
+        }}
       />
 
     </>
@@ -860,6 +1000,21 @@ const styles = StyleSheet.create({
 
     marginTop: mobileSpacing.lg
 
+  },
+
+  requalBanner: {
+    backgroundColor: mobileColors.accentSoft,
+    borderRadius: mobileRadius.md,
+    padding: mobileSpacing.md,
+    marginBottom: mobileSpacing.sm,
+    borderWidth: 1,
+    borderColor: mobileColors.accent
+  },
+
+  requalBannerTx: {
+    ...mobileTypography.body,
+    color: mobileColors.textPrimary,
+    lineHeight: 20
   }
 
 });

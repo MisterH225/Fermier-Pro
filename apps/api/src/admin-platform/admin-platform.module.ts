@@ -8,9 +8,21 @@ import { AdminAiService } from "./admin-ai.service";
 import { AdminPlatformController } from "./admin-platform.controller";
 import { AdminPlatformService } from "./admin-platform.service";
 import { SuperAdminGuard } from "./super-admin.guard";
+import { MarketModule } from "../market/market.module";
+import { MarketplaceModule } from "../marketplace/marketplace.module";
+import { VetAppointmentsModule } from "../vet-appointments/vet-appointments.module";
 
 @Module({
-  imports: [AuthModule, AdminModerationModule, VetsModule, PushNotificationsModule, AiModule],
+  imports: [
+    AuthModule,
+    AdminModerationModule,
+    VetsModule,
+    PushNotificationsModule,
+    AiModule,
+    MarketModule,
+    MarketplaceModule,
+    VetAppointmentsModule
+  ],
   controllers: [AdminPlatformController],
   providers: [AdminPlatformService, AdminAiService, SuperAdminGuard],
   exports: [AdminPlatformService, SuperAdminGuard]

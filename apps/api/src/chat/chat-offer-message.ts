@@ -1,0 +1,48 @@
+export const MARKETPLACE_OFFER_MESSAGE_TYPE = "marketplace_offer" as const;
+
+export type MarketplaceOfferChatPayload = {
+  _type: typeof MARKETPLACE_OFFER_MESSAGE_TYPE;
+  offerId: string;
+  listingId: string;
+  listingTitle: string;
+  currency: string;
+  offeredPrice: number;
+  proposedPricePerKg?: number | null;
+  quantity?: number | null;
+  status: string;
+  message?: string | null;
+};
+
+export function buildMarketplaceOfferMessageBody(
+  payload: MarketplaceOfferChatPayload
+): string {
+  return JSON.stringify(payload);
+}
+
+export function parseMarketplaceOfferMessageBody(
+  body: string
+): MarketplaceOfferChatPayload | null {
+  const trimmed = body.trim();
+  if (!trimmed.startsWith("{")) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(trimmed) as Partial<MarketplaceOfferChatPayload>;
+    if (parsed._type !== MARKETPLACE_OFFER_MESSAGE_TYPE || !parsed.offerId) {
+      return null;
+    }
+    return parsed as MarketplaceOfferChatPayload;
+  } catch {
+    return null;
+  }
+}
+
+export function marketplaceOfferMessagePreview(
+  payload: MarketplaceOfferChatPayload
+): string {
+  const price =
+    payload.proposedPricePerKg != null
+      ? `${Math.round(payload.proposedPricePerKg).toLocaleString("fr-FR")} FCFA/kg`
+      : `${Math.round(payload.offeredPrice).toLocaleString("fr-FR")} ${payload.currency}`;
+  return `Proposition · ${price} · ${payload.listingTitle}`;
+}

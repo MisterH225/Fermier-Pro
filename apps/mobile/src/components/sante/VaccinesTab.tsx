@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { HighlightWrapper } from "../common/HighlightWrapper";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -35,6 +37,7 @@ type Props = {
   accessToken: string;
   activeProfileId?: string | null;
   livestockMode: "individual" | "batch" | "hybrid";
+  highlightVaccineName?: string;
 };
 
 const VACCINE_TYPES: VaccineCatalogType[] = [
@@ -56,7 +59,8 @@ export function VaccinesTab({
   farmId,
   accessToken,
   activeProfileId,
-  livestockMode
+  livestockMode,
+  highlightVaccineName
 }: Props) {
   const { t } = useTranslation();
   const qc = useQueryClient();
@@ -82,6 +86,17 @@ export function VaccinesTab({
   const [customFreq, setCustomFreq] = useState("");
   const [customTiming, setCustomTiming] = useState("");
   const [customNotes, setCustomNotes] = useState("");
+  const [highlightName, setHighlightName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!highlightVaccineName?.trim()) {
+      setHighlightName(null);
+      return;
+    }
+    setHighlightName(highlightVaccineName.trim().toLowerCase());
+    const timer = setTimeout(() => setHighlightName(null), 2200);
+    return () => clearTimeout(timer);
+  }, [highlightVaccineName]);
 
   const openBulk = useCallback(
     async (vaccineId: string, subjects: VaccineSubjectRowDto[]) => {
@@ -155,7 +170,7 @@ export function VaccinesTab({
       setCustomNotes("");
       void qc.invalidateQueries({ queryKey: ["farmVaccineCoverage", farmId] });
     },
-    onError: (e: Error) => Alert.alert(t("health.errorTitle"), e.message)
+    onError: (e: Error) => Alert.alert(t("health.errorTitle"), getUserFacingError(e, t))
   });
 
   const toggleTarget = (key: string) => {
@@ -183,17 +198,23 @@ export function VaccinesTab({
 
   return (
     <View style={styles.wrap}>
-      {(coverageQ.data?.items ?? []).map((item) => (
-        <VaccineCard
-          key={item.vaccine.id}
-          item={item}
-          farmId={farmId}
-          accessToken={accessToken}
-          activeProfileId={activeProfileId}
-          livestockMode={livestockMode}
-          onBulkVaccinate={(id, subs) => void openBulk(id, subs)}
-        />
-      ))}
+      {(coverageQ.data?.items ?? []).map((item) => {
+        const active =
+          highlightName != null &&
+          item.vaccine.name.trim().toLowerCase() === highlightName;
+        return (
+          <HighlightWrapper key={item.vaccine.id} active={active}>
+            <VaccineCard
+              item={item}
+              farmId={farmId}
+              accessToken={accessToken}
+              activeProfileId={activeProfileId}
+              livestockMode={livestockMode}
+              onBulkVaccinate={(id, subs) => void openBulk(id, subs)}
+            />
+          </HighlightWrapper>
+        );
+      })}
       <Pressable style={styles.addCustom} onPress={() => setCustomOpen(true)}>
         <Text style={styles.addCustomTx}>➕ {t("health.vaccines.addCustom")}</Text>
       </Pressable>
@@ -323,5 +344,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   saveDisabled: { opacity: 0.5 },
-  saveTx: { color: "#fff", fontWeight: "700" }
+  saveTx: { color: mobileColors.onAccent, fontWeight: "700" }
 });

@@ -103,7 +103,7 @@ export function ProfileLanguagePill({
           <Ionicons
             name={open ? "chevron-up" : "chevron-down"}
             size={14}
-            color="#fff"
+            color={mobileColors.onAccent}
           />
         </Pressable>
       </View>
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     marginRight: 6
   },
   menuLabelSelected: {
-    color: "#fff"
+    color: mobileColors.onAccent
   },
   menuFlag: {
     fontSize: 17

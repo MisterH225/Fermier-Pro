@@ -12,7 +12,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../../theme/mobileTheme";
-import { ModuleAIInsights } from "../../ai/ModuleAIInsights";
+import { FarmModuleAISection } from "../../ai/FarmModuleAISection";
 import { ScreenSection } from "../../layout/ScreenSection";
 import { CategoryBreakdownPanel } from "./CategoryBreakdownPanel";
 import { CheptelKPICards } from "./CheptelKPICards";
@@ -72,18 +72,21 @@ export function CheptelOverview({
 
   return (
     <>
-      <ScreenSection plain>
+      <ScreenSection plain title={t("cheptel.kpiSectionTitle")}>
         <CheptelKPICards overview={overview} />
       </ScreenSection>
 
       {farmId && accessToken ? (
-        <ModuleAIInsights
-          farmId={farmId}
-          module="cheptel"
-          accessToken={accessToken}
-          activeProfileId={activeProfileId}
-          hasMinimalData={(kpis?.totalHeadcount ?? 0) > 0}
-        />
+        <>
+          <FarmModuleAISection
+            farmId={farmId}
+            menu="cheptel"
+            accessToken={accessToken}
+            activeProfileId={activeProfileId}
+            predictionTitle={t("predictions.sectionCheptel")}
+            hasMinimalData={(kpis?.totalHeadcount ?? 0) > 0}
+          />
+        </>
       ) : null}
 
       {trendLines.length > 0 ? (

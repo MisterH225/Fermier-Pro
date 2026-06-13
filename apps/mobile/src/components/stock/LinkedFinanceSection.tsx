@@ -23,9 +23,6 @@ export function LinkedFinanceSection({
   currencyCode = "XOF"
 }: Props) {
   const { t } = useTranslation();
-  if (!movement.linkedExpenseId) {
-    return null;
-  }
   const q = useQuery({
     queryKey: ["linkedFinance", farmId, movement.id],
     queryFn: () =>
@@ -35,8 +32,12 @@ export function LinkedFinanceSection({
         movement.id,
         activeProfileId
       ),
-    enabled: Boolean(accessToken)
+    enabled: Boolean(accessToken) && Boolean(movement.linkedExpenseId)
   });
+
+  if (!movement.linkedExpenseId) {
+    return null;
+  }
 
   return (
     <View style={{ marginTop: mobileSpacing.sm }}>

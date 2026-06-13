@@ -23,6 +23,7 @@ export type StockLineForm = {
   quantity: string;
   quantityUnit: "kg" | "tonne" | "sac";
   unitPrice: string;
+  weightPerBagKg: string;
   supplier: string;
 };
 
@@ -41,11 +42,27 @@ function lineSubtotal(line: StockLineForm, types: FeedTypeDto[]): number {
   if (!Number.isFinite(q) || !Number.isFinite(p)) {
     return 0;
   }
-  const ft = types.find((t) => t.id === line.feedTypeId);
-  if (line.quantityUnit === "sac" && ft?.unit === "sac") {
+  if (line.quantityUnit === "sac") {
     return q * p;
   }
+  if (line.quantityUnit === "tonne") {
+    return q * 1000 * p;
+  }
   return q * p;
+}
+
+function unitLabel(
+  unit: StockLineForm["quantityUnit"],
+  t: (key: string) => string
+): string {
+  switch (unit) {
+    case "sac":
+      return t("financeStockLink.unitSac");
+    case "tonne":
+      return t("financeStockLink.unitTonne");
+    default:
+      return t("financeStockLink.unitKg");
+  }
 }
 
 export function stockLinesToPayload(
@@ -61,15 +78,39 @@ export function stockLinesToPayload(
         ? Number.parseFloat(l.unitPrice.replace(",", "."))
         : undefined;
       const ft = types.find((t) => t.id === l.feedTypeId);
+      const wpbRaw = l.weightPerBagKg.trim();
+      const wpbFromForm = wpbRaw
+        ? Number.parseFloat(wpbRaw.replace(",", "."))
+        : undefined;
+      const ftWpb =
+        ft?.weightPerBagKg != null
+          ? Number.parseFloat(String(ft.weightPerBagKg))
+          : undefined;
+      const weightPerBagKg =
+        l.quantityUnit === "sac"
+          ? Number.isFinite(wpbFromForm!)
+            ? wpbFromForm
+            : Number.isFinite(ftWpb!)
+              ? ftWpb
+              : undefined
+          : undefined;
+
       if (l.newFeedMode && l.newFeedName.trim()) {
         return {
           newFeedType: {
             name: l.newFeedName.trim(),
-            unit: l.quantityUnit === "sac" ? "sac" : "kg"
+            unit:
+              l.quantityUnit === "sac"
+                ? "sac"
+                : l.quantityUnit === "tonne"
+                  ? "kg"
+                  : "kg"
           },
           quantityInput: q,
           quantityUnit: l.quantityUnit,
           unitPrice,
+          priceBasis: l.quantityUnit === "sac" ? ("sac" as const) : ("kg" as const),
+          weightPerBagKg,
           supplier: (l.supplier || defaultSupplier)?.trim() || undefined
         };
       }
@@ -79,6 +120,7 @@ export function stockLinesToPayload(
         quantityUnit: l.quantityUnit,
         unitPrice,
         priceBasis: l.quantityUnit === "sac" ? ("sac" as const) : ("kg" as const),
+        weightPerBagKg,
         supplier: (l.supplier || defaultSupplier)?.trim() || undefined
       };
     });
@@ -118,6 +160,9 @@ export function FinanceStockLinesEditor({
         quantity: "",
         quantityUnit: (types[0]?.unit as "kg" | "sac") ?? "sac",
         unitPrice: "",
+        weightPerBagKg: types[0]?.weightPerBagKg
+          ? String(types[0].weightPerBagKg)
+          : "",
         supplier: defaultSupplier ?? ""
       }
     ]);
@@ -176,9 +221,14 @@ export function FinanceStockLinesEditor({
                     updateLine(idx, {
                       feedTypeId: ft.id,
                       quantityUnit:
-                        ft.unit === "kg" || ft.unit === "tonne"
-                          ? "kg"
-                          : "sac"
+                        ft.unit === "tonne"
+                          ? "tonne"
+                          : ft.unit === "kg"
+                            ? "kg"
+                            : "sac",
+                      weightPerBagKg: ft.weightPerBagKg
+                        ? String(ft.weightPerBagKg)
+                        : ""
                     })
                   }
                 >
@@ -187,7 +237,11 @@ export function FinanceStockLinesEditor({
               ))}
             </View>
           )}
-          <Text style={styles.lab}>{t("financeStockLink.quantity")}</Text>
+          <Text style={styles.lab}>
+            {t("financeStockLink.quantityWithUnit", {
+              unit: unitLabel(line.quantityUnit, t)
+            })}
+          </Text>
           <TextInput
             style={styles.input}
             value={line.quantity}
@@ -209,7 +263,32 @@ export function FinanceStockLinesEditor({
             }}
             keyboardType="decimal-pad"
           />
-          <Text style={styles.lab}>{t("financeStockLink.unitPrice")}</Text>
+          <View style={styles.unitRow}>
+            {(["sac", "kg", "tonne"] as const).map((u) => (
+              <Pressable
+                key={u}
+                style={[
+                  styles.unitChip,
+                  line.quantityUnit === u && styles.unitChipOn
+                ]}
+                onPress={() => updateLine(idx, { quantityUnit: u })}
+              >
+                <Text
+                  style={[
+                    styles.unitChipTx,
+                    line.quantityUnit === u && styles.unitChipTxOn
+                  ]}
+                >
+                  {unitLabel(u, t)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.lab}>
+            {line.quantityUnit === "sac"
+              ? t("financeStockLink.unitPriceSac")
+              : t("financeStockLink.unitPrice")}
+          </Text>
           <TextInput
             style={styles.input}
             value={line.unitPrice}
@@ -217,6 +296,22 @@ export function FinanceStockLinesEditor({
             keyboardType="decimal-pad"
             placeholder={currencyCode}
           />
+          {line.quantityUnit === "sac" &&
+          !types.find((ft) => ft.id === line.feedTypeId)?.weightPerBagKg ? (
+            <>
+              <Text style={styles.lab}>{t("financeStockLink.weightPerBag")}</Text>
+              <TextInput
+                style={styles.input}
+                value={line.weightPerBagKg}
+                onChangeText={(v) => updateLine(idx, { weightPerBagKg: v })}
+                keyboardType="decimal-pad"
+                placeholder="25"
+              />
+              <Text style={styles.hint}>
+                {t("financeStockLink.weightPerBagHint")}
+              </Text>
+            </>
+          ) : null}
           <Text style={styles.sub}>
             {t("financeStockLink.lineSubtotal", {
               amount: lineSubtotal(line, types).toFixed(2),
@@ -276,6 +371,25 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accentSoft
   },
   typeChipTx: { fontSize: 12, fontWeight: "600" },
+  unitRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: mobileSpacing.xs,
+    marginTop: mobileSpacing.xs
+  },
+  unitChip: {
+    paddingHorizontal: mobileSpacing.sm,
+    paddingVertical: 6,
+    borderRadius: mobileRadius.pill,
+    borderWidth: 1,
+    borderColor: mobileColors.border
+  },
+  unitChipOn: {
+    borderColor: mobileColors.accent,
+    backgroundColor: mobileColors.accentSoft
+  },
+  unitChipTx: { fontSize: 12, fontWeight: "600" },
+  unitChipTxOn: { color: mobileColors.accent },
   lab: {
     fontSize: 12,
     fontWeight: "700",
@@ -290,6 +404,11 @@ const styles = StyleSheet.create({
     color: mobileColors.textPrimary
   },
   sub: { ...mobileTypography.meta, color: mobileColors.textSecondary },
+  hint: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: 2
+  },
   addBtn: { alignSelf: "flex-start" },
   addTx: { color: mobileColors.accent, fontWeight: "700" },
   gapWarn: { color: mobileColors.warning, ...mobileTypography.meta }

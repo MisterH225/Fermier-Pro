@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   primaryTx: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#fff"
+    color: mobileColors.onAccent
   },
   outlineBtn: {
     borderWidth: 1,

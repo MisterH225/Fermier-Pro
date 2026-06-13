@@ -79,12 +79,16 @@ export function AnimalActionModal({
       icon: "scale-outline",
       onPress: onAddWeight
     },
-    {
-      key: "sale",
-      label: t("cheptel.actions.listForSale"),
-      icon: "pricetag-outline",
-      onPress: onListForSale ?? onOpenDetail
-    },
+    ...(onListForSale
+      ? [
+          {
+            key: "sale",
+            label: t("cheptel.actions.listForSale"),
+            icon: "pricetag-outline" as const,
+            onPress: onListForSale
+          }
+        ]
+      : []),
     {
       key: "detail",
       label: t("cheptel.actions.fullRecord"),

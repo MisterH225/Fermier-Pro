@@ -14,24 +14,35 @@ import {
   View
 } from "react-native";
 import { MobileAppShell } from "../components/layout";
-import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
+import { FarmDashboardAISection } from "../components/ai/FarmModuleAISection";
 import { SmartAlertsSection } from "../components/smartAlerts/SmartAlertsSection";
 import { AlertBadge } from "../components/smartAlerts/AlertBadge";
 
 import { FeedStockLevelGauge, dashboardFeedItemToGauge } from "../components/feed";
 import { FinanceOverviewKpiGrid } from "../components/finance/FinanceOverviewKpiGrid";
+import { RentabilityHeroCard } from "../components/profitability/RentabilityHeroCard";
+import { CategoryBreakdownPanel } from "../components/cheptel/overview/CategoryBreakdownPanel";
+import { ScreenSection } from "../components/layout/ScreenSection";
 import { EmptyStateCard } from "../components/common/EmptyStateCard";
+import { CardContentSkeleton } from "../components/common/SkeletonBlocks";
 import { OnboardingBanner } from "../components/onboarding/OnboardingBanner";
+import { PendingInvitationsBanner } from "../components/collaboration/PendingInvitationsBanner";
+import { VetAppointmentActionsBanner } from "../components/vet/VetAppointmentActionsBanner";
 import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
 import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
+import { SupportHeaderButton } from "../components/support/SupportHeaderButton";
+import { ProjectIndicator } from "../components/projects";
 import { useOnboardingResume } from "../context/OnboardingResumeContext";
+import { useActiveProject, useActiveFarm } from "../context/ActiveProjectContext";
 import { getProducerOnboardingState } from "../lib/onboardingState";
-import { useProducerBottomChromePad } from "../context/ProducerBottomChromeContext";
+import { useBottomInset } from "../hooks/useBottomInset";
 import { resolveActiveProfileAvatarUrl } from "../lib/profileAvatar";
 import { useSession } from "../context/SessionContext";
 import {
   fetchDashboardFeedStock,
   fetchFinanceOverview,
+  fetchFarmCheptelOverview,
+  fetchFarmProfitabilityDashboard,
   fetchDashboardGestations,
   fetchDashboardHealth,
   fetchFarmSmartAlertsCount,
@@ -51,6 +62,7 @@ import {
   mobileTypography
 } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 function formatMoney(n: number, locale: string): string {
   try {
@@ -93,12 +105,16 @@ export function ProducerDashboardScreen() {
     authMe,
     clientFeatures
   } = useSession();
-  const bottomChromePad = useProducerBottomChromePad();
+  const { activeFarm, activeFarmId, farms, refreshFarms } = useActiveProject();
+  const bottomInset = useBottomInset();
   const { requestResume } = useOnboardingResume();
   const onboardingState = getProducerOnboardingState(authMe, activeProfileId);
   const showOnboardingBanner = onboardingState === "skipped";
   const [profileOpen, setProfileOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [profitabilityPeriod, setProfitabilityPeriod] = useState<
+    "current_month" | "current_quarter" | "current_year"
+  >("current_month");
   const user = authMe?.user;
   const firstName = useMemo(() => welcomeFirstName(user), [user]);
 
@@ -110,26 +126,10 @@ export function ProducerDashboardScreen() {
   }, [authMe, activeProfileId]);
 
   const isProducer = activeProfile?.type === "producer";
+  const showMultiProjectIndicator = farms.filter(f => f.status === "active").length > 1;
 
-  const farmsQuery = useQuery({
-    queryKey: ["farms", activeProfileId, "producerHome"],
-    queryFn: () => fetchFarms(accessToken!, activeProfileId),
-    enabled: Boolean(accessToken && isProducer && !authMe?.primaryFarm)
-  });
-
-  const resolvedFarm = useMemo(() => {
-    if (authMe?.primaryFarm) {
-      return authMe.primaryFarm;
-    }
-    const first = farmsQuery.data?.[0];
-    if (first) {
-      return { id: first.id, name: first.name };
-    }
-    return null;
-  }, [authMe?.primaryFarm, farmsQuery.data]);
-
-  const farmId = resolvedFarm?.id ?? null;
-  const farmName = resolvedFarm?.name ?? "";
+  const farmId = activeFarmId;
+  const farmName = activeFarm?.name ?? "";
 
   const financeEnabled = Boolean(
     farmId && accessToken && clientFeatures.finance
@@ -144,6 +144,24 @@ export function ProducerDashboardScreen() {
       fetchFinanceOverview(accessToken!, farmId!, activeProfileId),
     enabled: financeEnabled,
     refetchInterval: 60_000
+  });
+
+  const profitabilityQuery = useQuery({
+    queryKey: [
+      "profitabilityDashboard",
+      farmId,
+      profitabilityPeriod,
+      activeProfileId
+    ],
+    queryFn: () =>
+      fetchFarmProfitabilityDashboard(
+        accessToken!,
+        farmId!,
+        activeProfileId,
+        profitabilityPeriod
+      ),
+    enabled: financeEnabled,
+    refetchInterval: 120_000
   });
 
   const gestationsQuery = useQuery({
@@ -168,6 +186,14 @@ export function ProducerDashboardScreen() {
       fetchDashboardFeedStock(accessToken!, farmId!, activeProfileId),
     enabled: feedEnabled,
     refetchInterval: 60_000
+  });
+
+  const cheptelOverviewQ = useQuery({
+    queryKey: ["cheptelOverview", farmId, activeProfileId],
+    queryFn: () =>
+      fetchFarmCheptelOverview(accessToken!, farmId!, activeProfileId),
+    enabled: Boolean(farmId && accessToken),
+    refetchInterval: 120_000
   });
 
   const alertsCountQuery = useQuery({
@@ -199,14 +225,15 @@ export function ProducerDashboardScreen() {
     setRefreshing(true);
     const tasks: Promise<unknown>[] = [];
     if (financeEnabled) {
-      tasks.push(financeQuery.refetch());
+      tasks.push(financeQuery.refetch(), profitabilityQuery.refetch());
     }
     tasks.push(gestationsQuery.refetch(), healthQuery.refetch());
+    tasks.push(cheptelOverviewQ.refetch());
     if (feedEnabled) {
       tasks.push(feedQuery.refetch());
     }
     await Promise.all(tasks.map((p) => p.catch(() => undefined)));
-    await farmsQuery.refetch().catch(() => undefined);
+    await refreshFarms().catch(() => undefined);
     void qc.invalidateQueries({ queryKey: ["farms", activeProfileId] });
     if (farmId && accessToken) {
       await postFarmSmartAlertsRefresh(
@@ -227,23 +254,27 @@ export function ProducerDashboardScreen() {
     financeEnabled,
     feedEnabled,
     financeQuery,
+    profitabilityQuery,
     gestationsQuery,
     healthQuery,
     feedQuery,
-    farmsQuery,
-    qc,
-    activeProfileId,
-    accessToken
+    refreshFarms,
+    qc
   ]);
 
   const dashboardHeader = (
     <View style={styles.heroBar}>
-      <ProducerWelcomeHeader
-        welcomeLabel={t("producer.welcomeLine")}
-        firstName={firstName}
-        avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
-        onPressAvatar={() => setProfileOpen(true)}
-      />
+      <View style={styles.heroTopRow}>
+        <ProducerWelcomeHeader
+          welcomeLabel={t("producer.welcomeLine")}
+          firstName={firstName}
+          avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
+          onPressAvatar={() => setProfileOpen(true)}
+        />
+        {showMultiProjectIndicator && (
+          <ProjectIndicator onPress={() => setProfileOpen(true)} />
+        )}
+      </View>
       <View style={styles.heroActions}>
         <Pressable
           onPress={() => {
@@ -270,6 +301,10 @@ export function ProducerDashboardScreen() {
             <AlertBadge count={alertsCountQuery.data?.criticalUnread ?? 0} />
           </View>
         </Pressable>
+        <SupportHeaderButton
+          iconColor={mobileColors.accent}
+          style={styles.heroIconBtn}
+        />
         <Pressable
           onPress={() => {
             if (!farmId || !farmName) {
@@ -279,14 +314,18 @@ export function ProducerDashboardScreen() {
             navigation.navigate("ProducerFarmSettings", { farmId, farmName });
           }}
           style={({ pressed }) => [
-            styles.heroSettingsBtn,
-            pressed && styles.heroSettingsBtnPressed
+            styles.heroIconBtn,
+            pressed && styles.heroIconBtnPressed
           ]}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           accessibilityRole="button"
           accessibilityLabel={t("producer.settingsButton")}
         >
-          <Text style={styles.heroSettingsTx}>{t("producer.settingsButton")}</Text>
+          <Ionicons
+            name="settings-outline"
+            size={22}
+            color={mobileColors.accent}
+          />
         </Pressable>
       </View>
     </View>
@@ -298,12 +337,20 @@ export function ProducerDashboardScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.wrap,
-            { paddingBottom: mobileSpacing.xxl + bottomChromePad }
+            { paddingBottom: bottomInset }
           ]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
+          <PendingInvitationsBanner />
+          {accessToken && farmId ? (
+            <VetAppointmentActionsBanner
+              accessToken={accessToken}
+              activeProfileId={activeProfileId}
+              farmId={farmId}
+            />
+          ) : null}
           {showOnboardingBanner ? (
             <OnboardingBanner onComplete={requestResume} />
           ) : null}
@@ -330,6 +377,27 @@ export function ProducerDashboardScreen() {
             )
           ) : (
             <>
+            {financeEnabled ? (
+              <View style={styles.heroRentability}>
+                <RentabilityHeroCard
+                  data={profitabilityQuery.data}
+                  isLoading={profitabilityQuery.isPending}
+                  currencySymbol={
+                    (financeQuery.data as FinanceOverviewDto | undefined)
+                      ?.settings.currencySymbol ?? "FCFA"
+                  }
+                  period={profitabilityPeriod}
+                  onPeriodChange={setProfitabilityPeriod}
+                  onPressDetail={() =>
+                    navigation.navigate("FarmFinance", {
+                      farmId,
+                      farmName,
+                      initialTab: "rentabilite"
+                    })
+                  }
+                />
+              </View>
+            ) : null}
             <View style={styles.grid}>
               <View style={styles.gridItem}>
                 <FinanceOverviewKpiGrid
@@ -338,7 +406,7 @@ export function ProducerDashboardScreen() {
                   isPending={financeQuery.isPending}
                   error={
                     financeQuery.error instanceof Error
-                      ? financeQuery.error.message
+                      ? getUserFacingError(financeQuery.error, t)
                       : null
                   }
                   sectionTitle={t("producer.dashboard.financeTitle")}
@@ -355,7 +423,7 @@ export function ProducerDashboardScreen() {
                   isPending={gestationsQuery.isPending}
                   error={
                     gestationsQuery.error instanceof Error
-                      ? gestationsQuery.error.message
+                      ? getUserFacingError(gestationsQuery.error, t)
                       : null
                   }
                   locale={locale}
@@ -374,7 +442,7 @@ export function ProducerDashboardScreen() {
                   isPending={healthQuery.isPending}
                   error={
                     healthQuery.error instanceof Error
-                      ? healthQuery.error.message
+                      ? getUserFacingError(healthQuery.error, t)
                       : null
                   }
                   locale={locale}
@@ -406,7 +474,7 @@ export function ProducerDashboardScreen() {
                   isPending={feedQuery.isPending}
                   error={
                     feedQuery.error instanceof Error
-                      ? feedQuery.error.message
+                      ? getUserFacingError(feedQuery.error, t)
                       : null
                   }
                   locale={locale}
@@ -418,24 +486,26 @@ export function ProducerDashboardScreen() {
                 />
               </View>
             </View>
+            {(cheptelOverviewQ.data?.categoryBreakdown?.length ?? 0) > 0 ? (
+              <ScreenSection title={t("cheptel.categoryBreakdown")}>
+                <CategoryBreakdownPanel
+                  rows={cheptelOverviewQ.data?.categoryBreakdown ?? []}
+                />
+              </ScreenSection>
+            ) : null}
+            {accessToken ? (
+              <FarmDashboardAISection
+                farmId={farmId}
+                accessToken={accessToken}
+                activeProfileId={activeProfileId}
+                predictionTitle={t("predictions.sectionDashboard")}
+              />
+            ) : null}
             <SmartAlertsSection
               farmId={farmId}
               farmName={farmName}
               accessToken={accessToken!}
               activeProfileId={activeProfileId}
-            />
-            <ModuleAIInsights
-              farmId={farmId}
-              module="global_dashboard"
-              accessToken={accessToken}
-              activeProfileId={activeProfileId}
-            />
-            <ModuleAIInsights
-              farmId={farmId}
-              module="gestation"
-              accessToken={accessToken}
-              activeProfileId={activeProfileId}
-              hasMinimalData={(gestationsQuery.data?.items?.length ?? 0) > 0}
             />
           </>
           )}
@@ -505,7 +575,7 @@ function GestationsCard({
   if (isPending && !items) {
     return (
       <CardShell emoji="🐷" title={title} onPress={onPress}>
-        <ActivityIndicator color={mobileColors.accent} />
+        <CardContentSkeleton lines={3} />
       </CardShell>
     );
   }
@@ -579,7 +649,7 @@ function HealthCard({
   if (isPending && !data) {
     return (
       <CardShell emoji="🏥" title={title} onPress={onPress}>
-        <ActivityIndicator color={mobileColors.accent} />
+        <CardContentSkeleton lines={3} />
       </CardShell>
     );
   }
@@ -670,7 +740,7 @@ function FeedStockCard({
   if (isPending && !items) {
     return (
       <CardShell emoji="🌾" title={title} onPress={onPress}>
-        <ActivityIndicator color={mobileColors.accent} />
+        <CardContentSkeleton lines={3} />
       </CardShell>
     );
   }
@@ -703,7 +773,7 @@ function FeedStockCard({
               percent={gauge.percent}
               gaugeColor={gauge.gaugeColor}
               dotColor={gauge.dotColor}
-              centerLabel={gauge.centerLabel}
+              daysLabel={gauge.daysLabel}
               variant="embedded"
             />
           );
@@ -723,6 +793,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: mobileColors.border,
     backgroundColor: mobileColors.background,
+  },
+  heroTopRow: {
+    flexDirection: "column",
+    alignItems: "flex-start",
     gap: mobileSpacing.sm
   },
   heroActions: {
@@ -763,12 +837,17 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.lg,
     gap: mobileSpacing.lg
   },
+  heroRentability: {
+    width: "100%"
+  },
   grid: {
     flexDirection: "column",
     gap: mobileSpacing.md
   },
   gridItem: {
-    width: "100%"
+    width: "100%",
+    alignSelf: "stretch",
+    flexShrink: 0
   },
   card: {
     backgroundColor: mobileColors.background,
@@ -833,7 +912,7 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   badgeUrgentText: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 10,
     fontWeight: "800"
   },

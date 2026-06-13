@@ -8,8 +8,10 @@ import {
   Param,
   Post,
   Query,
+  Res,
   UseGuards
 } from "@nestjs/common";
+import type { Response } from "express";
 import type { User } from "@prisma/client";
 import { ReportPeriodType } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
@@ -19,9 +21,12 @@ import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.deco
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
 import { GenerateReportForFarmBodyDto } from "./dto/generate-report-for-farm-body.dto";
 import { ReportsService } from "./reports.service";
+import { RequirePlatformModule } from "../feature-flags/require-platform-module.decorator";
+import { PlatformModuleEnabledGuard } from "../feature-flags/platform-module-enabled.guard";
 
 @Controller("farms/:farmId")
-@UseGuards(SupabaseJwtGuard, FarmScopesGuard)
+@RequirePlatformModule("reports")
+@UseGuards(SupabaseJwtGuard, FarmScopesGuard, PlatformModuleEnabledGuard)
 export class FarmReportsController {
   constructor(private readonly reports: ReportsService) {}
 
@@ -77,5 +82,43 @@ export class FarmReportsController {
     @Body() body: GenerateReportForFarmBodyDto
   ) {
     return this.reports.generateReport(user, farmId, body.periodType, body.anchor);
+  }
+
+  @Get("reports/:reportId")
+  @RequireFarmScopes(FARM_SCOPE.livestockRead)
+  getOne(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("reportId") reportId: string
+  ) {
+    return this.reports.getReportForFarm(user, farmId, reportId);
+  }
+
+  @Get("reports/:reportId/download")
+  @RequireFarmScopes(FARM_SCOPE.livestockRead)
+  download(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("reportId") reportId: string
+  ) {
+    return this.reports.getReportDownloadUrlForFarm(user, farmId, reportId);
+  }
+
+  @Get("reports/:reportId/pdf")
+  @RequireFarmScopes(FARM_SCOPE.livestockRead)
+  async pdf(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("reportId") reportId: string,
+    @Res() res: Response
+  ) {
+    const { buffer, filename } = await this.reports.buildReportPdfForFarm(
+      user,
+      farmId,
+      reportId
+    );
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(buffer);
   }
 }

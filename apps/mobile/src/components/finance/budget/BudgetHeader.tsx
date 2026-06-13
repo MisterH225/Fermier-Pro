@@ -1,36 +1,40 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { AppDatePicker } from "../../common/AppDatePicker";
 import {
   mobileColors,
   mobileRadius,
   mobileSpacing,
   mobileTypography
 } from "../../../theme/mobileTheme";
-import { budgetMonthLabel, globalStatusKey } from "./budgetUtils";
+import { globalStatusKey } from "./budgetUtils";
 
 type Props = {
   year: number;
   month: number;
-  locale: string;
+  farmId?: string;
   globalStatus: "on_track" | "warning" | "exceeded";
   onPrevMonth: () => void;
   onNextMonth: () => void;
+  onMonthSelect: (year: number, month: number) => void;
   onConfigure: () => void;
 };
 
 export function BudgetHeader({
   year,
   month,
-  locale,
+  farmId,
   globalStatus,
   onPrevMonth,
   onNextMonth,
+  onMonthSelect,
   onConfigure
 }: Props) {
   const { t } = useTranslation();
   const statusKey = globalStatusKey(globalStatus);
   const badge = t(`budgetScreen.status.${statusKey}`);
+  const monthIso = `${year}-${String(month).padStart(2, "0")}`;
 
   return (
     <View style={styles.wrap}>
@@ -43,7 +47,20 @@ export function BudgetHeader({
         >
           <Ionicons name="chevron-back" size={22} color={mobileColors.textPrimary} />
         </Pressable>
-        <Text style={styles.month}>{budgetMonthLabel(year, month, locale)}</Text>
+        <View style={styles.monthPicker}>
+          <AppDatePicker
+            mode="month_year"
+            farmId={farmId}
+            isoValue={monthIso}
+            onIsoChange={(iso) => {
+              const m = /^(\d{4})-(\d{2})/.exec(iso.trim());
+              if (!m) {
+                return;
+              }
+              onMonthSelect(Number(m[1]), Number(m[2]));
+            }}
+          />
+        </View>
         <Pressable
           onPress={onNextMonth}
           style={styles.navBtn}
@@ -79,13 +96,7 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.xs,
     borderRadius: mobileRadius.sm
   },
-  month: {
-    ...mobileTypography.cardTitle,
-    color: mobileColors.textPrimary,
-    flex: 1,
-    textAlign: "center",
-    textTransform: "capitalize"
-  },
+  monthPicker: { flex: 1 },
   gearBtn: {
     padding: mobileSpacing.xs,
     marginLeft: mobileSpacing.xs
@@ -99,9 +110,5 @@ const styles = StyleSheet.create({
   badge_onTrack: { backgroundColor: "rgba(45,106,79,0.12)" },
   badge_warning: { backgroundColor: "rgba(230,126,34,0.15)" },
   badge_exceeded: { backgroundColor: "rgba(192,57,43,0.12)" },
-  badgeTx: {
-    ...mobileTypography.meta,
-    color: mobileColors.textPrimary,
-    fontWeight: "600"
-  }
+  badgeTx: { ...mobileTypography.meta, fontWeight: "700" }
 });

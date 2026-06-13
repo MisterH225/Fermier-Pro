@@ -36,6 +36,18 @@ export function Step3Production({ ob }: Props) {
         keyboardType="number-pad"
       />
 
+      <Text style={styles.label}>{t("onboarding.step3.estimatedAge")}</Text>
+      <Text style={styles.helper}>{t("onboarding.step3.estimatedAgeHelper")}</Text>
+      <TextInput
+        style={styles.input}
+        value={form.productionEstimatedAgeWeeks}
+        onChangeText={(productionEstimatedAgeWeeks) =>
+          patch({ productionEstimatedAgeWeeks })
+        }
+        keyboardType="number-pad"
+        placeholder="8"
+      />
+
       <View style={styles.preview}>
         <Text style={styles.previewText}>
           {t("onboarding.step3.preview", { total: headcountTotal })}

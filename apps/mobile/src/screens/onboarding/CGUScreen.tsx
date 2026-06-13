@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { CardContentSkeleton } from "../../components/common/SkeletonBlocks";
 import { RefuseModal } from "../../components/onboarding/RefuseModal";
 import { useSession } from "../../context/SessionContext";
 import { acceptCgu, fetchCguCurrent } from "../../lib/api";
@@ -106,8 +107,8 @@ export function CGUScreen({ onAccepted }: Props) {
       </View>
 
       {cguQuery.isPending ? (
-        <View style={styles.loader}>
-          <ActivityIndicator size="large" color={authColors.forest} />
+        <View style={[styles.loader, styles.skeletonPad]}>
+          <CardContentSkeleton lines={14} />
         </View>
       ) : cguQuery.isError ? (
         <View style={styles.loader}>
@@ -203,6 +204,7 @@ const styles = StyleSheet.create({
     textAlign: "center"
   },
   loader: { flex: 1, justifyContent: "center", alignItems: "center" },
+  skeletonPad: { alignItems: "stretch", paddingHorizontal: 24, paddingTop: 8 },
   err: { color: authColors.error, textAlign: "center", padding: 20 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 22, paddingVertical: 12 },

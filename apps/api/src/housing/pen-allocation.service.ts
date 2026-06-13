@@ -63,6 +63,8 @@ export class PenAllocationService {
         return "fattening";
       case "starter":
         return "starter";
+      case "nursing":
+        return "starter";
       default:
         break;
     }
@@ -77,6 +79,9 @@ export class PenAllocationService {
       return "fattening";
     }
     if (tag.startsWith("Dem")) {
+      return "starter";
+    }
+    if (tag.startsWith("All")) {
       return "starter";
     }
     if (animal.sex === "female") {
@@ -271,8 +276,22 @@ export class PenAllocationService {
     };
   }
 
+  /**
+   * Valide qu'un placement (création ou transfert) est physiquement possible.
+   *
+   * Règles intentionnellement minimales — l'éleveur doit pouvoir réorganiser
+   * librement ses sujets entre les loges :
+   *  1. la loge ne doit pas être désactivée,
+   *  2. on ne dépasse pas la capacité physique.
+   *
+   * La cohérence « catégorie animal ↔ catégorie loge » n'est plus une contrainte
+   * dure : la catégorie de la loge est recalculée automatiquement par
+   * {@link recalculatePenCategory} après chaque placement (la loge bascule en
+   * `mixed` quand plusieurs rôles cohabitent). Le mapping `penAcceptsRole`
+   * subsiste uniquement pour la *suggestion* d'allocation à l'onboarding.
+   */
   validatePenCompatibility(
-    animal: {
+    _animal: {
       sex: string;
       productionCategory: AnimalProductionCategory;
       tagCode?: string | null;
@@ -287,24 +306,21 @@ export class PenAllocationService {
     if (pen.status === "inactive") {
       return { ok: false, reason: "Loge inactive" };
     }
-    const role = PenAllocationService.roleFromAnimal(animal);
-    if (!role) {
-      return { ok: false, reason: "Catégorie animal indéterminée" };
-    }
     const cap = pen.capacity ?? 0;
     if (cap > 0 && pen.activeOccupancy >= cap) {
       return { ok: false, reason: "Capacité maximale atteinte" };
     }
-    const category = pen.category ?? PenCategory.mixed;
-    if (!PenAllocationService.penAcceptsRole(category, role)) {
-      return {
-        ok: false,
-        reason: `La loge (${category}) n'accepte pas ce type d'animal (${role})`
-      };
-    }
     return { ok: true };
   }
 
+  /**
+   * Indique si une catégorie de loge correspond « idéalement » à un rôle d'animal.
+   *
+   * ⚠️ Ne pas utiliser comme garde-fou côté placements : l'éleveur doit pouvoir
+   * réorganiser ses sujets librement (cf. {@link validatePenCompatibility}).
+   * Cette fonction n'a plus qu'un rôle de *suggestion* (allocation onboarding,
+   * proposition de loges par défaut au front).
+   */
   static penAcceptsRole(
     penCategory: PenCategory,
     role: AnimalAllocationRole
@@ -321,6 +337,93 @@ export class PenAllocationService {
       default:
         return false;
     }
+  }
+
+  /**
+   * Recalcule le poids moyen courant d'une loge à partir des sujets actuellement
+   * présents (placement non clôturé). Pour chaque animal on prend la pesée la
+   * plus récente ; à défaut, le poids d'entrée. Les animaux sans aucun poids
+   * connu sont exclus pour ne pas fausser la moyenne. Loge vide → `null`.
+   *
+   * Centralisée ici : à appeler à chaque entrée/sortie d'animal ou pesée.
+   */
+  async recalculatePenAverageWeight(
+    tx: PrismaTypes.TransactionClient,
+    penId: string
+  ): Promise<number | null> {
+    const placements = await tx.penPlacement.findMany({
+      where: { penId, endedAt: null, animalId: { not: null } },
+      select: {
+        animal: {
+          select: {
+            entryWeightKg: true,
+            weights: {
+              orderBy: { measuredAt: "desc" },
+              take: 1,
+              select: { weightKg: true }
+            }
+          }
+        }
+      }
+    });
+
+    const weights: number[] = [];
+    for (const pl of placements) {
+      if (!pl.animal) {
+        continue;
+      }
+      const last = pl.animal.weights[0]?.weightKg;
+      const current = last != null
+        ? Number(last)
+        : pl.animal.entryWeightKg != null
+          ? Number(pl.animal.entryWeightKg)
+          : null;
+      if (current != null && Number.isFinite(current)) {
+        weights.push(current);
+      }
+    }
+
+    const avg =
+      weights.length === 0
+        ? null
+        : Math.round((weights.reduce((a, b) => a + b, 0) / weights.length) * 10) / 10;
+
+    await tx.pen.update({
+      where: { id: penId },
+      data: { averageWeightKg: avg == null ? null : new Prisma.Decimal(avg) }
+    });
+    return avg;
+  }
+
+  /**
+   * Renvoie le poids "actuel" connu d'un animal (dernière pesée, puis poids
+   * d'entrée). `null` si totalement inconnu.
+   */
+  async readAnimalCurrentWeight(
+    tx: PrismaTypes.TransactionClient,
+    animalId: string
+  ): Promise<number | null> {
+    const a = await tx.animal.findUnique({
+      where: { id: animalId },
+      select: {
+        entryWeightKg: true,
+        weights: {
+          orderBy: { measuredAt: "desc" },
+          take: 1,
+          select: { weightKg: true }
+        }
+      }
+    });
+    if (!a) {
+      return null;
+    }
+    if (a.weights[0]?.weightKg != null) {
+      return Number(a.weights[0].weightKg);
+    }
+    if (a.entryWeightKg != null) {
+      return Number(a.entryWeightKg);
+    }
+    return null;
   }
 
   async recalculatePenCategory(

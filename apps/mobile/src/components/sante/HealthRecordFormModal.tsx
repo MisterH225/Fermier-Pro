@@ -1,6 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { FarmHealthEntityType, FarmHealthRecordKind } from "../../lib/api";
+import { AppDatePicker } from "../common/AppDatePicker";
 import { BaseModal } from "../modals/BaseModal";
 import { ModalSection } from "../modals/ModalSection";
 import {
@@ -37,6 +38,7 @@ export type HealthFormState = {
 
 type Props = {
   visible: boolean;
+  farmId: string;
   formKind: FarmHealthRecordKind;
   subjectType: FarmHealthEntityType;
   saving: boolean;
@@ -52,6 +54,7 @@ function FieldLabel({ children }: { children: string }) {
 
 export function HealthRecordFormModal({
   visible,
+  farmId,
   formKind,
   subjectType,
   saving,
@@ -79,7 +82,7 @@ export function HealthRecordFormModal({
             style={styles.saveBtn}
           >
             {saving ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={mobileColors.onAccent} />
             ) : (
               <Text style={styles.saveTx}>{t("health.save")}</Text>
             )}
@@ -88,12 +91,12 @@ export function HealthRecordFormModal({
       }
     >
       <ModalSection title={t("health.formSectionWhen")}>
-        <FieldLabel>{t("health.fieldDate")}</FieldLabel>
-        <TextInput
-          style={styles.input}
-          value={form.occurredDate}
-          onChangeText={(v) => set({ occurredDate: v })}
-          placeholder="YYYY-MM-DD"
+        <AppDatePicker
+          label={t("health.fieldDate")}
+          isoValue={form.occurredDate}
+          onIsoChange={(v) => set({ occurredDate: v })}
+          farmId={farmId}
+          maxDate={new Date()}
         />
       </ModalSection>
 
@@ -111,12 +114,12 @@ export function HealthRecordFormModal({
             value={form.vaccineType}
             onChangeText={(v) => set({ vaccineType: v })}
           />
-          <FieldLabel>{t("health.fieldNextReminder")}</FieldLabel>
-          <TextInput
-            style={styles.input}
-            value={form.nextReminderDate}
-            onChangeText={(v) => set({ nextReminderDate: v })}
-            placeholder="YYYY-MM-DD"
+          <AppDatePicker
+            label={t("health.fieldNextReminder")}
+            isoValue={form.nextReminderDate}
+            onIsoChange={(v) => set({ nextReminderDate: v })}
+            farmId={farmId}
+            minDate={new Date()}
           />
           <FieldLabel>{t("health.fieldPractitioner")}</FieldLabel>
           <TextInput
@@ -277,7 +280,7 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.sm,
     borderRadius: mobileRadius.sm
   },
-  saveTx: { color: "#fff", fontWeight: "700" },
+  saveTx: { color: mobileColors.onAccent, fontWeight: "700" },
   mortHint: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary

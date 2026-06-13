@@ -27,7 +27,12 @@ type Props = {
   farmId: string;
   onClose: () => void;
   onRefresh: () => void;
-  onRecordLitter: (gestationId: string, sowLabel: string) => void;
+  onRecordLitter: (
+    gestationId: string,
+    sowLabel: string,
+    sowId: string,
+    sowPenId?: string | null
+  ) => void;
   onOpenAnimal: (animalId: string, label: string) => void;
 };
 
@@ -180,7 +185,14 @@ export function GestationDetailModal({
         g?.status === "active" ? (
           <Pressable
             style={styles.btn}
-            onPress={() => onRecordLitter(g.id, g.sowLabel)}
+            onPress={() =>
+              onRecordLitter(
+                g.id,
+                g.sowLabel,
+                g.sowId,
+                g.sowPen?.id ?? null
+              )
+            }
           >
             <Text style={styles.btnText}>
               {t("gestationScreen.recordLitter")}
@@ -299,7 +311,7 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accent,
     borderRadius: 8
   },
-  smallBtnText: { color: "#fff", fontSize: 12 },
+  smallBtnText: { color: mobileColors.onAccent, fontSize: 12 },
   checkRow: { flexDirection: "row", gap: 8, alignItems: "center" },
   checkLabel: { flex: 1, fontSize: 14 },
   btn: {
@@ -308,5 +320,5 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center"
   },
-  btnText: { color: "#fff", fontWeight: "600" }
+  btnText: { color: mobileColors.onAccent, fontWeight: "600" }
 });

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -10,6 +11,7 @@ import {
   TextInput,
   View
 } from "react-native";
+import { AppDatePicker } from "../common/AppDatePicker";
 import { BaseModal } from "../modals/BaseModal";
 import {
   createFarmVaccineRecords,
@@ -144,7 +146,7 @@ export function BulkVaccineModal({
       Alert.alert("", offlineQueuedMessage(t));
     },
     onError: (e: Error) =>
-      Alert.alert(t("health.errorTitle"), e.message)
+      Alert.alert(t("health.errorTitle"), getUserFacingError(e, t))
   });
 
   const canSubmit = selected.size > 0 && administeredDate.trim().length >= 8;
@@ -161,7 +163,7 @@ export function BulkVaccineModal({
           onPress={() => mut.mutate()}
         >
           {mut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.saveTx}>{t("health.vaccines.bulkSave")}</Text>
           )}
@@ -199,12 +201,12 @@ export function BulkVaccineModal({
           );
         })}
       </ScrollView>
-      <Text style={styles.lab}>{t("health.fieldDate")}</Text>
-      <TextInput
-        style={styles.input}
-        value={administeredDate}
-        onChangeText={setAdministeredDate}
-        placeholder="YYYY-MM-DD"
+      <AppDatePicker
+        label={t("health.fieldDate")}
+        isoValue={administeredDate}
+        onIsoChange={setAdministeredDate}
+        farmId={farmId}
+        maxDate={new Date()}
       />
       <Text style={styles.lab}>{t("health.fieldPractitioner")}</Text>
       <TextInput
@@ -218,12 +220,12 @@ export function BulkVaccineModal({
         value={batchNumber}
         onChangeText={setBatchNumber}
       />
-      <Text style={styles.lab}>{t("health.vaccines.expiryDate")}</Text>
-      <TextInput
-        style={styles.input}
-        value={expiryDate}
-        onChangeText={setExpiryDate}
-        placeholder="YYYY-MM-DD"
+      <AppDatePicker
+        label={t("health.vaccines.expiryDate")}
+        isoValue={expiryDate}
+        onIsoChange={setExpiryDate}
+        farmId={farmId}
+        minDate={new Date()}
       />
       <Text style={styles.lab}>{t("health.fieldNotes")}</Text>
       <TextInput
@@ -290,5 +292,5 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.sm
   },
   saveDisabled: { opacity: 0.5 },
-  saveTx: { color: "#fff", fontWeight: "700" }
+  saveTx: { color: mobileColors.onAccent, fontWeight: "700" }
 });

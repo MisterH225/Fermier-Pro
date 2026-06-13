@@ -22,7 +22,7 @@ import { useTranslation } from "react-i18next";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
 
 import { EXTENDED_MENU_ICONS } from "./extendedMenuIcons";
 
@@ -124,6 +124,11 @@ type ExtendedMenuGridProps = {
 
   onSelect: (id: ExtendedNavMenuId) => void;
 
+  /** Override pour barres flottantes non-producteur (ex. acheteur, véto). */
+  navFloatBottom?: number;
+
+  navBarHeight?: number;
+
 };
 
 
@@ -172,7 +177,11 @@ export function ExtendedMenuGrid({
 
   items,
 
-  onSelect
+  onSelect,
+
+  navFloatBottom = PRODUCER_NAV_FLOAT_BOTTOM,
+
+  navBarHeight = PRODUCER_NAV_BAR_HEIGHT
 
 }: ExtendedMenuGridProps) {
 
@@ -278,13 +287,7 @@ export function ExtendedMenuGrid({
 
   const bottomOffset =
 
-    insets.bottom +
-
-    PRODUCER_NAV_FLOAT_BOTTOM +
-
-    PRODUCER_NAV_BAR_HEIGHT +
-
-    mobileSpacing.sm;
+    insets.bottom + navFloatBottom + navBarHeight + mobileSpacing.sm;
 
 
 
@@ -464,7 +467,7 @@ export function ExtendedMenuGrid({
 
             >
 
-              <Ionicons name="close" size={26} color="#FFFFFF" />
+              <Ionicons name="close" size={26} color={mobileColors.onAccent} />
 
             </Pressable>
 

@@ -24,7 +24,8 @@ import {
 } from "../../../theme/mobileTheme";
 import { budgetMonthLabel, formatBudgetMoney } from "./budgetUtils";
 import { isOfflineQueuedResult, useOfflineMutation } from "../../../hooks/useOfflineMutation";
-import { BUDGET_INVALIDATE_ROOTS } from "../../../lib/offline/budgetOffline";
+import { BUDGET_INVALIDATE_ROOTS } from "../../../lib/finance/financeQueryKeys";
+import { invalidateBudgetQueries } from "../../../lib/finance/invalidateFinanceQueries";
 
 type Props = {
   visible: boolean;
@@ -87,9 +88,7 @@ export function BudgetSetupModal({
   });
 
   const afterBudgetQueued = () => {
-    for (const root of BUDGET_INVALIDATE_ROOTS) {
-      void qc.invalidateQueries({ queryKey: [root, farmId] });
-    }
+    invalidateBudgetQueries(qc, farmId);
     onClose();
   };
 
@@ -183,7 +182,7 @@ export function BudgetSetupModal({
           disabled={busy}
         >
           {saveMut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.saveTx}>{t("budgetScreen.save")}</Text>
           )}
@@ -288,7 +287,7 @@ const styles = StyleSheet.create({
   },
   saveTx: {
     ...mobileTypography.body,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "600"
   }
 });

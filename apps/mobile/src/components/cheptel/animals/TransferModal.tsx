@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -109,13 +110,17 @@ export function TransferModal({
     return out;
   }, [barnDetailsQuery.data]);
 
+  // On ne dépend pas de la référence `animals` (recréée à chaque render parent
+  // par un filter/map sur useQuery → boucle « Maximum update depth »). On lit
+  // uniquement l'ID du premier animal, qui est une string stable.
+  const fallbackAnimalId = animals[0]?.id ?? null;
   useEffect(() => {
     if (visible) {
-      setAnimalId(initialAnimalId ?? animals[0]?.id ?? null);
+      setAnimalId(initialAnimalId ?? fallbackAnimalId);
       setToPenId(null);
       setNote("");
     }
-  }, [visible, initialAnimalId, animals]);
+  }, [visible, initialAnimalId, fallbackAnimalId]);
 
   const selectedAnimal = animals.find((a) => a.id === animalId) ?? null;
   const fromPenId = selectedAnimal?.currentPen?.penId;
@@ -219,7 +224,7 @@ export function TransferModal({
       });
     },
     onError: (e: Error) => {
-      Alert.alert(t("cheptel.animals.transfer.errorTitle"), e.message);
+      Alert.alert(t("cheptel.animals.transfer.errorTitle"), getUserFacingError(e, t));
     }
   });
 
@@ -238,7 +243,7 @@ export function TransferModal({
           disabled={saveMut.isPending || capacityWarning === "block"}
         >
           {saveMut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.primaryBtnText}>
               {t("cheptel.animals.transfer.submit")}
@@ -411,5 +416,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.6 },
-  primaryBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
 });

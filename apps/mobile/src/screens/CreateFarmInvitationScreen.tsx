@@ -1,32 +1,40 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useTranslation } from "react-i18next";
-import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View
 } from "react-native";
+import { CollaboratorRolePermissionsFields } from "../components/collaboration/CollaboratorRolePermissionsFields";
+import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useSession } from "../context/SessionContext";
-import { createFarmInvitation } from "../lib/api";
+import {
+  buildInvitationShareUrl,
+  createFarmInvitation,
+  type InvitationPermissions,
+  type InvitationRecipientKind
+} from "../lib/api";
+import { defaultPermissionsForRecipientKind } from "../lib/memberPermissions";
+import {
+  mobileColors,
+  mobileRadius,
+  mobileSpacing,
+  mobileTypography
+} from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
   "CreateFarmInvitation"
 >;
-
-const ROLES = [
-  { value: "worker", label: "Technicien" },
-  { value: "viewer", label: "Lecture seule" },
-  { value: "veterinarian", label: "Vétérinaire" },
-  { value: "manager", label: "Gérant" }
-] as const;
 
 export function CreateFarmInvitationScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
@@ -35,7 +43,11 @@ export function CreateFarmInvitationScreen({ route, navigation }: Props) {
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
 
-  const [role, setRole] = useState<string>("worker");
+  const [recipientKind, setRecipientKind] =
+    useState<InvitationRecipientKind>("technician");
+  const [permissions, setPermissions] = useState<InvitationPermissions>(
+    defaultPermissionsForRecipientKind("technician")
+  );
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
@@ -45,23 +57,32 @@ export function CreateFarmInvitationScreen({ route, navigation }: Props) {
         accessToken,
         farmId,
         {
-          role,
+          recipientKind,
+          permissions,
           inviteeEmail: email.trim() || undefined,
           inviteePhone: phone.trim() || undefined
         },
         activeProfileId
       ),
-    onSuccess: (res) => {
-      void qc.invalidateQueries({ queryKey: ["farmPendingInvitations", farmId] });
-      Alert.alert(
-        "Invitation créée",
-        `Partage ce lien ou code avec la personne invitée (valide jusqu’au ${new Date(
-          res.expiresAt
-        ).toLocaleDateString("fr-FR")}) :\n\nToken : ${res.token}`,
-        [{ text: "OK", onPress: () => navigation.goBack() }]
-      );
+    onSuccess: async (res) => {
+      void qc.invalidateQueries({
+        queryKey: ["farmPendingInvitations", farmId]
+      });
+      const url = buildInvitationShareUrl(res.token);
+      const message = t("collab.shareMessage", {
+        farm: farmName ?? "",
+        url
+      });
+      try {
+        await Share.share({ message, url });
+      } catch {
+        // Partage annulé ou indisponible — on affiche quand même la confirmation.
+      }
+      Alert.alert(t("collab.inviteSent"), url, [
+        { text: "OK", onPress: () => navigation.goBack() }
+      ]);
     },
-    onError: (e: Error) => Alert.alert("Erreur", e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   return (
@@ -70,53 +91,45 @@ export function CreateFarmInvitationScreen({ route, navigation }: Props) {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.label}>Rôle</Text>
-      <View style={styles.roleRow}>
-        {ROLES.map((r) => (
-          <TouchableOpacity
-            key={r.value}
-            style={[styles.roleChip, role === r.value && styles.roleChipOn]}
-            onPress={() => setRole(r.value)}
-          >
-            <Text
-              style={[
-                styles.roleChipTxt,
-                role === r.value && styles.roleChipTxtOn
-              ]}
-            >
-              {r.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      <Text style={styles.label}>E-mail invité (optionnel)</Text>
+      <CollaboratorRolePermissionsFields
+        recipientKind={recipientKind}
+        permissions={permissions}
+        onRecipientKindChange={setRecipientKind}
+        onPermissionsChange={setPermissions}
+      />
+
+      <Text style={[styles.label, styles.labelGap]}>
+        {t("collab.createInvitation.emailLabel")}
+      </Text>
       <TextInput
         style={styles.input}
         value={email}
         onChangeText={setEmail}
-        placeholder="exemple@domaine.com"
+        placeholder={t("collab.createInvitation.emailPlaceholder")}
         autoCapitalize="none"
         keyboardType="email-address"
       />
-      <Text style={styles.label}>Téléphone invité (optionnel)</Text>
+      <Text style={styles.label}>
+        {t("collab.createInvitation.phoneLabel")}
+      </Text>
       <TextInput
         style={styles.input}
         value={phone}
         onChangeText={setPhone}
-        placeholder="+221 …"
+        placeholder={t("collab.createInvitation.phonePlaceholder")}
         keyboardType="phone-pad"
       />
-      <Text style={styles.note}>
-        Au moins un e-mail ou un téléphone aide à retrouver l’invitation ; le
-        token peut aussi être copié après création.
-      </Text>
+      <Text style={styles.note}>{t("collab.createInvitation.note")}</Text>
+
       <TouchableOpacity
         style={[styles.cta, mut.isPending && styles.ctaDisabled]}
         disabled={mut.isPending}
         onPress={() => mut.mutate()}
       >
         <Text style={styles.ctaTxt}>
-          {mut.isPending ? "Création…" : "Créer l’invitation"}
+          {mut.isPending
+            ? t("collab.createInvitation.submitting")
+            : t("collab.createInvitation.submit")}
         </Text>
       </TouchableOpacity>
     </ScrollView>
@@ -124,50 +137,49 @@ export function CreateFarmInvitationScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: "#f9f8ea" },
-  content: { padding: 16, paddingBottom: 40 },
-  farmHint: { fontSize: 14, color: "#6d745b", marginBottom: 16 },
+  scroll: { flex: 1, backgroundColor: mobileColors.background },
+  content: {
+    padding: mobileSpacing.lg,
+    paddingBottom: mobileSpacing.xxl
+  },
   label: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#4a5238",
-    marginBottom: 6,
-    marginTop: 10
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginBottom: mobileSpacing.sm,
+    marginTop: mobileSpacing.md
+  },
+  labelGap: {
+    marginTop: mobileSpacing.xl
   },
   input: {
-    borderWidth: 1,
-    borderColor: "#d4d2c4",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.border,
+    borderRadius: mobileRadius.md,
+    paddingHorizontal: mobileSpacing.md,
+    paddingVertical: mobileSpacing.sm + 2,
     fontSize: 16,
-    backgroundColor: "#fff"
+    backgroundColor: mobileColors.surfaceMuted,
+    color: mobileColors.textPrimary
   },
-  roleRow: { flexDirection: "row", flexWrap: "wrap", marginBottom: 8 },
-  roleChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#c4c2b4",
-    marginRight: 8,
-    marginBottom: 8,
-    backgroundColor: "#fff"
+  note: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: mobileSpacing.md,
+    lineHeight: 18
   },
-  roleChipOn: {
-    borderColor: "#5d7a1f",
-    backgroundColor: "#e8f0d4"
-  },
-  roleChipTxt: { fontSize: 14, color: "#4a5238" },
-  roleChipTxtOn: { fontWeight: "700", color: "#3d5218" },
-  note: { fontSize: 13, color: "#6d745b", marginTop: 12, lineHeight: 18 },
   cta: {
-    marginTop: 24,
-    backgroundColor: "#5d7a1f",
-    borderRadius: 14,
-    padding: 16,
+    marginTop: mobileSpacing.xl,
+    backgroundColor: mobileColors.accent,
+    borderRadius: mobileRadius.pill,
+    padding: mobileSpacing.md,
     alignItems: "center"
   },
   ctaDisabled: { opacity: 0.6 },
-  ctaTxt: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  ctaTxt: {
+    color: mobileColors.onAccent,
+    fontWeight: "700",
+    fontSize: 16
+  }
 });

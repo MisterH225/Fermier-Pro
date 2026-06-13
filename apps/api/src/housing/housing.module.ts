@@ -1,6 +1,8 @@
-import { Module } from "@nestjs/common";
+import { forwardRef, Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
+import { AgeCalculationModule } from "../cheptel/age-calculation.module";
 import { ConfigClientModule } from "../config-client/config-client.module";
+import { SmartAlertsModule } from "../smart-alerts/smart-alerts.module";
 import { BarnsController } from "./barns.controller";
 import { HousingMoveController } from "./housing-move.controller";
 import { HousingService } from "./housing.service";
@@ -10,7 +12,12 @@ import { PenDetailController } from "./pen-detail.controller";
 import { PensController } from "./pens.controller";
 
 @Module({
-  imports: [AuthModule, ConfigClientModule],
+  imports: [
+    AuthModule,
+    ConfigClientModule,
+    AgeCalculationModule,
+    forwardRef(() => SmartAlertsModule)
+  ],
   controllers: [
     BarnsController,
     PensController,

@@ -39,6 +39,7 @@ import {
 } from "./dto/upsert-farm-budget.dto";
 import { FinanceService } from "./finance.service";
 import { FeedFinanceLinkService } from "../feed-finance-link/feed-finance-link.service";
+import { ReconciliationEngine } from "../feed-finance-link/reconciliation-engine";
 import { CreateTransactionWithStockDto } from "../feed-finance-link/dto/feed-finance-link.dto";
 
 @Controller("farms/:farmId/finance")
@@ -48,7 +49,8 @@ export class FinanceController {
   constructor(
     private readonly finance: FinanceService,
     private readonly budget: BudgetService,
-    private readonly feedFinanceLink: FeedFinanceLinkService
+    private readonly feedFinanceLink: FeedFinanceLinkService,
+    private readonly reconciliation: ReconciliationEngine
   ) {}
 
   @Get("overview")
@@ -298,12 +300,18 @@ export class FinanceController {
 
   @Post("expenses")
   @RequireFarmScopes(FARM_SCOPE.financeWrite)
-  createExpense(
+  async createExpense(
     @CurrentUser() user: User,
     @Param("farmId") farmId: string,
     @Body() dto: CreateExpenseDto
   ) {
-    return this.finance.createExpense(user, farmId, dto);
+    const expense = await this.finance.createExpense(user, farmId, dto);
+    const offer = await this.reconciliation.buildOfferForExpense(expense.id);
+    return {
+      ...expense,
+      amount: expense.amount.toString(),
+      reconciliation: offer.status !== "none" ? offer : null
+    };
   }
 
   @Patch("expenses/:expenseId")
@@ -433,6 +441,34 @@ export class FinanceController {
       q.month,
       q.categoryId,
       q.newAmount
+    );
+  }
+
+  @Get("budget/ai-analysis")
+  @RequireFarmScopes(FARM_SCOPE.financeRead)
+  budgetAiAnalysis(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Query() q: BudgetMonthQueryDto
+  ) {
+    return this.budget.analyzeBudgetWithAi(user, farmId, q.year, q.month);
+  }
+
+  @Post("budget/ai-analysis/apply")
+  @RequireFarmScopes(FARM_SCOPE.financeWrite)
+  applyBudgetAiAnalysis(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Query() q: BudgetMonthQueryDto,
+    @Body()
+    body: { items: Array<{ categoryId: string; suggestedBudget: number }> }
+  ) {
+    return this.budget.applyAiBudgetRecommendations(
+      user,
+      farmId,
+      q.year,
+      q.month,
+      body.items ?? []
     );
   }
 

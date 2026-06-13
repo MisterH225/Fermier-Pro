@@ -11,6 +11,7 @@ import {
   TextInput,
   View
 } from "react-native";
+import { AppDatePicker } from "../common/AppDatePicker";
 import { BaseModal } from "../modals/BaseModal";
 import { ModalSection } from "../modals/ModalSection";
 import { useModal } from "../modals/useModal";
@@ -137,6 +138,9 @@ export function DiseaseModal({
     [pensQ.data?.pens]
   );
 
+  const firstAnimalId = animals[0]?.id ?? null;
+  const firstBatchId = batches[0]?.id ?? null;
+
   useEffect(() => {
     if (!visible) {
       return;
@@ -165,12 +169,12 @@ export function DiseaseModal({
     if (presetAnimal) {
       setSubjectType("animal");
       setSubjectId(presetAnimal.id);
-    } else if (animals[0]?.id) {
+    } else if (firstAnimalId) {
       setSubjectType("animal");
-      setSubjectId(animals[0].id);
-    } else if (batches[0]?.id) {
+      setSubjectId(firstAnimalId);
+    } else if (firstBatchId) {
       setSubjectType("group");
-      setSubjectId(batches[0].id);
+      setSubjectId(firstBatchId);
     }
     setSymptoms([]);
     setCustomSymptom("");
@@ -184,7 +188,9 @@ export function DiseaseModal({
     setShowIsolationPicker(false);
     setIsolationPenId(null);
     setNotes("");
-  }, [visible, presetAnimal, editRecord, animals, batches]);
+    // Dépendre des IDs (strings stables) plutôt que des références d'arrays
+    // recréées à chaque render parent (`?? []`, `.filter()` → boucle infinie).
+  }, [visible, presetAnimal, editRecord, firstAnimalId, firstBatchId]);
 
   const toggleSymptom = (tag: string) => {
     setSymptoms((prev) =>
@@ -380,7 +386,7 @@ export function DiseaseModal({
             onPress={() => saveMut.mutate()}
           >
             {saveMut.isPending ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={mobileColors.onAccent} />
             ) : (
               <Text style={styles.primaryBtnText}>
                 {isEdit
@@ -470,11 +476,12 @@ export function DiseaseModal({
       </ModalSection>
 
       <ModalSection title={`${t("health.diseaseModal.onsetDate")} *`}>
-        <TextInput
-          style={styles.input}
-          value={estimatedOnsetDate}
-          onChangeText={setEstimatedOnsetDate}
-          placeholder="YYYY-MM-DD"
+        <AppDatePicker
+          isoValue={estimatedOnsetDate}
+          onIsoChange={setEstimatedOnsetDate}
+          farmId={farmId}
+          maxDate={new Date()}
+          required
         />
       </ModalSection>
 
@@ -626,7 +633,7 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.md,
     backgroundColor: mobileColors.accent
   },
-  addBtnText: { color: "#fff", fontSize: 22, fontWeight: "700" },
+  addBtnText: { color: mobileColors.onAccent, fontSize: 22, fontWeight: "700" },
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
@@ -676,7 +683,7 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border,
     backgroundColor: mobileColors.background
   },
-  penChipOn: { borderColor: mobileColors.accent, backgroundColor: "#fff" },
+  penChipOn: { borderColor: mobileColors.accent, backgroundColor: mobileColors.background },
   penChipText: { ...mobileTypography.body, fontWeight: "600" },
   textLink: { alignSelf: "flex-start", marginTop: 4 },
   textLinkText: { color: mobileColors.accent, fontWeight: "600" },
@@ -698,5 +705,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.5 },
-  primaryBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
 });

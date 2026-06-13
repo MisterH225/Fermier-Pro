@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { apiFetch, type PlatformSettingsDto } from "@/lib/api";
+import {
+  fetchPlatformSettings,
+  patchPlatformSettings,
+  type PlatformSettingsDto
+} from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -11,24 +15,34 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AccountPasswordCard } from "@/components/settings/AccountPasswordCard";
+import { selectClass } from "@/lib/ui-styles";
 
 const SCOPES = ["world", "africa", "west_africa", "countries"] as const;
 const LEVELS = ["info", "warning", "critical"] as const;
-
-const selectClass =
-  "flex h-10 w-full rounded-lg border border-input bg-card px-3 py-2 text-sm";
 
 export default function ParametresPage() {
   const t = useTranslations("settings");
   const { token, ready } = useAdminToken();
   const [form, setForm] = useState<PlatformSettingsDto | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (!token) return;
-    apiFetch<PlatformSettingsDto>("/admin/settings", token).then(setForm);
-  }, [token]);
+    setLoadError(null);
+    fetchPlatformSettings(token)
+      .then((row) => {
+        setForm({
+          ...row,
+          marketplaceCommissionRate: Number(row.marketplaceCommissionRate ?? 0.05)
+        });
+      })
+      .catch(() => {
+        setLoadError(t("loadError"));
+        setForm(null);
+      });
+  }, [token, t]);
 
   const update = <K extends keyof PlatformSettingsDto>(
     key: K,
@@ -43,16 +57,16 @@ export default function ParametresPage() {
     setSaving(true);
     setSaved(false);
     try {
-      const next = await apiFetch<PlatformSettingsDto>("/admin/settings", token, {
-        method: "PATCH",
-        body: JSON.stringify({
-          mapGeographicScope: form.mapGeographicScope,
-          alertCaseThreshold: form.alertCaseThreshold,
-          alertPeriodDays: form.alertPeriodDays,
-          alertDefaultLevel: form.alertDefaultLevel,
-          adminNotifyEmail: form.adminNotifyEmail ?? "",
-          reportFrequencyDays: form.reportFrequencyDays
-        })
+      const next = await patchPlatformSettings(token, {
+        mapGeographicScope: form.mapGeographicScope,
+        alertCaseThreshold: form.alertCaseThreshold,
+        alertPeriodDays: form.alertPeriodDays,
+        alertDefaultLevel: form.alertDefaultLevel,
+        adminNotifyEmail: form.adminNotifyEmail ?? "",
+        reportFrequencyDays: form.reportFrequencyDays,
+        marketplaceCommissionRate: form.marketplaceCommissionRate,
+        supportPhone: form.supportPhone ?? "",
+        supportTelegramUrl: form.supportTelegramUrl ?? ""
       });
       setForm(next);
       setSaved(true);
@@ -61,7 +75,22 @@ export default function ParametresPage() {
     }
   };
 
-  if (!ready || !form) {
+  if (!ready) {
+    return <p className="text-muted-foreground">…</p>;
+  }
+
+  if (loadError) {
+    return (
+      <div className="space-y-4 max-w-2xl">
+        <PageHeader title={t("title")} />
+        <p className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {loadError}
+        </p>
+      </div>
+    );
+  }
+
+  if (!form) {
     return <p className="text-muted-foreground">…</p>;
   }
 
@@ -70,6 +99,54 @@ export default function ParametresPage() {
       <PageHeader title={t("title")} />
 
       <AccountPasswordCard />
+
+      <Card id="support">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">{t("sections.support")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="support-phone">{t("fields.supportPhone")}</Label>
+            <Input
+              id="support-phone"
+              type="tel"
+              placeholder="+221771234567"
+              value={form.supportPhone ?? ""}
+              onChange={(e) => update("supportPhone", e.target.value || null)}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("fields.supportPhoneHint")}
+            </p>
+            {!form.supportPhone?.trim() && form.supportEffective?.phone ? (
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                {t("fields.supportPhoneEffective", {
+                  value: form.supportEffective.phone
+                })}
+              </p>
+            ) : null}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="support-telegram">{t("fields.supportTelegram")}</Label>
+            <Input
+              id="support-telegram"
+              type="url"
+              placeholder="https://t.me/fermierpro ou @fermierpro"
+              value={form.supportTelegramUrl ?? ""}
+              onChange={(e) => update("supportTelegramUrl", e.target.value || null)}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("fields.supportTelegramHint")}
+            </p>
+            {!form.supportTelegramUrl?.trim() && form.supportEffective?.telegramUrl ? (
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                {t("fields.supportTelegramEffective", {
+                  value: form.supportEffective.telegramUrl
+                })}
+              </p>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="pb-2">
@@ -164,12 +241,43 @@ export default function ParametresPage() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">{t("sections.marketplace")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="marketplace-commission">
+              {t("fields.marketplaceCommission")}
+            </Label>
+            <Input
+              id="marketplace-commission"
+              type="number"
+              min={0}
+              max={99}
+              step={0.1}
+              value={Math.round((form.marketplaceCommissionRate ?? 0.05) * 1000) / 10}
+              onChange={(e) => {
+                const pct = Number(e.target.value);
+                update(
+                  "marketplaceCommissionRate",
+                  Number.isFinite(pct) ? pct / 100 : 0.05
+                );
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("fields.marketplaceCommissionHint")}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex items-center gap-4">
         <Button type="button" disabled={saving} onClick={onSave}>
           {saving ? "…" : t("save")}
         </Button>
         {saved ? (
-          <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200">
+          <Badge variant="success">
             {t("saved")}
           </Badge>
         ) : null}

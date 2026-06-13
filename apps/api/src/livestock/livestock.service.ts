@@ -14,6 +14,9 @@ import { AUDIT_ACTION } from "../common/audit.constants";
 import { AuditService } from "../common/audit.service";
 import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { calculateAnimalAgeWeeks } from "../cheptel/age-calculation.util";
+import { PenAllocationService } from "../housing/pen-allocation.service";
+import { BulkCreateAnimalsDto } from "./dto/bulk-create-animals.dto";
 import { CreateAnimalDto } from "./dto/create-animal.dto";
 import { CreateWeightDto } from "./dto/create-weight.dto";
 import { PatchAnimalStatusDto } from "./dto/patch-animal-status.dto";
@@ -39,6 +42,8 @@ function prefixForCategory(
       return "Eng";
     case "starter":
       return "Dem";
+    case "nursing":
+      return "All";
     default:
       return null;
   }
@@ -62,7 +67,8 @@ export class LivestockService {
     private readonly taxonomy: TaxonomyService,
     private readonly animalTags: AnimalProductionTagsService,
     private readonly farmAccess: FarmAccessService,
-    private readonly audit: AuditService
+    private readonly audit: AuditService,
+    private readonly penAllocation: PenAllocationService
   ) {}
 
   private async resolveSpeciesId(dto: CreateAnimalDto): Promise<string> {
@@ -229,6 +235,8 @@ export class LivestockService {
     await this.assertUniqueTagCode(farmId, tagCode);
 
     const sex = dto.sex ?? defaultSexForCategory(productionCategory);
+    const entryDate = new Date();
+    entryDate.setUTCHours(0, 0, 0, 0);
 
     return this.prisma.animal.create({
       data: {
@@ -239,8 +247,154 @@ export class LivestockService {
         sex,
         productionCategory,
         birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
+        entryDate,
+        ageWeeksAtEntry:
+          dto.birthDate == null && dto.ageWeeksAtEntry != null
+            ? dto.ageWeeksAtEntry
+            : undefined,
         notes: dto.notes
       }
+    });
+  }
+
+  async bulkCreateAnimals(
+    user: User,
+    farmId: string,
+    dto: BulkCreateAnimalsDto
+  ) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const prefix = prefixForCategory(dto.productionCategory);
+    if (!prefix) {
+      throw new BadRequestException(
+        "Catégorie non prise en charge pour la création en masse"
+      );
+    }
+
+    const speciesId = await this.resolveSpeciesId({});
+    await this.assertBreedForSpecies(speciesId, dto.breedId);
+
+    const entryDate = new Date(dto.entryDate);
+    if (Number.isNaN(entryDate.getTime())) {
+      throw new BadRequestException("Date d'entrée invalide");
+    }
+    entryDate.setUTCHours(0, 0, 0, 0);
+
+    const sex = dto.sex ?? defaultSexForCategory(dto.productionCategory);
+    if (dto.productionCategory === "breeding_female" && sex !== "female") {
+      throw new BadRequestException("Les truies doivent être de sexe femelle");
+    }
+    if (dto.productionCategory === "breeding_male" && sex !== "male") {
+      throw new BadRequestException("Les verrats doivent être de sexe mâle");
+    }
+
+    const entryWeightDecimal =
+      dto.entryWeightKg != null
+        ? new Prisma.Decimal(dto.entryWeightKg)
+        : undefined;
+
+    return this.prisma.$transaction(async (tx) => {
+      const tagCodes = await this.animalTags.allocateTagCodes(
+        farmId,
+        prefix,
+        dto.count,
+        tx
+      );
+
+      const createdAnimals: Animal[] = [];
+      for (const tagCode of tagCodes) {
+        const animal = await tx.animal.create({
+          data: {
+            farmId,
+            speciesId,
+            breedId: dto.breedId ?? null,
+            tagCode,
+            sex,
+            status: "active",
+            productionCategory: dto.productionCategory,
+            entryDate,
+            ageWeeksAtEntry: dto.ageWeeksAtEntry ?? null,
+            entryWeightKg: entryWeightDecimal ?? null,
+            origin: dto.origin,
+            supplier:
+              dto.origin === AnimalOrigin.purchased
+                ? dto.supplier?.trim() || null
+                : null,
+            notes: dto.notes?.trim() || null
+          }
+        });
+        if (entryWeightDecimal != null) {
+          await tx.animalWeight.create({
+            data: {
+              animalId: animal.id,
+              weightKg: entryWeightDecimal,
+              measuredAt: entryDate
+            }
+          });
+        }
+        createdAnimals.push(animal);
+      }
+
+      let placedInPenCount = 0;
+      if (dto.penId) {
+        const pen = await tx.pen.findFirst({
+          where: { id: dto.penId, barn: { farmId } },
+          select: { id: true, capacity: true, status: true }
+        });
+        if (!pen) {
+          throw new NotFoundException("Loge introuvable");
+        }
+        if (pen.status === "inactive") {
+          throw new BadRequestException("Loge inactive");
+        }
+
+        let occupancy = await this.penAllocation.countActiveOccupancy(
+          tx,
+          pen.id
+        );
+        const capacity = pen.capacity ?? 0;
+
+        for (const animal of createdAnimals) {
+          if (capacity > 0 && occupancy >= capacity) {
+            break;
+          }
+          await tx.penPlacement.updateMany({
+            where: {
+              animalId: animal.id,
+              endedAt: null,
+              pen: { barn: { farmId } }
+            },
+            data: { endedAt: new Date() }
+          });
+          await this.penAllocation.assertAnimalPenCompatible(
+            tx,
+            animal.id,
+            pen.id
+          );
+          await tx.penPlacement.create({
+            data: {
+              penId: pen.id,
+              animalId: animal.id,
+              createdByUserId: user.id
+            }
+          });
+          occupancy += 1;
+          placedInPenCount += 1;
+        }
+
+        await this.penAllocation.recalculatePenCategory(tx, pen.id);
+        if (entryWeightDecimal != null) {
+          await this.penAllocation.recalculatePenAverageWeight(tx, pen.id);
+        }
+      }
+
+      return {
+        animalsCreated: createdAnimals,
+        firstNumber: tagCodes[0] ?? "",
+        lastNumber: tagCodes[tagCodes.length - 1] ?? "",
+        count: createdAnimals.length,
+        placedInPenCount,
+        unplacedCount: createdAnimals.length - placedInPenCount
+      };
     });
   }
 
@@ -294,12 +448,35 @@ export class LivestockService {
     }
   }
 
+  private enrichAnimalDetail<
+    T extends {
+      birthDate: Date | null;
+      ageWeeksAtEntry: number | null;
+      entryDate: Date | null;
+    }
+  >(row: T) {
+    const currentAgeWeeks = calculateAnimalAgeWeeks({
+      birthDate: row.birthDate,
+      ageWeeksAtEntry: row.ageWeeksAtEntry,
+      entryDate: row.entryDate
+    });
+    return {
+      ...row,
+      entryDate: row.entryDate?.toISOString().slice(0, 10) ?? null,
+      currentAgeWeeks
+    };
+  }
+
   async getAnimal(user: User, farmId: string, animalId: string) {
     await this.getAnimalOnFarm(user, farmId, animalId);
-    return this.prisma.animal.findFirst({
+    const row = await this.prisma.animal.findFirst({
       where: { id: animalId, farmId },
       include: this.animalDetailInclude
     });
+    if (!row) {
+      throw new NotFoundException("Animal introuvable");
+    }
+    return this.enrichAnimalDetail(row);
   }
 
   async updateAnimal(
@@ -367,7 +544,20 @@ export class LivestockService {
             ? { productionCategory: dto.productionCategory }
             : {}),
           ...(dto.birthDate !== undefined
-            ? { birthDate: dto.birthDate ? new Date(dto.birthDate) : null }
+            ? {
+                birthDate: dto.birthDate ? new Date(dto.birthDate) : null,
+                ...(dto.birthDate
+                  ? { ageWeeksAtEntry: null }
+                  : {})
+              }
+            : {}),
+          ...(dto.ageWeeksAtEntry !== undefined
+            ? { ageWeeksAtEntry: dto.ageWeeksAtEntry }
+            : {}),
+          ...(dto.entryDate !== undefined
+            ? {
+                entryDate: dto.entryDate ? new Date(dto.entryDate) : null
+              }
             : {}),
           ...(dto.origin !== undefined ? { origin: dto.origin } : {}),
           ...(dto.supplier !== undefined
@@ -397,10 +587,14 @@ export class LivestockService {
       }
     });
 
-    return this.prisma.animal.findFirst({
+    const updated = await this.prisma.animal.findFirst({
       where: { id: animalId, farmId },
       include: this.animalDetailInclude
     });
+    if (!updated) {
+      throw new NotFoundException("Animal introuvable");
+    }
+    return this.enrichAnimalDetail(updated);
   }
 
   async patchAnimalStatus(

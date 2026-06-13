@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import {
   fetchLinkedStockForExpense,
-  type FinanceMergedTransactionDto
+  type FinanceMergedTransactionDto,
+  type LinkedStockMovementSummaryDto
 } from "../../lib/api";
 import {
   mobileColors,
@@ -60,7 +61,7 @@ export function LinkedStockSection({
         <ActivityIndicator size="small" color={mobileColors.accent} />
       ) : (
         <View style={{ gap: mobileSpacing.xs }}>
-          {(q.data?.movements ?? []).map((m) => (
+          {(q.data?.movements ?? []).map((m: LinkedStockMovementSummaryDto) => (
             <Text key={m.id} style={{ ...mobileTypography.body }}>
               {m.feedTypeName} — {m.quantityKg ?? "0"} kg
               {m.unitPrice

@@ -35,7 +35,7 @@ export class ChatGateway implements OnGatewayConnection {
   }
 
   async handleConnection(client: Socket) {
-    if (!this.featureFlags.isEnabled("chat")) {
+    if (!(await this.featureFlags.isEnabled("chat"))) {
       this.logger.debug("WS /chat : module désactivé (FEATURE_CHAT)");
       client.disconnect(true);
       return;
@@ -75,7 +75,7 @@ export class ChatGateway implements OnGatewayConnection {
     @ConnectedSocket() client: Socket,
     @MessageBody() body: WsJoinRoomDto
   ) {
-    if (!this.featureFlags.isEnabled("chat")) {
+    if (!(await this.featureFlags.isEnabled("chat"))) {
       return { ok: false, error: "module_disabled" };
     }
     const userId = client.data.userId as string | undefined;
@@ -101,7 +101,7 @@ export class ChatGateway implements OnGatewayConnection {
     @ConnectedSocket() client: Socket,
     @MessageBody() body: WsSendMessageDto
   ) {
-    if (!this.featureFlags.isEnabled("chat")) {
+    if (!(await this.featureFlags.isEnabled("chat"))) {
       return { ok: false, error: "module_disabled" };
     }
     const userId = client.data.userId as string | undefined;
@@ -109,6 +109,7 @@ export class ChatGateway implements OnGatewayConnection {
       return { ok: false, error: "unauthorized" };
     }
     const msg = await this.chat.createMessage(userId, body.roomId, body.body);
+    this.chat.notifyPeersOfNewMessage(userId, body.roomId, msg.body);
     this.server.to(this.roomChannel(body.roomId)).emit("newMessage", msg);
     return msg;
   }

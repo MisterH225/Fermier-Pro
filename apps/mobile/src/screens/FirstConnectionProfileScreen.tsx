@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   ScrollView,
@@ -18,45 +19,36 @@ import { profileTypeIcon } from "../lib/profileTypeIcon";
 import { useSession } from "../context/SessionContext";
 import { authColors, authRadii } from "../theme/authTheme";
 
-const OPTIONS: Array<{
-  type: ProfileTypeChoice;
-  title: string;
-  subtitle: string;
-}> = [
-  {
-    type: "producer",
-    title: "Producteur",
-    subtitle: "Gérer tes fermes, animaux et équipe."
-  },
-  {
-    type: "technician",
-    title: "Technicien",
-    subtitle: "Suivi terrain et interventions chez les éleveurs."
-  },
-  {
-    type: "veterinarian",
-    title: "Vétérinaire",
-    subtitle: "Consultations, dossiers sanitaires et échanges."
-  },
-  {
-    type: "buyer",
-    title: "Acheteur",
-    subtitle: "Marché, offres et négociations."
-  }
+const PROFILE_TYPES: ProfileTypeChoice[] = [
+  "producer",
+  "technician",
+  "veterinarian",
+  "buyer"
 ];
 
 /**
  * Une seule fois par compte : choix du métier avant tout tableau de bord.
  */
 export function FirstConnectionProfileScreen() {
+  const { t } = useTranslation();
   const { accessToken, setActiveProfileId, signOut } = useSession();
   const [selected, setSelected] = useState<ProfileTypeChoice | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const options = useMemo(
+    () =>
+      PROFILE_TYPES.map((type) => ({
+        type,
+        title: t(`firstConnection.${type}.title`),
+        subtitle: t(`firstConnection.${type}.subtitle`)
+      })),
+    [t]
+  );
+
   const onContinue = async () => {
     if (!selected) {
-      setError("Choisis un profil pour continuer.");
+      setError(t("firstConnection.pickProfile"));
       return;
     }
     setError(null);
@@ -77,16 +69,13 @@ export function FirstConnectionProfileScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.head}>Première connexion</Text>
+        <Text style={styles.head}>{t("firstConnection.title")}</Text>
 
         <View style={styles.body}>
-          <Text style={styles.sub}>
-            Choisis ton métier : tu accéderas ensuite à un tableau de bord adapté.
-            Tu pourras ajouter d’autres rôles plus tard depuis ton profil.
-          </Text>
+          <Text style={styles.sub}>{t("firstConnection.subtitle")}</Text>
 
           <View style={styles.cards}>
-            {OPTIONS.map((opt) => {
+            {options.map((opt) => {
               const active = selected === opt.type;
               return (
                 <TouchableOpacity
@@ -136,7 +125,7 @@ export function FirstConnectionProfileScreen() {
             {busy ? (
               <ActivityIndicator color={authColors.forest} />
             ) : (
-              <Text style={styles.ctaLabel}>Continuer</Text>
+              <Text style={styles.ctaLabel}>{t("firstConnection.continue")}</Text>
             )}
           </TouchableOpacity>
 
@@ -147,7 +136,7 @@ export function FirstConnectionProfileScreen() {
             onPress={() => void signOut()}
             hitSlop={{ top: 12, bottom: 12 }}
           >
-            <Text style={styles.signOutText}>Utiliser un autre compte</Text>
+            <Text style={styles.signOutText}>{t("firstConnection.signOut")}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -199,7 +188,7 @@ const styles = StyleSheet.create({
   },
   cardActive: {
     borderColor: authColors.forest,
-    backgroundColor: "#f4faf6"
+    backgroundColor: authColors.cardActiveBg
   },
   iconWrap: {
     width: 48,
@@ -207,10 +196,10 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f0f4f2"
+    backgroundColor: authColors.iconWrapBg
   },
   iconWrapActive: {
-    backgroundColor: "#e2f0e8"
+    backgroundColor: authColors.iconWrapActiveBg
   },
   cardText: {
     flex: 1,

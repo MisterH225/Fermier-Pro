@@ -11,12 +11,15 @@ export { ChartTooltip } from "./ChartTooltip";
 export {
   financeMonthsToRevExpLines,
   financeMonthsToSingleLine,
+  marketplaceBuyerFinanceLines,
+  marketplaceSellerFinanceLines,
   budgetVsExpenseLines,
   barDataToLine,
   feedChartToLines,
   feedSeriesColor,
-  FEED_SERIES_PALETTE,
+  feedSeriesPalette,
   feedPeriodToChartPeriod,
   chartPeriodToFeedPeriod,
-  type FinanceMonthPoint
+  type FinanceMonthPoint,
+  type MarketplaceFinanceMonthPoint
 } from "./smartChartAdapters";

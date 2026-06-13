@@ -3,13 +3,17 @@ import {
   AnimalProductionCategory,
   AnimalSex
 } from "@prisma/client";
+import { Type } from "class-transformer";
 import {
   IsDateString,
   IsEnum,
+  IsInt,
   IsOptional,
   IsString,
   IsUrl,
-  MaxLength
+  Max,
+  MaxLength,
+  Min
 } from "class-validator";
 
 export class UpdateAnimalDto {
@@ -33,6 +37,17 @@ export class UpdateAnimalDto {
   @IsOptional()
   @IsDateString()
   birthDate?: string | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(520)
+  ageWeeksAtEntry?: number | null;
+
+  @IsOptional()
+  @IsDateString()
+  entryDate?: string | null;
 
   @IsOptional()
   @IsEnum(AnimalOrigin)

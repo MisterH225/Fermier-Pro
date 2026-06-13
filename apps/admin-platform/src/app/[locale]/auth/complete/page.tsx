@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { API_BASE } from "@/lib/utils";
+import { verifyAdminSuperUser } from "@/lib/admin-auth";
 import { useRouter } from "@/i18n/navigation";
 
 export default function AuthCompletePage() {
@@ -22,10 +22,7 @@ export default function AuthCompletePage() {
           router.replace("/login");
           return;
         }
-        const meRes = await fetch(`${API_BASE}/admin/me`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!meRes.ok) {
+        if (!(await verifyAdminSuperUser(token))) {
           await supabase.auth.signOut();
           setMessage(t("forbidden"));
           router.replace("/login");
@@ -41,8 +38,9 @@ export default function AuthCompletePage() {
   }, [router, t]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-      {message}
+    <div className="min-h-screen dashboard-bg flex flex-col items-center justify-center gap-4 text-muted-foreground">
+      <div className="size-10 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+      <p>{message}</p>
     </div>
   );
 }

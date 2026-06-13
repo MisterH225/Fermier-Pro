@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     gap: mobileSpacing.md,
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 16,
     padding: mobileSpacing.md,
     marginBottom: mobileSpacing.sm,

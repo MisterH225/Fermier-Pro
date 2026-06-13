@@ -18,6 +18,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import { CreateCustomVaccineDto } from "./dto/create-custom-vaccine.dto";
 import { CreateVaccineRecordsDto } from "./dto/create-vaccine-records.dto";
+import { calculateAnimalAgeWeeks } from "../cheptel/age-calculation.util";
 
 export type VaccineSubjectStatus = "unvaccinated" | "vaccinated" | "upcoming";
 
@@ -108,6 +109,24 @@ function animalMatchesTarget(
     return true;
   }
   return targets.includes(productionCategory);
+}
+
+function parseMinAgeWeeks(recommendedTiming: string, targetLabel: string): number {
+  const combined = `${recommendedTiming} ${targetLabel}`.toLowerCase();
+  const weekMatch = combined.match(
+    /(?:>|≥|à partir de\s*)?(\d+)\s*(?:-\s*\d+\s*)?sem/i
+  );
+  if (weekMatch) {
+    const n = Number.parseInt(weekMatch[1], 10);
+    if (Number.isFinite(n)) {
+      return n;
+    }
+  }
+  const dayMatch = combined.match(/j\s*(\d+)/i);
+  if (dayMatch) {
+    return Math.ceil(Number.parseInt(dayMatch[1], 10) / 7);
+  }
+  return 0;
 }
 
 @Injectable()
@@ -361,6 +380,83 @@ export class FarmVaccineService {
     }
 
     return { farmId, items };
+  }
+
+  /** Administrations manquantes ou rappels dépassés (KPI Santé). */
+  async countOverdueAdministrations(user: User, farmId: string): Promise<number> {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const farm = await this.prisma.farm.findFirst({ where: { id: farmId } });
+    if (!farm) {
+      return 0;
+    }
+
+    const vaccines = await this.listCatalog(user, farmId);
+    const now = new Date();
+    let total = 0;
+
+    for (const vaccine of vaccines) {
+      const minAgeWeeks = parseMinAgeWeeks(
+        vaccine.recommendedTiming,
+        vaccine.targetLabel
+      );
+      const targets = parseTargetCategories(vaccine.targetCategories);
+      const latestMap = await this.latestRecordsByEntity(farmId, vaccine.id);
+
+      if (farm.livestockMode === "batch" || farm.livestockMode === "hybrid") {
+        const entities = await this.listApplicableEntities(
+          farmId,
+          farm.livestockMode,
+          targets
+        );
+        for (const ent of entities) {
+          const key = `${ent.entityType}:${ent.entityId}`;
+          const latest = latestMap.get(key);
+          if (this.isOverdueForStats(latest, now)) {
+            total += ent.headcount;
+          }
+        }
+        continue;
+      }
+
+      const animals = await this.prisma.animal.findMany({
+        where: { farmId, status: "active" },
+        select: {
+          id: true,
+          productionCategory: true,
+          birthDate: true,
+          ageWeeksAtEntry: true,
+          entryDate: true
+        }
+      });
+
+      for (const a of animals) {
+        if (!animalMatchesTarget(a.productionCategory, targets)) {
+          continue;
+        }
+        const ageWeeks = calculateAnimalAgeWeeks(
+          {
+            birthDate: a.birthDate,
+            ageWeeksAtEntry: a.ageWeeksAtEntry,
+            entryDate: a.entryDate
+          },
+          now
+        );
+        const key = `${FarmHealthEntityType.animal}:${a.id}`;
+        const latest = latestMap.get(key);
+        const reminderOverdue =
+          latest?.nextDueDate != null && latest.nextDueDate < now;
+
+        if (!latest) {
+          if (ageWeeks == null || ageWeeks >= minAgeWeeks) {
+            total += 1;
+          }
+        } else if (reminderOverdue) {
+          total += 1;
+        }
+      }
+    }
+
+    return total;
   }
 
   async listSubjects(

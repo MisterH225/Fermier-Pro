@@ -11,14 +11,17 @@ import {
 type Props = {
   name: string;
   subtitle: string;
-  /** Valeur principale (ex. « 38 % » ou « 12 j »). */
+  /** Valeur principale (ex. « 42 % restant »). */
   displayValue: string;
   /** Remplissage jauge 0–100 ; null = piste vide. */
   percent: number | null;
+  /** Couleur de la jauge selon criticité stock. */
   gaugeColor: string;
-  /** Libellé centré dans l'arc (ex. « 5 j »). */
-  centerLabel?: string;
+  /** Estimation jours — toujours en gris (informatif). */
+  daysLabel?: string;
   dotColor: string;
+  /** Dernier contrôle > 7 jours — sous-titre en orange. */
+  lastCheckWarning?: boolean;
   /** `embedded` = ligne dans une carte parente (dashboard). */
   variant?: "card" | "embedded";
 };
@@ -26,25 +29,39 @@ type Props = {
 const GAUGE_W = 112;
 const GAUGE_H = 68;
 const CX = GAUGE_W / 2;
+/** Centre en bas de la jauge : arc visible = demi-cercle supérieur (gauche → haut → droite). */
 const CY = GAUGE_H - 6;
 const R = 44;
 const STROKE = 10;
+/** Extrémité gauche de l’arc (sens horaire vers la droite en passant par le haut). */
+const ARC_START = 270;
+const ARC_END = 90;
 
 function arcPath(
   cx: number,
   cy: number,
   r: number,
   startDeg: number,
-  endDeg: number
+  endDeg: number,
+  clockwise = true
 ): string {
   const toRad = (deg: number) => ((deg - 90) * Math.PI) / 180;
   const x1 = cx + r * Math.cos(toRad(startDeg));
   const y1 = cy + r * Math.sin(toRad(startDeg));
   const x2 = cx + r * Math.cos(toRad(endDeg));
   const y2 = cy + r * Math.sin(toRad(endDeg));
-  const sweep = endDeg - startDeg;
-  const large = sweep > 180 ? 1 : 0;
-  return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
+
+  let sweepDeg = endDeg - startDeg;
+  if (clockwise) {
+    if (sweepDeg <= 0) {
+      sweepDeg += 360;
+    }
+  } else if (sweepDeg >= 0) {
+    sweepDeg -= 360;
+  }
+  const large = Math.abs(sweepDeg) > 180 ? 1 : 0;
+  const sweepFlag = clockwise ? 1 : 0;
+  return `M ${x1} ${y1} A ${r} ${r} 0 ${large} ${sweepFlag} ${x2} ${y2}`;
 }
 
 function SemiGauge({
@@ -54,16 +71,16 @@ function SemiGauge({
   percent: number | null;
   color: string;
 }) {
-  const start = 180;
-  const end = 360;
   const fillEnd =
-    percent == null ? start : start + (Math.min(100, Math.max(0, percent)) / 100) * 180;
+    percent == null
+      ? ARC_START
+      : ARC_START + (Math.min(100, Math.max(0, percent)) / 100) * 180;
 
   return (
     <View style={styles.gaugeWrap}>
       <Svg width={GAUGE_W} height={GAUGE_H}>
         <Path
-          d={arcPath(CX, CY, R, start, end)}
+          d={arcPath(CX, CY, R, ARC_START, ARC_END, true)}
           stroke={mobileColors.border}
           strokeWidth={STROKE}
           fill="none"
@@ -71,7 +88,7 @@ function SemiGauge({
         />
         {percent != null && percent > 0 ? (
           <Path
-            d={arcPath(CX, CY, R, start, fillEnd)}
+            d={arcPath(CX, CY, R, ARC_START, fillEnd, true)}
             stroke={color}
             strokeWidth={STROKE}
             fill="none"
@@ -89,8 +106,9 @@ export function FeedStockLevelGauge({
   displayValue,
   percent,
   gaugeColor,
-  centerLabel,
+  daysLabel,
   dotColor,
+  lastCheckWarning,
   variant = "card"
 }: Props) {
   return (
@@ -107,16 +125,19 @@ export function FeedStockLevelGauge({
             {name}
           </Text>
         </View>
-        <Text style={styles.subtitle} numberOfLines={2}>
+        <Text
+          style={[styles.subtitle, lastCheckWarning && styles.subtitleWarn]}
+          numberOfLines={3}
+        >
           {subtitle}
         </Text>
         <Text style={styles.displayValue}>{displayValue}</Text>
+        {daysLabel ? (
+          <Text style={styles.daysEstimate}>{daysLabel}</Text>
+        ) : null}
       </View>
       <View style={styles.right}>
         <SemiGauge percent={percent} color={gaugeColor} />
-        {centerLabel ? (
-          <Text style={[styles.centerLabel, { color: gaugeColor }]}>{centerLabel}</Text>
-        ) : null}
       </View>
     </View>
   );
@@ -169,6 +190,14 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary,
     marginTop: 2
   },
+  subtitleWarn: {
+    color: mobileColors.warning
+  },
+  daysEstimate: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: mobileSpacing.xs
+  },
   displayValue: {
     fontSize: 28,
     lineHeight: 34,
@@ -184,11 +213,5 @@ const styles = StyleSheet.create({
   gaugeWrap: {
     width: GAUGE_W,
     height: GAUGE_H
-  },
-  centerLabel: {
-    position: "absolute",
-    bottom: 2,
-    fontSize: 11,
-    fontWeight: "700"
   }
 });

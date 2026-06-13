@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { farmDetailMenuVisibility } from "../../lib/menuVisibility";
 import type { RootStackParamList } from "../../types/navigation";
@@ -60,74 +61,81 @@ export type FarmListQuickNav =
   | { screen: "AcceptFarmInvitation"; params: { prefilledToken?: string } };
 
 export function buildFarmListHeaderSecondaryItems(
-  menu: FarmListFeatureFlags
+  menu: FarmListFeatureFlags,
+  t: TFunction
 ): FarmListHeaderSecondaryItem[] {
   return [
     {
       id: "messages",
-      label: "Messages",
+      label: t("farmListScreen.headerMessages"),
       visible: menu.chat,
       screen: "ChatRooms"
     },
     {
       id: "marketplace",
-      label: "Marché",
+      label: t("farmListScreen.headerMarket"),
       visible: menu.marketplace,
       screen: "MarketplaceList"
     }
   ];
 }
 
-export function buildFarmListListHeaderRows(args: {
-  menu: FarmListFeatureFlags;
-  hasProducerProfile: boolean;
-}): FarmListListHeaderRow[] {
+export function buildFarmListListHeaderRows(
+  args: {
+    menu: FarmListFeatureFlags;
+    hasProducerProfile: boolean;
+  },
+  t: TFunction
+): FarmListListHeaderRow[] {
   const { menu, hasProducerProfile } = args;
   return [
     {
       kind: "marketplaceBanner",
       visible: menu.marketplace,
-      title: "Voir le marché",
-      subtitle: "Annonces publiées · achat / inspiration",
+      title: t("farmListScreen.marketBannerTitle"),
+      subtitle: t("farmListScreen.marketBannerSub"),
       target: { screen: "MarketplaceList" }
     },
     {
       kind: "createFarm",
       visible: hasProducerProfile,
-      title: "+ Nouvelle ferme",
+      title: t("farmListScreen.newFarm"),
       target: { screen: "CreateFarm" }
     },
     {
       kind: "invite",
       visible: true,
-      title: "J'ai un code d'invitation",
+      title: t("farmListScreen.inviteCode"),
       target: { screen: "AcceptFarmInvitation", params: {} }
     }
   ];
 }
 
-export function buildFarmListEmptyRows(args: {
-  menu: FarmListFeatureFlags;
-  hasProducerProfile: boolean;
-}): FarmListEmptyRow[] {
+export function buildFarmListEmptyRows(
+  args: {
+    menu: FarmListFeatureFlags;
+    hasProducerProfile: boolean;
+  },
+  t: TFunction
+): FarmListEmptyRow[] {
   const { menu, hasProducerProfile } = args;
   return [
     {
       kind: "marketplaceCta",
       visible: menu.marketplace,
-      title: "Voir le marché",
+      title: t("farmListScreen.marketBannerTitle"),
       target: { screen: "MarketplaceList" }
     },
     {
       kind: "createFarmCta",
       visible: hasProducerProfile,
-      title: "Créer une ferme",
+      title: t("farmListScreen.createFarmCta"),
       target: { screen: "CreateFarm" }
     },
     {
       kind: "invite",
       visible: true,
-      title: "J'ai un code d'invitation",
+      title: t("farmListScreen.inviteCode"),
       target: { screen: "AcceptFarmInvitation", params: {} }
     }
   ];

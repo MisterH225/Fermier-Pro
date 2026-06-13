@@ -39,6 +39,10 @@ export class AdminAiService {
     private readonly gemini: AiGeminiService
   ) {}
 
+  getStatus() {
+    return { configured: this.gemini.isConfigured() };
+  }
+
   async epidemicAnalysis(locale = "fr"): Promise<AdminEpidemicAnalysis> {
     const generatedAt = new Date().toISOString();
     if (!this.gemini.isConfigured()) {

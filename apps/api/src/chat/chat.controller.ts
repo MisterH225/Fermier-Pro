@@ -16,9 +16,12 @@ import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.decorator";
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
 import { ChatGateway } from "./chat.gateway";
+import { ChatPhoneSecurityService } from "./chat-phone-security.service";
 import { ChatService } from "./chat.service";
+import { AnalyzeChatImageDto } from "./dto/analyze-chat-image.dto";
 import { CreateDirectChatDto } from "./dto/create-direct-chat.dto";
 import { SendChatMessageDto } from "./dto/send-chat-message.dto";
+import { ImageAnalysisService } from "./image-analysis.service";
 
 @Controller("chat")
 @RequireFeature("chat")
@@ -26,7 +29,9 @@ import { SendChatMessageDto } from "./dto/send-chat-message.dto";
 export class ChatController {
   constructor(
     private readonly chat: ChatService,
-    private readonly gateway: ChatGateway
+    private readonly gateway: ChatGateway,
+    private readonly imageAnalysis: ImageAnalysisService,
+    private readonly phoneSecurity: ChatPhoneSecurityService
   ) {}
 
   @Get("rooms")
@@ -58,12 +63,21 @@ export class ChatController {
     @CurrentUser() user: User,
     @Body() dto: CreateDirectChatDto
   ) {
-    return this.chat.ensureDirectRoom(user, dto.peerUserId);
+    return this.chat.ensureDirectRoom(
+      user,
+      dto.peerUserId,
+      dto.marketplaceListingId?.trim() || undefined
+    );
   }
 
   @Get("rooms/:roomId")
   getRoom(@CurrentUser() user: User, @Param("roomId") roomId: string) {
     return this.chat.getRoom(user, roomId);
+  }
+
+  @Post("rooms/:roomId/read")
+  markRoomRead(@CurrentUser() user: User, @Param("roomId") roomId: string) {
+    return this.chat.markRoomRead(user, roomId);
   }
 
   @Get("rooms/:roomId/messages")
@@ -90,7 +104,26 @@ export class ChatController {
     @Body() dto: SendChatMessageDto
   ) {
     const msg = await this.chat.createMessage(user.id, roomId, dto.body);
+    this.chat.notifyPeersOfNewMessage(user.id, roomId, msg.body);
     this.gateway.broadcastNewMessage(roomId, msg);
     return msg;
+  }
+
+  @Post("analyze-image")
+  async analyzeImage(
+    @CurrentUser() user: User,
+    @Body() dto: AnalyzeChatImageDto
+  ) {
+    const result = await this.imageAnalysis.analyzeImageBase64(
+      dto.imageBase64,
+      dto.mimeType
+    );
+    if (!result.allowed) {
+      await this.phoneSecurity.logImageBlocked(user.id, null, {
+        reason: result.reason
+      });
+      return { allowed: false, reason: result.reason ?? "phone_number_detected" };
+    }
+    return { allowed: true };
   }
 }

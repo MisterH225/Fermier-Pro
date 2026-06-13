@@ -375,7 +375,7 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
               onPress={() => void onSubmit()}
             >
               {busy ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={mobileColors.onAccent} />
               ) : (
                 <Text style={styles.ctaTx}>{t("vetOnboarding.submit")}</Text>
               )}
@@ -425,7 +425,7 @@ function Field({
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#fff" },
+  safe: { flex: 1, backgroundColor: mobileColors.background },
   cancelTop: {
     alignSelf: "flex-start",
     paddingHorizontal: mobileSpacing.lg,
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.pill
   },
   ctaDisabled: { opacity: 0.45 },
-  ctaTx: { color: "#fff", fontWeight: "700" },
+  ctaTx: { color: mobileColors.onAccent, fontWeight: "700" },
   completion: {
     flex: 1,
     justifyContent: "center",

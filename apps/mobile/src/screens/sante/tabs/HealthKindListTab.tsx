@@ -34,12 +34,13 @@ type Props = {
   onSubjectSelect: (type: FarmHealthEntityType, id: string) => void;
   records: FarmHealthRecordRowDto[];
   isLoading: boolean;
-  onAddPress: () => void;
+  onAddPress?: () => void;
   renderDetail: (item: EventItem, ctx: { close: () => void }) => ReactNode;
   prependContent?: ReactNode;
   showSubjectPicker?: boolean;
   diseaseFilter?: DiseaseFilterId;
   treatmentFilter?: TreatmentFilterId;
+  initialOpenRecordId?: string;
 };
 
 export function HealthKindListTab({
@@ -58,7 +59,8 @@ export function HealthKindListTab({
   prependContent,
   showSubjectPicker = true,
   diseaseFilter = "all",
-  treatmentFilter = "all"
+  treatmentFilter = "all",
+  initialOpenRecordId
 }: Props) {
   const { t } = useTranslation();
   const [filterId, setFilterId] = useState<string>(
@@ -134,6 +136,7 @@ export function HealthKindListTab({
         isLoading={isLoading}
         pageSize={15}
         loadMoreLabel={t("health.loadMore")}
+        initialOpenItemId={initialOpenRecordId}
       />
     </>
   );

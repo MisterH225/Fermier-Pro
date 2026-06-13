@@ -155,6 +155,13 @@ export class OnboardingService {
         tx
       );
 
+      const entryDate = new Date();
+      entryDate.setUTCHours(0, 0, 0, 0);
+      const productionAgeAtEntry =
+        dto.productionEstimatedAgeWeeks != null
+          ? dto.productionEstimatedAgeWeeks
+          : null;
+
       const femaleIds: string[] = [];
       const maleIds: string[] = [];
       const fatteningIds: string[] = [];
@@ -169,6 +176,7 @@ export class OnboardingService {
             status: "active",
             tagCode,
             productionCategory: "breeding_female",
+            entryDate,
             notes: "Truie reproductrice — onboarding"
           }
         });
@@ -183,6 +191,7 @@ export class OnboardingService {
             status: "active",
             tagCode,
             productionCategory: "breeding_male",
+            entryDate,
             notes: "Verrat — onboarding"
           }
         });
@@ -197,6 +206,8 @@ export class OnboardingService {
             status: "active",
             tagCode,
             productionCategory: "fattening",
+            entryDate,
+            ageWeeksAtEntry: productionAgeAtEntry,
             notes: "Engraissement — onboarding"
           }
         });
@@ -211,6 +222,8 @@ export class OnboardingService {
             status: "active",
             tagCode,
             productionCategory: "starter",
+            entryDate,
+            ageWeeksAtEntry: productionAgeAtEntry,
             notes: "Démarrage — onboarding"
           }
         });

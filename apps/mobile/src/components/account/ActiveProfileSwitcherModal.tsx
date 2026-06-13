@@ -22,6 +22,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { profileAccentColor } from "../../theme/profileTheme";
 
 const PROFILE_TYPES: ProfileTypeChoice[] = [
   "producer",
@@ -110,6 +111,7 @@ export function ActiveProfileSwitcherModal({
           <View style={styles.group}>
             {profiles.map((p, index) => {
               const active = p.id === activeProfileId;
+              const accent = profileAccentColor(p.type);
               const loading = busyId === p.id;
               return (
                 <Pressable
@@ -117,7 +119,7 @@ export function ActiveProfileSwitcherModal({
                   style={({ pressed }) => [
                     styles.row,
                     index < profiles.length - 1 && styles.rowInnerDivider,
-                    active && styles.rowActive,
+                    active && { backgroundColor: accent },
                     pressed && styles.rowPressed
                   ]}
                   onPress={() => void onSelect(p.id)}
@@ -127,7 +129,7 @@ export function ActiveProfileSwitcherModal({
                     <Ionicons
                       name={profileTypeIcon(p.type)}
                       size={22}
-                      color={active ? "#fff" : mobileColors.accent}
+                      color={active ? "#fff" : accent}
                     />
                   </View>
                   <View style={styles.rowText}>
@@ -148,12 +150,12 @@ export function ActiveProfileSwitcherModal({
                     ) : null}
                   </View>
                   {loading ? (
-                    <ActivityIndicator color={active ? "#fff" : mobileColors.accent} />
+                    <ActivityIndicator color={active ? "#fff" : accent} />
                   ) : active ? (
                     <Ionicons
                       name="checkmark-circle"
                       size={24}
-                      color="#fff"
+                      color={mobileColors.onAccent}
                     />
                   ) : (
                     <Ionicons

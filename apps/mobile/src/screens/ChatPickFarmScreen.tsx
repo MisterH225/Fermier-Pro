@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { mobileColors } from "../theme/mobileTheme";
 import { useQuery } from "@tanstack/react-query";
 import {
   ActivityIndicator,
@@ -8,14 +9,17 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { ChatModuleGate } from "../components/ChatModuleGate";
 import { useSession } from "../context/SessionContext";
 import { fetchFarms } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ChatPickFarm">;
 
 export function ChatPickFarmScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
 
   const farmsQuery = useQuery({
@@ -43,13 +47,13 @@ export function ChatPickFarmScreen({ navigation }: Props) {
         </TouchableOpacity>
         {farmsQuery.isPending ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color="#5d7a1f" />
+            <ActivityIndicator size="large" color={mobileColors.accent} />
           </View>
         ) : farmsQuery.error ? (
           <View style={styles.centered}>
             <Text style={styles.error}>
               {farmsQuery.error instanceof Error
-                ? farmsQuery.error.message
+                ? getUserFacingError(farmsQuery.error, t)
                 : String(farmsQuery.error)}
             </Text>
           </View>
@@ -86,7 +90,7 @@ export function ChatPickFarmScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: "#f9f8ea" },
+  wrap: { flex: 1, backgroundColor: mobileColors.canvas },
   intro: {
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -113,7 +117,7 @@ const styles = StyleSheet.create({
   searchCtaSub: {
     marginTop: 6,
     fontSize: 13,
-    color: "#6d745b",
+    color: mobileColors.textSecondary,
     lineHeight: 18
   },
   list: { padding: 16, paddingBottom: 32 },
@@ -124,7 +128,7 @@ const styles = StyleSheet.create({
     padding: 24
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -134,13 +138,13 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#1f2910"
+    color: mobileColors.textPrimary
   },
   cardSub: {
     marginTop: 6,
     fontSize: 14,
-    color: "#6d745b"
+    color: mobileColors.textSecondary
   },
   error: { color: "#b00020", textAlign: "center" },
-  empty: { fontSize: 15, color: "#6d745b", textAlign: "center" }
+  empty: { fontSize: 15, color: mobileColors.textSecondary, textAlign: "center" }
 });

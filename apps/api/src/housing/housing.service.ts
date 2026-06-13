@@ -1,12 +1,17 @@
 import {
   BadRequestException,
+  forwardRef,
+  Inject,
   Injectable,
+  Logger,
   NotFoundException
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
+import { AgeCalculationService } from "../cheptel/age-calculation.service";
 import { PenAllocationService } from "./pen-allocation.service";
 import { CreateBarnDto } from "./dto/create-barn.dto";
 import { CreatePenDto } from "./dto/create-pen.dto";
@@ -19,10 +24,15 @@ import { UpdatePenDto } from "./dto/update-pen.dto";
 
 @Injectable()
 export class HousingService {
+  private readonly logger = new Logger(HousingService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
-    private readonly penAllocation: PenAllocationService
+    private readonly penAllocation: PenAllocationService,
+    private readonly ageCalculation: AgeCalculationService,
+    @Inject(forwardRef(() => SmartAlertsService))
+    private readonly smartAlerts: SmartAlertsService
   ) {}
 
   private assertSingleOccupant(
@@ -182,7 +192,7 @@ export class HousingService {
 
   async getPenDetail(user: User, farmId: string, penId: string) {
     await this.requirePenInFarm(user.id, farmId, penId);
-    return this.prisma.pen.findFirst({
+    const pen = await this.prisma.pen.findFirst({
       where: { id: penId, barn: { farmId } },
       include: {
         barn: { select: { id: true, name: true, farmId: true } },
@@ -217,6 +227,11 @@ export class HousingService {
         }
       }
     });
+    if (!pen) {
+      throw new NotFoundException("Loge introuvable");
+    }
+    const ageData = await this.ageCalculation.calculatePenAverageAgeWeeks(penId);
+    return { ...pen, ageData };
   }
 
   async updatePen(user: User, farmId: string, penId: string, dto: UpdatePenDto) {
@@ -242,8 +257,8 @@ export class HousingService {
                   : new Prisma.Decimal(dto.averageWeightKg)
             }
           : {}),
-        ...(dto.averageAgeDays !== undefined
-          ? { averageAgeDays: dto.averageAgeDays }
+        ...(dto.averageAgeWeeksManual !== undefined
+          ? { averageAgeWeeksManual: dto.averageAgeWeeksManual }
           : {})
       }
     });
@@ -339,11 +354,9 @@ export class HousingService {
         }
       }
     });
-    if (kind === "animal") {
-      await this.prisma.$transaction(async (tx) => {
-        await this.penAllocation.recalculatePenCategory(tx, penId);
-      });
-    }
+    await this.prisma.$transaction(async (tx) => {
+      await this.penAllocation.recalculatePenCategory(tx, penId);
+    });
     return created;
   }
 
@@ -412,6 +425,20 @@ export class HousingService {
       throw new NotFoundException("Aucune occupation active a deplacer");
     }
 
+    /**
+     * Transfert atomique :
+     *   1. Si l'animal n'a aucun poids connu (pesée ou poids d'entrée) ET que la
+     *      loge source possède un poids moyen → on crée une pesée « héritée »
+     *      pour que ses futurs recalculs et son historique restent cohérents.
+     *   2. On clôture les placements actifs et on en crée un nouveau.
+     *   3. On recalcule la catégorie + le poids moyen des deux loges
+     *      (source et destination) à partir des occupants restants.
+     */
+    const fromPenIdsTouched = new Set<string>();
+    for (const p of toClose) {
+      fromPenIdsTouched.add(p.penId);
+    }
+
     await this.prisma.$transaction(async (tx) => {
       if (kind === "animal") {
         await this.penAllocation.assertAnimalPenCompatible(
@@ -419,7 +446,35 @@ export class HousingService {
           dto.animalId!,
           dto.toPenId
         );
+
+        const animalId = dto.animalId!;
+        const sourcePenId = dto.fromPenId ?? [...fromPenIdsTouched][0] ?? null;
+        const currentWeight = await this.penAllocation.readAnimalCurrentWeight(
+          tx,
+          animalId
+        );
+
+        if (currentWeight == null && sourcePenId) {
+          const sourcePen = await tx.pen.findUnique({
+            where: { id: sourcePenId },
+            select: { averageWeightKg: true }
+          });
+          const sourceAvg =
+            sourcePen?.averageWeightKg != null
+              ? Number(sourcePen.averageWeightKg)
+              : null;
+          if (sourceAvg != null && Number.isFinite(sourceAvg) && sourceAvg > 0) {
+            await tx.animalWeight.create({
+              data: {
+                animalId,
+                weightKg: new Prisma.Decimal(sourceAvg),
+                note: "inherited_from_pen"
+              }
+            });
+          }
+        }
       }
+
       for (const p of toClose) {
         await tx.penPlacement.update({
           where: { id: p.id },
@@ -435,13 +490,42 @@ export class HousingService {
           createdByUserId: user.id
         }
       });
+
       if (kind === "animal") {
         await this.penAllocation.recalculatePenCategory(tx, dto.toPenId);
-        if (dto.fromPenId) {
+        await this.penAllocation.recalculatePenAverageWeight(tx, dto.toPenId);
+        for (const sourceId of fromPenIdsTouched) {
+          await this.penAllocation.recalculatePenCategory(tx, sourceId);
+          await this.penAllocation.recalculatePenAverageWeight(tx, sourceId);
+        }
+        if (dto.fromPenId && !fromPenIdsTouched.has(dto.fromPenId)) {
           await this.penAllocation.recalculatePenCategory(tx, dto.fromPenId);
+          await this.penAllocation.recalculatePenAverageWeight(tx, dto.fromPenId);
         }
       }
     });
+
+    if (kind === "animal") {
+      const sourcePenId =
+        dto.fromPenId ?? [...fromPenIdsTouched][0] ?? null;
+      if (sourcePenId) {
+        await this.ageCalculation.recalculatePenAverageAfterTransfer(
+          sourcePenId,
+          dto.toPenId
+        );
+      } else {
+        await this.ageCalculation.calculatePenAverageAgeWeeks(dto.toPenId);
+      }
+    }
+
+    // Hors transaction : rafraîchit les SmartAlerts (incluant la règle
+    // « Requalification loge Démarrage ») — best effort, ne bloque pas le
+    // transfert si la règle plante.
+    void this.smartAlerts
+      .refreshInternal(farmId)
+      .catch((e) =>
+        this.logger.warn(`SmartAlerts refresh after pen-move failed`, e)
+      );
 
     return this.prisma.penPlacement.findFirst({
       where: {

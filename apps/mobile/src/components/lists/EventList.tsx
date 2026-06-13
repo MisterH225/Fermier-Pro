@@ -8,11 +8,14 @@ import {
   View,
   type ListRenderItem
 } from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 import { BaseModal } from "../modals/BaseModal";
 import { EventListFilter } from "./EventListFilter";
 import { EventListItem } from "./EventListItem";
 import type { EventItem, FilterPill } from "./types";
+import { EmptyStateCard } from "../common/EmptyStateCard";
+import { ListItemSkeleton } from "../common/SkeletonBlocks";
 import { ScreenSection } from "../layout/ScreenSection";
 import {
   mobileColors,
@@ -42,25 +45,11 @@ export type EventListProps = {
   sectionRight?: ReactNode;
   loadMoreLabel?: string;
   testID?: string;
+  /** Swipe droite (ex. modifier) — retourner null pour désactiver sur un item */
+  renderSwipeRight?: (item: EventItem) => ReactNode | null;
+  /** Ouvre le détail d’un enregistrement (navigation depuis alerte). */
+  initialOpenItemId?: string;
 };
-
-function SkeletonBlock() {
-  return (
-    <View style={styles.skelCard}>
-      <View style={styles.skelRow}>
-        <View style={styles.skelCircle} />
-        <View style={{ flex: 1, gap: 8 }}>
-          <View style={styles.skelLineLg} />
-          <View style={styles.skelLineSm} />
-        </View>
-        <View style={{ alignItems: "flex-end", gap: 6 }}>
-          <View style={[styles.skelLineSm, { width: 72 }]} />
-          <View style={[styles.skelLineSm, { width: 48 }]} />
-        </View>
-      </View>
-    </View>
-  );
-}
 
 export function EventList({
   data,
@@ -80,14 +69,38 @@ export function EventList({
   sectionTitle,
   sectionRight,
   loadMoreLabel = "…",
-  testID
+  testID,
+  renderSwipeRight,
+  initialOpenItemId
 }: EventListProps) {
   const [limit, setLimit] = useState(pageSize);
   const [selected, setSelected] = useState<EventItem | null>(null);
+  const [didOpenInitial, setDidOpenInitial] = useState(false);
 
   useEffect(() => {
     setLimit(pageSize);
   }, [data, pageSize]);
+
+  useEffect(() => {
+    if (!initialOpenItemId || didOpenInitial || isLoading || !data.length) {
+      return;
+    }
+    const item = data.find((d) => d.id === initialOpenItemId);
+    if (item) {
+      onItemPress?.(item);
+      if (renderDetail) {
+        setSelected(item);
+      }
+      setDidOpenInitial(true);
+    }
+  }, [
+    initialOpenItemId,
+    didOpenInitial,
+    isLoading,
+    data,
+    onItemPress,
+    renderDetail
+  ]);
 
   const visible = useMemo(() => data.slice(0, limit), [data, limit]);
   const canLoadMore = limit < data.length;
@@ -102,9 +115,27 @@ export function EventList({
     [onItemPress, renderDetail]
   );
 
+  const renderListItem = useCallback(
+    (item: EventItem) => {
+      const row = (
+        <EventListItem item={item} onPress={() => openItem(item)} />
+      );
+      const swipe = renderSwipeRight?.(item);
+      if (!swipe) {
+        return row;
+      }
+      return (
+        <Swipeable renderRightActions={() => swipe} overshootRight={false}>
+          {row}
+        </Swipeable>
+      );
+    },
+    [openItem, renderSwipeRight]
+  );
+
   const renderRow: ListRenderItem<EventItem> = useCallback(
-    ({ item }) => <EventListItem item={item} onPress={() => openItem(item)} />,
-    [openItem]
+    ({ item }) => renderListItem(item),
+    [renderListItem]
   );
 
   const listEmpty = useMemo(() => {
@@ -112,15 +143,14 @@ export function EventList({
       return (
         <View style={styles.embedPad}>
           {Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonBlock key={i} />
+            <ListItemSkeleton key={i} />
           ))}
         </View>
       );
     }
     return (
       <View style={styles.emptyWrap}>
-        <Ionicons name="journal-outline" size={48} color={mobileColors.border} />
-        <Text style={styles.emptyTx}>{emptyMessage}</Text>
+        <EmptyStateCard title={emptyMessage || undefined} />
       </View>
     );
   }, [isLoading, emptyMessage]);
@@ -161,7 +191,7 @@ export function EventList({
         {isLoading && !data.length ? (
           <View style={styles.embedPad}>
             {Array.from({ length: 5 }).map((_, i) => (
-              <SkeletonBlock key={i} />
+              <ListItemSkeleton key={i} />
             ))}
           </View>
         ) : data.length === 0 ? (
@@ -169,7 +199,7 @@ export function EventList({
         ) : (
           <>
             {visible.map((item) => (
-              <EventListItem key={item.id} item={item} onPress={() => openItem(item)} />
+              <View key={item.id}>{renderListItem(item)}</View>
             ))}
             {canLoadMore ? (
               <Pressable
@@ -320,7 +350,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: mobileSpacing.lg
   },
   skelCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: mobileColors.background,
     borderRadius: 16,
     padding: mobileSpacing.md,
     marginBottom: mobileSpacing.sm

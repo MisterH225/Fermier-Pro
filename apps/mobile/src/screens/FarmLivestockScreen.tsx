@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { TabScreenHeader } from "../components/layout";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useTranslation } from "react-i18next";
@@ -33,13 +33,35 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../theme/mobileTheme";
+import { useTechFarmPermissions } from "../hooks/useTechFarmPermissions";
+import { TechReadOnlyBanner } from "../components/technician/TechReadOnlyBanner";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmLivestock">;
 
 export function FarmLivestockScreen({ route, navigation }: Props) {
-  const { farmId, farmName } = route.params;
+  const {
+    farmId,
+    farmName,
+    initialTab,
+    openPenId,
+    highlightPen,
+    showRequalificationBanner
+  } = route.params;
+  const [livestockTab, setLivestockTab] = useState(
+    initialTab ?? (openPenId ? "cheptel" : "overview")
+  );
+
+  useEffect(() => {
+    if (initialTab) {
+      setLivestockTab(initialTab);
+    } else if (openPenId) {
+      setLivestockTab("cheptel");
+    }
+  }, [initialTab, openPenId]);
   const { t } = useTranslation();
+  const techPerms = useTechFarmPermissions(farmId, "cheptel");
+  const readOnly = techPerms.readOnly;
   useScreenTitle(navigation, t("navigation.main.cheptel"));
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
@@ -101,7 +123,7 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
 
   const livestockMode =
     (farmQuery.data?.livestockMode as "individual" | "batch" | "hybrid") ||
-    (cheptelQuery.data?.farm.livestockMode as "individual" | "batch" | "hybrid") ||
+    (cheptelQuery.data?.farm?.livestockMode as "individual" | "batch" | "hybrid") ||
     "individual";
 
   const showAnimals = livestockMode === "individual" || livestockMode === "hybrid";
@@ -118,6 +140,22 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
     void qc.invalidateQueries({ queryKey: ["farmBarns", farmId] });
     void qc.invalidateQueries({ queryKey: ["farmBarnDetails", farmId] });
   }, [qc, farmId]);
+
+  if (techPerms.isTech && techPerms.loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={mobileColors.accent} />
+      </View>
+    );
+  }
+
+  if (techPerms.isTech && !techPerms.canView) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.error}>{t("tech.permissionDenied")}</Text>
+      </View>
+    );
+  }
 
   if (loading) {
     return (
@@ -173,7 +211,14 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.root}>
+      {readOnly ? (
+        <View style={{ paddingHorizontal: mobileSpacing.md, paddingTop: mobileSpacing.sm }}>
+          <TechReadOnlyBanner />
+        </View>
+      ) : null}
       <TabSelector
+        activeTab={livestockTab}
+        onTabChange={(k) => setLivestockTab(k as typeof livestockTab)}
         defaultTab="overview"
         header={<TabScreenHeader>{modeHintBlock}</TabScreenHeader>}
         tabs={[
@@ -193,7 +238,7 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
           {
             key: "cheptel",
             label: t("cheptel.navCheptel"),
-            badge: animals.length || undefined,
+            badge: cheptelQuery.data?.kpis?.totalHeadcount || undefined,
             content: tabScroll(
               accessToken ? (
                 <CheptelTab
@@ -201,6 +246,10 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
                   farmName={farmName}
                   navigation={navigation}
                   onInvalidateOverview={onRefresh}
+                  readOnly={readOnly}
+                  openPenId={openPenId}
+                  highlightPenId={highlightPen ? openPenId : undefined}
+                  showRequalificationBanner={showRequalificationBanner}
                 />
               ) : null
             )
@@ -214,6 +263,7 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
                   farmId={farmId}
                   accessToken={accessToken}
                   activeProfileId={activeProfileId}
+                  readOnly={readOnly}
                 />
               ) : null
             )

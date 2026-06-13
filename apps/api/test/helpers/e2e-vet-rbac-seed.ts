@@ -33,6 +33,17 @@ async function purgeStaleUsers(prisma: PrismaClient): Promise<void> {
   for (const user of users) {
     const farmIds = user.ownedFarms.map((f) => f.id);
     if (farmIds.length > 0) {
+      const appointmentIds = (
+        await prisma.vetAppointment.findMany({
+          where: { farmId: { in: farmIds } },
+          select: { id: true }
+        })
+      ).map((a) => a.id);
+      if (appointmentIds.length > 0) {
+        await prisma.platformRevenue.deleteMany({
+          where: { vetAppointmentId: { in: appointmentIds } }
+        });
+      }
       await prisma.auditLog.deleteMany({
         where: {
           OR: [{ farmId: { in: farmIds } }, { actorUserId: user.id }]
@@ -187,6 +198,19 @@ export async function cleanupE2eVetRbacFixtures(
   >
 ): Promise<void> {
   try {
+    const appointmentIds = (
+      await prisma.vetAppointment.findMany({
+        where: { farmId: ctx.farmId },
+        select: { id: true }
+      })
+    ).map((a) => a.id);
+
+    if (appointmentIds.length > 0) {
+      await prisma.platformRevenue.deleteMany({
+        where: { vetAppointmentId: { in: appointmentIds } }
+      });
+    }
+
     await prisma.auditLog.deleteMany({
       where: {
         OR: [

@@ -61,9 +61,11 @@ export class UpdatePenDto {
   @Min(0)
   averageWeightKg?: number | null;
 
+  /** Âge moyen en SEMAINES entières (0 — 104). */
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  averageAgeDays?: number | null;
+  @Max(104)
+  averageAgeWeeksManual?: number | null;
 }

@@ -7,6 +7,7 @@ import {
   View
 } from "react-native";
 import type { AuthMeResponse } from "../lib/api";
+import { mobileColors } from "../theme/mobileTheme";
 
 const PROFILE_LABEL: Record<string, string> = {
   producer: "Producteur",
@@ -113,7 +114,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end"
   },
   sheet: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -142,7 +143,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fafafa"
   },
   rowActive: {
-    borderColor: "#5d7a1f",
+    borderColor: mobileColors.accent,
     backgroundColor: "#f0f4e4"
   },
   rowText: {
@@ -155,7 +156,7 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   cancelText: {
-    color: "#5d7a1f",
+    color: mobileColors.accent,
     fontWeight: "600"
   },
   miniBtn: {
@@ -163,7 +164,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4
   },
   miniBtnText: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 14,
     fontWeight: "600"
   }

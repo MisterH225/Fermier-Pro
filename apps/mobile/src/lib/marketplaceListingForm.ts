@@ -1,0 +1,467 @@
+import type {
+  AnimalListItem,
+  CreateMarketplaceListingPayload,
+  MarketplaceListingListItem,
+  UpdateMarketplaceListingPayload
+} from "./api";
+import { listingPhotoUrlsArray } from "./resolveListingImage";
+
+export type ListingCategory = "piglet" | "breeder" | "butcher" | "reformed";
+
+/** Poids moyen max. (kg) pour rester en catégorie porcelet (aligné API). */
+export const LISTING_PIGLET_MAX_AVG_KG = 15;
+
+/** Porcelets et reproducteurs : prix forfaitaire (pas au kg). */
+export function usesFlatListingPrice(category: ListingCategory): boolean {
+  return category === "piglet" || category === "breeder";
+}
+
+/** Vente à crédit : opt-in vendeur, charcutier uniquement. */
+export function listingCategoryAllowsCredit(category: ListingCategory): boolean {
+  return category === "butcher";
+}
+
+export type ListingDurationDays = 7 | 14 | 30;
+
+export type MarketplaceListingFormValues = {
+  farmId: string | null;
+  /** Animal principal (compat API). */
+  animalId: string | null;
+  /** Animaux liés au lot (cheptel). */
+  selectedAnimalIds: string[];
+  category: ListingCategory;
+  title: string;
+  description: string;
+  totalWeightKg: string;
+  pricePerKg: string;
+  /** Prix forfaitaire à la tête (porcelet / reproducteur). */
+  pricePerHead: string;
+  totalPrice: string;
+  /** true si l'utilisateur a modifié le prix total à la main. */
+  totalPriceManual: boolean;
+  currency: string;
+  locationLabel: string;
+  breedLabel: string;
+  /** Durée appliquée à la publication (écran détail). */
+  publishDurationDays: ListingDurationDays;
+  /** Accepter les offres à crédit (charcutier uniquement). */
+  creditEnabled: boolean;
+  /** URLs Supabase (ordre = affichage ; [0] = principale). */
+  photoUrls: string[];
+};
+
+export const EMPTY_MARKETPLACE_LISTING_FORM: MarketplaceListingFormValues = {
+  farmId: null,
+  animalId: null,
+  selectedAnimalIds: [],
+  category: "piglet",
+  title: "",
+  description: "",
+  totalWeightKg: "",
+  pricePerKg: "",
+  pricePerHead: "",
+  totalPrice: "",
+  totalPriceManual: false,
+  currency: "XOF",
+  locationLabel: "",
+  breedLabel: "",
+  publishDurationDays: 14,
+  creditEnabled: false,
+  photoUrls: []
+};
+
+/**
+ * Recatégorise selon le poids si l’utilisateur est en mode « porcelet » (auto).
+ * Reproducteur / charcutier / réformée = intention vendeur conservée.
+ */
+export function suggestListingCategoryFromWeight(
+  totalWeightKg: number,
+  headcount: number,
+  current: ListingCategory
+): ListingCategory {
+  if (
+    current === "breeder" ||
+    current === "reformed" ||
+    current === "butcher"
+  ) {
+    return current;
+  }
+  const avg = totalWeightKg / Math.max(1, headcount);
+  if (avg < LISTING_PIGLET_MAX_AVG_KG) {
+    return "piglet";
+  }
+  return "butcher";
+}
+
+export function parseDecimalField(raw: string): number | null {
+  const t = raw.trim().replace(",", ".");
+  if (!t) return null;
+  const n = Number.parseFloat(t);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+export function computeTotalFromWeightAndPrice(
+  weightKg: string,
+  pricePerKg: string
+): number | null {
+  const w = parseDecimalField(weightKg);
+  const p = parseDecimalField(pricePerKg);
+  if (w == null || p == null || w <= 0) return null;
+  return w * p;
+}
+
+export function formatDecimalForInput(n: number, maxFrac = 2): string {
+  return n.toLocaleString("fr-FR", {
+    maximumFractionDigits: maxFrac,
+    useGrouping: false
+  });
+}
+
+/** Dernière pesée connue d'un animal (kg). */
+export function latestAnimalWeightKg(animal: AnimalListItem): number | null {
+  if (!animal.weights?.length) return null;
+  const sorted = [...animal.weights].sort(
+    (a, b) =>
+      new Date(b.measuredAt).getTime() - new Date(a.measuredAt).getTime()
+  );
+  const w = sorted[0]?.weightKg;
+  if (w === undefined || w === null) return null;
+  const n = typeof w === "string" ? Number.parseFloat(w) : Number(w);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** Somme des dernières pesées des animaux sélectionnés. */
+export function sumSelectedAnimalsWeightKg(
+  animals: AnimalListItem[],
+  selectedIds: string[]
+): number | null {
+  if (selectedIds.length === 0) return null;
+  let sum = 0;
+  let any = false;
+  for (const id of selectedIds) {
+    const a = animals.find((x) => x.id === id);
+    if (!a) continue;
+    const w = latestAnimalWeightKg(a);
+    if (w != null) {
+      sum += w;
+      any = true;
+    }
+  }
+  return any ? sum : null;
+}
+
+export function computeFlatLotTotal(
+  pricePerHead: string,
+  headcount: number
+): number | null {
+  const perHead = parseDecimalField(pricePerHead);
+  if (perHead == null || perHead <= 0 || headcount <= 0) {
+    return null;
+  }
+  return perHead * headcount;
+}
+
+export function listingFormHeadcount(values: MarketplaceListingFormValues): number {
+  if (values.selectedAnimalIds.length > 0) {
+    return values.selectedAnimalIds.length;
+  }
+  if (values.animalId) {
+    return 1;
+  }
+  return 1;
+}
+
+export function buildMarketplaceListingPayload(
+  values: MarketplaceListingFormValues,
+  t: (key: string) => string
+): CreateMarketplaceListingPayload {
+  const title = values.title.trim();
+  if (!title) {
+    throw new Error(t("marketScreen.createForm.errors.titleRequired"));
+  }
+
+  const flatPrice = usesFlatListingPrice(values.category);
+  const headcount = listingFormHeadcount(values);
+  const totalWeightKg = parseDecimalField(values.totalWeightKg);
+  const pricePerKg = parseDecimalField(values.pricePerKg);
+  const pricePerHead = parseDecimalField(values.pricePerHead);
+  let totalPrice = parseDecimalField(values.totalPrice);
+
+  if (flatPrice) {
+    if (pricePerHead == null || pricePerHead <= 0) {
+      throw new Error(t("marketScreen.createForm.errors.flatPriceRequired"));
+    }
+    totalPrice = pricePerHead * headcount;
+  } else if (
+    totalPrice == null &&
+    totalWeightKg != null &&
+    pricePerKg != null
+  ) {
+    totalPrice = totalWeightKg * pricePerKg;
+  }
+
+  if (!flatPrice && (totalWeightKg == null || totalWeightKg <= 0)) {
+    throw new Error(t("marketScreen.createForm.errors.weightRequired"));
+  }
+  if (!flatPrice && (pricePerKg == null || pricePerKg <= 0)) {
+    throw new Error(t("marketScreen.createForm.errors.pricePerKgRequired"));
+  }
+  if (totalPrice == null || totalPrice <= 0) {
+    throw new Error(t("marketScreen.createForm.errors.totalRequired"));
+  }
+
+  const animalIds =
+    values.selectedAnimalIds.length > 0
+      ? values.selectedAnimalIds
+      : values.animalId
+        ? [values.animalId]
+        : [];
+
+  const payload: CreateMarketplaceListingPayload = {
+    title,
+    description: values.description.trim() || undefined,
+    currency: values.currency.trim() || "XOF",
+    locationLabel: values.locationLabel.trim() || undefined,
+    category: values.category,
+    totalWeightKg: totalWeightKg ?? undefined,
+    pricePerKg: flatPrice ? undefined : pricePerKg ?? undefined,
+    unitPrice: flatPrice && pricePerHead != null ? pricePerHead : undefined,
+    totalPrice,
+    breedLabel: values.breedLabel.trim() || undefined,
+    creditEnabled: listingCategoryAllowsCredit(values.category)
+      ? values.creditEnabled
+      : false,
+    animalIds: animalIds.length > 0 ? animalIds : undefined
+  };
+
+  if (values.photoUrls.length > 0) {
+    payload.photoUrls = values.photoUrls;
+  }
+
+  if (values.farmId) {
+    payload.farmId = values.farmId;
+  }
+  if (values.animalId) {
+    payload.animalId = values.animalId;
+  } else if (animalIds.length === 1) {
+    payload.animalId = animalIds[0];
+  }
+
+  return payload;
+}
+
+export function applyAnimalSelection(
+  prev: MarketplaceListingFormValues,
+  animal: AnimalListItem,
+  animals: AnimalListItem[],
+  multi: boolean
+): Partial<MarketplaceListingFormValues> {
+  const ids = multi
+    ? prev.selectedAnimalIds.includes(animal.id)
+      ? prev.selectedAnimalIds.filter((id) => id !== animal.id)
+      : [...prev.selectedAnimalIds, animal.id]
+    : [animal.id];
+
+  const primaryId = ids.length === 1 ? ids[0]! : ids[0] ?? null;
+  const weightSum = sumSelectedAnimalsWeightKg(animals, ids);
+
+  const patch: Partial<MarketplaceListingFormValues> = {
+    selectedAnimalIds: ids,
+    animalId: ids.length === 1 ? ids[0]! : primaryId,
+    breedLabel:
+      ids.length === 1
+        ? (animals.find((a) => a.id === ids[0])?.breed?.name ?? prev.breedLabel)
+        : prev.breedLabel
+  };
+
+  if (weightSum != null) {
+    patch.totalWeightKg = formatDecimalForInput(weightSum, 1);
+    patch.category = suggestListingCategoryFromWeight(
+      weightSum,
+      ids.length || 1,
+      prev.category
+    );
+    if (usesFlatListingPrice(prev.category)) {
+      const lotTotal = computeFlatLotTotal(prev.pricePerHead, ids.length || 1);
+      if (lotTotal != null) {
+        patch.totalPrice = formatDecimalForInput(lotTotal, 0);
+      }
+    } else {
+      patch.totalPriceManual = false;
+      const computed = computeTotalFromWeightAndPrice(
+        patch.totalWeightKg,
+        prev.pricePerKg
+      );
+      if (computed != null) {
+        patch.totalPrice = formatDecimalForInput(computed, 0);
+      }
+    }
+  } else if (usesFlatListingPrice(prev.category)) {
+    const lotTotal = computeFlatLotTotal(prev.pricePerHead, ids.length || 1);
+    if (lotTotal != null) {
+      patch.totalPrice = formatDecimalForInput(lotTotal, 0);
+    }
+  } else if (ids.length === 0) {
+    patch.animalId = null;
+  }
+
+  return patch;
+}
+
+
+const LISTING_CATEGORIES: ListingCategory[] = [
+  "piglet",
+  "breeder",
+  "butcher",
+  "reformed"
+];
+
+export function parseListingNumberField(
+  v: string | number | null | undefined,
+  maxFrac = 2
+): string {
+  if (v == null || v === "") {
+    return "";
+  }
+  const n = typeof v === "string" ? Number.parseFloat(v) : Number(v);
+  if (!Number.isFinite(n)) {
+    return "";
+  }
+  return formatDecimalForInput(n, maxFrac);
+}
+
+export function listingToFormValues(
+  listing: MarketplaceListingListItem
+): MarketplaceListingFormValues {
+  const rawCategory = listing.category ?? "piglet";
+  const category = LISTING_CATEGORIES.includes(rawCategory as ListingCategory)
+    ? (rawCategory as ListingCategory)
+    : "piglet";
+  const animalIds =
+    listing.animalIds && listing.animalIds.length > 0
+      ? listing.animalIds
+      : listing.animal
+        ? [listing.animal.id]
+        : [];
+  const headcount = animalIds.length > 0 ? animalIds.length : 1;
+  const flatPrice = usesFlatListingPrice(category);
+  const unitRaw =
+    listing.unitPrice != null
+      ? Number.parseFloat(String(listing.unitPrice))
+      : null;
+  const totalRaw =
+    listing.totalPrice != null
+      ? Number.parseFloat(String(listing.totalPrice))
+      : null;
+  const pricePerHead =
+    unitRaw != null && Number.isFinite(unitRaw)
+      ? unitRaw
+      : flatPrice && totalRaw != null && headcount > 0
+        ? totalRaw / headcount
+        : totalRaw;
+
+  return {
+    farmId: listing.farm?.id ?? null,
+    animalId: animalIds.length === 1 ? animalIds[0]! : (animalIds[0] ?? null),
+    selectedAnimalIds: [...animalIds],
+    category,
+    title: listing.title,
+    description: listing.description ?? "",
+    totalWeightKg: parseListingNumberField(listing.totalWeightKg, 1),
+    pricePerKg: flatPrice ? "" : parseListingNumberField(listing.pricePerKg),
+    pricePerHead: flatPrice
+      ? parseListingNumberField(pricePerHead, 0)
+      : "",
+    totalPrice: flatPrice
+      ? parseListingNumberField(
+          unitRaw != null ? unitRaw * headcount : totalRaw,
+          0
+        )
+      : parseListingNumberField(totalRaw, 0),
+    totalPriceManual: !flatPrice && totalRaw != null,
+    currency: listing.currency?.trim() || "XOF",
+    locationLabel: listing.locationLabel ?? "",
+    breedLabel: listing.breedLabel ?? "",
+    publishDurationDays: 14,
+    creditEnabled:
+      listingCategoryAllowsCredit(category) && listing.creditEnabled === true,
+    photoUrls: listingPhotoUrlsArray(listing.photoUrls)
+  };
+}
+
+export function buildUpdateMarketplaceListingPayload(
+  values: MarketplaceListingFormValues,
+  t: (key: string) => string
+): UpdateMarketplaceListingPayload {
+  const createPayload = buildMarketplaceListingPayload(values, t);
+  return {
+    title: createPayload.title,
+    description: createPayload.description ?? null,
+    currency: createPayload.currency,
+    locationLabel: createPayload.locationLabel ?? null,
+    category: createPayload.category,
+    photoUrls: createPayload.photoUrls,
+    animalIds: createPayload.animalIds,
+    totalWeightKg: createPayload.totalWeightKg ?? null,
+    pricePerKg: createPayload.pricePerKg ?? null,
+    unitPrice: createPayload.unitPrice ?? null,
+    totalPrice: createPayload.totalPrice,
+    breedLabel: createPayload.breedLabel ?? null,
+    creditEnabled: createPayload.creditEnabled ?? false
+  };
+}
+
+/** Retire les animaux vendus ou absents du cheptel de la sélection. */
+export function filterSelectableAnimalIds(
+  selectedIds: string[],
+  animals: AnimalListItem[]
+): string[] {
+  const activeIds = new Set(
+    animals.filter((a) => a.status === "active").map((a) => a.id)
+  );
+  return selectedIds.filter((id) => activeIds.has(id));
+}
+
+const CLOSED_LISTING_STATUSES = new Set(["cancelled", "sold"]);
+
+/** IDs animaux des annonces individuelles ouvertes (hors annonce en édition). */
+export function parseListingAnimalIdsFromItem(item: {
+  animalIds?: string[] | null;
+  animal?: { id: string } | null;
+}): string[] {
+  const ids = [...(item.animalIds ?? [])];
+  if (item.animal?.id && !ids.includes(item.animal.id)) {
+    ids.unshift(item.animal.id);
+  }
+  return ids.filter((id) => typeof id === "string" && id.length > 0);
+}
+
+export function collectIndividualListingAnimalIds(
+  listings: MarketplaceListingListItem[],
+  excludeListingId?: string | null
+): Set<string> {
+  const blocked = new Set<string>();
+  for (const listing of listings) {
+    if (excludeListingId && listing.id === excludeListingId) {
+      continue;
+    }
+    if (CLOSED_LISTING_STATUSES.has(listing.status)) {
+      continue;
+    }
+    const ids = parseListingAnimalIdsFromItem(listing);
+    if (ids.length === 1) {
+      blocked.add(ids[0]!);
+    }
+  }
+  return blocked;
+}
+
+export function isIndividualSelectionBlocked(
+  selectedAnimalIds: string[],
+  blockedAnimalIds: ReadonlySet<string>
+): boolean {
+  return (
+    selectedAnimalIds.length === 1 &&
+    blockedAnimalIds.has(selectedAnimalIds[0]!)
+  );
+}

@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -14,6 +15,7 @@ import {
   View
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { AppDatePicker } from "../common/AppDatePicker";
 import { BaseModal } from "./BaseModal";
 import { ModalSection } from "./ModalSection";
 import { useModal } from "./useModal";
@@ -33,6 +35,7 @@ import {
   stockLinesToPayload,
   type StockLineForm
 } from "../finance/FinanceStockLinesEditor";
+import { isoDateWithLocalTime } from "../../lib/dateTime";
 import { invalidateFarmFinanceQueries } from "../../lib/invalidateFarmFinanceQueries";
 import {
   offlineQueuedMessage,
@@ -119,10 +122,15 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
           newFeedMode: false,
           quantity: "",
           quantityUnit:
-            feedTypes[0].unit === "kg" || feedTypes[0].unit === "tonne"
-              ? "kg"
-              : "sac",
+            feedTypes[0].unit === "tonne"
+              ? "tonne"
+              : feedTypes[0].unit === "kg"
+                ? "kg"
+                : "sac",
           unitPrice: "",
+          weightPerBagKg: feedTypes[0].weightPerBagKg
+            ? String(feedTypes[0].weightPerBagKg)
+            : "",
           supplier: ""
         }
       ]);
@@ -199,7 +207,7 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
       financeCategoryId: txCategoryId || undefined,
       amount: Number(txAmount.replace(",", ".")),
       label: txLabel.trim(),
-      occurredAt: `${txDate}T12:00:00.000Z`,
+      occurredAt: isoDateWithLocalTime(txDate),
       attachmentUrl,
       note,
       linkedEntityType,
@@ -248,7 +256,7 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
               currency: payload.currencyCode,
               label: txLabel.trim(),
               financeCategoryId: txCategoryId || undefined,
-              occurredAt: `${txDate}T12:00:00.000Z`,
+              occurredAt: isoDateWithLocalTime(txDate),
               note,
               attachmentUrl,
               recordStock: true,
@@ -327,7 +335,7 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
       }, 0);
     },
     onError: (e: Error) =>
-      Alert.alert(t("financeScreen.errorTitle"), e.message)
+      Alert.alert(t("financeScreen.errorTitle"), getUserFacingError(e, t))
   });
 
   const headerAmountPreview =
@@ -430,12 +438,11 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
         placeholder={t("modals.transaction.descriptionPh")}
       />
 
-      <Text style={styles.fieldLab}>{t("financeScreen.fieldDate")}</Text>
-      <TextInput
-        style={styles.input}
-        value={txDate}
-        onChangeText={setTxDate}
-        placeholder="YYYY-MM-DD"
+      <AppDatePicker
+        label={t("financeScreen.fieldDate")}
+        isoValue={txDate}
+        onIsoChange={setTxDate}
+        farmId={payload.farmId}
       />
       </ModalSection>
 

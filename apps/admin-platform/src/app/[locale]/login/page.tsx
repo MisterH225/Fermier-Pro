@@ -3,7 +3,7 @@ import { LoginScreen } from "@/components/auth/LoginScreen";
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-brand-cream" />}>
+    <Suspense fallback={<div className="min-h-screen dashboard-bg" />}>
       <LoginScreen />
     </Suspense>
   );

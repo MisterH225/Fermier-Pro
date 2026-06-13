@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
-import { useProducerBottomChromePad } from "../../context/ProducerBottomChromeContext";
+import { useBottomInset } from "../../hooks/useBottomInset";
 import { mobileSpacing } from "../../theme/mobileTheme";
 
 type TabContentProps = {
@@ -9,15 +9,13 @@ type TabContentProps = {
 };
 
 /** Conteneur de contenu pour un onglet (padding horizontal standard). */
-const BASE_BOTTOM_PAD = mobileSpacing.xxl * 2;
-
 export function TabContent({ children, style }: TabContentProps) {
-  const bottomChromePad = useProducerBottomChromePad();
+  const bottomInset = useBottomInset();
   return (
     <View
       style={[
         styles.wrap,
-        { paddingBottom: BASE_BOTTOM_PAD + bottomChromePad },
+        { paddingBottom: bottomInset },
         style
       ]}
     >

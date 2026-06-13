@@ -65,7 +65,7 @@ function resolvePastelVariant(variant: FinanceKpiVariant): FinanceKpiPastelVaria
 
 const CARD_MIN_HEIGHT = 156;
 const DELTA_SLOT_HEIGHT = 18;
-const SPARK_SLOT_HEIGHT = 44;
+const SPARK_SLOT_HEIGHT = 48;
 
 function valueFontSize(value: string): number {
   const len = value.trim().length;
@@ -93,7 +93,7 @@ export function FinanceKpiCard({
 }: Props) {
   const pastel = resolvePastelVariant(variant);
   const theme = PASTEL[pastel];
-  const sparkH = 40;
+  const sparkH = 44;
   const lineCol = sparklineColor ?? theme.accent;
   const showSpark = Boolean(sparklineValues && sparklineValues.length > 1);
 
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     maxWidth: "100%",
     width: "100%",
-    flexShrink: 1,
+    flexShrink: 0,
     overflow: "hidden",
     borderRadius: mobileRadius.lg,
     padding: mobileSpacing.md,

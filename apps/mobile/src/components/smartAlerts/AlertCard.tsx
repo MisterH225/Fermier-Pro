@@ -11,6 +11,11 @@ import {
   mobileTypography
 } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { useTranslation } from "react-i18next";
+import { resolveSmartAlertText } from "../../lib/smartAlertDisplay";
+import { resolveDeepNavProfile } from "../../lib/resolveDeepNavProfile";
+import { navigateToAlert } from "../../services/navigation/DeepNavigationService";
+import { useSession } from "../../context/SessionContext";
 
 function priorityIcon(p: SmartAlertListItemDto["priority"]): string {
   if (p === "critical") return "alert-circle";
@@ -24,13 +29,17 @@ function priorityColor(p: SmartAlertListItemDto["priority"]): string {
   return mobileColors.accent;
 }
 
-function moduleLabel(m: SmartAlertListItemDto["module"]): string {
+function moduleLabel(
+  m: SmartAlertListItemDto["module"],
+  t: (key: string) => string
+): string {
   const map: Record<SmartAlertListItemDto["module"], string> = {
     stock: "Stock",
     health: "Santé",
     finance: "Finance",
     gestation: "Gestation",
-    cheptel: "Cheptel"
+    cheptel: "Cheptel",
+    market: t("smartAlerts.moduleMarket")
   };
   return map[m];
 }
@@ -39,33 +48,60 @@ type AlertCardProps = {
   alert: SmartAlertListItemDto;
   navigation: NativeStackNavigationProp<RootStackParamList>;
   onMarkRead: (id: string) => void;
+  onDelete?: (id: string) => void;
 };
 
-export function AlertCard({ alert, navigation, onMarkRead }: AlertCardProps) {
+export function AlertCard({ alert, navigation, onMarkRead, onDelete }: AlertCardProps) {
+  const { t } = useTranslation();
+  const { authMe, activeProfileId } = useSession();
+  const display = resolveSmartAlertText(alert, t);
+  const profile = resolveDeepNavProfile(authMe, activeProfileId);
   const onPressCard = useCallback(() => {
-    const a = alert.action;
-    if (a?.route) {
-      // Routes dynamiques alignées sur RootStackParamList (émises par l’API).
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      navigation.navigate(a.route as any, (a.params ?? {}) as any);
-    }
-  }, [alert.action, navigation]);
+    navigateToAlert(
+      navigation,
+      {
+        id: alert.id,
+        module: alert.module,
+        ruleKey: alert.ruleKey,
+        action: alert.action
+      },
+      profile
+    );
+  }, [alert, navigation, profile]);
 
   const renderRight = useCallback(() => {
-    if (alert.isRead) {
+    const actions = [];
+    if (!alert.isRead) {
+      actions.push(
+        <Pressable
+          key="read"
+          style={styles.swipeRead}
+          onPress={() => onMarkRead(alert.id)}
+          accessibilityRole="button"
+          accessibilityLabel={t("smartAlerts.markRead")}
+        >
+          <Ionicons name="checkmark-done" size={22} color={mobileColors.onAccent} />
+        </Pressable>
+      );
+    }
+    if (onDelete) {
+      actions.push(
+        <Pressable
+          key="delete"
+          style={styles.swipeDelete}
+          onPress={() => onDelete(alert.id)}
+          accessibilityRole="button"
+          accessibilityLabel={t("smartAlerts.delete")}
+        >
+          <Ionicons name="trash-outline" size={22} color={mobileColors.onAccent} />
+        </Pressable>
+      );
+    }
+    if (actions.length === 0) {
       return null;
     }
-    return (
-      <Pressable
-        style={styles.swipeRead}
-        onPress={() => onMarkRead(alert.id)}
-        accessibilityRole="button"
-        accessibilityLabel="Marquer comme lu"
-      >
-        <Ionicons name="checkmark-done" size={22} color="#fff" />
-      </Pressable>
-    );
-  }, [alert.id, alert.isRead, onMarkRead]);
+    return <View style={styles.swipeActions}>{actions}</View>;
+  }, [alert.id, alert.isRead, onDelete, onMarkRead, t]);
 
   const body = (
     <Pressable
@@ -85,14 +121,14 @@ export function AlertCard({ alert, navigation, onMarkRead }: AlertCardProps) {
         />
         <View style={styles.titleCol}>
           <Text style={styles.title} numberOfLines={2}>
-            {alert.title}
+            {display.title}
           </Text>
           <View style={styles.tag}>
-            <Text style={styles.tagTx}>{moduleLabel(alert.module)}</Text>
+            <Text style={styles.tagTx}>{moduleLabel(alert.module, t)}</Text>
           </View>
         </View>
       </View>
-      <Text style={styles.message}>{alert.message}</Text>
+      <Text style={styles.message}>{display.message}</Text>
       {alert.action?.route ? (
         <Text style={styles.actionHint}>
           → {alert.action.label}
@@ -101,7 +137,7 @@ export function AlertCard({ alert, navigation, onMarkRead }: AlertCardProps) {
     </Pressable>
   );
 
-  if (alert.isRead) {
+  if (alert.isRead && !onDelete) {
     return body;
   }
 
@@ -173,8 +209,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     width: 72,
+    height: "100%"
+  },
+  swipeDelete: {
+    backgroundColor: mobileColors.error,
+    justifyContent: "center",
+    alignItems: "center",
+    width: 72,
+    height: "100%"
+  },
+  swipeActions: {
+    flexDirection: "row",
     marginBottom: mobileSpacing.sm,
     borderTopRightRadius: mobileRadius.md,
-    borderBottomRightRadius: mobileRadius.md
+    borderBottomRightRadius: mobileRadius.md,
+    overflow: "hidden"
   }
 });

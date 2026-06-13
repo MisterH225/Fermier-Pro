@@ -1,35 +1,33 @@
-import { mobileColors } from "../../theme/mobileTheme";
-import { feedSeriesColor } from "../charts/smartChartAdapters";
+/** Statut calcul stock (aligné API). */
+export type FeedStockGaugeStatus = "ok" | "warning" | "critical" | "no_data";
 
-/** Jours de référence pour remplir la jauge à 100 %. */
-export const FEED_GAUGE_REFERENCE_DAYS = 30;
+/** Couleurs jauge selon criticité stock. */
+export const FEED_GAUGE_STATUS_COLORS: Record<FeedStockGaugeStatus, string> = {
+  ok: "#1D9E75",
+  warning: "#BA7517",
+  critical: "#E24B4A",
+  no_data: "#B4B2A9"
+};
 
-/** Seuils visuels demandés (jours restants). */
-export const FEED_GAUGE_CRITICAL_DAYS = 3;
-export const FEED_GAUGE_WARNING_DAYS = 5;
-
-export function feedStockGaugePercent(daysRemaining: number | null): number | null {
-  if (daysRemaining == null || !Number.isFinite(daysRemaining)) {
+/** Remplissage jauge = % restant depuis la dernière entrée. */
+export function feedStockGaugePercent(
+  percentRemaining: number | null
+): number | null {
+  if (percentRemaining == null || !Number.isFinite(percentRemaining)) {
     return null;
   }
-  return Math.min(
-    100,
-    Math.max(0, Math.round((daysRemaining / FEED_GAUGE_REFERENCE_DAYS) * 100))
-  );
+  return Math.min(100, Math.max(0, Math.round(percentRemaining)));
 }
 
 export function feedStockGaugeColor(
-  daysRemaining: number | null,
-  seriesIndex: number
+  stockStatus: FeedStockGaugeStatus | null | undefined,
+  stockStatusColor?: string | null
 ): string {
-  if (daysRemaining == null) {
-    return mobileColors.textSecondary;
+  if (stockStatusColor?.trim()) {
+    return stockStatusColor;
   }
-  if (daysRemaining <= FEED_GAUGE_CRITICAL_DAYS) {
-    return mobileColors.error;
+  if (stockStatus && stockStatus in FEED_GAUGE_STATUS_COLORS) {
+    return FEED_GAUGE_STATUS_COLORS[stockStatus];
   }
-  if (daysRemaining <= FEED_GAUGE_WARNING_DAYS) {
-    return mobileColors.warning;
-  }
-  return feedSeriesColor(seriesIndex);
+  return FEED_GAUGE_STATUS_COLORS.no_data;
 }

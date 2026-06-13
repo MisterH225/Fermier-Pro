@@ -1,10 +1,11 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
+import { ChatModule } from "../chat/chat.module";
 import { InvitationsController } from "./invitations.controller";
 import { InvitationsService } from "./invitations.service";
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, ChatModule],
   controllers: [InvitationsController],
   providers: [InvitationsService],
   exports: [InvitationsService]

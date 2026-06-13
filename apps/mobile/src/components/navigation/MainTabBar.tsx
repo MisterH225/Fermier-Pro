@@ -18,13 +18,14 @@ type MainTabBarProps = {
   onTabPress: (tab: ProducerMainTab) => void;
   onOpenExtended: () => void;
   financeEnabled: boolean;
+  feedBadgeCount?: number;
 };
 
 const TAB_ORDER: ProducerMainTab[] = [
   "home",
   "cheptel",
   "health",
-  "collaboration",
+  "feed",
   "finance"
 ];
 
@@ -35,7 +36,7 @@ const TAB_META: Record<
   home: { emoji: "🏠", labelKey: "navigation.main.home" },
   cheptel: { emoji: "🐷", labelKey: "navigation.main.cheptel" },
   health: { emoji: "🏥", labelKey: "navigation.main.health" },
-  collaboration: { emoji: "🤝", labelKey: "navigation.main.collaboration" },
+  feed: { emoji: "🌱", labelKey: "navigation.main.feed" },
   finance: { emoji: "💰", labelKey: "navigation.main.finance" }
 };
 
@@ -54,7 +55,8 @@ export function MainTabBar({
   activeTab,
   onTabPress,
   onOpenExtended,
-  financeEnabled
+  financeEnabled,
+  feedBadgeCount = 0
 }: MainTabBarProps) {
   const { t } = useTranslation();
   const scheme = useColorScheme();
@@ -63,7 +65,7 @@ export function MainTabBar({
   const pillBorder = dark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.06)";
   const pillOverlay = dark ? "rgba(34,34,36,0.28)" : "rgba(255,255,255,0.22)";
   const plusOverlay = dark ? "rgba(45,45,48,0.32)" : "rgba(255,255,255,0.28)";
-  const plusIcon = dark ? "#FFFFFF" : mobileColors.accent;
+  const plusIcon = dark ? mobileColors.onAccent : mobileColors.accent;
   const blurTint = dark ? "dark" : "light";
 
   const ordered = TAB_ORDER.filter((tab) => tabs.includes(tab));
@@ -99,6 +101,7 @@ export function MainTabBar({
                 active={activeTab === tab}
                 onPress={() => onTabPress(tab)}
                 accessibilityLabel={t(meta.labelKey)}
+                badgeCount={tab === "feed" ? feedBadgeCount : undefined}
               />
             );
           })}

@@ -1,4 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -18,7 +20,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSession } from "../../context/SessionContext";
-import { patchAuthProfile, type PatchMeProfilePayload } from "../../lib/api";
+import { useActiveProject } from "../../context/ActiveProjectContext";
+import { patchAuthProfile, type PatchMeProfilePayload, type FarmDto } from "../../lib/api";
 import { getSupabase } from "../../lib/supabase";
 import { uploadUserAvatarToSupabase } from "../../lib/uploadAvatarToSupabase";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
@@ -29,10 +32,12 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import type { RootStackParamList } from "../../types/navigation";
 import { AccountSettingsPanel } from "../account/AccountSettingsPanel";
 import { ActiveProfileSwitcherControl } from "../account/ActiveProfileSwitcherControl";
 import { CollaborativeAccessPanel } from "../account/CollaborativeAccessPanel";
 import { ProfileLanguagePill } from "../account/ProfileLanguagePill";
+import { ProjectSwitcher } from "../projects";
 import { FarmMapPickerModal } from "./FarmMapPickerModal";
 
 const AVATAR = 108;
@@ -74,12 +79,15 @@ export function ProducerProfileModal({
   onClose
 }: ProducerProfileModalProps) {
   const { t } = useTranslation();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const {
     accessToken,
     activeProfileId,
     authMe,
     refreshAuthMe
   } = useSession();
+  const { activeFarm, farms } = useActiveProject();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -91,6 +99,10 @@ export function ProducerProfileModal({
   const [pendingAvatarUri, setPendingAvatarUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [mapPickerVisible, setMapPickerVisible] = useState(false);
+  const [projectSwitcherVisible, setProjectSwitcherVisible] = useState(false);
+
+  const activeFarmsCount = farms.filter((f) => f.status === "active").length;
+  const showProjectsSection = activeFarmsCount > 0;
 
   const resetFromAuth = useCallback(() => {
     const u = authMe?.user;
@@ -116,6 +128,7 @@ export function ProducerProfileModal({
       resetFromAuth();
     } else {
       setMapPickerVisible(false);
+      setProjectSwitcherVisible(false);
     }
   }, [visible, resetFromAuth]);
 
@@ -256,205 +269,287 @@ export function ProducerProfileModal({
     setMapPickerVisible(false);
   };
 
+  const closeProjectSwitcher = () => {
+    setProjectSwitcherVisible(false);
+  };
+
   return (
     <>
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <View style={styles.topBar}>
-          <ProfileLanguagePill
-            alignMenuWithCloseRow
-            edgePadding={mobileSpacing.lg}
-          />
-          <Pressable
-            onPress={() => void onSave()}
-            disabled={saving}
-            hitSlop={14}
-            accessibilityRole="button"
-            accessibilityLabel={t("producer.save")}
-            style={styles.saveTopHit}
-          >
-            {saving ? (
-              <ActivityIndicator size="small" color={mobileColors.accent} />
-            ) : (
-              <Text style={styles.saveTopText}>{t("producer.save")}</Text>
-            )}
-          </Pressable>
-        </View>
-
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.hero}>
-            <View style={styles.avatarRing}>
-              {displayAvatarUri ? (
-                <Image
-                  source={{ uri: displayAvatarUri }}
-                  style={styles.avatarImg}
-                />
-              ) : (
-                <View style={[styles.avatarImg, styles.avatarPlaceholder]}>
+      <Modal
+        visible={visible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={onClose}
+      >
+        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+          {projectSwitcherVisible ? (
+            <>
+              <View style={styles.topBar}>
+                <Pressable
+                  onPress={closeProjectSwitcher}
+                  hitSlop={14}
+                  accessibilityRole="button"
+                  accessibilityLabel="Retour"
+                >
                   <Ionicons
-                    name="person"
-                    size={44}
-                    color={mobileColors.textSecondary}
+                    name="chevron-back"
+                    size={26}
+                    color={mobileColors.textPrimary}
                   />
-                </View>
-              )}
-              <Pressable
-                style={styles.pencilFab}
-                onPress={openPhotoMenu}
-                accessibilityRole="button"
-                accessibilityLabel={t("producer.changePhotoTitle")}
-              >
-                <Ionicons name="pencil" size={18} color="#fff" />
-              </Pressable>
-            </View>
-
-            <Text style={styles.heroName} numberOfLines={2}>
-              {displayName}
-            </Text>
-            {authMe?.user.email ? (
-              <Text style={styles.heroEmail} numberOfLines={1}>
-                {authMe.user.email}
-              </Text>
-            ) : null}
-
-            <ActiveProfileSwitcherControl variant="hero" />
-          </View>
-
-          <SectionHeader label={t("producer.profileSectionPersonalize")} />
-          <GroupShell>
-            <GroupRow showDivider>
-              <Text style={styles.rowLabel}>{t("producer.firstName")}</Text>
-              <TextInput
-                style={styles.rowInput}
-                value={firstName}
-                onChangeText={setFirstName}
-                placeholderTextColor={mobileColors.textSecondary}
-                autoCapitalize="words"
-                placeholder="—"
-              />
-            </GroupRow>
-            <GroupRow showDivider>
-              <Text style={styles.rowLabel}>{t("producer.lastName")}</Text>
-              <TextInput
-                style={styles.rowInput}
-                value={lastName}
-                onChangeText={setLastName}
-                placeholderTextColor={mobileColors.textSecondary}
-                autoCapitalize="words"
-                placeholder="—"
-              />
-            </GroupRow>
-            <GroupRow showDivider={false}>
-              <Text style={styles.rowLabel}>{t("producer.farmName")}</Text>
-              <TextInput
-                style={styles.rowInput}
-                value={farmName}
-                onChangeText={setFarmName}
-                placeholderTextColor={mobileColors.textSecondary}
-                placeholder="—"
-              />
-            </GroupRow>
-          </GroupShell>
-          <Text style={styles.hintBelow}>{t("producer.farmNameHint")}</Text>
-
-          <SectionHeader label={t("producer.profileSectionLocation")} />
-          <GroupShell>
-            <GroupRow showDivider>
-              <Ionicons
-                name="location-outline"
-                size={22}
-                color={mobileColors.textSecondary}
-                style={styles.rowIcon}
-              />
-              <TextInput
-                style={[styles.rowInput, styles.rowInputGrow]}
-                value={locLabel}
-                onChangeText={(v) => {
-                  setLocLabel(v);
-                  setLocSource("manual");
+                </Pressable>
+                <Text style={styles.projectsTitle}>Mes projets</Text>
+                <View style={styles.saveTopHit} />
+              </View>
+              <ProjectSwitcher
+                onCreateProject={() => {
+                  closeProjectSwitcher();
+                  onClose();
+                  navigation.navigate("CreateFarm");
                 }}
-                placeholder={t("producer.locationPlaceholder")}
-                placeholderTextColor={mobileColors.textSecondary}
+                onEditProject={(farm: FarmDto) => {
+                  closeProjectSwitcher();
+                  onClose();
+                  navigation.navigate("FarmDetail", {
+                    farmId: farm.id,
+                    farmName: farm.name
+                  });
+                }}
+                onClose={() => {
+                  closeProjectSwitcher();
+                  onClose();
+                }}
               />
-            </GroupRow>
-            {Platform.OS !== "web" ? (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.groupRow,
-                  styles.gpsRow,
-                  pressed && styles.gpsRowPressed
-                ]}
-                onPress={() => setMapPickerVisible(true)}
+            </>
+          ) : (
+            <>
+              <View style={styles.topBar}>
+                <ProfileLanguagePill
+                  alignMenuWithCloseRow
+                  edgePadding={mobileSpacing.lg}
+                />
+                <Pressable
+                  onPress={() => void onSave()}
+                  disabled={saving}
+                  hitSlop={14}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("producer.save")}
+                  style={styles.saveTopHit}
+                >
+                  {saving ? (
+                    <ActivityIndicator size="small" color={mobileColors.accent} />
+                  ) : (
+                    <Text style={styles.saveTopText}>{t("producer.save")}</Text>
+                  )}
+                </Pressable>
+              </View>
+
+              <ScrollView
+                contentContainerStyle={styles.scroll}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
               >
-                <Ionicons
-                  name="map-outline"
-                  size={22}
-                  color={mobileColors.accent}
-                  style={styles.rowIcon}
-                />
-                <Text style={styles.gpsLabel}>{t("producer.placeOnMap")}</Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color={mobileColors.textSecondary}
-                />
-              </Pressable>
-            ) : null}
-            <Pressable
-              style={({ pressed }) => [
-                styles.groupRow,
-                styles.gpsRow,
-                pressed && styles.gpsRowPressed
-              ]}
-              onPress={() => void fillGps()}
-            >
-              <Ionicons
-                name="navigate-outline"
-                size={22}
-                color={mobileColors.accent}
-                style={styles.rowIcon}
-              />
-              <Text style={styles.gpsLabel}>{t("producer.useGpsShort")}</Text>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={mobileColors.textSecondary}
-              />
-            </Pressable>
-          </GroupShell>
+                <View style={styles.hero}>
+                  <View style={styles.avatarRing}>
+                    {displayAvatarUri ? (
+                      <Image
+                        source={{ uri: displayAvatarUri }}
+                        style={styles.avatarImg}
+                      />
+                    ) : (
+                      <View style={[styles.avatarImg, styles.avatarPlaceholder]}>
+                        <Ionicons
+                          name="person"
+                          size={44}
+                          color={mobileColors.textSecondary}
+                        />
+                      </View>
+                    )}
+                    <Pressable
+                      style={styles.pencilFab}
+                      onPress={openPhotoMenu}
+                      accessibilityRole="button"
+                      accessibilityLabel={t("producer.changePhotoTitle")}
+                    >
+                      <Ionicons name="pencil" size={18} color={mobileColors.onAccent} />
+                    </Pressable>
+                  </View>
 
-          <SectionHeader label={t("producer.profileSectionCollab")} />
-          <CollaborativeAccessPanel
-            farmId={authMe?.primaryFarm?.id ?? null}
-            farmName={authMe?.primaryFarm?.name ?? farmName ?? null}
-          />
+                  <Text style={styles.heroName} numberOfLines={2}>
+                    {displayName}
+                  </Text>
+                  {authMe?.user.email ? (
+                    <Text style={styles.heroEmail} numberOfLines={1}>
+                      {authMe.user.email}
+                    </Text>
+                  ) : null}
 
-          <SectionHeader label={t("producer.profileSectionAccount")} />
-          <AccountSettingsPanel
-            onBeforeNavigate={onClose}
-            compact
-            hideLanguagePicker
-            hideActiveProfileSwitcher
-          />
-        </ScrollView>
-      </SafeAreaView>
-    </Modal>
-    <FarmMapPickerModal
-      visible={mapPickerVisible}
-      onClose={() => setMapPickerVisible(false)}
-      initialLat={locLat}
-      initialLng={locLng}
-      onConfirm={applyMapPick}
-    />
+                  <ActiveProfileSwitcherControl variant="hero" />
+                </View>
+
+                <SectionHeader label={t("producer.profileSectionPersonalize")} />
+                <GroupShell>
+                  <GroupRow showDivider>
+                    <Text style={styles.rowLabel}>{t("producer.firstName")}</Text>
+                    <TextInput
+                      style={styles.rowInput}
+                      value={firstName}
+                      onChangeText={setFirstName}
+                      placeholderTextColor={mobileColors.textSecondary}
+                      autoCapitalize="words"
+                      placeholder="—"
+                    />
+                  </GroupRow>
+                  <GroupRow showDivider>
+                    <Text style={styles.rowLabel}>{t("producer.lastName")}</Text>
+                    <TextInput
+                      style={styles.rowInput}
+                      value={lastName}
+                      onChangeText={setLastName}
+                      placeholderTextColor={mobileColors.textSecondary}
+                      autoCapitalize="words"
+                      placeholder="—"
+                    />
+                  </GroupRow>
+                  <GroupRow showDivider={false}>
+                    <Text style={styles.rowLabel}>{t("producer.farmName")}</Text>
+                    <TextInput
+                      style={styles.rowInput}
+                      value={farmName}
+                      onChangeText={setFarmName}
+                      placeholderTextColor={mobileColors.textSecondary}
+                      placeholder="—"
+                    />
+                  </GroupRow>
+                </GroupShell>
+                <Text style={styles.hintBelow}>{t("producer.farmNameHint")}</Text>
+
+                <SectionHeader label={t("producer.profileSectionLocation")} />
+                <GroupShell>
+                  <GroupRow showDivider>
+                    <Ionicons
+                      name="location-outline"
+                      size={22}
+                      color={mobileColors.textSecondary}
+                      style={styles.rowIcon}
+                    />
+                    <TextInput
+                      style={[styles.rowInput, styles.rowInputGrow]}
+                      value={locLabel}
+                      onChangeText={(v) => {
+                        setLocLabel(v);
+                        setLocSource("manual");
+                      }}
+                      placeholder={t("producer.locationPlaceholder")}
+                      placeholderTextColor={mobileColors.textSecondary}
+                    />
+                  </GroupRow>
+                  {Platform.OS !== "web" ? (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.groupRow,
+                        styles.gpsRow,
+                        pressed && styles.gpsRowPressed
+                      ]}
+                      onPress={() => setMapPickerVisible(true)}
+                    >
+                      <Ionicons
+                        name="map-outline"
+                        size={22}
+                        color={mobileColors.accent}
+                        style={styles.rowIcon}
+                      />
+                      <Text style={styles.gpsLabel}>{t("producer.placeOnMap")}</Text>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={18}
+                        color={mobileColors.textSecondary}
+                      />
+                    </Pressable>
+                  ) : null}
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.groupRow,
+                      styles.gpsRow,
+                      pressed && styles.gpsRowPressed
+                    ]}
+                    onPress={() => void fillGps()}
+                  >
+                    <Ionicons
+                      name="navigate-outline"
+                      size={22}
+                      color={mobileColors.accent}
+                      style={styles.rowIcon}
+                    />
+                    <Text style={styles.gpsLabel}>{t("producer.useGpsShort")}</Text>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={18}
+                      color={mobileColors.textSecondary}
+                    />
+                  </Pressable>
+                </GroupShell>
+
+                {showProjectsSection && (
+                  <>
+                    <SectionHeader label="Mes projets" />
+                    <GroupShell>
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.groupRow,
+                          pressed && styles.gpsRowPressed
+                        ]}
+                        onPress={() => setProjectSwitcherVisible(true)}
+                      >
+                        <Ionicons
+                          name="business-outline"
+                          size={22}
+                          color={mobileColors.accent}
+                          style={styles.rowIcon}
+                        />
+                        <View style={styles.projectRowContent}>
+                          <Text style={styles.projectCurrentName} numberOfLines={1}>
+                            {activeFarm?.name ?? "—"}
+                          </Text>
+                          <Text style={styles.projectCount}>
+                            {activeFarmsCount} projet{activeFarmsCount > 1 ? "s" : ""}{" "}
+                            actif{activeFarmsCount > 1 ? "s" : ""}
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name="chevron-forward"
+                          size={18}
+                          color={mobileColors.textSecondary}
+                        />
+                      </Pressable>
+                    </GroupShell>
+                  </>
+                )}
+
+                <SectionHeader label={t("producer.profileSectionCollab")} />
+                <CollaborativeAccessPanel
+                  farmId={activeFarm?.id ?? null}
+                  farmName={activeFarm?.name ?? farmName ?? null}
+                />
+
+                <SectionHeader label={t("producer.profileSectionAccount")} />
+                <AccountSettingsPanel
+                  onBeforeNavigate={onClose}
+                  compact
+                  hideLanguagePicker
+                  hideActiveProfileSwitcher
+                />
+              </ScrollView>
+            </>
+          )}
+        </SafeAreaView>
+      </Modal>
+      <FarmMapPickerModal
+        visible={mapPickerVisible}
+        onClose={() => setMapPickerVisible(false)}
+        initialLat={locLat}
+        initialLng={locLng}
+        onConfirm={applyMapPick}
+      />
     </>
   );
 }
@@ -476,6 +571,14 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     justifyContent: "center",
     minHeight: 36
+  },
+  projectsTitle: {
+    ...mobileTypography.body,
+    flex: 1,
+    textAlign: "center",
+    fontSize: 17,
+    fontWeight: "600",
+    color: mobileColors.textPrimary
   },
   saveTopText: {
     ...mobileTypography.body,
@@ -618,5 +721,20 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.xs,
     marginLeft: 4,
     marginBottom: mobileSpacing.xs
+  },
+  projectRowContent: {
+    flex: 1,
+    marginLeft: mobileSpacing.xs
+  },
+  projectCurrentName: {
+    ...mobileTypography.body,
+    fontSize: 16,
+    fontWeight: "600",
+    color: mobileColors.textPrimary
+  },
+  projectCount: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: 2
   }
 });

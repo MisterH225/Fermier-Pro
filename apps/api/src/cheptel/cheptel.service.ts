@@ -1,6 +1,9 @@
 import {
   BadRequestException,
+  forwardRef,
+  Inject,
   Injectable,
+  Logger,
   NotFoundException
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
@@ -14,13 +17,25 @@ import {
 } from "@prisma/client";
 import { FarmAccessService } from "../common/farm-access.service";
 import { FinanceService } from "../finance/finance.service";
+import { mapBatchTypeTag } from "./batch-category.util";
+import { maintainLitterBatches } from "../gestation/litter-weaning.util";
 import { PrismaService } from "../prisma/prisma.service";
-import { PatchAnimalStatusDto } from "../livestock/dto/patch-animal-status.dto";
+import {
+  normalizeAnimalLifecycleStatus,
+  PatchAnimalStatusDto
+} from "../livestock/dto/patch-animal-status.dto";
 import { LivestockService } from "../livestock/livestock.service";
+import { ConfirmDetectedBatchDto } from "./dto/confirm-detected-batch.dto";
 import { UpsertGmqSettingsDto } from "./dto/upsert-gmq-settings.dto";
 import { SellAnimalDto } from "./dto/sell-animal.dto";
+import { ListingAnimalSyncService } from "../marketplace/listing-animal-sync.service";
 import { decimalToNum, summarizeWeights } from "./cheptel-gmq.util";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
+import {
+  applyBatchHeadcountOnAnimalExit,
+  endActiveAnimalPenPlacements,
+  repairOrphanMigrationDuplicateAnimals
+} from "../livestock/livestock-batch-headcount.helper";
 import {
   migrateOnboardingBatchesToIndividualAnimals,
   normalizeFarmPenNaming,
@@ -28,7 +43,15 @@ import {
   relocateBreederAnimalsToDefaultPlan,
   relocateProductionAnimalsToDefaultPlan
 } from "../onboarding/onboarding-pen-layout";
+import { AgeCalculationService } from "./age-calculation.service";
+import type { PenAgeData } from "./age-calculation.types";
+import { calculateAnimalAgeWeeks } from "./age-calculation.util";
+import {
+  buildGrowthStandardsFromFarm,
+  estimateAnimalWeightKg
+} from "./growth-estimation.util";
 import { PenAllocationService } from "../housing/pen-allocation.service";
+import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 
 export type CheptelPenOverviewRow = {
   id: string;
@@ -41,7 +64,7 @@ export type CheptelPenOverviewRow = {
   occupancy: number;
   occupancyRate: number | null;
   borderStatus: "healthy" | "warning" | "critical" | "empty";
-  batchTypeTag: "starter" | "fattening" | null;
+  batchTypeTag: "sous_mere" | "starter" | "fattening" | null;
   sanitaryTag: "healthy" | "alert" | "critical" | "overcrowded" | "empty";
   category: PenCategory;
   categoryForced: boolean;
@@ -50,6 +73,7 @@ export type CheptelPenOverviewRow = {
     | "sows"
     | "boar"
     | "boars"
+    | "nursing"
     | "starter"
     | "fattening"
     | "mixed";
@@ -57,7 +81,7 @@ export type CheptelPenOverviewRow = {
   femaleCount: number;
   isActive: boolean;
   averageWeightKg: number | null;
-  averageAgeDays: number | null;
+  ageData: PenAgeData;
   vaccineOverdueCount: number;
   gestationImminent: boolean;
   activeDiseaseCount: number;
@@ -84,37 +108,46 @@ export type CheptelHistoryItem = {
 export class CheptelService {
   /** Évite deux migrations legacy concurrentes (ex. listPens + listPenContents). */
   private readonly legacyBatchMigrationFlights = new Map<string, Promise<void>>();
+  private readonly duplicateRepairFlights = new Map<string, Promise<number>>();
+
+  private readonly logger = new Logger(CheptelService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
     private readonly livestock: LivestockService,
     private readonly finance: FinanceService,
-    private readonly penAllocation: PenAllocationService
+    private readonly penAllocation: PenAllocationService,
+    private readonly ageCalculation: AgeCalculationService,
+    @Inject(forwardRef(() => SmartAlertsService))
+    private readonly smartAlerts: SmartAlertsService,
+    @Inject(forwardRef(() => ListingAnimalSyncService))
+    private readonly listingAnimalSync: ListingAnimalSyncService
   ) {}
 
-  private mapBatchType(
-    categoryKey: string | null | undefined
-  ): "starter" | "fattening" | null {
-    const k = (categoryKey ?? "").toLowerCase();
+  private resolvePenCategoryForDisplay(
+    pen: { category: PenCategory | null; categoryForced: boolean },
+    autoCategory: PenCategory
+  ): PenCategory {
+    if (pen.categoryForced && pen.category) {
+      return pen.category;
+    }
+    const stored = pen.category;
     if (
-      k.includes("nursery") ||
-      k.includes("demarrage") ||
-      k === "starter" ||
-      k.includes("porcelet")
+      stored &&
+      stored !== PenCategory.mixed &&
+      stored !== PenCategory.empty &&
+      autoCategory === PenCategory.mixed
     ) {
-      return "starter";
+      return stored;
     }
-    if (k.includes("finish") || k.includes("engrais") || k === "finisher") {
-      return "fattening";
-    }
-    return null;
+    return autoCategory;
   }
 
   private detectPenUsageTag(params: {
     occupancy: number;
     hasGestationSow: boolean;
-    batchTypeTag: "starter" | "fattening" | null;
+    batchTypeTag: "sous_mere" | "starter" | "fattening" | null;
     femaleCount: number;
     maleCount: number;
     allocationRoles: Set<string>;
@@ -124,6 +157,13 @@ export class CheptelService {
     }
     if (params.allocationRoles.size > 1) {
       return "mixed";
+    }
+    if (
+      params.batchTypeTag === "sous_mere" &&
+      params.femaleCount === 0 &&
+      params.maleCount === 0
+    ) {
+      return "nursing";
     }
     if (
       params.batchTypeTag === "fattening" &&
@@ -143,6 +183,9 @@ export class CheptelService {
       const [only] = [...params.allocationRoles];
       if (only === "fattening") {
         return "fattening";
+      }
+      if (only === "sous_mere") {
+        return "nursing";
       }
       if (only === "starter") {
         return "starter";
@@ -172,14 +215,19 @@ export class CheptelService {
   private detectPenCategory(
     occupancy: number,
     hasGestationSow: boolean,
-    batchTypeTag: "starter" | "fattening" | null,
+    batchTypeTag: "sous_mere" | "starter" | "fattening" | null,
     avgWeightKg: number | null,
     usageTag: CheptelPenOverviewRow["usageTag"]
   ): PenCategory {
     if (occupancy === 0) {
       return PenCategory.empty;
     }
-    if (usageTag === "sows" || hasGestationSow) {
+    if (
+      usageTag === "sows" ||
+      usageTag === "nursing" ||
+      hasGestationSow ||
+      batchTypeTag === "sous_mere"
+    ) {
       return PenCategory.maternity;
     }
     if (usageTag === "fattening" || batchTypeTag === "fattening") {
@@ -199,10 +247,31 @@ export class CheptelService {
 
   async listPens(user: User, farmId: string, barnId?: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
+    await maintainLitterBatches(this.prisma, farmId);
     await this.migrateLegacyBatchPlacementsIfNeeded(user, farmId);
+    await this.repairDuplicateAnimalsIfNeeded(user, farmId);
     const now = new Date();
     const gestationSoon = new Date(now);
     gestationSoon.setDate(gestationSoon.getDate() + 7);
+
+    const [profitability, alertSettings, gmqRows] = await Promise.all([
+      this.prisma.farmProfitabilitySettings.findUnique({ where: { farmId } }),
+      this.prisma.farmAlertSettings.findUnique({ where: { farmId } }),
+      this.prisma.farmGmqSettings.findMany({ where: { farmId } })
+    ]);
+    const gmqByKey = new Map(gmqRows.map((r) => [r.categoryKey, r]));
+    const growthStandards = buildGrowthStandardsFromFarm({
+      gmqRefStarter: profitability?.gmqRefStarter,
+      gmqRefGrowth: profitability?.gmqRefGrowth,
+      gmqRefFattening: profitability?.gmqRefFattening,
+      gmqTargetStarter: gmqByKey.get("starter")?.targetGmqGPerDay?.toNumber(),
+      gmqTargetGrowth: gmqByKey.get("growth")?.targetGmqGPerDay?.toNumber(),
+      gmqTargetFattening:
+        gmqByKey.get("finishing")?.targetGmqGPerDay?.toNumber() ??
+        gmqByKey.get("fattening")?.targetGmqGPerDay?.toNumber(),
+      starterMaxAvgWeightKg: alertSettings?.starterMaxAvgWeightKg?.toNumber(),
+      starterMaxAvgAgeWeeks: alertSettings?.starterMaxAvgAgeWeeks
+    });
 
     const pens = await this.prisma.pen.findMany({
       where: {
@@ -230,11 +299,18 @@ export class CheptelService {
                 sex: true,
                 tagCode: true,
                 productionCategory: true,
+                birthDate: true,
+                ageWeeksAtEntry: true,
+                entryDate: true,
+                entryWeightKg: true,
                 expectedFarrowingAt: true,
+                livestockBatch: {
+                  select: { categoryKey: true }
+                },
                 weights: {
                   orderBy: { measuredAt: "desc" },
                   take: 1,
-                  select: { weightKg: true }
+                  select: { weightKg: true, measuredAt: true }
                 },
                 gestationsAsSow: {
                   where: { status: GestationStatus.active },
@@ -277,7 +353,7 @@ export class CheptelService {
 
     const rows: CheptelPenOverviewRow[] = pens.map((pen) => {
       let occupancy = 0;
-      let batchTypeTag: "starter" | "fattening" | null = null;
+      let batchTypeTag: "sous_mere" | "starter" | "fattening" | null = null;
       let vaccineOverdueCount = 0;
       let activeDiseaseCount = 0;
       let gestationImminent = false;
@@ -285,6 +361,11 @@ export class CheptelService {
       let femaleCount = 0;
       let maleCount = 0;
       const weights: number[] = [];
+      const ageAnimals: Array<{
+        birthDate: Date | null;
+        ageWeeksAtEntry: number | null;
+        entryDate: Date | null;
+      }> = [];
       const allocationRoles = new Set<string>();
 
       for (const pl of pen.placements) {
@@ -293,9 +374,22 @@ export class CheptelService {
             continue;
           }
           occupancy += 1;
+          ageAnimals.push({
+            birthDate: pl.animal.birthDate,
+            ageWeeksAtEntry: pl.animal.ageWeeksAtEntry,
+            entryDate: pl.animal.entryDate
+          });
           const role = PenAllocationService.roleFromAnimal(pl.animal);
           if (role) {
             allocationRoles.add(role);
+          }
+          const litterBatchTag = pl.animal.livestockBatch
+            ? mapBatchTypeTag(pl.animal.livestockBatch.categoryKey)
+            : null;
+          const tagPrefix = (pl.animal.tagCode ?? "").trim().slice(0, 3).toLowerCase();
+          if (litterBatchTag === "sous_mere" || tagPrefix === "all") {
+            batchTypeTag = "sous_mere";
+            allocationRoles.add("sous_mere");
           }
           if (pl.animal.sex === "female") {
             femaleCount += 1;
@@ -309,6 +403,23 @@ export class CheptelService {
           const w = pl.animal.weights[0];
           if (w) {
             weights.push(decimalToNum(w.weightKg));
+          } else {
+            const estimated = estimateAnimalWeightKg(
+              {
+                birthDate: pl.animal.birthDate,
+                ageWeeksAtEntry: pl.animal.ageWeeksAtEntry,
+                entryDate: pl.animal.entryDate,
+                entryWeightKg: pl.animal.entryWeightKg
+                  ? decimalToNum(pl.animal.entryWeightKg)
+                  : null,
+                productionCategory: pl.animal.productionCategory
+              },
+              now,
+              growthStandards
+            );
+            if (estimated != null) {
+              weights.push(estimated);
+            }
           }
           const g = pl.animal.gestationsAsSow[0];
           if (g || pl.animal.expectedFarrowingAt) {
@@ -321,7 +432,7 @@ export class CheptelService {
           }
         } else if (pl.batch) {
           occupancy += pl.batch.headcount;
-          const tag = this.mapBatchType(pl.batch.categoryKey);
+          const tag = mapBatchTypeTag(pl.batch.categoryKey);
           if (tag) {
             batchTypeTag = tag;
             allocationRoles.add(tag);
@@ -366,7 +477,11 @@ export class CheptelService {
         pen.averageWeightKg != null
           ? decimalToNum(pen.averageWeightKg)
           : computedAvg;
-      const averageAgeDays = pen.averageAgeDays ?? null;
+      const ageData = this.ageCalculation.buildPenAgeDataFromAnimals(
+        ageAnimals,
+        pen.averageAgeWeeksManual ?? null,
+        now
+      );
 
       const usageTag = this.detectPenUsageTag({
         occupancy,
@@ -383,8 +498,7 @@ export class CheptelService {
         averageWeightKg,
         usageTag
       );
-      const category =
-        pen.categoryForced && pen.category ? pen.category : autoCategory;
+      const category = this.resolvePenCategoryForDisplay(pen, autoCategory);
 
       return {
         id: pen.id,
@@ -406,7 +520,7 @@ export class CheptelService {
         femaleCount,
         isActive: pen.status !== "inactive",
         averageWeightKg,
-        averageAgeDays,
+        ageData,
         vaccineOverdueCount,
         gestationImminent,
         activeDiseaseCount
@@ -441,7 +555,10 @@ export class CheptelService {
     user: User,
     farmId: string,
     penId: string,
-    dto: { averageWeightKg?: number | null; averageAgeDays?: number | null }
+    dto: {
+      averageWeightKg?: number | null;
+      averageAgeWeeksManual?: number | null;
+    }
   ) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
     const pen = await this.prisma.pen.findFirst({
@@ -450,7 +567,7 @@ export class CheptelService {
     if (!pen) {
       throw new NotFoundException("Loge introuvable");
     }
-    return this.prisma.pen.update({
+    const updated = await this.prisma.pen.update({
       where: { id: penId },
       data: {
         ...(dto.averageWeightKg !== undefined
@@ -461,16 +578,26 @@ export class CheptelService {
                   : new Prisma.Decimal(dto.averageWeightKg)
             }
           : {}),
-        ...(dto.averageAgeDays !== undefined
-          ? { averageAgeDays: dto.averageAgeDays }
+        ...(dto.averageAgeWeeksManual !== undefined
+          ? { averageAgeWeeksManual: dto.averageAgeWeeksManual }
           : {})
       }
     });
+    if (
+      dto.averageWeightKg !== undefined ||
+      dto.averageAgeWeeksManual !== undefined
+    ) {
+      void this.smartAlerts
+        .refreshInternal(farmId)
+        .catch((e) => this.logger.warn(`SmartAlerts refresh after pen averages failed`, e));
+    }
+    return updated;
   }
 
   async listPenContents(user: User, farmId: string, penId: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
     await this.migrateLegacyBatchPlacementsIfNeeded(user, farmId);
+    await this.repairDuplicateAnimalsIfNeeded(user, farmId);
     const pen = await this.prisma.pen.findFirst({
       where: { id: penId, barn: { farmId } }
     });
@@ -537,6 +664,14 @@ export class CheptelService {
         const a = p.animal!;
         const latest = a.weights[0];
         const activeGestation = a.gestationsAsSow[0] ?? null;
+        const currentAgeWeeks = calculateAnimalAgeWeeks(
+          {
+            birthDate: a.birthDate,
+            ageWeeksAtEntry: a.ageWeeksAtEntry,
+            entryDate: a.entryDate
+          },
+          now
+        );
         return {
           id: a.id,
           publicId: a.publicId,
@@ -546,6 +681,10 @@ export class CheptelService {
           status: a.status,
           healthStatus: a.healthStatus,
           photoUrl: a.photoUrl,
+          birthDate: a.birthDate?.toISOString().slice(0, 10) ?? null,
+          ageWeeksAtEntry: a.ageWeeksAtEntry,
+          entryDate: a.entryDate?.toISOString().slice(0, 10) ?? null,
+          currentAgeWeeks,
           species: a.species,
           breed: a.breed,
           weights: a.weights.map((w) => ({
@@ -584,7 +723,12 @@ export class CheptelService {
         };
       });
 
-    return { animals, batches };
+    const ageData = await this.ageCalculation.calculatePenAverageAgeWeeks(
+      penId,
+      now
+    );
+
+    return { animals, batches, ageData };
   }
 
   /** @deprecated Préférer listPenContents — conservé pour alertes vaccins. */
@@ -802,7 +946,15 @@ export class CheptelService {
         tagCode: true,
         publicId: true,
         entryWeightKg: true,
-        weights: { orderBy: { measuredAt: "asc" } }
+        entryDate: true,
+        weights: { orderBy: { measuredAt: "asc" } },
+        penPlacements: {
+          where: { endedAt: null },
+          take: 1,
+          select: {
+            pen: { select: { averageWeightKg: true } }
+          }
+        }
       }
     });
 
@@ -816,9 +968,17 @@ export class CheptelService {
         weightKg: decimalToNum(w.weightKg),
         measuredAt: w.measuredAt
       }));
+      const penAvg =
+        a.penPlacements[0]?.pen?.averageWeightKg != null
+          ? decimalToNum(a.penPlacements[0].pen.averageWeightKg)
+          : null;
       const sum = summarizeWeights(
         points,
-        a.entryWeightKg != null ? decimalToNum(a.entryWeightKg) : null
+        a.entryWeightKg != null ? decimalToNum(a.entryWeightKg) : null,
+        {
+          penAverageWeightKg: penAvg,
+          entryDate: a.entryDate
+        }
       );
       const targetGmq =
         defaultTarget?.targetGmqGPerDay != null
@@ -930,7 +1090,10 @@ export class CheptelService {
         where: { id: animalId, farmId },
         include: {
           breed: { select: { name: true } },
-          penPlacements: { where: { endedAt: null } }
+          penPlacements: {
+            where: { endedAt: null },
+            select: { id: true, penId: true }
+          }
         }
       });
       if (!animal) {
@@ -996,10 +1159,20 @@ export class CheptelService {
         });
       }
 
+      const penIds = animal.penPlacements.map((pl) => pl.penId).filter(Boolean);
+      const batchIdForExit = await applyBatchHeadcountOnAnimalExit(tx, {
+        farmId,
+        animalId,
+        livestockBatchId: animal.livestockBatchId,
+        penIds,
+        endedAt: soldAt
+      });
+
       await tx.livestockExit.create({
         data: {
           farmId,
           animalId,
+          batchId: batchIdForExit,
           kind: LivestockExitKind.sale,
           occurredAt: soldAt,
           recordedByUserId: user.id,
@@ -1033,6 +1206,13 @@ export class CheptelService {
     });
 
     const animal = await this.livestock.getAnimal(user, farmId, animalId);
+    try {
+      await this.listingAnimalSync.onAnimalSoldViaCheptel(animalId);
+    } catch (e) {
+      this.logger.warn(
+        `marketplace sync after cheptel sell ${animalId}: ${(e as Error).message}`
+      );
+    }
     return { animal, transaction: result.transaction };
   }
 
@@ -1052,30 +1232,108 @@ export class CheptelService {
       );
     }
 
+    const status = normalizeAnimalLifecycleStatus(dto.status);
+    const normalizedDto = { ...dto, status };
+
     const animal = await this.livestock.patchAnimalStatus(
       user,
       farmId,
       animalId,
-      dto
+      normalizedDto
     );
 
-    if (dto.status === "dead") {
-      await this.prisma.livestockExit.create({
-        data: {
+    const occurredAt = new Date();
+    const herdExitStatuses = new Set(["exited", "dead", "transferred"]);
+
+    if (herdExitStatuses.has(status)) {
+      let batchIdForExit: string | null = null;
+      await this.prisma.$transaction(async (tx) => {
+        const animalRow = await tx.animal.findFirst({
+          where: { id: animalId, farmId },
+          select: { livestockBatchId: true }
+        });
+        const penIds = await endActiveAnimalPenPlacements(tx, {
           farmId,
           animalId,
-          kind: LivestockExitKind.mortality,
-          recordedByUserId: user.id,
-          headcountAffected: 1,
-          deathCause: dto.deathCause ?? dto.note ?? null,
-          note: dto.note ?? null
+          endedAt: occurredAt
+        });
+        for (const penId of penIds) {
+          await this.penAllocation.recalculatePenCategory(tx, penId);
+          await this.penAllocation.recalculatePenAverageWeight(tx, penId);
         }
+        batchIdForExit = await applyBatchHeadcountOnAnimalExit(tx, {
+          farmId,
+          animalId,
+          livestockBatchId: animalRow?.livestockBatchId ?? null,
+          penIds,
+          endedAt: occurredAt
+        });
+        await tx.animal.update({
+          where: { id: animalId },
+          data: { statusChangedAt: occurredAt }
+        });
       });
+
+      if (status === "exited") {
+        await this.prisma.livestockExit.create({
+          data: {
+            farmId,
+            animalId,
+            batchId: batchIdForExit,
+            kind: LivestockExitKind.slaughter,
+            occurredAt,
+            recordedByUserId: user.id,
+            headcountAffected: 1,
+            note: dto.note ?? null
+          }
+        });
+        try {
+          await this.listingAnimalSync.onAnimalExitedFromCheptel(animalId);
+        } catch (e) {
+          this.logger.warn(
+            `marketplace sync after cheptel exit ${animalId}: ${(e as Error).message}`
+          );
+        }
+        return this.livestock.getAnimal(user, farmId, animalId);
+      }
+
+      if (status === "dead") {
+        await this.prisma.livestockExit.create({
+          data: {
+            farmId,
+            animalId,
+            batchId: batchIdForExit,
+            kind: LivestockExitKind.mortality,
+            recordedByUserId: user.id,
+            headcountAffected: 1,
+            deathCause: dto.deathCause ?? dto.note ?? null,
+            note: dto.note ?? null,
+            occurredAt
+          }
+        });
+      }
+
+      if (status === "transferred") {
+        await this.prisma.livestockExit.create({
+          data: {
+            farmId,
+            animalId,
+            batchId: batchIdForExit,
+            kind: LivestockExitKind.transfer,
+            occurredAt,
+            recordedByUserId: user.id,
+            headcountAffected: 1,
+            note: dto.note ?? null
+          }
+        });
+      }
+
+      return this.livestock.getAnimal(user, farmId, animalId);
     }
 
     await this.prisma.animal.update({
       where: { id: animalId },
-      data: { statusChangedAt: new Date() }
+      data: { statusChangedAt: occurredAt }
     });
 
     return animal;
@@ -1221,6 +1479,28 @@ export class CheptelService {
     return flight;
   }
 
+  /** Archive les doublons fictifs (migration onboarding) cohabitant avec une bande confirmée. */
+  repairDuplicateAnimalsIfNeeded(user: User, farmId: string): Promise<number> {
+    void user;
+    const inFlight = this.duplicateRepairFlights.get(farmId);
+    if (inFlight) {
+      return inFlight;
+    }
+    const flight = this.prisma
+      .$transaction(async (tx) => repairOrphanMigrationDuplicateAnimals(tx, farmId))
+      .finally(() => {
+        this.duplicateRepairFlights.delete(farmId);
+      });
+    this.duplicateRepairFlights.set(farmId, flight);
+    return flight;
+  }
+
+  async repairDuplicateAnimals(user: User, farmId: string): Promise<{ archived: number }> {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const archived = await this.repairDuplicateAnimalsIfNeeded(user, farmId);
+    return { archived };
+  }
+
   private async runLegacyBatchMigration(
     user: User,
     farmId: string
@@ -1246,7 +1526,17 @@ export class CheptelService {
             endedAt: null,
             batchId: { not: null },
             pen: { barn: { farmId } },
-            batch: { is: { headcount: { gt: 0 } } }
+            batch: {
+              is: {
+                headcount: { gt: 0 },
+                NOT: {
+                  OR: [
+                    { sourceTag: { startsWith: "gestation:" } },
+                    { categoryKey: "sous_mere" }
+                  ]
+                }
+              }
+            }
           }
         });
         if (legacyBatchCount === 0) {
@@ -1259,6 +1549,12 @@ export class CheptelService {
           species.id,
           user.id
         );
+        const repaired = await repairOrphanMigrationDuplicateAnimals(tx, farmId);
+        if (repaired > 0) {
+          this.logger.log(
+            `Ferme ${farmId}: ${repaired} doublon(s) migration archivé(s)`
+          );
+        }
         if (migrated > 0) {
           await relocateProductionAnimalsToDefaultPlan(tx, {
             farmId,
@@ -1269,5 +1565,311 @@ export class CheptelService {
       },
       { maxWait: 10_000, timeout: 60_000 }
     );
+  }
+
+  async detectPotentialBatches(user: User, farmId: string) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const now = new Date();
+    const animals = await this.prisma.animal.findMany({
+      where: {
+        farmId,
+        status: "active",
+        livestockBatchId: null,
+        productionCategory: { in: ["starter", "fattening"] }
+      },
+      select: {
+        id: true,
+        tagCode: true,
+        publicId: true,
+        productionCategory: true,
+        entryWeightKg: true,
+        birthDate: true,
+        ageWeeksAtEntry: true,
+        entryDate: true,
+        weights: { orderBy: { measuredAt: "desc" }, take: 1 },
+        penPlacements: {
+          where: { endedAt: null },
+          take: 1,
+          select: {
+            penId: true,
+            pen: { select: { name: true, averageWeightKg: true } }
+          }
+        }
+      }
+    });
+
+    type Enriched = {
+      id: string;
+      label: string;
+      category: string;
+      ageWeeks: number | null;
+      weightKg: number | null;
+      penId: string | null;
+      penName: string | null;
+    };
+
+    const enriched: Enriched[] = animals.map((a) => {
+      const ageWeeks = calculateAnimalAgeWeeks(
+        {
+          birthDate: a.birthDate,
+          ageWeeksAtEntry: a.ageWeeksAtEntry,
+          entryDate: a.entryDate
+        },
+        now
+      );
+      let weightKg = a.weights[0]
+        ? decimalToNum(a.weights[0].weightKg)
+        : null;
+      if (!weightKg && a.penPlacements[0]?.pen?.averageWeightKg) {
+        weightKg = decimalToNum(a.penPlacements[0].pen.averageWeightKg);
+      }
+      if (!weightKg && a.entryWeightKg) {
+        weightKg = decimalToNum(a.entryWeightKg);
+      }
+      return {
+        id: a.id,
+        label: a.tagCode ?? a.publicId.slice(0, 8),
+        category: a.productionCategory,
+        ageWeeks,
+        weightKg,
+        penId: a.penPlacements[0]?.penId ?? null,
+        penName: a.penPlacements[0]?.pen?.name ?? null
+      };
+    });
+
+    const monthLabels = [
+      "Jan",
+      "Fev",
+      "Mar",
+      "Avr",
+      "Mai",
+      "Jun",
+      "Jul",
+      "Aou",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+    ];
+    const monthTag = `${monthLabels[now.getMonth()]}${now.getFullYear()}`;
+    const batches: Array<{
+      id: string;
+      name: string;
+      category: string;
+      headcount: number;
+      avgAgeWeeks: number | null;
+      avgWeightKg: number | null;
+      penNames: string[];
+      animalIds: string[];
+    }> = [];
+
+    const byCategory = new Map<string, Enriched[]>();
+    for (const e of enriched) {
+      const arr = byCategory.get(e.category) ?? [];
+      arr.push(e);
+      byCategory.set(e.category, arr);
+    }
+
+    for (const [category, group] of byCategory) {
+      const used = new Set<string>();
+      for (const seed of group) {
+        if (used.has(seed.id)) {
+          continue;
+        }
+        const members = group.filter((m) => {
+          if (used.has(m.id)) {
+            return false;
+          }
+          if (
+            m.ageWeeks != null &&
+            seed.ageWeeks != null &&
+            Math.abs(m.ageWeeks - seed.ageWeeks) > 2
+          ) {
+            return false;
+          }
+          if (
+            m.weightKg != null &&
+            seed.weightKg != null &&
+            Math.abs(m.weightKg - seed.weightKg) > 5
+          ) {
+            return false;
+          }
+          return true;
+        });
+        if (members.length < 2) {
+          continue;
+        }
+        members.forEach((m) => used.add(m.id));
+        const ages = members
+          .map((m) => m.ageWeeks)
+          .filter((x): x is number => x != null);
+        const weights = members
+          .map((m) => m.weightKg)
+          .filter((x): x is number => x != null);
+        const catLabel = category === "fattening" ? "Eng" : "Dem";
+        batches.push({
+          id: `detected-${category}-${members[0].id}`,
+          name: `Bande ${catLabel}-${monthTag}`,
+          category,
+          headcount: members.length,
+          avgAgeWeeks: ages.length
+            ? Math.round(ages.reduce((a, b) => a + b, 0) / ages.length)
+            : null,
+          avgWeightKg: weights.length
+            ? Math.round(
+                (weights.reduce((a, b) => a + b, 0) / weights.length) * 10
+              ) / 10
+            : null,
+          penNames: [
+            ...new Set(
+              members.map((m) => m.penName).filter((n): n is string => Boolean(n))
+            )
+          ],
+          animalIds: members.map((m) => m.id)
+        });
+      }
+    }
+
+    return { farmId, batches };
+  }
+
+  async confirmDetectedBatch(
+    user: User,
+    farmId: string,
+    dto: ConfirmDetectedBatchDto
+  ) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+
+    const uniqueIds = [...new Set(dto.animalIds)];
+    const animals = await this.prisma.animal.findMany({
+      where: {
+        id: { in: uniqueIds },
+        farmId,
+        status: "active",
+        livestockBatchId: null,
+        productionCategory: { in: ["starter", "fattening"] }
+      },
+      select: {
+        id: true,
+        speciesId: true,
+        breedId: true,
+        birthDate: true,
+        ageWeeksAtEntry: true,
+        entryDate: true,
+        productionCategory: true,
+        entryWeightKg: true,
+        weights: { orderBy: { measuredAt: "desc" }, take: 1 }
+      }
+    });
+
+    if (animals.length !== uniqueIds.length) {
+      throw new BadRequestException(
+        "Un ou plusieurs sujets sont introuvables ou déjà rattachés à une bande"
+      );
+    }
+
+    const mismatched = animals.filter(
+      (a) => a.productionCategory !== dto.category
+    );
+    if (mismatched.length > 0) {
+      throw new BadRequestException(
+        "Tous les sujets doivent appartenir à la même catégorie (démarrage ou engraissement)"
+      );
+    }
+
+    const now = new Date();
+    let avgBirthDate: Date | null = dto.avgBirthDate
+      ? new Date(dto.avgBirthDate)
+      : null;
+    if (!avgBirthDate) {
+      const birthDates = animals
+        .map((a) => {
+          if (a.birthDate) {
+            return a.birthDate;
+          }
+          const ageWeeks = calculateAnimalAgeWeeks(
+            {
+              birthDate: a.birthDate,
+              ageWeeksAtEntry: a.ageWeeksAtEntry,
+              entryDate: a.entryDate
+            },
+            now
+          );
+          if (ageWeeks == null) {
+            return null;
+          }
+          const d = new Date(now);
+          d.setUTCDate(d.getUTCDate() - ageWeeks * 7);
+          return d;
+        })
+        .filter((d): d is Date => d != null);
+      if (birthDates.length > 0) {
+        const avgMs =
+          birthDates.reduce((s, d) => s + d.getTime(), 0) / birthDates.length;
+        avgBirthDate = new Date(avgMs);
+      }
+    }
+
+    const weights = animals
+      .map((a) => {
+        if (a.weights[0]) {
+          return decimalToNum(a.weights[0].weightKg);
+        }
+        if (a.entryWeightKg) {
+          return decimalToNum(a.entryWeightKg);
+        }
+        return null;
+      })
+      .filter((w): w is number => w != null);
+    const avgWeightKg =
+      weights.length > 0
+        ? Math.round(
+            (weights.reduce((a, b) => a + b, 0) / weights.length) * 10
+          ) / 10
+        : null;
+
+    const speciesId = animals[0].speciesId;
+    const breedIds = [...new Set(animals.map((a) => a.breedId).filter(Boolean))];
+    const breedId = breedIds.length === 1 ? breedIds[0] : null;
+
+    const batch = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.livestockBatch.create({
+        data: {
+          farmId,
+          speciesId,
+          breedId,
+          name: dto.name.trim(),
+          categoryKey: dto.category,
+          headcount: animals.length,
+          avgBirthDate,
+          sourceTag: "detected:legacy",
+          notes: dto.notes?.trim() || null
+        }
+      });
+
+      await tx.animal.updateMany({
+        where: { id: { in: uniqueIds } },
+        data: { livestockBatchId: created.id }
+      });
+
+      if (avgWeightKg != null) {
+        await tx.livestockBatchWeight.create({
+          data: {
+            batchId: created.id,
+            avgWeightKg: new Prisma.Decimal(avgWeightKg),
+            headcountSnapshot: animals.length,
+            note: "Poids moyen estimé à la création de la bande"
+          }
+        });
+      }
+
+      return created;
+    });
+
+    return {
+      batch,
+      animalIds: uniqueIds,
+      avgWeightKg
+    };
   }
 }

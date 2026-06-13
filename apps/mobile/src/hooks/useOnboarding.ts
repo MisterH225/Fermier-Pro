@@ -14,6 +14,7 @@ export type OnboardingFormState = {
   maleBreeders: string;
   starterHeadcount: string;
   fatteningHeadcount: string;
+  productionEstimatedAgeWeeks: string;
   buildingsCount: string;
   pensPerBuilding: string;
   maxPigsPerPen: string;
@@ -27,6 +28,7 @@ const INITIAL: OnboardingFormState = {
   maleBreeders: "",
   starterHeadcount: "",
   fatteningHeadcount: "",
+  productionEstimatedAgeWeeks: "",
   buildingsCount: "2",
   pensPerBuilding: "4",
   maxPigsPerPen: "12"
@@ -67,6 +69,7 @@ export function useOnboarding() {
   const buildingsN = parsePosInt(form.buildingsCount);
   const pensN = parsePosInt(form.pensPerBuilding);
   const capN = parsePosInt(form.maxPigsPerPen);
+  const productionAgeN = parseNonNegInt(form.productionEstimatedAgeWeeks);
 
   const breedersTotal = (femaleN ?? 0) + (maleN ?? 0);
   const productionTotal = (starterN ?? 0) + (fatteningN ?? 0);
@@ -114,6 +117,9 @@ export function useOnboarding() {
       maleBreeders: maleN!,
       starterHeadcount: starterN!,
       fatteningHeadcount: fatteningN!,
+      ...(productionAgeN != null
+        ? { productionEstimatedAgeWeeks: productionAgeN }
+        : {}),
       buildingsCount: buildingsN!,
       pensPerBuilding: pensN!,
       maxPigsPerPen: capN!
@@ -130,7 +136,8 @@ export function useOnboarding() {
     fatteningN,
     buildingsN,
     pensN,
-    capN
+    capN,
+    productionAgeN
   ]);
 
   const reset = useCallback(() => {

@@ -15,11 +15,13 @@ import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
 import { PrismaService } from "../prisma/prisma.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import { feedTypeColorAtIndex } from "../feed-stock/feed-type-colors";
+import { inferFeedPhaseFromName } from "../feed-stock/feed-production-phase.util";
 import type { CreateFeedTypeDto } from "../feed-stock/dto/create-feed-type.dto";
 import {
   lineAmountFromUnitPrice,
   quantityInputToKg
 } from "./feed-stock-quantity.helper";
+import { recalculateFeedTypeStock } from "./feed-stock-recalculate.helper";
 import type {
   CreateMovementWithTransactionDto,
   CreateTransactionWithStockDto,
@@ -71,6 +73,9 @@ export class FeedFinanceLinkService {
     dto: CreateFeedTypeDto
   ) {
     const existingCount = await tx.feedType.count({ where: { farmId } });
+    const inferred = inferFeedPhaseFromName(dto.name.trim());
+    const productionPhase =
+      inferred.confidence === "high" ? inferred.phase : "unknown";
     return tx.feedType.create({
       data: {
         farmId,
@@ -82,6 +87,7 @@ export class FeedFinanceLinkService {
             ? new Prisma.Decimal(dto.weightPerBagKg)
             : null,
         lowStockThresholdDays: dto.lowStockThresholdDays ?? 15,
+        productionPhase
       }
     });
   }
@@ -104,11 +110,6 @@ export class FeedFinanceLinkService {
 
     const deltaKg = quantityInputToKg(line.quantityInput, qUnit, wp);
     const newStock = feedType.currentStockKg.plus(deltaKg);
-    const wpNum = wp?.toNumber() ?? null;
-    const newBags =
-      wpNum != null && wpNum > 0
-        ? new Prisma.Decimal(newStock.toNumber() / wpNum)
-        : null;
 
     const basis = line.priceBasis ?? (qUnit === FeedTypeUnit.sac ? "sac" : "kg");
     let unitPrice: Prisma.Decimal | null = null;
@@ -121,6 +122,9 @@ export class FeedFinanceLinkService {
         farmId,
         feedTypeId: feedType.id,
         kind: FeedMovementKind.in,
+        quantityInput: new Prisma.Decimal(line.quantityInput),
+        quantityUnit: qUnit,
+        priceBasis: basis,
         quantityKg: deltaKg,
         stockAfterKg: newStock,
         supplier: (line.supplier ?? defaultSupplier)?.trim() || null,
@@ -136,8 +140,6 @@ export class FeedFinanceLinkService {
     await tx.feedType.update({
       where: { id: feedType.id },
       data: {
-        currentStockKg: newStock,
-        bagCountCurrent: newBags,
         ...(line.weightPerBagKg != null
           ? { weightPerBagKg: new Prisma.Decimal(line.weightPerBagKg) }
           : {}),
@@ -188,17 +190,35 @@ export class FeedFinanceLinkService {
 
       const movements: Awaited<ReturnType<typeof this.createStockInLine>>[] = [];
       if (recordStock && dto.stockLines) {
-        const totalLines = dto.stockLines.reduce((sum, line) => {
-          const qUnit = line.quantityUnit ?? FeedTypeUnit.kg;
+        const resolvedLines: Array<{
+          line: StockLineInputDto;
+          feedType: Awaited<
+            ReturnType<FeedFinanceLinkService["resolveFeedType"]>
+          >;
+        }> = [];
+        for (const line of dto.stockLines) {
+          resolvedLines.push({
+            line,
+            feedType: await this.resolveFeedType(tx, user, farmId, line)
+          });
+        }
+
+        const totalLines = resolvedLines.reduce((sum, { line, feedType }) => {
+          const qUnit = line.quantityUnit ?? feedType.unit;
           const wp =
             line.weightPerBagKg != null
               ? new Prisma.Decimal(line.weightPerBagKg)
-              : null;
+              : feedType.weightPerBagKg;
           const kg = quantityInputToKg(line.quantityInput, qUnit, wp);
-          const basis = line.priceBasis ?? (qUnit === FeedTypeUnit.sac ? "sac" : "kg");
+          const basis =
+            line.priceBasis ?? (qUnit === FeedTypeUnit.sac ? "sac" : "kg");
           const price =
             line.unitPrice ??
-            (kg.gt(0) ? dto.amount / kg.toNumber() : 0);
+            (basis === "sac" && qUnit === FeedTypeUnit.sac
+              ? dto.amount / line.quantityInput
+              : kg.gt(0)
+                ? dto.amount / kg.toNumber()
+                : 0);
           return (
             sum +
             lineAmountFromUnitPrice(
@@ -215,16 +235,23 @@ export class FeedFinanceLinkService {
           // warning only — stored in response
         }
 
-        for (const line of dto.stockLines) {
-          const qUnit = line.quantityUnit ?? FeedTypeUnit.kg;
+        const affectedFeedTypes = new Set<string>();
+        for (const { line, feedType } of resolvedLines) {
+          const qUnit = line.quantityUnit ?? feedType.unit;
           const wp =
             line.weightPerBagKg != null
               ? new Prisma.Decimal(line.weightPerBagKg)
-              : null;
+              : feedType.weightPerBagKg;
           const kg = quantityInputToKg(line.quantityInput, qUnit, wp);
+          const basis =
+            line.priceBasis ?? (qUnit === FeedTypeUnit.sac ? "sac" : "kg");
           const unitPrice =
             line.unitPrice ??
-            (kg.gt(0) ? dto.amount / kg.toNumber() : undefined);
+            (basis === "sac" && qUnit === FeedTypeUnit.sac
+              ? dto.amount / line.quantityInput
+              : kg.gt(0)
+                ? dto.amount / kg.toNumber()
+                : undefined);
           movements.push(
             await this.createStockInLine(
               tx,
@@ -236,6 +263,11 @@ export class FeedFinanceLinkService {
               line.supplier
             )
           );
+          affectedFeedTypes.add(feedType.id);
+        }
+
+        for (const feedTypeId of affectedFeedTypes) {
+          await recalculateFeedTypeStock(tx, farmId, feedTypeId);
         }
 
         await tx.farmExpense.update({
@@ -366,6 +398,8 @@ export class FeedFinanceLinkService {
           data: { linkedExpenseId: expense.id }
         });
       }
+
+      await recalculateFeedTypeStock(tx, farmId, movement.feedTypeId);
 
       return { movement, expense };
     });

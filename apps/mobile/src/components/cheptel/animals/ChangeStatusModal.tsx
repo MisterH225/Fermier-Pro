@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -28,7 +29,7 @@ import {
   mobileTypography
 } from "../../../theme/mobileTheme";
 import type { AnimalStatusKey } from "./animalUtils";
-import { animalDisplayTag } from "./animalUtils";
+import { animalDisplayTag, normalizeAnimalStatusKey } from "./animalUtils";
 
 type Props = {
   visible: boolean;
@@ -47,7 +48,7 @@ const STATUS_OPTIONS: { key: AnimalStatusKey | "sick"; emoji: string }[] = [
   { key: "sick", emoji: "🤒" },
   { key: "dead", emoji: "💀" },
   { key: "sold", emoji: "💰" },
-  { key: "reformed", emoji: "♻️" },
+  { key: "exited", emoji: "🚪" },
   { key: "transferred", emoji: "🚚" }
 ];
 
@@ -71,7 +72,9 @@ export function ChangeStatusModal({
 
   useEffect(() => {
     if (visible && animal) {
-      setStatus((animal.status as AnimalStatusKey) || "active");
+      setStatus(
+        (normalizeAnimalStatusKey(animal.status) as AnimalStatusKey) || "active"
+      );
       setNote("");
       setDeathCause("");
     }
@@ -105,6 +108,13 @@ export function ChangeStatusModal({
     label: animal ? animalDisplayTag(animal) : "—",
     mutationFn: async () => {
       const { animalId, body } = buildPayload();
+      optimisticPatchAnimalStatus(
+        qc,
+        farmId,
+        activeProfileId,
+        animalId,
+        body
+      );
       return patchCheptelAnimalStatus(
         accessToken,
         farmId,
@@ -154,7 +164,7 @@ export function ChangeStatusModal({
       });
     },
     onError: (e: Error) => {
-      Alert.alert(t("cheptel.animals.status.errorTitle"), e.message);
+      Alert.alert(t("cheptel.animals.status.errorTitle"), getUserFacingError(e, t));
     }
   });
 
@@ -190,7 +200,7 @@ export function ChangeStatusModal({
           disabled={saveMut.isPending || status === "sold"}
         >
           {saveMut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.primaryBtnText}>
               {t("cheptel.animals.status.submit")}
@@ -233,6 +243,12 @@ export function ChangeStatusModal({
             onChangeText={setDeathCause}
           />
           <Text style={styles.hint}>{t("cheptel.animals.status.healthLinked")}</Text>
+        </ModalSection>
+      ) : null}
+
+      {status === "exited" ? (
+        <ModalSection title={t("cheptel.animals.status.exited")}>
+          <Text style={styles.hint}>{t("cheptel.animals.status.exitedHint")}</Text>
         </ModalSection>
       ) : null}
 
@@ -292,5 +308,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.6 },
-  primaryBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
 });

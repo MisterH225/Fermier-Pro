@@ -35,10 +35,10 @@ type Props = {
   animals: AnimalListItem[];
   locale: string;
   isLoading: boolean;
-  onAddPress: () => void;
+  onAddPress?: () => void;
   onOpenCase: (record: FarmHealthRecordRowDto) => void;
-  onSwipeResolve: (record: FarmHealthRecordRowDto) => void;
-  onSwipeTreatment: (record: FarmHealthRecordRowDto) => void;
+  onSwipeResolve?: (record: FarmHealthRecordRowDto) => void;
+  onSwipeTreatment?: (record: FarmHealthRecordRowDto) => void;
   resolvingId?: string | null;
 };
 
@@ -65,7 +65,7 @@ function SwipeableCaseRow({
         accessibilityRole="button"
         accessibilityLabel={t("health.diseases.swipeTreatment")}
       >
-        <Ionicons name="medical" size={20} color="#fff" />
+        <Ionicons name="medical" size={20} color={mobileColors.onAccent} />
         <Text style={styles.swipeLabel}>{t("health.diseases.swipeTreatment")}</Text>
       </Pressable>
       <Pressable
@@ -76,10 +76,10 @@ function SwipeableCaseRow({
         accessibilityLabel={t("health.diseases.swipeRecovered")}
       >
         {resolving ? (
-          <ActivityIndicator color="#fff" size="small" />
+          <ActivityIndicator color={mobileColors.onAccent} size="small" />
         ) : (
           <>
-            <Ionicons name="checkmark-done" size={20} color="#fff" />
+            <Ionicons name="checkmark-done" size={20} color={mobileColors.onAccent} />
             <Text style={styles.swipeLabel}>{t("health.diseases.swipeRecovered")}</Text>
           </>
         )}
@@ -162,12 +162,17 @@ export function ActiveCasesList({
           scrollEnabled={false}
           renderItem={({ item }) => {
             const record = item.meta as FarmHealthRecordRowDto;
+            if (!onSwipeResolve && !onSwipeTreatment) {
+              return (
+                <EventListItem item={item} onPress={() => onOpenCase(record)} />
+              );
+            }
             return (
               <SwipeableCaseRow
                 item={item}
                 onPress={() => onOpenCase(record)}
-                onResolve={() => onSwipeResolve(record)}
-                onTreatment={() => onSwipeTreatment(record)}
+                onResolve={() => onSwipeResolve?.(record)}
+                onTreatment={() => onSwipeTreatment?.(record)}
                 resolving={resolvingId === record.id}
               />
             );
@@ -209,7 +214,7 @@ const styles = StyleSheet.create({
   },
   swipeDisabled: { opacity: 0.6 },
   swipeLabel: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 10,
     fontWeight: "700",
     textAlign: "center"

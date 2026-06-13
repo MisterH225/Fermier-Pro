@@ -13,7 +13,10 @@ Depuis la racine du projet:
 
 ```bash
 npm install
+npm run prisma:generate
 ```
+
+> **Cursor Cloud Agent** : préférer `bash scripts/cloud-install.sh` (évite les conflits Prisma pendant `npm install`). Voir `AGENTS.md`.
 
 ### Windows : `EPERM` / `ENOTEMPTY` pendant `npm install`
 
@@ -75,6 +78,29 @@ GET http://localhost:3000/api/v1/health
 **Connexion Google** : activer le fournisseur Google dans Supabase (Providers → Google) avec le Client ID / Secret de Google Cloud. Copier l’**URL de redirection** affichée sur l’écran de connexion mobile dans **Authentication → URL configuration → Redirect URLs** (Expo Go : `exp://…/--/auth/callback` ; build : `fermier-pro://auth/callback`).
 
 **Important (monorepo)** : lancer Expo **uniquement** via `npm run dev:mobile` ou `npm run expo:start` à la racine, ou bien `cd apps/mobile && npx expo start`. Un `npx expo start` lancé **à la racine** du repo fait échouer Metro avec `Unable to resolve "../../App"` (Expo cherche `App` à la racine au lieu de `apps/mobile/App.tsx`).
+
+### Build EAS (TestFlight / preview) depuis expo.dev
+
+L’app Expo et `eas.json` vivent dans **`apps/mobile/`**, pas à la racine du monorepo. Si tu lances un build depuis le site **expo.dev** (GitHub → « Build from GitHub ») sans configurer le sous-dossier, l’erreur suivante apparaît :
+
+> Failed to read "/eas.json". Run `eas build:configure` to create the file.
+
+**Correctif (une fois)** :
+
+1. Ouvre [expo.dev](https://expo.dev) → projet **fermier-pro** → **GitHub** (paramètres du dépôt lié).
+2. Définis **Base directory** sur : `apps/mobile`
+3. Enregistre.
+
+Pour un build ponctuel depuis la modale « Start a build from GitHub », tu peux aussi indiquer **Base directory** = `apps/mobile` sans changer le réglage global.
+
+Ensuite relance le build **iOS** avec le profil **preview** (distribution interne) ou **production** (TestFlight).
+
+En CLI (depuis une machine avec `eas login` ou `EXPO_TOKEN`) :
+
+```bash
+cd apps/mobile
+eas build --platform ios --profile preview
+```
 
 ```bash
 npm run dev:mobile

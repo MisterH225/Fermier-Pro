@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -60,7 +61,7 @@ export function OnboardingScreen({ onFinished }: Props) {
       onFinished();
     },
     onError: (e: Error) => {
-      Alert.alert(t("onboarding.errorTitle"), e.message);
+      Alert.alert(t("onboarding.errorTitle"), getUserFacingError(e, t));
     }
   });
 
@@ -82,7 +83,7 @@ export function OnboardingScreen({ onFinished }: Props) {
       onFinished();
     },
     onError: (e: Error) => {
-      Alert.alert(t("onboarding.errorTitle"), e.message);
+      Alert.alert(t("onboarding.errorTitle"), getUserFacingError(e, t));
     }
   });
 
@@ -162,7 +163,7 @@ export function OnboardingScreen({ onFinished }: Props) {
           disabled={busy || (!isCompletion && !ob.canNext)}
         >
           {busy ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.primaryText}>
               {isCompletion
@@ -230,6 +231,6 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   primaryFull: { flex: 1 },
-  primaryText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  primaryText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 },
   disabled: { opacity: 0.5 }
 });

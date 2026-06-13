@@ -1,10 +1,13 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
+import { AiModule } from "../ai/ai.module";
 import { CommonModule } from "../common/common.module";
 import { ConfigClientModule } from "../config-client/config-client.module";
 import { PrismaModule } from "../prisma/prisma.module";
 import { SmartAlertsModule } from "../smart-alerts/smart-alerts.module";
 import { FeedFinanceLinkService } from "./feed-finance-link.service";
+import { PumpCalculator } from "./pump-calculator";
+import { ReconciliationEngine } from "./reconciliation-engine";
 
 @Module({
   imports: [
@@ -12,9 +15,10 @@ import { FeedFinanceLinkService } from "./feed-finance-link.service";
     CommonModule,
     AuthModule,
     ConfigClientModule,
-    SmartAlertsModule
+    SmartAlertsModule,
+    AiModule
   ],
-  providers: [FeedFinanceLinkService],
-  exports: [FeedFinanceLinkService]
+  providers: [FeedFinanceLinkService, PumpCalculator, ReconciliationEngine],
+  exports: [FeedFinanceLinkService, PumpCalculator, ReconciliationEngine]
 })
 export class FeedFinanceLinkModule {}

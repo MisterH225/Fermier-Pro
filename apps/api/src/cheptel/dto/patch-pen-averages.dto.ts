@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsInt, IsNumber, IsOptional, Min } from "class-validator";
+import { IsInt, IsNumber, IsOptional, Max, Min } from "class-validator";
 
 export class PatchPenAveragesDto {
   @IsOptional()
@@ -8,9 +8,11 @@ export class PatchPenAveragesDto {
   @Min(0)
   averageWeightKg?: number | null;
 
+  /** Âge moyen en SEMAINES entières (0 — 104). */
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  averageAgeDays?: number | null;
+  @Max(104)
+  averageAgeWeeksManual?: number | null;
 }

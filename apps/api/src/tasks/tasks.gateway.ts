@@ -38,7 +38,7 @@ export class TasksGateway implements OnGatewayConnection {
   }
 
   async handleConnection(client: Socket) {
-    if (!this.featureFlags.isEnabled("tasks")) {
+    if (!(await this.featureFlags.isEnabled("tasks"))) {
       client.disconnect(true);
       return;
     }
@@ -73,7 +73,7 @@ export class TasksGateway implements OnGatewayConnection {
     @ConnectedSocket() client: Socket,
     @MessageBody() body: WsJoinFarmDto
   ) {
-    if (!this.featureFlags.isEnabled("tasks")) {
+    if (!(await this.featureFlags.isEnabled("tasks"))) {
       return { ok: false, error: "module_disabled" };
     }
     const userId = client.data.userId as string | undefined;

@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -14,6 +15,7 @@ import {
   TextInput,
   View
 } from "react-native";
+import { AppDatePicker } from "../../common/AppDatePicker";
 import { BaseModal } from "../../modals/BaseModal";
 import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
@@ -36,6 +38,7 @@ import {
   animalDisplayTag,
   breederCategoryForSex,
   formatAnimalKg,
+  normalizeAnimalStatusKey,
   sexDisplayLabel,
   sexIconColor,
   sexIconName,
@@ -57,6 +60,7 @@ type Props = {
   onAddWeight: (animal: AnimalListItem) => void;
   onOpenHealth?: (animal: AnimalListItem) => void;
   onOpenFullRecord?: (animal: AnimalListItem) => void;
+  onListForSale?: (animal: AnimalListItem) => void;
 };
 
 const ORIGIN_OPTIONS: AnimalOriginDto[] = ["farm_born", "purchased"];
@@ -81,7 +85,8 @@ export function AnimalDetailModal({
   onChangeStatus,
   onAddWeight,
   onOpenHealth,
-  onOpenFullRecord
+  onOpenFullRecord,
+  onListForSale
 }: Props) {
   const isOpen = presentation === "page" ? Boolean(animal) : visible;
   const { t } = useTranslation();
@@ -90,6 +95,7 @@ export function AnimalDetailModal({
 
   const [breedId, setBreedId] = useState<string | null>(null);
   const [birthDate, setBirthDate] = useState("");
+  const [ageAtEntry, setAgeAtEntry] = useState("");
   const [origin, setOrigin] = useState<AnimalOriginDto | null>(null);
   const [supplier, setSupplier] = useState("");
   const [notes, setNotes] = useState("");
@@ -126,6 +132,9 @@ export function AnimalDetailModal({
     }
     setBreedId(d.breed?.id ?? null);
     setBirthDate(formatBirthInput(d.birthDate));
+    setAgeAtEntry(
+      d.ageWeeksAtEntry != null ? String(d.ageWeeksAtEntry) : ""
+    );
     setOrigin(d.origin ?? null);
     setSupplier(d.supplier ?? "");
     setNotes(d.notes ?? "");
@@ -184,9 +193,13 @@ export function AnimalDetailModal({
   }, [herdQuery.data, animal?.id]);
 
   const resolvedSex = detailQuery.data?.sex ?? animal?.sex ?? "unknown";
+  const effectiveSex: "male" | "female" | "unknown" =
+    sexEditOpen && (pendingSex === "male" || pendingSex === "female")
+      ? pendingSex
+      : resolvedSex;
   const productionCategory =
     detailQuery.data?.productionCategory ?? animal?.productionCategory;
-  const showSexEditor = resolvedSex === "unknown" || sexEditOpen;
+  const showSexEditor = effectiveSex === "unknown" || sexEditOpen;
   const displayPhoto = pendingPhotoUri ?? photoUrl;
 
   const pickPhoto = async (source: "library" | "camera") => {
@@ -257,26 +270,38 @@ export function AnimalDetailModal({
         }
       }
 
-      const sexPayload: "male" | "female" | "unknown" | undefined =
-        resolvedSex === "unknown" && sexEditOpen
-          ? pendingSex
-          : resolvedSex === "unknown" && !sexEditOpen
-            ? undefined
-            : resolvedSex === "male" || resolvedSex === "female"
-              ? resolvedSex
-              : undefined;
+      const sexPayload: "male" | "female" | undefined =
+        effectiveSex === "male" || effectiveSex === "female"
+          ? effectiveSex
+          : undefined;
 
-      if (resolvedSex === "unknown" && !sexEditOpen) {
+      if (effectiveSex === "unknown") {
         throw new Error(t("cheptel.animals.detail.sexRequired"));
       }
 
-      return updateAnimal(
+      const ageRaw = ageAtEntry.trim()
+        ? Number.parseInt(ageAtEntry, 10)
+        : null;
+      const ageWeeksAtEntry =
+        birthDate.trim() || ageRaw == null || !Number.isFinite(ageRaw)
+          ? birthDate.trim()
+            ? null
+            : ageRaw != null
+              ? Math.max(0, ageRaw)
+              : null
+          : Math.max(0, ageRaw);
+
+      const sexWasSetOnThisSave =
+        resolvedSex === "unknown" || resolvedSex !== effectiveSex;
+
+      const updated = await updateAnimal(
         accessToken,
         farmId,
         animal.id,
         {
           breedId,
           birthDate: birthDate.trim() || null,
+          ageWeeksAtEntry,
           origin,
           supplier: origin === "purchased" ? supplier.trim() || null : null,
           photoUrl: nextPhotoUrl,
@@ -287,10 +312,18 @@ export function AnimalDetailModal({
         },
         activeProfileId
       );
+      return { updated, sexWasSetOnThisSave };
     },
-    onSuccess: (data) => {
+    onSuccess: ({ updated: data, sexWasSetOnThisSave }) => {
+      queryClient.setQueryData(
+        ["farmAnimal", farmId, animal?.id, activeProfileId],
+        data
+      );
       void queryClient.invalidateQueries({
         queryKey: ["farmAnimal", farmId, animal?.id]
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["farmAnimals", farmId]
       });
       onUpdated?.();
       setPhotoUrl(data.photoUrl ?? null);
@@ -302,9 +335,12 @@ export function AnimalDetailModal({
       });
 
       const newSex = data.sex;
+      const categoryForSuggest =
+        data.productionCategory ?? productionCategory;
       if (
+        sexWasSetOnThisSave &&
         (newSex === "male" || newSex === "female") &&
-        shouldSuggestBreederReclass(productionCategory, newSex)
+        shouldSuggestBreederReclass(categoryForSuggest, newSex)
       ) {
         Alert.alert(
           t("cheptel.animals.detail.reclassifyTitle"),
@@ -323,11 +359,12 @@ export function AnimalDetailModal({
                   animal!.id,
                   { productionCategory: breederCategoryForSex(newSex) },
                   activeProfileId
-                ).then(() => {
+                ).then((updated) => {
+                  queryClient.setQueryData(
+                    ["farmAnimal", farmId, animal!.id, activeProfileId],
+                    updated
+                  );
                   onUpdated?.();
-                  void queryClient.invalidateQueries({
-                    queryKey: ["farmAnimal", farmId, animal?.id]
-                  });
                 });
               }
             }
@@ -336,7 +373,7 @@ export function AnimalDetailModal({
       }
     },
     onError: (e: Error) => {
-      Alert.alert(t("cheptel.animals.detail.saveErrorTitle"), e.message);
+      Alert.alert(t("cheptel.animals.detail.saveErrorTitle"), getUserFacingError(e, t));
     }
   });
 
@@ -358,7 +395,7 @@ export function AnimalDetailModal({
       disabled={saveMut.isPending || detailQuery.isPending}
     >
       {saveMut.isPending ? (
-        <ActivityIndicator color="#fff" />
+        <ActivityIndicator color={mobileColors.onAccent} />
       ) : (
         <Text style={styles.primaryBtnText}>
           {t("cheptel.animals.detail.save")}
@@ -397,7 +434,7 @@ export function AnimalDetailModal({
                 />
               )}
               <View style={styles.photoBadge}>
-                <Ionicons name="camera" size={14} color="#fff" />
+                <Ionicons name="camera" size={14} color={mobileColors.onAccent} />
               </View>
             </Pressable>
             <View style={{ flex: 1 }}>
@@ -431,14 +468,66 @@ export function AnimalDetailModal({
             </View>
           )}
 
-          <Text style={styles.label}>{t("cheptel.animals.create.birthDate")}</Text>
-          <TextInput
-            style={styles.input}
-            value={birthDate}
-            onChangeText={setBirthDate}
-            placeholder="AAAA-MM-JJ"
-            placeholderTextColor={mobileColors.textSecondary}
+          <Text style={styles.sectionTitle}>
+            {t("cheptel.animals.detail.ageSection")}
+          </Text>
+          <AppDatePicker
+            label={t("cheptel.animals.detail.birthDate")}
+            isoValue={birthDate}
+            onIsoChange={setBirthDate}
+            farmId={farmId}
+            maxDate={new Date()}
           />
+          {birthDate.trim() && detailQuery.data?.currentAgeWeeks != null ? (
+            <Text style={styles.hint}>
+              {t("cheptel.animals.detail.bornOn", {
+                date: birthDate.trim(),
+                weeks: detailQuery.data.currentAgeWeeks
+              })}
+            </Text>
+          ) : null}
+
+          {!birthDate.trim() ? (
+            <>
+              <Text style={styles.label}>
+                {t("cheptel.animals.detail.ageAtEntry")}
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={ageAtEntry}
+                onChangeText={setAgeAtEntry}
+                keyboardType="number-pad"
+                placeholder="8"
+                placeholderTextColor={mobileColors.textSecondary}
+              />
+              {detailQuery.data?.entryDate &&
+              detailQuery.data.currentAgeWeeks != null ? (
+                <Text style={styles.hint}>
+                  {t("cheptel.animals.detail.enteredAt", {
+                    weeks: detailQuery.data.ageWeeksAtEntry ?? "—",
+                    date: detailQuery.data.entryDate,
+                    current: detailQuery.data.currentAgeWeeks
+                  })}
+                </Text>
+              ) : null}
+            </>
+          ) : null}
+
+          {detailQuery.data?.currentAgeWeeks != null ? (
+            <View style={styles.ageReadonly}>
+              <Text style={styles.subLabel}>
+                {t("cheptel.animals.detail.currentAgeEstimated")}
+              </Text>
+              <Text style={styles.ageReadonlyVal}>
+                {t("cheptel.animals.detail.currentAgeWeeks", {
+                  weeks: detailQuery.data.currentAgeWeeks
+                })}
+              </Text>
+              <Text style={styles.hint}>
+                {t("cheptel.animals.detail.currentAgeAuto")}
+              </Text>
+            </View>
+          ) : null}
 
           <Text style={styles.label}>{t("cheptel.animals.detail.origin")}</Text>
           <View style={styles.pillRow}>
@@ -589,7 +678,7 @@ export function AnimalDetailModal({
             </View>
           ) : (
             <Text style={styles.meta}>
-              {sexDisplayLabel(resolvedSex, {
+              {sexDisplayLabel(effectiveSex, {
                 male: t("cheptel.animals.sexMale"),
                 female: t("cheptel.animals.sexFemale"),
                 unknown: t("cheptel.unknownSex")
@@ -652,6 +741,13 @@ export function AnimalDetailModal({
               label={t("cheptel.animals.detail.changeStatus")}
               onPress={() => onChangeStatus(animal)}
             />
+            {onListForSale ? (
+              <ActionChip
+                icon="pricetag-outline"
+                label={t("cheptel.actions.listForSale")}
+                onPress={() => onListForSale(animal)}
+              />
+            ) : null}
           </View>
           </ModalSection>
       </>
@@ -677,7 +773,9 @@ export function AnimalDetailModal({
       onClose={onClose}
       title={tag}
       statusBadge={{
-        label: t(`cheptel.animals.status.${animal.status}`),
+        label: t(
+          `cheptel.animals.status.${normalizeAnimalStatusKey(animal.status)}`
+        ),
         tone: animal.status === "active" ? "neutral" : "warning"
       }}
       footerPrimary={saveFooter}
@@ -723,6 +821,24 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: mobileColors.textSecondary,
     marginTop: 6
+  },
+  sectionTitle: {
+    ...mobileTypography.cardTitle,
+    fontSize: 16,
+    color: mobileColors.textPrimary,
+    marginTop: mobileSpacing.md
+  },
+  ageReadonly: {
+    marginTop: mobileSpacing.sm,
+    padding: mobileSpacing.sm,
+    borderRadius: mobileRadius.md,
+    backgroundColor: mobileColors.canvas
+  },
+  ageReadonlyVal: {
+    ...mobileTypography.body,
+    fontWeight: "700",
+    color: mobileColors.textPrimary,
+    marginTop: 4
   },
   hint: {
     ...mobileTypography.meta,
@@ -814,7 +930,7 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.6 },
-  primaryBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 },
   linkBtn: {
     alignSelf: "flex-start",
     marginTop: 6,

@@ -6,14 +6,19 @@ import {
   Param,
   Patch,
   Post,
+  Res,
   UseGuards
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
+import type { Response } from "express";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
+import { CheptelService } from "../cheptel/cheptel.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.decorator";
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
+import { setDeprecatedSuccessor } from "../common/http/deprecation.util";
+import { BulkCreateAnimalsDto } from "./dto/bulk-create-animals.dto";
 import { CreateAnimalDto } from "./dto/create-animal.dto";
 import { CreateWeightDto } from "./dto/create-weight.dto";
 import { PatchAnimalStatusDto } from "./dto/patch-animal-status.dto";
@@ -23,7 +28,10 @@ import { LivestockService } from "./livestock.service";
 @Controller("farms/:farmId/animals")
 @UseGuards(SupabaseJwtGuard, FarmScopesGuard)
 export class LivestockController {
-  constructor(private readonly livestock: LivestockService) {}
+  constructor(
+    private readonly livestock: LivestockService,
+    private readonly cheptel: CheptelService
+  ) {}
 
   @Get()
   @RequireFarmScopes(FARM_SCOPE.livestockRead)
@@ -41,15 +49,30 @@ export class LivestockController {
     return this.livestock.createAnimal(user, farmId, dto);
   }
 
+  @Post("bulk")
+  @RequireFarmScopes(FARM_SCOPE.livestockWrite)
+  bulkCreate(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Body() dto: BulkCreateAnimalsDto
+  ) {
+    return this.livestock.bulkCreateAnimals(user, farmId, dto);
+  }
+
   @Patch(":animalId/status")
   @RequireFarmScopes(FARM_SCOPE.livestockWrite)
   patchStatus(
     @CurrentUser() user: User,
     @Param("farmId") farmId: string,
     @Param("animalId") animalId: string,
-    @Body() dto: PatchAnimalStatusDto
+    @Body() dto: PatchAnimalStatusDto,
+    @Res({ passthrough: true }) res: Response
   ) {
-    return this.livestock.patchAnimalStatus(user, farmId, animalId, dto);
+    setDeprecatedSuccessor(
+      res,
+      `/api/v1/farms/${farmId}/cheptel/animals/${animalId}/status`
+    );
+    return this.cheptel.patchAnimalStatusWithLinks(user, farmId, animalId, dto);
   }
 
   @Get(":animalId")

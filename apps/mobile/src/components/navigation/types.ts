@@ -3,16 +3,27 @@ export type ProducerMainTab =
   | "home"
   | "cheptel"
   | "health"
-  | "collaboration"
+  | "feed"
   | "finance";
 
 /** Entrées du menu étendu (grille 3×2). */
 export type ExtendedNavMenuId =
+  | "team"
   | "nutrition"
   | "collaboration"
   | "market"
+  | "communityFeed"
+  | "settings"
   | "gestation"
   | "tasks"
   | "reports"
+  | "messages"
   | "prescriptions"
-  | "settings";
+  | "settings"
+  | "vaccinations"
+  | "weighings"
+  | "feedStock"
+  | "favorites"
+  | "priceAlerts"
+  | "reviews"
+  | "preferences";

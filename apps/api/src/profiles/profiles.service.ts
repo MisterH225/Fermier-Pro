@@ -32,6 +32,20 @@ export class ProfilesService {
       if (dto.type === ProfileType.producer) {
         await this.ensureBuyerProfileForProducer(user.id);
       }
+      if (dto.type === ProfileType.technician) {
+        await this.prisma.technicianProfile.upsert({
+          where: { userId: user.id },
+          create: { userId: user.id },
+          update: {}
+        });
+      }
+      if (dto.type === ProfileType.buyer) {
+        await this.prisma.buyerProfile.upsert({
+          where: { userId: user.id },
+          create: { userId: user.id },
+          update: {}
+        });
+      }
       return profile;
     } catch (e) {
       if (

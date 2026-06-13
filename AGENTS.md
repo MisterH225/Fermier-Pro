@@ -1,47 +1,64 @@
-# Fermier Pro - Agent Instructions
+# AGENTS.md
 
 ## Cursor Cloud specific instructions
 
 ### Architecture overview
 
-Fermier Pro is a monorepo (npm workspaces) with 3 apps and 2 shared packages:
+Fermier Pro is an npm workspaces monorepo with two apps and two shared packages. See `README.md` and `docs/SETUP.md` for full details.
 
-| Path | Service | Port | Command |
-|------|---------|------|---------|
-| `apps/api` | NestJS REST + WebSocket backend | 3000 | `npm run dev:api` |
-| `apps/admin-platform` | Next.js 14 SuperAdmin console | 3001 | `npm run dev:admin` |
-| `apps/mobile` | React Native / Expo mobile app | — | `npm run dev:mobile` |
-| `packages/types` | Shared TypeScript types | — | — |
-| `packages/ui` | Shared UI tokens | — | — |
+| Package | Path | Purpose |
+|---------|------|---------|
+| `@fermier/api` | `apps/api` | NestJS 11 REST + WebSocket backend (port 3000) |
+| `@fermier/mobile` | `apps/mobile` | React Native / Expo 54 mobile app |
+| `@fermier/types` | `packages/types` | Shared TypeScript types |
+| `@fermier/ui` | `packages/ui` | Shared UI tokens |
 
-### Prerequisites
+### Node version
 
-- **Node.js 22 LTS** (or 20 LTS). Avoid Node 25 (memory crashes with `nest start --watch`).
-- **Docker** is required to run a local PostgreSQL 16 via `docker-compose.yml`.
-- **npm** is the package manager (lockfile: `package-lock.json`).
+Use **Node 20 LTS**. Node 25 causes memory crashes with `nest start --watch`. The VM has nvm pre-configured with Node 20 as default.
 
-### Starting services
+### Cloud Agent install script
 
-1. **PostgreSQL**: `sudo dockerd` (if not running), then `sudo docker compose up -d` from repo root.
-2. **Environment**: A `.env` file is needed at the repo root. Copy `.env.example` and fill in `DATABASE_URL` and `DIRECT_URL` pointing to the local Postgres (`postgresql://fermier:fermier_dev@127.0.0.1:5432/fermier_pro`). Set `SUPABASE_JWT_SECRET` (any string for local dev/tests; use `ci-e2e-jwt-secret-for-automated-tests-only` to match CI).
-3. **Prisma push**: `npm run prisma:push --workspace @fermier/api` to sync schema after first setup or schema changes.
-4. **API**: `npm run dev:api` (runs `nest start --watch` with 8 GB heap).
-5. **Admin**: `npm run dev:admin` (Next.js on port 3001).
-6. **Mobile**: `npm run dev:mobile` — must be run from root, not from `apps/mobile`.
+Do **not** run bare `npm install` as the install script: the monorepo no longer uses a root `postinstall` hook (Prisma auto-install during `npm install` fails in cloud snapshots).
 
-### Key commands (see `package.json` scripts)
+Use instead:
 
-- **Lint**: `npm run lint:api` (ESLint, `--max-warnings=0`; the codebase has 16 pre-existing lint errors).
-- **Build**: `npm run build:api`
-- **Typecheck mobile**: `npm run typecheck:mobile`
-- **Typecheck admin**: `npm run typecheck:admin`
-- **Full CI quality**: `npm run ci:quality` (prisma generate + lint + build + mobile typecheck)
-- **E2E tests**: `npm run test:e2e` (requires Postgres running; uses `DATABASE_URL` and `SUPABASE_JWT_SECRET`)
+```bash
+bash scripts/cloud-install.sh
+```
+
+Or manually:
+
+```bash
+npm install --ignore-scripts
+PRISMA_GENERATE_SKIP_AUTOINSTALL=true npm run prisma:generate
+```
+
+After install, generate the Prisma client locally with `npm run prisma:generate` if you skipped the cloud script.
+
+### Database (local Docker Postgres)
+
+The cloud VM uses a local Docker Postgres (via `docker-compose.yml`) instead of Supabase cloud. Docker and the Postgres container are started before the agent session begins via the update script.
+
+- `.env` at the repo root provides `DATABASE_URL=postgresql://fermier:fermier_dev@127.0.0.1:5432/fermier_pro` and a local `SUPABASE_JWT_SECRET`.
+- After install, push the Prisma schema: `npm run prisma:push --workspace @fermier/api`
+
+### Running services
+
+| Action | Command | Notes |
+|--------|---------|-------|
+| Start API (dev) | `npm run dev:api` | Starts NestJS with watch mode on port 3000. Healthcheck: `GET /api/v1/health` |
+| Start Mobile (Metro) | `npm run dev:mobile` | Metro bundler for Expo Go / simulators. Web mode fails due to `react-native-maps` native dep. |
+| Lint API | `npm run lint:api` | ESLint with `--max-warnings=0` |
+| Build API | `npm run build:api` | `nest build` |
+| Typecheck mobile | `npm run typecheck:mobile` | `tsc --noEmit` |
+| Full CI quality | `npm run ci:quality` | Prisma generate + lint + build + typecheck |
+| E2E tests | `npm run test:e2e` | Jest e2e against local Postgres (requires running DB + schema pushed) |
 
 ### Gotchas
 
-- The `start-dev.cjs` script tries `netstat`/`taskkill` (Windows-only) to free the API port before starting — this harmlessly fails on Linux.
-- `prisma-run.cjs` uses `dotenv` to load `.env` files; if `SUPABASE_URL` contains `supabase.co` but `DATABASE_URL` is empty, it refuses to compose a local Docker URL (safety check). For local dev without Supabase, either omit `SUPABASE_URL` or set it to a non-`supabase.co` value.
-- The admin platform responds with 307 on `/` (Next.js redirect to locale route) — this is normal.
-- Docker in the Cloud Agent VM requires `sudo` for `dockerd` and `docker compose` commands. The daemon uses `fuse-overlayfs` storage driver and `iptables-legacy`.
-- Expo/mobile app testing requires a real Supabase project for auth (Google/Apple/OTP) — not available in headless cloud agent environments.
+- **DashboardModule / FarmHealthModule**: these modules were missing the `AuthModule` import (required for `SupabaseJwtGuard`). A fix was applied adding `AuthModule` to their imports. Without this fix the API crashes on startup.
+- **Expo web mode**: `npx expo start --web` fails because `react-native-maps` doesn't support web. Use Metro without `--web` for the mobile app.
+- **E2e test type mismatches**: 2 of 40 e2e tests fail due to Prisma returning `Decimal` as string while tests expect number. This is a pre-existing issue, not caused by environment setup.
+- **JWT for local testing**: sign tokens with `jsonwebtoken` using the `SUPABASE_JWT_SECRET` from `.env`. The payload must include `{ sub: "<supabase-user-id>", role: "authenticated", aud: "authenticated" }`.
+- **Farm creation requires `X-Profile-Id`**: create a producer profile via `POST /api/v1/profiles` first, then pass its id as `X-Profile-Id` header when creating farms.

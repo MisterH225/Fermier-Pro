@@ -22,7 +22,7 @@ export function PrimaryButton({
       activeOpacity={0.9}
     >
       {loading ? (
-        <ActivityIndicator color={mobileColors.background} />
+        <ActivityIndicator color={mobileColors.onAccent} />
       ) : (
         <Text style={styles.label}>{label}</Text>
       )}
@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
     opacity: 0.55
   },
   label: {
-    color: mobileColors.background,
+    color: mobileColors.onAccent,
     fontSize: 16,
     fontWeight: "700"
   }

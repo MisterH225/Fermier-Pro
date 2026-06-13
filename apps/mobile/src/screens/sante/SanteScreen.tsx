@@ -1,5 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   offlineQueuedMessage,
   useOfflineMutation
@@ -9,6 +10,7 @@ import { isOfflineQueuedResult } from "../../lib/offline/types";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  ActivityIndicator,
   Alert,
   Pressable,
   RefreshControl,
@@ -38,9 +40,13 @@ import {
 import { BaseModal } from "../../components/modals/BaseModal";
 import { invalidateAIInsights } from "../../services/ai/AIRecommendationService";
 import { useScreenTitle } from "../../hooks/useScreenTitle";
+import { useTechFarmPermissions } from "../../hooks/useTechFarmPermissions";
+import { TechReadOnlyBanner } from "../../components/technician/TechReadOnlyBanner";
 import { useSession } from "../../context/SessionContext";
+import { VetAppointmentActionsBanner } from "../../components/vet/VetAppointmentActionsBanner";
 import {
   createFarmHealthRecord,
+  removeFarmHealthVetVisit,
   type CreateFarmHealthRecordBody,
   type FarmHealthEntityType,
   type FarmHealthRecordKind,
@@ -67,7 +73,7 @@ import { DiseasesTab } from "./tabs/DiseasesTab";
 import { VetVisitsTab } from "./tabs/VetVisitsTab";
 import { MortalitiesTab } from "./tabs/MortalitiesTab";
 import { VaccinesTab } from "./tabs/VaccinesTab";
-import { formatHealthDay } from "../../components/sante/healthUtils";
+import { formatHealthDay, canDeleteVetVisit } from "../../components/sante/healthUtils";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmHealth">;
 
@@ -93,13 +99,22 @@ const emptyForm = (): HealthFormState => ({
 });
 
 export function SanteScreen({ route, navigation }: Props) {
-  const { farmId, farmName, initialTab } = route.params;
+  const {
+    farmId,
+    farmName,
+    initialTab,
+    openFormKind,
+    openDiseaseId,
+    openVisitId,
+    openVaccineName
+  } = route.params;
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "en" ? "en" : "fr";
   const qc = useQueryClient();
   const { accessToken, activeProfileId, authMe } = useSession();
   const isProducer =
     authMe?.profiles.find((p) => p.id === activeProfileId)?.type === "producer";
+  const techPerms = useTechFarmPermissions(farmId, "sante");
 
   useScreenTitle(navigation, t("health.screenTitle"), {
     headerRight: () => (
@@ -170,6 +185,13 @@ export function SanteScreen({ route, navigation }: Props) {
   const [healthTab, setHealthTab] = useState<HealthScreenTab>(
     initialTab ?? "overview"
   );
+
+  useEffect(() => {
+    if (initialTab) {
+      setHealthTab(initialTab);
+    }
+  }, [initialTab]);
+  const [pendingOpenForm, setPendingOpenForm] = useState(openFormKind);
   const [formOpen, setFormOpen] = useState(false);
   const [formKind, setFormKind] = useState<FarmHealthRecordKind>("vaccination");
   const [form, setForm] = useState<HealthFormState>(emptyForm);
@@ -178,29 +200,44 @@ export function SanteScreen({ route, navigation }: Props) {
   const [linkRecordId, setLinkRecordId] = useState<string | null>(null);
   const [linkExpenseId, setLinkExpenseId] = useState("");
 
+  // On ne dépend pas des références `animals` / `batches` (recréées à chaque
+  // render via `?? []` et `.filter(...)` → boucle « Maximum update depth »).
+  // On suit uniquement les IDs du premier animal / lot, qui sont des strings
+  // stables tant que le cache react-query ne change pas.
+  const firstAnimalId = animals[0]?.id ?? null;
+  const firstBatchId = batches[0]?.id ?? null;
   useEffect(() => {
     if (!farmQuery.data) return;
     const mode = farmQuery.data.livestockMode;
-    if (mode === "individual" && animals[0]?.id) {
+    if (mode === "individual" && firstAnimalId) {
       setSubjectType("animal");
-      setSubjectId(animals[0].id);
-    } else if (mode === "batch" && batches[0]?.id) {
+      setSubjectId(firstAnimalId);
+    } else if (mode === "batch" && firstBatchId) {
       setSubjectType("group");
-      setSubjectId(batches[0].id);
-    } else if (animals[0]?.id) {
+      setSubjectId(firstBatchId);
+    } else if (firstAnimalId) {
       setSubjectType("animal");
-      setSubjectId(animals[0].id);
-    } else if (batches[0]?.id) {
+      setSubjectId(firstAnimalId);
+    } else if (firstBatchId) {
       setSubjectType("group");
-      setSubjectId(batches[0].id);
+      setSubjectId(firstBatchId);
     }
-  }, [farmQuery.data, animals, batches]);
+  }, [farmQuery.data, firstAnimalId, firstBatchId]);
 
   const openForm = (kind: FarmHealthRecordKind) => {
     setForm(emptyForm());
     setFormKind(kind);
     setFormOpen(true);
   };
+
+  useEffect(() => {
+    if (!pendingOpenForm || !farmQuery.data) {
+      return;
+    }
+    setHealthTab(pendingOpenForm);
+    openForm(pendingOpenForm);
+    setPendingOpenForm(undefined);
+  }, [pendingOpenForm, farmQuery.data]);
 
   const invalidateHealth = () => {
     void invalidateAIInsights(farmId, "sante");
@@ -260,7 +297,17 @@ export function SanteScreen({ route, navigation }: Props) {
       invalidateHealth();
       Alert.alert("", offlineQueuedMessage(t));
     },
-    onError: (e: Error) => Alert.alert(t("health.errorTitle"), e.message)
+    onError: (e: Error) => Alert.alert(t("health.errorTitle"), getUserFacingError(e, t))
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (recordId: string) =>
+      removeFarmHealthVetVisit(accessToken!, farmId, recordId, activeProfileId),
+    onSuccess: () => {
+      invalidateHealth();
+      void qc.invalidateQueries({ queryKey: ["vetAppointments"] });
+    },
+    onError: (e: Error) => Alert.alert(t("health.errorTitle"), getUserFacingError(e, t))
   });
 
   const linkMut = useMutation({
@@ -278,7 +325,7 @@ export function SanteScreen({ route, navigation }: Props) {
       void eventsQuery.refetch();
       Alert.alert("", t("health.linkOk"));
     },
-    onError: (e: Error) => Alert.alert(t("health.errorTitle"), e.message)
+    onError: (e: Error) => Alert.alert(t("health.errorTitle"), getUserFacingError(e, t))
   });
 
   const buildDetail = (): Record<string, unknown> => {
@@ -377,10 +424,35 @@ export function SanteScreen({ route, navigation }: Props) {
               </Text>
             </Pressable>
           ) : null}
+          {isProducer && canDeleteVetVisit(r) ? (
+            <Pressable
+              onPress={() => {
+                Alert.alert(
+                  t("health.deleteVisitTitle"),
+                  t("health.deleteVisitBody"),
+                  [
+                    { text: t("common.cancel"), style: "cancel" },
+                    {
+                      text: t("common.delete"),
+                      style: "destructive",
+                      onPress: () => {
+                        close();
+                        deleteMut.mutate(r.id);
+                      }
+                    }
+                  ]
+                );
+              }}
+            >
+              <Text style={{ color: "#D64545", fontWeight: "700" }}>
+                {t("health.deleteVisitCta")}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       );
     },
-    [t, locale, isProducer]
+    [t, locale, isProducer, deleteMut]
   );
 
   const refreshing =
@@ -417,6 +489,33 @@ export function SanteScreen({ route, navigation }: Props) {
     const n = Number.parseFloat(String(raw));
     return Number.isFinite(n) ? n * 100 : null;
   }, [rate30, overview?.mortalityRate30d]);
+
+  const nextVetLabel = useMemo(() => {
+    const n = overview?.nextVetVisitModule;
+    if (!n) {
+      return "—";
+    }
+    const at = new Date(n.at);
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    if (
+      n.source === "health_record" &&
+      (Number.isNaN(at.getTime()) || at < startOfToday)
+    ) {
+      return "—";
+    }
+    let label = formatHealthDay(n.at, locale);
+    if (n.reason) {
+      label += ` · ${n.reason}`;
+    }
+    if (
+      n.source === "vet_appointment" &&
+      n.appointmentStatus === "APPOINTMENT_REQUESTED"
+    ) {
+      label += ` (${t("producer.vetAppointments.waitingForVet")})`;
+    }
+    return label;
+  }, [overview?.nextVetVisitModule, locale, t]);
 
   const chartMonthLabel = useCallback(
     (monthKey: string) => {
@@ -531,8 +630,27 @@ export function SanteScreen({ route, navigation }: Props) {
       .map((r) => recordToEventItem(r, locale, label));
   }, [allRecords, locale, t]);
 
+  if (techPerms.isTech && techPerms.loading) {
+    return (
+      <View style={styles.gateCentered}>
+        <ActivityIndicator size="large" color={mobileColors.accent} />
+      </View>
+    );
+  }
+
+  if (techPerms.isTech && !techPerms.canView) {
+    return (
+      <View style={styles.gateCentered}>
+        <Text style={styles.gateError}>{t("tech.permissionDenied")}</Text>
+      </View>
+    );
+  }
+
+  const readOnly = techPerms.readOnly;
+
   return (
     <MobileAppShell hideTopBar omitBottomTabBar={isProducer}>
+      {readOnly ? <TechReadOnlyBanner /> : null}
       <TabSelector
         activeTab={healthTab}
         onTabChange={(key) => setHealthTab(key as HealthScreenTab)}
@@ -541,7 +659,15 @@ export function SanteScreen({ route, navigation }: Props) {
             key: "overview",
             label: t("health.sectionOverview"),
             content: tabScroll(
-              <HealthOverviewTab
+              <>
+                {accessToken ? (
+                  <VetAppointmentActionsBanner
+                    accessToken={accessToken}
+                    activeProfileId={activeProfileId}
+                    farmId={farmId}
+                  />
+                ) : null}
+                <HealthOverviewTab
                 farmId={farmId}
                 accessToken={accessToken}
                 activeProfileId={activeProfileId}
@@ -570,16 +696,9 @@ export function SanteScreen({ route, navigation }: Props) {
                       ? "yellow"
                       : "green"
                 }
-                nextVetLabel={
-                  overview?.nextVetVisitModule
-                    ? `${formatHealthDay(overview.nextVetVisitModule.at, locale)}${
-                        overview.nextVetVisitModule.reason
-                          ? ` · ${overview.nextVetVisitModule.reason}`
-                          : ""
-                      }`
-                    : "—"
-                }
+                nextVetLabel={nextVetLabel}
               />
+              </>
             )
           },
           {
@@ -593,12 +712,13 @@ export function SanteScreen({ route, navigation }: Props) {
                     accessToken={accessToken}
                     activeProfileId={activeProfileId}
                     livestockMode={livestockMode}
+                    highlightVaccineName={openVaccineName}
                   />
                 ) : null}
                 <EventList
                   layout="embedded"
                   sectionTitle={t("health.historyTitle")}
-                  onAddPress={() => openForm("vaccination")}
+                  onAddPress={readOnly ? undefined : () => openForm("vaccination")}
                   data={vaccinationHistoryItems}
                   renderDetail={renderHealthDetail}
                   emptyMessage={t("health.noEvents")}
@@ -623,6 +743,8 @@ export function SanteScreen({ route, navigation }: Props) {
                 animals={animals}
                 batches={batches}
                 navigation={navigation}
+                readOnly={readOnly}
+                initialOpenDiseaseId={openDiseaseId}
                 onRefresh={() => {
                   void qc.invalidateQueries({ queryKey: ["farmHealthEvents", farmId] });
                   void qc.invalidateQueries({ queryKey: ["farmDiseasesOverview", farmId] });
@@ -641,7 +763,12 @@ export function SanteScreen({ route, navigation }: Props) {
             content: tabScroll(
               <VetVisitsTab
                 upcoming={upcomingQuery.data}
-                onAddPress={() => openForm("vet_visit")}
+                farmId={farmId}
+                accessToken={accessToken!}
+                activeProfileId={activeProfileId}
+                onAddPress={readOnly ? undefined : () => openForm("vet_visit")}
+                initialOpenVisitId={openVisitId}
+                onDeleteVisit={(recordId) => deleteMut.mutate(recordId)}
                 {...listCommon}
               />
             )
@@ -652,7 +779,7 @@ export function SanteScreen({ route, navigation }: Props) {
             content: tabScroll(
               <HealthKindListTab
                 kind="treatment"
-                onAddPress={() => openForm("treatment")}
+                onAddPress={readOnly ? undefined : () => openForm("treatment")}
                 {...listCommon}
               />
             )
@@ -664,7 +791,7 @@ export function SanteScreen({ route, navigation }: Props) {
               <MortalitiesTab
                 mortalityRate30={rate30 != null ? Number(rate30) : null}
                 mortalityRate90={rate90 != null ? Number(rate90) : null}
-                onAddPress={() => openForm("mortality")}
+                onAddPress={readOnly ? undefined : () => openForm("mortality")}
                 {...listCommon}
               />
             )
@@ -696,6 +823,7 @@ export function SanteScreen({ route, navigation }: Props) {
 
       <HealthRecordFormModal
         visible={formOpen}
+        farmId={farmId}
         formKind={formKind}
         subjectType={subjectType}
         saving={createMut.isPending}
@@ -738,6 +866,14 @@ export function SanteScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  gateCentered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: mobileSpacing.lg,
+    backgroundColor: mobileColors.canvas
+  },
+  gateError: { ...mobileTypography.body, color: mobileColors.error, textAlign: "center" },
   tabScroll: { flex: 1 },
   tabScrollGrow: { flexGrow: 1 },
   headerBtn: { marginRight: mobileSpacing.sm },
@@ -775,5 +911,5 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.sm,
     borderRadius: mobileRadius.sm
   },
-  saveTx: { color: "#fff", fontWeight: "700" }
+  saveTx: { color: mobileColors.onAccent, fontWeight: "700" }
 });

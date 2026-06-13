@@ -5,10 +5,18 @@ import {
 } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import * as Linking from "expo-linking";
+import { useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProducerPersistentTabBar } from "./ProducerPersistentTabBar";
 import { VetPersistentTabBar } from "./VetPersistentTabBar";
+import { TechPersistentTabBar } from "./TechPersistentTabBar";
+import { BuyerPersistentTabBar } from "./BuyerPersistentTabBar";
+import { techBottomChromeHeight } from "./navigation/technician/techNavMetrics";
+import { buyerBottomChromeHeight } from "./navigation/buyer/buyerNavMetrics";
+import { TechBottomChromeProvider } from "../context/TechBottomChromeContext";
+import { BuyerBottomChromeProvider } from "../context/BuyerBottomChromeContext";
 import { producerBottomChromeHeight } from "./navigation";
 import { vetBottomChromeHeight } from "./navigation/vet/vetNavMetrics";
 import { ProducerBottomChromeProvider } from "../context/ProducerBottomChromeContext";
@@ -29,18 +37,12 @@ import {
   ChatRoomsScreen,
   ChatSearchUserScreen,
   CollaborationScreen,
-  CreateBarnScreen,
-  CreateFarmExpenseScreen,
   CreateFarmInvitationScreen,
-  CreateFarmRevenueScreen,
   CreateFarmScreen,
   CreateMarketplaceListingScreen,
   CreatePenLogScreen,
   CreatePenScreen,
   CreateVetConsultationScreen,
-  EditFarmExpenseScreen,
-  EditFarmRevenueScreen,
-  EditMarketplaceListingScreen,
   FarmBarnsScreen,
   FarmDetailScreen,
   FarmFeedStockScreen,
@@ -51,6 +53,7 @@ import {
   FarmHealthScreen,
   VetSearchScreen,
   ProducerScheduleVetVisitScreen,
+  VetAppointmentDetailScreen,
   FarmMembersScreen,
   FarmTasksScreen,
   FarmVetConsultationsScreen,
@@ -58,15 +61,29 @@ import {
   MarketplaceListScreen,
   MarketplaceMyListingsScreen,
   MarketplaceMyOffersScreen,
+  MarketplaceTransactionScreen,
+  MarketplacePaymentDashboardScreen,
+  CreditDashboardScreen,
   ModuleRoadmapScreen,
   ProducerDashboardScreen,
   ProducerFarmSettingsScreen,
+  SupportScreen,
+  ProducerMessagesScreen,
   SmartAlertsListScreen,
   FarmReportsScreen,
   PenDetailScreen,
   LogeDetailScreen,
   PenMoveScreen,
   TechnicianDashboardScreen,
+  TechTasksScreen,
+  TechFarmScreen,
+  TechTrackingScreen,
+  TechProfileEditScreen,
+  BuyerMarketScreen,
+  BuyerMessagesScreen,
+  BuyerHistoryScreen,
+  BuyerAlertsScreen,
+  BuyerFavoritesScreen,
   VeterinarianDashboardScreen,
   VetAgendaScreen,
   VetFarmDetailScreen,
@@ -79,11 +96,17 @@ import {
 import type { RootStackParamList } from "../types/navigation";
 import { useSession } from "../context/SessionContext";
 import { dashboardRouteForActiveProfileType } from "../lib/dashboardHomeRoute";
+import { rootNavigationRef } from "../lib/navigationRef";
 import { defaultStackScreenOptions } from "../lib/navigationHeaderOptions";
 import { mobileColors } from "../theme/mobileTheme";
+import { techStackScreenOptions } from "../theme/technicianTheme";
+import { buyerStackScreenOptions } from "../theme/buyerTheme";
 import { vetStackScreenOptions } from "../theme/vetTheme";
 import { AccountModerationGate } from "./auth/AccountModerationGate";
 import { OfflineBanner } from "./OfflineBanner";
+import { useSmartAlertPushNavigation } from "../hooks/useSmartAlertPushNavigation";
+import { ExpenseCategoriesScreen } from "../screens/settings/ExpenseCategoriesScreen";
+import { FeedScreen } from "../screens/feed/FeedScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -101,9 +124,9 @@ const navTheme = {
 
 /**
  * Deep links « accès collaboratif » (`fermier-pro://invite/:token`) +
- * Universal Link HTTPS optionnel via `EXPO_PUBLIC_INVITE_BASE_URL`.
- * Le token est passé en `prefilledToken` à l'écran AcceptFarmInvitation
- * (qui appelle `GET /invitations/by-token/:token` pour décider de la suite).
+ * annonces marketplace (`fermier-pro://listing/:listingId`) +
+ * Universal Link HTTPS optionnel via `EXPO_PUBLIC_INVITE_BASE_URL` /
+ * `EXPO_PUBLIC_LISTING_BASE_URL`.
  */
 const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [
@@ -111,21 +134,29 @@ const linking: LinkingOptions<RootStackParamList> = {
     "fermier-pro://",
     ...(process.env.EXPO_PUBLIC_INVITE_BASE_URL
       ? [process.env.EXPO_PUBLIC_INVITE_BASE_URL.replace(/\/invite\/?$/, "")]
+      : []),
+    ...(process.env.EXPO_PUBLIC_LISTING_BASE_URL
+      ? [process.env.EXPO_PUBLIC_LISTING_BASE_URL.replace(/\/listing\/?$/, "")]
       : [])
   ],
   config: {
     screens: {
       AcceptFarmInvitation: {
         path: "invite/:prefilledToken"
+      },
+      MarketplaceListingDetail: {
+        path: "listing/:listingId"
       }
     }
   }
 };
 
 function MainStack() {
+  const { t } = useTranslation();
   const { authMe, activeProfileId } = useSession();
   const activeType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
   const initialRouteName = dashboardRouteForActiveProfileType(activeType);
+  const st = (key: string) => t(`navigation.screenTitles.${key}`);
   return (
     <Stack.Navigator
       key={activeProfileId ?? "none"}
@@ -143,19 +174,74 @@ function MainStack() {
         options={{ title: "" }}
       />
       <Stack.Screen
+        name="Support"
+        component={SupportScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="SettingsExpenseCategories"
+        component={ExpenseCategoriesScreen}
+        options={{ title: "" }}
+      />
+      <Stack.Screen
         name="SmartAlertsList"
         component={SmartAlertsListScreen}
-        options={{ title: "Recommandations" }}
+        options={{ title: st("notifications") }}
       />
       <Stack.Screen
         name="FarmReports"
         component={FarmReportsScreen}
-        options={{ title: "Rapports" }}
+        options={{ title: st("reports") }}
       />
       <Stack.Screen
         name="BuyerDashboard"
         component={BuyerDashboardScreen}
-        options={{ title: "Accueil" }}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="BuyerMarket"
+        component={BuyerMarketScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="BuyerMessages"
+        component={BuyerMessagesScreen}
+        options={{ ...buyerStackScreenOptions, title: st("messages") }}
+      />
+      <Stack.Screen
+        name="BuyerHistory"
+        component={BuyerHistoryScreen}
+        options={{ ...buyerStackScreenOptions, title: st("buyerHistory") }}
+      />
+      <Stack.Screen
+        name="BuyerAlerts"
+        component={BuyerAlertsScreen}
+        options={{ ...buyerStackScreenOptions, title: st("buyerAlerts") }}
+      />
+      <Stack.Screen
+        name="BuyerFavorites"
+        component={BuyerFavoritesScreen}
+        options={{ ...buyerStackScreenOptions, title: st("buyerFavorites") }}
+      />
+      <Stack.Screen
+        name="TechTasks"
+        component={TechTasksScreen}
+        options={{ ...techStackScreenOptions, title: st("tasks") }}
+      />
+      <Stack.Screen
+        name="TechFarm"
+        component={TechFarmScreen}
+        options={{ ...techStackScreenOptions, title: st("techFarm") }}
+      />
+      <Stack.Screen
+        name="TechTracking"
+        component={TechTrackingScreen}
+        options={{ ...techStackScreenOptions, title: st("techTracking") }}
+      />
+      <Stack.Screen
+        name="TechProfileEdit"
+        component={TechProfileEditScreen}
+        options={{ ...techStackScreenOptions, title: st("techProfile") }}
       />
       <Stack.Screen
         name="VeterinarianDashboard"
@@ -165,12 +251,12 @@ function MainStack() {
       <Stack.Screen
         name="VetAgenda"
         component={VetAgendaScreen}
-        options={{ ...vetStackScreenOptions, title: "Agenda" }}
+        options={{ ...vetStackScreenOptions, title: st("vetAgenda") }}
       />
       <Stack.Screen
         name="VetFarms"
         component={VetFarmsScreen}
-        options={{ ...vetStackScreenOptions, title: "Mes fermes" }}
+        options={{ ...vetStackScreenOptions, title: st("farmList") }}
       />
       <Stack.Screen
         name="VetFarmDetail"
@@ -183,27 +269,27 @@ function MainStack() {
       <Stack.Screen
         name="VetMessages"
         component={VetMessagesScreen}
-        options={{ ...vetStackScreenOptions, title: "Messages" }}
+        options={{ ...vetStackScreenOptions, title: st("messages") }}
       />
       <Stack.Screen
         name="VetTasks"
         component={VetTasksScreen}
-        options={{ ...vetStackScreenOptions, title: "Tâches" }}
+        options={{ ...vetStackScreenOptions, title: st("tasks") }}
       />
       <Stack.Screen
         name="VetReports"
         component={VetReportsScreen}
-        options={{ ...vetStackScreenOptions, title: "Rapports" }}
+        options={{ ...vetStackScreenOptions, title: st("vetReports") }}
       />
       <Stack.Screen
         name="TechnicianDashboard"
         component={TechnicianDashboardScreen}
-        options={{ title: "Accueil" }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="FarmList"
         component={FarmListScreen}
-        options={{ title: "Mes fermes" }}
+        options={{ title: st("farmList") }}
       />
       <Stack.Screen
         name="Account"
@@ -231,194 +317,194 @@ function MainStack() {
       <Stack.Screen
         name="AcceptFarmInvitation"
         component={AcceptFarmInvitationScreen}
-        options={{ title: "Invitation" }}
+        options={{ title: st("invitation") }}
       />
       <Stack.Screen
         name="FarmDetail"
         component={FarmDetailScreen}
-        options={{ title: "Ferme" }}
+        options={{ title: st("farm") }}
       />
       <Stack.Screen
         name="FarmLivestock"
         component={FarmLivestockScreen}
-        options={{ title: "Cheptel" }}
+        options={{ title: st("cheptel") }}
       />
       <Stack.Screen
         name="FarmHealth"
         component={FarmHealthScreen}
-        options={{ title: "Santé" }}
+        options={{ title: st("health") }}
       />
       <Stack.Screen
         name="VetSearch"
         component={VetSearchScreen}
-        options={{ title: "Trouver un vétérinaire" }}
+        options={{ title: st("vetSearch") }}
       />
       <Stack.Screen
         name="ProducerScheduleVetVisit"
         component={ProducerScheduleVetVisitScreen}
-        options={{ title: "Planifier une visite" }}
+        options={{ title: st("scheduleVetVisit") }}
+      />
+      <Stack.Screen
+        name="VetAppointmentDetail"
+        component={VetAppointmentDetailScreen}
+        options={{ title: st("vetAppointment") }}
+      />
+      <Stack.Screen
+        name="ProducerMessages"
+        component={ProducerMessagesScreen}
+        options={{ title: st("messages") }}
+      />
+      <Stack.Screen
+        name="CommunityFeed"
+        component={FeedScreen}
+        options={{ title: st("communityFeed") }}
       />
       <Stack.Screen
         name="FarmTasks"
         component={FarmTasksScreen}
-        options={{ title: "Tâches" }}
+        options={{ title: st("tasks") }}
       />
       <Stack.Screen
         name="FarmVetConsultations"
         component={FarmVetConsultationsScreen}
-        options={{ title: "Suivi vétérinaire" }}
+        options={{ title: st("vetConsultations") }}
       />
       <Stack.Screen
         name="VetConsultationDetail"
         component={VetConsultationDetailScreen}
-        options={{ title: "Consultation" }}
+        options={{ title: st("vetConsultation") }}
       />
       <Stack.Screen
         name="CreateVetConsultation"
         component={CreateVetConsultationScreen}
-        options={{ title: "Nouveau dossier véto" }}
+        options={{ title: st("createVetConsultation") }}
       />
       <Stack.Screen
         name="AddVetConsultationAttachment"
         component={AddVetConsultationAttachmentScreen}
-        options={{ title: "Pièce jointe" }}
+        options={{ title: st("attachment") }}
       />
       <Stack.Screen
         name="FarmFinance"
         component={FarmFinanceScreen}
-        options={{ title: "Finance" }}
-      />
-      <Stack.Screen
-        name="CreateFarmExpense"
-        component={CreateFarmExpenseScreen}
-        options={{ title: "Nouvelle dépense" }}
-      />
-      <Stack.Screen
-        name="CreateFarmRevenue"
-        component={CreateFarmRevenueScreen}
-        options={{ title: "Nouveau revenu" }}
-      />
-      <Stack.Screen
-        name="EditFarmExpense"
-        component={EditFarmExpenseScreen}
-        options={{ title: "Modifier dépense" }}
-      />
-      <Stack.Screen
-        name="EditFarmRevenue"
-        component={EditFarmRevenueScreen}
-        options={{ title: "Modifier revenu" }}
+        options={{ title: st("finance") }}
       />
       <Stack.Screen
         name="PenMove"
         component={PenMoveScreen}
-        options={{ title: "Déplacer" }}
+        options={{ title: st("movePen") }}
       />
       <Stack.Screen
         name="FarmBarns"
         component={FarmBarnsScreen}
-        options={{ title: "Loges et parcours" }}
+        options={{ title: st("barns") }}
       />
       <Stack.Screen
         name="BarnDetail"
         component={BarnDetailScreen}
-        options={{ title: "Bâtiment" }}
+        options={{ title: st("barn") }}
       />
       <Stack.Screen
         name="PenDetail"
         component={PenDetailScreen}
-        options={{ title: "Loge" }}
+        options={{ title: st("pen") }}
       />
       <Stack.Screen
         name="LogeDetail"
         component={LogeDetailScreen}
-        options={{ title: "Loge" }}
-      />
-      <Stack.Screen
-        name="CreateBarn"
-        component={CreateBarnScreen}
-        options={{ title: "Nouveau bâtiment" }}
+        options={{ title: st("pen") }}
       />
       <Stack.Screen
         name="CreatePen"
         component={CreatePenScreen}
-        options={{ title: "Nouvelle loge" }}
+        options={{ title: st("createPen") }}
       />
       <Stack.Screen
         name="CreatePenLog"
         component={CreatePenLogScreen}
-        options={{ title: "Entrée journal" }}
+        options={{ title: st("penLog") }}
       />
       <Stack.Screen
         name="CreateFarm"
         component={CreateFarmScreen}
-        options={{ title: "Nouvelle ferme" }}
+        options={{ title: st("createFarm") }}
       />
       <Stack.Screen
         name="AnimalDetail"
         component={AnimalDetailScreen}
-        options={{ title: "Fiche animal" }}
+        options={{ title: st("animalDetail") }}
       />
       <Stack.Screen
         name="BatchDetail"
         component={BatchDetailScreen}
-        options={{ title: "Lot" }}
+        options={{ title: st("batch") }}
       />
       <Stack.Screen
         name="MarketplaceList"
         component={MarketplaceListScreen}
-        options={{ title: "Market" }}
+        options={{ title: st("market") }}
       />
       <Stack.Screen
         name="MarketplaceListingDetail"
         component={MarketplaceListingDetailScreen}
         options={({ route }) => ({
-          title: route.params.headline ?? "Annonce"
+          title: route.params.headline ?? st("listing")
         })}
+      />
+      <Stack.Screen
+        name="MarketplaceTransaction"
+        component={MarketplaceTransactionScreen}
+        options={{ title: st("transaction") }}
+      />
+      <Stack.Screen
+        name="MarketplacePaymentDashboard"
+        component={MarketplacePaymentDashboardScreen}
+        options={{ title: st("marketplacePaymentDashboard") }}
+      />
+      <Stack.Screen
+        name="CreditDashboard"
+        component={CreditDashboardScreen}
+        options={{ title: st("creditScore") }}
       />
       <Stack.Screen
         name="MarketplaceMyOffers"
         component={MarketplaceMyOffersScreen}
-        options={{ title: "Mes offres" }}
+        options={{ title: st("myOffers") }}
       />
       <Stack.Screen
         name="MarketplaceMyListings"
         component={MarketplaceMyListingsScreen}
-        options={{ title: "Mes annonces" }}
+        options={{ title: st("myListings") }}
       />
       <Stack.Screen
         name="CreateMarketplaceListing"
         component={CreateMarketplaceListingScreen}
-        options={{ title: "Nouvelle annonce" }}
-      />
-      <Stack.Screen
-        name="EditMarketplaceListing"
-        component={EditMarketplaceListingScreen}
-        options={{ title: "Modifier l'annonce" }}
+        options={{ title: st("createListing") }}
       />
       <Stack.Screen
         name="ChatRooms"
         component={ChatRoomsScreen}
-        options={{ title: "Messages" }}
+        options={{ title: st("messages") }}
       />
       <Stack.Screen
         name="ChatRoom"
         component={ChatRoomScreen}
-        options={{ title: "Conversation" }}
+        options={{ title: st("conversation") }}
       />
       <Stack.Screen
         name="ChatPickFarm"
         component={ChatPickFarmScreen}
-        options={{ title: "Nouvelle conversation" }}
+        options={{ title: st("newConversation") }}
       />
       <Stack.Screen
         name="ChatPickPeer"
         component={ChatPickPeerScreen}
-        options={{ title: "Nouvelle conversation" }}
+        options={{ title: st("newConversation") }}
       />
       <Stack.Screen
         name="ChatSearchUser"
         component={ChatSearchUserScreen}
-        options={{ title: "Rechercher une personne" }}
+        options={{ title: st("searchUser") }}
       />
       <Stack.Screen
         name="ModuleRoadmap"
@@ -428,27 +514,27 @@ function MainStack() {
       <Stack.Screen
         name="Collaboration"
         component={CollaborationScreen}
-        options={{ title: "Collaboration" }}
+        options={{ title: st("collaboration") }}
       />
       <Stack.Screen
         name="FarmMembers"
         component={FarmMembersScreen}
-        options={{ title: "Équipe" }}
+        options={{ title: st("team") }}
       />
       <Stack.Screen
         name="CreateFarmInvitation"
         component={CreateFarmInvitationScreen}
-        options={{ title: "Inviter" }}
+        options={{ title: st("invite") }}
       />
       <Stack.Screen
         name="FarmFeedStock"
         component={FarmFeedStockScreen}
-        options={{ title: "Stock aliment" }}
+        options={{ title: st("feedStock") }}
       />
       <Stack.Screen
         name="FarmGestation"
         component={FarmGestationScreen}
-        options={{ title: "Gestation" }}
+        options={{ title: st("gestation") }}
       />
     </Stack.Navigator>
   );
@@ -460,36 +546,59 @@ function MainNavigationWithChrome() {
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
   const isProducer = profileType === "producer";
   const isVeterinarian = profileType === "veterinarian";
+  const isBuyer = profileType === "buyer";
+  const isTechnician = profileType === "technician";
   const producerPad = isProducer ? producerBottomChromeHeight(insets.bottom) : 0;
   const vetPad = isVeterinarian ? vetBottomChromeHeight(insets.bottom) : 0;
+  const buyerPad = isBuyer ? buyerBottomChromeHeight(insets.bottom) : 0;
+  const techPad = isTechnician ? techBottomChromeHeight(insets.bottom) : 0;
 
   return (
     <ProducerBottomChromeProvider value={producerPad}>
       <VetBottomChromeProvider value={vetPad}>
-        <AccountModerationGate>
-        <View style={styles.flex}>
-          <View style={styles.flex}>
-            <MainStack />
-          </View>
-          <ProducerPersistentTabBar />
-          <VetPersistentTabBar />
-        </View>
-        </AccountModerationGate>
+        <BuyerBottomChromeProvider value={buyerPad}>
+          <TechBottomChromeProvider value={techPad}>
+            <AccountModerationGate>
+              <View key={activeProfileId ?? "none"} style={styles.flex}>
+                <View style={styles.flex}>
+                  <MainStack />
+                </View>
+                <ProducerPersistentTabBar />
+                <VetPersistentTabBar />
+                <BuyerPersistentTabBar />
+                <TechPersistentTabBar />
+              </View>
+            </AccountModerationGate>
+          </TechBottomChromeProvider>
+        </BuyerBottomChromeProvider>
       </VetBottomChromeProvider>
     </ProducerBottomChromeProvider>
   );
 }
 
 /** À l’intérieur de `PersistQueryClientProvider` (réhydratation cache offline). */
-export function MainNavigationShell() {
+function MainNavigationShellInner() {
+  const { activeProfileId } = useSession();
+  useSmartAlertPushNavigation(rootNavigationRef);
+  const navContainerKey = activeProfileId ?? "none";
+
   return (
     <View style={styles.flex}>
       <OfflineBanner />
-      <NavigationContainer theme={navTheme} linking={linking}>
+      <NavigationContainer
+        key={navContainerKey}
+        ref={rootNavigationRef}
+        theme={navTheme}
+        linking={linking}
+      >
         <MainNavigationWithChrome />
       </NavigationContainer>
     </View>
   );
+}
+
+export function MainNavigationShell() {
+  return <MainNavigationShellInner />;
 }
 
 const styles = StyleSheet.create({

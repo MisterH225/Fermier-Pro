@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -10,7 +11,7 @@ import {
   UseGuards
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
-import { IsBoolean, IsNumber, IsOptional, Max, Min } from "class-validator";
+import { IsBoolean, IsInt, IsNumber, IsOptional, Max, Min } from "class-validator";
 import { Type } from "class-transformer";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
@@ -46,6 +47,22 @@ export class UpdateFarmAlertSettingsDto {
   @Max(60)
   stockCriticalDays?: number;
 
+  /** Seuil poids moyen (kg) au-delà duquel une loge Démarrage devrait basculer en Croissance. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(500)
+  starterMaxAvgWeightKg?: number | null;
+
+  /** Seuil âge moyen (semaines) au-delà duquel une loge Démarrage devrait basculer en Croissance. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(104)
+  starterMaxAvgAgeWeeks?: number | null;
+
   @IsOptional()
   @IsBoolean()
   pushStock?: boolean;
@@ -65,6 +82,10 @@ export class UpdateFarmAlertSettingsDto {
   @IsOptional()
   @IsBoolean()
   pushCheptel?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  pushMarket?: boolean;
 }
 
 @Controller("farms/:farmId")
@@ -108,6 +129,16 @@ export class FarmSmartAlertsController {
     @Param("alertId") alertId: string
   ) {
     return this.smartAlerts.markRead(user, farmId, alertId);
+  }
+
+  @Delete("alerts/:alertId")
+  @RequireFarmScopes(FARM_SCOPE.livestockRead)
+  deleteAlert(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("alertId") alertId: string
+  ) {
+    return this.smartAlerts.deleteAlert(user, farmId, alertId);
   }
 
   @Get("alert-settings")

@@ -37,6 +37,10 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Prisma generate
+        run: npm run prisma:generate
+      - name: Build shared phone package
+        run: npm run build --workspace @fermier/phone
       - name: Prisma schema push
         run: npm run prisma:push --workspace @fermier/api
       - name: Run API e2e suite

@@ -51,6 +51,31 @@ export function formatHealthDay(iso: string, locale: string): string {
   return x.toLocaleDateString(locale, { day: "numeric", month: "short" });
 }
 
+/** Visite planifiée encore à venir (date ≥ aujourd'hui 00:00 locale ignorée — UTC noon stocké). */
+export function isUpcomingPlannedVetVisit(
+  occurredAt: string,
+  status: string,
+  now = new Date()
+): boolean {
+  if (status !== "planned") {
+    return false;
+  }
+  const at = new Date(occurredAt);
+  if (Number.isNaN(at.getTime())) {
+    return false;
+  }
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  return at >= startOfToday;
+}
+
+export function canDeleteVetVisit(record: FarmHealthRecordRowDto): boolean {
+  if (record.kind !== "vet_visit") {
+    return false;
+  }
+  return record.status === "planned" || record.status === "missed";
+}
+
 export function healthPrimaryTitle(r: FarmHealthRecordRowDto): string {
   if (r.kind === "vaccination" && r.vaccination) {
     return r.vaccination.vaccineName;
