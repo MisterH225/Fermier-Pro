@@ -108,6 +108,13 @@ export function ChangeStatusModal({
     label: animal ? animalDisplayTag(animal) : "—",
     mutationFn: async () => {
       const { animalId, body } = buildPayload();
+      optimisticPatchAnimalStatus(
+        qc,
+        farmId,
+        activeProfileId,
+        animalId,
+        body
+      );
       return patchCheptelAnimalStatus(
         accessToken,
         farmId,

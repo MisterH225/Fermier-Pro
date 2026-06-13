@@ -32,10 +32,9 @@ import { ListingAnimalSyncService } from "../marketplace/listing-animal-sync.ser
 import { decimalToNum, summarizeWeights } from "./cheptel-gmq.util";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
 import {
-  decrementLivestockBatchHeadcount,
-  repairOrphanMigrationDuplicateAnimals,
-  resolveBatchIdForAnimalExit,
-  syncLivestockBatchHeadcountFromMembers
+  applyBatchHeadcountOnAnimalExit,
+  endActiveAnimalPenPlacements,
+  repairOrphanMigrationDuplicateAnimals
 } from "../livestock/livestock-batch-headcount.helper";
 import {
   migrateOnboardingBatchesToIndividualAnimals,
@@ -1161,21 +1160,13 @@ export class CheptelService {
       }
 
       const penIds = animal.penPlacements.map((pl) => pl.penId).filter(Boolean);
-      const batchIdForExit = await resolveBatchIdForAnimalExit(tx, {
+      const batchIdForExit = await applyBatchHeadcountOnAnimalExit(tx, {
         farmId,
         animalId,
         livestockBatchId: animal.livestockBatchId,
-        penIds
+        penIds,
+        endedAt: soldAt
       });
-
-      if (batchIdForExit) {
-        await decrementLivestockBatchHeadcount(tx, {
-          batchId: batchIdForExit,
-          farmId,
-          endedAt: soldAt
-        });
-        await syncLivestockBatchHeadcountFromMembers(tx, batchIdForExit, farmId);
-      }
 
       await tx.livestockExit.create({
         data: {
@@ -1252,59 +1243,92 @@ export class CheptelService {
     );
 
     const occurredAt = new Date();
+    const herdExitStatuses = new Set(["exited", "dead", "transferred"]);
 
-    if (status === "exited") {
+    if (herdExitStatuses.has(status)) {
+      let batchIdForExit: string | null = null;
       await this.prisma.$transaction(async (tx) => {
-        const placements = await tx.penPlacement.findMany({
-          where: {
-            animalId,
-            endedAt: null,
-            pen: { barn: { farmId } }
-          },
-          select: { id: true, penId: true }
+        const animalRow = await tx.animal.findFirst({
+          where: { id: animalId, farmId },
+          select: { livestockBatchId: true }
         });
-        if (placements.length > 0) {
-          await tx.penPlacement.updateMany({
-            where: {
-              animalId,
-              endedAt: null,
-              pen: { barn: { farmId } }
-            },
-            data: { endedAt: occurredAt }
-          });
-          const penIds = [...new Set(placements.map((p) => p.penId))];
-          for (const penId of penIds) {
-            await this.penAllocation.recalculatePenCategory(tx, penId);
-            await this.penAllocation.recalculatePenAverageWeight(tx, penId);
-          }
+        const penIds = await endActiveAnimalPenPlacements(tx, {
+          farmId,
+          animalId,
+          endedAt: occurredAt
+        });
+        for (const penId of penIds) {
+          await this.penAllocation.recalculatePenCategory(tx, penId);
+          await this.penAllocation.recalculatePenAverageWeight(tx, penId);
         }
+        batchIdForExit = await applyBatchHeadcountOnAnimalExit(tx, {
+          farmId,
+          animalId,
+          livestockBatchId: animalRow?.livestockBatchId ?? null,
+          penIds,
+          endedAt: occurredAt
+        });
         await tx.animal.update({
           where: { id: animalId },
           data: { statusChangedAt: occurredAt }
         });
       });
-      try {
-        await this.listingAnimalSync.onAnimalExitedFromCheptel(animalId);
-      } catch (e) {
-        this.logger.warn(
-          `marketplace sync after cheptel exit ${animalId}: ${(e as Error).message}`
-        );
-      }
-      return this.livestock.getAnimal(user, farmId, animalId);
-    }
 
-    if (status === "dead") {
-      await this.prisma.livestockExit.create({
-        data: {
-          farmId,
-          animalId,
-          kind: LivestockExitKind.mortality,
-          recordedByUserId: user.id,
-          headcountAffected: 1,
-          deathCause: dto.deathCause ?? dto.note ?? null,
-          note: dto.note ?? null
+      if (status === "exited") {
+        await this.prisma.livestockExit.create({
+          data: {
+            farmId,
+            animalId,
+            batchId: batchIdForExit,
+            kind: LivestockExitKind.slaughter,
+            occurredAt,
+            recordedByUserId: user.id,
+            headcountAffected: 1,
+            note: dto.note ?? null
+          }
+        });
+        try {
+          await this.listingAnimalSync.onAnimalExitedFromCheptel(animalId);
+        } catch (e) {
+          this.logger.warn(
+            `marketplace sync after cheptel exit ${animalId}: ${(e as Error).message}`
+          );
         }
-      });
+        return this.livestock.getAnimal(user, farmId, animalId);
+      }
+
+      if (status === "dead") {
+        await this.prisma.livestockExit.create({
+          data: {
+            farmId,
+            animalId,
+            batchId: batchIdForExit,
+            kind: LivestockExitKind.mortality,
+            recordedByUserId: user.id,
+            headcountAffected: 1,
+            deathCause: dto.deathCause ?? dto.note ?? null,
+            note: dto.note ?? null,
+            occurredAt
+          }
+        });
+      }
+
+      if (status === "transferred") {
+        await this.prisma.livestockExit.create({
+          data: {
+            farmId,
+            animalId,
+            batchId: batchIdForExit,
+            kind: LivestockExitKind.transfer,
+            occurredAt,
+            recordedByUserId: user.id,
+            headcountAffected: 1,
+            note: dto.note ?? null
+          }
+        });
+      }
+
+      return this.livestock.getAnimal(user, farmId, animalId);
     }
 
     await this.prisma.animal.update({

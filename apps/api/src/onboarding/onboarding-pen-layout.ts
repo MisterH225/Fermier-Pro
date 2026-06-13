@@ -789,15 +789,14 @@ export async function migrateOnboardingBatchesToIndividualAnimals(
       continue;
     }
 
-    const existingIndividuals = await tx.penPlacement.count({
+    // Inclut les placements terminés : évite de recréer des sujets après sortie du cheptel.
+    const individualPlacementHistory = await tx.penPlacement.count({
       where: {
         penId: pl.pen.id,
-        endedAt: null,
-        animalId: { not: null },
-        animal: { is: { status: "active" } }
+        animalId: { not: null }
       }
     });
-    if (existingIndividuals > 0) {
+    if (individualPlacementHistory > 0) {
       await tx.penPlacement.update({
         where: { id: pl.id },
         data: { endedAt: new Date() }

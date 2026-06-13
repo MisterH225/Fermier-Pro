@@ -1707,7 +1707,7 @@ export const fr = {
       addFab: "Nouvel animal",
       heads: "têtes",
       filter: {
-        all: "Tous",
+        all: "Dans le cheptel",
         male: "Verrats",
         female: "Truies",
         active: "Actifs",
@@ -1759,7 +1759,7 @@ export const fr = {
         financeLinked: "Un revenu sera créé dans Finance si un prix de vente est indiqué.",
         healthLinked: "Une sortie mortalité sera enregistrée (module Santé).",
         exitedHint:
-          "L'animal quitte l'effectif du cheptel. Ce n'est ni une vente ni une mortalité. Les annonces marketplace ouvertes seront retirées."
+          "Le sujet quitte le cheptel actif (effectif, loges, annonces). Il reste consultable via le filtre « Sortis du cheptel »."
       },
       sale: {
         title: "Enregistrer la vente",
