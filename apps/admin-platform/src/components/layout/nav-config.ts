@@ -5,6 +5,7 @@ import {
   ClipboardList,
   LayoutDashboard,
   Map,
+  MessageSquare,
   MessageSquareWarning,
   Settings,
   Shield,
@@ -19,6 +20,7 @@ export const NAV_KEYS = [
   "vetAppointments",
   "users",
   "feedModeration",
+  "chatModeration",
   "auditLogs",
   "map",
   "marketplace",
@@ -52,6 +54,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/statistiques", icon: BarChart3, key: "stats", primary: true },
   { href: "/veterinaires/rendez-vous", icon: Calendar, key: "vetAppointments" },
   { href: "/moderation-feed", icon: MessageSquareWarning, key: "feedModeration" },
+  { href: "/moderation-chat", icon: MessageSquare, key: "chatModeration" },
   { href: "/audit-logs", icon: ClipboardList, key: "auditLogs" },
   { href: "/ia", icon: Bot, key: "ai" },
   { href: "/parametres", icon: Settings, key: "settings" }

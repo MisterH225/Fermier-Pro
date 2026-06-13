@@ -15,6 +15,7 @@ import { ProposalCard } from "../../../components/marketplace/ProposalCard";
 import { EmptyStateCard } from "../../../components/common/EmptyStateCard";
 import { useModal } from "../../../components/modals/useModal";
 import { useSession } from "../../../context/SessionContext";
+import { invalidateBuyerDashboardQueries } from "../../../lib/buyerDashboardQueries";
 import {
   acceptMarketplaceOfferCounter,
   agreeMarketplaceCreditOffer,
@@ -59,6 +60,7 @@ export function PropositionsEnvoyeesTab({
     void qc.invalidateQueries({ queryKey: ["marketplaceOffersCounts"] });
     void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
     void qc.invalidateQueries({ queryKey: ["marketplaceTransactions"] });
+    invalidateBuyerDashboardQueries(qc);
   };
 
   const openCreditTransaction = (row: MarketplaceOfferMineRow) => {

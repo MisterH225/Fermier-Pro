@@ -64,7 +64,8 @@ export function BuyerDashboardScreen() {
   useFocusEffect(
     useCallback(() => {
       void refreshAuthMe();
-    }, [refreshAuthMe])
+      void dashQ.refetch();
+    }, [refreshAuthMe, dashQ])
   );
 
   const displayName =
@@ -134,12 +135,17 @@ export function BuyerDashboardScreen() {
               <Text style={styles.kpiValue}>{kpis?.pendingProposals ?? 0}</Text>
               <Text style={styles.kpiLabel}>{t("buyer.kpi.pending")}</Text>
             </View>
-            <View style={[styles.kpiCard, { backgroundColor: "#E8F5E9" }]}>
+            <Pressable
+              style={[styles.kpiCard, { backgroundColor: "#E8F5E9" }]}
+              onPress={() =>
+                navigation.navigate("BuyerHistory", { initialTab: "purchases" })
+              }
+            >
               <Text style={[styles.kpiValue, { color: buyerColors.success }]}>
                 {kpis?.purchasesCount ?? 0}
               </Text>
               <Text style={styles.kpiLabel}>{t("buyer.kpi.purchases")}</Text>
-            </View>
+            </Pressable>
             <Pressable
               style={[styles.kpiCard, { backgroundColor: "#FCE4EC" }]}
               onPress={() => navigation.navigate("BuyerFavorites")}
