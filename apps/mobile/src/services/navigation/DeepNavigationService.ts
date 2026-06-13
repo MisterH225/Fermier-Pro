@@ -421,3 +421,95 @@ export function navigateFromPushData(
 
   return navigateToAlert(nav, alert, profile);
 }
+
+/** Navigation depuis une notification push (RDV véto, marketplace, alertes). */
+export function navigateFromGenericPushData(
+  navigationRef: NavigationContainerRef<RootStackParamList>,
+  data: Record<string, unknown> | undefined
+): boolean {
+  if (!data?.type || typeof data.type !== "string") {
+    return false;
+  }
+  const nav = navigationRef;
+  if (!nav?.isReady()) {
+    return false;
+  }
+
+  const type = data.type;
+
+  if (type === "smart_alert") {
+    return navigateFromPushData(
+      nav,
+      data as unknown as import("./deepNavigation.types").PushSmartAlertData
+    );
+  }
+
+  if (type.startsWith("vet_appointment")) {
+    const appointmentId = str(data.appointmentId);
+    if (!appointmentId) {
+      return false;
+    }
+    nav.navigate("VetAppointmentDetail", { appointmentId });
+    return true;
+  }
+
+  if (type === "vet_visit_scheduled" || type === "vet_visit_quote") {
+    const farmId = str(data.farmId);
+    const consultationId = str(data.consultationId);
+    if (!farmId || !consultationId) {
+      return false;
+    }
+    nav.navigate("VetConsultationDetail", {
+      farmId,
+      farmName: str(data.farmName) ?? "—",
+      consultationId
+    });
+    return true;
+  }
+
+  if (
+    type.startsWith("marketplace_") &&
+    str(data.transactionId)
+  ) {
+    nav.navigate("MarketplaceTransaction", {
+      transactionId: str(data.transactionId)!
+    });
+    return true;
+  }
+
+  if (type.startsWith("marketplace_") && str(data.listingId)) {
+    nav.navigate("MarketplaceListingDetail", {
+      listingId: str(data.listingId)!
+    });
+    return true;
+  }
+
+  return false;
+}
+
+/** Parse action_route IA (ex. FarmHealth:tab=vet_visit) et navigue si possible. */
+export function navigateFromInsightRoute(
+  navigation:
+    | NativeStackNavigationProp<RootStackParamList>
+    | NavigationContainerRef<RootStackParamList>,
+  actionRoute: string | null | undefined
+): boolean {
+  if (!actionRoute?.trim()) {
+    return false;
+  }
+  const [name, ...rest] = actionRoute.split(":");
+  const params: Record<string, string> = {};
+  for (const part of rest) {
+    const [k, v] = part.split("=");
+    if (k && v) {
+      params[k] = v;
+    }
+  }
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    navigation.navigate(name as any, params as any);
+    return true;
+  } catch {
+    return false;
+  }
+}

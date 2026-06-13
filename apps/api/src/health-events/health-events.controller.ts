@@ -1,4 +1,6 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Res, UseGuards } from "@nestjs/common";
+import type { Response } from "express";
+import { setDeprecatedSuccessor } from "../common/http/deprecation.util";
 import type { User } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
@@ -18,8 +20,13 @@ export class HealthEventsController {
   list(
     @CurrentUser() user: User,
     @Param("farmId") farmId: string,
-    @Param("animalId") animalId: string
+    @Param("animalId") animalId: string,
+    @Res({ passthrough: true }) res: Response
   ) {
+    setDeprecatedSuccessor(
+      res,
+      `/api/v1/farms/${farmId}/health/events?entityType=animal&entityId=${animalId}`
+    );
     return this.health.list(user, farmId, animalId);
   }
 
@@ -29,8 +36,10 @@ export class HealthEventsController {
     @CurrentUser() user: User,
     @Param("farmId") farmId: string,
     @Param("animalId") animalId: string,
-    @Body() dto: CreateHealthEventDto
+    @Body() dto: CreateHealthEventDto,
+    @Res({ passthrough: true }) res: Response
   ) {
+    setDeprecatedSuccessor(res, `/api/v1/farms/${farmId}/health/events`);
     return this.health.create(user, farmId, animalId, dto);
   }
 }

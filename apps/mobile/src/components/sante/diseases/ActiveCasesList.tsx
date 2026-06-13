@@ -65,7 +65,7 @@ function SwipeableCaseRow({
         accessibilityRole="button"
         accessibilityLabel={t("health.diseases.swipeTreatment")}
       >
-        <Ionicons name="medical" size={20} color="#fff" />
+        <Ionicons name="medical" size={20} color={mobileColors.onAccent} />
         <Text style={styles.swipeLabel}>{t("health.diseases.swipeTreatment")}</Text>
       </Pressable>
       <Pressable
@@ -76,10 +76,10 @@ function SwipeableCaseRow({
         accessibilityLabel={t("health.diseases.swipeRecovered")}
       >
         {resolving ? (
-          <ActivityIndicator color="#fff" size="small" />
+          <ActivityIndicator color={mobileColors.onAccent} size="small" />
         ) : (
           <>
-            <Ionicons name="checkmark-done" size={20} color="#fff" />
+            <Ionicons name="checkmark-done" size={20} color={mobileColors.onAccent} />
             <Text style={styles.swipeLabel}>{t("health.diseases.swipeRecovered")}</Text>
           </>
         )}
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   },
   swipeDisabled: { opacity: 0.6 },
   swipeLabel: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 10,
     fontWeight: "700",
     textAlign: "center"

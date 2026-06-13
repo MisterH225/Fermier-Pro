@@ -8,7 +8,7 @@ import {
   Text,
   View
 } from "react-native";
-import type { CheptelPenRowDto, PenUsageTag } from "../../../lib/api";
+import type { CheptelPenRowDto } from "../../../lib/api";
 import {
   mobileColors,
   mobileRadius,
@@ -16,19 +16,11 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../../theme/mobileTheme";
-
-const USAGE_ICON: Record<
-  PenUsageTag,
-  { bg: string; icon: keyof typeof Ionicons.glyphMap }
-> = {
-  starter: { bg: "#DBEAFE", icon: "egg-outline" },
-  fattening: { bg: "#DCFCE7", icon: "nutrition-outline" },
-  sows: { bg: "#FCE7F3", icon: "heart-outline" },
-  boar: { bg: "#E0E7FF", icon: "male-outline" },
-  boars: { bg: "#E0E7FF", icon: "male-outline" },
-  mixed: { bg: "#E5E7EB", icon: "grid-outline" },
-  empty: { bg: "#F3F4F6", icon: "cube-outline" }
-};
+import {
+  getPenVisualForPen,
+  penVisualI18nKey,
+  resolvePenVisualKey
+} from "./penUsageVisual";
 
 type Props = {
   pen: CheptelPenRowDto;
@@ -37,6 +29,7 @@ type Props = {
   /** stacked = colonne verticale ; grid = 2 cartes par ligne */
   layout?: "stacked" | "grid";
   onPress: () => void;
+  onEditCapacity?: (pen: CheptelPenRowDto) => void;
   onToggleActive: (pen: CheptelPenRowDto, next: boolean) => void;
   onDelete: (pen: CheptelPenRowDto) => void;
   readOnly?: boolean;
@@ -47,6 +40,7 @@ export function PenCard({
   displayName,
   layout = "grid",
   onPress,
+  onEditCapacity,
   onToggleActive,
   onDelete,
   readOnly = false
@@ -64,19 +58,9 @@ export function PenCard({
         ? "#F59E0B"
         : mobileColors.success;
 
-  const usage: PenUsageTag =
-    pen.usageTag ??
-    (pen.category === "maternity"
-      ? "sows"
-      : pen.category === "starter" ||
-          pen.category === "fattening" ||
-          pen.category === "empty"
-        ? pen.category
-        : "mixed");
-  const catStyle = USAGE_ICON[usage] ?? USAGE_ICON.mixed;
-  const categoryLabel = t(`cheptel.pens.usage.${usage}`, {
-    defaultValue: t(`cheptel.pens.category.${pen.category}`)
-  });
+  const visual = getPenVisualForPen(pen);
+  const visualKey = resolvePenVisualKey(pen);
+  const categoryLabel = t(`cheptel.pens.visual.${penVisualI18nKey(visualKey)}`);
   const ageData = pen.ageData;
   const sanitaryIcon =
     pen.vaccineOverdueCount > 0
@@ -114,6 +98,12 @@ export function PenCard({
       style={[
         styles.card,
         layout === "stacked" ? styles.cardStacked : styles.cardGrid,
+        {
+          backgroundColor: visual.bg,
+          borderColor: visual.border,
+          borderLeftWidth: 4,
+          borderLeftColor: visual.accent
+        },
         !pen.isActive && styles.cardInactive
       ]}
       onPress={onPress}
@@ -146,8 +136,8 @@ export function PenCard({
       ) : null}
 
       <View style={styles.topRow}>
-        <View style={[styles.iconCircle, { backgroundColor: catStyle.bg }]}>
-          <Ionicons name={catStyle.icon} size={20} color={mobileColors.textPrimary} />
+        <View style={[styles.iconCircle, { backgroundColor: visual.iconBg }]}>
+          <Ionicons name={visual.icon} size={20} color={visual.accent} />
         </View>
         <View style={[styles.iconCircle, { backgroundColor: sanitaryIcon.bg }]}>
           <Ionicons
@@ -161,7 +151,9 @@ export function PenCard({
       <Text style={styles.name} numberOfLines={1}>
         {label}
       </Text>
-      <Text style={styles.category}>{categoryLabel}</Text>
+      <View style={[styles.categoryChip, { backgroundColor: visual.iconBg }]}>
+        <Text style={[styles.category, { color: visual.accent }]}>{categoryLabel}</Text>
+      </View>
       <View style={styles.divider} />
       <Text style={styles.meta}>
         {t("cheptel.pens.subjects", { count: pen.occupancy })}
@@ -199,13 +191,28 @@ export function PenCard({
 
       {!readOnly ? (
         <View style={styles.footer}>
-          <Pressable
-            onPress={onDeletePress}
-            hitSlop={8}
-            accessibilityLabel={t("cheptel.pens.deleteA11y")}
-          >
-            <Ionicons name="trash-outline" size={18} color={mobileColors.textSecondary} />
-          </Pressable>
+          <View style={styles.footerLeft}>
+            {onEditCapacity ? (
+              <Pressable
+                onPress={() => onEditCapacity(pen)}
+                hitSlop={8}
+                accessibilityLabel={t("cheptel.pens.editCapacityA11y")}
+              >
+                <Ionicons
+                  name="create-outline"
+                  size={18}
+                  color={mobileColors.textSecondary}
+                />
+              </Pressable>
+            ) : null}
+            <Pressable
+              onPress={onDeletePress}
+              hitSlop={8}
+              accessibilityLabel={t("cheptel.pens.deleteA11y")}
+            >
+              <Ionicons name="trash-outline" size={18} color={mobileColors.textSecondary} />
+            </Pressable>
+          </View>
           <Switch
             value={pen.isActive}
             onValueChange={(v) => onToggleActive(pen, v)}
@@ -220,12 +227,10 @@ export function PenCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: mobileColors.background,
     borderRadius: 16,
     padding: 14,
     marginBottom: mobileSpacing.sm,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: mobileColors.border,
     ...mobileShadows.card
   },
   cardGrid: {
@@ -264,15 +269,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: mobileColors.textPrimary
   },
+  categoryChip: {
+    alignSelf: "flex-start",
+    borderRadius: mobileRadius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginTop: 4
+  },
   category: {
-    fontSize: 13,
-    color: mobileColors.textSecondary,
-    marginTop: 2
+    fontSize: 12,
+    fontWeight: "700"
   },
   divider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: mobileColors.border,
-    marginVertical: 8
+    marginVertical: 8,
+    opacity: 0.5
   },
   meta: {
     fontSize: 13,
@@ -283,7 +295,7 @@ const styles = StyleSheet.create({
   barTrack: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: mobileColors.border,
+    backgroundColor: "rgba(0,0,0,0.08)",
     marginTop: 8,
     overflow: "hidden"
   },
@@ -293,5 +305,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginTop: 10
+  },
+  footerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12
   }
 });

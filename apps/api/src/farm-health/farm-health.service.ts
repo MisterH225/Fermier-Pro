@@ -12,7 +12,8 @@ import {
   FarmMortalityCause,
   FinanceCategoryType,
   LivestockExitKind,
-  Prisma
+  Prisma,
+  VetAppointmentStatus
 } from "@prisma/client";
 import { AUDIT_ACTION } from "../common/audit.constants";
 import { AuditService } from "../common/audit.service";
@@ -25,6 +26,7 @@ import { CreateFarmHealthRecordDto } from "./dto/create-farm-health-record.dto";
 import { CreateDiseaseCaseDto } from "./dto/create-disease-case.dto";
 import { AddDiseaseTreatmentDto } from "./dto/add-disease-treatment.dto";
 import { UpdateDiseaseCaseDto } from "./dto/update-disease-case.dto";
+import { FarmVaccineService } from "./farm-vaccine.service";
 import {
   buildDiseaseDetailData,
   syncAnimalHealthStatus
@@ -70,6 +72,32 @@ function emptyMonthSeries(keys: string[]): Record<string, number> {
   return Object.fromEntries(keys.map((k) => [k, 0]));
 }
 
+const ACTIVE_VET_APPOINTMENT_STATUSES: VetAppointmentStatus[] = [
+  VetAppointmentStatus.APPOINTMENT_REQUESTED,
+  VetAppointmentStatus.AWAITING_PAYMENT,
+  VetAppointmentStatus.APPOINTMENT_CONFIRMED,
+  VetAppointmentStatus.APPOINTMENT_IN_PROGRESS
+];
+
+function upcomingPlannedVetVisitWhere(farmId: string, now: Date) {
+  return {
+    farmId,
+    kind: FarmHealthRecordKind.vet_visit,
+    status: "planned",
+    occurredAt: { gte: now }
+  };
+}
+
+type NextVetVisitPayload = {
+  at: string;
+  reason: string | null;
+  healthRecordId: string | null;
+  appointmentId: string | null;
+  source: "health_record" | "vet_appointment";
+  appointmentStatus: string | null;
+  vetName: string | null;
+};
+
 @Injectable()
 export class FarmHealthService {
   constructor(
@@ -77,7 +105,8 @@ export class FarmHealthService {
     private readonly farmAccess: FarmAccessService,
     private readonly audit: AuditService,
     private readonly finance: FinanceService,
-    private readonly smartAlerts: SmartAlertsService
+    private readonly smartAlerts: SmartAlertsService,
+    private readonly farmVaccine: FarmVaccineService
   ) {}
 
   private async loadFarm(farmId: string) {
@@ -86,6 +115,92 @@ export class FarmHealthService {
       throw new NotFoundException("Ferme introuvable");
     }
     return farm;
+  }
+
+  private async expirePastPlannedVetVisits(farmId: string, now: Date) {
+    await this.prisma.farmHealthRecord.updateMany({
+      where: {
+        farmId,
+        kind: FarmHealthRecordKind.vet_visit,
+        status: "planned",
+        occurredAt: { lt: now }
+      },
+      data: { status: "missed" }
+    });
+  }
+
+  private async resolveNextVetVisit(
+    farmId: string,
+    now: Date
+  ): Promise<NextVetVisitPayload | null> {
+    await this.expirePastPlannedVetVisits(farmId, now);
+    const [healthNext, apptNext] = await Promise.all([
+      this.prisma.farmHealthRecord.findFirst({
+        where: upcomingPlannedVetVisitWhere(farmId, now),
+        orderBy: { occurredAt: "asc" },
+        include: { vetVisit: true }
+      }),
+      this.prisma.vetAppointment.findFirst({
+        where: {
+          farmId,
+          status: { in: ACTIVE_VET_APPOINTMENT_STATUSES }
+        },
+        orderBy: [{ confirmedAt: "asc" }, { requestedAt: "asc" }],
+        include: {
+          vetProfile: { select: { fullName: true } }
+        }
+      })
+    ]);
+
+    type Candidate = {
+      at: Date;
+      reason: string | null;
+      healthRecordId: string | null;
+      appointmentId: string | null;
+      source: "health_record" | "vet_appointment";
+      appointmentStatus: string | null;
+      vetName: string | null;
+    };
+
+    const candidates: Candidate[] = [];
+    if (healthNext) {
+      candidates.push({
+        at: healthNext.occurredAt,
+        reason: healthNext.vetVisit?.reason ?? null,
+        healthRecordId: healthNext.id,
+        appointmentId: null,
+        source: "health_record",
+        appointmentStatus: null,
+        vetName: healthNext.vetVisit?.vetName ?? null
+      });
+    }
+    if (apptNext) {
+      candidates.push({
+        at: apptNext.confirmedAt ?? apptNext.requestedAt,
+        reason: apptNext.reason,
+        healthRecordId: null,
+        appointmentId: apptNext.id,
+        source: "vet_appointment",
+        appointmentStatus: apptNext.status,
+        vetName: apptNext.vetProfile.fullName ?? null
+      });
+    }
+
+    if (!candidates.length) {
+      return null;
+    }
+
+    candidates.sort((a, b) => a.at.getTime() - b.at.getTime());
+    const best = candidates[0]!;
+    return {
+      at: best.at.toISOString(),
+      reason: best.reason,
+      healthRecordId: best.healthRecordId,
+      appointmentId: best.appointmentId,
+      source: best.source,
+      appointmentStatus: best.appointmentStatus,
+      vetName: best.vetName
+    };
   }
 
   private async assertEntityOnFarm(
@@ -212,15 +327,7 @@ export class FarmHealthService {
       }
     });
 
-    const nextVet = await this.prisma.farmHealthRecord.findFirst({
-      where: {
-        farmId,
-        kind: FarmHealthRecordKind.vet_visit,
-        OR: [{ status: "planned" }, { occurredAt: { gte: now } }]
-      },
-      orderBy: { occurredAt: "asc" },
-      include: { vetVisit: true }
-    });
+    const nextVet = await this.resolveNextVetVisit(farmId, now);
 
     const mortalAgg = await this.prisma.livestockExit.aggregate({
       where: {
@@ -248,12 +355,8 @@ export class FarmHealthService {
       select: { id: true, subject: true, openedAt: true }
     });
 
-    const overdueVaccineCount = await this.prisma.healthVaccinationDetail.count({
-      where: {
-        healthRecord: { farmId },
-        nextReminderAt: { lt: now }
-      }
-    });
+    const overdueVaccineCount =
+      await this.farmVaccine.countOverdueAdministrations(user, farmId);
 
     const activeTreatmentCount = await this.prisma.healthTreatmentDetail.count({
       where: {
@@ -368,13 +471,7 @@ export class FarmHealthService {
             healthRecordId: nextVac.healthRecord.id
           }
         : null,
-      nextVetVisitModule: nextVet
-        ? {
-            at: nextVet.occurredAt.toISOString(),
-            reason: nextVet.vetVisit?.reason ?? null,
-            healthRecordId: nextVet.id
-          }
-        : null,
+      nextVetVisitModule: nextVet,
       nextVetConsultationLegacy: nextOpenVet
         ? {
             id: nextOpenVet.id,
@@ -399,6 +496,7 @@ export class FarmHealthService {
   async getUpcoming(user: User, farmId: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
     const now = new Date();
+    await this.expirePastPlannedVetVisits(farmId, now);
     const vaccines = await this.prisma.healthVaccinationDetail.findMany({
       where: {
         healthRecord: { farmId },
@@ -413,16 +511,35 @@ export class FarmHealthService {
       }
     });
     const vetVisits = await this.prisma.farmHealthRecord.findMany({
-      where: {
-        farmId,
-        kind: FarmHealthRecordKind.vet_visit,
-        OR: [{ status: "planned" }, { occurredAt: { gte: now } }]
-      },
+      where: upcomingPlannedVetVisitWhere(farmId, now),
       orderBy: { occurredAt: "asc" },
       take: 20,
       include: { vetVisit: true }
     });
-    return { farmId, vaccines, vetVisits };
+    const vetAppointments = await this.prisma.vetAppointment.findMany({
+      where: {
+        farmId,
+        status: { in: ACTIVE_VET_APPOINTMENT_STATUSES }
+      },
+      orderBy: [{ confirmedAt: "asc" }, { requestedAt: "asc" }],
+      take: 20,
+      include: {
+        vetProfile: { select: { fullName: true } }
+      }
+    });
+    return {
+      farmId,
+      vaccines,
+      vetVisits,
+      vetAppointments: vetAppointments.map((a) => ({
+        id: a.id,
+        status: a.status,
+        requestedAt: a.requestedAt.toISOString(),
+        confirmedAt: a.confirmedAt?.toISOString() ?? null,
+        reason: a.reason,
+        vetName: a.vetProfile.fullName ?? null
+      }))
+    };
   }
 
   async getMortalityRate(user: User, farmId: string, period?: string) {
@@ -730,6 +847,55 @@ export class FarmHealthService {
       metadata: { expenseId }
     });
     return { ok: true };
+  }
+
+  async deleteRecord(user: User, farmId: string, recordId: string) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const rec = await this.prisma.farmHealthRecord.findFirst({
+      where: { id: recordId, farmId },
+      include: { mortality: true, vetVisit: true }
+    });
+    if (!rec) {
+      throw new NotFoundException("Dossier introuvable");
+    }
+    if (rec.kind !== FarmHealthRecordKind.vet_visit) {
+      throw new BadRequestException(
+        "Seules les visites vétérinaires peuvent être supprimées"
+      );
+    }
+    if (rec.mortality) {
+      throw new BadRequestException("Dossier lié à une mortalité");
+    }
+    if (rec.vetVisit?.financeExpenseId) {
+      throw new BadRequestException(
+        "Visite liée à une dépense — retirez le lien finance avant suppression"
+      );
+    }
+    const deletableStatuses = new Set(["planned", "missed"]);
+    if (!deletableStatuses.has(rec.status)) {
+      throw new BadRequestException(
+        "Seules les visites planifiées ou manquées peuvent être supprimées"
+      );
+    }
+
+    await this.prisma.farmHealthRecord.delete({ where: { id: recordId } });
+
+    await this.audit.record({
+      actorUserId: user.id,
+      farmId,
+      action: AUDIT_ACTION.farmHealthRecordDeleted,
+      resourceType: "FarmHealthRecord",
+      resourceId: recordId,
+      metadata: { kind: rec.kind }
+    });
+
+    void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
+    return { ok: true };
+  }
+
+  /** Alias POST pour clients / proxies qui bloquent DELETE. */
+  async dismissPlannedVetVisit(user: User, farmId: string, recordId: string) {
+    return this.deleteRecord(user, farmId, recordId);
   }
 
   async createDiseaseCase(

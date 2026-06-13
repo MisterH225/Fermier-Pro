@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { HighlightWrapper } from "../common/HighlightWrapper";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -169,7 +170,7 @@ export function VaccinesTab({
       setCustomNotes("");
       void qc.invalidateQueries({ queryKey: ["farmVaccineCoverage", farmId] });
     },
-    onError: (e: Error) => Alert.alert(t("health.errorTitle"), e.message)
+    onError: (e: Error) => Alert.alert(t("health.errorTitle"), getUserFacingError(e, t))
   });
 
   const toggleTarget = (key: string) => {
@@ -343,5 +344,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   saveDisabled: { opacity: 0.5 },
-  saveTx: { color: "#fff", fontWeight: "700" }
+  saveTx: { color: mobileColors.onAccent, fontWeight: "700" }
 });

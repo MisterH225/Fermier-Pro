@@ -12,10 +12,6 @@ export function producerMainTabFromRoute(
     case "ProducerFarmSettings":
       return "home";
     case "FarmFinance":
-    case "CreateFarmExpense":
-    case "CreateFarmRevenue":
-    case "EditFarmExpense":
-    case "EditFarmRevenue":
       return financeEnabled ? "finance" : null;
     case "FarmLivestock":
     case "AnimalDetail":
@@ -23,7 +19,6 @@ export function producerMainTabFromRoute(
     case "FarmBarns":
     case "BarnDetail":
     case "PenDetail":
-    case "CreateBarn":
     case "CreatePen":
     case "CreatePenLog":
     case "PenMove":
@@ -34,10 +29,8 @@ export function producerMainTabFromRoute(
     case "CreateVetConsultation":
     case "AddVetConsultationAttachment":
       return "health";
-    case "Collaboration":
-    case "FarmMembers":
-    case "CreateFarmInvitation":
-      return "collaboration";
+    case "CommunityFeed":
+      return "feed";
     default:
       return null;
   }

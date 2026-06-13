@@ -19,10 +19,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Prisma generate (client Nest, sans DATABASE_URL)
-        run: npm exec -w @fermier/api -- prisma generate
+        run: npm run prisma:generate
       - name: API lint
         run: npm run lint:api
       - name: API build
         run: npm run build:api
+      - name: API unit tests
+        run: npm run test:unit
       - name: Mobile typecheck
         run: npm run typecheck:mobile
+      - name: Admin typecheck
+        run: npm run typecheck:admin

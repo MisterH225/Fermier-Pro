@@ -5,20 +5,20 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View
 } from "react-native";
+import { CardContentSkeleton } from "../../components/common/SkeletonBlocks";
 import { EventList } from "../../components/lists/EventList";
 import type { EventItem } from "../../components/lists/types";
 import { VetMobileShell } from "../../components/layout";
 import { ScheduleVisitModal } from "../../components/vet/ScheduleVisitModal";
 import { VisitCard } from "../../components/vet/VisitCard";
 import { VisitSlotPicker } from "../../components/vet/VisitSlotPicker";
-import { useVetBottomChromePad } from "../../context/VetBottomChromeContext";
+import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import { fetchVetDashboard, fetchVetProfileMe } from "../../lib/api";
 import { vetColors, vetRadius, vetShadow } from "../../theme/vetTheme";
@@ -30,7 +30,7 @@ export function VetAgendaScreen() {
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const bottomPad = useVetBottomChromePad();
+  const bottomInset = useBottomInset();
   const { accessToken, activeProfileId } = useSession();
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [listView, setListView] = useState(false);
@@ -81,6 +81,20 @@ export function VetAgendaScreen() {
 
   const firstVisit = dashQ.data?.upcomingVisits[0];
 
+  const openUpcomingVisit = (
+    v: NonNullable<typeof dashQ.data>["upcomingVisits"][number]
+  ) => {
+    if (v.kind === "appointment") {
+      navigation.navigate("VetAppointmentDetail", { appointmentId: v.id });
+      return;
+    }
+    navigation.navigate("VetConsultationDetail", {
+      farmId: v.farmId,
+      farmName: v.farmName,
+      consultationId: v.id
+    });
+  };
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -93,7 +107,7 @@ export function VetAgendaScreen() {
 
   return (
     <VetMobileShell hideTopBar>
-      <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomPad + 16 }]}>
+      <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomInset }]}>
         {!listView ? (
           <>
             <View style={styles.monthRow}>
@@ -151,13 +165,7 @@ export function VetAgendaScreen() {
                 scheduledAt={firstVisit.scheduledAt}
                 subject={firstVisit.subject}
                 location={firstVisit.location}
-                onPress={() =>
-                  navigation.navigate("VetConsultationDetail", {
-                    farmId: firstVisit.farmId,
-                    farmName: firstVisit.farmName,
-                    consultationId: firstVisit.id
-                  })
-                }
+                onPress={() => openUpcomingVisit(firstVisit)}
               />
             ) : null}
 
@@ -171,7 +179,7 @@ export function VetAgendaScreen() {
                 activeProfileId={activeProfileId}
               />
             ) : (
-              <ActivityIndicator color={vetColors.primary} />
+              <CardContentSkeleton lines={4} />
             )}
             <Pressable
               style={[styles.bookBtn, !selectedSlot && styles.bookBtnDisabled]}
@@ -189,11 +197,7 @@ export function VetAgendaScreen() {
             onItemPress={(item) => {
               const v = dashQ.data?.upcomingVisits.find((x) => x.id === item.id);
               if (!v) return;
-              navigation.navigate("VetConsultationDetail", {
-                farmId: v.farmId,
-                farmName: v.farmName,
-                consultationId: v.id
-              });
+              openUpcomingVisit(v);
             }}
           />
         )}

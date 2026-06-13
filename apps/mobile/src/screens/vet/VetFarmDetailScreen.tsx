@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { VetMobileShell } from "../../components/layout";
-import { useVetBottomChromePad } from "../../context/VetBottomChromeContext";
+import { useBottomInset } from "../../hooks/useBottomInset";
 import { vetColors } from "../../theme/vetTheme";
 import { mobileSpacing } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
@@ -18,12 +18,12 @@ export function VetFarmDetailScreen() {
   const { farmId, farmName } = route.params;
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const bottomPad = useVetBottomChromePad();
+  const bottomInset = useBottomInset();
   const [tab, setTab] = useState<(typeof TABS)[number]>("health");
 
   return (
     <VetMobileShell hideTopBar>
-      <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomPad }]}>
+      <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomInset }]}>
         <View style={styles.tabs}>
           {TABS.map((id) => (
             <Pressable

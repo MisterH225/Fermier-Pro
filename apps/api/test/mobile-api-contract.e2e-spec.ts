@@ -90,6 +90,28 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(Array.isArray(res.body)).toBe(true);
   });
 
+  it("GET marketplace offres reçues (vendeur)", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/marketplace/offers/received")
+      .query({ farmId: ctx.farmId })
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it("GET marketplace compteurs propositions", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/marketplace/offers/counts")
+      .query({ farmId: ctx.farmId })
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId);
+    expect(res.status).toBe(200);
+    expect(typeof res.body.receivedPending).toBe("number");
+    expect(typeof res.body.sentPending).toBe("number");
+    expect(typeof res.body.total).toBe("number");
+  });
+
   it("GET /auth/me (session Supabase)", async () => {
     const res = await request(app.getHttpServer())
       .get("/api/v1/auth/me")
@@ -245,6 +267,7 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
       .set("Authorization", `Bearer ${ctx.token}`);
     expect(overview.status).toBe(200);
     expect(overview.body?.farmId).toBe(ctx.farmId);
+    expect(Array.isArray(overview.body?.items)).toBe(true);
 
     const chart = await request(app.getHttpServer())
       .get(`/api/v1/farms/${ctx.farmId}/feed/chart`)
@@ -357,6 +380,14 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(posted.status).toBeGreaterThanOrEqual(200);
     expect(posted.status).toBeLessThan(300);
     expect(posted.body?.body).toBe("Message contrat e2e chat");
+
+    const masked = await request(app.getHttpServer())
+      .post(`/api/v1/chat/rooms/${roomId}/messages`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({ body: "Test 0708123456" });
+    expect(masked.status).toBeGreaterThanOrEqual(200);
+    expect(masked.status).toBeLessThan(300);
+    expect(masked.body?.body).toBe("Test ****");
   });
 
   it("POST /farms création (profil producteur)", async () => {
@@ -427,6 +458,19 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(res.status).toBe(200);
     expect(res.body?.id).toBe(ctx.animalId);
     expect(Array.isArray(res.body?.weights)).toBe(true);
+  });
+
+  it("PATCH statut animal (legacy livestock) — proxy cheptel + Deprecation", async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/api/v1/farms/${ctx.farmId}/animals/${ctx.animalId}/status`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({ status: "active", note: "e2e legacy proxy" });
+    expect(res.status).toBeGreaterThanOrEqual(200);
+    expect(res.status).toBeLessThan(300);
+    expect(res.body?.status).toBe("active");
+    expect(res.headers.deprecation).toBe("true");
+    expect(String(res.headers.link ?? "")).toContain("cheptel/animals");
   });
 
   it("PATCH statut animal (cheptel) — vendu via /sell", async () => {
@@ -1146,6 +1190,44 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     if (!process.env.GEMINI_API_KEY?.trim()) {
       expect(res.body.unavailable).toBe(true);
     }
+  });
+
+  it("GET /farms/:id/predictions — prévisions en cache", async () => {
+    const auth = {
+      Authorization: `Bearer ${ctx.token}`,
+      "X-Profile-Id": ctx.producerProfileId
+    };
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/predictions`)
+      .set(auth);
+    expect(res.status).toBe(200);
+    expect(typeof res.body.sufficient_data).toBe("boolean");
+    expect(typeof res.body.days_of_data).toBe("number");
+    if (!process.env.GEMINI_API_KEY?.trim()) {
+      expect(res.body.unavailable === true || res.body.predictions == null).toBe(
+        true
+      );
+    }
+  });
+
+  it("GET /farms/:id/predictions/cheptel — slice menu cheptel", async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/predictions/cheptel`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId);
+    expect(res.status).toBe(200);
+    expect(res.body.farm_id).toBe(ctx.farmId);
+  });
+
+  it("POST /farms/:id/predictions/generate — régénération manuelle", async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/predictions/generate`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({});
+    expect(res.status).toBeGreaterThanOrEqual(200);
+    expect(res.status).toBeLessThan(300);
+    expect(typeof res.body.days_of_data).toBe("number");
   });
 });
 

@@ -77,6 +77,6 @@ const styles = StyleSheet.create({
     color: mobileColors.textPrimary
   },
   pillTxOn: {
-    color: "#FFFFFF"
+    color: mobileColors.onAccent
   }
 });

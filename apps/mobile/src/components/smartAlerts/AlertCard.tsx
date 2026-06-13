@@ -13,6 +13,7 @@ import {
 import type { RootStackParamList } from "../../types/navigation";
 import { useTranslation } from "react-i18next";
 import { resolveSmartAlertText } from "../../lib/smartAlertDisplay";
+import { resolveDeepNavProfile } from "../../lib/resolveDeepNavProfile";
 import { navigateToAlert } from "../../services/navigation/DeepNavigationService";
 import { useSession } from "../../context/SessionContext";
 
@@ -47,14 +48,14 @@ type AlertCardProps = {
   alert: SmartAlertListItemDto;
   navigation: NativeStackNavigationProp<RootStackParamList>;
   onMarkRead: (id: string) => void;
+  onDelete?: (id: string) => void;
 };
 
-export function AlertCard({ alert, navigation, onMarkRead }: AlertCardProps) {
+export function AlertCard({ alert, navigation, onMarkRead, onDelete }: AlertCardProps) {
   const { t } = useTranslation();
   const { authMe, activeProfileId } = useSession();
   const display = resolveSmartAlertText(alert, t);
-  const profileType =
-    authMe?.profiles.find((p) => p.id === activeProfileId)?.type ?? "producer";
+  const profile = resolveDeepNavProfile(authMe, activeProfileId);
   const onPressCard = useCallback(() => {
     navigateToAlert(
       navigation,
@@ -64,31 +65,43 @@ export function AlertCard({ alert, navigation, onMarkRead }: AlertCardProps) {
         ruleKey: alert.ruleKey,
         action: alert.action
       },
-      profileType === "technician"
-        ? "technician"
-        : profileType === "veterinarian"
-          ? "veterinarian"
-          : profileType === "buyer"
-            ? "buyer"
-            : "producer"
+      profile
     );
-  }, [alert, navigation, profileType]);
+  }, [alert, navigation, profile]);
 
   const renderRight = useCallback(() => {
-    if (alert.isRead) {
+    const actions = [];
+    if (!alert.isRead) {
+      actions.push(
+        <Pressable
+          key="read"
+          style={styles.swipeRead}
+          onPress={() => onMarkRead(alert.id)}
+          accessibilityRole="button"
+          accessibilityLabel={t("smartAlerts.markRead")}
+        >
+          <Ionicons name="checkmark-done" size={22} color={mobileColors.onAccent} />
+        </Pressable>
+      );
+    }
+    if (onDelete) {
+      actions.push(
+        <Pressable
+          key="delete"
+          style={styles.swipeDelete}
+          onPress={() => onDelete(alert.id)}
+          accessibilityRole="button"
+          accessibilityLabel={t("smartAlerts.delete")}
+        >
+          <Ionicons name="trash-outline" size={22} color={mobileColors.onAccent} />
+        </Pressable>
+      );
+    }
+    if (actions.length === 0) {
       return null;
     }
-    return (
-      <Pressable
-        style={styles.swipeRead}
-        onPress={() => onMarkRead(alert.id)}
-        accessibilityRole="button"
-        accessibilityLabel="Marquer comme lu"
-      >
-        <Ionicons name="checkmark-done" size={22} color="#fff" />
-      </Pressable>
-    );
-  }, [alert.id, alert.isRead, onMarkRead]);
+    return <View style={styles.swipeActions}>{actions}</View>;
+  }, [alert.id, alert.isRead, onDelete, onMarkRead, t]);
 
   const body = (
     <Pressable
@@ -124,7 +137,7 @@ export function AlertCard({ alert, navigation, onMarkRead }: AlertCardProps) {
     </Pressable>
   );
 
-  if (alert.isRead) {
+  if (alert.isRead && !onDelete) {
     return body;
   }
 
@@ -196,8 +209,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     width: 72,
+    height: "100%"
+  },
+  swipeDelete: {
+    backgroundColor: mobileColors.error,
+    justifyContent: "center",
+    alignItems: "center",
+    width: 72,
+    height: "100%"
+  },
+  swipeActions: {
+    flexDirection: "row",
     marginBottom: mobileSpacing.sm,
     borderTopRightRadius: mobileRadius.md,
-    borderBottomRightRadius: mobileRadius.md
+    borderBottomRightRadius: mobileRadius.md,
+    overflow: "hidden"
   }
 });

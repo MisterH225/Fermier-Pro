@@ -1,5 +1,6 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 import type { ChatMessageDto } from "../../lib/api";
+import { parseChatImageMessage } from "../../lib/chatImageMessage";
 import { parseFarmInvitationMessage } from "../../lib/farmInvitationMessage";
 import { parseMarketplaceOfferMessage } from "../../lib/marketplaceOfferMessage";
 import { InviteCardInChat } from "./InviteCardInChat";
@@ -48,6 +49,25 @@ export function MessageBubble({ message, isMine }: Props) {
   const offer = parseMarketplaceOfferMessage(body);
   if (offer) {
     return <ProposalCardInChat payload={offer} isMine={isMine} />;
+  }
+  const chatImage = parseChatImageMessage(body);
+  if (chatImage) {
+    return (
+      <View style={[styles.row, isMine ? styles.rowMine : styles.rowOther]}>
+        <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleOther]}>
+          {!isMine ? (
+            <Text style={styles.senderName} numberOfLines={1}>
+              {formatPrivacyDisplayName(message.sender?.fullName)}
+            </Text>
+          ) : null}
+          <Image source={{ uri: chatImage.url }} style={styles.chatImage} resizeMode="cover" />
+          <Text style={[styles.time, isMine && styles.timeMine]}>
+            {formatMessageTime(message.createdAt)}
+            {isMine ? "  ✓✓" : ""}
+          </Text>
+        </View>
+      </View>
+    );
   }
   if (isSystemLike(body)) {
     return (
@@ -115,7 +135,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21
   },
-  bodyMine: { color: "#FFFFFF" },
+  bodyMine: { color: mobileColors.onAccent },
   time: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
@@ -139,5 +159,11 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     textAlign: "center",
     fontSize: 12
+  },
+  chatImage: {
+    width: 220,
+    height: 160,
+    borderRadius: 10,
+    backgroundColor: mobileColors.surfaceMuted
   }
 });

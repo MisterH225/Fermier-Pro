@@ -63,18 +63,20 @@ export function optimisticPatchAnimalStatus(
   payload: PatchCheptelAnimalStatusPayload
 ): void {
   patchFarmAnimalsList(qc, farmId, activeProfileId, (list) =>
-    list.map((a) =>
-      a.id === animalId
-        ? {
-            ...a,
-            status: payload.status,
-            healthStatus:
-              payload.status === "active" && a.healthStatus === "sick"
-                ? "healthy"
-                : a.healthStatus
-          }
-        : a
-    )
+    list.map((a) => {
+      if (a.id !== animalId) {
+        return a;
+      }
+      return {
+        ...a,
+        status: payload.status,
+        healthStatus:
+          payload.status === "active" && a.healthStatus === "sick"
+            ? "healthy"
+            : a.healthStatus,
+        currentPen: payload.status === "active" ? a.currentPen : null
+      };
+    })
   );
 }
 

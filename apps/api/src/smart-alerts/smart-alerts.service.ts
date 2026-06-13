@@ -423,6 +423,18 @@ export class SmartAlertsService {
     return { ok: true };
   }
 
+  async deleteAlert(user: User, farmId: string, alertId: string) {
+    await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const row = await this.prisma.smartAlert.findFirst({
+      where: { id: alertId, farmId }
+    });
+    if (!row) {
+      throw new NotFoundException("Alerte introuvable");
+    }
+    await this.prisma.smartAlert.delete({ where: { id: alertId } });
+    return { ok: true };
+  }
+
   async getOrCreateSettings(user: User, farmId: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
     let row = await this.prisma.farmAlertSettings.findUnique({

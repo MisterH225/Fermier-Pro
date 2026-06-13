@@ -386,7 +386,7 @@ export function DiseaseModal({
             onPress={() => saveMut.mutate()}
           >
             {saveMut.isPending ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={mobileColors.onAccent} />
             ) : (
               <Text style={styles.primaryBtnText}>
                 {isEdit
@@ -633,7 +633,7 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.md,
     backgroundColor: mobileColors.accent
   },
-  addBtnText: { color: "#fff", fontSize: 22, fontWeight: "700" },
+  addBtnText: { color: mobileColors.onAccent, fontSize: 22, fontWeight: "700" },
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border,
     backgroundColor: mobileColors.background
   },
-  penChipOn: { borderColor: mobileColors.accent, backgroundColor: "#fff" },
+  penChipOn: { borderColor: mobileColors.accent, backgroundColor: mobileColors.background },
   penChipText: { ...mobileTypography.body, fontWeight: "600" },
   textLink: { alignSelf: "flex-start", marginTop: 4 },
   textLinkText: { color: mobileColors.accent, fontWeight: "600" },
@@ -705,5 +705,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.5 },
-  primaryBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
 });

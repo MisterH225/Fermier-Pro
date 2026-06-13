@@ -5,6 +5,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import type { FarmInvitationChatPayload } from "../../lib/farmInvitationMessage";
 import { useSession } from "../../context/SessionContext";
 import { respondToMyInvitation } from "../../lib/api";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   mobileColors,
   mobileRadius,
@@ -41,7 +42,7 @@ export function InviteCardInChat({ payload, isMine }: Props) {
       void qc.invalidateQueries({ queryKey: ["myPendingInvitations"] });
     },
     onError: (e: Error) => {
-      Alert.alert(t("collab.directory.inviteModalTitle"), e.message);
+      Alert.alert(t("collab.directory.inviteModalTitle"), getUserFacingError(e, t));
     }
   });
 
@@ -133,6 +134,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: mobileColors.border
   },
-  btnTxAccept: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  btnTxAccept: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 13 },
   btnTxDecline: { color: mobileColors.textPrimary, fontWeight: "600", fontSize: 13 }
 });

@@ -32,7 +32,7 @@ export function NoActiveProjectScreen({
 
         <View style={styles.actions}>
           <Pressable style={styles.primaryBtn} onPress={onCreateProject}>
-            <Ionicons name="add-circle" size={20} color="#fff" />
+            <Ionicons name="add-circle" size={20} color={mobileColors.onAccent} />
             <Text style={styles.primaryBtnText}>Créer un nouveau projet</Text>
           </Pressable>
 
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     ...mobileTypography.body,
     fontWeight: "700",
-    color: "#fff"
+    color: mobileColors.onAccent
   },
   secondaryBtn: {
     flexDirection: "row",

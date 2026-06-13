@@ -1,11 +1,12 @@
 import type { AnimalListItem, PenAnimalRowDto } from "../../../lib/api";
+import { isAnimalInCheptelHerd } from "../../../lib/cheptelHerd";
 import type { EventItem } from "../../lists/types";
 
 export type AnimalStatusKey =
   | "active"
   | "dead"
   | "sold"
-  | "reformed"
+  | "exited"
   | "transferred";
 
 export type AnimalFilterId =
@@ -15,7 +16,15 @@ export type AnimalFilterId =
   | "active"
   | "sold"
   | "dead"
-  | "reformed";
+  | "exited";
+
+/** Statut API canonique (legacy `reformed` → `exited`). */
+export function normalizeAnimalStatusKey(status: string): AnimalStatusKey | string {
+  if (status === "reformed") {
+    return "exited";
+  }
+  return status;
+}
 
 export function animalDisplayTag(a: AnimalListItem): string {
   const tag = a.tagCode?.trim();
@@ -40,7 +49,7 @@ export function penAnimalToListItem(
     healthStatus: a.healthStatus,
     species: a.species,
     breed: a.breed,
-    weights: a.weights.map((w) => ({
+    weights: (a.weights ?? []).map((w) => ({
       weightKg: w.weightKg,
       measuredAt: w.measuredAt
     })),
@@ -184,14 +193,19 @@ export function filterAnimals(
     case "active":
       list = list.filter((a) => a.status === "active");
       break;
+    case "all":
+      list = list.filter((a) => isAnimalInCheptelHerd(a.status));
+      break;
     case "sold":
       list = list.filter((a) => a.status === "sold");
       break;
     case "dead":
       list = list.filter((a) => a.status === "dead");
       break;
-    case "reformed":
-      list = list.filter((a) => a.status === "reformed");
+    case "exited":
+      list = list.filter(
+        (a) => a.status === "exited" || a.status === "reformed"
+      );
       break;
     default:
       break;
@@ -217,7 +231,7 @@ export function animalToEventItem(
   }
 ): EventItem {
   const tag = animalDisplayTag(a);
-  const w = a.weights[0];
+  const w = a.weights?.[0];
   const penLabel = a.currentPen
     ? labels.penLine(a.currentPen.barnName, a.currentPen.penName)
     : labels.noPen;

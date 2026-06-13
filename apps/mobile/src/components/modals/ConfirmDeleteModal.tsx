@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Alert,
   Modal,
   Pressable,
   StyleSheet,
@@ -31,6 +32,10 @@ export function ConfirmDeleteModal({
     try {
       await Promise.resolve(payload.onConfirm());
       onClose();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : t("common.error");
+      Alert.alert(t("common.error"), message);
     } finally {
       setBusy(false);
     }
@@ -44,7 +49,10 @@ export function ConfirmDeleteModal({
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <Pressable style={styles.backdrop} onPress={onClose}>
+      <Pressable
+        style={styles.backdrop}
+        onPress={busy ? undefined : onClose}
+      >
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
           <View style={styles.iconWrap}>
             <Ionicons name="warning" size={32} color={mobileColors.error} />
@@ -71,7 +79,7 @@ export function ConfirmDeleteModal({
               accessibilityRole="button"
             >
               {busy ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={mobileColors.onAccent} />
               ) : (
                 <Text style={styles.btnDangerTx}>
                   {payload.confirmLabel ?? t("modals.confirmDelete.confirm")}
@@ -142,7 +150,7 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.error
   },
   btnDangerTx: {
-    color: "#FFFFFF",
+    color: mobileColors.onAccent,
     fontWeight: "800"
   }
 });

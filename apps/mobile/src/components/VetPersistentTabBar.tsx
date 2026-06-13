@@ -79,6 +79,11 @@ export function VetPersistentTabBar() {
 
   const extendedItems = useMemo(
     (): { id: ExtendedNavMenuId; label: string; a11y: string }[] => [
+      {
+        id: "communityFeed",
+        label: t("navigation.main.feed"),
+        a11y: t("navigation.main.feed")
+      },
       { id: "tasks", label: t("vet.extended.tasks"), a11y: t("vet.extended.tasks") },
       { id: "reports", label: t("vet.extended.reports"), a11y: t("vet.extended.reports") },
       {
@@ -94,6 +99,9 @@ export function VetPersistentTabBar() {
     (id: ExtendedNavMenuId) => {
       setExtendedOpen(false);
       switch (id) {
+        case "communityFeed":
+          navigation.navigate("CommunityFeed");
+          return;
         case "tasks":
           navigation.navigate("VetTasks");
           return;

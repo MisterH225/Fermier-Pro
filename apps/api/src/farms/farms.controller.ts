@@ -29,7 +29,7 @@ import {
 } from "../livestock/animal-production-tags.service";
 import { FarmsService } from "./farms.service";
 
-const TAG_PREFIXES = new Set<AnimalTagPrefix>(["Trui", "Ver", "Eng", "Dem"]);
+const TAG_PREFIXES = new Set<AnimalTagPrefix>(["Trui", "Ver", "Eng", "Dem", "All"]);
 
 @Controller("farms")
 @UseGuards(SupabaseJwtGuard)
@@ -135,15 +135,32 @@ export class FarmsController {
   async nextAnimalNumber(
     @CurrentUser() user: User,
     @Param("farmId") farmId: string,
-    @Query("prefix") prefixRaw?: string
+    @Query("prefix") prefixRaw?: string,
+    @Query("count") countRaw?: string
   ) {
     const prefix = (prefixRaw ?? "").trim() as AnimalTagPrefix;
     if (!TAG_PREFIXES.has(prefix)) {
       throw new BadRequestException(
-        "Préfixe invalide — utilisez Trui, Ver, Eng ou Dem"
+        "Préfixe invalide — utilisez Trui, Ver, Eng, Dem ou All"
       );
     }
     await this.farms.findOneForUser(user, farmId);
+    const count = countRaw ? Number.parseInt(countRaw, 10) : 1;
+    if (countRaw && (!Number.isFinite(count) || count < 1 || count > 200)) {
+      throw new BadRequestException("count invalide (1–200)");
+    }
+    if (count > 1) {
+      const range = await this.animalTags.previewTagCodeRange(
+        farmId,
+        prefix,
+        count
+      );
+      return {
+        prefix,
+        productionCategory: this.animalTags.categoryForPrefix(prefix),
+        ...range
+      };
+    }
     const tagCode = await this.animalTags.nextTagCode(farmId, prefix);
     return {
       prefix,

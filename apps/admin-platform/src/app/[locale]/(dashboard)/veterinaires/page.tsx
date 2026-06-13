@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { apiFetch, type VetProfileRow } from "@/lib/api";
+import { fetchVetProfiles, type VetProfileRow } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FilterPills } from "@/components/layout/FilterPills";
@@ -26,8 +26,7 @@ export default function VetsPage() {
     if (!token) return;
     const status = tab === "all" ? undefined : tab;
     setLoading(true);
-    const q = status ? `?status=${status}` : "";
-    apiFetch<VetProfileRow[]>(`/admin/vet-profiles${q}`, token)
+    fetchVetProfiles(token, status ? { status } : undefined)
       .then((list) => setRows(list ?? []))
       .finally(() => setLoading(false));
   }, [token, tab]);

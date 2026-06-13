@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation } from "@tanstack/react-query";
 import { Alert, StyleSheet, Text, TextInput, View } from "react-native";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   inviteCollaboratorByIdentifier,
   inviteCollaboratorFromChat,
@@ -99,7 +100,7 @@ export function DirectInviteModal({
       );
     },
     onError: (e: Error) => {
-      Alert.alert(t("collab.directory.inviteErrorTitle"), e.message);
+      Alert.alert(t("collab.directory.inviteErrorTitle"), getUserFacingError(e, t));
     }
   });
 

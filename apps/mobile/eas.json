@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">= 5.0.0",
+    "version": ">= 16.17.4",
     "appVersionSource": "local"
   },
   "build": {
@@ -12,6 +12,7 @@
       }
     },
     "preview": {
+      "channel": "preview",
       "distribution": "internal",
       "env": {
         "APP_ENV": "preview",
@@ -32,6 +33,7 @@
       }
     },
     "production": {
+      "channel": "production",
       "autoIncrement": true,
       "env": {
         "APP_ENV": "production",

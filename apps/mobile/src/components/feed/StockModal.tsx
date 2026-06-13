@@ -29,6 +29,8 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { refreshFarmFeedQueries } from "../../lib/feedStockQuery";
+import { getUserFacingError } from "../../lib/userFacingError";
 
 export type StockModalProps = {
   visible: boolean;
@@ -118,14 +120,19 @@ export function StockModal({
       return null;
     }
     const consumed = prevBagsRaw - counted;
-    const last = selected.lastCheckDate
-      ? new Date(selected.lastCheckDate)
-      : null;
+    const refDates = [selected.lastCheckDate, selected.lastEntryDate]
+      .filter(Boolean)
+      .map((d) => new Date(d as string));
+    const ref =
+      refDates.length > 0
+        ? refDates.reduce((latest, d) => (d > latest ? d : latest))
+        : null;
+    const controlDate = new Date(`${occurredAt}T12:00:00.000Z`);
     const days =
-      last != null && !Number.isNaN(last.getTime())
+      ref != null && !Number.isNaN(ref.getTime())
         ? Math.max(
             1,
-            Math.round((Date.now() - last.getTime()) / 86_400_000)
+            Math.round((controlDate.getTime() - ref.getTime()) / 86_400_000)
           )
         : 1;
     const dailyKg = (consumed * wp) / days;
@@ -133,7 +140,7 @@ export function StockModal({
     let depl: string | null = null;
     if (dailyKg > 0 && stockKg > 0) {
       const daysLeft = Math.floor(stockKg / dailyKg);
-      const d = new Date(Date.now() + daysLeft * 86_400_000);
+      const d = new Date(controlDate.getTime() + daysLeft * 86_400_000);
       depl = d.toLocaleDateString("fr-FR");
     }
     return {
@@ -142,7 +149,7 @@ export function StockModal({
       dailyKg,
       depl
     };
-  }, [selected, tab, bagsCounted, weightOverride]);
+  }, [selected, tab, bagsCounted, weightOverride, occurredAt]);
 
   const buildMovementPayload = (): PostFarmFeedMovementPayload => {
     if (newMode) {
@@ -171,7 +178,7 @@ export function StockModal({
           : {
               bagsCounted: Number.parseFloat(bagsCounted.replace(",", ".")),
               notes: notes.trim() || undefined,
-              occurredAt: new Date().toISOString()
+              occurredAt: `${occurredAt}T12:00:00.000Z`
             })
       };
     }
@@ -198,7 +205,7 @@ export function StockModal({
         : {
             bagsCounted: Number.parseFloat(bagsCounted.replace(",", ".")),
             notes: notes.trim() || undefined,
-            occurredAt: new Date().toISOString()
+            occurredAt: `${occurredAt}T12:00:00.000Z`
           })
     };
   };
@@ -225,12 +232,12 @@ export function StockModal({
       invalidateRoots: ["farmFeed", "dashboardFeedStock"]
     }),
     onSuccess: (res) => {
-      void qc.invalidateQueries({ queryKey: ["farmFeed", farmId] });
+      void refreshFarmFeedQueries(qc, farmId, activeProfileId);
       onSuccess?.(res as PostFarmFeedMovementResponse);
       onClose();
     },
     onQueued: () => {
-      void qc.invalidateQueries({ queryKey: ["farmFeed", farmId] });
+      void refreshFarmFeedQueries(qc, farmId, activeProfileId);
       onSuccess?.();
       onClose();
       Alert.alert("", offlineQueuedMessage(t));
@@ -265,7 +272,7 @@ export function StockModal({
             onPress={() => mut.mutate()}
           >
             {mut.isPending ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={mobileColors.onAccent} />
             ) : (
               <Text style={styles.primaryTx}>{t("feedStock.confirm")}</Text>
             )}
@@ -462,6 +469,12 @@ export function StockModal({
               onChangeText={setBagsCounted}
               keyboardType="decimal-pad"
             />
+            <AppDatePicker
+              label={t("feedStock.fieldDate")}
+              isoValue={occurredAt}
+              onIsoChange={setOccurredAt}
+              farmId={farmId}
+            />
             {preview ? (
               <View style={styles.previewBox}>
                 <Text style={styles.previewLine}>
@@ -506,7 +519,7 @@ export function StockModal({
           {mut.error ? (
             <Text style={styles.err}>
               {mut.error instanceof Error
-                ? mut.error.message
+                ? getUserFacingError(mut.error, t)
                 : String(mut.error)}
             </Text>
           ) : null}
@@ -533,7 +546,7 @@ const styles = StyleSheet.create({
   },
   chipOn: { backgroundColor: mobileColors.accent },
   chipTx: { fontWeight: "700", color: mobileColors.textPrimary },
-  chipTxOn: { color: "#fff" },
+  chipTxOn: { color: mobileColors.onAccent },
   fieldLabel: {
     ...mobileTypography.meta,
     fontSize: 13,
@@ -585,6 +598,6 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.sm,
     borderRadius: mobileRadius.md
   },
-  primaryTx: { color: "#fff", fontWeight: "800" },
+  primaryTx: { color: mobileColors.onAccent, fontWeight: "800" },
   err: { color: mobileColors.error }
 });

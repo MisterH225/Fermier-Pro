@@ -18,9 +18,19 @@ export const fr = {
   common: {
     error: "Erreur",
     cancel: "Annuler",
+    delete: "Supprimer",
     ok: "OK",
     close: "Fermer",
-    retry: "Réessayer"
+    retry: "Réessayer",
+    yes: "Oui",
+    no: "Non",
+    errors: {
+      generic: "Une erreur est survenue. Réessaie dans un instant.",
+      network: "Connexion impossible. Vérifie ton réseau et réessaie.",
+      unauthorized: "Session expirée. Reconnecte-toi.",
+      forbidden: "Tu n'as pas les droits pour cette action.",
+      notFound: "Élément introuvable."
+    }
   },
   cgu: {
     title: "Conditions d'utilisation",
@@ -44,6 +54,64 @@ export const fr = {
     privacy: {
       title: "Politique de confidentialité",
       back: "Retour aux CGU"
+    }
+  },
+  farmListScreen: {
+    addFarm: "+ Ferme",
+    signOut: "Déconnexion",
+    apiHint:
+      "Vérifie EXPO_PUBLIC_API_URL (émulateur : souvent http://10.0.2.2:3000).",
+    welcome: "Bonjour {{name}}",
+    emptyTitle: "Aucune ferme",
+    emptySub:
+      "Crée une ferme avec le bouton « + Ferme » (profil producteur), ou depuis un client API POST /farms. Tu peux aussi parcourir le marché.",
+    cardMode: "{{species}} · mode {{mode}}",
+    headerMessages: "Messages",
+    headerMarket: "Marché",
+    marketBannerTitle: "Voir le marché",
+    marketBannerSub: "Annonces publiées · achat / inspiration",
+    newFarm: "+ Nouvelle ferme",
+    inviteCode: "J'ai un code d'invitation",
+    createFarmCta: "Créer une ferme"
+  },
+  loginGate: {
+    logoA11y: "Fermier Pro",
+    lead: "Pilote tes fermes, ton cheptel et tes opérations au quotidien.",
+    envWarn:
+      "Configure EXPO_PUBLIC_SUPABASE_URL et EXPO_PUBLIC_SUPABASE_ANON_KEY dans apps/mobile/.env avec l’URL réelle du projet Supabase (pas le modèle avec <project-ref>), puis redémarre Expo avec --clear.",
+    redirectTitle: "URL de redirection (Supabase)",
+    redirectBody:
+      "Supabase → Authentication → URL configuration :\n1. Site URL = l’URL exp://… ci-dessus (pas localhost).\n2. Redirect URLs = la même URL (bouton +).\nGoogle : Providers → Google (Client ID / Secret).",
+    redirectLocalhostWarn:
+      "Cette URL contient localhost : sur iPhone ça échouera. Relance Expo en LAN (même Wi‑Fi) et rescanne le QR code.",
+    or: "ou"
+  },
+  moduleRoadmap: {
+    note:
+      "Les routes API correspondantes sont déjà protégées par les feature flags côté serveur ; cette vue prépare l’intégration mobile complète."
+  },
+  firstConnection: {
+    title: "Première connexion",
+    subtitle:
+      "Choisis ton métier : tu accéderas ensuite à un tableau de bord adapté. Tu pourras ajouter d’autres rôles plus tard depuis ton profil.",
+    continue: "Continuer",
+    signOut: "Utiliser un autre compte",
+    pickProfile: "Choisis un profil pour continuer.",
+    producer: {
+      title: "Producteur",
+      subtitle: "Gérer tes fermes, animaux et équipe."
+    },
+    technician: {
+      title: "Technicien",
+      subtitle: "Suivi terrain et interventions chez les éleveurs."
+    },
+    veterinarian: {
+      title: "Vétérinaire",
+      subtitle: "Consultations, dossiers sanitaires et échanges."
+    },
+    buyer: {
+      title: "Acheteur",
+      subtitle: "Marché, offres et négociations."
     }
   },
   onboarding: {
@@ -167,6 +235,20 @@ export const fr = {
     bannerA11y: "Voir les messages admin",
     openCta: "Voir les messages de l'administration"
   },
+  support: {
+    title: "Support",
+    buttonA11y: "Support",
+    lead: "Besoin d’aide ? Contactez notre équipe par téléphone ou sur Telegram.",
+    callButton: "Appeler le support",
+    callHint: "Lance un appel via votre ligne téléphonique.",
+    telegramButton: "Écrire sur Telegram",
+    telegramHint: "Ouvre une discussion avec le support.",
+    unavailable: "Le support n’est pas configuré pour le moment. Réessayez plus tard.",
+    phoneErrorTitle: "Téléphone",
+    phoneUnavailable: "Numéro de support indisponible.",
+    telegramErrorTitle: "Telegram",
+    telegramUnavailable: "Lien Telegram indisponible."
+  },
   account: {
     title: "Profil",
     identity: "Identité",
@@ -256,12 +338,42 @@ export const fr = {
     tabListings: "Annonces",
     tabMyListings: "Mes annonces",
     tabOffers: "Propositions",
+    tabClients: "Clients",
+    tabSuppliers: "Fournisseurs",
+    partners: {
+      transactionCount: "{{count}} transaction(s)",
+      closedCount: "{{count}} finalisée(s)",
+      message: "Envoyer un message",
+      directSale: "Vente directe cheptel",
+      messageErrorTitle: "Messagerie indisponible",
+      emptyClientsTitle: "Aucun client pour l'instant",
+      emptyClientsBody:
+        "Les acheteurs avec lesquels vous concluez une vente (marketplace ou vente directe cheptel) apparaîtront ici.",
+      emptySuppliersTitle: "Aucun fournisseur pour l'instant",
+      emptySuppliersBody:
+        "Les producteurs avec lesquels vous concluez un achat (marketplace ou vente directe) apparaîtront ici."
+    },
     create: "Créer",
     searchPlaceholder: "Ferme, lieu, race…",
     badgeNew: "Nouveau",
     badgeSold: "Vendu",
     badgeExpired: "Expiré",
+    badgeActiveOffers: "{{count}} offre(s) en cours",
+    activeOfferCta: "Voir votre offre active",
+    activeTransactionCtaBuyer: "Suivre l'achat en cours",
+    activeTransactionCtaSeller: "Suivre la vente en cours",
     detailTitle: "Annonce",
+    share: {
+      title: "Partager l'annonce",
+      action: "Partager l'annonce",
+      viaLink: "Partager le lien",
+      viaMessage: "Envoyer par message",
+      pickContactTitle: "Envoyer l'annonce",
+      pickContactHint:
+        "Recherchez un contact pour lui envoyer le lien de l'annonce.",
+      message: "{{summary}} — sur Fermier Pro : {{url}}",
+      a11y: "Partager l'annonce"
+    },
     listingStatus: "Statut :",
     emptyListingsHint: "Publie une annonce depuis Mes annonces ou le cheptel.",
     soldBanner: "Vente conclue — cette annonce est terminée.",
@@ -276,6 +388,8 @@ export const fr = {
     healthMortality: "Mortalité 30 j :",
     renewAction: "Renouveler 14 jours",
     renewSuccess: "Annonce renouvelée.",
+    cancelSuccess: "Annonce annulée.",
+    offerRejectSuccess: "Proposition refusée.",
     offerAccept: "Accepter",
     offerReject: "Refuser",
     offerCounter: "Contre-proposer",
@@ -283,7 +397,246 @@ export const fr = {
     myOffersTitle: "Mes offres sur cette annonce",
     acceptSuccessTitle: "Offre acceptée",
     acceptSuccessBody:
-      "L'annonce est réservée. Concluez la vente pour mettre à jour le cheptel et la finance.",
+      "Procédez au paiement pour sécuriser votre achat.",
+    acceptSuccessBodySeller:
+      "L'acheteur peut maintenant payer. Suivez la livraison et la clôture ici.",
+    transaction: {
+      agreedPrice: "Prix convenu :",
+      agreedPricePerKg: "Prix/kg convenu :",
+      amountAdjustHint:
+        "Ce montant sera ajusté au poids réel lors de la livraison.",
+      payCta: "Payer {{amount}} via Mobile Money",
+      paymentSuccessTitle: "Paiement confirmé",
+      paymentSuccessBody:
+        "Votre paiement est enregistré. Proposez une date de récupération au vendeur.",
+      paymentErrorTitle: "Paiement impossible",
+      pickupSection: "Rendez-vous de récupération",
+      pickupDate: "Date de retrait",
+      pickupLocation: "Lieu de retrait",
+      pickupLocationPh: "Village, marché, ferme…",
+      proposePickup: "Proposer ce rendez-vous",
+      confirmPickupCta: "Confirmer la date proposée",
+      pickupProposedTitle: "Rendez-vous proposé",
+      pickupProposedBody:
+        "Le vendeur doit confirmer que cette date lui convient.",
+      pickupConfirmedTitle: "Rendez-vous confirmé",
+      pickupConfirmedBody:
+        "L'acheteur pourra renseigner le poids le jour de la récupération.",
+      confirmEstimatedWeight: "Confirmer le poids estimé",
+      weightSection: "Poids à la livraison",
+      realWeight: "Poids réel (kg)",
+      declareWeight: "Confirmer le poids reçu",
+      invalidWeight: "Poids invalide",
+      weightDeclaredTitle: "Poids enregistré",
+      weightDeclaredBody:
+        "Le vendeur a 24 h pour valider ou contester ce poids.",
+      sellerWeightReview: "Poids déclaré par l'acheteur",
+      validateWeight: "Valider le poids",
+      disputeWeight: "Contester le poids",
+      cancel: "Annuler la transaction",
+      closed: "Transaction finalisée.",
+      receiptTitle: "Reçu de transaction",
+      receiptNumber: "N° {{number}}",
+      receiptGeneratedAt: "Généré le {{date}}",
+      receiptDownload: "Télécharger le reçu (PDF)",
+      receiptGenerating: "Génération en cours…",
+      receiptFailed: "Erreur — contacter le support ou réessayer.",
+      receiptRetry: "Réessayer",
+      receiptErrorTitle: "Téléchargement impossible",
+      receiptErrorBody: "Impossible de récupérer le reçu.",
+      receiptNotReady: "Reçu non disponible pour le moment.",
+      statusLabel: "Étape",
+      stepPayment: "Paiement",
+      stepPickup: "Rendez-vous",
+      stepWeight: "Poids",
+      stepHandover: "Remise",
+      stepClosing: "Clôture",
+      status: {
+        PAYMENT_PENDING: "En attente de paiement",
+        PAYMENT_HELD: "Paiement sécurisé — proposez un rendez-vous",
+        PICKUP_PROPOSED: "Rendez-vous proposé — en attente du vendeur",
+        PICKUP_SCHEDULED: "Rendez-vous confirmé — poids à renseigner",
+        WEIGHT_DECLARED: "Poids déclaré — validation vendeur",
+        WEIGHT_DISPUTED: "Litige poids — arbitrage",
+        WEIGHT_VALIDATED: "Poids confirmé — remise à valider",
+        SELLER_SHIPPED: "Remise confirmée — confirmez la réception",
+        BUYER_RECEIVED: "Réception confirmée — versement en cours",
+        DELIVERY_DISPUTED: "Litige livraison",
+        TRANSACTION_CLOSED: "Vente conclue",
+        CANCELLED_BY_BUYER: "Annulée par l'acheteur",
+        CANCELLED_BY_SELLER: "Annulée par le vendeur",
+        PAYMENT_FAILED: "Paiement échoué"
+      },
+      scheduledPickup: "Rendez-vous : {{date}} — {{location}}",
+      schedulePickupHint:
+        "Proposez la date et le lieu où vous souhaitez récupérer l'animal. Le vendeur confirmera si cela lui convient.",
+      weightAtDeliveryHint:
+        "Le jour du rendez-vous, renseignez le poids réel mesuré à la récupération.",
+      projectedFinalCost: "Coût final estimé : {{amount}}",
+      finalCost: "Montant final : {{amount}}",
+      sellerWaitPayment:
+        "En attente du paiement de l'acheteur. Vous serez notifié dès que les fonds sont sécurisés.",
+      sellerWaitBuyerPickup:
+        "Paiement reçu. En attente que l'acheteur propose une date de récupération.",
+      sellerConfirmPickup:
+        "L'acheteur a proposé un rendez-vous. Confirmez si cette date vous convient.",
+      sellerWaitWeight:
+        "Rendez-vous confirmé. L'acheteur renseignera le poids le jour de la récupération.",
+      sellerConfirmHandover:
+        "Poids confirmé. Confirmez la remise des animaux à l'acheteur.",
+      sellerWaitReceipt:
+        "Remise confirmée. En attente de la confirmation finale de l'acheteur.",
+      buyerProposePickup:
+        "Proposez une date et un lieu de récupération pour l'animal.",
+      buyerWaitPickupConfirm:
+        "Rendez-vous proposé. Le vendeur doit confirmer la date.",
+      buyerDeclareWeight:
+        "Rendez-vous confirmé. Renseignez le poids réel mesuré à la récupération.",
+      buyerWaitHandover:
+        "Poids confirmé. Le vendeur validera la remise des animaux.",
+      buyerWaitReceipt:
+        "Le vendeur a confirmé la remise. Confirmez la réception pour finaliser et libérer le paiement.",
+      deliveryDisputed:
+        "Un litige livraison est ouvert. Les fonds restent sécurisés en attendant la résolution.",
+      finalizing:
+        "Réception confirmée — versement au vendeur et clôture en cours.",
+      weightDisputed:
+        "Le poids est contesté. Un arbitrage est en cours — vous serez informé de la suite."
+    },
+    shipmentModal: {
+      open: "Confirmer la remise",
+      title: "Confirmer l'envoi",
+      info: "Indiquez que les animaux ont été remis à l'acheteur ou sont en cours de livraison.",
+      date: "Date d'envoi",
+      method: "Mode de livraison",
+      methods: {
+        handover: "Remise en main propre",
+        third_party: "Transport tiers",
+        seller_delivery: "Livraison vendeur"
+      },
+      notes: "Notes pour l'acheteur",
+      notesPh: "Instructions, contact transporteur…",
+      confirm: "Confirmer l'envoi",
+      successTitle: "Envoi confirmé",
+      successBody: "L'acheteur a été notifié."
+    },
+    creditModal: {
+      open: "💳 Offre à crédit",
+      title: "💳 Offre à crédit",
+      subtitle: "Proposez un accord de paiement en deux fois",
+      totalPrice: "Prix total proposé",
+      advancePct: "Pourcentage d'avance (%)",
+      advanceHelper: "Minimum 20 % — maximum 50 %",
+      balanceHelper: "Délai max 7 jours après livraison — rappels uniquement après échéance",
+      advancePreview: "Avance : {{amount}}",
+      balancePreview: "Solde : {{amount}}",
+      balanceDays: "Délai de paiement du solde",
+      dayOption: "{{count}} jour",
+      message: "Message au vendeur",
+      messagePh: "Présentez-vous, expliquez votre activité de revendeur…",
+      scoreWarning:
+        "Votre score crédit actuel est fragile. Le vendeur sera informé de votre historique.",
+      yourScore: "Votre score crédit :",
+      submit: "Envoyer l'offre à crédit",
+      success: "Offre à crédit envoyée au vendeur.",
+      errorTitle: "Offre à crédit impossible",
+      blocked:
+        "Votre score crédit ne vous permet pas de faire des offres à crédit pour le moment.",
+      badge: "À CRÉDIT"
+    },
+    credit: {
+      accept: "✅ Accepter",
+      counter: "🔄 Contre-proposer",
+      counterTitle: "🔄 Contre-proposition crédit",
+      counterSubmit: "Envoyer la contre-proposition",
+      counterSuccess: "Contre-proposition crédit envoyée.",
+      acceptCounter: "Accepter la contre-proposition",
+      agreedSuccess:
+        "Accord crédit conclu — sécurisez l'avance sur la plateforme pour lancer la livraison.",
+      escrow: {
+        transactionMissing: "Transaction escrow introuvable — réessayez dans un instant.",
+        advanceHeld: "L'avance reste bloquée sur la plateforme jusqu'à la livraison.",
+        balanceRecalculated:
+          "Le solde est recalculé au poids réel après validation par le vendeur."
+      },
+      buyerScore: "Score crédit acheteur :",
+      termsAdvance: "Avance : {{pct}} % = {{amount}}",
+      termsBalance: "Solde : {{amount}} dans {{days}} jours",
+      paymentMode: "Mode de paiement utilisé",
+      paymentRef: "Référence paiement",
+      paymentRefPh: "Numéro de transaction, reçu…",
+      advance: {
+        title: "Confirmer le paiement de l'avance",
+        info: "En confirmant, vous déclarez avoir effectué le virement ou la remise de l'avance au vendeur.",
+        due: "Avance due",
+        balance: "Solde restant",
+        delay: "Solde sous {{count}} jours après livraison",
+        confirm: "✅ J'ai payé l'avance",
+        declare: "💰 J'ai payé l'avance",
+        payEscrow: "💳 Payer l'avance (escrow)",
+        declaredSuccess: "Avance déclarée — le vendeur va confirmer la réception.",
+        confirmReceived: "✅ Confirmer la réception de l'avance",
+        notReceived: "❌ Je n'ai pas reçu l'avance",
+        confirmedSuccess: "Avance confirmée — la livraison peut commencer."
+      },
+      balance: {
+        title: "Confirmer le paiement du solde",
+        amount: "Montant payé",
+        confirm: "✅ J'ai payé le solde",
+        declare: "💰 J'ai payé le solde",
+        payEscrow: "💳 Payer le solde (escrow)",
+        remaining: "Solde restant",
+        dueOn: "Dû le {{date}}",
+        inDays: "dans {{count}} jour(s)",
+        statusPending: "En attente de paiement",
+        statusDeclared: "Paiement déclaré",
+        statusPaid: "Soldé",
+        statusArbitration: "Arbitrage en cours",
+        declaredSuccess: "Solde déclaré — le vendeur va confirmer la réception.",
+        confirmReceived: "✅ Confirmer la réception du solde",
+        notReceived: "❌ Je n'ai pas reçu le solde",
+        confirmedSuccess: "Transaction crédit soldée."
+      },
+      dashboard: {
+        scoreTitle: "Mon score crédit",
+        pendingTitle: "Soldes en attente",
+        empty: "Aucun solde crédit en cours.",
+        transactions: "{{count}} transaction(s) crédit",
+        onTime: "{{count}} paiement(s) à temps",
+        late: "{{count}} retard(s)"
+      }
+    },
+    transferModal: {
+      open: "Ajouter à mon cheptel",
+      title: "Importer dans ma ferme",
+      info:
+        "{{count}} animal(aux) prêt(s) à être ajouté(s) à votre cheptel après cette vente.",
+      farm: "Ferme destinataire",
+      penOptional: "Loge (optionnel)",
+      noPen: "Aucune loge — les animaux seront créés sans placement.",
+      confirm: "Importer les animaux",
+      successTitle: "Cheptel mis à jour",
+      successBody: "Vos animaux ont été ajoutés à la ferme sélectionnée."
+    },
+    receiptModal: {
+      open: "Confirmer la réception",
+      title: "Confirmer la réception",
+      info: "Vérifiez que vous avez bien reçu les animaux dans l'état prévu.",
+      animals: "Animaux reçus",
+      date: "Date de réception",
+      condition: "État des animaux",
+      conditions: {
+        conform: "Conforme",
+        minor_issue: "Problème mineur",
+        major_issue: "Problème majeur"
+      },
+      comment: "Commentaire",
+      commentPh: "Décrivez le problème…",
+      confirm: "Confirmer la réception",
+      reportProblem: "Signaler un problème",
+      successTitle: "Réception enregistrée",
+      successBody: "La transaction avance vers la clôture."
+    },
     categories: {
       all: "Tout",
       piglet: "Porcelets",
@@ -329,6 +682,8 @@ export const fr = {
       success: "Vente enregistrée — Finance et Cheptel mis à jour."
     },
     flatPriceLabel: "Prix forfaitaire",
+    flatLotPricing: "{{perHead}} / tête × {{count}} sujet(s)",
+    pricePerHeadShort: "{{amount}} / tête",
     totalWeight: "Poids total :",
     totalWeightEmpty: "Poids total : —",
     pricePerKg: "Prix/kg :",
@@ -410,6 +765,24 @@ export const fr = {
     withdrawCancel: "Annuler",
     withdrawConfirm: "Retirer",
     withdrawAction: "Retirer mon offre",
+    proposals: {
+      tabReceived: "Reçues",
+      tabSent: "Envoyées",
+      emptyReceivedTitle: "Aucune proposition reçue",
+      emptyReceivedBody:
+        "Les acheteurs intéressés par vos annonces apparaîtront ici.",
+      emptySentTitle: "Aucune proposition envoyée",
+      emptySentBody:
+        "Faites une offre sur une annonce du marché pour commencer.",
+      groupCount: "{{count}} proposition(s)",
+      negotiate: "Négocier",
+      contactBuyer: "Contacter l'acheteur",
+      anonymousBuyer: "Acheteur",
+      receivedSection: "Propositions reçues",
+      viewReceived: "Voir les propositions",
+      viewSent: "Voir mes propositions",
+      withdrawSuccess: "Proposition retirée."
+    },
     createForm: {
       titleModal: "Nouvelle annonce",
       errorTitle: "Création impossible",
@@ -442,6 +815,11 @@ export const fr = {
         "Porcelet : classement automatique selon le poids moyen (< 15 kg). Reproducteur, charcutier ou réformée : votre intention de vente est conservée.",
       sectionAnimal: "Animaux du lot",
       animalMultiHint: "Sélectionne un ou plusieurs animaux actifs (obligatoire).",
+      animalIndividualListedHint:
+        "Les sujets marqués « solo » ont déjà une annonce individuelle — ajoute d'autres animaux pour créer un lot.",
+      animalIndividualBlockedTitle: "Annonce individuelle existante",
+      animalIndividualBlockedBody:
+        "Cet animal a déjà une annonce individuelle sur le marketplace. Retire l'autre annonce ou sélectionne plusieurs sujets pour un lot.",
       noActiveAnimals: "Aucun animal actif sur cette ferme.",
       noAnimal: "Aucun",
       sectionListing: "Annonce",
@@ -454,7 +832,11 @@ export const fr = {
       sectionPricingPork: "Poids et prix",
       sectionPricingFlat: "Prix forfaitaire",
       flatPriceHint:
-        "Pour un porcelet ou un reproducteur, indiquez un montant global (ex. 20 000 FCFA le porcelet, 200 000 FCFA la truie).",
+        "Prix forfaitaire à la tête (ex. 28 000 FCFA par porcelet). Le total du lot est calculé automatiquement selon le nombre de sujets sélectionnés.",
+      pricePerHead: "Prix à la tête (forfait)",
+      lotTotalPrice: "Prix total du lot",
+      flatLotAuto:
+        "{{count}} sujet(s) × {{perHead}} = {{amount}}",
       flatPrice: "Prix forfaitaire",
       weightOptional: "Poids (kg, optionnel)",
       totalWeight: "Poids total (kg)",
@@ -477,7 +859,11 @@ export const fr = {
         pricePerKgRequired: "Indique le prix au kg.",
         flatPriceRequired: "Indique le prix forfaitaire.",
         totalRequired: "Indique un prix total valide."
-      }
+      },
+      sectionCredit: "Vente à crédit",
+      creditEnabledLabel: "Accepter les offres à crédit",
+      creditEnabledHint:
+        "Les acheteurs pourront proposer un paiement en plusieurs fois (avance sécurisée + solde sous 7 jours). Réservé aux annonces charcutier."
     },
     publishConfirmTitle: "Publier cette annonce ?",
     publishConfirmBody:
@@ -486,6 +872,9 @@ export const fr = {
     publishAction: "Publier sur le marché",
     publishing: "Publication…",
     publishSuccess: "Annonce publiée — visible sur le marché.",
+    editForm: {
+      success: "Annonce mise à jour."
+    },
   },
   pigPriceIndex: {
     title: "📊 Cours du porc",
@@ -511,7 +900,23 @@ export const fr = {
     variationFlat: "0.0% ➡️",
     priceOnRequest: "—"
   },
+  pigPriceIndexCard: {
+    title: "Indice PigPrice",
+    basedOn: "Basé sur {{count}} transactions"
+  },
   smartAlerts: {
+    sectionTitle: "Notifications",
+    seeAll: "Tout voir",
+    empty: "Aucune notification pour l'instant.",
+    adminEmpty: "Aucun message de l'administration.",
+    adminTag: "Administration",
+    hideInfo: "Masquer les infos",
+    showInfo: "Voir {{n}} info(s)",
+    bellA11y: "Notifications",
+    markRead: "Marquer comme lu",
+    delete: "Supprimer",
+    deleteConfirmTitle: "Supprimer cette notification ?",
+    deleteConfirmBody: "Cette action est définitive.",
     moduleMarket: "Marché",
     market: {
       priceUp: {
@@ -644,6 +1049,7 @@ export const fr = {
       kpiVisits: "Visites ce mois",
       kpiAlerts: "Alertes santé",
       kpiTasks: "Tâches en attente",
+      pendingEarnings: "En attente de prestation",
       tasksTitle: "Mes tâches",
       taskFilter: { today: "Aujourd'hui", week: "Cette semaine", all: "Toutes" },
       activityTitle: "Activité clinique récente",
@@ -652,6 +1058,48 @@ export const fr = {
       actionFarms: "Mes fermes",
       actionSchedule: "Planifier une visite",
       actionCase: "Déclarer un cas"
+    },
+    appointment: {
+      title: "Rendez-vous vétérinaire",
+      farm: "Ferme",
+      when: "Date et heure",
+      reason: "Motif",
+      notes: "Notes producteur",
+      vet: "Vétérinaire",
+      producer: "Producteur",
+      price: "Tarif prestation",
+      pricePlaceholder: "Tarif en FCFA (obligatoire)",
+      invalidPrice: "Tarif invalide",
+      vetAcceptTitle: "Répondre à la demande",
+      vetNotesPlaceholder: "Notes pour le producteur (optionnel)",
+      acceptCta: "Accepter et proposer un tarif",
+      acceptedTitle: "Proposition envoyée",
+      acceptedBody: "Le producteur a été notifié et doit payer pour confirmer le RDV.",
+      refuseCta: "Refuser la demande",
+      refusalPlaceholder: "Motif du refus (optionnel)",
+      paymentHint:
+        "Le paiement sécurise votre rendez-vous. Le vétérinaire sera payé après sa prestation.",
+      paymentDeadline: "Expire dans {{time}} si non payé",
+      payCta: "Payer {{amount}} via Mobile Money",
+      paymentSuccessTitle: "Paiement confirmé",
+      paymentSuccessBody: "Votre RDV est confirmé. Le vétérinaire a été informé.",
+      completeHint:
+        "Confirmez uniquement si la prestation a bien été effectuée. Cette action déclenche le paiement du vétérinaire.",
+      completeCta: "Confirmer que la prestation est terminée",
+      completeConfirmTitle: "Confirmer la prestation",
+      completeConfirmBody:
+        "Cette action déclenche le paiement du vétérinaire. Assurez-vous que la prestation est bien effectuée.",
+      cancelCta: "Annuler la demande",
+      cancelConfirmTitle: "Annuler le rendez-vous ?",
+      cancelConfirmBody: "Aucun paiement ne sera prélevé si vous n'avez pas encore payé.",
+      waitingVetHint:
+        "Votre demande a été envoyée au vétérinaire. Vous pouvez l'annuler en attendant sa réponse.",
+      ratingTitle: "Noter le vétérinaire",
+      ratingRequired: "Choisissez une note entre 1 et 5",
+      ratingCommentPlaceholder: "Commentaire (optionnel)",
+      ratingSubmit: "Envoyer l'avis",
+      rated: "Avis enregistré",
+      requestPending: "Demande en attente"
     },
     profile: {
       title: "Profil vétérinaire",
@@ -713,6 +1161,8 @@ export const fr = {
       missingFields: "Choisissez une ferme et un créneau.",
       successTitle: "RDV confirmé",
       successBody: "Visite planifiée pour {{farm}} — {{date}}",
+      successBodyPayment:
+        "Visite proposée pour {{farm}} — {{date}}. Le producteur doit valider le paiement pour confirmer.",
       reasons: {
         routine: "Routine",
         urgency: "Urgence",
@@ -748,11 +1198,15 @@ export const fr = {
       messages: "Messages",
       finance: "Finance",
       collaboration: "Équipe",
+      feed: "Feed",
       profile: "Profil"
     },
     extended: {
       menuShort: "Menu",
       openA11y: "Plus d’actions",
+      team: "Équipe",
+      teamDescription: "Gérer vos collaborateurs",
+      settings: "Paramètres",
       nutrition: "Stock",
       nutritionRoadmap:
         "Le suivi des achats et du stock d’aliments sera disponible lorsque le module stock sera activé pour ta ferme.",
@@ -766,14 +1220,58 @@ export const fr = {
       closeA11y: "Fermer"
     },
     screenTitles: {
+      marketplacePaymentDashboard: "Portefeuille & Paiements",
       feedStock: "Stock aliment",
-      recommendations: "Recommandations",
+      communityFeed: "Feed",
+      notifications: "Notifications",
+      reports: "Rapports",
+      messages: "Messages",
+      buyerHistory: "Mes achats",
+      buyerAlerts: "Alertes prix",
+      buyerFavorites: "Favoris",
+      tasks: "Tâches",
+      techFarm: "Ma ferme",
+      techTracking: "Suivi",
+      techProfile: "Mon profil",
+      vetAgenda: "Agenda",
+      farmList: "Mes fermes",
+      vetReports: "Rapports",
+      support: "Support",
+      invitation: "Invitation",
       animalDetail: "Fiche animal",
       farm: "Ferme",
-      barns: "Loges et parcours",
+      cheptel: "Cheptel",
+      health: "Santé",
+      vetSearch: "Trouver un vétérinaire",
+      scheduleVetVisit: "Planifier une visite",
+      vetAppointment: "Rendez-vous",
       vetConsultations: "Suivi vétérinaire",
+      vetConsultation: "Consultation",
+      createVetConsultation: "Nouveau dossier véto",
+      attachment: "Pièce jointe",
+      finance: "Finance",
+      movePen: "Déplacer",
+      barns: "Loges et parcours",
+      barn: "Bâtiment",
+      pen: "Loge",
+      createPen: "Nouvelle loge",
+      penLog: "Entrée journal",
+      createFarm: "Nouvelle ferme",
+      batch: "Lot",
+      market: "Market",
+      listing: "Annonce",
+      transaction: "Transaction",
+      creditScore: "Score crédit",
+      myOffers: "Mes offres",
+      myListings: "Mes annonces",
+      createListing: "Nouvelle annonce",
+      conversation: "Conversation",
+      newConversation: "Nouvelle conversation",
+      searchUser: "Rechercher une personne",
+      collaboration: "Collaboration",
       team: "Équipe",
-      invite: "Inviter"
+      invite: "Inviter",
+      gestation: "Gestation"
     }
   },
   modals: {
@@ -836,7 +1334,7 @@ export const fr = {
     period12: "12M",
     statsTitle: "Statistiques par type",
     current: "Stock actuel",
-    avgDaily: "Conso. moy. / jour",
+    avgDaily: "Conso. moy. : {{kg}} kg/j",
     depletion: "Fin estimée",
     statusOk: "OK",
     statusWarn: "Attention",
@@ -886,13 +1384,35 @@ export const fr = {
     previewDaily: "Consommation / jour : {{n}} kg/j",
     previewDepletion: "Fin de stock estimée : {{date}}",
     gaugePercent: "{{value}} %",
+    gaugePercentRemaining: "{{value}} % restant",
     gaugeDaily: "{{kg}} kg/j",
-    gaugeNoDaily: "conso. inconnue",
+    gaugeNoDaily: "conso. —",
     gaugeDaysLeft: "{{count}} j restants",
-    gaugeUnknownDays: "durée inconnue",
+    gaugeDaysEstimate: "~{{count}} jours restants",
+    gaugeUnknownDays: "estimation —",
+    gaugeInsufficientData:
+      "Effectuez au moins 2 contrôles de stock pour voir les estimations",
     gaugeCenterDays: "{{count}} j",
+    lastCheckAgo: "Dernier contrôle : il y a {{count}} j",
+    unknownFeedType: "Aliment",
+    phaseReviewTitle: "Phase aliment à préciser",
+    phaseReviewBody:
+      "Indiquez la phase de chaque aliment pour affecter les coûts aux bonnes bandes (sous mère, transition, démarrage…).",
+    phaseSuggestion: "Suggestion : {{phase}}",
+    phases: {
+      sous_mere: "Sous mère",
+      transition: "Transition",
+      starter: "Démarrage",
+      growth: "Croissance",
+      fattening: "Engraissement",
+      breeder: "Reproducteurs",
+      unknown: "Non précisé"
+    },
     gaugeDashboardSubtitle: "{{kg}} kg · {{count}} j restants",
     gaugeDashboardNoDays: "{{kg}} kg · durée inconnue",
+    smartAlertsHintTitle: "Notifications",
+    smartAlertsHintBody:
+      "Les alertes stock et consommation sont sur le tableau de bord (section Notifications).",
     filterMissingCost: "Sans coût",
     badgeMissingCost: "Sans coût",
     editMovement: "Modifier",
@@ -900,6 +1420,7 @@ export const fr = {
     fieldQuantity: "Quantité",
     edit: {
       title: "Modifier l'entrée de stock",
+      checkTitle: "Modifier le contrôle de stock",
       linkedWarning:
         "Cette entrée est liée à une dépense Finance. Modifier le coût ici mettra aussi à jour la transaction Finance.",
       costSection: "Coût",
@@ -908,11 +1429,21 @@ export const fr = {
       unitPricePh: "Prix unitaire / kg",
       calculatedPerKg: "Prix/kg calculé : {{price}}",
       deleteBtn: "Supprimer cette entrée",
+      checkDeleteBtn: "Supprimer ce contrôle",
       deleteTitle: "Supprimer l'entrée ?",
+      checkDeleteTitle: "Supprimer le contrôle ?",
       deleteMessage:
         "Cette entrée sera supprimée. Si elle est liée à une dépense Finance, la liaison sera rompue (la dépense reste).",
+      checkDeleteMessage:
+        "Ce contrôle sera supprimé et le stock sera recalculé à partir des autres mouvements.",
       savedTitle: "Entrée mise à jour",
-      savedMessage: "L'entrée de stock a été enregistrée."
+      checkSavedTitle: "Contrôle mis à jour",
+      savedMessage: "L'entrée de stock a été enregistrée.",
+      checkSavedMessage: "Le contrôle de stock a été enregistré.",
+      deleteDoneTitle: "Entrée supprimée",
+      deleteDoneMessage: "L'entrée de stock a été supprimée.",
+      checkDeleteDoneTitle: "Contrôle supprimé",
+      checkDeleteDoneMessage: "Le contrôle a été supprimé et le stock recalculé."
     },
     reconciliation: {
       title: "Rapprochement suggéré",
@@ -930,7 +1461,8 @@ export const fr = {
       followMessage: "Pouvez-vous préciser le coût de cette entrée de stock ?"
     },
     errors: {
-      pickType: "Choisis un type d’aliment."
+      pickType: "Choisis un type d’aliment.",
+      invalidForm: "Vérifie les champs saisis (quantité, date…)."
     }
   },
   offline: {
@@ -954,9 +1486,11 @@ export const fr = {
     navBatches: "Bandes",
     navStatuses: "Statuts",
     totalHeadcount: "Effectif total",
+    kpiSectionTitle: "Indicateurs clés",
     kpiBreedingFemales: "Reproductrices",
     kpiFattening: "Engraissement",
     kpiStarter: "Démarrage",
+    kpiNursing: "Allaitement",
     kpiSick: "Sujets malades",
     kpiUnitSows: "truies",
     sexSplit: "Verrats / truies",
@@ -967,13 +1501,26 @@ export const fr = {
     categoryPieCenter: "Effectif total",
     categoryPieTooltip: "{{count}} têtes — {{pct}} %",
     category: {
-      piglets: "Porcelets / démarrage",
+      reproducteur_femelle: "Truies",
+      reproducteur_male: "Verrats",
+      sous_mere: "Porcelets en allaitement",
+      fattening: "Engraissement",
+      starter: "Démarrage",
       growth: "Croissance",
+      piglets: "Porcelets / démarrage",
       finishing: "Engraissement",
       breeders: "Reproducteurs",
       other: "Autres"
     },
     openBarns: "Gérer les bâtiments et loges",
+    batches: {
+      detectedTitle: "Bandes détectées automatiquement",
+      confirmTitle: "Confirmer cette bande",
+      confirmBody:
+        "Ces sujets seront regroupés en bande pour le suivi et la rentabilité (comme une portée de gestation).",
+      confirmName: "Nom de la bande",
+      confirmAction: "Confirmer"
+    },
     pensOccupancyHint:
       "Occupation globale : {{rate}} · {{available}} loge(s) avec place libre.",
     actions: {
@@ -1021,9 +1568,20 @@ export const fr = {
       cancel: "Annuler",
       categoryLabel: "Catégorie",
       category: {
-        starter: "Démarrage / croissance",
+        starter: "Démarrage",
         fattening: "Engraissement",
         maternity: "Maternité",
+        quarantine: "Quarantaine",
+        mixed: "Mixte",
+        empty: "Vide"
+      },
+      visual: {
+        maternity: "Maternité",
+        starter: "Démarrage",
+        growth: "Croissance",
+        fattening: "Engraissement",
+        boar: "Verrat",
+        boars: "Verrats",
         quarantine: "Quarantaine",
         mixed: "Mixte",
         empty: "Vide"
@@ -1032,6 +1590,7 @@ export const fr = {
         starter: "Démarrage / croissance",
         fattening: "Engraissement",
         sows: "Truies",
+        nursing: "Porcelets en allaitement",
         boar: "Verrat",
         boars: "Verrats",
         mixed: "Mixte",
@@ -1053,11 +1612,13 @@ export const fr = {
       batchesInPen: "Lots (bandes)",
       animalsInPen: "Animaux individuels",
       batchHeadcount: "{{count}} sujets",
+      batchCategoryNursing: "Porcelets en allaitement",
       batchCategoryNursery: "Démarrage / croissance",
       batchCategoryFinisher: "Engraissement",
       batchCategoryOther: "Lot",
       vaccinateLot: "Vacciner le lot",
       addAnimal: "Ajouter animal",
+      addSeveral: "Ajouter plusieurs",
       columnLeft: "Colonne gauche",
       columnRight: "Colonne droite",
       topToBottom: "Numérotation de haut en bas",
@@ -1080,6 +1641,19 @@ export const fr = {
       penName: "Nom de la loge",
       capacity: "Capacité max",
       capacityLine: "{{occ}} / {{cap}} places",
+      editCapacityTitle: "Modifier la capacité",
+      editCapacitySection: "Places disponibles",
+      editCapacitySave: "Enregistrer",
+      editCapacityAction: "Modifier",
+      editCapacityA11y: "Modifier la capacité de la loge",
+      editCapacityHint:
+        "Laissez vide pour une capacité illimitée. La jauge d'occupation utilise ce nombre.",
+      editCapacityPlaceholder: "Ex. 15",
+      editCapacityInvalid: "Capacité invalide",
+      editCapacityMissingPen: "Loge introuvable",
+      editCapacitySuccess: "Capacité mise à jour",
+      editCapacityBelowOccupancy:
+        "Attention : {{occupancy}} sujets sont déjà dans cette loge (capacité inférieure à l'occupation actuelle).",
       noAnimals: "Aucun animal dans cette loge."
     },
     weight: {
@@ -1097,6 +1671,7 @@ export const fr = {
       noChart: "Pas encore de pesées sur cette période.",
       gmqSection: "GMQ par animal",
       noGmq: "Ajoutez des pesées pour calculer le GMQ.",
+      weeksAbbr: "sem.",
       entry: "Entrée",
       current: "Actuel",
       gain: "Gain total",
@@ -1164,13 +1739,13 @@ export const fr = {
       addFab: "Nouvel animal",
       heads: "têtes",
       filter: {
-        all: "Tous",
+        all: "Dans le cheptel",
         male: "Verrats",
         female: "Truies",
         active: "Actifs",
         sold: "Vendus",
         dead: "Morts",
-        reformed: "Réformés"
+        exited: "Sortis du cheptel"
       },
       sexMale: "Verrat",
       sexFemale: "Truie",
@@ -1204,7 +1779,7 @@ export const fr = {
         sick: "Malade",
         dead: "Mort",
         sold: "Vendu",
-        reformed: "Réformé",
+        exited: "Sortie du cheptel",
         transferred: "Transféré",
         salePrice: "Prix de vente",
         buyer: "Acheteur",
@@ -1214,7 +1789,9 @@ export const fr = {
         success: "Statut mis à jour",
         errorTitle: "Mise à jour impossible",
         financeLinked: "Un revenu sera créé dans Finance si un prix de vente est indiqué.",
-        healthLinked: "Une sortie mortalité sera enregistrée (module Santé)."
+        healthLinked: "Une sortie mortalité sera enregistrée (module Santé).",
+        exitedHint:
+          "Le sujet quitte le cheptel actif (effectif, loges, annonces). Il reste consultable via le filtre « Sortis du cheptel »."
       },
       sale: {
         title: "Enregistrer la vente",
@@ -1258,6 +1835,58 @@ export const fr = {
         submit: "Transférer",
         success: "Transfert effectué",
         errorTitle: "Transfert impossible"
+      },
+      bulk: {
+        title: "Ajouter plusieurs animaux",
+        step1Title: "Étape 1 — Informations",
+        step2Title: "Étape 2 — Confirmation",
+        step2Intro: "Vérifie les informations avant de créer les animaux.",
+        pen: "Loge",
+        penFixed: "Loge : {{name}}{{slots}}",
+        freeSlots: " — {{count}} place(s) libre(s)",
+        freeSlotsShort: "{{count}} libre(s)",
+        category: "Catégorie",
+        categoryTrui: "Truie",
+        categoryVer: "Verrat",
+        categoryEng: "Engraissement",
+        categoryDem: "Démarrage",
+        count: "Nombre d'animaux",
+        decrease: "Diminuer",
+        increase: "Augmenter",
+        capacityWarning: "Attention : {{count}} animaux pour {{capacity}} places disponibles.",
+        sex: "Sexe",
+        sexUnknown: "Sexe non défini",
+        breed: "Race",
+        breedPlaceholder: "Ex. Large White",
+        entryWeight: "Poids à l'entrée (kg)",
+        entryAge: "Âge à l'entrée (semaines)",
+        entryAgePlaceholder: "Ex. 8",
+        entryDate: "Date d'entrée",
+        origin: "Origine",
+        originFarm: "Naissance ferme",
+        originPurchased: "Achat extérieur",
+        supplier: "Fournisseur",
+        next: "Continuer",
+        back: "Retour",
+        confirm: "Créer {{count}} animaux",
+        creating: "Création de {{count}} animaux…",
+        successTitle: "Animaux créés avec succès",
+        successMessage: "{{count}} animal(aux) ajouté(s) à la loge.",
+        errorTitle: "Erreur",
+        countInvalid: "Indique un nombre valide d'animaux.",
+        previewError: "Impossible de prévisualiser la nomenclature.",
+        nomenclatureRange: "Numéros : {{from}} → {{to}}",
+        summaryCategory: "Catégorie",
+        summaryCount: "Nombre",
+        summaryCountValue: "{{count}} tête(s)",
+        summaryPen: "Loge",
+        summaryPenWithSlots: "{{name}} ({{free}} place(s) libre(s))",
+        summaryBreed: "Race",
+        summaryWeight: "Poids entrée",
+        summaryAge: "Âge entrée",
+        summaryAgeValue: "{{weeks}} sem.",
+        summaryNumbers: "Numéros",
+        summaryEntryDate: "Date d'entrée"
       },
       detail: {
         identity: "Identité du sujet",
@@ -1395,8 +2024,16 @@ export const fr = {
     messages: {
       new: "Nouveau",
       emptyTitle: "Aucun message",
-      emptySub: "Envoyez un message à votre vétérinaire depuis la fiche de son profil.",
+      emptySub:
+        "Retrouvez ici vos échanges avec les acheteurs (marché) et vos contacts professionnels.",
       noMessage: "Pas encore de message"
+    },
+    vetAppointments: {
+      title: "Rendez-vous vétérinaire",
+      payNow: "Payer maintenant",
+      confirmService: "Confirmer la prestation",
+      waitingForVet: "En attente du vétérinaire",
+      vetFallback: "Vétérinaire"
     },
     welcomeLine: "Bienvenue",
     settingsButton: "Paramètres",
@@ -1581,6 +2218,7 @@ export const fr = {
     revokeConfirmTitle: "Révoquer les accès ?",
     revokeConfirmBody: "{{name}} perdra tous ses accès immédiatement.",
     revokeConfirmAction: "Révoquer",
+    revokeSuccess: "Accès révoqué avec succès",
     historyTitle: "Historique des actions",
     historyEmpty: "Aucune action enregistrée.",
     historyShowMore: "Voir plus",
@@ -1664,10 +2302,22 @@ export const fr = {
   financeScreen: {
     overview: "Vue d’ensemble",
     tabOverview: "Vue d’ensemble",
+    tabRentability: "Rentabilité",
     balance: "Solde (cumul)",
     revenuesMonth: "Revenus (mois)",
     expensesMonth: "Dépenses (mois)",
     marginMonth: "Marge nette (mois)",
+    marketplaceSection: "Marketplace",
+    marketplacePending: "Ventes en cours",
+    marketplaceBlocked: "Montants convenus",
+    vetAppointmentsSection: "Rendez-vous vétérinaires",
+    vetAppointmentsBlocked: "RDV à venir (bloqués)",
+    marketplaceSellerChart: "Ventes marketplace (6 mois)",
+    marketplaceBuyerChart: "Achats marketplace (6 mois)",
+    marketplaceConfirmedRevenue: "Revenus confirmés",
+    marketplacePendingRevenue: "En attente",
+    marketplaceConfirmedPurchases: "Achats finalisés",
+    marketplaceBlockedPurchases: "Achats en cours",
     vsPrevShort: "{{pct}} vs mois préc.",
     insights: "Synthèse",
     tabRevenues: "Revenus",
@@ -1759,6 +2409,41 @@ export const fr = {
     marginPerHead: "Coût / tête :",
     marginPerKg: "Coût / kg :"
   },
+  financeStockLink: {
+    stockSectionTitle: "Détails de l'entrée en stock",
+    recordStock: "Enregistrer aussi en stock",
+    toggleOn: "Oui",
+    toggleOff: "Non",
+    quantity: "Quantité reçue",
+    quantityWithUnit: "Quantité ({{unit}})",
+    unitSac: "sacs",
+    unitKg: "kg",
+    unitTonne: "tonnes",
+    unitPrice: "Prix unitaire (par kg)",
+    unitPriceSac: "Prix unitaire (par sac)",
+    line: "Ligne {{n}}",
+    lineSubtotal: "Sous-total : {{amount}} {{currency}}",
+    addLine: "+ Ajouter une ligne aliment",
+    totalGap:
+      "Écart de {{gap}} {{currency}} — ajustez les quantités ou le montant total",
+    newFeedType: "Nouveau type",
+    useExistingType: "Type existant",
+    weightPerBag: "Poids par sac (kg)",
+    weightPerBagHint: "Requis pour convertir les sacs en kg",
+    linkedStockTitle: "Stock lié",
+    unitPriceShort: "{{price}} / unité",
+    openStock: "Voir dans Stock aliment",
+    createFinanceExpense: "Créer aussi une dépense Finance",
+    financeLabel: "Libellé dépense",
+    financeBadge: "Finance liée",
+    linkedFinanceTitle: "Dépense finance liée",
+    deleteLinkedTitle: "Suppression liée",
+    deleteLinkedBody:
+      "Cette transaction est liée à une entrée stock. Supprimer aussi l'entrée stock ?",
+    deleteBoth: "Supprimer les deux",
+    deleteFinanceOnly: "Finance uniquement",
+    txWithStockSuccess: "Dépense enregistrée — stock mis à jour"
+  },
   budgetScreen: {
     status: {
       onTrack: "🟢 Sous contrôle",
@@ -1786,6 +2471,12 @@ export const fr = {
     addCategory: "➕ Configurer / ajouter des lignes",
     simTitle: "🔮 Simulation « Et si »",
     simSubtitle: "Et si je modifiais mon budget ?",
+    aiTitle: "💡 Analyse et recommandations IA",
+    aiSubtitle: "Optimisation budgétaire basée sur vos dépenses et votre cheptel",
+    aiCurrent: "Budget actuel",
+    aiSavings: "Économie : {{amount}}",
+    aiRefresh: "🔄 Régénérer l'analyse",
+    aiApply: "✅ Appliquer la sélection",
     simCurrent: "Budget actuel :",
     simNew: "Nouveau budget",
     simImpact: "Impact immédiat",
@@ -1898,7 +2589,15 @@ export const fr = {
     formSectionMortality: "Mortalité",
     formSectionNotes: "Notes",
     vetVisits: {
-      nextPlanned: "Prochaine visite planifiée"
+      nextPlanned: "Prochaine visite planifiée",
+      pendingAppointments: "Demandes de rendez-vous en cours"
+    },
+    vetQuotes: {
+      title: "Devis en attente (ancien flux)",
+      legacyNotice:
+        "Ces devis proviennent d'anciennes visites. Les nouvelles visites passent par les rendez-vous avec paiement sécurisé.",
+      accept: "✅ Accepter",
+      refuse: "❌ Refuser"
     },
     upcomingVaccines: "Rappels vaccins à venir",
     errorTitle: "Erreur",
@@ -1930,6 +2629,9 @@ export const fr = {
     mortalityHint:
       "Après enregistrement, le statut animal / sortie est mis à jour côté serveur : tire vers le bas pour rafraîchir.",
     linkShort: "Lier dépense",
+    deleteVisitTitle: "Supprimer la visite planifiée ?",
+    deleteVisitBody: "Cette visite planifiée sera définitivement retirée.",
+    deleteVisitCta: "Supprimer la visite",
     linkExpenseTitle: "Lier une dépense",
     linkSubmit: "Associer",
     linkOk: "Liaison enregistrée.",
@@ -2090,6 +2792,8 @@ export const fr = {
       verified: "✅ Vérifié",
       notVerified: "Profil en cours de validation",
       reviews: "avis",
+      completedAppointments: "{{count}} prestations réalisées",
+      priceRange: "Prestations entre {{min}} et {{max}} {{currency}}",
       statsFarms: "{{count}} fermes suivies",
       statsVisits: "{{count}} visites",
       planVisit: "Planifier une visite",
@@ -2112,7 +2816,8 @@ export const fr = {
       notesPlaceholder: "Décrivez le besoin (symptômes, lot concerné…)",
       confirm: "Demander le RDV",
       successTitle: "Demande envoyée",
-      successBody: "{{vet}} — {{farm}} le {{date}}",
+      successBody:
+        "Votre demande a été transmise à {{vet}}. Vous serez notifié dès qu'il aura répondu.",
       callErrorTitle: "Appel",
       callError: "Numéro indisponible."
     },
@@ -2196,6 +2901,10 @@ export const fr = {
     history: "Rapports générés",
     historyEmpty: "Aucun rapport enregistré. Utilise « Exporter en PDF » pour en créer un.",
     exportPdf: "Exporter en PDF",
+    generatePdf: "Générer le rapport",
+    compiling: "Compilation des données…",
+    downloading: "Téléchargement…",
+    downloadReport: "Télécharger le PDF",
     exportErrorTitle: "Export impossible",
     shareUnavailable: "Le partage système n’est pas disponible sur cet appareil.",
     scoreDetailTitle: "Détail du score ferme",
@@ -2313,6 +3022,14 @@ export const fr = {
     createSuccessWithDate:
       "Gestation enregistrée — mise bas prévue le {{date}}",
     pickSow: "Choisissez une truie",
+    invalidFarmId: "Projet actif invalide. Recharge l'application.",
+    invalidBoarId: "Verrat invalide.",
+    aiPlanningTitle: "💡 Planning saillies recommandé (IA)",
+    aiPlanningBoar: "Verrat suggéré",
+    aiPlanningDate: "Date saillie",
+    aiPlanningBirth: "Mise bas prévue",
+    aiPlanningApply: "Planifier",
+    aiPowered: "Analyse IA",
     sow: "Truie",
     boar: "Verrat",
     noBoar: "Non renseigné",
@@ -2353,8 +3070,22 @@ export const fr = {
     },
     vetAssistance: "Assistance vétérinaire",
     invalidBornAlive: "Nombre de vivants invalide",
+    continueToPen: "Continuer — choisir la loge",
+    back: "Retour",
+    penStepTitle: "Loge de la portée",
+    penStepHint:
+      "Choisissez la loge pour {{count}} porcelet(s) nés vivants. Une loge vide est proposée par défaut si disponible.",
+    penRequired: "Choisissez une loge pour la portée",
+    penFull: "Cette loge n'a pas assez de places pour toute la portée",
+    penCapacityWarn: "La loge sera proche de sa capacité maximale",
+    penFree: "{{count}} place(s) libre(s)",
+    penEmpty: "vide",
+    noPens: "Aucune loge disponible sur cette ferme",
+    transferSowWithLitter: "Transférer la truie dans la même loge",
     litterSuccessTitle: "Mise bas enregistrée",
     litterSuccessBody: "{{count}} porcelet(s) ajouté(s) au cheptel",
+    litterSuccessWithPen:
+      "{{count}} porcelet(s) enregistré(s) et placés dans la loge choisie",
     eventTypes: {
       mating: "Saillie",
       farrowing: "Mise bas",
@@ -2364,6 +3095,7 @@ export const fr = {
   },
   ai: {
     insightTitle: "En bref",
+    fallbackInsightsTitle: "💡 Conseils IA",
     refresh: "Actualiser les recommandations"
   },
   tech: {
@@ -2506,7 +3238,15 @@ export const fr = {
       buyerType: "Type d'acheteur",
       preferredCategories: "Catégories préférées",
       typeIndividual: "Particulier",
-      typeProfessional: "Professionnel"
+      typeProfessional: "Professionnel",
+      changePhotoTitle: "Photo de profil",
+      changePhotoMessage: "Choisis une source pour mettre à jour ta photo.",
+      pickGallery: "Galerie",
+      pickCamera: "Caméra",
+      cancelPhoto: "Annuler",
+      save: "Enregistrer",
+      photoUploadError: "Impossible d'envoyer la photo. Vérifie le bucket Supabase « avatars ».",
+      saveError: "Enregistrement impossible. Réessaie dans un instant."
     },
     kpi: {
       pending: "Propositions",
@@ -2574,6 +3314,20 @@ export const fr = {
       freq: { immediate: "Immédiat", daily: "Quotidien" }
     }
   },
+  chat: {
+    newConversation: "Nouveau",
+    searchMinChars: "Saisis au moins 2 caractères pour lancer la recherche.",
+    emptyRooms: "Aucune conversation pour le moment.",
+    inputPlaceholder: "Votre message…",
+    phoneWarning: {
+      realtime:
+        "Les numéros de téléphone sont automatiquement masqués pour votre sécurité.",
+      masked: "Numéro masqué automatiquement pour votre protection.",
+      imageBlocked:
+        "Cette image semble contenir un numéro de téléphone et ne peut pas être envoyée.",
+      analyzing: "Vérification sécurité…"
+    }
+  },
   techOnboarding: {
     sectionIdentity: "Identité",
     sectionFormation: "Formation",
@@ -2636,5 +3390,163 @@ export const fr = {
       reformed: "Truies réformées"
     },
     vol: { "1-5": "1-5", "5-20": "5-20", "20-50": "20-50", "50+": "50+" }
+  },
+  predictions: {
+    unavailable: "IA indisponible — vérifiez GEMINI_API_KEY côté API.",
+    refresh: "Actualiser les prévisions",
+    generatedAt: "Calculé le {{datetime}}",
+    insufficientTitle: "Prévisions en préparation",
+    insufficientMessage:
+      "Les prévisions seront disponibles dans {{days}} jours. Continuez à enregistrer vos données pour activer cette fonctionnalité.",
+    progressLabel: "Progression vers activation : {{current}}/{{total}} jours",
+    missingGmq: "Ajoutez des pesées pour activer les projections de poids",
+    missingPrice: "Pas assez de données de prix pour estimer les revenus",
+    missingFeed:
+      "Enregistrez des contrôles de stock pour activer les prévisions aliment",
+    confidence: {
+      high: "Confiance élevée",
+      medium: "Confiance moyenne",
+      low: "Estimation approximative"
+    },
+    sectionCheptel: "📈 Prévisions de production",
+    sectionFinance: "💰 Prévisions financières",
+    sectionStock: "🌾 Besoins en aliment prévisionnels",
+    sectionGestation: "🐷 Prévisions naissances et saillies",
+    sectionDashboard: "🔮 Aperçu prédictif — 30 jours",
+    animauxPretsTitle: "Animaux prêts à vendre",
+    animauxPretsCount: "{{count}} animaux estimés prêts",
+    avgWeight: "Poids moyen {{weight}} kg",
+    potentialRevenue: "Revenu potentiel : {{amount}}",
+    projectionPoidsTitle: "Projection des poids par loge",
+    targetWeight: "Cible {{target}} kg · {{days}} j restants",
+    meilleureVenteTitle: "Meilleur moment pour vendre",
+    saleWindow: "Du {{start}} au {{end}}",
+    expectedPrice: "Prix estimé : {{price}}",
+    createListing: "Créer une annonce →",
+    evolutionCheptelTitle: "Évolution du cheptel",
+    now: "Actuel",
+    growthRate: "Taux de croissance estimé : {{rate}} %",
+    revenusEstimesTitle: "Revenus estimés",
+    revVsExp: "Revenus {{rev}} · Dépenses {{exp}}",
+    projectionDepensesTitle: "Projection des dépenses",
+    feedCost: "Aliment",
+    vetCost: "Vétérinaire estimé",
+    total: "Total",
+    rentabilitePrevuTitle: "Marge prévisionnelle",
+    alerteTresorerieTitle: "Alerte trésorerie",
+    alertDate: "Risque détecté vers le {{date}}",
+    besoinsAlimentTitle: "Prévision de consommation",
+    currentStock: "Stock actuel : {{kg}} kg",
+    dailyConsumption: "Consommation : {{kg}} kg/jour",
+    neededKg: "Besoin : {{kg}} kg",
+    stockSufficient: "Stock suffisant",
+    stockWarning: "Stock insuffisant — commander avant le {{date}}",
+    stockCritical: "Stock épuisé le {{date}} — commander maintenant",
+    commandeRecommandeeTitle: "Commande recommandée",
+    reorderQty: "Quantité recommandée : {{kg}} kg",
+    reorderDate: "Commander avant le {{date}}",
+    recordStockEntry: "Enregistrer une entrée de stock",
+    naissancesPrevuesTitle: "Mises bas prévues",
+    birthLine:
+      "Truie {{sow}} — mise bas prévue le {{date}} — ~{{count}} porcelets",
+    piglets30j: "~{{count}} porcelets attendus dans 30 jours",
+    sailliesRecommandeesTitle: "Truies disponibles pour saillie",
+    sowAvailable: "Truie {{sow}} — disponible à partir du {{date}} — {{reason}}",
+    planMating: "Planifier les saillies →",
+    kpiReady: "Animaux prêts à vendre",
+    kpiRevenue: "Revenu estimé",
+    kpiFeed: "Aliment à commander",
+    kpiBirths: "Naissances prévues"
+  },
+  profitability: {
+    heroTitle: "💰 Rentabilité",
+    periodMonth: "Ce mois",
+    periodQuarter: "Trimestre",
+    periodYear: "Année",
+    netMarginLabel: "Marge nette",
+    grossMargin: "Marge brute",
+    netMargin: "Marge nette",
+    costPerKg: "Coût/kg",
+    breakeven: "Seuil",
+    minPrice: "Prix min rentable",
+    vsMarket: "Marché {{price}}/kg",
+    batchSummary:
+      "{{count}} bandes actives — Meilleure : {{best}} ({{bestPct}}%) / Moins bonne : {{worst}} ({{worstPct}}%)",
+    viewDetail: "Voir détail par bande",
+    insufficientData: "Données insuffisantes pour calculer la rentabilité.",
+    globalTitle: "📊 Rentabilité globale",
+    byBatchTitle: "🐷 Rentabilité par bande",
+    period: {
+      current_month: "Mois en cours",
+      current_quarter: "Trimestre",
+      current_year: "Année",
+      all_time: "Tout"
+    },
+    view: {
+      realized: "Réalisé",
+      projected: "Prévisionnel",
+      combined: "Combiné"
+    },
+    revenues: "Revenus",
+    costs: "Coûts",
+    roiHint: "Retour sur investissement",
+    market: "Marché",
+    costBreakdown: "Répartition des coûts",
+    revenueVsCosts: "Revenus vs Coûts",
+    noBatches: "Aucune bande enregistrée.",
+    realized: "✅ Réalisé",
+    projected: "🔮 Prévisionnel",
+    combinedTotal: "📊 Total bande (réalisé + prévisionnel)",
+    finalSummary: "Bilan final",
+    duration: "Durée totale",
+    animalsSold: "Animaux vendus",
+    animals: "animaux",
+    batchOpen: "En cours",
+    batchClosed: "Clôturée",
+    remainingDays: "Durée restante estimée",
+    icActual: "IC réel",
+    gmqActual: "GMQ réel",
+    resultProfit: "✅ Bénéfice",
+    resultLoss: "❌ Perte",
+    breakevenTitle: "📍 Seuil de rentabilité",
+    breakevenExplain:
+      "Vous devez vendre à minimum {{price}} {{currency}}/kg pour couvrir vos coûts.",
+    currentMarket: "Prix marché actuel : {{price}} {{currency}}/kg",
+    safetyMargin: "Marge de sécurité : {{direction}}{{delta}} {{currency}}/kg",
+    aiTitle: "💡 Analyse IA",
+    aiRefresh: "🔄 Actualiser"
+  },
+  paymentsDashboard: {
+    title: "Mes Paiements",
+    roleSeller: "Ventes (Producteur)",
+    roleBuyer: "Achats (Acheteur)",
+    tabSold: "Produits vendus",
+    tabBought: "Produits achetés",
+    tabInProgress: "En cours",
+    tabHistory: "Historique & Négociations",
+    emptySold: "Aucune vente finalisée.",
+    emptyBought: "Aucun achat finalisé.",
+    emptyInProgress: "Aucune transaction en cours.",
+    emptyHistory: "Aucun historique disponible.",
+    transactionLabel: "Transaction {{id}}",
+    listingLabel: "Annonce : {{title}}",
+    amountLabel: "Montant : {{amount}}",
+    statusLabel: "Statut : {{status}}",
+    dateLabel: "Mis à jour le {{date}}",
+    buyerLabel: "Acheteur : {{name}}",
+    sellerLabel: "Vendeur : {{name}}",
+    status: {
+      pending: "En attente",
+      accepted: "Acceptée",
+      rejected: "Refusée",
+      withdrawn: "Retirée",
+      countered: "Contre-proposition",
+      credit_agreed: "Accord crédit",
+      advance_confirmed: "Avance confirmée",
+      balance_pending: "Solde en attente",
+      balance_declared: "Solde déclaré",
+      arbitration: "Arbitrage",
+      completed: "Terminée"
+    }
   }
 } as const;

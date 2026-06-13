@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { mobileColors } from "../theme/mobileTheme";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -13,11 +14,13 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { HousingModuleGate } from "../components/HousingModuleGate";
 import { useSession } from "../context/SessionContext";
 import type { PenLogTypeDto } from "../lib/api";
 import { createPenLog } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CreatePenLog">;
 
@@ -30,6 +33,7 @@ const LOG_TYPES: { key: PenLogTypeDto; label: string }[] = [
 ];
 
 export function CreatePenLogScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { farmId, farmName, penId, penLabel } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
@@ -57,7 +61,7 @@ export function CreatePenLogScreen({ route, navigation }: Props) {
       navigation.goBack();
     },
     onError: (e: Error) => {
-      Alert.alert("Enregistrement impossible", e.message);
+      Alert.alert(t("common.errors.saveFailed"), getUserFacingError(e, t));
     }
   });
 
@@ -133,7 +137,7 @@ export function CreatePenLogScreen({ route, navigation }: Props) {
           disabled={mutation.isPending}
         >
           {mutation.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.ctaText}>Enregistrer dans le journal</Text>
           )}
@@ -144,13 +148,13 @@ export function CreatePenLogScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#f9f8ea" },
+  flex: { flex: 1, backgroundColor: mobileColors.canvas },
   content: { padding: 16, paddingBottom: 40 },
-  hint: { fontSize: 13, color: "#6d745b", marginBottom: 4 },
+  hint: { fontSize: 13, color: mobileColors.textSecondary, marginBottom: 4 },
   penHint: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#5d7a1f",
+    color: mobileColors.accent,
     marginBottom: 16
   },
   label: {
@@ -170,35 +174,35 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "#e8e4d4",
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     marginRight: 8,
     marginBottom: 8
   },
   typeChipOn: {
-    borderColor: "#5d7a1f",
+    borderColor: mobileColors.accent,
     backgroundColor: "#eef4dc"
   },
   typeChipText: { fontSize: 13, color: "#4a5238" },
-  typeChipTextOn: { fontWeight: "700", color: "#1f2910" },
+  typeChipTextOn: { fontWeight: "700", color: mobileColors.textPrimary },
   input: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#e8e4d4",
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     marginBottom: 16
   },
   multiline: { minHeight: 100, textAlignVertical: "top" },
   cta: {
-    backgroundColor: "#5d7a1f",
+    backgroundColor: mobileColors.accent,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
     marginTop: 8
   },
   ctaDisabled: { opacity: 0.7 },
-  ctaText: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  ctaText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
 });

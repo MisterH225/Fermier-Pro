@@ -2,21 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import {
-  Bar,
-  BarChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
-} from "recharts";
-import { apiFetch, type StatsDto } from "@/lib/api";
+import { Activity, Skull, Users } from "lucide-react";
+import { fetchAdminStats, type StatsDto } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FilterPills } from "@/components/layout/FilterPills";
 import { PigPriceIndexSection } from "@/components/market/PigPriceIndexSection";
+import { HybridPigPriceAdminSection } from "@/components/market/HybridPigPriceAdminSection";
 import { KpiCard } from "@/components/dashboard/KpiCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartCard } from "@/components/charts/ChartCard";
+import { HorizontalRankChart } from "@/components/charts/HorizontalRankChart";
 
 const PERIODS = ["month", "quarter", "year"] as const;
 
@@ -30,7 +25,7 @@ export default function StatistiquesPage() {
   useEffect(() => {
     if (!token) return;
     setLoading(true);
-    apiFetch<StatsDto>(`/admin/stats?period=${period}`, token)
+    fetchAdminStats(token, period)
       .then(setData)
       .finally(() => setLoading(false));
   }, [token, period]);
@@ -38,6 +33,11 @@ export default function StatistiquesPage() {
   if (!ready) {
     return <p className="text-muted-foreground">…</p>;
   }
+
+  const diseaseRank = (data?.topDiseases ?? []).map((d) => ({
+    label: d.label,
+    value: d.count
+  }));
 
   return (
     <div className="space-y-8">
@@ -61,44 +61,29 @@ export default function StatistiquesPage() {
             <KpiCard
               label={t("kpis.newUsers")}
               value={data.newUsers}
-              accent="#1565C0"
-              background="#E3F2FD"
+              variant="blue"
+              icon={<Users className="size-4" />}
             />
             <KpiCard
               label={t("kpis.activeAnimals")}
               value={data.activeAnimals}
-              accent="#FF8C00"
-              background="#FFF3E0"
+              variant="warning"
+              icon={<Activity className="size-4" />}
             />
             <KpiCard
               label={t("kpis.mortality")}
               value={data.mortalityHeadcount}
-              accent="#E53935"
-              background="#FFEBEE"
+              variant="danger"
+              icon={<Skull className="size-4" />}
             />
           </div>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">{t("topDiseases")}</CardTitle>
-            </CardHeader>
-            <CardContent className="h-96">
-              {data.topDiseases.length === 0 ? (
-                <p className="text-muted-foreground text-sm">—</p>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.topDiseases} layout="vertical" margin={{ left: 24 }}>
-                    <XAxis type="number" allowDecimals={false} />
-                    <YAxis type="category" dataKey="label" width={120} tick={{ fontSize: 12 }} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
+          <ChartCard title={t("topDiseases")} contentClassName="pb-6">
+            <HorizontalRankChart data={diseaseRank} />
+          </ChartCard>
 
           {token ? <PigPriceIndexSection token={token} /> : null}
+          {token ? <HybridPigPriceAdminSection token={token} /> : null}
         </>
       )}
     </div>

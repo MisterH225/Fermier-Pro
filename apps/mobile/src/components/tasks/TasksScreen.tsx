@@ -31,6 +31,7 @@ import {
   mobileTypography
 } from "../../theme/mobileTheme";
 import { apiStatusFromTab } from "./taskUtils";
+import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmTasks">;
 
@@ -142,7 +143,7 @@ export function TasksScreen({ route, navigation }: Props) {
                 accessibilityRole="button"
                 accessibilityLabel={t("tasksScreen.createCta")}
               >
-                <Ionicons name="person-add-outline" size={18} color="#fff" />
+                <Ionicons name="person-add-outline" size={18} color={mobileColors.onAccent} />
                 <Text style={styles.addBtnTxt}>{t("collab.addMember")}</Text>
               </Pressable>
             </View>
@@ -162,7 +163,7 @@ export function TasksScreen({ route, navigation }: Props) {
           ) : tasksQ.error ? (
             <Text style={styles.err}>
               {tasksQ.error instanceof Error
-                ? tasksQ.error.message
+                ? getUserFacingError(tasksQ.error, t)
                 : t("tasksScreen.loadError")}
             </Text>
           ) : (
@@ -252,7 +253,7 @@ const styles = StyleSheet.create({
   },
   addBtnTxt: {
     ...mobileTypography.meta,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700"
   },
   viewModeRow: {

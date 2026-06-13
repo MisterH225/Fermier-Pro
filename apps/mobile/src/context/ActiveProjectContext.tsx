@@ -1,4 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getUserFacingError } from "../lib/userFacingError";
+import { useTranslation } from "react-i18next";
 import {
   createContext,
   useCallback,
@@ -43,6 +45,7 @@ const ActiveProjectContext = createContext<ActiveProjectContextValue | null>(nul
 const MAX_ACTIVE_FARMS = 3;
 
 export function ActiveProjectProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const { accessToken, activeProfileId, authMe, refreshAuthMe } = useSession();
   const [farms, setFarms] = useState<FarmDto[]>([]);
   const [activeFarmId, setActiveFarmIdState] = useState<string | null>(null);
@@ -93,7 +96,7 @@ export function ActiveProjectProvider({ children }: { children: ReactNode }) {
         await AsyncStorage.setItem(STORAGE_ACTIVE_FARM_KEY, resolvedActiveId);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur de chargement des projets");
+      setError(getUserFacingError(e, t));
     } finally {
       setIsLoading(false);
     }
@@ -116,14 +119,15 @@ export function ActiveProjectProvider({ children }: { children: ReactNode }) {
         setActiveFarmIdState(farmId);
         await AsyncStorage.setItem(STORAGE_ACTIVE_FARM_KEY, farmId);
 
-        queryClient.removeQueries();
+        queryClient.clear();
         await refreshAuthMe();
+        await loadFarms();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Erreur lors du changement de projet");
+        setError(getUserFacingError(e, t));
         throw e;
       }
     },
-    [accessToken, activeProfileId, refreshAuthMe]
+    [accessToken, activeProfileId, refreshAuthMe, loadFarms]
   );
 
   const archiveFarm = useCallback(
@@ -148,7 +152,7 @@ export function ActiveProjectProvider({ children }: { children: ReactNode }) {
 
         await refreshAuthMe();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Erreur lors de l'archivage");
+        setError(getUserFacingError(e, t));
         throw e;
       }
     },
@@ -164,7 +168,7 @@ export function ActiveProjectProvider({ children }: { children: ReactNode }) {
         setFarms((prev) => prev.map((f) => (f.id === farmId ? updated : f)));
         await refreshAuthMe();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Erreur lors de la restauration");
+        setError(getUserFacingError(e, t));
         throw e;
       }
     },
@@ -193,7 +197,7 @@ export function ActiveProjectProvider({ children }: { children: ReactNode }) {
 
         await refreshAuthMe();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Erreur lors de la suppression");
+        setError(getUserFacingError(e, t));
         throw e;
       }
     },

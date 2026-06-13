@@ -16,6 +16,11 @@ import {
 import { FarmAccessService } from "../common/farm-access.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
+import {
+  decrementLivestockBatchHeadcount,
+  resolveBatchIdForAnimalExit,
+  syncLivestockBatchHeadcountFromMembers
+} from "../livestock/livestock-batch-headcount.helper";
 import { PrismaService } from "../prisma/prisma.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import { CompleteHandoverDto } from "./dto/complete-handover.dto";
@@ -23,6 +28,8 @@ import { CreateListingDto } from "./dto/create-listing.dto";
 import { PublishListingDto } from "./dto/publish-listing.dto";
 import { RenewListingDto } from "./dto/renew-listing.dto";
 import { FarmRatingsService } from "./farm-ratings.service";
+import { FarmMarketplaceLifecycleService } from "./farm-marketplace-lifecycle.service";
+import { MarketplacePigPriceIndexService } from "./pig-price-index.service";
 import {
   buildListingFarmInfo,
   buildListingHealthData
@@ -31,9 +38,13 @@ import { PickupListingDto } from "./dto/pickup-listing.dto";
 import { UpdateListingDto } from "./dto/update-listing.dto";
 import {
   listingHeadcount,
+  resolveFlatListingPricing,
+  resolveListingCreditEnabled,
   resolveListingMarketCategory,
   usesFlatListingPrice
 } from "./marketplace-listing-category.helper";
+import { LISTING_EDIT_LOCK_STATUSES } from "./escrow/transaction.utils";
+import { ListingAnimalSyncService } from "./listing-animal-sync.service";
 
 function privacyDisplayName(fullName: string | null | undefined): string {
   const raw = fullName?.trim();
@@ -68,7 +79,10 @@ export class ListingsService {
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
     private readonly farmRatings: FarmRatingsService,
-    private readonly push: PushNotificationsService
+    private readonly push: PushNotificationsService,
+    private readonly marketplaceLifecycle: FarmMarketplaceLifecycleService,
+    private readonly pigPriceIndex: MarketplacePigPriceIndexService,
+    private readonly listingAnimalSync: ListingAnimalSyncService
   ) {}
 
   private async resolveFarmAndAnimal(
@@ -209,20 +223,39 @@ export class ListingsService {
     return resolved ?? undefined;
   }
 
-  private normalizeListingPricing(
-    category: ListingMarketCategory | undefined,
-    totalWeightKg: number | null | undefined,
-    pricePerKg: number | null | undefined,
-    totalPrice: number | null | undefined
-  ): {
+  private normalizeListingPricing(params: {
+    category: ListingMarketCategory | undefined;
+    totalWeightKg: number | null | undefined;
+    pricePerKg: number | null | undefined;
+    totalPrice: number | null | undefined;
+    unitPrice: number | null | undefined;
+    headcount: number;
+  }): {
     totalWeightKg: number | null;
     pricePerKg: number | null;
+    unitPrice: number | null;
     totalPrice: number;
   } {
+    const {
+      category,
+      totalWeightKg,
+      pricePerKg,
+      totalPrice,
+      unitPrice,
+      headcount
+    } = params;
+
     if (category && usesFlatListingPrice(category)) {
-      if (totalPrice == null || totalPrice <= 0 || !Number.isFinite(totalPrice)) {
+      let flat: { unitPrice: number; totalPrice: number };
+      try {
+        flat = resolveFlatListingPricing({
+          unitPrice,
+          totalPrice,
+          headcount
+        });
+      } catch {
         throw new BadRequestException(
-          "Prix forfaitaire requis pour un porcelet ou un reproducteur."
+          "Prix forfaitaire à la tête requis pour un porcelet ou un reproducteur."
         );
       }
       const weight =
@@ -230,7 +263,8 @@ export class ListingsService {
       return {
         totalWeightKg: weight,
         pricePerKg: null,
-        totalPrice
+        unitPrice: flat.unitPrice,
+        totalPrice: flat.totalPrice
       };
     }
 
@@ -250,6 +284,7 @@ export class ListingsService {
     return {
       totalWeightKg,
       pricePerKg,
+      unitPrice: null,
       totalPrice: resolvedTotal
     };
   }
@@ -257,7 +292,9 @@ export class ListingsService {
   async create(user: User, dto: CreateListingDto) {
     const refs = await this.resolveFarmAndAnimal(user, dto);
     const photoUrls = dto.photoUrls ?? [];
-    const animalIds = dto.animalIds ?? [];
+    const animalIds =
+      dto.animalIds ??
+      (refs.animalId ? [refs.animalId] : []);
     const category = this.resolvedListingCategory(
       dto.category,
       dto.totalWeightKg ?? null,
@@ -265,12 +302,18 @@ export class ListingsService {
       refs.animalId,
       dto.quantity
     );
-    const pricing = this.normalizeListingPricing(
+    const pricing = this.normalizeListingPricing({
       category,
-      dto.totalWeightKg ?? null,
-      dto.pricePerKg ?? null,
-      dto.totalPrice ?? null
-    );
+      totalWeightKg: dto.totalWeightKg ?? null,
+      pricePerKg: dto.pricePerKg ?? null,
+      totalPrice: dto.totalPrice ?? null,
+      unitPrice: dto.unitPrice ?? null,
+      headcount: listingHeadcount(animalIds, refs.animalId, dto.quantity)
+    });
+    await this.listingAnimalSync.assertListingAnimalRules({
+      category,
+      animalIds
+    });
     const created = await this.prisma.marketplaceListing.create({
       data: {
         sellerUserId: user.id,
@@ -279,7 +322,9 @@ export class ListingsService {
         title: dto.title,
         description: dto.description,
         unitPrice:
-          dto.unitPrice != null ? new Prisma.Decimal(dto.unitPrice) : null,
+          pricing.unitPrice != null
+            ? new Prisma.Decimal(pricing.unitPrice)
+            : null,
         quantity: dto.quantity,
         currency: dto.currency ?? "XOF",
         locationLabel: dto.locationLabel,
@@ -296,6 +341,7 @@ export class ListingsService {
             : null,
         totalPrice: new Prisma.Decimal(pricing.totalPrice),
         breedLabel: dto.breedLabel,
+        creditEnabled: resolveListingCreditEnabled(category, dto.creditEnabled),
         status: ListingStatus.draft
       },
       include: {
@@ -357,15 +403,19 @@ export class ListingsService {
       });
       return this.formatListingsForApi(rows);
     }
+    const now = new Date();
     const publicStatus =
       status && status !== ListingStatus.draft
         ? status
         : ListingStatus.published;
-    const now = new Date();
     const rows = await this.prisma.marketplaceListing.findMany({
       where: {
-        status: publicStatus,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        ...(publicStatus === ListingStatus.published
+          ? this.marketplaceLifecycle.publicListingWhere(now)
+          : {
+              status: publicStatus,
+              OR: [{ expiresAt: null }, { expiresAt: { gt: now } }]
+            }),
         ...(category ? { category } : {}),
         ...textFilter
       },
@@ -503,12 +553,18 @@ export class ListingsService {
       throw new NotFoundException("Annonce introuvable");
     }
 
-    if (listing.status === ListingStatus.reserved) {
+    const lockedForBuyer = [
+      ListingStatus.reserved,
+      ListingStatus.shipped,
+      ListingStatus.delivered,
+      ListingStatus.disputed
+    ] as ListingStatus[];
+    if (lockedForBuyer.includes(listing.status)) {
       const accepted = await this.prisma.marketplaceOffer.findFirst({
         where: {
           listingId: id,
           buyerUserId: user.id,
-          status: OfferStatus.accepted
+          status: { in: [OfferStatus.accepted, OfferStatus.completed] }
         }
       });
       if (listing.sellerUserId !== user.id && !accepted) {
@@ -616,11 +672,40 @@ export class ListingsService {
       );
     }
 
+    const activeEscrow = await this.prisma.marketplaceTransaction.findFirst({
+      where: {
+        listingId: id,
+        status: { in: LISTING_EDIT_LOCK_STATUSES }
+      },
+      select: { id: true, status: true }
+    });
+    if (activeEscrow) {
+      throw new BadRequestException(
+        "Annonce non modifiable pendant un paiement ou une transaction en cours"
+      );
+    }
+
+    const effectiveAnimalIds =
+      dto.animalIds !== undefined
+        ? dto.animalIds
+        : jsonStringArray(listing.animalIds);
+    if (effectiveAnimalIds.length === 0 && listing.animalId) {
+      effectiveAnimalIds.push(listing.animalId);
+    }
+    const effectiveCategory =
+      dto.category !== undefined ? dto.category : listing.category;
+    await this.listingAnimalSync.assertListingAnimalRules({
+      category: effectiveCategory,
+      animalIds: effectiveAnimalIds,
+      excludeListingId: id
+    });
+
     const pricingFieldsPresent =
       dto.category !== undefined ||
       dto.totalWeightKg !== undefined ||
       dto.pricePerKg !== undefined ||
       dto.totalPrice !== undefined ||
+      dto.unitPrice !== undefined ||
       dto.quantity !== undefined ||
       dto.animalIds !== undefined;
 
@@ -628,6 +713,7 @@ export class ListingsService {
       category?: ListingMarketCategory | undefined;
       totalWeightKg?: Prisma.Decimal | null;
       pricePerKg?: Prisma.Decimal | null;
+      unitPrice?: Prisma.Decimal | null;
       totalPrice?: Prisma.Decimal;
     } = {};
 
@@ -666,12 +752,24 @@ export class ListingsService {
           : listing.totalPrice != null
             ? Number(listing.totalPrice)
             : null;
-      const pricing = this.normalizeListingPricing(
-        normalizedCategory,
-        nextWeight,
-        nextPricePerKg,
-        nextTotalPrice
-      );
+      const nextUnitPrice =
+        dto.unitPrice !== undefined
+          ? dto.unitPrice
+          : listing.unitPrice != null
+            ? Number(listing.unitPrice)
+            : null;
+      const pricing = this.normalizeListingPricing({
+        category: normalizedCategory,
+        totalWeightKg: nextWeight,
+        pricePerKg: nextPricePerKg,
+        totalPrice: nextTotalPrice,
+        unitPrice: nextUnitPrice,
+        headcount: listingHeadcount(
+          nextAnimalIds,
+          nextAnimalId,
+          nextQuantity
+        )
+      });
 
       pricingUpdate = {
         category: normalizedCategory,
@@ -683,9 +781,26 @@ export class ListingsService {
           pricing.pricePerKg != null
             ? new Prisma.Decimal(pricing.pricePerKg)
             : null,
+        unitPrice:
+          pricing.unitPrice != null
+            ? new Prisma.Decimal(pricing.unitPrice)
+            : null,
         totalPrice: new Prisma.Decimal(pricing.totalPrice)
       };
     }
+
+    const nextCategory = pricingUpdate.category ?? listing.category;
+    const creditEnabledUpdate =
+      dto.creditEnabled !== undefined ||
+      dto.category !== undefined ||
+      pricingFieldsPresent
+        ? resolveListingCreditEnabled(
+            nextCategory,
+            dto.creditEnabled !== undefined
+              ? dto.creditEnabled
+              : listing.creditEnabled
+          )
+        : undefined;
 
     return this.prisma.marketplaceListing.update({
       where: { id },
@@ -714,7 +829,10 @@ export class ListingsService {
           ? { animalIds: dto.animalIds as Prisma.InputJsonValue }
           : {}),
         ...pricingUpdate,
-        ...(dto.breedLabel !== undefined ? { breedLabel: dto.breedLabel } : {})
+        ...(dto.breedLabel !== undefined ? { breedLabel: dto.breedLabel } : {}),
+        ...(creditEnabledUpdate !== undefined
+          ? { creditEnabled: creditEnabledUpdate }
+          : {})
       }
     });
   }
@@ -752,12 +870,22 @@ export class ListingsService {
       listing.animalId,
       listing.quantity
     );
-    const pricing = this.normalizeListingPricing(
-      normalizedCategory,
-      listing.totalWeightKg != null ? Number(listing.totalWeightKg) : null,
-      listing.pricePerKg != null ? Number(listing.pricePerKg) : null,
-      listing.totalPrice != null ? Number(listing.totalPrice) : null
-    );
+    const pricing = this.normalizeListingPricing({
+      category: normalizedCategory,
+      totalWeightKg:
+        listing.totalWeightKg != null ? Number(listing.totalWeightKg) : null,
+      pricePerKg:
+        listing.pricePerKg != null ? Number(listing.pricePerKg) : null,
+      totalPrice:
+        listing.totalPrice != null ? Number(listing.totalPrice) : null,
+      unitPrice:
+        listing.unitPrice != null ? Number(listing.unitPrice) : null,
+      headcount: listingHeadcount(
+        animalIds,
+        listing.animalId,
+        listing.quantity
+      )
+    });
 
     return this.prisma.marketplaceListing.update({
       where: { id },
@@ -774,7 +902,15 @@ export class ListingsService {
           pricing.pricePerKg != null
             ? new Prisma.Decimal(pricing.pricePerKg)
             : null,
+        unitPrice:
+          pricing.unitPrice != null
+            ? new Prisma.Decimal(pricing.unitPrice)
+            : null,
         totalPrice: new Prisma.Decimal(pricing.totalPrice),
+        creditEnabled: resolveListingCreditEnabled(
+          normalizedCategory,
+          listing.creditEnabled
+        ),
         ...(healthSummary !== undefined ? { healthSummary } : {})
       }
     });
@@ -880,9 +1016,13 @@ export class ListingsService {
   ) {
     const listing = await this.requireOwnerEditable(user, listingId);
     await this.requireMarketplaceWriteIfFarmListing(user.id, listing.farmId);
-    if (listing.status !== ListingStatus.reserved) {
+    if (
+      listing.status !== ListingStatus.reserved &&
+      listing.status !== ListingStatus.published &&
+      listing.status !== ListingStatus.delivered
+    ) {
       throw new BadRequestException(
-        "Cloture possible uniquement pour une annonce reservee"
+        "Cloture possible uniquement pour une annonce en cours de vente"
       );
     }
     if (!listing.farmId) {
@@ -923,14 +1063,29 @@ export class ListingsService {
       offer.buyer.fullName?.trim() || offer.buyer.id.slice(0, 8);
     const weightPerAnimal =
       animalIds.length > 0 ? dto.soldWeightKg / animalIds.length : dto.soldWeightKg;
+    const flatListing =
+      listing.category != null && usesFlatListingPrice(listing.category);
+    const unitPerHead =
+      flatListing && listing.unitPrice != null
+        ? Number(listing.unitPrice)
+        : null;
     const pricePerAnimal =
-      animalIds.length > 0 ? dto.totalPrice / animalIds.length : dto.totalPrice;
+      unitPerHead != null
+        ? unitPerHead
+        : animalIds.length > 0
+          ? dto.totalPrice / animalIds.length
+          : dto.totalPrice;
 
     const result = await this.prisma.$transaction(async (tx) => {
       const fresh = await tx.marketplaceListing.findUnique({
         where: { id: listingId }
       });
-      if (!fresh || fresh.status !== ListingStatus.reserved) {
+      if (
+        !fresh ||
+        (fresh.status !== ListingStatus.reserved &&
+          fresh.status !== ListingStatus.published &&
+          fresh.status !== ListingStatus.delivered)
+      ) {
         throw new BadRequestException("Annonce deja cloturee");
       }
 
@@ -949,7 +1104,10 @@ export class ListingsService {
           where: { id: animalId, farmId: listing.farmId! },
           include: {
             breed: { select: { name: true } },
-            penPlacements: { where: { endedAt: null } }
+            penPlacements: {
+              where: { endedAt: null },
+              select: { id: true, penId: true }
+            }
           }
         });
         if (!animal) {
@@ -1002,10 +1160,32 @@ export class ListingsService {
           });
         }
 
+        const penIds = animal.penPlacements.map((pl) => pl.penId);
+        const batchIdForExit = await resolveBatchIdForAnimalExit(tx, {
+          farmId: listing.farmId!,
+          animalId,
+          livestockBatchId: animal.livestockBatchId,
+          penIds
+        });
+
+        if (batchIdForExit) {
+          await decrementLivestockBatchHeadcount(tx, {
+            batchId: batchIdForExit,
+            farmId: listing.farmId!,
+            endedAt: soldAt
+          });
+          await syncLivestockBatchHeadcountFromMembers(
+            tx,
+            batchIdForExit,
+            listing.farmId!
+          );
+        }
+
         await tx.livestockExit.create({
           data: {
             farmId: listing.farmId!,
             animalId,
+            batchId: batchIdForExit,
             kind: LivestockExitKind.sale,
             occurredAt: soldAt,
             recordedByUserId: user.id,
@@ -1072,6 +1252,20 @@ export class ListingsService {
       { type: "marketplace_sale", listingId }
     );
 
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { completedTransactions: { increment: 1 } }
+    });
+    void this.pigPriceIndex.refreshSellerIndexWeight(user.id);
+
+    const soldAnimalIds = this.resolveListingAnimalIds(listing);
+    if (soldAnimalIds.length > 0) {
+      await this.listingAnimalSync.cancelIndividualListingsForAnimals(
+        soldAnimalIds,
+        listingId
+      );
+    }
+
     return result.listing;
   }
 
@@ -1119,5 +1313,122 @@ export class ListingsService {
       );
     }
     return stale.length;
+  }
+
+  /** Détail annonce pour la console superadmin (sans restriction de visibilité). */
+  async getForAdmin(id: string) {
+    const listing = await this.prisma.marketplaceListing.findUnique({
+      where: { id },
+      include: {
+        seller: { select: { id: true, fullName: true, email: true } },
+        farm: { select: { id: true, name: true } },
+        animal: {
+          select: {
+            id: true,
+            publicId: true,
+            tagCode: true,
+            sex: true,
+            status: true,
+            photoUrl: true
+          }
+        },
+        reservedForBuyer: { select: { id: true, fullName: true, email: true } },
+        offers: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            buyer: { select: { id: true, fullName: true, email: true } },
+            transaction: { select: { id: true, status: true } }
+          }
+        },
+        transactions: {
+          orderBy: { updatedAt: "desc" },
+          include: {
+            buyer: { select: { id: true, fullName: true, email: true } },
+            seller: { select: { id: true, fullName: true, email: true } }
+          }
+        }
+      }
+    });
+    if (!listing) {
+      throw new NotFoundException("Annonce introuvable");
+    }
+
+    const extra = await this.enrichListingPayload(
+      listing,
+      listing.seller.fullName
+    );
+    const [formatted] = await this.formatListingsForApi([listing]);
+    const {
+      seller: _seller,
+      farm: _farm,
+      animal: _animal,
+      reservedForBuyer: _reserved,
+      offers: _offers,
+      transactions: _transactions,
+      ...listingFields
+    } = formatted;
+
+    return {
+      ...this.serializeListingScalars(listingFields),
+      seller: listing.seller,
+      farm: listing.farm,
+      animal: listing.animal,
+      reservedForBuyer: listing.reservedForBuyer,
+      ...extra,
+      offers: listing.offers.map((offer) => ({
+        id: offer.id,
+        status: offer.status,
+        offerType: offer.offerType,
+        offeredPrice: Number(offer.offeredPrice),
+        message: offer.message,
+        createdAt: offer.createdAt.toISOString(),
+        buyer: offer.buyer,
+        transaction: offer.transaction
+      })),
+      transactions: listing.transactions.map((tx) => ({
+        id: tx.id,
+        status: tx.status,
+        blockedAmount: Number(tx.blockedAmount),
+        finalAmount: tx.finalAmount != null ? Number(tx.finalAmount) : null,
+        currency: tx.currency,
+        updatedAt: tx.updatedAt.toISOString(),
+        buyer: tx.buyer,
+        seller: tx.seller
+      }))
+    };
+  }
+
+  private serializeListingScalars<
+    T extends {
+      totalWeightKg?: unknown;
+      pricePerKg?: unknown;
+      totalPrice?: unknown;
+      unitPrice?: unknown;
+      publishedAt?: Date | null;
+      expiresAt?: Date | null;
+      pickupAt?: Date | null;
+      shippedAt?: Date | null;
+      deliveredAt?: Date | null;
+      disputedAt?: Date | null;
+      createdAt?: Date;
+      updatedAt?: Date;
+    }
+  >(row: T) {
+    return {
+      ...row,
+      totalWeightKg:
+        row.totalWeightKg != null ? Number(row.totalWeightKg) : null,
+      pricePerKg: row.pricePerKg != null ? Number(row.pricePerKg) : null,
+      totalPrice: row.totalPrice != null ? Number(row.totalPrice) : null,
+      unitPrice: row.unitPrice != null ? Number(row.unitPrice) : null,
+      publishedAt: row.publishedAt?.toISOString() ?? null,
+      expiresAt: row.expiresAt?.toISOString() ?? null,
+      pickupAt: row.pickupAt?.toISOString() ?? null,
+      shippedAt: row.shippedAt?.toISOString() ?? null,
+      deliveredAt: row.deliveredAt?.toISOString() ?? null,
+      disputedAt: row.disputedAt?.toISOString() ?? null,
+      createdAt: row.createdAt?.toISOString() ?? null,
+      updatedAt: row.updatedAt?.toISOString() ?? null
+    };
   }
 }

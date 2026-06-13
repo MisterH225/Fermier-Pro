@@ -12,11 +12,13 @@ import { AppState, type AppStateStatus } from "react-native";
 import type {
   AuthMeResponse,
   ClientConfigDto,
-  PlatformModuleDto
+  PlatformModuleDto,
+  SupportContactDto
 } from "../lib/api";
 import { formatApiError } from "../lib/apiErrors";
 import { fetchAuthMe, fetchClientConfig } from "../lib/api";
 import { queryClient } from "../lib/queryClient";
+import { resetNavigationToProfileHome } from "../lib/profileNavigationReset";
 const STORAGE_PROFILE_KEY = "@fermier_pro/active_profile_id";
 const AUTH_ME_CACHE_KEY = "@fermier_pro/auth_me_cache";
 
@@ -45,6 +47,8 @@ type SessionContextValue = {
   /** GET /config/client — défaut tout activé si échec réseau */
   clientFeatures: ClientConfigDto["features"];
   platformModules: PlatformModuleDto[];
+  /** Coordonnées support (téléphone / Telegram) depuis `/config/client`. */
+  supportContact: SupportContactDto;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -80,6 +84,10 @@ export function SessionProvider({
   const [platformModules, setPlatformModules] = useState<PlatformModuleDto[]>(
     []
   );
+  const [supportContact, setSupportContact] = useState<SupportContactDto>({
+    phone: null,
+    telegramUrl: null
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -88,12 +96,16 @@ export function SessionProvider({
         if (!cancelled) {
           setClientFeatures(cfg.features);
           setPlatformModules(cfg.modules ?? []);
+          setSupportContact(
+            cfg.support ?? { phone: null, telegramUrl: null }
+          );
         }
       })
       .catch(() => {
         if (!cancelled) {
           setClientFeatures({ ...DEFAULT_CLIENT_FEATURES });
           setPlatformModules([]);
+          setSupportContact({ phone: null, telegramUrl: null });
         }
       });
     return () => {
@@ -211,7 +223,11 @@ export function SessionProvider({
   const setActiveProfileId = useCallback(
     async (id: string | null) => {
       setAuthError(null);
+      const profileType = id
+        ? authMe?.profiles.find((p) => p.id === id)?.type
+        : undefined;
       setActiveProfileIdState(id);
+      resetNavigationToProfileHome(profileType);
       queryClient.removeQueries();
       if (id) {
         await AsyncStorage.setItem(STORAGE_PROFILE_KEY, id);
@@ -239,7 +255,7 @@ export function SessionProvider({
         }
       }
     },
-    [accessToken]
+    [accessToken, authMe?.profiles]
   );
 
   const signOut = useCallback(async () => {
@@ -260,7 +276,8 @@ export function SessionProvider({
       refreshAuthMe,
       reloadAuth,
       clientFeatures,
-      platformModules
+      platformModules,
+      supportContact
     }),
     [
       accessToken,
@@ -273,7 +290,8 @@ export function SessionProvider({
       refreshAuthMe,
       reloadAuth,
       clientFeatures,
-      platformModules
+      platformModules,
+      supportContact
     ]
   );
 

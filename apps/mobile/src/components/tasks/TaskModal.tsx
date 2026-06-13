@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -328,7 +329,7 @@ export function TaskModal({
         autoDismissMs: 2600
       });
     },
-    onError: (e: Error) => Alert.alert(t("tasksScreen.errorTitle"), e.message)
+    onError: (e: Error) => Alert.alert(t("tasksScreen.errorTitle"), getUserFacingError(e, t))
   });
 
   return (
@@ -348,7 +349,7 @@ export function TaskModal({
           disabled={saveMut.isPending}
         >
           {saveMut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.primaryBtnTx}>
               {isEdit ? t("tasksScreen.saveCta") : t("tasksScreen.createCta")}
@@ -527,7 +528,7 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.accent
   },
   pillTx: { ...mobileTypography.meta, color: mobileColors.textPrimary },
-  pillTxOn: { color: "#fff", fontWeight: "700" },
+  pillTxOn: { color: mobileColors.onAccent, fontWeight: "700" },
   optionScroll: { maxHeight: 168, marginBottom: mobileSpacing.xs },
   optionRow: {
     padding: mobileSpacing.md,
@@ -554,6 +555,6 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.md,
     alignItems: "center"
   },
-  primaryBtnTx: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  primaryBtnTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 },
   btnDisabled: { opacity: 0.6 }
 });

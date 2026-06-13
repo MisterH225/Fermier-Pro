@@ -12,6 +12,8 @@ import { CreateLivestockExitDto } from "./dto/create-livestock-exit.dto";
 const TERMINAL_ANIMAL_STATUS = new Set([
   "sold",
   "dead",
+  "exited",
+  "reformed",
   "slaughtered",
   "transferred"
 ]);

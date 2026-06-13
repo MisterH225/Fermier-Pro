@@ -11,6 +11,7 @@ export const techColors = {
   canvas: "#FFF8F5",
   background: "#FFFFFF",
   cardBg: "#FFFFFF",
+  onPrimary: mobileColors.onAccent,
   textPrimary: mobileColors.textPrimary,
   textSecondary: mobileColors.textSecondary,
   textMuted: "#B0B8C4",

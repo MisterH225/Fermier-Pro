@@ -23,6 +23,7 @@ import {
 } from "../../lib/api";
 import { mobileColors, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SettingsExpenseCategories">;
 
@@ -57,7 +58,7 @@ export function ExpenseCategoriesScreen({ route, navigation }: Props) {
       setNewName("");
       void qc.invalidateQueries({ queryKey: ["financeCategories", farmId] });
     },
-    onError: (e: Error) => Alert.alert(t("common.error"), e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const delMut = useMutation({
@@ -66,7 +67,7 @@ export function ExpenseCategoriesScreen({ route, navigation }: Props) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["financeCategories", farmId] });
     },
-    onError: (e: Error) => Alert.alert(t("common.error"), e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const expenses =
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#f2f2f7" },
   content: { padding: mobileSpacing.md, gap: mobileSpacing.sm },
   row: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 12,
     padding: mobileSpacing.md,
     flexDirection: "row",
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.lg
   },
   input: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 10,
     padding: mobileSpacing.md,
     ...mobileTypography.body
@@ -155,5 +156,5 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.md,
     alignItems: "center"
   },
-  addBtnTx: { color: "#fff", fontWeight: "600" }
+  addBtnTx: { color: mobileColors.onAccent, fontWeight: "600" }
 });

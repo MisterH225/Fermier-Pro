@@ -171,5 +171,5 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accent,
     borderColor: mobileColors.accent
   },
-  checkMark: { color: "#fff", fontWeight: "800", fontSize: 14 }
+  checkMark: { color: mobileColors.onAccent, fontWeight: "800", fontSize: 14 }
 });

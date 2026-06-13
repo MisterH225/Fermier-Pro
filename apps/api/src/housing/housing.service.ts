@@ -354,11 +354,9 @@ export class HousingService {
         }
       }
     });
-    if (kind === "animal") {
-      await this.prisma.$transaction(async (tx) => {
-        await this.penAllocation.recalculatePenCategory(tx, penId);
-      });
-    }
+    await this.prisma.$transaction(async (tx) => {
+      await this.penAllocation.recalculatePenCategory(tx, penId);
+    });
     return created;
   }
 

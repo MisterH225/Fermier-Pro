@@ -31,8 +31,9 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { useModal } from "../modals/useModal";
+import { getUserFacingError } from "../../lib/userFacingError";
 import { BaseModal } from "./BaseModal";
-import { SuccessModal } from "./SuccessModal";
 
 type Props = {
   visible: boolean;
@@ -76,6 +77,7 @@ export function SearchCollaboratorModal({ visible, farmId, onClose }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
+  const modal = useModal();
 
   const [identifier, setIdentifier] = useState("");
   const [searchResult, setSearchResult] =
@@ -91,7 +93,6 @@ export function SearchCollaboratorModal({ visible, farmId, onClose }: Props) {
     defaultPermissionsFor("technician")
   );
   const [message, setMessage] = useState("");
-  const [success, setSuccess] = useState<{ name: string } | null>(null);
 
   const canSearch = isMinValid(identifier);
 
@@ -104,7 +105,6 @@ export function SearchCollaboratorModal({ visible, farmId, onClose }: Props) {
     setRecipientKind("technician");
     setPermissions(defaultPermissionsFor("technician"));
     setMessage("");
-    setSuccess(null);
   };
 
   const handleClose = () => {
@@ -129,7 +129,7 @@ export function SearchCollaboratorModal({ visible, farmId, onClose }: Props) {
       setSearchError(null);
     },
     onError: (err: Error) => {
-      setSearchError(err.message);
+      setSearchError(getUserFacingError(err, t));
       setSearchResult(null);
     }
   });
@@ -153,13 +153,16 @@ export function SearchCollaboratorModal({ visible, farmId, onClose }: Props) {
       void qc.invalidateQueries({
         queryKey: ["farmPendingInvitations", farmId]
       });
-      setSuccess({
-        name:
-          res.recipientFirstName || recipient?.displayName.split(" ")[0] || ""
+      const name =
+        res.recipientFirstName || recipient?.displayName.split(" ")[0] || "";
+      modal.open("success", {
+        message: t("collab.searchByIdentifier.successMsg", { name }),
+        autoDismissMs: 2200
       });
+      onClose();
     },
     onError: (err: Error) => {
-      Alert.alert("", err.message);
+      Alert.alert(t("common.error"), getUserFacingError(err, t));
     }
   });
 
@@ -203,7 +206,7 @@ export function SearchCollaboratorModal({ visible, farmId, onClose }: Props) {
   return (
     <>
       <BaseModal
-        visible={visible && !success}
+        visible={visible}
         title={
           step === "search"
             ? t("collab.searchByIdentifier.title")
@@ -257,7 +260,7 @@ export function SearchCollaboratorModal({ visible, farmId, onClose }: Props) {
               accessibilityRole="button"
             >
               {searchMut.isPending ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={mobileColors.onAccent} />
               ) : (
                 <Text style={styles.primaryBtnTxt}>
                   {t("collab.searchByIdentifier.searchAction")}
@@ -404,7 +407,7 @@ export function SearchCollaboratorModal({ visible, farmId, onClose }: Props) {
                   >
                     <View style={[styles.permTick, on && styles.permTickOn]}>
                       {on ? (
-                        <Ionicons name="checkmark" size={16} color="#fff" />
+                        <Ionicons name="checkmark" size={16} color={mobileColors.onAccent} />
                       ) : null}
                     </View>
                     <View style={styles.permTexts}>
@@ -435,14 +438,6 @@ export function SearchCollaboratorModal({ visible, farmId, onClose }: Props) {
           </View>
         )}
       </BaseModal>
-
-      <SuccessModal
-        visible={Boolean(success)}
-        message={t("collab.searchByIdentifier.successMsg", {
-          name: success?.name ?? ""
-        })}
-        onClose={handleClose}
-      />
     </>
   );
 }
@@ -591,7 +586,7 @@ const styles = StyleSheet.create({
   },
   primaryBtnTxt: {
     ...mobileTypography.body,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700"
   },
   errorTxt: {

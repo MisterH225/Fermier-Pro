@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   },
   saveBtnTx: {
     ...mobileTypography.body,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "600"
   }
 });

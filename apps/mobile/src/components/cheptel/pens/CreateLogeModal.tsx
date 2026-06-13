@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -18,12 +18,14 @@ import {
   patchPen,
   type PenCategoryKey
 } from "../../../lib/api";
+import { getUserFacingError } from "../../../lib/userFacingError";
 import {
   mobileColors,
   mobileRadius,
   mobileSpacing,
   mobileTypography
 } from "../../../theme/mobileTheme";
+import { getPenVisualForCategory } from "./penUsageVisual";
 
 const CATEGORIES: PenCategoryKey[] = [
   "starter",
@@ -39,28 +41,62 @@ type Props = {
   accessToken: string;
   activeProfileId?: string | null;
   barns: Array<{ id: string; name: string }>;
+  /** Présélectionne le bâtiment à l’ouverture. */
+  defaultBarnId?: string;
+  /** Masque le sélecteur de bâtiment (ex. depuis un bâtiment). */
+  lockBarn?: boolean;
   onClose: () => void;
   onCreated: () => void;
 };
 
+function resolveBarnId(
+  barns: Array<{ id: string; name: string }>,
+  preferred?: string
+): string {
+  if (preferred && barns.some((b) => b.id === preferred)) {
+    return preferred;
+  }
+  return barns[0]?.id ?? "";
+}
+
+/** Modal unique de création de loge (cheptel, grille, bâtiment). */
 export function CreateLogeModal({
   visible,
   farmId,
   accessToken,
   activeProfileId,
   barns,
+  defaultBarnId,
+  lockBarn = false,
   onClose,
   onCreated
 }: Props) {
   const { t } = useTranslation();
   const { open } = useModal();
-  const [barnId, setBarnId] = useState(barns[0]?.id ?? "");
+  const [barnId, setBarnId] = useState(() =>
+    resolveBarnId(barns, defaultBarnId)
+  );
   const [name, setName] = useState("");
+  const [code, setCode] = useState("");
   const [capacity, setCapacity] = useState("12");
   const [category, setCategory] = useState<PenCategoryKey>("mixed");
   const [avgWeight, setAvgWeight] = useState("");
   const [avgAge, setAvgAge] = useState("");
   const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+    setBarnId(resolveBarnId(barns, defaultBarnId));
+    setName("");
+    setCode("");
+    setCapacity("12");
+    setCategory("mixed");
+    setAvgWeight("");
+    setAvgAge("");
+    setNotes("");
+  }, [visible, barns, defaultBarnId]);
 
   const saveMut = useMutation({
     mutationFn: async () => {
@@ -72,7 +108,11 @@ export function CreateLogeModal({
         accessToken,
         farmId,
         barnId,
-        { name: name.trim(), capacity: Number.isFinite(cap) ? cap : undefined },
+        {
+          name: name.trim(),
+          capacity: Number.isFinite(cap) ? cap : undefined,
+          ...(code.trim() ? { code: code.trim() } : {})
+        },
         activeProfileId
       );
       const w = avgWeight.trim() ? Number.parseFloat(avgWeight) : null;
@@ -81,6 +121,14 @@ export function CreateLogeModal({
         ageRaw == null || !Number.isFinite(ageRaw)
           ? null
           : Math.min(104, Math.max(0, ageRaw));
+      const hasPatch =
+        category !== "mixed" ||
+        Number.isFinite(w!) ||
+        ageWeeks != null ||
+        notes.trim().length > 0;
+      if (!hasPatch) {
+        return;
+      }
       await patchPen(
         accessToken,
         farmId,
@@ -103,7 +151,8 @@ export function CreateLogeModal({
         autoDismissMs: 2000
       });
     },
-    onError: (e: Error) => Alert.alert("", e.message)
+    onError: (e: Error) =>
+      Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   return (
@@ -118,7 +167,7 @@ export function CreateLogeModal({
           disabled={saveMut.isPending}
         >
           {saveMut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.primaryTx}>{t("cheptel.pens.createSubmit")}</Text>
           )}
@@ -126,69 +175,92 @@ export function CreateLogeModal({
       }
     >
       <ModalSection title={t("modals.sections.identification")}>
-      <Text style={styles.label}>{t("cheptel.pens.barn")}</Text>
-      <View style={styles.pillRow}>
-        {barns.map((b) => (
-          <Pressable
-            key={b.id}
-            style={[styles.pill, barnId === b.id && styles.pillOn]}
-            onPress={() => setBarnId(b.id)}
-          >
-            <Text style={[styles.pillTx, barnId === b.id && styles.pillTxOn]}>
-              {b.name}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-      <Text style={styles.label}>{t("cheptel.pens.penName")}</Text>
-      <TextInput style={styles.input} value={name} onChangeText={setName} />
-      <Text style={styles.label}>{t("cheptel.pens.capacity")}</Text>
-      <TextInput
-        style={styles.input}
-        value={capacity}
-        onChangeText={setCapacity}
-        keyboardType="number-pad"
-      />
-      <Text style={styles.label}>{t("cheptel.pens.categoryLabel")}</Text>
-      <View style={styles.pillRow}>
-        {CATEGORIES.map((c) => (
-          <Pressable
-            key={c}
-            style={[styles.pill, category === c && styles.pillOn]}
-            onPress={() => setCategory(c)}
-          >
-            <Text style={[styles.pillTx, category === c && styles.pillTxOn]}>
-              {t(`cheptel.pens.category.${c}`)}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+        {!lockBarn ? (
+          <>
+            <Text style={styles.label}>{t("cheptel.pens.barn")}</Text>
+            <View style={styles.pillRow}>
+              {barns.map((b) => (
+                <Pressable
+                  key={b.id}
+                  style={[styles.pill, barnId === b.id && styles.pillOn]}
+                  onPress={() => setBarnId(b.id)}
+                >
+                  <Text
+                    style={[styles.pillTx, barnId === b.id && styles.pillTxOn]}
+                  >
+                    {b.name}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        ) : null}
+        <Text style={styles.label}>{t("cheptel.pens.penName")}</Text>
+        <TextInput style={styles.input} value={name} onChangeText={setName} />
+        <Text style={styles.label}>{t("cheptel.pens.penCodeOptional")}</Text>
+        <TextInput style={styles.input} value={code} onChangeText={setCode} />
+        <Text style={styles.label}>{t("cheptel.pens.capacity")}</Text>
+        <TextInput
+          style={styles.input}
+          value={capacity}
+          onChangeText={setCapacity}
+          keyboardType="number-pad"
+        />
+        <Text style={styles.label}>{t("cheptel.pens.categoryLabel")}</Text>
+        <View style={styles.pillRow}>
+          {CATEGORIES.map((c) => {
+            const visual = getPenVisualForCategory(c);
+            const selected = category === c;
+            return (
+              <Pressable
+                key={c}
+                style={[
+                  styles.pill,
+                  {
+                    backgroundColor: selected ? visual.bg : mobileColors.background,
+                    borderColor: selected ? visual.accent : mobileColors.border
+                  }
+                ]}
+                onPress={() => setCategory(c)}
+              >
+                <Text
+                  style={[
+                    styles.pillTx,
+                    selected ? { color: visual.accent, fontWeight: "700" } : null
+                  ]}
+                >
+                  {t(`cheptel.pens.category.${c}`)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </ModalSection>
 
       <ModalSection title={t("modals.sections.details")}>
-      <Text style={styles.label}>{t("cheptel.pens.avgWeightInitial")}</Text>
-      <TextInput
-        style={styles.input}
-        value={avgWeight}
-        onChangeText={setAvgWeight}
-        keyboardType="decimal-pad"
-      />
-      <Text style={styles.label}>{t("cheptel.pens.avgAgeInitial")}</Text>
-      <TextInput
-        style={styles.input}
-        value={avgAge}
-        onChangeText={setAvgAge}
-        keyboardType="number-pad"
-        placeholder="8"
-      />
-      <Text style={styles.helper}>{t("cheptel.pens.avgAgeHelper")}</Text>
-      <Text style={styles.label}>{t("cheptel.pens.notes")}</Text>
-      <TextInput
-        style={[styles.input, styles.multiline]}
-        value={notes}
-        onChangeText={setNotes}
-        multiline
-      />
+        <Text style={styles.label}>{t("cheptel.pens.avgWeightInitial")}</Text>
+        <TextInput
+          style={styles.input}
+          value={avgWeight}
+          onChangeText={setAvgWeight}
+          keyboardType="decimal-pad"
+        />
+        <Text style={styles.label}>{t("cheptel.pens.avgAgeInitial")}</Text>
+        <TextInput
+          style={styles.input}
+          value={avgAge}
+          onChangeText={setAvgAge}
+          keyboardType="number-pad"
+          placeholder="8"
+        />
+        <Text style={styles.helper}>{t("cheptel.pens.avgAgeHelper")}</Text>
+        <Text style={styles.label}>{t("cheptel.pens.notes")}</Text>
+        <TextInput
+          style={[styles.input, styles.multiline]}
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+        />
       </ModalSection>
     </BaseModal>
   );
@@ -234,5 +306,5 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center"
   },
-  primaryTx: { color: "#fff", fontWeight: "700" }
+  primaryTx: { color: mobileColors.onAccent, fontWeight: "700" }
 });

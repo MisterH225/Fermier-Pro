@@ -4,10 +4,12 @@ import {
   InternalServerErrorException,
   Logger
 } from "@nestjs/common";
-import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { SupabaseAdminService } from "../auth/supabase-admin.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
+import { FarmMarketplaceLifecycleService } from "../marketplace/farm-marketplace-lifecycle.service";
+import { REPORTS_STORAGE_BUCKET } from "../reports/reports.constants";
+import { FarmDataPurgeService } from "./farm-data-purge.service";
 
 function storagePathFromPublicUrl(
   url: string | null | undefined,
@@ -24,6 +26,23 @@ function storagePathFromPublicUrl(
   return decodeURIComponent(url.slice(idx + marker.length).split("?")[0]);
 }
 
+function reportPdfStoragePath(
+  pdfUrl: string | null | undefined
+): string | null {
+  if (!pdfUrl?.trim()) {
+    return null;
+  }
+  const trimmed = pdfUrl.trim();
+  const fromReports = storagePathFromPublicUrl(trimmed, REPORTS_STORAGE_BUCKET);
+  if (fromReports) {
+    return fromReports;
+  }
+  if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+    return trimmed.replace(/^\/+/, "");
+  }
+  return storagePathFromPublicUrl(trimmed, "finance-proofs");
+}
+
 @Injectable()
 export class FarmDeletionService {
   private readonly logger = new Logger(FarmDeletionService.name);
@@ -31,7 +50,9 @@ export class FarmDeletionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly supabaseAdmin: SupabaseAdminService,
-    private readonly push: PushNotificationsService
+    private readonly push: PushNotificationsService,
+    private readonly marketplaceLifecycle: FarmMarketplaceLifecycleService,
+    private readonly farmDataPurge: FarmDataPurgeService
   ) {}
 
   async deleteFarm(farmId: string, actorUserId: string): Promise<void> {
@@ -52,6 +73,7 @@ export class FarmDeletionService {
     });
 
     const storagePaths: string[] = [];
+    const reportPdfPaths: string[] = [];
 
     const [expenses, revenues, reports, listings, animals, healthRecords, vetProfiles] =
       await Promise.all([
@@ -94,8 +116,10 @@ export class FarmDeletionService {
       if (p) storagePaths.push(p);
     }
     for (const row of reports) {
-      const p = storagePathFromPublicUrl(row.pdfUrl, "finance-proofs");
-      if (p) storagePaths.push(p);
+      const p = reportPdfStoragePath(row.pdfUrl);
+      if (p) {
+        reportPdfPaths.push(p);
+      }
     }
     for (const listing of listings) {
       const urls = Array.isArray(listing.photoUrls)
@@ -132,6 +156,12 @@ export class FarmDeletionService {
     try {
       await this.supabaseAdmin.removeStorageObjects("finance-proofs", storagePaths);
       await this.supabaseAdmin.removeStorageObjects("avatars", storagePaths);
+      if (reportPdfPaths.length > 0) {
+        await this.supabaseAdmin.removeStorageObjects(
+          REPORTS_STORAGE_BUCKET,
+          reportPdfPaths
+        );
+      }
     } catch (err) {
       this.logger.warn(
         `Storage cleanup partial: ${err instanceof Error ? err.message : String(err)}`
@@ -139,13 +169,20 @@ export class FarmDeletionService {
     }
 
     try {
+      let deleteNotices: Awaited<
+        ReturnType<FarmMarketplaceLifecycleService["applyFarmDeleted"]>
+      >["notices"] = [];
       await this.prisma.$transaction(
         async (tx) => {
-          await this.purgeFarmData(tx, farmId);
+          deleteNotices = await this.farmDataPurge.purgeFarmWithinTransaction(
+            tx,
+            farmId
+          );
           await tx.farm.delete({ where: { id: farmId } });
         },
         { maxWait: 15_000, timeout: 120_000 }
       );
+      this.marketplaceLifecycle.dispatchBuyerNotices(deleteNotices);
     } catch (err) {
       this.logger.error(
         `Farm deletion rollback for farm ${farmId}`,
@@ -155,120 +192,5 @@ export class FarmDeletionService {
         "La suppression du projet a échoué. Aucune donnée n'a été modifiée."
       );
     }
-  }
-
-  private async purgeFarmData(
-    tx: Prisma.TransactionClient,
-    farmId: string
-  ): Promise<void> {
-    await tx.user.updateMany({
-      where: { activeFarmId: farmId },
-      data: { activeFarmId: null }
-    });
-
-    await tx.farmBudgetLine.deleteMany({
-      where: { budget: { farmId } }
-    });
-    await tx.farmBudgetSuggestion.deleteMany({ where: { farmId } });
-    await tx.farmBudget.deleteMany({ where: { farmId } });
-
-    await tx.litter.deleteMany({ where: { farmId } });
-    await tx.gestationVaccine.deleteMany({
-      where: { gestation: { farmId } }
-    });
-    await tx.gestationChecklistItem.deleteMany({
-      where: { gestation: { farmId } }
-    });
-    await tx.gestation.deleteMany({ where: { farmId } });
-
-    await tx.healthMortalityDetail.deleteMany({
-      where: { healthRecord: { farmId } }
-    });
-    await tx.healthTreatmentDetail.deleteMany({
-      where: { healthRecord: { farmId } }
-    });
-    await tx.healthVetVisitDetail.deleteMany({
-      where: { healthRecord: { farmId } }
-    });
-    await tx.healthDiseaseDetail.deleteMany({
-      where: { healthRecord: { farmId } }
-    });
-    await tx.healthVaccinationDetail.deleteMany({
-      where: { healthRecord: { farmId } }
-    });
-    await tx.vaccineRecord.deleteMany({ where: { farmId } });
-    await tx.farmHealthRecord.deleteMany({ where: { farmId } });
-
-    await tx.livestockBatchHealthEvent.deleteMany({
-      where: { batch: { farmId } }
-    });
-    await tx.livestockBatchWeight.deleteMany({
-      where: { batch: { farmId } }
-    });
-
-    await tx.livestockExit.deleteMany({
-      where: { OR: [{ farmId }, { toFarmId: farmId }] }
-    });
-
-    await tx.penLog.deleteMany({ where: { pen: { barn: { farmId } } } });
-    await tx.penPlacement.deleteMany({ where: { pen: { barn: { farmId } } } });
-    await tx.pen.deleteMany({ where: { barn: { farmId } } });
-    await tx.barn.deleteMany({ where: { farmId } });
-
-    await tx.livestockBatch.deleteMany({ where: { farmId } });
-
-    await tx.animalWeight.deleteMany({ where: { animal: { farmId } } });
-    await tx.taskNotification.deleteMany({ where: { task: { farmId } } });
-    await tx.farmTask.deleteMany({ where: { farmId } });
-
-    await tx.vetConsultationAttachment.deleteMany({
-      where: { consultation: { farmId } }
-    });
-    await tx.vetConsultation.deleteMany({ where: { farmId } });
-
-    await tx.animal.deleteMany({ where: { farmId } });
-
-    await tx.feedReconciliationRejection.deleteMany({ where: { farmId } });
-    await tx.feedStockMovement.deleteMany({ where: { farmId } });
-    await tx.feedType.deleteMany({ where: { farmId } });
-
-    await tx.standardVaccine.deleteMany({ where: { farmId } });
-
-    await tx.marketplaceOffer.deleteMany({
-      where: { listing: { farmId } }
-    });
-    await tx.buyerFavorite.deleteMany({
-      where: { listing: { farmId } }
-    });
-    await tx.marketplaceListing.deleteMany({ where: { farmId } });
-
-    await tx.memberActivityLog.deleteMany({ where: { farmId } });
-    await tx.farmMembership.deleteMany({ where: { farmId } });
-    await tx.farmInvitation.deleteMany({ where: { farmId } });
-    await tx.farmMarketRating.deleteMany({ where: { farmId } });
-
-    await tx.chatMessage.deleteMany({ where: { room: { farmId } } });
-    await tx.chatRoomMember.deleteMany({ where: { room: { farmId } } });
-    await tx.chatRoom.deleteMany({ where: { farmId } });
-
-    await tx.vetRating.deleteMany({ where: { ratedByFarmId: farmId } });
-
-    await tx.smartAlert.deleteMany({ where: { farmId } });
-    await tx.farmAlertSettings.deleteMany({ where: { farmId } });
-
-    await tx.farmReport.deleteMany({ where: { farmId } });
-
-    await tx.farmExpense.deleteMany({ where: { farmId } });
-    await tx.farmRevenue.deleteMany({ where: { farmId } });
-    await tx.financeCategory.deleteMany({ where: { farmId } });
-    await tx.farmFinanceSettings.deleteMany({ where: { farmId } });
-
-    await tx.farmGmqSettings.deleteMany({ where: { farmId } });
-    await tx.gestationSettings.deleteMany({ where: { farmId } });
-    await tx.farmProfitabilitySettings.deleteMany({ where: { farmId } });
-    await tx.farmAppSettings.deleteMany({ where: { farmId } });
-
-    await tx.livestockStatusLog.deleteMany({ where: { farmId } });
-    await tx.auditLog.deleteMany({ where: { farmId } });
   }
 }

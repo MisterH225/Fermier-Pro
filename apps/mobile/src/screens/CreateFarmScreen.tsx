@@ -1,4 +1,7 @@
+import { CommonActions } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { getUserFacingError } from "../lib/userFacingError";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
@@ -11,8 +14,15 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useActiveProject } from "../context/ActiveProjectContext";
 import { useSession } from "../context/SessionContext";
-import { createFarm, type CreateFarmPayload } from "../lib/api";
+import { createFarm, type CreateFarmPayload, type FarmDto } from "../lib/api";
+import {
+  mobileColors,
+  mobileRadius,
+  mobileSpacing,
+  mobileTypography
+} from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
 const PRODUCER = "producer";
@@ -26,7 +36,9 @@ const MODES = [
 ];
 
 export function CreateFarmScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const { accessToken, authMe } = useSession();
+  const { setActiveFarm, refreshFarms } = useActiveProject();
   const queryClient = useQueryClient();
 
   const producerProfile = useMemo(
@@ -35,7 +47,6 @@ export function CreateFarmScreen({ navigation }: Props) {
   );
 
   const [name, setName] = useState("");
-  const [speciesFocus, setSpeciesFocus] = useState("porcin");
   const [livestockMode, setLivestockMode] =
     useState<CreateFarmPayload["livestockMode"]>("batch");
   const [address, setAddress] = useState("");
@@ -47,32 +58,38 @@ export function CreateFarmScreen({ navigation }: Props) {
       }
       return createFarm(accessToken, producerProfile.id, payload);
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["farms"] });
-      void queryClient.invalidateQueries({ queryKey: ["farm"] });
-      navigation.goBack();
+    onSuccess: async (farm: FarmDto) => {
+      await setActiveFarm(farm.id);
+      await refreshFarms();
+      queryClient.clear();
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "ProducerDashboard" }]
+        })
+      );
     },
     onError: (e: Error) => {
-      Alert.alert("Création impossible", e.message);
+      Alert.alert("Création impossible", getUserFacingError(e, t));
     }
   });
 
   const submit = () => {
     const n = name.trim();
     if (!n) {
-      Alert.alert("Nom requis", "Indique le nom de la ferme.");
+      Alert.alert("Nom requis", "Indiquez le nom de la ferme.");
       return;
     }
     if (!producerProfile) {
       Alert.alert(
         "Profil producteur",
-        "Ce compte n’a pas encore de profil producteur côté serveur."
+        "Ce compte ne peut pas créer de ferme pour le moment."
       );
       return;
     }
     const payload: CreateFarmPayload = {
       name: n,
-      speciesFocus: speciesFocus.trim() || undefined,
+      speciesFocus: "porcin",
       livestockMode,
       address: address.trim() || undefined
     };
@@ -83,8 +100,8 @@ export function CreateFarmScreen({ navigation }: Props) {
     return (
       <View style={styles.centered}>
         <Text style={styles.warn}>
-          Tu n’as pas de profil producteur. Le MVP suppose au moins ce profil
-          pour créer une ferme (API POST /farms).
+          Ce compte ne peut pas créer de ferme pour le moment. Contactez le
+          support si le problème persiste.
         </Text>
       </View>
     );
@@ -102,27 +119,22 @@ export function CreateFarmScreen({ navigation }: Props) {
         value={name}
         onChangeText={setName}
         placeholder="Ex. Élevage du plateau"
-        placeholderTextColor="#999"
+        placeholderTextColor={mobileColors.textSecondary}
       />
 
-      <Text style={styles.label}>Espèce / focus</Text>
-      <TextInput
-        style={styles.input}
-        value={speciesFocus}
-        onChangeText={setSpeciesFocus}
-        placeholder="porcin"
-        placeholderTextColor="#999"
-      />
+      <Text style={styles.label}>Espèce</Text>
+      <View style={styles.readOnlyField}>
+        <Text style={styles.readOnlyText}>Porcin</Text>
+      </View>
 
-      <Text style={styles.label}>Mode d’élevage</Text>
+      <Text style={styles.label}>Mode d&apos;élevage</Text>
       <View style={styles.modeRow}>
         {MODES.map((m) => (
           <TouchableOpacity
             key={m.value}
             style={[
               styles.modeChip,
-              livestockMode === m.value && styles.modeChipOn,
-              { marginRight: 8, marginBottom: 8 }
+              livestockMode === m.value && styles.modeChipOn
             ]}
             onPress={() => setLivestockMode(m.value)}
           >
@@ -144,29 +156,21 @@ export function CreateFarmScreen({ navigation }: Props) {
         value={address}
         onChangeText={setAddress}
         placeholder="Commune, route…"
-        placeholderTextColor="#999"
+        placeholderTextColor={mobileColors.textSecondary}
         multiline
       />
 
       <TouchableOpacity
-        style={[
-          styles.submit,
-          mutation.isPending && styles.submitDisabled
-        ]}
+        style={[styles.submit, mutation.isPending && styles.submitDisabled]}
         onPress={submit}
         disabled={mutation.isPending}
       >
         {mutation.isPending ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={mobileColors.onAccent} />
         ) : (
           <Text style={styles.submitText}>Créer la ferme</Text>
         )}
       </TouchableOpacity>
-
-      <Text style={styles.note}>
-        L’API exige le profil producteur (en-tête automatique). Tu peux rester
-        sur un autre profil actif ailleurs dans l’app.
-      </Text>
     </ScrollView>
   );
 }
@@ -174,40 +178,52 @@ export function CreateFarmScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   scroll: {
     flex: 1,
-    backgroundColor: "#f9f8ea"
+    backgroundColor: mobileColors.canvas
   },
   content: {
-    padding: 16,
+    padding: mobileSpacing.lg,
     paddingBottom: 40
   },
   centered: {
     flex: 1,
     justifyContent: "center",
-    padding: 24,
-    backgroundColor: "#f9f8ea"
+    padding: mobileSpacing.xl,
+    backgroundColor: mobileColors.canvas
   },
   warn: {
-    color: "#8b4513",
-    fontSize: 15,
-    lineHeight: 22
+    ...mobileTypography.body,
+    color: mobileColors.textPrimary,
+    lineHeight: 22,
+    textAlign: "center"
   },
   label: {
-    fontSize: 12,
-    color: "#6d745b",
+    ...mobileTypography.meta,
+    fontWeight: "600",
+    color: mobileColors.textSecondary,
     marginBottom: 6,
-    marginTop: 12,
-    textTransform: "uppercase",
-    letterSpacing: 0.5
+    marginTop: mobileSpacing.md
   },
   input: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderWidth: 1,
-    borderColor: "#e0e4d4",
-    borderRadius: 12,
+    borderColor: mobileColors.border,
+    borderRadius: mobileRadius.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 16,
-    color: "#1f2910"
+    ...mobileTypography.body,
+    color: mobileColors.textPrimary
+  },
+  readOnlyField: {
+    backgroundColor: mobileColors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: mobileColors.border,
+    borderRadius: mobileRadius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 12
+  },
+  readOnlyText: {
+    ...mobileTypography.body,
+    color: mobileColors.textSecondary
   },
   inputMulti: {
     minHeight: 72,
@@ -215,47 +231,42 @@ const styles = StyleSheet.create({
   },
   modeRow: {
     flexDirection: "row",
-    flexWrap: "wrap"
+    flexWrap: "wrap",
+    gap: mobileSpacing.sm
   },
   modeChip: {
     paddingVertical: 10,
     paddingHorizontal: 14,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     borderWidth: 1,
-    borderColor: "#e0e4d4",
-    backgroundColor: "#fff"
+    borderColor: mobileColors.border,
+    backgroundColor: mobileColors.background
   },
   modeChipOn: {
-    borderColor: "#5d7a1f",
-    backgroundColor: "#e8efd9"
+    borderColor: mobileColors.accent,
+    backgroundColor: mobileColors.accentSoft
   },
   modeChipText: {
-    color: "#4b513d",
-    fontSize: 14
+    ...mobileTypography.body,
+    color: mobileColors.textSecondary
   },
   modeChipTextOn: {
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     fontWeight: "600"
   },
   submit: {
-    marginTop: 28,
-    backgroundColor: "#5d7a1f",
+    marginTop: mobileSpacing.xl,
+    backgroundColor: mobileColors.accent,
     paddingVertical: 16,
-    borderRadius: 14,
+    borderRadius: mobileRadius.pill,
     alignItems: "center"
   },
   submitDisabled: {
     opacity: 0.7
   },
   submitText: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 17,
     fontWeight: "700"
-  },
-  note: {
-    marginTop: 20,
-    fontSize: 12,
-    color: "#6d745b",
-    lineHeight: 17
   }
 });

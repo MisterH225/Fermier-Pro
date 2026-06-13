@@ -20,6 +20,8 @@ import { SaleModal, type SaleResult } from "../components/cheptel/animals/SaleMo
 import { DiseaseModal } from "../components/shared/DiseaseModal";
 import { TransferModal } from "../components/cheptel/animals/TransferModal";
 import { CreateAnimalModal } from "../components/cheptel/animals/CreateAnimalModal";
+import { BulkAddAnimalsModal } from "../components/cheptel/animals/BulkAddAnimalsModal";
+import { EditPenCapacityModal } from "../components/cheptel/pens/EditPenCapacityModal";
 import { AddWeightModal } from "../components/cheptel/weight/AddWeightModal";
 import { CreateGestationModal } from "../components/shared/CreateGestationModal";
 import { useModal } from "../components/modals/useModal";
@@ -32,15 +34,20 @@ import {
   patchPenAverages,
   type AnimalListItem,
   type PenAnimalRowDto,
-  type PenBatchRowDto,
-  type PenUsageTag
+  type PenBatchRowDto
 } from "../lib/api";
+import {
+  getPenVisualForPen,
+  penVisualI18nKey,
+  resolvePenVisualKey
+} from "../components/cheptel/pens/penUsageVisual";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import type { RootStackParamList } from "../types/navigation";
 import {
   mobileColors,
   mobileRadius,
   mobileSpacing,
+  mobileStatusSurfaces,
   mobileTypography
 } from "../theme/mobileTheme";
 
@@ -52,6 +59,14 @@ function batchCategoryLabel(
   t: (key: string) => string
 ): string {
   const k = (categoryKey ?? "").toLowerCase();
+  if (
+    k.includes("sous_mere") ||
+    k.includes("lactation") ||
+    k.includes("allaitement") ||
+    k.includes("nursing")
+  ) {
+    return t("cheptel.pens.batchCategoryNursing");
+  }
   if (
     k === "nursery" ||
     k.includes("starter") ||
@@ -119,6 +134,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
   const [filter, setFilter] = useState<AnimalFilter>("all");
   const [avgWeight, setAvgWeight] = useState("");
   const [avgAge, setAvgAge] = useState("");
+  const [capacityEditOpen, setCapacityEditOpen] = useState(false);
   const [actionAnimal, setActionAnimal] = useState<PenAnimalRowDto | null>(null);
   const [statusAnimal, setStatusAnimal] = useState<AnimalListItem | null>(null);
   const [saleAnimal, setSaleAnimal] = useState<AnimalListItem | null>(null);
@@ -127,6 +143,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
   const [weightAnimal, setWeightAnimal] = useState<AnimalListItem | null>(null);
   const [detailAnimal, setDetailAnimal] = useState<AnimalListItem | null>(null);
   const [isCreateAnimalVisible, setIsCreateAnimalVisible] = useState(false);
+  const [isBulkAnimalVisible, setIsBulkAnimalVisible] = useState(false);
   const [gestationSow, setGestationSow] = useState<PenAnimalRowDto | null>(null);
   const modal = useModal();
 
@@ -218,19 +235,9 @@ export function LogeDetailScreen({ route, navigation }: Props) {
     }
   });
 
-  const penUsage: PenUsageTag =
-    penMeta?.usageTag ??
-    (penMeta?.category === "maternity"
-      ? "sows"
-      : penMeta?.category === "starter" ||
-          penMeta?.category === "fattening" ||
-          penMeta?.category === "empty"
-        ? penMeta.category
-        : "mixed");
-
-  const usageLabel = t(`cheptel.pens.usage.${penUsage}`, {
-    defaultValue: t(`cheptel.pens.category.${penMeta?.category ?? "mixed"}`)
-  });
+  const penVisual = penMeta ? getPenVisualForPen(penMeta) : null;
+  const penVisualKey = penMeta ? resolvePenVisualKey(penMeta) : "empty";
+  const usageLabel = t(`cheptel.pens.visual.${penVisualI18nKey(penVisualKey)}`);
 
   const filteredAnimals = useMemo(() => {
     const rows = contentsQ.data?.animals ?? [];
@@ -269,6 +276,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
     void qc.invalidateQueries({ queryKey: ["penContents", farmId, penId] });
     void qc.invalidateQueries({ queryKey: ["cheptelPens", farmId] });
     void qc.invalidateQueries({ queryKey: ["farmAnimals", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmCheptel", farmId] });
   };
 
   if (contentsQ.isPending || !penMeta) {
@@ -282,13 +290,53 @@ export function LogeDetailScreen({ route, navigation }: Props) {
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.infoCard}>
+        <View
+          style={[
+            styles.infoCard,
+            penVisual
+              ? {
+                  backgroundColor: penVisual.bg,
+                  borderColor: penVisual.border,
+                  borderLeftWidth: 4,
+                  borderLeftColor: penVisual.accent
+                }
+              : null
+          ]}
+        >
           <Text style={styles.infoLab}>{t("cheptel.pens.categoryLabel")}</Text>
-          <Text style={styles.infoVal}>{usageLabel}</Text>
+          <View
+            style={[
+              styles.categoryBadge,
+              penVisual ? { backgroundColor: penVisual.iconBg } : null
+            ]}
+          >
+            <Text
+              style={[
+                styles.infoVal,
+                penVisual ? { color: penVisual.accent, fontWeight: "700" } : null
+              ]}
+            >
+              {usageLabel}
+            </Text>
+          </View>
           <Text style={styles.infoLab}>{t("cheptel.pens.occupancy")}</Text>
           <Text style={styles.infoVal}>
             {penMeta.occupancy} / {penMeta.capacity || "—"}
           </Text>
+          <Text style={styles.infoLab}>{t("cheptel.pens.capacity")}</Text>
+          <View style={styles.capacityRow}>
+            <Text style={styles.infoVal}>
+              {penMeta.capacity > 0 ? penMeta.capacity : "—"}
+            </Text>
+            <Pressable
+              style={styles.editCapBtn}
+              onPress={() => setCapacityEditOpen(true)}
+            >
+              <Text style={styles.editCapBtnText}>
+                {t("cheptel.pens.editCapacityAction")}
+              </Text>
+            </Pressable>
+          </View>
           <Text style={styles.infoLab}>{t("cheptel.pens.avgWeightField")}</Text>
           <TextInput
             style={styles.input}
@@ -379,8 +427,18 @@ export function LogeDetailScreen({ route, navigation }: Props) {
           <Pressable
             style={styles.quickBtn}
             onPress={() => setIsCreateAnimalVisible(true)}
+            onLongPress={() => setIsBulkAnimalVisible(true)}
+            delayLongPress={400}
           >
             <Text style={styles.quickTx}>➕ {t("cheptel.pens.addAnimal")}</Text>
+          </Pressable>
+          <Pressable
+            style={styles.quickBtn}
+            onPress={() => setIsBulkAnimalVisible(true)}
+          >
+            <Text style={styles.quickTx}>
+              ➕➕ {t("cheptel.pens.addSeveral")}
+            </Text>
           </Pressable>
         </View>
 
@@ -614,7 +672,35 @@ export function LogeDetailScreen({ route, navigation }: Props) {
             : null
         }
         onClose={() => setIsCreateAnimalVisible(false)}
-        onCreated={invalidate}
+        onCreated={invalidateCheptel}
+      />
+
+      <BulkAddAnimalsModal
+        visible={isBulkAnimalVisible}
+        farmId={farmId}
+        accessToken={accessToken!}
+        activeProfileId={activeProfileId}
+        targetPen={
+          penMeta
+            ? {
+                penId,
+                penName: penMeta.name,
+                barnName: penMeta.barnName
+              }
+            : null
+        }
+        onClose={() => setIsBulkAnimalVisible(false)}
+        onCreated={invalidateCheptel}
+      />
+
+      <EditPenCapacityModal
+        visible={capacityEditOpen && penMeta != null}
+        pen={penMeta ?? null}
+        farmId={farmId}
+        accessToken={accessToken!}
+        activeProfileId={activeProfileId}
+        onClose={() => setCapacityEditOpen(false)}
+        onSaved={invalidateCheptel}
       />
 
       <AnimalDetailModal
@@ -672,6 +758,31 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: mobileColors.textPrimary
   },
+  categoryBadge: {
+    alignSelf: "flex-start",
+    borderRadius: mobileRadius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginTop: 2,
+    marginBottom: 4
+  },
+  capacityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: mobileSpacing.sm
+  },
+  editCapBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: mobileRadius.pill,
+    backgroundColor: mobileColors.accentSoft
+  },
+  editCapBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: mobileColors.accent
+  },
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
@@ -709,9 +820,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: mobileRadius.pill,
-    backgroundColor: "#DCFCE7"
+    backgroundColor: mobileStatusSurfaces.successBg
   },
-  autoBadgeTx: { fontSize: 12, fontWeight: "600", color: "#166534" },
+  autoBadgeTx: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: mobileStatusSurfaces.successText
+  },
   manualBadge: {
     alignSelf: "flex-start",
     marginTop: 8,

@@ -41,4 +41,14 @@ export class RecordLitterDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  /** Loge de destination pour la portée (bande starter). */
+  @IsOptional()
+  @IsString()
+  penId?: string;
+
+  /** Transférer la truie dans la même loge que la portée. */
+  @IsOptional()
+  @IsBoolean()
+  transferSowWithLitter?: boolean;
 }

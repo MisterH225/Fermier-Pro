@@ -1,16 +1,17 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View
 } from "react-native";
 import { AppDatePicker } from "../../common/AppDatePicker";
+import { AppTextField } from "../../common/AppTextField";
 import { BaseModal } from "../../modals/BaseModal";
 import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
@@ -19,6 +20,7 @@ import {
   fetchNextAnimalNumber,
   fetchTaxonomy,
   postAnimalWeight,
+  startPenPlacement,
   type AnimalDetail,
   type CreateAnimalPayload
 } from "../../../lib/api";
@@ -179,6 +181,19 @@ export function CreateAnimalModal({
     };
   };
 
+  const invalidateAnimalQueries = () => {
+    void qc.invalidateQueries({ queryKey: ["penContents", farmId] });
+    void qc.invalidateQueries({ queryKey: ["cheptelPens", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmAnimals", farmId] });
+    void qc.invalidateQueries({ queryKey: ["farmCheptel", farmId] });
+    void qc.invalidateQueries({ queryKey: ["cheptelHistory", farmId] });
+    if (targetPen?.penId) {
+      void qc.invalidateQueries({
+        queryKey: ["penContents", farmId, targetPen.penId]
+      });
+    }
+  };
+
   const saveMut = useOfflineMutation({
     farmId,
     type: "cheptel.createAnimal",
@@ -192,6 +207,15 @@ export function CreateAnimalModal({
         payload,
         activeProfileId
       );
+      if (targetPen?.penId) {
+        await startPenPlacement(
+          accessToken,
+          farmId,
+          targetPen.penId,
+          { animalId: created.id },
+          activeProfileId
+        );
+      }
       const w = Number.parseFloat(entryWeight.replace(",", "."));
       if (Number.isFinite(w) && w > 0) {
         await postAnimalWeight(
@@ -218,6 +242,13 @@ export function CreateAnimalModal({
           body: payload
         }
       ];
+      if (targetPen?.penId) {
+        calls.push({
+          method: "POST",
+          path: `/farms/${farmId}/pens/${targetPen.penId}/placements`,
+          body: { animalId: "{{0.id}}" }
+        });
+      }
       if (Number.isFinite(w) && w > 0) {
         calls.push({
           method: "POST",
@@ -231,7 +262,8 @@ export function CreateAnimalModal({
           "farmAnimals",
           "farmCheptel",
           "cheptelPens",
-          "cheptelHistory"
+          "cheptelHistory",
+          "penContents"
         ]
       };
     },
@@ -246,6 +278,7 @@ export function CreateAnimalModal({
       );
     },
     onSuccess: (data) => {
+      invalidateAnimalQueries();
       onCreated();
       onClose();
       open("success", {
@@ -256,6 +289,7 @@ export function CreateAnimalModal({
       });
     },
     onQueued: () => {
+      invalidateAnimalQueries();
       onCreated();
       onClose();
       open("success", {
@@ -264,7 +298,7 @@ export function CreateAnimalModal({
       });
     },
     onError: (e: Error) => {
-      Alert.alert(t("cheptel.animals.create.errorTitle"), e.message);
+      Alert.alert(t("cheptel.animals.create.errorTitle"), getUserFacingError(e, t));
     }
   });
 
@@ -280,7 +314,7 @@ export function CreateAnimalModal({
           disabled={saveMut.isPending || nextTagQuery.isPending}
         >
           {saveMut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.primaryBtnText}>
               {t("cheptel.animals.create.submit")}
@@ -321,12 +355,11 @@ export function CreateAnimalModal({
           ))}
         </View>
 
-        <Text style={styles.label}>{t("cheptel.animals.create.tag")} *</Text>
         {nextTagQuery.isPending ? (
           <ActivityIndicator color={mobileColors.accent} />
         ) : (
-          <TextInput
-            style={styles.input}
+          <AppTextField
+            label={`${t("cheptel.animals.create.tag")} *`}
             value={tagCode}
             onChangeText={setTagCode}
             autoCapitalize="characters"
@@ -399,30 +432,25 @@ export function CreateAnimalModal({
             <Text style={styles.hint}>
               {t("cheptel.animals.create.ageAtEntryHelper")}
             </Text>
-            <TextInput
-              style={styles.input}
+            <AppTextField
               value={ageAtEntry}
               onChangeText={setAgeAtEntry}
               keyboardType="number-pad"
               placeholder="8"
-              placeholderTextColor={mobileColors.textSecondary}
             />
           </>
         ) : null}
 
-        <Text style={styles.label}>{t("cheptel.animals.create.entryWeight")}</Text>
-        <TextInput
-          style={styles.input}
+        <AppTextField
+          label={t("cheptel.animals.create.entryWeight")}
           value={entryWeight}
           onChangeText={setEntryWeight}
           keyboardType="decimal-pad"
           placeholder="kg"
-          placeholderTextColor={mobileColors.textSecondary}
         />
 
-        <Text style={styles.label}>{t("cheptel.animals.create.notes")}</Text>
-        <TextInput
-          style={[styles.input, styles.multiline]}
+        <AppTextField
+          label={t("cheptel.animals.create.notes")}
           value={notes}
           onChangeText={setNotes}
           multiline
@@ -448,17 +476,6 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary,
     fontStyle: "italic"
   },
-  input: {
-    borderWidth: 1,
-    borderColor: mobileColors.border,
-    borderRadius: mobileRadius.md,
-    paddingHorizontal: mobileSpacing.md,
-    paddingVertical: 10,
-    ...mobileTypography.body,
-    color: mobileColors.textPrimary,
-    backgroundColor: mobileColors.background
-  },
-  multiline: { minHeight: 72, textAlignVertical: "top" },
   pillRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   pill: {
     paddingHorizontal: 12,
@@ -481,5 +498,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.6 },
-  primaryBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
 });

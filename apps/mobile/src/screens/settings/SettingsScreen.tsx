@@ -34,6 +34,7 @@ import {
 } from "../../lib/api";
 import { mobileColors, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ProducerFarmSettings">;
 
@@ -80,7 +81,7 @@ export function SettingsScreen({ route, navigation }: Props) {
       void qc.invalidateQueries({ queryKey: ["farmAlertSettings", farmId] });
       showSaved();
     },
-    onError: (e: Error) => Alert.alert(t("common.error"), e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const save = useCallback(
@@ -132,7 +133,7 @@ export function SettingsScreen({ route, navigation }: Props) {
   if (!s) {
     const errMsg =
       settingsQ.error instanceof Error
-        ? settingsQ.error.message
+        ? getUserFacingError(settingsQ.error, t)
         : t("settings.loadError");
     return (
       <View style={styles.centered}>
@@ -707,7 +708,7 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accent
   },
   retryBtnTx: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700"
   },
   toast: {
@@ -721,14 +722,14 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.sm,
     alignItems: "center"
   },
-  toastTx: { color: "#fff", fontWeight: "600" },
+  toastTx: { color: mobileColors.onAccent, fontWeight: "600" },
   saveBtn: {
     backgroundColor: mobileColors.accent,
     borderRadius: 10,
     paddingVertical: mobileSpacing.md,
     alignItems: "center"
   },
-  saveBtnTx: { color: "#fff", fontWeight: "600" },
+  saveBtnTx: { color: mobileColors.onAccent, fontWeight: "600" },
   nameInput: {
     borderWidth: 1,
     borderColor: mobileColors.border,

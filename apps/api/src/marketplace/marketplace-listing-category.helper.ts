@@ -3,7 +3,8 @@ import {
   PigPriceIndexCategory
 } from "@prisma/client";
 
-function indexCategoryFromWeightKg(
+/** Catégorie indice porc depuis poids + catégorie production (source unique des seuils). */
+export function pigPriceIndexCategoryFromWeightKg(
   productionCategory: string | null | undefined,
   weightKg: number
 ): PigPriceIndexCategory | null {
@@ -38,6 +39,17 @@ export function usesFlatListingPrice(
   );
 }
 
+/** Vente à crédit : opt-in vendeur, charcutier uniquement. */
+export function resolveListingCreditEnabled(
+  category: ListingMarketCategory | null | undefined,
+  creditEnabled?: boolean | null
+): boolean {
+  if (category !== ListingMarketCategory.butcher) {
+    return false;
+  }
+  return creditEnabled === true;
+}
+
 export function listingHeadcount(
   animalIds: string[],
   animalId: string | null,
@@ -53,6 +65,39 @@ export function listingHeadcount(
     return quantity;
   }
   return 1;
+}
+
+/** Prix forfaitaire à la tête × effectif du lot (porcelet / reproducteur). */
+export function resolveFlatListingPricing(params: {
+  unitPrice?: number | null;
+  totalPrice?: number | null;
+  headcount: number;
+}): { unitPrice: number; totalPrice: number } {
+  const headcount = Math.max(1, params.headcount);
+  let perHead = params.unitPrice;
+
+  if (perHead == null || perHead <= 0 || !Number.isFinite(perHead)) {
+    if (
+      params.totalPrice != null &&
+      params.totalPrice > 0 &&
+      Number.isFinite(params.totalPrice)
+    ) {
+      if (headcount === 1) {
+        perHead = params.totalPrice;
+      } else {
+        perHead = params.totalPrice / headcount;
+      }
+    }
+  }
+
+  if (perHead == null || perHead <= 0 || !Number.isFinite(perHead)) {
+    throw new Error("FLAT_UNIT_PRICE_REQUIRED");
+  }
+
+  return {
+    unitPrice: perHead,
+    totalPrice: perHead * headcount
+  };
 }
 
 export function averageWeightKg(
@@ -130,5 +175,5 @@ export function categoryForPriceIndexFromListing(
     return null;
   }
 
-  return indexCategoryFromWeightKg(productionCategory ?? "fattening", w);
+  return pigPriceIndexCategoryFromWeightKg(productionCategory ?? "fattening", w);
 }

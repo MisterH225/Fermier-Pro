@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -20,6 +21,7 @@ import {
 import { ProjectCard } from "./ProjectCard";
 import { ArchiveProjectModal } from "./ArchiveProjectModal";
 import { DeleteProjectModal } from "./DeleteProjectModal";
+import { getUserFacingError } from "../../lib/userFacingError";
 
 type ProjectSwitcherProps = {
   onCreateProject: () => void;
@@ -32,6 +34,7 @@ export function ProjectSwitcher({
   onEditProject,
   onClose
 }: ProjectSwitcherProps) {
+  const { t } = useTranslation();
   const {
     farms,
     activeFarmId,
@@ -59,7 +62,7 @@ export function ProjectSwitcher({
         await setActiveFarm(farmId);
         onClose();
       } catch (e) {
-        Alert.alert("Erreur", e instanceof Error ? e.message : "Erreur inconnue");
+        Alert.alert("Erreur", getUserFacingError(e, t));
       } finally {
         setProcessing(false);
       }
@@ -75,7 +78,7 @@ export function ProjectSwitcher({
         await archiveFarm(archiveModalFarm.id, reason);
         setArchiveModalFarm(null);
       } catch (e) {
-        Alert.alert("Erreur", e instanceof Error ? e.message : "Erreur inconnue");
+        Alert.alert("Erreur", getUserFacingError(e, t));
       } finally {
         setProcessing(false);
       }
@@ -89,7 +92,7 @@ export function ProjectSwitcher({
       try {
         await restoreFarm(farmId);
       } catch (e) {
-        Alert.alert("Erreur", e instanceof Error ? e.message : "Erreur inconnue");
+        Alert.alert("Erreur", getUserFacingError(e, t));
       } finally {
         setProcessing(false);
       }
@@ -104,7 +107,7 @@ export function ProjectSwitcher({
       await deleteFarm(deleteModalFarm.id);
       setDeleteModalFarm(null);
     } catch (e) {
-      Alert.alert("Erreur", e instanceof Error ? e.message : "Erreur inconnue");
+      Alert.alert("Erreur", getUserFacingError(e, t));
     } finally {
       setProcessing(false);
     }
@@ -224,7 +227,7 @@ export function ProjectSwitcher({
 
       {processing && (
         <View style={styles.processingOverlay}>
-          <ActivityIndicator size="large" color="#fff" />
+          <ActivityIndicator size="large" color={mobileColors.onAccent} />
         </View>
       )}
     </View>
@@ -309,7 +312,7 @@ const styles = StyleSheet.create({
   createBtnText: {
     ...mobileTypography.body,
     fontWeight: "700",
-    color: "#fff"
+    color: mobileColors.onAccent
   },
   createBtnTextDisabled: {
     color: mobileColors.textSecondary

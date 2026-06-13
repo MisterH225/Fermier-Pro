@@ -7,9 +7,9 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View
 } from "react-native";
+import { AppTextField } from "../../common/AppTextField";
 import { BaseModal } from "../../modals/BaseModal";
 import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
@@ -28,6 +28,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../../theme/mobileTheme";
+import { getQueryErrorMessage, getUserFacingError } from "../../../lib/userFacingError";
 
 type Props = {
   visible: boolean;
@@ -137,7 +138,7 @@ export function AddWeightModal({
         autoDismissMs: 2600
       });
     },
-    onError: (e: Error) => Alert.alert("", e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const animals = (animalsQuery.data ?? []).filter((a) => a.status === "active");
@@ -154,7 +155,7 @@ export function AddWeightModal({
           disabled={saveMut.isPending}
         >
           {saveMut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.primaryTx}>{t("cheptel.weight.save")}</Text>
           )}
@@ -179,9 +180,8 @@ export function AddWeightModal({
       </ModalSection>
 
       <ModalSection title={t("modals.sections.measurement")}>
-        <Text style={styles.label}>{t("cheptel.weight.weightKg")}</Text>
-        <TextInput
-          style={styles.input}
+        <AppTextField
+          label={t("cheptel.weight.weightKg")}
           value={weightKg}
           onChangeText={setWeightKg}
           keyboardType="decimal-pad"
@@ -193,8 +193,11 @@ export function AddWeightModal({
           label={t("cheptel.weight.measuredAt")}
           maxDate={new Date()}
         />
-        <Text style={styles.label}>{t("cheptel.weight.note")}</Text>
-        <TextInput style={styles.input} value={note} onChangeText={setNote} />
+        <AppTextField
+          label={t("cheptel.weight.note")}
+          value={note}
+          onChangeText={setNote}
+        />
       </ModalSection>
     </BaseModal>
   );
@@ -202,12 +205,6 @@ export function AddWeightModal({
 
 const styles = StyleSheet.create({
   label: { ...mobileTypography.meta, fontWeight: "600" },
-  input: {
-    borderWidth: 1,
-    borderColor: mobileColors.border,
-    borderRadius: mobileRadius.md,
-    padding: 12
-  },
   pillRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   pill: {
     paddingHorizontal: 10,
@@ -225,5 +222,5 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center"
   },
-  primaryTx: { color: "#fff", fontWeight: "700" }
+  primaryTx: { color: mobileColors.onAccent, fontWeight: "700" }
 });

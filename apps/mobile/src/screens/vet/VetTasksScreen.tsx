@@ -3,7 +3,8 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { ListSkeleton } from "../../components/common/SkeletonBlocks";
 import { VetMobileShell } from "../../components/layout";
 import { useSession } from "../../context/SessionContext";
 import { fetchFarms } from "../../lib/api";
@@ -34,7 +35,9 @@ export function VetTasksScreen() {
   if (farmsQ.isLoading) {
     return (
       <VetMobileShell hideTopBar>
-        <ActivityIndicator style={{ marginTop: 40 }} color={vetColors.primary} />
+        <View style={{ padding: mobileSpacing.xl }}>
+          <ListSkeleton count={3} />
+        </View>
       </VetMobileShell>
     );
   }

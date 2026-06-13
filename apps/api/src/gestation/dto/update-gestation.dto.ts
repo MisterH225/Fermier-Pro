@@ -1,9 +1,9 @@
-import { IsDateString, IsEnum, IsOptional, IsString, IsUUID } from "class-validator";
+import { IsDateString, IsEnum, IsOptional, IsString } from "class-validator";
 import { MatingType } from "@prisma/client";
 
 export class UpdateGestationDto {
   @IsOptional()
-  @IsUUID()
+  @IsString()
   boarId?: string | null;
 
   @IsOptional()

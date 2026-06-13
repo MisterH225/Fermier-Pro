@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -13,6 +13,7 @@ import { SmartChart, type SmartChartPeriod } from "../../charts";
 import {
   fetchCheptelGmqSummary,
   fetchCheptelWeightSeries,
+  fetchDetectedBatches,
   fetchFarmAnimals
 } from "../../../lib/api";
 import {
@@ -22,7 +23,9 @@ import {
   mobileTypography
 } from "../../../theme/mobileTheme";
 import { AddWeightModal } from "./AddWeightModal";
+import { ConfirmDetectedBatchModal } from "./ConfirmDetectedBatchModal";
 import { GMQCard } from "./GMQCard";
+import type { DetectedBatchDto } from "../../../lib/api";
 
 type Props = {
   farmId: string;
@@ -37,6 +40,7 @@ export function CheptelWeightTab({ farmId, accessToken, activeProfileId, readOnl
   const [period, setPeriod] = useState<SmartChartPeriod>("6M");
   const [animalId, setAnimalId] = useState<string | undefined>(undefined);
   const [addOpen, setAddOpen] = useState(false);
+  const [confirmBatch, setConfirmBatch] = useState<DetectedBatchDto | null>(null);
 
   const months = period === "3M" ? 3 : period === "6M" ? 6 : 12;
 
@@ -57,6 +61,11 @@ export function CheptelWeightTab({ farmId, accessToken, activeProfileId, readOnl
   const gmqQuery = useQuery({
     queryKey: ["cheptelGmq", farmId, activeProfileId],
     queryFn: () => fetchCheptelGmqSummary(accessToken, farmId, activeProfileId)
+  });
+
+  const batchesQ = useQuery({
+    queryKey: ["detectedBatches", farmId, activeProfileId],
+    queryFn: () => fetchDetectedBatches(accessToken, farmId, activeProfileId)
   });
 
   const chartLines = useMemo(() => {
@@ -141,6 +150,39 @@ export function CheptelWeightTab({ farmId, accessToken, activeProfileId, readOnl
         />
       )}
 
+      {(batchesQ.data?.batches?.length ?? 0) > 0 ? (
+        <>
+          <Text style={styles.sectionTitle}>{t("cheptel.batches.detectedTitle")}</Text>
+          {(batchesQ.data?.batches ?? []).map((b) => (
+            <View key={b.id} style={styles.batchCard}>
+              <View style={styles.batchHeader}>
+                <Text style={styles.batchName}>{b.name}</Text>
+                {!readOnly ? (
+                  <Pressable
+                    style={styles.confirmBtn}
+                    onPress={() => setConfirmBatch(b)}
+                  >
+                    <Text style={styles.confirmBtnTx}>
+                      {t("cheptel.batches.confirmAction")}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+              <Text style={styles.batchMeta}>
+                {b.headcount} {t("health.diseases.unitSubjects")}
+                {b.avgAgeWeeks != null
+                  ? ` · ${b.avgAgeWeeks} ${t("cheptel.weight.weeksAbbr")}`
+                  : ""}
+                {b.avgWeightKg != null ? ` · ${b.avgWeightKg} kg` : ""}
+              </Text>
+              {b.penNames.length > 0 ? (
+                <Text style={styles.batchMeta}>{b.penNames.join(", ")}</Text>
+              ) : null}
+            </View>
+          ))}
+        </>
+      ) : null}
+
       <Text style={styles.sectionTitle}>{t("cheptel.weight.gmqSection")}</Text>
       {gmqQuery.isPending ? (
         <ActivityIndicator color={mobileColors.accent} />
@@ -149,6 +191,20 @@ export function CheptelWeightTab({ farmId, accessToken, activeProfileId, readOnl
       ) : (
         gmqRows.slice(0, 12).map((row) => <GMQCard key={row.animalId} row={row} />)
       )}
+
+      {!readOnly ? (
+      <ConfirmDetectedBatchModal
+        visible={confirmBatch != null}
+        batch={confirmBatch}
+        farmId={farmId}
+        accessToken={accessToken}
+        activeProfileId={activeProfileId}
+        onClose={() => setConfirmBatch(null)}
+        onConfirmed={() => {
+          void batchesQ.refetch();
+        }}
+      />
+      ) : null}
 
       {!readOnly ? (
       <AddWeightModal
@@ -197,6 +253,35 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.sm
   },
   empty: { ...mobileTypography.meta, color: mobileColors.textSecondary },
+  batchCard: {
+    backgroundColor: mobileColors.surfaceMuted,
+    borderRadius: mobileRadius.lg,
+    padding: mobileSpacing.md,
+    marginBottom: mobileSpacing.sm
+  },
+  batchHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: mobileSpacing.sm
+  },
+  batchName: { fontWeight: "700", color: mobileColors.textPrimary, flex: 1 },
+  confirmBtn: {
+    backgroundColor: mobileColors.accent,
+    borderRadius: mobileRadius.md,
+    paddingHorizontal: 10,
+    paddingVertical: 6
+  },
+  confirmBtnTx: {
+    color: mobileColors.onAccent,
+    fontWeight: "700",
+    fontSize: 12
+  },
+  batchMeta: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: 4
+  },
   fab: {
     position: "absolute",
     right: 0,
@@ -208,5 +293,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center"
   },
-  fabTx: { color: "#fff", fontSize: 28 }
+  fabTx: { color: mobileColors.onAccent, fontSize: 28 }
 });

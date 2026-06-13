@@ -26,6 +26,7 @@ import {
 } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 import { useState } from "react";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "AnimalDetail">;
 
@@ -64,6 +65,7 @@ export function AnimalDetailScreen({ route, navigation }: Props) {
     void queryClient.invalidateQueries({ queryKey: ["farmAnimals", farmId] });
     void queryClient.invalidateQueries({ queryKey: ["penContents", farmId] });
     void queryClient.invalidateQueries({ queryKey: ["cheptelPens", farmId] });
+    void queryClient.invalidateQueries({ queryKey: ["farmCheptel", farmId] });
   };
 
   if (animalsQuery.isPending) {
@@ -77,7 +79,7 @@ export function AnimalDetailScreen({ route, navigation }: Props) {
   if (animalsQuery.error || !animal) {
     const err =
       animalsQuery.error instanceof Error
-        ? animalsQuery.error.message
+        ? getUserFacingError(animalsQuery.error, t)
         : animalsQuery.error
           ? String(animalsQuery.error)
           : null;

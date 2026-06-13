@@ -13,6 +13,7 @@ import {
   DeleteAccountDialog,
   SendMessageDialog,
   SuspendUserDialog,
+  UnbanUserDialog,
   UnsuspendUserDialog,
   WarnUserDialog
 } from "./UserModerationDialogs";
@@ -60,7 +61,7 @@ export function UserActionsMenu({ user, token, onRefresh }: Props) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<MenuPos | null>(null);
   const [dlg, setDlg] = useState<
-    null | "suspend" | "unsuspend" | "ban" | "warn" | "message" | "delete"
+    null | "suspend" | "unsuspend" | "unban" | "ban" | "warn" | "message" | "delete"
   >(null);
 
   const name = user.fullName ?? user.email ?? user.id;
@@ -124,8 +125,7 @@ export function UserActionsMenu({ user, token, onRefresh }: Props) {
             ref={menuRef}
             role="menu"
             className={cn(
-              "fixed z-[100] min-w-[200px] rounded-xl border border-border/60",
-              "bg-card shadow-lg py-1 text-sm overflow-y-auto overscroll-contain"
+              "glass-dropdown fixed z-[100] min-w-[200px] rounded-2xl py-1 text-sm overflow-y-auto overscroll-contain"
             )}
             style={{
               top: pos.top,
@@ -137,7 +137,7 @@ export function UserActionsMenu({ user, token, onRefresh }: Props) {
             <Link
               href={`/utilisateurs/${user.id}`}
               role="menuitem"
-              className="block px-3 py-2 hover:bg-muted"
+              className="block px-3 py-2 hover:bg-white/60"
               onClick={() => setOpen(false)}
             >
               {t("view")}
@@ -145,7 +145,7 @@ export function UserActionsMenu({ user, token, onRefresh }: Props) {
             <button
               type="button"
               role="menuitem"
-              className="w-full text-left px-3 py-2 hover:bg-muted"
+              className="w-full text-left px-3 py-2 hover:bg-white/60"
               onClick={() => closeAnd(() => setDlg("message"))}
             >
               {t("message")}
@@ -153,17 +153,17 @@ export function UserActionsMenu({ user, token, onRefresh }: Props) {
             <button
               type="button"
               role="menuitem"
-              className="w-full text-left px-3 py-2 hover:bg-muted"
+              className="w-full text-left px-3 py-2 hover:bg-white/60"
               onClick={() => closeAnd(() => setDlg("warn"))}
             >
               {t("warn")}
             </button>
-            <hr className="my-1 border-border/60" />
+            <hr className="my-1 border-white/50" />
             {status === "active" ? (
               <button
                 type="button"
                 role="menuitem"
-                className="w-full text-left px-3 py-2 hover:bg-muted"
+                className="w-full text-left px-3 py-2 hover:bg-white/60"
                 onClick={() => closeAnd(() => setDlg("suspend"))}
               >
                 {t("suspend")}
@@ -172,26 +172,35 @@ export function UserActionsMenu({ user, token, onRefresh }: Props) {
               <button
                 type="button"
                 role="menuitem"
-                className="w-full text-left px-3 py-2 hover:bg-muted"
+                className="w-full text-left px-3 py-2 hover:bg-white/60"
                 onClick={() => closeAnd(() => setDlg("unsuspend"))}
               >
                 {t("unsuspend")}
               </button>
             ) : null}
-            {status !== "banned" ? (
+            {status === "banned" ? (
               <button
                 type="button"
                 role="menuitem"
-                className="w-full text-left px-3 py-2 hover:bg-muted"
+                className="w-full text-left px-3 py-2 hover:bg-white/60"
+                onClick={() => closeAnd(() => setDlg("unban"))}
+              >
+                {t("unban")}
+              </button>
+            ) : (
+              <button
+                type="button"
+                role="menuitem"
+                className="w-full text-left px-3 py-2 hover:bg-white/60"
                 onClick={() => closeAnd(() => setDlg("ban"))}
               >
                 {t("ban")}
               </button>
-            ) : null}
+            )}
             <button
               type="button"
               role="menuitem"
-              className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50"
+              className="w-full text-left px-3 py-2 text-destructive hover:bg-destructive/10"
               onClick={() => closeAnd(() => setDlg("delete"))}
             >
               {t("delete")}
@@ -235,6 +244,17 @@ export function UserActionsMenu({ user, token, onRefresh }: Props) {
           onClose={() => setDlg(null)}
           token={token}
           userId={user.id}
+          profileTypes={profileTypes}
+          onSuccess={onRefresh}
+        />
+      ) : null}
+      {dlg === "unban" ? (
+        <UnbanUserDialog
+          open
+          onClose={() => setDlg(null)}
+          token={token}
+          userId={user.id}
+          profileTypes={profileTypes}
           onSuccess={onRefresh}
         />
       ) : null}

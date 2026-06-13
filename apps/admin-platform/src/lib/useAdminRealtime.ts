@@ -2,11 +2,16 @@
 
 import { useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { apiFetch, type OverviewDto } from "@/lib/api";
+import {
+  fetchAdminMarketplaceOverview,
+  fetchPlatformOverview,
+  fetchSanitaryAlerts
+} from "@/lib/api";
 
 type Counts = {
   pendingVets: number;
   activeAlerts: number;
+  marketplaceDisputes: number;
 };
 
 export function useAdminRealtime(onChange: (counts: Counts) => void) {
@@ -19,14 +24,16 @@ export function useAdminRealtime(onChange: (counts: Counts) => void) {
       const token = data.session?.access_token;
       if (!token || cancelled) return;
       try {
-        const [overview, alerts] = await Promise.all([
-          apiFetch<OverviewDto>("/admin/platform/overview", token),
-          apiFetch<Array<{ id: string }>>("/admin/sanitary-alerts", token)
+        const [overview, alerts, marketplace] = await Promise.all([
+          fetchPlatformOverview(token),
+          fetchSanitaryAlerts(token),
+          fetchAdminMarketplaceOverview(token)
         ]);
         if (!cancelled) {
           onChange({
             pendingVets: overview.kpis.pendingVets,
-            activeAlerts: alerts.length
+            activeAlerts: alerts.length,
+            marketplaceDisputes: marketplace.transactions.openDisputes
           });
         }
       } catch {

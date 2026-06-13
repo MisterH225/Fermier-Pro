@@ -1,14 +1,18 @@
 import { useMemo } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { AnimalListItem } from "../../lib/api";
 import {
   applyAnimalSelection,
+  computeFlatLotTotal,
   computeTotalFromWeightAndPrice,
   formatDecimalForInput,
+  isIndividualSelectionBlocked,
+  listingFormHeadcount,
   parseDecimalField,
   suggestListingCategoryFromWeight,
   usesFlatListingPrice,
+  listingCategoryAllowsCredit,
   type ListingCategory,
   type ListingDurationDays,
   type MarketplaceListingFormValues
@@ -45,6 +49,13 @@ type Props = {
   lockFarm?: boolean;
   /** Affiche le choix de durée (publication). */
   showDuration?: boolean;
+  /** Date d'expiration actuelle (mode édition). */
+  editExpiresAt?: string | null;
+  /** Prolonger l'annonce de X jours supplémentaires. */
+  extendDuration?: boolean;
+  onExtendDurationChange?: (extend: boolean) => void;
+  /** Animaux déjà présents sur une annonce individuelle ouverte. */
+  individualBlockedAnimalIds?: ReadonlySet<string>;
 };
 
 export function MarketplaceListingFormFields({
@@ -55,7 +66,11 @@ export function MarketplaceListingFormFields({
   farmsLoading,
   animalsLoading,
   lockFarm,
-  showDuration
+  showDuration,
+  editExpiresAt,
+  extendDuration,
+  onExtendDurationChange,
+  individualBlockedAnimalIds
 }: Props) {
   const { t } = useTranslation();
 
@@ -67,15 +82,49 @@ export function MarketplaceListingFormFields({
     [animals]
   );
 
+  const showIndividualListedHint = useMemo(
+    () =>
+      Boolean(
+        individualBlockedAnimalIds?.size &&
+          activeAnimals.some((a) => individualBlockedAnimalIds.has(a.id))
+      ),
+    [activeAnimals, individualBlockedAnimalIds]
+  );
+
+  const handleAnimalPress = (animal: AnimalListItem) => {
+    const patch = applyAnimalSelection(values, animal, activeAnimals, true);
+    const nextIds = patch.selectedAnimalIds ?? [];
+    if (
+      individualBlockedAnimalIds &&
+      isIndividualSelectionBlocked(nextIds, individualBlockedAnimalIds)
+    ) {
+      Alert.alert(
+        t("marketScreen.createForm.animalIndividualBlockedTitle"),
+        t("marketScreen.createForm.animalIndividualBlockedBody")
+      );
+      return;
+    }
+    set(patch);
+  };
+
   const computedTotal = useMemo(
     () => computeTotalFromWeightAndPrice(values.totalWeightKg, values.pricePerKg),
     [values.totalWeightKg, values.pricePerKg]
   );
 
   const flatPrice = usesFlatListingPrice(values.category);
+  const headcount = listingFormHeadcount(values);
 
-  const displayTotal =
-    flatPrice || (values.totalPriceManual && values.totalPrice.trim())
+  const flatLotTotal = useMemo(
+    () => computeFlatLotTotal(values.pricePerHead, headcount),
+    [values.pricePerHead, headcount]
+  );
+
+  const displayTotal = flatPrice
+    ? flatLotTotal != null
+      ? formatDecimalForInput(flatLotTotal, 0)
+      : values.totalPrice
+    : values.totalPriceManual && values.totalPrice.trim()
       ? values.totalPrice
       : computedTotal != null
         ? formatDecimalForInput(computedTotal, 0)
@@ -114,13 +163,31 @@ export function MarketplaceListingFormFields({
 
   const onCategoryChange = (category: ListingCategory) => {
     const patch: Partial<MarketplaceListingFormValues> = { category };
+    if (!listingCategoryAllowsCredit(category)) {
+      patch.creditEnabled = false;
+    }
     if (usesFlatListingPrice(category)) {
       patch.pricePerKg = "";
-      patch.totalPriceManual = true;
+      patch.totalPriceManual = false;
+      const lotTotal = computeFlatLotTotal(values.pricePerHead, headcount);
+      if (lotTotal != null) {
+        patch.totalPrice = formatDecimalForInput(lotTotal, 0);
+      }
     } else if (usesFlatListingPrice(values.category)) {
+      patch.pricePerHead = "";
       patch.totalPriceManual = false;
     }
     onChange(patch);
+  };
+
+  const onPricePerHeadChange = (pricePerHead: string) => {
+    const lotTotal = computeFlatLotTotal(pricePerHead, headcount);
+    onChange({
+      pricePerHead,
+      ...(lotTotal != null
+        ? { totalPrice: formatDecimalForInput(lotTotal, 0) }
+        : {})
+    });
   };
 
   return (
@@ -205,6 +272,11 @@ export function MarketplaceListingFormFields({
       {values.farmId ? (
         <ModalSection title={t("marketScreen.createForm.sectionAnimal")}>
           <Text style={styles.hint}>{t("marketScreen.createForm.animalMultiHint")}</Text>
+          {showIndividualListedHint ? (
+            <Text style={styles.hint}>
+              {t("marketScreen.createForm.animalIndividualListedHint")}
+            </Text>
+          ) : null}
           {animalsLoading ? (
             <ActivityIndicator color={mobileColors.accent} />
           ) : activeAnimals.length === 0 ? (
@@ -215,25 +287,27 @@ export function MarketplaceListingFormFields({
             <View style={styles.chipRow}>
               {activeAnimals.map((a) => {
                 const selected = values.selectedAnimalIds.includes(a.id);
+                const hasIndividualElsewhere =
+                  individualBlockedAnimalIds?.has(a.id) ?? false;
                 return (
                   <Pressable
                     key={a.id}
-                    style={[styles.chip, selected && styles.chipOn]}
-                    onPress={() =>
-                      set(
-                        applyAnimalSelection(
-                          values,
-                          a,
-                          activeAnimals,
-                          true
-                        )
-                      )
-                    }
+                    style={[
+                      styles.chip,
+                      selected && styles.chipOn,
+                      hasIndividualElsewhere && !selected && styles.chipSolo
+                    ]}
+                    onPress={() => handleAnimalPress(a)}
                   >
                     <Text
-                      style={[styles.chipTx, selected && styles.chipTxOn]}
+                      style={[
+                        styles.chipTx,
+                        selected && styles.chipTxOn,
+                        hasIndividualElsewhere && !selected && styles.chipTxSolo
+                      ]}
                       numberOfLines={1}
                     >
+                      {hasIndividualElsewhere && !selected ? "solo · " : ""}
                       {a.tagCode?.trim() || a.publicId.slice(0, 8)}
                     </Text>
                   </Pressable>
@@ -321,23 +395,55 @@ export function MarketplaceListingFormFields({
               keyboardType="decimal-pad"
             />
           </>
-        ) : null}
+        ) : (
+          <>
+            <Text style={styles.lab}>
+              {t("marketScreen.createForm.pricePerHead")} *
+            </Text>
+            <TextInput
+              style={styles.input}
+              value={values.pricePerHead}
+              onChangeText={onPricePerHeadChange}
+              placeholder="28000"
+              placeholderTextColor={mobileColors.textSecondary}
+              keyboardType="decimal-pad"
+            />
+          </>
+        )}
 
         <Text style={styles.lab}>
           {flatPrice
-            ? `${t("marketScreen.createForm.flatPrice")} *`
+            ? t("marketScreen.createForm.lotTotalPrice")
             : `${t("marketScreen.createForm.totalPrice")} *`}
         </Text>
-        <TextInput
-          style={styles.input}
-          value={displayTotal}
-          onChangeText={(totalPrice) =>
-            set({ totalPrice, totalPriceManual: true })
-          }
-          placeholder={flatPrice ? "20000" : "0"}
-          placeholderTextColor={mobileColors.textSecondary}
-          keyboardType="decimal-pad"
-        />
+        {flatPrice ? (
+          <>
+            <Text style={styles.totalReadonly}>{displayTotal || "—"}</Text>
+            {flatLotTotal != null && headcount > 0 ? (
+              <Text style={styles.calcHint}>
+                {t("marketScreen.createForm.flatLotAuto", {
+                  count: headcount,
+                  perHead: formatMarketMoney(
+                    parseDecimalField(values.pricePerHead) ?? 0,
+                    values.currency
+                  ),
+                  amount: formatMarketMoney(flatLotTotal, values.currency)
+                })}
+              </Text>
+            ) : null}
+          </>
+        ) : (
+          <TextInput
+            style={styles.input}
+            value={displayTotal}
+            onChangeText={(totalPrice) =>
+              set({ totalPrice, totalPriceManual: true })
+            }
+            placeholder="0"
+            placeholderTextColor={mobileColors.textSecondary}
+            keyboardType="decimal-pad"
+          />
+        )}
         {!flatPrice && !values.totalPriceManual && computedTotal != null ? (
           <Text style={styles.calcHint}>
             {t("marketScreen.createForm.totalAuto", {
@@ -356,6 +462,28 @@ export function MarketplaceListingFormFields({
           autoCapitalize="characters"
         />
       </ModalSection>
+
+      {listingCategoryAllowsCredit(values.category) ? (
+        <ModalSection title={t("marketScreen.createForm.sectionCredit")}>
+          <Text style={styles.hint}>
+            {t("marketScreen.createForm.creditEnabledHint")}
+          </Text>
+          <View style={styles.switchRow}>
+            <Text style={styles.switchLabel}>
+              {t("marketScreen.createForm.creditEnabledLabel")}
+            </Text>
+            <Switch
+              value={values.creditEnabled}
+              onValueChange={(creditEnabled) => set({ creditEnabled })}
+              trackColor={{
+                false: mobileColors.border,
+                true: mobileColors.accent
+              }}
+              thumbColor={mobileColors.background}
+            />
+          </View>
+        </ModalSection>
+      ) : null}
 
       <ModalSection title={t("marketScreen.createForm.sectionLocation")}>
         <Text style={styles.lab}>{t("marketScreen.createForm.location")}</Text>
@@ -397,7 +525,68 @@ export function MarketplaceListingFormFields({
         </ModalSection>
       ) : null}
 
-      <Text style={styles.footerNote}>{t("marketScreen.createForm.footerNote")}</Text>
+      {editExpiresAt != null ? (
+        <ModalSection
+          title={t("marketScreen.editForm.sectionDuration", {
+            defaultValue: "Durée de l'annonce"
+          })}
+        >
+          <Text style={styles.hint}>
+            {t("marketScreen.editForm.expiresAt", {
+              defaultValue: "Expire le {{date}}",
+              date: new Date(editExpiresAt).toLocaleDateString("fr-FR", {
+                day: "numeric",
+                month: "long",
+                year: "numeric"
+              })
+            })}
+          </Text>
+          <Pressable
+            style={[styles.chip, extendDuration && styles.chipOn]}
+            onPress={() => onExtendDurationChange?.(!extendDuration)}
+          >
+            <Text style={[styles.chipTx, extendDuration && styles.chipTxOn]}>
+              {t("marketScreen.editForm.extendToggle", {
+                defaultValue: "Prolonger l'annonce"
+              })}
+            </Text>
+          </Pressable>
+          {extendDuration ? (
+            <>
+              <Text style={styles.hint}>
+                {t("marketScreen.editForm.extendHint", {
+                  defaultValue: "Ajouter des jours supplémentaires :"
+                })}
+              </Text>
+              <View style={styles.chipRow}>
+                {DURATIONS.map((d) => (
+                  <Pressable
+                    key={d}
+                    style={[
+                      styles.chip,
+                      values.publishDurationDays === d && styles.chipOn
+                    ]}
+                    onPress={() => set({ publishDurationDays: d })}
+                  >
+                    <Text
+                      style={[
+                        styles.chipTx,
+                        values.publishDurationDays === d && styles.chipTxOn
+                      ]}
+                    >
+                      +{d}j
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          ) : null}
+        </ModalSection>
+      ) : null}
+
+      {editExpiresAt == null ? (
+        <Text style={styles.footerNote}>{t("marketScreen.createForm.footerNote")}</Text>
+      ) : null}
     </>
   );
 }
@@ -440,6 +629,10 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.accent,
     backgroundColor: mobileColors.accentSoft
   },
+  chipSolo: {
+    borderStyle: "dashed",
+    opacity: 0.92
+  },
   chipTx: {
     ...mobileTypography.body,
     fontSize: 14,
@@ -449,16 +642,39 @@ const styles = StyleSheet.create({
     color: mobileColors.accent,
     fontWeight: "600"
   },
+  chipTxSolo: {
+    color: mobileColors.textSecondary
+  },
   hint: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
     lineHeight: 18,
     marginBottom: mobileSpacing.xs
   },
+  switchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: mobileSpacing.md,
+    paddingVertical: mobileSpacing.xs
+  },
+  switchLabel: {
+    flex: 1,
+    ...mobileTypography.body,
+    color: mobileColors.textPrimary,
+    fontWeight: "600"
+  },
   calcHint: {
     ...mobileTypography.meta,
     color: mobileColors.accent,
     marginTop: 4
+  },
+  totalReadonly: {
+    ...mobileTypography.body,
+    fontWeight: "700",
+    fontSize: 20,
+    color: mobileColors.textPrimary,
+    paddingVertical: mobileSpacing.sm
   },
   footerNote: {
     ...mobileTypography.meta,

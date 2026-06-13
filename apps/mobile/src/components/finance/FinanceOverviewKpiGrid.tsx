@@ -8,6 +8,7 @@ import {
   View
 } from "react-native";
 import type { FinanceOverviewDto } from "../../lib/api";
+import { formatFarmMoney as formatMoney } from "../../lib/formatMoney";
 import {
   mobileColors,
   mobileRadius,
@@ -15,6 +16,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { KpiGridSkeleton } from "../common/SkeletonBlocks";
 import { FinanceKpiCard } from "./FinanceKpiCard";
 import {
   financeCumulativeBalanceSeries,
@@ -29,30 +31,6 @@ function pctDeltaString(cur: number, prev: number): string | null {
   }
   const p = ((cur - prev) / prev) * 100;
   return `${p >= 0 ? "+" : ""}${p.toFixed(1)}%`;
-}
-
-function formatMoney(
-  amount: string | number,
-  currencyCode: string,
-  currencySymbol?: string
-): string {
-  const n = typeof amount === "string" ? Number.parseFloat(amount) : amount;
-  if (!Number.isFinite(n)) {
-    return String(amount);
-  }
-  const iso = currencyCode?.length === 3 ? currencyCode : "XOF";
-  try {
-    const s = new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: iso,
-      maximumFractionDigits: 0
-    }).format(n);
-    return currencySymbol && iso === "XOF" && currencySymbol !== "XOF"
-      ? s.replace("F CFA", currencySymbol).replace("FCFA", currencySymbol)
-      : s;
-  } catch {
-    return `${n} ${currencySymbol ?? currencyCode}`;
-  }
 }
 
 type Props = {
@@ -160,7 +138,7 @@ export function FinanceOverviewKpiGrid({
         {!enabled ? (
           <Text style={styles.muted}>{disabledHint}</Text>
         ) : showLoader ? (
-          <ActivityIndicator color={mobileColors.accent} style={styles.loader} />
+          <KpiGridSkeleton count={4} />
         ) : error ? (
           <Text style={styles.err}>{error}</Text>
         ) : overview ? (

@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -25,6 +26,8 @@ import {
   offlineQueuedMessage,
   useOfflineMutation
 } from "../../hooks/useOfflineMutation";
+import { isoDateWithLocalTime } from "../../lib/dateTime";
+import { amountToInput, parseAmount } from "../../lib/finance/amountUtils";
 import {
   mobileColors,
   mobileRadius,
@@ -36,17 +39,6 @@ type Props = {
   payload: EditTransactionModalPayload;
   onClose: () => void;
 };
-
-function amountToInput(amount: string | number): string {
-  if (typeof amount === "number") return String(amount);
-  const n = Number.parseFloat(amount);
-  return Number.isFinite(n) ? String(n) : amount;
-}
-
-function parseAmount(raw: string): number | null {
-  const n = Number.parseFloat(raw.trim().replace(",", "."));
-  return Number.isFinite(n) && n >= 0 ? n : null;
-}
 
 export function EditTransactionModal({ visible, payload, onClose }: Props) {
   const { t } = useTranslation();
@@ -116,7 +108,7 @@ export function EditTransactionModal({ visible, payload, onClose }: Props) {
       label: txLabel.trim(),
       category: categoryValue,
       note: txNote.trim() || null,
-      occurredAt: `${txDate}T12:00:00.000Z`
+      occurredAt: isoDateWithLocalTime(txDate, tx.occurredAt)
     };
   };
 
@@ -183,7 +175,7 @@ export function EditTransactionModal({ visible, payload, onClose }: Props) {
       }, 0);
     },
     onError: (e: Error) =>
-      Alert.alert(t("financeScreen.errorTitle"), e.message)
+      Alert.alert(t("financeScreen.errorTitle"), getUserFacingError(e, t))
   });
 
   const submit = () => {

@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { AppDatePicker } from "../components/common/AppDatePicker";
 import { EventCard, CheptelBatchDetailHeader } from "../components/farm";
 import { Card } from "../components/ui/Card";
@@ -30,6 +31,7 @@ import {
   mobileSpacing
 } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "BatchDetail">;
 
@@ -62,6 +64,7 @@ const SEVERITY_FR: Record<string, string> = {
 type BatchTab = "health" | "weight" | "feed" | "events";
 
 export function BatchDetailScreen({ route }: Props) {
+  const { t } = useTranslation();
   const { farmId, batchId } = route.params;
   const { accessToken, activeProfileId } = useSession();
   const queryClient = useQueryClient();
@@ -120,7 +123,7 @@ export function BatchDetailScreen({ route }: Props) {
       });
     },
     onError: (e: Error) => {
-      Alert.alert("Enregistrement impossible", e.message);
+      Alert.alert(t("common.errors.saveFailed"), getUserFacingError(e, t));
     }
   });
 
@@ -168,7 +171,7 @@ export function BatchDetailScreen({ route }: Props) {
       });
     },
     onError: (e: Error) => {
-      Alert.alert("Enregistrement impossible", e.message);
+      Alert.alert(t("common.errors.saveFailed"), getUserFacingError(e, t));
     }
   });
 
@@ -176,7 +179,7 @@ export function BatchDetailScreen({ route }: Props) {
   const loading = batchQuery.isPending;
   const err =
     batchQuery.error instanceof Error
-      ? batchQuery.error.message
+      ? getUserFacingError(batchQuery.error, t)
       : batchQuery.error
         ? String(batchQuery.error)
         : null;
@@ -644,7 +647,7 @@ const styles = StyleSheet.create({
     opacity: 0.7
   },
   btnText: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700",
     fontSize: 16
   },

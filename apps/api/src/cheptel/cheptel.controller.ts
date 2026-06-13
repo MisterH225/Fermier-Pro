@@ -20,6 +20,7 @@ import { PatchAnimalStatusDto } from "../livestock/dto/patch-animal-status.dto";
 import { PatchAnimalStatusExtendedDto } from "./dto/patch-animal-status-extended.dto";
 import { SellAnimalDto } from "./dto/sell-animal.dto";
 import { PatchPenAveragesDto } from "./dto/patch-pen-averages.dto";
+import { ConfirmDetectedBatchDto } from "./dto/confirm-detected-batch.dto";
 import { UpsertGmqSettingsDto } from "./dto/upsert-gmq-settings.dto";
 import { CheptelService } from "./cheptel.service";
 import { HousingService } from "../housing/housing.service";
@@ -131,6 +132,31 @@ export class CheptelController {
   @RequireFarmScopes(FARM_SCOPE.livestockRead)
   gmqSummary(@CurrentUser() user: User, @Param("farmId") farmId: string) {
     return this.cheptel.getGmqSummary(user, farmId);
+  }
+
+  @Get("detected-batches")
+  @RequireFarmScopes(FARM_SCOPE.livestockRead)
+  detectedBatches(@CurrentUser() user: User, @Param("farmId") farmId: string) {
+    return this.cheptel.detectPotentialBatches(user, farmId);
+  }
+
+  @Post("detected-batches/confirm")
+  @RequireFarmScopes(FARM_SCOPE.livestockWrite)
+  confirmDetectedBatch(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Body() dto: ConfirmDetectedBatchDto
+  ) {
+    return this.cheptel.confirmDetectedBatch(user, farmId, dto);
+  }
+
+  @Post("repair-duplicate-animals")
+  @RequireFarmScopes(FARM_SCOPE.livestockWrite)
+  repairDuplicateAnimals(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string
+  ) {
+    return this.cheptel.repairDuplicateAnimals(user, farmId);
   }
 
   @Get("gmq/settings")

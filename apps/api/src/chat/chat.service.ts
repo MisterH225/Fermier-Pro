@@ -8,6 +8,7 @@ import type { Prisma, User } from "@prisma/client";
 import { ChatRoomKind } from "@prisma/client";
 import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import {
   buildFarmInvitationMessageBody,
   parseFarmInvitationMessageBody,
@@ -19,6 +20,7 @@ import {
   parseMarketplaceOfferMessageBody,
   type MarketplaceOfferChatPayload
 } from "./chat-offer-message";
+import { ChatPhoneSecurityService } from "./chat-phone-security.service";
 
 function directKeyForPair(userIdA: string, userIdB: string): string {
   return [userIdA, userIdB].sort().join("_");
@@ -59,7 +61,9 @@ type RoomWithListInclude = Prisma.ChatRoomGetPayload<{
 export class ChatService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly farmAccess: FarmAccessService
+    private readonly farmAccess: FarmAccessService,
+    private readonly phoneSecurity: ChatPhoneSecurityService,
+    private readonly push: PushNotificationsService
   ) {}
 
   async assertRoomMember(userId: string, roomId: string) {
@@ -267,6 +271,13 @@ export class ChatService {
         create: { roomId: room.id, userId: user.id },
         update: {}
       });
+      await this.prisma.chatRoomMember.upsert({
+        where: {
+          roomId_userId: { roomId: room.id, userId: peerUserId }
+        },
+        create: { roomId: room.id, userId: peerUserId },
+        update: {}
+      });
       if (marketplaceListingId && !room.marketplaceListingId) {
         await this.prisma.chatRoom.update({
           where: { id: room.id },
@@ -369,16 +380,53 @@ export class ChatService {
       throw new BadRequestException("Message vide");
     }
     await this.assertRoomMember(senderId, roomId);
+    const room = await this.prisma.chatRoom.findUnique({
+      where: { id: roomId },
+      select: { farmId: true }
+    });
+    const sanitized = await this.phoneSecurity.sanitizeMessageText(
+      senderId,
+      room?.farmId ?? null,
+      trimmed
+    );
     return this.prisma.chatMessage.create({
       data: {
         roomId,
         senderUserId: senderId,
-        body: trimmed
+        body: sanitized.body,
+        wasModified: sanitized.wasModified,
+        modificationType: sanitized.modificationType ?? undefined
       },
       include: {
         sender: { select: { id: true, fullName: true } }
       }
     });
+  }
+
+  /** Notifie les autres membres du salon (hors expéditeur). */
+  notifyPeersOfNewMessage(
+    senderId: string,
+    roomId: string,
+    body: string
+  ): void {
+    const preview =
+      body.length > 120 ? `${body.slice(0, 117).trimEnd()}…` : body;
+    void this.prisma.chatRoomMember
+      .findMany({
+        where: { roomId, userId: { not: senderId } },
+        select: { userId: true }
+      })
+      .then((members) => {
+        for (const member of members) {
+          void this.push.sendToUser(
+            member.userId,
+            "Nouveau message",
+            preview,
+            { type: "chat_message", roomId }
+          );
+        }
+      })
+      .catch(() => undefined);
   }
 
   async postFarmInvitationMessage(
@@ -443,6 +491,32 @@ export class ChatService {
         sender: { select: { id: true, fullName: true } }
       }
     });
+  }
+
+  /** Met à jour le statut des cartes proposition JSON dans les salons. */
+  async syncMarketplaceOfferMessageStatus(
+    offerId: string,
+    status: string
+  ): Promise<void> {
+    const needle = `"offerId":"${offerId}"`;
+    const messages = await this.prisma.chatMessage.findMany({
+      where: { body: { contains: needle } },
+      select: { id: true, body: true }
+    });
+    for (const msg of messages) {
+      const parsed = parseMarketplaceOfferMessageBody(msg.body);
+      if (!parsed || parsed.offerId !== offerId) {
+        continue;
+      }
+      if (parsed.status === status) {
+        continue;
+      }
+      const next: MarketplaceOfferChatPayload = { ...parsed, status };
+      await this.prisma.chatMessage.update({
+        where: { id: msg.id },
+        data: { body: buildMarketplaceOfferMessageBody(next) }
+      });
+    }
   }
 
   /**

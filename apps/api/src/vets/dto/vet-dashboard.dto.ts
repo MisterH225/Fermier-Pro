@@ -15,6 +15,11 @@ export type VetDashboardUpcomingVisitDto = {
   subject: string;
   location: string | null;
   status: string;
+  /** consultation legacy ou rendez-vous escrow */
+  kind: "consultation" | "appointment";
+  conflictStatus?: string | null;
+  conflictLabel?: string | null;
+  servicePrice?: number | null;
 };
 
 export type VetDashboardActivityDto = {

@@ -118,7 +118,7 @@ export class FarmMembersService {
       where: { id: membershipId, farmId }
     });
     if (!row) {
-      throw new NotFoundException("Membre introuvable");
+      return { ok: true };
     }
 
     const isSelf = row.userId === actor.id;

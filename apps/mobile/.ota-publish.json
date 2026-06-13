@@ -1,0 +1,5 @@
+{
+  "message": "fix(moderation): messages admin, suspensions expirées et débannissement",
+  "updatedAt": "2026-06-11T22:08:00Z",
+  "channels": ["preview", "production"]
+}

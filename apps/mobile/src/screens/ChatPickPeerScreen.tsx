@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { mobileColors } from "../theme/mobileTheme";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ActivityIndicator,
@@ -8,6 +9,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { ChatModuleGate } from "../components/ChatModuleGate";
 import { useSession } from "../context/SessionContext";
 import {
@@ -16,10 +18,12 @@ import {
   fetchFarmMembers
 } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ChatPickPeer">;
 
 export function ChatPickPeerScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { farmId, farmName } = route.params;
   const { accessToken, activeProfileId, authMe } = useSession();
   const qc = useQueryClient();
@@ -57,13 +61,13 @@ export function ChatPickPeerScreen({ route, navigation }: Props) {
         </Text>
         {membersQuery.isPending ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color="#5d7a1f" />
+            <ActivityIndicator size="large" color={mobileColors.accent} />
           </View>
         ) : membersQuery.error ? (
           <View style={styles.centered}>
             <Text style={styles.error}>
               {membersQuery.error instanceof Error
-                ? membersQuery.error.message
+                ? getUserFacingError(membersQuery.error, t)
                 : String(membersQuery.error)}
             </Text>
           </View>
@@ -97,7 +101,7 @@ export function ChatPickPeerScreen({ route, navigation }: Props) {
         {openDirect.error ? (
           <Text style={styles.mutationErr}>
             {openDirect.error instanceof Error
-              ? openDirect.error.message
+              ? getUserFacingError(openDirect.error, t)
               : String(openDirect.error)}
           </Text>
         ) : null}
@@ -107,7 +111,7 @@ export function ChatPickPeerScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: "#f9f8ea" },
+  wrap: { flex: 1, backgroundColor: mobileColors.canvas },
   intro: {
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -124,7 +128,7 @@ const styles = StyleSheet.create({
     padding: 24
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -134,15 +138,15 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#1f2910"
+    color: mobileColors.textPrimary
   },
   cardSub: {
     marginTop: 6,
     fontSize: 14,
-    color: "#6d745b"
+    color: mobileColors.textSecondary
   },
   error: { color: "#b00020", textAlign: "center" },
-  empty: { fontSize: 15, color: "#6d745b", textAlign: "center" },
+  empty: { fontSize: 15, color: mobileColors.textSecondary, textAlign: "center" },
   mutationErr: {
     paddingHorizontal: 16,
     paddingBottom: 12,

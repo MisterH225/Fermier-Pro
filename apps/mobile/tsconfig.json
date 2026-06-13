@@ -1,5 +1,5 @@
 {
-  "extends": "expo/tsconfig.base",
+  "extends": "../../node_modules/expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
     "baseUrl": "."
@@ -7,8 +7,5 @@
   "include": [
     "**/*.ts",
     "**/*.tsx"
-  ],
-  "exclude": [
-    "src/components/profitability"
   ]
 }

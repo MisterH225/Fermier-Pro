@@ -1,11 +1,15 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { TabScreenHeader } from "../components/layout";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Alert,
+  InteractionManager,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -24,6 +28,7 @@ import {
 } from "../components/charts";
 import { AppDateRangePicker } from "../components/common/AppDateRangePicker";
 import { StockModal, FeedStockLevelGauge, farmFeedStatToGauge } from "../components/feed";
+import { FeedPhaseReviewBanner } from "../components/feed/FeedPhaseReviewBanner";
 import { HighlightWrapper } from "../components/common/HighlightWrapper";
 import { EditStockModal } from "../components/stock/EditStockModal";
 import { LinkedFinanceSection } from "../components/stock/LinkedFinanceSection";
@@ -31,7 +36,7 @@ import { ReconciliationAlertModal } from "../components/stock/ReconciliationAler
 import type { PostFarmFeedMovementResponse, ReconciliationOfferDto } from "../lib/api";
 import { FeedStockModuleGate } from "../components/FeedStockModuleGate";
 import { EventList, type EventItem } from "../components/lists";
-import { ModuleAIInsights } from "../components/ai/ModuleAIInsights";
+import { FarmModuleAISection } from "../components/ai/FarmModuleAISection";
 import { ScreenSection } from "../components/layout/ScreenSection";
 import { TabContent, TabSelector } from "../components/tabs";
 import { invalidateAIInsights } from "../services/ai/AIRecommendationService";
@@ -39,12 +44,17 @@ import { useModal } from "../components/modals/useModal";
 import { useSession } from "../context/SessionContext";
 import type { FeedStockMovementDto } from "../lib/api";
 import {
+  deleteFarmFeedMovement,
   fetchFarmFeedChart,
   fetchFarmFeedMovements,
   fetchFarmFeedOverview,
   fetchFarmFeedStats,
   fetchFarmFeedTypes
 } from "../lib/api";
+import {
+  feedStockLiveQueryOptions,
+  refreshFarmFeedQueries
+} from "../lib/feedStockQuery";
 import type { RootStackParamList } from "../types/navigation";
 import {
   mobileColors,
@@ -53,6 +63,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../theme/mobileTheme";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmFeedStock">;
 
@@ -89,6 +100,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
     costFilter
   } = params;
   const session = useSession();
+  const qc = useQueryClient();
   const accessToken = session?.accessToken ?? "";
   const activeProfileId = session?.activeProfileId ?? null;
   const clientFeatures = session?.clientFeatures ?? { feedStock: false };
@@ -147,31 +159,46 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
 
   const enabled = clientFeatures.feedStock && Boolean(accessToken);
 
+  const live = feedStockLiveQueryOptions;
+
   const results = useQueries({
     queries: [
       {
         queryKey: ["farmFeed", farmId, "types", activeProfileId],
         queryFn: () => fetchFarmFeedTypes(accessToken!, farmId, activeProfileId),
-        enabled
+        enabled,
+        ...live
       },
       {
         queryKey: ["farmFeed", farmId, "overview", activeProfileId],
         queryFn: () => fetchFarmFeedOverview(accessToken!, farmId, activeProfileId),
-        enabled
+        enabled,
+        ...live
       },
       {
         queryKey: ["farmFeed", farmId, "chart", period, activeProfileId],
         queryFn: () =>
           fetchFarmFeedChart(accessToken!, farmId, period, activeProfileId),
-        enabled
+        enabled,
+        ...live
       },
       {
         queryKey: ["farmFeed", farmId, "stats", activeProfileId],
         queryFn: () => fetchFarmFeedStats(accessToken!, farmId, activeProfileId),
-        enabled
+        enabled,
+        ...live
       }
     ]
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!enabled) {
+        return;
+      }
+      void refreshFarmFeedQueries(qc, farmId, activeProfileId);
+    }, [qc, farmId, activeProfileId, enabled])
+  );
 
   const [typesQ, overviewQ, chartQ, statsQ] = results;
 
@@ -199,7 +226,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
 
   const refetchAll = () => {
     void Promise.all([
-      ...results.map((r) => r.refetch()),
+      refreshFarmFeedQueries(qc, farmId, activeProfileId),
       movQ.refetch()
     ]);
   };
@@ -227,7 +254,9 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
   }, [movements, movKindFilter, feedTab]);
 
   const feedMovementEvents = useMemo((): EventItem[] => {
-    return movementsFiltered.map((m) => {
+    return movementsFiltered
+      .filter((m) => m?.id)
+      .map((m) => {
       const kindLabel =
         m.kind === "in" ? t("feedStock.movementIn") : t("feedStock.movementCheck");
       const qty =
@@ -239,7 +268,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
       const dateShort = new Date(m.occurredAt).toLocaleDateString("fr-FR");
       return {
         id: m.id,
-        title: m.feedType.name,
+        title: m.feedType?.name ?? t("feedStock.unknownFeedType", "Aliment"),
         subtitle: [
           kindLabel,
           m.linkedExpenseId ? t("financeStockLink.financeBadge") : null,
@@ -255,6 +284,11 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
       };
     });
   }, [movementsFiltered, t]);
+
+  const safeStats = useMemo(
+    () => (Array.isArray(stats) ? stats.filter(Boolean) : []),
+    [stats]
+  );
 
   const stockKindPills = useMemo(
     () => [
@@ -303,6 +337,71 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
     [movFilterType, movFrom, movTo, types, t]
   );
 
+  const handleStockSaved = useCallback(
+    (res?: PostFarmFeedMovementResponse) => {
+      refetchAll();
+      if (res?.reconciliation && res.reconciliation.status !== "none") {
+        setReconciliationOffer(res.reconciliation);
+      }
+    },
+    [refetchAll]
+  );
+
+  const openEditMovement = useCallback((m: FeedStockMovementDto) => {
+    InteractionManager.runAfterInteractions(() => {
+      setEditMovement(m);
+    });
+  }, []);
+
+  const confirmDeleteMovement = useCallback(
+    (m: FeedStockMovementDto, closeDetail?: () => void) => {
+      const isCheck = m.kind === "stock_check";
+      Alert.alert(
+        t(isCheck ? "feedStock.edit.checkDeleteTitle" : "feedStock.edit.deleteTitle"),
+        t(isCheck ? "feedStock.edit.checkDeleteMessage" : "feedStock.edit.deleteMessage"),
+        [
+          { text: t("common.cancel"), style: "cancel" },
+          {
+            text: t("common.delete"),
+            style: "destructive",
+            onPress: () => {
+              void deleteFarmFeedMovement(
+                accessToken,
+                farmId,
+                m.id,
+                activeProfileId
+              )
+                .then(async () => {
+                  closeDetail?.();
+                  await refreshFarmFeedQueries(qc, farmId, activeProfileId);
+                  void movQ.refetch();
+                  open("success", {
+                    title: t(
+                      isCheck
+                        ? "feedStock.edit.checkDeleteDoneTitle"
+                        : "feedStock.edit.deleteDoneTitle"
+                    ),
+                    message: t(
+                      isCheck
+                        ? "feedStock.edit.checkDeleteDoneMessage"
+                        : "feedStock.edit.deleteDoneMessage"
+                    )
+                  });
+                })
+                .catch((e: unknown) =>
+                  Alert.alert(
+                    t("common.error"),
+                    getUserFacingError(e instanceof Error ? e : new Error(String(e)), t)
+                  )
+                );
+            }
+          }
+        ]
+      );
+    },
+    [accessToken, farmId, activeProfileId, open, qc, movQ, t]
+  );
+
   const renderStockMovDetail = useCallback(
     (item: EventItem, ctx: { close: () => void }) => {
       const m = item.meta as FeedStockMovementDto;
@@ -323,21 +422,33 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
               movement={m}
             />
           ) : null}
-          {m.kind === "in" ? (
+          <View style={styles.detailActions}>
             <Pressable
               style={styles.editBtn}
               onPress={() => {
                 ctx.close();
-                setEditMovement(m);
+                openEditMovement(m);
               }}
             >
               <Text style={styles.editBtnTx}>{t("feedStock.editMovement")}</Text>
             </Pressable>
-          ) : null}
+            <Pressable
+              style={styles.deleteBtn}
+              onPress={() => confirmDeleteMovement(m, ctx.close)}
+            >
+              <Text style={styles.deleteBtnTx}>
+                {t(
+                  m.kind === "stock_check"
+                    ? "feedStock.edit.checkDeleteBtn"
+                    : "feedStock.edit.deleteBtn"
+                )}
+              </Text>
+            </Pressable>
+          </View>
         </View>
       );
     },
-    [t, accessToken, farmId, activeProfileId]
+    [t, accessToken, farmId, activeProfileId, openEditMovement, confirmDeleteMovement]
   );
 
   const onStockKindFilter = useCallback((id: string) => {
@@ -347,41 +458,28 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
     else setMovKindFilter("all");
   }, []);
 
-  const handleStockSaved = useCallback(
-    (res?: PostFarmFeedMovementResponse) => {
-      refetchAll();
-      if (res?.reconciliation && res.reconciliation.status !== "none") {
-        setReconciliationOffer(res.reconciliation);
-      }
-    },
-    [refetchAll]
-  );
-
   const renderStockSwipeEdit = useCallback(
     (item: EventItem) => {
       const m = item.meta as FeedStockMovementDto;
-      if (m.kind !== "in") {
-        return null;
-      }
       return (
         <Pressable
           style={styles.swipeEdit}
-          onPress={() => setEditMovement(m)}
+          onPress={() => openEditMovement(m)}
           accessibilityRole="button"
           accessibilityLabel={t("feedStock.editMovement")}
         >
-          <Ionicons name="pencil" size={20} color="#fff" />
+          <Ionicons name="pencil" size={20} color={mobileColors.onAccent} />
           <Text style={styles.swipeEditTx}>{t("feedStock.editMovement")}</Text>
         </Pressable>
       );
     },
-    [t]
+    [openEditMovement, t]
   );
 
   const pending = results.some((r) => r.isPending) || movQ.isPending;
   const errMsg = useMemo(() => {
     for (const r of [...results, movQ]) {
-      if (r.error instanceof Error) return r.error.message;
+      if (r.error) return getUserFacingError(r.error, t);
     }
     return null;
   }, [results, movQ]);
@@ -496,8 +594,15 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
             label: t("feedStock.tabOverview"),
             content: tabScroll(
               <>
+                {accessToken ? (
+                  <FeedPhaseReviewBanner
+                    farmId={farmId}
+                    accessToken={accessToken}
+                    activeProfileId={activeProfileId}
+                  />
+                ) : null}
                 <ScreenSection title={t("feedStock.chartTitle")}>
-                  {chart ? (
+                  {chart && Array.isArray(chart.series) ? (
                     <SmartChart
                       lines={feedChartToLines(chart)}
                       period={feedPeriodToChartPeriod(period)}
@@ -527,18 +632,23 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
                     <Text style={styles.muted}>—</Text>
                   )}
                 </ScreenSection>
-                <ModuleAIInsights
+                <FarmModuleAISection
                   farmId={farmId}
-                  module="stock"
+                  menu="stock"
                   accessToken={accessToken}
                   activeProfileId={activeProfileId}
-                  hasMinimalData={stats.length > 0}
+                  predictionTitle={t("predictions.sectionStock")}
+                  onStockOrderPress={() => {
+                    setStockModalDefaultTab("in");
+                    setStockOpen(true);
+                  }}
+                  hasMinimalData={safeStats.length > 0}
                 />
                 <ScreenSection title={t("feedStock.statsTitle")}>
-                {!stats || stats.length === 0 ? (
+                {safeStats.length === 0 ? (
                   <Text style={styles.muted}>{t("feedStock.noStats")}</Text>
                 ) : (
-                  stats.map((s, statIndex) => {
+                  safeStats.map((s, statIndex) => {
                     if (!s || !s.feedTypeId) return null;
                     try {
                       const gauge = farmFeedStatToGauge(s, statIndex, t);
@@ -554,7 +664,8 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
                             percent={gauge.percent}
                             gaugeColor={gauge.gaugeColor || mobileColors.accent}
                             dotColor={gauge.dotColor || mobileColors.accent}
-                            centerLabel={gauge.centerLabel}
+                            daysLabel={gauge.daysLabel}
+                            lastCheckWarning={gauge.lastCheckWarning}
                           />
                         </HighlightWrapper>
                       );
@@ -564,11 +675,11 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
                   })
                 )}
                 </ScreenSection>
-                <ScreenSection title={t("feedStock.smartAlertsHintTitle", "Recommandations")}>
+                <ScreenSection title={t("feedStock.smartAlertsHintTitle", "Notifications")}>
                   <Text style={styles.muted}>
                     {t(
                       "feedStock.smartAlertsHintBody",
-                      "Les alertes stock et consommation sont sur le tableau de bord (section Recommandations)."
+                      "Les alertes stock et consommation sont sur le tableau de bord (section Notifications)."
                     )}
                   </Text>
                 </ScreenSection>
@@ -615,7 +726,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
         />
         {editMovement ? (
           <EditStockModal
-            visible
+            visible={Boolean(editMovement)}
             movement={editMovement}
             types={types}
             farmId={farmId}
@@ -624,6 +735,9 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
             onClose={() => setEditMovement(null)}
             onSaved={(res) => {
               handleStockSaved(res);
+            }}
+            onDeleted={() => {
+              refetchAll();
             }}
           />
         ) : null}
@@ -719,7 +833,6 @@ const styles = StyleSheet.create({
     color: mobileColors.textPrimary
   },
   editBtn: {
-    marginTop: mobileSpacing.md,
     alignSelf: "flex-start",
     paddingVertical: mobileSpacing.sm,
     paddingHorizontal: mobileSpacing.md,
@@ -729,6 +842,24 @@ const styles = StyleSheet.create({
   editBtnTx: {
     ...mobileTypography.meta,
     color: mobileColors.accent,
+    fontWeight: "700"
+  },
+  detailActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: mobileSpacing.sm,
+    marginTop: mobileSpacing.md
+  },
+  deleteBtn: {
+    paddingVertical: mobileSpacing.sm,
+    paddingHorizontal: mobileSpacing.md,
+    borderRadius: mobileRadius.md,
+    borderWidth: 1,
+    borderColor: mobileColors.error
+  },
+  deleteBtnTx: {
+    ...mobileTypography.meta,
+    color: mobileColors.error,
     fontWeight: "700"
   },
   swipeEdit: {
@@ -743,7 +874,7 @@ const styles = StyleSheet.create({
     gap: 4
   },
   swipeEditTx: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 11,
     fontWeight: "700",
     textAlign: "center"

@@ -212,6 +212,8 @@ export function SaleModal({
         onSuccess({} as SaleResult);
         return;
       }
+      void qc.invalidateQueries({ queryKey: ["farmCheptel", farmId] });
+      void qc.invalidateQueries({ queryKey: ["cheptelHistory", farmId] });
       onSuccess(result as SaleResult);
     },
     onQueued: () => {
@@ -251,7 +253,7 @@ export function SaleModal({
             onPress={() => saveMut.mutate()}
           >
             {saveMut.isPending ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={mobileColors.onAccent} />
             ) : (
               <Text style={styles.primaryBtnText}>
                 {t("cheptel.animals.sale.confirm")}
@@ -445,5 +447,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.5 },
-  primaryBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
 });

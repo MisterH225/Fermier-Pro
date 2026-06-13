@@ -7,6 +7,9 @@ type MovementWithType = FeedStockMovement & {
 export function serializeFeedMovement(row: MovementWithType) {
   return {
     ...row,
+    quantityInput: row.quantityInput?.toString() ?? null,
+    quantityUnit: row.quantityUnit ?? null,
+    priceBasis: row.priceBasis ?? null,
     quantityKg: row.quantityKg?.toString() ?? null,
     bagsCounted: row.bagsCounted?.toString() ?? null,
     bagsConsumed: row.bagsConsumed?.toString() ?? null,

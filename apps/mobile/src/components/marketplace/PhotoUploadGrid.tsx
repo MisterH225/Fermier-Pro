@@ -213,7 +213,7 @@ export function PhotoUploadGrid({
               onPress={() => removeAt(index)}
               hitSlop={6}
             >
-              <Ionicons name="close" size={14} color="#fff" />
+              <Ionicons name="close" size={14} color={mobileColors.onAccent} />
             </Pressable>
           </View>
         ))}
@@ -223,7 +223,7 @@ export function PhotoUploadGrid({
               <Image source={{ uri: slot.uri }} style={styles.thumb} resizeMode="cover" />
               {slot.uploading ? (
                 <View style={styles.uploadOverlay}>
-                  <ActivityIndicator color="#fff" size="small" />
+                  <ActivityIndicator color={mobileColors.onAccent} size="small" />
                 </View>
               ) : null}
             </View>
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   primaryBadgeTx: {
     fontSize: 9,
     fontWeight: "700",
-    color: "#fff"
+    color: mobileColors.onAccent
   },
   removeBtn: {
     position: "absolute",
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
   useBtnTx: {
     ...mobileTypography.meta,
     fontWeight: "700",
-    color: "#fff"
+    color: mobileColors.onAccent
   },
   ownBtn: {
     paddingHorizontal: mobileSpacing.md,

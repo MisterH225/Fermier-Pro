@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
@@ -61,11 +62,12 @@ export function PendingInvitationsModal({ visible, onClose }: Props) {
       void qc.invalidateQueries({ queryKey: ["farms", activeProfileId] });
       void qc.invalidateQueries({ queryKey: ["farm"] });
       void qc.invalidateQueries({ queryKey: ["farmMembers"] });
+      void qc.invalidateQueries({ queryKey: ["vetDashboard"] });
       if (vars.accept) {
         Alert.alert("", t("collab.pendingInvitations.acceptedToast"));
       }
     },
-    onError: (e: Error) => Alert.alert("", e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const items = listQuery.data ?? [];
@@ -375,7 +377,7 @@ const styles = StyleSheet.create({
   },
   actionTxtAccept: {
     ...mobileTypography.body,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700"
   }
 });

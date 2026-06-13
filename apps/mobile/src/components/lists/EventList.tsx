@@ -14,6 +14,8 @@ import { BaseModal } from "../modals/BaseModal";
 import { EventListFilter } from "./EventListFilter";
 import { EventListItem } from "./EventListItem";
 import type { EventItem, FilterPill } from "./types";
+import { EmptyStateCard } from "../common/EmptyStateCard";
+import { ListItemSkeleton } from "../common/SkeletonBlocks";
 import { ScreenSection } from "../layout/ScreenSection";
 import {
   mobileColors,
@@ -48,24 +50,6 @@ export type EventListProps = {
   /** Ouvre le détail d’un enregistrement (navigation depuis alerte). */
   initialOpenItemId?: string;
 };
-
-function SkeletonBlock() {
-  return (
-    <View style={styles.skelCard}>
-      <View style={styles.skelRow}>
-        <View style={styles.skelCircle} />
-        <View style={{ flex: 1, gap: 8 }}>
-          <View style={styles.skelLineLg} />
-          <View style={styles.skelLineSm} />
-        </View>
-        <View style={{ alignItems: "flex-end", gap: 6 }}>
-          <View style={[styles.skelLineSm, { width: 72 }]} />
-          <View style={[styles.skelLineSm, { width: 48 }]} />
-        </View>
-      </View>
-    </View>
-  );
-}
 
 export function EventList({
   data,
@@ -159,15 +143,14 @@ export function EventList({
       return (
         <View style={styles.embedPad}>
           {Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonBlock key={i} />
+            <ListItemSkeleton key={i} />
           ))}
         </View>
       );
     }
     return (
       <View style={styles.emptyWrap}>
-        <Ionicons name="journal-outline" size={48} color={mobileColors.border} />
-        <Text style={styles.emptyTx}>{emptyMessage}</Text>
+        <EmptyStateCard title={emptyMessage || undefined} />
       </View>
     );
   }, [isLoading, emptyMessage]);
@@ -208,7 +191,7 @@ export function EventList({
         {isLoading && !data.length ? (
           <View style={styles.embedPad}>
             {Array.from({ length: 5 }).map((_, i) => (
-              <SkeletonBlock key={i} />
+              <ListItemSkeleton key={i} />
             ))}
           </View>
         ) : data.length === 0 ? (
@@ -367,7 +350,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: mobileSpacing.lg
   },
   skelCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: mobileColors.background,
     borderRadius: 16,
     padding: mobileSpacing.md,
     marginBottom: mobileSpacing.sm

@@ -22,6 +22,7 @@ import {
   getProducerOnboardingState,
   shouldShowOnboardingScreen
 } from "../lib/onboardingState";
+import { AppErrorBoundary } from "./AppErrorBoundary";
 import { MainNavigationShell } from "./MainNavigationShell";
 import { useCGUStatus } from "../hooks/useCGUStatus";
 import { CGUScreen } from "../screens/onboarding/CGUScreen";
@@ -133,7 +134,11 @@ function AuthenticatedAppShellInner() {
     );
   }
 
-  return <MainNavigationShell />;
+  return (
+    <AppErrorBoundary>
+      <MainNavigationShell />
+    </AppErrorBoundary>
+  );
 }
 
 const queryPersistOptions = {

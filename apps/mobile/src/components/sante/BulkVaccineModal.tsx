@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -145,7 +146,7 @@ export function BulkVaccineModal({
       Alert.alert("", offlineQueuedMessage(t));
     },
     onError: (e: Error) =>
-      Alert.alert(t("health.errorTitle"), e.message)
+      Alert.alert(t("health.errorTitle"), getUserFacingError(e, t))
   });
 
   const canSubmit = selected.size > 0 && administeredDate.trim().length >= 8;
@@ -162,7 +163,7 @@ export function BulkVaccineModal({
           onPress={() => mut.mutate()}
         >
           {mut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
             <Text style={styles.saveTx}>{t("health.vaccines.bulkSave")}</Text>
           )}
@@ -291,5 +292,5 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.sm
   },
   saveDisabled: { opacity: 0.5 },
-  saveTx: { color: "#fff", fontWeight: "700" }
+  saveTx: { color: mobileColors.onAccent, fontWeight: "700" }
 });

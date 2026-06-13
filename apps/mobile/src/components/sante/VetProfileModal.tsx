@@ -1,6 +1,6 @@
-import { useMutation } from "@tanstack/react-query";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { getUserFacingError } from "../../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -47,6 +47,7 @@ export function VetProfileModal({
   onInvite
 }: Props) {
   const { t } = useTranslation();
+  const qc = useQueryClient();
   const isCollaboration = variant === "collaboration";
 
   const q = useQuery({
@@ -64,11 +65,12 @@ export function VetProfileModal({
       if (!profile?.userId) {
         return;
       }
+      void qc.invalidateQueries({ queryKey: ["chatRooms", activeProfileId] });
       onClose();
       onOpenChat(room.id, profile.fullName ?? "Vétérinaire", profile.userId);
     },
     onError: (err: Error) => {
-      Alert.alert(t("common.error"), err.message);
+      Alert.alert(t("common.error"), getUserFacingError(err, t));
     }
   });
 
@@ -96,7 +98,7 @@ export function VetProfileModal({
                   disabled={chatMutation.isPending}
                 >
                   {chatMutation.isPending ? (
-                    <ActivityIndicator size="small" color="#fff" />
+                    <ActivityIndicator size="small" color={mobileColors.onAccent} />
                   ) : (
                     <Text style={styles.btnPrimaryTx}>
                       {t("collab.directory.message")}
@@ -188,8 +190,29 @@ export function VetProfileModal({
           {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
           {profile.ratingAvg != null ? (
             <Text style={styles.meta}>
-              ★ {profile.ratingAvg.toFixed(1)} · {profile.ratingCount}{" "}
-              {t("health.vetSearch.reviews")}
+              ⭐ {profile.ratingAvg.toFixed(1)} / 5 · ({profile.ratingCount}{" "}
+              {t("health.vetSearch.reviews")})
+            </Text>
+          ) : null}
+          {profile.stats.completedAppointments != null &&
+          profile.stats.completedAppointments > 0 ? (
+            <Text style={styles.meta}>
+              {t("health.vetSearch.completedAppointments", {
+                count: profile.stats.completedAppointments
+              })}
+            </Text>
+          ) : null}
+          {profile.servicePriceRange ? (
+            <Text style={styles.meta}>
+              {t("health.vetSearch.priceRange", {
+                min: Math.round(profile.servicePriceRange.min).toLocaleString(
+                  "fr-FR"
+                ),
+                max: Math.round(profile.servicePriceRange.max).toLocaleString(
+                  "fr-FR"
+                ),
+                currency: profile.servicePriceRange.currency
+              })}
             </Text>
           ) : null}
           <Text style={styles.meta}>
@@ -201,6 +224,26 @@ export function VetProfileModal({
               count: profile.stats.visitsCompleted
             })}
           </Text>
+          {profile.recentReviews.length > 0 ? (
+            <View style={styles.reviews}>
+              {profile.recentReviews.slice(0, 3).map((r, i) => (
+                <View key={`${r.createdAt}-${i}`} style={styles.reviewRow}>
+                  <Text style={styles.reviewScore}>
+                    {"★".repeat(r.score)}
+                    {"☆".repeat(Math.max(0, 5 - r.score))}
+                  </Text>
+                  {r.comment ? (
+                    <Text style={styles.reviewComment} numberOfLines={2}>
+                      {r.comment}
+                    </Text>
+                  ) : null}
+                  {r.tags && r.tags.length > 0 ? (
+                    <Text style={styles.reviewTags}>{r.tags.join(" · ")}</Text>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          ) : null}
         </View>
       ) : null}
     </BaseModal>
@@ -214,6 +257,11 @@ const styles = StyleSheet.create({
   meta: { ...mobileTypography.meta, color: mobileColors.textSecondary },
   bio: { ...mobileTypography.body, color: mobileColors.textPrimary },
   err: { color: mobileColors.error },
+  reviews: { marginTop: mobileSpacing.sm, gap: mobileSpacing.sm },
+  reviewRow: { gap: 2 },
+  reviewScore: { color: "#F59E0B", fontWeight: "700", fontSize: 14 },
+  reviewComment: { ...mobileTypography.meta, color: mobileColors.textSecondary },
+  reviewTags: { ...mobileTypography.meta, fontSize: 11, color: mobileColors.textSecondary },
   actions: { gap: mobileSpacing.sm },
   contactRow: {
     flexDirection: "row",
@@ -226,7 +274,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center"
   },
-  btnPrimaryTx: { color: "#fff", fontWeight: "700" },
+  btnPrimaryTx: { color: mobileColors.onAccent, fontWeight: "700" },
   btnSecondary: {
     borderWidth: 1,
     borderColor: mobileColors.accent,

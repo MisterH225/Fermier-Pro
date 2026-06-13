@@ -1,3 +1,7 @@
+import {
+  chartSemanticColors,
+  feedSeriesColor
+} from "../../theme/chartPalette";
 import { mobileColors } from "../../theme/mobileTheme";
 import type { FarmFeedChartDto } from "../../lib/api";
 import type { SmartChartLine, SmartChartPeriod } from "./SmartChart";
@@ -8,6 +12,68 @@ export type FinanceMonthPoint = {
   expenses?: number;
   net?: number;
 };
+
+export type MarketplaceFinanceMonthPoint = {
+  month: string;
+  confirmedRevenue?: number;
+  pendingRevenue?: number;
+  confirmedSpent?: number;
+  blockedFunds?: number;
+};
+
+export function marketplaceSellerFinanceLines(
+  months: MarketplaceFinanceMonthPoint[],
+  confirmedLabel: string,
+  pendingLabel: string
+): SmartChartLine[] {
+  return [
+    {
+      key: "confirmedRevenue",
+      label: confirmedLabel,
+      color: mobileColors.success,
+      data: months.map((m) => ({
+        month: m.month,
+        value: Number(m.confirmedRevenue ?? 0)
+      }))
+    },
+    {
+      key: "pendingRevenue",
+      label: pendingLabel,
+      color: chartSemanticColors.pending,
+      data: months.map((m) => ({
+        month: m.month,
+        value: Number(m.pendingRevenue ?? 0)
+      }))
+    }
+  ];
+}
+
+export function marketplaceBuyerFinanceLines(
+  months: MarketplaceFinanceMonthPoint[],
+  confirmedLabel: string,
+  pendingLabel: string
+): SmartChartLine[] {
+  return [
+    {
+      key: "confirmedSpent",
+      label: confirmedLabel,
+      color: mobileColors.success,
+      data: months.map((m) => ({
+        month: m.month,
+        value: Number(m.confirmedSpent ?? 0)
+      }))
+    },
+    {
+      key: "blockedFunds",
+      label: pendingLabel,
+      color: chartSemanticColors.pending,
+      data: months.map((m) => ({
+        month: m.month,
+        value: Number(m.blockedFunds ?? 0)
+      }))
+    }
+  ];
+}
 
 export function financeMonthsToRevExpLines(
   months: FinanceMonthPoint[],
@@ -111,35 +177,18 @@ export function barDataToLine(
   ];
 }
 
-/**
- * Teintes volontairement éloignées (bleu, orange, violet… — pas deux verts).
- * Alignée sur `apps/api/src/feed-stock/feed-type-colors.ts`.
- */
-export const FEED_SERIES_PALETTE = [
-  "#2563EB",
-  "#EA580C",
-  "#7C3AED",
-  "#DC2626",
-  "#0891B2",
-  "#DB2777",
-  "#CA8A04",
-  "#4F46E5",
-  "#0D9488",
-  "#64748B"
-] as const;
-
-export function feedSeriesColor(seriesIndex: number): string {
-  return FEED_SERIES_PALETTE[seriesIndex % FEED_SERIES_PALETTE.length]!;
-}
+export { feedSeriesColor, feedSeriesPalette } from "../../theme/chartPalette";
 
 export function feedChartToLines(chart: FarmFeedChartDto): SmartChartLine[] {
-  return chart.series.map((s, i) => ({
-    key: s.feedTypeId,
-    label: s.name,
+  const series = chart.series ?? [];
+  const weekKeys = chart.weekKeys ?? [];
+  return series.map((s, i) => ({
+    key: s.feedTypeId ?? `series-${i}`,
+    label: s.name ?? "—",
     color: feedSeriesColor(i),
-    data: chart.weekKeys.map((week, wi) => ({
+    data: weekKeys.map((week, wi) => ({
       month: week,
-      value: s.points[wi] ?? 0
+      value: s.points?.[wi] ?? 0
     }))
   }));
 }

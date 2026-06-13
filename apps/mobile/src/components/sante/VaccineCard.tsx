@@ -173,7 +173,7 @@ export function VaccineCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: 16,
     padding: mobileSpacing.md,
     marginBottom: mobileSpacing.md,
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.sm,
     borderRadius: mobileRadius.sm
   },
-  bulkBtnTx: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  bulkBtnTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 13 },
   expandBtn: {
     marginTop: mobileSpacing.md,
     alignItems: "center",

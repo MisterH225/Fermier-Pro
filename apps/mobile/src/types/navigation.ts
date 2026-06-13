@@ -22,6 +22,8 @@ export type RootStackParamList = {
   FarmList: undefined;
   /** Compte : déconnexion, langue, aide. */
   Account: undefined;
+  /** Support : appel téléphonique ou Telegram. */
+  Support: undefined;
   DeleteAccountProcess: undefined;
   DeleteAccountComplete: undefined;
   /** Saisie du jeton d’invitation (lien partagé par un gestionnaire de ferme). */
@@ -59,6 +61,7 @@ export type RootStackParamList = {
     farmName: string;
     vetProfileId: string;
   };
+  VetAppointmentDetail: { appointmentId: string };
   CreateFarm: undefined;
   AnimalDetail: {
     farmId: string;
@@ -73,10 +76,12 @@ export type RootStackParamList = {
     batchName: string;
   };
   FarmTasks: { farmId: string; farmName: string };
-  CreateTask: { farmId: string; farmName: string };
   MarketplaceList:
     | {
-        tab?: "listings" | "mine" | "offers";
+        tab?: "listings" | "mine" | "offers" | "partners";
+        offersSubTab?: "received" | "sent";
+        offersListingId?: string;
+        highlightOfferId?: string;
         buyerView?: boolean;
         fromDashboard?: boolean;
         favoritesOnly?: boolean;
@@ -84,10 +89,12 @@ export type RootStackParamList = {
       }
     | undefined;
   MarketplaceListingDetail: { listingId: string; headline?: string };
+  MarketplaceTransaction: { transactionId: string };
+  MarketplacePaymentDashboard: undefined;
+  CreditDashboard: undefined;
   MarketplaceMyOffers: undefined;
   MarketplaceMyListings: undefined;
   CreateMarketplaceListing: { farmId?: string };
-  EditMarketplaceListing: { listingId: string };
   TechProfileEdit: undefined;
   ChatRooms: undefined;
   ChatRoom: {
@@ -99,9 +106,16 @@ export type RootStackParamList = {
   };
   ChatPickFarm: undefined;
   ChatPickPeer: { farmId: string; farmName: string };
-  ChatSearchUser: undefined;
+  ChatSearchUser:
+    | {
+        shareListingId?: string;
+        shareListingTitle?: string;
+      }
+    | undefined;
   /** Messagerie producteur — liste de toutes les conversations. */
   ProducerMessages: undefined;
+  /** Feed communautaire — accessible à tous les profils. */
+  CommunityFeed: undefined;
   /** Écran générique « module prévu » (véto, finance, loges…). */
   ModuleRoadmap: { title: string; body: string };
   FarmVetConsultations: { farmId: string; farmName: string };
@@ -119,24 +133,11 @@ export type RootStackParamList = {
   FarmFinance: {
     farmId: string;
     farmName: string;
-    initialTab?: "overview" | "revenus" | "depenses" | "budget";
+    initialTab?: "overview" | "rentabilite" | "revenus" | "depenses" | "budget";
     openCategoryId?: string;
     highlightOverrun?: boolean;
   };
-  CreateFarmExpense: { farmId: string; farmName: string };
-  CreateFarmRevenue: { farmId: string; farmName: string };
-  EditFarmExpense: {
-    farmId: string;
-    farmName: string;
-    expenseId: string;
-  };
-  EditFarmRevenue: {
-    farmId: string;
-    farmName: string;
-    revenueId: string;
-  };
   FarmBarns: { farmId: string; farmName: string };
-  CreateBarn: { farmId: string; farmName: string };
   CreatePen: {
     farmId: string;
     farmName: string;
@@ -205,7 +206,7 @@ export type RootStackParamList = {
     highlightSowId?: string;
     tab?: string;
   };
-  SmartAlertsList: { farmId: string; farmName: string };
+  SmartAlertsList: { farmId?: string; farmName?: string };
   FarmReports: { farmId: string; farmName: string };
   SettingsExpenseCategories: { farmId: string; farmName: string };
 };

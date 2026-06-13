@@ -3,7 +3,8 @@
 **Date :** 3 juin 2026  
 **Périmètre :** `apps/mobile`, `apps/api` (références croisées), thèmes et design system  
 **Branche analysée :** `main` (commit au moment de l’audit)  
-**Mode :** lecture seule — aucune correction de code appliquée  
+**Mode initial :** lecture seule (3 juin 2026)  
+**Mise à jour :** 6 juin 2026 — PR [#19](https://github.com/MisterH225/Fermier-Pro/pull/19)–[#21](https://github.com/MisterH225/Fermier-Pro/pull/21), [#12](https://github.com/MisterH225/Fermier-Pro/pull/12)–[#14](https://github.com/MisterH225/Fermier-Pro/pull/14) (`main` @ `e1d23f3`)  
 
 **Commandes de validation exécutées :**
 - `npm run typecheck:mobile` — OK
@@ -18,11 +19,13 @@
 | Domaine | Sévérité globale | Commentaire |
 |--------|------------------|-------------|
 | UI / design system | **Élevée** | Fond legacy `#f9f8ea` sur ~60 fichiers ; `EmptyStateCard` quasi absent ; ~142 fichiers avec `ActivityIndicator` sans skeleton local |
-| Doublons | **Moyenne–élevée** | Deux `BaseModal` ; marketplace en modal + stack ; création loge triple voie |
+| Doublons | **Moyenne** | Deux `BaseModal` (P1 traité) ; housing : `CreateBuildingModal` + `CreateLogeModal` ; marketplace : `ListingModal` unifié |
 | Processus | **Moyenne** | 81 fichiers avec `Alert.alert` ; succès souvent hors `SuccessModal` |
 | Logique métier | **Faible–moyenne** | GMQ et pricing marketplace plutôt centralisés côté API ; cache React Query dispersé |
 | TypeScript | **Faible** | Builds passent ; dette `@deprecated` et API legacy dans `api.ts` |
 | Code mort | **Moyenne** | Écrans/routes dépréciés conservés pour compatibilité navigation |
+
+> **État juin 2026 :** une grande partie des P0–P1 a été traitée sur la branche `cursor/audit-fixes-p0-p1-0287` (voir section 8).
 
 ---
 
@@ -82,7 +85,7 @@ Fond standard documenté dans `mobileTheme.ts` :
 | `AdminMessagesModal.tsx` | Admin |
 | `ActiveProfileSwitcherModal.tsx`, `ProfileLanguagePill.tsx` | Compte |
 | `MarketplaceListingFormFields.tsx` | Sous-modales inline dans formulaire |
-| `EditMarketplaceListingScreen.tsx` | Modal locale écran |
+| ~~`EditMarketplaceListingScreen.tsx`~~ | Supprimé — édition via `ListingModal` |
 
 **Modaux conformes (échantillon) :** `CreateAnimalModal`, `TransactionModal`, `BudgetSetupModal`, `StockModal`, `DiseaseModal`, `BulkVaccineModal`, `ProposalModal`, `MiseBasModal`, `CreateGestationModal` (shared), `AppDatePicker` (wrappe `BaseModal`).
 
@@ -182,16 +185,16 @@ Légende : ✅ aligné | ⚠️ partiel | ❌ écart notable
 | CGU / Privacy | ⚠️ | — | — | ⚠️ | `CGUScreen` dans onboarding |
 | Login / `LoginGateScreen` | ⚠️ `PhoneOtpAuth` | — | ⚠️ | ✅ canvas sur stack moderne | Texte technique dev |
 | `ProducerDashboardScreen` | ✅ partiel | ✅ `EmptyStateCard` | ❌ | ⚠️ | `error.message` sur cartes |
-| Cheptel tabs | ✅ modaux animaux/loge | ❌ | ❌ | ⚠️ | `CreatePenModal` + `CreateLogeModal` |
+| Cheptel tabs | ✅ modaux animaux/loge/bâtiment | ⚠️ `EmptyStateCard` loges | ⚠️ skeleton | ✅ canvas | `CreateBuildingModal` + `CreateLogeModal` + `BuildingActionsSheet` |
 | `LogeDetailScreen` / `PenDetailScreen` | ✅ | ❌ | ❌ | ⚠️ | Erreurs brutes |
 | `CreateAnimalModal` | ✅ `BaseModal` | — | — | ✅ | Conforme |
-| `BulkAddAnimalsModal` | — | — | — | — | **Absent sur `main`** (PR #16 uniquement) |
+| `BulkAddAnimalsModal` | ✅ `BaseModal` | — | — | ✅ | Fusionné [PR #16](https://github.com/MisterH225/Fermier-Pro/pull/16) |
 | Finance (`FarmFinanceScreen`, budget) | ✅ `TransactionModal`, `BudgetSetupModal` | ❌ | ❌ | ❌ écrans edit/create `#f9f8ea` | Très gros écran, erreurs API visibles |
 | Santé (`SanteScreen` + tabs) | ✅ `DiseaseModal` | ❌ | ❌ | ⚠️ | `Alert` succès liaison |
 | `BulkVaccineModal` | ✅ | — | — | ✅ | |
 | Stock aliment (`FarmFeedStockScreen`) | ✅ `StockModal` | ❌ | ❌ | ⚠️ | |
 | Gestation (`FarmGestationScreen`) | ✅ | ❌ | ❌ | ⚠️ | Succès via `Alert.alert` |
-| Market (`MarketplaceListScreen` + détail) | ✅ `CreateMarketplaceListingModal`, `ProposalModal` | ✅ liste publique | ⚠️ skeleton cartes | ⚠️ buyer theme | **Pas de `ListingModal`** — nom spec obsolète |
+| Market (`MarketplaceListScreen` + détail) | ✅ `ListingModal`, `ProposalModal` | ✅ liste publique | ⚠️ skeleton cartes | ⚠️ buyer theme | Création/édition unifiées (`ListingModal`) |
 | `ChatScreen` / rooms | ❌ liste custom | ❌ | ❌ | ✅ | FlatList messages |
 | Collaboration | ❌ **2e BaseModal** | ❌ | ❌ | ⚠️ | Success/Delete collaboration séparés |
 | Tâches (`TasksScreen` / `FarmTasksScreen`) | ✅ | ❌ | ❌ | ⚠️ | `FarmTasksScreen` @deprecated |
@@ -210,8 +213,8 @@ Légende : ✅ aligné | ⚠️ partiel | ❌ écart notable
 
 | Entité | Doublons identifiés |
 |--------|---------------------|
-| **Loge / pen** | `CreatePenModal` (grille), `CreateLogeModal` (cheptel tab), **`CreatePenScreen`** + `CreatePenLogScreen` (stack plein écran) |
-| **Marketplace listing** | `CreateMarketplaceListingModal` **et** `CreateMarketplaceListingScreen` / `EditMarketplaceListingScreen` — formulaire partagé `MarketplaceListingFormFields` mais **deux UX** |
+| **Bâtiment / loge** | ~~`CreatePenModal`~~, ~~`PenGrid`~~, ~~`CreateBarnScreen`~~ supprimés — **`CreateBuildingModal`** (bâtiment + loges initiales), **`CreateLogeModal`** (loge dans bâtiment existant), **`BuildingActionsSheet`** / rename / delete ; `CreatePenScreen` = wrapper deep link → `CreateLogeModal` |
+| **Marketplace listing** | **`ListingModal`** (`create` \| `edit`) — remplace `CreateMarketplaceListingModal` et `EditMarketplaceListingScreen` ; `CreateMarketplaceListingScreen` = wrapper stack ; formulaire `MarketplaceListingFormFields` |
 | **Gestation** | `components/shared/CreateGestationModal` + re-export deprecated `components/gestation/CreateGestationModal` |
 | **Transaction** | `TransactionModal` + `EditTransactionModal` (légitime) ; écrans `CreateFarmExpenseScreen` / `EditFarmExpenseScreen` **parallèles** au modal finance |
 
@@ -330,7 +333,7 @@ components/collaboration/BaseModal.tsx ← duplicate API/UX
 | Endpoints `health-events` deprecated | API | Plan de retrait versionné |
 | `DeepNavigationService` | Service sous-utilisé | Generaliser ou supprimer |
 | `EmptyStateCard` | Composant **sous-utilisé** (pas mort, mais quasi) | — |
-| PR #16 `BulkAddAnimalsModal` | Non sur `main` | Intégration pending |
+| PR #16 `BulkAddAnimalsModal` | ~~Non sur `main`~~ | **Fusionné** — [PR #16](https://github.com/MisterH225/Fermier-Pro/pull/16) (`1bbd24e`) |
 
 **Faux positifs (à garder) :** `modals/SuccessModal` et `ConfirmDeleteModal` utilisent `Modal` RN mais sont la couche standard globale.
 
@@ -353,8 +356,8 @@ components/collaboration/BaseModal.tsx ← duplicate API/UX
 
 ### P2 — Doublons et maintenance
 
-8. **Une seule entrée création loge** — modal OU stack, pas les trois.
-9. **Marketplace** — modal OU `CreateMarketplaceListingScreen` ; documenter `ListingModal` → `CreateMarketplaceListingModal`.
+8. ~~**Une seule entrée création loge**~~ → **implémenté** ([PR #12](https://github.com/MisterH225/Fermier-Pro/pull/12)) : `CreateBuildingModal` + `CreateLogeModal` ; route `CreateBarn` supprimée.
+9. ~~**Marketplace modal unique**~~ → **implémenté** ([PR #13](https://github.com/MisterH225/Fermier-Pro/pull/13), [#14](https://github.com/MisterH225/Fermier-Pro/pull/14)) : `ListingModal` canonique.
 10. **Registre React Query** — clés + helpers `invalidate*` par domaine (comme finance).
 11. **Supprimer routes @deprecated** après redirection navigation.
 
@@ -363,9 +366,88 @@ components/collaboration/BaseModal.tsx ← duplicate API/UX
 12. Découper `api.ts` mobile.
 13. Étendre `DeepNavigationService` ou le retirer.
 14. Audit `TextInput` styles (83 fichiers) — composant `AppTextField` partagé.
-15. Aligner documentation statuts marketplace / cycle de vie ferme (PR #17).
+15. ~~Aligner documentation statuts marketplace / cycle de vie ferme (PR #17).~~ → **implémenté** ([PR #17](https://github.com/MisterH225/Fermier-Pro/pull/17), `FarmMarketplaceLifecycleService`).
 
 ---
+
+## 8. STATUT_DES_CORRECTIONS — Suivi post-audit (juin 2026)
+
+**`main` à jour** (`e1d23f3`) — merges : [PR #19](https://github.com/MisterH225/Fermier-Pro/pull/19), [#16](https://github.com/MisterH225/Fermier-Pro/pull/16), [#17](https://github.com/MisterH225/Fermier-Pro/pull/17), [#20](https://github.com/MisterH225/Fermier-Pro/pull/20), [#21](https://github.com/MisterH225/Fermier-Pro/pull/21), [#13](https://github.com/MisterH225/Fermier-Pro/pull/13), [#14](https://github.com/MisterH225/Fermier-Pro/pull/14), [#12](https://github.com/MisterH225/Fermier-Pro/pull/12).
+
+### P0 — Traité
+
+| # | Action | Statut | Détail |
+|---|--------|--------|--------|
+| 1 | Messages erreur UI | ✅ | `getUserFacingError` + `common.errors.*` ; ~70 fichiers ; plus d’`e.message` dans les `Alert` utilisateur |
+| 2 | Succès hors `Alert` | ✅ partiel | Gestation, marketplace détail, collaboration (4 modaux) → `useModal` success |
+| 3 | Fond `#f9f8ea` | ✅ | Migration vers `mobileColors.canvas` (`ModuleGuard`, écrans stack) |
+
+### P1 — Traité
+
+| # | Action | Statut | Détail |
+|---|--------|--------|--------|
+| 4 | Fusion `BaseModal` collaboration | ✅ | Adaptateur vers `modals/BaseModal` |
+| 5 | `SuccessModal` collaboration | ✅ partiel | `InviteSection` / `MemberModal` confirm-delete → `useModal` ; `collaboration/ConfirmDeleteModal` supprimé |
+| 6 | `EmptyStateCard` | ✅ partiel | `EventList`, cheptel, finance |
+| 7 | Skeletons | ✅ partiel | Dashboard, finance, santé, cheptel, **vet/tech/onboarding** (`SkeletonBlocks`) |
+
+### P2 — Traité
+
+| # | Action | Statut | Détail |
+|---|--------|--------|--------|
+| 8 | Création bâtiment / loge | ✅ | [PR #12](https://github.com/MisterH225/Fermier-Pro/pull/12) : **`CreateBuildingModal`** (bâtiment + loges initiales, `CheptelTab` + `FarmBarnsScreen`) ; **`CreateLogeModal`** (loge dans bâtiment via `BuildingActionsSheet`) ; **`RenameBuildingModal`** / **`DeleteBuildingModal`** ; `CreatePenScreen` wrapper deep link ; supprimés : `CreatePenModal`, `PenGrid`, `CheptelPensTab`, `CreateBarnScreen`, route `CreateBarn` |
+| 9 | Marketplace listing | ✅ | [PR #13](https://github.com/MisterH225/Fermier-Pro/pull/13) : **`ListingModal`** (`create` \| `edit`) ; [PR #14](https://github.com/MisterH225/Fermier-Pro/pull/14) : succès via `useModal` ; supprimés : `CreateMarketplaceListingModal`, `EditMarketplaceListingScreen` |
+| 10 | Registre React Query | ✅ partiel | `lib/finance/financeQueryKeys.ts` + `invalidateFinanceQueries` ; budget modals unifiés |
+| 11 | Routes `@deprecated` | ✅ partiel | Barrels `features/*` pointent vers écrans canoniques (`SanteScreen`, `TasksScreen`, etc.) |
+
+### Architecture housing — `CreateBuildingModal` (post PR #12)
+
+```
+CheptelTab / FarmBarnsScreen
+  └─ CreateBuildingModal     → bâtiment + loges initiales (BaseModal, penTypeOptions)
+  └─ BuildingActionsSheet    → renommer / ajouter loge / supprimer bâtiment
+       └─ CreateLogeModal    → loge dans bâtiment existant
+       └─ RenameBuildingModal / DeleteBuildingModal
+
+CreatePenScreen (route stack, deep links BarnDetail)
+  └─ CreateLogeModal         → même modal, bâtiment verrouillé si barnId
+
+Supprimés : CreatePenModal, PenGrid, CheptelPensTab, CreateBarnScreen, route CreateBarn
+Conservé : CreatePenLogScreen (journal de loge)
+```
+
+### P3 — Traité (partiel)
+
+| # | Action | Statut | Détail |
+|---|--------|--------|--------|
+| 12 | Découpage `api.ts` | ✅ partiel | `lib/api/http.ts` + `lib/api/auth.ts` ; re-exports `lib/api` inchangés |
+| 13 | `DeepNavigationService` | ✅ partiel | `resolveDeepNavProfile` ; push notifications avec profil session |
+| 14 | `AppTextField` | ✅ partiel | Composant commun + pilote `CreateAnimalModal`, `AddWeightModal` |
+
+### PR fonctionnelles fusionnées (après audit)
+
+| PR | Merge | Contenu |
+|----|-------|---------|
+| [#16](https://github.com/MisterH225/Fermier-Pro/pull/16) | `1bbd24e` | `BulkAddAnimalsModal`, `POST …/animals/bulk`, recalcul stock aliment + jauge colorée |
+| [#17](https://github.com/MisterH225/Fermier-Pro/pull/17) | `2ae2313` | `FarmMarketplaceLifecycleService` (archive/restore/delete ferme), statuts `paused`/`on_hold`, snapshots `PigPriceSnapshot`, filtre listings publics |
+| [#12](https://github.com/MisterH225/Fermier-Pro/pull/12) | `e1d23f3` | Housing : `CreateBuildingModal`, actions bâtiment, placement animaux, `FarmBarnsScreen` design system |
+| [#13](https://github.com/MisterH225/Fermier-Pro/pull/13) | `c572fbc` | Marketplace : `ListingModal` unifié create/edit |
+| [#14](https://github.com/MisterH225/Fermier-Pro/pull/14) | `7fbbcba` | Marketplace : succès `useModal`, clés i18n |
+
+### Métriques post-correction (mobile)
+
+| Métrique | Avant audit | Juin 2026 (`main`) |
+|----------|-------------|---------------------------|
+| Fichiers `#f9f8ea` | ~60 | **0** |
+| Fichiers `getUserFacingError` | 0 | **~73** |
+| Fichiers skeleton (`SkeletonBlocks`) | ~0 | **~17** |
+| `EmptyStateCard` (imports) | 2 | **5** |
+| `useModal` | ~25 | **~36** |
+| `collaboration/ConfirmDeleteModal` | présent | **supprimé** |
+| Fichiers `Alert.alert` | 81 → ~77 | **~77** (confirmations / erreurs légitimes restantes) |
+
+---
+
 
 ## Annexes
 
@@ -373,15 +455,15 @@ components/collaboration/BaseModal.tsx ← duplicate API/UX
 
 | Métrique | Valeur |
 |----------|--------|
-| Fichiers `Alert.alert` | 81 |
-| Fichiers `error.message` affiché | 29+ |
+| Fichiers `Alert.alert` | 81 → ~77 |
+| Fichiers `error.message` affiché (UI) | 29+ → **0** (Alert utilisateur) |
 | Imports `modals/BaseModal` | ~53 |
 | `<Modal` sans BaseModal dans fichier | 20 |
-| `useModal(` | ~25 |
-| `EmptyStateCard` | 2 usages |
+| `useModal(` | ~25 → **~36** |
+| `EmptyStateCard` | 2 → **5** fichiers |
 | `AppDatePicker` | ~21 fichiers |
 | `invalidateQueries` | 65 fichiers |
-| Fond `#f9f8ea` | ~60 fichiers |
+| Fond `#f9f8ea` | ~60 → **0** |
 
 ### B. Composants design system — fichier de référence
 
@@ -394,16 +476,18 @@ components/collaboration/BaseModal.tsx ← duplicate API/UX
 | TabSelector | `apps/mobile/src/components/navigation/TabSelector.tsx` |
 | SmartChart | `apps/mobile/src/components/charts/SmartChart.tsx` |
 | AppDatePicker | `apps/mobile/src/components/common/AppDatePicker.tsx` |
+| ListingModal | `apps/mobile/src/components/marketplace/ListingModal.tsx` |
+| CreateBuildingModal | `apps/mobile/src/components/cheptel/pens/CreateBuildingModal.tsx` |
 | EmptyStateCard | `apps/mobile/src/components/common/EmptyStateCard.tsx` |
 | InactiveModuleScreen | `apps/mobile/src/components/ModuleGuard.tsx` |
 
 ### C. Prochaines étapes recommandées
 
-1. Valider ce rapport (product / design).
-2. Traiter **P0** par lot (messages erreur → thème fond).
-3. Ouvrir issues GitHub par lot P1/P2.
-4. Ne pas mélanger avec PR fonctionnelles (#16 bulk animals, #17 marketplace sync) sans rebase explicite.
+1. Clôturer [PR #18](https://github.com/MisterH225/Fermier-Pro/pull/18) (documentation seule, obsolète).
+2. Poursuivre P2 restant : étendre le registre React Query aux autres domaines ; supprimer les shims `screens/Farm*Screen` si plus importés.
+3. P3 suite : extraire `api/marketplace.ts`, migrer `AppTextField` (~74 fichiers restants), unifier `InsightCard` → `DeepNavigationService`.
+4. Valider en prod les migrations Prisma / Supabase (#17 : `marketplace_farm_lifecycle`, `PigPriceSnapshot`).
 
 ---
 
-*Rapport généré en mode audit lecture seule. Aucun fichier applicatif modifié.*
+*Rapport initial : audit lecture seule (3 juin 2026). Section 8 : PR #19–#21 (5 juin), PR #12–#14 housing/marketplace (6 juin), P3 fondations PR #22 (7 juin).*

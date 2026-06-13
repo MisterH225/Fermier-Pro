@@ -1,6 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { isFlatPriceListing } from "./listingPricing";
+import {
+  flatListingUnitPrice,
+  isFlatPriceListing,
+  listingDisplayHeadcount
+} from "./listingPricing";
 import {
   Pressable,
   StyleSheet,
@@ -9,8 +13,13 @@ import {
   type StyleProp,
   type ViewStyle
 } from "react-native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { MarketplaceListingListItem } from "../../lib/api";
+import { formatMarketMoney } from "../../lib/formatMoney";
 import { ListingImage } from "./ListingImage";
+import { ListingShareButton } from "./ListingShareButton";
+import type { RootStackParamList } from "../../types/navigation";
+import { marketplaceColors } from "../../theme/marketplaceTheme";
 import {
   mobileColors,
   mobileRadius,
@@ -27,9 +36,7 @@ export function parseMarketNum(
   return Number.isFinite(n) ? n : null;
 }
 
-export function formatMarketMoney(n: number, currency: string): string {
-  return `${n.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} ${currency}`;
-}
+export { formatMarketMoney } from "../../lib/formatMoney";
 
 export function isNewListing(publishedAt: string | null): boolean {
   if (!publishedAt) return false;
@@ -54,6 +61,8 @@ type Props = {
   onToggleFavorite?: () => void;
   farmRating?: number | null;
   style?: StyleProp<ViewStyle>;
+  showShare?: boolean;
+  navigation?: NativeStackNavigationProp<RootStackParamList>;
 };
 
 export function MarketplaceListingCard({
@@ -64,7 +73,9 @@ export function MarketplaceListingCard({
   isFavorite,
   onToggleFavorite,
   farmRating,
-  style
+  style,
+  showShare,
+  navigation
 }: Props) {
   const { t } = useTranslation();
   const wKg = parseMarketNum(item.totalWeightKg);
@@ -86,6 +97,8 @@ export function MarketplaceListingCard({
 
   const categoryKey = item.category ?? "unknown";
   const flatPrice = isFlatPriceListing(item.category);
+  const headcount = listingDisplayHeadcount(item);
+  const perHead = flatPrice ? flatListingUnitPrice(item) : null;
 
   return (
     <Pressable
@@ -131,6 +144,15 @@ export function MarketplaceListingCard({
             <Text style={styles.badgeNewTx}>{t("marketScreen.badgeNew")}</Text>
           </View>
         ) : null}
+        {!sold && (item.activeOfferCount ?? 0) >= 1 ? (
+          <View style={styles.badgeOffers}>
+            <Text style={styles.badgeOffersTx}>
+              {t("marketScreen.badgeActiveOffers", {
+                count: item.activeOfferCount
+              })}
+            </Text>
+          </View>
+        ) : null}
         {showFavorite ? (
           <Pressable
             style={styles.favBtn}
@@ -146,6 +168,17 @@ export function MarketplaceListingCard({
               color={isFavorite ? mobileColors.error : mobileColors.textPrimary}
             />
           </Pressable>
+        ) : null}
+        {showShare && navigation && item.status === "published" ? (
+          <ListingShareButton
+            listing={item}
+            navigation={navigation}
+            size={18}
+            style={[
+              styles.shareBtn,
+              showFavorite ? styles.shareBtnWithFav : null
+            ]}
+          />
         ) : null}
       </View>
       <View style={styles.cardBody}>
@@ -173,9 +206,16 @@ export function MarketplaceListingCard({
             {`${wKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg`}
           </Text>
         ) : null}
-        {flatPrice && total != null ? (
+        {flatPrice && perHead != null ? (
           <Text style={styles.lineMuted}>
-            {t("marketScreen.flatPriceLabel")}
+            {headcount > 1
+              ? t("marketScreen.flatLotPricing", {
+                  perHead: formatMarketMoney(perHead, cur),
+                  count: headcount
+                })
+              : t("marketScreen.pricePerHeadShort", {
+                  amount: formatMarketMoney(perHead, cur)
+                })}
           </Text>
         ) : pKg != null ? (
           <Text style={styles.lineMuted}>
@@ -232,7 +272,7 @@ const styles = StyleSheet.create({
   },
   badgeCatTx: {
     ...mobileTypography.meta,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "600",
     fontSize: 11
   },
@@ -247,7 +287,23 @@ const styles = StyleSheet.create({
   },
   badgeNewTx: {
     ...mobileTypography.meta,
-    color: "#fff",
+    color: mobileColors.onAccent,
+    fontWeight: "700",
+    fontSize: 11
+  },
+  badgeOffers: {
+    position: "absolute",
+    bottom: mobileSpacing.sm,
+    left: mobileSpacing.sm,
+    backgroundColor: marketplaceColors.pending,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: mobileRadius.sm,
+    maxWidth: "70%"
+  },
+  badgeOffersTx: {
+    ...mobileTypography.meta,
+    color: mobileColors.onAccent,
     fontWeight: "700",
     fontSize: 11
   },
@@ -262,7 +318,7 @@ const styles = StyleSheet.create({
   },
   badgeSoldTx: {
     ...mobileTypography.meta,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700",
     fontSize: 11
   },
@@ -277,7 +333,7 @@ const styles = StyleSheet.create({
   },
   badgeExpiredTx: {
     ...mobileTypography.meta,
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700",
     fontSize: 11
   },
@@ -291,6 +347,20 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.background,
     alignItems: "center",
     justifyContent: "center"
+  },
+  shareBtn: {
+    position: "absolute",
+    bottom: mobileSpacing.sm,
+    right: mobileSpacing.sm,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: mobileColors.background,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  shareBtnWithFav: {
+    right: mobileSpacing.sm + 36
   },
   cardBody: {
     padding: mobileSpacing.sm,

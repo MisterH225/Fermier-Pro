@@ -1,15 +1,20 @@
 import { Injectable } from "@nestjs/common";
 import type { AnimalProductionCategory, Prisma } from "@prisma/client";
-import { allocateTagCodesInTransaction } from "./allocate-tag-codes";
+import {
+  allocateTagCodesInTransaction,
+  peekTagCodeRange,
+  type AnimalTagPrefix
+} from "./allocate-tag-codes";
 import { PrismaService } from "../prisma/prisma.service";
 
-export type AnimalTagPrefix = "Trui" | "Ver" | "Eng" | "Dem";
+export type { AnimalTagPrefix };
 
 const PREFIX_TO_CATEGORY: Record<AnimalTagPrefix, AnimalProductionCategory> = {
   Trui: "breeding_female",
   Ver: "breeding_male",
   Eng: "fattening",
-  Dem: "starter"
+  Dem: "starter",
+  All: "nursing"
 };
 
 @Injectable()
@@ -42,5 +47,13 @@ export class AnimalProductionTagsService {
     return this.prisma.$transaction((client) =>
       allocateTagCodesInTransaction(client, farmId, prefix, count)
     );
+  }
+
+  async previewTagCodeRange(
+    farmId: string,
+    prefix: AnimalTagPrefix,
+    count: number
+  ): Promise<{ firstTagCode: string; lastTagCode: string; count: number }> {
+    return peekTagCodeRange(this.prisma, farmId, prefix, count);
   }
 }

@@ -201,7 +201,7 @@ export function TechOnboardingScreen({ onFinished, onCancel }: Props) {
             ) : null}
             <Pressable style={styles.primary} onPress={() => void submit()} disabled={busy}>
               {busy ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={mobileColors.onAccent} />
               ) : (
                 <Text style={styles.primaryLabel}>{t("techOnboarding.doneCta")}</Text>
               )}
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   },
   chipActive: { backgroundColor: techColors.primary, borderColor: techColors.primary },
   chipText: { ...mobileTypography.meta, fontWeight: "600", color: techColors.textSecondary },
-  chipTextActive: { color: "#fff" },
+  chipTextActive: { color: mobileColors.onAccent },
   primary: {
     backgroundColor: techColors.primary,
     padding: mobileSpacing.md,
@@ -248,6 +248,6 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   primaryDisabled: { opacity: 0.5 },
-  primaryLabel: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  primaryLabel: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 },
   error: { color: mobileColors.error }
 });

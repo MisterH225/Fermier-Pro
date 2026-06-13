@@ -11,8 +11,8 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { useModal } from "../modals/useModal";
 import { CollaborativeAccessPanel } from "../account/CollaborativeAccessPanel";
-import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 import { PendingScanRequestsSection } from "./PendingScanRequestsSection";
 import { SearchCollaboratorModal } from "./SearchCollaboratorModal";
 
@@ -25,7 +25,7 @@ export function InviteSection({ farmId, farmName }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
-  const [confirmVisible, setConfirmVisible] = useState(false);
+  const { open } = useModal();
   const [searchVisible, setSearchVisible] = useState(false);
 
   const regenMut = useMutation({
@@ -35,13 +35,20 @@ export function InviteSection({ farmId, farmName }: Props) {
       void qc.invalidateQueries({
         queryKey: ["farmDefaultInvitation", farmId, activeProfileId]
       });
-      setConfirmVisible(false);
     },
     onError: (e: Error) => {
-      setConfirmVisible(false);
       Alert.alert("", e.message);
     }
   });
+
+  const openRegenConfirm = () => {
+    open("confirm-delete", {
+      title: t("collab.regenerateConfirmTitle"),
+      message: t("collab.regenerateConfirmBody"),
+      confirmLabel: t("collab.regenerateConfirmAction"),
+      onConfirm: async () => { await regenMut.mutateAsync(); }
+    });
+  };
 
   return (
     <View style={styles.wrap}>
@@ -68,7 +75,7 @@ export function InviteSection({ farmId, farmName }: Props) {
           </Pressable>
 
           <Pressable
-            onPress={() => setConfirmVisible(true)}
+            onPress={openRegenConfirm}
             style={styles.regenBtn}
             accessibilityRole="button"
           >
@@ -81,16 +88,6 @@ export function InviteSection({ farmId, farmName }: Props) {
           </Pressable>
         </View>
       ) : null}
-
-      <ConfirmDeleteModal
-        visible={confirmVisible}
-        title={t("collab.regenerateConfirmTitle")}
-        body={t("collab.regenerateConfirmBody")}
-        confirmLabel={t("collab.regenerateConfirmAction")}
-        onConfirm={() => regenMut.mutate()}
-        onCancel={() => setConfirmVisible(false)}
-        loading={regenMut.isPending}
-      />
 
       <SearchCollaboratorModal
         visible={searchVisible}

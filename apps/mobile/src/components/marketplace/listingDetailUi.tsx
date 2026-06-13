@@ -5,6 +5,7 @@ import {
   mobileRadius,
   mobileShadows,
   mobileSpacing,
+  mobileStatusSurfaces,
   mobileTypography
 } from "../../theme/mobileTheme";
 
@@ -111,7 +112,7 @@ const detailStyles = StyleSheet.create({
   },
   badgePublished: { backgroundColor: mobileColors.accentSoft },
   badgeSold: { backgroundColor: mobileColors.surfaceMuted },
-  badgeExpired: { backgroundColor: "#FEE2E2" },
+  badgeExpired: { backgroundColor: mobileStatusSurfaces.errorBg },
   badgeDefault: { backgroundColor: mobileColors.surfaceMuted }
 });
 

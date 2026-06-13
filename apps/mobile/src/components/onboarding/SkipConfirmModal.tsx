@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: mobileSpacing.sm
   },
-  primaryText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  primaryText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 },
   outline: {
     borderWidth: 1,
     borderColor: mobileColors.border,

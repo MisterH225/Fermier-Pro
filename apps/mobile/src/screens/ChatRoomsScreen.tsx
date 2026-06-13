@@ -1,7 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useFocusEffect } from "@react-navigation/native";
-import { useQuery } from "@tanstack/react-query";
-import { useCallback, useLayoutEffect } from "react";
+import { useLayoutEffect } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -11,63 +9,41 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { ChatModuleGate } from "../components/ChatModuleGate";
+import { ConversationRow } from "../components/messaging/ConversationRow";
+import { useBottomInset } from "../hooks/useBottomInset";
+import { useChatRoomsQuery } from "../hooks/useChatRoomsQuery";
 import { useSession } from "../context/SessionContext";
-import type { ChatRoomListItem } from "../lib/api";
-import { directConversationTitle, fetchChatRooms } from "../lib/api";
+import { chatRoomTitle } from "../lib/messaging/chatRoomDisplay";
+import { mobileColors, mobileHeaderButtonOnDark } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
+import { getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ChatRooms">;
 
-function roomTitle(room: ChatRoomListItem, myUserId?: string): string {
-  if (room.farm?.name) return room.farm.name;
-  if (room.title?.trim()) return room.title.trim();
-  if (room.kind === "direct") {
-    return myUserId
-      ? directConversationTitle(room, myUserId)
-      : "Message direct";
-  }
-  return "Salon";
-}
-
-function lastPreview(room: ChatRoomListItem): string | null {
-  const last = room.messages?.[0];
-  if (!last?.body) return null;
-  const who = last.sender?.fullName?.trim() || "Quelqu’un";
-  const snippet =
-    last.body.length > 80 ? `${last.body.slice(0, 78)}…` : last.body;
-  return `${who} · ${snippet}`;
-}
-
 export function ChatRoomsScreen({ navigation }: Props) {
-  const { accessToken, activeProfileId, authMe } = useSession();
+  const { t } = useTranslation();
+  const bottomInset = useBottomInset();
+  const { authMe } = useSession();
+  const myUserId = authMe?.user.id;
+  const roomsQuery = useChatRoomsQuery("chatRooms");
 
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
         <TouchableOpacity
           onPress={() => navigation.navigate("ChatPickFarm")}
-          style={{ paddingHorizontal: 8 }}
+          style={mobileHeaderButtonOnDark.btn}
           hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
         >
-          <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
-            Nouveau
+          <Text style={mobileHeaderButtonOnDark.text}>
+            {t("chat.newConversation")}
           </Text>
         </TouchableOpacity>
       )
     });
-  }, [navigation]);
-
-  const roomsQuery = useQuery({
-    queryKey: ["chatRooms", activeProfileId],
-    queryFn: () => fetchChatRooms(accessToken, activeProfileId)
-  });
-
-  useFocusEffect(
-    useCallback(() => {
-      void roomsQuery.refetch();
-    }, [roomsQuery.refetch])
-  );
+  }, [navigation, t]);
 
   const rooms = roomsQuery.data ?? [];
 
@@ -76,14 +52,12 @@ export function ChatRoomsScreen({ navigation }: Props) {
       <View style={styles.wrap}>
         {roomsQuery.isPending ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color="#5d7a1f" />
+            <ActivityIndicator size="large" color={mobileColors.accent} />
           </View>
         ) : roomsQuery.error ? (
           <View style={styles.centered}>
             <Text style={styles.error}>
-              {roomsQuery.error instanceof Error
-                ? roomsQuery.error.message
-                : String(roomsQuery.error)}
+              {getUserFacingError(roomsQuery.error, t)}
             </Text>
           </View>
         ) : (
@@ -91,45 +65,31 @@ export function ChatRoomsScreen({ navigation }: Props) {
             data={rooms}
             keyExtractor={(item) => item.id}
             contentContainerStyle={
-              rooms.length === 0 ? styles.emptyList : styles.list
+              rooms.length === 0
+                ? [styles.emptyList, { paddingBottom: bottomInset }]
+                : [styles.list, { paddingBottom: bottomInset }]
             }
             refreshControl={
               <RefreshControl
                 refreshing={roomsQuery.isRefetching}
                 onRefresh={() => void roomsQuery.refetch()}
-                tintColor="#5d7a1f"
+                tintColor={mobileColors.accent}
               />
             }
             ListEmptyComponent={
-              <View style={styles.emptyBox}>
-                <Text style={styles.emptyTitle}>Aucune conversation</Text>
-                <Text style={styles.emptySub}>
-                  Ouvre une ferme puis « Salon de la ferme » pour rejoindre le
-                  fil lié à cette exploitation.
-                </Text>
-              </View>
+              <Text style={styles.empty}>{t("chat.emptyRooms")}</Text>
             }
             renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.card}
+              <ConversationRow
+                room={item}
+                myUserId={myUserId}
                 onPress={() =>
                   navigation.navigate("ChatRoom", {
                     roomId: item.id,
-                    headline: roomTitle(item, authMe?.user.id)
+                    headline: chatRoomTitle(item, myUserId)
                   })
                 }
-              >
-                <Text style={styles.cardTitle}>
-                  {roomTitle(item, authMe?.user.id)}
-                </Text>
-                {lastPreview(item) ? (
-                  <Text style={styles.cardPreview} numberOfLines={2}>
-                    {lastPreview(item)}
-                  </Text>
-                ) : (
-                  <Text style={styles.cardMuted}>Pas encore de message</Text>
-                )}
-              </TouchableOpacity>
+              />
             )}
           />
         )}
@@ -139,56 +99,15 @@ export function ChatRoomsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: "#f9f8ea" },
-  list: { padding: 16, paddingBottom: 32 },
-  emptyList: { flexGrow: 1 },
+  wrap: { flex: 1 },
+  list: { padding: 16 },
+  emptyList: { flexGrow: 1, justifyContent: "center", padding: 24 },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 24
   },
-  error: { color: "#b00020", textAlign: "center", fontSize: 14 },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#e0e4d4"
-  },
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#1f2910"
-  },
-  cardPreview: {
-    marginTop: 8,
-    fontSize: 14,
-    color: "#4b513d",
-    lineHeight: 20
-  },
-  cardMuted: {
-    marginTop: 8,
-    fontSize: 14,
-    color: "#9aa088",
-    fontStyle: "italic"
-  },
-  emptyBox: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 24,
-    paddingTop: 48
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1f2910",
-    marginBottom: 10
-  },
-  emptySub: {
-    fontSize: 14,
-    color: "#6d745b",
-    lineHeight: 22
-  }
+  error: { color: mobileColors.error, textAlign: "center" },
+  empty: { textAlign: "center", color: mobileColors.textSecondary }
 });

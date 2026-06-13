@@ -6,19 +6,25 @@
   "nav": {
     "overview": "Vue d'ensemble",
     "vets": "Vétérinaires",
+    "vetAppointments": "RDV véto",
     "users": "Utilisateurs",
+    "feedModeration": "Modération Feed",
+    "chatModeration": "Modération Chat",
     "auditLogs": "Journal admin",
     "map": "Carte sanitaire",
+    "marketplace": "Marketplace",
     "stats": "Statistiques",
     "ai": "Assistant IA",
     "settings": "Paramètres",
+    "more": "Plus",
     "logout": "Déconnexion"
   },
   "notifications": {
     "title": "Notifications",
     "none": "Aucune notification",
     "pendingVets": "Vétérinaires en attente ({count})",
-    "activeAlerts": "Alertes sanitaires ({count})"
+    "activeAlerts": "Alertes sanitaires ({count})",
+    "marketplaceDisputes": "Litiges poids ({count})"
   },
   "login": {
     "title": "Connexion SuperAdmin",
@@ -121,6 +127,7 @@
     },
     "empty": "Aucun vétérinaire dans cet onglet.",
     "detail": {
+      "pageTitle": "Fiche vétérinaire",
       "profileTitle": "Profil",
       "fields": {
         "email": "Email",
@@ -142,6 +149,7 @@
     "since": "Depuis {date}",
     "primaryFarm": "Ferme principale",
     "view": "Voir",
+    "detailPageTitle": "Fiche utilisateur",
     "empty": "Aucun utilisateur trouvé.",
     "statusFilters": {
       "all": "Tous",
@@ -164,11 +172,13 @@
       "suspend": "Suspendre le compte",
       "unsuspend": "Lever la suspension",
       "ban": "Bannir le compte",
+      "unban": "Débannir le compte",
       "delete": "Supprimer le compte"
     },
     "moderation": {
       "suspendTitle": "Suspendre {name}",
       "unsuspendTitle": "Lever la suspension",
+      "unbanTitle": "Débannir le compte",
       "banTitle": "Bannir {name}",
       "banWarning": "Le bannissement désactive l'accès. Les données sont conservées.",
       "warnTitle": "Envoyer un avertissement",
@@ -179,6 +189,9 @@
       "scopeAccount": "Compte global (tous les profils)",
       "scopeVet": "Profil vétérinaire uniquement",
       "scopeProducer": "Profil producteur uniquement",
+      "scopeTechnician": "Profil technicien uniquement",
+      "scopeBuyer": "Profil acheteur uniquement",
+      "durationAccountOnly": "La durée ne s’applique qu’à une suspension de compte global.",
       "reason": "Raison",
       "duration": "Durée",
       "details": "Précisions",
@@ -319,6 +332,12 @@
   "ai": {
     "title": "Assistant IA",
     "unavailable": "IA indisponible — vérifiez GEMINI_API_KEY côté API.",
+    "setupTitle": "Configurer l'assistant IA",
+    "setupBody": "La clé Google Gemini doit être définie sur le serveur API (pas dans la console admin).",
+    "setupLocal": "En local : ajoutez GEMINI_API_KEY=votre_clé dans le fichier .env à la racine du monorepo, puis redémarrez npm run dev:api.",
+    "setupRailway": "En production (Railway) : Variables → ajoutez GEMINI_API_KEY, redéployez l'API.",
+    "setupLink": "Obtenir une clé : Google AI Studio → API Keys.",
+    "configured": "Assistant IA connecté.",
     "epidemic": {
       "title": "Analyse épidémiologique",
       "description": "Analyse des données sanitaires agrégées (30 derniers jours).",
@@ -371,18 +390,34 @@
     "title": "Paramètres plateforme",
     "save": "Enregistrer",
     "saved": "Paramètres enregistrés.",
+    "tabs": {
+      "navLabel": "Sections des paramètres",
+      "platform": "Plateforme",
+      "modules": "Modules"
+    },
     "sections": {
       "map": "Périmètre géographique",
       "alerts": "Seuils alertes sanitaires",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "support": "Support mobile",
+      "marketplace": "Marketplace"
     },
+    "loadError": "Impossible de charger les paramètres. Vérifiez que l’API est à jour et que les migrations Prisma sont appliquées.",
     "fields": {
       "mapScope": "Zone visible sur la carte",
       "alertThreshold": "Seuil déclenchement (cas)",
       "alertPeriod": "Période de calcul (jours)",
       "alertLevel": "Niveau alerte par défaut",
       "adminEmail": "Email SuperAdmin",
-      "reportFrequency": "Fréquence rapports (jours)"
+      "reportFrequency": "Fréquence rapports (jours)",
+      "marketplaceCommission": "Commission marketplace (%)",
+      "marketplaceCommissionHint": "Appliquée à chaque vente conclue sur le marché (ex. 5 = 5 %).",
+      "supportPhone": "Téléphone support",
+      "supportPhoneHint": "Numéro affiché dans l’app mobile (bouton appel). Laissez vide pour utiliser la variable d’environnement SUPPORT_PHONE.",
+      "supportPhoneEffective": "Valeur active sur mobile (fallback env) : {value}",
+      "supportTelegram": "Lien Telegram",
+      "supportTelegramHint": "URL ou @username du compte support. Laissez vide pour utiliser SUPPORT_TELEGRAM_URL côté API.",
+      "supportTelegramEffective": "Lien actif sur mobile (fallback env) : {value}"
     },
     "scopes": {
       "world": "Monde entier",
@@ -429,5 +464,292 @@
     "save": "Enregistrer",
     "cancel": "Annuler",
     "comingSoon": "Section en cours de déploiement."
+  },
+  "marketplace": {
+    "title": "Marketplace",
+    "loading": "Chargement…",
+    "loadError": "Impossible de charger les données marketplace.",
+    "tabs": {
+      "listings": "Annonces",
+      "transactions": "Transactions",
+      "disputes": "Litiges poids",
+      "revenue": "Commissions",
+      "receipts": "Reçus PDF"
+    },
+    "overview": {
+      "publishedListings": "Annonces publiées",
+      "totalListings": "Annonces totales",
+      "activeTransactions": "Transactions actives",
+      "openDisputes": "Litiges en cours"
+    },
+    "listingDetail": {
+      "title": "Détail de l'annonce",
+      "error": "Impossible de charger le détail.",
+      "archived": "Archivée",
+      "seller": "Vendeur",
+      "farm": "Ferme",
+      "location": "Localisation",
+      "totalPrice": "Prix total",
+      "pricePerKg": "Prix au kg",
+      "weight": "Poids total",
+      "views": "Vues",
+      "consultations": "Consultations",
+      "publishedAt": "Publiée le",
+      "expiresAt": "Expire le",
+      "updatedAt": "Mis à jour",
+      "reservedBuyer": "Acheteur retenu",
+      "animal": "Animal principal",
+      "animalId": "Identifiant",
+      "animalTag": "Boucle",
+      "animalSex": "Sexe",
+      "animalStatus": "Statut animal",
+      "offers": "Offres",
+      "noOffers": "Aucune offre.",
+      "transactions": "Transactions",
+      "noTransactions": "Aucune transaction.",
+      "colBuyer": "Acheteur",
+      "colOfferStatus": "Statut offre",
+      "colPrice": "Prix",
+      "colDate": "Date"
+    },
+    "listings": {
+      "empty": "Aucune annonce.",
+      "allStatuses": "Tous les statuts",
+      "active": "actives",
+      "colTitle": "Annonce",
+      "colStatus": "Statut",
+      "colSeller": "Vendeur",
+      "colFarm": "Ferme",
+      "colPrice": "Prix",
+      "colViews": "Vues",
+      "colOffers": "Offres",
+      "colUpdated": "Mis à jour"
+    },
+    "listingStatus": {
+      "draft": "Brouillon",
+      "published": "Publiée",
+      "paused": "En pause",
+      "reserved": "Réservée",
+      "reserved_credit": "Réservée (crédit)",
+      "shipped": "Expédiée",
+      "delivered": "Livrée",
+      "disputed": "Litige",
+      "sold": "Vendue",
+      "cancelled": "Annulée",
+      "expired": "Expirée"
+    },
+    "receipts": {
+      "empty": "Aucune transaction clôturée.",
+      "summary": "{generated} reçus générés sur {total} transactions clôturées.",
+      "colListing": "Annonce",
+      "colReceipt": "N° reçu",
+      "colStatus": "Statut",
+      "colClosed": "Clôture",
+      "colActions": "Actions",
+      "download": "Télécharger",
+      "regenerate": "Régénérer",
+      "status": {
+        "pending": "En attente",
+        "generated": "Généré",
+        "failed": "Échec"
+      }
+    },
+    "transactions": {
+      "empty": "Aucune transaction.",
+      "allStatuses": "Tous les statuts",
+      "colListing": "Annonce",
+      "colStatus": "Statut",
+      "colBuyer": "Acheteur",
+      "colSeller": "Vendeur",
+      "colAmount": "Montant bloqué",
+      "colUpdated": "Mis à jour"
+    },
+    "status": {
+      "OFFER_ACCEPTED": "Offre acceptée",
+      "PAYMENT_PENDING": "Paiement en attente",
+      "PAYMENT_HELD": "Paiement sécurisé",
+      "PICKUP_SCHEDULED": "Livraison planifiée",
+      "WEIGHT_DECLARED": "Poids déclaré",
+      "WEIGHT_DISPUTED": "Litige poids",
+      "WEIGHT_VALIDATED": "Poids validé",
+      "TRANSACTION_CLOSED": "Clôturée",
+      "CANCELLED_BY_BUYER": "Annulée (acheteur)",
+      "CANCELLED_BY_SELLER": "Annulée (vendeur)",
+      "CANCELLED_SOLD_TO_OTHER": "Vendu à un autre",
+      "PAYMENT_FAILED": "Paiement échoué",
+      "OFFER_EXPIRED": "Offre expirée"
+    },
+    "disputes": {
+      "empty": "Aucun litige en cours.",
+      "buyer": "Acheteur",
+      "seller": "Vendeur",
+      "declaredWeight": "Poids déclaré",
+      "blockedAmount": "Montant bloqué",
+      "openedAt": "Ouvert le",
+      "arbitrate": "Arbitrer",
+      "arbitrateTitle": "Arbitrage du poids",
+      "arbitrationWeight": "Poids arbitré (kg)",
+      "cancel": "Annuler",
+      "confirm": "Valider l'arbitrage",
+      "invalidWeight": "Poids invalide.",
+      "error": "Arbitrage impossible."
+    },
+    "revenue": {
+      "totalCommission": "Commissions collectées",
+      "totalGross": "Volume brut",
+      "transactionCount": "Transactions clôturées",
+      "dailySeries": "Commissions par jour",
+      "colListing": "Annonce",
+      "colGross": "Montant brut",
+      "colCommission": "Commission",
+      "colDate": "Date",
+      "period": {
+        "7d": "7 jours",
+        "30d": "30 jours",
+        "90d": "90 jours",
+        "all": "Tout"
+      }
+    }
+  },
+  "vetAppointments": {
+    "title": "Rendez-vous vétérinaires",
+    "tabs": {
+      "list": "Liste",
+      "revenue": "Commissions & avis"
+    },
+    "list": {
+      "empty": "Aucun rendez-vous.",
+      "allStatuses": "Tous les statuts",
+      "colFarm": "Ferme",
+      "colVet": "Vétérinaire",
+      "colProducer": "Producteur",
+      "colStatus": "Statut",
+      "colAmount": "Montant",
+      "colWhen": "Date",
+      "refund": "Rembourser",
+      "refundConfirm": "Confirmer le remboursement intégral au producteur ?",
+      "refundError": "Remboursement impossible."
+    },
+    "status": {
+      "APPOINTMENT_REQUESTED": "Demande envoyée",
+      "AWAITING_PAYMENT": "En attente paiement",
+      "APPOINTMENT_CONFIRMED": "Confirmé",
+      "APPOINTMENT_IN_PROGRESS": "En cours",
+      "APPOINTMENT_COMPLETED": "Prestation terminée",
+      "APPOINTMENT_RATED": "Noté",
+      "APPOINTMENT_REFUSED": "Refusé",
+      "PAYMENT_EXPIRED": "Paiement expiré",
+      "CANCELLED_BY_PRODUCER": "Annulé (producteur)",
+      "CANCELLED_BY_VET": "Annulé (véto)"
+    },
+    "revenue": {
+      "totalCommission": "Commissions RDV",
+      "totalGross": "Volume brut",
+      "appointmentCount": "Prestations clôturées",
+      "lowRated": "Vétérinaires mal notés (< 3/5)",
+      "period": {
+        "7d": "7 jours",
+        "30d": "30 jours",
+        "90d": "90 jours",
+        "all": "Tout"
+      }
+    }
+  },
+  "pigPrice": {
+    "loading": "…",
+    "compactTitle": "📊 PigPrice Index",
+    "title": "📊 PigPrice Index — Cours du marché porcin",
+    "subtitle": "Indice calculé depuis les transactions réelles sur la plateforme",
+    "globalView": "Vue globale — Toutes catégories",
+    "marketStats": "Statistiques de marché",
+    "categories": {
+      "porcelet": "🐣 Porcelets",
+      "croissance": "📈 Croissance",
+      "charcutier": "🐷 Charcutier",
+      "reproducteur": "♻️ Reproducteurs"
+    },
+    "table": {
+      "category": "Catégorie",
+      "today": "Aujourd'hui",
+      "var24h": "Var. 24h",
+      "var7d": "Var. 7j",
+      "high30d": "Max 30j",
+      "low30d": "Min 30j",
+      "volume": "Volume"
+    },
+    "tickerItem": "{icon} {label}: {price} FCFA/kg",
+    "hybrid": {
+      "title": "Indice hybride (anti-manipulation)",
+      "recalculate": "Recalculer",
+      "unfreeze": "Débloquer",
+      "frozen": "Gelé — {reason}",
+      "active": "Indice actif",
+      "history": "Historique (30 snapshots)",
+      "flagged": "Annonces signalées (> 30 %)",
+      "none": "Aucune",
+      "contributors": "Top contributeurs (volume)",
+      "txCount": "{kg} kg · {count} tx",
+      "deviation": "{price} FCFA/kg · +{pct} %"
+    }
+  },
+  "feedModeration": {
+    "title": "Modération Feed",
+    "subtitle": "Infractions détectées par l'IA, utilisateurs sanctionnés et contestations.",
+    "sections": {
+      "events": "Infractions récentes",
+      "sanctioned": "Utilisateurs sanctionnés",
+      "appeals": "Contestations en attente",
+      "content": "Contenu du feed"
+    },
+    "columns": {
+      "date": "Date",
+      "user": "Utilisateur",
+      "type": "Type",
+      "severity": "Gravité",
+      "confidence": "Confiance IA",
+      "status": "Statut",
+      "until": "Fin suspension"
+    },
+    "actions": {
+      "unsanction": "Lever la sanction",
+      "acceptAppeal": "Accepter",
+      "rejectAppeal": "Rejeter",
+      "deletePost": "Supprimer la publication",
+      "deleteComment": "Supprimer le commentaire",
+      "showRemoved": "Afficher les contenus supprimés"
+    },
+    "empty": {
+      "events": "Aucune infraction enregistrée.",
+      "sanctioned": "Aucun utilisateur sanctionné.",
+      "appeals": "Aucune contestation en attente.",
+      "content": "Aucune publication dans le feed."
+    },
+    "content": {
+      "likes": "{count} j'aime",
+      "comments": "{count} commentaires",
+      "removed": "Supprimé",
+      "confirmDeletePost": "Supprimer cette publication et masquer son contenu du feed ?",
+      "confirmDeleteComment": "Supprimer ce commentaire ?"
+    },
+    "appealAcceptedDefault": "Votre contestation a été acceptée. Votre accès au Feed est rétabli.",
+    "appealRejectedDefault": "Votre contestation a été examinée et maintenue."
+  },
+  "chatModeration": {
+    "title": "Modération Chat",
+    "subtitle": "Salons de discussion (ferme et messages directs) — suppression par un SuperAdmin.",
+    "sections": {
+      "rooms": "Salons actifs"
+    },
+    "labels": {
+      "untitled": "Salon sans titre",
+      "meta": "{members} membres · {messages} messages"
+    },
+    "actions": {
+      "deleteRoom": "Supprimer le salon"
+    },
+    "empty": {
+      "rooms": "Aucun salon de discussion."
+    },
+    "confirmDelete": "Supprimer définitivement ce salon et tous ses messages ?"
   }
 }

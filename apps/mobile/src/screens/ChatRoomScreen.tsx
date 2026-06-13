@@ -10,6 +10,7 @@ import {
   useState
 } from "react";
 import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   FlatList,
@@ -36,16 +37,25 @@ import {
   type ChatSocketConnectionStatus,
   useChatRoomSocket
 } from "../hooks/useChatRoomSocket";
+import { useBottomChromePad } from "../hooks/useBottomInset";
+import { CHAT_INPUT_BAR_HEIGHT } from "../constants/layout";
 import type { ChatMessageDto } from "../lib/api";
 import {
+  analyzeChatImage,
   fetchChatMessages,
   fetchChatRoom,
   fetchFarmMembers,
   markChatRoomRead,
   postChatMessage
 } from "../lib/api";
+import { buildChatImageMessageBody } from "../lib/chatImageMessage";
+import { getSupabase } from "../lib/supabase";
+import { uploadChatImageToSupabase } from "../lib/uploadChatImageToSupabase";
+import { maskPhoneNumbers } from "../services/chat/PhoneNumberDetector";
+import type { PhoneWarningVariant } from "../components/chat/PhoneWarningBanner";
 import { DirectInviteModal } from "../components/collaboration/DirectInviteModal";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 const CHAT_PAGE_SIZE = 40;
 
@@ -141,6 +151,7 @@ function formatDaySeparator(iso: string): string {
 }
 
 export function ChatRoomScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const {
     roomId,
     headline,
@@ -153,6 +164,9 @@ export function ChatRoomScreen({ route, navigation }: Props) {
     useSession();
   const qc = useQueryClient();
   const [draft, setDraft] = useState("");
+  const [phoneWarning, setPhoneWarning] = useState<PhoneWarningVariant | null>(
+    null
+  );
   const listRef = useRef<FlatList<ChatListItem>>(null);
   /** Si l’utilisateur est proche du bas ; au chargement on colle au dernier message. */
   const stickToBottomRef = useRef(true);
@@ -162,6 +176,8 @@ export function ChatRoomScreen({ route, navigation }: Props) {
   /** Nombre de nouveaux messages (autres) arrivés hors vue en bas de liste. */
   const [pendingBelowCount, setPendingBelowCount] = useState(0);
   const hasMoreOlderRef = useRef(true);
+  const bottomChromePad = useBottomChromePad();
+  const listBottomPad = CHAT_INPUT_BAR_HEIGHT + mobileSpacing.sm;
   const loadingOlderRef = useRef(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
 
@@ -473,8 +489,50 @@ export function ChatRoomScreen({ route, navigation }: Props) {
   const onSend = () => {
     const t = draft.trim();
     if (!t || sendMutation.isPending) return;
-    sendMutation.mutate(t);
+    const masked = maskPhoneNumbers(t);
+    if (masked.wasModified) {
+      setPhoneWarning("text_masked");
+      setTimeout(() => setPhoneWarning(null), 3000);
+    }
+    sendMutation.mutate(masked.maskedText);
   };
+
+  const onAnalyzeImage = useCallback(
+    async (imageBase64: string, mimeType: string) => {
+      if (!accessToken) {
+        return { allowed: false };
+      }
+      return analyzeChatImage(
+        accessToken,
+        imageBase64,
+        mimeType,
+        activeProfileId
+      );
+    },
+    [accessToken, activeProfileId]
+  );
+
+  const onSendImage = useCallback(
+    async (uri: string, mimeType: string) => {
+      if (!accessToken || !authMe?.user.id) {
+        throw new Error("Session requise");
+      }
+      const supabase = getSupabase();
+      if (!supabase) {
+        throw new Error("Stockage indisponible");
+      }
+      const url = await uploadChatImageToSupabase(
+        supabase,
+        authMe.user.id,
+        roomId,
+        uri,
+        mimeType
+      );
+      const body = buildChatImageMessageBody(url);
+      await sendMutation.mutateAsync(body);
+    },
+    [accessToken, authMe?.user.id, roomId, sendMutation]
+  );
 
   const liveStrip = liveStripProps(chatSocketStatus);
 
@@ -482,7 +540,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
     <ChatModuleGate>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
         {liveStrip ? (
@@ -511,13 +569,13 @@ export function ChatRoomScreen({ route, navigation }: Props) {
         ) : null}
         {messagesQuery.isPending ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color="#5d7a1f" />
+            <ActivityIndicator size="large" color={mobileColors.accent} />
           </View>
         ) : messagesQuery.error ? (
           <View style={styles.centered}>
             <Text style={styles.error}>
               {messagesQuery.error instanceof Error
-                ? messagesQuery.error.message
+                ? getUserFacingError(messagesQuery.error, t)
                 : String(messagesQuery.error)}
             </Text>
           </View>
@@ -529,7 +587,10 @@ export function ChatRoomScreen({ route, navigation }: Props) {
               keyExtractor={(m) => m.id}
               renderItem={renderItem}
               style={styles.listFlex}
-              contentContainerStyle={styles.listContent}
+              contentContainerStyle={[
+                styles.listContent,
+                { paddingBottom: listBottomPad }
+              ]}
               onScroll={onListScroll}
               scrollEventThrottle={100}
               onContentSizeChange={onListContentSizeChange}
@@ -539,7 +600,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
               ListHeaderComponent={
                 loadingOlder ? (
                   <View style={styles.loadOlderBanner}>
-                    <ActivityIndicator size="small" color="#5d7a1f" />
+                    <ActivityIndicator size="small" color={mobileColors.accent} />
                     <Text style={styles.loadOlderText}>Messages plus anciens…</Text>
                   </View>
                 ) : null
@@ -561,7 +622,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
                       }
                     });
                   }}
-                  tintColor="#5d7a1f"
+                  tintColor={mobileColors.accent}
                 />
               }
             />
@@ -597,13 +658,33 @@ export function ChatRoomScreen({ route, navigation }: Props) {
           value={draft}
           onChangeText={setDraft}
           onSend={onSend}
+          onAnalyzeImage={onAnalyzeImage}
+          onSendImage={onSendImage}
           sending={sendMutation.isPending}
-          placeholder="Votre message…"
+          placeholder={t("chat.inputPlaceholder", "Votre message…")}
+          paddingBottom={bottomChromePad}
+          externalWarning={phoneWarning}
+          phoneWarningMessage={t(
+            "chat.phoneWarning.realtime",
+            "Les numéros de téléphone sont automatiquement masqués pour votre sécurité."
+          )}
+          phoneMaskedMessage={t(
+            "chat.phoneWarning.masked",
+            "Numéro masqué automatiquement pour votre protection."
+          )}
+          imageBlockedMessage={t(
+            "chat.phoneWarning.imageBlocked",
+            "Cette image semble contenir un numéro de téléphone et ne peut pas être envoyée."
+          )}
+          imageAnalyzingMessage={t(
+            "chat.phoneWarning.analyzing",
+            "Vérification sécurité…"
+          )}
         />
         {sendMutation.error ? (
           <Text style={styles.sendError}>
             {sendMutation.error instanceof Error
-              ? sendMutation.error.message
+              ? getUserFacingError(sendMutation.error, t)
               : String(sendMutation.error)}
           </Text>
         ) : null}
@@ -677,7 +758,7 @@ const styles = StyleSheet.create({
   },
   loadOlderText: {
     fontSize: 13,
-    color: "#6d745b"
+    color: mobileColors.textSecondary
   },
   newMessagesFab: {
     position: "absolute",
@@ -688,7 +769,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#5d7a1f",
+    backgroundColor: mobileColors.accent,
     paddingVertical: 10,
     paddingHorizontal: 18,
     paddingLeft: 14,
@@ -699,13 +780,13 @@ const styles = StyleSheet.create({
     shadowRadius: 5
   },
   newMessagesFabChevron: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 16,
     fontWeight: "700",
     marginTop: 1
   },
   newMessagesFabText: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 14,
     fontWeight: "700"
   },
@@ -714,12 +795,12 @@ const styles = StyleSheet.create({
     height: 22,
     paddingHorizontal: 6,
     borderRadius: 11,
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     alignItems: "center",
     justifyContent: "center"
   },
   newMessagesFabBadgeText: {
-    color: "#5d7a1f",
+    color: mobileColors.accent,
     fontSize: 12,
     fontWeight: "800"
   },
@@ -768,31 +849,31 @@ const styles = StyleSheet.create({
     borderWidth: 1
   },
   bubbleMine: {
-    backgroundColor: "#5d7a1f",
+    backgroundColor: mobileColors.accent,
     borderColor: "#4a6118"
   },
   bubbleOther: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderColor: "#e0e4d4"
   },
   senderName: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#5d7a1f",
+    color: mobileColors.accent,
     marginBottom: 4
   },
   msgBody: {
     fontSize: 16,
-    color: "#1f2910",
+    color: mobileColors.textPrimary,
     lineHeight: 22
   },
   msgBodyMine: {
-    color: "#fff"
+    color: mobileColors.onAccent
   },
   msgMeta: {
     marginTop: 6,
     fontSize: 11,
-    color: "#6d745b"
+    color: mobileColors.textSecondary
   },
   msgMetaMine: {
     color: "#dfe8c8"
@@ -817,12 +898,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "#d4dac8",
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     fontSize: 16,
-    color: "#1f2910"
+    color: mobileColors.textPrimary
   },
   sendBtn: {
-    backgroundColor: "#5d7a1f",
+    backgroundColor: mobileColors.accent,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 14
@@ -831,7 +912,7 @@ const styles = StyleSheet.create({
     opacity: 0.45
   },
   sendBtnText: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontWeight: "700",
     fontSize: 15
   },

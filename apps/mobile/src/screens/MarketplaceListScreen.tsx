@@ -19,8 +19,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { PigPriceIndex } from "../components/market/PigPriceIndex";
+import { PigPriceIndexCard } from "../components/market/PigPriceIndexCard";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
-import { CreateMarketplaceListingModal } from "../components/marketplace/CreateMarketplaceListingModal";
+import { ListingModal } from "../components/marketplace/ListingModal";
 import {
   MarketplaceListingCard,
   MarketplaceListingCardSkeleton
@@ -32,24 +33,25 @@ import type { FilterPill } from "../components/lists/types";
 import { TabContent, TabSelector } from "../components/tabs";
 import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { useSession } from "../context/SessionContext";
-import type {
-  MarketplaceListingListItem,
-  MarketplaceOfferMineRow
-} from "../lib/api";
+import type { MarketplaceListingListItem } from "../lib/api";
+import { useActiveProject } from "../context/ActiveProjectContext";
+import {
+  PropositionsScreen,
+  type ProposalsSubTab
+} from "./market/PropositionsScreen";
+import { MarketplacePartnersTab } from "./market/tabs/MarketplacePartnersTab";
 import {
   addBuyerFavorite,
   fetchBuyerFavoriteIds,
   fetchBuyerFavorites,
   fetchMarketplaceListings,
-  fetchMyMarketplaceOffers,
+  fetchMarketplaceOfferCounts,
+  fetchPigPriceIndexDashboard,
   removeBuyerFavorite,
-  withdrawMarketplaceOffer,
   type BuyerFavoriteListingDto
 } from "../lib/api";
 import {
-  listingStatusLabel,
-  marketplaceActionErrorMessage,
-  offerStatusLabel
+  listingStatusLabel
 } from "../lib/marketplaceLabels";
 import {
   mobileColors,
@@ -60,10 +62,11 @@ import {
 } from "../theme/mobileTheme";
 import { buyerColors, buyerStackScreenOptions } from "../theme/buyerTheme";
 import type { RootStackParamList } from "../types/navigation";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MarketplaceList">;
 
-type MarketTab = "listings" | "mine" | "offers";
+type MarketTab = "listings" | "mine" | "offers" | "partners";
 type CatKey = "all" | "piglet" | "breeder" | "butcher" | "reformed";
 type ListingFilter = "all" | "draft" | "published" | "sold" | "cancelled";
 
@@ -135,16 +138,29 @@ function initialMarketTab(
   param?: RootStackParamList["MarketplaceList"]
 ): MarketTab {
   const tab = param && "tab" in param ? param.tab : undefined;
-  if (tab === "mine" || tab === "offers" || tab === "listings") {
+  if (
+    tab === "mine" ||
+    tab === "offers" ||
+    tab === "listings" ||
+    tab === "partners"
+  ) {
     return tab;
   }
   return "listings";
+}
+
+function initialOffersSubTab(
+  param?: RootStackParamList["MarketplaceList"]
+): ProposalsSubTab {
+  const sub = param && "offersSubTab" in param ? param.offersSubTab : undefined;
+  return sub === "sent" ? "sent" : "received";
 }
 
 export function MarketplaceListScreen({ navigation, route }: Props) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
   const { accessToken, activeProfileId, authMe, clientFeatures } = useSession();
+  const { activeFarmId } = useActiveProject();
   const qc = useQueryClient();
 
   const buyerView = route.params?.buyerView === true;
@@ -153,8 +169,20 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
   const scrollBottomPad = useScrollBottomPad();
   const [marketTab, setMarketTab] = useState<MarketTab>(() => {
     const tab = initialMarketTab(route.params);
-    return buyerView && tab === "mine" ? "listings" : tab;
+    if (buyerView && (tab === "mine" || tab === "offers")) {
+      return "listings";
+    }
+    return tab;
   });
+
+  const pigDashboardQ = useQuery({
+    queryKey: ["pigPriceDashboard", activeProfileId, "30d"],
+    queryFn: () =>
+      fetchPigPriceIndexDashboard(accessToken!, activeProfileId, "30d"),
+    enabled: Boolean(accessToken) && marketTab === "listings",
+    staleTime: 3_600_000
+  });
+
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<CatKey>("all");
   const isBuyerProfile =
@@ -172,14 +200,37 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
   );
   const [myFilter, setMyFilter] = useState<ListingFilter>("all");
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [offersSubTab, setOffersSubTab] = useState<ProposalsSubTab>(() =>
+    initialOffersSubTab(route.params)
+  );
+  const offersListingFilter =
+    route.params && "offersListingId" in route.params
+      ? route.params.offersListingId
+      : undefined;
+  const highlightOfferId =
+    route.params && "highlightOfferId" in route.params
+      ? route.params.highlightOfferId
+      : undefined;
 
   const routeTab =
     route.params && "tab" in route.params ? route.params.tab : undefined;
+  const routeOffersSubTab =
+    route.params && "offersSubTab" in route.params
+      ? route.params.offersSubTab
+      : undefined;
 
   useEffect(() => {
     const tab = initialMarketTab(route.params);
-    setMarketTab(buyerView && tab === "mine" ? "listings" : tab);
+    if (buyerView && (tab === "mine" || tab === "offers")) {
+      setMarketTab("listings");
+      return;
+    }
+    setMarketTab(tab);
   }, [routeTab, buyerView]);
+
+  useEffect(() => {
+    setOffersSubTab(initialOffersSubTab(route.params));
+  }, [routeOffersSubTab]);
 
   useEffect(() => {
     const q = route.params?.searchQuery;
@@ -228,29 +279,11 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     enabled: clientFeatures.marketplace && marketTab === "mine"
   });
 
-  const offersQuery = useQuery({
-    queryKey: ["marketplaceMyOffers", activeProfileId],
-    queryFn: () => fetchMyMarketplaceOffers(accessToken!, activeProfileId),
-    enabled: clientFeatures.marketplace && marketTab === "offers"
-  });
-
-  const withdrawMut = useMutation({
-    mutationFn: (offerId: string) =>
-      withdrawMarketplaceOffer(accessToken!, offerId, activeProfileId),
-    onSuccess: (_data, offerId) => {
-      void qc.invalidateQueries({ queryKey: ["marketplaceMyOffers"] });
-      const row = offersQuery.data?.find((r) => r.id === offerId);
-      if (row) {
-        void qc.invalidateQueries({
-          queryKey: ["marketplaceListing", row.listing.id]
-        });
-      }
-    },
-    onError: (e: Error) =>
-      Alert.alert(
-        "Impossible de retirer l’offre",
-        marketplaceActionErrorMessage(e.message)
-      )
+  const offerCountsQ = useQuery({
+    queryKey: ["marketplaceOffersCounts", activeProfileId, activeFarmId],
+    queryFn: () =>
+      fetchMarketplaceOfferCounts(accessToken!, activeProfileId, activeFarmId),
+    enabled: clientFeatures.marketplace && Boolean(accessToken)
   });
 
   useLayoutEffect(() => {
@@ -285,18 +318,34 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
               </TouchableOpacity>
             )
           : undefined,
-      headerRight:
-        clientFeatures.marketplace && marketTab === "mine" && !buyerView
-          ? () => (
-              <TouchableOpacity
-                onPress={() => setCreateModalOpen(true)}
-                style={{ paddingHorizontal: 8 }}
-                hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
-              >
-                <Text style={styles.headerAction}>{t("marketScreen.create")}</Text>
-              </TouchableOpacity>
-            )
-          : undefined
+      headerRight: () => (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          {clientFeatures.marketplace && marketTab === "mine" && !buyerView && (
+            <TouchableOpacity
+              onPress={() => setCreateModalOpen(true)}
+              style={{ paddingHorizontal: 4 }}
+              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+            >
+              <Text style={styles.headerAction}>{t("marketScreen.create")}</Text>
+            </TouchableOpacity>
+          )}
+          {clientFeatures.marketplace && (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("MarketplacePaymentDashboard")}
+              style={{ paddingHorizontal: 8 }}
+              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+              accessibilityLabel="Portefeuille"
+              accessibilityRole="button"
+            >
+              <Ionicons
+                name="wallet-outline"
+                size={24}
+                color={buyerView ? buyerColors.primary : mobileColors.accent}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+      )
     });
   }, [navigation, clientFeatures.marketplace, marketTab, t, buyerView, fromDashboard]);
 
@@ -324,7 +373,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
       void qc.invalidateQueries({ queryKey: ["buyerFavoritesList"] });
       void qc.invalidateQueries({ queryKey: ["buyerDashboard"] });
     },
-    onError: (e: Error) => Alert.alert("Favoris", e.message)
+    onError: (e: Error) => Alert.alert("Favoris", getUserFacingError(e, t))
   });
 
   const toggleFav = (id: string) => {
@@ -374,6 +423,8 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
       showFavorite={isBuyerProfile}
       isFavorite={favoriteIdSet.has(item.id)}
       onToggleFavorite={() => toggleFav(item.id)}
+      showShare
+      navigation={navigation}
       onPress={() =>
         navigation.navigate("MarketplaceListingDetail", {
           listingId: item.id,
@@ -383,62 +434,9 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     />
   );
 
-  const renderOfferRow = ({ item }: { item: MarketplaceOfferMineRow }) => (
-    <View style={styles.offerCard}>
-      <TouchableOpacity
-        onPress={() =>
-          navigation.navigate("MarketplaceListingDetail", {
-            listingId: item.listing.id,
-            headline: item.listing.title
-          })
-        }
-      >
-        <Text style={styles.offerTitle}>{item.listing.title}</Text>
-        <Text style={styles.offerPrice}>
-          {t("marketScreen.myOffer")}{" "}
-          {formatMoney(
-            typeof item.offeredPrice === "string"
-              ? Number.parseFloat(item.offeredPrice)
-              : item.offeredPrice,
-            item.listing.currency
-          )}
-          {item.quantity != null ? ` × ${item.quantity}` : ""}
-        </Text>
-        <Text style={styles.offerMeta}>
-          {t("marketScreen.offerStatus")} {offerStatusLabel(item.status)}
-        </Text>
-        <Text style={styles.offerMeta}>
-          {t("marketScreen.offerListingLabel")} {listingStatusLabel(item.listing.status)}
-        </Text>
-        {item.listing.farm ? (
-          <Text style={styles.offerMeta}>{item.listing.farm.name}</Text>
-        ) : null}
-        <Text style={styles.offerLink}>{t("marketScreen.viewListing")}</Text>
-      </TouchableOpacity>
-      {item.status === "pending" ? (
-        <TouchableOpacity
-          style={[styles.withdraw, withdrawMut.isPending && styles.withdrawDisabled]}
-          disabled={withdrawMut.isPending}
-          onPress={() =>
-            Alert.alert(t("marketScreen.withdrawTitle"), t("marketScreen.withdrawBody"), [
-              { text: t("marketScreen.withdrawCancel"), style: "cancel" },
-              {
-                text: t("marketScreen.withdrawConfirm"),
-                style: "destructive",
-                onPress: () => withdrawMut.mutate(item.id)
-              }
-            ])
-          }
-        >
-          <Text style={styles.withdrawTxt}>{t("marketScreen.withdrawAction")}</Text>
-        </TouchableOpacity>
-      ) : null}
-    </View>
-  );
-
   const listingsErr =
     listingsQuery.error instanceof Error
-      ? listingsQuery.error.message
+      ? getUserFacingError(listingsQuery.error, t)
       : listingsQuery.error
         ? String(listingsQuery.error)
         : null;
@@ -494,6 +492,7 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
     const listingsHeader = (
       <View style={styles.listHeader}>
         <View style={styles.pigPriceSection}>
+          <PigPriceIndexCard hybrid={pigDashboardQ.data?.hybrid ?? undefined} />
           <PigPriceIndex />
         </View>
         <View style={styles.searchRow}>
@@ -557,7 +556,7 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
   const myListingsTabContent = () => {
     const err =
       myListingsQuery.error instanceof Error
-        ? myListingsQuery.error.message
+        ? getUserFacingError(myListingsQuery.error, t)
         : myListingsQuery.error
           ? String(myListingsQuery.error)
           : null;
@@ -630,51 +629,26 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
     );
   };
 
-  const offersTabContent = () => {
-    const err =
-      offersQuery.error instanceof Error
-        ? offersQuery.error.message
-        : offersQuery.error
-          ? String(offersQuery.error)
-          : null;
-    if (offersQuery.isPending && !offersQuery.data) {
-      return (
-        <View style={styles.tabCentered}>
-          <ActivityIndicator size="large" color={mobileColors.accent} />
-        </View>
-      );
-    }
-    if (err) {
-      return (
-        <View style={styles.tabCentered}>
-          <Text style={styles.error}>{err}</Text>
-        </View>
-      );
-    }
-    const rows = offersQuery.data ?? [];
-    return (
-      <FlatList
-        style={styles.tabScroll}
-        data={rows}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={[
-          styles.offersList,
-          { paddingBottom: scrollBottomPad }
-        ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={offersQuery.isFetching}
-            onRefresh={() => void offersQuery.refetch()}
-            tintColor={mobileColors.accent}
-          />
-        }
-        ListEmptyComponent={
-          <EmptyStateCard title={t("marketScreen.emptyOffers")} />
-        }
-        renderItem={renderOfferRow}
-      />
-    );
-  };
+  const offersTabContent = () => (
+    <PropositionsScreen
+      navigation={navigation}
+      contentPaddingBottom={scrollBottomPad}
+      initialSubTab={offersSubTab}
+      listingIdFilter={offersListingFilter}
+      highlightOfferId={highlightOfferId}
+    />
+  );
+
+  const partnersTabContent = () => (
+    <MarketplacePartnersTab
+      navigation={navigation}
+      role={buyerView ? "buyer" : "seller"}
+      buyerView={buyerView}
+      contentPaddingBottom={scrollBottomPad}
+    />
+  );
+
+  const offersTabBadge = offerCountsQ.data?.total ?? 0;
 
   if (!clientFeatures.marketplace) {
     return (
@@ -688,7 +662,22 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
     <MarketplaceModuleGate>
       <View style={styles.root}>
         {buyerView ? (
-          listingsTabContent()
+          <TabSelector
+            activeTab={marketTab}
+            onTabChange={(key) => setMarketTab(key as MarketTab)}
+            tabs={[
+              {
+                key: "listings",
+                label: t("marketScreen.tabListings"),
+                content: listingsTabContent()
+              },
+              {
+                key: "partners",
+                label: t("marketScreen.tabSuppliers"),
+                content: partnersTabContent()
+              }
+            ]}
+          />
         ) : (
           <TabSelector
             activeTab={marketTab}
@@ -707,16 +696,23 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
               {
                 key: "offers",
                 label: t("marketScreen.tabOffers"),
+                badge: offersTabBadge > 0 ? offersTabBadge : undefined,
                 content: offersTabContent()
+              },
+              {
+                key: "partners",
+                label: t("marketScreen.tabClients"),
+                content: partnersTabContent()
               }
             ]}
           />
         )}
       </View>
-      <CreateMarketplaceListingModal
+      <ListingModal
         visible={createModalOpen}
+        mode="create"
         onClose={() => setCreateModalOpen(false)}
-        onCreated={(created) =>
+        onSuccess={(created) =>
           navigation.navigate("MarketplaceListingDetail", {
             listingId: created.id,
             headline: created.title
@@ -862,7 +858,7 @@ const styles = StyleSheet.create({
     borderRadius: 8
   },
   badgeCatTx: {
-    color: "#fff",
+    color: mobileColors.onAccent,
     fontSize: 11,
     fontWeight: "700"
   },
@@ -875,7 +871,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 6
   },
-  badgeNewTx: { color: "#fff", fontSize: 10, fontWeight: "800" },
+  badgeNewTx: { color: mobileColors.onAccent, fontSize: 10, fontWeight: "800" },
   favBtn: {
     position: "absolute",
     right: 8,

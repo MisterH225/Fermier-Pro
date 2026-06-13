@@ -103,6 +103,12 @@ describeOrSkip("Console SuperAdmin API (e2e)", () => {
     expect(res.status).toBe(200);
     expect(res.body?.id).toBe("default");
     expect(typeof res.body.alertCaseThreshold).toBe("number");
+    expect(res.body).toHaveProperty("supportPhone");
+    expect(res.body).toHaveProperty("supportTelegramUrl");
+    expect(res.body.supportEffective).toMatchObject({
+      phone: expect.anything(),
+      telegramUrl: expect.anything()
+    });
   });
 
   it("PATCH /admin/settings met à jour les seuils", async () => {
@@ -113,6 +119,23 @@ describeOrSkip("Console SuperAdmin API (e2e)", () => {
     expect(res.status).toBe(200);
     expect(res.body.alertCaseThreshold).toBe(7);
     expect(res.body.alertPeriodDays).toBe(14);
+  });
+
+  it("PATCH /admin/settings met à jour le contact support", async () => {
+    const res = await request(app.getHttpServer())
+      .patch("/api/v1/admin/settings")
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        supportPhone: "+221771234567",
+        supportTelegramUrl: "@fermierpro_test"
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.supportPhone).toBe("+221771234567");
+    expect(res.body.supportTelegramUrl).toBe("https://t.me/fermierpro_test");
+    expect(res.body.supportEffective.phone).toBe("+221771234567");
+    expect(res.body.supportEffective.telegramUrl).toBe(
+      "https://t.me/fermierpro_test"
+    );
   });
 
   it("GET /admin/health-map et /admin/stats", async () => {
@@ -163,5 +186,117 @@ describeOrSkip("Console SuperAdmin API (e2e)", () => {
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.some((r: { userId: string }) => r.userId === ctx.userId)).toBe(true);
+  });
+
+  it("modération: avertir, suspendre, lever suspension", async () => {
+    const warn = await request(app.getHttpServer())
+      .post(`/api/v1/admin/users/${ctx.peerUserId}/warn`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        motive: "Test e2e",
+        message: "Premier avertissement test.",
+        warningLevel: "1er avertissement",
+        notifyUser: false
+      });
+    expect(warn.status).toBe(201);
+
+    const suspend = await request(app.getHttpServer())
+      .patch(`/api/v1/admin/users/${ctx.peerUserId}/suspend`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        scope: "account",
+        reason: "Test e2e suspension",
+        duration: "Indéfinie",
+        notifyUser: false
+      });
+    expect(suspend.status).toBe(200);
+
+    const meSuspended = await request(app.getHttpServer())
+      .get("/api/v1/auth/me")
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(meSuspended.status).toBe(200);
+    expect(meSuspended.body.user.accountStatus).toBe("suspended");
+
+    const unsuspend = await request(app.getHttpServer())
+      .patch(`/api/v1/admin/users/${ctx.peerUserId}/unsuspend`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({ scope: "account", notifyUser: false });
+    expect(unsuspend.status).toBe(200);
+
+    const meActive = await request(app.getHttpServer())
+      .get("/api/v1/auth/me")
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(meActive.status).toBe(200);
+    expect(meActive.body.user.accountStatus).toBe("active");
+  });
+
+  it("modération: bannir puis débannir", async () => {
+    const ban = await request(app.getHttpServer())
+      .patch(`/api/v1/admin/users/${ctx.peerUserId}/ban`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        scope: "account",
+        reason: "Test e2e ban",
+        details: "Détails test bannissement",
+        notifyUser: false
+      });
+    expect(ban.status).toBe(200);
+
+    const meBanned = await request(app.getHttpServer())
+      .get("/api/v1/auth/me")
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(meBanned.status).toBe(200);
+    expect(meBanned.body.user.accountStatus).toBe("banned");
+
+    const unban = await request(app.getHttpServer())
+      .patch(`/api/v1/admin/users/${ctx.peerUserId}/unban`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({ scope: "account", notifyUser: false });
+    expect(unban.status).toBe(200);
+
+    const meActive = await request(app.getHttpServer())
+      .get("/api/v1/auth/me")
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(meActive.status).toBe(200);
+    expect(meActive.body.user.accountStatus).toBe("active");
+  });
+
+  it("POST /admin/messages puis lecture mobile /auth/me/admin-messages", async () => {
+    const send = await request(app.getHttpServer())
+      .post("/api/v1/admin/messages")
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        userId: ctx.peerUserId,
+        subject: "Message test e2e",
+        message: "Contenu du message admin pour l'utilisateur mobile.",
+        type: "info",
+        sendPush: false
+      });
+    expect([200, 201]).toContain(send.status);
+    expect(send.body?.messageId).toBeDefined();
+
+    const unread = await request(app.getHttpServer())
+      .get("/api/v1/auth/me/admin-messages/unread-count")
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(unread.status).toBe(200);
+    expect(unread.body.count).toBeGreaterThanOrEqual(1);
+
+    const list = await request(app.getHttpServer())
+      .get("/api/v1/auth/me/admin-messages")
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(list.status).toBe(200);
+    expect(Array.isArray(list.body?.items)).toBe(true);
+    const row = list.body.items.find(
+      (m: { id: string }) => m.id === send.body.messageId
+    );
+    expect(row).toBeDefined();
+    expect(row.subject).toBe("Message test e2e");
+    expect(row.isRead).toBe(false);
+
+    const read = await request(app.getHttpServer())
+      .patch(`/api/v1/auth/me/admin-messages/${send.body.messageId}/read`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(read.status).toBe(200);
+    expect(read.body.ok).toBe(true);
   });
 });

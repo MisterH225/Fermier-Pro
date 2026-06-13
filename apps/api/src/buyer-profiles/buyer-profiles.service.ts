@@ -6,6 +6,7 @@ import {
 import type { User } from "@prisma/client";
 import {
   ListingStatus,
+  MarketplaceTransactionStatus,
   OfferStatus,
   Prisma,
   ProfileType
@@ -120,17 +121,17 @@ export class BuyerProfilesService {
     });
     const [
       pendingProposals,
-      acceptedOffers,
+      completedPurchases,
       activeAlerts,
       favoritesCount
     ] = await Promise.all([
       this.prisma.marketplaceOffer.count({
         where: { buyerUserId: user.id, status: OfferStatus.pending }
       }),
-      this.prisma.marketplaceOffer.count({
+      this.prisma.marketplaceTransaction.count({
         where: {
           buyerUserId: user.id,
-          status: { in: [OfferStatus.accepted, OfferStatus.countered] }
+          status: MarketplaceTransactionStatus.TRANSACTION_CLOSED
         }
       }),
       this.prisma.buyerPriceAlert.count({
@@ -156,7 +157,7 @@ export class BuyerProfilesService {
         : null,
       kpis: {
         pendingProposals,
-        purchasesCount: acceptedOffers,
+        purchasesCount: completedPurchases,
         favoritesCount,
         activeAlerts
       }
@@ -444,7 +445,7 @@ export class BuyerProfilesService {
 
 
   async listPurchases(user: User) {
-    return this.listProposals(user, OfferStatus.accepted);
+    return this.listProposals(user, OfferStatus.completed);
   }
 
   async listReviews(user: User) {

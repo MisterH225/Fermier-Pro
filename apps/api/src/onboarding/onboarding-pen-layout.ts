@@ -4,6 +4,7 @@ import {
   Prisma
 } from "@prisma/client";
 import { allocateTagCodesInTransaction } from "../livestock/allocate-tag-codes";
+import { isGestationLitterBatch } from "../gestation/litter-batch.util";
 import {
   PenAllocationService,
   type OnboardingPlacementPlan,
@@ -751,7 +752,8 @@ export async function migrateOnboardingBatchesToIndividualAnimals(
           id: true,
           headcount: true,
           categoryKey: true,
-          name: true
+          name: true,
+          sourceTag: true
         }
       },
       pen: { select: { id: true } }
@@ -764,6 +766,48 @@ export async function migrateOnboardingBatchesToIndividualAnimals(
     if (!pl.batch || pl.batch.headcount <= 0) {
       continue;
     }
+    if (isGestationLitterBatch(pl.batch)) {
+      continue;
+    }
+
+    const linkedMembers = await tx.animal.count({
+      where: {
+        farmId,
+        livestockBatchId: pl.batch.id,
+        status: "active"
+      }
+    });
+    if (linkedMembers > 0) {
+      await tx.penPlacement.update({
+        where: { id: pl.id },
+        data: { endedAt: new Date() }
+      });
+      await tx.livestockBatch.update({
+        where: { id: pl.batch.id },
+        data: { status: "inactive", headcount: 0 }
+      });
+      continue;
+    }
+
+    // Inclut les placements terminés : évite de recréer des sujets après sortie du cheptel.
+    const individualPlacementHistory = await tx.penPlacement.count({
+      where: {
+        penId: pl.pen.id,
+        animalId: { not: null }
+      }
+    });
+    if (individualPlacementHistory > 0) {
+      await tx.penPlacement.update({
+        where: { id: pl.id },
+        data: { endedAt: new Date() }
+      });
+      await tx.livestockBatch.update({
+        where: { id: pl.batch.id },
+        data: { status: "inactive", headcount: 0 }
+      });
+      continue;
+    }
+
     const prefix: "Eng" | "Dem" = isNurseryCategoryKey(pl.batch.categoryKey)
       ? "Dem"
       : "Eng";

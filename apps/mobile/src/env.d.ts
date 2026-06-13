@@ -5,5 +5,7 @@ declare namespace NodeJS {
     EXPO_PUBLIC_SUPABASE_ANON_KEY?: string;
     /** Base URL HTTPS pour les Universal Link `/invite/<token>` (sinon schéma `fermier-pro://`). */
     EXPO_PUBLIC_INVITE_BASE_URL?: string;
+    /** Base URL HTTPS pour les liens d'annonce `/listing/<id>` (sinon schéma `fermier-pro://`). */
+    EXPO_PUBLIC_LISTING_BASE_URL?: string;
   }
 }

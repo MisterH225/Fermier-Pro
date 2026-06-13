@@ -8,6 +8,7 @@ import {
   View,
   useWindowDimensions
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { GoogleOAuthButton } from "../components/GoogleOAuthButton";
@@ -22,6 +23,7 @@ const LOGO = require("../../assets/images/fermier-pro-logo-nobg.png");
  * Écran de connexion : Google OAuth ou SMS (Supabase Auth).
  */
 export function LoginGateScreen() {
+  const { t } = useTranslation();
   const authOk = isAuthEnvConfigured();
   const oauthRedirectUri = authOk ? getGoogleOAuthRedirectUri() : "";
   const showDevRedirectHint =
@@ -47,11 +49,9 @@ export function LoginGateScreen() {
               source={LOGO}
               style={[styles.logo, { width: logoW, height: logoH }]}
               resizeMode="contain"
-              accessibilityLabel="Fermier Pro"
+              accessibilityLabel={t("loginGate.logoA11y")}
             />
-            <Text style={styles.lead}>
-              Pilote tes fermes, ton cheptel et tes opérations au quotidien.
-            </Text>
+            <Text style={styles.lead}>{t("loginGate.lead")}</Text>
           </View>
 
           {!authOk ? (
@@ -62,33 +62,24 @@ export function LoginGateScreen() {
                 color={authColors.error}
                 style={styles.warnIcon}
               />
-              <Text style={styles.warnText}>
-                Configure EXPO_PUBLIC_SUPABASE_URL et
-                EXPO_PUBLIC_SUPABASE_ANON_KEY dans apps/mobile/.env avec l’URL
-                réelle du projet Supabase (pas le modèle avec &lt;project-ref&gt;),
-                puis redémarre Expo avec --clear.
-              </Text>
+              <Text style={styles.warnText}>{t("loginGate.envWarn")}</Text>
             </View>
           ) : (
             <>
               {showDevRedirectHint ? (
                 <View style={styles.redirectHint}>
                   <Text style={styles.redirectHintTitle}>
-                    URL de redirection (Supabase)
+                    {t("loginGate.redirectTitle")}
                   </Text>
                   <Text style={styles.redirectHintUrl} selectable>
                     {oauthRedirectUri}
                   </Text>
                   <Text style={styles.redirectHintBody}>
-                    Supabase → Authentication → URL configuration :{"\n"}
-                    1. Site URL = l’URL exp://… ci-dessus (pas localhost).{"\n"}
-                    2. Redirect URLs = la même URL (bouton +).{"\n"}
-                    Google : Providers → Google (Client ID / Secret).
+                    {t("loginGate.redirectBody")}
                   </Text>
                   {oauthRedirectUri.includes("localhost") ? (
                     <Text style={styles.redirectWarn}>
-                      Cette URL contient localhost : sur iPhone ça échouera.
-                      Relance Expo en LAN (même Wi‑Fi) et rescanne le QR code.
+                      {t("loginGate.redirectLocalhostWarn")}
                     </Text>
                   ) : null}
                 </View>
@@ -98,7 +89,7 @@ export function LoginGateScreen() {
 
               <View style={styles.authOrRow}>
                 <View style={styles.authOrLine} />
-                <Text style={styles.authOrText}>ou</Text>
+                <Text style={styles.authOrText}>{t("loginGate.or")}</Text>
                 <View style={styles.authOrLine} />
               </View>
 
@@ -147,10 +138,10 @@ const styles = StyleSheet.create({
   warnCard: {
     flexDirection: "row",
     alignItems: "flex-start",
-    backgroundColor: "#FEF2F2",
+    backgroundColor: authColors.warnSurface,
     borderRadius: authRadii.input,
     borderWidth: 1,
-    borderColor: "#FECACA",
+    borderColor: authColors.warnBorder,
     padding: 16,
     marginTop: 16
   },
@@ -187,7 +178,7 @@ const styles = StyleSheet.create({
     borderRadius: authRadii.input,
     borderWidth: 1,
     borderColor: authColors.border,
-    backgroundColor: "#F8FAFC"
+    backgroundColor: authColors.surfaceSubtle
   },
   redirectHintTitle: {
     fontSize: 12,

@@ -27,8 +27,8 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { useModal } from "../modals/useModal";
 import { BaseModal } from "./BaseModal";
-import { SuccessModal } from "./SuccessModal";
 
 type RecipientOption = {
   key: InvitationRecipientKind;
@@ -68,7 +68,7 @@ export function InviteModal({ visible, farmId, farmName, onClose }: Props) {
     defaultPermissionsFor("technician")
   );
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const modal = useModal();
 
   const pickRecipient = (kind: InvitationRecipientKind) => {
     setRecipientKind(kind);
@@ -101,7 +101,11 @@ export function InviteModal({ visible, farmId, farmName, onClose }: Props) {
         url
       });
       await Share.share({ message, url });
-      setSuccess(true);
+      modal.open("success", {
+        message: t("collab.inviteSent"),
+        autoDismissMs: 2200
+      });
+      onClose();
     } catch (e) {
       Alert.alert("", e instanceof Error ? e.message : t("collab.createError"));
     } finally {
@@ -109,17 +113,12 @@ export function InviteModal({ visible, farmId, farmName, onClose }: Props) {
     }
   };
 
-  const handleClose = () => {
-    setSuccess(false);
-    onClose();
-  };
-
   return (
     <>
       <BaseModal
-        visible={visible && !success}
+        visible={visible}
         title={t("collab.shareTitle")}
-        onClose={handleClose}
+        onClose={onClose}
         confirmLabel={t("collab.shareConfirm")}
         onConfirm={() => void submit()}
         confirmDisabled={!farmId}
@@ -173,7 +172,7 @@ export function InviteModal({ visible, farmId, farmName, onClose }: Props) {
               >
                 <View style={[styles.permTick, on && styles.permTickOn]}>
                   {on ? (
-                    <Ionicons name="checkmark" size={16} color="#fff" />
+                    <Ionicons name="checkmark" size={16} color={mobileColors.onAccent} />
                   ) : null}
                 </View>
                 <View style={styles.permTexts}>
@@ -198,12 +197,6 @@ export function InviteModal({ visible, farmId, farmName, onClose }: Props) {
 
         <Text style={styles.footerHint}>{t("collab.shareFooterHint")}</Text>
       </BaseModal>
-
-      <SuccessModal
-        visible={success}
-        message={t("collab.inviteSent")}
-        onClose={handleClose}
-      />
     </>
   );
 }

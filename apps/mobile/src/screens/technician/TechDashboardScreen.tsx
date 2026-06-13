@@ -13,6 +13,7 @@ import {
   Text,
   View
 } from "react-native";
+import { KpiGridSkeleton, ListSkeleton } from "../../components/common/SkeletonBlocks";
 import { EventList } from "../../components/lists/EventList";
 import type { EventItem } from "../../components/lists/types";
 import {
@@ -25,9 +26,11 @@ import {
 import { TechMobileShell } from "../../components/layout/TechMobileShell";
 import { TechProfileModal } from "../../components/technician/TechProfileModal";
 import { TechWelcomeHeader } from "../../components/technician/TechWelcomeHeader";
+import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
+import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import { DashboardTaskWidget } from "../../components/tasks";
 import { TechQuickActionModals } from "../../components/technician/TechQuickActionModals";
-import { useTechBottomChromePad } from "../../context/TechBottomChromeContext";
+import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import {
   fetchTechnicianActivity,
@@ -80,7 +83,7 @@ export function TechDashboardScreen() {
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const bottomPad = useTechBottomChromePad();
+  const bottomInset = useBottomInset();
   const { accessToken, activeProfileId, authMe, refreshAuthMe, clientFeatures } =
     useSession();
   const [profileOpen, setProfileOpen] = useState(false);
@@ -144,27 +147,18 @@ export function TechDashboardScreen() {
         avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
         onPressAvatar={() => setProfileOpen(true)}
       />
-      <Pressable
-        onPress={() => {
-          if (activeFarm) {
-            navigation.navigate("SmartAlertsList", {
-              farmId: activeFarm.farmId,
-              farmName: activeFarm.farmName
-            });
-          }
-        }}
-        style={({ pressed }) => [styles.bell, pressed && { opacity: 0.85 }]}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        accessibilityRole="button"
-        accessibilityLabel={t("smartAlerts.bellA11y", "Notifications")}
-      >
-        <Ionicons name="notifications-outline" size={22} color={techColors.primary} />
-        {(dashQ.data?.alertsCount ?? 0) > 0 ? (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{dashQ.data?.alertsCount}</Text>
-          </View>
-        ) : null}
-      </Pressable>
+      <View style={styles.heroActions}>
+        <SupportHeaderButton
+          iconColor={techColors.primary}
+          style={styles.heroIconBtn}
+        />
+        <NotificationsHeaderButton
+          iconColor={techColors.primary}
+          farmId={activeFarm?.farmId}
+          farmName={activeFarm?.farmName}
+          style={styles.heroIconBtn}
+        />
+      </View>
     </View>
   );
 
@@ -173,7 +167,7 @@ export function TechDashboardScreen() {
       <ScrollView
         contentContainerStyle={[
           profileScreenScrollContent,
-          { paddingBottom: bottomPad + mobileSpacing.xl }
+          { paddingBottom: bottomInset }
         ]}
         refreshControl={
           <RefreshControl
@@ -290,6 +284,9 @@ export function TechDashboardScreen() {
         </ScreenSection>
 
         <ScreenSection title={t("tech.dashboard.farmStatus")} plain>
+          {dashQ.isPending && !dashQ.data ? (
+            <KpiGridSkeleton count={4} />
+          ) : (
           <View style={styles.kpiRow}>
             <View style={[styles.kpiCard, techShadow.card]}>
               <Text style={styles.kpiValue}>{kpis?.activeAlerts ?? 0}</Text>
@@ -308,11 +305,14 @@ export function TechDashboardScreen() {
               <Text style={styles.kpiLabel}>{t("tech.kpi.stock")}</Text>
             </View>
           </View>
+          )}
         </ScreenSection>
 
         <View style={styles.sectionBlock}>
           <ScreenSection title={t("tech.dashboard.recentActivity")}>
-            {events.length > 0 ? (
+            {dashQ.isPending && !dashQ.data ? (
+              <ListSkeleton count={4} />
+            ) : events.length > 0 ? (
               <EventList data={events} />
             ) : (
               <ProfileSectionEmpty>{t("tech.dashboard.noActivity")}</ProfileSectionEmpty>
@@ -360,6 +360,15 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.sm,
     backgroundColor: techColors.canvas,
     gap: mobileSpacing.sm
+  },
+  heroActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.xs
+  },
+  heroIconBtn: {
+    padding: mobileSpacing.sm,
+    borderRadius: techRadius.pill
   },
   sectionBlock: { gap: mobileSpacing.sm },
   subtitle: { ...mobileTypography.meta, color: techColors.textSecondary },

@@ -4,7 +4,12 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
-import { apiFetch, type VetProfileRow } from "@/lib/api";
+import {
+  fetchVetProfile,
+  rejectVetProfile,
+  verifyVetProfile,
+  type VetProfileRow
+} from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DiplomeViewer } from "@/components/vets/DiplomeViewer";
@@ -26,7 +31,7 @@ export default function VetDetailPage() {
 
   useEffect(() => {
     if (!token) return;
-    apiFetch<VetProfileRow>(`/admin/vet-profiles/${id}`, token).then(setVet);
+    fetchVetProfile(token, id).then(setVet);
   }, [token, id]);
 
   const statusLabel = (status: string) => {
@@ -41,13 +46,10 @@ export default function VetDetailPage() {
     setBusy(true);
     try {
       if (action === "verify") {
-        await apiFetch(`/admin/vet-profiles/${id}/verify`, token, { method: "POST" });
+        await verifyVetProfile(token, id);
       } else {
-        await apiFetch(`/admin/vet-profiles/${id}/reject`, token, {
-          method: "POST",
-          body: JSON.stringify({
-            reason: reason.trim() || t("detail.rejectDefaultReason")
-          })
+        await rejectVetProfile(token, id, {
+          reason: reason.trim() || t("detail.rejectDefaultReason")
         });
       }
       router.push("/veterinaires");

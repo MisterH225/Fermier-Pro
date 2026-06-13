@@ -13,6 +13,7 @@ import type { User } from "@prisma/client";
 import type { Response } from "express";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
+import { setDeprecatedSuccessor } from "../common/http/deprecation.util";
 import { FarmAccessService } from "../common/farm-access.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { GenerateFarmReportDto } from "./dto/generate-farm-report.dto";
@@ -31,7 +32,15 @@ export class ReportsRootController {
 
   @Post("generate")
   @HttpCode(HttpStatus.CREATED)
-  async generate(@CurrentUser() user: User, @Body() dto: GenerateFarmReportDto) {
+  async generate(
+    @CurrentUser() user: User,
+    @Body() dto: GenerateFarmReportDto,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    setDeprecatedSuccessor(
+      res,
+      `/api/v1/farms/${dto.farmId}/reports/generate`
+    );
     await this.farmAccess.requireFarmScopes(user.id, dto.farmId, [
       FARM_SCOPE.financeRead,
       FARM_SCOPE.livestockRead
@@ -40,8 +49,31 @@ export class ReportsRootController {
   }
 
   @Get(":reportId")
-  getOne(@CurrentUser() user: User, @Param("reportId") reportId: string) {
-    return this.reports.getReport(user, reportId);
+  async getOne(
+    @CurrentUser() user: User,
+    @Param("reportId") reportId: string,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const row = await this.reports.getReport(user, reportId);
+    setDeprecatedSuccessor(
+      res,
+      `/api/v1/farms/${row.farmId}/reports/${reportId}`
+    );
+    return row;
+  }
+
+  @Get(":reportId/download")
+  async download(
+    @CurrentUser() user: User,
+    @Param("reportId") reportId: string,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const row = await this.reports.getReport(user, reportId);
+    setDeprecatedSuccessor(
+      res,
+      `/api/v1/farms/${row.farmId}/reports/${reportId}/download`
+    );
+    return this.reports.getReportDownloadUrl(user, reportId);
   }
 
   @Get(":reportId/pdf")
@@ -50,6 +82,11 @@ export class ReportsRootController {
     @Param("reportId") reportId: string,
     @Res() res: Response
   ) {
+    const row = await this.reports.getReport(user, reportId);
+    setDeprecatedSuccessor(
+      res,
+      `/api/v1/farms/${row.farmId}/reports/${reportId}/pdf`
+    );
     const { buffer, filename } = await this.reports.buildReportPdf(user, reportId);
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);

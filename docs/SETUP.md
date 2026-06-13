@@ -13,7 +13,10 @@ Depuis la racine du projet:
 
 ```bash
 npm install
+npm run prisma:generate
 ```
+
+> **Cursor Cloud Agent** : préférer `bash scripts/cloud-install.sh` (évite les conflits Prisma pendant `npm install`). Voir `AGENTS.md`.
 
 ### Windows : `EPERM` / `ENOTEMPTY` pendant `npm install`
 
