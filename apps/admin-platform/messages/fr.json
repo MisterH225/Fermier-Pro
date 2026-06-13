@@ -697,7 +697,8 @@
     "sections": {
       "events": "Infractions récentes",
       "sanctioned": "Utilisateurs sanctionnés",
-      "appeals": "Contestations en attente"
+      "appeals": "Contestations en attente",
+      "content": "Contenu du feed"
     },
     "columns": {
       "date": "Date",
@@ -711,12 +712,23 @@
     "actions": {
       "unsanction": "Lever la sanction",
       "acceptAppeal": "Accepter",
-      "rejectAppeal": "Rejeter"
+      "rejectAppeal": "Rejeter",
+      "deletePost": "Supprimer la publication",
+      "deleteComment": "Supprimer le commentaire",
+      "showRemoved": "Afficher les contenus supprimés"
     },
     "empty": {
       "events": "Aucune infraction enregistrée.",
       "sanctioned": "Aucun utilisateur sanctionné.",
-      "appeals": "Aucune contestation en attente."
+      "appeals": "Aucune contestation en attente.",
+      "content": "Aucune publication dans le feed."
+    },
+    "content": {
+      "likes": "{count} j'aime",
+      "comments": "{count} commentaires",
+      "removed": "Supprimé",
+      "confirmDeletePost": "Supprimer cette publication et masquer son contenu du feed ?",
+      "confirmDeleteComment": "Supprimer ce commentaire ?"
     },
     "appealAcceptedDefault": "Votre contestation a été acceptée. Votre accès au Feed est rétabli.",
     "appealRejectedDefault": "Votre contestation a été examinée et maintenue."

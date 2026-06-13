@@ -1074,3 +1074,64 @@ export function resolveFeedAppeal(
     body: JSON.stringify(body)
   });
 }
+
+export type FeedAdminCommentDto = {
+  id: string;
+  parentCommentId: string | null;
+  authorUserId: string;
+  authorEmail: string | null;
+  authorName: string | null;
+  authorProfileType: string;
+  authorDisplayName: string | null;
+  authorRegion: string | null;
+  body: string;
+  isAnonymous: boolean;
+  isRemoved: boolean;
+  removedReason: string | null;
+  likeCount: number;
+  createdAt: string;
+  replies: FeedAdminCommentDto[];
+};
+
+export type FeedAdminPostDto = {
+  id: string;
+  authorUserId: string;
+  authorEmail: string | null;
+  authorName: string | null;
+  authorProfileType: string;
+  authorDisplayName: string | null;
+  authorRegion: string | null;
+  postType: string;
+  body: string;
+  isAnonymous: boolean;
+  isRemoved: boolean;
+  removedReason: string | null;
+  likeCount: number;
+  commentCount: number;
+  createdAt: string;
+  comments: FeedAdminCommentDto[];
+};
+
+export function fetchFeedAdminPosts(
+  token: string,
+  page = 1,
+  includeRemoved = false
+) {
+  const q = new URLSearchParams({
+    page: String(page),
+    limit: "20",
+    includeRemoved: includeRemoved ? "true" : "false"
+  });
+  return apiFetch<{ page: number; limit: number; total: number; items: FeedAdminPostDto[] }>(
+    `/admin/feed/posts?${q}`,
+    token
+  );
+}
+
+export function adminDeleteFeedPost(token: string, postId: string) {
+  return apiFetch(`/admin/feed/posts/${postId}`, token, { method: "DELETE" });
+}
+
+export function adminDeleteFeedComment(token: string, commentId: string) {
+  return apiFetch(`/admin/feed/comments/${commentId}`, token, { method: "DELETE" });
+}
