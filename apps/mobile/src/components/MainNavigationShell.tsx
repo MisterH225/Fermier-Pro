@@ -107,6 +107,7 @@ import { OfflineBanner } from "./OfflineBanner";
 import { useSmartAlertPushNavigation } from "../hooks/useSmartAlertPushNavigation";
 import { ExpenseCategoriesScreen } from "../screens/settings/ExpenseCategoriesScreen";
 import { FeedScreen } from "../screens/feed/FeedScreen";
+import { ProducerScoreDashboardScreen } from "../screens/producer/ProducerScoreDashboardScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -465,6 +466,11 @@ function MainStack() {
         name="CreditDashboard"
         component={CreditDashboardScreen}
         options={{ title: st("creditScore") }}
+      />
+      <Stack.Screen
+        name="ProducerScoreDashboard"
+        component={ProducerScoreDashboardScreen}
+        options={{ title: st("producerScoreTitle") }}
       />
       <Stack.Screen
         name="MarketplaceMyOffers"

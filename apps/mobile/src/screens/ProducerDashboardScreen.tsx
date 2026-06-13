@@ -29,6 +29,7 @@ import { OnboardingBanner } from "../components/onboarding/OnboardingBanner";
 import { PendingInvitationsBanner } from "../components/collaboration/PendingInvitationsBanner";
 import { VetAppointmentActionsBanner } from "../components/vet/VetAppointmentActionsBanner";
 import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
+import { ProducerScoreBadge } from "../components/marketplace/ProducerScoreBadge";
 import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
 import { SupportHeaderButton } from "../components/support/SupportHeaderButton";
 import { ProjectIndicator } from "../components/projects";
@@ -47,6 +48,7 @@ import {
   fetchDashboardHealth,
   fetchFarmSmartAlertsCount,
   fetchFarms,
+  fetchMyProducerScore,
   postFarmSmartAlertsRefresh,
   type DashboardFeedStockItemDto,
   type DashboardGestationItemDto,
@@ -194,6 +196,12 @@ export function ProducerDashboardScreen() {
       fetchFarmCheptelOverview(accessToken!, farmId!, activeProfileId),
     enabled: Boolean(farmId && accessToken),
     refetchInterval: 120_000
+  });
+
+  const producerScoreQ = useQuery({
+    queryKey: ["myProducerScore", activeProfileId],
+    queryFn: () => fetchMyProducerScore(accessToken!, activeProfileId),
+    enabled: Boolean(accessToken)
   });
 
   const alertsCountQuery = useQuery({
@@ -353,6 +361,30 @@ export function ProducerDashboardScreen() {
           ) : null}
           {showOnboardingBanner ? (
             <OnboardingBanner onComplete={requestResume} />
+          ) : null}
+          {producerScoreQ.data ? (
+            <Pressable
+              style={styles.producerScoreCard}
+              onPress={() => navigation.navigate("ProducerScoreDashboard")}
+            >
+              <View style={styles.producerScoreHeader}>
+                <Text style={styles.producerScoreTitle}>
+                  {t("producerScore.dashboardCard.title")}
+                </Text>
+                <Text style={styles.producerScoreLink}>
+                  {t("producerScore.dashboardCard.open")} →
+                </Text>
+              </View>
+              <Text style={styles.producerScoreSubtitle}>
+                {t("producerScore.dashboardCard.subtitle")}
+              </Text>
+              <ProducerScoreBadge score={producerScoreQ.data} />
+              <Text style={styles.producerScoreGlobal}>
+                {t("producerScore.dashboard.global", {
+                  value: producerScoreQ.data.globalValue
+                })}
+              </Text>
+            </Pressable>
           ) : null}
           {!farmId ? (
             showOnboardingBanner ? (
@@ -958,5 +990,37 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     color: mobileColors.success,
     fontWeight: "600"
+  },
+  producerScoreCard: {
+    marginBottom: mobileSpacing.md,
+    padding: mobileSpacing.md,
+    borderRadius: mobileRadius.lg,
+    backgroundColor: mobileColors.background,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.border,
+    gap: mobileSpacing.xs
+  },
+  producerScoreHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  producerScoreTitle: {
+    ...mobileTypography.cardTitle,
+    color: mobileColors.textPrimary
+  },
+  producerScoreLink: {
+    ...mobileTypography.meta,
+    color: mobileColors.accent,
+    fontWeight: "600"
+  },
+  producerScoreSubtitle: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary
+  },
+  producerScoreGlobal: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: mobileSpacing.xs
   }
 });

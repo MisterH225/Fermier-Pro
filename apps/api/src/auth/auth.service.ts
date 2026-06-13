@@ -409,4 +409,27 @@ export class AuthService {
         : null
     };
   }
+
+  /** Met à jour lastActiveAt (max 1 fois / heure) pour le score producteur. */
+  async touchLastActive(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { lastActiveAt: true }
+    });
+    if (!user) return;
+
+    const now = new Date();
+    if (user.lastActiveAt) {
+      const hoursSince =
+        (now.getTime() - user.lastActiveAt.getTime()) / 3_600_000;
+      if (hoursSince < 1) {
+        return;
+      }
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { lastActiveAt: now }
+    });
+  }
 }

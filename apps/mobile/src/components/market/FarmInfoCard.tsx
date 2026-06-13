@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import type { MarketplaceListingFarmInfo } from "../../lib/api";
+import type { MarketplaceListingFarmInfo, ProducerScoreDto } from "../../lib/api";
 import { DetailCard, DetailSectionLabel } from "../marketplace/listingDetailUi";
+import { ProducerScoreBadge } from "../marketplace/ProducerScoreBadge";
 import { FarmPublicProfileModal } from "./FarmPublicProfileModal";
 import {
   mobileColors,
@@ -12,10 +13,15 @@ import {
 
 type Props = {
   farmInfo: MarketplaceListingFarmInfo | null | undefined;
+  sellerProducerScore?: ProducerScoreDto | null;
   onViewFarmListings: (farmInfo: MarketplaceListingFarmInfo) => void;
 };
 
-export function FarmInfoCard({ farmInfo, onViewFarmListings }: Props) {
+export function FarmInfoCard({
+  farmInfo,
+  sellerProducerScore,
+  onViewFarmListings
+}: Props) {
   const { t } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -69,6 +75,12 @@ export function FarmInfoCard({ farmInfo, onViewFarmListings }: Props) {
               {farmInfo.producerDisplayName}
             </Text>
           </View>
+          {sellerProducerScore ? (
+            <ProducerScoreBadge
+              score={sellerProducerScore}
+              prefix={t("producerScore.badgePrefix")}
+            />
+          ) : null}
           {farmInfo.farmTotalSales > 0 ? (
             <Text style={styles.sales}>
               {t("marketScreen.detail.farm.salesCount", {

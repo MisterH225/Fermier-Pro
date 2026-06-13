@@ -536,6 +536,7 @@ export function MarketplaceListingDetailScreen({
       <HealthSummarySection healthData={L.healthData} />
       <FarmInfoCard
         farmInfo={L.farmInfo}
+        sellerProducerScore={L.sellerProducerScore}
         onViewFarmListings={(farm) =>
           navigation.navigate("MarketplaceList", {
             searchQuery: farm.farmName

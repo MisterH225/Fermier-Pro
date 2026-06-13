@@ -45,6 +45,7 @@ import {
 } from "./marketplace-listing-category.helper";
 import { LISTING_EDIT_LOCK_STATUSES } from "./escrow/transaction.utils";
 import { ListingAnimalSyncService } from "./listing-animal-sync.service";
+import { ProducerScoreService } from "../producer-score/producer-score.service";
 
 function privacyDisplayName(fullName: string | null | undefined): string {
   const raw = fullName?.trim();
@@ -82,7 +83,8 @@ export class ListingsService {
     private readonly push: PushNotificationsService,
     private readonly marketplaceLifecycle: FarmMarketplaceLifecycleService,
     private readonly pigPriceIndex: MarketplacePigPriceIndexService,
-    private readonly listingAnimalSync: ListingAnimalSyncService
+    private readonly listingAnimalSync: ListingAnimalSyncService,
+    private readonly producerScore: ProducerScoreService
   ) {}
 
   private async resolveFarmAndAnimal(
@@ -501,6 +503,9 @@ export class ListingsService {
     let farmInfo: Awaited<ReturnType<typeof buildListingFarmInfo>> | null =
       null;
     let farmRatingSummary: { avg: number | null; count: number } | null = null;
+    let sellerProducerScore: Awaited<
+      ReturnType<ProducerScoreService["getForUser"]>
+    > | null = null;
 
     if (listing.farmId) {
       const animalIds = this.resolveListingAnimalIds({
@@ -522,7 +527,15 @@ export class ListingsService {
       );
     }
 
-    return { healthData, farmInfo, farmRatingSummary };
+    try {
+      sellerProducerScore = await this.producerScore.getForUser(
+        listing.sellerUserId
+      );
+    } catch {
+      sellerProducerScore = null;
+    }
+
+    return { healthData, farmInfo, farmRatingSummary, sellerProducerScore };
   }
 
   async getById(user: User, id: string) {
