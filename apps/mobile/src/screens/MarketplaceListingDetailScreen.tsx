@@ -31,6 +31,7 @@ import {
   parseMarketNum
 } from "../components/marketplace/MarketplaceListingCard";
 import { ListingImage } from "../components/marketplace/ListingImage";
+import { ListingShareButton } from "../components/marketplace/ListingShareButton";
 import { listingPhotoUrlsArray } from "../lib/resolveListingImage";
 import { useModal } from "../components/modals/useModal";
 import { PrimaryButton } from "../components/ui/PrimaryButton";
@@ -66,6 +67,7 @@ import {
   offerStatusLabel
 } from "../lib/marketplaceLabels";
 import { getUserFacingError } from "../lib/userFacingError";
+import { presentListingShareOptions } from "../lib/shareMarketplaceListing";
 import { marketplaceColors } from "../theme/marketplaceTheme";
 import {
   mobileColors,
@@ -127,10 +129,23 @@ export function MarketplaceListingDetailScreen({
   });
 
   useLayoutEffect(() => {
+    const L = q.data;
+    const canShare = Boolean(
+      L && (L.status === "published" || L.status === "sold")
+    );
     navigation.setOptions({
-      title: route.params?.headline?.trim() || t("marketScreen.detailTitle")
+      title: route.params?.headline?.trim() || t("marketScreen.detailTitle"),
+      headerRight: canShare
+        ? () => (
+            <ListingShareButton
+              listing={L!}
+              navigation={navigation}
+              style={{ marginRight: 8 }}
+            />
+          )
+        : undefined
     });
-  }, [navigation, route.params?.headline, t]);
+  }, [navigation, route.params?.headline, t, q.data]);
 
   useEffect(() => {
     const L = q.data;
@@ -630,6 +645,23 @@ export function MarketplaceListingDetailScreen({
             disabled={publishMutation.isPending || cancelMutation.isPending}
             style={{ marginTop: mobileSpacing.sm }}
           />
+          {L.status === "published" ? (
+            <SecondaryButton
+              label={t("marketScreen.share.action")}
+              onPress={() =>
+                presentListingShareOptions({
+                  listing: L,
+                  t,
+                  onShareInApp: () =>
+                    navigation.navigate("ChatSearchUser", {
+                      shareListingId: L.id,
+                      shareListingTitle: L.title
+                    })
+                })
+              }
+              style={{ marginTop: mobileSpacing.sm }}
+            />
+          ) : null}
           <Pressable
             style={styles.cancelTextBtn}
             disabled={publishMutation.isPending || cancelMutation.isPending}

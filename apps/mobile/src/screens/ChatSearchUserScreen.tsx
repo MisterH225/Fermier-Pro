@@ -1,7 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { mobileColors } from "../theme/mobileTheme";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -17,21 +17,33 @@ import { useSession } from "../context/SessionContext";
 import {
   directConversationTitle,
   ensureDirectChatRoom,
+  postChatMessage,
   searchUsersForChat,
   type UserSearchResultDto
 } from "../lib/api";
+import { buildListingShareMessage } from "../lib/shareMarketplaceListing";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ChatSearchUser">;
 
-export function ChatSearchUserScreen({ navigation }: Props) {
+export function ChatSearchUserScreen({ navigation, route }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId, authMe } = useSession();
   const qc = useQueryClient();
   const myUserId = authMe?.user.id ?? "";
+  const shareListingId = route.params?.shareListingId;
+  const shareListingTitle = route.params?.shareListingTitle;
   const [rawQuery, setRawQuery] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
+
+  useLayoutEffect(() => {
+    if (shareListingId) {
+      navigation.setOptions({
+        title: t("marketScreen.share.pickContactTitle")
+      });
+    }
+  }, [navigation, shareListingId, t]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQ(rawQuery.trim()), 350);
@@ -48,8 +60,25 @@ export function ChatSearchUserScreen({ navigation }: Props) {
   });
 
   const openDirect = useMutation({
-    mutationFn: (peerUserId: string) =>
-      ensureDirectChatRoom(accessToken, peerUserId, activeProfileId),
+    mutationFn: async (peerUserId: string) => {
+      const room = await ensureDirectChatRoom(
+        accessToken,
+        peerUserId,
+        activeProfileId,
+        shareListingId
+      );
+      if (shareListingId) {
+        const { message } = buildListingShareMessage(
+          {
+            id: shareListingId,
+            title: shareListingTitle ?? ""
+          },
+          t
+        );
+        await postChatMessage(accessToken, room.id, message, activeProfileId);
+      }
+      return room;
+    },
     onSuccess: (room) => {
       void qc.invalidateQueries({ queryKey: ["chatRooms", activeProfileId] });
       const headline =
@@ -58,7 +87,8 @@ export function ChatSearchUserScreen({ navigation }: Props) {
           : "Message direct";
       navigation.replace("ChatRoom", {
         roomId: room.id,
-        headline
+        headline,
+        listingId: shareListingId
       });
     }
   });
@@ -95,7 +125,9 @@ export function ChatSearchUserScreen({ navigation }: Props) {
         />
         {!canSearch ? (
           <Text style={styles.hint}>
-            Saisis au moins 2 caractères pour lancer la recherche.
+            {shareListingId
+              ? t("marketScreen.share.pickContactHint")
+              : t("chat.searchMinChars")}
           </Text>
         ) : searchQuery.isPending ? (
           <View style={styles.centered}>

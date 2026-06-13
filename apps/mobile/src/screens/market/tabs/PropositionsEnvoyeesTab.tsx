@@ -272,6 +272,13 @@ export function PropositionsEnvoyeesTab({
           }
           subtitle={item.listing.farm?.name ?? undefined}
           actionsDisabled={busy}
+          listingShare={{
+            id: item.listing.id,
+            title: item.listing.title,
+            currency: item.listing.currency,
+            farm: item.listing.farm
+          }}
+          navigation={navigation}
           withdrawLoading={withdrawMut.isPending}
           acceptCounterLoading={acceptCounterMut.isPending}
           onPressListing={() =>

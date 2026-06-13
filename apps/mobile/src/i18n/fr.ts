@@ -363,6 +363,17 @@ export const fr = {
     activeTransactionCtaBuyer: "Suivre l'achat en cours",
     activeTransactionCtaSeller: "Suivre la vente en cours",
     detailTitle: "Annonce",
+    share: {
+      title: "Partager l'annonce",
+      action: "Partager l'annonce",
+      viaLink: "Partager le lien",
+      viaMessage: "Envoyer par message",
+      pickContactTitle: "Envoyer l'annonce",
+      pickContactHint:
+        "Recherchez un contact pour lui envoyer le lien de l'annonce.",
+      message: "{{summary}} — sur Fermier Pro : {{url}}",
+      a11y: "Partager l'annonce"
+    },
     listingStatus: "Statut :",
     emptyListingsHint: "Publie une annonce depuis Mes annonces ou le cheptel.",
     soldBanner: "Vente conclue — cette annonce est terminée.",
@@ -3301,6 +3312,7 @@ export const fr = {
   },
   chat: {
     newConversation: "Nouveau",
+    searchMinChars: "Saisis au moins 2 caractères pour lancer la recherche.",
     emptyRooms: "Aucune conversation pour le moment.",
     inputPlaceholder: "Votre message…",
     phoneWarning: {

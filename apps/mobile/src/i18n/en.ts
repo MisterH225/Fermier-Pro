@@ -363,6 +363,16 @@ export const en = {
     activeTransactionCtaBuyer: "Track purchase in progress",
     activeTransactionCtaSeller: "Track sale in progress",
     detailTitle: "Listing",
+    share: {
+      title: "Share listing",
+      action: "Share listing",
+      viaLink: "Share link",
+      viaMessage: "Send in a message",
+      pickContactTitle: "Send listing",
+      pickContactHint: "Search for a contact to send the listing link to.",
+      message: "{{summary}} — on Fermier Pro: {{url}}",
+      a11y: "Share listing"
+    },
     listingStatus: "Status:",
     emptyListingsHint: "Publish a listing from My listings or livestock.",
     soldBanner: "Sale completed — this listing is closed.",
@@ -3253,6 +3263,7 @@ export const en = {
   },
   chat: {
     newConversation: "New",
+    searchMinChars: "Enter at least 2 characters to search.",
     emptyRooms: "No conversations yet.",
     inputPlaceholder: "Your message…",
     phoneWarning: {
