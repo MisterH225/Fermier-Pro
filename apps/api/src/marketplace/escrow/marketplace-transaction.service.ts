@@ -37,6 +37,7 @@ import {
   ACTIVE_ESCROW_STATUSES,
   CANCELLABLE_BY_BUYER,
   CANCELLABLE_BY_SELLER,
+  PICKUP_CONFIRM_STATUSES,
   SHIPMENT_CONFIRM_STATUSES,
   agreedTermsFromOffer,
   calculateAgreedDealAmount,
@@ -765,9 +766,11 @@ export class MarketplaceTransactionService {
     pickupLocation: string,
     notes?: string
   ) {
-    const tx = await this.requireParticipant(transactionId, user.id);
+    const tx = await this.requireBuyer(transactionId, user.id);
     if (tx.status !== MarketplaceTransactionStatus.PAYMENT_HELD) {
-      throw new BadRequestException("Planification impossible à ce stade");
+      throw new BadRequestException(
+        "Proposition de rendez-vous impossible à ce stade"
+      );
     }
     const date = new Date(pickupDate);
     if (Number.isNaN(date.getTime())) {
@@ -776,19 +779,46 @@ export class MarketplaceTransactionService {
     await this.prisma.marketplaceTransaction.update({
       where: { id: tx.id },
       data: {
-        status: MarketplaceTransactionStatus.PICKUP_SCHEDULED,
+        status: MarketplaceTransactionStatus.PICKUP_PROPOSED,
         pickupDate: date,
         pickupLocation: pickupLocation.trim(),
         cancelReason: notes?.trim() || undefined
       }
     });
-    const msg = `Livraison planifiée le ${date.toLocaleDateString("fr-FR")} à ${pickupLocation.trim()}.`;
-    void this.push.sendToUser(tx.buyerUserId, "Livraison planifiée", msg, {
-      type: "marketplace_pickup_scheduled",
+    const msg = `L'acheteur propose un rendez-vous le ${date.toLocaleDateString("fr-FR")} à ${pickupLocation.trim()}. Confirmez si cette date vous convient.`;
+    void this.push.sendToUser(tx.buyerUserId, "Rendez-vous proposé", msg, {
+      type: "marketplace_pickup_proposed",
       transactionId: tx.id
     });
-    void this.push.sendToUser(tx.sellerUserId, "Livraison planifiée", msg, {
-      type: "marketplace_pickup_scheduled",
+    void this.push.sendToUser(tx.sellerUserId, "Rendez-vous à confirmer", msg, {
+      type: "marketplace_pickup_proposed",
+      transactionId: tx.id
+    });
+    return this.getById(user, tx.id);
+  }
+
+  async confirmPickup(user: User, transactionId: string) {
+    const tx = await this.requireSeller(transactionId, user.id);
+    if (!PICKUP_CONFIRM_STATUSES.includes(tx.status)) {
+      throw new BadRequestException(
+        "Confirmation de rendez-vous impossible à ce stade"
+      );
+    }
+    if (!tx.pickupDate || !tx.pickupLocation?.trim()) {
+      throw new BadRequestException("Aucun rendez-vous proposé");
+    }
+    await this.prisma.marketplaceTransaction.update({
+      where: { id: tx.id },
+      data: { status: MarketplaceTransactionStatus.PICKUP_SCHEDULED }
+    });
+    const dateLabel = tx.pickupDate.toLocaleDateString("fr-FR");
+    const msg = `Rendez-vous confirmé le ${dateLabel} à ${tx.pickupLocation.trim()}.`;
+    void this.push.sendToUser(tx.buyerUserId, "Rendez-vous confirmé", msg, {
+      type: "marketplace_pickup_confirmed",
+      transactionId: tx.id
+    });
+    void this.push.sendToUser(tx.sellerUserId, "Rendez-vous confirmé", msg, {
+      type: "marketplace_pickup_confirmed",
       transactionId: tx.id
     });
     return this.getById(user, tx.id);
@@ -838,8 +868,8 @@ export class MarketplaceTransactionService {
     const farmLabel = listing?.farm?.name ?? "Le vendeur";
     void this.push.sendToUser(
       tx.buyerUserId,
-      "Envoi confirmé",
-      `${farmLabel} a confirmé l'envoi de vos animaux. Confirmez la réception une fois livrés.`,
+      "Récupération confirmée",
+      `${farmLabel} a confirmé la remise des animaux. Confirmez la réception pour finaliser la transaction.`,
       {
         type: "marketplace_shipment_confirmed",
         transactionId: tx.id,
@@ -898,20 +928,8 @@ export class MarketplaceTransactionService {
         );
       }
     }
-    let nextStatus: MarketplaceTransactionStatus =
+    const nextStatus: MarketplaceTransactionStatus =
       MarketplaceTransactionStatus.BUYER_RECEIVED;
-    let realWeight: Prisma.Decimal | undefined;
-    if (tx.priceType === MarketplacePriceType.flat) {
-      nextStatus = MarketplaceTransactionStatus.WEIGHT_DECLARED;
-      realWeight = new Prisma.Decimal(
-        tx.estimatedWeightKg?.toNumber() ??
-          listing.totalWeightKg?.toNumber() ??
-          0
-      );
-    } else if (params.realWeightKg != null && params.realWeightKg > 0) {
-      nextStatus = MarketplaceTransactionStatus.WEIGHT_DECLARED;
-      realWeight = new Prisma.Decimal(params.realWeightKg);
-    }
     await this.prisma.$transaction([
       this.prisma.marketplaceTransaction.update({
         where: { id: tx.id },
@@ -920,13 +938,7 @@ export class MarketplaceTransactionService {
           buyerReceivedAt: receivedAt,
           receiptCondition: params.condition,
           receiptNotes: params.notes?.trim() || null,
-          receivedAnimalIds: params.receivedAnimalIds,
-          ...(realWeight != null
-            ? {
-                realWeightKg: realWeight,
-                weightDeclaredByBuyerAt: new Date()
-              }
-            : {})
+          receivedAnimalIds: params.receivedAnimalIds
         }
       }),
       this.prisma.marketplaceListing.update({
@@ -941,21 +953,21 @@ export class MarketplaceTransactionService {
       void this.push.sendToUser(
         tx.sellerUserId,
         "Réception confirmée (crédit)",
-        "Validez le poids réel pour calculer le solde restant dû par l'acheteur.",
+        "L'acheteur a confirmé la récupération des animaux.",
         { type: "marketplace_credit_receipt_confirmed", transactionId: tx.id }
       );
-    } else if (nextStatus === MarketplaceTransactionStatus.WEIGHT_DECLARED) {
+    } else {
+      await this.settleTransaction(tx.id);
       void this.push.sendToUser(
         tx.sellerUserId,
         "Réception confirmée",
-        "L'acheteur a confirmé la réception. Validez le poids pour finaliser la vente.",
+        "L'acheteur a confirmé la réception. Le paiement est en cours de versement.",
         { type: "marketplace_receipt_confirmed", transactionId: tx.id }
       );
-    } else {
       void this.push.sendToUser(
-        tx.sellerUserId,
-        "Réception confirmée",
-        "L'acheteur a confirmé la réception. En attente du poids réel.",
+        tx.buyerUserId,
+        "Transaction finalisée",
+        "Merci pour votre confirmation. La transaction est en cours de clôture.",
         { type: "marketplace_receipt_confirmed", transactionId: tx.id }
       );
     }
@@ -1218,19 +1230,29 @@ export class MarketplaceTransactionService {
     photoUrl?: string
   ) {
     const tx = await this.requireBuyer(transactionId, user.id);
-    if (tx.status !== MarketplaceTransactionStatus.BUYER_RECEIVED) {
+    if (tx.status !== MarketplaceTransactionStatus.PICKUP_SCHEDULED) {
       throw new BadRequestException(
-        "Le poids réel ne peut être déclaré qu'après confirmation de réception"
+        "Le poids réel ne peut être déclaré qu'après confirmation du rendez-vous"
       );
     }
-    if (!Number.isFinite(realWeightKg) || realWeightKg <= 0) {
+    let weight = realWeightKg;
+    if (tx.priceType === MarketplacePriceType.flat) {
+      weight =
+        tx.estimatedWeightKg?.toNumber() ??
+        (await this.prisma.marketplaceListing.findUnique({
+          where: { id: tx.listingId },
+          select: { totalWeightKg: true }
+        }))?.totalWeightKg?.toNumber() ??
+        weight;
+    }
+    if (!Number.isFinite(weight) || weight <= 0) {
       throw new BadRequestException("Poids invalide");
     }
     await this.prisma.marketplaceTransaction.update({
       where: { id: tx.id },
       data: {
         status: MarketplaceTransactionStatus.WEIGHT_DECLARED,
-        realWeightKg: new Prisma.Decimal(realWeightKg),
+        realWeightKg: new Prisma.Decimal(weight),
         weightDeclaredByBuyerAt: new Date(),
         weightScalePhotoUrl: photoUrl?.trim() || null
       }
@@ -1238,7 +1260,7 @@ export class MarketplaceTransactionService {
     void this.push.sendToUser(
       tx.sellerUserId,
       "Poids déclaré",
-      `L'acheteur déclare un poids de ${realWeightKg.toLocaleString("fr-FR")} kg. Confirmez ou contestez sous 24 h.`,
+      `L'acheteur déclare un poids de ${weight.toLocaleString("fr-FR")} kg. Confirmez ou contestez sous 24 h.`,
       { type: "marketplace_weight_declared", transactionId: tx.id }
     );
     return this.getById(user, tx.id);
@@ -1261,7 +1283,18 @@ export class MarketplaceTransactionService {
       await this.creditOffers.onCreditWeightValidated(tx.id);
       return this.getById(user, tx.id);
     }
-    await this.settleTransaction(tx.id);
+    void this.push.sendToUser(
+      tx.buyerUserId,
+      "Poids confirmé",
+      "Le vendeur a confirmé le poids. Il validera la remise des animaux.",
+      { type: "marketplace_weight_validated", transactionId: tx.id }
+    );
+    void this.push.sendToUser(
+      tx.sellerUserId,
+      "Poids confirmé",
+      "Confirmez la remise des animaux à l'acheteur.",
+      { type: "marketplace_weight_validated", transactionId: tx.id }
+    );
     return this.getById(user, tx.id);
   }
 
@@ -1323,8 +1356,6 @@ export class MarketplaceTransactionService {
     });
     if (tx.isCredit) {
       await this.creditOffers.onCreditWeightValidated(tx.id);
-    } else {
-      await this.settleTransaction(tx.id);
     }
     return { ok: true };
   }
@@ -1462,7 +1493,10 @@ export class MarketplaceTransactionService {
     }
     const needsRefund =
       tx.status === MarketplaceTransactionStatus.PAYMENT_HELD ||
+      tx.status === MarketplaceTransactionStatus.PICKUP_PROPOSED ||
       tx.status === MarketplaceTransactionStatus.PICKUP_SCHEDULED ||
+      tx.status === MarketplaceTransactionStatus.WEIGHT_DECLARED ||
+      tx.status === MarketplaceTransactionStatus.WEIGHT_VALIDATED ||
       tx.status === MarketplaceTransactionStatus.SELLER_SHIPPED;
     if (needsRefund) {
       const priorRefund = await this.prisma.marketplaceFundMovement.findFirst({
@@ -1544,8 +1578,10 @@ export class MarketplaceTransactionService {
     for (const tx of active) {
       if (
         tx.status === MarketplaceTransactionStatus.PAYMENT_HELD ||
+        tx.status === MarketplaceTransactionStatus.PICKUP_PROPOSED ||
         tx.status === MarketplaceTransactionStatus.PICKUP_SCHEDULED ||
-        tx.status === MarketplaceTransactionStatus.WEIGHT_DECLARED
+        tx.status === MarketplaceTransactionStatus.WEIGHT_DECLARED ||
+        tx.status === MarketplaceTransactionStatus.WEIGHT_VALIDATED
       ) {
         await this.escrow.refundBuyer(
           tx.id,
@@ -1642,16 +1678,15 @@ export class MarketplaceTransactionService {
       void this.push.sendToUser(
         tx.buyerUserId,
         "Poids validé",
-        "Poids validé automatiquement. Règlement en cours.",
+        "Poids validé automatiquement. Le vendeur peut confirmer la remise.",
         { type: "marketplace_weight_auto_validated", transactionId: tx.id }
       );
       void this.push.sendToUser(
         tx.sellerUserId,
         "Poids validé",
-        "Poids validé automatiquement. Règlement en cours.",
+        "Poids validé automatiquement. Confirmez la remise des animaux.",
         { type: "marketplace_weight_auto_validated", transactionId: tx.id }
       );
-      await this.settleTransaction(tx.id);
     }
     return rows.length;
   }
@@ -1670,7 +1705,7 @@ export class MarketplaceTransactionService {
       if (tx.status === MarketplaceTransactionStatus.TRANSACTION_CLOSED) {
         return;
       }
-      if (tx.status !== MarketplaceTransactionStatus.WEIGHT_VALIDATED) {
+      if (tx.status !== MarketplaceTransactionStatus.BUYER_RECEIVED) {
         return;
       }
       if (tx.isCredit) {
@@ -1687,7 +1722,7 @@ export class MarketplaceTransactionService {
         await this.prisma.marketplaceTransaction.updateMany({
           where: {
             id: transactionId,
-            status: MarketplaceTransactionStatus.WEIGHT_VALIDATED
+            status: MarketplaceTransactionStatus.BUYER_RECEIVED
           },
           data: {
             status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
@@ -1765,7 +1800,7 @@ export class MarketplaceTransactionService {
       const closed = await this.prisma.marketplaceTransaction.updateMany({
         where: {
           id: tx.id,
-          status: MarketplaceTransactionStatus.WEIGHT_VALIDATED
+          status: MarketplaceTransactionStatus.BUYER_RECEIVED
         },
         data: {
           status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
@@ -2102,6 +2137,7 @@ export class MarketplaceTransactionService {
   async getFinanceSummary(user: User) {
     const heldStatuses = [
       MarketplaceTransactionStatus.PAYMENT_HELD,
+      MarketplaceTransactionStatus.PICKUP_PROPOSED,
       MarketplaceTransactionStatus.PICKUP_SCHEDULED,
       MarketplaceTransactionStatus.SELLER_SHIPPED,
       MarketplaceTransactionStatus.BUYER_RECEIVED,

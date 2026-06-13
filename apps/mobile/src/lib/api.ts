@@ -5321,6 +5321,19 @@ export function scheduleMarketplacePickup(
   );
 }
 
+export function confirmMarketplacePickup(
+  accessToken: string,
+  transactionId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/pickup/confirm`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
 export function confirmMarketplaceShipment(
   accessToken: string,
   transactionId: string,

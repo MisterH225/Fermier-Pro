@@ -397,15 +397,21 @@ export const fr = {
       payCta: "Payer {{amount}} via Mobile Money",
       paymentSuccessTitle: "Paiement confirmé",
       paymentSuccessBody:
-        "Votre paiement est enregistré. Coordonnez la livraison avec le vendeur.",
+        "Votre paiement est enregistré. Proposez une date de récupération au vendeur.",
       paymentErrorTitle: "Paiement impossible",
-      pickupSection: "Livraison",
+      pickupSection: "Rendez-vous de récupération",
       pickupDate: "Date de retrait",
       pickupLocation: "Lieu de retrait",
       pickupLocationPh: "Village, marché, ferme…",
-      confirmPickup: "Confirmer le rendez-vous",
-      pickupSuccessTitle: "Rendez-vous enregistré",
-      pickupSuccessBody: "Les deux parties sont informées.",
+      proposePickup: "Proposer ce rendez-vous",
+      confirmPickupCta: "Confirmer la date proposée",
+      pickupProposedTitle: "Rendez-vous proposé",
+      pickupProposedBody:
+        "Le vendeur doit confirmer que cette date lui convient.",
+      pickupConfirmedTitle: "Rendez-vous confirmé",
+      pickupConfirmedBody:
+        "L'acheteur pourra renseigner le poids le jour de la récupération.",
+      confirmEstimatedWeight: "Confirmer le poids estimé",
       weightSection: "Poids à la livraison",
       realWeight: "Poids réel (kg)",
       declareWeight: "Confirmer le poids reçu",
@@ -430,21 +436,21 @@ export const fr = {
       receiptNotReady: "Reçu non disponible pour le moment.",
       statusLabel: "Étape",
       stepPayment: "Paiement",
-      stepDelivery: "Livraison",
-      stepShipment: "Envoi",
-      stepReceipt: "Réception",
-      stepWeight: "Poids réel",
+      stepPickup: "Rendez-vous",
+      stepWeight: "Poids",
+      stepHandover: "Remise",
       stepClosing: "Clôture",
       status: {
         PAYMENT_PENDING: "En attente de paiement",
-        PAYMENT_HELD: "Paiement sécurisé — en attente d'envoi",
-        PICKUP_SCHEDULED: "Livraison planifiée",
-        SELLER_SHIPPED: "Envoi confirmé — en attente de réception",
-        BUYER_RECEIVED: "Réception confirmée — poids à valider",
-        DELIVERY_DISPUTED: "Litige livraison",
+        PAYMENT_HELD: "Paiement sécurisé — proposez un rendez-vous",
+        PICKUP_PROPOSED: "Rendez-vous proposé — en attente du vendeur",
+        PICKUP_SCHEDULED: "Rendez-vous confirmé — poids à renseigner",
         WEIGHT_DECLARED: "Poids déclaré — validation vendeur",
         WEIGHT_DISPUTED: "Litige poids — arbitrage",
-        WEIGHT_VALIDATED: "Finalisation en cours",
+        WEIGHT_VALIDATED: "Poids confirmé — remise à valider",
+        SELLER_SHIPPED: "Remise confirmée — confirmez la réception",
+        BUYER_RECEIVED: "Réception confirmée — versement en cours",
+        DELIVERY_DISPUTED: "Litige livraison",
         TRANSACTION_CLOSED: "Vente conclue",
         CANCELLED_BY_BUYER: "Annulée par l'acheteur",
         CANCELLED_BY_SELLER: "Annulée par le vendeur",
@@ -452,32 +458,42 @@ export const fr = {
       },
       scheduledPickup: "Rendez-vous : {{date}} — {{location}}",
       schedulePickupHint:
-        "Planifiez la date et le lieu de livraison ou de récupération (cela peut être dans plusieurs jours ou semaines). Le poids réel sera renseigné uniquement le jour de la remise de l'animal.",
+        "Proposez la date et le lieu où vous souhaitez récupérer l'animal. Le vendeur confirmera si cela lui convient.",
       weightAtDeliveryHint:
-        "Le jour de la livraison ou de la récupération, confirmez le poids réel mesuré pour calculer le montant final.",
+        "Le jour du rendez-vous, renseignez le poids réel mesuré à la récupération.",
       projectedFinalCost: "Coût final estimé : {{amount}}",
       finalCost: "Montant final : {{amount}}",
       sellerWaitPayment:
         "En attente du paiement de l'acheteur. Vous serez notifié dès que les fonds sont sécurisés.",
-      sellerWaitSchedule:
-        "Paiement reçu. Planifiez la livraison avec l'acheteur — le poids réel sera confirmé le jour de la récupération.",
+      sellerWaitBuyerPickup:
+        "Paiement reçu. En attente que l'acheteur propose une date de récupération.",
+      sellerConfirmPickup:
+        "L'acheteur a proposé un rendez-vous. Confirmez si cette date vous convient.",
       sellerWaitWeight:
-        "Livraison planifiée. L'acheteur confirmera le poids réel le jour de la récupération ; vous pourrez alors valider et conclure la vente.",
-      buyerWaitSchedule:
-        "Paiement sécurisé. Le vendeur confirmera l'envoi ; vous confirmerez la réception à la livraison.",
+        "Rendez-vous confirmé. L'acheteur renseignera le poids le jour de la récupération.",
+      sellerConfirmHandover:
+        "Poids confirmé. Confirmez la remise des animaux à l'acheteur.",
       sellerWaitReceipt:
-        "Envoi confirmé. En attente de la confirmation de réception par l'acheteur.",
+        "Remise confirmée. En attente de la confirmation finale de l'acheteur.",
+      buyerProposePickup:
+        "Proposez une date et un lieu de récupération pour l'animal.",
+      buyerWaitPickupConfirm:
+        "Rendez-vous proposé. Le vendeur doit confirmer la date.",
+      buyerDeclareWeight:
+        "Rendez-vous confirmé. Renseignez le poids réel mesuré à la récupération.",
+      buyerWaitHandover:
+        "Poids confirmé. Le vendeur validera la remise des animaux.",
       buyerWaitReceipt:
-        "Le vendeur a confirmé l'envoi. Confirmez la réception une fois les animaux livrés.",
+        "Le vendeur a confirmé la remise. Confirmez la réception pour finaliser et libérer le paiement.",
       deliveryDisputed:
         "Un litige livraison est ouvert. Les fonds restent sécurisés en attendant la résolution.",
       finalizing:
-        "Poids validé — libération des fonds et mise à jour du cheptel en cours.",
+        "Réception confirmée — versement au vendeur et clôture en cours.",
       weightDisputed:
         "Le poids est contesté. Un arbitrage est en cours — vous serez informé de la suite."
     },
     shipmentModal: {
-      open: "Confirmer l'envoi",
+      open: "Confirmer la remise",
       title: "Confirmer l'envoi",
       info: "Indiquez que les animaux ont été remis à l'acheteur ou sont en cours de livraison.",
       date: "Date d'envoi",
