@@ -42,15 +42,24 @@ export function ProposalCardInChat({ payload, isMine }: Props) {
       ? formatPricePerKg(payload.proposedPricePerKg, payload.currency)
       : formatFarmMoney(payload.offeredPrice, payload.currency);
 
+  const linkLabel =
+    !isMine && payload.status === "pending"
+      ? "Gérer la proposition →"
+      : "Voir la proposition →";
+
+  const openProposals = () => {
+    navigation.navigate("MarketplaceList", {
+      tab: "offers",
+      offersSubTab: isMine ? "sent" : "received",
+      offersListingId: payload.listingId,
+      highlightOfferId: payload.offerId
+    });
+  };
+
   return (
     <Pressable
       style={[styles.wrap, isMine ? styles.wrapMine : styles.wrapOther]}
-      onPress={() =>
-        navigation.navigate("MarketplaceListingDetail", {
-          listingId: payload.listingId,
-          headline: payload.listingTitle
-        })
-      }
+      onPress={openProposals}
     >
       <Text style={styles.badge}>Proposition commerciale</Text>
       <Text style={styles.title} numberOfLines={2}>
@@ -67,7 +76,7 @@ export function ProposalCardInChat({ payload, isMine }: Props) {
       ) : null}
       <View style={styles.footer}>
         <Text style={styles.status}>{statusLabel(payload.status)}</Text>
-        <Text style={styles.link}>Voir l’annonce →</Text>
+        <Text style={styles.link}>{linkLabel}</Text>
       </View>
     </Pressable>
   );

@@ -42,6 +42,7 @@ type ProposalCardBase = {
   listingCategory?: string | null;
   listingWeightKg?: string | number | null;
   subtitle?: string | null;
+  highlighted?: boolean;
   onPressListing?: () => void;
   actionsDisabled?: boolean;
 };
@@ -127,6 +128,7 @@ export function ProposalCard(props: ProposalCardProps) {
     listingCategory,
     listingWeightKg,
     subtitle,
+    highlighted,
     onPressListing,
     actionsDisabled
   } = props;
@@ -165,7 +167,7 @@ export function ProposalCard(props: ProposalCardProps) {
     offerAllowsFollowUpMessage(status);
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, highlighted && styles.cardHighlighted]}>
       <Pressable
         onPress={onPressListing}
         disabled={!onPressListing}
@@ -519,6 +521,11 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border,
     padding: mobileSpacing.md,
     gap: mobileSpacing.sm
+  },
+  cardHighlighted: {
+    borderColor: mobileColors.accent,
+    borderWidth: 2,
+    backgroundColor: mobileColors.accentSoft
   },
   headerPress: {
     flexDirection: "row",
