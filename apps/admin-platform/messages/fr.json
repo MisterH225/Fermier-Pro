@@ -9,6 +9,7 @@
     "vetAppointments": "RDV véto",
     "users": "Utilisateurs",
     "feedModeration": "Modération Feed",
+    "chatModeration": "Modération Chat",
     "auditLogs": "Journal admin",
     "map": "Carte sanitaire",
     "marketplace": "Marketplace",
@@ -720,5 +721,23 @@
     },
     "appealAcceptedDefault": "Votre contestation a été acceptée. Votre accès au Feed est rétabli.",
     "appealRejectedDefault": "Votre contestation a été examinée et maintenue."
+  },
+  "chatModeration": {
+    "title": "Modération Chat",
+    "subtitle": "Salons de discussion (ferme et messages directs) — suppression par un SuperAdmin.",
+    "sections": {
+      "rooms": "Salons actifs"
+    },
+    "labels": {
+      "untitled": "Salon sans titre",
+      "meta": "{members} membres · {messages} messages"
+    },
+    "actions": {
+      "deleteRoom": "Supprimer le salon"
+    },
+    "empty": {
+      "rooms": "Aucun salon de discussion."
+    },
+    "confirmDelete": "Supprimer définitivement ce salon et tous ses messages ?"
   }
 }

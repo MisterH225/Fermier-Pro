@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { AppDatePicker } from "../components/common/AppDatePicker";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
+import { invalidateBuyerDashboardQueries } from "../lib/buyerDashboardQueries";
 import {
   formatMarketMoney,
   parseMarketNum
@@ -127,6 +128,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
     });
     void qc.invalidateQueries({ queryKey: ["marketplaceTransactions"] });
     void qc.invalidateQueries({ queryKey: ["marketplaceTransactionSummary"] });
+    invalidateBuyerDashboardQueries(qc);
   };
 
   const payMut = useMutation({

@@ -9,6 +9,7 @@
     "vetAppointments": "Vet appointments",
     "users": "Users",
     "feedModeration": "Feed moderation",
+    "chatModeration": "Chat moderation",
     "auditLogs": "Admin log",
     "map": "Health map",
     "marketplace": "Marketplace",
@@ -702,5 +703,23 @@
     },
     "appealAcceptedDefault": "Your appeal was accepted. Feed access is restored.",
     "appealRejectedDefault": "Your appeal was reviewed and upheld."
+  },
+  "chatModeration": {
+    "title": "Chat moderation",
+    "subtitle": "Discussion rooms (farm and direct messages) — SuperAdmin deletion.",
+    "sections": {
+      "rooms": "Active rooms"
+    },
+    "labels": {
+      "untitled": "Untitled room",
+      "meta": "{members} members · {messages} messages"
+    },
+    "actions": {
+      "deleteRoom": "Delete room"
+    },
+    "empty": {
+      "rooms": "No chat rooms."
+    },
+    "confirmDelete": "Permanently delete this room and all its messages?"
   }
 }

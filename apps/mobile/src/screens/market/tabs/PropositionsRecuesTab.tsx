@@ -20,6 +20,7 @@ import { ListingShareButton } from "../../../components/marketplace/ListingShare
 import { EmptyStateCard } from "../../../components/common/EmptyStateCard";
 import { useModal } from "../../../components/modals/useModal";
 import { useSession } from "../../../context/SessionContext";
+import { invalidateBuyerDashboardQueries } from "../../../lib/buyerDashboardQueries";
 import {
   acceptMarketplaceOffer,
   agreeMarketplaceCreditOffer,
@@ -119,6 +120,7 @@ export function PropositionsRecuesTab({
     void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
     void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
     void qc.invalidateQueries({ queryKey: ["marketplaceListings"] });
+    invalidateBuyerDashboardQueries(qc);
   };
 
   const acceptMut = useMutation({

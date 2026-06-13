@@ -48,6 +48,7 @@ import { useSession } from "../context/SessionContext";
 import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { useBottomChromePad } from "../hooks/useBottomInset";
 import { formatAnimalDisplayLabel } from "../lib/animalDisplay";
+import { invalidateBuyerDashboardQueries } from "../lib/buyerDashboardQueries";
 import {
   cancelMarketplaceListing,
   ensureDirectChatRoom,
@@ -216,6 +217,7 @@ export function MarketplaceListingDetailScreen({
       showSuccess(t("marketScreen.creditModal.success"));
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
       void qc.invalidateQueries({ queryKey: ["marketplaceMyOffers"] });
+      invalidateBuyerDashboardQueries(qc);
     },
     onError: (e: Error) => {
       Alert.alert(
@@ -248,6 +250,7 @@ export function MarketplaceListingDetailScreen({
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
       void qc.invalidateQueries({ queryKey: ["marketplaceMyOffers"] });
       void qc.invalidateQueries({ queryKey: ["marketplaceOffersCounts"] });
+      invalidateBuyerDashboardQueries(qc);
     },
     onError: (e: Error) => {
       Alert.alert(

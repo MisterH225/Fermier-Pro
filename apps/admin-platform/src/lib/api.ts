@@ -1074,3 +1074,44 @@ export function resolveFeedAppeal(
     body: JSON.stringify(body)
   });
 }
+
+export type ChatAdminRoomDto = {
+  id: string;
+  kind: string;
+  title: string | null;
+  farmId: string | null;
+  farmName: string | null;
+  directKey: string | null;
+  marketplaceListingId: string | null;
+  marketplaceListingTitle: string | null;
+  memberCount: number;
+  messageCount: number;
+  members: Array<{
+    userId: string;
+    email: string | null;
+    fullName: string | null;
+  }>;
+  lastMessage: {
+    id: string;
+    body: string;
+    createdAt: string;
+    senderName: string | null;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function fetchChatAdminRooms(token: string, page = 1) {
+  const q = new URLSearchParams({ page: String(page), limit: "50" });
+  return apiFetch<{ page: number; limit: number; total: number; items: ChatAdminRoomDto[] }>(
+    `/admin/chat/rooms?${q}`,
+    token
+  );
+}
+
+export function adminDeleteChatRoom(token: string, roomId: string, reason?: string) {
+  return apiFetch(`/admin/chat/rooms/${roomId}`, token, {
+    method: "DELETE",
+    body: JSON.stringify({ reason: reason ?? "admin_removal" })
+  });
+}
