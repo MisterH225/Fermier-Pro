@@ -87,6 +87,15 @@ export class ListingsService {
     private readonly producerScore: ProducerScoreService
   ) {}
 
+  private async assertProducerMayEnableCredit(
+    user: User,
+    creditEnabled: boolean
+  ): Promise<void> {
+    if (creditEnabled) {
+      await this.producerScore.assertSellerCreditSalesAllowed(user.id);
+    }
+  }
+
   private async resolveFarmAndAnimal(
     user: User,
     dto: { farmId?: string; animalId?: string }
@@ -316,6 +325,8 @@ export class ListingsService {
       category,
       animalIds
     });
+    const creditEnabled = resolveListingCreditEnabled(category, dto.creditEnabled);
+    await this.assertProducerMayEnableCredit(user, creditEnabled);
     const created = await this.prisma.marketplaceListing.create({
       data: {
         sellerUserId: user.id,
@@ -343,7 +354,7 @@ export class ListingsService {
             : null,
         totalPrice: new Prisma.Decimal(pricing.totalPrice),
         breedLabel: dto.breedLabel,
-        creditEnabled: resolveListingCreditEnabled(category, dto.creditEnabled),
+        creditEnabled,
         status: ListingStatus.draft
       },
       include: {
@@ -815,6 +826,10 @@ export class ListingsService {
           )
         : undefined;
 
+    if (creditEnabledUpdate === true) {
+      await this.assertProducerMayEnableCredit(user, true);
+    }
+
     return this.prisma.marketplaceListing.update({
       where: { id },
       data: {
@@ -900,6 +915,12 @@ export class ListingsService {
       )
     });
 
+    const publishCreditEnabled = resolveListingCreditEnabled(
+      normalizedCategory,
+      listing.creditEnabled
+    );
+    await this.assertProducerMayEnableCredit(user, publishCreditEnabled);
+
     return this.prisma.marketplaceListing.update({
       where: { id },
       data: {
@@ -920,10 +941,7 @@ export class ListingsService {
             ? new Prisma.Decimal(pricing.unitPrice)
             : null,
         totalPrice: new Prisma.Decimal(pricing.totalPrice),
-        creditEnabled: resolveListingCreditEnabled(
-          normalizedCategory,
-          listing.creditEnabled
-        ),
+        creditEnabled: publishCreditEnabled,
         ...(healthSummary !== undefined ? { healthSummary } : {})
       }
     });

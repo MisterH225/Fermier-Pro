@@ -1,13 +1,15 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { ForbiddenException, Injectable, Logger } from "@nestjs/common";
 import { Cron } from "@nestjs/schedule";
 import { ProducerScore } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { ProducerScoreMetricsService } from "./producer-score-metrics.service";
 import {
   deriveProducerScore,
+  evaluateProducerCreditEligibility,
   globalProducerScoreValue,
   scoreFromActiveDays,
-  scoreResponsiveness
+  scoreResponsiveness,
+  type ProducerCreditEligibility
 } from "./producer-score.util";
 
 export type ProducerScoreView = {
@@ -25,6 +27,12 @@ export type ProducerScoreView = {
   offersRespondedWithin48h: number;
   creditBalancesOnTime: number;
   creditBalancesTotal: number;
+  chatBuyerMessagesCount: number;
+  chatRepliedWithin24h: number;
+  creditSalesAllowed: boolean;
+  creditSalesLimited: boolean;
+  creditBlocked: boolean;
+  creditBlockedReason: string | null;
   scoreUpdatedAt: string | null;
 };
 
@@ -94,6 +102,10 @@ export class ProducerScoreService {
       userId,
       since90
     );
+    const chatStats = await this.metrics.collectChatResponsiveness(
+      userId,
+      since90
+    );
 
     const dataRegularityScore = scoreFromActiveDays(dataEntryDays, 20);
     const platformUsageScore = scoreFromActiveDays(platformActiveDays, 15);
@@ -102,6 +114,8 @@ export class ProducerScoreService {
       offersRespondedWithin48h: offerStats.offersRespondedWithin48h,
       creditBalancesOnTime: creditStats.creditBalancesOnTime,
       creditBalancesTotal: creditStats.creditBalancesTotal,
+      chatBuyerMessages: chatStats.chatBuyerMessages,
+      chatRepliedWithin24h: chatStats.chatRepliedWithin24h,
       reputationScore: user.reputationScore
     });
 
@@ -122,6 +136,10 @@ export class ProducerScoreService {
     );
 
     const now = new Date();
+    const existing = await this.prisma.producerProfile.findUnique({
+      where: { userId },
+      select: { creditBlocked: true, creditBlockedReason: true }
+    });
     const updated = await this.prisma.producerProfile.upsert({
       where: { userId },
       create: {
@@ -136,6 +154,8 @@ export class ProducerScoreService {
         offersRespondedWithin48h: offerStats.offersRespondedWithin48h,
         creditBalancesOnTime: creditStats.creditBalancesOnTime,
         creditBalancesTotal: creditStats.creditBalancesTotal,
+        chatBuyerMessagesCount: chatStats.chatBuyerMessages,
+        chatRepliedWithin24h: chatStats.chatRepliedWithin24h,
         scoreUpdatedAt: now
       },
       update: {
@@ -149,13 +169,84 @@ export class ProducerScoreService {
         offersRespondedWithin48h: offerStats.offersRespondedWithin48h,
         creditBalancesOnTime: creditStats.creditBalancesOnTime,
         creditBalancesTotal: creditStats.creditBalancesTotal,
+        chatBuyerMessagesCount: chatStats.chatBuyerMessages,
+        chatRepliedWithin24h: chatStats.chatRepliedWithin24h,
         scoreUpdatedAt: now
       }
     });
 
+    return this.toView({
+      ...updated,
+      creditBlocked: existing?.creditBlocked ?? updated.creditBlocked,
+      creditBlockedReason:
+        existing?.creditBlockedReason ?? updated.creditBlockedReason
+    });
+  }
+
+  async getCreditEligibility(userId: string): Promise<ProducerCreditEligibility> {
+    const row = await this.ensureProfile(userId);
+    const view = await this.getForUser(userId);
+    return evaluateProducerCreditEligibility({
+      creditBlocked: row.creditBlocked,
+      producerScore: view.score
+    });
+  }
+
+  async assertSellerCreditSalesAllowed(sellerUserId: string): Promise<void> {
+    const eligibility = await this.getCreditEligibility(sellerUserId);
+    if (!eligibility.allowed) {
+      throw new ForbiddenException(
+        "Ce producteur n'est pas éligible aux ventes à crédit pour le moment"
+      );
+    }
+  }
+
+  async listForAdmin(opts?: { score?: ProducerScore; limit?: number }) {
+    const take = Math.min(opts?.limit ?? 50, 100);
+    const rows = await this.prisma.producerProfile.findMany({
+      where: opts?.score ? { producerScore: opts.score } : undefined,
+      orderBy: { scoreUpdatedAt: "desc" },
+      take,
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+            reputationScore: true
+          }
+        }
+      }
+    });
+    return rows.map((row) => ({
+      ...this.toView(row),
+      userId: row.userId,
+      user: row.user
+    }));
+  }
+
+  async adminSetCreditBlocked(
+    userId: string,
+    blocked: boolean,
+    reason?: string | null
+  ): Promise<ProducerScoreView> {
+    const updated = await this.prisma.producerProfile.upsert({
+      where: { userId },
+      create: {
+        userId,
+        creditBlocked: blocked,
+        creditBlockedReason: blocked ? reason?.trim() || null : null
+      },
+      update: {
+        creditBlocked: blocked,
+        creditBlockedReason: blocked ? reason?.trim() || null : null
+      }
+    });
     return this.toView(updated);
   }
 
+  @Cron("0 3 * * *")
   async recomputeAllStale(): Promise<void> {
     const since = new Date(Date.now() - MS_30_DAYS);
     const owners = await this.prisma.farm.findMany({
@@ -212,9 +303,17 @@ export class ProducerScoreService {
     offersRespondedWithin48h: number;
     creditBalancesOnTime: number;
     creditBalancesTotal: number;
+    chatBuyerMessagesCount: number;
+    chatRepliedWithin24h: number;
+    creditBlocked: boolean;
+    creditBlockedReason: string | null;
     scoreUpdatedAt: Date | null;
   }): ProducerScoreView {
     const meta = SCORE_META[row.producerScore];
+    const credit = evaluateProducerCreditEligibility({
+      creditBlocked: row.creditBlocked,
+      producerScore: row.producerScore
+    });
     return {
       score: row.producerScore,
       emoji: meta.emoji,
@@ -234,6 +333,12 @@ export class ProducerScoreService {
       offersRespondedWithin48h: row.offersRespondedWithin48h,
       creditBalancesOnTime: row.creditBalancesOnTime,
       creditBalancesTotal: row.creditBalancesTotal,
+      chatBuyerMessagesCount: row.chatBuyerMessagesCount,
+      chatRepliedWithin24h: row.chatRepliedWithin24h,
+      creditSalesAllowed: credit.allowed,
+      creditSalesLimited: credit.limited,
+      creditBlocked: row.creditBlocked,
+      creditBlockedReason: row.creditBlockedReason,
       scoreUpdatedAt: row.scoreUpdatedAt?.toISOString() ?? null
     };
   }

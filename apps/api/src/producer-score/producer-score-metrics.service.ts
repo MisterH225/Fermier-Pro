@@ -4,6 +4,7 @@ import { PrismaService } from "../prisma/prisma.service";
 
 const MS_PER_DAY = 86_400_000;
 const HOURS_48 = 48;
+const HOURS_24 = 24;
 
 function dayKey(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -236,6 +237,49 @@ export class ProducerScoreMetricsService {
       }
     }
     return { creditBalancesOnTime: onTime, creditBalancesTotal: offers.length };
+  }
+
+  async collectChatResponsiveness(userId: string, since: Date) {
+    const rooms = await this.prisma.chatRoom.findMany({
+      where: {
+        marketplaceListingId: { not: null },
+        marketplaceListing: { sellerUserId: userId }
+      },
+      select: {
+        messages: {
+          where: { createdAt: { gte: since } },
+          orderBy: { createdAt: "asc" },
+          select: { senderUserId: true, createdAt: true },
+          take: 200
+        }
+      }
+    });
+
+    let chatBuyerMessages = 0;
+    let chatRepliedWithin24h = 0;
+
+    for (const room of rooms) {
+      const msgs = room.messages;
+      for (let i = 0; i < msgs.length; i++) {
+        if (msgs[i]!.senderUserId === userId) {
+          continue;
+        }
+        chatBuyerMessages += 1;
+        const buyerAt = msgs[i]!.createdAt.getTime();
+        for (let j = i + 1; j < msgs.length; j++) {
+          if (msgs[j]!.senderUserId !== userId) {
+            continue;
+          }
+          const hours = (msgs[j]!.createdAt.getTime() - buyerAt) / 3_600_000;
+          if (hours <= HOURS_24) {
+            chatRepliedWithin24h += 1;
+          }
+          break;
+        }
+      }
+    }
+
+    return { chatBuyerMessages, chatRepliedWithin24h };
   }
 
   isNewProducer(input: {

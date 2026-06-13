@@ -2614,6 +2614,10 @@ model ProducerProfile {
   offersRespondedWithin48h Int           @default(0)
   creditBalancesOnTime     Int           @default(0)
   creditBalancesTotal      Int           @default(0)
+  chatBuyerMessagesCount   Int           @default(0)
+  chatRepliedWithin24h     Int           @default(0)
+  creditBlocked            Boolean       @default(false)
+  creditBlockedReason      String?
   scoreUpdatedAt           DateTime?
   createdAt                DateTime      @default(now())
   updatedAt                DateTime      @updatedAt

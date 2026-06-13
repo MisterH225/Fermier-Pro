@@ -1176,3 +1176,64 @@ export function adminDeleteChatRoom(token: string, roomId: string, reason?: stri
     body: JSON.stringify({ reason: reason ?? "admin_removal" })
   });
 }
+
+export type AdminProducerScoreDto = {
+  userId: string;
+  score: string;
+  emoji: string;
+  label: string;
+  color: string;
+  globalValue: number;
+  dataRegularityScore: number;
+  platformUsageScore: number;
+  responsivenessScore: number;
+  dataEntryDaysLast30: number;
+  platformActiveDaysLast30: number;
+  offersReceivedCount: number;
+  offersRespondedWithin48h: number;
+  creditBalancesOnTime: number;
+  creditBalancesTotal: number;
+  chatBuyerMessagesCount: number;
+  chatRepliedWithin24h: number;
+  creditSalesAllowed: boolean;
+  creditSalesLimited: boolean;
+  creditBlocked: boolean;
+  creditBlockedReason: string | null;
+  scoreUpdatedAt: string | null;
+  user: {
+    id: string;
+    fullName: string | null;
+    email: string | null;
+    phone: string | null;
+    reputationScore: number;
+  };
+};
+
+export function fetchAdminProducerScores(token: string, score?: string) {
+  const q = score ? `?score=${encodeURIComponent(score)}` : "";
+  return apiFetch<AdminProducerScoreDto[]>(`/admin/producers/scores${q}`, token);
+}
+
+export function adminSetProducerCreditBlocked(
+  token: string,
+  userId: string,
+  blocked: boolean,
+  reason?: string
+) {
+  return apiFetch<AdminProducerScoreDto>(
+    `/admin/producers/${userId}/credit-blocked`,
+    token,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ blocked, reason: reason ?? null })
+    }
+  );
+}
+
+export function adminRecomputeProducerScore(token: string, userId: string) {
+  return apiFetch<AdminProducerScoreDto>(
+    `/admin/producers/${userId}/score/recompute`,
+    token,
+    { method: "POST", body: "{}" }
+  );
+}

@@ -21,4 +21,10 @@ export class ProducerScoreController {
   recomputeMyScore(@CurrentUser() user: User) {
     return this.producerScore.recomputeForUser(user.id);
   }
+
+  @Get("me/credit-eligibility")
+  @UseGuards(ProducerProfileGuard)
+  getMyCreditEligibility(@CurrentUser() user: User) {
+    return this.producerScore.getCreditEligibility(user.id);
+  }
 }

@@ -27,6 +27,7 @@ import { CreateDiseaseCaseDto } from "./dto/create-disease-case.dto";
 import { AddDiseaseTreatmentDto } from "./dto/add-disease-treatment.dto";
 import { UpdateDiseaseCaseDto } from "./dto/update-disease-case.dto";
 import { FarmVaccineService } from "./farm-vaccine.service";
+import { MemberActivityLogsService } from "../member-activity-logs/member-activity-logs.service";
 import {
   buildDiseaseDetailData,
   syncAnimalHealthStatus
@@ -106,7 +107,8 @@ export class FarmHealthService {
     private readonly audit: AuditService,
     private readonly finance: FinanceService,
     private readonly smartAlerts: SmartAlertsService,
-    private readonly farmVaccine: FarmVaccineService
+    private readonly farmVaccine: FarmVaccineService,
+    private readonly activityLogs: MemberActivityLogsService
   ) {}
 
   private async loadFarm(farmId: string) {
@@ -795,6 +797,10 @@ export class FarmHealthService {
     });
 
     void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
+    void this.activityLogs.logForUserOnFarm(user.id, farmId, "health", "health_event", {
+      recordId: row.id,
+      kind: dto.kind
+    });
 
     return this.prisma.farmHealthRecord.findUniqueOrThrow({
       where: { id: row.id },

@@ -20,6 +20,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import { AiGeminiService } from "../ai/ai-gemini.service";
 import { PredictionsService } from "../predictions/predictions.service";
+import { MemberActivityLogsService } from "../member-activity-logs/member-activity-logs.service";
 import {
   DEFAULT_GESTATION_DAYS,
   DEFAULT_PRE_BIRTH_CHECKLIST,
@@ -117,7 +118,8 @@ export class GestationService {
     private readonly penAllocation: PenAllocationService,
     private readonly smartAlerts: SmartAlertsService,
     private readonly gemini: AiGeminiService,
-    private readonly predictions: PredictionsService
+    private readonly predictions: PredictionsService,
+    private readonly activityLogs: MemberActivityLogsService
   ) {}
 
   private async ensureSettings(farmId: string) {
@@ -501,6 +503,9 @@ export class GestationService {
     });
 
     await this.refreshAlerts(dto.farmId);
+    void this.activityLogs.logForUserOnFarm(user.id, dto.farmId, "gestation", "gestation_created", {
+      gestationId: created.id
+    });
     return this.getOne(user, created.id);
   }
 

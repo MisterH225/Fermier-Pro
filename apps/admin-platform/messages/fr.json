@@ -13,6 +13,7 @@
     "auditLogs": "Journal admin",
     "map": "Carte sanitaire",
     "marketplace": "Marketplace",
+    "producerScores": "Scores producteurs",
     "stats": "Statistiques",
     "ai": "Assistant IA",
     "settings": "Paramètres",
@@ -751,5 +752,25 @@
       "rooms": "Aucun salon de discussion."
     },
     "confirmDelete": "Supprimer définitivement ce salon et tous ses messages ?"
+  },
+  "producerScores": {
+    "title": "Scores producteurs",
+    "description": "Fiabilité des producteurs : saisies, usage plateforme, réactivité (offres, chat, crédit).",
+    "filterAll": "Tous",
+    "refresh": "Actualiser",
+    "empty": "Aucun score producteur enregistré.",
+    "recompute": "Recalculer",
+    "blockCredit": "Bloquer crédit",
+    "unblockCredit": "Débloquer crédit",
+    "blockReasonPrompt": "Motif du blocage (visible en interne) :",
+    "pillars": "Saisies {data}/100 · Usage {usage}/100 · Réactivité {resp}/100",
+    "chat": "Chat : {replied}/{total} réponses < 24 h",
+    "scores": {
+      "excellent": "Excellent",
+      "bon": "Fiable",
+      "nouveau": "Nouveau",
+      "attention": "À surveiller",
+      "risque": "Risqué"
+    }
   }
 }

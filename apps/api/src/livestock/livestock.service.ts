@@ -27,6 +27,7 @@ import {
   AnimalProductionTagsService,
   type AnimalTagPrefix
 } from "./animal-production-tags.service";
+import { MemberActivityLogsService } from "../member-activity-logs/member-activity-logs.service";
 
 const PORCIN_CODE = "porcin";
 
@@ -68,7 +69,8 @@ export class LivestockService {
     private readonly animalTags: AnimalProductionTagsService,
     private readonly farmAccess: FarmAccessService,
     private readonly audit: AuditService,
-    private readonly penAllocation: PenAllocationService
+    private readonly penAllocation: PenAllocationService,
+    private readonly activityLogs: MemberActivityLogsService
   ) {}
 
   private async resolveSpeciesId(dto: CreateAnimalDto): Promise<string> {
@@ -254,6 +256,15 @@ export class LivestockService {
             : undefined,
         notes: dto.notes
       }
+    }).then((animal) => {
+      void this.activityLogs.logForUserOnFarm(
+        user.id,
+        farmId,
+        "cheptel",
+        "livestock_created",
+        { animalId: animal.id }
+      );
+      return animal;
     });
   }
 

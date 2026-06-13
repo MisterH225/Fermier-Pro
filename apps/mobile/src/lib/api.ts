@@ -4794,6 +4794,12 @@ export type ProducerScoreDto = ReliabilityScoreBadgeDto & {
   offersRespondedWithin48h: number;
   creditBalancesOnTime: number;
   creditBalancesTotal: number;
+  chatBuyerMessagesCount: number;
+  chatRepliedWithin24h: number;
+  creditSalesAllowed: boolean;
+  creditSalesLimited: boolean;
+  creditBlocked: boolean;
+  creditBlockedReason: string | null;
   scoreUpdatedAt: string | null;
 };
 

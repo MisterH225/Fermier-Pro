@@ -18,6 +18,7 @@ import { isTaskCategory } from "./task-categories.constants";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
 import { resolveListStatus } from "./dto/list-tasks-query.dto";
+import { MemberActivityLogsService } from "../member-activity-logs/member-activity-logs.service";
 
 const taskInclude = {
   assignee: {
@@ -48,7 +49,8 @@ export class TasksService {
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
     private readonly push: PushNotificationsService,
-    private readonly tasksGateway: TasksGateway
+    private readonly tasksGateway: TasksGateway,
+    private readonly activityLogs: MemberActivityLogsService
   ) {}
 
   private emitTaskChange(farmId: string, task: ReturnType<typeof this.serialize>) {
@@ -326,6 +328,9 @@ export class TasksService {
 
     const out = this.serialize(task);
     this.emitTaskChange(farmId, out);
+    void this.activityLogs.logForUserOnFarm(user.id, farmId, "collaboration", "task_created", {
+      taskId: task.id
+    });
     return out;
   }
 

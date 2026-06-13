@@ -81,6 +81,13 @@ export function ProducerScoreDashboardScreen(_props: Props) {
     return null;
   }
 
+  const chatScore =
+    score.chatBuyerMessagesCount > 0
+      ? Math.round(
+          (score.chatRepliedWithin24h / score.chatBuyerMessagesCount) * 100
+        )
+      : 70;
+
   return (
     <ScrollView
       style={styles.screen}
@@ -130,7 +137,23 @@ export function ProducerScoreDashboardScreen(_props: Props) {
             received: score.offersReceivedCount
           })}
         />
+        <PillarRow
+          label={t("producerScore.dashboard.chatResponsiveness")}
+          value={chatScore}
+          detail={t("producerScore.dashboard.chatResponsivenessDetail", {
+            replied: score.chatRepliedWithin24h,
+            messages: score.chatBuyerMessagesCount
+          })}
+        />
       </View>
+
+      {score.creditBlocked ? (
+        <Text style={styles.warning}>{t("producerScore.dashboard.creditBlocked")}</Text>
+      ) : !score.creditSalesAllowed ? (
+        <Text style={styles.warning}>{t("producerScore.dashboard.creditDenied")}</Text>
+      ) : score.creditSalesLimited ? (
+        <Text style={styles.hint}>{t("producerScore.dashboard.creditLimited")}</Text>
+      ) : null}
 
       <Pressable
         style={styles.refreshBtn}
@@ -208,6 +231,11 @@ const styles = StyleSheet.create({
   pillarDetail: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary
+  },
+  warning: {
+    ...mobileTypography.body,
+    color: mobileColors.error,
+    marginTop: mobileSpacing.sm
   },
   refreshBtn: {
     alignSelf: "center",

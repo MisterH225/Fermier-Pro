@@ -43,6 +43,8 @@ import { MarketplaceTransactionService } from "../marketplace/escrow/marketplace
 import { ListingsService } from "../marketplace/listings.service";
 import { ReceiptService } from "../marketplace/receipts/receipt.service";
 import { VetAppointmentService } from "../vet-appointments/vet-appointment.service";
+import { ProducerScoreService } from "../producer-score/producer-score.service";
+import { ProducerScore } from "@prisma/client";
 
 @Controller("admin")
 @UseGuards(SupabaseJwtGuard, SuperAdminGuard)
@@ -56,7 +58,8 @@ export class AdminPlatformController {
     private readonly marketplaceTransactions: MarketplaceTransactionService,
     private readonly listings: ListingsService,
     private readonly receipts: ReceiptService,
-    private readonly vetAppointments: VetAppointmentService
+    private readonly vetAppointments: VetAppointmentService,
+    private readonly producerScore: ProducerScoreService
   ) {}
 
   @Get("me")
@@ -466,5 +469,29 @@ export class AdminPlatformController {
   @Get("vet-appointments/revenue")
   adminVetAppointmentRevenue(@Query("period") period?: string) {
     return this.vetAppointments.getAdminRevenue(period);
+  }
+
+  @Get("producers/scores")
+  listProducerScores(@Query("score") score?: ProducerScore) {
+    return this.producerScore.listForAdmin({
+      score: score && Object.values(ProducerScore).includes(score) ? score : undefined
+    });
+  }
+
+  @Patch("producers/:userId/credit-blocked")
+  setProducerCreditBlocked(
+    @Param("userId") userId: string,
+    @Body() body: { blocked: boolean; reason?: string | null }
+  ) {
+    return this.producerScore.adminSetCreditBlocked(
+      userId,
+      body.blocked === true,
+      body.reason
+    );
+  }
+
+  @Post("producers/:userId/score/recompute")
+  recomputeProducerScore(@Param("userId") userId: string) {
+    return this.producerScore.recomputeForUser(userId);
   }
 }

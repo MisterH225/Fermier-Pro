@@ -22,6 +22,8 @@ export function scoreResponsiveness(input: {
   offersRespondedWithin48h: number;
   creditBalancesOnTime: number;
   creditBalancesTotal: number;
+  chatBuyerMessages: number;
+  chatRepliedWithin24h: number;
   reputationScore: number;
 }): number {
   let offerComponent = 70;
@@ -38,11 +40,61 @@ export function scoreResponsiveness(input: {
     );
   }
 
+  let chatComponent = 70;
+  if (input.chatBuyerMessages > 0) {
+    chatComponent = Math.round(
+      (input.chatRepliedWithin24h / input.chatBuyerMessages) * 100
+    );
+  }
+
   const reputationComponent = Math.min(100, Math.max(0, input.reputationScore));
 
   return Math.round(
-    offerComponent * 0.45 + creditComponent * 0.25 + reputationComponent * 0.3
+    offerComponent * 0.35 +
+      creditComponent * 0.2 +
+      chatComponent * 0.15 +
+      reputationComponent * 0.3
   );
+}
+
+export type ProducerCreditEligibility = {
+  allowed: boolean;
+  limited: boolean;
+  reason: string | null;
+};
+
+export function evaluateProducerCreditEligibility(input: {
+  creditBlocked: boolean;
+  producerScore: ProducerScore;
+}): ProducerCreditEligibility {
+  if (input.creditBlocked) {
+    return {
+      allowed: false,
+      limited: false,
+      reason: "blocked_by_admin"
+    };
+  }
+  if (input.producerScore === ProducerScore.risque) {
+    return {
+      allowed: false,
+      limited: false,
+      reason: "score_risque"
+    };
+  }
+  if (
+    input.producerScore === ProducerScore.attention ||
+    input.producerScore === ProducerScore.nouveau
+  ) {
+    return {
+      allowed: true,
+      limited: true,
+      reason:
+        input.producerScore === ProducerScore.nouveau
+          ? "score_nouveau"
+          : "score_attention"
+    };
+  }
+  return { allowed: true, limited: false, reason: null };
 }
 
 export function deriveProducerScore(

@@ -21,6 +21,7 @@ import { PushNotificationsService } from "../../push-notifications/push-notifica
 import { EscrowService } from "../escrow/escrow.service";
 import { calculateFinalAmount } from "../escrow/transaction.utils";
 import { CreditScoreService } from "./credit-score.service";
+import { ProducerScoreService } from "../../producer-score/producer-score.service";
 import { MarketplaceTransactionService } from "../escrow/marketplace-transaction.service";
 
 const ESCROW_PAYMENT_MSG =
@@ -38,6 +39,7 @@ export class CreditOffersService {
     private readonly farmAccess: FarmAccessService,
     private readonly push: PushNotificationsService,
     private readonly creditScore: CreditScoreService,
+    private readonly producerScore: ProducerScoreService,
     private readonly escrow: EscrowService,
     @Inject(forwardRef(() => MarketplaceTransactionService))
     private readonly transactions: MarketplaceTransactionService
@@ -117,6 +119,7 @@ export class CreditOffersService {
       throw new ForbiddenException("Offre impossible sur votre annonce");
     }
     this.assertCreditEligible(listing);
+    await this.producerScore.assertSellerCreditSalesAllowed(listing.sellerUserId);
     const terms = this.parseCreditTerms(dto);
 
     const created = await this.prisma.marketplaceOffer.create({

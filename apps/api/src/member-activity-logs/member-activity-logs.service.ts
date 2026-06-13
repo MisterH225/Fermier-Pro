@@ -33,6 +33,29 @@ export class MemberActivityLogsService {
     });
   }
 
+  /** Journalise une action producteur/collaborateur (non bloquant si pas de membership). */
+  async logForUserOnFarm(
+    userId: string,
+    farmId: string,
+    module: MemberActivityModule,
+    action: string,
+    detail?: Record<string, unknown>
+  ): Promise<void> {
+    try {
+      const member = await this.prisma.farmMembership.findFirst({
+        where: { userId, farmId },
+        select: { id: true },
+        orderBy: { acceptedAt: "desc" }
+      });
+      if (!member) {
+        return;
+      }
+      await this.log({ farmId, memberId: member.id, module, action, detail });
+    } catch {
+      // journalisation best-effort
+    }
+  }
+
   async listForFarm(
     actor: User,
     farmId: string,

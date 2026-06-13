@@ -2009,6 +2009,12 @@ export const en = {
       responsiveness: "Responsiveness",
       responsivenessDetail:
         "{{responded}}/{{received}} offers handled within 48 h (last 90 days).",
+      chatResponsiveness: "Chat responsiveness",
+      chatResponsivenessDetail:
+        "{{replied}}/{{messages}} buyer messages answered within 24 h.",
+      creditBlocked: "Credit sales suspended by the platform.",
+      creditLimited: "Credit sales allowed with caution (score still building).",
+      creditDenied: "Credit sales unavailable until your score improves.",
       recompute: "Recalculate now"
     },
     dashboardCard: {

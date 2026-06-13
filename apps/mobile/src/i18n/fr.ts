@@ -2038,6 +2038,12 @@ export const fr = {
       responsiveness: "Réactivité",
       responsivenessDetail:
         "{{responded}}/{{received}} offres traitées sous 48 h (90 derniers jours).",
+      chatResponsiveness: "Réactivité chat",
+      chatResponsivenessDetail:
+        "{{replied}}/{{messages}} messages acheteurs avec réponse sous 24 h.",
+      creditBlocked: "Ventes à crédit suspendues par la plateforme.",
+      creditLimited: "Ventes à crédit autorisées avec vigilance (score en cours de consolidation).",
+      creditDenied: "Ventes à crédit indisponibles tant que le score n'est pas suffisant.",
       recompute: "Recalculer maintenant"
     },
     dashboardCard: {

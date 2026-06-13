@@ -17,6 +17,8 @@ describe("producer-score.util", () => {
       offersRespondedWithin48h: 9,
       creditBalancesOnTime: 2,
       creditBalancesTotal: 2,
+      chatBuyerMessages: 8,
+      chatRepliedWithin24h: 7,
       reputationScore: 95
     });
     expect(high).toBeGreaterThan(80);
@@ -26,6 +28,8 @@ describe("producer-score.util", () => {
       offersRespondedWithin48h: 2,
       creditBalancesOnTime: 0,
       creditBalancesTotal: 2,
+      chatBuyerMessages: 5,
+      chatRepliedWithin24h: 1,
       reputationScore: 60
     });
     expect(low).toBeLessThan(50);
