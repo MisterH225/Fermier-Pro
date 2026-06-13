@@ -397,7 +397,7 @@ export const fr = {
       payCta: "Payer {{amount}} via Mobile Money",
       paymentSuccessTitle: "Paiement confirmé",
       paymentSuccessBody:
-        "Votre paiement est enregistré. Coordonnez la livraison avec le vendeur.",
+        "Votre paiement est enregistré. Proposez une date de récupération au vendeur.",
       paymentErrorTitle: "Paiement impossible",
       pickupSection: "Rendez-vous de récupération",
       pickupDate: "Date de retrait",
