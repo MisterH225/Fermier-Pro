@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -12,7 +13,7 @@ import { FeedUserStatus, SanctionAppealStatus } from "@prisma/client";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { SuperAdminGuard } from "../admin-platform/super-admin.guard";
 import { CommunityFeedService } from "./community-feed.service";
-import { AdminFeedSanctionDto } from "./dto/community-feed.dto";
+import { AdminFeedSanctionDto, AdminListFeedPostsQueryDto } from "./dto/community-feed.dto";
 import { SanctionService } from "./services/sanction.service";
 
 @Controller("admin/feed")
@@ -64,5 +65,24 @@ export class CommunityFeedAdminController {
     @Body() body: { accepted: boolean; adminResponse: string }
   ) {
     return this.feed.resolveAppeal(appealId, body.accepted, body.adminResponse);
+  }
+
+  @Get("posts")
+  listPosts(@Query() query: AdminListFeedPostsQueryDto) {
+    return this.feed.listPostsAdmin(
+      query.page ?? 1,
+      query.limit ?? 20,
+      Boolean(query.includeRemoved)
+    );
+  }
+
+  @Delete("posts/:id")
+  removePost(@Param("id") postId: string) {
+    return this.feed.adminRemovePost(postId);
+  }
+
+  @Delete("comments/:id")
+  removeComment(@Param("id") commentId: string) {
+    return this.feed.adminRemoveComment(commentId);
   }
 }

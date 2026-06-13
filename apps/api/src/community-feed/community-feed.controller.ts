@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Query,
   UseGuards
@@ -103,5 +104,15 @@ export class CommunityFeedController {
   @Post("appeal")
   createAppeal(@CurrentUser() user: User, @Body() dto: CreateSanctionAppealDto) {
     return this.feed.createAppeal(user, dto);
+  }
+
+  @Post("posts/:id/like")
+  togglePostLike(@CurrentUser() user: User, @Param("id") postId: string) {
+    return this.feed.togglePostLike(user.id, postId);
+  }
+
+  @Post("comments/:id/like")
+  toggleCommentLike(@CurrentUser() user: User, @Param("id") commentId: string) {
+    return this.feed.toggleCommentLike(user.id, commentId);
   }
 }

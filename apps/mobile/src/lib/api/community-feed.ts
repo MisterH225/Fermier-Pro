@@ -26,6 +26,20 @@ export type CommunityRuleDto = {
   autoHandled?: boolean;
 };
 
+export type FeedCommentDto = {
+  id: string;
+  parentCommentId: string | null;
+  authorProfileType: ProfileType;
+  authorDisplayName: string | null;
+  authorRegion: string | null;
+  body: string;
+  isAnonymous: boolean;
+  likeCount: number;
+  likedByMe: boolean;
+  createdAt: string;
+  replies: FeedCommentDto[];
+};
+
 export type FeedPostDto = {
   id: string;
   authorProfileType: ProfileType;
@@ -36,18 +50,10 @@ export type FeedPostDto = {
   isAnonymous: boolean;
   isVetHighlight: boolean;
   medicalDisclaimer: string | null;
+  likeCount: number;
+  likedByMe: boolean;
   createdAt: string;
   comments: FeedCommentDto[];
-};
-
-export type FeedCommentDto = {
-  id: string;
-  authorProfileType: ProfileType;
-  authorDisplayName: string | null;
-  authorRegion: string | null;
-  body: string;
-  isAnonymous: boolean;
-  createdAt: string;
 };
 
 export type FeedMyStatusDto = {
@@ -127,9 +133,25 @@ export async function createFeedPost(
 export async function createFeedComment(
   accessToken: string,
   profileId: string,
-  input: { postId: string; body: string; isAnonymous?: boolean }
+  input: { postId: string; body: string; isAnonymous?: boolean; parentCommentId?: string }
 ): Promise<FeedCommentDto> {
   return apiPostJson("/feed/comments", input, accessToken, profileId);
+}
+
+export async function toggleFeedPostLike(
+  accessToken: string,
+  profileId: string,
+  postId: string
+): Promise<{ liked: boolean; likeCount: number }> {
+  return apiPostJson(`/feed/posts/${postId}/like`, {}, accessToken, profileId);
+}
+
+export async function toggleFeedCommentLike(
+  accessToken: string,
+  profileId: string,
+  commentId: string
+): Promise<{ liked: boolean; likeCount: number }> {
+  return apiPostJson(`/feed/comments/${commentId}/like`, {}, accessToken, profileId);
 }
 
 export async function submitFeedAppeal(

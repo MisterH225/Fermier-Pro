@@ -3,7 +3,7 @@ import {
   FeedUserStatus,
   ProfileType
 } from "@prisma/client";
-import { Type } from "class-transformer";
+import { Type, Transform } from "class-transformer";
 import {
   IsBoolean,
   IsEnum,
@@ -37,6 +37,10 @@ export class CreateFeedPostDto {
 export class CreateFeedCommentDto {
   @IsString()
   postId!: string;
+
+  @IsOptional()
+  @IsString()
+  parentCommentId?: string;
 
   @IsString()
   @MinLength(1)
@@ -98,6 +102,13 @@ export class ListFeedPostsQueryDto {
   @IsInt()
   @Min(1)
   limit?: number;
+}
+
+export class AdminListFeedPostsQueryDto extends ListFeedPostsQueryDto {
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === "true")
+  @IsBoolean()
+  includeRemoved?: boolean;
 }
 
 export const FEED_POST_TYPES_BY_PROFILE: Record<

@@ -27,6 +27,38 @@ import { SanctionService } from "./services/sanction.service";
 const MEDICAL_DISCLAIMER =
   "Ce conseil est partagé à titre informatif — consultez un vétérinaire pour un diagnostic.";
 
+export type MappedFeedComment = {
+  id: string;
+  parentCommentId: string | null;
+  authorProfileType: ProfileType;
+  authorDisplayName: string | null;
+  authorRegion: string | null;
+  body: string;
+  isAnonymous: boolean;
+  likeCount: number;
+  likedByMe: boolean;
+  createdAt: string;
+  replies: MappedFeedComment[];
+};
+
+export type AdminFeedCommentRow = {
+  id: string;
+  parentCommentId: string | null;
+  authorUserId: string;
+  authorEmail: string | null;
+  authorName: string | null;
+  authorProfileType: ProfileType;
+  authorDisplayName: string | null;
+  authorRegion: string | null;
+  body: string;
+  isAnonymous: boolean;
+  isRemoved: boolean;
+  removedReason: string | null;
+  likeCount: number;
+  createdAt: string;
+  replies: AdminFeedCommentRow[];
+};
+
 @Injectable()
 export class CommunityFeedService {
   constructor(
@@ -80,7 +112,21 @@ export class CommunityFeedService {
         comments: {
           where: { isRemoved: false },
           orderBy: { createdAt: "asc" },
-          take: 50
+          take: 200,
+          include: {
+            _count: { select: { likes: true } },
+            likes: {
+              where: { userId },
+              select: { id: true },
+              take: 1
+            }
+          }
+        },
+        _count: { select: { likes: true } },
+        likes: {
+          where: { userId },
+          select: { id: true },
+          take: 1
         }
       }
     });
@@ -96,8 +142,182 @@ export class CommunityFeedService {
     return {
       page,
       limit,
-      items: posts.map((p) => this.mapPost(p))
+      items: posts.map((p) => this.mapPost(p, userId))
     };
+  }
+
+  async listPostsAdmin(page = 1, limit = 20, includeRemoved = false) {
+    const skip = (page - 1) * limit;
+    const where = includeRemoved ? {} : { isRemoved: false };
+    const [total, posts] = await Promise.all([
+      this.prisma.communityFeedPost.count({ where }),
+      this.prisma.communityFeedPost.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+        include: {
+          authorUser: { select: { id: true, email: true, fullName: true } },
+          comments: {
+            where: includeRemoved ? {} : { isRemoved: false },
+            orderBy: { createdAt: "asc" },
+            take: 200,
+            include: {
+              authorUser: { select: { id: true, email: true, fullName: true } },
+              _count: { select: { likes: true } }
+            }
+          },
+          _count: { select: { likes: true, comments: true } }
+        }
+      })
+    ]);
+
+    return {
+      page,
+      limit,
+      total,
+      items: posts.map((p) => ({
+        id: p.id,
+        authorUserId: p.authorUserId,
+        authorEmail: p.authorUser.email,
+        authorName: p.authorUser.fullName,
+        authorProfileType: p.authorProfileType,
+        authorDisplayName: p.authorDisplayName,
+        authorRegion: p.authorRegion,
+        postType: p.postType,
+        body: p.body,
+        isAnonymous: p.isAnonymous,
+        isRemoved: p.isRemoved,
+        removedReason: p.removedReason,
+        likeCount: p._count.likes,
+        commentCount: p._count.comments,
+        createdAt: p.createdAt.toISOString(),
+        comments: this.nestCommentsForAdmin(p.comments)
+      }))
+    };
+  }
+
+  async adminRemovePost(postId: string) {
+    const post = await this.prisma.communityFeedPost.findUnique({
+      where: { id: postId }
+    });
+    if (!post) {
+      throw new NotFoundException("Publication introuvable.");
+    }
+    if (post.isRemoved) {
+      return { ok: true, alreadyRemoved: true };
+    }
+
+    await this.prisma.communityFeedPost.update({
+      where: { id: postId },
+      data: {
+        isRemoved: true,
+        removedReason: "admin_removal"
+      }
+    });
+
+    await this.prisma.moderationEvent.create({
+      data: {
+        userId: post.authorUserId,
+        postId,
+        violationType: "admin_removal",
+        severity: ModerationSeverity.medium,
+        actionTaken: "removed_by_admin",
+        contentSnapshot: post.body.slice(0, 2000),
+        reviewedByAdmin: true
+      }
+    });
+
+    return { ok: true };
+  }
+
+  async adminRemoveComment(commentId: string) {
+    const comment = await this.prisma.communityFeedComment.findUnique({
+      where: { id: commentId }
+    });
+    if (!comment) {
+      throw new NotFoundException("Commentaire introuvable.");
+    }
+    if (comment.isRemoved) {
+      return { ok: true, alreadyRemoved: true };
+    }
+
+    await this.prisma.communityFeedComment.update({
+      where: { id: commentId },
+      data: {
+        isRemoved: true,
+        removedReason: "admin_removal"
+      }
+    });
+
+    await this.prisma.moderationEvent.create({
+      data: {
+        userId: comment.authorUserId,
+        postId: comment.postId,
+        commentId,
+        violationType: "admin_removal",
+        severity: ModerationSeverity.medium,
+        actionTaken: "removed_by_admin",
+        contentSnapshot: comment.body.slice(0, 2000),
+        reviewedByAdmin: true
+      }
+    });
+
+    return { ok: true };
+  }
+
+  async togglePostLike(userId: string, postId: string) {
+    const post = await this.prisma.communityFeedPost.findUnique({
+      where: { id: postId }
+    });
+    if (!post || post.isRemoved) {
+      throw new NotFoundException("Publication introuvable.");
+    }
+
+    const existing = await this.prisma.communityFeedLike.findUnique({
+      where: { userId_postId: { userId, postId } }
+    });
+
+    if (existing) {
+      await this.prisma.communityFeedLike.delete({ where: { id: existing.id } });
+    } else {
+      await this.prisma.communityFeedLike.create({
+        data: { userId, postId }
+      });
+    }
+
+    const likeCount = await this.prisma.communityFeedLike.count({
+      where: { postId }
+    });
+
+    return { liked: !existing, likeCount };
+  }
+
+  async toggleCommentLike(userId: string, commentId: string) {
+    const comment = await this.prisma.communityFeedComment.findUnique({
+      where: { id: commentId }
+    });
+    if (!comment || comment.isRemoved) {
+      throw new NotFoundException("Commentaire introuvable.");
+    }
+
+    const existing = await this.prisma.communityFeedLike.findUnique({
+      where: { userId_commentId: { userId, commentId } }
+    });
+
+    if (existing) {
+      await this.prisma.communityFeedLike.delete({ where: { id: existing.id } });
+    } else {
+      await this.prisma.communityFeedLike.create({
+        data: { userId, commentId }
+      });
+    }
+
+    const likeCount = await this.prisma.communityFeedLike.count({
+      where: { commentId }
+    });
+
+    return { liked: !existing, likeCount };
   }
 
   async preModerate(dto: PreModerateContentDto) {
@@ -169,7 +389,7 @@ export class CommunityFeedService {
 
     void this.reviewPostAsync(post.id, post.body, user.id);
 
-    return this.mapPost({ ...post, comments: [] });
+    return this.mapPost({ ...post, comments: [] }, user.id);
   }
 
   async createComment(
@@ -186,6 +406,15 @@ export class CommunityFeedService {
     });
     if (!post || post.isRemoved) {
       throw new NotFoundException("Publication introuvable.");
+    }
+
+    if (dto.parentCommentId) {
+      const parent = await this.prisma.communityFeedComment.findUnique({
+        where: { id: dto.parentCommentId }
+      });
+      if (!parent || parent.isRemoved || parent.postId !== dto.postId) {
+        throw new BadRequestException("Commentaire parent invalide.");
+      }
     }
 
     const mod = await this.moderation.preSendCheck(dto.body);
@@ -213,6 +442,7 @@ export class CommunityFeedService {
     const comment = await this.prisma.communityFeedComment.create({
       data: {
         postId: dto.postId,
+        parentCommentId: dto.parentCommentId ?? null,
         authorUserId: user.id,
         authorProfileId: profileId,
         authorProfileType: profileType,
@@ -225,7 +455,7 @@ export class CommunityFeedService {
 
     void this.reviewCommentAsync(comment.id, comment.body, user.id, dto.postId);
 
-    return this.mapComment(comment);
+    return this.mapComment(comment, user.id);
   }
 
   async moderatePostAsync(postId: string, userId: string) {
@@ -495,17 +725,27 @@ export class CommunityFeedService {
       body: string;
       isAnonymous: boolean;
       createdAt: Date;
+      _count?: { likes: number };
+      likes?: Array<{ id: string }>;
       comments?: Array<{
         id: string;
+        parentCommentId?: string | null;
         authorProfileType: ProfileType;
         authorDisplayName: string | null;
         authorRegion: string | null;
         body: string;
         isAnonymous: boolean;
         createdAt: Date;
+        _count?: { likes: number };
+        likes?: Array<{ id: string }>;
       }>;
-    }
+    },
+    userId?: string
   ) {
+    const flatComments = (post.comments ?? []).map((c) =>
+      this.mapComment(c, userId)
+    );
+
     return {
       id: post.id,
       authorProfileType: post.authorProfileType,
@@ -519,28 +759,114 @@ export class CommunityFeedService {
         post.postType === CommunityFeedPostType.medical_tip
           ? MEDICAL_DISCLAIMER
           : null,
+      likeCount: post._count?.likes ?? 0,
+      likedByMe: (post.likes?.length ?? 0) > 0,
       createdAt: post.createdAt.toISOString(),
-      comments: (post.comments ?? []).map((c) => this.mapComment(c))
+      comments: this.nestComments(flatComments)
     };
   }
 
-  private mapComment(comment: {
-    id: string;
-    authorProfileType: ProfileType;
-    authorDisplayName: string | null;
-    authorRegion: string | null;
-    body: string;
-    isAnonymous: boolean;
-    createdAt: Date;
-  }) {
+  private mapComment(
+    comment: {
+      id: string;
+      parentCommentId?: string | null;
+      authorProfileType: ProfileType;
+      authorDisplayName: string | null;
+      authorRegion: string | null;
+      body: string;
+      isAnonymous: boolean;
+      createdAt: Date;
+      _count?: { likes: number };
+      likes?: Array<{ id: string }>;
+    },
+    _userId?: string
+  ): MappedFeedComment {
     return {
       id: comment.id,
+      parentCommentId: comment.parentCommentId ?? null,
       authorProfileType: comment.authorProfileType,
       authorDisplayName: comment.isAnonymous ? null : comment.authorDisplayName,
       authorRegion: comment.authorRegion,
       body: comment.body,
       isAnonymous: comment.isAnonymous,
-      createdAt: comment.createdAt.toISOString()
+      likeCount: comment._count?.likes ?? 0,
+      likedByMe: (comment.likes?.length ?? 0) > 0,
+      createdAt: comment.createdAt.toISOString(),
+      replies: []
     };
+  }
+
+  private nestComments(flat: MappedFeedComment[]): MappedFeedComment[] {
+    const byId = new Map(flat.map((c) => [c.id, c]));
+    const roots: MappedFeedComment[] = [];
+
+    for (const comment of flat) {
+      if (comment.parentCommentId) {
+        const parent = byId.get(comment.parentCommentId);
+        if (parent) {
+          parent.replies.push(comment);
+        } else {
+          roots.push(comment);
+        }
+      } else {
+        roots.push(comment);
+      }
+    }
+
+    return roots;
+  }
+
+  private nestCommentsForAdmin(
+    flat: Array<{
+      id: string;
+      parentCommentId: string | null;
+      authorUserId: string;
+      authorUser: { id: string; email: string | null; fullName: string | null };
+      authorProfileType: ProfileType;
+      authorDisplayName: string | null;
+      authorRegion: string | null;
+      body: string;
+      isAnonymous: boolean;
+      isRemoved: boolean;
+      removedReason: string | null;
+      createdAt: Date;
+      _count: { likes: number };
+    }>
+  ): AdminFeedCommentRow[] {
+    const mapped: AdminFeedCommentRow[] = flat.map((c) => ({
+      id: c.id,
+      parentCommentId: c.parentCommentId,
+      authorUserId: c.authorUserId,
+      authorEmail: c.authorUser.email,
+      authorName: c.authorUser.fullName,
+      authorProfileType: c.authorProfileType,
+      authorDisplayName: c.authorDisplayName,
+      authorRegion: c.authorRegion,
+      body: c.body,
+      isAnonymous: c.isAnonymous,
+      isRemoved: c.isRemoved,
+      removedReason: c.removedReason,
+      likeCount: c._count.likes,
+      createdAt: c.createdAt.toISOString(),
+      replies: []
+    }));
+
+    const byId = new Map(mapped.map((c) => [c.id, c]));
+    const roots: AdminFeedCommentRow[] = [];
+
+    for (const comment of mapped) {
+      if (comment.parentCommentId) {
+        const parent = byId.get(comment.parentCommentId);
+        if (parent) {
+          parent.replies.push(comment);
+        } else {
+          roots.push(comment);
+        }
+      } else {
+        roots.push(comment);
+      }
+    }
+
+    return roots;
   }
 }
