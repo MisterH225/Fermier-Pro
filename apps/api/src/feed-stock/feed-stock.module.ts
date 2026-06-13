@@ -8,6 +8,7 @@ import { FarmFeedController } from "./farm-feed.controller";
 import { FarmFeedService } from "./farm-feed.service";
 import { FeedFinanceLinkModule } from "../feed-finance-link/feed-finance-link.module";
 import { FeedReconciliationCronService } from "./feed-reconciliation-cron.service";
+import { MemberActivityLogsModule } from "../member-activity-logs/member-activity-logs.module";
 
 @Module({
   imports: [
@@ -16,7 +17,8 @@ import { FeedReconciliationCronService } from "./feed-reconciliation-cron.servic
     FinanceModule,
     SmartAlertsModule,
     FeedFinanceLinkModule,
-    forwardRef(() => PredictionsModule)
+    forwardRef(() => PredictionsModule),
+    MemberActivityLogsModule
   ],
   controllers: [FarmFeedController],
   providers: [FarmFeedService, FeedReconciliationCronService]

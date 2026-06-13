@@ -7,6 +7,7 @@ import { FarmHealthController } from "./farm-health.controller";
 import { FarmHealthService } from "./farm-health.service";
 import { FarmVaccineController } from "./farm-vaccine.controller";
 import { FarmVaccineService } from "./farm-vaccine.service";
+import { MemberActivityLogsModule } from "../member-activity-logs/member-activity-logs.module";
 import { SmartAlertsModule } from "../smart-alerts/smart-alerts.module";
 
 @Module({
@@ -15,7 +16,8 @@ import { SmartAlertsModule } from "../smart-alerts/smart-alerts.module";
     CommonModule,
     PrismaModule,
     FinanceModule,
-    SmartAlertsModule
+    SmartAlertsModule,
+    MemberActivityLogsModule
   ],
   controllers: [FarmHealthController, FarmVaccineController],
   providers: [FarmHealthService, FarmVaccineService]

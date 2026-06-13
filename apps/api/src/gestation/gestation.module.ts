@@ -8,6 +8,7 @@ import { AiModule } from "../ai/ai.module";
 import { PredictionsModule } from "../predictions/predictions.module";
 import { GestationController } from "./gestation.controller";
 import { GestationService } from "./gestation.service";
+import { MemberActivityLogsModule } from "../member-activity-logs/member-activity-logs.module";
 
 @Module({
   imports: [
@@ -17,7 +18,8 @@ import { GestationService } from "./gestation.service";
     SmartAlertsModule,
     FeatureFlagsModule,
     AiModule,
-    PredictionsModule
+    PredictionsModule,
+    MemberActivityLogsModule
   ],
   controllers: [GestationController],
   providers: [GestationService],

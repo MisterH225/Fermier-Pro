@@ -1256,6 +1256,7 @@ export const en = {
       listing: "Listing",
       transaction: "Transaction",
       creditScore: "Credit score",
+      producerScoreTitle: "Producer score",
       myOffers: "My offers",
       myListings: "My listings",
       createListing: "New listing",
@@ -1990,6 +1991,37 @@ export const en = {
     appVersion: "App version",
     cguHint: "Terms are accepted on first sign-in.",
     privacyHint: "View the privacy policy from the terms screen."
+  },
+  producerScore: {
+    badgePrefix: "Reliability",
+    dashboard: {
+      title: "Your producer score",
+      global: "Overall index: {{value}}/100",
+      hint:
+        "This score reflects data entry regularity, platform usage, and responsiveness (offers, credit).",
+      pillarsTitle: "The 3 pillars",
+      dataRegularity: "Data entry regularity",
+      dataRegularityDetail:
+        "{{days}} day(s) with at least one entry in the last 30 days.",
+      platformUsage: "Platform usage",
+      platformUsageDetail:
+        "{{days}} active day(s) in the last 30 days.",
+      responsiveness: "Responsiveness",
+      responsivenessDetail:
+        "{{responded}}/{{received}} offers handled within 48 h (last 90 days).",
+      chatResponsiveness: "Chat responsiveness",
+      chatResponsivenessDetail:
+        "{{replied}}/{{messages}} buyer messages answered within 24 h.",
+      creditBlocked: "Credit sales suspended by the platform.",
+      creditLimited: "Credit sales allowed with caution (score still building).",
+      creditDenied: "Credit sales unavailable until your score improves.",
+      recompute: "Recalculate now"
+    },
+    dashboardCard: {
+      title: "Producer score",
+      subtitle: "Data entry, usage and responsiveness",
+      open: "View details"
+    }
   },
   producer: {
     messages: {

@@ -13,6 +13,7 @@
     "auditLogs": "Admin log",
     "map": "Health map",
     "marketplace": "Marketplace",
+    "producerScores": "Producer scores",
     "stats": "Statistics",
     "ai": "AI assistant",
     "modules": "Modules",
@@ -733,5 +734,25 @@
       "rooms": "No chat rooms."
     },
     "confirmDelete": "Permanently delete this room and all its messages?"
+  },
+  "producerScores": {
+    "title": "Producer scores",
+    "description": "Producer reliability: data entry, platform usage, responsiveness (offers, chat, credit).",
+    "filterAll": "All",
+    "refresh": "Refresh",
+    "empty": "No producer scores recorded.",
+    "recompute": "Recompute",
+    "blockCredit": "Block credit",
+    "unblockCredit": "Unblock credit",
+    "blockReasonPrompt": "Block reason (internal):",
+    "pillars": "Data {data}/100 · Usage {usage}/100 · Responsiveness {resp}/100",
+    "chat": "Chat: {replied}/{total} replies < 24 h",
+    "scores": {
+      "excellent": "Excellent",
+      "bon": "Reliable",
+      "nouveau": "New",
+      "attention": "Watch",
+      "risque": "Risky"
+    }
   }
 }

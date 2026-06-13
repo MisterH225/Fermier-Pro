@@ -11,6 +11,7 @@ import {
   Shield,
   Store,
   Users,
+  Award,
   type LucideIcon
 } from "lucide-react";
 
@@ -24,6 +25,7 @@ export const NAV_KEYS = [
   "auditLogs",
   "map",
   "marketplace",
+  "producerScores",
   "stats",
   "ai",
   "settings"
@@ -51,6 +53,7 @@ export const NAV_ITEMS: NavItem[] = [
     badgeKey: "marketplaceDisputes",
     primary: true
   },
+  { href: "/producteurs-scores", icon: Award, key: "producerScores", primary: true },
   { href: "/statistiques", icon: BarChart3, key: "stats", primary: true },
   { href: "/veterinaires/rendez-vous", icon: Calendar, key: "vetAppointments" },
   { href: "/moderation-feed", icon: MessageSquareWarning, key: "feedModeration" },

@@ -45,6 +45,7 @@ import {
 } from "./marketplace-listing-category.helper";
 import { LISTING_EDIT_LOCK_STATUSES } from "./escrow/transaction.utils";
 import { ListingAnimalSyncService } from "./listing-animal-sync.service";
+import { ProducerScoreService } from "../producer-score/producer-score.service";
 
 function privacyDisplayName(fullName: string | null | undefined): string {
   const raw = fullName?.trim();
@@ -82,8 +83,18 @@ export class ListingsService {
     private readonly push: PushNotificationsService,
     private readonly marketplaceLifecycle: FarmMarketplaceLifecycleService,
     private readonly pigPriceIndex: MarketplacePigPriceIndexService,
-    private readonly listingAnimalSync: ListingAnimalSyncService
+    private readonly listingAnimalSync: ListingAnimalSyncService,
+    private readonly producerScore: ProducerScoreService
   ) {}
+
+  private async assertProducerMayEnableCredit(
+    user: User,
+    creditEnabled: boolean
+  ): Promise<void> {
+    if (creditEnabled) {
+      await this.producerScore.assertSellerCreditSalesAllowed(user.id);
+    }
+  }
 
   private async resolveFarmAndAnimal(
     user: User,
@@ -314,6 +325,8 @@ export class ListingsService {
       category,
       animalIds
     });
+    const creditEnabled = resolveListingCreditEnabled(category, dto.creditEnabled);
+    await this.assertProducerMayEnableCredit(user, creditEnabled);
     const created = await this.prisma.marketplaceListing.create({
       data: {
         sellerUserId: user.id,
@@ -341,7 +354,7 @@ export class ListingsService {
             : null,
         totalPrice: new Prisma.Decimal(pricing.totalPrice),
         breedLabel: dto.breedLabel,
-        creditEnabled: resolveListingCreditEnabled(category, dto.creditEnabled),
+        creditEnabled,
         status: ListingStatus.draft
       },
       include: {
@@ -501,6 +514,9 @@ export class ListingsService {
     let farmInfo: Awaited<ReturnType<typeof buildListingFarmInfo>> | null =
       null;
     let farmRatingSummary: { avg: number | null; count: number } | null = null;
+    let sellerProducerScore: Awaited<
+      ReturnType<ProducerScoreService["getForUser"]>
+    > | null = null;
 
     if (listing.farmId) {
       const animalIds = this.resolveListingAnimalIds({
@@ -522,7 +538,15 @@ export class ListingsService {
       );
     }
 
-    return { healthData, farmInfo, farmRatingSummary };
+    try {
+      sellerProducerScore = await this.producerScore.getForUser(
+        listing.sellerUserId
+      );
+    } catch {
+      sellerProducerScore = null;
+    }
+
+    return { healthData, farmInfo, farmRatingSummary, sellerProducerScore };
   }
 
   async getById(user: User, id: string) {
@@ -802,6 +826,10 @@ export class ListingsService {
           )
         : undefined;
 
+    if (creditEnabledUpdate === true) {
+      await this.assertProducerMayEnableCredit(user, true);
+    }
+
     return this.prisma.marketplaceListing.update({
       where: { id },
       data: {
@@ -887,6 +915,12 @@ export class ListingsService {
       )
     });
 
+    const publishCreditEnabled = resolveListingCreditEnabled(
+      normalizedCategory,
+      listing.creditEnabled
+    );
+    await this.assertProducerMayEnableCredit(user, publishCreditEnabled);
+
     return this.prisma.marketplaceListing.update({
       where: { id },
       data: {
@@ -907,10 +941,7 @@ export class ListingsService {
             ? new Prisma.Decimal(pricing.unitPrice)
             : null,
         totalPrice: new Prisma.Decimal(pricing.totalPrice),
-        creditEnabled: resolveListingCreditEnabled(
-          normalizedCategory,
-          listing.creditEnabled
-        ),
+        creditEnabled: publishCreditEnabled,
         ...(healthSummary !== undefined ? { healthSummary } : {})
       }
     });

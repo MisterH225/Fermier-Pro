@@ -92,6 +92,8 @@ model User {
   completedTransactions Int                  @default(0)
   /// Score réputation marketplace (100 par défaut).
   reputationScore       Int                  @default(100)
+  /// Dernière activité API (connexion / requête authentifiée).
+  lastActiveAt          DateTime?
   /// Annulations vendeur sur transactions escrow.
   cancelledAsSellerCount Int                 @default(0)
   createdAt             DateTime             @default(now())
@@ -103,6 +105,7 @@ model User {
   pushDevices           PushDevice[]
   technicianProfile     TechnicianProfile?
   buyerProfile          BuyerProfile?
+  producerProfile       ProducerProfile?
   reactivationWaitlist  ReactivationWaitlist[]
   memberships           FarmMembership[]
   ownedFarms            Farm[]               @relation("FarmOwner")
@@ -1426,6 +1429,14 @@ enum BuyerCreditScore {
   risque
 }
 
+enum ProducerScore {
+  excellent
+  bon
+  nouveau
+  attention
+  risque
+}
+
 enum MarketplaceCreditArbitrationResolution {
   paid_late
   defaulted
@@ -2586,6 +2597,32 @@ model BuyerProfile {
 
   @@index([buyerType])
   @@index([creditScore])
+}
+
+/// Profil producteur : score fiabilité (saisie, usage plateforme, réactivité).
+model ProducerProfile {
+  id                       String        @id @default(cuid())
+  userId                   String        @unique
+  user                     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  producerScore            ProducerScore @default(nouveau)
+  dataRegularityScore      Int           @default(0)
+  platformUsageScore       Int           @default(0)
+  responsivenessScore      Int           @default(0)
+  dataEntryDaysLast30      Int           @default(0)
+  platformActiveDaysLast30 Int           @default(0)
+  offersReceivedCount      Int           @default(0)
+  offersRespondedWithin48h Int           @default(0)
+  creditBalancesOnTime     Int           @default(0)
+  creditBalancesTotal      Int           @default(0)
+  chatBuyerMessagesCount   Int           @default(0)
+  chatRepliedWithin24h     Int           @default(0)
+  creditBlocked            Boolean       @default(false)
+  creditBlockedReason      String?
+  scoreUpdatedAt           DateTime?
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+
+  @@index([producerScore])
 }
 
 /// Arbitrage solde vente à crédit marketplace.

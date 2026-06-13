@@ -11,6 +11,7 @@ import { SuperAdminGuard } from "./super-admin.guard";
 import { MarketModule } from "../market/market.module";
 import { MarketplaceModule } from "../marketplace/marketplace.module";
 import { VetAppointmentsModule } from "../vet-appointments/vet-appointments.module";
+import { ProducerScoreModule } from "../producer-score/producer-score.module";
 
 @Module({
   imports: [
@@ -21,7 +22,8 @@ import { VetAppointmentsModule } from "../vet-appointments/vet-appointments.modu
     AiModule,
     MarketModule,
     MarketplaceModule,
-    VetAppointmentsModule
+    VetAppointmentsModule,
+    ProducerScoreModule
   ],
   controllers: [AdminPlatformController],
   providers: [AdminPlatformService, AdminAiService, SuperAdminGuard],

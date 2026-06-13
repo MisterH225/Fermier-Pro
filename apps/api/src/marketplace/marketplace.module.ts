@@ -33,6 +33,7 @@ import { CreditScoreService } from "./credit/credit-score.service";
 import { MarketplaceDisputesController } from "./marketplace-disputes.controller";
 import { OffersController } from "./offers.controller";
 import { OffersService } from "./offers.service";
+import { ProducerScoreModule } from "../producer-score/producer-score.module";
 import { ListingAnimalSyncService } from "./listing-animal-sync.service";
 
 @Module({
@@ -41,7 +42,8 @@ import { ListingAnimalSyncService } from "./listing-animal-sync.service";
     ChatModule,
     ConfigClientModule,
     FeatureFlagsModule,
-    PushNotificationsModule
+    PushNotificationsModule,
+    ProducerScoreModule
   ],
   controllers: [
     ListingsController,

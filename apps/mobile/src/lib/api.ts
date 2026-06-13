@@ -4647,6 +4647,7 @@ export type MarketplaceListingDetail = MarketplaceListingListItem & {
   healthData?: MarketplaceListingHealthData | null;
   farmInfo?: MarketplaceListingFarmInfo | null;
   farmRatingSummary?: { avg: number | null; count: number } | null;
+  sellerProducerScore?: ProducerScoreDto | null;
 };
 
 /** @deprecated Utiliser `healthData` sur le détail annonce. */
@@ -4777,6 +4778,31 @@ export type BuyerCreditScoreDto = {
   creditDefaultCount: number;
 };
 
+export type ReliabilityScoreBadgeDto = Pick<
+  BuyerCreditScoreDto,
+  "score" | "emoji" | "label" | "color"
+>;
+
+export type ProducerScoreDto = ReliabilityScoreBadgeDto & {
+  globalValue: number;
+  dataRegularityScore: number;
+  platformUsageScore: number;
+  responsivenessScore: number;
+  dataEntryDaysLast30: number;
+  platformActiveDaysLast30: number;
+  offersReceivedCount: number;
+  offersRespondedWithin48h: number;
+  creditBalancesOnTime: number;
+  creditBalancesTotal: number;
+  chatBuyerMessagesCount: number;
+  chatRepliedWithin24h: number;
+  creditSalesAllowed: boolean;
+  creditSalesLimited: boolean;
+  creditBlocked: boolean;
+  creditBlockedReason: string | null;
+  scoreUpdatedAt: string | null;
+};
+
 export type MarketplaceCreditOfferDto = {
   id: string;
   listingId: string;
@@ -4801,6 +4827,29 @@ export function fetchMyCreditScore(
 ): Promise<BuyerCreditScoreDto> {
   return apiGetJson<BuyerCreditScoreDto>(
     "/marketplace/buyers/me/credit-score",
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchMyProducerScore(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<ProducerScoreDto> {
+  return apiGetJson<ProducerScoreDto>(
+    "/producers/me/score",
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function postRecomputeProducerScore(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<ProducerScoreDto> {
+  return apiPostJson<ProducerScoreDto>(
+    "/producers/me/score/recompute",
+    {},
     accessToken,
     activeProfileId
   );

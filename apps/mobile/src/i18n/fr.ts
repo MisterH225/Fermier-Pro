@@ -1262,6 +1262,7 @@ export const fr = {
       listing: "Annonce",
       transaction: "Transaction",
       creditScore: "Score crédit",
+      producerScoreTitle: "Score producteur",
       myOffers: "Mes offres",
       myListings: "Mes annonces",
       createListing: "Nouvelle annonce",
@@ -2019,6 +2020,37 @@ export const fr = {
     appVersion: "Version de l'application",
     cguHint: "Les CGU sont acceptées à la première connexion.",
     privacyHint: "Consultez la politique depuis l'écran d'accueil CGU."
+  },
+  producerScore: {
+    badgePrefix: "Fiabilité",
+    dashboard: {
+      title: "Votre score producteur",
+      global: "Indice global : {{value}}/100",
+      hint:
+        "Ce score reflète la régularité de vos saisies, votre assiduité sur la plateforme et votre réactivité (offres, crédit).",
+      pillarsTitle: "Les 3 piliers",
+      dataRegularity: "Régularité des saisies",
+      dataRegularityDetail:
+        "{{days}} jour(s) avec au moins une saisie sur les 30 derniers jours.",
+      platformUsage: "Usage de la plateforme",
+      platformUsageDetail:
+        "{{days}} jour(s) d'activité sur les 30 derniers jours.",
+      responsiveness: "Réactivité",
+      responsivenessDetail:
+        "{{responded}}/{{received}} offres traitées sous 48 h (90 derniers jours).",
+      chatResponsiveness: "Réactivité chat",
+      chatResponsivenessDetail:
+        "{{replied}}/{{messages}} messages acheteurs avec réponse sous 24 h.",
+      creditBlocked: "Ventes à crédit suspendues par la plateforme.",
+      creditLimited: "Ventes à crédit autorisées avec vigilance (score en cours de consolidation).",
+      creditDenied: "Ventes à crédit indisponibles tant que le score n'est pas suffisant.",
+      recompute: "Recalculer maintenant"
+    },
+    dashboardCard: {
+      title: "Score producteur",
+      subtitle: "Saisies, assiduité et réactivité",
+      open: "Voir le détail"
+    }
   },
   producer: {
     messages: {

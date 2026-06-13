@@ -25,6 +25,7 @@ import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
 import { FinanceService } from "../finance/finance.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import { PredictionsService } from "../predictions/predictions.service";
+import { MemberActivityLogsService } from "../member-activity-logs/member-activity-logs.service";
 import { CreateFeedMovementDto } from "./dto/create-feed-movement.dto";
 import { CreateFeedTypeDto } from "./dto/create-feed-type.dto";
 import {
@@ -93,7 +94,8 @@ export class FarmFeedService {
     private readonly pump: PumpCalculator,
     private readonly reconciliation: ReconciliationEngine,
     @Inject(forwardRef(() => PredictionsService))
-    private readonly predictions: PredictionsService
+    private readonly predictions: PredictionsService,
+    private readonly activityLogs: MemberActivityLogsService
   ) {}
 
   async listTypes(user: User, farmId: string) {
@@ -591,6 +593,10 @@ export class FarmFeedService {
         }
       }
 
+      void this.activityLogs.logForUserOnFarm(user.id, farmId, "stock", "feed_movement", {
+        movementId: movement.id,
+        kind: dto.kind
+      });
       return {
         movement: serializeFeedMovement(movement),
         reconciliation
@@ -689,6 +695,10 @@ export class FarmFeedService {
 
       void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
       this.predictions.invalidateAndRegenerateAsync(farmId);
+      void this.activityLogs.logForUserOnFarm(user.id, farmId, "stock", "feed_movement", {
+        movementId: movement.id,
+        kind: dto.kind
+      });
       return {
         movement: serializeFeedMovement(movement),
         reconciliation: null

@@ -10,9 +10,10 @@ import { LivestockStatusLogService } from "./livestock-status-log.service";
 import { TaxonomyController } from "./taxonomy.controller";
 import { TaxonomyService } from "./taxonomy.service";
 import { AnimalProductionTagsService } from "./animal-production-tags.service";
+import { MemberActivityLogsModule } from "../member-activity-logs/member-activity-logs.module";
 
 @Module({
-  imports: [AuthModule, HousingModule, forwardRef(() => CheptelModule)],
+  imports: [AuthModule, HousingModule, forwardRef(() => CheptelModule), MemberActivityLogsModule],
   controllers: [LivestockController, BatchesController, TaxonomyController],
   providers: [
     LivestockStatusLogService,

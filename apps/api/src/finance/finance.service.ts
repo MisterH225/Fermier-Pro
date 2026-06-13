@@ -16,6 +16,7 @@ import { CreateRevenueDto } from "./dto/create-revenue.dto";
 import { UpdateExpenseDto } from "./dto/update-expense.dto";
 import { UpdateRevenueDto } from "./dto/update-revenue.dto";
 import { ProfitabilityEngine } from "../profitability/profitability.engine";
+import { MemberActivityLogsService } from "../member-activity-logs/member-activity-logs.service";
 
 @Injectable()
 export class FinanceService {
@@ -24,7 +25,8 @@ export class FinanceService {
     private readonly farmAccess: FarmAccessService,
     private readonly audit: AuditService,
     private readonly smartAlerts: SmartAlertsService,
-    private readonly profitability: ProfitabilityEngine
+    private readonly profitability: ProfitabilityEngine,
+    private readonly activityLogs: MemberActivityLogsService
   ) {}
 
   private expenseSnapshot(row: FarmExpense) {
@@ -150,6 +152,10 @@ export class FinanceService {
     });
     void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
     this.profitability.scheduleRecalculate(farmId);
+    void this.activityLogs.logForUserOnFarm(user.id, farmId, "finance", "finance_entry", {
+      kind: "expense",
+      expenseId: row.id
+    });
     return row;
   }
 
@@ -301,6 +307,10 @@ export class FinanceService {
     });
     void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);
     this.profitability.scheduleRecalculate(farmId);
+    void this.activityLogs.logForUserOnFarm(user.id, farmId, "finance", "finance_entry", {
+      kind: "revenue",
+      revenueId: row.id
+    });
     return row;
   }
 
