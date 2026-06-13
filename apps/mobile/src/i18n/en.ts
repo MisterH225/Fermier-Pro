@@ -1636,7 +1636,7 @@ export const en = {
       addFab: "New animal",
       heads: "head(s)",
       filter: {
-        all: "All",
+        all: "In herd",
         male: "Boars",
         female: "Sows",
         active: "Active",
@@ -1687,7 +1687,7 @@ export const en = {
         financeLinked: "A revenue entry is created in Finance when a sale price is set.",
         healthLinked: "A mortality exit is recorded (Health module).",
         exitedHint:
-          "The animal leaves the herd headcount. This is neither a sale nor a death. Open marketplace listings will be delisted."
+          "The animal leaves the active herd (headcount, pens, listings). You can still find it under the « Exited from herd » filter."
       },
       sale: {
         title: "Record sale",

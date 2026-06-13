@@ -1246,6 +1246,7 @@ export class CheptelService {
     const herdExitStatuses = new Set(["exited", "dead", "transferred"]);
 
     if (herdExitStatuses.has(status)) {
+      let batchIdForExit: string | null = null;
       await this.prisma.$transaction(async (tx) => {
         const animalRow = await tx.animal.findFirst({
           where: { id: animalId, farmId },
@@ -1260,7 +1261,7 @@ export class CheptelService {
           await this.penAllocation.recalculatePenCategory(tx, penId);
           await this.penAllocation.recalculatePenAverageWeight(tx, penId);
         }
-        await applyBatchHeadcountOnAnimalExit(tx, {
+        batchIdForExit = await applyBatchHeadcountOnAnimalExit(tx, {
           farmId,
           animalId,
           livestockBatchId: animalRow?.livestockBatchId ?? null,
@@ -1274,6 +1275,18 @@ export class CheptelService {
       });
 
       if (status === "exited") {
+        await this.prisma.livestockExit.create({
+          data: {
+            farmId,
+            animalId,
+            batchId: batchIdForExit,
+            kind: LivestockExitKind.slaughter,
+            occurredAt,
+            recordedByUserId: user.id,
+            headcountAffected: 1,
+            note: dto.note ?? null
+          }
+        });
         try {
           await this.listingAnimalSync.onAnimalExitedFromCheptel(animalId);
         } catch (e) {
@@ -1289,10 +1302,27 @@ export class CheptelService {
           data: {
             farmId,
             animalId,
+            batchId: batchIdForExit,
             kind: LivestockExitKind.mortality,
             recordedByUserId: user.id,
             headcountAffected: 1,
             deathCause: dto.deathCause ?? dto.note ?? null,
+            note: dto.note ?? null,
+            occurredAt
+          }
+        });
+      }
+
+      if (status === "transferred") {
+        await this.prisma.livestockExit.create({
+          data: {
+            farmId,
+            animalId,
+            batchId: batchIdForExit,
+            kind: LivestockExitKind.transfer,
+            occurredAt,
+            recordedByUserId: user.id,
+            headcountAffected: 1,
             note: dto.note ?? null
           }
         });

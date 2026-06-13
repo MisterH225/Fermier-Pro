@@ -1,4 +1,5 @@
 import type { AnimalListItem, PenAnimalRowDto } from "../../../lib/api";
+import { isAnimalInCheptelHerd } from "../../../lib/cheptelHerd";
 import type { EventItem } from "../../lists/types";
 
 export type AnimalStatusKey =
@@ -191,6 +192,9 @@ export function filterAnimals(
       break;
     case "active":
       list = list.filter((a) => a.status === "active");
+      break;
+    case "all":
+      list = list.filter((a) => isAnimalInCheptelHerd(a.status));
       break;
     case "sold":
       list = list.filter((a) => a.status === "sold");
