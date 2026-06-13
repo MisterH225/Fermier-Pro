@@ -423,6 +423,8 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
       showFavorite={isBuyerProfile}
       isFavorite={favoriteIdSet.has(item.id)}
       onToggleFavorite={() => toggleFav(item.id)}
+      showShare
+      navigation={navigation}
       onPress={() =>
         navigation.navigate("MarketplaceListingDetail", {
           listingId: item.id,

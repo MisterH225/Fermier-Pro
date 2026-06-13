@@ -49,6 +49,7 @@ const TERMINAL_TX: MarketplaceTransactionStatus[] = [
 
 const REFUND_ON_CANCEL: MarketplaceTransactionStatus[] = [
   MarketplaceTransactionStatus.PAYMENT_HELD,
+  MarketplaceTransactionStatus.PICKUP_PROPOSED,
   MarketplaceTransactionStatus.PICKUP_SCHEDULED,
   MarketplaceTransactionStatus.SELLER_SHIPPED,
   MarketplaceTransactionStatus.BUYER_RECEIVED,

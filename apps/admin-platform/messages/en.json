@@ -9,6 +9,7 @@
     "vetAppointments": "Vet appointments",
     "users": "Users",
     "feedModeration": "Feed moderation",
+    "chatModeration": "Chat moderation",
     "auditLogs": "Admin log",
     "map": "Health map",
     "marketplace": "Marketplace",
@@ -679,7 +680,8 @@
     "sections": {
       "events": "Recent violations",
       "sanctioned": "Sanctioned users",
-      "appeals": "Pending appeals"
+      "appeals": "Pending appeals",
+      "content": "Feed content"
     },
     "columns": {
       "date": "Date",
@@ -693,14 +695,43 @@
     "actions": {
       "unsanction": "Lift sanction",
       "acceptAppeal": "Accept",
-      "rejectAppeal": "Reject"
+      "rejectAppeal": "Reject",
+      "deletePost": "Delete post",
+      "deleteComment": "Delete comment",
+      "showRemoved": "Show removed content"
     },
     "empty": {
       "events": "No violations recorded.",
       "sanctioned": "No sanctioned users.",
-      "appeals": "No pending appeals."
+      "appeals": "No pending appeals.",
+      "content": "No posts in the feed."
+    },
+    "content": {
+      "likes": "{count} likes",
+      "comments": "{count} comments",
+      "removed": "Removed",
+      "confirmDeletePost": "Delete this post and hide it from the feed?",
+      "confirmDeleteComment": "Delete this comment?"
     },
     "appealAcceptedDefault": "Your appeal was accepted. Feed access is restored.",
     "appealRejectedDefault": "Your appeal was reviewed and upheld."
+  },
+  "chatModeration": {
+    "title": "Chat moderation",
+    "subtitle": "Discussion rooms (farm and direct messages) — SuperAdmin deletion.",
+    "sections": {
+      "rooms": "Active rooms"
+    },
+    "labels": {
+      "untitled": "Untitled room",
+      "meta": "{members} members · {messages} messages"
+    },
+    "actions": {
+      "deleteRoom": "Delete room"
+    },
+    "empty": {
+      "rooms": "No chat rooms."
+    },
+    "confirmDelete": "Permanently delete this room and all its messages?"
   }
 }

@@ -25,7 +25,10 @@ import {
   fetchFeedPosts,
   fetchFeedPostTypes,
   fetchFeedRules,
+  toggleFeedCommentLike,
+  toggleFeedPostLike,
   type CommunityFeedPostType,
+  type FeedCommentDto,
   type FeedPostDto
 } from "../../lib/api/community-feed";
 import { checkFeedContentBeforeSend } from "../../services/ai/FeedModerationAgent";
@@ -51,14 +54,124 @@ function postTypeLabel(type: CommunityFeedPostType | string | null | undefined):
   return "Publication";
 }
 
+function CommentItem({
+  comment,
+  postId,
+  depth,
+  canComment,
+  onComment,
+  onLike
+}: {
+  comment: FeedCommentDto;
+  postId: string;
+  depth: number;
+  canComment: boolean;
+  onComment: (postId: string, body: string, parentCommentId?: string) => Promise<void>;
+  onLike: (commentId: string) => Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [reply, setReply] = useState("");
+  const [sending, setSending] = useState(false);
+  const [replyModWarning, setReplyModWarning] = useState<string | null>(null);
+  const displayName = comment.isAnonymous
+    ? comment.authorRegion ?? "Région"
+    : comment.authorDisplayName ?? "Membre";
+
+  return (
+    <View style={[styles.comment, depth > 0 && styles.commentReply]}>
+      <View style={styles.postHeader}>
+        <Text style={styles.commentAuthor}>{displayName}</Text>
+        <ProfileBadge profileType={comment.authorProfileType} anonymous={comment.isAnonymous} />
+      </View>
+      <Text style={styles.commentBody}>{comment.body}</Text>
+      <View style={styles.commentActions}>
+        <Pressable
+          onPress={() => void onLike(comment.id)}
+          style={styles.likeBtn}
+        >
+          <Text style={[styles.likeBtnTx, comment.likedByMe && styles.likeBtnTxActive]}>
+            {comment.likedByMe ? "♥" : "♡"} {comment.likeCount > 0 ? comment.likeCount : ""}
+          </Text>
+        </Pressable>
+        {canComment ? (
+          <Pressable onPress={() => setReplyOpen((v) => !v)}>
+            <Text style={styles.replyBtnTx}>
+              {t("feed.reply", "Répondre")}
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
+      {replyOpen && canComment ? (
+        <View style={styles.commentRow}>
+          <TextInput
+            style={styles.commentInput}
+            value={reply}
+            onChangeText={(value) => {
+              setReply(value);
+              setReplyModWarning(null);
+            }}
+            placeholder={t("feed.replyPlaceholder", "Votre réponse…")}
+            placeholderTextColor={mobileColors.textSecondary}
+          />
+          <Pressable
+            disabled={!reply.trim() || sending}
+            onPress={() => {
+              setSending(true);
+              void onComment(postId, reply.trim(), comment.id)
+                .then(() => {
+                  setReply("");
+                  setReplyOpen(false);
+                  setReplyModWarning(null);
+                })
+                .catch((err: unknown) => {
+                  const message =
+                    err instanceof Error
+                      ? err.message
+                      : t("feed.commentBlocked", "Commentaire bloqué par la modération.");
+                  setReplyModWarning(message);
+                  Alert.alert(t("moderation.blockedTitle", "Message bloqué"), message);
+                })
+                .finally(() => {
+                  setSending(false);
+                });
+            }}
+            style={[styles.commentBtn, (!reply.trim() || sending) && styles.disabledBtn]}
+          >
+            <Text style={styles.commentBtnTx}>{t("feed.send", "Envoyer")}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {replyModWarning ? (
+        <ModerationWarningBanner message={replyModWarning} severity="high" />
+      ) : null}
+      {(comment.replies ?? []).map((child) => (
+        <CommentItem
+          key={child.id}
+          comment={child}
+          postId={postId}
+          depth={depth + 1}
+          canComment={canComment}
+          onComment={onComment}
+          onLike={onLike}
+        />
+      ))}
+    </View>
+  );
+}
+
 function PostCard({
   post,
   canComment,
-  onComment
+  onComment,
+  onLikePost,
+  onLikeComment
 }: {
   post: FeedPostDto;
   canComment: boolean;
-  onComment: (postId: string, body: string) => Promise<void>;
+  onComment: (postId: string, body: string, parentCommentId?: string) => Promise<void>;
+  onLikePost: (postId: string) => Promise<void>;
+  onLikeComment: (commentId: string) => Promise<void>;
 }) {
   const { t } = useTranslation();
   const [comment, setComment] = useState("");
@@ -89,16 +202,23 @@ function PostCard({
           Cette alerte est partagée à titre informatif — consultez un professionnel si besoin.
         </Text>
       ) : null}
+      <View style={styles.commentActions}>
+        <Pressable onPress={() => void onLikePost(post.id)} style={styles.likeBtn}>
+          <Text style={[styles.likeBtnTx, post.likedByMe && styles.likeBtnTxActive]}>
+            {post.likedByMe ? "♥" : "♡"} {post.likeCount > 0 ? post.likeCount : ""}
+          </Text>
+        </Pressable>
+      </View>
       {(post.comments ?? []).map((c) => (
-        <View key={c.id} style={styles.comment}>
-          <View style={styles.postHeader}>
-            <Text style={styles.commentAuthor}>
-              {c.isAnonymous ? c.authorRegion ?? "Région" : c.authorDisplayName ?? "Membre"}
-            </Text>
-            <ProfileBadge profileType={c.authorProfileType} anonymous={c.isAnonymous} />
-          </View>
-          <Text style={styles.commentBody}>{c.body}</Text>
-        </View>
+        <CommentItem
+          key={c.id}
+          comment={c}
+          postId={post.id}
+          depth={0}
+          canComment={canComment}
+          onComment={onComment}
+          onLike={onLikeComment}
+        />
       ))}
       {canComment ? (
         <View style={styles.commentRow}>
@@ -254,7 +374,11 @@ export function FeedScreen() {
     });
   };
 
-  const handleComment = async (postId: string, commentBody: string) => {
+  const handleComment = async (
+    postId: string,
+    commentBody: string,
+    parentCommentId?: string
+  ) => {
     if (!accessToken || !activeProfileId) {
       return;
     }
@@ -262,7 +386,27 @@ export function FeedScreen() {
     if (check.shouldBlock || !check.allowed) {
       throw new Error(check.warningMessageFr ?? "Commentaire bloqué.");
     }
-    await createFeedComment(accessToken, activeProfileId, { postId, body: commentBody });
+    await createFeedComment(accessToken, activeProfileId, {
+      postId,
+      body: commentBody,
+      parentCommentId
+    });
+    void queryClient.invalidateQueries({ queryKey: ["feedPosts"] });
+  };
+
+  const handleLikePost = async (postId: string) => {
+    if (!accessToken || !activeProfileId) {
+      return;
+    }
+    await toggleFeedPostLike(accessToken, activeProfileId, postId);
+    void queryClient.invalidateQueries({ queryKey: ["feedPosts"] });
+  };
+
+  const handleLikeComment = async (commentId: string) => {
+    if (!accessToken || !activeProfileId) {
+      return;
+    }
+    await toggleFeedCommentLike(accessToken, activeProfileId, commentId);
     void queryClient.invalidateQueries({ queryKey: ["feedPosts"] });
   };
 
@@ -404,7 +548,13 @@ export function FeedScreen() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.list}
             renderItem={({ item }) => (
-              <PostCard post={item} canComment={canComment} onComment={handleComment} />
+              <PostCard
+                post={item}
+                canComment={canComment}
+                onComment={handleComment}
+                onLikePost={handleLikePost}
+                onLikeComment={handleLikeComment}
+              />
             )}
             ListEmptyComponent={
               <Text style={styles.empty}>Aucune publication pour le moment. Soyez le premier !</Text>
@@ -490,6 +640,22 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: mobileColors.border
   },
+  commentReply: {
+    marginLeft: mobileSpacing.md,
+    borderLeftWidth: 2,
+    borderLeftColor: mobileColors.border,
+    paddingLeft: mobileSpacing.sm
+  },
+  commentActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.md,
+    marginTop: 4
+  },
+  likeBtn: { paddingVertical: 2 },
+  likeBtnTx: { ...mobileTypography.meta, color: mobileColors.textSecondary },
+  likeBtnTxActive: { color: mobileColors.accent, fontWeight: "600" },
+  replyBtnTx: { ...mobileTypography.meta, color: mobileColors.accent, fontWeight: "600" },
   commentAuthor: { ...mobileTypography.meta, fontWeight: "600" },
   commentBody: { ...mobileTypography.body, fontSize: 14, marginTop: 2 },
   commentRow: { flexDirection: "row", gap: mobileSpacing.xs, marginTop: mobileSpacing.sm },

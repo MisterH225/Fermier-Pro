@@ -124,9 +124,9 @@ const navTheme = {
 
 /**
  * Deep links « accès collaboratif » (`fermier-pro://invite/:token`) +
- * Universal Link HTTPS optionnel via `EXPO_PUBLIC_INVITE_BASE_URL`.
- * Le token est passé en `prefilledToken` à l'écran AcceptFarmInvitation
- * (qui appelle `GET /invitations/by-token/:token` pour décider de la suite).
+ * annonces marketplace (`fermier-pro://listing/:listingId`) +
+ * Universal Link HTTPS optionnel via `EXPO_PUBLIC_INVITE_BASE_URL` /
+ * `EXPO_PUBLIC_LISTING_BASE_URL`.
  */
 const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [
@@ -134,12 +134,18 @@ const linking: LinkingOptions<RootStackParamList> = {
     "fermier-pro://",
     ...(process.env.EXPO_PUBLIC_INVITE_BASE_URL
       ? [process.env.EXPO_PUBLIC_INVITE_BASE_URL.replace(/\/invite\/?$/, "")]
+      : []),
+    ...(process.env.EXPO_PUBLIC_LISTING_BASE_URL
+      ? [process.env.EXPO_PUBLIC_LISTING_BASE_URL.replace(/\/listing\/?$/, "")]
       : [])
   ],
   config: {
     screens: {
       AcceptFarmInvitation: {
         path: "invite/:prefilledToken"
+      },
+      MarketplaceListingDetail: {
+        path: "listing/:listingId"
       }
     }
   }

@@ -16,9 +16,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { CounterProposalModal } from "../../../components/marketplace/CounterProposalModal";
 import { CreditProposalModal } from "../../../components/marketplace/CreditProposalModal";
 import { ProposalCard } from "../../../components/marketplace/ProposalCard";
+import { ListingShareButton } from "../../../components/marketplace/ListingShareButton";
 import { EmptyStateCard } from "../../../components/common/EmptyStateCard";
 import { useModal } from "../../../components/modals/useModal";
 import { useSession } from "../../../context/SessionContext";
+import { invalidateBuyerDashboardQueries } from "../../../lib/buyerDashboardQueries";
 import {
   acceptMarketplaceOffer,
   agreeMarketplaceCreditOffer,
@@ -152,6 +154,7 @@ export function PropositionsRecuesTab({
     void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
     void qc.invalidateQueries({ queryKey: ["marketplaceMyListings"] });
     void qc.invalidateQueries({ queryKey: ["marketplaceListings"] });
+    invalidateBuyerDashboardQueries(qc);
   };
 
   const acceptMut = useMutation({
@@ -420,24 +423,40 @@ export function PropositionsRecuesTab({
           const isOpen = expanded[group.listingId] ?? true;
           return (
             <View style={styles.group}>
-              <Pressable
-                style={styles.groupHeader}
-                onPress={() => toggleGroup(group.listingId)}
-              >
-                <Text style={styles.groupTitle} numberOfLines={2}>
-                  {group.listingTitle}
-                </Text>
-                <Text style={styles.groupCount}>
-                  {t("marketScreen.proposals.groupCount", {
-                    count: group.offers.length
-                  })}
-                </Text>
-                <Ionicons
-                  name={isOpen ? "chevron-up" : "chevron-down"}
+              <View style={styles.groupHeader}>
+                <Pressable
+                  style={styles.groupHeaderMain}
+                  onPress={() => toggleGroup(group.listingId)}
+                >
+                  <Text style={styles.groupTitle} numberOfLines={2}>
+                    {group.listingTitle}
+                  </Text>
+                  <Text style={styles.groupCount}>
+                    {t("marketScreen.proposals.groupCount", {
+                      count: group.offers.length
+                    })}
+                  </Text>
+                  <Ionicons
+                    name={isOpen ? "chevron-up" : "chevron-down"}
+                    size={18}
+                    color={mobileColors.textSecondary}
+                  />
+                </Pressable>
+                <ListingShareButton
+                  listing={{
+                    id: group.listingId,
+                    title: group.listingTitle,
+                    currency: group.offers[0]?.listing.currency,
+                    totalPrice: group.offers[0]?.listing.totalPrice,
+                    pricePerKg: group.offers[0]?.listing.pricePerKg,
+                    totalWeightKg: group.offers[0]?.listing.totalWeightKg,
+                    farm: group.offers[0]?.listing.farm
+                  }}
+                  navigation={navigation}
                   size={18}
-                  color={mobileColors.textSecondary}
+                  color={mobileColors.accent}
                 />
-              </Pressable>
+              </View>
               {isOpen
                 ? group.offers.map((row) => (
                     <ProposalCard
@@ -466,6 +485,16 @@ export function PropositionsRecuesTab({
                       listingCategory={row.listing.category}
                       listingWeightKg={row.listing.totalWeightKg}
                       actionsDisabled={busy}
+                      listingShare={{
+                        id: row.listing.id,
+                        title: row.listing.title,
+                        currency: row.listing.currency,
+                        totalPrice: row.listing.totalPrice,
+                        pricePerKg: row.listing.pricePerKg,
+                        totalWeightKg: row.listing.totalWeightKg,
+                        farm: row.listing.farm
+                      }}
+                      navigation={navigation}
                       onPressListing={() =>
                         navigation.navigate("MarketplaceListingDetail", {
                           listingId: row.listing.id,
@@ -564,9 +593,15 @@ const styles = StyleSheet.create({
   groupHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: mobileSpacing.sm,
+    gap: mobileSpacing.xs,
     paddingVertical: mobileSpacing.sm,
     paddingHorizontal: mobileSpacing.xs
+  },
+  groupHeaderMain: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.sm
   },
   groupTitle: {
     ...mobileTypography.cardTitle,

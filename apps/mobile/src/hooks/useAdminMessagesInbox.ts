@@ -31,12 +31,30 @@ export function useAdminMessagesInbox(enabled = true) {
     [accessToken, qc]
   );
 
+  const deleteMessage = useCallback(
+    async (id: string) => {
+      if (!accessToken) return;
+      const { deleteMyAdminMessage } = await import("../lib/api");
+      try {
+        await deleteMyAdminMessage(accessToken, id);
+        await qc.invalidateQueries({ queryKey: ["auth.me.adminMessages"] });
+        await qc.invalidateQueries({
+          queryKey: ["auth.me.adminMessages.unreadCount"]
+        });
+      } catch {
+        // best effort
+      }
+    },
+    [accessToken, qc]
+  );
+
   return {
     items: query.data?.items ?? [],
     total: query.data?.total ?? 0,
     isLoading: query.isLoading,
     error: query.error,
     markRead,
+    deleteMessage,
     refetch: query.refetch
   };
 }

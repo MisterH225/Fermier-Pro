@@ -7,6 +7,7 @@ import {
   View
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { offerStatusLabel } from "../../lib/marketplaceLabels";
 import {
   mobileColors,
@@ -19,6 +20,9 @@ import { formatMarketMoney, parseMarketNum } from "./MarketplaceListingCard";
 import { CreditScoreBadge } from "./CreditScoreBadge";
 import { BalanceTrackingCard } from "./BalanceTrackingCard";
 import { MemberAvatar } from "../collaboration/MemberAvatar";
+import { ListingShareButton } from "./ListingShareButton";
+import type { ListingShareInput } from "../../lib/shareMarketplaceListing";
+import type { RootStackParamList } from "../../types/navigation";
 
 type ProposalCardBase = {
   id: string;
@@ -45,6 +49,8 @@ type ProposalCardBase = {
   highlighted?: boolean;
   onPressListing?: () => void;
   actionsDisabled?: boolean;
+  listingShare?: ListingShareInput;
+  navigation?: NativeStackNavigationProp<RootStackParamList>;
 };
 
 type ReceivedProps = ProposalCardBase & {
@@ -130,7 +136,9 @@ export function ProposalCard(props: ProposalCardProps) {
     subtitle,
     highlighted,
     onPressListing,
-    actionsDisabled
+    actionsDisabled,
+    listingShare,
+    navigation
   } = props;
 
   const isCredit = offerType === "credit";
@@ -168,6 +176,15 @@ export function ProposalCard(props: ProposalCardProps) {
 
   return (
     <View style={[styles.card, highlighted && styles.cardHighlighted]}>
+      {listingShare && navigation ? (
+        <ListingShareButton
+          listing={listingShare}
+          navigation={navigation}
+          size={18}
+          color={mobileColors.textSecondary}
+          style={styles.cardShareBtn}
+        />
+      ) : null}
       <Pressable
         onPress={onPressListing}
         disabled={!onPressListing}
@@ -520,7 +537,14 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: mobileColors.border,
     padding: mobileSpacing.md,
-    gap: mobileSpacing.sm
+    gap: mobileSpacing.sm,
+    position: "relative"
+  },
+  cardShareBtn: {
+    position: "absolute",
+    top: mobileSpacing.sm,
+    right: mobileSpacing.sm,
+    zIndex: 1
   },
   cardHighlighted: {
     borderColor: mobileColors.accent,

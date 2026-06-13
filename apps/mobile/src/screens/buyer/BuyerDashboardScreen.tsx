@@ -13,12 +13,11 @@ import {
   TextInput,
   View
 } from "react-native";
-import { AdminMessagesBanner } from "../../components/admin/AdminMessagesBanner";
-import { AccountNotificationsSection } from "../../components/notifications/AccountNotificationsSection";
 import { PendingInvitationsBanner } from "../../components/collaboration/PendingInvitationsBanner";
 import { PigPriceIndex } from "../../components/market/PigPriceIndex";
 import { BuyerProfileModal } from "../../components/buyer/BuyerProfileModal";
 import { BuyerWelcomeHeader } from "../../components/buyer/BuyerWelcomeHeader";
+import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
 import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import {
   ProfileHeroCard,
@@ -64,7 +63,8 @@ export function BuyerDashboardScreen() {
   useFocusEffect(
     useCallback(() => {
       void refreshAuthMe();
-    }, [refreshAuthMe])
+      void dashQ.refetch();
+    }, [refreshAuthMe, dashQ])
   );
 
   const displayName =
@@ -79,10 +79,13 @@ export function BuyerDashboardScreen() {
         avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
         onPressAvatar={() => setProfileOpen(true)}
       />
-      <SupportHeaderButton
-        iconColor={buyerColors.primary}
-        style={styles.heroIconBtn}
-      />
+      <View style={styles.heroActions}>
+        <NotificationsHeaderButton iconColor={buyerColors.primary} style={styles.heroIconBtn} />
+        <SupportHeaderButton
+          iconColor={buyerColors.primary}
+          style={styles.heroIconBtn}
+        />
+      </View>
     </View>
   );
 
@@ -101,9 +104,7 @@ export function BuyerDashboardScreen() {
           />
         }
       >
-        <AdminMessagesBanner />
         <PendingInvitationsBanner />
-        <AccountNotificationsSection />
 
         <ProfileHeroCard>
           <View style={styles.searchWrap}>
@@ -134,12 +135,17 @@ export function BuyerDashboardScreen() {
               <Text style={styles.kpiValue}>{kpis?.pendingProposals ?? 0}</Text>
               <Text style={styles.kpiLabel}>{t("buyer.kpi.pending")}</Text>
             </View>
-            <View style={[styles.kpiCard, { backgroundColor: "#E8F5E9" }]}>
+            <Pressable
+              style={[styles.kpiCard, { backgroundColor: "#E8F5E9" }]}
+              onPress={() =>
+                navigation.navigate("BuyerHistory", { initialTab: "purchases" })
+              }
+            >
               <Text style={[styles.kpiValue, { color: buyerColors.success }]}>
                 {kpis?.purchasesCount ?? 0}
               </Text>
               <Text style={styles.kpiLabel}>{t("buyer.kpi.purchases")}</Text>
-            </View>
+            </Pressable>
             <Pressable
               style={[styles.kpiCard, { backgroundColor: "#FCE4EC" }]}
               onPress={() => navigation.navigate("BuyerFavorites")}
@@ -172,6 +178,11 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.sm,
     backgroundColor: buyerColors.canvas,
     gap: mobileSpacing.sm
+  },
+  heroActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.xs
   },
   heroIconBtn: {
     padding: mobileSpacing.sm,

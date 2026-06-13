@@ -110,4 +110,13 @@ export class AuthController {
   ) {
     return this.adminModeration.markMessageRead(user.id, messageId);
   }
+
+  @Delete("me/admin-messages/:id")
+  @UseGuards(SupabaseJwtGuard, OptionalActiveProfileGuard)
+  async deleteMyAdminMessage(
+    @CurrentUser() user: User,
+    @Param("id") messageId: string
+  ) {
+    return this.adminModeration.deleteMessageForRecipient(user.id, messageId);
+  }
 }

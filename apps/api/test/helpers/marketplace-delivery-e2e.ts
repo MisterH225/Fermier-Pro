@@ -112,6 +112,57 @@ export async function setupMarketplaceDeliveryListing(params: {
   };
 }
 
+export async function advanceMarketplaceToSellerShipped(params: {
+  app: INestApplication;
+  sellerToken: string;
+  buyerToken: string;
+  transactionId: string;
+  animalWeightKg?: number;
+}): Promise<void> {
+  const pickup = await request(params.app.getHttpServer())
+    .post(`/api/v1/marketplace/transactions/${params.transactionId}/pickup`)
+    .set("Authorization", `Bearer ${params.buyerToken}`)
+    .send({
+      pickupDate: new Date().toISOString().slice(0, 10),
+      pickupLocation: "Ferme E2E"
+    });
+  expect(pickup.status).toBe(201);
+
+  const pickupConfirm = await request(params.app.getHttpServer())
+    .post(
+      `/api/v1/marketplace/transactions/${params.transactionId}/pickup/confirm`
+    )
+    .set("Authorization", `Bearer ${params.sellerToken}`);
+  expect(pickupConfirm.status).toBe(201);
+
+  const declareWeight = await request(params.app.getHttpServer())
+    .post(
+      `/api/v1/marketplace/transactions/${params.transactionId}/weight/declare`
+    )
+    .set("Authorization", `Bearer ${params.buyerToken}`)
+    .send({ realWeightKg: params.animalWeightKg ?? 25 });
+  expect(declareWeight.status).toBe(201);
+
+  const validate = await request(params.app.getHttpServer())
+    .post(
+      `/api/v1/marketplace/transactions/${params.transactionId}/weight/validate`
+    )
+    .set("Authorization", `Bearer ${params.sellerToken}`);
+  expect(validate.status).toBe(201);
+
+  const ship = await request(params.app.getHttpServer())
+    .post(
+      `/api/v1/marketplace/transactions/${params.transactionId}/confirm-shipment`
+    )
+    .set("Authorization", `Bearer ${params.sellerToken}`)
+    .send({
+      shippedAt: new Date().toISOString().slice(0, 10),
+      method: "handover"
+    });
+  expect(ship.status).toBe(201);
+  expect(ship.body.status).toBe("SELLER_SHIPPED");
+}
+
 export async function runDoubleConfirmationHappyPath(params: {
   app: INestApplication;
   sellerToken: string;
@@ -135,17 +186,12 @@ export async function runDoubleConfirmationHappyPath(params: {
   expect(payConfirm.status).toBe(201);
   expect(payConfirm.body.status).toBe("PAYMENT_HELD");
 
-  const ship = await request(params.app.getHttpServer())
-    .post(
-      `/api/v1/marketplace/transactions/${params.ctx.transactionId}/confirm-shipment`
-    )
-    .set("Authorization", `Bearer ${params.sellerToken}`)
-    .send({
-      shippedAt: new Date().toISOString().slice(0, 10),
-      method: "handover"
-    });
-  expect(ship.status).toBe(201);
-  expect(ship.body.status).toBe("SELLER_SHIPPED");
+  await advanceMarketplaceToSellerShipped({
+    app: params.app,
+    sellerToken: params.sellerToken,
+    buyerToken: params.buyerToken,
+    transactionId: params.ctx.transactionId
+  });
 
   const receipt = await request(params.app.getHttpServer())
     .post(
@@ -158,15 +204,7 @@ export async function runDoubleConfirmationHappyPath(params: {
       receivedAnimalIds: [params.ctx.animalId]
     });
   expect(receipt.status).toBe(201);
-  expect(receipt.body.status).toBe("WEIGHT_DECLARED");
-
-  const validate = await request(params.app.getHttpServer())
-    .post(
-      `/api/v1/marketplace/transactions/${params.ctx.transactionId}/weight/validate`
-    )
-    .set("Authorization", `Bearer ${params.sellerToken}`);
-  expect(validate.status).toBe(201);
-  expect(validate.body.status).toBe("TRANSACTION_CLOSED");
-  expect(validate.body.pendingTransfer).toBeDefined();
-  expect(validate.body.pendingTransfer.completedAt).toBeNull();
+  expect(receipt.body.status).toBe("TRANSACTION_CLOSED");
+  expect(receipt.body.pendingTransfer).toBeDefined();
+  expect(receipt.body.pendingTransfer.completedAt).toBeNull();
 }

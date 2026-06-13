@@ -26,7 +26,6 @@ import { ScreenSection } from "../components/layout/ScreenSection";
 import { EmptyStateCard } from "../components/common/EmptyStateCard";
 import { CardContentSkeleton } from "../components/common/SkeletonBlocks";
 import { OnboardingBanner } from "../components/onboarding/OnboardingBanner";
-import { AdminMessagesBanner } from "../components/admin/AdminMessagesBanner";
 import { PendingInvitationsBanner } from "../components/collaboration/PendingInvitationsBanner";
 import { VetAppointmentActionsBanner } from "../components/vet/VetAppointmentActionsBanner";
 import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
@@ -344,7 +343,6 @@ export function ProducerDashboardScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <AdminMessagesBanner />
           <PendingInvitationsBanner />
           {accessToken && farmId ? (
             <VetAppointmentActionsBanner

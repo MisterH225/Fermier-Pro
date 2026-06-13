@@ -13,9 +13,12 @@ import {
   type StyleProp,
   type ViewStyle
 } from "react-native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { MarketplaceListingListItem } from "../../lib/api";
 import { formatMarketMoney } from "../../lib/formatMoney";
 import { ListingImage } from "./ListingImage";
+import { ListingShareButton } from "./ListingShareButton";
+import type { RootStackParamList } from "../../types/navigation";
 import { marketplaceColors } from "../../theme/marketplaceTheme";
 import {
   mobileColors,
@@ -58,6 +61,8 @@ type Props = {
   onToggleFavorite?: () => void;
   farmRating?: number | null;
   style?: StyleProp<ViewStyle>;
+  showShare?: boolean;
+  navigation?: NativeStackNavigationProp<RootStackParamList>;
 };
 
 export function MarketplaceListingCard({
@@ -68,7 +73,9 @@ export function MarketplaceListingCard({
   isFavorite,
   onToggleFavorite,
   farmRating,
-  style
+  style,
+  showShare,
+  navigation
 }: Props) {
   const { t } = useTranslation();
   const wKg = parseMarketNum(item.totalWeightKg);
@@ -161,6 +168,17 @@ export function MarketplaceListingCard({
               color={isFavorite ? mobileColors.error : mobileColors.textPrimary}
             />
           </Pressable>
+        ) : null}
+        {showShare && navigation && item.status === "published" ? (
+          <ListingShareButton
+            listing={item}
+            navigation={navigation}
+            size={18}
+            style={[
+              styles.shareBtn,
+              showFavorite ? styles.shareBtnWithFav : null
+            ]}
+          />
         ) : null}
       </View>
       <View style={styles.cardBody}>
@@ -329,6 +347,20 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.background,
     alignItems: "center",
     justifyContent: "center"
+  },
+  shareBtn: {
+    position: "absolute",
+    bottom: mobileSpacing.sm,
+    right: mobileSpacing.sm,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: mobileColors.background,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  shareBtnWithFav: {
+    right: mobileSpacing.sm + 36
   },
   cardBody: {
     padding: mobileSpacing.sm,

@@ -106,7 +106,12 @@ export type RootStackParamList = {
   };
   ChatPickFarm: undefined;
   ChatPickPeer: { farmId: string; farmName: string };
-  ChatSearchUser: undefined;
+  ChatSearchUser:
+    | {
+        shareListingId?: string;
+        shareListingTitle?: string;
+      }
+    | undefined;
   /** Messagerie producteur — liste de toutes les conversations. */
   ProducerMessages: undefined;
   /** Feed communautaire — accessible à tous les profils. */

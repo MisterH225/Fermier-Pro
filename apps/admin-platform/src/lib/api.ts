@@ -1074,3 +1074,105 @@ export function resolveFeedAppeal(
     body: JSON.stringify(body)
   });
 }
+
+export type FeedAdminCommentDto = {
+  id: string;
+  parentCommentId: string | null;
+  authorUserId: string;
+  authorEmail: string | null;
+  authorName: string | null;
+  authorProfileType: string;
+  authorDisplayName: string | null;
+  authorRegion: string | null;
+  body: string;
+  isAnonymous: boolean;
+  isRemoved: boolean;
+  removedReason: string | null;
+  likeCount: number;
+  createdAt: string;
+  replies: FeedAdminCommentDto[];
+};
+
+export type FeedAdminPostDto = {
+  id: string;
+  authorUserId: string;
+  authorEmail: string | null;
+  authorName: string | null;
+  authorProfileType: string;
+  authorDisplayName: string | null;
+  authorRegion: string | null;
+  postType: string;
+  body: string;
+  isAnonymous: boolean;
+  isRemoved: boolean;
+  removedReason: string | null;
+  likeCount: number;
+  commentCount: number;
+  createdAt: string;
+  comments: FeedAdminCommentDto[];
+};
+
+export function fetchFeedAdminPosts(
+  token: string,
+  page = 1,
+  includeRemoved = false
+) {
+  const q = new URLSearchParams({
+    page: String(page),
+    limit: "20",
+    includeRemoved: includeRemoved ? "true" : "false"
+  });
+  return apiFetch<{ page: number; limit: number; total: number; items: FeedAdminPostDto[] }>(
+    `/admin/feed/posts?${q}`,
+    token
+  );
+}
+
+export function adminDeleteFeedPost(token: string, postId: string) {
+  return apiFetch(`/admin/feed/posts/${postId}`, token, { method: "DELETE" });
+}
+
+export function adminDeleteFeedComment(token: string, commentId: string) {
+  return apiFetch(`/admin/feed/comments/${commentId}`, token, { method: "DELETE" });
+}
+
+export type ChatAdminRoomDto = {
+  id: string;
+  kind: string;
+  title: string | null;
+  farmId: string | null;
+  farmName: string | null;
+  directKey: string | null;
+  marketplaceListingId: string | null;
+  marketplaceListingTitle: string | null;
+  memberCount: number;
+  messageCount: number;
+  members: Array<{
+    userId: string;
+    email: string | null;
+    fullName: string | null;
+  }>;
+  lastMessage: {
+    id: string;
+    body: string;
+    createdAt: string;
+    senderName: string | null;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function fetchChatAdminRooms(token: string, page = 1) {
+  const q = new URLSearchParams({ page: String(page), limit: "50" });
+  return apiFetch<{ page: number; limit: number; total: number; items: ChatAdminRoomDto[] }>(
+    `/admin/chat/rooms?${q}`,
+    token
+  );
+}
+
+export function adminDeleteChatRoom(token: string, roomId: string, reason?: string) {
+  return apiFetch(`/admin/chat/rooms/${roomId}`, token, {
+    method: "DELETE",
+    body: JSON.stringify({ reason: reason ?? "admin_removal" })
+  });
+}
