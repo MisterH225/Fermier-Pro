@@ -108,6 +108,121 @@ export async function resolveBatchIdForAnimalExit(
   return mate?.livestockBatchId ?? null;
 }
 
+/** Ferme un placement bande legacy si la loge n'a plus de sujets actifs. */
+export async function closeStaleBatchPlacementInPenIfEmpty(
+  tx: Prisma.TransactionClient,
+  farmId: string,
+  penId: string,
+  endedAt: Date
+): Promise<void> {
+  const activeIndividuals = await tx.penPlacement.count({
+    where: {
+      penId,
+      endedAt: null,
+      animalId: { not: null },
+      animal: { is: { status: "active", farmId } }
+    }
+  });
+  if (activeIndividuals > 0) {
+    return;
+  }
+
+  const batchPlacements = await tx.penPlacement.findMany({
+    where: {
+      penId,
+      endedAt: null,
+      batchId: { not: null },
+      pen: { barn: { farmId } }
+    },
+    select: { id: true, batchId: true }
+  });
+
+  for (const placement of batchPlacements) {
+    await tx.penPlacement.update({
+      where: { id: placement.id },
+      data: { endedAt }
+    });
+    if (placement.batchId) {
+      await tx.livestockBatch.update({
+        where: { id: placement.batchId },
+        data: { status: "inactive", headcount: 0 }
+      });
+    }
+  }
+}
+
+/** Termine les logements actifs d'un sujet et renvoie les loges impactées. */
+export async function endActiveAnimalPenPlacements(
+  tx: Prisma.TransactionClient,
+  params: { farmId: string; animalId: string; endedAt: Date }
+): Promise<string[]> {
+  const placements = await tx.penPlacement.findMany({
+    where: {
+      animalId: params.animalId,
+      endedAt: null,
+      pen: { barn: { farmId: params.farmId } }
+    },
+    select: { penId: true }
+  });
+  if (placements.length === 0) {
+    return [];
+  }
+
+  await tx.penPlacement.updateMany({
+    where: {
+      animalId: params.animalId,
+      endedAt: null,
+      pen: { barn: { farmId: params.farmId } }
+    },
+    data: { endedAt: params.endedAt }
+  });
+
+  return [...new Set(placements.map((p) => p.penId))];
+}
+
+/** Décrémente la bande liée et ferme les placements bande orphelins dans les loges concernées. */
+export async function applyBatchHeadcountOnAnimalExit(
+  tx: Prisma.TransactionClient,
+  params: {
+    farmId: string;
+    animalId: string;
+    livestockBatchId: string | null;
+    penIds: string[];
+    endedAt: Date;
+  }
+): Promise<string | null> {
+  const batchIdForExit = await resolveBatchIdForAnimalExit(tx, {
+    farmId: params.farmId,
+    animalId: params.animalId,
+    livestockBatchId: params.livestockBatchId,
+    penIds: params.penIds
+  });
+
+  if (batchIdForExit) {
+    await decrementLivestockBatchHeadcount(tx, {
+      batchId: batchIdForExit,
+      farmId: params.farmId,
+      endedAt: params.endedAt
+    });
+    await syncLivestockBatchHeadcountFromMembers(
+      tx,
+      batchIdForExit,
+      params.farmId
+    );
+  }
+
+  for (const penId of [...new Set(params.penIds)]) {
+    await closeStaleBatchPlacementInPenIfEmpty(
+      tx,
+      params.farmId,
+      penId,
+      params.endedAt
+    );
+  }
+
+  return batchIdForExit;
+}
+
 /** Archive les sujets fictifs créés par migration onboarding quand une bande confirmée existe déjà dans la loge. */
 export async function repairOrphanMigrationDuplicateAnimals(
   tx: Prisma.TransactionClient,
