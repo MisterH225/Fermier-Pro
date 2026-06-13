@@ -746,6 +746,7 @@ export const en = {
       emptySentBody: "Make an offer on a marketplace listing to get started.",
       groupCount: "{{count}} offer(s)",
       negotiate: "Negotiate",
+      contactBuyer: "Contact buyer",
       anonymousBuyer: "Buyer",
       receivedSection: "Offers received",
       viewReceived: "View offers",
@@ -1965,7 +1966,8 @@ export const en = {
     messages: {
       new: "New",
       emptyTitle: "No messages",
-      emptySub: "Send a message to your vet from their profile page.",
+      emptySub:
+        "Find conversations with buyers (marketplace) and your professional contacts here.",
       noMessage: "No messages yet"
     },
     vetAppointments: {

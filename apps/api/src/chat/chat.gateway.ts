@@ -109,6 +109,7 @@ export class ChatGateway implements OnGatewayConnection {
       return { ok: false, error: "unauthorized" };
     }
     const msg = await this.chat.createMessage(userId, body.roomId, body.body);
+    this.chat.notifyPeersOfNewMessage(userId, body.roomId, msg.body);
     this.server.to(this.roomChannel(body.roomId)).emit("newMessage", msg);
     return msg;
   }

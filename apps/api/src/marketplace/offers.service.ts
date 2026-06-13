@@ -500,7 +500,16 @@ export class OffersService {
 
   async withdraw(user: User, offerId: string) {
     const offer = await this.prisma.marketplaceOffer.findFirst({
-      where: { id: offerId, buyerUserId: user.id, archived: false }
+      where: { id: offerId, buyerUserId: user.id, archived: false },
+      include: {
+        listing: {
+          select: {
+            id: true,
+            title: true,
+            sellerUserId: true
+          }
+        }
+      }
     });
     if (!offer) {
       throw new NotFoundException("Offre introuvable");
@@ -511,10 +520,39 @@ export class OffersService {
     ) {
       throw new BadRequestException("Offre non retirable");
     }
-    return this.prisma.marketplaceOffer.update({
+    const updated = await this.prisma.marketplaceOffer.update({
       where: { id: offerId },
       data: { status: OfferStatus.withdrawn }
     });
+
+    const buyerFirst =
+      user.fullName?.trim()?.split(/\s+/)[0] ?? "Un acheteur";
+    void this.push.sendToUser(
+      offer.listing.sellerUserId,
+      "Proposition retirée",
+      `${buyerFirst} a retiré sa proposition sur « ${offer.listing.title} ». Vous pouvez continuer la discussion par message.`,
+      {
+        type: "marketplace_offer_withdrawn",
+        listingId: offer.listing.id,
+        offerId
+      }
+    );
+
+    try {
+      await this.chat.syncMarketplaceOfferMessageStatus(
+        offerId,
+        OfferStatus.withdrawn
+      );
+      await this.chat.ensureDirectRoom(
+        user,
+        offer.listing.sellerUserId,
+        offer.listing.id
+      );
+    } catch {
+      /* chat optionnel */
+    }
+
+    return updated;
   }
 
   private async reserveListingForAcceptedOffer(
