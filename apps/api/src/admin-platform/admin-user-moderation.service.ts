@@ -748,6 +748,17 @@ export class AdminUserModerationService {
     return { ok: true };
   }
 
+  async deleteMessageForRecipient(recipientId: string, messageId: string) {
+    const row = await this.prisma.adminMessage.findFirst({
+      where: { id: messageId, recipientUserId: recipientId }
+    });
+    if (!row) {
+      throw new NotFoundException("Message introuvable");
+    }
+    await this.prisma.adminMessage.delete({ where: { id: messageId } });
+    return { ok: true };
+  }
+
   async countUnreadMessages(recipientId: string) {
     const count = await this.prisma.adminMessage.count({
       where: { recipientUserId: recipientId, isRead: false }

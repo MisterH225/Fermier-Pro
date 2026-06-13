@@ -1004,6 +1004,19 @@ export function patchFarmSmartAlertRead(
   );
 }
 
+export function deleteFarmSmartAlert(
+  accessToken: string,
+  farmId: string,
+  alertId: string,
+  activeProfileId?: string | null
+): Promise<{ ok: boolean }> {
+  return apiDeleteJson<{ ok: boolean }>(
+    `/farms/${farmId}/alerts/${alertId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
 export function fetchFarmAlertSettings(
   accessToken: string,
   farmId: string,

@@ -913,6 +913,10 @@ export const fr = {
     hideInfo: "Masquer les infos",
     showInfo: "Voir {{n}} info(s)",
     bellA11y: "Notifications",
+    markRead: "Marquer comme lu",
+    delete: "Supprimer",
+    deleteConfirmTitle: "Supprimer cette notification ?",
+    deleteConfirmBody: "Cette action est définitive.",
     moduleMarket: "Marché",
     market: {
       priceUp: {

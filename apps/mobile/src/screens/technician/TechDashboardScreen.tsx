@@ -26,12 +26,10 @@ import {
 import { TechMobileShell } from "../../components/layout/TechMobileShell";
 import { TechProfileModal } from "../../components/technician/TechProfileModal";
 import { TechWelcomeHeader } from "../../components/technician/TechWelcomeHeader";
+import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
 import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import { DashboardTaskWidget } from "../../components/tasks";
 import { TechQuickActionModals } from "../../components/technician/TechQuickActionModals";
-import { AccountNotificationsSection } from "../../components/notifications/AccountNotificationsSection";
-import { SmartAlertsSection } from "../../components/smartAlerts/SmartAlertsSection";
-import { AdminMessagesBanner } from "../../components/admin/AdminMessagesBanner";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import {
@@ -154,27 +152,12 @@ export function TechDashboardScreen() {
           iconColor={techColors.primary}
           style={styles.heroIconBtn}
         />
-        <Pressable
-          onPress={() => {
-            if (activeFarm) {
-              navigation.navigate("SmartAlertsList", {
-                farmId: activeFarm.farmId,
-                farmName: activeFarm.farmName
-              });
-            }
-          }}
-          style={({ pressed }) => [styles.bell, pressed && { opacity: 0.85 }]}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityRole="button"
-          accessibilityLabel={t("smartAlerts.bellA11y", "Notifications")}
-        >
-          <Ionicons name="notifications-outline" size={22} color={techColors.primary} />
-          {(dashQ.data?.alertsCount ?? 0) > 0 ? (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{dashQ.data?.alertsCount}</Text>
-            </View>
-          ) : null}
-        </Pressable>
+        <NotificationsHeaderButton
+          iconColor={techColors.primary}
+          farmId={activeFarm?.farmId}
+          farmName={activeFarm?.farmName}
+          style={styles.heroIconBtn}
+        />
       </View>
     </View>
   );
@@ -223,8 +206,6 @@ export function TechDashboardScreen() {
             </ScrollView>
           ) : null}
         </ProfileHeroCard>
-
-        <AdminMessagesBanner />
 
         <View style={styles.sectionBlock}>
           <ScreenSection title={t("tech.dashboard.tasksToday")}>
@@ -326,17 +307,6 @@ export function TechDashboardScreen() {
           </View>
           )}
         </ScreenSection>
-
-        {activeFarm && accessToken ? (
-          <SmartAlertsSection
-            farmId={activeFarm.farmId}
-            farmName={activeFarm.farmName}
-            accessToken={accessToken}
-            activeProfileId={activeProfileId}
-          />
-        ) : (
-          <AccountNotificationsSection />
-        )}
 
         <View style={styles.sectionBlock}>
           <ScreenSection title={t("tech.dashboard.recentActivity")}>

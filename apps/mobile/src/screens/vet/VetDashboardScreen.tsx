@@ -17,15 +17,12 @@ import { CardContentSkeleton, KpiGridSkeleton, ListSkeleton } from "../../compon
 import { EventList } from "../../components/lists/EventList";
 import type { EventItem } from "../../components/lists/types";
 import { VetMobileShell } from "../../components/layout";
-import { AlertBadge } from "../../components/smartAlerts/AlertBadge";
 import { DashboardTaskWidget } from "../../components/tasks";
 import { VetAccountModal } from "../../components/vet/VetAccountModal";
 import { VetWelcomeHeader } from "../../components/vet/VetWelcomeHeader";
+import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
 import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import { VisitCard } from "../../components/vet/VisitCard";
-import { AdminMessagesBanner } from "../../components/admin/AdminMessagesBanner";
-import { AccountNotificationsSection } from "../../components/notifications/AccountNotificationsSection";
-import { SmartAlertsSection } from "../../components/smartAlerts/SmartAlertsSection";
 import { PendingInvitationsBanner } from "../../components/collaboration/PendingInvitationsBanner";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
@@ -136,9 +133,6 @@ export function VetDashboardScreen() {
     [dashQ.data?.recentActivity, locale]
   );
 
-  const notificationCount =
-    (dashQ.data?.kpis.healthAlerts ?? 0) + (dashQ.data?.kpis.pendingTasks ?? 0);
-
   const kpis = dashQ.data?.kpis;
 
   const dashboardHeader: ReactNode = (
@@ -155,31 +149,12 @@ export function VetDashboardScreen() {
           iconColor={vetColors.primary}
           style={[styles.heroIconBtn, vetShadow.soft]}
         />
-        <Pressable
-          onPress={() => {
-            if (primaryFarm) {
-              navigation.navigate("SmartAlertsList", {
-                farmId: primaryFarm.id,
-                farmName: primaryFarm.name
-              });
-              return;
-            }
-            navigation.navigate("VetFarms");
-          }}
-          style={({ pressed }) => [
-            styles.heroIconBtn,
-            vetShadow.soft,
-            pressed && { opacity: 0.85 }
-          ]}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityRole="button"
-          accessibilityLabel={t("smartAlerts.bellA11y", "Notifications")}
-        >
-          <View style={styles.bellWrap}>
-            <Ionicons name="notifications-outline" size={22} color={vetColors.primary} />
-            {notificationCount > 0 ? <AlertBadge count={notificationCount} /> : null}
-          </View>
-        </Pressable>
+        <NotificationsHeaderButton
+          iconColor={vetColors.primary}
+          farmId={primaryFarm?.id}
+          farmName={primaryFarm?.name}
+          style={[styles.heroIconBtn, vetShadow.soft]}
+        />
       </View>
     </View>
   );
@@ -192,7 +167,6 @@ export function VetDashboardScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} />
         }
       >
-        <AdminMessagesBanner />
         <PendingInvitationsBanner />
         {isPending ? (
           <View style={styles.pendingBanner}>
@@ -299,17 +273,6 @@ export function VetDashboardScreen() {
                 accent="#DB2777"
               />
             </View>
-            )}
-
-            {primaryFarm && accessToken ? (
-              <SmartAlertsSection
-                farmId={primaryFarm.id}
-                farmName={primaryFarm.name}
-                accessToken={accessToken}
-                activeProfileId={activeProfileId}
-              />
-            ) : (
-              <AccountNotificationsSection />
             )}
 
             {(financeQ.data?.pendingEarnings ?? 0) > 0 ? (

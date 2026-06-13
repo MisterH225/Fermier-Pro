@@ -5,6 +5,7 @@ import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -18,6 +19,7 @@ import { AlertCard } from "../components/smartAlerts/AlertCard";
 import { useAdminMessagesInbox } from "../hooks/useAdminMessagesInbox";
 import { useSession } from "../context/SessionContext";
 import {
+  deleteFarmSmartAlert,
   fetchFarmSmartAlerts,
   patchFarmSmartAlertRead,
   postFarmSmartAlertsRefresh,
@@ -45,6 +47,7 @@ export function SmartAlertsListScreen({ route, navigation }: Props) {
     items: adminMessages,
     isLoading: adminLoading,
     markRead: markAdminRead,
+    deleteMessage: deleteAdminMessage,
     refetch: refetchAdmin
   } = useAdminMessagesInbox();
 
@@ -76,11 +79,50 @@ export function SmartAlertsListScreen({ route, navigation }: Props) {
     }
   });
 
+  const deleteAlertMutation = useMutation({
+    mutationFn: (alertId: string) =>
+      deleteFarmSmartAlert(accessToken!, farmId!, alertId, activeProfileId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["smartAlerts", farmId] });
+    }
+  });
+
+  const confirmDelete = useCallback(
+    (onConfirm: () => void) => {
+      Alert.alert(
+        t("smartAlerts.deleteConfirmTitle"),
+        t("smartAlerts.deleteConfirmBody"),
+        [
+          { text: t("common.cancel", "Annuler"), style: "cancel" },
+          { text: t("smartAlerts.delete"), style: "destructive", onPress: onConfirm }
+        ]
+      );
+    },
+    [t]
+  );
+
   const onMarkAlertRead = useCallback(
     (id: string) => {
       readMutation.mutate(id);
     },
     [readMutation]
+  );
+
+  const onDeleteAdmin = useCallback(
+    (id: string) => {
+      confirmDelete(() => void deleteAdminMessage(id));
+    },
+    [confirmDelete, deleteAdminMessage]
+  );
+
+  const onDeleteAlert = useCallback(
+    (id: string) => {
+      if (!farmId) {
+        return;
+      }
+      confirmDelete(() => deleteAlertMutation.mutate(id));
+    },
+    [confirmDelete, deleteAlertMutation, farmId]
   );
 
   const rows = useMemo((): ListRow[] => {
@@ -106,6 +148,7 @@ export function SmartAlertsListScreen({ route, navigation }: Props) {
           <AdminMessageCard
             msg={item.message}
             onMarkRead={(id) => void markAdminRead(id)}
+            onDelete={onDeleteAdmin}
             adminTag={t("smartAlerts.adminTag")}
           />
         );
@@ -115,10 +158,11 @@ export function SmartAlertsListScreen({ route, navigation }: Props) {
           alert={item.alert}
           navigation={navigation}
           onMarkRead={onMarkAlertRead}
+          onDelete={onDeleteAlert}
         />
       );
     },
-    [markAdminRead, navigation, onMarkAlertRead, t]
+    [markAdminRead, navigation, onDeleteAdmin, onDeleteAlert, onMarkAlertRead, t]
   );
 
   const loading =
