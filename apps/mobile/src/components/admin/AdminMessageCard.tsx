@@ -1,5 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
+import { useTranslation } from "react-i18next";
 import type { AdminMessageDto, AdminMessageTypeDto } from "../../lib/api";
 import {
   mobileColors,
@@ -20,13 +22,15 @@ const TYPE_META: Record<
 type Props = {
   msg: AdminMessageDto;
   onMarkRead?: (id: string) => void;
+  onDelete?: (id: string) => void;
   adminTag?: string;
 };
 
-export function AdminMessageCard({ msg, onMarkRead, adminTag }: Props) {
+export function AdminMessageCard({ msg, onMarkRead, onDelete, adminTag }: Props) {
+  const { t } = useTranslation();
   const meta = TYPE_META[msg.type] ?? TYPE_META.notification;
 
-  return (
+  const body = (
     <Pressable
       onPress={() => !msg.isRead && onMarkRead?.(msg.id)}
       style={({ pressed }) => [
@@ -60,6 +64,29 @@ export function AdminMessageCard({ msg, onMarkRead, adminTag }: Props) {
         </Text>
       </View>
     </Pressable>
+  );
+
+  if (!onDelete) {
+    return body;
+  }
+
+  return (
+    <Swipeable
+      renderRightActions={() => (
+        <Pressable
+          style={styles.swipeDelete}
+          onPress={() => onDelete(msg.id)}
+          accessibilityRole="button"
+          accessibilityLabel={t("smartAlerts.delete")}
+        >
+          <Ionicons name="trash-outline" size={22} color={mobileColors.onAccent} />
+          <Text style={styles.swipeDeleteTx}>{t("smartAlerts.delete")}</Text>
+        </Pressable>
+      )}
+      overshootRight={false}
+    >
+      {body}
+    </Swipeable>
   );
 }
 
@@ -125,5 +152,21 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
     marginTop: 4
+  },
+  swipeDelete: {
+    backgroundColor: mobileColors.error,
+    justifyContent: "center",
+    alignItems: "center",
+    width: 88,
+    marginBottom: mobileSpacing.sm,
+    borderTopRightRadius: mobileRadius.md,
+    borderBottomRightRadius: mobileRadius.md,
+    gap: 4
+  },
+  swipeDeleteTx: {
+    ...mobileTypography.meta,
+    fontSize: 11,
+    fontWeight: "700",
+    color: mobileColors.onAccent
   }
 });

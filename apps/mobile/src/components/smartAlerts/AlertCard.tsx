@@ -48,9 +48,10 @@ type AlertCardProps = {
   alert: SmartAlertListItemDto;
   navigation: NativeStackNavigationProp<RootStackParamList>;
   onMarkRead: (id: string) => void;
+  onDelete?: (id: string) => void;
 };
 
-export function AlertCard({ alert, navigation, onMarkRead }: AlertCardProps) {
+export function AlertCard({ alert, navigation, onMarkRead, onDelete }: AlertCardProps) {
   const { t } = useTranslation();
   const { authMe, activeProfileId } = useSession();
   const display = resolveSmartAlertText(alert, t);
@@ -69,20 +70,38 @@ export function AlertCard({ alert, navigation, onMarkRead }: AlertCardProps) {
   }, [alert, navigation, profile]);
 
   const renderRight = useCallback(() => {
-    if (alert.isRead) {
+    const actions = [];
+    if (!alert.isRead) {
+      actions.push(
+        <Pressable
+          key="read"
+          style={styles.swipeRead}
+          onPress={() => onMarkRead(alert.id)}
+          accessibilityRole="button"
+          accessibilityLabel={t("smartAlerts.markRead")}
+        >
+          <Ionicons name="checkmark-done" size={22} color={mobileColors.onAccent} />
+        </Pressable>
+      );
+    }
+    if (onDelete) {
+      actions.push(
+        <Pressable
+          key="delete"
+          style={styles.swipeDelete}
+          onPress={() => onDelete(alert.id)}
+          accessibilityRole="button"
+          accessibilityLabel={t("smartAlerts.delete")}
+        >
+          <Ionicons name="trash-outline" size={22} color={mobileColors.onAccent} />
+        </Pressable>
+      );
+    }
+    if (actions.length === 0) {
       return null;
     }
-    return (
-      <Pressable
-        style={styles.swipeRead}
-        onPress={() => onMarkRead(alert.id)}
-        accessibilityRole="button"
-        accessibilityLabel="Marquer comme lu"
-      >
-        <Ionicons name="checkmark-done" size={22} color={mobileColors.onAccent} />
-      </Pressable>
-    );
-  }, [alert.id, alert.isRead, onMarkRead]);
+    return <View style={styles.swipeActions}>{actions}</View>;
+  }, [alert.id, alert.isRead, onDelete, onMarkRead, t]);
 
   const body = (
     <Pressable
@@ -118,7 +137,7 @@ export function AlertCard({ alert, navigation, onMarkRead }: AlertCardProps) {
     </Pressable>
   );
 
-  if (alert.isRead) {
+  if (alert.isRead && !onDelete) {
     return body;
   }
 
@@ -190,8 +209,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     width: 72,
+    height: "100%"
+  },
+  swipeDelete: {
+    backgroundColor: mobileColors.error,
+    justifyContent: "center",
+    alignItems: "center",
+    width: 72,
+    height: "100%"
+  },
+  swipeActions: {
+    flexDirection: "row",
     marginBottom: mobileSpacing.sm,
     borderTopRightRadius: mobileRadius.md,
-    borderBottomRightRadius: mobileRadius.md
+    borderBottomRightRadius: mobileRadius.md,
+    overflow: "hidden"
   }
 });

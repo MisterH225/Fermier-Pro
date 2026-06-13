@@ -907,6 +907,10 @@ export const en = {
     hideInfo: "Hide info alerts",
     showInfo: "Show {{n}} info alert(s)",
     bellA11y: "Notifications",
+    markRead: "Mark as read",
+    delete: "Delete",
+    deleteConfirmTitle: "Delete this notification?",
+    deleteConfirmBody: "This action cannot be undone.",
     moduleMarket: "Market",
     market: {
       priceUp: {

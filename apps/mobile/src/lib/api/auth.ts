@@ -217,6 +217,17 @@ export function markMyAdminMessageRead(
   );
 }
 
+/** DELETE /api/v1/auth/me/admin-messages/:id — supprime un message admin reçu. */
+export function deleteMyAdminMessage(
+  accessToken: string,
+  messageId: string
+): Promise<{ ok: boolean }> {
+  return apiDeleteJson<{ ok: boolean }>(
+    `/auth/me/admin-messages/${messageId}`,
+    accessToken
+  );
+}
+
 /** Types alignés sur Prisma `ProfileType` (premiere connexion mobile). */
 export type ProfileTypeChoice =
   | "producer"

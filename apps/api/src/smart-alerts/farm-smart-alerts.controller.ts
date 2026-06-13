@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -128,6 +129,16 @@ export class FarmSmartAlertsController {
     @Param("alertId") alertId: string
   ) {
     return this.smartAlerts.markRead(user, farmId, alertId);
+  }
+
+  @Delete("alerts/:alertId")
+  @RequireFarmScopes(FARM_SCOPE.livestockRead)
+  deleteAlert(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("alertId") alertId: string
+  ) {
+    return this.smartAlerts.deleteAlert(user, farmId, alertId);
   }
 
   @Get("alert-settings")
