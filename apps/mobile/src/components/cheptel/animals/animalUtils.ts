@@ -49,7 +49,7 @@ export function penAnimalToListItem(
     healthStatus: a.healthStatus,
     species: a.species,
     breed: a.breed,
-    weights: a.weights.map((w) => ({
+    weights: (a.weights ?? []).map((w) => ({
       weightKg: w.weightKg,
       measuredAt: w.measuredAt
     })),
@@ -231,7 +231,7 @@ export function animalToEventItem(
   }
 ): EventItem {
   const tag = animalDisplayTag(a);
-  const w = a.weights[0];
+  const w = a.weights?.[0];
   const penLabel = a.currentPen
     ? labels.penLine(a.currentPen.barnName, a.currentPen.penName)
     : labels.noPen;

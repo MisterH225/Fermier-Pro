@@ -123,7 +123,7 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
 
   const livestockMode =
     (farmQuery.data?.livestockMode as "individual" | "batch" | "hybrid") ||
-    (cheptelQuery.data?.farm.livestockMode as "individual" | "batch" | "hybrid") ||
+    (cheptelQuery.data?.farm?.livestockMode as "individual" | "batch" | "hybrid") ||
     "individual";
 
   const showAnimals = livestockMode === "individual" || livestockMode === "hybrid";
@@ -238,7 +238,7 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
           {
             key: "cheptel",
             label: t("cheptel.navCheptel"),
-            badge: cheptelQuery.data?.kpis.totalHeadcount || undefined,
+            badge: cheptelQuery.data?.kpis?.totalHeadcount || undefined,
             content: tabScroll(
               accessToken ? (
                 <CheptelTab

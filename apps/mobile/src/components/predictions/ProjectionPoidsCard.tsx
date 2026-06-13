@@ -14,7 +14,7 @@ type Props = {
 
 export function ProjectionPoidsCard({ payload }: Props) {
   const { t } = useTranslation();
-  const projections = payload.cheptel_predictions.weight_projections;
+  const projections = payload.cheptel_predictions?.weight_projections ?? [];
 
   if (!projections.length) {
     return null;

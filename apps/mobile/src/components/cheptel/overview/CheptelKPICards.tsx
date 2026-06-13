@@ -97,7 +97,7 @@ function miniBars(values: number[], color: string) {
 
 export function CheptelKPICards({ overview }: Props) {
   const { t } = useTranslation();
-  if (!overview) {
+  if (!overview?.kpis) {
     return null;
   }
 

@@ -30,8 +30,12 @@ export function AnimauxPretsCard({
 }: Props) {
   const { t } = useTranslation();
   const [horizon, setHorizon] = useState<PredictionHorizonKey>("30j");
-  const ready = payload.cheptel_predictions.animals_ready_to_sell[horizon];
-  const window = payload.cheptel_predictions.best_sale_window;
+  const cheptel = payload.cheptel_predictions;
+  const ready = cheptel?.animals_ready_to_sell?.[horizon];
+  const window = cheptel?.best_sale_window;
+  if (!ready || !window) {
+    return null;
+  }
   const estimatedRevenue =
     pricePerKg != null
       ? ready.count * ready.estimated_weight_kg * pricePerKg

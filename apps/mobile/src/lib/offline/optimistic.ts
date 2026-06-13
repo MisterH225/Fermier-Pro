@@ -1,14 +1,12 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type {
   AnimalListItem,
-  CheptelOverviewDto,
   CreateAnimalPayload,
   FarmHealthRecordRowDto,
   PatchCheptelAnimalStatusPayload,
   PostFinanceTransactionPayload
 } from "../api";
 import { offlineLocalId } from "./types";
-import { isAnimalInCheptelHerd } from "../cheptelHerd";
 
 function patchFarmAnimalsList(
   qc: QueryClient,
@@ -64,13 +62,11 @@ export function optimisticPatchAnimalStatus(
   animalId: string,
   payload: PatchCheptelAnimalStatusPayload
 ): void {
-  let wasInHerd = false;
   patchFarmAnimalsList(qc, farmId, activeProfileId, (list) =>
     list.map((a) => {
       if (a.id !== animalId) {
         return a;
       }
-      wasInHerd = isAnimalInCheptelHerd(a.status);
       return {
         ...a,
         status: payload.status,
@@ -78,35 +74,10 @@ export function optimisticPatchAnimalStatus(
           payload.status === "active" && a.healthStatus === "sick"
             ? "healthy"
             : a.healthStatus,
-        currentPen:
-          payload.status === "active" ? a.currentPen : null
+        currentPen: payload.status === "active" ? a.currentPen : null
       };
     })
   );
-
-  const nowInHerd = isAnimalInCheptelHerd(payload.status);
-  if (wasInHerd === nowInHerd) {
-    return;
-  }
-
-  const delta = nowInHerd ? 1 : -1;
-  const cheptelKeys = qc
-    .getQueryCache()
-    .findAll({ queryKey: ["farmCheptel", farmId], exact: false });
-  for (const q of cheptelKeys) {
-    const prev = q.state.data as CheptelOverviewDto | undefined;
-    if (!prev?.kpis) {
-      continue;
-    }
-    const nextHeadcount = Math.max(0, (prev.kpis.totalHeadcount ?? 0) + delta);
-    qc.setQueryData(q.queryKey, {
-      ...prev,
-      kpis: {
-        ...prev.kpis,
-        totalHeadcount: nextHeadcount
-      }
-    });
-  }
 }
 
 export function optimisticSellAnimal(

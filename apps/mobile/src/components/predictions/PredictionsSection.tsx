@@ -112,6 +112,7 @@ export function PredictionsSection({
   const payload = data.predictions;
   const currency = data.currency ?? "XOF";
   const pricePerKg = getPredictionPricePerKg(payload);
+  const cheptelPredictions = payload.cheptel_predictions;
 
   return (
     <ScreenSection title={title} headerRight={headerRight}>
@@ -119,7 +120,7 @@ export function PredictionsSection({
         <Text style={styles.generated}>{generatedLabel}</Text>
       ) : null}
       <View style={styles.stack}>
-        {menu === "cheptel" ? (
+        {menu === "cheptel" && cheptelPredictions ? (
           <>
             <AnimauxPretsCard
               payload={payload}

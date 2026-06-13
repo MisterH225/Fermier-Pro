@@ -14,7 +14,10 @@ type Props = {
 
 export function EvolutionCheptelCard({ payload }: Props) {
   const { t } = useTranslation();
-  const evo = payload.cheptel_predictions.herd_evolution;
+  const evo = payload.cheptel_predictions?.herd_evolution;
+  if (!evo) {
+    return null;
+  }
   const bars = [
     { label: t("predictions.now"), value: evo.current_count },
     { label: "30j", value: evo.projected_30j },
