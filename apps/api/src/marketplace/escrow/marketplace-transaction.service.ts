@@ -928,7 +928,7 @@ export class MarketplaceTransactionService {
         );
       }
     }
-    let nextStatus: MarketplaceTransactionStatus =
+    const nextStatus: MarketplaceTransactionStatus =
       MarketplaceTransactionStatus.BUYER_RECEIVED;
     await this.prisma.$transaction([
       this.prisma.marketplaceTransaction.update({
