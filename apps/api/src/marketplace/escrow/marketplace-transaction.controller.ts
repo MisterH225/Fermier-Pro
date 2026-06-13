@@ -110,6 +110,11 @@ export class MarketplaceTransactionController {
     );
   }
 
+  @Post(":id/pickup/confirm")
+  confirmPickup(@CurrentUser() user: User, @Param("id") id: string) {
+    return this.transactions.confirmPickup(user, id);
+  }
+
   @Post(":id/weight/declare")
   declareWeight(
     @CurrentUser() user: User,

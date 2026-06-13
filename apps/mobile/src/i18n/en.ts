@@ -399,13 +399,18 @@ export const en = {
       paymentSuccessBody:
         "Your payment is recorded. Coordinate delivery with the seller.",
       paymentErrorTitle: "Payment failed",
-      pickupSection: "Delivery",
+      pickupSection: "Pickup appointment",
       pickupDate: "Pickup date",
       pickupLocation: "Pickup location",
       pickupLocationPh: "Village, market, farm…",
-      confirmPickup: "Confirm pickup",
-      pickupSuccessTitle: "Pickup scheduled",
-      pickupSuccessBody: "Both parties have been notified.",
+      proposePickup: "Propose this appointment",
+      confirmPickupCta: "Confirm proposed date",
+      pickupProposedTitle: "Appointment proposed",
+      pickupProposedBody: "The seller must confirm this date works for them.",
+      pickupConfirmedTitle: "Appointment confirmed",
+      pickupConfirmedBody:
+        "The buyer can enter the weight on pickup day.",
+      confirmEstimatedWeight: "Confirm estimated weight",
       weightSection: "Weight at delivery",
       realWeight: "Actual weight (kg)",
       declareWeight: "Confirm received weight",
@@ -430,21 +435,21 @@ export const en = {
       receiptNotReady: "Receipt not available yet.",
       statusLabel: "Step",
       stepPayment: "Payment",
-      stepDelivery: "Delivery",
-      stepShipment: "Shipment",
-      stepReceipt: "Receipt",
-      stepWeight: "Actual weight",
+      stepPickup: "Appointment",
+      stepWeight: "Weight",
+      stepHandover: "Handover",
       stepClosing: "Closing",
       status: {
         PAYMENT_PENDING: "Awaiting payment",
-        PAYMENT_HELD: "Payment secured — awaiting shipment",
-        PICKUP_SCHEDULED: "Delivery scheduled",
-        SELLER_SHIPPED: "Shipped — awaiting buyer receipt",
-        BUYER_RECEIVED: "Receipt confirmed — weight validation",
-        DELIVERY_DISPUTED: "Delivery dispute",
+        PAYMENT_HELD: "Payment secured — propose pickup",
+        PICKUP_PROPOSED: "Appointment proposed — awaiting seller",
+        PICKUP_SCHEDULED: "Appointment confirmed — enter weight",
         WEIGHT_DECLARED: "Weight declared — seller validation",
         WEIGHT_DISPUTED: "Weight dispute — arbitration",
-        WEIGHT_VALIDATED: "Finalizing",
+        WEIGHT_VALIDATED: "Weight confirmed — confirm handover",
+        SELLER_SHIPPED: "Handover confirmed — confirm receipt",
+        BUYER_RECEIVED: "Receipt confirmed — payout in progress",
+        DELIVERY_DISPUTED: "Delivery dispute",
         TRANSACTION_CLOSED: "Sale completed",
         CANCELLED_BY_BUYER: "Cancelled by buyer",
         CANCELLED_BY_SELLER: "Cancelled by seller",
@@ -452,27 +457,37 @@ export const en = {
       },
       scheduledPickup: "Pickup: {{date}} — {{location}}",
       schedulePickupHint:
-        "Schedule delivery or pickup date and location (this may be days or weeks away). Actual weight is entered only on the day the animal is handed over.",
+        "Propose the date and place where you want to pick up the animal. The seller will confirm if it works.",
       weightAtDeliveryHint:
-        "On delivery or pickup day, confirm the measured actual weight to calculate the final amount.",
+        "On pickup day, enter the actual measured weight.",
       projectedFinalCost: "Estimated final cost: {{amount}}",
       finalCost: "Final amount: {{amount}}",
       sellerWaitPayment:
         "Waiting for the buyer to pay. You will be notified once funds are secured.",
-      sellerWaitSchedule:
-        "Payment received. Schedule delivery with the buyer — actual weight is confirmed on pickup day.",
+      sellerWaitBuyerPickup:
+        "Payment received. Waiting for the buyer to propose a pickup date.",
+      sellerConfirmPickup:
+        "The buyer proposed an appointment. Confirm if this date works for you.",
       sellerWaitWeight:
-        "Delivery scheduled. The buyer will confirm actual weight on pickup day; you can then validate and close the sale.",
-      buyerWaitSchedule:
-        "Payment secured. The seller will confirm shipment; you confirm receipt on delivery.",
+        "Appointment confirmed. The buyer will enter the weight on pickup day.",
+      sellerConfirmHandover:
+        "Weight confirmed. Confirm handover of the animals to the buyer.",
       sellerWaitReceipt:
-        "Shipment confirmed. Waiting for the buyer to confirm receipt.",
+        "Handover confirmed. Waiting for the buyer's final confirmation.",
+      buyerProposePickup:
+        "Propose a date and location to pick up the animal.",
+      buyerWaitPickupConfirm:
+        "Appointment proposed. The seller must confirm the date.",
+      buyerDeclareWeight:
+        "Appointment confirmed. Enter the actual weight measured at pickup.",
+      buyerWaitHandover:
+        "Weight confirmed. The seller will validate handover.",
       buyerWaitReceipt:
-        "The seller confirmed shipment. Confirm receipt once animals are delivered.",
+        "The seller confirmed handover. Confirm receipt to finalize and release payment.",
       deliveryDisputed:
         "A delivery dispute is open. Funds remain secured pending resolution.",
       finalizing:
-        "Weight validated — releasing funds and updating livestock records.",
+        "Receipt confirmed — paying the seller and closing the transaction.",
       weightDisputed:
         "Weight is disputed. Arbitration is in progress — you will be notified."
     },

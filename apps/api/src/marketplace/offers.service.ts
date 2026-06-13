@@ -80,6 +80,7 @@ export class OffersService {
           in: [
             MarketplaceTransactionStatus.PAYMENT_PENDING,
             MarketplaceTransactionStatus.PAYMENT_HELD,
+            MarketplaceTransactionStatus.PICKUP_PROPOSED,
             MarketplaceTransactionStatus.PICKUP_SCHEDULED,
             MarketplaceTransactionStatus.WEIGHT_DECLARED,
             MarketplaceTransactionStatus.WEIGHT_DISPUTED,

@@ -9,6 +9,7 @@ import {
   type E2ESeedResult
 } from "./helpers/e2e-seed";
 import {
+  advanceMarketplaceToSellerShipped,
   runDoubleConfirmationHappyPath,
   seedBuyerFarm,
   setupMarketplaceDeliveryListing,
@@ -112,15 +113,12 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
       .set("Authorization", `Bearer ${ctx.peerToken}`)
       .send({ providerRef });
 
-    await request(app.getHttpServer())
-      .post(
-        `/api/v1/marketplace/transactions/${disputeListing.transactionId}/confirm-shipment`
-      )
-      .set("Authorization", `Bearer ${ctx.token}`)
-      .send({
-        shippedAt: new Date().toISOString().slice(0, 10),
-        method: "handover"
-      });
+    await advanceMarketplaceToSellerShipped({
+      app,
+      sellerToken: ctx.token,
+      buyerToken: ctx.peerToken,
+      transactionId: disputeListing.transactionId
+    });
 
     const openDispute = await request(app.getHttpServer())
       .post(
@@ -183,17 +181,14 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
       .set("Authorization", `Bearer ${ctx.peerToken}`)
       .send({ providerRef: payInit.body.providerRef });
 
-    const fourDaysAgo = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000);
-    await request(app.getHttpServer())
-      .post(
-        `/api/v1/marketplace/transactions/${reminderListing.transactionId}/confirm-shipment`
-      )
-      .set("Authorization", `Bearer ${ctx.token}`)
-      .send({
-        shippedAt: fourDaysAgo.toISOString().slice(0, 10),
-        method: "handover"
-      });
+    await advanceMarketplaceToSellerShipped({
+      app,
+      sellerToken: ctx.token,
+      buyerToken: ctx.peerToken,
+      transactionId: reminderListing.transactionId
+    });
 
+    const fourDaysAgo = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000);
     await ctx.prisma.marketplaceTransaction.update({
       where: { id: reminderListing.transactionId },
       data: { sellerShippedAt: fourDaysAgo }
@@ -225,16 +220,14 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
       .set("Authorization", `Bearer ${ctx.peerToken}`)
       .send({ providerRef: autoPayInit.body.providerRef });
 
+    await advanceMarketplaceToSellerShipped({
+      app,
+      sellerToken: ctx.token,
+      buyerToken: ctx.peerToken,
+      transactionId: autoListing.transactionId
+    });
+
     const fifteenDaysAgo = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000);
-    await request(app.getHttpServer())
-      .post(
-        `/api/v1/marketplace/transactions/${autoListing.transactionId}/confirm-shipment`
-      )
-      .set("Authorization", `Bearer ${ctx.token}`)
-      .send({
-        shippedAt: fifteenDaysAgo.toISOString().slice(0, 10),
-        method: "handover"
-      });
     await ctx.prisma.marketplaceTransaction.update({
       where: { id: autoListing.transactionId },
       data: { sellerShippedAt: fifteenDaysAgo }

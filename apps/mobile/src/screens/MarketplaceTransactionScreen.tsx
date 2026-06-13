@@ -29,6 +29,7 @@ import {
   cancelMarketplaceTransaction,
   completeMarketplacePendingTransfer,
   confirmMarketplacePayment,
+  confirmMarketplacePickup,
   confirmMarketplaceReceipt,
   confirmMarketplaceShipment,
   declareMarketplaceWeight,
@@ -64,16 +65,17 @@ function stepIndex(status: string): number {
     case "PAYMENT_PENDING":
       return 0;
     case "PAYMENT_HELD":
-    case "PICKUP_SCHEDULED":
+    case "PICKUP_PROPOSED":
       return 1;
-    case "SELLER_SHIPPED":
-      return 2;
-    case "BUYER_RECEIVED":
+    case "PICKUP_SCHEDULED":
     case "WEIGHT_DECLARED":
     case "WEIGHT_DISPUTED":
+      return 2;
     case "WEIGHT_VALIDATED":
+    case "SELLER_SHIPPED":
     case "DELIVERY_DISPUTED":
       return 3;
+    case "BUYER_RECEIVED":
     case "TRANSACTION_CLOSED":
       return 4;
     default:
@@ -169,8 +171,22 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
     onSuccess: () => {
       invalidate();
       Alert.alert(
-        t("marketScreen.transaction.pickupSuccessTitle"),
-        t("marketScreen.transaction.pickupSuccessBody")
+        t("marketScreen.transaction.pickupProposedTitle"),
+        t("marketScreen.transaction.pickupProposedBody")
+      );
+    },
+    onError: (e: Error) =>
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
+  });
+
+  const confirmPickupMut = useMutation({
+    mutationFn: () =>
+      confirmMarketplacePickup(accessToken, transactionId, activeProfileId),
+    onSuccess: () => {
+      invalidate();
+      Alert.alert(
+        t("marketScreen.transaction.pickupConfirmedTitle"),
+        t("marketScreen.transaction.pickupConfirmedBody")
       );
     },
     onError: (e: Error) =>
@@ -229,7 +245,12 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
 
   const weightMut = useMutation({
     mutationFn: () => {
-      const kg = Number.parseFloat(realWeight.replace(",", "."));
+      const current = q.data;
+      const isFlat = current?.priceType === "flat";
+      const estimated = parseMarketNum(current?.estimatedWeightKg);
+      const kg = isFlat
+        ? (estimated ?? 0)
+        : Number.parseFloat(realWeight.replace(",", "."));
       if (!Number.isFinite(kg) || kg <= 0) {
         throw new Error(t("marketScreen.transaction.invalidWeight"));
       }
@@ -359,16 +380,21 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
     });
   const stepLabels = [
     t("marketScreen.transaction.stepPayment"),
-    t("marketScreen.transaction.stepShipment"),
-    t("marketScreen.transaction.stepReceipt"),
+    t("marketScreen.transaction.stepPickup"),
+    t("marketScreen.transaction.stepWeight"),
+    t("marketScreen.transaction.stepHandover"),
     t("marketScreen.transaction.stepClosing")
   ];
   const animalIds = tx.listingAnimalIds ?? [];
-  const canConfirmShipment =
-    isSeller &&
-    (tx.status === "PAYMENT_HELD" || tx.status === "PICKUP_SCHEDULED");
+  const canConfirmPickup = isSeller && tx.status === "PICKUP_PROPOSED";
+  const canConfirmShipment = isSeller && tx.status === "WEIGHT_VALIDATED";
   const canConfirmReceipt = isBuyer && tx.status === "SELLER_SHIPPED";
-  const canDeclareWeight = isBuyer && tx.status === "BUYER_RECEIVED";
+  const canDeclareWeight =
+    isBuyer &&
+    tx.status === "PICKUP_SCHEDULED" &&
+    tx.priceType !== "flat";
+  const canDeclareFlatWeight =
+    isBuyer && tx.status === "PICKUP_SCHEDULED" && tx.priceType === "flat";
   const pendingTransfer = tx.pendingTransfer;
   const canCompleteTransfer =
     isBuyer &&
@@ -376,13 +402,18 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
     pendingTransfer != null &&
     pendingTransfer.completedAt == null &&
     pendingTransfer.cancelledAt == null;
-  const showPickupForm =
-    tx.status === "PAYMENT_HELD" || tx.status === "PICKUP_SCHEDULED";
+  const showPickupForm = isBuyer && tx.status === "PAYMENT_HELD";
   const showScheduledPickup =
     Boolean(tx.pickupDate && tx.pickupLocation) &&
-    ["PICKUP_SCHEDULED", "SELLER_SHIPPED", "BUYER_RECEIVED", "WEIGHT_DECLARED", "WEIGHT_VALIDATED"].includes(
-      tx.status
-    );
+    [
+      "PICKUP_PROPOSED",
+      "PICKUP_SCHEDULED",
+      "WEIGHT_DECLARED",
+      "WEIGHT_DISPUTED",
+      "WEIGHT_VALIDATED",
+      "SELLER_SHIPPED",
+      "BUYER_RECEIVED"
+    ].includes(tx.status);
 
   return (
     <ScrollView
@@ -491,7 +522,55 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
       {isSeller && tx.status === "PAYMENT_HELD" ? (
         <View style={styles.section}>
           <Text style={styles.waiting}>
-            {t("marketScreen.transaction.sellerWaitSchedule")}
+            {t("marketScreen.transaction.sellerWaitBuyerPickup")}
+          </Text>
+        </View>
+      ) : null}
+
+      {isSeller && tx.status === "PICKUP_PROPOSED" ? (
+        <View style={styles.section}>
+          <Text style={styles.waiting}>
+            {t("marketScreen.transaction.sellerConfirmPickup")}
+          </Text>
+        </View>
+      ) : null}
+
+      {isBuyer && tx.status === "PICKUP_PROPOSED" ? (
+        <View style={styles.section}>
+          <Text style={styles.waiting}>
+            {t("marketScreen.transaction.buyerWaitPickupConfirm")}
+          </Text>
+        </View>
+      ) : null}
+
+      {isSeller && tx.status === "PICKUP_SCHEDULED" ? (
+        <View style={styles.section}>
+          <Text style={styles.waiting}>
+            {t("marketScreen.transaction.sellerWaitWeight")}
+          </Text>
+        </View>
+      ) : null}
+
+      {isBuyer && tx.status === "PICKUP_SCHEDULED" ? (
+        <View style={styles.section}>
+          <Text style={styles.waiting}>
+            {t("marketScreen.transaction.buyerDeclareWeight")}
+          </Text>
+        </View>
+      ) : null}
+
+      {isSeller && tx.status === "WEIGHT_VALIDATED" ? (
+        <View style={styles.section}>
+          <Text style={styles.waiting}>
+            {t("marketScreen.transaction.sellerConfirmHandover")}
+          </Text>
+        </View>
+      ) : null}
+
+      {isBuyer && tx.status === "WEIGHT_VALIDATED" ? (
+        <View style={styles.section}>
+          <Text style={styles.waiting}>
+            {t("marketScreen.transaction.buyerWaitHandover")}
           </Text>
         </View>
       ) : null}
@@ -515,12 +594,12 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
       {isBuyer && tx.status === "PAYMENT_HELD" ? (
         <View style={styles.section}>
           <Text style={styles.waiting}>
-            {t("marketScreen.transaction.buyerWaitSchedule")}
+            {t("marketScreen.transaction.buyerProposePickup")}
           </Text>
         </View>
       ) : null}
 
-      {tx.status === "WEIGHT_VALIDATED" ? (
+      {tx.status === "BUYER_RECEIVED" ? (
         <View style={styles.section}>
           <Text style={styles.waiting}>
             {t("marketScreen.transaction.finalizing")}
@@ -541,6 +620,16 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
           <Text style={styles.waiting}>
             {t("marketScreen.transaction.deliveryDisputed")}
           </Text>
+        </View>
+      ) : null}
+
+      {canConfirmPickup ? (
+        <View style={styles.section}>
+          <PrimaryButton
+            label={t("marketScreen.transaction.confirmPickupCta")}
+            onPress={() => confirmPickupMut.mutate()}
+            loading={confirmPickupMut.isPending}
+          />
         </View>
       ) : null}
 
@@ -599,10 +688,20 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
             placeholder={t("marketScreen.transaction.pickupLocationPh")}
           />
           <PrimaryButton
-            label={t("marketScreen.transaction.confirmPickup")}
+            label={t("marketScreen.transaction.proposePickup")}
             onPress={() => pickupMut.mutate()}
             loading={pickupMut.isPending}
             disabled={!pickupDate.trim() || !pickupLocation.trim()}
+          />
+        </View>
+      ) : null}
+
+      {canDeclareFlatWeight ? (
+        <View style={styles.section}>
+          <PrimaryButton
+            label={t("marketScreen.transaction.confirmEstimatedWeight")}
+            onPress={() => weightMut.mutate()}
+            loading={weightMut.isPending}
           />
         </View>
       ) : null}
