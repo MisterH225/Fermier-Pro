@@ -88,8 +88,9 @@ export async function repairLitterBatches(
       continue;
     }
 
-    const existingCount = await prisma.animal.count({
-      where: { livestockBatchId: batchId, status: "active" }
+    // Tous les sujets matérialisés (y compris sortis) : ne pas recréer après une sortie du cheptel.
+    const materializedCount = await prisma.animal.count({
+      where: { livestockBatchId: batchId }
     });
 
     const batchPlacement = await prisma.penPlacement.findFirst({
@@ -120,7 +121,7 @@ export async function repairLitterBatches(
       sowPlacement?.createdByUserId;
 
     const needsIndividuals =
-      existingCount < litter.bornAlive || batchPlacement != null;
+      materializedCount < litter.bornAlive || batchPlacement != null;
     const needsBatchMetaFix =
       batch.headcount !== 0 ||
       batch.status !== "active" ||
@@ -144,7 +145,7 @@ export async function repairLitterBatches(
       continue;
     }
 
-    const toCreate = Math.max(0, litter.bornAlive - existingCount);
+    const toCreate = Math.max(0, litter.bornAlive - materializedCount);
     const birthDate = litter.recordedAt;
     const avgWeight =
       litter.averageBirthWeightKg != null
