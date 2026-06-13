@@ -1,5 +1,6 @@
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -37,17 +38,23 @@ import type { RootStackParamList } from "../../../types/navigation";
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList>;
+  listingIdFilter?: string | null;
+  highlightOfferId?: string;
   contentPaddingBottom: number;
 };
 
 export function PropositionsEnvoyeesTab({
   navigation,
+  listingIdFilter,
+  highlightOfferId,
   contentPaddingBottom
 }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
   const { open } = useModal();
+  const listRef = useRef<FlatList<MarketplaceOfferMineRow>>(null);
+  const [highlightOffer, setHighlightOffer] = useState(highlightOfferId ?? null);
 
   const sentQ = useQuery({
     queryKey: ["marketplaceMyOffers", activeProfileId],
@@ -184,6 +191,34 @@ export function PropositionsEnvoyeesTab({
       )
   });
 
+  const rows = useMemo(() => {
+    const all = sentQ.data ?? [];
+    if (!listingIdFilter) return all;
+    return all.filter((r) => r.listing.id === listingIdFilter);
+  }, [sentQ.data, listingIdFilter]);
+
+  useEffect(() => {
+    setHighlightOffer(highlightOfferId ?? null);
+  }, [highlightOfferId]);
+
+  useEffect(() => {
+    if (!highlightOfferId || rows.length === 0) {
+      return;
+    }
+    const index = rows.findIndex((r) => r.id === highlightOfferId);
+    if (index >= 0) {
+      requestAnimationFrame(() => {
+        listRef.current?.scrollToIndex({
+          index,
+          animated: true,
+          viewPosition: 0.2
+        });
+      });
+    }
+    const timer = setTimeout(() => setHighlightOffer(null), 4000);
+    return () => clearTimeout(timer);
+  }, [highlightOfferId, rows]);
+
   const confirmWithdraw = (row: MarketplaceOfferMineRow) => {
     Alert.alert(t("marketScreen.withdrawTitle"), t("marketScreen.withdrawBody"), [
       { text: t("marketScreen.withdrawCancel"), style: "cancel" },
@@ -218,7 +253,6 @@ export function PropositionsEnvoyeesTab({
     );
   }
 
-  const rows = sentQ.data ?? [];
   const busy =
     withdrawMut.isPending ||
     acceptCounterMut.isPending ||
@@ -227,12 +261,16 @@ export function PropositionsEnvoyeesTab({
 
   return (
     <FlatList
+      ref={listRef}
       data={rows}
       keyExtractor={(item) => item.id}
       contentContainerStyle={[
         styles.list,
         { paddingBottom: contentPaddingBottom }
       ]}
+      onScrollToIndexFailed={() => {
+        /* ligne pas encore mesurée */
+      }}
       refreshControl={
         <RefreshControl
           refreshing={sentQ.isFetching}
@@ -249,6 +287,7 @@ export function PropositionsEnvoyeesTab({
       renderItem={({ item }) => (
         <ProposalCard
           variant="sent"
+          highlighted={highlightOffer === item.id}
           id={item.id}
           offeredPrice={item.offeredPrice}
           quantity={item.quantity}

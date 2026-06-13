@@ -207,6 +207,10 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     route.params && "offersListingId" in route.params
       ? route.params.offersListingId
       : undefined;
+  const highlightOfferId =
+    route.params && "highlightOfferId" in route.params
+      ? route.params.highlightOfferId
+      : undefined;
 
   const routeTab =
     route.params && "tab" in route.params ? route.params.tab : undefined;
@@ -631,6 +635,7 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
       contentPaddingBottom={scrollBottomPad}
       initialSubTab={offersSubTab}
       listingIdFilter={offersListingFilter}
+      highlightOfferId={highlightOfferId}
     />
   );
 

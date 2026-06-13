@@ -1,6 +1,6 @@
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -49,6 +49,7 @@ type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList>;
   farmId?: string | null;
   listingIdFilter?: string | null;
+  highlightOfferId?: string;
   contentPaddingBottom: number;
 };
 
@@ -62,6 +63,7 @@ export function PropositionsRecuesTab({
   navigation,
   farmId,
   listingIdFilter,
+  highlightOfferId,
   contentPaddingBottom
 }: Props) {
   const { t } = useTranslation();
@@ -76,6 +78,8 @@ export function PropositionsRecuesTab({
   const [creditCounterOffer, setCreditCounterOffer] =
     useState<MarketplaceOfferReceivedRow | null>(null);
   const [activeListingId, setActiveListingId] = useState<string | null>(null);
+  const listRef = useRef<FlatList<ListingGroup>>(null);
+  const [highlightOffer, setHighlightOffer] = useState(highlightOfferId ?? null);
 
   const receivedQ = useQuery({
     queryKey: ["marketplaceOffersReceived", activeProfileId, farmId],
@@ -113,6 +117,36 @@ export function PropositionsRecuesTab({
     }
     return Array.from(map.values());
   }, [rows]);
+
+  useEffect(() => {
+    setHighlightOffer(highlightOfferId ?? null);
+  }, [highlightOfferId]);
+
+  useEffect(() => {
+    if (!highlightOfferId || !receivedQ.data?.length) {
+      return;
+    }
+    const row = receivedQ.data.find((r) => r.id === highlightOfferId);
+    if (!row) {
+      return;
+    }
+    setExpanded((prev) => ({
+      ...prev,
+      [row.listing.id]: true
+    }));
+    const groupIndex = groups.findIndex((g) => g.listingId === row.listing.id);
+    if (groupIndex >= 0) {
+      requestAnimationFrame(() => {
+        listRef.current?.scrollToIndex({
+          index: groupIndex,
+          animated: true,
+          viewPosition: 0.2
+        });
+      });
+    }
+    const timer = setTimeout(() => setHighlightOffer(null), 4000);
+    return () => clearTimeout(timer);
+  }, [highlightOfferId, receivedQ.data, groups]);
 
   const invalidateAll = (listingId: string) => {
     void qc.invalidateQueries({ queryKey: ["marketplaceOffersReceived"] });
@@ -362,12 +396,16 @@ export function PropositionsRecuesTab({
   return (
     <>
       <FlatList
+        ref={listRef}
         data={groups}
         keyExtractor={(g) => g.listingId}
         contentContainerStyle={[
           styles.list,
           { paddingBottom: contentPaddingBottom }
         ]}
+        onScrollToIndexFailed={() => {
+          /* groupe pas encore mesuré */
+        }}
         refreshControl={
           <RefreshControl
             refreshing={receivedQ.isFetching}
@@ -424,6 +462,7 @@ export function PropositionsRecuesTab({
                     <ProposalCard
                       key={row.id}
                       variant="received"
+                      highlighted={highlightOffer === row.id}
                       id={row.id}
                       buyerName={row.buyer.fullName}
                       offeredPrice={row.offeredPrice}

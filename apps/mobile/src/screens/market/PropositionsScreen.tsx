@@ -17,13 +17,15 @@ type Props = {
   contentPaddingBottom: number;
   initialSubTab?: ProposalsSubTab;
   listingIdFilter?: string | null;
+  highlightOfferId?: string;
 };
 
 export function PropositionsScreen({
   navigation,
   contentPaddingBottom,
   initialSubTab = "received",
-  listingIdFilter
+  listingIdFilter,
+  highlightOfferId
 }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
@@ -58,6 +60,7 @@ export function PropositionsScreen({
               navigation={navigation}
               farmId={activeFarmId}
               listingIdFilter={listingIdFilter}
+              highlightOfferId={highlightOfferId}
               contentPaddingBottom={contentPaddingBottom}
             />
           )
@@ -69,6 +72,8 @@ export function PropositionsScreen({
           content: (
             <PropositionsEnvoyeesTab
               navigation={navigation}
+              listingIdFilter={listingIdFilter}
+              highlightOfferId={highlightOfferId}
               contentPaddingBottom={contentPaddingBottom}
             />
           )

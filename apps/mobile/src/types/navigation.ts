@@ -81,6 +81,7 @@ export type RootStackParamList = {
         tab?: "listings" | "mine" | "offers" | "partners";
         offersSubTab?: "received" | "sent";
         offersListingId?: string;
+        highlightOfferId?: string;
         buyerView?: boolean;
         fromDashboard?: boolean;
         favoritesOnly?: boolean;

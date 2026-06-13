@@ -46,6 +46,7 @@ type ProposalCardBase = {
   listingCategory?: string | null;
   listingWeightKg?: string | number | null;
   subtitle?: string | null;
+  highlighted?: boolean;
   onPressListing?: () => void;
   actionsDisabled?: boolean;
   listingShare?: ListingShareInput;
@@ -133,6 +134,7 @@ export function ProposalCard(props: ProposalCardProps) {
     listingCategory,
     listingWeightKg,
     subtitle,
+    highlighted,
     onPressListing,
     actionsDisabled,
     listingShare,
@@ -173,7 +175,7 @@ export function ProposalCard(props: ProposalCardProps) {
     offerAllowsFollowUpMessage(status);
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, highlighted && styles.cardHighlighted]}>
       {listingShare && navigation ? (
         <ListingShareButton
           listing={listingShare}
@@ -543,6 +545,11 @@ const styles = StyleSheet.create({
     top: mobileSpacing.sm,
     right: mobileSpacing.sm,
     zIndex: 1
+  },
+  cardHighlighted: {
+    borderColor: mobileColors.accent,
+    borderWidth: 2,
+    backgroundColor: mobileColors.accentSoft
   },
   headerPress: {
     flexDirection: "row",
