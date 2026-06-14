@@ -2025,10 +2025,38 @@ export const fr = {
     badgePrefix: "Fiabilité",
     dashboard: {
       title: "Votre score producteur",
+      metricTitle: "Score global",
       global: "Indice global : {{value}}/100",
       hint:
         "Ce score reflète la régularité de vos saisies, votre assiduité sur la plateforme et votre réactivité (offres, crédit).",
-      pillarsTitle: "Les 3 piliers",
+      pillarsTitle: "Les 4 piliers",
+      chartTitle: "Les 4 piliers",
+      pillarShort: {
+        data: "Saisies",
+        usage: "Usage",
+        offers: "Offres",
+        chat: "Chat"
+      },
+      achievementBestTitle: "Pilier fort",
+      achievementBestBody:
+        "Votre meilleur résultat : {{pillar}} ({{value}} %).",
+      achievementBestFallback: "Continuez vos saisies pour consolider votre score.",
+      achievementTierTitle: "Top producteur",
+      achievementTierBody:
+        "Votre profil inspire confiance aux acheteurs et partenaires.",
+      achievementProgressTitle: "En progression",
+      achievementProgressBody:
+        "Votre indice est à {{value}}/100 — quelques efforts réguliers feront la différence.",
+      achievementCreditBlockedTitle: "Crédit suspendu",
+      achievementCreditBlockedBody:
+        "Les ventes à crédit sont temporairement bloquées.",
+      achievementCreditDeniedTitle: "Crédit indisponible",
+      achievementCreditDeniedBody:
+        "Améliorez votre score pour débloquer le crédit.",
+      achievementCreditLimitedTitle: "Crédit vigilance",
+      achievementCreditLimitedBody:
+        "Crédit autorisé avec prudence pendant la consolidation du score.",
+      updatedAt: "Dernière mise à jour : {{date}}",
       dataRegularity: "Régularité des saisies",
       dataRegularityDetail:
         "{{days}} jour(s) avec au moins une saisie sur les 30 derniers jours.",

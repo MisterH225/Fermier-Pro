@@ -1996,10 +1996,38 @@ export const en = {
     badgePrefix: "Reliability",
     dashboard: {
       title: "Your producer score",
+      metricTitle: "Overall score",
       global: "Overall index: {{value}}/100",
       hint:
         "This score reflects data entry regularity, platform usage, and responsiveness (offers, credit).",
-      pillarsTitle: "The 3 pillars",
+      pillarsTitle: "The 4 pillars",
+      chartTitle: "The 4 pillars",
+      pillarShort: {
+        data: "Entries",
+        usage: "Usage",
+        offers: "Offers",
+        chat: "Chat"
+      },
+      achievementBestTitle: "Strong pillar",
+      achievementBestBody:
+        "Your best result: {{pillar}} ({{value}}%).",
+      achievementBestFallback: "Keep logging data to strengthen your score.",
+      achievementTierTitle: "Top producer",
+      achievementTierBody:
+        "Your profile builds trust with buyers and partners.",
+      achievementProgressTitle: "Improving",
+      achievementProgressBody:
+        "Your index is {{value}}/100 — steady effort will make a difference.",
+      achievementCreditBlockedTitle: "Credit suspended",
+      achievementCreditBlockedBody:
+        "Credit sales are temporarily blocked.",
+      achievementCreditDeniedTitle: "Credit unavailable",
+      achievementCreditDeniedBody:
+        "Improve your score to unlock credit sales.",
+      achievementCreditLimitedTitle: "Credit caution",
+      achievementCreditLimitedBody:
+        "Credit allowed with caution while your score stabilizes.",
+      updatedAt: "Last updated: {{date}}",
       dataRegularity: "Data entry regularity",
       dataRegularityDetail:
         "{{days}} day(s) with at least one entry in the last 30 days.",
