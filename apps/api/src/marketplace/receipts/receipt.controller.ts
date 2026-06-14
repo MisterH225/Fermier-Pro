@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
 import type { User } from "@prisma/client";
 import { CurrentUser } from "../../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../../auth/guards/supabase-jwt.guard";
@@ -18,6 +18,14 @@ export class ReceiptController {
     @Param("transactionId") transactionId: string
   ) {
     return this.receipts.getReceiptForTransaction(user, transactionId);
+  }
+
+  @Post("transactions/:transactionId/receipt/generate")
+  regenerateTransactionReceipt(
+    @CurrentUser() user: User,
+    @Param("transactionId") transactionId: string
+  ) {
+    return this.receipts.regenerateReceipt(user, transactionId);
   }
 
   @Get("receipts/:receiptId/download")

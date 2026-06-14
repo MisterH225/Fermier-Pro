@@ -3,7 +3,10 @@ import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { PrimaryButton } from "../ui/PrimaryButton";
 import { SecondaryButton } from "../ui/SecondaryButton";
-import { fetchMarketplaceReceipt } from "../../lib/api";
+import {
+  fetchMarketplaceReceipt,
+  regenerateMarketplaceReceipt
+} from "../../lib/api";
 import { downloadAndShareReceiptPdf } from "../../lib/downloadMarketplaceReceipt";
 import {
   mobileColors,
@@ -22,6 +25,7 @@ type Props = {
     receiptNumber: string;
     generatedAt: string;
   } | null;
+  onReceiptUpdated?: () => void;
 };
 
 export function TransactionReceiptCard({
@@ -29,7 +33,8 @@ export function TransactionReceiptCard({
   accessToken,
   activeProfileId,
   receiptGenerationStatus,
-  receipt
+  receipt,
+  onReceiptUpdated
 }: Props) {
   const { t } = useTranslation();
 
@@ -53,10 +58,33 @@ export function TransactionReceiptCard({
     }
   });
 
+  const retryMut = useMutation({
+    mutationFn: async () => {
+      const row = await regenerateMarketplaceReceipt(
+        accessToken,
+        transactionId,
+        activeProfileId
+      );
+      if (!row.receiptNumber) {
+        throw new Error(t("marketScreen.transaction.receiptNotReady"));
+      }
+    },
+    onSuccess: () => {
+      onReceiptUpdated?.();
+    },
+    onError: (e: Error) => {
+      Alert.alert(
+        t("marketScreen.transaction.receiptErrorTitle"),
+        e.message || t("marketScreen.transaction.receiptErrorBody")
+      );
+    }
+  });
+
   const status = receiptGenerationStatus ?? "pending";
   const isGenerated = Boolean(receipt?.receiptNumber) || status === "generated";
   const isFailed = status === "failed";
   const isPending = !isGenerated && !isFailed;
+  const retrying = retryMut.isPending;
 
   return (
     <View style={styles.card}>
@@ -88,6 +116,13 @@ export function TransactionReceiptCard({
           <Text style={styles.muted}>
             {t("marketScreen.transaction.receiptGenerating")}
           </Text>
+          <View style={{ marginTop: mobileSpacing.sm, width: "100%" }}>
+            <SecondaryButton
+              label={t("marketScreen.transaction.receiptRetry")}
+              onPress={() => retryMut.mutate()}
+              loading={retrying}
+            />
+          </View>
         </View>
       ) : null}
       {isFailed ? (
@@ -96,8 +131,8 @@ export function TransactionReceiptCard({
           <View style={{ marginTop: mobileSpacing.sm }}>
             <SecondaryButton
               label={t("marketScreen.transaction.receiptRetry")}
-              onPress={() => downloadMut.mutate()}
-              loading={downloadMut.isPending}
+              onPress={() => retryMut.mutate()}
+              loading={retrying}
             />
           </View>
         </>
@@ -134,6 +169,7 @@ const styles = StyleSheet.create({
   pendingRow: {
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "wrap",
     gap: mobileSpacing.sm,
     marginTop: mobileSpacing.xs
   }

@@ -45,6 +45,7 @@ import {
   calculateFinalAmount,
   lastNMonthKeys,
   paymentExpiryDate,
+  resolveReceiptRealWeightKg,
   settlementAmounts
 } from "./transaction.utils";
 
@@ -885,6 +886,8 @@ export class MarketplaceTransactionService {
       condition: MarketplaceReceiptCondition;
       receivedAnimalIds: string[];
       realWeightKg?: number;
+      animalWeights?: { animalId: string; weightKg: number }[];
+      receivedHeadcount?: number;
       notes?: string;
     }
   ) {
@@ -917,15 +920,49 @@ export class MarketplaceTransactionService {
       throw new NotFoundException("Annonce introuvable");
     }
     const expectedIds = this.listingAnimalIds(listing);
+    const receivedIds =
+      params.receivedAnimalIds.length > 0
+        ? params.receivedAnimalIds
+        : expectedIds;
     if (expectedIds.length > 0) {
-      const received = new Set(params.receivedAnimalIds);
+      const received = new Set(receivedIds);
       const missing = expectedIds.filter((id) => !received.has(id));
       if (missing.length > 0) {
         throw new BadRequestException(
           "Tous les animaux attendus doivent être confirmés"
         );
       }
+    } else if (
+      params.receivedHeadcount != null &&
+      params.receivedHeadcount < 1
+    ) {
+      throw new BadRequestException("Nombre de sujets reçus invalide");
     }
+
+    const resolvedWeight = resolveReceiptRealWeightKg({
+      existingRealWeightKg: tx.realWeightKg?.toNumber() ?? null,
+      realWeightKg: params.realWeightKg,
+      animalWeights: params.animalWeights
+    });
+    if (tx.priceType === MarketplacePriceType.per_kg && resolvedWeight == null) {
+      throw new BadRequestException(
+        "Indiquez le poids réel mesuré à la réception pour recalculer le montant"
+      );
+    }
+
+    const receiptMeta: Record<string, unknown> = {};
+    if (params.animalWeights?.length) {
+      receiptMeta.animalWeights = params.animalWeights;
+    }
+    if (params.receivedHeadcount != null) {
+      receiptMeta.receivedHeadcount = params.receivedHeadcount;
+    }
+    if (params.notes?.trim()) {
+      receiptMeta.userNotes = params.notes.trim();
+    }
+    const receiptNotesPayload =
+      Object.keys(receiptMeta).length > 0 ? JSON.stringify(receiptMeta) : null;
+
     const nextStatus: MarketplaceTransactionStatus =
       MarketplaceTransactionStatus.BUYER_RECEIVED;
     await this.prisma.$transaction([
@@ -935,8 +972,11 @@ export class MarketplaceTransactionService {
           status: nextStatus,
           buyerReceivedAt: receivedAt,
           receiptCondition: params.condition,
-          receiptNotes: params.notes?.trim() || null,
-          receivedAnimalIds: params.receivedAnimalIds
+          receiptNotes: receiptNotesPayload,
+          receivedAnimalIds: receivedIds,
+          ...(resolvedWeight != null
+            ? { realWeightKg: new Prisma.Decimal(resolvedWeight) }
+            : {})
         }
       }),
       this.prisma.marketplaceListing.update({
@@ -1764,7 +1804,27 @@ export class MarketplaceTransactionService {
           tx.currency
         );
         if (!charged) {
-          throw new BadRequestException("Échec du complément de paiement");
+          const extraLabel = `${Math.round(amounts.buyerAdditionalCharge).toLocaleString("fr-FR")} ${tx.currency}`;
+          void this.push.sendToUser(
+            tx.buyerUserId,
+            "Complément à régler au vendeur",
+            `Le poids réel dépasse l'estimation. Réglez ${extraLabel} au vendeur (espèces ou mobile money).`,
+            {
+              type: "marketplace_additional_charge_due",
+              transactionId: tx.id,
+              amount: String(amounts.buyerAdditionalCharge)
+            }
+          );
+          void this.push.sendToUser(
+            tx.sellerUserId,
+            "Complément dû par l'acheteur",
+            `L'acheteur doit vous verser ${extraLabel} hors plateforme (poids réel supérieur).`,
+            {
+              type: "marketplace_additional_charge_due",
+              transactionId: tx.id,
+              amount: String(amounts.buyerAdditionalCharge)
+            }
+          );
         }
       }
 

@@ -150,11 +150,30 @@ export class ReceiptService {
     }
   }
 
+  /** Relance manuelle (acheteur / vendeur / cron). */
+  async regenerateReceipt(
+    user: User,
+    transactionId: string
+  ): Promise<{ receiptNumber: string } | null> {
+    await this.requireParty(transactionId, user.id);
+    return this.generateReceipt(transactionId, { force: true });
+  }
+
   async getReceiptForTransaction(user: User, transactionId: string) {
     const tx = await this.requireParty(transactionId, user.id);
-    const receipt = await this.prisma.marketplaceTransactionReceipt.findUnique({
+    let receipt = await this.prisma.marketplaceTransactionReceipt.findUnique({
       where: { transactionId: tx.id }
     });
+    if (
+      !receipt &&
+      tx.status === MarketplaceTransactionStatus.TRANSACTION_CLOSED &&
+      tx.receiptGenerationStatus !== ReceiptGenerationStatus.generated
+    ) {
+      await this.generateReceipt(transactionId);
+      receipt = await this.prisma.marketplaceTransactionReceipt.findUnique({
+        where: { transactionId: tx.id }
+      });
+    }
     if (!receipt) {
       const status = tx.receiptGenerationStatus;
       return {

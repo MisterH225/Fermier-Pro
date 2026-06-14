@@ -472,6 +472,8 @@ export const fr = {
         "Proposez la date et le lieu où vous souhaitez récupérer l'animal. Le vendeur confirmera si cela lui convient.",
       weightAtDeliveryHint:
         "Le jour du rendez-vous, renseignez le poids réel mesuré à la récupération.",
+      weightAtDeliveryFlatHint:
+        "Le jour du rendez-vous, renseignez le poids réel mesuré (le montant forfaitaire convenu reste inchangé).",
       projectedFinalCost: "Coût final estimé : {{amount}}",
       finalCost: "Montant final : {{amount}}",
       sellerWaitPayment:
@@ -621,8 +623,18 @@ export const fr = {
     receiptModal: {
       open: "Confirmer la réception",
       title: "Confirmer la réception",
-      info: "Vérifiez que vous avez bien reçu les animaux dans l'état prévu.",
+      info: "Vérifiez que vous avez bien reçu les animaux dans l'état prévu. Renseignez le poids réel de chaque sujet pour recalculer le montant final.",
       animals: "Animaux reçus",
+      animalsWeigh: "Animaux reçus — poids de chacun (kg)",
+      weightKgPh: "Poids (kg)",
+      headcount: "Nombre de sujets reçus",
+      totalWeight: "Poids total : {{weight}} kg",
+      estimatedWeight: "Poids estimé à l'annonce : {{weight}} kg",
+      refundHint:
+        "Remboursement prévu : {{amount}} (poids réel inférieur à l'estimation bloquée)",
+      extraHint:
+        "Complément à régler au vendeur hors plateforme : {{amount}} (espèces ou mobile money)",
+      exactHint: "Le montant bloqué correspond au poids réel — aucun ajustement.",
       date: "Date de réception",
       condition: "État des animaux",
       conditions: {
