@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
@@ -10,7 +9,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View
 } from "react-native";
 import { PendingInvitationsBanner } from "../../components/collaboration/PendingInvitationsBanner";
@@ -23,15 +21,16 @@ import { BuyerWelcomeHeader } from "../../components/buyer/BuyerWelcomeHeader";
 import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
 import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import {
-  ProfileHeroCard,
   profileScreenScrollContent,
   ScreenSection
 } from "../../components/layout";
+import { MeteoProfilCard } from "../../components/dashboard/MeteoProfilCard";
 import { BuyerMobileShell } from "../../components/layout/BuyerMobileShell";
-import { useBottomChromePad, useBottomInset } from "../../hooks/useBottomInset";
+import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import { openBuyerOffersHub } from "../../lib/buyerMarketplacePending";
-import { fetchBuyerDashboard } from "../../lib/api";
+import { fetchBuyerDashboard, fetchMyCreditScore } from "../../lib/api";
+import { creditScoreToNumeric } from "../../constants/meteoProfil";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { welcomeFirstName } from "../../lib/userDisplay";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
@@ -46,11 +45,16 @@ export function BuyerDashboardScreen() {
   const { accessToken, activeProfileId, authMe, refreshAuthMe } = useSession();
   const [profileOpen, setProfileOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [search, setSearch] = useState("");
 
   const dashQ = useQuery({
     queryKey: ["buyerDashboard", activeProfileId],
     queryFn: () => fetchBuyerDashboard(accessToken!, activeProfileId),
+    enabled: Boolean(accessToken)
+  });
+
+  const creditScoreQ = useQuery({
+    queryKey: ["myCreditScore", activeProfileId],
+    queryFn: () => fetchMyCreditScore(accessToken!, activeProfileId),
     enabled: Boolean(accessToken)
   });
 
@@ -111,27 +115,6 @@ export function BuyerDashboardScreen() {
         <PendingInvitationsBanner />
         <BuyerPendingMarketplaceBanner />
 
-        <ProfileHeroCard>
-          <View style={styles.searchWrap}>
-            <Ionicons name="search" size={20} color={buyerColors.textMuted} />
-            <TextInput
-              style={styles.search}
-              placeholder={t("buyer.dashboard.searchPlaceholder")}
-              placeholderTextColor={buyerColors.textMuted}
-              value={search}
-              onChangeText={setSearch}
-              onSubmitEditing={() =>
-                navigation.navigate("MarketplaceList", {
-                  tab: "listings",
-                  buyerView: true,
-                  fromDashboard: true,
-                  searchQuery: search.trim() || undefined
-                })
-              }
-            />
-          </View>
-        </ProfileHeroCard>
-
         {dashQ.data?.wallet ? (
           <BuyerBalanceCard
             balance={dashQ.data.wallet.balance}
@@ -140,6 +123,11 @@ export function BuyerDashboardScreen() {
             onPress={() => navigation.navigate("BuyerFinance")}
           />
         ) : null}
+
+        <MeteoProfilCard
+          score={creditScoreToNumeric(creditScoreQ.data?.score)}
+          onPress={() => navigation.navigate("CreditDashboard")}
+        />
 
         <BuyerActiveProposalsSection />
 
@@ -206,22 +194,6 @@ const styles = StyleSheet.create({
   heroIconBtn: {
     padding: mobileSpacing.sm,
     borderRadius: buyerRadius.pill
-  },
-  searchWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: buyerColors.canvas,
-    borderRadius: buyerRadius.button,
-    borderWidth: 1,
-    borderColor: buyerColors.border,
-    paddingHorizontal: mobileSpacing.md,
-    gap: mobileSpacing.sm
-  },
-  search: {
-    flex: 1,
-    paddingVertical: 12,
-    ...mobileTypography.body,
-    color: buyerColors.textPrimary
   },
   kpiGrid: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
   kpiCard: {

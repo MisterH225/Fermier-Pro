@@ -114,6 +114,26 @@ export function getMeteoLevel(score: number | null | undefined): MeteoLevel {
 }
 
 /**
+ * Convertit le score crédit acheteur (string enum) en valeur numérique 0–100
+ * pour alimenter getMeteoLevel.
+ *
+ * Mapping métier : excellent → Soleil de plomb, bon → Grande chaleur,
+ * nouveau → Brise légère, attention → Éclaircie, risque → Nuage gris.
+ */
+export function creditScoreToNumeric(
+  score: string | null | undefined
+): number {
+  switch (score) {
+    case "excellent": return 88;
+    case "bon":       return 72;
+    case "nouveau":   return 43;
+    case "attention": return 28;
+    case "risque":    return 10;
+    default:          return 0;
+  }
+}
+
+/**
  * Calcule le remplissage (0–1) de la barre de progression
  * dans le range du niveau actuel.
  */
