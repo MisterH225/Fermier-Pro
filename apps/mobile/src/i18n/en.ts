@@ -409,6 +409,8 @@ export const en = {
       platformFeeEstimatedLabel: "Estimated platform fee ({{pct}} %)",
       dealPriceLabel: "Agreed price",
       totalPaymentLabel: "Total to pay",
+      feeBufferNote:
+        "Amount held as guarantee: {{blockedAmount}} (adjusted to actual weight at delivery — any surplus is refunded).",
       feeConsentTitle: "Platform fees",
       feeConsentBody:
         "Agreed price: {{dealAmount}}\nPlatform fee ({{pct}} %): {{feeAmount}}\nTotal to pay: {{totalAmount}}\n\nBy confirming, you agree to pay this amount.",

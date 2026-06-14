@@ -356,22 +356,30 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   const hasPlatformFee = tx?.buyerPaysCommission === true && (tx?.commissionRate ?? 0) > 0;
   const feeRatePct = hasPlatformFee ? Math.round((tx!.commissionRate ?? 0) * 100) : 0;
   const feeEstimate = hasPlatformFee ? (tx?.platformFeeEstimate ?? 0) : 0;
-  const dealPrice = hasPlatformFee
-    ? payAmount - feeEstimate
-    : payAmount;
+
+  // Prix convenu réel = prix forfaitaire OU prix/kg × poids estimé
+  // On N'utilise PAS blockedAmount - fee car blockedAmount inclut aussi le buffer poids (+10 %)
+  const agreedDeal = tx
+    ? tx.agreedFlatPrice != null
+      ? tx.agreedFlatPrice
+      : (tx.agreedPricePerKg ?? 0) * (tx.estimatedWeightKg ?? 0)
+    : 0;
+  const dealPrice = hasPlatformFee ? agreedDeal : payAmount;
 
   const handlePayPress = () => {
     if (!hasPlatformFee) {
       payMut.mutate();
       return;
     }
+    // totalAmount = deal + frais (sans buffer pour per_kg — le buffer est restitué à la clôture)
+    const consentTotal = dealPrice + feeEstimate;
     Alert.alert(
       t("marketScreen.transaction.feeConsentTitle"),
       t("marketScreen.transaction.feeConsentBody", {
         dealAmount: money(dealPrice, payCurrency),
         pct: feeRatePct,
         feeAmount: money(feeEstimate, payCurrency),
-        totalAmount: money(payAmount, payCurrency)
+        totalAmount: money(consentTotal, payCurrency)
       }),
       [
         {
@@ -743,9 +751,16 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
                   {t("marketScreen.transaction.totalPaymentLabel")}
                 </Text>
                 <Text style={styles.feeTotalValue}>
-                  {money(tx.blockedAmount, cur)}
+                  {money(dealPrice + feeEstimate, cur)}
                 </Text>
               </View>
+              {tx.priceType !== "flat" ? (
+                <Text style={styles.feeBufferNote}>
+                  {t("marketScreen.transaction.feeBufferNote", {
+                    blockedAmount: money(tx.blockedAmount, cur)
+                  })}
+                </Text>
+              ) : null}
             </View>
           ) : null}
           <MarketplacePaymentMethodPicker
@@ -1076,5 +1091,11 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     color: mobileColors.accent,
     fontWeight: "700"
+  },
+  feeBufferNote: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: mobileSpacing.xs,
+    fontStyle: "italic"
   }
 });

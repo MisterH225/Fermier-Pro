@@ -410,6 +410,8 @@ export const fr = {
       platformFeeEstimatedLabel: "Frais de plateforme estimés ({{pct}} %)",
       dealPriceLabel: "Prix convenu",
       totalPaymentLabel: "Total à payer",
+      feeBufferNote:
+        "Montant bloqué en garantie : {{blockedAmount}} (ajusté au poids réel à la livraison, le surplus vous est restitué).",
       feeConsentTitle: "Frais de plateforme",
       feeConsentBody:
         "Prix convenu : {{dealAmount}}\nFrais de plateforme ({{pct}} %) : {{feeAmount}}\nTotal à payer : {{totalAmount}}\n\nEn confirmant, vous acceptez de régler ce montant.",

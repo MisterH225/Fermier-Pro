@@ -54,8 +54,12 @@ export function calculateAgreedDealAmount(params: {
 
 /**
  * Calcule le montant à bloquer en escrow lors du paiement.
- * Quand buyerPaysCommission est vrai, la commission est incluse dans le montant bloqué
- * (l'acheteur paye le prix convenu + les frais de plateforme).
+ *
+ * Prix forfaitaire : montant convenu + frais acheteur (commission sur le prix convenu).
+ * Prix/kg : montant convenu + frais acheteur + marge buffer +10 % pour le poids réel.
+ *   La commission est calculée sur le PRIX CONVENU (pricePerKg × estimatedWeight),
+ *   pas sur le montant bufféré — conformément à la règle : "les frais sont prélevés
+ *   sur le montant affiché/convenu avec le vendeur".
  */
 export function calculateBlockedAmount(params: {
   priceType: MarketplacePriceType;
@@ -64,12 +68,13 @@ export function calculateBlockedAmount(params: {
   estimatedWeightKg: number | null;
   commissionRate?: number;
 }): number {
-  const feeMultiplier = 1 + (params.commissionRate ?? 0);
+  const commissionRate = params.commissionRate ?? 0;
   if (params.priceType === MarketplacePriceType.flat) {
     if (params.agreedFlatPrice == null || params.agreedFlatPrice <= 0) {
       throw new Error("Prix forfaitaire invalide");
     }
-    return Math.round(params.agreedFlatPrice * feeMultiplier);
+    // Flat : blockedAmount = prix convenu + frais acheteur
+    return Math.round(params.agreedFlatPrice * (1 + commissionRate));
   }
   if (
     params.agreedPricePerKg == null ||
@@ -79,9 +84,11 @@ export function calculateBlockedAmount(params: {
   ) {
     throw new Error("Prix/kg ou poids estimé invalide");
   }
-  return Math.round(
-    params.agreedPricePerKg * params.estimatedWeightKg * PAYMENT_BUFFER * feeMultiplier
-  );
+  // Per_kg : blockedAmount = prix convenu + frais acheteur (sur prix convenu) + buffer poids
+  // = agreedDeal × (1 + commissionRate) + agreedDeal × (PAYMENT_BUFFER - 1)
+  // = agreedDeal × (commissionRate + PAYMENT_BUFFER)
+  const agreedDeal = params.agreedPricePerKg * params.estimatedWeightKg;
+  return Math.round(agreedDeal * (PAYMENT_BUFFER + commissionRate));
 }
 
 /**
