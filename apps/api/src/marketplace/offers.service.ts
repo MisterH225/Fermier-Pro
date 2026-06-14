@@ -23,6 +23,7 @@ import { CounterOfferDto } from "./dto/counter-offer.dto";
 import { CreateOfferDto } from "./dto/create-offer.dto";
 import { CreditScoreService } from "./credit/credit-score.service";
 import { MarketplaceTransactionService } from "./escrow/marketplace-transaction.service";
+import { ACTIVE_DEAL_TRANSACTION_STATUSES } from "./escrow/transaction.utils";
 import { usesFlatListingPrice } from "./marketplace-listing-category.helper";
 
 @Injectable()
@@ -66,6 +67,18 @@ export class OffersService {
     }
     if (listing.status !== ListingStatus.published) {
       throw new BadRequestException("Annonce non disponible aux offres");
+    }
+    const dealInProgress = await this.prisma.marketplaceTransaction.findFirst({
+      where: {
+        listingId,
+        status: { in: ACTIVE_DEAL_TRANSACTION_STATUSES }
+      },
+      select: { id: true }
+    });
+    if (dealInProgress) {
+      throw new BadRequestException(
+        "Une transaction est déjà en cours sur cette annonce"
+      );
     }
     if (listing.sellerUserId === user.id) {
       throw new ForbiddenException(
@@ -322,7 +335,7 @@ export class OffersService {
     void this.push.sendToUser(
       user.id,
       "Proposition acceptée",
-      `Vous avez accepté une offre sur « ${listing.title} ». Confirmez l'envoi une fois les animaux remis.`,
+      `En attente du paiement de l'acheteur pour « ${listing.title} ».`,
       {
         type: "marketplace_offer_accepted_seller",
         listingId,
@@ -480,9 +493,20 @@ export class OffersService {
       await this.transactions.createFromAcceptedOffer(offerId);
 
     void this.push.sendToUser(
+      offer.buyerUserId,
+      "✅ Contre-proposition acceptée",
+      `Votre accord sur « ${listing.title} » est confirmé. Procédez au paiement pour sécuriser l'achat.`,
+      {
+        type: "marketplace_offer_accepted",
+        listingId,
+        offerId,
+        transactionId
+      }
+    );
+    void this.push.sendToUser(
       listing.sellerUserId,
       "Contre-proposition acceptée",
-      `L'acheteur a accepté votre contre-proposition sur « ${listing.title} ».`,
+      `L'acheteur a accepté votre contre-proposition sur « ${listing.title} ». En attente de son paiement.`,
       {
         type: "marketplace_counter_accepted",
         listingId,
@@ -577,7 +601,6 @@ export class OffersService {
       this.prisma.marketplaceListing.update({
         where: { id: listingId },
         data: {
-          status: ListingStatus.reserved,
           reservedForBuyerUserId: buyerUserId
         }
       })
