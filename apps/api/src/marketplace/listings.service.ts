@@ -705,11 +705,15 @@ export class ListingsService {
     await this.requireMarketplaceWriteIfFarmListing(user.id, listing.farmId);
     if (
       listing.status === ListingStatus.sold ||
-      listing.status === ListingStatus.cancelled ||
-      listing.status === ListingStatus.reserved
+      listing.status === ListingStatus.cancelled
     ) {
       throw new BadRequestException(
-        "Annonce non modifiable (réservée, vendue ou annulée)"
+        "Annonce non modifiable (vendue ou annulée)"
+      );
+    }
+    if (listing.status === ListingStatus.reserved) {
+      throw new BadRequestException(
+        "Annonce non modifiable (réservée — ancien statut)"
       );
     }
 

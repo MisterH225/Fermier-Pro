@@ -157,6 +157,12 @@ describeOrSkip("Marketplace vente à crédit escrow (e2e)", () => {
     expect(agree.body.transactionId).toBeTruthy();
     transactionId = agree.body.transactionId;
 
+    const listingAfterAgree = await ctx.prisma.marketplaceListing.findUniqueOrThrow({
+      where: { id: listingId }
+    });
+    expect(listingAfterAgree.status).toBe("published");
+    expect(listingAfterAgree.reservedForBuyerUserId).toBe(ctx.peerUserId);
+
     const tx = await request(app.getHttpServer())
       .get(`/api/v1/marketplace/transactions/${transactionId}`)
       .set("Authorization", `Bearer ${ctx.peerToken}`);

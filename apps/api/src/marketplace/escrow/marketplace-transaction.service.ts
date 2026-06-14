@@ -407,9 +407,8 @@ export class MarketplaceTransactionService {
         this.prisma.marketplaceListing.update({
           where: { id: dispute.listingId },
           data: {
-            status: ListingStatus.delivered,
-            disputedAt: null,
-            deliveredAt: tx.buyerReceivedAt ?? now
+            deliveredAt: tx.buyerReceivedAt ?? now,
+            disputedAt: null
           }
         })
       ]);
@@ -856,7 +855,6 @@ export class MarketplaceTransactionService {
       this.prisma.marketplaceListing.update({
         where: { id: tx.listingId },
         data: {
-          status: ListingStatus.shipped,
           shippedAt
         }
       })
@@ -944,7 +942,6 @@ export class MarketplaceTransactionService {
       this.prisma.marketplaceListing.update({
         where: { id: tx.listingId },
         data: {
-          status: ListingStatus.delivered,
           deliveredAt: receivedAt
         }
       })
@@ -999,7 +996,6 @@ export class MarketplaceTransactionService {
       this.prisma.marketplaceListing.update({
         where: { id: tx.listingId },
         data: {
-          status: ListingStatus.disputed,
           disputedAt: now
         }
       }),
@@ -1116,29 +1112,24 @@ export class MarketplaceTransactionService {
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
     let vendor = 0;
     let buyer = 0;
-    const reservedListings = await this.prisma.marketplaceListing.findMany({
+    const heldTransactions = await this.prisma.marketplaceTransaction.findMany({
       where: {
-        status: ListingStatus.reserved,
+        status: MarketplaceTransactionStatus.PAYMENT_HELD,
         updatedAt: { lte: threeDaysAgo }
       },
-      include: {
-        transactions: {
-          where: { status: MarketplaceTransactionStatus.PAYMENT_HELD },
-          take: 1
-        }
-      }
+      select: { id: true, sellerUserId: true, listingId: true }
     });
-    for (const listing of reservedListings) {
-      const tx = listing.transactions[0];
-      if (!tx) {
-        continue;
-      }
+    for (const tx of heldTransactions) {
       vendor += 1;
       void this.push.sendToUser(
-        listing.sellerUserId,
+        tx.sellerUserId,
         "Rappel envoi",
-        "N'oubliez pas de confirmer l'envoi de vos animaux.",
-        { type: "marketplace_remind_vendor_shipment", listingId: listing.id }
+        "N'oubliez pas de proposer ou confirmer le rendez-vous de remise.",
+        {
+          type: "marketplace_remind_vendor_shipment",
+          listingId: tx.listingId,
+          transactionId: tx.id
+        }
       );
     }
     const shipped = await this.prisma.marketplaceTransaction.findMany({
@@ -1176,7 +1167,7 @@ export class MarketplaceTransactionService {
         }),
         this.prisma.marketplaceListing.update({
           where: { id: tx.listingId },
-          data: { status: ListingStatus.disputed, disputedAt: now }
+          data: { disputedAt: now }
         }),
         this.prisma.marketplaceDeliveryDispute.create({
           data: {
@@ -1559,9 +1550,12 @@ export class MarketplaceTransactionService {
         id: tx.listingId,
         status: {
           in: [
+            ListingStatus.published,
             ListingStatus.reserved,
+            ListingStatus.reserved_credit,
             ListingStatus.shipped,
-            ListingStatus.delivered
+            ListingStatus.delivered,
+            ListingStatus.disputed
           ]
         }
       },
@@ -1569,7 +1563,8 @@ export class MarketplaceTransactionService {
         status: ListingStatus.published,
         reservedForBuyerUserId: null,
         shippedAt: null,
-        deliveredAt: null
+        deliveredAt: null,
+        disputedAt: null
       }
     });
     const listing = await this.prisma.marketplaceListing.findUnique({
@@ -1662,12 +1657,8 @@ export class MarketplaceTransactionService {
         data: { status: OfferStatus.rejected }
       });
       await this.prisma.marketplaceListing.updateMany({
-        where: {
-          id: tx.listingId,
-          status: ListingStatus.reserved
-        },
+        where: { id: tx.listingId },
         data: {
-          status: ListingStatus.published,
           reservedForBuyerUserId: null
         }
       });

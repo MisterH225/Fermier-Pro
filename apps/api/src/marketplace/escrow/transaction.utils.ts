@@ -190,6 +190,29 @@ export function settlementAmounts(params: {
   };
 }
 
+export const TERMINAL_TRANSACTION_STATUSES: MarketplaceTransactionStatus[] = [
+  MarketplaceTransactionStatus.TRANSACTION_CLOSED,
+  MarketplaceTransactionStatus.CANCELLED_BY_BUYER,
+  MarketplaceTransactionStatus.CANCELLED_BY_SELLER,
+  MarketplaceTransactionStatus.CANCELLED_SOLD_TO_OTHER,
+  MarketplaceTransactionStatus.OFFER_EXPIRED,
+  MarketplaceTransactionStatus.PAYMENT_FAILED
+];
+
+/** Transaction en cours (bloque de nouvelles offres sur l'annonce). */
+export const ACTIVE_DEAL_TRANSACTION_STATUSES: MarketplaceTransactionStatus[] = [
+  MarketplaceTransactionStatus.PAYMENT_PENDING,
+  MarketplaceTransactionStatus.PAYMENT_HELD,
+  MarketplaceTransactionStatus.PICKUP_PROPOSED,
+  MarketplaceTransactionStatus.PICKUP_SCHEDULED,
+  MarketplaceTransactionStatus.SELLER_SHIPPED,
+  MarketplaceTransactionStatus.BUYER_RECEIVED,
+  MarketplaceTransactionStatus.DELIVERY_DISPUTED,
+  MarketplaceTransactionStatus.WEIGHT_DECLARED,
+  MarketplaceTransactionStatus.WEIGHT_DISPUTED,
+  MarketplaceTransactionStatus.WEIGHT_VALIDATED
+];
+
 export const ACTIVE_ESCROW_STATUSES: MarketplaceTransactionStatus[] = [
   MarketplaceTransactionStatus.PAYMENT_HELD,
   MarketplaceTransactionStatus.PICKUP_PROPOSED,
