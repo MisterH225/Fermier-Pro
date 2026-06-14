@@ -353,7 +353,7 @@ export const fr = {
       emptySuppliersBody:
         "Les producteurs avec lesquels vous concluez un achat (marketplace ou vente directe) apparaîtront ici."
     },
-    create: "Créer",
+    create: "Créer une annonce",
     searchPlaceholder: "Ferme, lieu, race…",
     badgeNew: "Nouveau",
     badgeSold: "Vendu",
@@ -749,7 +749,7 @@ export const fr = {
     },
     emptyListings: "Aucune annonce publiée pour le moment.",
     emptySearch: "Aucun résultat. Essaie d’autres mots-clés ou filtres.",
-    emptyMyListings: "Tu n’as pas encore d’annonce. Utilise « Créer » pour en ajouter une.",
+    emptyMyListings: "Tu n’as pas encore d’annonce. Utilise « Créer une annonce » pour en ajouter une.",
     emptyMyFilter: "Aucune annonce dans ce filtre.",
     emptyOffers: "Tu n’as pas encore fait d’offre.",
     kpiListings: "Annonces",
@@ -1220,7 +1220,6 @@ export const fr = {
       closeA11y: "Fermer"
     },
     screenTitles: {
-      marketplacePaymentDashboard: "Portefeuille & Paiements",
       feedStock: "Stock aliment",
       communityFeed: "Feed",
       notifications: "Notifications",
@@ -3575,38 +3574,5 @@ export const fr = {
     safetyMargin: "Marge de sécurité : {{direction}}{{delta}} {{currency}}/kg",
     aiTitle: "💡 Analyse IA",
     aiRefresh: "🔄 Actualiser"
-  },
-  paymentsDashboard: {
-    title: "Mes Paiements",
-    roleSeller: "Ventes (Producteur)",
-    roleBuyer: "Achats (Acheteur)",
-    tabSold: "Produits vendus",
-    tabBought: "Produits achetés",
-    tabInProgress: "En cours",
-    tabHistory: "Historique & Négociations",
-    emptySold: "Aucune vente finalisée.",
-    emptyBought: "Aucun achat finalisé.",
-    emptyInProgress: "Aucune transaction en cours.",
-    emptyHistory: "Aucun historique disponible.",
-    transactionLabel: "Transaction {{id}}",
-    listingLabel: "Annonce : {{title}}",
-    amountLabel: "Montant : {{amount}}",
-    statusLabel: "Statut : {{status}}",
-    dateLabel: "Mis à jour le {{date}}",
-    buyerLabel: "Acheteur : {{name}}",
-    sellerLabel: "Vendeur : {{name}}",
-    status: {
-      pending: "En attente",
-      accepted: "Acceptée",
-      rejected: "Refusée",
-      withdrawn: "Retirée",
-      countered: "Contre-proposition",
-      credit_agreed: "Accord crédit",
-      advance_confirmed: "Avance confirmée",
-      balance_pending: "Solde en attente",
-      balance_declared: "Solde déclaré",
-      arbitration: "Arbitrage",
-      completed: "Terminée"
-    }
   }
 } as const;

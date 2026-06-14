@@ -56,6 +56,7 @@ export function ConfirmShipmentModal({
       <AppDatePicker
         label={t("marketScreen.shipmentModal.date")}
         mode="date"
+        presentation="inline"
         isoValue={shippedAt}
         onIsoChange={setShippedAt}
       />

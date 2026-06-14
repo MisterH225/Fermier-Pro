@@ -38,6 +38,8 @@ export type AppDatePickerProps = {
   isoValue?: string;
   onIsoChange?: (iso: string) => void;
   mode?: AppDatePickerMode;
+  /** `sheet` = modal plein écran ; `inline` = panneau sous le champ (dans un autre modal). */
+  presentation?: "sheet" | "inline";
   label?: string;
   placeholder?: string;
   required?: boolean;
@@ -171,12 +173,20 @@ function MonthYearSpinner({
   );
 }
 
+function normalizeBound(d: Date | null | undefined, mode: AppDatePickerMode): Date | null {
+  if (!d) {
+    return null;
+  }
+  return mode === "datetime" ? d : startOfDay(d);
+}
+
 export function AppDatePicker({
   value,
   onChange,
   isoValue,
   onIsoChange,
   mode = "date",
+  presentation = "sheet",
   label,
   placeholder,
   required = false,
@@ -190,6 +200,15 @@ export function AppDatePicker({
   const { t } = useTranslation();
   const prefs = useAppDatePreferences(farmId);
   const [open, setOpen] = useState(false);
+
+  const minBound = useMemo(
+    () => normalizeBound(minDate, mode),
+    [minDate, mode]
+  );
+  const maxBound = useMemo(
+    () => normalizeBound(maxDate, mode),
+    [maxDate, mode]
+  );
 
   const valueMs = value?.getTime() ?? null;
 
@@ -220,7 +239,7 @@ export function AppDatePicker({
       setDraft(new Date(resolvedMs));
     }
     wasOpenRef.current = open;
-  }, [open, resolvedMs, defaultDraft, mode]);
+  }, [open, resolvedMs, defaultDraft]);
 
   const displayText = useMemo(() => {
     if (resolvedMs == null) {
@@ -244,7 +263,7 @@ export function AppDatePicker({
     if (mode === "datetime") {
       next = roundToMinuteInterval(next, 15);
     }
-    next = clampDate(next, minDate, maxDate);
+    next = clampDate(next, minBound, maxBound);
     setDraft(next);
   };
 
@@ -280,12 +299,77 @@ export function AppDatePicker({
     } else if (mode === "date" || mode === "month_year") {
       next = startOfDay(next);
     }
-    next = clampDate(next, minDate, maxDate);
+    next = clampDate(next, minBound, maxBound);
     emitChange(mode, next, onChange, onIsoChange);
     setOpen(false);
   };
 
   const pickerMode = mode === "datetime" ? "datetime" : "date";
+
+  const pickerPanel = (
+    <>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={pickerStyles.shortcutScroll}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={pickerStyles.pillRow}>
+          {shortcuts.map((s) => (
+            <Pressable
+              key={s.label}
+              onPress={() => applyShortcut(s.date)}
+              style={pickerStyles.pillOutline}
+            >
+              <Text style={pickerStyles.pillOutlineTx}>{s.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </ScrollView>
+
+      {mode === "month_year" ? (
+        <MonthYearSpinner
+          draft={draft}
+          onChange={setDraft}
+          locale={prefs.locale}
+        />
+      ) : open ? (
+        <View style={pickerStyles.pickerWrap}>
+          <DateTimePicker
+            value={draft}
+            mode={pickerMode}
+            display="spinner"
+            onChange={(event, selectedDate) => {
+              if (Platform.OS === "android" && event.type === "dismissed") {
+                return;
+              }
+              if (!selectedDate) {
+                return;
+              }
+              setDraft((prev) =>
+                prev.getTime() === selectedDate.getTime() ? prev : selectedDate
+              );
+            }}
+            minimumDate={minBound ?? undefined}
+            maximumDate={maxBound ?? undefined}
+            locale={prefs.pickerLocale}
+            {...(Platform.OS === "ios" && pickerMode === "datetime"
+              ? { minuteInterval: 15 }
+              : {})}
+          />
+        </View>
+      ) : null}
+
+      <View style={pickerStyles.footerRow}>
+        <Pressable onPress={() => setOpen(false)} style={pickerStyles.footerBtn}>
+          <Text style={pickerStyles.cancelTx}>{t("common.cancel")}</Text>
+        </Pressable>
+        <Pressable onPress={confirm} style={pickerStyles.confirmBtn}>
+          <Text style={pickerStyles.confirmTx}>{t("datePicker.confirm")}</Text>
+        </Pressable>
+      </View>
+    </>
+  );
 
   return (
     <View style={styles.wrap}>
@@ -299,11 +383,12 @@ export function AppDatePicker({
       ) : null}
 
       <Pressable
-        onPress={() => !disabled && setOpen(true)}
+        onPress={() => !disabled && setOpen((v) => !v)}
         disabled={disabled}
         style={({ pressed }) => [
           styles.trigger,
           resolvedMs != null && styles.triggerFilled,
+          open && styles.triggerOpen,
           disabled && styles.triggerDisabled,
           error && styles.triggerError,
           pressed && !disabled && styles.triggerPressed
@@ -327,7 +412,7 @@ export function AppDatePicker({
           {displayText || placeholderText}
         </Text>
         <Ionicons
-          name="chevron-down"
+          name={open ? "chevron-up" : "chevron-down"}
           size={16}
           color={mobileColors.textSecondary}
         />
@@ -336,77 +421,79 @@ export function AppDatePicker({
       {helper ? <Text style={styles.helper}>{helper}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <BaseModal
-        visible={open}
-        onClose={() => setOpen(false)}
-        title={t("datePicker.title")}
-        footerPrimary={
-          <View style={pickerStyles.footerRow}>
-            <Pressable onPress={() => setOpen(false)} style={pickerStyles.footerBtn}>
-              <Text style={pickerStyles.cancelTx}>{t("common.cancel")}</Text>
-            </Pressable>
-            <Pressable onPress={confirm} style={pickerStyles.confirmBtn}>
-              <Text style={pickerStyles.confirmTx}>{t("datePicker.confirm")}</Text>
-            </Pressable>
-          </View>
-        }
-      >
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={pickerStyles.shortcutScroll}
-        >
-          <View style={pickerStyles.pillRow}>
-            {shortcuts.map((s) => (
-              <Pressable
-                key={s.label}
-                onPress={() => applyShortcut(s.date)}
-                style={pickerStyles.pillOutline}
-              >
-                <Text style={pickerStyles.pillOutlineTx}>{s.label}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </ScrollView>
+      {presentation === "inline" && open ? (
+        <View style={pickerStyles.inlinePanel}>{pickerPanel}</View>
+      ) : null}
 
-        {mode === "month_year" ? (
-          <MonthYearSpinner
-            draft={draft}
-            onChange={setDraft}
-            locale={prefs.locale}
-          />
-        ) : open ? (
-          <View style={pickerStyles.pickerWrap}>
-            <DateTimePicker
-              value={draft}
-              mode={pickerMode}
-              display="spinner"
-              onChange={(event, selectedDate) => {
-                if (
-                  Platform.OS === "android" &&
-                  event.type === "dismissed"
-                ) {
-                  return;
-                }
-                if (!selectedDate) {
-                  return;
-                }
-                setDraft((prev) =>
-                  prev.getTime() === selectedDate.getTime()
-                    ? prev
-                    : selectedDate
-                );
-              }}
-              minimumDate={minDate ?? undefined}
-              maximumDate={maxDate ?? undefined}
-              locale={prefs.pickerLocale}
-              {...(Platform.OS === "ios" && pickerMode === "datetime"
-                ? { minuteInterval: 15 }
-                : {})}
+      {presentation === "sheet" ? (
+        <BaseModal
+          visible={open}
+          onClose={() => setOpen(false)}
+          title={t("datePicker.title")}
+          footerPrimary={
+            <View style={pickerStyles.footerRow}>
+              <Pressable onPress={() => setOpen(false)} style={pickerStyles.footerBtn}>
+                <Text style={pickerStyles.cancelTx}>{t("common.cancel")}</Text>
+              </Pressable>
+              <Pressable onPress={confirm} style={pickerStyles.confirmBtn}>
+                <Text style={pickerStyles.confirmTx}>{t("datePicker.confirm")}</Text>
+              </Pressable>
+            </View>
+          }
+        >
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={pickerStyles.shortcutScroll}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={pickerStyles.pillRow}>
+              {shortcuts.map((s) => (
+                <Pressable
+                  key={s.label}
+                  onPress={() => applyShortcut(s.date)}
+                  style={pickerStyles.pillOutline}
+                >
+                  <Text style={pickerStyles.pillOutlineTx}>{s.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </ScrollView>
+
+          {mode === "month_year" ? (
+            <MonthYearSpinner
+              draft={draft}
+              onChange={setDraft}
+              locale={prefs.locale}
             />
-          </View>
-        ) : null}
-      </BaseModal>
+          ) : open ? (
+            <View style={pickerStyles.pickerWrap}>
+              <DateTimePicker
+                value={draft}
+                mode={pickerMode}
+                display="spinner"
+                onChange={(event, selectedDate) => {
+                  if (Platform.OS === "android" && event.type === "dismissed") {
+                    return;
+                  }
+                  if (!selectedDate) {
+                    return;
+                  }
+                  setDraft((prev) =>
+                    prev.getTime() === selectedDate.getTime() ? prev : selectedDate
+                  );
+                }}
+                minimumDate={minBound ?? undefined}
+                maximumDate={maxBound ?? undefined}
+                locale={prefs.pickerLocale}
+                {...(Platform.OS === "ios" && pickerMode === "datetime"
+                  ? { minuteInterval: 15 }
+                  : {})}
+              />
+            </View>
+          ) : null}
+        </BaseModal>
+      ) : null}
     </View>
   );
 }
@@ -429,6 +516,9 @@ const styles = StyleSheet.create({
   },
   triggerFilled: {
     backgroundColor: mobileColors.accentSoft,
+    borderColor: mobileColors.accent
+  },
+  triggerOpen: {
     borderColor: mobileColors.accent
   },
   triggerDisabled: {
@@ -528,5 +618,14 @@ const pickerStyles = StyleSheet.create({
   pillTxOn: {
     color: mobileColors.onAccent,
     fontWeight: "700"
+  },
+  inlinePanel: {
+    marginTop: mobileSpacing.sm,
+    padding: mobileSpacing.md,
+    borderRadius: mobileRadius.md,
+    backgroundColor: mobileColors.surfaceMuted,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.border,
+    gap: mobileSpacing.sm
   }
 });

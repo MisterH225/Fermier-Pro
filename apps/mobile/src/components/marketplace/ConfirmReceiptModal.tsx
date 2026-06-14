@@ -116,6 +116,7 @@ export function ConfirmReceiptModal({
       <AppDatePicker
         label={t("marketScreen.receiptModal.date")}
         mode="date"
+        presentation="inline"
         isoValue={receivedAt}
         onIsoChange={setReceivedAt}
       />

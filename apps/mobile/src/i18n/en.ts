@@ -353,7 +353,7 @@ export const en = {
       emptySuppliersBody:
         "Producers you complete a purchase with (marketplace or direct sale) will appear here."
     },
-    create: "Create",
+    create: "Create listing",
     searchPlaceholder: "Farm, location, breed…",
     badgeNew: "New",
     badgeSold: "Sold",
@@ -746,7 +746,7 @@ export const en = {
     },
     emptyListings: "No listings published yet.",
     emptySearch: "No results. Try other keywords or filters.",
-    emptyMyListings: "You have no listings yet. Tap Create to add one.",
+    emptyMyListings: "You have no listings yet. Tap « Create listing » to add one.",
     emptyMyFilter: "No listings in this filter.",
     emptyOffers: "You have not made any offers yet.",
     kpiListings: "Listings",
@@ -1214,7 +1214,6 @@ export const en = {
       closeA11y: "Close"
     },
     screenTitles: {
-      marketplacePaymentDashboard: "Wallet & Payments",
       feedStock: "Feed stock",
       communityFeed: "Feed",
       notifications: "Notifications",
@@ -3530,38 +3529,5 @@ export const en = {
     insightTitle: "In brief",
     fallbackInsightsTitle: "💡 AI advice",
     refresh: "Refresh recommendations"
-  },
-  paymentsDashboard: {
-    title: "My Payments",
-    roleSeller: "Sales (Producer)",
-    roleBuyer: "Purchases (Buyer)",
-    tabSold: "Sold products",
-    tabBought: "Purchased products",
-    tabInProgress: "In progress",
-    tabHistory: "History & Negotiations",
-    emptySold: "No completed sales.",
-    emptyBought: "No completed purchases.",
-    emptyInProgress: "No transactions in progress.",
-    emptyHistory: "No history available.",
-    transactionLabel: "Transaction {{id}}",
-    listingLabel: "Listing: {{title}}",
-    amountLabel: "Amount: {{amount}}",
-    statusLabel: "Status: {{status}}",
-    dateLabel: "Updated on {{date}}",
-    buyerLabel: "Buyer: {{name}}",
-    sellerLabel: "Seller: {{name}}",
-    status: {
-      pending: "Pending",
-      accepted: "Accepted",
-      rejected: "Rejected",
-      withdrawn: "Withdrawn",
-      countered: "Countered",
-      credit_agreed: "Credit agreed",
-      advance_confirmed: "Advance confirmed",
-      balance_pending: "Balance pending",
-      balance_declared: "Balance declared",
-      arbitration: "Arbitration",
-      completed: "Completed"
-    }
   }
 } as const;
