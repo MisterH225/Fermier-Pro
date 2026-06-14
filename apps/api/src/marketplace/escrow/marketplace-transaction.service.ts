@@ -44,6 +44,7 @@ import {
   calculateAgreedDealAmount,
   calculateBlockedAmount,
   calculateFinalAmount,
+  estimatePlatformFee,
   lastNMonthKeys,
   paymentExpiryDate,
   resolveReceiptRealWeightKg,
@@ -140,13 +141,14 @@ export class MarketplaceTransactionService {
 
     const listing = offer.listing;
     const terms = agreedTermsFromOffer(offer, listing);
+    const commissionRate = await this.platformSettings.getMarketplaceCommissionRate();
     const blocked = calculateBlockedAmount({
       priceType: terms.priceType,
       agreedPricePerKg: terms.agreedPricePerKg,
       agreedFlatPrice: terms.agreedFlatPrice,
-      estimatedWeightKg: terms.estimatedWeightKg
+      estimatedWeightKg: terms.estimatedWeightKg,
+      commissionRate
     });
-    const commissionRate = await this.platformSettings.getMarketplaceCommissionRate();
 
     const tx = await this.prisma.marketplaceTransaction.create({
       data: {
@@ -170,6 +172,7 @@ export class MarketplaceTransactionService {
             : null,
         blockedAmount: new Prisma.Decimal(blocked),
         commissionRate: new Prisma.Decimal(commissionRate),
+        buyerPaysCommission: true,
         offerExpiresAt: paymentExpiryDate(),
         currency: listing.currency ?? "XOF"
       }
@@ -1464,7 +1467,8 @@ export class MarketplaceTransactionService {
       const amounts = settlementAmounts({
         blockedAmount: totalHeld,
         finalAmount,
-        commissionRate: rate
+        commissionRate: rate,
+        buyerPaysCommission: tx.buyerPaysCommission
       });
 
       if (amounts.buyerRefundAmount > 0) {
@@ -1825,7 +1829,8 @@ export class MarketplaceTransactionService {
       const amounts = settlementAmounts({
         blockedAmount: blocked,
         finalAmount,
-        commissionRate: rate
+        commissionRate: rate,
+        buyerPaysCommission: tx.buyerPaysCommission
       });
 
       if (amounts.buyerAdditionalCharge > 0) {
@@ -2212,7 +2217,17 @@ export class MarketplaceTransactionService {
           }
         : null,
       pendingTransfer: pending ? this.serializePendingTransfer(pending) : null,
-      isCredit: tx.isCredit ?? false
+      isCredit: tx.isCredit ?? false,
+      buyerPaysCommission: tx.buyerPaysCommission ?? false,
+      commissionRate: Number(tx.commissionRate),
+      platformFeeEstimate: estimatePlatformFee({
+        priceType: tx.priceType,
+        agreedPricePerKg: tx.agreedPricePerKg ? Number(tx.agreedPricePerKg) : null,
+        agreedFlatPrice: tx.agreedFlatPrice ? Number(tx.agreedFlatPrice) : null,
+        estimatedWeightKg: tx.estimatedWeightKg ? Number(tx.estimatedWeightKg) : null,
+        commissionRate: Number(tx.commissionRate)
+      }),
+      sellerReceivedAmount: tx.sellerReceivedAmount ? Number(tx.sellerReceivedAmount) : null
     };
   }
 

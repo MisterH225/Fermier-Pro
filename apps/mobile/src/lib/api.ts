@@ -5245,6 +5245,14 @@ export type MarketplaceTransactionDto = {
   } | null;
   pendingTransfer?: MarketplacePendingTransferDto | null;
   isCredit?: boolean;
+  /** L'acheteur paye les frais de plateforme en plus du prix convenu. */
+  buyerPaysCommission?: boolean;
+  /** Taux de commission de la plateforme (ex. 0.05 = 5 %). */
+  commissionRate?: number;
+  /** Frais de plateforme estimés (frais exacts pour prix forfaitaire, estimation pour prix/kg). */
+  platformFeeEstimate?: number;
+  /** Montant net reçu par le vendeur après clôture (null tant que non clôturée). */
+  sellerReceivedAmount?: number | null;
 };
 
 export type MarketplaceReceiptDto = {

@@ -334,4 +334,98 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
     });
     expect(listingAfter.status).toBe("published");
   });
+
+  it("frais plateforme : blockedAmount inclut la commission, vendeur reçoit le prix total", async () => {
+    const feeListing = await setupMarketplaceDeliveryListing({
+      app,
+      prisma: ctx.prisma,
+      sellerToken: ctx.token,
+      sellerProfileId: ctx.producerProfileId,
+      sellerFarmId: ctx.farmId,
+      buyerToken: ctx.peerToken,
+      buyerFarmId
+    });
+
+    // Récupérer la transaction via l'API
+    const txRes = await request(app.getHttpServer())
+      .get(`/api/v1/marketplace/transactions/${feeListing.transactionId}`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(txRes.status).toBe(200);
+    const tx = txRes.body;
+
+    // La transaction doit être marquée buyerPaysCommission
+    expect(tx.buyerPaysCommission).toBe(true);
+    expect(tx.commissionRate).toBeGreaterThan(0);
+
+    // blockedAmount = basePriceWithBuffer × (1 + commissionRate)
+    // Pour per_kg : base = pricePerKg × weight × PAYMENT_BUFFER (1.1)
+    // Pour flat : base = agreedFlatPrice
+    const isFlat = tx.priceType === "flat";
+    if (isFlat) {
+      const expectedBlocked = Math.round((tx.agreedFlatPrice ?? 0) * (1 + tx.commissionRate));
+      expect(tx.blockedAmount).toBe(expectedBlocked);
+    } else {
+      // per_kg : base avec buffer, puis × (1 + rate)
+      const perKgBase = (tx.agreedPricePerKg ?? 0) * (tx.estimatedWeightKg ?? 0) * 1.1;
+      const expectedBlocked = Math.round(perKgBase * (1 + tx.commissionRate));
+      expect(tx.blockedAmount).toBe(expectedBlocked);
+    }
+
+    // platformFeeEstimate = dealPrice (sans buffer) × commissionRate
+    const estimatedDeal = isFlat
+      ? (tx.agreedFlatPrice ?? 0)
+      : (tx.agreedPricePerKg ?? 0) * (tx.estimatedWeightKg ?? 0);
+    const expectedFee = Math.round(estimatedDeal * tx.commissionRate);
+    expect(tx.platformFeeEstimate).toBe(expectedFee);
+
+    // Vérifier en base que buyerPaysCommission est bien true
+    const txDb = await ctx.prisma.marketplaceTransaction.findUniqueOrThrow({
+      where: { id: feeListing.transactionId }
+    });
+    expect(txDb.buyerPaysCommission).toBe(true);
+
+    // Effectuer le cycle complet et vérifier que le vendeur reçoit le prix total (sans déduction)
+    const payInit = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${feeListing.transactionId}/payment/initiate`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(payInit.status).toBe(201);
+    // Le montant de paiement inclut la commission
+    expect(payInit.body.amount).toBe(tx.blockedAmount);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${feeListing.transactionId}/payment/confirm`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ providerRef: payInit.body.providerRef });
+
+    await import("./helpers/marketplace-delivery-e2e").then(({ advanceMarketplaceToSellerShipped }) =>
+      advanceMarketplaceToSellerShipped({
+        app,
+        sellerToken: ctx.token,
+        buyerToken: ctx.peerToken,
+        transactionId: feeListing.transactionId
+      })
+    );
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${feeListing.transactionId}/confirm-receipt`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({
+        receivedAt: new Date().toISOString().slice(0, 10),
+        condition: "conform",
+        receivedAnimalIds: [feeListing.animalId]
+      });
+
+    // Après clôture, vérifier que le vendeur reçoit le prix total (finalAmount)
+    const closedTx = await ctx.prisma.marketplaceTransaction.findUniqueOrThrow({
+      where: { id: feeListing.transactionId }
+    });
+    expect(closedTx.status).toBe("TRANSACTION_CLOSED");
+    // sellerReceivedAmount = finalAmount (pas de déduction de commission sur le vendeur)
+    const finalAmt = Number(closedTx.finalAmount ?? 0);
+    const sellerAmt = Number(closedTx.sellerReceivedAmount ?? 0);
+    expect(sellerAmt).toBe(finalAmt);
+    // commissionAmount = finalAmount × commissionRate
+    const commissionAmt = Number(closedTx.commissionAmount ?? 0);
+    expect(commissionAmt).toBe(Math.round(finalAmt * Number(closedTx.commissionRate)));
+  });
 });

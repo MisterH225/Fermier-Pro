@@ -404,7 +404,16 @@ export const en = {
       agreedPricePerKg: "Agreed price/kg:",
       amountAdjustHint:
         "This amount will be adjusted to the actual weight at delivery.",
-      payCta: "Pay {{amount}} via Mobile Money",
+      payCta: "Pay {{amount}}",
+      platformFeeLabel: "Platform fee ({{pct}} %)",
+      platformFeeEstimatedLabel: "Estimated platform fee ({{pct}} %)",
+      dealPriceLabel: "Agreed price",
+      totalPaymentLabel: "Total to pay",
+      feeConsentTitle: "Platform fees",
+      feeConsentBody:
+        "Agreed price: {{dealAmount}}\nPlatform fee ({{pct}} %): {{feeAmount}}\nTotal to pay: {{totalAmount}}\n\nBy confirming, you agree to pay this amount.",
+      feeConsentConfirm: "Confirm and pay",
+      feeConsentCancel: "Cancel",
       paymentSuccessTitle: "Payment confirmed",
       paymentSuccessBody:
         "Your payment is recorded. Coordinate delivery with the seller.",

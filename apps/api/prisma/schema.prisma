@@ -1807,6 +1807,9 @@ model MarketplaceTransaction {
   currency                String                       @default("XOF")
   /// Transaction vente à crédit — pas de clôture escrow avant solde.
   isCredit                Boolean                      @default(false)
+  /// Les frais de plateforme sont à la charge de l'acheteur (ajoutés au montant bloqué).
+  /// false pour les transactions historiques où la commission était déduite du vendeur.
+  buyerPaysCommission     Boolean                      @default(false)
   createdAt               DateTime                     @default(now())
   updatedAt               DateTime                     @updatedAt
   fundMovements           MarketplaceFundMovement[]
