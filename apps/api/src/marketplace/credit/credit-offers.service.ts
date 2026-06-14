@@ -176,7 +176,7 @@ export class CreditOffersService {
       message?: string;
     }
   ) {
-    const listing = await this.requireSellerListing(user, listingId);
+    const _listing = await this.requireSellerListing(user, listingId);
     const offer = await this.requireCreditOffer(offerId, listingId);
     if (offer.status !== OfferStatus.pending) {
       throw new BadRequestException("Contre-proposition impossible");
