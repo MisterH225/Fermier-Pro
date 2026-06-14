@@ -1,5 +1,5 @@
 {
-  "message": "fix(moderation): messages admin, suspensions expirées et débannissement",
-  "updatedAt": "2026-06-11T22:08:00Z",
+  "message": "feat/fix(marketplace): annulation vente, frais plateforme acheteur, lint (#110)",
+  "updatedAt": "2026-06-14T16:48:00Z",
   "channels": ["preview", "production"]
 }
