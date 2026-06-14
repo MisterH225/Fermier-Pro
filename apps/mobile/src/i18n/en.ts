@@ -470,6 +470,8 @@ export const en = {
         "Propose the date and place where you want to pick up the animal. The seller will confirm if it works.",
       weightAtDeliveryHint:
         "On pickup day, enter the actual measured weight.",
+      weightAtDeliveryFlatHint:
+        "On pickup day, enter the actual measured weight (the agreed flat price stays unchanged).",
       projectedFinalCost: "Estimated final cost: {{amount}}",
       finalCost: "Final amount: {{amount}}",
       sellerWaitPayment:
@@ -618,8 +620,18 @@ export const en = {
     receiptModal: {
       open: "Confirm receipt",
       title: "Confirm receipt",
-      info: "Confirm you received the animals as expected.",
+      info: "Confirm you received the animals as expected. Enter each animal's actual weight to recalculate the final amount.",
       animals: "Animals received",
+      animalsWeigh: "Animals received — weight each (kg)",
+      weightKgPh: "Weight (kg)",
+      headcount: "Number of animals received",
+      totalWeight: "Total weight: {{weight}} kg",
+      estimatedWeight: "Estimated listing weight: {{weight}} kg",
+      refundHint:
+        "Expected refund: {{amount}} (actual weight below blocked estimate)",
+      extraHint:
+        "Additional amount due to seller off-platform: {{amount}} (cash or mobile money)",
+      exactHint: "Blocked amount matches actual weight — no adjustment.",
       date: "Receipt date",
       condition: "Animal condition",
       conditions: {

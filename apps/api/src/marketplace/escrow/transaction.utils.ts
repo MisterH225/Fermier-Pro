@@ -149,6 +149,34 @@ export function resolveHandoverDealTotalPrice(params: {
   return 0;
 }
 
+/** Poids réel déclaré à la réception (somme par sujet ou total). */
+export function resolveReceiptRealWeightKg(params: {
+  existingRealWeightKg: number | null;
+  realWeightKg?: number;
+  animalWeights?: { weightKg: number }[];
+}): number | null {
+  if (params.animalWeights?.length) {
+    const sum = params.animalWeights.reduce((acc, row) => acc + row.weightKg, 0);
+    if (sum > 0 && Number.isFinite(sum)) {
+      return sum;
+    }
+  }
+  if (
+    params.realWeightKg != null &&
+    Number.isFinite(params.realWeightKg) &&
+    params.realWeightKg > 0
+  ) {
+    return params.realWeightKg;
+  }
+  if (
+    params.existingRealWeightKg != null &&
+    params.existingRealWeightKg > 0
+  ) {
+    return params.existingRealWeightKg;
+  }
+  return null;
+}
+
 export function calculateFinalAmount(tx: {
   priceType: MarketplacePriceType;
   agreedPricePerKg: { toNumber(): number } | null;

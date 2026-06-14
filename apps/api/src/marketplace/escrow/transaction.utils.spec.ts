@@ -2,7 +2,8 @@ import { MarketplacePriceType } from "@prisma/client";
 import {
   calculateAgreedDealAmount,
   calculateBlockedAmount,
-  resolveHandoverDealTotalPrice
+  resolveHandoverDealTotalPrice,
+  resolveReceiptRealWeightKg
 } from "./transaction.utils";
 
 describe("transaction.utils", () => {
@@ -52,6 +53,35 @@ describe("transaction.utils", () => {
           estimatedWeightKg: 630
         })
       ).toBeCloseTo(1_039_500, 0);
+    });
+  });
+
+  describe("resolveReceiptRealWeightKg", () => {
+    it("somme les poids par animal", () => {
+      expect(
+        resolveReceiptRealWeightKg({
+          existingRealWeightKg: null,
+          animalWeights: [{ weightKg: 120 }, { weightKg: 118.5 }]
+        })
+      ).toBe(238.5);
+    });
+
+    it("utilise realWeightKg si pas de détail par animal", () => {
+      expect(
+        resolveReceiptRealWeightKg({
+          existingRealWeightKg: null,
+          realWeightKg: 630
+        })
+      ).toBe(630);
+    });
+
+    it("conserve le poids déjà déclaré en secours", () => {
+      expect(
+        resolveReceiptRealWeightKg({
+          existingRealWeightKg: 500,
+          realWeightKg: undefined
+        })
+      ).toBe(500);
     });
   });
 

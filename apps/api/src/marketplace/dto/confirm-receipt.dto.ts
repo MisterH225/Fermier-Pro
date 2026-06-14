@@ -1,3 +1,4 @@
+import { Type } from "class-transformer";
 import {
   IsArray,
   IsDateString,
@@ -6,9 +7,19 @@ import {
   IsOptional,
   IsString,
   MaxLength,
-  Min
+  Min,
+  ValidateNested
 } from "class-validator";
 import { MarketplaceReceiptCondition } from "@prisma/client";
+
+export class AnimalWeightDto {
+  @IsString()
+  animalId!: string;
+
+  @IsNumber()
+  @Min(0.1)
+  weightKg!: number;
+}
 
 export class ConfirmReceiptDto {
   @IsDateString()
@@ -25,6 +36,17 @@ export class ConfirmReceiptDto {
   @IsNumber()
   @Min(0.1)
   realWeightKg?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AnimalWeightDto)
+  animalWeights?: AnimalWeightDto[];
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  receivedHeadcount?: number;
 
   @IsOptional()
   @IsString()

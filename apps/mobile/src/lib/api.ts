@@ -5423,6 +5423,8 @@ export function confirmMarketplaceReceipt(
     condition: "conform" | "minor_issue" | "major_issue";
     receivedAnimalIds: string[];
     realWeightKg?: number;
+    animalWeights?: { animalId: string; weightKg: number }[];
+    receivedHeadcount?: number;
     notes?: string;
   },
   activeProfileId?: string | null
@@ -5511,6 +5513,19 @@ export function fetchMarketplaceReceipt(
 ): Promise<MarketplaceReceiptDto> {
   return apiGetJson<MarketplaceReceiptDto>(
     `/marketplace/transactions/${transactionId}/receipt`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function regenerateMarketplaceReceipt(
+  accessToken: string,
+  transactionId: string,
+  activeProfileId?: string | null
+): Promise<{ receiptNumber: string | null }> {
+  return apiPostJson<{ receiptNumber: string | null }>(
+    `/marketplace/transactions/${transactionId}/receipt/generate`,
+    {},
     accessToken,
     activeProfileId
   );
