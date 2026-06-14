@@ -1438,7 +1438,7 @@ export const fr = {
     gaugeDashboardNoDays: "{{kg}} kg · durée inconnue",
     smartAlertsHintTitle: "Notifications",
     smartAlertsHintBody:
-      "Les alertes stock et consommation sont sur le tableau de bord (section Notifications).",
+      "Les alertes stock et consommation sont accessibles via l’icône cloche en haut du tableau de bord.",
     filterMissingCost: "Sans coût",
     badgeMissingCost: "Sans coût",
     editMovement: "Modifier",

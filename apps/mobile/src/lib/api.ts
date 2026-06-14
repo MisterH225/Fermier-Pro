@@ -5535,8 +5535,8 @@ export function regenerateMarketplaceReceipt(
   accessToken: string,
   transactionId: string,
   activeProfileId?: string | null
-): Promise<{ receiptNumber: string | null }> {
-  return apiPostJson<{ receiptNumber: string | null }>(
+): Promise<{ receiptNumber: string | null; status: string }> {
+  return apiPostJson<{ receiptNumber: string | null; status: string }>(
     `/marketplace/transactions/${transactionId}/receipt/generate`,
     {},
     accessToken,
