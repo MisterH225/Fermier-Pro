@@ -1,7 +1,8 @@
 import { MarketplacePriceType } from "@prisma/client";
 import {
   calculateAgreedDealAmount,
-  calculateBlockedAmount
+  calculateBlockedAmount,
+  resolveHandoverDealTotalPrice
 } from "./transaction.utils";
 
 describe("transaction.utils", () => {
@@ -51,6 +52,35 @@ describe("transaction.utils", () => {
           estimatedWeightKg: 630
         })
       ).toBeCloseTo(1_039_500, 0);
+    });
+  });
+
+  describe("resolveHandoverDealTotalPrice", () => {
+    it("privilégie finalAmount de la transaction escrow", () => {
+      expect(
+        resolveHandoverDealTotalPrice({
+          offeredPrice: 800_000,
+          dtoTotalPrice: 700_000,
+          transaction: {
+            finalAmount: { toNumber: () => 945_000 },
+            priceType: MarketplacePriceType.flat,
+            agreedPricePerKg: null,
+            agreedFlatPrice: { toNumber: () => 800_000 },
+            realWeightKg: null,
+            arbitrationWeightKg: null
+          }
+        })
+      ).toBe(945_000);
+    });
+
+    it("utilise offeredPrice plutôt que le prix affiché de l'annonce", () => {
+      expect(
+        resolveHandoverDealTotalPrice({
+          offeredPrice: 880_000,
+          dtoTotalPrice: 1_000_000,
+          transaction: null
+        })
+      ).toBe(880_000);
     });
   });
 });
