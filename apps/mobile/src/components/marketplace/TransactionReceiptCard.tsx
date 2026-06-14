@@ -1,13 +1,9 @@
 import { useMutation } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { PrimaryButton } from "../ui/PrimaryButton";
 import { SecondaryButton } from "../ui/SecondaryButton";
-import {
-  fetchMarketplaceReceipt,
-  regenerateMarketplaceReceipt
-} from "../../lib/api";
+import { regenerateMarketplaceReceipt } from "../../lib/api";
 import { downloadAndShareReceiptPdf } from "../../lib/downloadMarketplaceReceipt";
 import {
   mobileColors,
@@ -41,15 +37,15 @@ export function TransactionReceiptCard({
 
   const downloadMut = useMutation({
     mutationFn: async () => {
-      const row = await fetchMarketplaceReceipt(
-        accessToken,
+      await downloadAndShareReceiptPdf(
         transactionId,
-        activeProfileId
+        accessToken,
+        activeProfileId,
+        receipt?.receiptNumber
       );
-      if (!row.downloadUrl || !row.receiptNumber) {
-        throw new Error(t("marketScreen.transaction.receiptNotReady"));
-      }
-      await downloadAndShareReceiptPdf(row.downloadUrl, row.receiptNumber);
+    },
+    onSuccess: () => {
+      onReceiptUpdated?.();
     },
     onError: (e: Error) => {
       Alert.alert(
@@ -83,56 +79,41 @@ export function TransactionReceiptCard({
   });
 
   const status = receiptGenerationStatus ?? "pending";
-  const isGenerated = Boolean(receipt?.receiptNumber) || status === "generated";
-  const isFailed = status === "failed";
-  const isPending = !isGenerated && !isFailed;
+  const hasReceiptNumber = Boolean(receipt?.receiptNumber);
+  const isFailed = status === "failed" && !hasReceiptNumber;
+  const isPending = !hasReceiptNumber && status === "pending";
   const retrying = retryMut.isPending;
-
-  useEffect(() => {
-    if (!isPending || !onReceiptUpdated) {
-      return;
-    }
-    const timer = setInterval(() => onReceiptUpdated(), 5000);
-    return () => clearInterval(timer);
-  }, [isPending, onReceiptUpdated]);
 
   return (
     <View style={styles.card}>
       <Text style={styles.title}>{t("marketScreen.transaction.receiptTitle")}</Text>
-      {isGenerated && receipt?.receiptNumber ? (
+      {hasReceiptNumber ? (
         <>
           <Text style={styles.line}>
             {t("marketScreen.transaction.receiptNumber", {
-              number: receipt.receiptNumber
+              number: receipt!.receiptNumber
             })}
           </Text>
           <Text style={styles.muted}>
             {t("marketScreen.transaction.receiptGeneratedAt", {
-              date: new Date(receipt.generatedAt).toLocaleString("fr-FR")
+              date: new Date(receipt!.generatedAt).toLocaleString("fr-FR")
             })}
           </Text>
-          <View style={{ marginTop: mobileSpacing.sm }}>
-            <PrimaryButton
-              label={t("marketScreen.transaction.receiptDownload")}
-              onPress={() => downloadMut.mutate()}
-              loading={downloadMut.isPending}
-            />
-          </View>
         </>
       ) : null}
+      <View style={{ marginTop: mobileSpacing.sm }}>
+        <PrimaryButton
+          label={t("marketScreen.transaction.receiptDownload")}
+          onPress={() => downloadMut.mutate()}
+          loading={downloadMut.isPending}
+        />
+      </View>
       {isPending ? (
         <View style={styles.pendingRow}>
           <ActivityIndicator color={mobileColors.accent} />
           <Text style={styles.muted}>
             {t("marketScreen.transaction.receiptGenerating")}
           </Text>
-          <View style={{ marginTop: mobileSpacing.sm, width: "100%" }}>
-            <SecondaryButton
-              label={t("marketScreen.transaction.receiptRetry")}
-              onPress={() => retryMut.mutate()}
-              loading={retrying}
-            />
-          </View>
         </View>
       ) : null}
       {isFailed ? (
@@ -174,13 +155,14 @@ const styles = StyleSheet.create({
   },
   error: {
     ...mobileTypography.body,
-    color: mobileColors.error
+    color: mobileColors.error,
+    marginTop: mobileSpacing.sm
   },
   pendingRow: {
     flexDirection: "row",
     alignItems: "center",
     flexWrap: "wrap",
     gap: mobileSpacing.sm,
-    marginTop: mobileSpacing.xs
+    marginTop: mobileSpacing.sm
   }
 });

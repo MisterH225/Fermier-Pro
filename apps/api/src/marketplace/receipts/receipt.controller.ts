@@ -1,4 +1,5 @@
-import { Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, Post, Res, UseGuards } from "@nestjs/common";
+import type { Response } from "express";
 import type { User } from "@prisma/client";
 import { CurrentUser } from "../../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../../auth/guards/supabase-jwt.guard";
@@ -26,6 +27,19 @@ export class ReceiptController {
     @Param("transactionId") transactionId: string
   ) {
     return this.receipts.regenerateReceipt(user, transactionId);
+  }
+
+  @Get("transactions/:transactionId/receipt/pdf")
+  async receiptPdf(
+    @CurrentUser() user: User,
+    @Param("transactionId") transactionId: string,
+    @Res() res: Response
+  ) {
+    const { buffer, filename } =
+      await this.receipts.buildReceiptPdfForTransaction(user, transactionId);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(buffer);
   }
 
   @Get("receipts/:receiptId/download")

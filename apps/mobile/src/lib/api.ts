@@ -5519,6 +5519,10 @@ export function completeMarketplacePendingTransfer(
   );
 }
 
+export function marketplaceReceiptPdfAbsoluteUrl(transactionId: string): string {
+  return `${apiBaseUrl()}/api/v1/marketplace/transactions/${encodeURIComponent(transactionId)}/receipt/pdf`;
+}
+
 export function fetchMarketplaceReceipt(
   accessToken: string,
   transactionId: string,
