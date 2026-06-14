@@ -5247,10 +5247,16 @@ export type MarketplaceTransactionDto = {
   isCredit?: boolean;
   /** L'acheteur paye les frais de plateforme en plus du prix convenu. */
   buyerPaysCommission?: boolean;
-  /** Taux de commission de la plateforme (ex. 0.05 = 5 %). */
+  /** Taux de commission (acheteur) de la plateforme (ex. 0.05 = 5 %). */
   commissionRate?: number;
-  /** Frais de plateforme estimés (frais exacts pour prix forfaitaire, estimation pour prix/kg). */
+  /** Frais de plateforme estimés côté acheteur. */
   platformFeeEstimate?: number;
+  /** Taux de commission (vendeur) de la plateforme. */
+  sellerCommissionRate?: number;
+  /** Frais de plateforme estimés côté vendeur. */
+  sellerPlatformFeeEstimate?: number;
+  /** Montant de commission vendeur prélevé (null avant clôture). */
+  sellerCommissionAmount?: number | null;
   /** Montant net reçu par le vendeur après clôture (null tant que non clôturée). */
   sellerReceivedAmount?: number | null;
 };

@@ -415,17 +415,25 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
         receivedAnimalIds: [feeListing.animalId]
       });
 
-    // Après clôture, vérifier que le vendeur reçoit le prix total (finalAmount)
+    // Après clôture, vérifier les montants de commission
     const closedTx = await ctx.prisma.marketplaceTransaction.findUniqueOrThrow({
       where: { id: feeListing.transactionId }
     });
     expect(closedTx.status).toBe("TRANSACTION_CLOSED");
-    // sellerReceivedAmount = finalAmount (pas de déduction de commission sur le vendeur)
     const finalAmt = Number(closedTx.finalAmount ?? 0);
-    const sellerAmt = Number(closedTx.sellerReceivedAmount ?? 0);
-    expect(sellerAmt).toBe(finalAmt);
-    // commissionAmount = finalAmount × commissionRate
+    const buyerRate = Number(closedTx.commissionRate);
+    const sellerRate = Number(closedTx.sellerCommissionRate ?? 0);
+
+    // commissionAmount (acheteur) = finalAmount × commissionRate
     const commissionAmt = Number(closedTx.commissionAmount ?? 0);
-    expect(commissionAmt).toBe(Math.round(finalAmt * Number(closedTx.commissionRate)));
+    expect(commissionAmt).toBe(Math.round(finalAmt * buyerRate));
+
+    // sellerCommissionAmount = finalAmount × sellerCommissionRate
+    const sellerCommAmt = Number(closedTx.sellerCommissionAmount ?? 0);
+    expect(sellerCommAmt).toBe(Math.round(finalAmt * sellerRate));
+
+    // sellerReceivedAmount = finalAmount - sellerCommission
+    const sellerAmt = Number(closedTx.sellerReceivedAmount ?? 0);
+    expect(sellerAmt).toBe(finalAmt - sellerCommAmt);
   });
 });

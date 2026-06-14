@@ -141,7 +141,10 @@ export class MarketplaceTransactionService {
 
     const listing = offer.listing;
     const terms = agreedTermsFromOffer(offer, listing);
-    const commissionRate = await this.platformSettings.getMarketplaceCommissionRate();
+    const [commissionRate, sellerCommissionRate] = await Promise.all([
+      this.platformSettings.getMarketplaceCommissionRate(),
+      this.platformSettings.getSellerMarketplaceCommissionRate()
+    ]);
     const blocked = calculateBlockedAmount({
       priceType: terms.priceType,
       agreedPricePerKg: terms.agreedPricePerKg,
@@ -172,6 +175,7 @@ export class MarketplaceTransactionService {
             : null,
         blockedAmount: new Prisma.Decimal(blocked),
         commissionRate: new Prisma.Decimal(commissionRate),
+        sellerCommissionRate: new Prisma.Decimal(sellerCommissionRate),
         buyerPaysCommission: true,
         offerExpiresAt: paymentExpiryDate(),
         currency: listing.currency ?? "XOF"
@@ -1468,7 +1472,8 @@ export class MarketplaceTransactionService {
         blockedAmount: totalHeld,
         finalAmount,
         commissionRate: rate,
-        buyerPaysCommission: tx.buyerPaysCommission
+        buyerPaysCommission: tx.buyerPaysCommission,
+        sellerCommissionRate: Number(tx.sellerCommissionRate ?? 0)
       });
 
       if (amounts.buyerRefundAmount > 0) {
@@ -1489,7 +1494,7 @@ export class MarketplaceTransactionService {
       );
       await this.escrow.collectCommission(
         tx.id,
-        amounts.commissionAmount,
+        amounts.totalCommissionAmount,
         tx.currency
       );
 
@@ -1503,6 +1508,7 @@ export class MarketplaceTransactionService {
           closedAt: new Date(),
           finalAmount: new Prisma.Decimal(finalAmount),
           commissionAmount: new Prisma.Decimal(amounts.commissionAmount),
+          sellerCommissionAmount: new Prisma.Decimal(amounts.sellerCommissionAmount),
           sellerReceivedAmount: new Prisma.Decimal(amounts.sellerReceivedAmount),
           buyerRefundAmount: new Prisma.Decimal(amounts.buyerRefundAmount),
           buyerAdditionalCharge: new Prisma.Decimal(amounts.buyerAdditionalCharge)
@@ -1830,7 +1836,8 @@ export class MarketplaceTransactionService {
         blockedAmount: blocked,
         finalAmount,
         commissionRate: rate,
-        buyerPaysCommission: tx.buyerPaysCommission
+        buyerPaysCommission: tx.buyerPaysCommission,
+        sellerCommissionRate: Number(tx.sellerCommissionRate ?? 0)
       });
 
       if (amounts.buyerAdditionalCharge > 0) {
@@ -1883,7 +1890,7 @@ export class MarketplaceTransactionService {
       );
       await this.escrow.collectCommission(
         tx.id,
-        amounts.commissionAmount,
+        amounts.totalCommissionAmount,
         tx.currency
       );
 
@@ -1918,6 +1925,7 @@ export class MarketplaceTransactionService {
           closedAt: new Date(),
           finalAmount: new Prisma.Decimal(finalAmount),
           commissionAmount: new Prisma.Decimal(amounts.commissionAmount),
+          sellerCommissionAmount: new Prisma.Decimal(amounts.sellerCommissionAmount),
           sellerReceivedAmount: new Prisma.Decimal(amounts.sellerReceivedAmount),
           buyerRefundAmount: new Prisma.Decimal(amounts.buyerRefundAmount),
           buyerAdditionalCharge: new Prisma.Decimal(amounts.buyerAdditionalCharge)
@@ -1935,7 +1943,7 @@ export class MarketplaceTransactionService {
             buyerId: tx.buyerUserId,
             grossAmount: new Prisma.Decimal(finalAmount),
             commissionRate: tx.commissionRate,
-            commissionAmount: new Prisma.Decimal(amounts.commissionAmount)
+            commissionAmount: new Prisma.Decimal(amounts.totalCommissionAmount)
           }
         });
       } catch (e) {
@@ -2227,6 +2235,15 @@ export class MarketplaceTransactionService {
         estimatedWeightKg: tx.estimatedWeightKg ? Number(tx.estimatedWeightKg) : null,
         commissionRate: Number(tx.commissionRate)
       }),
+      sellerCommissionRate: Number(tx.sellerCommissionRate ?? 0),
+      sellerPlatformFeeEstimate: estimatePlatformFee({
+        priceType: tx.priceType,
+        agreedPricePerKg: tx.agreedPricePerKg ? Number(tx.agreedPricePerKg) : null,
+        agreedFlatPrice: tx.agreedFlatPrice ? Number(tx.agreedFlatPrice) : null,
+        estimatedWeightKg: tx.estimatedWeightKg ? Number(tx.estimatedWeightKg) : null,
+        commissionRate: Number(tx.sellerCommissionRate ?? 0)
+      }),
+      sellerCommissionAmount: tx.sellerCommissionAmount ? Number(tx.sellerCommissionAmount) : null,
       sellerReceivedAmount: tx.sellerReceivedAmount ? Number(tx.sellerReceivedAmount) : null
     };
   }

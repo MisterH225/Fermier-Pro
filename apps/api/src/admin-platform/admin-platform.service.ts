@@ -720,6 +720,9 @@ export class AdminPlatformService {
         reportFrequencyDays: dto.reportFrequencyDays ?? 7,
         marketplaceCommissionRate:
           dto.marketplaceCommissionRate ?? 0.05,
+        sellerMarketplaceCommissionRate:
+          dto.sellerMarketplaceCommissionRate ?? 0.05,
+        vetCommissionRate: dto.vetCommissionRate ?? 0.05,
         supportPhone: supportPhone ?? null,
         supportTelegramUrl: supportTelegramUrl ?? null
       },
@@ -747,6 +750,12 @@ export class AdminPlatformService {
           : {}),
         ...(dto.marketplaceCommissionRate !== undefined
           ? { marketplaceCommissionRate: dto.marketplaceCommissionRate }
+          : {}),
+        ...(dto.sellerMarketplaceCommissionRate !== undefined
+          ? { sellerMarketplaceCommissionRate: dto.sellerMarketplaceCommissionRate }
+          : {}),
+        ...(dto.vetCommissionRate !== undefined
+          ? { vetCommissionRate: dto.vetCommissionRate }
           : {}),
         ...(supportPhone !== undefined ? { supportPhone } : {}),
         ...(supportTelegramUrl !== undefined ? { supportTelegramUrl } : {})

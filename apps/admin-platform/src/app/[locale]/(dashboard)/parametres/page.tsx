@@ -35,7 +35,9 @@ export default function ParametresPage() {
       .then((row) => {
         setForm({
           ...row,
-          marketplaceCommissionRate: Number(row.marketplaceCommissionRate ?? 0.05)
+          marketplaceCommissionRate: Number(row.marketplaceCommissionRate ?? 0.05),
+          sellerMarketplaceCommissionRate: Number(row.sellerMarketplaceCommissionRate ?? 0.05),
+          vetCommissionRate: Number(row.vetCommissionRate ?? 0.05)
         });
       })
       .catch(() => {
@@ -65,6 +67,8 @@ export default function ParametresPage() {
         adminNotifyEmail: form.adminNotifyEmail ?? "",
         reportFrequencyDays: form.reportFrequencyDays,
         marketplaceCommissionRate: form.marketplaceCommissionRate,
+        sellerMarketplaceCommissionRate: form.sellerMarketplaceCommissionRate,
+        vetCommissionRate: form.vetCommissionRate,
         supportPhone: form.supportPhone ?? "",
         supportTelegramUrl: form.supportTelegramUrl ?? ""
       });
@@ -267,6 +271,60 @@ export default function ParametresPage() {
             />
             <p className="text-xs text-muted-foreground">
               {t("fields.marketplaceCommissionHint")}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="seller-commission">
+              {t("fields.sellerMarketplaceCommission")}
+            </Label>
+            <Input
+              id="seller-commission"
+              type="number"
+              min={0}
+              max={99}
+              step={0.1}
+              value={Math.round((form.sellerMarketplaceCommissionRate ?? 0.05) * 1000) / 10}
+              onChange={(e) => {
+                const pct = Number(e.target.value);
+                update(
+                  "sellerMarketplaceCommissionRate",
+                  Number.isFinite(pct) ? pct / 100 : 0.05
+                );
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("fields.sellerMarketplaceCommissionHint")}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">{t("sections.vet")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="vet-commission">
+              {t("fields.vetCommission")}
+            </Label>
+            <Input
+              id="vet-commission"
+              type="number"
+              min={0}
+              max={99}
+              step={0.1}
+              value={Math.round((form.vetCommissionRate ?? 0.05) * 1000) / 10}
+              onChange={(e) => {
+                const pct = Number(e.target.value);
+                update(
+                  "vetCommissionRate",
+                  Number.isFinite(pct) ? pct / 100 : 0.05
+                );
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("fields.vetCommissionHint")}
             </p>
           </div>
         </CardContent>

@@ -3,6 +3,8 @@ import type { PlatformSettings } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
 const DEFAULT_MARKETPLACE_COMMISSION_RATE = 0.05;
+const DEFAULT_SELLER_COMMISSION_RATE = 0.05;
+const DEFAULT_VET_COMMISSION_RATE = 0.05;
 const CACHE_TTL_MS = 60_000;
 
 export type SupportContactDto = {
@@ -19,6 +21,10 @@ export type PlatformSettingsAdminDto = PlatformSettings & {
 export class PlatformSettingsService {
   private cachedCommissionRate: number | null = null;
   private cachedAt = 0;
+  private cachedSellerCommissionRate: number | null = null;
+  private cachedSellerAt = 0;
+  private cachedVetCommissionRate: number | null = null;
+  private cachedVetAt = 0;
   private cachedSupport: SupportContactDto | null = null;
   private cachedSupportAt = 0;
 
@@ -27,6 +33,10 @@ export class PlatformSettingsService {
   invalidateCache(): void {
     this.cachedCommissionRate = null;
     this.cachedAt = 0;
+    this.cachedSellerCommissionRate = null;
+    this.cachedSellerAt = 0;
+    this.cachedVetCommissionRate = null;
+    this.cachedVetAt = 0;
     this.cachedSupport = null;
     this.cachedSupportAt = 0;
   }
@@ -59,6 +69,58 @@ export class PlatformSettingsService {
 
     this.cachedCommissionRate = rate;
     this.cachedAt = now;
+    return rate;
+  }
+
+  async getSellerMarketplaceCommissionRate(): Promise<number> {
+    const now = Date.now();
+    if (
+      this.cachedSellerCommissionRate != null &&
+      now - this.cachedSellerAt < CACHE_TTL_MS
+    ) {
+      return this.cachedSellerCommissionRate;
+    }
+    let row = await this.prisma.platformSettings.findUnique({
+      where: { id: "default" },
+      select: { sellerMarketplaceCommissionRate: true }
+    });
+    if (!row) {
+      row = await this.prisma.platformSettings.create({
+        data: { id: "default" },
+        select: { sellerMarketplaceCommissionRate: true }
+      });
+    }
+    const n = Number(row.sellerMarketplaceCommissionRate);
+    const rate =
+      Number.isFinite(n) && n >= 0 && n < 1 ? n : DEFAULT_SELLER_COMMISSION_RATE;
+    this.cachedSellerCommissionRate = rate;
+    this.cachedSellerAt = now;
+    return rate;
+  }
+
+  async getVetCommissionRate(): Promise<number> {
+    const now = Date.now();
+    if (
+      this.cachedVetCommissionRate != null &&
+      now - this.cachedVetAt < CACHE_TTL_MS
+    ) {
+      return this.cachedVetCommissionRate;
+    }
+    let row = await this.prisma.platformSettings.findUnique({
+      where: { id: "default" },
+      select: { vetCommissionRate: true }
+    });
+    if (!row) {
+      row = await this.prisma.platformSettings.create({
+        data: { id: "default" },
+        select: { vetCommissionRate: true }
+      });
+    }
+    const n = Number(row.vetCommissionRate);
+    const rate =
+      Number.isFinite(n) && n >= 0 && n < 1 ? n : DEFAULT_VET_COMMISSION_RATE;
+    this.cachedVetCommissionRate = rate;
+    this.cachedVetAt = now;
     return rate;
   }
 
