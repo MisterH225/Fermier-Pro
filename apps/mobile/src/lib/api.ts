@@ -4913,16 +4913,18 @@ export function counterMarketplaceCreditOffer(
 export function initiateMarketplaceCreditBalancePayment(
   accessToken: string,
   offerId: string,
-  activeProfileId?: string | null
+  activeProfileId?: string | null,
+  paymentMethod?: "mobile_money" | "wallet"
 ): Promise<{
   providerRef: string;
   amount: number;
   currency: string;
   transactionId: string;
+  paymentMethod?: string;
 }> {
   return apiPostJson(
     `/marketplace/offers/${offerId}/balance-payment/initiate`,
-    {},
+    paymentMethod ? { paymentMethod } : {},
     accessToken,
     activeProfileId
   );
@@ -5346,11 +5348,22 @@ export function fetchMarketplaceTransaction(
 export function initiateMarketplacePayment(
   accessToken: string,
   transactionId: string,
-  activeProfileId?: string | null
-): Promise<{ providerRef: string; amount: number; currency: string }> {
-  return apiPostJson<{ providerRef: string; amount: number; currency: string }>(
+  activeProfileId?: string | null,
+  paymentMethod?: "mobile_money" | "wallet"
+): Promise<{
+  providerRef: string;
+  amount: number;
+  currency: string;
+  paymentMethod?: string;
+}> {
+  return apiPostJson<{
+    providerRef: string;
+    amount: number;
+    currency: string;
+    paymentMethod?: string;
+  }>(
     `/marketplace/transactions/${transactionId}/payment/initiate`,
-    {},
+    paymentMethod ? { paymentMethod } : {},
     accessToken,
     activeProfileId
   );
@@ -6748,6 +6761,32 @@ export type BuyerDashboardDto = {
     favoritesCount: number;
     activeAlerts: number;
   };
+  wallet?: {
+    balance: number;
+    currency: string;
+    monthCredits: number;
+    monthDebits: number;
+  };
+};
+
+export type BuyerWalletEntryDto = {
+  id: string;
+  kind:
+    | "credit_refund"
+    | "credit_adjustment"
+    | "debit_escrow_hold"
+    | "debit_adjustment";
+  amount: number;
+  balanceAfter: number;
+  currency: string;
+  transactionId: string | null;
+  note: string | null;
+  createdAt: string;
+};
+
+export type BuyerWalletEntriesDto = {
+  entries: BuyerWalletEntryDto[];
+  nextCursor: string | null;
 };
 
 export type BuyerProposalDto = {
@@ -6826,6 +6865,35 @@ export function fetchBuyerDashboard(
 ): Promise<BuyerDashboardDto> {
   return apiGetJson<BuyerDashboardDto>(
     "/buyers/me/dashboard",
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** GET /api/v1/buyers/me/wallet */
+export function fetchBuyerWallet(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<NonNullable<BuyerDashboardDto["wallet"]>> {
+  return apiGetJson<NonNullable<BuyerDashboardDto["wallet"]>>(
+    "/buyers/me/wallet",
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** GET /api/v1/buyers/me/wallet/entries */
+export function fetchBuyerWalletEntries(
+  accessToken: string,
+  activeProfileId?: string | null,
+  opts?: { limit?: number; cursor?: string }
+): Promise<BuyerWalletEntriesDto> {
+  const params = new URLSearchParams();
+  if (opts?.limit) params.set("limit", String(opts.limit));
+  if (opts?.cursor) params.set("cursor", opts.cursor);
+  const qs = params.toString();
+  return apiGetJson<BuyerWalletEntriesDto>(
+    `/buyers/me/wallet/entries${qs ? `?${qs}` : ""}`,
     accessToken,
     activeProfileId
   );

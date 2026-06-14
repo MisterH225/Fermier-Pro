@@ -105,6 +105,7 @@ model User {
   pushDevices           PushDevice[]
   technicianProfile     TechnicianProfile?
   buyerProfile          BuyerProfile?
+  buyerWallet           BuyerWallet?
   producerProfile       ProducerProfile?
   reactivationWaitlist  ReactivationWaitlist[]
   memberships           FarmMembership[]
@@ -1502,6 +1503,18 @@ enum MarketplaceFundMovementKind {
   COMMISSION
 }
 
+enum BuyerWalletEntryKind {
+  credit_refund
+  credit_adjustment
+  debit_escrow_hold
+  debit_adjustment
+}
+
+enum MarketplacePaymentMethod {
+  mobile_money
+  wallet
+}
+
 enum PigPriceSnapshotSource {
   listing
   direct_sale
@@ -1783,6 +1796,7 @@ model MarketplaceTransaction {
   buyerRefundAmount       Decimal?                     @db.Decimal(14, 2)
   buyerAdditionalCharge   Decimal?                     @db.Decimal(14, 2)
   paymentProviderRef      String?
+  paymentMethod           MarketplacePaymentMethod?
   paymentInitiatedAt      DateTime?
   paymentConfirmedAt      DateTime?
   closedAt                DateTime?
@@ -1796,6 +1810,7 @@ model MarketplaceTransaction {
   createdAt               DateTime                     @default(now())
   updatedAt               DateTime                     @updatedAt
   fundMovements           MarketplaceFundMovement[]
+  walletEntries           BuyerWalletEntry[]
   platformRevenue         PlatformRevenue?
   receipt                 MarketplaceTransactionReceipt?
   deliveryDisputes        MarketplaceDeliveryDispute[]
@@ -2605,6 +2620,37 @@ model BuyerProfile {
 
   @@index([buyerType])
   @@index([creditScore])
+}
+
+/// Portefeuille acheteur — alimenté principalement par les remboursements escrow.
+model BuyerWallet {
+  id        String             @id @default(cuid())
+  userId    String             @unique
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Decimal            @default(0) @db.Decimal(14, 2)
+  currency  String             @default("XOF")
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  entries   BuyerWalletEntry[]
+}
+
+/// Historique des mouvements du portefeuille acheteur.
+model BuyerWalletEntry {
+  id             String               @id @default(cuid())
+  walletId       String
+  wallet         BuyerWallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  kind           BuyerWalletEntryKind
+  amount         Decimal              @db.Decimal(14, 2)
+  balanceAfter   Decimal              @db.Decimal(14, 2)
+  currency       String               @default("XOF")
+  transactionId  String?
+  transaction    MarketplaceTransaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  note           String?
+  idempotencyKey String?              @unique
+  createdAt      DateTime             @default(now())
+
+  @@index([walletId, createdAt])
+  @@index([transactionId])
 }
 
 /// Profil producteur : score fiabilité (saisie, usage plateforme, réactivité).

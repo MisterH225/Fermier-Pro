@@ -12,6 +12,7 @@ import {
   ProfileType
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { BuyerWalletService } from "../buyer-wallet/buyer-wallet.service";
 import type { CreateBuyerPriceAlertDto } from "./dto/create-price-alert.dto";
 import type { UpdateBuyerPriceAlertDto } from "./dto/update-price-alert.dto";
 import type { UpsertBuyerProfileDto } from "./dto/upsert-buyer-profile.dto";
@@ -35,7 +36,10 @@ function haversineKm(
 
 @Injectable()
 export class BuyerProfilesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly buyerWallet: BuyerWalletService
+  ) {}
 
   async ensureRow(userId: string) {
     return this.prisma.buyerProfile.upsert({
@@ -123,7 +127,8 @@ export class BuyerProfilesService {
       pendingProposals,
       completedPurchases,
       activeAlerts,
-      favoritesCount
+      favoritesCount,
+      walletSummary
     ] = await Promise.all([
       this.prisma.marketplaceOffer.count({
         where: { buyerUserId: user.id, status: OfferStatus.pending }
@@ -142,7 +147,8 @@ export class BuyerProfilesService {
       }),
       profile
         ? this.prisma.buyerFavorite.count({ where: { buyerProfileId: profile.id } })
-        : Promise.resolve(0)
+        : Promise.resolve(0),
+      this.buyerWallet.getSummary(user.id)
     ]);
 
     return {
@@ -160,7 +166,8 @@ export class BuyerProfilesService {
         purchasesCount: completedPurchases,
         favoritesCount,
         activeAlerts
-      }
+      },
+      wallet: walletSummary
     };
   }
 

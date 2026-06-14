@@ -3,6 +3,7 @@ import type { BuyerMainTab } from "./types";
 const ROUTES: Record<BuyerMainTab, string> = {
   home: "BuyerDashboard",
   market: "BuyerMarket",
+  finance: "BuyerFinance",
   messages: "BuyerMessages",
   history: "BuyerHistory"
 };

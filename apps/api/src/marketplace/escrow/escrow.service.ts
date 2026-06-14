@@ -1,13 +1,19 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import {
   MarketplaceFundMovementKind,
+  MarketplacePaymentMethod,
   Prisma
 } from "@prisma/client";
+import { BuyerWalletService } from "../../buyer-wallet/buyer-wallet.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import {
   MOBILE_MONEY_GATEWAY,
   type MobileMoneyGateway
 } from "./mobile-money.gateway";
+
+export type HoldFundsOptions = {
+  paymentMethod?: MarketplacePaymentMethod;
+};
 
 @Injectable()
 export class EscrowService {
@@ -15,6 +21,7 @@ export class EscrowService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly buyerWallet: BuyerWalletService,
     @Inject(MOBILE_MONEY_GATEWAY)
     private readonly gateway: MobileMoneyGateway
   ) {}
@@ -24,8 +31,17 @@ export class EscrowService {
     buyerUserId: string,
     amount: number,
     currency: string,
-    label: string
-  ): Promise<{ providerRef: string }> {
+    label: string,
+    options?: HoldFundsOptions
+  ): Promise<{ providerRef: string; paymentMethod: MarketplacePaymentMethod }> {
+    const method = options?.paymentMethod ?? MarketplacePaymentMethod.mobile_money;
+
+    if (method === MarketplacePaymentMethod.wallet) {
+      await this.buyerWallet.assertSufficientBalance(buyerUserId, amount);
+      const providerRef = this.buyerWallet.walletPendingRef(transactionId);
+      return { providerRef, paymentMethod: method };
+    }
+
     const init = await this.gateway.initiatePayment({
       amount,
       currency,
@@ -33,13 +49,58 @@ export class EscrowService {
       transactionId,
       label
     });
-    await this.logMovement(transactionId, MarketplaceFundMovementKind.HOLD, amount, currency, init.providerRef, "Initiation blocage fonds");
-    return { providerRef: init.providerRef };
+    await this.logMovement(
+      transactionId,
+      MarketplaceFundMovementKind.HOLD,
+      amount,
+      currency,
+      init.providerRef,
+      "Initiation blocage fonds"
+    );
+    return {
+      providerRef: init.providerRef,
+      paymentMethod: MarketplacePaymentMethod.mobile_money
+    };
   }
 
-  async confirmHold(providerRef: string, transactionId: string): Promise<boolean> {
+  async confirmHold(
+    providerRef: string,
+    transactionId: string,
+    walletContext?: {
+      buyerUserId: string;
+      amount: number;
+      currency: string;
+      label: string;
+    }
+  ): Promise<{ success: boolean; providerRef?: string }> {
+    if (this.buyerWallet.isWalletPendingRef(providerRef)) {
+      if (!walletContext) {
+        throw new Error("Contexte portefeuille manquant pour confirmer le paiement");
+      }
+      const confirmedRef = await this.buyerWallet.confirmPendingHold(
+        providerRef,
+        walletContext.buyerUserId,
+        walletContext.amount,
+        walletContext.currency,
+        transactionId,
+        walletContext.label
+      );
+      await this.logMovement(
+        transactionId,
+        MarketplaceFundMovementKind.HOLD,
+        walletContext.amount,
+        walletContext.currency,
+        confirmedRef,
+        "Blocage fonds via portefeuille acheteur"
+      );
+      return { success: true, providerRef: confirmedRef };
+    }
+    if (this.buyerWallet.isWalletProviderRef(providerRef)) {
+      await this.buyerWallet.requireWalletEntryForRef(providerRef, transactionId);
+      return { success: true, providerRef };
+    }
     const res = await this.gateway.confirmPayment(providerRef, transactionId);
-    return res.success;
+    return { success: res.success, providerRef };
   }
 
   async releaseFundsToSeller(
@@ -73,25 +134,23 @@ export class EscrowService {
     buyerUserId: string,
     refundAmount: number,
     currency: string,
-    originalProviderRef?: string | null
+    _originalProviderRef?: string | null
   ): Promise<void> {
-    const res = await this.gateway.refund({
-      amount: refundAmount,
-      currency,
+    const entry = await this.buyerWallet.creditRefund(
       buyerUserId,
+      refundAmount,
+      currency,
       transactionId,
-      originalProviderRef
-    });
-    if (!res.success) {
-      throw new Error("Échec remboursement acheteur via mobile money");
-    }
+      "Remboursement escrow crédité sur le portefeuille acheteur",
+      `refund:${transactionId}:${refundAmount}`
+    );
     await this.logMovement(
       transactionId,
       MarketplaceFundMovementKind.REFUND_BUYER,
       refundAmount,
       currency,
-      res.providerRef,
-      "Remboursement acheteur"
+      this.buyerWallet.walletProviderRef(entry.id),
+      "Remboursement acheteur (portefeuille)"
     );
   }
 

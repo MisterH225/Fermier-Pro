@@ -16,6 +16,7 @@ import {
 import { PendingInvitationsBanner } from "../../components/collaboration/PendingInvitationsBanner";
 import { PigPriceIndex } from "../../components/market/PigPriceIndex";
 import { BuyerProfileModal } from "../../components/buyer/BuyerProfileModal";
+import { BuyerBalanceCard } from "../../components/buyer/BuyerBalanceCard";
 import { BuyerWelcomeHeader } from "../../components/buyer/BuyerWelcomeHeader";
 import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
 import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
@@ -126,6 +127,15 @@ export function BuyerDashboardScreen() {
             />
           </View>
         </ProfileHeroCard>
+
+        {dashQ.data?.wallet ? (
+          <BuyerBalanceCard
+            balance={dashQ.data.wallet.balance}
+            currency={dashQ.data.wallet.currency}
+            monthCredits={dashQ.data.wallet.monthCredits}
+            onPress={() => navigation.navigate("BuyerFinance")}
+          />
+        ) : null}
 
         <PigPriceIndex />
 

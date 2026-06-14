@@ -6,6 +6,7 @@ export type RootStackParamList = {
   BuyerMarket: { favoritesOnly?: boolean; searchQuery?: string } | undefined;
   BuyerMessages: undefined;
   BuyerHistory: { initialTab?: "proposals" | "purchases" | "reviews"; fromDashboard?: boolean } | undefined;
+  BuyerFinance: undefined;
   BuyerAlerts: undefined;
   BuyerFavorites: undefined;
   VeterinarianDashboard: undefined;

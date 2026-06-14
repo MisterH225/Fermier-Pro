@@ -13,6 +13,7 @@ import {
   ListingStatus,
   MarketplaceDeliveryDisputeStatus,
   MarketplaceFundMovementKind,
+  MarketplacePaymentMethod,
   MarketplacePriceType,
   MarketplaceReceiptCondition,
   MarketplaceShipmentMethod,
@@ -579,30 +580,41 @@ export class MarketplaceTransactionService {
     );
   }
 
-  async initiatePayment(user: User, transactionId: string) {
+  async initiatePayment(
+    user: User,
+    transactionId: string,
+    dto?: { paymentMethod?: "mobile_money" | "wallet" }
+  ) {
     const tx = await this.requireBuyer(transactionId, user.id);
     if (tx.status !== MarketplaceTransactionStatus.PAYMENT_PENDING) {
       throw new BadRequestException("Paiement non requis pour cette transaction");
     }
     const amount = Number(tx.blockedAmount);
+    const method =
+      dto?.paymentMethod === "wallet"
+        ? MarketplacePaymentMethod.wallet
+        : MarketplacePaymentMethod.mobile_money;
     const hold = await this.escrow.holdFunds(
       tx.id,
       tx.buyerUserId,
       amount,
       tx.currency,
-      `Marketplace ${tx.listingId}`
+      `Marketplace ${tx.listingId}`,
+      { paymentMethod: method }
     );
     await this.prisma.marketplaceTransaction.update({
       where: { id: tx.id },
       data: {
         paymentProviderRef: hold.providerRef,
+        paymentMethod: hold.paymentMethod,
         paymentInitiatedAt: new Date()
       }
     });
     return {
       providerRef: hold.providerRef,
       amount,
-      currency: tx.currency
+      currency: tx.currency,
+      paymentMethod: hold.paymentMethod
     };
   }
 
@@ -621,8 +633,17 @@ export class MarketplaceTransactionService {
     if (providerRef && providerRef !== ref) {
       throw new BadRequestException("Référence paiement invalide pour cette transaction");
     }
-    const ok = await this.escrow.confirmHold(ref, tx.id);
-    if (!ok) {
+    const walletContext =
+      tx.paymentMethod === MarketplacePaymentMethod.wallet
+        ? {
+            buyerUserId: tx.buyerUserId,
+            amount: Number(tx.blockedAmount),
+            currency: tx.currency,
+            label: `Marketplace ${tx.listingId}`
+          }
+        : undefined;
+    const holdResult = await this.escrow.confirmHold(ref, tx.id, walletContext);
+    if (!holdResult.success) {
       await this.prisma.marketplaceTransaction.updateMany({
         where: {
           id: tx.id,
@@ -632,6 +653,7 @@ export class MarketplaceTransactionService {
       });
       throw new BadRequestException("Paiement refusé");
     }
+    const confirmedRef = holdResult.providerRef ?? ref;
 
     const listing = await this.prisma.marketplaceListing.findUnique({
       where: { id: tx.listingId },
@@ -647,7 +669,7 @@ export class MarketplaceTransactionService {
       data: {
         status: MarketplaceTransactionStatus.PAYMENT_HELD,
         paymentConfirmedAt: new Date(),
-        paymentProviderRef: ref
+        paymentProviderRef: confirmedRef
       }
     });
     if (claimed.count === 0) {
@@ -716,8 +738,8 @@ export class MarketplaceTransactionService {
     if (tx.paymentProviderRef && tx.paymentProviderRef !== providerRef) {
       throw new BadRequestException("providerRef incohérent");
     }
-    const ok = await this.escrow.confirmHold(providerRef, transactionId);
-    if (!ok) {
+    const holdResult = await this.escrow.confirmHold(providerRef, transactionId);
+    if (!holdResult.success) {
       await this.prisma.marketplaceTransaction.updateMany({
         where: {
           id: transactionId,
