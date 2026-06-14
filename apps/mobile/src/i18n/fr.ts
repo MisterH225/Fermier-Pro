@@ -406,15 +406,19 @@ export const fr = {
       amountAdjustHint:
         "Ce montant sera ajusté au poids réel lors de la livraison.",
       payCta: "Payer {{amount}}",
+      paymentSummaryTitle: "Détail du paiement",
+      dealPriceLabel: "Montant de l'achat",
+      dealPriceEstimatedLabel: "Montant estimé de l'achat",
       platformFeeLabel: "Frais de plateforme ({{pct}} %)",
       platformFeeEstimatedLabel: "Frais de plateforme estimés ({{pct}} %)",
-      dealPriceLabel: "Prix convenu",
+      platformFeeZeroLabel: "Frais de plateforme",
+      feeIncluded: "Inclus",
       totalPaymentLabel: "Total à payer",
       feeBufferNote:
-        "Montant bloqué en garantie : {{blockedAmount}} (ajusté au poids réel à la livraison, le surplus vous est restitué).",
-      feeConsentTitle: "Frais de plateforme",
+        "Garantie bloquée : {{blockedAmount}} — ajustée au poids réel à la livraison, le surplus vous est restitué.",
+      feeConsentTitle: "Confirmer le paiement",
       feeConsentBody:
-        "Prix convenu : {{dealAmount}}\nFrais de plateforme ({{pct}} %) : {{feeAmount}}\nTotal à payer : {{totalAmount}}\n\nEn confirmant, vous acceptez de régler ce montant.",
+        "Montant de l'achat : {{dealAmount}}\nFrais de plateforme ({{pct}} %) : {{feeAmount}}\n\n💳 Total à payer : {{totalAmount}}\n\nEn appuyant sur « Confirmer », vous acceptez de régler ce montant.",
       feeConsentConfirm: "Confirmer et payer",
       feeConsentCancel: "Annuler",
       paymentSuccessTitle: "Paiement confirmé",

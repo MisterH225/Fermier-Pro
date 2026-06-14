@@ -405,15 +405,19 @@ export const en = {
       amountAdjustHint:
         "This amount will be adjusted to the actual weight at delivery.",
       payCta: "Pay {{amount}}",
+      paymentSummaryTitle: "Payment breakdown",
+      dealPriceLabel: "Purchase amount",
+      dealPriceEstimatedLabel: "Estimated purchase amount",
       platformFeeLabel: "Platform fee ({{pct}} %)",
       platformFeeEstimatedLabel: "Estimated platform fee ({{pct}} %)",
-      dealPriceLabel: "Agreed price",
+      platformFeeZeroLabel: "Platform fee",
+      feeIncluded: "Included",
       totalPaymentLabel: "Total to pay",
       feeBufferNote:
-        "Amount held as guarantee: {{blockedAmount}} (adjusted to actual weight at delivery — any surplus is refunded).",
-      feeConsentTitle: "Platform fees",
+        "Guarantee held: {{blockedAmount}} — adjusted to actual weight at delivery, any surplus is refunded.",
+      feeConsentTitle: "Confirm payment",
       feeConsentBody:
-        "Agreed price: {{dealAmount}}\nPlatform fee ({{pct}} %): {{feeAmount}}\nTotal to pay: {{totalAmount}}\n\nBy confirming, you agree to pay this amount.",
+        "Purchase amount: {{dealAmount}}\nPlatform fee ({{pct}} %): {{feeAmount}}\n\n💳 Total to pay: {{totalAmount}}\n\nBy tapping \"Confirm\", you agree to pay this amount.",
       feeConsentConfirm: "Confirm and pay",
       feeConsentCancel: "Cancel",
       paymentSuccessTitle: "Payment confirmed",

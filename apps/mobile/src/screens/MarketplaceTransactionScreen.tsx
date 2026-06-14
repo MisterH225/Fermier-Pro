@@ -352,11 +352,6 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   const payCurrency = tx?.currency ?? walletQ.data?.currency ?? "XOF";
   const payAmount = tx?.blockedAmount ?? 0;
 
-  // Frais de plateforme : présents uniquement pour les transactions où l'acheteur supporte la commission
-  const hasPlatformFee = tx?.buyerPaysCommission === true && (tx?.commissionRate ?? 0) > 0;
-  const feeRatePct = hasPlatformFee ? Math.round((tx!.commissionRate ?? 0) * 100) : 0;
-  const feeEstimate = hasPlatformFee ? (tx?.platformFeeEstimate ?? 0) : 0;
-
   // Prix convenu réel = prix forfaitaire OU prix/kg × poids estimé
   // On N'utilise PAS blockedAmount - fee car blockedAmount inclut aussi le buffer poids (+10 %)
   const agreedDeal = tx
@@ -364,22 +359,24 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
       ? tx.agreedFlatPrice
       : (tx.agreedPricePerKg ?? 0) * (tx.estimatedWeightKg ?? 0)
     : 0;
-  const dealPrice = hasPlatformFee ? agreedDeal : payAmount;
 
+  // Frais acheteur — affichés même à 0 pour la transparence totale
+  const buyerCommissionRate = tx?.commissionRate ?? 0;
+  const buyerPaysCommission = tx?.buyerPaysCommission === true;
+  const feeRatePct = Math.round(buyerCommissionRate * 100);
+  const feeEstimate = buyerPaysCommission ? (tx?.platformFeeEstimate ?? 0) : 0;
+  // Total = achat + frais (sans buffer per_kg — restitué à la clôture)
+  const paymentTotal = agreedDeal + feeEstimate;
+
+  // Toujours montrer la confirmation avec le détail avant de payer
   const handlePayPress = () => {
-    if (!hasPlatformFee) {
-      payMut.mutate();
-      return;
-    }
-    // totalAmount = deal + frais (sans buffer pour per_kg — le buffer est restitué à la clôture)
-    const consentTotal = dealPrice + feeEstimate;
     Alert.alert(
       t("marketScreen.transaction.feeConsentTitle"),
       t("marketScreen.transaction.feeConsentBody", {
-        dealAmount: money(dealPrice, payCurrency),
+        dealAmount: money(agreedDeal, payCurrency),
         pct: feeRatePct,
         feeAmount: money(feeEstimate, payCurrency),
-        totalAmount: money(consentTotal, payCurrency)
+        totalAmount: money(paymentTotal, payCurrency)
       }),
       [
         {
@@ -726,43 +723,45 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
 
       {isBuyer && tx.status === "PAYMENT_PENDING" ? (
         <View style={styles.section}>
-          {hasPlatformFee ? (
-            <View style={styles.feeBreakdown}>
-              <View style={styles.feeRow}>
-                <Text style={styles.feeLabel}>
-                  {t("marketScreen.transaction.dealPriceLabel")}
-                </Text>
-                <Text style={styles.feeValue}>
-                  {money(dealPrice, cur)}
-                </Text>
-              </View>
-              <View style={styles.feeRow}>
-                <Text style={styles.feeLabel}>
-                  {tx.priceType === "flat"
-                    ? t("marketScreen.transaction.platformFeeLabel", { pct: feeRatePct })
-                    : t("marketScreen.transaction.platformFeeEstimatedLabel", { pct: feeRatePct })}
-                </Text>
-                <Text style={styles.feeValue}>
-                  {money(feeEstimate, cur)}
-                </Text>
-              </View>
-              <View style={[styles.feeRow, styles.feeTotalRow]}>
-                <Text style={styles.feeTotalLabel}>
-                  {t("marketScreen.transaction.totalPaymentLabel")}
-                </Text>
-                <Text style={styles.feeTotalValue}>
-                  {money(dealPrice + feeEstimate, cur)}
-                </Text>
-              </View>
-              {tx.priceType !== "flat" ? (
-                <Text style={styles.feeBufferNote}>
-                  {t("marketScreen.transaction.feeBufferNote", {
-                    blockedAmount: money(tx.blockedAmount, cur)
-                  })}
-                </Text>
-              ) : null}
+          {/* Récapitulatif toujours visible — transparence obligatoire */}
+          <View style={styles.feeBreakdown}>
+            <Text style={styles.feeBreakdownTitle}>
+              {t("marketScreen.transaction.paymentSummaryTitle")}
+            </Text>
+            <View style={styles.feeRow}>
+              <Text style={styles.feeLabel}>
+                {tx.priceType === "flat"
+                  ? t("marketScreen.transaction.dealPriceLabel")
+                  : t("marketScreen.transaction.dealPriceEstimatedLabel")}
+              </Text>
+              <Text style={styles.feeValue}>{money(agreedDeal, cur)}</Text>
             </View>
-          ) : null}
+            <View style={styles.feeRow}>
+              <Text style={styles.feeLabel}>
+                {feeRatePct > 0
+                  ? (tx.priceType === "flat"
+                      ? t("marketScreen.transaction.platformFeeLabel", { pct: feeRatePct })
+                      : t("marketScreen.transaction.platformFeeEstimatedLabel", { pct: feeRatePct }))
+                  : t("marketScreen.transaction.platformFeeZeroLabel")}
+              </Text>
+              <Text style={[styles.feeValue, feeEstimate > 0 && styles.feeValueAccent]}>
+                {feeEstimate > 0 ? money(feeEstimate, cur) : t("marketScreen.transaction.feeIncluded")}
+              </Text>
+            </View>
+            <View style={[styles.feeRow, styles.feeTotalRow]}>
+              <Text style={styles.feeTotalLabel}>
+                {t("marketScreen.transaction.totalPaymentLabel")}
+              </Text>
+              <Text style={styles.feeTotalValue}>{money(paymentTotal, cur)}</Text>
+            </View>
+            {tx.priceType !== "flat" ? (
+              <Text style={styles.feeBufferNote}>
+                {t("marketScreen.transaction.feeBufferNote", {
+                  blockedAmount: money(tx.blockedAmount, cur)
+                })}
+              </Text>
+            ) : null}
+          </View>
           <MarketplacePaymentMethodPicker
             amount={payAmount}
             currency={payCurrency}
@@ -772,7 +771,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
           />
           <PrimaryButton
             label={t("marketScreen.transaction.payCta", {
-              amount: money(tx.blockedAmount, cur)
+              amount: money(paymentTotal, cur)
             })}
             onPress={handlePayPress}
             loading={payMut.isPending}
@@ -1054,11 +1053,19 @@ const styles = StyleSheet.create({
     textAlign: "center"
   },
   feeBreakdown: {
-    backgroundColor: "rgba(46, 125, 50, 0.06)",
-    borderRadius: mobileRadius.md,
-    padding: mobileSpacing.md,
+    backgroundColor: mobileColors.background,
+    borderRadius: mobileRadius.lg,
+    padding: mobileSpacing.lg,
     marginBottom: mobileSpacing.md,
-    gap: mobileSpacing.xs
+    gap: mobileSpacing.sm,
+    borderWidth: 1.5,
+    borderColor: mobileColors.accent
+  },
+  feeBreakdownTitle: {
+    ...mobileTypography.sectionTitle,
+    color: mobileColors.accent,
+    fontWeight: "700",
+    marginBottom: mobileSpacing.xs
   },
   feeRow: {
     flexDirection: "row",
@@ -1091,6 +1098,9 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     color: mobileColors.accent,
     fontWeight: "700"
+  },
+  feeValueAccent: {
+    color: mobileColors.accent
   },
   feeBufferNote: {
     ...mobileTypography.meta,
