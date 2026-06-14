@@ -28,6 +28,8 @@ import { CardContentSkeleton } from "../components/common/SkeletonBlocks";
 import { OnboardingBanner } from "../components/onboarding/OnboardingBanner";
 import { PendingInvitationsBanner } from "../components/collaboration/PendingInvitationsBanner";
 import { VetAppointmentActionsBanner } from "../components/vet/VetAppointmentActionsBanner";
+import { ProducerActiveProposalsSection } from "../components/producer/ProducerActiveProposalsSection";
+import { ProducerPendingMarketplaceBanner } from "../components/producer/ProducerPendingMarketplaceBanner";
 import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
 import { ProducerScoreBadge } from "../components/marketplace/ProducerScoreBadge";
 import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
@@ -352,6 +354,9 @@ export function ProducerDashboardScreen() {
           }
         >
           <PendingInvitationsBanner />
+          {clientFeatures.marketplace ? (
+            <ProducerPendingMarketplaceBanner farmId={farmId} />
+          ) : null}
           {accessToken && farmId ? (
             <VetAppointmentActionsBanner
               accessToken={accessToken}
@@ -385,6 +390,9 @@ export function ProducerDashboardScreen() {
                 })}
               </Text>
             </Pressable>
+          ) : null}
+          {clientFeatures.marketplace && farmId ? (
+            <ProducerActiveProposalsSection farmId={farmId} />
           ) : null}
           {!farmId ? (
             showOnboardingBanner ? (

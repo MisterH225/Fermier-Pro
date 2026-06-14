@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { ProducerPendingMarketplaceBanner } from "../components/producer/ProducerPendingMarketplaceBanner";
 import {
   ProfilePickerModal,
   ProfileSwitcherButton
@@ -81,7 +82,10 @@ export function FarmListScreen({ navigation }: Props) {
                 key={item.id}
                 onPress={() =>
                   navigateFarmListQuickNav(stackNavigation, {
-                    screen: item.screen
+                    screen: item.screen,
+                    ...(item.screen === "MarketplaceList"
+                      ? { tab: "offers" as const, offersSubTab: "received" as const }
+                      : {})
                   })
                 }
                 style={styles.headerSecondary}
@@ -255,6 +259,11 @@ export function FarmListScreen({ navigation }: Props) {
               <Text style={styles.listWelcome}>
                 {t("farmListScreen.welcome", { name: authMe.user.fullName })}
               </Text>
+            ) : null}
+            {menuFlags.marketplace ? (
+              <ProducerPendingMarketplaceBanner
+                style={{ marginHorizontal: mobileSpacing.lg }}
+              />
             ) : null}
             {listHeaderRows
               .filter((row) => row.visible)

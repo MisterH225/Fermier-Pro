@@ -2094,6 +2094,18 @@ export const en = {
     welcomeLine: "Welcome",
     settingsButton: "Settings",
     farmSettingsTitle: "Settings",
+    pendingMarketplace: {
+      bannerOne: "Action required on a sale",
+      bannerCount: "{{count}} pending marketplace actions",
+      bannerA11y: "{{count}} pending marketplace action(s)",
+      continue: "Continue →",
+      view: "View →",
+      tx: {
+        PICKUP_PROPOSED: "Confirm pickup",
+        WEIGHT_DECLARED: "Validate weight",
+        WEIGHT_VALIDATED: "Confirm handover"
+      }
+    },
     farmCheptelConfigSaved: "Farm configuration saved.",
     profileTitle: "My profile",
     close: "Close",
@@ -2134,6 +2146,9 @@ export const en = {
     mapPickerConfirm: "Confirm",
     mapPickerHint: "Drag the marker or tap the map to place your farm.",
     dashboard: {
+      receivedProposals: "Received proposals",
+      allProposals: "View all →",
+      anonymousBuyer: "Buyer",
       noFarmTitle: "No farm selected",
       noFarmBody:
         "Link a farm (producer profile) or pick one from the list to load your dashboard.",
