@@ -459,11 +459,21 @@ export class ReceiptService {
       null;
     const estimated = tx.estimatedWeightKg?.toNumber() ?? null;
     const gross = tx.finalAmount?.toNumber() ?? Number(tx.blockedAmount);
-    const commission = tx.commissionAmount?.toNumber() ?? 0;
+    const buyerCommission = tx.commissionAmount?.toNumber() ?? 0;
+    const sellerCommission =
+      (tx as { sellerCommissionAmount?: { toNumber(): number } | null }).sellerCommissionAmount?.toNumber() ?? 0;
+    const totalCommission = buyerCommission + sellerCommission;
     const sellerNet = tx.sellerReceivedAmount?.toNumber() ?? 0;
     const refund = tx.buyerRefundAmount?.toNumber() ?? 0;
     const additional = tx.buyerAdditionalCharge?.toNumber() ?? 0;
-    const ratePct = Number(tx.commissionRate) * 100;
+    const buyerRatePct = Number(tx.commissionRate) * 100;
+    const sellerRatePct =
+      Number((tx as { sellerCommissionRate?: { toNumber?: () => number } | number | null }).sellerCommissionRate ?? 0) * 100;
+    // Montant réellement payé par l'acheteur = deal + frais acheteur
+    const buyerPaid =
+      (tx as { buyerPaysCommission?: boolean }).buyerPaysCommission
+        ? gross + buyerCommission
+        : gross;
 
     const animalLabel =
       tx.listing.animal?.tagCode?.trim() ||
@@ -507,10 +517,15 @@ export class ReceiptService {
         }),
         realWeightKg: realWeight,
         grossAmount: gross,
-        commissionRatePct: ratePct,
-        commissionAmount: commission,
+        buyerCommissionRatePct: buyerRatePct,
+        buyerCommissionAmount: buyerCommission,
+        sellerCommissionRatePct: sellerRatePct,
+        sellerCommissionAmount: sellerCommission,
+        totalCommissionAmount: totalCommission,
+        commissionRatePct: buyerRatePct,
+        commissionAmount: buyerCommission,
         sellerNetAmount: sellerNet,
-        buyerPaidAmount: gross,
+        buyerPaidAmount: buyerPaid,
         buyerRefundAmount: refund,
         buyerAdditionalCharge: additional,
         currency: tx.currency

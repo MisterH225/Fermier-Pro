@@ -5,7 +5,7 @@ import {
 } from "@prisma/client";
 import { usesFlatListingPrice } from "../marketplace-listing-category.helper";
 
-const PAYMENT_BUFFER = 1.0; // Pas de marge buffer — l'acheteur paye exactement deal + frais
+// PAYMENT_BUFFER = 1.0 : pas de marge buffer — l'acheteur paye exactement deal + frais acheteur
 const PAYMENT_EXPIRY_MS = 48 * 60 * 60 * 1000;
 
 export function lastNMonthKeys(count = 6): string[] {
@@ -85,9 +85,10 @@ export function calculateBlockedAmount(params: {
     throw new Error("Prix/kg ou poids estimé invalide");
   }
   // Per_kg : blockedAmount = prix convenu × (1 + commissionRate)
-  // Même logique que le prix forfaitaire — pas de buffer supplémentaire.
+  // Pas de marge buffer — même logique que le prix forfaitaire.
   const agreedDeal = params.agreedPricePerKg * params.estimatedWeightKg;
   return Math.round(agreedDeal * (1 + commissionRate));
+  // Note : si le poids réel > poids estimé, un complément (buyerAdditionalCharge) est calculé à la clôture.
 }
 
 /**

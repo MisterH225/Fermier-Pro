@@ -125,18 +125,26 @@ export class ReceiptPdfService {
             ? `${fin.realWeightKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg`
             : "—"
         ],
-        ["Montant brut", formatReceiptMoney(fin.grossAmount, fin.currency)],
+        ["Montant de la transaction", formatReceiptMoney(fin.grossAmount, fin.currency)],
         [
-          `Commission plateforme (${fin.commissionRatePct.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} %)`,
-          `- ${formatReceiptMoney(fin.commissionAmount, fin.currency)}`
+          `Frais plateforme acheteur (${fin.buyerCommissionRatePct.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} %)`,
+          `+ ${formatReceiptMoney(fin.buyerCommissionAmount, fin.currency)}`
+        ],
+        [
+          "Total payé par l'acheteur",
+          formatReceiptMoney(fin.buyerPaidAmount, fin.currency)
+        ],
+        [
+          `Frais plateforme vendeur (${fin.sellerCommissionRatePct.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} %)`,
+          `- ${formatReceiptMoney(fin.sellerCommissionAmount, fin.currency)}`
         ],
         [
           "Montant net versé au vendeur",
           formatReceiptMoney(fin.sellerNetAmount, fin.currency)
         ],
         [
-          "Montant payé par l'acheteur",
-          formatReceiptMoney(fin.buyerPaidAmount, fin.currency)
+          "Total frais plateforme",
+          formatReceiptMoney(fin.totalCommissionAmount, fin.currency)
         ]
       ];
       if (fin.buyerRefundAmount > 0) {

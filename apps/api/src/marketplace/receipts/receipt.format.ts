@@ -27,7 +27,19 @@ export type ReceiptPdfInput = {
     priceLabel: string;
     realWeightKg: number | null;
     grossAmount: number;
+    /** Taux frais acheteur (ex. 3 pour 3 %) */
+    buyerCommissionRatePct: number;
+    /** Montant frais acheteur */
+    buyerCommissionAmount: number;
+    /** Taux frais vendeur (ex. 2 pour 2 %) */
+    sellerCommissionRatePct: number;
+    /** Montant frais vendeur */
+    sellerCommissionAmount: number;
+    /** Total frais plateforme = frais acheteur + frais vendeur */
+    totalCommissionAmount: number;
+    /** @deprecated use buyerCommissionRatePct — kept for backward compat */
     commissionRatePct: number;
+    /** @deprecated use totalCommissionAmount */
     commissionAmount: number;
     sellerNetAmount: number;
     buyerPaidAmount: number;

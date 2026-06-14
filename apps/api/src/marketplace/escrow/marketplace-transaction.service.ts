@@ -1526,7 +1526,7 @@ export class MarketplaceTransactionService {
             buyerId: tx.buyerUserId,
             grossAmount: new Prisma.Decimal(finalAmount),
             commissionRate: tx.commissionRate,
-            commissionAmount: new Prisma.Decimal(amounts.commissionAmount)
+            commissionAmount: new Prisma.Decimal(amounts.totalCommissionAmount)
           }
         });
       } catch (e) {
@@ -1555,7 +1555,8 @@ export class MarketplaceTransactionService {
           await this.listings.completeHandover(seller, tx.listingId, {
             offerId: tx.offerId,
             soldWeightKg: weightKg,
-            totalPrice: finalAmount,
+            // Enregistrer le montant NET reçu par le vendeur (après déduction des frais vendeur)
+            totalPrice: amounts.sellerReceivedAmount,
             soldAt: new Date().toISOString()
           });
         } catch (e) {
@@ -1907,7 +1908,8 @@ export class MarketplaceTransactionService {
           await this.listings.completeHandover(seller, tx.listingId, {
             offerId: tx.offerId,
             soldWeightKg: weightKg,
-            totalPrice: finalAmount,
+            // Enregistrer le montant NET reçu par le vendeur (après déduction des frais vendeur)
+            totalPrice: amounts.sellerReceivedAmount,
             soldAt: new Date().toISOString()
           });
         } catch (e) {
