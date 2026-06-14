@@ -78,6 +78,7 @@ import {
   mobileTypography
 } from "../theme/mobileTheme";
 import type { ListingDurationDays } from "../lib/marketplaceListingForm";
+import { formatListingWeightWithBasis } from "../lib/marketplaceListingForm";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<
@@ -506,7 +507,7 @@ export function MarketplaceListingDetailScreen({
             {wKg != null ? (
               <Text style={styles.priceSub}>
                 {t("marketScreen.totalWeight")}{" "}
-                {wKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg
+                {formatListingWeightWithBasis(wKg, L.weightBasis, t)}
               </Text>
             ) : null}
             <Text style={styles.priceTotal}>
@@ -566,7 +567,7 @@ export function MarketplaceListingDetailScreen({
           {wKg != null ? (
             <DetailRow
               label={t("marketScreen.detail.weight")}
-              value={`${wKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg`}
+              value={formatListingWeightWithBasis(wKg, L.weightBasis, t)}
             />
           ) : null}
           <DetailRow
