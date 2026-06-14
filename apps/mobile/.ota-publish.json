@@ -1,5 +1,5 @@
 {
-  "message": "feat/fix(marketplace): annulation vente, frais plateforme acheteur, lint (#110)",
-  "updatedAt": "2026-06-14T16:48:00Z",
+  "message": "feat: frais vendeur marketplace, commission vet configurable, dépense finance vet (#111)",
+  "updatedAt": "2026-06-14T17:01:00Z",
   "channels": ["preview", "production"]
 }
