@@ -62,9 +62,11 @@ export async function setupMarketplaceDeliveryListing(params: {
       title: "E2E porcelet double confirmation",
       farmId: params.sellerFarmId,
       animalId,
-      category: "piglet",
+      category: "butcher",
+      pricePerKg: 3_000,
       totalPrice: 75_000,
-      totalWeightKg: 25
+      totalWeightKg: 25,
+      weightBasis: "live"
     });
   if (![200, 201].includes(listingRes.status)) {
     throw new Error(`listing create failed: ${listingRes.status} ${JSON.stringify(listingRes.body)}`);

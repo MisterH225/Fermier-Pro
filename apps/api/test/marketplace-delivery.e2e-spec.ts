@@ -53,6 +53,15 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
       await ctx.prisma.marketplaceDeliveryDispute.deleteMany({
         where: { transaction: { buyerUserId: ctx.peerUserId } }
       });
+      await ctx.prisma.marketplaceTransactionReceipt.deleteMany({
+        where: { transaction: { buyerUserId: ctx.peerUserId } }
+      });
+      await ctx.prisma.platformRevenue.deleteMany({
+        where: { buyerId: ctx.peerUserId }
+      });
+      await ctx.prisma.marketplaceFundMovement.deleteMany({
+        where: { transaction: { buyerUserId: ctx.peerUserId } }
+      });
       await ctx.prisma.marketplaceTransaction.deleteMany({
         where: { buyerUserId: ctx.peerUserId }
       });
@@ -240,5 +249,89 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
       where: { transactionId: autoListing.transactionId }
     });
     expect(autoDispute?.disputeType).toBe("Délai dépassé");
+  });
+
+  it("annulation par l'acheteur : offre → cancelled, transaction → CANCELLED_BY_BUYER, annonce → published", async () => {
+    const cancelListing = await setupMarketplaceDeliveryListing({
+      app,
+      prisma: ctx.prisma,
+      sellerToken: ctx.token,
+      sellerProfileId: ctx.producerProfileId,
+      sellerFarmId: ctx.farmId,
+      buyerToken: ctx.peerToken,
+      buyerFarmId
+    });
+
+    // Annulation depuis PAYMENT_PENDING (avant paiement)
+    const cancelRes = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${cancelListing.transactionId}/cancel`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(cancelRes.status).toBe(201);
+    expect(cancelRes.body.ok).toBe(true);
+
+    // La transaction doit être CANCELLED_BY_BUYER
+    const txAfter = await ctx.prisma.marketplaceTransaction.findUniqueOrThrow({
+      where: { id: cancelListing.transactionId }
+    });
+    expect(txAfter.status).toBe("CANCELLED_BY_BUYER");
+
+    // L'offre doit être cancelled (c'est le bug corrigé)
+    const offerAfter = await ctx.prisma.marketplaceOffer.findUniqueOrThrow({
+      where: { id: cancelListing.offerId }
+    });
+    expect(offerAfter.status).toBe("cancelled");
+
+    // L'annonce doit être re-publiée
+    const listingAfter = await ctx.prisma.marketplaceListing.findUniqueOrThrow({
+      where: { id: cancelListing.listingId }
+    });
+    expect(listingAfter.status).toBe("published");
+    expect(listingAfter.reservedForBuyerUserId).toBeNull();
+  });
+
+  it("annulation par l'acheteur après paiement : offre → cancelled, remboursement effectué", async () => {
+    const cancelPaidListing = await setupMarketplaceDeliveryListing({
+      app,
+      prisma: ctx.prisma,
+      sellerToken: ctx.token,
+      sellerProfileId: ctx.producerProfileId,
+      sellerFarmId: ctx.farmId,
+      buyerToken: ctx.peerToken,
+      buyerFarmId
+    });
+
+    // Paiement
+    const payInit = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${cancelPaidListing.transactionId}/payment/initiate`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(payInit.status).toBe(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${cancelPaidListing.transactionId}/payment/confirm`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ providerRef: payInit.body.providerRef });
+
+    // Annulation depuis PAYMENT_HELD
+    const cancelRes = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${cancelPaidListing.transactionId}/cancel`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(cancelRes.status).toBe(201);
+
+    // L'offre doit être cancelled
+    const offerAfter = await ctx.prisma.marketplaceOffer.findUniqueOrThrow({
+      where: { id: cancelPaidListing.offerId }
+    });
+    expect(offerAfter.status).toBe("cancelled");
+
+    // La transaction doit être CANCELLED_BY_BUYER
+    const txAfter = await ctx.prisma.marketplaceTransaction.findUniqueOrThrow({
+      where: { id: cancelPaidListing.transactionId }
+    });
+    expect(txAfter.status).toBe("CANCELLED_BY_BUYER");
+
+    // L'annonce doit être re-publiée
+    const listingAfter = await ctx.prisma.marketplaceListing.findUniqueOrThrow({
+      where: { id: cancelPaidListing.listingId }
+    });
+    expect(listingAfter.status).toBe("published");
   });
 });

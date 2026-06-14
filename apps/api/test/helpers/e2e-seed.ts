@@ -22,9 +22,14 @@ export interface E2ESeedResult {
 }
 
 async function purgeStaleE2eUser(prisma: PrismaClient): Promise<void> {
-  await prisma.user.deleteMany({
-    where: { email: "e2e-peer-directory@fermier.local" }
+  const peer = await prisma.user.findUnique({
+    where: { email: "e2e-peer-directory@fermier.local" },
+    select: { id: true }
   });
+  if (peer) {
+    await prisma.farm.deleteMany({ where: { ownerId: peer.id } });
+    await prisma.user.delete({ where: { id: peer.id } });
+  }
   const existing = await prisma.user.findUnique({
     where: { supabaseUserId: E2E_SUPABASE_SUB },
     include: { ownedFarms: { select: { id: true } } }
@@ -170,9 +175,16 @@ export async function cleanupE2eFixtures(
   prisma: PrismaClient,
   ctx: Pick<E2ESeedResult, "farmId" | "userId" | "peerUserId">
 ): Promise<void> {
+  const userIds = [ctx.userId, ctx.peerUserId];
   try {
     await prisma.marketplaceListing.deleteMany({
       where: { sellerUserId: ctx.userId }
+    });
+    await prisma.chatMessage.deleteMany({
+      where: { senderUserId: { in: userIds } }
+    });
+    await prisma.chatRoom.deleteMany({
+      where: { members: { some: { userId: { in: userIds } } } }
     });
     await prisma.auditLog.deleteMany({
       where: {
@@ -185,10 +197,10 @@ export async function cleanupE2eFixtures(
     });
     await prisma.farm.delete({ where: { id: ctx.farmId } });
     await prisma.profile.deleteMany({
-      where: { userId: { in: [ctx.userId, ctx.peerUserId] } }
+      where: { userId: { in: userIds } }
     });
     await prisma.user.deleteMany({
-      where: { id: { in: [ctx.userId, ctx.peerUserId] } }
+      where: { id: { in: userIds } }
     });
   } finally {
     await prisma.$disconnect();
