@@ -115,6 +115,40 @@ export function paymentExpiryDate(from = new Date()): Date {
   return new Date(from.getTime() + PAYMENT_EXPIRY_MS);
 }
 
+/** Montant à enregistrer en Finance / cheptel à la clôture (offre acceptée ou règlement escrow). */
+export function resolveHandoverDealTotalPrice(params: {
+  offeredPrice: number;
+  dtoTotalPrice: number;
+  transaction?: {
+    finalAmount: { toNumber(): number } | null;
+    priceType: MarketplacePriceType;
+    agreedPricePerKg: { toNumber(): number } | null;
+    agreedFlatPrice: { toNumber(): number } | null;
+    realWeightKg: { toNumber(): number } | null;
+    arbitrationWeightKg: { toNumber(): number } | null;
+  } | null;
+}): number {
+  if (params.transaction) {
+    if (params.transaction.finalAmount != null) {
+      const final = params.transaction.finalAmount.toNumber();
+      if (final > 0) {
+        return final;
+      }
+    }
+    const computed = calculateFinalAmount(params.transaction);
+    if (computed > 0) {
+      return computed;
+    }
+  }
+  if (params.offeredPrice > 0) {
+    return params.offeredPrice;
+  }
+  if (params.dtoTotalPrice > 0) {
+    return params.dtoTotalPrice;
+  }
+  return 0;
+}
+
 export function calculateFinalAmount(tx: {
   priceType: MarketplacePriceType;
   agreedPricePerKg: { toNumber(): number } | null;

@@ -1478,6 +1478,29 @@ export class MarketplaceTransactionService {
       }
 
       void this.receipts.generateReceipt(transactionId);
+
+      const seller = await this.prisma.user.findUnique({
+        where: { id: tx.sellerUserId }
+      });
+      if (seller) {
+        const weightKg =
+          tx.arbitrationWeightKg?.toNumber() ??
+          tx.realWeightKg?.toNumber() ??
+          tx.estimatedWeightKg?.toNumber() ??
+          0;
+        try {
+          await this.listings.completeHandover(seller, tx.listingId, {
+            offerId: tx.offerId,
+            soldWeightKg: weightKg,
+            totalPrice: finalAmount,
+            soldAt: new Date().toISOString()
+          });
+        } catch (e) {
+          this.log.warn(
+            `handover after credit settle ${tx.id}: ${(e as Error).message}`
+          );
+        }
+      }
     } finally {
       await this.prisma.$executeRaw`SELECT pg_advisory_unlock(hashtext(${lockKey}))`;
     }

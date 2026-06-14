@@ -43,6 +43,23 @@ import {
   resolveListingMarketCategory,
   usesFlatListingPrice
 } from "./marketplace-listing-category.helper";
+import { resolveHandoverDealTotalPrice } from "./escrow/transaction.utils";
+
+const HANDOVER_LISTING_STATUSES: ListingStatus[] = [
+  ListingStatus.reserved,
+  ListingStatus.reserved_credit,
+  ListingStatus.published,
+  ListingStatus.delivered
+];
+
+const HANDOVER_OFFER_STATUSES: OfferStatus[] = [
+  OfferStatus.accepted,
+  OfferStatus.credit_agreed,
+  OfferStatus.advance_confirmed,
+  OfferStatus.balance_pending,
+  OfferStatus.balance_declared,
+  OfferStatus.completed
+];
 import { LISTING_EDIT_LOCK_STATUSES } from "./escrow/transaction.utils";
 import { ListingAnimalSyncService } from "./listing-animal-sync.service";
 import { ProducerScoreService } from "../producer-score/producer-score.service";
@@ -1047,11 +1064,7 @@ export class ListingsService {
   ) {
     const listing = await this.requireOwnerEditable(user, listingId);
     await this.requireMarketplaceWriteIfFarmListing(user.id, listing.farmId);
-    if (
-      listing.status !== ListingStatus.reserved &&
-      listing.status !== ListingStatus.published &&
-      listing.status !== ListingStatus.delivered
-    ) {
+    if (!HANDOVER_LISTING_STATUSES.includes(listing.status)) {
       throw new BadRequestException(
         "Cloture possible uniquement pour une annonce en cours de vente"
       );
@@ -1066,14 +1079,24 @@ export class ListingsService {
       where: {
         id: dto.offerId,
         listingId,
-        status: OfferStatus.accepted
+        status: { in: HANDOVER_OFFER_STATUSES }
       },
       include: {
-        buyer: { select: { id: true, fullName: true } }
+        buyer: { select: { id: true, fullName: true } },
+        transaction: true
       }
     });
     if (!offer) {
       throw new BadRequestException("Offre acceptee introuvable pour cette annonce");
+    }
+
+    const dealTotalPrice = resolveHandoverDealTotalPrice({
+      offeredPrice: Number(offer.offeredPrice),
+      dtoTotalPrice: dto.totalPrice,
+      transaction: offer.transaction
+    });
+    if (dealTotalPrice <= 0) {
+      throw new BadRequestException("Montant de vente invalide pour cette offre");
     }
 
     const soldAt = dto.soldAt ? new Date(dto.soldAt) : new Date();
@@ -1094,29 +1117,16 @@ export class ListingsService {
       offer.buyer.fullName?.trim() || offer.buyer.id.slice(0, 8);
     const weightPerAnimal =
       animalIds.length > 0 ? dto.soldWeightKg / animalIds.length : dto.soldWeightKg;
-    const flatListing =
-      listing.category != null && usesFlatListingPrice(listing.category);
-    const unitPerHead =
-      flatListing && listing.unitPrice != null
-        ? Number(listing.unitPrice)
-        : null;
     const pricePerAnimal =
-      unitPerHead != null
-        ? unitPerHead
-        : animalIds.length > 0
-          ? dto.totalPrice / animalIds.length
-          : dto.totalPrice;
+      animalIds.length > 0
+        ? dealTotalPrice / animalIds.length
+        : dealTotalPrice;
 
     const result = await this.prisma.$transaction(async (tx) => {
       const fresh = await tx.marketplaceListing.findUnique({
         where: { id: listingId }
       });
-      if (
-        !fresh ||
-        (fresh.status !== ListingStatus.reserved &&
-          fresh.status !== ListingStatus.published &&
-          fresh.status !== ListingStatus.delivered)
-      ) {
+      if (!fresh || !HANDOVER_LISTING_STATUSES.includes(fresh.status)) {
         throw new BadRequestException("Annonce deja cloturee");
       }
 
@@ -1262,14 +1272,14 @@ export class ListingsService {
         data: {
           status: ListingStatus.sold,
           totalWeightKg: new Prisma.Decimal(dto.soldWeightKg),
-          totalPrice: new Prisma.Decimal(dto.totalPrice)
+          totalPrice: new Prisma.Decimal(dealTotalPrice)
         }
       });
 
       return { listing: updatedListing, revenueIds, buyerUserId: offer.buyerUserId };
     });
 
-    const amountLabel = `${dto.totalPrice.toLocaleString("fr-FR")} ${listing.currency}`;
+    const amountLabel = `${dealTotalPrice.toLocaleString("fr-FR")} ${listing.currency}`;
     void this.push.sendToUser(
       result.buyerUserId,
       "✅ Proposition acceptée",
