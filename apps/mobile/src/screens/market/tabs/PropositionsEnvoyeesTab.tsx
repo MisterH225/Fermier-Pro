@@ -11,6 +11,8 @@ import {
   Text,
   View
 } from "react-native";
+import { CreditBalancePaymentModal } from "../../../components/buyer/CreditBalancePaymentModal";
+import type { MarketplacePaymentMethodChoice } from "../../../components/buyer/MarketplacePaymentMethodPicker";
 import { parseMarketNum } from "../../../components/marketplace/MarketplaceListingCard";
 import { ProposalCard } from "../../../components/marketplace/ProposalCard";
 import { EmptyStateCard } from "../../../components/common/EmptyStateCard";
@@ -23,6 +25,7 @@ import {
   confirmMarketplaceCreditBalancePayment,
   initiateMarketplaceCreditBalancePayment,
   ensureDirectChatRoom,
+  fetchBuyerWallet,
   fetchMyMarketplaceOffers,
   withdrawMarketplaceOffer,
   type MarketplaceOfferMineRow
@@ -55,10 +58,18 @@ export function PropositionsEnvoyeesTab({
   const { open } = useModal();
   const listRef = useRef<FlatList<MarketplaceOfferMineRow>>(null);
   const [highlightOffer, setHighlightOffer] = useState(highlightOfferId ?? null);
+  const [balancePayOffer, setBalancePayOffer] =
+    useState<MarketplaceOfferMineRow | null>(null);
 
   const sentQ = useQuery({
     queryKey: ["marketplaceMyOffers", activeProfileId],
     queryFn: () => fetchMyMarketplaceOffers(accessToken!, activeProfileId),
+    enabled: Boolean(accessToken)
+  });
+
+  const walletQ = useQuery({
+    queryKey: ["buyerWallet", activeProfileId],
+    queryFn: () => fetchBuyerWallet(accessToken!, activeProfileId),
     enabled: Boolean(accessToken)
   });
 
@@ -67,6 +78,8 @@ export function PropositionsEnvoyeesTab({
     void qc.invalidateQueries({ queryKey: ["marketplaceOffersCounts"] });
     void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
     void qc.invalidateQueries({ queryKey: ["marketplaceTransactions"] });
+    void qc.invalidateQueries({ queryKey: ["buyerWallet"] });
+    void qc.invalidateQueries({ queryKey: ["buyerWalletEntries"] });
     invalidateBuyerDashboardQueries(qc);
   };
 
@@ -144,11 +157,18 @@ export function PropositionsEnvoyeesTab({
   });
 
   const payBalanceMut = useMutation({
-    mutationFn: async (row: MarketplaceOfferMineRow) => {
+    mutationFn: async ({
+      row,
+      paymentMethod
+    }: {
+      row: MarketplaceOfferMineRow;
+      paymentMethod: MarketplacePaymentMethodChoice;
+    }) => {
       const init = await initiateMarketplaceCreditBalancePayment(
         accessToken!,
         row.id,
-        activeProfileId
+        activeProfileId,
+        paymentMethod
       );
       await confirmMarketplaceCreditBalancePayment(
         accessToken!,
@@ -157,7 +177,8 @@ export function PropositionsEnvoyeesTab({
         activeProfileId
       );
     },
-    onSuccess: (_data, row) => {
+    onSuccess: (_data, { row }) => {
+      setBalancePayOffer(null);
       invalidateAll(row.listing.id);
       open("success", {
         message: t("marketScreen.credit.balance.declaredSuccess"),
@@ -259,7 +280,13 @@ export function PropositionsEnvoyeesTab({
     payBalanceMut.isPending ||
     contactSellerMut.isPending;
 
+  const balancePayAmount = balancePayOffer
+    ? parseMarketNum(balancePayOffer.balanceAmount) ?? 0
+    : 0;
+  const balancePayCurrency = balancePayOffer?.listing.currency ?? "XOF";
+
   return (
+    <>
     <FlatList
       ref={listRef}
       data={rows}
@@ -331,11 +358,29 @@ export function PropositionsEnvoyeesTab({
           onWithdraw={() => confirmWithdraw(item)}
           onAcceptCounter={() => acceptCounterMut.mutate(item)}
           onDeclareAdvance={() => openCreditTransaction(item)}
-          onDeclareBalance={() => payBalanceMut.mutate(item)}
+          onDeclareBalance={() => setBalancePayOffer(item)}
           onContactSeller={() => contactSellerMut.mutate(item)}
         />
       )}
     />
+    <CreditBalancePaymentModal
+      visible={balancePayOffer != null}
+      onClose={() => {
+        if (!payBalanceMut.isPending) {
+          setBalancePayOffer(null);
+        }
+      }}
+      amount={balancePayAmount}
+      currency={balancePayCurrency}
+      walletBalance={walletQ.data?.balance ?? 0}
+      loading={payBalanceMut.isPending}
+      onConfirm={(paymentMethod) => {
+        if (balancePayOffer) {
+          payBalanceMut.mutate({ row: balancePayOffer, paymentMethod });
+        }
+      }}
+    />
+    </>
   );
 }
 
