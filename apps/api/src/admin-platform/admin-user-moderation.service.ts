@@ -160,7 +160,7 @@ export class AdminUserModerationService {
   }
 
   async suspendUser(adminId: string, userId: string, dto: SuspendUserDto) {
-    const user = await this.getUserOrThrow(userId);
+    await this.getUserOrThrow(userId);
     const reason = this.fullReason(dto.reason, dto.details);
     const until = parseSuspensionUntil(dto.duration);
 

@@ -468,9 +468,6 @@ export class TasksService {
     const tomorrowEnd = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 2)
     );
-    const yesterdayEnd = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-    );
 
     const reminderTasks = await this.prisma.farmTask.findMany({
       where: {

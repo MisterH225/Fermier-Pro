@@ -208,7 +208,7 @@ export class AiDataAggregatorService {
     const te = monthExp._sum.amount?.toNumber() ?? 0;
     const tr = monthRev._sum.amount?.toNumber() ?? 0;
     let budgetPlanned = 0;
-    let budgetSpent = te;
+    const budgetSpent = te;
     const budgetByCategory: { category: string; planned: number; spent: number }[] =
       [];
     if (budget) {
@@ -254,7 +254,7 @@ export class AiDataAggregatorService {
   }
 
   private async aggregateCheptel(farmId: string) {
-    const [animals, batches, pens, gmqSettings] = await Promise.all([
+    const [animals, _batches, pens, gmqSettings] = await Promise.all([
       this.prisma.animal.findMany({
         where: { farmId, status: "active" },
         select: {

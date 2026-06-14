@@ -23,7 +23,6 @@ import {
   formatPct,
   formatPeriodLabel,
   periodTypeBadge,
-  riskLevelLabel,
   scoreInterpretation
 } from "./formatters";
 import type { FarmReportPdfContext } from "./farm-report.types";
@@ -33,20 +32,12 @@ function fin(ctx: FarmReportPdfContext) {
   return (ctx.sections.finance ?? {}) as Record<string, unknown>;
 }
 
-function cheptel(ctx: FarmReportPdfContext) {
-  return (ctx.sections.cheptel ?? {}) as Record<string, unknown>;
-}
-
 function health(ctx: FarmReportPdfContext) {
   return (ctx.sections.health ?? {}) as Record<string, unknown>;
 }
 
 function feed(ctx: FarmReportPdfContext) {
   return (ctx.sections.feed ?? {}) as Record<string, unknown>;
-}
-
-function gestation(ctx: FarmReportPdfContext) {
-  return (ctx.sections.gestation ?? {}) as Record<string, unknown>;
 }
 
 function pageCover(ctx: FarmReportPdfContext): PdfContent[] {

@@ -1,5 +1,4 @@
 import type { FarmExpense, FeedStockMovement } from "@prisma/client";
-import { Prisma } from "@prisma/client";
 
 const MS_DAY = 86_400_000;
 const RECON_WINDOW_DAYS = 3;

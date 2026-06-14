@@ -10,7 +10,6 @@ import {
   IsInt,
   IsOptional,
   IsString,
-  IsUrl,
   Max,
   MaxLength,
   Min

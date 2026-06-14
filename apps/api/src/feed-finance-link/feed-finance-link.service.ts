@@ -101,7 +101,7 @@ export class FeedFinanceLinkService {
     occurredAt: Date,
     defaultSupplier?: string
   ) {
-    let feedType = await this.resolveFeedType(tx, user, farmId, line);
+    const feedType = await this.resolveFeedType(tx, user, farmId, line);
     const qUnit = line.quantityUnit ?? feedType.unit;
     const wp =
       line.weightPerBagKg != null

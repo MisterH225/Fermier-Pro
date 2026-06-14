@@ -1,9 +1,9 @@
 import { Injectable, Logger } from "@nestjs/common";
 import type { FarmReport } from "@prisma/client";
 import QRCode from "qrcode";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const pdfMake = require("pdfmake/build/pdfmake");
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const pdfFonts = require("pdfmake/build/vfs_fonts");
 
 type PdfFontVfs = Record<string, string>;
@@ -229,7 +229,6 @@ export class ReportsPdfmakeService {
     fin: { current?: { totals?: { revenues?: string; expenses?: string } } }
   ) {
     const rev = Number(fin.current?.totals?.revenues ?? 0);
-    const exp = Number(fin.current?.totals?.expenses ?? 0);
     return {
       riskLevel: riskLevelLabel(scoreGlobal),
       risqueSanitaire: breakdown.herdHealth.score,

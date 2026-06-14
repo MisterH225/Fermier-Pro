@@ -79,7 +79,7 @@ export async function evaluateFinanceRules(
     }
   }
 
-  const [expCur, revCur] = await Promise.all([
+  const [expCur, _revCur] = await Promise.all([
     prisma.farmExpense.aggregate({
       where: { farmId, occurredAt: { gte: startCur, lt: endCur } },
       _sum: { amount: true }

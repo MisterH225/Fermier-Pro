@@ -224,7 +224,7 @@ export class GestationService {
 
   async getOverview(user: User, farmId: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
-    const settings = await this.ensureSettings(farmId);
+    await this.ensureSettings(farmId);
     const now = new Date();
     const in7 = addUtcDays(startOfUtcDay(now), 7);
     const monthEnd = new Date(
@@ -319,7 +319,6 @@ export class GestationService {
   ) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
     const settings = await this.ensureSettings(farmId);
-    const now = new Date();
     const where: Prisma.GestationWhereInput = { farmId, archived: false };
     if (opts.status) {
       where.status = opts.status;

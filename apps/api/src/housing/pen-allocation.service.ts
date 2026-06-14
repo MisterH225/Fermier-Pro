@@ -687,7 +687,6 @@ export class PenAllocationService {
     if (!farm?.housingBuildingsCount) {
       throw new BadRequestException("Ferme ou loges introuvables");
     }
-    const buildingsCount = farm.housingBuildingsCount;
     const defaultCap = 12;
 
     return this.prisma.$transaction(

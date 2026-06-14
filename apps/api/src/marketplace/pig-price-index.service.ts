@@ -3,7 +3,6 @@ import { ListingStatus, OfferStatus, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import {
-  accountAgeDays,
   computeTrend,
   HYBRID_INDEX_RULES,
   isListingEligibleForIndex,

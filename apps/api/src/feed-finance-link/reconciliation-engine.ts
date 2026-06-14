@@ -11,11 +11,9 @@ import {
   movementHasCost,
   movementQuantityKg,
   reconciliationDateWindow,
-  resolveMovementTotalCost,
   unitPricePerKgFromTotal
 } from "./feed-movement-cost.helper";
 import { PumpCalculator } from "./pump-calculator";
-import { recalculateFeedTypeStock } from "./feed-stock-recalculate.helper";
 import type {
   ReconciliationCandidateDto,
   ReconciliationOfferDto,
