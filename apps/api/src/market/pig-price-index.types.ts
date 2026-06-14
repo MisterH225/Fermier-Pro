@@ -1,4 +1,4 @@
-import { PigPriceIndexCategory, ListingMarketCategory } from "@prisma/client";
+import { PigPriceIndexCategory } from "@prisma/client";
 import { pigPriceIndexCategoryFromWeightKg } from "../marketplace/marketplace-listing-category.helper";
 
 export type PigPriceIndexPeriod = "7d" | "30d" | "3m" | "12m";

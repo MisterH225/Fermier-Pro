@@ -707,7 +707,7 @@ export class AdminPlatformService {
           )
         : undefined;
 
-    const row = await this.prisma.platformSettings.upsert({
+    await this.prisma.platformSettings.upsert({
       where: { id: "default" },
       create: {
         id: "default",

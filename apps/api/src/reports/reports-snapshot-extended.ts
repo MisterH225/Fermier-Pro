@@ -2,8 +2,7 @@ import { buildFeedStockStatsForFarm } from "../feed-stock/feed-stock-stats.helpe
 import {
   AnimalProductionCategory,
   ListingStatus,
-  MarketplaceTransactionStatus,
-  Prisma
+  MarketplaceTransactionStatus
 } from "@prisma/client";
 import type { PrismaService } from "../prisma/prisma.service";
 import { ACTIVE_ESCROW_STATUSES } from "../marketplace/escrow/transaction.utils";
@@ -63,9 +62,6 @@ export async function buildExtendedReportData(
 
   const monthEnd = new Date(
     Date.UTC(end.getUTCFullYear(), end.getUTCMonth() + 1, 0, 23, 59, 59)
-  );
-  const monthStart = new Date(
-    Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), 1)
   );
   const upcomingFarrow = await prisma.animal.findMany({
     where: {

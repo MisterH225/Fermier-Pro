@@ -52,17 +52,24 @@ export function calculateAgreedDealAmount(params: {
   return 0;
 }
 
+/**
+ * Calcule le montant à bloquer en escrow lors du paiement.
+ * Quand buyerPaysCommission est vrai, la commission est incluse dans le montant bloqué
+ * (l'acheteur paye le prix convenu + les frais de plateforme).
+ */
 export function calculateBlockedAmount(params: {
   priceType: MarketplacePriceType;
   agreedPricePerKg: number | null;
   agreedFlatPrice: number | null;
   estimatedWeightKg: number | null;
+  commissionRate?: number;
 }): number {
+  const feeMultiplier = 1 + (params.commissionRate ?? 0);
   if (params.priceType === MarketplacePriceType.flat) {
     if (params.agreedFlatPrice == null || params.agreedFlatPrice <= 0) {
       throw new Error("Prix forfaitaire invalide");
     }
-    return params.agreedFlatPrice;
+    return Math.round(params.agreedFlatPrice * feeMultiplier);
   }
   if (
     params.agreedPricePerKg == null ||
@@ -72,7 +79,29 @@ export function calculateBlockedAmount(params: {
   ) {
     throw new Error("Prix/kg ou poids estimé invalide");
   }
-  return params.agreedPricePerKg * params.estimatedWeightKg * PAYMENT_BUFFER;
+  return Math.round(
+    params.agreedPricePerKg * params.estimatedWeightKg * PAYMENT_BUFFER * feeMultiplier
+  );
+}
+
+/**
+ * Estime les frais de plateforme affichés à l'acheteur avant le paiement.
+ * Pour flat : frais exacts. Pour per_kg : estimation basée sur le poids estimé.
+ */
+export function estimatePlatformFee(params: {
+  priceType: MarketplacePriceType;
+  agreedPricePerKg: number | null;
+  agreedFlatPrice: number | null;
+  estimatedWeightKg: number | null;
+  commissionRate: number;
+}): number {
+  if (params.commissionRate <= 0) return 0;
+  if (params.priceType === MarketplacePriceType.flat) {
+    return Math.round((params.agreedFlatPrice ?? 0) * params.commissionRate);
+  }
+  const base =
+    (params.agreedPricePerKg ?? 0) * (params.estimatedWeightKg ?? 0);
+  return Math.round(base * params.commissionRate);
 }
 
 export function agreedTermsFromOffer(
@@ -199,23 +228,30 @@ export function settlementAmounts(params: {
   blockedAmount: number;
   finalAmount: number;
   commissionRate: number;
+  /** true = acheteur a payé le prix + commission (nouveau comportement) */
+  buyerPaysCommission?: boolean;
 }): {
   commissionAmount: number;
   sellerReceivedAmount: number;
   buyerRefundAmount: number;
   buyerAdditionalCharge: number;
 } {
-  const commissionAmount = params.finalAmount * params.commissionRate;
+  const commissionAmount = Math.round(params.finalAmount * params.commissionRate);
+  if (params.buyerPaysCommission) {
+    // Acheteur paye prix + commission → vendeur reçoit le prix total
+    const sellerReceivedAmount = params.finalAmount;
+    const buyerTotalOwed = params.finalAmount + commissionAmount;
+    const delta = params.blockedAmount - buyerTotalOwed;
+    const buyerRefundAmount = delta > 0 ? delta : 0;
+    const buyerAdditionalCharge = delta < 0 ? Math.abs(delta) : 0;
+    return { commissionAmount, sellerReceivedAmount, buyerRefundAmount, buyerAdditionalCharge };
+  }
+  // Comportement historique : commission déduite du vendeur
   const sellerReceivedAmount = params.finalAmount - commissionAmount;
   const delta = params.blockedAmount - params.finalAmount;
   const buyerRefundAmount = delta > 0 ? delta : 0;
   const buyerAdditionalCharge = delta < 0 ? Math.abs(delta) : 0;
-  return {
-    commissionAmount,
-    sellerReceivedAmount,
-    buyerRefundAmount,
-    buyerAdditionalCharge
-  };
+  return { commissionAmount, sellerReceivedAmount, buyerRefundAmount, buyerAdditionalCharge };
 }
 
 export const TERMINAL_TRANSACTION_STATUSES: MarketplaceTransactionStatus[] = [

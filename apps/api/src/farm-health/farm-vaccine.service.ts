@@ -8,8 +8,7 @@ import {
   AnimalProductionCategory,
   FarmHealthEntityType,
   FarmHealthRecordKind,
-  Prisma,
-  VaccineCatalogType
+  Prisma
 } from "@prisma/client";
 import { AUDIT_ACTION } from "../common/audit.constants";
 import { AuditService } from "../common/audit.service";

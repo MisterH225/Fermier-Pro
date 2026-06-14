@@ -405,7 +405,16 @@ export const fr = {
       agreedPricePerKg: "Prix/kg convenu :",
       amountAdjustHint:
         "Ce montant sera ajusté au poids réel lors de la livraison.",
-      payCta: "Payer {{amount}} via Mobile Money",
+      payCta: "Payer {{amount}}",
+      platformFeeLabel: "Frais de plateforme ({{pct}} %)",
+      platformFeeEstimatedLabel: "Frais de plateforme estimés ({{pct}} %)",
+      dealPriceLabel: "Prix convenu",
+      totalPaymentLabel: "Total à payer",
+      feeConsentTitle: "Frais de plateforme",
+      feeConsentBody:
+        "Prix convenu : {{dealAmount}}\nFrais de plateforme ({{pct}} %) : {{feeAmount}}\nTotal à payer : {{totalAmount}}\n\nEn confirmant, vous acceptez de régler ce montant.",
+      feeConsentConfirm: "Confirmer et payer",
+      feeConsentCancel: "Annuler",
       paymentSuccessTitle: "Paiement confirmé",
       paymentSuccessBody:
         "Votre paiement est enregistré. Proposez une date de récupération au vendeur.",

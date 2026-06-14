@@ -16,7 +16,8 @@ const BUYER_TX_ACTION_STATUSES = new Set([
 const INACTIVE_OFFER_STATUSES = new Set([
   "rejected",
   "withdrawn",
-  "completed"
+  "completed",
+  "cancelled"
 ]);
 
 export type BuyerPendingMarketplaceItem =

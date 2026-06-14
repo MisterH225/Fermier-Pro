@@ -380,7 +380,7 @@ describe("feed-stock-calculation.helper", () => {
 
   describe("filterConsumptionIntervalsAfterEntry", () => {
     it("exclut les intervalles antérieurs à la dernière entrée", () => {
-      const d0 = new Date("2026-06-01T00:00:00.000Z");
+      const _d0 = new Date("2026-06-01T00:00:00.000Z");
       const d10 = new Date("2026-06-11T00:00:00.000Z");
       const d20 = new Date("2026-06-21T00:00:00.000Z");
       const d25 = new Date("2026-06-26T00:00:00.000Z");

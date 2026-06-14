@@ -319,7 +319,7 @@ export class ReportsService {
       report: row
     });
     const safeFarm = farm.name
-      .replace(/[^\w\-]+/g, "_")
+      .replace(/[^\w-]+/g, "_")
       .replace(/_+/g, "_")
       .replace(/^_|_$/g, "")
       .slice(0, 48);

@@ -352,6 +352,40 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   const payCurrency = tx?.currency ?? walletQ.data?.currency ?? "XOF";
   const payAmount = tx?.blockedAmount ?? 0;
 
+  // Frais de plateforme : présents uniquement pour les transactions où l'acheteur supporte la commission
+  const hasPlatformFee = tx?.buyerPaysCommission === true && (tx?.commissionRate ?? 0) > 0;
+  const feeRatePct = hasPlatformFee ? Math.round((tx!.commissionRate ?? 0) * 100) : 0;
+  const feeEstimate = hasPlatformFee ? (tx?.platformFeeEstimate ?? 0) : 0;
+  const dealPrice = hasPlatformFee
+    ? payAmount - feeEstimate
+    : payAmount;
+
+  const handlePayPress = () => {
+    if (!hasPlatformFee) {
+      payMut.mutate();
+      return;
+    }
+    Alert.alert(
+      t("marketScreen.transaction.feeConsentTitle"),
+      t("marketScreen.transaction.feeConsentBody", {
+        dealAmount: money(dealPrice, payCurrency),
+        pct: feeRatePct,
+        feeAmount: money(feeEstimate, payCurrency),
+        totalAmount: money(payAmount, payCurrency)
+      }),
+      [
+        {
+          text: t("marketScreen.transaction.feeConsentCancel"),
+          style: "cancel"
+        },
+        {
+          text: t("marketScreen.transaction.feeConsentConfirm"),
+          onPress: () => payMut.mutate()
+        }
+      ]
+    );
+  };
+
   useEffect(() => {
     if (walletBalance >= payAmount && payAmount > 0) {
       setPaymentMethod("wallet");
@@ -684,6 +718,36 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
 
       {isBuyer && tx.status === "PAYMENT_PENDING" ? (
         <View style={styles.section}>
+          {hasPlatformFee ? (
+            <View style={styles.feeBreakdown}>
+              <View style={styles.feeRow}>
+                <Text style={styles.feeLabel}>
+                  {t("marketScreen.transaction.dealPriceLabel")}
+                </Text>
+                <Text style={styles.feeValue}>
+                  {money(dealPrice, cur)}
+                </Text>
+              </View>
+              <View style={styles.feeRow}>
+                <Text style={styles.feeLabel}>
+                  {tx.priceType === "flat"
+                    ? t("marketScreen.transaction.platformFeeLabel", { pct: feeRatePct })
+                    : t("marketScreen.transaction.platformFeeEstimatedLabel", { pct: feeRatePct })}
+                </Text>
+                <Text style={styles.feeValue}>
+                  {money(feeEstimate, cur)}
+                </Text>
+              </View>
+              <View style={[styles.feeRow, styles.feeTotalRow]}>
+                <Text style={styles.feeTotalLabel}>
+                  {t("marketScreen.transaction.totalPaymentLabel")}
+                </Text>
+                <Text style={styles.feeTotalValue}>
+                  {money(tx.blockedAmount, cur)}
+                </Text>
+              </View>
+            </View>
+          ) : null}
           <MarketplacePaymentMethodPicker
             amount={payAmount}
             currency={payCurrency}
@@ -695,7 +759,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
             label={t("marketScreen.transaction.payCta", {
               amount: money(tx.blockedAmount, cur)
             })}
-            onPress={() => payMut.mutate()}
+            onPress={handlePayPress}
             loading={payMut.isPending}
           />
         </View>
@@ -973,5 +1037,44 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     color: mobileColors.success,
     textAlign: "center"
+  },
+  feeBreakdown: {
+    backgroundColor: "rgba(46, 125, 50, 0.06)",
+    borderRadius: mobileRadius.md,
+    padding: mobileSpacing.md,
+    marginBottom: mobileSpacing.md,
+    gap: mobileSpacing.xs
+  },
+  feeRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  feeTotalRow: {
+    marginTop: mobileSpacing.xs,
+    paddingTop: mobileSpacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: mobileColors.border
+  },
+  feeLabel: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    flex: 1
+  },
+  feeValue: {
+    ...mobileTypography.meta,
+    color: mobileColors.textPrimary,
+    fontWeight: "600"
+  },
+  feeTotalLabel: {
+    ...mobileTypography.body,
+    color: mobileColors.textPrimary,
+    fontWeight: "700",
+    flex: 1
+  },
+  feeTotalValue: {
+    ...mobileTypography.body,
+    color: mobileColors.accent,
+    fontWeight: "700"
   }
 });

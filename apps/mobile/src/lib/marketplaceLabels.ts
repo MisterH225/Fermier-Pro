@@ -71,6 +71,8 @@ export function offerStatusLabel(status: string): string {
       return "Solde déclaré";
     case "arbitration":
       return "Arbitrage";
+    case "cancelled":
+      return "Annulée";
     case "completed":
       return "Terminée";
     default:

@@ -897,10 +897,6 @@ export class FinanceService {
     let monthlyEvolution:
       | { month: string; expenses: string; revenues: string; net: string }[]
       | undefined;
-    let topExpenseCategories:
-      | { key: string; label: string; expenses: string }[]
-      | undefined;
-
     if (period === "year") {
       const y = start.getUTCFullYear();
       monthlyEvolution = [];
@@ -945,7 +941,7 @@ export class FinanceService {
       }));
     }
 
-    topExpenseCategories = [...rows]
+    const topExpenseCategories = [...rows]
       .filter((r) => new Prisma.Decimal(r.expenses).gt(0))
       .sort((a, b) =>
         new Prisma.Decimal(b.expenses).cmp(new Prisma.Decimal(a.expenses))

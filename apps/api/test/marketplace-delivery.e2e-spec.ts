@@ -53,6 +53,15 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
       await ctx.prisma.marketplaceDeliveryDispute.deleteMany({
         where: { transaction: { buyerUserId: ctx.peerUserId } }
       });
+      await ctx.prisma.marketplaceTransactionReceipt.deleteMany({
+        where: { transaction: { buyerUserId: ctx.peerUserId } }
+      });
+      await ctx.prisma.platformRevenue.deleteMany({
+        where: { buyerId: ctx.peerUserId }
+      });
+      await ctx.prisma.marketplaceFundMovement.deleteMany({
+        where: { transaction: { buyerUserId: ctx.peerUserId } }
+      });
       await ctx.prisma.marketplaceTransaction.deleteMany({
         where: { buyerUserId: ctx.peerUserId }
       });
@@ -240,5 +249,183 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
       where: { transactionId: autoListing.transactionId }
     });
     expect(autoDispute?.disputeType).toBe("Délai dépassé");
+  });
+
+  it("annulation par l'acheteur : offre → cancelled, transaction → CANCELLED_BY_BUYER, annonce → published", async () => {
+    const cancelListing = await setupMarketplaceDeliveryListing({
+      app,
+      prisma: ctx.prisma,
+      sellerToken: ctx.token,
+      sellerProfileId: ctx.producerProfileId,
+      sellerFarmId: ctx.farmId,
+      buyerToken: ctx.peerToken,
+      buyerFarmId
+    });
+
+    // Annulation depuis PAYMENT_PENDING (avant paiement)
+    const cancelRes = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${cancelListing.transactionId}/cancel`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(cancelRes.status).toBe(201);
+    expect(cancelRes.body.ok).toBe(true);
+
+    // La transaction doit être CANCELLED_BY_BUYER
+    const txAfter = await ctx.prisma.marketplaceTransaction.findUniqueOrThrow({
+      where: { id: cancelListing.transactionId }
+    });
+    expect(txAfter.status).toBe("CANCELLED_BY_BUYER");
+
+    // L'offre doit être cancelled (c'est le bug corrigé)
+    const offerAfter = await ctx.prisma.marketplaceOffer.findUniqueOrThrow({
+      where: { id: cancelListing.offerId }
+    });
+    expect(offerAfter.status).toBe("cancelled");
+
+    // L'annonce doit être re-publiée
+    const listingAfter = await ctx.prisma.marketplaceListing.findUniqueOrThrow({
+      where: { id: cancelListing.listingId }
+    });
+    expect(listingAfter.status).toBe("published");
+    expect(listingAfter.reservedForBuyerUserId).toBeNull();
+  });
+
+  it("annulation par l'acheteur après paiement : offre → cancelled, remboursement effectué", async () => {
+    const cancelPaidListing = await setupMarketplaceDeliveryListing({
+      app,
+      prisma: ctx.prisma,
+      sellerToken: ctx.token,
+      sellerProfileId: ctx.producerProfileId,
+      sellerFarmId: ctx.farmId,
+      buyerToken: ctx.peerToken,
+      buyerFarmId
+    });
+
+    // Paiement
+    const payInit = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${cancelPaidListing.transactionId}/payment/initiate`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(payInit.status).toBe(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${cancelPaidListing.transactionId}/payment/confirm`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ providerRef: payInit.body.providerRef });
+
+    // Annulation depuis PAYMENT_HELD
+    const cancelRes = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${cancelPaidListing.transactionId}/cancel`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(cancelRes.status).toBe(201);
+
+    // L'offre doit être cancelled
+    const offerAfter = await ctx.prisma.marketplaceOffer.findUniqueOrThrow({
+      where: { id: cancelPaidListing.offerId }
+    });
+    expect(offerAfter.status).toBe("cancelled");
+
+    // La transaction doit être CANCELLED_BY_BUYER
+    const txAfter = await ctx.prisma.marketplaceTransaction.findUniqueOrThrow({
+      where: { id: cancelPaidListing.transactionId }
+    });
+    expect(txAfter.status).toBe("CANCELLED_BY_BUYER");
+
+    // L'annonce doit être re-publiée
+    const listingAfter = await ctx.prisma.marketplaceListing.findUniqueOrThrow({
+      where: { id: cancelPaidListing.listingId }
+    });
+    expect(listingAfter.status).toBe("published");
+  });
+
+  it("frais plateforme : blockedAmount inclut la commission, vendeur reçoit le prix total", async () => {
+    const feeListing = await setupMarketplaceDeliveryListing({
+      app,
+      prisma: ctx.prisma,
+      sellerToken: ctx.token,
+      sellerProfileId: ctx.producerProfileId,
+      sellerFarmId: ctx.farmId,
+      buyerToken: ctx.peerToken,
+      buyerFarmId
+    });
+
+    // Récupérer la transaction via l'API
+    const txRes = await request(app.getHttpServer())
+      .get(`/api/v1/marketplace/transactions/${feeListing.transactionId}`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(txRes.status).toBe(200);
+    const tx = txRes.body;
+
+    // La transaction doit être marquée buyerPaysCommission
+    expect(tx.buyerPaysCommission).toBe(true);
+    expect(tx.commissionRate).toBeGreaterThan(0);
+
+    // blockedAmount = basePriceWithBuffer × (1 + commissionRate)
+    // Pour per_kg : base = pricePerKg × weight × PAYMENT_BUFFER (1.1)
+    // Pour flat : base = agreedFlatPrice
+    const isFlat = tx.priceType === "flat";
+    if (isFlat) {
+      const expectedBlocked = Math.round((tx.agreedFlatPrice ?? 0) * (1 + tx.commissionRate));
+      expect(tx.blockedAmount).toBe(expectedBlocked);
+    } else {
+      // per_kg : base avec buffer, puis × (1 + rate)
+      const perKgBase = (tx.agreedPricePerKg ?? 0) * (tx.estimatedWeightKg ?? 0) * 1.1;
+      const expectedBlocked = Math.round(perKgBase * (1 + tx.commissionRate));
+      expect(tx.blockedAmount).toBe(expectedBlocked);
+    }
+
+    // platformFeeEstimate = dealPrice (sans buffer) × commissionRate
+    const estimatedDeal = isFlat
+      ? (tx.agreedFlatPrice ?? 0)
+      : (tx.agreedPricePerKg ?? 0) * (tx.estimatedWeightKg ?? 0);
+    const expectedFee = Math.round(estimatedDeal * tx.commissionRate);
+    expect(tx.platformFeeEstimate).toBe(expectedFee);
+
+    // Vérifier en base que buyerPaysCommission est bien true
+    const txDb = await ctx.prisma.marketplaceTransaction.findUniqueOrThrow({
+      where: { id: feeListing.transactionId }
+    });
+    expect(txDb.buyerPaysCommission).toBe(true);
+
+    // Effectuer le cycle complet et vérifier que le vendeur reçoit le prix total (sans déduction)
+    const payInit = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${feeListing.transactionId}/payment/initiate`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(payInit.status).toBe(201);
+    // Le montant de paiement inclut la commission
+    expect(payInit.body.amount).toBe(tx.blockedAmount);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${feeListing.transactionId}/payment/confirm`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ providerRef: payInit.body.providerRef });
+
+    await import("./helpers/marketplace-delivery-e2e").then(({ advanceMarketplaceToSellerShipped }) =>
+      advanceMarketplaceToSellerShipped({
+        app,
+        sellerToken: ctx.token,
+        buyerToken: ctx.peerToken,
+        transactionId: feeListing.transactionId
+      })
+    );
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${feeListing.transactionId}/confirm-receipt`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({
+        receivedAt: new Date().toISOString().slice(0, 10),
+        condition: "conform",
+        receivedAnimalIds: [feeListing.animalId]
+      });
+
+    // Après clôture, vérifier que le vendeur reçoit le prix total (finalAmount)
+    const closedTx = await ctx.prisma.marketplaceTransaction.findUniqueOrThrow({
+      where: { id: feeListing.transactionId }
+    });
+    expect(closedTx.status).toBe("TRANSACTION_CLOSED");
+    // sellerReceivedAmount = finalAmount (pas de déduction de commission sur le vendeur)
+    const finalAmt = Number(closedTx.finalAmount ?? 0);
+    const sellerAmt = Number(closedTx.sellerReceivedAmount ?? 0);
+    expect(sellerAmt).toBe(finalAmt);
+    // commissionAmount = finalAmount × commissionRate
+    const commissionAmt = Number(closedTx.commissionAmount ?? 0);
+    expect(commissionAmt).toBe(Math.round(finalAmt * Number(closedTx.commissionRate)));
   });
 });

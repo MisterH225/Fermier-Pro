@@ -690,7 +690,7 @@ export class VetAppointmentService {
     appointmentId: string,
     refusalReason?: string
   ) {
-    const row = await this.requireVetAppointment(vet.id, appointmentId, [
+    await this.requireVetAppointment(vet.id, appointmentId, [
       VetAppointmentStatus.APPOINTMENT_REQUESTED
     ]);
 
