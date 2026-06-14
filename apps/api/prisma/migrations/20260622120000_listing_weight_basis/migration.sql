@@ -1,5 +1,9 @@
--- CreateEnum
-CREATE TYPE "ListingWeightBasis" AS ENUM ('live', 'carcass');
+-- Idempotent : la migration peut avoir été pré-appliquée via Supabase MCP.
+DO $$ BEGIN
+  CREATE TYPE "ListingWeightBasis" AS ENUM ('live', 'carcass');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
--- AlterTable
-ALTER TABLE "MarketplaceListing" ADD COLUMN "weightBasis" "ListingWeightBasis";
+ALTER TABLE "MarketplaceListing"
+  ADD COLUMN IF NOT EXISTS "weightBasis" "ListingWeightBasis";
