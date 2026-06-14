@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   PanResponder,
@@ -65,6 +66,24 @@ export function BaseModal({
   const screenH = Dimensions.get("window").height;
   const translateY = useRef(new Animated.Value(screenH)).current;
   const backdrop = useRef(new Animated.Value(0)).current;
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showEvt =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvt =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showSub = Keyboard.addListener(showEvt, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(hideEvt, () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const runClose = useMemo(
     () => () => {
@@ -129,6 +148,7 @@ export function BaseModal({
   const scrollBottomPad =
     Math.max(insets.bottom, mobileSpacing.md) +
     mobileSpacing.xl +
+    keyboardHeight +
     (footerPrimary ? mobileSpacing.xxl + 56 : 0);
 
   return (
@@ -158,7 +178,7 @@ export function BaseModal({
         <KeyboardAvoidingView
           style={styles.keyboardWrap}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 6 : 0}
+          keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 8 : 0}
         >
           <Animated.View
             style={[

@@ -62,7 +62,6 @@ import {
   MarketplaceMyListingsScreen,
   MarketplaceMyOffersScreen,
   MarketplaceTransactionScreen,
-  MarketplacePaymentDashboardScreen,
   CreditDashboardScreen,
   ModuleRoadmapScreen,
   ProducerDashboardScreen,
@@ -456,11 +455,6 @@ function MainStack() {
         name="MarketplaceTransaction"
         component={MarketplaceTransactionScreen}
         options={{ title: st("transaction") }}
-      />
-      <Stack.Screen
-        name="MarketplacePaymentDashboard"
-        component={MarketplacePaymentDashboardScreen}
-        options={{ title: st("marketplacePaymentDashboard") }}
       />
       <Stack.Screen
         name="CreditDashboard"

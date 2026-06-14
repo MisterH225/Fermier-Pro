@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -44,6 +46,7 @@ import {
   marketplaceActionErrorMessage,
   projectMarketplaceFinalAmount
 } from "../lib/marketplaceLabels";
+import { fromIsoDateString, startOfDay } from "../lib/appDate";
 import {
   mobileColors,
   mobileRadius,
@@ -85,7 +88,7 @@ function stepIndex(status: string): number {
 }
 
 function formatPickupDate(iso: string): string {
-  const d = new Date(iso);
+  const d = fromIsoDateString(iso) ?? new Date(iso);
   if (Number.isNaN(d.getTime())) {
     return iso;
   }
@@ -110,6 +113,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   const [shipmentOpen, setShipmentOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const minPickupDate = useMemo(() => startOfDay(new Date()), []);
 
   const q = useQuery({
     queryKey: ["marketplaceTransaction", transactionId, activeProfileId],
@@ -418,10 +422,16 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
     ].includes(tx.status);
 
   return (
+    <KeyboardAvoidingView
+      style={styles.scroll}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
+    >
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}
       keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets
     >
       <View style={styles.card}>
         <Text style={styles.title}>{tx.listingTitle ?? "Annonce"}</Text>
@@ -678,7 +688,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
             mode="date"
             isoValue={pickupDate}
             onIsoChange={setPickupDate}
-            minDate={new Date()}
+            minDate={minPickupDate}
           />
           <Text style={styles.label}>
             {t("marketScreen.transaction.pickupLocation")}
@@ -833,6 +843,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         />
       ) : null}
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

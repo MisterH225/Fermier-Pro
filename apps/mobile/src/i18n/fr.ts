@@ -1220,7 +1220,6 @@ export const fr = {
       closeA11y: "Fermer"
     },
     screenTitles: {
-      marketplacePaymentDashboard: "Portefeuille & Paiements",
       feedStock: "Stock aliment",
       communityFeed: "Feed",
       notifications: "Notifications",
@@ -3575,38 +3574,5 @@ export const fr = {
     safetyMargin: "Marge de sécurité : {{direction}}{{delta}} {{currency}}/kg",
     aiTitle: "💡 Analyse IA",
     aiRefresh: "🔄 Actualiser"
-  },
-  paymentsDashboard: {
-    title: "Mes Paiements",
-    roleSeller: "Ventes (Producteur)",
-    roleBuyer: "Achats (Acheteur)",
-    tabSold: "Produits vendus",
-    tabBought: "Produits achetés",
-    tabInProgress: "En cours",
-    tabHistory: "Historique & Négociations",
-    emptySold: "Aucune vente finalisée.",
-    emptyBought: "Aucun achat finalisé.",
-    emptyInProgress: "Aucune transaction en cours.",
-    emptyHistory: "Aucun historique disponible.",
-    transactionLabel: "Transaction {{id}}",
-    listingLabel: "Annonce : {{title}}",
-    amountLabel: "Montant : {{amount}}",
-    statusLabel: "Statut : {{status}}",
-    dateLabel: "Mis à jour le {{date}}",
-    buyerLabel: "Acheteur : {{name}}",
-    sellerLabel: "Vendeur : {{name}}",
-    status: {
-      pending: "En attente",
-      accepted: "Acceptée",
-      rejected: "Refusée",
-      withdrawn: "Retirée",
-      countered: "Contre-proposition",
-      credit_agreed: "Accord crédit",
-      advance_confirmed: "Avance confirmée",
-      balance_pending: "Solde en attente",
-      balance_declared: "Solde déclaré",
-      arbitration: "Arbitrage",
-      completed: "Terminée"
-    }
   }
 } as const;
