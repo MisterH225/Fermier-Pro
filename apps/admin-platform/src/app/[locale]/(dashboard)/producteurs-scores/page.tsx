@@ -18,7 +18,7 @@ const SCORE_FILTERS = ["", "excellent", "bon", "nouveau", "attention", "risque"]
 
 export default function ProducerScoresPage() {
   const t = useTranslations("producerScores");
-  const token = useAdminToken();
+  const { token, ready } = useAdminToken();
   const [rows, setRows] = useState<AdminProducerScoreDto[]>([]);
   const [filter, setFilter] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -42,7 +42,7 @@ export default function ProducerScoresPage() {
     void load();
   }, [load]);
 
-  if (!token) {
+  if (!ready || !token) {
     return <PageSkeleton />;
   }
 
