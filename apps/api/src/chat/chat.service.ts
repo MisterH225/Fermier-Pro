@@ -26,6 +26,22 @@ function directKeyForPair(userIdA: string, userIdB: string): string {
   return [userIdA, userIdB].sort().join("_");
 }
 
+/**
+ * Clé unique pour un canal dédié à une annonce marketplace.
+ * Format : "listing:{listingId}:{sortedUserId1}_{sortedUserId2}"
+ *
+ * Garantit qu'une paire acheteur↔vendeur a un canal distinct pour
+ * chaque annonce, évitant le mélange des discussions multi-offres.
+ */
+function directKeyForListing(
+  userIdA: string,
+  userIdB: string,
+  listingId: string
+): string {
+  const pair = [userIdA, userIdB].sort().join("_");
+  return `listing:${listingId}:${pair}`;
+}
+
 const ROOM_LIST_INCLUDE = {
   farm: { select: { id: true, name: true } },
   marketplaceListing: {
@@ -224,10 +240,11 @@ export class ChatService {
       throw new NotFoundException("Utilisateur introuvable");
     }
 
+    let listingTitle: string | null = null;
     if (marketplaceListingId) {
       const listing = await this.prisma.marketplaceListing.findUnique({
         where: { id: marketplaceListingId },
-        select: { id: true, sellerUserId: true }
+        select: { id: true, title: true, sellerUserId: true }
       });
       if (!listing) {
         throw new NotFoundException("Annonce introuvable");
@@ -236,9 +253,15 @@ export class ChatService {
       if (!participants.has(listing.sellerUserId)) {
         throw new BadRequestException("Contexte annonce invalide");
       }
+      listingTitle = listing.title;
     }
 
-    const key = directKeyForPair(user.id, peerUserId);
+    // Canal dédié par annonce : chaque listing génère une salle distincte.
+    // Canal DM générique (sans listing) : une salle par paire d'utilisateurs.
+    const key = marketplaceListingId
+      ? directKeyForListing(user.id, peerUserId, marketplaceListingId)
+      : directKeyForPair(user.id, peerUserId);
+
     let room = await this.prisma.chatRoom.findUnique({
       where: { directKey: key }
     });
@@ -248,7 +271,7 @@ export class ChatService {
           data: {
             kind: ChatRoomKind.direct,
             directKey: key,
-            title: null,
+            title: listingTitle,
             marketplaceListingId: marketplaceListingId ?? null,
             members: {
               create: [{ userId: user.id }, { userId: peerUserId }]
@@ -265,25 +288,15 @@ export class ChatService {
       }
     } else {
       await this.prisma.chatRoomMember.upsert({
-        where: {
-          roomId_userId: { roomId: room.id, userId: user.id }
-        },
+        where: { roomId_userId: { roomId: room.id, userId: user.id } },
         create: { roomId: room.id, userId: user.id },
         update: {}
       });
       await this.prisma.chatRoomMember.upsert({
-        where: {
-          roomId_userId: { roomId: room.id, userId: peerUserId }
-        },
+        where: { roomId_userId: { roomId: room.id, userId: peerUserId } },
         create: { roomId: room.id, userId: peerUserId },
         update: {}
       });
-      if (marketplaceListingId && !room.marketplaceListingId) {
-        await this.prisma.chatRoom.update({
-          where: { id: room.id },
-          data: { marketplaceListingId }
-        });
-      }
     }
     return this.loadRoomForUser(user.id, room.id);
   }
