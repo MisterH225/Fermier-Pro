@@ -11,7 +11,7 @@ import {
   MaxLength,
   Min
 } from "class-validator";
-import { ListingMarketCategory } from "@prisma/client";
+import { ListingMarketCategory, ListingWeightBasis } from "@prisma/client";
 
 export class UpdateListingDto {
   @IsOptional()
@@ -68,6 +68,10 @@ export class UpdateListingDto {
   @Min(0)
   @Max(1e7)
   totalWeightKg?: number | null;
+
+  @IsOptional()
+  @IsEnum(ListingWeightBasis)
+  weightBasis?: ListingWeightBasis | null;
 
   @IsOptional()
   @Type(() => Number)

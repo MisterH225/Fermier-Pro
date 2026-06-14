@@ -8,6 +8,9 @@ import { listingPhotoUrlsArray } from "./resolveListingImage";
 
 export type ListingCategory = "piglet" | "breeder" | "butcher" | "reformed";
 
+/** Poids vif ou carcasse pour le poids indiqué sur l'annonce. */
+export type ListingWeightBasis = "live" | "carcass";
+
 /** Poids moyen max. (kg) pour rester en catégorie porcelet (aligné API). */
 export const LISTING_PIGLET_MAX_AVG_KG = 15;
 
@@ -33,6 +36,8 @@ export type MarketplaceListingFormValues = {
   title: string;
   description: string;
   totalWeightKg: string;
+  /** Poids vif ou carcasse — obligatoire si un poids est renseigné. */
+  weightBasis: ListingWeightBasis | null;
   pricePerKg: string;
   /** Prix forfaitaire à la tête (porcelet / reproducteur). */
   pricePerHead: string;
@@ -58,6 +63,7 @@ export const EMPTY_MARKETPLACE_LISTING_FORM: MarketplaceListingFormValues = {
   title: "",
   description: "",
   totalWeightKg: "",
+  weightBasis: null,
   pricePerKg: "",
   pricePerHead: "",
   totalPrice: "",
@@ -203,6 +209,11 @@ export function buildMarketplaceListingPayload(
   if (!flatPrice && (totalWeightKg == null || totalWeightKg <= 0)) {
     throw new Error(t("marketScreen.createForm.errors.weightRequired"));
   }
+  const needsWeightBasis =
+    !flatPrice || (totalWeightKg != null && totalWeightKg > 0);
+  if (needsWeightBasis && !values.weightBasis) {
+    throw new Error(t("marketScreen.createForm.errors.weightBasisRequired"));
+  }
   if (!flatPrice && (pricePerKg == null || pricePerKg <= 0)) {
     throw new Error(t("marketScreen.createForm.errors.pricePerKgRequired"));
   }
@@ -224,6 +235,7 @@ export function buildMarketplaceListingPayload(
     locationLabel: values.locationLabel.trim() || undefined,
     category: values.category,
     totalWeightKg: totalWeightKg ?? undefined,
+    weightBasis: values.weightBasis ?? undefined,
     pricePerKg: flatPrice ? undefined : pricePerKg ?? undefined,
     unitPrice: flatPrice && pricePerHead != null ? pricePerHead : undefined,
     totalPrice,
@@ -276,6 +288,7 @@ export function applyAnimalSelection(
 
   if (weightSum != null) {
     patch.totalWeightKg = formatDecimalForInput(weightSum, 1);
+    patch.weightBasis = "live";
     patch.category = suggestListingCategoryFromWeight(
       weightSum,
       ids.length || 1,
@@ -368,6 +381,10 @@ export function listingToFormValues(
     title: listing.title,
     description: listing.description ?? "",
     totalWeightKg: parseListingNumberField(listing.totalWeightKg, 1),
+    weightBasis:
+      listing.weightBasis === "live" || listing.weightBasis === "carcass"
+        ? listing.weightBasis
+        : null,
     pricePerKg: flatPrice ? "" : parseListingNumberField(listing.pricePerKg),
     pricePerHead: flatPrice
       ? parseListingNumberField(pricePerHead, 0)
@@ -403,12 +420,29 @@ export function buildUpdateMarketplaceListingPayload(
     photoUrls: createPayload.photoUrls,
     animalIds: createPayload.animalIds,
     totalWeightKg: createPayload.totalWeightKg ?? null,
+    weightBasis: createPayload.weightBasis ?? null,
     pricePerKg: createPayload.pricePerKg ?? null,
     unitPrice: createPayload.unitPrice ?? null,
     totalPrice: createPayload.totalPrice,
     breedLabel: createPayload.breedLabel ?? null,
     creditEnabled: createPayload.creditEnabled ?? false
   };
+}
+
+/** Affiche le poids avec mention vif/carcasse si renseigné. */
+export function formatListingWeightWithBasis(
+  weightKg: number,
+  basis: ListingWeightBasis | null | undefined,
+  t: (key: string) => string
+): string {
+  const weight = weightKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
+  if (basis === "carcass") {
+    return `${weight} kg (${t("marketScreen.weightBasis.carcassShort")})`;
+  }
+  if (basis === "live") {
+    return `${weight} kg (${t("marketScreen.weightBasis.liveShort")})`;
+  }
+  return `${weight} kg`;
 }
 
 /** Retire les animaux vendus ou absents du cheptel de la sélection. */

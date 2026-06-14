@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { MarketplaceListingListItem } from "../../lib/api";
+import { formatListingWeightWithBasis } from "../../lib/marketplaceListingForm";
 import { formatMarketMoney } from "../../lib/formatMoney";
 import { ListingImage } from "./ListingImage";
 import { ListingShareButton } from "./ListingShareButton";
@@ -203,7 +204,7 @@ export function MarketplaceListingCard({
         {wKg != null ? (
           <Text style={styles.lineMuted}>
             {t("marketScreen.totalWeight")}{" "}
-            {`${wKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg`}
+            {formatListingWeightWithBasis(wKg, item.weightBasis, t)}
           </Text>
         ) : null}
         {flatPrice && perHead != null ? (

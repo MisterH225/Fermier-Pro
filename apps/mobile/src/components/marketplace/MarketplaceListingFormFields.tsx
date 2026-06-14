@@ -13,6 +13,7 @@ import {
   suggestListingCategoryFromWeight,
   usesFlatListingPrice,
   listingCategoryAllowsCredit,
+  type ListingWeightBasis,
   type ListingCategory,
   type ListingDurationDays,
   type MarketplaceListingFormValues
@@ -36,6 +37,8 @@ const CATEGORIES: ListingCategory[] = [
 ];
 
 const DURATIONS: ListingDurationDays[] = [7, 14, 30];
+
+const WEIGHT_BASES: ListingWeightBasis[] = ["live", "carcass"];
 
 type FarmRow = { id: string; name: string };
 
@@ -114,6 +117,8 @@ export function MarketplaceListingFormFields({
 
   const flatPrice = usesFlatListingPrice(values.category);
   const headcount = listingFormHeadcount(values);
+  const showWeightBasis =
+    !flatPrice || parseDecimalField(values.totalWeightKg) != null;
 
   const flatLotTotal = useMemo(
     () => computeFlatLotTotal(values.pricePerHead, headcount),
@@ -157,6 +162,8 @@ export function MarketplaceListingFormFields({
         headcount,
         next.category
       );
+    } else if (nextFlat) {
+      patch.weightBasis = null;
     }
     onChange(patch);
   };
@@ -378,6 +385,39 @@ export function MarketplaceListingFormFields({
           placeholderTextColor={mobileColors.textSecondary}
           keyboardType="decimal-pad"
         />
+
+        {showWeightBasis ? (
+          <>
+            <Text style={styles.lab}>
+              {t("marketScreen.createForm.weightBasisLabel")} *
+            </Text>
+            <Text style={styles.hint}>
+              {t("marketScreen.createForm.weightBasisHint")}
+            </Text>
+            <View style={styles.basisRow}>
+              {WEIGHT_BASES.map((basis) => {
+                const selected = values.weightBasis === basis;
+                return (
+                  <Pressable
+                    key={basis}
+                    style={styles.basisOption}
+                    onPress={() => set({ weightBasis: basis })}
+                  >
+                    <Text style={styles.checkMark}>{selected ? "☑" : "☐"}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.basisTitle}>
+                        {t(`marketScreen.weightBasis.${basis}`)}
+                      </Text>
+                      <Text style={styles.basisHint}>
+                        {t(`marketScreen.weightBasis.${basis}Hint`)}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
+        ) : null}
 
         {!flatPrice ? (
           <>
@@ -681,5 +721,29 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary,
     lineHeight: 18,
     marginTop: mobileSpacing.xs
+  },
+  basisRow: {
+    gap: mobileSpacing.sm,
+    marginBottom: mobileSpacing.xs
+  },
+  basisOption: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: mobileSpacing.sm,
+    paddingVertical: mobileSpacing.xs
+  },
+  checkMark: {
+    fontSize: 18,
+    lineHeight: 22
+  },
+  basisTitle: {
+    ...mobileTypography.body,
+    color: mobileColors.textPrimary,
+    fontWeight: "600"
+  },
+  basisHint: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: 2
   }
 });

@@ -4537,6 +4537,7 @@ export type MarketplaceListingListItem = {
   fallbackPhotoUrl?: string | null;
   animalIds?: string[] | null;
   totalWeightKg?: string | number | null;
+  weightBasis?: "live" | "carcass" | null;
   pricePerKg?: string | number | null;
   totalPrice?: string | number | null;
   breedLabel?: string | null;
@@ -5542,6 +5543,7 @@ export type CreateMarketplaceListingPayload = {
   photoUrls?: string[];
   animalIds?: string[];
   totalWeightKg?: number;
+  weightBasis?: "live" | "carcass";
   pricePerKg?: number;
   totalPrice?: number;
   breedLabel?: string;
@@ -5573,6 +5575,7 @@ export type UpdateMarketplaceListingPayload = {
   photoUrls?: string[];
   animalIds?: string[];
   totalWeightKg?: number | null;
+  weightBasis?: "live" | "carcass" | null;
   pricePerKg?: number | null;
   totalPrice?: number | null;
   breedLabel?: string | null;

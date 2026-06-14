@@ -686,6 +686,14 @@ export const fr = {
     pricePerHeadShort: "{{amount}} / tête",
     totalWeight: "Poids total :",
     totalWeightEmpty: "Poids total : —",
+    weightBasis: {
+      live: "Poids vif",
+      carcass: "Poids carcasse",
+      liveShort: "vif",
+      carcassShort: "carcasse",
+      liveHint: "Poids de l'animal vivant, avant abattage.",
+      carcassHint: "Poids après abattage et éviscération."
+    },
     pricePerKg: "Prix/kg :",
     pricePerKgEmpty: "Prix/kg : —",
     price: "Prix :",
@@ -840,6 +848,9 @@ export const fr = {
       flatPrice: "Prix forfaitaire",
       weightOptional: "Poids (kg, optionnel)",
       totalWeight: "Poids total (kg)",
+      weightBasisLabel: "Type de poids",
+      weightBasisHint:
+        "Cochez si le poids indiqué est un poids vif ou un poids carcasse.",
       pricePerKg: "Prix/kg demandé",
       totalPrice: "Prix total",
       totalAuto: "Calcul automatique : {{amount}}",
@@ -856,6 +867,8 @@ export const fr = {
       errors: {
         titleRequired: "Le titre est obligatoire.",
         weightRequired: "Indique le poids total (kg).",
+        weightBasisRequired:
+          "Indique si le poids est un poids vif ou un poids carcasse.",
         pricePerKgRequired: "Indique le prix au kg.",
         flatPriceRequired: "Indique le prix forfaitaire.",
         totalRequired: "Indique un prix total valide."

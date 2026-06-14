@@ -1515,6 +1515,12 @@ enum ListingMarketCategory {
   reformed
 }
 
+/// Poids vif ou carcasse pour le poids indiqué sur l'annonce.
+enum ListingWeightBasis {
+  live
+  carcass
+}
+
 model MarketplaceListing {
   id            String          @id @default(cuid())
   sellerUserId  String
@@ -1530,6 +1536,8 @@ model MarketplaceListing {
   /// Identifiants animaux concernés (lien cheptel) ; `animalId` peut rester le principal pour compat.
   animalIds     Json            @default("[]")
   totalWeightKg Decimal?        @db.Decimal(14, 4)
+  /// Poids vif ou carcasse associé à `totalWeightKg`.
+  weightBasis   ListingWeightBasis?
   /// Prix au kg demandé par le vendeur (prioritaire sur `unitPrice` pour le flux porc).
   pricePerKg    Decimal?        @db.Decimal(14, 4)
   /// Prix total calculé ou saisi ; affichage principal grille Market.

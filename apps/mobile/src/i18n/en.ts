@@ -683,6 +683,14 @@ export const en = {
     pricePerHeadShort: "{{amount}} / head",
     totalWeight: "Total weight:",
     totalWeightEmpty: "Total weight: —",
+    weightBasis: {
+      live: "Live weight",
+      carcass: "Carcass weight",
+      liveShort: "live",
+      carcassShort: "carcass",
+      liveHint: "Weight of the live animal before slaughter.",
+      carcassHint: "Weight after slaughter and evisceration."
+    },
     pricePerKg: "Price/kg:",
     pricePerKgEmpty: "Price/kg: —",
     price: "Price:",
@@ -834,6 +842,9 @@ export const en = {
       flatPrice: "Flat price",
       weightOptional: "Weight (kg, optional)",
       totalWeight: "Total weight (kg)",
+      weightBasisLabel: "Weight type",
+      weightBasisHint:
+        "Check whether the weight entered is live weight or carcass weight.",
       pricePerKg: "Asked price/kg",
       totalPrice: "Total price",
       totalAuto: "Auto-calculated: {{amount}}",
@@ -850,6 +861,8 @@ export const en = {
       errors: {
         titleRequired: "Title is required.",
         weightRequired: "Enter total weight (kg).",
+        weightBasisRequired:
+          "Specify whether the weight is live weight or carcass weight.",
         pricePerKgRequired: "Enter price per kg.",
         flatPriceRequired: "Enter the flat price.",
         totalRequired: "Enter a valid total price."
