@@ -26,6 +26,12 @@ import {
   type ProfitabilityPeriodKey,
   type ProfitabilityViewMode
 } from "../../lib/api";
+import {
+  coerceFiniteNumber,
+  formatOptionalNumber,
+  formatOptionalPct,
+  roundCoerced
+} from "../../lib/coerceNumber";
 import { formatFarmMoney as formatMoney } from "../../lib/formatMoney";
 import {
   mobileColors,
@@ -194,11 +200,7 @@ export function RentabilityScreen({
                     ? formatMoney(metrics.grossMargin, data!.currency, currencySymbol)
                     : "—"
                 }
-                unit={
-                  metrics.grossMarginPct != null
-                    ? `${metrics.grossMarginPct.toFixed(1)}%`
-                    : undefined
-                }
+                unit={formatOptionalPct(metrics.grossMarginPct) ?? undefined}
               />
             </View>
             <View style={cheptelKpiGridStyles.half}>
@@ -212,11 +214,7 @@ export function RentabilityScreen({
                     ? formatMoney(metrics.netMargin, data!.currency, currencySymbol)
                     : "—"
                 }
-                unit={
-                  metrics.netMarginPct != null
-                    ? `${metrics.netMarginPct.toFixed(1)}%`
-                    : undefined
-                }
+                unit={formatOptionalPct(metrics.netMarginPct) ?? undefined}
               />
             </View>
             <View style={cheptelKpiGridStyles.half}>
@@ -226,13 +224,13 @@ export function RentabilityScreen({
                 accent="#EA580C"
                 label={t("profitability.costPerKg")}
                 value={
-                  metrics.costPerKg != null
-                    ? `${Math.round(metrics.costPerKg)}`
+                  roundCoerced(metrics.costPerKg) != null
+                    ? `${roundCoerced(metrics.costPerKg)}`
                     : "—"
                 }
                 unit={
-                  data?.marketPricePerKg != null
-                    ? `${currencySymbol}/kg · ${t("profitability.market")} ${Math.round(data.marketPricePerKg)}`
+                  roundCoerced(data?.marketPricePerKg) != null
+                    ? `${currencySymbol}/kg · ${t("profitability.market")} ${roundCoerced(data?.marketPricePerKg)}`
                     : `${currencySymbol}/kg`
                 }
               />
@@ -243,9 +241,7 @@ export function RentabilityScreen({
                 bg="#F5F3FF"
                 accent="#7C3AED"
                 label="ROI"
-                value={
-                  metrics.roi != null ? `${metrics.roi.toFixed(1)}%` : "—"
-                }
+                value={formatOptionalPct(metrics.roi) ?? "—"}
                 unit={t("profitability.roiHint")}
               />
             </View>
@@ -271,7 +267,7 @@ export function RentabilityScreen({
               slices={data.costBreakdown.map((c, i) => ({
                 label: c.label,
                 value: c.amount,
-                display: `${Math.round(c.pct)}%`,
+                display: `${roundCoerced(c.pct) ?? 0}%`,
                 color: ["#F97316", "#3B82F6", "#22C55E", "#A855F7", "#EF4444"][i % 5]!
               }))}
             />
@@ -292,7 +288,7 @@ export function RentabilityScreen({
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.pillRow}>
             {batchComparison.map((b) => {
-              const pctVal = b.realized.netMarginPct;
+              const pctVal = coerceFiniteNumber(b.realized.netMarginPct);
               const positive = pctVal != null && pctVal >= 0;
               return (
                 <Pressable
@@ -307,14 +303,14 @@ export function RentabilityScreen({
                   onPress={() => setSelectedBatchId(b.batchId)}
                 >
                   <Text style={styles.batchPillText}>{b.batchName}</Text>
-                  {pctVal != null ? (
+                  {formatOptionalNumber(pctVal, 0) ? (
                     <Text
                       style={[
                         styles.batchPillPct,
                         { color: positive ? "#16A34A" : "#DC2626" }
                       ]}
                     >
-                      {pctVal.toFixed(0)}%
+                      {formatOptionalNumber(pctVal, 0)}%
                     </Text>
                   ) : null}
                 </Pressable>

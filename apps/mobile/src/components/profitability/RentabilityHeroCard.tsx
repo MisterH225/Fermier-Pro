@@ -7,6 +7,12 @@ import {
   View
 } from "react-native";
 import type { FarmProfitabilityDashboardDto } from "../../lib/api";
+import {
+  coerceFiniteNumber,
+  formatOptionalNumber,
+  formatOptionalPct,
+  roundCoerced
+} from "../../lib/coerceNumber";
 import { formatFarmMoney as formatMoney } from "../../lib/formatMoney";
 import {
   mobileColors,
@@ -25,10 +31,11 @@ type Props = {
   period?: "current_month" | "current_quarter" | "current_year";
 };
 
-function trendLabel(delta: number | null | undefined): string | null {
-  if (delta == null || !Number.isFinite(delta)) return null;
-  const sign = delta >= 0 ? "↑" : "↓";
-  return `${sign} ${delta >= 0 ? "+" : ""}${delta.toFixed(1)}%`;
+function trendLabel(delta: unknown): string | null {
+  const n = coerceFiniteNumber(delta);
+  if (n == null) return null;
+  const sign = n >= 0 ? "↑" : "↓";
+  return `${sign} ${n >= 0 ? "+" : ""}${n.toFixed(1)}%`;
 }
 
 export function RentabilityHeroCard({
@@ -54,7 +61,12 @@ export function RentabilityHeroCard({
   }
 
   const insufficient = data.dataQuality === "insufficient";
-  const netMargin = data.netMargin;
+  const netMargin = coerceFiniteNumber(data.netMargin);
+  const netMarginPct = formatOptionalPct(data.netMarginPct);
+  const grossMarginPct = formatOptionalPct(data.grossMarginPct);
+  const costPerKg = roundCoerced(data.costPerKg);
+  const marketPricePerKg = roundCoerced(data.marketPricePerKg);
+  const breakevenPricePerKg = roundCoerced(data.breakevenPricePerKg);
   const isProfit = netMargin != null && netMargin > 0;
   const isLoss = netMargin != null && netMargin < 0;
   const bg = isLoss ? "#FEE2E2" : isProfit ? "#DCFCE7" : "#FEF3C7";
@@ -110,9 +122,7 @@ export function RentabilityHeroCard({
           </Text>
           <Text style={styles.mainSub}>
             {t("profitability.netMarginLabel")}
-            {data.netMarginPct != null
-              ? ` · ${data.netMarginPct.toFixed(1)}%`
-              : ""}
+            {netMarginPct ? ` · ${netMarginPct}` : ""}
             {trendLabel(data.trendNetMarginPctDelta)
               ? ` · ${trendLabel(data.trendNetMarginPctDelta)}`
               : ""}
@@ -126,21 +136,21 @@ export function RentabilityHeroCard({
                   ? formatMoney(data.grossMargin, data.currency, currencySymbol)
                   : "—"}
               </Text>
-              {data.grossMarginPct != null ? (
-                <Text style={styles.miniSub}>{data.grossMarginPct.toFixed(1)}%</Text>
+              {grossMarginPct ? (
+                <Text style={styles.miniSub}>{grossMarginPct}</Text>
               ) : null}
             </View>
             <View style={styles.miniKpi}>
               <Text style={styles.miniLabel}>{t("profitability.costPerKg")}</Text>
               <Text style={[styles.miniValue, { color: accent }]}>
-                {data.costPerKg != null
-                  ? `${Math.round(data.costPerKg)} ${currencySymbol}/kg`
+                {costPerKg != null
+                  ? `${costPerKg} ${currencySymbol}/kg`
                   : "—"}
               </Text>
-              {data.marketPricePerKg != null ? (
+              {marketPricePerKg != null ? (
                 <Text style={styles.miniSub}>
                   {t("profitability.vsMarket", {
-                    price: Math.round(data.marketPricePerKg)
+                    price: marketPricePerKg
                   })}
                 </Text>
               ) : null}
@@ -148,8 +158,8 @@ export function RentabilityHeroCard({
             <View style={styles.miniKpi}>
               <Text style={styles.miniLabel}>{t("profitability.breakeven")}</Text>
               <Text style={[styles.miniValue, { color: accent }]}>
-                {data.breakevenPricePerKg != null
-                  ? `${Math.round(data.breakevenPricePerKg)} ${currencySymbol}/kg`
+                {breakevenPricePerKg != null
+                  ? `${breakevenPricePerKg} ${currencySymbol}/kg`
                   : "—"}
               </Text>
               <Text style={styles.miniSub}>{t("profitability.minPrice")}</Text>
@@ -161,9 +171,10 @@ export function RentabilityHeroCard({
               {t("profitability.batchSummary", {
                 count: data.activeBatchesCount,
                 best: data.bestBatch?.name ?? "—",
-                bestPct: data.bestBatch?.netMarginPct?.toFixed(0) ?? "—",
+                bestPct: formatOptionalNumber(data.bestBatch?.netMarginPct, 0) ?? "—",
                 worst: data.worstBatch?.name ?? "—",
-                worstPct: data.worstBatch?.netMarginPct?.toFixed(0) ?? "—"
+                worstPct:
+                  formatOptionalNumber(data.worstBatch?.netMarginPct, 0) ?? "—"
               })}
             </Text>
           ) : null}

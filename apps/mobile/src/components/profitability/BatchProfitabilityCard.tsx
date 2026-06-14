@@ -1,6 +1,12 @@
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import type { BatchProfitabilityDto } from "../../lib/api";
+import {
+  coerceFiniteNumber,
+  formatOptionalNumber,
+  formatOptionalPct,
+  roundCoerced
+} from "../../lib/coerceNumber";
 import { formatFarmMoney as formatMoney } from "../../lib/formatMoney";
 import {
   mobileColors,
@@ -28,8 +34,15 @@ export function BatchProfitabilityCard({ batch, currencySymbol }: Props) {
   const r = batch.realized;
   const p = batch.projected;
   const cur = batch.currency;
-  const fmt = (n: number | null | undefined) =>
+  const fmt = (n: number | string | null | undefined) =>
     n != null ? formatMoney(n, cur, currencySymbol) : "—";
+  const fmtPct = (value: unknown) => {
+    const pct = formatOptionalPct(value);
+    return pct ? ` (${pct})` : "";
+  };
+  const hasRealized =
+    (coerceFiniteNumber(r.revenues) ?? 0) > 0 ||
+    (coerceFiniteNumber(r.costsTotal) ?? 0) > 0;
 
   return (
     <View style={styles.card}>
@@ -59,32 +72,35 @@ export function BatchProfitabilityCard({ batch, currencySymbol }: Props) {
         <Text style={styles.warn}>{batch.dataQualityMessage}</Text>
       ) : null}
 
-      {(r.revenues ?? 0) > 0 || (r.costsTotal ?? 0) > 0 ? (
+      {hasRealized ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t("profitability.realized")}</Text>
           {metricRow(t("profitability.revenues"), fmt(r.revenues))}
           {metricRow(t("profitability.costs"), fmt(r.costsTotal))}
           {metricRow(
             t("profitability.grossMargin"),
-            `${fmt(r.grossMargin)}${r.grossMarginPct != null ? ` (${r.grossMarginPct.toFixed(1)}%)` : ""}`
+            `${fmt(r.grossMargin)}${fmtPct(r.grossMarginPct)}`
           )}
           {metricRow(
             t("profitability.netMargin"),
-            `${fmt(r.netMargin)}${r.netMarginPct != null ? ` (${r.netMarginPct.toFixed(1)}%)` : ""}`
+            `${fmt(r.netMargin)}${fmtPct(r.netMarginPct)}`
           )}
           {metricRow(
             t("profitability.costPerKg"),
-            r.costPerKg != null
-              ? `${Math.round(r.costPerKg)} ${currencySymbol}/kg`
+            roundCoerced(r.costPerKg) != null
+              ? `${roundCoerced(r.costPerKg)} ${currencySymbol}/kg`
               : "—"
           )}
-          {r.icActual != null
-            ? metricRow(t("profitability.icActual"), r.icActual.toFixed(2))
+          {formatOptionalNumber(r.icActual, 2)
+            ? metricRow(
+                t("profitability.icActual"),
+                formatOptionalNumber(r.icActual, 2)!
+              )
             : null}
-          {r.gmqActual != null
+          {roundCoerced(r.gmqActual) != null
             ? metricRow(
                 t("profitability.gmqActual"),
-                `${Math.round(r.gmqActual)} g/j`
+                `${roundCoerced(r.gmqActual)} g/j`
               )
             : null}
         </View>
@@ -100,7 +116,7 @@ export function BatchProfitabilityCard({ batch, currencySymbol }: Props) {
             {metricRow(t("profitability.costs"), fmt(p.costsTotal))}
             {metricRow(
               t("profitability.netMargin"),
-              `${fmt(p.netMargin)}${p.netMarginPct != null ? ` (${p.netMarginPct.toFixed(1)}%)` : ""}`
+              `${fmt(p.netMargin)}${fmtPct(p.netMarginPct)}`
             )}
             {p.remainingDaysEstimate != null
               ? metricRow(
@@ -116,13 +132,11 @@ export function BatchProfitabilityCard({ batch, currencySymbol }: Props) {
             {metricRow(t("profitability.revenues"), fmt(batch.combined.revenues))}
             {metricRow(
               t("profitability.netMargin"),
-              `${fmt(batch.combined.netMargin)}${batch.combined.netMarginPct != null ? ` (${batch.combined.netMarginPct.toFixed(1)}%)` : ""}`
+              `${fmt(batch.combined.netMargin)}${fmtPct(batch.combined.netMarginPct)}`
             )}
             {metricRow(
               "ROI",
-              batch.combined.roi != null
-                ? `${batch.combined.roi.toFixed(1)}%`
-                : "—"
+              formatOptionalPct(batch.combined.roi) ?? "—"
             )}
           </View>
         </>
@@ -141,10 +155,10 @@ export function BatchProfitabilityCard({ batch, currencySymbol }: Props) {
           )}
           {metricRow(
             t("profitability.netMargin"),
-            `${fmt(r.netMargin)}${r.netMarginPct != null ? ` (${r.netMarginPct.toFixed(1)}%)` : ""}`
+            `${fmt(r.netMargin)}${fmtPct(r.netMarginPct)}`
           )}
           <Text style={styles.result}>
-            {(r.netMargin ?? 0) >= 0
+            {(coerceFiniteNumber(r.netMargin) ?? 0) >= 0
               ? t("profitability.resultProfit")
               : t("profitability.resultLoss")}
           </Text>
