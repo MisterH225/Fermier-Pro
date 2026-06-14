@@ -49,6 +49,7 @@ import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { useBottomChromePad } from "../hooks/useBottomInset";
 import { formatAnimalDisplayLabel } from "../lib/animalDisplay";
 import { invalidateBuyerDashboardQueries } from "../lib/buyerDashboardQueries";
+import { openBuyerOffersHub } from "../lib/buyerMarketplacePending";
 import {
   cancelMarketplaceListing,
   ensureDirectChatRoom,
@@ -213,12 +214,16 @@ export function MarketplaceListingDetailScreen({
         input,
         activeProfileId
       ),
-    onSuccess: () => {
+    onSuccess: (data) => {
       setCreditOpen(false);
       showSuccess(t("marketScreen.creditModal.success"));
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
       void qc.invalidateQueries({ queryKey: ["marketplaceMyOffers"] });
       invalidateBuyerDashboardQueries(qc);
+      openBuyerOffersHub(navigation, {
+        highlightOfferId: data.id,
+        offersListingId: listingId
+      });
     },
     onError: (e: Error) => {
       Alert.alert(
@@ -245,13 +250,17 @@ export function MarketplaceListingDetailScreen({
         },
         activeProfileId
       ),
-    onSuccess: () => {
+    onSuccess: (data) => {
       setProposalOpen(false);
       showSuccess(t("marketScreen.proposalModal.success"));
       void qc.invalidateQueries({ queryKey: ["marketplaceListing", listingId] });
       void qc.invalidateQueries({ queryKey: ["marketplaceMyOffers"] });
       void qc.invalidateQueries({ queryKey: ["marketplaceOffersCounts"] });
       invalidateBuyerDashboardQueries(qc);
+      openBuyerOffersHub(navigation, {
+        highlightOfferId: data.id,
+        offersListingId: listingId
+      });
     },
     onError: (e: Error) => {
       Alert.alert(
@@ -369,6 +378,7 @@ export function MarketplaceListingDetailScreen({
   const activeTxStatuses = [
     "PAYMENT_PENDING",
     "PAYMENT_HELD",
+    "PICKUP_PROPOSED",
     "PICKUP_SCHEDULED",
     "SELLER_SHIPPED",
     "BUYER_RECEIVED",
@@ -732,10 +742,7 @@ export function MarketplaceListingDetailScreen({
           <SecondaryButton
             label={t("marketScreen.proposals.viewSent")}
             onPress={() =>
-              navigation.navigate("MarketplaceList", {
-                tab: "offers",
-                offersSubTab: "sent"
-              })
+              openBuyerOffersHub(navigation, { offersListingId: listingId })
             }
             style={{ marginTop: mobileSpacing.sm }}
           />

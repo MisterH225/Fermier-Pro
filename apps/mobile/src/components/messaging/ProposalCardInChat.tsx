@@ -52,7 +52,8 @@ export function ProposalCardInChat({ payload, isMine }: Props) {
       tab: "offers",
       offersSubTab: isMine ? "sent" : "received",
       offersListingId: payload.listingId,
-      highlightOfferId: payload.offerId
+      highlightOfferId: payload.offerId,
+      buyerView: isMine
     });
   };
 

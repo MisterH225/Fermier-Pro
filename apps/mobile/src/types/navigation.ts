@@ -3,7 +3,14 @@ export type RootStackParamList = {
   /** Paramètres ferme (devise / seuils) — producteur. */
   ProducerFarmSettings: { farmId: string; farmName: string };
   BuyerDashboard: undefined;
-  BuyerMarket: { favoritesOnly?: boolean; searchQuery?: string } | undefined;
+  BuyerMarket:
+    | {
+        favoritesOnly?: boolean;
+        searchQuery?: string;
+        tab?: "listings" | "offers";
+        offersSubTab?: "sent" | "received";
+      }
+    | undefined;
   BuyerMessages: undefined;
   BuyerHistory: { initialTab?: "proposals" | "purchases" | "reviews"; fromDashboard?: boolean } | undefined;
   BuyerFinance: undefined;

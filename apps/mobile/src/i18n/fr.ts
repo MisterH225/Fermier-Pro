@@ -2123,6 +2123,18 @@ export const fr = {
     welcomeLine: "Bienvenue",
     settingsButton: "Paramètres",
     farmSettingsTitle: "Paramètres",
+    pendingMarketplace: {
+      bannerOne: "Action requise sur une vente",
+      bannerCount: "{{count}} actions en attente sur le marché",
+      bannerA11y: "{{count}} action(s) marketplace en attente",
+      continue: "Traiter →",
+      view: "Voir →",
+      tx: {
+        PICKUP_PROPOSED: "Confirmer le retrait",
+        WEIGHT_DECLARED: "Valider le poids",
+        WEIGHT_VALIDATED: "Confirmer la livraison"
+      }
+    },
     farmCheptelConfigSaved: "Configuration de la ferme enregistrée.",
     profileTitle: "Mon profil",
     close: "Fermer",
@@ -2164,6 +2176,9 @@ export const fr = {
     mapPickerHint:
       "Glissez le marqueur ou touchez la carte pour placer l’exploitation.",
     dashboard: {
+      receivedProposals: "Propositions reçues",
+      allProposals: "Voir toutes →",
+      anonymousBuyer: "Acheteur",
       noFarmTitle: "Aucune ferme sélectionnée",
       noFarmBody:
         "Rattache une ferme (profil producteur) ou choisis-en une dans la liste pour afficher le tableau de bord.",
@@ -3317,6 +3332,20 @@ export const fr = {
       noProposals: "Aucune proposition en cours",
       allProposals: "Voir toutes les propositions →",
       sectionStats: "Vue d'ensemble"
+    },
+    pendingMarketplace: {
+      bannerOne: "Action requise sur un achat",
+      bannerCount: "{{count}} actions en attente sur vos achats",
+      bannerA11y: "{{count}} action(s) marketplace en attente",
+      continue: "Continuer →",
+      view: "Voir →",
+      tx: {
+        PAYMENT_PENDING: "Paiement à effectuer",
+        PAYMENT_HELD: "Planifier le retrait",
+        PICKUP_PROPOSED: "Confirmer le retrait",
+        PICKUP_SCHEDULED: "Retrait planifié",
+        SELLER_SHIPPED: "Confirmer la réception"
+      }
     },
     wallet: {
       availableBalance: "Solde disponible",

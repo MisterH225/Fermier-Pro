@@ -19,7 +19,11 @@ export type FarmListListHeaderRow =
       visible: boolean;
       title: string;
       subtitle: string;
-      target: { screen: "MarketplaceList" };
+      target: {
+        screen: "MarketplaceList";
+        tab?: "offers";
+        offersSubTab?: "received" | "sent";
+      };
     }
   | {
       kind: "createFarm";
@@ -39,7 +43,11 @@ export type FarmListEmptyRow =
       kind: "marketplaceCta";
       visible: boolean;
       title: string;
-      target: { screen: "MarketplaceList" };
+      target: {
+        screen: "MarketplaceList";
+        tab?: "offers";
+        offersSubTab?: "received" | "sent";
+      };
     }
   | {
       kind: "createFarmCta";
@@ -56,7 +64,11 @@ export type FarmListEmptyRow =
 
 export type FarmListQuickNav =
   | { screen: "ChatRooms" }
-  | { screen: "MarketplaceList" }
+  | {
+      screen: "MarketplaceList";
+      tab?: "offers";
+      offersSubTab?: "received" | "sent";
+    }
   | { screen: "CreateFarm" }
   | { screen: "AcceptFarmInvitation"; params: { prefilledToken?: string } };
 
@@ -94,7 +106,11 @@ export function buildFarmListListHeaderRows(
       visible: menu.marketplace,
       title: t("farmListScreen.marketBannerTitle"),
       subtitle: t("farmListScreen.marketBannerSub"),
-      target: { screen: "MarketplaceList" }
+      target: {
+        screen: "MarketplaceList",
+        tab: "offers",
+        offersSubTab: "received"
+      }
     },
     {
       kind: "createFarm",
@@ -124,7 +140,11 @@ export function buildFarmListEmptyRows(
       kind: "marketplaceCta",
       visible: menu.marketplace,
       title: t("farmListScreen.marketBannerTitle"),
-      target: { screen: "MarketplaceList" }
+      target: {
+        screen: "MarketplaceList",
+        tab: "offers",
+        offersSubTab: "received"
+      }
     },
     {
       kind: "createFarmCta",
@@ -150,7 +170,10 @@ export function navigateFarmListQuickNav(
       navigation.navigate("ChatRooms");
       return;
     case "MarketplaceList":
-      navigation.navigate("MarketplaceList");
+      navigation.navigate("MarketplaceList", {
+        tab: nav.tab ?? "offers",
+        offersSubTab: nav.offersSubTab ?? "received"
+      });
       return;
     case "CreateFarm":
       navigation.navigate("CreateFarm");
