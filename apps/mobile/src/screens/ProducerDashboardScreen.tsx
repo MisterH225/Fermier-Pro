@@ -30,7 +30,7 @@ import { VetAppointmentActionsBanner } from "../components/vet/VetAppointmentAct
 import { ProducerActiveProposalsSection } from "../components/producer/ProducerActiveProposalsSection";
 import { ProducerPendingMarketplaceBanner } from "../components/producer/ProducerPendingMarketplaceBanner";
 import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
-import { ProducerScoreBadge } from "../components/marketplace/ProducerScoreBadge";
+import { MeteoProfilCard } from "../components/dashboard/MeteoProfilCard";
 import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
 import { SupportHeaderButton } from "../components/support/SupportHeaderButton";
 import { ProjectIndicator } from "../components/projects";
@@ -339,28 +339,10 @@ export function ProducerDashboardScreen() {
             <OnboardingBanner onComplete={requestResume} />
           ) : null}
           {producerScoreQ.data ? (
-            <Pressable
-              style={styles.producerScoreCard}
+            <MeteoProfilCard
+              score={producerScoreQ.data.globalValue}
               onPress={() => navigation.navigate("ProducerScoreDashboard")}
-            >
-              <View style={styles.producerScoreHeader}>
-                <Text style={styles.producerScoreTitle}>
-                  {t("producerScore.dashboardCard.title")}
-                </Text>
-                <Text style={styles.producerScoreLink}>
-                  {t("producerScore.dashboardCard.open")} →
-                </Text>
-              </View>
-              <Text style={styles.producerScoreSubtitle}>
-                {t("producerScore.dashboardCard.subtitle")}
-              </Text>
-              <ProducerScoreBadge score={producerScoreQ.data} />
-              <Text style={styles.producerScoreGlobal}>
-                {t("producerScore.dashboard.global", {
-                  value: producerScoreQ.data.globalValue
-                })}
-              </Text>
-            </Pressable>
+            />
           ) : null}
           {clientFeatures.marketplace && farmId ? (
             <ProducerActiveProposalsSection farmId={farmId} />
@@ -959,36 +941,5 @@ const styles = StyleSheet.create({
     color: mobileColors.success,
     fontWeight: "600"
   },
-  producerScoreCard: {
-    marginBottom: mobileSpacing.md,
-    padding: mobileSpacing.md,
-    borderRadius: mobileRadius.lg,
-    backgroundColor: mobileColors.background,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: mobileColors.border,
-    gap: mobileSpacing.xs
-  },
-  producerScoreHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center"
-  },
-  producerScoreTitle: {
-    ...mobileTypography.cardTitle,
-    color: mobileColors.textPrimary
-  },
-  producerScoreLink: {
-    ...mobileTypography.meta,
-    color: mobileColors.accent,
-    fontWeight: "600"
-  },
-  producerScoreSubtitle: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary
-  },
-  producerScoreGlobal: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary,
-    marginTop: mobileSpacing.xs
-  }
+  // producerScoreCard et styles associés supprimés — remplacés par MeteoProfilCard
 });
