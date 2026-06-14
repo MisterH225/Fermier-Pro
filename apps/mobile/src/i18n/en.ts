@@ -353,7 +353,7 @@ export const en = {
       emptySuppliersBody:
         "Producers you complete a purchase with (marketplace or direct sale) will appear here."
     },
-    create: "Create",
+    create: "Create listing",
     searchPlaceholder: "Farm, location, breed…",
     badgeNew: "New",
     badgeSold: "Sold",
@@ -746,7 +746,7 @@ export const en = {
     },
     emptyListings: "No listings published yet.",
     emptySearch: "No results. Try other keywords or filters.",
-    emptyMyListings: "You have no listings yet. Tap Create to add one.",
+    emptyMyListings: "You have no listings yet. Tap « Create listing » to add one.",
     emptyMyFilter: "No listings in this filter.",
     emptyOffers: "You have not made any offers yet.",
     kpiListings: "Listings",

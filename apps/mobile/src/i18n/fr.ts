@@ -353,7 +353,7 @@ export const fr = {
       emptySuppliersBody:
         "Les producteurs avec lesquels vous concluez un achat (marketplace ou vente directe) apparaîtront ici."
     },
-    create: "Créer",
+    create: "Créer une annonce",
     searchPlaceholder: "Ferme, lieu, race…",
     badgeNew: "Nouveau",
     badgeSold: "Vendu",
@@ -749,7 +749,7 @@ export const fr = {
     },
     emptyListings: "Aucune annonce publiée pour le moment.",
     emptySearch: "Aucun résultat. Essaie d’autres mots-clés ou filtres.",
-    emptyMyListings: "Tu n’as pas encore d’annonce. Utilise « Créer » pour en ajouter une.",
+    emptyMyListings: "Tu n’as pas encore d’annonce. Utilise « Créer une annonce » pour en ajouter une.",
     emptyMyFilter: "Aucune annonce dans ce filtre.",
     emptyOffers: "Tu n’as pas encore fait d’offre.",
     kpiListings: "Annonces",
