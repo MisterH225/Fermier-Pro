@@ -203,7 +203,7 @@ export class OffersService {
       orderBy: { createdAt: "desc" },
       take: 100,
       include: {
-        transaction: { select: { id: true } },
+        transaction: { select: { id: true, status: true } },
         listing: {
           include: {
             seller: { select: { id: true, fullName: true } },
@@ -227,6 +227,7 @@ export class OffersService {
       orderBy: { createdAt: "desc" },
       take: 100,
       include: {
+        transaction: { select: { id: true, status: true } },
         buyer: { select: { id: true, fullName: true, email: true } },
         listing: {
           select: {

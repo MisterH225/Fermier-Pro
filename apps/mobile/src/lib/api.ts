@@ -5046,7 +5046,7 @@ export type MarketplaceOfferMineRow = MarketplaceOfferCreditFields & {
   message: string | null;
   status: string;
   createdAt: string;
-  transaction?: { id: string } | null;
+  transaction?: { id: string; status: string } | null;
   listing: {
     id: string;
     title: string;
@@ -5079,6 +5079,7 @@ export type MarketplaceOfferReceivedRow = MarketplaceOfferCreditFields & {
   message: string | null;
   status: string;
   createdAt: string;
+  transaction?: { id: string; status: string } | null;
   buyer: { id: string; fullName: string | null; email: string | null };
   listing: {
     id: string;

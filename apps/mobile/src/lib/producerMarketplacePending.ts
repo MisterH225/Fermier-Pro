@@ -18,6 +18,15 @@ const INACTIVE_OFFER_STATUSES = new Set([
   "cancelled"
 ]);
 
+/** Statuts de transaction terminaux ou annulés — une offre liée à l'un d'eux est inactive. */
+const TERMINAL_TX_STATUSES = new Set([
+  "CANCELLED_BY_BUYER",
+  "CANCELLED_BY_SELLER",
+  "CANCELLED_SOLD_TO_OTHER",
+  "OFFER_EXPIRED",
+  "PAYMENT_FAILED"
+]);
+
 export type ProducerPendingMarketplaceItem =
   | {
       kind: "offer";
@@ -56,7 +65,10 @@ export function isProducerActionableOffer(
 export function isProducerTrackedOffer(
   offer: MarketplaceOfferReceivedRow
 ): boolean {
-  return !INACTIVE_OFFER_STATUSES.has(offer.status);
+  if (INACTIVE_OFFER_STATUSES.has(offer.status)) return false;
+  // Masquer les offres dont la transaction est annulée (données historiques ou cas non couverts)
+  if (offer.transaction && TERMINAL_TX_STATUSES.has(offer.transaction.status)) return false;
+  return true;
 }
 
 export function isProducerActionableTransaction(
