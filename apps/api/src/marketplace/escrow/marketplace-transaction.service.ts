@@ -1604,6 +1604,11 @@ export class MarketplaceTransactionService {
     if (cancelled.count === 0) {
       return { ok: true };
     }
+    // Marquer l'offre comme annulée pour qu'elle disparaisse des dashboards
+    await this.prisma.marketplaceOffer.update({
+      where: { id: tx.offerId },
+      data: { status: OfferStatus.cancelled }
+    });
     if (needsRefund) {
       await this.decrementActiveOfferCount(tx.listingId);
     }
@@ -1635,8 +1640,8 @@ export class MarketplaceTransactionService {
     });
     void this.push.sendToUser(
       tx.sellerUserId,
-      "Offre annulée",
-      `Un acheteur a annulé son offre pour « ${listing?.title ?? "votre annonce"} ».`,
+      "Vente annulée",
+      `L'acheteur a annulé la vente de « ${listing?.title ?? "votre annonce"} ». L'annonce est de nouveau disponible.`,
       { type: "marketplace_cancelled_buyer", transactionId: tx.id }
     );
     return { ok: true };
@@ -1678,6 +1683,11 @@ export class MarketplaceTransactionService {
           cancelledAt: new Date(),
           cancelReason: reason?.trim() || null
         }
+      });
+      // Marquer l'offre comme annulée pour qu'elle disparaisse des dashboards
+      await this.prisma.marketplaceOffer.update({
+        where: { id: tx.offerId },
+        data: { status: OfferStatus.cancelled }
       });
       const amountLabel = `${Math.round(Number(tx.blockedAmount)).toLocaleString("fr-FR")} ${tx.currency}`;
       void this.push.sendToUser(
