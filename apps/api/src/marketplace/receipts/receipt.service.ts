@@ -70,6 +70,17 @@ export class ReceiptService {
       return null;
     }
 
+    if (!this.supabaseAdmin.isConfigured()) {
+      this.log.error(
+        `Receipt generation skipped for ${transactionId}: SUPABASE_SERVICE_ROLE_KEY manquant`
+      );
+      await this.prisma.marketplaceTransaction.updateMany({
+        where: { id: transactionId },
+        data: { receiptGenerationStatus: ReceiptGenerationStatus.failed }
+      });
+      return null;
+    }
+
     try {
       if (existing && options?.force) {
         await this.prisma.marketplaceTransactionReceipt.delete({
@@ -89,6 +100,8 @@ export class ReceiptService {
       const pdfBuffer = await this.pdf.renderReceiptPdf(pdfInput);
       const storagePath = `${receiptNumber}.pdf`;
 
+      await this.uploadWithRetry(storagePath, pdfBuffer);
+
       await this.prisma.$transaction(async (db) => {
         await db.marketplaceTransactionReceipt.create({
           data: {
@@ -107,21 +120,6 @@ export class ReceiptService {
           data: { receiptGenerationStatus: ReceiptGenerationStatus.generated }
         });
       });
-
-      try {
-        await this.uploadWithRetry(storagePath, pdfBuffer);
-      } catch (uploadErr) {
-        await this.prisma.$transaction(async (db) => {
-          await db.marketplaceTransactionReceipt.delete({
-            where: { transactionId: tx.id }
-          });
-          await db.marketplaceTransaction.update({
-            where: { id: tx.id },
-            data: { receiptGenerationStatus: ReceiptGenerationStatus.failed }
-          });
-        });
-        throw uploadErr;
-      }
 
       void this.push.sendToUser(
         tx.sellerUserId,
@@ -154,9 +152,25 @@ export class ReceiptService {
   async regenerateReceipt(
     user: User,
     transactionId: string
-  ): Promise<{ receiptNumber: string } | null> {
+  ): Promise<{
+    receiptNumber: string | null;
+    status: ReceiptGenerationStatus;
+  }> {
     await this.requireParty(transactionId, user.id);
-    return this.generateReceipt(transactionId, { force: true });
+    await this.prisma.marketplaceTransaction.updateMany({
+      where: { id: transactionId },
+      data: { receiptGenerationStatus: ReceiptGenerationStatus.pending }
+    });
+    const result = await this.generateReceipt(transactionId, { force: true });
+    const fresh = await this.prisma.marketplaceTransaction.findUnique({
+      where: { id: transactionId },
+      select: { receiptGenerationStatus: true }
+    });
+    return {
+      receiptNumber: result?.receiptNumber ?? null,
+      status:
+        fresh?.receiptGenerationStatus ?? ReceiptGenerationStatus.failed
+    };
   }
 
   async getReceiptForTransaction(user: User, transactionId: string) {
@@ -175,12 +189,16 @@ export class ReceiptService {
       });
     }
     if (!receipt) {
-      const status = tx.receiptGenerationStatus;
+      const fresh = await this.prisma.marketplaceTransaction.findUnique({
+        where: { id: transactionId },
+        select: { receiptGenerationStatus: true }
+      });
       return {
         receiptNumber: null,
         generatedAt: null,
         downloadUrl: null,
-        status
+        status:
+          fresh?.receiptGenerationStatus ?? tx.receiptGenerationStatus
       };
     }
     const downloadUrl = await this.supabaseAdmin.createSignedStoragePathUrl(

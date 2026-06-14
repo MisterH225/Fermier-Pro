@@ -1430,7 +1430,7 @@ export const en = {
     gaugeDashboardNoDays: "{{kg}} kg · unknown duration",
     smartAlertsHintTitle: "Notifications",
     smartAlertsHintBody:
-      "Feed and consumption alerts are on the dashboard (Notifications section).",
+      "Feed and consumption alerts are available via the bell icon at the top of the dashboard.",
     editMovement: "Edit",
     sectionType: "Feed type",
     fieldQuantity: "Quantity",

@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { PrimaryButton } from "../ui/PrimaryButton";
@@ -65,9 +66,10 @@ export function TransactionReceiptCard({
         transactionId,
         activeProfileId
       );
-      if (!row.receiptNumber) {
+      if (!row.receiptNumber || row.status !== "generated") {
         throw new Error(t("marketScreen.transaction.receiptNotReady"));
       }
+      return row;
     },
     onSuccess: () => {
       onReceiptUpdated?.();
@@ -85,6 +87,14 @@ export function TransactionReceiptCard({
   const isFailed = status === "failed";
   const isPending = !isGenerated && !isFailed;
   const retrying = retryMut.isPending;
+
+  useEffect(() => {
+    if (!isPending || !onReceiptUpdated) {
+      return;
+    }
+    const timer = setInterval(() => onReceiptUpdated(), 5000);
+    return () => clearInterval(timer);
+  }, [isPending, onReceiptUpdated]);
 
   return (
     <View style={styles.card}>

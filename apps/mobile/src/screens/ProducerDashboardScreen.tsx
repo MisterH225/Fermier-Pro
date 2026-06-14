@@ -15,8 +15,7 @@ import {
 } from "react-native";
 import { MobileAppShell } from "../components/layout";
 import { FarmDashboardAISection } from "../components/ai/FarmModuleAISection";
-import { SmartAlertsSection } from "../components/smartAlerts/SmartAlertsSection";
-import { AlertBadge } from "../components/smartAlerts/AlertBadge";
+import { NotificationsHeaderButton } from "../components/notifications/NotificationsHeaderButton";
 
 import { FeedStockLevelGauge, dashboardFeedItemToGauge } from "../components/feed";
 import { FinanceOverviewKpiGrid } from "../components/finance/FinanceOverviewKpiGrid";
@@ -48,7 +47,6 @@ import {
   fetchFarmProfitabilityDashboard,
   fetchDashboardGestations,
   fetchDashboardHealth,
-  fetchFarmSmartAlertsCount,
   fetchFarms,
   fetchMyProducerScore,
   postFarmSmartAlertsRefresh,
@@ -206,14 +204,6 @@ export function ProducerDashboardScreen() {
     enabled: Boolean(accessToken)
   });
 
-  const alertsCountQuery = useQuery({
-    queryKey: ["smartAlertsCount", farmId, activeProfileId],
-    queryFn: () =>
-      fetchFarmSmartAlertsCount(accessToken!, farmId!, activeProfileId),
-    enabled: Boolean(farmId && accessToken),
-    refetchInterval: 120_000
-  });
-
   useEffect(() => {
     if (!farmId || !accessToken) {
       return;
@@ -222,7 +212,7 @@ export function ProducerDashboardScreen() {
       .then(() => {
         void qc.invalidateQueries({ queryKey: ["smartAlerts", farmId] });
         void qc.invalidateQueries({
-          queryKey: ["smartAlertsCount", farmId, activeProfileId]
+          queryKey: ["smartAlerts", farmId, activeProfileId, "count"]
         });
       })
       .catch(() => undefined);
@@ -253,7 +243,7 @@ export function ProducerDashboardScreen() {
       ).catch(() => undefined);
       void qc.invalidateQueries({ queryKey: ["smartAlerts", farmId] });
       void qc.invalidateQueries({
-        queryKey: ["smartAlertsCount", farmId, activeProfileId]
+        queryKey: ["smartAlerts", farmId, activeProfileId, "count"]
       });
     }
     setRefreshing(false);
@@ -286,31 +276,12 @@ export function ProducerDashboardScreen() {
         )}
       </View>
       <View style={styles.heroActions}>
-        <Pressable
-          onPress={() => {
-            if (!farmId || !farmName) {
-              navigation.navigate("FarmList");
-              return;
-            }
-            navigation.navigate("SmartAlertsList", { farmId, farmName });
-          }}
-          style={({ pressed }) => [
-            styles.heroIconBtn,
-            pressed && styles.heroIconBtnPressed
-          ]}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityRole="button"
-          accessibilityLabel={t("smartAlerts.bellA11y", "Alertes")}
-        >
-          <View style={styles.bellWrap}>
-            <Ionicons
-              name="notifications-outline"
-              size={22}
-              color={mobileColors.accent}
-            />
-            <AlertBadge count={alertsCountQuery.data?.criticalUnread ?? 0} />
-          </View>
-        </Pressable>
+        <NotificationsHeaderButton
+          iconColor={mobileColors.accent}
+          farmId={farmId}
+          farmName={farmName}
+          style={styles.heroIconBtn}
+        />
         <SupportHeaderButton
           iconColor={mobileColors.accent}
           style={styles.heroIconBtn}
@@ -541,12 +512,6 @@ export function ProducerDashboardScreen() {
                 predictionTitle={t("predictions.sectionDashboard")}
               />
             ) : null}
-            <SmartAlertsSection
-              farmId={farmId}
-              farmName={farmName}
-              accessToken={accessToken!}
-              activeProfileId={activeProfileId}
-            />
           </>
           )}
         </ScrollView>
@@ -850,11 +815,6 @@ const styles = StyleSheet.create({
   },
   heroIconBtnPressed: {
     opacity: 0.85
-  },
-  bellWrap: {
-    position: "relative",
-    justifyContent: "center",
-    alignItems: "center"
   },
   heroSettingsBtn: {
     paddingHorizontal: mobileSpacing.md,

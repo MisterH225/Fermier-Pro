@@ -679,7 +679,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
                   <Text style={styles.muted}>
                     {t(
                       "feedStock.smartAlertsHintBody",
-                      "Les alertes stock et consommation sont sur le tableau de bord (section Notifications)."
+                      "Les alertes stock et consommation sont accessibles via l’icône cloche en haut du tableau de bord."
                     )}
                   </Text>
                 </ScreenSection>
