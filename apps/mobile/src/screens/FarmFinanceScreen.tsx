@@ -1237,7 +1237,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                     ) : null}
                   </ScreenSection>
                 ) : null}
-                {overview ? (
+                {overview && accessToken ? (
                   <>
                     <FarmModuleAISection
                       farmId={farmId}

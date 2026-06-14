@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import type { FarmProfitabilityDto } from "../../lib/api";
+import { coerceFiniteNumber, roundCoerced } from "../../lib/coerceNumber";
 import {
   mobileColors,
   mobileRadius,
@@ -23,8 +24,8 @@ export function BreakevenCard({ data, currencySymbol, viewMode }: Props) {
         ? data.combined
         : data.realized;
 
-  const breakeven = metrics.breakevenPricePerKg;
-  const market = data.marketPricePerKg;
+  const breakeven = coerceFiniteNumber(metrics.breakevenPricePerKg);
+  const market = coerceFiniteNumber(data.marketPricePerKg);
   if (breakeven == null && market == null) {
     return null;
   }
@@ -42,7 +43,7 @@ export function BreakevenCard({ data, currencySymbol, viewMode }: Props) {
       {breakeven != null ? (
         <Text style={styles.body}>
           {t("profitability.breakevenExplain", {
-            price: Math.round(breakeven),
+            price: roundCoerced(breakeven) ?? 0,
             currency: currencySymbol
           })}
         </Text>
@@ -50,7 +51,7 @@ export function BreakevenCard({ data, currencySymbol, viewMode }: Props) {
       {market != null ? (
         <Text style={styles.body}>
           {t("profitability.currentMarket", {
-            price: Math.round(market),
+            price: roundCoerced(market) ?? 0,
             currency: currencySymbol
           })}
         </Text>
@@ -63,7 +64,7 @@ export function BreakevenCard({ data, currencySymbol, viewMode }: Props) {
           ]}
         >
           {t("profitability.safetyMargin", {
-            delta: Math.round(Math.abs(marginAbove)),
+            delta: roundCoerced(Math.abs(marginAbove)) ?? 0,
             currency: currencySymbol,
             direction: marginAbove >= 0 ? "+" : "−"
           })}
