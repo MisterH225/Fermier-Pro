@@ -25,6 +25,21 @@ import type { ReceiptPdfInput } from "./receipt.format";
 const VERIFY_BASE_URL =
   process.env.RECEIPT_VERIFY_BASE_URL?.trim() ?? "https://fermierpro.com/verify";
 
+type ReceiptTransaction = NonNullable<
+  Awaited<ReturnType<PrismaService["marketplaceTransaction"]["findUnique"]>>
+> & {
+  listing: {
+    title: string;
+    category: import("@prisma/client").ListingMarketCategory | null;
+    locationLabel: string | null;
+    farm: { name: string; address: string | null } | null;
+    animal: { tagCode: string | null; publicId: string } | null;
+  };
+  offer: { updatedAt: Date };
+  buyer: { fullName: string | null; phone: string | null };
+  seller: { fullName: string | null; phone: string | null };
+};
+
 @Injectable()
 export class ReceiptService {
   private readonly log = new Logger(ReceiptService.name);
@@ -41,6 +56,57 @@ export class ReceiptService {
     transactionId: string,
     options?: { force?: boolean }
   ): Promise<{ receiptNumber: string } | null> {
+    const tx = await this.prisma.marketplaceTransaction.findUnique({
+      where: { id: transactionId },
+      select: { status: true }
+    });
+    if (!tx || tx.status !== MarketplaceTransactionStatus.TRANSACTION_CLOSED) {
+      return null;
+    }
+    try {
+      const receipt = await this.ensureReceiptRecord(transactionId, options);
+      return { receiptNumber: receipt.receiptNumber };
+    } catch (e) {
+      this.log.error(
+        `Receipt generation failed for ${transactionId}: ${(e as Error).message}`
+      );
+      await this.prisma.marketplaceTransaction.updateMany({
+        where: { id: transactionId },
+        data: { receiptGenerationStatus: ReceiptGenerationStatus.failed }
+      });
+      void this.alertSuperAdmins(transactionId);
+      return null;
+    }
+  }
+
+  /** PDF à la demande (comme GET .../reports/:id/pdf) — ne dépend pas du Storage. */
+  async buildReceiptPdfForTransaction(
+    user: User,
+    transactionId: string
+  ): Promise<{ buffer: Buffer; filename: string; receiptNumber: string }> {
+    await this.requireParty(transactionId, user.id);
+    const receipt = await this.ensureReceiptRecord(transactionId);
+    const tx = await this.loadClosedTransactionForReceipt(transactionId);
+    const buffer = await this.pdf.renderReceiptPdf(
+      this.buildPdfInput(tx, receipt.receiptNumber)
+    );
+    await this.markDownloaded(
+      receipt.id,
+      user.id,
+      tx.sellerUserId,
+      tx.buyerUserId
+    );
+    return {
+      buffer,
+      filename: `${receipt.receiptNumber}.pdf`,
+      receiptNumber: receipt.receiptNumber
+    };
+  }
+
+  private async ensureReceiptRecord(
+    transactionId: string,
+    options?: { force?: boolean }
+  ) {
     const existing = await this.prisma.marketplaceTransactionReceipt.findUnique({
       where: { transactionId }
     });
@@ -49,9 +115,81 @@ export class ReceiptService {
         where: { id: transactionId },
         data: { receiptGenerationStatus: ReceiptGenerationStatus.generated }
       });
-      return { receiptNumber: existing.receiptNumber };
+      return existing;
     }
 
+    const tx = await this.loadClosedTransactionForReceipt(transactionId);
+
+    if (existing && options?.force) {
+      await this.prisma.marketplaceTransactionReceipt.delete({
+        where: { id: existing.id }
+      });
+      if (existing.pdfStoragePath && this.supabaseAdmin.isConfigured()) {
+        await this.supabaseAdmin.removeStorageObjects(RECEIPT_BUCKET, [
+          existing.pdfStoragePath
+        ]);
+      }
+    }
+
+    const { receiptNumber, yearSequence, receiptYear } =
+      await this.getNextReceiptNumber(new Date().getUTCFullYear());
+    const pdfInput = this.buildPdfInput(tx, receiptNumber);
+    const pdfBuffer = await this.pdf.renderReceiptPdf(pdfInput);
+    const storagePath = `${receiptNumber}.pdf`;
+
+    const receipt = await this.prisma.$transaction(async (db) => {
+      const row = await db.marketplaceTransactionReceipt.create({
+        data: {
+          receiptNumber,
+          transactionId: tx.id,
+          sellerId: tx.sellerUserId,
+          buyerId: tx.buyerUserId,
+          pdfStoragePath: storagePath,
+          pdfSizeBytes: pdfBuffer.length,
+          receiptYear,
+          yearSequence
+        }
+      });
+      await db.marketplaceTransaction.update({
+        where: { id: tx.id },
+        data: { receiptGenerationStatus: ReceiptGenerationStatus.generated }
+      });
+      return row;
+    });
+
+    if (this.supabaseAdmin.isConfigured()) {
+      try {
+        await this.uploadWithRetry(storagePath, pdfBuffer);
+      } catch (e) {
+        this.log.warn(
+          `Receipt storage upload failed for ${transactionId}: ${(e as Error).message}`
+        );
+      }
+    } else {
+      this.log.warn(
+        `Receipt ${receiptNumber} persisted without Storage (SUPABASE_SERVICE_ROLE_KEY manquant)`
+      );
+    }
+
+    void this.push.sendToUser(
+      tx.sellerUserId,
+      "Reçu disponible",
+      `Votre reçu de vente ${receiptNumber} est prêt. Téléchargez-le.`,
+      { type: "marketplace_receipt_ready", transactionId: tx.id, receiptNumber }
+    );
+    void this.push.sendToUser(
+      tx.buyerUserId,
+      "Reçu disponible",
+      `Votre reçu d'achat ${receiptNumber} est prêt. Téléchargez-le.`,
+      { type: "marketplace_receipt_ready", transactionId: tx.id, receiptNumber }
+    );
+
+    return receipt;
+  }
+
+  private async loadClosedTransactionForReceipt(
+    transactionId: string
+  ): Promise<ReceiptTransaction> {
     const tx = await this.prisma.marketplaceTransaction.findUnique({
       where: { id: transactionId },
       include: {
@@ -67,85 +205,9 @@ export class ReceiptService {
       }
     });
     if (!tx || tx.status !== MarketplaceTransactionStatus.TRANSACTION_CLOSED) {
-      return null;
+      throw new NotFoundException("Transaction clôturée introuvable");
     }
-
-    if (!this.supabaseAdmin.isConfigured()) {
-      this.log.error(
-        `Receipt generation skipped for ${transactionId}: SUPABASE_SERVICE_ROLE_KEY manquant`
-      );
-      await this.prisma.marketplaceTransaction.updateMany({
-        where: { id: transactionId },
-        data: { receiptGenerationStatus: ReceiptGenerationStatus.failed }
-      });
-      return null;
-    }
-
-    try {
-      if (existing && options?.force) {
-        await this.prisma.marketplaceTransactionReceipt.delete({
-          where: { id: existing.id }
-        });
-        if (existing.pdfStoragePath) {
-          await this.supabaseAdmin.removeStorageObjects(RECEIPT_BUCKET, [
-            existing.pdfStoragePath
-          ]);
-        }
-      }
-
-      const { receiptNumber, yearSequence, receiptYear } =
-        await this.getNextReceiptNumber(new Date().getUTCFullYear());
-
-      const pdfInput = this.buildPdfInput(tx, receiptNumber);
-      const pdfBuffer = await this.pdf.renderReceiptPdf(pdfInput);
-      const storagePath = `${receiptNumber}.pdf`;
-
-      await this.uploadWithRetry(storagePath, pdfBuffer);
-
-      await this.prisma.$transaction(async (db) => {
-        await db.marketplaceTransactionReceipt.create({
-          data: {
-            receiptNumber,
-            transactionId: tx.id,
-            sellerId: tx.sellerUserId,
-            buyerId: tx.buyerUserId,
-            pdfStoragePath: storagePath,
-            pdfSizeBytes: pdfBuffer.length,
-            receiptYear,
-            yearSequence
-          }
-        });
-        await db.marketplaceTransaction.update({
-          where: { id: tx.id },
-          data: { receiptGenerationStatus: ReceiptGenerationStatus.generated }
-        });
-      });
-
-      void this.push.sendToUser(
-        tx.sellerUserId,
-        "Reçu disponible",
-        `Votre reçu de vente ${receiptNumber} est prêt. Téléchargez-le.`,
-        { type: "marketplace_receipt_ready", transactionId: tx.id, receiptNumber }
-      );
-      void this.push.sendToUser(
-        tx.buyerUserId,
-        "Reçu disponible",
-        `Votre reçu d'achat ${receiptNumber} est prêt. Téléchargez-le.`,
-        { type: "marketplace_receipt_ready", transactionId: tx.id, receiptNumber }
-      );
-
-      return { receiptNumber };
-    } catch (e) {
-      this.log.error(
-        `Receipt generation failed for ${transactionId}: ${(e as Error).message}`
-      );
-      await this.prisma.marketplaceTransaction.updateMany({
-        where: { id: transactionId },
-        data: { receiptGenerationStatus: ReceiptGenerationStatus.failed }
-      });
-      void this.alertSuperAdmins(transactionId);
-      return null;
-    }
+    return tx as ReceiptTransaction;
   }
 
   /** Relance manuelle (acheteur / vendeur / cron). */
@@ -201,13 +263,13 @@ export class ReceiptService {
           fresh?.receiptGenerationStatus ?? tx.receiptGenerationStatus
       };
     }
-    const downloadUrl = await this.supabaseAdmin.createSignedStoragePathUrl(
-      RECEIPT_BUCKET,
-      receipt.pdfStoragePath,
-      3600
-    );
-    if (!downloadUrl) {
-      throw new NotFoundException("Impossible de générer le lien de téléchargement");
+    let downloadUrl: string | null = null;
+    if (this.supabaseAdmin.isConfigured()) {
+      downloadUrl = await this.supabaseAdmin.createSignedStoragePathUrl(
+        RECEIPT_BUCKET,
+        receipt.pdfStoragePath,
+        3600
+      );
     }
     await this.markDownloaded(receipt.id, user.id, tx.sellerUserId, tx.buyerUserId);
     return {
@@ -388,20 +450,7 @@ export class ReceiptService {
   }
 
   private buildPdfInput(
-    tx: NonNullable<
-      Awaited<ReturnType<PrismaService["marketplaceTransaction"]["findUnique"]>>
-    > & {
-      listing: {
-        title: string;
-        category: import("@prisma/client").ListingMarketCategory | null;
-        locationLabel: string | null;
-        farm: { name: string; address: string | null } | null;
-        animal: { tagCode: string | null; publicId: string } | null;
-      };
-      offer: { updatedAt: Date };
-      buyer: { fullName: string | null; phone: string | null };
-      seller: { fullName: string | null; phone: string | null };
-    },
+    tx: ReceiptTransaction,
     receiptNumber: string
   ): ReceiptPdfInput {
     const realWeight =
