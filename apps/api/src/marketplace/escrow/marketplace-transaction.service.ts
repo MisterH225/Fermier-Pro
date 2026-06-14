@@ -1529,6 +1529,7 @@ export class MarketplaceTransactionService {
           in: [
             ListingStatus.published,
             ListingStatus.reserved,
+            ListingStatus.reserved_credit,
             ListingStatus.shipped,
             ListingStatus.delivered,
             ListingStatus.disputed

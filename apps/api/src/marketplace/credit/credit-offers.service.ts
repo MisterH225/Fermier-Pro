@@ -19,7 +19,10 @@ import { FARM_SCOPE } from "../../common/farm-scopes.constants";
 import { PrismaService } from "../../prisma/prisma.service";
 import { PushNotificationsService } from "../../push-notifications/push-notifications.service";
 import { EscrowService } from "../escrow/escrow.service";
-import { calculateFinalAmount } from "../escrow/transaction.utils";
+import {
+  ACTIVE_DEAL_TRANSACTION_STATUSES,
+  calculateFinalAmount
+} from "../escrow/transaction.utils";
 import { CreditScoreService } from "./credit-score.service";
 import { ProducerScoreService } from "../../producer-score/producer-score.service";
 import { MarketplaceTransactionService } from "../escrow/marketplace-transaction.service";
@@ -115,6 +118,18 @@ export class CreditOffersService {
     if (!listing || listing.status !== ListingStatus.published) {
       throw new BadRequestException("Annonce non disponible");
     }
+    const dealInProgress = await this.prisma.marketplaceTransaction.findFirst({
+      where: {
+        listingId,
+        status: { in: ACTIVE_DEAL_TRANSACTION_STATUSES }
+      },
+      select: { id: true }
+    });
+    if (dealInProgress) {
+      throw new BadRequestException(
+        "Une transaction est déjà en cours sur cette annonce"
+      );
+    }
     if (listing.sellerUserId === user.id) {
       throw new ForbiddenException("Offre impossible sur votre annonce");
     }
@@ -194,6 +209,9 @@ export class CreditOffersService {
     if (!listing) {
       throw new NotFoundException("Annonce introuvable");
     }
+    if (listing.status !== ListingStatus.published) {
+      throw new BadRequestException("Annonce non eligible");
+    }
     const offer = await this.requireCreditOffer(offerId, listingId);
     const isSeller = listing.sellerUserId === user.id;
     const isBuyer = offer.buyerUserId === user.id;
@@ -229,7 +247,6 @@ export class CreditOffersService {
       this.prisma.marketplaceListing.update({
         where: { id: listingId },
         data: {
-          status: ListingStatus.reserved_credit,
           reservedForBuyerUserId: offer.buyerUserId
         }
       })
@@ -240,9 +257,22 @@ export class CreditOffersService {
     const advance = Number(offer.advanceAmount ?? 0);
     void this.push.sendToUser(
       offer.buyerUserId,
-      "Accord crédit conclu",
+      "✅ Accord crédit conclu",
       `Sécurisez l'avance de ${Math.round(advance).toLocaleString("fr-FR")} ${listing.currency} sur la plateforme pour lancer la livraison.`,
       { type: "marketplace_credit_agreed", listingId, offerId, transactionId }
+    );
+    void this.push.sendToUser(
+      listing.sellerUserId,
+      "Accord crédit conclu",
+      isBuyer
+        ? `L'acheteur a accepté votre contre-proposition sur « ${listing.title} ». En attente de son paiement d'avance.`
+        : `En attente du paiement d'avance de l'acheteur pour « ${listing.title} ».`,
+      {
+        type: "marketplace_credit_agreed_seller",
+        listingId,
+        offerId,
+        transactionId
+      }
     );
     const serialized = await this.serializeOffer(offerId, user.id);
     return { ...serialized, transactionId };
@@ -442,7 +472,11 @@ export class CreditOffersService {
       }),
       this.prisma.marketplaceListing.update({
         where: { id: offer.listingId },
-        data: { status: ListingStatus.sold }
+        data: {
+          status: ListingStatus.sold,
+          reservedForBuyerUserId: null,
+          activeOfferCount: 0
+        }
       })
     ]);
     if (onTime) {
@@ -561,7 +595,7 @@ export class CreditOffersService {
           }),
           this.prisma.marketplaceListing.update({
             where: { id: offer.listingId },
-            data: { status: ListingStatus.disputed, disputedAt: now }
+            data: { disputedAt: now }
           }),
           this.prisma.marketplaceCreditArbitration.create({
             data: {
@@ -634,7 +668,12 @@ export class CreditOffersService {
         }),
         this.prisma.marketplaceListing.update({
           where: { id: row.listingId },
-          data: { status: ListingStatus.sold, disputedAt: null }
+          data: {
+            status: ListingStatus.sold,
+            disputedAt: null,
+            reservedForBuyerUserId: null,
+            activeOfferCount: 0
+          }
         })
       ]);
       await this.creditScore.recordLatePayment(row.buyerUserId);
