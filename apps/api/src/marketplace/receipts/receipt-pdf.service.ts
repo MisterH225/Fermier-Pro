@@ -3,7 +3,6 @@ import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
 import type { ReceiptPdfInput } from "./receipt.format";
 import {
-  formatReceiptDate,
   formatReceiptDateOnly,
   formatReceiptMoney,
   shortTransactionId
@@ -12,9 +11,11 @@ import {
 type PdfDoc = InstanceType<typeof PDFDocument>;
 
 const BRAND_GREEN = "#2D6A4F";
-const LIGHT_GREY = "#F4F4F5";
+const BRAND_LIGHT = "#E8F5E9";
 const TEXT_DARK = "#1A1A1A";
 const TEXT_MUTED = "#6B7280";
+const ROW_ALT = "#F8F9FA";
+const MARGIN = 32;
 
 @Injectable()
 export class ReceiptPdfService {
@@ -22,225 +23,217 @@ export class ReceiptPdfService {
     const qrPng = await QRCode.toBuffer(input.verifyUrl, {
       type: "png",
       margin: 1,
-      width: 120
+      width: 80
     });
 
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({
-        margin: 48,
+        margin: MARGIN,
         size: "A4",
-        info: {
-          Title: `Reçu ${input.receiptNumber}`,
-          Author: "FermierPro"
-        }
+        info: { Title: `Reçu ${input.receiptNumber}`, Author: "FermierPro" }
       });
       const chunks: Buffer[] = [];
       doc.on("data", (c: Buffer) => chunks.push(c));
       doc.on("end", () => resolve(Buffer.concat(chunks)));
       doc.on("error", reject);
 
-      const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-      const left = doc.page.margins.left;
+      const W = doc.page.width - MARGIN * 2;
+      const L = MARGIN;
 
-      // Header band
-      doc.save();
-      doc.rect(left, 48, pageWidth, 72).fill(BRAND_GREEN);
-      doc.fillColor("#FFFFFF").fontSize(22).font("Helvetica-Bold");
-      doc.text("FermierPro", left + 16, 62);
-      doc.fontSize(14).font("Helvetica");
-      doc.text("REÇU DE TRANSACTION", left + 16, 88);
-      doc.restore();
-
-      doc.y = 136;
-      doc.fillColor(TEXT_DARK).font("Helvetica-Bold").fontSize(11);
-      doc.text(`N° ${input.receiptNumber}`, left, doc.y);
-      doc.font("Helvetica").fontSize(10).fillColor(TEXT_MUTED);
+      // ── Header compact ────────────────────────────────────────────────
+      doc.rect(L, MARGIN, W, 46).fill(BRAND_GREEN);
+      doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(16);
+      doc.text("FermierPro", L + 12, MARGIN + 8, { continued: true });
+      doc.font("Helvetica").fontSize(10);
+      doc.text(`  ·  REÇU DE TRANSACTION N° ${input.receiptNumber}`, {
+        continued: false
+      });
+      doc.fontSize(8).fillColor("rgba(255,255,255,0.8)");
       doc.text(
-        `Transaction : ${shortTransactionId(input.transactionId)}`,
-        left,
-        doc.y + 16
-      );
-      doc.text(
-        `Date d'émission : ${formatReceiptDate(input.issuedAt)}`,
-        left,
-        doc.y + 14
+        `Transaction ${shortTransactionId(input.transactionId)}  ·  Émis le ${new Date(input.issuedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" })}`,
+        L + 12,
+        MARGIN + 30
       );
 
-      doc.moveDown(2);
-      this.drawDivider(doc, left, pageWidth);
+      doc.y = MARGIN + 56;
 
-      // Seller / Buyer columns
-      const colW = (pageWidth - 16) / 2;
-      const y0 = doc.y + 8;
-      this.drawPartyColumn(doc, left, y0, colW, "Vendeur", [
-        input.seller.fullName ?? "—",
-        input.seller.farmName ? `Ferme : ${input.seller.farmName}` : null,
-        input.seller.farmLocation ? `Lieu : ${input.seller.farmLocation}` : null,
-        input.seller.phone ? `Tél. : ${input.seller.phone}` : null
-      ]);
-      this.drawPartyColumn(doc, left + colW + 16, y0, colW, "Acheteur", [
-        input.buyer.fullName ?? "—",
-        input.buyer.phone ? `Tél. : ${input.buyer.phone}` : null
-      ]);
-      doc.y = y0 + 88;
+      // ── Vendeur / Acheteur ────────────────────────────────────────────
+      const half = (W - 12) / 2;
+      this.drawPartyBox(doc, L, doc.y, half, "Vendeur", input.seller);
+      this.drawPartyBox(doc, L + half + 12, doc.y, half, "Acheteur", {
+        fullName: input.buyer.fullName,
+        phone: input.buyer.phone,
+        farmName: null,
+        farmLocation: null
+      });
+      doc.y += 62;
 
-      this.drawDivider(doc, left, pageWidth);
-      doc.moveDown(0.5);
-      doc.fillColor(TEXT_DARK).font("Helvetica-Bold").fontSize(12);
-      doc.text("Détails de l'animal", left);
-      doc.moveDown(0.4);
-      this.drawKeyValueTable(doc, left, pageWidth, [
-        ["Identifiant / nom", input.animal.label],
-        ["Catégorie", input.animal.categoryLabel],
-        [
-          "Poids estimé initial",
-          input.animal.estimatedWeightKg != null
-            ? `${input.animal.estimatedWeightKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg`
-            : "—"
-        ],
-        [
-          "Poids réel confirmé",
-          input.animal.realWeightKg != null
-            ? `${input.animal.realWeightKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg`
-            : "—"
-        ],
-        [
-          "Écart poids",
-          input.animal.weightDeltaPct != null
-            ? `${input.animal.weightDeltaPct >= 0 ? "+" : ""}${input.animal.weightDeltaPct.toFixed(1)} %`
-            : "—"
-        ]
-      ]);
+      this.drawHR(doc, L, W);
 
-      doc.moveDown(0.8);
-      doc.font("Helvetica-Bold").fontSize(12).fillColor(TEXT_DARK);
-      doc.text("Récapitulatif financier", left);
-      doc.moveDown(0.4);
+      // ── Corps principal en 2 colonnes ─────────────────────────────────
+      const leftW = W * 0.44;
+      const rightW = W - leftW - 12;
+      const bodyY = doc.y;
+
+      // Colonne gauche : animal + chronologie
+      let ly = bodyY;
+      ly = this.drawSection(doc, L, ly, leftW, "Animal");
       const fin = input.financial;
-      const finRows: Array<[string, string]> = [
-        ["Prix convenu", fin.priceLabel],
-        [
-          "Poids réel",
-          fin.realWeightKg != null
-            ? `${fin.realWeightKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg`
-            : "—"
-        ],
-        ["Montant de la transaction", formatReceiptMoney(fin.grossAmount, fin.currency)],
-        [
-          `Frais plateforme acheteur (${fin.buyerCommissionRatePct.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} %)`,
-          `+ ${formatReceiptMoney(fin.buyerCommissionAmount, fin.currency)}`
-        ],
-        [
-          "Total payé par l'acheteur",
-          formatReceiptMoney(fin.buyerPaidAmount, fin.currency)
-        ],
-        [
-          `Frais plateforme vendeur (${fin.sellerCommissionRatePct.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} %)`,
-          `- ${formatReceiptMoney(fin.sellerCommissionAmount, fin.currency)}`
-        ],
-        [
-          "Montant net versé au vendeur",
-          formatReceiptMoney(fin.sellerNetAmount, fin.currency)
-        ],
-        [
-          "Total frais plateforme",
-          formatReceiptMoney(fin.totalCommissionAmount, fin.currency)
-        ]
+      const animalRows: [string, string][] = [
+        ["Identifiant", input.animal.label],
+        ["Catégorie", input.animal.categoryLabel]
       ];
-      if (fin.buyerRefundAmount > 0) {
+      if (input.animal.estimatedWeightKg != null) {
+        animalRows.push(["Poids estimé", `${input.animal.estimatedWeightKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg`]);
+      }
+      if (input.animal.realWeightKg != null) {
+        animalRows.push(["Poids réel", `${input.animal.realWeightKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg`]);
+      }
+      if (input.animal.weightDeltaPct != null) {
+        animalRows.push(["Écart", `${input.animal.weightDeltaPct >= 0 ? "+" : ""}${input.animal.weightDeltaPct.toFixed(1)} %`]);
+      }
+      ly = this.drawCompactTable(doc, L, ly, leftW, animalRows);
+
+      ly += 6;
+      ly = this.drawSection(doc, L, ly, leftW, "Chronologie");
+      const tl = input.timeline;
+      const tlRows: [string, string][] = [
+        ["Offre acceptée", formatReceiptDateOnly(tl.offerAcceptedAt)],
+        ["Paiement sécurisé", formatReceiptDateOnly(tl.paymentConfirmedAt)],
+        ["Livraison", formatReceiptDateOnly(tl.pickupDate)],
+        ["Poids confirmé", formatReceiptDateOnly(tl.weightValidatedAt)],
+        ["Transaction clôturée", formatReceiptDateOnly(tl.closedAt)]
+      ];
+      ly = this.drawCompactTable(doc, L, ly, leftW, tlRows);
+
+      // Colonne droite : financier
+      let ry = bodyY;
+      ry = this.drawSection(doc, L + leftW + 12, ry, rightW, "Récapitulatif financier");
+
+      const finRows: [string, string][] = [
+        ["Prix convenu", fin.priceLabel],
+        ["Montant transaction", formatReceiptMoney(fin.grossAmount, fin.currency)]
+      ];
+      // Frais acheteur
+      if (fin.buyerCommissionRatePct > 0) {
         finRows.push([
-          "Remboursement acheteur",
-          formatReceiptMoney(fin.buyerRefundAmount, fin.currency)
+          `Frais acheteur (${fin.buyerCommissionRatePct.toFixed(1)} %)`,
+          `+ ${formatReceiptMoney(fin.buyerCommissionAmount, fin.currency)}`
         ]);
+      }
+      finRows.push([
+        "Total payé par l'acheteur",
+        formatReceiptMoney(fin.buyerPaidAmount, fin.currency)
+      ]);
+      if (fin.buyerRefundAmount > 0) {
+        finRows.push(["Remboursement acheteur", `- ${formatReceiptMoney(fin.buyerRefundAmount, fin.currency)}`]);
       }
       if (fin.buyerAdditionalCharge > 0) {
+        finRows.push(["Complément acheteur", `+ ${formatReceiptMoney(fin.buyerAdditionalCharge, fin.currency)}`]);
+      }
+      // Frais vendeur
+      if (fin.sellerCommissionRatePct > 0) {
         finRows.push([
-          "Paiement supplémentaire acheteur",
-          formatReceiptMoney(fin.buyerAdditionalCharge, fin.currency)
+          `Frais vendeur (${fin.sellerCommissionRatePct.toFixed(1)} %)`,
+          `- ${formatReceiptMoney(fin.sellerCommissionAmount, fin.currency)}`
         ]);
       }
-      this.drawKeyValueTable(doc, left, pageWidth, finRows);
-
-      doc.moveDown(0.8);
-      doc.font("Helvetica-Bold").fontSize(12).fillColor(TEXT_DARK);
-      doc.text("Chronologie", left);
-      doc.moveDown(0.4);
-      const tl = input.timeline;
-      this.drawKeyValueTable(doc, left, pageWidth, [
-        ["Offre acceptée le", formatReceiptDateOnly(tl.offerAcceptedAt)],
-        ["Paiement sécurisé le", formatReceiptDateOnly(tl.paymentConfirmedAt)],
-        ["Livraison le", formatReceiptDateOnly(tl.pickupDate)],
-        ["Poids confirmé le", formatReceiptDateOnly(tl.weightValidatedAt)],
-        ["Transaction clôturée le", formatReceiptDateOnly(tl.closedAt)]
+      // Ligne total accentuée
+      finRows.push([
+        "Net versé au vendeur",
+        formatReceiptMoney(fin.sellerNetAmount, fin.currency)
       ]);
+      if (fin.totalCommissionAmount > 0) {
+        finRows.push([
+          "Total frais plateforme",
+          formatReceiptMoney(fin.totalCommissionAmount, fin.currency)
+        ]);
+      }
+      ry = this.drawCompactTable(doc, L + leftW + 12, ry, rightW, finRows, /* highlightLast */ true);
 
-      this.drawDivider(doc, left, pageWidth);
-      doc.moveDown(0.5);
+      doc.y = Math.max(ly, ry) + 6;
 
-      const footerY = doc.page.height - doc.page.margins.bottom - 100;
-      doc.fontSize(8).fillColor(TEXT_MUTED).font("Helvetica");
+      this.drawHR(doc, L, W);
+
+      // ── Footer ────────────────────────────────────────────────────────
+      const footerY = doc.page.height - MARGIN - 56;
+      doc.image(qrPng, L + W - 76, footerY, { width: 72 });
+      doc.fontSize(7).fillColor(TEXT_MUTED).font("Helvetica");
       doc.text(
         "Ce reçu est généré automatiquement par FermierPro et constitue une preuve de transaction.",
-        left,
-        footerY,
-        { width: pageWidth - 130 }
+        L, footerY, { width: W - 90 }
       );
-      doc.text("Contact support : support@fermierpro.com", left, footerY + 28);
-      doc.text("FermierPro © 2026", left, footerY + 42);
-      doc.image(qrPng, left + pageWidth - 110, footerY - 8, { width: 100 });
+      doc.text("Vérification : " + input.verifyUrl, L, footerY + 13, { width: W - 90 });
+      doc.text("Contact : support@fermierpro.com  ·  FermierPro © 2026", L, footerY + 26, { width: W - 90 });
 
       doc.end();
     });
   }
 
-  private drawDivider(doc: PdfDoc, left: number, width: number): void {
-    const y = doc.y + 4;
-    doc.save();
-    doc.strokeColor("#E5E7EB").lineWidth(1);
+  private drawHR(doc: PdfDoc, left: number, width: number): void {
+    const y = doc.y + 3;
+    doc.save().strokeColor("#E5E7EB").lineWidth(0.5);
     doc.moveTo(left, y).lineTo(left + width, y).stroke();
     doc.restore();
-    doc.y = y + 10;
+    doc.y = y + 6;
   }
 
-  private drawPartyColumn(
+  private drawPartyBox(
     doc: PdfDoc,
     x: number,
     y: number,
     width: number,
     title: string,
-    lines: Array<string | null>
+    party: { fullName: string | null; phone: string | null; farmName: string | null; farmLocation: string | null }
   ): void {
-    doc.font("Helvetica-Bold").fontSize(11).fillColor(BRAND_GREEN);
-    doc.text(title, x, y, { width });
-    let cy = y + 18;
-    doc.font("Helvetica").fontSize(10).fillColor(TEXT_DARK);
-    for (const line of lines) {
-      if (!line) continue;
-      doc.text(line, x, cy, { width });
-      cy += 16;
+    doc.rect(x, y, width, 56).fill(BRAND_LIGHT);
+    doc.font("Helvetica-Bold").fontSize(8).fillColor(BRAND_GREEN);
+    doc.text(title.toUpperCase(), x + 8, y + 6, { width: width - 16 });
+    doc.font("Helvetica-Bold").fontSize(10).fillColor(TEXT_DARK);
+    doc.text(party.fullName ?? "—", x + 8, y + 18, { width: width - 16 });
+    let cy = y + 32;
+    doc.font("Helvetica").fontSize(8).fillColor(TEXT_MUTED);
+    if (party.farmName) {
+      doc.text(`Ferme : ${party.farmName}`, x + 8, cy, { width: width - 16 }); cy += 11;
+    }
+    if (party.phone) {
+      doc.text(`Tél. : ${party.phone}`, x + 8, cy, { width: width - 16 });
     }
   }
 
-  private drawKeyValueTable(
+  private drawSection(doc: PdfDoc, x: number, y: number, width: number, title: string): number {
+    doc.font("Helvetica-Bold").fontSize(9).fillColor(BRAND_GREEN);
+    doc.text(title.toUpperCase(), x, y, { width });
+    return y + 14;
+  }
+
+  private drawCompactTable(
     doc: PdfDoc,
-    left: number,
+    x: number,
+    y: number,
     width: number,
-    rows: Array<[string, string]>
-  ): void {
-    const labelW = width * 0.48;
-    let y = doc.y;
+    rows: [string, string][],
+    highlightLast = false
+  ): number {
+    const ROW_H = 16;
+    const labelW = width * 0.54;
+
     rows.forEach(([label, value], i) => {
-      if (i % 2 === 0) {
-        doc.save();
-        doc.rect(left, y - 2, width, 20).fill(LIGHT_GREY);
-        doc.restore();
+      const isLast = highlightLast && i === rows.length - 1;
+      if (isLast) {
+        doc.rect(x, y - 1, width, ROW_H + 1).fill(BRAND_LIGHT);
+      } else if (i % 2 === 0) {
+        doc.rect(x, y - 1, width, ROW_H + 1).fill(ROW_ALT);
       }
-      doc.font("Helvetica").fontSize(9).fillColor(TEXT_MUTED);
-      doc.text(label, left + 8, y, { width: labelW });
-      doc.fillColor(TEXT_DARK).font("Helvetica-Bold");
-      doc.text(value, left + labelW, y, { width: width - labelW - 8 });
-      y += 22;
+      doc.font("Helvetica").fontSize(8).fillColor(TEXT_MUTED);
+      doc.text(label, x + 4, y + 2, { width: labelW - 4 });
+      doc
+        .font(isLast ? "Helvetica-Bold" : "Helvetica-Bold")
+        .fontSize(isLast ? 9 : 8)
+        .fillColor(isLast ? BRAND_GREEN : TEXT_DARK);
+      doc.text(value, x + labelW, y + 2, { width: width - labelW - 4, align: "right" });
+      y += ROW_H;
     });
-    doc.y = y;
+    return y;
   }
 }
