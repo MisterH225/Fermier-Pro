@@ -201,6 +201,11 @@ export function AppDatePicker({
   const prefs = useAppDatePreferences(farmId);
   const [open, setOpen] = useState(false);
 
+  // Sur Android, le DateTimePicker natif dans un Modal RN crée un double-modal.
+  // On force l'affichage "inline" (sous le champ) pour éviter le conflit.
+  const effectivePresentation: "sheet" | "inline" =
+    Platform.OS === "android" ? "inline" : presentation;
+
   const minBound = useMemo(
     () => normalizeBound(minDate, mode),
     [minDate, mode]
@@ -421,11 +426,11 @@ export function AppDatePicker({
       {helper ? <Text style={styles.helper}>{helper}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      {presentation === "inline" && open ? (
+      {effectivePresentation === "inline" && open ? (
         <View style={pickerStyles.inlinePanel}>{pickerPanel}</View>
       ) : null}
 
-      {presentation === "sheet" ? (
+      {effectivePresentation === "sheet" ? (
         <BaseModal
           visible={open}
           onClose={() => setOpen(false)}
