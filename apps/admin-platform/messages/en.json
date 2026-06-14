@@ -399,7 +399,8 @@
       "alerts": "Health alert thresholds",
       "notifications": "Notifications",
       "support": "Mobile support",
-      "marketplace": "Marketplace"
+      "marketplace": "Marketplace",
+      "vet": "Veterinarian"
     },
     "loadError": "Could not load settings. Check that the API is up to date and Prisma migrations have been applied.",
     "fields": {
@@ -409,8 +410,12 @@
       "alertLevel": "Default alert level",
       "adminEmail": "SuperAdmin email",
       "reportFrequency": "Report frequency (days)",
-      "marketplaceCommission": "Marketplace commission (%)",
-      "marketplaceCommissionHint": "Applied to each completed marketplace sale (e.g. 5 = 5%).",
+      "marketplaceCommission": "Buyer marketplace commission (%)",
+      "marketplaceCommissionHint": "Charged to the buyer at the close of each marketplace sale (e.g. 5 = 5%).",
+      "sellerMarketplaceCommission": "Seller marketplace commission (%)",
+      "sellerMarketplaceCommissionHint": "Deducted from the seller's payout at the close of each marketplace sale (e.g. 5 = 5%).",
+      "vetCommission": "Vet appointment commission (%)",
+      "vetCommissionHint": "Deducted from the vet's payout when service completion is confirmed (e.g. 5 = 5%).",
       "supportPhone": "Support phone",
       "supportPhoneHint": "Number shown in the mobile app (call button). Leave empty to use the SUPPORT_PHONE environment variable.",
       "supportPhoneEffective": "Active value on mobile (env fallback): {value}",

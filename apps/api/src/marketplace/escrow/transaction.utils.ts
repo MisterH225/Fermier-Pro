@@ -230,28 +230,51 @@ export function settlementAmounts(params: {
   commissionRate: number;
   /** true = acheteur a payé le prix + commission (nouveau comportement) */
   buyerPaysCommission?: boolean;
+  /** Taux de commission prélevée sur le vendeur (0 = aucun). */
+  sellerCommissionRate?: number;
 }): {
   commissionAmount: number;
+  sellerCommissionAmount: number;
+  totalCommissionAmount: number;
   sellerReceivedAmount: number;
   buyerRefundAmount: number;
   buyerAdditionalCharge: number;
 } {
   const commissionAmount = Math.round(params.finalAmount * params.commissionRate);
+  const sellerCommissionAmount = Math.round(
+    params.finalAmount * (params.sellerCommissionRate ?? 0)
+  );
+  const totalCommissionAmount = commissionAmount + sellerCommissionAmount;
+
   if (params.buyerPaysCommission) {
-    // Acheteur paye prix + commission → vendeur reçoit le prix total
-    const sellerReceivedAmount = params.finalAmount;
+    // Acheteur paye prix + frais acheteur → vendeur reçoit prix total moins ses propres frais
+    const sellerReceivedAmount = params.finalAmount - sellerCommissionAmount;
     const buyerTotalOwed = params.finalAmount + commissionAmount;
     const delta = params.blockedAmount - buyerTotalOwed;
     const buyerRefundAmount = delta > 0 ? delta : 0;
     const buyerAdditionalCharge = delta < 0 ? Math.abs(delta) : 0;
-    return { commissionAmount, sellerReceivedAmount, buyerRefundAmount, buyerAdditionalCharge };
+    return {
+      commissionAmount,
+      sellerCommissionAmount,
+      totalCommissionAmount,
+      sellerReceivedAmount,
+      buyerRefundAmount,
+      buyerAdditionalCharge
+    };
   }
-  // Comportement historique : commission déduite du vendeur
-  const sellerReceivedAmount = params.finalAmount - commissionAmount;
+  // Comportement historique : commission acheteur + commission vendeur toutes deux déduites du vendeur
+  const sellerReceivedAmount = params.finalAmount - commissionAmount - sellerCommissionAmount;
   const delta = params.blockedAmount - params.finalAmount;
   const buyerRefundAmount = delta > 0 ? delta : 0;
   const buyerAdditionalCharge = delta < 0 ? Math.abs(delta) : 0;
-  return { commissionAmount, sellerReceivedAmount, buyerRefundAmount, buyerAdditionalCharge };
+  return {
+    commissionAmount,
+    sellerCommissionAmount,
+    totalCommissionAmount,
+    sellerReceivedAmount,
+    buyerRefundAmount,
+    buyerAdditionalCharge
+  };
 }
 
 export const TERMINAL_TRANSACTION_STATUSES: MarketplaceTransactionStatus[] = [

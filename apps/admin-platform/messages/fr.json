@@ -401,7 +401,8 @@
       "alerts": "Seuils alertes sanitaires",
       "notifications": "Notifications",
       "support": "Support mobile",
-      "marketplace": "Marketplace"
+      "marketplace": "Marketplace",
+      "vet": "Vétérinaire"
     },
     "loadError": "Impossible de charger les paramètres. Vérifiez que l’API est à jour et que les migrations Prisma sont appliquées.",
     "fields": {
@@ -411,8 +412,12 @@
       "alertLevel": "Niveau alerte par défaut",
       "adminEmail": "Email SuperAdmin",
       "reportFrequency": "Fréquence rapports (jours)",
-      "marketplaceCommission": "Commission marketplace (%)",
-      "marketplaceCommissionHint": "Appliquée à chaque vente conclue sur le marché (ex. 5 = 5 %).",
+      "marketplaceCommission": "Commission acheteur marketplace (%)",
+      "marketplaceCommissionHint": "Prélevée sur l'acheteur à la clôture de chaque vente (ex. 5 = 5 %).",
+      "sellerMarketplaceCommission": "Commission vendeur marketplace (%)",
+      "sellerMarketplaceCommissionHint": "Prélevée sur le vendeur à la clôture de chaque vente (ex. 5 = 5 %).",
+      "vetCommission": "Commission rendez-vous vétérinaire (%)",
+      "vetCommissionHint": "Déduite du montant versé au vétérinaire à la confirmation de prestation (ex. 5 = 5 %).",
       "supportPhone": "Téléphone support",
       "supportPhoneHint": "Numéro affiché dans l’app mobile (bouton appel). Laissez vide pour utiliser la variable d’environnement SUPPORT_PHONE.",
       "supportPhoneEffective": "Valeur active sur mobile (fallback env) : {value}",

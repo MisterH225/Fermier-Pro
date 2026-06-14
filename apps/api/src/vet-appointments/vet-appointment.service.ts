@@ -7,6 +7,7 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { PlatformSettingsService } from "../platform-settings/platform-settings.service";
 import type { User } from "@prisma/client";
 import {
   MembershipRole,
@@ -65,14 +66,13 @@ export class VetAppointmentService {
     private readonly push: PushNotificationsService,
     private readonly calendar: VetCalendarService,
     private readonly config: ConfigService,
+    private readonly platformSettings: PlatformSettingsService,
     @Inject(MOBILE_MONEY_GATEWAY)
     private readonly gateway: MobileMoneyGateway
   ) {}
 
-  private commissionRate(): number {
-    const raw = this.config.get<string>("PLATFORM_COMMISSION_RATE") ?? "0.05";
-    const n = Number.parseFloat(raw);
-    return Number.isFinite(n) && n >= 0 && n < 1 ? n : 0.05;
+  private async commissionRate(): Promise<number> {
+    return this.platformSettings.getVetCommissionRate();
   }
 
   private cancellationPartialRate(): number {
@@ -223,7 +223,7 @@ export class VetAppointmentService {
         reason: input.reason,
         notes: input.notes?.trim() || null,
         farmLocation,
-        commissionRate: new Prisma.Decimal(this.commissionRate()),
+        commissionRate: new Prisma.Decimal(await this.commissionRate()),
         conflictStatus: conflict.status,
         conflictDetails: conflict.conflictingAppointment
           ? (conflict.conflictingAppointment as Prisma.InputJsonValue)
@@ -393,7 +393,7 @@ export class VetAppointmentService {
           servicePrice: new Prisma.Decimal(price),
           blockedAmount: new Prisma.Decimal(price),
           paymentDeadline,
-          commissionRate: new Prisma.Decimal(this.commissionRate()),
+          commissionRate: new Prisma.Decimal(await this.commissionRate()),
           conflictStatus: conflict.status,
           conflictDetails: conflict.conflictingAppointment
             ? (conflict.conflictingAppointment as Prisma.InputJsonValue)
@@ -447,7 +447,7 @@ export class VetAppointmentService {
           reason: input.reason,
           notes: input.notes?.trim() || null,
           farmLocation,
-          commissionRate: new Prisma.Decimal(this.commissionRate()),
+          commissionRate: new Prisma.Decimal(await this.commissionRate()),
           conflictStatus: conflict.status,
           conflictDetails: conflict.conflictingAppointment
             ? (conflict.conflictingAppointment as Prisma.InputJsonValue)
@@ -785,6 +785,8 @@ export class VetAppointmentService {
     const confirmedAt = row.confirmedAt ?? row.requestedAt;
     const duration = Number(row.estimatedDurationHours);
 
+    const amount = Number(row.blockedAmount ?? row.servicePrice ?? 0);
+
     const updated = await this.prisma.$transaction(async (tx) => {
       await this.calendar.blockSlot(
         tx,
@@ -793,7 +795,7 @@ export class VetAppointmentService {
         confirmedAt,
         duration
       );
-      return tx.vetAppointment.update({
+      const appt = await tx.vetAppointment.update({
         where: { id: appointmentId },
         data: {
           status: VetAppointmentStatus.APPOINTMENT_CONFIRMED,
@@ -803,6 +805,24 @@ export class VetAppointmentService {
         },
         include: VET_APPOINTMENT_INCLUDE
       });
+      // Enregistrer le paiement comme dépense dans les finances de la ferme
+      if (amount > 0) {
+        const vetName = appt.vetProfile?.fullName?.trim() || "Vétérinaire";
+        await tx.farmExpense.create({
+          data: {
+            farmId: row.farmId,
+            amount: new Prisma.Decimal(amount),
+            currency: row.currency,
+            label: `Consultation vétérinaire — ${vetName}`,
+            category: "veterinaire",
+            linkedEntityType: "vet_appointment",
+            linkedEntityId: appointmentId,
+            createdByUserId: row.producerUserId,
+            occurredAt: new Date()
+          }
+        });
+      }
+      return appt;
     });
 
     const when = this.formatWhen(confirmedAt);

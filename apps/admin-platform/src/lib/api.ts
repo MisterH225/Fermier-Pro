@@ -197,6 +197,8 @@ export type PlatformSettingsDto = {
   adminNotifyEmail: string | null;
   reportFrequencyDays: number;
   marketplaceCommissionRate: number;
+  sellerMarketplaceCommissionRate: number;
+  vetCommissionRate: number;
   supportPhone: string | null;
   supportTelegramUrl: string | null;
   /** Valeurs réellement servies au mobile (DB + fallback env). */

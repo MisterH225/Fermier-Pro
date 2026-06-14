@@ -1810,6 +1810,10 @@ model MarketplaceTransaction {
   /// Les frais de plateforme sont à la charge de l'acheteur (ajoutés au montant bloqué).
   /// false pour les transactions historiques où la commission était déduite du vendeur.
   buyerPaysCommission     Boolean                      @default(false)
+  /// Taux de commission prélevée sur le vendeur à la clôture (0 = aucun).
+  sellerCommissionRate    Decimal                      @default(0) @db.Decimal(5, 4)
+  /// Montant de commission prélevé sur le vendeur (calculé à la clôture).
+  sellerCommissionAmount  Decimal?                     @db.Decimal(14, 2)
   createdAt               DateTime                     @default(now())
   updatedAt               DateTime                     @updatedAt
   fundMovements           MarketplaceFundMovement[]
@@ -2453,7 +2457,12 @@ model PlatformSettings {
   alertDefaultLevel     SanitaryAlertLevel @default(warning)
   adminNotifyEmail      String?
   reportFrequencyDays   Int      @default(7)
+  /// Frais de plateforme prélevés sur l'acheteur à la clôture d'une vente marketplace.
   marketplaceCommissionRate Decimal @default(0.05) @db.Decimal(5, 4)
+  /// Frais de plateforme prélevés sur le vendeur à la clôture d'une vente marketplace.
+  sellerMarketplaceCommissionRate Decimal @default(0.05) @db.Decimal(5, 4)
+  /// Frais de plateforme prélevés sur le montant versé au vétérinaire.
+  vetCommissionRate     Decimal @default(0.05) @db.Decimal(5, 4)
   /// Numéro support (appel mobile). Fallback env `SUPPORT_PHONE` si vide.
   supportPhone          String?
   /// Lien Telegram support (https://t.me/… ou @username). Fallback env `SUPPORT_TELEGRAM_URL`.
