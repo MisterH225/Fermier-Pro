@@ -2060,7 +2060,10 @@ export const fr = {
     sectionAbout: "ℹ️ À propos",
     appVersion: "Version de l'application",
     cguHint: "Les CGU sont acceptées à la première connexion.",
-    privacyHint: "Consultez la politique depuis l'écran d'accueil CGU."
+    privacyHint: "Consultez la politique depuis l'écran d'accueil CGU.",
+    cguSubtitle: "Lire les conditions générales d'utilisation",
+    privacySubtitle: "Lire la politique de confidentialité",
+    legalLoading: "Chargement du document…"
   },
   producerScore: {
     badgePrefix: "Fiabilité",

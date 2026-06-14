@@ -2031,7 +2031,10 @@ export const en = {
     sectionAbout: "ℹ️ About",
     appVersion: "App version",
     cguHint: "Terms are accepted on first sign-in.",
-    privacyHint: "View the privacy policy from the terms screen."
+    privacyHint: "View the privacy policy from the terms screen.",
+    cguSubtitle: "Read the terms and conditions",
+    privacySubtitle: "Read the privacy policy",
+    legalLoading: "Loading document…"
   },
   producerScore: {
     badgePrefix: "Reliability",

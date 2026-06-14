@@ -32,6 +32,8 @@ import {
   patchFarmSettings,
   type PatchFarmSettingsPayload
 } from "../../lib/api";
+import { fetchCguCurrent } from "../../lib/api/auth";
+import { LegalDocumentModal } from "../../components/settings/LegalDocumentModal";
 import { mobileColors, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
@@ -61,6 +63,14 @@ export function SettingsScreen({ route, navigation }: Props) {
   const [thresholdModal, setThresholdModal] = useState(false);
   const [farmNameModal, setFarmNameModal] = useState(false);
   const [farmNameDraft, setFarmNameDraft] = useState("");
+  const [legalModal, setLegalModal] = useState<"cgu" | "privacy" | null>(null);
+
+  const cguQ = useQuery({
+    queryKey: ["cguCurrent"],
+    queryFn: () => fetchCguCurrent(accessToken!),
+    enabled: Boolean(accessToken),
+    staleTime: 10 * 60 * 1000
+  });
 
   const settingsQ = useQuery({
     queryKey: ["farmSettings", farmId, activeProfileId],
@@ -492,16 +502,14 @@ export function SettingsScreen({ route, navigation }: Props) {
           <SettingsRow
             kind="navigation"
             label={t("cgu.title")}
-            onPress={() =>
-              Alert.alert(t("cgu.title"), t("settings.cguHint"))
-            }
+            subtitle={t("settings.cguSubtitle")}
+            onPress={() => setLegalModal("cgu")}
           />
           <SettingsRow
             kind="navigation"
             label={t("cgu.privacy.title")}
-            onPress={() =>
-              Alert.alert(t("cgu.privacy.title"), t("settings.privacyHint"))
-            }
+            subtitle={t("settings.privacySubtitle")}
+            onPress={() => setLegalModal("privacy")}
             isLast
           />
         </SettingsSection>
@@ -569,6 +577,19 @@ export function SettingsScreen({ route, navigation }: Props) {
           placeholderTextColor={mobileColors.textSecondary}
         />
       </BaseModal>
+
+      <LegalDocumentModal
+        visible={legalModal === "cgu"}
+        title={t("cgu.title")}
+        content={cguQ.data?.content ?? t("settings.legalLoading")}
+        onClose={() => setLegalModal(null)}
+      />
+      <LegalDocumentModal
+        visible={legalModal === "privacy"}
+        title={t("cgu.privacy.title")}
+        content={cguQ.data?.privacyPolicyContent ?? t("settings.legalLoading")}
+        onClose={() => setLegalModal(null)}
+      />
     </View>
   );
 }
