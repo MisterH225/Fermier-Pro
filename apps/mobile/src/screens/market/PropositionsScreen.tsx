@@ -18,6 +18,8 @@ type Props = {
   initialSubTab?: ProposalsSubTab;
   listingIdFilter?: string | null;
   highlightOfferId?: string;
+  /** Mode acheteur : uniquement les propositions envoyées. */
+  buyerSentOnly?: boolean;
 };
 
 export function PropositionsScreen({
@@ -25,7 +27,8 @@ export function PropositionsScreen({
   contentPaddingBottom,
   initialSubTab = "received",
   listingIdFilter,
-  highlightOfferId
+  highlightOfferId,
+  buyerSentOnly = false
 }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
@@ -45,6 +48,17 @@ export function PropositionsScreen({
 
   const receivedBadge = countsQ.data?.receivedPending ?? 0;
   const sentBadge = countsQ.data?.sentPending ?? 0;
+
+  if (buyerSentOnly) {
+    return (
+      <PropositionsEnvoyeesTab
+        navigation={navigation}
+        listingIdFilter={listingIdFilter}
+        highlightOfferId={highlightOfferId}
+        contentPaddingBottom={contentPaddingBottom}
+      />
+    );
+  }
 
   return (
     <TabSelector

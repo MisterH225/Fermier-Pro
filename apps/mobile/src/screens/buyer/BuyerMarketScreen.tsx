@@ -20,12 +20,19 @@ export function BuyerMarketScreen() {
   useFocusEffect(
     useCallback(() => {
       navigation.replace("MarketplaceList", {
-        tab: "listings",
+        tab: route.params?.tab ?? "listings",
+        offersSubTab: route.params?.offersSubTab ?? "sent",
         buyerView: true,
         searchQuery: route.params?.searchQuery,
         favoritesOnly: route.params?.favoritesOnly
       });
-    }, [navigation, route.params?.searchQuery, route.params?.favoritesOnly])
+    }, [
+      navigation,
+      route.params?.searchQuery,
+      route.params?.favoritesOnly,
+      route.params?.tab,
+      route.params?.offersSubTab
+    ])
   );
 
   return (

@@ -3268,6 +3268,20 @@ export const en = {
       allProposals: "View all proposals →",
       sectionStats: "Overview"
     },
+    pendingMarketplace: {
+      bannerOne: "Action required on a purchase",
+      bannerCount: "{{count}} pending actions on your purchases",
+      bannerA11y: "{{count}} pending marketplace action(s)",
+      continue: "Continue →",
+      view: "View →",
+      tx: {
+        PAYMENT_PENDING: "Payment due",
+        PAYMENT_HELD: "Schedule pickup",
+        PICKUP_PROPOSED: "Confirm pickup",
+        PICKUP_SCHEDULED: "Pickup scheduled",
+        SELLER_SHIPPED: "Confirm receipt"
+      }
+    },
     wallet: {
       availableBalance: "Available balance",
       monthCredits: "+{{amount}} this month",

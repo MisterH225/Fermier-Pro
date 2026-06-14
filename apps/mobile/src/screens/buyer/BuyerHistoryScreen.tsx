@@ -1,4 +1,5 @@
-import { useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -22,6 +23,7 @@ import {
 import { BuyerMobileShell } from "../../components/layout/BuyerMobileShell";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
+import { openBuyerOffersHub } from "../../lib/buyerMarketplacePending";
 import {
   fetchBuyerProposals,
   fetchBuyerPurchases,
@@ -45,6 +47,8 @@ function stars(score: number): string {
 
 export function BuyerHistoryScreen() {
   const { t } = useTranslation();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const bottomInset = useBottomInset();
   const route = useRoute<Route>();
   const { accessToken, activeProfileId } = useSession();
@@ -143,7 +147,17 @@ export function BuyerHistoryScreen() {
         );
       }
       return proposalItems.length > 0 ? (
-        <EventList data={proposalItems} />
+        <EventList
+          data={proposalItems}
+          onItemPress={(item) => {
+            const row = (proposalsQ.data ?? []).find((p) => p.id === item.id);
+            if (!row) return;
+            openBuyerOffersHub(navigation, {
+              highlightOfferId: row.id,
+              offersListingId: row.listing.id
+            });
+          }}
+        />
       ) : (
         <ProfileSectionEmpty>{t("buyer.history.noProposals")}</ProfileSectionEmpty>
       );

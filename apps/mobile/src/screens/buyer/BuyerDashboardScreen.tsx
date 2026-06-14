@@ -15,6 +15,8 @@ import {
 } from "react-native";
 import { PendingInvitationsBanner } from "../../components/collaboration/PendingInvitationsBanner";
 import { PigPriceIndex } from "../../components/market/PigPriceIndex";
+import { BuyerActiveProposalsSection } from "../../components/buyer/BuyerActiveProposalsSection";
+import { BuyerPendingMarketplaceBanner } from "../../components/buyer/BuyerPendingMarketplaceBanner";
 import { BuyerProfileModal } from "../../components/buyer/BuyerProfileModal";
 import { BuyerBalanceCard } from "../../components/buyer/BuyerBalanceCard";
 import { BuyerWelcomeHeader } from "../../components/buyer/BuyerWelcomeHeader";
@@ -28,6 +30,7 @@ import {
 import { BuyerMobileShell } from "../../components/layout/BuyerMobileShell";
 import { useBottomChromePad, useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
+import { openBuyerOffersHub } from "../../lib/buyerMarketplacePending";
 import { fetchBuyerDashboard } from "../../lib/api";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { welcomeFirstName } from "../../lib/userDisplay";
@@ -106,6 +109,7 @@ export function BuyerDashboardScreen() {
         }
       >
         <PendingInvitationsBanner />
+        <BuyerPendingMarketplaceBanner />
 
         <ProfileHeroCard>
           <View style={styles.searchWrap}>
@@ -137,14 +141,19 @@ export function BuyerDashboardScreen() {
           />
         ) : null}
 
+        <BuyerActiveProposalsSection />
+
         <PigPriceIndex />
 
         <ScreenSection title={t("buyer.dashboard.sectionStats")} plain>
           <View style={styles.kpiGrid}>
-            <View style={[styles.kpiCard, { backgroundColor: buyerColors.primaryLight }]}>
+            <Pressable
+              style={[styles.kpiCard, { backgroundColor: buyerColors.primaryLight }]}
+              onPress={() => openBuyerOffersHub(navigation)}
+            >
               <Text style={styles.kpiValue}>{kpis?.pendingProposals ?? 0}</Text>
               <Text style={styles.kpiLabel}>{t("buyer.kpi.pending")}</Text>
-            </View>
+            </Pressable>
             <Pressable
               style={[styles.kpiCard, { backgroundColor: "#E8F5E9" }]}
               onPress={() =>

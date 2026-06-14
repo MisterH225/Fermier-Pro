@@ -169,7 +169,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
   const scrollBottomPad = useScrollBottomPad();
   const [marketTab, setMarketTab] = useState<MarketTab>(() => {
     const tab = initialMarketTab(route.params);
-    if (buyerView && (tab === "mine" || tab === "offers")) {
+    if (buyerView && tab === "mine") {
       return "listings";
     }
     return tab;
@@ -221,7 +221,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     const tab = initialMarketTab(route.params);
-    if (buyerView && (tab === "mine" || tab === "offers")) {
+    if (buyerView && tab === "mine") {
       setMarketTab("listings");
       return;
     }
@@ -620,6 +620,7 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
       initialSubTab={offersSubTab}
       listingIdFilter={offersListingFilter}
       highlightOfferId={highlightOfferId}
+      buyerSentOnly={buyerView}
     />
   );
 
@@ -632,7 +633,9 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
     />
   );
 
-  const offersTabBadge = offerCountsQ.data?.total ?? 0;
+  const offersTabBadge = buyerView
+    ? offerCountsQ.data?.sentPending ?? 0
+    : offerCountsQ.data?.total ?? 0;
 
   if (!clientFeatures.marketplace) {
     return (
@@ -654,6 +657,12 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
                 key: "listings",
                 label: t("marketScreen.tabListings"),
                 content: listingsTabContent()
+              },
+              {
+                key: "offers",
+                label: t("marketScreen.proposals.tabSent"),
+                badge: offersTabBadge > 0 ? offersTabBadge : undefined,
+                content: offersTabContent()
               },
               {
                 key: "partners",

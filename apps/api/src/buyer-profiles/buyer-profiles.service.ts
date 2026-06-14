@@ -131,7 +131,17 @@ export class BuyerProfilesService {
       walletSummary
     ] = await Promise.all([
       this.prisma.marketplaceOffer.count({
-        where: { buyerUserId: user.id, status: OfferStatus.pending }
+        where: {
+          buyerUserId: user.id,
+          status: {
+            in: [
+              OfferStatus.pending,
+              OfferStatus.countered,
+              OfferStatus.credit_agreed,
+              OfferStatus.balance_pending
+            ]
+          }
+        }
       }),
       this.prisma.marketplaceTransaction.count({
         where: {

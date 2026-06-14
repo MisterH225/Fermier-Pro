@@ -3318,6 +3318,20 @@ export const fr = {
       allProposals: "Voir toutes les propositions →",
       sectionStats: "Vue d'ensemble"
     },
+    pendingMarketplace: {
+      bannerOne: "Action requise sur un achat",
+      bannerCount: "{{count}} actions en attente sur vos achats",
+      bannerA11y: "{{count}} action(s) marketplace en attente",
+      continue: "Continuer →",
+      view: "Voir →",
+      tx: {
+        PAYMENT_PENDING: "Paiement à effectuer",
+        PAYMENT_HELD: "Planifier le retrait",
+        PICKUP_PROPOSED: "Confirmer le retrait",
+        PICKUP_SCHEDULED: "Retrait planifié",
+        SELLER_SHIPPED: "Confirmer la réception"
+      }
+    },
     wallet: {
       availableBalance: "Solde disponible",
       monthCredits: "+{{amount}} ce mois-ci",
