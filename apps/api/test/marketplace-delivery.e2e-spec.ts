@@ -361,21 +361,15 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
     // Flat  : agreedFlatPrice × (1 + commissionRate)
     // Per_kg: agreedDeal × (PAYMENT_BUFFER + commissionRate)
     //         = agreedDeal × (1.1 + rate)   — commission sur le prix convenu, buffer séparé
-    const isFlat = tx.priceType === "flat";
-    if (isFlat) {
-      const expectedBlocked = Math.round((tx.agreedFlatPrice ?? 0) * (1 + tx.commissionRate));
-      expect(tx.blockedAmount).toBe(expectedBlocked);
-    } else {
-      const agreedDeal = (tx.agreedPricePerKg ?? 0) * (tx.estimatedWeightKg ?? 0);
-      const expectedBlocked = Math.round(agreedDeal * (1.1 + tx.commissionRate));
-      expect(tx.blockedAmount).toBe(expectedBlocked);
-    }
-
-    // platformFeeEstimate = dealPrice (sans buffer) × commissionRate
-    const estimatedDeal = isFlat
-      ? (tx.agreedFlatPrice ?? 0)
+    // Flat et per_kg : blockedAmount = agreedDeal × (1 + commissionRate) — pas de buffer
+    const agreedDeal = tx.agreedFlatPrice != null
+      ? tx.agreedFlatPrice
       : (tx.agreedPricePerKg ?? 0) * (tx.estimatedWeightKg ?? 0);
-    const expectedFee = Math.round(estimatedDeal * tx.commissionRate);
+    const expectedBlocked = Math.round(agreedDeal * (1 + tx.commissionRate));
+    expect(tx.blockedAmount).toBe(expectedBlocked);
+
+    // platformFeeEstimate = agreedDeal × commissionRate
+    const expectedFee = Math.round(agreedDeal * tx.commissionRate);
     expect(tx.platformFeeEstimate).toBe(expectedFee);
 
     // Vérifier en base que buyerPaysCommission est bien true

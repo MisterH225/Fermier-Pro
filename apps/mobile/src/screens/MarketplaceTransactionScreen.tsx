@@ -755,12 +755,10 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
               <Text style={styles.feeTotalValue}>{money(paymentTotal, cur)}</Text>
             </View>
             {tx.priceType !== "flat" ? (
-              <Text style={styles.feeBufferNote}>
-                {t("marketScreen.transaction.feeBufferNote", {
-                  blockedAmount: money(tx.blockedAmount, cur)
-                })}
-              </Text>
-            ) : null}
+                <Text style={styles.feeBufferNote}>
+                  {t("marketScreen.transaction.feePerKgNote")}
+                </Text>
+              ) : null}
           </View>
           <MarketplacePaymentMethodPicker
             amount={payAmount}

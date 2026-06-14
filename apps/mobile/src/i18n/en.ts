@@ -413,8 +413,9 @@ export const en = {
       platformFeeZeroLabel: "Platform fee",
       feeIncluded: "Included",
       totalPaymentLabel: "Total to pay",
-      feeBufferNote:
-        "Guarantee held: {{blockedAmount}} — adjusted to actual weight at delivery, any surplus is refunded.",
+      feeBufferNote: "",
+      feePerKgNote:
+        "Estimated amount. The total will be adjusted to the actual weight measured at delivery.",
       feeConsentTitle: "Confirm payment",
       feeConsentBody:
         "Purchase amount: {{dealAmount}}\nPlatform fee ({{pct}} %): {{feeAmount}}\n\n💳 Total to pay: {{totalAmount}}\n\nBy tapping \"Confirm\", you agree to pay this amount.",
