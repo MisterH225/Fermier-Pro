@@ -14,6 +14,7 @@ import { SupabaseJwtGuard } from "../../auth/guards/supabase-jwt.guard";
 import { RequirePlatformModule } from "../../feature-flags/require-platform-module.decorator";
 import { PlatformModuleEnabledGuard } from "../../feature-flags/platform-module-enabled.guard";
 import { ConfirmReceiptDto } from "../dto/confirm-receipt.dto";
+import { InitiatePaymentDto } from "../dto/initiate-payment.dto";
 import { ConfirmShipmentDto } from "../dto/confirm-shipment.dto";
 import { CompletePendingTransferDto } from "../dto/complete-pending-transfer.dto";
 import { DeliveryDisputeDto } from "../dto/delivery-dispute.dto";
@@ -54,8 +55,12 @@ export class MarketplaceTransactionController {
   }
 
   @Post(":id/payment/initiate")
-  initiatePayment(@CurrentUser() user: User, @Param("id") id: string) {
-    return this.transactions.initiatePayment(user, id);
+  initiatePayment(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() body: InitiatePaymentDto
+  ) {
+    return this.transactions.initiatePayment(user, id, body);
   }
 
   @Post(":id/payment/confirm")

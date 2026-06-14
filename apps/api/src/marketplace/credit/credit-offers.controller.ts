@@ -16,6 +16,7 @@ import { PlatformModuleEnabledGuard } from "../../feature-flags/platform-module-
 import { CreditScoreService } from "./credit-score.service";
 import { CreditOffersService } from "./credit-offers.service";
 import { CreateCreditOfferDto } from "./dto/create-credit-offer.dto";
+import { InitiatePaymentDto } from "../dto/initiate-payment.dto";
 import {
   CreditBalanceDeclareDto,
   CreditConfirmReceivedDto,
@@ -107,9 +108,10 @@ export class CreditOffersController {
   @Post("offers/:offerId/balance-payment/initiate")
   initiateBalancePayment(
     @CurrentUser() user: User,
-    @Param("offerId") offerId: string
+    @Param("offerId") offerId: string,
+    @Body() body: InitiatePaymentDto
   ) {
-    return this.creditOffers.initiateBalancePayment(user, offerId);
+    return this.creditOffers.initiateBalancePayment(user, offerId, body);
   }
 
   @Patch("offers/:offerId/balance-payment/confirm")

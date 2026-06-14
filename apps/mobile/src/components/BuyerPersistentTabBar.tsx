@@ -64,6 +64,9 @@ export function BuyerPersistentTabBar() {
         case "market":
           navigation.navigate("BuyerMarket");
           return;
+        case "finance":
+          navigation.navigate("BuyerFinance");
+          return;
         case "messages":
           navigation.navigate("BuyerMessages");
           return;

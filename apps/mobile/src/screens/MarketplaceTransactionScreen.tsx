@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -22,6 +22,10 @@ import {
 } from "../components/marketplace/MarketplaceListingCard";
 import { ConfirmReceiptModal } from "../components/marketplace/ConfirmReceiptModal";
 import { ConfirmShipmentModal } from "../components/marketplace/ConfirmShipmentModal";
+import {
+  MarketplacePaymentMethodPicker,
+  type MarketplacePaymentMethodChoice
+} from "../components/buyer/MarketplacePaymentMethodPicker";
 import { TransferToFarmModal } from "../components/marketplace/TransferToFarmModal";
 import { PrimaryButton } from "../components/ui/PrimaryButton";
 import { SecondaryButton } from "../components/ui/SecondaryButton";
@@ -38,6 +42,7 @@ import {
   declareMarketplaceWeight,
   disputeMarketplaceWeight,
   fetchMarketplaceTransaction,
+  fetchBuyerWallet,
   initiateMarketplacePayment,
   scheduleMarketplacePickup,
   validateMarketplaceWeight
@@ -113,6 +118,8 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   const [shipmentOpen, setShipmentOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] =
+    useState<MarketplacePaymentMethodChoice>("mobile_money");
   const minPickupDate = useMemo(() => startOfDay(new Date()), []);
 
   const q = useQuery({
@@ -126,21 +133,30 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
     enabled: clientFeatures.marketplace && Boolean(accessToken)
   });
 
+  const walletQ = useQuery({
+    queryKey: ["buyerWallet", activeProfileId],
+    queryFn: () => fetchBuyerWallet(accessToken!, activeProfileId),
+    enabled: Boolean(accessToken)
+  });
+
   const invalidate = () => {
     void qc.invalidateQueries({
       queryKey: ["marketplaceTransaction", transactionId]
     });
     void qc.invalidateQueries({ queryKey: ["marketplaceTransactions"] });
     void qc.invalidateQueries({ queryKey: ["marketplaceTransactionSummary"] });
+    void qc.invalidateQueries({ queryKey: ["buyerWallet"] });
+    void qc.invalidateQueries({ queryKey: ["buyerWalletEntries"] });
     invalidateBuyerDashboardQueries(qc);
   };
 
   const payMut = useMutation({
     mutationFn: async () => {
       const init = await initiateMarketplacePayment(
-        accessToken,
+        accessToken!,
         transactionId,
-        activeProfileId
+        activeProfileId,
+        paymentMethod
       );
       return confirmMarketplacePayment(
         accessToken,
@@ -332,6 +348,16 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   });
 
   const tx = q.data;
+  const walletBalance = walletQ.data?.balance ?? 0;
+  const payCurrency = tx?.currency ?? walletQ.data?.currency ?? "XOF";
+  const payAmount = tx?.blockedAmount ?? 0;
+
+  useEffect(() => {
+    if (walletBalance >= payAmount && payAmount > 0) {
+      setPaymentMethod("wallet");
+    }
+  }, [walletBalance, payAmount]);
+
   const draftKg = useMemo(() => {
     const kg = Number.parseFloat(realWeight.replace(",", "."));
     return Number.isFinite(kg) && kg > 0 ? kg : null;
@@ -658,6 +684,13 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
 
       {isBuyer && tx.status === "PAYMENT_PENDING" ? (
         <View style={styles.section}>
+          <MarketplacePaymentMethodPicker
+            amount={payAmount}
+            currency={payCurrency}
+            walletBalance={walletBalance}
+            value={paymentMethod}
+            onChange={setPaymentMethod}
+          />
           <PrimaryButton
             label={t("marketScreen.transaction.payCta", {
               amount: money(tx.blockedAmount, cur)

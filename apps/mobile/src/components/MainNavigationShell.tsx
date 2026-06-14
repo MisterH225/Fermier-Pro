@@ -81,6 +81,7 @@ import {
   BuyerMarketScreen,
   BuyerMessagesScreen,
   BuyerHistoryScreen,
+  BuyerFinanceScreen,
   BuyerAlertsScreen,
   BuyerFavoritesScreen,
   VeterinarianDashboardScreen,
@@ -212,6 +213,11 @@ function MainStack() {
         name="BuyerHistory"
         component={BuyerHistoryScreen}
         options={{ ...buyerStackScreenOptions, title: st("buyerHistory") }}
+      />
+      <Stack.Screen
+        name="BuyerFinance"
+        component={BuyerFinanceScreen}
+        options={{ ...buyerStackScreenOptions, title: st("buyerFinance") }}
       />
       <Stack.Screen
         name="BuyerAlerts"

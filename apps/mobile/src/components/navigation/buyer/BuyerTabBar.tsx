@@ -12,11 +12,12 @@ type Props = {
   onOpenExtended: () => void;
 };
 
-const TAB_ORDER: BuyerMainTab[] = ["home", "market", "messages", "history"];
+const TAB_ORDER: BuyerMainTab[] = ["home", "market", "finance", "messages", "history"];
 
 const TAB_META: Record<BuyerMainTab, { icon: keyof typeof Ionicons.glyphMap; iconOutline: keyof typeof Ionicons.glyphMap; labelKey: string }> = {
   home: { icon: "home", iconOutline: "home-outline", labelKey: "buyer.nav.home" },
   market: { icon: "cart", iconOutline: "cart-outline", labelKey: "buyer.nav.market" },
+  finance: { icon: "wallet", iconOutline: "wallet-outline", labelKey: "buyer.nav.finance" },
   messages: { icon: "chatbubbles", iconOutline: "chatbubbles-outline", labelKey: "buyer.nav.messages" },
   history: { icon: "receipt", iconOutline: "receipt-outline", labelKey: "buyer.nav.history" }
 };

@@ -1251,6 +1251,7 @@ export const fr = {
       reports: "Rapports",
       messages: "Messages",
       buyerHistory: "Mes achats",
+      buyerFinance: "Finance",
       buyerAlerts: "Alertes prix",
       buyerFavorites: "Favoris",
       tasks: "Tâches",
@@ -3295,8 +3296,9 @@ export const fr = {
     nav: {
       home: "Accueil",
       market: "Market",
+      finance: "Finance",
       messages: "Messages",
-      history: "Mes achats"
+      history: "Achats"
     },
     extended: {
       favorites: "Favoris",
@@ -3315,6 +3317,31 @@ export const fr = {
       noProposals: "Aucune proposition en cours",
       allProposals: "Voir toutes les propositions →",
       sectionStats: "Vue d'ensemble"
+    },
+    wallet: {
+      availableBalance: "Solde disponible",
+      monthCredits: "+{{amount}} ce mois-ci",
+      monthCreditsEmpty: "Aucun crédit ce mois-ci",
+      refundsBadge: "Remboursements",
+      payWithBalance: "Payer avec mon solde",
+      payWithMobileMoney: "Mobile money",
+      balanceAvailable: "Disponible : {{amount}}",
+      insufficientBalance: "Solde insuffisant ({{amount}})",
+      mobileMoneyHint: "Orange Money, MTN, Wave…",
+      paymentMethod: "Mode de paiement",
+      entry: {
+        refund: "Remboursement escrow",
+        creditAdjustment: "Crédit",
+        purchase: "Achat marketplace",
+        debitAdjustment: "Débit"
+      }
+    },
+    finance: {
+      title: "Finance",
+      history: "Historique",
+      historyHint: "Achats, remboursements et mouvements sur votre portefeuille.",
+      emptyTitle: "Aucune opération",
+      emptyBody: "Vos remboursements escrow et paiements apparaîtront ici."
     },
     profile: {
       sectionBuyer: "Profil acheteur",

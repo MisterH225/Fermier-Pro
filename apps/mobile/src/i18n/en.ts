@@ -1245,6 +1245,7 @@ export const en = {
       reports: "Reports",
       messages: "Messages",
       buyerHistory: "My purchases",
+      buyerFinance: "Finance",
       buyerAlerts: "Price alerts",
       buyerFavorites: "Favorites",
       tasks: "Tasks",
@@ -3248,7 +3249,7 @@ export const en = {
   },
   buyer: {
     backToHome: "Home",
-    nav: { home: "Home", market: "Market", messages: "Messages", history: "Purchases" },
+    nav: { home: "Home", market: "Market", finance: "Finance", messages: "Messages", history: "Purchases" },
     extended: {
       favorites: "Favorites",
       priceAlerts: "Price alerts",
@@ -3266,6 +3267,31 @@ export const en = {
       noProposals: "No pending proposals",
       allProposals: "View all proposals →",
       sectionStats: "Overview"
+    },
+    wallet: {
+      availableBalance: "Available balance",
+      monthCredits: "+{{amount}} this month",
+      monthCreditsEmpty: "No credits this month",
+      refundsBadge: "Refunds",
+      payWithBalance: "Pay with my balance",
+      payWithMobileMoney: "Mobile money",
+      balanceAvailable: "Available: {{amount}}",
+      insufficientBalance: "Insufficient balance ({{amount}})",
+      mobileMoneyHint: "Orange Money, MTN, Wave…",
+      paymentMethod: "Payment method",
+      entry: {
+        refund: "Escrow refund",
+        creditAdjustment: "Credit",
+        purchase: "Marketplace purchase",
+        debitAdjustment: "Debit"
+      }
+    },
+    finance: {
+      title: "Finance",
+      history: "History",
+      historyHint: "Purchases, refunds and wallet movements.",
+      emptyTitle: "No activity yet",
+      emptyBody: "Escrow refunds and payments will appear here."
     },
     profile: {
       sectionBuyer: "Buyer profile",

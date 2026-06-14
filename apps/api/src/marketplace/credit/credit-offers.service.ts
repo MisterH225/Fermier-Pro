@@ -10,6 +10,7 @@ import type { User } from "@prisma/client";
 import {
   ListingMarketCategory,
   ListingStatus,
+  MarketplacePaymentMethod,
   OfferStatus,
   OfferType,
   Prisma
@@ -175,7 +176,7 @@ export class CreditOffersService {
       message?: string;
     }
   ) {
-    const listing = await this.requireSellerListing(user, listingId);
+    const _listing = await this.requireSellerListing(user, listingId);
     const offer = await this.requireCreditOffer(offerId, listingId);
     if (offer.status !== OfferStatus.pending) {
       throw new BadRequestException("Contre-proposition impossible");
@@ -335,7 +336,11 @@ export class CreditOffersService {
     );
   }
 
-  async initiateBalancePayment(user: User, offerId: string) {
+  async initiateBalancePayment(
+    user: User,
+    offerId: string,
+    dto?: { paymentMethod?: "mobile_money" | "wallet" }
+  ) {
     const offer = await this.requireBuyerCreditOffer(offerId, user.id);
     if (
       offer.status !== OfferStatus.balance_pending &&
@@ -353,22 +358,31 @@ export class CreditOffersService {
     if (!tx) {
       throw new BadRequestException("Transaction introuvable");
     }
+    const method =
+      dto?.paymentMethod === "wallet"
+        ? MarketplacePaymentMethod.wallet
+        : MarketplacePaymentMethod.mobile_money;
     const hold = await this.escrow.holdFunds(
       tx.id,
       user.id,
       amount,
       tx.currency,
-      `Solde crédit ${offerId}`
+      `Solde crédit ${offerId}`,
+      { paymentMethod: method }
     );
     await this.prisma.marketplaceOffer.update({
       where: { id: offerId },
-      data: { balancePaymentRef: hold.providerRef }
+      data: {
+        balancePaymentRef: hold.providerRef,
+        balancePaymentMode: method === MarketplacePaymentMethod.wallet ? "wallet" : "escrow"
+      }
     });
     return {
       providerRef: hold.providerRef,
       amount,
       currency: tx.currency,
-      transactionId: tx.id
+      transactionId: tx.id,
+      paymentMethod: hold.paymentMethod
     };
   }
 
@@ -393,8 +407,17 @@ export class CreditOffersService {
     const tx = await this.prisma.marketplaceTransaction.findUniqueOrThrow({
       where: { offerId }
     });
-    const ok = await this.escrow.confirmHold(ref, tx.id);
-    if (!ok) {
+    const walletContext =
+      offer.balancePaymentMode === "wallet"
+        ? {
+            buyerUserId: user.id,
+            amount: Number(offer.balanceAmount ?? 0),
+            currency: tx.currency,
+            label: `Solde crédit ${offerId}`
+          }
+        : undefined;
+    const ok = await this.escrow.confirmHold(ref, tx.id, walletContext);
+    if (!ok.success) {
       throw new BadRequestException("Paiement du solde refusé");
     }
     await this.prisma.marketplaceOffer.update({

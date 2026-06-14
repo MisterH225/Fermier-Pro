@@ -1,1 +1,1 @@
-export type BuyerMainTab = "home" | "market" | "messages" | "history";
+export type BuyerMainTab = "home" | "market" | "finance" | "messages" | "history";
