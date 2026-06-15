@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
   Pressable,
   StyleSheet,
@@ -76,6 +77,7 @@ export function ConfirmDetectedBatchModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <KeyboardAvoidingView style={styles.kav} behavior="padding" keyboardVerticalOffset={0}>
       <View style={styles.backdrop}>
         <View style={styles.card}>
           <Text style={styles.title}>{t("cheptel.batches.confirmTitle")}</Text>
@@ -122,11 +124,13 @@ export function ConfirmDetectedBatchModal({
           </View>
         </View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  kav: { flex: 1 },
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",

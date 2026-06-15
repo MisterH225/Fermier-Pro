@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -343,9 +344,14 @@ export function ProducerProfileModal({
                 </Pressable>
               </View>
 
+              <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                keyboardVerticalOffset={80}
+              >
               <ScrollView
                 contentContainerStyle={styles.scroll}
                 keyboardShouldPersistTaps="handled"
+                automaticallyAdjustKeyboardInsets
                 showsVerticalScrollIndicator={false}
               >
                 <View style={styles.hero}>
@@ -539,6 +545,7 @@ export function ProducerProfileModal({
                   hideActiveProfileSwitcher
                 />
               </ScrollView>
+              </KeyboardAvoidingView>
             </>
           )}
         </SafeAreaView>

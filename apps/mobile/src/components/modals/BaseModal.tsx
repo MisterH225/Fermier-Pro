@@ -146,11 +146,15 @@ export function BaseModal({
     })
   ).current;
 
+  // Espace sous le dernier item du scroll :
+  // - garantit que le dernier champ reste visible au-dessus du footer sticky
+  // - et au-dessus du clavier sur Android (behavior=height réduit la hauteur)
+  const FOOTER_STICKY_HEIGHT = footerPrimary ? 72 : 0; // hauteur approx. du footer sticky
   const scrollBottomPad =
-    Math.max(insets.bottom, mobileSpacing.md) +
-    mobileSpacing.xl +
-    keyboardHeight +
-    (footerPrimary ? mobileSpacing.xxl + 56 : 0);
+    Math.max(insets.bottom, mobileSpacing.sm) +
+    mobileSpacing.md +
+    FOOTER_STICKY_HEIGHT +
+    ((secondaryActions?.length || destructiveAction) ? 80 : 0);
 
   return (
     <Modal
@@ -176,10 +180,12 @@ export function BaseModal({
         ) : (
           <View style={StyleSheet.absoluteFill} />
         )}
+        {/* keyboardVerticalOffset=0 : le sheet part du bas de l'écran,
+            le KAV n'a pas d'offset fixe à compenser */}
         <KeyboardAvoidingView
           style={styles.keyboardWrap}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 8 : 0}
+          behavior="padding"
+          keyboardVerticalOffset={0}
         >
           <Animated.View
             style={[
@@ -227,6 +233,9 @@ export function BaseModal({
               <Text style={styles.headerAmount}>{headerAmount}</Text>
             ) : null}
 
+            {/* ScrollView contient UNIQUEMENT le contenu et les actions secondaires.
+                Le footerPrimary est sorti du scroll → il reste visible et accessible
+                au-dessus du clavier sans que l'utilisateur ait besoin de scroller. */}
             <ScrollView
               style={styles.scroll}
               automaticallyAdjustKeyboardInsets
@@ -240,10 +249,6 @@ export function BaseModal({
               ]}
             >
               {children}
-
-              {footerPrimary ? (
-                <View style={styles.footerPrimary}>{footerPrimary}</View>
-              ) : null}
 
               {(secondaryActions?.length || destructiveAction) ? (
                 <View style={styles.sep} />
@@ -291,6 +296,18 @@ export function BaseModal({
                 </Pressable>
               ) : null}
             </ScrollView>
+
+            {/* Footer STICKY — toujours visible au-dessus du clavier */}
+            {footerPrimary ? (
+              <View
+                style={[
+                  styles.footerSticky,
+                  { paddingBottom: Math.max(insets.bottom, mobileSpacing.md) }
+                ]}
+              >
+                {footerPrimary}
+              </View>
+            ) : null}
           </Animated.View>
         </KeyboardAvoidingView>
       </View>
@@ -376,6 +393,12 @@ const styles = StyleSheet.create({
   },
   footerPrimary: {
     marginTop: mobileSpacing.md
+  },
+  footerSticky: {
+    paddingHorizontal: mobileSpacing.lg,
+    paddingTop: mobileSpacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: mobileColors.border
   },
   sep: {
     height: StyleSheet.hairlineWidth,
