@@ -24,6 +24,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { useBottomChromePad } from "../../hooks/useBottomInset";
 
 type Props = {
   farmId: string;
@@ -68,6 +69,7 @@ export function ExportPDFButton({
   onGenerated
 }: Props) {
   const { t } = useTranslation();
+  const bottomChromePad = useBottomChromePad();
   const [busy, setBusy] = useState(false);
   const [phase, setPhase] = useState<"idle" | "compiling" | "sharing">("idle");
 
@@ -115,7 +117,7 @@ export function ExportPDFButton({
         : t("reportsScreen.generatePdf");
 
   return (
-    <View style={styles.bar} pointerEvents="box-none">
+    <View style={[styles.bar, { bottom: bottomChromePad + mobileSpacing.sm }]} pointerEvents="box-none">
       <Pressable
         onPress={() => void run()}
         disabled={busy}
@@ -192,8 +194,8 @@ const styles = StyleSheet.create({
   bar: {
     position: "absolute",
     left: mobileSpacing.lg,
-    right: mobileSpacing.lg,
-    bottom: mobileSpacing.lg
+    right: mobileSpacing.lg
+    // bottom est calculé dynamiquement (useBottomChromePad) dans le JSX
   },
   btn: {
     backgroundColor: mobileColors.accent,

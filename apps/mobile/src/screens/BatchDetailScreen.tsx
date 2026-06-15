@@ -32,6 +32,7 @@ import {
 } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
+import { useBottomInset } from "../hooks/useBottomInset";
 
 type Props = NativeStackScreenProps<RootStackParamList, "BatchDetail">;
 
@@ -64,6 +65,7 @@ const SEVERITY_FR: Record<string, string> = {
 type BatchTab = "health" | "weight" | "feed" | "events";
 
 export function BatchDetailScreen({ route }: Props) {
+  const bottomInset = useBottomInset();
   const { t } = useTranslation();
   const { farmId, batchId } = route.params;
   const { accessToken, activeProfileId } = useSession();
@@ -242,7 +244,7 @@ export function BatchDetailScreen({ route }: Props) {
   return (
     <ScrollView
       style={styles.scroll}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}
       keyboardShouldPersistTaps="handled"
     >
       <CheptelBatchDetailHeader
@@ -479,7 +481,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: mobileSpacing.lg,
-    paddingBottom: 40
+
   },
   centered: {
     flex: 1,

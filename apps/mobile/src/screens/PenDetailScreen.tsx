@@ -16,10 +16,12 @@ import { useSession } from "../context/SessionContext";
 import { fetchPenDetail } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
+import { useBottomInset } from "../hooks/useBottomInset";
 
 type Props = NativeStackScreenProps<RootStackParamList, "PenDetail">;
 
 export function PenDetailScreen({ route, navigation }: Props) {
+  const bottomInset = useBottomInset();
   const { t } = useTranslation();
   const { farmId, farmName, penId, penLabel } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
@@ -94,7 +96,7 @@ export function PenDetailScreen({ route, navigation }: Props) {
   }
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}>
       <Text style={styles.barnLine}>
         Bâtiment : {pen.barn.name}
       </Text>
@@ -194,7 +196,7 @@ export function PenDetailScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: mobileColors.canvas },
-  content: { padding: 16, paddingBottom: 40 },
+  content: { padding: 16 },
   centered: {
     flex: 1,
     justifyContent: "center",

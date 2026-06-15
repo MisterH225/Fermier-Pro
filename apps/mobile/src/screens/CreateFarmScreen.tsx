@@ -24,6 +24,7 @@ import {
   mobileTypography
 } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
+import { useBottomInset } from "../hooks/useBottomInset";
 
 const PRODUCER = "producer";
 
@@ -36,6 +37,7 @@ const MODES = [
 ];
 
 export function CreateFarmScreen({ navigation }: Props) {
+  const bottomInset = useBottomInset();
   const { t } = useTranslation();
   const { accessToken, authMe } = useSession();
   const { setActiveFarm, refreshFarms } = useActiveProject();
@@ -110,7 +112,7 @@ export function CreateFarmScreen({ navigation }: Props) {
   return (
     <ScrollView
       style={styles.scroll}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}
       keyboardShouldPersistTaps="handled"
     >
       <Text style={styles.label}>Nom de la ferme *</Text>
@@ -182,7 +184,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: mobileSpacing.lg,
-    paddingBottom: 40
+
   },
   centered: {
     flex: 1,

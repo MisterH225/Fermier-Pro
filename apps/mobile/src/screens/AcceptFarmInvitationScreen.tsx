@@ -26,6 +26,7 @@ import {
   mobileTypography
 } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
+import { useBottomInset } from "../hooks/useBottomInset";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -50,6 +51,7 @@ function roleHint(role: string | null | undefined): string {
 }
 
 export function AcceptFarmInvitationScreen({ route, navigation }: Props) {
+  const bottomInset = useBottomInset();
   const prefill = route.params?.prefilledToken
     ? decodeURIComponent(route.params.prefilledToken)
     : "";
@@ -104,7 +106,7 @@ export function AcceptFarmInvitationScreen({ route, navigation }: Props) {
   return (
     <ScrollView
       style={styles.scroll}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}
       keyboardShouldPersistTaps="handled"
     >
       {prefill && previewQuery.isLoading ? (
@@ -186,7 +188,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: mobileColors.canvas },
   content: {
     padding: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl,
+
     gap: mobileSpacing.md
   },
   previewLoading: {

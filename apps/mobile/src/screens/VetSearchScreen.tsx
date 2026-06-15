@@ -24,6 +24,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../theme/mobileTheme";
+import { useBottomInset } from "../hooks/useBottomInset";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VetSearch">;
 
@@ -32,6 +33,7 @@ type FilterId = "all" | "porcin" | "available" | "rated" | "near";
 export function VetSearchScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
   const { t } = useTranslation();
+  const bottomInset = useBottomInset();
   const { accessToken, activeProfileId, authMe } = useSession();
   useScreenTitle(navigation, t("health.vetSearch.title"));
 
@@ -106,7 +108,7 @@ export function VetSearchScreen({ route, navigation }: Props) {
           <FlatList
             data={listQ.data?.items ?? []}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={[styles.list, { paddingBottom: bottomInset }]}
             ListEmptyComponent={
               <Text style={styles.empty}>{t("health.vetSearch.empty")}</Text>
             }
@@ -174,7 +176,7 @@ const styles = StyleSheet.create({
   },
   pillTx: { fontSize: 12, color: mobileColors.textSecondary },
   pillTxOn: { color: mobileColors.accent, fontWeight: "700" },
-  list: { paddingBottom: mobileSpacing.xxl },
+  list: {},
   empty: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,

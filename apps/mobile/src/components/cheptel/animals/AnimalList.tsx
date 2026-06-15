@@ -15,6 +15,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../../theme/mobileTheme";
+import { useBottomChromePad } from "../../../hooks/useBottomInset";
 import { AnimalDetailModal } from "./AnimalDetailModal";
 import { ChangeStatusModal } from "./ChangeStatusModal";
 import { CreateAnimalModal } from "./CreateAnimalModal";
@@ -68,6 +69,7 @@ export function AnimalList({
 }: Props) {
   const { t } = useTranslation();
   const { open } = useModal();
+  const bottomChromePad = useBottomChromePad();
   const [filterId, setFilterId] = useState<AnimalFilterId>("active");
   const [search, setSearch] = useState("");
   const [detailAnimal, setDetailAnimal] = useState<AnimalListItem | null>(null);
@@ -165,7 +167,7 @@ export function AnimalList({
       />
 
       <Pressable
-        style={styles.fab}
+        style={[styles.fab, { bottom: bottomChromePad + mobileSpacing.sm }]}
         onPress={() => setCreateOpen(true)}
         onLongPress={() => setBulkOpen(true)}
         delayLongPress={400}
@@ -313,7 +315,6 @@ const styles = StyleSheet.create({
   fab: {
     position: "absolute",
     right: mobileSpacing.lg,
-    bottom: mobileSpacing.lg,
     width: 52,
     height: 52,
     borderRadius: 26,

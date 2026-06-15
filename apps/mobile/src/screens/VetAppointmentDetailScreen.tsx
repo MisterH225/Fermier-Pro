@@ -34,6 +34,7 @@ import {
   mobileTypography
 } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
+import { useBottomInset } from "../hooks/useBottomInset";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VetAppointmentDetail">;
 
@@ -81,6 +82,7 @@ function deadlineLabel(deadline: string | null | undefined): string | null {
 }
 
 export function VetAppointmentDetailScreen({ route, navigation }: Props) {
+  const bottomInset = useBottomInset();
   const { appointmentId } = route.params;
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
@@ -239,7 +241,7 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
 
   return (
     <MobileAppShell title={t("vet.appointment.title")}>
-      <ScrollView contentContainerStyle={styles.wrap}>
+      <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomInset }]}>
         <Text style={styles.status}>{appt.status.replace(/_/g, " ")}</Text>
 
         {isVet && appt.conflictStatus ? (
@@ -465,7 +467,7 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { padding: mobileSpacing.lg, gap: mobileSpacing.md, paddingBottom: 48 },
+  wrap: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
   status: {
     ...mobileTypography.meta,
     fontWeight: "700",

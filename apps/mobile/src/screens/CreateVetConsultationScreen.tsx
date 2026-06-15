@@ -21,6 +21,7 @@ import { useSession } from "../context/SessionContext";
 import type { AnimalListItem } from "../lib/api";
 import { createVetConsultation, fetchFarmAnimals } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
+import { useBottomInset } from "../hooks/useBottomInset";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CreateVetConsultation">;
 
@@ -30,6 +31,7 @@ function animalTitle(a: AnimalListItem): string {
 }
 
 export function CreateVetConsultationScreen({ route, navigation }: Props) {
+  const bottomInset = useBottomInset();
   const { t } = useTranslation();
   const { farmId, farmName } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
@@ -94,7 +96,7 @@ export function CreateVetConsultationScreen({ route, navigation }: Props) {
     >
       <ScrollView
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}
       >
         <Text style={styles.label}>Objet</Text>
         <TextInput
@@ -182,7 +184,7 @@ export function CreateVetConsultationScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: mobileColors.canvas },
-  content: { padding: 16, paddingBottom: 40 },
+  content: { padding: 16 },
   hint: { fontSize: 13, color: mobileColors.textSecondary, marginBottom: 16 },
   label: {
     fontSize: 13,

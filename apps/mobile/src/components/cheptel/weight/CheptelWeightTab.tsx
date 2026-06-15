@@ -16,6 +16,7 @@ import {
   fetchDetectedBatches,
   fetchFarmAnimals
 } from "../../../lib/api";
+import { useBottomChromePad } from "../../../hooks/useBottomInset";
 import {
   mobileColors,
   mobileRadius,
@@ -36,6 +37,7 @@ type Props = {
 
 export function CheptelWeightTab({ farmId, accessToken, activeProfileId, readOnly = false }: Props) {
   const { t, i18n } = useTranslation();
+  const bottomChromePad = useBottomChromePad();
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
   const [period, setPeriod] = useState<SmartChartPeriod>("6M");
   const [animalId, setAnimalId] = useState<string | undefined>(undefined);
@@ -222,7 +224,7 @@ export function CheptelWeightTab({ farmId, accessToken, activeProfileId, readOnl
       ) : null}
 
       {!readOnly ? (
-      <Pressable style={styles.fab} onPress={() => setAddOpen(true)}>
+      <Pressable style={[styles.fab, { bottom: bottomChromePad + mobileSpacing.sm }]} onPress={() => setAddOpen(true)}>
         <Text style={styles.fabTx}>＋</Text>
       </Pressable>
       ) : null}
@@ -285,7 +287,7 @@ const styles = StyleSheet.create({
   fab: {
     position: "absolute",
     right: 0,
-    bottom: mobileSpacing.lg,
+    // bottom calculé dynamiquement dans le JSX via useBottomChromePad
     width: 52,
     height: 52,
     borderRadius: 26,

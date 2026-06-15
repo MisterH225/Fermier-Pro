@@ -31,6 +31,7 @@ import {
   mobileTypography
 } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
+import { useBottomInset } from "../hooks/useBottomInset";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ProducerScheduleVetVisit">;
 
@@ -43,6 +44,7 @@ const REASONS: VetVisitReason[] = [
 ];
 
 export function ProducerScheduleVetVisitScreen({ route, navigation }: Props) {
+  const bottomInset = useBottomInset();
   const { farmId, farmName, vetProfileId } = route.params;
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
@@ -142,7 +144,7 @@ export function ProducerScheduleVetVisitScreen({ route, navigation }: Props) {
 
   return (
     <MobileAppShell hideTopBar>
-      <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomInset }]} keyboardShouldPersistTaps="handled">
         <Text style={styles.farmLabel}>
           {t("health.scheduleVet.farm")} · {farmName}
         </Text>
@@ -271,7 +273,7 @@ export function ProducerScheduleVetVisitScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { padding: mobileSpacing.lg, gap: mobileSpacing.md, paddingBottom: 40 },
+  wrap: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
   farmLabel: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary
