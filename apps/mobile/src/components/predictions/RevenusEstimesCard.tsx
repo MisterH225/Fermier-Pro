@@ -24,15 +24,21 @@ type Props = {
 export function RevenusEstimesCard({ payload, currency, locale }: Props) {
   const { t } = useTranslation();
   const [horizon, setHorizon] = useState<PredictionHorizonKey>("30j");
-  const rev = payload.finance_predictions.revenue_estimates[horizon];
-  const exp = payload.finance_predictions.expense_projections[horizon];
+  const rev = payload.finance_predictions.revenue_estimates?.[horizon];
+  const exp = payload.finance_predictions.expense_projections?.[horizon];
+
+  // Horizons peuvent être absents ou valeurs en string côté IA
+  if (!rev || !exp) return null;
+  const revAmount = Number(rev.amount ?? 0);
+  const expTotal = Number(exp.total ?? 0);
+  const maxVal = Math.max(revAmount, expTotal, 1);
 
   return (
     <View style={styles.card}>
       <Text style={styles.title}>💰 {t("predictions.revenusEstimesTitle")}</Text>
       <HorizonTabs value={horizon} onChange={setHorizon} />
       <Text style={styles.amount}>
-        {formatCurrency(rev.amount, currency, locale)}
+        {formatCurrency(revAmount, currency, locale)}
       </Text>
       <Text style={styles.basedOn}>{rev.based_on}</Text>
       <ConfidenceBadge confidence={rev.confidence} />
@@ -41,9 +47,7 @@ export function RevenusEstimesCard({ payload, currency, locale }: Props) {
           <View
             style={[
               styles.barFillRev,
-              {
-                width: `${Math.min(100, (rev.amount / Math.max(rev.amount, exp.total, 1)) * 100)}%`
-              }
+              { width: `${Math.min(100, (revAmount / maxVal) * 100)}%` }
             ]}
           />
         </View>
@@ -51,16 +55,14 @@ export function RevenusEstimesCard({ payload, currency, locale }: Props) {
           <View
             style={[
               styles.barFillExp,
-              {
-                width: `${Math.min(100, (exp.total / Math.max(rev.amount, exp.total, 1)) * 100)}%`
-              }
+              { width: `${Math.min(100, (expTotal / maxVal) * 100)}%` }
             ]}
           />
         </View>
         <Text style={styles.legend}>
           {t("predictions.revVsExp", {
-            rev: formatCurrency(rev.amount, currency, locale),
-            exp: formatCurrency(exp.total, currency, locale)
+            rev: formatCurrency(revAmount, currency, locale),
+            exp: formatCurrency(expTotal, currency, locale)
           })}
         </Text>
       </View>

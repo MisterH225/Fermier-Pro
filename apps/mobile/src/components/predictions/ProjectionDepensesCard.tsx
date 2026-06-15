@@ -23,7 +23,10 @@ type Props = {
 export function ProjectionDepensesCard({ payload, currency, locale }: Props) {
   const { t } = useTranslation();
   const [horizon, setHorizon] = useState<PredictionHorizonKey>("30j");
-  const exp = payload.finance_predictions.expense_projections[horizon];
+  const exp = payload.finance_predictions.expense_projections?.[horizon];
+
+  // Horizon peut être absent ou valeurs en string côté IA
+  if (!exp) return null;
 
   return (
     <View style={styles.card}>
@@ -31,14 +34,14 @@ export function ProjectionDepensesCard({ payload, currency, locale }: Props) {
       <HorizonTabs value={horizon} onChange={setHorizon} />
       <Text style={styles.line}>
         {t("predictions.feedCost")}:{" "}
-        {formatCurrency(exp.feed_cost, currency, locale)}
+        {formatCurrency(Number(exp.feed_cost ?? 0), currency, locale)}
       </Text>
       <Text style={styles.line}>
         {t("predictions.vetCost")}:{" "}
-        {formatCurrency(exp.vet_cost, currency, locale)}
+        {formatCurrency(Number(exp.vet_cost ?? 0), currency, locale)}
       </Text>
       <Text style={styles.total}>
-        {t("predictions.total")}: {formatCurrency(exp.total, currency, locale)}
+        {t("predictions.total")}: {formatCurrency(Number(exp.total ?? 0), currency, locale)}
       </Text>
     </View>
   );

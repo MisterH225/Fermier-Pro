@@ -33,15 +33,19 @@ export function BesoinsAlimentCard({ payload, locale }: Props) {
       <Text style={styles.title}>🌾 {t("predictions.besoinsAlimentTitle")}</Text>
       <HorizonTabs value={horizon} onChange={setHorizon} />
       {needs.map((feed) => {
-        const needed =
+        // Coercion : l'IA peut retourner des nombres sous forme de strings
+        const currentStockKg = Number(feed.current_stock_kg ?? 0);
+        const dailyConsumptionKg = Number(feed.daily_consumption_kg ?? 0);
+        const needed = Number(
           horizon === "30j"
             ? feed.needed_30j_kg
             : horizon === "60j"
               ? feed.needed_60j_kg
-              : feed.needed_90j_kg;
+              : feed.needed_90j_kg
+        ) || 0;
         const daysLeft =
-          feed.daily_consumption_kg > 0
-            ? Math.floor(feed.current_stock_kg / feed.daily_consumption_kg)
+          dailyConsumptionKg > 0
+            ? Math.floor(currentStockKg / dailyConsumptionKg)
             : null;
         const status =
           daysLeft == null
@@ -57,12 +61,12 @@ export function BesoinsAlimentCard({ payload, locale }: Props) {
             <Text style={styles.feedName}>{feed.feed_type_name}</Text>
             <Text style={styles.meta}>
               {t("predictions.currentStock", {
-                kg: Math.round(feed.current_stock_kg)
+                kg: Math.round(currentStockKg)
               })}
             </Text>
             <Text style={styles.meta}>
               {t("predictions.dailyConsumption", {
-                kg: feed.daily_consumption_kg.toFixed(1)
+                kg: dailyConsumptionKg.toFixed(1)
               })}
             </Text>
             <Text style={styles.needed}>
