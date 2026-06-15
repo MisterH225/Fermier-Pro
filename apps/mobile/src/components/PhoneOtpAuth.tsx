@@ -576,12 +576,14 @@ const styles = StyleSheet.create({
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "flex-end"
+    justifyContent: "flex-end",
+    paddingHorizontal: 10,
+    paddingBottom: 8
   },
   modalCard: {
     backgroundColor: authColors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderRadius: 24,
+    overflow: "hidden",
     maxHeight: "78%",
     paddingHorizontal: 16,
     paddingTop: 12

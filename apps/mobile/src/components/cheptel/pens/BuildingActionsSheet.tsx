@@ -65,12 +65,14 @@ const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "flex-end"
+    justifyContent: "flex-end",
+    paddingHorizontal: 10,
+    paddingBottom: 8
   },
   sheet: {
     backgroundColor: mobileColors.background,
-    borderTopLeftRadius: mobileRadius.lg,
-    borderTopRightRadius: mobileRadius.lg,
+    borderRadius: 24,
+    overflow: "hidden",
     paddingHorizontal: mobileSpacing.lg,
     paddingTop: mobileSpacing.lg
   },

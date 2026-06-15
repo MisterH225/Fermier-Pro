@@ -24,7 +24,8 @@ import {
   mobileTypography
 } from "../../theme/mobileTheme";
 
-const SHEET_TOP_RADIUS = 24;
+const SHEET_RADIUS = 24;
+const SHEET_H_MARGIN = 10; // marge horizontale — sheet flottant hors des bords d'écran
 
 export type BaseModalSecondaryAction = {
   key: string;
@@ -304,18 +305,20 @@ const styles = StyleSheet.create({
   },
   keyboardWrap: {
     justifyContent: "flex-end",
-    width: "100%"
+    width: "100%",
+    paddingHorizontal: SHEET_H_MARGIN,
+    paddingBottom: 8
   },
   sheet: {
     backgroundColor: mobileColors.canvas,
-    borderTopLeftRadius: SHEET_TOP_RADIUS,
-    borderTopRightRadius: SHEET_TOP_RADIUS,
+    borderRadius: SHEET_RADIUS,
+    overflow: "hidden",
     paddingHorizontal: mobileSpacing.lg,
     paddingTop: mobileSpacing.xs,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 8,
     elevation: 16
   },
   handleZone: {
