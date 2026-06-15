@@ -62,7 +62,7 @@ export function BesoinsAlimentCard({ payload, locale }: Props) {
             </Text>
             <Text style={styles.meta}>
               {t("predictions.dailyConsumption", {
-                kg: feed.daily_consumption_kg.toFixed(1)
+                kg: Number(feed.daily_consumption_kg).toFixed(1)
               })}
             </Text>
             <Text style={styles.needed}>

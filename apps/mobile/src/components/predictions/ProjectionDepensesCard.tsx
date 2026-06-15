@@ -25,20 +25,29 @@ export function ProjectionDepensesCard({ payload, currency, locale }: Props) {
   const [horizon, setHorizon] = useState<PredictionHorizonKey>("30j");
   const exp = payload.finance_predictions.expense_projections[horizon];
 
+  if (!exp) {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.title}>{t("predictions.projectionDepensesTitle")}</Text>
+        <HorizonTabs value={horizon} onChange={setHorizon} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.card}>
       <Text style={styles.title}>{t("predictions.projectionDepensesTitle")}</Text>
       <HorizonTabs value={horizon} onChange={setHorizon} />
       <Text style={styles.line}>
         {t("predictions.feedCost")}:{" "}
-        {formatCurrency(exp.feed_cost, currency, locale)}
+        {formatCurrency(Number(exp.feed_cost), currency, locale)}
       </Text>
       <Text style={styles.line}>
         {t("predictions.vetCost")}:{" "}
-        {formatCurrency(exp.vet_cost, currency, locale)}
+        {formatCurrency(Number(exp.vet_cost), currency, locale)}
       </Text>
       <Text style={styles.total}>
-        {t("predictions.total")}: {formatCurrency(exp.total, currency, locale)}
+        {t("predictions.total")}: {formatCurrency(Number(exp.total), currency, locale)}
       </Text>
     </View>
   );

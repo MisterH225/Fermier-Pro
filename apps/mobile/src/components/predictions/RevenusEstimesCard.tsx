@@ -27,22 +27,35 @@ export function RevenusEstimesCard({ payload, currency, locale }: Props) {
   const rev = payload.finance_predictions.revenue_estimates[horizon];
   const exp = payload.finance_predictions.expense_projections[horizon];
 
+  if (!rev || !exp) {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.title}>💰 {t("predictions.revenusEstimesTitle")}</Text>
+        <HorizonTabs value={horizon} onChange={setHorizon} />
+      </View>
+    );
+  }
+
+  const revAmount = Number(rev.amount);
+  const expTotal = Number(exp.total);
+  const maxVal = Math.max(revAmount, expTotal, 1);
+
   return (
     <View style={styles.card}>
       <Text style={styles.title}>💰 {t("predictions.revenusEstimesTitle")}</Text>
       <HorizonTabs value={horizon} onChange={setHorizon} />
       <Text style={styles.amount}>
-        {formatCurrency(rev.amount, currency, locale)}
+        {formatCurrency(revAmount, currency, locale)}
       </Text>
       <Text style={styles.basedOn}>{rev.based_on}</Text>
-      <ConfidenceBadge confidence={rev.confidence} />
+      <ConfidenceBadge confidence={Number(rev.confidence)} />
       <View style={styles.compare}>
         <View style={styles.barRev}>
           <View
             style={[
               styles.barFillRev,
               {
-                width: `${Math.min(100, (rev.amount / Math.max(rev.amount, exp.total, 1)) * 100)}%`
+                width: `${Math.min(100, (revAmount / maxVal) * 100)}%`
               }
             ]}
           />
@@ -52,15 +65,15 @@ export function RevenusEstimesCard({ payload, currency, locale }: Props) {
             style={[
               styles.barFillExp,
               {
-                width: `${Math.min(100, (exp.total / Math.max(rev.amount, exp.total, 1)) * 100)}%`
+                width: `${Math.min(100, (expTotal / maxVal) * 100)}%`
               }
             ]}
           />
         </View>
         <Text style={styles.legend}>
           {t("predictions.revVsExp", {
-            rev: formatCurrency(rev.amount, currency, locale),
-            exp: formatCurrency(exp.total, currency, locale)
+            rev: formatCurrency(revAmount, currency, locale),
+            exp: formatCurrency(expTotal, currency, locale)
           })}
         </Text>
       </View>

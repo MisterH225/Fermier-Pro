@@ -6,6 +6,10 @@ import type {
   PredictionHorizonKey
 } from "../../lib/api/predictions";
 import {
+  coerceFiniteNumber,
+  formatOptionalPct
+} from "../../lib/coerceNumber";
+import {
   mobileColors,
   mobileRadius,
   mobileSpacing,
@@ -24,17 +28,29 @@ export function RentabilitePrevuCard({ payload, currency, locale }: Props) {
   const { t } = useTranslation();
   const [horizon, setHorizon] = useState<PredictionHorizonKey>("30j");
   const pf = payload.finance_predictions.profitability_forecast[horizon];
-  const positive = pf.margin >= 0;
+
+  if (!pf) {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.title}>{t("predictions.rentabilitePrevuTitle")}</Text>
+        <HorizonTabs value={horizon} onChange={setHorizon} />
+      </View>
+    );
+  }
+
+  const margin = coerceFiniteNumber(pf.margin) ?? 0;
+  const marginPctStr = formatOptionalPct(pf.margin_pct) ?? "—";
+  const positive = margin >= 0;
 
   return (
     <View style={[styles.card, positive ? styles.positive : styles.negative]}>
       <Text style={styles.title}>{t("predictions.rentabilitePrevuTitle")}</Text>
       <HorizonTabs value={horizon} onChange={setHorizon} />
       <Text style={[styles.margin, positive ? styles.textPos : styles.textNeg]}>
-        {formatCurrency(pf.margin, currency, locale)}
+        {formatCurrency(margin, currency, locale)}
       </Text>
       <Text style={[styles.pct, positive ? styles.textPos : styles.textNeg]}>
-        {pf.margin_pct.toFixed(1)} %
+        {marginPctStr}
       </Text>
     </View>
   );
