@@ -2,6 +2,7 @@ import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { config as dotenvConfig } from "dotenv";
+import helmet from "helmet";
 import { join } from "path";
 import { AppModule } from "./app.module";
 
@@ -21,11 +22,16 @@ async function bootstrap() {
     httpServer.set("trust proxy", 1);
   }
 
+  // Headers de sécurité HTTP (CSP, HSTS, X-Frame-Options, etc.)
+  app.use(helmet({ contentSecurityPolicy: false }));
+
   app.setGlobalPrefix("api/v1");
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      transform: true
+      forbidNonWhitelisted: true, // Rejette les champs inconnus au lieu de les ignorer silencieusement
+      transform: true,
+      transformOptions: { enableImplicitConversion: false }
     })
   );
 

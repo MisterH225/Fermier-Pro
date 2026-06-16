@@ -7,6 +7,7 @@ import {
   UnauthorizedException
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { timingSafeEqual } from "crypto";
 import { RejectVetProfileDto } from "./dto/reject-vet-profile.dto";
 import { VetsService } from "./vets.service";
 
@@ -25,7 +26,20 @@ export class AdminVetsController {
     const expected = this.config
       .get<string>("VET_VERIFICATION_SECRET")
       ?.trim();
-    if (!expected || secret?.trim() !== expected) {
+    if (!expected) {
+      throw new UnauthorizedException("Secret admin non configuré");
+    }
+    const provided = secret?.trim() ?? "";
+    // timingSafeEqual pour éviter les attaques timing sur la comparaison du secret
+    let ok = false;
+    try {
+      ok =
+        provided.length === expected.length &&
+        timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
+    } catch {
+      ok = false;
+    }
+    if (!ok) {
       throw new UnauthorizedException("Secret admin invalide");
     }
   }

@@ -1,7 +1,11 @@
-import { IsOptional, IsString, IsUrl, MaxLength } from "class-validator";
+import { IsOptional, IsString, IsUrl, Matches, MaxLength } from "class-validator";
 
 export class CreateConsultationAttachmentDto {
-  @IsUrl({ require_tld: false })
+  @IsUrl({ protocols: ["https"], require_protocol: true, require_tld: true })
+  @Matches(
+    /^https:\/\/[a-z0-9-]+\.supabase\.co\//,
+    { message: "L'URL doit pointer vers le stockage Supabase (https://*.supabase.co/...)" }
+  )
   @MaxLength(2000)
   url!: string;
 
