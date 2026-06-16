@@ -24,8 +24,8 @@ type Props = {
 export function RevenusEstimesCard({ payload, currency, locale }: Props) {
   const { t } = useTranslation();
   const [horizon, setHorizon] = useState<PredictionHorizonKey>("30j");
-  const rev = payload.finance_predictions.revenue_estimates?.[horizon];
-  const exp = payload.finance_predictions.expense_projections?.[horizon];
+  const rev = payload.finance_predictions?.revenue_estimates?.[horizon];
+  const exp = payload.finance_predictions?.expense_projections?.[horizon];
 
   // Horizons peuvent être absents ou valeurs en string côté IA
   if (!rev || !exp) return null;

@@ -313,6 +313,16 @@ export class PredictionsService {
             weight_projections: [],
             herd_evolution: p.cheptel_predictions.herd_evolution
           },
+          finance_predictions: {
+            revenue_estimates: p.finance_predictions.revenue_estimates,
+            expense_projections: p.finance_predictions.expense_projections,
+            profitability_forecast: p.finance_predictions.profitability_forecast,
+            cash_flow_alert: p.finance_predictions.cash_flow_alert ?? {
+              has_alert: false,
+              alert_date: null,
+              message: null
+            }
+          },
           stock_predictions: {
             feed_needs: p.stock_predictions.feed_needs,
             total_feed_cost_30j: p.stock_predictions.total_feed_cost_30j,

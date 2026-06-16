@@ -15,9 +15,9 @@ type Props = {
 
 export function AlerteTresorerieCard({ payload, locale }: Props) {
   const { t } = useTranslation();
-  const alert = payload.finance_predictions.cash_flow_alert;
+  const alert = payload.finance_predictions?.cash_flow_alert;
 
-  if (!alert.has_alert || !alert.message) {
+  if (!alert?.has_alert || !alert.message) {
     return null;
   }
 

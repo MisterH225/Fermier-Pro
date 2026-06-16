@@ -23,7 +23,7 @@ type Props = {
 export function RentabilitePrevuCard({ payload, currency, locale }: Props) {
   const { t } = useTranslation();
   const [horizon, setHorizon] = useState<PredictionHorizonKey>("30j");
-  const pf = payload.finance_predictions.profitability_forecast?.[horizon];
+  const pf = payload.finance_predictions?.profitability_forecast?.[horizon];
 
   // L'IA peut omettre un horizon ou retourner des nombres en string
   if (!pf) return null;
