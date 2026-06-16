@@ -30,7 +30,10 @@ export function SailliesRecommandeesCard({
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const gp = payload.gestation_predictions;
   if (!gp) return null;
-  const sows = Array.isArray(gp.available_sows_for_mating) ? gp.available_sows_for_mating : [];
+  const todayStr = new Date().toISOString().slice(0, 10);
+  // Filtrer les dates passées — Gemini peut halluciner des dates passées
+  const sows = (Array.isArray(gp.available_sows_for_mating) ? gp.available_sows_for_mating : [])
+    .filter((s) => typeof s.available_from === "string" && s.available_from >= todayStr);
 
   if (!sows.length) {
     return null;

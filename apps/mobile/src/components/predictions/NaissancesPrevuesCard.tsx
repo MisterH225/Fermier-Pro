@@ -20,7 +20,10 @@ export function NaissancesPrevuesCard({ payload, locale }: Props) {
   const gp = payload.gestation_predictions;
   // gestation_predictions peut être absent si l'IA ne l'a pas retourné
   if (!gp) return null;
-  const births = Array.isArray(gp.upcoming_births) ? gp.upcoming_births : [];
+  const todayStr = new Date().toISOString().slice(0, 10);
+  // Filtrer les naissances avec une date passée (hallucination Gemini)
+  const births = (Array.isArray(gp.upcoming_births) ? gp.upcoming_births : [])
+    .filter((b) => typeof b.expected_birth_date === "string" && b.expected_birth_date >= todayStr);
   const projected30j = Number(gp.projected_new_animals_30j ?? 0);
 
   if (!births.length && projected30j === 0) {

@@ -47,7 +47,10 @@ export class PredictiveAgentService {
   }
 
   private buildUserPrompt(data: CollectedPredictionData): string {
+    // Inclure la date du jour pour que Gemini génère des dates futures
+    const today = new Date().toISOString().slice(0, 10);
     return [
+      `La date d'aujourd'hui est ${today}.`,
       "Analyse ces données d'élevage et génère des prévisions pour 30, 60 et 90 jours.",
       `Données : cheptel_actuel=${JSON.stringify(data.cheptel_data)},`,
       `gmq_historique=${JSON.stringify(data.gmq_data)},`,
@@ -57,6 +60,9 @@ export class PredictiveAgentService {
       `consommation_aliment=${JSON.stringify(data.feed_data)},`,
       `historique_financier=${JSON.stringify(data.finance_data)},`,
       `objectifs_ferme=${JSON.stringify(data.settings_data)}.`,
+      `IMPORTANT : Toutes les dates (available_from dans available_sows_for_mating,`,
+      `expected_birth_date dans upcoming_births, start_date/end_date dans sale_timing)`,
+      `doivent être STRICTEMENT POSTÉRIEURES à ${today}. Ne génère aucune date passée.`,
       "Note : stock_predictions.feed_needs est recalculé côté serveur (IC×GMQ×effectif, migration de phases, tendance conso) — mets des valeurs placeholder cohérentes.",
       "Réponds UNIQUEMENT en JSON valide sans markdown selon ce schéma exact :",
       "{ cheptel_predictions: {...}, finance_predictions: {...}, stock_predictions: {...}, gestation_predictions: {...}, sale_timing: {...}, alerts: [...] }",

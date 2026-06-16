@@ -298,7 +298,7 @@ export class PredictionsService {
             projected_new_animals_60j: 0,
             projected_new_animals_90j: 0
           },
-          alerts: p.alerts.filter(
+          alerts: (p.alerts ?? []).filter(
             (a) =>
               a.target_menu === "cheptel" || a.target_menu === "dashboard"
           )
@@ -420,19 +420,30 @@ export class PredictionsService {
             total_feed_cost_60j: 0,
             total_feed_cost_90j: 0
           },
-          // Construire gestation_predictions avec des valeurs sûres pour éviter les
-          // crashes si Gemini omet des champs ou retourne des strings à la place de nombres
-          gestation_predictions: {
-            upcoming_births: Array.isArray(p.gestation_predictions?.upcoming_births)
+          // Construire gestation_predictions avec des valeurs sûres.
+          // Filtrer les dates passées pour available_sows_for_mating et upcoming_births
+          // (Gemini peut retourner des dates passées faute de connaître la date du jour,
+          // même si la date est désormais incluse dans le prompt).
+          gestation_predictions: (() => {
+            const todayStr = new Date().toISOString().slice(0, 10);
+            const rawBirths = Array.isArray(p.gestation_predictions?.upcoming_births)
               ? p.gestation_predictions.upcoming_births
-              : [],
-            available_sows_for_mating: Array.isArray(p.gestation_predictions?.available_sows_for_mating)
+              : [];
+            const rawSows = Array.isArray(p.gestation_predictions?.available_sows_for_mating)
               ? p.gestation_predictions.available_sows_for_mating
-              : [],
-            projected_new_animals_30j: Number(p.gestation_predictions?.projected_new_animals_30j ?? 0),
-            projected_new_animals_60j: Number(p.gestation_predictions?.projected_new_animals_60j ?? 0),
-            projected_new_animals_90j: Number(p.gestation_predictions?.projected_new_animals_90j ?? 0)
-          },
+              : [];
+            return {
+              upcoming_births: rawBirths.filter(
+                (b) => typeof b.expected_birth_date === "string" && b.expected_birth_date > todayStr
+              ),
+              available_sows_for_mating: rawSows.filter(
+                (s) => typeof s.available_from === "string" && s.available_from >= todayStr
+              ),
+              projected_new_animals_30j: Number(p.gestation_predictions?.projected_new_animals_30j ?? 0),
+              projected_new_animals_60j: Number(p.gestation_predictions?.projected_new_animals_60j ?? 0),
+              projected_new_animals_90j: Number(p.gestation_predictions?.projected_new_animals_90j ?? 0)
+            };
+          })(),
           sale_timing: p.sale_timing,
           alerts: p.alerts.filter(
             (a) =>
