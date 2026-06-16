@@ -28,7 +28,9 @@ export function SailliesRecommandeesCard({
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const sows = payload.gestation_predictions.available_sows_for_mating;
+  const gp = payload.gestation_predictions;
+  if (!gp) return null;
+  const sows = Array.isArray(gp.available_sows_for_mating) ? gp.available_sows_for_mating : [];
 
   if (!sows.length) {
     return null;

@@ -420,6 +420,19 @@ export class PredictionsService {
             total_feed_cost_60j: 0,
             total_feed_cost_90j: 0
           },
+          // Construire gestation_predictions avec des valeurs sûres pour éviter les
+          // crashes si Gemini omet des champs ou retourne des strings à la place de nombres
+          gestation_predictions: {
+            upcoming_births: Array.isArray(p.gestation_predictions?.upcoming_births)
+              ? p.gestation_predictions.upcoming_births
+              : [],
+            available_sows_for_mating: Array.isArray(p.gestation_predictions?.available_sows_for_mating)
+              ? p.gestation_predictions.available_sows_for_mating
+              : [],
+            projected_new_animals_30j: Number(p.gestation_predictions?.projected_new_animals_30j ?? 0),
+            projected_new_animals_60j: Number(p.gestation_predictions?.projected_new_animals_60j ?? 0),
+            projected_new_animals_90j: Number(p.gestation_predictions?.projected_new_animals_90j ?? 0)
+          },
           sale_timing: p.sale_timing,
           alerts: p.alerts.filter(
             (a) =>
