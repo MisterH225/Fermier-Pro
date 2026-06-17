@@ -8,19 +8,20 @@ export const feedStockLiveQueryOptions = {
   refetchOnWindowFocus: true
 };
 
-export function farmFeedQueryKey(farmId: string, activeProfileId?: string | null) {
-  return ["farmFeed", farmId, activeProfileId ?? null] as const;
+export function farmFeedQueryKey(farmId: string) {
+  return ["farmFeed", farmId] as const;
 }
 
 /** Invalide et refetch immédiat chart + stats + overview après un mouvement. */
 export async function refreshFarmFeedQueries(
   qc: QueryClient,
   farmId: string,
-  activeProfileId?: string | null
+  _activeProfileId?: string | null
 ): Promise<void> {
-  await qc.invalidateQueries({ queryKey: farmFeedQueryKey(farmId, activeProfileId) });
+  const rootKey = farmFeedQueryKey(farmId);
+  await qc.invalidateQueries({ queryKey: rootKey });
   await qc.refetchQueries({
-    queryKey: farmFeedQueryKey(farmId, activeProfileId),
+    queryKey: rootKey,
     type: "active"
   });
   await qc.invalidateQueries({ queryKey: ["dashboardFeedStock", farmId] });

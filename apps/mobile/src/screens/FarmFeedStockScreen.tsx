@@ -227,7 +227,8 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
   const refetchAll = () => {
     void Promise.all([
       refreshFarmFeedQueries(qc, farmId, activeProfileId),
-      movQ.refetch()
+      movQ.refetch(),
+      ...results.map((r) => r.refetch())
     ]);
   };
 
