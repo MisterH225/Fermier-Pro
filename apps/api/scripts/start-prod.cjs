@@ -41,6 +41,20 @@ function loadDotenv(filePath) {
 loadDotenv(path.join(apiRoot, ".env"));
 loadDotenv(path.join(monorepoRoot, ".env"));
 
+// Railway / hébergeurs : NODE_ENV=production sans APP_ENV déclenchait le garde-fou
+// mobile money (MOBILE_MONEY_PROVIDER=dev interdit). Tant que le gateway simulé
+// est utilisé, forcer staging — aligné avec .env.example.
+const mobileMoneyProvider = (process.env.MOBILE_MONEY_PROVIDER ?? "dev")
+  .trim()
+  .toLowerCase();
+if (!process.env.APP_ENV?.trim() && mobileMoneyProvider === "dev") {
+  process.env.APP_ENV = "staging";
+  console.warn(
+    "[start-prod] APP_ENV absent avec MOBILE_MONEY_PROVIDER=dev — APP_ENV=staging par défaut. " +
+      "Définissez APP_ENV=production uniquement avec un provider mobile money réel."
+  );
+}
+
 const prismaRun = path.join(__dirname, "prisma-run.cjs");
 console.log("[start-prod] Application des migrations Prisma…");
 const migrate = spawnSync(process.execPath, [prismaRun, "migrate", "deploy"], {
