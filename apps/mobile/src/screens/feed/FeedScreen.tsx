@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -15,8 +14,8 @@ import {
 import { useTranslation } from "react-i18next";
 import { AppealModal } from "../../components/feed/AppealModal";
 import { ModerationWarningBanner } from "../../components/feed/ModerationWarningBanner";
-import { ProfileBadge } from "../../components/feed/ProfileBadge";
 import { SuspensionBanner } from "../../components/feed/SuspensionBanner";
+import { FeedPostCard } from "../../components/community-feed";
 import { MobileAppShell } from "../../components/layout";
 import { useSession } from "../../context/SessionContext";
 import {
@@ -27,9 +26,7 @@ import {
   fetchFeedRules,
   toggleFeedCommentLike,
   toggleFeedPostLike,
-  type CommunityFeedPostType,
-  type FeedCommentDto,
-  type FeedPostDto
+  type CommunityFeedPostType
 } from "../../lib/api/community-feed";
 import { checkFeedContentBeforeSend } from "../../services/ai/FeedModerationAgent";
 import { appealFeedSanction, getMyFeedStatus } from "../../services/ai/SanctionService";
@@ -54,230 +51,12 @@ function postTypeLabel(type: CommunityFeedPostType | string | null | undefined):
   return "Publication";
 }
 
-function CommentItem({
-  comment,
-  postId,
-  depth,
-  canComment,
-  onComment,
-  onLike
-}: {
-  comment: FeedCommentDto;
-  postId: string;
-  depth: number;
-  canComment: boolean;
-  onComment: (postId: string, body: string, parentCommentId?: string) => Promise<void>;
-  onLike: (commentId: string) => Promise<void>;
-}) {
-  const { t } = useTranslation();
-  const [replyOpen, setReplyOpen] = useState(false);
-  const [reply, setReply] = useState("");
-  const [sending, setSending] = useState(false);
-  const [replyModWarning, setReplyModWarning] = useState<string | null>(null);
-  const displayName = comment.isAnonymous
-    ? comment.authorRegion ?? "Région"
-    : comment.authorDisplayName ?? "Membre";
-
-  return (
-    <View style={[styles.comment, depth > 0 && styles.commentReply]}>
-      <View style={styles.postHeader}>
-        <Text style={styles.commentAuthor}>{displayName}</Text>
-        <ProfileBadge profileType={comment.authorProfileType} anonymous={comment.isAnonymous} />
-      </View>
-      <Text style={styles.commentBody}>{comment.body}</Text>
-      <View style={styles.commentActions}>
-        <Pressable
-          onPress={() => void onLike(comment.id)}
-          style={styles.likeBtn}
-        >
-          <Text style={[styles.likeBtnTx, comment.likedByMe && styles.likeBtnTxActive]}>
-            {comment.likedByMe ? "♥" : "♡"} {comment.likeCount > 0 ? comment.likeCount : ""}
-          </Text>
-        </Pressable>
-        {canComment ? (
-          <Pressable onPress={() => setReplyOpen((v) => !v)}>
-            <Text style={styles.replyBtnTx}>
-              {t("feed.reply", "Répondre")}
-            </Text>
-          </Pressable>
-        ) : null}
-      </View>
-      {replyOpen && canComment ? (
-        <View style={styles.commentRow}>
-          <TextInput
-            style={styles.commentInput}
-            value={reply}
-            onChangeText={(value) => {
-              setReply(value);
-              setReplyModWarning(null);
-            }}
-            placeholder={t("feed.replyPlaceholder", "Votre réponse…")}
-            placeholderTextColor={mobileColors.textSecondary}
-          />
-          <Pressable
-            disabled={!reply.trim() || sending}
-            onPress={() => {
-              setSending(true);
-              void onComment(postId, reply.trim(), comment.id)
-                .then(() => {
-                  setReply("");
-                  setReplyOpen(false);
-                  setReplyModWarning(null);
-                })
-                .catch((err: unknown) => {
-                  const message =
-                    err instanceof Error
-                      ? err.message
-                      : t("feed.commentBlocked", "Commentaire bloqué par la modération.");
-                  setReplyModWarning(message);
-                  Alert.alert(t("moderation.blockedTitle", "Message bloqué"), message);
-                })
-                .finally(() => {
-                  setSending(false);
-                });
-            }}
-            style={[styles.commentBtn, (!reply.trim() || sending) && styles.disabledBtn]}
-          >
-            <Text style={styles.commentBtnTx}>{t("feed.send", "Envoyer")}</Text>
-          </Pressable>
-        </View>
-      ) : null}
-      {replyModWarning ? (
-        <ModerationWarningBanner message={replyModWarning} severity="high" />
-      ) : null}
-      {(comment.replies ?? []).map((child) => (
-        <CommentItem
-          key={child.id}
-          comment={child}
-          postId={postId}
-          depth={depth + 1}
-          canComment={canComment}
-          onComment={onComment}
-          onLike={onLike}
-        />
-      ))}
-    </View>
-  );
-}
-
-function PostCard({
-  post,
-  canComment,
-  onComment,
-  onLikePost,
-  onLikeComment
-}: {
-  post: FeedPostDto;
-  canComment: boolean;
-  onComment: (postId: string, body: string, parentCommentId?: string) => Promise<void>;
-  onLikePost: (postId: string) => Promise<void>;
-  onLikeComment: (commentId: string) => Promise<void>;
-}) {
-  const { t } = useTranslation();
-  const [comment, setComment] = useState("");
-  const [sending, setSending] = useState(false);
-  const [commentModWarning, setCommentModWarning] = useState<string | null>(null);
-  const displayName = post.isAnonymous
-    ? post.authorRegion ?? "Région"
-    : post.authorDisplayName ?? "Membre";
-
-  return (
-    <View
-      style={[
-        styles.postCard,
-        post.isVetHighlight && styles.vetHighlight
-      ]}
-    >
-      <View style={styles.postHeader}>
-        <Text style={styles.authorName}>{displayName}</Text>
-        <ProfileBadge profileType={post.authorProfileType} anonymous={post.isAnonymous} />
-      </View>
-      <Text style={styles.postType}>{postTypeLabel(post.postType)}</Text>
-      <Text style={styles.postBody}>{post.body}</Text>
-      {post.medicalDisclaimer ? (
-        <Text style={styles.disclaimer}>{post.medicalDisclaimer}</Text>
-      ) : null}
-      {post.postType === "alert" ? (
-        <Text style={styles.conditionalHint}>
-          Cette alerte est partagée à titre informatif — consultez un professionnel si besoin.
-        </Text>
-      ) : null}
-      <View style={styles.commentActions}>
-        <Pressable onPress={() => void onLikePost(post.id)} style={styles.likeBtn}>
-          <Text style={[styles.likeBtnTx, post.likedByMe && styles.likeBtnTxActive]}>
-            {post.likedByMe ? "♥" : "♡"} {post.likeCount > 0 ? post.likeCount : ""}
-          </Text>
-        </Pressable>
-      </View>
-      {(post.comments ?? []).map((c) => (
-        <CommentItem
-          key={c.id}
-          comment={c}
-          postId={post.id}
-          depth={0}
-          canComment={canComment}
-          onComment={onComment}
-          onLike={onLikeComment}
-        />
-      ))}
-      {canComment ? (
-        <View style={styles.commentRow}>
-          <TextInput
-            style={styles.commentInput}
-            value={comment}
-            onChangeText={(value) => {
-              setComment(value);
-              setCommentModWarning(null);
-            }}
-            placeholder="Commenter…"
-            placeholderTextColor={mobileColors.textSecondary}
-          />
-          <Pressable
-            disabled={!comment.trim() || sending}
-            onPress={() => {
-              setSending(true);
-              void onComment(post.id, comment.trim())
-                .then(() => {
-                  setComment("");
-                  setCommentModWarning(null);
-                })
-                .catch((err: unknown) => {
-                  const message =
-                    err instanceof Error
-                      ? err.message
-                      : t(
-                          "feed.commentBlocked",
-                          "Commentaire bloqué par la modération."
-                        );
-                  setCommentModWarning(message);
-                  Alert.alert(
-                    t("moderation.blockedTitle", "Message bloqué"),
-                    message
-                  );
-                })
-                .finally(() => {
-                  setSending(false);
-                });
-            }}
-            style={[styles.commentBtn, (!comment.trim() || sending) && styles.disabledBtn]}
-          >
-            <Text style={styles.commentBtnTx}>Envoyer</Text>
-          </Pressable>
-        </View>
-      ) : null}
-      {commentModWarning ? (
-        <ModerationWarningBanner message={commentModWarning} severity="high" />
-      ) : null}
-    </View>
-  );
-}
-
 export function FeedScreen() {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const queryClient = useQueryClient();
-  const { accessToken, activeProfileId } = useSession();
+  const { accessToken, activeProfileId, authMe } = useSession();
   const [composerOpen, setComposerOpen] = useState(false);
   const [body, setBody] = useState("");
   const [postType, setPostType] = useState<CommunityFeedPostType>("question");
@@ -289,6 +68,14 @@ export function FeedScreen() {
   useScreenTitle(navigation, t("navigation.main.feed"));
 
   const enabled = Boolean(accessToken && activeProfileId);
+
+  const currentUserName = useMemo(() => {
+    const pid = activeProfileId;
+    const profile = pid
+      ? authMe?.profiles.find((p) => p.id === pid)
+      : authMe?.activeProfile;
+    return profile?.displayName ?? authMe?.user.fullName ?? null;
+  }, [authMe, activeProfileId]);
 
   const statusQ = useQuery({
     queryKey: ["feedMyStatus", activeProfileId],
@@ -475,7 +262,14 @@ export function FeedScreen() {
                   onPress={() => setPostType(type)}
                   style={[styles.typeChip, selectedType === type && styles.typeChipActive]}
                 >
-                  <Text style={styles.typeChipTx}>{postTypeLabel(type)}</Text>
+                  <Text
+                    style={[
+                      styles.typeChipTx,
+                      selectedType === type && styles.typeChipTxActive
+                    ]}
+                  >
+                    {postTypeLabel(type)}
+                  </Text>
                 </Pressable>
               ))}
             </View>
@@ -483,9 +277,9 @@ export function FeedScreen() {
               style={styles.composerInput}
               multiline
               value={body}
-              onChangeText={(t) => {
-                setBody(t);
-                void onPreCheck(t);
+              onChangeText={(text) => {
+                setBody(text);
+                void onPreCheck(text);
               }}
               placeholder={
                 selectedType === "medical_tip"
@@ -548,9 +342,10 @@ export function FeedScreen() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.list}
             renderItem={({ item }) => (
-              <PostCard
+              <FeedPostCard
                 post={item}
                 canComment={canComment}
+                currentUserName={currentUserName}
                 onComment={handleComment}
                 onLikePost={handleLikePost}
                 onLikeComment={handleLikeComment}
@@ -576,7 +371,7 @@ export function FeedScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: mobileSpacing.md },
+  container: { flex: 1, padding: mobileSpacing.md, backgroundColor: mobileColors.canvas },
   listFlex: { flex: 1 },
   list: { paddingBottom: 120, gap: mobileSpacing.md },
   loader: { marginTop: 24 },
@@ -602,81 +397,14 @@ const styles = StyleSheet.create({
     color: mobileColors.accent,
     fontWeight: "600"
   },
-  postCard: {
-    backgroundColor: mobileColors.surface,
-    borderRadius: mobileRadius.lg,
-    padding: mobileSpacing.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: mobileColors.border
-  },
-  vetHighlight: { borderColor: "#4A90D9", borderWidth: 1 },
-  postHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: mobileSpacing.xs,
-    flexWrap: "wrap"
-  },
-  authorName: { ...mobileTypography.cardTitle, fontSize: 15 },
-  postType: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary,
-    marginTop: 4
-  },
-  postBody: { ...mobileTypography.body, marginTop: mobileSpacing.xs },
   disclaimer: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
     fontStyle: "italic",
     marginTop: mobileSpacing.sm
   },
-  conditionalHint: {
-    ...mobileTypography.meta,
-    color: "#92400E",
-    marginTop: mobileSpacing.xs
-  },
-  comment: {
-    marginTop: mobileSpacing.sm,
-    paddingTop: mobileSpacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: mobileColors.border
-  },
-  commentReply: {
-    marginLeft: mobileSpacing.md,
-    borderLeftWidth: 2,
-    borderLeftColor: mobileColors.border,
-    paddingLeft: mobileSpacing.sm
-  },
-  commentActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: mobileSpacing.md,
-    marginTop: 4
-  },
-  likeBtn: { paddingVertical: 2 },
-  likeBtnTx: { ...mobileTypography.meta, color: mobileColors.textSecondary },
-  likeBtnTxActive: { color: mobileColors.accent, fontWeight: "600" },
-  replyBtnTx: { ...mobileTypography.meta, color: mobileColors.accent, fontWeight: "600" },
-  commentAuthor: { ...mobileTypography.meta, fontWeight: "600" },
-  commentBody: { ...mobileTypography.body, fontSize: 14, marginTop: 2 },
-  commentRow: { flexDirection: "row", gap: mobileSpacing.xs, marginTop: mobileSpacing.sm },
-  commentInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: mobileColors.border,
-    borderRadius: mobileRadius.md,
-    paddingHorizontal: mobileSpacing.sm,
-    paddingVertical: 8,
-    ...mobileTypography.body
-  },
-  commentBtn: {
-    backgroundColor: mobileColors.accent,
-    borderRadius: mobileRadius.md,
-    paddingHorizontal: mobileSpacing.md,
-    justifyContent: "center"
-  },
-  commentBtnTx: { color: "#fff", fontWeight: "600", fontSize: 13 },
   composer: {
-    backgroundColor: mobileColors.surface,
+    backgroundColor: mobileColors.background,
     borderRadius: mobileRadius.lg,
     padding: mobileSpacing.md,
     marginBottom: mobileSpacing.md,
@@ -693,6 +421,7 @@ const styles = StyleSheet.create({
   },
   typeChipActive: { backgroundColor: mobileColors.accent, borderColor: mobileColors.accent },
   typeChipTx: { ...mobileTypography.meta, fontSize: 11 },
+  typeChipTxActive: { color: mobileColors.onAccent },
   composerInput: {
     minHeight: 100,
     borderWidth: 1,
