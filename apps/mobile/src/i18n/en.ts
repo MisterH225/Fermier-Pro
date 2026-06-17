@@ -1233,7 +1233,7 @@ export const en = {
       messages: "Messages",
       finance: "Finance",
       collaboration: "Team",
-      feed: "Feed",
+      feed: "Com",
       profile: "Profile"
     },
     extended: {
@@ -1256,7 +1256,7 @@ export const en = {
     },
     screenTitles: {
       feedStock: "Feed stock",
-      communityFeed: "Feed",
+      communityFeed: "Com",
       notifications: "Notifications",
       reports: "Reports",
       messages: "Messages",

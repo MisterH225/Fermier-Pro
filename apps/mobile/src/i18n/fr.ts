@@ -1239,7 +1239,7 @@ export const fr = {
       messages: "Messages",
       finance: "Finance",
       collaboration: "Équipe",
-      feed: "Feed",
+      feed: "Com",
       profile: "Profil"
     },
     extended: {
@@ -1262,7 +1262,7 @@ export const fr = {
     },
     screenTitles: {
       feedStock: "Stock aliment",
-      communityFeed: "Feed",
+      communityFeed: "Com",
       notifications: "Notifications",
       reports: "Rapports",
       messages: "Messages",

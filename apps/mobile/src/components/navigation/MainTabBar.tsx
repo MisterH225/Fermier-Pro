@@ -36,7 +36,7 @@ const TAB_META: Record<
   home: { emoji: "🏠", labelKey: "navigation.main.home" },
   cheptel: { emoji: "🐷", labelKey: "navigation.main.cheptel" },
   health: { emoji: "🏥", labelKey: "navigation.main.health" },
-  feed: { emoji: "🌱", labelKey: "navigation.main.feed" },
+  feed: { emoji: "@", labelKey: "navigation.main.feed" },
   finance: { emoji: "💰", labelKey: "navigation.main.finance" }
 };
 

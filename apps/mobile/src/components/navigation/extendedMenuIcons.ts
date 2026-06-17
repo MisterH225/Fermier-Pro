@@ -8,7 +8,7 @@ export const EXTENDED_MENU_ICONS: Record<
   team: "people-outline",
   nutrition: "leaf-outline",
   collaboration: "people-outline",
-  communityFeed: "leaf-outline",
+  communityFeed: "at-outline",
   market: "cart-outline",
   gestation: "egg-outline",
   tasks: "checkbox-outline",
