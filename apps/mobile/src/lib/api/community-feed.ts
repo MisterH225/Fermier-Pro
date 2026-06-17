@@ -26,12 +26,20 @@ export type CommunityRuleDto = {
   autoHandled?: boolean;
 };
 
+export type FeedLikerDto = {
+  displayName: string | null;
+  avatarUrl: string | null;
+  isOnline: boolean;
+};
+
 export type FeedCommentDto = {
   id: string;
   parentCommentId: string | null;
   authorProfileType: ProfileType;
   authorDisplayName: string | null;
   authorRegion: string | null;
+  authorAvatarUrl: string | null;
+  authorIsOnline: boolean;
   body: string;
   isAnonymous: boolean;
   likeCount: number;
@@ -45,6 +53,8 @@ export type FeedPostDto = {
   authorProfileType: ProfileType;
   authorDisplayName: string | null;
   authorRegion: string | null;
+  authorAvatarUrl: string | null;
+  authorIsOnline: boolean;
   postType: CommunityFeedPostType;
   body: string;
   isAnonymous: boolean;
@@ -52,6 +62,7 @@ export type FeedPostDto = {
   medicalDisclaimer: string | null;
   likeCount: number;
   likedByMe: boolean;
+  recentLikers: FeedLikerDto[];
   createdAt: string;
   comments: FeedCommentDto[];
 };
