@@ -47,7 +47,7 @@ export function EvolutionCheptelCard({ payload }: Props) {
       </View>
       <Text style={styles.note}>
         {t("predictions.growthRate", {
-          rate: (evo.growth_rate * 100).toFixed(1)
+          rate: (Number(evo.growth_rate ?? 0) * 100).toFixed(1)
         })}
       </Text>
     </View>

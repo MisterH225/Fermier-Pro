@@ -1,10 +1,10 @@
 import { Controller, Get, Param } from "@nestjs/common";
-import { SkipThrottle } from "@nestjs/throttler";
+import { Throttle } from "@nestjs/throttler";
 import { ReceiptService } from "./receipt.service";
 
 /** Endpoint public pour le QR code des reçus PDF marketplace. */
 @Controller("verify")
-@SkipThrottle()
+@Throttle({ default: { limit: 20, ttl: 60_000 } }) // Limite l'énumération des numéros de reçu
 export class ReceiptVerifyController {
   constructor(private readonly receipts: ReceiptService) {}
 

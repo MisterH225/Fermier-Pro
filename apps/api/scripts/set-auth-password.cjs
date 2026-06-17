@@ -22,7 +22,7 @@ for (const envPath of [path.join(repoRoot, ".env"), path.join(apiRoot, ".env")])
 const { PrismaClient } = require("@prisma/client");
 
 function parseArgs(argv) {
-  const out = { email: null, userId: null, password: "FermierAdmin2026!" };
+  const out = { email: null, userId: null, password: null };
   for (let i = 2; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--email" && argv[i + 1]) out.email = argv[++i];
@@ -39,7 +39,7 @@ function printHelp() {
 Options :
   --email <adresse>       Email utilisateur
   --user-id <uuid>        Id Supabase Auth (auth.users.id)
-  --password <motdepasse> Mot de passe (défaut : FermierAdmin2026!)
+  --password <motdepasse> Mot de passe (obligatoire — aucune valeur par défaut)
   -h, --help
 
 Requis dans .env : SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
@@ -65,8 +65,12 @@ async function main() {
     printHelp();
     process.exit(1);
   }
-  if (args.password.length < 8) {
-    console.error("Le mot de passe doit faire au moins 8 caractères.");
+  if (!args.password) {
+    console.error("--password est obligatoire. Aucune valeur par défaut pour des raisons de sécurité.");
+    process.exit(1);
+  }
+  if (args.password.length < 12) {
+    console.error("Le mot de passe doit faire au moins 12 caractères.");
     process.exit(1);
   }
 
@@ -110,7 +114,7 @@ async function main() {
   console.log("Mot de passe Supabase mis à jour.");
   console.log(`  authUserId: ${authUserId}`);
   console.log(`  email:      ${args.email ?? "—"}`);
-  console.log(`  password:   ${args.password}`);
+  // Ne pas logger le mot de passe en clair
   console.log("\nConnexion : http://localhost:3001/fr/login");
 }
 

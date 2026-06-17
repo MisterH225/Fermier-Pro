@@ -9,7 +9,6 @@ import {
 import { createHmac, timingSafeEqual } from "crypto";
 import { SkipThrottle } from "@nestjs/throttler";
 import { MarketplaceTransactionService } from "./marketplace-transaction.service";
-import { isDeploymentProduction } from "./runtime-env.util";
 
 type PaymentWebhookBody = {
   event: "payment.confirmed" | "payment.failed";
@@ -40,7 +39,9 @@ export class MobileMoneyWebhookController {
     if (body.event === "payment.confirmed") {
       await this.transactions.confirmPaymentFromWebhook(
         body.transactionId.trim(),
-        body.providerRef.trim()
+        body.providerRef.trim(),
+        body.amount,
+        body.currency
       );
       return { ok: true };
     }
@@ -60,10 +61,8 @@ export class MobileMoneyWebhookController {
   ): void {
     const secret = process.env.MOBILE_MONEY_WEBHOOK_SECRET?.trim();
     if (!secret) {
-      if (isDeploymentProduction()) {
-        throw new UnauthorizedException("Webhook secret non configuré");
-      }
-      return;
+      // Secret obligatoire dans tous les environnements déployés
+      throw new UnauthorizedException("Webhook secret non configuré");
     }
     if (!signature?.trim()) {
       throw new UnauthorizedException("Signature manquante");

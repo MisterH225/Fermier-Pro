@@ -137,11 +137,23 @@ export class OffersService {
     const offeredNumber = hasPerKg
       ? dto.proposedPricePerKg! * listing.totalWeightKg!.toNumber()
       : dto.offeredPrice!;
+    // Valider que buyerFarmId appartient bien à l'acheteur
+    const buyerFarmId = dto.buyerFarmId?.trim() || null;
+    if (buyerFarmId) {
+      const farm = await this.prisma.farm.findFirst({
+        where: { id: buyerFarmId, ownerId: user.id },
+        select: { id: true }
+      });
+      if (!farm) {
+        throw new BadRequestException("Ferme acheteur introuvable ou non autorisée");
+      }
+    }
+
     const created = await this.prisma.marketplaceOffer.create({
       data: {
         listingId,
         buyerUserId: user.id,
-        buyerFarmId: dto.buyerFarmId?.trim() || null,
+        buyerFarmId,
         proposedPricePerKg:
           dto.proposedPricePerKg != null
             ? new Prisma.Decimal(dto.proposedPricePerKg)

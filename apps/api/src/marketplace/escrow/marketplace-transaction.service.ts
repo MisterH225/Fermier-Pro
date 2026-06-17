@@ -729,7 +729,12 @@ export class MarketplaceTransactionService {
   }
 
   /** Confirmation asynchrone via webhook prestataire (sans JWT acheteur). */
-  async confirmPaymentFromWebhook(transactionId: string, providerRef: string) {
+  async confirmPaymentFromWebhook(
+    transactionId: string,
+    providerRef: string,
+    webhookAmount?: number,
+    webhookCurrency?: string
+  ) {
     const tx = await this.prisma.marketplaceTransaction.findUnique({
       where: { id: transactionId }
     });
@@ -744,6 +749,19 @@ export class MarketplaceTransactionService {
     }
     if (tx.paymentProviderRef && tx.paymentProviderRef !== providerRef) {
       throw new BadRequestException("providerRef incohérent");
+    }
+    // Valider que le montant confirmé par le prestataire correspond au montant bloqué
+    if (webhookAmount !== undefined) {
+      const blocked = Number(tx.blockedAmount);
+      if (Math.abs(webhookAmount - blocked) > 1) {
+        this.log.warn(
+          `Webhook montant incohérent tx=${transactionId} webhook=${webhookAmount} blocked=${blocked}`
+        );
+        throw new BadRequestException("Montant webhook incohérent avec le montant bloqué");
+      }
+    }
+    if (webhookCurrency && webhookCurrency !== tx.currency) {
+      throw new BadRequestException("Devise webhook incohérente");
     }
     const holdResult = await this.escrow.confirmHold(providerRef, transactionId);
     if (!holdResult.success) {

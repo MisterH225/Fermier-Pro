@@ -16,7 +16,14 @@ import { WsSendMessageDto } from "./dto/ws-send-message.dto";
 
 @WebSocketGateway({
   namespace: "/chat",
-  cors: { origin: "*" }
+  cors: {
+    // Aligner sur CORS_ORIGINS de l'API REST ; fallback localhost en dev
+    origin: process.env.CORS_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean) ?? [
+      "http://localhost:3001",
+      "http://127.0.0.1:3001"
+    ],
+    credentials: true
+  }
 })
 export class ChatGateway implements OnGatewayConnection {
   private readonly logger = new Logger(ChatGateway.name);

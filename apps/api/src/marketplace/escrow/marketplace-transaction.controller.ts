@@ -14,10 +14,14 @@ import { SupabaseJwtGuard } from "../../auth/guards/supabase-jwt.guard";
 import { RequirePlatformModule } from "../../feature-flags/require-platform-module.decorator";
 import { PlatformModuleEnabledGuard } from "../../feature-flags/platform-module-enabled.guard";
 import { ConfirmReceiptDto } from "../dto/confirm-receipt.dto";
+import { ConfirmPaymentDto } from "../dto/confirm-payment.dto";
 import { InitiatePaymentDto } from "../dto/initiate-payment.dto";
 import { ConfirmShipmentDto } from "../dto/confirm-shipment.dto";
 import { CompletePendingTransferDto } from "../dto/complete-pending-transfer.dto";
 import { DeliveryDisputeDto } from "../dto/delivery-dispute.dto";
+import { SchedulePickupDto } from "../dto/schedule-pickup.dto";
+import { DeclareWeightDto } from "../dto/declare-weight.dto";
+import { DisputeWeightDto } from "../dto/dispute-weight.dto";
 import { MarketplaceTransactionService } from "./marketplace-transaction.service";
 
 @Controller("marketplace/transactions")
@@ -67,7 +71,7 @@ export class MarketplaceTransactionController {
   confirmPayment(
     @CurrentUser() user: User,
     @Param("id") id: string,
-    @Body() body: { providerRef?: string }
+    @Body() body: ConfirmPaymentDto
   ) {
     return this.transactions.confirmPayment(user, id, body.providerRef);
   }
@@ -103,8 +107,7 @@ export class MarketplaceTransactionController {
   schedulePickup(
     @CurrentUser() user: User,
     @Param("id") id: string,
-    @Body()
-    body: { pickupDate: string; pickupLocation: string; notes?: string }
+    @Body() body: SchedulePickupDto
   ) {
     return this.transactions.schedulePickup(
       user,
@@ -124,7 +127,7 @@ export class MarketplaceTransactionController {
   declareWeight(
     @CurrentUser() user: User,
     @Param("id") id: string,
-    @Body() body: { realWeightKg: number; photoUrl?: string }
+    @Body() body: DeclareWeightDto
   ) {
     return this.transactions.declareWeight(
       user,
@@ -143,7 +146,7 @@ export class MarketplaceTransactionController {
   disputeWeight(
     @CurrentUser() user: User,
     @Param("id") id: string,
-    @Body() body: { reason?: string }
+    @Body() body: DisputeWeightDto
   ) {
     return this.transactions.disputeWeight(user, id, body.reason);
   }

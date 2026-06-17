@@ -614,15 +614,11 @@ export class VetAppointmentService {
     if (!row) {
       throw new NotFoundException("Rendez-vous introuvable");
     }
-    if (
-      row.producerUserId !== user.id &&
-      row.vetUserId !== user.id
-    ) {
-      try {
-        await this.farmAccess.requireFarmAccess(user.id, row.farmId);
-      } catch {
-        throw new ForbiddenException("Accès refusé");
-      }
+    // Seuls le producteur et le vétérinaire du rendez-vous peuvent y accéder.
+    // Les membres de la ferme (viewer, worker…) n'ont pas accès aux informations
+    // médicales et financières des consultations vétérinaires.
+    if (row.producerUserId !== user.id && row.vetUserId !== user.id) {
+      throw new ForbiddenException("Accès refusé");
     }
     return this.mapRow(row);
   }

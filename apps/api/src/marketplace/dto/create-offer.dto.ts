@@ -14,7 +14,7 @@ export class CreateOfferDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  @Min(0)
+  @Min(1) // Prix minimum 1 pour éviter offres nulles
   @Max(1e12)
   offeredPrice?: number;
 
@@ -22,7 +22,7 @@ export class CreateOfferDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  @Min(0)
+  @Min(1)
   @Max(1e9)
   proposedPricePerKg?: number;
 

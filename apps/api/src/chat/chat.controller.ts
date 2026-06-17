@@ -7,6 +7,7 @@ import {
   Query,
   UseGuards
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import type { User } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
@@ -110,6 +111,7 @@ export class ChatController {
   }
 
   @Post("analyze-image")
+  @Throttle({ default: { limit: 10, ttl: 60_000 } }) // 10 analyses/min max pour éviter abus Gemini et DoS
   async analyzeImage(
     @CurrentUser() user: User,
     @Body() dto: AnalyzeChatImageDto

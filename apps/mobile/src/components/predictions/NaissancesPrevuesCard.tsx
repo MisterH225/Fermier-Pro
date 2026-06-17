@@ -17,16 +17,22 @@ type Props = {
 
 export function NaissancesPrevuesCard({ payload, locale }: Props) {
   const { t } = useTranslation();
-  const births = payload.gestation_predictions.upcoming_births;
   const gp = payload.gestation_predictions;
+  // gestation_predictions peut être absent si l'IA ne l'a pas retourné
+  if (!gp) return null;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  // Filtrer les naissances avec une date passée (hallucination Gemini)
+  const births = (Array.isArray(gp.upcoming_births) ? gp.upcoming_births : [])
+    .filter((b) => typeof b.expected_birth_date === "string" && b.expected_birth_date >= todayStr);
+  const projected30j = Number(gp.projected_new_animals_30j ?? 0);
 
-  if (!births.length && gp.projected_new_animals_30j === 0) {
+  if (!births.length && projected30j === 0) {
     return null;
   }
 
   const avgConfidence =
     births.length > 0
-      ? births.reduce((s, b) => s + b.confidence, 0) / births.length
+      ? births.reduce((s, b) => s + Number(b.confidence ?? 0.5), 0) / births.length
       : 0.5;
 
   return (
@@ -42,7 +48,7 @@ export function NaissancesPrevuesCard({ payload, locale }: Props) {
         </Text>
       ))}
       <Text style={styles.total}>
-        {t("predictions.piglets30j", { count: gp.projected_new_animals_30j })}
+        {t("predictions.piglets30j", { count: projected30j })}
       </Text>
       <ConfidenceBadge confidence={avgConfidence} />
     </View>
