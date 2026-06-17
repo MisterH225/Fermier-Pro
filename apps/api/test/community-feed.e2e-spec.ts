@@ -227,6 +227,47 @@ describeOrSkip("Community Feed (e2e)", () => {
     expect(post?.comments?.[0]?.replies?.[0]?.id).toBe(replyRes.body.id);
   });
 
+  it("GET /feed/posts expose avatars, présence et likers récents", async () => {
+    const postRes = await request(app.getHttpServer())
+      .post("/api/v1/feed/posts")
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId)
+      .send({
+        postType: "tip",
+        body: "Publication test champs enrichis feed e2e."
+      });
+
+    expect(postRes.status).toBeGreaterThanOrEqual(200);
+    expect(postRes.status).toBeLessThan(300);
+    expect(postRes.body).toHaveProperty("authorAvatarUrl");
+    expect(typeof postRes.body.authorIsOnline).toBe("boolean");
+    expect(Array.isArray(postRes.body.recentLikers)).toBe(true);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/feed/posts/${postRes.body.id}/like`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId);
+
+    const listRes = await request(app.getHttpServer())
+      .get("/api/v1/feed/posts?page=1")
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .set("X-Profile-Id", ctx.producerProfileId);
+
+    const post = (
+      listRes.body.items as Array<{
+        id: string;
+        recentLikers: Array<{ displayName: string | null; isOnline: boolean }>;
+        comments: Array<{ authorAvatarUrl: string | null; authorIsOnline: boolean }>;
+      }>
+    ).find((p) => p.id === postRes.body.id);
+
+    expect(post).toBeTruthy();
+    expect(Array.isArray(post?.recentLikers)).toBe(true);
+    expect(post?.recentLikers.length).toBeGreaterThanOrEqual(1);
+    expect(post?.recentLikers[0]).toHaveProperty("displayName");
+    expect(typeof post?.recentLikers[0]?.isOnline).toBe("boolean");
+  });
+
   it("DELETE /admin/feed/posts/:id supprime une publication", async () => {
     const postRes = await request(app.getHttpServer())
       .post("/api/v1/feed/posts")

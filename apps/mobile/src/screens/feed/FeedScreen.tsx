@@ -56,7 +56,7 @@ export function FeedScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const queryClient = useQueryClient();
-  const { accessToken, activeProfileId, authMe } = useSession();
+  const { accessToken, activeProfileId } = useSession();
   const [composerOpen, setComposerOpen] = useState(false);
   const [body, setBody] = useState("");
   const [postType, setPostType] = useState<CommunityFeedPostType>("question");
@@ -68,14 +68,6 @@ export function FeedScreen() {
   useScreenTitle(navigation, t("navigation.main.feed"));
 
   const enabled = Boolean(accessToken && activeProfileId);
-
-  const currentUserName = useMemo(() => {
-    const pid = activeProfileId;
-    const profile = pid
-      ? authMe?.profiles.find((p) => p.id === pid)
-      : authMe?.activeProfile;
-    return profile?.displayName ?? authMe?.user.fullName ?? null;
-  }, [authMe, activeProfileId]);
 
   const statusQ = useQuery({
     queryKey: ["feedMyStatus", activeProfileId],
@@ -345,7 +337,6 @@ export function FeedScreen() {
               <FeedPostCard
                 post={item}
                 canComment={canComment}
-                currentUserName={currentUserName}
                 onComment={handleComment}
                 onLikePost={handleLikePost}
                 onLikeComment={handleLikeComment}

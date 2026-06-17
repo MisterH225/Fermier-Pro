@@ -27,12 +27,34 @@ import { SanctionService } from "./services/sanction.service";
 const MEDICAL_DISCLAIMER =
   "Ce conseil est partagé à titre informatif — consultez un vétérinaire pour un diagnostic.";
 
+/** Seuil de présence en ligne (aligné sur la mise à jour horaire de lastActiveAt côté auth). */
+const ONLINE_THRESHOLD_MS = 5 * 60 * 1000;
+const RECENT_LIKERS_LIMIT = 8;
+
+export type FeedLikerDto = {
+  displayName: string | null;
+  avatarUrl: string | null;
+  isOnline: boolean;
+};
+
+type ProfileSnapshot = {
+  id: string;
+  avatarUrl: string | null;
+};
+
+type AuthorUserSnapshot = {
+  lastActiveAt: Date | null;
+  avatarUrl: string | null;
+};
+
 export type MappedFeedComment = {
   id: string;
   parentCommentId: string | null;
   authorProfileType: ProfileType;
   authorDisplayName: string | null;
   authorRegion: string | null;
+  authorAvatarUrl: string | null;
+  authorIsOnline: boolean;
   body: string;
   isAnonymous: boolean;
   likeCount: number;
@@ -109,11 +131,17 @@ export class CommunityFeedService {
       skip,
       take: limit,
       include: {
+        authorUser: {
+          select: { lastActiveAt: true, avatarUrl: true }
+        },
         comments: {
           where: { isRemoved: false },
           orderBy: { createdAt: "asc" },
           take: 200,
           include: {
+            authorUser: {
+              select: { lastActiveAt: true, avatarUrl: true }
+            },
             _count: { select: { likes: true } },
             likes: {
               where: { userId },
@@ -139,10 +167,21 @@ export class CommunityFeedService {
       });
     }
 
+    const profileIds = [
+      ...posts.map((p) => p.authorProfileId),
+      ...posts.flatMap((p) => p.comments.map((c) => c.authorProfileId))
+    ];
+    const [profileMap, likersByPostId] = await Promise.all([
+      this.loadProfileMap(profileIds),
+      this.loadRecentLikersByPostId(postIds)
+    ]);
+
     return {
       page,
       limit,
-      items: posts.map((p) => this.mapPost(p, userId))
+      items: posts.map((p) =>
+        this.mapPost(p, userId, profileMap, likersByPostId.get(p.id) ?? [])
+      )
     };
   }
 
@@ -389,7 +428,26 @@ export class CommunityFeedService {
 
     void this.reviewPostAsync(post.id, post.body, user.id);
 
-    return this.mapPost({ ...post, comments: [] }, user.id);
+    const [profileMap, authorUser] = await Promise.all([
+      this.loadProfileMap([profileId]),
+      this.prisma.user.findUnique({
+        where: { id: user.id },
+        select: { lastActiveAt: true, avatarUrl: true }
+      })
+    ]);
+
+    return this.mapPost(
+      {
+        ...post,
+        comments: [],
+        _count: { likes: 0 },
+        likes: [],
+        authorUser: authorUser ?? { lastActiveAt: null, avatarUrl: null }
+      },
+      user.id,
+      profileMap,
+      []
+    );
   }
 
   async createComment(
@@ -455,7 +513,24 @@ export class CommunityFeedService {
 
     void this.reviewCommentAsync(comment.id, comment.body, user.id, dto.postId);
 
-    return this.mapComment(comment, user.id);
+    const [profileMap, authorUser] = await Promise.all([
+      this.loadProfileMap([profileId]),
+      this.prisma.user.findUnique({
+        where: { id: user.id },
+        select: { lastActiveAt: true, avatarUrl: true }
+      })
+    ]);
+
+    return this.mapComment(
+      {
+        ...comment,
+        _count: { likes: 0 },
+        likes: [],
+        authorUser: authorUser ?? { lastActiveAt: null, avatarUrl: null }
+      },
+      user.id,
+      profileMap
+    );
   }
 
   async moderatePostAsync(postId: string, userId: string) {
@@ -715,9 +790,106 @@ export class CommunityFeedService {
     }
   }
 
+  private isUserOnline(lastActiveAt: Date | null | undefined): boolean {
+    if (!lastActiveAt) {
+      return false;
+    }
+    return Date.now() - lastActiveAt.getTime() < ONLINE_THRESHOLD_MS;
+  }
+
+  private async loadProfileMap(
+    profileIds: string[]
+  ): Promise<Map<string, ProfileSnapshot>> {
+    const unique = [...new Set(profileIds.filter(Boolean))];
+    if (!unique.length) {
+      return new Map();
+    }
+    const profiles = await this.prisma.profile.findMany({
+      where: { id: { in: unique } },
+      select: { id: true, avatarUrl: true }
+    });
+    return new Map(profiles.map((p) => [p.id, p]));
+  }
+
+  private async loadRecentLikersByPostId(
+    postIds: string[]
+  ): Promise<Map<string, FeedLikerDto[]>> {
+    const result = new Map<string, FeedLikerDto[]>();
+    if (!postIds.length) {
+      return result;
+    }
+
+    await Promise.all(
+      postIds.map(async (postId) => {
+        const likes = await this.prisma.communityFeedLike.findMany({
+          where: { postId, commentId: null },
+          orderBy: { createdAt: "desc" },
+          take: RECENT_LIKERS_LIMIT,
+          select: {
+            user: {
+              select: {
+                fullName: true,
+                avatarUrl: true,
+                lastActiveAt: true,
+                profiles: {
+                  select: { avatarUrl: true, displayName: true },
+                  orderBy: [{ isDefault: "desc" }],
+                  take: 1
+                }
+              }
+            }
+          }
+        });
+        result.set(
+          postId,
+          likes.map((like) => this.mapLikerFromUser(like.user))
+        );
+      })
+    );
+
+    return result;
+  }
+
+  private mapLikerFromUser(user: {
+    fullName: string | null;
+    avatarUrl: string | null;
+    lastActiveAt: Date | null;
+    profiles: Array<{ avatarUrl: string | null; displayName: string | null }>;
+  }): FeedLikerDto {
+    const profile = user.profiles[0];
+    return {
+      displayName: profile?.displayName ?? user.fullName,
+      avatarUrl: profile?.avatarUrl ?? user.avatarUrl,
+      isOnline: this.isUserOnline(user.lastActiveAt)
+    };
+  }
+
+  private resolveAuthorAvatarUrl(
+    isAnonymous: boolean,
+    authorProfileId: string,
+    profileMap: Map<string, ProfileSnapshot>,
+    fallbackAvatar: string | null | undefined
+  ): string | null {
+    if (isAnonymous) {
+      return null;
+    }
+    return profileMap.get(authorProfileId)?.avatarUrl ?? fallbackAvatar ?? null;
+  }
+
+  private resolveAuthorIsOnline(
+    isAnonymous: boolean,
+    lastActiveAt: Date | null | undefined
+  ): boolean {
+    if (isAnonymous) {
+      return false;
+    }
+    return this.isUserOnline(lastActiveAt);
+  }
+
   private mapPost(
     post: {
       id: string;
+      authorProfileId: string;
       authorProfileType: ProfileType;
       authorDisplayName: string | null;
       authorRegion: string | null;
@@ -725,10 +897,12 @@ export class CommunityFeedService {
       body: string;
       isAnonymous: boolean;
       createdAt: Date;
+      authorUser?: AuthorUserSnapshot | null;
       _count?: { likes: number };
       likes?: Array<{ id: string }>;
       comments?: Array<{
         id: string;
+        authorProfileId: string;
         parentCommentId?: string | null;
         authorProfileType: ProfileType;
         authorDisplayName: string | null;
@@ -736,14 +910,17 @@ export class CommunityFeedService {
         body: string;
         isAnonymous: boolean;
         createdAt: Date;
+        authorUser?: AuthorUserSnapshot | null;
         _count?: { likes: number };
         likes?: Array<{ id: string }>;
       }>;
     },
-    userId?: string
+    userId: string | undefined,
+    profileMap: Map<string, ProfileSnapshot>,
+    recentLikers: FeedLikerDto[]
   ) {
     const flatComments = (post.comments ?? []).map((c) =>
-      this.mapComment(c, userId)
+      this.mapComment(c, userId, profileMap)
     );
 
     return {
@@ -751,6 +928,16 @@ export class CommunityFeedService {
       authorProfileType: post.authorProfileType,
       authorDisplayName: post.isAnonymous ? null : post.authorDisplayName,
       authorRegion: post.authorRegion,
+      authorAvatarUrl: this.resolveAuthorAvatarUrl(
+        post.isAnonymous,
+        post.authorProfileId,
+        profileMap,
+        post.authorUser?.avatarUrl
+      ),
+      authorIsOnline: this.resolveAuthorIsOnline(
+        post.isAnonymous,
+        post.authorUser?.lastActiveAt
+      ),
       postType: post.postType,
       body: post.body,
       isAnonymous: post.isAnonymous,
@@ -761,6 +948,7 @@ export class CommunityFeedService {
           : null,
       likeCount: post._count?.likes ?? 0,
       likedByMe: (post.likes?.length ?? 0) > 0,
+      recentLikers,
       createdAt: post.createdAt.toISOString(),
       comments: this.nestComments(flatComments)
     };
@@ -769,6 +957,7 @@ export class CommunityFeedService {
   private mapComment(
     comment: {
       id: string;
+      authorProfileId: string;
       parentCommentId?: string | null;
       authorProfileType: ProfileType;
       authorDisplayName: string | null;
@@ -776,10 +965,12 @@ export class CommunityFeedService {
       body: string;
       isAnonymous: boolean;
       createdAt: Date;
+      authorUser?: AuthorUserSnapshot | null;
       _count?: { likes: number };
       likes?: Array<{ id: string }>;
     },
-    _userId?: string
+    _userId: string | undefined,
+    profileMap: Map<string, ProfileSnapshot>
   ): MappedFeedComment {
     return {
       id: comment.id,
@@ -787,6 +978,16 @@ export class CommunityFeedService {
       authorProfileType: comment.authorProfileType,
       authorDisplayName: comment.isAnonymous ? null : comment.authorDisplayName,
       authorRegion: comment.authorRegion,
+      authorAvatarUrl: this.resolveAuthorAvatarUrl(
+        comment.isAnonymous,
+        comment.authorProfileId,
+        profileMap,
+        comment.authorUser?.avatarUrl
+      ),
+      authorIsOnline: this.resolveAuthorIsOnline(
+        comment.isAnonymous,
+        comment.authorUser?.lastActiveAt
+      ),
       body: comment.body,
       isAnonymous: comment.isAnonymous,
       likeCount: comment._count?.likes ?? 0,

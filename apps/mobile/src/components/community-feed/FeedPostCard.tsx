@@ -37,7 +37,6 @@ function postTypeLabel(type: string | null | undefined): string {
 type Props = {
   post: FeedPostDto;
   canComment: boolean;
-  currentUserName?: string | null;
   onComment: (postId: string, body: string, parentCommentId?: string) => Promise<void>;
   onLikePost: (postId: string) => Promise<void>;
   onLikeComment: (commentId: string) => Promise<void>;
@@ -46,7 +45,6 @@ type Props = {
 export function FeedPostCard({
   post,
   canComment,
-  currentUserName,
   onComment,
   onLikePost,
   onLikeComment
@@ -90,6 +88,8 @@ export function FeedPostCard({
           profileType={post.authorProfileType}
           anonymous={post.isAnonymous}
           size="lg"
+          imageUrl={post.authorAvatarUrl}
+          isOnline={post.isAnonymous ? undefined : post.authorIsOnline}
         />
         <View style={styles.headerBody}>
           <View style={styles.nameRow}>
@@ -131,8 +131,7 @@ export function FeedPostCard({
 
       <FeedLikesRow
         likeCount={post.likeCount}
-        likedByMe={post.likedByMe}
-        currentUserName={currentUserName}
+        recentLikers={post.recentLikers ?? []}
       />
 
       <FeedCommentThread

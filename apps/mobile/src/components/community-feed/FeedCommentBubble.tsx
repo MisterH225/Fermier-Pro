@@ -73,6 +73,8 @@ export function FeedCommentBubble({
         profileType={comment.authorProfileType}
         anonymous={comment.isAnonymous}
         size={depth > 0 ? "sm" : "md"}
+        imageUrl={comment.authorAvatarUrl}
+        isOnline={comment.isAnonymous ? undefined : comment.authorIsOnline}
       />
       <View style={styles.content}>
         <View style={styles.bubble}>

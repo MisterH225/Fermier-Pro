@@ -1,4 +1,5 @@
 export { FeedAvatar } from "./FeedAvatar";
+export { FeedLikerAvatar } from "./FeedLikerAvatar";
 export { FeedCommentBubble } from "./FeedCommentBubble";
 export { FeedCommentInputBar } from "./FeedCommentInputBar";
 export { FeedCommentThread } from "./FeedCommentThread";

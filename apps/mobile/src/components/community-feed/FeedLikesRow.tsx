@@ -1,57 +1,44 @@
 import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import type { FeedLikerDto } from "../../lib/api/community-feed";
 import {
   mobileColors,
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
-import { displayInitials, likerPlaceholderColor } from "./feedDisplayUtils";
+import { FeedLikerAvatar } from "./FeedLikerAvatar";
 
 const MAX_VISIBLE = 5;
 
 type Props = {
   likeCount: number;
-  likedByMe: boolean;
-  currentUserName?: string | null;
+  recentLikers: FeedLikerDto[];
 };
 
-export function FeedLikesRow({ likeCount, likedByMe, currentUserName }: Props) {
+export function FeedLikesRow({ likeCount, recentLikers }: Props) {
   const { t } = useTranslation();
 
   if (likeCount <= 0) {
     return null;
   }
 
-  const visibleCount = Math.min(likeCount, MAX_VISIBLE);
-  const overflow = likeCount > MAX_VISIBLE ? likeCount - MAX_VISIBLE : 0;
+  const visibleLikers = recentLikers.slice(0, MAX_VISIBLE);
+  const overflow = Math.max(0, likeCount - visibleLikers.length);
 
   return (
     <View style={styles.row}>
       <Text style={styles.label}>{t("feed.likes", "J'aime")}</Text>
       <View style={styles.avatars}>
-        {Array.from({ length: visibleCount }, (_, i) => {
-          const isMe = likedByMe && i === 0;
-          const bg = isMe
-            ? mobileColors.accent
-            : likerPlaceholderColor(i);
-          const initials = isMe
-            ? displayInitials(currentUserName)
-            : "•";
-
-          return (
-            <View
-              key={i}
-              style={[
-                styles.avatar,
-                { backgroundColor: bg, marginLeft: i > 0 ? -10 : 0, zIndex: MAX_VISIBLE - i }
-              ]}
-            >
-              <Text style={styles.avatarTx}>{initials}</Text>
-            </View>
-          );
-        })}
+        {visibleLikers.map((liker, i) => (
+          <View
+            key={`${liker.displayName ?? "liker"}-${i}`}
+            style={[styles.avatarSlot, { marginLeft: i > 0 ? -10 : 0, zIndex: MAX_VISIBLE - i }]}
+          >
+            <FeedLikerAvatar liker={liker} index={i} />
+          </View>
+        ))}
         {overflow > 0 ? (
-          <View style={[styles.avatar, styles.overflow, { marginLeft: -10 }]}>
+          <View style={[styles.overflow, { marginLeft: visibleLikers.length > 0 ? -10 : 0 }]}>
             <Text style={styles.overflowTx}>+{overflow}</Text>
           </View>
         ) : null}
@@ -77,22 +64,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1
   },
-  avatar: {
+  avatarSlot: {},
+  overflow: {
     width: 32,
     height: 32,
     borderRadius: 16,
+    backgroundColor: mobileColors.surfaceMuted,
     borderWidth: 2,
     borderColor: mobileColors.background,
     alignItems: "center",
-    justifyContent: "center"
-  },
-  avatarTx: {
-    color: mobileColors.onAccent,
-    fontSize: 11,
-    fontWeight: "700"
-  },
-  overflow: {
-    backgroundColor: mobileColors.surfaceMuted,
+    justifyContent: "center",
     zIndex: 0
   },
   overflowTx: {
