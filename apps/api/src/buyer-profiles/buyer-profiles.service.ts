@@ -12,7 +12,7 @@ import {
   ProfileType
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
-import { BuyerWalletService } from "../buyer-wallet/buyer-wallet.service";
+import { UserWalletService } from "../wallet/user-wallet.service";
 import type { CreateBuyerPriceAlertDto } from "./dto/create-price-alert.dto";
 import type { UpdateBuyerPriceAlertDto } from "./dto/update-price-alert.dto";
 import type { UpsertBuyerProfileDto } from "./dto/upsert-buyer-profile.dto";
@@ -38,7 +38,7 @@ function haversineKm(
 export class BuyerProfilesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly buyerWallet: BuyerWalletService
+    private readonly userWallet: UserWalletService
   ) {}
 
   async ensureRow(userId: string) {
@@ -158,7 +158,7 @@ export class BuyerProfilesService {
       profile
         ? this.prisma.buyerFavorite.count({ where: { buyerProfileId: profile.id } })
         : Promise.resolve(0),
-      this.buyerWallet.getSummary(user.id)
+      this.userWallet.getSummary(user.id)
     ]);
 
     return {

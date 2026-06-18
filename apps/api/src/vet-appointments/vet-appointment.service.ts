@@ -11,6 +11,7 @@ import { PlatformSettingsService } from "../platform-settings/platform-settings.
 import type { User } from "@prisma/client";
 import {
   MembershipRole,
+  MarketplacePaymentMethod,
   Prisma,
   VetAppointmentFundMovementKind,
   VetAppointmentStatus,
@@ -26,6 +27,7 @@ import {
   MOBILE_MONEY_GATEWAY,
   type MobileMoneyGateway
 } from "../marketplace/escrow/mobile-money.gateway";
+import { UserWalletService } from "../wallet/user-wallet.service";
 import { VetCalendarService } from "./vet-calendar.service";
 
 const PAYMENT_DEADLINE_HOURS = 24;
@@ -68,7 +70,8 @@ export class VetAppointmentService {
     private readonly config: ConfigService,
     private readonly platformSettings: PlatformSettingsService,
     @Inject(MOBILE_MONEY_GATEWAY)
-    private readonly gateway: MobileMoneyGateway
+    private readonly gateway: MobileMoneyGateway,
+    private readonly userWallet: UserWalletService
   ) {}
 
   private async commissionRate(): Promise<number> {
@@ -715,7 +718,11 @@ export class VetAppointmentService {
     return this.mapRow(updated);
   }
 
-  async initiatePayment(producer: User, appointmentId: string) {
+  async initiatePayment(
+    producer: User,
+    appointmentId: string,
+    dto?: { paymentMethod?: "mobile_money" | "wallet" }
+  ) {
     const row = await this.requireProducerAppointment(producer.id, appointmentId, [
       VetAppointmentStatus.AWAITING_PAYMENT
     ]);
@@ -727,6 +734,30 @@ export class VetAppointmentService {
     const amount = Number(row.blockedAmount ?? row.servicePrice);
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new BadRequestException("Montant invalide");
+    }
+
+    const paymentMethod =
+      dto?.paymentMethod === "wallet"
+        ? MarketplacePaymentMethod.wallet
+        : MarketplacePaymentMethod.mobile_money;
+
+    if (paymentMethod === MarketplacePaymentMethod.wallet) {
+      await this.userWallet.assertSufficientBalance(producer.id, amount);
+      const providerRef = this.userWallet.vetWalletPendingRef(appointmentId);
+      await this.prisma.vetAppointment.update({
+        where: { id: appointmentId },
+        data: {
+          paymentProviderRef: providerRef,
+          paymentMethod
+        }
+      });
+      return {
+        providerRef,
+        amount,
+        currency: row.currency,
+        paymentUrl: null,
+        paymentMethod: "wallet"
+      };
     }
 
     const init = await this.gateway.initiatePayment({
@@ -750,18 +781,27 @@ export class VetAppointmentService {
 
     await this.prisma.vetAppointment.update({
       where: { id: appointmentId },
-      data: { paymentProviderRef: init.providerRef }
+      data: {
+        paymentProviderRef: init.providerRef,
+        paymentMethod
+      }
     });
 
     return {
       providerRef: init.providerRef,
       amount,
       currency: row.currency,
-      paymentUrl: init.paymentUrl ?? null
+      paymentUrl: init.paymentUrl ?? null,
+      paymentMethod: "mobile_money"
     };
   }
 
-  async confirmPayment(producer: User, appointmentId: string, providerRef?: string) {
+  async confirmPayment(
+    producer: User,
+    appointmentId: string,
+    providerRef?: string,
+    _dto?: { paymentMethod?: "mobile_money" | "wallet" }
+  ) {
     const row = await this.requireProducerAppointment(producer.id, appointmentId, [
       VetAppointmentStatus.AWAITING_PAYMENT
     ]);
@@ -771,17 +811,42 @@ export class VetAppointmentService {
       throw new BadRequestException("Référence paiement manquante");
     }
 
-    const confirmed = await this.gateway.confirmPayment(ref, appointmentId);
-    if (!confirmed.success) {
-      throw new BadRequestException(
-        confirmed.failureReason ?? "Paiement non confirmé"
+    const amount = Number(row.blockedAmount ?? row.servicePrice ?? 0);
+    let confirmedRef = ref;
+
+    if (
+      row.paymentMethod === MarketplacePaymentMethod.wallet ||
+      this.userWallet.isVetWalletPendingRef(ref)
+    ) {
+      confirmedRef = await this.userWallet.confirmVetPendingHold(
+        ref,
+        producer.id,
+        amount,
+        row.currency,
+        appointmentId,
+        "Paiement RDV via portefeuille"
       );
+      await this.prisma.vetAppointmentFundMovement.create({
+        data: {
+          appointmentId,
+          kind: VetAppointmentFundMovementKind.HOLD,
+          amount: new Prisma.Decimal(amount),
+          currency: row.currency,
+          providerRef: confirmedRef,
+          note: "Blocage fonds RDV (portefeuille)"
+        }
+      });
+    } else {
+      const confirmed = await this.gateway.confirmPayment(ref, appointmentId);
+      if (!confirmed.success) {
+        throw new BadRequestException(
+          confirmed.failureReason ?? "Paiement non confirmé"
+        );
+      }
     }
 
     const confirmedAt = row.confirmedAt ?? row.requestedAt;
     const duration = Number(row.estimatedDurationHours);
-
-    const amount = Number(row.blockedAmount ?? row.servicePrice ?? 0);
 
     const updated = await this.prisma.$transaction(async (tx) => {
       await this.calendar.blockSlot(
@@ -796,7 +861,7 @@ export class VetAppointmentService {
         data: {
           status: VetAppointmentStatus.APPOINTMENT_CONFIRMED,
           paymentConfirmedAt: new Date(),
-          paymentProviderRef: ref,
+          paymentProviderRef: confirmedRef,
           confirmedAt
         },
         include: VET_APPOINTMENT_INCLUDE
@@ -908,15 +973,16 @@ export class VetAppointmentService {
       return appt;
     });
 
-    void this.gateway
-      .releaseFunds({
-        amount: vetReceives,
-        currency: row.currency,
-        recipientUserId: row.vetUserId,
-        transactionId: appointmentId,
-        label: "Versement prestation vétérinaire"
-      })
-      .catch((err) => this.log.warn(`release vet payout failed: ${err}`));
+    void this.userWallet
+      .creditVetPayout(
+        row.vetUserId,
+        vetReceives,
+        row.currency,
+        appointmentId,
+        "Versement prestation vétérinaire (portefeuille)",
+        `vet-release:${appointmentId}:${vetReceives}`
+      )
+      .catch((err) => this.log.warn(`credit vet wallet failed: ${err}`));
 
     const vetReceivesFmt = `${Math.round(vetReceives).toLocaleString("fr-FR")} FCFA`;
     await this.push.sendToUser(
@@ -1025,22 +1091,14 @@ export class VetAppointmentService {
           : Math.round(full * this.cancellationPartialRate() * 100) / 100;
 
       if (refundAmount > 0) {
-        await this.gateway.refund({
-          amount: refundAmount,
-          currency: row.currency,
-          buyerUserId: producer.id,
-          transactionId: appointmentId,
-          originalProviderRef: row.paymentProviderRef
-        });
-        await this.prisma.vetAppointmentFundMovement.create({
-          data: {
-            appointmentId,
-            kind: VetAppointmentFundMovementKind.REFUND_PRODUCER,
-            amount: new Prisma.Decimal(refundAmount),
-            currency: row.currency,
-            note: "Annulation producteur"
-          }
-        });
+        await this.refundProducerToWallet(
+          appointmentId,
+          producer.id,
+          refundAmount,
+          row.currency,
+          "Annulation producteur",
+          "cancel-producer"
+        );
       }
     }
 
@@ -1078,22 +1136,14 @@ export class VetAppointmentService {
 
     const refundAmount = Number(row.blockedAmount ?? row.servicePrice ?? 0);
     if (refundAmount > 0) {
-      await this.gateway.refund({
-        amount: refundAmount,
-        currency: row.currency,
-        buyerUserId: row.producerUserId,
-        transactionId: appointmentId,
-        originalProviderRef: row.paymentProviderRef
-      });
-      await this.prisma.vetAppointmentFundMovement.create({
-        data: {
-          appointmentId,
-          kind: VetAppointmentFundMovementKind.REFUND_PRODUCER,
-          amount: new Prisma.Decimal(refundAmount),
-          currency: row.currency,
-          note: "Annulation vétérinaire — remboursement intégral"
-        }
-      });
+      await this.refundProducerToWallet(
+        appointmentId,
+        row.producerUserId,
+        refundAmount,
+        row.currency,
+        "Annulation vétérinaire — remboursement intégral",
+        "cancel-vet"
+      );
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -1283,6 +1333,36 @@ export class VetAppointmentService {
     return rows.map((r) => this.mapRow(r));
   }
 
+  private async refundProducerToWallet(
+    appointmentId: string,
+    producerUserId: string,
+    amount: number,
+    currency: string,
+    note: string,
+    idempotencySuffix: string
+  ): Promise<void> {
+    if (amount <= 0) {
+      return;
+    }
+    await this.userWallet.creditVetRefund(
+      producerUserId,
+      amount,
+      currency,
+      appointmentId,
+      note,
+      `vet-refund:${appointmentId}:${idempotencySuffix}`
+    );
+    await this.prisma.vetAppointmentFundMovement.create({
+      data: {
+        appointmentId,
+        kind: VetAppointmentFundMovementKind.REFUND_PRODUCER,
+        amount: new Prisma.Decimal(amount),
+        currency,
+        note
+      }
+    });
+  }
+
   async adminManualRefund(appointmentId: string, amount?: number) {
     const row = await this.prisma.vetAppointment.findUnique({
       where: { id: appointmentId },
@@ -1296,22 +1376,14 @@ export class VetAppointmentService {
     if (!Number.isFinite(refundAmount) || refundAmount <= 0) {
       throw new BadRequestException("Montant remboursement invalide");
     }
-    await this.gateway.refund({
-      amount: refundAmount,
-      currency: row.currency,
-      buyerUserId: row.producerUserId,
-      transactionId: appointmentId,
-      originalProviderRef: row.paymentProviderRef
-    });
-    await this.prisma.vetAppointmentFundMovement.create({
-      data: {
-        appointmentId,
-        kind: VetAppointmentFundMovementKind.REFUND_PRODUCER,
-        amount: new Prisma.Decimal(refundAmount),
-        currency: row.currency,
-        note: "Remboursement manuel admin"
-      }
-    });
+    await this.refundProducerToWallet(
+      appointmentId,
+      row.producerUserId,
+      refundAmount,
+      row.currency,
+      "Remboursement manuel admin",
+      "admin-manual"
+    );
     if (row.calendarBlocked) {
       await this.calendar.unblockSlot(this.prisma, appointmentId);
     }

@@ -4,7 +4,7 @@ import {
   MarketplacePaymentMethod,
   Prisma
 } from "@prisma/client";
-import { BuyerWalletService } from "../../buyer-wallet/buyer-wallet.service";
+import { UserWalletService } from "../../wallet/user-wallet.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import {
   MOBILE_MONEY_GATEWAY,
@@ -21,7 +21,7 @@ export class EscrowService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly buyerWallet: BuyerWalletService,
+    private readonly userWallet: UserWalletService,
     @Inject(MOBILE_MONEY_GATEWAY)
     private readonly gateway: MobileMoneyGateway
   ) {}
@@ -37,8 +37,8 @@ export class EscrowService {
     const method = options?.paymentMethod ?? MarketplacePaymentMethod.mobile_money;
 
     if (method === MarketplacePaymentMethod.wallet) {
-      await this.buyerWallet.assertSufficientBalance(buyerUserId, amount);
-      const providerRef = this.buyerWallet.walletPendingRef(transactionId);
+      await this.userWallet.assertSufficientBalance(buyerUserId, amount);
+      const providerRef = this.userWallet.walletPendingRef(transactionId);
       return { providerRef, paymentMethod: method };
     }
 
@@ -73,11 +73,11 @@ export class EscrowService {
       label: string;
     }
   ): Promise<{ success: boolean; providerRef?: string }> {
-    if (this.buyerWallet.isWalletPendingRef(providerRef)) {
+    if (this.userWallet.isWalletPendingRef(providerRef)) {
       if (!walletContext) {
         throw new Error("Contexte portefeuille manquant pour confirmer le paiement");
       }
-      const confirmedRef = await this.buyerWallet.confirmPendingHold(
+      const confirmedRef = await this.userWallet.confirmPendingHold(
         providerRef,
         walletContext.buyerUserId,
         walletContext.amount,
@@ -95,8 +95,8 @@ export class EscrowService {
       );
       return { success: true, providerRef: confirmedRef };
     }
-    if (this.buyerWallet.isWalletProviderRef(providerRef)) {
-      await this.buyerWallet.requireWalletEntryForRef(providerRef, transactionId);
+    if (this.userWallet.isWalletProviderRef(providerRef)) {
+      await this.userWallet.requireWalletEntryForRef(providerRef, transactionId);
       return { success: true, providerRef };
     }
     const res = await this.gateway.confirmPayment(providerRef, transactionId);
@@ -109,23 +109,21 @@ export class EscrowService {
     sellerAmount: number,
     currency: string
   ): Promise<void> {
-    const res = await this.gateway.releaseFunds({
-      amount: sellerAmount,
+    const entry = await this.userWallet.creditEscrowRelease(
+      sellerUserId,
+      sellerAmount,
       currency,
-      recipientUserId: sellerUserId,
       transactionId,
-      label: `Marketplace settlement ${transactionId}`
-    });
-    if (!res.success) {
-      throw new Error("Échec versement vendeur via mobile money");
-    }
+      "Versement vendeur marketplace (portefeuille)",
+      `escrow-release:${transactionId}:${sellerAmount}`
+    );
     await this.logMovement(
       transactionId,
       MarketplaceFundMovementKind.RELEASE_TO_SELLER,
       sellerAmount,
       currency,
-      res.providerRef,
-      "Versement vendeur"
+      this.userWallet.walletProviderRef(entry.id),
+      "Versement vendeur (portefeuille)"
     );
   }
 
@@ -136,7 +134,7 @@ export class EscrowService {
     currency: string,
     _originalProviderRef?: string | null
   ): Promise<void> {
-    const entry = await this.buyerWallet.creditRefund(
+    const entry = await this.userWallet.creditRefund(
       buyerUserId,
       refundAmount,
       currency,
@@ -149,7 +147,7 @@ export class EscrowService {
       MarketplaceFundMovementKind.REFUND_BUYER,
       refundAmount,
       currency,
-      this.buyerWallet.walletProviderRef(entry.id),
+      this.userWallet.walletProviderRef(entry.id),
       "Remboursement acheteur (portefeuille)"
     );
   }

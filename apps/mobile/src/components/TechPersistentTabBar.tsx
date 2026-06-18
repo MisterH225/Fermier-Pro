@@ -87,7 +87,12 @@ export function TechPersistentTabBar() {
       { id: "vaccinations", label: t("tech.extended.vaccinations"), a11y: t("tech.extended.vaccinations") },
       { id: "weighings", label: t("tech.extended.weighings"), a11y: t("tech.extended.weighings") },
       { id: "feedStock", label: t("tech.extended.feedStock"), a11y: t("tech.extended.feedStock") },
-      { id: "reports", label: t("tech.extended.reports"), a11y: t("tech.extended.reports") }
+      { id: "reports", label: t("tech.extended.reports"), a11y: t("tech.extended.reports") },
+      {
+        id: "wallet",
+        label: t("navigation.extended.wallet"),
+        a11y: t("navigation.extended.walletDescription")
+      }
     ],
     [t]
   );
@@ -124,6 +129,9 @@ export function TechPersistentTabBar() {
           } else {
             navigation.navigate("TechTracking");
           }
+          return;
+        case "wallet":
+          navigation.navigate("UserWallet");
           return;
         default:
           return;

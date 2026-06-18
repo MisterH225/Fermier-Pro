@@ -1251,6 +1251,8 @@ export const en = {
       tasks: "Tasks",
       reports: "Reports",
       messages: "Messages",
+      wallet: "Wallet",
+      walletDescription: "Balance, top-up, withdrawal and free transfers",
       closeBackdropA11y: "Close menu",
       closeA11y: "Close"
     },
@@ -1262,6 +1264,7 @@ export const en = {
       messages: "Messages",
       buyerHistory: "My purchases",
       buyerFinance: "Finance",
+      userWallet: "Wallet",
       buyerAlerts: "Price alerts",
       buyerFavorites: "Favorites",
       tasks: "Tasks",
@@ -2412,6 +2415,7 @@ export const en = {
     tabRevenues: "Revenue",
     tabExpenses: "Expenses",
     tabBudget: "Budget",
+    tabWallet: "Wallet",
     trend3Months: "3-month trend",
     trend6Months: "6-month trend",
     expensesVsBudget: "Expenses vs budget",
@@ -3281,6 +3285,19 @@ export const en = {
       photoUploadError: "Could not upload photo. Check the Supabase “avatars” bucket."
     }
   },
+  wallet: {
+    dashboard: {
+      topUp: "Top up",
+      transfer: "Transfer",
+      withdraw: "Withdraw",
+      hideBalance: "Hide balance",
+      showBalance: "Show balance",
+      openWallet: "Open wallet"
+    },
+    panel: {
+      fullHistory: "Full history"
+    }
+  },
   buyer: {
     backToHome: "Home",
     nav: { home: "Home", market: "Market", finance: "Finance", messages: "Messages", history: "Purchases" },
@@ -3328,16 +3345,47 @@ export const en = {
       mobileMoneyHint: "Orange Money, MTN, Wave…",
       paymentMethod: "Payment method",
       entry: {
+        topUp: "Mobile money top-up",
+        withdraw: "Mobile money withdrawal",
+        transferIn: "Transfer received",
+        transferOut: "Transfer sent",
+        escrowRelease: "Escrow payout",
         refund: "Escrow refund",
         creditAdjustment: "Credit",
         purchase: "Marketplace purchase",
         debitAdjustment: "Debit"
+      },
+      ops: {
+        title: "Manage wallet",
+        hint: "Top up via mobile money, withdraw to your operator, or transfer for free to another user.",
+        topUp: "Top up",
+        topUpCta: "Top up via mobile money",
+        topUpSuccessTitle: "Top-up confirmed",
+        topUpSuccessBody: "Your balance has been credited.",
+        withdraw: "Withdraw",
+        withdrawCta: "Withdraw to mobile money",
+        withdrawSuccessTitle: "Withdrawal initiated",
+        withdrawSuccessBody: "Funds will be sent to your mobile money account.",
+        transfer: "Transfer",
+        transferHint: "Fermier Pro wallet transfers: zero fees.",
+        transferCta: "Send",
+        transferSuccessTitle: "Transfer complete",
+        transferSuccessBody: "The recipient received the funds in their wallet.",
+        amountPlaceholder: "Amount (XOF)",
+        phonePlaceholder: "Mobile money number (optional)",
+        recipientPhonePlaceholder: "Recipient phone number",
+        lookupRecipientCta: "Verify recipient",
+        recipientNotVerified: "Verify the recipient phone number first",
+        notePlaceholder: "Note (optional)",
+        invalidAmount: "Invalid amount",
+        insufficientBalance: "Insufficient balance",
+        transferInvalid: "Amount and recipient required"
       }
     },
     finance: {
       title: "Finance",
       history: "History",
-      historyHint: "Purchases, refunds and wallet movements.",
+      historyHint: "Top-ups, withdrawals, transfers, purchases and refunds.",
       emptyTitle: "No activity yet",
       emptyBody: "Escrow refunds and payments will appear here."
     },

@@ -15,6 +15,7 @@ import { VetRefuseAppointmentDto } from "./dto/vet-refuse-appointment.dto";
 import { RequestVetAppointmentDto } from "./dto/request-vet-appointment.dto";
 import { ScheduleFromVetAppointmentDto } from "./dto/schedule-from-vet-appointment.dto";
 import { SubmitAppointmentRatingDto } from "./dto/submit-appointment-rating.dto";
+import { VetPaymentConfirmDto, VetPaymentInitiateDto } from "./dto/vet-payment.dto";
 import { VetAppointmentService } from "./vet-appointment.service";
 
 @Controller()
@@ -98,15 +99,19 @@ export class VetAppointmentController {
   }
 
   @Post("vet-appointments/:id/payment/initiate")
-  initiatePayment(@CurrentUser() user: User, @Param("id") id: string) {
-    return this.appointments.initiatePayment(user, id);
+  initiatePayment(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() dto: VetPaymentInitiateDto
+  ) {
+    return this.appointments.initiatePayment(user, id, dto);
   }
 
   @Post("vet-appointments/:id/payment/confirm")
   confirmPayment(
     @CurrentUser() user: User,
     @Param("id") id: string,
-    @Body() body: { providerRef?: string }
+    @Body() body: VetPaymentConfirmDto
   ) {
     return this.appointments.confirmPayment(user, id, body.providerRef);
   }

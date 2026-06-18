@@ -14,6 +14,7 @@ export type RootStackParamList = {
   BuyerMessages: undefined;
   BuyerHistory: { initialTab?: "proposals" | "purchases" | "reviews"; fromDashboard?: boolean } | undefined;
   BuyerFinance: undefined;
+  UserWallet: undefined;
   BuyerAlerts: undefined;
   BuyerFavorites: undefined;
   VeterinarianDashboard: undefined;
@@ -141,7 +142,7 @@ export type RootStackParamList = {
   FarmFinance: {
     farmId: string;
     farmName: string;
-    initialTab?: "overview" | "rentabilite" | "revenus" | "depenses" | "budget";
+    initialTab?: "overview" | "rentabilite" | "revenus" | "depenses" | "budget" | "portefeuille";
     openCategoryId?: string;
     highlightOverrun?: boolean;
   };

@@ -1257,6 +1257,8 @@ export const fr = {
       tasks: "Tâches",
       reports: "Rapports",
       messages: "Messages",
+      wallet: "Portefeuille",
+      walletDescription: "Solde, recharge, retrait et transferts gratuits",
       closeBackdropA11y: "Fermer le menu",
       closeA11y: "Fermer"
     },
@@ -1268,6 +1270,7 @@ export const fr = {
       messages: "Messages",
       buyerHistory: "Mes achats",
       buyerFinance: "Finance",
+      userWallet: "Portefeuille",
       buyerAlerts: "Alertes prix",
       buyerFavorites: "Favoris",
       tasks: "Tâches",
@@ -2442,6 +2445,7 @@ export const fr = {
     tabRevenues: "Revenus",
     tabExpenses: "Dépenses",
     tabBudget: "Budget",
+    tabWallet: "Portefeuille",
     trend3Months: "Évolution sur 3 mois",
     trend6Months: "Évolution sur 6 mois",
     expensesVsBudget: "Dépenses vs budget",
@@ -3325,6 +3329,19 @@ export const fr = {
       photoUploadError: "Impossible d’envoyer la photo. Vérifiez le bucket Supabase « avatars »."
     }
   },
+  wallet: {
+    dashboard: {
+      topUp: "Recharger",
+      transfer: "Transférer",
+      withdraw: "Retirer",
+      hideBalance: "Masquer le solde",
+      showBalance: "Afficher le solde",
+      openWallet: "Voir le portefeuille"
+    },
+    panel: {
+      fullHistory: "Historique complet"
+    }
+  },
   buyer: {
     backToHome: "Accueil",
     nav: {
@@ -3378,16 +3395,47 @@ export const fr = {
       mobileMoneyHint: "Orange Money, MTN, Wave…",
       paymentMethod: "Mode de paiement",
       entry: {
+        topUp: "Recharge mobile money",
+        withdraw: "Retrait mobile money",
+        transferIn: "Transfert reçu",
+        transferOut: "Transfert envoyé",
+        escrowRelease: "Versement escrow",
         refund: "Remboursement escrow",
         creditAdjustment: "Crédit",
         purchase: "Achat marketplace",
         debitAdjustment: "Débit"
+      },
+      ops: {
+        title: "Gérer mon portefeuille",
+        hint: "Rechargez via mobile money, retirez vers votre opérateur, ou transférez gratuitement à un autre utilisateur.",
+        topUp: "Recharger",
+        topUpCta: "Recharger via mobile money",
+        topUpSuccessTitle: "Recharge confirmée",
+        topUpSuccessBody: "Votre solde a été crédité.",
+        withdraw: "Retirer",
+        withdrawCta: "Retirer vers mobile money",
+        withdrawSuccessTitle: "Retrait lancé",
+        withdrawSuccessBody: "Les fonds seront envoyés sur votre compte mobile money.",
+        transfer: "Transférer",
+        transferHint: "Transferts entre portefeuilles Fermier Pro : 0 frais.",
+        transferCta: "Envoyer",
+        transferSuccessTitle: "Transfert effectué",
+        transferSuccessBody: "Le destinataire a reçu les fonds sur son portefeuille.",
+        amountPlaceholder: "Montant (FCFA)",
+        phonePlaceholder: "Numéro mobile money (optionnel)",
+        recipientPhonePlaceholder: "Téléphone du destinataire",
+        lookupRecipientCta: "Vérifier le destinataire",
+        recipientNotVerified: "Vérifiez d'abord le numéro du destinataire",
+        notePlaceholder: "Motif (optionnel)",
+        invalidAmount: "Montant invalide",
+        insufficientBalance: "Solde insuffisant",
+        transferInvalid: "Montant et destinataire requis"
       }
     },
     finance: {
       title: "Finance",
       history: "Historique",
-      historyHint: "Achats, remboursements et mouvements sur votre portefeuille.",
+      historyHint: "Recharges, retraits, transferts, achats et remboursements.",
       emptyTitle: "Aucune opération",
       emptyBody: "Vos remboursements escrow et paiements apparaîtront ici."
     },
