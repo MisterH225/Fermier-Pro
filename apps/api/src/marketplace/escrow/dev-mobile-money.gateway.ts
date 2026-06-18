@@ -19,6 +19,14 @@ export class DevMobileMoneyGateway implements MobileMoneyGateway {
     string,
     { amount: number; currency: string; buyerUserId: string; transactionId: string }
   >();
+  private readonly pendingTopUps = new Map<
+    string,
+    { amount: number; currency: string; userId: string }
+  >();
+  private readonly pendingWithdrawals = new Map<
+    string,
+    { amount: number; currency: string; userId: string; phone?: string | null }
+  >();
 
   async initiatePayment(params: {
     amount: number;
@@ -96,5 +104,83 @@ export class DevMobileMoneyGateway implements MobileMoneyGateway {
       `release ${params.amount} ${params.currency} to=${params.recipientUserId} tx=${params.transactionId}`
     );
     return { success: true, providerRef: `dev-release-${randomUUID()}` };
+  }
+
+  async initiateTopUp(params: {
+    amount: number;
+    currency: string;
+    userId: string;
+    label: string;
+  }): Promise<MobileMoneyInitResult> {
+    const providerRef = `dev-topup-${randomUUID()}`;
+    this.pendingTopUps.set(providerRef, {
+      amount: params.amount,
+      currency: params.currency,
+      userId: params.userId
+    });
+    this.log.debug(
+      `topUp ${providerRef} ${params.amount} ${params.currency} user=${params.userId}`
+    );
+    return { providerRef, paymentUrl: null };
+  }
+
+  async confirmTopUp(
+    providerRef: string,
+    userId: string,
+    amount: number
+  ): Promise<MobileMoneyConfirmResult> {
+    const row = this.pendingTopUps.get(providerRef);
+    if (!row) {
+      return { success: false, providerRef, failureReason: "Référence introuvable" };
+    }
+    if (row.userId !== userId || row.amount !== amount) {
+      return {
+        success: false,
+        providerRef,
+        failureReason: "Référence non liée à cette recharge"
+      };
+    }
+    this.pendingTopUps.delete(providerRef);
+    return { success: true, providerRef };
+  }
+
+  async initiateWithdraw(params: {
+    amount: number;
+    currency: string;
+    userId: string;
+    phone?: string | null;
+    label: string;
+  }): Promise<MobileMoneyInitResult> {
+    const providerRef = `dev-withdraw-${randomUUID()}`;
+    this.pendingWithdrawals.set(providerRef, {
+      amount: params.amount,
+      currency: params.currency,
+      userId: params.userId,
+      phone: params.phone
+    });
+    this.log.debug(
+      `withdraw ${providerRef} ${params.amount} ${params.currency} user=${params.userId}`
+    );
+    return { providerRef, paymentUrl: null };
+  }
+
+  async confirmWithdraw(
+    providerRef: string,
+    userId: string,
+    amount: number
+  ): Promise<MobileMoneyConfirmResult> {
+    const row = this.pendingWithdrawals.get(providerRef);
+    if (!row) {
+      return { success: false, providerRef, failureReason: "Référence introuvable" };
+    }
+    if (row.userId !== userId || row.amount !== amount) {
+      return {
+        success: false,
+        providerRef,
+        failureReason: "Référence non liée à ce retrait"
+      };
+    }
+    this.pendingWithdrawals.delete(providerRef);
+    return { success: true, providerRef };
   }
 }

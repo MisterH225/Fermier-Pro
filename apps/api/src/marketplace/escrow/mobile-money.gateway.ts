@@ -52,6 +52,35 @@ export interface MobileMoneyGateway {
     transactionId: string;
     label: string;
   }): Promise<MobileMoneyRefundResult>;
+
+  /** Recharge portefeuille depuis mobile money. */
+  initiateTopUp(params: {
+    amount: number;
+    currency: string;
+    userId: string;
+    label: string;
+  }): Promise<MobileMoneyInitResult>;
+
+  confirmTopUp(
+    providerRef: string,
+    userId: string,
+    amount: number
+  ): Promise<MobileMoneyConfirmResult>;
+
+  /** Retrait portefeuille vers mobile money. */
+  initiateWithdraw(params: {
+    amount: number;
+    currency: string;
+    userId: string;
+    phone?: string | null;
+    label: string;
+  }): Promise<MobileMoneyInitResult>;
+
+  confirmWithdraw(
+    providerRef: string,
+    userId: string,
+    amount: number
+  ): Promise<MobileMoneyConfirmResult>;
 }
 
 export const MOBILE_MONEY_GATEWAY = Symbol("MOBILE_MONEY_GATEWAY");

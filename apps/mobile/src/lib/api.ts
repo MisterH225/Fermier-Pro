@@ -6788,17 +6788,26 @@ export type BuyerDashboardDto = {
   };
 };
 
+export type UserWalletEntryKind =
+  | "credit_topup"
+  | "debit_withdraw"
+  | "credit_transfer"
+  | "debit_transfer"
+  | "credit_escrow_release"
+  | "credit_refund"
+  | "credit_adjustment"
+  | "debit_escrow_hold"
+  | "debit_adjustment";
+
 export type BuyerWalletEntryDto = {
   id: string;
-  kind:
-    | "credit_refund"
-    | "credit_adjustment"
-    | "debit_escrow_hold"
-    | "debit_adjustment";
+  kind: UserWalletEntryKind;
   amount: number;
   balanceAfter: number;
   currency: string;
   transactionId: string | null;
+  counterpartyUserId?: string | null;
+  providerRef?: string | null;
   note: string | null;
   createdAt: string;
 };
@@ -6889,7 +6898,17 @@ export function fetchBuyerDashboard(
   );
 }
 
-/** GET /api/v1/buyers/me/wallet */
+/** GET /api/v1/users/me/wallet */
+export function fetchUserWallet(
+  accessToken: string
+): Promise<NonNullable<BuyerDashboardDto["wallet"]>> {
+  return apiGetJson<NonNullable<BuyerDashboardDto["wallet"]>>(
+    "/users/me/wallet",
+    accessToken
+  );
+}
+
+/** GET /api/v1/buyers/me/wallet — alias rétrocompat */
 export function fetchBuyerWallet(
   accessToken: string,
   activeProfileId?: string | null
@@ -6901,7 +6920,99 @@ export function fetchBuyerWallet(
   );
 }
 
-/** GET /api/v1/buyers/me/wallet/entries */
+export type WalletTopUpInitDto = {
+  providerRef: string;
+  amount: number;
+  currency: string;
+  paymentUrl: string | null;
+};
+
+export type WalletOperationResultDto = {
+  ok: boolean;
+  balance: number;
+  currency: string;
+  entry: BuyerWalletEntryDto;
+};
+
+export function initiateWalletTopUp(
+  accessToken: string,
+  amount: number
+): Promise<WalletTopUpInitDto> {
+  return apiPostJson("/users/me/wallet/top-up/initiate", { amount }, accessToken);
+}
+
+export function confirmWalletTopUp(
+  accessToken: string,
+  amount: number,
+  providerRef: string
+): Promise<WalletOperationResultDto> {
+  return apiPostJson(
+    "/users/me/wallet/top-up/confirm",
+    { amount, providerRef },
+    accessToken
+  );
+}
+
+export function initiateWalletWithdraw(
+  accessToken: string,
+  amount: number,
+  phone?: string
+): Promise<WalletTopUpInitDto & { phone?: string }> {
+  return apiPostJson(
+    "/users/me/wallet/withdraw/initiate",
+    { amount, phone },
+    accessToken
+  );
+}
+
+export function confirmWalletWithdraw(
+  accessToken: string,
+  amount: number,
+  providerRef: string,
+  phone?: string
+): Promise<WalletOperationResultDto> {
+  return apiPostJson(
+    "/users/me/wallet/withdraw/confirm",
+    { amount, providerRef, phone },
+    accessToken
+  );
+}
+
+export function transferWalletFunds(
+  accessToken: string,
+  toUserId: string,
+  amount: number,
+  note?: string
+): Promise<{
+  ok: boolean;
+  balance: number;
+  currency: string;
+  debit: BuyerWalletEntryDto;
+  credit: BuyerWalletEntryDto;
+}> {
+  return apiPostJson(
+    "/users/me/wallet/transfer",
+    { toUserId, amount, note },
+    accessToken
+  );
+}
+
+/** GET /api/v1/users/me/wallet/entries */
+export function fetchUserWalletEntries(
+  accessToken: string,
+  opts?: { limit?: number; cursor?: string }
+): Promise<BuyerWalletEntriesDto> {
+  const params = new URLSearchParams();
+  if (opts?.limit) params.set("limit", String(opts.limit));
+  if (opts?.cursor) params.set("cursor", opts.cursor);
+  const qs = params.toString();
+  return apiGetJson<BuyerWalletEntriesDto>(
+    `/users/me/wallet/entries${qs ? `?${qs}` : ""}`,
+    accessToken
+  );
+}
+
+/** GET /api/v1/buyers/me/wallet/entries — alias rétrocompat */
 export function fetchBuyerWalletEntries(
   accessToken: string,
   activeProfileId?: string | null,

@@ -47,7 +47,7 @@ import { AdminPlatformModule } from "./admin-platform/admin-platform.module";
 import { FeatureFlagsModule } from "./feature-flags/feature-flags.module";
 import { MarketModule } from "./market/market.module";
 import { BuyerProfilesModule } from "./buyer-profiles/buyer-profiles.module";
-import { BuyerWalletModule } from "./buyer-wallet/buyer-wallet.module";
+import { WalletModule } from "./wallet/wallet.module";
 import { TechnicianProfilesModule } from "./technician-profiles/technician-profiles.module";
 import { FarmSettingsModule } from "./farm-settings/farm-settings.module";
 import { PredictionsModule } from "./predictions/predictions.module";
@@ -126,7 +126,7 @@ import { ProfitabilityModule } from "./profitability/profitability.module";
     FeatureFlagsModule,
     MarketModule,
     BuyerProfilesModule,
-    BuyerWalletModule,
+    WalletModule,
     TechnicianProfilesModule,
     FarmSettingsModule,
     PredictionsModule,

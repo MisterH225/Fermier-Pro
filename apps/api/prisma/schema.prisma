@@ -105,7 +105,8 @@ model User {
   pushDevices           PushDevice[]
   technicianProfile     TechnicianProfile?
   buyerProfile          BuyerProfile?
-  buyerWallet           BuyerWallet?
+  userWallet            UserWallet?
+  walletEntriesAsCounterparty UserWalletEntry[] @relation("WalletEntryCounterparty")
   producerProfile       ProducerProfile?
   reactivationWaitlist  ReactivationWaitlist[]
   memberships           FarmMembership[]
@@ -840,6 +841,7 @@ model VetAppointment {
   paymentDeadline        DateTime?
   paymentConfirmedAt     DateTime?
   paymentProviderRef     String?
+  paymentMethod          MarketplacePaymentMethod?
   completedAt            DateTime?
   cancelledAt            DateTime?
   cancellationReason     String?
@@ -852,6 +854,7 @@ model VetAppointment {
   rating                 VetAppointmentRating?
   fundMovements          VetAppointmentFundMovement[]
   platformRevenue        PlatformRevenue?
+  walletEntries          UserWalletEntry[]
 
   @@index([vetUserId, status])
   @@index([producerUserId, status])
@@ -1503,7 +1506,12 @@ enum MarketplaceFundMovementKind {
   COMMISSION
 }
 
-enum BuyerWalletEntryKind {
+enum UserWalletEntryKind {
+  credit_topup
+  debit_withdraw
+  credit_transfer
+  debit_transfer
+  credit_escrow_release
   credit_refund
   credit_adjustment
   debit_escrow_hold
@@ -1817,7 +1825,7 @@ model MarketplaceTransaction {
   createdAt               DateTime                     @default(now())
   updatedAt               DateTime                     @updatedAt
   fundMovements           MarketplaceFundMovement[]
-  walletEntries           BuyerWalletEntry[]
+  walletEntries           UserWalletEntry[]
   platformRevenue         PlatformRevenue?
   receipt                 MarketplaceTransactionReceipt?
   deliveryDisputes        MarketplaceDeliveryDispute[]
@@ -2634,35 +2642,41 @@ model BuyerProfile {
   @@index([creditScore])
 }
 
-/// Portefeuille acheteur — alimenté principalement par les remboursements escrow.
-model BuyerWallet {
-  id        String             @id @default(cuid())
-  userId    String             @unique
-  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  balance   Decimal            @default(0) @db.Decimal(14, 2)
-  currency  String             @default("XOF")
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
-  entries   BuyerWalletEntry[]
+/// Portefeuille utilisateur — tous les rôles (acheteur, vendeur, véto, technicien…).
+model UserWallet {
+  id        String            @id @default(cuid())
+  userId    String            @unique
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Decimal           @default(0) @db.Decimal(14, 2)
+  currency  String            @default("XOF")
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  entries   UserWalletEntry[]
 }
 
-/// Historique des mouvements du portefeuille acheteur.
-model BuyerWalletEntry {
-  id             String               @id @default(cuid())
-  walletId       String
-  wallet         BuyerWallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  kind           BuyerWalletEntryKind
-  amount         Decimal              @db.Decimal(14, 2)
-  balanceAfter   Decimal              @db.Decimal(14, 2)
-  currency       String               @default("XOF")
-  transactionId  String?
-  transaction    MarketplaceTransaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
-  note           String?
-  idempotencyKey String?              @unique
-  createdAt      DateTime             @default(now())
+/// Historique des mouvements du portefeuille utilisateur.
+model UserWalletEntry {
+  id                 String               @id @default(cuid())
+  walletId           String
+  wallet             UserWallet           @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  kind               UserWalletEntryKind
+  amount             Decimal              @db.Decimal(14, 2)
+  balanceAfter       Decimal              @db.Decimal(14, 2)
+  currency           String               @default("XOF")
+  transactionId      String?
+  transaction        MarketplaceTransaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  vetAppointmentId   String?
+  vetAppointment     VetAppointment?        @relation(fields: [vetAppointmentId], references: [id], onDelete: SetNull)
+  counterpartyUserId String?
+  counterparty       User?                @relation("WalletEntryCounterparty", fields: [counterpartyUserId], references: [id], onDelete: SetNull)
+  providerRef        String?
+  note               String?
+  idempotencyKey     String?              @unique
+  createdAt          DateTime             @default(now())
 
   @@index([walletId, createdAt])
   @@index([transactionId])
+  @@index([counterpartyUserId])
 }
 
 /// Profil producteur : score fiabilité (saisie, usage plateforme, réactivité).

@@ -14,14 +14,15 @@ import {
   View
 } from "react-native";
 import { BuyerBalanceCard } from "../../components/buyer/BuyerBalanceCard";
+import { WalletOperationsCard } from "../../components/buyer/WalletOperationsCard";
 import { BuyerMobileShell } from "../../components/layout/BuyerMobileShell";
 import { profileScreenScrollContent } from "../../components/layout";
 import { formatMarketMoney } from "../../components/marketplace/MarketplaceListingCard";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import {
-  fetchBuyerWallet,
-  fetchBuyerWalletEntries,
+  fetchUserWallet,
+  fetchUserWalletEntries,
   type BuyerWalletEntryDto
 } from "../../lib/api";
 import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
@@ -33,6 +34,16 @@ function entryLabel(
   t: (key: string) => string
 ): string {
   switch (kind) {
+    case "credit_topup":
+      return t("buyer.wallet.entry.topUp");
+    case "debit_withdraw":
+      return t("buyer.wallet.entry.withdraw");
+    case "credit_transfer":
+      return t("buyer.wallet.entry.transferIn");
+    case "debit_transfer":
+      return t("buyer.wallet.entry.transferOut");
+    case "credit_escrow_release":
+      return t("buyer.wallet.entry.escrowRelease");
     case "credit_refund":
       return t("buyer.wallet.entry.refund");
     case "credit_adjustment":
@@ -48,9 +59,14 @@ function entryLabel(
 
 function entryIcon(kind: BuyerWalletEntryDto["kind"]): keyof typeof Ionicons.glyphMap {
   switch (kind) {
+    case "credit_topup":
+    case "credit_transfer":
+    case "credit_escrow_release":
     case "credit_refund":
     case "credit_adjustment":
       return "arrow-down-circle";
+    case "debit_withdraw":
+    case "debit_transfer":
     case "debit_escrow_hold":
     case "debit_adjustment":
       return "arrow-up-circle";
@@ -60,7 +76,13 @@ function entryIcon(kind: BuyerWalletEntryDto["kind"]): keyof typeof Ionicons.gly
 }
 
 function isCredit(kind: BuyerWalletEntryDto["kind"]): boolean {
-  return kind === "credit_refund" || kind === "credit_adjustment";
+  return (
+    kind === "credit_topup" ||
+    kind === "credit_transfer" ||
+    kind === "credit_escrow_release" ||
+    kind === "credit_refund" ||
+    kind === "credit_adjustment"
+  );
 }
 
 export function BuyerFinanceScreen() {
@@ -72,14 +94,14 @@ export function BuyerFinanceScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const walletQ = useQuery({
-    queryKey: ["buyerWallet"],
-    queryFn: () => fetchBuyerWallet(accessToken!),
+    queryKey: ["userWallet"],
+    queryFn: () => fetchUserWallet(accessToken!),
     enabled: Boolean(accessToken)
   });
 
   const entriesQ = useQuery({
-    queryKey: ["buyerWalletEntries"],
-    queryFn: () => fetchBuyerWalletEntries(accessToken!),
+    queryKey: ["userWalletEntries"],
+    queryFn: () => fetchUserWalletEntries(accessToken!),
     enabled: Boolean(accessToken)
   });
 
@@ -118,6 +140,13 @@ export function BuyerFinanceScreen() {
             balance={wallet.balance}
             currency={wallet.currency}
             monthCredits={wallet.monthCredits}
+          />
+        ) : null}
+
+        {wallet ? (
+          <WalletOperationsCard
+            balance={wallet.balance}
+            currency={wallet.currency}
           />
         ) : null}
 
