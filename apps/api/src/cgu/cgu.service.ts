@@ -1,8 +1,7 @@
 import {
   BadRequestException,
   Injectable,
-  NotFoundException,
-  OnModuleInit
+  NotFoundException
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
@@ -31,12 +30,8 @@ export type CguStatusDto = {
 };
 
 @Injectable()
-export class CguService implements OnModuleInit {
+export class CguService {
   constructor(private readonly prisma: PrismaService) {}
-
-  async onModuleInit() {
-    await this.ensureSettingsRow();
-  }
 
   private async ensureSettingsRow() {
     const existing = await this.prisma.cguSettings.findUnique({
