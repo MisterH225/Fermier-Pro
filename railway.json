@@ -2,12 +2,21 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
+    "watchPatterns": [
+      "apps/api/**",
+      "packages/**",
+      "railway.json",
+      "nixpacks.toml",
+      "package.json",
+      "package-lock.json"
+    ],
     "buildCommand": "npm install --ignore-scripts --include=dev && PRISMA_GENERATE_SKIP_AUTOINSTALL=true npm run prisma:generate --workspace @fermier/api && npm run build:api"
   },
   "deploy": {
-    "startCommand": "npm run start",
+    "preDeployCommand": "npm run prisma:migrate:deploy --workspace @fermier/api",
+    "startCommand": "node apps/api/scripts/start-api.cjs",
     "healthcheckPath": "/api/v1/health",
-    "healthcheckTimeout": 300,
+    "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE"
   }
 }

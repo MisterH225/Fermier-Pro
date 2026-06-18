@@ -2,20 +2,42 @@
 
 ## Services attendus
 
-| Composant | Hébergement | Commande |
-|-----------|-------------|----------|
-| **API NestJS** (`apps/api`) | Railway | `npm run start` (racine du monorepo) |
-| **App mobile** (`apps/mobile`) | **EAS Build + OTA** | `bash scripts/ota-production.sh` |
-| **Admin** (`apps/admin-platform`) | Vercel ou Railway séparé | `npm run build:admin && npm run start` |
+| Composant | Hébergement | Config Railway | Commande |
+|-----------|-------------|----------------|----------|
+| **API NestJS** (`apps/api`) | Railway | `railway.json` (racine) | `node apps/api/scripts/start-api.cjs` |
+| **App mobile** (`apps/mobile`) | **EAS Build + OTA** | — | `bash scripts/ota-production.sh` |
+| **Admin** (`apps/admin-platform`) | Railway séparé ou Vercel | `railway.admin.json` | `npm run build:admin` puis `next start` |
 
 ## API sur Railway
 
 1. **Root Directory** : racine du dépôt (pas `apps/mobile`).
-2. **Start Command** : `npm run start` (lance `apps/api/scripts/start-prod.cjs`).
-3. **Variables** : `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_JWT_SECRET`, etc. (voir `.env.example`).
-4. **Healthcheck** : `GET /api/v1/health` (configuré dans `railway.json`).
+2. **Config as code** : `railway.json` à la racine (watch paths limités à `apps/api/**`).
+3. **Start Command** : `node apps/api/scripts/start-api.cjs` (défini dans `railway.json`).
+4. **Pre-deploy** : `npm run prisma:migrate:deploy --workspace @fermier/api` — les migrations ne bloquent plus le healthcheck.
+5. **Port** : Railway injecte `PORT` ; l'API écoute `PORT` puis `API_PORT` (défaut 3000). Ne pas forcer un port fixe sans `PORT`.
+6. **Variables** : `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_JWT_SECRET`, etc. (voir `.env.example`).
+7. **Healthcheck** : `GET /api/v1/health` (configuré dans `railway.json`).
 
-Le fichier `railway.json` à la racine documente build + healthcheck pour éviter les déploiements incorrects.
+### Healthcheck failure (~5 min)
+
+Si le déploiement échoue à l'étape **Network > Healthcheck** alors que le build réussit :
+
+- **Cause fréquente** : `prisma migrate deploy` dans le `startCommand` bloque le démarrage HTTP jusqu'au timeout.
+- **Correctif** (déjà dans `railway.json`) : migrations en `preDeployCommand`, API seule au démarrage.
+- **Autre cause** : l'API n'écoutait pas sur `process.env.PORT` (Railway route le trafic vers ce port).
+
+## Admin sur Railway
+
+Service **distinct** de l'API (`fermierapi-production`).
+
+1. Créer un second service dans le même projet Railway.
+2. **Root Directory** : racine du monorepo.
+3. **Settings → Config file path** : `railway.admin.json`
+4. **Watch patterns** (déjà dans le fichier) : `apps/admin-platform/**` — un merge admin déclenche ce service, pas l'API.
+5. Variables : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_ADMIN_URL`, etc.
+6. **Healthcheck** : `/fr/login` (page publique).
+
+La PR #124 (middleware auth, `sharp`) ne concerne **que** ce service admin, pas `fermierapi-production`.
 
 **Node.js** : le monorepo exige **Node 20** (`.nvmrc`, `nixpacks.toml`, `engines` dans `package.json`). Si le build Nixpacks utilise Node 18 (`EBADENGINE`), vérifier que ces fichiers sont bien déployés.
 
