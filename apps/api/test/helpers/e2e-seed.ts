@@ -1,5 +1,10 @@
 import type { PrismaClient } from "@prisma/client";
-import { AnimalSex, MembershipRole, ProfileType } from "@prisma/client";
+import {
+  AnimalSex,
+  MembershipRole,
+  ProfileType,
+  VaccineCatalogType
+} from "@prisma/client";
 import * as jwt from "jsonwebtoken";
 
 /** Sub JWT stable pour retrouver / purger l’utilisateur de test. */
@@ -121,6 +126,23 @@ export async function seedE2eFixtures(
     where: { code: "porcin" },
     create: { code: "porcin", name: "Porcin", sortOrder: 0 },
     update: {}
+  });
+
+  // Vaccins standard : normalement insérés par la migration SQL mais absents en CI (prisma:push uniquement)
+  await prisma.standardVaccine.createMany({
+    skipDuplicates: true,
+    data: [
+      { id: "vac_std_ppv", code: "ppv", name: "Parvovirose Porcine (PPV)", vaccineType: VaccineCatalogType.viral, targetCategories: ["breeding_female"], targetLabel: "Reproductrices", frequency: "Annuel + primo-vaccination", recommendedTiming: "2-4 semaines avant saillie", icon: "💉", isStandard: true, sortOrder: 1 },
+      { id: "vac_std_erysipelas", code: "erysipelas", name: "Rouget (Erysipèle)", vaccineType: VaccineCatalogType.bacterial, targetCategories: ["fattening","starter","breeding_female","breeding_male"], targetLabel: "Tous sujets > 8 semaines", frequency: "Bisannuel", recommendedTiming: "Tous les 6 mois", icon: "💉", isStandard: true, sortOrder: 2 },
+      { id: "vac_std_ppc", code: "ppc", name: "Peste Porcine Classique (PPC)", vaccineType: VaccineCatalogType.viral, targetCategories: ["all"], targetLabel: "Tous sujets", frequency: "Selon réglementation locale", recommendedTiming: "Selon calendrier officiel", icon: "⚠️", isStandard: true, sortOrder: 3 },
+      { id: "vac_std_prv", code: "prv", name: "Maladie d'Aujeszky (PRV)", vaccineType: VaccineCatalogType.viral, targetCategories: ["all"], targetLabel: "Tous sujets", frequency: "Bisannuel", recommendedTiming: "J0 + rappel J21 + bisannuel", icon: "💉", isStandard: true, sortOrder: 4 },
+      { id: "vac_std_ecoli", code: "ecoli_neonatal", name: "Colibacillose néonatale (E. coli)", vaccineType: VaccineCatalogType.bacterial, targetCategories: ["breeding_female"], targetLabel: "Truies gestantes", frequency: "Chaque gestation", recommendedTiming: "J-4 semaines avant mise bas", icon: "💉", isStandard: true, sortOrder: 5 },
+      { id: "vac_std_clostridium", code: "clostridium", name: "Clostridiose (C. perfringens)", vaccineType: VaccineCatalogType.bacterial, targetCategories: ["breeding_female"], targetLabel: "Truies gestantes", frequency: "Chaque gestation", recommendedTiming: "J-3 semaines avant mise bas", icon: "💉", isStandard: true, sortOrder: 6 },
+      { id: "vac_std_sdrp", code: "sdrp", name: "SDRP (Syndrome Dysgénésique)", vaccineType: VaccineCatalogType.viral, targetCategories: ["breeding_female","breeding_male"], targetLabel: "Tous sujets reproducteurs", frequency: "Annuel", recommendedTiming: "Primovaccination + rappel annuel", icon: "💉", isStandard: true, sortOrder: 7 },
+      { id: "vac_std_pcv2", code: "pcv2", name: "Circovirus Porcin (PCV2)", vaccineType: VaccineCatalogType.viral, targetCategories: ["starter"], targetLabel: "Porcelets sevrés", frequency: "Une fois", recommendedTiming: "3-4 semaines après sevrage", icon: "💉", isStandard: true, sortOrder: 8 },
+      { id: "vac_std_mycoplasma", code: "mycoplasma", name: "Pneumonie enzootique (Mycoplasma)", vaccineType: VaccineCatalogType.bacterial, targetCategories: ["starter"], targetLabel: "Porcelets", frequency: "Une fois", recommendedTiming: "J7-J10 après naissance", icon: "💉", isStandard: true, sortOrder: 9 },
+      { id: "vac_std_app", code: "app", name: "Actinobacillose (APP)", vaccineType: VaccineCatalogType.bacterial, targetCategories: ["all"], targetLabel: "Tous sujets", frequency: "Bisannuel", recommendedTiming: "Primo + rappel J21 + bisannuel", icon: "💉", isStandard: true, sortOrder: 10 }
+    ]
   });
 
   const species = await prisma.species.findUniqueOrThrow({
