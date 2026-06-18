@@ -65,7 +65,7 @@ export default function PortefeuilleAdminPage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <PageHeader title={t("title")} subtitle={t("subtitle")} />
+      <PageHeader title={t("title")} description={t("subtitle")} />
 
       {loading ? (
         <p className="text-muted-foreground">{t("loading")}</p>

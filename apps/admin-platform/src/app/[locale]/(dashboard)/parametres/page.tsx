@@ -357,6 +357,8 @@ export default function ParametresPage() {
       </Card>
 
       <WalletFeesPanel />
+
+      <div className="flex flex-wrap items-center gap-3">
         <Button type="button" disabled={saving} onClick={onSave}>
           {saving ? "…" : t("save")}
         </Button>
