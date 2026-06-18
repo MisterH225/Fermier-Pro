@@ -4,6 +4,7 @@ import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import {
   WalletAmountDto,
+  WalletLookupRecipientQueryDto,
   WalletTopUpConfirmDto,
   WalletTransferDto,
   WalletWithdrawConfirmDto,
@@ -69,15 +70,17 @@ export class WalletController {
     );
   }
 
+  @Get("transfer-recipient")
+  lookupTransferRecipient(
+    @CurrentUser() user: User,
+    @Query() query: WalletLookupRecipientQueryDto
+  ) {
+    return this.rails.lookupTransferRecipient(user, query.phone);
+  }
+
   @Post("transfer")
   transfer(@CurrentUser() user: User, @Body() dto: WalletTransferDto) {
-    return this.rails.transfer(
-      user,
-      dto.toUserId,
-      dto.amount,
-      dto.note,
-      dto.clientRequestId
-    );
+    return this.rails.transfer(user, dto);
   }
 }
 

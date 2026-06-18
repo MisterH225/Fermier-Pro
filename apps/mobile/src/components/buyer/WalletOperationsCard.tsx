@@ -15,9 +15,11 @@ import { useSession } from "../../context/SessionContext";
 import {
   confirmWalletTopUp,
   confirmWalletWithdraw,
+  fetchWalletTransferRecipient,
   initiateWalletTopUp,
   initiateWalletWithdraw,
-  transferWalletFunds
+  transferWalletFunds,
+  type WalletTransferRecipientDto
 } from "../../lib/api";
 import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
@@ -40,7 +42,9 @@ export function WalletOperationsCard({ currency, balance }: Props) {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawPhone, setWithdrawPhone] = useState("");
   const [transferAmount, setTransferAmount] = useState("");
-  const [transferToUserId, setTransferToUserId] = useState("");
+  const [transferPhone, setTransferPhone] = useState("");
+  const [transferRecipient, setTransferRecipient] =
+    useState<WalletTransferRecipientDto | null>(null);
   const [transferNote, setTransferNote] = useState("");
 
   const invalidate = () => {
@@ -89,21 +93,31 @@ export function WalletOperationsCard({ currency, balance }: Props) {
     onError: (e: Error) => Alert.alert(t("common.error"), e.message)
   });
 
+  const lookupRecipientMut = useMutation({
+    mutationFn: (phone: string) => fetchWalletTransferRecipient(accessToken!, phone),
+    onSuccess: (data) => setTransferRecipient(data),
+    onError: (e: Error) => {
+      setTransferRecipient(null);
+      Alert.alert(t("common.error"), e.message);
+    }
+  });
+
   const transferMut = useMutation({
     mutationFn: (payload: {
       amount: number;
-      toUserId: string;
+      recipientPhone: string;
       note?: string;
     }) =>
       transferWalletFunds(
         accessToken!,
-        payload.toUserId,
         payload.amount,
+        payload.recipientPhone,
         payload.note
       ),
     onSuccess: () => {
       setTransferAmount("");
-      setTransferToUserId("");
+      setTransferPhone("");
+      setTransferRecipient(null);
       setTransferNote("");
       invalidate();
       Alert.alert(
@@ -115,7 +129,10 @@ export function WalletOperationsCard({ currency, balance }: Props) {
   });
 
   const busy =
-    topUpMut.isPending || withdrawMut.isPending || transferMut.isPending;
+    topUpMut.isPending ||
+    withdrawMut.isPending ||
+    transferMut.isPending ||
+    lookupRecipientMut.isPending;
 
   return (
     <View style={styles.wrap}>
@@ -191,11 +208,27 @@ export function WalletOperationsCard({ currency, balance }: Props) {
         <Text style={styles.blockHint}>{t("buyer.wallet.ops.transferHint")}</Text>
         <TextInput
           style={styles.input}
-          placeholder={t("buyer.wallet.ops.recipientPlaceholder")}
-          autoCapitalize="none"
-          value={transferToUserId}
-          onChangeText={setTransferToUserId}
+          keyboardType="phone-pad"
+          placeholder={t("buyer.wallet.ops.recipientPhonePlaceholder")}
+          value={transferPhone}
+          onChangeText={(value) => {
+            setTransferPhone(value);
+            setTransferRecipient(null);
+          }}
         />
+        <ActionButton
+          label={t("buyer.wallet.ops.lookupRecipientCta")}
+          icon="search-outline"
+          loading={lookupRecipientMut.isPending}
+          disabled={busy || !transferPhone.trim()}
+          onPress={() => lookupRecipientMut.mutate(transferPhone.trim())}
+        />
+        {transferRecipient ? (
+          <View style={styles.recipientCard}>
+            <Text style={styles.recipientName}>{transferRecipient.displayName}</Text>
+            <Text style={styles.recipientPhone}>{transferRecipient.phoneMasked}</Text>
+          </View>
+        ) : null}
         <TextInput
           style={styles.input}
           keyboardType="number-pad"
@@ -216,8 +249,15 @@ export function WalletOperationsCard({ currency, balance }: Props) {
           disabled={busy}
           onPress={() => {
             const amount = parseAmount(transferAmount);
-            if (!amount || !transferToUserId.trim()) {
+            if (!amount || !transferPhone.trim()) {
               Alert.alert(t("common.error"), t("buyer.wallet.ops.transferInvalid"));
+              return;
+            }
+            if (!transferRecipient) {
+              Alert.alert(
+                t("common.error"),
+                t("buyer.wallet.ops.recipientNotVerified")
+              );
               return;
             }
             if (amount > balance) {
@@ -226,7 +266,7 @@ export function WalletOperationsCard({ currency, balance }: Props) {
             }
             transferMut.mutate({
               amount,
-              toUserId: transferToUserId.trim(),
+              recipientPhone: transferPhone.trim(),
               note: transferNote.trim() || undefined
             });
           }}
@@ -325,5 +365,20 @@ const styles = StyleSheet.create({
     ...mobileTypography.cardTitle,
     fontSize: 15,
     color: "#fff"
+  },
+  recipientCard: {
+    padding: mobileSpacing.sm,
+    borderRadius: buyerRadius.button,
+    backgroundColor: buyerColors.primaryLight,
+    gap: 2
+  },
+  recipientName: {
+    ...mobileTypography.cardTitle,
+    fontSize: 14,
+    color: buyerColors.textPrimary
+  },
+  recipientPhone: {
+    ...mobileTypography.meta,
+    color: buyerColors.textSecondary
   }
 });

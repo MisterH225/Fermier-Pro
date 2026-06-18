@@ -4,6 +4,11 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import { Prisma, UserWalletEntryKind } from "@prisma/client";
+import {
+  maskFullName,
+  maskPhone,
+  normalizePhone
+} from "../invitations/identifier-utils";
 import { PrismaService } from "../prisma/prisma.service";
 
 const DEFAULT_CURRENCY = "XOF";
@@ -40,6 +45,12 @@ const CREDIT_KINDS: ReadonlySet<UserWalletEntryKind> = new Set([
   UserWalletEntryKind.credit_refund,
   UserWalletEntryKind.credit_adjustment
 ]);
+
+export type WalletTransferRecipientDto = {
+  userId: string;
+  displayName: string;
+  phoneMasked: string;
+};
 
 @Injectable()
 export class UserWalletService {
@@ -83,6 +94,47 @@ export class UserWalletService {
 
   isVetWalletPendingRef(providerRef: string | null | undefined): boolean {
     return Boolean(providerRef?.startsWith(VET_PENDING_PREFIX));
+  }
+
+  async resolveTransferRecipientByPhone(
+    requesterUserId: string,
+    phoneRaw: string
+  ): Promise<WalletTransferRecipientDto> {
+    const normalized = normalizePhone(phoneRaw.trim());
+    if (!normalized) {
+      throw new BadRequestException("Numéro de téléphone invalide");
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { phone: normalized },
+      select: {
+        id: true,
+        fullName: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        isActive: true,
+        accountStatus: true
+      }
+    });
+    if (!user || !user.isActive || user.accountStatus !== "active") {
+      throw new NotFoundException(
+        "Aucun compte actif trouvé pour ce numéro de téléphone"
+      );
+    }
+    if (user.id === requesterUserId) {
+      throw new BadRequestException(
+        "Impossible de transférer vers votre propre numéro"
+      );
+    }
+    const displayName =
+      user.fullName?.trim() ||
+      maskFullName(user.firstName, user.lastName) ||
+      "Utilisateur Fermier Pro";
+    return {
+      userId: user.id,
+      displayName,
+      phoneMasked: maskPhone(user.phone ?? normalized)
+    };
   }
 
   async assertSufficientBalance(userId: string, amount: number): Promise<void> {

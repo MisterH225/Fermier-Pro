@@ -6978,10 +6978,27 @@ export function confirmWalletWithdraw(
   );
 }
 
+export type WalletTransferRecipientDto = {
+  userId: string;
+  displayName: string;
+  phoneMasked: string;
+};
+
+export function fetchWalletTransferRecipient(
+  accessToken: string,
+  phone: string
+): Promise<WalletTransferRecipientDto> {
+  const params = new URLSearchParams({ phone: phone.trim() });
+  return apiGetJson<WalletTransferRecipientDto>(
+    `/users/me/wallet/transfer-recipient?${params.toString()}`,
+    accessToken
+  );
+}
+
 export function transferWalletFunds(
   accessToken: string,
-  toUserId: string,
   amount: number,
+  recipientPhone: string,
   note?: string
 ): Promise<{
   ok: boolean;
@@ -6992,7 +7009,7 @@ export function transferWalletFunds(
 }> {
   return apiPostJson(
     "/users/me/wallet/transfer",
-    { toUserId, amount, note },
+    { amount, recipientPhone, note },
     accessToken
   );
 }

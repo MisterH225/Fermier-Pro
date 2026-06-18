@@ -2,19 +2,23 @@ import { randomUUID } from "crypto";
 import {
   BadRequestException,
   Inject,
-  Injectable
+  Injectable,
+  NotFoundException
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
 import {
   MOBILE_MONEY_GATEWAY,
   type MobileMoneyGateway
 } from "../marketplace/escrow/mobile-money.gateway";
+import { PrismaService } from "../prisma/prisma.service";
+import type { WalletTransferDto } from "./dto/wallet-operations.dto";
 import { UserWalletService } from "./user-wallet.service";
 
 @Injectable()
 export class WalletRailsService {
   constructor(
     private readonly wallet: UserWalletService,
+    private readonly prisma: PrismaService,
     @Inject(MOBILE_MONEY_GATEWAY)
     private readonly gateway: MobileMoneyGateway
   ) {}
@@ -130,22 +134,17 @@ export class WalletRailsService {
     };
   }
 
-  async transfer(
-    fromUser: User,
-    toUserId: string,
-    amount: number,
-    note?: string,
-    clientRequestId?: string
-  ) {
+  async transfer(fromUser: User, dto: WalletTransferDto) {
+    const toUserId = await this.resolveTransferTargetUserId(fromUser.id, dto);
     const summary = await this.wallet.getSummary(fromUser.id);
     const idempotencyKey =
-      clientRequestId?.trim() || `transfer:${randomUUID()}`;
+      dto.clientRequestId?.trim() || `transfer:${randomUUID()}`;
     const result = await this.wallet.transfer(
       fromUser.id,
       toUserId,
-      amount,
+      dto.amount,
       summary.currency,
-      note?.trim() || "Transfert portefeuille (gratuit)",
+      dto.note?.trim() || "Transfert portefeuille (gratuit)",
       idempotencyKey
     );
     return {
@@ -155,5 +154,45 @@ export class WalletRailsService {
       balance: result.debit.balanceAfter,
       currency: summary.currency
     };
+  }
+
+  async lookupTransferRecipient(fromUser: User, phone: string) {
+    return this.wallet.resolveTransferRecipientByPhone(fromUser.id, phone);
+  }
+
+  private async resolveTransferTargetUserId(
+    fromUserId: string,
+    dto: WalletTransferDto
+  ): Promise<string> {
+    const directId = dto.toUserId?.trim();
+    const phone = dto.recipientPhone?.trim();
+    if (directId && phone) {
+      throw new BadRequestException(
+        "Indiquez soit l'identifiant utilisateur, soit le numéro de téléphone"
+      );
+    }
+    if (directId) {
+      if (directId === fromUserId) {
+        throw new BadRequestException("Impossible de transférer vers soi-même");
+      }
+      const user = await this.prisma.user.findUnique({
+        where: { id: directId },
+        select: { id: true, isActive: true, accountStatus: true }
+      });
+      if (!user || !user.isActive || user.accountStatus !== "active") {
+        throw new NotFoundException("Destinataire introuvable");
+      }
+      return directId;
+    }
+    if (phone) {
+      const resolved = await this.wallet.resolveTransferRecipientByPhone(
+        fromUserId,
+        phone
+      );
+      return resolved.userId;
+    }
+    throw new BadRequestException(
+      "Destinataire requis (numéro de téléphone ou identifiant)"
+    );
   }
 }

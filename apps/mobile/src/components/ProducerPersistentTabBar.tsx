@@ -232,6 +232,11 @@ export function ProducerPersistentTabBar() {
           a11y: t("navigation.screenTitles.messages")
         },
         {
+          id: "wallet" as const,
+          label: t("navigation.extended.wallet"),
+          a11y: t("navigation.extended.walletDescription")
+        },
+        {
           id: "settings" as const,
           label: t("navigation.extended.settings"),
           a11y: t("navigation.extended.settings")
@@ -317,6 +322,9 @@ export function ProducerPersistentTabBar() {
           return;
         case "messages":
           navigation.navigate("ProducerMessages");
+          return;
+        case "wallet":
+          navigation.navigate("UserWallet");
           return;
         default:
           return;

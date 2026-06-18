@@ -87,6 +87,11 @@ export function VetPersistentTabBar() {
       { id: "tasks", label: t("vet.extended.tasks"), a11y: t("vet.extended.tasks") },
       { id: "reports", label: t("vet.extended.reports"), a11y: t("vet.extended.reports") },
       {
+        id: "wallet",
+        label: t("navigation.extended.wallet"),
+        a11y: t("navigation.extended.walletDescription")
+      },
+      {
         id: "prescriptions",
         label: t("vet.extended.prescriptions"),
         a11y: t("vet.extended.prescriptions")
@@ -107,6 +112,9 @@ export function VetPersistentTabBar() {
           return;
         case "reports":
           navigation.navigate("VetReports");
+          return;
+        case "wallet":
+          navigation.navigate("UserWallet");
           return;
         case "prescriptions":
           navigation.navigate("ModuleRoadmap", {

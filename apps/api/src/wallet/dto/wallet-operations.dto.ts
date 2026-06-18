@@ -4,8 +4,15 @@ import {
   IsOptional,
   IsString,
   Max,
-  Min
+  Min,
+  ValidateIf
 } from "class-validator";
+
+export class WalletLookupRecipientQueryDto {
+  @IsString()
+  @IsNotEmpty()
+  phone!: string;
+}
 
 export class WalletAmountDto {
   @IsInt()
@@ -33,9 +40,15 @@ export class WalletWithdrawConfirmDto extends WalletWithdrawInitiateDto {
 }
 
 export class WalletTransferDto extends WalletAmountDto {
+  @ValidateIf((o: WalletTransferDto) => !o.recipientPhone?.trim())
   @IsString()
   @IsNotEmpty()
-  toUserId!: string;
+  toUserId?: string;
+
+  @ValidateIf((o: WalletTransferDto) => !o.toUserId?.trim())
+  @IsString()
+  @IsNotEmpty()
+  recipientPhone?: string;
 
   @IsOptional()
   @IsString()
