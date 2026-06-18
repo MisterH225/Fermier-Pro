@@ -1,6 +1,5 @@
 import { Module, forwardRef } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
-import { WalletModule } from "../wallet/wallet.module";
 import { ChatModule } from "../chat/chat.module";
 import { ConfigClientModule } from "../config-client/config-client.module";
 import { FeatureFlagsModule } from "../feature-flags/feature-flags.module";
@@ -40,7 +39,7 @@ import { ListingAnimalSyncService } from "./listing-animal-sync.service";
 @Module({
   imports: [
     forwardRef(() => AuthModule),
-    forwardRef(() => WalletModule),
+    forwardRef(() => require("../wallet/wallet.module").WalletModule),
     ChatModule,
     ConfigClientModule,
     FeatureFlagsModule,
