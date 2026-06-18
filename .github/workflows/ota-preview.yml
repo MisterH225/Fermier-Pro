@@ -33,6 +33,10 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
+          if [[ -z "${EXPO_TOKEN:-}" ]]; then
+            echo "::warning::EXPO_TOKEN non configuré — OTA ignorée. Ajoutez le secret dans Settings → Secrets → Actions."
+            exit 0
+          fi
           MSG="${{ github.event.inputs.message }}"
           if [[ -z "$MSG" ]]; then
             MSG="OTA preview (${GITHUB_SHA:0:7}) — $(date -u +%Y-%m-%dT%H:%MZ)"
