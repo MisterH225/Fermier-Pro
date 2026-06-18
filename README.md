@@ -18,6 +18,7 @@ Le blueprint complet est disponible ici:
 - `docs/PRODUCT_BLUEPRINT.md`
 - `docs/SETUP.md`
 - `docs/SUPABASE_AUTH.md` (Google, Apple, telephone + JWT API)
+- `docs/RAILWAY.md` (API sur Railway, OTA mobile — ne pas déployer Metro)
 
 Ce document couvre:
 - architecture backend
