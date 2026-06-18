@@ -212,7 +212,19 @@ if (prismaSubcommand === "generate") {
   env.DIRECT_URL = directUrl;
 }
 
-const prismaPkgDir = path.dirname(require.resolve("prisma/package.json"));
+let prismaPkgDir;
+try {
+  prismaPkgDir = path.dirname(require.resolve("prisma/package.json"));
+} catch {
+  console.error(
+    [
+      "prisma-run: le package prisma est introuvable.",
+      "Sur Railway / CI : npm install --include=dev (build) ou prisma en dependencies (runtime migrate).",
+      "En local : npm install --ignore-scripts puis npm run prisma:generate."
+    ].join("\n")
+  );
+  process.exit(1);
+}
 const prismaCli = path.join(prismaPkgDir, "build", "index.js");
 
 const result = spawnSync(process.execPath, [prismaCli, ...prismaArgs], {

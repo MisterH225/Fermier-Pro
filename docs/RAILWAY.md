@@ -21,6 +21,8 @@ Le fichier `railway.json` à la racine documente build + healthcheck pour évite
 
 **Build Prisma** : la commande utilise `npm run prisma:generate --workspace @fermier/api` (Prisma 5 local via `prisma-run.cjs`). Ne pas utiliser `npm exec prisma generate` qui peut télécharger Prisma 6 via npx et échouer avec `query_engine_bg.postgresql.wasm-base64.js` introuvable.
 
+**Install build** : `npm install --ignore-scripts --include=dev` — Railway installe en mode production par défaut (`omit=dev`). Sans `--include=dev`, `prisma` et `@nestjs/cli` sont absents (`Cannot find module 'prisma/package.json'`). Le CLI `prisma` est aussi en `dependencies` de `@fermier/api` pour `migrate deploy` au démarrage.
+
 ## Erreur : `expo start` + SIGTERM (~5 s)
 
 Si les logs Railway montrent :
