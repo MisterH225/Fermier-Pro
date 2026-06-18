@@ -11,13 +11,10 @@ async function bootstrap() {
   dotenvConfig({ path: join(process.cwd(), "../../.env"), override: true });
 
   // Toujours exécuter avant NestFactory — même si Railway lance dist/main.js directement.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { bootstrapProdEnv } = require(join(
-    __dirname,
-    "..",
-    "scripts",
-    "bootstrap-prod-env.cjs"
-  )) as { bootstrapProdEnv: () => void };
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
+  const { bootstrapProdEnv } = require(
+    join(__dirname, "..", "scripts", "bootstrap-prod-env.cjs")
+  ) as { bootstrapProdEnv: () => void };
   bootstrapProdEnv();
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);

@@ -44,7 +44,7 @@ describe("transaction.utils", () => {
   });
 
   describe("calculateBlockedAmount", () => {
-    it("applique la marge 10 % au kg pour l'escrow", () => {
+    it("bloque le prix convenu (prix/kg × poids) sans buffer", () => {
       expect(
         calculateBlockedAmount({
           priceType: MarketplacePriceType.per_kg,
@@ -52,7 +52,19 @@ describe("transaction.utils", () => {
           agreedFlatPrice: null,
           estimatedWeightKg: 630
         })
-      ).toBeCloseTo(1_039_500, 0);
+      ).toBe(945_000);
+    });
+
+    it("ajoute la commission acheteur si fournie", () => {
+      expect(
+        calculateBlockedAmount({
+          priceType: MarketplacePriceType.per_kg,
+          agreedPricePerKg: 1_500,
+          agreedFlatPrice: null,
+          estimatedWeightKg: 630,
+          commissionRate: 0.05
+        })
+      ).toBe(992_250);
     });
   });
 

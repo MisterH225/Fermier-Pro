@@ -914,6 +914,3 @@ export class UserWalletService {
     };
   }
 }
-
-/** @deprecated Utiliser UserWalletService */
-export { UserWalletService as BuyerWalletService };
