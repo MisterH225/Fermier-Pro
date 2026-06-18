@@ -43,12 +43,29 @@ function bootstrapProdEnv() {
   const mobileMoneyProvider = (process.env.MOBILE_MONEY_PROVIDER ?? "dev")
     .trim()
     .toLowerCase();
-  if (!process.env.APP_ENV?.trim() && mobileMoneyProvider === "dev") {
-    process.env.APP_ENV = "staging";
-    console.warn(
-      "[bootstrap-prod-env] APP_ENV absent avec MOBILE_MONEY_PROVIDER=dev — APP_ENV=staging par défaut. " +
-        "Définissez APP_ENV=production uniquement avec un provider mobile money réel."
-    );
+
+  // Gateway simulé : l'API doit démarrer en staging même si Railway a APP_ENV=production
+  // ou NODE_ENV=production sans APP_ENV (sinon MobileMoneyGatewayGuard crash au boot).
+  if (mobileMoneyProvider === "dev") {
+    const appEnv = (process.env.APP_ENV ?? "").trim().toLowerCase();
+    const isExplicitProduction = appEnv === "production" || appEnv === "prod";
+    const isImplicitProduction =
+      !appEnv && (process.env.NODE_ENV ?? "").trim().toLowerCase() === "production";
+
+    if (!appEnv || isExplicitProduction || isImplicitProduction) {
+      if (isExplicitProduction) {
+        console.warn(
+          "[bootstrap-prod-env] APP_ENV=production incompatible avec MOBILE_MONEY_PROVIDER=dev — forcé à staging. " +
+            "Branchez un provider réel avant APP_ENV=production."
+        );
+      } else {
+        console.warn(
+          "[bootstrap-prod-env] APP_ENV absent avec MOBILE_MONEY_PROVIDER=dev — APP_ENV=staging par défaut. " +
+            "Définissez APP_ENV=production uniquement avec un provider mobile money réel."
+        );
+      }
+      process.env.APP_ENV = "staging";
+    }
   }
 }
 

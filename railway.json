@@ -13,7 +13,7 @@
     "buildCommand": "npm install --ignore-scripts --include=dev && PRISMA_GENERATE_SKIP_AUTOINSTALL=true npm run prisma:generate --workspace @fermier/api && npm run build:api"
   },
   "deploy": {
-    "preDeployCommand": "npm run prisma:migrate:deploy --workspace @fermier/api",
+    "preDeployCommand": "node apps/api/scripts/railway-predeploy.cjs",
     "startCommand": "node apps/api/scripts/start-api.cjs",
     "healthcheckPath": "/api/v1/health",
     "healthcheckTimeout": 120,

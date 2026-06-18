@@ -102,3 +102,15 @@ npm run prisma:migrate:deploy
 Ou via SQL Supabase (si `prisma migrate resolve` n'est pas disponible) : marquer `finished_at` sur la migration failed et insérer les migrations manquantes dans `_prisma_migrations`.
 
 **Prévention** : appliquer les changements de schéma wallet **une seule fois** — soit via Supabase MCP / migrations SQL, soit via `prisma migrate deploy` au démarrage Railway, pas les deux en parallèle sur la même base.
+
+Le script `apps/api/scripts/railway-predeploy.cjs` (pre-deploy Railway) tente automatiquement `migrate resolve --applied` sur les migrations wallet/orchestrateur en cas de P3009.
+
+## API injoignable — mobile « Application failed to respond »
+
+Si `curl https://fermierapi-production.up.railway.app/api/v1/health` renvoie **502**, l'app mobile ne peut pas appeler `GET /auth/me` au démarrage.
+
+| Cause | Logs Railway | Correctif |
+|-------|--------------|-----------|
+| `APP_ENV=production` + `MOBILE_MONEY_PROVIDER=dev` | `MOBILE_MONEY_PROVIDER=dev interdit en production` | `bootstrap-prod-env` force `APP_ENV=staging` si provider=dev ; ou brancher un vrai provider |
+| P3009 migrations wallet/orchestrateur | `failed migrations` / `universal_user_wallet` | `railway-predeploy.cjs` ou `prisma migrate resolve --applied` (voir ci-dessus) |
+| Healthcheck timeout | API démarre après migrate dans startCommand | Utiliser `start-api.cjs` + migrations en preDeploy |
