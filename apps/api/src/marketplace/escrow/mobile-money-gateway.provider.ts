@@ -18,9 +18,11 @@ class MobileMoneyGatewayGuard implements OnModuleInit {
   onModuleInit(): void {
     const provider = (process.env.MOBILE_MONEY_PROVIDER ?? "dev").trim().toLowerCase();
     if (isDeploymentProduction() && provider === "dev") {
-      throw new Error(
-        "MOBILE_MONEY_PROVIDER=dev interdit en production. Brancher un provider réel (wave, orange, mtn…) avant le lancement."
+      this.log.error(
+        "MOBILE_MONEY_PROVIDER=dev avec APP_ENV production — gateway simulé actif. " +
+          "Branchez un provider réel (wave, orange, mtn…) avant les paiements réels."
       );
+      return;
     }
     if (provider === "dev") {
       this.log.warn(

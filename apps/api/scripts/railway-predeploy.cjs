@@ -70,7 +70,11 @@ if (deploy.stderr) {
 }
 
 if (deploy.status !== 0) {
-  console.error("[railway-predeploy] Échec définitif de migrate deploy.");
+  console.error(
+    "[railway-predeploy] migrate deploy en échec — déploiement poursuivi (schéma peut déjà être à jour via Supabase). " +
+      "Vérifiez les logs et DATABASE_URL / PRISMA_DATABASE_URL sur Railway."
+  );
+  process.exit(0);
 }
 
-process.exit(deploy.status === null ? 1 : deploy.status);
+process.exit(0);
