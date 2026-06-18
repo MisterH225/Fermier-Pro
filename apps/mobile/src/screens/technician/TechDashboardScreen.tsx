@@ -26,6 +26,7 @@ import {
 import { TechMobileShell } from "../../components/layout/TechMobileShell";
 import { TechProfileModal } from "../../components/technician/TechProfileModal";
 import { TechWelcomeHeader } from "../../components/technician/TechWelcomeHeader";
+import { WalletDashboardCard } from "../../components/wallet/WalletDashboardCard";
 import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
 import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import { DashboardTaskWidget } from "../../components/tasks";
@@ -141,24 +142,27 @@ export function TechDashboardScreen() {
 
   const dashboardHeader: ReactNode = (
     <View style={styles.heroBar}>
-      <TechWelcomeHeader
-        welcomeLabel={t("tech.dashboard.welcomeLine")}
-        displayName={displayName}
-        avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
-        onPressAvatar={() => setProfileOpen(true)}
-      />
-      <View style={styles.heroActions}>
-        <SupportHeaderButton
-          iconColor={techColors.primary}
-          style={styles.heroIconBtn}
+      <View style={styles.heroHeaderRow}>
+        <TechWelcomeHeader
+          welcomeLabel={t("tech.dashboard.welcomeLine")}
+          displayName={displayName}
+          avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
+          onPressAvatar={() => setProfileOpen(true)}
         />
-        <NotificationsHeaderButton
-          iconColor={techColors.primary}
-          farmId={activeFarm?.farmId}
-          farmName={activeFarm?.farmName}
-          style={styles.heroIconBtn}
-        />
+        <View style={styles.heroActions}>
+          <SupportHeaderButton
+            iconColor={techColors.primary}
+            style={styles.heroIconBtn}
+          />
+          <NotificationsHeaderButton
+            iconColor={techColors.primary}
+            farmId={activeFarm?.farmId}
+            farmName={activeFarm?.farmName}
+            style={styles.heroIconBtn}
+          />
+        </View>
       </View>
+      {accessToken ? <WalletDashboardCard variant="tech" /> : null}
     </View>
   );
 
@@ -353,12 +357,17 @@ export function TechDashboardScreen() {
 
 const styles = StyleSheet.create({
   heroBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: "column",
+    gap: mobileSpacing.sm,
     paddingHorizontal: mobileSpacing.lg,
-    paddingVertical: mobileSpacing.sm,
-    backgroundColor: techColors.canvas,
+    paddingTop: mobileSpacing.sm,
+    paddingBottom: mobileSpacing.md,
+    backgroundColor: techColors.canvas
+  },
+  heroHeaderRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
     gap: mobileSpacing.sm
   },
   heroActions: {

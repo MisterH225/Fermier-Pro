@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -19,10 +19,13 @@ import { WalletOperationsCard } from "../buyer/WalletOperationsCard";
 import { useSession } from "../../context/SessionContext";
 import { fetchUserWallet } from "../../lib/api";
 import { formatMarketMoney } from "../marketplace/MarketplaceListingCard";
-import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
+import { buyerColors } from "../../theme/buyerTheme";
+import { techColors } from "../../theme/technicianTheme";
+import { vetColors } from "../../theme/vetTheme";
 import {
   mobileColors,
   mobileRadius,
+  mobileShadows,
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
@@ -32,9 +35,39 @@ const BALANCE_HIDDEN_KEY = "@fermier/wallet_balance_hidden";
 
 type WalletAction = "topup" | "withdraw" | "transfer";
 
+type ProfileVariant = "buyer" | "producer" | "vet" | "tech";
+
 type Props = {
-  variant?: "buyer" | "producer";
+  variant?: ProfileVariant;
 };
+
+function accentForVariant(variant: ProfileVariant): string {
+  switch (variant) {
+    case "buyer":
+      return buyerColors.primary;
+    case "vet":
+      return vetColors.primary;
+    case "tech":
+      return techColors.primary;
+    default:
+      return mobileColors.accent;
+  }
+}
+
+function splitBalanceDisplay(
+  balance: number,
+  hidden: boolean
+): { main: string; decimal: string | null } {
+  if (hidden) {
+    return { main: "••••••", decimal: null };
+  }
+  const whole = Math.floor(balance);
+  const cents = Math.round((balance - whole) * 100);
+  return {
+    main: whole.toLocaleString("fr-FR"),
+    decimal: `,${String(cents).padStart(2, "0")}`
+  };
+}
 
 export function WalletDashboardCard({ variant = "producer" }: Props) {
   const { t } = useTranslation();
@@ -45,8 +78,7 @@ export function WalletDashboardCard({ variant = "producer" }: Props) {
   const [balanceHidden, setBalanceHidden] = useState(false);
   const [activeAction, setActiveAction] = useState<WalletAction | null>(null);
 
-  const accent = variant === "buyer" ? buyerColors.primary : mobileColors.accent;
-  const cardBg = variant === "buyer" ? "#2D2E35" : mobileColors.accent;
+  const accent = accentForVariant(variant);
 
   const walletQ = useQuery({
     queryKey: ["userWallet"],
@@ -69,43 +101,25 @@ export function WalletDashboardCard({ variant = "producer" }: Props) {
   }, []);
 
   const wallet = walletQ.data;
-  const balanceLabel =
-    wallet && !balanceHidden
-      ? formatMarketMoney(Math.round(wallet.balance), wallet.currency)
-      : "••••••";
+  const currency = wallet?.currency ?? "XOF";
+  const balanceParts = useMemo(
+    () => splitBalanceDisplay(wallet?.balance ?? 0, balanceHidden),
+    [wallet?.balance, balanceHidden]
+  );
 
-  const actions: {
-    id: WalletAction;
-    label: string;
-    icon: keyof typeof Ionicons.glyphMap;
-  }[] = [
-    { id: "topup", label: t("wallet.dashboard.topUp"), icon: "add-circle-outline" },
-    {
-      id: "transfer",
-      label: t("wallet.dashboard.transfer"),
-      icon: "swap-horizontal-outline"
-    },
-    {
-      id: "withdraw",
-      label: t("wallet.dashboard.withdraw"),
-      icon: "arrow-up-circle-outline"
+  const monthCreditsLabel = useMemo(() => {
+    if (!wallet?.monthCredits || balanceHidden) {
+      return null;
     }
-  ];
+    return t("buyer.wallet.monthCredits", {
+      amount: formatMarketMoney(Math.round(wallet.monthCredits), currency)
+    });
+  }, [wallet?.monthCredits, balanceHidden, currency, t]);
 
   return (
     <>
-      <View style={[styles.card, { backgroundColor: cardBg }]}>
-        <View style={styles.balanceRow}>
-          <View style={styles.balanceCol}>
-            <Text style={styles.balanceLabel}>
-              {t("buyer.wallet.availableBalance")}
-            </Text>
-            {walletQ.isLoading ? (
-              <ActivityIndicator color="#fff" style={styles.balanceLoader} />
-            ) : (
-              <Text style={styles.balanceAmount}>{balanceLabel}</Text>
-            )}
-          </View>
+      <View style={styles.wrap}>
+        <View style={styles.balanceCard}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={
@@ -119,35 +133,95 @@ export function WalletDashboardCard({ variant = "producer" }: Props) {
           >
             <Ionicons
               name={balanceHidden ? "eye-off-outline" : "eye-outline"}
-              size={22}
-              color="rgba(255,255,255,0.9)"
+              size={20}
+              color={mobileColors.textSecondary}
             />
           </Pressable>
+
+          <View style={styles.currencyPill}>
+            <Ionicons name="cash-outline" size={14} color="#FFFFFF" />
+            <Text style={styles.currencyPillText}>{currency}</Text>
+          </View>
+
+          <View style={styles.balanceCenter}>
+            {walletQ.isLoading ? (
+              <ActivityIndicator color={mobileColors.textPrimary} />
+            ) : (
+              <View style={styles.balanceAmountRow}>
+                <Text style={styles.balanceMain}>{balanceParts.main}</Text>
+                {balanceParts.decimal ? (
+                  <Text style={styles.balanceDecimal}>{balanceParts.decimal}</Text>
+                ) : null}
+              </View>
+            )}
+          </View>
+
+          {monthCreditsLabel ? (
+            <View style={[styles.growthBadge, { backgroundColor: accent }]}>
+              <Ionicons name="trending-up" size={14} color="#FFFFFF" />
+              <Text style={styles.growthBadgeText}>{monthCreditsLabel}</Text>
+            </View>
+          ) : null}
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigation.navigate("UserWallet")}
+            style={styles.detailsLink}
+          >
+            <Text style={styles.detailsLinkText}>{t("wallet.dashboard.openWallet")}</Text>
+            <Ionicons name="chevron-forward" size={14} color={mobileColors.textSecondary} />
+          </Pressable>
         </View>
-        <View style={styles.actionsRow}>
-          {actions.map((action) => (
-            <Pressable
-              key={action.id}
-              accessibilityRole="button"
-              onPress={() => setActiveAction(action.id)}
-              style={({ pressed }) => [
-                styles.actionChip,
-                pressed && { opacity: 0.88 }
-              ]}
-            >
-              <Ionicons name={action.icon} size={16} color="#fff" />
-              <Text style={styles.actionLabel}>{action.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => navigation.navigate("UserWallet")}
-          style={styles.detailsLink}
+
+        <View
+          style={[
+            styles.actionsDock,
+            monthCreditsLabel ? { marginTop: mobileSpacing.sm } : null
+          ]}
         >
-          <Text style={styles.detailsLinkText}>{t("wallet.dashboard.openWallet")}</Text>
-          <Ionicons name="chevron-forward" size={14} color="rgba(255,255,255,0.75)" />
-        </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setActiveAction("transfer")}
+            style={({ pressed }) => [
+              styles.dockBtnWide,
+              pressed && styles.dockBtnPressed
+            ]}
+          >
+            <Text style={styles.dockBtnLabel}>{t("wallet.dashboard.transfer")}</Text>
+            <View style={styles.dockIconCircle}>
+              <Ionicons name="arrow-up-outline" size={18} color="#FFFFFF" />
+            </View>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("wallet.dashboard.topUp")}
+            onPress={() => setActiveAction("topup")}
+            style={({ pressed }) => [
+              styles.dockBtnSquare,
+              pressed && styles.dockBtnPressed
+            ]}
+          >
+            <Ionicons name="add" size={26} color={mobileColors.textPrimary} />
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setActiveAction("withdraw")}
+            style={({ pressed }) => [
+              styles.dockBtnWide,
+              styles.dockBtnWithdraw,
+              pressed && styles.dockBtnPressed
+            ]}
+          >
+            <View style={styles.dockIconCircle}>
+              <Ionicons name="arrow-down-outline" size={18} color="#FFFFFF" />
+            </View>
+            <Text style={[styles.dockBtnLabel, styles.dockBtnLabelRight]}>
+              {t("wallet.dashboard.withdraw")}
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
       <Modal
@@ -194,55 +268,85 @@ export function WalletDashboardCard({ variant = "producer" }: Props) {
   );
 }
 
+const CARD_BG = "#EBEBF0";
+const DOCK_BG = "#161616";
+const DOCK_BTN = "#2A2A2A";
+const DOCK_SQUARE = "#E8E8ED";
+
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: mobileRadius.md,
-    padding: mobileSpacing.md,
-    gap: mobileSpacing.sm,
-    width: "100%"
-  },
-  balanceRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
+  wrap: {
+    width: "100%",
     gap: mobileSpacing.sm
   },
-  balanceCol: { flex: 1, gap: 2 },
-  balanceLabel: {
-    ...mobileTypography.meta,
-    color: "rgba(255,255,255,0.72)",
-    fontWeight: "500"
+  balanceCard: {
+    backgroundColor: CARD_BG,
+    borderRadius: 28,
+    paddingTop: mobileSpacing.lg,
+    paddingHorizontal: mobileSpacing.lg,
+    paddingBottom: mobileSpacing.xl + 4,
+    alignItems: "center",
+    position: "relative",
+    ...mobileShadows.card
   },
-  balanceAmount: {
-    fontSize: 26,
-    lineHeight: 32,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    letterSpacing: -0.5
-  },
-  balanceLoader: { alignSelf: "flex-start", marginTop: 4 },
   eyeBtn: {
+    position: "absolute",
+    top: mobileSpacing.md,
+    right: mobileSpacing.md,
     padding: mobileSpacing.xs,
-    borderRadius: buyerRadius.pill
+    zIndex: 2
   },
-  actionsRow: {
+  currencyPill: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: mobileSpacing.xs,
-    marginTop: mobileSpacing.xs
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#1A1A1A",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: mobileRadius.pill,
+    marginBottom: mobileSpacing.md
   },
-  actionChip: {
+  currencyPillText: {
+    ...mobileTypography.meta,
+    color: "#FFFFFF",
+    fontWeight: "700",
+    letterSpacing: 0.4
+  },
+  balanceCenter: {
+    minHeight: 52,
+    justifyContent: "center",
+    alignItems: "center"
+  },
+  balanceAmountRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "center"
+  },
+  balanceMain: {
+    fontSize: 40,
+    lineHeight: 44,
+    fontWeight: "700",
+    color: mobileColors.textPrimary,
+    letterSpacing: -1
+  },
+  balanceDecimal: {
+    fontSize: 22,
+    lineHeight: 30,
+    fontWeight: "500",
+    color: mobileColors.textSecondary,
+    marginBottom: 2,
+    marginLeft: 2
+  },
+  growthBadge: {
+    position: "absolute",
+    bottom: -14,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: buyerRadius.pill,
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.2)"
+    paddingHorizontal: 12,
+    borderRadius: mobileRadius.pill
   },
-  actionLabel: {
+  growthBadgeText: {
     ...mobileTypography.meta,
     fontSize: 12,
     fontWeight: "600",
@@ -251,14 +355,66 @@ const styles = StyleSheet.create({
   detailsLink: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-end",
     gap: 2,
-    marginTop: 2
+    marginTop: mobileSpacing.lg
   },
   detailsLinkText: {
     ...mobileTypography.meta,
-    color: "rgba(255,255,255,0.75)",
+    color: mobileColors.textSecondary,
     fontWeight: "600"
+  },
+  actionsDock: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.sm,
+    backgroundColor: DOCK_BG,
+    borderRadius: 22,
+    padding: mobileSpacing.sm
+  },
+  dockBtnWide: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: DOCK_BTN,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: mobileSpacing.md,
+    minHeight: 56
+  },
+  dockBtnWithdraw: {
+    justifyContent: "flex-start",
+    gap: mobileSpacing.sm
+  },
+  dockBtnSquare: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: DOCK_SQUARE,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  dockBtnPressed: {
+    opacity: 0.88
+  },
+  dockBtnLabel: {
+    ...mobileTypography.cardTitle,
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#FFFFFF"
+  },
+  dockBtnLabelRight: {
+    flex: 1,
+    textAlign: "right"
+  },
+  dockIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.35)",
+    alignItems: "center",
+    justifyContent: "center"
   },
   modalRoot: {
     flex: 1,

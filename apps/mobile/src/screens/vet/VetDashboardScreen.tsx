@@ -20,6 +20,7 @@ import { VetMobileShell } from "../../components/layout";
 import { DashboardTaskWidget } from "../../components/tasks";
 import { VetAccountModal } from "../../components/vet/VetAccountModal";
 import { VetWelcomeHeader } from "../../components/vet/VetWelcomeHeader";
+import { WalletDashboardCard } from "../../components/wallet/WalletDashboardCard";
 import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
 import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import { VisitCard } from "../../components/vet/VisitCard";
@@ -137,25 +138,28 @@ export function VetDashboardScreen() {
 
   const dashboardHeader: ReactNode = (
     <View style={styles.heroBar}>
-      <VetWelcomeHeader
-        welcomeLabel={t("vet.dashboard.welcome")}
-        displayName={displayName}
-        avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
-        verified={isVerified}
-        onPressAvatar={() => setProfileOpen(true)}
-      />
-      <View style={styles.heroActions}>
-        <SupportHeaderButton
-          iconColor={vetColors.primary}
-          style={[styles.heroIconBtn, vetShadow.soft]}
+      <View style={styles.heroHeaderRow}>
+        <VetWelcomeHeader
+          welcomeLabel={t("vet.dashboard.welcome")}
+          displayName={displayName}
+          avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
+          verified={isVerified}
+          onPressAvatar={() => setProfileOpen(true)}
         />
-        <NotificationsHeaderButton
-          iconColor={vetColors.primary}
-          farmId={primaryFarm?.id}
-          farmName={primaryFarm?.name}
-          style={[styles.heroIconBtn, vetShadow.soft]}
-        />
+        <View style={styles.heroActions}>
+          <SupportHeaderButton
+            iconColor={vetColors.primary}
+            style={[styles.heroIconBtn, vetShadow.soft]}
+          />
+          <NotificationsHeaderButton
+            iconColor={vetColors.primary}
+            farmId={primaryFarm?.id}
+            farmName={primaryFarm?.name}
+            style={[styles.heroIconBtn, vetShadow.soft]}
+          />
+        </View>
       </View>
+      {accessToken && !isPending ? <WalletDashboardCard variant="vet" /> : null}
     </View>
   );
 
@@ -409,12 +413,17 @@ function QuickBtn({
 
 const styles = StyleSheet.create({
   heroBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: "column",
+    gap: mobileSpacing.sm,
     paddingHorizontal: mobileSpacing.lg,
-    paddingVertical: mobileSpacing.sm,
-    backgroundColor: vetColors.canvas,
+    paddingTop: mobileSpacing.sm,
+    paddingBottom: mobileSpacing.md,
+    backgroundColor: vetColors.canvas
+  },
+  heroHeaderRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
     gap: mobileSpacing.sm
   },
   heroActions: {
