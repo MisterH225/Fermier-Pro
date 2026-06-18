@@ -1,5 +1,5 @@
 {
-  "message": "feat(mobile): refonte UI carte wallet dashboard minimal (#118)",
-  "updatedAt": "2026-06-18T18:30:00Z",
+  "message": "fix(mobile): garde-fou Railway Metro + config API (#119)",
+  "updatedAt": "2026-06-18T19:00:00Z",
   "channels": ["preview", "production"]
 }
