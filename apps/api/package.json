@@ -12,6 +12,7 @@
     "prisma:generate": "node scripts/prisma-run.cjs generate",
     "prisma:migrate:dev": "node scripts/prisma-run.cjs migrate dev",
     "prisma:migrate:deploy": "node scripts/prisma-run.cjs migrate deploy",
+    "prisma:railway-predeploy": "node scripts/railway-predeploy.cjs",
     "prisma:migrate:resolve": "node scripts/prisma-run.cjs migrate resolve",
     "prisma:migrate:status": "node scripts/prisma-run.cjs migrate status",
     "prisma:push": "node scripts/prisma-run.cjs db push",
