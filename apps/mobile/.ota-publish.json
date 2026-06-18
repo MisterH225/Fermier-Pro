@@ -1,5 +1,5 @@
 {
-  "message": "feat(payments): orchestrateur wallet, frais admin, retraits validés (#117)",
-  "updatedAt": "2026-06-16T18:00:00Z",
+  "message": "feat(mobile): refonte UI carte wallet dashboard minimal (#118)",
+  "updatedAt": "2026-06-16T20:00:00Z",
   "channels": ["preview", "production"]
 }
