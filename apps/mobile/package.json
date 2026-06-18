@@ -4,7 +4,7 @@
   "private": true,
   "main": "index.js",
   "scripts": {
-    "start": "expo start",
+    "start": "node scripts/assert-not-railway.cjs && expo start",
     "start:offline": "expo start --offline",
     "start:clear": "expo start --clear",
     "expo:start": "expo start",
