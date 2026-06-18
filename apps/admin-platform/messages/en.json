@@ -16,6 +16,7 @@
     "producerScores": "Producer scores",
     "stats": "Statistics",
     "ai": "AI assistant",
+    "wallet": "Wallet",
     "modules": "Modules",
     "settings": "Settings",
     "more": "More",
@@ -400,7 +401,8 @@
       "notifications": "Notifications",
       "support": "Mobile support",
       "marketplace": "Marketplace",
-      "vet": "Veterinarian"
+      "vet": "Veterinarian",
+      "wallet": "Wallet"
     },
     "loadError": "Could not load settings. Check that the API is up to date and Prisma migrations have been applied.",
     "fields": {
@@ -421,7 +423,9 @@
       "supportPhoneEffective": "Active value on mobile (env fallback): {value}",
       "supportTelegram": "Telegram link",
       "supportTelegramHint": "URL or @username for support. Leave empty to use SUPPORT_TELEGRAM_URL on the API.",
-      "supportTelegramEffective": "Active link on mobile (env fallback): {value}"
+      "supportTelegramEffective": "Active link on mobile (env fallback): {value}",
+      "withdrawalThreshold": "Auto-approve withdrawal threshold (XOF)",
+      "withdrawalThresholdHint": "Above this amount, an admin must approve the withdrawal."
     },
     "scopes": {
       "world": "Worldwide",
@@ -758,6 +762,33 @@
       "nouveau": "New",
       "attention": "Watch",
       "risque": "Risky"
+    }
+  },
+  "walletAdmin": {
+    "title": "Pending withdrawals",
+    "subtitle": "Approve or reject withdrawals above the auto threshold.",
+    "loading": "Loading…",
+    "empty": "No withdrawals awaiting approval.",
+    "phone": "Phone",
+    "fee": "Fee",
+    "totalDebit": "Total debited",
+    "approve": "Approve",
+    "reject": "Reject",
+    "rejectPlaceholder": "Rejection reason (optional)",
+    "rejectDefault": "Rejected by administration",
+    "fees": {
+      "title": "Wallet fees",
+      "hint": "0% = free. Fees are charged to the sender (withdrawal, transfer).",
+      "percentage": "Percentage (%)",
+      "fixed": "Fixed amount (XOF)",
+      "minFee": "Minimum fee (XOF)",
+      "maxFee": "Maximum fee (XOF, empty = no cap)",
+      "save": "Save",
+      "types": {
+        "deposit": "Deposit / top-up",
+        "withdrawal": "Withdrawal",
+        "transfer": "P2P transfer"
+      }
     }
   }
 }

@@ -64,6 +64,9 @@ export function WalletOperationsCard({
   const topUpMut = useMutation({
     mutationFn: async (amount: number) => {
       const init = await initiateWalletTopUp(accessToken!, amount);
+      if (!init.providerRef) {
+        throw new Error(t("buyer.wallet.ops.topUpInvalid"));
+      }
       return confirmWalletTopUp(accessToken!, amount, init.providerRef);
     },
     onSuccess: () => {
@@ -81,17 +84,32 @@ export function WalletOperationsCard({
         payload.amount,
         payload.phone
       );
-      return confirmWalletWithdraw(
+      if (init.requiresApproval) {
+        return { pendingApproval: true as const, init };
+      }
+      if (!init.providerRef) {
+        throw new Error(t("buyer.wallet.ops.withdrawInvalid"));
+      }
+      const confirmed = await confirmWalletWithdraw(
         accessToken!,
         payload.amount,
         init.providerRef,
-        payload.phone
+        payload.phone,
+        init.withdrawalRequestId
       );
+      return { pendingApproval: false as const, confirmed };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       setWithdrawAmount("");
       setWithdrawPhone("");
       invalidate();
+      if (result.pendingApproval) {
+        Alert.alert(
+          t("buyer.wallet.ops.withdrawPendingTitle"),
+          result.init.message ?? t("buyer.wallet.ops.withdrawPendingBody")
+        );
+        return;
+      }
       Alert.alert(
         t("buyer.wallet.ops.withdrawSuccessTitle"),
         t("buyer.wallet.ops.withdrawSuccessBody")

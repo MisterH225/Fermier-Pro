@@ -724,7 +724,9 @@ export class AdminPlatformService {
           dto.sellerMarketplaceCommissionRate ?? 0.05,
         vetCommissionRate: dto.vetCommissionRate ?? 0.05,
         supportPhone: supportPhone ?? null,
-        supportTelegramUrl: supportTelegramUrl ?? null
+        supportTelegramUrl: supportTelegramUrl ?? null,
+        withdrawalAutoApproveThreshold:
+          dto.withdrawalAutoApproveThreshold ?? 50_000
       },
       update: {
         ...(dto.mapGeographicScope !== undefined
@@ -758,7 +760,13 @@ export class AdminPlatformService {
           ? { vetCommissionRate: dto.vetCommissionRate }
           : {}),
         ...(supportPhone !== undefined ? { supportPhone } : {}),
-        ...(supportTelegramUrl !== undefined ? { supportTelegramUrl } : {})
+        ...(supportTelegramUrl !== undefined ? { supportTelegramUrl } : {}),
+        ...(dto.withdrawalAutoApproveThreshold !== undefined
+          ? {
+              withdrawalAutoApproveThreshold:
+                dto.withdrawalAutoApproveThreshold
+            }
+          : {})
       }
     });
     this.platformSettings.invalidateCache();

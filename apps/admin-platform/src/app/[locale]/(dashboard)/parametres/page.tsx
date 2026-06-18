@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AccountPasswordCard } from "@/components/settings/AccountPasswordCard";
+import { WalletFeesPanel } from "@/components/settings/WalletFeesPanel";
 import { selectClass } from "@/lib/ui-styles";
 
 const SCOPES = ["world", "africa", "west_africa", "countries"] as const;
@@ -37,7 +38,10 @@ export default function ParametresPage() {
           ...row,
           marketplaceCommissionRate: Number(row.marketplaceCommissionRate ?? 0.05),
           sellerMarketplaceCommissionRate: Number(row.sellerMarketplaceCommissionRate ?? 0.05),
-          vetCommissionRate: Number(row.vetCommissionRate ?? 0.05)
+          vetCommissionRate: Number(row.vetCommissionRate ?? 0.05),
+          withdrawalAutoApproveThreshold: Number(
+            row.withdrawalAutoApproveThreshold ?? 50_000
+          )
         });
       })
       .catch(() => {
@@ -69,6 +73,7 @@ export default function ParametresPage() {
         marketplaceCommissionRate: form.marketplaceCommissionRate,
         sellerMarketplaceCommissionRate: form.sellerMarketplaceCommissionRate,
         vetCommissionRate: form.vetCommissionRate,
+        withdrawalAutoApproveThreshold: form.withdrawalAutoApproveThreshold ?? 50000,
         supportPhone: form.supportPhone ?? "",
         supportTelegramUrl: form.supportTelegramUrl ?? ""
       });
@@ -330,7 +335,28 @@ export default function ParametresPage() {
         </CardContent>
       </Card>
 
-      <div className="flex items-center gap-4">
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">{t("sections.wallet")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Label htmlFor="withdraw-threshold">{t("fields.withdrawalThreshold")}</Label>
+          <Input
+            id="withdraw-threshold"
+            type="number"
+            min={0}
+            value={form.withdrawalAutoApproveThreshold ?? 50000}
+            onChange={(e) =>
+              update("withdrawalAutoApproveThreshold", Number(e.target.value) || 0)
+            }
+          />
+          <p className="text-xs text-muted-foreground">
+            {t("fields.withdrawalThresholdHint")}
+          </p>
+        </CardContent>
+      </Card>
+
+      <WalletFeesPanel />
         <Button type="button" disabled={saving} onClick={onSave}>
           {saving ? "…" : t("save")}
         </Button>

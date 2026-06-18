@@ -20,6 +20,8 @@ const VET_PENDING_PREFIX = "wallet:vet-pending:";
 
 export type WalletSummary = {
   balance: number;
+  pendingBalance: number;
+  availableBalance: number;
   currency: string;
   monthCredits: number;
   monthDebits: number;
@@ -181,6 +183,8 @@ export class UserWalletService {
 
     return {
       balance: Number(wallet.balance),
+      pendingBalance: Number(wallet.pendingBalance),
+      availableBalance: Number(wallet.balance),
       currency: wallet.currency,
       monthCredits,
       monthDebits
@@ -250,6 +254,25 @@ export class UserWalletService {
     );
   }
 
+  async debitFee(
+    userId: string,
+    amount: number,
+    currency: string,
+    note: string,
+    idempotencyKey: string,
+    providerRef?: string
+  ): Promise<WalletEntryDto> {
+    return this.debit(
+      userId,
+      amount,
+      currency,
+      UserWalletEntryKind.debit_fee,
+      note,
+      idempotencyKey,
+      { providerRef }
+    );
+  }
+
   async creditEscrowRelease(
     userId: string,
     amount: number,
@@ -294,10 +317,14 @@ export class UserWalletService {
     amount: number,
     currency: string,
     note: string,
-    idempotencyKey: string
-  ): Promise<{ debit: WalletEntryDto; credit: WalletEntryDto }> {
+    idempotencyKey: string,
+    feeAmount = 0
+  ): Promise<{ debit: WalletEntryDto; credit: WalletEntryDto; fee?: WalletEntryDto }> {
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new BadRequestException("Montant de transfert invalide");
+    }
+    if (!Number.isFinite(feeAmount) || feeAmount < 0) {
+      throw new BadRequestException("Frais de transfert invalides");
     }
     if (fromUserId === toUserId) {
       throw new BadRequestException("Impossible de transférer vers soi-même");
@@ -311,6 +338,7 @@ export class UserWalletService {
       throw new NotFoundException("Destinataire introuvable");
     }
 
+    const totalDebit = amount + feeAmount;
     const existingDebit = await this.prisma.userWalletEntry.findUnique({
       where: { idempotencyKey }
     });
@@ -321,16 +349,24 @@ export class UserWalletService {
           kind: UserWalletEntryKind.credit_transfer
         }
       });
+      const fee = feeAmount
+        ? await this.prisma.userWalletEntry.findFirst({
+            where: {
+              idempotencyKey: `${idempotencyKey}:fee`,
+              kind: UserWalletEntryKind.debit_fee
+            }
+          })
+        : null;
       if (credit) {
         return {
           debit: this.serializeEntry(existingDebit),
-          credit: this.serializeEntry(credit)
+          credit: this.serializeEntry(credit),
+          ...(fee ? { fee: this.serializeEntry(fee) } : {})
         };
       }
     }
 
-    const transferNote =
-      note.trim() || "Transfert portefeuille (gratuit)";
+    const transferNote = note.trim() || (feeAmount > 0 ? "Transfert portefeuille" : "Transfert portefeuille (gratuit)");
 
     return this.prisma.$transaction(async (tx) => {
       const fromWallet = await tx.userWallet.upsert({
@@ -339,26 +375,49 @@ export class UserWalletService {
         update: {}
       });
       const fromBalance = Number(fromWallet.balance);
-      if (fromBalance < amount) {
+      if (fromBalance < totalDebit) {
         throw new BadRequestException("Solde insuffisant pour ce transfert");
       }
-      const fromAfter = fromBalance - amount;
+      const fromAfterTransfer = fromBalance - amount;
       await tx.userWallet.update({
         where: { id: fromWallet.id },
-        data: { balance: new Prisma.Decimal(fromAfter) }
+        data: { balance: new Prisma.Decimal(fromAfterTransfer) }
       });
       const debitEntry = await tx.userWalletEntry.create({
         data: {
           walletId: fromWallet.id,
           kind: UserWalletEntryKind.debit_transfer,
           amount: new Prisma.Decimal(amount),
-          balanceAfter: new Prisma.Decimal(fromAfter),
+          balanceAfter: new Prisma.Decimal(fromAfterTransfer),
           currency,
           counterpartyUserId: toUserId,
           note: transferNote,
           idempotencyKey
         }
       });
+
+      let feeEntry: WalletEntryDto | undefined;
+      let fromAfter = fromAfterTransfer;
+      if (feeAmount > 0) {
+        fromAfter = fromAfterTransfer - feeAmount;
+        await tx.userWallet.update({
+          where: { id: fromWallet.id },
+          data: { balance: new Prisma.Decimal(fromAfter) }
+        });
+        const feeRow = await tx.userWalletEntry.create({
+          data: {
+            walletId: fromWallet.id,
+            kind: UserWalletEntryKind.debit_fee,
+            amount: new Prisma.Decimal(feeAmount),
+            balanceAfter: new Prisma.Decimal(fromAfter),
+            currency,
+            counterpartyUserId: toUserId,
+            note: "Frais de transfert portefeuille",
+            idempotencyKey: `${idempotencyKey}:fee`
+          }
+        });
+        feeEntry = this.serializeEntry(feeRow);
+      }
 
       const toWallet = await tx.userWallet.upsert({
         where: { userId: toUserId },
@@ -385,7 +444,162 @@ export class UserWalletService {
 
       return {
         debit: this.serializeEntry(debitEntry),
-        credit: this.serializeEntry(creditEntry)
+        credit: this.serializeEntry(creditEntry),
+        ...(feeEntry ? { fee: feeEntry } : {})
+      };
+    });
+  }
+
+  async lockFundsForWithdrawal(
+    userId: string,
+    totalDebit: number,
+    currency: string
+  ): Promise<void> {
+    if (!Number.isFinite(totalDebit) || totalDebit <= 0) {
+      throw new BadRequestException("Montant de blocage invalide");
+    }
+    await this.prisma.$transaction(async (tx) => {
+      const wallet = await tx.userWallet.upsert({
+        where: { userId },
+        create: { userId, currency },
+        update: {}
+      });
+      const balance = Number(wallet.balance);
+      if (balance < totalDebit) {
+        throw new BadRequestException("Solde insuffisant pour ce retrait");
+      }
+      await tx.userWallet.update({
+        where: { id: wallet.id },
+        data: {
+          balance: new Prisma.Decimal(balance - totalDebit),
+          pendingBalance: new Prisma.Decimal(
+            Number(wallet.pendingBalance) + totalDebit
+          )
+        }
+      });
+    });
+  }
+
+  async releaseWithdrawalLock(
+    userId: string,
+    totalDebit: number,
+    currency: string,
+    note: string,
+    idempotencyKey: string
+  ): Promise<WalletEntryDto> {
+    const existing = await this.prisma.userWalletEntry.findUnique({
+      where: { idempotencyKey }
+    });
+    if (existing) {
+      return this.serializeEntry(existing);
+    }
+    return this.prisma.$transaction(async (tx) => {
+      const wallet = await tx.userWallet.findUniqueOrThrow({
+        where: { userId }
+      });
+      const pending = Number(wallet.pendingBalance);
+      if (pending < totalDebit) {
+        throw new BadRequestException("Fonds bloqués insuffisants");
+      }
+      const balanceAfter = Number(wallet.balance) + totalDebit;
+      await tx.userWallet.update({
+        where: { id: wallet.id },
+        data: {
+          balance: new Prisma.Decimal(balanceAfter),
+          pendingBalance: new Prisma.Decimal(pending - totalDebit)
+        }
+      });
+      const entry = await tx.userWalletEntry.create({
+        data: {
+          walletId: wallet.id,
+          kind: UserWalletEntryKind.credit_adjustment,
+          amount: new Prisma.Decimal(totalDebit),
+          balanceAfter: new Prisma.Decimal(balanceAfter),
+          currency,
+          note,
+          idempotencyKey
+        }
+      });
+      return this.serializeEntry(entry);
+    });
+  }
+
+  async completeWithdrawalFromLock(
+    userId: string,
+    amount: number,
+    feeAmount: number,
+    currency: string,
+    providerRef: string,
+    note: string,
+    idempotencyKey: string
+  ): Promise<{ withdraw: WalletEntryDto; fee?: WalletEntryDto }> {
+    const totalDebit = amount + feeAmount;
+    const existing = await this.prisma.userWalletEntry.findUnique({
+      where: { idempotencyKey }
+    });
+    if (existing) {
+      const fee = feeAmount
+        ? await this.prisma.userWalletEntry.findFirst({
+            where: {
+              idempotencyKey: `${idempotencyKey}:fee`,
+              kind: UserWalletEntryKind.debit_fee
+            }
+          })
+        : null;
+      return {
+        withdraw: this.serializeEntry(existing),
+        ...(fee ? { fee: this.serializeEntry(fee) } : {})
+      };
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const wallet = await tx.userWallet.findUniqueOrThrow({
+        where: { userId }
+      });
+      const pending = Number(wallet.pendingBalance);
+      if (pending < totalDebit) {
+        throw new BadRequestException("Fonds bloqués insuffisants pour finaliser le retrait");
+      }
+      await tx.userWallet.update({
+        where: { id: wallet.id },
+        data: {
+          pendingBalance: new Prisma.Decimal(pending - totalDebit)
+        }
+      });
+
+      const withdrawEntry = await tx.userWalletEntry.create({
+        data: {
+          walletId: wallet.id,
+          kind: UserWalletEntryKind.debit_withdraw,
+          amount: new Prisma.Decimal(amount),
+          balanceAfter: new Prisma.Decimal(Number(wallet.balance)),
+          currency,
+          providerRef,
+          note,
+          idempotencyKey
+        }
+      });
+
+      let feeEntry: WalletEntryDto | undefined;
+      if (feeAmount > 0) {
+        const feeRow = await tx.userWalletEntry.create({
+          data: {
+            walletId: wallet.id,
+            kind: UserWalletEntryKind.debit_fee,
+            amount: new Prisma.Decimal(feeAmount),
+            balanceAfter: new Prisma.Decimal(Number(wallet.balance)),
+            currency,
+            providerRef,
+            note: "Frais de retrait portefeuille",
+            idempotencyKey: `${idempotencyKey}:fee`
+          }
+        });
+        feeEntry = this.serializeEntry(feeRow);
+      }
+
+      return {
+        withdraw: this.serializeEntry(withdrawEntry),
+        ...(feeEntry ? { fee: feeEntry } : {})
       };
     });
   }

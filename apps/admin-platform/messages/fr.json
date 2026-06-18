@@ -16,6 +16,7 @@
     "producerScores": "Scores producteurs",
     "stats": "Statistiques",
     "ai": "Assistant IA",
+    "wallet": "Portefeuille",
     "settings": "Paramètres",
     "more": "Plus",
     "logout": "Déconnexion"
@@ -402,7 +403,8 @@
       "notifications": "Notifications",
       "support": "Support mobile",
       "marketplace": "Marketplace",
-      "vet": "Vétérinaire"
+      "vet": "Vétérinaire",
+      "wallet": "Portefeuille"
     },
     "loadError": "Impossible de charger les paramètres. Vérifiez que l’API est à jour et que les migrations Prisma sont appliquées.",
     "fields": {
@@ -423,7 +425,9 @@
       "supportPhoneEffective": "Valeur active sur mobile (fallback env) : {value}",
       "supportTelegram": "Lien Telegram",
       "supportTelegramHint": "URL ou @username du compte support. Laissez vide pour utiliser SUPPORT_TELEGRAM_URL côté API.",
-      "supportTelegramEffective": "Lien actif sur mobile (fallback env) : {value}"
+      "supportTelegramEffective": "Lien actif sur mobile (fallback env) : {value}",
+      "withdrawalThreshold": "Seuil retrait auto (XOF)",
+      "withdrawalThresholdHint": "Au-delà de ce montant, un admin doit valider le retrait."
     },
     "scopes": {
       "world": "Monde entier",
@@ -776,6 +780,33 @@
       "nouveau": "Nouveau",
       "attention": "À surveiller",
       "risque": "Risqué"
+    }
+  },
+  "walletAdmin": {
+    "title": "Retraits en attente",
+    "subtitle": "Validez ou refusez les retraits au-dessus du seuil automatique.",
+    "loading": "Chargement…",
+    "empty": "Aucun retrait en attente de validation.",
+    "phone": "Téléphone",
+    "fee": "Frais",
+    "totalDebit": "Total débité",
+    "approve": "Approuver",
+    "reject": "Refuser",
+    "rejectPlaceholder": "Motif du refus (optionnel)",
+    "rejectDefault": "Refusé par l'administration",
+    "fees": {
+      "title": "Frais portefeuille",
+      "hint": "0 % = opération gratuite. Les frais sont prélevés sur l'émetteur (retrait, transfert).",
+      "percentage": "Pourcentage (%)",
+      "fixed": "Montant fixe (XOF)",
+      "minFee": "Frais minimum (XOF)",
+      "maxFee": "Frais maximum (XOF, vide = illimité)",
+      "save": "Enregistrer",
+      "types": {
+        "deposit": "Dépôt / recharge",
+        "withdrawal": "Retrait",
+        "transfer": "Transfert P2P"
+      }
     }
   }
 }

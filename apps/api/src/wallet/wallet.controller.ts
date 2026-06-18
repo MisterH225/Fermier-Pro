@@ -10,6 +10,7 @@ import {
   WalletWithdrawConfirmDto,
   WalletWithdrawInitiateDto
 } from "./dto/wallet-operations.dto";
+import { WalletFeeQuoteQueryDto } from "./dto/wallet-admin.dto";
 import { UserWalletService } from "./user-wallet.service";
 import { WalletRailsService } from "./wallet-rails.service";
 
@@ -49,12 +50,22 @@ export class WalletController {
     return this.rails.confirmTopUp(user, dto.amount, dto.providerRef);
   }
 
+  @Get("fee-quote")
+  feeQuote(@Query() query: WalletFeeQuoteQueryDto) {
+    return this.rails.quoteFee(query.type, query.amount);
+  }
+
   @Post("withdraw/initiate")
   initiateWithdraw(
     @CurrentUser() user: User,
     @Body() dto: WalletWithdrawInitiateDto
   ) {
-    return this.rails.initiateWithdraw(user, dto.amount, dto.phone);
+    return this.rails.initiateWithdraw(
+      user,
+      dto.amount,
+      dto.phone,
+      dto.clientRequestId
+    );
   }
 
   @Post("withdraw/confirm")
@@ -66,7 +77,8 @@ export class WalletController {
       user,
       dto.amount,
       dto.providerRef,
-      dto.phone
+      dto.phone,
+      dto.withdrawalRequestId
     );
   }
 
