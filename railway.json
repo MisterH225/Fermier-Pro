@@ -10,13 +10,13 @@
       "package.json",
       "package-lock.json"
     ],
-    "buildCommand": "npm install --ignore-scripts --include=dev && PRISMA_GENERATE_SKIP_AUTOINSTALL=true npm run prisma:generate --workspace @fermier/api && npm run build:api"
+    "buildCommand": "echo \"[railway-build] GIT_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo unknown)\" && npm install --ignore-scripts --include=dev && PRISMA_GENERATE_SKIP_AUTOINSTALL=true npm run prisma:generate --workspace @fermier/api && npm run build:api"
   },
   "deploy": {
     "preDeployCommand": "node apps/api/scripts/railway-predeploy.cjs",
     "startCommand": "node apps/api/scripts/start-api.cjs",
     "healthcheckPath": "/api/v1/health",
-    "healthcheckTimeout": 120,
+    "healthcheckTimeout": 180,
     "restartPolicyType": "ON_FAILURE"
   }
 }
