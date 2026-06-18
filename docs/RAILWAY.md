@@ -48,3 +48,29 @@ bash scripts/ota-production.sh "message"
 ```
 
 Nécessite `EXPO_TOKEN` (expo.dev → Access Tokens).
+
+## Erreur API : P3009 — migration Prisma en échec
+
+Si les logs API montrent :
+
+```
+Error: P3009
+migrate found failed migrations in the target database
+The `20260624120000_universal_user_wallet` migration ... failed
+[start-prod] Échec de prisma migrate deploy — arrêt.
+```
+
+**Cause** : la migration a été appliquée sur Supabase (schéma déjà à jour) mais `_prisma_migrations` contient une entrée **failed** (souvent parce que le SQL Prisma attendait `BuyerWallet*` alors que Supabase avait déjà renommé en `UserWallet*`).
+
+**Correctif** (schéma déjà présent — vérifier `UserWallet`, `WalletFeeConfig`, etc.) :
+
+```bash
+cd apps/api
+npm run prisma:migrate:resolve -- --applied 20260624120000_universal_user_wallet
+npm run prisma:migrate:resolve -- --applied 20260625120000_payment_orchestrator
+npm run prisma:migrate:deploy
+```
+
+Ou via SQL Supabase (si `prisma migrate resolve` n'est pas disponible) : marquer `finished_at` sur la migration failed et insérer les migrations manquantes dans `_prisma_migrations`.
+
+**Prévention** : appliquer les changements de schéma wallet **une seule fois** — soit via Supabase MCP / migrations SQL, soit via `prisma migrate deploy` au démarrage Railway, pas les deux en parallèle sur la même base.
