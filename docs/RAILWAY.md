@@ -17,6 +17,10 @@
 
 Le fichier `railway.json` à la racine documente build + healthcheck pour éviter les déploiements incorrects.
 
+**Node.js** : le monorepo exige **Node 20** (`.nvmrc`, `nixpacks.toml`, `engines` dans `package.json`). Si le build Nixpacks utilise Node 18 (`EBADENGINE`), vérifier que ces fichiers sont bien déployés.
+
+**Build Prisma** : la commande utilise `npm run prisma:generate --workspace @fermier/api` (Prisma 5 local via `prisma-run.cjs`). Ne pas utiliser `npm exec prisma generate` qui peut télécharger Prisma 6 via npx et échouer avec `query_engine_bg.postgresql.wasm-base64.js` introuvable.
+
 ## Erreur : `expo start` + SIGTERM (~5 s)
 
 Si les logs Railway montrent :
