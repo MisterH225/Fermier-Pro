@@ -1453,9 +1453,16 @@ export class MarketplaceTransactionService {
       if (tx.status === MarketplaceTransactionStatus.TRANSACTION_CLOSED) {
         return;
       }
-      if (tx.status !== MarketplaceTransactionStatus.WEIGHT_VALIDATED) {
+      const isSettableStatus =
+        tx.status === MarketplaceTransactionStatus.WEIGHT_VALIDATED ||
+        tx.status === MarketplaceTransactionStatus.BUYER_RECEIVED;
+      if (!isSettableStatus) {
         return;
       }
+      const SETTABLE_STATUSES: MarketplaceTransactionStatus[] = [
+        MarketplaceTransactionStatus.WEIGHT_VALIDATED,
+        MarketplaceTransactionStatus.BUYER_RECEIVED
+      ];
 
       const priorRelease = await this.prisma.marketplaceFundMovement.findFirst({
         where: {
@@ -1467,7 +1474,7 @@ export class MarketplaceTransactionService {
         await this.prisma.marketplaceTransaction.updateMany({
           where: {
             id: transactionId,
-            status: MarketplaceTransactionStatus.WEIGHT_VALIDATED
+            status: { in: SETTABLE_STATUSES }
           },
           data: {
             status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
@@ -1519,7 +1526,7 @@ export class MarketplaceTransactionService {
       const closed = await this.prisma.marketplaceTransaction.updateMany({
         where: {
           id: transactionId,
-          status: MarketplaceTransactionStatus.WEIGHT_VALIDATED
+          status: { in: SETTABLE_STATUSES }
         },
         data: {
           status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,

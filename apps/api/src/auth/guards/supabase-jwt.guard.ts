@@ -31,7 +31,7 @@ export class SupabaseJwtGuard implements CanActivate {
     const payload = await this.auth.verifySupabaseAccessToken(token);
     const user = await this.auth.syncUserFromSupabasePayload(payload);
     req.user = user;
-    void this.auth.touchLastActive(user.id);
+    void this.auth.touchLastActive(user.id).catch(() => undefined);
 
     // Bloquer les comptes bannis et les suspensions actives sur toutes les
     // routes sauf les exceptions déclarées ci-dessus

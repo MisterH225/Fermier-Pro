@@ -264,7 +264,7 @@ export function buildFeedPurchaseForecast(
         ? Math.max(0, Math.floor(ft.currentStockKg / dailyNow))
         : null;
     const reorderLeadDays =
-      daysCover > params.warningDays
+      Number.isFinite(daysCover) && daysCover > params.warningDays
         ? Math.max(0, Math.floor(daysCover - params.warningDays))
         : 0;
 

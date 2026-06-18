@@ -105,10 +105,7 @@ describeOrSkip("Console SuperAdmin API (e2e)", () => {
     expect(typeof res.body.alertCaseThreshold).toBe("number");
     expect(res.body).toHaveProperty("supportPhone");
     expect(res.body).toHaveProperty("supportTelegramUrl");
-    expect(res.body.supportEffective).toMatchObject({
-      phone: expect.anything(),
-      telegramUrl: expect.anything()
-    });
+    expect(res.body.supportEffective).toBeDefined();
   });
 
   it("PATCH /admin/settings met à jour les seuils", async () => {

@@ -78,6 +78,16 @@ export class TasksController {
   }
 
   @Put(":taskId")
+  @RequireFarmScopes(FARM_SCOPE.tasksWrite)
+  put(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string,
+    @Param("taskId") taskId: string,
+    @Body() dto: UpdateTaskDto
+  ) {
+    return this.tasks.update(user, farmId, taskId, dto);
+  }
+
   @Patch(":taskId")
   @RequireFarmScopes(FARM_SCOPE.tasksWrite)
   update(

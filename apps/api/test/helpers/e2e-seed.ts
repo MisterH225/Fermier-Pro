@@ -21,13 +21,63 @@ export interface E2ESeedResult {
   producerProfileId: string;
 }
 
+/** Supprime tous les enregistrements marketplace liés à ces utilisateurs (acheteur ou vendeur). */
+async function purgeMarketplaceForUsers(
+  prisma: PrismaClient,
+  userIds: string[]
+): Promise<void> {
+  if (userIds.length === 0) return;
+  await prisma.marketplaceTransactionReceipt.deleteMany({
+    where: { OR: [{ sellerId: { in: userIds } }, { buyerId: { in: userIds } }] }
+  });
+  await prisma.marketplaceFundMovement.deleteMany({
+    where: {
+      transaction: {
+        OR: [{ sellerUserId: { in: userIds } }, { buyerUserId: { in: userIds } }]
+      }
+    }
+  });
+  await prisma.platformRevenue.deleteMany({
+    where: {
+      OR: [{ sellerId: { in: userIds } }, { buyerId: { in: userIds } }]
+    }
+  });
+  await prisma.marketplacePendingTransfer.deleteMany({
+    where: { buyerUserId: { in: userIds } }
+  });
+  await prisma.marketplaceDeliveryDispute.deleteMany({
+    where: {
+      transaction: {
+        OR: [{ sellerUserId: { in: userIds } }, { buyerUserId: { in: userIds } }]
+      }
+    }
+  });
+  await prisma.marketplaceTransaction.deleteMany({
+    where: { OR: [{ sellerUserId: { in: userIds } }, { buyerUserId: { in: userIds } }] }
+  });
+  await prisma.marketplaceCreditArbitration.deleteMany({
+    where: { OR: [{ buyerUserId: { in: userIds } }, { sellerUserId: { in: userIds } }] }
+  });
+  await prisma.marketplaceOffer.deleteMany({
+    where: {
+      OR: [
+        { buyerUserId: { in: userIds } },
+        { listing: { sellerUserId: { in: userIds } } }
+      ]
+    }
+  });
+}
+
 async function purgeStaleE2eUser(prisma: PrismaClient): Promise<void> {
   const peer = await prisma.user.findUnique({
     where: { email: "e2e-peer-directory@fermier.local" },
     select: { id: true }
   });
   if (peer) {
+    await purgeMarketplaceForUsers(prisma, [peer.id]);
     await prisma.farm.deleteMany({ where: { ownerId: peer.id } });
+    await prisma.adminAuditLog.deleteMany({ where: { adminUserId: peer.id } });
+    await prisma.adminMessage.deleteMany({ where: { adminUserId: peer.id } });
     await prisma.user.delete({ where: { id: peer.id } });
   }
   const existing = await prisma.user.findUnique({
@@ -46,9 +96,12 @@ async function purgeStaleE2eUser(prisma: PrismaClient): Promise<void> {
     });
     await prisma.farm.deleteMany({ where: { id: { in: farmIds } } });
   }
+  await purgeMarketplaceForUsers(prisma, [existing.id]);
   await prisma.marketplaceListing.deleteMany({
     where: { sellerUserId: existing.id }
   });
+  await prisma.adminAuditLog.deleteMany({ where: { adminUserId: existing.id } });
+  await prisma.adminMessage.deleteMany({ where: { adminUserId: existing.id } });
   await prisma.profile.deleteMany({ where: { userId: existing.id } });
   await prisma.user.delete({ where: { id: existing.id } });
 }
@@ -177,8 +230,9 @@ export async function cleanupE2eFixtures(
 ): Promise<void> {
   const userIds = [ctx.userId, ctx.peerUserId];
   try {
+    await purgeMarketplaceForUsers(prisma, userIds);
     await prisma.marketplaceListing.deleteMany({
-      where: { sellerUserId: ctx.userId }
+      where: { sellerUserId: { in: userIds } }
     });
     await prisma.chatMessage.deleteMany({
       where: { senderUserId: { in: userIds } }
@@ -196,6 +250,12 @@ export async function cleanupE2eFixtures(
       }
     });
     await prisma.farm.delete({ where: { id: ctx.farmId } });
+    await prisma.adminAuditLog.deleteMany({
+      where: { adminUserId: { in: userIds } }
+    });
+    await prisma.adminMessage.deleteMany({
+      where: { adminUserId: { in: userIds } }
+    });
     await prisma.profile.deleteMany({
       where: { userId: { in: userIds } }
     });

@@ -37,11 +37,6 @@ export async function ensureFarmFinanceBootstrap(
     update: {}
   });
 
-  const count = await prisma.financeCategory.count({ where: { farmId } });
-  if (count > 0) {
-    return;
-  }
-
   await prisma.financeCategory.createMany({
     data: DEFAULT_FINANCE_CATEGORY_SEEDS.map((c) => ({
       farmId,
@@ -50,6 +45,7 @@ export async function ensureFarmFinanceBootstrap(
       name: c.name,
       icon: c.icon,
       isDefault: true
-    }))
+    })),
+    skipDuplicates: true
   });
 }

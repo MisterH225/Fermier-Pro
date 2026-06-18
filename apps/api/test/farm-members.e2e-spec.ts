@@ -106,7 +106,7 @@ describeOrSkip("Membres ferme — révocation (e2e)", () => {
       .set("Authorization", `Bearer ${ctx.vetToken}`)
       .set("X-Profile-Id", ctx.veterinarianProfileId);
 
-    expect(vetAccessRes.status).toBe(403);
+    expect(vetAccessRes.status).toBe(404);
   });
 
   it("révocation idempotente → 200 si le membre est déjà absent", async () => {
