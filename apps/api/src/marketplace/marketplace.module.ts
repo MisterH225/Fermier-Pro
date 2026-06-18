@@ -40,7 +40,7 @@ import { ListingAnimalSyncService } from "./listing-animal-sync.service";
 @Module({
   imports: [
     forwardRef(() => AuthModule),
-    WalletModule,
+    forwardRef(() => WalletModule),
     ChatModule,
     ConfigClientModule,
     FeatureFlagsModule,

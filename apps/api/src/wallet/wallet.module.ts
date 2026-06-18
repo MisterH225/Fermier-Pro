@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { SuperAdminGuard } from "../admin-platform/super-admin.guard";
 import { DevMobileMoneyGateway } from "../marketplace/escrow/dev-mobile-money.gateway";
@@ -16,7 +16,7 @@ import { WalletRailsService } from "./wallet-rails.service";
 import { WithdrawalOrchestratorService } from "./withdrawal-orchestrator.service";
 
 @Module({
-  imports: [PrismaModule, AuthModule],
+  imports: [PrismaModule, forwardRef(() => AuthModule)],
   controllers: [
     WalletController,
     LegacyBuyerWalletController,
