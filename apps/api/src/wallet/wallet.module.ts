@@ -1,7 +1,7 @@
 import { Module, forwardRef } from "@nestjs/common";
 import { SuperAdminGuard } from "../admin-platform/super-admin.guard";
-import { DevMobileMoneyGateway } from "../marketplace/escrow/dev-mobile-money.gateway";
-import { MOBILE_MONEY_GATEWAY } from "../marketplace/escrow/mobile-money.gateway";
+import { AuthModule } from "../auth/auth.module";
+import { MobileMoneyModule } from "../marketplace/escrow/mobile-money.module";
 import { PrismaModule } from "../prisma/prisma.module";
 import { AdminWalletController } from "./admin-wallet.controller";
 import { PlatformAccountService } from "./platform-account.service";
@@ -14,12 +14,17 @@ import { WalletFeeService } from "./wallet-fee.service";
 import { WalletRailsService } from "./wallet-rails.service";
 import { WithdrawalOrchestratorService } from "./withdrawal-orchestrator.service";
 
+/**
+ * Portefeuille universel (recharge, retrait, transfert) + orchestrateur de paiement.
+ *
+ * Cycle d'import : AuthModule → FarmDataPurgeModule → MarketplaceModule → WalletModule
+ *                                                                       ↘ AuthModule
+ * `forwardRef(() => AuthModule)` suffit car TypeScript compile les imports en accès
+ * de propriété paresseux (`auth_module_1.AuthModule`) — la classe est résolue au
+ * moment où Nest scanne les dépendances, pas à l'évaluation du décorateur.
+ */
 @Module({
-  imports: [
-    PrismaModule,
-    // require() évite le cycle JS auth → purge → marketplace → wallet → auth
-    forwardRef(() => require("../auth/auth.module").AuthModule)
-  ],
+  imports: [PrismaModule, MobileMoneyModule, forwardRef(() => AuthModule)],
   controllers: [
     WalletController,
     LegacyBuyerWalletController,
@@ -31,19 +36,14 @@ import { WithdrawalOrchestratorService } from "./withdrawal-orchestrator.service
     PlatformAccountService,
     WithdrawalOrchestratorService,
     WalletRailsService,
-    DevMobileMoneyGateway,
-    SuperAdminGuard,
-    { provide: MOBILE_MONEY_GATEWAY, useExisting: DevMobileMoneyGateway }
+    SuperAdminGuard
   ],
   exports: [
     UserWalletService,
     WalletRailsService,
     WalletFeeService,
     PlatformAccountService,
-    MOBILE_MONEY_GATEWAY
+    MobileMoneyModule
   ]
 })
 export class WalletModule {}
-
-/** @deprecated Utiliser WalletModule */
-export { WalletModule as BuyerWalletModule };

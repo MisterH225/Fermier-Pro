@@ -5,14 +5,12 @@ import { ConfigClientModule } from "../config-client/config-client.module";
 import { FeatureFlagsModule } from "../feature-flags/feature-flags.module";
 import { PushNotificationsModule } from "../push-notifications/push-notifications.module";
 import {
-  DevMobileMoneyGateway,
   EscrowService,
   MarketplaceTransactionController,
   MarketplaceTransactionCronService,
   MarketplaceTransactionService,
-  MobileMoneyWebhookController,
-  mobileMoneyGatewayGuardProvider,
-  mobileMoneyGatewayProvider
+  MobileMoneyModule,
+  MobileMoneyWebhookController
 } from "./escrow";
 import { ReceiptController, ReceiptCronService, ReceiptPdfService, ReceiptService, ReceiptVerifyController } from "./receipts";
 import { FarmRatingsController } from "./farm-ratings.controller";
@@ -34,12 +32,14 @@ import { MarketplaceDisputesController } from "./marketplace-disputes.controller
 import { OffersController } from "./offers.controller";
 import { OffersService } from "./offers.service";
 import { ProducerScoreModule } from "../producer-score/producer-score.module";
+import { WalletModule } from "../wallet/wallet.module";
 import { ListingAnimalSyncService } from "./listing-animal-sync.service";
 
 @Module({
   imports: [
     forwardRef(() => AuthModule),
-    forwardRef(() => require("../wallet/wallet.module").WalletModule),
+    forwardRef(() => WalletModule),
+    MobileMoneyModule,
     ChatModule,
     ConfigClientModule,
     FeatureFlagsModule,
@@ -71,9 +71,6 @@ import { ListingAnimalSyncService } from "./listing-animal-sync.service";
     EscrowService,
     MarketplaceTransactionService,
     MarketplaceTransactionCronService,
-    DevMobileMoneyGateway,
-    mobileMoneyGatewayGuardProvider,
-    mobileMoneyGatewayProvider,
     ReceiptService,
     ReceiptPdfService,
     ReceiptCronService,
