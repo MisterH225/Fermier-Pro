@@ -936,8 +936,8 @@ export class FarmFeedService {
       ? new Date(dto.occurredAt)
       : existing.occurredAt;
 
-    const movement = await this.prisma.$transaction(async (tx) => {
-      const m = await tx.feedStockMovement.update({
+    await this.prisma.$transaction(async (tx) => {
+      await tx.feedStockMovement.update({
         where: { id: movementId },
         data: {
           feedTypeId,
@@ -947,16 +947,17 @@ export class FarmFeedService {
             dto.notes !== undefined
               ? dto.notes?.trim() || null
               : existing.notes
-        },
-        include: {
-          feedType: { select: { id: true, name: true, unit: true } }
         }
       });
       await recalculateFeedTypeStock(tx, farmId, feedTypeId);
       if (feedTypeId !== existing.feedTypeId) {
         await recalculateFeedTypeStock(tx, farmId, existing.feedTypeId);
       }
-      return m;
+    });
+
+    const movement = await this.prisma.feedStockMovement.findUniqueOrThrow({
+      where: { id: movementId },
+      include: { feedType: { select: { id: true, name: true, unit: true } } }
     });
 
     void this.smartAlerts.refreshInternal(farmId).catch(() => undefined);

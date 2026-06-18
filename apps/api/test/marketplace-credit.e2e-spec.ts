@@ -45,8 +45,10 @@ describeOrSkip("Marketplace vente à crédit escrow (e2e)", () => {
         farmId: ctx.farmId,
         animalId: animal.id,
         category: "butcher",
+        pricePerKg: 1_250,
         totalPrice: 100_000,
-        totalWeightKg: 80
+        totalWeightKg: 80,
+        weightBasis: "live"
       });
     listingId = listingRes.body.id;
     await request(app.getHttpServer())
@@ -59,12 +61,6 @@ describeOrSkip("Marketplace vente à crédit escrow (e2e)", () => {
   afterAll(async () => {
     if (app) await app.close();
     if (ctx?.prisma) {
-      await ctx.prisma.marketplaceCreditArbitration.deleteMany({
-        where: { listing: { sellerUserId: ctx.userId } }
-      });
-      await ctx.prisma.marketplaceOffer.deleteMany({
-        where: { listing: { sellerUserId: ctx.userId } }
-      });
       await cleanupE2eFixtures(ctx.prisma, {
         farmId: ctx.farmId,
         userId: ctx.userId,
@@ -93,7 +89,7 @@ describeOrSkip("Marketplace vente à crédit escrow (e2e)", () => {
         farmId: ctx.farmId,
         animalId: pigletAnimal.id,
         category: "piglet",
-        totalPrice: 50_000
+        unitPrice: 50_000
       });
     await request(app.getHttpServer())
       .post(`/api/v1/marketplace/listings/${piglet.body.id}/publish`)

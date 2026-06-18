@@ -45,6 +45,15 @@ describeOrSkip("Community Feed (e2e)", () => {
     }
   });
 
+  beforeEach(async () => {
+    if (ctx?.prisma && ctx?.userId) {
+      await ctx.prisma.user.update({
+        where: { id: ctx.userId },
+        data: { feedStatus: "active", feedViolationCount: 0, feedSuspensionUntil: null }
+      });
+    }
+  });
+
   it("GET /feed/rules retourne les règles communautaires", async () => {
     const res = await request(app.getHttpServer())
       .get("/api/v1/feed/rules")

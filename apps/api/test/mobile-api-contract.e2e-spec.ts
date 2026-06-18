@@ -75,7 +75,10 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
       .set("X-Profile-Id", ctx.producerProfileId)
       .send({
         title: "E2E contrat brouillon",
-        farmId: ctx.farmId
+        farmId: ctx.farmId,
+        category: "piglet",
+        unitPrice: 12000,
+        quantity: 5
       });
     expect([200, 201]).toContain(res.status);
     expect(res.body?.id).toBeDefined();
@@ -260,7 +263,7 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
       });
     expect(postIn.status).toBeGreaterThanOrEqual(200);
     expect(postIn.status).toBeLessThan(300);
-    expect(Number(postIn.body?.stockAfterKg)).toBeCloseTo(100, 3);
+    expect(Number(postIn.body?.movement?.stockAfterKg)).toBeCloseTo(100, 3);
 
     const overview = await request(app.getHttpServer())
       .get(`/api/v1/farms/${ctx.farmId}/feed/overview`)
@@ -314,7 +317,7 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
       });
     expect(inSac.status).toBeGreaterThanOrEqual(200);
     expect(inSac.status).toBeLessThan(300);
-    expect(Number(inSac.body?.stockAfterKg)).toBeCloseTo(200, 3);
+    expect(Number(inSac.body?.movement?.stockAfterKg)).toBeCloseTo(200, 3);
 
     const check = await request(app.getHttpServer())
       .post(`/api/v1/farms/${ctx.farmId}/feed/movements`)
@@ -326,7 +329,7 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
       });
     expect(check.status).toBeGreaterThanOrEqual(200);
     expect(check.status).toBeLessThan(300);
-    expect(Number(check.body?.stockAfterKg)).toBeCloseTo(125, 3);
+    expect(Number(check.body?.movement?.stockAfterKg)).toBeCloseTo(125, 3);
   });
 
   it("GET /chat/directory/users (recherche annuaire)", async () => {
@@ -638,13 +641,13 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
       )
       .set("Authorization", `Bearer ${ctx.token}`)
       .send({
-        url: "https://example.com/e2e-piece-jointe.pdf",
+        url: "https://test-project.supabase.co/storage/v1/object/public/e2e-piece-jointe.pdf",
         label: "Contrat e2e",
         mimeType: "application/pdf"
       });
     expect(attach.status).toBeGreaterThanOrEqual(200);
     expect(attach.status).toBeLessThan(300);
-    expect(attach.body?.url).toContain("example.com");
+    expect(attach.body?.url).toContain("supabase.co");
 
     const patched = await request(app.getHttpServer())
       .patch(`/api/v1/farms/${ctx.farmId}/vet-consultations/${id}`)
@@ -788,7 +791,7 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(patch.status).toBeGreaterThanOrEqual(200);
     expect(patch.status).toBeLessThan(300);
     expect(patch.body?.label).toBe("E2E dépense contrat (modifiée)");
-    expect(patch.body?.amount).toBe(13000);
+    expect(Number(patch.body?.amount)).toBe(13000);
 
     const del = await request(app.getHttpServer())
       .delete(
@@ -826,7 +829,7 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(patch.status).toBeGreaterThanOrEqual(200);
     expect(patch.status).toBeLessThan(300);
     expect(patch.body?.label).toBe("E2E revenu contrat (modifié)");
-    expect(patch.body?.amount).toBe(10050);
+    expect(Number(patch.body?.amount)).toBe(10050);
 
     const del = await request(app.getHttpServer())
       .delete(
@@ -925,6 +928,17 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
   });
 
   it("GET dashboard finance-timeseries, gestations, health, feed-stock", async () => {
+    const species = await ctx.prisma.species.findUniqueOrThrow({ where: { code: "porcin" } });
+    const gestAnimal = await ctx.prisma.animal.create({
+      data: {
+        farmId: ctx.farmId,
+        speciesId: species.id,
+        sex: "female",
+        status: "active",
+        expectedFarrowingAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
+      }
+    });
+
     const fin = await request(app.getHttpServer())
       .get(`/api/v1/farms/${ctx.farmId}/dashboard/finance-timeseries`)
       .set("Authorization", `Bearer ${ctx.token}`);
@@ -942,6 +956,8 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(gest.body.items.length).toBeGreaterThanOrEqual(1);
     expect(typeof gest.body.items[0].urgent).toBe("boolean");
     expect(gest.body.items[0].urgent).toBe(true);
+
+    await ctx.prisma.animal.delete({ where: { id: gestAnimal.id } });
 
     const health = await request(app.getHttpServer())
       .get(`/api/v1/farms/${ctx.farmId}/dashboard/health`)
@@ -1125,8 +1141,8 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
       .post(`/api/v1/farms/${ctx.farmId}/health/diseases`)
       .set(auth)
       .send({
-        entityType: "animal",
-        entityId: ctx.animalId,
+        entityType: "group",
+        entityId: ctx.batchId,
         symptoms: ["Fièvre", "Toux"],
         durationEstimate: "1-2 jours",
         estimatedOnsetDate: "2026-05-19T12:00:00.000Z",

@@ -46,7 +46,7 @@ describeOrSkip("Notifications delete (e2e)", () => {
         priority: "warning",
         title: "Alerte test e2e",
         message: "À supprimer",
-        action: {}
+        actionRoute: null
       }
     });
     smartAlertId = alertRow.id;
