@@ -2415,6 +2415,7 @@ export const en = {
     tabRevenues: "Revenue",
     tabExpenses: "Expenses",
     tabBudget: "Budget",
+    tabWallet: "Wallet",
     trend3Months: "3-month trend",
     trend6Months: "6-month trend",
     expensesVsBudget: "Expenses vs budget",
@@ -3282,6 +3283,19 @@ export const en = {
       pickGallery: "Gallery",
       pickCamera: "Camera",
       photoUploadError: "Could not upload photo. Check the Supabase “avatars” bucket."
+    }
+  },
+  wallet: {
+    dashboard: {
+      topUp: "Top up",
+      transfer: "Transfer",
+      withdraw: "Withdraw",
+      hideBalance: "Hide balance",
+      showBalance: "Show balance",
+      openWallet: "Open wallet"
+    },
+    panel: {
+      fullHistory: "Full history"
     }
   },
   buyer: {

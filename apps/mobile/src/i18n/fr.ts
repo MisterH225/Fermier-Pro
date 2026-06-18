@@ -2445,6 +2445,7 @@ export const fr = {
     tabRevenues: "Revenus",
     tabExpenses: "Dépenses",
     tabBudget: "Budget",
+    tabWallet: "Portefeuille",
     trend3Months: "Évolution sur 3 mois",
     trend6Months: "Évolution sur 6 mois",
     expensesVsBudget: "Dépenses vs budget",
@@ -3326,6 +3327,19 @@ export const fr = {
       pickGallery: "Galerie",
       pickCamera: "Appareil photo",
       photoUploadError: "Impossible d’envoyer la photo. Vérifiez le bucket Supabase « avatars »."
+    }
+  },
+  wallet: {
+    dashboard: {
+      topUp: "Recharger",
+      transfer: "Transférer",
+      withdraw: "Retirer",
+      hideBalance: "Masquer le solde",
+      showBalance: "Afficher le solde",
+      openWallet: "Voir le portefeuille"
+    },
+    panel: {
+      fullHistory: "Historique complet"
     }
   },
   buyer: {

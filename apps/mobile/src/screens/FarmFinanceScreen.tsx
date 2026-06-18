@@ -57,6 +57,7 @@ import type {
   FinanceReportDto
 } from "../lib/api";
 import { LinkedStockSection } from "../components/finance/LinkedStockSection";
+import { WalletPanel } from "../components/wallet/WalletPanel";
 import {
   financeCumulativeBalanceSeries,
   financeMonthExpenseSeries,
@@ -989,7 +990,13 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
         activeTab={financeTab}
         onTabChange={(key) => {
           setFinanceTab(
-            key as "overview" | "rentabilite" | "revenus" | "depenses" | "budget"
+            key as
+              | "overview"
+              | "rentabilite"
+              | "revenus"
+              | "depenses"
+              | "budget"
+              | "portefeuille"
           );
           setShowAllTransactions(false);
         }}
@@ -1537,6 +1544,15 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                   highlightOverrun={highlightOverrun}
                 />
               ) : null
+            )
+          },
+          {
+            key: "portefeuille",
+            label: t("financeScreen.tabWallet"),
+            content: tabScroll(
+              <ScreenSection plain>
+                <WalletPanel variant="producer" />
+              </ScreenSection>
             )
           }
         ]}

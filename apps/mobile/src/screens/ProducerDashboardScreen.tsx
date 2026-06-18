@@ -32,6 +32,7 @@ import { ProducerPendingMarketplaceBanner } from "../components/producer/Produce
 import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
 import { MeteoProfilCard } from "../components/dashboard/MeteoProfilCard";
 import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
+import { WalletDashboardCard } from "../components/wallet/WalletDashboardCard";
 import { SupportHeaderButton } from "../components/support/SupportHeaderButton";
 import { ProjectIndicator } from "../components/projects";
 import { useOnboardingResume } from "../context/OnboardingResumeContext";
@@ -264,51 +265,54 @@ export function ProducerDashboardScreen() {
 
   const dashboardHeader = (
     <View style={styles.heroBar}>
-      <View style={styles.heroTopRow}>
-        <ProducerWelcomeHeader
-          welcomeLabel={t("producer.welcomeLine")}
-          firstName={firstName}
-          avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
-          onPressAvatar={() => setProfileOpen(true)}
-        />
-        {showMultiProjectIndicator && (
-          <ProjectIndicator onPress={() => setProfileOpen(true)} />
-        )}
-      </View>
-      <View style={styles.heroActions}>
-        <NotificationsHeaderButton
-          iconColor={mobileColors.accent}
-          farmId={farmId}
-          farmName={farmName}
-          style={styles.heroIconBtn}
-        />
-        <SupportHeaderButton
-          iconColor={mobileColors.accent}
-          style={styles.heroIconBtn}
-        />
-        <Pressable
-          onPress={() => {
-            if (!farmId || !farmName) {
-              navigation.navigate("FarmList");
-              return;
-            }
-            navigation.navigate("ProducerFarmSettings", { farmId, farmName });
-          }}
-          style={({ pressed }) => [
-            styles.heroIconBtn,
-            pressed && styles.heroIconBtnPressed
-          ]}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityRole="button"
-          accessibilityLabel={t("producer.settingsButton")}
-        >
-          <Ionicons
-            name="settings-outline"
-            size={22}
-            color={mobileColors.accent}
+      <View style={styles.heroHeaderRow}>
+        <View style={styles.heroWelcomeCluster}>
+          <ProducerWelcomeHeader
+            welcomeLabel={t("producer.welcomeLine")}
+            firstName={firstName}
+            avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
+            onPressAvatar={() => setProfileOpen(true)}
           />
-        </Pressable>
+          {showMultiProjectIndicator ? (
+            <ProjectIndicator onPress={() => setProfileOpen(true)} />
+          ) : null}
+        </View>
+        <View style={styles.heroActions}>
+          <NotificationsHeaderButton
+            iconColor={mobileColors.accent}
+            farmId={farmId}
+            farmName={farmName}
+            style={styles.heroIconBtn}
+          />
+          <SupportHeaderButton
+            iconColor={mobileColors.accent}
+            style={styles.heroIconBtn}
+          />
+          <Pressable
+            onPress={() => {
+              if (!farmId || !farmName) {
+                navigation.navigate("FarmList");
+                return;
+              }
+              navigation.navigate("ProducerFarmSettings", { farmId, farmName });
+            }}
+            style={({ pressed }) => [
+              styles.heroIconBtn,
+              pressed && styles.heroIconBtnPressed
+            ]}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel={t("producer.settingsButton")}
+          >
+            <Ionicons
+              name="settings-outline"
+              size={22}
+              color={mobileColors.accent}
+            />
+          </Pressable>
+        </View>
       </View>
+      {accessToken ? <WalletDashboardCard variant="producer" /> : null}
     </View>
   );
 
@@ -772,14 +776,27 @@ function FeedStockCard({
 
 const styles = StyleSheet.create({
   heroBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: "column",
+    gap: mobileSpacing.sm,
     paddingHorizontal: mobileSpacing.lg,
-    paddingVertical: mobileSpacing.xs,
+    paddingTop: mobileSpacing.sm,
+    paddingBottom: mobileSpacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: mobileColors.border,
-    backgroundColor: mobileColors.background,
+    backgroundColor: mobileColors.background
+  },
+  heroHeaderRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: mobileSpacing.sm
+  },
+  heroWelcomeCluster: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: mobileSpacing.sm
   },
   heroTopRow: {
     flexDirection: "column",

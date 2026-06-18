@@ -24,9 +24,12 @@ import {
 import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 
+type WalletSection = "topup" | "withdraw" | "transfer" | "all";
+
 type Props = {
   currency: string;
   balance: number;
+  visibleSection?: WalletSection;
 };
 
 function parseAmount(raw: string): number | null {
@@ -34,7 +37,11 @@ function parseAmount(raw: string): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-export function WalletOperationsCard({ currency, balance }: Props) {
+export function WalletOperationsCard({
+  currency,
+  balance,
+  visibleSection = "all"
+}: Props) {
   const { t } = useTranslation();
   const { accessToken } = useSession();
   const queryClient = useQueryClient();
@@ -134,144 +141,159 @@ export function WalletOperationsCard({ currency, balance }: Props) {
     transferMut.isPending ||
     lookupRecipientMut.isPending;
 
+  const showTopUp = visibleSection === "all" || visibleSection === "topup";
+  const showWithdraw = visibleSection === "all" || visibleSection === "withdraw";
+  const showTransfer = visibleSection === "all" || visibleSection === "transfer";
+  const showHeader = visibleSection === "all";
+
   return (
     <View style={styles.wrap}>
-      <Text style={styles.title}>{t("buyer.wallet.ops.title")}</Text>
-      <Text style={styles.hint}>{t("buyer.wallet.ops.hint")}</Text>
+      {showHeader ? (
+        <>
+          <Text style={styles.title}>{t("buyer.wallet.ops.title")}</Text>
+          <Text style={styles.hint}>{t("buyer.wallet.ops.hint")}</Text>
+        </>
+      ) : null}
 
-      <View style={styles.block}>
-        <Text style={styles.blockTitle}>{t("buyer.wallet.ops.topUp")}</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="number-pad"
-          placeholder={t("buyer.wallet.ops.amountPlaceholder")}
-          value={topUpAmount}
-          onChangeText={setTopUpAmount}
-        />
-        <ActionButton
-          label={t("buyer.wallet.ops.topUpCta")}
-          icon="add-circle-outline"
-          loading={topUpMut.isPending}
-          disabled={busy}
-          onPress={() => {
-            const amount = parseAmount(topUpAmount);
-            if (!amount) {
-              Alert.alert(t("common.error"), t("buyer.wallet.ops.invalidAmount"));
-              return;
-            }
-            topUpMut.mutate(amount);
-          }}
-        />
-      </View>
+      {showTopUp ? (
+        <View style={styles.block}>
+          <Text style={styles.blockTitle}>{t("buyer.wallet.ops.topUp")}</Text>
+          <TextInput
+            style={styles.input}
+            keyboardType="number-pad"
+            placeholder={t("buyer.wallet.ops.amountPlaceholder")}
+            value={topUpAmount}
+            onChangeText={setTopUpAmount}
+          />
+          <ActionButton
+            label={t("buyer.wallet.ops.topUpCta")}
+            icon="add-circle-outline"
+            loading={topUpMut.isPending}
+            disabled={busy}
+            onPress={() => {
+              const amount = parseAmount(topUpAmount);
+              if (!amount) {
+                Alert.alert(t("common.error"), t("buyer.wallet.ops.invalidAmount"));
+                return;
+              }
+              topUpMut.mutate(amount);
+            }}
+          />
+        </View>
+      ) : null}
 
-      <View style={styles.block}>
-        <Text style={styles.blockTitle}>{t("buyer.wallet.ops.withdraw")}</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="number-pad"
-          placeholder={t("buyer.wallet.ops.amountPlaceholder")}
-          value={withdrawAmount}
-          onChangeText={setWithdrawAmount}
-        />
-        <TextInput
-          style={styles.input}
-          keyboardType="phone-pad"
-          placeholder={t("buyer.wallet.ops.phonePlaceholder")}
-          value={withdrawPhone}
-          onChangeText={setWithdrawPhone}
-        />
-        <ActionButton
-          label={t("buyer.wallet.ops.withdrawCta")}
-          icon="arrow-up-circle-outline"
-          loading={withdrawMut.isPending}
-          disabled={busy}
-          onPress={() => {
-            const amount = parseAmount(withdrawAmount);
-            if (!amount) {
-              Alert.alert(t("common.error"), t("buyer.wallet.ops.invalidAmount"));
-              return;
-            }
-            if (amount > balance) {
-              Alert.alert(t("common.error"), t("buyer.wallet.ops.insufficientBalance"));
-              return;
-            }
-            withdrawMut.mutate({
-              amount,
-              phone: withdrawPhone.trim() || undefined
-            });
-          }}
-        />
-      </View>
+      {showWithdraw ? (
+        <View style={styles.block}>
+          <Text style={styles.blockTitle}>{t("buyer.wallet.ops.withdraw")}</Text>
+          <TextInput
+            style={styles.input}
+            keyboardType="number-pad"
+            placeholder={t("buyer.wallet.ops.amountPlaceholder")}
+            value={withdrawAmount}
+            onChangeText={setWithdrawAmount}
+          />
+          <TextInput
+            style={styles.input}
+            keyboardType="phone-pad"
+            placeholder={t("buyer.wallet.ops.phonePlaceholder")}
+            value={withdrawPhone}
+            onChangeText={setWithdrawPhone}
+          />
+          <ActionButton
+            label={t("buyer.wallet.ops.withdrawCta")}
+            icon="arrow-up-circle-outline"
+            loading={withdrawMut.isPending}
+            disabled={busy}
+            onPress={() => {
+              const amount = parseAmount(withdrawAmount);
+              if (!amount) {
+                Alert.alert(t("common.error"), t("buyer.wallet.ops.invalidAmount"));
+                return;
+              }
+              if (amount > balance) {
+                Alert.alert(t("common.error"), t("buyer.wallet.ops.insufficientBalance"));
+                return;
+              }
+              withdrawMut.mutate({
+                amount,
+                phone: withdrawPhone.trim() || undefined
+              });
+            }}
+          />
+        </View>
+      ) : null}
 
-      <View style={styles.block}>
-        <Text style={styles.blockTitle}>{t("buyer.wallet.ops.transfer")}</Text>
-        <Text style={styles.blockHint}>{t("buyer.wallet.ops.transferHint")}</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="phone-pad"
-          placeholder={t("buyer.wallet.ops.recipientPhonePlaceholder")}
-          value={transferPhone}
-          onChangeText={(value) => {
-            setTransferPhone(value);
-            setTransferRecipient(null);
-          }}
-        />
-        <ActionButton
-          label={t("buyer.wallet.ops.lookupRecipientCta")}
-          icon="search-outline"
-          loading={lookupRecipientMut.isPending}
-          disabled={busy || !transferPhone.trim()}
-          onPress={() => lookupRecipientMut.mutate(transferPhone.trim())}
-        />
-        {transferRecipient ? (
-          <View style={styles.recipientCard}>
-            <Text style={styles.recipientName}>{transferRecipient.displayName}</Text>
-            <Text style={styles.recipientPhone}>{transferRecipient.phoneMasked}</Text>
-          </View>
-        ) : null}
-        <TextInput
-          style={styles.input}
-          keyboardType="number-pad"
-          placeholder={t("buyer.wallet.ops.amountPlaceholder")}
-          value={transferAmount}
-          onChangeText={setTransferAmount}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder={t("buyer.wallet.ops.notePlaceholder")}
-          value={transferNote}
-          onChangeText={setTransferNote}
-        />
-        <ActionButton
-          label={t("buyer.wallet.ops.transferCta")}
-          icon="swap-horizontal-outline"
-          loading={transferMut.isPending}
-          disabled={busy}
-          onPress={() => {
-            const amount = parseAmount(transferAmount);
-            if (!amount || !transferPhone.trim()) {
-              Alert.alert(t("common.error"), t("buyer.wallet.ops.transferInvalid"));
-              return;
-            }
-            if (!transferRecipient) {
-              Alert.alert(
-                t("common.error"),
-                t("buyer.wallet.ops.recipientNotVerified")
-              );
-              return;
-            }
-            if (amount > balance) {
-              Alert.alert(t("common.error"), t("buyer.wallet.ops.insufficientBalance"));
-              return;
-            }
-            transferMut.mutate({
-              amount,
-              recipientPhone: transferPhone.trim(),
-              note: transferNote.trim() || undefined
-            });
-          }}
-        />
-      </View>
+      {showTransfer ? (
+        <View style={styles.block}>
+          <Text style={styles.blockTitle}>{t("buyer.wallet.ops.transfer")}</Text>
+          <Text style={styles.blockHint}>{t("buyer.wallet.ops.transferHint")}</Text>
+          <TextInput
+            style={styles.input}
+            keyboardType="phone-pad"
+            placeholder={t("buyer.wallet.ops.recipientPhonePlaceholder")}
+            value={transferPhone}
+            onChangeText={(value) => {
+              setTransferPhone(value);
+              setTransferRecipient(null);
+            }}
+          />
+          <ActionButton
+            label={t("buyer.wallet.ops.lookupRecipientCta")}
+            icon="search-outline"
+            loading={lookupRecipientMut.isPending}
+            disabled={busy || !transferPhone.trim()}
+            onPress={() => lookupRecipientMut.mutate(transferPhone.trim())}
+          />
+          {transferRecipient ? (
+            <View style={styles.recipientCard}>
+              <Text style={styles.recipientName}>{transferRecipient.displayName}</Text>
+              <Text style={styles.recipientPhone}>{transferRecipient.phoneMasked}</Text>
+            </View>
+          ) : null}
+          <TextInput
+            style={styles.input}
+            keyboardType="number-pad"
+            placeholder={t("buyer.wallet.ops.amountPlaceholder")}
+            value={transferAmount}
+            onChangeText={setTransferAmount}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder={t("buyer.wallet.ops.notePlaceholder")}
+            value={transferNote}
+            onChangeText={setTransferNote}
+          />
+          <ActionButton
+            label={t("buyer.wallet.ops.transferCta")}
+            icon="swap-horizontal-outline"
+            loading={transferMut.isPending}
+            disabled={busy}
+            onPress={() => {
+              const amount = parseAmount(transferAmount);
+              if (!amount || !transferPhone.trim()) {
+                Alert.alert(t("common.error"), t("buyer.wallet.ops.transferInvalid"));
+                return;
+              }
+              if (!transferRecipient) {
+                Alert.alert(
+                  t("common.error"),
+                  t("buyer.wallet.ops.recipientNotVerified")
+                );
+                return;
+              }
+              if (amount > balance) {
+                Alert.alert(t("common.error"), t("buyer.wallet.ops.insufficientBalance"));
+                return;
+              }
+              transferMut.mutate({
+                amount,
+                recipientPhone: transferPhone.trim(),
+                note: transferNote.trim() || undefined
+              });
+            }}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }

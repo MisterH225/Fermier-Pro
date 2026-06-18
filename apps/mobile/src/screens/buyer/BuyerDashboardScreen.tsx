@@ -16,8 +16,8 @@ import { PigPriceIndex } from "../../components/market/PigPriceIndex";
 import { BuyerActiveProposalsSection } from "../../components/buyer/BuyerActiveProposalsSection";
 import { BuyerPendingMarketplaceBanner } from "../../components/buyer/BuyerPendingMarketplaceBanner";
 import { BuyerProfileModal } from "../../components/buyer/BuyerProfileModal";
-import { BuyerBalanceCard } from "../../components/buyer/BuyerBalanceCard";
 import { BuyerWelcomeHeader } from "../../components/buyer/BuyerWelcomeHeader";
+import { WalletDashboardCard } from "../../components/wallet/WalletDashboardCard";
 import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
 import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import {
@@ -81,19 +81,22 @@ export function BuyerDashboardScreen() {
 
   const dashboardHeader: ReactNode = (
     <View style={styles.heroBar}>
-      <BuyerWelcomeHeader
-        welcomeLabel={t("buyer.dashboard.welcomeLine")}
-        displayName={displayName}
-        avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
-        onPressAvatar={() => setProfileOpen(true)}
-      />
-      <View style={styles.heroActions}>
-        <NotificationsHeaderButton iconColor={buyerColors.primary} style={styles.heroIconBtn} />
-        <SupportHeaderButton
-          iconColor={buyerColors.primary}
-          style={styles.heroIconBtn}
+      <View style={styles.heroHeaderRow}>
+        <BuyerWelcomeHeader
+          welcomeLabel={t("buyer.dashboard.welcomeLine")}
+          displayName={displayName}
+          avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
+          onPressAvatar={() => setProfileOpen(true)}
         />
+        <View style={styles.heroActions}>
+          <NotificationsHeaderButton iconColor={buyerColors.primary} style={styles.heroIconBtn} />
+          <SupportHeaderButton
+            iconColor={buyerColors.primary}
+            style={styles.heroIconBtn}
+          />
+        </View>
       </View>
+      <WalletDashboardCard variant="buyer" />
     </View>
   );
 
@@ -114,15 +117,6 @@ export function BuyerDashboardScreen() {
       >
         <PendingInvitationsBanner />
         <BuyerPendingMarketplaceBanner />
-
-        {dashQ.data?.wallet ? (
-          <BuyerBalanceCard
-            balance={dashQ.data.wallet.balance}
-            currency={dashQ.data.wallet.currency}
-            monthCredits={dashQ.data.wallet.monthCredits}
-            onPress={() => navigation.navigate("BuyerFinance")}
-          />
-        ) : null}
 
         <MeteoProfilCard
           score={creditScoreToNumeric(creditScoreQ.data?.score)}
@@ -178,12 +172,17 @@ export function BuyerDashboardScreen() {
 
 const styles = StyleSheet.create({
   heroBar: {
+    flexDirection: "column",
+    gap: mobileSpacing.sm,
+    paddingHorizontal: mobileSpacing.lg,
+    paddingTop: mobileSpacing.sm,
+    paddingBottom: mobileSpacing.md,
+    backgroundColor: buyerColors.canvas
+  },
+  heroHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: mobileSpacing.lg,
-    paddingVertical: mobileSpacing.sm,
-    backgroundColor: buyerColors.canvas,
     gap: mobileSpacing.sm
   },
   heroActions: {
