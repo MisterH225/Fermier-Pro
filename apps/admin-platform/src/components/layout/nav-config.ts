@@ -12,6 +12,7 @@ import {
   Store,
   Users,
   Award,
+  Wallet,
   type LucideIcon
 } from "lucide-react";
 
@@ -27,6 +28,7 @@ export const NAV_KEYS = [
   "marketplace",
   "producerScores",
   "stats",
+  "wallet",
   "ai",
   "settings"
 ] as const;
@@ -55,6 +57,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { href: "/producteurs-scores", icon: Award, key: "producerScores", primary: true },
   { href: "/statistiques", icon: BarChart3, key: "stats", primary: true },
+  { href: "/portefeuille", icon: Wallet, key: "wallet" },
   { href: "/veterinaires/rendez-vous", icon: Calendar, key: "vetAppointments" },
   { href: "/moderation-feed", icon: MessageSquareWarning, key: "feedModeration" },
   { href: "/moderation-chat", icon: MessageSquare, key: "chatModeration" },

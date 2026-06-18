@@ -201,8 +201,36 @@ export type PlatformSettingsDto = {
   vetCommissionRate: number;
   supportPhone: string | null;
   supportTelegramUrl: string | null;
+  withdrawalAutoApproveThreshold?: number;
   /** Valeurs réellement servies au mobile (DB + fallback env). */
   supportEffective: SupportContactDto;
+};
+
+export type WalletFeeConfigDto = {
+  transactionType: "deposit" | "withdrawal" | "transfer";
+  feePercentage: number;
+  feeFixed: number;
+  minFee: number;
+  maxFee: number | null;
+  isActive: boolean;
+};
+
+export type WithdrawalRequestAdminDto = {
+  id: string;
+  status: string;
+  amountRequested: number;
+  feeAmount: number;
+  totalDebit: number;
+  amountToReceive: number;
+  phoneNumber: string;
+  createdAt: string;
+  reviewedAt: string | null;
+  rejectionReason: string | null;
+  user: {
+    id: string;
+    displayName: string;
+    phone: string | null;
+  };
 };
 
 export type HealthMapDto = {
@@ -700,6 +728,47 @@ export function patchPlatformSettings(
   return apiFetch<PlatformSettingsDto>("/admin/settings", token, {
     method: "PATCH",
     body: JSON.stringify(body)
+  });
+}
+
+export function fetchWalletFeeConfigs(token: string) {
+  return apiFetch<WalletFeeConfigDto[]>("/admin/wallet/fees", token);
+}
+
+export function patchWalletFeeConfig(
+  token: string,
+  transactionType: WalletFeeConfigDto["transactionType"],
+  body: Partial<WalletFeeConfigDto>
+) {
+  return apiFetch<WalletFeeConfigDto>(
+    `/admin/wallet/fees/${transactionType}`,
+    token,
+    { method: "PATCH", body: JSON.stringify(body) }
+  );
+}
+
+export function fetchPendingWithdrawals(token: string) {
+  return apiFetch<WithdrawalRequestAdminDto[]>(
+    "/admin/wallet/withdrawals?status=pending_review",
+    token
+  );
+}
+
+export function approveWithdrawalRequest(token: string, id: string) {
+  return apiFetch<{ ok: boolean }>(`/admin/wallet/withdrawals/${id}/approve`, token, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
+export function rejectWithdrawalRequest(
+  token: string,
+  id: string,
+  reason: string
+) {
+  return apiFetch<{ ok: boolean }>(`/admin/wallet/withdrawals/${id}/reject`, token, {
+    method: "POST",
+    body: JSON.stringify({ reason })
   });
 }
 

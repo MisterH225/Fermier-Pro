@@ -31,12 +31,20 @@ export class WalletWithdrawInitiateDto extends WalletAmountDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @IsOptional()
+  @IsString()
+  clientRequestId?: string;
 }
 
 export class WalletWithdrawConfirmDto extends WalletWithdrawInitiateDto {
   @IsString()
   @IsNotEmpty()
   providerRef!: string;
+
+  @IsOptional()
+  @IsString()
+  withdrawalRequestId?: string;
 }
 
 export class WalletTransferDto extends WalletAmountDto {

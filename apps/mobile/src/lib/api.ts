@@ -6921,16 +6921,35 @@ export function fetchBuyerWallet(
 }
 
 export type WalletTopUpInitDto = {
-  providerRef: string;
+  providerRef?: string;
   amount: number;
+  feeAmount?: number;
+  netAmount?: number;
+  totalDebit?: number;
+  amountToReceive?: number;
   currency: string;
-  paymentUrl: string | null;
+  paymentUrl?: string | null;
+  phone?: string;
+  requiresApproval?: boolean;
+  withdrawalRequestId?: string;
+  status?: string;
+  message?: string;
+};
+
+export type WalletFeeQuoteDto = {
+  transactionType: "deposit" | "withdrawal" | "transfer";
+  amount: number;
+  feeAmount: number;
+  netAmount: number;
+  totalDebit: number;
+  isFree: boolean;
 };
 
 export type WalletOperationResultDto = {
   ok: boolean;
   balance: number;
   currency: string;
+  feeAmount?: number;
   entry: BuyerWalletEntryDto;
 };
 
@@ -6953,14 +6972,30 @@ export function confirmWalletTopUp(
   );
 }
 
+export function fetchWalletFeeQuote(
+  accessToken: string,
+  type: "deposit" | "withdrawal" | "transfer",
+  amount: number
+): Promise<WalletFeeQuoteDto> {
+  const params = new URLSearchParams({
+    type,
+    amount: String(amount)
+  });
+  return apiGetJson<WalletFeeQuoteDto>(
+    `/users/me/wallet/fee-quote?${params.toString()}`,
+    accessToken
+  );
+}
+
 export function initiateWalletWithdraw(
   accessToken: string,
   amount: number,
-  phone?: string
-): Promise<WalletTopUpInitDto & { phone?: string }> {
+  phone?: string,
+  clientRequestId?: string
+): Promise<WalletTopUpInitDto> {
   return apiPostJson(
     "/users/me/wallet/withdraw/initiate",
-    { amount, phone },
+    { amount, phone, clientRequestId },
     accessToken
   );
 }
@@ -6969,11 +7004,12 @@ export function confirmWalletWithdraw(
   accessToken: string,
   amount: number,
   providerRef: string,
-  phone?: string
+  phone?: string,
+  withdrawalRequestId?: string
 ): Promise<WalletOperationResultDto> {
   return apiPostJson(
     "/users/me/wallet/withdraw/confirm",
-    { amount, providerRef, phone },
+    { amount, providerRef, phone, withdrawalRequestId },
     accessToken
   );
 }

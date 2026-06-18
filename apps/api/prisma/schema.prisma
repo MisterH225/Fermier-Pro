@@ -107,6 +107,8 @@ model User {
   buyerProfile          BuyerProfile?
   userWallet            UserWallet?
   walletEntriesAsCounterparty UserWalletEntry[] @relation("WalletEntryCounterparty")
+  withdrawalRequests    WithdrawalRequest[]
+  withdrawalReviews     WithdrawalRequest[] @relation("WithdrawalReviewer")
   producerProfile       ProducerProfile?
   reactivationWaitlist  ReactivationWaitlist[]
   memberships           FarmMembership[]
@@ -1516,6 +1518,22 @@ enum UserWalletEntryKind {
   credit_adjustment
   debit_escrow_hold
   debit_adjustment
+  debit_fee
+}
+
+enum WalletFeeTransactionType {
+  deposit
+  withdrawal
+  transfer
+}
+
+enum WithdrawalRequestStatus {
+  pending_review
+  processing
+  completed
+  rejected
+  failed
+  cancelled
 }
 
 enum MarketplacePaymentMethod {
@@ -2475,7 +2493,61 @@ model PlatformSettings {
   supportPhone          String?
   /// Lien Telegram support (https://t.me/… ou @username). Fallback env `SUPPORT_TELEGRAM_URL`.
   supportTelegramUrl    String?
+  /// Montant max (XOF) de retrait auto-approuvé sans validation admin.
+  withdrawalAutoApproveThreshold Decimal @default(50000) @db.Decimal(14, 2)
   updatedAt             DateTime @updatedAt
+}
+
+/// Frais portefeuille configurables (0 % = gratuit).
+model WalletFeeConfig {
+  id              String                   @id @default(cuid())
+  transactionType WalletFeeTransactionType @unique
+  feePercentage   Decimal                  @default(0) @db.Decimal(5, 4)
+  feeFixed        Decimal                  @default(0) @db.Decimal(14, 2)
+  minFee          Decimal                  @default(0) @db.Decimal(14, 2)
+  maxFee          Decimal?                 @db.Decimal(14, 2)
+  isActive        Boolean                  @default(true)
+  updatedAt       DateTime                 @updatedAt
+}
+
+/// Compte principal plateforme (réconciliation agrégateur vs wallets virtuels).
+model PlatformAccount {
+  id                    String   @id @default("main")
+  aggregatorBalance     Decimal  @default(0) @db.Decimal(15, 2)
+  totalVirtualBalance   Decimal  @default(0) @db.Decimal(15, 2)
+  platformFeeBalance    Decimal  @default(0) @db.Decimal(15, 2)
+  lastReconciliationAt  DateTime?
+  reconciliationStatus  String   @default("pending")
+  updatedAt             DateTime @updatedAt
+}
+
+/// Demande de retrait — validation admin au-dessus du seuil auto.
+model WithdrawalRequest {
+  id               String                  @id @default(cuid())
+  walletId         String
+  wallet           UserWallet              @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  userId           String
+  user             User                    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  amountRequested  Decimal                 @db.Decimal(14, 2)
+  feeAmount        Decimal                 @default(0) @db.Decimal(14, 2)
+  totalDebit       Decimal                 @db.Decimal(14, 2)
+  amountToReceive  Decimal                 @db.Decimal(14, 2)
+  phoneNumber      String
+  operator         String?
+  status           WithdrawalRequestStatus @default(pending_review)
+  providerRef      String?
+  reviewedBy       String?
+  reviewer         User?                   @relation("WithdrawalReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  reviewedAt       DateTime?
+  rejectionReason  String?
+  failureReason    String?
+  idempotencyKey   String?                 @unique
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([walletId])
 }
 
 /// Catégories de l'indice PigPrice (marché porcin agrégé).
@@ -2644,14 +2716,16 @@ model BuyerProfile {
 
 /// Portefeuille utilisateur — tous les rôles (acheteur, vendeur, véto, technicien…).
 model UserWallet {
-  id        String            @id @default(cuid())
-  userId    String            @unique
-  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  balance   Decimal           @default(0) @db.Decimal(14, 2)
-  currency  String            @default("XOF")
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  entries   UserWalletEntry[]
+  id              String              @id @default(cuid())
+  userId          String              @unique
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance         Decimal             @default(0) @db.Decimal(14, 2)
+  pendingBalance  Decimal             @default(0) @db.Decimal(14, 2)
+  currency        String              @default("XOF")
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  entries         UserWalletEntry[]
+  withdrawalRequests WithdrawalRequest[]
 }
 
 /// Historique des mouvements du portefeuille utilisateur.

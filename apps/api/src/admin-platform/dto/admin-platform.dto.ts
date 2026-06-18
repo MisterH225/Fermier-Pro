@@ -72,6 +72,12 @@ export class UpdatePlatformSettingsDto {
   @IsString()
   @MaxLength(512)
   supportTelegramUrl?: string | null;
+
+  /** Seuil (XOF) de retrait auto-approuvé sans validation admin. */
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  withdrawalAutoApproveThreshold?: number;
 }
 
 export class AdminAiAskDto {

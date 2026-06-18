@@ -90,6 +90,8 @@ describe("UserWalletService", () => {
     expect(result.debit.amount).toBe(2000);
     expect(result.credit.amount).toBe(2000);
     expect(prisma.userWalletEntry.create).toHaveBeenCalledTimes(2);
+  });
+
   it("refuse un transfert vers son propre numéro", async () => {
     await expect(
       service.resolveTransferRecipientByPhone("user-a", "+2250700000000")
