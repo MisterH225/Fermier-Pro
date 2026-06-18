@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "description": "Fermier Pro monorepo (mobile + api + shared packages)",
+  "engines": {
+    "node": ">=20"
+  },
   "prisma": {
     "schema": "apps/api/prisma/schema.prisma"
   },
@@ -19,7 +22,7 @@
     "packages/*"
   ],
   "scripts": {
-    "prisma:generate": "npm exec -w @fermier/api -- prisma generate",
+    "prisma:generate": "npm run prisma:generate --workspace @fermier/api",
     "build": "npm run build --workspace @fermier/phone && npm run build --workspace @fermier/api",
     "start": "npm run start --workspace @fermier/api",
     "dev:mobile": "npx expo start apps/mobile",

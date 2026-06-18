@@ -164,27 +164,13 @@ function resolvePrismaDatabaseUrl(e) {
   return { url: "", source: "" };
 }
 
-const { url: dbUrl, source: prismaUrlSource } = resolvePrismaDatabaseUrl(env);
-if (!dbUrl) {
-  console.error(
-    [
-      "prisma-run: DATABASE_URL est vide.",
-      "Renseigne DATABASE_URL dans le .env a la racine du monorepo,",
-      "ou les champs Docker POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB (sans config Supabase),",
-      "ou DB_HOST / DB_USER / DB_PASSWORD / DB_NAME."
-    ].join("\n")
-  );
-  process.exit(1);
-}
-if (prismaUrlSource === "PRISMA_DATABASE_URL") {
-  console.error(
-    "prisma-run: utilisation de PRISMA_DATABASE_URL (connexion directe recommandee pour migrate / db push)."
-  );
-}
-env.DATABASE_URL = dbUrl;
+const prismaArgs = process.argv.slice(2);
+const prismaSubcommand = prismaArgs[0] ?? "";
 
-// Résoudre DIRECT_URL (connexion directe, port 5432) pour le champ directUrl du schema.prisma.
-// Même logique que DATABASE_URL : variable système vide ignorée, lecture fichier en fallback.
+// generate : pas de connexion DB — placeholders si absentes (build Railway / CI).
+const BUILD_PLACEHOLDER_DB_URL =
+  "postgresql://build:build@127.0.0.1:5432/build?schema=public";
+
 function resolveDirectUrl(e) {
   let url = stripOuterQuotes(e.DIRECT_URL);
   if (url) return url;
@@ -194,19 +180,40 @@ function resolveDirectUrl(e) {
   if (url) return url;
   return "";
 }
-let directUrl = resolveDirectUrl(env);
-if (!directUrl) {
-  // Schéma Prisma : `directUrl = env("DIRECT_URL")` — obligatoire pour le CLI.
-  // Si absent du .env : réutiliser l’URL déjà résolue pour migrate/push (souvent
-  // PRISMA_DATABASE_URL ou DATABASE_URL directe). Avec pooler seul sur DATABASE_URL,
-  // définir explicitement DIRECT_URL (session / port 5432 Supabase) dans le .env.
-  directUrl = dbUrl;
+
+if (prismaSubcommand === "generate") {
+  const { url: dbUrl } = resolvePrismaDatabaseUrl(env);
+  env.DATABASE_URL = dbUrl || BUILD_PLACEHOLDER_DB_URL;
+  env.DIRECT_URL = resolveDirectUrl(env) || env.DATABASE_URL;
+} else {
+  const { url: dbUrl, source: prismaUrlSource } = resolvePrismaDatabaseUrl(env);
+  if (!dbUrl) {
+    console.error(
+      [
+        "prisma-run: DATABASE_URL est vide.",
+        "Renseigne DATABASE_URL dans le .env a la racine du monorepo,",
+        "ou les champs Docker POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB (sans config Supabase),",
+        "ou DB_HOST / DB_USER / DB_PASSWORD / DB_NAME."
+      ].join("\n")
+    );
+    process.exit(1);
+  }
+  if (prismaUrlSource === "PRISMA_DATABASE_URL") {
+    console.error(
+      "prisma-run: utilisation de PRISMA_DATABASE_URL (connexion directe recommandee pour migrate / db push)."
+    );
+  }
+  env.DATABASE_URL = dbUrl;
+
+  let directUrl = resolveDirectUrl(env);
+  if (!directUrl) {
+    directUrl = dbUrl;
+  }
+  env.DIRECT_URL = directUrl;
 }
-env.DIRECT_URL = directUrl;
 
 const prismaPkgDir = path.dirname(require.resolve("prisma/package.json"));
 const prismaCli = path.join(prismaPkgDir, "build", "index.js");
-const prismaArgs = process.argv.slice(2);
 
 const result = spawnSync(process.execPath, [prismaCli, ...prismaArgs], {
   env,

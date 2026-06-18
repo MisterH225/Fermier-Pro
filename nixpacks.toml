@@ -1,0 +1,3 @@
+# Railway / Nixpacks — le monorepo exige Node 20 (Nest 11, Prisma, Expo 54).
+[variables]
+NIXPACKS_NODE_VERSION = "20"
