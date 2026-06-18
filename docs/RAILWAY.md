@@ -13,7 +13,7 @@
 1. **Root Directory** : racine du dépôt (pas `apps/mobile`).
 2. **Config as code** : `railway.json` à la racine (watch paths limités à `apps/api/**`).
 3. **Start Command** : `node apps/api/scripts/start-api.cjs` (défini dans `railway.json`).
-4. **Pre-deploy** : `npm run prisma:migrate:deploy --workspace @fermier/api` — les migrations ne bloquent plus le healthcheck.
+4. **Pre-deploy** : `node apps/api/scripts/railway-predeploy.cjs` (défini dans `railway.json`).
 5. **Port** : Railway injecte `PORT` ; l'API écoute `PORT` puis `API_PORT` (défaut 3000). Ne pas forcer un port fixe sans `PORT`.
 6. **Variables** : `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_JWT_SECRET`, etc. (voir `.env.example`).
 7. **Healthcheck** : `GET /api/v1/health` (configuré dans `railway.json`).
@@ -38,6 +38,49 @@ Service **distinct** de l'API (`fermierapi-production`).
 6. **Healthcheck** : `/fr/login` (page publique).
 
 La PR #124 (middleware auth, `sharp`) ne concerne **que** ce service admin, pas `fermierapi-production`.
+
+## Railway ne déploie pas le dernier `main` (ex. PR #129)
+
+GitHub a bien le code (`git log origin/main` → commit `2d50ed9` pour la PR #129). Si Railway affiche encore une PR plus ancienne (#127, #123…) :
+
+### « Redeploy » ≠ dernier commit
+
+| Action Railway | Comportement |
+|----------------|--------------|
+| **Redeploy** sur un déploiement existant | Reconstruit **le même commit SHA** que ce déploiement |
+| **Deploy** depuis la branche `main` | Prend le **dernier commit** de `main` |
+
+**À faire** : Service API → **Deployments** → bouton **Deploy** (ou **Deploy latest**) → branche **`main`**.  
+Ne pas utiliser « Redeploy » sur un ancien déploiement si vous voulez la PR #129.
+
+### Réglages à vérifier (Settings → Source)
+
+1. **Repository** : `MisterH225/Fermier-Pro` (pas un fork)
+2. **Branch** : `main` (pas `cursor/...` ni une branche figée)
+3. **Root Directory** : vide ou `/` (racine du monorepo)
+4. **Config file path** : `railway.json` (ou vide si Railway lit la racine)
+5. **Wait for CI** : si activé et CI rouge, le déploiement peut ne jamais partir
+
+### Vérifier le commit réellement buildé
+
+Dans les **logs de build**, chercher la ligne injectée par `railway.json` :
+
+```
+[railway-build] GIT_COMMIT=2d50ed98fce58934f7a3191b11539de0d74873bb
+```
+
+Si le SHA ne commence pas par `2d50ed9` (PR #129) ou plus récent, Railway n'a pas buildé le bon `main`.
+
+### Forcer un nouveau déploiement depuis GitHub
+
+1. Settings → Source → **Disconnect** puis reconnecter le repo (branche `main`)
+2. Ou pousser un commit sur `main` (ex. merge d'une PR qui touche `railway.json`) pour déclencher le webhook
+
+### Commit de référence `main` (PR #129)
+
+```
+2d50ed9 Merge pull request #129 — mobile-money.module.ts, suppression buyer-wallet
+```
 
 **Node.js** : le monorepo exige **Node 20** (`.nvmrc`, `nixpacks.toml`, `engines` dans `package.json`). Si le build Nixpacks utilise Node 18 (`EBADENGINE`), vérifier que ces fichiers sont bien déployés.
 
