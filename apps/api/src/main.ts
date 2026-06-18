@@ -1,4 +1,4 @@
-import { ValidationPipe } from "@nestjs/common";
+import { ValidationPipe, type LogLevel } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { config as dotenvConfig } from "dotenv";
@@ -17,7 +17,18 @@ async function bootstrap() {
   ) as { bootstrapProdEnv: () => void };
   bootstrapProdEnv();
 
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // En staging/production, on supprime les logs de démarrage NestJS (RoutesResolver /
+  // RouterExplorer), qui génèrent +500 messages au boot et déclenchent le rate-limit Railway.
+  // Les logs applicatifs (warn, error) restent actifs dans tous les environnements.
+  const appEnv = (process.env.APP_ENV ?? "").toLowerCase();
+  const isDeployed = appEnv === "staging" || appEnv === "production";
+  const logLevels: LogLevel[] = isDeployed
+    ? ["error", "warn"]
+    : ["error", "warn", "log", "debug", "verbose"];
+
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    logger: logLevels
+  });
   /** Express 5 : parser simple par defaut ; conserver le comportement type qs (objets / tableaux). */
   app.set("query parser", "extended");
 
