@@ -16,7 +16,10 @@
     "preDeployCommand": "node apps/api/scripts/railway-predeploy.cjs",
     "startCommand": "node apps/api/scripts/start-api.cjs",
     "healthcheckPath": "/api/v1/health",
-    "healthcheckTimeout": 180,
-    "restartPolicyType": "ON_FAILURE"
+    "healthcheckTimeout": 300,
+    "restartPolicyType": "ON_FAILURE",
+    "sleepApplication": false,
+    "numReplicas": 1,
+    "overlapSeconds": 30
   }
 }

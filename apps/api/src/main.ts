@@ -76,4 +76,8 @@ async function bootstrap() {
   );
 }
 
-void bootstrap();
+void bootstrap().catch((err: unknown) => {
+  const message = err instanceof Error ? err.stack ?? err.message : String(err);
+  console.error("[bootstrap] Échec fatal au démarrage:", message);
+  process.exit(1);
+});
