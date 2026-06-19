@@ -17,8 +17,22 @@
 5. **Port** : Railway injecte `PORT` ; l'API écoute `PORT` puis `API_PORT` (défaut 3000). Ne pas forcer un port fixe sans `PORT`.
 6. **Variables** : `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_JWT_SECRET`, etc. (voir `.env.example`).
 7. **Healthcheck** : `GET /api/v1/health` (configuré dans `railway.json`).
+8. **Serverless** : `sleepApplication: false` dans `railway.json` — **désactiver aussi dans Settings** si le toggle UI est encore ON.
 
-### Healthcheck failure (~5 min)
+### Serverless ON → app mobile « Application failed to respond »
+
+Si **Enable Serverless** est activé sur le service API :
+
+- sans trafic, Railway **arrête** le conteneur ;
+- la première requête (`/health`, `/auth/me`) reçoit **502** en ~150 ms (`Application failed to respond`) ;
+- l'app mobile reste bloquée sur l'écran de chargement ou « Réessayer ».
+
+**Correctif** : Settings → Serverless → **OFF**. Le fichier `railway.json` impose `sleepApplication: false` et `numReplicas: 1`.
+
+### Supprimer le service `fermiermobile`
+
+Ne pas héberger `apps/mobile` sur Railway (`npm run start --workspace=@fermier/mobile` → `expo start`).  
+Supprimer le service **fermiermobile** (ou désactiver son auto-deploy). L'app mobile = **EAS + OTA preview** uniquement.
 
 Si le déploiement échoue à l'étape **Network > Healthcheck** alors que le build réussit :
 
