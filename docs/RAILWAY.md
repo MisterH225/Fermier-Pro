@@ -166,8 +166,35 @@ Le script `apps/api/scripts/railway-predeploy.cjs` (pre-deploy Railway) tente au
 
 Si `curl https://fermierapi-production.up.railway.app/api/v1/health` renvoie **502**, l'app mobile ne peut pas appeler `GET /auth/me` au démarrage.
 
+### Port public 3000 alors que l'API écoute sur 8080 (cause fréquente)
+
+Symptômes :
+
+- Logs runtime : `[bootstrap] API en écoute sur 0.0.0.0:8080`
+- `curl /api/v1/health` → **502** en ~150 ms, header `x-railway-fallback: true`
+- **Networking** → domaine public affiche **→ Port 3000**
+
+Railway injecte `PORT=8080` (ou un autre port dynamique). L'API utilise `process.env.PORT` en priorité. Si le domaine public cible le **port 3000**, le proxy n'atteint jamais le processus → 502 sans aucune requête dans les logs HTTP.
+
+**Correctif** (service **@fermier/api**) :
+
+1. **Settings** → **Networking** → **Public Networking**
+2. Cliquer l'icône **modifier** (crayon) à côté de `fermierapi-production.up.railway.app`
+3. Changer le **target port** de `3000` vers **`8080`** (ou la valeur affichée dans les logs bootstrap)
+4. Enregistrer — pas besoin de redéployer
+
+Vérification :
+
+```bash
+curl -sS https://fermierapi-production.up.railway.app/api/v1/health
+# Attendu : {"service":"fermier-api","status":"ok",...}
+```
+
+Ne pas définir `PORT=3000` dans les variables Railway tant que le target port reste 3000 sans alignement explicite. Laisser Railway gérer `PORT` et aligner le domaine public dessus.
+
 | Cause | Logs Railway | Correctif |
 |-------|--------------|-----------|
+| **Target port ≠ PORT** (ex. domaine → 3000, app → 8080) | Boot OK, 502 immédiat, `x-railway-fallback: true` | Networking → modifier le domaine → port **8080** |
 | `APP_ENV=production` + `MOBILE_MONEY_PROVIDER=dev` | `MOBILE_MONEY_PROVIDER=dev interdit en production` | `bootstrap-prod-env` force `APP_ENV=staging` si provider=dev ; ou brancher un vrai provider |
 | P3009 migrations wallet/orchestrateur | `failed migrations` / `universal_user_wallet` | `railway-predeploy.cjs` ou `prisma migrate resolve --applied` (voir ci-dessus) |
 | Healthcheck timeout | API démarre après migrate dans startCommand | Utiliser `start-api.cjs` + migrations en preDeploy |
