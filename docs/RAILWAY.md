@@ -174,14 +174,22 @@ Symptômes :
 - `curl /api/v1/health` → **502** en ~150 ms, header `x-railway-fallback: true`
 - **Networking** → domaine public affiche **→ Port 3000**
 
-Railway injecte `PORT=8080` (ou un autre port dynamique). L'API utilise `process.env.PORT` en priorité. Si le domaine public cible le **port 3000**, le proxy n'atteint jamais le processus → 502 sans aucune requête dans les logs HTTP.
+**Pourquoi ça marchait avant avec le port 3000**
 
-**Correctif** (service **@fermier/api**) :
+Avant la PR #125, l'API utilisait uniquement `API_PORT` (défaut **3000** en local, voir `.env.example`) et **ignorait** la variable `PORT` injectée par Railway. Le domaine public en **3000** et l'application étaient donc alignés.
 
-1. **Settings** → **Networking** → **Public Networking**
-2. Cliquer l'icône **modifier** (crayon) à côté de `fermierapi-production.up.railway.app`
-3. Changer le **target port** de `3000` vers **`8080`** (ou la valeur affichée dans les logs bootstrap)
-4. Enregistrer — pas besoin de redéployer
+Depuis la PR #125, l'API écoute `process.env.PORT` **en priorité** (recommandation Railway pour le healthcheck). Sans `PORT` explicite dans les variables du service, Railway injecte souvent **8080** → décalage avec un domaine toujours ciblé sur **3000**.
+
+**Ce n'est pas lié à `APP_ENV=staging`** : cette variable sert au gateway mobile money simulé (`MOBILE_MONEY_PROVIDER=dev`, pas d'agrégateur réel). Elle n'a aucun effet sur le port d'écoute.
+
+**Deux correctifs équivalents** (service **@fermier/api**) :
+
+| Option | Action | Résultat |
+|--------|--------|----------|
+| **A — garder le port 3000** (config historique) | Variables → ajouter **`PORT=3000`** ; laisser le domaine public sur **3000** | Logs : `en écoute sur 0.0.0.0:3000` |
+| **B — suivre le PORT Railway** | Networking → modifier le domaine → target port **8080** (valeur des logs bootstrap) | Pas de variable `PORT` à définir |
+
+Les deux options fonctionnent tant que **target port du domaine = port d'écoute de l'API**.
 
 Vérification :
 
@@ -190,11 +198,9 @@ curl -sS https://fermierapi-production.up.railway.app/api/v1/health
 # Attendu : {"service":"fermier-api","status":"ok",...}
 ```
 
-Ne pas définir `PORT=3000` dans les variables Railway tant que le target port reste 3000 sans alignement explicite. Laisser Railway gérer `PORT` et aligner le domaine public dessus.
-
 | Cause | Logs Railway | Correctif |
 |-------|--------------|-----------|
-| **Target port ≠ PORT** (ex. domaine → 3000, app → 8080) | Boot OK, 502 immédiat, `x-railway-fallback: true` | Networking → modifier le domaine → port **8080** |
+| **Target port ≠ PORT** (ex. domaine → 3000, app → 8080) | Boot OK, 502 immédiat, `x-railway-fallback: true` | Option A : `PORT=3000` **ou** option B : domaine → **8080** |
 | `APP_ENV=production` + `MOBILE_MONEY_PROVIDER=dev` | `MOBILE_MONEY_PROVIDER=dev interdit en production` | `bootstrap-prod-env` force `APP_ENV=staging` si provider=dev ; ou brancher un vrai provider |
 | P3009 migrations wallet/orchestrateur | `failed migrations` / `universal_user_wallet` | `railway-predeploy.cjs` ou `prisma migrate resolve --applied` (voir ci-dessus) |
 | Healthcheck timeout | API démarre après migrate dans startCommand | Utiliser `start-api.cjs` + migrations en preDeploy |
