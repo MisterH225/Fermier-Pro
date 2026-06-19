@@ -2196,6 +2196,12 @@ export const en = {
     sectionTitle: "Collaboration",
     scanHint:
       "Scan or share this QR with a vet, technician or partner — they can request to join the farm.",
+    defaultQrInfoTitle: "Project QR — access request",
+    defaultQrInfoBody:
+      "They scan this QR and send a request. You pick their role (partner, vet, technician) under “Scan requests” before they get farm access.",
+    scopedInviteInfoTitle: "Direct link — role pre-set",
+    scopedInviteInfoBody:
+      "Use “Invite someone” to generate a link with role and permissions already set: they join directly without manual approval.",
     noFarm:
       "Create or pick your home farm to generate a collaborative access link.",
     demoBlocked: "Demo mode: targeted invitations (API) are not available.",
@@ -2975,7 +2981,14 @@ export const en = {
     previewShareLink: "Invitation pre-configured for the {{role}} role.",
     scanRequestNote:
       "Your request is pending. You will be notified once the owner reviews it.",
-    ownerNote: "You already own this farm: no further action needed."
+    ownerNote: "You already own this farm: no further action needed.",
+    scanQrTitle: "Scan invitation QR",
+    scanQrCta: "Scan QR code",
+    scanQrHint:
+      "Frame the QR shown by the farm owner or in their share message.",
+    cameraPermissionBody:
+      "Camera access is required to read the invitation QR code.",
+    cameraPermissionCta: "Allow camera"
   },
   reportsScreen: {
     periodTitle: "Report period",

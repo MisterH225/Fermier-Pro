@@ -14,6 +14,7 @@ import {
   View
 } from "react-native";
 import { useSession } from "../context/SessionContext";
+import { InviteQrScannerModal } from "../components/collaboration/InviteQrScannerModal";
 import {
   acceptFarmInvitationWithToken,
   fetchInvitationByToken
@@ -61,6 +62,7 @@ export function AcceptFarmInvitationScreen({ route, navigation }: Props) {
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
   const [token, setToken] = useState(prefill);
+  const [scannerVisible, setScannerVisible] = useState(false);
 
   useEffect(() => {
     if (prefill) {
@@ -115,6 +117,7 @@ export function AcceptFarmInvitationScreen({ route, navigation }: Props) {
   const isOwner = preview?.isOwner;
 
   return (
+    <>
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}
@@ -173,6 +176,15 @@ export function AcceptFarmInvitationScreen({ route, navigation }: Props) {
         </View>
       ) : null}
 
+      <TouchableOpacity
+        style={styles.scanCta}
+        onPress={() => setScannerVisible(true)}
+        accessibilityRole="button"
+      >
+        <Ionicons name="qr-code-outline" size={20} color={mobileColors.accent} />
+        <Text style={styles.scanCtaTxt}>{t("invite.scanQrCta")}</Text>
+      </TouchableOpacity>
+
       <Text style={styles.intro}>{t("invite.introText")}</Text>
       <Text style={styles.label}>{t("invite.tokenLabel")}</Text>
       <TextInput
@@ -203,6 +215,18 @@ export function AcceptFarmInvitationScreen({ route, navigation }: Props) {
         </TouchableOpacity>
       )}
     </ScrollView>
+
+    <InviteQrScannerModal
+      visible={scannerVisible}
+      onClose={() => setScannerVisible(false)}
+      onTokenScanned={(scanned) => {
+        setToken(scanned);
+        void qc.invalidateQueries({
+          queryKey: ["invitationPreview", scanned.trim(), activeProfileId]
+        });
+      }}
+    />
+    </>
   );
 }
 
@@ -263,6 +287,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: mobileColors.textSecondary,
     textAlign: "center"
+  },
+  scanCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: mobileSpacing.md,
+    borderRadius: mobileRadius.pill,
+    borderWidth: 1,
+    borderColor: mobileColors.accent,
+    backgroundColor: mobileColors.accentSoft
+  },
+  scanCtaTxt: {
+    ...mobileTypography.body,
+    color: mobileColors.accent,
+    fontWeight: "700",
+    fontSize: 15
   },
   intro: {
     ...mobileTypography.body,

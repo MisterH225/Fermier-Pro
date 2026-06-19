@@ -125,6 +125,14 @@ export function InviteModal({ visible, farmId, farmName, onClose }: Props) {
         confirmLoading={submitting}
       >
         <Text style={styles.label}>{t("collab.fieldRecipient")}</Text>
+        <View style={styles.scopedInfoBox}>
+          <Text style={styles.scopedInfoTitle}>
+            {t("collab.scopedInviteInfoTitle")}
+          </Text>
+          <Text style={styles.scopedInfoBody}>
+            {t("collab.scopedInviteInfoBody")}
+          </Text>
+        </View>
         <View style={styles.recipientGrid}>
           {RECIPIENT_OPTIONS.map((opt) => {
             const selected = opt.key === recipientKind;
@@ -211,6 +219,24 @@ const styles = StyleSheet.create({
   },
   labelGap: {
     marginTop: mobileSpacing.xl
+  },
+  scopedInfoBox: {
+    backgroundColor: mobileColors.accentSoft,
+    borderRadius: mobileRadius.md,
+    padding: mobileSpacing.md,
+    gap: 4,
+    marginBottom: mobileSpacing.md
+  },
+  scopedInfoTitle: {
+    ...mobileTypography.meta,
+    color: mobileColors.accent,
+    fontWeight: "700"
+  },
+  scopedInfoBody: {
+    ...mobileTypography.body,
+    fontSize: 13,
+    lineHeight: 18,
+    color: mobileColors.textSecondary
   },
   recipientGrid: {
     flexDirection: "row",

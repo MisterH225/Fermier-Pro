@@ -77,6 +77,12 @@
         {
           "locationWhenInUsePermission": "Autoriser la localisation pour enregistrer la position de votre exploitation."
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Autoriser l'accès à la caméra pour scanner un QR d'invitation à une ferme."
+        }
       ]
     ],
     "extra": {

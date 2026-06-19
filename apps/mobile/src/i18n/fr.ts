@@ -2226,6 +2226,12 @@ export const fr = {
     sectionTitle: "Collaboration",
     scanHint:
       "Scanne ou partage ce QR avec un vétérinaire, technicien ou partenaire pour qu’il demande à rejoindre la ferme.",
+    defaultQrInfoTitle: "QR du projet — demande d'accès",
+    defaultQrInfoBody:
+      "La personne scanne ce QR puis envoie une demande. Tu choisis son rôle (partenaire, véto, technicien) dans « Demandes de scan » avant qu'elle n'accède à la ferme.",
+    scopedInviteInfoTitle: "Lien direct — rôle déjà défini",
+    scopedInviteInfoBody:
+      "Utilise « Inviter une personne » pour générer un lien où le rôle et les permissions sont déjà configurés : la personne rejoint directement sans validation manuelle.",
     noFarm:
       "Crée ou sélectionne ta ferme principale pour générer un accès collaboratif.",
     demoBlocked: "Mode démo : l’invitation personnalisée (API) n’est pas disponible.",
@@ -3009,7 +3015,14 @@ export const fr = {
     scanRequestNote:
       "Ta demande est en attente. Tu recevras une notification dès que le propriétaire l'aura traitée.",
     ownerNote:
-      "Tu es déjà propriétaire de la ferme : aucun rattachement nécessaire."
+      "Tu es déjà propriétaire de la ferme : aucun rattachement nécessaire.",
+    scanQrTitle: "Scanner un QR d'invitation",
+    scanQrCta: "Scanner un QR code",
+    scanQrHint:
+      "Cadre le QR affiché par le propriétaire de la ferme ou sur son message de partage.",
+    cameraPermissionBody:
+      "L'accès à la caméra est nécessaire pour lire le QR d'invitation.",
+    cameraPermissionCta: "Autoriser la caméra"
   },
   reportsScreen: {
     periodTitle: "Période du rapport",

@@ -97,6 +97,11 @@ export function CollaborativeAccessPanel({ farmId, farmName }: Props) {
 
   return (
     <View style={styles.wrap}>
+      <View style={styles.infoBox}>
+        <Text style={styles.infoTitle}>{t("collab.defaultQrInfoTitle")}</Text>
+        <Text style={styles.infoBody}>{t("collab.defaultQrInfoBody")}</Text>
+      </View>
+
       <View style={styles.qrShell}>
         {loading ? (
           <View style={styles.qrLoader}>
@@ -191,7 +196,7 @@ export function CollaborativeAccessPanel({ farmId, farmName }: Props) {
         </Pressable>
       </View>
 
-      <Text style={styles.subHint}>{t("collab.shareModalHint")}</Text>
+      <Text style={styles.subHint}>{t("collab.scopedInviteInfoBody")}</Text>
 
       <CollaborativeAccessShareModal
         visible={shareModalVisible}
@@ -212,6 +217,25 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.lg,
     paddingHorizontal: mobileSpacing.md,
     gap: mobileSpacing.md
+  },
+  infoBox: {
+    backgroundColor: mobileColors.accentSoft,
+    borderRadius: mobileRadius.md,
+    padding: mobileSpacing.md,
+    gap: 4
+  },
+  infoTitle: {
+    ...mobileTypography.meta,
+    color: mobileColors.accent,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.4
+  },
+  infoBody: {
+    ...mobileTypography.body,
+    fontSize: 13,
+    lineHeight: 18,
+    color: mobileColors.textSecondary
   },
   qrShell: {
     alignItems: "center"
