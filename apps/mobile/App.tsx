@@ -21,6 +21,7 @@ import { queryClient } from "./src/lib/queryClient";
 import { getSupabase } from "./src/lib/supabase";
 import i18n from "./src/i18n/i18n";
 import { getStoredAppLocale } from "./src/lib/appLocale";
+import { PendingInviteLinkListener } from "./src/components/PendingInviteLinkListener";
 import { LoginGateScreen } from "./src/screens/LoginGateScreen";
 
 export default function App() {
@@ -95,6 +96,7 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={styles.flex}>
+      <PendingInviteLinkListener />
       <SafeAreaProvider>
         <StatusBar style="dark" />
         {authConfigured && session === undefined ? (

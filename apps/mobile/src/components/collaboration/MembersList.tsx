@@ -25,9 +25,10 @@ import { MemberModal } from "./MemberModal";
 type Props = {
   farmId: string;
   farmName: string | null;
+  canManageInvites: boolean;
 };
 
-export function MembersList({ farmId, farmName }: Props) {
+export function MembersList({ farmId, farmName, canManageInvites }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
   const [inviteVisible, setInviteVisible] = useState(false);
@@ -50,14 +51,16 @@ export function MembersList({ farmId, farmName }: Props) {
           {t("collab.membersTitle")}
           {membersQ.data ? ` (${members.length})` : ""}
         </Text>
-        <Pressable
-          onPress={() => setInviteVisible(true)}
-          style={styles.addBtn}
-          accessibilityRole="button"
-        >
-          <Ionicons name="person-add-outline" size={18} color={mobileColors.onAccent} />
-          <Text style={styles.addBtnTxt}>{t("collab.addMember")}</Text>
-        </Pressable>
+        {canManageInvites ? (
+          <Pressable
+            onPress={() => setInviteVisible(true)}
+            style={styles.addBtn}
+            accessibilityRole="button"
+          >
+            <Ionicons name="person-add-outline" size={18} color={mobileColors.onAccent} />
+            <Text style={styles.addBtnTxt}>{t("collab.addMember")}</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       {membersQ.isLoading ? (
@@ -96,12 +99,14 @@ export function MembersList({ farmId, farmName }: Props) {
         </View>
       )}
 
-      <InviteModal
-        visible={inviteVisible}
-        farmId={farmId}
-        farmName={farmName}
-        onClose={() => setInviteVisible(false)}
-      />
+      {canManageInvites ? (
+        <InviteModal
+          visible={inviteVisible}
+          farmId={farmId}
+          farmName={farmName}
+          onClose={() => setInviteVisible(false)}
+        />
+      ) : null}
 
       <MemberModal
         visible={Boolean(selectedMember)}

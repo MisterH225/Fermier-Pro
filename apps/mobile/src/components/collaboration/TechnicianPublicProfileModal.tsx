@@ -15,7 +15,7 @@ type Props = {
   tech: TechnicianProfileDto | null;
   onClose: () => void;
   onMessage: () => void;
-  onInvite: () => void;
+  onInvite?: () => void;
 };
 
 export function TechnicianPublicProfileModal({
@@ -45,10 +45,12 @@ export function TechnicianPublicProfileModal({
               onClose();
             }}
           />
-          <SecondaryButton
-            label={t("collab.directory.invite")}
-            onPress={onInvite}
-          />
+          {onInvite ? (
+            <SecondaryButton
+              label={t("collab.directory.invite")}
+              onPress={onInvite}
+            />
+          ) : null}
         </View>
       }
     >

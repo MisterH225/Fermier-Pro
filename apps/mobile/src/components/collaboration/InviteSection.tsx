@@ -19,9 +19,10 @@ import { SearchCollaboratorModal } from "./SearchCollaboratorModal";
 type Props = {
   farmId: string | null;
   farmName: string | null;
+  canManageInvites: boolean;
 };
 
-export function InviteSection({ farmId, farmName }: Props) {
+export function InviteSection({ farmId, farmName, canManageInvites }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
@@ -52,11 +53,19 @@ export function InviteSection({ farmId, farmName }: Props) {
 
   return (
     <View style={styles.wrap}>
-      {farmId ? <PendingScanRequestsSection farmId={farmId} /> : null}
+      {!canManageInvites ? (
+        <Text style={styles.readOnlyNote}>{t("collab.invitesReadOnly")}</Text>
+      ) : null}
 
-      <CollaborativeAccessPanel farmId={farmId} farmName={farmName} />
+      {canManageInvites && farmId ? (
+        <PendingScanRequestsSection farmId={farmId} />
+      ) : null}
 
-      {farmId ? (
+      {canManageInvites ? (
+        <CollaborativeAccessPanel farmId={farmId} farmName={farmName} />
+      ) : null}
+
+      {canManageInvites && farmId ? (
         <View style={styles.actionsRow}>
           <Pressable
             onPress={() => setSearchVisible(true)}
@@ -89,11 +98,13 @@ export function InviteSection({ farmId, farmName }: Props) {
         </View>
       ) : null}
 
-      <SearchCollaboratorModal
-        visible={searchVisible}
-        farmId={farmId}
-        onClose={() => setSearchVisible(false)}
-      />
+      {canManageInvites ? (
+        <SearchCollaboratorModal
+          visible={searchVisible}
+          farmId={farmId}
+          onClose={() => setSearchVisible(false)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -141,5 +152,12 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
     fontWeight: "600"
+  },
+  readOnlyNote: {
+    ...mobileTypography.body,
+    fontSize: 14,
+    color: mobileColors.textSecondary,
+    lineHeight: 20,
+    paddingHorizontal: mobileSpacing.sm
   }
 });

@@ -105,6 +105,7 @@ import { buyerStackScreenOptions } from "../theme/buyerTheme";
 import { vetStackScreenOptions } from "../theme/vetTheme";
 import { AccountModerationGate } from "./auth/AccountModerationGate";
 import { OfflineBanner } from "./OfflineBanner";
+import { usePendingInviteNavigation } from "../hooks/usePendingInviteNavigation";
 import { useSmartAlertPushNavigation } from "../hooks/useSmartAlertPushNavigation";
 import { ExpenseCategoriesScreen } from "../screens/settings/ExpenseCategoriesScreen";
 import { FeedScreen } from "../screens/feed/FeedScreen";
@@ -592,6 +593,7 @@ function MainNavigationWithChrome() {
 function MainNavigationShellInner() {
   const { activeProfileId } = useSession();
   useSmartAlertPushNavigation(rootNavigationRef);
+  usePendingInviteNavigation(rootNavigationRef);
   const navContainerKey = activeProfileId ?? "none";
 
   return (

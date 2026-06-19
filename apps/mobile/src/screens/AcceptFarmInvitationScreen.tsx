@@ -3,7 +3,6 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getUserFacingError } from "../lib/userFacingError";
 import {
   ActivityIndicator,
   Alert,
@@ -19,10 +18,13 @@ import {
   acceptFarmInvitationWithToken,
   fetchInvitationByToken
 } from "../lib/api";
+import { clearPendingInviteToken } from "../lib/pendingInviteToken";
+import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 import {
   mobileColors,
   mobileRadius,
   mobileSpacing,
+  mobileStatusSurfaces,
   mobileTypography
 } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
@@ -61,23 +63,31 @@ export function AcceptFarmInvitationScreen({ route, navigation }: Props) {
   const [token, setToken] = useState(prefill);
 
   useEffect(() => {
-    if (prefill) setToken(prefill);
+    if (prefill) {
+      setToken(prefill);
+      void clearPendingInviteToken();
+    }
   }, [prefill]);
 
+  const normalizedToken = token.trim();
+
   const previewQuery = useQuery({
-    queryKey: ["invitationPreview", prefill, activeProfileId],
-    queryFn: () => fetchInvitationByToken(accessToken, prefill, activeProfileId),
-    enabled: Boolean(accessToken && prefill && prefill.length >= 16)
+    queryKey: ["invitationPreview", normalizedToken, activeProfileId],
+    queryFn: () =>
+      fetchInvitationByToken(accessToken, normalizedToken, activeProfileId),
+    enabled: Boolean(accessToken && normalizedToken.length >= 16),
+    retry: false
   });
 
   const accept = useMutation({
     mutationFn: () =>
       acceptFarmInvitationWithToken(
         accessToken,
-        token.trim(),
+        normalizedToken,
         activeProfileId
       ),
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
+      await clearPendingInviteToken();
       void qc.invalidateQueries({ queryKey: ["farms", activeProfileId] });
       void qc.invalidateQueries({ queryKey: ["farm"] });
       void qc.invalidateQueries({ queryKey: ["vetDashboard"] });
@@ -97,6 +107,7 @@ export function AcceptFarmInvitationScreen({ route, navigation }: Props) {
     onError: (e: Error) => Alert.alert(t("invite.refusedTitle"), getUserFacingError(e, t))
   });
 
+  const previewError = getQueryErrorMessage(previewQuery.error, t);
   const preview = previewQuery.data;
   const isScanRequest =
     preview && preview.isDefault && !preview.isOwner && !preview.alreadyMember;
@@ -112,6 +123,17 @@ export function AcceptFarmInvitationScreen({ route, navigation }: Props) {
       {prefill && previewQuery.isLoading ? (
         <View style={styles.previewLoading}>
           <ActivityIndicator color={mobileColors.accent} />
+        </View>
+      ) : null}
+
+      {previewError ? (
+        <View style={styles.errorCard}>
+          <Ionicons
+            name="alert-circle-outline"
+            size={22}
+            color={mobileColors.error}
+          />
+          <Text style={styles.errorText}>{previewError}</Text>
         </View>
       ) : null}
 
@@ -172,7 +194,7 @@ export function AcceptFarmInvitationScreen({ route, navigation }: Props) {
       ) : (
         <TouchableOpacity
           style={[styles.cta, accept.isPending && styles.ctaDisabled]}
-          disabled={accept.isPending || token.trim().length < 16}
+          disabled={accept.isPending || normalizedToken.length < 16}
           onPress={() => accept.mutate()}
         >
           <Text style={styles.ctaTxt}>
@@ -194,6 +216,23 @@ const styles = StyleSheet.create({
   previewLoading: {
     paddingVertical: mobileSpacing.xl,
     alignItems: "center"
+  },
+  errorCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: mobileSpacing.sm,
+    padding: mobileSpacing.md,
+    borderRadius: mobileRadius.md,
+    backgroundColor: mobileStatusSurfaces.errorBg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.error
+  },
+  errorText: {
+    ...mobileTypography.body,
+    flex: 1,
+    fontSize: 14,
+    color: mobileColors.error,
+    lineHeight: 20
   },
   previewCard: {
     alignItems: "center",

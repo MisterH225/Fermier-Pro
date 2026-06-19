@@ -613,6 +613,26 @@ export class InvitationsService {
       }
     });
 
+    if (targetUserId) {
+      const farm = await this.prisma.farm.findUnique({
+        where: { id: invitation.farmId },
+        select: { name: true }
+      });
+      const farmLabel = farm?.name ?? "la ferme";
+      void this.push
+        .sendToUser(
+          targetUserId,
+          "Accès accordé",
+          `Vous avez rejoint ${farmLabel} sur Fermier Pro.`,
+          {
+            type: "farm_invitation_accepted",
+            farmId: invitation.farmId,
+            invitationId: result.id
+          }
+        )
+        .catch(() => undefined);
+    }
+
     return {
       ok: true,
       invitationId: result.id,
@@ -1312,10 +1332,7 @@ export class InvitationsService {
   }
 
   /**
-   * Stub de notification owner. Aujourd'hui : log applicatif uniquement.
-   * Quand l'envoi push réel (server → Expo) sera branché, déclencher ici
-   * un `pushDevice` lookup + Expo HTTP API. Sécurité : ne pas exposer
-   * d'infos du scanner au-delà du fullName/email.
+   * Notifie le propriétaire / gestionnaire qu'une demande scan_request a été créée.
    */
   private async maybeNotifyOwnerOfScanRequest(
     farmId: string,
@@ -1323,17 +1340,27 @@ export class InvitationsService {
     scanner: User,
     scanRequestId: string
   ): Promise<void> {
-    const devices = await this.prisma.pushDevice.findMany({
-      where: { userId: ownerUserId }
+    const farm = await this.prisma.farm.findUnique({
+      where: { id: farmId },
+      select: { name: true }
     });
-    if (devices.length === 0) {
-      this.logger.log(
-        `[invitations] scan_request ${scanRequestId} (farm ${farmId}) — owner ${ownerUserId} sans pushDevice (notification differee).`
-      );
-      return;
-    }
-    this.logger.log(
-      `[invitations] scan_request ${scanRequestId} (farm ${farmId}) — ${devices.length} pushDevice(s) eligible(s), demandeur=${scanner.id}. Envoi push NON CABLE (TODO Expo HTTP).`
+    const farmLabel = farm?.name ?? "votre exploitation";
+    const scannerLabel =
+      scanner.fullName?.trim() ||
+      scanner.email?.trim() ||
+      scanner.phone?.trim() ||
+      "Quelqu'un";
+
+    await this.push.sendToUser(
+      ownerUserId,
+      "Demande d'accès à votre ferme",
+      `${scannerLabel} souhaite rejoindre ${farmLabel}.`,
+      {
+        type: "farm_scan_request",
+        farmId,
+        farmName: farm?.name ?? "",
+        invitationId: scanRequestId
+      }
     );
   }
 }

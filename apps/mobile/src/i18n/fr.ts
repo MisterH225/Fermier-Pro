@@ -2268,6 +2268,8 @@ export const fr = {
       finance: "Voir et enregistrer dépenses et revenus."
     },
     screenTitle: "Collaboration",
+    invitesReadOnly:
+      "Seuls les gestionnaires d'équipe peuvent inviter des collaborateurs ou gérer le QR d'accès.",
     tabInvite: "Invitation",
     tabMembers: "Membres",
     tabDirectory: "Annuaire",
@@ -3005,7 +3007,7 @@ export const fr = {
       "Demande envoyée : le propriétaire validera ton accès et choisira ton rôle.",
     previewShareLink: "Invitation pré-paramétrée pour le rôle {{role}}.",
     scanRequestNote:
-      "Ta demande est en attente. Tu seras prévenu(e) dès que le propriétaire l’aura traitée.",
+      "Ta demande est en attente. Tu recevras une notification dès que le propriétaire l'aura traitée.",
     ownerNote:
       "Tu es déjà propriétaire de la ferme : aucun rattachement nécessaire."
   },

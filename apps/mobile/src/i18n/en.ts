@@ -2238,6 +2238,8 @@ export const en = {
       finance: "See and record expenses and revenues."
     },
     screenTitle: "Collaboration",
+    invitesReadOnly:
+      "Only team managers can invite collaborators or manage the access QR code.",
     tabInvite: "Invitation",
     tabMembers: "Members",
     tabDirectory: "Directory",

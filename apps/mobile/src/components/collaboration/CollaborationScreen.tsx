@@ -5,7 +5,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ScreenSection } from "../layout/ScreenSection";
 import { TabContent, TabSelector } from "../tabs";
 import { useSession } from "../../context/SessionContext";
-import { fetchFarmMembers } from "../../lib/api";
+import { fetchFarm, fetchFarmMembers } from "../../lib/api";
+import { hasFarmScope } from "../../lib/menuVisibility";
 import {
   mobileColors,
   mobileSpacing,
@@ -30,6 +31,17 @@ export function CollaborationScreen({ farmId, farmName }: Props) {
     queryFn: () => fetchFarmMembers(accessToken, farmId!, activeProfileId),
     enabled: Boolean(accessToken && farmId)
   });
+
+  const farmQ = useQuery({
+    queryKey: ["farm", farmId, activeProfileId],
+    queryFn: () => fetchFarm(accessToken, farmId!, activeProfileId),
+    enabled: Boolean(accessToken && farmId)
+  });
+
+  const canManageInvites = hasFarmScope(
+    farmQ.data?.effectiveScopes,
+    "invitations.manage"
+  );
 
   const isRefreshing = membersQ.isFetching && !membersQ.isLoading;
 
@@ -67,7 +79,11 @@ export function CollaborationScreen({ farmId, farmName }: Props) {
               >
                 <TabContent>
                   <ScreenSection title={t("collab.inviteSectionTitle")}>
-                    <InviteSection farmId={farmId} farmName={farmName} />
+                    <InviteSection
+                      farmId={farmId}
+                      farmName={farmName}
+                      canManageInvites={canManageInvites}
+                    />
                   </ScreenSection>
                 </TabContent>
               </ScrollView>
@@ -78,7 +94,11 @@ export function CollaborationScreen({ farmId, farmName }: Props) {
             label: t("collab.tabDirectory"),
             content: (
               <View style={styles.directoryWrap}>
-                <DirectoryTab farmId={farmId} farmName={farmName ?? ""} />
+                <DirectoryTab
+                  farmId={farmId}
+                  farmName={farmName ?? ""}
+                  canManageInvites={canManageInvites}
+                />
               </View>
             )
           },
@@ -93,7 +113,11 @@ export function CollaborationScreen({ farmId, farmName }: Props) {
               >
                 <TabContent>
                   <ScreenSection title={t("collab.tabMembers")}>
-                    <MembersList farmId={farmId} farmName={farmName} />
+                    <MembersList
+                      farmId={farmId}
+                      farmName={farmName}
+                      canManageInvites={canManageInvites}
+                    />
                   </ScreenSection>
                 </TabContent>
               </ScrollView>

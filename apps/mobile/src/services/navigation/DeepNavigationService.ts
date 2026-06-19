@@ -484,6 +484,36 @@ export function navigateFromGenericPushData(
     return true;
   }
 
+  if (type === "farm_scan_request") {
+    const farmId = str(data.farmId);
+    if (!farmId) {
+      return false;
+    }
+    nav.navigate("Collaboration", {
+      farmId,
+      farmName: str(data.farmName) ?? "—"
+    });
+    return true;
+  }
+
+  if (type === "farm_invitation_accepted") {
+    nav.navigate("FarmList");
+    return true;
+  }
+
+  if (type === "farm_invitation_response") {
+    const farmId = str(data.farmId);
+    if (farmId) {
+      nav.navigate("Collaboration", {
+        farmId,
+        farmName: str(data.farmName) ?? "—"
+      });
+      return true;
+    }
+    nav.navigate("FarmList");
+    return true;
+  }
+
   return false;
 }
 

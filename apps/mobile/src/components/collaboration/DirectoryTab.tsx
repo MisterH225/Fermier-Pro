@@ -39,11 +39,12 @@ import { TechnicianPublicProfileModal } from "./TechnicianPublicProfileModal";
 type Props = {
   farmId: string;
   farmName: string;
+  canManageInvites: boolean;
 };
 
 type ProfileKind = "technician" | "vet";
 
-export function DirectoryTab({ farmId, farmName }: Props) {
+export function DirectoryTab({ farmId, farmName, canManageInvites }: Props) {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -251,15 +252,19 @@ export function DirectoryTab({ farmId, farmName }: Props) {
           if (!tech) return;
           void openChat(tech.userId, tech.displayName ?? "Technicien");
         }}
-        onInvite={() => {
-          if (!selectedTech) return;
-          setInviteTarget({
-            userId: selectedTech.userId,
-            name: selectedTech.displayName ?? "Technicien",
-            recipientKind: "technician"
-          });
-          setSelectedTech(null);
-        }}
+        onInvite={
+          canManageInvites
+            ? () => {
+                if (!selectedTech) return;
+                setInviteTarget({
+                  userId: selectedTech.userId,
+                  name: selectedTech.displayName ?? "Technicien",
+                  recipientKind: "technician"
+                });
+                setSelectedTech(null);
+              }
+            : undefined
+        }
       />
 
       <VetProfileModal
@@ -291,17 +296,21 @@ export function DirectoryTab({ farmId, farmName }: Props) {
             peerUserId
           });
         }}
-        onInvite={(userId, name) => {
-          setInviteTarget({
-            userId,
-            name,
-            recipientKind: "veterinarian"
-          });
-          setSelectedVet(null);
-        }}
+        onInvite={
+          canManageInvites
+            ? (userId, name) => {
+                setInviteTarget({
+                  userId,
+                  name,
+                  recipientKind: "veterinarian"
+                });
+                setSelectedVet(null);
+              }
+            : undefined
+        }
       />
 
-      {inviteTarget ? (
+      {canManageInvites && inviteTarget ? (
         <DirectInviteModal
           visible
           farmId={farmId}
