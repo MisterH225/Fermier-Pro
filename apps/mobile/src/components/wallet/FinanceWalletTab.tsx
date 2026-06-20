@@ -11,13 +11,18 @@ export function FinanceWalletTab() {
   return (
     <View style={styles.wrap}>
       <WalletDashboardCard variant="producer" hideDetailsLink />
-      <WalletHistoryList accentColor={mobileColors.accent} />
+      <View style={styles.history}>
+        <WalletHistoryList accentColor={mobileColors.accent} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    gap: mobileSpacing.xl
+    paddingBottom: mobileSpacing.md
+  },
+  history: {
+    marginTop: mobileSpacing.xl
   }
 });

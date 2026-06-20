@@ -1,5 +1,9 @@
-import type { Ionicons } from "@expo/vector-icons";
 import type { BuyerWalletEntryDto } from "../../lib/api";
+
+type WalletEntryIconName =
+  | "arrow-down-circle"
+  | "arrow-up-circle"
+  | "swap-horizontal";
 
 export function walletEntryLabel(
   kind: BuyerWalletEntryDto["kind"],
@@ -31,7 +35,7 @@ export function walletEntryLabel(
 
 export function walletEntryIcon(
   kind: BuyerWalletEntryDto["kind"]
-): keyof typeof Ionicons.glyphMap {
+): WalletEntryIconName {
   switch (kind) {
     case "credit_topup":
     case "credit_transfer":
