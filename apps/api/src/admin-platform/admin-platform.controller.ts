@@ -256,9 +256,21 @@ export class AdminPlatformController {
   }
 
   @Get("health-map")
-  healthMap(@Query("periodDays") periodDays?: string) {
+  healthMap(
+    @Query("periodDays") periodDays?: string,
+    @Query("granularity") granularity?: string
+  ) {
     const days = periodDays ? Number.parseInt(periodDays, 10) : 30;
-    return this.admin.getHealthMap(Number.isFinite(days) ? days : 30);
+    const level =
+      granularity === "country" ||
+      granularity === "city" ||
+      granularity === "sector"
+        ? granularity
+        : "sector";
+    return this.admin.getHealthMap(
+      Number.isFinite(days) ? days : 30,
+      level
+    );
   }
 
   @Get("stats")

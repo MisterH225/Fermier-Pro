@@ -298,14 +298,29 @@
   },
   "map": {
     "title": "Carte sanitaire",
-    "subtitle": "Carte interactive Mapbox + agrégation par zone.",
+    "subtitle": "Surveillance granulaire (secteur, ville, pays) pour circonscrire les foyers épidémiques.",
     "regions": "Zones par pays",
-    "empty": "Aucun cas sur la période.",
+    "zonePanelTitle": {
+      "sector": "Secteurs / quartiers",
+      "city": "Villes",
+      "country": "Pays"
+    },
+    "granularity": {
+      "sector": "Secteur",
+      "city": "Ville",
+      "country": "Pays"
+    },
+    "empty": "Aucun cas actif ou signalé sur la période.",
+    "loadError": "Impossible de charger la carte sanitaire. Vérifiez l'API et votre session admin.",
+    "truncated": "Volume élevé : seuls les 10 000 derniers dossiers sont agrégés. Affinez la période ou le périmètre.",
     "activeCases": "{count} cas actifs",
+    "periodCases": "{count} cas sur la période",
     "farms": "{count} fermes",
     "totalCases": "{count} cas total",
-    "activePoints": "Points actifs géolocalisés",
-    "pointsNote": "Cas actifs avec coordonnées GPS.",
+    "activePoints": "{count} cas actifs géolocalisés",
+    "zonesCount": "{count} zones",
+    "clearZoneFilter": "Voir toutes les zones",
+    "pointsNote": "Cas actifs avec coordonnées GPS — couleur selon la sévérité.",
     "tokenMissing": "NEXT_PUBLIC_MAPBOX_TOKEN manquant dans apps/admin-platform/.env.local",
     "unknownDiagnosis": "Maladie",
     "alertsTitle": "Alertes actives",

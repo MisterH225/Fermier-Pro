@@ -296,14 +296,29 @@
   },
   "map": {
     "title": "Health map",
-    "subtitle": "Interactive Mapbox map + regional aggregation.",
+    "subtitle": "Granular surveillance (sector, city, country) to contain epidemic clusters.",
     "regions": "Regions by country",
-    "empty": "No cases in this period.",
+    "zonePanelTitle": {
+      "sector": "Sectors / neighborhoods",
+      "city": "Cities",
+      "country": "Countries"
+    },
+    "granularity": {
+      "sector": "Sector",
+      "city": "City",
+      "country": "Country"
+    },
+    "empty": "No active or reported cases in this period.",
+    "loadError": "Could not load the health map. Check the API and your admin session.",
+    "truncated": "High volume: only the latest 10,000 records are aggregated. Narrow the period or scope.",
     "activeCases": "{count} active cases",
+    "periodCases": "{count} cases in period",
     "farms": "{count} farms",
     "totalCases": "{count} total cases",
-    "activePoints": "Geolocated active points",
-    "pointsNote": "Active cases with GPS coordinates.",
+    "activePoints": "{count} geolocated active cases",
+    "zonesCount": "{count} zones",
+    "clearZoneFilter": "Show all zones",
+    "pointsNote": "Active cases with GPS — color by severity.",
     "tokenMissing": "NEXT_PUBLIC_MAPBOX_TOKEN missing in apps/admin-platform/.env.local",
     "unknownDiagnosis": "Disease",
     "alertsTitle": "Active alerts",
