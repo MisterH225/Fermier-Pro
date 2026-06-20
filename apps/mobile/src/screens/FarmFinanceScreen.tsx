@@ -57,7 +57,7 @@ import type {
   FinanceReportDto
 } from "../lib/api";
 import { LinkedStockSection } from "../components/finance/LinkedStockSection";
-import { WalletPanel } from "../components/wallet/WalletPanel";
+import { FinanceWalletTab } from "../components/wallet/FinanceWalletTab";
 import {
   financeCumulativeBalanceSeries,
   financeMonthExpenseSeries,
@@ -1551,7 +1551,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
             label: t("financeScreen.tabWallet"),
             content: tabScroll(
               <ScreenSection plain>
-                <WalletPanel variant="producer" />
+                <FinanceWalletTab />
               </ScreenSection>
             )
           }
