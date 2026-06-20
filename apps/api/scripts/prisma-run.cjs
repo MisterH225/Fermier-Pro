@@ -99,18 +99,9 @@ function resolveDatabaseUrl(e) {
     return direct;
   }
 
+  // Pas de process.exit ici : `generate` n'a pas besoin d'une vraie URL (placeholder en aval).
   if (isSupabaseContext(e)) {
-    console.error(
-      [
-        "prisma-run: DATABASE_URL est vide ou illisible, alors que SUPABASE_URL pointe vers Supabase.",
-        "Verifie dans le .env a la racine du monorepo :",
-        "- une ligne DATABASE_URL=postgresql://... (sans espaces avant le nom de variable),",
-        "- pas de variable systeme Windows DATABASE_URL vide qui masque le fichier,",
-        "- encodage UTF-8 du fichier.",
-        "Ne sera pas utilise le fallback Docker POSTGRES_* vers 127.0.0.1 dans ce contexte."
-      ].join("\n")
-    );
-    process.exit(1);
+    return "";
   }
 
   const pgDb = String(e.POSTGRES_DB || "").trim();
@@ -188,14 +179,27 @@ if (prismaSubcommand === "generate") {
 } else {
   const { url: dbUrl, source: prismaUrlSource } = resolvePrismaDatabaseUrl(env);
   if (!dbUrl) {
-    console.error(
-      [
-        "prisma-run: DATABASE_URL est vide.",
-        "Renseigne DATABASE_URL dans le .env a la racine du monorepo,",
-        "ou les champs Docker POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB (sans config Supabase),",
-        "ou DB_HOST / DB_USER / DB_PASSWORD / DB_NAME."
-      ].join("\n")
-    );
+    if (isSupabaseContext(env)) {
+      console.error(
+        [
+          "prisma-run: DATABASE_URL est vide ou illisible, alors que SUPABASE_URL pointe vers Supabase.",
+          "Verifie dans le .env a la racine du monorepo :",
+          "- une ligne DATABASE_URL=postgresql://... (sans espaces avant le nom de variable),",
+          "- pas de variable systeme Windows DATABASE_URL vide qui masque le fichier,",
+          "- encodage UTF-8 du fichier.",
+          "Ne sera pas utilise le fallback Docker POSTGRES_* vers 127.0.0.1 dans ce contexte."
+        ].join("\n")
+      );
+    } else {
+      console.error(
+        [
+          "prisma-run: DATABASE_URL est vide.",
+          "Renseigne DATABASE_URL dans le .env a la racine du monorepo,",
+          "ou les champs Docker POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB (sans config Supabase),",
+          "ou DB_HOST / DB_USER / DB_PASSWORD / DB_NAME."
+        ].join("\n")
+      );
+    }
     process.exit(1);
   }
   if (prismaUrlSource === "PRISMA_DATABASE_URL") {
