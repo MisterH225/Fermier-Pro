@@ -18,6 +18,10 @@ export class PredictiveAgentService {
     return this.gemini.isConfigured();
   }
 
+  isQuotaBlocked(): boolean {
+    return this.gemini.isQuotaBlocked();
+  }
+
   async generatePredictions(
     data: CollectedPredictionData
   ): Promise<FarmPredictionsPayload | null> {

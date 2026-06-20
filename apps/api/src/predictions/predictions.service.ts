@@ -55,7 +55,7 @@ export class PredictionsService {
 
   /** Invalidation + régénération asynchrone (événements clés). */
   invalidateAndRegenerateAsync(farmId: string): void {
-    if (this.regenerating.has(farmId)) {
+    if (this.regenerating.has(farmId) || this.agent.isQuotaBlocked()) {
       return;
     }
     this.regenerating.add(farmId);
@@ -127,11 +127,25 @@ export class PredictionsService {
   }
 
   async refreshAllActiveFarms(): Promise<void> {
+    if (this.agent.isQuotaBlocked()) {
+      this.logger.warn(
+        "Cron prévisions ignoré — quota Gemini en pause"
+      );
+      return;
+    }
+
     const farms = await this.prisma.farm.findMany({
       where: { status: "active" },
       select: { id: true }
     });
+    const staggerMs = 2_500;
     for (const f of farms) {
+      if (this.agent.isQuotaBlocked()) {
+        this.logger.warn(
+          `Cron prévisions interrompu après ${f.id} — quota Gemini`
+        );
+        break;
+      }
       try {
         const collected = await this.collector.collect(f.id);
         if (collected.days_of_data >= PREDICTION_MIN_DAYS) {
@@ -142,6 +156,7 @@ export class PredictionsService {
           `Cron prévisions ferme ${f.id}: ${(e as Error).message}`
         );
       }
+      await new Promise((r) => setTimeout(r, staggerMs));
     }
   }
 
@@ -149,7 +164,7 @@ export class PredictionsService {
    * Génère les prévisions si le cache est vide — même clé GEMINI_API_KEY que AiService.
    */
   private async ensureGeneratedIfNeeded(farmId: string): Promise<void> {
-    if (!this.agent.isConfigured()) {
+    if (!this.agent.isConfigured() || this.agent.isQuotaBlocked()) {
       return;
     }
     if (this.regenerating.has(farmId)) {
@@ -199,6 +214,9 @@ export class PredictionsService {
     if (unavailable) {
       geminiError =
         "IA indisponible — vérifiez GEMINI_API_KEY côté API.";
+    } else if (sufficient && this.agent.isQuotaBlocked()) {
+      geminiError =
+        "Quota API Gemini dépassé — les prévisions reprendront automatiquement dans quelques minutes.";
     } else if (sufficient && !hasPredictions) {
       geminiError =
         "Les prévisions n'ont pas pu être calculées. Réessayez plus tard.";

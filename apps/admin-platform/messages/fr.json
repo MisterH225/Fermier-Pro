@@ -348,7 +348,7 @@
   },
   "ai": {
     "title": "Assistant IA",
-    "unavailable": "IA indisponible — vérifiez GEMINI_API_KEY côté API.",
+    "unavailable": "IA indisponible — vérifiez GEMINI_API_KEY côté API ou quota Gemini.",
     "setupTitle": "Configurer l'assistant IA",
     "setupBody": "La clé Google Gemini doit être définie sur le serveur API (pas dans la console admin).",
     "setupLocal": "En local : ajoutez GEMINI_API_KEY=votre_clé dans le fichier .env à la racine du monorepo, puis redémarrez npm run dev:api.",
