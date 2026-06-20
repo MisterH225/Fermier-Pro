@@ -22,6 +22,10 @@ export { BuyerMarketScreen } from "../../screens/buyer/BuyerMarketScreen";
 export { BuyerMessagesScreen } from "../../screens/buyer/BuyerMessagesScreen";
 export { BuyerHistoryScreen } from "../../screens/buyer/BuyerHistoryScreen";
 export { UserWalletScreen } from "../../screens/wallet/UserWalletScreen";
+export {
+  WalletOperationScreen,
+  walletOperationScreenTitle
+} from "../../screens/wallet/WalletOperationScreen";
 export { BuyerFinanceScreen } from "../../screens/buyer/BuyerFinanceScreen";
 export { BuyerAlertsScreen } from "../../screens/buyer/BuyerAlertsScreen";
 export { BuyerFavoritesScreen } from "../../screens/buyer/BuyerFavoritesScreen";
