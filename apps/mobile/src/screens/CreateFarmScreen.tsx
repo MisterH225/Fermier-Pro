@@ -51,7 +51,10 @@ export function CreateFarmScreen({ navigation }: Props) {
   const [name, setName] = useState("");
   const [livestockMode, setLivestockMode] =
     useState<CreateFarmPayload["livestockMode"]>("batch");
-  const [address, setAddress] = useState("");
+  const [locationSector, setLocationSector] = useState("");
+  const [locationCity, setLocationCity] = useState("");
+  const [locationCountry, setLocationCountry] = useState("");
+  const [addressExtra, setAddressExtra] = useState("");
 
   const mutation = useMutation({
     mutationFn: (payload: CreateFarmPayload) => {
@@ -93,7 +96,10 @@ export function CreateFarmScreen({ navigation }: Props) {
       name: n,
       speciesFocus: "porcin",
       livestockMode,
-      address: address.trim() || undefined
+      locationSector: locationSector.trim() || undefined,
+      locationCity: locationCity.trim() || undefined,
+      locationCountry: locationCountry.trim() || undefined,
+      address: addressExtra.trim() || undefined
     };
     mutation.mutate(payload);
   };
@@ -152,12 +158,41 @@ export function CreateFarmScreen({ navigation }: Props) {
         ))}
       </View>
 
-      <Text style={styles.label}>Adresse (optionnel)</Text>
+      <Text style={styles.sectionTitle}>{t("createFarmScreen.locationHint")}</Text>
+
+      <Text style={styles.label}>{t("createFarmScreen.sector")}</Text>
+      <TextInput
+        style={styles.input}
+        value={locationSector}
+        onChangeText={setLocationSector}
+        placeholder={t("createFarmScreen.sectorPlaceholder")}
+        placeholderTextColor={mobileColors.textSecondary}
+      />
+
+      <Text style={styles.label}>{t("createFarmScreen.city")}</Text>
+      <TextInput
+        style={styles.input}
+        value={locationCity}
+        onChangeText={setLocationCity}
+        placeholder={t("createFarmScreen.cityPlaceholder")}
+        placeholderTextColor={mobileColors.textSecondary}
+      />
+
+      <Text style={styles.label}>{t("createFarmScreen.country")}</Text>
+      <TextInput
+        style={styles.input}
+        value={locationCountry}
+        onChangeText={setLocationCountry}
+        placeholder={t("createFarmScreen.countryPlaceholder")}
+        placeholderTextColor={mobileColors.textSecondary}
+      />
+
+      <Text style={styles.label}>{t("createFarmScreen.addressExtra")}</Text>
       <TextInput
         style={[styles.input, styles.inputMulti]}
-        value={address}
-        onChangeText={setAddress}
-        placeholder="Commune, route…"
+        value={addressExtra}
+        onChangeText={setAddressExtra}
+        placeholder={t("createFarmScreen.addressExtraPlaceholder")}
         placeholderTextColor={mobileColors.textSecondary}
         multiline
       />
@@ -183,8 +218,7 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.canvas
   },
   content: {
-    padding: mobileSpacing.lg,
-
+    padding: mobileSpacing.lg
   },
   centered: {
     flex: 1,
@@ -197,6 +231,13 @@ const styles = StyleSheet.create({
     color: mobileColors.textPrimary,
     lineHeight: 22,
     textAlign: "center"
+  },
+  sectionTitle: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: mobileSpacing.lg,
+    marginBottom: mobileSpacing.xs,
+    lineHeight: 20
   },
   label: {
     ...mobileTypography.meta,

@@ -604,7 +604,10 @@ export class AdminPlatformService {
             name: true,
             latitude: true,
             longitude: true,
-            address: true
+            address: true,
+            locationSector: true,
+            locationCity: true,
+            locationCountry: true
           }
         }
       },
@@ -675,7 +678,10 @@ export class AdminPlatformService {
       const loc = resolveFarmLocation({
         address: r.farm.address,
         latitude: r.farm.latitude != null ? Number(r.farm.latitude) : null,
-        longitude: r.farm.longitude != null ? Number(r.farm.longitude) : null
+        longitude: r.farm.longitude != null ? Number(r.farm.longitude) : null,
+        locationSector: r.farm.locationSector,
+        locationCity: r.farm.locationCity,
+        locationCountry: r.farm.locationCountry
       });
 
       if (!farmMatchesScope(loc, scope)) {
@@ -800,6 +806,9 @@ export class AdminPlatformService {
         address: string | null;
         latitude: Prisma.Decimal | null;
         longitude: Prisma.Decimal | null;
+        locationSector: string | null;
+        locationCity: string | null;
+        locationCountry: string | null;
       };
       disease: {
         caseStatus: FarmDiseaseCaseStatus;
@@ -824,7 +833,10 @@ export class AdminPlatformService {
       const loc = resolveFarmLocation({
         address: r.farm.address,
         latitude: r.farm.latitude != null ? Number(r.farm.latitude) : null,
-        longitude: r.farm.longitude != null ? Number(r.farm.longitude) : null
+        longitude: r.farm.longitude != null ? Number(r.farm.longitude) : null,
+        locationSector: r.farm.locationSector,
+        locationCity: r.farm.locationCity,
+        locationCountry: r.farm.locationCountry
       });
       if (!farmMatchesScope(loc, scope)) {
         continue;

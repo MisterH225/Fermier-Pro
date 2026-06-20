@@ -1322,6 +1322,18 @@ export const fr = {
       gestation: "Gestation"
     }
   },
+  createFarmScreen: {
+    sector: "Secteur / quartier",
+    sectorPlaceholder: "Ex. Almadies, Pikine Est…",
+    city: "Ville ou commune",
+    cityPlaceholder: "Ex. Dakar",
+    country: "Pays",
+    countryPlaceholder: "Ex. Sénégal",
+    locationHint:
+      "Précisez la localisation pour la surveillance sanitaire (carte admin par secteur).",
+    addressExtra: "Complément d'adresse (optionnel)",
+    addressExtraPlaceholder: "Rue, repère…"
+  },
   modals: {
     sections: {
       identification: "Identification",
