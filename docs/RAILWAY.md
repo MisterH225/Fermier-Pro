@@ -57,14 +57,18 @@ La PR #124 (middleware auth, `sharp`) ne concerne **que** ce service admin, pas 
 
 ### Admin inaccessible (« Application failed to respond »)
 
-Symptômes : page Railway 502, ou titre **« VeltroVault Admin »** au lieu de Fermier Pro.
+Symptômes : page Railway 502, titre **« VeltroVault Admin »**, ou JSON **`{"message":"Cannot GET /","error":"Not Found","statusCode":404}`**.
 
-| Vérification | Attendu (Fermier Pro) | Problème si… |
-|--------------|----------------------|--------------|
-| `curl -sI https://<admin>.up.railway.app/fr/login` | **200** | **404** → mauvais build ou ancienne app |
-| Titre HTML de `/` | redirection vers `/fr` ou console Fermier | **VeltroVault** → mauvais dépôt / commit |
+| Vérification | Attendu (Fermier Pro admin) | Problème si… |
+|--------------|----------------------------|--------------|
+| `curl -sI https://<admin>.up.railway.app/fr/login` | **200** (HTML Next.js) | **404** → mauvais build ou ancienne app |
+| `curl -s https://<admin>.up.railway.app/` | HTML (redirect ou login) | JSON `Cannot GET /` → **l'API NestJS** tourne sur l'URL admin |
+| `curl -s https://<admin>.up.railway.app/api/v1/health` | 404 HTML Next.js | `{"status":"ok"}` → **service API** branché sur le domaine admin |
+| Titre HTML de `/` | console Fermier Pro | **VeltroVault** → mauvais dépôt / commit |
 | Logs build | `[railway-admin-build] GIT_COMMIT=<sha main>` | SHA absent ou ancien |
-| Config file path | `railway.admin.json` | `railway.json` → déploie l'API, pas l'admin |
+| Config file path | `railway.admin.json` | `railway.json` → déploie l'**API** (`start-api.cjs`), pas Next.js |
+
+**`Cannot GET /`** : NestJS n'expose pas de route à `/` (seulement `/api/v1/...`). Si ce JSON apparaît sur le domaine admin, le service utilise **`railway.json`** ou **Start Command** = `node apps/api/scripts/start-api.cjs` au lieu de `start-admin.cjs`.
 
 **Cause fréquente** : le healthcheck `/fr/login` renvoie 404 (app obsolète sans routes i18n) → Railway tue le conteneur en boucle.
 
