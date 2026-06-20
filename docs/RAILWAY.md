@@ -50,8 +50,30 @@ Service **distinct** de l'API (`fermierapi-production`).
 4. **Watch patterns** (déjà dans le fichier) : `apps/admin-platform/**` — un merge admin déclenche ce service, pas l'API.
 5. Variables : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_ADMIN_URL`, etc.
 6. **Healthcheck** : `/fr/login` (page publique).
+7. **Start** : `node apps/admin-platform/scripts/start-admin.cjs` (écoute `PORT` + `0.0.0.0`).
+8. **Serverless** : `sleepApplication: false` dans `railway.admin.json` — désactiver aussi dans Settings.
 
 La PR #124 (middleware auth, `sharp`) ne concerne **que** ce service admin, pas `fermierapi-production`.
+
+### Admin inaccessible (« Application failed to respond »)
+
+Symptômes : page Railway 502, ou titre **« VeltroVault Admin »** au lieu de Fermier Pro.
+
+| Vérification | Attendu (Fermier Pro) | Problème si… |
+|--------------|----------------------|--------------|
+| `curl -sI https://<admin>.up.railway.app/fr/login` | **200** | **404** → mauvais build ou ancienne app |
+| Titre HTML de `/` | redirection vers `/fr` ou console Fermier | **VeltroVault** → mauvais dépôt / commit |
+| Logs build | `[railway-admin-build] GIT_COMMIT=<sha main>` | SHA absent ou ancien |
+| Config file path | `railway.admin.json` | `railway.json` → déploie l'API, pas l'admin |
+
+**Cause fréquente** : le healthcheck `/fr/login` renvoie 404 (app obsolète sans routes i18n) → Railway tue le conteneur en boucle.
+
+**Correctif** :
+1. Service admin → Settings → **Config file path** = `railway.admin.json`
+2. Settings → Source → repo `MisterH225/Fermier-Pro`, branche `main`
+3. **Deploy latest** (pas « Redeploy » sur un vieux déploiement)
+4. Variables : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_ADMIN_URL=https://admin-platform-production.up.railway.app`
+5. Supabase → Redirect URLs : `https://admin-platform-production.up.railway.app/auth/callback`
 
 ## Railway ne déploie pas le dernier `main` (ex. PR #129)
 

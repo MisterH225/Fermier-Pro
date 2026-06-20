@@ -1,0 +1,60 @@
+/**
+ * Démarrage Next.js admin — Railway injecte PORT ; Next doit écouter 0.0.0.0.
+ */
+const { spawnSync } = require("node:child_process");
+const path = require("node:path");
+const fs = require("node:fs");
+
+const adminRoot = path.join(__dirname, "..");
+const monorepoRoot = path.join(adminRoot, "..", "..");
+
+function loadDotenv(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return;
+  }
+  const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx < 1) {
+      continue;
+    }
+    const key = trimmed.slice(0, eqIdx).trim();
+    let val = trimmed.slice(eqIdx + 1).trim();
+    if (
+      (val.startsWith('"') && val.endsWith('"')) ||
+      (val.startsWith("'") && val.endsWith("'"))
+    ) {
+      val = val.slice(1, -1);
+    }
+    if (process.env[key] === undefined) {
+      process.env[key] = val;
+    }
+  }
+}
+
+loadDotenv(path.join(monorepoRoot, ".env"));
+loadDotenv(path.join(adminRoot, ".env.local"));
+
+const port = process.env.PORT ?? "3001";
+const host = "0.0.0.0";
+
+console.log(`[start-admin] Fermier Pro admin — écoute ${host}:${port}`);
+
+const nextBin = require.resolve("next/dist/bin/next", {
+  paths: [adminRoot, monorepoRoot]
+});
+const main = spawnSync(
+  process.execPath,
+  [nextBin, "start", "-H", host, "-p", String(port)],
+  {
+    cwd: adminRoot,
+    env: process.env,
+    stdio: "inherit"
+  }
+);
+
+process.exit(main.status === null ? 1 : main.status);
