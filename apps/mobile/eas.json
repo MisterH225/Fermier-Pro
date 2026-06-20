@@ -35,7 +35,6 @@
     },
     "production": {
       "channel": "production",
-      "autoIncrement": true,
       "env": {
         "APP_ENV": "production",
         "EXPO_PUBLIC_API_URL": "https://fermierapi-production.up.railway.app",
