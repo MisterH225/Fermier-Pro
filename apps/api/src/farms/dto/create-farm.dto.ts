@@ -48,6 +48,21 @@ export class CreateFarmDto {
   address?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  locationSector?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  locationCity?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  locationCountry?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)

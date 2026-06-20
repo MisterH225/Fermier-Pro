@@ -1316,6 +1316,18 @@ export const en = {
       gestation: "Gestation"
     }
   },
+  createFarmScreen: {
+    sector: "Sector / neighborhood",
+    sectorPlaceholder: "e.g. Almadies, East Pikine…",
+    city: "City or town",
+    cityPlaceholder: "e.g. Dakar",
+    country: "Country",
+    countryPlaceholder: "e.g. Senegal",
+    locationHint:
+      "Location details feed the admin health map for epidemic zoning by sector.",
+    addressExtra: "Address details (optional)",
+    addressExtraPlaceholder: "Street, landmark…"
+  },
   modals: {
     sections: {
       identification: "Identification",

@@ -13,6 +13,7 @@ import { InvitationsService } from "../invitations/invitations.service";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateFarmDto } from "./dto/create-farm.dto";
+import { composeFarmAddress } from "../admin-platform/health-map-geo.helper";
 import { UpdateFarmCheptelConfigDto } from "./dto/update-farm-cheptel-config.dto";
 import { TransferFarmOwnershipDto } from "./dto/transfer-farm-ownership.dto";
 import { ArchiveFarmDto } from "./dto/archive-farm.dto";
@@ -49,6 +50,15 @@ export class FarmsService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      const composedAddress = composeFarmAddress({
+        address: dto.address,
+        latitude: dto.latitude,
+        longitude: dto.longitude,
+        locationSector: dto.locationSector,
+        locationCity: dto.locationCity,
+        locationCountry: dto.locationCountry
+      });
+
       const farm = await tx.farm.create({
         data: {
           ownerId: user.id,
@@ -67,7 +77,10 @@ export class FarmsService {
             dto.longitude != null
               ? new Prisma.Decimal(dto.longitude)
               : undefined,
-          address: dto.address,
+          address: composedAddress,
+          locationSector: dto.locationSector?.trim() || undefined,
+          locationCity: dto.locationCity?.trim() || undefined,
+          locationCountry: dto.locationCountry?.trim() || undefined,
           capacity: dto.capacity
         }
       });

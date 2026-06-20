@@ -24,6 +24,9 @@ export type FarmLocationInput = {
   address?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  locationSector?: string | null;
+  locationCity?: string | null;
+  locationCountry?: string | null;
 };
 
 const WEST_AFRICA_BOUNDS: MapScopeBounds = {
@@ -95,6 +98,27 @@ export function gridCenter(
   return { lat, lng };
 }
 
+export function mergeFarmGeoParts(input: FarmLocationInput): FarmGeoParts {
+  const parsed = parseFarmAddress(input.address);
+  return {
+    country: input.locationCountry?.trim() || parsed.country,
+    city: input.locationCity?.trim() || parsed.city,
+    sector: input.locationSector?.trim() || parsed.sector,
+    line1: parsed.line1
+  };
+}
+
+export function composeFarmAddress(input: FarmLocationInput): string | undefined {
+  const geo = mergeFarmGeoParts(input);
+  const parts = [geo.sector, geo.city, geo.country].filter(
+    (p): p is string => Boolean(p?.trim())
+  );
+  if (parts.length > 0) {
+    return parts.join(", ");
+  }
+  return input.address?.trim() || undefined;
+}
+
 export function resolveFarmLocation(input: FarmLocationInput): {
   geo: FarmGeoParts;
   lat: number | null;
@@ -102,7 +126,7 @@ export function resolveFarmLocation(input: FarmLocationInput): {
   sectorGrid: string | null;
   cityGrid: string | null;
 } {
-  const geo = parseFarmAddress(input.address);
+  const geo = mergeFarmGeoParts(input);
   const lat =
     input.latitude != null && Number.isFinite(Number(input.latitude))
       ? Number(input.latitude)

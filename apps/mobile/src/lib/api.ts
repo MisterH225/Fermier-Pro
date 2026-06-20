@@ -1279,6 +1279,9 @@ export type FarmDto = {
   speciesFocus: string;
   livestockMode: string;
   address: string | null;
+  locationSector?: string | null;
+  locationCity?: string | null;
+  locationCountry?: string | null;
   capacity: number | null;
   latitude: string | null;
   longitude: string | null;
@@ -4496,6 +4499,11 @@ export type CreateFarmPayload = {
   speciesFocus?: string;
   livestockMode?: "individual" | "batch" | "hybrid";
   address?: string;
+  locationSector?: string;
+  locationCity?: string;
+  locationCountry?: string;
+  latitude?: number;
+  longitude?: number;
   capacity?: number;
 };
 
@@ -7664,6 +7672,9 @@ export type FarmSettingsDto = {
     speciesFocus: string;
     livestockMode: "individual" | "batch" | "hybrid";
     address: string | null;
+    locationSector: string | null;
+    locationCity: string | null;
+    locationCountry: string | null;
     latitude: number | null;
     longitude: number | null;
     housingBuildingsCount: number | null;

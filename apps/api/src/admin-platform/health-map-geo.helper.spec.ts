@@ -1,6 +1,7 @@
 import {
   buildZoneKey,
   farmMatchesScope,
+  mergeFarmGeoParts,
   parseFarmAddress,
   resolveFarmLocation,
   scopeBoundsFor
@@ -45,5 +46,20 @@ describe("health-map-geo.helper", () => {
     });
     expect(farmMatchesScope(inside, bounds)).toBe(true);
     expect(farmMatchesScope(outside, bounds)).toBe(false);
+  });
+
+  it("mergeFarmGeoParts préfère les champs structurés", () => {
+    const geo = mergeFarmGeoParts({
+      address: "Rue 10, ancien libellé, Dakar, Sénégal",
+      locationSector: "Almadies",
+      locationCity: "Dakar",
+      locationCountry: "Sénégal"
+    });
+    expect(geo).toEqual({
+      line1: "Rue 10",
+      sector: "Almadies",
+      city: "Dakar",
+      country: "Sénégal"
+    });
   });
 });

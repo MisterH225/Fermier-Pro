@@ -189,7 +189,13 @@ export function SettingsScreen({ route, navigation }: Props) {
           <SettingsRow
             kind="navigation"
             label={t("settings.location")}
-            value={s.farm.address ?? farmName}
+            value={
+              [s.farm.locationSector, s.farm.locationCity, s.farm.locationCountry]
+                .filter(Boolean)
+                .join(", ") ||
+              s.farm.address ||
+              farmName
+            }
             onPress={() =>
               navigation.navigate("FarmDetail", { farmId, farmName })
             }

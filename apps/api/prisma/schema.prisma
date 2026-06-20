@@ -291,6 +291,12 @@ model Farm {
   latitude     Decimal?
   longitude    Decimal?
   address      String?
+  /// Quartier / secteur (carte sanitaire granulaire).
+  locationSector  String?
+  /// Ville ou commune.
+  locationCity    String?
+  /// Pays (libellé ou code ISO).
+  locationCountry String?
   capacity     Int?
   /// Statut du projet : actif (visible) ou archivé (masqué par défaut).
   status       FarmStatus         @default(active)
