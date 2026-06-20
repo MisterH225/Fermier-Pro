@@ -40,6 +40,31 @@ Si le déploiement échoue à l'étape **Network > Healthcheck** alors que le bu
 - **Correctif** (déjà dans `railway.json`) : migrations en `preDeployCommand`, API seule au démarrage.
 - **Autre cause** : l'API n'écoutait pas sur `process.env.PORT` (Railway route le trafic vers ce port).
 
+## Régression admin après mises à jour Railway (juin 2026)
+
+**Symptôme** : la console admin fonctionnait, puis après un merge récent → `Cannot GET /`, logs `[start-api]` + `DATABASE_URL` manquant.
+
+**Cause** : le commit `a466783` a changé `railway.json` (`start-api.cjs`, `preDeployCommand`, `watchPatterns`).  
+Si le service Railway **admin** n'a pas **Config file path = `railway.admin.json`**, Railway applique `railway.json` par défaut → l'**API** redémarre sur le domaine admin. Les variables `DATABASE_URL` sont sur le **service API**, pas sur l'admin → échec.
+
+Ce n'est pas qu'il « manque 10 variables » sur l'admin : **le mauvais programme tourne sur le mauvais service**.
+
+**Correctif minimal (dashboard, pas de code)** :
+1. Service **admin** → Settings → **Config file path** = `railway.admin.json`
+2. **Deploy latest** depuis `main`
+3. Variables admin (références vers le service API, même projet Railway) :
+
+| Variable admin | Source (service API) |
+|----------------|----------------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | `SUPABASE_URL` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | clé anon Supabase (souvent déjà sur l'API ou dashboard Supabase) |
+| `NEXT_PUBLIC_API_URL` | URL publique de l'API (`https://…fermierapi….railway.app`) |
+| `NEXT_PUBLIC_ADMIN_URL` | URL publique admin |
+
+Syntaxe Railway : `NEXT_PUBLIC_SUPABASE_URL=${{fermierapi.SUPABASE_URL}}` (remplacer `fermierapi` par le nom exact du service API dans le projet).
+
+**Pas besoin de `DATABASE_URL` sur l'admin** — seulement sur le service API.
+
 ## Admin sur Railway
 
 Service **distinct** de l'API (`fermierapi-production`).
