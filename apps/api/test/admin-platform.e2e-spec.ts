@@ -142,7 +142,16 @@ describeOrSkip("Console SuperAdmin API (e2e)", () => {
       .set("Authorization", `Bearer ${ctx.token}`);
     expect(map.status).toBe(200);
     expect(Array.isArray(map.body?.regions)).toBe(true);
+    expect(Array.isArray(map.body?.zones)).toBe(true);
     expect(Array.isArray(map.body?.points)).toBe(true);
+    expect(map.body?.granularity).toBeDefined();
+
+    const mapSector = await request(app.getHttpServer())
+      .get("/api/v1/admin/health-map")
+      .query({ periodDays: "30", granularity: "sector" })
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(mapSector.status).toBe(200);
+    expect(mapSector.body.granularity).toBe("sector");
 
     const stats = await request(app.getHttpServer())
       .get("/api/v1/admin/stats")

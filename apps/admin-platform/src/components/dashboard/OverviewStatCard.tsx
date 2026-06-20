@@ -1,4 +1,5 @@
 import { TrendingDown, TrendingUp } from "lucide-react";
+import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -8,6 +9,7 @@ type Props = {
   deltaLabel?: string;
   featured?: boolean;
   accent?: string;
+  href?: string;
 };
 
 export function OverviewStatCard({
@@ -16,7 +18,8 @@ export function OverviewStatCard({
   delta,
   deltaLabel,
   featured = false,
-  accent = "#2563EB"
+  accent = "#2563EB",
+  href
 }: Props) {
   const positive = delta != null && delta >= 0;
 
@@ -54,7 +57,7 @@ export function OverviewStatCard({
     );
   }
 
-  return (
+  const body = (
     <div className="rounded-3xl border border-white/60 bg-white/70 backdrop-blur-md p-5 shadow-glass min-h-[168px] flex flex-col justify-between">
       <div>
         <p className="text-sm font-medium text-muted-foreground">{label}</p>
@@ -82,6 +85,16 @@ export function OverviewStatCard({
       ) : null}
     </div>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="block transition hover:opacity-95">
+        {body}
+      </Link>
+    );
+  }
+
+  return body;
 }
 
 export function computeSignupDelta(series: Array<{ count: number }>): number | null {

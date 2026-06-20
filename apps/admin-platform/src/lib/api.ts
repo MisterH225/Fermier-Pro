@@ -233,8 +233,26 @@ export type WithdrawalRequestAdminDto = {
   };
 };
 
+export type HealthMapGranularity = "country" | "city" | "sector";
+
+export type HealthMapZone = {
+  id: string;
+  label: string;
+  level: HealthMapGranularity;
+  parentLabel: string | null;
+  centerLat: number | null;
+  centerLng: number | null;
+  activeCases: number;
+  totalCasesInPeriod: number;
+  farmCount: number;
+  topDiseases: Array<{ name: string; count: number }>;
+};
+
 export type HealthMapDto = {
   periodDays: number;
+  granularity: HealthMapGranularity;
+  truncated?: boolean;
+  zones: HealthMapZone[];
   regions: Array<{
     country: string;
     activeCases: number;
@@ -243,11 +261,16 @@ export type HealthMapDto = {
     topDiseases: Array<{ name: string; count: number }>;
   }>;
   points: Array<{
+    recordId: string;
     farmId: string;
+    farmName: string;
     lat: number;
     lng: number;
     diagnosis: string;
     severity: string | null;
+    zoneId: string;
+    city: string | null;
+    sectorLabel: string | null;
   }>;
 };
 
@@ -779,11 +802,16 @@ export function fetchAdminStats(
   return apiFetch<StatsDto>(`/admin/stats?period=${period}`, token);
 }
 
-export function fetchHealthMap(token: string, periodDays: number) {
-  return apiFetch<HealthMapDto>(
-    `/admin/health-map?periodDays=${periodDays}`,
-    token
-  );
+export function fetchHealthMap(
+  token: string,
+  periodDays: number,
+  granularity: HealthMapGranularity = "sector"
+) {
+  const params = new URLSearchParams({
+    periodDays: String(periodDays),
+    granularity
+  });
+  return apiFetch<HealthMapDto>(`/admin/health-map?${params}`, token);
 }
 
 export function fetchVetProfiles(

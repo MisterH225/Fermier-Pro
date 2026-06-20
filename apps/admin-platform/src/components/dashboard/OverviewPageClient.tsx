@@ -37,6 +37,12 @@ export function OverviewPageClient() {
   const secondaryKpis = [
     { label: t("kpis.farms"), value: data.kpis.activeFarms, accent: "#3B82F6" },
     { label: t("kpis.animals"), value: data.kpis.activeAnimals, accent: "#6366F1" },
+    {
+      label: t("kpis.diseases"),
+      value: data.kpis.activeDiseases,
+      accent: "#DC2626",
+      href: "/carte-sanitaire" as const
+    },
     { label: t("kpis.transactions"), value: data.kpis.monthTransactions, accent: "#0EA5E9" }
   ];
 
@@ -93,7 +99,13 @@ export function OverviewPageClient() {
           deltaLabel={t("deltaPeriod")}
         />
         {secondaryKpis.map((k) => (
-          <OverviewStatCard key={k.label} label={k.label} value={k.value} accent={k.accent} />
+          <OverviewStatCard
+            key={k.label}
+            label={k.label}
+            value={k.value}
+            accent={k.accent}
+            href={"href" in k ? k.href : undefined}
+          />
         ))}
       </div>
 

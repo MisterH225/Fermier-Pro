@@ -20,6 +20,13 @@ import type {
   CreateSanitaryAlertDto,
   UpdatePlatformSettingsDto
 } from "./dto/admin-platform.dto";
+import {
+  buildZoneKey,
+  farmMatchesScope,
+  resolveFarmLocation,
+  scopeBoundsFor,
+  type HealthMapGranularity
+} from "./health-map-geo.helper";
 
 function lastDaysKeys(days: number): string[] {
   const keys: string[] = [];
@@ -558,18 +565,39 @@ export class AdminPlatformService {
     };
   }
 
-  async getHealthMap(periodDays = 30) {
+  async getHealthMap(
+    periodDays = 30,
+    granularity: HealthMapGranularity = "sector"
+  ) {
     const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
+    const settings = await this.platformSettings.getOrCreateSettingsRow();
+    const alertSince = new Date(
+      Date.now() - settings.alertPeriodDays * 24 * 60 * 60 * 1000
+    );
+    const scope = scopeBoundsFor(
+      settings.mapGeographicScope,
+      (settings.mapCountryCodes as string[] | null) ?? null
+    );
+
     const rows = await this.prisma.farmHealthRecord.findMany({
       where: {
         kind: FarmHealthRecordKind.disease,
-        occurredAt: { gte: since },
+        OR: [
+          { disease: { caseStatus: FarmDiseaseCaseStatus.active } },
+          { occurredAt: { gte: since } }
+        ],
         farm: {
           OR: [{ latitude: { not: null } }, { address: { not: null } }]
         }
       },
       include: {
-        disease: { select: { diagnosis: true, caseStatus: true, severity: true } },
+        disease: {
+          select: {
+            diagnosis: true,
+            caseStatus: true,
+            severity: true
+          }
+        },
         farm: {
           select: {
             id: true,
@@ -580,71 +608,335 @@ export class AdminPlatformService {
           }
         }
       },
-      take: 5000
+      take: 10000,
+      orderBy: { occurredAt: "desc" }
     });
 
+    const truncated = rows.length >= 10000;
+
+    type ZoneBucket = {
+      id: string;
+      label: string;
+      level: HealthMapGranularity;
+      parentLabel: string | null;
+      centerLat: number | null;
+      centerLng: number | null;
+      activeCases: number;
+      totalCasesInPeriod: number;
+      casesInAlertWindow: number;
+      diseases: Map<string, number>;
+      farms: Set<string>;
+      latSum: number;
+      lngSum: number;
+      coordCount: number;
+    };
+
+    const zoneMap = new Map<string, ZoneBucket>();
+
+    const ensureZone = (key: ReturnType<typeof buildZoneKey>): ZoneBucket => {
+      const existing = zoneMap.get(key.id);
+      if (existing) {
+        return existing;
+      }
+      const bucket: ZoneBucket = {
+        id: key.id,
+        label: key.label,
+        level: key.level,
+        parentLabel: key.parentLabel,
+        centerLat: key.centerLat,
+        centerLng: key.centerLng,
+        activeCases: 0,
+        totalCasesInPeriod: 0,
+        casesInAlertWindow: 0,
+        diseases: new Map<string, number>(),
+        farms: new Set<string>(),
+        latSum: 0,
+        lngSum: 0,
+        coordCount: 0
+      };
+      zoneMap.set(key.id, bucket);
+      return bucket;
+    };
+
+    const points: Array<{
+      recordId: string;
+      farmId: string;
+      farmName: string;
+      lat: number;
+      lng: number;
+      diagnosis: string;
+      severity: string | null;
+      zoneId: string;
+      city: string | null;
+      sectorLabel: string | null;
+    }> = [];
+
+    for (const r of rows) {
+      const loc = resolveFarmLocation({
+        address: r.farm.address,
+        latitude: r.farm.latitude != null ? Number(r.farm.latitude) : null,
+        longitude: r.farm.longitude != null ? Number(r.farm.longitude) : null
+      });
+
+      if (!farmMatchesScope(loc, scope)) {
+        continue;
+      }
+
+      const zoneKey = buildZoneKey(granularity, loc);
+      const bucket = ensureZone(zoneKey);
+      const inPeriod = r.occurredAt >= since;
+      const isActive =
+        r.disease?.caseStatus === FarmDiseaseCaseStatus.active;
+
+      if (inPeriod) {
+        bucket.totalCasesInPeriod += 1;
+        const label = r.disease?.diagnosis?.trim() || "Autre";
+        bucket.diseases.set(label, (bucket.diseases.get(label) ?? 0) + 1);
+      }
+      if (r.occurredAt >= alertSince) {
+        bucket.casesInAlertWindow += 1;
+      }
+      if (isActive) {
+        bucket.activeCases += 1;
+      }
+      bucket.farms.add(r.farmId);
+      if (loc.lat != null && loc.lng != null) {
+        bucket.latSum += loc.lat;
+        bucket.lngSum += loc.lng;
+        bucket.coordCount += 1;
+      }
+
+      if (
+        isActive &&
+        loc.lat != null &&
+        loc.lng != null &&
+        Number.isFinite(loc.lat) &&
+        Number.isFinite(loc.lng)
+      ) {
+        points.push({
+          recordId: r.id,
+          farmId: r.farmId,
+          farmName: r.farm.name,
+          lat: loc.lat,
+          lng: loc.lng,
+          diagnosis: r.disease?.diagnosis ?? "Maladie",
+          severity: r.disease?.severity ?? null,
+          zoneId: zoneKey.id,
+          city: loc.geo.city,
+          sectorLabel: loc.geo.sector
+        });
+      }
+    }
+
+    const zones = [...zoneMap.values()]
+      .map((b) => {
+        const topDiseases = [...b.diseases.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([name, count]) => ({ name, count }));
+        const centerLat =
+          b.coordCount > 0
+            ? b.latSum / b.coordCount
+            : b.centerLat;
+        const centerLng =
+          b.coordCount > 0
+            ? b.lngSum / b.coordCount
+            : b.centerLng;
+        return {
+          id: b.id,
+          label: b.label,
+          level: b.level,
+          parentLabel: b.parentLabel,
+          centerLat,
+          centerLng,
+          activeCases: b.activeCases,
+          totalCasesInPeriod: b.totalCasesInPeriod,
+          farmCount: b.farms.size,
+          topDiseases
+        };
+      })
+      .filter((z) => z.activeCases > 0 || z.totalCasesInPeriod > 0);
+
+    await this.maybeCreateAutoSanitaryAlerts(
+      zones.map((z) => {
+        const bucket = zoneMap.get(z.id);
+        return {
+          id: z.id,
+          label: z.label,
+          level: z.level,
+          casesInAlertWindow: bucket?.casesInAlertWindow ?? 0,
+          topDiseases: z.topDiseases
+        };
+      }),
+      settings
+    );
+
+    // Rétrocompatibilité : `regions` = agrégation pays
+    const countryZones = granularity === "country"
+      ? zones
+      : await this.buildCountryZonesFromRecords(rows, scope, since);
+
+    return {
+      periodDays,
+      granularity,
+      truncated,
+      zones,
+      regions: countryZones.map((z) => ({
+        country: z.label,
+        activeCases: z.activeCases,
+        totalCases: z.totalCasesInPeriod,
+        farmCount: z.farmCount,
+        topDiseases: z.topDiseases
+      })),
+      points
+    };
+  }
+
+  private async buildCountryZonesFromRecords(
+    rows: Array<{
+      farmId: string;
+      occurredAt: Date;
+      farm: {
+        address: string | null;
+        latitude: Prisma.Decimal | null;
+        longitude: Prisma.Decimal | null;
+      };
+      disease: {
+        caseStatus: FarmDiseaseCaseStatus;
+        diagnosis: string | null;
+      } | null;
+    }>,
+    scope: ReturnType<typeof scopeBoundsFor>,
+    since: Date
+  ) {
     const byCountry = new Map<
       string,
       {
-        country: string;
+        label: string;
         activeCases: number;
-        totalCases: number;
+        totalCasesInPeriod: number;
         diseases: Map<string, number>;
         farms: Set<string>;
       }
     >();
 
     for (const r of rows) {
-      const country =
-        r.farm.address?.split(",").pop()?.trim() ||
-        "Inconnu";
+      const loc = resolveFarmLocation({
+        address: r.farm.address,
+        latitude: r.farm.latitude != null ? Number(r.farm.latitude) : null,
+        longitude: r.farm.longitude != null ? Number(r.farm.longitude) : null
+      });
+      if (!farmMatchesScope(loc, scope)) {
+        continue;
+      }
+      const country = loc.geo.country;
       const bucket = byCountry.get(country) ?? {
-        country,
+        label: country,
         activeCases: 0,
-        totalCases: 0,
+        totalCasesInPeriod: 0,
         diseases: new Map<string, number>(),
         farms: new Set<string>()
       };
-      bucket.totalCases += 1;
+      if (r.occurredAt >= since) {
+        bucket.totalCasesInPeriod += 1;
+        const label = r.disease?.diagnosis?.trim() || "Autre";
+        bucket.diseases.set(label, (bucket.diseases.get(label) ?? 0) + 1);
+      }
       if (r.disease?.caseStatus === FarmDiseaseCaseStatus.active) {
         bucket.activeCases += 1;
       }
-      const label = r.disease?.diagnosis?.trim() || "Autre";
-      bucket.diseases.set(label, (bucket.diseases.get(label) ?? 0) + 1);
       bucket.farms.add(r.farmId);
       byCountry.set(country, bucket);
     }
 
-    const regions = [...byCountry.values()].map((b) => {
-      const topDiseases = [...b.diseases.entries()]
+    return [...byCountry.values()].map((b) => ({
+      label: b.label,
+      activeCases: b.activeCases,
+      totalCasesInPeriod: b.totalCasesInPeriod,
+      farmCount: b.farms.size,
+      topDiseases: [...b.diseases.entries()]
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
-        .map(([name, count]) => ({ name, count }));
-      return {
-        country: b.country,
-        activeCases: b.activeCases,
-        totalCases: b.totalCases,
-        farmCount: b.farms.size,
-        topDiseases
-      };
+        .map(([name, count]) => ({ name, count }))
+    }));
+  }
+
+  private async maybeCreateAutoSanitaryAlerts(
+    zones: Array<{
+      id: string;
+      label: string;
+      level: HealthMapGranularity;
+      casesInAlertWindow: number;
+      topDiseases: Array<{ name: string; count: number }>;
+    }>,
+    settings: {
+      alertCaseThreshold: number;
+      alertPeriodDays: number;
+      alertDefaultLevel: string;
+    }
+  ) {
+    if (settings.alertCaseThreshold <= 0) {
+      return;
+    }
+
+    const candidates = zones.filter(
+      (z) =>
+        z.level === "sector" &&
+        z.casesInAlertWindow >= settings.alertCaseThreshold
+    );
+    if (candidates.length === 0) {
+      return;
+    }
+
+    const existing = await this.prisma.sanitaryAlert.findMany({
+      where: {
+        isActive: true,
+        alertType: "auto",
+        regionCode: { in: candidates.map((z) => z.id) }
+      },
+      select: { regionCode: true }
     });
+    const existingIds = new Set(
+      existing.map((e) => e.regionCode).filter(Boolean) as string[]
+    );
 
-    const points = rows
-      .filter(
-        (r) =>
-          r.farm.latitude != null &&
-          r.farm.longitude != null &&
-          r.disease?.caseStatus === FarmDiseaseCaseStatus.active
-      )
-      .map((r) => ({
-        farmId: r.farmId,
-        lat: Number(r.farm.latitude),
-        lng: Number(r.farm.longitude),
-        diagnosis: r.disease?.diagnosis ?? "Maladie",
-        severity: r.disease?.severity ?? null
-      }));
+    for (const zone of candidates) {
+      if (existingIds.has(zone.id)) {
+        continue;
+      }
+      const top = zone.topDiseases[0]?.name ?? "maladies diverses";
+      const level =
+        settings.alertDefaultLevel === "critical" ||
+        settings.alertDefaultLevel === "info" ||
+        settings.alertDefaultLevel === "warning"
+          ? settings.alertDefaultLevel
+          : "warning";
 
-    return { periodDays, regions, points };
+      const alert = await this.prisma.sanitaryAlert.create({
+        data: {
+          zoneName: zone.label,
+          regionCode: zone.id,
+          alertType: "auto",
+          level,
+          diseaseName: top,
+          caseCount: zone.casesInAlertWindow,
+          message: `Seuil sanitaire dépassé : ${zone.casesInAlertWindow} cas signalés sur ${settings.alertPeriodDays} j dans ${zone.label} (seuil ${settings.alertCaseThreshold}). Maladie dominante : ${top}.`,
+          createdBy: null
+        }
+      });
+
+      const title =
+        level === "critical"
+          ? "Alerte sanitaire automatique — critique"
+          : "Alerte sanitaire automatique";
+      void this.push
+        .broadcast(title, alert.message.slice(0, 160), {
+          route: "FarmHealth",
+          alertId: alert.id,
+          level
+        })
+        .catch(() => undefined);
+    }
   }
 
   async getStats(period: "month" | "quarter" | "year" = "month") {
