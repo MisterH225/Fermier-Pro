@@ -7,15 +7,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { WalletOperationsCard } from "../buyer/WalletOperationsCard";
 import { useSession } from "../../context/SessionContext";
 import { fetchUserWallet } from "../../lib/api";
 import { formatMarketMoney } from "../marketplace/MarketplaceListingCard";
@@ -39,6 +35,8 @@ type ProfileVariant = "buyer" | "producer" | "vet" | "tech";
 
 type Props = {
   variant?: ProfileVariant;
+  /** Masque le lien « Voir le portefeuille » (ex. écran historique déjà ouvert). */
+  hideDetailsLink?: boolean;
 };
 
 function accentForVariant(variant: ProfileVariant): string {
@@ -69,14 +67,15 @@ function splitBalanceDisplay(
   };
 }
 
-export function WalletDashboardCard({ variant = "producer" }: Props) {
+export function WalletDashboardCard({
+  variant = "producer",
+  hideDetailsLink = false
+}: Props) {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken } = useSession();
   const [balanceHidden, setBalanceHidden] = useState(false);
-  const [activeAction, setActiveAction] = useState<WalletAction | null>(null);
 
   const accent = accentForVariant(variant);
 
@@ -100,6 +99,13 @@ export function WalletDashboardCard({ variant = "producer" }: Props) {
     });
   }, []);
 
+  const openOperation = useCallback(
+    (operation: WalletAction) => {
+      navigation.navigate("WalletOperation", { operation });
+    },
+    [navigation]
+  );
+
   const wallet = walletQ.data;
   const currency = wallet?.currency ?? "XOF";
   const balanceParts = useMemo(
@@ -117,52 +123,52 @@ export function WalletDashboardCard({ variant = "producer" }: Props) {
   }, [wallet?.monthCredits, balanceHidden, currency, t]);
 
   return (
-    <>
-      <View style={styles.wrap}>
-        <View style={styles.balanceCard}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={
-              balanceHidden
-                ? t("wallet.dashboard.showBalance")
-                : t("wallet.dashboard.hideBalance")
-            }
-            onPress={toggleBalanceHidden}
-            hitSlop={10}
-            style={styles.eyeBtn}
-          >
-            <Ionicons
-              name={balanceHidden ? "eye-off-outline" : "eye-outline"}
-              size={20}
-              color={mobileColors.textSecondary}
-            />
-          </Pressable>
+    <View style={styles.wrap}>
+      <View style={styles.balanceCard}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            balanceHidden
+              ? t("wallet.dashboard.showBalance")
+              : t("wallet.dashboard.hideBalance")
+          }
+          onPress={toggleBalanceHidden}
+          hitSlop={10}
+          style={styles.eyeBtn}
+        >
+          <Ionicons
+            name={balanceHidden ? "eye-off-outline" : "eye-outline"}
+            size={20}
+            color={mobileColors.textSecondary}
+          />
+        </Pressable>
 
-          <View style={styles.currencyPill}>
-            <Ionicons name="cash-outline" size={14} color="#FFFFFF" />
-            <Text style={styles.currencyPillText}>{currency}</Text>
-          </View>
+        <View style={styles.currencyPill}>
+          <Ionicons name="cash-outline" size={14} color="#FFFFFF" />
+          <Text style={styles.currencyPillText}>{currency}</Text>
+        </View>
 
-          <View style={styles.balanceCenter}>
-            {walletQ.isLoading ? (
-              <ActivityIndicator color={mobileColors.textPrimary} />
-            ) : (
-              <View style={styles.balanceAmountRow}>
-                <Text style={styles.balanceMain}>{balanceParts.main}</Text>
-                {balanceParts.decimal ? (
-                  <Text style={styles.balanceDecimal}>{balanceParts.decimal}</Text>
-                ) : null}
-              </View>
-            )}
-          </View>
-
-          {monthCreditsLabel ? (
-            <View style={[styles.growthBadge, { backgroundColor: accent }]}>
-              <Ionicons name="trending-up" size={14} color="#FFFFFF" />
-              <Text style={styles.growthBadgeText}>{monthCreditsLabel}</Text>
+        <View style={styles.balanceCenter}>
+          {walletQ.isLoading ? (
+            <ActivityIndicator color={mobileColors.textPrimary} />
+          ) : (
+            <View style={styles.balanceAmountRow}>
+              <Text style={styles.balanceMain}>{balanceParts.main}</Text>
+              {balanceParts.decimal ? (
+                <Text style={styles.balanceDecimal}>{balanceParts.decimal}</Text>
+              ) : null}
             </View>
-          ) : null}
+          )}
+        </View>
 
+        {monthCreditsLabel ? (
+          <View style={[styles.growthBadge, { backgroundColor: accent }]}>
+            <Ionicons name="trending-up" size={14} color="#FFFFFF" />
+            <Text style={styles.growthBadgeText}>{monthCreditsLabel}</Text>
+          </View>
+        ) : null}
+
+        {hideDetailsLink ? null : (
           <Pressable
             accessibilityRole="button"
             onPress={() => navigation.navigate("UserWallet")}
@@ -171,100 +177,59 @@ export function WalletDashboardCard({ variant = "producer" }: Props) {
             <Text style={styles.detailsLinkText}>{t("wallet.dashboard.openWallet")}</Text>
             <Ionicons name="chevron-forward" size={14} color={mobileColors.textSecondary} />
           </Pressable>
-        </View>
-
-        <View
-          style={[
-            styles.actionsDock,
-            monthCreditsLabel ? { marginTop: mobileSpacing.sm } : null
-          ]}
-        >
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setActiveAction("transfer")}
-            style={({ pressed }) => [
-              styles.dockBtnWide,
-              pressed && styles.dockBtnPressed
-            ]}
-          >
-            <Text style={styles.dockBtnLabel}>{t("wallet.dashboard.transfer")}</Text>
-            <View style={styles.dockIconCircle}>
-              <Ionicons name="arrow-up-outline" size={18} color="#FFFFFF" />
-            </View>
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("wallet.dashboard.topUp")}
-            onPress={() => setActiveAction("topup")}
-            style={({ pressed }) => [
-              styles.dockBtnSquare,
-              pressed && styles.dockBtnPressed
-            ]}
-          >
-            <Ionicons name="add" size={26} color={mobileColors.textPrimary} />
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setActiveAction("withdraw")}
-            style={({ pressed }) => [
-              styles.dockBtnWide,
-              styles.dockBtnWithdraw,
-              pressed && styles.dockBtnPressed
-            ]}
-          >
-            <View style={styles.dockIconCircle}>
-              <Ionicons name="arrow-down-outline" size={18} color="#FFFFFF" />
-            </View>
-            <Text style={[styles.dockBtnLabel, styles.dockBtnLabelRight]}>
-              {t("wallet.dashboard.withdraw")}
-            </Text>
-          </Pressable>
-        </View>
+        )}
       </View>
 
-      <Modal
-        visible={activeAction !== null}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setActiveAction(null)}
+      <View
+        style={[
+          styles.actionsDock,
+          monthCreditsLabel ? { marginTop: mobileSpacing.sm } : null
+        ]}
       >
-        <View style={[styles.modalRoot, { paddingTop: insets.top + mobileSpacing.sm }]}>
-          <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: accent }]}>
-              {activeAction === "topup"
-                ? t("buyer.wallet.ops.topUp")
-                : activeAction === "withdraw"
-                  ? t("buyer.wallet.ops.withdraw")
-                  : t("buyer.wallet.ops.transfer")}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setActiveAction(null)}
-              hitSlop={12}
-            >
-              <Ionicons name="close" size={26} color={mobileColors.textPrimary} />
-            </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => openOperation("transfer")}
+          style={({ pressed }) => [
+            styles.dockBtnWide,
+            pressed && styles.dockBtnPressed
+          ]}
+        >
+          <Text style={styles.dockBtnLabel}>{t("wallet.dashboard.transfer")}</Text>
+          <View style={styles.dockIconCircle}>
+            <Ionicons name="arrow-up-outline" size={18} color="#FFFFFF" />
           </View>
-          <ScrollView
-            contentContainerStyle={[
-              styles.modalBody,
-              { paddingBottom: insets.bottom + mobileSpacing.lg }
-            ]}
-            keyboardShouldPersistTaps="handled"
-          >
-            {wallet ? (
-              <WalletOperationsCard
-                balance={wallet.balance}
-                currency={wallet.currency}
-                visibleSection={activeAction ?? "all"}
-              />
-            ) : null}
-          </ScrollView>
-        </View>
-      </Modal>
-    </>
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("wallet.dashboard.topUp")}
+          onPress={() => openOperation("topup")}
+          style={({ pressed }) => [
+            styles.dockBtnSquare,
+            pressed && styles.dockBtnPressed
+          ]}
+        >
+          <Ionicons name="add" size={26} color={mobileColors.textPrimary} />
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => openOperation("withdraw")}
+          style={({ pressed }) => [
+            styles.dockBtnWide,
+            styles.dockBtnWithdraw,
+            pressed && styles.dockBtnPressed
+          ]}
+        >
+          <View style={styles.dockIconCircle}>
+            <Ionicons name="arrow-down-outline" size={18} color="#FFFFFF" />
+          </View>
+          <Text style={[styles.dockBtnLabel, styles.dockBtnLabelRight]}>
+            {t("wallet.dashboard.withdraw")}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -415,24 +380,5 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.35)",
     alignItems: "center",
     justifyContent: "center"
-  },
-  modalRoot: {
-    flex: 1,
-    backgroundColor: mobileColors.canvas
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.sm
-  },
-  modalTitle: {
-    ...mobileTypography.sectionTitle,
-    fontSize: 18
-  },
-  modalBody: {
-    paddingHorizontal: mobileSpacing.lg,
-    gap: mobileSpacing.md
   }
 });

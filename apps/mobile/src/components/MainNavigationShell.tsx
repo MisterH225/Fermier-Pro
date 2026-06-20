@@ -83,6 +83,8 @@ import {
   BuyerHistoryScreen,
   BuyerFinanceScreen,
   UserWalletScreen,
+  WalletOperationScreen,
+  walletOperationScreenTitle,
   BuyerAlertsScreen,
   BuyerFavoritesScreen,
   VeterinarianDashboardScreen,
@@ -225,6 +227,14 @@ function MainStack() {
         name="UserWallet"
         component={UserWalletScreen}
         options={{ ...defaultStackScreenOptions, title: st("userWallet") }}
+      />
+      <Stack.Screen
+        name="WalletOperation"
+        component={WalletOperationScreen}
+        options={({ route }) => ({
+          ...defaultStackScreenOptions,
+          title: walletOperationScreenTitle(route.params.operation, t)
+        })}
       />
       <Stack.Screen
         name="BuyerAlerts"

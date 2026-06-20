@@ -15,6 +15,9 @@ export type RootStackParamList = {
   BuyerHistory: { initialTab?: "proposals" | "purchases" | "reviews"; fromDashboard?: boolean } | undefined;
   BuyerFinance: undefined;
   UserWallet: undefined;
+  WalletOperation: {
+    operation: "topup" | "withdraw" | "transfer";
+  };
   BuyerAlerts: undefined;
   BuyerFavorites: undefined;
   VeterinarianDashboard: undefined;

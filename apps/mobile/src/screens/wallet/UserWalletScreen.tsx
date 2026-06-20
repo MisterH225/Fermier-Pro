@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
-import type { ReactNode } from "react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -14,13 +13,9 @@ import {
   Text,
   View
 } from "react-native";
-import { BuyerBalanceCard } from "../../components/buyer/BuyerBalanceCard";
-import { WalletOperationsCard } from "../../components/buyer/WalletOperationsCard";
-import { BuyerMobileShell } from "../../components/layout/BuyerMobileShell";
-import { MobileAppShell } from "../../components/layout/MobileAppShell";
-import { TechMobileShell } from "../../components/layout/TechMobileShell";
-import { VetMobileShell } from "../../components/layout/VetMobileShell";
 import { profileScreenScrollContent } from "../../components/layout";
+import { WalletDashboardCard } from "../../components/wallet/WalletDashboardCard";
+import { WalletScreenShell } from "../../components/wallet/WalletScreenShell";
 import { formatMarketMoney } from "../../components/marketplace/MarketplaceListingCard";
 import { useSession } from "../../context/SessionContext";
 import { useBottomInset } from "../../hooks/useBottomInset";
@@ -91,23 +86,18 @@ function isCredit(kind: BuyerWalletEntryDto["kind"]): boolean {
   );
 }
 
-function WalletShell({
-  profileType,
-  children
-}: {
-  profileType: string | undefined;
-  children: ReactNode;
-}) {
-  const shellProps = { omitBottomTabBar: true, hideTopBar: true, children };
+function walletVariantForProfile(
+  profileType: string | undefined
+): "buyer" | "producer" | "vet" | "tech" {
   switch (profileType) {
     case "buyer":
-      return <BuyerMobileShell {...shellProps} />;
+      return "buyer";
     case "veterinarian":
-      return <VetMobileShell {...shellProps} />;
+      return "vet";
     case "technician":
-      return <TechMobileShell {...shellProps} />;
+      return "tech";
     default:
-      return <MobileAppShell {...shellProps} />;
+      return "producer";
   }
 }
 
@@ -145,11 +135,12 @@ export function UserWalletScreen() {
     }
   }, [walletQ, entriesQ]);
 
-  const wallet = walletQ.data;
   const entries = entriesQ.data?.entries ?? [];
 
+  const walletVariant = walletVariantForProfile(profileType);
+
   return (
-    <WalletShell profileType={profileType}>
+    <WalletScreenShell>
       <ScrollView
         contentContainerStyle={[
           profileScreenScrollContent,
@@ -164,21 +155,8 @@ export function UserWalletScreen() {
           />
         }
       >
-        {walletQ.isLoading ? (
-          <ActivityIndicator color={buyerColors.primary} />
-        ) : wallet ? (
-          <BuyerBalanceCard
-            balance={wallet.balance}
-            currency={wallet.currency}
-            monthCredits={wallet.monthCredits}
-          />
-        ) : null}
-
-        {wallet ? (
-          <WalletOperationsCard
-            balance={wallet.balance}
-            currency={wallet.currency}
-          />
+        {accessToken ? (
+          <WalletDashboardCard variant={walletVariant} hideDetailsLink />
         ) : null}
 
         <Text style={styles.sectionTitle}>{t("buyer.finance.history")}</Text>
@@ -267,7 +245,7 @@ export function UserWalletScreen() {
           </View>
         )}
       </ScrollView>
-    </WalletShell>
+    </WalletScreenShell>
   );
 }
 
