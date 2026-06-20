@@ -1,21 +1,50 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
-const DEFAULT_MODEL = "gemini-2.5-flash";
+/** Lite en premier : quota gratuit plus généreux que 2.5-flash. */
+const DEFAULT_MODEL = "gemini-2.5-flash-lite";
 const FALLBACK_MODELS = [
-  "gemini-2.5-flash-lite",
-  "gemini-flash-latest"
+  "gemini-flash-latest",
+  "gemini-2.5-flash"
 ] as const;
 const TIMEOUT_MS = 12_000;
+const DEFAULT_QUOTA_COOLDOWN_MS = 15 * 60 * 1000;
+
+type CallModelResult = {
+  text: string | null;
+  quotaExceeded: boolean;
+};
 
 @Injectable()
 export class AiGeminiService {
   private readonly logger = new Logger(AiGeminiService.name);
+  private quotaBlockedUntil = 0;
 
   constructor(private readonly config: ConfigService) {}
 
   isConfigured(): boolean {
     return Boolean(this.config.get<string>("GEMINI_API_KEY")?.trim());
+  }
+
+  /** Pause les appels Gemini après dépassement de quota (évite le spam Railway). */
+  isQuotaBlocked(): boolean {
+    return Date.now() < this.quotaBlockedUntil;
+  }
+
+  private quotaCooldownMs(): number {
+    const raw = this.config.get<string>("GEMINI_QUOTA_COOLDOWN_MS");
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    return Number.isFinite(parsed) && parsed > 0
+      ? parsed
+      : DEFAULT_QUOTA_COOLDOWN_MS;
+  }
+
+  private markQuotaExceeded(): void {
+    const cooldown = this.quotaCooldownMs();
+    this.quotaBlockedUntil = Date.now() + cooldown;
+    this.logger.error(
+      `Quota Gemini dépassé — appels IA suspendus ${Math.round(cooldown / 60_000)} min`
+    );
   }
 
   private modelChain(): string[] {
@@ -25,39 +54,73 @@ export class AiGeminiService {
     return [...new Set(chain)];
   }
 
+  private isQuotaError(status: number, errText: string): boolean {
+    if (status === 429) {
+      return true;
+    }
+    const lower = errText.toLowerCase();
+    return (
+      lower.includes("quota") ||
+      lower.includes("resource_exhausted") ||
+      lower.includes("rate limit") ||
+      lower.includes("exceeded")
+    );
+  }
+
   /** Génération JSON volumineuse (prévisions IA) — tokens étendus. */
   async generatePredictionJson(prompt: string): Promise<string | null> {
+    if (this.isQuotaBlocked()) {
+      return null;
+    }
     const apiKey = this.config.get<string>("GEMINI_API_KEY")?.trim();
     if (!apiKey) {
       return null;
     }
 
+    let sawQuotaError = false;
     for (const model of this.modelChain()) {
-      const text = await this.callModel(apiKey, model, prompt, {
+      const { text, quotaExceeded } = await this.callModel(apiKey, model, prompt, {
         maxOutputTokens: 8192,
         timeoutMs: 30_000
       });
       if (text) {
         return text;
       }
+      if (quotaExceeded) {
+        sawQuotaError = true;
+      }
+    }
+    if (sawQuotaError) {
+      this.markQuotaExceeded();
     }
     return null;
   }
 
   async generateText(prompt: string): Promise<string | null> {
+    if (this.isQuotaBlocked()) {
+      return null;
+    }
     const apiKey = this.config.get<string>("GEMINI_API_KEY")?.trim();
     if (!apiKey) {
       return null;
     }
 
-    for (const model of this.modelChain()) {
-      const text = await this.callModel(apiKey, model, prompt);
+    const chain = this.modelChain();
+    let sawQuotaError = false;
+    for (const model of chain) {
+      const { text, quotaExceeded } = await this.callModel(apiKey, model, prompt);
       if (text) {
-        if (model !== this.modelChain()[0]) {
+        if (model !== chain[0]) {
           this.logger.log(`Gemini OK via modèle de secours: ${model}`);
         }
         return text;
       }
+      if (quotaExceeded) {
+        sawQuotaError = true;
+      }
+    }
+    if (sawQuotaError) {
+      this.markQuotaExceeded();
     }
     return null;
   }
@@ -67,7 +130,7 @@ export class AiGeminiService {
     model: string,
     prompt: string,
     options?: { maxOutputTokens?: number; timeoutMs?: number }
-  ): Promise<string | null> {
+  ): Promise<CallModelResult> {
     const controller = new AbortController();
     const timeout = options?.timeoutMs ?? TIMEOUT_MS;
     const timer = setTimeout(() => controller.abort(), timeout);
@@ -90,21 +153,22 @@ export class AiGeminiService {
 
       if (!res.ok) {
         const errText = await res.text();
+        const quotaExceeded = this.isQuotaError(res.status, errText);
         this.logger.warn(
-          `Gemini ${model} HTTP ${res.status}: ${errText.slice(0, 180)}`
+          `Gemini ${model} HTTP ${res.status}${quotaExceeded ? " (quota)" : ""}: ${errText.slice(0, 180)}`
         );
-        return null;
+        return { text: null, quotaExceeded };
       }
 
       const body = (await res.json()) as {
         candidates?: { content?: { parts?: { text?: string }[] } }[];
       };
       const text = body.candidates?.[0]?.content?.parts?.[0]?.text;
-      return text?.trim() ?? null;
+      return { text: text?.trim() ?? null, quotaExceeded: false };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(`Gemini ${model} indisponible: ${msg}`);
-      return null;
+      return { text: null, quotaExceeded: false };
     } finally {
       clearTimeout(timer);
     }
@@ -126,12 +190,16 @@ export class AiGeminiService {
     base64: string,
     mimeType: string
   ): Promise<string | null> {
+    if (this.isQuotaBlocked()) {
+      return null;
+    }
     const apiKey = this.config.get<string>("GEMINI_API_KEY")?.trim();
     if (!apiKey) {
       return null;
     }
     const normalizedMime = mimeType.split(";")[0]?.trim() || "image/jpeg";
 
+    let sawQuotaError = false;
     for (const model of this.modelChain()) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), TIMEOUT_MS * 2);
@@ -164,6 +232,10 @@ export class AiGeminiService {
           })
         });
         if (!res.ok) {
+          const errText = await res.text();
+          if (this.isQuotaError(res.status, errText)) {
+            sawQuotaError = true;
+          }
           continue;
         }
         const body = (await res.json()) as {
@@ -178,6 +250,9 @@ export class AiGeminiService {
       } finally {
         clearTimeout(timer);
       }
+    }
+    if (sawQuotaError) {
+      this.markQuotaExceeded();
     }
     return null;
   }
