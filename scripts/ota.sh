@@ -24,7 +24,7 @@ fi
 
 # Variables publiques alignées sur eas.json (profils preview / production).
 export APP_ENV="$CHANNEL"
-export EXPO_PUBLIC_API_URL="${EXPO_PUBLIC_API_URL:-https://fermierpro.up.railway.app}"
+export EXPO_PUBLIC_API_URL="${EXPO_PUBLIC_API_URL:-https://fermierapi-production.up.railway.app}"
 export EXPO_PUBLIC_SUPABASE_URL="${EXPO_PUBLIC_SUPABASE_URL:-https://rwtrebeujkacbwwpuwpz.supabase.co}"
 export EXPO_PUBLIC_SUPABASE_ANON_KEY="${EXPO_PUBLIC_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3dHJlYmV1amthY2J3d3B1d3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NjA1MTcsImV4cCI6MjA5MzMzNjUxN30.mGW50cpaKrqTyS1-N5Vb7S_iaHWZ5kslRaHikWlCp54}"
 export EXPO_PUBLIC_EAS_PROJECT_ID="${EXPO_PUBLIC_EAS_PROJECT_ID:-ebb8a3e5-e17a-4a66-ae0a-f7624ab6c12a}"
