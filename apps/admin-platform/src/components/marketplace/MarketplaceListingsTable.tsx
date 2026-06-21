@@ -17,6 +17,7 @@ import { MarketplaceListingDetailDialog } from "./MarketplaceListingDetailDialog
 type Props = {
   rows: AdminMarketplaceListingRow[];
   token: string;
+  onRefresh?: () => void;
 };
 
 function money(v: number | null, currency: string): string {
@@ -24,7 +25,7 @@ function money(v: number | null, currency: string): string {
   return `${Math.round(v).toLocaleString("fr-FR")} ${currency}`;
 }
 
-export function MarketplaceListingsTable({ rows, token }: Props) {
+export function MarketplaceListingsTable({ rows, token, onRefresh }: Props) {
   const t = useTranslations("marketplace");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -108,6 +109,10 @@ export function MarketplaceListingsTable({ rows, token }: Props) {
       token={token}
       listingId={selectedId}
       onClose={() => setSelectedId(null)}
+      onDeleted={() => {
+        setSelectedId(null);
+        onRefresh?.();
+      }}
     />
     </>
   );

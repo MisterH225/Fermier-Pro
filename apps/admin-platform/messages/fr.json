@@ -535,7 +535,14 @@
       "colBuyer": "Acheteur",
       "colOfferStatus": "Statut offre",
       "colPrice": "Prix",
-      "colDate": "Date"
+      "colDate": "Date",
+      "delete": "Supprimer l'annonce",
+      "deleteConfirmTitle": "Supprimer cette annonce ?",
+      "deleteConfirmBody": "L'annonce « {title} » sera définitivement supprimée (offres, favoris, salons liés). Les transactions clôturées ou annulées associées seront aussi retirées. Cette action est irréversible.",
+      "deleteConfirmAction": "Supprimer définitivement",
+      "deleteSuccess": "Annonce supprimée.",
+      "deleteError": "Suppression impossible.",
+      "deleteBlockedActiveTx": "Transaction marketplace en cours — clôturez-la avant de supprimer l'annonce."
     },
     "listings": {
       "empty": "Aucune annonce.",

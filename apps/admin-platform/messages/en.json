@@ -517,7 +517,14 @@
       "colBuyer": "Buyer",
       "colOfferStatus": "Offer status",
       "colPrice": "Price",
-      "colDate": "Date"
+      "colDate": "Date",
+      "delete": "Delete listing",
+      "deleteConfirmTitle": "Delete this listing?",
+      "deleteConfirmBody": "Listing « {title} » will be permanently removed (offers, favorites, linked chat rooms). Closed or cancelled related transactions will also be purged. This cannot be undone.",
+      "deleteConfirmAction": "Delete permanently",
+      "deleteSuccess": "Listing deleted.",
+      "deleteError": "Could not delete listing.",
+      "deleteBlockedActiveTx": "An active marketplace transaction is in progress — close it before deleting the listing."
     },
     "listings": {
       "empty": "No listings.",

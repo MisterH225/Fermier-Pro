@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException
@@ -11,6 +12,7 @@ import {
   ListingStatus,
   ListingWeightBasis,
   LivestockExitKind,
+  MarketplaceTransactionStatus,
   OfferStatus,
   Prisma
 } from "@prisma/client";
@@ -1483,6 +1485,53 @@ export class ListingsService {
         seller: tx.seller
       }))
     };
+  }
+
+  private static readonly TERMINAL_TRANSACTION_STATUSES: MarketplaceTransactionStatus[] =
+    [
+      MarketplaceTransactionStatus.TRANSACTION_CLOSED,
+      MarketplaceTransactionStatus.CANCELLED_BY_BUYER,
+      MarketplaceTransactionStatus.CANCELLED_BY_SELLER,
+      MarketplaceTransactionStatus.CANCELLED_SOLD_TO_OTHER,
+      MarketplaceTransactionStatus.PAYMENT_FAILED,
+      MarketplaceTransactionStatus.OFFER_EXPIRED
+    ];
+
+  /** Suppression définitive d'une annonce par SuperAdmin (modération). */
+  async deleteForAdmin(listingId: string) {
+    const listing = await this.prisma.marketplaceListing.findUnique({
+      where: { id: listingId },
+      select: { id: true, title: true, sellerUserId: true }
+    });
+    if (!listing) {
+      throw new NotFoundException("Annonce introuvable");
+    }
+
+    const activeTransaction = await this.prisma.marketplaceTransaction.findFirst({
+      where: {
+        listingId,
+        status: { notIn: ListingsService.TERMINAL_TRANSACTION_STATUSES }
+      },
+      select: { id: true, status: true }
+    });
+    if (activeTransaction) {
+      throw new ConflictException(
+        `Impossible de supprimer : transaction en cours (${activeTransaction.status}). Clôturez ou annulez-la d'abord.`
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.marketplaceLifecycle.purgeListingsAfterFarmDelete(tx, [listingId]);
+    });
+
+    void this.push.sendToUser(
+      listing.sellerUserId,
+      "Annonce retirée",
+      `« ${listing.title} » a été supprimée par l'équipe Fermier Pro.`,
+      { type: "marketplace_listing_removed", listingId: listing.id }
+    );
+
+    return { ok: true as const, listingId: listing.id, title: listing.title };
   }
 
   private serializeListingScalars<

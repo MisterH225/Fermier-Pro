@@ -3,13 +3,17 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
+  ApiError,
+  deleteAdminMarketplaceListing,
   fetchAdminMarketplaceListingDetail,
   type AdminMarketplaceListingDetailDto
 } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
@@ -26,7 +30,32 @@ type Props = {
   token: string;
   listingId: string | null;
   onClose: () => void;
+  onDeleted?: () => void;
 };
+
+function parseApiErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof ApiError) {
+    try {
+      const parsed = JSON.parse(err.message) as { message?: string | string[] };
+      const msg = parsed.message;
+      if (Array.isArray(msg)) {
+        return msg.join(", ");
+      }
+      if (typeof msg === "string" && msg.trim()) {
+        return msg;
+      }
+    } catch {
+      // message brut
+    }
+    if (err.message.trim()) {
+      return err.message;
+    }
+  }
+  if (err instanceof Error && err.message.trim()) {
+    return err.message;
+  }
+  return fallback;
+}
 
 function money(v: number | null | undefined, currency: string): string {
   if (v == null || !Number.isFinite(v)) return "—";
@@ -54,16 +83,26 @@ function DetailField({ label, value }: { label: string; value: React.ReactNode }
   );
 }
 
-export function MarketplaceListingDetailDialog({ token, listingId, onClose }: Props) {
+export function MarketplaceListingDetailDialog({
+  token,
+  listingId,
+  onClose,
+  onDeleted
+}: Props) {
   const t = useTranslations("marketplace");
   const [detail, setDetail] = useState<AdminMarketplaceListingDetailDto | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!listingId) {
       setDetail(null);
       setError(null);
+      setConfirmOpen(false);
+      setDeleteError(null);
       return;
     }
     setLoading(true);
@@ -77,6 +116,22 @@ export function MarketplaceListingDetailDialog({ token, listingId, onClose }: Pr
       .finally(() => setLoading(false));
   }, [token, listingId, t]);
 
+  const handleDelete = async () => {
+    if (!listingId) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteAdminMarketplaceListing(token, listingId);
+      setConfirmOpen(false);
+      onClose();
+      onDeleted?.();
+    } catch (e) {
+      setDeleteError(parseApiErrorMessage(e, t("listingDetail.deleteError")));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const photos =
     detail?.photoUrls?.length
       ? detail.photoUrls
@@ -87,6 +142,7 @@ export function MarketplaceListingDetailDialog({ token, listingId, onClose }: Pr
           : [];
 
   return (
+    <>
     <Dialog open={Boolean(listingId)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
         <DialogHeader>
@@ -282,9 +338,62 @@ export function MarketplaceListingDetailDialog({ token, listingId, onClose }: Pr
                 </div>
               )}
             </section>
+
+            <DialogFooter className="flex-col gap-2 sm:flex-col sm:items-stretch">
+              {deleteError ? (
+                <p className="text-sm text-destructive">{deleteError}</p>
+              ) : null}
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => {
+                  setDeleteError(null);
+                  setConfirmOpen(true);
+                }}
+              >
+                {t("listingDetail.delete")}
+              </Button>
+            </DialogFooter>
           </div>
         ) : null}
       </DialogContent>
     </Dialog>
+
+    <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t("listingDetail.deleteConfirmTitle")}</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          {t("listingDetail.deleteConfirmBody", {
+            title: detail?.title ?? "—"
+          })}
+        </p>
+        {deleteError ? (
+          <p className="text-sm text-destructive">{deleteError}</p>
+        ) : null}
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setConfirmOpen(false)}
+            disabled={deleting}
+          >
+            {t("common.cancel", { defaultValue: "Annuler" })}
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => void handleDelete()}
+            disabled={deleting}
+          >
+            {deleting
+              ? t("loading")
+              : t("listingDetail.deleteConfirmAction")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

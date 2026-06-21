@@ -401,6 +401,11 @@ export class AdminPlatformController {
     return this.listings.getForAdmin(id);
   }
 
+  @Delete("marketplace/listings/:id")
+  adminDeleteListing(@Param("id") id: string) {
+    return this.listings.deleteForAdmin(id);
+  }
+
   @Get("marketplace/transactions")
   adminListTransactions(@Query("status") status?: string) {
     return this.marketplaceTransactions.listForAdmin(status);

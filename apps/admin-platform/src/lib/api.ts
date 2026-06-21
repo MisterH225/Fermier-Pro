@@ -554,6 +554,14 @@ export function fetchAdminMarketplaceListingDetail(token: string, id: string) {
   );
 }
 
+export function deleteAdminMarketplaceListing(token: string, listingId: string) {
+  return apiFetch<{ ok: true; listingId: string; title: string }>(
+    `/admin/marketplace/listings/${listingId}`,
+    token,
+    { method: "DELETE" }
+  );
+}
+
 export function fetchAdminMarketplaceTransactions(
   token: string,
   status?: string
