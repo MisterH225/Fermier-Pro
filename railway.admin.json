@@ -14,7 +14,7 @@
   },
   "deploy": {
     "startCommand": "node apps/admin-platform/scripts/start-admin.cjs",
-    "healthcheckPath": "/fr/login",
+    "healthcheckPath": "/api/health",
     "healthcheckTimeout": 180,
     "restartPolicyType": "ON_FAILURE",
     "sleepApplication": false,

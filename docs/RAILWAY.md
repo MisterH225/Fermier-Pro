@@ -74,7 +74,7 @@ Service **distinct** de l'API (`fermierapi-production`).
 3. **Settings → Config file path** : `railway.admin.json`
 4. **Watch patterns** (déjà dans le fichier) : `apps/admin-platform/**` — un merge admin déclenche ce service, pas l'API.
 5. Variables : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_ADMIN_URL`, etc.
-6. **Healthcheck** : `/fr/login` (page publique).
+6. **Healthcheck** : `/api/health` (JSON `{ "status": "ok" }`, hors auth/i18n).
 7. **Start** : `node apps/admin-platform/scripts/start-admin.cjs` (écoute `PORT` + `0.0.0.0`).
 8. **Serverless** : `sleepApplication: false` dans `railway.admin.json` — désactiver aussi dans Settings.
 
