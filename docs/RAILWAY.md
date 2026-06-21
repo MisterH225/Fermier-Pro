@@ -42,7 +42,7 @@ Si le déploiement échoue à l'étape **Network > Healthcheck** alors que le bu
 
 ## Admin sur Railway
 
-Service **distinct** de l'API (`fermierapi-production`).
+Service **distinct** de l'API (domaine public actuel : `fermierpro.up.railway.app`).
 
 1. Créer un second service dans le même projet Railway.
 2. **Root Directory** : racine du monorepo.
@@ -164,7 +164,7 @@ Le script `apps/api/scripts/railway-predeploy.cjs` (pre-deploy Railway) tente au
 
 ## API injoignable — mobile « Application failed to respond »
 
-Si `curl https://fermierapi-production.up.railway.app/api/v1/health` renvoie **502**, l'app mobile ne peut pas appeler `GET /auth/me` au démarrage.
+Si `curl https://fermierpro.up.railway.app/api/v1/health` renvoie **502**, l'app mobile ne peut pas appeler `GET /auth/me` au démarrage.
 
 ### Port public 3000 alors que l'API écoute sur 8080 (cause fréquente)
 
@@ -194,7 +194,7 @@ Les deux options fonctionnent tant que **target port du domaine = port d'écoute
 Vérification :
 
 ```bash
-curl -sS https://fermierapi-production.up.railway.app/api/v1/health
+curl -sS https://fermierpro.up.railway.app/api/v1/health
 # Attendu : {"service":"fermier-api","status":"ok",...}
 ```
 
