@@ -10,7 +10,7 @@
       "package.json",
       "package-lock.json"
     ],
-    "buildCommand": "echo \"[railway-build] GIT_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo unknown) v2\" && npm install --ignore-scripts --include=dev && PRISMA_GENERATE_SKIP_AUTOINSTALL=true npm run prisma:generate --workspace @fermier/api && npm run build --workspace @fermier/phone && npm run build:api"
+    "buildCommand": "echo \"[railway-build] GIT_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo unknown) RESTORE_API\" && npm install --ignore-scripts --include=dev && PRISMA_GENERATE_SKIP_AUTOINSTALL=true npm run prisma:generate --workspace @fermier/api && npm run build --workspace @fermier/phone && npm run build:api"
   },
   "deploy": {
     "preDeployCommand": "node apps/api/scripts/railway-predeploy.cjs",
