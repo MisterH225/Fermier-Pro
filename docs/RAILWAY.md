@@ -75,8 +75,9 @@ Service **distinct** de l'API (`fermierapi-production`).
 4. **Watch patterns** (déjà dans le fichier) : `apps/admin-platform/**` — un merge admin déclenche ce service, pas l'API.
 5. Variables : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_ADMIN_URL`, etc.
 6. **Healthcheck** : `/api/health` (JSON `{ "status": "ok" }`, hors auth/i18n).
-7. **Start** : `node apps/admin-platform/scripts/start-admin.cjs` (écoute `PORT` + `0.0.0.0`).
-8. **Serverless** : `sleepApplication: false` dans `railway.admin.json` — désactiver aussi dans Settings.
+7. **Start** : `node apps/admin-platform/scripts/start-admin.cjs` (écoute `PORT` puis `ADMIN_PORT`, défaut local **3001** ; hôte **0.0.0.0**).
+8. **Port** : aligner le **target port** du domaine public Railway sur le port des logs `[start-admin]` (souvent **8080**). Voir [Port admin](#port-public-3000-alors-que-ladmin-écoute-sur-8080-cause-fréquente).
+9. **Serverless** : `sleepApplication: false` dans `railway.admin.json` — désactiver aussi dans Settings.
 
 La PR #124 (middleware auth, `sharp`) ne concerne **que** ce service admin, pas `fermierapi-production`.
 
@@ -86,6 +87,7 @@ Symptômes : page Railway 502, titre **« VeltroVault Admin »**, ou JSON **`{"m
 
 | Vérification | Attendu (Fermier Pro admin) | Problème si… |
 |--------------|----------------------------|--------------|
+| `curl -s https://<admin>.up.railway.app/api/health` | `{"status":"ok","service":"fermier-admin"}` | **502** → port Networking ≠ `PORT` des logs ; **404** → mauvais build |
 | `curl -sI https://<admin>.up.railway.app/fr/login` | **200** (HTML Next.js) | **404** → mauvais build ou ancienne app |
 | `curl -s https://<admin>.up.railway.app/` | HTML (redirect ou login) | JSON `Cannot GET /` → **l'API NestJS** tourne sur l'URL admin |
 | `curl -s https://<admin>.up.railway.app/api/v1/health` | 404 HTML Next.js | `{"status":"ok"}` → **service API** branché sur le domaine admin |
@@ -103,6 +105,38 @@ Symptômes : page Railway 502, titre **« VeltroVault Admin »**, ou JSON **`{"m
 3. **Deploy latest** (pas « Redeploy » sur un vieux déploiement)
 4. Variables : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_ADMIN_URL=https://admin-platform-production.up.railway.app`
 5. Supabase → Redirect URLs : `https://admin-platform-production.up.railway.app/auth/callback`
+
+### Port public 3000 alors que l'admin écoute sur 8080 (cause fréquente)
+
+Même mécanisme que l'API (PR #125) : `start-admin.cjs` écoute **`process.env.PORT`** en priorité. Railway injecte souvent **8080** ; si le domaine public cible encore **3000**, le healthcheck et le navigateur reçoivent **502** (`Application failed to respond`, header `x-railway-fallback: true`) alors que les logs montrent un boot Next.js réussi.
+
+Symptômes :
+
+- Logs runtime : `[start-admin] Fermier Pro admin en écoute sur 0.0.0.0:8080`
+- `curl https://<admin>.up.railway.app/api/health` → **502** en ~150 ms
+- **Networking** → domaine public affiche **→ Port 3000**
+
+**Deux correctifs équivalents** (service **admin**, pas l'API) :
+
+| Option | Action | Résultat |
+|--------|--------|----------|
+| **A — garder le port 3000** | Variables → **`PORT=3000`** ; laisser le domaine public sur **3000** | Logs : `en écoute sur 0.0.0.0:3000` |
+| **B — suivre le PORT Railway** | Networking → modifier le domaine → target port **8080** (valeur des logs) | Pas de variable `PORT` à définir |
+
+Les deux options fonctionnent tant que **target port du domaine = port d'écoute de Next.js**.
+
+Vérification après alignement :
+
+```bash
+curl -sS https://admin-platform-production.up.railway.app/api/health
+# Attendu : {"status":"ok","service":"fermier-admin"}
+```
+
+| Cause | Logs Railway | Correctif |
+|-------|--------------|-----------|
+| **Target port ≠ PORT** (ex. domaine → 3000, Next → 8080) | `[start-admin]` OK, 502 immédiat | Option A : `PORT=3000` **ou** option B : domaine → **8080** |
+| Mauvais service (API au lieu de Next) | `[start-api]` ou JSON `Cannot GET /` | Config file path = `railway.admin.json` |
+| Ancien build (VeltroVault) | `/api/health` → 404, titre VeltroVault | **Deploy latest** depuis `main` |
 
 ## Railway ne déploie pas le dernier `main` (ex. PR #129)
 

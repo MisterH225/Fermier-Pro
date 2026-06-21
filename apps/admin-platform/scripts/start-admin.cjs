@@ -36,13 +36,36 @@ function loadDotenv(filePath) {
   }
 }
 
+function resolvePort() {
+  const raw = (process.env.PORT ?? process.env.ADMIN_PORT ?? "3001").trim();
+  const port = Number(raw);
+  if (!Number.isFinite(port) || port < 1 || port > 65535) {
+    console.error(
+      `[start-admin] PORT invalide : "${raw}" (attendu 1–65535, ou ADMIN_PORT en local)`
+    );
+    process.exit(1);
+  }
+  return port;
+}
+
 loadDotenv(path.join(monorepoRoot, ".env"));
 loadDotenv(path.join(adminRoot, ".env.local"));
 
-const port = process.env.PORT ?? "3001";
+const port = resolvePort();
 const host = "0.0.0.0";
 
-console.log(`[start-admin] Fermier Pro admin — écoute ${host}:${port}`);
+// Next lit aussi PORT ; évite un écart si la variable était vide ou mal formée.
+process.env.PORT = String(port);
+process.env.HOSTNAME = host;
+
+const publicDomain = (process.env.RAILWAY_PUBLIC_DOMAIN ?? "").trim();
+
+console.log(`[start-admin] Fermier Pro admin en écoute sur ${host}:${port}`);
+if (publicDomain) {
+  console.log(
+    `[start-admin] Domaine Railway : ${publicDomain} — Networking → target port = ${port}`
+  );
+}
 
 const nextBin = require.resolve("next/dist/bin/next", {
   paths: [adminRoot, monorepoRoot]
