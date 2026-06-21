@@ -10,12 +10,14 @@
       "package.json",
       "package-lock.json"
     ],
-    "buildCommand": "npm install --ignore-scripts && npm run build:admin"
+    "buildCommand": "echo \"[railway-admin-build] GIT_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo unknown)\" && npm install --ignore-scripts --include=dev && npm run build:admin"
   },
   "deploy": {
-    "startCommand": "npm run start --workspace @fermier/admin-platform",
-    "healthcheckPath": "/fr/login",
+    "startCommand": "node apps/admin-platform/scripts/start-admin.cjs",
+    "healthcheckPath": "/api/health",
     "healthcheckTimeout": 180,
-    "restartPolicyType": "ON_FAILURE"
+    "restartPolicyType": "ON_FAILURE",
+    "sleepApplication": false,
+    "numReplicas": 1
   }
 }
