@@ -66,6 +66,7 @@ export function CollaborationScreen({ farmId, farmName }: Props) {
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
       <TabSelector
+        testIDPrefix="com-tab"
         defaultTab="invite"
         tabs={[
           {

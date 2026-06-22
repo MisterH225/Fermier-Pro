@@ -652,6 +652,7 @@ export function SanteScreen({ route, navigation }: Props) {
     <MobileAppShell hideTopBar omitBottomTabBar={isProducer}>
       {readOnly ? <TechReadOnlyBanner /> : null}
       <TabSelector
+        testIDPrefix="sante-tab"
         activeTab={healthTab}
         onTabChange={(key) => setHealthTab(key as HealthScreenTab)}
         tabs={[

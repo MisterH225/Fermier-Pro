@@ -650,6 +650,7 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
       <View style={styles.root}>
         {buyerView ? (
           <TabSelector
+            testIDPrefix="market-tab"
             activeTab={marketTab}
             onTabChange={(key) => setMarketTab(key as MarketTab)}
             tabs={[
@@ -673,6 +674,7 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
           />
         ) : (
           <TabSelector
+            testIDPrefix="market-tab"
             activeTab={marketTab}
             onTabChange={(key) => setMarketTab(key as MarketTab)}
             tabs={[

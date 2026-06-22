@@ -987,6 +987,7 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
   return (
     <View style={styles.screenRoot}>
       <TabSelector
+        testIDPrefix="finance-tab"
         activeTab={financeTab}
         onTabChange={(key) => {
           setFinanceTab(

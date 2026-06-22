@@ -102,6 +102,7 @@ export function MainTabBar({
                 onPress={() => onTabPress(tab)}
                 accessibilityLabel={t(meta.labelKey)}
                 badgeCount={tab === "feed" ? feedBadgeCount : undefined}
+                testID={`main-tab-${tab}`}
               />
             );
           })}

@@ -11,6 +11,7 @@ type NavItemProps = {
   /** Réduit l’empreinte pour une pill basse (hauteur homogène avec le bouton +). */
   dense?: boolean;
   badgeCount?: number;
+  testID?: string;
 };
 
 export function NavItem({
@@ -20,7 +21,8 @@ export function NavItem({
   accessibilityLabel,
   label,
   dense,
-  badgeCount
+  badgeCount,
+  testID
 }: NavItemProps) {
   const scheme = useColorScheme();
   const dark = scheme === "dark";
@@ -42,6 +44,7 @@ export function NavItem({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
+      testID={testID}
       style={({ pressed }) => [hit, pressed && { opacity: 0.85 }]}
     >
       <View style={[wrap, active && { backgroundColor: activeBg }]}>

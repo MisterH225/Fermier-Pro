@@ -217,6 +217,7 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
         </View>
       ) : null}
       <TabSelector
+        testIDPrefix="cheptel-tab"
         activeTab={livestockTab}
         onTabChange={(k) => setLivestockTab(k as typeof livestockTab)}
         defaultTab="overview"
