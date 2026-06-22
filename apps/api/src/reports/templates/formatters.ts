@@ -1,7 +1,17 @@
+/** Formate un entier avec espaces ASCII (compatible pdfmake / Roboto). */
+export function formatNumberFr(amount: number): string {
+  const rounded = Math.round(amount);
+  if (!Number.isFinite(rounded)) return "0";
+  const negative = rounded < 0;
+  const digits = Math.abs(rounded).toString();
+  const grouped = digits.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return negative ? `-${grouped}` : grouped;
+}
+
 export function formatFcfa(amount: number | string | null | undefined): string {
   const n = Number(amount ?? 0);
   if (!Number.isFinite(n)) return "0 FCFA";
-  return `${Math.round(n).toLocaleString("fr-FR")} FCFA`;
+  return `${formatNumberFr(n)} FCFA`;
 }
 
 export function formatPct(value: number | null | undefined, digits = 1): string {

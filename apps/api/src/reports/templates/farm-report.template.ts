@@ -1,10 +1,12 @@
 import type { PdfContent, PdfDocumentDefinitions } from "./pdf-types";
 import {
+  buildAnalysisBlock,
   buildDataTable,
   buildDivider,
   buildInfographicBlock,
   buildKpiCard,
   buildKpiRow,
+  buildOwnerPortrait,
   buildPageFooter,
   buildProgressBar,
   buildRecommendationCard,
@@ -27,6 +29,18 @@ import {
 } from "./formatters";
 import type { FarmReportPdfContext } from "./farm-report.types";
 import { REPORT_COLORS, REPORT_MARGINS, REPORT_TYPO } from "./palette";
+import {
+  bankFinancialSummaryAnalysis,
+  bankGlobalRiskAnalysis,
+  bankRiskAxisAnalysis,
+  cheptelSectionAnalysis,
+  feedSectionAnalysis,
+  financeSectionAnalysis,
+  healthSectionAnalysis,
+  marketplaceSectionAnalysis,
+  predictionsSectionAnalysis,
+  profitabilitySectionAnalysis
+} from "./report-analysis";
 
 function fin(ctx: FarmReportPdfContext) {
   return (ctx.sections.finance ?? {}) as Record<string, unknown>;
@@ -85,12 +99,7 @@ function pageCover(ctx: FarmReportPdfContext): PdfContent[] {
     {
       margin: [0, 300, 0, 0],
       stack: [
-        {
-          canvas: [
-            { type: "ellipse", x: 277, y: 40, r1: 36, r2: 36, color: REPORT_COLORS.lightBg }
-          ]
-        },
-        { text: "🌾", fontSize: 28, alignment: "center", margin: [0, -52, 0, 8] },
+        buildOwnerPortrait(ctx.ownerAvatarDataUrl, ctx.ownerName, 72),
         { text: ctx.ownerName, fontSize: 18, bold: true, alignment: "center" },
         { text: ctx.farmName, fontSize: REPORT_TYPO.h2, alignment: "center", color: REPORT_COLORS.greyText, margin: [0, 4, 0, 0] },
         {
@@ -173,6 +182,10 @@ function pageFinance(ctx: FarmReportPdfContext): PdfContent[] {
 
   const left: PdfContent[] = [
     buildSectionHeader("Synthèse financière"),
+    buildAnalysisBlock(
+      financeSectionAnalysis(rev, exp, net, marginPct),
+      "Observation financière"
+    ),
     { svg: buildDualBarChartSvg(dualBarData, 280, 110), width: 280, margin: [0, 0, 0, 8] },
     buildKpiRow("Revenus totaux période", formatFcfa(rev), REPORT_COLORS.success),
     buildKpiRow("Dépenses totales période", formatFcfa(exp), REPORT_COLORS.danger),
@@ -238,6 +251,10 @@ function pageCheptelHealth(ctx: FarmReportPdfContext): PdfContent[] {
 
   const left: PdfContent[] = [
     buildSectionHeader("État du cheptel"),
+    buildAnalysisBlock(
+      cheptelSectionAnalysis(ctx.cheptelCategories.total, ctx.cheptelCategories.headcountDeltaPct),
+      "Observation cheptel"
+    ),
     {
       columns: [
         buildInfographicBlock("Total têtes", String(ctx.cheptelCategories.total)),
@@ -275,6 +292,14 @@ function pageCheptelHealth(ctx: FarmReportPdfContext): PdfContent[] {
   const topDiseases = (h.topDiseases ?? []) as Array<{ label: string; count: number }>;
   const right: PdfContent[] = [
     buildSectionHeader("Suivi sanitaire"),
+    buildAnalysisBlock(
+      healthSectionAnalysis(
+        mort,
+        Number(h.vaccineOverdueCount ?? 0),
+        ctx.scoreBreakdown
+      ),
+      "Observation sanitaire"
+    ),
     { svg: buildDonutSvg(healthDonut, 110), width: 110, alignment: "center", margin: [0, 0, 0, 8] },
     buildKpiRow("Traitements actifs", String(h.diseaseActive ?? 0)),
     buildKpiRow("Interventions vétérinaires", String(h.vetVisits ?? 0)),
@@ -318,6 +343,10 @@ function pageFeedPerformance(ctx: FarmReportPdfContext): PdfContent[] {
 
   const left: PdfContent[] = [
     buildSectionHeader("Gestion de l'alimentation"),
+    buildAnalysisBlock(
+      feedSectionAnalysis(ctx.feedExtended.stockDaysRemaining, ctx.feedExtended.stockAlertLevel),
+      "Observation alimentation"
+    ),
     buildProgressBar(stockDays, 30, stockColor, "Stock vs consommation mensuelle"),
     buildKpiRow("Coût alimentation période", formatFcfa(feedCost)),
     buildKpiRow(
@@ -352,6 +381,11 @@ function pageFeedPerformance(ctx: FarmReportPdfContext): PdfContent[] {
 
   const right: PdfContent[] = [
     buildSectionHeader("Score de la ferme"),
+    buildAnalysisBlock(
+      scoreInterpretation(ctx.scoreGlobal) +
+        ` — score global ${ctx.scoreGlobal}/100 (${ctx.scoreBand}).`,
+      "Observation performance"
+    ),
     { svg: buildGaugeSvg(ctx.scoreGlobal, 100, 140, REPORT_COLORS.primary), width: 140, alignment: "center", margin: [0, 0, 0, 8] },
     ...scoreCats.map((c) =>
       buildProgressBar(c.score, 100, REPORT_COLORS.primary, c.label)
@@ -388,6 +422,10 @@ function pageProfitability(ctx: FarmReportPdfContext): PdfContent[] {
 
   const left: PdfContent[] = [
     buildSectionHeader("Rentabilité sur la période", REPORT_COLORS.accent),
+    buildAnalysisBlock(
+      profitabilitySectionAnalysis(p.available, p.realized.netMarginPct),
+      "Observation rentabilité"
+    ),
     ...(p.available
       ? [
           buildKpiRow("Marge brute", p.realized.grossMargin != null ? formatFcfa(p.realized.grossMargin) : "—"),
@@ -504,6 +542,10 @@ function pagePredictions(ctx: FarmReportPdfContext): PdfContent[] {
 
   const left: PdfContent[] = [
     buildSectionHeader("Prévisions agent IA — Finance"),
+    buildAnalysisBlock(
+      predictionsSectionAnalysis(pred.available, pred.insufficientData),
+      "Observation prévisions"
+    ),
     ...(pred.available
       ? [
           ...(pred.generatedAt
@@ -585,6 +627,10 @@ function pageMarketplaceAi(ctx: FarmReportPdfContext): PdfContent[] {
 
   const left: PdfContent[] = [
     buildSectionHeader("Activité marketplace"),
+    buildAnalysisBlock(
+      marketplaceSectionAnalysis(mp.salesCount, mp.unsoldListingsCount),
+      "Observation marketplace"
+    ),
     buildKpiRow("Ventes période", `${mp.salesCount} · ${formatFcfa(mp.totalFcfa)}`),
     buildKpiRow(
       "Prix moyen / kg",
@@ -643,16 +689,39 @@ function pageBankScoring(ctx: FarmReportPdfContext): PdfContent[] {
   return [
     buildSectionHeader("Synthèse bancaire et évaluation de crédit", REPORT_COLORS.accent),
     {
-      text: "Document généré automatiquement par FermierPro — Données certifiées par la plateforme",
-      style: "small",
-      color: REPORT_COLORS.greyText,
+      columns: [
+        {
+          width: 80,
+          stack: [buildOwnerPortrait(ctx.ownerAvatarDataUrl, ctx.ownerName, 64)]
+        },
+        {
+          width: "*",
+          stack: [
+            {
+              text: "Document généré automatiquement par FermierPro — Données certifiées par la plateforme",
+              style: "small",
+              color: REPORT_COLORS.greyText
+            },
+            { text: ctx.ownerName, style: "h3", margin: [0, 4, 0, 0] },
+            { text: ctx.farmName, style: "small", color: REPORT_COLORS.greyText }
+          ]
+        }
+      ],
       margin: [0, 0, 0, 12]
     },
+    buildAnalysisBlock(
+      bankFinancialSummaryAnalysis(bs.avgMonthlyRevenue, net, bs.herdGrowthPct),
+      "Synthèse financière"
+    ),
     buildDataTable(
       ["Indicateur", "Valeur"],
       rows.map(([a, b]) => [a, b])
     ),
     { text: "Évaluation des risques", style: "h2", margin: [0, 12, 0, 8] },
+    buildAnalysisBlock(
+      bankGlobalRiskAnalysis(ctx.scoreGlobal, bs.riskLevel),
+      "Analyse globale"
+    ),
     {
       table: {
         widths: ["*", "auto"],
@@ -667,8 +736,20 @@ function pageBankScoring(ctx: FarmReportPdfContext): PdfContent[] {
       margin: [0, 0, 0, 8]
     },
     buildKpiRow("Risque sanitaire", `${bs.risqueSanitaire} / 100`),
+    buildAnalysisBlock(
+      bankRiskAxisAnalysis("sanitaire", bs.risqueSanitaire, ctx.scoreBreakdown),
+      "Observation sanitaire"
+    ),
     buildKpiRow("Risque financier", `${bs.risqueFinancier} / 100`),
+    buildAnalysisBlock(
+      bankRiskAxisAnalysis("financier", bs.risqueFinancier, ctx.scoreBreakdown),
+      "Observation financière"
+    ),
     buildKpiRow("Risque opérationnel", `${bs.risqueOperationnel} / 100`),
+    buildAnalysisBlock(
+      bankRiskAxisAnalysis("operationnel", bs.risqueOperationnel, ctx.scoreBreakdown),
+      "Observation opérationnelle"
+    ),
     buildDivider(),
     {
       columns: [

@@ -259,3 +259,81 @@ export function buildPageFooter(ref: string, generatedAt: string): PdfContent {
     margin: [0, 8, 0, 0]
   };
 }
+
+/** Bloc d'analyse / observation succincte sous une section. */
+export function buildAnalysisBlock(text: string, title = "Analyse et observation"): PdfContent {
+  return {
+    table: {
+      widths: ["*"],
+      body: [
+        [
+          {
+            stack: [
+              {
+                text: title,
+                style: "small",
+                bold: true,
+                color: REPORT_COLORS.primary,
+                margin: [0, 0, 0, 4]
+              },
+              { text, style: "small", color: REPORT_COLORS.accent }
+            ],
+            fillColor: REPORT_COLORS.lightBg,
+            margin: [8, 8, 8, 8]
+          }
+        ]
+      ]
+    },
+    layout: {
+      hLineWidth: () => 0.5,
+      vLineWidth: () => 0.5,
+      hLineColor: () => REPORT_COLORS.border,
+      vLineColor: () => REPORT_COLORS.border
+    },
+    margin: [0, 4, 0, 10]
+  };
+}
+
+/** Portrait exploitant (photo de profil ou initiale). */
+export function buildOwnerPortrait(
+  avatarDataUrl: string | null,
+  ownerName: string,
+  size = 72
+): PdfContent {
+  if (avatarDataUrl) {
+    return {
+      image: avatarDataUrl,
+      width: size,
+      height: size,
+      alignment: "center",
+      margin: [0, 0, 0, 8]
+    };
+  }
+  const initial = (ownerName.trim()[0] ?? "?").toUpperCase();
+  return {
+    table: {
+      widths: [size],
+      body: [
+        [
+          {
+            text: initial,
+            fontSize: 28,
+            bold: true,
+            color: REPORT_COLORS.primary,
+            alignment: "center",
+            fillColor: REPORT_COLORS.lightBg,
+            margin: [0, size / 2 - 14, 0, size / 2 - 14]
+          }
+        ]
+      ]
+    },
+    layout: {
+      hLineWidth: () => 1,
+      vLineWidth: () => 1,
+      hLineColor: () => REPORT_COLORS.border,
+      vLineColor: () => REPORT_COLORS.border
+    },
+    alignment: "center",
+    margin: [0, 0, 0, 8]
+  };
+}

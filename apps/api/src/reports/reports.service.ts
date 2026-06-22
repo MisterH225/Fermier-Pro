@@ -307,8 +307,26 @@ export class ReportsService {
     const row = await this.getReport(user, reportId);
     const farm = await this.prisma.farm.findUniqueOrThrow({
       where: { id: row.farmId },
-      include: { owner: { select: { fullName: true, firstName: true, lastName: true } } }
+      include: {
+        owner: {
+          select: {
+            fullName: true,
+            firstName: true,
+            lastName: true,
+            avatarUrl: true,
+            profiles: {
+              where: { type: "producer" },
+              select: { avatarUrl: true },
+              take: 1
+            }
+          }
+        }
+      }
     });
+    const ownerAvatarUrl =
+      farm.owner.profiles[0]?.avatarUrl?.trim() ||
+      farm.owner.avatarUrl?.trim() ||
+      null;
     const buffer = await this.pdf.renderFarmReportPdf({
       farmName: farm.name,
       ownerName:
@@ -316,6 +334,7 @@ export class ReportsService {
         [farm.owner.firstName, farm.owner.lastName].filter(Boolean).join(" ") ||
         "Producteur",
       address: farm.address,
+      ownerAvatarUrl,
       report: row
     });
     const safeFarm = farm.name

@@ -36,6 +36,7 @@ import type {
 } from "./templates/farm-report.types";
 import type { ScoreBreakdown } from "./reports-score.util";
 import { riskLevelLabel } from "./templates/formatters";
+import { fetchUrlAsDataUrl } from "./report-image.util";
 
 function normalizeScoreBreakdown(
   raw: Partial<ScoreBreakdown> | null | undefined,
@@ -80,6 +81,7 @@ export class ReportsPdfmakeService {
     farmName: string;
     ownerName: string;
     address: string | null;
+    ownerAvatarUrl: string | null;
     report: FarmReport;
   }): Promise<Buffer> {
     const snap = input.report.dataSnapshot as unknown as StoredReportSnapshot;
@@ -104,6 +106,8 @@ export class ReportsPdfmakeService {
         | undefined,
       scoreGlobal
     );
+
+    const ownerAvatarDataUrl = await fetchUrlAsDataUrl(input.ownerAvatarUrl);
 
     const ctx: FarmReportPdfContext = {
       farmName: input.farmName,
@@ -151,7 +155,8 @@ export class ReportsPdfmakeService {
       },
       profitability: snap.profitability ?? this.defaultProfitability(),
       predictions: snap.predictions ?? this.defaultPredictions(),
-      qrCodeDataUrl
+      qrCodeDataUrl,
+      ownerAvatarDataUrl
     };
 
     const docDefinition = buildFarmReportDocDefinition(ctx);

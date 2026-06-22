@@ -153,6 +153,8 @@ export type FarmReportPdfContext = {
   profitability: ReportProfitabilitySection;
   predictions: ReportPredictionsSection;
   qrCodeDataUrl: string | null;
+  /** Photo de profil exploitant (data URL base64 pour pdfmake). */
+  ownerAvatarDataUrl: string | null;
 };
 
 export type StoredReportSnapshot = {
