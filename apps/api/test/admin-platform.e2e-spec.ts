@@ -192,6 +192,41 @@ describeOrSkip("Console SuperAdmin API (e2e)", () => {
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.some((r: { userId: string }) => r.userId === ctx.userId)).toBe(true);
+    expect(res.body[0]).toMatchObject({
+      id: expect.any(String),
+      userId: expect.any(String),
+      email: expect.any(String),
+      createdAt: expect.any(String)
+    });
+  });
+
+  it("POST /admin/superadmins refuse un mot de passe trop court", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/admin/superadmins")
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        email: "new-admin-e2e@fermier.local",
+        password: "short"
+      });
+    expect(res.status).toBe(400);
+  });
+
+  it("POST /admin/superadmins refuse un email déjà administrateur", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/admin/superadmins")
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        email: "e2e-mobile-contract@fermier.local",
+        password: "ValidPass12345"
+      });
+    expect(res.status).toBe(409);
+  });
+
+  it("DELETE /admin/superadmins/:userId refuse l'auto-suppression", async () => {
+    const res = await request(app.getHttpServer())
+      .delete(`/api/v1/admin/superadmins/${ctx.userId}`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(res.status).toBe(403);
   });
 
   it("modération: avertir, suspendre, lever suspension", async () => {

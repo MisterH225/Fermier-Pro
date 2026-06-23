@@ -20,6 +20,7 @@ import {
   AdminAiAskDto,
   AdminAiLocaleDto,
   CreateSanitaryAlertDto,
+  CreateSuperAdminDto,
   RejectVetProfileAdminDto,
   UpdatePlatformSettingsDto
 } from "./dto/admin-platform.dto";
@@ -301,6 +302,22 @@ export class AdminPlatformController {
   @Get("superadmins")
   superAdmins() {
     return this.admin.listSuperAdmins();
+  }
+
+  @Post("superadmins")
+  createSuperAdmin(
+    @CurrentUser() user: User,
+    @Body() dto: CreateSuperAdminDto
+  ) {
+    return this.admin.createSuperAdmin(user, dto);
+  }
+
+  @Delete("superadmins/:userId")
+  removeSuperAdmin(
+    @CurrentUser() user: User,
+    @Param("userId") userId: string
+  ) {
+    return this.admin.removeSuperAdmin(user, userId);
   }
 
   @Get("ai/status")

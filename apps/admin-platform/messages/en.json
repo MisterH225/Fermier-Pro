@@ -464,6 +464,31 @@
       "tooShort": "Minimum 8 characters.",
       "mismatch": "Passwords do not match.",
       "error": "Could not update password."
+    },
+    "admins": {
+      "title": "Administrators",
+      "description": "Add administrator accounts by email. Each admin can change their initial password on this page.",
+      "listTitle": "Administrator accounts",
+      "empty": "No administrators registered.",
+      "addedAt": "Added on {date}",
+      "you": "You",
+      "remove": "Remove",
+      "removeConfirm": "Remove administrator rights for {email}?",
+      "addTitle": "Add an administrator",
+      "email": "Email",
+      "fullName": "Display name (optional)",
+      "fullNamePlaceholder": "First Last",
+      "defaultPassword": "Initial password",
+      "passwordPlaceholder": "At least 8 characters",
+      "passwordHint": "Share this password with the new admin; they can change it under “Console password”.",
+      "add": "Add administrator",
+      "added": "Administrator added.",
+      "removed": "Administrator removed.",
+      "loadError": "Could not load administrators.",
+      "emailRequired": "Email is required.",
+      "passwordTooShort": "Password must be at least 8 characters.",
+      "addError": "Could not add administrator.",
+      "removeError": "Could not remove administrator."
     }
   },
   "common": {

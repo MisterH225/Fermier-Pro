@@ -21,6 +21,71 @@ export class SupabaseAdminService {
     return Boolean(this.baseUrl && this.serviceRoleKey);
   }
 
+  private adminHeaders(): Record<string, string> {
+    const key = this.serviceRoleKey!;
+    return {
+      Authorization: `Bearer ${key}`,
+      apikey: key,
+      "Content-Type": "application/json"
+    };
+  }
+
+  /** Crée un utilisateur Supabase Auth (email confirmé). */
+  async createAuthUser(
+    email: string,
+    password: string
+  ): Promise<{ id: string; email: string }> {
+    const base = this.baseUrl;
+    if (!base || !this.serviceRoleKey) {
+      throw new Error("Supabase admin non configuré");
+    }
+    const res = await fetch(`${base}/auth/v1/admin/users`, {
+      method: "POST",
+      headers: this.adminHeaders(),
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+        password,
+        email_confirm: true
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(
+        `Supabase create user failed (${res.status}): ${text.slice(0, 300)}`
+      );
+    }
+    const body = (await res.json()) as { id?: string; email?: string };
+    if (!body.id) {
+      throw new Error("Supabase create user: réponse sans id");
+    }
+    return { id: body.id, email: body.email ?? email };
+  }
+
+  /** Met à jour le mot de passe d'un utilisateur Supabase Auth. */
+  async updateAuthUserPassword(
+    supabaseUserId: string,
+    password: string
+  ): Promise<void> {
+    const base = this.baseUrl;
+    if (!base || !this.serviceRoleKey) {
+      throw new Error("Supabase admin non configuré");
+    }
+    const res = await fetch(`${base}/auth/v1/admin/users/${supabaseUserId}`, {
+      method: "PUT",
+      headers: this.adminHeaders(),
+      body: JSON.stringify({
+        password,
+        email_confirm: true
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(
+        `Supabase update password failed (${res.status}): ${text.slice(0, 300)}`
+      );
+    }
+  }
+
   /** Supprime l'utilisateur Auth Supabase (déconnexion de tous les appareils). */
   async deleteAuthUser(supabaseUserId: string): Promise<void> {
     const base = this.baseUrl;

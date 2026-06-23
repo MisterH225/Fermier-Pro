@@ -466,6 +466,31 @@
       "tooShort": "Minimum 8 caractères.",
       "mismatch": "Les mots de passe ne correspondent pas.",
       "error": "Impossible de mettre à jour le mot de passe."
+    },
+    "admins": {
+      "title": "Administrateurs",
+      "description": "Ajoutez des comptes administrateur par email. Le mot de passe initial peut être modifié par chaque admin dans cette page.",
+      "listTitle": "Comptes administrateur",
+      "empty": "Aucun administrateur enregistré.",
+      "addedAt": "Ajouté le {date}",
+      "you": "Vous",
+      "remove": "Retirer",
+      "removeConfirm": "Retirer les droits administrateur de {email} ?",
+      "addTitle": "Ajouter un administrateur",
+      "email": "Email",
+      "fullName": "Nom affiché (optionnel)",
+      "fullNamePlaceholder": "Prénom Nom",
+      "defaultPassword": "Mot de passe initial",
+      "passwordPlaceholder": "Au moins 8 caractères",
+      "passwordHint": "Communiquez ce mot de passe au nouvel admin ; il pourra le changer dans « Mot de passe console ».",
+      "add": "Ajouter l'administrateur",
+      "added": "Administrateur ajouté.",
+      "removed": "Administrateur retiré.",
+      "loadError": "Impossible de charger la liste des administrateurs.",
+      "emailRequired": "L'email est obligatoire.",
+      "passwordTooShort": "Le mot de passe doit contenir au moins 8 caractères.",
+      "addError": "Impossible d'ajouter l'administrateur.",
+      "removeError": "Impossible de retirer l'administrateur."
     }
   },
   "modules": {

@@ -762,6 +762,37 @@ export function patchPlatformSettings(
   });
 }
 
+export type SuperAdminRowDto = {
+  id: string;
+  userId: string;
+  email: string | null;
+  fullName: string | null;
+  createdAt: string;
+  createdBy: string | null;
+};
+
+export function fetchSuperAdmins(token: string) {
+  return apiFetch<SuperAdminRowDto[]>("/admin/superadmins", token);
+}
+
+export function createSuperAdmin(
+  token: string,
+  body: { email: string; password: string; fullName?: string }
+) {
+  return apiFetch<SuperAdminRowDto>("/admin/superadmins", token, {
+    method: "POST",
+    body: JSON.stringify(body)
+  });
+}
+
+export function removeSuperAdmin(token: string, userId: string) {
+  return apiFetch<{ ok: boolean; removed: SuperAdminRowDto }>(
+    `/admin/superadmins/${encodeURIComponent(userId)}`,
+    token,
+    { method: "DELETE" }
+  );
+}
+
 export function fetchWalletFeeConfigs(token: string) {
   return apiFetch<WalletFeeConfigDto[]>("/admin/wallet/fees", token);
 }

@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AccountPasswordCard } from "@/components/settings/AccountPasswordCard";
+import { AdminsManagementCard } from "@/components/settings/AdminsManagementCard";
 import { WalletFeesPanel } from "@/components/settings/WalletFeesPanel";
 import { selectClass } from "@/lib/ui-styles";
 
@@ -108,6 +109,8 @@ export default function ParametresPage() {
       <PageHeader title={t("title")} />
 
       <AccountPasswordCard />
+
+      <AdminsManagementCard />
 
       <Card id="support">
         <CardHeader className="pb-2">

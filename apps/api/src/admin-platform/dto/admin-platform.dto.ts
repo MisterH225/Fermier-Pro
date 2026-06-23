@@ -1,4 +1,4 @@
-import { IsEnum, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
+import { IsEmail, IsEnum, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from "class-validator";
 import { SanitaryAlertLevel, SanitaryAlertType } from "@prisma/client";
 
 export class RejectVetProfileAdminDto {
@@ -132,4 +132,20 @@ export class CreateSanitaryAlertDto {
   @IsString()
   @MaxLength(4000)
   message!: string;
+}
+
+export class CreateSuperAdminDto {
+  @IsEmail()
+  @MaxLength(320)
+  email!: string;
+
+  @IsString()
+  @MinLength(8)
+  @MaxLength(128)
+  password!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  fullName?: string;
 }

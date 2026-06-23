@@ -1,6 +1,10 @@
 import {
   Injectable,
-  NotFoundException
+  ConflictException,
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+  ServiceUnavailableException
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
 import {
@@ -18,6 +22,7 @@ import { SupabaseAdminService } from "../auth/supabase-admin.service";
 import { VetsService } from "../vets/vets.service";
 import type {
   CreateSanitaryAlertDto,
+  CreateSuperAdminDto,
   UpdatePlatformSettingsDto
 } from "./dto/admin-platform.dto";
 import {
@@ -1119,7 +1124,7 @@ export class AdminPlatformService {
   }
 
   async listSuperAdmins() {
-    return this.prisma.superAdmin.findMany({
+    const rows = await this.prisma.superAdmin.findMany({
       include: {
         user: {
           select: {
@@ -1132,5 +1137,160 @@ export class AdminPlatformService {
       },
       orderBy: { createdAt: "desc" }
     });
+    return rows.map((row) => this.mapSuperAdminRow(row));
+  }
+
+  private mapSuperAdminRow(row: {
+    id: string;
+    userId: string;
+    createdBy: string | null;
+    createdAt: Date;
+    user: {
+      id: string;
+      fullName: string | null;
+      email: string | null;
+      createdAt: Date;
+    };
+  }) {
+    return {
+      id: row.id,
+      userId: row.userId,
+      email: row.user.email,
+      fullName: row.user.fullName,
+      createdAt: row.createdAt.toISOString(),
+      createdBy: row.createdBy
+    };
+  }
+
+  async createSuperAdmin(creator: User, dto: CreateSuperAdminDto) {
+    if (!this.supabaseAdmin.isConfigured()) {
+      throw new ServiceUnavailableException(
+        "Supabase admin non configuré (SUPABASE_SERVICE_ROLE_KEY)"
+      );
+    }
+
+    const email = dto.email.trim().toLowerCase();
+    const existingAdmin = await this.prisma.superAdmin.findFirst({
+      where: {
+        user: { email: { equals: email, mode: "insensitive" } }
+      }
+    });
+    if (existingAdmin) {
+      throw new ConflictException("Cet email est déjà administrateur");
+    }
+
+    const existingUser = await this.prisma.user.findFirst({
+      where: { email: { equals: email, mode: "insensitive" } },
+      include: { superAdmin: true }
+    });
+
+    if (existingUser?.superAdmin) {
+      throw new ConflictException("Cet utilisateur est déjà administrateur");
+    }
+
+    let userId = existingUser?.id;
+
+    try {
+      if (existingUser?.supabaseUserId) {
+        await this.supabaseAdmin.updateAuthUserPassword(
+          existingUser.supabaseUserId,
+          dto.password
+        );
+      } else {
+        const authUser = await this.supabaseAdmin.createAuthUser(
+          email,
+          dto.password
+        );
+        const fullName = dto.fullName?.trim() || null;
+        if (existingUser) {
+          const updated = await this.prisma.user.update({
+            where: { id: existingUser.id },
+            data: {
+              supabaseUserId: authUser.id,
+              email,
+              ...(fullName ? { fullName } : {})
+            }
+          });
+          userId = updated.id;
+        } else {
+          const created = await this.prisma.user.create({
+            data: {
+              supabaseUserId: authUser.id,
+              email,
+              fullName
+            }
+          });
+          userId = created.id;
+        }
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("already been registered") || msg.includes("422")) {
+        throw new ConflictException(
+          "Un compte existe déjà avec cet email. Contactez le support pour le lier."
+        );
+      }
+      throw new BadRequestException(
+        `Impossible de créer le compte administrateur : ${msg.slice(0, 200)}`
+      );
+    }
+
+    if (!userId) {
+      throw new BadRequestException("Utilisateur administrateur introuvable après création");
+    }
+
+    const row = await this.prisma.superAdmin.create({
+      data: {
+        userId,
+        createdBy: creator.id
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            createdAt: true
+          }
+        }
+      }
+    });
+
+    return this.mapSuperAdminRow(row);
+  }
+
+  async removeSuperAdmin(actor: User, targetUserId: string) {
+    if (actor.id === targetUserId) {
+      throw new ForbiddenException(
+        "Vous ne pouvez pas retirer vos propres droits administrateur"
+      );
+    }
+
+    const row = await this.prisma.superAdmin.findUnique({
+      where: { userId: targetUserId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            createdAt: true
+          }
+        }
+      }
+    });
+    if (!row) {
+      throw new NotFoundException("Administrateur introuvable");
+    }
+
+    const total = await this.prisma.superAdmin.count();
+    if (total <= 1) {
+      throw new ForbiddenException(
+        "Impossible de supprimer le dernier administrateur"
+      );
+    }
+
+    await this.prisma.superAdmin.delete({ where: { id: row.id } });
+    return { ok: true as const, removed: this.mapSuperAdminRow(row) };
   }
 }
