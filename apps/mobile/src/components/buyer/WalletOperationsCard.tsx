@@ -21,6 +21,7 @@ import {
   transferWalletFunds,
   type WalletTransferRecipientDto
 } from "../../lib/api";
+import { openPaymentCheckout } from "../../lib/paymentCheckout";
 import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 
@@ -67,11 +68,26 @@ export function WalletOperationsCard({
       if (!init.providerRef) {
         throw new Error(t("buyer.wallet.ops.topUpInvalid"));
       }
+      if (init.paymentUrl) {
+        await openPaymentCheckout(init.paymentUrl);
+        try {
+          return await confirmWalletTopUp(accessToken!, amount, init.providerRef);
+        } catch {
+          return { pendingExternalPayment: true as const };
+        }
+      }
       return confirmWalletTopUp(accessToken!, amount, init.providerRef);
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       setTopUpAmount("");
       invalidate();
+      if (result && "pendingExternalPayment" in result && result.pendingExternalPayment) {
+        Alert.alert(
+          t("buyer.wallet.ops.topUpPendingTitle"),
+          t("buyer.wallet.ops.topUpPendingBody")
+        );
+        return;
+      }
       Alert.alert(t("buyer.wallet.ops.topUpSuccessTitle"), t("buyer.wallet.ops.topUpSuccessBody"));
     },
     onError: (e: Error) => Alert.alert(t("common.error"), e.message)

@@ -12,6 +12,7 @@ import {
   MobileMoneyModule,
   MobileMoneyWebhookController
 } from "./escrow";
+import { GeniusPayWebhookController } from "./escrow/geniuspay/geniuspay-webhook.controller";
 import { ReceiptController, ReceiptCronService, ReceiptPdfService, ReceiptService, ReceiptVerifyController } from "./receipts";
 import { FarmRatingsController } from "./farm-ratings.controller";
 import { FarmRatingsService } from "./farm-ratings.service";
@@ -55,6 +56,7 @@ import { ListingAnimalSyncService } from "./listing-animal-sync.service";
     MarketplaceDisputesController,
     CreditOffersController,
     MobileMoneyWebhookController,
+    GeniusPayWebhookController,
     ReceiptController,
     ReceiptVerifyController
   ],

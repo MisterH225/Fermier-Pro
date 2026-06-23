@@ -1,0 +1,119 @@
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Headers,
+  Post
+} from "@nestjs/common";
+import { SkipThrottle } from "@nestjs/throttler";
+import { WalletRailsService } from "../../../wallet/wallet-rails.service";
+import { MarketplaceTransactionService } from "../marketplace-transaction.service";
+import {
+  GENIUSPAY_KIND_MARKETPLACE_ESCROW,
+  GENIUSPAY_KIND_WALLET_TOPUP,
+  type GeniusPayWebhookPayload
+} from "./geniuspay.types";
+import { verifyGeniusPayWebhookSignature } from "./geniuspay-webhook.util";
+
+/**
+ * Webhook GeniusPay (source de vérité asynchrone pour escrow marketplace et recharge wallet).
+ */
+@Controller("webhooks/geniuspay")
+@SkipThrottle()
+export class GeniusPayWebhookController {
+  constructor(
+    private readonly transactions: MarketplaceTransactionService,
+    private readonly walletRails: WalletRailsService
+  ) {}
+
+  @Post()
+  async handle(
+    @Headers("x-webhook-signature") signature: string | undefined,
+    @Headers("x-webhook-timestamp") timestamp: string | undefined,
+    @Headers("x-webhook-event") event: string | undefined,
+    @Body() body: GeniusPayWebhookPayload
+  ) {
+    verifyGeniusPayWebhookSignature({
+      signature,
+      timestamp,
+      payload: body,
+      secret: process.env.GENIUSPAY_WEBHOOK_SECRET
+    });
+
+    const webhookEvent = (event ?? body.event ?? "").trim();
+    const reference = body.data?.reference?.trim();
+    if (!reference) {
+      throw new BadRequestException("reference manquante");
+    }
+
+    if (webhookEvent === "webhook.test") {
+      return { ok: true, test: true };
+    }
+
+    const metadata = body.data?.metadata ?? {};
+    const kind = metadata.kind;
+    const amount = Number(body.data.amount);
+
+    if (webhookEvent === "payment.success") {
+      if (kind === GENIUSPAY_KIND_MARKETPLACE_ESCROW) {
+        const transactionId =
+          typeof metadata.transaction_id === "string"
+            ? metadata.transaction_id.trim()
+            : "";
+        if (!transactionId) {
+          throw new BadRequestException("transaction_id metadata manquant");
+        }
+        await this.transactions.confirmPaymentFromWebhook(
+          transactionId,
+          reference,
+          Number.isFinite(amount) ? amount : undefined,
+          body.data.currency
+        );
+        return { ok: true };
+      }
+
+      if (kind === GENIUSPAY_KIND_WALLET_TOPUP) {
+        const userId =
+          typeof metadata.user_id === "string" ? metadata.user_id.trim() : "";
+        if (!userId) {
+          throw new BadRequestException("user_id metadata manquant");
+        }
+        const grossAmount =
+          typeof metadata.amount === "string" || typeof metadata.amount === "number"
+            ? Number(metadata.amount)
+            : amount;
+        if (!Number.isFinite(grossAmount) || grossAmount <= 0) {
+          throw new BadRequestException("montant recharge invalide");
+        }
+        await this.walletRails.confirmTopUpFromWebhook(
+          userId,
+          grossAmount,
+          reference
+        );
+        return { ok: true };
+      }
+
+      return { ok: true, ignored: true, reason: "kind inconnu" };
+    }
+
+    if (
+      webhookEvent === "payment.failed" ||
+      webhookEvent === "payment.cancelled" ||
+      webhookEvent === "payment.expired"
+    ) {
+      if (kind === GENIUSPAY_KIND_MARKETPLACE_ESCROW) {
+        const transactionId =
+          typeof metadata.transaction_id === "string"
+            ? metadata.transaction_id.trim()
+            : "";
+        if (transactionId) {
+          await this.transactions.failPaymentFromWebhook(transactionId, reference);
+        }
+        return { ok: true };
+      }
+      return { ok: true, ignored: true };
+    }
+
+    return { ok: true, ignored: true, event: webhookEvent };
+  }
+}

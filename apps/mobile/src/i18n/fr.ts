@@ -425,6 +425,9 @@ export const fr = {
       paymentSuccessTitle: "Paiement confirmé",
       paymentSuccessBody:
         "Votre paiement est enregistré. Proposez une date de récupération au vendeur.",
+      paymentPendingTitle: "Paiement en cours",
+      paymentPendingBody:
+        "Finalisez le paiement dans le navigateur. La transaction sera mise à jour automatiquement une fois le paiement validé.",
       paymentErrorTitle: "Paiement impossible",
       pickupSection: "Rendez-vous de récupération",
       pickupDate: "Date de retrait",
@@ -3442,6 +3445,9 @@ export const fr = {
         topUpCta: "Recharger via mobile money",
         topUpSuccessTitle: "Recharge confirmée",
         topUpSuccessBody: "Votre solde a été crédité.",
+        topUpPendingTitle: "Recharge en cours",
+        topUpPendingBody:
+          "Finalisez le paiement dans le navigateur. Votre solde sera mis à jour automatiquement une fois le paiement validé.",
         topUpInvalid: "Impossible de finaliser la recharge",
         withdraw: "Retirer",
         withdrawCta: "Retirer vers mobile money",

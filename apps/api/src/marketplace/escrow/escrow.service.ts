@@ -33,13 +33,17 @@ export class EscrowService {
     currency: string,
     label: string,
     options?: HoldFundsOptions
-  ): Promise<{ providerRef: string; paymentMethod: MarketplacePaymentMethod }> {
+  ): Promise<{
+    providerRef: string;
+    paymentMethod: MarketplacePaymentMethod;
+    paymentUrl?: string | null;
+  }> {
     const method = options?.paymentMethod ?? MarketplacePaymentMethod.mobile_money;
 
     if (method === MarketplacePaymentMethod.wallet) {
       await this.userWallet.assertSufficientBalance(buyerUserId, amount);
       const providerRef = this.userWallet.walletPendingRef(transactionId);
-      return { providerRef, paymentMethod: method };
+      return { providerRef, paymentMethod: method, paymentUrl: null };
     }
 
     const init = await this.gateway.initiatePayment({
@@ -59,7 +63,8 @@ export class EscrowService {
     );
     return {
       providerRef: init.providerRef,
-      paymentMethod: MarketplacePaymentMethod.mobile_money
+      paymentMethod: MarketplacePaymentMethod.mobile_money,
+      paymentUrl: init.paymentUrl ?? null
     };
   }
 
