@@ -15,7 +15,7 @@ npm run prisma:generate
 
 if [[ -f .env ]] && command -v docker >/dev/null 2>&1; then
   if docker compose ps postgres 2>/dev/null | grep -qE 'Up|running'; then
-    npm run prisma:push --workspace @fermier/api
+    npm run prisma:migrate:deploy --workspace @fermier/api
   fi
 fi
 
