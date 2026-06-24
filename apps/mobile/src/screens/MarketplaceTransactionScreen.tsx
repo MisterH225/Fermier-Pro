@@ -51,6 +51,7 @@ import {
   marketplaceActionErrorMessage,
   projectMarketplaceFinalAmount
 } from "../lib/marketplaceLabels";
+import { openPaymentCheckout } from "../lib/paymentCheckout";
 import { fromIsoDateString, startOfDay } from "../lib/appDate";
 import {
   mobileColors,
@@ -158,6 +159,19 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         activeProfileId,
         paymentMethod
       );
+      if (init.paymentUrl && paymentMethod === "mobile_money") {
+        await openPaymentCheckout(init.paymentUrl);
+        try {
+          return await confirmMarketplacePayment(
+            accessToken,
+            transactionId,
+            init.providerRef,
+            activeProfileId
+          );
+        } catch {
+          return { pendingExternalPayment: true as const };
+        }
+      }
       return confirmMarketplacePayment(
         accessToken,
         transactionId,
@@ -165,8 +179,15 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         activeProfileId
       );
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       invalidate();
+      if (result && "pendingExternalPayment" in result && result.pendingExternalPayment) {
+        Alert.alert(
+          t("marketScreen.transaction.paymentPendingTitle"),
+          t("marketScreen.transaction.paymentPendingBody")
+        );
+        return;
+      }
       Alert.alert(
         t("marketScreen.transaction.paymentSuccessTitle"),
         t("marketScreen.transaction.paymentSuccessBody")

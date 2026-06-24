@@ -58,6 +58,25 @@ export class WalletRailsService {
     };
   }
 
+  /** Confirmation asynchrone via webhook GeniusPay (sans JWT utilisateur). */
+  async confirmTopUpFromWebhook(
+    userId: string,
+    amount: number,
+    providerRef: string
+  ) {
+    const existing = await this.prisma.userWalletEntry.findUnique({
+      where: { idempotencyKey: `topup:${providerRef}` }
+    });
+    if (existing) {
+      return { ok: true, idempotent: true };
+    }
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new BadRequestException("Utilisateur introuvable");
+    }
+    return this.confirmTopUp(user, amount, providerRef);
+  }
+
   async confirmTopUp(user: User, amount: number, providerRef: string) {
     const feeBreakdown = await this.fees.calculateFee(
       WalletFeeTransactionType.deposit,

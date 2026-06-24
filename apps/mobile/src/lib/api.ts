@@ -5378,12 +5378,14 @@ export function initiateMarketplacePayment(
   amount: number;
   currency: string;
   paymentMethod?: string;
+  paymentUrl?: string | null;
 }> {
   return apiPostJson<{
     providerRef: string;
     amount: number;
     currency: string;
     paymentMethod?: string;
+    paymentUrl?: string | null;
   }>(
     `/marketplace/transactions/${transactionId}/payment/initiate`,
     paymentMethod ? { paymentMethod } : {},

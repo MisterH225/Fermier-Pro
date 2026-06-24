@@ -1,5 +1,8 @@
 import { Module } from "@nestjs/common";
+import { PrismaModule } from "../../prisma/prisma.module";
 import { DevMobileMoneyGateway } from "./dev-mobile-money.gateway";
+import { GeniusPayClient } from "./geniuspay/geniuspay.client";
+import { GeniusPayMobileMoneyGateway } from "./geniuspay/geniuspay-mobile-money.gateway";
 import { MOBILE_MONEY_GATEWAY } from "./mobile-money.gateway";
 import {
   mobileMoneyGatewayGuardProvider,
@@ -16,11 +19,19 @@ import {
  *   pour brancher un provider réel sans modifier les consommateurs.
  */
 @Module({
+  imports: [PrismaModule],
   providers: [
     DevMobileMoneyGateway,
+    GeniusPayClient,
+    GeniusPayMobileMoneyGateway,
     mobileMoneyGatewayProvider,
     mobileMoneyGatewayGuardProvider
   ],
-  exports: [DevMobileMoneyGateway, MOBILE_MONEY_GATEWAY]
+  exports: [
+    DevMobileMoneyGateway,
+    GeniusPayClient,
+    GeniusPayMobileMoneyGateway,
+    MOBILE_MONEY_GATEWAY
+  ]
 })
 export class MobileMoneyModule {}

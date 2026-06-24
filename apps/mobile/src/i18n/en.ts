@@ -424,6 +424,9 @@ export const en = {
       paymentSuccessTitle: "Payment confirmed",
       paymentSuccessBody:
         "Your payment is recorded. Coordinate delivery with the seller.",
+      paymentPendingTitle: "Payment in progress",
+      paymentPendingBody:
+        "Complete the payment in your browser. The transaction will update automatically once payment is validated.",
       paymentErrorTitle: "Payment failed",
       pickupSection: "Pickup appointment",
       pickupDate: "Pickup date",
@@ -3392,6 +3395,9 @@ export const en = {
         topUpCta: "Top up via mobile money",
         topUpSuccessTitle: "Top-up confirmed",
         topUpSuccessBody: "Your balance has been credited.",
+        topUpPendingTitle: "Top-up in progress",
+        topUpPendingBody:
+          "Complete the payment in your browser. Your balance will update automatically once payment is validated.",
         topUpInvalid: "Could not complete top-up",
         withdraw: "Withdraw",
         withdrawCta: "Withdraw to mobile money",

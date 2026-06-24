@@ -621,7 +621,8 @@ export class MarketplaceTransactionService {
       providerRef: hold.providerRef,
       amount,
       currency: tx.currency,
-      paymentMethod: hold.paymentMethod
+      paymentMethod: hold.paymentMethod,
+      paymentUrl: hold.paymentUrl ?? null
     };
   }
 
