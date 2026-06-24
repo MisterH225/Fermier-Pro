@@ -19,14 +19,20 @@ SUPABASE_JWT_SECRET=<optionnel, tests e2e HS256 uniquement>
 1. **Authentication -> Providers**
    - **Google** : activer, renseigner Client ID / Secret (console Google Cloud OAuth).
    - **Apple** : activer pour *Sign in with Apple* (compte developpeur Apple, Service ID, cle privee).
-   - **Phone** : activer ; configurer un fournisseur SMS (selon region).
+   - **Phone** : activer. Pour **Yellika SMS** (recommandé CI), utiliser le hook **Send SMS** HTTP (voir section ci-dessous) plutôt que le fournisseur SMS intégré Supabase.
 
-2. **Authentication -> URL configuration** (indispensable pour Google sur téléphone)
+2. **Authentication -> Hooks -> Send SMS** (Yellika SMS)
+   - Type : **HTTP**
+   - URL : `https://<votre-api>/api/v1/webhooks/supabase/send-sms`
+   - Secret : copier la valeur `v1,whsec_...` dans `SUPABASE_SEND_SMS_HOOK_SECRET` (API Railway)
+   - Supabase génère l'OTP ; l'API Nest l'envoie via Yellika (`POST /api/v3/sms/send`)
+
+3. **Authentication -> URL configuration** (indispensable pour Google sur téléphone)
    - **Site URL** : l’URL `exp://<IP-LAN>:8081/--/auth/callback` affichée sur l’écran de connexion mobile (Expo Go), ou `fermier-pro://auth/callback` en build natif. **Ne pas** laisser `http://localhost:3000` si tu testes sur iPhone physique — Safari tentera d’ouvrir localhost sur le téléphone et échouera.
    - **Redirect URLs** : ajouter **exactement** la même URL (bouton « Add URL »). Sans cela, Supabase retombe sur Site URL (souvent localhost).
    - Tu peux garder `http://localhost:3000` en Redirect URL **en plus** si tu développes aussi une app web.
 
-3. **Ne pas** s'appuyer sur `user_metadata` pour des decisions d'autorisation sensibles cote RLS : preferer `app_metadata` pour les roles serveur. Ici Nest synchronise seulement profil basique (email, telephone, nom) dans la table `User` Prisma.
+4. **Ne pas** s'appuyer sur `user_metadata` pour des decisions d'autorisation sensibles cote RLS : preferer `app_metadata` pour les roles serveur. Ici Nest synchronise seulement profil basique (email, telephone, nom) dans la table `User` Prisma.
 
 ## Storage (photos mobile)
 
@@ -57,7 +63,7 @@ Alternative manuelle : **Storage → New bucket** → nom `avatars`, cocher **Pu
 - **OTP SMS dans l app** : ecran `PhoneOtpAuth` (`signInWithOtp` + `verifyOtp`, format E.164 obligatoire).
 - **Google** : `signInWithOAuth` + `WebBrowser.openAuthSessionAsync`, puis `setSession` avec les jetons dans l’URL de retour (flux **implicit** sur mobile, voir `googleAuth.ts` — pas de `exchangeCodeForSession` / PKCE sur téléphone).
 - **Apple** : `signInWithOAuth({ provider: 'apple', ... })` sur iOS.
-- **Telephone** : `signInWithOtp({ phone, options: { channel: 'sms' } })` puis verification du code.
+- **Telephone** : `signInWithOtp({ phone, options: { channel: 'sms' } })` puis verification du code. L'envoi SMS passe par le hook **Send SMS** → **Yellika SMS** si configure (variables `YELLIKA_SMS_*` + `SUPABASE_SEND_SMS_HOOK_SECRET`).
 
 Apres `session.access_token`, appeler :
 
@@ -66,7 +72,7 @@ GET /api/v1/auth/me
 Authorization: Bearer <access_token>
 ```
 
-La premiere requete cree ou met a jour l'utilisateur Prisma (`supabaseUserId` = `sub` du JWT) et assure un **profil acheteur** (`buyer`) : cree si absent (voir `AuthService.ensureDefaultBuyerProfile`).
+La premiere requete cree ou met a jour l'utilisateur Prisma (`supabaseUserId` = `sub` du JWT). **Aucun profil n'est cree automatiquement** : le mobile affiche `FirstConnectionProfileScreen` puis `POST /profiles`.
 
 ## Producteur et marketplace
 

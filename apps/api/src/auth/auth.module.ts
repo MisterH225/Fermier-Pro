@@ -6,6 +6,8 @@ import { PushNotificationsModule } from "../push-notifications/push-notification
 import { AccountDeletionService } from "./account-deletion.service";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
+import { SupabaseSendSmsWebhookController } from "./sms/supabase-send-sms-webhook.controller";
+import { YellikaSmsClient } from "./sms/yellika-sms.client";
 import { OptionalActiveProfileGuard } from "./guards/optional-active-profile.guard";
 import { ActiveProfileGuard } from "./guards/active-profile.guard";
 import { ProducerProfileGuard } from "./guards/producer-profile.guard";
@@ -19,11 +21,12 @@ import { SupabaseJwtGuard } from "./guards/supabase-jwt.guard";
     forwardRef(() => CguModule),
     forwardRef(() => FarmDataPurgeModule)
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, SupabaseSendSmsWebhookController],
   providers: [
     AuthService,
     AccountDeletionService,
     SupabaseAdminService,
+    YellikaSmsClient,
     SupabaseJwtGuard,
     OptionalActiveProfileGuard,
     ActiveProfileGuard,

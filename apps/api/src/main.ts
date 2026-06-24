@@ -27,7 +27,8 @@ async function bootstrap() {
     : ["error", "warn", "log", "debug", "verbose"];
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    logger: logLevels
+    logger: logLevels,
+    rawBody: true
   });
   /** Express 5 : parser simple par defaut ; conserver le comportement type qs (objets / tableaux). */
   app.set("query parser", "extended");
