@@ -1,9 +1,9 @@
 import {
-  BadGatewayException,
   Injectable,
   Logger,
   ServiceUnavailableException
 } from "@nestjs/common";
+import { YellikaSmsSendError } from "./yellika-sms.errors";
 import type {
   YellikaSmsSendRequest,
   YellikaSmsSendResponse
@@ -43,7 +43,10 @@ export class YellikaSmsClient {
   formatRecipient(e164Phone: string): string {
     const digits = e164Phone.replace(/\D/g, "");
     if (digits.length < 8 || digits.length > 15) {
-      throw new BadGatewayException("Numéro de téléphone invalide pour Yellika SMS");
+      throw new YellikaSmsSendError(
+        "Numéro de téléphone invalide pour Yellika SMS",
+        false
+      );
     }
     return digits;
   }
@@ -71,28 +74,50 @@ export class YellikaSmsClient {
       });
     } catch (err) {
       this.log.error(`Yellika SMS réseau: ${String(err)}`);
-      throw new BadGatewayException("Yellika SMS injoignable");
+      throw new YellikaSmsSendError("Yellika SMS injoignable", true);
     }
 
+    const rawText = await res.text();
     let json: YellikaSmsSendResponse | null = null;
-    try {
-      json = (await res.json()) as YellikaSmsSendResponse;
-    } catch {
-      if (!res.ok) {
-        throw new BadGatewayException(`Yellika SMS HTTP ${res.status}`);
+    if (rawText.trim()) {
+      try {
+        json = JSON.parse(rawText) as YellikaSmsSendResponse;
+      } catch {
+        json = null;
       }
-      return;
     }
+
+    const providerMessage =
+      json?.message ??
+      json?.error ??
+      (rawText.trim().slice(0, 300) || `HTTP ${res.status}`);
 
     if (!res.ok) {
-      const msg =
-        json?.message ?? json?.error ?? `Yellika SMS HTTP ${res.status}`;
-      this.log.warn(`Yellika SMS échec: ${msg}`);
-      throw new BadGatewayException(msg);
+      this.log.warn(`Yellika SMS HTTP ${res.status}: ${providerMessage}`);
+      throw new YellikaSmsSendError(providerMessage, res.status >= 500);
     }
 
-    this.log.debug(
-      `SMS envoyé via Yellika recipient=${body.recipient} status=${json?.status ?? "ok"}`
-    );
+    const status = (json?.status ?? "").trim().toLowerCase();
+    if (status === "error" || status === "failed" || status === "fail") {
+      const retryable = !isNonRetryableYellikaError(providerMessage);
+      this.log.warn(`Yellika SMS refusé: ${providerMessage}`);
+      throw new YellikaSmsSendError(providerMessage, retryable);
+    }
+
+    this.log.log(`SMS Yellika accepté recipient=${body.recipient}`);
   }
+}
+
+function isNonRetryableYellikaError(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    m.includes("unauthenticated") ||
+    m.includes("unauthorized") ||
+    m.includes("invalid token") ||
+    m.includes("sender") ||
+    m.includes("sender_id") ||
+    m.includes("insufficient") ||
+    m.includes("balance") ||
+    m.includes("credit")
+  );
 }
