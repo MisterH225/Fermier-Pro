@@ -27,6 +27,8 @@ SUPABASE_JWT_SECRET=<optionnel, tests e2e HS256 uniquement>
    - Secret : copier la valeur `v1,whsec_...` dans `SUPABASE_SEND_SMS_HOOK_SECRET` (API Railway)
    - Supabase génère l'OTP ; l'API Nest l'envoie via Yellika (`POST /api/v3/sms/send`)
 - Le webhook doit répondre **HTTP 200** (Nest renvoie 201 par défaut sur POST sans `@HttpCode(200)`)
+- En cas d'échec Yellika, l'API répond **503** (jamais 502) — vérifier `YELLIKA_SMS_API_TOKEN` et `YELLIKA_SMS_SENDER_ID` sur Railway
+- Yellika renvoie souvent HTTP 200 avec `{"status":"error","message":"..."}` (ex. token invalide → `Unauthenticated.`)
 
 3. **Authentication -> URL configuration** (indispensable pour Google sur téléphone)
    - **Site URL** : l’URL `exp://<IP-LAN>:8081/--/auth/callback` affichée sur l’écran de connexion mobile (Expo Go), ou `fermier-pro://auth/callback` en build natif. **Ne pas** laisser `http://localhost:3000` si tu testes sur iPhone physique — Safari tentera d’ouvrir localhost sur le téléphone et échouera.

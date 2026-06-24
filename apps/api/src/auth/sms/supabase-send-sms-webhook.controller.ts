@@ -1,5 +1,4 @@
 import {
-  BadGatewayException,
   BadRequestException,
   Controller,
   Headers,
@@ -8,14 +7,18 @@ import {
   HttpStatus,
   Logger,
   Post,
-  Req
+  Req,
+  Res,
+  ServiceUnavailableException,
+  UnauthorizedException
 } from "@nestjs/common";
 import { SkipThrottle } from "@nestjs/throttler";
-import type { Request } from "express";
+import type { Request, Response } from "express";
 import {
   buildOtpSmsMessage,
   verifySupabaseSendSmsHook
 } from "./supabase-send-sms-webhook.util";
+import { YellikaSmsSendError } from "./yellika-sms.errors";
 import { YellikaSmsClient } from "./yellika-sms.client";
 
 type RawBodyRequest = Request & { rawBody?: Buffer };
@@ -37,6 +40,7 @@ export class SupabaseSendSmsWebhookController {
   @HttpCode(HttpStatus.OK)
   async handleSendSms(
     @Req() req: RawBodyRequest,
+    @Res({ passthrough: true }) res: Response,
     @Headers() headers: Record<string, string | string[] | undefined>
   ) {
     const rawBody = req.rawBody;
@@ -44,7 +48,16 @@ export class SupabaseSendSmsWebhookController {
       throw new BadRequestException("Corps webhook manquant");
     }
 
-    const event = verifySupabaseSendSmsHook(rawBody, headers);
+    let event;
+    try {
+      event = verifySupabaseSendSmsHook(rawBody, headers);
+    } catch (err) {
+      if (err instanceof UnauthorizedException) {
+        throw err;
+      }
+      throw err;
+    }
+
     const phone = event.user?.phone?.trim();
     const otp = event.sms?.otp?.trim();
     if (!phone) {
@@ -58,26 +71,55 @@ export class SupabaseSendSmsWebhookController {
       await this.yellika.sendPlainText(phone, buildOtpSmsMessage(otp));
       return {};
     } catch (err) {
-      if (err instanceof HttpException) {
-        const status = err.getStatus();
-        if (status === 502 || status === 503) {
-          this.log.warn(`Yellika indisponible pour ${phone}: ${err.message}`);
-          throw new BadGatewayException({
+      if (err instanceof ServiceUnavailableException) {
+        this.log.error(`Config Yellika manquante: ${err.message}`);
+        throw new HttpException(
+          {
             error: {
               http_code: 503,
-              message: "Fournisseur SMS temporairement indisponible"
+              message: err.message
             }
-          });
-        }
-        throw err;
+          },
+          HttpStatus.SERVICE_UNAVAILABLE
+        );
       }
-      this.log.error(`Send SMS hook échec: ${String(err)}`);
-      throw new BadGatewayException({
-        error: {
-          http_code: 500,
-          message: "Échec envoi SMS OTP"
+
+      if (err instanceof YellikaSmsSendError) {
+        this.log.error(`Yellika SMS échec (${phone.slice(0, 6)}…): ${err.message}`);
+        if (err.retryable) {
+          res.setHeader("Retry-After", "true");
+          throw new HttpException(
+            {
+              error: {
+                http_code: 503,
+                message: `Échec envoi SMS: ${err.message}`
+              }
+            },
+            HttpStatus.SERVICE_UNAVAILABLE
+          );
         }
-      });
+        throw new HttpException(
+          {
+            error: {
+              http_code: 400,
+              message: `Configuration SMS invalide: ${err.message}`
+            }
+          },
+          HttpStatus.BAD_REQUEST
+        );
+      }
+
+      this.log.error(`Send SMS hook échec: ${String(err)}`);
+      res.setHeader("Retry-After", "true");
+      throw new HttpException(
+        {
+          error: {
+            http_code: 503,
+            message: "Échec envoi SMS OTP"
+          }
+        },
+        HttpStatus.SERVICE_UNAVAILABLE
+      );
     }
   }
 }
