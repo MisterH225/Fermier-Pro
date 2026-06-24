@@ -3,7 +3,9 @@ import {
   BadRequestException,
   Controller,
   Headers,
+  HttpCode,
   HttpException,
+  HttpStatus,
   Logger,
   Post,
   Req
@@ -32,6 +34,7 @@ export class SupabaseSendSmsWebhookController {
   constructor(private readonly yellika: YellikaSmsClient) {}
 
   @Post("send-sms")
+  @HttpCode(HttpStatus.OK)
   async handleSendSms(
     @Req() req: RawBodyRequest,
     @Headers() headers: Record<string, string | string[] | undefined>
