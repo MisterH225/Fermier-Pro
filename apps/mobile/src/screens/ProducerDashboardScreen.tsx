@@ -17,7 +17,7 @@ import { MobileAppShell } from "../components/layout";
 import { FarmDashboardAISection } from "../components/ai/FarmModuleAISection";
 import { NotificationsHeaderButton } from "../components/notifications/NotificationsHeaderButton";
 
-import { FeedStockLevelGauge, dashboardFeedItemToGauge } from "../components/feed";
+import { FeedStockLevelGauge, dashboardFeedItemEligibleForGauge, dashboardFeedItemToGauge } from "../components/feed";
 import { FinanceOverviewKpiGrid } from "../components/finance/FinanceOverviewKpiGrid";
 import { RentabilityHeroCard } from "../components/profitability/RentabilityHeroCard";
 import { CategoryBreakdownPanel } from "../components/cheptel/overview/CategoryBreakdownPanel";
@@ -742,7 +742,7 @@ function FeedStockCard({
       </CardShell>
     );
   }
-  const list = items ?? [];
+  const list = (items ?? []).filter(dashboardFeedItemEligibleForGauge);
   if (list.length === 0) {
     return (
       <CardShell emoji="🌾" title={title} onPress={onPress}>

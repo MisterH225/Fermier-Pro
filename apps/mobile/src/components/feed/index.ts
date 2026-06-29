@@ -6,8 +6,10 @@ export {
   type FeedStockGaugeStatus
 } from "./feedStockGaugeUtils";
 export {
+  dashboardFeedItemEligibleForGauge,
   dashboardFeedItemToGauge,
   farmFeedStatToGauge,
+  feedStatEligibleForGauge,
   type FeedStockGaugeViewModel
 } from "./feedStockGaugeView";
 export { StockModal } from "./StockModal";

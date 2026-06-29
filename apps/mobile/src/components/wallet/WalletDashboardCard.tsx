@@ -214,7 +214,7 @@ export function WalletDashboardCard({
             pressed && styles.dockBtnPressed
           ]}
         >
-          <Ionicons name="add" size={26} color={mobileColors.textPrimary} />
+          <Ionicons name="add" size={22} color={mobileColors.textPrimary} />
         </Pressable>
 
         <Pressable
@@ -246,14 +246,14 @@ const DOCK_SQUARE = "#E8E8ED";
 const styles = StyleSheet.create({
   wrap: {
     width: "100%",
-    gap: mobileSpacing.sm
+    gap: mobileSpacing.xs
   },
   balanceCard: {
     backgroundColor: CARD_BG,
-    borderRadius: 28,
-    paddingTop: mobileSpacing.lg,
-    paddingHorizontal: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xl + 4,
+    borderRadius: 22,
+    paddingTop: mobileSpacing.md,
+    paddingHorizontal: mobileSpacing.md,
+    paddingBottom: mobileSpacing.lg,
     alignItems: "center",
     position: "relative",
     ...mobileShadows.card
@@ -270,10 +270,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     backgroundColor: "#1A1A1A",
-    paddingVertical: 6,
-    paddingHorizontal: 14,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
     borderRadius: mobileRadius.pill,
-    marginBottom: mobileSpacing.md
+    marginBottom: mobileSpacing.sm
   },
   currencyPillText: {
     ...mobileTypography.meta,
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4
   },
   balanceCenter: {
-    minHeight: 52,
+    minHeight: 40,
     justifyContent: "center",
     alignItems: "center"
   },
@@ -292,15 +292,15 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   balanceMain: {
-    fontSize: 40,
-    lineHeight: 44,
+    fontSize: 32,
+    lineHeight: 36,
     fontWeight: "700",
     color: mobileColors.textPrimary,
     letterSpacing: -1
   },
   balanceDecimal: {
-    fontSize: 22,
-    lineHeight: 30,
+    fontSize: 18,
+    lineHeight: 24,
     fontWeight: "500",
     color: mobileColors.textSecondary,
     marginBottom: 2,
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
   },
   growthBadge: {
     position: "absolute",
-    bottom: -14,
+    bottom: -10,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 2,
-    marginTop: mobileSpacing.lg
+    marginTop: mobileSpacing.md
   },
   detailsLinkText: {
     ...mobileTypography.meta,
@@ -336,10 +336,10 @@ const styles = StyleSheet.create({
   actionsDock: {
     flexDirection: "row",
     alignItems: "center",
-    gap: mobileSpacing.sm,
+    gap: mobileSpacing.xs,
     backgroundColor: DOCK_BG,
-    borderRadius: 22,
-    padding: mobileSpacing.sm
+    borderRadius: 18,
+    padding: mobileSpacing.xs
   },
   dockBtnWide: {
     flex: 1,
@@ -347,19 +347,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: DOCK_BTN,
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: mobileSpacing.md,
-    minHeight: 56
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: mobileSpacing.sm,
+    minHeight: 48
   },
   dockBtnWithdraw: {
     justifyContent: "flex-start",
     gap: mobileSpacing.sm
   },
   dockBtnSquare: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     backgroundColor: DOCK_SQUARE,
     alignItems: "center",
     justifyContent: "center"
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
   },
   dockBtnLabel: {
     ...mobileTypography.cardTitle,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
     color: "#FFFFFF"
   },
