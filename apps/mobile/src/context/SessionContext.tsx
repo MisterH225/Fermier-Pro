@@ -29,7 +29,8 @@ const DEFAULT_CLIENT_FEATURES: ClientConfigDto["features"] = {
   tasks: true,
   finance: true,
   housing: true,
-  feedStock: true
+  feedStock: true,
+  wallet: true
 };
 
 type SessionContextValue = {

@@ -9,6 +9,7 @@ import { profileScreenScrollContent } from "../../components/layout";
 import { WalletDashboardCard } from "../../components/wallet/WalletDashboardCard";
 import { WalletHistoryList } from "../../components/wallet/WalletHistoryList";
 import { WalletScreenShell } from "../../components/wallet/WalletScreenShell";
+import { ModuleFeatureGate } from "../../components/ModuleFeatureGate";
 import { useSession } from "../../context/SessionContext";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import {
@@ -67,28 +68,30 @@ export function UserWalletScreen() {
   const walletVariant = walletVariantForProfile(profileType);
 
   return (
-    <WalletScreenShell>
-      <ScrollView
-        contentContainerStyle={[
-          profileScreenScrollContent,
-          styles.content,
-          { paddingBottom: bottomInset + mobileSpacing.lg }
-        ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void onRefresh()}
-            tintColor={buyerColors.primary}
-          />
-        }
-      >
-        {accessToken ? (
-          <WalletDashboardCard variant={walletVariant} hideDetailsLink />
-        ) : null}
+    <ModuleFeatureGate feature="wallet">
+      <WalletScreenShell>
+        <ScrollView
+          contentContainerStyle={[
+            profileScreenScrollContent,
+            styles.content,
+            { paddingBottom: bottomInset + mobileSpacing.lg }
+          ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => void onRefresh()}
+              tintColor={buyerColors.primary}
+            />
+          }
+        >
+          {accessToken ? (
+            <WalletDashboardCard variant={walletVariant} hideDetailsLink />
+          ) : null}
 
-        <WalletHistoryList />
-      </ScrollView>
-    </WalletScreenShell>
+          <WalletHistoryList />
+        </ScrollView>
+      </WalletScreenShell>
+    </ModuleFeatureGate>
   );
 }
 

@@ -40,11 +40,18 @@ export function BuyerPersistentTabBar() {
   const insets = useSafeAreaInsets();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { authMe, activeProfileId } = useSession();
+  const { authMe, activeProfileId, clientFeatures } = useSession();
   const [extendedOpen, setExtendedOpen] = useState(false);
 
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
   const isBuyer = profileType === "buyer";
+  const buyerTabs = useMemo(
+    (): BuyerMainTab[] =>
+      clientFeatures.wallet
+        ? (["home", "market", "finance", "messages", "history"] as const)
+        : (["home", "market", "messages", "history"] as const),
+    [clientFeatures.wallet]
+  );
 
   const focused = useNavigationState((state) =>
     getFocusedRoute(state as NavigationState | undefined)
@@ -135,6 +142,7 @@ export function BuyerPersistentTabBar() {
           activeTab={activeTab}
           onTabPress={onTabPress}
           onOpenExtended={() => setExtendedOpen(true)}
+          visibleTabs={buyerTabs}
         />
       </View>
       <ExtendedMenuGrid

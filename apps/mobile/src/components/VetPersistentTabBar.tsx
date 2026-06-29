@@ -40,7 +40,7 @@ export function VetPersistentTabBar() {
   const insets = useSafeAreaInsets();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { authMe, activeProfileId } = useSession();
+  const { authMe, activeProfileId, clientFeatures } = useSession();
   const [extendedOpen, setExtendedOpen] = useState(false);
 
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
@@ -78,26 +78,31 @@ export function VetPersistentTabBar() {
   );
 
   const extendedItems = useMemo(
-    (): { id: ExtendedNavMenuId; label: string; a11y: string }[] => [
-      {
-        id: "communityFeed",
-        label: t("navigation.main.feed"),
-        a11y: t("navigation.main.feed")
-      },
-      { id: "tasks", label: t("vet.extended.tasks"), a11y: t("vet.extended.tasks") },
-      { id: "reports", label: t("vet.extended.reports"), a11y: t("vet.extended.reports") },
-      {
-        id: "wallet",
-        label: t("navigation.extended.wallet"),
-        a11y: t("navigation.extended.walletDescription")
-      },
-      {
-        id: "prescriptions",
-        label: t("vet.extended.prescriptions"),
-        a11y: t("vet.extended.prescriptions")
+    (): { id: ExtendedNavMenuId; label: string; a11y: string }[] => {
+      const items: { id: ExtendedNavMenuId; label: string; a11y: string }[] = [
+        {
+          id: "communityFeed",
+          label: t("navigation.main.feed"),
+          a11y: t("navigation.main.feed")
+        },
+        { id: "tasks", label: t("vet.extended.tasks"), a11y: t("vet.extended.tasks") },
+        { id: "reports", label: t("vet.extended.reports"), a11y: t("vet.extended.reports") },
+        {
+          id: "prescriptions",
+          label: t("vet.extended.prescriptions"),
+          a11y: t("vet.extended.prescriptions")
+        }
+      ];
+      if (clientFeatures.wallet) {
+        items.splice(3, 0, {
+          id: "wallet",
+          label: t("navigation.extended.wallet"),
+          a11y: t("navigation.extended.walletDescription")
+        });
       }
-    ],
-    [t]
+      return items;
+    },
+    [clientFeatures.wallet, t]
   );
 
   const onExtendedSelect = useCallback(

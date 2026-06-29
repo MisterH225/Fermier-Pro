@@ -17,7 +17,8 @@ const TITLES: Record<ClientFeatureKey, string> = {
   tasks: "Tâches terrain",
   finance: "Finance",
   housing: "Loges et parcours",
-  feedStock: "Nutrition et stock aliments"
+  feedStock: "Nutrition et stock aliments",
+  wallet: "Portefeuille"
 };
 
 /**

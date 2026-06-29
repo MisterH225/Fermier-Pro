@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { WalletOperationsCard } from "../../components/buyer/WalletOperationsCard";
 import { profileScreenScrollContent } from "../../components/layout";
+import { ModuleFeatureGate } from "../../components/ModuleFeatureGate";
 import { WalletScreenShell } from "../../components/wallet/WalletScreenShell";
 import { useSession } from "../../context/SessionContext";
 import { useBottomInset } from "../../hooks/useBottomInset";
@@ -35,33 +36,35 @@ export function WalletOperationScreen() {
   const wallet = walletQ.data;
 
   return (
-    <WalletScreenShell>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={[
-            profileScreenScrollContent,
-            styles.content,
-            { paddingBottom: bottomInset + mobileSpacing.lg }
-          ]}
-          keyboardShouldPersistTaps="handled"
+    <ModuleFeatureGate feature="wallet">
+      <WalletScreenShell>
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-          {walletQ.isLoading ? (
-            <ActivityIndicator color={mobileColors.accent} />
-          ) : wallet ? (
-            <WalletOperationsCard
-              balance={wallet.balance}
-              currency={wallet.currency}
-              visibleSection={operation}
-            />
-          ) : (
-            <View />
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </WalletScreenShell>
+          <ScrollView
+            contentContainerStyle={[
+              profileScreenScrollContent,
+              styles.content,
+              { paddingBottom: bottomInset + mobileSpacing.lg }
+            ]}
+            keyboardShouldPersistTaps="handled"
+          >
+            {walletQ.isLoading ? (
+              <ActivityIndicator color={mobileColors.accent} />
+            ) : wallet ? (
+              <WalletOperationsCard
+                balance={wallet.balance}
+                currency={wallet.currency}
+                visibleSection={operation}
+              />
+            ) : (
+              <View />
+            )}
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </WalletScreenShell>
+    </ModuleFeatureGate>
   );
 }
 

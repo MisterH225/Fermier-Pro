@@ -31,7 +31,8 @@ export type PlatformModuleId =
   | "ai_assistant"
   | "pig_price_index"
   | "gestation"
-  | "nutrition";
+  | "nutrition"
+  | "wallet";
 
 export type PlatformModuleDto = {
   moduleId: PlatformModuleId;
@@ -58,6 +59,7 @@ export type ClientConfigDto = {
     finance: boolean;
     housing: boolean;
     feedStock: boolean;
+    wallet: boolean;
   };
   modules: PlatformModuleDto[];
   support?: SupportContactDto;

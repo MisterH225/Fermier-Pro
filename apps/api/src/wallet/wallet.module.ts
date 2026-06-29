@@ -1,6 +1,7 @@
 import { Module, forwardRef } from "@nestjs/common";
 import { SuperAdminGuard } from "../admin-platform/super-admin.guard";
 import { AuthModule } from "../auth/auth.module";
+import { ConfigClientModule } from "../config-client/config-client.module";
 import { MobileMoneyModule } from "../marketplace/escrow/mobile-money.module";
 import { PrismaModule } from "../prisma/prisma.module";
 import { AdminWalletController } from "./admin-wallet.controller";
@@ -24,7 +25,12 @@ import { WithdrawalOrchestratorService } from "./withdrawal-orchestrator.service
  * moment où Nest scanne les dépendances, pas à l'évaluation du décorateur.
  */
 @Module({
-  imports: [PrismaModule, MobileMoneyModule, forwardRef(() => AuthModule)],
+  imports: [
+    PrismaModule,
+    MobileMoneyModule,
+    ConfigClientModule,
+    forwardRef(() => AuthModule)
+  ],
   controllers: [
     WalletController,
     LegacyBuyerWalletController,
