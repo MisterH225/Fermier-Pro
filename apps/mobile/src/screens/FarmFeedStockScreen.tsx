@@ -27,7 +27,7 @@ import {
   chartPeriodToFeedPeriod
 } from "../components/charts";
 import { AppDateRangePicker } from "../components/common/AppDateRangePicker";
-import { StockModal, FeedStockLevelGauge, farmFeedStatToGauge } from "../components/feed";
+import { StockModal, FeedStockLevelGauge, farmFeedStatToGauge, feedStatEligibleForGauge } from "../components/feed";
 import { FeedPhaseReviewBanner } from "../components/feed/FeedPhaseReviewBanner";
 import { HighlightWrapper } from "../components/common/HighlightWrapper";
 import { EditStockModal } from "../components/stock/EditStockModal";
@@ -287,7 +287,10 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
   }, [movementsFiltered, t]);
 
   const safeStats = useMemo(
-    () => (Array.isArray(stats) ? stats.filter(Boolean) : []),
+    () =>
+      (Array.isArray(stats) ? stats.filter(Boolean) : []).filter(
+        feedStatEligibleForGauge
+      ),
     [stats]
   );
 

@@ -56,6 +56,44 @@ function formatDaysRemaining(
   return t("feedStock.gaugeDaysEstimate", { count: days });
 }
 
+export function feedStatEligibleForGauge(
+  stat: Pick<
+    FarmFeedStatItemDto,
+    "lastCheckDate" | "currentStockKg" | "hasSufficientData" | "stockAtLastEntry"
+  >
+): boolean {
+  if (stat.lastCheckDate) {
+    return true;
+  }
+  if (stat.stockAtLastEntry && Number.parseFloat(stat.stockAtLastEntry) > 0) {
+    return true;
+  }
+  const stockKg = Number.parseFloat(stat.currentStockKg);
+  if (Number.isFinite(stockKg) && stockKg > 0) {
+    return true;
+  }
+  return stat.hasSufficientData === true;
+}
+
+export function dashboardFeedItemEligibleForGauge(
+  item: Pick<
+    DashboardFeedStockItemDto,
+    "remainingKg" | "daysRemaining" | "percentRemaining" | "stockStatus"
+  >
+): boolean {
+  const stockKg = Number.parseFloat(item.remainingKg);
+  if (Number.isFinite(stockKg) && stockKg > 0) {
+    return true;
+  }
+  if (item.daysRemaining != null) {
+    return true;
+  }
+  if (item.percentRemaining != null) {
+    return true;
+  }
+  return item.stockStatus != null && item.stockStatus !== "no_data";
+}
+
 export function farmFeedStatToGauge(
   stat: FarmFeedStatItemDto,
   index: number,

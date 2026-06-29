@@ -49,10 +49,25 @@ export async function buildFeedStockStatsForFarm(
     orderBy: { name: "asc" }
   });
 
+  const movementCounts = await prisma.feedStockMovement.groupBy({
+    by: ["feedTypeId"],
+    where: { farmId },
+    _count: { _all: true }
+  });
+  const typesWithHistory = new Set(
+    movementCounts
+      .filter((row) => row._count._all > 0)
+      .map((row) => row.feedTypeId)
+  );
+
   const now = new Date();
 
   const rows = await Promise.all(
     types.map(async (t, index) => {
+      if (!typesWithHistory.has(t.id)) {
+        return null;
+      }
+
       const metrics = await computeFeedStockMetrics(prisma, farmId, t.id, {
         criticalDays: _thresholds.criticalDays,
         warningDays: _thresholds.warningDays
@@ -105,7 +120,7 @@ export async function buildFeedStockStatsForFarm(
     })
   );
 
-  return rows;
+  return rows.filter((row): row is FeedStockStatRow => row != null);
 }
 
 export async function feedStockConsumptionSpikeMessages(
