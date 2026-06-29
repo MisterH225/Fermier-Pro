@@ -49,6 +49,7 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(typeof res.body.features.marketplace).toBe("boolean");
     expect(typeof res.body.features.chat).toBe("boolean");
     expect(typeof res.body.features.feedStock).toBe("boolean");
+    expect(typeof res.body.features.wallet).toBe("boolean");
   });
 
   it("GET marketplace listings (catalogue publié)", async () => {

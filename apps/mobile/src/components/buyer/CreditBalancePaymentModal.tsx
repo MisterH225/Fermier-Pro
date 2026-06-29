@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { formatMarketMoney } from "../marketplace/MarketplaceListingCard";
 import { BaseModal } from "../modals/BaseModal";
 import { PrimaryButton } from "../ui/PrimaryButton";
+import { useSession } from "../../context/SessionContext";
 import {
   MarketplacePaymentMethodPicker,
   type MarketplacePaymentMethodChoice
@@ -28,6 +29,8 @@ export function CreditBalancePaymentModal({
   onConfirm
 }: Props) {
   const { t } = useTranslation();
+  const { clientFeatures } = useSession();
+  const walletEnabled = clientFeatures.wallet;
   const [paymentMethod, setPaymentMethod] =
     useState<MarketplacePaymentMethodChoice>("mobile_money");
 
@@ -35,12 +38,12 @@ export function CreditBalancePaymentModal({
     if (!visible) {
       return;
     }
-    if (walletBalance >= amount && amount > 0) {
+    if (walletEnabled && walletBalance >= amount && amount > 0) {
       setPaymentMethod("wallet");
     } else {
       setPaymentMethod("mobile_money");
     }
-  }, [visible, walletBalance, amount]);
+  }, [visible, walletBalance, amount, walletEnabled]);
 
   return (
     <BaseModal
@@ -63,6 +66,7 @@ export function CreditBalancePaymentModal({
         walletBalance={walletBalance}
         value={paymentMethod}
         onChange={setPaymentMethod}
+        walletEnabled={walletEnabled}
       />
     </BaseModal>
   );

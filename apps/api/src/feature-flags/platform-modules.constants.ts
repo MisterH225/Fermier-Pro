@@ -1,12 +1,13 @@
 import type { ClientFeatureKey } from "../config-client/feature-flags.service";
 
-/** Identifiants des 11 modules plateforme (table `PlatformFeatureFlag`). */
+/** Identifiants des modules plateforme (table `PlatformFeatureFlag`). */
 export const PLATFORM_MODULE_IDS = [
   "core_producer",
   "technician",
   "veterinarian",
   "marketplace",
   "buyer",
+  "wallet",
   "collaboration",
   "reports",
   "ai_assistant",
@@ -44,7 +45,8 @@ export const CLIENT_FEATURE_TO_PLATFORM: Record<
   tasks: "technician",
   finance: "core_producer",
   housing: "core_producer",
-  feedStock: "nutrition"
+  feedStock: "nutrition",
+  wallet: "wallet"
 };
 
 export function isPlatformModuleId(value: string): value is PlatformModuleId {

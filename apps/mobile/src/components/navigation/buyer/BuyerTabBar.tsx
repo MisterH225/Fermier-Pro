@@ -10,6 +10,7 @@ type Props = {
   activeTab: BuyerMainTab | null;
   onTabPress: (tab: BuyerMainTab) => void;
   onOpenExtended: () => void;
+  visibleTabs?: BuyerMainTab[];
 };
 
 const TAB_ORDER: BuyerMainTab[] = ["home", "market", "finance", "messages", "history"];
@@ -49,12 +50,17 @@ function NavItem({ icon, iconOutline, label, active, onPress, a11y }: {
   );
 }
 
-export function BuyerTabBar({ activeTab, onTabPress, onOpenExtended }: Props) {
+export function BuyerTabBar({
+  activeTab,
+  onTabPress,
+  onOpenExtended,
+  visibleTabs = TAB_ORDER
+}: Props) {
   const { t } = useTranslation();
   return (
     <View style={styles.row} pointerEvents="box-none">
       <View style={[styles.pill, buyerShadow.floating, { height: H }]}>
-        {TAB_ORDER.map((tab) => {
+        {visibleTabs.map((tab) => {
           const meta = TAB_META[tab];
           return (
             <NavItem

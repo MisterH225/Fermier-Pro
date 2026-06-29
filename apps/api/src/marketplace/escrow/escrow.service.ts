@@ -1,9 +1,10 @@
-import { Inject, Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
 import {
   MarketplaceFundMovementKind,
   MarketplacePaymentMethod,
   Prisma
 } from "@prisma/client";
+import { FeatureFlagService } from "../../config-client/feature-flags.service";
 import { UserWalletService } from "../../wallet/user-wallet.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import {
@@ -22,6 +23,7 @@ export class EscrowService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly userWallet: UserWalletService,
+    private readonly featureFlags: FeatureFlagService,
     @Inject(MOBILE_MONEY_GATEWAY)
     private readonly gateway: MobileMoneyGateway
   ) {}
@@ -41,6 +43,19 @@ export class EscrowService {
     const method = options?.paymentMethod ?? MarketplacePaymentMethod.mobile_money;
 
     if (method === MarketplacePaymentMethod.wallet) {
+      const walletEnabled = await this.featureFlags.isEnabled("wallet");
+      if (!walletEnabled) {
+        const { moduleId, message } =
+          await this.featureFlags.resolveInactiveContext("wallet");
+        throw new ServiceUnavailableException({
+          statusCode: 503,
+          code: "MODULE_INACTIVE",
+          moduleId,
+          feature: "wallet",
+          message: message ?? "Portefeuille désactivé",
+          error: "Service Unavailable"
+        });
+      }
       await this.userWallet.assertSufficientBalance(buyerUserId, amount);
       const providerRef = this.userWallet.walletPendingRef(transactionId);
       return { providerRef, paymentMethod: method, paymentUrl: null };

@@ -413,10 +413,10 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   };
 
   useEffect(() => {
-    if (walletBalance >= payAmount && payAmount > 0) {
+    if (clientFeatures.wallet && walletBalance >= payAmount && payAmount > 0) {
       setPaymentMethod("wallet");
     }
-  }, [walletBalance, payAmount]);
+  }, [clientFeatures.wallet, walletBalance, payAmount]);
 
   const draftKg = useMemo(() => {
     const kg = Number.parseFloat(realWeight.replace(",", "."));
@@ -787,6 +787,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
             walletBalance={walletBalance}
             value={paymentMethod}
             onChange={setPaymentMethod}
+            walletEnabled={clientFeatures.wallet}
           />
           <PrimaryButton
             label={t("marketScreen.transaction.payCta", {

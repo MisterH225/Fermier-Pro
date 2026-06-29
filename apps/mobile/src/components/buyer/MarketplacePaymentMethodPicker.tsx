@@ -12,6 +12,7 @@ type Props = {
   walletBalance: number;
   value: MarketplacePaymentMethodChoice;
   onChange: (method: MarketplacePaymentMethodChoice) => void;
+  walletEnabled?: boolean;
 };
 
 export function MarketplacePaymentMethodPicker({
@@ -19,28 +20,33 @@ export function MarketplacePaymentMethodPicker({
   currency,
   walletBalance,
   value,
-  onChange
+  onChange,
+  walletEnabled = true
 }: Props) {
   const { t } = useTranslation();
-  const walletOk = walletBalance >= amount;
+  const walletOk = walletEnabled && walletBalance >= amount;
   const options: {
     id: MarketplacePaymentMethodChoice;
     title: string;
     subtitle: string;
     disabled?: boolean;
   }[] = [
-    {
-      id: "wallet",
-      title: t("buyer.wallet.payWithBalance"),
-      subtitle: walletOk
-        ? t("buyer.wallet.balanceAvailable", {
-            amount: formatMarketMoney(Math.round(walletBalance), currency)
-          })
-        : t("buyer.wallet.insufficientBalance", {
-            amount: formatMarketMoney(Math.round(walletBalance), currency)
-          }),
-      disabled: !walletOk
-    },
+    ...(walletEnabled
+      ? [
+          {
+            id: "wallet" as const,
+            title: t("buyer.wallet.payWithBalance"),
+            subtitle: walletOk
+              ? t("buyer.wallet.balanceAvailable", {
+                  amount: formatMarketMoney(Math.round(walletBalance), currency)
+                })
+              : t("buyer.wallet.insufficientBalance", {
+                  amount: formatMarketMoney(Math.round(walletBalance), currency)
+                }),
+            disabled: !walletOk
+          }
+        ]
+      : []),
     {
       id: "mobile_money",
       title: t("buyer.wallet.payWithMobileMoney"),

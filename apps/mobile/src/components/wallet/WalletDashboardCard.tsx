@@ -74,15 +74,16 @@ export function WalletDashboardCard({
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { accessToken } = useSession();
+  const { accessToken, clientFeatures } = useSession();
   const [balanceHidden, setBalanceHidden] = useState(false);
+  const walletEnabled = clientFeatures.wallet;
 
   const accent = accentForVariant(variant);
 
   const walletQ = useQuery({
     queryKey: ["userWallet"],
     queryFn: () => fetchUserWallet(accessToken!),
-    enabled: Boolean(accessToken)
+    enabled: Boolean(accessToken) && walletEnabled
   });
 
   useEffect(() => {
@@ -121,6 +122,10 @@ export function WalletDashboardCard({
       amount: formatMarketMoney(Math.round(wallet.monthCredits), currency)
     });
   }, [wallet?.monthCredits, balanceHidden, currency, t]);
+
+  if (!walletEnabled) {
+    return null;
+  }
 
   return (
     <View style={styles.wrap}>

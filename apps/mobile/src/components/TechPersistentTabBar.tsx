@@ -40,7 +40,7 @@ export function TechPersistentTabBar() {
   const insets = useSafeAreaInsets();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { authMe, activeProfileId } = useSession();
+  const { authMe, activeProfileId, clientFeatures } = useSession();
   const [extendedOpen, setExtendedOpen] = useState(false);
 
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
@@ -78,23 +78,28 @@ export function TechPersistentTabBar() {
   );
 
   const extendedItems = useMemo(
-    (): { id: ExtendedNavMenuId; label: string; a11y: string }[] => [
-      {
-        id: "communityFeed",
-        label: t("navigation.main.feed"),
-        a11y: t("navigation.main.feed")
-      },
-      { id: "vaccinations", label: t("tech.extended.vaccinations"), a11y: t("tech.extended.vaccinations") },
-      { id: "weighings", label: t("tech.extended.weighings"), a11y: t("tech.extended.weighings") },
-      { id: "feedStock", label: t("tech.extended.feedStock"), a11y: t("tech.extended.feedStock") },
-      { id: "reports", label: t("tech.extended.reports"), a11y: t("tech.extended.reports") },
-      {
-        id: "wallet",
-        label: t("navigation.extended.wallet"),
-        a11y: t("navigation.extended.walletDescription")
+    (): { id: ExtendedNavMenuId; label: string; a11y: string }[] => {
+      const items: { id: ExtendedNavMenuId; label: string; a11y: string }[] = [
+        {
+          id: "communityFeed",
+          label: t("navigation.main.feed"),
+          a11y: t("navigation.main.feed")
+        },
+        { id: "vaccinations", label: t("tech.extended.vaccinations"), a11y: t("tech.extended.vaccinations") },
+        { id: "weighings", label: t("tech.extended.weighings"), a11y: t("tech.extended.weighings") },
+        { id: "feedStock", label: t("tech.extended.feedStock"), a11y: t("tech.extended.feedStock") },
+        { id: "reports", label: t("tech.extended.reports"), a11y: t("tech.extended.reports") }
+      ];
+      if (clientFeatures.wallet) {
+        items.push({
+          id: "wallet",
+          label: t("navigation.extended.wallet"),
+          a11y: t("navigation.extended.walletDescription")
+        });
       }
-    ],
-    [t]
+      return items;
+    },
+    [clientFeatures.wallet, t]
   );
 
   const onExtendedSelect = useCallback(

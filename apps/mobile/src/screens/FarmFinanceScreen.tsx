@@ -171,6 +171,12 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
 
   const enabled = clientFeatures.finance;
 
+  useEffect(() => {
+    if (!clientFeatures.wallet && financeTab === "portefeuille") {
+      setFinanceTab("overview");
+    }
+  }, [clientFeatures.wallet, financeTab]);
+
   const queries = useQueries({
     queries: [
       {
@@ -1560,15 +1566,19 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
               ) : null
             )
           },
-          {
-            key: "portefeuille",
-            label: t("financeScreen.tabWallet"),
-            content: tabScroll(
-              <ScreenSection plain>
-                <FinanceWalletTab />
-              </ScreenSection>
-            )
-          }
+          ...(clientFeatures.wallet
+            ? [
+                {
+                  key: "portefeuille" as const,
+                  label: t("financeScreen.tabWallet"),
+                  content: tabScroll(
+                    <ScreenSection plain>
+                      <FinanceWalletTab />
+                    </ScreenSection>
+                  )
+                }
+              ]
+            : [])
         ]}
       />
     </View>

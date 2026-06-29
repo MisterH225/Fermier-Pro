@@ -18,7 +18,8 @@ export type ClientFeatureKey =
   | "tasks"
   | "finance"
   | "housing"
-  | "feedStock";
+  | "feedStock"
+  | "wallet";
 
 export type ClientFeatureFlags = Record<ClientFeatureKey, boolean>;
 
@@ -29,7 +30,8 @@ const ENV_KEYS: Record<ClientFeatureKey, string> = {
   tasks: "FEATURE_TASKS",
   finance: "FEATURE_FINANCE",
   housing: "FEATURE_HOUSING",
-  feedStock: "FEATURE_FEED_STOCK"
+  feedStock: "FEATURE_FEED_STOCK",
+  wallet: "FEATURE_WALLET"
 };
 
 const DEFAULTS: ClientFeatureFlags = {
@@ -39,7 +41,8 @@ const DEFAULTS: ClientFeatureFlags = {
   tasks: true,
   finance: true,
   housing: true,
-  feedStock: true
+  feedStock: true,
+  wallet: true
 };
 
 @Injectable()
@@ -60,7 +63,8 @@ export class FeatureFlagService {
       tasks: this.combine("tasks", activeMap),
       finance: this.combine("finance", activeMap),
       housing: this.combine("housing", activeMap),
-      feedStock: this.combine("feedStock", activeMap)
+      feedStock: this.combine("feedStock", activeMap),
+      wallet: this.combine("wallet", activeMap)
     };
   }
 
