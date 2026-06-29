@@ -686,6 +686,8 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(ov.body?.months6?.length).toBe(6);
     expect(ov.body?.months3?.length).toBe(3);
     expect(ov.body?.settings?.currencyCode).toBeDefined();
+    expect(ov.body?.historical).toBeDefined();
+    expect(typeof ov.body?.historical?.recordsCount).toBe("number");
 
     const st = await request(app.getHttpServer())
       .get(`/api/v1/farms/${ctx.farmId}/finance/settings`)
@@ -737,6 +739,48 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(budgetGet.status).toBe(200);
     expect(budgetGet.body?.global).toBeDefined();
     expect(Array.isArray(budgetGet.body?.lines)).toBe(true);
+  });
+
+  it("GET/POST historical-records (pré-app, financeRead/Write)", async () => {
+    const summaryEmpty = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/historical-records/summary`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(summaryEmpty.status).toBe(200);
+    expect(typeof summaryEmpty.body?.records_count).toBe("number");
+
+    const created = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/historical-records/quick-total`)
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        movementType: "expense",
+        category: "equipement",
+        amount: 42_000,
+        periodEnd: "2025-01-01",
+        notes: "E2E contrat historique"
+      });
+    expect(created.status).toBeGreaterThanOrEqual(200);
+    expect(created.status).toBeLessThan(300);
+    expect(created.body?.entry_mode).toBe("quick_total");
+
+    const list = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/historical-records`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(list.status).toBe(200);
+    expect(Array.isArray(list.body)).toBe(true);
+    expect(list.body.length).toBeGreaterThanOrEqual(1);
+
+    const profit = await request(app.getHttpServer())
+      .get(`/api/v1/farms/${ctx.farmId}/profitability/dashboard`)
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(profit.status).toBe(200);
+    expect(profit.body?.historicalPeriod).toBeDefined();
+    expect(profit.body?.lifetime).toBeDefined();
+
+    await request(app.getHttpServer())
+      .delete(
+        `/api/v1/farms/${ctx.farmId}/historical-records/${created.body.id}`
+      )
+      .set("Authorization", `Bearer ${ctx.token}`);
   });
 
   it("POST finance transaction unifiée (income)", async () => {
