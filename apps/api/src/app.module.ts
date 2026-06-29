@@ -54,6 +54,7 @@ import { PredictionsModule } from "./predictions/predictions.module";
 import { CommunityFeedModule } from "./community-feed/community-feed.module";
 import { ProducerScoreModule } from "./producer-score/producer-score.module";
 import { ProfitabilityModule } from "./profitability/profitability.module";
+import { HistoricalRecordsModule } from "./historical-records/historical-records.module";
 
 @Module({
   imports: [
@@ -132,6 +133,7 @@ import { ProfitabilityModule } from "./profitability/profitability.module";
     PredictionsModule,
     CommunityFeedModule,
     ProfitabilityModule,
+    HistoricalRecordsModule,
     ProducerScoreModule
   ],
   controllers: [AppController],

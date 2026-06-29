@@ -17,6 +17,7 @@ import { UpdateExpenseDto } from "./dto/update-expense.dto";
 import { UpdateRevenueDto } from "./dto/update-revenue.dto";
 import { ProfitabilityEngine } from "../profitability/profitability.engine";
 import { MemberActivityLogsService } from "../member-activity-logs/member-activity-logs.service";
+import { getHistoricalSummary } from "../historical-records/historical-summary.util";
 
 @Injectable()
 export class FinanceService {
@@ -539,7 +540,7 @@ export class FinanceService {
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)
     );
 
-    const [monthExp, monthRev, allExp, allRev, months6] = await Promise.all([
+    const [monthExp, monthRev, allExp, allRev, months6, historical] = await Promise.all([
       this.prisma.farmExpense.aggregate({
         where: {
           farmId,
@@ -562,7 +563,8 @@ export class FinanceService {
         where: { farmId },
         _sum: { amount: true }
       }),
-      this.financeTimeseriesMonths(farmId, 6)
+      this.financeTimeseriesMonths(farmId, 6),
+      getHistoricalSummary(this.prisma, farmId)
     ]);
 
     const te = monthExp._sum.amount ?? new Prisma.Decimal(0);
@@ -570,6 +572,11 @@ export class FinanceService {
     const allE = allExp._sum.amount ?? new Prisma.Decimal(0);
     const allR = allRev._sum.amount ?? new Prisma.Decimal(0);
     const balance = allR.sub(allE);
+    const historicalIncome = new Prisma.Decimal(historical.totalIncome);
+    const historicalExpense = new Prisma.Decimal(historical.totalExpense);
+    const balanceWithHistorical = balance
+      .add(historicalIncome)
+      .sub(historicalExpense);
     const threshold = settings.lowBalanceThreshold;
     const lowBalanceWarning = Boolean(
       threshold != null && balance.lt(threshold)
@@ -588,6 +595,13 @@ export class FinanceService {
         netMargin: tr.sub(te).toString()
       },
       balanceAllTime: balance.toString(),
+      balanceAllTimeWithHistorical: balanceWithHistorical.toString(),
+      historical: {
+        totalIncome: historicalIncome.toString(),
+        totalExpense: historicalExpense.toString(),
+        netResult: historicalIncome.sub(historicalExpense).toString(),
+        recordsCount: historical.recordsCount
+      },
       lowBalanceWarning,
       months6,
       /** @deprecated Préférer months6 — conserve les 3 derniers mois pour compatibilité. */

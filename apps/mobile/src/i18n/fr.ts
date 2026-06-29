@@ -2588,7 +2588,54 @@ export const fr = {
       "Cette transaction est liée à une entrée stock. Supprimer aussi l'entrée stock ?",
     deleteBoth: "Supprimer les deux",
     deleteFinanceOnly: "Finance uniquement",
-    txWithStockSuccess: "Dépense enregistrée — stock mis à jour"
+    txWithStockSuccess: "Dépense enregistrée — stock mis à jour",
+    historicalRecordsLink: "Historique pré-app (dépenses & revenus)"
+  },
+  historicalRecords: {
+    title: "Historique pré-app",
+    summaryTitle: "Synthèse",
+    totalIncome: "Revenus antérieurs",
+    totalExpense: "Dépenses antérieures",
+    netResult: "Résultat net pré-app",
+    walletHint:
+      "Ces montants alimentent la rentabilité et le P&L du projet. Ils n'affectent pas le portefeuille (wallet).",
+    addData: "Ajouter des données",
+    quickTotalTitle: "Saisie rapide par catégorie",
+    quickTotalBody: "Un total agrégé par catégorie, sans détail ligne par ligne.",
+    importTitle: "Importer un fichier",
+    importBody: "CSV ou Excel avec colonnes : date, type, categorie, montant, description.",
+    recordsTitle: "Enregistrements",
+    noRecords: "Aucun historique saisi pour ce projet.",
+    importMode: "import",
+    periodEndLabel: "Date de fin de période",
+    importFormat:
+      "Colonnes attendues : date | type (income/expense) | categorie | montant | description",
+    pickFile: "Choisir un fichier",
+    previewTitle: "{{valid}} ligne(s) valide(s), {{invalid}} rejetée(s)",
+    previewIncome: "Revenus",
+    previewExpense: "Dépenses",
+    previewInvalidHint: "Les lignes invalides seront ignorées à l'import.",
+    confirmImport: "Confirmer l'import",
+    importDoneTitle: "Import terminé",
+    importDoneBody: "{{count}} ligne(s) importée(s).",
+    savedTitle: "Enregistré",
+    savedBody: "Montant historique ajouté.",
+    deleteTitle: "Supprimer ?",
+    deleteBody: "Cette donnée sera retirée des calculs de rentabilité.",
+    categories: {
+      achat_animaux: "Achat d'animaux",
+      aliments: "Aliments",
+      infrastructure: "Infrastructure",
+      sante_veterinaire: "Santé / vétérinaire",
+      main_oeuvre: "Main d'œuvre",
+      transport: "Transport",
+      equipement: "Équipement",
+      autres_depenses: "Autres dépenses",
+      vente_animaux: "Vente d'animaux",
+      vente_produits_derives: "Produits dérivés",
+      subventions: "Subventions",
+      autres_revenus: "Autres revenus"
+    }
   },
   budgetScreen: {
     status: {

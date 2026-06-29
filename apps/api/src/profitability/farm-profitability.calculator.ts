@@ -1,6 +1,10 @@
 import type { PrismaClient } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import {
+  getHistoricalExpenseByFinanceKey,
+  getHistoricalSummary
+} from "../historical-records/historical-summary.util";
+import {
   COST_BREAKDOWN_LABELS,
   DIRECT_EXPENSE_CATEGORY_KEYS,
   INDIRECT_EXPENSE_CATEGORY_KEYS
@@ -314,14 +318,35 @@ export async function calculateFarmProfitability(
     ? dec(profitabilitySettings.marketPricePerKg)
     : null;
 
-  const [expenseByKey, revenuesRealized, kgRealized, kgProjected, monthlySeries] =
+  const [expenseByKey, revenuesRealized, kgRealized, kgProjected, monthlySeries, historicalSummary, historicalExpenseByKey, allTimeBounds] =
     await Promise.all([
       sumExpensesByCategoryKey(prisma, farmId, bounds, categoryMap),
       sumRevenues(prisma, farmId, bounds),
       sumKgSold(prisma, farmId, bounds),
       estimateKgProjected(prisma, farmId),
-      buildMonthlySeries(prisma, farmId, 6)
+      buildMonthlySeries(prisma, farmId, 6),
+      getHistoricalSummary(prisma, farmId),
+      getHistoricalExpenseByFinanceKey(prisma, farmId),
+      Promise.resolve(resolvePeriodBounds("all_time"))
     ]);
+
+  const [allTimeRevenues, allTimeExpenseByKey] = await Promise.all([
+    sumRevenues(prisma, farmId, allTimeBounds),
+    sumExpensesByCategoryKey(prisma, farmId, allTimeBounds, categoryMap)
+  ]);
+
+  const lifetimeExpenseByKey = new Map(allTimeExpenseByKey);
+  for (const [key, amount] of historicalExpenseByKey) {
+    lifetimeExpenseByKey.set(key, (lifetimeExpenseByKey.get(key) ?? 0) + amount);
+  }
+  const lifetimeRevenues = allTimeRevenues + historicalSummary.totalIncome;
+  const lifetimeSplit = splitCosts(lifetimeExpenseByKey);
+  const lifetime = buildMetrics({
+    revenues: lifetimeRevenues,
+    costsDirect: lifetimeSplit.direct,
+    costsIndirect: lifetimeSplit.indirect,
+    kgProduced: kgRealized > 0 ? kgRealized : null
+  });
 
   const { direct, indirect, breakdown } = splitCosts(expenseByKey);
   const realized = buildMetrics({
@@ -394,6 +419,13 @@ export async function calculateFarmProfitability(
     realized,
     projected,
     combined,
+    historicalPeriod: {
+      income: historicalSummary.totalIncome,
+      expense: historicalSummary.totalExpense,
+      netResult: historicalSummary.netResult,
+      recordsCount: historicalSummary.recordsCount
+    },
+    lifetime,
     costBreakdown: breakdown,
     monthlySeries,
     trendVsPreviousPeriod: {

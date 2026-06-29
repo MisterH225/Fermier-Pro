@@ -48,6 +48,7 @@ import {
   FarmFeedStockScreen,
   FarmGestationScreen,
   FarmFinanceScreen,
+  HistoricalRecordsScreen,
   FarmListScreen,
   FarmLivestockScreen,
   FarmHealthScreen,
@@ -410,6 +411,11 @@ function MainStack() {
       <Stack.Screen
         name="FarmFinance"
         component={FarmFinanceScreen}
+        options={{ title: st("finance") }}
+      />
+      <Stack.Screen
+        name="HistoricalRecords"
+        component={HistoricalRecordsScreen}
         options={{ title: st("finance") }}
       />
       <Stack.Screen

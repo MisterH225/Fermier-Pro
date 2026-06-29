@@ -149,6 +149,7 @@ export type RootStackParamList = {
     openCategoryId?: string;
     highlightOverrun?: boolean;
   };
+  HistoricalRecords: { farmId: string; farmName: string };
   FarmBarns: { farmId: string; farmName: string };
   CreatePen: {
     farmId: string;

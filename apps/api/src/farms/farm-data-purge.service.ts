@@ -220,6 +220,7 @@ export class FarmDataPurgeService {
 
     await tx.farmExpense.deleteMany({ where: { farmId } });
     await tx.farmRevenue.deleteMany({ where: { farmId } });
+    await tx.historicalRecord.deleteMany({ where: { farmId } });
     await tx.financeCategory.deleteMany({ where: { farmId } });
     await tx.farmFinanceSettings.deleteMany({ where: { farmId } });
 

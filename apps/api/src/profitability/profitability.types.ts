@@ -55,6 +55,15 @@ export type FarmProfitabilityResult = {
   realized: ProfitabilityMetrics;
   projected: ProfitabilityMetrics;
   combined: ProfitabilityMetrics;
+  /** Données pré-app (hors wallet), toujours cumulées. */
+  historicalPeriod: {
+    income: number;
+    expense: number;
+    netResult: number;
+    recordsCount: number;
+  };
+  /** Métriques globales = période app (cumul) + historique pré-app. */
+  lifetime: ProfitabilityMetrics;
   costBreakdown: CostBreakdownItem[];
   monthlySeries: MonthlyRevCostPoint[];
   trendVsPreviousPeriod: {
@@ -117,6 +126,13 @@ export type FarmProfitabilityDashboardDto = {
   worstBatch: { id: string; name: string; netMarginPct: number | null } | null;
   realized: ProfitabilityMetrics;
   projected: ProfitabilityMetrics;
+  historicalPeriod: {
+    income: number;
+    expense: number;
+    netResult: number;
+    recordsCount: number;
+  };
+  lifetime: ProfitabilityMetrics;
 };
 
 export type ProfitabilityInsight = {

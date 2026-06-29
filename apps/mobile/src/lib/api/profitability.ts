@@ -113,6 +113,13 @@ export type FarmProfitabilityDashboardDto = {
   worstBatch: { id: string; name: string; netMarginPct: number | null } | null;
   realized: ProfitabilityMetricsDto;
   projected: ProfitabilityMetricsDto;
+  historicalPeriod: {
+    income: number;
+    expense: number;
+    netResult: number;
+    recordsCount: number;
+  };
+  lifetime: ProfitabilityMetricsDto;
 };
 
 export type ProfitabilityInsightDto = {

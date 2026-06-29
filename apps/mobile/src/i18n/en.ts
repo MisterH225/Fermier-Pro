@@ -2555,7 +2555,54 @@ export const en = {
       "This transaction is linked to a stock entry. Delete the stock entry too?",
     deleteBoth: "Delete both",
     deleteFinanceOnly: "Finance only",
-    txWithStockSuccess: "Expense recorded — stock updated"
+    txWithStockSuccess: "Expense recorded — stock updated",
+    historicalRecordsLink: "Pre-app history (expenses & revenue)"
+  },
+  historicalRecords: {
+    title: "Pre-app history",
+    summaryTitle: "Summary",
+    totalIncome: "Prior revenue",
+    totalExpense: "Prior expenses",
+    netResult: "Pre-app net result",
+    walletHint:
+      "These amounts feed project profitability and P&L. They do not affect the wallet balance.",
+    addData: "Add data",
+    quickTotalTitle: "Quick total by category",
+    quickTotalBody: "One aggregated total per category, no line-by-line detail.",
+    importTitle: "Import a file",
+    importBody: "CSV or Excel with columns: date, type, categorie, montant, description.",
+    recordsTitle: "Records",
+    noRecords: "No pre-app history for this project yet.",
+    importMode: "import",
+    periodEndLabel: "Period end date",
+    importFormat:
+      "Expected columns: date | type (income/expense) | categorie | montant | description",
+    pickFile: "Choose file",
+    previewTitle: "{{valid}} valid row(s), {{invalid}} rejected",
+    previewIncome: "Revenue",
+    previewExpense: "Expenses",
+    previewInvalidHint: "Invalid rows will be skipped on import.",
+    confirmImport: "Confirm import",
+    importDoneTitle: "Import complete",
+    importDoneBody: "{{count}} row(s) imported.",
+    savedTitle: "Saved",
+    savedBody: "Historical amount added.",
+    deleteTitle: "Delete?",
+    deleteBody: "This data will be removed from profitability calculations.",
+    categories: {
+      achat_animaux: "Animal purchases",
+      aliments: "Feed",
+      infrastructure: "Infrastructure",
+      sante_veterinaire: "Health / veterinary",
+      main_oeuvre: "Labor",
+      transport: "Transport",
+      equipement: "Equipment",
+      autres_depenses: "Other expenses",
+      vente_animaux: "Animal sales",
+      vente_produits_derives: "By-products",
+      subventions: "Subsidies",
+      autres_revenus: "Other revenue"
+    }
   },
   budgetScreen: {
     status: {
