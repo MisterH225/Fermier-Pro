@@ -352,6 +352,7 @@ model Farm {
   appSettings              FarmAppSettings?
   marketplacePendingTransfers MarketplacePendingTransfer[]
   predictions              FarmPrediction?
+  historicalRecords        HistoricalRecord[]
 
   @@index([ownerId, status])
   @@index([status])
@@ -484,6 +485,57 @@ model FarmGmqSettings {
 enum FinanceCategoryType {
   income
   expense
+}
+
+enum HistoricalMovementType {
+  income
+  expense
+}
+
+enum HistoricalEntryMode {
+  quick_total
+  import
+}
+
+enum HistoricalCategory {
+  achat_animaux
+  aliments
+  infrastructure
+  sante_veterinaire
+  main_oeuvre
+  transport
+  equipement
+  autres_depenses
+  vente_animaux
+  vente_produits_derives
+  subventions
+  autres_revenus
+}
+
+/// Dépenses et revenus antérieurs à l'utilisation de l'app (hors wallet).
+model HistoricalRecord {
+  id              String                 @id @default(cuid())
+  farmId          String
+  farm            Farm                   @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  movementType    HistoricalMovementType
+  category        HistoricalCategory
+  amount          Decimal                @db.Decimal(15, 2)
+  entryMode       HistoricalEntryMode
+  periodStart     DateTime?              @db.Date
+  periodEnd       DateTime               @db.Date
+  transactionDate DateTime?              @db.Date
+  description     String?
+  importBatchId   String?
+  sourceFilename  String?
+  notes           String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([farmId])
+  @@index([movementType])
+  @@index([category])
+  @@index([importBatchId])
+  @@index([periodEnd])
 }
 
 /// Paramètres financiers globaux de la ferme (devise, alertes).

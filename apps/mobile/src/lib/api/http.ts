@@ -141,6 +141,27 @@ export async function apiPatchJson<T>(
   return JSON.parse(text) as T;
 }
 
+/** POST multipart/form-data /api/v1/... */
+export async function apiPostFormData<T>(
+  path: string,
+  formData: FormData,
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<T> {
+  const p = path.startsWith("/") ? path : `/${path}`;
+  const url = `${apiBaseUrl()}/api/v1${p}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: apiAuthHeaders(accessToken, activeProfileId),
+    body: formData
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
+  }
+  return JSON.parse(text) as T;
+}
+
 /** DELETE /api/v1/... — corps JSON optionnel (ex. `{ ok: true }`). */
 export async function apiDeleteJson<T>(
   path: string,

@@ -3617,6 +3617,13 @@ export type FinanceOverviewDto = {
     netMargin: string;
   };
   balanceAllTime: string;
+  balanceAllTimeWithHistorical?: string;
+  historical?: {
+    totalIncome: string;
+    totalExpense: string;
+    netResult: string;
+    recordsCount: number;
+  };
   lowBalanceWarning: boolean;
   /** Série mensuelle sur les 6 derniers mois (revenus / dépenses). */
   months6: FinanceOverviewMonthPoint[];

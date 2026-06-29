@@ -92,7 +92,31 @@ export class ProfitabilityEngine {
         (a.realized.netMarginPct ?? -Infinity)
     );
 
-    const netMargin = farm.realized.netMargin;
+    const netMargin =
+      farm.historicalPeriod.recordsCount > 0
+        ? farm.lifetime.netMargin
+        : farm.realized.netMargin;
+    const netMarginPct =
+      farm.historicalPeriod.recordsCount > 0
+        ? farm.lifetime.netMarginPct
+        : farm.realized.netMarginPct;
+    const grossMargin =
+      farm.historicalPeriod.recordsCount > 0
+        ? farm.lifetime.grossMargin
+        : farm.realized.grossMargin;
+    const grossMarginPct =
+      farm.historicalPeriod.recordsCount > 0
+        ? farm.lifetime.grossMarginPct
+        : farm.realized.grossMarginPct;
+    const costPerKg =
+      farm.historicalPeriod.recordsCount > 0
+        ? farm.lifetime.costPerKg
+        : farm.realized.costPerKg;
+    const breakevenPricePerKg =
+      farm.historicalPeriod.recordsCount > 0
+        ? farm.lifetime.breakevenPricePerKg
+        : farm.realized.breakevenPricePerKg;
+
     return {
       period,
       currency: farm.currency,
@@ -100,11 +124,11 @@ export class ProfitabilityEngine {
       dataQuality: farm.dataQuality,
       dataQualityMessage: farm.dataQualityMessage,
       netMargin,
-      netMarginPct: farm.realized.netMarginPct,
-      grossMargin: farm.realized.grossMargin,
-      grossMarginPct: farm.realized.grossMarginPct,
-      costPerKg: farm.realized.costPerKg,
-      breakevenPricePerKg: farm.realized.breakevenPricePerKg,
+      netMarginPct,
+      grossMargin,
+      grossMarginPct,
+      costPerKg,
+      breakevenPricePerKg,
       trendNetMarginPctDelta: farm.trendVsPreviousPeriod.netMarginPctDelta,
       isProfitable: netMargin != null ? netMargin > 0 : null,
       activeBatchesCount: openBatches.length,
@@ -123,7 +147,9 @@ export class ProfitabilityEngine {
           }
         : null,
       realized: farm.realized,
-      projected: farm.projected
+      projected: farm.projected,
+      historicalPeriod: farm.historicalPeriod,
+      lifetime: farm.lifetime
     };
   }
 

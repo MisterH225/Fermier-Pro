@@ -1083,6 +1083,19 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                       onPeriodChange={setProfitabilityPeriod}
                       onPressDetail={() => setFinanceTab("rentabilite")}
                     />
+                    <Pressable
+                      style={styles.historicalLink}
+                      onPress={() =>
+                        navigation.navigate("HistoricalRecords", {
+                          farmId,
+                          farmName
+                        })
+                      }
+                    >
+                      <Text style={styles.historicalLinkText}>
+                        {t("financeScreen.historicalRecordsLink")}
+                      </Text>
+                    </Pressable>
                     <View style={[styles.kpiRow, { marginTop: mobileSpacing.md }]}>
                       <View style={styles.kpiHalf}>
                         <FinanceKpiCard
@@ -1827,5 +1840,15 @@ const styles = StyleSheet.create({
   },
   projMonthNet: {
     fontWeight: "800"
+  },
+  historicalLink: {
+    marginTop: mobileSpacing.sm,
+    paddingVertical: mobileSpacing.sm,
+    alignItems: "center"
+  },
+  historicalLinkText: {
+    color: mobileColors.accent,
+    fontWeight: "700",
+    fontSize: 14
   }
 });
