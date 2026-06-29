@@ -9,7 +9,11 @@ export class AppService {
     return {
       service: "fermier-api",
       status: "ok",
-      version: "0.1.0"
+      version: "0.1.0",
+      gitCommit:
+        process.env.RAILWAY_GIT_COMMIT_SHA?.trim() ||
+        process.env.GIT_COMMIT?.trim() ||
+        null
     };
   }
 

@@ -59,15 +59,12 @@ export async function buildFeedStockStatsForFarm(
       .filter((row) => row._count._all > 0)
       .map((row) => row.feedTypeId)
   );
+  const trackedTypes = types.filter((t) => typesWithHistory.has(t.id));
 
   const now = new Date();
 
-  const rows = await Promise.all(
-    types.map(async (t, index) => {
-      if (!typesWithHistory.has(t.id)) {
-        return null;
-      }
-
+  return Promise.all(
+    trackedTypes.map(async (t, index) => {
       const metrics = await computeFeedStockMetrics(prisma, farmId, t.id, {
         criticalDays: _thresholds.criticalDays,
         warningDays: _thresholds.warningDays
@@ -116,11 +113,9 @@ export async function buildFeedStockStatsForFarm(
         hasSufficientData: metrics.hasSufficientData,
         stockStatus: metrics.status,
         stockStatusColor: FEED_STOCK_STATUS_COLORS[metrics.status]
-      };
+      } satisfies FeedStockStatRow;
     })
   );
-
-  return rows.filter((row): row is FeedStockStatRow => row != null);
 }
 
 export async function feedStockConsumptionSpikeMessages(
