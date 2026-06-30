@@ -40,7 +40,7 @@ type PenOption = {
 };
 
 function penOccupancy(pen: BarnDetailDto["pens"][0]): number {
-  return pen._count?.placements ?? 0;
+  return pen.occupancy ?? 0;
 }
 
 export function TransferToFarmModal({

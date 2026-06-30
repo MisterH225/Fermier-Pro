@@ -19,6 +19,7 @@ import { FarmAccessService } from "../common/farm-access.service";
 import { FinanceService } from "../finance/finance.service";
 import { mapBatchTypeTag } from "./batch-category.util";
 import { maintainLitterBatches } from "../gestation/litter-weaning.util";
+import { countPlacementOccupancyFromRows } from "../housing/placement-occupancy.util";
 import { PrismaService } from "../prisma/prisma.service";
 import {
   normalizeAnimalLifecycleStatus,
@@ -352,7 +353,13 @@ export class CheptelService {
     }
 
     const rows: CheptelPenOverviewRow[] = pens.map((pen) => {
-      let occupancy = 0;
+      const occupancy = countPlacementOccupancyFromRows(
+        pen.placements.map((pl) => ({
+          animalId: pl.animalId,
+          animal: pl.animal ? { status: pl.animal.status } : null,
+          batch: pl.batch ? { headcount: pl.batch.headcount } : null
+        }))
+      );
       let batchTypeTag: "sous_mere" | "starter" | "fattening" | null = null;
       let vaccineOverdueCount = 0;
       let activeDiseaseCount = 0;
@@ -373,7 +380,6 @@ export class CheptelService {
           if (pl.animal.status !== "active") {
             continue;
           }
-          occupancy += 1;
           ageAnimals.push({
             birthDate: pl.animal.birthDate,
             ageWeeksAtEntry: pl.animal.ageWeeksAtEntry,
@@ -431,7 +437,6 @@ export class CheptelService {
             }
           }
         } else if (pl.batch) {
-          occupancy += pl.batch.headcount;
           const tag = mapBatchTypeTag(pl.batch.categoryKey);
           if (tag) {
             batchTypeTag = tag;

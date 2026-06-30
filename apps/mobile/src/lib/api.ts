@@ -4213,7 +4213,8 @@ export type PenSummaryInBarnDto = {
   capacity: number | null;
   status: string;
   sortOrder: number;
-  _count: { placements: number };
+  /** Occupation en têtes (animaux actifs + effectif des bandes). */
+  occupancy: number;
 };
 
 export type BarnDetailDto = {

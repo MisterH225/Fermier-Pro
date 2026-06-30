@@ -6,6 +6,10 @@ import {
 } from "@prisma/client";
 import { buildFeedStockStatsForFarm } from "../feed-stock/feed-stock-stats.helper";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
+import {
+  activePlacementOccupancySelect,
+  countPlacementOccupancyFromRows
+} from "../housing/placement-occupancy.util";
 import { PrismaService } from "../prisma/prisma.service";
 import type { AiModuleKey } from "./ai.types";
 
@@ -276,10 +280,8 @@ export class AiDataAggregatorService {
           name: true,
           capacity: true,
           placements: {
-            where: { endedAt: null, animal: { is: { status: "active" } } },
-            select: {
-              animalId: true
-            }
+            where: { endedAt: null },
+            select: activePlacementOccupancySelect
           }
         }
       }),
@@ -293,7 +295,7 @@ export class AiDataAggregatorService {
     }
 
     const penRows = pens.map((pen) => {
-      const occ = pen.placements.length;
+      const occ = countPlacementOccupancyFromRows(pen.placements);
       const cap = pen.capacity ?? 0;
       const rate = cap > 0 ? Math.round((occ / cap) * 100) : null;
       return {
