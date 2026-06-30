@@ -872,13 +872,25 @@ export async function relocateProductionAnimalsToDefaultPlan(
     farmId: string;
     userId: string;
     buildingsCount: number;
+    /**
+     * Si true : ferme tous les placements Eng/Dem puis réaffecte (apply-default-layout).
+     * Sinon : ne place que les sujets sans loge active — ne touche pas aux placements existants.
+     */
+    resetAll?: boolean;
   }
 ): Promise<number> {
+  const resetAll = params.resetAll === true;
+
   const productionAnimals = await tx.animal.findMany({
     where: {
       farmId: params.farmId,
       status: "active",
-      productionCategory: { in: ["fattening", "starter"] }
+      productionCategory: { in: ["fattening", "starter"] },
+      ...(resetAll
+        ? {}
+        : {
+            penPlacements: { none: { endedAt: null } }
+          })
     },
     select: { id: true, productionCategory: true },
     orderBy: { createdAt: "asc" }
@@ -888,11 +900,13 @@ export async function relocateProductionAnimalsToDefaultPlan(
     return 0;
   }
 
-  const ids = productionAnimals.map((a) => a.id);
-  await tx.penPlacement.updateMany({
-    where: { endedAt: null, animalId: { in: ids } },
-    data: { endedAt: new Date() }
-  });
+  if (resetAll) {
+    const ids = productionAnimals.map((a) => a.id);
+    await tx.penPlacement.updateMany({
+      where: { endedAt: null, animalId: { in: ids } },
+      data: { endedAt: new Date() }
+    });
+  }
 
   const pens = await loadPensForLayout(tx, params.farmId);
   const defaultCap = 12;

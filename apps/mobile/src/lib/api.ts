@@ -1595,8 +1595,8 @@ export type CheptelMaintainDataResult = {
 };
 
 /**
- * Réparations cheptel/loges (portées, lots legacy, doublons).
- * Appel explicite — ne plus déclenché par les GET.
+ * Réparations non destructives (portées, doublons migration).
+ * Ne réaffecte pas les placements existants — voir apply-default-layout.
  */
 export function maintainCheptelData(
   accessToken: string,
