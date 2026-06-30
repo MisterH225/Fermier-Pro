@@ -1,3 +1,8 @@
+import {
+  findEmptyPenForLitter,
+  litterPenCapacityWarning,
+  rankPensForLitterSuggestion
+} from "@fermier/types";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -17,10 +22,6 @@ import { BaseModal } from "../modals/BaseModal";
 import { toIsoDateTimeString } from "../../lib/appDate";
 import { ModalSection } from "../modals/ModalSection";
 import { fetchCheptelPens, recordGestationLitter } from "../../lib/api";
-import {
-  findEmptyPenForLitter,
-  rankPensForLitterSuggestion
-} from "../../lib/litterPen";
 import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
 import {
   isOfflineQueuedResult,
@@ -33,7 +34,6 @@ type Props = {
   farmId: string;
   gestationId: string;
   sowLabel: string;
-  sowPenId?: string | null;
   accessToken: string;
   activeProfileId?: string | null;
   onClose: () => void;
@@ -86,26 +86,21 @@ export function MiseBasModal({
     return findEmptyPenForLitter(pens, aliveCount);
   }, [pens, aliveCount, needsPenChoice]);
 
-  const penSuggestions = useMemo(() => {
+  const rankedPens = useMemo(() => {
     if (!needsPenChoice || pens.length === 0) {
-      return new Map<string, boolean>();
+      return [];
     }
-    return new Map(
-      rankPensForLitterSuggestion(pens, aliveCount).map((row) => [
-        row.id,
-        row.suggested
-      ])
-    );
+    const ranked = rankPensForLitterSuggestion(pens, aliveCount);
+    const byId = new Map(pens.map((pen) => [pen.id, pen]));
+    return ranked
+      .map((row) => {
+        const pen = byId.get(row.id);
+        return pen ? { pen, suggested: row.suggested } : null;
+      })
+      .filter((row): row is NonNullable<typeof row> => row != null);
   }, [pens, aliveCount, needsPenChoice]);
 
-  const suggestedPenId = useMemo(() => {
-    for (const [id, suggested] of penSuggestions) {
-      if (suggested) {
-        return id;
-      }
-    }
-    return null;
-  }, [penSuggestions]);
+  const suggestedPenId = rankedPens.find((row) => row.suggested)?.pen.id ?? null;
 
   useEffect(() => {
     if (!visible) {
@@ -132,21 +127,14 @@ export function MiseBasModal({
     if (!selectedPen || !needsPenChoice) {
       return null;
     }
-    const cap = selectedPen.capacity ?? 0;
-    if (cap <= 0) {
-      return null;
-    }
-    const nextOcc = (selectedPen.occupancy ?? 0) + aliveCount;
-    if (nextOcc > cap) {
-      return "block" as const;
-    }
-    if (nextOcc / cap > 0.8) {
-      return "warn" as const;
-    }
-    return null;
+    return litterPenCapacityWarning(
+      selectedPen.occupancy ?? 0,
+      selectedPen.capacity,
+      aliveCount
+    );
   }, [selectedPen, aliveCount, needsPenChoice]);
 
-  const buildBody = (resolvedPenId?: string | null) => {
+  const buildBody = (resolvedPenId?: string) => {
     const alive = Number.parseInt(bornAlive, 10);
     const dead = Number.parseInt(stillborn, 10) || 0;
     if (!Number.isFinite(alive) || alive < 0) {
@@ -181,7 +169,7 @@ export function MiseBasModal({
     farmId,
     type: "gestation.recordLitter",
     label: sowLabel,
-    mutationFn: async (resolvedPenId?: string | null) =>
+    mutationFn: async (resolvedPenId) =>
       recordGestationLitter(
         accessToken,
         farmId,
@@ -189,7 +177,7 @@ export function MiseBasModal({
         buildBody(resolvedPenId),
         activeProfileId
       ),
-    buildOfflineItem: (resolvedPenId?: string | null) => ({
+    buildOfflineItem: (resolvedPenId) => ({
       calls: [
         {
           method: "POST",
@@ -253,7 +241,9 @@ export function MiseBasModal({
         }
         return;
       }
-      mut.mutate(step === "pen" ? penId ?? undefined : emptyAutoPenId ?? undefined);
+      mut.mutate(
+        step === "pen" ? penId ?? undefined : emptyAutoPenId ?? undefined
+      );
     } catch (e) {
       Alert.alert(
         t("gestationScreen.error"),
@@ -302,7 +292,7 @@ export function MiseBasModal({
             onPress={onPrimaryPress}
             disabled={primaryDisabled}
           >
-            {mut.isPending || (step === "litter" && needsPenChoice && pensQ.isPending) ? (
+            {primaryDisabled ? (
               <ActivityIndicator color={mobileColors.onAccent} />
             ) : (
               <Text style={styles.btnText}>{primaryLabel}</Text>
@@ -391,28 +381,32 @@ export function MiseBasModal({
           </Text>
           {pensQ.isPending ? (
             <ActivityIndicator color={mobileColors.accent} />
-          ) : pens.length === 0 ? (
+          ) : rankedPens.length === 0 ? (
             <Text style={styles.hint}>{t("gestationScreen.noPens")}</Text>
           ) : (
             <ScrollView style={styles.penList} nestedScrollEnabled>
-              {pens.map((p) => {
-                const cap = p.capacity ?? 0;
-                const occ = p.occupancy ?? 0;
+              {rankedPens.map(({ pen, suggested }) => {
+                const cap = pen.capacity ?? 0;
+                const occ = pen.occupancy ?? 0;
                 const free = cap > 0 ? Math.max(0, cap - occ) : null;
                 const isEmpty = occ === 0;
-                const isSuggested = penSuggestions.get(p.id) === true;
                 return (
                   <Pressable
-                    key={p.id}
-                    style={[styles.penCard, penId === p.id && styles.penCardOn]}
-                    onPress={() => setPenId(p.id)}
+                    key={pen.id}
+                    style={[
+                      styles.penCard,
+                      penId === pen.id && styles.penCardOn
+                    ]}
+                    onPress={() => setPenId(pen.id)}
                   >
                     <Text style={styles.penName}>
-                      {p.name}
-                      {isSuggested ? ` · ${t("gestationScreen.penSuggested")}` : ""}
+                      {pen.name}
+                      {suggested
+                        ? ` · ${t("gestationScreen.penSuggested")}`
+                        : ""}
                     </Text>
                     <Text style={styles.penMeta}>
-                      {p.barnName}
+                      {pen.barnName}
                       {free != null
                         ? ` · ${t("gestationScreen.penFree", { count: free })}`
                         : ""}
@@ -433,7 +427,9 @@ export function MiseBasModal({
               {t("gestationScreen.penFull")}
             </Text>
           ) : null}
-          <Text style={styles.hint}>{t("gestationScreen.sowMovesWithLitter")}</Text>
+          <Text style={styles.hint}>
+            {t("gestationScreen.sowMovesWithLitter")}
+          </Text>
         </ModalSection>
       )}
     </BaseModal>

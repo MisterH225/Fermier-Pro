@@ -87,7 +87,6 @@ export function FarmGestationScreen({ route, navigation }: Props) {
     id: string;
     label: string;
     sowId: string;
-    sowPenId?: string | null;
   } | null>(null);
   const [highlightSow, setHighlightSow] = useState<string | null>(null);
 
@@ -546,8 +545,7 @@ export function FarmGestationScreen({ route, navigation }: Props) {
                           setLitterTarget({
                             id: first.id,
                             label: first.sowLabel,
-                            sowId: first.sowId,
-                            sowPenId: first.sowPen?.id ?? null
+                            sowId: first.sowId
                           });
                         } else {
                           setCreateOpen(true);
@@ -594,9 +592,9 @@ export function FarmGestationScreen({ route, navigation }: Props) {
         farmId={farmId}
         onClose={() => setDetailId(null)}
         onRefresh={invalidate}
-        onRecordLitter={(id, label, sowId, sowPenId) => {
+        onRecordLitter={(id, label, sowId) => {
           setDetailId(null);
-          setLitterTarget({ id, label, sowId, sowPenId });
+          setLitterTarget({ id, label, sowId });
         }}
         onOpenAnimal={(animalId, headline) => {
           setDetailId(null);
@@ -614,7 +612,6 @@ export function FarmGestationScreen({ route, navigation }: Props) {
         farmId={farmId}
         gestationId={litterTarget?.id ?? ""}
         sowLabel={litterTarget?.label ?? ""}
-        sowPenId={litterTarget?.sowPenId}
         accessToken={accessToken!}
         activeProfileId={activeProfileId}
         onClose={() => setLitterTarget(null)}

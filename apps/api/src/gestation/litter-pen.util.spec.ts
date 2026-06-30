@@ -1,10 +1,12 @@
 import {
   findEmptyPenForLitter,
+  litterPenCapacityWarning,
   penFitsLitterHeadcount,
-  rankPensForLitterSuggestion
-} from "./litter-pen.util";
+  rankPensForLitterSuggestion,
+  resolveLitterPenPlacement
+} from "@fermier/types";
 
-describe("litter-pen.util", () => {
+describe("litter-pen", () => {
   const pens = [
     { id: "a", occupancy: 2, capacity: 10 },
     { id: "b", occupancy: 0, capacity: 8 },
@@ -46,5 +48,31 @@ describe("litter-pen.util", () => {
     );
     expect(ranked[0]).toEqual({ id: "b", suggested: true });
     expect(ranked.find((p) => p.id === "a")?.suggested).toBe(false);
+  });
+
+  it("resolveLitterPenPlacement distinguishes user choice and auto empty", () => {
+    expect(resolveLitterPenPlacement(pens, 5, "a")).toEqual({
+      kind: "user",
+      penId: "a"
+    });
+    expect(resolveLitterPenPlacement(pens, 5, "missing")).toEqual({
+      kind: "missing_chosen"
+    });
+    expect(resolveLitterPenPlacement(pens, 5)).toEqual({
+      kind: "auto_empty",
+      penId: "b"
+    });
+    expect(
+      resolveLitterPenPlacement(
+        [{ id: "a", occupancy: 2, capacity: 10 }],
+        9
+      )
+    ).toEqual({ kind: "no_empty" });
+  });
+
+  it("litterPenCapacityWarning flags overcrowding", () => {
+    expect(litterPenCapacityWarning(7, 10, 2)).toBe("warn");
+    expect(litterPenCapacityWarning(8, 10, 4)).toBe("block");
+    expect(litterPenCapacityWarning(2, 0, 20)).toBeNull();
   });
 });

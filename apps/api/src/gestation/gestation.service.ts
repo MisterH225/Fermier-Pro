@@ -41,11 +41,7 @@ import {
   countPlacementOccupancyFromRows
 } from "../housing/placement-occupancy.util";
 import { maintainLitterBatches } from "./litter-weaning.util";
-import {
-  findEmptyPenForLitter,
-  penFitsLitterHeadcount,
-  type LitterPenCandidate
-} from "./litter-pen.util";
+import { resolveLitterPenPlacement, type LitterPenCandidate } from "@fermier/types";
 
 const MS_DAY = 86_400_000;
 const SOW_INCLUDE = {
@@ -663,40 +659,27 @@ export class GestationService {
 
     let penId: string | null = null;
     if (dto.bornAlive > 0) {
-      if (dto.penId) {
-        const chosen = await this.prisma.pen.findFirst({
-          where: { id: dto.penId, barn: { farmId: g.farmId } },
-          include: {
-            placements: {
-              where: { endedAt: null },
-              select: activePlacementOccupancySelect
-            }
-          }
-        });
-        if (!chosen) {
+      const candidates = await this.listLitterPenCandidates(g.farmId);
+      const resolved = resolveLitterPenPlacement(
+        candidates,
+        dto.bornAlive,
+        dto.penId
+      );
+      switch (resolved.kind) {
+        case "user":
+        case "auto_empty":
+          penId = resolved.penId;
+          break;
+        case "missing_chosen":
           throw new BadRequestException("Loge introuvable sur cette ferme");
-        }
-        const occupancy = countPlacementOccupancyFromRows(chosen.placements);
-        if (
-          !penFitsLitterHeadcount(
-            occupancy,
-            chosen.capacity,
-            dto.bornAlive
-          )
-        ) {
+        case "no_capacity":
           throw new BadRequestException(
             "Cette loge n'a pas assez de places pour la portée"
           );
-        }
-        penId = chosen.id;
-      } else {
-        const candidates = await this.listLitterPenCandidates(g.farmId);
-        penId = findEmptyPenForLitter(candidates, dto.bornAlive);
-        if (!penId) {
+        case "no_empty":
           throw new BadRequestException(
             "Aucune loge vide disponible — choisissez une loge pour la mère et la portée."
           );
-        }
       }
     }
     const pensToRecalculate = new Set<string>();

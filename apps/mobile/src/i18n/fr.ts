@@ -3276,8 +3276,6 @@ export const fr = {
     continueToPen: "Continuer — choisir la loge",
     back: "Retour",
     penStepTitle: "Loge de la portée",
-    penStepHint:
-      "Choisissez la loge pour {{count}} porcelet(s) nés vivants. Une loge vide est proposée par défaut si disponible.",
     penStepNoEmptyHint:
       "Aucune loge vide n'est disponible. Choisissez où placer la truie et ses {{count}} porcelet(s). Une suggestion est mise en avant.",
     penSuggested: "suggérée",
@@ -3291,7 +3289,6 @@ export const fr = {
     penFree: "{{count}} place(s) libre(s)",
     penEmpty: "vide",
     noPens: "Aucune loge disponible sur cette ferme",
-    transferSowWithLitter: "Transférer la truie dans la même loge",
     litterSuccessTitle: "Mise bas enregistrée",
     litterSuccessBody: "{{count}} porcelet(s) ajouté(s) au cheptel",
     litterSuccessWithPen:
