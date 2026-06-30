@@ -150,6 +150,15 @@ export class CheptelController {
     return this.cheptel.confirmDetectedBatch(user, farmId, dto);
   }
 
+  @Post("maintain-data")
+  @RequireFarmScopes(FARM_SCOPE.housingWrite)
+  maintainCheptelData(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string
+  ) {
+    return this.cheptel.maintainCheptelData(user, farmId);
+  }
+
   @Post("repair-duplicate-animals")
   @RequireFarmScopes(FARM_SCOPE.livestockWrite)
   repairDuplicateAnimals(
