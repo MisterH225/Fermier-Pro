@@ -1,6 +1,11 @@
 name: EAS Submit iOS
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/eas-submit-ios.env"
+      - ".github/workflows/eas-submit-ios.yml"
   workflow_dispatch:
     inputs:
       build_id:
@@ -39,8 +44,20 @@ jobs:
             echo "::error::EXPO_TOKEN non configuré — soumission impossible."
             exit 1
           fi
+          # shellcheck disable=SC1091
+          source ../../.github/eas-submit-ios.env
           BUILD_ID="${{ github.event.inputs.build_id }}"
           PROFILE="${{ github.event.inputs.profile }}"
+          if [[ -z "$BUILD_ID" ]]; then
+            BUILD_ID="${EAS_BUILD_ID:-}"
+          fi
+          if [[ -z "$PROFILE" ]]; then
+            PROFILE="${EAS_SUBMIT_PROFILE:-preview}"
+          fi
+          if [[ -z "$BUILD_ID" ]]; then
+            echo "::error::build_id manquant (workflow_dispatch ou .github/eas-submit-ios.env)"
+            exit 1
+          fi
           echo "Soumission du build ${BUILD_ID} (profil ${PROFILE})…"
           npx eas submit \
             --platform ios \
