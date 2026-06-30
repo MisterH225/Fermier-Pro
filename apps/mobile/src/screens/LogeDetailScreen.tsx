@@ -14,7 +14,6 @@ import {
 } from "react-native";
 import { AnimalActionModal } from "../components/cheptel/animals/AnimalActionModal";
 import { AnimalDetailModal } from "../components/cheptel/animals/AnimalDetailModal";
-import { penAnimalToListItem } from "../components/cheptel/animals/animalUtils";
 import { ChangeStatusModal } from "../components/cheptel/animals/ChangeStatusModal";
 import { SaleModal, type SaleResult } from "../components/cheptel/animals/SaleModal";
 import { DiseaseModal } from "../components/shared/DiseaseModal";
@@ -36,6 +35,10 @@ import {
   type PenAnimalRowDto,
   type PenBatchRowDto
 } from "../lib/api";
+import {
+  CHEPTEL_ANIMAL_MUTATION_ROOTS,
+  invalidateCheptelCaches
+} from "../lib/cheptelQueries";
 import {
   getPenVisualForPen,
   penVisualI18nKey,
@@ -274,9 +277,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
 
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ["penContents", farmId, penId] });
-    void qc.invalidateQueries({ queryKey: ["cheptelPens", farmId] });
-    void qc.invalidateQueries({ queryKey: ["farmAnimals", farmId] });
-    void qc.invalidateQueries({ queryKey: ["farmCheptel", farmId] });
+    invalidateCheptelCaches(qc, farmId, CHEPTEL_ANIMAL_MUTATION_ROOTS);
   };
 
   if (contentsQ.isPending || !penMeta) {

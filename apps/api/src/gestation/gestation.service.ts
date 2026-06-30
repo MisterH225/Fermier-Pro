@@ -14,7 +14,6 @@ import {
   type User
 } from "@prisma/client";
 import { FarmAccessService } from "../common/farm-access.service";
-import { HousingService } from "../housing/housing.service";
 import { PenAllocationService } from "../housing/pen-allocation.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
@@ -119,7 +118,6 @@ export class GestationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
-    private readonly housing: HousingService,
     private readonly penAllocation: PenAllocationService,
     private readonly smartAlerts: SmartAlertsService,
     private readonly gemini: AiGeminiService,

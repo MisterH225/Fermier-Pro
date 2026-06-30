@@ -22,7 +22,6 @@ const PERSIST_QUERY_ROOTS = new Set([
   "farmBatch",
   "farmTasks",
   "farmCheptel",
-  "farmCheptelLogs",
   "cheptelPens",
   "cheptelHistory",
   "cheptelGmq",

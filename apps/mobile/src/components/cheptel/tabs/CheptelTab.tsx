@@ -5,21 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
-
-  ActivityIndicator,
-
   Pressable,
-
   ScrollView,
-
   StyleSheet,
-
   Text,
-
   Vibration,
-
   View
-
 } from "react-native";
 
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";

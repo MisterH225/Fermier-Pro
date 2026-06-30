@@ -16,6 +16,7 @@ import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
 import type { AnimalListItem } from "../../../lib/api";
 import { fetchCheptelPens, postPenMove } from "../../../lib/api";
+import { CHEPTEL_PEN_MOVE_ROOTS } from "../../../lib/cheptelQueries";
 import {
   offlineAwareMessage,
   offlineQueuedMessage,
@@ -149,13 +150,7 @@ export function TransferModal({
             body
           }
         ],
-        invalidateRoots: [
-          "farmAnimals",
-          "cheptelPens",
-          "farmBarns",
-          "farmBarn",
-          "penDetail"
-        ]
+        invalidateRoots: [...CHEPTEL_PEN_MOVE_ROOTS, "cheptelHistory"]
       };
     },
     applyOptimistic: () => {
