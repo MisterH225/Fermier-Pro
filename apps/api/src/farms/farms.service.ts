@@ -21,10 +21,8 @@ import { FarmDeletionService } from "./farm-deletion.service";
 import { FarmMarketplaceLifecycleService } from "../marketplace/farm-marketplace-lifecycle.service";
 import { countCheptelHeadcountAt } from "./cheptel-headcount.util";
 import { mapBatchCategoryKey } from "../cheptel/batch-category.util";
-import { activeNursingLitterBatchIds, maintainLitterBatches } from "../gestation/litter-weaning.util";
+import { activeNursingLitterBatchIds } from "../gestation/litter-weaning.util";
 import { countPlacementOccupancy } from "../housing/placement-occupancy.util";
-import { repairOrphanMigrationDuplicateAnimals } from "../livestock/livestock-batch-headcount.helper";
-import { migrateOnboardingBatchesToIndividualAnimals } from "../onboarding/onboarding-pen-layout";
 
 const MAX_ACTIVE_FARMS_PER_USER = 3;
 
@@ -375,24 +373,6 @@ export class FarmsService {
 
   async getCheptelOverview(user: User, farmId: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
-    await this.prisma.$transaction(async (tx) => {
-      const farmRow = await tx.farm.findUnique({
-        where: { id: farmId },
-        select: { speciesFocus: true }
-      });
-      const species = await tx.species.findFirst({
-        where: { code: farmRow?.speciesFocus ?? "porcin" }
-      });
-      if (species) {
-        await migrateOnboardingBatchesToIndividualAnimals(
-          tx,
-          farmId,
-          species.id,
-          user.id
-        );
-      }
-      await repairOrphanMigrationDuplicateAnimals(tx, farmId);
-    });
     const farm = await this.prisma.farm.findUnique({
       where: { id: farmId },
       select: {
@@ -407,9 +387,6 @@ export class FarmsService {
     if (!farm) {
       throw new NotFoundException("Ferme introuvable");
     }
-
-    await this.farmAccess.requireFarmAccess(user.id, farmId);
-    await maintainLitterBatches(this.prisma, farmId);
 
     const animals = await this.prisma.animal.findMany({
       where: { farmId },

@@ -1583,6 +1583,34 @@ export function applyCheptelDefaultPenLayout(
   );
 }
 
+export type CheptelMaintainDataResult = {
+  litterMaintenanceRan: true;
+  legacyMigration: {
+    legacyBatchCount: number;
+    animalsMigrated: number;
+    duplicatesArchived: number;
+    productionAnimalsRelocated: number;
+  };
+  duplicatesArchived: number;
+};
+
+/**
+ * Réparations cheptel/loges (portées, lots legacy, doublons).
+ * Appel explicite — ne plus déclenché par les GET.
+ */
+export function maintainCheptelData(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<CheptelMaintainDataResult> {
+  return apiPostJson<CheptelMaintainDataResult>(
+    `/farms/${farmId}/cheptel/maintain-data`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
 export function fetchCheptelPens(
   accessToken: string,
   farmId: string,
