@@ -38,6 +38,8 @@ import {
 
 } from "../../../lib/api";
 
+import { useCheptelDataMaintenance } from "../../../hooks/useCheptelDataMaintenance";
+
 import { useSession } from "../../../context/SessionContext";
 
 import type { RootStackParamList } from "../../../types/navigation";
@@ -224,6 +226,13 @@ export function CheptelTab({
 
   const qc = useQueryClient();
 
+  const { pensLoadEnabled } = useCheptelDataMaintenance({
+    farmId,
+    accessToken,
+    activeProfileId,
+    readOnly
+  });
+
   const [barnId, setBarnId] = useState<string | undefined>(undefined);
 
   const [createBuildingOpen, setCreateBuildingOpen] = useState(false);
@@ -264,7 +273,7 @@ export function CheptelTab({
 
       fetchCheptelPens(accessToken!, farmId, activeProfileId, barnId),
 
-    enabled: Boolean(accessToken)
+    enabled: Boolean(accessToken) && pensLoadEnabled
 
   });
 
@@ -503,7 +512,7 @@ export function CheptelTab({
 
 
 
-  if (pensQuery.isPending) {
+  if (!pensLoadEnabled || pensQuery.isPending) {
 
     return <ListSkeleton count={4} style={{ marginTop: 24 }} />;
 
