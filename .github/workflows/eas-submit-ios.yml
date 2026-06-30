@@ -1,0 +1,50 @@
+name: EAS Submit iOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_id:
+        description: ID du build EAS à soumettre (UUID)
+        required: true
+        type: string
+      profile:
+        description: Profil submit eas.json
+        required: false
+        default: preview
+        type: choice
+        options:
+          - preview
+          - production
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Submit to App Store Connect
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        working-directory: apps/mobile
+        run: |
+          if [[ -z "${EXPO_TOKEN:-}" ]]; then
+            echo "::error::EXPO_TOKEN non configuré — soumission impossible."
+            exit 1
+          fi
+          BUILD_ID="${{ github.event.inputs.build_id }}"
+          PROFILE="${{ github.event.inputs.profile }}"
+          echo "Soumission du build ${BUILD_ID} (profil ${PROFILE})…"
+          npx eas submit \
+            --platform ios \
+            --profile "$PROFILE" \
+            --id "$BUILD_ID" \
+            --non-interactive \
+            --wait
