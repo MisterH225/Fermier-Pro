@@ -17,6 +17,10 @@ import { BaseModal } from "../modals/BaseModal";
 import { toIsoDateTimeString } from "../../lib/appDate";
 import { ModalSection } from "../modals/ModalSection";
 import { fetchCheptelPens, recordGestationLitter } from "../../lib/api";
+import {
+  findEmptyPenForLitter,
+  rankPensForLitterSuggestion
+} from "../../lib/litterPen";
 import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
 import {
   isOfflineQueuedResult,
@@ -43,7 +47,6 @@ export function MiseBasModal({
   farmId,
   gestationId,
   sowLabel,
-  sowPenId,
   accessToken,
   activeProfileId,
   onClose,
@@ -64,42 +67,45 @@ export function MiseBasModal({
   const [vetAssistance, setVetAssistance] = useState(false);
   const [notes, setNotes] = useState("");
   const [penId, setPenId] = useState<string | null>(null);
-  const [transferSowWithLitter, setTransferSowWithLitter] = useState(true);
 
   const aliveCount = Number.parseInt(bornAlive, 10);
-  const needsPenStep = Number.isFinite(aliveCount) && aliveCount > 0;
+  const needsPenChoice = Number.isFinite(aliveCount) && aliveCount > 0;
 
   const pensQ = useQuery({
     queryKey: ["cheptelPens", farmId, activeProfileId, "miseBas"],
     queryFn: () => fetchCheptelPens(accessToken, farmId, activeProfileId),
-    enabled: visible && step === "pen"
+    enabled: visible && needsPenChoice
   });
 
   const pens = pensQ.data?.pens ?? [];
 
-  const defaultPenId = useMemo(() => {
-    if (pens.length === 0) {
+  const emptyAutoPenId = useMemo(() => {
+    if (!needsPenChoice || pens.length === 0) {
       return null;
     }
-    const fits = (p: (typeof pens)[0]) => {
-      const cap = p.capacity ?? 0;
-      if (cap <= 0) {
-        return true;
-      }
-      return cap - (p.occupancy ?? 0) >= aliveCount;
-    };
-    if (sowPenId) {
-      const sowPen = pens.find((p) => p.id === sowPenId);
-      if (sowPen && fits(sowPen)) {
-        return sowPen.id;
+    return findEmptyPenForLitter(pens, aliveCount);
+  }, [pens, aliveCount, needsPenChoice]);
+
+  const penSuggestions = useMemo(() => {
+    if (!needsPenChoice || pens.length === 0) {
+      return new Map<string, boolean>();
+    }
+    return new Map(
+      rankPensForLitterSuggestion(pens, aliveCount).map((row) => [
+        row.id,
+        row.suggested
+      ])
+    );
+  }, [pens, aliveCount, needsPenChoice]);
+
+  const suggestedPenId = useMemo(() => {
+    for (const [id, suggested] of penSuggestions) {
+      if (suggested) {
+        return id;
       }
     }
-    const empty = pens.find((p) => (p.occupancy ?? 0) === 0 && fits(p));
-    if (empty) {
-      return empty.id;
-    }
-    return pens.find(fits)?.id ?? pens[0]?.id ?? null;
-  }, [pens, sowPenId, aliveCount]);
+    return null;
+  }, [penSuggestions]);
 
   useEffect(() => {
     if (!visible) {
@@ -113,18 +119,17 @@ export function MiseBasModal({
       setVetAssistance(false);
       setNotes("");
       setPenId(null);
-      setTransferSowWithLitter(true);
       return;
     }
-    if (step === "pen" && defaultPenId && !penId) {
-      setPenId(defaultPenId);
+    if (step === "pen" && suggestedPenId && !penId) {
+      setPenId(suggestedPenId);
     }
-  }, [visible, step, defaultPenId, penId]);
+  }, [visible, step, suggestedPenId, penId]);
 
   const selectedPen = pens.find((p) => p.id === penId);
 
   const capacityWarning = useMemo(() => {
-    if (!selectedPen || !needsPenStep) {
+    if (!selectedPen || !needsPenChoice) {
       return null;
     }
     const cap = selectedPen.capacity ?? 0;
@@ -139,19 +144,21 @@ export function MiseBasModal({
       return "warn" as const;
     }
     return null;
-  }, [selectedPen, aliveCount, needsPenStep]);
+  }, [selectedPen, aliveCount, needsPenChoice]);
 
-  const buildBody = () => {
+  const buildBody = (resolvedPenId?: string | null) => {
     const alive = Number.parseInt(bornAlive, 10);
     const dead = Number.parseInt(stillborn, 10) || 0;
     if (!Number.isFinite(alive) || alive < 0) {
       throw new Error(t("gestationScreen.invalidBornAlive"));
     }
-    if (alive > 0 && step === "pen") {
-      if (!penId) {
+    const placementPenId =
+      resolvedPenId ?? (step === "pen" ? penId : emptyAutoPenId);
+    if (alive > 0) {
+      if (!placementPenId) {
         throw new Error(t("gestationScreen.penRequired"));
       }
-      if (capacityWarning === "block") {
+      if (step === "pen" && capacityWarning === "block") {
         throw new Error(t("gestationScreen.penFull"));
       }
     }
@@ -166,33 +173,28 @@ export function MiseBasModal({
       deliveryType,
       vetAssistance,
       notes: notes.trim() || undefined,
-      ...(alive > 0 && penId
-        ? {
-            penId,
-            transferSowWithLitter
-          }
-        : {})
+      ...(alive > 0 && placementPenId ? { penId: placementPenId } : {})
     };
   };
 
-  const mut = useOfflineMutation({
+  const mut = useOfflineMutation<string | undefined>({
     farmId,
     type: "gestation.recordLitter",
     label: sowLabel,
-    mutationFn: async () =>
+    mutationFn: async (resolvedPenId?: string | null) =>
       recordGestationLitter(
         accessToken,
         farmId,
         gestationId,
-        buildBody(),
+        buildBody(resolvedPenId),
         activeProfileId
       ),
-    buildOfflineItem: () => ({
+    buildOfflineItem: (resolvedPenId?: string | null) => ({
       calls: [
         {
           method: "POST",
           path: `/farms/${farmId}/gestation/gestations/${gestationId}/litter`,
-          body: buildBody()
+          body: buildBody(resolvedPenId)
         }
       ],
       invalidateRoots: [
@@ -238,13 +240,20 @@ export function MiseBasModal({
         throw new Error(t("gestationScreen.invalidBornAlive"));
       }
       if (step === "litter" && alive > 0) {
+        if (pensQ.isPending) {
+          return;
+        }
+        if (emptyAutoPenId) {
+          mut.mutate(emptyAutoPenId);
+          return;
+        }
         setStep("pen");
-        if (defaultPenId) {
-          setPenId(defaultPenId);
+        if (suggestedPenId) {
+          setPenId(suggestedPenId);
         }
         return;
       }
-      mut.mutate();
+      mut.mutate(step === "pen" ? penId ?? undefined : emptyAutoPenId ?? undefined);
     } catch (e) {
       Alert.alert(
         t("gestationScreen.error"),
@@ -254,9 +263,12 @@ export function MiseBasModal({
   };
 
   const primaryLabel =
-    step === "litter" && needsPenStep
+    step === "litter" && needsPenChoice && !emptyAutoPenId
       ? t("gestationScreen.continueToPen")
       : t("gestationScreen.save");
+
+  const primaryDisabled =
+    mut.isPending || (step === "litter" && needsPenChoice && pensQ.isPending);
 
   return (
     <BaseModal
@@ -284,13 +296,13 @@ export function MiseBasModal({
           <Pressable
             style={[
               styles.btn,
-              mut.isPending && styles.btnDisabled,
+              primaryDisabled && styles.btnDisabled,
               step === "pen" && styles.btnFlex
             ]}
             onPress={onPrimaryPress}
-            disabled={mut.isPending}
+            disabled={primaryDisabled}
           >
-            {mut.isPending ? (
+            {mut.isPending || (step === "litter" && needsPenChoice && pensQ.isPending) ? (
               <ActivityIndicator color={mobileColors.onAccent} />
             ) : (
               <Text style={styles.btnText}>{primaryLabel}</Text>
@@ -366,11 +378,16 @@ export function MiseBasModal({
             onChangeText={setNotes}
             multiline
           />
+          {needsPenChoice && emptyAutoPenId ? (
+            <Text style={styles.autoHint}>
+              {t("gestationScreen.autoEmptyPenHint")}
+            </Text>
+          ) : null}
         </ModalSection>
       ) : (
         <ModalSection title={t("gestationScreen.penStepTitle")}>
           <Text style={styles.hint}>
-            {t("gestationScreen.penStepHint", { count: aliveCount })}
+            {t("gestationScreen.penStepNoEmptyHint", { count: aliveCount })}
           </Text>
           {pensQ.isPending ? (
             <ActivityIndicator color={mobileColors.accent} />
@@ -383,13 +400,17 @@ export function MiseBasModal({
                 const occ = p.occupancy ?? 0;
                 const free = cap > 0 ? Math.max(0, cap - occ) : null;
                 const isEmpty = occ === 0;
+                const isSuggested = penSuggestions.get(p.id) === true;
                 return (
                   <Pressable
                     key={p.id}
                     style={[styles.penCard, penId === p.id && styles.penCardOn]}
                     onPress={() => setPenId(p.id)}
                   >
-                    <Text style={styles.penName}>{p.name}</Text>
+                    <Text style={styles.penName}>
+                      {p.name}
+                      {isSuggested ? ` · ${t("gestationScreen.penSuggested")}` : ""}
+                    </Text>
                     <Text style={styles.penMeta}>
                       {p.barnName}
                       {free != null
@@ -412,15 +433,7 @@ export function MiseBasModal({
               {t("gestationScreen.penFull")}
             </Text>
           ) : null}
-          <Pressable
-            style={styles.toggle}
-            onPress={() => setTransferSowWithLitter((v) => !v)}
-          >
-            <Text>
-              {transferSowWithLitter ? "☑" : "☐"}{" "}
-              {t("gestationScreen.transferSowWithLitter")}
-            </Text>
-          </Pressable>
+          <Text style={styles.hint}>{t("gestationScreen.sowMovesWithLitter")}</Text>
         </ModalSection>
       )}
     </BaseModal>
@@ -448,6 +461,11 @@ const styles = StyleSheet.create({
   pillText: { fontSize: 12 },
   toggle: { paddingVertical: 8 },
   hint: { color: mobileColors.textSecondary, marginBottom: mobileSpacing.sm },
+  autoHint: {
+    color: mobileColors.textSecondary,
+    marginTop: mobileSpacing.sm,
+    fontSize: 13
+  },
   penList: { maxHeight: 220 },
   penCard: {
     borderWidth: 1,

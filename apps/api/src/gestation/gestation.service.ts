@@ -41,6 +41,11 @@ import {
   countPlacementOccupancyFromRows
 } from "../housing/placement-occupancy.util";
 import { maintainLitterBatches } from "./litter-weaning.util";
+import {
+  findEmptyPenForLitter,
+  penFitsLitterHeadcount,
+  type LitterPenCandidate
+} from "./litter-pen.util";
 
 const MS_DAY = 86_400_000;
 const SOW_INCLUDE = {
@@ -602,21 +607,9 @@ export class GestationService {
     return this.getOne(user, gestationId);
   }
 
-  /** Loge vide ou avec assez de places pour une portée. */
-  private async findPenForLitter(
-    farmId: string,
-    headcount: number,
-    preferredPenId?: string | null
-  ): Promise<string | null> {
-    if (preferredPenId) {
-      const pen = await this.prisma.pen.findFirst({
-        where: { id: preferredPenId, barn: { farmId } }
-      });
-      if (pen) {
-        return pen.id;
-      }
-    }
-
+  private async listLitterPenCandidates(
+    farmId: string
+  ): Promise<LitterPenCandidate[]> {
     const pens = await this.prisma.pen.findMany({
       where: { barn: { farmId } },
       include: {
@@ -628,21 +621,11 @@ export class GestationService {
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }]
     });
 
-    const scored = pens.map((pen) => {
-      const occupancy = countPlacementOccupancyFromRows(pen.placements);
-      const capacity = pen.capacity ?? 0;
-      const free =
-        capacity > 0 ? Math.max(0, capacity - occupancy) : Number.MAX_SAFE_INTEGER;
-      const fits = capacity <= 0 || free >= headcount;
-      return { id: pen.id, occupancy, fits, free };
-    });
-
-    const emptyFit = scored.find((p) => p.occupancy === 0 && p.fits);
-    if (emptyFit) {
-      return emptyFit.id;
-    }
-    const anyFit = scored.find((p) => p.fits);
-    return anyFit?.id ?? null;
+    return pens.map((pen) => ({
+      id: pen.id,
+      occupancy: countPlacementOccupancyFromRows(pen.placements),
+      capacity: pen.capacity
+    }));
   }
 
   async recordLitter(
@@ -678,10 +661,44 @@ export class GestationService {
 
     const batchName = `Portée ${animalLabel(g.sow)} ${actualBirthDate.toISOString().slice(0, 10)}`;
 
-    const penId =
-      dto.bornAlive > 0
-        ? await this.findPenForLitter(g.farmId, dto.bornAlive, dto.penId)
-        : null;
+    let penId: string | null = null;
+    if (dto.bornAlive > 0) {
+      if (dto.penId) {
+        const chosen = await this.prisma.pen.findFirst({
+          where: { id: dto.penId, barn: { farmId: g.farmId } },
+          include: {
+            placements: {
+              where: { endedAt: null },
+              select: activePlacementOccupancySelect
+            }
+          }
+        });
+        if (!chosen) {
+          throw new BadRequestException("Loge introuvable sur cette ferme");
+        }
+        const occupancy = countPlacementOccupancyFromRows(chosen.placements);
+        if (
+          !penFitsLitterHeadcount(
+            occupancy,
+            chosen.capacity,
+            dto.bornAlive
+          )
+        ) {
+          throw new BadRequestException(
+            "Cette loge n'a pas assez de places pour la portée"
+          );
+        }
+        penId = chosen.id;
+      } else {
+        const candidates = await this.listLitterPenCandidates(g.farmId);
+        penId = findEmptyPenForLitter(candidates, dto.bornAlive);
+        if (!penId) {
+          throw new BadRequestException(
+            "Aucune loge vide disponible — choisissez une loge pour la mère et la portée."
+          );
+        }
+      }
+    }
     const pensToRecalculate = new Set<string>();
 
     await this.prisma.$transaction(async (tx) => {
@@ -778,7 +795,7 @@ export class GestationService {
           penId,
           sowId: g.sowId,
           sireId: g.boarId,
-          transferSowWithLitter: dto.transferSowWithLitter ?? true
+          transferSowWithLitter: true
         });
         for (const pid of placed.pensToRecalculate) {
           pensToRecalculate.add(pid);
