@@ -14,20 +14,22 @@ import {
 } from "react-native";
 import { AnimalActionModal } from "../components/cheptel/animals/AnimalActionModal";
 import { AnimalDetailModal } from "../components/cheptel/animals/AnimalDetailModal";
-import { ChangeStatusModal } from "../components/cheptel/animals/ChangeStatusModal";
-import { SaleModal, type SaleResult } from "../components/cheptel/animals/SaleModal";
-import { DiseaseModal } from "../components/shared/DiseaseModal";
-import { TransferModal } from "../components/cheptel/animals/TransferModal";
+import { CheptelAnimalActionModals } from "../components/cheptel/animals/CheptelAnimalActionModals";
 import { CreateAnimalModal } from "../components/cheptel/animals/CreateAnimalModal";
 import { BulkAddAnimalsModal } from "../components/cheptel/animals/BulkAddAnimalsModal";
+import {
+  penAnimalDisplayTag,
+  penAnimalToEventItem,
+  penBatchToEventItem,
+  resolvePenAnimalListItem
+} from "../components/cheptel/animals/penDisplayUtils";
 import { EditPenCapacityModal } from "../components/cheptel/pens/EditPenCapacityModal";
-import { AddWeightModal } from "../components/cheptel/weight/AddWeightModal";
 import { CreateGestationModal } from "../components/shared/CreateGestationModal";
 import { useModal } from "../components/modals/useModal";
 import { EventList, type EventItem } from "../components/lists";
 import { useSession } from "../context/SessionContext";
+import { useCheptelAnimalActions } from "../hooks/useCheptelAnimalActions";
 import {
-  fetchCheptelPens,
   fetchFarmAnimals,
   fetchPenContents,
   patchPenAverages,
@@ -39,6 +41,7 @@ import {
   CHEPTEL_ANIMAL_MUTATION_ROOTS,
   invalidateCheptelCaches
 } from "../lib/cheptelQueries";
+import { useCheptelPens } from "../lib/cheptelPensQuery";
 import {
   getPenVisualForPen,
   penVisualI18nKey,
@@ -57,77 +60,6 @@ import {
 type Props = NativeStackScreenProps<RootStackParamList, "LogeDetail">;
 type AnimalFilter = "all" | "male" | "female" | "vaccine_late";
 
-function batchCategoryLabel(
-  categoryKey: string | null | undefined,
-  t: (key: string) => string
-): string {
-  const k = (categoryKey ?? "").toLowerCase();
-  if (
-    k.includes("sous_mere") ||
-    k.includes("lactation") ||
-    k.includes("allaitement") ||
-    k.includes("nursing")
-  ) {
-    return t("cheptel.pens.batchCategoryNursing");
-  }
-  if (
-    k === "nursery" ||
-    k.includes("starter") ||
-    k.includes("demarrage") ||
-    k.includes("porcelet")
-  ) {
-    return t("cheptel.pens.batchCategoryNursery");
-  }
-  if (k.includes("finish") || k.includes("engrais") || k === "finisher") {
-    return t("cheptel.pens.batchCategoryFinisher");
-  }
-  return t("cheptel.pens.batchCategoryOther");
-}
-
-function penBatchToEventItem(
-  b: PenBatchRowDto,
-  t: (key: string, opts?: { count: number }) => string
-): EventItem {
-  return {
-    id: `batch-${b.id}`,
-    title: b.name,
-    subtitle: batchCategoryLabel(b.categoryKey, t),
-    value: t("cheptel.pens.batchHeadcount", { count: b.headcount }),
-    valueType: "neutral",
-    date: b.breed?.name ?? b.species.name,
-    iconType: "custom",
-    customIcon: "layers-outline",
-    meta: b
-  };
-}
-
-function penAnimalToEventItem(
-  a: PenAnimalRowDto,
-  t: (key: string) => string
-): EventItem {
-  const lastMeasure = a.weights[0]?.measuredAt;
-  return {
-    id: a.id,
-    title: a.tagCode?.trim() || `FP-${a.publicId.slice(-6)}`,
-    subtitle: [
-      a.breed?.name,
-      t(`cheptel.animals.sex.${a.sex}`),
-      a.healthStatus === "sick" ? "🤒" : null,
-      a.activeGestation ? "🤱" : null
-    ]
-      .filter(Boolean)
-      .join(" · "),
-    value:
-      a.currentWeightKg != null ? `${a.currentWeightKg} kg` : undefined,
-    valueType:
-      a.healthStatus === "sick" || a.vaccineOverdue ? "negative" : "neutral",
-    date: lastMeasure?.slice(0, 10) ?? "—",
-    iconType: "custom",
-    customIcon: a.sex === "male" ? "male-outline" : "female-outline",
-    meta: a
-  };
-}
-
 export function LogeDetailScreen({ route, navigation }: Props) {
   const { farmId, farmName, penId, penLabel } = route.params;
   const { t } = useTranslation();
@@ -139,20 +71,17 @@ export function LogeDetailScreen({ route, navigation }: Props) {
   const [avgAge, setAvgAge] = useState("");
   const [capacityEditOpen, setCapacityEditOpen] = useState(false);
   const [actionAnimal, setActionAnimal] = useState<PenAnimalRowDto | null>(null);
-  const [statusAnimal, setStatusAnimal] = useState<AnimalListItem | null>(null);
-  const [saleAnimal, setSaleAnimal] = useState<AnimalListItem | null>(null);
-  const [diseaseAnimal, setDiseaseAnimal] = useState<AnimalListItem | null>(null);
-  const [transferAnimal, setTransferAnimal] = useState<AnimalListItem | null>(null);
-  const [weightAnimal, setWeightAnimal] = useState<AnimalListItem | null>(null);
   const [detailAnimal, setDetailAnimal] = useState<AnimalListItem | null>(null);
   const [isCreateAnimalVisible, setIsCreateAnimalVisible] = useState(false);
   const [isBulkAnimalVisible, setIsBulkAnimalVisible] = useState(false);
   const [gestationSow, setGestationSow] = useState<PenAnimalRowDto | null>(null);
+  const animalActions = useCheptelAnimalActions();
   const modal = useModal();
 
-  const pensQ = useQuery({
-    queryKey: ["cheptelPens", farmId, activeProfileId],
-    queryFn: () => fetchCheptelPens(accessToken!, farmId, activeProfileId)
+  const pensQ = useCheptelPens({
+    farmId,
+    accessToken,
+    activeProfileId
   });
 
   const penMeta = useMemo(
@@ -260,9 +189,26 @@ export function LogeDetailScreen({ route, navigation }: Props) {
 
   const batches = contentsQ.data?.batches ?? [];
 
-  const toListItem = (a: PenAnimalRowDto): AnimalListItem | null => {
-    const full = (allAnimalsQ.data ?? []).find((x) => x.id === a.id);
-    return full ?? null;
+  const penContext = penMeta
+    ? {
+        id: penMeta.id,
+        name: penMeta.name,
+        barnId: penMeta.barnId,
+        barnName: penMeta.barnName
+      }
+    : null;
+
+  const toListItem = (a: PenAnimalRowDto): AnimalListItem | null =>
+    resolvePenAnimalListItem(a, allAnimalsQ.data, penContext);
+
+  const openFromAction = (
+    opener: (animal: AnimalListItem) => void
+  ) => {
+    const full = actionAnimal ? toListItem(actionAnimal) : null;
+    setActionAnimal(null);
+    if (full) {
+      opener(full);
+    }
   };
 
   const animalEventItems: EventItem[] = useMemo(
@@ -505,27 +451,9 @@ export function LogeDetailScreen({ route, navigation }: Props) {
         visible={Boolean(actionAnimal)}
         animal={actionAnimal}
         onClose={() => setActionAnimal(null)}
-        onTransfer={() => {
-          const full = actionAnimal ? toListItem(actionAnimal) : null;
-          setActionAnimal(null);
-          if (full) {
-            setTransferAnimal(full);
-          }
-        }}
-        onChangeStatus={() => {
-          const full = actionAnimal ? toListItem(actionAnimal) : null;
-          setActionAnimal(null);
-          if (full) {
-            setStatusAnimal(full);
-          }
-        }}
-        onAddWeight={() => {
-          const full = actionAnimal ? toListItem(actionAnimal) : null;
-          setActionAnimal(null);
-          if (full) {
-            setWeightAnimal(full);
-          }
-        }}
+        onTransfer={() => openFromAction(animalActions.openTransfer)}
+        onChangeStatus={() => openFromAction(animalActions.openStatus)}
+        onAddWeight={() => openFromAction(animalActions.openWeight)}
         onOpenHealth={() => {
           setActionAnimal(null);
           navigation.navigate("FarmHealth", { farmId, farmName });
@@ -549,13 +477,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
           setGestationSow(a);
           setActionAnimal(null);
         }}
-        onListForSale={() => {
-          const full = actionAnimal ? toListItem(actionAnimal) : null;
-          setActionAnimal(null);
-          if (full) {
-            setSaleAnimal(full);
-          }
-        }}
+        onListForSale={() => openFromAction(animalActions.openSale)}
       />
 
       <CreateGestationModal
@@ -567,10 +489,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
         males={gestationMales}
         presetSowId={gestationSow?.id}
         presetSowLabel={
-          gestationSow?.tagCode?.trim() ||
-          (gestationSow
-            ? `FP-${gestationSow.publicId.slice(-6)}`
-            : undefined)
+          gestationSow ? penAnimalDisplayTag(gestationSow) : undefined
         }
         penId={penId}
         onClose={() => setGestationSow(null)}
@@ -587,74 +506,13 @@ export function LogeDetailScreen({ route, navigation }: Props) {
         }}
       />
 
-      <ChangeStatusModal
-        visible={Boolean(statusAnimal)}
-        animal={statusAnimal}
-        farmId={farmId}
-        accessToken={accessToken!}
-        activeProfileId={activeProfileId}
-        onClose={() => setStatusAnimal(null)}
-        onUpdated={invalidate}
-        onRequestSale={(a) => setSaleAnimal(a)}
-        onRequestDisease={(a) => setDiseaseAnimal(a)}
-      />
-
-      <DiseaseModal
-        visible={Boolean(diseaseAnimal)}
-        presetAnimal={diseaseAnimal}
-        farmId={farmId}
-        accessToken={accessToken!}
-        activeProfileId={activeProfileId}
-        onClose={() => setDiseaseAnimal(null)}
-        onSuccess={invalidate}
-      />
-
-      <SaleModal
-        visible={Boolean(saleAnimal)}
-        animal={saleAnimal}
-        farmId={farmId}
-        accessToken={accessToken!}
-        activeProfileId={activeProfileId}
-        onCancel={() => setSaleAnimal(null)}
-        onSuccess={(sale: SaleResult) => {
-          setSaleAnimal(null);
-          invalidate();
-          const tag =
-            sale.animal.tagCode?.trim() ||
-            sale.animal.publicId?.slice(0, 8) ||
-            "—";
-          const amount = Number(sale.transaction.amount);
-          modal.open("success", {
-            title: t("cheptel.animals.sale.successTitle"),
-            message: t("cheptel.animals.sale.successMessage", {
-              tag,
-              amount: amount.toLocaleString("fr-FR"),
-              currency: sale.transaction.currency
-            }),
-            autoDismissMs: 3500
-          });
-        }}
-      />
-
-      <TransferModal
-        visible={Boolean(transferAnimal)}
-        initialAnimalId={transferAnimal?.id}
+      <CheptelAnimalActionModals
         farmId={farmId}
         accessToken={accessToken!}
         activeProfileId={activeProfileId}
         animals={allAnimalsQ.data ?? []}
-        onClose={() => setTransferAnimal(null)}
-        onTransferred={invalidate}
-      />
-
-      <AddWeightModal
-        visible={Boolean(weightAnimal)}
-        preselectedAnimalId={weightAnimal?.id}
-        farmId={farmId}
-        accessToken={accessToken!}
-        activeProfileId={activeProfileId}
-        onClose={() => setWeightAnimal(null)}
-        onSaved={invalidate}
+        actions={animalActions}
+        onInvalidate={invalidate}
       />
 
       <CreateAnimalModal
@@ -714,15 +572,15 @@ export function LogeDetailScreen({ route, navigation }: Props) {
         onUpdated={invalidate}
         onTransfer={(a) => {
           setDetailAnimal(null);
-          setTransferAnimal(a);
+          animalActions.openTransfer(a);
         }}
         onChangeStatus={(a) => {
           setDetailAnimal(null);
-          setStatusAnimal(a);
+          animalActions.openStatus(a);
         }}
         onAddWeight={(a) => {
           setDetailAnimal(null);
-          setWeightAnimal(a);
+          animalActions.openWeight(a);
         }}
         onOpenHealth={() => {
           setDetailAnimal(null);
@@ -730,7 +588,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
         }}
         onListForSale={(a) => {
           setDetailAnimal(null);
-          setSaleAnimal(a);
+          animalActions.openSale(a);
         }}
       />
     </View>

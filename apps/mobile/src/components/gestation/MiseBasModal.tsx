@@ -3,7 +3,6 @@ import {
   litterPenCapacityWarning,
   rankPensForLitterSuggestion
 } from "@fermier/types";
-import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getUserFacingError } from "../../lib/userFacingError";
@@ -21,7 +20,8 @@ import { AppDatePicker } from "../common/AppDatePicker";
 import { BaseModal } from "../modals/BaseModal";
 import { toIsoDateTimeString } from "../../lib/appDate";
 import { ModalSection } from "../modals/ModalSection";
-import { fetchCheptelPens, recordGestationLitter } from "../../lib/api";
+import { recordGestationLitter } from "../../lib/api";
+import { useCheptelPens } from "../../lib/cheptelPensQuery";
 import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
 import {
   isOfflineQueuedResult,
@@ -71,9 +71,10 @@ export function MiseBasModal({
   const aliveCount = Number.parseInt(bornAlive, 10);
   const needsPenChoice = Number.isFinite(aliveCount) && aliveCount > 0;
 
-  const pensQ = useQuery({
-    queryKey: ["cheptelPens", farmId, activeProfileId, "miseBas"],
-    queryFn: () => fetchCheptelPens(accessToken, farmId, activeProfileId),
+  const pensQ = useCheptelPens({
+    farmId,
+    accessToken,
+    activeProfileId,
     enabled: visible && needsPenChoice
   });
 
