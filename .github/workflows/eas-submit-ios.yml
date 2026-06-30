@@ -55,8 +55,8 @@ jobs:
             PROFILE="${EAS_SUBMIT_PROFILE:-preview}"
           fi
           if [[ -z "$BUILD_ID" ]]; then
-            echo "::error::build_id manquant (workflow_dispatch ou .github/eas-submit-ios.env)"
-            exit 1
+            echo "Pas de EAS_BUILD_ID dans .github/eas-submit-ios.env — soumission ignorée."
+            exit 0
           fi
           echo "Soumission du build ${BUILD_ID} (profil ${PROFILE})…"
           npx eas submit \
