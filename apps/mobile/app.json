@@ -17,7 +17,7 @@
     ],
     "ios": {
       "bundleIdentifier": "com.fermierpro.app",
-      "buildNumber": "14",
+      "buildNumber": "15",
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -30,7 +30,7 @@
     },
     "android": {
       "package": "com.fermierpro.app",
-      "versionCode": 14,
+      "versionCode": 15,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a1a1a"
@@ -90,7 +90,7 @@
       "eas": {
         "projectId": "ebb8a3e5-e17a-4a66-ae0a-f7624ab6c12a"
       },
-      "lastOtaRelease": "2026-06-20-eas-build-14-appstore"
+      "lastOtaRelease": "2026-06-30-eas-build-15-preview"
     },
     "owner": "misterh225"
   }
