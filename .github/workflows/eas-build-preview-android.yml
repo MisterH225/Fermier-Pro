@@ -1,0 +1,43 @@
+name: EAS Build Preview Android
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/mobile/app.json"
+      - ".github/workflows/eas-build-preview-android.yml"
+  workflow_dispatch:
+    inputs:
+      message:
+        description: Message du build EAS (optionnel)
+        required: false
+        default: ""
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Android preview (EAS)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        working-directory: apps/mobile
+        run: |
+          if [[ -z "${EXPO_TOKEN:-}" ]]; then
+            echo "::error::EXPO_TOKEN non configuré — build EAS impossible."
+            exit 1
+          fi
+          MSG="${{ github.event.inputs.message }}"
+          if [[ -z "$MSG" ]]; then
+            MSG="Android preview build (${GITHUB_SHA:0:7}) — $(date -u +%Y-%m-%dT%H:%MZ)"
+          fi
+          npx eas build --platform android --profile preview --non-interactive --message "$MSG"
