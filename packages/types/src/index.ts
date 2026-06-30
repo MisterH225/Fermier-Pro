@@ -9,3 +9,13 @@ export interface ActiveContext {
   farmId?: string;
   scopes: string[];
 }
+
+export {
+  findEmptyPenForLitter,
+  litterPenCapacityWarning,
+  penFitsLitterHeadcount,
+  rankPensForLitterSuggestion,
+  resolveLitterPenPlacement,
+  type LitterPenCandidate,
+  type LitterPenResolveResult
+} from "./litter-pen";

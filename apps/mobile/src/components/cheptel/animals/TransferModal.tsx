@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getUserFacingError } from "../../../lib/userFacingError";
@@ -15,7 +15,12 @@ import { BaseModal } from "../../modals/BaseModal";
 import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
 import type { AnimalListItem } from "../../../lib/api";
-import { fetchCheptelPens, postPenMove } from "../../../lib/api";
+import { postPenMove } from "../../../lib/api";
+import { CHEPTEL_PEN_MOVE_ROOTS } from "../../../lib/cheptelQueries";
+import {
+  mapCheptelPenOptions,
+  useCheptelPens
+} from "../../../lib/cheptelPensQuery";
 import {
   offlineAwareMessage,
   offlineQueuedMessage,
@@ -41,14 +46,7 @@ type Props = {
   onTransferred: () => void;
 };
 
-type PenOption = {
-  penId: string;
-  penName: string;
-  barnId: string;
-  barnName: string;
-  capacity: number;
-  occupancy: number;
-};
+type PenOption = ReturnType<typeof mapCheptelPenOptions>[number];
 
 export function TransferModal({
   visible,
@@ -67,22 +65,17 @@ export function TransferModal({
   const [toPenId, setToPenId] = useState<string | null>(null);
   const [note, setNote] = useState("");
 
-  const pensQuery = useQuery({
-    queryKey: ["cheptelPens", farmId, activeProfileId],
-    queryFn: () => fetchCheptelPens(accessToken, farmId, activeProfileId),
+  const pensQuery = useCheptelPens({
+    farmId,
+    accessToken,
+    activeProfileId,
     enabled: visible
   });
 
-  const penOptions: PenOption[] = useMemo(() => {
-    return (pensQuery.data?.pens ?? []).map((pen) => ({
-      penId: pen.id,
-      penName: pen.code?.trim() || pen.name,
-      barnId: pen.barnId,
-      barnName: pen.barnName,
-      capacity: pen.capacity ?? 0,
-      occupancy: pen.occupancy
-    }));
-  }, [pensQuery.data]);
+  const penOptions: PenOption[] = useMemo(
+    () => mapCheptelPenOptions(pensQuery.data?.pens ?? []),
+    [pensQuery.data]
+  );
 
   // On ne dépend pas de la référence `animals` (recréée à chaque render parent
   // par un filter/map sur useQuery → boucle « Maximum update depth »). On lit
@@ -105,7 +98,7 @@ export function TransferModal({
     if (!selectedPen || selectedPen.capacity <= 0) {
       return null;
     }
-    const nextOcc = selectedPen.occupancy + 1;
+    const nextOcc = (selectedPen.occupancy ?? 0) + 1;
     const rate = nextOcc / selectedPen.capacity;
     if (nextOcc > selectedPen.capacity) {
       return "block" as const;
@@ -149,13 +142,7 @@ export function TransferModal({
             body
           }
         ],
-        invalidateRoots: [
-          "farmAnimals",
-          "cheptelPens",
-          "farmBarns",
-          "farmBarn",
-          "penDetail"
-        ]
+        invalidateRoots: [...CHEPTEL_PEN_MOVE_ROOTS, "cheptelHistory"]
       };
     },
     applyOptimistic: () => {
@@ -265,10 +252,11 @@ export function TransferModal({
         ) : (
           <View style={styles.penGrid}>
             {penOptions.map((p) => {
+              const occupancy = p.occupancy ?? 0;
               const full =
-                p.capacity > 0 && p.occupancy >= p.capacity && p.penId !== fromPenId;
+                p.capacity > 0 && occupancy >= p.capacity && p.penId !== fromPenId;
               const warn =
-                p.capacity > 0 && (p.occupancy + 1) / p.capacity > 0.8;
+                p.capacity > 0 && (occupancy + 1) / p.capacity > 0.8;
               return (
                 <Pressable
                   key={p.penId}

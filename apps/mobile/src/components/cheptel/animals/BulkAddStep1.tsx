@@ -12,11 +12,11 @@ import {
 import { AppDatePicker } from "../../common/AppDatePicker";
 import { ModalSection } from "../../modals/ModalSection";
 import {
-  fetchCheptelPens,
   fetchTaxonomy,
   type AnimalOriginDto,
   type CheptelPenRowDto
 } from "../../../lib/api";
+import { useCheptelPens } from "../../../lib/cheptelPensQuery";
 import {
   mobileColors,
   mobileRadius,
@@ -62,9 +62,10 @@ export function BulkAddStep1({
   const { t } = useTranslation();
   const [breedFilter, setBreedFilter] = useState("");
 
-  const pensQ = useQuery({
-    queryKey: ["cheptelPens", farmId, activeProfileId],
-    queryFn: () => fetchCheptelPens(accessToken, farmId, activeProfileId),
+  const pensQ = useCheptelPens({
+    farmId,
+    accessToken,
+    activeProfileId,
     enabled: !fixedPen
   });
 

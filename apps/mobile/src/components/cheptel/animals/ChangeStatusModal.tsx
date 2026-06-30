@@ -16,6 +16,7 @@ import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
 import type { AnimalListItem } from "../../../lib/api";
 import { patchCheptelAnimalStatus } from "../../../lib/api";
+import { CHEPTEL_ANIMAL_MUTATION_ROOTS } from "../../../lib/cheptelQueries";
 import {
   offlineQueuedMessage,
   useOfflineMutation
@@ -108,13 +109,6 @@ export function ChangeStatusModal({
     label: animal ? animalDisplayTag(animal) : "—",
     mutationFn: async () => {
       const { animalId, body } = buildPayload();
-      optimisticPatchAnimalStatus(
-        qc,
-        farmId,
-        activeProfileId,
-        animalId,
-        body
-      );
       return patchCheptelAnimalStatus(
         accessToken,
         farmId,
@@ -133,12 +127,7 @@ export function ChangeStatusModal({
             body
           }
         ],
-        invalidateRoots: [
-          "farmAnimals",
-          "farmCheptel",
-          "cheptelPens",
-          "cheptelHistory"
-        ]
+        invalidateRoots: [...CHEPTEL_ANIMAL_MUTATION_ROOTS]
       };
     },
     applyOptimistic: () => {

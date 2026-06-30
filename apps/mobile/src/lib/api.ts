@@ -1559,58 +1559,6 @@ export type PenContentsDto = {
   batches: PenBatchRowDto[];
 };
 
-export type ApplyDefaultPenLayoutResult = {
-  batchesMigrated?: number;
-  breedersPlaced?: number;
-  productionPlaced?: number;
-  rebalanced?: number;
-  /** @deprecated Ancien format API */
-  animalsPlaced?: number;
-  batchesPlaced?: number;
-};
-
-/** Répartit truies, verrats et lots selon le plan onboarding (sujets sans loge). */
-export function applyCheptelDefaultPenLayout(
-  accessToken: string,
-  farmId: string,
-  activeProfileId?: string | null
-): Promise<ApplyDefaultPenLayoutResult> {
-  return apiPostJson<ApplyDefaultPenLayoutResult>(
-    `/farms/${farmId}/cheptel/apply-default-layout`,
-    {},
-    accessToken,
-    activeProfileId
-  );
-}
-
-export type CheptelMaintainDataResult = {
-  litterMaintenanceRan: true;
-  legacyMigration: {
-    legacyBatchCount: number;
-    animalsMigrated: number;
-    duplicatesArchived: number;
-    productionAnimalsRelocated: number;
-  };
-  duplicatesArchived: number;
-};
-
-/**
- * Réparations non destructives (portées, doublons migration).
- * Ne réaffecte pas les placements existants — voir apply-default-layout.
- */
-export function maintainCheptelData(
-  accessToken: string,
-  farmId: string,
-  activeProfileId?: string | null
-): Promise<CheptelMaintainDataResult> {
-  return apiPostJson<CheptelMaintainDataResult>(
-    `/farms/${farmId}/cheptel/maintain-data`,
-    {},
-    accessToken,
-    activeProfileId
-  );
-}
-
 export function fetchCheptelPens(
   accessToken: string,
   farmId: string,
@@ -6687,7 +6635,6 @@ export function recordGestationLitter(
     vetAssistance?: boolean;
     notes?: string;
     penId?: string;
-    transferSowWithLitter?: boolean;
   },
   activeProfileId?: string | null
 ): Promise<GestationDetailDto> {

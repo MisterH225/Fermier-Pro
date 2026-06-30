@@ -3242,15 +3242,18 @@ export const en = {
     continueToPen: "Continue — choose pen",
     back: "Back",
     penStepTitle: "Litter pen",
-    penStepHint:
-      "Choose a pen for {{count}} live-born piglet(s). An empty pen is suggested when available.",
+    penStepNoEmptyHint:
+      "No empty pen is available. Choose where to place the sow and her {{count}} piglet(s). A suggestion is highlighted.",
+    penSuggested: "suggested",
+    autoEmptyPenHint:
+      "An empty pen is available — the sow and her litter will be placed there automatically.",
+    sowMovesWithLitter: "The sow will be moved to the same pen as her litter.",
     penRequired: "Select a pen for the litter",
     penFull: "This pen does not have enough space for the whole litter",
     penCapacityWarn: "The pen will be near maximum capacity",
     penFree: "{{count}} free slot(s)",
     penEmpty: "empty",
     noPens: "No pens available on this farm",
-    transferSowWithLitter: "Move the sow to the same pen",
     litterSuccessTitle: "Farrowing recorded",
     litterSuccessBody: "{{count}} piglet(s) added to herd",
     litterSuccessWithPen:

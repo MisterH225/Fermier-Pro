@@ -11,7 +11,6 @@ import {
 import {
   fetchFarmBarns,
   fetchFarms,
-  type BarnDetailDto,
   type MarketplacePendingTransferDto
 } from "../../lib/api";
 import { resolvePenOccupancy } from "../../lib/penOccupancy";
@@ -39,10 +38,6 @@ type PenOption = {
   penName: string;
   barnName: string;
 };
-
-function penOccupancy(pen: BarnDetailDto["pens"][0]): number {
-  return resolvePenOccupancy(pen);
-}
 
 export function TransferToFarmModal({
   visible,
@@ -184,7 +179,7 @@ export function TransferToFarmModal({
                 const detailPen = (penQueries.data ?? [])
                   .flatMap((b) => b.pens)
                   .find((p) => p.id === pen.penId);
-                const occ = detailPen ? penOccupancy(detailPen) : 0;
+                const occ = detailPen ? resolvePenOccupancy(detailPen) : 0;
                 const cap = detailPen?.capacity ?? 0;
                 return (
                   <Pressable

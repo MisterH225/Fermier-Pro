@@ -556,45 +556,6 @@ export class PenAllocationService {
     }
   }
 
-  /** Détecte les loges avec plusieurs catégories d'animaux actifs. */
-  async findMixedCategoryPenIds(farmId: string): Promise<string[]> {
-    const pens = await this.prisma.pen.findMany({
-      where: { barn: { farmId } },
-      select: {
-        id: true,
-        placements: {
-          where: { endedAt: null, animalId: { not: null } },
-          select: {
-            animal: {
-              select: {
-                sex: true,
-                productionCategory: true,
-                tagCode: true
-              }
-            }
-          }
-        }
-      }
-    });
-    const mixed: string[] = [];
-    for (const pen of pens) {
-      const roles = new Set<AnimalAllocationRole>();
-      for (const pl of pen.placements) {
-        if (!pl.animal) {
-          continue;
-        }
-        const role = PenAllocationService.roleFromAnimal(pl.animal);
-        if (role) {
-          roles.add(role);
-        }
-      }
-      if (roles.size > 1) {
-        mixed.push(pen.id);
-      }
-    }
-    return mixed;
-  }
-
   static buildPensByBarnFromDb(
     pens: Array<{
       id: string;

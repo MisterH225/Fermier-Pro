@@ -6,11 +6,11 @@ import { BaseModal } from "../../modals/BaseModal";
 import { useModal } from "../../modals/useModal";
 import {
   createBulkAnimals,
-  fetchCheptelPens,
   fetchTaxonomy,
   type AnimalOriginDto,
   type BulkCreateAnimalsPayload
 } from "../../../lib/api";
+import { useCheptelPens } from "../../../lib/cheptelPensQuery";
 import {
   mobileColors,
   mobileRadius,
@@ -94,9 +94,10 @@ export function BulkAddAnimalsModal({
     setForm(defaultForm(targetPen?.penId ?? null));
   }, [visible, targetPen?.penId]);
 
-  const pensQ = useQuery({
-    queryKey: ["cheptelPens", farmId, activeProfileId],
-    queryFn: () => fetchCheptelPens(accessToken, farmId, activeProfileId),
+  const pensQ = useCheptelPens({
+    farmId,
+    accessToken,
+    activeProfileId,
     enabled: visible
   });
 

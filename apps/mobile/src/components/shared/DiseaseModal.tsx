@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -23,11 +22,11 @@ import type {
 } from "../../lib/api";
 import {
   createFarmDiseaseCase,
-  fetchCheptelPens,
   postPenMove,
   updateFarmDiseaseCase,
   type FarmHealthRecordRowDto
 } from "../../lib/api";
+import { useCheptelPens } from "../../lib/cheptelPensQuery";
 import { formatAuthError } from "../../lib/authErrors";
 import {
   offlineAwareMessage,
@@ -124,9 +123,10 @@ export function DiseaseModal({
   const [isolationPenId, setIsolationPenId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
 
-  const pensQ = useQuery({
-    queryKey: ["cheptelPens", farmId, activeProfileId],
-    queryFn: () => fetchCheptelPens(accessToken, farmId, activeProfileId),
+  const pensQ = useCheptelPens({
+    farmId,
+    accessToken,
+    activeProfileId,
     enabled: visible && inIsolation && showIsolationPicker
   });
 

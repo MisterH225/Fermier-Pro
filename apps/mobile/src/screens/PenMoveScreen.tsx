@@ -19,6 +19,7 @@ import {
 import { HousingModuleGate } from "../components/HousingModuleGate";
 import { useSession } from "../context/SessionContext";
 import { fetchFarmBarn, fetchFarmBarns, postPenMove } from "../lib/api";
+import { invalidateCheptelCaches, CHEPTEL_PEN_MOVE_ROOTS } from "../lib/cheptelQueries";
 import { resolvePenOccupancy } from "../lib/penOccupancy";
 import type { RootStackParamList } from "../types/navigation";
 
@@ -74,9 +75,7 @@ export function PenMoveScreen({ route, navigation }: Props) {
         activeProfileId
       ),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["penDetail", farmId] });
-      void qc.invalidateQueries({ queryKey: ["farmBarns", farmId] });
-      void qc.invalidateQueries({ queryKey: ["farmBarn", farmId] });
+      invalidateCheptelCaches(qc, farmId, CHEPTEL_PEN_MOVE_ROOTS);
       navigation.goBack();
     },
     onError: (e: Error) => {

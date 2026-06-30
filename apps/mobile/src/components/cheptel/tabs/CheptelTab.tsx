@@ -1,25 +1,16 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useEffect, useMemo, useState } from "react";
 
 import { useTranslation } from "react-i18next";
 
 import {
-
-  ActivityIndicator,
-
   Pressable,
-
   ScrollView,
-
   StyleSheet,
-
   Text,
-
   Vibration,
-
   View
-
 } from "react-native";
 
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -27,14 +18,10 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
 
   deleteCheptelPen,
-
-  fetchCheptelPens,
-
   patchPenToggleActive,
-
   type CheptelPenRowDto
-
 } from "../../../lib/api";
+import { useCheptelPens } from "../../../lib/cheptelPensQuery";
 
 import { useSession } from "../../../context/SessionContext";
 
@@ -184,16 +171,11 @@ export function CheptelTab({
     return () => clearTimeout(t);
   }, [highlightPenId]);
 
-  const pensQuery = useQuery({
-
-    queryKey: ["cheptelPens", farmId, activeProfileId, barnId],
-
-    queryFn: () =>
-
-      fetchCheptelPens(accessToken!, farmId, activeProfileId, barnId),
-
-    enabled: Boolean(accessToken)
-
+  const pensQuery = useCheptelPens({
+    farmId,
+    accessToken,
+    activeProfileId,
+    barnId
   });
 
 

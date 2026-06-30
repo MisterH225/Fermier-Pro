@@ -14,7 +14,6 @@ import {
   type User
 } from "@prisma/client";
 import { FarmAccessService } from "../common/farm-access.service";
-import { HousingService } from "../housing/housing.service";
 import { PenAllocationService } from "../housing/pen-allocation.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
@@ -41,6 +40,7 @@ import {
   countPlacementOccupancyFromRows
 } from "../housing/placement-occupancy.util";
 import { maintainLitterBatches } from "./litter-weaning.util";
+import { resolveLitterPenPlacement, type LitterPenCandidate } from "@fermier/types";
 
 const MS_DAY = 86_400_000;
 const SOW_INCLUDE = {
@@ -118,7 +118,6 @@ export class GestationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
-    private readonly housing: HousingService,
     private readonly penAllocation: PenAllocationService,
     private readonly smartAlerts: SmartAlertsService,
     private readonly gemini: AiGeminiService,
@@ -602,21 +601,9 @@ export class GestationService {
     return this.getOne(user, gestationId);
   }
 
-  /** Loge vide ou avec assez de places pour une portée. */
-  private async findPenForLitter(
-    farmId: string,
-    headcount: number,
-    preferredPenId?: string | null
-  ): Promise<string | null> {
-    if (preferredPenId) {
-      const pen = await this.prisma.pen.findFirst({
-        where: { id: preferredPenId, barn: { farmId } }
-      });
-      if (pen) {
-        return pen.id;
-      }
-    }
-
+  private async listLitterPenCandidates(
+    farmId: string
+  ): Promise<LitterPenCandidate[]> {
     const pens = await this.prisma.pen.findMany({
       where: { barn: { farmId } },
       include: {
@@ -628,21 +615,11 @@ export class GestationService {
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }]
     });
 
-    const scored = pens.map((pen) => {
-      const occupancy = countPlacementOccupancyFromRows(pen.placements);
-      const capacity = pen.capacity ?? 0;
-      const free =
-        capacity > 0 ? Math.max(0, capacity - occupancy) : Number.MAX_SAFE_INTEGER;
-      const fits = capacity <= 0 || free >= headcount;
-      return { id: pen.id, occupancy, fits, free };
-    });
-
-    const emptyFit = scored.find((p) => p.occupancy === 0 && p.fits);
-    if (emptyFit) {
-      return emptyFit.id;
-    }
-    const anyFit = scored.find((p) => p.fits);
-    return anyFit?.id ?? null;
+    return pens.map((pen) => ({
+      id: pen.id,
+      occupancy: countPlacementOccupancyFromRows(pen.placements),
+      capacity: pen.capacity
+    }));
   }
 
   async recordLitter(
@@ -678,10 +655,31 @@ export class GestationService {
 
     const batchName = `Portée ${animalLabel(g.sow)} ${actualBirthDate.toISOString().slice(0, 10)}`;
 
-    const penId =
-      dto.bornAlive > 0
-        ? await this.findPenForLitter(g.farmId, dto.bornAlive, dto.penId)
-        : null;
+    let penId: string | null = null;
+    if (dto.bornAlive > 0) {
+      const candidates = await this.listLitterPenCandidates(g.farmId);
+      const resolved = resolveLitterPenPlacement(
+        candidates,
+        dto.bornAlive,
+        dto.penId
+      );
+      switch (resolved.kind) {
+        case "user":
+        case "auto_empty":
+          penId = resolved.penId;
+          break;
+        case "missing_chosen":
+          throw new BadRequestException("Loge introuvable sur cette ferme");
+        case "no_capacity":
+          throw new BadRequestException(
+            "Cette loge n'a pas assez de places pour la portée"
+          );
+        case "no_empty":
+          throw new BadRequestException(
+            "Aucune loge vide disponible — choisissez une loge pour la mère et la portée."
+          );
+      }
+    }
     const pensToRecalculate = new Set<string>();
 
     await this.prisma.$transaction(async (tx) => {
@@ -778,7 +776,7 @@ export class GestationService {
           penId,
           sowId: g.sowId,
           sireId: g.boarId,
-          transferSowWithLitter: dto.transferSowWithLitter ?? true
+          transferSowWithLitter: true
         });
         for (const pid of placed.pensToRecalculate) {
           pensToRecalculate.add(pid);
