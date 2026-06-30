@@ -64,4 +64,5 @@ jobs:
             --profile "$PROFILE" \
             --id "$BUILD_ID" \
             --non-interactive \
+            --verbose \
             --wait

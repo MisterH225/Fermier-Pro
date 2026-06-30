@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "apps/mobile/app.json"
+      - "apps/mobile/eas.json"
       - ".github/workflows/eas-build-preview-ios.yml"
   workflow_dispatch:
     inputs:
@@ -40,4 +41,9 @@ jobs:
           if [[ -z "$MSG" ]]; then
             MSG="iOS preview build (${GITHUB_SHA:0:7}) — $(date -u +%Y-%m-%dT%H:%MZ)"
           fi
-          npx eas build --platform ios --profile preview --non-interactive --message "$MSG"
+          npx eas build \
+            --platform ios \
+            --profile preview \
+            --non-interactive \
+            --auto-submit-with-profile=preview \
+            --message "$MSG"
