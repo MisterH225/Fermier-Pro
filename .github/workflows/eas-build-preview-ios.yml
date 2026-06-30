@@ -1,6 +1,11 @@
 name: EAS Build Preview iOS
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/mobile/app.json"
+      - ".github/workflows/eas-build-preview-ios.yml"
   workflow_dispatch:
     inputs:
       message:
