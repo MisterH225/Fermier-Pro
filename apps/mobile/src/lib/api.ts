@@ -4242,7 +4242,9 @@ export type PenSummaryInBarnDto = {
   status: string;
   sortOrder: number;
   /** Occupation en têtes (animaux actifs + effectif des bandes). */
-  occupancy: number;
+  occupancy?: number;
+  /** @deprecated Ancienne API housing — lignes de placement, pas têtes. */
+  _count?: { placements: number };
 };
 
 export type BarnDetailDto = {

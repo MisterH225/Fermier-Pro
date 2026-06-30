@@ -14,6 +14,7 @@ import {
   type BarnDetailDto,
   type MarketplacePendingTransferDto
 } from "../../lib/api";
+import { resolvePenOccupancy } from "../../lib/penOccupancy";
 import { BaseModal } from "../modals/BaseModal";
 import { PrimaryButton } from "../ui/PrimaryButton";
 import {
@@ -40,7 +41,7 @@ type PenOption = {
 };
 
 function penOccupancy(pen: BarnDetailDto["pens"][0]): number {
-  return pen.occupancy ?? 0;
+  return resolvePenOccupancy(pen);
 }
 
 export function TransferToFarmModal({

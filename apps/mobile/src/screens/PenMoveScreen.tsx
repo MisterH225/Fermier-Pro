@@ -19,6 +19,7 @@ import {
 import { HousingModuleGate } from "../components/HousingModuleGate";
 import { useSession } from "../context/SessionContext";
 import { fetchFarmBarn, fetchFarmBarns, postPenMove } from "../lib/api";
+import { resolvePenOccupancy } from "../lib/penOccupancy";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "PenMove">;
@@ -196,7 +197,7 @@ export function PenMoveScreen({ route, navigation }: Props) {
                 >
                   <Text style={styles.cardTitle}>{p.name}</Text>
                   <Text style={styles.cardMeta}>
-                    Occupation : {p.occupancy}
+                    Occupation : {resolvePenOccupancy(p)}
                     {p.capacity != null ? ` · Cap. ${p.capacity}` : ""}
                   </Text>
                 </TouchableOpacity>
