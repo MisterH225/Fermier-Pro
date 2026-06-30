@@ -13,6 +13,10 @@ import { PrismaService } from "../prisma/prisma.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import { AgeCalculationService } from "../cheptel/age-calculation.service";
 import { PenAllocationService } from "./pen-allocation.service";
+import {
+  activePlacementOccupancySelect,
+  countPlacementOccupancyFromRows
+} from "./placement-occupancy.util";
 import { CreateBarnDto } from "./dto/create-barn.dto";
 import { CreatePenDto } from "./dto/create-pen.dto";
 import { CreatePenLogDto } from "./dto/create-pen-log.dto";
@@ -125,23 +129,49 @@ export class HousingService {
     });
   }
 
+  private formatPenWithOccupancy<
+    T extends {
+      placements: Array<{
+        animalId: string | null;
+        animal?: { status: string } | null;
+        batch?: { headcount: number; status?: string | null } | null;
+      }>;
+    }
+  >(pen: T): Omit<T, "placements"> & { occupancy: number } {
+    const { placements, ...rest } = pen;
+    return {
+      ...rest,
+      occupancy: countPlacementOccupancyFromRows(placements)
+    };
+  }
+
+  private activePenPlacementsInclude() {
+    return {
+      where: { endedAt: null },
+      select: activePlacementOccupancySelect
+    } as const;
+  }
+
   async getBarn(user: User, farmId: string, barnId: string) {
     await this.requireBarnInFarm(user.id, farmId, barnId);
-    return this.prisma.barn.findFirst({
+    const barn = await this.prisma.barn.findFirst({
       where: { id: barnId, farmId },
       include: {
         pens: {
           orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
           include: {
-            _count: {
-              select: {
-                placements: { where: { endedAt: null } }
-              }
-            }
+            placements: this.activePenPlacementsInclude()
           }
         }
       }
     });
+    if (!barn) {
+      return null;
+    }
+    return {
+      ...barn,
+      pens: barn.pens.map((pen) => this.formatPenWithOccupancy(pen))
+    };
   }
 
   async updateBarn(user: User, farmId: string, barnId: string, dto: UpdateBarnDto) {
@@ -164,15 +194,14 @@ export class HousingService {
 
   async listPens(user: User, farmId: string, barnId: string) {
     await this.requireBarnInFarm(user.id, farmId, barnId);
-    return this.prisma.pen.findMany({
+    const pens = await this.prisma.pen.findMany({
       where: { barnId },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       include: {
-        _count: {
-          select: { placements: { where: { endedAt: null } } }
-        }
+        placements: this.activePenPlacementsInclude()
       }
     });
+    return pens.map((pen) => this.formatPenWithOccupancy(pen));
   }
 
   async createPen(user: User, farmId: string, barnId: string, dto: CreatePenDto) {
@@ -266,10 +295,12 @@ export class HousingService {
 
   async deletePen(user: User, farmId: string, penId: string) {
     await this.requirePenInFarm(user.id, farmId, penId);
-    const active = await this.prisma.penPlacement.count({
-      where: { penId, endedAt: null }
+    const placements = await this.prisma.penPlacement.findMany({
+      where: { penId, endedAt: null },
+      select: activePlacementOccupancySelect
     });
-    if (active > 0) {
+    const occupancy = countPlacementOccupancyFromRows(placements);
+    if (occupancy > 0) {
       throw new BadRequestException(
         "Transférez les animaux avant de supprimer cette loge."
       );

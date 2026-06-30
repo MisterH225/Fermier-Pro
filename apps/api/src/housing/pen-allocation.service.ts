@@ -10,6 +10,10 @@ import {
   type Prisma as PrismaTypes
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import {
+  countPlacementOccupancyFromRows,
+  activePlacementOccupancySelect
+} from "./placement-occupancy.util";
 
 /** Rôle d'affectation — une seule catégorie par loge. */
 export type AnimalAllocationRole =
@@ -509,19 +513,9 @@ export class PenAllocationService {
   ): Promise<number> {
     const placements = await tx.penPlacement.findMany({
       where: { penId, endedAt: null },
-      include: {
-        batch: { select: { headcount: true } }
-      }
+      select: activePlacementOccupancySelect
     });
-    let n = 0;
-    for (const pl of placements) {
-      if (pl.animalId) {
-        n += 1;
-      } else if (pl.batch) {
-        n += pl.batch.headcount;
-      }
-    }
-    return n;
+    return countPlacementOccupancyFromRows(placements);
   }
 
   async assertAnimalPenCompatible(

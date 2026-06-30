@@ -36,6 +36,10 @@ import type { PatchGestationStatusDto } from "./dto/patch-gestation-status.dto";
 import type { RecordLitterDto } from "./dto/record-litter.dto";
 import type { UpdateGestationSettingsDto } from "./dto/update-gestation-settings.dto";
 import { createLitterPigletsInTransaction } from "./litter-individuals.util";
+import {
+  activePlacementOccupancySelect,
+  countPlacementOccupancyFromRows
+} from "../housing/placement-occupancy.util";
 import { maintainLitterBatches } from "./litter-weaning.util";
 
 const MS_DAY = 86_400_000;
@@ -618,21 +622,14 @@ export class GestationService {
       include: {
         placements: {
           where: { endedAt: null },
-          include: { batch: { select: { headcount: true } } }
+          select: activePlacementOccupancySelect
         }
       },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }]
     });
 
     const scored = pens.map((pen) => {
-      let occupancy = 0;
-      for (const pl of pen.placements) {
-        if (pl.animalId) {
-          occupancy += 1;
-        } else if (pl.batch) {
-          occupancy += pl.batch.headcount;
-        }
-      }
+      const occupancy = countPlacementOccupancyFromRows(pen.placements);
       const capacity = pen.capacity ?? 0;
       const free =
         capacity > 0 ? Math.max(0, capacity - occupancy) : Number.MAX_SAFE_INTEGER;

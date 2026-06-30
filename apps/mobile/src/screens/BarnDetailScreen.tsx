@@ -163,7 +163,7 @@ function BarnDetailContent({
               <Text style={styles.cardMeta}>Zone : {item.zoneLabel}</Text>
             ) : null}
             <Text style={styles.cardMeta}>
-              Occupation active : {item._count.placements}
+              Occupation active : {item.occupancy}
               {item.capacity != null
                 ? ` · Capacité ${item.capacity}`
                 : ""}

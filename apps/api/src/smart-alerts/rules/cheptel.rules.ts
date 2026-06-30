@@ -5,6 +5,10 @@ import {
   SmartAlertPriority
 } from "@prisma/client";
 import { buildPenAgeData } from "../../cheptel/age-calculation.util";
+import {
+  activePlacementOccupancySelect,
+  countPlacementOccupancyFromRows
+} from "../../housing/placement-occupancy.util";
 import type { ComputedSmartAlert } from "../smart-alerts.types";
 
 const MS_DAY = 86_400_000;
@@ -23,15 +27,17 @@ export async function evaluateCheptelRules(
       id: true,
       name: true,
       capacity: true,
-      barn: { select: { name: true } }
+      barn: { select: { name: true } },
+      placements: {
+        where: { endedAt: null },
+        select: activePlacementOccupancySelect
+      }
     }
   });
 
   for (const p of pens) {
     const cap = p.capacity!;
-    const n = await prisma.penPlacement.count({
-      where: { penId: p.id, endedAt: null }
-    });
+    const n = countPlacementOccupancyFromRows(p.placements);
     if (cap > 0 && n >= cap) {
       out.push({
         ruleKey: `cheptel-pen-full:${p.id}`,

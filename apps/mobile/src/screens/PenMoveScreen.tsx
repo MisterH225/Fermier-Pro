@@ -196,7 +196,7 @@ export function PenMoveScreen({ route, navigation }: Props) {
                 >
                   <Text style={styles.cardTitle}>{p.name}</Text>
                   <Text style={styles.cardMeta}>
-                    Occupation : {p._count.placements}
+                    Occupation : {p.occupancy}
                     {p.capacity != null ? ` · Cap. ${p.capacity}` : ""}
                   </Text>
                 </TouchableOpacity>
