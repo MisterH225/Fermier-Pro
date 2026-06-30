@@ -14,8 +14,8 @@ import {
 import { BaseModal } from "../../modals/BaseModal";
 import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
-import type { AnimalListItem, BarnDetailDto } from "../../../lib/api";
-import { fetchFarmBarn, fetchFarmBarns, postPenMove } from "../../../lib/api";
+import type { AnimalListItem } from "../../../lib/api";
+import { fetchCheptelPens, postPenMove } from "../../../lib/api";
 import {
   offlineAwareMessage,
   offlineQueuedMessage,
@@ -44,14 +44,11 @@ type Props = {
 type PenOption = {
   penId: string;
   penName: string;
+  barnId: string;
   barnName: string;
   capacity: number;
   occupancy: number;
 };
-
-function penOccupancy(pen: BarnDetailDto["pens"][0]): number {
-  return pen.occupancy ?? 0;
-}
 
 export function TransferModal({
   visible,
@@ -70,45 +67,22 @@ export function TransferModal({
   const [toPenId, setToPenId] = useState<string | null>(null);
   const [note, setNote] = useState("");
 
-  const barnsQuery = useQuery({
-    queryKey: ["farmBarns", farmId, activeProfileId],
-    queryFn: () => fetchFarmBarns(accessToken, farmId, activeProfileId),
+  const pensQuery = useQuery({
+    queryKey: ["cheptelPens", farmId, activeProfileId],
+    queryFn: () => fetchCheptelPens(accessToken, farmId, activeProfileId),
     enabled: visible
   });
 
-  const barnIds = useMemo(
-    () => (barnsQuery.data ?? []).map((b) => b.id),
-    [barnsQuery.data]
-  );
-
-  const barnDetailsQuery = useQuery({
-    queryKey: ["farmBarnDetails", farmId, barnIds, activeProfileId],
-    enabled: visible && barnIds.length > 0,
-    queryFn: async () => {
-      const details = await Promise.all(
-        barnIds.map((id) =>
-          fetchFarmBarn(accessToken, farmId, id, activeProfileId)
-        )
-      );
-      return details;
-    }
-  });
-
   const penOptions: PenOption[] = useMemo(() => {
-    const out: PenOption[] = [];
-    for (const barn of barnDetailsQuery.data ?? []) {
-      for (const pen of barn.pens) {
-        out.push({
-          penId: pen.id,
-          penName: pen.name,
-          barnName: barn.name,
-          capacity: pen.capacity ?? 0,
-          occupancy: penOccupancy(pen)
-        });
-      }
-    }
-    return out;
-  }, [barnDetailsQuery.data]);
+    return (pensQuery.data?.pens ?? []).map((pen) => ({
+      penId: pen.id,
+      penName: pen.code?.trim() || pen.name,
+      barnId: pen.barnId,
+      barnName: pen.barnName,
+      capacity: pen.capacity ?? 0,
+      occupancy: pen.occupancy
+    }));
+  }, [pensQuery.data]);
 
   // On ne dépend pas de la référence `animals` (recréée à chaque render parent
   // par un filter/map sur useQuery → boucle « Maximum update depth »). On lit
@@ -179,7 +153,7 @@ export function TransferModal({
           "farmAnimals",
           "cheptelPens",
           "farmBarns",
-          "farmBarnDetails",
+          "farmBarn",
           "penDetail"
         ]
       };
@@ -190,16 +164,13 @@ export function TransferModal({
       if (!pen) {
         return;
       }
-      const barn = (barnDetailsQuery.data ?? []).find((b) =>
-        b.pens.some((p) => p.id === body.toPenId)
-      );
       optimisticPenMove(
         qc,
         farmId,
         body.animalId,
         body.toPenId,
         pen.penName,
-        barn?.id ?? "",
+        pen.barnId,
         pen.barnName
       );
     },
@@ -289,7 +260,7 @@ export function TransferModal({
 
       <ModalSection title={t("modals.sections.destination")}>
         <Text style={styles.label}>{t("cheptel.animals.transfer.destination")}</Text>
-        {barnDetailsQuery.isPending ? (
+        {pensQuery.isPending ? (
           <ActivityIndicator color={mobileColors.accent} />
         ) : (
           <View style={styles.penGrid}>

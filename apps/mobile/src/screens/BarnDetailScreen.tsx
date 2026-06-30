@@ -16,6 +16,7 @@ import { HousingModuleGate } from "../components/HousingModuleGate";
 import { TechFarmAccessGate } from "../components/technician/TechFarmAccessGate";
 import { useSession } from "../context/SessionContext";
 import { fetchFarmBarn } from "../lib/api";
+import { resolvePenOccupancy } from "../lib/penOccupancy";
 import { getQueryErrorMessage } from "../lib/userFacingError";
 import type { RootStackParamList } from "../types/navigation";
 import { mobileColors } from "../theme/mobileTheme";
@@ -163,7 +164,7 @@ function BarnDetailContent({
               <Text style={styles.cardMeta}>Zone : {item.zoneLabel}</Text>
             ) : null}
             <Text style={styles.cardMeta}>
-              Occupation active : {item.occupancy}
+              Occupation active : {resolvePenOccupancy(item)}
               {item.capacity != null
                 ? ` · Capacité ${item.capacity}`
                 : ""}
