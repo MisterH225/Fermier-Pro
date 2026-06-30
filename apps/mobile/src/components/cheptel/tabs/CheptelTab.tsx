@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useTranslation } from "react-i18next";
 
@@ -26,8 +26,6 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import {
 
-  applyCheptelDefaultPenLayout,
-
   deleteCheptelPen,
 
   fetchCheptelPens,
@@ -37,8 +35,6 @@ import {
   type CheptelPenRowDto
 
 } from "../../../lib/api";
-
-import { useCheptelDataMaintenance } from "../../../hooks/useCheptelDataMaintenance";
 
 import { useSession } from "../../../context/SessionContext";
 
@@ -134,76 +130,6 @@ function barnDisplayLabel(barn: { name: string; code?: string | null }): string 
 
 
 
-/** Incrémenter après changement de logique de répartition côté API. */
-const LAYOUT_REPAIR_VERSION = 5;
-
-
-
-function pensNeedLayoutRepair(
-
-  pens: CheptelPenRowDto[],
-
-  barns: Array<{ name: string; code?: string | null }>
-
-): boolean {
-
-  const legacyPen = pens.some((p) => {
-
-    const label = p.code?.trim() || p.name;
-
-    return /^Loge\s*\d/i.test(label) || !/^[A-Z]-\d+$/i.test(label);
-
-  });
-
-  const legacyBarn = barns.some(
-
-    (b) =>
-
-      /^Bâtiment\s+\d+$/i.test(b.name) &&
-
-      !(b.code && /^[A-Z]$/i.test(b.code.trim()))
-
-  );
-
-  const overcrowded = pens.some(
-
-    (p) => p.capacity > 0 && p.occupancy > p.capacity
-
-  );
-
-  const sharedBoarPen = pens.some((p) => (p.maleCount ?? 0) > 1);
-
-  const missingUsage = pens.some(
-
-    (p) =>
-
-      p.occupancy > 0 &&
-
-      (!p.usageTag ||
-
-        (p.usageTag === "mixed" &&
-
-          (p.femaleCount > 0 || p.maleCount > 0) &&
-
-          !p.batchTypeTag))
-
-  );
-
-  const legacyBatchInPen = pens.some((p) => p.batchTypeTag != null);
-
-  return (
-    legacyPen ||
-    legacyBarn ||
-    overcrowded ||
-    sharedBoarPen ||
-    missingUsage ||
-    legacyBatchInPen
-  );
-
-}
-
-
-
 export function CheptelTab({
 
   farmId,
@@ -225,13 +151,6 @@ export function CheptelTab({
   const { accessToken, activeProfileId } = useSession();
 
   const qc = useQueryClient();
-
-  const { pensLoadEnabled } = useCheptelDataMaintenance({
-    farmId,
-    accessToken,
-    activeProfileId,
-    readOnly
-  });
 
   const [barnId, setBarnId] = useState<string | undefined>(undefined);
 
@@ -273,7 +192,7 @@ export function CheptelTab({
 
       fetchCheptelPens(accessToken!, farmId, activeProfileId, barnId),
 
-    enabled: Boolean(accessToken) && pensLoadEnabled
+    enabled: Boolean(accessToken)
 
   });
 
@@ -330,86 +249,6 @@ export function CheptelTab({
       setBarnId(pen.barnId);
     }
   }, [openPenId, pens, barnId]);
-
-  const layoutRepairDone = useRef<string | null>(null);
-
-  const layoutRepairKey = `${farmId}:v${LAYOUT_REPAIR_VERSION}`;
-
-
-
-  useEffect(() => {
-
-    if (
-
-      !accessToken ||
-
-      !farmId ||
-
-      layoutRepairDone.current === layoutRepairKey ||
-
-      pensQuery.isPending ||
-
-      !pensQuery.isSuccess
-
-    ) {
-
-      return;
-
-    }
-
-    if (!pensNeedLayoutRepair(pens, barns)) {
-
-      return;
-
-    }
-
-    layoutRepairDone.current = layoutRepairKey;
-
-    void applyCheptelDefaultPenLayout(accessToken, farmId, activeProfileId)
-
-      .then(() => {
-
-        void pensQuery.refetch();
-
-        void qc.invalidateQueries({ queryKey: ["farmCheptel", farmId] });
-
-        onInvalidateOverview?.();
-
-      })
-
-      .catch(() => {
-
-        layoutRepairDone.current = null;
-
-      });
-
-  }, [
-
-    accessToken,
-
-    farmId,
-
-    layoutRepairKey,
-
-    activeProfileId,
-
-    pens,
-
-    barns,
-
-    pensQuery.isPending,
-
-    pensQuery.isSuccess,
-
-    pensQuery,
-
-    qc,
-
-    onInvalidateOverview
-
-  ]);
-
-
 
   const columns = useMemo(() => {
 
@@ -512,7 +351,7 @@ export function CheptelTab({
 
 
 
-  if (!pensLoadEnabled || pensQuery.isPending) {
+  if (pensQuery.isPending) {
 
     return <ListSkeleton count={4} style={{ marginTop: 24 }} />;
 

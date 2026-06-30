@@ -150,6 +150,15 @@ export class CheptelController {
     return this.cheptel.confirmDetectedBatch(user, farmId, dto);
   }
 
+  @Post("migrate-legacy-batches")
+  @RequireFarmScopes(FARM_SCOPE.housingWrite)
+  migrateLegacyBatches(
+    @CurrentUser() user: User,
+    @Param("farmId") farmId: string
+  ) {
+    return this.cheptel.migrateLegacyBatchPlacements(user, farmId);
+  }
+
   @Post("maintain-data")
   @RequireFarmScopes(FARM_SCOPE.housingWrite)
   maintainCheptelData(

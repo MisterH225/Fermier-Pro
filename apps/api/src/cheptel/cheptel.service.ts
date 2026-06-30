@@ -1452,7 +1452,8 @@ export class CheptelService {
           {
             farmId,
             userId: user.id,
-            buildingsCount
+            buildingsCount,
+            resetAll: true
           }
         );
         const rebalanced = await rebalanceOvercrowdedBatchPlacements(
@@ -1490,8 +1491,9 @@ export class CheptelService {
   }
 
   /**
-   * Réparations cheptel/loges (portées, lots legacy, doublons migration).
-   * À appeler explicitement — plus de side-effects sur les GET.
+   * Réparations non destructives : portées matérialisées + doublons migration.
+   * La migration legacy / réaffectation globale reste sur POST apply-default-layout
+   * ou POST migrate-legacy-batches.
    */
   async maintainCheptelData(user: User, farmId: string): Promise<{
     litterMaintenanceRan: true;
@@ -1500,17 +1502,18 @@ export class CheptelService {
   }> {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
     await maintainLitterBatches(this.prisma, farmId);
-    const legacyMigration = await this.migrateLegacyBatchPlacements(
-      user,
-      farmId
-    );
     const duplicatesArchived = await this.repairDuplicateAnimalsIfNeeded(
       user,
       farmId
     );
     return {
       litterMaintenanceRan: true,
-      legacyMigration,
+      legacyMigration: {
+        legacyBatchCount: 0,
+        animalsMigrated: 0,
+        duplicatesArchived: 0,
+        productionAnimalsRelocated: 0
+      },
       duplicatesArchived
     };
   }
@@ -1560,8 +1563,6 @@ export class CheptelService {
       return empty;
     }
 
-    const buildingsCount = farm?.housingBuildingsCount ?? 2;
-
     return this.prisma.$transaction(
       async (tx) => {
         const legacyBatchCount = await tx.penPlacement.count({
@@ -1601,20 +1602,11 @@ export class CheptelService {
             `Ferme ${farmId}: ${duplicatesArchived} doublon(s) migration archivé(s)`
           );
         }
-        let productionAnimalsRelocated = 0;
-        if (animalsMigrated > 0) {
-          productionAnimalsRelocated =
-            await relocateProductionAnimalsToDefaultPlan(tx, {
-              farmId,
-              userId: user.id,
-              buildingsCount
-            });
-        }
         return {
           legacyBatchCount,
           animalsMigrated,
           duplicatesArchived,
-          productionAnimalsRelocated
+          productionAnimalsRelocated: 0
         };
       },
       { maxWait: 10_000, timeout: 60_000 }
