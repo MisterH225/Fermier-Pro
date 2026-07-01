@@ -1,21 +1,17 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   StyleSheet,
   Text,
   View
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  deleteFarmBatch,
-  fetchFarmBatches,
-  type BatchListItem
-} from "../../../lib/api";
+import { fetchFarmBatches, type BatchListItem } from "../../../lib/api";
+import { useDeleteFarmBatch } from "../../../hooks/useDeleteFarmBatch";
 import { getUserFacingError } from "../../../lib/userFacingError";
 import type { RootStackParamList } from "../../../types/navigation";
 import {
@@ -48,51 +44,32 @@ export function CheptelBatchesPanel({
 }: Props) {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
-  const qc = useQueryClient();
 
   const batchesQ = useQuery({
     queryKey: ["farmBatches", farmId, activeProfileId],
-    queryFn: () => fetchFarmBatches(accessToken, farmId, activeProfileId)
+    queryFn: () => fetchFarmBatches(accessToken, farmId, activeProfileId),
+    staleTime: 0
   });
 
-  const deleteMut = useMutation({
-    mutationFn: (batchId: string) =>
-      deleteFarmBatch(accessToken, farmId, batchId, activeProfileId),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["farmBatches", farmId] });
-      void qc.invalidateQueries({ queryKey: ["farmCheptel", farmId] });
-      void qc.invalidateQueries({ queryKey: ["cheptelPens", farmId] });
-      void qc.invalidateQueries({ queryKey: ["batchProfitability", farmId] });
-    }
+  const { confirmDelete, isDeleting, deletingBatchId } = useDeleteFarmBatch({
+    farmId,
+    accessToken,
+    activeProfileId
   });
 
-  const confirmDelete = (batch: BatchListItem) => {
-    Alert.alert(
-      t("cheptel.batches.deleteTitle"),
-      t("cheptel.batches.deleteBody", { name: batch.name }),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("cheptel.batches.deleteConfirm"),
-          style: "destructive",
-          onPress: () => {
-            deleteMut.mutate(batch.id, {
-              onError: (e: Error) =>
-                Alert.alert(
-                  t("common.errors.saveFailed"),
-                  getUserFacingError(e, t)
-                )
-            });
-          }
-        }
-      ]
-    );
-  };
-
-  const batches = batchesQ.data ?? [];
   if (batchesQ.isPending) {
     return <ActivityIndicator color={mobileColors.accent} style={styles.loader} />;
   }
+
+  if (batchesQ.isError) {
+    return (
+      <Text style={styles.error}>
+        {getUserFacingError(batchesQ.error, t)}
+      </Text>
+    );
+  }
+
+  const batches = batchesQ.data ?? [];
   if (batches.length === 0) {
     return (
       <Text style={styles.empty}>{t("cheptel.emptyBatches")}</Text>
@@ -101,6 +78,7 @@ export function CheptelBatchesPanel({
 
   return (
     <View style={styles.list}>
+      <Text style={styles.hint}>{t("cheptel.batches.listHint")}</Text>
       {batches.map((batch) => {
         const deletable = isBatchDeletable(batch);
         return (
@@ -130,13 +108,10 @@ export function CheptelBatchesPanel({
               <Pressable
                 style={styles.deleteBtn}
                 accessibilityLabel={t("cheptel.batches.deleteA11y")}
-                onPress={(e) => {
-                  e.stopPropagation?.();
-                  confirmDelete(batch);
-                }}
+                onPress={() => confirmDelete(batch)}
                 hitSlop={8}
               >
-                {deleteMut.isPending && deleteMut.variables === batch.id ? (
+                {isDeleting && deletingBatchId === batch.id ? (
                   <ActivityIndicator size="small" color={mobileColors.error} />
                 ) : (
                   <Ionicons
@@ -166,6 +141,15 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
     fontStyle: "italic"
+  },
+  hint: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginBottom: mobileSpacing.sm
+  },
+  error: {
+    ...mobileTypography.meta,
+    color: mobileColors.error
   },
   list: { gap: mobileSpacing.sm },
   row: {

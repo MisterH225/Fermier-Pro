@@ -21,7 +21,7 @@ import {
 import { CheptelTab } from "../components/cheptel/tabs/CheptelTab";
 import { TabContent, TabSelector } from "../components/tabs";
 import { useSession } from "../context/SessionContext";
-import { fetchFarm, fetchFarmCheptelOverview } from "../lib/api";
+import { fetchFarm, fetchFarmBatches, fetchFarmCheptelOverview } from "../lib/api";
 import { invalidateCheptelCaches } from "../lib/cheptelQueries";
 import { mobileColors, mobileSpacing, mobileTypography } from "../theme/mobileTheme";
 import { useTechFarmPermissions } from "../hooks/useTechFarmPermissions";
@@ -64,6 +64,12 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
   const cheptelQuery = useQuery({
     queryKey: ["farmCheptel", farmId, activeProfileId],
     queryFn: () => fetchFarmCheptelOverview(accessToken!, farmId, activeProfileId)
+  });
+
+  const batchesQ = useQuery({
+    queryKey: ["farmBatches", farmId, activeProfileId],
+    queryFn: () => fetchFarmBatches(accessToken!, farmId, activeProfileId),
+    enabled: Boolean(accessToken)
   });
 
   const refreshing = farmQuery.isFetching || cheptelQuery.isFetching;
@@ -194,6 +200,7 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
           {
             key: "batches",
             label: t("cheptel.navBatches"),
+            badge: batchesQ.data?.length || undefined,
             content: tabScroll(
               accessToken ? (
                 <ScreenSection title={t("cheptel.growthBatches")} plain>

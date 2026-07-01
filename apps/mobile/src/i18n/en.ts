@@ -1565,7 +1565,10 @@ export const en = {
       deleteAction: "Delete batch",
       deleteA11y: "Delete batch",
       deleting: "Deleting…",
-      deleteBlockedHint: "Empty the batch (0 animals) before you can delete it."
+      deleteBlockedHint: "Empty the batch (0 animals) before you can delete it.",
+      listHint:
+        "Batches with 0 animals: tap the trash icon to delete. In a pen, swipe the batch left.",
+      penSwipeHint: "Swipe an empty batch left to delete it."
     },
     pensOccupancyHint:
       "Overall occupancy: {{rate}} · {{available}} pen(s) with free space.",

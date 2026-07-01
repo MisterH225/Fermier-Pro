@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -12,7 +12,7 @@ import {
   TextInput,
   View
 } from "react-native";
-import { AnimalActionModal } from "../components/cheptel/animals/AnimalActionModal";
+import { Ionicons } from "@expo/vector-icons";
 import { AnimalDetailModal } from "../components/cheptel/animals/AnimalDetailModal";
 import { CheptelAnimalActionModals } from "../components/cheptel/animals/CheptelAnimalActionModals";
 import { CreateAnimalModal } from "../components/cheptel/animals/CreateAnimalModal";
@@ -47,7 +47,7 @@ import {
   penVisualI18nKey,
   resolvePenVisualKey
 } from "../components/cheptel/pens/penUsageVisual";
-import { useScreenTitle } from "../hooks/useScreenTitle";
+import { useDeleteFarmBatch } from "../hooks/useDeleteFarmBatch";
 import type { RootStackParamList } from "../types/navigation";
 import {
   mobileColors,
@@ -219,6 +219,39 @@ export function LogeDetailScreen({ route, navigation }: Props) {
   const batchEventItems: EventItem[] = useMemo(
     () => batches.map((b) => penBatchToEventItem(b, t)),
     [batches, t]
+  );
+
+  const { confirmDelete: confirmDeleteBatch } = useDeleteFarmBatch({
+    farmId,
+    accessToken: accessToken!,
+    activeProfileId,
+    onDeleted: () => {
+      void qc.invalidateQueries({ queryKey: ["penContents", farmId, penId] });
+      invalidateCheptelCaches(qc, farmId, CHEPTEL_ANIMAL_MUTATION_ROOTS);
+    }
+  });
+
+  const renderBatchSwipeDelete = useCallback(
+    (item: EventItem) => {
+      const batch = item.meta as PenBatchRowDto;
+      if (batch.headcount > 0) {
+        return null;
+      }
+      return (
+        <Pressable
+          style={styles.swipeDelete}
+          onPress={() => confirmDeleteBatch(batch)}
+          accessibilityRole="button"
+          accessibilityLabel={t("cheptel.batches.deleteA11y")}
+        >
+          <Ionicons name="trash-outline" size={20} color="#fff" />
+          <Text style={styles.swipeDeleteTx}>
+            {t("cheptel.batches.deleteConfirm")}
+          </Text>
+        </Pressable>
+      );
+    },
+    [confirmDeleteBatch, t]
   );
 
   const invalidate = () => {
@@ -394,6 +427,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
             layout="embedded"
             sectionTitle={t("cheptel.pens.batchesInPen")}
             data={batchEventItems}
+            renderSwipeRight={renderBatchSwipeDelete}
             onItemPress={(item) => {
               const b = item.meta as PenBatchRowDto;
               navigation.navigate("BatchDetail", {
@@ -721,5 +755,22 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: "center"
   },
-  quickTx: { fontSize: 12, fontWeight: "700", color: mobileColors.accent }
+  quickTx: { fontSize: 12, fontWeight: "700", color: mobileColors.accent },
+  swipeDelete: {
+    backgroundColor: mobileColors.error,
+    justifyContent: "center",
+    alignItems: "center",
+    width: 96,
+    marginVertical: 4,
+    borderTopRightRadius: mobileRadius.md,
+    borderBottomRightRadius: mobileRadius.md,
+    paddingHorizontal: mobileSpacing.sm,
+    gap: 4
+  },
+  swipeDeleteTx: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "700",
+    textAlign: "center"
+  }
 });

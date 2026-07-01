@@ -17,9 +17,9 @@ import { EventCard, CheptelBatchDetailHeader } from "../components/farm";
 import { Card } from "../components/ui/Card";
 import { SegmentedControl } from "../components/ui/SegmentedControl";
 import { useSession } from "../context/SessionContext";
+import { useDeleteFarmBatch } from "../hooks/useDeleteFarmBatch";
 import {
   fetchBatchHealthEvents,
-  deleteFarmBatch,
   fetchFarmBatch,
   postBatchHealthEvent,
   postBatchWeight,
@@ -178,35 +178,12 @@ export function BatchDetailScreen({ route, navigation }: Props) {
     }
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: () =>
-      deleteFarmBatch(accessToken!, farmId, batchId, activeProfileId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["farmBatches", farmId] });
-      void queryClient.invalidateQueries({ queryKey: ["farmCheptel", farmId] });
-      void queryClient.invalidateQueries({ queryKey: ["cheptelPens", farmId] });
-      void queryClient.invalidateQueries({ queryKey: ["batchProfitability", farmId] });
-      navigation.goBack();
-    },
-    onError: (e: Error) => {
-      Alert.alert(t("common.errors.saveFailed"), getUserFacingError(e, t));
-    }
+  const { confirmDelete: confirmDeleteBatch, isDeleting } = useDeleteFarmBatch({
+    farmId,
+    accessToken: accessToken!,
+    activeProfileId,
+    onDeleted: () => navigation.goBack()
   });
-
-  const confirmDeleteBatch = () => {
-    Alert.alert(
-      t("cheptel.batches.deleteTitle"),
-      t("cheptel.batches.deleteBody", { name: route.params.batchName }),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("cheptel.batches.deleteConfirm"),
-          style: "destructive",
-          onPress: () => deleteMutation.mutate()
-        }
-      ]
-    );
-  };
 
   const batch = batchQuery.data;
   const loading = batchQuery.isPending;
@@ -479,12 +456,17 @@ export function BatchDetailScreen({ route, navigation }: Props) {
       ) : null}
 
       <TouchableOpacity
-        style={[styles.btnDanger, deleteMutation.isPending && styles.btnDisabled]}
-        onPress={confirmDeleteBatch}
-        disabled={deleteMutation.isPending}
+        style={[styles.btnDanger, isDeleting && styles.btnDisabled]}
+        onPress={() =>
+          confirmDeleteBatch({
+            id: batchId,
+            name: route.params.batchName
+          })
+        }
+        disabled={isDeleting}
       >
         <Text style={styles.btnDangerText}>
-          {deleteMutation.isPending
+          {isDeleting
             ? t("cheptel.batches.deleting")
             : t("cheptel.batches.deleteAction")}
         </Text>

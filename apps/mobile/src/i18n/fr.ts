@@ -1592,7 +1592,11 @@ export const fr = {
       deleteA11y: "Supprimer la bande",
       deleting: "Suppression…",
       deleteBlockedHint:
-        "Videz la bande (0 sujet) avant de pouvoir la supprimer."
+        "Videz la bande (0 sujet) avant de pouvoir la supprimer.",
+      listHint:
+        "Bandes à 0 sujet : touchez la poubelle pour supprimer. Dans une loge, glissez la bande vers la gauche.",
+      penSwipeHint:
+        "Glissez une bande vide vers la gauche pour la supprimer."
     },
     pensOccupancyHint:
       "Occupation globale : {{rate}} · {{available}} loge(s) avec place libre.",
