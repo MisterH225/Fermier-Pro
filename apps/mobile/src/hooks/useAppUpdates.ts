@@ -2,34 +2,20 @@ import * as Updates from "expo-updates";
 import { useEffect } from "react";
 
 /**
- * Télécharge et applique une mise à jour EAS au lancement (builds TestFlight / prod).
- * Sans reload explicite, l'OTA peut rester en cache et ne jamais s'afficher (fallback 5 s).
+ * Applique une mise à jour EAS une fois téléchargée par le moteur natif (ON_LOAD).
+ * Ne pas appeler checkForUpdateAsync/fetchUpdateAsync ici : cela entre en conflit
+ * avec la vérification native au lancement et peut faire crasher iOS (expo/expo#21347).
  */
 export function useAppUpdates() {
+  const { isUpdatePending } = Updates.useUpdates();
+
   useEffect(() => {
-    if (__DEV__ || !Updates.isEnabled) {
+    if (__DEV__ || !Updates.isEnabled || !isUpdatePending) {
       return;
     }
 
-    let cancelled = false;
-
-    void (async () => {
-      try {
-        const result = await Updates.checkForUpdateAsync();
-        if (cancelled || !result.isAvailable) {
-          return;
-        }
-        await Updates.fetchUpdateAsync();
-        if (!cancelled) {
-          await Updates.reloadAsync();
-        }
-      } catch {
-        // Réseau lent ou serveur indisponible — l'app démarre avec le bundle embarqué.
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    void Updates.reloadAsync().catch(() => {
+      // Réseau ou timing — l'OTA sera appliquée au prochain lancement.
+    });
+  }, [isUpdatePending]);
 }
