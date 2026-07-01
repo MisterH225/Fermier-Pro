@@ -117,12 +117,25 @@ export class ProfitabilityEngine {
         ? farm.lifetime.breakevenPricePerKg
         : farm.realized.breakevenPricePerKg;
 
+    const hasHistoricalFallback = farm.historicalPeriod.recordsCount > 0;
+    let dataQuality = farm.dataQuality;
+    let dataQualityMessage = farm.dataQualityMessage;
+    if (farm.dataQuality === "insufficient" && hasHistoricalFallback) {
+      dataQuality = "partial";
+      dataQualityMessage =
+        period === "current_quarter"
+          ? "Données historiques affichées — aucune transaction sur le trimestre calendaire en cours."
+          : period === "current_month"
+            ? "Données historiques affichées — aucune transaction ce mois-ci."
+            : "Données historiques affichées — période sélectionnée sans transactions récentes.";
+    }
+
     return {
       period,
       currency: farm.currency,
       marketPricePerKg: farm.marketPricePerKg,
-      dataQuality: farm.dataQuality,
-      dataQualityMessage: farm.dataQualityMessage,
+      dataQuality,
+      dataQualityMessage,
       netMargin,
       netMarginPct,
       grossMargin,

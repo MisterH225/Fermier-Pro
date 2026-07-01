@@ -62,13 +62,16 @@ export function feedStatEligibleForGauge(
     "lastCheckDate" | "currentStockKg" | "hasSufficientData" | "stockAtLastEntry"
   >
 ): boolean {
+  const stockKg = Number.parseFloat(stat.currentStockKg);
+  if (Number.isFinite(stockKg) && stockKg <= 0) {
+    return false;
+  }
   if (stat.lastCheckDate) {
     return true;
   }
   if (stat.stockAtLastEntry && Number.parseFloat(stat.stockAtLastEntry) > 0) {
     return true;
   }
-  const stockKg = Number.parseFloat(stat.currentStockKg);
   if (Number.isFinite(stockKg) && stockKg > 0) {
     return true;
   }
@@ -82,16 +85,7 @@ export function dashboardFeedItemEligibleForGauge(
   >
 ): boolean {
   const stockKg = Number.parseFloat(item.remainingKg);
-  if (Number.isFinite(stockKg) && stockKg > 0) {
-    return true;
-  }
-  if (item.daysRemaining != null) {
-    return true;
-  }
-  if (item.percentRemaining != null) {
-    return true;
-  }
-  return item.stockStatus != null && item.stockStatus !== "no_data";
+  return Number.isFinite(stockKg) && stockKg > 0;
 }
 
 export function farmFeedStatToGauge(

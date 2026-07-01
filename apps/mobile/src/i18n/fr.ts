@@ -3759,7 +3759,7 @@ export const fr = {
   profitability: {
     heroTitle: "💰 Rentabilité",
     periodMonth: "Ce mois",
-    periodQuarter: "Trimestre",
+    periodQuarter: "Trim. en cours",
     periodYear: "Année",
     netMarginLabel: "Marge nette",
     grossMargin: "Marge brute",

@@ -69,8 +69,23 @@ function resolveDataQuality(params: {
   hasRevenues: boolean;
   hasCosts: boolean;
   hasKg: boolean;
+  period?: ProfitabilityPeriodKey;
 }): { quality: ProfitabilityDataQuality; message: string | null } {
   if (!params.hasRevenues && !params.hasCosts) {
+    if (params.period === "current_quarter") {
+      return {
+        quality: "insufficient",
+        message:
+          "Aucune transaction sur le trimestre calendaire en cours (ex. T3 = juil.–sept.). Consultez « Année » pour les mois précédents."
+      };
+    }
+    if (params.period === "current_month") {
+      return {
+        quality: "insufficient",
+        message:
+          "Pas encore de transactions ce mois-ci. Consultez « Trimestre » ou « Année » si vous venez de changer de période."
+      };
+    }
     return {
       quality: "insufficient",
       message:
@@ -388,7 +403,8 @@ export async function calculateFarmProfitability(
   const dataQuality = resolveDataQuality({
     hasRevenues: revenuesRealized > 0,
     hasCosts: direct + indirect > 0,
-    hasKg: kgRealized > 0 || kgProjected != null
+    hasKg: kgRealized > 0 || kgProjected != null,
+    period
   });
 
   const prevBounds = {

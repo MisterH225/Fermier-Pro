@@ -115,6 +115,11 @@ export async function buildFeedStockStatsForFarm(
         stockStatusColor: FEED_STOCK_STATUS_COLORS[metrics.status]
       } satisfies FeedStockStatRow;
     })
+  ).then((rows) =>
+    rows.filter((row) => {
+      const stockKg = Number.parseFloat(row.currentStockKg);
+      return Number.isFinite(stockKg) && stockKg > 0;
+    })
   );
 }
 

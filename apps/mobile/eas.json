@@ -27,7 +27,8 @@
       },
       "ios": {
         "simulator": false,
-        "image": "latest"
+        "image": "latest",
+        "distribution": "store"
       },
       "android": {
         "buildType": "apk"
