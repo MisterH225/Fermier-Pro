@@ -16,16 +16,13 @@ import { FarmModuleAISection } from "../../ai/FarmModuleAISection";
 import { ScreenSection } from "../../layout/ScreenSection";
 import { CategoryBreakdownPanel } from "./CategoryBreakdownPanel";
 import { CheptelKPICards } from "./CheptelKPICards";
-import { CheptelBatchesPanel } from "./CheptelBatchesPanel";
 
 type Props = {
   overview: CheptelOverviewDto | undefined;
   isLoading: boolean;
   farmId?: string;
-  farmName?: string;
   accessToken?: string | null;
   activeProfileId?: string | null;
-  readOnly?: boolean;
 };
 
 function monthShort(iso: string, locale: string): string {
@@ -42,10 +39,8 @@ export function CheptelOverview({
   overview,
   isLoading,
   farmId,
-  farmName,
   accessToken,
-  activeProfileId,
-  readOnly = false
+  activeProfileId
 }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
@@ -105,18 +100,6 @@ export function CheptelOverview({
           />
         </ScreenSection>
       ) : null}
-
-      <ScreenSection title={t("cheptel.growthBatches")}>
-        {farmId && farmName && accessToken ? (
-          <CheptelBatchesPanel
-            farmId={farmId}
-            farmName={farmName}
-            accessToken={accessToken}
-            activeProfileId={activeProfileId}
-            readOnly={readOnly}
-          />
-        ) : null}
-      </ScreenSection>
 
       <ScreenSection title={t("cheptel.categoryBreakdown")}>
         <CategoryBreakdownPanel rows={overview.categoryBreakdown ?? []} />

@@ -44,7 +44,7 @@ export type RootStackParamList = {
   FarmLivestock: {
     farmId: string;
     farmName: string;
-    initialTab?: "overview" | "cheptel" | "weight" | "history";
+    initialTab?: "overview" | "batches" | "cheptel" | "weight" | "history";
     openPenId?: string;
     highlightPen?: boolean;
     autoOpenTransfer?: boolean;

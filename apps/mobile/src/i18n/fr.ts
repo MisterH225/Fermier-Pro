@@ -1540,6 +1540,7 @@ export const fr = {
   },
   cheptel: {
     navOverview: "Vue d'ensemble",
+    navBatches: "Bandes",
     navCheptel: "Cheptel",
     navAnimals: "Animaux",
     navPens: "Loges",

@@ -1514,6 +1514,7 @@ export const en = {
   },
   cheptel: {
     navOverview: "Overview",
+    navBatches: "Batches",
     navCheptel: "Herd",
     navAnimals: "Animals",
     navPens: "Pens",

@@ -1,7 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { TabScreenHeader } from "../components/layout";
+import { TabScreenHeader, ScreenSection } from "../components/layout";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useTranslation } from "react-i18next";
 import {
@@ -15,6 +15,7 @@ import {
 import {
   CheptelHistory,
   CheptelOverview,
+  CheptelBatchesPanel,
   CheptelWeightTab
 } from "../components/cheptel";
 import { CheptelTab } from "../components/cheptel/tabs/CheptelTab";
@@ -38,9 +39,9 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
     highlightPen,
     showRequalificationBanner
   } = route.params;
-  const [livestockTab, setLivestockTab] = useState(
-    initialTab ?? (openPenId ? "cheptel" : "overview")
-  );
+  const [livestockTab, setLivestockTab] = useState<
+    "overview" | "batches" | "cheptel" | "weight" | "history"
+  >(initialTab ?? (openPenId ? "cheptel" : "overview"));
 
   useEffect(() => {
     if (initialTab) {
@@ -185,11 +186,26 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
                 overview={cheptelQuery.data}
                 isLoading={cheptelQuery.isPending}
                 farmId={farmId}
-                farmName={farmName}
                 accessToken={accessToken}
                 activeProfileId={activeProfileId}
-                readOnly={readOnly}
               />
+            )
+          },
+          {
+            key: "batches",
+            label: t("cheptel.navBatches"),
+            content: tabScroll(
+              accessToken ? (
+                <ScreenSection title={t("cheptel.growthBatches")} plain>
+                  <CheptelBatchesPanel
+                    farmId={farmId}
+                    farmName={farmName}
+                    accessToken={accessToken}
+                    activeProfileId={activeProfileId}
+                    readOnly={readOnly}
+                  />
+                </ScreenSection>
+              ) : null
             )
           },
           {
