@@ -19,6 +19,7 @@ import { SegmentedControl } from "../components/ui/SegmentedControl";
 import { useSession } from "../context/SessionContext";
 import {
   fetchBatchHealthEvents,
+  deleteFarmBatch,
   fetchFarmBatch,
   postBatchHealthEvent,
   postBatchWeight,
@@ -64,7 +65,7 @@ const SEVERITY_FR: Record<string, string> = {
 
 type BatchTab = "health" | "weight" | "feed" | "events";
 
-export function BatchDetailScreen({ route }: Props) {
+export function BatchDetailScreen({ route, navigation }: Props) {
   const bottomInset = useBottomInset();
   const { t } = useTranslation();
   const { farmId, batchId } = route.params;
@@ -176,6 +177,36 @@ export function BatchDetailScreen({ route }: Props) {
       Alert.alert(t("common.errors.saveFailed"), getUserFacingError(e, t));
     }
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: () =>
+      deleteFarmBatch(accessToken!, farmId, batchId, activeProfileId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["farmBatches", farmId] });
+      void queryClient.invalidateQueries({ queryKey: ["farmCheptel", farmId] });
+      void queryClient.invalidateQueries({ queryKey: ["cheptelPens", farmId] });
+      void queryClient.invalidateQueries({ queryKey: ["batchProfitability", farmId] });
+      navigation.goBack();
+    },
+    onError: (e: Error) => {
+      Alert.alert(t("common.errors.saveFailed"), getUserFacingError(e, t));
+    }
+  });
+
+  const confirmDeleteBatch = () => {
+    Alert.alert(
+      t("cheptel.batches.deleteTitle"),
+      t("cheptel.batches.deleteBody", { name: route.params.batchName }),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("cheptel.batches.deleteConfirm"),
+          style: "destructive",
+          onPress: () => deleteMutation.mutate()
+        }
+      ]
+    );
+  };
 
   const batch = batchQuery.data;
   const loading = batchQuery.isPending;
@@ -442,6 +473,22 @@ export function BatchDetailScreen({ route }: Props) {
           )}
         </>
       ) : null}
+
+      {batch.headcount > 0 ? (
+        <Text style={styles.deleteHint}>{t("cheptel.batches.deleteBlockedHint")}</Text>
+      ) : null}
+
+      <TouchableOpacity
+        style={[styles.btnDanger, deleteMutation.isPending && styles.btnDisabled]}
+        onPress={confirmDeleteBatch}
+        disabled={deleteMutation.isPending}
+      >
+        <Text style={styles.btnDangerText}>
+          {deleteMutation.isPending
+            ? t("cheptel.batches.deleting")
+            : t("cheptel.batches.deleteAction")}
+        </Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -679,5 +726,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: mobileColors.textSecondary,
     marginTop: 6
+  },
+  btnDanger: {
+    marginTop: mobileSpacing.xl,
+    borderWidth: 1,
+    borderColor: mobileColors.error,
+    paddingVertical: 14,
+    borderRadius: mobileRadius.md,
+    alignItems: "center"
+  },
+  btnDangerText: {
+    color: mobileColors.error,
+    fontWeight: "700",
+    fontSize: 16
+  },
+  deleteHint: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    fontStyle: "italic",
+    marginTop: mobileSpacing.xl,
+    textAlign: "center"
   }
 });

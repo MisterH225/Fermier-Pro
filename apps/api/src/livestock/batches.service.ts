@@ -190,8 +190,45 @@ export class BatchesService {
   }
 
   async deleteBatch(user: User, farmId: string, batchId: string) {
-    await this.getBatchOnFarm(user, farmId, batchId);
-    await this.prisma.livestockBatch.delete({ where: { id: batchId } });
+    const batch = await this.getBatchOnFarm(user, farmId, batchId);
+    const activeMembers = await this.prisma.animal.count({
+      where: {
+        farmId,
+        livestockBatchId: batchId,
+        status: "active"
+      }
+    });
+
+    if (activeMembers > 0) {
+      throw new BadRequestException(
+        "Impossible de supprimer une bande qui contient encore des sujets actifs. Transférez ou sortez les animaux avant suppression."
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.livestockExit.updateMany({
+        where: { batchId },
+        data: { batchId: null }
+      });
+      await tx.litter.updateMany({
+        where: { starterBatchId: batchId },
+        data: { starterBatchId: null }
+      });
+      await tx.livestockBatch.delete({ where: { id: batchId } });
+    });
+
+    await this.audit.record({
+      actorUserId: user.id,
+      farmId,
+      action: AUDIT_ACTION.batchDeleted,
+      resourceType: "LivestockBatch",
+      resourceId: batchId,
+      metadata: {
+        name: batch.name,
+        headcount: batch.headcount,
+        sourceTag: batch.sourceTag ?? undefined
+      }
+    });
   }
 
   async addWeight(

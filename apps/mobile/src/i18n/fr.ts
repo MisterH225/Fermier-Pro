@@ -1582,7 +1582,16 @@ export const fr = {
       confirmBody:
         "Ces sujets seront regroupés en bande pour le suivi et la rentabilité (comme une portée de gestation).",
       confirmName: "Nom de la bande",
-      confirmAction: "Confirmer"
+      confirmAction: "Confirmer",
+      deleteTitle: "Supprimer cette bande ?",
+      deleteBody:
+        "La bande « {{name}} » sera définitivement supprimée. Cette action est irréversible.",
+      deleteConfirm: "Supprimer",
+      deleteAction: "Supprimer la bande",
+      deleteA11y: "Supprimer la bande",
+      deleting: "Suppression…",
+      deleteBlockedHint:
+        "Videz la bande (0 sujet) avant de pouvoir la supprimer."
     },
     pensOccupancyHint:
       "Occupation globale : {{rate}} · {{available}} loge(s) avec place libre.",

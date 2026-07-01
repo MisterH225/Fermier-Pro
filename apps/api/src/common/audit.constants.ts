@@ -14,6 +14,7 @@ export const AUDIT_ACTION = {
   financeRevenueDeleted: "finance.revenue.deleted",
   healthAnimalEventCreated: "health.animal_event.created",
   healthBatchEventCreated: "health.batch_event.created",
+  batchDeleted: "livestock.batch.deleted",
   marketplaceOfferAccepted: "marketplace.offer.accepted",
   farmInvitationCreated: "farm.invitation.created",
   farmInvitationAccepted: "farm.invitation.accepted",

@@ -1556,7 +1556,15 @@ export const en = {
       confirmBody:
         "These animals will be grouped as a batch for tracking and profitability (like a gestation litter).",
       confirmName: "Batch name",
-      confirmAction: "Confirm"
+      confirmAction: "Confirm",
+      deleteTitle: "Delete this batch?",
+      deleteBody:
+        "Batch « {{name}} » will be permanently deleted. This cannot be undone.",
+      deleteConfirm: "Delete",
+      deleteAction: "Delete batch",
+      deleteA11y: "Delete batch",
+      deleting: "Deleting…",
+      deleteBlockedHint: "Empty the batch (0 animals) before you can delete it."
     },
     pensOccupancyHint:
       "Overall occupancy: {{rate}} · {{available}} pen(s) with free space.",

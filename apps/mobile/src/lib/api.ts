@@ -2160,6 +2160,19 @@ export function fetchFarmBatch(
   );
 }
 
+export function deleteFarmBatch(
+  accessToken: string,
+  farmId: string,
+  batchId: string,
+  activeProfileId?: string | null
+): Promise<{ ok: boolean }> {
+  return apiDeleteJson<{ ok: boolean }>(
+    `/farms/${farmId}/batches/${batchId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
 export type PostAnimalWeightPayload = {
   weightKg: number;
   measuredAt?: string;
