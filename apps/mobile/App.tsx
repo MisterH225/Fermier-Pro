@@ -23,10 +23,13 @@ import i18n from "./src/i18n/i18n";
 import { getStoredAppLocale } from "./src/lib/appLocale";
 import { PendingInviteLinkListener } from "./src/components/PendingInviteLinkListener";
 import { LoginGateScreen } from "./src/screens/LoginGateScreen";
+import { useAppUpdates } from "./src/hooks/useAppUpdates";
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const authConfigured = isAuthEnvConfigured();
+
+  useAppUpdates();
 
   useEffect(() => {
     const supabase = getSupabase();

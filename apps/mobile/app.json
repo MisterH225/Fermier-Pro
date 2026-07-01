@@ -17,7 +17,7 @@
     ],
     "ios": {
       "bundleIdentifier": "com.fermierpro.app",
-      "buildNumber": "15",
+      "buildNumber": "16",
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -30,7 +30,7 @@
     },
     "android": {
       "package": "com.fermierpro.app",
-      "versionCode": 15,
+      "versionCode": 16,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a1a1a"
@@ -55,7 +55,7 @@
       "url": "https://u.expo.dev/ebb8a3e5-e17a-4a66-ae0a-f7624ab6c12a",
       "enabled": true,
       "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 5000
+      "fallbackToCacheTimeout": 0
     },
     "plugins": [
       "expo-dev-client",
@@ -90,7 +90,7 @@
       "eas": {
         "projectId": "ebb8a3e5-e17a-4a66-ae0a-f7624ab6c12a"
       },
-      "lastOtaRelease": "2026-06-30-eas-build-15-preview"
+      "lastOtaRelease": "2026-07-01-eas-build-16-preview-bandes"
     },
     "owner": "misterh225"
   }
