@@ -1590,6 +1590,7 @@ export const fr = {
       deleteAction: "Supprimer la bande",
       deleteA11y: "Supprimer la bande",
       deleting: "Suppression…",
+      deleteFailed: "Suppression impossible",
       deleteBlockedHint:
         "Videz la bande (0 sujet) avant de pouvoir la supprimer.",
       listHint:

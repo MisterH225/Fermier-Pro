@@ -15,6 +15,8 @@ import { CreateLivestockBatchDto } from "./dto/create-livestock-batch.dto";
 import { UpdateLivestockBatchDto } from "./dto/update-livestock-batch.dto";
 import { TaxonomyService } from "./taxonomy.service";
 import { LivestockStatusLogService } from "./livestock-status-log.service";
+import { prepareBatchForDeletion } from "./livestock-batch-membership.helper";
+import { effectiveBatchHeadcount } from "./livestock-batch-membership.util";
 
 const PORCIN_CODE = "porcin";
 
@@ -76,7 +78,7 @@ export class BatchesService {
 
   async listBatches(user: User, farmId: string) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
-    return this.prisma.livestockBatch.findMany({
+    const rows = await this.prisma.livestockBatch.findMany({
       where: { farmId },
       orderBy: { updatedAt: "desc" },
       include: {
@@ -87,6 +89,33 @@ export class BatchesService {
           take: 1
         }
       }
+    });
+
+    const memberCounts = rows.length
+      ? await this.prisma.animal.groupBy({
+          by: ["livestockBatchId"],
+          where: {
+            farmId,
+            status: "active",
+            livestockBatchId: { in: rows.map((b) => b.id) }
+          },
+          _count: { id: true }
+        })
+      : [];
+    const activeByBatch = new Map(
+      memberCounts.map((row) => [
+        row.livestockBatchId,
+        row._count.id
+      ])
+    );
+
+    return rows.map((batch) => {
+      const activeMemberCount = activeByBatch.get(batch.id) ?? 0;
+      return {
+        ...batch,
+        activeMemberCount,
+        headcount: effectiveBatchHeadcount(batch.headcount, activeMemberCount)
+      };
     });
   }
 
@@ -191,21 +220,22 @@ export class BatchesService {
 
   async deleteBatch(user: User, farmId: string, batchId: string) {
     const batch = await this.getBatchOnFarm(user, farmId, batchId);
-    const activeMembers = await this.prisma.animal.count({
-      where: {
-        farmId,
-        livestockBatchId: batchId,
-        status: "active"
-      }
-    });
+
+    const activeMembers = await this.prisma.$transaction((tx) =>
+      prepareBatchForDeletion(tx, farmId, batchId)
+    );
 
     if (activeMembers > 0) {
       throw new BadRequestException(
-        "Impossible de supprimer une bande qui contient encore des sujets actifs. Transférez ou sortez les animaux avant suppression."
+        `Impossible de supprimer cette bande : ${activeMembers} sujet(s) actif(s) encore rattaché(s). Transférez ou sortez les animaux avant suppression.`
       );
     }
 
     await this.prisma.$transaction(async (tx) => {
+      await tx.animal.updateMany({
+        where: { farmId, livestockBatchId: batchId },
+        data: { livestockBatchId: null }
+      });
       await tx.livestockExit.updateMany({
         where: { batchId },
         data: { batchId: null }
