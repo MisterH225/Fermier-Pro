@@ -1546,6 +1546,7 @@ export type PenBatchRowDto = {
   publicId: string;
   name: string;
   headcount: number;
+  activeMemberCount?: number;
   categoryKey: string | null;
   status: string;
   species: { id: string; code: string; name: string };
@@ -2049,6 +2050,7 @@ export type BatchListItem = {
   id: string;
   name: string;
   headcount: number;
+  activeMemberCount?: number;
   status: string;
   species: { id: string; code: string; name: string };
   breed: { id: string; name: string } | null;
