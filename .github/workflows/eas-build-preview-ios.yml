@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - "apps/mobile/app.json"
-      - "apps/mobile/eas.json"
+      - "apps/mobile/**"
+      - "packages/**"
       - ".github/workflows/eas-build-preview-ios.yml"
   workflow_dispatch:
     inputs:
