@@ -1521,7 +1521,6 @@ export const en = {
     navWeight: "Weight & ADG",
     navHistory: "History",
     navConfig: "Configuration",
-    navBatches: "Batches",
     navStatuses: "Statuses",
     totalHeadcount: "Total headcount",
     kpiSectionTitle: "Key indicators",

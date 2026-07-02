@@ -17,7 +17,7 @@
     ],
     "ios": {
       "bundleIdentifier": "com.fermierpro.app",
-      "buildNumber": "21",
+      "buildNumber": "22",
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -30,7 +30,7 @@
     },
     "android": {
       "package": "com.fermierpro.app",
-      "versionCode": 21,
+      "versionCode": 22,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a1a1a"
@@ -53,8 +53,8 @@
     },
     "updates": {
       "url": "https://u.expo.dev/ebb8a3e5-e17a-4a66-ae0a-f7624ab6c12a",
-      "enabled": false,
-      "checkAutomatically": "NEVER",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
       "fallbackToCacheTimeout": 5000
     },
     "plugins": [
@@ -90,7 +90,7 @@
       "eas": {
         "projectId": "ebb8a3e5-e17a-4a66-ae0a-f7624ab6c12a"
       },
-      "lastOtaRelease": "2026-07-02-build21-native-bandes-no-auto-ota"
+      "lastOtaRelease": "2026-07-02-build22-fix-imports-bandes"
     },
     "owner": "misterh225"
   }

@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AnimalDetailModal } from "../components/cheptel/animals/AnimalDetailModal";
+import { AnimalActionModal } from "../components/cheptel/animals/AnimalActionModal";
 import { CheptelAnimalActionModals } from "../components/cheptel/animals/CheptelAnimalActionModals";
 import { CreateAnimalModal } from "../components/cheptel/animals/CreateAnimalModal";
 import { BulkAddAnimalsModal } from "../components/cheptel/animals/BulkAddAnimalsModal";
@@ -48,6 +49,7 @@ import {
   resolvePenVisualKey
 } from "../components/cheptel/pens/penUsageVisual";
 import { useDeleteFarmBatch } from "../hooks/useDeleteFarmBatch";
+import { useScreenTitle } from "../hooks/useScreenTitle";
 import type { RootStackParamList } from "../types/navigation";
 import {
   mobileColors,

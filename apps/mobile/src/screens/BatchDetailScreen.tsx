@@ -29,7 +29,8 @@ import {
 import {
   mobileColors,
   mobileRadius,
-  mobileSpacing
+  mobileSpacing,
+  mobileTypography
 } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
