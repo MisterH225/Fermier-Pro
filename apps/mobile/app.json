@@ -17,7 +17,7 @@
     ],
     "ios": {
       "bundleIdentifier": "com.fermierpro.app",
-      "buildNumber": "18",
+      "buildNumber": "19",
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -30,7 +30,7 @@
     },
     "android": {
       "package": "com.fermierpro.app",
-      "versionCode": 18,
+      "versionCode": 19,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a1a1a"
@@ -48,13 +48,11 @@
         }
       ]
     },
-    "runtimeVersion": {
-      "policy": "sdkVersion"
-    },
+    "runtimeVersion": "1.0.0-build19",
     "updates": {
       "url": "https://u.expo.dev/ebb8a3e5-e17a-4a66-ae0a-f7624ab6c12a",
       "enabled": true,
-      "checkAutomatically": "ON_LOAD",
+      "checkAutomatically": "NEVER",
       "fallbackToCacheTimeout": 5000
     },
     "plugins": [
@@ -90,7 +88,7 @@
       "eas": {
         "projectId": "ebb8a3e5-e17a-4a66-ae0a-f7624ab6c12a"
       },
-      "lastOtaRelease": "2026-07-02-build-18-no-ota-reload"
+      "lastOtaRelease": "2026-07-02-build19-isolated-runtime"
     },
     "owner": "misterh225"
   }
