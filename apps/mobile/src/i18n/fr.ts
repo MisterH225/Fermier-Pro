@@ -1547,7 +1547,6 @@ export const fr = {
     navWeight: "Poids & GMQ",
     navHistory: "Historique",
     navConfig: "Configuration",
-    navBatches: "Bandes",
     navStatuses: "Statuts",
     totalHeadcount: "Effectif total",
     kpiSectionTitle: "Indicateurs clés",

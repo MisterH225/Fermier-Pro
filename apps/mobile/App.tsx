@@ -23,13 +23,10 @@ import i18n from "./src/i18n/i18n";
 import { getStoredAppLocale } from "./src/lib/appLocale";
 import { PendingInviteLinkListener } from "./src/components/PendingInviteLinkListener";
 import { LoginGateScreen } from "./src/screens/LoginGateScreen";
-import { useOtaCacheResetOnce } from "./src/hooks/useOtaCacheResetOnce";
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const authConfigured = isAuthEnvConfigured();
-
-  useOtaCacheResetOnce();
 
   useEffect(() => {
     const supabase = getSupabase();

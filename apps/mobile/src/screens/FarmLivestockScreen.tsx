@@ -192,8 +192,10 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
                 overview={cheptelQuery.data}
                 isLoading={cheptelQuery.isPending}
                 farmId={farmId}
+                farmName={farmName}
                 accessToken={accessToken}
                 activeProfileId={activeProfileId}
+                readOnly={readOnly}
               />
             )
           },
