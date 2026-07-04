@@ -253,7 +253,10 @@ export function settlementAmounts(params: {
 
   if (params.buyerPaysCommission) {
     // Acheteur paye prix + frais acheteur → vendeur reçoit prix total moins ses propres frais
-    const sellerReceivedAmount = params.finalAmount - sellerCommissionAmount;
+    const sellerReceivedAmount = Math.max(
+      0,
+      params.finalAmount - sellerCommissionAmount
+    );
     const buyerTotalOwed = params.finalAmount + commissionAmount;
     const delta = params.blockedAmount - buyerTotalOwed;
     const buyerRefundAmount = delta > 0 ? delta : 0;
@@ -268,7 +271,10 @@ export function settlementAmounts(params: {
     };
   }
   // Comportement historique : commission acheteur + commission vendeur toutes deux déduites du vendeur
-  const sellerReceivedAmount = params.finalAmount - commissionAmount - sellerCommissionAmount;
+  const sellerReceivedAmount = Math.max(
+    0,
+    params.finalAmount - commissionAmount - sellerCommissionAmount
+  );
   const delta = params.blockedAmount - params.finalAmount;
   const buyerRefundAmount = delta > 0 ? delta : 0;
   const buyerAdditionalCharge = delta < 0 ? Math.abs(delta) : 0;

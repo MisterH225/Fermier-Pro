@@ -564,12 +564,16 @@ export class UserWalletService {
         }
       });
 
+      const finalBalance = Number(wallet.balance);
+      const balanceAfterWithdraw =
+        feeAmount > 0 ? finalBalance + feeAmount : finalBalance;
+
       const withdrawEntry = await tx.userWalletEntry.create({
         data: {
           walletId: wallet.id,
           kind: UserWalletEntryKind.debit_withdraw,
           amount: new Prisma.Decimal(amount),
-          balanceAfter: new Prisma.Decimal(Number(wallet.balance)),
+          balanceAfter: new Prisma.Decimal(balanceAfterWithdraw),
           currency,
           providerRef,
           note,
@@ -584,7 +588,7 @@ export class UserWalletService {
             walletId: wallet.id,
             kind: UserWalletEntryKind.debit_fee,
             amount: new Prisma.Decimal(feeAmount),
-            balanceAfter: new Prisma.Decimal(Number(wallet.balance)),
+            balanceAfter: new Prisma.Decimal(finalBalance),
             currency,
             providerRef,
             note: "Frais de retrait portefeuille",

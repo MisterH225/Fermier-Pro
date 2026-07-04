@@ -3,7 +3,8 @@ import {
   calculateAgreedDealAmount,
   calculateBlockedAmount,
   resolveHandoverDealTotalPrice,
-  resolveReceiptRealWeightKg
+  resolveReceiptRealWeightKg,
+  settlementAmounts
 } from "./transaction.utils";
 
 describe("transaction.utils", () => {
@@ -135,6 +136,18 @@ describe("transaction.utils", () => {
           transaction: null
         })
       ).toBe(880_000);
+    });
+  });
+
+  describe("settlementAmounts", () => {
+    it("plafonne le payout vendeur à zéro si les taux dépassent le montant", () => {
+      const amounts = settlementAmounts({
+        blockedAmount: 1_000_000,
+        finalAmount: 1_000_000,
+        commissionRate: 0.6,
+        sellerCommissionRate: 0.5
+      });
+      expect(amounts.sellerReceivedAmount).toBe(0);
     });
   });
 });
