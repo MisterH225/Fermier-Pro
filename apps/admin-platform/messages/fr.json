@@ -56,7 +56,8 @@
         "scriptAccent": "Une filière connectée",
         "cta": "Se connecter",
         "learnMore": "En savoir plus",
-        "sideLead": "Digitalisez vos opérations, suivez votre cheptel et connectez-vous aux acteurs de votre filière, où que vous soyez."
+        "sideLead": "Digitalisez vos opérations porcines, suivez votre cheptel et connectez-vous aux acteurs de votre filière, où que vous soyez en Afrique de l'Ouest.",
+        "decorAlt": "Porcs en élevage"
       },
       "why": {
         "badge": "Découvrez notre plateforme",
@@ -73,8 +74,8 @@
         "organicBadge": "100% numérique",
         "cta": "Nous contacter",
         "lead": "Chez E2IA, nous construisons Fermier Pro pour rapprocher tous les acteurs des filières porcine, avicole et bovine sur une même plateforme. Notre objectif : rendre l'élevage plus transparent, plus rentable et plus résilient, du producteur au consommateur.",
-        "imageAlt": "Éleveurs sur le terrain en Afrique de l'Ouest",
-        "imageCaption": "Une filière connectée, de la ferme au marché",
+        "imageAlt": "Porc en élevage traditionnel en Afrique",
+        "imageCaption": "La filière porcine, de la ferme au marché local",
         "points": {
           "actors": {
             "title": "Tous les acteurs réunis",

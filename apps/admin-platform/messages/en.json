@@ -57,7 +57,8 @@
         "scriptAccent": "One connected value chain",
         "cta": "Sign in",
         "learnMore": "Learn more",
-        "sideLead": "Digitize your operations, track your herd and connect with stakeholders across your value chain, wherever you are."
+        "sideLead": "Digitize your pig farming operations, track your herd and connect with stakeholders across your value chain in West Africa.",
+        "decorAlt": "Pigs on a farm"
       },
       "why": {
         "badge": "Discover our platform",
@@ -74,8 +75,8 @@
         "organicBadge": "100% digital",
         "cta": "Contact us",
         "lead": "At E2IA, we are building Fermier Pro to bring together all stakeholders across pig, poultry and cattle value chains on a single platform. Our goal: make farming more transparent, profitable and resilient, from producer to consumer.",
-        "imageAlt": "Farmers in the field in West Africa",
-        "imageCaption": "A connected value chain, from farm to market",
+        "imageAlt": "Pig in traditional farming in Africa",
+        "imageCaption": "The pig value chain, from farm to local market",
         "points": {
           "actors": {
             "title": "All stakeholders united",

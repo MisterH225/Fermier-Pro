@@ -6,7 +6,6 @@ import {
   Baby,
   Brain,
   Building2,
-  Egg,
   HeartPulse,
   Leaf,
   Mail,
@@ -24,6 +23,11 @@ import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { verifyAdminSuperUser } from "@/lib/admin-auth";
 import { useRouter } from "@/i18n/navigation";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -33,13 +37,13 @@ import {
 import { cn } from "@/lib/utils";
 
 const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1548550023-7bdb3c8c9f8f?auto=format&fit=crop&w=2000&q=80";
+  "https://images.unsplash.com/photo-1651592279311-120424784c06?auto=format&fit=crop&w=2000&q=80";
 
 const HERO_DECOR_IMAGE =
-  "https://images.unsplash.com/photo-1518495973542-9fa365acb8e4?auto=format&fit=crop&w=800&q=80";
+  "https://images.unsplash.com/photo-1545468258-576dbac5faa9?auto=format&fit=crop&w=800&q=80";
 
 const AMBITION_IMAGE =
-  "https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1200&q=80";
+  "https://images.unsplash.com/photo-1616109259043-fd30a7663a5d?auto=format&fit=crop&w=1200&q=80";
 
 const MODULE_KEYS = [
   "finance",
@@ -54,17 +58,17 @@ const MODULE_KEYS = [
 
 const MODULE_IMAGES: Record<(typeof MODULE_KEYS)[number], string> = {
   finance:
-    "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1533833406613-0058ceea5d1a?auto=format&fit=crop&w=800&q=80",
   herd:
-    "https://images.unsplash.com/photo-1560493676-04071c5f467b?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1651592279311-120424784c06?auto=format&fit=crop&w=800&q=80",
   gestation:
-    "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1758725335976-f3f6185fca90?auto=format&fit=crop&w=800&q=80",
   feeding:
-    "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1516467508483-a7212febe31a?auto=format&fit=crop&w=800&q=80",
   marketplace:
-    "https://images.unsplash.com/photo-1574943329822-f7931f8344f7?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1507836006954-d834e672f262?auto=format&fit=crop&w=800&q=80",
   health:
-    "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1587213128862-80345e23a71a?auto=format&fit=crop&w=800&q=80",
   sanitaryMap:
     "https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=800&q=80",
   ai:
@@ -90,7 +94,7 @@ const FEATURE_ICONS: Record<(typeof FEATURE_KEYS)[number], typeof Leaf> = {
   herd: Tractor,
   health: HeartPulse,
   marketplace: ShoppingCart,
-  feeding: Egg
+  feeding: UtensilsCrossed
 };
 
 const NAV_KEYS = ["ambition", "modules", "contact"] as const;
@@ -159,7 +163,8 @@ function LoginForm({
   loading,
   googleLoading,
   onSubmit,
-  onGoogle
+  onGoogle,
+  inDialog = false
 }: {
   t: ReturnType<typeof useTranslations<"login">>;
   email: string;
@@ -171,12 +176,15 @@ function LoginForm({
   googleLoading: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onGoogle: () => void;
+  inDialog?: boolean;
 }) {
   return (
-    <div className="farm-card w-full max-w-md">
-      <div className="mb-6 text-center">
-        <LogoMark variant="dark" size="md" centered showBadge={false} />
-        <h2 className="mt-4 text-2xl font-extrabold text-gray-900">{t("title")}</h2>
+    <div className={cn(!inDialog && "farm-card w-full max-w-md")}>
+      <div className={cn("text-center", inDialog ? "mb-5" : "mb-6")}>
+        <LogoMark variant="dark" size={inDialog ? "sm" : "md"} centered showBadge={false} />
+        <h2 className={cn("font-extrabold text-gray-900", inDialog ? "mt-3 text-xl" : "mt-4 text-2xl")}>
+          {t("title")}
+        </h2>
         <p className="mt-2 text-sm text-muted-foreground">{t("formLead")}</p>
       </div>
 
@@ -273,14 +281,17 @@ export function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
 
   useEffect(() => {
     if (searchParams.get("error") === "oauth") {
       const reason = searchParams.get("reason");
       setError(reason ? t("oauthCallbackError", { reason }) : t("oauthRedirectError"));
+      setLoginOpen(true);
     }
     if (searchParams.get("error") === "api") {
       setError(t("apiUnreachable"));
+      setLoginOpen(true);
     }
   }, [searchParams, t]);
 
@@ -391,7 +402,7 @@ export function LoginScreen() {
 
             <button
               type="button"
-              onClick={() => scrollToSection("login")}
+              onClick={() => setLoginOpen(true)}
               className="farm-btn px-5 py-2.5 text-xs sm:text-sm"
             >
               {t("navSignIn")}
@@ -412,69 +423,68 @@ export function LoginScreen() {
           </nav>
         </header>
 
-        <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-10 px-4 pb-16 pt-8 sm:px-6 lg:grid-cols-2 lg:px-8 lg:pb-24">
-          <div className="text-center text-white lg:text-left">
-            <p className="farm-label text-white/70">{t("landing.hero.present")}</p>
+        <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center px-4 pb-20 pt-10 text-center sm:px-6 lg:px-8 lg:pb-28 lg:pt-14">
+          <p className="farm-label text-white/70">{t("landing.hero.present")}</p>
 
-            <h1 className="mt-4 text-4xl font-extrabold uppercase leading-[1.05] tracking-tight sm:text-5xl lg:text-[3.4rem]">
-              {t("hero.titleHighlight")}
-              <br />
-              <span className="text-white">{t("hero.titleRest")}</span>
-            </h1>
+          <h1 className="mt-4 text-4xl font-extrabold uppercase leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
+            {t("hero.titleHighlight")}
+            <br />
+            <span className="text-white">{t("hero.titleRest")}</span>
+          </h1>
 
-            <p className="mt-4 font-script text-3xl text-brand-olive-light sm:text-4xl">
-              {t("landing.hero.scriptAccent")}
-            </p>
+          <p className="mt-4 font-script text-3xl text-brand-olive-light sm:text-4xl">
+            {t("landing.hero.scriptAccent")}
+          </p>
 
-            <p className="mx-auto mt-6 max-w-lg text-base leading-relaxed text-white/85 lg:mx-0">
-              {t("landing.heroLead")}
-            </p>
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-white/85 sm:text-lg">
+            {t("landing.heroLead")}
+          </p>
 
-            <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row lg:justify-start">
-              <button
-                type="button"
-                onClick={() => scrollToSection("login")}
-                className="farm-btn"
-              >
-                {t("landing.hero.cta")}
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollToSection("ambition")}
-                className="inline-flex items-center gap-2 text-sm font-semibold text-white/90 transition hover:text-white"
-              >
-                {t("landing.hero.learnMore")}
-                <ArrowRight className="size-4" />
-              </button>
-            </div>
-
-            <p className="mt-10 hidden max-w-sm text-sm leading-relaxed text-white/70 lg:block">
-              {t("landing.hero.sideLead")}
-            </p>
+          <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row">
+            <button type="button" onClick={() => setLoginOpen(true)} className="farm-btn">
+              {t("landing.hero.cta")}
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection("ambition")}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-white/90 transition hover:text-white"
+            >
+              {t("landing.hero.learnMore")}
+              <ArrowRight className="size-4" />
+            </button>
           </div>
 
-          <div id="login" className="relative scroll-mt-28">
-            <div className="pointer-events-none absolute -right-2 -top-16 hidden lg:block xl:-right-8">
-              <div className="relative size-40 overflow-hidden rounded-3xl shadow-2xl ring-4 ring-white/20 xl:size-48">
-                <Image
-                  src={HERO_DECOR_IMAGE}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  sizes="192px"
-                />
-              </div>
-            </div>
-            <LoginForm {...loginFormProps} />
+          <p className="mt-10 max-w-xl text-sm leading-relaxed text-white/70">
+            {t("landing.hero.sideLead")}
+          </p>
+
+          <div className="relative mt-12 size-44 overflow-hidden rounded-3xl shadow-2xl ring-4 ring-white/20 sm:size-52">
+            <Image
+              src={HERO_DECOR_IMAGE}
+              alt={t("landing.hero.decorAlt")}
+              fill
+              className="object-cover"
+              sizes="208px"
+            />
           </div>
         </div>
       </section>
 
+      <Dialog open={loginOpen} onOpenChange={setLoginOpen}>
+        <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto border-gray-100 bg-white p-6 sm:p-8">
+          <DialogTitle className="sr-only">{t("title")}</DialogTitle>
+          <LoginForm {...loginFormProps} inDialog />
+        </DialogContent>
+      </Dialog>
+
       {/* Why cards */}
       <section className="relative py-20 sm:py-28">
-        <Tractor
-          className="pointer-events-none absolute right-8 top-8 size-64 text-gray-200/60 sm:size-80"
-          strokeWidth={0.8}
+        <Image
+          src={LOGO_SRC}
+          alt=""
+          width={280}
+          height={138}
+          className="pointer-events-none absolute right-4 top-8 opacity-[0.06] sm:right-12 sm:top-12"
         />
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
