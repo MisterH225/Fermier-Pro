@@ -6,9 +6,13 @@ import { useRouter } from "@/i18n/navigation";
 import { TopNav } from "@/components/layout/TopNav";
 import { ShellLoading } from "@/components/layout/PageSkeleton";
 import { useAdminRealtime } from "@/lib/useAdminRealtime";
+import { useAdminAccess } from "@/lib/admin-access-context";
+import { hasMenuAccess } from "@/lib/admin-permissions";
+import { NAV_ITEMS } from "@/components/layout/nav-config";
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const { profile, ready: accessReady } = useAdminAccess();
   const [token, setToken] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -53,9 +57,13 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     router.replace("/login");
   };
 
-  if (!token) {
+  if (!token || !accessReady) {
     return <ShellLoading />;
   }
+
+  const visibleNavItems = NAV_ITEMS.filter((item) =>
+    hasMenuAccess(profile, item.key, "read")
+  );
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden dashboard-bg">
@@ -65,6 +73,12 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         marketplaceDisputes={marketplaceDisputes}
         userName={userName}
         userEmail={userEmail}
+        roleLabel={
+          profile?.role === "institution"
+            ? profile.institutionLabel ?? "Institution"
+            : "SuperAdmin"
+        }
+        navItems={visibleNavItems}
         onLogout={logout}
       />
       <main className="w-full px-3 sm:px-4 lg:px-6 pb-6 sm:pb-8">

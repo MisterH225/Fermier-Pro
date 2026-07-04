@@ -28,6 +28,8 @@ type Props = {
   marketplaceDisputes?: number;
   userName?: string | null;
   userEmail?: string | null;
+  roleLabel?: string;
+  navItems?: NavItem[];
   onLogout: () => void;
 };
 
@@ -53,6 +55,8 @@ export function TopNav({
   marketplaceDisputes = 0,
   userName,
   userEmail,
+  roleLabel = "SuperAdmin",
+  navItems = NAV_ITEMS,
   onLogout
 }: Props) {
   const t = useTranslations("nav");
@@ -63,7 +67,9 @@ export function TopNav({
   const moreRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const counts = { pendingVets, activeAlerts, marketplaceDisputes };
-  const secondaryActive = SECONDARY_NAV.some((item) => navActive(pathname, item.href));
+  const primaryNav = navItems.filter((item) => item.primary);
+  const secondaryNav = navItems.filter((item) => !item.primary);
+  const secondaryActive = secondaryNav.some((item) => navActive(pathname, item.href));
   const displayName = userName ?? "Admin";
   const initials = displayName
     .split(" ")
@@ -124,7 +130,7 @@ export function TopNav({
                 className="h-6 w-auto max-w-[7.5rem] object-contain object-left lg:h-7 lg:max-w-[6.75rem]"
               />
               <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground mt-0.5">
-                SuperAdmin
+                {roleLabel}
               </span>
             </div>
           </Link>
@@ -215,7 +221,7 @@ export function TopNav({
           aria-label="Navigation principale"
         >
           <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {PRIMARY_NAV.map((item) => {
+            {primaryNav.map((item) => {
               const active = navActive(pathname, item.href);
               const badge = badgeFor(item, counts);
               return (
@@ -259,7 +265,7 @@ export function TopNav({
             </button>
             {moreOpen ? (
               <div className="glass-dropdown absolute right-0 top-full z-50 mt-2 w-56 py-2">
-                {SECONDARY_NAV.map((item) => {
+                {secondaryNav.map((item) => {
                   const active = navActive(pathname, item.href);
                   const badge = badgeFor(item, counts);
                   return (
@@ -298,7 +304,7 @@ export function TopNav({
             onClick={() => setMobileOpen(false)}
           />
           <div className="glass-dropdown fixed inset-x-3 top-[4.75rem] z-50 max-h-[calc(100vh-5.5rem)] overflow-y-auto p-2 sm:inset-x-4 lg:hidden">
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const active = navActive(pathname, item.href);
               const badge = badgeFor(item, counts);
               return (

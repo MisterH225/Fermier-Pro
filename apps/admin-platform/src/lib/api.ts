@@ -793,6 +793,82 @@ export function removeSuperAdmin(token: string, userId: string) {
   );
 }
 
+export type InstitutionConsoleUserDto = {
+  id: string;
+  userId: string;
+  email: string | null;
+  fullName: string | null;
+  institutionLabel: string | null;
+  menuPermissions: Record<string, "read" | "write">;
+  isActive: boolean;
+  invitedBy: string | null;
+  invitedAt: string;
+  acceptedAt: string | null;
+  createdAt: string;
+};
+
+export function fetchInstitutionConsoleUsers(token: string) {
+  return apiFetch<InstitutionConsoleUserDto[]>("/admin/institution-users", token);
+}
+
+export function createInstitutionConsoleUser(
+  token: string,
+  body: {
+    email: string;
+    fullName?: string;
+    institutionLabel?: string;
+    inviteRedirectTo?: string;
+    menuPermissions: Record<string, "read" | "write">;
+  }
+) {
+  return apiFetch<InstitutionConsoleUserDto>("/admin/institution-users", token, {
+    method: "POST",
+    body: JSON.stringify(body)
+  });
+}
+
+export function updateInstitutionConsoleUser(
+  token: string,
+  id: string,
+  body: {
+    institutionLabel?: string;
+    isActive?: boolean;
+    menuPermissions?: Record<string, "read" | "write">;
+  }
+) {
+  return apiFetch<InstitutionConsoleUserDto>(
+    `/admin/institution-users/${encodeURIComponent(id)}`,
+    token,
+    {
+      method: "PATCH",
+      body: JSON.stringify(body)
+    }
+  );
+}
+
+export function removeInstitutionConsoleUser(token: string, id: string) {
+  return apiFetch<{ ok: boolean; removed: InstitutionConsoleUserDto }>(
+    `/admin/institution-users/${encodeURIComponent(id)}`,
+    token,
+    { method: "DELETE" }
+  );
+}
+
+export function resendInstitutionConsoleInvite(
+  token: string,
+  id: string,
+  redirectTo?: string
+) {
+  return apiFetch<{ ok: boolean }>(
+    `/admin/institution-users/${encodeURIComponent(id)}/resend-invite`,
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify({ redirectTo })
+    }
+  );
+}
+
 export function fetchWalletFeeConfigs(token: string) {
   return apiFetch<WalletFeeConfigDto[]>("/admin/wallet/fees", token);
 }

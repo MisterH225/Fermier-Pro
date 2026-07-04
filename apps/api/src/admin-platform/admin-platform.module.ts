@@ -5,9 +5,9 @@ import { AuthModule } from "../auth/auth.module";
 import { PushNotificationsModule } from "../push-notifications/push-notifications.module";
 import { VetsModule } from "../vets/vets.module";
 import { AdminAiService } from "./admin-ai.service";
+import { AdminConsoleAuthModule } from "./admin-console-auth.module";
 import { AdminPlatformController } from "./admin-platform.controller";
 import { AdminPlatformService } from "./admin-platform.service";
-import { SuperAdminGuard } from "./super-admin.guard";
 import { MarketModule } from "../market/market.module";
 import { MarketplaceModule } from "../marketplace/marketplace.module";
 import { VetAppointmentsModule } from "../vet-appointments/vet-appointments.module";
@@ -15,6 +15,7 @@ import { ProducerScoreModule } from "../producer-score/producer-score.module";
 
 @Module({
   imports: [
+    AdminConsoleAuthModule,
     AuthModule,
     AdminModerationModule,
     VetsModule,
@@ -26,7 +27,7 @@ import { ProducerScoreModule } from "../producer-score/producer-score.module";
     ProducerScoreModule
   ],
   controllers: [AdminPlatformController],
-  providers: [AdminPlatformService, AdminAiService, SuperAdminGuard],
-  exports: [AdminPlatformService, SuperAdminGuard]
+  providers: [AdminPlatformService, AdminAiService],
+  exports: [AdminPlatformService, AdminConsoleAuthModule]
 })
 export class AdminPlatformModule {}

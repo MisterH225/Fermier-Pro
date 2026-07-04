@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { verifyAdminSuperUser } from "@/lib/admin-auth";
+import { verifyConsoleAccess } from "@/lib/admin-auth";
 import { useRouter } from "@/i18n/navigation";
 
 export default function AuthCompletePage() {
@@ -22,12 +22,7 @@ export default function AuthCompletePage() {
           router.replace("/login");
           return;
         }
-        if (!(await verifyAdminSuperUser(token))) {
-          await supabase.auth.signOut();
-          setMessage(t("forbidden"));
-          router.replace("/login");
-          return;
-        }
+        await verifyConsoleAccess(token);
         router.replace("/");
       } catch {
         setMessage(t("apiUnreachable"));

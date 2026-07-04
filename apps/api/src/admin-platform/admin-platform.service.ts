@@ -21,10 +21,16 @@ import { PushNotificationsService } from "../push-notifications/push-notificatio
 import { SupabaseAdminService } from "../auth/supabase-admin.service";
 import { VetsService } from "../vets/vets.service";
 import type {
+  CreateInstitutionConsoleUserDto,
   CreateSanitaryAlertDto,
   CreateSuperAdminDto,
+  UpdateInstitutionConsoleUserDto,
   UpdatePlatformSettingsDto
 } from "./dto/admin-platform.dto";
+import {
+  type AdminConsoleMenuPermissions,
+  parseMenuPermissions
+} from "./admin-console-menu.constants";
 import {
   buildZoneKey,
   farmMatchesScope,
@@ -1310,5 +1316,275 @@ export class AdminPlatformService {
 
     await this.prisma.superAdmin.delete({ where: { id: row.id } });
     return { ok: true as const, removed: this.mapSuperAdminRow(row) };
+  }
+
+  private mapInstitutionConsoleRow(row: {
+    id: string;
+    userId: string;
+    institutionLabel: string | null;
+    menuPermissions: unknown;
+    isActive: boolean;
+    invitedBy: string | null;
+    invitedAt: Date;
+    acceptedAt: Date | null;
+    createdAt: Date;
+    user: {
+      id: string;
+      fullName: string | null;
+      email: string | null;
+      createdAt: Date;
+    };
+  }) {
+    return {
+      id: row.id,
+      userId: row.userId,
+      email: row.user.email,
+      fullName: row.user.fullName,
+      institutionLabel: row.institutionLabel,
+      menuPermissions: parseMenuPermissions(row.menuPermissions),
+      isActive: row.isActive,
+      invitedBy: row.invitedBy,
+      invitedAt: row.invitedAt.toISOString(),
+      acceptedAt: row.acceptedAt?.toISOString() ?? null,
+      createdAt: row.createdAt.toISOString()
+    };
+  }
+
+  private sanitizeMenuPermissions(
+    input?: Record<string, "read" | "write">
+  ): AdminConsoleMenuPermissions {
+    return parseMenuPermissions(input ?? {});
+  }
+
+  async listInstitutionConsoleUsers() {
+    const rows = await this.prisma.institutionConsoleUser.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            createdAt: true
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+    return rows.map((row) => this.mapInstitutionConsoleRow(row));
+  }
+
+  async createInstitutionConsoleUser(
+    creator: User,
+    dto: CreateInstitutionConsoleUserDto
+  ) {
+    if (!this.supabaseAdmin.isConfigured()) {
+      throw new ServiceUnavailableException(
+        "Supabase admin non configuré (SUPABASE_SERVICE_ROLE_KEY)"
+      );
+    }
+
+    const email = dto.email.trim().toLowerCase();
+    const menuPermissions = this.sanitizeMenuPermissions(dto.menuPermissions);
+    if (Object.keys(menuPermissions).length === 0) {
+      throw new BadRequestException(
+        "Au moins un menu doit être autorisé (lecture ou écriture)"
+      );
+    }
+
+    const existingSuper = await this.prisma.superAdmin.findFirst({
+      where: { user: { email: { equals: email, mode: "insensitive" } } }
+    });
+    if (existingSuper) {
+      throw new ConflictException("Cet email est déjà SuperAdmin");
+    }
+
+    const existingInstitution = await this.prisma.institutionConsoleUser.findFirst({
+      where: { user: { email: { equals: email, mode: "insensitive" } } }
+    });
+    if (existingInstitution) {
+      throw new ConflictException(
+        "Cet email a déjà un accès institution sur la console"
+      );
+    }
+
+    const existingUser = await this.prisma.user.findFirst({
+      where: { email: { equals: email, mode: "insensitive" } }
+    });
+
+    const redirectTo =
+      dto.inviteRedirectTo?.trim() ||
+      process.env.ADMIN_CONSOLE_INVITE_REDIRECT_TO?.trim() ||
+      process.env.NEXT_PUBLIC_ADMIN_URL?.replace(/\/$/, "") + "/auth/callback" ||
+      "http://localhost:3001/auth/callback";
+
+    let userId = existingUser?.id;
+    const fullName = dto.fullName?.trim() || null;
+    const institutionLabel = dto.institutionLabel?.trim() || null;
+
+    try {
+      if (existingUser?.supabaseUserId) {
+        await this.supabaseAdmin.sendPasswordRecoveryEmail(email, redirectTo);
+      } else {
+        const authUser = await this.supabaseAdmin.inviteAuthUserByEmail(
+          email,
+          redirectTo
+        );
+        if (existingUser) {
+          const updated = await this.prisma.user.update({
+            where: { id: existingUser.id },
+            data: {
+              supabaseUserId: authUser.id,
+              email,
+              ...(fullName ? { fullName } : {})
+            }
+          });
+          userId = updated.id;
+        } else {
+          const created = await this.prisma.user.create({
+            data: {
+              supabaseUserId: authUser.id,
+              email,
+              fullName
+            }
+          });
+          userId = created.id;
+        }
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new BadRequestException(
+        `Impossible d'inviter l'utilisateur institution : ${msg.slice(0, 240)}`
+      );
+    }
+
+    if (!userId) {
+      throw new BadRequestException("Utilisateur institution introuvable après invitation");
+    }
+
+    const row = await this.prisma.institutionConsoleUser.create({
+      data: {
+        userId,
+        institutionLabel,
+        menuPermissions,
+        invitedBy: creator.id
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            createdAt: true
+          }
+        }
+      }
+    });
+
+    return this.mapInstitutionConsoleRow(row);
+  }
+
+  async updateInstitutionConsoleUser(
+    id: string,
+    dto: UpdateInstitutionConsoleUserDto
+  ) {
+    await this.getInstitutionConsoleUserOrThrow(id);
+    const menuPermissions =
+      dto.menuPermissions !== undefined
+        ? this.sanitizeMenuPermissions(dto.menuPermissions)
+        : undefined;
+    if (menuPermissions && Object.keys(menuPermissions).length === 0) {
+      throw new BadRequestException(
+        "Au moins un menu doit rester autorisé (lecture ou écriture)"
+      );
+    }
+
+    const row = await this.prisma.institutionConsoleUser.update({
+      where: { id },
+      data: {
+        ...(dto.institutionLabel !== undefined
+          ? { institutionLabel: dto.institutionLabel.trim() || null }
+          : {}),
+        ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
+        ...(menuPermissions !== undefined ? { menuPermissions } : {})
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            createdAt: true
+          }
+        }
+      }
+    });
+    return this.mapInstitutionConsoleRow(row);
+  }
+
+  async removeInstitutionConsoleUser(id: string) {
+    const row = await this.getInstitutionConsoleUserOrThrow(id);
+    await this.prisma.institutionConsoleUser.delete({ where: { id } });
+    return { ok: true as const, removed: this.mapInstitutionConsoleRow(row) };
+  }
+
+  async resendInstitutionConsoleInvite(id: string, redirectTo?: string) {
+    if (!this.supabaseAdmin.isConfigured()) {
+      throw new ServiceUnavailableException(
+        "Supabase admin non configuré (SUPABASE_SERVICE_ROLE_KEY)"
+      );
+    }
+    const row = await this.getInstitutionConsoleUserOrThrow(id);
+    const email = row.user.email;
+    if (!email) {
+      throw new BadRequestException("Email utilisateur manquant");
+    }
+    const target =
+      redirectTo?.trim() ||
+      process.env.ADMIN_CONSOLE_INVITE_REDIRECT_TO?.trim() ||
+      process.env.NEXT_PUBLIC_ADMIN_URL?.replace(/\/$/, "") + "/auth/callback" ||
+      "http://localhost:3001/auth/callback";
+
+    try {
+      if (row.user.supabaseUserId) {
+        await this.supabaseAdmin.sendPasswordRecoveryEmail(email, target);
+      } else {
+        const authUser = await this.supabaseAdmin.inviteAuthUserByEmail(
+          email,
+          target
+        );
+        await this.prisma.user.update({
+          where: { id: row.userId },
+          data: { supabaseUserId: authUser.id }
+        });
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new BadRequestException(
+        `Impossible de renvoyer l'invitation : ${msg.slice(0, 240)}`
+      );
+    }
+
+    return { ok: true as const };
+  }
+
+  private async getInstitutionConsoleUserOrThrow(id: string) {
+    const row = await this.prisma.institutionConsoleUser.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            createdAt: true,
+            supabaseUserId: true
+          }
+        }
+      }
+    });
+    if (!row) {
+      throw new NotFoundException("Accès institution introuvable");
+    }
+    return row;
   }
 }

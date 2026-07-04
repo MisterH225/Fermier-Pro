@@ -16,6 +16,8 @@ import {
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { SuperAdminGuard } from "../admin-platform/super-admin.guard";
+import { ConsoleAccessGuard } from "../admin-platform/console-access.guard";
+import { AdminConsoleMenuGuard } from "../admin-platform/admin-console-menu.guard";
 import {
   RejectWithdrawalDto,
   UpdateWalletFeeConfigBodyDto
@@ -25,7 +27,7 @@ import { WalletFeeService } from "./wallet-fee.service";
 import { WithdrawalOrchestratorService } from "./withdrawal-orchestrator.service";
 
 @Controller("admin/wallet")
-@UseGuards(SupabaseJwtGuard, SuperAdminGuard)
+@UseGuards(SupabaseJwtGuard, ConsoleAccessGuard, AdminConsoleMenuGuard)
 export class AdminWalletController {
   constructor(
     private readonly fees: WalletFeeService,

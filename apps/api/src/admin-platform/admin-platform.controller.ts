@@ -19,9 +19,11 @@ import { AdminUserModerationService } from "./admin-user-moderation.service";
 import {
   AdminAiAskDto,
   AdminAiLocaleDto,
+  CreateInstitutionConsoleUserDto,
   CreateSanitaryAlertDto,
   CreateSuperAdminDto,
   RejectVetProfileAdminDto,
+  UpdateInstitutionConsoleUserDto,
   UpdatePlatformSettingsDto
 } from "./dto/admin-platform.dto";
 import {
@@ -37,6 +39,9 @@ import {
   ModerationScopeDto
 } from "./dto/admin-user-moderation.dto";
 import { SuperAdminGuard } from "./super-admin.guard";
+import { ConsoleAccessGuard } from "./console-access.guard";
+import { AdminConsoleMenuGuard } from "./admin-console-menu.guard";
+import { AdminConsoleAccessService } from "./admin-console-access.service";
 import { PigPriceIndexService } from "../market/pig-price-index.service";
 import { ResolveDeliveryDisputeDto } from "../marketplace/dto/resolve-delivery-dispute.dto";
 import { MarketplaceTransactionService } from "../marketplace/escrow/marketplace-transaction.service";
@@ -47,7 +52,7 @@ import { ProducerScoreService } from "../producer-score/producer-score.service";
 import { ProducerScore } from "@prisma/client";
 
 @Controller("admin")
-@UseGuards(SupabaseJwtGuard, SuperAdminGuard)
+@UseGuards(SupabaseJwtGuard, ConsoleAccessGuard, AdminConsoleMenuGuard)
 export class AdminPlatformController {
   constructor(
     private readonly admin: AdminPlatformService,
@@ -58,16 +63,24 @@ export class AdminPlatformController {
     private readonly listings: ListingsService,
     private readonly receipts: ReceiptService,
     private readonly vetAppointments: VetAppointmentService,
-    private readonly producerScore: ProducerScoreService
+    private readonly producerScore: ProducerScoreService,
+    private readonly consoleAccess: AdminConsoleAccessService
   ) {}
 
   @Get("me")
-  me(@CurrentUser() user: User) {
+  async me(@CurrentUser() user: User) {
+    const profile = await this.consoleAccess.requireConsoleAccess(user.id);
+    if (profile.role === "institution") {
+      await this.consoleAccess.markInstitutionAccepted(user.id);
+    }
     return {
       userId: user.id,
       email: user.email,
       fullName: user.fullName,
-      role: "superadmin" as const
+      role: profile.role,
+      permissions:
+        profile.permissions === "all" ? "all" : profile.permissions,
+      institutionLabel: profile.institutionLabel
     };
   }
 
@@ -298,11 +311,13 @@ export class AdminPlatformController {
   }
 
   @Get("superadmins")
+  @UseGuards(SuperAdminGuard)
   superAdmins() {
     return this.admin.listSuperAdmins();
   }
 
   @Post("superadmins")
+  @UseGuards(SuperAdminGuard)
   createSuperAdmin(
     @CurrentUser() user: User,
     @Body() dto: CreateSuperAdminDto
@@ -311,11 +326,51 @@ export class AdminPlatformController {
   }
 
   @Delete("superadmins/:userId")
+  @UseGuards(SuperAdminGuard)
   removeSuperAdmin(
     @CurrentUser() user: User,
     @Param("userId") userId: string
   ) {
     return this.admin.removeSuperAdmin(user, userId);
+  }
+
+  @Get("institution-users")
+  @UseGuards(SuperAdminGuard)
+  institutionUsers() {
+    return this.admin.listInstitutionConsoleUsers();
+  }
+
+  @Post("institution-users")
+  @UseGuards(SuperAdminGuard)
+  createInstitutionUser(
+    @CurrentUser() user: User,
+    @Body() dto: CreateInstitutionConsoleUserDto
+  ) {
+    return this.admin.createInstitutionConsoleUser(user, dto);
+  }
+
+  @Patch("institution-users/:id")
+  @UseGuards(SuperAdminGuard)
+  updateInstitutionUser(
+    @Param("id") id: string,
+    @Body() dto: UpdateInstitutionConsoleUserDto
+  ) {
+    return this.admin.updateInstitutionConsoleUser(id, dto);
+  }
+
+  @Delete("institution-users/:id")
+  @UseGuards(SuperAdminGuard)
+  removeInstitutionUser(@Param("id") id: string) {
+    return this.admin.removeInstitutionConsoleUser(id);
+  }
+
+  @Post("institution-users/:id/resend-invite")
+  @UseGuards(SuperAdminGuard)
+  resendInstitutionInvite(
+    @Param("id") id: string,
+    @Body() body: { redirectTo?: string }
+  ) {
+    return this.admin.resendInstitutionConsoleInvite(id, body.redirectTo);
   }
 
   @Get("ai/status")
