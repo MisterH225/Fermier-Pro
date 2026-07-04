@@ -38,6 +38,8 @@
     "navAbout": "About",
     "email": "Email",
     "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "resetSuccess": "Password updated. Sign in with your new password.",
     "submit": "Sign in",
     "forbidden": "SuperAdmin access only.",
     "error": "Invalid credentials.",
@@ -230,6 +232,23 @@
         "health": "Animal health"
       }
     }
+  },
+  "forgotPassword": {
+    "title": "Forgot password",
+    "lead": "Enter your SuperAdmin account email. We will send you a link to choose a new password.",
+    "email": "Email",
+    "submit": "Send reset link",
+    "sent": "If an account exists for this email, a reset link has been sent. Check your inbox (and spam folder).",
+    "backToLogin": "Back to sign in",
+    "error": "Could not send the email. Please try again shortly."
+  },
+  "resetPassword": {
+    "title": "New password",
+    "lead": "Choose a password for your SuperAdmin console.",
+    "submit": "Save password",
+    "expired": "This link is invalid or has expired. Request a new reset link.",
+    "requestNewLink": "Request a new link",
+    "error": "Could not update the password."
   },
   "overview": {
     "title": "Overview",

@@ -22,7 +22,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { verifyAdminSuperUser } from "@/lib/admin-auth";
-import { useRouter } from "@/i18n/navigation";
+import { useRouter, Link } from "@/i18n/navigation";
 import {
   Dialog,
   DialogContent,
@@ -162,6 +162,7 @@ function LoginForm({
   password,
   setPassword,
   error,
+  resetSuccess,
   loading,
   googleLoading,
   onSubmit,
@@ -174,6 +175,7 @@ function LoginForm({
   password: string;
   setPassword: (v: string) => void;
   error: string | null;
+  resetSuccess: boolean;
   loading: boolean;
   googleLoading: boolean;
   onSubmit: (e: React.FormEvent) => void;
@@ -243,9 +245,17 @@ function LoginForm({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-sm font-bold">
-            {t("password")}
-          </Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label htmlFor="password" className="text-sm font-bold">
+              {t("password")}
+            </Label>
+            <Link
+              href="/forgot-password"
+              className="text-xs font-semibold text-brand-olive hover:underline"
+            >
+              {t("forgotPassword")}
+            </Link>
+          </div>
           <Input
             id="password"
             type="password"
@@ -255,6 +265,12 @@ function LoginForm({
             className="h-12 rounded-2xl border-gray-200 px-5 font-medium"
           />
         </div>
+
+        {resetSuccess ? (
+          <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+            {t("resetSuccess")}
+          </p>
+        ) : null}
 
         {error ? (
           <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
@@ -284,6 +300,7 @@ export function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   useEffect(() => {
     if (searchParams.get("error") === "oauth") {
@@ -293,6 +310,11 @@ export function LoginScreen() {
     }
     if (searchParams.get("error") === "api") {
       setError(t("apiUnreachable"));
+      setLoginOpen(true);
+    }
+    if (searchParams.get("reset") === "success") {
+      setResetSuccess(true);
+      setError(null);
       setLoginOpen(true);
     }
   }, [searchParams, t]);
@@ -367,6 +389,7 @@ export function LoginScreen() {
     password,
     setPassword,
     error,
+    resetSuccess,
     loading,
     googleLoading,
     onSubmit,

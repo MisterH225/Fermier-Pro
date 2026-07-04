@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { routing } from "@/i18n/routing";
 
 /** Routes admin exemptées de la vérification superadmin (login, auth). */
-const ADMIN_EXEMPT_SEGMENTS = ["auth", "login"];
+const ADMIN_EXEMPT_SEGMENTS = ["auth", "login", "forgot-password", "reset-password"];
 
 function stripLocalePrefix(pathname: string): string {
   const segments = pathname.split("/").filter(Boolean);

@@ -37,6 +37,8 @@
     "navAbout": "À propos",
     "email": "Email",
     "password": "Mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "resetSuccess": "Mot de passe mis à jour. Connectez-vous avec votre nouveau mot de passe.",
     "submit": "Se connecter",
     "forbidden": "Accès réservé aux SuperAdmin.",
     "error": "Identifiants invalides.",
@@ -229,6 +231,23 @@
         "health": "Santé animale"
       }
     }
+  },
+  "forgotPassword": {
+    "title": "Mot de passe oublié",
+    "lead": "Saisissez l’email de votre compte SuperAdmin. Nous vous enverrons un lien pour choisir un nouveau mot de passe.",
+    "email": "Email",
+    "submit": "Envoyer le lien",
+    "sent": "Si un compte existe pour cet email, un lien de réinitialisation vient d’être envoyé. Vérifiez votre boîte de réception (et les spams).",
+    "backToLogin": "Retour à la connexion",
+    "error": "Impossible d’envoyer l’email. Réessayez dans quelques instants."
+  },
+  "resetPassword": {
+    "title": "Nouveau mot de passe",
+    "lead": "Choisissez un mot de passe pour votre console SuperAdmin.",
+    "submit": "Enregistrer le mot de passe",
+    "expired": "Ce lien est invalide ou a expiré. Demandez un nouveau lien de réinitialisation.",
+    "requestNewLink": "Demander un nouveau lien",
+    "error": "Impossible de mettre à jour le mot de passe."
   },
   "overview": {
     "title": "Vue d'ensemble",
