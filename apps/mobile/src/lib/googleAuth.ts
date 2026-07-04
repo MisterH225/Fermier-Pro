@@ -16,13 +16,15 @@ function isLocalhostish(url: string): boolean {
 }
 
 export function getGoogleOAuthRedirectUri(): string {
-  // Dans un vrai build (TestFlight, APK) — jamais de exp://
-  // On utilise toujours le scheme de l'app
-  if (Platform.OS !== "web") {
-    return `fermier-pro://${OAUTH_CALLBACK_PATH}`;
+  if (Platform.OS === "web") {
+    return Linking.createURL(OAUTH_CALLBACK_PATH);
   }
-  // Web uniquement
-  return Linking.createURL(OAUTH_CALLBACK_PATH);
+  // Expo Go : exp://<LAN>:8081/--/auth/callback (affiché sur l’écran de connexion en __DEV__)
+  if (__DEV__ && Constants.appOwnership === "expo") {
+    return Linking.createURL(OAUTH_CALLBACK_PATH);
+  }
+  // Build natif (dev client, preview, TestFlight, APK)
+  return `fermier-pro://${OAUTH_CALLBACK_PATH}`;
 }
 
 function parseUrlParams(url: string): URLSearchParams {
@@ -57,7 +59,7 @@ function extractTokensFromReturnUrl(returnUrl: string): {
 }
 
 /**
- * Crée la session depuis l’URL de retour (flux implicit mobile, doc Supabase).
+ * Crée la session depuis l’URL de retour OAuth (PKCE ou implicit legacy).
  * @see https://supabase.com/docs/guides/auth/native-mobile-deep-linking
  */
 async function createSessionFromOAuthUrl(
@@ -69,8 +71,17 @@ async function createSessionFromOAuthUrl(
     throw new Error(oauthError);
   }
 
-  const { access_token, refresh_token } = extractTokensFromReturnUrl(returnUrl);
+  const params = parseUrlParams(returnUrl);
+  const code = params.get("code");
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(returnUrl);
+    if (error) {
+      throw error;
+    }
+    return;
+  }
 
+  const { access_token, refresh_token } = extractTokensFromReturnUrl(returnUrl);
   if (access_token && refresh_token) {
     const { error } = await supabase.auth.setSession({
       access_token,
@@ -82,20 +93,9 @@ async function createSessionFromOAuthUrl(
     return;
   }
 
-  if (Platform.OS === "web") {
-    const params = parseUrlParams(returnUrl);
-    const code = params.get("code");
-    if (code) {
-      const { error } = await supabase.auth.exchangeCodeForSession(returnUrl);
-      if (error) {
-        throw error;
-      }
-      return;
-    }
-  }
-
+  const redirectHint = getGoogleOAuthRedirectUri();
   throw new Error(
-    "Réponse Google incomplète (pas de jetons dans l’URL). Vérifie Site URL et Redirect URLs Supabase (exp://…, pas localhost)."
+    `Réponse Google incomplète (pas de code ni jetons dans l’URL). Ajoute cette URL dans Supabase → Authentication → URL configuration → Redirect URLs : ${redirectHint}`
   );
 }
 

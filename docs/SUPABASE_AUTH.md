@@ -32,7 +32,7 @@ SUPABASE_JWT_SECRET=<optionnel, tests e2e HS256 uniquement>
 
 3. **Authentication -> URL configuration** (indispensable pour Google sur téléphone)
    - **Site URL** : l’URL `exp://<IP-LAN>:8081/--/auth/callback` affichée sur l’écran de connexion mobile (Expo Go), ou `fermier-pro://auth/callback` en build natif. **Ne pas** laisser `http://localhost:3000` si tu testes sur iPhone physique — Safari tentera d’ouvrir localhost sur le téléphone et échouera.
-   - **Redirect URLs** : ajouter **exactement** la même URL (bouton « Add URL »). Sans cela, Supabase retombe sur Site URL (souvent localhost).
+   - **Redirect URLs** : ajouter **exactement** l’URL affichée sur l’écran de connexion mobile en dev (`exp://…/--/auth/callback`) **et** `fermier-pro://auth/callback` pour les builds natifs (preview, TestFlight, APK). Sans cela, Supabase retombe sur Site URL (souvent localhost).
    - Tu peux garder `http://localhost:3000` en Redirect URL **en plus** si tu développes aussi une app web.
 
 4. **Ne pas** s'appuyer sur `user_metadata` pour des decisions d'autorisation sensibles cote RLS : preferer `app_metadata` pour les roles serveur. Ici Nest synchronise seulement profil basique (email, telephone, nom) dans la table `User` Prisma.
@@ -64,7 +64,7 @@ Alternative manuelle : **Storage → New bucket** → nom `avatars`, cocher **Pu
 
 - **Config** : dans `apps/mobile/`, fichier `.env` (voir `.env.example`) avec `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_API_URL`. Client partagé : `apps/mobile/src/lib/supabase.ts` (`@supabase/supabase-js` + `AsyncStorage`) ; appel API typé : `src/lib/api.ts` (`fetchAuthMe`).
 - **OTP SMS dans l app** : ecran `PhoneOtpAuth` (`signInWithOtp` + `verifyOtp`, format E.164 obligatoire).
-- **Google** : `signInWithOAuth` + `WebBrowser.openAuthSessionAsync`, puis `setSession` avec les jetons dans l’URL de retour (flux **implicit** sur mobile, voir `googleAuth.ts` — pas de `exchangeCodeForSession` / PKCE sur téléphone).
+- **Google** : `signInWithOAuth` + `WebBrowser.openAuthSessionAsync`, puis `exchangeCodeForSession` avec le `code` PKCE dans l’URL de retour (`googleAuth.ts`). Redirect : `fermier-pro://auth/callback` (build natif) ou `exp://…/--/auth/callback` (Expo Go).
 - **Apple** : `signInWithOAuth({ provider: 'apple', ... })` sur iOS.
 - **Telephone** : `signInWithOtp({ phone, options: { channel: 'sms' } })` puis verification du code. L'envoi SMS passe par le hook **Send SMS** → **Yellika SMS** si configure (variables `YELLIKA_SMS_*` + `SUPABASE_SEND_SMS_HOOK_SECRET`).
 
