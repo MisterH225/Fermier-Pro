@@ -30,7 +30,65 @@ export class SupabaseAdminService {
     };
   }
 
-  /** Crée un utilisateur Supabase Auth (email confirmé). */
+  /** Invite un utilisateur par email (envoi email Supabase, mot de passe à la 1re connexion). */
+  async inviteAuthUserByEmail(
+    email: string,
+    redirectTo: string
+  ): Promise<{ id: string; email: string }> {
+    const base = this.baseUrl;
+    if (!base || !this.serviceRoleKey) {
+      throw new Error("Supabase admin non configuré");
+    }
+    const res = await fetch(`${base}/auth/v1/invite`, {
+      method: "POST",
+      headers: this.adminHeaders(),
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+        redirect_to: redirectTo
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(
+        `Supabase invite failed (${res.status}): ${text.slice(0, 300)}`
+      );
+    }
+    const body = (await res.json()) as { id?: string; email?: string };
+    if (!body.id) {
+      throw new Error("Supabase invite: réponse sans id");
+    }
+    return { id: body.id, email: body.email ?? email };
+  }
+
+  /** Renvoie un lien de réinitialisation / première connexion par email. */
+  async sendPasswordRecoveryEmail(
+    email: string,
+    redirectTo: string
+  ): Promise<void> {
+    const base = this.baseUrl;
+    const anonKey = this.config.get<string>("SUPABASE_ANON_KEY")?.trim();
+    if (!base || !anonKey) {
+      throw new Error("Supabase non configuré pour recovery email");
+    }
+    const res = await fetch(`${base}/auth/v1/recover`, {
+      method: "POST",
+      headers: {
+        apikey: anonKey,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+        redirect_to: redirectTo
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(
+        `Supabase recovery email failed (${res.status}): ${text.slice(0, 300)}`
+      );
+    }
+  }
+
   async createAuthUser(
     email: string,
     password: string

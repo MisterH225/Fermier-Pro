@@ -12,12 +12,14 @@ import {
 import { FeedUserStatus, SanctionAppealStatus } from "@prisma/client";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { SuperAdminGuard } from "../admin-platform/super-admin.guard";
+import { ConsoleAccessGuard } from "../admin-platform/console-access.guard";
+import { AdminConsoleMenuGuard } from "../admin-platform/admin-console-menu.guard";
 import { CommunityFeedService } from "./community-feed.service";
 import { AdminFeedSanctionDto, AdminListFeedPostsQueryDto } from "./dto/community-feed.dto";
 import { SanctionService } from "./services/sanction.service";
 
 @Controller("admin/feed")
-@UseGuards(SupabaseJwtGuard, SuperAdminGuard)
+@UseGuards(SupabaseJwtGuard, ConsoleAccessGuard, AdminConsoleMenuGuard)
 export class CommunityFeedAdminController {
   constructor(
     private readonly feed: CommunityFeedService,

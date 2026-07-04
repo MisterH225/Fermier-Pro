@@ -149,3 +149,51 @@ export class CreateSuperAdminDto {
   @MaxLength(120)
   fullName?: string;
 }
+
+export class InstitutionMenuPermissionDto {
+  @IsString()
+  @MaxLength(40)
+  menu!: string;
+
+  @IsString()
+  @MaxLength(8)
+  access!: "read" | "write";
+}
+
+export class CreateInstitutionConsoleUserDto {
+  @IsEmail()
+  @MaxLength(320)
+  email!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  fullName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  institutionLabel?: string;
+
+  /** URL de redirection après invitation (console admin). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(512)
+  inviteRedirectTo?: string;
+
+  @IsOptional()
+  menuPermissions?: Record<string, "read" | "write">;
+}
+
+export class UpdateInstitutionConsoleUserDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  institutionLabel?: string;
+
+  @IsOptional()
+  isActive?: boolean;
+
+  @IsOptional()
+  menuPermissions?: Record<string, "read" | "write">;
+}

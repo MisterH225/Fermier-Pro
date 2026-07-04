@@ -45,6 +45,7 @@ import { GestationModule } from "./gestation/gestation.module";
 import { VetsModule } from "./vets/vets.module";
 import { VetAppointmentsModule } from "./vet-appointments/vet-appointments.module";
 import { AdminPlatformModule } from "./admin-platform/admin-platform.module";
+import { AdminConsoleAuthModule } from "./admin-platform/admin-console-auth.module";
 import { FeatureFlagsModule } from "./feature-flags/feature-flags.module";
 import { MarketModule } from "./market/market.module";
 import { BuyerProfilesModule } from "./buyer-profiles/buyer-profiles.module";
@@ -94,6 +95,7 @@ import { HistoricalRecordsModule } from "./historical-records/historical-records
       }
     }),
     PrismaModule,
+    AdminConsoleAuthModule,
     PlatformSettingsModule,
     CommonModule,
     ConfigClientModule,

@@ -15,6 +15,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AccountPasswordCard } from "@/components/settings/AccountPasswordCard";
+import { InstitutionUsersManagementCard } from "@/components/settings/InstitutionUsersManagementCard";
+import { useAdminAccess } from "@/lib/admin-access-context";
+import { canWriteMenu } from "@/lib/admin-permissions";
 import { AdminsManagementCard } from "@/components/settings/AdminsManagementCard";
 import { WalletFeesPanel } from "@/components/settings/WalletFeesPanel";
 import { selectClass } from "@/lib/ui-styles";
@@ -25,6 +28,9 @@ const LEVELS = ["info", "warning", "critical"] as const;
 export default function ParametresPage() {
   const t = useTranslations("settings");
   const { token, ready } = useAdminToken();
+  const { profile } = useAdminAccess();
+  const isSuperAdmin = profile?.role === "superadmin";
+  const canEditSettings = canWriteMenu(profile, "settings");
   const [form, setForm] = useState<PlatformSettingsDto | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -110,7 +116,9 @@ export default function ParametresPage() {
 
       <AccountPasswordCard />
 
-      <AdminsManagementCard />
+      {isSuperAdmin ? <InstitutionUsersManagementCard /> : null}
+
+      {isSuperAdmin ? <AdminsManagementCard /> : null}
 
       <Card id="support">
         <CardHeader className="pb-2">
@@ -362,9 +370,11 @@ export default function ParametresPage() {
       <WalletFeesPanel />
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" disabled={saving} onClick={onSave}>
-          {saving ? "…" : t("save")}
-        </Button>
+        {canEditSettings ? (
+          <Button type="button" disabled={saving} onClick={onSave}>
+            {saving ? "…" : t("save")}
+          </Button>
+        ) : null}
         {saved ? (
           <Badge variant="success">
             {t("saved")}

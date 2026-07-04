@@ -1,5 +1,4 @@
 import { Module, forwardRef } from "@nestjs/common";
-import { SuperAdminGuard } from "../admin-platform/super-admin.guard";
 import { AuthModule } from "../auth/auth.module";
 import { ConfigClientModule } from "../config-client/config-client.module";
 import { MobileMoneyModule } from "../marketplace/escrow/mobile-money.module";
@@ -41,8 +40,7 @@ import { WithdrawalOrchestratorService } from "./withdrawal-orchestrator.service
     WalletFeeService,
     PlatformAccountService,
     WithdrawalOrchestratorService,
-    WalletRailsService,
-    SuperAdminGuard
+    WalletRailsService
   ],
   exports: [
     UserWalletService,

@@ -21,7 +21,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { verifyAdminSuperUser } from "@/lib/admin-auth";
+import { verifyConsoleAccess } from "@/lib/admin-auth";
 import { useRouter, Link } from "@/i18n/navigation";
 import {
   Dialog,
@@ -333,11 +333,7 @@ export function LoginScreen() {
         setError(t("errorGoogleHint"));
         return;
       }
-      if (!(await verifyAdminSuperUser(data.session.access_token))) {
-        await supabase.auth.signOut();
-        setError(t("forbidden"));
-        return;
-      }
+      await verifyConsoleAccess(data.session.access_token);
       router.replace("/");
     } catch {
       setError(t("error"));

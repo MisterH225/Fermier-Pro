@@ -155,6 +155,7 @@ model User {
   vetAppointmentsAsProducer VetAppointment[] @relation("AppointmentProducer")
   vetAppointmentsAsVet      VetAppointment[] @relation("AppointmentVet")
   superAdmin            SuperAdmin?
+  institutionConsoleAccess InstitutionConsoleUser?
   adminAuditActions     AdminAuditLog[]      @relation("AdminAuditActor")
   adminAuditTargets     AdminAuditLog[]      @relation("AdminAuditTarget")
   adminMessagesSent     AdminMessage[]       @relation("AdminMessageSender")
@@ -2498,6 +2499,26 @@ model SuperAdmin {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+/// Accès console limité pour les institutions partenaires (non SuperAdmin).
+model InstitutionConsoleUser {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Libellé affiché (ex. ministère, institut vétérinaire).
+  institutionLabel  String?
+  /// Permissions par menu : { "users": "read", "map": "write", ... }
+  menuPermissions   Json     @default("{}")
+  isActive          Boolean  @default(true)
+  invitedBy         String?
+  invitedAt         DateTime @default(now())
+  acceptedAt        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isActive])
 }
 
 enum SanitaryAlertType {
