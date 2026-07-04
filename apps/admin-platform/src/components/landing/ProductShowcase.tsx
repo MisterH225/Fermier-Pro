@@ -62,14 +62,14 @@ export function ProductShowcase({ onContact }: { onContact: () => void }) {
 
         {/* Hero phones bento */}
         <div className="relative mx-auto mt-16 max-w-5xl">
-          <div className="grid place-items-center gap-8 md:grid-cols-[1fr_auto_1fr] md:items-end">
-            <PhoneFrame className="w-[220px] -rotate-6 md:translate-y-8" glow="warm">
+          <div className="grid place-items-center gap-10 md:grid-cols-[1fr_auto_1fr] md:items-end">
+            <PhoneFrame model="samsung" className="max-w-[220px] -rotate-6 md:translate-y-10" glow="warm">
               <HerdOverviewMockup />
             </PhoneFrame>
-            <PhoneFrame className="relative z-10 w-[min(100%,280px)]" glow="olive">
+            <PhoneFrame model="iphone" className="relative z-10 max-w-[270px]" glow="neutral">
               <HomeScreenMockup />
             </PhoneFrame>
-            <PhoneFrame className="w-[220px] rotate-6 md:translate-y-8" glow="purple">
+            <PhoneFrame model="samsung" className="max-w-[220px] rotate-6 md:translate-y-10" glow="purple">
               <MarketplaceMockup />
             </PhoneFrame>
           </div>
@@ -81,7 +81,7 @@ export function ProductShowcase({ onContact }: { onContact: () => void }) {
             body={t("herd.body")}
             accent="radial-gradient(circle, rgba(244,114,182,0.25), transparent 70%)"
           >
-            <PhoneFrame glow="warm">
+            <PhoneFrame model="iphone" glow="warm">
               <BuildingsMockup />
             </PhoneFrame>
           </ShowcaseCard>
@@ -92,7 +92,7 @@ export function ProductShowcase({ onContact }: { onContact: () => void }) {
             reverse
             accent="radial-gradient(circle, rgba(92,107,58,0.22), transparent 70%)"
           >
-            <PhoneFrame glow="olive">
+            <PhoneFrame model="iphone" glow="neutral">
               <FinanceReportMockup />
             </PhoneFrame>
           </ShowcaseCard>
@@ -102,7 +102,7 @@ export function ProductShowcase({ onContact }: { onContact: () => void }) {
             body={t("ai.body")}
             accent="radial-gradient(circle, rgba(251,191,36,0.22), transparent 70%)"
           >
-            <PhoneFrame glow="warm">
+            <PhoneFrame model="iphone" glow="warm">
               <DashboardMockup />
             </PhoneFrame>
           </ShowcaseCard>

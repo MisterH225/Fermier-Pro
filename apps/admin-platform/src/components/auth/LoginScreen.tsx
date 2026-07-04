@@ -82,7 +82,7 @@ const PILLAR_KEYS = ["actors", "traceability", "impact"] as const;
 
 const NAV_KEYS = ["ambition", "modules", "contact"] as const;
 
-const STAT_KEYS = ["farms", "producers", "countries"] as const;
+const STAT_KEYS = ["farms", "animals", "presence"] as const;
 
 const LOGO_SRC = "/images/fermier-pro-logo-nobg.png";
 const LOGO_ASPECT = 601 / 295;
@@ -148,7 +148,7 @@ function ModulePhonePreview({ screen }: { screen: NonNullable<(typeof MODULE_SCR
   }[screen];
 
   return (
-    <PhoneFrame className="mx-auto w-[180px] scale-[0.95] shadow-xl" glow="olive">
+    <PhoneFrame className="mx-auto max-w-[200px]" glow="neutral">
       {content}
     </PhoneFrame>
   );
@@ -463,21 +463,37 @@ export function LoginScreen() {
               </button>
             </div>
 
-            <div className="mt-10 grid grid-cols-3 gap-3 text-center lg:max-w-md">
+            <div className="mt-10 grid grid-cols-3 gap-3 text-center lg:max-w-lg">
               {STAT_KEYS.map((key) => (
                 <div key={key} className="rounded-2xl border border-white/15 bg-white/10 px-2 py-3 backdrop-blur-sm">
-                  <p className="text-lg font-extrabold text-white">{t(`hero.stats.${key}.value`)}</p>
-                  <p className="mt-1 text-[10px] font-medium text-white/70">{t(`hero.stats.${key}.label`)}</p>
+                  <p
+                    className={cn(
+                      "font-extrabold text-white",
+                      key === "presence" ? "text-sm leading-tight sm:text-base" : "text-lg"
+                    )}
+                  >
+                    {t(`hero.stats.${key}.value`)}
+                  </p>
+                  <p className="mt-1 text-[10px] font-medium leading-snug text-white/70">
+                    {t(`hero.stats.${key}.label`)}
+                  </p>
                 </div>
               ))}
             </div>
+            <p className="mt-3 text-center text-[11px] text-white/55 lg:text-left">
+              {t("landing.hero.presenceHint")}
+            </p>
           </div>
 
-          <div className="relative mx-auto flex w-full max-w-sm items-end justify-center lg:max-w-none">
-            <PhoneFrame className="absolute -left-2 bottom-4 z-0 w-[46%] -rotate-12 opacity-90" glow="warm">
+          <div className="relative mx-auto flex w-full max-w-md items-end justify-center lg:max-w-none lg:justify-end">
+            <PhoneFrame
+              model="iphone"
+              className="absolute -left-4 bottom-0 z-0 w-[42%] max-w-[200px] -rotate-[14deg] scale-95 opacity-95 lg:-left-8"
+              glow="warm"
+            >
               <HerdOverviewMockup />
             </PhoneFrame>
-            <PhoneFrame className="relative z-10 w-[58%]" glow="olive">
+            <PhoneFrame model="iphone" className="relative z-10 w-[52%] max-w-[240px]" glow="neutral">
               <HomeScreenMockup />
             </PhoneFrame>
           </div>
@@ -536,7 +552,7 @@ export function LoginScreen() {
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
           <div className="relative flex justify-center">
             <div className="absolute -inset-8 rounded-full bg-[#5C6B3A]/10 blur-3xl" />
-            <PhoneFrame className="relative w-[min(100%,280px)]" glow="olive">
+            <PhoneFrame model="iphone" className="relative max-w-[280px]" glow="neutral">
               <HerdOverviewMockup />
             </PhoneFrame>
             <span className="absolute right-4 top-4 rounded-full bg-brand-olive px-4 py-2 text-xs font-bold text-white shadow-lg sm:right-8">

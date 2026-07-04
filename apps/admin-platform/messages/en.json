@@ -59,6 +59,7 @@
         "discover": "Discover the app",
         "learnMore": "Learn more",
         "sideLead": "Digitize your pig farming operations, track your herd and connect with stakeholders across your value chain in West Africa.",
+        "presenceHint": "Deployed in Côte d'Ivoire · app usable worldwide",
         "decorAlt": "Pigs on a farm"
       },
       "why": {
@@ -177,10 +178,9 @@
       "titleRest": "the future of farming.",
       "subtitle": "Farms, producers, animal health — all from one powerful dashboard.",
       "stats": {
-        "farms": { "value": "500+", "label": "Farms supported" },
-        "producers": { "value": "12,000+", "label": "Active producers" },
-        "countries": { "value": "15+", "label": "Countries covered" },
-        "growth": { "value": "98%", "label": "Field satisfaction" }
+        "farms": { "value": "60", "label": "Farms supported" },
+        "animals": { "value": "2,000+", "label": "Animals tracked" },
+        "presence": { "value": "Côte d'Ivoire", "label": "Current presence" }
       },
       "tags": {
         "organic": "Sustainable farming",

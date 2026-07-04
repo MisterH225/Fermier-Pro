@@ -58,6 +58,7 @@
         "discover": "Découvrir l'application",
         "learnMore": "En savoir plus",
         "sideLead": "Digitalisez vos opérations porcines, suivez votre cheptel et connectez-vous aux acteurs de votre filière, où que vous soyez en Afrique de l'Ouest.",
+        "presenceHint": "Déployé en Côte d'Ivoire · application utilisable partout",
         "decorAlt": "Porcs en élevage"
       },
       "why": {
@@ -176,10 +177,9 @@
       "titleRest": "l'avenir de l'élevage.",
       "subtitle": "Fermes, producteurs, santé animale — tout depuis un seul tableau de bord.",
       "stats": {
-        "farms": { "value": "500+", "label": "Fermes accompagnées" },
-        "producers": { "value": "12 000+", "label": "Producteurs actifs" },
-        "countries": { "value": "15+", "label": "Pays couverts" },
-        "growth": { "value": "98%", "label": "Satisfaction terrain" }
+        "farms": { "value": "60", "label": "Fermes accompagnées" },
+        "animals": { "value": "2 000+", "label": "Bêtes suivies" },
+        "presence": { "value": "Côte d'Ivoire", "label": "Présence terrain" }
       },
       "tags": {
         "organic": "Élevage durable",
