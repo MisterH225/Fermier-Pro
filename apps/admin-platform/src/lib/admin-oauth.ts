@@ -19,6 +19,17 @@ export function getAdminOAuthNextPath(locale: string): string {
   return `/${locale}/auth/complete`;
 }
 
+export function getAdminRecoveryNextPath(locale: string): string {
+  return `/${locale}/reset-password`;
+}
+
+/** redirectTo Supabase pour resetPasswordForEmail (next en query : le lien email survit sans cookie). */
+export function getAdminPasswordRecoveryRedirectTo(locale: string): string {
+  const base = getAdminOAuthRedirectTo();
+  const next = encodeURIComponent(getAdminRecoveryNextPath(locale));
+  return `${base}?next=${next}`;
+}
+
 /** URL à copier dans Supabase (sans query). */
 export function getAdminOAuthRedirectAllowListEntry(): string {
   if (typeof window !== "undefined") {
