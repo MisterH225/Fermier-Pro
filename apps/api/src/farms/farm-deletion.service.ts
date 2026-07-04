@@ -13,6 +13,7 @@ import {
   reportPdfStoragePath,
   storagePathFromPublicUrl
 } from "../common/storage.util";
+import { ACTIVE_ESCROW_STATUSES } from "../marketplace/escrow/transaction.utils";
 import { FarmDataPurgeService } from "./farm-data-purge.service";
 
 @Injectable()
@@ -34,6 +35,18 @@ export class FarmDeletionService {
     });
     if (!farm) {
       throw new BadRequestException("Projet introuvable");
+    }
+
+    const activeEscrow = await this.prisma.marketplaceTransaction.count({
+      where: {
+        listing: { farmId },
+        status: { in: ACTIVE_ESCROW_STATUSES }
+      }
+    });
+    if (activeEscrow > 0) {
+      throw new BadRequestException(
+        "Projet non supprimable : transaction escrow active sur ce projet. Attendez sa clôture."
+      );
     }
 
     const collaborators = await this.prisma.farmMembership.findMany({
