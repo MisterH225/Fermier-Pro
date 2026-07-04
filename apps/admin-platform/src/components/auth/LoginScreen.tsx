@@ -1,7 +1,22 @@
 "use client";
 
 import Image from "next/image";
-import { ArrowRight, Leaf, Sprout, Sparkles, Tractor, Wheat } from "lucide-react";
+import {
+  ArrowRight,
+  Baby,
+  Brain,
+  HeartPulse,
+  Leaf,
+  Mail,
+  Map,
+  Phone,
+  PiggyBank,
+  ShoppingCart,
+  Sprout,
+  Tractor,
+  UtensilsCrossed,
+  Wheat
+} from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -11,16 +26,68 @@ import { useRouter } from "@/i18n/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  ADMIN_OAUTH_NEXT_COOKIE,
-  getAdminOAuthRedirectAllowListEntry,
   getAdminOAuthRedirectTo,
-  getAdminOAuthRedirectWildcardEntry,
   setAdminOAuthNextCookie
 } from "@/lib/admin-oauth";
 import { cn } from "@/lib/utils";
 
 const HERO_IMAGE =
   "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=2000&q=80";
+
+const AMBITION_IMAGE =
+  "https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1200&q=80";
+
+const MODULE_KEYS = [
+  "finance",
+  "herd",
+  "gestation",
+  "feeding",
+  "marketplace",
+  "health",
+  "sanitaryMap",
+  "ai"
+] as const;
+
+const MODULE_IMAGES: Record<(typeof MODULE_KEYS)[number], string> = {
+  finance:
+    "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=800&q=80",
+  herd:
+    "https://images.unsplash.com/photo-1560493676-04071c5f467b?auto=format&fit=crop&w=800&q=80",
+  gestation:
+    "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=800&q=80",
+  feeding:
+    "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=800&q=80",
+  marketplace:
+    "https://images.unsplash.com/photo-1574943329822-f7931f8344f7?auto=format&fit=crop&w=800&q=80",
+  health:
+    "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=800&q=80",
+  sanitaryMap:
+    "https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=800&q=80",
+  ai:
+    "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=800&q=80"
+};
+
+const MODULE_ICONS: Record<(typeof MODULE_KEYS)[number], typeof Leaf> = {
+  finance: PiggyBank,
+  herd: Tractor,
+  gestation: Baby,
+  feeding: UtensilsCrossed,
+  marketplace: ShoppingCart,
+  health: HeartPulse,
+  sanitaryMap: Map,
+  ai: Brain
+};
+
+const MODULE_COLORS: Record<(typeof MODULE_KEYS)[number], string> = {
+  finance: "from-emerald-500/20 to-emerald-600/5",
+  herd: "from-primary/20 to-primary/5",
+  gestation: "from-pink-500/20 to-pink-600/5",
+  feeding: "from-amber-500/20 to-amber-600/5",
+  marketplace: "from-indigo-500/20 to-indigo-600/5",
+  health: "from-rose-500/20 to-rose-600/5",
+  sanitaryMap: "from-sky-500/20 to-sky-600/5",
+  ai: "from-violet-500/20 to-violet-600/5"
+};
 
 const STAT_KEYS = ["farms", "producers", "countries", "growth"] as const;
 
@@ -54,11 +121,7 @@ const STAT_STYLE: Record<
   }
 };
 
-const TAG_STYLE = [
-  "bg-primary/10 text-primary border-primary/20",
-  "bg-indigo-500/10 text-indigo-700 border-indigo-500/25",
-  "bg-sky-500/10 text-sky-700 border-sky-500/25"
-] as const;
+const NAV_KEYS = ["ambition", "modules", "contact"] as const;
 
 const LOGO_SRC = "/images/fermier-pro-logo-nobg.png";
 const LOGO_ASPECT = 601 / 295;
@@ -108,24 +171,20 @@ function LogoMark({
   );
 }
 
+function scrollToSection(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 export function LoginScreen() {
   const t = useTranslations("login");
-  const app = useTranslations("app");
   const router = useRouter();
   const locale = useLocale();
   const searchParams = useSearchParams();
-  const [redirectHint, setRedirectHint] = useState("");
-  const [redirectWildcard, setRedirectWildcard] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-
-  useEffect(() => {
-    setRedirectHint(getAdminOAuthRedirectAllowListEntry());
-    setRedirectWildcard(getAdminOAuthRedirectWildcardEntry());
-  }, []);
 
   useEffect(() => {
     if (searchParams.get("error") === "oauth") {
@@ -201,133 +260,125 @@ export function LoginScreen() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row dashboard-bg">
-      {/* Hero */}
-      <div className="relative lg:w-[58%] min-h-[360px] lg:min-h-screen flex flex-col overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center scale-105"
-          style={{ backgroundImage: `url(${HERO_IMAGE})` }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-brand-light/75 to-indigo-900/85" />
-        <div
-          className="absolute inset-0 opacity-[0.12]"
-          style={{
-            backgroundImage: `radial-gradient(circle at 20% 80%, #60A5FA 0%, transparent 40%),
-              radial-gradient(circle at 80% 20%, #3B82F6 0%, transparent 35%)`
-          }}
-        />
+    <div className="min-h-screen dashboard-bg">
+      {/* Navigation */}
+      <header className="sticky top-0 z-50 border-b border-white/40 bg-white/75 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          <button type="button" onClick={() => scrollToSection("top")} className="shrink-0">
+            <LogoMark variant="dark" size="sm" />
+          </button>
 
-        <div className="absolute -top-24 -right-24 size-64 rounded-full bg-blue-400/25 blur-3xl" />
-        <div className="absolute bottom-32 -left-16 size-48 rounded-full bg-indigo-400/25 blur-2xl" />
-
-        <header className="relative z-10 flex items-center justify-between px-6 py-5 lg:px-10">
-          <LogoMark variant="light" size="md" />
-          <nav className="hidden md:flex items-center gap-1 rounded-full bg-white/10 backdrop-blur-md px-1.5 py-1.5 border border-white/25 shadow-lg">
-            <span className="rounded-full bg-primary text-white text-xs font-bold px-4 py-2 shadow-glow-blue">
-              {t("navSignIn")}
-            </span>
-            <span className="text-white/90 text-xs font-medium px-4 py-2 hover:text-blue-200 transition">
-              {t("navAbout")}
-            </span>
+          <nav className="hidden items-center gap-1 md:flex">
+            {NAV_KEYS.map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => scrollToSection(key)}
+                className="rounded-full px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-primary/10 hover:text-primary"
+              >
+                {t(`landing.nav.${key}`)}
+              </button>
+            ))}
           </nav>
-        </header>
 
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pb-6 lg:px-12 text-center text-white">
-          <Sparkles className="absolute top-[26%] left-[14%] size-5 text-blue-200 hidden lg:block animate-pulse" />
-          <Sparkles className="absolute top-[20%] right-[18%] size-4 text-blue-300 hidden lg:block" />
-          <Leaf className="absolute bottom-[42%] right-[10%] size-8 text-blue-300/40 rotate-12 hidden lg:block" />
-
-          <span className="inline-flex items-center gap-2 rounded-full border-2 border-white/40 bg-white/15 backdrop-blur-sm px-5 py-2 text-xs font-bold uppercase tracking-wide text-blue-100 mb-6 shadow-lg">
-            <Sprout className="size-3.5 text-blue-200" />
-            {t("hero.badge")}
-          </span>
-
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-[3.4rem] font-extrabold leading-[1.08] tracking-tight max-w-xl drop-shadow-lg">
-            <span className="text-blue-200">{t("hero.titleHighlight")}</span>
-            <br />
-            <span className="text-white">{t("hero.titleRest")}</span>
-          </h1>
-          <p className="mt-5 text-sm sm:text-base text-white/90 max-w-md leading-relaxed font-medium">
-            {t("hero.subtitle")}
-          </p>
+          <button
+            type="button"
+            onClick={() => scrollToSection("login")}
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary via-brand-light to-blue-400 px-5 py-2.5 text-sm font-bold text-white shadow-glow-blue transition hover:scale-[1.02]"
+          >
+            {t("navSignIn")}
+            <ArrowRight className="size-4" />
+          </button>
         </div>
 
-        {/* Stats colorées */}
-        <div className="relative z-10 mx-4 mb-5 lg:mx-8 lg:mb-8 glass-card rounded-3xl overflow-hidden">
-          <div className="h-1.5 w-full bg-gradient-to-r from-primary via-brand-light to-indigo-400" />
-          <div className="grid grid-cols-2 lg:grid-cols-4">
-            {STAT_KEYS.map((key) => {
-              const style = STAT_STYLE[key];
-              const Icon = style.icon;
-              return (
-                <div
-                  key={key}
-                  className="px-3 py-5 lg:py-6 text-center border-r border-b lg:border-b-0 border-white/50 last:border-r-0 [&:nth-child(2)]:lg:border-r"
-                >
-                  <span
-                    className={cn(
-                      "inline-flex size-10 items-center justify-center rounded-2xl mb-2",
-                      style.bg
-                    )}
+        <nav className="flex gap-1 overflow-x-auto border-t border-white/30 px-4 py-2 md:hidden">
+          {NAV_KEYS.map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => scrollToSection(key)}
+              className="shrink-0 rounded-full bg-white/60 px-3 py-1.5 text-xs font-semibold text-muted-foreground"
+            >
+              {t(`landing.nav.${key}`)}
+            </button>
+          ))}
+        </nav>
+      </header>
+
+      {/* Hero */}
+      <section id="top" className="relative overflow-hidden">
+        <div className="absolute inset-0">
+          <Image
+            src={HERO_IMAGE}
+            alt=""
+            fill
+            priority
+            className="object-cover"
+            sizes="100vw"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/92 via-brand-light/80 to-indigo-900/88" />
+        </div>
+
+        <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:px-8 lg:py-20">
+          <div className="text-white">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/15 px-4 py-2 text-xs font-bold uppercase tracking-wide text-blue-100">
+              <Sprout className="size-3.5" />
+              {t("hero.badge")}
+            </span>
+
+            <h1 className="mt-6 text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl lg:text-[3.25rem]">
+              <span className="text-blue-200">{t("hero.titleHighlight")}</span>
+              <br />
+              {t("hero.titleRest")}
+            </h1>
+
+            <p className="mt-5 max-w-xl text-base font-medium leading-relaxed text-white/90 sm:text-lg">
+              {t("landing.heroLead")}
+            </p>
+
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {STAT_KEYS.map((key) => {
+                const style = STAT_STYLE[key];
+                const Icon = style.icon;
+                return (
+                  <div
+                    key={key}
+                    className="rounded-2xl border border-white/25 bg-white/10 px-3 py-4 text-center backdrop-blur-sm"
                   >
-                    <Icon className={cn("size-5", style.iconColor)} strokeWidth={2.2} />
-                  </span>
-                  <p className={cn("text-xl lg:text-2xl font-extrabold tracking-tight", style.valueColor)}>
-                    {t(`hero.stats.${key}.value`)}
-                  </p>
-                  <p className="mt-1 text-[10px] sm:text-xs text-muted-foreground font-medium leading-snug px-1">
-                    {t(`hero.stats.${key}.label`)}
-                  </p>
-                </div>
-              );
-            })}
+                    <span
+                      className={cn(
+                        "mx-auto mb-2 inline-flex size-9 items-center justify-center rounded-xl",
+                        style.bg
+                      )}
+                    >
+                      <Icon className={cn("size-4", style.iconColor)} strokeWidth={2.2} />
+                    </span>
+                    <p className="text-lg font-extrabold text-white">
+                      {t(`hero.stats.${key}.value`)}
+                    </p>
+                    <p className="mt-1 text-[10px] font-medium leading-snug text-blue-100/90 sm:text-xs">
+                      {t(`hero.stats.${key}.label`)}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Formulaire */}
-      <div className="flex-1 flex flex-col min-h-[50vh] lg:min-h-screen relative overflow-hidden">
-        <div className="absolute inset-0 dashboard-bg" />
-        <div
-          className="absolute top-0 right-0 w-72 h-72 rounded-full opacity-40 blur-3xl"
-          style={{ background: "radial-gradient(circle, #3B82F6 0%, transparent 70%)" }}
-        />
-        <div
-          className="absolute bottom-0 left-0 w-56 h-56 rounded-full opacity-30 blur-3xl"
-          style={{ background: "radial-gradient(circle, #93C5FD 0%, transparent 70%)" }}
-        />
+          {/* Login card */}
+          <div id="login" className="scroll-mt-24">
+            <div className="glass-card rounded-3xl p-6 shadow-2xl sm:p-8">
+              <div className="mb-6 text-center">
+                <LogoMark variant="dark" size="md" centered />
+                <h2 className="mt-4 text-2xl font-extrabold text-foreground">{t("title")}</h2>
+                <p className="mt-2 text-sm text-muted-foreground">{t("formLead")}</p>
+              </div>
 
-        <header className="relative z-10 flex items-center justify-between px-6 py-5 lg:px-12">
-          <LogoMark variant="dark" size="sm" className="lg:hidden" />
-          <p className="hidden lg:flex items-center gap-2 text-sm font-semibold text-primary ml-auto">
-            <span className="size-2 rounded-full bg-primary animate-pulse" />
-            {app("subtitle")}
-          </p>
-        </header>
-
-        <div className="relative z-10 flex-1 flex items-center justify-center px-6 py-8 lg:px-12">
-          <div className="w-full max-w-md">
-            <div className="hidden lg:flex justify-center mb-8">
-              <LogoMark variant="dark" size="lg" centered />
-            </div>
-
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 border border-primary/20 px-4 py-1.5 mb-4">
-              <span className="text-xs font-bold text-primary tracking-widest">{t("formYear")}</span>
-              <span className="size-1 rounded-full bg-primary" />
-              <span className="text-xs font-semibold text-muted-foreground">{t("formTag")}</span>
-            </div>
-
-            <h2 className="text-2xl sm:text-[2rem] font-extrabold text-foreground tracking-tight leading-tight">
-              {t("title")}
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground font-medium">{t("formLead")}</p>
-
-            <div className="mt-8 p-6 glass-card rounded-3xl">
               <button
                 type="button"
                 disabled={googleLoading}
                 onClick={onGoogle}
-                className="w-full flex items-center justify-center gap-2 rounded-full border border-white/70 bg-white/50 backdrop-blur-sm px-6 py-3.5 text-sm font-bold text-foreground transition hover:bg-white/80 disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-full border border-white/70 bg-white/50 px-6 py-3.5 text-sm font-bold text-foreground transition hover:bg-white/80 disabled:opacity-60"
               >
                 <svg className="size-5" viewBox="0 0 24 24" aria-hidden>
                   <path
@@ -352,10 +403,10 @@ export function LoginScreen() {
 
               <div className="relative py-4">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t-2 border-dashed border-white/60" />
+                  <span className="w-full border-t border-dashed border-border" />
                 </div>
                 <div className="relative flex justify-center">
-                  <span className="bg-white/80 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <span className="bg-white/90 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     {t("orEmail")}
                   </span>
                 </div>
@@ -363,7 +414,7 @@ export function LoginScreen() {
 
               <form onSubmit={onSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="font-bold text-sm">
+                  <Label htmlFor="email" className="text-sm font-bold">
                     {t("email")}
                   </Label>
                   <Input
@@ -376,7 +427,7 @@ export function LoginScreen() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="font-bold text-sm">
+                  <Label htmlFor="password" className="text-sm font-bold">
                     {t("password")}
                   </Label>
                   <Input
@@ -390,7 +441,7 @@ export function LoginScreen() {
                 </div>
 
                 {error ? (
-                  <p className="text-sm font-medium text-red-700 bg-red-50 rounded-2xl px-4 py-3 border-2 border-red-200">
+                  <p className="rounded-2xl border-2 border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                     {error}
                   </p>
                 ) : null}
@@ -398,47 +449,192 @@ export function LoginScreen() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary via-brand-light to-blue-400 text-white px-8 py-4 text-sm font-extrabold shadow-glow-blue transition hover:scale-[1.02] active:scale-[0.99] disabled:opacity-60 disabled:hover:scale-100"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary via-brand-light to-blue-400 px-8 py-4 text-sm font-extrabold text-white shadow-glow-blue transition hover:scale-[1.02] active:scale-[0.99] disabled:opacity-60 disabled:hover:scale-100"
                 >
                   {loading ? "…" : t("submit")}
                   {!loading ? <ArrowRight className="size-5" /> : null}
                 </button>
               </form>
-            </div>
 
-            <p className="mt-5 text-xs text-muted-foreground leading-relaxed px-1">{t("googleHint")}</p>
-
-            {redirectHint ? (
-              <div className="mt-4 rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4 text-xs">
-                <p className="font-bold text-primary mb-1">{t("oauthSetupTitle")}</p>
-                <p className="text-muted-foreground mb-2">{t("oauthSetupBody")}</p>
-                <code className="block break-all rounded-lg bg-white/80 px-2 py-2 text-[11px] text-foreground border border-white/60">
-                  {redirectHint}
-                </code>
-                <p className="mt-2 text-muted-foreground">{t("oauthSetupWildcard")}</p>
-                <code className="mt-1 block break-all rounded-lg bg-white/80 px-2 py-2 text-[11px] text-foreground border border-white/60">
-                  {redirectWildcard}
-                </code>
-                <p className="mt-2 text-muted-foreground">{t("oauthSetupWrong")}</p>
-              </div>
-            ) : null}
-
-            <div className="mt-8 flex flex-wrap gap-2">
-              {(["organic", "automation", "health"] as const).map((tag, i) => (
-                <span
-                  key={tag}
-                  className={cn(
-                    "rounded-full border px-3 py-1.5 text-[11px] font-bold",
-                    TAG_STYLE[i]
-                  )}
-                >
-                  {t(`hero.tags.${tag}`)}
-                </span>
-              ))}
+              <p className="mt-4 text-center text-xs text-muted-foreground">{t("googleHint")}</p>
             </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Ambition */}
+      <section id="ambition" className="scroll-mt-24 py-16 sm:py-24">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
+          <div className="relative aspect-[4/3] overflow-hidden rounded-3xl shadow-2xl">
+            <Image
+              src={AMBITION_IMAGE}
+              alt={t("landing.ambition.imageAlt")}
+              fill
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 50vw"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent" />
+            <div className="absolute bottom-6 left-6 right-6 rounded-2xl border border-white/30 bg-white/15 p-4 backdrop-blur-md">
+              <p className="text-sm font-bold text-white">{t("landing.ambition.imageCaption")}</p>
+            </div>
+          </div>
+
+          <div>
+            <span className="inline-flex rounded-full bg-primary/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-primary">
+              {t("landing.ambition.badge")}
+            </span>
+            <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+              {t("landing.ambition.title")}
+            </h2>
+            <p className="mt-5 text-base leading-relaxed text-muted-foreground sm:text-lg">
+              {t("landing.ambition.lead")}
+            </p>
+
+            <ul className="mt-8 space-y-4">
+              {(["actors", "traceability", "impact"] as const).map((point) => (
+                <li key={point} className="flex gap-4 rounded-2xl border border-white/60 bg-white/50 p-4">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                    <Leaf className="size-5" />
+                  </span>
+                  <div>
+                    <p className="font-bold text-foreground">{t(`landing.ambition.points.${point}.title`)}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {t(`landing.ambition.points.${point}.body`)}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Modules */}
+      <section id="modules" className="scroll-mt-24 bg-white/40 py-16 sm:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <span className="inline-flex rounded-full bg-indigo-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-indigo-700">
+              {t("landing.modules.badge")}
+            </span>
+            <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+              {t("landing.modules.title")}
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
+              {t("landing.modules.lead")}
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {MODULE_KEYS.map((key) => {
+              const Icon = MODULE_ICONS[key];
+              return (
+                <article
+                  key={key}
+                  className="group overflow-hidden rounded-3xl border border-white/70 bg-white/70 shadow-lg transition hover:-translate-y-1 hover:shadow-xl"
+                >
+                  <div className="relative aspect-[16/10] overflow-hidden">
+                    <Image
+                      src={MODULE_IMAGES[key]}
+                      alt={t(`landing.modules.items.${key}.title`)}
+                      fill
+                      className="object-cover transition duration-500 group-hover:scale-105"
+                      sizes="(max-width: 640px) 100vw, 25vw"
+                    />
+                    <div
+                      className={cn(
+                        "absolute inset-0 bg-gradient-to-t",
+                        MODULE_COLORS[key]
+                      )}
+                    />
+                    <span className="absolute left-4 top-4 inline-flex size-10 items-center justify-center rounded-xl bg-white/90 text-primary shadow">
+                      <Icon className="size-5" strokeWidth={2.2} />
+                    </span>
+                  </div>
+                  <div className="p-5">
+                    <h3 className="font-extrabold text-foreground">
+                      {t(`landing.modules.items.${key}.title`)}
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                      {t(`landing.modules.items.${key}.body`)}
+                    </p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Contact */}
+      <section id="contact" className="scroll-mt-24 py-16 sm:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-brand-light to-indigo-600 shadow-2xl">
+            <div className="grid gap-10 p-8 sm:p-12 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+              <div className="text-white">
+                <span className="inline-flex rounded-full border border-white/30 bg-white/15 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-blue-100">
+                  {t("landing.contact.badge")}
+                </span>
+                <h2 className="mt-4 text-3xl font-extrabold sm:text-4xl">{t("landing.contact.title")}</h2>
+                <p className="mt-4 max-w-xl text-base leading-relaxed text-blue-100/95 sm:text-lg">
+                  {t("landing.contact.lead")}
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <a
+                  href="mailto:info.e2ia@gmail.com"
+                  className="flex items-center gap-4 rounded-2xl border border-white/25 bg-white/15 p-5 text-white backdrop-blur-sm transition hover:bg-white/25"
+                >
+                  <span className="flex size-12 items-center justify-center rounded-xl bg-white/20">
+                    <Mail className="size-5" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-blue-100">Email</p>
+                    <p className="font-bold">info.e2ia@gmail.com</p>
+                  </div>
+                </a>
+
+                <a
+                  href="tel:+2250757543447"
+                  className="flex items-center gap-4 rounded-2xl border border-white/25 bg-white/15 p-5 text-white backdrop-blur-sm transition hover:bg-white/25"
+                >
+                  <span className="flex size-12 items-center justify-center rounded-xl bg-white/20">
+                    <Phone className="size-5" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-blue-100">
+                      {t("landing.contact.phone")}
+                    </p>
+                    <p className="font-bold">+225 07 57 54 34 47</p>
+                  </div>
+                </a>
+
+                <a
+                  href="tel:+2250708425141"
+                  className="flex items-center gap-4 rounded-2xl border border-white/25 bg-white/15 p-5 text-white backdrop-blur-sm transition hover:bg-white/25"
+                >
+                  <span className="flex size-12 items-center justify-center rounded-xl bg-white/20">
+                    <Phone className="size-5" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-blue-100">
+                      {t("landing.contact.phoneAlt")}
+                    </p>
+                    <p className="font-bold">+225 07 08 42 51 41</p>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-white/50 py-8">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 text-center text-sm text-muted-foreground sm:flex-row sm:px-6 lg:px-8">
+          <p>© {new Date().getFullYear()} E2IA — Fermier Pro</p>
+          <p>{t("landing.footer")}</p>
+        </div>
+      </footer>
     </div>
   );
 }

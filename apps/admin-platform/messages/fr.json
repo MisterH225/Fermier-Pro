@@ -49,10 +49,82 @@
     "apiUnreachable": "API inaccessible. Lancez l’API (npm run start:dev dans apps/api) puis réessayez.",
     "oauthNoUrl": "Connexion Google impossible. Vérifiez Supabase → Redirect URLs (URL ci-dessous, pas /en/login) et redémarrez npm run dev:admin après .env.local.",
     "oauthEnvMissing": "Variables Supabase manquantes côté navigateur. Vérifiez apps/admin-platform/.env.local puis redémarrez npm run dev:admin.",
-    "oauthSetupTitle": "Supabase — Redirect URL (console web)",
-    "oauthSetupBody": "Authentication → URL Configuration → Redirect URLs — ajoutez cette ligne (en plus des URLs exp:// mobile) :",
-    "oauthSetupWildcard": "Optionnel en dev (wildcard) :",
-    "oauthSetupWrong": "Ne pas utiliser /en/login. Si page blanche sur Google : la Site URL exp:// ne doit pas être utilisée pour le web — gardez redirect_to sans ?next= (corrigé dans l’app).",
+    "landing": {
+      "heroLead": "La plateforme qui relie producteurs, vétérinaires, acheteurs et institutions pour piloter l'élevage de bout en bout — du cheptel à la vente.",
+      "nav": {
+        "ambition": "Notre ambition",
+        "modules": "Modules",
+        "contact": "Contact"
+      },
+      "ambition": {
+        "badge": "Notre ambition",
+        "title": "Digitaliser les filières d'élevage",
+        "lead": "Chez E2IA, nous construisons Fermier Pro pour rapprocher tous les acteurs des filières porcine, avicole et bovine sur une même plateforme. Notre objectif : rendre l'élevage plus transparent, plus rentable et plus résilient, du producteur au consommateur.",
+        "imageAlt": "Éleveurs sur le terrain en Afrique de l'Ouest",
+        "imageCaption": "Une filière connectée, de la ferme au marché",
+        "points": {
+          "actors": {
+            "title": "Tous les acteurs réunis",
+            "body": "Producteurs, vétérinaires, négociants, transformateurs et autorités sanitaires collaborent sur un écosystème unique."
+          },
+          "traceability": {
+            "title": "Traçabilité de bout en bout",
+            "body": "Suivez chaque animal, chaque lot et chaque transaction pour renforcer la confiance sur les marchés locaux et régionaux."
+          },
+          "impact": {
+            "title": "Impact terrain mesurable",
+            "body": "Des outils concrets pour améliorer la productivité, la santé animale et les revenus des éleveurs."
+          }
+        }
+      },
+      "modules": {
+        "badge": "Écosystème complet",
+        "title": "Tous les modules pour piloter votre élevage",
+        "lead": "Fermier Pro couvre l'ensemble du cycle de production : gestion du cheptel, reproduction, alimentation, finances, santé, commerce et intelligence artificielle.",
+        "items": {
+          "finance": {
+            "title": "Finance & Portefeuille",
+            "body": "Suivez vos revenus, dépenses, transactions et soldes en temps réel pour une gestion financière claire."
+          },
+          "herd": {
+            "title": "Gestion du cheptel",
+            "body": "Inventaire des animaux, lots, performances et historique complet de chaque bête."
+          },
+          "gestation": {
+            "title": "Gestation & Reproduction",
+            "body": "Planifiez les saillies, suivez les gestations et anticipez les mises bas."
+          },
+          "feeding": {
+            "title": "Alimentation",
+            "body": "Gérez les rations, les stocks de nourriture et optimisez les coûts d'alimentation."
+          },
+          "marketplace": {
+            "title": "Marketplace",
+            "body": "Achetez et vendez des animaux en toute transparence avec des prix de référence et un suivi des litiges."
+          },
+          "health": {
+            "title": "Santé animale",
+            "body": "Carnets sanitaires, vaccinations, traitements et alertes pour protéger votre cheptel."
+          },
+          "sanitaryMap": {
+            "title": "Carte sanitaire",
+            "body": "Visualisez les foyers de maladies et les alertes sanitaires sur une carte interactive."
+          },
+          "ai": {
+            "title": "Assistant IA",
+            "body": "Conseils personnalisés, analyses et recommandations pour prendre de meilleures décisions."
+          }
+        }
+      },
+      "contact": {
+        "badge": "Nous contacter",
+        "title": "Parlons de votre filière",
+        "lead": "Vous souhaitez déployer Fermier Pro, devenir partenaire ou en savoir plus sur nos solutions ? Notre équipe E2IA est à votre écoute.",
+        "phone": "Téléphone principal",
+        "phoneAlt": "Téléphone secondaire"
+      },
+      "footer": "Digitaliser les filières d'élevage en Afrique et au-delà."
+    },
     "hero": {
       "badge": "Console SuperAdmin Fermier Pro",
       "titleHighlight": "Cultivez",

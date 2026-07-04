@@ -50,10 +50,82 @@
     "apiUnreachable": "API unreachable. Start the API (npm run start:dev in apps/api) and try again.",
     "oauthNoUrl": "Google sign-in failed. Check Supabase → Redirect URLs (URL below, not /en/login) and restart npm run dev:admin after editing .env.local.",
     "oauthEnvMissing": "Supabase env vars missing in the browser. Check apps/admin-platform/.env.local, then restart npm run dev:admin.",
-    "oauthSetupTitle": "Supabase — Redirect URL (web console)",
-    "oauthSetupBody": "Authentication → URL Configuration → Redirect URLs — add this line (alongside mobile exp:// URLs):",
-    "oauthSetupWildcard": "Optional in dev (wildcard):",
-    "oauthSetupWrong": "Do not use /en/login. If Google shows a blank page: exp:// Site URL must not apply to web — redirect_to must not include ?next= (fixed in app).",
+    "landing": {
+      "heroLead": "The platform connecting producers, veterinarians, buyers and institutions to manage livestock end to end — from herd to market.",
+      "nav": {
+        "ambition": "Our ambition",
+        "modules": "Modules",
+        "contact": "Contact"
+      },
+      "ambition": {
+        "badge": "Our ambition",
+        "title": "Digitizing livestock supply chains",
+        "lead": "At E2IA, we are building Fermier Pro to bring together all stakeholders across pig, poultry and cattle value chains on a single platform. Our goal: make farming more transparent, profitable and resilient, from producer to consumer.",
+        "imageAlt": "Farmers in the field in West Africa",
+        "imageCaption": "A connected value chain, from farm to market",
+        "points": {
+          "actors": {
+            "title": "All stakeholders united",
+            "body": "Producers, veterinarians, traders, processors and health authorities collaborate on one ecosystem."
+          },
+          "traceability": {
+            "title": "End-to-end traceability",
+            "body": "Track every animal, batch and transaction to build trust in local and regional markets."
+          },
+          "impact": {
+            "title": "Measurable field impact",
+            "body": "Practical tools to improve productivity, animal health and farmer incomes."
+          }
+        }
+      },
+      "modules": {
+        "badge": "Complete ecosystem",
+        "title": "Every module to run your farm",
+        "lead": "Fermier Pro covers the full production cycle: herd management, reproduction, feeding, finance, health, commerce and artificial intelligence.",
+        "items": {
+          "finance": {
+            "title": "Finance & Wallet",
+            "body": "Track income, expenses, transactions and balances in real time for clear financial management."
+          },
+          "herd": {
+            "title": "Herd management",
+            "body": "Animal inventory, batches, performance and complete history for each animal."
+          },
+          "gestation": {
+            "title": "Gestation & Breeding",
+            "body": "Plan matings, track pregnancies and anticipate births."
+          },
+          "feeding": {
+            "title": "Feeding",
+            "body": "Manage rations, feed stocks and optimize feeding costs."
+          },
+          "marketplace": {
+            "title": "Marketplace",
+            "body": "Buy and sell animals transparently with reference prices and dispute tracking."
+          },
+          "health": {
+            "title": "Animal health",
+            "body": "Health records, vaccinations, treatments and alerts to protect your herd."
+          },
+          "sanitaryMap": {
+            "title": "Health map",
+            "body": "Visualize disease outbreaks and health alerts on an interactive map."
+          },
+          "ai": {
+            "title": "AI assistant",
+            "body": "Personalized advice, analytics and recommendations for better decisions."
+          }
+        }
+      },
+      "contact": {
+        "badge": "Get in touch",
+        "title": "Let's talk about your value chain",
+        "lead": "Want to deploy Fermier Pro, become a partner or learn more about our solutions? The E2IA team is here to help.",
+        "phone": "Primary phone",
+        "phoneAlt": "Secondary phone"
+      },
+      "footer": "Digitizing livestock supply chains across Africa and beyond."
+    },
     "hero": {
       "badge": "Fermier Pro SuperAdmin Console",
       "titleHighlight": "Grow",

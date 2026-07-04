@@ -8,7 +8,15 @@ loadEnvConfig(__dirname);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true
+  reactStrictMode: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com"
+      }
+    ]
+  }
 };
 
 module.exports = withNextIntl(nextConfig);
