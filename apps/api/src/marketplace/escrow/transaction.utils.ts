@@ -38,13 +38,11 @@ export function calculateAgreedDealAmount(params: {
     if (params.agreedFlatPrice != null && params.agreedFlatPrice > 0) {
       return params.agreedFlatPrice;
     }
-  } else if (
-    params.agreedPricePerKg != null &&
-    params.estimatedWeightKg != null &&
-    params.agreedPricePerKg > 0 &&
-    params.estimatedWeightKg > 0
-  ) {
-    return params.agreedPricePerKg * params.estimatedWeightKg;
+  } else if (params.agreedPricePerKg != null && params.agreedPricePerKg > 0) {
+    if (params.estimatedWeightKg != null && params.estimatedWeightKg > 0) {
+      return params.agreedPricePerKg * params.estimatedWeightKg;
+    }
+    return 0;
   }
   if (params.offeredPrice != null && params.offeredPrice > 0) {
     return params.offeredPrice;
@@ -255,7 +253,10 @@ export function settlementAmounts(params: {
 
   if (params.buyerPaysCommission) {
     // Acheteur paye prix + frais acheteur → vendeur reçoit prix total moins ses propres frais
-    const sellerReceivedAmount = params.finalAmount - sellerCommissionAmount;
+    const sellerReceivedAmount = Math.max(
+      0,
+      params.finalAmount - sellerCommissionAmount
+    );
     const buyerTotalOwed = params.finalAmount + commissionAmount;
     const delta = params.blockedAmount - buyerTotalOwed;
     const buyerRefundAmount = delta > 0 ? delta : 0;
@@ -270,7 +271,10 @@ export function settlementAmounts(params: {
     };
   }
   // Comportement historique : commission acheteur + commission vendeur toutes deux déduites du vendeur
-  const sellerReceivedAmount = params.finalAmount - commissionAmount - sellerCommissionAmount;
+  const sellerReceivedAmount = Math.max(
+    0,
+    params.finalAmount - commissionAmount - sellerCommissionAmount
+  );
   const delta = params.blockedAmount - params.finalAmount;
   const buyerRefundAmount = delta > 0 ? delta : 0;
   const buyerAdditionalCharge = delta < 0 ? Math.abs(delta) : 0;

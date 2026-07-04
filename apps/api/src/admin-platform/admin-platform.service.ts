@@ -1016,6 +1016,24 @@ export class AdminPlatformService {
           )
         : undefined;
 
+    if (
+      dto.marketplaceCommissionRate !== undefined ||
+      dto.sellerMarketplaceCommissionRate !== undefined
+    ) {
+      const current = await this.platformSettings.getAdminSettingsView();
+      const buyerRate =
+        dto.marketplaceCommissionRate ??
+        Number(current.marketplaceCommissionRate);
+      const sellerRate =
+        dto.sellerMarketplaceCommissionRate ??
+        Number(current.sellerMarketplaceCommissionRate);
+      if (buyerRate + sellerRate >= 1) {
+        throw new BadRequestException(
+          "La somme des taux de commission acheteur et vendeur doit rester inférieure à 100 %"
+        );
+      }
+    }
+
     await this.prisma.platformSettings.upsert({
       where: { id: "default" },
       create: {

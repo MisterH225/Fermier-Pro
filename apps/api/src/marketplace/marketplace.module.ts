@@ -3,6 +3,7 @@ import { AuthModule } from "../auth/auth.module";
 import { ChatModule } from "../chat/chat.module";
 import { ConfigClientModule } from "../config-client/config-client.module";
 import { FeatureFlagsModule } from "../feature-flags/feature-flags.module";
+import { MarketModule } from "../market/market.module";
 import { PushNotificationsModule } from "../push-notifications/push-notifications.module";
 import {
   EscrowService,
@@ -20,9 +21,6 @@ import { FarmMarketplaceLifecycleService } from "./farm-marketplace-lifecycle.se
 import { ListingsController } from "./listings.controller";
 import { ListingsService } from "./listings.service";
 import { MarketplaceCronService } from "./marketplace-cron.service";
-import { MarketplacePigPriceIndexController } from "./pig-price-index.controller";
-import { MarketplacePigPriceIndexCronService } from "./pig-price-index.cron";
-import { MarketplacePigPriceIndexService } from "./pig-price-index.service";
 import { SuperAdminGuard } from "../admin-platform/super-admin.guard";
 import { BuyerProfileDetectorService } from "./buyer-profile-detector.service";
 import { CreditCronService } from "./credit/credit-cron.service";
@@ -40,6 +38,7 @@ import { ListingAnimalSyncService } from "./listing-animal-sync.service";
   imports: [
     forwardRef(() => AuthModule),
     forwardRef(() => WalletModule),
+    forwardRef(() => MarketModule),
     MobileMoneyModule,
     ChatModule,
     ConfigClientModule,
@@ -51,7 +50,6 @@ import { ListingAnimalSyncService } from "./listing-animal-sync.service";
     ListingsController,
     OffersController,
     FarmRatingsController,
-    MarketplacePigPriceIndexController,
     MarketplaceTransactionController,
     MarketplaceDisputesController,
     CreditOffersController,
@@ -68,8 +66,6 @@ import { ListingAnimalSyncService } from "./listing-animal-sync.service";
     OffersService,
     FarmRatingsService,
     MarketplaceCronService,
-    MarketplacePigPriceIndexService,
-    MarketplacePigPriceIndexCronService,
     EscrowService,
     MarketplaceTransactionService,
     MarketplaceTransactionCronService,
@@ -85,7 +81,6 @@ import { ListingAnimalSyncService } from "./listing-animal-sync.service";
     FarmMarketplaceLifecycleService,
     ListingsService,
     ListingAnimalSyncService,
-    MarketplacePigPriceIndexService,
     MarketplaceTransactionService,
     ReceiptService,
     CreditOffersService,

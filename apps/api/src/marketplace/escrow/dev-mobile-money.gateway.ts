@@ -141,7 +141,7 @@ export class DevMobileMoneyGateway implements MobileMoneyGateway {
       };
     }
     this.pendingTopUps.delete(providerRef);
-    return { success: true, providerRef };
+    return { success: true, providerRef, verifiedAmount: row.amount };
   }
 
   async initiateWithdraw(params: {

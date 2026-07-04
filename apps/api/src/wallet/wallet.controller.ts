@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post, Query, UseGuards } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import type { User } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
@@ -44,11 +45,13 @@ export class WalletController {
   }
 
   @Post("top-up/initiate")
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   initiateTopUp(@CurrentUser() user: User, @Body() dto: WalletAmountDto) {
     return this.rails.initiateTopUp(user, dto.amount);
   }
 
   @Post("top-up/confirm")
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   confirmTopUp(@CurrentUser() user: User, @Body() dto: WalletTopUpConfirmDto) {
     return this.rails.confirmTopUp(user, dto.amount, dto.providerRef);
   }
@@ -59,6 +62,7 @@ export class WalletController {
   }
 
   @Post("withdraw/initiate")
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   initiateWithdraw(
     @CurrentUser() user: User,
     @Body() dto: WalletWithdrawInitiateDto
@@ -72,6 +76,7 @@ export class WalletController {
   }
 
   @Post("withdraw/confirm")
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   confirmWithdraw(
     @CurrentUser() user: User,
     @Body() dto: WalletWithdrawConfirmDto
@@ -94,6 +99,7 @@ export class WalletController {
   }
 
   @Post("transfer")
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   transfer(@CurrentUser() user: User, @Body() dto: WalletTransferDto) {
     return this.rails.transfer(user, dto);
   }

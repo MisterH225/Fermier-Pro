@@ -38,7 +38,6 @@ import {
 } from "./dto/admin-user-moderation.dto";
 import { SuperAdminGuard } from "./super-admin.guard";
 import { PigPriceIndexService } from "../market/pig-price-index.service";
-import { MarketplacePigPriceIndexService } from "../marketplace/pig-price-index.service";
 import { ResolveDeliveryDisputeDto } from "../marketplace/dto/resolve-delivery-dispute.dto";
 import { MarketplaceTransactionService } from "../marketplace/escrow/marketplace-transaction.service";
 import { ListingsService } from "../marketplace/listings.service";
@@ -55,7 +54,6 @@ export class AdminPlatformController {
     private readonly adminAi: AdminAiService,
     private readonly moderation: AdminUserModerationService,
     private readonly pigPriceIndex: PigPriceIndexService,
-    private readonly hybridPigPriceIndex: MarketplacePigPriceIndexService,
     private readonly marketplaceTransactions: MarketplaceTransactionService,
     private readonly listings: ListingsService,
     private readonly receipts: ReceiptService,
@@ -361,10 +359,10 @@ export class AdminPlatformController {
   @Get("pig-price-index/hybrid")
   async adminHybridIndex() {
     const [current, snapshots, flagged, contributors] = await Promise.all([
-      this.hybridPigPriceIndex.getPublicIndex(),
-      this.hybridPigPriceIndex.getSnapshots(30),
-      this.hybridPigPriceIndex.getFlaggedListings(50),
-      this.hybridPigPriceIndex.getTopContributors(10)
+      this.pigPriceIndex.getHybridPublicIndex(),
+      this.pigPriceIndex.getHybridSnapshots(30),
+      this.pigPriceIndex.getHybridFlaggedListings(50),
+      this.pigPriceIndex.getHybridTopContributors(10)
     ]);
     const latestSnapshot = snapshots[0] ?? null;
     return {
@@ -395,12 +393,12 @@ export class AdminPlatformController {
 
   @Post("pig-price-index/hybrid/unfreeze")
   adminUnfreezeHybridIndex() {
-    return this.hybridPigPriceIndex.unfreezeIndex();
+    return this.pigPriceIndex.unfreezeHybridIndex();
   }
 
   @Post("pig-price-index/hybrid/recalculate")
   adminRecalculateHybridIndex() {
-    return this.hybridPigPriceIndex.calculateHybridIndex();
+    return this.pigPriceIndex.calculateHybridIndex();
   }
 
   @Get("marketplace/overview")

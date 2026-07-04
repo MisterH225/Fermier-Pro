@@ -8,6 +8,8 @@ export type MobileMoneyConfirmResult = {
   success: boolean;
   providerRef: string;
   failureReason?: string;
+  /** Montant vérifié côté prestataire (source de vérité pour les crédits wallet). */
+  verifiedAmount?: number;
 };
 
 export type MobileMoneyRefundResult = {

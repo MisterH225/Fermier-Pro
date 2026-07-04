@@ -9,6 +9,7 @@ import {
   type ThrottlerModuleOptions
 } from "@nestjs/throttler";
 import { join } from "path";
+import { ResilientThrottlerStorage } from "./common/resilient-throttler.storage";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { AuthModule } from "./auth/auth.module";
@@ -83,9 +84,10 @@ import { HistoricalRecordsModule } from "./historical-records/historical-records
         ];
         const redisUrl = config.get<string>("REDIS_URL")?.trim();
         if (redisUrl) {
+          const redisStorage = new ThrottlerStorageRedisService(redisUrl);
           return {
             throttlers,
-            storage: new ThrottlerStorageRedisService(redisUrl)
+            storage: new ResilientThrottlerStorage(redisStorage)
           };
         }
         return throttlers;

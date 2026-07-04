@@ -77,16 +77,45 @@ export class ChatPhoneSecurityService {
     return { body: trimmed, wasModified: false, modificationType: null };
   }
 
+  private isAlphabeticFailClosed(): boolean {
+    const raw = process.env.CHAT_ALPHABETIC_PHONE_FAIL_CLOSED?.trim().toLowerCase();
+    if (raw === "false") {
+      return false;
+    }
+    if (raw === "true") {
+      return true;
+    }
+    const appEnv = (process.env.APP_ENV ?? "").toLowerCase();
+    return appEnv === "production" || appEnv === "staging";
+  }
+
   private async detectAlphabeticPhone(
     text: string
   ): Promise<{ blocked: boolean; confidence: number; logged: boolean }> {
     if (!this.gemini.isConfigured()) {
+      if (this.isAlphabeticFailClosed()) {
+        this.logger.error(
+          "ALERTE SÉCURITÉ CHAT : Gemini non configuré — détection alphabétique en mode fail-closed"
+        );
+        return { blocked: true, confidence: 0, logged: true };
+      }
+      this.logger.warn(
+        "Gemini non configuré — détection alphabétique désactivée (fail-open)"
+      );
       return { blocked: false, confidence: 0, logged: false };
     }
     const prompt = `${ALPHABETIC_PROMPT}\n\nMessage:\n${text}`;
     const raw = await this.gemini.generateText(prompt);
     if (!raw) {
-      this.logger.warn("Gemini indisponible pour détection alphabétique — laisser passer");
+      if (this.isAlphabeticFailClosed()) {
+        this.logger.error(
+          "ALERTE SÉCURITÉ CHAT : Gemini indisponible — message bloqué (fail-closed)"
+        );
+        return { blocked: true, confidence: 0, logged: true };
+      }
+      this.logger.warn(
+        "Gemini indisponible pour détection alphabétique — laisser passer (fail-open)"
+      );
       return { blocked: false, confidence: 0, logged: true };
     }
     try {
@@ -105,7 +134,13 @@ export class ChatPhoneSecurityService {
       }
       return { blocked: false, confidence, logged: false };
     } catch {
-      this.logger.warn("Réponse Gemini alphabétique invalide");
+      if (this.isAlphabeticFailClosed()) {
+        this.logger.error(
+          "ALERTE SÉCURITÉ CHAT : réponse Gemini invalide — message bloqué (fail-closed)"
+        );
+        return { blocked: true, confidence: 0, logged: true };
+      }
+      this.logger.warn("Réponse Gemini alphabétique invalide — laisser passer");
       return { blocked: false, confidence: 0, logged: true };
     }
   }

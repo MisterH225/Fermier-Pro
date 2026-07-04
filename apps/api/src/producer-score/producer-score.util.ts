@@ -120,7 +120,7 @@ export function deriveProducerScore(
   if (global < 50 || pillars.responsiveness < 45 || pillars.dataRegularity < 25) {
     return ProducerScore.attention;
   }
-  if (global >= 65) {
+  if (global >= 55) {
     return ProducerScore.bon;
   }
   return ProducerScore.attention;

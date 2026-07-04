@@ -374,15 +374,18 @@ export class UserWalletService {
         create: { userId: fromUserId, currency },
         update: {}
       });
-      const fromBalance = Number(fromWallet.balance);
-      if (fromBalance < totalDebit) {
+      const debited = await tx.userWallet.updateMany({
+        where: {
+          id: fromWallet.id,
+          balance: { gte: totalDebit }
+        },
+        data: { balance: { decrement: totalDebit } }
+      });
+      if (debited.count === 0) {
         throw new BadRequestException("Solde insuffisant pour ce transfert");
       }
-      const fromAfterTransfer = fromBalance - amount;
-      await tx.userWallet.update({
-        where: { id: fromWallet.id },
-        data: { balance: new Prisma.Decimal(fromAfterTransfer) }
-      });
+      const fromAfter = Number(fromWallet.balance) - totalDebit;
+      const fromAfterTransfer = fromAfter + feeAmount;
       const debitEntry = await tx.userWalletEntry.create({
         data: {
           walletId: fromWallet.id,
@@ -397,13 +400,7 @@ export class UserWalletService {
       });
 
       let feeEntry: WalletEntryDto | undefined;
-      let fromAfter = fromAfterTransfer;
       if (feeAmount > 0) {
-        fromAfter = fromAfterTransfer - feeAmount;
-        await tx.userWallet.update({
-          where: { id: fromWallet.id },
-          data: { balance: new Prisma.Decimal(fromAfter) }
-        });
         const feeRow = await tx.userWalletEntry.create({
           data: {
             walletId: fromWallet.id,
@@ -424,11 +421,11 @@ export class UserWalletService {
         create: { userId: toUserId, currency },
         update: {}
       });
-      const toAfter = Number(toWallet.balance) + amount;
       await tx.userWallet.update({
         where: { id: toWallet.id },
-        data: { balance: new Prisma.Decimal(toAfter) }
+        data: { balance: { increment: amount } }
       });
+      const toAfter = Number(toWallet.balance) + amount;
       const creditEntry = await tx.userWalletEntry.create({
         data: {
           walletId: toWallet.id,
@@ -464,19 +461,19 @@ export class UserWalletService {
         create: { userId, currency },
         update: {}
       });
-      const balance = Number(wallet.balance);
-      if (balance < totalDebit) {
-        throw new BadRequestException("Solde insuffisant pour ce retrait");
-      }
-      await tx.userWallet.update({
-        where: { id: wallet.id },
+      const locked = await tx.userWallet.updateMany({
+        where: {
+          id: wallet.id,
+          balance: { gte: totalDebit }
+        },
         data: {
-          balance: new Prisma.Decimal(balance - totalDebit),
-          pendingBalance: new Prisma.Decimal(
-            Number(wallet.pendingBalance) + totalDebit
-          )
+          balance: { decrement: totalDebit },
+          pendingBalance: { increment: totalDebit }
         }
       });
+      if (locked.count === 0) {
+        throw new BadRequestException("Solde insuffisant pour ce retrait");
+      }
     });
   }
 
@@ -567,12 +564,16 @@ export class UserWalletService {
         }
       });
 
+      const finalBalance = Number(wallet.balance);
+      const balanceAfterWithdraw =
+        feeAmount > 0 ? finalBalance + feeAmount : finalBalance;
+
       const withdrawEntry = await tx.userWalletEntry.create({
         data: {
           walletId: wallet.id,
           kind: UserWalletEntryKind.debit_withdraw,
           amount: new Prisma.Decimal(amount),
-          balanceAfter: new Prisma.Decimal(Number(wallet.balance)),
+          balanceAfter: new Prisma.Decimal(balanceAfterWithdraw),
           currency,
           providerRef,
           note,
@@ -587,7 +588,7 @@ export class UserWalletService {
             walletId: wallet.id,
             kind: UserWalletEntryKind.debit_fee,
             amount: new Prisma.Decimal(feeAmount),
-            balanceAfter: new Prisma.Decimal(Number(wallet.balance)),
+            balanceAfter: new Prisma.Decimal(finalBalance),
             currency,
             providerRef,
             note: "Frais de retrait portefeuille",
@@ -799,34 +800,49 @@ export class UserWalletService {
     if (existing) {
       return this.serializeEntry(existing);
     }
-    const entry = await this.prisma.$transaction(async (tx) => {
-      const wallet = await tx.userWallet.upsert({
-        where: { userId },
-        create: { userId, currency },
-        update: {}
+    try {
+      const entry = await this.prisma.$transaction(async (tx) => {
+        const wallet = await tx.userWallet.upsert({
+          where: { userId },
+          create: { userId, currency },
+          update: {}
+        });
+        const balanceAfter = Number(wallet.balance) + amount;
+        await tx.userWallet.update({
+          where: { id: wallet.id },
+          data: { balance: { increment: amount } }
+        });
+        return tx.userWalletEntry.create({
+          data: {
+            walletId: wallet.id,
+            kind,
+            amount: new Prisma.Decimal(amount),
+            balanceAfter: new Prisma.Decimal(balanceAfter),
+            currency,
+            transactionId: extra.transactionId,
+            vetAppointmentId: extra.vetAppointmentId,
+            counterpartyUserId: extra.counterpartyUserId,
+            providerRef: extra.providerRef,
+            note,
+            idempotencyKey
+          }
+        });
       });
-      const balanceAfter = Number(wallet.balance) + amount;
-      await tx.userWallet.update({
-        where: { id: wallet.id },
-        data: { balance: new Prisma.Decimal(balanceAfter) }
-      });
-      return tx.userWalletEntry.create({
-        data: {
-          walletId: wallet.id,
-          kind,
-          amount: new Prisma.Decimal(amount),
-          balanceAfter: new Prisma.Decimal(balanceAfter),
-          currency,
-          transactionId: extra.transactionId,
-          vetAppointmentId: extra.vetAppointmentId,
-          counterpartyUserId: extra.counterpartyUserId,
-          providerRef: extra.providerRef,
-          note,
-          idempotencyKey
+      return this.serializeEntry(entry);
+    } catch (e) {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === "P2002"
+      ) {
+        const raced = await this.prisma.userWalletEntry.findUnique({
+          where: { idempotencyKey }
+        });
+        if (raced) {
+          return this.serializeEntry(raced);
         }
-      });
-    });
-    return this.serializeEntry(entry);
+      }
+      throw e;
+    }
   }
 
   private async debit(
@@ -852,40 +868,57 @@ export class UserWalletService {
     if (existing) {
       return this.serializeEntry(existing);
     }
-    const entry = await this.prisma.$transaction(async (tx) => {
-      const wallet = await tx.userWallet.upsert({
-        where: { userId },
-        create: { userId, currency },
-        update: {}
-      });
-      const current = Number(wallet.balance);
-      if (current < amount) {
-        throw new BadRequestException(
-          "Solde insuffisant — rechargez votre portefeuille ou utilisez mobile money."
-        );
-      }
-      const balanceAfter = current - amount;
-      await tx.userWallet.update({
-        where: { id: wallet.id },
-        data: { balance: new Prisma.Decimal(balanceAfter) }
-      });
-      return tx.userWalletEntry.create({
-        data: {
-          walletId: wallet.id,
-          kind,
-          amount: new Prisma.Decimal(amount),
-          balanceAfter: new Prisma.Decimal(balanceAfter),
-          currency,
-          transactionId: extra.transactionId,
-          vetAppointmentId: extra.vetAppointmentId,
-          counterpartyUserId: extra.counterpartyUserId,
-          providerRef: extra.providerRef,
-          note,
-          idempotencyKey
+    try {
+      const entry = await this.prisma.$transaction(async (tx) => {
+        const wallet = await tx.userWallet.upsert({
+          where: { userId },
+          create: { userId, currency },
+          update: {}
+        });
+        const debited = await tx.userWallet.updateMany({
+          where: {
+            id: wallet.id,
+            balance: { gte: amount }
+          },
+          data: { balance: { decrement: amount } }
+        });
+        if (debited.count === 0) {
+          throw new BadRequestException(
+            "Solde insuffisant — rechargez votre portefeuille ou utilisez mobile money."
+          );
         }
+        const balanceAfter = Number(wallet.balance) - amount;
+        return tx.userWalletEntry.create({
+          data: {
+            walletId: wallet.id,
+            kind,
+            amount: new Prisma.Decimal(amount),
+            balanceAfter: new Prisma.Decimal(balanceAfter),
+            currency,
+            transactionId: extra.transactionId,
+            vetAppointmentId: extra.vetAppointmentId,
+            counterpartyUserId: extra.counterpartyUserId,
+            providerRef: extra.providerRef,
+            note,
+            idempotencyKey
+          }
+        });
       });
-    });
-    return this.serializeEntry(entry);
+      return this.serializeEntry(entry);
+    } catch (e) {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === "P2002"
+      ) {
+        const raced = await this.prisma.userWalletEntry.findUnique({
+          where: { idempotencyKey }
+        });
+        if (raced) {
+          return this.serializeEntry(raced);
+        }
+      }
+      throw e;
+    }
   }
 
   private serializeEntry(row: {
