@@ -34,7 +34,7 @@ export function useDeleteFarmBatch({
       onDeleted?.();
     },
     onError: (e: Error) => {
-      Alert.alert(t("common.errors.saveFailed"), getUserFacingError(e, t));
+      Alert.alert(t("cheptel.batches.deleteFailed"), getUserFacingError(e, t));
     }
   });
 

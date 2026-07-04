@@ -52,6 +52,7 @@ import {
   estimateAnimalWeightKg
 } from "./growth-estimation.util";
 import { PenAllocationService } from "../housing/pen-allocation.service";
+import { effectiveBatchHeadcount } from "../livestock/livestock-batch-membership.util";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 
 export type CheptelPenOverviewRow = {
@@ -713,16 +714,30 @@ export class CheptelService {
         };
       });
 
+    const activeMemberCountByBatch = new Map<string, number>();
+    for (const p of animalPlacements) {
+      const a = p.animal;
+      if (!a || a.status !== "active" || !a.livestockBatchId) {
+        continue;
+      }
+      activeMemberCountByBatch.set(
+        a.livestockBatchId,
+        (activeMemberCountByBatch.get(a.livestockBatchId) ?? 0) + 1
+      );
+    }
+
     const batches = batchPlacements
       .filter((p) => p.batch)
       .map((p) => {
         const b = p.batch!;
+        const activeMemberCount = activeMemberCountByBatch.get(b.id) ?? 0;
         const latestWeight = b.weights[0];
         return {
           id: b.id,
           publicId: b.publicId,
           name: b.name,
-          headcount: b.headcount,
+          headcount: effectiveBatchHeadcount(b.headcount, activeMemberCount),
+          activeMemberCount,
           categoryKey: b.categoryKey,
           status: b.status,
           species: b.species,

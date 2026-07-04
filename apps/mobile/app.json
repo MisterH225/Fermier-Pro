@@ -90,7 +90,7 @@
       "eas": {
         "projectId": "ebb8a3e5-e17a-4a66-ae0a-f7624ab6c12a"
       },
-      "lastOtaRelease": "2026-07-02-build22-fix-imports-bandes"
+      "lastOtaRelease": "2026-07-02-fix-empty-batch-delete"
     },
     "owner": "misterh225"
   }

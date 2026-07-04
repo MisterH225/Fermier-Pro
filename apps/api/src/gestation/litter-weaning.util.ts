@@ -303,13 +303,12 @@ export async function graduateWeanedLitterAnimals(
   }
 
   await prisma.$transaction(async (tx) => {
-    await retagAnimalsInTransaction(
-      tx,
-      farmId,
-      toGraduate.map((a) => a.id),
-      "Dem",
-      "starter"
-    );
+    const ids = toGraduate.map((a) => a.id);
+    await retagAnimalsInTransaction(tx, farmId, ids, "Dem", "starter");
+    await tx.animal.updateMany({
+      where: { id: { in: ids } },
+      data: { livestockBatchId: null }
+    });
   });
 }
 
