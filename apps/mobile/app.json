@@ -90,7 +90,7 @@
       "eas": {
         "projectId": "ebb8a3e5-e17a-4a66-ae0a-f7624ab6c12a"
       },
-      "lastOtaRelease": "2026-07-02-fix-empty-batch-delete"
+      "lastOtaRelease": "2026-07-04-fix-google-oauth-pkce"
     },
     "owner": "misterh225"
   }
