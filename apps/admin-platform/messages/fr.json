@@ -50,11 +50,12 @@
     "oauthNoUrl": "Connexion Google impossible. Vérifiez Supabase → Redirect URLs (URL ci-dessous, pas /en/login) et redémarrez npm run dev:admin après .env.local.",
     "oauthEnvMissing": "Variables Supabase manquantes côté navigateur. Vérifiez apps/admin-platform/.env.local puis redémarrez npm run dev:admin.",
     "landing": {
-      "heroLead": "La plateforme qui relie producteurs, vétérinaires, acheteurs et institutions pour piloter l'élevage de bout en bout — du cheptel à la vente.",
+      "heroLead": "La plateforme mobile qui relie producteurs, vétérinaires et acheteurs autour de la filière porcine — du cheptel à la vente, en francs CFA.",
       "hero": {
         "present": "E2IA présente",
         "scriptAccent": "Une filière connectée",
         "cta": "Se connecter",
+        "discover": "Découvrir l'application",
         "learnMore": "En savoir plus",
         "sideLead": "Digitalisez vos opérations porcines, suivez votre cheptel et connectez-vous aux acteurs de votre filière, où que vous soyez en Afrique de l'Ouest.",
         "decorAlt": "Porcs en élevage"
@@ -144,8 +145,28 @@
         "badge": "Nous contacter",
         "title": "Parlons de votre filière",
         "lead": "Vous souhaitez déployer Fermier Pro, devenir partenaire ou en savoir plus sur nos solutions ? Notre équipe E2IA est à votre écoute.",
+        "seeApp": "Voir l'application en action",
         "phone": "Téléphone principal",
         "phoneAlt": "Téléphone secondaire"
+      },
+      "showcase": {
+        "badge": "L'application en vrai",
+        "title": "Pilotez votre élevage depuis votre poche",
+        "lead": "Portefeuille en XOF, stocks d'aliment, cheptel par bandes, marketplace et rapports bancaires certifiés — tout ce que vos éleveurs utilisent déjà au quotidien.",
+        "herd": {
+          "title": "Cheptel structuré par bâtiments et catégories",
+          "body": "Truies, verrats, porcelets, engraissement et démarrage : visualisez l'effectif en un coup d'œil et gérez chaque bande depuis votre mobile."
+        },
+        "finance": {
+          "title": "Finance traçable, crédit facilité",
+          "body": "Revenus, dépenses et score Fermier Pro exportables en synthèse bancaire certifiée — pour rassurer les institutions et accélérer l'accès au financement."
+        },
+        "ai": {
+          "title": "Intelligence artificielle au service du terrain",
+          "body": "Conseils personnalisés sur l'occupation des bâtiments, la santé du cheptel et les décisions quotidiennes — directement dans le tableau de bord producteur."
+        },
+        "ctaLead": "Prêt à digitaliser votre filière porcine ?",
+        "cta": "Contactez notre équipe"
       },
       "footer": "Digitaliser les filières d'élevage en Afrique et au-delà."
     },

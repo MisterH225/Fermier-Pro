@@ -35,15 +35,15 @@ import {
   setAdminOAuthNextCookie
 } from "@/lib/admin-oauth";
 import { cn } from "@/lib/utils";
-
-const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1651592279311-120424784c06?auto=format&fit=crop&w=2000&q=80";
-
-const HERO_DECOR_IMAGE =
-  "https://images.unsplash.com/photo-1545468258-576dbac5faa9?auto=format&fit=crop&w=800&q=80";
-
-const AMBITION_IMAGE =
-  "https://images.unsplash.com/photo-1616109259043-fd30a7663a5d?auto=format&fit=crop&w=1200&q=80";
+import { ProductShowcase } from "@/components/landing/ProductShowcase";
+import { PhoneFrame } from "@/components/landing/PhoneFrame";
+import {
+  DashboardMockup,
+  FinanceReportMockup,
+  HerdOverviewMockup,
+  HomeScreenMockup,
+  MarketplaceMockup
+} from "@/components/landing/AppScreenMockups";
 
 const MODULE_KEYS = [
   "finance",
@@ -56,23 +56,15 @@ const MODULE_KEYS = [
   "ai"
 ] as const;
 
-const MODULE_IMAGES: Record<(typeof MODULE_KEYS)[number], string> = {
-  finance:
-    "https://images.unsplash.com/photo-1533833406613-0058ceea5d1a?auto=format&fit=crop&w=800&q=80",
-  herd:
-    "https://images.unsplash.com/photo-1651592279311-120424784c06?auto=format&fit=crop&w=800&q=80",
-  gestation:
-    "https://images.unsplash.com/photo-1758725335976-f3f6185fca90?auto=format&fit=crop&w=800&q=80",
-  feeding:
-    "https://images.unsplash.com/photo-1516467508483-a7212febe31a?auto=format&fit=crop&w=800&q=80",
-  marketplace:
-    "https://images.unsplash.com/photo-1507836006954-d834e672f262?auto=format&fit=crop&w=800&q=80",
-  health:
-    "https://images.unsplash.com/photo-1587213128862-80345e23a71a?auto=format&fit=crop&w=800&q=80",
-  sanitaryMap:
-    "https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=800&q=80",
-  ai:
-    "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=800&q=80"
+const MODULE_SCREEN: Partial<Record<(typeof MODULE_KEYS)[number], "home" | "herd" | "market" | "finance" | "dashboard">> = {
+  finance: "finance",
+  herd: "herd",
+  gestation: "herd",
+  feeding: "home",
+  marketplace: "market",
+  health: "dashboard",
+  sanitaryMap: "dashboard",
+  ai: "dashboard"
 };
 
 const MODULE_ICONS: Record<(typeof MODULE_KEYS)[number], typeof Leaf> = {
@@ -88,16 +80,9 @@ const MODULE_ICONS: Record<(typeof MODULE_KEYS)[number], typeof Leaf> = {
 
 const PILLAR_KEYS = ["actors", "traceability", "impact"] as const;
 
-const FEATURE_KEYS = ["herd", "health", "marketplace", "feeding"] as const;
-
-const FEATURE_ICONS: Record<(typeof FEATURE_KEYS)[number], typeof Leaf> = {
-  herd: Tractor,
-  health: HeartPulse,
-  marketplace: ShoppingCart,
-  feeding: UtensilsCrossed
-};
-
 const NAV_KEYS = ["ambition", "modules", "contact"] as const;
+
+const STAT_KEYS = ["farms", "producers", "countries"] as const;
 
 const LOGO_SRC = "/images/fermier-pro-logo-nobg.png";
 const LOGO_ASPECT = 601 / 295;
@@ -151,6 +136,22 @@ function LogoMark({
 
 function scrollToSection(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function ModulePhonePreview({ screen }: { screen: NonNullable<(typeof MODULE_SCREEN)[keyof typeof MODULE_SCREEN]> }) {
+  const content = {
+    home: <HomeScreenMockup />,
+    herd: <HerdOverviewMockup />,
+    market: <MarketplaceMockup />,
+    finance: <FinanceReportMockup />,
+    dashboard: <DashboardMockup />
+  }[screen];
+
+  return (
+    <PhoneFrame className="mx-auto w-[180px] scale-[0.95] shadow-xl" glow="olive">
+      {content}
+    </PhoneFrame>
+  );
 }
 
 function LoginForm({
@@ -374,11 +375,14 @@ export function LoginScreen() {
   return (
     <div className="min-h-screen farm-landing-bg">
       {/* Hero */}
-      <section id="top" className="relative min-h-[92vh] overflow-hidden">
-        <div className="absolute inset-0">
-          <Image src={HERO_IMAGE} alt="" fill priority className="object-cover" sizes="100vw" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/50 to-black/75" />
-        </div>
+      <section id="top" className="relative overflow-hidden bg-gradient-to-br from-[#2d3a24] via-[#3d4a28] to-[#1a2114]">
+        <div
+          className="absolute inset-0 opacity-30"
+          style={{
+            backgroundImage: `radial-gradient(circle at 20% 20%, rgba(141,187,97,0.35), transparent 45%),
+              radial-gradient(circle at 80% 10%, rgba(255,255,255,0.08), transparent 40%)`
+          }}
+        />
 
         {/* Nav overlay */}
         <header className="relative z-20">
@@ -423,49 +427,59 @@ export function LoginScreen() {
           </nav>
         </header>
 
-        <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center px-4 pb-20 pt-10 text-center sm:px-6 lg:px-8 lg:pb-28 lg:pt-14">
-          <p className="farm-label text-white/70">{t("landing.hero.present")}</p>
+        <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-4 pb-16 pt-8 sm:px-6 lg:grid-cols-2 lg:px-8 lg:pb-20 lg:pt-12">
+          <div className="text-center text-white lg:text-left">
+            <p className="farm-label text-white/70">{t("landing.hero.present")}</p>
 
-          <h1 className="mt-4 text-4xl font-extrabold uppercase leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
-            {t("hero.titleHighlight")}
-            <br />
-            <span className="text-white">{t("hero.titleRest")}</span>
-          </h1>
+            <h1 className="mt-4 text-4xl font-extrabold uppercase leading-[1.05] tracking-tight sm:text-5xl lg:text-[3.4rem]">
+              {t("hero.titleHighlight")}
+              <br />
+              <span className="text-white">{t("hero.titleRest")}</span>
+            </h1>
 
-          <p className="mt-4 font-script text-3xl text-brand-olive-light sm:text-4xl">
-            {t("landing.hero.scriptAccent")}
-          </p>
+            <p className="mt-4 font-script text-3xl text-[#b8d4a0] sm:text-4xl">
+              {t("landing.hero.scriptAccent")}
+            </p>
 
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-white/85 sm:text-lg">
-            {t("landing.heroLead")}
-          </p>
+            <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg lg:mx-0">
+              {t("landing.heroLead")}
+            </p>
 
-          <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row">
-            <button type="button" onClick={() => setLoginOpen(true)} className="farm-btn">
-              {t("landing.hero.cta")}
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection("ambition")}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-white/90 transition hover:text-white"
-            >
-              {t("landing.hero.learnMore")}
-              <ArrowRight className="size-4" />
-            </button>
+            <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row lg:justify-start">
+              <button
+                type="button"
+                onClick={() => scrollToSection("showcase")}
+                className="farm-btn"
+              >
+                {t("landing.hero.discover")}
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection("contact")}
+                className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20"
+              >
+                {t("landing.ambition.cta")}
+                <ArrowRight className="size-4" />
+              </button>
+            </div>
+
+            <div className="mt-10 grid grid-cols-3 gap-3 text-center lg:max-w-md">
+              {STAT_KEYS.map((key) => (
+                <div key={key} className="rounded-2xl border border-white/15 bg-white/10 px-2 py-3 backdrop-blur-sm">
+                  <p className="text-lg font-extrabold text-white">{t(`hero.stats.${key}.value`)}</p>
+                  <p className="mt-1 text-[10px] font-medium text-white/70">{t(`hero.stats.${key}.label`)}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <p className="mt-10 max-w-xl text-sm leading-relaxed text-white/70">
-            {t("landing.hero.sideLead")}
-          </p>
-
-          <div className="relative mt-12 size-44 overflow-hidden rounded-3xl shadow-2xl ring-4 ring-white/20 sm:size-52">
-            <Image
-              src={HERO_DECOR_IMAGE}
-              alt={t("landing.hero.decorAlt")}
-              fill
-              className="object-cover"
-              sizes="208px"
-            />
+          <div className="relative mx-auto flex w-full max-w-sm items-end justify-center lg:max-w-none">
+            <PhoneFrame className="absolute -left-2 bottom-4 z-0 w-[46%] -rotate-12 opacity-90" glow="warm">
+              <HerdOverviewMockup />
+            </PhoneFrame>
+            <PhoneFrame className="relative z-10 w-[58%]" glow="olive">
+              <HomeScreenMockup />
+            </PhoneFrame>
           </div>
         </div>
       </section>
@@ -520,15 +534,12 @@ export function LoginScreen() {
       {/* Ambition / About */}
       <section id="ambition" className="scroll-mt-24 bg-white py-20 sm:py-28">
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
-          <div className="relative aspect-[4/3] overflow-hidden rounded-3xl shadow-2xl">
-            <Image
-              src={AMBITION_IMAGE}
-              alt={t("landing.ambition.imageAlt")}
-              fill
-              className="object-cover"
-              sizes="(max-width: 1024px) 100vw, 50vw"
-            />
-            <span className="absolute right-4 top-4 rounded-full bg-brand-olive px-4 py-2 text-xs font-bold text-white shadow-lg">
+          <div className="relative flex justify-center">
+            <div className="absolute -inset-8 rounded-full bg-[#5C6B3A]/10 blur-3xl" />
+            <PhoneFrame className="relative w-[min(100%,280px)]" glow="olive">
+              <HerdOverviewMockup />
+            </PhoneFrame>
+            <span className="absolute right-4 top-4 rounded-full bg-brand-olive px-4 py-2 text-xs font-bold text-white shadow-lg sm:right-8">
               {t("landing.ambition.organicBadge")}
             </span>
           </div>
@@ -550,54 +561,9 @@ export function LoginScreen() {
         </div>
       </section>
 
-      {/* Icon features row */}
-      <section className="py-16 sm:py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <p className="farm-label">{t("landing.features.badge")}</p>
-            <h2 className="farm-title mt-3">{t("landing.features.title")}</h2>
-          </div>
-
-          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {FEATURE_KEYS.map((key, index) => {
-              const Icon = FEATURE_ICONS[key];
-              const highlighted = index === 3;
-              return (
-                <div
-                  key={key}
-                  className={cn(
-                    "rounded-3xl p-8 text-center transition",
-                    highlighted
-                      ? "bg-brand-olive text-white shadow-[0_12px_40px_rgba(92,107,58,0.35)]"
-                      : "farm-card !p-8"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "mx-auto mb-5 inline-flex size-14 items-center justify-center rounded-2xl",
-                      highlighted ? "bg-white/20" : "bg-gray-100"
-                    )}
-                  >
-                    <Icon
-                      className={cn("size-7", highlighted ? "text-white" : "text-gray-800")}
-                      strokeWidth={1.8}
-                    />
-                  </span>
-                  <h3 className="font-extrabold">{t(`landing.modules.items.${key}.title`)}</h3>
-                  <p
-                    className={cn(
-                      "mt-3 text-sm leading-relaxed",
-                      highlighted ? "text-white/85" : "text-muted-foreground"
-                    )}
-                  >
-                    {t(`landing.features.items.${key}`)}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      <div id="showcase" className="scroll-mt-24">
+        <ProductShowcase onContact={() => scrollToSection("contact")} />
+      </div>
 
       {/* Modules */}
       <section id="modules" className="scroll-mt-24 bg-white py-20 sm:py-28">
@@ -610,21 +576,18 @@ export function LoginScreen() {
             </p>
           </div>
 
-          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {MODULE_KEYS.map((key) => {
               const Icon = MODULE_ICONS[key];
+              const screen = MODULE_SCREEN[key];
               return (
-                <article key={key} className="group overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.1)]">
-                  <div className="relative aspect-[16/10] overflow-hidden">
-                    <Image
-                      src={MODULE_IMAGES[key]}
-                      alt={t(`landing.modules.items.${key}.title`)}
-                      fill
-                      className="object-cover transition duration-500 group-hover:scale-105"
-                      sizes="(max-width: 640px) 100vw, 25vw"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                    <span className="absolute left-4 top-4 inline-flex size-10 items-center justify-center rounded-xl bg-white text-brand-olive shadow">
+                <article
+                  key={key}
+                  className="group overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.1)]"
+                >
+                  <div className="relative overflow-hidden bg-gradient-to-b from-[#f8faf6] to-white px-4 pb-2 pt-4">
+                    {screen ? <ModulePhonePreview screen={screen} /> : null}
+                    <span className="absolute left-6 top-6 inline-flex size-10 items-center justify-center rounded-xl bg-white text-brand-olive shadow-md">
                       <Icon className="size-5" strokeWidth={2.2} />
                     </span>
                   </div>
@@ -656,6 +619,14 @@ export function LoginScreen() {
                 <p className="mt-4 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg">
                   {t("landing.contact.lead")}
                 </p>
+                <button
+                  type="button"
+                  onClick={() => scrollToSection("showcase")}
+                  className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-white/90 underline-offset-4 hover:underline"
+                >
+                  {t("landing.contact.seeApp")}
+                  <ArrowRight className="size-4" />
+                </button>
               </div>
 
               <div className="space-y-4">

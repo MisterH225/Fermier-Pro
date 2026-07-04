@@ -56,6 +56,7 @@
         "present": "E2IA presents",
         "scriptAccent": "One connected value chain",
         "cta": "Sign in",
+        "discover": "Discover the app",
         "learnMore": "Learn more",
         "sideLead": "Digitize your pig farming operations, track your herd and connect with stakeholders across your value chain in West Africa.",
         "decorAlt": "Pigs on a farm"
@@ -145,8 +146,28 @@
         "badge": "Get in touch",
         "title": "Let's talk about your value chain",
         "lead": "Want to deploy Fermier Pro, become a partner or learn more about our solutions? The E2IA team is here to help.",
+        "seeApp": "See the app in action",
         "phone": "Primary phone",
         "phoneAlt": "Secondary phone"
+      },
+      "showcase": {
+        "badge": "The real app",
+        "title": "Run your farm from your pocket",
+        "lead": "XOF wallet, feed stocks, herd by batch, marketplace and certified banking reports — everything your farmers already use every day.",
+        "herd": {
+          "title": "Herd organized by buildings and categories",
+          "body": "Sows, boars, piglets, fattening and starter batches: see your headcount at a glance and manage every pen from your phone."
+        },
+        "finance": {
+          "title": "Traceable finance, easier credit",
+          "body": "Income, expenses and Fermier Pro score exportable as a certified banking synthesis — to reassure institutions and speed up access to finance."
+        },
+        "ai": {
+          "title": "AI at the service of the field",
+          "body": "Personalized advice on building occupancy, herd health and daily decisions — right in the producer dashboard."
+        },
+        "ctaLead": "Ready to digitize your pig value chain?",
+        "cta": "Contact our team"
       },
       "footer": "Digitizing livestock supply chains across Africa and beyond."
     },
