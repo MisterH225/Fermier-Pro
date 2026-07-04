@@ -126,41 +126,58 @@ export class WithdrawalOrchestratorService {
       };
     }
 
-    const init = await this.gateway.initiateWithdraw({
-      amount: feeBreakdown.netAmount,
-      currency: summary.currency,
-      userId: user.id,
-      phone: payoutPhone,
-      label: "Retrait portefeuille Fermier Pro"
-    });
+    await this.wallet.lockFundsForWithdrawal(
+      user.id,
+      feeBreakdown.totalDebit,
+      summary.currency
+    );
 
-    const request = await this.prisma.withdrawalRequest.create({
-      data: {
-        walletId: wallet.id,
+    try {
+      const init = await this.gateway.initiateWithdraw({
+        amount: feeBreakdown.netAmount,
+        currency: summary.currency,
         userId: user.id,
-        amountRequested: feeBreakdown.amount,
+        phone: payoutPhone,
+        label: "Retrait portefeuille Fermier Pro"
+      });
+
+      const request = await this.prisma.withdrawalRequest.create({
+        data: {
+          walletId: wallet.id,
+          userId: user.id,
+          amountRequested: feeBreakdown.amount,
+          feeAmount: feeBreakdown.feeAmount,
+          totalDebit: feeBreakdown.totalDebit,
+          amountToReceive: feeBreakdown.netAmount,
+          phoneNumber: payoutPhone,
+          status: WithdrawalRequestStatus.processing,
+          providerRef: init.providerRef,
+          idempotencyKey
+        }
+      });
+
+      return {
+        requiresApproval: false,
+        withdrawalRequestId: request.id,
+        providerRef: init.providerRef,
+        amount: feeBreakdown.amount,
         feeAmount: feeBreakdown.feeAmount,
         totalDebit: feeBreakdown.totalDebit,
         amountToReceive: feeBreakdown.netAmount,
-        phoneNumber: payoutPhone,
-        status: WithdrawalRequestStatus.processing,
-        providerRef: init.providerRef,
-        idempotencyKey
-      }
-    });
-
-    return {
-      requiresApproval: false,
-      withdrawalRequestId: request.id,
-      providerRef: init.providerRef,
-      amount: feeBreakdown.amount,
-      feeAmount: feeBreakdown.feeAmount,
-      totalDebit: feeBreakdown.totalDebit,
-      amountToReceive: feeBreakdown.netAmount,
-      currency: summary.currency,
-      phone: payoutPhone,
-      paymentUrl: init.paymentUrl ?? null
-    };
+        currency: summary.currency,
+        phone: payoutPhone,
+        paymentUrl: init.paymentUrl ?? null
+      };
+    } catch (error) {
+      await this.wallet.releaseWithdrawalLock(
+        user.id,
+        feeBreakdown.totalDebit,
+        summary.currency,
+        "Échec initiation retrait — fonds débloqués",
+        `withdraw-init-release:${idempotencyKey}`
+      );
+      throw error;
+    }
   }
 
   async confirmWithdrawal(
@@ -175,23 +192,30 @@ export class WithdrawalOrchestratorService {
       withdrawalRequestId,
       providerRef
     );
-    const feeBreakdown = await this.fees.calculateFee(
-      WalletFeeTransactionType.withdrawal,
-      amount
-    );
-    if (Number(request.amountRequested) !== feeBreakdown.amount) {
+    const amountRequested = Number(request.amountRequested);
+    const feeAmount = Number(request.feeAmount);
+    const totalDebit = Number(request.totalDebit);
+    const netAmount = Number(request.amountToReceive);
+
+    if (amount !== amountRequested) {
       throw new BadRequestException("Montant incohérent avec la demande de retrait");
     }
 
-    await this.wallet.assertSufficientBalance(user.id, feeBreakdown.totalDebit);
     const summary = await this.wallet.getSummary(user.id);
 
     const confirmed = await this.gateway.confirmWithdraw(
       providerRef,
       user.id,
-      feeBreakdown.netAmount
+      netAmount
     );
     if (!confirmed.success) {
+      await this.wallet.releaseWithdrawalLock(
+        user.id,
+        totalDebit,
+        summary.currency,
+        confirmed.failureReason ?? "Retrait mobile money non confirmé",
+        `withdraw-release:${providerRef}`
+      );
       await this.prisma.withdrawalRequest.update({
         where: { id: request.id },
         data: {
@@ -205,9 +229,10 @@ export class WithdrawalOrchestratorService {
       );
     }
 
-    const withdrawEntry = await this.wallet.debitWithdraw(
+    const result = await this.wallet.completeWithdrawalFromLock(
       user.id,
-      feeBreakdown.netAmount,
+      amountRequested,
+      feeAmount,
       summary.currency,
       providerRef,
       phone?.trim()
@@ -216,21 +241,10 @@ export class WithdrawalOrchestratorService {
       `withdraw:${providerRef}`
     );
 
-    if (feeBreakdown.feeAmount > 0) {
-      await this.wallet.debitFee(
-        user.id,
-        feeBreakdown.feeAmount,
-        summary.currency,
-        "Frais de retrait portefeuille",
-        `withdraw-fee:${providerRef}`,
-        providerRef
-      );
-    }
-
     await this.platformAccount.recordWithdrawalCompleted(
-      feeBreakdown.netAmount,
-      feeBreakdown.totalDebit,
-      feeBreakdown.feeAmount
+      netAmount,
+      totalDebit,
+      feeAmount
     );
 
     await this.prisma.withdrawalRequest.update({
@@ -243,9 +257,9 @@ export class WithdrawalOrchestratorService {
 
     return {
       ok: true,
-      entry: withdrawEntry,
-      feeAmount: feeBreakdown.feeAmount,
-      balance: withdrawEntry.balanceAfter,
+      entry: result.withdraw,
+      feeAmount,
+      balance: result.withdraw.balanceAfter,
       currency: summary.currency
     };
   }

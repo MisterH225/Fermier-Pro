@@ -44,6 +44,7 @@ import {
   calculateAgreedDealAmount,
   calculateBlockedAmount,
   calculateFinalAmount,
+  calculateFinalAmountAtEstimatedWeight,
   estimatePlatformFee,
   lastNMonthKeys,
   paymentExpiryDate,
@@ -1859,33 +1860,14 @@ export class MarketplaceTransactionService {
       const finalAmount = calculateFinalAmount(tx);
       const blocked = Number(tx.blockedAmount);
       const rate = Number(tx.commissionRate);
-      const amounts = settlementAmounts({
+      let settlementFinalAmount = finalAmount;
+      let amounts = settlementAmounts({
         blockedAmount: blocked,
-        finalAmount,
+        finalAmount: settlementFinalAmount,
         commissionRate: rate,
         buyerPaysCommission: tx.buyerPaysCommission,
         sellerCommissionRate: Number(tx.sellerCommissionRate ?? 0)
       });
-
-      const closed = await this.prisma.marketplaceTransaction.updateMany({
-        where: {
-          id: tx.id,
-          status: MarketplaceTransactionStatus.BUYER_RECEIVED
-        },
-        data: {
-          status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
-          closedAt: new Date(),
-          finalAmount: new Prisma.Decimal(finalAmount),
-          commissionAmount: new Prisma.Decimal(amounts.commissionAmount),
-          sellerCommissionAmount: new Prisma.Decimal(amounts.sellerCommissionAmount),
-          sellerReceivedAmount: new Prisma.Decimal(amounts.sellerReceivedAmount),
-          buyerRefundAmount: new Prisma.Decimal(amounts.buyerRefundAmount),
-          buyerAdditionalCharge: new Prisma.Decimal(amounts.buyerAdditionalCharge)
-        }
-      });
-      if (closed.count === 0) {
-        return;
-      }
 
       if (amounts.buyerAdditionalCharge > 0) {
         const charged = await this.escrow.chargeAdditional(
@@ -1895,7 +1877,17 @@ export class MarketplaceTransactionService {
           tx.currency
         );
         if (!charged) {
-          const extraLabel = `${Math.round(amounts.buyerAdditionalCharge).toLocaleString("fr-FR")} ${tx.currency}`;
+          settlementFinalAmount = calculateFinalAmountAtEstimatedWeight(tx);
+          amounts = settlementAmounts({
+            blockedAmount: blocked,
+            finalAmount: settlementFinalAmount,
+            commissionRate: rate,
+            buyerPaysCommission: tx.buyerPaysCommission,
+            sellerCommissionRate: Number(tx.sellerCommissionRate ?? 0)
+          });
+          const extraLabel = `${Math.round(
+            calculateFinalAmount(tx) - settlementFinalAmount
+          ).toLocaleString("fr-FR")} ${tx.currency}`;
           void this.push.sendToUser(
             tx.buyerUserId,
             "Complément à régler au vendeur",
@@ -1903,7 +1895,9 @@ export class MarketplaceTransactionService {
             {
               type: "marketplace_additional_charge_due",
               transactionId: tx.id,
-              amount: String(amounts.buyerAdditionalCharge)
+              amount: String(
+                calculateFinalAmount(tx) - settlementFinalAmount
+              )
             }
           );
           void this.push.sendToUser(
@@ -1913,10 +1907,32 @@ export class MarketplaceTransactionService {
             {
               type: "marketplace_additional_charge_due",
               transactionId: tx.id,
-              amount: String(amounts.buyerAdditionalCharge)
+              amount: String(
+                calculateFinalAmount(tx) - settlementFinalAmount
+              )
             }
           );
         }
+      }
+
+      const closed = await this.prisma.marketplaceTransaction.updateMany({
+        where: {
+          id: tx.id,
+          status: MarketplaceTransactionStatus.BUYER_RECEIVED
+        },
+        data: {
+          status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
+          closedAt: new Date(),
+          finalAmount: new Prisma.Decimal(settlementFinalAmount),
+          commissionAmount: new Prisma.Decimal(amounts.commissionAmount),
+          sellerCommissionAmount: new Prisma.Decimal(amounts.sellerCommissionAmount),
+          sellerReceivedAmount: new Prisma.Decimal(amounts.sellerReceivedAmount),
+          buyerRefundAmount: new Prisma.Decimal(amounts.buyerRefundAmount),
+          buyerAdditionalCharge: new Prisma.Decimal(amounts.buyerAdditionalCharge)
+        }
+      });
+      if (closed.count === 0) {
+        return;
       }
 
       if (amounts.buyerRefundAmount > 0) {
@@ -1969,7 +1985,7 @@ export class MarketplaceTransactionService {
             transactionId: tx.id,
             sellerId: tx.sellerUserId,
             buyerId: tx.buyerUserId,
-            grossAmount: new Prisma.Decimal(finalAmount),
+            grossAmount: new Prisma.Decimal(settlementFinalAmount),
             commissionRate: tx.commissionRate,
             commissionAmount: new Prisma.Decimal(amounts.totalCommissionAmount)
           }

@@ -46,6 +46,20 @@ export class AccountDeletionService {
     });
     const ownedFarmIds = ownedFarms.map((f) => f.id);
 
+    if (ownedFarmIds.length > 0) {
+      const farmEscrow = await this.prisma.marketplaceTransaction.count({
+        where: {
+          listing: { farmId: { in: ownedFarmIds } },
+          status: { in: ACTIVE_ESCROW_STATUSES }
+        }
+      });
+      if (farmEscrow > 0) {
+        throw new BadRequestException(
+          "Compte non supprimable : transaction escrow active sur un de vos projets. Attendez sa clôture."
+        );
+      }
+    }
+
     const collaborators =
       ownedFarmIds.length > 0
         ? await this.prisma.farmMembership.findMany({

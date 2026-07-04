@@ -43,13 +43,13 @@ export const supabaseSecureStorage = {
     if (!Number.isFinite(count) || count < 1) {
       return null;
     }
-    const parts: string[] = [];
-    for (let i = 0; i < count; i += 1) {
-      const part = await SecureStore.getItemAsync(chunkKey(key, i));
-      if (part == null) {
-        return null;
-      }
-      parts.push(part);
+    const parts = await Promise.all(
+      Array.from({ length: count }, (_, i) =>
+        SecureStore.getItemAsync(chunkKey(key, i))
+      )
+    );
+    if (parts.some((part) => part == null)) {
+      return null;
     }
     return parts.join("");
   },

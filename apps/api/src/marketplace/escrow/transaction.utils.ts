@@ -229,6 +229,21 @@ export function calculateFinalAmount(tx: {
   return perKg * weight;
 }
 
+/** Montant final basé sur le poids estimé (sans complément poids réel). */
+export function calculateFinalAmountAtEstimatedWeight(tx: {
+  priceType: MarketplacePriceType;
+  agreedPricePerKg: { toNumber(): number } | null;
+  agreedFlatPrice: { toNumber(): number } | null;
+  estimatedWeightKg: { toNumber(): number } | null;
+}): number {
+  if (tx.priceType === MarketplacePriceType.flat) {
+    return tx.agreedFlatPrice ? tx.agreedFlatPrice.toNumber() : 0;
+  }
+  const perKg = tx.agreedPricePerKg?.toNumber() ?? 0;
+  const weight = tx.estimatedWeightKg?.toNumber() ?? 0;
+  return perKg * weight;
+}
+
 export function settlementAmounts(params: {
   blockedAmount: number;
   finalAmount: number;
