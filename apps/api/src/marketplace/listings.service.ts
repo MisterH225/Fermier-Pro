@@ -32,7 +32,7 @@ import { PublishListingDto } from "./dto/publish-listing.dto";
 import { RenewListingDto } from "./dto/renew-listing.dto";
 import { FarmRatingsService } from "./farm-ratings.service";
 import { FarmMarketplaceLifecycleService } from "./farm-marketplace-lifecycle.service";
-import { MarketplacePigPriceIndexService } from "./pig-price-index.service";
+import { PigPriceIndexService } from "../market/pig-price-index.service";
 import {
   buildListingFarmInfo,
   buildListingHealthData
@@ -102,7 +102,7 @@ export class ListingsService {
     private readonly farmRatings: FarmRatingsService,
     private readonly push: PushNotificationsService,
     private readonly marketplaceLifecycle: FarmMarketplaceLifecycleService,
-    private readonly pigPriceIndex: MarketplacePigPriceIndexService,
+    private readonly pigPriceIndex: PigPriceIndexService,
     private readonly listingAnimalSync: ListingAnimalSyncService,
     private readonly producerScore: ProducerScoreService
   ) {}

@@ -44,6 +44,15 @@ describe("producer-score.util", () => {
     ).toBe(ProducerScore.nouveau);
   });
 
+  it("deriveProducerScore returns bon for mid-range profiles (50-64)", () => {
+    expect(
+      deriveProducerScore(
+        { dataRegularity: 60, platformUsage: 55, responsiveness: 60 },
+        false
+      )
+    ).toBe(ProducerScore.bon);
+  });
+
   it("deriveProducerScore returns excellent for strong profiles", () => {
     expect(
       deriveProducerScore(

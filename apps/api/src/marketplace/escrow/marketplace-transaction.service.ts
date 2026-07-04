@@ -1502,6 +1502,26 @@ export class MarketplaceTransactionService {
         sellerCommissionRate: Number(tx.sellerCommissionRate ?? 0)
       });
 
+      const closed = await this.prisma.marketplaceTransaction.updateMany({
+        where: {
+          id: transactionId,
+          status: { in: SETTABLE_STATUSES }
+        },
+        data: {
+          status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
+          closedAt: new Date(),
+          finalAmount: new Prisma.Decimal(finalAmount),
+          commissionAmount: new Prisma.Decimal(amounts.commissionAmount),
+          sellerCommissionAmount: new Prisma.Decimal(amounts.sellerCommissionAmount),
+          sellerReceivedAmount: new Prisma.Decimal(amounts.sellerReceivedAmount),
+          buyerRefundAmount: new Prisma.Decimal(amounts.buyerRefundAmount),
+          buyerAdditionalCharge: new Prisma.Decimal(amounts.buyerAdditionalCharge)
+        }
+      });
+      if (closed.count === 0) {
+        return;
+      }
+
       if (amounts.buyerRefundAmount > 0) {
         await this.escrow.refundBuyer(
           tx.id,
@@ -1523,26 +1543,6 @@ export class MarketplaceTransactionService {
         amounts.totalCommissionAmount,
         tx.currency
       );
-
-      const closed = await this.prisma.marketplaceTransaction.updateMany({
-        where: {
-          id: transactionId,
-          status: { in: SETTABLE_STATUSES }
-        },
-        data: {
-          status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
-          closedAt: new Date(),
-          finalAmount: new Prisma.Decimal(finalAmount),
-          commissionAmount: new Prisma.Decimal(amounts.commissionAmount),
-          sellerCommissionAmount: new Prisma.Decimal(amounts.sellerCommissionAmount),
-          sellerReceivedAmount: new Prisma.Decimal(amounts.sellerReceivedAmount),
-          buyerRefundAmount: new Prisma.Decimal(amounts.buyerRefundAmount),
-          buyerAdditionalCharge: new Prisma.Decimal(amounts.buyerAdditionalCharge)
-        }
-      });
-      if (closed.count === 0) {
-        return;
-      }
 
       try {
         await this.prisma.platformRevenue.create({
@@ -1867,6 +1867,26 @@ export class MarketplaceTransactionService {
         sellerCommissionRate: Number(tx.sellerCommissionRate ?? 0)
       });
 
+      const closed = await this.prisma.marketplaceTransaction.updateMany({
+        where: {
+          id: tx.id,
+          status: MarketplaceTransactionStatus.BUYER_RECEIVED
+        },
+        data: {
+          status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
+          closedAt: new Date(),
+          finalAmount: new Prisma.Decimal(finalAmount),
+          commissionAmount: new Prisma.Decimal(amounts.commissionAmount),
+          sellerCommissionAmount: new Prisma.Decimal(amounts.sellerCommissionAmount),
+          sellerReceivedAmount: new Prisma.Decimal(amounts.sellerReceivedAmount),
+          buyerRefundAmount: new Prisma.Decimal(amounts.buyerRefundAmount),
+          buyerAdditionalCharge: new Prisma.Decimal(amounts.buyerAdditionalCharge)
+        }
+      });
+      if (closed.count === 0) {
+        return;
+      }
+
       if (amounts.buyerAdditionalCharge > 0) {
         const charged = await this.escrow.chargeAdditional(
           tx.id,
@@ -1941,26 +1961,6 @@ export class MarketplaceTransactionService {
         } catch (e) {
           this.log.warn(`handover after settle ${tx.id}: ${(e as Error).message}`);
         }
-      }
-
-      const closed = await this.prisma.marketplaceTransaction.updateMany({
-        where: {
-          id: tx.id,
-          status: MarketplaceTransactionStatus.BUYER_RECEIVED
-        },
-        data: {
-          status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
-          closedAt: new Date(),
-          finalAmount: new Prisma.Decimal(finalAmount),
-          commissionAmount: new Prisma.Decimal(amounts.commissionAmount),
-          sellerCommissionAmount: new Prisma.Decimal(amounts.sellerCommissionAmount),
-          sellerReceivedAmount: new Prisma.Decimal(amounts.sellerReceivedAmount),
-          buyerRefundAmount: new Prisma.Decimal(amounts.buyerRefundAmount),
-          buyerAdditionalCharge: new Prisma.Decimal(amounts.buyerAdditionalCharge)
-        }
-      });
-      if (closed.count === 0) {
-        return;
       }
 
       try {

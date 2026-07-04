@@ -30,6 +30,18 @@ describe("transaction.utils", () => {
       ).toBe(945_000);
     });
 
+    it("ne se rabat pas sur offeredPrice pour per_kg sans poids estimé", () => {
+      expect(
+        calculateAgreedDealAmount({
+          priceType: MarketplacePriceType.per_kg,
+          agreedPricePerKg: 1_500,
+          agreedFlatPrice: null,
+          estimatedWeightKg: null,
+          offeredPrice: 945_000
+        })
+      ).toBe(0);
+    });
+
     it("se rabat sur offeredPrice si les termes stockés sont absents", () => {
       expect(
         calculateAgreedDealAmount({

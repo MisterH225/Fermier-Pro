@@ -42,7 +42,18 @@ async function bootstrap() {
   }
 
   // Headers de sécurité HTTP (CSP, HSTS, X-Frame-Options, etc.)
-  app.use(helmet({ contentSecurityPolicy: false }));
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:", "https:"]
+        }
+      }
+    })
+  );
 
   app.setGlobalPrefix("api/v1");
   app.useGlobalPipes(

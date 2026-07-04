@@ -148,8 +148,11 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
       if (metadata.user_id !== userId) {
         return "Référence non liée à cet utilisateur";
       }
-      const expected = metadata.amount ? Number(metadata.amount) : amount;
-      if (Number.isFinite(expected) && Math.abs(expected - amount) > 1) {
+      const providerAmount = metadata.amount ? Number(metadata.amount) : NaN;
+      if (!Number.isFinite(providerAmount) || providerAmount <= 0) {
+        return "Montant de recharge absent côté prestataire";
+      }
+      if (Math.abs(providerAmount - amount) > 1) {
         return "Montant de recharge incohérent";
       }
       return null;
@@ -203,7 +206,16 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
         return { success: false, providerRef, failureReason: metaError };
       }
       if (payment.status === "completed") {
-        return { success: true, providerRef };
+        const verifiedAmount =
+          metadata.amount != null ? Number(metadata.amount) : undefined;
+        return {
+          success: true,
+          providerRef,
+          verifiedAmount:
+            verifiedAmount != null && Number.isFinite(verifiedAmount)
+              ? verifiedAmount
+              : undefined
+        };
       }
       if (
         payment.status === "failed" ||

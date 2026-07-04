@@ -8,6 +8,13 @@ import { PrismaService } from "../prisma/prisma.service";
 import { PigPriceIndexCacheService } from "./pig-price-index-cache.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
 import {
+  EMPTY_HYBRID_INDEX,
+  PigPriceIndexHybridService,
+  type HybridIndexCalculationResult,
+  type HybridIndexPublicDto,
+  type HybridIndexPublicResponse
+} from "./pig-price-index-hybrid.service";
+import {
   listingHeadcount
 } from "../marketplace/marketplace-listing-category.helper";
 import {
@@ -138,6 +145,13 @@ function num(d: Prisma.Decimal | null | undefined): number | null {
   return Number(d);
 }
 
+export type {
+  HybridIndexCalculationResult,
+  HybridIndexPublicDto,
+  HybridIndexPublicResponse
+};
+export { EMPTY_HYBRID_INDEX };
+
 @Injectable()
 export class PigPriceIndexService {
   private readonly log = new Logger(PigPriceIndexService.name);
@@ -145,7 +159,8 @@ export class PigPriceIndexService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: PigPriceIndexCacheService,
-    private readonly smartAlerts: SmartAlertsService
+    private readonly smartAlerts: SmartAlertsService,
+    private readonly hybrid: PigPriceIndexHybridService
   ) {}
 
   cacheKey(suffix: string): string {
@@ -748,5 +763,37 @@ export class PigPriceIndexService {
       variationPct: null,
       limitedData: count < MIN_TRANSACTIONS_FOR_POINT
     };
+  }
+
+  calculateHybridIndex(): Promise<HybridIndexCalculationResult> {
+    return this.hybrid.calculateHybridIndex();
+  }
+
+  getHybridPublicIndex(): Promise<HybridIndexPublicDto | null> {
+    return this.hybrid.getPublicIndex();
+  }
+
+  getPublicIndexOrDefault(): Promise<HybridIndexPublicResponse> {
+    return this.hybrid.getPublicIndexOrDefault();
+  }
+
+  getHybridSnapshots(limit = 30) {
+    return this.hybrid.getSnapshots(limit);
+  }
+
+  getHybridFlaggedListings(limit = 50) {
+    return this.hybrid.getFlaggedListings(limit);
+  }
+
+  getHybridTopContributors(limit = 10) {
+    return this.hybrid.getTopContributors(limit);
+  }
+
+  unfreezeHybridIndex() {
+    return this.hybrid.unfreezeIndex();
+  }
+
+  refreshSellerIndexWeight(sellerUserId: string): Promise<void> {
+    return this.hybrid.refreshSellerIndexWeight(sellerUserId);
   }
 }

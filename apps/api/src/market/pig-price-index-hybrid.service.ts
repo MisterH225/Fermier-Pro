@@ -13,7 +13,7 @@ import {
   winsorizePoints,
   type HybridIndexPoint,
   type HybridIndexTrend
-} from "./pig-price-index.utils";
+} from "./pig-price-index-hybrid.utils";
 
 export type HybridIndexPublicDto = {
   price_per_kg: number;
@@ -52,8 +52,8 @@ export type HybridIndexCalculationResult = {
 };
 
 @Injectable()
-export class MarketplacePigPriceIndexService {
-  private readonly log = new Logger(MarketplacePigPriceIndexService.name);
+export class PigPriceIndexHybridService {
+  private readonly log = new Logger(PigPriceIndexHybridService.name);
 
   constructor(
     private readonly prisma: PrismaService,

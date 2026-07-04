@@ -38,13 +38,11 @@ export function calculateAgreedDealAmount(params: {
     if (params.agreedFlatPrice != null && params.agreedFlatPrice > 0) {
       return params.agreedFlatPrice;
     }
-  } else if (
-    params.agreedPricePerKg != null &&
-    params.estimatedWeightKg != null &&
-    params.agreedPricePerKg > 0 &&
-    params.estimatedWeightKg > 0
-  ) {
-    return params.agreedPricePerKg * params.estimatedWeightKg;
+  } else if (params.agreedPricePerKg != null && params.agreedPricePerKg > 0) {
+    if (params.estimatedWeightKg != null && params.estimatedWeightKg > 0) {
+      return params.agreedPricePerKg * params.estimatedWeightKg;
+    }
+    return 0;
   }
   if (params.offeredPrice != null && params.offeredPrice > 0) {
     return params.offeredPrice;
