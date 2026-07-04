@@ -36,6 +36,7 @@ import {
 } from "@/lib/admin-oauth";
 import { cn } from "@/lib/utils";
 import { ProductShowcase } from "@/components/landing/ProductShowcase";
+import { FounderStory } from "@/components/landing/FounderStory";
 import { PhoneFrame } from "@/components/landing/PhoneFrame";
 import {
   DashboardMockup,
@@ -80,7 +81,7 @@ const MODULE_ICONS: Record<(typeof MODULE_KEYS)[number], typeof Leaf> = {
 
 const PILLAR_KEYS = ["actors", "traceability", "impact"] as const;
 
-const NAV_KEYS = ["ambition", "modules", "contact"] as const;
+const NAV_KEYS = ["story", "ambition", "modules", "contact"] as const;
 
 const STAT_KEYS = ["farms", "animals", "presence"] as const;
 
@@ -546,6 +547,8 @@ export function LoginScreen() {
           </div>
         </div>
       </section>
+
+      <FounderStory onContact={() => scrollToSection("contact")} />
 
       {/* Ambition / About */}
       <section id="ambition" className="scroll-mt-24 bg-white py-20 sm:py-28">

@@ -66,16 +66,58 @@
         "title": "Pourquoi Fermier Pro ?"
       },
       "nav": {
+        "story": "Notre histoire",
         "ambition": "Notre ambition",
         "modules": "Modules",
         "contact": "Contact"
+      },
+      "story": {
+        "badge": "Notre histoire",
+        "title": "Nés de la ferme, bâtis pour le terrain",
+        "lead": "E2IA, c'est d'abord l'histoire d'entrepreneurs-éleveurs qui ont connu les mêmes difficultés que vous : suivre un cheptel à la main, négocier sans données fiables, manquer de visibilité auprès des banques et des partenaires.",
+        "body": "Face à ces défis quotidiens en porcherie, nous avons conçu Fermier Pro : une application pensée depuis l'étable, pas depuis un bureau. Chaque module répond à un problème réel que nous avons vécu — et que vivent encore des centaines d'éleveurs en Côte d'Ivoire.",
+        "quote": "« On ne digitalise pas l'élevage pour la technologie. On le fait parce qu'un éleveur mérite les mêmes outils qu'une grande entreprise. »",
+        "photoBadge": "Le terrain",
+        "photoCaption": "Élevage porcin en Afrique de l'Ouest",
+        "photos": {
+          "photoFarmer": "Éleveur africain sur sa ferme",
+          "photoPigs": "Porcs en élevage",
+          "photoPiglets": "Bande de porcs en porcherie"
+        },
+        "problems": {
+          "badge": "Problèmes réels",
+          "title": "Ce que nous avons voulu résoudre",
+          "items": {
+            "traceability": {
+              "title": "Cheptel invisible",
+              "body": "Effectifs, catégories et historique dispersés sur des cahiers — impossible de décider vite et bien."
+            },
+            "finance": {
+              "title": "Finance opaque",
+              "body": "Sans traçabilité des revenus et dépenses, l'accès au crédit et aux partenaires bancaires reste bloqué."
+            },
+            "feed": {
+              "title": "Alimentation au feeling",
+              "body": "Stocks de croissance, démarrage et drêche mal suivis : ruptures, gaspillages et coûts qui explosent."
+            },
+            "actors": {
+              "title": "Filière déconnectée",
+              "body": "Producteurs, vétérinaires, acheteurs et institutions sur des silos — pas de confiance, pas de fluidité."
+            }
+          }
+        },
+        "solution": {
+          "lead": "Fermier Pro : la réponse née du terrain",
+          "body": "De E2IA à Fermier Pro, une même conviction — donner aux éleveurs ivoiriens (et au-delà) une plateforme simple, mobile et crédible pour produire mieux, vendre mieux et grandir durablement.",
+          "cta": "Parler à notre équipe"
+        }
       },
       "ambition": {
         "badge": "Notre ambition",
         "title": "Digitaliser les filières d'élevage",
         "organicBadge": "100% numérique",
         "cta": "Nous contacter",
-        "lead": "Chez E2IA, nous construisons Fermier Pro pour rapprocher tous les acteurs des filières porcine, avicole et bovine sur une même plateforme. Notre objectif : rendre l'élevage plus transparent, plus rentable et plus résilient, du producteur au consommateur.",
+        "lead": "Chez E2IA, nous digitalisons la filière porcine en Côte d'Ivoire — et construisons une plateforme ouverte à tous les acteurs de l'élevage, du producteur au consommateur.",
         "imageAlt": "Porc en élevage traditionnel en Afrique",
         "imageCaption": "La filière porcine, de la ferme au marché local",
         "points": {

@@ -67,9 +67,51 @@
         "title": "Why Fermier Pro?"
       },
       "nav": {
+        "story": "Our story",
         "ambition": "Our ambition",
         "modules": "Modules",
         "contact": "Contact"
+      },
+      "story": {
+        "badge": "Our story",
+        "title": "Born on the farm, built for the field",
+        "lead": "E2IA begins with farmer-entrepreneurs who faced the same challenges as you: tracking herds by hand, negotiating without reliable data, and lacking visibility with banks and partners.",
+        "body": "Facing these daily pig-farming challenges, we built Fermier Pro — an app designed from the barn, not from a desk. Every module solves a real problem we lived — and that hundreds of farmers still face in Côte d'Ivoire.",
+        "quote": "\"We don't digitize farming for technology's sake. We do it because a farmer deserves the same tools as a large enterprise.\"",
+        "photoBadge": "In the field",
+        "photoCaption": "Pig farming in West Africa",
+        "photos": {
+          "photoFarmer": "African farmer on the farm",
+          "photoPigs": "Pigs on a farm",
+          "photoPiglets": "Herd in a pig barn"
+        },
+        "problems": {
+          "badge": "Real problems",
+          "title": "What we set out to solve",
+          "items": {
+            "traceability": {
+              "title": "Invisible herd",
+              "body": "Headcounts, categories and history scattered in notebooks — impossible to decide quickly and well."
+            },
+            "finance": {
+              "title": "Opaque finances",
+              "body": "Without income and expense traceability, access to credit and banking partners remains blocked."
+            },
+            "feed": {
+              "title": "Feeding by guesswork",
+              "body": "Growth, starter and brewer's grain stocks poorly tracked: shortages, waste and soaring costs."
+            },
+            "actors": {
+              "title": "Disconnected value chain",
+              "body": "Producers, vets, buyers and institutions in silos — no trust, no flow."
+            }
+          }
+        },
+        "solution": {
+          "lead": "Fermier Pro: the answer born in the field",
+          "body": "From E2IA to Fermier Pro, one conviction — give Ivorian farmers (and beyond) a simple, mobile and credible platform to produce better, sell better and grow sustainably.",
+          "cta": "Talk to our team"
+        }
       },
       "ambition": {
         "badge": "Our ambition",
