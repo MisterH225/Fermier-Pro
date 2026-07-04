@@ -52,6 +52,17 @@
     "oauthEnvMissing": "Supabase env vars missing in the browser. Check apps/admin-platform/.env.local, then restart npm run dev:admin.",
     "landing": {
       "heroLead": "The platform connecting producers, veterinarians, buyers and institutions to manage livestock end to end — from herd to market.",
+      "hero": {
+        "present": "E2IA presents",
+        "scriptAccent": "One connected value chain",
+        "cta": "Sign in",
+        "learnMore": "Learn more",
+        "sideLead": "Digitize your operations, track your herd and connect with stakeholders across your value chain, wherever you are."
+      },
+      "why": {
+        "badge": "Discover our platform",
+        "title": "Why Fermier Pro?"
+      },
       "nav": {
         "ambition": "Our ambition",
         "modules": "Modules",
@@ -60,6 +71,8 @@
       "ambition": {
         "badge": "Our ambition",
         "title": "Digitizing livestock supply chains",
+        "organicBadge": "100% digital",
+        "cta": "Contact us",
         "lead": "At E2IA, we are building Fermier Pro to bring together all stakeholders across pig, poultry and cattle value chains on a single platform. Our goal: make farming more transparent, profitable and resilient, from producer to consumer.",
         "imageAlt": "Farmers in the field in West Africa",
         "imageCaption": "A connected value chain, from farm to market",
@@ -76,6 +89,16 @@
             "title": "Measurable field impact",
             "body": "Practical tools to improve productivity, animal health and farmer incomes."
           }
+        }
+      },
+      "features": {
+        "badge": "Our strengths",
+        "title": "Modern farming, simplified",
+        "items": {
+          "herd": "Complete inventory, batches and performance for every animal.",
+          "health": "Health records, vaccinations and real-time alerts.",
+          "marketplace": "Transparent buying and selling with reference prices.",
+          "feeding": "Optimized rations and feed stock management."
         }
       },
       "modules": {

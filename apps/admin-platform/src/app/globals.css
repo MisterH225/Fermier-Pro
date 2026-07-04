@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;700&family=Inter:wght@400;500;600;700;800&display=swap");
 
 @layer base {
   :root {
@@ -74,5 +74,28 @@
     border: 1px solid rgba(255, 255, 255, 0.7);
     border-radius: 1.25rem;
     box-shadow: 0 12px 40px rgba(37, 99, 235, 0.12);
+  }
+
+  .farm-landing-bg {
+    background-color: #f7f8f4;
+    background-image:
+      radial-gradient(ellipse 70% 50% at 0% 0%, rgba(141, 187, 97, 0.12), transparent 55%),
+      radial-gradient(ellipse 60% 40% at 100% 20%, rgba(92, 107, 58, 0.08), transparent 50%);
+  }
+
+  .farm-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand-olive px-8 py-3.5 text-sm font-bold text-white shadow-[0_8px_24px_rgba(92,107,58,0.35)] transition hover:bg-brand-olive-dark hover:scale-[1.02];
+  }
+
+  .farm-label {
+    @apply text-xs font-bold uppercase tracking-[0.2em] text-brand-olive;
+  }
+
+  .farm-card {
+    @apply rounded-3xl border border-gray-100 bg-white p-8 shadow-[0_12px_40px_rgba(0,0,0,0.06)] transition hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)];
+  }
+
+  .farm-title {
+    @apply text-3xl font-extrabold uppercase tracking-tight text-gray-900 sm:text-4xl;
   }
 }

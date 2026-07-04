@@ -5,6 +5,8 @@ import {
   ArrowRight,
   Baby,
   Brain,
+  Building2,
+  Egg,
   HeartPulse,
   Leaf,
   Mail,
@@ -14,8 +16,7 @@ import {
   ShoppingCart,
   Sprout,
   Tractor,
-  UtensilsCrossed,
-  Wheat
+  UtensilsCrossed
 } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
@@ -32,7 +33,10 @@ import {
 import { cn } from "@/lib/utils";
 
 const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=2000&q=80";
+  "https://images.unsplash.com/photo-1548550023-7bdb3c8c9f8f?auto=format&fit=crop&w=2000&q=80";
+
+const HERO_DECOR_IMAGE =
+  "https://images.unsplash.com/photo-1518495973542-9fa365acb8e4?auto=format&fit=crop&w=800&q=80";
 
 const AMBITION_IMAGE =
   "https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1200&q=80";
@@ -78,47 +82,15 @@ const MODULE_ICONS: Record<(typeof MODULE_KEYS)[number], typeof Leaf> = {
   ai: Brain
 };
 
-const MODULE_COLORS: Record<(typeof MODULE_KEYS)[number], string> = {
-  finance: "from-emerald-500/20 to-emerald-600/5",
-  herd: "from-primary/20 to-primary/5",
-  gestation: "from-pink-500/20 to-pink-600/5",
-  feeding: "from-amber-500/20 to-amber-600/5",
-  marketplace: "from-indigo-500/20 to-indigo-600/5",
-  health: "from-rose-500/20 to-rose-600/5",
-  sanitaryMap: "from-sky-500/20 to-sky-600/5",
-  ai: "from-violet-500/20 to-violet-600/5"
-};
+const PILLAR_KEYS = ["actors", "traceability", "impact"] as const;
 
-const STAT_KEYS = ["farms", "producers", "countries", "growth"] as const;
+const FEATURE_KEYS = ["herd", "health", "marketplace", "feeding"] as const;
 
-const STAT_STYLE: Record<
-  (typeof STAT_KEYS)[number],
-  { icon: typeof Leaf; bg: string; iconColor: string; valueColor: string }
-> = {
-  farms: {
-    icon: Tractor,
-    bg: "bg-primary/15",
-    iconColor: "text-primary",
-    valueColor: "text-primary"
-  },
-  producers: {
-    icon: Sprout,
-    bg: "bg-indigo-500/15",
-    iconColor: "text-indigo-600",
-    valueColor: "text-indigo-700"
-  },
-  countries: {
-    icon: Wheat,
-    bg: "bg-sky-500/15",
-    iconColor: "text-sky-600",
-    valueColor: "text-sky-700"
-  },
-  growth: {
-    icon: Leaf,
-    bg: "bg-amber-500/15",
-    iconColor: "text-amber-600",
-    valueColor: "text-amber-700"
-  }
+const FEATURE_ICONS: Record<(typeof FEATURE_KEYS)[number], typeof Leaf> = {
+  herd: Tractor,
+  health: HeartPulse,
+  marketplace: ShoppingCart,
+  feeding: Egg
 };
 
 const NAV_KEYS = ["ambition", "modules", "contact"] as const;
@@ -130,20 +102,22 @@ function LogoMark({
   className,
   variant = "light",
   size = "md",
-  centered = false
+  centered = false,
+  showBadge = true
 }: {
   className?: string;
   variant?: "light" | "dark";
   size?: "sm" | "md" | "lg";
   centered?: boolean;
+  showBadge?: boolean;
 }) {
-  const widths = { sm: 140, md: 168, lg: 220 };
+  const widths = { sm: 130, md: 160, lg: 200 };
   const w = widths[size];
   const h = Math.round(w / LOGO_ASPECT);
   const isLight = variant === "light";
 
   return (
-    <div className={cn("flex flex-col gap-2", centered && "items-center", className)}>
+    <div className={cn("flex flex-col gap-1.5", centered && "items-center", className)}>
       <Image
         src={LOGO_SRC}
         alt="Fermier Pro"
@@ -153,15 +127,15 @@ function LogoMark({
         className={cn(
           "object-contain",
           centered ? "object-center" : "object-left",
-          isLight && "drop-shadow-[0_2px_12px_rgba(0,0,0,0.35)]"
+          isLight && "brightness-0 invert drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
         )}
       />
-      {size !== "sm" ? (
+      {showBadge && size !== "sm" ? (
         <span
           className={cn(
             "text-[10px] font-bold uppercase tracking-[0.25em]",
             centered && "text-center",
-            isLight ? "text-blue-200/90" : "text-primary/70"
+            isLight ? "text-white/80" : "text-brand-olive"
           )}
         >
           SuperAdmin
@@ -173,6 +147,120 @@ function LogoMark({
 
 function scrollToSection(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function LoginForm({
+  t,
+  email,
+  setEmail,
+  password,
+  setPassword,
+  error,
+  loading,
+  googleLoading,
+  onSubmit,
+  onGoogle
+}: {
+  t: ReturnType<typeof useTranslations<"login">>;
+  email: string;
+  setEmail: (v: string) => void;
+  password: string;
+  setPassword: (v: string) => void;
+  error: string | null;
+  loading: boolean;
+  googleLoading: boolean;
+  onSubmit: (e: React.FormEvent) => void;
+  onGoogle: () => void;
+}) {
+  return (
+    <div className="farm-card w-full max-w-md">
+      <div className="mb-6 text-center">
+        <LogoMark variant="dark" size="md" centered showBadge={false} />
+        <h2 className="mt-4 text-2xl font-extrabold text-gray-900">{t("title")}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">{t("formLead")}</p>
+      </div>
+
+      <button
+        type="button"
+        disabled={googleLoading}
+        onClick={onGoogle}
+        className="flex w-full items-center justify-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-6 py-3.5 text-sm font-bold text-foreground transition hover:bg-gray-100 disabled:opacity-60"
+      >
+        <svg className="size-5" viewBox="0 0 24 24" aria-hidden>
+          <path
+            fill="#4285F4"
+            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+          />
+          <path
+            fill="#34A853"
+            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+          />
+          <path
+            fill="#FBBC05"
+            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+          />
+          <path
+            fill="#EA4335"
+            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+          />
+        </svg>
+        {googleLoading ? "…" : t("google")}
+      </button>
+
+      <div className="relative py-4">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-dashed border-gray-200" />
+        </div>
+        <div className="relative flex justify-center">
+          <span className="bg-white px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            {t("orEmail")}
+          </span>
+        </div>
+      </div>
+
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email" className="text-sm font-bold">
+            {t("email")}
+          </Label>
+          <Input
+            id="email"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="h-12 rounded-2xl border-gray-200 px-5 font-medium"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="password" className="text-sm font-bold">
+            {t("password")}
+          </Label>
+          <Input
+            id="password"
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="h-12 rounded-2xl border-gray-200 px-5 font-medium"
+          />
+        </div>
+
+        {error ? (
+          <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            {error}
+          </p>
+        ) : null}
+
+        <button type="submit" disabled={loading} className="farm-btn w-full disabled:opacity-60">
+          {loading ? "…" : t("submit")}
+          {!loading ? <ArrowRight className="size-5" /> : null}
+        </button>
+      </form>
+
+      <p className="mt-4 text-center text-xs text-muted-foreground">{t("googleHint")}</p>
+    </div>
+  );
 }
 
 export function LoginScreen() {
@@ -259,211 +347,168 @@ export function LoginScreen() {
     }
   };
 
-  return (
-    <div className="min-h-screen dashboard-bg">
-      {/* Navigation */}
-      <header className="sticky top-0 z-50 border-b border-white/40 bg-white/75 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <button type="button" onClick={() => scrollToSection("top")} className="shrink-0">
-            <LogoMark variant="dark" size="sm" />
-          </button>
+  const loginFormProps = {
+    t,
+    email,
+    setEmail,
+    password,
+    setPassword,
+    error,
+    loading,
+    googleLoading,
+    onSubmit,
+    onGoogle
+  };
 
-          <nav className="hidden items-center gap-1 md:flex">
+  return (
+    <div className="min-h-screen farm-landing-bg">
+      {/* Hero */}
+      <section id="top" className="relative min-h-[92vh] overflow-hidden">
+        <div className="absolute inset-0">
+          <Image src={HERO_IMAGE} alt="" fill priority className="object-cover" sizes="100vw" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/50 to-black/75" />
+        </div>
+
+        {/* Nav overlay */}
+        <header className="relative z-20">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-5 sm:px-6 lg:px-8">
+            <button type="button" onClick={() => scrollToSection("top")}>
+              <LogoMark variant="light" size="sm" showBadge={false} />
+            </button>
+
+            <nav className="hidden items-center gap-8 md:flex">
+              {NAV_KEYS.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => scrollToSection(key)}
+                  className="text-sm font-semibold text-white/90 transition hover:text-white"
+                >
+                  {t(`landing.nav.${key}`)}
+                </button>
+              ))}
+            </nav>
+
+            <button
+              type="button"
+              onClick={() => scrollToSection("login")}
+              className="farm-btn px-5 py-2.5 text-xs sm:text-sm"
+            >
+              {t("navSignIn")}
+            </button>
+          </div>
+
+          <nav className="flex gap-2 overflow-x-auto px-4 pb-3 md:hidden">
             {NAV_KEYS.map((key) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => scrollToSection(key)}
-                className="rounded-full px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-primary/10 hover:text-primary"
+                className="shrink-0 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm"
               >
                 {t(`landing.nav.${key}`)}
               </button>
             ))}
           </nav>
+        </header>
 
-          <button
-            type="button"
-            onClick={() => scrollToSection("login")}
-            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary via-brand-light to-blue-400 px-5 py-2.5 text-sm font-bold text-white shadow-glow-blue transition hover:scale-[1.02]"
-          >
-            {t("navSignIn")}
-            <ArrowRight className="size-4" />
-          </button>
-        </div>
+        <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-10 px-4 pb-16 pt-8 sm:px-6 lg:grid-cols-2 lg:px-8 lg:pb-24">
+          <div className="text-center text-white lg:text-left">
+            <p className="farm-label text-white/70">{t("landing.hero.present")}</p>
 
-        <nav className="flex gap-1 overflow-x-auto border-t border-white/30 px-4 py-2 md:hidden">
-          {NAV_KEYS.map((key) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => scrollToSection(key)}
-              className="shrink-0 rounded-full bg-white/60 px-3 py-1.5 text-xs font-semibold text-muted-foreground"
-            >
-              {t(`landing.nav.${key}`)}
-            </button>
-          ))}
-        </nav>
-      </header>
-
-      {/* Hero */}
-      <section id="top" className="relative overflow-hidden">
-        <div className="absolute inset-0">
-          <Image
-            src={HERO_IMAGE}
-            alt=""
-            fill
-            priority
-            className="object-cover"
-            sizes="100vw"
-          />
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/92 via-brand-light/80 to-indigo-900/88" />
-        </div>
-
-        <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:px-8 lg:py-20">
-          <div className="text-white">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/15 px-4 py-2 text-xs font-bold uppercase tracking-wide text-blue-100">
-              <Sprout className="size-3.5" />
-              {t("hero.badge")}
-            </span>
-
-            <h1 className="mt-6 text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl lg:text-[3.25rem]">
-              <span className="text-blue-200">{t("hero.titleHighlight")}</span>
+            <h1 className="mt-4 text-4xl font-extrabold uppercase leading-[1.05] tracking-tight sm:text-5xl lg:text-[3.4rem]">
+              {t("hero.titleHighlight")}
               <br />
-              {t("hero.titleRest")}
+              <span className="text-white">{t("hero.titleRest")}</span>
             </h1>
 
-            <p className="mt-5 max-w-xl text-base font-medium leading-relaxed text-white/90 sm:text-lg">
+            <p className="mt-4 font-script text-3xl text-brand-olive-light sm:text-4xl">
+              {t("landing.hero.scriptAccent")}
+            </p>
+
+            <p className="mx-auto mt-6 max-w-lg text-base leading-relaxed text-white/85 lg:mx-0">
               {t("landing.heroLead")}
             </p>
 
-            <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {STAT_KEYS.map((key) => {
-                const style = STAT_STYLE[key];
-                const Icon = style.icon;
-                return (
-                  <div
-                    key={key}
-                    className="rounded-2xl border border-white/25 bg-white/10 px-3 py-4 text-center backdrop-blur-sm"
-                  >
-                    <span
-                      className={cn(
-                        "mx-auto mb-2 inline-flex size-9 items-center justify-center rounded-xl",
-                        style.bg
-                      )}
-                    >
-                      <Icon className={cn("size-4", style.iconColor)} strokeWidth={2.2} />
-                    </span>
-                    <p className="text-lg font-extrabold text-white">
-                      {t(`hero.stats.${key}.value`)}
-                    </p>
-                    <p className="mt-1 text-[10px] font-medium leading-snug text-blue-100/90 sm:text-xs">
-                      {t(`hero.stats.${key}.label`)}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Login card */}
-          <div id="login" className="scroll-mt-24">
-            <div className="glass-card rounded-3xl p-6 shadow-2xl sm:p-8">
-              <div className="mb-6 text-center">
-                <LogoMark variant="dark" size="md" centered />
-                <h2 className="mt-4 text-2xl font-extrabold text-foreground">{t("title")}</h2>
-                <p className="mt-2 text-sm text-muted-foreground">{t("formLead")}</p>
-              </div>
-
+            <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row lg:justify-start">
               <button
                 type="button"
-                disabled={googleLoading}
-                onClick={onGoogle}
-                className="flex w-full items-center justify-center gap-2 rounded-full border border-white/70 bg-white/50 px-6 py-3.5 text-sm font-bold text-foreground transition hover:bg-white/80 disabled:opacity-60"
+                onClick={() => scrollToSection("login")}
+                className="farm-btn"
               >
-                <svg className="size-5" viewBox="0 0 24 24" aria-hidden>
-                  <path
-                    fill="#4285F4"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  />
-                </svg>
-                {googleLoading ? "…" : t("google")}
+                {t("landing.hero.cta")}
               </button>
-
-              <div className="relative py-4">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-dashed border-border" />
-                </div>
-                <div className="relative flex justify-center">
-                  <span className="bg-white/90 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    {t("orEmail")}
-                  </span>
-                </div>
-              </div>
-
-              <form onSubmit={onSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-bold">
-                    {t("email")}
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="h-12 px-5 font-medium"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-bold">
-                    {t("password")}
-                  </Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-12 px-5 font-medium"
-                  />
-                </div>
-
-                {error ? (
-                  <p className="rounded-2xl border-2 border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                    {error}
-                  </p>
-                ) : null}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary via-brand-light to-blue-400 px-8 py-4 text-sm font-extrabold text-white shadow-glow-blue transition hover:scale-[1.02] active:scale-[0.99] disabled:opacity-60 disabled:hover:scale-100"
-                >
-                  {loading ? "…" : t("submit")}
-                  {!loading ? <ArrowRight className="size-5" /> : null}
-                </button>
-              </form>
-
-              <p className="mt-4 text-center text-xs text-muted-foreground">{t("googleHint")}</p>
+              <button
+                type="button"
+                onClick={() => scrollToSection("ambition")}
+                className="inline-flex items-center gap-2 text-sm font-semibold text-white/90 transition hover:text-white"
+              >
+                {t("landing.hero.learnMore")}
+                <ArrowRight className="size-4" />
+              </button>
             </div>
+
+            <p className="mt-10 hidden max-w-sm text-sm leading-relaxed text-white/70 lg:block">
+              {t("landing.hero.sideLead")}
+            </p>
+          </div>
+
+          <div id="login" className="relative scroll-mt-28">
+            <div className="pointer-events-none absolute -right-2 -top-16 hidden lg:block xl:-right-8">
+              <div className="relative size-40 overflow-hidden rounded-3xl shadow-2xl ring-4 ring-white/20 xl:size-48">
+                <Image
+                  src={HERO_DECOR_IMAGE}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  sizes="192px"
+                />
+              </div>
+            </div>
+            <LoginForm {...loginFormProps} />
           </div>
         </div>
       </section>
 
-      {/* Ambition */}
-      <section id="ambition" className="scroll-mt-24 py-16 sm:py-24">
+      {/* Why cards */}
+      <section className="relative py-20 sm:py-28">
+        <Tractor
+          className="pointer-events-none absolute right-8 top-8 size-64 text-gray-200/60 sm:size-80"
+          strokeWidth={0.8}
+        />
+
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <p className="farm-label">{t("landing.why.badge")}</p>
+            <h2 className="farm-title mt-3">{t("landing.why.title")}</h2>
+          </div>
+
+          <div className="mt-14 grid gap-8 md:grid-cols-3">
+            {PILLAR_KEYS.map((key) => (
+              <article key={key} className="farm-card">
+                <div className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-brand-olive">
+                  <Sprout className="size-4" />
+                  {t(`landing.ambition.points.${key}.title`)}
+                </div>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {t(`landing.ambition.points.${key}.body`)}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => scrollToSection("ambition")}
+                  className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-brand-olive transition hover:gap-3"
+                >
+                  {t("landing.hero.learnMore")}
+                  <ArrowRight className="size-4" />
+                </button>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Ambition / About */}
+      <section id="ambition" className="scroll-mt-24 bg-white py-20 sm:py-28">
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
           <div className="relative aspect-[4/3] overflow-hidden rounded-3xl shadow-2xl">
             <Image
@@ -473,65 +518,93 @@ export function LoginScreen() {
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 50vw"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent" />
-            <div className="absolute bottom-6 left-6 right-6 rounded-2xl border border-white/30 bg-white/15 p-4 backdrop-blur-md">
-              <p className="text-sm font-bold text-white">{t("landing.ambition.imageCaption")}</p>
-            </div>
+            <span className="absolute right-4 top-4 rounded-full bg-brand-olive px-4 py-2 text-xs font-bold text-white shadow-lg">
+              {t("landing.ambition.organicBadge")}
+            </span>
           </div>
 
           <div>
-            <span className="inline-flex rounded-full bg-primary/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-primary">
-              {t("landing.ambition.badge")}
-            </span>
-            <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
-              {t("landing.ambition.title")}
-            </h2>
+            <p className="farm-label">{t("landing.ambition.badge")}</p>
+            <h2 className="farm-title mt-3 normal-case">{t("landing.ambition.title")}</h2>
             <p className="mt-5 text-base leading-relaxed text-muted-foreground sm:text-lg">
               {t("landing.ambition.lead")}
             </p>
+            <button
+              type="button"
+              onClick={() => scrollToSection("contact")}
+              className="farm-btn mt-8"
+            >
+              {t("landing.ambition.cta")}
+            </button>
+          </div>
+        </div>
+      </section>
 
-            <ul className="mt-8 space-y-4">
-              {(["actors", "traceability", "impact"] as const).map((point) => (
-                <li key={point} className="flex gap-4 rounded-2xl border border-white/60 bg-white/50 p-4">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
-                    <Leaf className="size-5" />
+      {/* Icon features row */}
+      <section className="py-16 sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <p className="farm-label">{t("landing.features.badge")}</p>
+            <h2 className="farm-title mt-3">{t("landing.features.title")}</h2>
+          </div>
+
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {FEATURE_KEYS.map((key, index) => {
+              const Icon = FEATURE_ICONS[key];
+              const highlighted = index === 3;
+              return (
+                <div
+                  key={key}
+                  className={cn(
+                    "rounded-3xl p-8 text-center transition",
+                    highlighted
+                      ? "bg-brand-olive text-white shadow-[0_12px_40px_rgba(92,107,58,0.35)]"
+                      : "farm-card !p-8"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "mx-auto mb-5 inline-flex size-14 items-center justify-center rounded-2xl",
+                      highlighted ? "bg-white/20" : "bg-gray-100"
+                    )}
+                  >
+                    <Icon
+                      className={cn("size-7", highlighted ? "text-white" : "text-gray-800")}
+                      strokeWidth={1.8}
+                    />
                   </span>
-                  <div>
-                    <p className="font-bold text-foreground">{t(`landing.ambition.points.${point}.title`)}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {t(`landing.ambition.points.${point}.body`)}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                  <h3 className="font-extrabold">{t(`landing.modules.items.${key}.title`)}</h3>
+                  <p
+                    className={cn(
+                      "mt-3 text-sm leading-relaxed",
+                      highlighted ? "text-white/85" : "text-muted-foreground"
+                    )}
+                  >
+                    {t(`landing.features.items.${key}`)}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* Modules */}
-      <section id="modules" className="scroll-mt-24 bg-white/40 py-16 sm:py-24">
+      <section id="modules" className="scroll-mt-24 bg-white py-20 sm:py-28">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <span className="inline-flex rounded-full bg-indigo-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-indigo-700">
-              {t("landing.modules.badge")}
-            </span>
-            <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
-              {t("landing.modules.title")}
-            </h2>
+            <p className="farm-label">{t("landing.modules.badge")}</p>
+            <h2 className="farm-title mt-3 normal-case">{t("landing.modules.title")}</h2>
             <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
               {t("landing.modules.lead")}
             </p>
           </div>
 
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {MODULE_KEYS.map((key) => {
               const Icon = MODULE_ICONS[key];
               return (
-                <article
-                  key={key}
-                  className="group overflow-hidden rounded-3xl border border-white/70 bg-white/70 shadow-lg transition hover:-translate-y-1 hover:shadow-xl"
-                >
+                <article key={key} className="group overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.1)]">
                   <div className="relative aspect-[16/10] overflow-hidden">
                     <Image
                       src={MODULE_IMAGES[key]}
@@ -540,18 +613,13 @@ export function LoginScreen() {
                       className="object-cover transition duration-500 group-hover:scale-105"
                       sizes="(max-width: 640px) 100vw, 25vw"
                     />
-                    <div
-                      className={cn(
-                        "absolute inset-0 bg-gradient-to-t",
-                        MODULE_COLORS[key]
-                      )}
-                    />
-                    <span className="absolute left-4 top-4 inline-flex size-10 items-center justify-center rounded-xl bg-white/90 text-primary shadow">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    <span className="absolute left-4 top-4 inline-flex size-10 items-center justify-center rounded-xl bg-white text-brand-olive shadow">
                       <Icon className="size-5" strokeWidth={2.2} />
                     </span>
                   </div>
                   <div className="p-5">
-                    <h3 className="font-extrabold text-foreground">
+                    <h3 className="font-extrabold text-gray-900">
                       {t(`landing.modules.items.${key}.title`)}
                     </h3>
                     <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
@@ -566,16 +634,16 @@ export function LoginScreen() {
       </section>
 
       {/* Contact */}
-      <section id="contact" className="scroll-mt-24 py-16 sm:py-24">
+      <section id="contact" className="scroll-mt-24 py-20 sm:py-28">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-brand-light to-indigo-600 shadow-2xl">
+          <div className="overflow-hidden rounded-[2rem] bg-brand-olive shadow-2xl">
             <div className="grid gap-10 p-8 sm:p-12 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
               <div className="text-white">
-                <span className="inline-flex rounded-full border border-white/30 bg-white/15 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-blue-100">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/70">
                   {t("landing.contact.badge")}
-                </span>
+                </p>
                 <h2 className="mt-4 text-3xl font-extrabold sm:text-4xl">{t("landing.contact.title")}</h2>
-                <p className="mt-4 max-w-xl text-base leading-relaxed text-blue-100/95 sm:text-lg">
+                <p className="mt-4 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg">
                   {t("landing.contact.lead")}
                 </p>
               </div>
@@ -583,26 +651,26 @@ export function LoginScreen() {
               <div className="space-y-4">
                 <a
                   href="mailto:info.e2ia@gmail.com"
-                  className="flex items-center gap-4 rounded-2xl border border-white/25 bg-white/15 p-5 text-white backdrop-blur-sm transition hover:bg-white/25"
+                  className="flex items-center gap-4 rounded-2xl border border-white/20 bg-white/10 p-5 text-white backdrop-blur-sm transition hover:bg-white/20"
                 >
-                  <span className="flex size-12 items-center justify-center rounded-xl bg-white/20">
+                  <span className="flex size-12 items-center justify-center rounded-xl bg-white/15">
                     <Mail className="size-5" />
                   </span>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-blue-100">Email</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-white/70">Email</p>
                     <p className="font-bold">info.e2ia@gmail.com</p>
                   </div>
                 </a>
 
                 <a
                   href="tel:+2250757543447"
-                  className="flex items-center gap-4 rounded-2xl border border-white/25 bg-white/15 p-5 text-white backdrop-blur-sm transition hover:bg-white/25"
+                  className="flex items-center gap-4 rounded-2xl border border-white/20 bg-white/10 p-5 text-white backdrop-blur-sm transition hover:bg-white/20"
                 >
-                  <span className="flex size-12 items-center justify-center rounded-xl bg-white/20">
+                  <span className="flex size-12 items-center justify-center rounded-xl bg-white/15">
                     <Phone className="size-5" />
                   </span>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-blue-100">
+                    <p className="text-xs font-bold uppercase tracking-wider text-white/70">
                       {t("landing.contact.phone")}
                     </p>
                     <p className="font-bold">+225 07 57 54 34 47</p>
@@ -611,13 +679,13 @@ export function LoginScreen() {
 
                 <a
                   href="tel:+2250708425141"
-                  className="flex items-center gap-4 rounded-2xl border border-white/25 bg-white/15 p-5 text-white backdrop-blur-sm transition hover:bg-white/25"
+                  className="flex items-center gap-4 rounded-2xl border border-white/20 bg-white/10 p-5 text-white backdrop-blur-sm transition hover:bg-white/20"
                 >
-                  <span className="flex size-12 items-center justify-center rounded-xl bg-white/20">
-                    <Phone className="size-5" />
+                  <span className="flex size-12 items-center justify-center rounded-xl bg-white/15">
+                    <Building2 className="size-5" />
                   </span>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-blue-100">
+                    <p className="text-xs font-bold uppercase tracking-wider text-white/70">
                       {t("landing.contact.phoneAlt")}
                     </p>
                     <p className="font-bold">+225 07 08 42 51 41</p>
@@ -629,7 +697,7 @@ export function LoginScreen() {
         </div>
       </section>
 
-      <footer className="border-t border-white/50 py-8">
+      <footer className="border-t border-gray-200 bg-white py-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 text-center text-sm text-muted-foreground sm:flex-row sm:px-6 lg:px-8">
           <p>© {new Date().getFullYear()} E2IA — Fermier Pro</p>
           <p>{t("landing.footer")}</p>

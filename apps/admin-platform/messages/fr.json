@@ -51,6 +51,17 @@
     "oauthEnvMissing": "Variables Supabase manquantes côté navigateur. Vérifiez apps/admin-platform/.env.local puis redémarrez npm run dev:admin.",
     "landing": {
       "heroLead": "La plateforme qui relie producteurs, vétérinaires, acheteurs et institutions pour piloter l'élevage de bout en bout — du cheptel à la vente.",
+      "hero": {
+        "present": "E2IA présente",
+        "scriptAccent": "Une filière connectée",
+        "cta": "Se connecter",
+        "learnMore": "En savoir plus",
+        "sideLead": "Digitalisez vos opérations, suivez votre cheptel et connectez-vous aux acteurs de votre filière, où que vous soyez."
+      },
+      "why": {
+        "badge": "Découvrez notre plateforme",
+        "title": "Pourquoi Fermier Pro ?"
+      },
       "nav": {
         "ambition": "Notre ambition",
         "modules": "Modules",
@@ -59,6 +70,8 @@
       "ambition": {
         "badge": "Notre ambition",
         "title": "Digitaliser les filières d'élevage",
+        "organicBadge": "100% numérique",
+        "cta": "Nous contacter",
         "lead": "Chez E2IA, nous construisons Fermier Pro pour rapprocher tous les acteurs des filières porcine, avicole et bovine sur une même plateforme. Notre objectif : rendre l'élevage plus transparent, plus rentable et plus résilient, du producteur au consommateur.",
         "imageAlt": "Éleveurs sur le terrain en Afrique de l'Ouest",
         "imageCaption": "Une filière connectée, de la ferme au marché",
@@ -75,6 +88,16 @@
             "title": "Impact terrain mesurable",
             "body": "Des outils concrets pour améliorer la productivité, la santé animale et les revenus des éleveurs."
           }
+        }
+      },
+      "features": {
+        "badge": "Nos atouts",
+        "title": "L'élevage moderne, simplifié",
+        "items": {
+          "herd": "Inventaire complet, lots et performances de chaque animal.",
+          "health": "Carnets sanitaires, vaccinations et alertes en temps réel.",
+          "marketplace": "Achat et vente transparents avec prix de référence.",
+          "feeding": "Rations optimisées et gestion des stocks d'aliments."
         }
       },
       "modules": {

@@ -69,7 +69,8 @@ const config: Config = {
         }
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"]
+        sans: ["Inter", "system-ui", "sans-serif"],
+        script: ["Dancing Script", "cursive"]
       }
     }
   },
