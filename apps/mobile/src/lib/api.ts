@@ -6910,7 +6910,7 @@ export function fetchBuyerDashboard(
   );
 }
 
-/** GET /api/v1/users/me/wallet */
+/** GET /api/v1/users/me/wallet — route canonique portefeuille. */
 export function fetchUserWallet(
   accessToken: string
 ): Promise<NonNullable<BuyerDashboardDto["wallet"]>> {
@@ -6920,7 +6920,11 @@ export function fetchUserWallet(
   );
 }
 
-/** GET /api/v1/buyers/me/wallet — alias rétrocompat */
+/**
+ * GET /api/v1/buyers/me/wallet
+ * @deprecated Alias rétrocompat — préférer `fetchUserWallet`. Conservé pour les builds
+ * mobile antérieurs ; l'API maintient les deux routes jusqu'à dépréciation explicite.
+ */
 export function fetchBuyerWallet(
   accessToken: string,
   activeProfileId?: string | null
@@ -6972,14 +6976,14 @@ export function initiateWalletTopUp(
   return apiPostJson("/users/me/wallet/top-up/initiate", { amount }, accessToken);
 }
 
+/** Confirme une recharge — le montant est vérifié côté API/prestataire (pas dans le body). */
 export function confirmWalletTopUp(
   accessToken: string,
-  amount: number,
   providerRef: string
 ): Promise<WalletOperationResultDto> {
   return apiPostJson(
     "/users/me/wallet/top-up/confirm",
-    { amount, providerRef },
+    { providerRef },
     accessToken
   );
 }
@@ -7062,7 +7066,7 @@ export function transferWalletFunds(
   );
 }
 
-/** GET /api/v1/users/me/wallet/entries */
+/** GET /api/v1/users/me/wallet/entries — route canonique. */
 export function fetchUserWalletEntries(
   accessToken: string,
   opts?: { limit?: number; cursor?: string }
@@ -7077,7 +7081,10 @@ export function fetchUserWalletEntries(
   );
 }
 
-/** GET /api/v1/buyers/me/wallet/entries — alias rétrocompat */
+/**
+ * GET /api/v1/buyers/me/wallet/entries
+ * @deprecated Alias rétrocompat — préférer `fetchUserWalletEntries`.
+ */
 export function fetchBuyerWalletEntries(
   accessToken: string,
   activeProfileId?: string | null,

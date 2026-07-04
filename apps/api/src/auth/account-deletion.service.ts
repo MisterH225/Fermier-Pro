@@ -8,25 +8,12 @@ import type { User } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { AuditService } from "../common/audit.service";
 import { AUDIT_ACTION } from "../common/audit.constants";
+import { storagePathFromPublicUrl } from "../common/storage.util";
 import { FarmDataPurgeService } from "../farms/farm-data-purge.service";
+import { ACTIVE_ESCROW_STATUSES } from "../marketplace/escrow/transaction.utils";
 import { PrismaService } from "../prisma/prisma.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import { SupabaseAdminService } from "./supabase-admin.service";
-
-function storagePathFromPublicUrl(
-  url: string | null | undefined,
-  bucket: string
-): string | null {
-  if (!url?.trim()) {
-    return null;
-  }
-  const marker = `/storage/v1/object/public/${bucket}/`;
-  const idx = url.indexOf(marker);
-  if (idx < 0) {
-    return null;
-  }
-  return decodeURIComponent(url.slice(idx + marker.length).split("?")[0]);
-}
 
 @Injectable()
 export class AccountDeletionService {
@@ -41,6 +28,18 @@ export class AccountDeletionService {
   ) {}
 
   async deleteAccount(user: User): Promise<void> {
+    const activeEscrow = await this.prisma.marketplaceTransaction.count({
+      where: {
+        OR: [{ buyerUserId: user.id }, { sellerUserId: user.id }],
+        status: { in: ACTIVE_ESCROW_STATUSES }
+      }
+    });
+    if (activeEscrow > 0) {
+      throw new BadRequestException(
+        "Compte non supprimable : transactions marketplace en cours. Attendez leur clôture."
+      );
+    }
+
     const ownedFarms = await this.prisma.farm.findMany({
       where: { ownerId: user.id },
       select: { id: true, name: true }
@@ -162,18 +161,6 @@ export class AccountDeletionService {
       );
     }
 
-    try {
-      await this.supabaseAdmin.removeStorageObjects("avatars", avatarPaths);
-      await this.supabaseAdmin.removeStorageObjects(
-        "finance-proofs",
-        financePaths
-      );
-    } catch (err) {
-      this.logger.warn(
-        `Storage cleanup partial: ${err instanceof Error ? err.message : String(err)}`
-      );
-    }
-
     const supabaseUserId = user.supabaseUserId;
 
     try {
@@ -210,6 +197,20 @@ export class AccountDeletionService {
       );
       throw new InternalServerErrorException(
         "La suppression du compte a échoué. Aucune donnée n'a été modifiée."
+      );
+    }
+
+    try {
+      await this.supabaseAdmin.removeStorageObjects("avatars", avatarPaths);
+      await this.supabaseAdmin.removeStorageObjects(
+        "finance-proofs",
+        financePaths
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Storage cleanup partiel post-suppression compte ${user.id}: ${
+          err instanceof Error ? err.message : String(err)
+        }`
       );
     }
 

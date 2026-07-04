@@ -87,6 +87,17 @@ export class AuthService {
       payload.email && payload.email.length > 0 ? payload.email : null;
     const phone =
       payload.phone && payload.phone.length > 0 ? payload.phone : null;
+    const emailConfirmedAt =
+      payload.email_confirmed_at ??
+      payload.confirmed_at ??
+      (typeof payload.user_metadata?.email_confirmed_at === "string"
+        ? payload.user_metadata.email_confirmed_at
+        : undefined);
+    const phoneConfirmedAt =
+      payload.phone_confirmed_at ??
+      (typeof payload.user_metadata?.phone_confirmed_at === "string"
+        ? payload.user_metadata.phone_confirmed_at
+        : undefined);
     const fullName = this.displayNameFromMetadata(payload);
     const nameParts =
       fullName !== undefined && fullName !== null && fullName.length > 0
@@ -104,8 +115,8 @@ export class AuthService {
         lastName: nameParts.lastName
       },
       update: {
-        ...(email !== null ? { email } : {}),
-        ...(phone !== null ? { phone } : {}),
+        ...(email !== null && emailConfirmedAt ? { email } : {}),
+        ...(phone !== null && phoneConfirmedAt ? { phone } : {}),
         ...(fullName !== undefined ? { fullName } : {})
       }
     });

@@ -68,7 +68,7 @@ function animalLabel(a: {
 }
 
 function daysBetween(from: Date, to: Date): number {
-  return Math.ceil((to.getTime() - from.getTime()) / MS_DAY);
+  return Math.max(0, Math.ceil((to.getTime() - from.getTime()) / MS_DAY));
 }
 
 function gestationProgress(
@@ -94,8 +94,11 @@ function gestationProgress(
     100,
     Math.round((daysElapsed / daysTotal) * 100)
   );
-  const weekCurrent = Math.min(16, Math.max(1, Math.ceil(daysElapsed / 7)));
-  const weekTotal = 16;
+  const weekCurrent = Math.min(
+    Math.ceil(daysTotal / 7),
+    Math.max(1, Math.ceil(daysElapsed / 7))
+  );
+  const weekTotal = Math.ceil(daysTotal / 7);
   let urgency: "critical" | "soon" | "active" | null = "active";
   if (daysRemaining <= 3) {
     urgency = "critical";

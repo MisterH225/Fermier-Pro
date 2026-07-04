@@ -21,7 +21,7 @@ export class WalletAmountDto {
   amount!: number;
 }
 
-export class WalletTopUpConfirmDto extends WalletAmountDto {
+export class WalletTopUpConfirmDto {
   @IsString()
   @IsNotEmpty()
   providerRef!: string;

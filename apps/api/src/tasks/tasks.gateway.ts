@@ -10,12 +10,13 @@ import {
 import type { Server, Socket } from "socket.io";
 import { AuthService } from "../auth/auth.service";
 import { FarmAccessService } from "../common/farm-access.service";
+import { websocketCorsOptions } from "../common/ws-cors.util";
 import { FeatureFlagService } from "../config-client/feature-flags.service";
 import { WsJoinFarmDto } from "./dto/ws-join-farm.dto";
 
 @WebSocketGateway({
   namespace: "/tasks",
-  cors: { origin: "*" }
+  cors: websocketCorsOptions()
 })
 export class TasksGateway implements OnGatewayConnection {
   private readonly logger = new Logger(TasksGateway.name);

@@ -53,7 +53,7 @@ export class WalletController {
   @Post("top-up/confirm")
   @Throttle({ default: { limit: 3, ttl: 60_000 } })
   confirmTopUp(@CurrentUser() user: User, @Body() dto: WalletTopUpConfirmDto) {
-    return this.rails.confirmTopUp(user, dto.amount, dto.providerRef);
+    return this.rails.confirmTopUp(user, dto.providerRef);
   }
 
   @Get("fee-quote")

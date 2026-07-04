@@ -78,7 +78,7 @@ describe("GeniusPayMobileMoneyGateway", () => {
       }
     });
 
-    const result = await gateway.confirmTopUp("MTX-TOPUP1", "user-1", 5000);
+    const result = await gateway.confirmTopUp("MTX-TOPUP1", "user-1");
     expect(result.success).toBe(true);
   });
 
