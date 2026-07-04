@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { FeatureFlagsModule } from "../feature-flags/feature-flags.module";
 import { PushNotificationsModule } from "../push-notifications/push-notifications.module";
@@ -13,9 +13,9 @@ import { PigPriceIndexService } from "./pig-price-index.service";
 @Module({
   imports: [
     PrismaModule,
-    AuthModule,
+    forwardRef(() => AuthModule),
     FeatureFlagsModule,
-    SmartAlertsModule,
+    forwardRef(() => SmartAlertsModule),
     PushNotificationsModule
   ],
   controllers: [PigPriceIndexController],

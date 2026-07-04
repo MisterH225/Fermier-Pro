@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { CommonModule } from "../common/common.module";
 import { PrismaModule } from "../prisma/prisma.module";
@@ -7,7 +7,7 @@ import { SmartAlertsCronService } from "./smart-alerts-cron.service";
 import { SmartAlertsService } from "./smart-alerts.service";
 
 @Module({
-  imports: [PrismaModule, CommonModule, AuthModule],
+  imports: [PrismaModule, CommonModule, forwardRef(() => AuthModule)],
   controllers: [FarmSmartAlertsController],
   providers: [SmartAlertsService, SmartAlertsCronService],
   exports: [SmartAlertsService]
