@@ -1,7 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import type { Query } from "@tanstack/react-query";
-import { FINANCE_PERSIST_QUERY_ROOTS } from "./finance/financeQueryKeys";
 
 /** Clé AsyncStorage pour le cache TanStack persistant (logout = suppression). */
 export const QUERY_PERSIST_STORAGE_KEY = "@fermier_pro/tanstack_offline";
@@ -12,7 +11,11 @@ export const asyncStoragePersister = createAsyncStoragePersister({
   throttleTime: 1000
 });
 
-/** Lecture seule métier : derniers GET conservés pour consultation hors réseau. */
+/**
+ * Lecture seule métier : derniers GET conservés pour consultation hors réseau.
+ * Données sensibles (chat, membres, finance, marketplace) exclues — AsyncStorage
+ * n'est pas chiffré sur l'appareil.
+ */
 const PERSIST_QUERY_ROOTS = new Set([
   "farms",
   "farm",
@@ -30,7 +33,6 @@ const PERSIST_QUERY_ROOTS = new Set([
   "farmBarn",
   "farmBarnDetails",
   "penDetail",
-  ...FINANCE_PERSIST_QUERY_ROOTS,
   "farmHealthOverview",
   "farmHealthEvents",
   "farmHealthUpcoming",
@@ -44,14 +46,7 @@ const PERSIST_QUERY_ROOTS = new Set([
   "smartAlerts",
   "smartAlertsCount",
   "batchHealthEvents",
-  "marketplaceListings",
-  "marketplaceListing",
-  "marketplaceMyOffers",
-  "marketplaceMyListings",
   "chatRooms",
-  "chatMessages",
-  "farmMembers",
-  "farmPendingInvitations",
   "farmFeed",
   "taxonomy",
   "nextAnimalNumber"

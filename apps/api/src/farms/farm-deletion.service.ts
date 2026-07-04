@@ -9,39 +9,11 @@ import { SupabaseAdminService } from "../auth/supabase-admin.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import { FarmMarketplaceLifecycleService } from "../marketplace/farm-marketplace-lifecycle.service";
 import { REPORTS_STORAGE_BUCKET } from "../reports/reports.constants";
+import {
+  reportPdfStoragePath,
+  storagePathFromPublicUrl
+} from "../common/storage.util";
 import { FarmDataPurgeService } from "./farm-data-purge.service";
-
-function storagePathFromPublicUrl(
-  url: string | null | undefined,
-  bucket: string
-): string | null {
-  if (!url?.trim()) {
-    return null;
-  }
-  const marker = `/storage/v1/object/public/${bucket}/`;
-  const idx = url.indexOf(marker);
-  if (idx < 0) {
-    return null;
-  }
-  return decodeURIComponent(url.slice(idx + marker.length).split("?")[0]);
-}
-
-function reportPdfStoragePath(
-  pdfUrl: string | null | undefined
-): string | null {
-  if (!pdfUrl?.trim()) {
-    return null;
-  }
-  const trimmed = pdfUrl.trim();
-  const fromReports = storagePathFromPublicUrl(trimmed, REPORTS_STORAGE_BUCKET);
-  if (fromReports) {
-    return fromReports;
-  }
-  if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
-    return trimmed.replace(/^\/+/, "");
-  }
-  return storagePathFromPublicUrl(trimmed, "finance-proofs");
-}
 
 @Injectable()
 export class FarmDeletionService {
@@ -154,21 +126,6 @@ export class FarmDeletionService {
     }
 
     try {
-      await this.supabaseAdmin.removeStorageObjects("finance-proofs", storagePaths);
-      await this.supabaseAdmin.removeStorageObjects("avatars", storagePaths);
-      if (reportPdfPaths.length > 0) {
-        await this.supabaseAdmin.removeStorageObjects(
-          REPORTS_STORAGE_BUCKET,
-          reportPdfPaths
-        );
-      }
-    } catch (err) {
-      this.logger.warn(
-        `Storage cleanup partial: ${err instanceof Error ? err.message : String(err)}`
-      );
-    }
-
-    try {
       let deleteNotices: Awaited<
         ReturnType<FarmMarketplaceLifecycleService["applyFarmDeleted"]>
       >["notices"] = [];
@@ -190,6 +147,23 @@ export class FarmDeletionService {
       );
       throw new InternalServerErrorException(
         "La suppression du projet a échoué. Aucune donnée n'a été modifiée."
+      );
+    }
+
+    try {
+      await this.supabaseAdmin.removeStorageObjects("finance-proofs", storagePaths);
+      await this.supabaseAdmin.removeStorageObjects("avatars", storagePaths);
+      if (reportPdfPaths.length > 0) {
+        await this.supabaseAdmin.removeStorageObjects(
+          REPORTS_STORAGE_BUCKET,
+          reportPdfPaths
+        );
+      }
+    } catch (err) {
+      this.logger.warn(
+        `Storage cleanup partiel post-suppression ferme ${farmId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`
       );
     }
   }

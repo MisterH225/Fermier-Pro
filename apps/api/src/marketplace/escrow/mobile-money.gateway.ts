@@ -65,8 +65,7 @@ export interface MobileMoneyGateway {
 
   confirmTopUp(
     providerRef: string,
-    userId: string,
-    amount: number
+    userId: string
   ): Promise<MobileMoneyConfirmResult>;
 
   /** Retrait portefeuille vers mobile money. */

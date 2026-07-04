@@ -85,6 +85,12 @@ export async function verifySupabaseAccessToken(
   }
 ): Promise<SupabaseJwtPayload> {
   const alg = peekJwtAlgorithm(token);
+  const appEnv = (process.env.APP_ENV ?? "").toLowerCase();
+  const isDeployed = appEnv === "production" || appEnv === "staging";
+
+  if (isDeployed && alg !== "ES256" && alg !== "RS256") {
+    throw new UnauthorizedException("Algorithme JWT non supporté en production");
+  }
 
   if (alg === "ES256" || alg === "RS256") {
     const url = options.supabaseUrl?.trim();

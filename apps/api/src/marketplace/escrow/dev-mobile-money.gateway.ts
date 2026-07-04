@@ -126,14 +126,13 @@ export class DevMobileMoneyGateway implements MobileMoneyGateway {
 
   async confirmTopUp(
     providerRef: string,
-    userId: string,
-    amount: number
+    userId: string
   ): Promise<MobileMoneyConfirmResult> {
     const row = this.pendingTopUps.get(providerRef);
     if (!row) {
       return { success: false, providerRef, failureReason: "Référence introuvable" };
     }
-    if (row.userId !== userId || row.amount !== amount) {
+    if (row.userId !== userId) {
       return {
         success: false,
         providerRef,

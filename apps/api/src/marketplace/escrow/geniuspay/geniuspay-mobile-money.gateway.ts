@@ -138,8 +138,7 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
 
   async confirmTopUp(
     providerRef: string,
-    userId: string,
-    amount: number
+    userId: string
   ): Promise<MobileMoneyConfirmResult> {
     return this.confirmByReference(providerRef, (metadata) => {
       if (metadata.kind !== GENIUSPAY_KIND_WALLET_TOPUP) {
@@ -151,9 +150,6 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
       const providerAmount = metadata.amount ? Number(metadata.amount) : NaN;
       if (!Number.isFinite(providerAmount) || providerAmount <= 0) {
         return "Montant de recharge absent côté prestataire";
-      }
-      if (Math.abs(providerAmount - amount) > 1) {
-        return "Montant de recharge incohérent";
       }
       return null;
     });

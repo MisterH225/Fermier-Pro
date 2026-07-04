@@ -9,6 +9,7 @@ import {
 } from "@nestjs/websockets";
 import type { Server, Socket } from "socket.io";
 import { AuthService } from "../auth/auth.service";
+import { websocketCorsOptions } from "../common/ws-cors.util";
 import { FeatureFlagService } from "../config-client/feature-flags.service";
 import { ChatService } from "./chat.service";
 import { WsJoinRoomDto } from "./dto/ws-join-room.dto";
@@ -16,14 +17,7 @@ import { WsSendMessageDto } from "./dto/ws-send-message.dto";
 
 @WebSocketGateway({
   namespace: "/chat",
-  cors: {
-    // Aligner sur CORS_ORIGINS de l'API REST ; fallback localhost en dev
-    origin: process.env.CORS_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean) ?? [
-      "http://localhost:3001",
-      "http://127.0.0.1:3001"
-    ],
-    credentials: true
-  }
+  cors: websocketCorsOptions()
 })
 export class ChatGateway implements OnGatewayConnection {
   private readonly logger = new Logger(ChatGateway.name);

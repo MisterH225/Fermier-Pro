@@ -71,12 +71,12 @@ export function WalletOperationsCard({
       if (init.paymentUrl) {
         await openPaymentCheckout(init.paymentUrl);
         try {
-          return await confirmWalletTopUp(accessToken!, amount, init.providerRef);
+          return await confirmWalletTopUp(accessToken!, init.providerRef);
         } catch {
           return { pendingExternalPayment: true as const };
         }
       }
-      return confirmWalletTopUp(accessToken!, amount, init.providerRef);
+      return confirmWalletTopUp(accessToken!, init.providerRef);
     },
     onSuccess: (result) => {
       setTopUpAmount("");

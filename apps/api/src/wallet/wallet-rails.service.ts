@@ -74,16 +74,12 @@ export class WalletRailsService {
     if (!user) {
       throw new BadRequestException("Utilisateur introuvable");
     }
-    return this.confirmTopUp(user, amount, providerRef);
+    return this.confirmTopUp(user, providerRef);
   }
 
-  async confirmTopUp(user: User, amount: number, providerRef: string) {
+  async confirmTopUp(user: User, providerRef: string) {
     const summary = await this.wallet.getSummary(user.id);
-    const confirmed = await this.gateway.confirmTopUp(
-      providerRef,
-      user.id,
-      amount
-    );
+    const confirmed = await this.gateway.confirmTopUp(providerRef, user.id);
     if (!confirmed.success) {
       throw new BadRequestException(
         confirmed.failureReason ?? "Recharge mobile money non confirmée"
