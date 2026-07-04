@@ -21,9 +21,14 @@ export function formatAuthError(err: unknown): string {
   if (m.includes("annulée") || m.includes("cancel")) {
     return raw;
   }
-  if (m.includes("flow state")) {
+  if (m.includes("flow state") || m.includes("code verifier")) {
+    if (typeof __DEV__ !== "undefined" && __DEV__) {
+      return (
+        "Connexion Google interrompue. Ferme Safari, relance Expo (--clear), puis réessaie une seule fois."
+      );
+    }
     return (
-      "Connexion Google interrompue. Ferme Safari, relance Expo (--clear), puis réessaie une seule fois."
+      "Connexion Google interrompue. Ferme l’app complètement, rouvre-la, puis réessaie une seule fois."
     );
   }
   if (m.includes("jetons dans l’url") || m.includes("incomplete")) {

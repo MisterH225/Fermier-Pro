@@ -74,7 +74,7 @@ async function createSessionFromOAuthUrl(
   const params = parseUrlParams(returnUrl);
   const code = params.get("code");
   if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(returnUrl);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
       throw error;
     }
