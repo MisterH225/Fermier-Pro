@@ -9,7 +9,8 @@ const REPLAY_TOLERANCE_SEC = 300;
 export function verifyGeniusPayWebhookSignature(params: {
   signature: string | undefined;
   timestamp: string | undefined;
-  payload: unknown;
+  /** Corps JSON brut tel qu'envoyé par GeniusPay (obligatoire pour HMAC). */
+  rawPayload: string | Buffer;
   secret: string | undefined;
 }): void {
   const secret = params.secret?.trim();
@@ -34,9 +35,16 @@ export function verifyGeniusPayWebhookSignature(params: {
     throw new BadRequestException("Timestamp webhook GeniusPay expiré");
   }
 
-  const payloadJson = JSON.stringify(params.payload);
+  const raw =
+    typeof params.rawPayload === "string"
+      ? params.rawPayload
+      : params.rawPayload.toString("utf8");
+  if (!raw.trim()) {
+    throw new BadRequestException("Corps webhook GeniusPay manquant");
+  }
+
   const expected = createHmac("sha256", secret)
-    .update(`${timestamp}.${payloadJson}`)
+    .update(`${timestamp}.${raw}`)
     .digest("hex");
 
   try {

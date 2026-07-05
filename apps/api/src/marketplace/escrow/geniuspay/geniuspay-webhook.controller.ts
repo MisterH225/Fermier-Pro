@@ -1,11 +1,12 @@
 import {
   BadRequestException,
-  Body,
   Controller,
   Headers,
-  Post
+  Post,
+  Req
 } from "@nestjs/common";
 import { SkipThrottle } from "@nestjs/throttler";
+import type { Request } from "express";
 import { WalletRailsService } from "../../../wallet/wallet-rails.service";
 import { MarketplaceTransactionService } from "../marketplace-transaction.service";
 import {
@@ -14,6 +15,8 @@ import {
   type GeniusPayWebhookPayload
 } from "./geniuspay.types";
 import { verifyGeniusPayWebhookSignature } from "./geniuspay-webhook.util";
+
+type RawBodyRequest = Request & { rawBody?: Buffer };
 
 /**
  * Webhook GeniusPay (source de vérité asynchrone pour escrow marketplace et recharge wallet).
@@ -28,17 +31,29 @@ export class GeniusPayWebhookController {
 
   @Post()
   async handle(
+    @Req() req: RawBodyRequest,
     @Headers("x-webhook-signature") signature: string | undefined,
     @Headers("x-webhook-timestamp") timestamp: string | undefined,
-    @Headers("x-webhook-event") event: string | undefined,
-    @Body() body: GeniusPayWebhookPayload
+    @Headers("x-webhook-event") event: string | undefined
   ) {
+    const rawBody = req.rawBody;
+    if (!rawBody?.length) {
+      throw new BadRequestException("Corps webhook GeniusPay manquant");
+    }
+
     verifyGeniusPayWebhookSignature({
       signature,
       timestamp,
-      payload: body,
+      rawPayload: rawBody,
       secret: process.env.GENIUSPAY_WEBHOOK_SECRET
     });
+
+    let body: GeniusPayWebhookPayload;
+    try {
+      body = JSON.parse(rawBody.toString("utf8")) as GeniusPayWebhookPayload;
+    } catch {
+      throw new BadRequestException("Corps webhook GeniusPay JSON invalide");
+    }
 
     const webhookEvent = (event ?? body.event ?? "").trim();
     const reference = body.data?.reference?.trim();
