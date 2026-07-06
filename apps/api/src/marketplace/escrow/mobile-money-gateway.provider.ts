@@ -47,9 +47,9 @@ class MobileMoneyGatewayGuard implements OnModuleInit {
         );
       } else {
         const webhookSecret = process.env.GENIUSPAY_WEBHOOK_SECRET?.trim() ?? "";
-        if (!/^whsec_(sandbox|live)_/i.test(webhookSecret)) {
+        if (!/^whsec_/i.test(webhookSecret)) {
           this.log.error(
-            "GENIUSPAY_WEBHOOK_SECRET doit commencer par whsec_sandbox_ ou whsec_live_ " +
+            "GENIUSPAY_WEBHOOK_SECRET doit commencer par whsec_ " +
               "(secret affiché à la création du webhook GeniusPay, pas GENIUSPAY_API_SECRET sk_)."
           );
         }
