@@ -648,6 +648,32 @@ export class MarketplaceTransactionService {
       });
     }
 
+    const existingRef = tx.paymentProviderRef?.trim();
+    if (
+      method === MarketplacePaymentMethod.mobile_money &&
+      existingRef &&
+      tx.paymentMethod === MarketplacePaymentMethod.mobile_money
+    ) {
+      const resumed = await this.escrow.resumeMobileMoneyCheckout(existingRef);
+      if (resumed?.paymentUrl?.trim()) {
+        return {
+          providerRef: resumed.providerRef,
+          amount,
+          currency: tx.currency,
+          paymentMethod: MarketplacePaymentMethod.mobile_money,
+          paymentUrl: resumed.paymentUrl
+        };
+      }
+      await this.prisma.marketplaceTransaction.update({
+        where: { id: tx.id },
+        data: {
+          paymentProviderRef: null,
+          paymentInitiatedAt: null,
+          paymentMethod: null
+        }
+      });
+    }
+
     const hold = await this.escrow.holdFunds(
       tx.id,
       tx.buyerUserId,
@@ -698,7 +724,9 @@ export class MarketplaceTransactionService {
     }
 
     if (tx.paymentMethod === MarketplacePaymentMethod.mobile_money) {
-      return this.getById(user, tx.id);
+      throw new BadRequestException(
+        "Paiement en attente de confirmation GeniusPay — finalisez le checkout ou attendez la notification."
+      );
     }
 
     const walletContext =

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -177,20 +178,14 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         activeProfileId,
         paymentMethod
       );
-      if (paymentMethod === "mobile_money") {
+      const usesMobileMoney = init.paymentMethod !== "wallet";
+      if (usesMobileMoney) {
         const checkoutUrl = init.paymentUrl?.trim();
         if (!checkoutUrl) {
           throw new Error("MARKETPLACE_CHECKOUT_URL_MISSING");
         }
         await openPaymentCheckout(checkoutUrl);
         return { pendingExternalPayment: true as const };
-      }
-      if (init.paymentMethod === "mobile_money") {
-        const checkoutUrl = init.paymentUrl?.trim();
-        if (checkoutUrl) {
-          await openPaymentCheckout(checkoutUrl);
-          return { pendingExternalPayment: true as const };
-        }
       }
       return confirmMarketplacePayment(
         accessToken,
@@ -201,17 +196,34 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
     },
     onSuccess: (result) => {
       invalidate();
-      if (result && "pendingExternalPayment" in result && result.pendingExternalPayment) {
+      if (
+        result &&
+        "pendingExternalPayment" in result &&
+        result.pendingExternalPayment
+      ) {
         Alert.alert(
           t("marketScreen.transaction.paymentPendingTitle"),
           t("marketScreen.transaction.paymentPendingBody")
         );
         return;
       }
-      Alert.alert(
-        t("marketScreen.transaction.paymentSuccessTitle"),
-        t("marketScreen.transaction.paymentSuccessBody")
-      );
+      const status =
+        result && "status" in result ? result.status : undefined;
+      if (status === "PAYMENT_HELD") {
+        Alert.alert(
+          t("marketScreen.transaction.paymentSuccessTitle"),
+          t("marketScreen.transaction.paymentSuccessBody")
+        );
+        return;
+      }
+      if (status === "PAYMENT_PENDING") {
+        Alert.alert(
+          t("marketScreen.transaction.paymentPendingTitle"),
+          t("marketScreen.transaction.paymentPendingBody")
+        );
+        return;
+      }
+      void q.refetch();
     },
     onError: async (e: Error) => {
       if (e.message === "MARKETPLACE_PAYMENT_ALREADY_HELD") {
@@ -229,6 +241,13 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         Alert.alert(
           t("marketScreen.transaction.paymentErrorTitle"),
           t("marketScreen.transaction.checkoutUrlMissing")
+        );
+        return;
+      }
+      if (e.message === "MARKETPLACE_CHECKOUT_URL_INVALID") {
+        Alert.alert(
+          t("marketScreen.transaction.paymentErrorTitle"),
+          t("marketScreen.transaction.checkoutUrlInvalid")
         );
         return;
       }
@@ -489,12 +508,22 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
     if (userPickedPaymentMethod.current) {
       return;
     }
-    if (clientFeatures.wallet && walletBalance >= payAmount && payAmount > 0) {
-      setPaymentMethod("wallet");
-    } else {
-      setPaymentMethod("mobile_money");
+    setPaymentMethod("mobile_money");
+  }, [payAmount]);
+
+  useEffect(() => {
+    const status = q.data?.status;
+    const buyer = authMe?.user.id === q.data?.buyerUserId;
+    if (status !== "PAYMENT_PENDING" || !buyer) {
+      return;
     }
-  }, [clientFeatures.wallet, walletBalance, payAmount]);
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        void q.refetch();
+      }
+    });
+    return () => sub.remove();
+  }, [q.data?.status, q.data?.buyerUserId, authMe?.user.id, q]);
 
   const draftKg = useMemo(() => {
     const kg = Number.parseFloat(realWeight.replace(",", "."));

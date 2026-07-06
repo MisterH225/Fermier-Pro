@@ -437,6 +437,8 @@ export const fr = {
         "La dernière tentative a expiré avant confirmation GeniusPay. Appuyez sur « Payer » pour rouvrir le checkout.",
       checkoutUrlMissing:
         "GeniusPay n'a pas renvoyé de lien de paiement. Réessayez dans un instant ou contactez le support.",
+      checkoutUrlInvalid:
+        "Le lien GeniusPay est invalide. Réessayez ou contactez le support.",
       transactionNotFound:
         "Transaction introuvable. Rechargez l'écran ou rouvrez-la depuis vos propositions.",
       paymentApiUnavailable:

@@ -1,4 +1,5 @@
 import {
+  BadGatewayException,
   BadRequestException,
   ForbiddenException,
   forwardRef,
@@ -370,6 +371,14 @@ export class CreditOffersService {
       `Solde crédit ${offerId}`,
       { paymentMethod: method }
     );
+    if (
+      method === MarketplacePaymentMethod.mobile_money &&
+      !hold.paymentUrl?.trim()
+    ) {
+      throw new BadGatewayException(
+        "GeniusPay n'a pas renvoyé d'URL de checkout pour ce paiement"
+      );
+    }
     await this.prisma.marketplaceOffer.update({
       where: { id: offerId },
       data: {
@@ -406,7 +415,9 @@ export class CreditOffersService {
       throw new BadRequestException("Référence paiement invalide");
     }
     if (offer.balancePaymentMode !== "wallet") {
-      return this.serializeOffer(offerId, user.id);
+      throw new BadRequestException(
+        "Paiement en attente de confirmation GeniusPay — finalisez le checkout ou attendez la notification."
+      );
     }
     const tx = await this.prisma.marketplaceTransaction.findUniqueOrThrow({
       where: { offerId }

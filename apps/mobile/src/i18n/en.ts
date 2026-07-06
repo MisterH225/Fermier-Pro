@@ -436,6 +436,8 @@ export const en = {
         "The last attempt timed out before GeniusPay confirmation. Tap Pay to reopen checkout.",
       checkoutUrlMissing:
         "GeniusPay did not return a payment link. Retry shortly or contact support.",
+      checkoutUrlInvalid:
+        "The GeniusPay link is invalid. Try again or contact support.",
       transactionNotFound:
         "Transaction not found. Refresh the screen or reopen it from your proposals.",
       paymentApiUnavailable:

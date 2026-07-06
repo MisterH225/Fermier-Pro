@@ -43,12 +43,8 @@ export function CreditBalancePaymentModal({
     if (userPickedPaymentMethod.current) {
       return;
     }
-    if (walletEnabled && walletBalance >= amount && amount > 0) {
-      setPaymentMethod("wallet");
-    } else {
-      setPaymentMethod("mobile_money");
-    }
-  }, [visible, walletBalance, amount, walletEnabled]);
+    setPaymentMethod("mobile_money");
+  }, [visible, amount]);
 
   return (
     <BaseModal
