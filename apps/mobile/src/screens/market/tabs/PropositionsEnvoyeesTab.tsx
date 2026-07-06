@@ -107,7 +107,7 @@ export function PropositionsEnvoyeesTab({
         navigation.navigate("MarketplaceTransaction", { transactionId: txId });
         return;
       }
-      if (fresh.status !== "PAYMENT_PENDING") {
+      if (fresh.status !== "PAYMENT_PENDING" && fresh.status !== "PAYMENT_FAILED") {
         Alert.alert(
           t("marketScreen.transaction.paymentErrorTitle"),
           t("marketScreen.transaction.paymentInvalidStatus", {

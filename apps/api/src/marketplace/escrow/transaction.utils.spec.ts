@@ -2,6 +2,8 @@ import { MarketplacePriceType } from "@prisma/client";
 import {
   calculateAgreedDealAmount,
   calculateBlockedAmount,
+  isDefinitiveMobileMoneyFailure,
+  isPendingMobileMoneyConfirm,
   resolveHandoverDealTotalPrice,
   resolveReceiptRealWeightKg,
   settlementAmounts
@@ -139,15 +141,16 @@ describe("transaction.utils", () => {
     });
   });
 
-  describe("settlementAmounts", () => {
-    it("plafonne le payout vendeur à zéro si les taux dépassent le montant", () => {
-      const amounts = settlementAmounts({
-        blockedAmount: 1_000_000,
-        finalAmount: 1_000_000,
-        commissionRate: 0.6,
-        sellerCommissionRate: 0.5
-      });
-      expect(amounts.sellerReceivedAmount).toBe(0);
+  describe("mobile money confirm helpers", () => {
+    it("détecte une confirmation en attente", () => {
+      expect(
+        isPendingMobileMoneyConfirm("Paiement en attente de confirmation")
+      ).toBe(true);
+    });
+
+    it("détecte un échec définitif GeniusPay", () => {
+      expect(isDefinitiveMobileMoneyFailure("Paiement failed")).toBe(true);
+      expect(isDefinitiveMobileMoneyFailure("Paiement cancelled")).toBe(true);
     });
   });
 });

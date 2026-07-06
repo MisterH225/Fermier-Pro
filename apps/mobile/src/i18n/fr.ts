@@ -433,6 +433,8 @@ export const fr = {
         "Cette transaction est déjà payée (souvent via le portefeuille ou un webhook GeniusPay). Passez à l'étape livraison.",
       paymentInvalidStatus:
         "Cette transaction n'est plus en attente de paiement (statut : {{status}}). Rechargez l'écran ou créez une nouvelle offre.",
+      paymentFailedRetryHint:
+        "La dernière tentative a expiré avant confirmation GeniusPay. Appuyez sur « Payer » pour rouvrir le checkout.",
       paymentErrorTitle: "Paiement impossible",
       pickupSection: "Rendez-vous de récupération",
       pickupDate: "Date de retrait",

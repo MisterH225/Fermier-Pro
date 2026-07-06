@@ -46,6 +46,8 @@ import {
   calculateFinalAmount,
   calculateFinalAmountAtEstimatedWeight,
   estimatePlatformFee,
+  isDefinitiveMobileMoneyFailure,
+  isPendingMobileMoneyConfirm,
   lastNMonthKeys,
   paymentExpiryDate,
   resolveReceiptRealWeightKg,
@@ -599,7 +601,17 @@ export class MarketplaceTransactionService {
         "Paiement déjà effectué pour cette transaction. Passez à l'étape livraison."
       );
     }
-    if (tx.status !== MarketplaceTransactionStatus.PAYMENT_PENDING) {
+    if (tx.status === MarketplaceTransactionStatus.PAYMENT_FAILED) {
+      await this.prisma.marketplaceTransaction.update({
+        where: { id: tx.id },
+        data: {
+          status: MarketplaceTransactionStatus.PAYMENT_PENDING,
+          paymentProviderRef: null,
+          paymentInitiatedAt: null,
+          paymentMethod: null
+        }
+      });
+    } else if (tx.status !== MarketplaceTransactionStatus.PAYMENT_PENDING) {
       throw new BadRequestException(
         `Paiement non requis pour cette transaction (statut : ${tx.status})`
       );
@@ -660,14 +672,23 @@ export class MarketplaceTransactionService {
         : undefined;
     const holdResult = await this.escrow.confirmHold(ref, tx.id, walletContext);
     if (!holdResult.success) {
-      await this.prisma.marketplaceTransaction.updateMany({
-        where: {
-          id: tx.id,
-          status: MarketplaceTransactionStatus.PAYMENT_PENDING
-        },
-        data: { status: MarketplaceTransactionStatus.PAYMENT_FAILED }
-      });
-      throw new BadRequestException("Paiement refusé");
+      if (isPendingMobileMoneyConfirm(holdResult.failureReason)) {
+        throw new BadRequestException(
+          "Paiement en attente de confirmation GeniusPay — finalisez le checkout ou attendez la notification."
+        );
+      }
+      if (isDefinitiveMobileMoneyFailure(holdResult.failureReason)) {
+        await this.prisma.marketplaceTransaction.updateMany({
+          where: {
+            id: tx.id,
+            status: MarketplaceTransactionStatus.PAYMENT_PENDING
+          },
+          data: { status: MarketplaceTransactionStatus.PAYMENT_FAILED }
+        });
+      }
+      throw new BadRequestException(
+        holdResult.failureReason ?? "Paiement refusé"
+      );
     }
     const confirmedRef = holdResult.providerRef ?? ref;
 
@@ -735,13 +756,15 @@ export class MarketplaceTransactionService {
     }
     const holdResult = await this.escrow.confirmHold(providerRef, transactionId);
     if (!holdResult.success) {
-      await this.prisma.marketplaceTransaction.updateMany({
-        where: {
-          id: transactionId,
-          status: MarketplaceTransactionStatus.PAYMENT_PENDING
-        },
-        data: { status: MarketplaceTransactionStatus.PAYMENT_FAILED }
-      });
+      if (isDefinitiveMobileMoneyFailure(holdResult.failureReason)) {
+        await this.prisma.marketplaceTransaction.updateMany({
+          where: {
+            id: transactionId,
+            status: MarketplaceTransactionStatus.PAYMENT_PENDING
+          },
+          data: { status: MarketplaceTransactionStatus.PAYMENT_FAILED }
+        });
+      }
       return { ok: false };
     }
     const claimed = await this.prisma.marketplaceTransaction.updateMany({

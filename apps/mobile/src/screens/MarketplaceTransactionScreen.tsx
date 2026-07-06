@@ -164,7 +164,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
       if (fresh.status === "PAYMENT_HELD") {
         throw new Error("MARKETPLACE_PAYMENT_ALREADY_HELD");
       }
-      if (fresh.status !== "PAYMENT_PENDING") {
+      if (fresh.status !== "PAYMENT_PENDING" && fresh.status !== "PAYMENT_FAILED") {
         throw new Error(`MARKETPLACE_PAYMENT_INVALID_STATUS:${fresh.status}`);
       }
 
@@ -176,16 +176,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
       );
       if (init.paymentUrl && paymentMethod === "mobile_money") {
         await openPaymentCheckout(init.paymentUrl);
-        try {
-          return await confirmMarketplacePayment(
-            accessToken,
-            transactionId,
-            init.providerRef,
-            activeProfileId
-          );
-        } catch {
-          return { pendingExternalPayment: true as const };
-        }
+        return { pendingExternalPayment: true as const };
       }
       return confirmMarketplacePayment(
         accessToken,
@@ -489,7 +480,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   });
   const payReady =
     isBuyer &&
-    tx.status === "PAYMENT_PENDING" &&
+    (tx.status === "PAYMENT_PENDING" || tx.status === "PAYMENT_FAILED") &&
     q.isSuccess &&
     !q.isFetching;
   const projectedFinal =
@@ -776,7 +767,9 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         </View>
       ) : null}
 
-      {isBuyer && tx.status !== "PAYMENT_PENDING" ? (
+      {isBuyer &&
+      tx.status !== "PAYMENT_PENDING" &&
+      tx.status !== "PAYMENT_FAILED" ? (
         <View style={styles.section}>
           <Text style={styles.waiting}>
             {tx.status === "PAYMENT_HELD"
@@ -784,6 +777,14 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
               : t("marketScreen.transaction.paymentInvalidStatus", {
                   status: statusLabel
                 })}
+          </Text>
+        </View>
+      ) : null}
+
+      {isBuyer && tx.status === "PAYMENT_FAILED" ? (
+        <View style={styles.section}>
+          <Text style={styles.hint}>
+            {t("marketScreen.transaction.paymentFailedRetryHint")}
           </Text>
         </View>
       ) : null}

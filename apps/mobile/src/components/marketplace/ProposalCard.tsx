@@ -468,7 +468,8 @@ export function ProposalCard(props: ProposalCardProps) {
       status === "credit_agreed" &&
       !advancePaidDeclaredAt &&
       !advanceConfirmedAt &&
-      transactionStatus === "PAYMENT_PENDING" &&
+      (transactionStatus === "PAYMENT_PENDING" ||
+        transactionStatus === "PAYMENT_FAILED") &&
       !actionsDisabled ? (
         <Pressable
           style={[styles.btn, styles.btnPrimary]}
@@ -488,6 +489,7 @@ export function ProposalCard(props: ProposalCardProps) {
       !advanceConfirmedAt &&
       transactionStatus &&
       transactionStatus !== "PAYMENT_PENDING" &&
+      transactionStatus !== "PAYMENT_FAILED" &&
       !actionsDisabled ? (
         <Pressable
           style={[styles.btn, styles.btnOutline]}

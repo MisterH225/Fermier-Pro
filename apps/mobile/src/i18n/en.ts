@@ -432,6 +432,8 @@ export const en = {
         "This transaction is already paid (often via wallet or a GeniusPay webhook). Continue to the delivery step.",
       paymentInvalidStatus:
         "This transaction is no longer awaiting payment (status: {{status}}). Refresh the screen or create a new offer.",
+      paymentFailedRetryHint:
+        "The last attempt timed out before GeniusPay confirmation. Tap Pay to reopen checkout.",
       paymentErrorTitle: "Payment failed",
       pickupSection: "Pickup appointment",
       pickupDate: "Pickup date",

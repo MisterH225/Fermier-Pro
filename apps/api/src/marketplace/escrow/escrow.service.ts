@@ -92,7 +92,11 @@ export class EscrowService {
       currency: string;
       label: string;
     }
-  ): Promise<{ success: boolean; providerRef?: string }> {
+  ): Promise<{
+    success: boolean;
+    providerRef?: string;
+    failureReason?: string;
+  }> {
     if (this.userWallet.isWalletPendingRef(providerRef)) {
       if (!walletContext) {
         throw new Error("Contexte portefeuille manquant pour confirmer le paiement");
@@ -120,7 +124,11 @@ export class EscrowService {
       return { success: true, providerRef };
     }
     const res = await this.gateway.confirmPayment(providerRef, transactionId);
-    return { success: res.success, providerRef };
+    return {
+      success: res.success,
+      providerRef: res.providerRef,
+      failureReason: res.failureReason
+    };
   }
 
   async releaseFundsToSeller(

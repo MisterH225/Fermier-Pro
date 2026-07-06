@@ -312,6 +312,33 @@ export const TERMINAL_TRANSACTION_STATUSES: MarketplaceTransactionStatus[] = [
   MarketplaceTransactionStatus.PAYMENT_FAILED
 ];
 
+/** Confirmation mobile money encore en attente côté prestataire (webhook attendu). */
+export function isPendingMobileMoneyConfirm(failureReason?: string | null): boolean {
+  if (!failureReason?.trim()) {
+    return false;
+  }
+  const lower = failureReason.toLowerCase();
+  return lower.includes("en attente") || lower.includes("pending");
+}
+
+/** Échec définitif signalé par le prestataire (pas un simple polling trop tôt). */
+export function isDefinitiveMobileMoneyFailure(
+  failureReason?: string | null
+): boolean {
+  if (!failureReason?.trim()) {
+    return false;
+  }
+  const lower = failureReason.toLowerCase();
+  return (
+    lower.includes("failed") ||
+    lower.includes("cancelled") ||
+    lower.includes("expired") ||
+    lower.includes("échoué") ||
+    lower.includes("annul") ||
+    lower.includes("expir")
+  );
+}
+
 /** Transaction en cours (bloque de nouvelles offres sur l'annonce). */
 export const ACTIVE_DEAL_TRANSACTION_STATUSES: MarketplaceTransactionStatus[] = [
   MarketplaceTransactionStatus.PAYMENT_PENDING,
