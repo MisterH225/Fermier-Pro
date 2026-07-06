@@ -56,13 +56,14 @@ export class GeniusPayWebhookController {
     }
 
     const webhookEvent = (event ?? body.event ?? "").trim();
-    const reference = body.data?.reference?.trim();
-    if (!reference) {
-      throw new BadRequestException("reference manquante");
-    }
 
     if (webhookEvent === "webhook.test") {
       return { ok: true, test: true };
+    }
+
+    const reference = body.data?.reference?.trim();
+    if (!reference) {
+      throw new BadRequestException("reference manquante");
     }
 
     const metadata = body.data?.metadata ?? {};
