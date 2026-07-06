@@ -30,16 +30,19 @@ describe("verifyGeniusPayWebhookSignature", () => {
     expect(isLikelyGeniusPayWebhookSecret("sk_sandbox_abc")).toBe(false);
   });
 
-  it("accepte un secret entouré de guillemets Railway", () => {
+  it("accepte whsec_ sans suffixe sandbox/live (format GeniusPay courant)", () => {
+    const altSecret = "whsec_abc123secret";
     const rawBody = JSON.stringify(payload);
     const ts = String(payload.timestamp);
-    const signature = sign(ts, rawBody);
+    const signature = createHmac("sha256", altSecret)
+      .update(`${ts}.${rawBody}`)
+      .digest("hex");
     expect(() =>
       verifyGeniusPayWebhookSignature({
         signature,
         timestamp: ts,
         rawPayload: rawBody,
-        secret: `"${secret}"`
+        secret: altSecret
       })
     ).not.toThrow();
   });
@@ -72,7 +75,7 @@ describe("verifyGeniusPayWebhookSignature", () => {
     ).not.toThrow();
   });
 
-  it("rejette un secret API sk_ par erreur", () => {
+  it("rejette une clé API sk_ confondue avec le secret webhook", () => {
     const rawBody = JSON.stringify(payload);
     const ts = String(payload.timestamp);
     const signature = sign(ts, rawBody);
@@ -83,7 +86,7 @@ describe("verifyGeniusPayWebhookSignature", () => {
         rawPayload: rawBody,
         secret: "sk_sandbox_api_secret"
       })
-    ).toThrow("GENIUSPAY_WEBHOOK_SECRET invalide");
+    ).toThrow("clé API");
   });
 
   it("rejette si le corps brut diffère de celui signé par GeniusPay", () => {
