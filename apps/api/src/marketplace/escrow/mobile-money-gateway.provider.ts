@@ -46,6 +46,13 @@ class MobileMoneyGatewayGuard implements OnModuleInit {
           `MOBILE_MONEY_PROVIDER=geniuspay mais variables manquantes: ${missing.join(", ")}`
         );
       } else {
+        const webhookSecret = process.env.GENIUSPAY_WEBHOOK_SECRET?.trim() ?? "";
+        if (!/^whsec_(sandbox|live)_/i.test(webhookSecret)) {
+          this.log.error(
+            "GENIUSPAY_WEBHOOK_SECRET doit commencer par whsec_sandbox_ ou whsec_live_ " +
+              "(secret affiché à la création du webhook GeniusPay, pas GENIUSPAY_API_SECRET sk_)."
+          );
+        }
         this.log.log("Gateway mobile money GeniusPay actif");
       }
     }

@@ -1,11 +1,14 @@
 import { createHmac } from "crypto";
-import { verifyGeniusPayWebhookSignature } from "./geniuspay-webhook.util";
+import {
+  isLikelyGeniusPayWebhookSecret,
+  verifyGeniusPayWebhookSignature
+} from "./geniuspay-webhook.util";
 
 describe("verifyGeniusPayWebhookSignature", () => {
-  const secret = "whsec_test_secret";
+  const secret = "whsec_sandbox_test_secret";
   const payload = {
     id: "evt-1",
-    event: "payment.success",
+    event: "webhook.test",
     timestamp: Math.floor(Date.now() / 1000),
     data: {
       reference: "MTX-ABC123",
@@ -19,6 +22,12 @@ describe("verifyGeniusPayWebhookSignature", () => {
       .update(`${ts}.${rawBody}`)
       .digest("hex");
   }
+
+  it("valide le format whsec_sandbox / whsec_live", () => {
+    expect(isLikelyGeniusPayWebhookSecret("whsec_sandbox_abc")).toBe(true);
+    expect(isLikelyGeniusPayWebhookSecret("whsec_live_abc")).toBe(true);
+    expect(isLikelyGeniusPayWebhookSecret("sk_sandbox_abc")).toBe(false);
+  });
 
   it("accepte une signature valide sur le corps brut", () => {
     const rawBody = JSON.stringify(payload);
@@ -46,6 +55,20 @@ describe("verifyGeniusPayWebhookSignature", () => {
         secret
       })
     ).not.toThrow();
+  });
+
+  it("rejette un secret API sk_ par erreur", () => {
+    const rawBody = JSON.stringify(payload);
+    const ts = String(payload.timestamp);
+    const signature = sign(ts, rawBody);
+    expect(() =>
+      verifyGeniusPayWebhookSignature({
+        signature,
+        timestamp: ts,
+        rawPayload: rawBody,
+        secret: "sk_sandbox_api_secret"
+      })
+    ).toThrow("GENIUSPAY_WEBHOOK_SECRET invalide");
   });
 
   it("rejette si le corps brut diffère de celui signé par GeniusPay", () => {
