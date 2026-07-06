@@ -174,8 +174,12 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         activeProfileId,
         paymentMethod
       );
-      if (init.paymentUrl && paymentMethod === "mobile_money") {
-        await openPaymentCheckout(init.paymentUrl);
+      if (paymentMethod === "mobile_money") {
+        const checkoutUrl = init.paymentUrl?.trim();
+        if (!checkoutUrl) {
+          throw new Error("MARKETPLACE_CHECKOUT_URL_MISSING");
+        }
+        await openPaymentCheckout(checkoutUrl);
         return { pendingExternalPayment: true as const };
       }
       return confirmMarketplacePayment(
@@ -208,9 +212,28 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         );
         return;
       }
+      if (e.message === "MARKETPLACE_CHECKOUT_URL_MISSING") {
+        Alert.alert(
+          t("marketScreen.transaction.paymentErrorTitle"),
+          t("marketScreen.transaction.checkoutUrlMissing")
+        );
+        return;
+      }
+      const msg = marketplaceActionErrorMessage(e, t);
+      if (
+        msg.toLowerCase().includes("en attente") ||
+        msg.toLowerCase().includes("awaiting confirmation")
+      ) {
+        invalidate();
+        Alert.alert(
+          t("marketScreen.transaction.paymentPendingTitle"),
+          t("marketScreen.transaction.paymentPendingBody")
+        );
+        return;
+      }
       Alert.alert(
         t("marketScreen.transaction.paymentErrorTitle"),
-        marketplaceActionErrorMessage(e, t)
+        msg
       );
     }
   });

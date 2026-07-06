@@ -1,4 +1,5 @@
 import {
+  BadGatewayException,
   BadRequestException,
   ForbiddenException,
   Inject,
@@ -48,6 +49,7 @@ import {
   estimatePlatformFee,
   isDefinitiveMobileMoneyFailure,
   isPendingMobileMoneyConfirm,
+  isTransientMobileMoneyConfirm,
   lastNMonthKeys,
   paymentExpiryDate,
   resolveReceiptRealWeightKg,
@@ -629,6 +631,14 @@ export class MarketplaceTransactionService {
       `Marketplace ${tx.listingId}`,
       { paymentMethod: method }
     );
+    if (
+      method === MarketplacePaymentMethod.mobile_money &&
+      !hold.paymentUrl?.trim()
+    ) {
+      throw new BadGatewayException(
+        "GeniusPay n'a pas renvoyé d'URL de checkout pour ce paiement"
+      );
+    }
     await this.prisma.marketplaceTransaction.update({
       where: { id: tx.id },
       data: {
@@ -672,7 +682,10 @@ export class MarketplaceTransactionService {
         : undefined;
     const holdResult = await this.escrow.confirmHold(ref, tx.id, walletContext);
     if (!holdResult.success) {
-      if (isPendingMobileMoneyConfirm(holdResult.failureReason)) {
+      if (
+        isPendingMobileMoneyConfirm(holdResult.failureReason) ||
+        isTransientMobileMoneyConfirm(holdResult.failureReason)
+      ) {
         throw new BadRequestException(
           "Paiement en attente de confirmation GeniusPay — finalisez le checkout ou attendez la notification."
         );

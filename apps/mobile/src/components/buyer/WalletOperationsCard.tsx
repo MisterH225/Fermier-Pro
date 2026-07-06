@@ -70,11 +70,7 @@ export function WalletOperationsCard({
       }
       if (init.paymentUrl) {
         await openPaymentCheckout(init.paymentUrl);
-        try {
-          return await confirmWalletTopUp(accessToken!, init.providerRef);
-        } catch {
-          return { pendingExternalPayment: true as const };
-        }
+        return { pendingExternalPayment: true as const };
       }
       return confirmWalletTopUp(accessToken!, init.providerRef);
     },

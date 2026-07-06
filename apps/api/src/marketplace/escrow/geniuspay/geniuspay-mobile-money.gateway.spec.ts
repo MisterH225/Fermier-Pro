@@ -64,6 +64,27 @@ describe("GeniusPayMobileMoneyGateway", () => {
     );
   });
 
+  it("construit checkout_url depuis la reference si absent", async () => {
+    createPayment.mockResolvedValue({
+      id: 4,
+      reference: "MTX-FALLBACK1",
+      amount: 10000,
+      currency: "XOF",
+      status: "pending"
+    });
+
+    const result = await gateway.initiateTopUp({
+      amount: 10000,
+      currency: "XOF",
+      userId: "user-1",
+      label: "Recharge"
+    });
+
+    expect(result.paymentUrl).toBe(
+      "https://geniuspay.ci/checkout/MTX-FALLBACK1"
+    );
+  });
+
   it("confirme un topup complété", async () => {
     getPayment.mockResolvedValue({
       id: 2,

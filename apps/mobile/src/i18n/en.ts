@@ -434,6 +434,8 @@ export const en = {
         "This transaction is no longer awaiting payment (status: {{status}}). Refresh the screen or create a new offer.",
       paymentFailedRetryHint:
         "The last attempt timed out before GeniusPay confirmation. Tap Pay to reopen checkout.",
+      checkoutUrlMissing:
+        "GeniusPay did not return a payment link. Retry shortly or contact support.",
       paymentErrorTitle: "Payment failed",
       pickupSection: "Pickup appointment",
       pickupDate: "Pickup date",

@@ -321,6 +321,25 @@ export function isPendingMobileMoneyConfirm(failureReason?: string | null): bool
   return lower.includes("en attente") || lower.includes("pending");
 }
 
+/** Erreur réseau/API temporaire — ne pas bloquer définitivement (webhook attendu). */
+export function isTransientMobileMoneyConfirm(
+  failureReason?: string | null
+): boolean {
+  if (!failureReason?.trim()) {
+    return false;
+  }
+  if (isPendingMobileMoneyConfirm(failureReason)) {
+    return true;
+  }
+  const lower = failureReason.toLowerCase();
+  return (
+    lower.includes("impossible de vérifier") ||
+    lower.includes("injoignable") ||
+    lower.includes("timeout") ||
+    lower.includes("network")
+  );
+}
+
 /** Échec définitif signalé par le prestataire (pas un simple polling trop tôt). */
 export function isDefinitiveMobileMoneyFailure(
   failureReason?: string | null

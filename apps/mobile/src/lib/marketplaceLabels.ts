@@ -94,6 +94,9 @@ export function marketplaceActionErrorMessage(err: unknown, t: TFunction): strin
           : "";
   const compact = raw.replace(/\s+/g, " ").trim();
   const base = getUserFacingError(err, t);
+  if (compact === "MARKETPLACE_CHECKOUT_URL_MISSING") {
+    return t("marketScreen.transaction.checkoutUrlMissing");
+  }
   if (compact === "MARKETPLACE_PAYMENT_ALREADY_HELD") {
     return t("marketScreen.transaction.paymentAlreadyHeldBody");
   }

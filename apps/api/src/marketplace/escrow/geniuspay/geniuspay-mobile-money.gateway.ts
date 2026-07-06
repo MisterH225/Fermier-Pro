@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { BadGatewayException, Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import type {
   MobileMoneyConfirmResult,
@@ -12,6 +12,24 @@ import {
   GENIUSPAY_KIND_WALLET_TOPUP,
   type GeniusPayPaymentMetadata
 } from "./geniuspay.types";
+
+const GENIUSPAY_CHECKOUT_BASE = "https://geniuspay.ci/checkout";
+
+function resolveGeniusPayCheckoutUrl(data: {
+  reference?: string | null;
+  checkout_url?: string | null;
+  payment_url?: string | null;
+}): string | null {
+  const direct = data.checkout_url?.trim() || data.payment_url?.trim();
+  if (direct) {
+    return direct;
+  }
+  const ref = data.reference?.trim();
+  if (!ref) {
+    return null;
+  }
+  return `${GENIUSPAY_CHECKOUT_BASE}/${encodeURIComponent(ref)}`;
+}
 
 @Injectable()
 export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
@@ -46,7 +64,7 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
     });
     return {
       providerRef: data.reference,
-      paymentUrl: data.checkout_url ?? data.payment_url ?? null
+      paymentUrl: resolveGeniusPayCheckoutUrl(data)
     };
   }
 
@@ -132,7 +150,7 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
     });
     return {
       providerRef: data.reference,
-      paymentUrl: data.checkout_url ?? data.payment_url ?? null
+      paymentUrl: resolveGeniusPayCheckoutUrl(data)
     };
   }
 
@@ -244,11 +262,18 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
         failureReason: "Paiement en attente de confirmation"
       };
     } catch (err) {
-      this.log.warn(`confirm ${providerRef}: ${String(err)}`);
+      const detail =
+        err instanceof BadGatewayException
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : String(err);
+      this.log.warn(`confirm ${providerRef}: ${detail}`);
       return {
         success: false,
         providerRef,
-        failureReason: "Impossible de vérifier le paiement GeniusPay"
+        failureReason:
+          detail.trim() || "Impossible de vérifier le paiement GeniusPay"
       };
     }
   }

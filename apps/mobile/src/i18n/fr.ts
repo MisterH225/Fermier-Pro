@@ -435,6 +435,8 @@ export const fr = {
         "Cette transaction n'est plus en attente de paiement (statut : {{status}}). Rechargez l'écran ou créez une nouvelle offre.",
       paymentFailedRetryHint:
         "La dernière tentative a expiré avant confirmation GeniusPay. Appuyez sur « Payer » pour rouvrir le checkout.",
+      checkoutUrlMissing:
+        "GeniusPay n'a pas renvoyé de lien de paiement. Réessayez dans un instant ou contactez le support.",
       paymentErrorTitle: "Paiement impossible",
       pickupSection: "Rendez-vous de récupération",
       pickupDate: "Date de retrait",
