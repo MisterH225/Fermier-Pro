@@ -156,11 +156,11 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
 
   const payMut = useMutation({
     mutationFn: async () => {
-      const fresh = await fetchMarketplaceTransaction(
-        accessToken!,
-        transactionId,
-        activeProfileId
-      );
+      const refetchResult = await q.refetch();
+      const fresh = refetchResult.data;
+      if (!fresh) {
+        throw new Error("MARKETPLACE_TRANSACTION_NOT_FOUND");
+      }
       if (fresh.status === "PAYMENT_HELD") {
         throw new Error("MARKETPLACE_PAYMENT_ALREADY_HELD");
       }
@@ -211,6 +211,9 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
           t("marketScreen.transaction.paymentAlreadyHeldBody")
         );
         return;
+      }
+      if (e.message === "MARKETPLACE_TRANSACTION_NOT_FOUND") {
+        invalidate();
       }
       if (e.message === "MARKETPLACE_CHECKOUT_URL_MISSING") {
         Alert.alert(

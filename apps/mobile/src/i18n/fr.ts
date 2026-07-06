@@ -437,6 +437,12 @@ export const fr = {
         "La dernière tentative a expiré avant confirmation GeniusPay. Appuyez sur « Payer » pour rouvrir le checkout.",
       checkoutUrlMissing:
         "GeniusPay n'a pas renvoyé de lien de paiement. Réessayez dans un instant ou contactez le support.",
+      transactionNotFound:
+        "Transaction introuvable. Rechargez l'écran ou rouvrez-la depuis vos propositions.",
+      paymentApiUnavailable:
+        "Le service de paiement est indisponible (API obsolète ou hors ligne). Réessayez plus tard.",
+      providerError:
+        "Le prestataire de paiement a refusé la demande. Réessayez ou contactez le support.",
       paymentErrorTitle: "Paiement impossible",
       pickupSection: "Rendez-vous de récupération",
       pickupDate: "Date de retrait",

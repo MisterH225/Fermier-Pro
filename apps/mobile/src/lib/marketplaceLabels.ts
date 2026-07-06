@@ -93,7 +93,6 @@ export function marketplaceActionErrorMessage(err: unknown, t: TFunction): strin
           ? String(err)
           : "";
   const compact = raw.replace(/\s+/g, " ").trim();
-  const base = getUserFacingError(err, t);
   if (compact === "MARKETPLACE_CHECKOUT_URL_MISSING") {
     return t("marketScreen.transaction.checkoutUrlMissing");
   }
@@ -107,6 +106,26 @@ export function marketplaceActionErrorMessage(err: unknown, t: TFunction): strin
       defaultValue: `Statut actuel : ${status}. Rechargez l'écran ou créez une nouvelle transaction.`
     });
   }
+  if (compact === "MARKETPLACE_TRANSACTION_NOT_FOUND") {
+    return t("marketScreen.transaction.transactionNotFound");
+  }
+  if (/transaction introuvable/i.test(compact)) {
+    return t("marketScreen.transaction.transactionNotFound");
+  }
+  if (/cannot (post|get)\s+\/api/i.test(compact)) {
+    return t("marketScreen.transaction.paymentApiUnavailable");
+  }
+  if (
+    /geniuspay|prestataire geniuspay|transaction_not_found|country_not_supported|payment_init_failed|validation_error/i.test(
+      compact
+    )
+  ) {
+    if (compact.length <= 220 && !/internal server|stack trace|prisma/i.test(compact)) {
+      return compact;
+    }
+    return t("marketScreen.transaction.providerError");
+  }
+  const base = getUserFacingError(err, t);
   if (
     compact.includes("marketplace.write") ||
     compact.includes("Permission manquante")

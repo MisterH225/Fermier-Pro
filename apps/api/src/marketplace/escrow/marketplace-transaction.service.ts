@@ -35,6 +35,7 @@ import { CreditOffersService } from "../credit/credit-offers.service";
 import { ListingsService } from "../listings.service";
 import { ReceiptService } from "../receipts/receipt.service";
 import { EscrowService } from "./escrow.service";
+import { resolveGeniusPayCheckoutUrl } from "./geniuspay/geniuspay-mobile-money.gateway";
 import {
   ACTIVE_ESCROW_STATUSES,
   CANCELLABLE_BY_BUYER,
@@ -619,10 +620,29 @@ export class MarketplaceTransactionService {
       );
     }
     const amount = Number(tx.blockedAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new BadRequestException(
+        "Montant à payer invalide pour cette transaction — contactez le support."
+      );
+    }
     const method =
       dto?.paymentMethod === "wallet"
         ? MarketplacePaymentMethod.wallet
         : MarketplacePaymentMethod.mobile_money;
+    const existingRef = tx.paymentProviderRef?.trim();
+    if (
+      method === MarketplacePaymentMethod.mobile_money &&
+      existingRef &&
+      tx.paymentMethod === MarketplacePaymentMethod.mobile_money
+    ) {
+      return {
+        providerRef: existingRef,
+        amount,
+        currency: tx.currency,
+        paymentMethod: MarketplacePaymentMethod.mobile_money,
+        paymentUrl: resolveGeniusPayCheckoutUrl({ reference: existingRef })
+      };
+    }
     const hold = await this.escrow.holdFunds(
       tx.id,
       tx.buyerUserId,

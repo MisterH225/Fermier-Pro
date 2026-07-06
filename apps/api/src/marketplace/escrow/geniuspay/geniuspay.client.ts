@@ -10,7 +10,7 @@ import type {
   GeniusPayPaymentMetadata
 } from "./geniuspay.types";
 
-const DEFAULT_BASE_URL = "https://geniuspay.ci/api/v1/merchant";
+const DEFAULT_BASE_URL = "https://pay.genius.ci/api/v1/merchant";
 
 export type CreateGeniusPayPaymentParams = {
   amount: number;
@@ -113,11 +113,13 @@ export class GeniusPayClient {
     }
 
     if (!res.ok || !json.success || !json.data) {
+      const code = json.error?.code?.trim();
       const msg =
-        json.error?.message ??
+        json.error?.message?.trim() ??
         `GeniusPay HTTP ${res.status}`;
-      this.log.warn(`GeniusPay ${method} ${path} échec: ${msg}`);
-      throw new BadGatewayException(msg);
+      const detail = code ? `${msg} (${code})` : msg;
+      this.log.warn(`GeniusPay ${method} ${path} échec: ${detail}`);
+      throw new BadGatewayException(detail);
     }
     return json.data;
   }

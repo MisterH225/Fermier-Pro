@@ -13,9 +13,9 @@ import {
   type GeniusPayPaymentMetadata
 } from "./geniuspay.types";
 
-const GENIUSPAY_CHECKOUT_BASE = "https://geniuspay.ci/checkout";
+export const GENIUSPAY_CHECKOUT_BASE = "https://geniuspay.ci/checkout";
 
-function resolveGeniusPayCheckoutUrl(data: {
+export function resolveGeniusPayCheckoutUrl(data: {
   reference?: string | null;
   checkout_url?: string | null;
   payment_url?: string | null;

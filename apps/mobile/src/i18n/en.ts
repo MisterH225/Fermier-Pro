@@ -436,6 +436,12 @@ export const en = {
         "The last attempt timed out before GeniusPay confirmation. Tap Pay to reopen checkout.",
       checkoutUrlMissing:
         "GeniusPay did not return a payment link. Retry shortly or contact support.",
+      transactionNotFound:
+        "Transaction not found. Refresh the screen or reopen it from your proposals.",
+      paymentApiUnavailable:
+        "Payment service unavailable (outdated API or offline). Try again later.",
+      providerError:
+        "The payment provider rejected the request. Retry or contact support.",
       paymentErrorTitle: "Payment failed",
       pickupSection: "Pickup appointment",
       pickupDate: "Pickup date",
