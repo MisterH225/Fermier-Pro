@@ -23,10 +23,25 @@ describe("verifyGeniusPayWebhookSignature", () => {
       .digest("hex");
   }
 
-  it("valide le format whsec_sandbox / whsec_live", () => {
+  it("valide le format whsec_", () => {
     expect(isLikelyGeniusPayWebhookSecret("whsec_sandbox_abc")).toBe(true);
     expect(isLikelyGeniusPayWebhookSecret("whsec_live_abc")).toBe(true);
+    expect(isLikelyGeniusPayWebhookSecret("whsec_abc123")).toBe(true);
     expect(isLikelyGeniusPayWebhookSecret("sk_sandbox_abc")).toBe(false);
+  });
+
+  it("accepte un secret entouré de guillemets Railway", () => {
+    const rawBody = JSON.stringify(payload);
+    const ts = String(payload.timestamp);
+    const signature = sign(ts, rawBody);
+    expect(() =>
+      verifyGeniusPayWebhookSignature({
+        signature,
+        timestamp: ts,
+        rawPayload: rawBody,
+        secret: `"${secret}"`
+      })
+    ).not.toThrow();
   });
 
   it("accepte une signature valide sur le corps brut", () => {

@@ -7,18 +7,26 @@ import {
 const REPLAY_TOLERANCE_SEC = 300;
 
 const WEBHOOK_SECRET_HINT =
-  "Vérifiez GENIUSPAY_WEBHOOK_SECRET sur Railway : secret whsec_sandbox_… " +
-  "(affiché une seule fois à la création du webhook GeniusPay), pas sk_ ni pk_.";
+  "Le secret doit être celui affiché à la création du webhook GeniusPay (whsec_…), " +
+  "recopié dans GENIUSPAY_WEBHOOK_SECRET sur Railway — pas GENIUSPAY_API_SECRET (sk_). " +
+  "Si le webhook a été recréé, regénérez le secret.";
 
 export function normalizeGeniusPayWebhookSecret(
   secret: string | undefined
 ): string {
-  return secret?.trim() ?? "";
+  let s = secret?.trim() ?? "";
+  if (
+    (s.startsWith('"') && s.endsWith('"')) ||
+    (s.startsWith("'") && s.endsWith("'"))
+  ) {
+    s = s.slice(1, -1).trim();
+  }
+  return s;
 }
 
 /** Valide le format attendu du secret webhook GeniusPay. */
 export function isLikelyGeniusPayWebhookSecret(secret: string): boolean {
-  return /^whsec_(sandbox|live)_/i.test(secret.trim());
+  return /^whsec_/i.test(normalizeGeniusPayWebhookSecret(secret));
 }
 
 function normalizeSignature(signature: string): string {
@@ -48,8 +56,8 @@ function safeCompareHex(expected: string, provided: string): boolean {
   }
 }
 
-function candidatePayloads(rawPayload: string, parsedPayload?: unknown): string[] {
-  const raw = rawPayload;
+function payloadCandidates(rawPayload: string, parsedPayload?: unknown): string[] {
+  const raw = rawPayload.replace(/^\uFEFF/, "");
   const candidates = [raw];
   if (parsedPayload !== undefined) {
     const serialized = JSON.stringify(parsedPayload);
@@ -58,6 +66,37 @@ function candidatePayloads(rawPayload: string, parsedPayload?: unknown): string[
     }
   }
   return candidates;
+}
+
+function timestampCandidates(
+  headerTimestamp: string,
+  parsedPayload?: unknown
+): string[] {
+  const candidates = [headerTimestamp];
+  if (
+    parsedPayload &&
+    typeof parsedPayload === "object" &&
+    "timestamp" in parsedPayload
+  ) {
+    const bodyTs = String(
+      (parsedPayload as { timestamp: unknown }).timestamp ?? ""
+    ).trim();
+    if (bodyTs && bodyTs !== headerTimestamp) {
+      candidates.push(bodyTs);
+    }
+  }
+  return candidates;
+}
+
+function assertTimestampFresh(timestamp: string): void {
+  const ts = Number.parseInt(timestamp, 10);
+  if (!Number.isFinite(ts)) {
+    throw new BadRequestException("Timestamp webhook GeniusPay invalide");
+  }
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (Math.abs(nowSec - ts) > REPLAY_TOLERANCE_SEC) {
+    throw new BadRequestException("Timestamp webhook GeniusPay expiré");
+  }
 }
 
 export function verifyGeniusPayWebhookSignature(params: {
@@ -77,7 +116,7 @@ export function verifyGeniusPayWebhookSignature(params: {
   }
   if (!isLikelyGeniusPayWebhookSecret(secret)) {
     throw new UnauthorizedException(
-      `GENIUSPAY_WEBHOOK_SECRET invalide (attendu whsec_sandbox_… ou whsec_live_…). ${WEBHOOK_SECRET_HINT}`
+      `GENIUSPAY_WEBHOOK_SECRET invalide (attendu whsec_…). ${WEBHOOK_SECRET_HINT}`
     );
   }
 
@@ -90,14 +129,7 @@ export function verifyGeniusPayWebhookSignature(params: {
     throw new UnauthorizedException("Timestamp webhook GeniusPay manquant");
   }
 
-  const ts = Number.parseInt(timestamp, 10);
-  if (!Number.isFinite(ts)) {
-    throw new BadRequestException("Timestamp webhook GeniusPay invalide");
-  }
-  const nowSec = Math.floor(Date.now() / 1000);
-  if (Math.abs(nowSec - ts) > REPLAY_TOLERANCE_SEC) {
-    throw new BadRequestException("Timestamp webhook GeniusPay expiré");
-  }
+  assertTimestampFresh(timestamp);
 
   const raw =
     typeof params.rawPayload === "string"
@@ -110,20 +142,25 @@ export function verifyGeniusPayWebhookSignature(params: {
   let parsed = params.parsedPayload;
   if (parsed === undefined) {
     try {
-      parsed = JSON.parse(raw) as unknown;
+      parsed = JSON.parse(raw.replace(/^\uFEFF/, "")) as unknown;
     } catch {
       parsed = undefined;
     }
   }
 
-  for (const payload of candidatePayloads(raw, parsed)) {
-    const expected = computeExpectedSignature(timestamp, payload, secret);
-    if (safeCompareHex(expected, signature)) {
-      return;
+  const payloads = payloadCandidates(raw, parsed);
+  const timestamps = timestampCandidates(timestamp, parsed);
+
+  for (const ts of timestamps) {
+    for (const payload of payloads) {
+      const expected = computeExpectedSignature(ts, payload, secret);
+      if (safeCompareHex(expected, signature)) {
+        return;
+      }
     }
   }
 
   throw new UnauthorizedException(
-    `Signature webhook GeniusPay invalide. ${WEBHOOK_SECRET_HINT}`
+    `Signature webhook GeniusPay invalide — le whsec_ sur Railway ne correspond probablement pas au webhook testé (recréez le webhook et recopiez le secret). ${WEBHOOK_SECRET_HINT}`
   );
 }
