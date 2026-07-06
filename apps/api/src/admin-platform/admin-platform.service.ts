@@ -1059,7 +1059,11 @@ export class AdminPlatformService {
         supportPhone: supportPhone ?? null,
         supportTelegramUrl: supportTelegramUrl ?? null,
         withdrawalAutoApproveThreshold:
-          dto.withdrawalAutoApproveThreshold ?? 50_000
+          dto.withdrawalAutoApproveThreshold ?? 50_000,
+        marketplaceWeightArbitrationMinDiffKg:
+          dto.marketplaceWeightArbitrationMinDiffKg ?? 1,
+        marketplaceWeightArbitrationCumulativeMinDiffKg:
+          dto.marketplaceWeightArbitrationCumulativeMinDiffKg ?? 5
       },
       update: {
         ...(dto.mapGeographicScope !== undefined
@@ -1098,6 +1102,18 @@ export class AdminPlatformService {
           ? {
               withdrawalAutoApproveThreshold:
                 dto.withdrawalAutoApproveThreshold
+            }
+          : {}),
+        ...(dto.marketplaceWeightArbitrationMinDiffKg !== undefined
+          ? {
+              marketplaceWeightArbitrationMinDiffKg:
+                dto.marketplaceWeightArbitrationMinDiffKg
+            }
+          : {}),
+        ...(dto.marketplaceWeightArbitrationCumulativeMinDiffKg !== undefined
+          ? {
+              marketplaceWeightArbitrationCumulativeMinDiffKg:
+                dto.marketplaceWeightArbitrationCumulativeMinDiffKg
             }
           : {})
       }

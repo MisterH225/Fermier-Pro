@@ -20,8 +20,7 @@ import { ConfirmShipmentDto } from "../dto/confirm-shipment.dto";
 import { CompletePendingTransferDto } from "../dto/complete-pending-transfer.dto";
 import { DeliveryDisputeDto } from "../dto/delivery-dispute.dto";
 import { SchedulePickupDto } from "../dto/schedule-pickup.dto";
-import { DeclareWeightDto } from "../dto/declare-weight.dto";
-import { DisputeWeightDto } from "../dto/dispute-weight.dto";
+import { DeclareWeightDto, DeclareSellerWeightDto } from "../dto/declare-weight.dto";
 import { MarketplaceTransactionService } from "./marketplace-transaction.service";
 
 @Controller("marketplace/transactions")
@@ -137,12 +136,24 @@ export class MarketplaceTransactionController {
     @Param("id") id: string,
     @Body() body: DeclareWeightDto
   ) {
-    return this.transactions.declareWeight(
-      user,
-      id,
-      body.realWeightKg,
-      body.photoUrl
-    );
+    return this.transactions.declareWeight(user, id, body);
+  }
+
+  @Post(":id/weight/seller-declare")
+  declareSellerWeight(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() body: DeclareSellerWeightDto
+  ) {
+    return this.transactions.declareSellerWeight(user, id, body);
+  }
+
+  @Post(":id/weight/request-arbitration")
+  requestWeightArbitration(
+    @CurrentUser() user: User,
+    @Param("id") id: string
+  ) {
+    return this.transactions.requestWeightArbitration(user, id);
   }
 
   @Post(":id/weight/validate")
@@ -154,7 +165,7 @@ export class MarketplaceTransactionController {
   disputeWeight(
     @CurrentUser() user: User,
     @Param("id") id: string,
-    @Body() body: DisputeWeightDto
+    @Body() body: { reason?: string }
   ) {
     return this.transactions.disputeWeight(user, id, body.reason);
   }

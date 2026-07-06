@@ -381,6 +381,7 @@ export const ACTIVE_DEAL_TRANSACTION_STATUSES: MarketplaceTransactionStatus[] = 
   MarketplaceTransactionStatus.BUYER_RECEIVED,
   MarketplaceTransactionStatus.DELIVERY_DISPUTED,
   MarketplaceTransactionStatus.WEIGHT_DECLARED,
+  MarketplaceTransactionStatus.WEIGHT_COUNTER_DECLARED,
   MarketplaceTransactionStatus.WEIGHT_DISPUTED,
   MarketplaceTransactionStatus.WEIGHT_VALIDATED
 ];
@@ -393,6 +394,7 @@ export const ACTIVE_ESCROW_STATUSES: MarketplaceTransactionStatus[] = [
   MarketplaceTransactionStatus.BUYER_RECEIVED,
   MarketplaceTransactionStatus.DELIVERY_DISPUTED,
   MarketplaceTransactionStatus.WEIGHT_DECLARED,
+  MarketplaceTransactionStatus.WEIGHT_COUNTER_DECLARED,
   MarketplaceTransactionStatus.WEIGHT_DISPUTED,
   MarketplaceTransactionStatus.WEIGHT_VALIDATED
 ];
@@ -417,6 +419,7 @@ export const CANCELLABLE_BY_BUYER: MarketplaceTransactionStatus[] = [
   MarketplaceTransactionStatus.PICKUP_PROPOSED,
   MarketplaceTransactionStatus.PICKUP_SCHEDULED,
   MarketplaceTransactionStatus.WEIGHT_DECLARED,
+  MarketplaceTransactionStatus.WEIGHT_COUNTER_DECLARED,
   MarketplaceTransactionStatus.WEIGHT_VALIDATED,
   MarketplaceTransactionStatus.SELLER_SHIPPED
 ];
@@ -427,6 +430,7 @@ export const CANCELLABLE_BY_SELLER: MarketplaceTransactionStatus[] = [
   MarketplaceTransactionStatus.PICKUP_PROPOSED,
   MarketplaceTransactionStatus.PICKUP_SCHEDULED,
   MarketplaceTransactionStatus.WEIGHT_DECLARED,
+  MarketplaceTransactionStatus.WEIGHT_COUNTER_DECLARED,
   MarketplaceTransactionStatus.WEIGHT_VALIDATED,
   MarketplaceTransactionStatus.SELLER_SHIPPED
 ];

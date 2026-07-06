@@ -202,6 +202,8 @@ export type PlatformSettingsDto = {
   supportPhone: string | null;
   supportTelegramUrl: string | null;
   withdrawalAutoApproveThreshold?: number;
+  marketplaceWeightArbitrationMinDiffKg?: number;
+  marketplaceWeightArbitrationCumulativeMinDiffKg?: number;
   /** Valeurs réellement servies au mobile (DB + fallback env). */
   supportEffective: SupportContactDto;
 };

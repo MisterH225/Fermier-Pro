@@ -24,26 +24,19 @@ type Props = {
   currency?: string;
   agreedPricePerKg?: number | null;
   agreedFlatPrice?: number | null;
-  estimatedWeightKg?: number | null;
+  declaredWeightKg?: number | null;
   blockedAmount?: number | null;
   onClose: () => void;
   onConfirm: (payload: {
     receivedAt: string;
     condition: ReceiptCondition;
     receivedAnimalIds: string[];
-    realWeightKg?: number;
-    animalWeights?: { animalId: string; weightKg: number }[];
     receivedHeadcount?: number;
     notes?: string;
   }) => void;
 };
 
 const CONDITIONS: ReceiptCondition[] = ["conform", "minor_issue", "major_issue"];
-
-function parseKg(raw: string): number | null {
-  const kg = Number.parseFloat(raw.replace(",", "."));
-  return Number.isFinite(kg) && kg > 0 ? kg : null;
-}
 
 export function ConfirmReceiptModal({
   visible,
@@ -53,7 +46,7 @@ export function ConfirmReceiptModal({
   currency = "XOF",
   agreedPricePerKg,
   agreedFlatPrice,
-  estimatedWeightKg,
+  declaredWeightKg,
   blockedAmount,
   onClose,
   onConfirm
@@ -65,15 +58,11 @@ export function ConfirmReceiptModal({
   );
   const [condition, setCondition] = useState<ReceiptCondition>("conform");
   const [notes, setNotes] = useState("");
-  const [totalWeight, setTotalWeight] = useState("");
   const [headcount, setHeadcount] = useState(
     animalIds.length > 0 ? String(animalIds.length) : "1"
   );
   const [checked, setChecked] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(animalIds.map((id) => [id, true]))
-  );
-  const [weightsByAnimal, setWeightsByAnimal] = useState<Record<string, string>>(
-    () => Object.fromEntries(animalIds.map((id) => [id, ""]))
   );
 
   useEffect(() => {
@@ -83,10 +72,8 @@ export function ConfirmReceiptModal({
     setReceivedAt(new Date().toISOString().slice(0, 10));
     setCondition("conform");
     setNotes("");
-    setTotalWeight("");
     setHeadcount(animalIds.length > 0 ? String(animalIds.length) : "1");
     setChecked(Object.fromEntries(animalIds.map((id) => [id, true])));
-    setWeightsByAnimal(Object.fromEntries(animalIds.map((id) => [id, ""])));
   }, [visible, animalIds]);
 
   const receivedIds = useMemo(
@@ -94,60 +81,28 @@ export function ConfirmReceiptModal({
     [animalIds, checked]
   );
 
-  const animalWeights = useMemo(() => {
-    if (animalIds.length === 0) {
-      return [] as { animalId: string; weightKg: number }[];
-    }
-    return receivedIds
-      .map((id) => {
-        const kg = parseKg(weightsByAnimal[id] ?? "");
-        return kg != null ? { animalId: id, weightKg: kg } : null;
-      })
-      .filter((row): row is { animalId: string; weightKg: number } => row != null);
-  }, [animalIds.length, receivedIds, weightsByAnimal]);
-
-  const summedWeight = useMemo(() => {
-    if (animalWeights.length > 0) {
-      return animalWeights.reduce((acc, row) => acc + row.weightKg, 0);
-    }
-    return parseKg(totalWeight);
-  }, [animalWeights, totalWeight]);
-
   const parsedHeadcount = Number.parseInt(headcount, 10);
   const validHeadcount =
     Number.isFinite(parsedHeadcount) && parsedHeadcount >= 1
       ? parsedHeadcount
       : null;
 
-  const allAnimalsWeighed =
-    animalIds.length === 0 ||
-    (receivedIds.length > 0 &&
-      receivedIds.every((id) => parseKg(weightsByAnimal[id] ?? "") != null));
-
   const canConfirm =
     condition === "conform" &&
-    (animalIds.length === 0 ? validHeadcount != null : receivedIds.length > 0) &&
-    allAnimalsWeighed &&
-    (!isPerKg || (summedWeight != null && summedWeight > 0));
+    (animalIds.length === 0 ? validHeadcount != null : receivedIds.length > 0);
 
   const projectedFinal = useMemo(() => {
-    if (!isPerKg || summedWeight == null) {
+    if (!isPerKg || declaredWeightKg == null) {
       return agreedFlatPrice ?? null;
     }
     return projectMarketplaceFinalAmount({
       priceType,
       agreedPricePerKg: agreedPricePerKg ?? null,
       agreedFlatPrice: agreedFlatPrice ?? null,
-      realWeightKg: summedWeight,
-      draftWeightKg: summedWeight
+      realWeightKg: declaredWeightKg,
+      draftWeightKg: declaredWeightKg
     });
-  }, [
-    isPerKg,
-    summedWeight,
-    priceType,
-    agreedPricePerKg,
-    agreedFlatPrice
-  ]);
+  }, [isPerKg, declaredWeightKg, priceType, agreedPricePerKg, agreedFlatPrice]);
 
   const settlementHint = useMemo(() => {
     if (!isPerKg || projectedFinal == null || blockedAmount == null) {
@@ -181,11 +136,10 @@ export function ConfirmReceiptModal({
                 receivedAt,
                 condition,
                 receivedAnimalIds: receivedIds,
-                realWeightKg: summedWeight ?? undefined,
-                animalWeights:
-                  animalWeights.length > 0 ? animalWeights : undefined,
                 receivedHeadcount:
-                  animalIds.length === 0 ? validHeadcount ?? undefined : receivedIds.length,
+                  animalIds.length === 0
+                    ? validHeadcount ?? undefined
+                    : receivedIds.length,
                 notes: notes.trim() || undefined
               });
             }}
@@ -214,42 +168,20 @@ export function ConfirmReceiptModal({
       {animalIds.length > 0 ? (
         <View style={styles.checklist}>
           <Text style={styles.label}>
-            {t("marketScreen.receiptModal.animalsWeigh")}
+            {t("marketScreen.receiptModal.animalsReceived")}
           </Text>
           {animalIds.map((id) => (
-            <View key={id} style={styles.animalRow}>
-              <Pressable
-                style={styles.checkRow}
-                onPress={() =>
-                  setChecked((prev) => ({ ...prev, [id]: !prev[id] }))
-                }
-              >
-                <Text style={styles.checkMark}>{checked[id] ? "☑" : "☐"}</Text>
-                <Text style={styles.checkLabel}>{id.slice(0, 8)}…</Text>
-              </Pressable>
-              {checked[id] ? (
-                <TextInput
-                  style={styles.weightInput}
-                  value={weightsByAnimal[id] ?? ""}
-                  onChangeText={(v) =>
-                    setWeightsByAnimal((prev) => ({ ...prev, [id]: v }))
-                  }
-                  keyboardType="decimal-pad"
-                  placeholder={t("marketScreen.receiptModal.weightKgPh")}
-                  placeholderTextColor={mobileColors.textSecondary}
-                />
-              ) : null}
-            </View>
+            <Pressable
+              key={id}
+              style={styles.checkRow}
+              onPress={() =>
+                setChecked((prev) => ({ ...prev, [id]: !prev[id] }))
+              }
+            >
+              <Text style={styles.checkMark}>{checked[id] ? "☑" : "☐"}</Text>
+              <Text style={styles.checkLabel}>{id.slice(0, 8)}…</Text>
+            </Pressable>
           ))}
-          {summedWeight != null && summedWeight > 0 ? (
-            <Text style={styles.totalLine}>
-              {t("marketScreen.receiptModal.totalWeight", {
-                weight: summedWeight.toLocaleString("fr-FR", {
-                  maximumFractionDigits: 1
-                })
-              })}
-            </Text>
-          ) : null}
         </View>
       ) : (
         <>
@@ -264,24 +196,13 @@ export function ConfirmReceiptModal({
             placeholder="1"
             placeholderTextColor={mobileColors.textSecondary}
           />
-          <Text style={styles.label}>
-            {t("marketScreen.transaction.realWeight")}
-          </Text>
-          <TextInput
-            style={styles.weightInput}
-            value={totalWeight}
-            onChangeText={setTotalWeight}
-            keyboardType="decimal-pad"
-            placeholder={t("marketScreen.receiptModal.weightKgPh")}
-            placeholderTextColor={mobileColors.textSecondary}
-          />
         </>
       )}
 
-      {isPerKg && estimatedWeightKg != null ? (
+      {isPerKg && declaredWeightKg != null ? (
         <Text style={styles.meta}>
-          {t("marketScreen.receiptModal.estimatedWeight", {
-            weight: estimatedWeightKg.toLocaleString("fr-FR", {
+          {t("marketScreen.receiptModal.declaredWeightReminder", {
+            weight: declaredWeightKg.toLocaleString("fr-FR", {
               maximumFractionDigits: 1
             })
           })}
@@ -298,31 +219,39 @@ export function ConfirmReceiptModal({
       {settlementHint ? <Text style={styles.hint}>{settlementHint}</Text> : null}
 
       <AppDatePicker
-        label={t("marketScreen.receiptModal.date")}
+        label={t("marketScreen.receiptModal.receivedAt")}
         mode="date"
-        presentation="inline"
         isoValue={receivedAt}
         onIsoChange={setReceivedAt}
       />
+
       <Text style={styles.label}>{t("marketScreen.receiptModal.condition")}</Text>
-      <View style={styles.methodRow}>
+      <View style={styles.conditions}>
         {CONDITIONS.map((c) => (
-          <Text
+          <Pressable
             key={c}
-            style={[styles.methodChip, condition === c && styles.methodChipOn]}
+            style={[styles.condBtn, condition === c && styles.condBtnActive]}
             onPress={() => setCondition(c)}
           >
-            {t(`marketScreen.receiptModal.conditions.${c}`)}
-          </Text>
+            <Text
+              style={[
+                styles.condText,
+                condition === c && styles.condTextActive
+              ]}
+            >
+              {t(`marketScreen.receiptModal.conditions.${c}`)}
+            </Text>
+          </Pressable>
         ))}
       </View>
-      <Text style={styles.label}>{t("marketScreen.receiptModal.comment")}</Text>
+
+      <Text style={styles.label}>{t("marketScreen.receiptModal.notes")}</Text>
       <TextInput
-        style={styles.inputMulti}
+        style={styles.notesInput}
         value={notes}
         onChangeText={setNotes}
         multiline
-        placeholder={t("marketScreen.receiptModal.commentPh")}
+        placeholder={t("marketScreen.receiptModal.notesPh")}
         placeholderTextColor={mobileColors.textSecondary}
       />
     </BaseModal>
@@ -338,68 +267,76 @@ const styles = StyleSheet.create({
   label: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
-    marginTop: mobileSpacing.sm,
-    marginBottom: 4
+    marginBottom: mobileSpacing.xs,
+    marginTop: mobileSpacing.sm
   },
-  meta: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary
+  checklist: { gap: mobileSpacing.xs, marginBottom: mobileSpacing.sm },
+  checkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.sm,
+    paddingVertical: mobileSpacing.xs
   },
-  hint: {
-    ...mobileTypography.meta,
-    color: mobileColors.accent,
-    fontWeight: "600"
-  },
-  projected: {
-    ...mobileTypography.body,
-    fontWeight: "700",
-    color: mobileColors.textPrimary
-  },
+  checkMark: { fontSize: 18 },
+  checkLabel: { ...mobileTypography.body, color: mobileColors.textPrimary },
   weightInput: {
     borderWidth: 1,
     borderColor: mobileColors.border,
     borderRadius: mobileRadius.md,
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: mobileSpacing.sm,
-    minHeight: 44,
+    ...mobileTypography.body,
+    color: mobileColors.textPrimary
+  },
+  meta: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: mobileSpacing.sm
+  },
+  projected: {
     ...mobileTypography.body,
     color: mobileColors.textPrimary,
-    backgroundColor: mobileColors.surfaceMuted,
-    flex: 1
+    fontWeight: "600",
+    marginTop: mobileSpacing.sm
   },
-  inputMulti: {
+  hint: {
+    ...mobileTypography.meta,
+    color: mobileColors.accent,
+    marginTop: mobileSpacing.xs
+  },
+  conditions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: mobileSpacing.xs
+  },
+  condBtn: {
     borderWidth: 1,
     borderColor: mobileColors.border,
-    borderRadius: 8,
-    padding: mobileSpacing.md,
+    borderRadius: mobileRadius.md,
+    paddingHorizontal: mobileSpacing.sm,
+    paddingVertical: mobileSpacing.xs
+  },
+  condBtnActive: {
+    borderColor: mobileColors.accent,
+    backgroundColor: mobileColors.accentSoft
+  },
+  condText: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary
+  },
+  condTextActive: {
+    color: mobileColors.accent,
+    fontWeight: "600"
+  },
+  notesInput: {
+    borderWidth: 1,
+    borderColor: mobileColors.border,
+    borderRadius: mobileRadius.md,
+    paddingHorizontal: mobileSpacing.md,
+    paddingVertical: mobileSpacing.sm,
     minHeight: 72,
     textAlignVertical: "top",
     ...mobileTypography.body,
     color: mobileColors.textPrimary
-  },
-  checklist: { marginBottom: mobileSpacing.sm, gap: mobileSpacing.sm },
-  animalRow: { gap: mobileSpacing.xs },
-  checkRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  checkMark: { fontSize: 18 },
-  checkLabel: { ...mobileTypography.body, color: mobileColors.textPrimary },
-  totalLine: {
-    ...mobileTypography.body,
-    fontWeight: "700",
-    color: mobileColors.accent
-  },
-  methodRow: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
-  methodChip: {
-    ...mobileTypography.meta,
-    paddingHorizontal: mobileSpacing.md,
-    paddingVertical: mobileSpacing.sm,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: mobileColors.border,
-    color: mobileColors.textSecondary
-  },
-  methodChipOn: {
-    borderColor: mobileColors.accent,
-    color: mobileColors.accent,
-    backgroundColor: mobileColors.surfaceMuted
   }
 });

@@ -78,6 +78,20 @@ export class UpdatePlatformSettingsDto {
   @IsNumber()
   @Min(0)
   withdrawalAutoApproveThreshold?: number;
+
+  /** Écart total (kg) sous lequel acheteur/vendeur continuent sans arbitrage. */
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(10_000)
+  marketplaceWeightArbitrationMinDiffKg?: number;
+
+  /** Écart total (kg) minimal pour arbitrage sur lot multi-animaux. */
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(10_000)
+  marketplaceWeightArbitrationCumulativeMinDiffKg?: number;
 }
 
 export class AdminAiAskDto {

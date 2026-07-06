@@ -620,7 +620,11 @@
       "supportTelegramHint": "URL ou @username du compte support. Laissez vide pour utiliser SUPPORT_TELEGRAM_URL côté API.",
       "supportTelegramEffective": "Lien actif sur mobile (fallback env) : {value}",
       "withdrawalThreshold": "Seuil retrait auto (XOF)",
-      "withdrawalThresholdHint": "Au-delà de ce montant, un admin doit valider le retrait."
+      "withdrawalThresholdHint": "Au-delà de ce montant, un admin doit valider le retrait.",
+      "weightArbitrationMinDiffKg": "Arbitrage poids — écart minimum (kg)",
+      "weightArbitrationMinDiffKgHint": "Écart par animal en dessous duquel le flux continue sans arbitrage (ex. 1 kg).",
+      "weightArbitrationCumulativeMinDiffKg": "Arbitrage poids — écart cumulé minimum (kg)",
+      "weightArbitrationCumulativeMinDiffKgHint": "Pour plusieurs animaux : écart total minimum pour autoriser un arbitrage (ex. 5 kg)."
     },
     "scopes": {
       "world": "Monde entier",

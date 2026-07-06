@@ -1,11 +1,21 @@
 import { Injectable } from "@nestjs/common";
 import type { PlatformSettings } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import {
+  DEFAULT_WEIGHT_ARBITRATION_CUMULATIVE_MIN_DIFF_KG,
+  DEFAULT_WEIGHT_ARBITRATION_MIN_DIFF_KG,
+  normalizeWeightArbitrationThresholds
+} from "../marketplace/escrow/weight-arbitration.util";
 
 const DEFAULT_MARKETPLACE_COMMISSION_RATE = 0.05;
 const DEFAULT_SELLER_COMMISSION_RATE = 0.05;
 const DEFAULT_VET_COMMISSION_RATE = 0.05;
 const CACHE_TTL_MS = 60_000;
+
+export type WeightArbitrationSettingsDto = {
+  minDiffKg: number;
+  cumulativeMinDiffKg: number;
+};
 
 export type SupportContactDto = {
   phone: string | null;
@@ -27,6 +37,8 @@ export class PlatformSettingsService {
   private cachedVetAt = 0;
   private cachedSupport: SupportContactDto | null = null;
   private cachedSupportAt = 0;
+  private cachedWeightArbitration: WeightArbitrationSettingsDto | null = null;
+  private cachedWeightArbitrationAt = 0;
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -39,6 +51,8 @@ export class PlatformSettingsService {
     this.cachedVetAt = 0;
     this.cachedSupport = null;
     this.cachedSupportAt = 0;
+    this.cachedWeightArbitration = null;
+    this.cachedWeightArbitrationAt = 0;
   }
 
   async getMarketplaceCommissionRate(): Promise<number> {
@@ -122,6 +136,36 @@ export class PlatformSettingsService {
     this.cachedVetCommissionRate = rate;
     this.cachedVetAt = now;
     return rate;
+  }
+
+  async getWeightArbitrationThresholds(): Promise<WeightArbitrationSettingsDto> {
+    const now = Date.now();
+    if (
+      this.cachedWeightArbitration != null &&
+      now - this.cachedWeightArbitrationAt < CACHE_TTL_MS
+    ) {
+      return this.cachedWeightArbitration;
+    }
+    let row = await this.prisma.platformSettings.findUnique({
+      where: { id: "default" },
+      select: {
+        marketplaceWeightArbitrationMinDiffKg: true,
+        marketplaceWeightArbitrationCumulativeMinDiffKg: true
+      }
+    });
+    if (!row) {
+      row = await this.prisma.platformSettings.create({
+        data: { id: "default" },
+        select: {
+          marketplaceWeightArbitrationMinDiffKg: true,
+          marketplaceWeightArbitrationCumulativeMinDiffKg: true
+        }
+      });
+    }
+    const thresholds = normalizeWeightArbitrationThresholds(row);
+    this.cachedWeightArbitration = thresholds;
+    this.cachedWeightArbitrationAt = now;
+    return thresholds;
   }
 
   async getOrCreateSettingsRow(): Promise<PlatformSettings> {

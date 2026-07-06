@@ -1518,6 +1518,7 @@ enum MarketplaceTransactionStatus {
   BUYER_RECEIVED
   DELIVERY_DISPUTED
   WEIGHT_DECLARED
+  WEIGHT_COUNTER_DECLARED
   WEIGHT_DISPUTED
   WEIGHT_VALIDATED
   TRANSACTION_CLOSED
@@ -1861,6 +1862,12 @@ model MarketplaceTransaction {
   finalAmount             Decimal?                     @db.Decimal(14, 2)
   realWeightKg            Decimal?                     @db.Decimal(14, 4)
   arbitrationWeightKg     Decimal?                     @db.Decimal(14, 4)
+  sellerDeclaredWeightKg  Decimal?                     @db.Decimal(14, 4)
+  sellerWeightDeclaredAt  DateTime?
+  /// [{ animalId, weightKg, photoUrl? }]
+  buyerAnimalWeights      Json?
+  weightArbitrationRequestedAt DateTime?
+  weightArbitrationRequestedByUserId String?
   weightDeclaredByBuyerAt DateTime?
   weightDisputeOpenedAt   DateTime?
   weightValidatedAt       DateTime?
@@ -2574,6 +2581,10 @@ model PlatformSettings {
   supportTelegramUrl    String?
   /// Montant max (XOF) de retrait auto-approuvé sans validation admin.
   withdrawalAutoApproveThreshold Decimal @default(50000) @db.Decimal(14, 2)
+  /// Écart total minimal (kg) en dessous duquel acheteur/vendeur continuent sans arbitrage.
+  marketplaceWeightArbitrationMinDiffKg Decimal @default(1) @db.Decimal(14, 4)
+  /// Écart total minimal (kg) pour demander un arbitrage sur un lot multi-animaux.
+  marketplaceWeightArbitrationCumulativeMinDiffKg Decimal @default(5) @db.Decimal(14, 4)
   updatedAt             DateTime @updatedAt
 }
 

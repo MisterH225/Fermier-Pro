@@ -56,6 +56,19 @@ import {
   resolveReceiptRealWeightKg,
   settlementAmounts
 } from "./transaction.utils";
+import {
+  type BuyerAnimalWeightRow,
+  canRequestWeightArbitration,
+  computeWeightDifferenceKg,
+  isWithinWeightTolerance,
+  parseBuyerAnimalWeights,
+  resolveDeclaredBuyerWeightKg
+} from "./weight-arbitration.util";
+import type {
+  BuyerAnimalWeightDto,
+  DeclareSellerWeightDto,
+  DeclareWeightDto
+} from "../dto/declare-weight.dto";
 
 @Injectable()
 export class MarketplaceTransactionService {
@@ -225,7 +238,31 @@ export class MarketplaceTransactionService {
     if (tx.buyerUserId !== user.id && tx.sellerUserId !== user.id) {
       throw new ForbiddenException();
     }
-    return this.serialize(tx);
+    const base = this.serialize(tx);
+    if (!base) {
+      throw new NotFoundException("Transaction introuvable");
+    }
+    const thresholds =
+      await this.platformSettings.getWeightArbitrationThresholds();
+    const buyerKg = base.realWeightKg;
+    const sellerKg = base.sellerDeclaredWeightKg;
+    let weightDiffKg: number | null = null;
+    let canRequestWeightArbitrationFlag = false;
+    if (buyerKg != null && sellerKg != null) {
+      weightDiffKg = computeWeightDifferenceKg(buyerKg, sellerKg);
+      const animalCount = Math.max(base.buyerAnimalWeights.length, 1);
+      canRequestWeightArbitrationFlag = canRequestWeightArbitration(
+        weightDiffKg,
+        animalCount,
+        thresholds
+      );
+    }
+    return {
+      ...base,
+      weightArbitrationThresholds: thresholds,
+      weightDiffKg,
+      canRequestWeightArbitration: canRequestWeightArbitrationFlag
+    };
   }
 
   async getPendingTransfer(user: User, transactionId: string) {
@@ -1439,8 +1476,7 @@ export class MarketplaceTransactionService {
   async declareWeight(
     user: User,
     transactionId: string,
-    realWeightKg: number,
-    photoUrl?: string
+    dto: DeclareWeightDto
   ) {
     const tx = await this.requireBuyer(transactionId, user.id);
     if (tx.status !== MarketplaceTransactionStatus.PICKUP_SCHEDULED) {
@@ -1448,32 +1484,77 @@ export class MarketplaceTransactionService {
         "Le poids réel ne peut être déclaré qu'après confirmation du rendez-vous"
       );
     }
-    let weight = realWeightKg;
+
+    const listing = await this.prisma.marketplaceListing.findUnique({
+      where: { id: tx.listingId },
+      select: { animalId: true, animalIds: true, totalWeightKg: true }
+    });
+    const expectedAnimalIds = listing ? this.listingAnimalIds(listing) : [];
+    const animalRows: BuyerAnimalWeightRow[] = (dto.animalWeights ?? []).map(
+      (row: BuyerAnimalWeightDto) => ({
+        animalId: row.animalId.trim(),
+        weightKg: row.weightKg,
+        photoUrl: row.photoUrl?.trim() || null
+      })
+    );
+
+    if (expectedAnimalIds.length > 0) {
+      if (animalRows.length === 0) {
+        throw new BadRequestException(
+          "Indiquez le poids de chaque animal reçu"
+        );
+      }
+      const provided = new Set(animalRows.map((row) => row.animalId));
+      const missing = expectedAnimalIds.filter((id) => !provided.has(id));
+      if (missing.length > 0) {
+        throw new BadRequestException(
+          "Le poids de chaque animal attendu doit être renseigné"
+        );
+      }
+    }
+
+    let weight = resolveDeclaredBuyerWeightKg({
+      animalWeights: animalRows,
+      realWeightKg: dto.realWeightKg
+    });
+
     if (tx.priceType === MarketplacePriceType.flat) {
       weight =
         tx.estimatedWeightKg?.toNumber() ??
-        (await this.prisma.marketplaceListing.findUnique({
-          where: { id: tx.listingId },
-          select: { totalWeightKg: true }
-        }))?.totalWeightKg?.toNumber() ??
+        listing?.totalWeightKg?.toNumber() ??
         weight;
     }
-    if (!Number.isFinite(weight) || weight <= 0) {
+
+    if (weight == null || !Number.isFinite(weight) || weight <= 0) {
       throw new BadRequestException("Poids invalide");
     }
+
+    const legacyPhoto = dto.photoUrl?.trim() || null;
+    const buyerAnimalWeightsJson =
+      animalRows.length > 0
+        ? animalRows
+        : legacyPhoto
+          ? [{ animalId: "_total", weightKg: weight, photoUrl: legacyPhoto }]
+          : undefined;
+
     await this.prisma.marketplaceTransaction.update({
       where: { id: tx.id },
       data: {
         status: MarketplaceTransactionStatus.WEIGHT_DECLARED,
         realWeightKg: new Prisma.Decimal(weight),
+        buyerAnimalWeights: buyerAnimalWeightsJson ?? Prisma.JsonNull,
         weightDeclaredByBuyerAt: new Date(),
-        weightScalePhotoUrl: photoUrl?.trim() || null
+        weightScalePhotoUrl: legacyPhoto,
+        sellerDeclaredWeightKg: null,
+        sellerWeightDeclaredAt: null,
+        weightArbitrationRequestedAt: null,
+        weightArbitrationRequestedByUserId: null
       }
     });
     void this.push.sendToUser(
       tx.sellerUserId,
       "Poids déclaré",
-      `L'acheteur déclare un poids de ${weight.toLocaleString("fr-FR")} kg. Confirmez ou contestez sous 24 h.`,
+      `L'acheteur déclare un poids total de ${weight.toLocaleString("fr-FR")} kg. Confirmez ou indiquez votre pesée.`,
       { type: "marketplace_weight_declared", transactionId: tx.id }
     );
     return this.getById(user, tx.id);
@@ -1481,53 +1562,139 @@ export class MarketplaceTransactionService {
 
   async validateWeight(user: User, transactionId: string) {
     const tx = await this.requireSeller(transactionId, user.id);
-    if (tx.status !== MarketplaceTransactionStatus.WEIGHT_DECLARED) {
-      throw new BadRequestException("Aucun poids à valider");
+    if (
+      tx.status !== MarketplaceTransactionStatus.WEIGHT_DECLARED &&
+      tx.status !== MarketplaceTransactionStatus.WEIGHT_COUNTER_DECLARED
+    ) {
+      throw new BadRequestException("Aucun poids à valider à ce stade");
     }
+    await this.markWeightValidatedBySeller(tx.id);
+    return this.getById(user, tx.id);
+  }
+
+  /** @deprecated Route conservée — utiliser declareSellerWeight. */
+  async disputeWeight(user: User, transactionId: string, _reason?: string) {
+    throw new BadRequestException(
+      "Indiquez votre pesée livrée via POST /weight/seller-declare avant toute contestation."
+    );
+  }
+
+  async declareSellerWeight(
+    user: User,
+    transactionId: string,
+    dto: DeclareSellerWeightDto
+  ) {
+    const tx = await this.requireSeller(transactionId, user.id);
+    if (tx.status !== MarketplaceTransactionStatus.WEIGHT_DECLARED) {
+      throw new BadRequestException(
+        "Contestation impossible à ce stade de la transaction"
+      );
+    }
+    const buyerKg = tx.realWeightKg?.toNumber();
+    if (buyerKg == null || buyerKg <= 0) {
+      throw new BadRequestException("Poids acheteur manquant");
+    }
+    const sellerKg = dto.sellerDeclaredWeightKg;
+    if (!Number.isFinite(sellerKg) || sellerKg <= 0) {
+      throw new BadRequestException("Poids vendeur invalide");
+    }
+
+    const thresholds = await this.platformSettings.getWeightArbitrationThresholds();
+    const diffKg = computeWeightDifferenceKg(buyerKg, sellerKg);
+    const animalRows = parseBuyerAnimalWeights(tx.buyerAnimalWeights);
+    const animalCount = Math.max(animalRows.length, 1);
+
+    if (isWithinWeightTolerance(diffKg, thresholds)) {
+      await this.markWeightValidatedBySeller(tx.id, {
+        sellerDeclaredWeightKg: sellerKg,
+        sellerPhotoUrl: dto.photoUrl
+      });
+      return this.getById(user, tx.id);
+    }
+
     await this.prisma.marketplaceTransaction.update({
       where: { id: tx.id },
       data: {
-        status: MarketplaceTransactionStatus.WEIGHT_VALIDATED,
-        weightValidatedAt: new Date(),
-        weightValidatedBy: WeightValidatedBy.seller
+        status: MarketplaceTransactionStatus.WEIGHT_COUNTER_DECLARED,
+        sellerDeclaredWeightKg: new Prisma.Decimal(sellerKg),
+        sellerWeightDeclaredAt: new Date(),
+        weightScalePhotoUrl: dto.photoUrl?.trim() || tx.weightScalePhotoUrl,
+        weightArbitrationRequestedAt: null,
+        weightArbitrationRequestedByUserId: null
       }
     });
-    if (tx.isCredit) {
-      await this.creditOffers.onCreditWeightValidated(tx.id);
-      return this.getById(user, tx.id);
-    }
-    void this.push.sendToUser(
-      tx.buyerUserId,
-      "Poids confirmé",
-      "Le vendeur a confirmé le poids. Il validera la remise des animaux.",
-      { type: "marketplace_weight_validated", transactionId: tx.id }
+
+    const diffLabel = diffKg.toLocaleString("fr-FR", {
+      maximumFractionDigits: 1
+    });
+    const canArbitrate = canRequestWeightArbitration(
+      diffKg,
+      animalCount,
+      thresholds
     );
+    const buyerMsg = canArbitrate
+      ? `Écart de ${diffLabel} kg. Vous pouvez demander un arbitrage ou accepter la pesée vendeur.`
+      : `Écart de ${diffLabel} kg (sous le seuil d'arbitrage). Négociez ou validez avec le vendeur.`;
+    void this.push.sendToUser(tx.buyerUserId, "Poids contesté", buyerMsg, {
+      type: "marketplace_weight_counter_declared",
+      transactionId: tx.id
+    });
     void this.push.sendToUser(
       tx.sellerUserId,
-      "Poids confirmé",
-      "Confirmez la remise des animaux à l'acheteur.",
-      { type: "marketplace_weight_validated", transactionId: tx.id }
+      "Écart de poids enregistré",
+      `Écart de ${diffLabel} kg avec l'acheteur.`,
+      { type: "marketplace_weight_counter_declared", transactionId: tx.id }
     );
     return this.getById(user, tx.id);
   }
 
-  async disputeWeight(user: User, transactionId: string, reason?: string) {
-    const tx = await this.requireSeller(transactionId, user.id);
-    if (tx.status !== MarketplaceTransactionStatus.WEIGHT_DECLARED) {
-      throw new BadRequestException("Contestatio impossible");
+  async requestWeightArbitration(user: User, transactionId: string) {
+    const tx = await this.requireParticipant(transactionId, user.id);
+    if (tx.status !== MarketplaceTransactionStatus.WEIGHT_COUNTER_DECLARED) {
+      throw new BadRequestException(
+        "Arbitrage demandable uniquement après contre-déclaration vendeur"
+      );
     }
+    const buyerKg = tx.realWeightKg?.toNumber();
+    const sellerKg = tx.sellerDeclaredWeightKg?.toNumber();
+    if (
+      buyerKg == null ||
+      sellerKg == null ||
+      buyerKg <= 0 ||
+      sellerKg <= 0
+    ) {
+      throw new BadRequestException("Poids acheteur/vendeur incomplets");
+    }
+    const thresholds = await this.platformSettings.getWeightArbitrationThresholds();
+    const diffKg = computeWeightDifferenceKg(buyerKg, sellerKg);
+    const animalRows = parseBuyerAnimalWeights(tx.buyerAnimalWeights);
+    const animalCount = Math.max(animalRows.length, 1);
+    if (!canRequestWeightArbitration(diffKg, animalCount, thresholds)) {
+      throw new BadRequestException(
+        `Écart de ${diffKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg insuffisant pour un arbitrage (seuils : ${thresholds.minDiffKg} kg / ${thresholds.cumulativeMinDiffKg} kg cumulé).`
+      );
+    }
+
     await this.prisma.marketplaceTransaction.update({
       where: { id: tx.id },
       data: {
         status: MarketplaceTransactionStatus.WEIGHT_DISPUTED,
         weightDisputeOpenedAt: new Date(),
-        cancelReason: reason?.trim() || null
+        weightArbitrationRequestedAt: new Date(),
+        weightArbitrationRequestedByUserId: user.id
       }
     });
+
     void this.push.sendToUser(
       tx.buyerUserId,
-      "Poids contesté",
-      "Le vendeur conteste le poids déclaré. Un arbitrage est en cours.",
+      "Arbitrage poids demandé",
+      "Un arbitrage plateforme a été demandé pour cette transaction.",
+      { type: "marketplace_weight_disputed", transactionId: tx.id }
+    );
+    void this.push.sendToUser(
+      tx.sellerUserId,
+      "Arbitrage poids demandé",
+      "Un arbitrage plateforme a été demandé pour cette transaction.",
       { type: "marketplace_weight_disputed", transactionId: tx.id }
     );
     const admins = await this.prisma.superAdmin.findMany({
@@ -1542,6 +1709,53 @@ export class MarketplaceTransactionService {
       );
     }
     return this.getById(user, tx.id);
+  }
+
+  private async markWeightValidatedBySeller(
+    transactionId: string,
+    options?: { sellerDeclaredWeightKg?: number; sellerPhotoUrl?: string }
+  ) {
+    await this.prisma.marketplaceTransaction.update({
+      where: { id: transactionId },
+      data: {
+        status: MarketplaceTransactionStatus.WEIGHT_VALIDATED,
+        weightValidatedAt: new Date(),
+        weightValidatedBy: WeightValidatedBy.seller,
+        ...(options?.sellerDeclaredWeightKg != null
+          ? {
+              sellerDeclaredWeightKg: new Prisma.Decimal(
+                options.sellerDeclaredWeightKg
+              ),
+              sellerWeightDeclaredAt: new Date()
+            }
+          : {}),
+        ...(options?.sellerPhotoUrl?.trim()
+          ? { weightScalePhotoUrl: options.sellerPhotoUrl.trim() }
+          : {})
+      }
+    });
+    const tx = await this.prisma.marketplaceTransaction.findUnique({
+      where: { id: transactionId }
+    });
+    if (!tx) {
+      return;
+    }
+    if (tx.isCredit) {
+      await this.creditOffers.onCreditWeightValidated(tx.id);
+      return;
+    }
+    void this.push.sendToUser(
+      tx.buyerUserId,
+      "Poids confirmé",
+      "Le vendeur a confirmé le poids. Il validera la remise des animaux.",
+      { type: "marketplace_weight_validated", transactionId: tx.id }
+    );
+    void this.push.sendToUser(
+      tx.sellerUserId,
+      "Poids confirmé",
+      "Confirmez la remise des animaux à l'acheteur.",
+      { type: "marketplace_weight_validated", transactionId: tx.id }
+    );
   }
 
   async arbitrateWeight(
@@ -2438,6 +2652,13 @@ export class MarketplaceTransactionService {
       blockedAmount: Number(tx.blockedAmount),
       finalAmount: tx.finalAmount ? Number(tx.finalAmount) : null,
       realWeightKg: tx.realWeightKg ? Number(tx.realWeightKg) : null,
+      sellerDeclaredWeightKg: tx.sellerDeclaredWeightKg
+        ? Number(tx.sellerDeclaredWeightKg)
+        : null,
+      sellerWeightDeclaredAt:
+        tx.sellerWeightDeclaredAt?.toISOString() ?? null,
+      buyerAnimalWeights: parseBuyerAnimalWeights(tx.buyerAnimalWeights),
+      weightScalePhotoUrl: tx.weightScalePhotoUrl ?? null,
       pickupDate: tx.pickupDate?.toISOString().slice(0, 10) ?? null,
       pickupLocation: tx.pickupLocation,
       sellerShippedAt: tx.sellerShippedAt?.toISOString() ?? null,

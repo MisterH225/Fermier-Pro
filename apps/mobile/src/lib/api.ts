@@ -5236,6 +5236,19 @@ export type MarketplaceTransactionDto = {
   blockedAmount: number;
   finalAmount: number | null;
   realWeightKg: number | null;
+  sellerDeclaredWeightKg?: number | null;
+  sellerWeightDeclaredAt?: string | null;
+  buyerAnimalWeights?: Array<{
+    animalId: string;
+    weightKg: number;
+    photoUrl?: string | null;
+  }>;
+  weightDiffKg?: number | null;
+  canRequestWeightArbitration?: boolean;
+  weightArbitrationThresholds?: {
+    minDiffKg: number;
+    cumulativeMinDiffKg: number;
+  };
   pickupDate: string | null;
   pickupLocation: string | null;
   sellerShippedAt?: string | null;
@@ -5495,13 +5508,47 @@ export function confirmMarketplaceReceipt(
 export function declareMarketplaceWeight(
   accessToken: string,
   transactionId: string,
-  realWeightKg: number,
-  activeProfileId?: string | null,
-  photoUrl?: string
+  payload: {
+    realWeightKg?: number;
+    animalWeights?: Array<{
+      animalId: string;
+      weightKg: number;
+      photoUrl?: string;
+    }>;
+    photoUrl?: string;
+  },
+  activeProfileId?: string | null
 ): Promise<MarketplaceTransactionDto> {
   return apiPostJson<MarketplaceTransactionDto>(
     `/marketplace/transactions/${transactionId}/weight/declare`,
-    { realWeightKg, photoUrl },
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function declareSellerMarketplaceWeight(
+  accessToken: string,
+  transactionId: string,
+  payload: { sellerDeclaredWeightKg: number; photoUrl?: string },
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/weight/seller-declare`,
+    payload,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function requestMarketplaceWeightArbitration(
+  accessToken: string,
+  transactionId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/weight/request-arbitration`,
+    {},
     accessToken,
     activeProfileId
   );

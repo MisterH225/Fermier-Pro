@@ -618,7 +618,11 @@
       "supportTelegramHint": "URL or @username for support. Leave empty to use SUPPORT_TELEGRAM_URL on the API.",
       "supportTelegramEffective": "Active link on mobile (env fallback): {value}",
       "withdrawalThreshold": "Auto-approve withdrawal threshold (XOF)",
-      "withdrawalThresholdHint": "Above this amount, an admin must approve the withdrawal."
+      "withdrawalThresholdHint": "Above this amount, an admin must approve the withdrawal.",
+      "weightArbitrationMinDiffKg": "Weight arbitration — minimum gap (kg)",
+      "weightArbitrationMinDiffKgHint": "Per-animal gap below which the sale continues without arbitration (e.g. 1 kg).",
+      "weightArbitrationCumulativeMinDiffKg": "Weight arbitration — minimum cumulative gap (kg)",
+      "weightArbitrationCumulativeMinDiffKgHint": "For multiple animals: total gap required to allow arbitration (e.g. 5 kg)."
     },
     "scopes": {
       "world": "Worldwide",

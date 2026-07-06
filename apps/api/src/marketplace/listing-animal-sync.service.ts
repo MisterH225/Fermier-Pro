@@ -55,6 +55,7 @@ const REFUND_ON_CANCEL: MarketplaceTransactionStatus[] = [
   MarketplaceTransactionStatus.BUYER_RECEIVED,
   MarketplaceTransactionStatus.DELIVERY_DISPUTED,
   MarketplaceTransactionStatus.WEIGHT_DECLARED,
+  MarketplaceTransactionStatus.WEIGHT_COUNTER_DECLARED,
   MarketplaceTransactionStatus.WEIGHT_DISPUTED,
   MarketplaceTransactionStatus.WEIGHT_VALIDATED
 ];
@@ -539,6 +540,7 @@ export class ListingAnimalSyncService {
 
       if (
         tx.status === MarketplaceTransactionStatus.WEIGHT_DECLARED ||
+        tx.status === MarketplaceTransactionStatus.WEIGHT_COUNTER_DECLARED ||
         tx.status === MarketplaceTransactionStatus.WEIGHT_DISPUTED ||
         tx.status === MarketplaceTransactionStatus.WEIGHT_VALIDATED
       ) {

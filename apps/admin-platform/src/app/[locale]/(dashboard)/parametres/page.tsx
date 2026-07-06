@@ -48,6 +48,12 @@ export default function ParametresPage() {
           vetCommissionRate: Number(row.vetCommissionRate ?? 0.05),
           withdrawalAutoApproveThreshold: Number(
             row.withdrawalAutoApproveThreshold ?? 50_000
+          ),
+          marketplaceWeightArbitrationMinDiffKg: Number(
+            row.marketplaceWeightArbitrationMinDiffKg ?? 1
+          ),
+          marketplaceWeightArbitrationCumulativeMinDiffKg: Number(
+            row.marketplaceWeightArbitrationCumulativeMinDiffKg ?? 5
           )
         });
       })
@@ -81,6 +87,10 @@ export default function ParametresPage() {
         sellerMarketplaceCommissionRate: form.sellerMarketplaceCommissionRate,
         vetCommissionRate: form.vetCommissionRate,
         withdrawalAutoApproveThreshold: form.withdrawalAutoApproveThreshold ?? 50000,
+        marketplaceWeightArbitrationMinDiffKg:
+          form.marketplaceWeightArbitrationMinDiffKg ?? 1,
+        marketplaceWeightArbitrationCumulativeMinDiffKg:
+          form.marketplaceWeightArbitrationCumulativeMinDiffKg ?? 5,
         supportPhone: form.supportPhone ?? "",
         supportTelegramUrl: form.supportTelegramUrl ?? ""
       });
@@ -310,6 +320,48 @@ export default function ParametresPage() {
             />
             <p className="text-xs text-muted-foreground">
               {t("fields.sellerMarketplaceCommissionHint")}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="weight-arbitration-min">
+              {t("fields.weightArbitrationMinDiffKg")}
+            </Label>
+            <Input
+              id="weight-arbitration-min"
+              type="number"
+              min={0}
+              step={0.1}
+              value={form.marketplaceWeightArbitrationMinDiffKg ?? 1}
+              onChange={(e) =>
+                update(
+                  "marketplaceWeightArbitrationMinDiffKg",
+                  Number(e.target.value) || 0
+                )
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("fields.weightArbitrationMinDiffKgHint")}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="weight-arbitration-cumulative">
+              {t("fields.weightArbitrationCumulativeMinDiffKg")}
+            </Label>
+            <Input
+              id="weight-arbitration-cumulative"
+              type="number"
+              min={0}
+              step={0.1}
+              value={form.marketplaceWeightArbitrationCumulativeMinDiffKg ?? 5}
+              onChange={(e) =>
+                update(
+                  "marketplaceWeightArbitrationCumulativeMinDiffKg",
+                  Number(e.target.value) || 0
+                )
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("fields.weightArbitrationCumulativeMinDiffKgHint")}
             </p>
           </div>
         </CardContent>

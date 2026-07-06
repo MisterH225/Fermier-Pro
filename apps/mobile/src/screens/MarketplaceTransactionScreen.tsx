@@ -23,6 +23,8 @@ import {
 } from "../components/marketplace/MarketplaceListingCard";
 import { ConfirmReceiptModal } from "../components/marketplace/ConfirmReceiptModal";
 import { ConfirmShipmentModal } from "../components/marketplace/ConfirmShipmentModal";
+import { DeclareWeightModal } from "../components/marketplace/DeclareWeightModal";
+import { DeclareSellerWeightModal } from "../components/marketplace/DeclareSellerWeightModal";
 import {
   MarketplacePaymentMethodPicker,
   type MarketplacePaymentMethodChoice
@@ -41,10 +43,11 @@ import {
   confirmMarketplaceReceipt,
   confirmMarketplaceShipment,
   declareMarketplaceWeight,
-  disputeMarketplaceWeight,
+  declareSellerMarketplaceWeight,
   fetchMarketplaceTransaction,
   fetchBuyerWallet,
   initiateMarketplacePayment,
+  requestMarketplaceWeightArbitration,
   scheduleMarketplacePickup,
   syncMarketplacePayment,
   validateMarketplaceWeight,
@@ -111,6 +114,7 @@ function stepIndex(status: string): number {
       return 1;
     case "PICKUP_SCHEDULED":
     case "WEIGHT_DECLARED":
+    case "WEIGHT_COUNTER_DECLARED":
     case "WEIGHT_DISPUTED":
       return 2;
     case "WEIGHT_VALIDATED":
@@ -147,7 +151,8 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   const qc = useQueryClient();
   const [pickupDate, setPickupDate] = useState("");
   const [pickupLocation, setPickupLocation] = useState("");
-  const [realWeight, setRealWeight] = useState("");
+  const [declareWeightOpen, setDeclareWeightOpen] = useState(false);
+  const [sellerWeightOpen, setSellerWeightOpen] = useState(false);
   const [shipmentOpen, setShipmentOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -400,8 +405,6 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
       receivedAt: string;
       condition: "conform" | "minor_issue" | "major_issue";
       receivedAnimalIds: string[];
-      realWeightKg?: number;
-      animalWeights?: { animalId: string; weightKg: number }[];
       receivedHeadcount?: number;
       notes?: string;
     }) =>
@@ -424,19 +427,22 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   });
 
   const weightMut = useMutation({
-    mutationFn: () => {
-      const kg = Number.parseFloat(realWeight.replace(",", "."));
-      if (!Number.isFinite(kg) || kg <= 0) {
-        throw new Error(t("marketScreen.transaction.invalidWeight"));
-      }
-      return declareMarketplaceWeight(
+    mutationFn: (payload: {
+      animalWeights?: Array<{
+        animalId: string;
+        weightKg: number;
+        photoUrl?: string;
+      }>;
+      realWeightKg?: number;
+    }) =>
+      declareMarketplaceWeight(
         accessToken,
         transactionId,
-        kg,
+        payload,
         activeProfileId
-      );
-    },
+      ),
     onSuccess: () => {
+      setDeclareWeightOpen(false);
       invalidate();
       Alert.alert(
         t("marketScreen.transaction.weightDeclaredTitle"),
@@ -447,22 +453,47 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
       Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
   });
 
-  const validateMut = useMutation({
-    mutationFn: () =>
-      validateMarketplaceWeight(accessToken, transactionId, activeProfileId),
-    onSuccess: () => invalidate(),
+  const sellerWeightMut = useMutation({
+    mutationFn: (payload: { sellerDeclaredWeightKg: number; photoUrl?: string }) =>
+      declareSellerMarketplaceWeight(
+        accessToken,
+        transactionId,
+        payload,
+        activeProfileId
+      ),
+    onSuccess: () => {
+      setSellerWeightOpen(false);
+      invalidate();
+      Alert.alert(
+        t("marketScreen.transaction.sellerWeightDeclaredTitle"),
+        t("marketScreen.transaction.sellerWeightDeclaredBody")
+      );
+    },
     onError: (e: Error) =>
       Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
   });
 
-  const disputeMut = useMutation({
+  const arbitrationMut = useMutation({
     mutationFn: () =>
-      disputeMarketplaceWeight(
+      requestMarketplaceWeightArbitration(
         accessToken,
         transactionId,
-        undefined,
         activeProfileId
       ),
+    onSuccess: () => {
+      invalidate();
+      Alert.alert(
+        t("marketScreen.transaction.arbitrationRequestedTitle"),
+        t("marketScreen.transaction.arbitrationRequestedBody")
+      );
+    },
+    onError: (e: Error) =>
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
+  });
+
+  const validateMut = useMutation({
+    mutationFn: () =>
+      validateMarketplaceWeight(accessToken, transactionId, activeProfileId),
     onSuccess: () => invalidate(),
     onError: (e: Error) =>
       Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
@@ -568,11 +599,6 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
     return () => sub.remove();
   }, [q.data?.status, q.data?.buyerUserId, authMe?.user.id, q]);
 
-  const draftKg = useMemo(() => {
-    const kg = Number.parseFloat(realWeight.replace(",", "."));
-    return Number.isFinite(kg) && kg > 0 ? kg : null;
-  }, [realWeight]);
-
   if (!clientFeatures.marketplace) {
     return (
       <MarketplaceModuleGate>
@@ -619,8 +645,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
       priceType: tx.priceType,
       agreedPricePerKg: agreedPerKg,
       agreedFlatPrice: agreedFlat,
-      realWeightKg: tx.realWeightKg,
-      draftWeightKg: draftKg
+      realWeightKg: tx.realWeightKg
     });
   const stepLabels = [
     t("marketScreen.transaction.stepPayment"),
@@ -649,6 +674,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
       "PICKUP_PROPOSED",
       "PICKUP_SCHEDULED",
       "WEIGHT_DECLARED",
+      "WEIGHT_COUNTER_DECLARED",
       "WEIGHT_DISPUTED",
       "WEIGHT_VALIDATED",
       "SELLER_SHIPPED",
@@ -1021,23 +1047,11 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
           <Text style={styles.hint}>
             {tx.priceType === "flat"
               ? t("marketScreen.transaction.weightAtDeliveryFlatHint")
-              : t("marketScreen.transaction.weightAtDeliveryHint")}
+              : t("marketScreen.transaction.declareWeightPerAnimalHint")}
           </Text>
-          <Text style={styles.label}>
-            {t("marketScreen.transaction.realWeight")}
-          </Text>
-          <TextInput
-            style={styles.input}
-            value={realWeight}
-            onChangeText={setRealWeight}
-            keyboardType="decimal-pad"
-            placeholder="0,0"
-          />
           <PrimaryButton
             label={t("marketScreen.transaction.declareWeight")}
-            onPress={() => weightMut.mutate()}
-            loading={weightMut.isPending}
-            disabled={!realWeight.trim()}
+            onPress={() => setDeclareWeightOpen(true)}
           />
         </View>
       ) : null}
@@ -1049,10 +1063,11 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
           </Text>
           {tx.realWeightKg != null ? (
             <Text style={styles.line}>
-              {tx.realWeightKg.toLocaleString("fr-FR", {
-                maximumFractionDigits: 1
-              })}{" "}
-              kg
+              {t("marketScreen.transaction.buyerDeclaredWeight", {
+                kg: tx.realWeightKg.toLocaleString("fr-FR", {
+                  maximumFractionDigits: 1
+                })
+              })}
             </Text>
           ) : null}
           {projectedFinal != null ? (
@@ -1068,11 +1083,72 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
             loading={validateMut.isPending}
           />
           <SecondaryButton
-            label={t("marketScreen.transaction.disputeWeight")}
-            onPress={() => disputeMut.mutate()}
-            loading={disputeMut.isPending}
+            label={t("marketScreen.transaction.sellerDeclareWeightCta")}
+            onPress={() => setSellerWeightOpen(true)}
             style={{ marginTop: mobileSpacing.sm }}
           />
+        </View>
+      ) : null}
+
+      {(isBuyer || isSeller) && tx.status === "WEIGHT_COUNTER_DECLARED" ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            {t("marketScreen.transaction.weightDiffSection")}
+          </Text>
+          {tx.realWeightKg != null ? (
+            <Text style={styles.line}>
+              {t("marketScreen.transaction.buyerDeclaredWeight", {
+                kg: tx.realWeightKg.toLocaleString("fr-FR", {
+                  maximumFractionDigits: 1
+                })
+              })}
+            </Text>
+          ) : null}
+          {tx.sellerDeclaredWeightKg != null ? (
+            <Text style={styles.line}>
+              {t("marketScreen.transaction.sellerDeclaredWeightLine", {
+                kg: tx.sellerDeclaredWeightKg.toLocaleString("fr-FR", {
+                  maximumFractionDigits: 1
+                })
+              })}
+            </Text>
+          ) : null}
+          {tx.weightDiffKg != null ? (
+            <Text style={styles.line}>
+              {t("marketScreen.transaction.weightDiffLine", {
+                kg: tx.weightDiffKg.toLocaleString("fr-FR", {
+                  maximumFractionDigits: 1
+                })
+              })}
+            </Text>
+          ) : null}
+          {tx.weightArbitrationThresholds ? (
+            <Text style={styles.hint}>
+              {t("marketScreen.transaction.arbitrationThresholdsHint", {
+                min: tx.weightArbitrationThresholds.minDiffKg,
+                cumulative: tx.weightArbitrationThresholds.cumulativeMinDiffKg
+              })}
+            </Text>
+          ) : null}
+          {isSeller ? (
+            <PrimaryButton
+              label={t("marketScreen.transaction.validateWeight")}
+              onPress={() => validateMut.mutate()}
+              loading={validateMut.isPending}
+            />
+          ) : null}
+          {tx.canRequestWeightArbitration ? (
+            <SecondaryButton
+              label={t("marketScreen.transaction.requestArbitration")}
+              onPress={() => arbitrationMut.mutate()}
+              loading={arbitrationMut.isPending}
+              style={{ marginTop: mobileSpacing.sm }}
+            />
+          ) : (
+            <Text style={[styles.hint, { marginTop: mobileSpacing.sm }]}>
+              {t("marketScreen.transaction.belowArbitrationThreshold")}
+            </Text>
+          )}
         </View>
       ) : null}
 
@@ -1116,6 +1192,25 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         </View>
       ) : null}
 
+      <DeclareWeightModal
+        visible={declareWeightOpen}
+        submitting={weightMut.isPending}
+        transactionId={transactionId}
+        listingId={tx.listingId}
+        animalIds={animalIds}
+        priceType={tx.priceType}
+        onClose={() => setDeclareWeightOpen(false)}
+        onConfirm={(payload) => weightMut.mutate(payload)}
+      />
+      <DeclareSellerWeightModal
+        visible={sellerWeightOpen}
+        submitting={sellerWeightMut.isPending}
+        transactionId={transactionId}
+        listingId={tx.listingId}
+        buyerWeightKg={tx.realWeightKg}
+        onClose={() => setSellerWeightOpen(false)}
+        onConfirm={(payload) => sellerWeightMut.mutate(payload)}
+      />
       <ConfirmShipmentModal
         visible={shipmentOpen}
         submitting={shipmentMut.isPending}
@@ -1130,7 +1225,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         currency={cur}
         agreedPricePerKg={agreedPerKg}
         agreedFlatPrice={agreedFlat}
-        estimatedWeightKg={estKg}
+        declaredWeightKg={tx.realWeightKg}
         blockedAmount={tx.blockedAmount}
         onClose={() => setReceiptOpen(false)}
         onConfirm={(payload) => receiptMut.mutate(payload)}

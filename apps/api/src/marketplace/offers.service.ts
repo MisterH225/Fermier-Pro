@@ -96,6 +96,7 @@ export class OffersService {
             MarketplaceTransactionStatus.PICKUP_PROPOSED,
             MarketplaceTransactionStatus.PICKUP_SCHEDULED,
             MarketplaceTransactionStatus.WEIGHT_DECLARED,
+            MarketplaceTransactionStatus.WEIGHT_COUNTER_DECLARED,
             MarketplaceTransactionStatus.WEIGHT_DISPUTED,
             MarketplaceTransactionStatus.WEIGHT_VALIDATED
           ]
