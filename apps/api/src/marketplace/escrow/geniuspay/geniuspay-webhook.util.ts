@@ -114,9 +114,9 @@ export function verifyGeniusPayWebhookSignature(params: {
       `GENIUSPAY_WEBHOOK_SECRET non configuré. ${WEBHOOK_SECRET_HINT}`
     );
   }
-  if (!isLikelyGeniusPayWebhookSecret(secret)) {
+  if (/^(sk_|pk_)/i.test(secret)) {
     throw new UnauthorizedException(
-      `GENIUSPAY_WEBHOOK_SECRET invalide (attendu whsec_…). ${WEBHOOK_SECRET_HINT}`
+      `GENIUSPAY_WEBHOOK_SECRET semble être une clé API (sk_/pk_), pas le secret webhook whsec_…. ${WEBHOOK_SECRET_HINT}`
     );
   }
 
