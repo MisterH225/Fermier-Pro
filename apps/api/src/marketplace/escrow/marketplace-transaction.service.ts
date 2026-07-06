@@ -632,22 +632,12 @@ export class MarketplaceTransactionService {
       dto?.paymentMethod === "wallet"
         ? MarketplacePaymentMethod.wallet
         : MarketplacePaymentMethod.mobile_money;
-    const existingRef = tx.paymentProviderRef?.trim();
+
     if (
-      method === MarketplacePaymentMethod.mobile_money &&
-      existingRef &&
-      tx.paymentMethod === MarketplacePaymentMethod.mobile_money
+      method === MarketplacePaymentMethod.wallet &&
+      tx.paymentMethod === MarketplacePaymentMethod.mobile_money &&
+      tx.paymentProviderRef?.trim()
     ) {
-      const resumed = await this.escrow.resumeMobileMoneyCheckout(existingRef);
-      if (resumed?.paymentUrl?.trim()) {
-        return {
-          providerRef: resumed.providerRef,
-          amount,
-          currency: tx.currency,
-          paymentMethod: MarketplacePaymentMethod.mobile_money,
-          paymentUrl: resumed.paymentUrl
-        };
-      }
       await this.prisma.marketplaceTransaction.update({
         where: { id: tx.id },
         data: {
@@ -657,6 +647,7 @@ export class MarketplaceTransactionService {
         }
       });
     }
+
     const hold = await this.escrow.holdFunds(
       tx.id,
       tx.buyerUserId,
@@ -705,6 +696,11 @@ export class MarketplaceTransactionService {
     if (providerRef && providerRef !== ref) {
       throw new BadRequestException("Référence paiement invalide pour cette transaction");
     }
+
+    if (tx.paymentMethod === MarketplacePaymentMethod.mobile_money) {
+      return this.getById(user, tx.id);
+    }
+
     const walletContext =
       tx.paymentMethod === MarketplacePaymentMethod.wallet
         ? {

@@ -405,6 +405,9 @@ export class CreditOffersService {
     if (providerRef && providerRef !== ref) {
       throw new BadRequestException("Référence paiement invalide");
     }
+    if (offer.balancePaymentMode !== "wallet") {
+      return this.serializeOffer(offerId, user.id);
+    }
     const tx = await this.prisma.marketplaceTransaction.findUniqueOrThrow({
       where: { offerId }
     });

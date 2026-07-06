@@ -185,6 +185,13 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         await openPaymentCheckout(checkoutUrl);
         return { pendingExternalPayment: true as const };
       }
+      if (init.paymentMethod === "mobile_money") {
+        const checkoutUrl = init.paymentUrl?.trim();
+        if (checkoutUrl) {
+          await openPaymentCheckout(checkoutUrl);
+          return { pendingExternalPayment: true as const };
+        }
+      }
       return confirmMarketplacePayment(
         accessToken,
         transactionId,
@@ -206,7 +213,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         t("marketScreen.transaction.paymentSuccessBody")
       );
     },
-    onError: (e: Error) => {
+    onError: async (e: Error) => {
       if (e.message === "MARKETPLACE_PAYMENT_ALREADY_HELD") {
         invalidate();
         Alert.alert(
@@ -224,6 +231,28 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
           t("marketScreen.transaction.checkoutUrlMissing")
         );
         return;
+      }
+      if (/session de paiement expirée/i.test(e.message)) {
+        try {
+          const init = await initiateMarketplacePayment(
+            accessToken!,
+            transactionId,
+            activeProfileId,
+            "mobile_money"
+          );
+          const checkoutUrl = init.paymentUrl?.trim();
+          if (checkoutUrl) {
+            await openPaymentCheckout(checkoutUrl);
+            invalidate();
+            Alert.alert(
+              t("marketScreen.transaction.paymentPendingTitle"),
+              t("marketScreen.transaction.paymentPendingBody")
+            );
+            return;
+          }
+        } catch {
+          /* retombe sur l'alerte d'erreur ci-dessous */
+        }
       }
       const msg = marketplaceActionErrorMessage(e, t);
       if (
