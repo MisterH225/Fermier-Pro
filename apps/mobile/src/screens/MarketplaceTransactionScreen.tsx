@@ -133,7 +133,8 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         activeProfileId
       ),
     enabled: clientFeatures.marketplace && Boolean(accessToken),
-    refetchOnMount: "always"
+    refetchOnMount: "always",
+    staleTime: 0
   });
 
   const walletQ = useQuery({
@@ -486,6 +487,11 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   const statusLabel = t(`marketScreen.transaction.status.${tx.status}`, {
     defaultValue: tx.status
   });
+  const payReady =
+    isBuyer &&
+    tx.status === "PAYMENT_PENDING" &&
+    q.isSuccess &&
+    !q.isFetching;
   const projectedFinal =
     tx.finalAmount ??
     projectMarketplaceFinalAmount({
@@ -770,7 +776,19 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         </View>
       ) : null}
 
-      {isBuyer && tx.status === "PAYMENT_PENDING" ? (
+      {isBuyer && tx.status !== "PAYMENT_PENDING" ? (
+        <View style={styles.section}>
+          <Text style={styles.waiting}>
+            {tx.status === "PAYMENT_HELD"
+              ? t("marketScreen.transaction.paymentAlreadyHeldBody")
+              : t("marketScreen.transaction.paymentInvalidStatus", {
+                  status: statusLabel
+                })}
+          </Text>
+        </View>
+      ) : null}
+
+      {payReady ? (
         <View style={styles.section}>
           {/* Récapitulatif toujours visible — transparence obligatoire */}
           <View style={styles.feeBreakdown}>

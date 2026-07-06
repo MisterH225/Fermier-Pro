@@ -600,6 +600,7 @@ export const fr = {
         confirm: "✅ J'ai payé l'avance",
         declare: "💰 J'ai payé l'avance",
         payEscrow: "💳 Payer l'avance (escrow)",
+        viewTransaction: "Voir la transaction",
         declaredSuccess: "Avance déclarée — le vendeur va confirmer la réception.",
         confirmReceived: "✅ Confirmer la réception de l'avance",
         notReceived: "❌ Je n'ai pas reçu l'avance",

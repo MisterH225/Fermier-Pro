@@ -43,6 +43,7 @@ type ProposalCardBase = {
   advanceConfirmedAt?: string | null;
   balancePaidDeclaredAt?: string | null;
   buyerCreditScore?: BuyerCreditScoreDto | null;
+  transactionStatus?: string | null;
   listingCategory?: string | null;
   listingWeightKg?: string | number | null;
   subtitle?: string | null;
@@ -131,6 +132,7 @@ export function ProposalCard(props: ProposalCardProps) {
     advanceConfirmedAt,
     balancePaidDeclaredAt,
     buyerCreditScore,
+    transactionStatus,
     listingCategory,
     listingWeightKg,
     subtitle,
@@ -465,6 +467,8 @@ export function ProposalCard(props: ProposalCardProps) {
       isCredit &&
       status === "credit_agreed" &&
       !advancePaidDeclaredAt &&
+      !advanceConfirmedAt &&
+      transactionStatus === "PAYMENT_PENDING" &&
       !actionsDisabled ? (
         <Pressable
           style={[styles.btn, styles.btnPrimary]}
@@ -473,6 +477,25 @@ export function ProposalCard(props: ProposalCardProps) {
         >
           <Text style={styles.btnPrimaryTx}>
             {t("marketScreen.credit.advance.payEscrow")}
+          </Text>
+        </Pressable>
+      ) : null}
+
+      {variant === "sent" &&
+      isCredit &&
+      status === "credit_agreed" &&
+      !advancePaidDeclaredAt &&
+      !advanceConfirmedAt &&
+      transactionStatus &&
+      transactionStatus !== "PAYMENT_PENDING" &&
+      !actionsDisabled ? (
+        <Pressable
+          style={[styles.btn, styles.btnOutline]}
+          onPress={props.onDeclareAdvance}
+          disabled={!props.onDeclareAdvance}
+        >
+          <Text style={styles.btnOutlineTx}>
+            {t("marketScreen.credit.advance.viewTransaction")}
           </Text>
         </Pressable>
       ) : null}

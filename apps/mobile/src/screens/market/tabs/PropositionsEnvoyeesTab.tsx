@@ -26,6 +26,7 @@ import {
   initiateMarketplaceCreditBalancePayment,
   ensureDirectChatRoom,
   fetchBuyerWallet,
+  fetchMarketplaceTransaction,
   fetchMyMarketplaceOffers,
   withdrawMarketplaceOffer,
   type MarketplaceOfferMineRow
@@ -83,13 +84,41 @@ export function PropositionsEnvoyeesTab({
     invalidateBuyerDashboardQueries(qc);
   };
 
-  const openCreditTransaction = (row: MarketplaceOfferMineRow) => {
+  const openCreditTransaction = async (row: MarketplaceOfferMineRow) => {
     const txId = row.transaction?.id;
     if (!txId) {
       Alert.alert(
         t("common.error"),
         t("marketScreen.credit.escrow.transactionMissing")
       );
+      return;
+    }
+    try {
+      const fresh = await fetchMarketplaceTransaction(
+        accessToken!,
+        txId,
+        activeProfileId
+      );
+      if (fresh.status === "PAYMENT_HELD") {
+        Alert.alert(
+          t("marketScreen.transaction.paymentAlreadyHeldTitle"),
+          t("marketScreen.transaction.paymentAlreadyHeldBody")
+        );
+        navigation.navigate("MarketplaceTransaction", { transactionId: txId });
+        return;
+      }
+      if (fresh.status !== "PAYMENT_PENDING") {
+        Alert.alert(
+          t("marketScreen.transaction.paymentErrorTitle"),
+          t("marketScreen.transaction.paymentInvalidStatus", {
+            status: fresh.status
+          })
+        );
+        navigation.navigate("MarketplaceTransaction", { transactionId: txId });
+        return;
+      }
+    } catch (e: unknown) {
+      Alert.alert(t("common.error"), marketplaceActionErrorMessage(e, t));
       return;
     }
     navigation.navigate("MarketplaceTransaction", { transactionId: txId });
@@ -332,6 +361,7 @@ export function PropositionsEnvoyeesTab({
           advancePaidDeclaredAt={item.advancePaidDeclaredAt}
           advanceConfirmedAt={item.advanceConfirmedAt}
           balancePaidDeclaredAt={item.balancePaidDeclaredAt}
+          transactionStatus={item.transaction?.status ?? null}
           listingCategory={null}
           sellerName={
             item.listing.seller.fullName ??

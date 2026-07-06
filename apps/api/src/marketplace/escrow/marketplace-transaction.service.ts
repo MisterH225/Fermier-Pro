@@ -671,11 +671,6 @@ export class MarketplaceTransactionService {
     }
     const confirmedRef = holdResult.providerRef ?? ref;
 
-    const listing = await this.prisma.marketplaceListing.findUnique({
-      where: { id: tx.listingId },
-      select: { title: true }
-    });
-
     const claimed = await this.prisma.marketplaceTransaction.updateMany({
       where: {
         id: tx.id,
@@ -698,41 +693,7 @@ export class MarketplaceTransactionService {
       throw new BadRequestException("Confirmation paiement impossible");
     }
 
-    await this.prisma.marketplaceListing.update({
-      where: { id: tx.listingId },
-      data: { activeOfferCount: { increment: 1 } }
-    });
-
-    const amountLabel = `${Math.round(Number(tx.blockedAmount)).toLocaleString("fr-FR")} ${tx.currency}`;
-    if (tx.isCredit) {
-      await this.prisma.marketplaceOffer.update({
-        where: { id: tx.offerId },
-        data: {
-          status: OfferStatus.advance_confirmed,
-          advanceConfirmedAt: new Date(),
-          advancePaymentMode: "escrow"
-        }
-      });
-      void this.push.sendToUser(
-        tx.buyerUserId,
-        "Avance sécurisée",
-        `${amountLabel} est bloqué sur la plateforme jusqu'à la livraison.`,
-        { type: "marketplace_credit_advance_held", transactionId: tx.id }
-      );
-      void this.push.sendToUser(
-        tx.sellerUserId,
-        "Avance en escrow",
-        `L'acheteur a sécurisé ${amountLabel} sur la plateforme. Coordonnez la remise des animaux.`,
-        { type: "marketplace_credit_advance_held_seller", transactionId: tx.id }
-      );
-    } else {
-      void this.push.sendToUser(
-        tx.sellerUserId,
-        "Paiement sécurisé",
-        `Un acheteur a sécurisé ${amountLabel} pour « ${listing?.title ?? "votre annonce"} ». Coordonnez la livraison.`,
-        { type: "marketplace_payment_held", transactionId: tx.id, listingId: tx.listingId }
-      );
-    }
+    await this.onPaymentHeldSideEffects(tx.id);
 
     return this.getById(user, tx.id);
   }
@@ -795,10 +756,7 @@ export class MarketplaceTransactionService {
       }
     });
     if (claimed.count === 1) {
-      await this.prisma.marketplaceListing.update({
-        where: { id: tx.listingId },
-        data: { activeOfferCount: { increment: 1 } }
-      });
+      await this.onPaymentHeldSideEffects(tx.id);
     }
     return { ok: true };
   }
@@ -2156,6 +2114,54 @@ export class MarketplaceTransactionService {
       where: { id: listingId },
       data: { activeOfferCount: { decrement: 1 } }
     });
+  }
+
+  /** Effets métier après passage en PAYMENT_HELD (REST ou webhook GeniusPay). */
+  private async onPaymentHeldSideEffects(transactionId: string): Promise<void> {
+    const tx = await this.prisma.marketplaceTransaction.findUnique({
+      where: { id: transactionId },
+      include: { listing: { select: { title: true } } }
+    });
+    if (!tx) {
+      return;
+    }
+
+    await this.prisma.marketplaceListing.update({
+      where: { id: tx.listingId },
+      data: { activeOfferCount: { increment: 1 } }
+    });
+
+    const amountLabel = `${Math.round(Number(tx.blockedAmount)).toLocaleString("fr-FR")} ${tx.currency}`;
+    if (tx.isCredit) {
+      await this.prisma.marketplaceOffer.update({
+        where: { id: tx.offerId },
+        data: {
+          status: OfferStatus.advance_confirmed,
+          advanceConfirmedAt: new Date(),
+          advancePaymentMode: "escrow"
+        }
+      });
+      void this.push.sendToUser(
+        tx.buyerUserId,
+        "Avance sécurisée",
+        `${amountLabel} est bloqué sur la plateforme jusqu'à la livraison.`,
+        { type: "marketplace_credit_advance_held", transactionId: tx.id }
+      );
+      void this.push.sendToUser(
+        tx.sellerUserId,
+        "Avance en escrow",
+        `L'acheteur a sécurisé ${amountLabel} sur la plateforme. Coordonnez la remise des animaux.`,
+        { type: "marketplace_credit_advance_held_seller", transactionId: tx.id }
+      );
+      return;
+    }
+
+    void this.push.sendToUser(
+      tx.sellerUserId,
+      "Paiement sécurisé",
+      `Un acheteur a sécurisé ${amountLabel} pour « ${tx.listing?.title ?? "votre annonce"} ». Coordonnez la livraison.`,
+      { type: "marketplace_payment_held", transactionId: tx.id, listingId: tx.listingId }
+    );
   }
 
   private async requireBuyer(transactionId: string, userId: string) {

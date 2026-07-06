@@ -597,6 +597,7 @@ export const en = {
         confirm: "✅ I paid the advance",
         declare: "💰 I paid the advance",
         payEscrow: "💳 Pay advance (escrow)",
+        viewTransaction: "View transaction",
         declaredSuccess: "Advance declared — the seller will confirm receipt.",
         confirmReceived: "✅ Confirm advance received",
         notReceived: "❌ I did not receive the advance",
