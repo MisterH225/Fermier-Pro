@@ -5412,6 +5412,19 @@ export function confirmMarketplacePayment(
   );
 }
 
+export function syncMarketplacePayment(
+  accessToken: string,
+  transactionId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto> {
+  return apiPostJson<MarketplaceTransactionDto>(
+    `/marketplace/transactions/${transactionId}/payment/sync`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
 export function scheduleMarketplacePickup(
   accessToken: string,
   transactionId: string,

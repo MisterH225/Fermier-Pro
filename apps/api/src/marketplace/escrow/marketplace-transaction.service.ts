@@ -724,9 +724,7 @@ export class MarketplaceTransactionService {
     }
 
     if (tx.paymentMethod === MarketplacePaymentMethod.mobile_money) {
-      throw new BadRequestException(
-        "Paiement en attente de confirmation GeniusPay — finalisez le checkout ou attendez la notification."
-      );
+      return this.syncPaymentFromProvider(user, transactionId);
     }
 
     const walletContext =
@@ -803,6 +801,95 @@ export class MarketplaceTransactionService {
     return this.getById(user, tx.id);
   }
 
+  /**
+   * Synchronise le statut escrow après checkout GeniusPay (retour app ou polling).
+   * Interroge le prestataire puis passe en PAYMENT_HELD si le paiement est complété.
+   */
+  async syncPaymentFromProvider(user: User, transactionId: string) {
+    const tx = await this.requireBuyer(transactionId, user.id);
+    if (tx.status === MarketplaceTransactionStatus.PAYMENT_HELD) {
+      return this.getById(user, tx.id);
+    }
+    if (tx.status !== MarketplaceTransactionStatus.PAYMENT_PENDING) {
+      throw new BadRequestException(
+        `Synchronisation impossible pour le statut : ${tx.status}`
+      );
+    }
+    if (tx.paymentMethod !== MarketplacePaymentMethod.mobile_money) {
+      throw new BadRequestException(
+        "Synchronisation GeniusPay réservée aux paiements mobile money"
+      );
+    }
+    const ref = tx.paymentProviderRef?.trim();
+    if (!ref) {
+      throw new BadRequestException(
+        "Référence paiement manquante — initiez le paiement d'abord"
+      );
+    }
+
+    const holdResult = await this.escrow.confirmHold(ref, tx.id);
+    if (!holdResult.success) {
+      if (isStaleGeniusPayReference(holdResult.failureReason)) {
+        await this.prisma.marketplaceTransaction.update({
+          where: { id: tx.id },
+          data: {
+            paymentProviderRef: null,
+            paymentInitiatedAt: null,
+            paymentMethod: null
+          }
+        });
+        throw new BadRequestException(
+          "Session de paiement expirée. Appuyez à nouveau sur « Payer » pour rouvrir le checkout GeniusPay."
+        );
+      }
+      if (isDefinitiveMobileMoneyFailure(holdResult.failureReason)) {
+        await this.prisma.marketplaceTransaction.updateMany({
+          where: {
+            id: tx.id,
+            status: MarketplaceTransactionStatus.PAYMENT_PENDING
+          },
+          data: { status: MarketplaceTransactionStatus.PAYMENT_FAILED }
+        });
+        throw new BadRequestException(
+          holdResult.failureReason ?? "Paiement GeniusPay refusé"
+        );
+      }
+      return this.getById(user, tx.id);
+    }
+
+    await this.claimPaymentHeld(transactionId, ref);
+    return this.getById(user, tx.id);
+  }
+
+  /** Résout une transaction escrow en attente à partir de la référence GeniusPay (webhook). */
+  async resolveEscrowWebhookPayment(
+    providerRef: string,
+    webhookAmount?: number,
+    webhookCurrency?: string
+  ): Promise<boolean> {
+    const ref = providerRef.trim();
+    if (!ref) {
+      return false;
+    }
+    const tx = await this.prisma.marketplaceTransaction.findFirst({
+      where: {
+        paymentProviderRef: ref,
+        status: MarketplaceTransactionStatus.PAYMENT_PENDING
+      },
+      select: { id: true }
+    });
+    if (!tx) {
+      return false;
+    }
+    await this.confirmPaymentFromWebhook(
+      tx.id,
+      ref,
+      webhookAmount,
+      webhookCurrency
+    );
+    return true;
+  }
+
   /** Confirmation asynchrone via webhook prestataire (sans JWT acheteur). */
   async confirmPaymentFromWebhook(
     transactionId: string,
@@ -825,7 +912,6 @@ export class MarketplaceTransactionService {
     if (tx.paymentProviderRef && tx.paymentProviderRef !== providerRef) {
       throw new BadRequestException("providerRef incohérent");
     }
-    // Valider que le montant confirmé par le prestataire correspond au montant bloqué
     if (webhookAmount !== undefined) {
       const blocked = Number(tx.blockedAmount);
       if (Math.abs(webhookAmount - blocked) > 1) {
@@ -838,34 +924,9 @@ export class MarketplaceTransactionService {
     if (webhookCurrency && webhookCurrency !== tx.currency) {
       throw new BadRequestException("Devise webhook incohérente");
     }
-    const holdResult = await this.escrow.confirmHold(providerRef, transactionId);
-    if (!holdResult.success) {
-      if (isDefinitiveMobileMoneyFailure(holdResult.failureReason)) {
-        await this.prisma.marketplaceTransaction.updateMany({
-          where: {
-            id: transactionId,
-            status: MarketplaceTransactionStatus.PAYMENT_PENDING
-          },
-          data: { status: MarketplaceTransactionStatus.PAYMENT_FAILED }
-        });
-      }
-      return { ok: false };
-    }
-    const claimed = await this.prisma.marketplaceTransaction.updateMany({
-      where: {
-        id: transactionId,
-        status: MarketplaceTransactionStatus.PAYMENT_PENDING
-      },
-      data: {
-        status: MarketplaceTransactionStatus.PAYMENT_HELD,
-        paymentConfirmedAt: new Date(),
-        paymentProviderRef: providerRef
-      }
-    });
-    if (claimed.count === 1) {
-      await this.onPaymentHeldSideEffects(tx.id);
-    }
-    return { ok: true };
+
+    const claimed = await this.claimPaymentHeld(transactionId, providerRef);
+    return { ok: claimed };
   }
 
   async failPaymentFromWebhook(transactionId: string, providerRef: string) {
@@ -2221,6 +2282,28 @@ export class MarketplaceTransactionService {
       where: { id: listingId },
       data: { activeOfferCount: { decrement: 1 } }
     });
+  }
+
+  private async claimPaymentHeld(
+    transactionId: string,
+    providerRef: string
+  ): Promise<boolean> {
+    const claimed = await this.prisma.marketplaceTransaction.updateMany({
+      where: {
+        id: transactionId,
+        status: MarketplaceTransactionStatus.PAYMENT_PENDING
+      },
+      data: {
+        status: MarketplaceTransactionStatus.PAYMENT_HELD,
+        paymentConfirmedAt: new Date(),
+        paymentProviderRef: providerRef
+      }
+    });
+    if (claimed.count === 1) {
+      await this.onPaymentHeldSideEffects(transactionId);
+      return true;
+    }
+    return false;
   }
 
   /** Effets métier après passage en PAYMENT_HELD (REST ou webhook GeniusPay). */

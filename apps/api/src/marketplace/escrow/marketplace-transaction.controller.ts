@@ -76,6 +76,14 @@ export class MarketplaceTransactionController {
     return this.transactions.confirmPayment(user, id, body.providerRef);
   }
 
+  @Post(":id/payment/sync")
+  syncPayment(
+    @CurrentUser() user: User,
+    @Param("id") id: string
+  ) {
+    return this.transactions.syncPaymentFromProvider(user, id);
+  }
+
   @Post(":id/confirm-shipment")
   confirmShipment(
     @CurrentUser() user: User,

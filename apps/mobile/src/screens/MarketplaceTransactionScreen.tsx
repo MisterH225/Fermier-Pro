@@ -46,7 +46,9 @@ import {
   fetchBuyerWallet,
   initiateMarketplacePayment,
   scheduleMarketplacePickup,
-  validateMarketplaceWeight
+  syncMarketplacePayment,
+  validateMarketplaceWeight,
+  type MarketplaceTransactionDto
 } from "../lib/api";
 import {
   marketplaceActionErrorMessage,
@@ -69,6 +71,35 @@ type Props = NativeStackScreenProps<
 
 function money(n: number, currency: string): string {
   return formatMarketMoney(Math.round(n), currency);
+}
+
+const PAYMENT_SYNC_ATTEMPTS = 20;
+const PAYMENT_SYNC_INTERVAL_MS = 2500;
+
+async function waitForMarketplacePaymentHeld(
+  accessToken: string,
+  transactionId: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceTransactionDto | { pendingExternalPayment: true }> {
+  for (let attempt = 0; attempt < PAYMENT_SYNC_ATTEMPTS; attempt += 1) {
+    if (attempt > 0) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, PAYMENT_SYNC_INTERVAL_MS)
+      );
+    }
+    const synced = await syncMarketplacePayment(
+      accessToken,
+      transactionId,
+      activeProfileId
+    );
+    if (synced.status === "PAYMENT_HELD") {
+      return synced;
+    }
+    if (synced.status === "PAYMENT_FAILED") {
+      throw new Error("MARKETPLACE_PAYMENT_FAILED_AFTER_CHECKOUT");
+    }
+  }
+  return { pendingExternalPayment: true as const };
 }
 
 function stepIndex(status: string): number {
@@ -185,7 +216,11 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
           throw new Error("MARKETPLACE_CHECKOUT_URL_MISSING");
         }
         await openPaymentCheckout(checkoutUrl);
-        return { pendingExternalPayment: true as const };
+        return waitForMarketplacePaymentHeld(
+          accessToken!,
+          transactionId,
+          activeProfileId
+        );
       }
       return confirmMarketplacePayment(
         accessToken,
@@ -236,6 +271,14 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
       }
       if (e.message === "MARKETPLACE_TRANSACTION_NOT_FOUND") {
         invalidate();
+      }
+      if (e.message === "MARKETPLACE_PAYMENT_FAILED_AFTER_CHECKOUT") {
+        invalidate();
+        Alert.alert(
+          t("marketScreen.transaction.paymentErrorTitle"),
+          t("marketScreen.transaction.paymentFailedRetryHint")
+        );
+        return;
       }
       if (e.message === "MARKETPLACE_CHECKOUT_URL_MISSING") {
         Alert.alert(
@@ -856,7 +899,8 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
 
       {isBuyer &&
       tx.status !== "PAYMENT_PENDING" &&
-      tx.status !== "PAYMENT_FAILED" ? (
+      tx.status !== "PAYMENT_FAILED" &&
+      tx.status !== "PAYMENT_HELD" ? (
         <View style={styles.section}>
           <Text style={styles.waiting}>
             {tx.status === "PAYMENT_HELD"

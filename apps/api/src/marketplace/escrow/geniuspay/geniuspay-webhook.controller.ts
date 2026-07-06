@@ -109,6 +109,15 @@ export class GeniusPayWebhookController {
         return { ok: true };
       }
 
+      const escrowResolved = await this.transactions.resolveEscrowWebhookPayment(
+        reference,
+        Number.isFinite(amount) ? amount : undefined,
+        body.data.currency
+      );
+      if (escrowResolved) {
+        return { ok: true, resolvedByReference: true };
+      }
+
       return { ok: true, ignored: true, reason: "kind inconnu" };
     }
 
