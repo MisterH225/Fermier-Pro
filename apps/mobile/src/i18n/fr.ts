@@ -428,6 +428,11 @@ export const fr = {
       paymentPendingTitle: "Paiement en cours",
       paymentPendingBody:
         "Finalisez le paiement dans le navigateur. La transaction sera mise à jour automatiquement une fois le paiement validé.",
+      paymentAlreadyHeldTitle: "Paiement déjà enregistré",
+      paymentAlreadyHeldBody:
+        "Cette transaction est déjà payée (souvent via le portefeuille ou un webhook GeniusPay). Passez à l'étape livraison.",
+      paymentInvalidStatus:
+        "Cette transaction n'est plus en attente de paiement (statut : {{status}}). Rechargez l'écran ou créez une nouvelle offre.",
       paymentErrorTitle: "Paiement impossible",
       pickupSection: "Rendez-vous de récupération",
       pickupDate: "Date de retrait",

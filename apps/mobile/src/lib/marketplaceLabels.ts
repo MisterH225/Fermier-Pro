@@ -94,6 +94,16 @@ export function marketplaceActionErrorMessage(err: unknown, t: TFunction): strin
           : "";
   const compact = raw.replace(/\s+/g, " ").trim();
   const base = getUserFacingError(err, t);
+  if (compact === "MARKETPLACE_PAYMENT_ALREADY_HELD") {
+    return t("marketScreen.transaction.paymentAlreadyHeldBody");
+  }
+  if (compact.startsWith("MARKETPLACE_PAYMENT_INVALID_STATUS:")) {
+    const status = compact.split(":")[1] ?? "";
+    return t("marketScreen.transaction.paymentInvalidStatus", {
+      status,
+      defaultValue: `Statut actuel : ${status}. Rechargez l'écran ou créez une nouvelle transaction.`
+    });
+  }
   if (
     compact.includes("marketplace.write") ||
     compact.includes("Permission manquante")

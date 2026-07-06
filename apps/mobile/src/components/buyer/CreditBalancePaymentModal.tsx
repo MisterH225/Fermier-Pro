@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatMarketMoney } from "../marketplace/MarketplaceListingCard";
 import { BaseModal } from "../modals/BaseModal";
@@ -33,9 +33,14 @@ export function CreditBalancePaymentModal({
   const walletEnabled = clientFeatures.wallet;
   const [paymentMethod, setPaymentMethod] =
     useState<MarketplacePaymentMethodChoice>("mobile_money");
+  const userPickedPaymentMethod = useRef(false);
 
   useEffect(() => {
     if (!visible) {
+      userPickedPaymentMethod.current = false;
+      return;
+    }
+    if (userPickedPaymentMethod.current) {
       return;
     }
     if (walletEnabled && walletBalance >= amount && amount > 0) {
@@ -65,7 +70,10 @@ export function CreditBalancePaymentModal({
         currency={currency}
         walletBalance={walletBalance}
         value={paymentMethod}
-        onChange={setPaymentMethod}
+        onChange={(method) => {
+          userPickedPaymentMethod.current = true;
+          setPaymentMethod(method);
+        }}
         walletEnabled={walletEnabled}
       />
     </BaseModal>

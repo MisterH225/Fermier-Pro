@@ -427,6 +427,11 @@ export const en = {
       paymentPendingTitle: "Payment in progress",
       paymentPendingBody:
         "Complete the payment in your browser. The transaction will update automatically once payment is validated.",
+      paymentAlreadyHeldTitle: "Payment already recorded",
+      paymentAlreadyHeldBody:
+        "This transaction is already paid (often via wallet or a GeniusPay webhook). Continue to the delivery step.",
+      paymentInvalidStatus:
+        "This transaction is no longer awaiting payment (status: {{status}}). Refresh the screen or create a new offer.",
       paymentErrorTitle: "Payment failed",
       pickupSection: "Pickup appointment",
       pickupDate: "Pickup date",

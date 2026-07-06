@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -121,6 +121,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   const [transferOpen, setTransferOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] =
     useState<MarketplacePaymentMethodChoice>("mobile_money");
+  const userPickedPaymentMethod = useRef(false);
   const minPickupDate = useMemo(() => startOfDay(new Date()), []);
 
   const q = useQuery({
@@ -131,7 +132,8 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         transactionId,
         activeProfileId
       ),
-    enabled: clientFeatures.marketplace && Boolean(accessToken)
+    enabled: clientFeatures.marketplace && Boolean(accessToken),
+    refetchOnMount: "always"
   });
 
   const walletQ = useQuery({
@@ -153,6 +155,18 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
 
   const payMut = useMutation({
     mutationFn: async () => {
+      const fresh = await fetchMarketplaceTransaction(
+        accessToken!,
+        transactionId,
+        activeProfileId
+      );
+      if (fresh.status === "PAYMENT_HELD") {
+        throw new Error("MARKETPLACE_PAYMENT_ALREADY_HELD");
+      }
+      if (fresh.status !== "PAYMENT_PENDING") {
+        throw new Error(`MARKETPLACE_PAYMENT_INVALID_STATUS:${fresh.status}`);
+      }
+
       const init = await initiateMarketplacePayment(
         accessToken!,
         transactionId,
@@ -193,11 +207,20 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         t("marketScreen.transaction.paymentSuccessBody")
       );
     },
-    onError: (e: Error) =>
+    onError: (e: Error) => {
+      if (e.message === "MARKETPLACE_PAYMENT_ALREADY_HELD") {
+        invalidate();
+        Alert.alert(
+          t("marketScreen.transaction.paymentAlreadyHeldTitle"),
+          t("marketScreen.transaction.paymentAlreadyHeldBody")
+        );
+        return;
+      }
       Alert.alert(
         t("marketScreen.transaction.paymentErrorTitle"),
         marketplaceActionErrorMessage(e, t)
-      )
+      );
+    }
   });
 
   const pickupMut = useMutation({
@@ -413,8 +436,13 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   };
 
   useEffect(() => {
+    if (userPickedPaymentMethod.current) {
+      return;
+    }
     if (clientFeatures.wallet && walletBalance >= payAmount && payAmount > 0) {
       setPaymentMethod("wallet");
+    } else {
+      setPaymentMethod("mobile_money");
     }
   }, [clientFeatures.wallet, walletBalance, payAmount]);
 
@@ -786,7 +814,10 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
             currency={payCurrency}
             walletBalance={walletBalance}
             value={paymentMethod}
-            onChange={setPaymentMethod}
+            onChange={(method) => {
+              userPickedPaymentMethod.current = true;
+              setPaymentMethod(method);
+            }}
             walletEnabled={clientFeatures.wallet}
           />
           <PrimaryButton

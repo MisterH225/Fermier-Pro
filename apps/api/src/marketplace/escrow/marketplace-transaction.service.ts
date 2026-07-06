@@ -594,8 +594,15 @@ export class MarketplaceTransactionService {
     dto?: { paymentMethod?: "mobile_money" | "wallet" }
   ) {
     const tx = await this.requireBuyer(transactionId, user.id);
+    if (tx.status === MarketplaceTransactionStatus.PAYMENT_HELD) {
+      throw new BadRequestException(
+        "Paiement déjà effectué pour cette transaction. Passez à l'étape livraison."
+      );
+    }
     if (tx.status !== MarketplaceTransactionStatus.PAYMENT_PENDING) {
-      throw new BadRequestException("Paiement non requis pour cette transaction");
+      throw new BadRequestException(
+        `Paiement non requis pour cette transaction (statut : ${tx.status})`
+      );
     }
     const amount = Number(tx.blockedAmount);
     const method =
