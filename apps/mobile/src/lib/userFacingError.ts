@@ -55,6 +55,15 @@ export function getUserFacingError(err: unknown, t: TFunction): string {
   if (lower.includes("403") || lower.includes("forbidden")) {
     return t("common.errors.forbidden");
   }
+  if (
+    /^transaction introuvable/i.test(raw) ||
+    /^offre introuvable/i.test(raw) ||
+    /^paiement geniuspay/i.test(raw) ||
+    /^montant à payer/i.test(raw) ||
+    /^paiement mobile money/i.test(raw)
+  ) {
+    return raw;
+  }
   if (lower.includes("404") || lower.includes("not found") || lower.includes("introuvable")) {
     return t("common.errors.notFound");
   }

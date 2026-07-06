@@ -9,8 +9,10 @@ import type {
   GeniusPayPaymentData,
   GeniusPayPaymentMetadata
 } from "./geniuspay.types";
+import { throwGeniusPayUserError } from "./geniuspay-errors.util";
 
-const DEFAULT_BASE_URL = "https://pay.genius.ci/api/v1/merchant";
+/** Domaine utilisé en prod lorsque la recharge wallet fonctionne déjà. */
+const DEFAULT_BASE_URL = "https://geniuspay.ci/api/v1/merchant";
 
 export type CreateGeniusPayPaymentParams = {
   amount: number;
@@ -114,12 +116,15 @@ export class GeniusPayClient {
 
     if (!res.ok || !json.success || !json.data) {
       const code = json.error?.code?.trim();
-      const msg =
-        json.error?.message?.trim() ??
-        `GeniusPay HTTP ${res.status}`;
-      const detail = code ? `${msg} (${code})` : msg;
+      const msg = json.error?.message?.trim();
+      const detail = code ? `${msg ?? "Erreur GeniusPay"} (${code})` : msg ?? `HTTP ${res.status}`;
       this.log.warn(`GeniusPay ${method} ${path} échec: ${detail}`);
-      throw new BadGatewayException(detail);
+      throwGeniusPayUserError({
+        httpStatus: res.status,
+        code: code ?? undefined,
+        message: msg,
+        operation: method === "POST" ? "create" : "fetch"
+      });
     }
     return json.data;
   }

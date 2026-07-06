@@ -116,7 +116,7 @@ export function marketplaceActionErrorMessage(err: unknown, t: TFunction): strin
     return t("marketScreen.transaction.paymentApiUnavailable");
   }
   if (
-    /geniuspay|prestataire geniuspay|transaction_not_found|country_not_supported|payment_init_failed|validation_error/i.test(
+    /geniuspay|prestataire geniuspay|transaction_not_found|country_not_supported|payment_init_failed|validation_error|paiement geniuspay|clé geniuspay|identifiants geniuspay|mobile money indisponible/i.test(
       compact
     )
   ) {

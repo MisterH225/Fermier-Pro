@@ -157,6 +157,9 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   const payMut = useMutation({
     mutationFn: async () => {
       const refetchResult = await q.refetch();
+      if (refetchResult.error) {
+        throw refetchResult.error;
+      }
       const fresh = refetchResult.data;
       if (!fresh) {
         throw new Error("MARKETPLACE_TRANSACTION_NOT_FOUND");

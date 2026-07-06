@@ -598,7 +598,7 @@ export class MarketplaceTransactionService {
     transactionId: string,
     dto?: { paymentMethod?: "mobile_money" | "wallet" }
   ) {
-    const tx = await this.requireBuyer(transactionId, user.id);
+    let tx = await this.requireBuyer(transactionId, user.id);
     if (tx.status === MarketplaceTransactionStatus.PAYMENT_HELD) {
       throw new BadRequestException(
         "Paiement déjà effectué pour cette transaction. Passez à l'étape livraison."
@@ -613,6 +613,9 @@ export class MarketplaceTransactionService {
           paymentInitiatedAt: null,
           paymentMethod: null
         }
+      });
+      tx = await this.prisma.marketplaceTransaction.findUniqueOrThrow({
+        where: { id: tx.id }
       });
     } else if (tx.status !== MarketplaceTransactionStatus.PAYMENT_PENDING) {
       throw new BadRequestException(
