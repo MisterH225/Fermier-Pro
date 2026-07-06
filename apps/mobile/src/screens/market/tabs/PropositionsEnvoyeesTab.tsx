@@ -32,6 +32,7 @@ import {
   type MarketplaceOfferMineRow
 } from "../../../lib/api";
 import { marketplaceActionErrorMessage } from "../../../lib/marketplaceLabels";
+import { openPaymentCheckout } from "../../../lib/paymentCheckout";
 import { getUserFacingError } from "../../../lib/userFacingError";
 import {
   mobileColors,
@@ -199,6 +200,14 @@ export function PropositionsEnvoyeesTab({
         activeProfileId,
         paymentMethod
       );
+      if (paymentMethod === "mobile_money") {
+        const checkoutUrl = init.paymentUrl?.trim();
+        if (!checkoutUrl) {
+          throw new Error("MARKETPLACE_CHECKOUT_URL_MISSING");
+        }
+        await openPaymentCheckout(checkoutUrl);
+        return;
+      }
       await confirmMarketplaceCreditBalancePayment(
         accessToken!,
         row.id,
@@ -206,9 +215,16 @@ export function PropositionsEnvoyeesTab({
         activeProfileId
       );
     },
-    onSuccess: (_data, { row }) => {
+    onSuccess: (_data, { row, paymentMethod }) => {
       setBalancePayOffer(null);
       invalidateAll(row.listing.id);
+      if (paymentMethod === "mobile_money") {
+        Alert.alert(
+          t("marketScreen.transaction.paymentPendingTitle"),
+          t("marketScreen.transaction.paymentPendingBody")
+        );
+        return;
+      }
       open("success", {
         message: t("marketScreen.credit.balance.declaredSuccess"),
         autoDismissMs: 2000

@@ -443,6 +443,8 @@ export const fr = {
         "Le service de paiement est indisponible (API obsolète ou hors ligne). Réessayez plus tard.",
       providerError:
         "Le prestataire de paiement a refusé la demande. Réessayez ou contactez le support.",
+      paymentSessionExpired:
+        "Session de paiement expirée. Appuyez à nouveau sur « Payer » pour rouvrir le checkout GeniusPay.",
       paymentErrorTitle: "Paiement impossible",
       pickupSection: "Rendez-vous de récupération",
       pickupDate: "Date de retrait",

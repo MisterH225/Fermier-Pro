@@ -442,6 +442,8 @@ export const en = {
         "Payment service unavailable (outdated API or offline). Try again later.",
       providerError:
         "The payment provider rejected the request. Retry or contact support.",
+      paymentSessionExpired:
+        "Payment session expired. Tap Pay again to reopen the GeniusPay checkout.",
       paymentErrorTitle: "Payment failed",
       pickupSection: "Pickup appointment",
       pickupDate: "Pickup date",

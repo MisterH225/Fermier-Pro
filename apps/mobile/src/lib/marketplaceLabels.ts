@@ -112,6 +112,9 @@ export function marketplaceActionErrorMessage(err: unknown, t: TFunction): strin
   if (/transaction introuvable/i.test(compact)) {
     return t("marketScreen.transaction.transactionNotFound");
   }
+  if (/session de paiement expirée/i.test(compact)) {
+    return compact;
+  }
   if (/cannot (post|get)\s+\/api/i.test(compact)) {
     return t("marketScreen.transaction.paymentApiUnavailable");
   }

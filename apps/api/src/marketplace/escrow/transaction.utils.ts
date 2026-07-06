@@ -312,6 +312,19 @@ export const TERMINAL_TRANSACTION_STATUSES: MarketplaceTransactionStatus[] = [
   MarketplaceTransactionStatus.PAYMENT_FAILED
 ];
 
+/** Référence GeniusPay absente ou expirée côté prestataire. */
+export function isStaleGeniusPayReference(failureReason?: string | null): boolean {
+  if (!failureReason?.trim()) {
+    return false;
+  }
+  const lower = failureReason.toLowerCase();
+  return (
+    lower.includes("référence geniuspay expirée") ||
+    lower.includes("reference geniuspay") ||
+    lower.includes("relancez le paiement")
+  );
+}
+
 /** Confirmation mobile money encore en attente côté prestataire (webhook attendu). */
 export function isPendingMobileMoneyConfirm(failureReason?: string | null): boolean {
   if (!failureReason?.trim()) {

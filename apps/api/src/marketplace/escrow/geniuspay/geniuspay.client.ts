@@ -83,11 +83,30 @@ export class GeniusPayClient {
     return this.request<GeniusPayPaymentData>("GET", `/payments/${encodeURIComponent(ref)}`);
   }
 
-  private async request<T>(
+  /** Lecture tolérante — null si la référence n'existe pas chez GeniusPay. */
+  async lookupPayment(reference: string): Promise<GeniusPayPaymentData | null> {
+    const ref = reference.trim();
+    if (!ref) {
+      return null;
+    }
+    const result = await this.requestRaw<GeniusPayPaymentData>(
+      "GET",
+      `/payments/${encodeURIComponent(ref)}`
+    );
+    if (!result.ok) {
+      return null;
+    }
+    return result.data;
+  }
+
+  private async requestRaw<T>(
     method: "GET" | "POST",
     path: string,
     body?: Record<string, unknown>
-  ): Promise<T> {
+  ): Promise<
+    | { ok: true; data: T }
+    | { ok: false; httpStatus: number; code?: string; message?: string }
+  > {
     const url = `${this.baseUrl}${path}`;
     const headers: Record<string, string> = {
       "X-API-Key": this.apiKey,
@@ -104,14 +123,14 @@ export class GeniusPayClient {
       res = await fetch(url, { ...init, signal: AbortSignal.timeout(30_000) });
     } catch (err) {
       this.log.error(`GeniusPay ${method} ${path} réseau: ${String(err)}`);
-      throw new BadGatewayException("Prestataire GeniusPay injoignable");
+      return { ok: false, httpStatus: 0, message: "Prestataire GeniusPay injoignable" };
     }
 
     let json: GeniusPayApiResponse<T>;
     try {
       json = (await res.json()) as GeniusPayApiResponse<T>;
     } catch {
-      throw new BadGatewayException("Réponse GeniusPay invalide");
+      return { ok: false, httpStatus: res.status, message: "Réponse GeniusPay invalide" };
     }
 
     if (!res.ok || !json.success || !json.data) {
@@ -119,13 +138,30 @@ export class GeniusPayClient {
       const msg = json.error?.message?.trim();
       const detail = code ? `${msg ?? "Erreur GeniusPay"} (${code})` : msg ?? `HTTP ${res.status}`;
       this.log.warn(`GeniusPay ${method} ${path} échec: ${detail}`);
-      throwGeniusPayUserError({
+      return {
+        ok: false,
         httpStatus: res.status,
         code: code ?? undefined,
-        message: msg,
+        message: msg
+      };
+    }
+    return { ok: true, data: json.data };
+  }
+
+  private async request<T>(
+    method: "GET" | "POST",
+    path: string,
+    body?: Record<string, unknown>
+  ): Promise<T> {
+    const result = await this.requestRaw<T>(method, path, body);
+    if (!result.ok) {
+      throwGeniusPayUserError({
+        httpStatus: result.httpStatus,
+        code: result.code,
+        message: result.message,
         operation: method === "POST" ? "create" : "fetch"
       });
     }
-    return json.data;
+    return result.data;
   }
 }

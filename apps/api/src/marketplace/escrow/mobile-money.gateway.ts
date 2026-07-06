@@ -82,6 +82,11 @@ export interface MobileMoneyGateway {
     userId: string,
     amount: number
   ): Promise<MobileMoneyConfirmResult>;
+
+  /** Reprend un checkout GeniusPay encore ouvert, ou null si la référence est invalide. */
+  resumePendingCheckout?(
+    providerRef: string
+  ): Promise<MobileMoneyInitResult | null>;
 }
 
 export const MOBILE_MONEY_GATEWAY = Symbol("MOBILE_MONEY_GATEWAY");

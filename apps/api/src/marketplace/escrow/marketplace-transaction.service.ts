@@ -35,7 +35,6 @@ import { CreditOffersService } from "../credit/credit-offers.service";
 import { ListingsService } from "../listings.service";
 import { ReceiptService } from "../receipts/receipt.service";
 import { EscrowService } from "./escrow.service";
-import { resolveGeniusPayCheckoutUrl } from "./geniuspay/geniuspay-mobile-money.gateway";
 import {
   ACTIVE_ESCROW_STATUSES,
   CANCELLABLE_BY_BUYER,
@@ -50,6 +49,7 @@ import {
   estimatePlatformFee,
   isDefinitiveMobileMoneyFailure,
   isPendingMobileMoneyConfirm,
+  isStaleGeniusPayReference,
   isTransientMobileMoneyConfirm,
   lastNMonthKeys,
   paymentExpiryDate,
@@ -638,13 +638,24 @@ export class MarketplaceTransactionService {
       existingRef &&
       tx.paymentMethod === MarketplacePaymentMethod.mobile_money
     ) {
-      return {
-        providerRef: existingRef,
-        amount,
-        currency: tx.currency,
-        paymentMethod: MarketplacePaymentMethod.mobile_money,
-        paymentUrl: resolveGeniusPayCheckoutUrl({ reference: existingRef })
-      };
+      const resumed = await this.escrow.resumeMobileMoneyCheckout(existingRef);
+      if (resumed?.paymentUrl?.trim()) {
+        return {
+          providerRef: resumed.providerRef,
+          amount,
+          currency: tx.currency,
+          paymentMethod: MarketplacePaymentMethod.mobile_money,
+          paymentUrl: resumed.paymentUrl
+        };
+      }
+      await this.prisma.marketplaceTransaction.update({
+        where: { id: tx.id },
+        data: {
+          paymentProviderRef: null,
+          paymentInitiatedAt: null,
+          paymentMethod: null
+        }
+      });
     }
     const hold = await this.escrow.holdFunds(
       tx.id,
@@ -705,6 +716,19 @@ export class MarketplaceTransactionService {
         : undefined;
     const holdResult = await this.escrow.confirmHold(ref, tx.id, walletContext);
     if (!holdResult.success) {
+      if (isStaleGeniusPayReference(holdResult.failureReason)) {
+        await this.prisma.marketplaceTransaction.update({
+          where: { id: tx.id },
+          data: {
+            paymentProviderRef: null,
+            paymentInitiatedAt: null,
+            paymentMethod: null
+          }
+        });
+        throw new BadRequestException(
+          "Session de paiement expirée. Appuyez à nouveau sur « Payer » pour ouvrir le checkout GeniusPay."
+        );
+      }
       if (
         isPendingMobileMoneyConfirm(holdResult.failureReason) ||
         isTransientMobileMoneyConfirm(holdResult.failureReason)

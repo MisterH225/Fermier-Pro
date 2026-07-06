@@ -4932,6 +4932,7 @@ export function initiateMarketplaceCreditBalancePayment(
   currency: string;
   transactionId: string;
   paymentMethod?: string;
+  paymentUrl?: string | null;
 }> {
   return apiPostJson(
     `/marketplace/offers/${offerId}/balance-payment/initiate`,

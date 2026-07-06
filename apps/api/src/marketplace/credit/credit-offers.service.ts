@@ -382,7 +382,8 @@ export class CreditOffersService {
       amount,
       currency: tx.currency,
       transactionId: tx.id,
-      paymentMethod: hold.paymentMethod
+      paymentMethod: hold.paymentMethod,
+      paymentUrl: hold.paymentUrl ?? null
     };
   }
 
@@ -418,7 +419,21 @@ export class CreditOffersService {
         : undefined;
     const ok = await this.escrow.confirmHold(ref, tx.id, walletContext);
     if (!ok.success) {
-      throw new BadRequestException("Paiement du solde refusé");
+      if (
+        ok.failureReason?.toLowerCase().includes("référence geniuspay expirée") ||
+        ok.failureReason?.toLowerCase().includes("relancez le paiement")
+      ) {
+        await this.prisma.marketplaceOffer.update({
+          where: { id: offerId },
+          data: { balancePaymentRef: null, balancePaymentMode: null }
+        });
+        throw new BadRequestException(
+          "Session de paiement expirée. Relancez le paiement du solde."
+        );
+      }
+      throw new BadRequestException(
+        ok.failureReason ?? "Paiement du solde refusé"
+      );
     }
     await this.prisma.marketplaceOffer.update({
       where: { id: offerId },

@@ -9,7 +9,8 @@ import { UserWalletService } from "../../wallet/user-wallet.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import {
   MOBILE_MONEY_GATEWAY,
-  type MobileMoneyGateway
+  type MobileMoneyGateway,
+  type MobileMoneyInitResult
 } from "./mobile-money.gateway";
 
 export type HoldFundsOptions = {
@@ -81,6 +82,15 @@ export class EscrowService {
       paymentMethod: MarketplacePaymentMethod.mobile_money,
       paymentUrl: init.paymentUrl ?? null
     };
+  }
+
+  async resumeMobileMoneyCheckout(
+    providerRef: string
+  ): Promise<MobileMoneyInitResult | null> {
+    if (typeof this.gateway.resumePendingCheckout !== "function") {
+      return null;
+    }
+    return this.gateway.resumePendingCheckout(providerRef);
   }
 
   async confirmHold(

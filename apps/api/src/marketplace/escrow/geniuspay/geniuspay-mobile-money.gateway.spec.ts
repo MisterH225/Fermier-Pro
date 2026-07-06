@@ -9,11 +9,13 @@ import {
 describe("GeniusPayMobileMoneyGateway", () => {
   const createPayment = jest.fn();
   const getPayment = jest.fn();
+  const lookupPayment = jest.fn();
   const findUnique = jest.fn();
 
   const client = {
     createPayment,
-    getPayment
+    getPayment,
+    lookupPayment
   } as unknown as GeniusPayClient;
 
   const prisma = {
@@ -24,6 +26,7 @@ describe("GeniusPayMobileMoneyGateway", () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    lookupPayment.mockResolvedValue(null);
     findUnique.mockResolvedValue({
       fullName: "Test User",
       firstName: null,
@@ -86,7 +89,7 @@ describe("GeniusPayMobileMoneyGateway", () => {
   });
 
   it("confirme un topup complété", async () => {
-    getPayment.mockResolvedValue({
+    lookupPayment.mockResolvedValue({
       id: 2,
       reference: "MTX-TOPUP1",
       amount: 5000,
@@ -104,7 +107,7 @@ describe("GeniusPayMobileMoneyGateway", () => {
   });
 
   it("refuse un escrow dont la transaction ne correspond pas", async () => {
-    getPayment.mockResolvedValue({
+    lookupPayment.mockResolvedValue({
       id: 3,
       reference: "MTX-ESCROW2",
       amount: 10000,
@@ -120,5 +123,20 @@ describe("GeniusPayMobileMoneyGateway", () => {
     const result = await gateway.confirmPayment("MTX-ESCROW2", "tx-1");
     expect(result.success).toBe(false);
     expect(result.failureReason).toContain("transaction");
+  });
+
+  it("reprend un checkout pending existant", async () => {
+    lookupPayment.mockResolvedValue({
+      id: 5,
+      reference: "MTX-RESUME1",
+      amount: 5000,
+      currency: "XOF",
+      status: "pending",
+      checkout_url: "https://geniuspay.ci/checkout/MTX-RESUME1"
+    });
+
+    const result = await gateway.resumePendingCheckout("MTX-RESUME1");
+    expect(result?.providerRef).toBe("MTX-RESUME1");
+    expect(result?.paymentUrl).toContain("checkout");
   });
 });

@@ -83,6 +83,31 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
     });
   }
 
+  async resumePendingCheckout(
+    providerRef: string
+  ): Promise<MobileMoneyInitResult | null> {
+    const payment = await this.client.lookupPayment(providerRef);
+    if (!payment) {
+      return null;
+    }
+    if (
+      payment.status === "completed" ||
+      payment.status === "failed" ||
+      payment.status === "cancelled" ||
+      payment.status === "expired"
+    ) {
+      return null;
+    }
+    const paymentUrl = resolveGeniusPayCheckoutUrl(payment);
+    if (!paymentUrl?.trim()) {
+      return null;
+    }
+    return {
+      providerRef: payment.reference,
+      paymentUrl
+    };
+  }
+
   async refund(params: {
     amount: number;
     currency: string;
@@ -209,7 +234,15 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
     validateMetadata: (metadata: GeniusPayPaymentMetadata) => string | null
   ): Promise<MobileMoneyConfirmResult> {
     try {
-      const payment = await this.client.getPayment(providerRef);
+      const payment = await this.client.lookupPayment(providerRef);
+      if (!payment) {
+        return {
+          success: false,
+          providerRef,
+          failureReason:
+            "Référence GeniusPay expirée — relancez le paiement depuis l'application."
+        };
+      }
       const metadata = this.parseMetadata(payment.metadata);
       if (!metadata) {
         return {
