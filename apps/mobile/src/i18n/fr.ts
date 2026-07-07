@@ -112,6 +112,10 @@ export const fr = {
     buyer: {
       title: "Acheteur",
       subtitle: "Marché, offres et négociations."
+    },
+    merchant: {
+      title: "Commerçant",
+      subtitle: "Boutique, produits et ventes marketplace."
     }
   },
   onboarding: {
@@ -340,6 +344,7 @@ export const fr = {
     tabOffers: "Propositions",
     tabClients: "Clients",
     tabSuppliers: "Fournisseurs",
+    tabBoutiques: "Boutiques",
     partners: {
       transactionCount: "{{count}} transaction(s)",
       closedCount: "{{count}} finalisée(s)",
@@ -1326,6 +1331,8 @@ export const fr = {
       messages: "Messages",
       buyerHistory: "Mes achats",
       buyerFinance: "Finance",
+      merchantShop: "Boutique",
+      merchantProduct: "Produit",
       userWallet: "Portefeuille",
       walletTopUp: "Recharger",
       walletWithdraw: "Retirer",
@@ -3880,5 +3887,61 @@ export const fr = {
     safetyMargin: "Marge de sécurité : {{direction}}{{delta}} {{currency}}/kg",
     aiTitle: "💡 Analyse IA",
     aiRefresh: "🔄 Actualiser"
+  },
+  merchant: {
+    dashboard: {
+      title: "Ma boutique",
+      tier: "Abonnement : {{tier}}",
+      tierNone: "non choisi",
+      shops: "Boutiques",
+      products: "Produits",
+      orders: "Commandes",
+      stock: "en stock",
+      noProducts: "Aucun produit",
+      addProduct: "Ajouter un produit",
+      nudgeShop: "Crée ta première boutique pour commencer à vendre.",
+      nudgeProduct: "Ajoute ton premier produit à ta boutique."
+    },
+    onboarding: {
+      shopTitle: "Créer ta boutique",
+      productTitle: "Ajouter un produit",
+      shopName: "Nom de la boutique",
+      productName: "Nom du produit",
+      productPrice: "Prix (XOF)",
+      productStock: "Stock",
+      createShop: "Créer la boutique",
+      createProduct: "Créer le produit",
+      publish: "Publier sur le marketplace",
+      skip: "Passer",
+      loadCategories: "Charger les catégories",
+      invalidProduct: "Produit invalide"
+    },
+    subscription: {
+      title: "Choisis ton abonnement",
+      subtitle: "Compare Free et Premium avant de publier.",
+      freeTitle: "Free",
+      freeShop: "1 boutique",
+      freeProducts: "5 produits actifs max",
+      premiumTitle: "Premium",
+      premiumProducts: "Produits illimités",
+      premiumShops: "Jusqu'à {{count}} boutiques",
+      premiumPrice: "{{price}} XOF",
+      chooseFree: "Choisir Free",
+      choosePremium: "Choisir Premium",
+      premiumPending: "Finalise le paiement Premium pour continuer."
+    },
+    shop: { title: "Nouvelle boutique" },
+    product: { title: "Nouveau produit", needShop: "Crée d'abord une boutique." },
+    catalog: {
+      empty: "Aucun produit en boutique pour le moment.",
+      stock: "{{count}} en stock"
+    },
+    purchase: {
+      quantity: "Quantité",
+      buy: "Acheter",
+      contact: "Contacter le vendeur",
+      success: "Commande confirmée",
+      chatOpened: "Conversation ouverte"
+    }
   }
 } as const;

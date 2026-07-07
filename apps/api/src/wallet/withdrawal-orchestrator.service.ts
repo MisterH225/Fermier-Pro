@@ -138,7 +138,8 @@ export class WithdrawalOrchestratorService {
         currency: summary.currency,
         userId: user.id,
         phone: payoutPhone,
-        label: "Retrait portefeuille Fermier Pro"
+        label: "Retrait portefeuille Fermier Pro",
+        idempotencyKey
       });
 
       const request = await this.prisma.withdrawalRequest.create({
@@ -341,7 +342,8 @@ export class WithdrawalOrchestratorService {
         currency: summary.currency,
         userId: user.id,
         phone: request.phoneNumber,
-        label: "Retrait portefeuille Fermier Pro (validé)"
+        label: "Retrait portefeuille Fermier Pro (validé)",
+        idempotencyKey: `withdraw-approved:${request.id}`
       });
       const confirmed = await this.gateway.confirmWithdraw(
         init.providerRef,
@@ -427,6 +429,91 @@ export class WithdrawalOrchestratorService {
     });
 
     return { ok: true, requestId };
+  }
+
+  async completeWithdrawalFromPayoutWebhook(
+    providerRef: string,
+    userId: string
+  ): Promise<boolean> {
+    const request = await this.prisma.withdrawalRequest.findFirst({
+      where: {
+        providerRef,
+        userId,
+        status: WithdrawalRequestStatus.processing
+      }
+    });
+    if (!request) {
+      return false;
+    }
+
+    const summary = await this.wallet.getSummary(userId);
+    const amountRequested = Number(request.amountRequested);
+    const feeAmount = Number(request.feeAmount);
+    const totalDebit = Number(request.totalDebit);
+    const netAmount = Number(request.amountToReceive);
+
+    const result = await this.wallet.completeWithdrawalFromLock(
+      userId,
+      amountRequested,
+      feeAmount,
+      summary.currency,
+      providerRef,
+      `Retrait vers ${request.phoneNumber}`,
+      `withdraw:${providerRef}`
+    );
+
+    await this.platformAccount.recordWithdrawalCompleted(
+      netAmount,
+      totalDebit,
+      feeAmount
+    );
+
+    await this.prisma.withdrawalRequest.update({
+      where: { id: request.id },
+      data: {
+        status: WithdrawalRequestStatus.completed,
+        providerRef
+      }
+    });
+
+    void result;
+    return true;
+  }
+
+  async failWithdrawalFromPayoutWebhook(
+    providerRef: string,
+    userId: string,
+    reason: string
+  ): Promise<boolean> {
+    const request = await this.prisma.withdrawalRequest.findFirst({
+      where: {
+        providerRef,
+        userId,
+        status: WithdrawalRequestStatus.processing
+      }
+    });
+    if (!request) {
+      return false;
+    }
+
+    const summary = await this.wallet.getSummary(userId);
+    await this.wallet.releaseWithdrawalLock(
+      userId,
+      Number(request.totalDebit),
+      summary.currency,
+      reason,
+      `withdraw-webhook-release:${providerRef}`
+    );
+
+    await this.prisma.withdrawalRequest.update({
+      where: { id: request.id },
+      data: {
+        status: WithdrawalRequestStatus.failed,
+        failureReason: reason
+      }
+    });
+
+    return true;
   }
 
   private async findProcessingRequest(

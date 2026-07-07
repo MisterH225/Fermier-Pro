@@ -3,6 +3,10 @@ export type RootStackParamList = {
   /** Paramètres ferme (devise / seuils) — producteur. */
   ProducerFarmSettings: { farmId: string; farmName: string };
   BuyerDashboard: undefined;
+  MerchantDashboard: undefined;
+  MerchantShop: undefined;
+  MerchantProductForm: undefined;
+  MerchantProductDetail: { productId: string };
   BuyerMarket:
     | {
         favoritesOnly?: boolean;

@@ -1063,7 +1063,9 @@ export class AdminPlatformService {
         marketplaceWeightArbitrationMinDiffKg:
           dto.marketplaceWeightArbitrationMinDiffKg ?? 1,
         marketplaceWeightArbitrationCumulativeMinDiffKg:
-          dto.marketplaceWeightArbitrationCumulativeMinDiffKg ?? 5
+          dto.marketplaceWeightArbitrationCumulativeMinDiffKg ?? 5,
+        merchantPremiumPriceXof: dto.merchantPremiumPriceXof ?? 5000,
+        merchantPremiumMaxShops: dto.merchantPremiumMaxShops ?? 3
       },
       update: {
         ...(dto.mapGeographicScope !== undefined
@@ -1115,6 +1117,12 @@ export class AdminPlatformService {
               marketplaceWeightArbitrationCumulativeMinDiffKg:
                 dto.marketplaceWeightArbitrationCumulativeMinDiffKg
             }
+          : {}),
+        ...(dto.merchantPremiumPriceXof !== undefined
+          ? { merchantPremiumPriceXof: dto.merchantPremiumPriceXof }
+          : {}),
+        ...(dto.merchantPremiumMaxShops !== undefined
+          ? { merchantPremiumMaxShops: dto.merchantPremiumMaxShops }
           : {})
       }
     });

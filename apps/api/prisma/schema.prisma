@@ -13,6 +13,33 @@ enum ProfileType {
   technician
   veterinarian
   buyer
+  merchant
+}
+
+enum MerchantSubscriptionTier {
+  free
+  premium
+}
+
+enum MerchantProductStatus {
+  draft
+  published
+  disabled
+  moderated_removed
+}
+
+enum MerchantProductDisabledReason {
+  limit_free
+  downgrade
+  swap
+  moderation
+}
+
+enum MerchantOrderStatus {
+  payment_pending
+  paid
+  cancelled
+  failed
 }
 
 enum SmartAlertModule {
@@ -170,6 +197,10 @@ model User {
   sanctionAppeals       SanctionAppeal[]
   communityFeedReads    CommunityFeedRead[]
   communityFeedLikes    CommunityFeedLike[]
+  merchantProfile       MerchantProfile?
+  merchantOrdersAsBuyer MerchantOrder[]     @relation("MerchantOrderBuyer")
+  merchantOrdersAsSeller MerchantOrder[]    @relation("MerchantOrderSeller")
+  merchantModerationActions MerchantProductModerationLog[] @relation("MerchantModerationAdmin")
 
   @@index([email])
   @@index([accountStatus])
@@ -2012,6 +2043,8 @@ model PlatformRevenue {
   transaction      MarketplaceTransaction? @relation(fields: [transactionId], references: [id], onDelete: Restrict)
   vetAppointmentId String?                 @unique
   vetAppointment   VetAppointment?         @relation(fields: [vetAppointmentId], references: [id], onDelete: Restrict)
+  merchantOrderId  String?                 @unique
+  merchantOrder    MerchantOrder?          @relation(fields: [merchantOrderId], references: [id], onDelete: Restrict)
   sellerId         String
   buyerId          String
   grossAmount      Decimal                @db.Decimal(14, 2)
@@ -2184,6 +2217,9 @@ model ChatRoom {
   /// Annonce marketplace liée à la négociation (chat acheteur ↔ vendeur).
   marketplaceListingId  String?
   marketplaceListing    MarketplaceListing? @relation(fields: [marketplaceListingId], references: [id], onDelete: SetNull)
+  /// Produit boutique commerçant lié à la négociation (chat acheteur ↔ vendeur).
+  merchantProductId     String?
+  merchantProduct       MerchantProduct?    @relation(fields: [merchantProductId], references: [id], onDelete: SetNull)
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
   members               ChatRoomMember[]
@@ -2191,6 +2227,7 @@ model ChatRoom {
 
   @@index([kind])
   @@index([marketplaceListingId])
+  @@index([merchantProductId])
 }
 
 model ChatRoomMember {
@@ -2585,6 +2622,10 @@ model PlatformSettings {
   marketplaceWeightArbitrationMinDiffKg Decimal @default(1) @db.Decimal(14, 4)
   /// Écart total minimal (kg) pour demander un arbitrage sur un lot multi-animaux.
   marketplaceWeightArbitrationCumulativeMinDiffKg Decimal @default(5) @db.Decimal(14, 4)
+  /// Prix abonnement Premium commerçant (XOF), fixé par superadmin.
+  merchantPremiumPriceXof Decimal @default(5000) @db.Decimal(14, 2)
+  /// Nombre max de boutiques par profil Premium commerçant (global, identique pour tous).
+  merchantPremiumMaxShops Int @default(3)
   updatedAt             DateTime @updatedAt
 }
 
@@ -2829,6 +2870,8 @@ model UserWalletEntry {
   currency           String               @default("XOF")
   transactionId      String?
   transaction        MarketplaceTransaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  merchantOrderId    String?
+  merchantOrder      MerchantOrder?         @relation(fields: [merchantOrderId], references: [id], onDelete: SetNull)
   vetAppointmentId   String?
   vetAppointment     VetAppointment?        @relation(fields: [vetAppointmentId], references: [id], onDelete: SetNull)
   counterpartyUserId String?
@@ -3142,5 +3185,126 @@ model SanctionAppeal {
 
   @@index([userId, status])
   @@index([status, createdAt(sort: Desc)])
+}
+
+/// Profil commerçant (boutique marketplace).
+model MerchantProfile {
+  id                   String                    @id @default(cuid())
+  userId               String                    @unique
+  user                 User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// null = aucun choix enregistré (pas Free par défaut).
+  subscriptionTier     MerchantSubscriptionTier?
+  subscriptionChosenAt DateTime?
+  premiumPaidAt        DateTime?
+  shopSkipped          Boolean                   @default(false)
+  productSkipped       Boolean                   @default(false)
+  onboardingComplete   Boolean                   @default(false)
+  isActive             Boolean                   @default(true)
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+  shops                MerchantShop[]
+
+  @@index([subscriptionTier])
+}
+
+/// Boutique d'un commerçant.
+model MerchantShop {
+  id                String          @id @default(cuid())
+  merchantProfileId String
+  merchantProfile   MerchantProfile @relation(fields: [merchantProfileId], references: [id], onDelete: Cascade)
+  name              String
+  description       String?
+  locationLabel     String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  products          MerchantProduct[]
+
+  @@index([merchantProfileId])
+}
+
+/// Catégorie produit commerçant (CRUD superadmin).
+model MerchantProductCategory {
+  id        String            @id @default(cuid())
+  name      String
+  slug      String            @unique
+  sortOrder Int               @default(0)
+  isActive  Boolean           @default(true)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  products  MerchantProduct[]
+
+  @@index([isActive, sortOrder])
+}
+
+/// Produit boutique commerçant.
+model MerchantProduct {
+  id             String                         @id @default(cuid())
+  shopId         String
+  shop           MerchantShop                   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  categoryId     String
+  category       MerchantProductCategory        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  name           String
+  description    String?
+  price          Decimal                        @db.Decimal(14, 2)
+  currency       String                         @default("XOF")
+  photoUrls      Json                           @default("[]")
+  stock          Int                            @default(0)
+  status         MerchantProductStatus          @default(draft)
+  publishedAt    DateTime?
+  disabledAt     DateTime?
+  disabledReason MerchantProductDisabledReason?
+  createdAt      DateTime                       @default(now())
+  updatedAt      DateTime                       @updatedAt
+  orders         MerchantOrder[]
+  chatRooms      ChatRoom[]
+  moderationLogs MerchantProductModerationLog[]
+
+  @@index([shopId, status, createdAt])
+  @@index([categoryId])
+  @@index([status, publishedAt(sort: Desc)])
+}
+
+/// Commande boutique commerçant (livraison hors app).
+model MerchantOrder {
+  id                  String                   @id @default(cuid())
+  productId           String
+  product             MerchantProduct          @relation(fields: [productId], references: [id], onDelete: Restrict)
+  buyerUserId         String
+  buyer               User                     @relation("MerchantOrderBuyer", fields: [buyerUserId], references: [id], onDelete: Restrict)
+  sellerUserId        String
+  seller              User                     @relation("MerchantOrderSeller", fields: [sellerUserId], references: [id], onDelete: Restrict)
+  quantity            Int
+  unitPrice           Decimal                  @db.Decimal(14, 2)
+  totalAmount         Decimal                  @db.Decimal(14, 2)
+  buyerCommission     Decimal                  @default(0) @db.Decimal(14, 2)
+  sellerCommission    Decimal                  @default(0) @db.Decimal(14, 2)
+  paymentMethod       MarketplacePaymentMethod
+  providerRef         String?
+  status              MerchantOrderStatus      @default(payment_pending)
+  paidAt              DateTime?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  platformRevenue     PlatformRevenue?
+  walletEntries       UserWalletEntry[]
+
+  @@index([buyerUserId, createdAt(sort: Desc)])
+  @@index([sellerUserId, createdAt(sort: Desc)])
+  @@index([productId])
+  @@index([status])
+}
+
+/// Journal suppression produit commerçant par admin (référence litige futur).
+model MerchantProductModerationLog {
+  id              String          @id @default(cuid())
+  productId       String
+  product         MerchantProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+  adminUserId     String
+  admin           User            @relation("MerchantModerationAdmin", fields: [adminUserId], references: [id], onDelete: Restrict)
+  reason          String
+  productSnapshot Json
+  deletedAt       DateTime        @default(now())
+
+  @@index([productId, deletedAt(sort: Desc)])
+  @@index([adminUserId])
 }
 

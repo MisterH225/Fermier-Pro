@@ -47,6 +47,7 @@ import { WithdrawalOrchestratorService } from "./withdrawal-orchestrator.service
     WalletRailsService,
     WalletFeeService,
     PlatformAccountService,
+    WithdrawalOrchestratorService,
     MobileMoneyModule
   ]
 })

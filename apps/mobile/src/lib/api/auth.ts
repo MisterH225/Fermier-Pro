@@ -104,6 +104,13 @@ export type AuthMeResponse = {
     preferredCategories: string[];
   } | null;
   vetProfessional?: VetProfessionalMeDto;
+  merchantProfile?: {
+    profileId: string;
+    subscriptionTier: "free" | "premium" | null;
+    shopSkipped: boolean;
+    productSkipped: boolean;
+    onboardingComplete: boolean;
+  } | null;
 };
 
 export type PatchMeProfilePayload = {
@@ -233,7 +240,8 @@ export type ProfileTypeChoice =
   | "producer"
   | "technician"
   | "veterinarian"
-  | "buyer";
+  | "buyer"
+  | "merchant";
 
 export type CreatedProfileDto = {
   id: string;

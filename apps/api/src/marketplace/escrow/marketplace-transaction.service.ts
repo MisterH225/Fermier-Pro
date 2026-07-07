@@ -503,7 +503,8 @@ export class MarketplaceTransactionService {
           tx.buyerUserId,
           buyerRefund,
           tx.currency,
-          tx.paymentProviderRef
+          tx.paymentProviderRef,
+          tx.paymentMethod
         );
       }
       if (sellerNet > 0) {
@@ -511,7 +512,8 @@ export class MarketplaceTransactionService {
           tx.id,
           tx.sellerUserId,
           sellerNet,
-          tx.currency
+          tx.currency,
+          tx.paymentMethod
         );
       }
       if (commission > 0) {
@@ -582,7 +584,8 @@ export class MarketplaceTransactionService {
       tx.buyerUserId,
       Number(tx.blockedAmount),
       tx.currency,
-      tx.paymentProviderRef
+      tx.paymentProviderRef,
+      tx.paymentMethod
     );
     const now = new Date();
     await this.prisma.$transaction([
@@ -721,7 +724,8 @@ export class MarketplaceTransactionService {
     );
     if (
       method === MarketplacePaymentMethod.mobile_money &&
-      !hold.paymentUrl?.trim()
+      !hold.paymentUrl?.trim() &&
+      (process.env.MOBILE_MONEY_PROVIDER ?? "dev").trim().toLowerCase() !== "dev"
     ) {
       throw new BadGatewayException(
         "GeniusPay n'a pas renvoyé d'URL de checkout pour ce paiement"
@@ -1876,7 +1880,8 @@ export class MarketplaceTransactionService {
           tx.buyerUserId,
           amounts.buyerRefundAmount,
           tx.currency,
-          tx.paymentProviderRef
+          tx.paymentProviderRef,
+          tx.paymentMethod
         );
       }
 
@@ -1884,7 +1889,8 @@ export class MarketplaceTransactionService {
         tx.id,
         tx.sellerUserId,
         amounts.sellerReceivedAmount,
-        tx.currency
+        tx.currency,
+        tx.paymentMethod
       );
       await this.escrow.collectCommission(
         tx.id,
@@ -1972,7 +1978,8 @@ export class MarketplaceTransactionService {
           tx.buyerUserId,
           Number(tx.blockedAmount),
           tx.currency,
-          tx.paymentProviderRef
+          tx.paymentProviderRef,
+          tx.paymentMethod
         );
       }
     }
@@ -2058,7 +2065,8 @@ export class MarketplaceTransactionService {
           tx.buyerUserId,
           Number(tx.blockedAmount),
           tx.currency,
-          tx.paymentProviderRef
+          tx.paymentProviderRef,
+          tx.paymentMethod
         );
       }
       await this.prisma.marketplaceTransaction.update({
@@ -2288,7 +2296,8 @@ export class MarketplaceTransactionService {
           tx.buyerUserId,
           amounts.buyerRefundAmount,
           tx.currency,
-          tx.paymentProviderRef
+          tx.paymentProviderRef,
+          tx.paymentMethod
         );
       }
 
@@ -2296,7 +2305,8 @@ export class MarketplaceTransactionService {
         tx.id,
         tx.sellerUserId,
         amounts.sellerReceivedAmount,
-        tx.currency
+        tx.currency,
+        tx.paymentMethod
       );
       await this.escrow.collectCommission(
         tx.id,
@@ -2471,7 +2481,8 @@ export class MarketplaceTransactionService {
         tx.buyerUserId,
         Number(tx.blockedAmount),
         tx.currency,
-        tx.paymentProviderRef
+        tx.paymentProviderRef,
+        tx.paymentMethod
       );
       await this.prisma.marketplaceTransaction.update({
         where: { id: tx.id },

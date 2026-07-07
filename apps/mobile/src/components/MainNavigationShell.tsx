@@ -31,6 +31,10 @@ import {
   BarnDetailScreen,
   BatchDetailScreen,
   BuyerDashboardScreen,
+  MerchantDashboardScreen,
+  MerchantShopScreen,
+  MerchantProductFormScreen,
+  MerchantProductDetailScreen,
   ChatPickFarmScreen,
   ChatPickPeerScreen,
   ChatRoomScreen,
@@ -203,6 +207,26 @@ function MainStack() {
         name="BuyerDashboard"
         component={BuyerDashboardScreen}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="MerchantDashboard"
+        component={MerchantDashboardScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="MerchantShop"
+        component={MerchantShopScreen}
+        options={{ title: st("merchantShop") }}
+      />
+      <Stack.Screen
+        name="MerchantProductForm"
+        component={MerchantProductFormScreen}
+        options={{ title: st("merchantProduct") }}
+      />
+      <Stack.Screen
+        name="MerchantProductDetail"
+        component={MerchantProductDetailScreen}
+        options={{ title: st("merchantProduct") }}
       />
       <Stack.Screen
         name="BuyerMarket"

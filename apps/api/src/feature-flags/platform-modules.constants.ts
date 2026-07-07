@@ -13,7 +13,8 @@ export const PLATFORM_MODULE_IDS = [
   "ai_assistant",
   "pig_price_index",
   "gestation",
-  "nutrition"
+  "nutrition",
+  "merchant"
 ] as const;
 
 export type PlatformModuleId = (typeof PLATFORM_MODULE_IDS)[number];

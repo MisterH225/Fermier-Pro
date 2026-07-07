@@ -50,6 +50,13 @@ import { ReceiptService } from "../marketplace/receipts/receipt.service";
 import { VetAppointmentService } from "../vet-appointments/vet-appointment.service";
 import { ProducerScoreService } from "../producer-score/producer-score.service";
 import { ProducerScore } from "@prisma/client";
+import { MerchantCategoriesService } from "../merchant-shop/merchant-categories.service";
+import { MerchantModerationService } from "../merchant-shop/merchant-moderation.service";
+import {
+  CreateMerchantCategoryDto,
+  DeleteMerchantProductAdminDto,
+  UpdateMerchantCategoryDto
+} from "../merchant-shop/dto/merchant-shop.dto";
 
 @Controller("admin")
 @UseGuards(SupabaseJwtGuard, ConsoleAccessGuard, AdminConsoleMenuGuard)
@@ -64,7 +71,9 @@ export class AdminPlatformController {
     private readonly receipts: ReceiptService,
     private readonly vetAppointments: VetAppointmentService,
     private readonly producerScore: ProducerScoreService,
-    private readonly consoleAccess: AdminConsoleAccessService
+    private readonly consoleAccess: AdminConsoleAccessService,
+    private readonly merchantCategories: MerchantCategoriesService,
+    private readonly merchantModeration: MerchantModerationService
   ) {}
 
   @Get("me")
@@ -580,5 +589,47 @@ export class AdminPlatformController {
   @Post("producers/:userId/score/recompute")
   recomputeProducerScore(@Param("userId") userId: string) {
     return this.producerScore.recomputeForUser(userId);
+  }
+
+  @Get("merchant/categories")
+  @UseGuards(SuperAdminGuard)
+  adminListMerchantCategories() {
+    return this.merchantCategories.listAdmin();
+  }
+
+  @Post("merchant/categories")
+  @UseGuards(SuperAdminGuard)
+  adminCreateMerchantCategory(@Body() dto: CreateMerchantCategoryDto) {
+    return this.merchantCategories.create(dto);
+  }
+
+  @Patch("merchant/categories/:id")
+  @UseGuards(SuperAdminGuard)
+  adminUpdateMerchantCategory(
+    @Param("id") id: string,
+    @Body() dto: UpdateMerchantCategoryDto
+  ) {
+    return this.merchantCategories.update(id, dto);
+  }
+
+  @Delete("merchant/categories/:id")
+  @UseGuards(SuperAdminGuard)
+  adminDeleteMerchantCategory(@Param("id") id: string) {
+    return this.merchantCategories.remove(id);
+  }
+
+  @Get("merchant/products")
+  adminListMerchantProducts() {
+    return this.merchantModeration.listAllProducts();
+  }
+
+  @Delete("merchant/products/:id")
+  @UseGuards(SuperAdminGuard)
+  adminDeleteMerchantProduct(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: DeleteMerchantProductAdminDto
+  ) {
+    return this.merchantModeration.deleteProduct(admin, id, dto);
   }
 }

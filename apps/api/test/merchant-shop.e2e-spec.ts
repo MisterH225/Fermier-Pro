@@ -1,0 +1,221 @@
+import type { NestExpressApplication } from "@nestjs/platform-express";
+import { PrismaClient, MerchantProductStatus } from "@prisma/client";
+import request from "supertest";
+import { createTestApp } from "./helpers/create-test-app";
+import {
+  cleanupE2eFixtures,
+  seedE2eFixtures,
+  type E2ESeedResult
+} from "./helpers/e2e-seed";
+import {
+  chooseFreeSubscription,
+  cleanupMerchantE2E,
+  createMerchantProduct,
+  createMerchantShop,
+  publishProduct,
+  seedMerchantE2E,
+  type MerchantE2ECtx
+} from "./helpers/merchant-shop-e2e";
+import { MerchantSubscriptionService } from "../src/merchant-shop/merchant-subscription.service";
+
+const hasDb = Boolean(process.env.DATABASE_URL?.trim());
+const hasJwt = Boolean(process.env.SUPABASE_JWT_SECRET?.trim());
+const describeOrSkip = hasDb && hasJwt ? describe : describe.skip;
+
+describeOrSkip("Merchant shop (e2e)", () => {
+  let app: NestExpressApplication;
+  let base: E2ESeedResult;
+  let merchant: MerchantE2ECtx;
+
+  beforeAll(async () => {
+    process.env.THROTTLE_LIMIT = "100000";
+    base = await seedE2eFixtures(PrismaClient);
+    app = await createTestApp();
+    merchant = await seedMerchantE2E(base.prisma, base);
+
+    await base.prisma.userWallet.upsert({
+      where: { userId: base.peerUserId },
+      create: { userId: base.peerUserId, balance: 500_000 },
+      update: { balance: 500_000 }
+    });
+  });
+
+  afterAll(async () => {
+    if (merchant) {
+      await cleanupMerchantE2E(base.prisma, merchant, base);
+    }
+    if (app) await app.close();
+    if (base?.prisma) {
+      await cleanupE2eFixtures(base.prisma, {
+        farmId: base.farmId,
+        userId: base.userId,
+        peerUserId: base.peerUserId
+      });
+    }
+  });
+
+  it("skip abonnement + skip boutique → flags onboarding", async () => {
+    const patch = await request(app.getHttpServer())
+      .patch("/api/v1/merchant/me/onboarding")
+      .set("Authorization", `Bearer ${merchant.merchantToken}`)
+      .set("X-Profile-Id", merchant.merchantProfileId)
+      .send({ shopSkipped: true });
+    expect(patch.status).toBe(200);
+    expect(patch.body.shopSkipped).toBe(true);
+    expect(patch.body.subscriptionTier).toBeNull();
+  });
+
+  it("publication sans abonnement → SUBSCRIPTION_REQUIRED", async () => {
+    await createMerchantShop(app, merchant);
+    const product = await createMerchantProduct(app, merchant, "Produit sans abo");
+    const publish = await publishProduct(app, merchant, product.body.id);
+    expect(publish.status).toBe(403);
+    expect(publish.body.code).toBe("SUBSCRIPTION_REQUIRED");
+  });
+
+  it("abonnement choisi → publication OK", async () => {
+    const sub = await chooseFreeSubscription(app, merchant);
+    expect(sub.status).toBe(201);
+    const product = await createMerchantProduct(app, merchant, "Produit pub");
+    const publish = await publishProduct(app, merchant, product.body.id);
+    expect(publish.status).toBe(201);
+    expect(publish.body.status).toBe("published");
+  });
+
+  it("free bloque 6e produit actif", async () => {
+    const published = await base.prisma.merchantProduct.count({
+      where: {
+        shopId: merchant.shopId,
+        status: MerchantProductStatus.published
+      }
+    });
+    for (let i = published; i < 5; i += 1) {
+      const p = await createMerchantProduct(app, merchant, `LimitP${i}`);
+      await publishProduct(app, merchant, p.body.id);
+    }
+    const sixth = await createMerchantProduct(app, merchant, "LimitP6");
+    const blocked = await publishProduct(app, merchant, sixth.body.id);
+    expect(blocked.status).toBe(403);
+    expect(blocked.body.code).toBe("ACTIVE_PRODUCT_LIMIT");
+  });
+
+  it("downgrade premium→free garde 5 actifs", async () => {
+    await base.prisma.merchantProfile.update({
+      where: { userId: merchant.merchantUserId },
+      data: { subscriptionTier: "premium" }
+    });
+    const extra = await createMerchantProduct(app, merchant, "Premium extra");
+    await publishProduct(app, merchant, extra.body.id);
+
+    const subscription = app.get(MerchantSubscriptionService);
+    await subscription.downgradeToFree(merchant.merchantUserId);
+
+    const products = await base.prisma.merchantProduct.findMany({
+      where: { shopId: merchant.shopId },
+      orderBy: { createdAt: "asc" }
+    });
+    const published = products.filter(
+      (p) => p.status === MerchantProductStatus.published
+    );
+    const disabled = products.filter(
+      (p) => p.status === MerchantProductStatus.disabled
+    );
+    expect(published.length).toBe(5);
+    expect(disabled.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("swap respecte limite 5 actifs", async () => {
+    const disabled = await base.prisma.merchantProduct.findFirst({
+      where: {
+        shopId: merchant.shopId,
+        status: MerchantProductStatus.disabled
+      }
+    });
+    if (!disabled) return;
+    const swap = await request(app.getHttpServer())
+      .post(`/api/v1/merchant/products/${disabled.id}/swap-active`)
+      .set("Authorization", `Bearer ${merchant.merchantToken}`)
+      .set("X-Profile-Id", merchant.merchantProfileId);
+    expect(swap.status).toBe(201);
+    const active = await base.prisma.merchantProduct.count({
+      where: {
+        shopId: merchant.shopId,
+        status: MerchantProductStatus.published
+      }
+    });
+    expect(active).toBeLessThanOrEqual(5);
+  });
+
+  it("achat : stock, paiement, commission, chat", async () => {
+    const published = await base.prisma.merchantProduct.findFirst({
+      where: {
+        shopId: merchant.shopId,
+        status: MerchantProductStatus.published,
+        stock: { gt: 0 }
+      }
+    });
+    expect(published).toBeTruthy();
+    const beforeStock = published!.stock;
+
+    const purchase = await request(app.getHttpServer())
+      .post(`/api/v1/merchant/catalog/products/${published!.id}/purchase`)
+      .set("Authorization", `Bearer ${base.peerToken}`)
+      .send({ quantity: 1, paymentMethod: "wallet" });
+    expect(purchase.status).toBe(201);
+
+    const confirm = await request(app.getHttpServer())
+      .post(
+        `/api/v1/merchant/catalog/orders/${purchase.body.orderId}/payment/confirm`
+      )
+      .set("Authorization", `Bearer ${base.peerToken}`)
+      .send({ providerRef: purchase.body.providerRef });
+    expect(confirm.status).toBe(201);
+    expect(confirm.body.status).toBe("paid");
+
+    const after = await base.prisma.merchantProduct.findUniqueOrThrow({
+      where: { id: published!.id }
+    });
+    expect(after.stock).toBe(beforeStock - 1);
+
+    const revenue = await base.prisma.platformRevenue.findFirst({
+      where: { merchantOrderId: confirm.body.id }
+    });
+    expect(revenue).toBeTruthy();
+
+    const chat = await request(app.getHttpServer())
+      .post("/api/v1/chat/rooms/direct")
+      .set("Authorization", `Bearer ${base.peerToken}`)
+      .send({
+        peerUserId: merchant.merchantUserId,
+        merchantProductId: published!.id
+      });
+    expect(chat.status).toBe(201);
+  });
+
+  it("modération admin : log + produit retiré", async () => {
+    await base.prisma.superAdmin.upsert({
+      where: { userId: base.userId },
+      create: { userId: base.userId },
+      update: {}
+    });
+    const product = await base.prisma.merchantProduct.findFirst({
+      where: { shopId: merchant.shopId }
+    });
+    expect(product).toBeTruthy();
+
+    const del = await request(app.getHttpServer())
+      .delete(`/api/v1/admin/merchant/products/${product!.id}`)
+      .set("Authorization", `Bearer ${base.token}`)
+      .send({ reason: "Contenu non conforme E2E" });
+    expect(del.status).toBe(200);
+
+    const log = await base.prisma.merchantProductModerationLog.findFirst({
+      where: { productId: product!.id }
+    });
+    expect(log).toBeTruthy();
+    const updated = await base.prisma.merchantProduct.findUniqueOrThrow({
+      where: { id: product!.id }
+    });
+    expect(updated.status).toBe(MerchantProductStatus.moderated_removed);
+  });
+});

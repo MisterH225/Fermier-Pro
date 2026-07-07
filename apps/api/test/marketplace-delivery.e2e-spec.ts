@@ -10,6 +10,8 @@ import {
 } from "./helpers/e2e-seed";
 import {
   advanceMarketplaceToSellerShipped,
+  advanceToBuyerWeightDeclared,
+  confirmMarketplacePayment,
   runDoubleConfirmationHappyPath,
   seedBuyerFarm,
   setupMarketplaceDeliveryListing,
@@ -126,7 +128,8 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
       app,
       sellerToken: ctx.token,
       buyerToken: ctx.peerToken,
-      transactionId: disputeListing.transactionId
+      transactionId: disputeListing.transactionId,
+      animalId: disputeListing.animalId
     });
 
     const openDispute = await request(app.getHttpServer())
@@ -194,7 +197,8 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
       app,
       sellerToken: ctx.token,
       buyerToken: ctx.peerToken,
-      transactionId: reminderListing.transactionId
+      transactionId: reminderListing.transactionId,
+      animalId: reminderListing.animalId
     });
 
     const fourDaysAgo = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000);
@@ -233,7 +237,8 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
       app,
       sellerToken: ctx.token,
       buyerToken: ctx.peerToken,
-      transactionId: autoListing.transactionId
+      transactionId: autoListing.transactionId,
+      animalId: autoListing.animalId
     });
 
     const fifteenDaysAgo = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000);
@@ -396,7 +401,8 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
         app,
         sellerToken: ctx.token,
         buyerToken: ctx.peerToken,
-        transactionId: feeListing.transactionId
+        transactionId: feeListing.transactionId,
+        animalId: feeListing.animalId
       })
     );
 
@@ -429,5 +435,113 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
     // sellerReceivedAmount = finalAmount - sellerCommission
     const sellerAmt = Number(closedTx.sellerReceivedAmount ?? 0);
     expect(sellerAmt).toBe(finalAmt - sellerCommAmt);
+  });
+
+  it("arbitrage poids : écart < 1 kg → validateWeight poursuit le flux", async () => {
+    const listing = await setupMarketplaceDeliveryListing({
+      app,
+      prisma: ctx.prisma,
+      sellerToken: ctx.token,
+      sellerProfileId: ctx.producerProfileId,
+      sellerFarmId: ctx.farmId,
+      buyerToken: ctx.peerToken,
+      buyerFarmId
+    });
+
+    await confirmMarketplacePayment({
+      app,
+      buyerToken: ctx.peerToken,
+      transactionId: listing.transactionId
+    });
+
+    await advanceToBuyerWeightDeclared({
+      app,
+      sellerToken: ctx.token,
+      buyerToken: ctx.peerToken,
+      transactionId: listing.transactionId,
+      animalId: listing.animalId,
+      buyerWeightKg: 25
+    });
+
+    const validate = await request(app.getHttpServer())
+      .post(
+        `/api/v1/marketplace/transactions/${listing.transactionId}/weight/validate`
+      )
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(validate.status).toBe(201);
+    expect(validate.body.status).toBe("WEIGHT_VALIDATED");
+
+    const ship = await request(app.getHttpServer())
+      .post(
+        `/api/v1/marketplace/transactions/${listing.transactionId}/confirm-shipment`
+      )
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({
+        shippedAt: new Date().toISOString().slice(0, 10),
+        method: "handover"
+      });
+    expect(ship.status).toBe(201);
+
+    const receipt = await request(app.getHttpServer())
+      .post(
+        `/api/v1/marketplace/transactions/${listing.transactionId}/confirm-receipt`
+      )
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({
+        receivedAt: new Date().toISOString().slice(0, 10),
+        condition: "conform",
+        receivedAnimalIds: [listing.animalId]
+      });
+    expect(receipt.status).toBe(201);
+    expect(receipt.body.status).toBe("TRANSACTION_CLOSED");
+  });
+
+  it("arbitrage poids : écart ≥ 1 kg → requestWeightArbitration", async () => {
+    const listing = await setupMarketplaceDeliveryListing({
+      app,
+      prisma: ctx.prisma,
+      sellerToken: ctx.token,
+      sellerProfileId: ctx.producerProfileId,
+      sellerFarmId: ctx.farmId,
+      buyerToken: ctx.peerToken,
+      buyerFarmId
+    });
+
+    await confirmMarketplacePayment({
+      app,
+      buyerToken: ctx.peerToken,
+      transactionId: listing.transactionId
+    });
+
+    await advanceToBuyerWeightDeclared({
+      app,
+      sellerToken: ctx.token,
+      buyerToken: ctx.peerToken,
+      transactionId: listing.transactionId,
+      animalId: listing.animalId,
+      buyerWeightKg: 25
+    });
+
+    const sellerDeclare = await request(app.getHttpServer())
+      .post(
+        `/api/v1/marketplace/transactions/${listing.transactionId}/weight/seller-declare`
+      )
+      .set("Authorization", `Bearer ${ctx.token}`)
+      .send({ sellerDeclaredWeightKg: 27 });
+    expect(sellerDeclare.status).toBe(201);
+    expect(sellerDeclare.body.status).toBe("WEIGHT_COUNTER_DECLARED");
+
+    const arbitrate = await request(app.getHttpServer())
+      .post(
+        `/api/v1/marketplace/transactions/${listing.transactionId}/weight/request-arbitration`
+      )
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(arbitrate.status).toBe(201);
+    expect(arbitrate.body.status).toBe("WEIGHT_DISPUTED");
+
+    const txDb = await ctx.prisma.marketplaceTransaction.findUniqueOrThrow({
+      where: { id: listing.transactionId }
+    });
+    expect(txDb.weightArbitrationRequestedAt).toBeTruthy();
   });
 });

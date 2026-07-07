@@ -7,6 +7,7 @@ import {
   ListingMarketCategory,
   ListingStatus,
   MarketplaceFundMovementKind,
+  MarketplacePaymentMethod,
   MarketplacePriceType,
   MarketplaceTransactionStatus,
   OfferStatus,
@@ -311,7 +312,8 @@ export class ListingAnimalSyncService {
           tx.buyerUserId,
           Number(tx.blockedAmount),
           tx.currency,
-          tx.paymentProviderRef
+          tx.paymentProviderRef,
+          tx.paymentMethod
         );
       }
 
@@ -339,7 +341,8 @@ export class ListingAnimalSyncService {
     buyerUserId: string,
     amount: number,
     currency: string,
-    paymentProviderRef: string | null
+    paymentProviderRef: string | null,
+    paymentMethod?: MarketplacePaymentMethod | null
   ): Promise<void> {
     if (amount <= 0) {
       return;
@@ -359,7 +362,8 @@ export class ListingAnimalSyncService {
         buyerUserId,
         amount,
         currency,
-        paymentProviderRef
+        paymentProviderRef,
+        paymentMethod ?? undefined
       );
     } catch (e) {
       this.log.warn(`refund ${transactionId}: ${(e as Error).message}`);
@@ -563,7 +567,8 @@ export class ListingAnimalSyncService {
             tx.buyerUserId,
             settlement.buyerRefundAmount,
             tx.currency,
-            tx.paymentProviderRef
+            tx.paymentProviderRef,
+            tx.paymentMethod
           );
         }
       } else if (newEstimatedWeightKg != null && newEstimatedWeightKg > 0) {
@@ -581,7 +586,8 @@ export class ListingAnimalSyncService {
             tx.buyerUserId,
             blocked - newBlocked,
             tx.currency,
-            tx.paymentProviderRef
+            tx.paymentProviderRef,
+            tx.paymentMethod
           );
         }
       }

@@ -6,6 +6,7 @@
 export * from "./api/http";
 export * from "./api/auth";
 export * from "./api/community-feed";
+export * from "./api/merchant";
 
 import {
   apiAuthHeaders,
@@ -32,7 +33,8 @@ export type PlatformModuleId =
   | "pig_price_index"
   | "gestation"
   | "nutrition"
-  | "wallet";
+  | "wallet"
+  | "merchant";
 
 export type PlatformModuleDto = {
   moduleId: PlatformModuleId;
@@ -162,15 +164,15 @@ export function ensureDirectChatRoom(
   accessToken: string,
   peerUserId: string,
   activeProfileId?: string | null,
-  marketplaceListingId?: string | null
+  marketplaceListingId?: string | null,
+  merchantProductId?: string | null
 ): Promise<ChatRoomListItem> {
   return apiPostJson<ChatRoomListItem>(
     "/chat/rooms/direct",
     {
       peerUserId,
-      ...(marketplaceListingId
-        ? { marketplaceListingId }
-        : {})
+      ...(marketplaceListingId ? { marketplaceListingId } : {}),
+      ...(merchantProductId ? { merchantProductId } : {})
     },
     accessToken,
     activeProfileId

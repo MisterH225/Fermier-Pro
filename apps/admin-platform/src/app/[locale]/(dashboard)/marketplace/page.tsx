@@ -6,9 +6,13 @@ import {
   fetchAdminMarketplaceListings,
   fetchAdminMarketplaceOverview,
   fetchAdminMarketplaceTransactions,
+  fetchAdminMerchantCategories,
+  fetchAdminMerchantProducts,
   type AdminMarketplaceListingRow,
   type AdminMarketplaceOverviewDto,
-  type AdminMarketplaceTransactionRow
+  type AdminMarketplaceTransactionRow,
+  type AdminMerchantCategoryRow,
+  type AdminMerchantProductRow
 } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -19,8 +23,18 @@ import { MarketplaceTransactionTable } from "@/components/marketplace/Marketplac
 import { WeightDisputeQueue } from "@/components/marketplace/WeightDisputeQueue";
 import { PlatformRevenueSection } from "@/components/marketplace/PlatformRevenueSection";
 import { MarketplaceReceiptsSection } from "@/components/marketplace/MarketplaceReceiptsSection";
+import { MerchantProductsModerationTable } from "@/components/marketplace/MerchantProductsModerationTable";
+import { MerchantCategoriesPanel } from "@/components/marketplace/MerchantCategoriesPanel";
 
-const MAIN_TABS = ["listings", "transactions", "disputes", "revenue", "receipts"] as const;
+const MAIN_TABS = [
+  "listings",
+  "transactions",
+  "disputes",
+  "revenue",
+  "receipts",
+  "merchantProducts",
+  "merchantCategories"
+] as const;
 type MainTab = (typeof MAIN_TABS)[number];
 
 const LISTING_STATUS_FILTERS = [
@@ -63,6 +77,12 @@ export default function MarketplaceAdminPage() {
     []
   );
   const [disputes, setDisputes] = useState<AdminMarketplaceTransactionRow[]>([]);
+  const [merchantProducts, setMerchantProducts] = useState<AdminMerchantProductRow[]>(
+    []
+  );
+  const [merchantCategories, setMerchantCategories] = useState<
+    AdminMerchantCategoryRow[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,6 +112,18 @@ export default function MarketplaceAdminPage() {
     setDisputes(rows ?? []);
   }, [token]);
 
+  const loadMerchantProducts = useCallback(async () => {
+    if (!token) return;
+    const rows = await fetchAdminMerchantProducts(token);
+    setMerchantProducts(rows ?? []);
+  }, [token]);
+
+  const loadMerchantCategories = useCallback(async () => {
+    if (!token) return;
+    const rows = await fetchAdminMerchantCategories(token);
+    setMerchantCategories(rows ?? []);
+  }, [token]);
+
   useEffect(() => {
     if (!token) return;
     setLoading(true);
@@ -105,6 +137,10 @@ export default function MarketplaceAdminPage() {
           await loadTransactions();
         } else if (mainTab === "disputes") {
           await loadDisputes();
+        } else if (mainTab === "merchantProducts") {
+          await loadMerchantProducts();
+        } else if (mainTab === "merchantCategories") {
+          await loadMerchantCategories();
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : t("loadError"));
@@ -118,6 +154,8 @@ export default function MarketplaceAdminPage() {
     loadListings,
     loadTransactions,
     loadDisputes,
+    loadMerchantProducts,
+    loadMerchantCategories,
     t
   ]);
 
@@ -204,6 +242,30 @@ export default function MarketplaceAdminPage() {
 
       {mainTab === "receipts" && token ? (
         <MarketplaceReceiptsSection token={token} />
+      ) : null}
+
+      {mainTab === "merchantProducts" ? (
+        loading ? (
+          <p className="text-muted-foreground">{t("loading")}</p>
+        ) : (
+          <MerchantProductsModerationTable
+            rows={merchantProducts}
+            token={token!}
+            onRefresh={() => void loadMerchantProducts()}
+          />
+        )
+      ) : null}
+
+      {mainTab === "merchantCategories" ? (
+        loading ? (
+          <p className="text-muted-foreground">{t("loading")}</p>
+        ) : (
+          <MerchantCategoriesPanel
+            rows={merchantCategories}
+            token={token!}
+            onRefresh={() => void loadMerchantCategories()}
+          />
+        )
       ) : null}
     </div>
   );

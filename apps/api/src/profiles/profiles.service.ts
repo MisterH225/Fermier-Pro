@@ -46,6 +46,13 @@ export class ProfilesService {
           update: {}
         });
       }
+      if (dto.type === ProfileType.merchant) {
+        await this.prisma.merchantProfile.upsert({
+          where: { userId: user.id },
+          create: { userId: user.id },
+          update: {}
+        });
+      }
       return profile;
     } catch (e) {
       if (

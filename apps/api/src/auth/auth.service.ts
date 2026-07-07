@@ -339,6 +339,16 @@ export class AuthService {
         diplomaPhotoUrl: true
       }
     });
+    const merchantRow = await this.prisma.merchantProfile.findUnique({
+      where: { userId: user.id },
+      select: {
+        id: true,
+        subscriptionTier: true,
+        shopSkipped: true,
+        productSkipped: true,
+        onboardingComplete: true
+      }
+    });
 
     return {
       cgu: cguStatus,
@@ -370,6 +380,15 @@ export class AuthService {
             rejectionReason: null,
             onboardingComplete: false
           },
+      merchantProfile: merchantRow
+        ? {
+            profileId: merchantRow.id,
+            subscriptionTier: merchantRow.subscriptionTier,
+            shopSkipped: merchantRow.shopSkipped,
+            productSkipped: merchantRow.productSkipped,
+            onboardingComplete: merchantRow.onboardingComplete
+          }
+        : null,
       user: {
         id: user.id,
         supabaseUserId: user.supabaseUserId,

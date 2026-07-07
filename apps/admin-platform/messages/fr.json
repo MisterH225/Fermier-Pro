@@ -624,7 +624,11 @@
       "weightArbitrationMinDiffKg": "Arbitrage poids — écart minimum (kg)",
       "weightArbitrationMinDiffKgHint": "Écart par animal en dessous duquel le flux continue sans arbitrage (ex. 1 kg).",
       "weightArbitrationCumulativeMinDiffKg": "Arbitrage poids — écart cumulé minimum (kg)",
-      "weightArbitrationCumulativeMinDiffKgHint": "Pour plusieurs animaux : écart total minimum pour autoriser un arbitrage (ex. 5 kg)."
+      "weightArbitrationCumulativeMinDiffKgHint": "Pour plusieurs animaux : écart total minimum pour autoriser un arbitrage (ex. 5 kg).",
+      "merchantPremiumPriceXof": "Abonnement commerçant Premium (XOF)",
+      "merchantPremiumPriceXofHint": "Prix unique payé par le commerçant pour passer en Premium.",
+      "merchantPremiumMaxShops": "Boutiques max (Premium)",
+      "merchantPremiumMaxShopsHint": "Nombre maximum de boutiques pour un profil commerçant Premium."
     },
     "scopes": {
       "world": "Monde entier",
@@ -742,7 +746,9 @@
       "transactions": "Transactions",
       "disputes": "Litiges poids",
       "revenue": "Commissions",
-      "receipts": "Reçus PDF"
+      "receipts": "Reçus PDF",
+      "merchantProducts": "Produits commerçants",
+      "merchantCategories": "Catégories boutique"
     },
     "overview": {
       "publishedListings": "Annonces publiées",
@@ -884,6 +890,34 @@
         "90d": "90 jours",
         "all": "Tout"
       }
+    },
+    "merchantProducts": {
+      "empty": "Aucun produit commerçant.",
+      "colProduct": "Produit",
+      "colShop": "Boutique",
+      "colMerchant": "Commerçant",
+      "colStatus": "Statut",
+      "colPrice": "Prix",
+      "colStock": "Stock",
+      "colReason": "Motif suppression",
+      "reasonPlaceholder": "Motif obligatoire",
+      "delete": "Supprimer"
+    },
+    "merchantCategories": {
+      "createTitle": "Nouvelle catégorie",
+      "name": "Nom",
+      "slug": "Slug (optionnel)",
+      "create": "Créer",
+      "empty": "Aucune catégorie.",
+      "colName": "Nom",
+      "colSlug": "Slug",
+      "colOrder": "Ordre",
+      "colActive": "Active",
+      "yes": "Oui",
+      "no": "Non",
+      "activate": "Activer",
+      "deactivate": "Désactiver",
+      "delete": "Supprimer"
     }
   },
   "vetAppointments": {

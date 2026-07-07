@@ -57,6 +57,7 @@ import { CommunityFeedModule } from "./community-feed/community-feed.module";
 import { ProducerScoreModule } from "./producer-score/producer-score.module";
 import { ProfitabilityModule } from "./profitability/profitability.module";
 import { HistoricalRecordsModule } from "./historical-records/historical-records.module";
+import { MerchantShopModule } from "./merchant-shop/merchant-shop.module";
 
 @Module({
   imports: [
@@ -138,7 +139,8 @@ import { HistoricalRecordsModule } from "./historical-records/historical-records
     CommunityFeedModule,
     ProfitabilityModule,
     HistoricalRecordsModule,
-    ProducerScoreModule
+    ProducerScoreModule,
+    MerchantShopModule
   ],
   controllers: [AppController],
   providers: [

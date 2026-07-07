@@ -112,6 +112,10 @@ export const en = {
     buyer: {
       title: "Buyer",
       subtitle: "Market, offers and negotiations."
+    },
+    merchant: {
+      title: "Merchant",
+      subtitle: "Shop, products and marketplace sales."
     }
   },
   onboarding: {
@@ -336,6 +340,7 @@ export const en = {
   },
   marketScreen: {
     tabListings: "Listings",
+    tabBoutiques: "Shops",
     tabMyListings: "My listings",
     tabOffers: "Offers",
     tabClients: "Clients",
@@ -1320,6 +1325,8 @@ export const en = {
       messages: "Messages",
       buyerHistory: "My purchases",
       buyerFinance: "Finance",
+      merchantShop: "Shop",
+      merchantProduct: "Product",
       userWallet: "Wallet",
       walletTopUp: "Top up",
       walletWithdraw: "Withdraw",
@@ -3831,5 +3838,61 @@ export const en = {
     insightTitle: "In brief",
     fallbackInsightsTitle: "💡 AI advice",
     refresh: "Refresh recommendations"
+  },
+  merchant: {
+    dashboard: {
+      title: "My shop",
+      tier: "Plan: {{tier}}",
+      tierNone: "not chosen",
+      shops: "Shops",
+      products: "Products",
+      orders: "Orders",
+      stock: "in stock",
+      noProducts: "No products",
+      addProduct: "Add a product",
+      nudgeShop: "Create your first shop to start selling.",
+      nudgeProduct: "Add your first product to your shop."
+    },
+    onboarding: {
+      shopTitle: "Create your shop",
+      productTitle: "Add a product",
+      shopName: "Shop name",
+      productName: "Product name",
+      productPrice: "Price (XOF)",
+      productStock: "Stock",
+      createShop: "Create shop",
+      createProduct: "Create product",
+      publish: "Publish on marketplace",
+      skip: "Skip",
+      loadCategories: "Load categories",
+      invalidProduct: "Invalid product"
+    },
+    subscription: {
+      title: "Choose your plan",
+      subtitle: "Compare Free and Premium before publishing.",
+      freeTitle: "Free",
+      freeShop: "1 shop",
+      freeProducts: "5 active products max",
+      premiumTitle: "Premium",
+      premiumProducts: "Unlimited products",
+      premiumShops: "Up to {{count}} shops",
+      premiumPrice: "{{price}} XOF",
+      chooseFree: "Choose Free",
+      choosePremium: "Choose Premium",
+      premiumPending: "Complete Premium payment to continue."
+    },
+    shop: { title: "New shop" },
+    product: { title: "New product", needShop: "Create a shop first." },
+    catalog: {
+      empty: "No shop products yet.",
+      stock: "{{count}} in stock"
+    },
+    purchase: {
+      quantity: "Quantity",
+      buy: "Buy",
+      contact: "Contact seller",
+      success: "Order confirmed",
+      chatOpened: "Conversation opened"
+    }
   }
 } as const;

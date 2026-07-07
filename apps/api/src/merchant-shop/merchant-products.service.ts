@@ -1,0 +1,391 @@
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
+import type { User } from "@prisma/client";
+import {
+  MerchantProductDisabledReason,
+  MerchantProductStatus,
+  MerchantSubscriptionTier,
+  Prisma
+} from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
+import {
+  MERCHANT_ERROR,
+  MERCHANT_FREE_MAX_ACTIVE_PRODUCTS
+} from "./merchant-shop.constants";
+import { MerchantProfilesService } from "./merchant-profiles.service";
+import type {
+  CreateMerchantProductDto,
+  UpdateMerchantProductDto
+} from "./dto/merchant-shop.dto";
+
+@Injectable()
+export class MerchantProductsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly profiles: MerchantProfilesService
+  ) {}
+
+  private serializeProduct(product: {
+    id: string;
+    shopId: string;
+    categoryId: string;
+    name: string;
+    description: string | null;
+    price: Prisma.Decimal;
+    currency: string;
+    photoUrls: unknown;
+    stock: number;
+    status: MerchantProductStatus;
+    publishedAt: Date | null;
+    disabledAt: Date | null;
+    disabledReason: MerchantProductDisabledReason | null;
+    createdAt: Date;
+    updatedAt: Date;
+    category?: { id: string; name: string; slug: string };
+    shop?: { id: string; name: string };
+  }) {
+    const photos = Array.isArray(product.photoUrls)
+      ? product.photoUrls.filter((u): u is string => typeof u === "string")
+      : [];
+    return {
+      id: product.id,
+      shopId: product.shopId,
+      shopName: product.shop?.name ?? null,
+      categoryId: product.categoryId,
+      categoryName: product.category?.name ?? null,
+      name: product.name,
+      description: product.description,
+      price: Number(product.price),
+      currency: product.currency,
+      photoUrls: photos,
+      stock: product.stock,
+      status: product.status,
+      publishedAt: product.publishedAt?.toISOString() ?? null,
+      disabledAt: product.disabledAt?.toISOString() ?? null,
+      disabledReason: product.disabledReason,
+      createdAt: product.createdAt.toISOString(),
+      updatedAt: product.updatedAt.toISOString()
+    };
+  }
+
+  async listMine(user: User) {
+    const profile = await this.profiles.requireProfile(user.id);
+    const shopIds = profile.shops.map((s) => s.id);
+    const products = await this.prisma.merchantProduct.findMany({
+      where: { shopId: { in: shopIds } },
+      include: {
+        category: { select: { id: true, name: true, slug: true } },
+        shop: { select: { id: true, name: true } }
+      },
+      orderBy: [{ status: "asc" }, { createdAt: "asc" }]
+    });
+    return products.map((p) => this.serializeProduct(p));
+  }
+
+  async create(user: User, shopId: string, dto: CreateMerchantProductDto) {
+    await this.requireOwnedShop(user.id, shopId);
+    const category = await this.requireActiveCategory(dto.categoryId);
+
+    const product = await this.prisma.merchantProduct.create({
+      data: {
+        shopId,
+        categoryId: category.id,
+        name: dto.name.trim(),
+        description: dto.description?.trim() || null,
+        price: new Prisma.Decimal(dto.price),
+        photoUrls: dto.photoUrls ?? [],
+        stock: dto.stock
+      },
+      include: {
+        category: { select: { id: true, name: true, slug: true } },
+        shop: { select: { id: true, name: true } }
+      }
+    });
+
+    await this.prisma.merchantProfile.update({
+      where: { userId: user.id },
+      data: { productSkipped: false }
+    });
+
+    return this.serializeProduct(product);
+  }
+
+  async update(user: User, productId: string, dto: UpdateMerchantProductDto) {
+    const product = await this.requireOwnedProduct(user.id, productId);
+    if (dto.categoryId) {
+      await this.requireActiveCategory(dto.categoryId);
+    }
+
+    const updated = await this.prisma.merchantProduct.update({
+      where: { id: product.id },
+      data: {
+        ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
+        ...(dto.categoryId !== undefined ? { categoryId: dto.categoryId } : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description.trim() || null }
+          : {}),
+        ...(dto.price !== undefined
+          ? { price: new Prisma.Decimal(dto.price) }
+          : {}),
+        ...(dto.photoUrls !== undefined ? { photoUrls: dto.photoUrls } : {}),
+        ...(dto.stock !== undefined ? { stock: dto.stock } : {})
+      },
+      include: {
+        category: { select: { id: true, name: true, slug: true } },
+        shop: { select: { id: true, name: true } }
+      }
+    });
+    return this.serializeProduct(updated);
+  }
+
+  async publish(user: User, productId: string) {
+    const tier = await this.profiles.assertSubscriptionChosen(user.id);
+    const product = await this.requireOwnedProduct(user.id, productId);
+
+    if (
+      product.status === MerchantProductStatus.published ||
+      product.status === MerchantProductStatus.moderated_removed
+    ) {
+      throw new ConflictException("Produit déjà publié ou supprimé");
+    }
+
+    if (tier === MerchantSubscriptionTier.free) {
+      const activeCount = await this.countActiveProductsForUser(user.id);
+      if (activeCount >= MERCHANT_FREE_MAX_ACTIVE_PRODUCTS) {
+        throw new ForbiddenException({
+          statusCode: 403,
+          code: MERCHANT_ERROR.ACTIVE_PRODUCT_LIMIT,
+          message: "Limite de 5 produits actifs atteinte (abonnement Free)"
+        });
+      }
+    }
+
+    if (product.stock <= 0) {
+      throw new ForbiddenException("Stock insuffisant pour publication");
+    }
+
+    const updated = await this.prisma.merchantProduct.update({
+      where: { id: product.id },
+      data: {
+        status: MerchantProductStatus.published,
+        publishedAt: new Date(),
+        disabledAt: null,
+        disabledReason: null
+      },
+      include: {
+        category: { select: { id: true, name: true, slug: true } },
+        shop: { select: { id: true, name: true } }
+      }
+    });
+
+    await this.prisma.merchantProfile.update({
+      where: { userId: user.id },
+      data: { onboardingComplete: true, productSkipped: false }
+    });
+
+    return this.serializeProduct(updated);
+  }
+
+  async swapActive(user: User, productId: string) {
+    const tier = await this.profiles.assertSubscriptionChosen(user.id);
+    if (tier !== MerchantSubscriptionTier.free) {
+      throw new ForbiddenException(
+        "Le swap actif/désactivé est réservé à l'abonnement Free"
+      );
+    }
+
+    const product = await this.requireOwnedProduct(user.id, productId);
+    const profile = await this.profiles.requireProfile(user.id);
+    const shopIds = profile.shops.map((s) => s.id);
+
+    if (product.status === MerchantProductStatus.published) {
+      const updated = await this.prisma.merchantProduct.update({
+        where: { id: product.id },
+        data: {
+          status: MerchantProductStatus.disabled,
+          disabledAt: new Date(),
+          disabledReason: MerchantProductDisabledReason.swap
+        },
+        include: {
+          category: { select: { id: true, name: true, slug: true } },
+          shop: { select: { id: true, name: true } }
+        }
+      });
+      return this.serializeProduct(updated);
+    }
+
+    if (product.status !== MerchantProductStatus.disabled) {
+      throw new ConflictException("Seuls les produits désactivés peuvent être réactivés");
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const active = await tx.merchantProduct.findMany({
+        where: {
+          shopId: { in: shopIds },
+          status: MerchantProductStatus.published
+        },
+        orderBy: { createdAt: "asc" }
+      });
+
+      if (active.length >= MERCHANT_FREE_MAX_ACTIVE_PRODUCTS) {
+        const oldest = active[0]!;
+        await tx.merchantProduct.update({
+          where: { id: oldest.id },
+          data: {
+            status: MerchantProductStatus.disabled,
+            disabledAt: new Date(),
+            disabledReason: MerchantProductDisabledReason.swap
+          }
+        });
+      }
+
+      const updated = await tx.merchantProduct.update({
+        where: { id: product.id },
+        data: {
+          status: MerchantProductStatus.published,
+          publishedAt: product.publishedAt ?? new Date(),
+          disabledAt: null,
+          disabledReason: null
+        },
+        include: {
+          category: { select: { id: true, name: true, slug: true } },
+          shop: { select: { id: true, name: true } }
+        }
+      });
+      return this.serializeProduct(updated);
+    });
+  }
+
+  async listCatalog(opts?: {
+    categoryId?: string;
+    cursor?: string;
+    limit?: number;
+  }) {
+    const limit = Math.min(opts?.limit ?? 30, 50);
+    const rows = await this.prisma.merchantProduct.findMany({
+      where: {
+        status: MerchantProductStatus.published,
+        stock: { gt: 0 },
+        ...(opts?.categoryId ? { categoryId: opts.categoryId } : {})
+      },
+      include: {
+        category: { select: { id: true, name: true, slug: true } },
+        shop: {
+          select: {
+            id: true,
+            name: true,
+            locationLabel: true,
+            merchantProfile: {
+              select: { user: { select: { fullName: true } } }
+            }
+          }
+        }
+      },
+      orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+      ...(opts?.cursor
+        ? { cursor: { id: opts.cursor }, skip: 1 }
+        : {})
+    });
+    const hasMore = rows.length > limit;
+    const page = hasMore ? rows.slice(0, limit) : rows;
+    return {
+      items: page.map((p) => ({
+        ...this.serializeProduct(p),
+        shopLocation: p.shop.locationLabel,
+        merchantName: p.shop.merchantProfile.user.fullName
+      })),
+      nextCursor: hasMore ? page[page.length - 1]!.id : null
+    };
+  }
+
+  async getCatalogProduct(productId: string) {
+    const product = await this.prisma.merchantProduct.findFirst({
+      where: {
+        id: productId,
+        status: MerchantProductStatus.published,
+        stock: { gt: 0 }
+      },
+      include: {
+        category: { select: { id: true, name: true, slug: true } },
+        shop: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            locationLabel: true,
+            merchantProfile: {
+              select: { user: { select: { id: true, fullName: true } } }
+            }
+          }
+        }
+      }
+    });
+    if (!product) {
+      throw new NotFoundException("Produit introuvable");
+    }
+    return {
+      ...this.serializeProduct(product),
+      shopDescription: product.shop.description,
+      shopLocation: product.shop.locationLabel,
+      sellerUserId: product.shop.merchantProfile.user.id,
+      merchantName: product.shop.merchantProfile.user.fullName
+    };
+  }
+
+  private async countActiveProductsForUser(userId: string) {
+    const profile = await this.profiles.requireProfile(userId);
+    const shopIds = profile.shops.map((s) => s.id);
+    return this.prisma.merchantProduct.count({
+      where: {
+        shopId: { in: shopIds },
+        status: MerchantProductStatus.published
+      }
+    });
+  }
+
+  private async requireOwnedShop(userId: string, shopId: string) {
+    const shop = await this.prisma.merchantShop.findFirst({
+      where: { id: shopId, merchantProfile: { userId } }
+    });
+    if (!shop) {
+      throw new NotFoundException("Boutique introuvable");
+    }
+    return shop;
+  }
+
+  async requireOwnedProduct(userId: string, productId: string) {
+    const product = await this.prisma.merchantProduct.findFirst({
+      where: {
+        id: productId,
+        shop: { merchantProfile: { userId } }
+      },
+      include: {
+        category: { select: { id: true, name: true, slug: true } },
+        shop: { select: { id: true, name: true } }
+      }
+    });
+    if (!product) {
+      throw new NotFoundException("Produit introuvable");
+    }
+    return product;
+  }
+
+  private async requireActiveCategory(categoryId: string) {
+    const category = await this.prisma.merchantProductCategory.findFirst({
+      where: { id: categoryId, isActive: true }
+    });
+    if (!category) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        code: MERCHANT_ERROR.CATEGORY_INACTIVE,
+        message: "Catégorie invalide ou inactive"
+      });
+    }
+    return category;
+  }
+}

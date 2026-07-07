@@ -13,6 +13,8 @@ export function dashboardRouteForActiveProfileType(
       return "VeterinarianDashboard";
     case "technician":
       return "TechnicianDashboard";
+    case "merchant":
+      return "MerchantDashboard";
     default:
       return "ProducerDashboard";
   }

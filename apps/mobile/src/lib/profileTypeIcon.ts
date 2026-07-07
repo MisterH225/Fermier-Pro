@@ -14,6 +14,8 @@ export function profileTypeIcon(
       return "medkit-outline";
     case "buyer":
       return "cart-outline";
+    case "merchant":
+      return "storefront-outline";
     default:
       return "person-outline";
   }

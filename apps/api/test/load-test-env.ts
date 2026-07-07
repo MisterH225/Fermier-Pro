@@ -8,3 +8,7 @@ import { join } from "path";
 config({ path: join(__dirname, "../.env") });
 /** Racine du monorepo (depuis `apps/api/test/`). */
 config({ path: join(__dirname, "../../../.env") });
+
+if (!process.env.DIRECT_URL?.trim() && process.env.DATABASE_URL?.trim()) {
+  process.env.DIRECT_URL = process.env.DATABASE_URL;
+}

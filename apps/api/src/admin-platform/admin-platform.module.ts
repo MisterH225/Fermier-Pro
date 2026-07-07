@@ -12,6 +12,7 @@ import { MarketModule } from "../market/market.module";
 import { MarketplaceModule } from "../marketplace/marketplace.module";
 import { VetAppointmentsModule } from "../vet-appointments/vet-appointments.module";
 import { ProducerScoreModule } from "../producer-score/producer-score.module";
+import { MerchantShopModule } from "../merchant-shop/merchant-shop.module";
 
 @Module({
   imports: [
@@ -24,7 +25,8 @@ import { ProducerScoreModule } from "../producer-score/producer-score.module";
     MarketModule,
     MarketplaceModule,
     VetAppointmentsModule,
-    ProducerScoreModule
+    ProducerScoreModule,
+    MerchantShopModule
   ],
   controllers: [AdminPlatformController],
   providers: [AdminPlatformService, AdminAiService],

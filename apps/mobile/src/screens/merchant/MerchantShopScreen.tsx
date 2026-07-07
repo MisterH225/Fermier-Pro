@@ -1,0 +1,71 @@
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
+import { useSession } from "../../context/SessionContext";
+import { createMerchantShop } from "../../lib/api";
+import { formatApiError } from "../../lib/apiErrors";
+import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
+
+export function MerchantShopScreen() {
+  const { t } = useTranslation();
+  const navigation = useNavigation();
+  const { accessToken, activeProfileId } = useSession();
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async () => {
+    if (!accessToken || !activeProfileId || !name.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await createMerchantShop(accessToken, activeProfileId, { name: name.trim() });
+      navigation.goBack();
+    } catch (e) {
+      setError(formatApiError(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.body}>
+        <Text style={styles.title}>{t("merchant.shop.title")}</Text>
+        <TextInput
+          style={styles.input}
+          value={name}
+          onChangeText={setName}
+          placeholder={t("merchant.onboarding.shopName")}
+        />
+        <Pressable style={styles.btn} onPress={() => void submit()} disabled={busy}>
+          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnTx}>{t("merchant.onboarding.createShop")}</Text>}
+        </Pressable>
+        {error ? <Text style={styles.err}>{error}</Text> : null}
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: mobileColors.background },
+  body: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
+  title: { fontSize: 20, fontWeight: "700" },
+  input: {
+    borderWidth: 1,
+    borderColor: mobileColors.border,
+    borderRadius: mobileRadius.md,
+    padding: mobileSpacing.md,
+    backgroundColor: "#fff"
+  },
+  btn: {
+    backgroundColor: mobileColors.accent,
+    padding: mobileSpacing.md,
+    borderRadius: mobileRadius.md,
+    alignItems: "center"
+  },
+  btnTx: { color: "#fff", fontWeight: "700" },
+  err: { color: mobileColors.error }
+});

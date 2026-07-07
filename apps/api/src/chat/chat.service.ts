@@ -42,6 +42,15 @@ function directKeyForListing(
   return `listing:${listingId}:${pair}`;
 }
 
+function directKeyForMerchantProduct(
+  userIdA: string,
+  userIdB: string,
+  productId: string
+): string {
+  const pair = [userIdA, userIdB].sort().join("_");
+  return `merchant-product:${productId}:${pair}`;
+}
+
 const ROOM_LIST_INCLUDE = {
   farm: { select: { id: true, name: true } },
   marketplaceListing: {
@@ -53,6 +62,15 @@ const ROOM_LIST_INCLUDE = {
       pricePerKg: true,
       photoUrls: true,
       totalWeightKg: true
+    }
+  },
+  merchantProduct: {
+    select: {
+      id: true,
+      name: true,
+      price: true,
+      currency: true,
+      photoUrls: true
     }
   },
   members: {
@@ -228,7 +246,8 @@ export class ChatService {
   async ensureDirectRoom(
     user: User,
     peerUserId: string,
-    marketplaceListingId?: string
+    marketplaceListingId?: string,
+    merchantProductId?: string
   ) {
     if (peerUserId === user.id) {
       throw new BadRequestException("Conversation directe invalide");
@@ -256,11 +275,32 @@ export class ChatService {
       listingTitle = listing.title;
     }
 
-    // Canal dédié par annonce : chaque listing génère une salle distincte.
-    // Canal DM générique (sans listing) : une salle par paire d'utilisateurs.
+    let productTitle: string | null = null;
+    if (merchantProductId) {
+      const product = await this.prisma.merchantProduct.findUnique({
+        where: { id: merchantProductId },
+        select: {
+          id: true,
+          name: true,
+          shop: { select: { merchantProfile: { select: { userId: true } } } }
+        }
+      });
+      if (!product) {
+        throw new NotFoundException("Produit introuvable");
+      }
+      const sellerId = product.shop.merchantProfile.userId;
+      const participants = new Set([sellerId, user.id, peerUserId]);
+      if (!participants.has(sellerId)) {
+        throw new BadRequestException("Contexte produit invalide");
+      }
+      productTitle = product.name;
+    }
+
     const key = marketplaceListingId
       ? directKeyForListing(user.id, peerUserId, marketplaceListingId)
-      : directKeyForPair(user.id, peerUserId);
+      : merchantProductId
+        ? directKeyForMerchantProduct(user.id, peerUserId, merchantProductId)
+        : directKeyForPair(user.id, peerUserId);
 
     let room = await this.prisma.chatRoom.findUnique({
       where: { directKey: key }
@@ -271,8 +311,9 @@ export class ChatService {
           data: {
             kind: ChatRoomKind.direct,
             directKey: key,
-            title: listingTitle,
+            title: listingTitle ?? productTitle,
             marketplaceListingId: marketplaceListingId ?? null,
+            merchantProductId: merchantProductId ?? null,
             members: {
               create: [{ userId: user.id }, { userId: peerUserId }]
             }

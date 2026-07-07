@@ -23,7 +23,8 @@ const PROFILE_TYPES: ProfileTypeChoice[] = [
   "producer",
   "technician",
   "veterinarian",
-  "buyer"
+  "buyer",
+  "merchant"
 ];
 
 /**

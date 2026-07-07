@@ -34,6 +34,8 @@ import { TechOnboardingScreen } from "../screens/onboarding/technician/TechOnboa
 import { BuyerOnboardingScreen } from "../screens/onboarding/buyer/BuyerOnboardingScreen";
 import { needsTechOnboarding } from "../lib/techOnboardingState";
 import { needsBuyerOnboarding } from "../lib/buyerOnboardingState";
+import { needsMerchantOnboarding } from "../lib/merchantOnboardingState";
+import { MerchantOnboardingScreen } from "../screens/onboarding/merchant/MerchantOnboardingScreen";
 
 /**
  * Après SessionProvider : onboarding profil si aucun profil API, sinon navigation principale.
@@ -113,6 +115,19 @@ function AuthenticatedAppShellInner() {
   if (needsBuyerOnboarding(authMe, activeProfileId)) {
     return (
       <BuyerOnboardingScreen
+        onFinished={() => {
+          void refreshAuthMe();
+        }}
+        onCancel={() => {
+          void refreshAuthMe();
+        }}
+      />
+    );
+  }
+
+  if (needsMerchantOnboarding(authMe, activeProfileId)) {
+    return (
+      <MerchantOnboardingScreen
         onFinished={() => {
           void refreshAuthMe();
         }}

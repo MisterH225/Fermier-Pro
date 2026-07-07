@@ -54,7 +54,9 @@ export default function ParametresPage() {
           ),
           marketplaceWeightArbitrationCumulativeMinDiffKg: Number(
             row.marketplaceWeightArbitrationCumulativeMinDiffKg ?? 5
-          )
+          ),
+          merchantPremiumPriceXof: Number(row.merchantPremiumPriceXof ?? 5000),
+          merchantPremiumMaxShops: Number(row.merchantPremiumMaxShops ?? 3)
         });
       })
       .catch(() => {
@@ -91,6 +93,8 @@ export default function ParametresPage() {
           form.marketplaceWeightArbitrationMinDiffKg ?? 1,
         marketplaceWeightArbitrationCumulativeMinDiffKg:
           form.marketplaceWeightArbitrationCumulativeMinDiffKg ?? 5,
+        merchantPremiumPriceXof: form.merchantPremiumPriceXof ?? 5000,
+        merchantPremiumMaxShops: form.merchantPremiumMaxShops ?? 3,
         supportPhone: form.supportPhone ?? "",
         supportTelegramUrl: form.supportTelegramUrl ?? ""
       });
@@ -362,6 +366,42 @@ export default function ParametresPage() {
             />
             <p className="text-xs text-muted-foreground">
               {t("fields.weightArbitrationCumulativeMinDiffKgHint")}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="merchant-premium-price">
+              {t("fields.merchantPremiumPriceXof")}
+            </Label>
+            <Input
+              id="merchant-premium-price"
+              type="number"
+              min={0}
+              step={100}
+              value={form.merchantPremiumPriceXof ?? 5000}
+              onChange={(e) =>
+                update("merchantPremiumPriceXof", Number(e.target.value) || 0)
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("fields.merchantPremiumPriceXofHint")}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="merchant-premium-shops">
+              {t("fields.merchantPremiumMaxShops")}
+            </Label>
+            <Input
+              id="merchant-premium-shops"
+              type="number"
+              min={1}
+              max={50}
+              value={form.merchantPremiumMaxShops ?? 3}
+              onChange={(e) =>
+                update("merchantPremiumMaxShops", Number(e.target.value) || 1)
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("fields.merchantPremiumMaxShopsHint")}
             </p>
           </div>
         </CardContent>

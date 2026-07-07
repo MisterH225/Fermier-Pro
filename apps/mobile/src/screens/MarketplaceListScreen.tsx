@@ -40,6 +40,7 @@ import {
   type ProposalsSubTab
 } from "./market/PropositionsScreen";
 import { MarketplacePartnersTab } from "./market/tabs/MarketplacePartnersTab";
+import { MerchantBoutiquesTab } from "./market/tabs/MerchantBoutiquesTab";
 import {
   addBuyerFavorite,
   fetchBuyerFavoriteIds,
@@ -66,7 +67,7 @@ import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError
 
 type Props = NativeStackScreenProps<RootStackParamList, "MarketplaceList">;
 
-type MarketTab = "listings" | "mine" | "offers" | "partners";
+type MarketTab = "listings" | "mine" | "offers" | "partners" | "boutiques";
 type CatKey = "all" | "piglet" | "breeder" | "butcher" | "reformed";
 type ListingFilter = "all" | "draft" | "published" | "sold" | "cancelled";
 
@@ -142,7 +143,8 @@ function initialMarketTab(
     tab === "mine" ||
     tab === "offers" ||
     tab === "listings" ||
-    tab === "partners"
+    tab === "partners" ||
+    tab === "boutiques"
   ) {
     return tab;
   }
@@ -633,6 +635,13 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
     />
   );
 
+  const boutiquesTabContent = () => (
+    <MerchantBoutiquesTab
+      navigation={navigation}
+      contentPaddingBottom={scrollBottomPad}
+    />
+  );
+
   const offersTabBadge = buyerView
     ? offerCountsQ.data?.sentPending ?? 0
     : offerCountsQ.data?.total ?? 0;
@@ -669,6 +678,11 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
                 key: "partners",
                 label: t("marketScreen.tabSuppliers"),
                 content: partnersTabContent()
+              },
+              {
+                key: "boutiques",
+                label: t("marketScreen.tabBoutiques"),
+                content: boutiquesTabContent()
               }
             ]}
           />
@@ -698,6 +712,11 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
                 key: "partners",
                 label: t("marketScreen.tabClients"),
                 content: partnersTabContent()
+              },
+              {
+                key: "boutiques",
+                label: t("marketScreen.tabBoutiques"),
+                content: boutiquesTabContent()
               }
             ]}
           />

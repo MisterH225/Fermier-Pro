@@ -1,4 +1,4 @@
-import { BadGatewayException, Injectable, Logger } from "@nestjs/common";
+import { BadGatewayException, BadRequestException, Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import type {
   MobileMoneyConfirmResult,
@@ -8,9 +8,19 @@ import type {
 } from "../mobile-money.gateway";
 import { GeniusPayClient } from "./geniuspay.client";
 import {
+  normalizeCiMobilePhone,
+  parsePayoutMetadata,
+  payoutProviderFromEnv,
+  waitForPayoutCompletion
+} from "./geniuspay-payout.util";
+import {
   GENIUSPAY_KIND_MARKETPLACE_ESCROW,
+  GENIUSPAY_KIND_MARKETPLACE_REFUND,
+  GENIUSPAY_KIND_MARKETPLACE_SELLER_PAYOUT,
   GENIUSPAY_KIND_WALLET_TOPUP,
-  type GeniusPayPaymentMetadata
+  GENIUSPAY_KIND_WALLET_WITHDRAW,
+  type GeniusPayPaymentMetadata,
+  type GeniusPayPayoutMetadata
 } from "./geniuspay.types";
 
 export const GENIUSPAY_CHECKOUT_BASE = "https://geniuspay.ci/checkout";
@@ -115,13 +125,16 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
     transactionId: string;
     originalProviderRef?: string | null;
   }): Promise<MobileMoneyRefundResult> {
-    this.log.warn(
-      `refund via GeniusPay non supporté — crédit portefeuille interne tx=${params.transactionId}`
-    );
-    return {
-      success: false,
-      providerRef: params.originalProviderRef ?? providerRefFallback()
-    };
+    return this.createOutboundPayout({
+      amount: params.amount,
+      currency: params.currency,
+      userId: params.buyerUserId,
+      transactionId: params.transactionId,
+      label: `Remboursement marketplace ${params.transactionId}`,
+      kind: GENIUSPAY_KIND_MARKETPLACE_REFUND,
+      idempotencyKey: `marketplace-refund:${params.transactionId}:${Math.round(params.amount)}`,
+      originalProviderRef: params.originalProviderRef
+    });
   }
 
   async chargeAdditional(params: {
@@ -147,10 +160,15 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
     transactionId: string;
     label: string;
   }): Promise<MobileMoneyRefundResult> {
-    this.log.warn(
-      `releaseFunds via GeniusPay non supporté — versement portefeuille interne tx=${params.transactionId}`
-    );
-    return { success: false, providerRef: providerRefFallback() };
+    return this.createOutboundPayout({
+      amount: params.amount,
+      currency: params.currency,
+      userId: params.recipientUserId,
+      transactionId: params.transactionId,
+      label: params.label,
+      kind: GENIUSPAY_KIND_MARKETPLACE_SELLER_PAYOUT,
+      idempotencyKey: `marketplace-release:${params.transactionId}:${Math.round(params.amount)}`
+    });
   }
 
   async initiateTopUp(params: {
@@ -207,26 +225,198 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
     userId: string;
     phone?: string | null;
     label: string;
+    idempotencyKey?: string;
   }): Promise<MobileMoneyInitResult> {
-    this.log.warn(
-      `initiateWithdraw via GeniusPay non documenté user=${params.userId}`
+    const payoutPhone = normalizeCiMobilePhone(
+      params.phone?.trim() || (await this.loadCustomer(params.userId)).phone?.trim() || ""
     );
+    if (!payoutPhone) {
+      throw new BadRequestException(
+        "Numéro mobile money requis pour le retrait GeniusPay."
+      );
+    }
+    const customer = await this.loadCustomer(params.userId);
+    const metadata: GeniusPayPayoutMetadata = {
+      kind: GENIUSPAY_KIND_WALLET_WITHDRAW,
+      user_id: params.userId,
+      amount: String(Math.round(params.amount))
+    };
+    const payout = await this.client.createPayout({
+      amount: params.amount,
+      currency: params.currency,
+      description: params.label,
+      recipientName: customer.name?.trim() || "Client Fermier Pro",
+      recipientPhone: payoutPhone,
+      recipientEmail: customer.email,
+      metadata,
+      idempotencyKey:
+        params.idempotencyKey?.trim() ||
+        `wallet-withdraw:${params.userId}:${Math.round(params.amount)}:${Date.now()}`,
+      provider: payoutProviderFromEnv()
+    });
     return {
-      providerRef: providerRefFallback(),
+      providerRef: payout.reference,
       paymentUrl: null
     };
   }
 
   async confirmWithdraw(
     providerRef: string,
-    _userId: string,
-    _amount: number
+    userId: string,
+    amount: number
   ): Promise<MobileMoneyConfirmResult> {
-    return {
-      success: false,
-      providerRef,
-      failureReason: "Retrait GeniusPay non implémenté"
+    return this.confirmPayoutByReference(providerRef, (metadata) => {
+      if (metadata.kind !== GENIUSPAY_KIND_WALLET_WITHDRAW) {
+        return "Type de payout GeniusPay inattendu";
+      }
+      if (metadata.user_id !== userId) {
+        return "Référence non liée à cet utilisateur";
+      }
+      const providerAmount =
+        metadata.amount != null && String(metadata.amount).trim() !== ""
+          ? Number(metadata.amount)
+          : NaN;
+      if (!Number.isFinite(providerAmount) || providerAmount !== Math.round(amount)) {
+        return "Montant de retrait incohérent côté prestataire";
+      }
+      return null;
+    });
+  }
+
+  private async createOutboundPayout(params: {
+    amount: number;
+    currency: string;
+    userId: string;
+    transactionId: string;
+    label: string;
+    kind: GeniusPayPayoutMetadata["kind"];
+    idempotencyKey: string;
+    originalProviderRef?: string | null;
+  }): Promise<MobileMoneyRefundResult> {
+    if (!Number.isFinite(params.amount) || params.amount < 200) {
+      this.log.warn(
+        `payout ${params.kind} ignoré — montant ${params.amount} < minimum GeniusPay`
+      );
+      return {
+        success: false,
+        providerRef: params.originalProviderRef ?? providerRefFallback()
+      };
+    }
+
+    const customer = await this.loadCustomer(params.userId);
+    const payoutPhone = normalizeCiMobilePhone(customer.phone?.trim() || "");
+    if (!payoutPhone) {
+      throw new BadRequestException(
+        "Numéro mobile money requis sur le profil pour ce versement."
+      );
+    }
+
+    const metadata: GeniusPayPayoutMetadata = {
+      kind: params.kind,
+      user_id: params.userId,
+      transaction_id: params.transactionId,
+      amount: String(Math.round(params.amount))
     };
+
+    const payout = await this.client.createPayout({
+      amount: params.amount,
+      currency: params.currency,
+      description: params.label,
+      recipientName: customer.name?.trim() || "Client Fermier Pro",
+      recipientPhone: payoutPhone,
+      recipientEmail: customer.email,
+      metadata,
+      idempotencyKey: params.idempotencyKey,
+      provider: payoutProviderFromEnv()
+    });
+
+    const settled = await waitForPayoutCompletion(
+      (ref) => this.client.lookupPayout(ref),
+      payout.reference
+    );
+    if (!settled) {
+      return { success: false, providerRef: payout.reference };
+    }
+    if (settled.status === "completed") {
+      return { success: true, providerRef: settled.reference };
+    }
+    this.log.warn(
+      `payout ${params.kind} ${payout.reference} statut=${settled.status} tx=${params.transactionId}`
+    );
+    return { success: false, providerRef: settled.reference };
+  }
+
+  private async confirmPayoutByReference(
+    providerRef: string,
+    validateMetadata: (metadata: GeniusPayPayoutMetadata) => string | null
+  ): Promise<MobileMoneyConfirmResult> {
+    try {
+      const settled = await waitForPayoutCompletion(
+        (ref) => this.client.lookupPayout(ref),
+        providerRef,
+        { attempts: 8, delayMs: 2500 }
+      );
+      if (!settled) {
+        return {
+          success: false,
+          providerRef,
+          failureReason:
+            "Référence payout GeniusPay introuvable — réessayez dans un instant."
+        };
+      }
+      const metadata = parsePayoutMetadata(settled.metadata);
+      if (!metadata) {
+        return {
+          success: false,
+          providerRef,
+          failureReason: "Metadata payout GeniusPay manquantes"
+        };
+      }
+      const metaError = validateMetadata(metadata);
+      if (metaError) {
+        return { success: false, providerRef, failureReason: metaError };
+      }
+      if (settled.status === "completed") {
+        const verifiedAmount =
+          metadata.amount != null && String(metadata.amount).trim() !== ""
+            ? Number(metadata.amount)
+            : settled.amount;
+        return {
+          success: true,
+          providerRef,
+          verifiedAmount:
+            Number.isFinite(verifiedAmount) && verifiedAmount > 0
+              ? verifiedAmount
+              : undefined
+        };
+      }
+      if (settled.status === "failed" || settled.status === "cancelled") {
+        return {
+          success: false,
+          providerRef,
+          failureReason: `Payout ${settled.status}`
+        };
+      }
+      return {
+        success: false,
+        providerRef,
+        failureReason: "Payout en attente de confirmation — réessayez dans un instant"
+      };
+    } catch (err) {
+      const detail =
+        err instanceof BadGatewayException || err instanceof BadRequestException
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : String(err);
+      this.log.warn(`confirm payout ${providerRef}: ${detail}`);
+      return {
+        success: false,
+        providerRef,
+        failureReason:
+          detail.trim() || "Impossible de vérifier le payout GeniusPay"
+      };
+    }
   }
 
   private async confirmByReference(

@@ -622,7 +622,11 @@
       "weightArbitrationMinDiffKg": "Weight arbitration — minimum gap (kg)",
       "weightArbitrationMinDiffKgHint": "Per-animal gap below which the sale continues without arbitration (e.g. 1 kg).",
       "weightArbitrationCumulativeMinDiffKg": "Weight arbitration — minimum cumulative gap (kg)",
-      "weightArbitrationCumulativeMinDiffKgHint": "For multiple animals: total gap required to allow arbitration (e.g. 5 kg)."
+      "weightArbitrationCumulativeMinDiffKgHint": "For multiple animals: total gap required to allow arbitration (e.g. 5 kg).",
+      "merchantPremiumPriceXof": "Merchant Premium subscription (XOF)",
+      "merchantPremiumPriceXofHint": "One-time price paid by merchants to upgrade to Premium.",
+      "merchantPremiumMaxShops": "Max shops (Premium)",
+      "merchantPremiumMaxShopsHint": "Maximum number of shops for a Premium merchant profile."
     },
     "scopes": {
       "world": "Worldwide",
@@ -724,7 +728,9 @@
       "transactions": "Transactions",
       "disputes": "Weight disputes",
       "revenue": "Commissions",
-      "receipts": "PDF receipts"
+      "receipts": "PDF receipts",
+      "merchantProducts": "Merchant products",
+      "merchantCategories": "Shop categories"
     },
     "overview": {
       "publishedListings": "Published listings",
@@ -866,6 +872,34 @@
         "90d": "90 days",
         "all": "All time"
       }
+    },
+    "merchantProducts": {
+      "empty": "No merchant products.",
+      "colProduct": "Product",
+      "colShop": "Shop",
+      "colMerchant": "Merchant",
+      "colStatus": "Status",
+      "colPrice": "Price",
+      "colStock": "Stock",
+      "colReason": "Removal reason",
+      "reasonPlaceholder": "Reason required",
+      "delete": "Remove"
+    },
+    "merchantCategories": {
+      "createTitle": "New category",
+      "name": "Name",
+      "slug": "Slug (optional)",
+      "create": "Create",
+      "empty": "No categories.",
+      "colName": "Name",
+      "colSlug": "Slug",
+      "colOrder": "Order",
+      "colActive": "Active",
+      "yes": "Yes",
+      "no": "No",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "delete": "Delete"
     }
   },
   "vetAppointments": {

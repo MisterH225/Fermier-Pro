@@ -27,7 +27,7 @@ export interface E2ESeedResult {
 }
 
 /** Supprime tous les enregistrements marketplace liés à ces utilisateurs (acheteur ou vendeur). */
-async function purgeMarketplaceForUsers(
+export async function purgeMarketplaceForUsers(
   prisma: PrismaClient,
   userIds: string[]
 ): Promise<void> {
@@ -73,42 +73,66 @@ async function purgeMarketplaceForUsers(
   });
 }
 
+async function purgeE2eUserData(prisma: PrismaClient, userId: string): Promise<void> {
+  await purgeMarketplaceForUsers(prisma, [userId]);
+  await prisma.withdrawalRequest.deleteMany({ where: { userId } });
+  await prisma.userWalletEntry.deleteMany({
+    where: { wallet: { userId } }
+  });
+  await prisma.userWallet.deleteMany({ where: { userId } });
+  await prisma.auditLog.deleteMany({ where: { actorUserId: userId } });
+  await prisma.farmMembership.deleteMany({ where: { userId } });
+  const ownedFarms = await prisma.farm.findMany({
+    where: { ownerId: userId },
+    select: { id: true }
+  });
+  const farmIds = ownedFarms.map((f) => f.id);
+  if (farmIds.length > 0) {
+    await prisma.auditLog.deleteMany({ where: { farmId: { in: farmIds } } });
+    await prisma.farm.deleteMany({ where: { id: { in: farmIds } } });
+  }
+  await prisma.marketplaceListing.deleteMany({
+    where: { sellerUserId: userId }
+  });
+  await prisma.adminAuditLog.deleteMany({ where: { adminUserId: userId } });
+  await prisma.adminMessage.deleteMany({ where: { adminUserId: userId } });
+  await prisma.chatMessage.deleteMany({ where: { senderUserId: userId } });
+  await prisma.chatRoom.deleteMany({
+    where: { members: { some: { userId } } }
+  });
+  await prisma.profile.deleteMany({ where: { userId } });
+  await prisma.superAdmin.deleteMany({ where: { userId } });
+}
+
+async function purgeE2eUserGraph(prisma: PrismaClient, userId: string): Promise<void> {
+  await purgeE2eUserData(prisma, userId);
+  await prisma.user.deleteMany({ where: { id: userId } });
+}
+
 async function purgeStaleE2eUser(prisma: PrismaClient): Promise<void> {
+  const staleUserIds = new Set<string>();
   const peer = await prisma.user.findUnique({
     where: { email: "e2e-peer-directory@fermier.local" },
     select: { id: true }
   });
   if (peer) {
-    await purgeMarketplaceForUsers(prisma, [peer.id]);
-    await prisma.farm.deleteMany({ where: { ownerId: peer.id } });
-    await prisma.adminAuditLog.deleteMany({ where: { adminUserId: peer.id } });
-    await prisma.adminMessage.deleteMany({ where: { adminUserId: peer.id } });
-    await prisma.user.delete({ where: { id: peer.id } });
+    staleUserIds.add(peer.id);
   }
-  const existing = await prisma.user.findUnique({
-    where: { supabaseUserId: E2E_SUPABASE_SUB },
-    include: { ownedFarms: { select: { id: true } } }
+  const existing = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { supabaseUserId: E2E_SUPABASE_SUB },
+        { email: "e2e-mobile-contract@fermier.local" }
+      ]
+    },
+    select: { id: true }
   });
-  if (!existing) {
-    return;
+  if (existing) {
+    staleUserIds.add(existing.id);
   }
-  const farmIds = existing.ownedFarms.map((f) => f.id);
-  if (farmIds.length > 0) {
-    await prisma.auditLog.deleteMany({
-      where: {
-        OR: [{ farmId: { in: farmIds } }, { actorUserId: existing.id }]
-      }
-    });
-    await prisma.farm.deleteMany({ where: { id: { in: farmIds } } });
+  for (const userId of staleUserIds) {
+    await purgeE2eUserGraph(prisma, userId);
   }
-  await purgeMarketplaceForUsers(prisma, [existing.id]);
-  await prisma.marketplaceListing.deleteMany({
-    where: { sellerUserId: existing.id }
-  });
-  await prisma.adminAuditLog.deleteMany({ where: { adminUserId: existing.id } });
-  await prisma.adminMessage.deleteMany({ where: { adminUserId: existing.id } });
-  await prisma.profile.deleteMany({ where: { userId: existing.id } });
-  await prisma.user.delete({ where: { id: existing.id } });
 }
 
 export async function seedE2eFixtures(
@@ -149,13 +173,20 @@ export async function seedE2eFixtures(
     where: { code: "porcin" }
   });
 
-  const user = await prisma.user.create({
-    data: {
+  const user = await prisma.user.upsert({
+    where: { email: "e2e-mobile-contract@fermier.local" },
+    create: {
       supabaseUserId: E2E_SUPABASE_SUB,
       email: "e2e-mobile-contract@fermier.local",
       fullName: "E2E Mobile Contract"
+    },
+    update: {
+      supabaseUserId: E2E_SUPABASE_SUB,
+      fullName: "E2E Mobile Contract"
     }
   });
+
+  await purgeE2eUserData(prisma, user.id);
 
   const producerProfile = await prisma.profile.create({
     data: {
@@ -175,13 +206,20 @@ export async function seedE2eFixtures(
     }
   });
 
-  const peerUser = await prisma.user.create({
-    data: {
+  const peerUser = await prisma.user.upsert({
+    where: { email: "e2e-peer-directory@fermier.local" },
+    create: {
       supabaseUserId: E2E_PEER_SUPABASE_SUB,
       email: "e2e-peer-directory@fermier.local",
       fullName: "E2E Peer Annuaire"
+    },
+    update: {
+      supabaseUserId: E2E_PEER_SUPABASE_SUB,
+      fullName: "E2E Peer Annuaire"
     }
   });
+
+  await purgeE2eUserData(prisma, peerUser.id);
 
   await prisma.farmMembership.create({
     data: {

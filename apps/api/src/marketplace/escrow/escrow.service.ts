@@ -145,8 +145,36 @@ export class EscrowService {
     transactionId: string,
     sellerUserId: string,
     sellerAmount: number,
-    currency: string
+    currency: string,
+    paymentMethod?: MarketplacePaymentMethod | null
   ): Promise<void> {
+    if (
+      paymentMethod === MarketplacePaymentMethod.mobile_money &&
+      sellerAmount >= 200
+    ) {
+      const payout = await this.gateway.releaseFunds({
+        amount: sellerAmount,
+        currency,
+        recipientUserId: sellerUserId,
+        transactionId,
+        label: `Versement vendeur marketplace ${transactionId}`
+      });
+      if (payout.success) {
+        await this.logMovement(
+          transactionId,
+          MarketplaceFundMovementKind.RELEASE_TO_SELLER,
+          sellerAmount,
+          currency,
+          payout.providerRef,
+          "Versement vendeur (mobile money GeniusPay)"
+        );
+        return;
+      }
+      throw new ServiceUnavailableException(
+        "Versement vendeur mobile money indisponible — réessayez plus tard."
+      );
+    }
+
     const entry = await this.userWallet.creditEscrowRelease(
       sellerUserId,
       sellerAmount,
@@ -170,8 +198,36 @@ export class EscrowService {
     buyerUserId: string,
     refundAmount: number,
     currency: string,
-    _originalProviderRef?: string | null
+    originalProviderRef?: string | null,
+    paymentMethod?: MarketplacePaymentMethod | null
   ): Promise<void> {
+    if (
+      paymentMethod === MarketplacePaymentMethod.mobile_money &&
+      refundAmount >= 200
+    ) {
+      const payout = await this.gateway.refund({
+        amount: refundAmount,
+        currency,
+        buyerUserId,
+        transactionId,
+        originalProviderRef
+      });
+      if (payout.success) {
+        await this.logMovement(
+          transactionId,
+          MarketplaceFundMovementKind.REFUND_BUYER,
+          refundAmount,
+          currency,
+          payout.providerRef,
+          "Remboursement acheteur (mobile money GeniusPay)"
+        );
+        return;
+      }
+      throw new ServiceUnavailableException(
+        "Remboursement mobile money indisponible — réessayez plus tard."
+      );
+    }
+
     const entry = await this.userWallet.creditRefund(
       buyerUserId,
       refundAmount,

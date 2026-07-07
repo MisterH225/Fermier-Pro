@@ -7,11 +7,14 @@ import {
 } from "@nestjs/common";
 import { SkipThrottle } from "@nestjs/throttler";
 import type { Request } from "express";
+import { WithdrawalOrchestratorService } from "../../../wallet/withdrawal-orchestrator.service";
 import { WalletRailsService } from "../../../wallet/wallet-rails.service";
 import { MarketplaceTransactionService } from "../marketplace-transaction.service";
+import { parsePayoutMetadata } from "./geniuspay-payout.util";
 import {
   GENIUSPAY_KIND_MARKETPLACE_ESCROW,
   GENIUSPAY_KIND_WALLET_TOPUP,
+  GENIUSPAY_KIND_WALLET_WITHDRAW,
   type GeniusPayWebhookPayload
 } from "./geniuspay.types";
 import { verifyGeniusPayWebhookSignature } from "./geniuspay-webhook.util";
@@ -26,7 +29,8 @@ type RawBodyRequest = Request & { rawBody?: Buffer };
 export class GeniusPayWebhookController {
   constructor(
     private readonly transactions: MarketplaceTransactionService,
-    private readonly walletRails: WalletRailsService
+    private readonly walletRails: WalletRailsService,
+    private readonly withdrawals: WithdrawalOrchestratorService
   ) {}
 
   @Post()
@@ -59,6 +63,15 @@ export class GeniusPayWebhookController {
 
     if (webhookEvent === "webhook.test") {
       return { ok: true, test: true };
+    }
+
+    if (
+      webhookEvent === "payout.completed" ||
+      webhookEvent === "payout.failed" ||
+      webhookEvent === "cashout.completed" ||
+      webhookEvent === "cashout.failed"
+    ) {
+      return this.handlePayoutWebhook(webhookEvent, body);
     }
 
     const reference = body.data?.reference?.trim();
@@ -137,6 +150,55 @@ export class GeniusPayWebhookController {
         return { ok: true };
       }
       return { ok: true, ignored: true };
+    }
+
+    return { ok: true, ignored: true, event: webhookEvent };
+  }
+
+  private async handlePayoutWebhook(
+    webhookEvent: string,
+    body: GeniusPayWebhookPayload
+  ) {
+    const payout = body.data?.payout;
+    const reference =
+      payout?.reference?.trim() || body.data?.reference?.trim() || "";
+    if (!reference) {
+      throw new BadRequestException("reference payout manquante");
+    }
+
+    const metadata = parsePayoutMetadata(
+      payout?.metadata ?? body.data?.metadata ?? undefined
+    );
+    if (!metadata || metadata.kind !== GENIUSPAY_KIND_WALLET_WITHDRAW) {
+      return { ok: true, ignored: true, reason: "payout hors retrait wallet" };
+    }
+
+    const userId = metadata.user_id.trim();
+    if (!userId) {
+      throw new BadRequestException("user_id metadata payout manquant");
+    }
+
+    const isSuccess =
+      webhookEvent === "payout.completed" ||
+      webhookEvent === "cashout.completed";
+    const isFailure =
+      webhookEvent === "payout.failed" || webhookEvent === "cashout.failed";
+
+    if (isSuccess) {
+      const completed = await this.withdrawals.completeWithdrawalFromPayoutWebhook(
+        reference,
+        userId
+      );
+      return { ok: true, completed };
+    }
+
+    if (isFailure) {
+      const failed = await this.withdrawals.failWithdrawalFromPayoutWebhook(
+        reference,
+        userId,
+        `Payout ${payout?.status ?? "failed"}`
+      );
+      return { ok: true, failed };
     }
 
     return { ok: true, ignored: true, event: webhookEvent };

@@ -204,6 +204,8 @@ export type PlatformSettingsDto = {
   withdrawalAutoApproveThreshold?: number;
   marketplaceWeightArbitrationMinDiffKg?: number;
   marketplaceWeightArbitrationCumulativeMinDiffKg?: number;
+  merchantPremiumPriceXof?: number;
+  merchantPremiumMaxShops?: number;
   /** Valeurs réellement servies au mobile (DB + fallback env). */
   supportEffective: SupportContactDto;
 };
@@ -761,6 +763,76 @@ export function patchPlatformSettings(
   return apiFetch<PlatformSettingsDto>("/admin/settings", token, {
     method: "PATCH",
     body: JSON.stringify(body)
+  });
+}
+
+export type AdminMerchantCategoryRow = {
+  id: string;
+  name: string;
+  slug: string;
+  sortOrder: number;
+  isActive: boolean;
+};
+
+export type AdminMerchantProductRow = {
+  id: string;
+  name: string;
+  status: string;
+  price: number;
+  stock: number;
+  categoryName: string;
+  shopName: string;
+  merchantUserId: string;
+  merchantEmail: string | null;
+  merchantName: string | null;
+  publishedAt: string | null;
+  updatedAt: string;
+};
+
+export function fetchAdminMerchantCategories(token: string) {
+  return apiFetch<AdminMerchantCategoryRow[]>("/admin/merchant/categories", token);
+}
+
+export function createAdminMerchantCategory(
+  token: string,
+  body: { name: string; slug?: string; sortOrder?: number }
+) {
+  return apiFetch<AdminMerchantCategoryRow>("/admin/merchant/categories", token, {
+    method: "POST",
+    body: JSON.stringify(body)
+  });
+}
+
+export function patchAdminMerchantCategory(
+  token: string,
+  id: string,
+  body: Partial<{ name: string; slug: string; sortOrder: number; isActive: boolean }>
+) {
+  return apiFetch<AdminMerchantCategoryRow>(
+    `/admin/merchant/categories/${id}`,
+    token,
+    { method: "PATCH", body: JSON.stringify(body) }
+  );
+}
+
+export function deleteAdminMerchantCategory(token: string, id: string) {
+  return apiFetch<{ ok: boolean }>(`/admin/merchant/categories/${id}`, token, {
+    method: "DELETE"
+  });
+}
+
+export function fetchAdminMerchantProducts(token: string) {
+  return apiFetch<AdminMerchantProductRow[]>("/admin/merchant/products", token);
+}
+
+export function deleteAdminMerchantProduct(
+  token: string,
+  id: string,
+  reason: string
+) {
+  return apiFetch<{ ok: boolean }>(`/admin/merchant/products/${id}`, token, {
+    method: "DELETE",
+    body: JSON.stringify({ reason })
   });
 }
 

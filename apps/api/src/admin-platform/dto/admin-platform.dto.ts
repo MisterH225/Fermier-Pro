@@ -92,6 +92,16 @@ export class UpdatePlatformSettingsDto {
   @Min(0)
   @Max(10_000)
   marketplaceWeightArbitrationCumulativeMinDiffKg?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  merchantPremiumPriceXof?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  merchantPremiumMaxShops?: number;
 }
 
 export class AdminAiAskDto {

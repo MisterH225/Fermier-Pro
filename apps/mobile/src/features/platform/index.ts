@@ -29,3 +29,7 @@ export {
 export { BuyerFinanceScreen } from "../../screens/buyer/BuyerFinanceScreen";
 export { BuyerAlertsScreen } from "../../screens/buyer/BuyerAlertsScreen";
 export { BuyerFavoritesScreen } from "../../screens/buyer/BuyerFavoritesScreen";
+export { MerchantDashboardScreen } from "../../screens/merchant/MerchantDashboardScreen";
+export { MerchantShopScreen } from "../../screens/merchant/MerchantShopScreen";
+export { MerchantProductFormScreen } from "../../screens/merchant/MerchantProductFormScreen";
+export { MerchantProductDetailScreen } from "../../screens/merchant/MerchantProductDetailScreen";

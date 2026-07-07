@@ -67,7 +67,8 @@ export class ChatController {
     return this.chat.ensureDirectRoom(
       user,
       dto.peerUserId,
-      dto.marketplaceListingId?.trim() || undefined
+      dto.marketplaceListingId?.trim() || undefined,
+      dto.merchantProductId?.trim() || undefined
     );
   }
 

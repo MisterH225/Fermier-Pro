@@ -114,11 +114,71 @@ export async function setupMarketplaceDeliveryListing(params: {
   };
 }
 
+export async function advanceToBuyerWeightDeclared(params: {
+  app: INestApplication;
+  sellerToken: string;
+  buyerToken: string;
+  transactionId: string;
+  animalId: string;
+  buyerWeightKg?: number;
+}): Promise<void> {
+  const pickup = await request(params.app.getHttpServer())
+    .post(`/api/v1/marketplace/transactions/${params.transactionId}/pickup`)
+    .set("Authorization", `Bearer ${params.buyerToken}`)
+    .send({
+      pickupDate: new Date().toISOString().slice(0, 10),
+      pickupLocation: "Ferme E2E"
+    });
+  expect(pickup.status).toBe(201);
+
+  const pickupConfirm = await request(params.app.getHttpServer())
+    .post(
+      `/api/v1/marketplace/transactions/${params.transactionId}/pickup/confirm`
+    )
+    .set("Authorization", `Bearer ${params.sellerToken}`);
+  expect(pickupConfirm.status).toBe(201);
+
+  const weightKg = params.buyerWeightKg ?? 25;
+  const declareWeight = await request(params.app.getHttpServer())
+    .post(
+      `/api/v1/marketplace/transactions/${params.transactionId}/weight/declare`
+    )
+    .set("Authorization", `Bearer ${params.buyerToken}`)
+    .send({
+      realWeightKg: weightKg,
+      animalWeights: [{ animalId: params.animalId, weightKg }]
+    });
+  expect(declareWeight.status).toBe(201);
+  expect(declareWeight.body.status).toBe("WEIGHT_DECLARED");
+}
+
+export async function confirmMarketplacePayment(params: {
+  app: INestApplication;
+  buyerToken: string;
+  transactionId: string;
+}): Promise<void> {
+  const payInit = await request(params.app.getHttpServer())
+    .post(
+      `/api/v1/marketplace/transactions/${params.transactionId}/payment/initiate`
+    )
+    .set("Authorization", `Bearer ${params.buyerToken}`);
+  expect(payInit.status).toBe(201);
+  const payConfirm = await request(params.app.getHttpServer())
+    .post(
+      `/api/v1/marketplace/transactions/${params.transactionId}/payment/confirm`
+    )
+    .set("Authorization", `Bearer ${params.buyerToken}`)
+    .send({ providerRef: payInit.body.providerRef as string });
+  expect(payConfirm.status).toBe(201);
+  expect(payConfirm.body.status).toBe("PAYMENT_HELD");
+}
+
 export async function advanceMarketplaceToSellerShipped(params: {
   app: INestApplication;
   sellerToken: string;
   buyerToken: string;
   transactionId: string;
+  animalId: string;
   animalWeightKg?: number;
 }): Promise<void> {
   const pickup = await request(params.app.getHttpServer())
@@ -142,7 +202,7 @@ export async function advanceMarketplaceToSellerShipped(params: {
       `/api/v1/marketplace/transactions/${params.transactionId}/weight/declare`
     )
     .set("Authorization", `Bearer ${params.buyerToken}`)
-    .send({ realWeightKg: params.animalWeightKg ?? 25 });
+    .send({ realWeightKg: params.animalWeightKg ?? 25, animalWeights: [{ animalId: params.animalId, weightKg: params.animalWeightKg ?? 25 }] });
   expect(declareWeight.status).toBe(201);
 
   const validate = await request(params.app.getHttpServer())
@@ -192,7 +252,8 @@ export async function runDoubleConfirmationHappyPath(params: {
     app: params.app,
     sellerToken: params.sellerToken,
     buyerToken: params.buyerToken,
-    transactionId: params.ctx.transactionId
+    transactionId: params.ctx.transactionId,
+    animalId: params.ctx.animalId
   });
 
   const receipt = await request(params.app.getHttpServer())

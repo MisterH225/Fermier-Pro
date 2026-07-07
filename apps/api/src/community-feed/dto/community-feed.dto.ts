@@ -141,5 +141,11 @@ export const FEED_POST_TYPES_BY_PROFILE: Record<
     CommunityFeedPostType.question,
     CommunityFeedPostType.observation,
     CommunityFeedPostType.success
+  ],
+  merchant: [
+    CommunityFeedPostType.question,
+    CommunityFeedPostType.tip,
+    CommunityFeedPostType.observation,
+    CommunityFeedPostType.success
   ]
 };

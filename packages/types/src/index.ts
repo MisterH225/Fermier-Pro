@@ -1,4 +1,4 @@
-export type ProfileType = "producer" | "technician" | "veterinarian" | "buyer";
+export type ProfileType = "producer" | "technician" | "veterinarian" | "buyer" | "merchant";
 
 /** Mode de suivi a la ferme (aligne Prisma `FarmLivestockMode`). */
 export type FarmLivestockMode = "individual" | "batch" | "hybrid";

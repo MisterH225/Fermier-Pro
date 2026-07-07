@@ -75,6 +75,7 @@ export interface MobileMoneyGateway {
     userId: string;
     phone?: string | null;
     label: string;
+    idempotencyKey?: string;
   }): Promise<MobileMoneyInitResult>;
 
   confirmWithdraw(

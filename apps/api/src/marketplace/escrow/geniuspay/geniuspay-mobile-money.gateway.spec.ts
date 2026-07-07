@@ -3,19 +3,25 @@ import type { GeniusPayClient } from "./geniuspay.client";
 import type { PrismaService } from "../../../prisma/prisma.service";
 import {
   GENIUSPAY_KIND_MARKETPLACE_ESCROW,
-  GENIUSPAY_KIND_WALLET_TOPUP
+  GENIUSPAY_KIND_MARKETPLACE_SELLER_PAYOUT,
+  GENIUSPAY_KIND_WALLET_TOPUP,
+  GENIUSPAY_KIND_WALLET_WITHDRAW
 } from "./geniuspay.types";
 
 describe("GeniusPayMobileMoneyGateway", () => {
   const createPayment = jest.fn();
   const getPayment = jest.fn();
   const lookupPayment = jest.fn();
+  const createPayout = jest.fn();
+  const lookupPayout = jest.fn();
   const findUnique = jest.fn();
 
   const client = {
     createPayment,
     getPayment,
-    lookupPayment
+    lookupPayment,
+    createPayout,
+    lookupPayout
   } as unknown as GeniusPayClient;
 
   const prisma = {
@@ -27,6 +33,7 @@ describe("GeniusPayMobileMoneyGateway", () => {
   beforeEach(() => {
     jest.resetAllMocks();
     lookupPayment.mockResolvedValue(null);
+    lookupPayout.mockResolvedValue(null);
     findUnique.mockResolvedValue({
       fullName: "Test User",
       firstName: null,
@@ -138,5 +145,81 @@ describe("GeniusPayMobileMoneyGateway", () => {
     const result = await gateway.resumePendingCheckout("MTX-RESUME1");
     expect(result?.providerRef).toBe("MTX-RESUME1");
     expect(result?.paymentUrl).toContain("checkout");
+  });
+
+  it("initie un retrait wallet via payout", async () => {
+    createPayout.mockResolvedValue({
+      id: "p1",
+      reference: "PYT-WITHDRAW1",
+      amount: 5000,
+      currency: "XOF",
+      status: "pending"
+    });
+    lookupPayout.mockResolvedValue({
+      id: "p1",
+      reference: "PYT-WITHDRAW1",
+      amount: 5000,
+      currency: "XOF",
+      status: "completed",
+      metadata: {
+        kind: GENIUSPAY_KIND_WALLET_WITHDRAW,
+        user_id: "user-1",
+        amount: "5000"
+      }
+    });
+
+    const init = await gateway.initiateWithdraw({
+      amount: 5000,
+      currency: "XOF",
+      userId: "user-1",
+      phone: "0700000000",
+      label: "Retrait",
+      idempotencyKey: "withdraw-1"
+    });
+    expect(init.providerRef).toBe("PYT-WITHDRAW1");
+    expect(createPayout).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          kind: GENIUSPAY_KIND_WALLET_WITHDRAW,
+          user_id: "user-1"
+        })
+      })
+    );
+
+    const confirmed = await gateway.confirmWithdraw("PYT-WITHDRAW1", "user-1", 5000);
+    expect(confirmed.success).toBe(true);
+  });
+
+  it("verse un vendeur via payout marketplace", async () => {
+    createPayout.mockResolvedValue({
+      id: "p2",
+      reference: "PYT-SELLER1",
+      amount: 12000,
+      currency: "XOF",
+      status: "pending"
+    });
+    lookupPayout.mockResolvedValue({
+      id: "p2",
+      reference: "PYT-SELLER1",
+      amount: 12000,
+      currency: "XOF",
+      status: "completed",
+      metadata: {
+        kind: GENIUSPAY_KIND_MARKETPLACE_SELLER_PAYOUT,
+        user_id: "seller-1",
+        transaction_id: "tx-1",
+        amount: "12000"
+      }
+    });
+
+    const result = await gateway.releaseFunds({
+      amount: 12000,
+      currency: "XOF",
+      recipientUserId: "seller-1",
+      transactionId: "tx-1",
+      label: "Versement vendeur"
+    });
+    expect(result.success).toBe(true);
+    expect(result.providerRef).toBe("PYT-SELLER1");
   });
 });

@@ -17,6 +17,7 @@ const WALLET_PENDING_PREFIX = "wallet:pending:";
 const TOPUP_PENDING_PREFIX = "wallet:topup-pending:";
 const WITHDRAW_PENDING_PREFIX = "wallet:withdraw-pending:";
 const VET_PENDING_PREFIX = "wallet:vet-pending:";
+const MERCHANT_PENDING_PREFIX = "wallet:merchant-pending:";
 
 export type WalletSummary = {
   balance: number;
@@ -637,6 +638,65 @@ export class UserWalletService {
     };
   }
 
+  merchantPendingRef(orderId: string): string {
+    return `${MERCHANT_PENDING_PREFIX}${orderId}`;
+  }
+
+  isMerchantWalletPendingRef(providerRef: string | null | undefined): boolean {
+    return Boolean(providerRef?.startsWith(MERCHANT_PENDING_PREFIX));
+  }
+
+  async debitForMerchantHold(
+    userId: string,
+    amount: number,
+    currency: string,
+    orderId: string,
+    note: string
+  ): Promise<{ providerRef: string; entryId: string }> {
+    const idempotencyKey = `merchant-hold:${orderId}`;
+    const existing = await this.prisma.userWalletEntry.findUnique({
+      where: { idempotencyKey }
+    });
+    if (existing) {
+      return {
+        providerRef: this.walletProviderRef(existing.id),
+        entryId: existing.id
+      };
+    }
+    const entry = await this.debit(
+      userId,
+      amount,
+      currency,
+      UserWalletEntryKind.debit_escrow_hold,
+      note,
+      idempotencyKey,
+      { merchantOrderId: orderId }
+    );
+    return {
+      providerRef: this.walletProviderRef(entry.id),
+      entryId: entry.id
+    };
+  }
+
+  async creditMerchantPayout(
+    userId: string,
+    amount: number,
+    currency: string,
+    orderId: string,
+    buyerUserId: string,
+    note: string
+  ): Promise<WalletEntryDto> {
+    return this.credit(
+      userId,
+      amount,
+      currency,
+      UserWalletEntryKind.credit_escrow_release,
+      note,
+      `merchant-payout:${orderId}`,
+      { merchantOrderId: orderId, counterpartyUserId: buyerUserId }
+    );
+  }
+
   async debitForVetHold(
     userId: string,
     amount: number,
@@ -689,6 +749,31 @@ export class UserWalletService {
       amount,
       currency,
       appointmentId,
+      note
+    );
+    return hold.providerRef;
+  }
+
+  async confirmMerchantPendingHold(
+    providerRef: string,
+    userId: string,
+    amount: number,
+    currency: string,
+    orderId: string,
+    note: string
+  ): Promise<string> {
+    if (!this.isMerchantWalletPendingRef(providerRef)) {
+      throw new BadRequestException("Référence portefeuille boutique invalide");
+    }
+    const pendingOrderId = providerRef.slice(MERCHANT_PENDING_PREFIX.length);
+    if (pendingOrderId !== orderId) {
+      throw new BadRequestException("Référence portefeuille invalide pour cette commande");
+    }
+    const hold = await this.debitForMerchantHold(
+      userId,
+      amount,
+      currency,
+      orderId,
       note
     );
     return hold.providerRef;
@@ -787,6 +872,7 @@ export class UserWalletService {
     extra: {
       transactionId?: string;
       vetAppointmentId?: string;
+      merchantOrderId?: string;
       counterpartyUserId?: string;
       providerRef?: string;
     } = {}
@@ -821,6 +907,7 @@ export class UserWalletService {
             currency,
             transactionId: extra.transactionId,
             vetAppointmentId: extra.vetAppointmentId,
+            merchantOrderId: extra.merchantOrderId,
             counterpartyUserId: extra.counterpartyUserId,
             providerRef: extra.providerRef,
             note,
@@ -855,6 +942,7 @@ export class UserWalletService {
     extra: {
       transactionId?: string;
       vetAppointmentId?: string;
+      merchantOrderId?: string;
       counterpartyUserId?: string;
       providerRef?: string;
     } = {}
@@ -897,6 +985,7 @@ export class UserWalletService {
             currency,
             transactionId: extra.transactionId,
             vetAppointmentId: extra.vetAppointmentId,
+            merchantOrderId: extra.merchantOrderId,
             counterpartyUserId: extra.counterpartyUserId,
             providerRef: extra.providerRef,
             note,

@@ -7,4 +7,8 @@ export class CreateDirectChatDto {
   @IsOptional()
   @IsString()
   marketplaceListingId?: string;
+
+  @IsOptional()
+  @IsString()
+  merchantProductId?: string;
 }

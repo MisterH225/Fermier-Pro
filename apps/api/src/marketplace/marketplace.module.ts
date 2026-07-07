@@ -84,7 +84,8 @@ import { ListingAnimalSyncService } from "./listing-animal-sync.service";
     MarketplaceTransactionService,
     ReceiptService,
     CreditOffersService,
-    CreditScoreService
+    CreditScoreService,
+    EscrowService
   ]
 })
 export class MarketplaceModule {}
