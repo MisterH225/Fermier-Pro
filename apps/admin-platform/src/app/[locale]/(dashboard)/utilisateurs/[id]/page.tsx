@@ -9,6 +9,9 @@ import { fetchUserDetail, type UserDetailDto } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { UserAvatar } from "@/components/users/UserAvatar";
 import { PageSkeleton } from "@/components/layout/PageSkeleton";
+import { AdminPageShell } from "@/components/layout/AdminPageShell";
+import { AdminSection } from "@/components/layout/AdminSection";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { SemiGaugeChart } from "@/components/charts/SemiGaugeChart";
@@ -28,18 +31,19 @@ function formatPct(n: number) {
 
 function DetailSection({
   title,
+  description,
   children,
   className
 }: {
   title: string;
+  description?: string;
   children: React.ReactNode;
   className?: string;
 }) {
   return (
-    <section className={cn("space-y-4", className)}>
-      <h2 className="text-lg font-bold text-foreground border-b border-white/60 pb-2">{title}</h2>
+    <AdminSection title={title} description={description} bare className={className}>
       {children}
-    </section>
+    </AdminSection>
   );
 }
 
@@ -76,38 +80,40 @@ export default function UserDetailPage() {
   };
 
   return (
-    <div className="space-y-10 max-w-6xl">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-4 min-w-0">
-          <UserAvatar
-            name={user.fullName}
-            email={user.email}
-            avatarUrl={user.avatarUrl}
-            size="lg"
-          />
-          <div className="min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground truncate">
-              {user.fullName ?? user.email ?? user.id}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-0.5 truncate">{user.email ?? "—"}</p>
-            <div className="flex flex-wrap items-center gap-2 mt-2">
-              <Badge
-                variant={user.isActive ? "success" : "outline"}
-                className={cn(!user.isActive && "bg-muted text-muted-foreground")}
-              >
-                {user.isActive ? tUsers("status.active") : tUsers("status.inactive")}
+    <AdminPageShell wide>
+      <PageHeader
+        title={user.fullName ?? user.email ?? user.id}
+        description={tUsers("detailPageTitle")}
+        action={
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/utilisateurs">{t("back")}</Link>
+          </Button>
+        }
+      />
+
+      <div className="flex flex-wrap items-start gap-4 pb-2">
+        <UserAvatar
+          name={user.fullName}
+          email={user.email}
+          avatarUrl={user.avatarUrl}
+          size="lg"
+        />
+        <div className="min-w-0 space-y-2">
+          <p className="text-sm text-muted-foreground truncate">{user.email ?? "—"}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant={user.isActive ? "success" : "outline"}
+              className={cn(!user.isActive && "bg-muted text-muted-foreground")}
+            >
+              {user.isActive ? tUsers("status.active") : tUsers("status.inactive")}
+            </Badge>
+            {data.profiles.map((p) => (
+              <Badge key={p.id} variant="secondary">
+                {profileLabel(p.type)}
               </Badge>
-              {data.profiles.map((p) => (
-                <Badge key={p.id} variant="secondary">
-                  {profileLabel(p.type)}
-                </Badge>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
-        <Button variant="outline" className="shrink-0" asChild>
-          <Link href="/utilisateurs">← {t("back")}</Link>
-        </Button>
       </div>
 
       <DetailSection title={t("tabs.profil")}>
@@ -269,6 +275,6 @@ export default function UserDetailPage() {
           />
         </div>
       </DetailSection>
-    </div>
+    </AdminPageShell>
   );
 }

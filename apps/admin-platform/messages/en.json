@@ -288,6 +288,9 @@
   },
   "vets": {
     "title": "Vet validation",
+    "pageLead": "Review applications, verify diplomas and validate veterinarian profiles.",
+    "directoryTitle": "Applications",
+    "directoryDesc": "Filter by verification status and open each candidate's detail page.",
     "tabs": {
       "pending": "Pending",
       "verified": "Verified",
@@ -325,6 +328,8 @@
     "title": "Users",
     "loading": "Loading…",
     "total": "{count} users",
+    "directoryTitle": "Directory",
+    "directoryDesc": "Search, filter by status and open user profiles.",
     "searchPlaceholder": "Search…",
     "selectAll": "Select all",
     "since": "Since {date}",
@@ -460,6 +465,7 @@
   },
   "stats": {
     "title": "Aggregated statistics",
+    "pageLead": "Key indicators, top diseases and pig price indices for the selected period.",
     "topDiseases": "Top diseases",
     "periods": {
       "month": "Monthly",
@@ -524,6 +530,7 @@
   },
   "ai": {
     "title": "AI assistant",
+    "pageLead": "Epidemic analysis, free-form questions and help validating veterinarian applications.",
     "unavailable": "AI unavailable — check GEMINI_API_KEY on the API.",
     "setupTitle": "Configure the AI assistant",
     "setupBody": "The Google Gemini key must be set on the API server (not in the admin console).",
@@ -569,6 +576,8 @@
   "auditLogs": {
     "title": "Admin action log",
     "subtitle": "History of suspensions, bans, messages and warnings.",
+    "journalTitle": "History",
+    "journalDesc": "Last 100 moderation actions recorded on the platform.",
     "empty": "No entries.",
     "columns": {
       "date": "Date",
@@ -733,6 +742,7 @@
   },
   "marketplace": {
     "title": "Marketplace",
+    "pageLead": "Listings, transactions, weight disputes, platform revenue and merchant moderation.",
     "loading": "Loading…",
     "loadError": "Could not load marketplace data.",
     "tabs": {
@@ -916,6 +926,7 @@
   },
   "vetAppointments": {
     "title": "Veterinary appointments",
+    "subtitle": "Track appointments, refunds and commissions on veterinary services.",
     "tabs": {
       "list": "List",
       "revenue": "Commissions & ratings"
@@ -1004,6 +1015,12 @@
       "appeals": "Pending appeals",
       "content": "Feed content"
     },
+    "sectionsDesc": {
+      "content": "Posts and comments visible on the community feed.",
+      "events": "Automatic detections and reports recorded by the AI agent.",
+      "sanctioned": "Accounts suspended or restricted on the feed.",
+      "appeals": "Sanction review requests awaiting a decision."
+    },
     "columns": {
       "date": "Date",
       "user": "User",
@@ -1043,6 +1060,9 @@
     "sections": {
       "rooms": "Active rooms"
     },
+    "sectionsDesc": {
+      "rooms": "Farm rooms and direct conversations — deletion reserved for SuperAdmins."
+    },
     "labels": {
       "untitled": "Untitled room",
       "meta": "{members} members · {messages} messages"
@@ -1058,6 +1078,8 @@
   "producerScores": {
     "title": "Producer scores",
     "description": "Producer reliability: data entry, platform usage, responsiveness (offers, chat, credit).",
+    "listTitle": "Rankings",
+    "listDesc": "Filter by score level, recompute or block producer credit.",
     "filterAll": "All",
     "refresh": "Refresh",
     "empty": "No producer scores recorded.",
@@ -1078,6 +1100,8 @@
   "walletAdmin": {
     "title": "Pending withdrawals",
     "subtitle": "Approve or reject withdrawals above the auto threshold.",
+    "pendingTitle": "Pending requests",
+    "pendingDesc": "Each withdrawal exceeds the threshold set under Settings → Wallet.",
     "loading": "Loading…",
     "empty": "No withdrawals awaiting approval.",
     "phone": "Phone",

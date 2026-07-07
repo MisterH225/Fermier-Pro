@@ -12,6 +12,9 @@ import {
 } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { AdminPageShell } from "@/components/layout/AdminPageShell";
+import { AdminSection } from "@/components/layout/AdminSection";
+import { Puzzle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -101,8 +104,9 @@ export function ModulesSettingsPanel() {
   }
 
   return (
-    <div className="space-y-6">
+    <AdminPageShell>
       <PageHeader title={t("title")} description={t("subtitle")} />
+      <AdminSection icon={Puzzle} title={t("gridTitle")} description={t("subtitle")} bare>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {modules.map((mod) => (
           <Card key={mod.moduleId}>
@@ -147,6 +151,7 @@ export function ModulesSettingsPanel() {
           </Card>
         ))}
       </div>
+      </AdminSection>
 
       <Dialog open={mode != null} onOpenChange={(open) => !open && closeDialog()}>
         <DialogContent>
@@ -210,6 +215,6 @@ export function ModulesSettingsPanel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </AdminPageShell>
   );
 }

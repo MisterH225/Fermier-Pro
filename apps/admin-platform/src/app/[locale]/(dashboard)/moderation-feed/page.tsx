@@ -19,9 +19,12 @@ import {
 } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { AdminPageShell } from "@/components/layout/AdminPageShell";
+import { AdminSection } from "@/components/layout/AdminSection";
 import { PageSkeleton } from "@/components/layout/PageSkeleton";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AlertTriangle, FileText, Gavel, ShieldAlert } from "lucide-react";
 
 function AdminCommentRow({
   comment,
@@ -183,12 +186,15 @@ export default function FeedModerationPage() {
   }
 
   return (
-    <div className="space-y-8 max-w-6xl">
+    <AdminPageShell wide>
       <PageHeader title={t("title")} description={t("subtitle")} />
 
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold">{t("sections.content")}</h2>
+      <AdminSection
+        id="content"
+        icon={FileText}
+        title={t("sections.content")}
+        description={t("sectionsDesc.content")}
+        footer={
           <Button
             size="sm"
             variant={includeRemoved ? "default" : "outline"}
@@ -196,7 +202,9 @@ export default function FeedModerationPage() {
           >
             {t("actions.showRemoved")}
           </Button>
-        </div>
+        }
+        bare
+      >
         <Card className="overflow-hidden divide-y">
           {posts.map((post) => (
             <AdminPostCard key={post.id} post={post} token={token!} onDeleted={() => void reload()} />
@@ -205,10 +213,15 @@ export default function FeedModerationPage() {
             <p className="p-8 text-center text-muted-foreground">{t("empty.content")}</p>
           ) : null}
         </Card>
-      </section>
+      </AdminSection>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">{t("sections.events")}</h2>
+      <AdminSection
+        id="events"
+        icon={AlertTriangle}
+        title={t("sections.events")}
+        description={t("sectionsDesc.events")}
+        bare
+      >
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -246,10 +259,15 @@ export default function FeedModerationPage() {
             </table>
           </div>
         </Card>
-      </section>
+      </AdminSection>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">{t("sections.sanctioned")}</h2>
+      <AdminSection
+        id="sanctioned"
+        icon={ShieldAlert}
+        title={t("sections.sanctioned")}
+        description={t("sectionsDesc.sanctioned")}
+        bare
+      >
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -296,10 +314,15 @@ export default function FeedModerationPage() {
             </table>
           </div>
         </Card>
-      </section>
+      </AdminSection>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">{t("sections.appeals")}</h2>
+      <AdminSection
+        id="appeals"
+        icon={Gavel}
+        title={t("sections.appeals")}
+        description={t("sectionsDesc.appeals")}
+        bare
+      >
         <Card className="overflow-hidden divide-y">
           {appeals.map((a) => (
             <div key={a.id} className="p-4 space-y-2">
@@ -342,7 +365,7 @@ export default function FeedModerationPage() {
             <p className="p-8 text-center text-muted-foreground">{t("empty.appeals")}</p>
           ) : null}
         </Card>
-      </section>
-    </div>
+      </AdminSection>
+    </AdminPageShell>
   );
 }

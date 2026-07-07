@@ -1,4 +1,5 @@
-import { Button } from "@/components/ui/button";
+"use client";
+
 import { cn } from "@/lib/utils";
 
 type Props<T extends string> = {
@@ -6,6 +7,8 @@ type Props<T extends string> = {
   value: T;
   onChange: (value: T) => void;
   label: (id: T) => string;
+  className?: string;
+  /** @deprecated Conservé pour compatibilité — le style est désormais des onglets soulignés. */
   size?: "sm" | "default";
 };
 
@@ -14,26 +17,28 @@ export function FilterPills<T extends string>({
   value,
   onChange,
   label,
-  size = "sm"
+  className
 }: Props<T>) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <nav
+      className={cn("flex flex-wrap gap-6 border-b border-border/60", className)}
+      aria-label="Filtres"
+    >
       {items.map((id) => (
-        <Button
+        <button
           key={id}
           type="button"
-          size={size}
-          variant={value === id ? "default" : "outline"}
           className={cn(
-            "rounded-full",
-            size === "sm" && "h-8 px-4 text-xs",
-            value !== id && "border-white/70 bg-white/40"
+            "-mb-px border-b-2 pb-3 text-sm font-medium transition-colors",
+            value === id
+              ? "border-primary text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           )}
           onClick={() => onChange(id)}
         >
           {label(id)}
-        </Button>
+        </button>
       ))}
-    </div>
+    </nav>
   );
 }

@@ -6,6 +6,8 @@ import { Activity, Skull, Users } from "lucide-react";
 import { fetchAdminStats, type StatsDto } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { AdminPageShell } from "@/components/layout/AdminPageShell";
+import { AdminSection } from "@/components/layout/AdminSection";
 import { FilterPills } from "@/components/layout/FilterPills";
 import { PigPriceIndexSection } from "@/components/market/PigPriceIndexSection";
 import { HybridPigPriceAdminSection } from "@/components/market/HybridPigPriceAdminSection";
@@ -40,9 +42,10 @@ export default function StatistiquesPage() {
   }));
 
   return (
-    <div className="space-y-8">
+    <AdminPageShell wide>
       <PageHeader
         title={t("title")}
+        description={t("pageLead")}
         action={
           <FilterPills
             items={PERIODS}
@@ -56,7 +59,8 @@ export default function StatistiquesPage() {
       {loading || !data ? (
         <p className="text-muted-foreground">…</p>
       ) : (
-        <>
+        <AdminSection icon={Activity} title={t("topDiseases")} bare>
+          <div className="space-y-8">
           <div className="grid md:grid-cols-3 gap-4">
             <KpiCard
               label={t("kpis.newUsers")}
@@ -84,8 +88,9 @@ export default function StatistiquesPage() {
 
           {token ? <PigPriceIndexSection token={token} /> : null}
           {token ? <HybridPigPriceAdminSection token={token} /> : null}
-        </>
+          </div>
+        </AdminSection>
       )}
-    </div>
+    </AdminPageShell>
   );
 }

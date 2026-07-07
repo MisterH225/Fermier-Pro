@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SettingsSection } from "./SettingsSection";
+import { AdminSection } from "@/components/layout/AdminSection";
 
 const FEE_TYPES: WalletFeeConfigDto["transactionType"][] = [
   "deposit",
@@ -86,7 +86,7 @@ export function WalletFeesPanel({ canEdit = true }: Props) {
   }
 
   return (
-    <SettingsSection
+    <AdminSection
       id="wallet-fees"
       icon={Percent}
       title={t("title")}
@@ -178,6 +178,6 @@ export function WalletFeesPanel({ canEdit = true }: Props) {
           );
         })}
       </div>
-    </SettingsSection>
+    </AdminSection>
   );
 }

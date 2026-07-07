@@ -12,8 +12,11 @@ import {
 } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { AdminPageShell } from "@/components/layout/AdminPageShell";
+import { AdminSection } from "@/components/layout/AdminSection";
 import { DiplomeViewer } from "@/components/vets/DiplomeViewer";
 import { VetStatusBadge } from "@/components/vets/VetStatusBadge";
+import { FileCheck, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -63,13 +66,14 @@ export default function VetDetailPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <PageHeader title={vet.fullName} />
+    <AdminPageShell>
+      <PageHeader title={vet.fullName} description={t("pageLead")} />
       <VetStatusBadge
         status={vet.verificationStatus}
         label={statusLabel(vet.verificationStatus)}
       />
 
+      <AdminSection icon={Stethoscope} title={t("detail.profileTitle")} bare>
       <div className="grid md:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="pb-2">
@@ -120,31 +124,30 @@ export default function VetDetailPage() {
           </Card>
         )}
       </div>
+      </AdminSection>
 
       {vet.verificationStatus === "pending" ? (
-        <Card>
-          <CardContent className="space-y-4 pt-6">
-            <div className="space-y-2">
-              <Label htmlFor="reject-reason">{t("rejectReason")}</Label>
-              <Textarea
-                id="reject-reason"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder={t("rejectPlaceholder")}
-                className="min-h-[80px]"
-              />
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Button disabled={busy} onClick={() => act("verify")}>
-                {t("approve")}
-              </Button>
-              <Button variant="outline" disabled={busy} onClick={() => act("reject")}>
-                {t("reject")}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <AdminSection icon={FileCheck} title={t("approve")} description={t("rejectReason")}>
+          <div className="space-y-2">
+            <Label htmlFor="reject-reason">{t("rejectReason")}</Label>
+            <Textarea
+              id="reject-reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder={t("rejectPlaceholder")}
+              className="min-h-[80px]"
+            />
+          </div>
+          <div className="flex flex-wrap gap-3 pt-2">
+            <Button disabled={busy} onClick={() => act("verify")}>
+              {t("approve")}
+            </Button>
+            <Button variant="outline" disabled={busy} onClick={() => act("reject")}>
+              {t("reject")}
+            </Button>
+          </div>
+        </AdminSection>
       ) : null}
-    </div>
+    </AdminPageShell>
   );
 }

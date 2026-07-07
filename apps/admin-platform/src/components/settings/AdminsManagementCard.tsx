@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SettingsSection } from "./SettingsSection";
+import { AdminSection } from "@/components/layout/AdminSection";
 import { ShieldCheck } from "lucide-react";
 
 type Props = {
@@ -115,7 +115,7 @@ export function AdminsManagementCard({ currentUserId: currentUserIdProp }: Props
   };
 
   return (
-    <SettingsSection
+    <AdminSection
       id="admins"
       icon={ShieldCheck}
       title={t("title")}
@@ -217,6 +217,6 @@ export function AdminsManagementCard({ currentUserId: currentUserIdProp }: Props
           </Button>
         </div>
       </div>
-    </SettingsSection>
+    </AdminSection>
   );
 }

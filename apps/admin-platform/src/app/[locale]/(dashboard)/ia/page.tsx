@@ -16,10 +16,11 @@ import {
 } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { AdminPageShell } from "@/components/layout/AdminPageShell";
+import { AdminSection } from "@/components/layout/AdminSection";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { selectClass } from "@/lib/ui-styles";
@@ -93,13 +94,13 @@ export default function IaPage() {
   const aiDisabled = aiConfigured === false;
 
   return (
-    <div className="space-y-8">
-      <PageHeader title={t("title")} />
+    <AdminPageShell>
+      <PageHeader title={t("title")} description={t("pageLead")} />
 
       {aiConfigured === null ? (
         <p className="text-sm text-muted-foreground">…</p>
       ) : aiConfigured ? (
-        <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/25 bg-emerald-500/8 px-4 py-3 text-sm text-emerald-800">
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/8 px-4 py-3 text-sm text-emerald-800">
           <CheckCircle2 className="size-4 shrink-0" />
           {t("configured")}
         </div>
@@ -107,151 +108,131 @@ export default function IaPage() {
         <AiSetupBanner t={t} />
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Sparkles className="size-4 text-primary" />
-            {t("epidemic.title")}
-          </CardTitle>
-          <CardDescription>{t("epidemic.description")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Button
-            type="button"
-            disabled={epidemicLoading || aiDisabled}
-            onClick={runEpidemic}
-          >
+      <AdminSection
+        icon={Sparkles}
+        title={t("epidemic.title")}
+        description={t("epidemic.description")}
+        footer={
+          <Button type="button" disabled={epidemicLoading || aiDisabled} onClick={runEpidemic}>
             {epidemicLoading ? "…" : t("epidemic.run")}
           </Button>
-          {epidemic?.unavailable ? (
-            <UnavailableNotice message={t("unavailable")} />
-          ) : null}
-          {epidemic && !epidemic.unavailable ? (
-            <div className="space-y-3 text-sm">
-              <p className="leading-relaxed">{epidemic.summary}</p>
-              <ListBlock label={t("epidemic.emerging")} items={epidemic.emergingDiseases} />
-              <ListBlock label={t("epidemic.riskZones")} items={epidemic.riskZones} />
-              <ListBlock label={t("epidemic.trends")} items={epidemic.trends} />
-              <ListBlock
-                label={t("epidemic.recommendations")}
-                items={epidemic.recommendations}
-              />
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Bot className="size-4 text-primary" />
-            {t("ask.title")}
-          </CardTitle>
-          <CardDescription>{t("ask.description")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="ai-question">{t("ask.title")}</Label>
-            <Textarea
-              id="ai-question"
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder={t("ask.placeholder")}
-              className="min-h-[100px]"
-              disabled={aiDisabled}
-            />
+        }
+      >
+        {epidemic?.unavailable ? <UnavailableNotice message={t("unavailable")} /> : null}
+        {epidemic && !epidemic.unavailable ? (
+          <div className="space-y-3 text-sm">
+            <p className="leading-relaxed">{epidemic.summary}</p>
+            <ListBlock label={t("epidemic.emerging")} items={epidemic.emergingDiseases} />
+            <ListBlock label={t("epidemic.riskZones")} items={epidemic.riskZones} />
+            <ListBlock label={t("epidemic.trends")} items={epidemic.trends} />
+            <ListBlock label={t("epidemic.recommendations")} items={epidemic.recommendations} />
           </div>
+        ) : null}
+      </AdminSection>
+
+      <AdminSection
+        icon={Bot}
+        title={t("ask.title")}
+        description={t("ask.description")}
+        footer={
           <Button type="button" disabled={askLoading || aiDisabled} onClick={runAsk}>
             {askLoading ? "…" : t("ask.run")}
           </Button>
-          {askResult?.unavailable ? (
-            <UnavailableNotice message={t("unavailable")} />
-          ) : null}
-          {askResult?.answer ? (
-            <p className="text-sm whitespace-pre-wrap rounded-2xl glass-card p-4">
-              {askResult.answer}
-            </p>
-          ) : null}
-        </CardContent>
-      </Card>
+        }
+      >
+        <div className="space-y-2">
+          <Label htmlFor="ai-question">{t("ask.title")}</Label>
+          <Textarea
+            id="ai-question"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder={t("ask.placeholder")}
+            className="min-h-[100px]"
+            disabled={aiDisabled}
+          />
+        </div>
+        {askResult?.unavailable ? <UnavailableNotice message={t("unavailable")} /> : null}
+        {askResult?.answer ? (
+          <p className="text-sm whitespace-pre-wrap rounded-xl border bg-muted/30 p-4">
+            {askResult.answer}
+          </p>
+        ) : null}
+      </AdminSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t("vetAssist.title")}</CardTitle>
-          <CardDescription>{t("vetAssist.description")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {pendingVets.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("vetAssist.none")}</p>
-          ) : (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="vet-select">{t("vetAssist.title")}</Label>
-                <select
-                  id="vet-select"
-                  value={selectedVet}
-                  onChange={(e) => setSelectedVet(e.target.value)}
-                  className={selectClass}
-                  disabled={aiDisabled}
-                >
-                  {pendingVets.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.fullName} — {v.locationCountry}
-                    </option>
-                  ))}
-                </select>
+      <AdminSection
+        title={t("vetAssist.title")}
+        description={t("vetAssist.description")}
+        footer={
+          pendingVets.length > 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={vetLoading || aiDisabled}
+              onClick={runVetAssist}
+            >
+              {vetLoading ? "…" : t("vetAssist.run")}
+            </Button>
+          ) : undefined
+        }
+      >
+        {pendingVets.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{t("vetAssist.none")}</p>
+        ) : (
+          <div className="space-y-2">
+            <Label htmlFor="vet-select">{t("vetAssist.title")}</Label>
+            <select
+              id="vet-select"
+              value={selectedVet}
+              onChange={(e) => setSelectedVet(e.target.value)}
+              className={selectClass}
+              disabled={aiDisabled}
+            >
+              {pendingVets.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.fullName} — {v.locationCountry}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {vetAssist?.unavailable ? <UnavailableNotice message={t("unavailable")} /> : null}
+        {vetAssist && !vetAssist.unavailable ? (
+          <div className="grid sm:grid-cols-2 gap-3">
+            <KpiCard
+              label={t("vetAssist.confidence")}
+              value={`${vetAssist.confidenceScore} %`}
+              variant="blue"
+            />
+            <KpiCard
+              label={t("vetAssist.recommendation")}
+              value={t(`vetAssist.rec.${vetAssist.recommendation}` as "vetAssist.rec.review")}
+              variant="sky"
+            />
+            <KpiCard
+              label={t("vetAssist.diploma")}
+              value={vetAssist.readableDiploma}
+              variant="purple"
+            />
+            <KpiCard
+              label={t("vetAssist.consistent")}
+              value={vetAssist.infoConsistent ? t("vetAssist.yes") : t("vetAssist.no")}
+              variant="warning"
+            />
+            {vetAssist.notes ? (
+              <p className="sm:col-span-2 text-sm text-muted-foreground rounded-xl border bg-muted/30 p-3">
+                {vetAssist.notes}
+              </p>
+            ) : null}
+            {vetAssist.diplomaImageAnalyzed ? (
+              <div className="sm:col-span-2">
+                <Badge variant="success">{t("vetAssist.imageAnalyzed")}</Badge>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={vetLoading || aiDisabled}
-                onClick={runVetAssist}
-              >
-                {vetLoading ? "…" : t("vetAssist.run")}
-              </Button>
-            </>
-          )}
-          {vetAssist?.unavailable ? (
-            <UnavailableNotice message={t("unavailable")} />
-          ) : null}
-          {vetAssist && !vetAssist.unavailable ? (
-            <div className="grid sm:grid-cols-2 gap-3">
-              <KpiCard
-                label={t("vetAssist.confidence")}
-                value={`${vetAssist.confidenceScore} %`}
-                variant="blue"
-              />
-              <KpiCard
-                label={t("vetAssist.recommendation")}
-                value={t(`vetAssist.rec.${vetAssist.recommendation}` as "vetAssist.rec.review")}
-                variant="sky"
-              />
-              <KpiCard
-                label={t("vetAssist.diploma")}
-                value={vetAssist.readableDiploma}
-                variant="purple"
-              />
-              <KpiCard
-                label={t("vetAssist.consistent")}
-                value={vetAssist.infoConsistent ? t("vetAssist.yes") : t("vetAssist.no")}
-                variant="warning"
-              />
-              {vetAssist.notes ? (
-                <p className="sm:col-span-2 text-sm text-muted-foreground rounded-2xl border border-white/60 bg-white/40 p-3">
-                  {vetAssist.notes}
-                </p>
-              ) : null}
-              {vetAssist.diplomaImageAnalyzed ? (
-                <div className="sm:col-span-2">
-                  <Badge variant="success">{t("vetAssist.imageAnalyzed")}</Badge>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-          <p className="text-xs text-muted-foreground">{t("vetAssist.disclaimer")}</p>
-        </CardContent>
-      </Card>
-    </div>
+            ) : null}
+          </div>
+        ) : null}
+        <p className="text-xs text-muted-foreground">{t("vetAssist.disclaimer")}</p>
+      </AdminSection>
+    </AdminPageShell>
   );
 }
 

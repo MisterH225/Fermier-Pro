@@ -5,6 +5,9 @@ import { useTranslations } from "next-intl";
 import { fetchAuditLogs, type AuditLogItem } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { AdminPageShell } from "@/components/layout/AdminPageShell";
+import { AdminSection } from "@/components/layout/AdminSection";
+import { ClipboardList } from "lucide-react";
 import { PageSkeleton } from "@/components/layout/PageSkeleton";
 import { Card } from "@/components/ui/card";
 
@@ -27,9 +30,11 @@ export default function AuditLogsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl">
+    <AdminPageShell wide>
       <PageHeader title={t("title")} description={t("subtitle")} />
-      <Card className="overflow-hidden">
+
+      <AdminSection icon={ClipboardList} title={t("journalTitle")} description={t("journalDesc")} bare>
+        <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -79,6 +84,7 @@ export default function AuditLogsPage() {
           </table>
         </div>
       </Card>
-    </div>
+      </AdminSection>
+    </AdminPageShell>
   );
 }

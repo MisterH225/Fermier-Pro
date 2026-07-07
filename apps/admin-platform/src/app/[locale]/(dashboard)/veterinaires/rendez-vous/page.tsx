@@ -10,7 +10,10 @@ import {
 } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { AdminPageShell } from "@/components/layout/AdminPageShell";
+import { AdminSection } from "@/components/layout/AdminSection";
 import { FilterPills } from "@/components/layout/FilterPills";
+import { CalendarDays } from "lucide-react";
 import { VetAppointmentAdminTable } from "@/components/vet-appointments/VetAppointmentAdminTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -79,8 +82,8 @@ export default function VetAppointmentsAdminPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader title={t("title")} />
+    <AdminPageShell wide>
+      <PageHeader title={t("title")} description={t("subtitle")} />
 
       <FilterPills
         items={[...MAIN_TABS]}
@@ -89,6 +92,11 @@ export default function VetAppointmentsAdminPage() {
         label={(id) => t(`tabs.${id}`)}
       />
 
+      <AdminSection
+        icon={CalendarDays}
+        title={t(`tabs.${mainTab}`)}
+        bare
+      >
       {mainTab === "list" ? (
         <>
           <FilterPills
@@ -179,6 +187,7 @@ export default function VetAppointmentsAdminPage() {
           )}
         </>
       )}
-    </div>
+      </AdminSection>
+    </AdminPageShell>
   );
 }

@@ -19,9 +19,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { selectClass } from "@/lib/ui-styles";
 import {
-  SettingsSection,
-  SettingsSectionSaveFooter
-} from "./SettingsSection";
+  AdminSection,
+  AdminSectionSaveFooter
+} from "@/components/layout/AdminSection";
 
 const SCOPES = ["world", "africa", "west_africa", "countries"] as const;
 const LEVELS = ["info", "warning", "critical"] as const;
@@ -91,7 +91,7 @@ export function PlatformSettingsPanel({
   );
 
   const footer = (key: SectionKey) => (
-    <SettingsSectionSaveFooter
+    <AdminSectionSaveFooter
       canEdit={canEdit}
       saving={saving === key}
       saved={saved[key]}
@@ -153,7 +153,7 @@ export function PlatformSettingsPanel({
 
   return (
     <>
-      <SettingsSection
+      <AdminSection
         id="support"
         icon={Headphones}
         title={t("sections.support")}
@@ -202,9 +202,9 @@ export function PlatformSettingsPanel({
             </p>
           ) : null}
         </div>
-      </SettingsSection>
+      </AdminSection>
 
-      <SettingsSection
+      <AdminSection
         id="map"
         icon={MapPin}
         title={t("sections.map")}
@@ -227,9 +227,9 @@ export function PlatformSettingsPanel({
             ))}
           </select>
         </div>
-      </SettingsSection>
+      </AdminSection>
 
-      <SettingsSection
+      <AdminSection
         id="alerts"
         icon={AlertTriangle}
         title={t("sections.alerts")}
@@ -276,9 +276,9 @@ export function PlatformSettingsPanel({
             ))}
           </select>
         </div>
-      </SettingsSection>
+      </AdminSection>
 
-      <SettingsSection
+      <AdminSection
         id="notifications"
         icon={Bell}
         title={t("sections.notifications")}
@@ -306,9 +306,9 @@ export function PlatformSettingsPanel({
             onChange={(e) => update("reportFrequencyDays", Number(e.target.value))}
           />
         </div>
-      </SettingsSection>
+      </AdminSection>
 
-      <SettingsSection
+      <AdminSection
         id="marketplace"
         icon={ShoppingBag}
         title={t("sections.marketplace")}
@@ -454,9 +454,9 @@ export function PlatformSettingsPanel({
             </p>
           </div>
         </div>
-      </SettingsSection>
+      </AdminSection>
 
-      <SettingsSection
+      <AdminSection
         id="vet"
         icon={Stethoscope}
         title={t("sections.vet")}
@@ -485,9 +485,9 @@ export function PlatformSettingsPanel({
             {t("fields.vetCommissionHint")}
           </p>
         </div>
-      </SettingsSection>
+      </AdminSection>
 
-      <SettingsSection
+      <AdminSection
         id="wallet"
         icon={Wallet}
         title={t("sections.wallet")}
@@ -510,7 +510,7 @@ export function PlatformSettingsPanel({
             {t("fields.withdrawalThresholdHint")}
           </p>
         </div>
-      </SettingsSection>
+      </AdminSection>
     </>
   );
 }

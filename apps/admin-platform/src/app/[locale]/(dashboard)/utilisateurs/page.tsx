@@ -11,6 +11,9 @@ import { UserActionsMenu } from "@/components/users/UserActionsMenu";
 import { UserAvatar } from "@/components/users/UserAvatar";
 import { FilterPills } from "@/components/layout/FilterPills";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { AdminPageShell } from "@/components/layout/AdminPageShell";
+import { AdminSection } from "@/components/layout/AdminSection";
+import { Users } from "lucide-react";
 import { PageSkeleton } from "@/components/layout/PageSkeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -108,12 +111,13 @@ export default function UtilisateursPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <AdminPageShell wide>
       <PageHeader
         title={t("title")}
         description={data ? t("total", { count: data.total }) : t("loading")}
       />
 
+      <AdminSection icon={Users} title={t("directoryTitle")} description={t("directoryDesc")} bare>
       <Card className="overflow-hidden">
         <div className="flex flex-col gap-4 p-4 sm:p-5 border-b border-white/50 bg-white/30 backdrop-blur-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -302,6 +306,7 @@ export default function UtilisateursPage() {
           </div>
         </div>
       </Card>
-    </div>
+      </AdminSection>
+    </AdminPageShell>
   );
 }

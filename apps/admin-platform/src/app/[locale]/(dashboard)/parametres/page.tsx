@@ -15,7 +15,8 @@ import { canWriteMenu } from "@/lib/admin-permissions";
 import { AdminsManagementCard } from "@/components/settings/AdminsManagementCard";
 import { WalletFeesPanel } from "@/components/settings/WalletFeesPanel";
 import { PlatformSettingsPanel } from "@/components/settings/PlatformSettingsPanel";
-import { SettingsGroup } from "@/components/settings/SettingsSection";
+import { AdminPageShell } from "@/components/layout/AdminPageShell";
+import { AdminSectionGroup } from "@/components/layout/AdminSection";
 
 function normalizeSettingsRow(row: PlatformSettingsDto): PlatformSettingsDto {
   return {
@@ -86,16 +87,16 @@ export default function ParametresPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-10 pb-8">
+    <AdminPageShell>
       <PageHeader title={t("title")} description={t("pageLead")} />
 
-      <SettingsGroup title={t("groups.access")}>
+      <AdminSectionGroup title={t("groups.access")}>
         <AccountPasswordCard />
         {isSuperAdmin ? <InstitutionUsersManagementCard /> : null}
         {isSuperAdmin ? <AdminsManagementCard /> : null}
-      </SettingsGroup>
+      </AdminSectionGroup>
 
-      <SettingsGroup title={t("groups.platform")}>
+      <AdminSectionGroup title={t("groups.platform")}>
         <PlatformSettingsPanel
           token={token}
           form={form}
@@ -104,7 +105,7 @@ export default function ParametresPage() {
           update={update}
         />
         <WalletFeesPanel canEdit={canEditSettings} />
-      </SettingsGroup>
-    </div>
+      </AdminSectionGroup>
+    </AdminPageShell>
   );
 }

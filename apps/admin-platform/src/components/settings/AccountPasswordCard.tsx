@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SettingsSection } from "./SettingsSection";
+import { AdminSection } from "@/components/layout/AdminSection";
 
 export function AccountPasswordCard() {
   const t = useTranslations("settings.password");
@@ -48,7 +48,7 @@ export function AccountPasswordCard() {
   };
 
   return (
-    <SettingsSection
+    <AdminSection
       id="password"
       icon={KeyRound}
       title={t("title")}
@@ -90,6 +90,6 @@ export function AccountPasswordCard() {
           {error}
         </p>
       ) : null}
-    </SettingsSection>
+    </AdminSection>
   );
 }

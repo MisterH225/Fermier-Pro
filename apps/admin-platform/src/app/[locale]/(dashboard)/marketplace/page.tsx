@@ -16,7 +16,10 @@ import {
 } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { AdminPageShell } from "@/components/layout/AdminPageShell";
+import { AdminSection } from "@/components/layout/AdminSection";
 import { FilterPills } from "@/components/layout/FilterPills";
+import { Store } from "lucide-react";
 import { MarketplaceOverviewCards } from "@/components/marketplace/MarketplaceOverviewCards";
 import { MarketplaceListingsTable } from "@/components/marketplace/MarketplaceListingsTable";
 import { MarketplaceTransactionTable } from "@/components/marketplace/MarketplaceTransactionTable";
@@ -164,8 +167,8 @@ export default function MarketplaceAdminPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader title={t("title")} />
+    <AdminPageShell wide>
+      <PageHeader title={t("title")} description={t("pageLead")} />
 
       {overview ? <MarketplaceOverviewCards overview={overview} /> : null}
 
@@ -182,6 +185,7 @@ export default function MarketplaceAdminPage() {
         label={(id) => t(`tabs.${id}`)}
       />
 
+      <AdminSection icon={Store} title={t(`tabs.${mainTab}`)} bare>
       {mainTab === "listings" ? (
         <>
           <FilterPills
@@ -267,6 +271,7 @@ export default function MarketplaceAdminPage() {
           />
         )
       ) : null}
-    </div>
+      </AdminSection>
+    </AdminPageShell>
   );
 }

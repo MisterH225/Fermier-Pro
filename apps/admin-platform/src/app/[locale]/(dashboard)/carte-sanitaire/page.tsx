@@ -14,7 +14,10 @@ import {
 } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { AdminPageShell } from "@/components/layout/AdminPageShell";
+import { AdminSection } from "@/components/layout/AdminSection";
 import { FilterPills } from "@/components/layout/FilterPills";
+import { Map, MapPinned } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -107,7 +110,7 @@ export default function CarteSanitairePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <AdminPageShell wide>
       <PageHeader
         title={t("title")}
         description={t("subtitle")}
@@ -142,6 +145,7 @@ export default function CarteSanitairePage() {
         </p>
       ) : null}
 
+      <AdminSection icon={Map} title={t("title")} description={t("subtitle")} bare>
       {loading ? (
         <div className="h-[420px] rounded-3xl glass-card animate-pulse" />
       ) : error ? null : data ? (
@@ -171,7 +175,9 @@ export default function CarteSanitairePage() {
           />
         </>
       ) : null}
+      </AdminSection>
 
+      <AdminSection icon={MapPinned} title={t("regions")} bare>
       <div className="grid lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
@@ -236,7 +242,8 @@ export default function CarteSanitairePage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </AdminSection>
+    </AdminPageShell>
   );
 }
 

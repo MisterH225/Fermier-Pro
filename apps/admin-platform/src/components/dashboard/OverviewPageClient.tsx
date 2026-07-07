@@ -6,6 +6,8 @@ import { Download, Filter, Sprout, Users } from "lucide-react";
 import { fetchPlatformOverview, type OverviewDto } from "@/lib/api";
 import { computeSignupDelta, OverviewStatCard } from "@/components/dashboard/OverviewStatCard";
 import { PageSkeleton } from "@/components/layout/PageSkeleton";
+import { AdminPageShell } from "@/components/layout/AdminPageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "@/i18n/navigation";
@@ -66,29 +68,27 @@ export function OverviewPageClient() {
     }));
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-            {t("title")}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1 max-w-xl">{t("subtitle")}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/statistiques">
-              <Download className="size-4" />
-              {t("actions.export")}
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/parametres">
-              <Filter className="size-4" />
-              {t("actions.filter")}
-            </Link>
-          </Button>
-        </div>
-      </div>
+    <AdminPageShell wide>
+      <PageHeader
+        title={t("title")}
+        description={t("subtitle")}
+        action={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/statistiques">
+                <Download className="size-4" />
+                {t("actions.export")}
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/parametres">
+                <Filter className="size-4" />
+                {t("actions.filter")}
+              </Link>
+            </Button>
+          </div>
+        }
+      />
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <OverviewStatCard
@@ -195,6 +195,6 @@ export function OverviewPageClient() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </AdminPageShell>
   );
 }

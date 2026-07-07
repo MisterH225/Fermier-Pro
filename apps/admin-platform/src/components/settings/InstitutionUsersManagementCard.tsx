@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { selectClass } from "@/lib/ui-styles";
-import { SettingsSection } from "./SettingsSection";
+import { AdminSection } from "@/components/layout/AdminSection";
 import { Building2 } from "lucide-react";
 
 type PermissionDraft = Partial<Record<NavKey, AdminMenuAccess | "">>;
@@ -206,7 +206,7 @@ export function InstitutionUsersManagementCard() {
   );
 
   return (
-    <SettingsSection
+    <AdminSection
       id="institutions"
       icon={Building2}
       title={t("title")}
@@ -347,6 +347,6 @@ export function InstitutionUsersManagementCard() {
           </Button>
         </div>
       </div>
-    </SettingsSection>
+    </AdminSection>
   );
 }

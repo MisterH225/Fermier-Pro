@@ -6,7 +6,10 @@ import { Link } from "@/i18n/navigation";
 import { fetchVetProfiles, type VetProfileRow } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { AdminPageShell } from "@/components/layout/AdminPageShell";
+import { AdminSection } from "@/components/layout/AdminSection";
 import { FilterPills } from "@/components/layout/FilterPills";
+import { Stethoscope } from "lucide-react";
 import { VetStatusBadge } from "@/components/vets/VetStatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,9 +48,11 @@ export default function VetsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader title={t("title")} />
+    <AdminPageShell wide>
+      <PageHeader title={t("title")} description={t("pageLead")} />
 
+      <AdminSection icon={Stethoscope} title={t("directoryTitle")} description={t("directoryDesc")} bare>
+        <div className="space-y-4">
       <FilterPills
         items={TABS}
         value={tab}
@@ -88,6 +93,8 @@ export default function VetsPage() {
           ))}
         </div>
       )}
-    </div>
+        </div>
+      </AdminSection>
+    </AdminPageShell>
   );
 }

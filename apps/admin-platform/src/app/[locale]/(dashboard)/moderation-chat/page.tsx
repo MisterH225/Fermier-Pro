@@ -9,9 +9,12 @@ import {
 } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { AdminPageShell } from "@/components/layout/AdminPageShell";
+import { AdminSection } from "@/components/layout/AdminSection";
 import { PageSkeleton } from "@/components/layout/PageSkeleton";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { MessagesSquare } from "lucide-react";
 
 export default function ChatModerationPage() {
   const t = useTranslations("chatModeration");
@@ -39,11 +42,15 @@ export default function ChatModerationPage() {
   }
 
   return (
-    <div className="space-y-8 max-w-6xl">
+    <AdminPageShell wide>
       <PageHeader title={t("title")} description={t("subtitle")} />
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">{t("sections.rooms")}</h2>
+      <AdminSection
+        icon={MessagesSquare}
+        title={t("sections.rooms")}
+        description={t("sectionsDesc.rooms")}
+        bare
+      >
         <Card className="overflow-hidden divide-y">
           {rooms.map((room) => (
             <div key={room.id} className="p-4 space-y-2">
@@ -97,7 +104,7 @@ export default function ChatModerationPage() {
             <p className="p-8 text-center text-muted-foreground">{t("empty.rooms")}</p>
           ) : null}
         </Card>
-      </section>
-    </div>
+      </AdminSection>
+    </AdminPageShell>
   );
 }

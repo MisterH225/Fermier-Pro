@@ -287,6 +287,9 @@
   },
   "vets": {
     "title": "Validation vétérinaires",
+    "pageLead": "Examen des dossiers, vérification des diplômes et validation des profils vétérinaires.",
+    "directoryTitle": "Dossiers",
+    "directoryDesc": "Filtrer par statut de vérification et ouvrir le détail de chaque candidat.",
     "tabs": {
       "pending": "En attente",
       "verified": "Vérifiés",
@@ -324,6 +327,8 @@
     "title": "Utilisateurs",
     "loading": "Chargement…",
     "total": "{count} utilisateurs",
+    "directoryTitle": "Annuaire",
+    "directoryDesc": "Recherche, filtres par statut et accès aux fiches utilisateur.",
     "searchPlaceholder": "Rechercher…",
     "selectAll": "Tout sélectionner",
     "since": "Depuis {date}",
@@ -462,6 +467,7 @@
   },
   "stats": {
     "title": "Statistiques agrégées",
+    "pageLead": "Indicateurs clés, maladies dominantes et indices prix porc sur la période choisie.",
     "topDiseases": "Top maladies",
     "periods": {
       "month": "Mensuel",
@@ -526,6 +532,7 @@
   },
   "ai": {
     "title": "Assistant IA",
+    "pageLead": "Analyses épidémiologiques, questions libres et aide à la validation des dossiers vétérinaires.",
     "unavailable": "IA indisponible — vérifiez GEMINI_API_KEY côté API ou quota Gemini.",
     "setupTitle": "Configurer l'assistant IA",
     "setupBody": "La clé Google Gemini doit être définie sur le serveur API (pas dans la console admin).",
@@ -571,6 +578,8 @@
   "auditLogs": {
     "title": "Journal des actions admin",
     "subtitle": "Historique des suspensions, bannissements, messages et avertissements.",
+    "journalTitle": "Historique",
+    "journalDesc": "100 dernières actions de modération enregistrées sur la plateforme.",
     "empty": "Aucune entrée.",
     "columns": {
       "date": "Date",
@@ -730,6 +739,7 @@
   "modules": {
     "title": "Modules plateforme",
     "subtitle": "Activez ou désactivez les modules métier pour tous les utilisateurs.",
+    "gridTitle": "Modules disponibles",
     "active": "Actif",
     "inactive": "Inactif",
     "disable": "Désactiver",
@@ -751,6 +761,7 @@
   },
   "marketplace": {
     "title": "Marketplace",
+    "pageLead": "Annonces, transactions, litiges poids, revenus plateforme et modération commerçants.",
     "loading": "Chargement…",
     "loadError": "Impossible de charger les données marketplace.",
     "tabs": {
@@ -934,6 +945,7 @@
   },
   "vetAppointments": {
     "title": "Rendez-vous vétérinaires",
+    "subtitle": "Suivi des rendez-vous, remboursements et commissions prélevées sur les prestations.",
     "tabs": {
       "list": "Liste",
       "revenue": "Commissions & avis"
@@ -1022,6 +1034,12 @@
       "appeals": "Contestations en attente",
       "content": "Contenu du feed"
     },
+    "sectionsDesc": {
+      "content": "Publications et commentaires visibles sur le fil communautaire.",
+      "events": "Détections automatiques et signalements enregistrés par l’agent IA.",
+      "sanctioned": "Comptes suspendus ou restreints sur le feed.",
+      "appeals": "Demandes de révision des sanctions en attente de décision."
+    },
     "columns": {
       "date": "Date",
       "user": "Utilisateur",
@@ -1061,6 +1079,9 @@
     "sections": {
       "rooms": "Salons actifs"
     },
+    "sectionsDesc": {
+      "rooms": "Salons de ferme et conversations directes — suppression réservée aux SuperAdmin."
+    },
     "labels": {
       "untitled": "Salon sans titre",
       "meta": "{members} membres · {messages} messages"
@@ -1076,6 +1097,8 @@
   "producerScores": {
     "title": "Scores producteurs",
     "description": "Fiabilité des producteurs : saisies, usage plateforme, réactivité (offres, chat, crédit).",
+    "listTitle": "Classement",
+    "listDesc": "Filtrer par niveau de score, recalculer ou bloquer le crédit producteur.",
     "filterAll": "Tous",
     "refresh": "Actualiser",
     "empty": "Aucun score producteur enregistré.",
@@ -1096,6 +1119,8 @@
   "walletAdmin": {
     "title": "Retraits en attente",
     "subtitle": "Validez ou refusez les retraits au-dessus du seuil automatique.",
+    "pendingTitle": "Demandes en attente",
+    "pendingDesc": "Chaque retrait dépasse le seuil configuré dans Paramètres → Portefeuille.",
     "loading": "Chargement…",
     "empty": "Aucun retrait en attente de validation.",
     "phone": "Téléphone",
