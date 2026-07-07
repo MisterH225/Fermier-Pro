@@ -10,6 +10,7 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { MerchantProductPhotoGrid } from "../../../components/merchant/MerchantProductPhotoGrid";
 import { useSession } from "../../../context/SessionContext";
 import {
   chooseMerchantSubscription,
@@ -45,6 +46,7 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
   const [productPrice, setProductPrice] = useState("");
   const [productStock, setProductStock] = useState("1");
   const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [productPhotoUrls, setProductPhotoUrls] = useState<string[]>([]);
   const [pendingProductId, setPendingProductId] = useState<string | null>(null);
 
   const loadMe = async () => {
@@ -124,7 +126,8 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
           name: productName.trim(),
           categoryId,
           price,
-          stock
+          stock,
+          photoUrls: productPhotoUrls
         }
       );
       setPendingProductId(created.id);
@@ -235,6 +238,11 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
             <Pressable onPress={() => void ensureCategories()} style={styles.hint}>
               <Text>{t("merchant.onboarding.loadCategories")}</Text>
             </Pressable>
+            <MerchantProductPhotoGrid
+              shopId={me?.shops[0]?.id ?? null}
+              photoUrls={productPhotoUrls}
+              onChange={setProductPhotoUrls}
+            />
             <TextInput
               style={styles.input}
               value={productName}

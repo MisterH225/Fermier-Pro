@@ -11,11 +11,10 @@ import {
   Text,
   View
 } from "react-native";
-import { ActiveProfileSwitcherControl } from "../../components/account/ActiveProfileSwitcherControl";
 import { ScreenSection, profileScreenScrollContent } from "../../components/layout";
 import { MerchantMobileShell } from "../../components/layout/MerchantMobileShell";
 import { MerchantOnboardingNudgeBanner } from "../../components/merchant/MerchantOnboardingNudgeBanner";
-import { MerchantSubscriptionBadge } from "../../components/merchant/MerchantSubscriptionBadge";
+import { MerchantProfileModal } from "../../components/merchant/MerchantProfileModal";
 import { MerchantWelcomeHeader } from "../../components/merchant/MerchantWelcomeHeader";
 import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
 import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
@@ -35,6 +34,7 @@ export function MerchantDashboardScreen() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const bottomInset = useBottomInset();
   const { accessToken, activeProfileId, authMe, refreshAuthMe } = useSession();
+  const [profileOpen, setProfileOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const meQ = useQuery({
@@ -78,6 +78,7 @@ export function MerchantDashboardScreen() {
           welcomeLabel={t("merchant.dashboard.welcomeLine")}
           displayName={displayName}
           avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
+          onPressAvatar={() => setProfileOpen(true)}
         />
         <View style={styles.heroActions}>
           <NotificationsHeaderButton iconColor={merchantColors.primary} style={styles.heroIconBtn} />
@@ -100,9 +101,6 @@ export function MerchantDashboardScreen() {
           />
         }
       >
-        <ActiveProfileSwitcherControl variant="default" />
-        <MerchantSubscriptionBadge tier={me?.subscriptionTier ?? null} />
-
         {me?.needsShopNudge ? (
           <MerchantOnboardingNudgeBanner
             variant="shop"
@@ -177,6 +175,11 @@ export function MerchantDashboardScreen() {
           </ScreenSection>
         ) : null}
       </ScrollView>
+
+      <MerchantProfileModal
+        visible={profileOpen}
+        onClose={() => setProfileOpen(false)}
+      />
     </MerchantMobileShell>
   );
 }

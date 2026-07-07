@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
+import { MerchantProductPhotoGrid } from "../../components/merchant/MerchantProductPhotoGrid";
 import { useSession } from "../../context/SessionContext";
 import {
   createMerchantProduct,
@@ -43,6 +44,7 @@ export function MerchantProductFormScreen() {
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [extras, setExtras] = useState<Record<string, string>>({});
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,6 +91,7 @@ export function MerchantProductFormScreen() {
     setStock(String(existing.stock));
     setDescription(existing.description ?? "");
     setCategoryId(existing.categoryId);
+    setPhotoUrls(existing.photoUrls ?? []);
   }, [productId, productsQ.data]);
 
   const submit = async (alsoPublish = false) => {
@@ -111,7 +114,8 @@ export function MerchantProductFormScreen() {
         categoryId,
         description: appendCategoryDetails(description, selectedCategory, extras),
         price: p,
-        stock: s
+        stock: s,
+        photoUrls
       };
       let saved;
       if (productId) {
@@ -136,6 +140,12 @@ export function MerchantProductFormScreen() {
         <Text style={styles.title}>
           {productId ? t("merchant.product.editTitle") : t("merchant.product.title")}
         </Text>
+        <MerchantProductPhotoGrid
+          shopId={meQ.data?.shops[0]?.id ?? null}
+          productId={productId}
+          photoUrls={photoUrls}
+          onChange={setPhotoUrls}
+        />
         <TextInput
           style={styles.input}
           value={name}

@@ -4044,17 +4044,37 @@ export const fr = {
     },
     subscription: {
       title: "Choisis ton abonnement",
-      subtitle: "Compare Free et Premium avant de publier.",
+      subtitle: "Débloque ta boutique sur le marketplace Fermier Pro",
+      choosePlan: "Choisis ton plan",
       freeTitle: "Free",
       freeShop: "1 boutique",
       freeProducts: "5 produits actifs max",
+      freePrice: "Gratuit",
+      freeCaption: "Idéal pour démarrer",
       premiumTitle: "Premium",
       premiumProducts: "Produits illimités",
       premiumShops: "Jusqu'à {{count}} boutiques",
       premiumPrice: "{{price}} XOF",
+      premiumCaption: "Paiement unique",
       chooseFree: "Choisir Free",
       choosePremium: "Choisir Premium",
-      premiumPending: "Finalise le paiement Premium pour continuer."
+      ctaFree: "Commencer gratuitement",
+      ctaPremium: "Choisir Premium — {{price}} XOF",
+      premiumPending: "Finalise le paiement Premium pour continuer.",
+      features: {
+        shop: {
+          title: "Boutique en ligne",
+          caption: "Crée ta vitrine sur le marketplace"
+        },
+        products: {
+          title: "Gestion produits",
+          caption: "Publie et organise ton catalogue"
+        },
+        sales: {
+          title: "Ventes & commandes",
+          caption: "Suis tes revenus en temps réel"
+        }
+      }
     },
     shop: { title: "Nouvelle boutique" },
     product: {
@@ -4064,6 +4084,20 @@ export const fr = {
       descriptionPh: "Description",
       save: "Enregistrer",
       saveAndPublish: "Enregistrer et publier",
+      photos: {
+        title: "Photos du produit",
+        hint: "Ajoute jusqu'à 5 photos. La première sera l'image principale.",
+        primary: "Principale",
+        addTitle: "Ajouter une photo",
+        fromGallery: "Galerie",
+        fromCamera: "Appareil photo",
+        emptyHint: "Appuie pour ajouter une photo",
+        shopRequiredTitle: "Boutique requise",
+        shopRequiredBody: "Crée d'abord une boutique pour téléverser des photos.",
+        uploadErrorTitle: "Échec du téléversement",
+        uploadErrorBody: "Impossible d'envoyer la photo. Réessaie.",
+        uploadUnavailable: "Stockage indisponible. Vérifie ta connexion."
+      },
       fields: {
         unit: "Unité",
         unitPh: "ex. sac 25 kg",
@@ -4082,6 +4116,22 @@ export const fr = {
     catalog: {
       empty: "Aucun produit en boutique pour le moment.",
       stock: "{{count}} en stock"
+    },
+    profile: {
+      sectionMerchant: "Profil commerçant",
+      sectionAccount: "Compte",
+      subscription: "Abonnement",
+      shops: "Boutiques",
+      activeProducts: "Produits actifs",
+      mainShop: "Boutique principale",
+      changePhotoTitle: "Photo de profil",
+      changePhotoMessage: "Choisis une source pour mettre à jour ta photo.",
+      pickGallery: "Galerie",
+      pickCamera: "Caméra",
+      cancelPhoto: "Annuler",
+      save: "Enregistrer",
+      photoUploadError: "Impossible d'envoyer la photo. Vérifie le bucket Supabase « avatars ».",
+      saveError: "Enregistrement impossible. Réessaie dans un instant."
     },
     purchase: {
       quantity: "Quantité",

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -16,7 +17,8 @@ import {
   type MerchantMeDto
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
-import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
+import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
+import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 
 type Props = {
   skippable?: boolean;
@@ -24,6 +26,14 @@ type Props = {
   onChosen: () => void | Promise<void>;
   onCancel: () => void;
 };
+
+type Tier = "free" | "premium";
+
+const FEATURES = [
+  { key: "shop", emoji: "🏪" },
+  { key: "products", emoji: "📦" },
+  { key: "sales", emoji: "📈" }
+] as const;
 
 export function MerchantSubscriptionScreen({
   skippable = false,
@@ -36,21 +46,26 @@ export function MerchantSubscriptionScreen({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [me, setMe] = useState<MerchantMeDto | null>(null);
+  const [selectedTier, setSelectedTier] = useState<Tier>("free");
 
-  const load = async () => {
+  useEffect(() => {
     if (!accessToken || !activeProfileId) return;
-    const data = await fetchMerchantMe(accessToken, activeProfileId);
-    setMe(data);
-  };
+    void fetchMerchantMe(accessToken, activeProfileId).then(setMe).catch(() => undefined);
+  }, [accessToken, activeProfileId]);
 
-  const choose = async (tier: "free" | "premium") => {
+  const premiumPriceLabel = useMemo(
+    () => (me?.premiumPriceXof ?? 5000).toLocaleString("fr-FR"),
+    [me?.premiumPriceXof]
+  );
+
+  const choose = async () => {
     if (!accessToken || !activeProfileId) return;
     setBusy(true);
     setError(null);
     try {
       const res = await chooseMerchantSubscription(accessToken, activeProfileId, {
-        tier,
-        paymentMethod: tier === "premium" ? "wallet" : undefined
+        tier: selectedTier,
+        paymentMethod: selectedTier === "premium" ? "wallet" : undefined
       });
       if ("pending" in res && res.pending) {
         setError(t("merchant.subscription.premiumPending"));
@@ -64,54 +79,58 @@ export function MerchantSubscriptionScreen({
     }
   };
 
+  const ctaLabel =
+    selectedTier === "free"
+      ? t("merchant.subscription.ctaFree")
+      : t("merchant.subscription.ctaPremium", { price: premiumPriceLabel });
+
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.title}>{t("merchant.subscription.title")}</Text>
-        <Text style={styles.sub}>{t("merchant.subscription.subtitle")}</Text>
+    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+      <View style={styles.skyGlow} />
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <Text style={styles.title}>{t("merchant.subscription.title")}</Text>
+          <Text style={styles.subtitle}>{t("merchant.subscription.subtitle")}</Text>
+        </View>
 
-        <View style={styles.row}>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{t("merchant.subscription.freeTitle")}</Text>
-            <Text style={styles.bullet}>• {t("merchant.subscription.freeShop")}</Text>
-            <Text style={styles.bullet}>• {t("merchant.subscription.freeProducts")}</Text>
-            <Pressable
-              style={styles.btn}
-              disabled={busy}
-              onPress={() => void choose("free")}
-            >
-              <Text style={styles.btnTx}>{t("merchant.subscription.chooseFree")}</Text>
-            </Pressable>
-          </View>
+        <View style={styles.features}>
+          {FEATURES.map((f) => (
+            <View key={f.key} style={styles.featureRow}>
+              <Text style={styles.featureEmoji}>{f.emoji}</Text>
+              <View style={styles.featureText}>
+                <Text style={styles.featureTitle}>
+                  {t(`merchant.subscription.features.${f.key}.title`)}
+                </Text>
+                <Text style={styles.featureCaption}>
+                  {t(`merchant.subscription.features.${f.key}.caption`)}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
 
-          <View style={[styles.card, styles.cardPremium]}>
-            <Text style={styles.cardTitle}>{t("merchant.subscription.premiumTitle")}</Text>
-            <Text style={styles.bullet}>• {t("merchant.subscription.premiumProducts")}</Text>
-            <Text style={styles.bullet}>
-              • {t("merchant.subscription.premiumShops", {
-                count: me?.premiumMaxShops ?? 3
-              })}
-            </Text>
-            <Text style={styles.price}>
-              {t("merchant.subscription.premiumPrice", {
-                price: (me?.premiumPriceXof ?? 5000).toLocaleString("fr-FR")
-              })}
-            </Text>
-            <Pressable
-              style={[styles.btn, styles.btnPremium]}
-              disabled={busy}
-              onPress={() => {
-                void load();
-                void choose("premium");
-              }}
-            >
-              {busy ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.btnTx}>{t("merchant.subscription.choosePremium")}</Text>
-              )}
-            </Pressable>
-          </View>
+        <Text style={styles.chooseLabel}>{t("merchant.subscription.choosePlan")}</Text>
+
+        <View style={styles.planRow}>
+          <PlanCard
+            selected={selectedTier === "free"}
+            onPress={() => setSelectedTier("free")}
+            icon="🌱"
+            name={t("merchant.subscription.freeTitle")}
+            price={t("merchant.subscription.freePrice")}
+            caption={t("merchant.subscription.freeCaption")}
+          />
+          <PlanCard
+            selected={selectedTier === "premium"}
+            onPress={() => setSelectedTier("premium")}
+            icon="👑"
+            name={t("merchant.subscription.premiumTitle")}
+            price={t("merchant.subscription.premiumPrice", { price: premiumPriceLabel })}
+            caption={t("merchant.subscription.premiumCaption")}
+          />
         </View>
 
         {skippable && onSkip ? (
@@ -120,46 +139,235 @@ export function MerchantSubscriptionScreen({
           </Pressable>
         ) : null}
 
-        <Pressable style={styles.cancel} onPress={onCancel}>
+        <Pressable style={styles.cancel} onPress={onCancel} disabled={busy}>
           <Text style={styles.cancelTx}>{t("common.cancel")}</Text>
         </Pressable>
 
         {error ? <Text style={styles.err}>{error}</Text> : null}
       </ScrollView>
+
+      <View style={styles.footer}>
+        <Pressable
+          style={[styles.cta, busy && styles.ctaDisabled]}
+          disabled={busy}
+          onPress={() => void choose()}
+        >
+          {busy ? (
+            <ActivityIndicator color={merchantColors.onPrimary} />
+          ) : (
+            <Text style={styles.ctaTx}>{ctaLabel}</Text>
+          )}
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
 
+function PlanCard({
+  selected,
+  onPress,
+  icon,
+  name,
+  price,
+  caption
+}: {
+  selected: boolean;
+  onPress: () => void;
+  icon: string;
+  name: string;
+  price: string;
+  caption: string;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.planCard,
+        merchantShadow.card,
+        selected && styles.planCardSelected
+      ]}
+    >
+      {selected ? (
+        <View style={styles.checkBadge}>
+          <Ionicons name="checkmark" size={14} color={merchantColors.onPrimary} />
+        </View>
+      ) : null}
+      <Text style={styles.planIcon}>{icon}</Text>
+      <Text style={styles.planName}>{name}</Text>
+      <Text style={styles.planPrice}>{price}</Text>
+      <Text style={styles.planCaption}>{caption}</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: mobileColors.background },
-  scroll: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
-  title: { fontSize: 24, fontWeight: "800", color: mobileColors.textPrimary },
-  sub: { color: mobileColors.textSecondary },
-  row: { flexDirection: "row", gap: mobileSpacing.md },
-  card: {
+  safe: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: mobileColors.border,
-    borderRadius: mobileRadius.lg,
+    backgroundColor: merchantColors.canvas
+  },
+  skyGlow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 220,
+    backgroundColor: merchantColors.primaryLight,
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
+    opacity: 0.85
+  },
+  scroll: {
+    paddingHorizontal: mobileSpacing.lg,
+    paddingTop: mobileSpacing.md,
+    paddingBottom: mobileSpacing.md
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: mobileSpacing.lg,
+    paddingTop: mobileSpacing.sm
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: merchantColors.textPrimary,
+    textAlign: "center"
+  },
+  subtitle: {
+    ...mobileTypography.body,
+    color: merchantColors.textSecondary,
+    textAlign: "center",
+    marginTop: mobileSpacing.xs,
+    maxWidth: 300
+  },
+  features: {
+    gap: mobileSpacing.md,
+    marginBottom: mobileSpacing.xl
+  },
+  featureRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: mobileSpacing.md
+  },
+  featureEmoji: {
+    fontSize: 28,
+    lineHeight: 34
+  },
+  featureText: {
+    flex: 1,
+    gap: 2
+  },
+  featureTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: merchantColors.textPrimary
+  },
+  featureCaption: {
+    fontSize: 13,
+    color: merchantColors.textSecondary
+  },
+  chooseLabel: {
+    textAlign: "center",
+    fontSize: 14,
+    fontWeight: "600",
+    color: merchantColors.textSecondary,
+    marginBottom: mobileSpacing.md
+  },
+  planRow: {
+    flexDirection: "row",
+    gap: mobileSpacing.sm
+  },
+  planCard: {
+    flex: 1,
+    backgroundColor: merchantColors.cardBg,
+    borderRadius: merchantRadius.card,
+    borderWidth: 2,
+    borderColor: "transparent",
     padding: mobileSpacing.md,
-    backgroundColor: "#fff"
+    alignItems: "center",
+    minHeight: 168,
+    position: "relative"
   },
-  cardPremium: { borderColor: "#D97706", backgroundColor: "#FFFBEB" },
-  cardTitle: { fontWeight: "800", fontSize: 18, marginBottom: 8 },
-  bullet: { marginBottom: 4, color: mobileColors.textPrimary },
-  price: { fontWeight: "700", marginVertical: 8, color: "#B45309" },
-  btn: {
-    marginTop: 12,
-    backgroundColor: mobileColors.accent,
-    padding: 12,
-    borderRadius: mobileRadius.md,
-    alignItems: "center"
+  planCardSelected: {
+    borderColor: merchantColors.primary
   },
-  btnPremium: { backgroundColor: "#D97706" },
-  btnTx: { color: "#fff", fontWeight: "700" },
-  skip: { alignItems: "center", padding: 12 },
-  skipTx: { color: mobileColors.accent, fontWeight: "600" },
-  cancel: { alignItems: "center" },
-  cancelTx: { color: mobileColors.textSecondary },
-  err: { color: mobileColors.error }
+  checkBadge: {
+    position: "absolute",
+    top: -10,
+    right: -10,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: merchantColors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: merchantColors.cardBg
+  },
+  planIcon: {
+    fontSize: 28,
+    marginBottom: mobileSpacing.xs
+  },
+  planName: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: merchantColors.textSecondary
+  },
+  planPrice: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: merchantColors.textPrimary,
+    marginTop: 4,
+    textAlign: "center"
+  },
+  planCaption: {
+    fontSize: 11,
+    color: merchantColors.textMuted,
+    marginTop: 6,
+    textAlign: "center"
+  },
+  footer: {
+    paddingHorizontal: mobileSpacing.lg,
+    paddingBottom: mobileSpacing.md,
+    paddingTop: mobileSpacing.sm,
+    backgroundColor: merchantColors.canvas
+  },
+  cta: {
+    backgroundColor: merchantColors.primary,
+    borderRadius: merchantRadius.pill,
+    paddingVertical: 16,
+    paddingHorizontal: mobileSpacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 54
+  },
+  ctaDisabled: {
+    opacity: 0.7
+  },
+  ctaTx: {
+    color: merchantColors.onPrimary,
+    fontWeight: "800",
+    fontSize: 16,
+    textAlign: "center"
+  },
+  skip: {
+    alignItems: "center",
+    paddingVertical: mobileSpacing.md,
+    marginTop: mobileSpacing.sm
+  },
+  skipTx: {
+    color: merchantColors.primary,
+    fontWeight: "600"
+  },
+  cancel: {
+    alignItems: "center",
+    paddingBottom: mobileSpacing.sm
+  },
+  cancelTx: {
+    color: merchantColors.textSecondary
+  },
+  err: {
+    color: merchantColors.danger,
+    textAlign: "center",
+    marginTop: mobileSpacing.sm
+  }
 });

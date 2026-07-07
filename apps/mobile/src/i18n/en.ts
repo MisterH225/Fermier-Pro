@@ -3995,17 +3995,37 @@ export const en = {
     },
     subscription: {
       title: "Choose your plan",
-      subtitle: "Compare Free and Premium before publishing.",
+      subtitle: "Unlock your shop on the Fermier Pro marketplace",
+      choosePlan: "Choose your plan",
       freeTitle: "Free",
       freeShop: "1 shop",
       freeProducts: "5 active products max",
+      freePrice: "Free",
+      freeCaption: "Great to get started",
       premiumTitle: "Premium",
       premiumProducts: "Unlimited products",
       premiumShops: "Up to {{count}} shops",
       premiumPrice: "{{price}} XOF",
+      premiumCaption: "One-time payment",
       chooseFree: "Choose Free",
       choosePremium: "Choose Premium",
-      premiumPending: "Complete Premium payment to continue."
+      ctaFree: "Start for free",
+      ctaPremium: "Choose Premium — {{price}} XOF",
+      premiumPending: "Complete Premium payment to continue.",
+      features: {
+        shop: {
+          title: "Online shop",
+          caption: "Create your storefront on the marketplace"
+        },
+        products: {
+          title: "Product management",
+          caption: "Publish and organize your catalog"
+        },
+        sales: {
+          title: "Sales & orders",
+          caption: "Track revenue in real time"
+        }
+      }
     },
     shop: { title: "New shop" },
     product: {
@@ -4015,6 +4035,20 @@ export const en = {
       descriptionPh: "Description",
       save: "Save",
       saveAndPublish: "Save & publish",
+      photos: {
+        title: "Product photos",
+        hint: "Add up to 5 photos. The first one is the main image.",
+        primary: "Main",
+        addTitle: "Add a photo",
+        fromGallery: "Gallery",
+        fromCamera: "Camera",
+        emptyHint: "Tap to add a photo",
+        shopRequiredTitle: "Shop required",
+        shopRequiredBody: "Create a shop first before uploading photos.",
+        uploadErrorTitle: "Upload failed",
+        uploadErrorBody: "Could not upload the photo. Please try again.",
+        uploadUnavailable: "Storage unavailable. Check your connection."
+      },
       fields: {
         unit: "Unit",
         unitPh: "e.g. 25 kg bag",
@@ -4033,6 +4067,22 @@ export const en = {
     catalog: {
       empty: "No shop products yet.",
       stock: "{{count}} in stock"
+    },
+    profile: {
+      sectionMerchant: "Merchant profile",
+      sectionAccount: "Account",
+      subscription: "Subscription",
+      shops: "Shops",
+      activeProducts: "Active products",
+      mainShop: "Main shop",
+      changePhotoTitle: "Profile photo",
+      changePhotoMessage: "Choose a source to update your photo.",
+      pickGallery: "Gallery",
+      pickCamera: "Camera",
+      cancelPhoto: "Cancel",
+      save: "Save",
+      photoUploadError: "Could not upload the photo. Check the Supabase « avatars » bucket.",
+      saveError: "Could not save. Try again in a moment."
     },
     purchase: {
       quantity: "Quantity",
