@@ -27,7 +27,7 @@ SUPABASE_JWT_SECRET=<optionnel, tests e2e HS256 uniquement>
    - Copier le **token API** → `YELLIKA_SMS_API_TOKEN` (Railway, service API)
    - Copier le **sender ID approuvé** → `YELLIKA_SMS_SENDER_ID` (ex. nom alphanumérique validé par Yellika)
    - Optionnel : `YELLIKA_SMS_APP_NAME=Fermier Pro` (préfixe du SMS OTP)
-   - Endpoint utilisé par l'API : `POST https://panel.yellikasms.com/api/v3/sms/send` (Bearer token, corps JSON `recipient`, `sender_id`, `type: plain`, `message`)
+   - Endpoint : copier l’URL POST **complète** de la doc Yellika dans `YELLIKA_SMS_SEND_URL` (ex. `https://panel.yellikasms.com/api/v3/sms/send`) — le client **n’ajoute aucun suffixe**
 
 2. **Supabase → Authentication → Hooks → Send SMS**
    - Type : **HTTP**

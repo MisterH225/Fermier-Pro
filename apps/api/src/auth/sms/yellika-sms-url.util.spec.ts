@@ -1,21 +1,26 @@
-import { resolveYellikaSmsSendUrl } from "./yellika-sms-url.util";
+import {
+  resolveYellikaSmsSendUrl,
+  YELLIKA_SMS_SEND_URL_DEFAULT
+} from "./yellika-sms-url.util";
 
 describe("resolveYellikaSmsSendUrl", () => {
-  it("utilise l'URL par défaut v3", () => {
-    expect(resolveYellikaSmsSendUrl(undefined)).toBe(
-      "https://panel.yellikasms.com/api/v3/sms/send"
-    );
+  it("utilise l'URL Yellika par défaut (chemin complet)", () => {
+    expect(resolveYellikaSmsSendUrl({})).toBe(YELLIKA_SMS_SEND_URL_DEFAULT);
   });
 
-  it("ajoute /sms/send à une base v3", () => {
-    expect(resolveYellikaSmsSendUrl("https://panel.yellikasms.com/api/v3/")).toBe(
-      "https://panel.yellikasms.com/api/v3/sms/send"
-    );
-  });
-
-  it("ne duplique pas /sms/send si déjà présent dans la base", () => {
+  it("utilise YELLIKA_SMS_SEND_URL telle quelle", () => {
     expect(
-      resolveYellikaSmsSendUrl("https://panel.yellikasms.com/api/v3/sms/send")
+      resolveYellikaSmsSendUrl({
+        YELLIKA_SMS_SEND_URL: "https://panel.yellikasms.com/api/v3/sms/send/"
+      })
+    ).toBe("https://panel.yellikasms.com/api/v3/sms/send");
+  });
+
+  it("accepte l'alias legacy YELLIKA_SMS_API_BASE_URL", () => {
+    expect(
+      resolveYellikaSmsSendUrl({
+        YELLIKA_SMS_API_BASE_URL: "https://panel.yellikasms.com/api/v3/sms/send"
+      })
     ).toBe("https://panel.yellikasms.com/api/v3/sms/send");
   });
 });

@@ -16,7 +16,7 @@ export class YellikaSmsClient {
   private readonly log = new Logger(YellikaSmsClient.name);
 
   private get sendUrl(): string {
-    return resolveYellikaSmsSendUrl(process.env.YELLIKA_SMS_API_BASE_URL);
+    return resolveYellikaSmsSendUrl();
   }
 
   private get apiToken(): string {
