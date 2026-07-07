@@ -1,19 +1,19 @@
 import {
-  BadRequestException,
   Controller,
   Headers,
   HttpCode,
-  HttpException,
   HttpStatus,
   Logger,
   Post,
   Req,
-  Res,
-  ServiceUnavailableException,
-  UnauthorizedException
+  ServiceUnavailableException
 } from "@nestjs/common";
 import { SkipThrottle } from "@nestjs/throttler";
-import type { Request, Response } from "express";
+import type { Request } from "express";
+import {
+  supabaseHookError,
+  supabaseHookSuccess
+} from "./supabase-hook-response.util";
 import {
   buildOtpSmsMessage,
   verifySupabaseSendSmsHook
@@ -28,6 +28,9 @@ type RawBodyRequest = Request & { rawBody?: Buffer };
  *
  * Configurer dans Supabase Dashboard → Authentication → Hooks → Send SMS :
  * POST https://<api>/api/v1/webhooks/supabase/send-sms
+ *
+ * Toujours répondre HTTP 200 : Supabase ne lit le corps d'erreur que sur 200/202
+ * (sinon 503 → retries → « Service currently unavailable due to hook »).
  */
 @Controller("webhooks/supabase")
 @SkipThrottle()
@@ -40,86 +43,59 @@ export class SupabaseSendSmsWebhookController {
   @HttpCode(HttpStatus.OK)
   async handleSendSms(
     @Req() req: RawBodyRequest,
-    @Res({ passthrough: true }) res: Response,
     @Headers() headers: Record<string, string | string[] | undefined>
   ) {
     const rawBody = req.rawBody;
     if (!rawBody?.length) {
-      throw new BadRequestException("Corps webhook manquant");
+      this.log.warn("Send SMS hook: corps webhook manquant (rawBody absent)");
+      return supabaseHookError(
+        "Corps webhook manquant — vérifier rawBody sur l'API Nest",
+        400
+      );
     }
 
     let event;
     try {
       event = verifySupabaseSendSmsHook(rawBody, headers);
     } catch (err) {
-      if (err instanceof UnauthorizedException) {
-        throw err;
-      }
-      throw err;
+      this.log.warn(`Send SMS hook: signature invalide — ${String(err)}`);
+      return supabaseHookError(
+        "Signature webhook invalide — vérifiez SUPABASE_SEND_SMS_HOOK_SECRET sur Railway",
+        401
+      );
     }
 
-    const phone = event.user?.phone?.trim();
+    const phone = (event.user?.phone ?? event.sms?.phone ?? "").trim();
     const otp = event.sms?.otp?.trim();
     if (!phone) {
-      throw new BadRequestException("Numéro de téléphone manquant dans le webhook");
+      return supabaseHookError("Numéro de téléphone manquant dans le webhook", 400);
     }
     if (!otp) {
-      throw new BadRequestException("OTP manquant dans le webhook");
+      return supabaseHookError("OTP manquant dans le webhook", 400);
     }
 
     try {
       await this.yellika.sendPlainText(phone, buildOtpSmsMessage(otp));
-      return {};
+      return supabaseHookSuccess();
     } catch (err) {
       if (err instanceof ServiceUnavailableException) {
         this.log.error(`Config Yellika manquante: ${err.message}`);
-        throw new HttpException(
-          {
-            error: {
-              http_code: 503,
-              message: err.message
-            }
-          },
-          HttpStatus.SERVICE_UNAVAILABLE
-        );
+        return supabaseHookError(err.message, 503);
       }
-
       if (err instanceof YellikaSmsSendError) {
-        this.log.error(`Yellika SMS échec (${phone.slice(0, 6)}…): ${err.message}`);
-        if (err.retryable) {
-          res.setHeader("Retry-After", "true");
-          throw new HttpException(
-            {
-              error: {
-                http_code: 503,
-                message: `Échec envoi SMS: ${err.message}`
-              }
-            },
-            HttpStatus.SERVICE_UNAVAILABLE
-          );
-        }
-        throw new HttpException(
-          {
-            error: {
-              http_code: 400,
-              message: `Configuration SMS invalide: ${err.message}`
-            }
-          },
-          HttpStatus.BAD_REQUEST
+        this.log.error(
+          `Yellika SMS échec (${phone.slice(0, 6)}…): ${err.message}`
+        );
+        return supabaseHookError(
+          `Échec envoi SMS Yellika: ${err.message}`,
+          err.retryable ? 503 : 400
         );
       }
 
-      this.log.error(`Send SMS hook échec: ${String(err)}`);
-      res.setHeader("Retry-After", "true");
-      throw new HttpException(
-        {
-          error: {
-            http_code: 503,
-            message: "Échec envoi SMS OTP"
-          }
-        },
-        HttpStatus.SERVICE_UNAVAILABLE
-      );
+      const message =
+        err instanceof Error ? err.message : "Échec envoi SMS OTP";
+      this.log.error(`Send SMS hook échec: ${message}`);
+      return supabaseHookError(message, 503);
     }
   }
 }

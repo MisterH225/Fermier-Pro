@@ -71,7 +71,7 @@ export class YellikaSmsClient {
           "Content-Type": "application/json"
         },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(15_000)
+        signal: AbortSignal.timeout(3_500)
       });
     } catch (err) {
       this.log.error(`Yellika SMS réseau: ${String(err)}`);
@@ -119,6 +119,8 @@ function isNonRetryableYellikaError(message: string): boolean {
     m.includes("sender_id") ||
     m.includes("insufficient") ||
     m.includes("balance") ||
-    m.includes("credit")
+    m.includes("credit") ||
+    m.includes("invalid recipient") ||
+    m.includes("invalid phone")
   );
 }

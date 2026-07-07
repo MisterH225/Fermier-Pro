@@ -20,5 +20,6 @@ export type SupabaseSendSmsHookPayload = {
   };
   sms: {
     otp: string;
+    phone?: string | null;
   };
 };
