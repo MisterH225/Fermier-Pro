@@ -8,18 +8,15 @@ import type {
   YellikaSmsSendRequest,
   YellikaSmsSendResponse
 } from "./yellika-sms.types";
-
-const DEFAULT_BASE_URL = "https://panel.yellikasms.com/api/v3";
+import { resolveYellikaSmsSendUrl } from "./yellika-sms-url.util";
 
 /** Client HTTP Yellika SMS v3 — https://panel.yellikasms.com/developers/docs */
 @Injectable()
 export class YellikaSmsClient {
   private readonly log = new Logger(YellikaSmsClient.name);
 
-  private get baseUrl(): string {
-    return (
-      process.env.YELLIKA_SMS_API_BASE_URL?.trim() || DEFAULT_BASE_URL
-    ).replace(/\/$/, "");
+  private get sendUrl(): string {
+    return resolveYellikaSmsSendUrl(process.env.YELLIKA_SMS_API_BASE_URL);
   }
 
   private get apiToken(): string {
@@ -60,7 +57,7 @@ export class YellikaSmsClient {
       message: message.slice(0, 500)
     };
 
-    const url = `${this.baseUrl}/sms/send`;
+    const url = this.sendUrl;
     let res: Response;
     try {
       res = await fetch(url, {
