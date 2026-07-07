@@ -36,7 +36,7 @@ import {
   BuyerDashboardScreen,
   MerchantDashboardScreen,
   MerchantProductsScreen,
-  MerchantMarketplaceScreen,
+  MerchantMarketScreen,
   MerchantOrdersScreen,
   MerchantOrderDetailScreen,
   MerchantOrderDisputeScreen,
@@ -229,8 +229,8 @@ function MainStack() {
         options={{ headerShown: false }}
       />
       <Stack.Screen
-        name="MerchantMarketplace"
-        component={MerchantMarketplaceScreen}
+        name="MerchantMarket"
+        component={MerchantMarketScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

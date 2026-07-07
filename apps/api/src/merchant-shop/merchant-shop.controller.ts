@@ -173,7 +173,6 @@ export class MerchantShopController {
   }
 
   @Get("orders/:orderId")
-  @UseGuards(MerchantProfileGuard)
   getOrder(
     @CurrentUser() user: Parameters<MerchantOrdersService["getOrder"]>[0],
     @Param("orderId") orderId: string
@@ -191,7 +190,6 @@ export class MerchantShopController {
   }
 
   @Post("orders/:orderId/dispute")
-  @UseGuards(MerchantProfileGuard)
   openDispute(
     @CurrentUser() user: Parameters<MerchantOrdersService["openDispute"]>[0],
     @Param("orderId") orderId: string,
@@ -201,7 +199,6 @@ export class MerchantShopController {
   }
 
   @Post("orders/:orderId/dispute/respond")
-  @UseGuards(MerchantProfileGuard)
   respondDispute(
     @CurrentUser() user: Parameters<MerchantOrdersService["respondDispute"]>[0],
     @Param("orderId") orderId: string,

@@ -31,7 +31,7 @@ export { BuyerAlertsScreen } from "../../screens/buyer/BuyerAlertsScreen";
 export { BuyerFavoritesScreen } from "../../screens/buyer/BuyerFavoritesScreen";
 export { MerchantDashboardScreen } from "../../screens/merchant/MerchantDashboardScreen";
 export { MerchantProductsScreen } from "../../screens/merchant/MerchantProductsScreen";
-export { MerchantMarketplaceScreen } from "../../screens/merchant/MerchantMarketplaceScreen";
+export { MerchantMarketScreen } from "../../screens/merchant/MerchantMarketScreen";
 export { MerchantOrdersScreen } from "../../screens/merchant/MerchantOrdersScreen";
 export { MerchantOrderDetailScreen } from "../../screens/merchant/MerchantOrderDetailScreen";
 export { MerchantOrderDisputeScreen } from "../../screens/merchant/MerchantOrderDisputeScreen";

@@ -166,12 +166,14 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
   const qc = useQueryClient();
 
   const buyerView = route.params?.buyerView === true;
+  const merchantView = route.params?.merchantView === true;
+  const marketBrowseAsBuyer = buyerView || merchantView;
   const fromDashboard = route.params?.fromDashboard === true;
   const favoritesOnly = route.params?.favoritesOnly === true;
   const scrollBottomPad = useScrollBottomPad();
   const [marketTab, setMarketTab] = useState<MarketTab>(() => {
     const tab = initialMarketTab(route.params);
-    if (buyerView && tab === "mine") {
+    if (marketBrowseAsBuyer && tab === "mine") {
       return "listings";
     }
     return tab;
@@ -223,12 +225,12 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     const tab = initialMarketTab(route.params);
-    if (buyerView && tab === "mine") {
+    if (marketBrowseAsBuyer && tab === "mine") {
       setMarketTab("listings");
       return;
     }
     setMarketTab(tab);
-  }, [routeTab, buyerView]);
+  }, [routeTab, marketBrowseAsBuyer]);
 
   useEffect(() => {
     setOffersSubTab(initialOffersSubTab(route.params));
@@ -289,11 +291,16 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
   });
 
   useLayoutEffect(() => {
-    const backToDashboard = () => navigation.navigate("BuyerDashboard");
+    const backToDashboard = () =>
+      navigation.navigate(merchantView ? "MerchantDashboard" : "BuyerDashboard");
 
     navigation.setOptions({
       ...(buyerView ? buyerStackScreenOptions : {}),
-      title: buyerView ? t("buyer.nav.market") : "Market",
+      title: merchantView
+        ? t("merchant.nav.marketplace")
+        : buyerView
+          ? t("buyer.nav.market")
+          : "Market",
       headerLeft:
         fromDashboard
           ? () => (
@@ -321,7 +328,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
             )
           : undefined,
       headerRight: () =>
-        clientFeatures.marketplace && !buyerView ? (
+        clientFeatures.marketplace && !marketBrowseAsBuyer ? (
           <TouchableOpacity
             onPress={() => setCreateModalOpen(true)}
             style={{ paddingHorizontal: 4 }}
@@ -333,7 +340,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
           </TouchableOpacity>
         ) : undefined
     });
-  }, [navigation, clientFeatures.marketplace, t, buyerView, fromDashboard]);
+  }, [navigation, clientFeatures.marketplace, t, buyerView, merchantView, fromDashboard]);
 
   const categoryPills: FilterPill[] = useMemo(
     () => CATEGORY_PILLS.map((p) => ({ id: p.id, label: p.label })),
@@ -622,14 +629,14 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
       initialSubTab={offersSubTab}
       listingIdFilter={offersListingFilter}
       highlightOfferId={highlightOfferId}
-      buyerSentOnly={buyerView}
+      buyerSentOnly={marketBrowseAsBuyer}
     />
   );
 
   const partnersTabContent = () => (
     <MarketplacePartnersTab
       navigation={navigation}
-      role={buyerView ? "buyer" : "seller"}
+      role={marketBrowseAsBuyer ? "buyer" : "seller"}
       buyerView={buyerView}
       contentPaddingBottom={scrollBottomPad}
     />
@@ -642,7 +649,7 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
     />
   );
 
-  const offersTabBadge = buyerView
+  const offersTabBadge = marketBrowseAsBuyer
     ? offerCountsQ.data?.sentPending ?? 0
     : offerCountsQ.data?.total ?? 0;
 
@@ -657,7 +664,7 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
   return (
     <MarketplaceModuleGate>
       <View style={styles.root}>
-        {buyerView ? (
+        {marketBrowseAsBuyer ? (
           <TabSelector
             testIDPrefix="market-tab"
             activeTab={marketTab}

@@ -146,6 +146,61 @@ describeOrSkip("Merchant shop (e2e)", () => {
     expect(active).toBeLessThanOrEqual(5);
   });
 
+  it("catalog public : filtres, tri et pagination", async () => {
+    const list = await request(app.getHttpServer())
+      .get("/api/v1/merchant/catalog/products")
+      .set("Authorization", `Bearer ${base.peerToken}`);
+    expect(list.status).toBe(200);
+    expect(Array.isArray(list.body.items)).toBe(true);
+    expect(list.body.items.length).toBeGreaterThan(0);
+
+    const byCategory = await request(app.getHttpServer())
+      .get(`/api/v1/merchant/catalog/products?categoryId=${merchant.categoryId}`)
+      .set("Authorization", `Bearer ${base.peerToken}`);
+    expect(byCategory.status).toBe(200);
+    expect(byCategory.body.items.every((p: { categoryId: string }) => p.categoryId === merchant.categoryId)).toBe(
+      true
+    );
+
+    const search = await request(app.getHttpServer())
+      .get("/api/v1/merchant/catalog/products?q=LimitP")
+      .set("Authorization", `Bearer ${base.peerToken}`);
+    expect(search.status).toBe(200);
+    expect(search.body.items.length).toBeGreaterThan(0);
+
+    const sorted = await request(app.getHttpServer())
+      .get("/api/v1/merchant/catalog/products?sort=price_asc&limit=3")
+      .set("Authorization", `Bearer ${base.peerToken}`);
+    expect(sorted.status).toBe(200);
+    const prices = sorted.body.items.map((p: { price: number }) => p.price);
+    for (let i = 1; i < prices.length; i += 1) {
+      expect(prices[i]).toBeGreaterThanOrEqual(prices[i - 1]!);
+    }
+
+    if (sorted.body.nextCursor) {
+      const page2 = await request(app.getHttpServer())
+        .get(`/api/v1/merchant/catalog/products?cursor=${sorted.body.nextCursor}&limit=3`)
+        .set("Authorization", `Bearer ${base.peerToken}`);
+      expect(page2.status).toBe(200);
+      expect(page2.body.items.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("dashboard commerçant : KPIs et alertes", async () => {
+    const dash = await request(app.getHttpServer())
+      .get("/api/v1/merchant/dashboard")
+      .set("Authorization", `Bearer ${merchant.merchantToken}`)
+      .set("X-Profile-Id", merchant.merchantProfileId);
+    expect(dash.status).toBe(200);
+    expect(dash.body.kpis).toMatchObject({
+      monthRevenueXof: expect.any(Number),
+      pendingOrders: expect.any(Number),
+      productViews: expect.any(Number)
+    });
+    expect(Array.isArray(dash.body.lowStockProducts)).toBe(true);
+    expect(Array.isArray(dash.body.moderationEvents)).toBe(true);
+  });
+
   it("achat : stock, paiement, commission, chat", async () => {
     const published = await base.prisma.merchantProduct.findFirst({
       where: {
@@ -190,6 +245,29 @@ describeOrSkip("Merchant shop (e2e)", () => {
         merchantProductId: published!.id
       });
     expect(chat.status).toBe(201);
+  });
+
+  it("détail commande vendeur et acheteur", async () => {
+    const paid = await base.prisma.merchantOrder.findFirst({
+      where: { sellerUserId: merchant.merchantUserId, status: "paid" },
+      orderBy: { createdAt: "desc" }
+    });
+    expect(paid).toBeTruthy();
+
+    const sellerDetail = await request(app.getHttpServer())
+      .get(`/api/v1/merchant/orders/${paid!.id}`)
+      .set("Authorization", `Bearer ${merchant.merchantToken}`)
+      .set("X-Profile-Id", merchant.merchantProfileId);
+    expect(sellerDetail.status).toBe(200);
+    expect(sellerDetail.body.id).toBe(paid!.id);
+    expect(sellerDetail.body.sellerNet).toBeGreaterThan(0);
+    expect(sellerDetail.body.productName).toBeTruthy();
+
+    const buyerDetail = await request(app.getHttpServer())
+      .get(`/api/v1/merchant/orders/${paid!.id}`)
+      .set("Authorization", `Bearer ${base.peerToken}`);
+    expect(buyerDetail.status).toBe(200);
+    expect(buyerDetail.body.buyerUserId).toBe(base.peerUserId);
   });
 
   it("modération admin : log + produit retiré", async () => {

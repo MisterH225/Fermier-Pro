@@ -46,8 +46,8 @@ export function MerchantPersistentTabBar() {
   );
 
   const activeTab = useMemo(
-    () => merchantMainTabFromRoute(focused?.name),
-    [focused?.name]
+    () => merchantMainTabFromRoute(focused?.name, focused?.params),
+    [focused?.name, focused?.params]
   );
 
   const onTabPress = useCallback(
@@ -60,7 +60,7 @@ export function MerchantPersistentTabBar() {
           navigation.navigate("MerchantProducts");
           return;
         case "marketplace":
-          navigation.navigate("MerchantMarketplace");
+          navigation.navigate("MerchantMarket");
           return;
         case "orders":
           navigation.navigate("MerchantOrders");

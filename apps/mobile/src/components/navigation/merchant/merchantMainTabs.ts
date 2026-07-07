@@ -3,14 +3,26 @@ import type { MerchantMainTab } from "./types";
 const ROUTES: Record<MerchantMainTab, string> = {
   home: "MerchantDashboard",
   products: "MerchantProducts",
-  marketplace: "MerchantMarketplace",
+  marketplace: "MerchantMarket",
   orders: "MerchantOrders"
 };
 
 export function merchantMainTabFromRoute(
-  routeName: string | undefined
+  routeName: string | undefined,
+  params?: Record<string, unknown>
 ): MerchantMainTab | null {
   if (!routeName) return null;
+
+  if (
+    routeName === "MarketplaceList" &&
+    params?.merchantView === true
+  ) {
+    return "marketplace";
+  }
+  if (routeName === "MerchantProductDetail") {
+    return "marketplace";
+  }
+
   const hit = (Object.entries(ROUTES) as [MerchantMainTab, string][]).find(
     ([, r]) => r === routeName
   );

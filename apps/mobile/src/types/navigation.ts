@@ -5,7 +5,13 @@ export type RootStackParamList = {
   BuyerDashboard: undefined;
   MerchantDashboard: undefined;
   MerchantProducts: undefined;
-  MerchantMarketplace: undefined;
+  MerchantMarket:
+    | {
+        searchQuery?: string;
+        tab?: "listings" | "offers" | "partners" | "boutiques";
+        offersSubTab?: "sent" | "received";
+      }
+    | undefined;
   MerchantOrders: { filter?: string } | undefined;
   MerchantOrderDetail: { orderId: string };
   MerchantOrderDispute: { orderId: string };
@@ -17,7 +23,7 @@ export type RootStackParamList = {
     | {
         favoritesOnly?: boolean;
         searchQuery?: string;
-        tab?: "listings" | "offers";
+        tab?: "listings" | "offers" | "boutiques";
         offersSubTab?: "sent" | "received";
       }
     | undefined;
@@ -100,11 +106,12 @@ export type RootStackParamList = {
   FarmTasks: { farmId: string; farmName: string };
   MarketplaceList:
     | {
-        tab?: "listings" | "mine" | "offers" | "partners";
+        tab?: "listings" | "mine" | "offers" | "partners" | "boutiques";
         offersSubTab?: "received" | "sent";
         offersListingId?: string;
         highlightOfferId?: string;
         buyerView?: boolean;
+        merchantView?: boolean;
         fromDashboard?: boolean;
         favoritesOnly?: boolean;
         searchQuery?: string;
