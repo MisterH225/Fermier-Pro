@@ -1,33 +1,41 @@
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
+import { useCallback, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  FlatList,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   View
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { MerchantOnboardingNudgeBanner } from "../../components/merchant/MerchantOnboardingNudgeBanner";
 import { ActiveProfileSwitcherControl } from "../../components/account/ActiveProfileSwitcherControl";
+import { ScreenSection, profileScreenScrollContent } from "../../components/layout";
+import { MerchantMobileShell } from "../../components/layout/MerchantMobileShell";
+import { MerchantOnboardingNudgeBanner } from "../../components/merchant/MerchantOnboardingNudgeBanner";
+import { MerchantSubscriptionBadge } from "../../components/merchant/MerchantSubscriptionBadge";
+import { MerchantWelcomeHeader } from "../../components/merchant/MerchantWelcomeHeader";
+import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
+import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
+import { WalletDashboardCard } from "../../components/wallet/WalletDashboardCard";
+import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
-import {
-  fetchMerchantMe,
-  fetchMerchantProducts,
-  fetchMerchantSellerOrders
-} from "../../lib/api";
+import { fetchMerchantDashboard, fetchMerchantMe } from "../../lib/api";
+import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
+import { welcomeFirstName } from "../../lib/userDisplay";
+import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
+import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
-import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
 
 export function MerchantDashboardScreen() {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { accessToken, activeProfileId } = useSession();
+  const bottomInset = useBottomInset();
+  const { accessToken, activeProfileId, authMe, refreshAuthMe } = useSession();
+  const [refreshing, setRefreshing] = useState(false);
 
   const meQ = useQuery({
     queryKey: ["merchant-me", activeProfileId],
@@ -35,38 +43,65 @@ export function MerchantDashboardScreen() {
     enabled: Boolean(accessToken && activeProfileId)
   });
 
-  const productsQ = useQuery({
-    queryKey: ["merchant-products", activeProfileId],
-    queryFn: () => fetchMerchantProducts(accessToken!, activeProfileId!),
+  const dashQ = useQuery({
+    queryKey: ["merchant-dashboard", activeProfileId],
+    queryFn: () => fetchMerchantDashboard(accessToken!, activeProfileId!),
     enabled: Boolean(accessToken && activeProfileId)
   });
 
-  const ordersQ = useQuery({
-    queryKey: ["merchant-orders-seller", activeProfileId],
-    queryFn: () => fetchMerchantSellerOrders(accessToken!, activeProfileId!),
-    enabled: Boolean(accessToken && activeProfileId)
-  });
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refreshAuthMe();
+      await Promise.all([meQ.refetch(), dashQ.refetch()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshAuthMe, meQ, dashQ]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void meQ.refetch();
+      void dashQ.refetch();
+    }, [meQ, dashQ])
+  );
 
   const me = meQ.data;
+  const dash = dashQ.data;
+  const displayName =
+    welcomeFirstName(authMe?.user ?? null) ?? t("merchant.dashboard.defaultName");
 
-  if (meQ.isLoading) {
-    return (
-      <View style={styles.loader}>
-        <ActivityIndicator color={mobileColors.accent} />
+  const header: ReactNode = (
+    <View style={styles.heroBar}>
+      <View style={styles.heroHeaderRow}>
+        <MerchantWelcomeHeader
+          welcomeLabel={t("merchant.dashboard.welcomeLine")}
+          displayName={displayName}
+          avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
+        />
+        <View style={styles.heroActions}>
+          <NotificationsHeaderButton iconColor={merchantColors.primary} style={styles.heroIconBtn} />
+          <SupportHeaderButton iconColor={merchantColors.primary} style={styles.heroIconBtn} />
+        </View>
       </View>
-    );
-  }
+      <WalletDashboardCard variant="producer" />
+    </View>
+  );
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.title}>{t("merchant.dashboard.title")}</Text>
+    <MerchantMobileShell customHeader={header} omitBottomTabBar>
+      <ScrollView
+        contentContainerStyle={[profileScreenScrollContent, { paddingBottom: bottomInset }]}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void onRefresh()}
+            tintColor={merchantColors.primary}
+          />
+        }
+      >
         <ActiveProfileSwitcherControl variant="default" />
-        <Text style={styles.meta}>
-          {t("merchant.dashboard.tier", {
-            tier: me?.subscriptionTier ?? t("merchant.dashboard.tierNone")
-          })}
-        </Text>
+        <MerchantSubscriptionBadge tier={me?.subscriptionTier ?? null} />
 
         {me?.needsShopNudge ? (
           <MerchantOnboardingNudgeBanner
@@ -77,66 +112,130 @@ export function MerchantDashboardScreen() {
         {me?.needsProductNudge ? (
           <MerchantOnboardingNudgeBanner
             variant="product"
-            onPress={() => navigation.navigate("MerchantProductForm")}
+            onPress={() => navigation.navigate("MerchantProductForm", {})}
           />
         ) : null}
 
-        <Pressable
-          style={styles.card}
-          onPress={() => navigation.navigate("MerchantShop")}
-        >
-          <Text style={styles.cardTitle}>{t("merchant.dashboard.shops")}</Text>
-          <Text>{me?.shopCount ?? 0}</Text>
-        </Pressable>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{t("merchant.dashboard.products")}</Text>
-          <FlatList
-            data={productsQ.data ?? []}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            ListEmptyComponent={
-              <Text>{t("merchant.dashboard.noProducts")}</Text>
-            }
-            renderItem={({ item }) => (
-              <Text>
-                {item.name} — {item.status} — {item.stock} {t("merchant.dashboard.stock")}
+        <ScreenSection title={t("merchant.dashboard.sectionKpis")} plain>
+          <View style={styles.kpiGrid}>
+            <Pressable
+              style={[styles.kpiCard, { backgroundColor: merchantColors.primaryLight }]}
+              onPress={() => navigation.navigate("MerchantOrders", { filter: "paid" })}
+            >
+              <Text style={[styles.kpiValue, { color: merchantColors.primary }]}>
+                {(dash?.kpis.monthRevenueXof ?? 0).toLocaleString("fr-FR")}
               </Text>
-            )}
-          />
-          <Pressable onPress={() => navigation.navigate("MerchantProductForm")}>
-            <Text style={styles.link}>{t("merchant.dashboard.addProduct")}</Text>
-          </Pressable>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{t("merchant.dashboard.orders")}</Text>
-          {(ordersQ.data as Array<{ id: string; productName?: string; status: string }> | undefined)?.map(
-            (o) => (
-              <Text key={o.id}>
-                {o.productName ?? o.id} — {o.status}
+              <Text style={styles.kpiLabel}>{t("merchant.kpi.revenue")}</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.kpiCard, { backgroundColor: "#FFF3E0" }]}
+              onPress={() => navigation.navigate("MerchantOrders", { filter: "payment_pending" })}
+            >
+              <Text style={[styles.kpiValue, { color: merchantColors.warning }]}>
+                {dash?.kpis.pendingOrders ?? 0}
               </Text>
-            )
-          )}
-        </View>
+              <Text style={styles.kpiLabel}>{t("merchant.kpi.pendingOrders")}</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.kpiCard, { backgroundColor: "#E8F5E9" }]}
+              onPress={() => navigation.navigate("MerchantProducts")}
+            >
+              <Text style={[styles.kpiValue, { color: merchantColors.success }]}>
+                {dash?.kpis.productViews ?? 0}
+              </Text>
+              <Text style={styles.kpiLabel}>{t("merchant.kpi.views")}</Text>
+            </Pressable>
+          </View>
+        </ScreenSection>
+
+        {(dash?.lowStockProducts.length ?? 0) > 0 ? (
+          <ScreenSection title={t("merchant.dashboard.lowStockTitle")} plain>
+            <View style={[styles.alertCard, merchantShadow.card]}>
+              {dash!.lowStockProducts.map((p) => (
+                <Text key={p.id} style={styles.alertLine}>
+                  {t("merchant.dashboard.lowStockLine", {
+                    name: p.name,
+                    stock: p.stock,
+                    shop: p.shopName
+                  })}
+                </Text>
+              ))}
+            </View>
+          </ScreenSection>
+        ) : null}
+
+        {(dash?.moderationEvents.length ?? 0) > 0 ? (
+          <ScreenSection title={t("merchant.dashboard.moderationTitle")} plain>
+            <View style={[styles.moderationCard, merchantShadow.card]}>
+              {dash!.moderationEvents.map((e) => (
+                <View key={e.id} style={styles.moderationRow}>
+                  <Text style={styles.moderationProduct}>{e.productName}</Text>
+                  <Text style={styles.moderationReason}>{e.reason}</Text>
+                </View>
+              ))}
+            </View>
+          </ScreenSection>
+        ) : null}
       </ScrollView>
-    </SafeAreaView>
+    </MerchantMobileShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: mobileColors.background },
-  scroll: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
-  loader: { flex: 1, alignItems: "center", justifyContent: "center" },
-  title: { fontSize: 24, fontWeight: "800" },
-  meta: { color: mobileColors.textSecondary },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
+  heroBar: {
+    flexDirection: "column",
+    gap: mobileSpacing.sm,
+    paddingHorizontal: mobileSpacing.lg,
+    paddingTop: mobileSpacing.sm,
+    paddingBottom: mobileSpacing.md,
+    backgroundColor: merchantColors.canvas
+  },
+  heroHeaderRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: mobileSpacing.sm
+  },
+  heroActions: { flexDirection: "row", alignItems: "center", gap: mobileSpacing.xs },
+  heroIconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: merchantColors.cardBg,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: merchantColors.border
+  },
+  kpiGrid: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
+  kpiCard: {
+    flexBasis: "30%",
+    flexGrow: 1,
+    minWidth: 100,
+    borderRadius: merchantRadius.card,
+    padding: mobileSpacing.md,
+    alignItems: "center"
+  },
+  kpiValue: { fontSize: 22, fontWeight: "800" },
+  kpiLabel: { ...mobileTypography.meta, textAlign: "center", marginTop: 4 },
+  alertCard: {
+    backgroundColor: "#FEF3C7",
+    borderRadius: merchantRadius.card,
     padding: mobileSpacing.md,
     borderWidth: 1,
-    borderColor: mobileColors.border
+    borderColor: "#F59E0B",
+    gap: 6
   },
-  cardTitle: { fontWeight: "700", marginBottom: 8 },
-  link: { color: mobileColors.accent, fontWeight: "600", marginTop: 8 }
+  alertLine: { color: "#92400E", fontWeight: "600" },
+  moderationCard: {
+    backgroundColor: merchantColors.cardBg,
+    borderRadius: merchantRadius.card,
+    padding: mobileSpacing.md,
+    borderWidth: 1,
+    borderColor: merchantColors.border,
+    gap: mobileSpacing.sm
+  },
+  moderationRow: { gap: 2 },
+  moderationProduct: { fontWeight: "700" },
+  moderationReason: { color: merchantColors.textSecondary, fontSize: 13 }
 });

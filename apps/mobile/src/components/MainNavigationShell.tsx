@@ -13,10 +13,13 @@ import { ProducerPersistentTabBar } from "./ProducerPersistentTabBar";
 import { VetPersistentTabBar } from "./VetPersistentTabBar";
 import { TechPersistentTabBar } from "./TechPersistentTabBar";
 import { BuyerPersistentTabBar } from "./BuyerPersistentTabBar";
+import { MerchantPersistentTabBar } from "./MerchantPersistentTabBar";
 import { techBottomChromeHeight } from "./navigation/technician/techNavMetrics";
 import { buyerBottomChromeHeight } from "./navigation/buyer/buyerNavMetrics";
+import { merchantBottomChromeHeight } from "./navigation/merchant/merchantNavMetrics";
 import { TechBottomChromeProvider } from "../context/TechBottomChromeContext";
 import { BuyerBottomChromeProvider } from "../context/BuyerBottomChromeContext";
+import { MerchantBottomChromeProvider } from "../context/MerchantBottomChromeContext";
 import { producerBottomChromeHeight } from "./navigation";
 import { vetBottomChromeHeight } from "./navigation/vet/vetNavMetrics";
 import { ProducerBottomChromeProvider } from "../context/ProducerBottomChromeContext";
@@ -32,6 +35,12 @@ import {
   BatchDetailScreen,
   BuyerDashboardScreen,
   MerchantDashboardScreen,
+  MerchantProductsScreen,
+  MerchantMarketplaceScreen,
+  MerchantOrdersScreen,
+  MerchantOrderDetailScreen,
+  MerchantOrderDisputeScreen,
+  MerchantSubscriptionScreen,
   MerchantShopScreen,
   MerchantProductFormScreen,
   MerchantProductDetailScreen,
@@ -109,6 +118,7 @@ import { defaultStackScreenOptions } from "../lib/navigationHeaderOptions";
 import { mobileColors } from "../theme/mobileTheme";
 import { techStackScreenOptions } from "../theme/technicianTheme";
 import { buyerStackScreenOptions } from "../theme/buyerTheme";
+import { merchantStackScreenOptions } from "../theme/merchantTheme";
 import { vetStackScreenOptions } from "../theme/vetTheme";
 import { AccountModerationGate } from "./auth/AccountModerationGate";
 import { OfflineBanner } from "./OfflineBanner";
@@ -212,6 +222,36 @@ function MainStack() {
         name="MerchantDashboard"
         component={MerchantDashboardScreen}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="MerchantProducts"
+        component={MerchantProductsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="MerchantMarketplace"
+        component={MerchantMarketplaceScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="MerchantOrders"
+        component={MerchantOrdersScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="MerchantOrderDetail"
+        component={MerchantOrderDetailScreen}
+        options={{ ...merchantStackScreenOptions, title: st("merchantOrder") }}
+      />
+      <Stack.Screen
+        name="MerchantOrderDispute"
+        component={MerchantOrderDisputeScreen}
+        options={{ ...merchantStackScreenOptions, title: st("merchantDispute") }}
+      />
+      <Stack.Screen
+        name="MerchantSubscription"
+        component={MerchantSubscriptionScreen}
+        options={{ ...merchantStackScreenOptions, title: st("merchantSubscription") }}
       />
       <Stack.Screen
         name="MerchantShop"
@@ -601,27 +641,32 @@ function MainNavigationWithChrome() {
   const isVeterinarian = profileType === "veterinarian";
   const isBuyer = profileType === "buyer";
   const isTechnician = profileType === "technician";
+  const isMerchant = profileType === "merchant";
   const producerPad = isProducer ? producerBottomChromeHeight(insets.bottom) : 0;
   const vetPad = isVeterinarian ? vetBottomChromeHeight(insets.bottom) : 0;
   const buyerPad = isBuyer ? buyerBottomChromeHeight(insets.bottom) : 0;
   const techPad = isTechnician ? techBottomChromeHeight(insets.bottom) : 0;
+  const merchantPad = isMerchant ? merchantBottomChromeHeight(insets.bottom) : 0;
 
   return (
     <ProducerBottomChromeProvider value={producerPad}>
       <VetBottomChromeProvider value={vetPad}>
         <BuyerBottomChromeProvider value={buyerPad}>
           <TechBottomChromeProvider value={techPad}>
-            <AccountModerationGate>
-              <View key={activeProfileId ?? "none"} style={styles.flex}>
-                <View style={styles.flex}>
-                  <MainStack />
+            <MerchantBottomChromeProvider value={merchantPad}>
+              <AccountModerationGate>
+                <View key={activeProfileId ?? "none"} style={styles.flex}>
+                  <View style={styles.flex}>
+                    <MainStack />
+                  </View>
+                  <ProducerPersistentTabBar />
+                  <VetPersistentTabBar />
+                  <BuyerPersistentTabBar />
+                  <TechPersistentTabBar />
+                  <MerchantPersistentTabBar />
                 </View>
-                <ProducerPersistentTabBar />
-                <VetPersistentTabBar />
-                <BuyerPersistentTabBar />
-                <TechPersistentTabBar />
-              </View>
-            </AccountModerationGate>
+              </AccountModerationGate>
+            </MerchantBottomChromeProvider>
           </TechBottomChromeProvider>
         </BuyerBottomChromeProvider>
       </VetBottomChromeProvider>

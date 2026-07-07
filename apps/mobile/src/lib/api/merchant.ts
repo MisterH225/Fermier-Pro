@@ -38,12 +38,63 @@ export type MerchantProductDto = {
   currency: string;
   photoUrls: string[];
   stock: number;
+  viewCount?: number;
   status: string;
   publishedAt: string | null;
   disabledAt: string | null;
   disabledReason: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type MerchantOrderDto = {
+  id: string;
+  productId: string;
+  productName: string | null;
+  productPhotoUrls: string[];
+  productCurrency: string;
+  buyerUserId: string;
+  buyerName: string | null;
+  sellerUserId: string;
+  sellerName: string | null;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;
+  buyerCommission: number;
+  sellerCommission: number;
+  sellerNet: number;
+  paymentMethod: string;
+  providerRef: string | null;
+  status: string;
+  paidAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  dispute: {
+    id: string;
+    reason: string;
+    sellerNote: string | null;
+    buyerNote: string | null;
+    status: string;
+    openedByUserId: string;
+    createdAt: string;
+    resolvedAt: string | null;
+  } | null;
+};
+
+export type MerchantDashboardDto = {
+  kpis: {
+    monthRevenueXof: number;
+    pendingOrders: number;
+    productViews: number;
+  };
+  lowStockProducts: Array<{ id: string; name: string; stock: number; shopName: string }>;
+  moderationEvents: Array<{
+    id: string;
+    productId: string;
+    productName: string;
+    reason: string;
+    deletedAt: string;
+  }>;
 };
 
 export type MerchantCategoryDto = {
@@ -58,6 +109,13 @@ export function fetchMerchantMe(
   profileId: string
 ): Promise<MerchantMeDto> {
   return apiGetJson<MerchantMeDto>("/merchant/me", accessToken, profileId);
+}
+
+export function fetchMerchantDashboard(
+  accessToken: string,
+  profileId: string
+): Promise<MerchantDashboardDto> {
+  return apiGetJson<MerchantDashboardDto>("/merchant/dashboard", accessToken, profileId);
 }
 
 export function patchMerchantOnboarding(
@@ -146,6 +204,40 @@ export function publishMerchantProduct(
   );
 }
 
+export function unpublishMerchantProduct(
+  accessToken: string,
+  profileId: string,
+  productId: string
+): Promise<MerchantProductDto> {
+  return apiPostJson<MerchantProductDto>(
+    `/merchant/products/${productId}/unpublish`,
+    {},
+    accessToken,
+    profileId
+  );
+}
+
+export function updateMerchantProduct(
+  accessToken: string,
+  profileId: string,
+  productId: string,
+  body: {
+    name?: string;
+    categoryId?: string;
+    description?: string;
+    price?: number;
+    photoUrls?: string[];
+    stock?: number;
+  }
+): Promise<MerchantProductDto> {
+  return apiPatchJson<MerchantProductDto>(
+    `/merchant/products/${productId}`,
+    body,
+    accessToken,
+    profileId
+  );
+}
+
 export function swapMerchantProductActive(
   accessToken: string,
   profileId: string,
@@ -167,11 +259,18 @@ export function fetchMerchantCategories(
 
 export function fetchMerchantCatalog(
   accessToken: string,
-  params?: { categoryId?: string; cursor?: string }
+  params?: {
+    categoryId?: string;
+    cursor?: string;
+    q?: string;
+    sort?: "recent" | "price_asc" | "price_desc" | "popular";
+  }
 ) {
   const q = new URLSearchParams();
   if (params?.categoryId) q.set("categoryId", params.categoryId);
   if (params?.cursor) q.set("cursor", params.cursor);
+  if (params?.q) q.set("q", params.q);
+  if (params?.sort) q.set("sort", params.sort);
   const suffix = q.toString() ? `?${q.toString()}` : "";
   return apiGetJson<{
     items: Array<MerchantProductDto & { shopLocation?: string | null; merchantName?: string | null }>;
@@ -221,5 +320,54 @@ export function confirmMerchantOrderPayment(
 }
 
 export function fetchMerchantSellerOrders(accessToken: string, profileId: string) {
-  return apiGetJson("/merchant/orders/seller", accessToken, profileId);
+  return apiGetJson<MerchantOrderDto[]>("/merchant/orders/seller", accessToken, profileId);
+}
+
+export function fetchMerchantOrder(
+  accessToken: string,
+  profileId: string,
+  orderId: string
+) {
+  return apiGetJson<MerchantOrderDto>(`/merchant/orders/${orderId}`, accessToken, profileId);
+}
+
+export function completeMerchantOrder(
+  accessToken: string,
+  profileId: string,
+  orderId: string
+) {
+  return apiPostJson<MerchantOrderDto>(
+    `/merchant/orders/${orderId}/complete`,
+    {},
+    accessToken,
+    profileId
+  );
+}
+
+export function openMerchantOrderDispute(
+  accessToken: string,
+  profileId: string,
+  orderId: string,
+  body: { reason: string }
+) {
+  return apiPostJson<MerchantOrderDto>(
+    `/merchant/orders/${orderId}/dispute`,
+    body,
+    accessToken,
+    profileId
+  );
+}
+
+export function respondMerchantOrderDispute(
+  accessToken: string,
+  profileId: string,
+  orderId: string,
+  body: { note: string }
+) {
+  return apiPostJson<MerchantOrderDto>(
+    `/merchant/orders/${orderId}/dispute/respond`,
+    body,
+    accessToken,
+    profileId
+  );
 }

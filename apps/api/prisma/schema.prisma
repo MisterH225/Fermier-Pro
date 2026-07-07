@@ -38,8 +38,17 @@ enum MerchantProductDisabledReason {
 enum MerchantOrderStatus {
   payment_pending
   paid
+  disputed
+  completed
   cancelled
   failed
+}
+
+enum MerchantOrderDisputeStatus {
+  open
+  resolved_seller
+  resolved_buyer
+  closed
 }
 
 enum SmartAlertModule {
@@ -199,6 +208,7 @@ model User {
   communityFeedLikes    CommunityFeedLike[]
   merchantProfile       MerchantProfile?
   merchantOrdersAsBuyer MerchantOrder[]     @relation("MerchantOrderBuyer")
+  merchantOrderDisputesOpened MerchantOrderDispute[] @relation("MerchantOrderDisputeOpener")
   merchantOrdersAsSeller MerchantOrder[]    @relation("MerchantOrderSeller")
   merchantModerationActions MerchantProductModerationLog[] @relation("MerchantModerationAdmin")
 
@@ -3249,6 +3259,7 @@ model MerchantProduct {
   currency       String                         @default("XOF")
   photoUrls      Json                           @default("[]")
   stock          Int                            @default(0)
+  viewCount      Int                            @default(0)
   status         MerchantProductStatus          @default(draft)
   publishedAt    DateTime?
   disabledAt     DateTime?
@@ -3282,14 +3293,35 @@ model MerchantOrder {
   providerRef         String?
   status              MerchantOrderStatus      @default(payment_pending)
   paidAt              DateTime?
+  completedAt         DateTime?
   createdAt           DateTime                 @default(now())
   updatedAt           DateTime                 @updatedAt
   platformRevenue     PlatformRevenue?
   walletEntries       UserWalletEntry[]
+  dispute             MerchantOrderDispute?
 
   @@index([buyerUserId, createdAt(sort: Desc)])
   @@index([sellerUserId, createdAt(sort: Desc)])
   @@index([productId])
+  @@index([status])
+}
+
+/// Litige commande boutique (hors arbitrage poids marketplace).
+model MerchantOrderDispute {
+  id             String                     @id @default(cuid())
+  orderId        String                     @unique
+  order          MerchantOrder              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  openedByUserId String
+  openedBy       User                       @relation("MerchantOrderDisputeOpener", fields: [openedByUserId], references: [id], onDelete: Restrict)
+  reason         String
+  sellerNote     String?
+  buyerNote      String?
+  status         MerchantOrderDisputeStatus @default(open)
+  resolvedAt     DateTime?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  @@index([openedByUserId, createdAt(sort: Desc)])
   @@index([status])
 }
 

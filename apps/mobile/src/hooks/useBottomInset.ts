@@ -4,6 +4,7 @@ import {
   NAV_BAR_HEIGHT
 } from "../constants/layout";
 import { useBuyerBottomChromePad } from "../context/BuyerBottomChromeContext";
+import { useMerchantBottomChromePad } from "../context/MerchantBottomChromeContext";
 import { useProducerBottomChromePad } from "../context/ProducerBottomChromeContext";
 import { useTechBottomChromePad } from "../context/TechBottomChromeContext";
 import { useVetBottomChromePad } from "../context/VetBottomChromeContext";
@@ -13,7 +14,8 @@ function useActiveBottomChromePad(): number {
   const buyer = useBuyerBottomChromePad();
   const vet = useVetBottomChromePad();
   const tech = useTechBottomChromePad();
-  return Math.max(producer, buyer, vet, tech);
+  const merchant = useMerchantBottomChromePad();
+  return Math.max(producer, buyer, vet, tech, merchant);
 }
 
 /**

@@ -11,6 +11,7 @@ import { PushNotificationsModule } from "../push-notifications/push-notification
 import { WalletModule } from "../wallet/wallet.module";
 import { MerchantCatalogController, MerchantShopController } from "./merchant-shop.controller";
 import { MerchantCategoriesService } from "./merchant-categories.service";
+import { MerchantDashboardService } from "./merchant-dashboard.service";
 import { MerchantModerationService } from "./merchant-moderation.service";
 import { MerchantOrdersService } from "./merchant-orders.service";
 import { MerchantProductsService } from "./merchant-products.service";
@@ -39,7 +40,8 @@ import { MerchantSubscriptionService } from "./merchant-subscription.service";
     MerchantCategoriesService,
     MerchantSubscriptionService,
     MerchantOrdersService,
-    MerchantModerationService
+    MerchantModerationService,
+    MerchantDashboardService
   ],
   exports: [
     MerchantProfilesService,

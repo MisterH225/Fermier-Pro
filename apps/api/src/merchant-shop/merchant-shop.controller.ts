@@ -16,12 +16,15 @@ import {
   ConfirmMerchantPaymentDto,
   CreateMerchantProductDto,
   CreateMerchantShopDto,
+  OpenMerchantOrderDisputeDto,
   PatchMerchantOnboardingDto,
   PurchaseMerchantProductDto,
+  RespondMerchantOrderDisputeDto,
   UpdateMerchantProductDto,
   UpdateMerchantShopDto
 } from "./dto/merchant-shop.dto";
 import { MerchantCategoriesService } from "./merchant-categories.service";
+import { MerchantDashboardService } from "./merchant-dashboard.service";
 import { MerchantOrdersService } from "./merchant-orders.service";
 import { MerchantProductsService } from "./merchant-products.service";
 import { MerchantProfilesService } from "./merchant-profiles.service";
@@ -37,7 +40,8 @@ export class MerchantShopController {
     private readonly products: MerchantProductsService,
     private readonly categories: MerchantCategoriesService,
     private readonly subscription: MerchantSubscriptionService,
-    private readonly orders: MerchantOrdersService
+    private readonly orders: MerchantOrdersService,
+    private readonly dashboard: MerchantDashboardService
   ) {}
 
   @Get("me")
@@ -69,6 +73,14 @@ export class MerchantShopController {
     @Body() dto: ConfirmMerchantPaymentDto
   ) {
     return this.subscription.confirmPremiumPayment(user, dto.providerRef);
+  }
+
+  @Get("dashboard")
+  @UseGuards(MerchantProfileGuard)
+  getDashboard(
+    @CurrentUser() user: Parameters<MerchantDashboardService["getDashboard"]>[0]
+  ) {
+    return this.dashboard.getDashboard(user);
   }
 
   @Get("shops")
@@ -131,6 +143,15 @@ export class MerchantShopController {
     return this.products.publish(user, productId);
   }
 
+  @Post("products/:productId/unpublish")
+  @UseGuards(MerchantProfileGuard)
+  unpublishProduct(
+    @CurrentUser() user: Parameters<MerchantProductsService["unpublish"]>[0],
+    @Param("productId") productId: string
+  ) {
+    return this.products.unpublish(user, productId);
+  }
+
   @Post("products/:productId/swap-active")
   @UseGuards(MerchantProfileGuard)
   swapProduct(
@@ -151,6 +172,44 @@ export class MerchantShopController {
     return this.orders.listBuyerOrders(user);
   }
 
+  @Get("orders/:orderId")
+  @UseGuards(MerchantProfileGuard)
+  getOrder(
+    @CurrentUser() user: Parameters<MerchantOrdersService["getOrder"]>[0],
+    @Param("orderId") orderId: string
+  ) {
+    return this.orders.getOrder(user, orderId);
+  }
+
+  @Post("orders/:orderId/complete")
+  @UseGuards(MerchantProfileGuard)
+  completeOrder(
+    @CurrentUser() user: Parameters<MerchantOrdersService["completeOrder"]>[0],
+    @Param("orderId") orderId: string
+  ) {
+    return this.orders.completeOrder(user, orderId);
+  }
+
+  @Post("orders/:orderId/dispute")
+  @UseGuards(MerchantProfileGuard)
+  openDispute(
+    @CurrentUser() user: Parameters<MerchantOrdersService["openDispute"]>[0],
+    @Param("orderId") orderId: string,
+    @Body() dto: OpenMerchantOrderDisputeDto
+  ) {
+    return this.orders.openDispute(user, orderId, dto);
+  }
+
+  @Post("orders/:orderId/dispute/respond")
+  @UseGuards(MerchantProfileGuard)
+  respondDispute(
+    @CurrentUser() user: Parameters<MerchantOrdersService["respondDispute"]>[0],
+    @Param("orderId") orderId: string,
+    @Body() dto: RespondMerchantOrderDisputeDto
+  ) {
+    return this.orders.respondDispute(user, orderId, dto);
+  }
+
   @Get("categories")
   listCategories() {
     return this.categories.listPublic();
@@ -169,12 +228,16 @@ export class MerchantCatalogController {
   listProducts(
     @Query("categoryId") categoryId?: string,
     @Query("cursor") cursor?: string,
-    @Query("limit") limit?: string
+    @Query("limit") limit?: string,
+    @Query("q") q?: string,
+    @Query("sort") sort?: "recent" | "price_asc" | "price_desc" | "popular"
   ) {
     return this.products.listCatalog({
       categoryId: categoryId?.trim() || undefined,
       cursor: cursor?.trim() || undefined,
-      limit: limit ? Number.parseInt(limit, 10) : undefined
+      limit: limit ? Number.parseInt(limit, 10) : undefined,
+      q: q?.trim() || undefined,
+      sort
     });
   }
 

@@ -4,8 +4,14 @@ export type RootStackParamList = {
   ProducerFarmSettings: { farmId: string; farmName: string };
   BuyerDashboard: undefined;
   MerchantDashboard: undefined;
+  MerchantProducts: undefined;
+  MerchantMarketplace: undefined;
+  MerchantOrders: { filter?: string } | undefined;
+  MerchantOrderDetail: { orderId: string };
+  MerchantOrderDispute: { orderId: string };
+  MerchantSubscription: undefined;
   MerchantShop: undefined;
-  MerchantProductForm: undefined;
+  MerchantProductForm: { productId?: string } | undefined;
   MerchantProductDetail: { productId: string };
   BuyerMarket:
     | {

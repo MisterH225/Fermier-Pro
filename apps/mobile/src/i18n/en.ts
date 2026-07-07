@@ -1355,6 +1355,9 @@ export const en = {
       buyerFinance: "Finance",
       merchantShop: "Shop",
       merchantProduct: "Product",
+      merchantOrder: "Order",
+      merchantDispute: "Dispute",
+      merchantSubscription: "Subscription",
       userWallet: "Wallet",
       walletTopUp: "Top up",
       walletWithdraw: "Withdraw",
@@ -3868,8 +3871,16 @@ export const en = {
     refresh: "Refresh recommendations"
   },
   merchant: {
+    nav: {
+      home: "Home",
+      products: "Products",
+      marketplace: "Market",
+      orders: "Orders"
+    },
     dashboard: {
       title: "My shop",
+      welcomeLine: "Hello",
+      defaultName: "Merchant",
       tier: "Plan: {{tier}}",
       tierNone: "not chosen",
       shops: "Shops",
@@ -3879,7 +3890,94 @@ export const en = {
       noProducts: "No products",
       addProduct: "Add a product",
       nudgeShop: "Create your first shop to start selling.",
-      nudgeProduct: "Add your first product to your shop."
+      nudgeProduct: "Add your first product to your shop.",
+      sectionKpis: "Overview",
+      upgradeCta: "Upgrade to Premium",
+      lowStockTitle: "Low stock",
+      lowStockLine: "{{name}} ({{shop}}) — {{stock}} left",
+      moderationTitle: "Recent moderation"
+    },
+    kpi: {
+      revenue: "Monthly revenue",
+      pendingOrders: "Pending orders",
+      views: "Product views"
+    },
+    products: {
+      title: "My products",
+      edit: "Edit",
+      publish: "Publish",
+      unpublish: "Unpublish",
+      swap: "Activate (swap)",
+      freeLimitHint: "Free limit reached — disable a product or go Premium.",
+      filter: {
+        all: "All",
+        published: "Active",
+        disabled: "Disabled",
+        draft: "Drafts",
+        moderated_removed: "Moderation"
+      },
+      status: {
+        published: "Active",
+        disabled: "Disabled",
+        draft: "Draft",
+        moderated_removed: "Removed"
+      }
+    },
+    marketplace: {
+      title: "Shops",
+      search: "Search products…",
+      allCategories: "All",
+      sort: {
+        recent: "Recent",
+        price_asc: "Price ↑",
+        price_desc: "Price ↓",
+        popular: "Popular"
+      }
+    },
+    orders: {
+      title: "Orders",
+      empty: "No orders",
+      buyer: "Buyer",
+      quantity: "Quantity",
+      total: "Amount",
+      commission: "Platform fee",
+      net: "Seller net",
+      message: "Message",
+      markComplete: "Mark completed",
+      openDispute: "Open dispute",
+      disputeManage: "Manage dispute",
+      disputeOpen: "Dispute in progress",
+      sellerNote: "Seller note",
+      buyerNote: "Buyer note",
+      filter: {
+        all: "All",
+        payment_pending: "Pending",
+        paid: "Paid",
+        disputed: "Dispute",
+        completed: "Completed"
+      },
+      status: {
+        payment_pending: "Pending",
+        paid: "Paid",
+        disputed: "Disputed",
+        completed: "Completed",
+        cancelled: "Cancelled",
+        failed: "Failed"
+      }
+    },
+    dispute: {
+      title: "Order dispute",
+      subtitle: "Describe the issue (delivery, quality, etc.). No weight arbitration.",
+      reasonLabel: "Reason",
+      reasonPh: "Explain the problem…",
+      submit: "Open dispute",
+      opened: "Dispute opened",
+      current: "Active dispute",
+      sellerReply: "Your reply (seller)",
+      buyerReply: "Your reply (buyer)",
+      notePh: "Reply or details…",
+      sendNote: "Send",
+      responded: "Reply saved"
     },
     onboarding: {
       shopTitle: "Create your shop",
@@ -3910,7 +4008,28 @@ export const en = {
       premiumPending: "Complete Premium payment to continue."
     },
     shop: { title: "New shop" },
-    product: { title: "New product", needShop: "Create a shop first." },
+    product: {
+      title: "New product",
+      editTitle: "Edit product",
+      needShop: "Create a shop first.",
+      descriptionPh: "Description",
+      save: "Save",
+      saveAndPublish: "Save & publish",
+      fields: {
+        unit: "Unit",
+        unitPh: "e.g. 25 kg bag",
+        expiry: "Expiry",
+        expiryPh: "e.g. 12/2026",
+        brand: "Brand",
+        brandPh: "e.g. NutriPorc",
+        condition: "Condition",
+        conditionPh: "e.g. New",
+        duration: "Duration",
+        durationPh: "e.g. 1 hour",
+        details: "Details",
+        detailsPh: "Additional info"
+      }
+    },
     catalog: {
       empty: "No shop products yet.",
       stock: "{{count}} in stock"

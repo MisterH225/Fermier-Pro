@@ -183,3 +183,17 @@ export class DeleteMerchantProductAdminDto {
   @MaxLength(500)
   reason!: string;
 }
+
+export class OpenMerchantOrderDisputeDto {
+  @IsString()
+  @MinLength(5)
+  @MaxLength(1000)
+  reason!: string;
+}
+
+export class RespondMerchantOrderDisputeDto {
+  @IsString()
+  @MinLength(3)
+  @MaxLength(2000)
+  note!: string;
+}

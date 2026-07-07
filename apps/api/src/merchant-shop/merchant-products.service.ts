@@ -39,6 +39,7 @@ export class MerchantProductsService {
     currency: string;
     photoUrls: unknown;
     stock: number;
+    viewCount?: number;
     status: MerchantProductStatus;
     publishedAt: Date | null;
     disabledAt: Date | null;
@@ -63,6 +64,7 @@ export class MerchantProductsService {
       currency: product.currency,
       photoUrls: photos,
       stock: product.stock,
+      viewCount: product.viewCount ?? 0,
       status: product.status,
       publishedAt: product.publishedAt?.toISOString() ?? null,
       disabledAt: product.disabledAt?.toISOString() ?? null,
@@ -190,6 +192,27 @@ export class MerchantProductsService {
     return this.serializeProduct(updated);
   }
 
+  async unpublish(user: User, productId: string) {
+    const product = await this.requireOwnedProduct(user.id, productId);
+    if (product.status !== MerchantProductStatus.published) {
+      throw new ConflictException("Seuls les produits publiés peuvent être dépubliés");
+    }
+    const updated = await this.prisma.merchantProduct.update({
+      where: { id: product.id },
+      data: {
+        status: MerchantProductStatus.draft,
+        publishedAt: null,
+        disabledAt: null,
+        disabledReason: null
+      },
+      include: {
+        category: { select: { id: true, name: true, slug: true } },
+        shop: { select: { id: true, name: true } }
+      }
+    });
+    return this.serializeProduct(updated);
+  }
+
   async swapActive(user: User, productId: string) {
     const tier = await this.profiles.assertSubscriptionChosen(user.id);
     if (tier !== MerchantSubscriptionTier.free) {
@@ -264,13 +287,35 @@ export class MerchantProductsService {
     categoryId?: string;
     cursor?: string;
     limit?: number;
+    q?: string;
+    sort?: "recent" | "price_asc" | "price_desc" | "popular";
   }) {
     const limit = Math.min(opts?.limit ?? 30, 50);
+    const search = opts?.q?.trim();
+    const sort = opts?.sort ?? "recent";
+
+    const orderBy: Prisma.MerchantProductOrderByWithRelationInput[] =
+      sort === "price_asc"
+        ? [{ price: "asc" }, { id: "desc" }]
+        : sort === "price_desc"
+          ? [{ price: "desc" }, { id: "desc" }]
+          : sort === "popular"
+            ? [{ viewCount: "desc" as const }, { publishedAt: "desc" }, { id: "desc" }]
+            : [{ publishedAt: "desc" }, { id: "desc" }];
+
     const rows = await this.prisma.merchantProduct.findMany({
       where: {
         status: MerchantProductStatus.published,
         stock: { gt: 0 },
-        ...(opts?.categoryId ? { categoryId: opts.categoryId } : {})
+        ...(opts?.categoryId ? { categoryId: opts.categoryId } : {}),
+        ...(search
+          ? {
+              OR: [
+                { name: { contains: search, mode: "insensitive" } },
+                { description: { contains: search, mode: "insensitive" } }
+              ]
+            }
+          : {})
       },
       include: {
         category: { select: { id: true, name: true, slug: true } },
@@ -285,7 +330,7 @@ export class MerchantProductsService {
           }
         }
       },
-      orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
+      orderBy,
       take: limit + 1,
       ...(opts?.cursor
         ? { cursor: { id: opts.cursor }, skip: 1 }
@@ -328,6 +373,12 @@ export class MerchantProductsService {
     if (!product) {
       throw new NotFoundException("Produit introuvable");
     }
+    void this.prisma.merchantProduct
+      .update({
+        where: { id: product.id },
+        data: { viewCount: { increment: 1 } }
+      })
+      .catch(() => undefined);
     return {
       ...this.serializeProduct(product),
       shopDescription: product.shop.description,

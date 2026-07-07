@@ -13,6 +13,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSession } from "../../context/SessionContext";
 import {
   confirmMerchantOrderPayment,
@@ -23,11 +25,14 @@ import {
 import { formatApiError } from "../../lib/apiErrors";
 import type { RootStackParamList } from "../../types/navigation";
 import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
+import { merchantColors } from "../../theme/merchantTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MerchantProductDetail">;
 
 export function MerchantProductDetailScreen({ route }: Props) {
   const { t } = useTranslation();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken } = useSession();
   const [qty, setQty] = useState("1");
   const [busy, setBusy] = useState(false);
@@ -66,14 +71,14 @@ export function MerchantProductDetailScreen({ route }: Props) {
   const onContact = async () => {
     if (!accessToken || !product?.sellerUserId) return;
     try {
-      await ensureDirectChatRoom(
+      const room = await ensureDirectChatRoom(
         accessToken,
         product.sellerUserId,
         undefined,
         undefined,
         product.id
       );
-      Alert.alert(t("merchant.purchase.chatOpened"));
+      navigation.navigate("ChatRoom", { roomId: room.id });
     } catch (e) {
       Alert.alert(formatApiError(e));
     }
@@ -119,7 +124,7 @@ const styles = StyleSheet.create({
   scroll: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
   loader: { flex: 1, alignItems: "center", justifyContent: "center" },
   title: { fontSize: 22, fontWeight: "800" },
-  price: { fontSize: 18, fontWeight: "700", color: mobileColors.accent },
+  price: { fontSize: 18, fontWeight: "700", color: merchantColors.primary },
   desc: { color: mobileColors.textSecondary },
   meta: { fontWeight: "600" },
   input: {
@@ -130,12 +135,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff"
   },
   btn: {
-    backgroundColor: mobileColors.accent,
+    backgroundColor: merchantColors.primary,
     padding: 14,
     borderRadius: 10,
     alignItems: "center"
   },
   btnTx: { color: "#fff", fontWeight: "700" },
   secondary: { alignItems: "center", padding: 12 },
-  secondaryTx: { color: mobileColors.accent, fontWeight: "600" }
+  secondaryTx: { color: merchantColors.primary, fontWeight: "600" }
 });

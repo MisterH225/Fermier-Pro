@@ -1361,6 +1361,9 @@ export const fr = {
       buyerFinance: "Finance",
       merchantShop: "Boutique",
       merchantProduct: "Produit",
+      merchantOrder: "Commande",
+      merchantDispute: "Litige",
+      merchantSubscription: "Abonnement",
       userWallet: "Portefeuille",
       walletTopUp: "Recharger",
       walletWithdraw: "Retirer",
@@ -3917,8 +3920,16 @@ export const fr = {
     aiRefresh: "🔄 Actualiser"
   },
   merchant: {
+    nav: {
+      home: "Accueil",
+      products: "Produits",
+      marketplace: "Market",
+      orders: "Commandes"
+    },
     dashboard: {
       title: "Ma boutique",
+      welcomeLine: "Bonjour",
+      defaultName: "Commerçant",
       tier: "Abonnement : {{tier}}",
       tierNone: "non choisi",
       shops: "Boutiques",
@@ -3928,7 +3939,94 @@ export const fr = {
       noProducts: "Aucun produit",
       addProduct: "Ajouter un produit",
       nudgeShop: "Crée ta première boutique pour commencer à vendre.",
-      nudgeProduct: "Ajoute ton premier produit à ta boutique."
+      nudgeProduct: "Ajoute ton premier produit à ta boutique.",
+      sectionKpis: "Vue d'ensemble",
+      upgradeCta: "Passer Premium",
+      lowStockTitle: "Stock bas",
+      lowStockLine: "{{name}} ({{shop}}) — {{stock}} restant(s)",
+      moderationTitle: "Modération récente"
+    },
+    kpi: {
+      revenue: "Revenus du mois",
+      pendingOrders: "Commandes en attente",
+      views: "Vues produits"
+    },
+    products: {
+      title: "Mes produits",
+      edit: "Modifier",
+      publish: "Publier",
+      unpublish: "Dépublier",
+      swap: "Activer (swap)",
+      freeLimitHint: "Limite Free atteinte — désactive un produit ou passe Premium.",
+      filter: {
+        all: "Tous",
+        published: "Actifs",
+        disabled: "Désactivés",
+        draft: "Brouillons",
+        moderated_removed: "Modération"
+      },
+      status: {
+        published: "Actif",
+        disabled: "Désactivé",
+        draft: "Brouillon",
+        moderated_removed: "Retiré"
+      }
+    },
+    marketplace: {
+      title: "Boutiques",
+      search: "Rechercher un produit…",
+      allCategories: "Toutes",
+      sort: {
+        recent: "Récents",
+        price_asc: "Prix ↑",
+        price_desc: "Prix ↓",
+        popular: "Populaires"
+      }
+    },
+    orders: {
+      title: "Commandes",
+      empty: "Aucune commande",
+      buyer: "Acheteur",
+      quantity: "Quantité",
+      total: "Montant",
+      commission: "Commission plateforme",
+      net: "Net vendeur",
+      message: "Messagerie",
+      markComplete: "Marquer terminée",
+      openDispute: "Ouvrir un litige",
+      disputeManage: "Gérer le litige",
+      disputeOpen: "Litige en cours",
+      sellerNote: "Note vendeur",
+      buyerNote: "Note acheteur",
+      filter: {
+        all: "Toutes",
+        payment_pending: "En attente",
+        paid: "Payées",
+        disputed: "Litige",
+        completed: "Terminées"
+      },
+      status: {
+        payment_pending: "En attente",
+        paid: "Payée",
+        disputed: "En litige",
+        completed: "Terminée",
+        cancelled: "Annulée",
+        failed: "Échouée"
+      }
+    },
+    dispute: {
+      title: "Litige commande",
+      subtitle: "Décris le problème (livraison, qualité, etc.). Pas d'arbitrage poids.",
+      reasonLabel: "Motif",
+      reasonPh: "Explique le problème…",
+      submit: "Ouvrir le litige",
+      opened: "Litige ouvert",
+      current: "Litige en cours",
+      sellerReply: "Ta réponse (vendeur)",
+      buyerReply: "Ta réponse (acheteur)",
+      notePh: "Réponse ou précision…",
+      sendNote: "Envoyer",
+      responded: "Réponse enregistrée"
     },
     onboarding: {
       shopTitle: "Créer ta boutique",
@@ -3959,7 +4057,28 @@ export const fr = {
       premiumPending: "Finalise le paiement Premium pour continuer."
     },
     shop: { title: "Nouvelle boutique" },
-    product: { title: "Nouveau produit", needShop: "Crée d'abord une boutique." },
+    product: {
+      title: "Nouveau produit",
+      editTitle: "Modifier le produit",
+      needShop: "Crée d'abord une boutique.",
+      descriptionPh: "Description",
+      save: "Enregistrer",
+      saveAndPublish: "Enregistrer et publier",
+      fields: {
+        unit: "Unité",
+        unitPh: "ex. sac 25 kg",
+        expiry: "Date limite",
+        expiryPh: "ex. 12/2026",
+        brand: "Marque",
+        brandPh: "ex. NutriPorc",
+        condition: "État",
+        conditionPh: "ex. Neuf",
+        duration: "Durée",
+        durationPh: "ex. 1 heure",
+        details: "Détails",
+        detailsPh: "Informations complémentaires"
+      }
+    },
     catalog: {
       empty: "Aucun produit en boutique pour le moment.",
       stock: "{{count}} en stock"
