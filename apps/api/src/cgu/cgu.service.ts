@@ -34,20 +34,19 @@ export class CguService {
   constructor(private readonly prisma: PrismaService) {}
 
   private async ensureSettingsRow() {
+    await this.prisma.cguSettings.upsert({
+      where: { id: SETTINGS_ID },
+      create: {
+        id: SETTINGS_ID,
+        currentVersion: CGU_DEFAULT_VERSION,
+        content: CGU_DEFAULT_CONTENT
+      },
+      update: {}
+    });
     const existing = await this.prisma.cguSettings.findUnique({
       where: { id: SETTINGS_ID }
     });
-    if (!existing) {
-      await this.prisma.cguSettings.create({
-        data: {
-          id: SETTINGS_ID,
-          currentVersion: CGU_DEFAULT_VERSION,
-          content: CGU_DEFAULT_CONTENT
-        }
-      });
-      return;
-    }
-    if (!existing.content?.trim()) {
+    if (existing && !existing.content?.trim()) {
       await this.prisma.cguSettings.update({
         where: { id: SETTINGS_ID },
         data: { content: CGU_DEFAULT_CONTENT }

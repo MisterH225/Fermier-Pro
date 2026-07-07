@@ -37,5 +37,9 @@ export function formatApiError(err: unknown): string {
     );
   }
 
+  if (m.includes("internal server error")) {
+    return "Le serveur met quelques secondes à finaliser votre compte. Réessayez.";
+  }
+
   return raw;
 }

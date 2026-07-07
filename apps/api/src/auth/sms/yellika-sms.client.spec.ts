@@ -20,6 +20,10 @@ describe("YellikaSmsClient", () => {
     expect(client.formatRecipient("+2250708123456")).toBe("2250708123456");
   });
 
+  it("réinsère le 0 manquant pour un numéro CI tronqué", () => {
+    expect(client.formatRecipient("+225708425141")).toBe("2250708425141");
+  });
+
   it("rejette un numéro trop court", () => {
     expect(() => client.formatRecipient("+22512")).toThrow(
       "Numéro de téléphone invalide"

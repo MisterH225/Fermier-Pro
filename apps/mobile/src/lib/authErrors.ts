@@ -25,8 +25,17 @@ function friendlySmsProviderMessage(message: string): string {
   if (
     m.includes("sender") ||
     m.includes("sender_id") ||
-    m.includes("sender id")
+    m.includes("sender id") ||
+    m.includes("expéditeur") ||
+    m.includes("expediteur")
   ) {
+    if (m.includes("autorise") || m.includes("autorisé")) {
+      return (
+        "L’expéditeur SMS (sender ID) n’est pas autorisé pour ce type de message OTP. " +
+        "Demandez à Yellika d’activer l’envoi « transactionnel / OTP » pour votre sender ID, " +
+        "ou enregistrez le modèle de message validé."
+      );
+    }
     return "Configuration SMS invalide (sender ID Yellika). Contacte le support Fermier Pro.";
   }
   if (

@@ -1,4 +1,6 @@
 /** Indicatifs E.164 — Afrique de l’Ouest uniquement (liste extensible plus tard). */
+import { buildE164FromDialAndNational } from "@fermier/phone";
+
 export type DialCountry = {
   iso2: string;
   dial: string;
@@ -48,10 +50,5 @@ export function defaultDialCountry(): DialCountry {
 
 /** Concatène indicatif + numéro national en E.164 (chiffres uniquement après le +). */
 export function buildE164Phone(dial: string, nationalRaw: string): string {
-  const d = dial.trim().startsWith("+") ? dial.trim() : `+${dial.replace(/\D/g, "")}`;
-  let digits = nationalRaw.replace(/\D/g, "");
-  if (digits.startsWith("0")) {
-    digits = digits.replace(/^0+/, "");
-  }
-  return `${d}${digits}`;
+  return buildE164FromDialAndNational(dial, nationalRaw);
 }

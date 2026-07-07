@@ -4,6 +4,7 @@ import {
   UnauthorizedException
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { normalizeE164Phone } from "@fermier/phone";
 import { AccountStatus, Prisma, ProfileModerationStatus } from "@prisma/client";
 import type { Profile, User } from "@prisma/client";
 import type { Decimal } from "@prisma/client/runtime/library";
@@ -85,8 +86,9 @@ export class AuthService {
   ): Promise<User> {
     const email =
       payload.email && payload.email.length > 0 ? payload.email : null;
-    const phone =
+    const phoneRaw =
       payload.phone && payload.phone.length > 0 ? payload.phone : null;
+    const phone = phoneRaw ? normalizeE164Phone(phoneRaw) : null;
     const emailConfirmedAt =
       payload.email_confirmed_at ??
       payload.confirmed_at ??

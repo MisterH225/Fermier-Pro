@@ -22,6 +22,36 @@ import { resetNavigationToProfileHome } from "../lib/profileNavigationReset";
 const STORAGE_PROFILE_KEY = "@fermier_pro/active_profile_id";
 const AUTH_ME_CACHE_KEY = "@fermier_pro/auth_me_cache";
 
+function isTransientAuthMeError(err: unknown): boolean {
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  return (
+    msg.includes("internal server error") ||
+    msg.includes("503") ||
+    msg.includes("502") ||
+    msg.includes("504")
+  );
+}
+
+async function fetchAuthMeResilient(
+  accessToken: string,
+  activeProfileId?: string
+) {
+  const maxAttempts = 3;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await fetchAuthMe(accessToken, activeProfileId);
+    } catch (err) {
+      lastErr = err;
+      if (!isTransientAuthMeError(err) || attempt === maxAttempts - 1) {
+        throw err;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+    }
+  }
+  throw lastErr;
+}
+
 const DEFAULT_CLIENT_FEATURES: ClientConfigDto["features"] = {
   marketplace: true,
   chat: true,
@@ -119,7 +149,7 @@ export function SessionProvider({
     setAuthError(null);
     try {
       const stored = await AsyncStorage.getItem(STORAGE_PROFILE_KEY);
-      const initial = await fetchAuthMe(accessToken);
+      const initial = await fetchAuthMeResilient(accessToken);
       const ids = new Set(initial.profiles.map((p) => p.id));
       /** Dernier profil choisi (AsyncStorage), puis défaut serveur. */
       const fromServer = pickDefaultProfileId(initial);
@@ -136,7 +166,7 @@ export function SessionProvider({
       }
       if (chosen) {
         await AsyncStorage.setItem(STORAGE_PROFILE_KEY, chosen);
-        const withProfile = await fetchAuthMe(accessToken, chosen);
+        const withProfile = await fetchAuthMeResilient(accessToken, chosen);
         setAuthMe(withProfile);
         setActiveProfileIdState(chosen);
         await AsyncStorage.setItem(

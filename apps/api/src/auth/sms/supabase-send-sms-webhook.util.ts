@@ -35,6 +35,10 @@ export function verifySupabaseSendSmsHook(
 }
 
 export function buildOtpSmsMessage(otp: string): string {
+  const template = process.env.YELLIKA_SMS_OTP_TEMPLATE?.trim();
+  if (template) {
+    return template.replace(/\{\{otp\}\}/g, otp).slice(0, 500);
+  }
   const appName = process.env.YELLIKA_SMS_APP_NAME?.trim() || "Fermier Pro";
   return `${appName} : votre code de connexion est ${otp}. Ne le partagez avec personne.`;
 }

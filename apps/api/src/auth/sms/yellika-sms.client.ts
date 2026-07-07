@@ -3,6 +3,7 @@ import {
   Logger,
   ServiceUnavailableException
 } from "@nestjs/common";
+import { formatE164ForYellikaSms } from "@fermier/phone";
 import { YellikaSmsSendError } from "./yellika-sms.errors";
 import type {
   YellikaSmsSendRequest,
@@ -36,10 +37,10 @@ export class YellikaSmsClient {
   }
 
   /**
-   * Yellika attend le numéro sans « + » (ex. 2250700000000).
+   * Yellika attend le numéro sans « + » (ex. 2250708425141 pour la CI).
    */
   formatRecipient(e164Phone: string): string {
-    const digits = e164Phone.replace(/\D/g, "");
+    const digits = formatE164ForYellikaSms(e164Phone);
     if (digits.length < 8 || digits.length > 15) {
       throw new YellikaSmsSendError(
         "Numéro de téléphone invalide pour Yellika SMS",
