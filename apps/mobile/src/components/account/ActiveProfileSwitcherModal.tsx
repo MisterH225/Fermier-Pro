@@ -42,7 +42,7 @@ export function ActiveProfileSwitcherModal({
   onClose
 }: ActiveProfileSwitcherModalProps) {
   const { t } = useTranslation();
-  const { accessToken, authMe, activeProfileId, setActiveProfileId } =
+  const { accessToken, authMe, activeProfileId, setActiveProfileId, refreshAuthMe } =
     useSession();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -50,6 +50,8 @@ export function ActiveProfileSwitcherModal({
   const [error, setError] = useState<string | null>(null);
 
   const profiles = authMe?.profiles ?? [];
+  const ownedTypes = new Set(profiles.map((p) => p.type));
+  const availableTypes = PROFILE_TYPES.filter((type) => !ownedTypes.has(type));
 
   const onSelect = async (id: string) => {
     if (id === activeProfileId) {
@@ -73,6 +75,7 @@ export function ActiveProfileSwitcherModal({
     setError(null);
     try {
       const created = await createProfile(accessToken, { type });
+      await refreshAuthMe();
       await setActiveProfileId(created.id);
       setShowAdd(false);
       onClose();
@@ -177,7 +180,7 @@ export function ActiveProfileSwitcherModal({
                 pressed && styles.addBtnPressed
               ]}
               onPress={() => setShowAdd(true)}
-              disabled={creating || Boolean(busyId)}
+              disabled={creating || Boolean(busyId) || availableTypes.length === 0}
             >
               <Ionicons name="add-circle-outline" size={22} color={mobileColors.accent} />
               <Text style={styles.addBtnLabel}>{t("account.addProfile")}</Text>
@@ -185,11 +188,14 @@ export function ActiveProfileSwitcherModal({
           ) : (
             <View style={styles.addBlock}>
               <Text style={styles.addHint}>{t("account.addProfileHint")}</Text>
+              {availableTypes.length === 0 ? (
+                <Text style={styles.addHint}>{t("account.allProfilesAdded")}</Text>
+              ) : null}
               {creating ? (
                 <ActivityIndicator style={styles.creating} />
               ) : (
                 <View style={styles.typeGrid}>
-                  {PROFILE_TYPES.map((type) => (
+                  {availableTypes.map((type) => (
                     <Pressable
                       key={type}
                       style={({ pressed }) => [

@@ -3,7 +3,7 @@ import { mobileColors } from "./mobileTheme";
 import { techColors } from "./technicianTheme";
 import { vetColors } from "./vetTheme";
 
-export type ProfileThemeKind = "producer" | "veterinarian" | "technician" | "buyer";
+export type ProfileThemeKind = "producer" | "veterinarian" | "technician" | "buyer" | "merchant";
 
 export function profileAccentColor(type: string | undefined): string {
   switch (type) {
@@ -13,6 +13,8 @@ export function profileAccentColor(type: string | undefined): string {
       return techColors.primary;
     case "buyer":
       return buyerColors.primary;
+    case "merchant":
+      return "#C45C26";
     default:
       return mobileColors.accent;
   }

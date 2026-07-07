@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { MerchantOnboardingNudgeBanner } from "../../components/merchant/MerchantOnboardingNudgeBanner";
+import { ActiveProfileSwitcherControl } from "../../components/account/ActiveProfileSwitcherControl";
 import { useSession } from "../../context/SessionContext";
 import {
   fetchMerchantMe,
@@ -60,6 +61,7 @@ export function MerchantDashboardScreen() {
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.title}>{t("merchant.dashboard.title")}</Text>
+        <ActiveProfileSwitcherControl variant="default" />
         <Text style={styles.meta}>
           {t("merchant.dashboard.tier", {
             tier: me?.subscriptionTier ?? t("merchant.dashboard.tierNone")

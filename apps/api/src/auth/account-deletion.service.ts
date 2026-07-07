@@ -5,7 +5,7 @@ import {
   Logger
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
-import { Prisma } from "@prisma/client";
+import { MerchantOrderStatus, Prisma } from "@prisma/client";
 import { AuditService } from "../common/audit.service";
 import { AUDIT_ACTION } from "../common/audit.constants";
 import { storagePathFromPublicUrl } from "../common/storage.util";
@@ -37,6 +37,18 @@ export class AccountDeletionService {
     if (activeEscrow > 0) {
       throw new BadRequestException(
         "Compte non supprimable : transactions marketplace en cours. Attendez leur clôture."
+      );
+    }
+
+    const pendingMerchantOrders = await this.prisma.merchantOrder.count({
+      where: {
+        OR: [{ buyerUserId: user.id }, { sellerUserId: user.id }],
+        status: MerchantOrderStatus.payment_pending
+      }
+    });
+    if (pendingMerchantOrders > 0) {
+      throw new BadRequestException(
+        "Compte non supprimable : commande boutique en attente de paiement."
       );
     }
 
@@ -102,7 +114,13 @@ export class AccountDeletionService {
       }
     }
     if (user.supabaseUserId) {
-      const profileTypes = ["producer", "technician", "veterinarian", "buyer"];
+      const profileTypes = [
+        "producer",
+        "technician",
+        "veterinarian",
+        "buyer",
+        "merchant"
+      ];
       for (const profileType of profileTypes) {
         avatarPaths.push(`${user.supabaseUserId}/${profileType}/avatar.jpg`);
         avatarPaths.push(`${user.supabaseUserId}/${profileType}/avatar.png`);
@@ -193,6 +211,7 @@ export class AccountDeletionService {
           }
 
           await this.farmDataPurge.purgeUserMarketplaceData(tx, user.id);
+          await this.purgeUserMerchantData(tx, user.id);
           await this.purgeUserScopedRows(tx, user.id);
 
           await tx.user.update({
@@ -239,6 +258,49 @@ export class AccountDeletionService {
         "Compte applicatif supprimé ; contactez le support si vous ne pouvez plus vous connecter."
       );
     }
+  }
+
+  /** Données boutique commerçant liées à l'utilisateur. */
+  private async purgeUserMerchantData(
+    tx: Prisma.TransactionClient,
+    userId: string
+  ): Promise<void> {
+    const orderIds = (
+      await tx.merchantOrder.findMany({
+        where: { OR: [{ buyerUserId: userId }, { sellerUserId: userId }] },
+        select: { id: true }
+      })
+    ).map((o) => o.id);
+
+    if (orderIds.length > 0) {
+      await tx.platformRevenue.deleteMany({
+        where: { merchantOrderId: { in: orderIds } }
+      });
+      await tx.userWalletEntry.updateMany({
+        where: { merchantOrderId: { in: orderIds } },
+        data: { merchantOrderId: null }
+      });
+      await tx.merchantOrder.deleteMany({ where: { id: { in: orderIds } } });
+    }
+
+    await tx.merchantProductModerationLog.deleteMany({
+      where: { adminUserId: userId }
+    });
+
+    const productIds = (
+      await tx.merchantProduct.findMany({
+        where: { shop: { merchantProfile: { userId } } },
+        select: { id: true }
+      })
+    ).map((p) => p.id);
+
+    if (productIds.length > 0) {
+      await tx.merchantProductModerationLog.deleteMany({
+        where: { productId: { in: productIds } }
+      });
+    }
+
+    await tx.merchantProfile.deleteMany({ where: { userId } });
   }
 
   /** Données liées à l'utilisateur hors fermes déjà supprimées. */
@@ -302,5 +364,6 @@ export class AccountDeletionService {
     await tx.farmHealthRecord.deleteMany({
       where: { recordedByUserId: userId }
     });
+    await tx.withdrawalRequest.deleteMany({ where: { userId } });
   }
 }

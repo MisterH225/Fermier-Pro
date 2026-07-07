@@ -279,13 +279,15 @@ export const en = {
       producer: "Producer",
       technician: "Technician",
       veterinarian: "Veterinarian",
-      buyer: "Buyer"
+      buyer: "Buyer",
+      merchant: "Merchant"
     },
     switchProfileModalTitle: "Your profiles",
     switchProfileSubtitle:
-      "Switch role (producer, veterinarian, etc.) or add another profile linked to the same account.",
+      "Switch role (producer, merchant, veterinarian, etc.) or add another profile linked to the same account.",
     addProfile: "Add a profile",
     addProfileHint: "Pick a profile type to create. It will be linked to your unique account.",
+    allProfilesAdded: "You already have every available profile.",
     addProfileDemoBlocked: "Demo mode: you cannot add a profile.",
     languageSelectShort: "Language",
     languageSelectA11y: "Choose interface language",

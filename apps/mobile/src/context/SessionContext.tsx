@@ -224,17 +224,17 @@ export function SessionProvider({
   const setActiveProfileId = useCallback(
     async (id: string | null) => {
       setAuthError(null);
-      const profileType = id
-        ? authMe?.profiles.find((p) => p.id === id)?.type
-        : undefined;
       setActiveProfileIdState(id);
-      resetNavigationToProfileHome(profileType);
       queryClient.removeQueries();
       if (id) {
         await AsyncStorage.setItem(STORAGE_PROFILE_KEY, id);
         try {
           const me = await fetchAuthMe(accessToken, id);
           setAuthMe(me);
+          const profileType =
+            me.activeProfile?.type ??
+            me.profiles.find((p) => p.id === id)?.type;
+          resetNavigationToProfileHome(profileType);
           await AsyncStorage.setItem(
             AUTH_ME_CACHE_KEY,
             JSON.stringify({ me, profileId: id })
@@ -247,6 +247,7 @@ export function SessionProvider({
         try {
           const me = await fetchAuthMe(accessToken);
           setAuthMe(me);
+          resetNavigationToProfileHome(me.activeProfile?.type);
           await AsyncStorage.setItem(
             AUTH_ME_CACHE_KEY,
             JSON.stringify({ me, profileId: null })
@@ -256,7 +257,7 @@ export function SessionProvider({
         }
       }
     },
-    [accessToken, authMe?.profiles]
+    [accessToken]
   );
 
   const signOut = useCallback(async () => {
