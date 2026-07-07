@@ -4,7 +4,8 @@ const PROFILE_AVATAR_COLORS: Record<ProfileType, string> = {
   producer: "#1D9E75",
   veterinarian: "#4A90D9",
   technician: "#7C3AED",
-  buyer: "#FF8C00"
+  buyer: "#FF8C00",
+  merchant: "#C2410C"
 };
 
 const LIKER_PLACEHOLDER_COLORS = [

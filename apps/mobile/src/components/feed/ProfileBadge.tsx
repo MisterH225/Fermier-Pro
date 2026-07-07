@@ -9,7 +9,8 @@ const BADGE_META: Record<
   producer: { emoji: "🌾", label: "Éleveur", color: "#1D9E75" },
   veterinarian: { emoji: "🩺", label: "Vétérinaire", color: "#4A90D9" },
   technician: { emoji: "🔧", label: "Technicien", color: "#7C3AED" },
-  buyer: { emoji: "🛒", label: "Acheteur", color: "#FF8C00" }
+  buyer: { emoji: "🛒", label: "Acheteur", color: "#FF8C00" },
+  merchant: { emoji: "🏪", label: "Commerçant", color: "#C2410C" }
 };
 
 type Props = {

@@ -10,7 +10,7 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useSession } from "../../context/SessionContext";
+import { useSession } from "../../../context/SessionContext";
 import {
   chooseMerchantSubscription,
   createMerchantProduct,
@@ -21,10 +21,10 @@ import {
   publishMerchantProduct,
   type MerchantCategoryDto,
   type MerchantMeDto
-} from "../../lib/api";
-import { formatApiError } from "../../lib/apiErrors";
-import { MerchantSubscriptionScreen } from "../merchant/MerchantSubscriptionScreen";
-import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
+} from "../../../lib/api";
+import { formatApiError } from "../../../lib/apiErrors";
+import { MerchantSubscriptionScreen } from "../../merchant/MerchantSubscriptionScreen";
+import { mobileColors, mobileRadius, mobileSpacing } from "../../../theme/mobileTheme";
 
 type Props = {
   onFinished: () => void;
