@@ -16,16 +16,11 @@ import type { AdminMenuAccess } from "@/lib/admin-permissions";
 import { getAdminPasswordRecoveryRedirectTo } from "@/lib/admin-oauth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { selectClass } from "@/lib/ui-styles";
+import { SettingsSection } from "./SettingsSection";
+import { Building2 } from "lucide-react";
 
 type PermissionDraft = Partial<Record<NavKey, AdminMenuAccess | "">>;
 
@@ -211,13 +206,15 @@ export function InstitutionUsersManagementCard() {
   );
 
   return (
-    <Card id="institutions">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">{t("title")}</CardTitle>
-        <CardDescription>{t("description")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-3">
+    <SettingsSection
+      id="institutions"
+      icon={Building2}
+      title={t("title")}
+      description={t("description")}
+      bare
+    >
+      <div className="space-y-6">
+        <div className="rounded-xl border bg-card p-5 shadow-sm space-y-3">
           <p className="text-sm font-medium text-foreground">{t("listTitle")}</p>
           {loading ? (
             <p className="text-sm text-muted-foreground">…</p>
@@ -296,7 +293,7 @@ export function InstitutionUsersManagementCard() {
           )}
         </div>
 
-        <div className="space-y-4 border-t pt-4">
+        <div className="rounded-xl border bg-card p-5 shadow-sm space-y-4">
           <p className="text-sm font-medium text-foreground">{t("inviteTitle")}</p>
           <p className="text-sm text-muted-foreground">{t("inviteLead")}</p>
           <div className="space-y-2">
@@ -345,11 +342,11 @@ export function InstitutionUsersManagementCard() {
             </p>
           ) : null}
           {success ? <Badge variant="success">{success}</Badge> : null}
-          <Button type="button" disabled={busy} onClick={() => void onInvite()}>
+          <Button type="button" size="sm" disabled={busy} onClick={() => void onInvite()}>
             {busy ? "…" : t("invite")}
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </SettingsSection>
   );
 }

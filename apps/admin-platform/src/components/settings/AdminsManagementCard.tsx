@@ -12,15 +12,10 @@ import { fetchAdminMe } from "@/lib/admin-auth";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SettingsSection } from "./SettingsSection";
+import { ShieldCheck } from "lucide-react";
 
 type Props = {
   currentUserId?: string | null;
@@ -120,13 +115,15 @@ export function AdminsManagementCard({ currentUserId: currentUserIdProp }: Props
   };
 
   return (
-    <Card id="admins">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">{t("title")}</CardTitle>
-        <CardDescription>{t("description")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-3">
+    <SettingsSection
+      id="admins"
+      icon={ShieldCheck}
+      title={t("title")}
+      description={t("description")}
+      bare
+    >
+      <div className="space-y-6">
+        <div className="rounded-xl border bg-card p-5 shadow-sm space-y-3">
           <p className="text-sm font-medium text-foreground">{t("listTitle")}</p>
           {loading ? (
             <p className="text-sm text-muted-foreground">…</p>
@@ -171,7 +168,7 @@ export function AdminsManagementCard({ currentUserId: currentUserIdProp }: Props
           )}
         </div>
 
-        <div className="space-y-4 border-t pt-4">
+        <div className="rounded-xl border bg-card p-5 shadow-sm space-y-4">
           <p className="text-sm font-medium text-foreground">{t("addTitle")}</p>
           <div className="space-y-2">
             <Label htmlFor="admin-email">{t("email")}</Label>
@@ -215,11 +212,11 @@ export function AdminsManagementCard({ currentUserId: currentUserIdProp }: Props
           {success ? (
             <Badge variant="success">{success}</Badge>
           ) : null}
-          <Button type="button" disabled={busy} onClick={() => void onAdd()}>
+          <Button type="button" size="sm" disabled={busy} onClick={() => void onAdd()}>
             {busy ? "…" : t("add")}
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </SettingsSection>
   );
 }

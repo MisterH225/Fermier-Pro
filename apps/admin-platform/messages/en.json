@@ -581,21 +581,33 @@
   },
   "settings": {
     "title": "Platform settings",
+    "pageLead": "Configure the platform, console access and business rules. Each section is saved independently.",
     "save": "Save",
-    "saved": "Settings saved.",
+    "saved": "Saved.",
     "tabs": {
       "navLabel": "Settings sections",
       "platform": "Platform",
       "modules": "Modules"
     },
+    "groups": {
+      "access": "Access & accounts",
+      "platform": "Platform configuration"
+    },
     "sections": {
       "map": "Geographic scope",
+      "mapDesc": "Default area shown on the mobile app map.",
       "alerts": "Health alert thresholds",
+      "alertsDesc": "Automatic alert triggers based on case count and period.",
       "notifications": "Notifications",
+      "notificationsDesc": "SuperAdmin email and automatic report frequency.",
       "support": "Mobile support",
+      "supportDesc": "Contact details shown in the app (call and Telegram).",
       "marketplace": "Marketplace",
+      "marketplaceDesc": "Commissions, weight arbitration and merchant Premium subscription.",
       "vet": "Veterinarian",
-      "wallet": "Wallet"
+      "vetDesc": "Commission deducted on confirmed vet appointments.",
+      "wallet": "Wallet",
+      "walletDesc": "Auto-approved withdrawal threshold without manual validation."
     },
     "loadError": "Could not load settings. Check that the API is up to date and Prisma migrations have been applied.",
     "fields": {
@@ -1083,6 +1095,7 @@
       "minFee": "Minimum fee (XOF)",
       "maxFee": "Maximum fee (XOF, empty = no cap)",
       "save": "Save",
+      "saved": "Saved.",
       "types": {
         "deposit": "Deposit / top-up",
         "withdrawal": "Withdrawal",

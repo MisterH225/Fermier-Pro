@@ -583,21 +583,33 @@
   },
   "settings": {
     "title": "Paramètres plateforme",
+    "pageLead": "Configurez la plateforme, les accès console et les règles métier. Chaque section se valide indépendamment.",
     "save": "Enregistrer",
-    "saved": "Paramètres enregistrés.",
+    "saved": "Enregistré.",
     "tabs": {
       "navLabel": "Sections des paramètres",
       "platform": "Plateforme",
       "modules": "Modules"
     },
+    "groups": {
+      "access": "Accès & comptes",
+      "platform": "Configuration plateforme"
+    },
     "sections": {
       "map": "Périmètre géographique",
+      "mapDesc": "Zone affichée par défaut sur la carte de l’application mobile.",
       "alerts": "Seuils alertes sanitaires",
+      "alertsDesc": "Déclenchement automatique des alertes selon le nombre de cas et la période.",
       "notifications": "Notifications",
+      "notificationsDesc": "Email SuperAdmin et fréquence des rapports automatiques.",
       "support": "Support mobile",
+      "supportDesc": "Coordonnées affichées dans l’app (appel et Telegram).",
       "marketplace": "Marketplace",
+      "marketplaceDesc": "Commissions, arbitrage poids et abonnement commerçant Premium.",
       "vet": "Vétérinaire",
-      "wallet": "Portefeuille"
+      "vetDesc": "Commission prélevée sur les rendez-vous vétérinaires confirmés.",
+      "wallet": "Portefeuille",
+      "walletDesc": "Seuil de retrait auto-approuvé sans validation manuelle."
     },
     "loadError": "Impossible de charger les paramètres. Vérifiez que l’API est à jour et que les migrations Prisma sont appliquées.",
     "fields": {
@@ -1101,6 +1113,7 @@
       "minFee": "Frais minimum (XOF)",
       "maxFee": "Frais maximum (XOF, vide = illimité)",
       "save": "Enregistrer",
+      "saved": "Enregistré.",
       "types": {
         "deposit": "Dépôt / recharge",
         "withdrawal": "Retrait",

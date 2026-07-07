@@ -4,26 +4,40 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   fetchPlatformSettings,
-  patchPlatformSettings,
   type PlatformSettingsDto
 } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { AccountPasswordCard } from "@/components/settings/AccountPasswordCard";
 import { InstitutionUsersManagementCard } from "@/components/settings/InstitutionUsersManagementCard";
 import { useAdminAccess } from "@/lib/admin-access-context";
 import { canWriteMenu } from "@/lib/admin-permissions";
 import { AdminsManagementCard } from "@/components/settings/AdminsManagementCard";
 import { WalletFeesPanel } from "@/components/settings/WalletFeesPanel";
-import { selectClass } from "@/lib/ui-styles";
+import { PlatformSettingsPanel } from "@/components/settings/PlatformSettingsPanel";
+import { SettingsGroup } from "@/components/settings/SettingsSection";
 
-const SCOPES = ["world", "africa", "west_africa", "countries"] as const;
-const LEVELS = ["info", "warning", "critical"] as const;
+function normalizeSettingsRow(row: PlatformSettingsDto): PlatformSettingsDto {
+  return {
+    ...row,
+    marketplaceCommissionRate: Number(row.marketplaceCommissionRate ?? 0.05),
+    sellerMarketplaceCommissionRate: Number(
+      row.sellerMarketplaceCommissionRate ?? 0.05
+    ),
+    vetCommissionRate: Number(row.vetCommissionRate ?? 0.05),
+    withdrawalAutoApproveThreshold: Number(
+      row.withdrawalAutoApproveThreshold ?? 50_000
+    ),
+    marketplaceWeightArbitrationMinDiffKg: Number(
+      row.marketplaceWeightArbitrationMinDiffKg ?? 1
+    ),
+    marketplaceWeightArbitrationCumulativeMinDiffKg: Number(
+      row.marketplaceWeightArbitrationCumulativeMinDiffKg ?? 5
+    ),
+    merchantPremiumPriceXof: Number(row.merchantPremiumPriceXof ?? 5000),
+    merchantPremiumMaxShops: Number(row.merchantPremiumMaxShops ?? 3)
+  };
+}
 
 export default function ParametresPage() {
   const t = useTranslations("settings");
@@ -33,32 +47,12 @@ export default function ParametresPage() {
   const canEditSettings = canWriteMenu(profile, "settings");
   const [form, setForm] = useState<PlatformSettingsDto | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (!token) return;
     setLoadError(null);
     fetchPlatformSettings(token)
-      .then((row) => {
-        setForm({
-          ...row,
-          marketplaceCommissionRate: Number(row.marketplaceCommissionRate ?? 0.05),
-          sellerMarketplaceCommissionRate: Number(row.sellerMarketplaceCommissionRate ?? 0.05),
-          vetCommissionRate: Number(row.vetCommissionRate ?? 0.05),
-          withdrawalAutoApproveThreshold: Number(
-            row.withdrawalAutoApproveThreshold ?? 50_000
-          ),
-          marketplaceWeightArbitrationMinDiffKg: Number(
-            row.marketplaceWeightArbitrationMinDiffKg ?? 1
-          ),
-          marketplaceWeightArbitrationCumulativeMinDiffKg: Number(
-            row.marketplaceWeightArbitrationCumulativeMinDiffKg ?? 5
-          ),
-          merchantPremiumPriceXof: Number(row.merchantPremiumPriceXof ?? 5000),
-          merchantPremiumMaxShops: Number(row.merchantPremiumMaxShops ?? 3)
-        });
-      })
+      .then((row) => setForm(normalizeSettingsRow(row)))
       .catch(() => {
         setLoadError(t("loadError"));
         setForm(null);
@@ -69,40 +63,7 @@ export default function ParametresPage() {
     key: K,
     value: PlatformSettingsDto[K]
   ) => {
-    setSaved(false);
     setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
-  };
-
-  const onSave = async () => {
-    if (!token || !form) return;
-    setSaving(true);
-    setSaved(false);
-    try {
-      const next = await patchPlatformSettings(token, {
-        mapGeographicScope: form.mapGeographicScope,
-        alertCaseThreshold: form.alertCaseThreshold,
-        alertPeriodDays: form.alertPeriodDays,
-        alertDefaultLevel: form.alertDefaultLevel,
-        adminNotifyEmail: form.adminNotifyEmail ?? "",
-        reportFrequencyDays: form.reportFrequencyDays,
-        marketplaceCommissionRate: form.marketplaceCommissionRate,
-        sellerMarketplaceCommissionRate: form.sellerMarketplaceCommissionRate,
-        vetCommissionRate: form.vetCommissionRate,
-        withdrawalAutoApproveThreshold: form.withdrawalAutoApproveThreshold ?? 50000,
-        marketplaceWeightArbitrationMinDiffKg:
-          form.marketplaceWeightArbitrationMinDiffKg ?? 1,
-        marketplaceWeightArbitrationCumulativeMinDiffKg:
-          form.marketplaceWeightArbitrationCumulativeMinDiffKg ?? 5,
-        merchantPremiumPriceXof: form.merchantPremiumPriceXof ?? 5000,
-        merchantPremiumMaxShops: form.merchantPremiumMaxShops ?? 3,
-        supportPhone: form.supportPhone ?? "",
-        supportTelegramUrl: form.supportTelegramUrl ?? ""
-      });
-      setForm(next);
-      setSaved(true);
-    } finally {
-      setSaving(false);
-    }
   };
 
   if (!ready) {
@@ -111,7 +72,7 @@ export default function ParametresPage() {
 
   if (loadError) {
     return (
-      <div className="space-y-4 max-w-2xl">
+      <div className="space-y-4 max-w-5xl">
         <PageHeader title={t("title")} />
         <p className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {loadError}
@@ -120,359 +81,30 @@ export default function ParametresPage() {
     );
   }
 
-  if (!form) {
+  if (!form || !token) {
     return <p className="text-muted-foreground">…</p>;
   }
 
   return (
-    <div className="space-y-8 max-w-2xl">
-      <PageHeader title={t("title")} />
+    <div className="mx-auto max-w-5xl space-y-10 pb-8">
+      <PageHeader title={t("title")} description={t("pageLead")} />
 
-      <AccountPasswordCard />
+      <SettingsGroup title={t("groups.access")}>
+        <AccountPasswordCard />
+        {isSuperAdmin ? <InstitutionUsersManagementCard /> : null}
+        {isSuperAdmin ? <AdminsManagementCard /> : null}
+      </SettingsGroup>
 
-      {isSuperAdmin ? <InstitutionUsersManagementCard /> : null}
-
-      {isSuperAdmin ? <AdminsManagementCard /> : null}
-
-      <Card id="support">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">{t("sections.support")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="support-phone">{t("fields.supportPhone")}</Label>
-            <Input
-              id="support-phone"
-              type="tel"
-              placeholder="+221771234567"
-              value={form.supportPhone ?? ""}
-              onChange={(e) => update("supportPhone", e.target.value || null)}
-            />
-            <p className="text-xs text-muted-foreground">
-              {t("fields.supportPhoneHint")}
-            </p>
-            {!form.supportPhone?.trim() && form.supportEffective?.phone ? (
-              <p className="text-xs text-amber-700 dark:text-amber-400">
-                {t("fields.supportPhoneEffective", {
-                  value: form.supportEffective.phone
-                })}
-              </p>
-            ) : null}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="support-telegram">{t("fields.supportTelegram")}</Label>
-            <Input
-              id="support-telegram"
-              type="url"
-              placeholder="https://t.me/fermierpro ou @fermierpro"
-              value={form.supportTelegramUrl ?? ""}
-              onChange={(e) => update("supportTelegramUrl", e.target.value || null)}
-            />
-            <p className="text-xs text-muted-foreground">
-              {t("fields.supportTelegramHint")}
-            </p>
-            {!form.supportTelegramUrl?.trim() && form.supportEffective?.telegramUrl ? (
-              <p className="text-xs text-amber-700 dark:text-amber-400">
-                {t("fields.supportTelegramEffective", {
-                  value: form.supportEffective.telegramUrl
-                })}
-              </p>
-            ) : null}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">{t("sections.map")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="map-scope">{t("fields.mapScope")}</Label>
-            <select
-              id="map-scope"
-              value={form.mapGeographicScope}
-              onChange={(e) => update("mapGeographicScope", e.target.value)}
-              className={selectClass}
-            >
-              {SCOPES.map((s) => (
-                <option key={s} value={s}>
-                  {t(`scopes.${s}` as "scopes.world")}
-                </option>
-              ))}
-            </select>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">{t("sections.alerts")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="alert-threshold">{t("fields.alertThreshold")}</Label>
-            <Input
-              id="alert-threshold"
-              type="number"
-              min={1}
-              value={form.alertCaseThreshold}
-              onChange={(e) => update("alertCaseThreshold", Number(e.target.value))}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="alert-period">{t("fields.alertPeriod")}</Label>
-            <Input
-              id="alert-period"
-              type="number"
-              min={1}
-              value={form.alertPeriodDays}
-              onChange={(e) => update("alertPeriodDays", Number(e.target.value))}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="alert-level">{t("fields.alertLevel")}</Label>
-            <select
-              id="alert-level"
-              value={form.alertDefaultLevel}
-              onChange={(e) => update("alertDefaultLevel", e.target.value)}
-              className={selectClass}
-            >
-              {LEVELS.map((l) => (
-                <option key={l} value={l}>
-                  {t(`levels.${l}` as "levels.info")}
-                </option>
-              ))}
-            </select>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">{t("sections.notifications")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="admin-email">{t("fields.adminEmail")}</Label>
-            <Input
-              id="admin-email"
-              type="email"
-              value={form.adminNotifyEmail ?? ""}
-              onChange={(e) => update("adminNotifyEmail", e.target.value || null)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="report-frequency">{t("fields.reportFrequency")}</Label>
-            <Input
-              id="report-frequency"
-              type="number"
-              min={1}
-              value={form.reportFrequencyDays}
-              onChange={(e) => update("reportFrequencyDays", Number(e.target.value))}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">{t("sections.marketplace")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="marketplace-commission">
-              {t("fields.marketplaceCommission")}
-            </Label>
-            <Input
-              id="marketplace-commission"
-              type="number"
-              min={0}
-              max={99}
-              step={0.1}
-              value={Math.round((form.marketplaceCommissionRate ?? 0.05) * 1000) / 10}
-              onChange={(e) => {
-                const pct = Number(e.target.value);
-                update(
-                  "marketplaceCommissionRate",
-                  Number.isFinite(pct) ? pct / 100 : 0.05
-                );
-              }}
-            />
-            <p className="text-xs text-muted-foreground">
-              {t("fields.marketplaceCommissionHint")}
-            </p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="seller-commission">
-              {t("fields.sellerMarketplaceCommission")}
-            </Label>
-            <Input
-              id="seller-commission"
-              type="number"
-              min={0}
-              max={99}
-              step={0.1}
-              value={Math.round((form.sellerMarketplaceCommissionRate ?? 0.05) * 1000) / 10}
-              onChange={(e) => {
-                const pct = Number(e.target.value);
-                update(
-                  "sellerMarketplaceCommissionRate",
-                  Number.isFinite(pct) ? pct / 100 : 0.05
-                );
-              }}
-            />
-            <p className="text-xs text-muted-foreground">
-              {t("fields.sellerMarketplaceCommissionHint")}
-            </p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="weight-arbitration-min">
-              {t("fields.weightArbitrationMinDiffKg")}
-            </Label>
-            <Input
-              id="weight-arbitration-min"
-              type="number"
-              min={0}
-              step={0.1}
-              value={form.marketplaceWeightArbitrationMinDiffKg ?? 1}
-              onChange={(e) =>
-                update(
-                  "marketplaceWeightArbitrationMinDiffKg",
-                  Number(e.target.value) || 0
-                )
-              }
-            />
-            <p className="text-xs text-muted-foreground">
-              {t("fields.weightArbitrationMinDiffKgHint")}
-            </p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="weight-arbitration-cumulative">
-              {t("fields.weightArbitrationCumulativeMinDiffKg")}
-            </Label>
-            <Input
-              id="weight-arbitration-cumulative"
-              type="number"
-              min={0}
-              step={0.1}
-              value={form.marketplaceWeightArbitrationCumulativeMinDiffKg ?? 5}
-              onChange={(e) =>
-                update(
-                  "marketplaceWeightArbitrationCumulativeMinDiffKg",
-                  Number(e.target.value) || 0
-                )
-              }
-            />
-            <p className="text-xs text-muted-foreground">
-              {t("fields.weightArbitrationCumulativeMinDiffKgHint")}
-            </p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="merchant-premium-price">
-              {t("fields.merchantPremiumPriceXof")}
-            </Label>
-            <Input
-              id="merchant-premium-price"
-              type="number"
-              min={0}
-              step={100}
-              value={form.merchantPremiumPriceXof ?? 5000}
-              onChange={(e) =>
-                update("merchantPremiumPriceXof", Number(e.target.value) || 0)
-              }
-            />
-            <p className="text-xs text-muted-foreground">
-              {t("fields.merchantPremiumPriceXofHint")}
-            </p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="merchant-premium-shops">
-              {t("fields.merchantPremiumMaxShops")}
-            </Label>
-            <Input
-              id="merchant-premium-shops"
-              type="number"
-              min={1}
-              max={50}
-              value={form.merchantPremiumMaxShops ?? 3}
-              onChange={(e) =>
-                update("merchantPremiumMaxShops", Number(e.target.value) || 1)
-              }
-            />
-            <p className="text-xs text-muted-foreground">
-              {t("fields.merchantPremiumMaxShopsHint")}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">{t("sections.vet")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="vet-commission">
-              {t("fields.vetCommission")}
-            </Label>
-            <Input
-              id="vet-commission"
-              type="number"
-              min={0}
-              max={99}
-              step={0.1}
-              value={Math.round((form.vetCommissionRate ?? 0.05) * 1000) / 10}
-              onChange={(e) => {
-                const pct = Number(e.target.value);
-                update(
-                  "vetCommissionRate",
-                  Number.isFinite(pct) ? pct / 100 : 0.05
-                );
-              }}
-            />
-            <p className="text-xs text-muted-foreground">
-              {t("fields.vetCommissionHint")}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">{t("sections.wallet")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <Label htmlFor="withdraw-threshold">{t("fields.withdrawalThreshold")}</Label>
-          <Input
-            id="withdraw-threshold"
-            type="number"
-            min={0}
-            value={form.withdrawalAutoApproveThreshold ?? 50000}
-            onChange={(e) =>
-              update("withdrawalAutoApproveThreshold", Number(e.target.value) || 0)
-            }
-          />
-          <p className="text-xs text-muted-foreground">
-            {t("fields.withdrawalThresholdHint")}
-          </p>
-        </CardContent>
-      </Card>
-
-      <WalletFeesPanel />
-
-      <div className="flex flex-wrap items-center gap-3">
-        {canEditSettings ? (
-          <Button type="button" disabled={saving} onClick={onSave}>
-            {saving ? "…" : t("save")}
-          </Button>
-        ) : null}
-        {saved ? (
-          <Badge variant="success">
-            {t("saved")}
-          </Badge>
-        ) : null}
-      </div>
+      <SettingsGroup title={t("groups.platform")}>
+        <PlatformSettingsPanel
+          token={token}
+          form={form}
+          canEdit={canEditSettings}
+          onFormChange={setForm}
+          update={update}
+        />
+        <WalletFeesPanel canEdit={canEditSettings} />
+      </SettingsGroup>
     </div>
   );
 }

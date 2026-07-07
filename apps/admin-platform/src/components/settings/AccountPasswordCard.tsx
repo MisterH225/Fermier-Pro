@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { KeyRound } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SettingsSection } from "./SettingsSection";
 
 export function AccountPasswordCard() {
   const t = useTranslations("settings.password");
@@ -47,12 +48,21 @@ export function AccountPasswordCard() {
   };
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">{t("title")}</CardTitle>
-        <CardDescription>{t("description")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <SettingsSection
+      id="password"
+      icon={KeyRound}
+      title={t("title")}
+      description={t("description")}
+      footer={
+        <>
+          <Button type="button" size="sm" disabled={busy} onClick={onSave}>
+            {busy ? "…" : t("save")}
+          </Button>
+          {saved ? <Badge variant="success">{t("saved")}</Badge> : null}
+        </>
+      }
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="new-password">{t("new")}</Label>
           <Input
@@ -74,20 +84,12 @@ export function AccountPasswordCard() {
             onChange={(e) => setConfirm(e.target.value)}
           />
         </div>
-        {error ? (
-          <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-2xl px-3 py-2">
-            {error}
-          </p>
-        ) : null}
-        {saved ? (
-          <Badge variant="success">
-            {t("saved")}
-          </Badge>
-        ) : null}
-        <Button type="button" disabled={busy} onClick={onSave}>
-          {busy ? "…" : t("save")}
-        </Button>
-      </CardContent>
-    </Card>
+      </div>
+      {error ? (
+        <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
+          {error}
+        </p>
+      ) : null}
+    </SettingsSection>
   );
 }

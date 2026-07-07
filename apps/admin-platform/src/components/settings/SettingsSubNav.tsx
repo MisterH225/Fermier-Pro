@@ -15,7 +15,7 @@ export function SettingsSubNav() {
 
   return (
     <nav
-      className="flex flex-wrap gap-2"
+      className="flex gap-6 border-b border-border/60"
       aria-label={t("navLabel")}
     >
       {TABS.map((tab) => {
@@ -28,10 +28,10 @@ export function SettingsSubNav() {
             key={tab.href}
             href={tab.href}
             className={cn(
-              "inline-flex h-8 items-center rounded-full border px-4 text-xs font-medium transition",
+              "-mb-px border-b-2 pb-3 text-sm font-medium transition-colors",
               active
-                ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                : "border-white/70 bg-white/40 text-foreground hover:bg-white/70"
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >
             {t(tab.key)}
