@@ -51,6 +51,7 @@ export const ADMIN_ROUTE_MENU_RULES: RouteMenuRule[] = [
   { prefix: "/admin/vet-profiles", menu: "vets" },
   { prefix: "/admin/vet-appointments", menu: "vetAppointments" },
   { prefix: "/admin/users", menu: "users" },
+  { prefix: "/admin/messages", menu: "users" },
   { prefix: "/admin/feed", menu: "feedModeration" },
   { prefix: "/admin/chat", menu: "chatModeration" },
   { prefix: "/admin/audit-logs", menu: "auditLogs" },

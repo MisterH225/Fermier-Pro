@@ -3,9 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { ChevronLeft, ChevronRight, Search, Tractor } from "lucide-react";
+import { ChevronLeft, ChevronRight, Mail, Search, Tractor } from "lucide-react";
 import { fetchUsersList, type UsersListDto } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
+import { useAdminAccess } from "@/lib/admin-access-context";
+import { canWriteMenu } from "@/lib/admin-permissions";
+import { BulkSendMessageDialog } from "@/components/users/UserModerationDialogs";
 import { AccountStatusBadge } from "@/components/users/AccountStatusBadge";
 import { UserActionsMenu } from "@/components/users/UserActionsMenu";
 import { UserAvatar } from "@/components/users/UserAvatar";
@@ -44,6 +47,8 @@ export default function UtilisateursPage() {
   const t = useTranslations("users");
   const locale = useLocale();
   const { token, ready } = useAdminToken();
+  const { profile: adminProfile } = useAdminAccess();
+  const canModerate = canWriteMenu(adminProfile, "users");
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [profile, setProfile] = useState<ProfileFilter>("all");
@@ -52,6 +57,8 @@ export default function UtilisateursPage() {
   const [data, setData] = useState<UsersListDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkMessageOpen, setBulkMessageOpen] = useState(false);
+  const [bulkSuccess, setBulkSuccess] = useState<number | null>(null);
 
   useEffect(() => {
     const id = window.setTimeout(() => setDebounced(search.trim()), 300);
@@ -147,6 +154,34 @@ export default function UtilisateursPage() {
             label={(id) => t(`filters.${id}`)}
             size="sm"
           />
+          {selected.size > 0 ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+              <p className="text-sm font-medium">
+                {t("bulk.selected", { count: selected.size })}
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelected(new Set())}
+                >
+                  {t("bulk.clearSelection")}
+                </Button>
+                {canModerate && token ? (
+                  <Button type="button" size="sm" onClick={() => setBulkMessageOpen(true)}>
+                    <Mail className="size-4" />
+                    {t("bulk.sendMessage")}
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+          {bulkSuccess != null ? (
+            <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-900">
+              {t("bulk.success", { count: bulkSuccess })}
+            </p>
+          ) : null}
         </div>
 
         <div className="overflow-x-auto">
@@ -306,6 +341,19 @@ export default function UtilisateursPage() {
           </div>
         </div>
       </Card>
+      {token ? (
+        <BulkSendMessageDialog
+          open={bulkMessageOpen}
+          onClose={() => setBulkMessageOpen(false)}
+          token={token}
+          userIds={[...selected]}
+          onSuccess={(count) => {
+            setBulkSuccess(count);
+            setSelected(new Set());
+            window.setTimeout(() => setBulkSuccess(null), 5000);
+          }}
+        />
+      ) : null}
       </AdminSection>
     </AdminPageShell>
   );

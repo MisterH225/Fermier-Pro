@@ -9,6 +9,7 @@ export {
   deleteUserAccount,
   fetchAuditLogs,
   sendAdminMessage,
+  sendBulkAdminMessage,
   suspendUser,
   unbanUser,
   unsuspendUser,

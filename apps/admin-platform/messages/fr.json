@@ -336,7 +336,12 @@
     "view": "Voir",
     "detailPageTitle": "Fiche utilisateur",
     "empty": "Aucun utilisateur trouvé.",
-    "statusFilters": {
+    "bulk": {
+      "selected": "{count} sélectionné(s)",
+      "clearSelection": "Tout désélectionner",
+      "sendMessage": "Message groupé",
+      "success": "Message envoyé à {count} utilisateur(s)."
+    },
       "all": "Tous",
       "active": "Actifs",
       "suspended": "Suspendus",
@@ -382,6 +387,17 @@
       "details": "Précisions",
       "confirmPhrase": "Saisir {phrase} pour confirmer",
       "subject": "Objet",
+      "messageBody": "Contenu du message…",
+      "sendPush": "Envoyer aussi une notification push sur mobile",
+      "messageTypes": {
+        "info": "ℹ️ Info",
+        "warning": "⚠️ Avertissement",
+        "notification": "📢 Notification"
+      },
+      "bulkMessageTitle": "Message groupé ({count} destinataires)",
+      "bulkMessageLead": "Le message apparaît dans la boîte admin de chaque utilisateur (et en push si activé).",
+      "bulkSend": "Envoyer à {count} utilisateurs",
+      "bulkMaxError": "Maximum 200 destinataires par envoi.",
       "cancel": "Annuler",
       "confirm": "Confirmer",
       "send": "Envoyer"

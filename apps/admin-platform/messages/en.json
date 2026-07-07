@@ -337,7 +337,12 @@
     "view": "View",
     "detailPageTitle": "User profile",
     "empty": "No users found.",
-    "statusFilters": {
+    "bulk": {
+      "selected": "{count} selected",
+      "clearSelection": "Clear selection",
+      "sendMessage": "Bulk message",
+      "success": "Message sent to {count} user(s)."
+    },
       "all": "All",
       "active": "Active",
       "suspended": "Suspended",
@@ -383,6 +388,17 @@
       "details": "Details",
       "confirmPhrase": "Type {phrase} to confirm",
       "subject": "Subject",
+      "messageBody": "Message content…",
+      "sendPush": "Also send a mobile push notification",
+      "messageTypes": {
+        "info": "ℹ️ Info",
+        "warning": "⚠️ Warning",
+        "notification": "📢 Notification"
+      },
+      "bulkMessageTitle": "Bulk message ({count} recipients)",
+      "bulkMessageLead": "The message appears in each user's admin inbox (and as push if enabled).",
+      "bulkSend": "Send to {count} users",
+      "bulkMaxError": "Maximum 200 recipients per send.",
       "cancel": "Cancel",
       "confirm": "Confirm",
       "send": "Send"

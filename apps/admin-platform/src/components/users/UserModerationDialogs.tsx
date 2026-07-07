@@ -17,6 +17,7 @@ import {
   banUser,
   deleteUserAccount,
   sendAdminMessage,
+  sendBulkAdminMessage,
   suspendUser,
   unbanUser,
   unsuspendUser,
@@ -451,9 +452,9 @@ export function SendMessageDialog({
             value={type}
             onChange={(e) => setType(e.target.value as typeof type)}
           >
-            <option value="info">ℹ️ Info</option>
-            <option value="warning">⚠️ Avertissement</option>
-            <option value="notification">📢 Notification</option>
+            <option value="info">{t("messageTypes.info")}</option>
+            <option value="warning">{t("messageTypes.warning")}</option>
+            <option value="notification">{t("messageTypes.notification")}</option>
           </select>
           <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={6} />
           {err ? <p className="text-sm text-destructive">{err}</p> : null}
@@ -464,6 +465,112 @@ export function SendMessageDialog({
           </Button>
           <Button disabled={busy || !subject.trim() || !message.trim()} onClick={() => void submit()}>
             {t("send")}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type BulkMessageDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  token: string;
+  userIds: string[];
+  onSuccess: (count: number) => void;
+};
+
+export function BulkSendMessageDialog({
+  open,
+  onClose,
+  token,
+  userIds,
+  onSuccess
+}: BulkMessageDialogProps) {
+  const t = useTranslations("users.moderation");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [type, setType] = useState<"info" | "warning" | "notification">("info");
+  const [sendPush, setSendPush] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const reset = () => {
+    setSubject("");
+    setMessage("");
+    setType("info");
+    setSendPush(true);
+    setErr(null);
+  };
+
+  const handleClose = () => {
+    reset();
+    onClose();
+  };
+
+  const submit = async () => {
+    if (!subject.trim() || !message.trim() || userIds.length === 0) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const result = await sendBulkAdminMessage(token, {
+        userIds,
+        subject: subject.trim(),
+        message: message.trim(),
+        type,
+        sendPush
+      });
+      onSuccess(result.count);
+      handleClose();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
+      <DialogContent className="max-w-lg rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>{t("bulkMessageTitle", { count: userIds.length })}</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">{t("bulkMessageLead")}</p>
+        <div className="space-y-3">
+          <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder={t("subject")} />
+          <select
+            className="w-full rounded-xl border px-3 py-2 text-sm"
+            value={type}
+            onChange={(e) => setType(e.target.value as typeof type)}
+          >
+            <option value="info">{t("messageTypes.info")}</option>
+            <option value="warning">{t("messageTypes.warning")}</option>
+            <option value="notification">{t("messageTypes.notification")}</option>
+          </select>
+          <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={6} placeholder={t("messageBody")} />
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={sendPush}
+              onChange={(e) => setSendPush(e.target.checked)}
+              className="size-4 rounded border accent-primary"
+            />
+            {t("sendPush")}
+          </label>
+          {userIds.length > 200 ? (
+            <p className="text-xs text-destructive">{t("bulkMaxError")}</p>
+          ) : null}
+          {err ? <p className="text-sm text-destructive">{err}</p> : null}
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={handleClose}>
+            {t("cancel")}
+          </Button>
+          <Button
+            disabled={busy || !subject.trim() || !message.trim() || userIds.length === 0 || userIds.length > 200}
+            onClick={() => void submit()}
+          >
+            {busy ? "…" : t("bulkSend", { count: userIds.length })}
           </Button>
         </div>
       </DialogContent>

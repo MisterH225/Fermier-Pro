@@ -6,7 +6,8 @@ import {
   IsOptional,
   IsString,
   MaxLength,
-  ArrayMinSize
+  ArrayMinSize,
+  ArrayMaxSize
 } from "class-validator";
 import { AdminMessageType } from "@prisma/client";
 
@@ -150,6 +151,7 @@ export class SendAdminMessageToUserDto extends SendAdminMessageDto {
 export class BulkAdminMessageDto extends SendAdminMessageDto {
   @IsArray()
   @ArrayMinSize(1)
+  @ArrayMaxSize(200)
   @IsString({ each: true })
   @IsNotEmpty({ each: true })
   userIds!: string[];

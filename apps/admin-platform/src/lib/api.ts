@@ -1239,17 +1239,34 @@ export function warnUser(
   });
 }
 
+export type AdminMessagePayload = {
+  subject: string;
+  type: "notification" | "warning" | "info";
+  message: string;
+  sendPush?: boolean;
+};
+
 export function sendAdminMessage(
   token: string,
-  body: {
-    userId: string;
-    subject: string;
-    type: "notification" | "warning" | "info";
-    message: string;
-    sendPush?: boolean;
-  }
+  body: AdminMessagePayload & { userId: string }
 ) {
   return apiFetch(`/admin/messages`, token, {
+    method: "POST",
+    body: JSON.stringify(body)
+  });
+}
+
+export type BulkAdminMessageResult = {
+  ok: boolean;
+  count: number;
+  results: Array<{ userId: string; messageId: string }>;
+};
+
+export function sendBulkAdminMessage(
+  token: string,
+  body: AdminMessagePayload & { userIds: string[] }
+) {
+  return apiFetch<BulkAdminMessageResult>(`/admin/messages/bulk`, token, {
     method: "POST",
     body: JSON.stringify(body)
   });
