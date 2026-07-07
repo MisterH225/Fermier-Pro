@@ -66,7 +66,10 @@ describeOrSkip("Wallet, versement vendeur et remboursement (e2e)", () => {
   });
 
   beforeEach(async () => {
-    await cleanupBuyerMarketplaceState(ctx.prisma, ctx.peerUserId);
+    await cleanupBuyerMarketplaceState(ctx.prisma, [
+      ctx.userId,
+      ctx.peerUserId
+    ]);
   });
 
   afterAll(async () => {

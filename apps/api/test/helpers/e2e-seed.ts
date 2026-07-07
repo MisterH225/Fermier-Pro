@@ -32,33 +32,43 @@ export async function purgeMarketplaceForUsers(
   userIds: string[]
 ): Promise<void> {
   if (userIds.length === 0) return;
-  await prisma.marketplaceTransactionReceipt.deleteMany({
-    where: { OR: [{ sellerId: { in: userIds } }, { buyerId: { in: userIds } }] }
-  });
-  await prisma.marketplaceFundMovement.deleteMany({
+
+  const transactions = await prisma.marketplaceTransaction.findMany({
     where: {
-      transaction: {
-        OR: [{ sellerUserId: { in: userIds } }, { buyerUserId: { in: userIds } }]
-      }
-    }
+      OR: [{ sellerUserId: { in: userIds } }, { buyerUserId: { in: userIds } }]
+    },
+    select: { id: true }
+  });
+  const transactionIds = transactions.map((t) => t.id);
+
+  if (transactionIds.length > 0) {
+    await prisma.marketplaceFundMovement.deleteMany({
+      where: { transactionId: { in: transactionIds } }
+    });
+    await prisma.platformRevenue.deleteMany({
+      where: { transactionId: { in: transactionIds } }
+    });
+    await prisma.marketplacePendingTransfer.deleteMany({
+      where: { transactionId: { in: transactionIds } }
+    });
+    await prisma.marketplaceDeliveryDispute.deleteMany({
+      where: { transactionId: { in: transactionIds } }
+    });
+    await prisma.marketplaceTransactionReceipt.deleteMany({
+      where: { transactionId: { in: transactionIds } }
+    });
+    await prisma.marketplaceTransaction.deleteMany({
+      where: { id: { in: transactionIds } }
+    });
+  }
+
+  await prisma.marketplacePendingTransfer.deleteMany({
+    where: { buyerUserId: { in: userIds } }
   });
   await prisma.platformRevenue.deleteMany({
     where: {
       OR: [{ sellerId: { in: userIds } }, { buyerId: { in: userIds } }]
     }
-  });
-  await prisma.marketplacePendingTransfer.deleteMany({
-    where: { buyerUserId: { in: userIds } }
-  });
-  await prisma.marketplaceDeliveryDispute.deleteMany({
-    where: {
-      transaction: {
-        OR: [{ sellerUserId: { in: userIds } }, { buyerUserId: { in: userIds } }]
-      }
-    }
-  });
-  await prisma.marketplaceTransaction.deleteMany({
-    where: { OR: [{ sellerUserId: { in: userIds } }, { buyerUserId: { in: userIds } }] }
   });
   await prisma.marketplaceCreditArbitration.deleteMany({
     where: { OR: [{ buyerUserId: { in: userIds } }, { sellerUserId: { in: userIds } }] }

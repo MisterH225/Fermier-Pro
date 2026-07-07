@@ -203,11 +203,12 @@ export async function closeMarketplaceTransaction(params: {
 
 export async function cleanupBuyerMarketplaceState(
   prisma: PrismaClient,
-  buyerUserId: string
+  userIds: string | string[]
 ): Promise<void> {
-  await purgeMarketplaceForUsers(prisma, [buyerUserId]);
+  const ids = Array.isArray(userIds) ? userIds : [userIds];
+  await purgeMarketplaceForUsers(prisma, ids);
   await prisma.marketplaceOffer.deleteMany({
-    where: { buyerUserId }
+    where: { buyerUserId: { in: ids } }
   });
 }
 
