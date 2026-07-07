@@ -11,6 +11,7 @@ import type {
 
 const DEFAULT_BASE_URL = "https://panel.yellikasms.com/api/v3";
 
+/** Client HTTP Yellika SMS v3 — https://panel.yellikasms.com/developers/docs */
 @Injectable()
 export class YellikaSmsClient {
   private readonly log = new Logger(YellikaSmsClient.name);

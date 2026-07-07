@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { getPhoneAuthReadiness } from "./auth/sms/phone-auth-config";
 import { PrismaService } from "./prisma/prisma.service";
 
 @Injectable()
@@ -13,7 +14,8 @@ export class AppService {
       gitCommit:
         process.env.RAILWAY_GIT_COMMIT_SHA?.trim() ||
         process.env.GIT_COMMIT?.trim() ||
-        null
+        null,
+      phoneAuth: getPhoneAuthReadiness()
     };
   }
 

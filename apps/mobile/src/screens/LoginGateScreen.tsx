@@ -85,7 +85,7 @@ export function LoginGateScreen() {
                 </View>
               ) : null}
 
-              <GoogleOAuthButton />
+              <PhoneOtpAuth />
 
               <View style={styles.authOrRow}>
                 <View style={styles.authOrLine} />
@@ -93,7 +93,7 @@ export function LoginGateScreen() {
                 <View style={styles.authOrLine} />
               </View>
 
-              <PhoneOtpAuth />
+              <GoogleOAuthButton />
             </>
           )}
         </ScrollView>

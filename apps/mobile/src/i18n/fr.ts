@@ -86,6 +86,32 @@ export const fr = {
       "Cette URL contient localhost : sur iPhone ça échouera. Relance Expo en LAN (même Wi‑Fi) et rescanne le QR code.",
     or: "ou"
   },
+  phoneAuth: {
+    title: "Connexion par téléphone",
+    hintPhone:
+      "Crée ton compte ou connecte-toi avec ton numéro mobile. Tu recevras un code par SMS.",
+    hintOtp: "Entre le code à 6 chiffres reçu par SMS.",
+    countryA11y: "Pays et indicatif, {{country}} {{dial}}",
+    nationalPlaceholder: "07 00 00 00 00",
+    nationalHint: "Pas besoin de retaper l’indicatif : il est défini par le drapeau.",
+    sendCode: "Recevoir le code",
+    verify: "Vérifier et se connecter",
+    resend: "Renvoyer le code",
+    resendCooldown: "Renvoyer le code ({{seconds}}s)",
+    changeNumber: "Changer de numéro",
+    codeSent:
+      "Code envoyé par SMS. Vérifie aussi les filtres anti-spam si tu ne le reçois pas.",
+    loginSuccess: "Connexion réussie…",
+    invalidPhone:
+      "Choisis ton pays, puis saisis ton numéro mobile (sans l’indicatif). Vérifie que le numéro complet est correct.",
+    invalidOtp: "Saisis le code reçu par SMS.",
+    otpPlaceholder: "Code SMS",
+    footerNote:
+      "Pas encore de compte ? La première connexion par SMS crée automatiquement ton accès Fermier Pro.",
+    countryModalTitle: "Pays / indicatif",
+    countrySearchPlaceholder: "Rechercher un pays…",
+    countryEmpty: "Aucun pays ne correspond."
+  },
   moduleRoadmap: {
     note:
       "Les routes API correspondantes sont déjà protégées par les feature flags côté serveur ; cette vue prépare l’intégration mobile complète."

@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { formatAuthError } from "../lib/authErrors";
 import {
@@ -35,6 +36,7 @@ function isPlausibleE164(full: string): boolean {
  * Connexion par SMS OTP (Supabase). Numéro en E.164 : indicatif pays + numéro local.
  */
 export function PhoneOtpAuth() {
+  const { t } = useTranslation();
   const supabase = getSupabase();
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>("phone");
@@ -87,23 +89,19 @@ export function PhoneOtpAuth() {
     setInfo(null);
     const p = e164Phone.trim();
     if (!isPlausibleE164(p)) {
-      setError(
-        "Choisis ton pays, puis saisis ton numéro mobile (sans l’indicatif). Vérifie que le numéro complet est correct."
-      );
+      setError(t("phoneAuth.invalidPhone"));
       return;
     }
     setBusy(true);
     try {
       const { error: e } = await supabase.auth.signInWithOtp({
         phone: p,
-        options: { channel: "sms" }
+        options: { channel: "sms", shouldCreateUser: true }
       });
       if (e) {
         throw e;
       }
-      setInfo(
-        "Code envoyé par SMS (vérifie aussi les courriers indésirables / filtres)."
-      );
+      setInfo(t("phoneAuth.codeSent"));
       setStep("otp");
       setResendIn(RESEND_COOLDOWN_SEC);
     } catch (err: unknown) {
@@ -119,7 +117,7 @@ export function PhoneOtpAuth() {
     const p = e164Phone.trim();
     const code = otp.trim();
     if (code.length < 4) {
-      setError("Saisis le code reçu par SMS.");
+      setError(t("phoneAuth.invalidOtp"));
       return;
     }
     setBusy(true);
@@ -132,7 +130,7 @@ export function PhoneOtpAuth() {
       if (e) {
         throw e;
       }
-      setInfo("Connexion réussie…");
+      setInfo(t("phoneAuth.loginSuccess"));
     } catch (err: unknown) {
       setError(formatAuthError(err));
     } finally {
@@ -159,11 +157,9 @@ export function PhoneOtpAuth() {
         />
       </View>
 
-      <Text style={styles.screenTitle}>Connexion</Text>
+      <Text style={styles.screenTitle}>{t("phoneAuth.title")}</Text>
       <Text style={styles.screenHint}>
-        {step === "phone"
-          ? "Choisis ton pays, puis saisis ton numéro mobile. Tu recevras un code par SMS."
-          : "Entre le code à 6 chiffres reçu par SMS."}
+        {step === "phone" ? t("phoneAuth.hintPhone") : t("phoneAuth.hintOtp")}
       </Text>
 
       {step === "phone" ? (
@@ -178,7 +174,10 @@ export function PhoneOtpAuth() {
               disabled={busy}
               activeOpacity={0.75}
               accessibilityRole="button"
-              accessibilityLabel={`Pays et indicatif, ${selectedCountry.name} ${selectedCountry.dial}`}
+              accessibilityLabel={t("phoneAuth.countryA11y", {
+                country: selectedCountry.name,
+                dial: selectedCountry.dial
+              })}
             >
               <Text style={styles.countryFlag}>{selectedCountry.flag}</Text>
               <Text style={styles.countryDial}>{selectedCountry.dial}</Text>
@@ -191,7 +190,7 @@ export function PhoneOtpAuth() {
             <View style={styles.nationalShell}>
               <TextInput
                 style={styles.nationalInput}
-                placeholder="6 12 34 56 78"
+                placeholder={t("phoneAuth.nationalPlaceholder")}
                 placeholderTextColor={authColors.placeholder}
                 keyboardType="phone-pad"
                 autoComplete="tel-national"
@@ -202,9 +201,7 @@ export function PhoneOtpAuth() {
               />
             </View>
           </View>
-          <Text style={styles.phoneHint}>
-            Pas besoin de retaper l’indicatif : il est défini par le drapeau.
-          </Text>
+          <Text style={styles.phoneHint}>{t("phoneAuth.nationalHint")}</Text>
           <TouchableOpacity
             style={[styles.btnPrimary, busy && styles.btnDisabled]}
             onPress={() => void sendCode()}
@@ -214,7 +211,7 @@ export function PhoneOtpAuth() {
             {busy ? (
               <ActivityIndicator color={authColors.white} />
             ) : (
-              <Text style={styles.btnPrimaryText}>Recevoir le code</Text>
+              <Text style={styles.btnPrimaryText}>{t("phoneAuth.sendCode")}</Text>
             )}
           </TouchableOpacity>
         </>
@@ -230,7 +227,7 @@ export function PhoneOtpAuth() {
             />
             <TextInput
               style={[styles.input, styles.inputOtp]}
-              placeholder="Code SMS"
+              placeholder={t("phoneAuth.otpPlaceholder")}
               placeholderTextColor={authColors.placeholder}
               keyboardType="number-pad"
               maxLength={8}
@@ -250,7 +247,7 @@ export function PhoneOtpAuth() {
             {busy ? (
               <ActivityIndicator color={authColors.white} />
             ) : (
-              <Text style={styles.btnPrimaryText}>Vérifier et se connecter</Text>
+              <Text style={styles.btnPrimaryText}>{t("phoneAuth.verify")}</Text>
             )}
           </TouchableOpacity>
 
@@ -271,8 +268,8 @@ export function PhoneOtpAuth() {
           >
             <Text style={styles.btnOutlineText}>
               {resendIn > 0
-                ? `Renvoyer le code (${resendIn}s)`
-                : "Renvoyer le code"}
+                ? t("phoneAuth.resendCooldown", { seconds: resendIn })
+                : t("phoneAuth.resend")}
             </Text>
           </TouchableOpacity>
 
@@ -287,7 +284,7 @@ export function PhoneOtpAuth() {
             style={styles.linkWrap}
             disabled={busy}
           >
-            <Text style={styles.linkStrong}>Changer de numéro</Text>
+            <Text style={styles.linkStrong}>{t("phoneAuth.changeNumber")}</Text>
           </TouchableOpacity>
         </>
       )}
@@ -295,10 +292,7 @@ export function PhoneOtpAuth() {
       {error ? <Text style={styles.err}>{error}</Text> : null}
       {info ? <Text style={styles.inf}>{info}</Text> : null}
 
-      <Text style={styles.footerNote}>
-        Pas encore de compte ? La première connexion (Google ou code SMS) crée ton accès
-        Fermier Pro.
-      </Text>
+      <Text style={styles.footerNote}>{t("phoneAuth.footerNote")}</Text>
 
       <Modal
         visible={countryModalOpen}
@@ -317,7 +311,7 @@ export function PhoneOtpAuth() {
             ]}
           >
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Pays / indicatif</Text>
+              <Text style={styles.modalTitle}>{t("phoneAuth.countryModalTitle")}</Text>
               <TouchableOpacity
                 onPress={() => setCountryModalOpen(false)}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -327,7 +321,7 @@ export function PhoneOtpAuth() {
             </View>
             <TextInput
               style={styles.modalSearch}
-              placeholder="Rechercher un pays…"
+              placeholder={t("phoneAuth.countrySearchPlaceholder")}
               placeholderTextColor={authColors.placeholder}
               value={countryFilter}
               onChangeText={setCountryFilter}
@@ -369,7 +363,7 @@ export function PhoneOtpAuth() {
                 </TouchableOpacity>
               )}
               ListEmptyComponent={
-                <Text style={styles.modalEmpty}>Aucun pays ne correspond.</Text>
+                <Text style={styles.modalEmpty}>{t("phoneAuth.countryEmpty")}</Text>
               }
             />
           </View>

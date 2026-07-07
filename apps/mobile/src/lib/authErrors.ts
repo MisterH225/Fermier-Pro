@@ -31,8 +31,23 @@ export function formatAuthError(err: unknown): string {
       "Connexion Google interrompue. Ferme l’app complètement, rouvre-la, puis réessaie une seule fois."
     );
   }
-  if (m.includes("jetons dans l’url") || m.includes("incomplete")) {
-    return raw;
+  if (m.includes("sms") && (m.includes("hook") || m.includes("provider") || m.includes("failed"))) {
+    return (
+      "Impossible d’envoyer le SMS pour le moment. Réessaie dans quelques minutes. " +
+      "Si le problème persiste, l’équipe doit vérifier la configuration Yellika SMS sur le serveur."
+    );
+  }
+  if (m.includes("invalid phone") || m.includes("phone number")) {
+    return "Numéro de téléphone invalide. Vérifie l’indicatif pays et le numéro saisi.";
+  }
+  if (m.includes("otp") && (m.includes("expired") || m.includes("invalid"))) {
+    return "Code incorrect ou expiré. Demande un nouveau code et réessaie.";
+  }
+  if (m.includes("rate limit") || m.includes("too many") || m.includes("over_email_send_rate_limit")) {
+    return "Trop de tentatives. Attends une minute avant de redemander un code.";
+  }
+  if (m.includes("signup") && m.includes("disabled")) {
+    return "L’inscription par téléphone n’est pas activée sur ce projet. Contacte le support.";
   }
   return raw;
 }

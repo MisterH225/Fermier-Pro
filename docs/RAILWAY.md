@@ -15,7 +15,7 @@
 3. **Start Command** : `node apps/api/scripts/start-api.cjs` (défini dans `railway.json`).
 4. **Pre-deploy** : `node apps/api/scripts/railway-predeploy.cjs` (défini dans `railway.json`).
 5. **Port** : Railway injecte `PORT` ; l'API écoute `PORT` puis `API_PORT` (défaut 3000). Ne pas forcer un port fixe sans `PORT`.
-6. **Variables** : `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_JWT_SECRET`, etc. (voir `.env.example`).
+6. **Variables** : `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_JWT_SECRET`, `YELLIKA_SMS_API_TOKEN`, `YELLIKA_SMS_SENDER_ID`, `SUPABASE_SEND_SMS_HOOK_SECRET`, etc. (voir `.env.example`).
 7. **Healthcheck** : `GET /api/v1/health` (configuré dans `railway.json`).
 8. **Serverless** : `sleepApplication: false` dans `railway.json` — **désactiver aussi dans Settings** si le toggle UI est encore ON.
 

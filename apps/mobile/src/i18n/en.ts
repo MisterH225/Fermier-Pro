@@ -86,6 +86,32 @@ export const en = {
       "This URL contains localhost — it will fail on iPhone. Restart Expo on LAN (same Wi‑Fi) and rescan the QR code.",
     or: "or"
   },
+  phoneAuth: {
+    title: "Phone sign-in",
+    hintPhone:
+      "Create your account or sign in with your mobile number. You’ll receive a code by SMS.",
+    hintOtp: "Enter the 6-digit code received by SMS.",
+    countryA11y: "Country and dial code, {{country}} {{dial}}",
+    nationalPlaceholder: "07 00 00 00 00",
+    nationalHint: "No need to re-enter the country code — it’s set by the flag.",
+    sendCode: "Receive code",
+    verify: "Verify and sign in",
+    resend: "Resend code",
+    resendCooldown: "Resend code ({{seconds}}s)",
+    changeNumber: "Change number",
+    codeSent:
+      "Code sent by SMS. Check spam filters if you don’t receive it.",
+    loginSuccess: "Signed in…",
+    invalidPhone:
+      "Choose your country, then enter your mobile number (without the country code). Check the full number is correct.",
+    invalidOtp: "Enter the code received by SMS.",
+    otpPlaceholder: "SMS code",
+    footerNote:
+      "No account yet? Your first SMS sign-in automatically creates your Fermier Pro access.",
+    countryModalTitle: "Country / dial code",
+    countrySearchPlaceholder: "Search for a country…",
+    countryEmpty: "No matching country."
+  },
   moduleRoadmap: {
     note:
       "Matching API routes are already protected by server-side feature flags; this screen prepares full mobile integration."

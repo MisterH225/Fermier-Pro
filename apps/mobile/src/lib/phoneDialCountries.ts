@@ -43,7 +43,7 @@ export function defaultDialCountry(): DialCountry {
   } catch {
     /* ignore */
   }
-  return PHONE_DIAL_COUNTRIES.find((c) => c.iso2 === "SN") ?? PHONE_DIAL_COUNTRIES[0]!;
+  return PHONE_DIAL_COUNTRIES.find((c) => c.iso2 === "CI") ?? PHONE_DIAL_COUNTRIES[0]!;
 }
 
 /** Concatène indicatif + numéro national en E.164 (chiffres uniquement après le +). */

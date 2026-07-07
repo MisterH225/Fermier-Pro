@@ -19,7 +19,33 @@ SUPABASE_JWT_SECRET=<optionnel, tests e2e HS256 uniquement>
 1. **Authentication -> Providers**
    - **Google** : activer, renseigner Client ID / Secret (console Google Cloud OAuth).
    - **Apple** : activer pour *Sign in with Apple* (compte developpeur Apple, Service ID, cle privee).
-   - **Phone** : activer. Pour **Yellika SMS** (recommandé CI), utiliser le hook **Send SMS** HTTP (voir section ci-dessous) plutôt que le fournisseur SMS intégré Supabase.
+   - **Phone** : activer. Pour **Yellika SMS** (recommandé CI/UEMOA), utiliser le hook **Send SMS** HTTP (voir section ci-dessous) plutôt que le fournisseur SMS intégré Supabase (Twilio).
+
+### Activer l'inscription par téléphone (checklist Yellika)
+
+1. **Yellika SMS** (panel → [Developers / API](https://panel.yellikasms.com/developers/docs))
+   - Copier le **token API** → `YELLIKA_SMS_API_TOKEN` (Railway, service API)
+   - Copier le **sender ID approuvé** → `YELLIKA_SMS_SENDER_ID` (ex. nom alphanumérique validé par Yellika)
+   - Optionnel : `YELLIKA_SMS_APP_NAME=Fermier Pro` (préfixe du SMS OTP)
+   - Endpoint utilisé par l'API : `POST https://panel.yellikasms.com/api/v3/sms/send` (Bearer token, corps JSON `recipient`, `sender_id`, `type: plain`, `message`)
+
+2. **Supabase → Authentication → Hooks → Send SMS**
+   - Type : **HTTP**
+   - URL : `https://fermierapi-production.up.railway.app/api/v1/webhooks/supabase/send-sms` (ou votre URL API)
+   - Secret : copier `v1,whsec_...` → `SUPABASE_SEND_SMS_HOOK_SECRET` sur Railway
+   - Désactiver le fournisseur SMS par défaut de Supabase si vous utilisez uniquement Yellika
+
+3. **Supabase → Authentication → Providers → Phone**
+   - Activer **Phone**
+   - Laisser Supabase générer l'OTP (le hook Nest envoie le SMS via Yellika)
+
+4. **Vérifier le déploiement API**
+   ```bash
+   curl -s https://<api>/api/v1/health | jq .phoneAuth
+   ```
+   Attendu : `"ready": true` et `"missing": []`.
+
+5. **Mobile** : aucune clé Yellika côté app — l'utilisateur saisit son numéro sur `PhoneOtpAuth`, Supabase crée le compte à la première vérification OTP, puis `GET /auth/me` synchronise l'utilisateur Prisma et affiche le choix de profil.
 
 2. **Authentication -> Hooks -> Send SMS** (Yellika SMS)
    - Type : **HTTP**
