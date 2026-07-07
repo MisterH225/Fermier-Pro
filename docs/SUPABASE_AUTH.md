@@ -28,6 +28,7 @@ SUPABASE_JWT_SECRET=<optionnel, tests e2e HS256 uniquement>
    - Copier le **sender ID approuvé** → `YELLIKA_SMS_SENDER_ID` (ex. `SolutionIT`)
    - Si Yellika exige un **modèle de texte enregistré**, définir `YELLIKA_SMS_OTP_TEMPLATE` (ex. `SolutionIT : votre code est {{otp}}`)
    - Erreur « Expéditeur X n'est pas autorisé à envoyer ce message » → contacter Yellika pour activer l’envoi **OTP / transactionnel** sur ce sender, ou enregistrer le modèle SMS
+   - **Numéros** : normalisation E.164 Afrique de l’Ouest dans `@fermier/phone` (CI conserve le `0` national ; autres pays le retirent à la composition internationale)
    - Endpoint : copier l’URL POST **complète** de la doc Yellika dans `YELLIKA_SMS_SEND_URL` (ex. `https://panel.yellikasms.com/api/v3/sms/send`) — le client **n’ajoute aucun suffixe**
 
 2. **Supabase → Authentication → Hooks → Send SMS**

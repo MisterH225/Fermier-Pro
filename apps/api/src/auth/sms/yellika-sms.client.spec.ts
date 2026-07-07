@@ -24,6 +24,10 @@ describe("YellikaSmsClient", () => {
     expect(client.formatRecipient("+225708425141")).toBe("2250708425141");
   });
 
+  it("retire le 0 local pour le Sénégal", () => {
+    expect(client.formatRecipient("+2210771234567")).toBe("221771234567");
+  });
+
   it("rejette un numéro trop court", () => {
     expect(() => client.formatRecipient("+22512")).toThrow(
       "Numéro de téléphone invalide"

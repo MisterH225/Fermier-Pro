@@ -7,5 +7,8 @@ export {
   buildE164FromDialAndNational,
   formatE164ForYellikaSms,
   normalizeCiNationalDigits,
-  normalizeE164Phone
-} from "./ci-mobile";
+  normalizeE164Phone,
+  normalizeNationalForCountryCode,
+  WEST_AFRICA_PHONE_RULES,
+  type WestAfricaPhoneRule
+} from "./west-africa-phone";

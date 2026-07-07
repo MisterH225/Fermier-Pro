@@ -6,9 +6,12 @@
   "types": "src/index.ts",
   "react-native": "src/index.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "test": "jest --config jest.config.js"
   },
   "devDependencies": {
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
     "typescript": "^5.5.4"
   }
 }

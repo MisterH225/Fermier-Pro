@@ -4,6 +4,8 @@
  * et masquage stricts (pas d'exposition de données complètes).
  */
 
+import { normalizeE164Phone } from "@fermier/phone";
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 
 export type IdentifierKind = "email" | "phone";
@@ -28,7 +30,7 @@ export function normalizePhone(raw: string): string | null {
   const digits = withPlus.slice(1);
   if (!/^\d+$/.test(digits)) return null;
   if (digits.length < 8 || digits.length > 16) return null;
-  return withPlus;
+  return normalizeE164Phone(withPlus);
 }
 
 export function normalizeEmail(raw: string): string | null {
