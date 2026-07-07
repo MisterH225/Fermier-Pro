@@ -80,7 +80,7 @@ export class SupabaseSendSmsWebhookController {
     } catch (err) {
       if (err instanceof ServiceUnavailableException) {
         this.log.error(`Config Yellika manquante: ${err.message}`);
-        return supabaseHookError(err.message, 503);
+        return supabaseHookError(err.message, 500);
       }
       if (err instanceof YellikaSmsSendError) {
         this.log.error(
@@ -88,14 +88,14 @@ export class SupabaseSendSmsWebhookController {
         );
         return supabaseHookError(
           `Échec envoi SMS Yellika: ${err.message}`,
-          err.retryable ? 503 : 400
+          500
         );
       }
 
       const message =
         err instanceof Error ? err.message : "Échec envoi SMS OTP";
       this.log.error(`Send SMS hook échec: ${message}`);
-      return supabaseHookError(message, 503);
+      return supabaseHookError(message, 500);
     }
   }
 }

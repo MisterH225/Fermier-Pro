@@ -101,7 +101,9 @@ export class YellikaSmsClient {
     const status = (json?.status ?? "").trim().toLowerCase();
     if (status === "error" || status === "failed" || status === "fail") {
       const retryable = !isNonRetryableYellikaError(providerMessage);
-      this.log.warn(`Yellika SMS refusé: ${providerMessage}`);
+      this.log.warn(
+        `Yellika SMS refusé recipient=${body.recipient} sender=${body.sender_id}: ${providerMessage}`
+      );
       throw new YellikaSmsSendError(providerMessage, retryable);
     }
 

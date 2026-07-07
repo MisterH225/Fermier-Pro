@@ -7,12 +7,11 @@ export type SupabaseHookErrorResponse = {
 };
 
 /**
- * Supabase n'interprète le corps d'erreur que si le status HTTP est 200 ou 202.
- * Un 503 déclenche des retries puis « Service currently unavailable due to hook ».
+ * http_code 500 : Supabase remonte le message à l'app (503 côté client = JSON illisible).
  */
 export function supabaseHookError(
   message: string,
-  httpCode = 503
+  httpCode = 500
 ): SupabaseHookErrorResponse {
   return {
     error: {
