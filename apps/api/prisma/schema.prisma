@@ -21,6 +21,26 @@ enum MerchantSubscriptionTier {
   premium
 }
 
+enum MerchantSubscriptionStatus {
+  active
+  past_due
+}
+
+enum MerchantSubscriptionInvoiceStatus {
+  pending
+  paid
+  failed
+  expired
+}
+
+enum MerchantSubscriptionReminderStage {
+  none
+  j_minus_3
+  j0
+  j_plus_3
+  j_plus_7
+}
+
 enum MerchantProductStatus {
   draft
   published
@@ -3204,8 +3224,13 @@ model MerchantProfile {
   user                 User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// null = aucun choix enregistré (pas Free par défaut).
   subscriptionTier     MerchantSubscriptionTier?
+  subscriptionStatus   MerchantSubscriptionStatus?
   subscriptionChosenAt DateTime?
   premiumPaidAt        DateTime?
+  nextBillingAt        DateTime?
+  graceEndsAt          DateTime?
+  /// Clé anti-doublon rappels SMS (ex. 2026-08-07:j_minus_3).
+  billingReminderKey   String?
   shopSkipped          Boolean                   @default(false)
   productSkipped       Boolean                   @default(false)
   onboardingComplete   Boolean                   @default(false)
@@ -3213,8 +3238,33 @@ model MerchantProfile {
   createdAt            DateTime                  @default(now())
   updatedAt            DateTime                  @updatedAt
   shops                MerchantShop[]
+  subscriptionInvoices MerchantSubscriptionInvoice[]
 
   @@index([subscriptionTier])
+  @@index([subscriptionTier, nextBillingAt])
+}
+
+/// Facture mensuelle Premium commerçant (lien mobile money).
+model MerchantSubscriptionInvoice {
+  id                String                            @id @default(cuid())
+  merchantProfileId String
+  merchantProfile   MerchantProfile                   @relation(fields: [merchantProfileId], references: [id], onDelete: Cascade)
+  amount            Decimal                           @db.Decimal(14, 2)
+  currency          String                            @default("XOF")
+  status            MerchantSubscriptionInvoiceStatus @default(pending)
+  providerRef       String?
+  paymentUrl        String?
+  billingPeriodStart DateTime
+  billingPeriodEnd   DateTime
+  dueDate           DateTime
+  paidAt            DateTime?
+  reminderStage     MerchantSubscriptionReminderStage @default(none)
+  createdAt         DateTime                          @default(now())
+  updatedAt         DateTime                          @updatedAt
+
+  @@unique([merchantProfileId, billingPeriodStart])
+  @@index([status, dueDate])
+  @@index([merchantProfileId, status])
 }
 
 /// Boutique d'un commerçant.

@@ -15,6 +15,7 @@ import { ScreenSection, profileScreenScrollContent } from "../../components/layo
 import { MerchantMobileShell } from "../../components/layout/MerchantMobileShell";
 import { MerchantOnboardingNudgeBanner } from "../../components/merchant/MerchantOnboardingNudgeBanner";
 import { MerchantProfileModal } from "../../components/merchant/MerchantProfileModal";
+import { MerchantSubscriptionBadge } from "../../components/merchant/MerchantSubscriptionBadge";
 import { MerchantWelcomeHeader } from "../../components/merchant/MerchantWelcomeHeader";
 import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
 import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
@@ -92,6 +93,7 @@ export function MerchantDashboardScreen() {
   return (
     <MerchantMobileShell customHeader={header} omitBottomTabBar>
       <ScrollView
+        testID="merchant-dashboard-scroll"
         contentContainerStyle={[profileScreenScrollContent, { paddingBottom: bottomInset }]}
         refreshControl={
           <RefreshControl
@@ -101,6 +103,13 @@ export function MerchantDashboardScreen() {
           />
         }
       >
+        {me?.subscriptionTier ? (
+          <MerchantSubscriptionBadge
+            tier={me.subscriptionTier}
+            status={me.subscriptionStatus ?? null}
+          />
+        ) : null}
+
         {me?.needsShopNudge ? (
           <MerchantOnboardingNudgeBanner
             variant="shop"

@@ -166,6 +166,9 @@ const linking: LinkingOptions<RootStackParamList> = {
       },
       MarketplaceListingDetail: {
         path: "listing/:listingId"
+      },
+      MerchantSubscription: {
+        path: "merchant/subscription"
       }
     }
   }

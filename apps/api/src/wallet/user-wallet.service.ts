@@ -678,6 +678,38 @@ export class UserWalletService {
     };
   }
 
+  async debitForMerchantSubscription(
+    userId: string,
+    amount: number,
+    currency: string,
+    reference: string,
+    note: string
+  ): Promise<{ providerRef: string; entryId: string }> {
+    const idempotencyKey = `merchant-subscription:${reference}`;
+    const existing = await this.prisma.userWalletEntry.findUnique({
+      where: { idempotencyKey }
+    });
+    if (existing) {
+      return {
+        providerRef: this.walletProviderRef(existing.id),
+        entryId: existing.id
+      };
+    }
+    const entry = await this.debit(
+      userId,
+      amount,
+      currency,
+      UserWalletEntryKind.debit_fee,
+      note,
+      idempotencyKey,
+      { providerRef: reference }
+    );
+    return {
+      providerRef: this.walletProviderRef(entry.id),
+      entryId: entry.id
+    };
+  }
+
   async creditMerchantPayout(
     userId: string,
     amount: number,

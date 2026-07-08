@@ -8,14 +8,16 @@ import {
   MarketplacePaymentMethod,
   MerchantProductDisabledReason,
   MerchantProductStatus,
+  MerchantSubscriptionInvoiceStatus,
   MerchantSubscriptionTier
 } from "@prisma/client";
-import { EscrowService } from "../marketplace/escrow/escrow.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { UserWalletService } from "../wallet/user-wallet.service";
-import { MERCHANT_FREE_MAX_ACTIVE_PRODUCTS } from "./merchant-shop.constants";
 import type { ChooseMerchantSubscriptionDto } from "./dto/merchant-shop.dto";
 import { MerchantProfilesService } from "./merchant-profiles.service";
+import { MerchantSubscriptionBillingService } from "./merchant-subscription-billing.service";
+import { MERCHANT_FREE_MAX_ACTIVE_PRODUCTS } from "./merchant-shop.constants";
+import { addMonthsUtc, startOfUtcDay } from "./merchant-subscription.constants";
 
 @Injectable()
 export class MerchantSubscriptionService {
@@ -23,7 +25,7 @@ export class MerchantSubscriptionService {
     private readonly prisma: PrismaService,
     private readonly profiles: MerchantProfilesService,
     private readonly wallet: UserWalletService,
-    private readonly escrow: EscrowService
+    private readonly billing: MerchantSubscriptionBillingService
   ) {}
 
   private premiumRef(userId: string): string {
@@ -47,48 +49,59 @@ export class MerchantSubscriptionService {
       return this.profiles.getMe(user);
     }
 
-    const settings = await this.prisma.platformSettings.findUnique({
-      where: { id: "default" }
-    });
-    const price = Number(settings?.merchantPremiumPriceXof ?? 5000);
+    const price = await this.billing.getPremiumPriceXof();
     const method =
       dto.paymentMethod ?? MarketplacePaymentMethod.mobile_money;
 
     if (method === MarketplacePaymentMethod.wallet) {
       await this.wallet.assertSufficientBalance(user.id, price);
-      await this.wallet.debitForMerchantHold(
+      await this.wallet.debitForMerchantSubscription(
         user.id,
         price,
         "XOF",
         this.premiumRef(user.id),
         "Abonnement Premium commerçant"
       );
+      const paidAt = new Date();
+      const periodStart = startOfUtcDay(paidAt);
+      await this.prisma.merchantSubscriptionInvoice.create({
+        data: {
+          merchantProfileId: profile.id,
+          amount: price,
+          currency: "XOF",
+          status: MerchantSubscriptionInvoiceStatus.paid,
+          billingPeriodStart: periodStart,
+          billingPeriodEnd: addMonthsUtc(periodStart, 1),
+          dueDate: periodStart,
+          paidAt,
+          providerRef: this.premiumRef(user.id)
+        }
+      });
       await this.prisma.merchantProfile.update({
         where: { userId: user.id },
         data: {
-          subscriptionTier: MerchantSubscriptionTier.premium,
-          subscriptionChosenAt: new Date(),
-          premiumPaidAt: new Date()
+          subscriptionChosenAt: new Date()
         }
       });
+      await this.billing.activatePremium(profile.id, paidAt);
       return this.profiles.getMe(user);
     }
 
-    const init = await this.escrow.holdFunds(
-      this.premiumRef(user.id),
+    const periodStart = startOfUtcDay(new Date());
+    const invoice = await this.billing.createPendingInvoice(
+      profile.id,
       user.id,
-      price,
-      "XOF",
-      "Abonnement Premium commerçant",
-      { paymentMethod: method }
+      periodStart,
+      price
     );
     return {
       pending: true,
       tier: MerchantSubscriptionTier.premium,
       amount: price,
       paymentMethod: method,
-      providerRef: init.providerRef,
-      paymentUrl: init.paymentUrl ?? null
+      providerRef: invoice.providerRef,
+      paymentUrl: invoice.paymentUrl ?? null,
+      invoiceId: invoice.id
     };
   }
 
@@ -99,41 +112,67 @@ export class MerchantSubscriptionService {
     if (!profile) {
       throw new NotFoundException("Profil commerçant introuvable");
     }
-    if (profile.subscriptionTier === MerchantSubscriptionTier.premium) {
+
+    const invoice = await this.prisma.merchantSubscriptionInvoice.findFirst({
+      where: {
+        merchantProfileId: profile.id,
+        providerRef,
+        status: MerchantSubscriptionInvoiceStatus.pending
+      }
+    });
+
+    if (invoice) {
+      await this.billing.confirmInvoicePayment(providerRef, invoice.id);
+      if (!profile.subscriptionChosenAt) {
+        await this.prisma.merchantProfile.update({
+          where: { userId: user.id },
+          data: { subscriptionChosenAt: new Date() }
+        });
+      }
       return this.profiles.getMe(user);
     }
 
-    const settings = await this.prisma.platformSettings.findUnique({
-      where: { id: "default" }
-    });
-    const price = Number(settings?.merchantPremiumPriceXof ?? 5000);
-
     if (this.wallet.isWalletPendingRef(providerRef)) {
-      await this.wallet.debitForMerchantHold(
+      const price = await this.billing.getPremiumPriceXof();
+      await this.wallet.debitForMerchantSubscription(
         user.id,
         price,
         "XOF",
         this.premiumRef(user.id),
         "Abonnement Premium commerçant"
       );
-    } else {
-      await this.escrow.confirmHold(providerRef, this.premiumRef(user.id), {
-        buyerUserId: user.id,
-        amount: price,
-        currency: "XOF",
-        label: "Abonnement Premium commerçant"
+      const paidAt = new Date();
+      const periodStart = startOfUtcDay(paidAt);
+      await this.prisma.merchantSubscriptionInvoice.create({
+        data: {
+          merchantProfileId: profile.id,
+          amount: price,
+          currency: "XOF",
+          status: MerchantSubscriptionInvoiceStatus.paid,
+          billingPeriodStart: periodStart,
+          billingPeriodEnd: addMonthsUtc(periodStart, 1),
+          dueDate: periodStart,
+          paidAt,
+          providerRef
+        }
       });
+      await this.prisma.merchantProfile.update({
+        where: { userId: user.id },
+        data: { subscriptionChosenAt: new Date() }
+      });
+      await this.billing.activatePremium(profile.id, paidAt);
+      return this.profiles.getMe(user);
     }
 
-    await this.prisma.merchantProfile.update({
-      where: { userId: user.id },
-      data: {
-        subscriptionTier: MerchantSubscriptionTier.premium,
-        subscriptionChosenAt: new Date(),
-        premiumPaidAt: new Date()
-      }
-    });
-    return this.profiles.getMe(user);
+    throw new BadRequestException("Paiement abonnement introuvable ou déjà traité");
+  }
+
+  async confirmFromWebhook(providerRef: string, invoiceId: string) {
+    await this.billing.confirmFromWebhook(providerRef, invoiceId);
+  }
+
+  async renew(user: User) {
+    return this.billing.initiateRenewal(user);
   }
 
   async downgradeToFree(userId: string) {
@@ -160,7 +199,12 @@ export class MerchantSubscriptionService {
     await this.prisma.$transaction([
       this.prisma.merchantProfile.update({
         where: { userId },
-        data: { subscriptionTier: MerchantSubscriptionTier.free }
+        data: {
+          subscriptionTier: MerchantSubscriptionTier.free,
+          subscriptionStatus: null,
+          graceEndsAt: null,
+          billingReminderKey: null
+        }
       }),
       ...toDisable.map((p) =>
         this.prisma.merchantProduct.update({

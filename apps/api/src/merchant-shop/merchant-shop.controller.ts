@@ -75,6 +75,14 @@ export class MerchantShopController {
     return this.subscription.confirmPremiumPayment(user, dto.providerRef);
   }
 
+  @Post("me/subscription/renew")
+  @UseGuards(MerchantProfileGuard)
+  renewSubscription(
+    @CurrentUser() user: Parameters<MerchantSubscriptionService["renew"]>[0]
+  ) {
+    return this.subscription.renew(user);
+  }
+
   @Get("dashboard")
   @UseGuards(MerchantProfileGuard)
   getDashboard(

@@ -8,31 +8,59 @@ import type { RootStackParamList } from "../../types/navigation";
 
 type Props = {
   tier: "free" | "premium" | null;
+  status?: "active" | "past_due" | null;
 };
 
-export function MerchantSubscriptionBadge({ tier }: Props) {
+export function MerchantSubscriptionBadge({ tier, status }: Props) {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const isPremium = tier === "premium";
-  const label = isPremium
-    ? t("merchant.subscription.premiumTitle")
-    : tier === "free"
-      ? t("merchant.subscription.freeTitle")
-      : t("merchant.dashboard.tierNone");
+  const isPastDue = status === "past_due";
+  const label = isPastDue
+    ? t("merchant.subscription.statusPastDue")
+    : isPremium
+      ? t("merchant.subscription.premiumTitle")
+      : tier === "free"
+        ? t("merchant.subscription.freeTitle")
+        : t("merchant.dashboard.tierNone");
 
   return (
-    <View style={styles.row}>
-      <View style={[styles.badge, isPremium && styles.badgePremium]}>
-        <Text style={[styles.badgeTx, isPremium && styles.badgeTxPremium]}>{label}</Text>
+    <View style={styles.row} testID="merchant-subscription-badge-row">
+      <View
+        testID="merchant-subscription-badge"
+        style={[
+          styles.badge,
+          isPremium && styles.badgePremium,
+          isPastDue && styles.badgePastDue
+        ]}
+      >
+        <Text
+          style={[
+            styles.badgeTx,
+            isPremium && styles.badgeTxPremium,
+            isPastDue && styles.badgeTxPastDue
+          ]}
+        >
+          {label}
+        </Text>
       </View>
       {!isPremium ? (
         <Pressable
+          testID="merchant-subscription-upgrade-cta"
           style={styles.cta}
           onPress={() => navigation.navigate("MerchantSubscription")}
         >
           <Text style={styles.ctaTx}>{t("merchant.dashboard.upgradeCta")}</Text>
+        </Pressable>
+      ) : isPastDue ? (
+        <Pressable
+          testID="merchant-subscription-renew-cta"
+          style={styles.cta}
+          onPress={() => navigation.navigate("MerchantSubscription")}
+        >
+          <Text style={styles.ctaTx}>{t("merchant.subscription.renewCta")}</Text>
         </Pressable>
       ) : null}
     </View>
@@ -50,8 +78,10 @@ const styles = StyleSheet.create({
     borderColor: merchantColors.border
   },
   badgePremium: { backgroundColor: "#FFF8E1", borderColor: "#F59E0B" },
+  badgePastDue: { backgroundColor: "#FEE2E2", borderColor: "#EF4444" },
   badgeTx: { fontWeight: "700", color: merchantColors.primary, fontSize: 13 },
   badgeTxPremium: { color: "#B45309" },
+  badgeTxPastDue: { color: "#B91C1C" },
   cta: {
     paddingHorizontal: 14,
     paddingVertical: 8,

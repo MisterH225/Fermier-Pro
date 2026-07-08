@@ -4060,7 +4060,11 @@ export const fr = {
       choosePremium: "Choisir Premium",
       ctaFree: "Commencer gratuitement",
       ctaPremium: "Choisir Premium — {{price}} XOF",
-      premiumPending: "Finalise le paiement Premium pour continuer.",
+      premiumPending: "Finalise le paiement Premium (lien Wave ou SMS) pour activer ton abonnement.",
+      statusPastDue: "Paiement en attente",
+      renewCta: "Renouveler Premium",
+      billingMonthly: "Abonnement mensuel",
+      graceHint: "Délai de grâce : 7 jours après l'échéance",
       features: {
         shop: {
           title: "Boutique en ligne",
@@ -4124,6 +4128,8 @@ export const fr = {
       shops: "Boutiques",
       activeProducts: "Produits actifs",
       mainShop: "Boutique principale",
+      nextBilling: "Prochaine échéance",
+      graceEnds: "Fin de grâce",
       changePhotoTitle: "Photo de profil",
       changePhotoMessage: "Choisis une source pour mettre à jour ta photo.",
       pickGallery: "Galerie",

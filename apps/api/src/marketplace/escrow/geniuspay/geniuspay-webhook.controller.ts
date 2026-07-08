@@ -9,10 +9,12 @@ import { SkipThrottle } from "@nestjs/throttler";
 import type { Request } from "express";
 import { WithdrawalOrchestratorService } from "../../../wallet/withdrawal-orchestrator.service";
 import { WalletRailsService } from "../../../wallet/wallet-rails.service";
+import { MerchantSubscriptionBillingService } from "../../../merchant-shop/merchant-subscription-billing.service";
 import { MarketplaceTransactionService } from "../marketplace-transaction.service";
 import { parsePayoutMetadata } from "./geniuspay-payout.util";
 import {
   GENIUSPAY_KIND_MARKETPLACE_ESCROW,
+  GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION,
   GENIUSPAY_KIND_WALLET_TOPUP,
   GENIUSPAY_KIND_WALLET_WITHDRAW,
   type GeniusPayWebhookPayload
@@ -30,7 +32,8 @@ export class GeniusPayWebhookController {
   constructor(
     private readonly transactions: MarketplaceTransactionService,
     private readonly walletRails: WalletRailsService,
-    private readonly withdrawals: WithdrawalOrchestratorService
+    private readonly withdrawals: WithdrawalOrchestratorService,
+    private readonly merchantBilling: MerchantSubscriptionBillingService
   ) {}
 
   @Post()
@@ -119,6 +122,18 @@ export class GeniusPayWebhookController {
           grossAmount,
           reference
         );
+        return { ok: true };
+      }
+
+      if (kind === GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION) {
+        const invoiceId =
+          typeof metadata.invoice_id === "string"
+            ? metadata.invoice_id.trim()
+            : "";
+        if (!invoiceId) {
+          throw new BadRequestException("invoice_id metadata manquant");
+        }
+        await this.merchantBilling.confirmFromWebhook(reference, invoiceId);
         return { ok: true };
       }
 

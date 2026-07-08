@@ -2,8 +2,19 @@ import { apiGetJson, apiPatchJson, apiPostJson } from "./http";
 
 export type MerchantMeDto = {
   subscriptionTier: "free" | "premium" | null;
+  subscriptionStatus?: "active" | "past_due" | null;
   subscriptionChosenAt: string | null;
   premiumPaidAt: string | null;
+  nextBillingAt?: string | null;
+  graceEndsAt?: string | null;
+  pendingRenewal?: {
+    invoiceId: string;
+    amount: number;
+    currency: string;
+    paymentUrl: string | null;
+    providerRef: string | null;
+    dueDate: string;
+  } | null;
   shopSkipped: boolean;
   productSkipped: boolean;
   onboardingComplete: boolean;
@@ -142,10 +153,41 @@ export function chooseMerchantSubscription(
     tier: "free" | "premium";
     paymentMethod?: "wallet" | "mobile_money";
   }
-): Promise<MerchantMeDto | { pending: boolean; providerRef: string; paymentUrl?: string | null; amount: number }> {
+): Promise<MerchantMeDto | { pending: boolean; providerRef: string; paymentUrl?: string | null; amount: number; invoiceId?: string }> {
   return apiPostJson(
     "/merchant/me/subscription",
     body,
+    accessToken,
+    profileId
+  );
+}
+
+export function renewMerchantSubscription(
+  accessToken: string,
+  profileId: string
+): Promise<{
+  pending: boolean;
+  invoiceId: string;
+  amount: number;
+  providerRef: string | null;
+  paymentUrl: string | null;
+}> {
+  return apiPostJson(
+    "/merchant/me/subscription/renew",
+    {},
+    accessToken,
+    profileId
+  );
+}
+
+export function confirmMerchantSubscription(
+  accessToken: string,
+  profileId: string,
+  providerRef: string
+): Promise<MerchantMeDto> {
+  return apiPostJson(
+    "/merchant/me/subscription/confirm",
+    { providerRef },
     accessToken,
     profileId
   );

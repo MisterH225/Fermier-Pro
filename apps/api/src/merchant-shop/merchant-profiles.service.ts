@@ -6,6 +6,7 @@ import {
 import type { User } from "@prisma/client";
 import {
   MerchantProductStatus,
+  MerchantSubscriptionInvoiceStatus,
   MerchantSubscriptionTier,
   Prisma
 } from "@prisma/client";
@@ -92,10 +93,31 @@ export class MerchantProfilesService {
     const allProducts = profile.shops.flatMap((s) => s.products);
     const activeProductCount = this.countActiveProducts(allProducts);
 
+    const pendingInvoice = await this.prisma.merchantSubscriptionInvoice.findFirst({
+      where: {
+        merchantProfileId: profile.id,
+        status: MerchantSubscriptionInvoiceStatus.pending
+      },
+      orderBy: { dueDate: "desc" }
+    });
+
     return {
       subscriptionTier: profile.subscriptionTier,
+      subscriptionStatus: profile.subscriptionStatus,
       subscriptionChosenAt: profile.subscriptionChosenAt?.toISOString() ?? null,
       premiumPaidAt: profile.premiumPaidAt?.toISOString() ?? null,
+      nextBillingAt: profile.nextBillingAt?.toISOString() ?? null,
+      graceEndsAt: profile.graceEndsAt?.toISOString() ?? null,
+      pendingRenewal: pendingInvoice
+        ? {
+            invoiceId: pendingInvoice.id,
+            amount: Number(pendingInvoice.amount),
+            currency: pendingInvoice.currency,
+            paymentUrl: pendingInvoice.paymentUrl,
+            providerRef: pendingInvoice.providerRef,
+            dueDate: pendingInvoice.dueDate.toISOString()
+          }
+        : null,
       shopSkipped: profile.shopSkipped,
       productSkipped: profile.productSkipped,
       onboardingComplete: profile.onboardingComplete,

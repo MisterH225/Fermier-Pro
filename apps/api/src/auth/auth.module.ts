@@ -36,6 +36,7 @@ import { SupabaseJwtGuard } from "./guards/supabase-jwt.guard";
     AuthService,
     AccountDeletionService,
     SupabaseAdminService,
+    YellikaSmsClient,
     SupabaseJwtGuard,
     OptionalActiveProfileGuard,
     ActiveProfileGuard,

@@ -28,6 +28,7 @@ export async function seedMerchantE2E(
   await prisma.merchantOrder.deleteMany({});
   await prisma.merchantProduct.deleteMany({});
   await prisma.merchantShop.deleteMany({});
+  await prisma.merchantSubscriptionInvoice.deleteMany({});
   await prisma.merchantProductCategory.deleteMany({});
   await prisma.merchantProfile.deleteMany({
     where: {
@@ -171,6 +172,9 @@ export async function cleanupMerchantE2E(
     }
   });
   await prisma.merchantProductModerationLog.deleteMany({});
+  await prisma.merchantSubscriptionInvoice.deleteMany({
+    where: { merchantProfile: { userId: ctx.merchantUserId } }
+  });
   await prisma.merchantProduct.deleteMany({
     where: { shop: { merchantProfile: { userId: ctx.merchantUserId } } }
   });

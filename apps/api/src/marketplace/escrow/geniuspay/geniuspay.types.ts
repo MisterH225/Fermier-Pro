@@ -1,5 +1,6 @@
 export const GENIUSPAY_KIND_MARKETPLACE_ESCROW = "marketplace_escrow" as const;
 export const GENIUSPAY_KIND_WALLET_TOPUP = "wallet_topup" as const;
+export const GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION = "merchant_subscription" as const;
 export const GENIUSPAY_KIND_WALLET_WITHDRAW = "wallet_withdraw" as const;
 export const GENIUSPAY_KIND_MARKETPLACE_SELLER_PAYOUT =
   "marketplace_seller_payout" as const;
@@ -7,7 +8,8 @@ export const GENIUSPAY_KIND_MARKETPLACE_REFUND = "marketplace_refund" as const;
 
 export type GeniusPayPaymentKind =
   | typeof GENIUSPAY_KIND_MARKETPLACE_ESCROW
-  | typeof GENIUSPAY_KIND_WALLET_TOPUP;
+  | typeof GENIUSPAY_KIND_WALLET_TOPUP
+  | typeof GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION;
 
 export type GeniusPayPayoutKind =
   | typeof GENIUSPAY_KIND_WALLET_WITHDRAW
@@ -18,6 +20,7 @@ export type GeniusPayPaymentMetadata = {
   kind: GeniusPayPaymentKind;
   user_id: string;
   transaction_id?: string;
+  invoice_id?: string;
   amount?: string;
 };
 

@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { ChatModule } from "../chat/chat.module";
 import { ConfigClientModule } from "../config-client/config-client.module";
@@ -17,14 +17,16 @@ import { MerchantOrdersService } from "./merchant-orders.service";
 import { MerchantProductsService } from "./merchant-products.service";
 import { MerchantProfilesService } from "./merchant-profiles.service";
 import { MerchantShopsService } from "./merchant-shops.service";
+import { MerchantSubscriptionBillingService } from "./merchant-subscription-billing.service";
+import { MerchantSubscriptionCronService } from "./merchant-subscription.cron";
 import { MerchantSubscriptionService } from "./merchant-subscription.service";
 
 @Module({
   imports: [
     PrismaModule,
-    AuthModule,
+    forwardRef(() => AuthModule),
     WalletModule,
-    MarketplaceModule,
+    forwardRef(() => MarketplaceModule),
     MobileMoneyModule,
     ConfigClientModule,
     FeatureFlagsModule,
@@ -39,6 +41,8 @@ import { MerchantSubscriptionService } from "./merchant-subscription.service";
     MerchantProductsService,
     MerchantCategoriesService,
     MerchantSubscriptionService,
+    MerchantSubscriptionBillingService,
+    MerchantSubscriptionCronService,
     MerchantOrdersService,
     MerchantModerationService,
     MerchantDashboardService
@@ -48,7 +52,8 @@ import { MerchantSubscriptionService } from "./merchant-subscription.service";
     MerchantProductsService,
     MerchantCategoriesService,
     MerchantModerationService,
-    MerchantSubscriptionService
+    MerchantSubscriptionService,
+    MerchantSubscriptionBillingService
   ]
 })
 export class MerchantShopModule {}

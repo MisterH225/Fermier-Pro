@@ -26,6 +26,7 @@ const TAB_META: Record<
 const H = MERCHANT_NAV_BAR_HEIGHT;
 
 function NavItem({
+  testID,
   icon,
   iconOutline,
   label,
@@ -33,6 +34,7 @@ function NavItem({
   onPress,
   a11y
 }: {
+  testID: string;
   icon: keyof typeof Ionicons.glyphMap;
   iconOutline: keyof typeof Ionicons.glyphMap;
   label: string;
@@ -42,6 +44,7 @@ function NavItem({
 }) {
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       accessibilityLabel={a11y}
       onPress={onPress}
@@ -76,6 +79,7 @@ export function MerchantTabBar({ activeTab, onTabPress }: Props) {
           return (
             <NavItem
               key={tab}
+              testID={`merchant-tab-${tab}`}
               icon={meta.icon}
               iconOutline={meta.iconOutline}
               label={t(meta.labelKey)}

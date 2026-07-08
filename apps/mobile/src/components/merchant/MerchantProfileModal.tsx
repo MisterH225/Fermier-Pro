@@ -3,6 +3,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
+import * as Linking from "expo-linking";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -24,7 +25,8 @@ import { useSession } from "../../context/SessionContext";
 import {
   fetchMerchantDashboard,
   fetchMerchantMe,
-  patchAuthProfile
+  patchAuthProfile,
+  renewMerchantSubscription
 } from "../../lib/api";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { getSupabase } from "../../lib/supabase";
@@ -99,11 +101,17 @@ export function MerchantProfileModal({ visible, onClose }: MerchantProfileModalP
   const dash = dashQ.data;
 
   const tierLabel =
-    me?.subscriptionTier === "premium"
-      ? t("merchant.subscription.premiumTitle")
-      : me?.subscriptionTier === "free"
-        ? t("merchant.subscription.freeTitle")
-        : t("merchant.dashboard.tierNone");
+    me?.subscriptionStatus === "past_due"
+      ? t("merchant.subscription.statusPastDue")
+      : me?.subscriptionTier === "premium"
+        ? t("merchant.subscription.premiumTitle")
+        : me?.subscriptionTier === "free"
+          ? t("merchant.subscription.freeTitle")
+          : t("merchant.dashboard.tierNone");
+
+  const nextBillingLabel = me?.nextBillingAt
+    ? new Date(me.nextBillingAt).toLocaleDateString("fr-FR")
+    : "—";
 
   const shopsLabel =
     me != null
@@ -202,6 +210,17 @@ export function MerchantProfileModal({ visible, onClose }: MerchantProfileModalP
     }
   };
 
+  const openRenewPayment = async () => {
+    if (!accessToken || !activeProfileId) return;
+    const url =
+      me?.pendingRenewal?.paymentUrl ??
+      (await renewMerchantSubscription(accessToken, activeProfileId)).paymentUrl;
+    if (url) {
+      await Linking.openURL(url);
+    }
+    void meQ.refetch();
+  };
+
   const openSubscription = () => {
     onClose();
     navigation.navigate("MerchantSubscription");
@@ -290,9 +309,27 @@ export function MerchantProfileModal({ visible, onClose }: MerchantProfileModalP
             </Pressable>
           ) : null}
 
+          {me?.subscriptionStatus === "past_due" ? (
+            <Pressable style={styles.renewBtn} onPress={() => void openRenewPayment()}>
+              <Text style={styles.renewBtnTx}>{t("merchant.subscription.renewCta")}</Text>
+            </Pressable>
+          ) : null}
+
           <SectionHeader label={t("merchant.profile.sectionMerchant")} />
           <View style={styles.proCard}>
             <InfoBlock label={t("merchant.profile.subscription")} value={tierLabel} />
+            {me?.subscriptionTier === "premium" ? (
+              <InfoBlock
+                label={t("merchant.profile.nextBilling")}
+                value={nextBillingLabel}
+              />
+            ) : null}
+            {me?.graceEndsAt ? (
+              <InfoBlock
+                label={t("merchant.profile.graceEnds")}
+                value={new Date(me.graceEndsAt).toLocaleDateString("fr-FR")}
+              />
+            ) : null}
             <InfoBlock label={t("merchant.profile.shops")} value={shopsLabel} />
             <InfoBlock label={t("merchant.profile.activeProducts")} value={productsLabel} />
             {me?.shops[0]?.name ? (
@@ -441,6 +478,17 @@ const styles = StyleSheet.create({
   },
   upgradeBtnTx: {
     color: merchantColors.onPrimary,
+    fontWeight: "700",
+    fontSize: 16
+  },
+  renewBtn: {
+    backgroundColor: merchantColors.warning,
+    borderRadius: merchantRadius.pill,
+    paddingVertical: 14,
+    alignItems: "center"
+  },
+  renewBtnTx: {
+    color: "#fff",
     fontWeight: "700",
     fontSize: 16
   },

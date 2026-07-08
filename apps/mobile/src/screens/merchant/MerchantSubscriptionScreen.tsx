@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -65,9 +66,12 @@ export function MerchantSubscriptionScreen({
     try {
       const res = await chooseMerchantSubscription(accessToken, activeProfileId, {
         tier: selectedTier,
-        paymentMethod: selectedTier === "premium" ? "wallet" : undefined
+        paymentMethod: selectedTier === "premium" ? "mobile_money" : undefined
       });
       if ("pending" in res && res.pending) {
+        if (res.paymentUrl) {
+          await Linking.openURL(res.paymentUrl);
+        }
         setError(t("merchant.subscription.premiumPending"));
         return;
       }
@@ -85,14 +89,16 @@ export function MerchantSubscriptionScreen({
       : t("merchant.subscription.ctaPremium", { price: premiumPriceLabel });
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.safe} edges={["top", "bottom"]} testID="merchant-subscription-screen">
       <View style={styles.skyGlow} />
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>{t("merchant.subscription.title")}</Text>
+          <Text style={styles.title} testID="merchant-subscription-title">
+            {t("merchant.subscription.title")}
+          </Text>
           <Text style={styles.subtitle}>{t("merchant.subscription.subtitle")}</Text>
         </View>
 
@@ -116,6 +122,7 @@ export function MerchantSubscriptionScreen({
 
         <View style={styles.planRow}>
           <PlanCard
+            testID="merchant-subscription-plan-free"
             selected={selectedTier === "free"}
             onPress={() => setSelectedTier("free")}
             icon="🌱"
@@ -124,6 +131,7 @@ export function MerchantSubscriptionScreen({
             caption={t("merchant.subscription.freeCaption")}
           />
           <PlanCard
+            testID="merchant-subscription-plan-premium"
             selected={selectedTier === "premium"}
             onPress={() => setSelectedTier("premium")}
             icon="👑"
@@ -134,16 +142,30 @@ export function MerchantSubscriptionScreen({
         </View>
 
         {skippable && onSkip ? (
-          <Pressable style={styles.skip} onPress={onSkip} disabled={busy}>
+          <Pressable
+            style={styles.skip}
+            onPress={onSkip}
+            disabled={busy}
+            testID="merchant-subscription-skip"
+          >
             <Text style={styles.skipTx}>{t("merchant.onboarding.skip")}</Text>
           </Pressable>
         ) : null}
 
-        <Pressable style={styles.cancel} onPress={onCancel} disabled={busy}>
+        <Pressable
+          style={styles.cancel}
+          onPress={onCancel}
+          disabled={busy}
+          testID="merchant-subscription-cancel"
+        >
           <Text style={styles.cancelTx}>{t("common.cancel")}</Text>
         </Pressable>
 
-        {error ? <Text style={styles.err}>{error}</Text> : null}
+        {error ? (
+          <Text style={styles.err} testID="merchant-subscription-error">
+            {error}
+          </Text>
+        ) : null}
       </ScrollView>
 
       <View style={styles.footer}>
@@ -151,11 +173,14 @@ export function MerchantSubscriptionScreen({
           style={[styles.cta, busy && styles.ctaDisabled]}
           disabled={busy}
           onPress={() => void choose()}
+          testID="merchant-subscription-cta"
         >
           {busy ? (
             <ActivityIndicator color={merchantColors.onPrimary} />
           ) : (
-            <Text style={styles.ctaTx}>{ctaLabel}</Text>
+            <Text style={styles.ctaTx} testID="merchant-subscription-cta-label">
+              {ctaLabel}
+            </Text>
           )}
         </Pressable>
       </View>
@@ -164,6 +189,7 @@ export function MerchantSubscriptionScreen({
 }
 
 function PlanCard({
+  testID,
   selected,
   onPress,
   icon,
@@ -171,6 +197,7 @@ function PlanCard({
   price,
   caption
 }: {
+  testID: string;
   selected: boolean;
   onPress: () => void;
   icon: string;
@@ -180,6 +207,7 @@ function PlanCard({
 }) {
   return (
     <Pressable
+      testID={testID}
       onPress={onPress}
       style={[
         styles.planCard,

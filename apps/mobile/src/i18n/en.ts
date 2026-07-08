@@ -4011,7 +4011,11 @@ export const en = {
       choosePremium: "Choose Premium",
       ctaFree: "Start for free",
       ctaPremium: "Choose Premium — {{price}} XOF",
-      premiumPending: "Complete Premium payment to continue.",
+      premiumPending: "Complete Premium payment (Wave link or SMS) to activate your subscription.",
+      statusPastDue: "Payment overdue",
+      renewCta: "Renew Premium",
+      billingMonthly: "Monthly subscription",
+      graceHint: "Grace period: 7 days after due date",
       features: {
         shop: {
           title: "Online shop",
@@ -4075,6 +4079,8 @@ export const en = {
       shops: "Shops",
       activeProducts: "Active products",
       mainShop: "Main shop",
+      nextBilling: "Next billing date",
+      graceEnds: "Grace period ends",
       changePhotoTitle: "Profile photo",
       changePhotoMessage: "Choose a source to update your photo.",
       pickGallery: "Gallery",
