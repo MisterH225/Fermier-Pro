@@ -4189,7 +4189,16 @@ export const fr = {
     catalog: {
       empty: "Aucun produit en boutique pour le moment.",
       stock: "{{count}} en stock",
-      stockShort: "📦 {{count}}"
+      stockShort: "📦 {{count}}",
+      category: "Catégorie",
+      description: "Description",
+      noDescription: "Aucune description pour ce produit.",
+      shopSection: "Boutique",
+      shopName: "Nom de la boutique",
+      seller: "Commerçant",
+      location: "Localisation",
+      shopAbout: "À propos de la boutique",
+      noPhotos: "Aucune photo"
     },
     profile: {
       sectionMerchant: "Profil commerçant",

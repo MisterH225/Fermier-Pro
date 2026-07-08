@@ -381,6 +381,8 @@ export class MerchantProductsService {
       .catch(() => undefined);
     return {
       ...this.serializeProduct(product),
+      shopId: product.shop.id,
+      shopName: product.shop.name,
       shopDescription: product.shop.description,
       shopLocation: product.shop.locationLabel,
       sellerUserId: product.shop.merchantProfile.user.id,

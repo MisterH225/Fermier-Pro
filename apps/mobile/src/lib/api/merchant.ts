@@ -363,6 +363,7 @@ export function fetchMerchantCatalogProduct(
 ) {
   return apiGetJson<
     MerchantProductDto & {
+      shopId: string;
       sellerUserId: string;
       merchantName: string | null;
       shopDescription: string | null;

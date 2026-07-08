@@ -4140,7 +4140,16 @@ export const en = {
     catalog: {
       empty: "No shop products yet.",
       stock: "{{count}} in stock",
-      stockShort: "📦 {{count}}"
+      stockShort: "📦 {{count}}",
+      category: "Category",
+      description: "Description",
+      noDescription: "No description for this product.",
+      shopSection: "Shop",
+      shopName: "Shop name",
+      seller: "Merchant",
+      location: "Location",
+      shopAbout: "About the shop",
+      noPhotos: "No photos"
     },
     profile: {
       sectionMerchant: "Merchant profile",
