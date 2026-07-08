@@ -49,7 +49,7 @@ describe("MerchantSubscription — écran abonnement commerçant", () => {
     it("sélection Premium — CTA avec prix", async () => {
       await selectSubscriptionPlan("premium");
       await expectSubscriptionCtaLabelMatches(/Choisir Premium/);
-      await expectSubscriptionCtaLabelMatches(/XOF/);
+      await expectSubscriptionCtaLabelMatches(/XOF\/mois|XOF\/month/);
     });
 
     it("bascule Free → Premium → Free met à jour le CTA", async () => {

@@ -76,6 +76,16 @@ export function MerchantPersistentTabBar() {
     return null;
   }
 
+  const hideTabBarRoutes = new Set([
+    "MerchantSubscription",
+    "MerchantShop",
+    "MerchantProductForm",
+    "MerchantProductDetail"
+  ]);
+  if (focused?.name && hideTabBarRoutes.has(focused.name)) {
+    return null;
+  }
+
   return (
     <View style={styles.overlay} pointerEvents="box-none">
       <View

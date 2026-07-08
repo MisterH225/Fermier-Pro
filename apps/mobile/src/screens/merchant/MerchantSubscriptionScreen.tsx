@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -10,12 +11,12 @@ import {
   Text,
   View
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSession } from "../../context/SessionContext";
+import { useBottomChromePad } from "../../hooks/useBottomInset";
 import {
   chooseMerchantSubscription,
-  fetchMerchantMe,
-  type MerchantMeDto
+  fetchMerchantMe
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
@@ -36,6 +37,9 @@ const FEATURES = [
   { key: "sales", emoji: "📈" }
 ] as const;
 
+const FREE_PLAN_KEYS = ["freeShop", "freeProducts"] as const;
+const PREMIUM_PLAN_KEYS = ["premiumShops", "premiumProducts", "billingMonthly"] as const;
+
 export function MerchantSubscriptionScreen({
   skippable = false,
   onSkip,
@@ -43,21 +47,32 @@ export function MerchantSubscriptionScreen({
   onCancel
 }: Props) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const bottomChromePad = useBottomChromePad();
+  const footerBottomPad = skippable
+    ? Math.max(insets.bottom, mobileSpacing.md)
+    : Math.max(bottomChromePad, mobileSpacing.md);
   const { accessToken, activeProfileId } = useSession();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [me, setMe] = useState<MerchantMeDto | null>(null);
   const [selectedTier, setSelectedTier] = useState<Tier>("free");
 
-  useEffect(() => {
-    if (!accessToken || !activeProfileId) return;
-    void fetchMerchantMe(accessToken, activeProfileId).then(setMe).catch(() => undefined);
-  }, [accessToken, activeProfileId]);
+  const meQ = useQuery({
+    queryKey: ["merchant-me", activeProfileId, "subscription"],
+    queryFn: () => fetchMerchantMe(accessToken!, activeProfileId!),
+    enabled: Boolean(accessToken && activeProfileId),
+    staleTime: 0
+  });
 
-  const premiumPriceLabel = useMemo(
-    () => (me?.premiumPriceXof ?? 5000).toLocaleString("fr-FR"),
-    [me?.premiumPriceXof]
-  );
+  const premiumPriceXof = meQ.data?.premiumPriceXof;
+  const premiumMaxShops = meQ.data?.premiumMaxShops ?? 3;
+
+  const premiumPriceLabel = useMemo(() => {
+    if (premiumPriceXof == null) {
+      return null;
+    }
+    return premiumPriceXof.toLocaleString("fr-FR");
+  }, [premiumPriceXof]);
 
   const choose = async () => {
     if (!accessToken || !activeProfileId) return;
@@ -86,14 +101,31 @@ export function MerchantSubscriptionScreen({
   const ctaLabel =
     selectedTier === "free"
       ? t("merchant.subscription.ctaFree")
-      : t("merchant.subscription.ctaPremium", { price: premiumPriceLabel });
+      : premiumPriceLabel
+        ? t("merchant.subscription.ctaPremium", { price: premiumPriceLabel })
+        : t("merchant.subscription.ctaPremiumLoading");
+
+  const freeFeatures = FREE_PLAN_KEYS.map((key) => t(`merchant.subscription.${key}`));
+  const premiumFeatures = PREMIUM_PLAN_KEYS.map((key) =>
+    key === "premiumShops"
+      ? t(`merchant.subscription.${key}`, { count: premiumMaxShops })
+      : t(`merchant.subscription.${key}`)
+  );
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]} testID="merchant-subscription-screen">
+    <SafeAreaView
+      style={styles.safe}
+      edges={["top"]}
+      testID="merchant-subscription-screen"
+    >
       <View style={styles.skyGlow} />
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: footerBottomPad + 88 }
+        ]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
           <Text style={styles.title} testID="merchant-subscription-title">
@@ -129,6 +161,7 @@ export function MerchantSubscriptionScreen({
             name={t("merchant.subscription.freeTitle")}
             price={t("merchant.subscription.freePrice")}
             caption={t("merchant.subscription.freeCaption")}
+            features={freeFeatures}
           />
           <PlanCard
             testID="merchant-subscription-plan-premium"
@@ -136,8 +169,14 @@ export function MerchantSubscriptionScreen({
             onPress={() => setSelectedTier("premium")}
             icon="👑"
             name={t("merchant.subscription.premiumTitle")}
-            price={t("merchant.subscription.premiumPrice", { price: premiumPriceLabel })}
+            price={
+              premiumPriceLabel
+                ? t("merchant.subscription.premiumPrice", { price: premiumPriceLabel })
+                : "…"
+            }
             caption={t("merchant.subscription.premiumCaption")}
+            features={premiumFeatures}
+            highlight
           />
         </View>
 
@@ -168,10 +207,10 @@ export function MerchantSubscriptionScreen({
         ) : null}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: footerBottomPad }]}>
         <Pressable
           style={[styles.cta, busy && styles.ctaDisabled]}
-          disabled={busy}
+          disabled={busy || (selectedTier === "premium" && !premiumPriceLabel)}
           onPress={() => void choose()}
           testID="merchant-subscription-cta"
         >
@@ -195,7 +234,9 @@ function PlanCard({
   icon,
   name,
   price,
-  caption
+  caption,
+  features,
+  highlight = false
 }: {
   testID: string;
   selected: boolean;
@@ -204,6 +245,8 @@ function PlanCard({
   name: string;
   price: string;
   caption: string;
+  features: string[];
+  highlight?: boolean;
 }) {
   return (
     <Pressable
@@ -212,6 +255,7 @@ function PlanCard({
       style={[
         styles.planCard,
         merchantShadow.card,
+        highlight && styles.planCardPremium,
         selected && styles.planCardSelected
       ]}
     >
@@ -224,6 +268,25 @@ function PlanCard({
       <Text style={styles.planName}>{name}</Text>
       <Text style={styles.planPrice}>{price}</Text>
       <Text style={styles.planCaption}>{caption}</Text>
+      <View style={styles.planFeatures}>
+        {features.map((line) => (
+          <View key={line} style={styles.planFeatureRow}>
+            <Ionicons
+              name="checkmark-circle"
+              size={14}
+              color={selected ? merchantColors.primary : merchantColors.textMuted}
+            />
+            <Text
+              style={[
+                styles.planFeatureTx,
+                selected && styles.planFeatureTxSelected
+              ]}
+            >
+              {line}
+            </Text>
+          </View>
+        ))}
+      </View>
     </Pressable>
   );
 }
@@ -246,8 +309,7 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingHorizontal: mobileSpacing.lg,
-    paddingTop: mobileSpacing.md,
-    paddingBottom: mobileSpacing.md
+    paddingTop: mobileSpacing.md
   },
   header: {
     alignItems: "center",
@@ -302,7 +364,8 @@ const styles = StyleSheet.create({
   },
   planRow: {
     flexDirection: "row",
-    gap: mobileSpacing.sm
+    gap: mobileSpacing.sm,
+    alignItems: "stretch"
   },
   planCard: {
     flex: 1,
@@ -312,8 +375,11 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
     padding: mobileSpacing.md,
     alignItems: "center",
-    minHeight: 168,
+    minHeight: 220,
     position: "relative"
+  },
+  planCardPremium: {
+    backgroundColor: "#FFFBEB"
   },
   planCardSelected: {
     borderColor: merchantColors.primary
@@ -341,7 +407,7 @@ const styles = StyleSheet.create({
     color: merchantColors.textSecondary
   },
   planPrice: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "800",
     color: merchantColors.textPrimary,
     marginTop: 4,
@@ -350,14 +416,39 @@ const styles = StyleSheet.create({
   planCaption: {
     fontSize: 11,
     color: merchantColors.textMuted,
-    marginTop: 6,
+    marginTop: 4,
     textAlign: "center"
   },
+  planFeatures: {
+    width: "100%",
+    marginTop: mobileSpacing.sm,
+    gap: 6
+  },
+  planFeatureRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6
+  },
+  planFeatureTx: {
+    flex: 1,
+    fontSize: 11,
+    lineHeight: 15,
+    color: merchantColors.textSecondary
+  },
+  planFeatureTxSelected: {
+    color: merchantColors.textPrimary,
+    fontWeight: "600"
+  },
   footer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
     paddingHorizontal: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.md,
     paddingTop: mobileSpacing.sm,
-    backgroundColor: merchantColors.canvas
+    backgroundColor: merchantColors.canvas,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: merchantColors.border
   },
   cta: {
     backgroundColor: merchantColors.primary,

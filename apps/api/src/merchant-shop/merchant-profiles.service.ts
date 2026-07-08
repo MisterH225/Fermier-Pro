@@ -73,6 +73,7 @@ export class MerchantProfilesService {
   }
 
   async getMe(user: User) {
+    await this.ensureProfile(user.id);
     const profile = await this.requireProfile(user.id);
     const settings = await this.prisma.platformSettings.findUnique({
       where: { id: "default" }

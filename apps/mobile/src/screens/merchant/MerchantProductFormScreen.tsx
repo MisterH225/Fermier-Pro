@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,6 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { MerchantProductPhotoGrid } from "../../components/merchant/MerchantProductPhotoGrid";
@@ -30,14 +33,17 @@ import {
 } from "../../lib/merchantCategoryFields";
 import { merchantColors } from "../../theme/merchantTheme";
 import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
+import { useBottomInset } from "../../hooks/useBottomInset";
 import type { RootStackParamList } from "../../types/navigation";
 
 export function MerchantProductFormScreen() {
   const { t } = useTranslation();
-  const navigation = useNavigation();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "MerchantProductForm">>();
   const productId = route.params?.productId;
   const { accessToken, activeProfileId } = useSession();
+  const bottomInset = useBottomInset();
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("1");
@@ -134,9 +140,36 @@ export function MerchantProductFormScreen() {
     }
   };
 
+  const shopId = meQ.data?.shops[0]?.id;
+
+  if (!shopId && !productId) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={[styles.emptyShop, { paddingBottom: bottomInset }]}>
+          <Text style={styles.title}>{t("merchant.product.needShop")}</Text>
+          <Pressable
+            style={styles.btn}
+            onPress={() => navigation.navigate("MerchantShop")}
+          >
+            <Text style={styles.btnTx}>{t("merchant.onboarding.createShop")}</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.body}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+      >
+      <ScrollView
+        contentContainerStyle={[styles.body, { paddingBottom: bottomInset }]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         <Text style={styles.title}>
           {productId ? t("merchant.product.editTitle") : t("merchant.product.title")}
         </Text>
@@ -211,12 +244,20 @@ export function MerchantProductFormScreen() {
         </Pressable>
         {error ? <Text style={styles.err}>{error}</Text> : null}
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: mobileColors.background },
+  flex: { flex: 1 },
+  emptyShop: {
+    flex: 1,
+    justifyContent: "center",
+    padding: mobileSpacing.lg,
+    gap: mobileSpacing.lg
+  },
   body: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
   title: { fontSize: 20, fontWeight: "700" },
   input: {

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -209,7 +211,15 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         <Text style={styles.title}>
           {step === 1
             ? t("merchant.onboarding.shopTitle")
@@ -290,12 +300,14 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
 
         {error ? <Text style={styles.err}>{error}</Text> : null}
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: mobileColors.background },
+  flex: { flex: 1 },
   scroll: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
   title: { fontSize: 22, fontWeight: "700", color: mobileColors.textPrimary },
   input: {

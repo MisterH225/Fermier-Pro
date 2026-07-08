@@ -110,7 +110,7 @@ export function MerchantDashboardScreen() {
           />
         ) : null}
 
-        {me?.needsShopNudge ? (
+        {me?.needsShopNudge || (me && me.shopCount === 0) ? (
           <MerchantOnboardingNudgeBanner
             variant="shop"
             onPress={() => navigation.navigate("MerchantShop")}

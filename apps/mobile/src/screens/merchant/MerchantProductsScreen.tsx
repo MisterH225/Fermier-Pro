@@ -101,6 +101,7 @@ export function MerchantProductsScreen() {
   );
 
   const me = meQ.data;
+  const hasShop = (me?.shopCount ?? 0) > 0;
   const atFreeLimit =
     me?.subscriptionTier === "free" &&
     (me.activeProductCount ?? 0) >= (me.maxActiveProducts ?? 5);
@@ -108,17 +109,38 @@ export function MerchantProductsScreen() {
   const header = (
     <View style={styles.topBar}>
       <Text style={styles.title}>{t("merchant.products.title")}</Text>
-      <Pressable
-        style={styles.addBtn}
-        onPress={() => navigation.navigate("MerchantProductForm", {})}
-      >
-        <Text style={styles.addBtnTx}>+</Text>
-      </Pressable>
+      {hasShop ? (
+        <Pressable
+          style={styles.addBtn}
+          onPress={() => navigation.navigate("MerchantProductForm", {})}
+        >
+          <Text style={styles.addBtnTx}>+</Text>
+        </Pressable>
+      ) : (
+        <Pressable
+          style={styles.createShopBtn}
+          onPress={() => navigation.navigate("MerchantShop")}
+        >
+          <Text style={styles.createShopBtnTx}>{t("merchant.onboarding.createShop")}</Text>
+        </Pressable>
+      )}
     </View>
   );
 
   return (
     <MerchantMobileShell customHeader={header} omitBottomTabBar>
+      {!hasShop ? (
+        <View style={[styles.noShopWrap, { paddingBottom: bottomInset }]}>
+          <Text style={styles.noShopTitle}>{t("merchant.dashboard.nudgeCreateShop")}</Text>
+          <Pressable
+            style={styles.createShopPrimary}
+            onPress={() => navigation.navigate("MerchantShop")}
+          >
+            <Text style={styles.createShopPrimaryTx}>{t("merchant.onboarding.createShop")}</Text>
+          </Pressable>
+        </View>
+      ) : (
+      <>
       <View style={styles.filters}>
         {FILTERS.map((f) => (
           <Pressable
@@ -201,6 +223,8 @@ export function MerchantProductsScreen() {
           )}
         />
       )}
+      </>
+      )}
     </MerchantMobileShell>
   );
 }
@@ -224,6 +248,33 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   addBtnTx: { color: "#fff", fontSize: 24, fontWeight: "700", marginTop: -2 },
+  createShopBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: merchantRadius.pill,
+    backgroundColor: merchantColors.primary
+  },
+  createShopBtnTx: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  noShopWrap: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: mobileSpacing.xl,
+    gap: mobileSpacing.lg
+  },
+  noShopTitle: {
+    textAlign: "center",
+    color: merchantColors.textSecondary,
+    fontSize: 16,
+    lineHeight: 22
+  },
+  createShopPrimary: {
+    backgroundColor: merchantColors.primary,
+    paddingHorizontal: mobileSpacing.lg,
+    paddingVertical: mobileSpacing.md,
+    borderRadius: merchantRadius.pill
+  },
+  createShopPrimaryTx: { color: "#fff", fontWeight: "800", fontSize: 16 },
   filters: {
     flexDirection: "row",
     flexWrap: "wrap",
