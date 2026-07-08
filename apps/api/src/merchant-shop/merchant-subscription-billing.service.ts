@@ -209,7 +209,10 @@ export class MerchantSubscriptionBillingService {
 
   async markInvoicePaid(invoiceId: string, paidAt = new Date()) {
     const invoice = await this.prisma.merchantSubscriptionInvoice.findUnique({
-      where: { id: invoiceId }
+      where: { id: invoiceId },
+      include: {
+        merchantProfile: { select: { subscriptionChosenAt: true } }
+      }
     });
     if (!invoice) {
       throw new NotFoundException("Facture abonnement introuvable");
@@ -234,7 +237,10 @@ export class MerchantSubscriptionBillingService {
           premiumPaidAt: paidAt,
           nextBillingAt: invoice.billingPeriodEnd,
           graceEndsAt: null,
-          billingReminderKey: null
+          billingReminderKey: null,
+          ...(invoice.merchantProfile.subscriptionChosenAt
+            ? {}
+            : { subscriptionChosenAt: paidAt })
         }
       })
     ]);
@@ -253,8 +259,34 @@ export class MerchantSubscriptionBillingService {
     await this.markInvoicePaid(invoiceId);
   }
 
+  /**
+   * Confirmation asynchrone via webhook GeniusPay signé.
+   * Ne re-interroge pas GET /payments/{ref} : en sandbox GeniusPay le lookup
+   * échoue souvent (TRANSACTION_NOT_FOUND) alors que payment.success est fiable.
+   */
   async confirmFromWebhook(providerRef: string, invoiceId: string) {
-    await this.confirmInvoicePayment(providerRef, invoiceId);
+    const invoice = await this.prisma.merchantSubscriptionInvoice.findUnique({
+      where: { id: invoiceId }
+    });
+    if (!invoice) {
+      throw new NotFoundException("Facture abonnement introuvable");
+    }
+    if (invoice.status === MerchantSubscriptionInvoiceStatus.paid) {
+      return;
+    }
+    if (
+      invoice.status !== MerchantSubscriptionInvoiceStatus.pending ||
+      !invoice.providerRef ||
+      invoice.providerRef !== providerRef
+    ) {
+      throw new NotFoundException(
+        "Facture abonnement non liée à cette référence GeniusPay"
+      );
+    }
+    await this.markInvoicePaid(invoiceId);
+    this.log.log(
+      `Premium activé via webhook GeniusPay invoice=${invoiceId} ref=${providerRef}`
+    );
   }
 
   async tryWalletRenewal(userId: string, profile: MerchantProfile, amount: number) {
