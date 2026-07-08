@@ -72,6 +72,9 @@ export function pathnameToNavKey(pathname: string): NavKey | null {
   if (pathname.startsWith("/marketplace")) {
     return "marketplace";
   }
+  if (pathname.startsWith("/abonnements-commercant")) {
+    return "merchantSubscriptions";
+  }
   if (pathname.startsWith("/producteurs-scores")) {
     return "producerScores";
   }

@@ -9,7 +9,6 @@ import {
   MerchantProductDisabledReason,
   MerchantProductStatus,
   MerchantSubscriptionInvoiceStatus,
-  MerchantSubscriptionStatus,
   MerchantSubscriptionTier
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";

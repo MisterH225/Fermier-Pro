@@ -6,9 +6,17 @@ import { merchantColors, merchantRadius } from "../../theme/merchantTheme";
 import { mobileSpacing } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
+type SubscriptionStatus =
+  | "active"
+  | "past_due"
+  | "suspended"
+  | "cancelled"
+  | "trialing"
+  | null;
+
 type Props = {
   tier: "free" | "premium" | null;
-  status?: "active" | "past_due" | null;
+  status?: SubscriptionStatus;
   hasPendingSubscription?: boolean;
 };
 
@@ -23,15 +31,27 @@ export function MerchantSubscriptionBadge({
 
   const isPremium = tier === "premium";
   const isPastDue = status === "past_due";
+  const isTrialing = status === "trialing";
+  const isSuspended = status === "suspended";
+  const isCancelled = status === "cancelled";
   const label = hasPendingSubscription
     ? t("merchant.subscription.statusPaymentPending")
     : isPastDue
-    ? t("merchant.subscription.statusPastDue")
-    : isPremium
-      ? t("merchant.subscription.premiumTitle")
-      : tier === "free"
-        ? t("merchant.subscription.freeTitle")
-        : t("merchant.dashboard.tierNone");
+      ? t("merchant.subscription.statusPastDue")
+      : isTrialing
+        ? t("merchant.subscription.statusTrialing")
+        : isSuspended
+          ? t("merchant.subscription.statusSuspended")
+          : isCancelled
+            ? t("merchant.subscription.statusCancelled")
+            : isPremium
+              ? t("merchant.subscription.premiumTitle")
+              : tier === "free"
+                ? t("merchant.subscription.freeTitle")
+                : t("merchant.dashboard.tierNone");
+
+  const showUpgrade = !isPremium && !isPastDue && !isSuspended;
+  const showRenew = isPastDue;
 
   return (
     <View style={styles.row} testID="merchant-subscription-badge-row">
@@ -40,20 +60,22 @@ export function MerchantSubscriptionBadge({
         style={[
           styles.badge,
           isPremium && styles.badgePremium,
-          isPastDue && styles.badgePastDue
+          isTrialing && styles.badgeTrial,
+          (isPastDue || isSuspended || isCancelled) && styles.badgePastDue
         ]}
       >
         <Text
           style={[
             styles.badgeTx,
             isPremium && styles.badgeTxPremium,
-            isPastDue && styles.badgeTxPastDue
+            isTrialing && styles.badgeTxTrial,
+            (isPastDue || isSuspended || isCancelled) && styles.badgeTxPastDue
           ]}
         >
           {label}
         </Text>
       </View>
-      {!isPremium && !isPastDue ? (
+      {showUpgrade ? (
         <Pressable
           testID={
             hasPendingSubscription
@@ -69,7 +91,7 @@ export function MerchantSubscriptionBadge({
               : t("merchant.dashboard.upgradeCta")}
           </Text>
         </Pressable>
-      ) : isPastDue ? (
+      ) : showRenew ? (
         <Pressable
           testID="merchant-subscription-renew-cta"
           style={styles.cta}
@@ -93,9 +115,11 @@ const styles = StyleSheet.create({
     borderColor: merchantColors.border
   },
   badgePremium: { backgroundColor: "#FFF8E1", borderColor: "#F59E0B" },
+  badgeTrial: { backgroundColor: "#ECFDF5", borderColor: "#10B981" },
   badgePastDue: { backgroundColor: "#FEE2E2", borderColor: "#EF4444" },
   badgeTx: { fontWeight: "700", color: merchantColors.primary, fontSize: 13 },
   badgeTxPremium: { color: "#B45309" },
+  badgeTxTrial: { color: "#047857" },
   badgeTxPastDue: { color: "#B91C1C" },
   cta: {
     paddingHorizontal: 14,

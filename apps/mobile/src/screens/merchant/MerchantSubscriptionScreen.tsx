@@ -308,13 +308,6 @@ export function MerchantSubscriptionScreen({
     return () => sub.remove();
   }, [pendingPayment, syncPaymentStatus]);
 
-  const premiumPriceLabel = useMemo(() => {
-    if (premiumPriceXof == null) {
-      return null;
-    }
-    return premiumPriceXof.toLocaleString("fr-FR");
-  }, [premiumPriceXof]);
-
   const choose = async (opts?: { startTrial?: boolean }) => {
     if (!accessToken || !activeProfileId) return;
     setBusy(true);
