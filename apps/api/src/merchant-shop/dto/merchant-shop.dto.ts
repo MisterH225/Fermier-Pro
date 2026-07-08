@@ -146,10 +146,11 @@ export class CreateMerchantCategoryDto {
   @MaxLength(80)
   name!: string;
 
+  @IsOptional()
   @IsString()
   @MinLength(2)
   @MaxLength(80)
-  slug!: string;
+  slug?: string;
 
   @IsOptional()
   @IsInt()

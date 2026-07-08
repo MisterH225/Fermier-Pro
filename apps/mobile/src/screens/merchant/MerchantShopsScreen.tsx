@@ -33,7 +33,8 @@ export function MerchantShopsScreen() {
   const meQ = useQuery({
     queryKey: ["merchant-me", activeProfileId],
     queryFn: () => fetchMerchantMe(accessToken!, activeProfileId!),
-    enabled: Boolean(accessToken && activeProfileId)
+    enabled: Boolean(accessToken && activeProfileId),
+    staleTime: 0
   });
 
   useFocusEffect(

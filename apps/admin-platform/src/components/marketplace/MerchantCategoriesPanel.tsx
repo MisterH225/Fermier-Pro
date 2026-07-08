@@ -27,15 +27,28 @@ type Props = {
   onRefresh: () => void;
 };
 
+function slugPreviewFromName(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export function MerchantCategoriesPanel({ rows, token, onRefresh }: Props) {
   const t = useTranslations("marketplace");
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [slugTouched, setSlugTouched] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const onCreate = async () => {
     if (!name.trim()) return;
     setBusy(true);
+    setError(null);
     try {
       await createAdminMerchantCategory(token, {
         name: name.trim(),
@@ -43,7 +56,10 @@ export function MerchantCategoriesPanel({ rows, token, onRefresh }: Props) {
       });
       setName("");
       setSlug("");
+      setSlugTouched(false);
       onRefresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("merchantCategories.createError"));
     } finally {
       setBusy(false);
     }
@@ -74,7 +90,13 @@ export function MerchantCategoriesPanel({ rows, token, onRefresh }: Props) {
               <Input
                 id="merchant-cat-name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setName(next);
+                  if (!slugTouched) {
+                    setSlug(slugPreviewFromName(next));
+                  }
+                }}
               />
             </div>
             <div className="space-y-2">
@@ -82,10 +104,17 @@ export function MerchantCategoriesPanel({ rows, token, onRefresh }: Props) {
               <Input
                 id="merchant-cat-slug"
                 value={slug}
-                onChange={(e) => setSlug(e.target.value)}
+                onChange={(e) => {
+                  setSlugTouched(true);
+                  setSlug(e.target.value);
+                }}
+                placeholder={t("merchantCategories.slugHint")}
               />
             </div>
           </div>
+          {error ? (
+            <p className="text-sm text-destructive">{error}</p>
+          ) : null}
           <Button disabled={busy || !name.trim()} onClick={() => void onCreate()}>
             {t("merchantCategories.create")}
           </Button>

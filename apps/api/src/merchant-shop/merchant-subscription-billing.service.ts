@@ -72,13 +72,6 @@ export class MerchantSubscriptionBillingService {
     if (existing?.status === MerchantSubscriptionInvoiceStatus.paid) {
       return existing;
     }
-    if (
-      existing?.status === MerchantSubscriptionInvoiceStatus.pending &&
-      existing.paymentUrl
-    ) {
-      return existing;
-    }
-
     const invoice =
       existing ??
       (await this.prisma.merchantSubscriptionInvoice.create({
@@ -92,6 +85,29 @@ export class MerchantSubscriptionBillingService {
         }
       }));
 
+    if (
+      invoice.status === MerchantSubscriptionInvoiceStatus.pending &&
+      invoice.providerRef &&
+      invoice.paymentUrl
+    ) {
+      const resumed = await this.gateway.resumePendingCheckout(invoice.providerRef);
+      if (resumed?.paymentUrl) {
+        if (
+          resumed.providerRef !== invoice.providerRef ||
+          resumed.paymentUrl !== invoice.paymentUrl
+        ) {
+          return this.prisma.merchantSubscriptionInvoice.update({
+            where: { id: invoice.id },
+            data: {
+              providerRef: resumed.providerRef,
+              paymentUrl: resumed.paymentUrl
+            }
+          });
+        }
+        return invoice;
+      }
+    }
+
     const init = await this.gateway.initiateMerchantSubscriptionPayment({
       amount,
       currency: "XOF",
@@ -100,13 +116,95 @@ export class MerchantSubscriptionBillingService {
       label: "Abonnement Premium commerçant Fermier Pro"
     });
 
-    return this.prisma.merchantSubscriptionInvoice.update({
+    const updated = await this.prisma.merchantSubscriptionInvoice.update({
       where: { id: invoice.id },
       data: {
         providerRef: init.providerRef,
         paymentUrl: init.paymentUrl ?? null
       }
     });
+
+    await this.notifySubscriptionCheckoutLink(userId, amount, updated.paymentUrl);
+
+    return updated;
+  }
+
+  private async notifySubscriptionCheckoutLink(
+    userId: string,
+    amount: number,
+    paymentUrl: string | null
+  ) {
+    if (!paymentUrl?.trim()) {
+      return;
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { phone: true, email: true }
+    });
+    if (!user) {
+      return;
+    }
+
+    const amountLabel = amount.toLocaleString("fr-FR");
+    const message = `Fermier Pro: activez votre Premium (${amountLabel} XOF): ${paymentUrl}`;
+    const phone = user.phone?.trim();
+
+    if (phone) {
+      await this.sendSmsSafe(phone, message, userId);
+      return;
+    }
+
+    const email = user.email?.trim();
+    if (email) {
+      await this.sendCheckoutEmailSafe(
+        email,
+        "Lien de paiement Premium Fermier Pro",
+        `<p>Bonjour,</p><p>Voici votre lien pour activer l'abonnement Premium commerçant (${amountLabel} XOF/mois)&nbsp;:</p><p><a href="${paymentUrl}">Payer maintenant</a></p><p>Votre abonnement sera activé automatiquement après confirmation du paiement.</p>`
+      );
+    } else {
+      this.log.warn(`Pas de téléphone ni email pour lien abo userId=${userId}`);
+    }
+  }
+
+  private async sendCheckoutEmailSafe(
+    email: string,
+    subject: string,
+    html: string
+  ) {
+    const apiKey = process.env.RESEND_API_KEY?.trim();
+    const from =
+      process.env.TRANSACTIONAL_EMAIL_FROM?.trim() ??
+      "Fermier Pro <noreply@fermierpro.com>";
+
+    if (!apiKey) {
+      this.log.log(`[email dry-run] to=${email}: ${subject}`);
+      return;
+    }
+
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          from,
+          to: [email.trim().toLowerCase()],
+          subject,
+          html
+        })
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text.slice(0, 300));
+      }
+      this.log.log(`Email abonnement envoyé to=${email}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.log.warn(`Email abonnement non envoyé to=${email}: ${msg}`);
+    }
   }
 
   async markInvoicePaid(invoiceId: string, paidAt = new Date()) {

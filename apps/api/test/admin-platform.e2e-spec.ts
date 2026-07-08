@@ -340,4 +340,36 @@ describeOrSkip("Console SuperAdmin API (e2e)", () => {
     expect(read.status).toBe(200);
     expect(read.body.ok).toBe(true);
   });
+
+  it("POST /admin/merchant/categories — création illimitée sans slug explicite", async () => {
+    const createdIds: string[] = [];
+    try {
+      for (const name of ["Catégorie E2E A", "Catégorie E2E B", "Catégorie E2E C"]) {
+        const res = await request(app.getHttpServer())
+          .post("/api/v1/admin/merchant/categories")
+          .set("Authorization", `Bearer ${ctx.token}`)
+          .send({ name });
+        expect(res.status).toBe(201);
+        expect(res.body.name).toBe(name);
+        expect(typeof res.body.slug).toBe("string");
+        expect(res.body.slug.length).toBeGreaterThanOrEqual(2);
+        createdIds.push(res.body.id as string);
+      }
+
+      const list = await request(app.getHttpServer())
+        .get("/api/v1/admin/merchant/categories")
+        .set("Authorization", `Bearer ${ctx.token}`);
+      expect(list.status).toBe(200);
+      expect(list.body.length).toBeGreaterThanOrEqual(5 + 3);
+      for (const id of createdIds) {
+        expect(list.body.some((row: { id: string }) => row.id === id)).toBe(true);
+      }
+    } finally {
+      if (createdIds.length) {
+        await ctx.prisma.merchantProductCategory.deleteMany({
+          where: { id: { in: createdIds } }
+        });
+      }
+    }
+  });
 });

@@ -66,9 +66,10 @@ export function MerchantSubscriptionScreen({
   const footerBottomPad = skippable
     ? Math.max(insets.bottom, mobileSpacing.md)
     : Math.max(bottomChromePad, mobileSpacing.md);
-  const { accessToken, activeProfileId, refreshAuthMe } = useSession();
+  const { accessToken, activeProfileId, refreshAuthMe, authMe } = useSession();
   const queryClient = useQueryClient();
   const advancedRef = useRef(false);
+  const completingRef = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedTier, setSelectedTier] = useState<Tier>("free");
@@ -79,8 +80,13 @@ export function MerchantSubscriptionScreen({
     queryKey: ["merchant-me", activeProfileId, "subscription"],
     queryFn: () => fetchMerchantMe(accessToken!, activeProfileId!),
     enabled: Boolean(accessToken && activeProfileId),
-    staleTime: 0
+    staleTime: 0,
+    refetchInterval: pendingPayment ? 5_000 : false
   });
+
+  const hasPhone = Boolean(authMe?.user.phone?.trim());
+  const hasEmailOnly = Boolean(authMe?.user.email?.trim() && !hasPhone);
+  const isWaitingForPayment = Boolean(pendingPayment);
 
   const walletQ = useQuery({
     queryKey: ["user-wallet", activeProfileId],
@@ -128,44 +134,65 @@ export function MerchantSubscriptionScreen({
     await refreshAuthMe();
   }, [activeProfileId, queryClient, refreshAuthMe]);
 
-  const confirmPendingPayment = useCallback(async () => {
+  const completePremiumActivation = useCallback(async () => {
+    if (completingRef.current) {
+      return;
+    }
+    completingRef.current = true;
+    setPendingPayment(null);
+    await invalidateMerchant();
+    await meQ.refetch();
+    await onChosen();
+  }, [invalidateMerchant, meQ, onChosen]);
+
+  const trySilentConfirm = useCallback(async () => {
     if (!accessToken || !activeProfileId || !pendingPayment?.providerRef) {
       return;
     }
-    setBusy(true);
-    setError(null);
     try {
       await confirmMerchantSubscription(
         accessToken,
         activeProfileId,
         pendingPayment.providerRef
       );
-      setPendingPayment(null);
-      await invalidateMerchant();
-      await meQ.refetch();
-      await onChosen();
-    } catch (e) {
-      setError(formatApiError(e));
-    } finally {
-      setBusy(false);
+      await completePremiumActivation();
+    } catch {
+      // Le webhook ou le prochain poll confirmera l'activation.
     }
   }, [
     accessToken,
     activeProfileId,
     pendingPayment?.providerRef,
-    invalidateMerchant,
-    meQ,
-    onChosen
+    completePremiumActivation
   ]);
 
+  const syncPaymentStatus = useCallback(async () => {
+    const result = await meQ.refetch();
+    if (result.data?.subscriptionTier === "premium") {
+      await completePremiumActivation();
+      return;
+    }
+    await trySilentConfirm();
+  }, [meQ, completePremiumActivation, trySilentConfirm]);
+
   useEffect(() => {
+    if (!pendingPayment || meQ.data?.subscriptionTier !== "premium") {
+      return;
+    }
+    void completePremiumActivation();
+  }, [pendingPayment, meQ.data?.subscriptionTier, completePremiumActivation]);
+
+  useEffect(() => {
+    if (!pendingPayment) {
+      return;
+    }
     const sub = AppState.addEventListener("change", (state) => {
-      if (state === "active" && pendingPayment?.providerRef) {
-        void confirmPendingPayment();
+      if (state === "active") {
+        void syncPaymentStatus();
       }
     });
     return () => sub.remove();
-  }, [pendingPayment?.providerRef, confirmPendingPayment]);
+  }, [pendingPayment, syncPaymentStatus]);
 
   const premiumPriceLabel = useMemo(() => {
     if (premiumPriceXof == null) {
@@ -176,10 +203,6 @@ export function MerchantSubscriptionScreen({
 
   const choose = async () => {
     if (!accessToken || !activeProfileId) return;
-    if (pendingPayment) {
-      await confirmPendingPayment();
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
@@ -195,7 +218,7 @@ export function MerchantSubscriptionScreen({
           amount: res.amount,
           invoiceId: res.invoiceId
         });
-        if (res.paymentUrl) {
+        if (res.paymentUrl && hasPhone) {
           await Linking.openURL(res.paymentUrl);
         }
         return;
@@ -224,11 +247,41 @@ export function MerchantSubscriptionScreen({
       setError(t("merchant.subscription.paymentLinkMissing"));
       return;
     }
+    setError(null);
     await Linking.openURL(pendingPayment.paymentUrl);
   };
 
-  const ctaLabel = pendingPayment
-    ? t("merchant.subscription.confirmPaymentCta")
+  const retryCheckout = async () => {
+    if (!accessToken || !activeProfileId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await chooseMerchantSubscription(accessToken, activeProfileId, {
+        tier: "premium",
+        paymentMethod: "mobile_money"
+      });
+      if ("pending" in res && res.pending) {
+        setPendingPayment({
+          providerRef: res.providerRef,
+          paymentUrl: res.paymentUrl ?? null,
+          amount: res.amount,
+          invoiceId: res.invoiceId
+        });
+        if (res.paymentUrl && hasPhone) {
+          await Linking.openURL(res.paymentUrl);
+        }
+      }
+    } catch (e) {
+      setError(formatApiError(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const ctaLabel = isWaitingForPayment
+    ? pendingPayment?.paymentUrl
+      ? t("merchant.subscription.reopenPaymentCta")
+      : t("merchant.subscription.retryPaymentCta")
     : selectedTier === "free"
       ? t("merchant.subscription.ctaFree")
       : premiumPriceLabel
@@ -243,6 +296,81 @@ export function MerchantSubscriptionScreen({
       ? t(`merchant.subscription.${key}`, { count: premiumMaxShops })
       : t(`merchant.subscription.${key}`)
   );
+
+  const handleFooterPress = () => {
+    if (isWaitingForPayment) {
+      if (pendingPayment?.paymentUrl) {
+        void openPaymentLink();
+      } else {
+        void retryCheckout();
+      }
+      return;
+    }
+    void choose();
+  };
+
+  if (isWaitingForPayment) {
+    return (
+      <SafeAreaView
+        style={styles.safe}
+        edges={["top"]}
+        testID="merchant-subscription-waiting-screen"
+      >
+        <View style={styles.skyGlow} />
+        <View style={styles.waitingContent}>
+          <ActivityIndicator size="large" color={merchantColors.primary} />
+          <Text style={styles.waitingTitle} testID="merchant-subscription-waiting-title">
+            {t("merchant.subscription.paymentWaitingTitle")}
+          </Text>
+          <Text style={styles.waitingBody}>
+            {hasEmailOnly
+              ? t("merchant.subscription.paymentWaitingBodyEmail")
+              : t("merchant.subscription.paymentWaitingBody")}
+          </Text>
+          {pendingPayment?.paymentUrl ? (
+            <Pressable
+              style={styles.waitingLinkBtn}
+              onPress={() => void openPaymentLink()}
+              testID="merchant-subscription-reopen-payment"
+            >
+              <Text style={styles.waitingLinkTx}>
+                {t("merchant.subscription.reopenPaymentCta")}
+              </Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            style={styles.cancel}
+            onPress={onCancel}
+            disabled={busy}
+            testID="merchant-subscription-cancel"
+          >
+            <Text style={styles.cancelTx}>{t("common.cancel")}</Text>
+          </Pressable>
+          {error ? (
+            <Text style={styles.err} testID="merchant-subscription-error">
+              {error}
+            </Text>
+          ) : null}
+        </View>
+        <View style={[styles.footer, { paddingBottom: footerBottomPad }]}>
+          <Pressable
+            style={[styles.cta, busy && styles.ctaDisabled]}
+            disabled={busy}
+            onPress={handleFooterPress}
+            testID="merchant-subscription-cta"
+          >
+            {busy ? (
+              <ActivityIndicator color={merchantColors.onPrimary} />
+            ) : (
+              <Text style={styles.ctaTx} testID="merchant-subscription-cta-label">
+                {ctaLabel}
+              </Text>
+            )}
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -312,25 +440,7 @@ export function MerchantSubscriptionScreen({
           />
         </View>
 
-        {pendingPayment ? (
-          <View style={styles.pendingBox} testID="merchant-subscription-pending-box">
-            <Text style={styles.pendingTitle}>
-              {t("merchant.subscription.paymentPendingTitle")}
-            </Text>
-            <Text style={styles.pendingBody}>
-              {t("merchant.subscription.premiumPending")}
-            </Text>
-            {pendingPayment.paymentUrl ? (
-              <Pressable style={styles.pendingLinkBtn} onPress={() => void openPaymentLink()}>
-                <Text style={styles.pendingLinkTx}>
-                  {t("merchant.subscription.payWithWave")}
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
-        ) : null}
-
-        {selectedTier === "premium" && !pendingPayment ? (
+        {selectedTier === "premium" ? (
           <View style={styles.payMethodBlock}>
             <Text style={styles.payMethodLabel}>
               {t("merchant.subscription.paymentMethodLabel")}
@@ -416,15 +526,12 @@ export function MerchantSubscriptionScreen({
           style={[styles.cta, busy && styles.ctaDisabled]}
           disabled={
             busy ||
-            (!pendingPayment &&
-              selectedTier === "premium" &&
-              !premiumPriceLabel) ||
-            (!pendingPayment &&
-              selectedTier === "premium" &&
+            (selectedTier === "premium" && !premiumPriceLabel) ||
+            (selectedTier === "premium" &&
               paymentMethod === "wallet" &&
               !canPayWithWallet)
           }
-          onPress={() => void choose()}
+          onPress={handleFooterPress}
           testID="merchant-subscription-cta"
         >
           {busy ? (
@@ -702,36 +809,39 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: mobileSpacing.sm
   },
-  pendingBox: {
-    backgroundColor: "#FEF3C7",
-    borderRadius: merchantRadius.card,
-    borderWidth: 1,
-    borderColor: "#F59E0B",
-    padding: mobileSpacing.md,
-    gap: mobileSpacing.sm,
-    marginBottom: mobileSpacing.md
+  waitingContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: mobileSpacing.lg,
+    gap: mobileSpacing.md
   },
-  pendingTitle: {
+  waitingTitle: {
+    fontSize: 22,
     fontWeight: "800",
     color: merchantColors.textPrimary,
-    fontSize: 15
+    textAlign: "center"
   },
-  pendingBody: {
+  waitingBody: {
+    ...mobileTypography.body,
     color: merchantColors.textSecondary,
-    fontSize: 13,
-    lineHeight: 18
+    textAlign: "center",
+    maxWidth: 320,
+    lineHeight: 22
   },
-  pendingLinkBtn: {
-    alignSelf: "flex-start",
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+  waitingLinkBtn: {
+    marginTop: mobileSpacing.sm,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
     borderRadius: merchantRadius.pill,
-    backgroundColor: merchantColors.primary
+    backgroundColor: merchantColors.primaryLight,
+    borderWidth: 1,
+    borderColor: merchantColors.primary
   },
-  pendingLinkTx: {
-    color: merchantColors.onPrimary,
+  waitingLinkTx: {
+    color: merchantColors.primary,
     fontWeight: "700",
-    fontSize: 13
+    fontSize: 14
   },
   payMethodBlock: {
     marginBottom: mobileSpacing.md,

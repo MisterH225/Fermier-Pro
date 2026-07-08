@@ -4066,6 +4066,13 @@ export const fr = {
       alreadyOnPlan: "Tu es déjà sur ce forfait.",
       premiumPending: "Finalise le paiement Premium (lien Wave ou SMS) pour activer ton abonnement.",
       statusPaymentPending: "Paiement en attente",
+      paymentWaitingTitle: "Paiement en cours",
+      paymentWaitingBody:
+        "Ton abonnement Premium s'activera automatiquement dès confirmation du paiement par GeniusPay. Tu peux aussi rouvrir le lien Wave si besoin.",
+      paymentWaitingBodyEmail:
+        "Un lien de paiement t'a été envoyé par e-mail. Ton abonnement Premium s'activera automatiquement après confirmation du paiement.",
+      reopenPaymentCta: "Ouvrir le lien de paiement",
+      retryPaymentCta: "Relancer le paiement",
       confirmPaymentCta: "J'ai payé — activer Premium",
       paymentPendingTitle: "Paiement Premium en attente",
       payWithWave: "Ouvrir le lien Wave",

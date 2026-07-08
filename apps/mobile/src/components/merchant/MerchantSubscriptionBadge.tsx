@@ -65,7 +65,7 @@ export function MerchantSubscriptionBadge({
         >
           <Text style={styles.ctaTx}>
             {hasPendingSubscription
-              ? t("merchant.subscription.confirmPaymentCta")
+              ? t("merchant.subscription.reopenPaymentCta")
               : t("merchant.dashboard.upgradeCta")}
           </Text>
         </Pressable>

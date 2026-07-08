@@ -592,7 +592,6 @@ export class AdminPlatformController {
   }
 
   @Get("merchant/categories")
-  @UseGuards(SuperAdminGuard)
   adminListMerchantCategories() {
     return this.merchantCategories.listAdmin();
   }

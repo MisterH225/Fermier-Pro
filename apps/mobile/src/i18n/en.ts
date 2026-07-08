@@ -4017,6 +4017,13 @@ export const en = {
       alreadyOnPlan: "You are already on this plan.",
       premiumPending: "Complete Premium payment (Wave link or SMS) to activate your subscription.",
       statusPaymentPending: "Payment pending",
+      paymentWaitingTitle: "Payment in progress",
+      paymentWaitingBody:
+        "Your Premium subscription will activate automatically once GeniusPay confirms payment. You can reopen the Wave link if needed.",
+      paymentWaitingBodyEmail:
+        "A payment link was sent to your email. Your Premium subscription will activate automatically after payment is confirmed.",
+      reopenPaymentCta: "Open payment link",
+      retryPaymentCta: "Retry payment",
       confirmPaymentCta: "I paid — activate Premium",
       paymentPendingTitle: "Premium payment pending",
       payWithWave: "Open Wave payment link",

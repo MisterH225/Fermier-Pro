@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -26,6 +27,7 @@ import {
   type MerchantMeDto
 } from "../../../lib/api";
 import { formatApiError } from "../../../lib/apiErrors";
+import { resolveMerchantOnboardingStep } from "../../../lib/merchantOnboardingState";
 import { MerchantSubscriptionScreen } from "../../merchant/MerchantSubscriptionScreen";
 import { mobileColors, mobileRadius, mobileSpacing } from "../../../theme/mobileTheme";
 
@@ -36,6 +38,7 @@ type Props = {
 
 export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const { accessToken, activeProfileId, refreshAuthMe } = useSession();
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -79,18 +82,30 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
     }
   };
 
+  const invalidateMerchantCache = async () => {
+    if (!activeProfileId) return;
+    await queryClient.invalidateQueries({ queryKey: ["merchant-me", activeProfileId] });
+    await queryClient.invalidateQueries({ queryKey: ["merchant-dashboard", activeProfileId] });
+  };
+
+  const resumeFromServer = async (data: MerchantMeDto) => {
+    const next = resolveMerchantOnboardingStep(data);
+    if (next === "finished") {
+      await refreshAuthMe();
+      onFinished();
+      return;
+    }
+    setStep(next);
+    if (next === 2) {
+      await ensureCategories();
+    }
+  };
+
   useEffect(() => {
     void (async () => {
       const data = await loadMe();
       if (!data) return;
-      if (data.subscriptionTier && step === 0) {
-        setStep(1);
-        return;
-      }
-      if ((data.shopCount ?? 0) > 0 && data.activeProductCount === 0) {
-        setStep(2);
-        await ensureCategories();
-      }
+      await resumeFromServer(data);
     })();
   }, [accessToken, activeProfileId]);
 
@@ -103,8 +118,10 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
         name: shopName.trim()
       });
       const data = await loadMe();
-      if ((data?.shopCount ?? 0) > 0) {
-        setStep(2);
+      await invalidateMerchantCache();
+      await refreshAuthMe();
+      if (data) {
+        await resumeFromServer(data);
       }
     } catch (e) {
       setError(formatApiError(e));
@@ -249,7 +266,7 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
             : t("merchant.onboarding.productTitle")}
         </Text>
 
-        {step === 1 ? (
+        {step === 1 && (me?.shopCount ?? 0) === 0 ? (
           <>
             <TextInput
               style={styles.input}
