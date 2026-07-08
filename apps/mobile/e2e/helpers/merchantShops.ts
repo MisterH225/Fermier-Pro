@@ -47,3 +47,19 @@ export async function tapCreateShopFromEmptyState(): Promise<void> {
     .toBeVisible()
     .withTimeout(10_000);
 }
+
+export async function tapAddProductFromFirstShop(): Promise<void> {
+  await element(by.text("Ajouter un produit")).atIndex(0).tap();
+  await waitFor(element(by.id("merchant-product-form-screen")))
+    .toBeVisible()
+    .withTimeout(10_000);
+}
+
+export async function openMerchantProductFormViaDeepLink(shopId: string): Promise<void> {
+  await device.openURL({
+    url: `fermier-pro://merchant/product-form?shopId=${encodeURIComponent(shopId)}`
+  });
+  await waitFor(element(by.id("merchant-product-form-screen")))
+    .toBeVisible()
+    .withTimeout(15_000);
+}

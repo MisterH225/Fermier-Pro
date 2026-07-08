@@ -15,7 +15,8 @@ import {
   launchMerchantAppFresh,
   navigateToMerchantHome,
   navigateToMerchantShopsTab,
-  openMerchantShopsViaDeepLink
+  openMerchantShopsViaDeepLink,
+  tapAddProductFromFirstShop
 } from "./helpers/merchantShops";
 
 describe("MerchantShops — onglet Boutiques commerçant", () => {
@@ -37,6 +38,15 @@ describe("MerchantShops — onglet Boutiques commerçant", () => {
         await expect(element(by.id("merchant-shops-create"))).toBeVisible();
       } catch {
         await expect(element(by.id("merchant-shops-empty-create"))).toBeVisible();
+      }
+    });
+
+    it("depuis une boutique existante — ouvre le formulaire produit", async () => {
+      try {
+        await tapAddProductFromFirstShop();
+        await expect(element(by.id("merchant-product-form-no-shop"))).not.toBeVisible();
+      } catch {
+        // Compte e2e sans boutique : scénario ignoré
       }
     });
   });

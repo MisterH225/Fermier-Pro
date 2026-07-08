@@ -61,7 +61,8 @@ export function MerchantProductFormScreen() {
   const meQ = useQuery({
     queryKey: ["merchant-me", activeProfileId],
     queryFn: () => fetchMerchantMe(accessToken!, activeProfileId!),
-    enabled: Boolean(accessToken && activeProfileId)
+    enabled: Boolean(accessToken && activeProfileId),
+    staleTime: 0
   });
 
   const catsQ = useQuery({
@@ -134,8 +135,12 @@ export function MerchantProductFormScreen() {
 
   const submit = async (alsoPublish = false) => {
     const resolvedShopId = resolveMerchantShopId(meQ.data, selectedShopId ?? routeShopId);
-    if (!accessToken || !activeProfileId || !resolvedShopId || !categoryId || !name.trim()) {
+    if (!accessToken || !activeProfileId || !resolvedShopId) {
       setError(t("merchant.product.needShop"));
+      return;
+    }
+    if (!categoryId || !name.trim()) {
+      setError(t("merchant.onboarding.invalidProduct"));
       return;
     }
     const p = Number.parseFloat(price.replace(",", "."));
@@ -176,6 +181,13 @@ export function MerchantProductFormScreen() {
   };
 
   if (!shopId && !productId) {
+    if (meQ.isLoading && !routeShopId) {
+      return (
+        <SafeAreaView style={styles.safe} testID="merchant-product-form-loading">
+          <ActivityIndicator style={{ marginTop: 40 }} color={merchantColors.primary} />
+        </SafeAreaView>
+      );
+    }
     return (
       <SafeAreaView style={styles.safe} testID="merchant-product-form-no-shop">
         <View style={[styles.emptyShop, { paddingBottom: bottomInset }]}>

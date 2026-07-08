@@ -3,15 +3,19 @@ import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSession } from "../../context/SessionContext";
 import { createMerchantShop } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
 import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
+import type { RootStackParamList } from "../../types/navigation";
+
+type CreatedShop = { id: string; name: string };
 
 export function MerchantShopScreen() {
   const { t } = useTranslation();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const queryClient = useQueryClient();
   const { accessToken, activeProfileId } = useSession();
   const [name, setName] = useState("");
@@ -23,10 +27,12 @@ export function MerchantShopScreen() {
     setBusy(true);
     setError(null);
     try {
-      await createMerchantShop(accessToken, activeProfileId, { name: name.trim() });
+      const created = (await createMerchantShop(accessToken, activeProfileId, {
+        name: name.trim()
+      })) as CreatedShop;
       await queryClient.invalidateQueries({ queryKey: ["merchant-me", activeProfileId] });
       await queryClient.invalidateQueries({ queryKey: ["merchant-dashboard", activeProfileId] });
-      navigation.goBack();
+      navigation.replace("MerchantProductForm", { shopId: created.id });
     } catch (e) {
       setError(formatApiError(e));
     } finally {

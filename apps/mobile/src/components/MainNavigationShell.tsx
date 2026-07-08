@@ -174,6 +174,13 @@ const linking: LinkingOptions<RootStackParamList> = {
       },
       MerchantShops: {
         path: "merchant/shops"
+      },
+      MerchantProductForm: {
+        path: "merchant/product-form",
+        parse: {
+          shopId: (shopId: string) => shopId,
+          productId: (productId: string) => productId
+        }
       }
     }
   }

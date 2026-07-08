@@ -79,6 +79,10 @@ describeOrSkip("Merchant shop (e2e)", () => {
     expect(me.body.shops[0].id).toBe(merchant.shopId);
     expect(me.body.shops[0].name).toBe("Boutique E2E");
 
+    const productDraft = await createMerchantProduct(app, merchant, "Produit brouillon");
+    expect(productDraft.status).toBe(201);
+    expect(productDraft.body.shopId).toBe(merchant.shopId);
+
     const product = await createMerchantProduct(app, merchant, "Produit sans abo");
     const publish = await publishProduct(app, merchant, product.body.id);
     expect(publish.status).toBe(403);
