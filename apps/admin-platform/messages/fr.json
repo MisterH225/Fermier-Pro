@@ -342,6 +342,7 @@
       "sendMessage": "Message groupé",
       "success": "Message envoyé à {count} utilisateur(s)."
     },
+    "statusFilters": {
       "all": "Tous",
       "active": "Actifs",
       "suspended": "Suspendus",

@@ -343,6 +343,7 @@
       "sendMessage": "Bulk message",
       "success": "Message sent to {count} user(s)."
     },
+    "statusFilters": {
       "all": "All",
       "active": "Active",
       "suspended": "Suspended",
