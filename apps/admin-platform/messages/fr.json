@@ -254,6 +254,28 @@
     "subtitle": "Pilotez la plateforme agricole : fermes, producteurs et santé animale en un coup d'œil.",
     "deltaPeriod": "vs. 15 jours préc.",
     "activityEmpty": "Aucune activité récente.",
+    "welcome": {
+      "badge": "Tableau de bord",
+      "greeting": "Bienvenue, {name} !",
+      "lead": "Suivez les inscriptions, la santé animale et l'activité marketplace en temps réel.",
+      "notifications": "Notifications",
+      "roleSuperAdmin": "SuperAdmin",
+      "roleInstitution": "Institution"
+    },
+    "snapshot": {
+      "title": "Activité plateforme",
+      "transactions": "Transactions ce mois"
+    },
+    "quickLinks": {
+      "title": "Accès rapides",
+      "vets": "Vétérinaires",
+      "marketplace": "Marketplace",
+      "healthMap": "Carte sanitaire"
+    },
+    "insight": {
+      "title": "Croissance",
+      "body": "{farms} fermes actives et {users} utilisateurs sur la plateforme."
+    },
     "actions": {
       "export": "Exporter",
       "filter": "Filtres"
@@ -280,9 +302,16 @@
       "unknown": "Non renseigné"
     },
     "activity": "Activité récente",
+    "activityKinds": {
+      "vet": "Véto",
+      "signup": "Inscription",
+      "alert": "Alerte"
+    },
     "activityItems": {
       "vetRequest": "🩺 Demande vétérinaire — {name} ({country})",
-      "signup": "👤 Inscription — {name}"
+      "signup": "👤 Inscription — {name}",
+      "vetSubtitle": "{country} · {when}",
+      "signupSubtitle": "Nouveau compte · {when}"
     }
   },
   "vets": {

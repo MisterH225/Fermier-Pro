@@ -255,6 +255,28 @@
     "subtitle": "Monitor the agricultural platform: farms, producers, and animal health at a glance.",
     "deltaPeriod": "vs. previous 15 days",
     "activityEmpty": "No recent activity.",
+    "welcome": {
+      "badge": "Dashboard",
+      "greeting": "Welcome, {name}!",
+      "lead": "Track sign-ups, animal health, and marketplace activity in real time.",
+      "notifications": "Notifications",
+      "roleSuperAdmin": "SuperAdmin",
+      "roleInstitution": "Institution"
+    },
+    "snapshot": {
+      "title": "Platform activity",
+      "transactions": "Transactions this month"
+    },
+    "quickLinks": {
+      "title": "Quick access",
+      "vets": "Veterinarians",
+      "marketplace": "Marketplace",
+      "healthMap": "Health map"
+    },
+    "insight": {
+      "title": "Growth",
+      "body": "{farms} active farms and {users} users on the platform."
+    },
     "actions": {
       "export": "Export",
       "filter": "Filters"
@@ -281,9 +303,16 @@
       "unknown": "Unknown"
     },
     "activity": "Recent activity",
+    "activityKinds": {
+      "vet": "Vet",
+      "signup": "Sign-up",
+      "alert": "Alert"
+    },
     "activityItems": {
       "vetRequest": "🩺 Vet application — {name} ({country})",
-      "signup": "👤 Sign-up — {name}"
+      "signup": "👤 Sign-up — {name}",
+      "vetSubtitle": "{country} · {when}",
+      "signupSubtitle": "New account · {when}"
     }
   },
   "vets": {
