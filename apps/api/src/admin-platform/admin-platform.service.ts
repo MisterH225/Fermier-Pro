@@ -1065,7 +1065,17 @@ export class AdminPlatformService {
         marketplaceWeightArbitrationCumulativeMinDiffKg:
           dto.marketplaceWeightArbitrationCumulativeMinDiffKg ?? 5,
         merchantPremiumPriceXof: dto.merchantPremiumPriceXof ?? 5000,
-        merchantPremiumMaxShops: dto.merchantPremiumMaxShops ?? 3
+        merchantPremiumMaxShops: dto.merchantPremiumMaxShops ?? 3,
+        merchantPremiumBillingUnit: dto.merchantPremiumBillingUnit ?? "month",
+        merchantPremiumBillingInterval: dto.merchantPremiumBillingInterval ?? 1,
+        merchantPremiumGraceDays: dto.merchantPremiumGraceDays ?? 7,
+        merchantPremiumTrialEnabled: dto.merchantPremiumTrialEnabled ?? false,
+        merchantPremiumTrialUnits: dto.merchantPremiumTrialUnits ?? 7,
+        merchantPremiumPromoEnabled: dto.merchantPremiumPromoEnabled ?? false,
+        merchantPremiumPromoPercentOff: dto.merchantPremiumPromoPercentOff ?? 20,
+        merchantPremiumPromoEndsAt: dto.merchantPremiumPromoEndsAt
+          ? new Date(dto.merchantPremiumPromoEndsAt)
+          : null
       },
       update: {
         ...(dto.mapGeographicScope !== undefined
@@ -1123,6 +1133,34 @@ export class AdminPlatformService {
           : {}),
         ...(dto.merchantPremiumMaxShops !== undefined
           ? { merchantPremiumMaxShops: dto.merchantPremiumMaxShops }
+          : {}),
+        ...(dto.merchantPremiumBillingUnit !== undefined
+          ? { merchantPremiumBillingUnit: dto.merchantPremiumBillingUnit }
+          : {}),
+        ...(dto.merchantPremiumBillingInterval !== undefined
+          ? { merchantPremiumBillingInterval: dto.merchantPremiumBillingInterval }
+          : {}),
+        ...(dto.merchantPremiumGraceDays !== undefined
+          ? { merchantPremiumGraceDays: dto.merchantPremiumGraceDays }
+          : {}),
+        ...(dto.merchantPremiumTrialEnabled !== undefined
+          ? { merchantPremiumTrialEnabled: dto.merchantPremiumTrialEnabled }
+          : {}),
+        ...(dto.merchantPremiumTrialUnits !== undefined
+          ? { merchantPremiumTrialUnits: dto.merchantPremiumTrialUnits }
+          : {}),
+        ...(dto.merchantPremiumPromoEnabled !== undefined
+          ? { merchantPremiumPromoEnabled: dto.merchantPremiumPromoEnabled }
+          : {}),
+        ...(dto.merchantPremiumPromoPercentOff !== undefined
+          ? { merchantPremiumPromoPercentOff: dto.merchantPremiumPromoPercentOff }
+          : {}),
+        ...(dto.merchantPremiumPromoEndsAt !== undefined
+          ? {
+              merchantPremiumPromoEndsAt: dto.merchantPremiumPromoEndsAt
+                ? new Date(dto.merchantPremiumPromoEndsAt)
+                : null
+            }
           : {})
       }
     });

@@ -12,7 +12,7 @@ import {
 import type { Response } from "express";
 import { setDeprecatedSuccessor } from "../common/http/deprecation.util";
 import type { User } from "@prisma/client";
-import { ListingMarketCategory, ListingStatus } from "@prisma/client";
+import { ListingStatus } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { FeatureEnabledGuard } from "../config-client/feature-enabled.guard";
@@ -52,14 +52,12 @@ export class ListingsController {
       Object.values(ListingStatus).includes(statusRaw as ListingStatus)
         ? (statusRaw as ListingStatus)
         : undefined;
-    const category =
-      categoryRaw &&
-      Object.values(ListingMarketCategory).includes(
-        categoryRaw as ListingMarketCategory
-      )
-        ? (categoryRaw as ListingMarketCategory)
-        : undefined;
-    return this.listings.list(user, mineBool, status, category, q);
+    return this.listings.list(user, mineBool, status, categoryRaw, q);
+  }
+
+  @Get("categories")
+  listCategories() {
+    return this.listings.listFilterCategories();
   }
 
   @Post()

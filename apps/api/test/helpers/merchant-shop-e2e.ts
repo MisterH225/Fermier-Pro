@@ -172,6 +172,21 @@ export async function cleanupMerchantE2E(
     }
   });
   await prisma.merchantProductModerationLog.deleteMany({});
+  try {
+    await prisma.buyerMerchantFavorite.deleteMany({
+      where: {
+        product: { shop: { merchantProfile: { userId: ctx.merchantUserId } } }
+      }
+    });
+  } catch (error: unknown) {
+    const code =
+      error && typeof error === "object" && "code" in error
+        ? String((error as { code: string }).code)
+        : "";
+    if (code !== "P2021") {
+      throw error;
+    }
+  }
   await prisma.merchantSubscriptionInvoice.deleteMany({
     where: { merchantProfile: { userId: ctx.merchantUserId } }
   });

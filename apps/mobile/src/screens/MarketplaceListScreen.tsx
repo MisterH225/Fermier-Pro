@@ -40,15 +40,17 @@ import {
   type ProposalsSubTab
 } from "./market/PropositionsScreen";
 import { MarketplacePartnersTab } from "./market/tabs/MarketplacePartnersTab";
-import { MerchantBoutiquesTab } from "./market/tabs/MerchantBoutiquesTab";
 import {
   addBuyerFavorite,
+  addBuyerMerchantFavorite,
   fetchBuyerFavoriteIds,
   fetchBuyerFavorites,
+  fetchMarketplaceListingCategories,
   fetchMarketplaceListings,
   fetchMarketplaceOfferCounts,
   fetchPigPriceIndexDashboard,
   removeBuyerFavorite,
+  removeBuyerMerchantFavorite,
   type BuyerFavoriteListingDto
 } from "../lib/api";
 import {
@@ -67,19 +69,11 @@ import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError
 
 type Props = NativeStackScreenProps<RootStackParamList, "MarketplaceList">;
 
-type MarketTab = "listings" | "mine" | "offers" | "partners" | "boutiques";
-type CatKey = "all" | "piglet" | "breeder" | "butcher" | "reformed";
+type MarketTab = "listings" | "mine" | "offers" | "partners";
+type CatKey = string;
 type ListingFilter = "all" | "draft" | "published" | "sold" | "cancelled";
 
 const PILL_ACTIVE = mobileColors.accent;
-
-const CATEGORY_PILLS: { id: CatKey; label: string }[] = [
-  { id: "all", label: "Tout" },
-  { id: "piglet", label: "Porcelets" },
-  { id: "breeder", label: "Reproducteurs" },
-  { id: "butcher", label: "Charcutiers" },
-  { id: "reformed", label: "Truies réformées" }
-];
 
 const MY_LISTING_FILTER_PILLS: FilterPill[] = [
   { id: "all", label: "Toutes" },
@@ -143,8 +137,7 @@ function initialMarketTab(
     tab === "mine" ||
     tab === "offers" ||
     tab === "listings" ||
-    tab === "partners" ||
-    tab === "boutiques"
+    tab === "partners"
   ) {
     return tab;
   }
@@ -198,9 +191,19 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     enabled: Boolean(accessToken && isBuyerProfile && clientFeatures.marketplace)
   });
 
-  const favoriteIdSet = useMemo(
-    () => new Set(favoriteIdsQ.data ?? []),
-    [favoriteIdsQ.data]
+  const listingCategoriesQ = useQuery({
+    queryKey: ["marketplaceListingCategories", activeProfileId],
+    queryFn: () => fetchMarketplaceListingCategories(accessToken!, activeProfileId),
+    enabled: Boolean(accessToken && clientFeatures.marketplace)
+  });
+
+  const favoriteListingIdSet = useMemo(
+    () => new Set(favoriteIdsQ.data?.listingIds ?? []),
+    [favoriteIdsQ.data?.listingIds]
+  );
+  const favoriteProductIdSet = useMemo(
+    () => new Set(favoriteIdsQ.data?.productIds ?? []),
+    [favoriteIdsQ.data?.productIds]
   );
   const [myFilter, setMyFilter] = useState<ListingFilter>("all");
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -342,23 +345,39 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     });
   }, [navigation, clientFeatures.marketplace, t, buyerView, merchantView, fromDashboard]);
 
-  const categoryPills: FilterPill[] = useMemo(
-    () => CATEGORY_PILLS.map((p) => ({ id: p.id, label: p.label })),
-    []
-  );
+  const categoryPills: FilterPill[] = useMemo(() => {
+    const groups = listingCategoriesQ.data;
+    const allPill = { id: "all", label: t("marketScreen.categories.all") };
+    if (!groups) {
+      return [allPill];
+    }
+    return [
+      allPill,
+      ...groups.pig.map((p) => ({ id: p.id, label: p.label })),
+      ...groups.merchant.map((p) => ({ id: p.id, label: p.label }))
+    ];
+  }, [listingCategoriesQ.data, t]);
 
   const favMut = useMutation({
     mutationFn: async ({
-      listingId,
+      id,
+      kind,
       remove
     }: {
-      listingId: string;
+      id: string;
+      kind: "listing" | "merchant";
       remove: boolean;
     }) => {
-      if (remove) {
-        return removeBuyerFavorite(accessToken!, activeProfileId, listingId);
+      if (kind === "merchant") {
+        if (remove) {
+          return removeBuyerMerchantFavorite(accessToken!, activeProfileId, id);
+        }
+        return addBuyerMerchantFavorite(accessToken!, activeProfileId, id);
       }
-      return addBuyerFavorite(accessToken!, activeProfileId, listingId);
+      if (remove) {
+        return removeBuyerFavorite(accessToken!, activeProfileId, id);
+      }
+      return addBuyerFavorite(accessToken!, activeProfileId, id);
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["buyerFavoriteIds"] });
@@ -369,14 +388,47 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     onError: (e: Error) => Alert.alert("Favoris", getUserFacingError(e, t))
   });
 
-  const toggleFav = (id: string) => {
+  const toggleFav = (item: MarketplaceListingListItem) => {
     if (!isBuyerProfile || !accessToken) {
       return;
     }
-    favMut.mutate({ listingId: id, remove: favoriteIdSet.has(id) });
+    const kind = item.kind === "merchant" ? "merchant" : "listing";
+    const isFav =
+      kind === "merchant"
+        ? favoriteProductIdSet.has(item.id)
+        : favoriteListingIdSet.has(item.id);
+    favMut.mutate({ id: item.id, kind, remove: isFav });
+  };
+
+  const renderListingCard = ({ item }: { item: MarketplaceListingListItem }) => {
+    const isMerchant = item.kind === "merchant";
+    const isFav = isMerchant
+      ? favoriteProductIdSet.has(item.id)
+      : favoriteListingIdSet.has(item.id);
+
+    return (
+      <MarketplaceListingCard
+        item={item}
+        width={cardW}
+        showFavorite={isBuyerProfile}
+        isFavorite={isFav}
+        onToggleFavorite={() => toggleFav(item)}
+        showShare
+        navigation={navigation}
+        onPress={() =>
+          isMerchant
+            ? navigation.navigate("MerchantProductDetail", { productId: item.id })
+            : navigation.navigate("MarketplaceListingDetail", {
+                listingId: item.id,
+                headline: item.title
+              })
+        }
+      />
+    );
   };
 
   const myRows = myListingsQuery.data ?? [];
+
   const myKpis = useMemo(() => {
     let views = 0;
     let consults = 0;
@@ -409,24 +461,6 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     });
   }, [myRows]);
 
-  const renderListingCard = ({ item }: { item: MarketplaceListingListItem }) => (
-    <MarketplaceListingCard
-      item={item}
-      width={cardW}
-      showFavorite={isBuyerProfile}
-      isFavorite={favoriteIdSet.has(item.id)}
-      onToggleFavorite={() => toggleFav(item.id)}
-      showShare
-      navigation={navigation}
-      onPress={() =>
-        navigation.navigate("MarketplaceListingDetail", {
-          listingId: item.id,
-          headline: item.title
-        })
-      }
-    />
-  );
-
   const listingsErr =
     listingsQuery.error instanceof Error
       ? getUserFacingError(listingsQuery.error, t)
@@ -434,7 +468,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
         ? String(listingsQuery.error)
         : null;
 
-const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
+  const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
     return (favoritesListQuery.data ?? []).map((f: BuyerFavoriteListingDto) => ({
       id: f.id,
       title: f.title,
@@ -642,13 +676,6 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
     />
   );
 
-  const boutiquesTabContent = () => (
-    <MerchantBoutiquesTab
-      navigation={navigation}
-      contentPaddingBottom={scrollBottomPad}
-    />
-  );
-
   const offersTabBadge = marketBrowseAsBuyer
     ? offerCountsQ.data?.sentPending ?? 0
     : offerCountsQ.data?.total ?? 0;
@@ -663,7 +690,7 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
 
   return (
     <MarketplaceModuleGate>
-      <View style={styles.root}>
+      <View style={styles.root} testID="marketplace-list-screen">
         {marketBrowseAsBuyer ? (
           <TabSelector
             testIDPrefix="market-tab"
@@ -685,11 +712,6 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
                 key: "partners",
                 label: t("marketScreen.tabSuppliers"),
                 content: partnersTabContent()
-              },
-              {
-                key: "boutiques",
-                label: t("marketScreen.tabBoutiques"),
-                content: boutiquesTabContent()
               }
             ]}
           />
@@ -719,11 +741,6 @@ const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
                 key: "partners",
                 label: t("marketScreen.tabClients"),
                 content: partnersTabContent()
-              },
-              {
-                key: "boutiques",
-                label: t("marketScreen.tabBoutiques"),
-                content: boutiquesTabContent()
               }
             ]}
           />

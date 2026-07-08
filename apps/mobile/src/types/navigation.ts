@@ -10,7 +10,7 @@ export type RootStackParamList = {
   MerchantMarket:
     | {
         searchQuery?: string;
-        tab?: "listings" | "offers" | "partners" | "boutiques";
+        tab?: "listings" | "offers" | "partners";
         offersSubTab?: "sent" | "received";
       }
     | undefined;
@@ -25,7 +25,7 @@ export type RootStackParamList = {
     | {
         favoritesOnly?: boolean;
         searchQuery?: string;
-        tab?: "listings" | "offers" | "boutiques";
+        tab?: "listings" | "offers";
         offersSubTab?: "sent" | "received";
       }
     | undefined;
@@ -108,7 +108,7 @@ export type RootStackParamList = {
   FarmTasks: { farmId: string; farmName: string };
   MarketplaceList:
     | {
-        tab?: "listings" | "mine" | "offers" | "partners" | "boutiques";
+        tab?: "listings" | "mine" | "offers" | "partners";
         offersSubTab?: "received" | "sent";
         offersListingId?: string;
         highlightOfferId?: string;

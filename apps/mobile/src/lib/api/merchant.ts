@@ -2,11 +2,27 @@ import { apiGetJson, apiPatchJson, apiPostJson } from "./http";
 
 export type MerchantMeDto = {
   subscriptionTier: "free" | "premium" | null;
-  subscriptionStatus?: "active" | "past_due" | null;
+  subscriptionStatus?:
+    | "active"
+    | "past_due"
+    | "suspended"
+    | "cancelled"
+    | "trialing"
+    | null;
   subscriptionChosenAt: string | null;
   premiumPaidAt: string | null;
   nextBillingAt?: string | null;
   graceEndsAt?: string | null;
+  trialEndsAt?: string | null;
+  promoPercentOffApplied?: number | null;
+  billingUnit?: "hour" | "day" | "month";
+  billingInterval?: number;
+  graceDays?: number;
+  trialAvailable?: boolean;
+  trialUnits?: number;
+  promoEnabled?: boolean;
+  promoPercentOff?: number;
+  premiumFullPriceXof?: number;
   pendingRenewal?: {
     invoiceId: string;
     amount: number;
@@ -160,6 +176,7 @@ export function chooseMerchantSubscription(
   body: {
     tier: "free" | "premium";
     paymentMethod?: "wallet" | "mobile_money";
+    startTrial?: boolean;
   }
 ): Promise<MerchantMeDto | { pending: boolean; providerRef: string; paymentUrl?: string | null; amount: number; invoiceId?: string }> {
   return apiPostJson(

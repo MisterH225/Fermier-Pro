@@ -13,6 +13,7 @@ import { MarketplaceModule } from "../marketplace/marketplace.module";
 import { VetAppointmentsModule } from "../vet-appointments/vet-appointments.module";
 import { ProducerScoreModule } from "../producer-score/producer-score.module";
 import { MerchantShopModule } from "../merchant-shop/merchant-shop.module";
+import { AdminMerchantSubscriptionsService } from "./admin-merchant-subscriptions.service";
 
 @Module({
   imports: [
@@ -29,7 +30,11 @@ import { MerchantShopModule } from "../merchant-shop/merchant-shop.module";
     MerchantShopModule
   ],
   controllers: [AdminPlatformController],
-  providers: [AdminPlatformService, AdminAiService],
+  providers: [
+    AdminPlatformService,
+    AdminAiService,
+    AdminMerchantSubscriptionsService
+  ],
   exports: [AdminPlatformService, AdminConsoleAuthModule]
 })
 export class AdminPlatformModule {}

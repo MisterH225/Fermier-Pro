@@ -1,5 +1,22 @@
-import { IsEmail, IsEnum, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from "class-validator";
-import { SanitaryAlertLevel, SanitaryAlertType } from "@prisma/client";
+import {
+  IsBoolean,
+  IsDateString,
+  IsEmail,
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength
+} from "class-validator";
+import {
+  MerchantPremiumBillingUnit,
+  SanitaryAlertLevel,
+  SanitaryAlertType
+} from "@prisma/client";
 
 export class RejectVetProfileAdminDto {
   @IsString()
@@ -102,6 +119,46 @@ export class UpdatePlatformSettingsDto {
   @IsInt()
   @Min(1)
   merchantPremiumMaxShops?: number;
+
+  @IsOptional()
+  @IsEnum(MerchantPremiumBillingUnit)
+  merchantPremiumBillingUnit?: MerchantPremiumBillingUnit;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(365)
+  merchantPremiumBillingInterval?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(365)
+  merchantPremiumGraceDays?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  merchantPremiumTrialEnabled?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(365)
+  merchantPremiumTrialUnits?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  merchantPremiumPromoEnabled?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  merchantPremiumPromoPercentOff?: number;
+
+  @IsOptional()
+  @IsDateString()
+  merchantPremiumPromoEndsAt?: string | null;
 }
 
 export class AdminAiAskDto {

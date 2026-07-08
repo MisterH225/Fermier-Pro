@@ -495,6 +495,77 @@ export class BuyerProfilesService {
     return rows.map((r) => r.listingId);
   }
 
+  async listMerchantFavoriteIds(user: User) {
+    const profile = await this.ensureRow(user.id);
+    const rows = await this.prisma.buyerMerchantFavorite.findMany({
+      where: { buyerProfileId: profile.id },
+      select: { productId: true },
+      orderBy: { createdAt: "desc" }
+    });
+    return rows.map((r) => r.productId);
+  }
+
+  async listFavoriteRefs(user: User) {
+    const [listingIds, productIds] = await Promise.all([
+      this.listFavoriteIds(user),
+      this.listMerchantFavoriteIds(user)
+    ]);
+    return { listingIds, productIds };
+  }
+
+  async addMerchantFavorite(user: User, productId: string) {
+    const product = await this.prisma.merchantProduct.findFirst({
+      where: {
+        id: productId,
+        status: "published",
+        stock: { gt: 0 }
+      },
+      include: {
+        shop: {
+          select: { merchantProfile: { select: { userId: true } } }
+        }
+      }
+    });
+    if (!product) {
+      throw new NotFoundException("Produit introuvable");
+    }
+    if (product.shop.merchantProfile.userId === user.id) {
+      throw new BadRequestException("Impossible de favoriser votre propre produit");
+    }
+    const profile = await this.ensureRow(user.id);
+    const row = await this.prisma.buyerMerchantFavorite.upsert({
+      where: {
+        buyerProfileId_productId: {
+          buyerProfileId: profile.id,
+          productId
+        }
+      },
+      create: {
+        buyerProfileId: profile.id,
+        productId
+      },
+      update: {}
+    });
+    return { ok: true, productId, favoriteId: row.id };
+  }
+
+  async removeMerchantFavorite(user: User, productId: string) {
+    const profile = await this.ensureRow(user.id);
+    const existing = await this.prisma.buyerMerchantFavorite.findUnique({
+      where: {
+        buyerProfileId_productId: {
+          buyerProfileId: profile.id,
+          productId
+        }
+      }
+    });
+    if (!existing) {
+      throw new NotFoundException("Favori introuvable");
+    }
+    await this.prisma.buyerMerchantFavorite.delete({ where: { id: existing.id } });
+    return { ok: true };
+  }
+
   async listFavorites(user: User) {
     const profile = await this.ensureRow(user.id);
     const rows = await this.prisma.buyerFavorite.findMany({

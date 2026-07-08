@@ -82,21 +82,34 @@ export function MarketplaceListingCard({
   const wKg = parseMarketNum(item.totalWeightKg);
   const pKg = parseMarketNum(item.pricePerKg);
   const total = parseMarketNum(item.totalPrice);
+  const unit = parseMarketNum(item.unitPrice);
   const cur = item.currency || "XOF";
   const views = item.viewsCount ?? 0;
   const consults = item.consultationsCount ?? 0;
+  const stock = item.stock ?? item.quantity ?? null;
+  const isMerchant = item.kind === "merchant";
   const isNew = isNewListing(item.publishedAt ?? null);
-  const expired = isListingExpired(item.status, item.expiresAt);
-  const sold = item.status === "sold";
+  const expired = !isMerchant && isListingExpired(item.status, item.expiresAt);
+  const sold = !isMerchant && item.status === "sold";
 
-  const totalDisplay =
-    total != null
+  const totalDisplay = isMerchant
+    ? unit != null
+      ? formatMarketMoney(unit, cur)
+      : total != null
+        ? formatMarketMoney(total, cur)
+        : "—"
+    : total != null
       ? formatMarketMoney(total, cur)
       : pKg != null && wKg != null
         ? formatMarketMoney(pKg * wKg, cur)
         : "—";
 
   const categoryKey = item.category ?? "unknown";
+  const categoryLabel =
+    item.categoryLabel ??
+    t(`marketScreen.categories.${categoryKey}`, {
+      defaultValue: t("marketScreen.categories.unknown")
+    });
   const flatPrice = isFlatPriceListing(item.category);
   const headcount = listingDisplayHeadcount(item);
   const perHead = flatPrice ? flatListingUnitPrice(item) : null;
@@ -125,16 +138,14 @@ export function MarketplaceListingCard({
         />
         <View style={[styles.badgeCat, { maxWidth: width - 56 }]}>
           <Text style={styles.badgeCatTx} numberOfLines={1}>
-            {t(`marketScreen.categories.${categoryKey}`, {
-              defaultValue: t("marketScreen.categories.unknown")
-            })}
+            {categoryLabel}
           </Text>
         </View>
-        {sold ? (
+        {!isMerchant && sold ? (
           <View style={styles.badgeSold}>
             <Text style={styles.badgeSoldTx}>{t("marketScreen.badgeSold")}</Text>
           </View>
-        ) : expired ? (
+        ) : !isMerchant && expired ? (
           <View style={styles.badgeExpired}>
             <Text style={styles.badgeExpiredTx}>
               {t("marketScreen.badgeExpired")}
@@ -145,7 +156,7 @@ export function MarketplaceListingCard({
             <Text style={styles.badgeNewTx}>{t("marketScreen.badgeNew")}</Text>
           </View>
         ) : null}
-        {!sold && (item.activeOfferCount ?? 0) >= 1 ? (
+        {!isMerchant && !sold && (item.activeOfferCount ?? 0) >= 1 ? (
           <View style={styles.badgeOffers}>
             <Text style={styles.badgeOffersTx}>
               {t("marketScreen.badgeActiveOffers", {
@@ -170,9 +181,9 @@ export function MarketplaceListingCard({
             />
           </Pressable>
         ) : null}
-        {showShare && navigation && item.status === "published" ? (
+        {showShare && navigation && (isMerchant || item.status === "published") ? (
           <ListingShareButton
-            listing={item}
+            listing={{ ...item, kind: item.kind ?? "listing" }}
             navigation={navigation}
             size={18}
             style={[
@@ -201,6 +212,23 @@ export function MarketplaceListingCard({
             ⭐ {farmRating.toFixed(1)}
           </Text>
         ) : null}
+        {isMerchant ? (
+          <>
+            {unit != null ? (
+              <Text style={styles.lineMuted}>
+                {t("marketScreen.pricePerUnit", {
+                  amount: formatMarketMoney(unit, cur)
+                })}
+              </Text>
+            ) : null}
+            {stock != null ? (
+              <Text style={styles.lineMuted}>
+                {t("merchant.catalog.stock", { count: stock })}
+              </Text>
+            ) : null}
+          </>
+        ) : (
+          <>
         {wKg != null ? (
           <Text style={styles.lineMuted}>
             {t("marketScreen.totalWeight")}{" "}
@@ -228,12 +256,21 @@ export function MarketplaceListingCard({
             {formatMarketMoney(parseMarketNum(item.unitPrice)!, cur)}
           </Text>
         ) : null}
+          </>
+        )}
         <Text style={styles.totalLine}>
-          {t("marketScreen.totalPrice")} {totalDisplay}
+          {isMerchant
+            ? t("marketScreen.price")
+            : t("marketScreen.totalPrice")}{" "}
+          {totalDisplay}
         </Text>
         <View style={styles.statsRow}>
           <Text style={styles.statsTx}>👁 {views}</Text>
-          <Text style={styles.statsTx}>💬 {consults}</Text>
+          <Text style={styles.statsTx}>
+            {isMerchant
+              ? t("merchant.catalog.stockShort", { count: stock ?? 0 })
+              : `💬 ${consults}`}
+          </Text>
         </View>
       </View>
     </Pressable>

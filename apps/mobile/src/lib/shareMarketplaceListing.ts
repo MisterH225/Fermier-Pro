@@ -7,6 +7,7 @@ import {
 
 export type ListingShareInput = {
   id: string;
+  kind?: "listing" | "merchant";
   title: string;
   currency?: string;
   totalPrice?: string | number | null;
@@ -18,8 +19,14 @@ export type ListingShareInput = {
 /**
  * URL deep link de partage : `EXPO_PUBLIC_LISTING_BASE_URL` (HTTPS) ou schéma app.
  */
-export function buildListingShareUrl(listingId: string): string {
+export function buildListingShareUrl(
+  listingId: string,
+  kind: ListingShareInput["kind"] = "listing"
+): string {
   const cleaned = listingId.trim();
+  if (kind === "merchant") {
+    return `fermier-pro://merchant/product/${encodeURIComponent(cleaned)}`;
+  }
   const baseFromEnv = process.env.EXPO_PUBLIC_LISTING_BASE_URL?.trim() ?? "";
   if (baseFromEnv) {
     const stripped = baseFromEnv.replace(/\/$/, "");
@@ -45,7 +52,7 @@ export function buildListingShareMessage(
   listing: ListingShareInput,
   t: TFunction
 ): { message: string; url: string } {
-  const url = buildListingShareUrl(listing.id);
+  const url = buildListingShareUrl(listing.id, listing.kind);
   const price = formatListingSharePrice(listing);
   const parts = [listing.title.trim() || t("marketScreen.detailTitle")];
   const farmName = listing.farm?.name?.trim();

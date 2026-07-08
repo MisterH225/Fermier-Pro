@@ -29,6 +29,10 @@ export class ChooseMerchantSubscriptionDto {
   @IsOptional()
   @IsEnum(MarketplacePaymentMethod)
   paymentMethod?: MarketplacePaymentMethod;
+
+  /** Demande un essai gratuit si activé côté plateforme. */
+  @IsOptional()
+  startTrial?: boolean;
 }
 
 export class CreateMerchantShopDto {

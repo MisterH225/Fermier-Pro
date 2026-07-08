@@ -13,6 +13,7 @@
     "auditLogs": "Journal admin",
     "map": "Carte sanitaire",
     "marketplace": "Marketplace",
+    "merchantSubscriptions": "Abonnements commerçants",
     "producerScores": "Scores producteurs",
     "stats": "Statistiques",
     "ai": "Assistant IA",
@@ -221,9 +222,18 @@
       "titleRest": "l'avenir de l'élevage.",
       "subtitle": "Fermes, producteurs, santé animale — tout depuis un seul tableau de bord.",
       "stats": {
-        "farms": { "value": "60", "label": "Fermes accompagnées" },
-        "animals": { "value": "2 000+", "label": "Bêtes suivies" },
-        "presence": { "value": "Côte d'Ivoire", "label": "Présence terrain" }
+        "farms": {
+          "value": "60",
+          "label": "Fermes accompagnées"
+        },
+        "animals": {
+          "value": "2 000+",
+          "label": "Bêtes suivies"
+        },
+        "presence": {
+          "value": "Côte d'Ivoire",
+          "label": "Présence terrain"
+        }
       },
       "tags": {
         "organic": "Élevage durable",
@@ -693,9 +703,25 @@
       "weightArbitrationCumulativeMinDiffKg": "Arbitrage poids — écart cumulé minimum (kg)",
       "weightArbitrationCumulativeMinDiffKgHint": "Pour plusieurs animaux : écart total minimum pour autoriser un arbitrage (ex. 5 kg).",
       "merchantPremiumPriceXof": "Abonnement commerçant Premium (XOF)",
-      "merchantPremiumPriceXofHint": "Prix unique payé par le commerçant pour passer en Premium.",
+      "merchantPremiumPriceXofHint": "Prix plein pour une période de facturation (avant promo).",
       "merchantPremiumMaxShops": "Boutiques max (Premium)",
-      "merchantPremiumMaxShopsHint": "Nombre maximum de boutiques pour un profil commerçant Premium."
+      "merchantPremiumMaxShopsHint": "Nombre maximum de boutiques pour un profil commerçant Premium.",
+      "merchantPremiumBillingUnit": "Périodicité Premium",
+      "merchantPremiumBillingUnitHint": "Unité du cycle de facturation pour tous les Premium.",
+      "merchantPremiumBillingInterval": "Intervalle",
+      "merchantPremiumBillingIntervalHint": "Toutes les N unités (ex. 1 = chaque mois, 7 = tous les 7 jours).",
+      "merchantPremiumGraceDays": "Jours de grâce",
+      "merchantPremiumTrialEnabled": "Essai gratuit",
+      "merchantPremiumTrialUnits": "Durée d'essai",
+      "merchantPremiumTrialUnitsHint": "Durée exprimée dans l'unité de périodicité.",
+      "merchantPremiumPromoEnabled": "Offre promotionnelle",
+      "merchantPremiumPromoPercentOff": "Remise promo (%)",
+      "merchantPremiumPromoEndsAt": "Fin de promo",
+      "billingUnitHour": "Heure",
+      "billingUnitDay": "Jour",
+      "billingUnitMonth": "Mois",
+      "yes": "Oui",
+      "no": "Non"
     },
     "scopes": {
       "world": "Monde entier",
@@ -1192,6 +1218,41 @@
         "withdrawal": "Retrait",
         "transfer": "Transfert P2P"
       }
+    }
+  },
+  "merchantSubscriptions": {
+    "title": "Abonnements commerçants",
+    "subtitle": "Suspension, essai gratuit, promo et annulation des Premium.",
+    "loadError": "Impossible de charger les abonnements.",
+    "actionError": "Action impossible.",
+    "searchPh": "Rechercher nom, email, téléphone…",
+    "statusAll": "Tous les statuts",
+    "refresh": "Actualiser",
+    "colMerchant": "Commerçant",
+    "colTier": "Plan",
+    "colStatus": "Statut",
+    "colNext": "Prochaine échéance",
+    "colActions": "Actions",
+    "empty": "Aucun profil trouvé.",
+    "suspend": "Suspendre",
+    "resume": "Reprendre",
+    "cancel": "Annuler",
+    "grantTrial": "Essai",
+    "applyPromo": "Promo",
+    "promoPrompt": "Remise % (0-100)",
+    "trialUntil": "Essai jusqu'au {date}",
+    "billingSummary": "Tarif effectif : {price} XOF / {interval} {unit}",
+    "unit": {
+      "hour": "heure(s)",
+      "day": "jour(s)",
+      "month": "mois"
+    },
+    "status": {
+      "active": "Actif",
+      "past_due": "Impayé",
+      "suspended": "Suspendu",
+      "cancelled": "Annulé",
+      "trialing": "Essai"
     }
   }
 }

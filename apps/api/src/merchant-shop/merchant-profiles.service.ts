@@ -16,6 +16,7 @@ import {
   MERCHANT_FREE_MAX_SHOPS
 } from "./merchant-shop.constants";
 import type { PatchMerchantOnboardingDto } from "./dto/merchant-shop.dto";
+import { resolveMerchantPremiumBillingConfig } from "./merchant-premium-billing-config";
 
 @Injectable()
 export class MerchantProfilesService {
@@ -79,7 +80,8 @@ export class MerchantProfilesService {
       where: { id: "default" }
     });
     const premiumMaxShops = settings?.merchantPremiumMaxShops ?? 3;
-    const premiumPrice = Number(settings?.merchantPremiumPriceXof ?? 5000);
+    const billing = resolveMerchantPremiumBillingConfig(settings);
+    const premiumPrice = billing.effectivePriceXof;
 
     const shops = profile.shops.map((shop) => ({
       id: shop.id,
@@ -102,6 +104,10 @@ export class MerchantProfilesService {
       orderBy: { dueDate: "desc" }
     });
 
+    const trialAvailable =
+      billing.trialEnabled &&
+      profile.subscriptionTier !== MerchantSubscriptionTier.premium;
+
     return {
       subscriptionTier: profile.subscriptionTier,
       subscriptionStatus: profile.subscriptionStatus,
@@ -109,6 +115,8 @@ export class MerchantProfilesService {
       premiumPaidAt: profile.premiumPaidAt?.toISOString() ?? null,
       nextBillingAt: profile.nextBillingAt?.toISOString() ?? null,
       graceEndsAt: profile.graceEndsAt?.toISOString() ?? null,
+      trialEndsAt: profile.trialEndsAt?.toISOString() ?? null,
+      promoPercentOffApplied: profile.promoPercentOffApplied,
       pendingRenewal:
         pendingInvoice && profile.subscriptionTier === MerchantSubscriptionTier.premium
           ? {
@@ -140,7 +148,15 @@ export class MerchantProfilesService {
       maxShops: this.maxShopsForTier(profile.subscriptionTier, premiumMaxShops),
       maxActiveProducts: this.maxActiveProductsForTier(profile.subscriptionTier),
       premiumPriceXof: premiumPrice,
+      premiumFullPriceXof: billing.fullPriceXof,
       premiumMaxShops,
+      billingUnit: billing.billingUnit,
+      billingInterval: billing.billingInterval,
+      graceDays: billing.graceDays,
+      trialAvailable,
+      trialUnits: billing.trialUnits,
+      promoEnabled: billing.promoEnabled,
+      promoPercentOff: billing.promoPercentOff,
       shops,
       needsShopNudge: profile.shopSkipped && profile.shops.length === 0,
       needsProductNudge:

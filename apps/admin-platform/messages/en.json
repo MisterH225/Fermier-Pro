@@ -13,6 +13,7 @@
     "auditLogs": "Admin log",
     "map": "Health map",
     "marketplace": "Marketplace",
+    "merchantSubscriptions": "Merchant subscriptions",
     "producerScores": "Producer scores",
     "stats": "Statistics",
     "ai": "AI assistant",
@@ -222,9 +223,18 @@
       "titleRest": "the future of farming.",
       "subtitle": "Farms, producers, animal health — all from one powerful dashboard.",
       "stats": {
-        "farms": { "value": "60", "label": "Farms supported" },
-        "animals": { "value": "2,000+", "label": "Animals tracked" },
-        "presence": { "value": "Côte d'Ivoire", "label": "Current presence" }
+        "farms": {
+          "value": "60",
+          "label": "Farms supported"
+        },
+        "animals": {
+          "value": "2,000+",
+          "label": "Animals tracked"
+        },
+        "presence": {
+          "value": "Côte d'Ivoire",
+          "label": "Current presence"
+        }
       },
       "tags": {
         "organic": "Sustainable farming",
@@ -691,9 +701,25 @@
       "weightArbitrationCumulativeMinDiffKg": "Weight arbitration — minimum cumulative gap (kg)",
       "weightArbitrationCumulativeMinDiffKgHint": "For multiple animals: total gap required to allow arbitration (e.g. 5 kg).",
       "merchantPremiumPriceXof": "Merchant Premium subscription (XOF)",
-      "merchantPremiumPriceXofHint": "One-time price paid by merchants to upgrade to Premium.",
+      "merchantPremiumPriceXofHint": "Full price for one billing period (before promo).",
       "merchantPremiumMaxShops": "Max shops (Premium)",
-      "merchantPremiumMaxShopsHint": "Maximum number of shops for a Premium merchant profile."
+      "merchantPremiumMaxShopsHint": "Maximum number of shops for a Premium merchant profile.",
+      "merchantPremiumBillingUnit": "Premium billing periodicity",
+      "merchantPremiumBillingUnitHint": "Billing cycle unit for all Premium merchants.",
+      "merchantPremiumBillingInterval": "Interval",
+      "merchantPremiumBillingIntervalHint": "Every N units (e.g. 1 = each month, 7 = every 7 days).",
+      "merchantPremiumGraceDays": "Grace days",
+      "merchantPremiumTrialEnabled": "Free trial",
+      "merchantPremiumTrialUnits": "Trial duration",
+      "merchantPremiumTrialUnitsHint": "Duration expressed in the billing unit.",
+      "merchantPremiumPromoEnabled": "Promotional offer",
+      "merchantPremiumPromoPercentOff": "Promo discount (%)",
+      "merchantPremiumPromoEndsAt": "Promo ends at",
+      "billingUnitHour": "Hour",
+      "billingUnitDay": "Day",
+      "billingUnitMonth": "Month",
+      "yes": "Yes",
+      "no": "No"
     },
     "scopes": {
       "world": "Worldwide",
@@ -1173,6 +1199,41 @@
         "withdrawal": "Withdrawal",
         "transfer": "P2P transfer"
       }
+    }
+  },
+  "merchantSubscriptions": {
+    "title": "Merchant subscriptions",
+    "subtitle": "Suspend, free trial, promo and cancel Premium plans.",
+    "loadError": "Could not load subscriptions.",
+    "actionError": "Action failed.",
+    "searchPh": "Search name, email, phone…",
+    "statusAll": "All statuses",
+    "refresh": "Refresh",
+    "colMerchant": "Merchant",
+    "colTier": "Plan",
+    "colStatus": "Status",
+    "colNext": "Next billing",
+    "colActions": "Actions",
+    "empty": "No profiles found.",
+    "suspend": "Suspend",
+    "resume": "Resume",
+    "cancel": "Cancel",
+    "grantTrial": "Trial",
+    "applyPromo": "Promo",
+    "promoPrompt": "Discount % (0-100)",
+    "trialUntil": "Trial until {date}",
+    "billingSummary": "Effective price: {price} XOF / {interval} {unit}",
+    "unit": {
+      "hour": "hour(s)",
+      "day": "day(s)",
+      "month": "month(s)"
+    },
+    "status": {
+      "active": "Active",
+      "past_due": "Past due",
+      "suspended": "Suspended",
+      "cancelled": "Cancelled",
+      "trialing": "Trial"
     }
   }
 }

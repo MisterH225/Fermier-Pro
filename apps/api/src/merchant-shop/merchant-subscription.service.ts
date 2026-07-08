@@ -9,6 +9,7 @@ import {
   MerchantProductDisabledReason,
   MerchantProductStatus,
   MerchantSubscriptionInvoiceStatus,
+  MerchantSubscriptionStatus,
   MerchantSubscriptionTier
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
@@ -17,7 +18,10 @@ import type { ChooseMerchantSubscriptionDto } from "./dto/merchant-shop.dto";
 import { MerchantProfilesService } from "./merchant-profiles.service";
 import { MerchantSubscriptionBillingService } from "./merchant-subscription-billing.service";
 import { MERCHANT_FREE_MAX_ACTIVE_PRODUCTS } from "./merchant-shop.constants";
-import { addMonthsUtc, startOfUtcDay } from "./merchant-subscription.constants";
+import {
+  addBillingPeriod,
+  startOfUtcDay
+} from "./merchant-subscription.constants";
 
 @Injectable()
 export class MerchantSubscriptionService {
@@ -53,7 +57,17 @@ export class MerchantSubscriptionService {
       return this.profiles.getMe(user);
     }
 
-    const price = await this.billing.getPremiumPriceXof();
+    const cfg = await this.billing.getBillingConfig();
+
+    if (dto.startTrial) {
+      if (!cfg.trialEnabled) {
+        throw new BadRequestException("Essai gratuit Premium indisponible");
+      }
+      await this.billing.activateTrial(profile.id);
+      return this.profiles.getMe(user);
+    }
+
+    const price = cfg.effectivePriceXof;
     const method =
       dto.paymentMethod ?? MarketplacePaymentMethod.mobile_money;
 
@@ -67,7 +81,8 @@ export class MerchantSubscriptionService {
         "Abonnement Premium commerçant"
       );
       const paidAt = new Date();
-      const periodStart = startOfUtcDay(paidAt);
+      const periodStart =
+        cfg.billingUnit === "hour" ? paidAt : startOfUtcDay(paidAt);
       await this.prisma.merchantSubscriptionInvoice.create({
         data: {
           merchantProfileId: profile.id,
@@ -75,7 +90,11 @@ export class MerchantSubscriptionService {
           currency: "XOF",
           status: MerchantSubscriptionInvoiceStatus.paid,
           billingPeriodStart: periodStart,
-          billingPeriodEnd: addMonthsUtc(periodStart, 1),
+          billingPeriodEnd: addBillingPeriod(
+            periodStart,
+            cfg.billingUnit,
+            cfg.billingInterval
+          ),
           dueDate: periodStart,
           paidAt,
           providerRef: this.premiumRef(user.id)
@@ -91,7 +110,8 @@ export class MerchantSubscriptionService {
       return this.profiles.getMe(user);
     }
 
-    const periodStart = startOfUtcDay(new Date());
+    const periodStart =
+      cfg.billingUnit === "hour" ? new Date() : startOfUtcDay(new Date());
     const invoice = await this.billing.createPendingInvoice(
       profile.id,
       user.id,
@@ -137,7 +157,8 @@ export class MerchantSubscriptionService {
     }
 
     if (this.wallet.isWalletPendingRef(providerRef)) {
-      const price = await this.billing.getPremiumPriceXof();
+      const cfg = await this.billing.getBillingConfig();
+      const price = cfg.effectivePriceXof;
       await this.wallet.debitForMerchantSubscription(
         user.id,
         price,
@@ -146,7 +167,8 @@ export class MerchantSubscriptionService {
         "Abonnement Premium commerçant"
       );
       const paidAt = new Date();
-      const periodStart = startOfUtcDay(paidAt);
+      const periodStart =
+        cfg.billingUnit === "hour" ? paidAt : startOfUtcDay(paidAt);
       await this.prisma.merchantSubscriptionInvoice.create({
         data: {
           merchantProfileId: profile.id,
@@ -154,7 +176,11 @@ export class MerchantSubscriptionService {
           currency: "XOF",
           status: MerchantSubscriptionInvoiceStatus.paid,
           billingPeriodStart: periodStart,
-          billingPeriodEnd: addMonthsUtc(periodStart, 1),
+          billingPeriodEnd: addBillingPeriod(
+            periodStart,
+            cfg.billingUnit,
+            cfg.billingInterval
+          ),
           dueDate: periodStart,
           paidAt,
           providerRef

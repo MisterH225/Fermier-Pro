@@ -43,8 +43,8 @@ const FEATURES = [
 ] as const;
 
 const FREE_PLAN_KEYS = ["freeShop", "freeProducts"] as const;
-const PREMIUM_PLAN_KEYS = ["premiumShops", "premiumProducts", "billingMonthly"] as const;
 
+type BillingUnit = "hour" | "day" | "month";
 type PaymentMethod = "wallet" | "mobile_money";
 type PendingPayment = {
   providerRef: string;
@@ -52,6 +52,69 @@ type PendingPayment = {
   amount: number;
   invoiceId?: string;
 };
+
+function billingPeriodSuffix(
+  t: (key: string, opts?: Record<string, unknown>) => string,
+  unit: BillingUnit,
+  interval: number
+): string {
+  const n = Math.max(1, interval);
+  if (unit === "hour") {
+    return n === 1
+      ? t("merchant.subscription.periodHour")
+      : t("merchant.subscription.periodHourN", { count: n });
+  }
+  if (unit === "day") {
+    return n === 1
+      ? t("merchant.subscription.periodDay")
+      : t("merchant.subscription.periodDayN", { count: n });
+  }
+  return n === 1
+    ? t("merchant.subscription.periodMonth")
+    : t("merchant.subscription.periodMonthN", { count: n });
+}
+
+function billingPeriodFeature(
+  t: (key: string, opts?: Record<string, unknown>) => string,
+  unit: BillingUnit,
+  interval: number
+): string {
+  const n = Math.max(1, interval);
+  if (unit === "hour") {
+    return n === 1
+      ? t("merchant.subscription.billingPeriodHour")
+      : t("merchant.subscription.billingPeriodHourN", { count: n });
+  }
+  if (unit === "day") {
+    return n === 1
+      ? t("merchant.subscription.billingPeriodDay")
+      : t("merchant.subscription.billingPeriodDayN", { count: n });
+  }
+  return n === 1
+    ? t("merchant.subscription.billingPeriodMonth")
+    : t("merchant.subscription.billingPeriodMonthN", { count: n });
+}
+
+function trialUnitLabel(
+  t: (key: string, opts?: Record<string, unknown>) => string,
+  unit: BillingUnit,
+  units: number
+): string {
+  const n = Math.max(1, units);
+  if (unit === "hour") {
+    return n === 1
+      ? t("merchant.subscription.trialUnitHour")
+      : t("merchant.subscription.trialUnitHourN");
+  }
+  if (unit === "day") {
+    return n === 1
+      ? t("merchant.subscription.trialUnitDay")
+      : t("merchant.subscription.trialUnitDayN");
+  }
+  return n === 1
+    ? t("merchant.subscription.trialUnitMonth")
+    : t("merchant.subscription.trialUnitMonthN");
+}
 
 export function MerchantSubscriptionScreen({
   skippable = false,
@@ -98,9 +161,48 @@ export function MerchantSubscriptionScreen({
 
   const premiumPriceXof = meQ.data?.premiumPriceXof;
   const premiumMaxShops = meQ.data?.premiumMaxShops ?? 3;
+  const billingUnit: BillingUnit = meQ.data?.billingUnit ?? "month";
+  const billingInterval = meQ.data?.billingInterval ?? 1;
+  const trialAvailable = Boolean(meQ.data?.trialAvailable);
+  const trialUnits = meQ.data?.trialUnits ?? 7;
+  const promoEnabled = Boolean(meQ.data?.promoEnabled);
+  const promoPercentOff = meQ.data?.promoPercentOff ?? 0;
   const walletBalance = Number(walletQ.data?.balance ?? 0);
   const canPayWithWallet =
     premiumPriceXof != null && walletBalance >= premiumPriceXof;
+
+  const periodSuffix = useMemo(
+    () => billingPeriodSuffix(t, billingUnit, billingInterval),
+    [t, billingUnit, billingInterval]
+  );
+
+  const premiumPriceLabel = useMemo(() => {
+    if (premiumPriceXof == null) {
+      return null;
+    }
+    return premiumPriceXof.toLocaleString("fr-FR");
+  }, [premiumPriceXof]);
+
+  const premiumFeatures = useMemo(() => {
+    const lines = [
+      t("merchant.subscription.premiumShops", { count: premiumMaxShops }),
+      t("merchant.subscription.premiumProducts"),
+      billingPeriodFeature(t, billingUnit, billingInterval)
+    ];
+    if (promoEnabled && promoPercentOff > 0) {
+      lines.push(
+        t("merchant.subscription.promoHint", { percent: promoPercentOff })
+      );
+    }
+    return lines;
+  }, [
+    t,
+    premiumMaxShops,
+    billingUnit,
+    billingInterval,
+    promoEnabled,
+    promoPercentOff
+  ]);
 
   useEffect(() => {
     const pending = meQ.data?.pendingSubscription;
@@ -213,15 +315,17 @@ export function MerchantSubscriptionScreen({
     return premiumPriceXof.toLocaleString("fr-FR");
   }, [premiumPriceXof]);
 
-  const choose = async () => {
+  const choose = async (opts?: { startTrial?: boolean }) => {
     if (!accessToken || !activeProfileId) return;
     setBusy(true);
     setError(null);
     try {
+      const startTrial = Boolean(opts?.startTrial);
       const res = await chooseMerchantSubscription(accessToken, activeProfileId, {
         tier: selectedTier,
         paymentMethod:
-          selectedTier === "premium" ? paymentMethod : undefined
+          selectedTier === "premium" && !startTrial ? paymentMethod : undefined,
+        startTrial: selectedTier === "premium" && startTrial ? true : undefined
       });
       if ("pending" in res && res.pending) {
         setDismissedWaiting(false);
@@ -300,18 +404,24 @@ export function MerchantSubscriptionScreen({
       : t("merchant.subscription.retryPaymentCta")
     : selectedTier === "free"
       ? t("merchant.subscription.ctaFree")
-      : premiumPriceLabel
-        ? paymentMethod === "wallet"
-          ? t("merchant.subscription.ctaPremiumWallet", { price: premiumPriceLabel })
-          : t("merchant.subscription.ctaPremium", { price: premiumPriceLabel })
-        : t("merchant.subscription.ctaPremiumLoading");
+      : trialAvailable
+        ? t("merchant.subscription.ctaTrial", {
+            units: trialUnits,
+            unitLabel: trialUnitLabel(t, billingUnit, trialUnits)
+          })
+        : premiumPriceLabel
+          ? paymentMethod === "wallet"
+            ? t("merchant.subscription.ctaPremiumWallet", {
+                price: premiumPriceLabel,
+                period: periodSuffix
+              })
+            : t("merchant.subscription.ctaPremium", {
+                price: premiumPriceLabel,
+                period: periodSuffix
+              })
+          : t("merchant.subscription.ctaPremiumLoading");
 
   const freeFeatures = FREE_PLAN_KEYS.map((key) => t(`merchant.subscription.${key}`));
-  const premiumFeatures = PREMIUM_PLAN_KEYS.map((key) =>
-    key === "premiumShops"
-      ? t(`merchant.subscription.${key}`, { count: premiumMaxShops })
-      : t(`merchant.subscription.${key}`)
-  );
 
   const handleFooterPress = () => {
     if (isWaitingForPayment) {
@@ -322,7 +432,9 @@ export function MerchantSubscriptionScreen({
       }
       return;
     }
-    void choose();
+    void choose({
+      startTrial: selectedTier === "premium" && trialAvailable
+    });
   };
 
   if (isWaitingForPayment) {
@@ -436,7 +548,10 @@ export function MerchantSubscriptionScreen({
             name={t("merchant.subscription.premiumTitle")}
             price={
               premiumPriceLabel
-                ? t("merchant.subscription.premiumPrice", { price: premiumPriceLabel })
+                ? t("merchant.subscription.premiumPrice", {
+                    price: premiumPriceLabel,
+                    period: periodSuffix
+                  })
                 : "…"
             }
             caption={t("merchant.subscription.premiumCaption")}
@@ -445,7 +560,7 @@ export function MerchantSubscriptionScreen({
           />
         </View>
 
-        {selectedTier === "premium" ? (
+        {selectedTier === "premium" && !trialAvailable ? (
           <View style={styles.payMethodBlock}>
             <Text style={styles.payMethodLabel}>
               {t("merchant.subscription.paymentMethodLabel")}
@@ -492,7 +607,8 @@ export function MerchantSubscriptionScreen({
               <Text style={styles.walletHint}>
                 {t("merchant.subscription.walletBalanceHint", {
                   balance: walletBalance.toLocaleString("fr-FR"),
-                  price: premiumPriceLabel
+                  price: premiumPriceLabel,
+                  period: periodSuffix
                 })}
               </Text>
             ) : null}
@@ -531,8 +647,11 @@ export function MerchantSubscriptionScreen({
           style={[styles.cta, busy && styles.ctaDisabled]}
           disabled={
             busy ||
-            (selectedTier === "premium" && !premiumPriceLabel) ||
             (selectedTier === "premium" &&
+              !trialAvailable &&
+              !premiumPriceLabel) ||
+            (selectedTier === "premium" &&
+              !trialAvailable &&
               paymentMethod === "wallet" &&
               !canPayWithWallet)
           }

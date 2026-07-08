@@ -65,6 +65,15 @@ const HANDOVER_OFFER_STATUSES: OfferStatus[] = [
 ];
 import { LISTING_EDIT_LOCK_STATUSES } from "./escrow/transaction.utils";
 import { ListingAnimalSyncService } from "./listing-animal-sync.service";
+import {
+  isPigListingCategory,
+  merchantProductToFeedItem,
+  shouldIncludeMerchantProducts,
+  shouldIncludePigListings,
+  sortFeedByPublishedAt,
+  withListingKind
+} from "./marketplace-feed.mapper";
+import { MerchantProductStatus } from "@prisma/client";
 import { ProducerScoreService } from "../producer-score/producer-score.service";
 
 function privacyDisplayName(fullName: string | null | undefined): string {
@@ -424,9 +433,18 @@ export class ListingsService {
     user: User,
     mine?: boolean,
     status?: ListingStatus,
-    category?: ListingMarketCategory,
+    categoryRaw?: string,
     q?: string
   ) {
+    const category = isPigListingCategory(categoryRaw)
+      ? categoryRaw
+      : undefined;
+    const merchantCategorySlug =
+      categoryRaw &&
+      categoryRaw !== "all" &&
+      !isPigListingCategory(categoryRaw)
+        ? categoryRaw
+        : undefined;
     const qTrim = q?.trim();
     const textFilter: Prisma.MarketplaceListingWhereInput = qTrim
       ? {
@@ -468,34 +486,119 @@ export class ListingsService {
       status && status !== ListingStatus.draft
         ? status
         : ListingStatus.published;
-    const rows = await this.prisma.marketplaceListing.findMany({
+
+    const includePigs = shouldIncludePigListings(categoryRaw);
+    const includeMerchant = shouldIncludeMerchantProducts(categoryRaw);
+
+    const pigRows = includePigs
+      ? await this.prisma.marketplaceListing.findMany({
+          where: {
+            ...(publicStatus === ListingStatus.published
+              ? this.marketplaceLifecycle.publicListingWhere(now)
+              : {
+                  status: publicStatus,
+                  OR: [{ expiresAt: null }, { expiresAt: { gt: now } }]
+                }),
+            ...(category ? { category } : {}),
+            ...textFilter
+          },
+          orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+          include: {
+            seller: {
+              select: { id: true, fullName: true }
+            },
+            farm: { select: { id: true, name: true } },
+            animal: {
+              select: {
+                id: true,
+                publicId: true,
+                tagCode: true,
+                photoUrl: true
+              }
+            }
+          }
+        })
+      : [];
+
+    const merchantRows = includeMerchant
+      ? await this.fetchMerchantProductsForFeed({
+          categorySlug: merchantCategorySlug,
+          q: qTrim
+        })
+      : [];
+
+    const formattedPigs = (await this.formatListingsForApi(pigRows)).map(
+      (row) => withListingKind(row)
+    );
+    const formattedMerchant = merchantRows.map((row) =>
+      merchantProductToFeedItem(row)
+    );
+
+    return sortFeedByPublishedAt([...formattedPigs, ...formattedMerchant]);
+  }
+
+  async listFilterCategories() {
+    const merchantCategories = await this.prisma.merchantProductCategory.findMany(
+      {
+        where: { isActive: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: { slug: true, name: true }
+      }
+    );
+    return {
+      pig: [
+        { id: "piglet", label: "Porcelets" },
+        { id: "breeder", label: "Reproducteurs" },
+        { id: "butcher", label: "Charcutiers" },
+        { id: "reformed", label: "Truies réformées" }
+      ],
+      merchant: merchantCategories.map((c) => ({
+        id: c.slug,
+        label: c.name
+      }))
+    };
+  }
+
+  private async fetchMerchantProductsForFeed(opts: {
+    categorySlug?: string;
+    q?: string;
+  }) {
+    const search = opts.q?.trim();
+    return this.prisma.merchantProduct.findMany({
       where: {
-        ...(publicStatus === ListingStatus.published
-          ? this.marketplaceLifecycle.publicListingWhere(now)
-          : {
-              status: publicStatus,
-              OR: [{ expiresAt: null }, { expiresAt: { gt: now } }]
-            }),
-        ...(category ? { category } : {}),
-        ...textFilter
+        status: MerchantProductStatus.published,
+        stock: { gt: 0 },
+        ...(opts.categorySlug
+          ? { category: { slug: opts.categorySlug, isActive: true } }
+          : { category: { isActive: true } }),
+        ...(search
+          ? {
+              OR: [
+                { name: { contains: search, mode: "insensitive" } },
+                { description: { contains: search, mode: "insensitive" } },
+                {
+                  shop: {
+                    name: { contains: search, mode: "insensitive" }
+                  }
+                }
+              ]
+            }
+          : {})
       },
-      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       include: {
-        seller: {
-          select: { id: true, fullName: true }
-        },
-        farm: { select: { id: true, name: true } },
-        animal: {
+        category: { select: { id: true, name: true, slug: true } },
+        shop: {
           select: {
             id: true,
-            publicId: true,
-            tagCode: true,
-            photoUrl: true
+            name: true,
+            locationLabel: true,
+            merchantProfile: {
+              select: { user: { select: { id: true, fullName: true } } }
+            }
           }
         }
       }
     });
-    return this.formatListingsForApi(rows);
   }
 
   private async farmHealthSnapshot(farmId: string) {

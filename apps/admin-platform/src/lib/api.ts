@@ -206,6 +206,14 @@ export type PlatformSettingsDto = {
   marketplaceWeightArbitrationCumulativeMinDiffKg?: number;
   merchantPremiumPriceXof?: number;
   merchantPremiumMaxShops?: number;
+  merchantPremiumBillingUnit?: "hour" | "day" | "month";
+  merchantPremiumBillingInterval?: number;
+  merchantPremiumGraceDays?: number;
+  merchantPremiumTrialEnabled?: boolean;
+  merchantPremiumTrialUnits?: number;
+  merchantPremiumPromoEnabled?: boolean;
+  merchantPremiumPromoPercentOff?: number;
+  merchantPremiumPromoEndsAt?: string | null;
   /** Valeurs réellement servies au mobile (DB + fallback env). */
   supportEffective: SupportContactDto;
 };
@@ -764,6 +772,118 @@ export function patchPlatformSettings(
     method: "PATCH",
     body: JSON.stringify(body)
   });
+}
+
+export type AdminMerchantSubscriptionRow = {
+  profileId: string;
+  userId: string;
+  fullName: string | null;
+  email: string | null;
+  phone: string | null;
+  shopCount: number;
+  subscriptionTier: "free" | "premium" | null;
+  subscriptionStatus:
+    | "active"
+    | "past_due"
+    | "suspended"
+    | "cancelled"
+    | "trialing"
+    | null;
+  nextBillingAt: string | null;
+  trialEndsAt: string | null;
+  promoPercentOffApplied: number | null;
+  suspendedAt: string | null;
+  suspensionReason: string | null;
+  cancelledAt: string | null;
+  premiumPaidAt: string | null;
+};
+
+export type AdminMerchantSubscriptionsListDto = {
+  billing: {
+    fullPriceXof: number;
+    effectivePriceXof: number;
+    billingUnit: "hour" | "day" | "month";
+    billingInterval: number;
+    graceDays: number;
+    trialEnabled: boolean;
+    trialUnits: number;
+    promoEnabled: boolean;
+    promoPercentOff: number;
+  };
+  items: AdminMerchantSubscriptionRow[];
+};
+
+export function fetchAdminMerchantSubscriptions(
+  token: string,
+  params?: { status?: string; q?: string }
+) {
+  const qs = new URLSearchParams();
+  if (params?.status) qs.set("status", params.status);
+  if (params?.q) qs.set("q", params.q);
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return apiFetch<AdminMerchantSubscriptionsListDto>(
+    `/admin/merchant-subscriptions${suffix}`,
+    token
+  );
+}
+
+export function adminSuspendMerchantSubscription(
+  token: string,
+  profileId: string,
+  reason?: string
+) {
+  return apiFetch<AdminMerchantSubscriptionRow>(
+    `/admin/merchant-subscriptions/${profileId}/suspend`,
+    token,
+    { method: "POST", body: JSON.stringify({ reason }) }
+  );
+}
+
+export function adminResumeMerchantSubscription(
+  token: string,
+  profileId: string
+) {
+  return apiFetch<AdminMerchantSubscriptionRow>(
+    `/admin/merchant-subscriptions/${profileId}/resume`,
+    token,
+    { method: "POST", body: JSON.stringify({}) }
+  );
+}
+
+export function adminCancelMerchantSubscription(
+  token: string,
+  profileId: string,
+  reason?: string
+) {
+  return apiFetch<AdminMerchantSubscriptionRow>(
+    `/admin/merchant-subscriptions/${profileId}/cancel`,
+    token,
+    { method: "POST", body: JSON.stringify({ reason }) }
+  );
+}
+
+export function adminGrantMerchantTrial(
+  token: string,
+  profileId: string,
+  units?: number
+) {
+  return apiFetch<AdminMerchantSubscriptionRow>(
+    `/admin/merchant-subscriptions/${profileId}/grant-trial`,
+    token,
+    { method: "POST", body: JSON.stringify({ units }) }
+  );
+}
+
+export function adminApplyMerchantPromo(
+  token: string,
+  profileId: string,
+  percentOff: number
+) {
+  return apiFetch<AdminMerchantSubscriptionRow>(
+    `/admin/merchant-subscriptions/${profileId}/apply-promo`,
+    token,
+    { method: "POST", body: JSON.stringify({ percentOff }) }
+  );
 }
 
 export type AdminMerchantCategoryRow = {

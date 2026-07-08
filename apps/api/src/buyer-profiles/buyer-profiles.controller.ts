@@ -14,6 +14,7 @@ import { OfferStatus } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { CreateBuyerFavoriteDto } from "./dto/create-buyer-favorite.dto";
+import { CreateBuyerMerchantFavoriteDto } from "./dto/create-buyer-merchant-favorite.dto";
 import { CreateBuyerPriceAlertDto } from "./dto/create-price-alert.dto";
 import { UpdateBuyerPriceAlertDto } from "./dto/update-price-alert.dto";
 import { UpsertBuyerProfileDto } from "./dto/upsert-buyer-profile.dto";
@@ -54,7 +55,12 @@ export class BuyerProfilesController {
 
   @Get("favorites/ids")
   favoriteIds(@CurrentUser() user: User) {
-    return this.svc.listFavoriteIds(user);
+    return this.svc.listFavoriteRefs(user);
+  }
+
+  @Get("favorites/product-ids")
+  merchantFavoriteIds(@CurrentUser() user: User) {
+    return this.svc.listMerchantFavoriteIds(user);
   }
 
   @Post("favorites")
@@ -65,12 +71,28 @@ export class BuyerProfilesController {
     return this.svc.addFavorite(user, dto.listingId);
   }
 
+  @Post("favorites/products")
+  createMerchantFavorite(
+    @CurrentUser() user: User,
+    @Body() dto: CreateBuyerMerchantFavoriteDto
+  ) {
+    return this.svc.addMerchantFavorite(user, dto.productId);
+  }
+
   @Delete("favorites/:listingId")
   deleteFavorite(
     @CurrentUser() user: User,
     @Param("listingId") listingId: string
   ) {
     return this.svc.removeFavorite(user, listingId);
+  }
+
+  @Delete("favorites/products/:productId")
+  deleteMerchantFavorite(
+    @CurrentUser() user: User,
+    @Param("productId") productId: string
+  ) {
+    return this.svc.removeMerchantFavorite(user, productId);
   }
 
   @Get("personalized-listings")

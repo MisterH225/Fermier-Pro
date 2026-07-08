@@ -181,6 +181,9 @@ const linking: LinkingOptions<RootStackParamList> = {
           shopId: (shopId: string) => shopId,
           productId: (productId: string) => productId
         }
+      },
+      MarketplaceList: {
+        path: "market/list"
       }
     }
   }

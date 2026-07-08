@@ -24,6 +24,15 @@ enum MerchantSubscriptionTier {
 enum MerchantSubscriptionStatus {
   active
   past_due
+  suspended
+  cancelled
+  trialing
+}
+
+enum MerchantPremiumBillingUnit {
+  hour
+  day
+  month
 }
 
 enum MerchantSubscriptionInvoiceStatus {
@@ -2656,6 +2665,20 @@ model PlatformSettings {
   merchantPremiumPriceXof Decimal @default(5000) @db.Decimal(14, 2)
   /// Nombre max de boutiques par profil Premium commerçant (global, identique pour tous).
   merchantPremiumMaxShops Int @default(3)
+  /// Unité de périodicité Premium (heure / jour / mois).
+  merchantPremiumBillingUnit MerchantPremiumBillingUnit @default(month)
+  /// Intervalle de périodicité (ex. 1 mois, 7 jours).
+  merchantPremiumBillingInterval Int @default(1)
+  /// Jours de grâce après échéance avant downgrade Free.
+  merchantPremiumGraceDays Int @default(7)
+  /// Essai gratuit Premium activable globalement.
+  merchantPremiumTrialEnabled Boolean @default(false)
+  /// Durée d'essai dans l'unité de facturation.
+  merchantPremiumTrialUnits Int @default(7)
+  /// Promo % active globalement.
+  merchantPremiumPromoEnabled Boolean @default(false)
+  merchantPremiumPromoPercentOff Int @default(20)
+  merchantPremiumPromoEndsAt DateTime?
   updatedAt             DateTime @updatedAt
 }
 
@@ -2870,6 +2893,7 @@ model BuyerProfile {
   updatedAt           DateTime  @updatedAt
   priceAlerts         BuyerPriceAlert[]
   favorites           BuyerFavorite[]
+  merchantFavorites   BuyerMerchantFavorite[]
 
   @@index([buyerType])
   @@index([creditScore])
@@ -2995,6 +3019,19 @@ model BuyerFavorite {
   @@unique([buyerProfileId, listingId])
   @@index([buyerProfileId])
   @@index([listingId])
+}
+
+model BuyerMerchantFavorite {
+  id               String           @id @default(cuid())
+  buyerProfileId   String
+  buyerProfile     BuyerProfile     @relation(fields: [buyerProfileId], references: [id], onDelete: Cascade)
+  productId        String
+  product          MerchantProduct  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt        DateTime         @default(now())
+
+  @@unique([buyerProfileId, productId])
+  @@index([buyerProfileId])
+  @@index([productId])
 }
 
 model PlatformFeatureFlag {
@@ -3231,6 +3268,11 @@ model MerchantProfile {
   graceEndsAt          DateTime?
   /// Clé anti-doublon rappels SMS (ex. 2026-08-07:j_minus_3).
   billingReminderKey   String?
+  trialEndsAt          DateTime?
+  promoPercentOffApplied Int?
+  cancelledAt          DateTime?
+  suspendedAt          DateTime?
+  suspensionReason     String?
   shopSkipped          Boolean                   @default(false)
   productSkipped       Boolean                   @default(false)
   onboardingComplete   Boolean                   @default(false)
@@ -3242,6 +3284,7 @@ model MerchantProfile {
 
   @@index([subscriptionTier])
   @@index([subscriptionTier, nextBillingAt])
+  @@index([subscriptionStatus])
 }
 
 /// Facture mensuelle Premium commerçant (lien mobile money).
@@ -3319,6 +3362,7 @@ model MerchantProduct {
   orders         MerchantOrder[]
   chatRooms      ChatRoom[]
   moderationLogs MerchantProductModerationLog[]
+  favorites      BuyerMerchantFavorite[]
 
   @@index([shopId, status, createdAt])
   @@index([categoryId])

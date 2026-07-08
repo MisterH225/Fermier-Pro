@@ -16,10 +16,12 @@ import { UserWalletService } from "../wallet/user-wallet.service";
 import { MERCHANT_FREE_MAX_ACTIVE_PRODUCTS } from "./merchant-shop.constants";
 import {
   MERCHANT_SUBSCRIPTION_GRACE_DAYS,
+  addBillingPeriod,
   addMonthsUtc,
   daysBetweenUtc,
   startOfUtcDay
 } from "./merchant-subscription.constants";
+import { resolveMerchantPremiumBillingConfig } from "./merchant-premium-billing-config";
 
 @Injectable()
 export class MerchantSubscriptionBillingService {
@@ -33,14 +35,24 @@ export class MerchantSubscriptionBillingService {
   ) {}
 
   async getPremiumPriceXof(): Promise<number> {
+    const cfg = await this.getBillingConfig();
+    return cfg.effectivePriceXof;
+  }
+
+  async getBillingConfig() {
     const settings = await this.prisma.platformSettings.findUnique({
       where: { id: "default" }
     });
-    return Number(settings?.merchantPremiumPriceXof ?? 5000);
+    return resolveMerchantPremiumBillingConfig(settings);
   }
 
   async activatePremium(profileId: string, paidAt = new Date()) {
-    const nextBillingAt = addMonthsUtc(paidAt, 1);
+    const cfg = await this.getBillingConfig();
+    const nextBillingAt = addBillingPeriod(
+      paidAt,
+      cfg.billingUnit,
+      cfg.billingInterval
+    );
     await this.prisma.merchantProfile.update({
       where: { id: profileId },
       data: {
@@ -49,7 +61,40 @@ export class MerchantSubscriptionBillingService {
         premiumPaidAt: paidAt,
         nextBillingAt,
         graceEndsAt: null,
-        billingReminderKey: null
+        billingReminderKey: null,
+        trialEndsAt: null,
+        cancelledAt: null,
+        suspendedAt: null,
+        suspensionReason: null,
+        promoPercentOffApplied: cfg.promoEnabled ? cfg.promoPercentOff : null
+      }
+    });
+  }
+
+  async activateTrial(profileId: string, from = new Date()) {
+    const cfg = await this.getBillingConfig();
+    if (!cfg.trialEnabled) {
+      throw new NotFoundException("Essai gratuit Premium désactivé");
+    }
+    const trialEndsAt = addBillingPeriod(
+      from,
+      cfg.billingUnit,
+      cfg.trialUnits
+    );
+    await this.prisma.merchantProfile.update({
+      where: { id: profileId },
+      data: {
+        subscriptionTier: MerchantSubscriptionTier.premium,
+        subscriptionStatus: MerchantSubscriptionStatus.trialing,
+        subscriptionChosenAt: from,
+        premiumPaidAt: null,
+        nextBillingAt: trialEndsAt,
+        trialEndsAt,
+        graceEndsAt: null,
+        billingReminderKey: null,
+        cancelledAt: null,
+        suspendedAt: null,
+        suspensionReason: null
       }
     });
   }
@@ -60,7 +105,12 @@ export class MerchantSubscriptionBillingService {
     periodStart: Date,
     amount: number
   ) {
-    const periodEnd = addMonthsUtc(periodStart, 1);
+    const cfg = await this.getBillingConfig();
+    const periodEnd = addBillingPeriod(
+      periodStart,
+      cfg.billingUnit,
+      cfg.billingInterval
+    );
     const existing = await this.prisma.merchantSubscriptionInvoice.findUnique({
       where: {
         merchantProfileId_billingPeriodStart: {
@@ -295,6 +345,7 @@ export class MerchantSubscriptionBillingService {
     } catch {
       return false;
     }
+    const cfg = await this.getBillingConfig();
     const ref = `merchant-sub-wallet:${profile.id}:${startOfUtcDay(new Date()).toISOString()}`;
     await this.wallet.debitForMerchantSubscription(
       userId,
@@ -312,7 +363,11 @@ export class MerchantSubscriptionBillingService {
         currency: "XOF",
         status: MerchantSubscriptionInvoiceStatus.paid,
         billingPeriodStart: periodStart,
-        billingPeriodEnd: addMonthsUtc(periodStart, 1),
+        billingPeriodEnd: addBillingPeriod(
+          periodStart,
+          cfg.billingUnit,
+          cfg.billingInterval
+        ),
         dueDate: periodStart,
         paidAt,
         providerRef: ref
@@ -324,16 +379,33 @@ export class MerchantSubscriptionBillingService {
   }
 
   async runDailyBillingCycle(): Promise<void> {
-    const today = startOfUtcDay(new Date());
-    const price = await this.getPremiumPriceXof();
+    await this.runBillingCycle(new Date());
+  }
+
+  async runBillingCycle(now = new Date()): Promise<void> {
+    const today = startOfUtcDay(now);
+    const cfg = await this.getBillingConfig();
+    const price = cfg.effectivePriceXof;
     const profiles = await this.prisma.merchantProfile.findMany({
-      where: { subscriptionTier: MerchantSubscriptionTier.premium },
+      where: {
+        subscriptionTier: MerchantSubscriptionTier.premium,
+        subscriptionStatus: {
+          in: [
+            MerchantSubscriptionStatus.active,
+            MerchantSubscriptionStatus.past_due,
+            MerchantSubscriptionStatus.trialing
+          ]
+        }
+      },
       include: { user: { select: { id: true, phone: true } } }
     });
 
     for (const profile of profiles) {
       try {
-        await this.processProfileBilling(profile, today, price);
+        if (profile.subscriptionStatus === MerchantSubscriptionStatus.suspended) {
+          continue;
+        }
+        await this.processProfileBilling(profile, today, now, price, cfg.graceDays);
       } catch (err) {
         this.log.error(
           `Billing cycle profile=${profile.id}: ${err instanceof Error ? err.message : String(err)}`
@@ -345,14 +417,37 @@ export class MerchantSubscriptionBillingService {
   private async processProfileBilling(
     profile: MerchantProfile & { user: { id: string; phone: string | null } },
     today: Date,
-    price: number
+    now: Date,
+    price: number,
+    graceDays: number
   ) {
+    if (
+      profile.subscriptionStatus === MerchantSubscriptionStatus.trialing &&
+      profile.trialEndsAt &&
+      profile.trialEndsAt.getTime() <= now.getTime()
+    ) {
+      // Fin d'essai → facturation normale à l'échéance.
+      await this.prisma.merchantProfile.update({
+        where: { id: profile.id },
+        data: {
+          subscriptionStatus: MerchantSubscriptionStatus.active,
+          trialEndsAt: null
+        }
+      });
+      profile.subscriptionStatus = MerchantSubscriptionStatus.active;
+    }
+
     if (!profile.nextBillingAt) {
       if (profile.premiumPaidAt) {
+        const cfg = await this.getBillingConfig();
         await this.prisma.merchantProfile.update({
           where: { id: profile.id },
           data: {
-            nextBillingAt: addMonthsUtc(profile.premiumPaidAt, 1),
+            nextBillingAt: addBillingPeriod(
+              profile.premiumPaidAt,
+              cfg.billingUnit,
+              cfg.billingInterval
+            ),
             subscriptionStatus: MerchantSubscriptionStatus.active
           }
         });
@@ -361,24 +456,25 @@ export class MerchantSubscriptionBillingService {
     }
 
     const billingDay = startOfUtcDay(profile.nextBillingAt);
+    const dueReached = profile.nextBillingAt.getTime() <= now.getTime();
     const daysUntilDue = daysBetweenUtc(today, billingDay);
     const daysPastDue = daysBetweenUtc(billingDay, today);
 
     if (
       profile.subscriptionStatus === MerchantSubscriptionStatus.past_due &&
       profile.graceEndsAt &&
-      daysBetweenUtc(startOfUtcDay(profile.graceEndsAt), today) >= 0
+      profile.graceEndsAt.getTime() <= now.getTime()
     ) {
       await this.expirePremium(profile);
       return;
     }
 
-    if (daysUntilDue === 3) {
+    if (daysUntilDue === 3 && !dueReached) {
       await this.sendBillingReminder(profile, billingDay, price, "j_minus_3", null);
       return;
     }
 
-    if (daysUntilDue === 0) {
+    if (dueReached && profile.subscriptionStatus !== MerchantSubscriptionStatus.past_due) {
       const walletPaid = await this.tryWalletRenewal(
         profile.user.id,
         profile,
@@ -395,13 +491,16 @@ export class MerchantSubscriptionBillingService {
         price
       );
 
+      const resolvedGrace =
+        graceDays > 0 ? graceDays : MERCHANT_SUBSCRIPTION_GRACE_DAYS;
+
       await this.prisma.merchantProfile.update({
         where: { id: profile.id },
         data: {
           subscriptionStatus: MerchantSubscriptionStatus.past_due,
           graceEndsAt: new Date(
-            billingDay.getTime() +
-              MERCHANT_SUBSCRIPTION_GRACE_DAYS * 86_400_000
+            Math.max(profile.nextBillingAt.getTime(), now.getTime()) +
+              resolvedGrace * 86_400_000
           )
         }
       });
@@ -542,9 +641,14 @@ export class MerchantSubscriptionBillingService {
         where: { id: profile.id },
         data: {
           subscriptionTier: MerchantSubscriptionTier.free,
-          subscriptionStatus: null,
+          subscriptionStatus: MerchantSubscriptionStatus.cancelled,
           graceEndsAt: null,
-          billingReminderKey: null
+          billingReminderKey: null,
+          trialEndsAt: null,
+          cancelledAt: new Date(),
+          suspendedAt: null,
+          suspensionReason: null,
+          nextBillingAt: null
         }
       }),
       ...toDisable.map((prod) =>
@@ -559,6 +663,14 @@ export class MerchantSubscriptionBillingService {
       )
     ]);
 
+    await this.prisma.merchantSubscriptionInvoice.updateMany({
+      where: {
+        merchantProfileId: profile.id,
+        status: MerchantSubscriptionInvoiceStatus.pending
+      },
+      data: { status: MerchantSubscriptionInvoiceStatus.expired }
+    });
+
     const phone = profile.user.phone?.trim();
     if (phone) {
       await this.sendSmsSafe(
@@ -567,6 +679,88 @@ export class MerchantSubscriptionBillingService {
         profile.id
       );
     }
+  }
+
+  async suspendProfile(profileId: string, reason?: string | null) {
+    const profile = await this.prisma.merchantProfile.findUnique({
+      where: { id: profileId }
+    });
+    if (!profile || profile.subscriptionTier !== MerchantSubscriptionTier.premium) {
+      throw new NotFoundException("Abonnement Premium introuvable");
+    }
+    await this.prisma.merchantProfile.update({
+      where: { id: profileId },
+      data: {
+        subscriptionStatus: MerchantSubscriptionStatus.suspended,
+        suspendedAt: new Date(),
+        suspensionReason: reason?.trim() || null
+      }
+    });
+  }
+
+  async resumeProfile(profileId: string) {
+    const profile = await this.prisma.merchantProfile.findUnique({
+      where: { id: profileId }
+    });
+    if (
+      !profile ||
+      profile.subscriptionTier !== MerchantSubscriptionTier.premium ||
+      profile.subscriptionStatus !== MerchantSubscriptionStatus.suspended
+    ) {
+      throw new NotFoundException("Abonnement suspendu introuvable");
+    }
+    const stillTrial =
+      profile.trialEndsAt && profile.trialEndsAt.getTime() > Date.now();
+    await this.prisma.merchantProfile.update({
+      where: { id: profileId },
+      data: {
+        subscriptionStatus: stillTrial
+          ? MerchantSubscriptionStatus.trialing
+          : MerchantSubscriptionStatus.active,
+        suspendedAt: null,
+        suspensionReason: null
+      }
+    });
+  }
+
+  async cancelProfile(profileId: string, _reason?: string | null) {
+    const profile = await this.prisma.merchantProfile.findUnique({
+      where: { id: profileId },
+      include: { user: { select: { id: true, phone: true } } }
+    });
+    if (!profile) {
+      throw new NotFoundException("Profil commerçant introuvable");
+    }
+    await this.expirePremium(profile);
+  }
+
+  async grantTrial(profileId: string, units?: number) {
+    const cfg = await this.getBillingConfig();
+    const trialUnits = Math.max(1, units ?? cfg.trialUnits);
+    const from = new Date();
+    const trialEndsAt = addBillingPeriod(from, cfg.billingUnit, trialUnits);
+    await this.prisma.merchantProfile.update({
+      where: { id: profileId },
+      data: {
+        subscriptionTier: MerchantSubscriptionTier.premium,
+        subscriptionStatus: MerchantSubscriptionStatus.trialing,
+        subscriptionChosenAt: from,
+        trialEndsAt,
+        nextBillingAt: trialEndsAt,
+        cancelledAt: null,
+        suspendedAt: null,
+        suspensionReason: null,
+        graceEndsAt: null
+      }
+    });
+  }
+
+  async applyPromoOverride(profileId: string, percentOff: number) {
+    const pct = Math.min(100, Math.max(0, Math.floor(percentOff)));
+    await this.prisma.merchantProfile.update({
+      where: { id: profileId },
+      data: { promoPercentOffApplied: pct }
+    });
   }
 
   private async sendSmsSafe(phone: string, message: string, profileId: string) {

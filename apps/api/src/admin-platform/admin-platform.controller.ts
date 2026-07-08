@@ -57,6 +57,12 @@ import {
   DeleteMerchantProductAdminDto,
   UpdateMerchantCategoryDto
 } from "../merchant-shop/dto/merchant-shop.dto";
+import { AdminMerchantSubscriptionsService } from "./admin-merchant-subscriptions.service";
+import {
+  AdminMerchantApplyPromoDto,
+  AdminMerchantGrantTrialDto,
+  AdminMerchantSubReasonDto
+} from "./dto/admin-merchant-subscriptions.dto";
 
 @Controller("admin")
 @UseGuards(SupabaseJwtGuard, ConsoleAccessGuard, AdminConsoleMenuGuard)
@@ -73,7 +79,8 @@ export class AdminPlatformController {
     private readonly producerScore: ProducerScoreService,
     private readonly consoleAccess: AdminConsoleAccessService,
     private readonly merchantCategories: MerchantCategoriesService,
-    private readonly merchantModeration: MerchantModerationService
+    private readonly merchantModeration: MerchantModerationService,
+    private readonly merchantSubscriptions: AdminMerchantSubscriptionsService
   ) {}
 
   @Get("me")
@@ -594,6 +601,56 @@ export class AdminPlatformController {
   @Get("merchant/categories")
   adminListMerchantCategories() {
     return this.merchantCategories.listAdmin();
+  }
+
+  @Get("merchant-subscriptions")
+  adminListMerchantSubscriptions(
+    @Query("status") status?: string,
+    @Query("q") q?: string,
+    @Query("take") take?: string
+  ) {
+    return this.merchantSubscriptions.list({
+      status,
+      q,
+      take: take ? Number(take) : undefined
+    });
+  }
+
+  @Post("merchant-subscriptions/:profileId/suspend")
+  adminSuspendMerchantSubscription(
+    @Param("profileId") profileId: string,
+    @Body() body: AdminMerchantSubReasonDto
+  ) {
+    return this.merchantSubscriptions.suspend(profileId, body.reason);
+  }
+
+  @Post("merchant-subscriptions/:profileId/resume")
+  adminResumeMerchantSubscription(@Param("profileId") profileId: string) {
+    return this.merchantSubscriptions.resume(profileId);
+  }
+
+  @Post("merchant-subscriptions/:profileId/cancel")
+  adminCancelMerchantSubscription(
+    @Param("profileId") profileId: string,
+    @Body() body: AdminMerchantSubReasonDto
+  ) {
+    return this.merchantSubscriptions.cancel(profileId, body.reason);
+  }
+
+  @Post("merchant-subscriptions/:profileId/grant-trial")
+  adminGrantMerchantTrial(
+    @Param("profileId") profileId: string,
+    @Body() body: AdminMerchantGrantTrialDto
+  ) {
+    return this.merchantSubscriptions.grantTrial(profileId, body.units);
+  }
+
+  @Post("merchant-subscriptions/:profileId/apply-promo")
+  adminApplyMerchantPromo(
+    @Param("profileId") profileId: string,
+    @Body() body: AdminMerchantApplyPromoDto
+  ) {
+    return this.merchantSubscriptions.applyPromo(profileId, body.percentOff);
   }
 
   @Post("merchant/categories")

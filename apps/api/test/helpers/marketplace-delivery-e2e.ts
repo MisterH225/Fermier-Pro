@@ -26,7 +26,7 @@ export async function seedBuyerFarm(
   return farm.id;
 }
 
-async function createListingAnimal(
+export async function createListingAnimal(
   prisma: PrismaClient,
   farmId: string
 ): Promise<string> {

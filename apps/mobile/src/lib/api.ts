@@ -4531,11 +4531,13 @@ export function createFarm(
 /** GET /marketplace/listings — JWT ; sans `mine` = catalogue publié. */
 export type MarketplaceListingListItem = {
   id: string;
+  kind?: "listing" | "merchant";
   sellerUserId?: string;
   title: string;
   description: string | null;
   unitPrice: string | number | null;
   quantity: number | null;
+  stock?: number | null;
   currency: string;
   locationLabel: string | null;
   status: string;
@@ -4545,6 +4547,7 @@ export type MarketplaceListingListItem = {
   createdAt: string;
   updatedAt: string;
   category?: string | null;
+  categoryLabel?: string | null;
   photoUrls?: string[] | null;
   /** Photo cheptel si photoUrls vide (API). */
   fallbackPhotoUrl?: string | null;
@@ -4591,6 +4594,22 @@ export function fetchMarketplaceListings(
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
   return apiGetJson<MarketplaceListingListItem[]>(
     `/marketplace/listings${suffix}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export type MarketplaceListingCategoryGroup = {
+  pig: Array<{ id: string; label: string }>;
+  merchant: Array<{ id: string; label: string }>;
+};
+
+export function fetchMarketplaceListingCategories(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<MarketplaceListingCategoryGroup> {
+  return apiGetJson<MarketplaceListingCategoryGroup>(
+    "/marketplace/listings/categories",
     accessToken,
     activeProfileId
   );
@@ -7293,8 +7312,8 @@ export function fetchBuyerFavorites(
 export function fetchBuyerFavoriteIds(
   accessToken: string,
   activeProfileId?: string | null
-): Promise<string[]> {
-  return apiGetJson<string[]>(
+): Promise<{ listingIds: string[]; productIds: string[] }> {
+  return apiGetJson<{ listingIds: string[]; productIds: string[] }>(
     "/buyers/me/favorites/ids",
     accessToken,
     activeProfileId
@@ -7322,7 +7341,34 @@ export function removeBuyerFavorite(
   listingId: string
 ): Promise<{ ok: boolean }> {
   return apiDeleteJson<{ ok: boolean }>(
-    `/buyers/me/favorites/${encodeURIComponent(listingId)}`,
+    `/buyers/me/favorites/${listingId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** POST /api/v1/buyers/me/favorites/products */
+export function addBuyerMerchantFavorite(
+  accessToken: string,
+  activeProfileId: string | null | undefined,
+  productId: string
+): Promise<{ ok: boolean; productId: string; favoriteId: string }> {
+  return apiPostJson(
+    "/buyers/me/favorites/products",
+    { productId },
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** DELETE /api/v1/buyers/me/favorites/products/:productId */
+export function removeBuyerMerchantFavorite(
+  accessToken: string,
+  activeProfileId: string | null | undefined,
+  productId: string
+): Promise<{ ok: boolean }> {
+  return apiDeleteJson<{ ok: boolean }>(
+    `/buyers/me/favorites/products/${productId}`,
     accessToken,
     activeProfileId
   );

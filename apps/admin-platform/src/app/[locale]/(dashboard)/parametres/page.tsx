@@ -36,7 +36,19 @@ function normalizeSettingsRow(row: PlatformSettingsDto): PlatformSettingsDto {
       row.marketplaceWeightArbitrationCumulativeMinDiffKg ?? 5
     ),
     merchantPremiumPriceXof: Number(row.merchantPremiumPriceXof ?? 5000),
-    merchantPremiumMaxShops: Number(row.merchantPremiumMaxShops ?? 3)
+    merchantPremiumMaxShops: Number(row.merchantPremiumMaxShops ?? 3),
+    merchantPremiumBillingUnit: row.merchantPremiumBillingUnit ?? "month",
+    merchantPremiumBillingInterval: Number(
+      row.merchantPremiumBillingInterval ?? 1
+    ),
+    merchantPremiumGraceDays: Number(row.merchantPremiumGraceDays ?? 7),
+    merchantPremiumTrialEnabled: Boolean(row.merchantPremiumTrialEnabled),
+    merchantPremiumTrialUnits: Number(row.merchantPremiumTrialUnits ?? 7),
+    merchantPremiumPromoEnabled: Boolean(row.merchantPremiumPromoEnabled),
+    merchantPremiumPromoPercentOff: Number(
+      row.merchantPremiumPromoPercentOff ?? 20
+    ),
+    merchantPremiumPromoEndsAt: row.merchantPremiumPromoEndsAt ?? null
   };
 }
 

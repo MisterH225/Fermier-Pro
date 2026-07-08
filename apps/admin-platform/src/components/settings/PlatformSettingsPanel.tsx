@@ -454,6 +454,167 @@ export function PlatformSettingsPanel({
             </p>
           </div>
         </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="merchant-billing-unit">
+              {t("fields.merchantPremiumBillingUnit")}
+            </Label>
+            <select
+              id="merchant-billing-unit"
+              className={selectClass}
+              disabled={!canEdit}
+              value={form.merchantPremiumBillingUnit ?? "month"}
+              onChange={(e) =>
+                update(
+                  "merchantPremiumBillingUnit",
+                  e.target.value as PlatformSettingsDto["merchantPremiumBillingUnit"]
+                )
+              }
+            >
+              <option value="hour">{t("fields.billingUnitHour")}</option>
+              <option value="day">{t("fields.billingUnitDay")}</option>
+              <option value="month">{t("fields.billingUnitMonth")}</option>
+            </select>
+            <p className="text-xs text-muted-foreground">
+              {t("fields.merchantPremiumBillingUnitHint")}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="merchant-billing-interval">
+              {t("fields.merchantPremiumBillingInterval")}
+            </Label>
+            <Input
+              id="merchant-billing-interval"
+              type="number"
+              min={1}
+              max={365}
+              disabled={!canEdit}
+              value={form.merchantPremiumBillingInterval ?? 1}
+              onChange={(e) =>
+                update(
+                  "merchantPremiumBillingInterval",
+                  Number(e.target.value) || 1
+                )
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("fields.merchantPremiumBillingIntervalHint")}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="merchant-grace-days">
+              {t("fields.merchantPremiumGraceDays")}
+            </Label>
+            <Input
+              id="merchant-grace-days"
+              type="number"
+              min={0}
+              max={365}
+              disabled={!canEdit}
+              value={form.merchantPremiumGraceDays ?? 7}
+              onChange={(e) =>
+                update("merchantPremiumGraceDays", Number(e.target.value) || 0)
+              }
+            />
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="merchant-trial-enabled">
+              {t("fields.merchantPremiumTrialEnabled")}
+            </Label>
+            <select
+              id="merchant-trial-enabled"
+              className={selectClass}
+              disabled={!canEdit}
+              value={form.merchantPremiumTrialEnabled ? "1" : "0"}
+              onChange={(e) =>
+                update("merchantPremiumTrialEnabled", e.target.value === "1")
+              }
+            >
+              <option value="0">{t("fields.no")}</option>
+              <option value="1">{t("fields.yes")}</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="merchant-trial-units">
+              {t("fields.merchantPremiumTrialUnits")}
+            </Label>
+            <Input
+              id="merchant-trial-units"
+              type="number"
+              min={1}
+              max={365}
+              disabled={!canEdit}
+              value={form.merchantPremiumTrialUnits ?? 7}
+              onChange={(e) =>
+                update("merchantPremiumTrialUnits", Number(e.target.value) || 1)
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("fields.merchantPremiumTrialUnitsHint")}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="merchant-promo-enabled">
+              {t("fields.merchantPremiumPromoEnabled")}
+            </Label>
+            <select
+              id="merchant-promo-enabled"
+              className={selectClass}
+              disabled={!canEdit}
+              value={form.merchantPremiumPromoEnabled ? "1" : "0"}
+              onChange={(e) =>
+                update("merchantPremiumPromoEnabled", e.target.value === "1")
+              }
+            >
+              <option value="0">{t("fields.no")}</option>
+              <option value="1">{t("fields.yes")}</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="merchant-promo-pct">
+              {t("fields.merchantPremiumPromoPercentOff")}
+            </Label>
+            <Input
+              id="merchant-promo-pct"
+              type="number"
+              min={0}
+              max={100}
+              disabled={!canEdit}
+              value={form.merchantPremiumPromoPercentOff ?? 20}
+              onChange={(e) =>
+                update(
+                  "merchantPremiumPromoPercentOff",
+                  Number(e.target.value) || 0
+                )
+              }
+            />
+          </div>
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="merchant-promo-ends">
+              {t("fields.merchantPremiumPromoEndsAt")}
+            </Label>
+            <Input
+              id="merchant-promo-ends"
+              type="datetime-local"
+              disabled={!canEdit}
+              value={
+                form.merchantPremiumPromoEndsAt
+                  ? form.merchantPremiumPromoEndsAt.slice(0, 16)
+                  : ""
+              }
+              onChange={(e) =>
+                update(
+                  "merchantPremiumPromoEndsAt",
+                  e.target.value
+                    ? new Date(e.target.value).toISOString()
+                    : null
+                )
+              }
+            />
+          </div>
+        </div>
       </AdminSection>
 
       <AdminSection
