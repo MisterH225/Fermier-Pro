@@ -28,8 +28,11 @@ import {
 } from "../../../lib/api";
 import { formatApiError } from "../../../lib/apiErrors";
 import { resolveMerchantOnboardingStep } from "../../../lib/merchantOnboardingState";
+import { validateMerchantProductFormInput } from "../../../lib/merchantProductForm";
 import { MerchantSubscriptionScreen } from "../../merchant/MerchantSubscriptionScreen";
+import { merchantColors } from "../../../theme/merchantTheme";
 import { mobileColors, mobileRadius, mobileSpacing } from "../../../theme/mobileTheme";
+import type { ReactNode } from "react";
 
 type Props = {
   onFinished: () => void;
@@ -131,11 +134,15 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
   };
 
   const onCreateProduct = async () => {
-    if (!accessToken || !activeProfileId || !me?.shops[0] || !categoryId) return;
-    const price = Number.parseFloat(productPrice.replace(",", "."));
-    const stock = Number.parseInt(productStock, 10);
-    if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(stock)) {
-      setError(t("merchant.onboarding.invalidProduct"));
+    if (!accessToken || !activeProfileId || !me?.shops[0]) return;
+    const validation = validateMerchantProductFormInput({
+      name: productName,
+      price: productPrice,
+      stock: productStock,
+      categoryId
+    });
+    if (!validation.ok) {
+      setError(t(validation.errorKey));
       return;
     }
     setBusy(true);
@@ -147,9 +154,9 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
         me.shops[0].id,
         {
           name: productName.trim(),
-          categoryId,
-          price,
-          stock,
+          categoryId: categoryId!,
+          price: validation.price,
+          stock: validation.stock,
           photoUrls: productPhotoUrls
         }
       );
@@ -285,47 +292,75 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
 
         {step === 2 && (me?.shopCount ?? 0) > 0 ? (
           <>
-            <Pressable onPress={() => void ensureCategories()} style={styles.hint}>
-              <Text>{t("merchant.onboarding.loadCategories")}</Text>
-            </Pressable>
             <MerchantProductPhotoGrid
               shopId={me?.shops[0]?.id ?? null}
               photoUrls={productPhotoUrls}
               onChange={setProductPhotoUrls}
             />
-            <TextInput
-              style={styles.input}
-              value={productName}
-              onChangeText={setProductName}
-              placeholder={t("merchant.onboarding.productName")}
-            />
-            <TextInput
-              style={styles.input}
-              value={productPrice}
-              onChangeText={setProductPrice}
-              keyboardType="decimal-pad"
-              placeholder={t("merchant.onboarding.productPrice")}
-            />
-            <TextInput
-              style={styles.input}
-              value={productStock}
-              onChangeText={setProductStock}
-              keyboardType="number-pad"
-              placeholder={t("merchant.onboarding.productStock")}
-            />
-            <View style={styles.catRow}>
-              {categories.map((c) => (
-                <Pressable
-                  key={c.id}
-                  style={[styles.catChip, categoryId === c.id && styles.catChipOn]}
-                  onPress={() => setCategoryId(c.id)}
-                >
-                  <Text>{c.name}</Text>
+            <OnboardingField label={t("merchant.onboarding.productName")} required>
+              <TextInput
+                style={styles.input}
+                value={productName}
+                onChangeText={setProductName}
+                placeholder={t("merchant.product.placeholders.name")}
+                testID="merchant-onboarding-product-name"
+              />
+            </OnboardingField>
+            <OnboardingField label={t("merchant.onboarding.productPrice")} required>
+              <TextInput
+                style={styles.input}
+                value={productPrice}
+                onChangeText={setProductPrice}
+                keyboardType="decimal-pad"
+                placeholder={t("merchant.product.placeholders.price")}
+                testID="merchant-onboarding-product-price"
+              />
+            </OnboardingField>
+            <OnboardingField
+              label={t("merchant.product.stockLabel")}
+              hint={t("merchant.product.stockHint")}
+              required
+            >
+              <TextInput
+                style={styles.input}
+                value={productStock}
+                onChangeText={setProductStock}
+                keyboardType="number-pad"
+                placeholder={t("merchant.onboarding.productStock")}
+                testID="merchant-onboarding-product-stock"
+              />
+            </OnboardingField>
+            <OnboardingField label={t("merchant.product.categoryLabel")} required>
+              {categories.length === 0 ? (
+                <Pressable onPress={() => void ensureCategories()} style={styles.hint}>
+                  <Text>{t("merchant.onboarding.loadCategories")}</Text>
                 </Pressable>
-              ))}
-            </View>
-            <Pressable style={styles.primary} onPress={() => void onCreateProduct()} disabled={busy}>
-              {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryTx}>{t("merchant.onboarding.createProduct")}</Text>}
+              ) : (
+                <View style={styles.catRow}>
+                  {categories.map((c) => (
+                    <Pressable
+                      key={c.id}
+                      style={[styles.catChip, categoryId === c.id && styles.catChipOn]}
+                      onPress={() => setCategoryId(c.id)}
+                      testID={`merchant-onboarding-category-${c.slug}`}
+                    >
+                      <Text>{c.name}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </OnboardingField>
+            <Pressable
+              style={styles.primary}
+              onPress={() => void onCreateProduct()}
+              disabled={busy}
+              testID="merchant-onboarding-create-product"
+            >
+              {busy ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.primaryTx}>{t("merchant.onboarding.createProduct")}</Text>
+              )}
             </Pressable>
             <Pressable style={styles.secondary} onPress={() => void skipStep({ productSkipped: true })} disabled={busy}>
               <Text style={styles.secondaryTx}>{t("merchant.onboarding.skip")}</Text>
@@ -345,11 +380,38 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
   );
 }
 
+function OnboardingField({
+  label,
+  hint,
+  required = false,
+  children
+}: {
+  label: string;
+  hint?: string;
+  required?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <View style={styles.field}>
+      <Text style={styles.fieldLabel}>
+        {label}
+        {required ? <Text style={styles.required}> *</Text> : null}
+      </Text>
+      {hint ? <Text style={styles.fieldHint}>{hint}</Text> : null}
+      {children}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: mobileColors.background },
   flex: { flex: 1 },
   scroll: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
   title: { fontSize: 22, fontWeight: "700", color: mobileColors.textPrimary },
+  field: { gap: mobileSpacing.xs },
+  fieldLabel: { fontSize: 14, fontWeight: "700", color: merchantColors.textPrimary },
+  fieldHint: { fontSize: 12, color: merchantColors.textSecondary, marginBottom: 2 },
+  required: { color: merchantColors.danger },
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
