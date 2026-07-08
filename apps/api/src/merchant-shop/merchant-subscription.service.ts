@@ -204,6 +204,15 @@ export class MerchantSubscriptionService {
     return this.billing.initiateRenewal(user);
   }
 
+  async cancel(user: User) {
+    const profile = await this.profiles.ensureProfile(user.id);
+    if (profile.subscriptionTier !== MerchantSubscriptionTier.premium) {
+      throw new BadRequestException("Aucun abonnement Premium actif à annuler");
+    }
+    await this.billing.cancelProfile(profile.id);
+    return this.profiles.getMe(user);
+  }
+
   async downgradeToFree(userId: string) {
     const profile = await this.prisma.merchantProfile.findUnique({
       where: { userId },

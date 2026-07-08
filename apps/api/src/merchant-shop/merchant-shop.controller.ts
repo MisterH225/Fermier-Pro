@@ -83,6 +83,14 @@ export class MerchantShopController {
     return this.subscription.renew(user);
   }
 
+  @Post("me/subscription/cancel")
+  @UseGuards(MerchantProfileGuard)
+  cancelSubscription(
+    @CurrentUser() user: Parameters<MerchantSubscriptionService["cancel"]>[0]
+  ) {
+    return this.subscription.cancel(user);
+  }
+
   @Get("dashboard")
   @UseGuards(MerchantProfileGuard)
   getDashboard(

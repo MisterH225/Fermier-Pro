@@ -4151,6 +4151,13 @@ export const en = {
       mainShop: "Main shop",
       nextBilling: "Next billing date",
       graceEnds: "Grace period ends",
+      cancelSubscription: "Cancel Premium subscription",
+      cancelSubscriptionTitle: "Cancel Premium subscription?",
+      cancelSubscriptionMessage:
+        "You will switch to the Free plan: 1 shop and up to 5 active products. Extra products will be disabled. This takes effect immediately.",
+      cancelSubscriptionConfirm: "Cancel subscription",
+      cancelSubscriptionSuccess: "Your Premium subscription has been cancelled.",
+      cancelSubscriptionError: "Could not cancel the subscription. Try again shortly.",
       changePhotoTitle: "Profile photo",
       changePhotoMessage: "Choose a source to update your photo.",
       pickGallery: "Gallery",

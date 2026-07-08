@@ -4200,6 +4200,13 @@ export const fr = {
       mainShop: "Boutique principale",
       nextBilling: "Prochaine échéance",
       graceEnds: "Fin de grâce",
+      cancelSubscription: "Annuler mon abonnement Premium",
+      cancelSubscriptionTitle: "Annuler l'abonnement Premium ?",
+      cancelSubscriptionMessage:
+        "Tu repasses sur le forfait Free : 1 boutique et 5 produits actifs max. Les produits au-delà seront désactivés. Cette action est immédiate.",
+      cancelSubscriptionConfirm: "Annuler l'abonnement",
+      cancelSubscriptionSuccess: "Ton abonnement Premium a été annulé.",
+      cancelSubscriptionError: "Impossible d'annuler l'abonnement. Réessaie dans un instant.",
       changePhotoTitle: "Photo de profil",
       changePhotoMessage: "Choisis une source pour mettre à jour ta photo.",
       pickGallery: "Galerie",

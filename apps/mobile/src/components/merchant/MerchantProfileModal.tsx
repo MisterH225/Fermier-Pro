@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import * as Linking from "expo-linking";
 import { useCallback, useEffect, useState } from "react";
@@ -23,6 +23,7 @@ import { ActiveProfileSwitcherControl } from "../account/ActiveProfileSwitcherCo
 import { ProfileLanguagePill } from "../account/ProfileLanguagePill";
 import { useSession } from "../../context/SessionContext";
 import {
+  cancelMerchantSubscription,
   fetchMerchantDashboard,
   fetchMerchantMe,
   patchAuthProfile,
@@ -66,8 +67,10 @@ export function MerchantProfileModal({ visible, onClose }: MerchantProfileModalP
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken, activeProfileId, authMe, refreshAuthMe } = useSession();
+  const queryClient = useQueryClient();
   const [pendingAvatarUri, setPendingAvatarUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const meQ = useQuery({
     queryKey: ["merchant-me", activeProfileId, "profileModal"],
@@ -103,11 +106,19 @@ export function MerchantProfileModal({ visible, onClose }: MerchantProfileModalP
   const tierLabel =
     me?.subscriptionStatus === "past_due"
       ? t("merchant.subscription.statusPastDue")
-      : me?.subscriptionTier === "premium"
-        ? t("merchant.subscription.premiumTitle")
-        : me?.subscriptionTier === "free"
-          ? t("merchant.subscription.freeTitle")
-          : t("merchant.dashboard.tierNone");
+      : me?.subscriptionStatus === "trialing"
+        ? t("merchant.subscription.statusTrialing")
+        : me?.subscriptionStatus === "suspended"
+          ? t("merchant.subscription.statusSuspended")
+          : me?.subscriptionStatus === "cancelled"
+            ? t("merchant.subscription.statusCancelled")
+            : me?.subscriptionTier === "premium"
+              ? t("merchant.subscription.premiumTitle")
+              : me?.subscriptionTier === "free"
+                ? t("merchant.subscription.freeTitle")
+                : t("merchant.dashboard.tierNone");
+
+  const canCancelSubscription = me?.subscriptionTier === "premium";
 
   const nextBillingLabel = me?.nextBillingAt
     ? new Date(me.nextBillingAt).toLocaleDateString("fr-FR")
@@ -224,6 +235,43 @@ export function MerchantProfileModal({ visible, onClose }: MerchantProfileModalP
   const openSubscription = () => {
     onClose();
     navigation.navigate("MerchantSubscription");
+  };
+
+  const confirmCancelSubscription = async () => {
+    if (!accessToken || !activeProfileId) return;
+    setCancelling(true);
+    try {
+      await cancelMerchantSubscription(accessToken, activeProfileId);
+      await queryClient.invalidateQueries({ queryKey: ["merchant-me", activeProfileId] });
+      await queryClient.invalidateQueries({
+        queryKey: ["merchant-dashboard", activeProfileId]
+      });
+      await meQ.refetch();
+      await dashQ.refetch();
+      Alert.alert("", t("merchant.profile.cancelSubscriptionSuccess"));
+    } catch (e) {
+      Alert.alert(
+        "",
+        e instanceof Error ? e.message : t("merchant.profile.cancelSubscriptionError")
+      );
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const openCancelSubscription = () => {
+    Alert.alert(
+      t("merchant.profile.cancelSubscriptionTitle"),
+      t("merchant.profile.cancelSubscriptionMessage"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("merchant.profile.cancelSubscriptionConfirm"),
+          style: "destructive",
+          onPress: () => void confirmCancelSubscription()
+        }
+      ]
+    );
   };
 
   const showSave = Boolean(pendingAvatarUri);
@@ -355,6 +403,23 @@ export function MerchantProfileModal({ visible, onClose }: MerchantProfileModalP
               </View>
             </View>
           </View>
+
+          {canCancelSubscription ? (
+            <Pressable
+              style={[styles.cancelSubBtn, cancelling && styles.cancelSubBtnDisabled]}
+              onPress={openCancelSubscription}
+              disabled={cancelling}
+              testID="merchant-profile-cancel-subscription"
+            >
+              {cancelling ? (
+                <ActivityIndicator size="small" color={merchantColors.danger} />
+              ) : (
+                <Text style={styles.cancelSubBtnTx}>
+                  {t("merchant.profile.cancelSubscription")}
+                </Text>
+              )}
+            </Pressable>
+          ) : null}
 
           <SectionHeader label={t("merchant.profile.sectionAccount")} />
           <AccountSettingsPanel
@@ -534,5 +599,21 @@ const styles = StyleSheet.create({
     color: merchantColors.textSecondary,
     textAlign: "center",
     marginTop: 2
+  },
+  cancelSubBtn: {
+    marginTop: mobileSpacing.sm,
+    paddingVertical: 14,
+    alignItems: "center",
+    borderRadius: merchantRadius.pill,
+    borderWidth: 1,
+    borderColor: merchantColors.danger
+  },
+  cancelSubBtnDisabled: {
+    opacity: 0.6
+  },
+  cancelSubBtnTx: {
+    color: merchantColors.danger,
+    fontWeight: "700",
+    fontSize: 15
   }
 });

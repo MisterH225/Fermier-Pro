@@ -205,6 +205,18 @@ export function renewMerchantSubscription(
   );
 }
 
+export function cancelMerchantSubscription(
+  accessToken: string,
+  profileId: string
+): Promise<MerchantMeDto> {
+  return apiPostJson(
+    "/merchant/me/subscription/cancel",
+    {},
+    accessToken,
+    profileId
+  );
+}
+
 export function confirmMerchantSubscription(
   accessToken: string,
   profileId: string,
