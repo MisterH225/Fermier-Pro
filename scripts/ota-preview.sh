@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Dernière release OTA preview : 2026-07-07T21:00Z — Normalisation E.164 Afrique de l'Ouest (16 pays)
+# Dernière release OTA preview : 2026-07-08T02:45Z — Fix passage Free → Premium commerçant
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 exec bash "$ROOT/scripts/ota.sh" preview "$@"
