@@ -2,6 +2,7 @@ import type { MerchantMainTab } from "./types";
 
 const ROUTES: Record<MerchantMainTab, string> = {
   home: "MerchantDashboard",
+  shops: "MerchantShops",
   products: "MerchantProducts",
   marketplace: "MerchantMarket",
   orders: "MerchantOrders"
@@ -21,6 +22,9 @@ export function merchantMainTabFromRoute(
   }
   if (routeName === "MerchantProductDetail") {
     return "marketplace";
+  }
+  if (routeName === "MerchantShopDetail") {
+    return "shops";
   }
 
   const hit = (Object.entries(ROUTES) as [MerchantMainTab, string][]).find(

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSession } from "../../context/SessionContext";
 import { createMerchantShop } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
@@ -11,6 +12,7 @@ import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileThe
 export function MerchantShopScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
+  const queryClient = useQueryClient();
   const { accessToken, activeProfileId } = useSession();
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -22,6 +24,8 @@ export function MerchantShopScreen() {
     setError(null);
     try {
       await createMerchantShop(accessToken, activeProfileId, { name: name.trim() });
+      await queryClient.invalidateQueries({ queryKey: ["merchant-me", activeProfileId] });
+      await queryClient.invalidateQueries({ queryKey: ["merchant-dashboard", activeProfileId] });
       navigation.goBack();
     } catch (e) {
       setError(formatApiError(e));

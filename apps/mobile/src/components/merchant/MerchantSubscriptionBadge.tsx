@@ -9,16 +9,23 @@ import type { RootStackParamList } from "../../types/navigation";
 type Props = {
   tier: "free" | "premium" | null;
   status?: "active" | "past_due" | null;
+  hasPendingSubscription?: boolean;
 };
 
-export function MerchantSubscriptionBadge({ tier, status }: Props) {
+export function MerchantSubscriptionBadge({
+  tier,
+  status,
+  hasPendingSubscription = false
+}: Props) {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const isPremium = tier === "premium";
   const isPastDue = status === "past_due";
-  const label = isPastDue
+  const label = hasPendingSubscription
+    ? t("merchant.subscription.statusPaymentPending")
+    : isPastDue
     ? t("merchant.subscription.statusPastDue")
     : isPremium
       ? t("merchant.subscription.premiumTitle")
@@ -46,13 +53,21 @@ export function MerchantSubscriptionBadge({ tier, status }: Props) {
           {label}
         </Text>
       </View>
-      {!isPremium ? (
+      {!isPremium && tier !== "free" ? (
         <Pressable
-          testID="merchant-subscription-upgrade-cta"
+          testID={
+            hasPendingSubscription
+              ? "merchant-subscription-confirm-cta"
+              : "merchant-subscription-upgrade-cta"
+          }
           style={styles.cta}
           onPress={() => navigation.navigate("MerchantSubscription")}
         >
-          <Text style={styles.ctaTx}>{t("merchant.dashboard.upgradeCta")}</Text>
+          <Text style={styles.ctaTx}>
+            {hasPendingSubscription
+              ? t("merchant.subscription.confirmPaymentCta")
+              : t("merchant.dashboard.upgradeCta")}
+          </Text>
         </Pressable>
       ) : isPastDue ? (
         <Pressable

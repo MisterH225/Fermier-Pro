@@ -56,6 +56,9 @@ export function MerchantPersistentTabBar() {
         case "home":
           navigation.navigate("MerchantDashboard");
           return;
+        case "shops":
+          navigation.navigate("MerchantShops");
+          return;
         case "products":
           navigation.navigate("MerchantProducts");
           return;
@@ -79,6 +82,7 @@ export function MerchantPersistentTabBar() {
   const hideTabBarRoutes = new Set([
     "MerchantSubscription",
     "MerchantShop",
+    "MerchantShopDetail",
     "MerchantProductForm",
     "MerchantProductDetail"
   ]);

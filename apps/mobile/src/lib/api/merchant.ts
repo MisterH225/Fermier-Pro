@@ -15,6 +15,14 @@ export type MerchantMeDto = {
     providerRef: string | null;
     dueDate: string;
   } | null;
+  pendingSubscription?: {
+    invoiceId: string;
+    amount: number;
+    currency: string;
+    paymentUrl: string | null;
+    providerRef: string | null;
+    dueDate: string;
+  } | null;
   shopSkipped: boolean;
   productSkipped: boolean;
   onboardingComplete: boolean;

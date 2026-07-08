@@ -4,6 +4,8 @@ export type RootStackParamList = {
   ProducerFarmSettings: { farmId: string; farmName: string };
   BuyerDashboard: undefined;
   MerchantDashboard: undefined;
+  MerchantShops: undefined;
+  MerchantShopDetail: { shopId: string };
   MerchantProducts: undefined;
   MerchantMarket:
     | {
@@ -17,7 +19,7 @@ export type RootStackParamList = {
   MerchantOrderDispute: { orderId: string };
   MerchantSubscription: undefined;
   MerchantShop: undefined;
-  MerchantProductForm: { productId?: string } | undefined;
+  MerchantProductForm: { productId?: string; shopId?: string } | undefined;
   MerchantProductDetail: { productId: string };
   BuyerMarket:
     | {

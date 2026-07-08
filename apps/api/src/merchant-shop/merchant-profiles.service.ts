@@ -109,16 +109,28 @@ export class MerchantProfilesService {
       premiumPaidAt: profile.premiumPaidAt?.toISOString() ?? null,
       nextBillingAt: profile.nextBillingAt?.toISOString() ?? null,
       graceEndsAt: profile.graceEndsAt?.toISOString() ?? null,
-      pendingRenewal: pendingInvoice
-        ? {
-            invoiceId: pendingInvoice.id,
-            amount: Number(pendingInvoice.amount),
-            currency: pendingInvoice.currency,
-            paymentUrl: pendingInvoice.paymentUrl,
-            providerRef: pendingInvoice.providerRef,
-            dueDate: pendingInvoice.dueDate.toISOString()
-          }
-        : null,
+      pendingRenewal:
+        pendingInvoice && profile.subscriptionTier === MerchantSubscriptionTier.premium
+          ? {
+              invoiceId: pendingInvoice.id,
+              amount: Number(pendingInvoice.amount),
+              currency: pendingInvoice.currency,
+              paymentUrl: pendingInvoice.paymentUrl,
+              providerRef: pendingInvoice.providerRef,
+              dueDate: pendingInvoice.dueDate.toISOString()
+            }
+          : null,
+      pendingSubscription:
+        pendingInvoice && !profile.subscriptionTier
+          ? {
+              invoiceId: pendingInvoice.id,
+              amount: Number(pendingInvoice.amount),
+              currency: pendingInvoice.currency,
+              paymentUrl: pendingInvoice.paymentUrl,
+              providerRef: pendingInvoice.providerRef,
+              dueDate: pendingInvoice.dueDate.toISOString()
+            }
+          : null,
       shopSkipped: profile.shopSkipped,
       productSkipped: profile.productSkipped,
       onboardingComplete: profile.onboardingComplete,

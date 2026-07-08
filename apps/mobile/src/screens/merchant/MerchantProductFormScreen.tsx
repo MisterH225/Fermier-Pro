@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -12,10 +12,10 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MerchantProductPhotoGrid } from "../../components/merchant/MerchantProductPhotoGrid";
 import { useSession } from "../../context/SessionContext";
 import {
@@ -31,6 +31,7 @@ import {
   appendCategoryDetails,
   categoryExtraFields
 } from "../../lib/merchantCategoryFields";
+import { resolveMerchantShopId } from "../../lib/merchantShop";
 import { merchantColors } from "../../theme/merchantTheme";
 import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
 import { useBottomInset } from "../../hooks/useBottomInset";
@@ -42,13 +43,16 @@ export function MerchantProductFormScreen() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "MerchantProductForm">>();
   const productId = route.params?.productId;
+  const routeShopId = route.params?.shopId;
   const { accessToken, activeProfileId } = useSession();
+  const queryClient = useQueryClient();
   const bottomInset = useBottomInset();
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("1");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [selectedShopId, setSelectedShopId] = useState<string | null>(routeShopId ?? null);
   const [extras, setExtras] = useState<Record<string, string>>({});
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -83,10 +87,35 @@ export function MerchantProductFormScreen() {
   );
 
   useEffect(() => {
+    if (routeShopId) {
+      setSelectedShopId(routeShopId);
+    }
+  }, [routeShopId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void meQ.refetch();
+    }, [meQ])
+  );
+
+  const shopId = useMemo(
+    () => resolveMerchantShopId(meQ.data, selectedShopId ?? routeShopId),
+    [meQ.data, selectedShopId, routeShopId]
+  );
+
+  const shops = meQ.data?.shops ?? [];
+
+  useEffect(() => {
     if (catsQ.data?.[0] && !categoryId) {
       setCategoryId(catsQ.data[0].id);
     }
   }, [catsQ.data, categoryId]);
+
+  useEffect(() => {
+    if (shopId && !selectedShopId) {
+      setSelectedShopId(shopId);
+    }
+  }, [shopId, selectedShopId]);
 
   useEffect(() => {
     if (!productId || !productsQ.data) return;
@@ -98,11 +127,14 @@ export function MerchantProductFormScreen() {
     setDescription(existing.description ?? "");
     setCategoryId(existing.categoryId);
     setPhotoUrls(existing.photoUrls ?? []);
+    if (existing.shopId) {
+      setSelectedShopId(existing.shopId);
+    }
   }, [productId, productsQ.data]);
 
   const submit = async (alsoPublish = false) => {
-    const shopId = meQ.data?.shops[0]?.id;
-    if (!accessToken || !activeProfileId || !shopId || !categoryId || !name.trim()) {
+    const resolvedShopId = resolveMerchantShopId(meQ.data, selectedShopId ?? routeShopId);
+    if (!accessToken || !activeProfileId || !resolvedShopId || !categoryId || !name.trim()) {
       setError(t("merchant.product.needShop"));
       return;
     }
@@ -127,11 +159,14 @@ export function MerchantProductFormScreen() {
       if (productId) {
         saved = await updateMerchantProduct(accessToken, activeProfileId, productId, body);
       } else {
-        saved = await createMerchantProduct(accessToken, activeProfileId, shopId, body);
+        saved = await createMerchantProduct(accessToken, activeProfileId, resolvedShopId, body);
       }
       if (alsoPublish && saved.status !== "published") {
         await publishMerchantProduct(accessToken, activeProfileId, saved.id);
       }
+      await queryClient.invalidateQueries({ queryKey: ["merchant-products", activeProfileId] });
+      await queryClient.invalidateQueries({ queryKey: ["merchant-me", activeProfileId] });
+      await queryClient.invalidateQueries({ queryKey: ["merchant-dashboard", activeProfileId] });
       navigation.goBack();
     } catch (e) {
       setError(formatApiError(e));
@@ -140,8 +175,6 @@ export function MerchantProductFormScreen() {
     }
   };
 
-  const shopId = meQ.data?.shops[0]?.id;
-
   if (!shopId && !productId) {
     return (
       <SafeAreaView style={styles.safe}>
@@ -149,7 +182,7 @@ export function MerchantProductFormScreen() {
           <Text style={styles.title}>{t("merchant.product.needShop")}</Text>
           <Pressable
             style={styles.btn}
-            onPress={() => navigation.navigate("MerchantShop")}
+            onPress={() => navigation.navigate("MerchantShops")}
           >
             <Text style={styles.btnTx}>{t("merchant.onboarding.createShop")}</Text>
           </Pressable>
@@ -173,8 +206,24 @@ export function MerchantProductFormScreen() {
         <Text style={styles.title}>
           {productId ? t("merchant.product.editTitle") : t("merchant.product.title")}
         </Text>
+        {shops.length > 1 && !productId ? (
+          <View style={styles.shopPicker}>
+            <Text style={styles.shopPickerLabel}>{t("merchant.product.selectShop")}</Text>
+            <View style={styles.catRow}>
+              {shops.map((shop) => (
+                <Pressable
+                  key={shop.id}
+                  style={[styles.chip, selectedShopId === shop.id && styles.chipOn]}
+                  onPress={() => setSelectedShopId(shop.id)}
+                >
+                  <Text>{shop.name}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ) : null}
         <MerchantProductPhotoGrid
-          shopId={meQ.data?.shops[0]?.id ?? null}
+          shopId={shopId}
           productId={productId}
           photoUrls={photoUrls}
           onChange={setPhotoUrls}
@@ -277,6 +326,8 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border
   },
   chipOn: { borderColor: merchantColors.primary, backgroundColor: merchantColors.primaryLight },
+  shopPicker: { gap: mobileSpacing.xs },
+  shopPickerLabel: { fontWeight: "600", color: merchantColors.textSecondary, fontSize: 13 },
   btn: {
     backgroundColor: merchantColors.primary,
     padding: mobileSpacing.md,

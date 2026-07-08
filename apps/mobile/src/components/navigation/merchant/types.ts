@@ -1,1 +1,1 @@
-export type MerchantMainTab = "home" | "products" | "marketplace" | "orders";
+export type MerchantMainTab = "home" | "shops" | "products" | "marketplace" | "orders";

@@ -25,6 +25,7 @@ import {
   type MerchantProductDto
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
+import { hasMerchantShop } from "../../lib/merchantShop";
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
 import { mobileSpacing } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
@@ -96,12 +97,14 @@ export function MerchantProductsScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      void meQ.refetch();
       void productsQ.refetch();
-    }, [productsQ])
+    }, [meQ, productsQ])
   );
 
   const me = meQ.data;
-  const hasShop = (me?.shopCount ?? 0) > 0;
+  const hasShop = hasMerchantShop(me);
+  const defaultShopId = me?.shops[0]?.id;
   const atFreeLimit =
     me?.subscriptionTier === "free" &&
     (me.activeProductCount ?? 0) >= (me.maxActiveProducts ?? 5);
@@ -112,14 +115,18 @@ export function MerchantProductsScreen() {
       {hasShop ? (
         <Pressable
           style={styles.addBtn}
-          onPress={() => navigation.navigate("MerchantProductForm", {})}
+          onPress={() =>
+            navigation.navigate("MerchantProductForm", {
+              shopId: defaultShopId
+            })
+          }
         >
           <Text style={styles.addBtnTx}>+</Text>
         </Pressable>
       ) : (
         <Pressable
           style={styles.createShopBtn}
-          onPress={() => navigation.navigate("MerchantShop")}
+          onPress={() => navigation.navigate("MerchantShops")}
         >
           <Text style={styles.createShopBtnTx}>{t("merchant.onboarding.createShop")}</Text>
         </Pressable>
@@ -134,7 +141,7 @@ export function MerchantProductsScreen() {
           <Text style={styles.noShopTitle}>{t("merchant.dashboard.nudgeCreateShop")}</Text>
           <Pressable
             style={styles.createShopPrimary}
-            onPress={() => navigation.navigate("MerchantShop")}
+            onPress={() => navigation.navigate("MerchantShops")}
           >
             <Text style={styles.createShopPrimaryTx}>{t("merchant.onboarding.createShop")}</Text>
           </Pressable>

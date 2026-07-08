@@ -83,6 +83,10 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
     void (async () => {
       const data = await loadMe();
       if (!data) return;
+      if (data.subscriptionTier && step === 0) {
+        setStep(1);
+        return;
+      }
       if ((data.shopCount ?? 0) > 0 && data.activeProductCount === 0) {
         setStep(2);
         await ensureCategories();
@@ -178,7 +182,24 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
     return (
       <MerchantSubscriptionScreen
         skippable
-        onSkip={() => setStep(1)}
+        onSkip={async () => {
+          if (accessToken && activeProfileId && !me?.subscriptionTier) {
+            setBusy(true);
+            setError(null);
+            try {
+              await chooseMerchantSubscription(accessToken, activeProfileId, {
+                tier: "free"
+              });
+              await loadMe();
+            } catch (e) {
+              setError(formatApiError(e));
+              setBusy(false);
+              return;
+            }
+            setBusy(false);
+          }
+          setStep(1);
+        }}
         onChosen={async () => {
           await loadMe();
           setStep(1);

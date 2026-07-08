@@ -3873,6 +3873,7 @@ export const en = {
   merchant: {
     nav: {
       home: "Home",
+      shops: "Shops",
       products: "Products",
       marketplace: "Market",
       orders: "Orders"
@@ -4014,6 +4015,16 @@ export const en = {
       ctaPremium: "Choose Premium — {{price}} XOF/month",
       ctaPremiumLoading: "Loading price…",
       premiumPending: "Complete Premium payment (Wave link or SMS) to activate your subscription.",
+      statusPaymentPending: "Payment pending",
+      confirmPaymentCta: "I paid — activate Premium",
+      paymentPendingTitle: "Premium payment pending",
+      payWithWave: "Open Wave payment link",
+      paymentLinkMissing: "Payment link unavailable. Try again shortly.",
+      paymentMethodLabel: "Payment method",
+      payMobileMoney: "Wave / Mobile money",
+      payWallet: "Wallet",
+      ctaPremiumWallet: "Pay with wallet — {{price}} XOF/month",
+      walletBalanceHint: "Balance: {{balance}} XOF · Premium: {{price}} XOF/month",
       statusPastDue: "Payment overdue",
       renewCta: "Renew Premium",
       billingMonthly: "Monthly subscription",
@@ -4034,10 +4045,21 @@ export const en = {
       }
     },
     shop: { title: "New shop" },
+    shops: {
+      title: "My shops",
+      addProduct: "Add product",
+      productCount: "{{count}} product(s)",
+      activeCount: "{{count}} active",
+      notFound: "Shop not found."
+    },
+    shopDetail: {
+      noProducts: "No products in this shop yet."
+    },
     product: {
       title: "New product",
       editTitle: "Edit product",
       needShop: "Create a shop first.",
+      selectShop: "Shop",
       descriptionPh: "Description",
       save: "Save",
       saveAndPublish: "Save & publish",

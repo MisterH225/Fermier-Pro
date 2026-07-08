@@ -103,23 +103,28 @@ export function MerchantDashboardScreen() {
           />
         }
       >
-        {me?.subscriptionTier ? (
+        {me?.subscriptionTier || me?.pendingSubscription ? (
           <MerchantSubscriptionBadge
             tier={me.subscriptionTier}
             status={me.subscriptionStatus ?? null}
+            hasPendingSubscription={Boolean(me.pendingSubscription)}
           />
         ) : null}
 
         {me?.needsShopNudge || (me && me.shopCount === 0) ? (
           <MerchantOnboardingNudgeBanner
             variant="shop"
-            onPress={() => navigation.navigate("MerchantShop")}
+            onPress={() => navigation.navigate("MerchantShops")}
           />
         ) : null}
         {me?.needsProductNudge ? (
           <MerchantOnboardingNudgeBanner
             variant="product"
-            onPress={() => navigation.navigate("MerchantProductForm", {})}
+            onPress={() =>
+              navigation.navigate("MerchantProductForm", {
+                shopId: me?.shops[0]?.id
+              })
+            }
           />
         ) : null}
 

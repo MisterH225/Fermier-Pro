@@ -11,13 +11,14 @@ type Props = {
   onTabPress: (tab: MerchantMainTab) => void;
 };
 
-const TAB_ORDER: MerchantMainTab[] = ["home", "products", "marketplace", "orders"];
+const TAB_ORDER: MerchantMainTab[] = ["home", "shops", "products", "marketplace", "orders"];
 
 const TAB_META: Record<
   MerchantMainTab,
   { icon: keyof typeof Ionicons.glyphMap; iconOutline: keyof typeof Ionicons.glyphMap; labelKey: string }
 > = {
   home: { icon: "home", iconOutline: "home-outline", labelKey: "merchant.nav.home" },
+  shops: { icon: "business", iconOutline: "business-outline", labelKey: "merchant.nav.shops" },
   products: { icon: "cube", iconOutline: "cube-outline", labelKey: "merchant.nav.products" },
   marketplace: { icon: "storefront", iconOutline: "storefront-outline", labelKey: "merchant.nav.marketplace" },
   orders: { icon: "receipt", iconOutline: "receipt-outline", labelKey: "merchant.nav.orders" }
@@ -125,9 +126,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 5,
+    gap: 4,
     backgroundColor: merchantColors.primary,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 7,
     borderRadius: merchantRadius.pill,
     maxWidth: "100%"
@@ -141,8 +142,8 @@ const styles = StyleSheet.create({
   },
   labelActive: {
     ...mobileTypography.meta,
-    fontSize: 10,
-    lineHeight: 12,
+    fontSize: 9,
+    lineHeight: 11,
     fontWeight: "700",
     color: merchantColors.onPrimary
   }

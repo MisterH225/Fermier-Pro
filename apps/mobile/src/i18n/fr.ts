@@ -3922,6 +3922,7 @@ export const fr = {
   merchant: {
     nav: {
       home: "Accueil",
+      shops: "Boutiques",
       products: "Produits",
       marketplace: "Market",
       orders: "Commandes"
@@ -4063,6 +4064,16 @@ export const fr = {
       ctaPremium: "Choisir Premium — {{price}} XOF/mois",
       ctaPremiumLoading: "Chargement du tarif…",
       premiumPending: "Finalise le paiement Premium (lien Wave ou SMS) pour activer ton abonnement.",
+      statusPaymentPending: "Paiement en attente",
+      confirmPaymentCta: "J'ai payé — activer Premium",
+      paymentPendingTitle: "Paiement Premium en attente",
+      payWithWave: "Ouvrir le lien Wave",
+      paymentLinkMissing: "Lien de paiement indisponible. Réessayez dans un instant.",
+      paymentMethodLabel: "Mode de paiement",
+      payMobileMoney: "Wave / Mobile money",
+      payWallet: "Portefeuille",
+      ctaPremiumWallet: "Payer avec le portefeuille — {{price}} XOF/mois",
+      walletBalanceHint: "Solde : {{balance}} XOF · Premium : {{price}} XOF/mois",
       statusPastDue: "Paiement en attente",
       renewCta: "Renouveler Premium",
       billingMonthly: "Abonnement mensuel",
@@ -4083,10 +4094,21 @@ export const fr = {
       }
     },
     shop: { title: "Nouvelle boutique" },
+    shops: {
+      title: "Mes boutiques",
+      addProduct: "Ajouter un produit",
+      productCount: "{{count}} produit(s)",
+      activeCount: "{{count}} actif(s)",
+      notFound: "Boutique introuvable."
+    },
+    shopDetail: {
+      noProducts: "Aucun produit dans cette boutique."
+    },
     product: {
       title: "Nouveau produit",
       editTitle: "Modifier le produit",
       needShop: "Crée d'abord une boutique.",
+      selectShop: "Boutique",
       descriptionPh: "Description",
       save: "Enregistrer",
       saveAndPublish: "Enregistrer et publier",

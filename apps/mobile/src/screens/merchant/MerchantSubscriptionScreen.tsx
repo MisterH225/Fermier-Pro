@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  AppState,
   Linking,
   Pressable,
   ScrollView,
@@ -16,7 +17,9 @@ import { useSession } from "../../context/SessionContext";
 import { useBottomChromePad } from "../../hooks/useBottomInset";
 import {
   chooseMerchantSubscription,
-  fetchMerchantMe
+  confirmMerchantSubscription,
+  fetchMerchantMe,
+  fetchUserWallet
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
@@ -40,6 +43,14 @@ const FEATURES = [
 const FREE_PLAN_KEYS = ["freeShop", "freeProducts"] as const;
 const PREMIUM_PLAN_KEYS = ["premiumShops", "premiumProducts", "billingMonthly"] as const;
 
+type PaymentMethod = "wallet" | "mobile_money";
+type PendingPayment = {
+  providerRef: string;
+  paymentUrl: string | null;
+  amount: number;
+  invoiceId?: string;
+};
+
 export function MerchantSubscriptionScreen({
   skippable = false,
   onSkip,
@@ -52,10 +63,14 @@ export function MerchantSubscriptionScreen({
   const footerBottomPad = skippable
     ? Math.max(insets.bottom, mobileSpacing.md)
     : Math.max(bottomChromePad, mobileSpacing.md);
-  const { accessToken, activeProfileId } = useSession();
+  const { accessToken, activeProfileId, refreshAuthMe } = useSession();
+  const queryClient = useQueryClient();
+  const advancedRef = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedTier, setSelectedTier] = useState<Tier>("free");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mobile_money");
+  const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null);
 
   const meQ = useQuery({
     queryKey: ["merchant-me", activeProfileId, "subscription"],
@@ -64,8 +79,83 @@ export function MerchantSubscriptionScreen({
     staleTime: 0
   });
 
+  const walletQ = useQuery({
+    queryKey: ["user-wallet", activeProfileId],
+    queryFn: () => fetchUserWallet(accessToken!),
+    enabled: Boolean(accessToken && selectedTier === "premium")
+  });
+
   const premiumPriceXof = meQ.data?.premiumPriceXof;
   const premiumMaxShops = meQ.data?.premiumMaxShops ?? 3;
+  const walletBalance = Number(walletQ.data?.balance ?? 0);
+  const canPayWithWallet =
+    premiumPriceXof != null && walletBalance >= premiumPriceXof;
+
+  useEffect(() => {
+    const pending = meQ.data?.pendingSubscription;
+    if (pending?.providerRef) {
+      setPendingPayment({
+        providerRef: pending.providerRef,
+        paymentUrl: pending.paymentUrl,
+        amount: pending.amount,
+        invoiceId: pending.invoiceId
+      });
+      setSelectedTier("premium");
+    }
+  }, [meQ.data?.pendingSubscription]);
+
+  useEffect(() => {
+    if (advancedRef.current || !meQ.data?.subscriptionTier) {
+      return;
+    }
+    advancedRef.current = true;
+    void onChosen();
+  }, [meQ.data?.subscriptionTier, onChosen]);
+
+  const invalidateMerchant = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["merchant-me", activeProfileId] });
+    await queryClient.invalidateQueries({ queryKey: ["merchant-dashboard", activeProfileId] });
+    await refreshAuthMe();
+  }, [activeProfileId, queryClient, refreshAuthMe]);
+
+  const confirmPendingPayment = useCallback(async () => {
+    if (!accessToken || !activeProfileId || !pendingPayment?.providerRef) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await confirmMerchantSubscription(
+        accessToken,
+        activeProfileId,
+        pendingPayment.providerRef
+      );
+      setPendingPayment(null);
+      await invalidateMerchant();
+      await meQ.refetch();
+      await onChosen();
+    } catch (e) {
+      setError(formatApiError(e));
+    } finally {
+      setBusy(false);
+    }
+  }, [
+    accessToken,
+    activeProfileId,
+    pendingPayment?.providerRef,
+    invalidateMerchant,
+    meQ,
+    onChosen
+  ]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active" && pendingPayment?.providerRef) {
+        void confirmPendingPayment();
+      }
+    });
+    return () => sub.remove();
+  }, [pendingPayment?.providerRef, confirmPendingPayment]);
 
   const premiumPriceLabel = useMemo(() => {
     if (premiumPriceXof == null) {
@@ -76,20 +166,31 @@ export function MerchantSubscriptionScreen({
 
   const choose = async () => {
     if (!accessToken || !activeProfileId) return;
+    if (pendingPayment) {
+      await confirmPendingPayment();
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
       const res = await chooseMerchantSubscription(accessToken, activeProfileId, {
         tier: selectedTier,
-        paymentMethod: selectedTier === "premium" ? "mobile_money" : undefined
+        paymentMethod:
+          selectedTier === "premium" ? paymentMethod : undefined
       });
       if ("pending" in res && res.pending) {
+        setPendingPayment({
+          providerRef: res.providerRef,
+          paymentUrl: res.paymentUrl ?? null,
+          amount: res.amount,
+          invoiceId: res.invoiceId
+        });
         if (res.paymentUrl) {
           await Linking.openURL(res.paymentUrl);
         }
-        setError(t("merchant.subscription.premiumPending"));
         return;
       }
+      await invalidateMerchant();
       await onChosen();
     } catch (e) {
       setError(formatApiError(e));
@@ -98,11 +199,22 @@ export function MerchantSubscriptionScreen({
     }
   };
 
-  const ctaLabel =
-    selectedTier === "free"
+  const openPaymentLink = async () => {
+    if (!pendingPayment?.paymentUrl) {
+      setError(t("merchant.subscription.paymentLinkMissing"));
+      return;
+    }
+    await Linking.openURL(pendingPayment.paymentUrl);
+  };
+
+  const ctaLabel = pendingPayment
+    ? t("merchant.subscription.confirmPaymentCta")
+    : selectedTier === "free"
       ? t("merchant.subscription.ctaFree")
       : premiumPriceLabel
-        ? t("merchant.subscription.ctaPremium", { price: premiumPriceLabel })
+        ? paymentMethod === "wallet"
+          ? t("merchant.subscription.ctaPremiumWallet", { price: premiumPriceLabel })
+          : t("merchant.subscription.ctaPremium", { price: premiumPriceLabel })
         : t("merchant.subscription.ctaPremiumLoading");
 
   const freeFeatures = FREE_PLAN_KEYS.map((key) => t(`merchant.subscription.${key}`));
@@ -180,6 +292,76 @@ export function MerchantSubscriptionScreen({
           />
         </View>
 
+        {pendingPayment ? (
+          <View style={styles.pendingBox}>
+            <Text style={styles.pendingTitle}>
+              {t("merchant.subscription.paymentPendingTitle")}
+            </Text>
+            <Text style={styles.pendingBody}>
+              {t("merchant.subscription.premiumPending")}
+            </Text>
+            {pendingPayment.paymentUrl ? (
+              <Pressable style={styles.pendingLinkBtn} onPress={() => void openPaymentLink()}>
+                <Text style={styles.pendingLinkTx}>
+                  {t("merchant.subscription.payWithWave")}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+
+        {selectedTier === "premium" && !pendingPayment ? (
+          <View style={styles.payMethodBlock}>
+            <Text style={styles.payMethodLabel}>
+              {t("merchant.subscription.paymentMethodLabel")}
+            </Text>
+            <View style={styles.payMethodRow}>
+              <Pressable
+                style={[
+                  styles.payMethodChip,
+                  paymentMethod === "mobile_money" && styles.payMethodChipOn
+                ]}
+                onPress={() => setPaymentMethod("mobile_money")}
+              >
+                <Text
+                  style={[
+                    styles.payMethodTx,
+                    paymentMethod === "mobile_money" && styles.payMethodTxOn
+                  ]}
+                >
+                  {t("merchant.subscription.payMobileMoney")}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.payMethodChip,
+                  paymentMethod === "wallet" && styles.payMethodChipOn,
+                  !canPayWithWallet && styles.payMethodChipDisabled
+                ]}
+                onPress={() => canPayWithWallet && setPaymentMethod("wallet")}
+                disabled={!canPayWithWallet}
+              >
+                <Text
+                  style={[
+                    styles.payMethodTx,
+                    paymentMethod === "wallet" && styles.payMethodTxOn
+                  ]}
+                >
+                  {t("merchant.subscription.payWallet")}
+                </Text>
+              </Pressable>
+            </View>
+            {paymentMethod === "wallet" && premiumPriceLabel ? (
+              <Text style={styles.walletHint}>
+                {t("merchant.subscription.walletBalanceHint", {
+                  balance: walletBalance.toLocaleString("fr-FR"),
+                  price: premiumPriceLabel
+                })}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
         {skippable && onSkip ? (
           <Pressable
             style={styles.skip}
@@ -210,7 +392,16 @@ export function MerchantSubscriptionScreen({
       <View style={[styles.footer, { paddingBottom: footerBottomPad }]}>
         <Pressable
           style={[styles.cta, busy && styles.ctaDisabled]}
-          disabled={busy || (selectedTier === "premium" && !premiumPriceLabel)}
+          disabled={
+            busy ||
+            (!pendingPayment &&
+              selectedTier === "premium" &&
+              !premiumPriceLabel) ||
+            (!pendingPayment &&
+              selectedTier === "premium" &&
+              paymentMethod === "wallet" &&
+              !canPayWithWallet)
+          }
           onPress={() => void choose()}
           testID="merchant-subscription-cta"
         >
@@ -488,5 +679,81 @@ const styles = StyleSheet.create({
     color: merchantColors.danger,
     textAlign: "center",
     marginTop: mobileSpacing.sm
+  },
+  pendingBox: {
+    backgroundColor: "#FEF3C7",
+    borderRadius: merchantRadius.card,
+    borderWidth: 1,
+    borderColor: "#F59E0B",
+    padding: mobileSpacing.md,
+    gap: mobileSpacing.sm,
+    marginBottom: mobileSpacing.md
+  },
+  pendingTitle: {
+    fontWeight: "800",
+    color: merchantColors.textPrimary,
+    fontSize: 15
+  },
+  pendingBody: {
+    color: merchantColors.textSecondary,
+    fontSize: 13,
+    lineHeight: 18
+  },
+  pendingLinkBtn: {
+    alignSelf: "flex-start",
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: merchantRadius.pill,
+    backgroundColor: merchantColors.primary
+  },
+  pendingLinkTx: {
+    color: merchantColors.onPrimary,
+    fontWeight: "700",
+    fontSize: 13
+  },
+  payMethodBlock: {
+    marginBottom: mobileSpacing.md,
+    gap: mobileSpacing.sm
+  },
+  payMethodLabel: {
+    textAlign: "center",
+    fontSize: 13,
+    fontWeight: "600",
+    color: merchantColors.textSecondary
+  },
+  payMethodRow: {
+    flexDirection: "row",
+    gap: mobileSpacing.sm
+  },
+  payMethodChip: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderRadius: merchantRadius.pill,
+    borderWidth: 1,
+    borderColor: merchantColors.border,
+    backgroundColor: merchantColors.cardBg,
+    alignItems: "center"
+  },
+  payMethodChipOn: {
+    borderColor: merchantColors.primary,
+    backgroundColor: merchantColors.primaryLight
+  },
+  payMethodChipDisabled: {
+    opacity: 0.45
+  },
+  payMethodTx: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: merchantColors.textSecondary,
+    textAlign: "center"
+  },
+  payMethodTxOn: {
+    color: merchantColors.primary
+  },
+  walletHint: {
+    fontSize: 12,
+    color: merchantColors.textMuted,
+    textAlign: "center"
   }
 });

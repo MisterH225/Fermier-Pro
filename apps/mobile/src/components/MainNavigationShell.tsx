@@ -35,6 +35,8 @@ import {
   BatchDetailScreen,
   BuyerDashboardScreen,
   MerchantDashboardScreen,
+  MerchantShopsScreen,
+  MerchantShopDetailScreen,
   MerchantProductsScreen,
   MerchantMarketScreen,
   MerchantOrdersScreen,
@@ -225,6 +227,16 @@ function MainStack() {
         name="MerchantDashboard"
         component={MerchantDashboardScreen}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="MerchantShops"
+        component={MerchantShopsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="MerchantShopDetail"
+        component={MerchantShopDetailScreen}
+        options={{ title: st("merchantShop") }}
       />
       <Stack.Screen
         name="MerchantProducts"
