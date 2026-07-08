@@ -4110,7 +4110,22 @@ export const fr = {
       editTitle: "Modifier le produit",
       needShop: "Crée d'abord une boutique.",
       selectShop: "Boutique",
+      stockLabel: "Quantité en stock",
+      stockHint: "Nombre d'unités disponibles à la vente sur le marketplace.",
+      categoryLabel: "Catégorie",
       descriptionPh: "Description",
+      placeholders: {
+        name: "ex. Aliment porc croissance",
+        price: "ex. 15000",
+        description: "Décrivez votre produit (optionnel)"
+      },
+      errors: {
+        nameRequired: "Indique le nom du produit.",
+        categoryRequired: "Choisis une catégorie.",
+        priceRequired: "Indique un prix valide en XOF.",
+        stockInvalid: "Indique une quantité en stock valide (0 ou plus).",
+        noCategories: "Aucune catégorie disponible. Réessaie dans un instant."
+      },
       save: "Enregistrer",
       saveAndPublish: "Enregistrer et publier",
       photos: {

@@ -14,7 +14,31 @@ import type {
 export class MerchantCategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly defaultCategories = [
+    { name: "Alimentation", slug: "alimentation" },
+    { name: "Équipement", slug: "equipement" },
+    { name: "Matériaux", slug: "materiaux" },
+    { name: "Services", slug: "services" },
+    { name: "Autre", slug: "autre" }
+  ] as const;
+
+  private async ensureDefaultCategories() {
+    const count = await this.prisma.merchantProductCategory.count();
+    if (count > 0) {
+      return;
+    }
+    await this.prisma.merchantProductCategory.createMany({
+      data: this.defaultCategories.map((row, index) => ({
+        name: row.name,
+        slug: row.slug,
+        sortOrder: index
+      })),
+      skipDuplicates: true
+    });
+  }
+
   async listPublic() {
+    await this.ensureDefaultCategories();
     const rows = await this.prisma.merchantProductCategory.findMany({
       where: { isActive: true },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }]

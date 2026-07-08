@@ -99,6 +99,9 @@ export function MerchantProductDetailScreen({ route }: Props) {
         <Text style={styles.price}>
           {product.price.toLocaleString("fr-FR")} {product.currency}
         </Text>
+        <Text style={styles.stock} testID="merchant-product-detail-stock">
+          {t("merchant.catalog.stock", { count: product.stock })}
+        </Text>
         <Text style={styles.desc}>{product.description}</Text>
         <Text style={styles.meta}>{product.merchantName}</Text>
         <TextInput
@@ -125,6 +128,7 @@ const styles = StyleSheet.create({
   loader: { flex: 1, alignItems: "center", justifyContent: "center" },
   title: { fontSize: 22, fontWeight: "800" },
   price: { fontSize: 18, fontWeight: "700", color: merchantColors.primary },
+  stock: { fontSize: 14, fontWeight: "600", color: merchantColors.textSecondary },
   desc: { color: mobileColors.textSecondary },
   meta: { fontWeight: "600" },
   input: {

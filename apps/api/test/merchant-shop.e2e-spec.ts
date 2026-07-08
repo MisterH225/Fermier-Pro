@@ -65,6 +65,20 @@ describeOrSkip("Merchant shop (e2e)", () => {
     expect(patch.body.subscriptionTier).toBeNull();
   });
 
+  it("GET /merchant/categories — liste non vide (défauts si besoin)", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/merchant/categories")
+      .set("Authorization", `Bearer ${merchant.merchantToken}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBeGreaterThan(0);
+    expect(res.body[0]).toMatchObject({
+      id: expect.any(String),
+      name: expect.any(String),
+      slug: expect.any(String)
+    });
+  });
+
   it("publication sans abonnement → SUBSCRIPTION_REQUIRED", async () => {
     const shopRes = await createMerchantShop(app, merchant);
     expect(shopRes.status).toBe(201);

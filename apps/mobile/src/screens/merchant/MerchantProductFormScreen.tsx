@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -32,6 +32,7 @@ import {
   categoryExtraFields
 } from "../../lib/merchantCategoryFields";
 import { resolveMerchantShopId } from "../../lib/merchantShop";
+import { validateMerchantProductFormInput } from "../../lib/merchantProductForm";
 import { merchantColors } from "../../theme/merchantTheme";
 import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
 import { useBottomInset } from "../../hooks/useBottomInset";
@@ -96,7 +97,8 @@ export function MerchantProductFormScreen() {
   useFocusEffect(
     useCallback(() => {
       void meQ.refetch();
-    }, [meQ])
+      void catsQ.refetch();
+    }, [meQ, catsQ])
   );
 
   const shopId = useMemo(
@@ -139,22 +141,25 @@ export function MerchantProductFormScreen() {
       setError(t("merchant.product.needShop"));
       return;
     }
-    if (!categoryId || !name.trim()) {
-      setError(t("merchant.onboarding.invalidProduct"));
+    const validation = validateMerchantProductFormInput({
+      name,
+      price,
+      stock,
+      categoryId
+    });
+    if (!validation.ok) {
+      setError(t(validation.errorKey));
       return;
     }
-    const p = Number.parseFloat(price.replace(",", "."));
-    const s = Number.parseInt(stock, 10);
-    if (!Number.isFinite(p) || p <= 0 || !Number.isFinite(s)) {
-      setError(t("merchant.onboarding.invalidProduct"));
-      return;
-    }
+    const p = validation.price;
+    const s = validation.stock;
+    const resolvedCategoryId = categoryId!;
     setBusy(true);
     setError(null);
     try {
       const body = {
         name: name.trim(),
-        categoryId,
+        categoryId: resolvedCategoryId,
         description: appendCategoryDetails(description, selectedCategory, extras),
         price: p,
         stock: s,
@@ -240,47 +245,69 @@ export function MerchantProductFormScreen() {
           photoUrls={photoUrls}
           onChange={setPhotoUrls}
         />
-        <TextInput
-          style={styles.input}
-          value={name}
-          onChangeText={setName}
-          placeholder={t("merchant.onboarding.productName")}
-        />
-        <TextInput
-          style={styles.input}
-          value={price}
-          onChangeText={setPrice}
-          keyboardType="decimal-pad"
-          placeholder={t("merchant.onboarding.productPrice")}
-        />
-        <TextInput
-          style={styles.input}
-          value={stock}
-          onChangeText={setStock}
-          keyboardType="number-pad"
-          placeholder={t("merchant.onboarding.productStock")}
-        />
-        <TextInput
-          style={[styles.input, styles.multiline]}
-          value={description}
-          onChangeText={setDescription}
-          placeholder={t("merchant.product.descriptionPh")}
-          multiline
-        />
-        <View style={styles.catRow}>
-          {(catsQ.data ?? []).map((c) => (
-            <Pressable
-              key={c.id}
-              style={[styles.chip, categoryId === c.id && styles.chipOn]}
-              onPress={() => {
-                setCategoryId(c.id);
-                setExtras({});
-              }}
-            >
-              <Text>{c.name}</Text>
-            </Pressable>
-          ))}
-        </View>
+        <FormField label={t("merchant.onboarding.productName")} required>
+          <TextInput
+            style={styles.input}
+            value={name}
+            onChangeText={setName}
+            placeholder={t("merchant.product.placeholders.name")}
+          />
+        </FormField>
+        <FormField label={t("merchant.onboarding.productPrice")} required>
+          <TextInput
+            style={styles.input}
+            value={price}
+            onChangeText={setPrice}
+            keyboardType="decimal-pad"
+            placeholder={t("merchant.product.placeholders.price")}
+          />
+        </FormField>
+        <FormField
+          label={t("merchant.product.stockLabel")}
+          hint={t("merchant.product.stockHint")}
+          required
+        >
+          <TextInput
+            style={styles.input}
+            value={stock}
+            onChangeText={setStock}
+            keyboardType="number-pad"
+            placeholder={t("merchant.onboarding.productStock")}
+            testID="merchant-product-form-stock"
+          />
+        </FormField>
+        <FormField label={t("merchant.product.descriptionPh")}>
+          <TextInput
+            style={[styles.input, styles.multiline]}
+            value={description}
+            onChangeText={setDescription}
+            placeholder={t("merchant.product.placeholders.description")}
+            multiline
+          />
+        </FormField>
+        <FormField label={t("merchant.product.categoryLabel")} required>
+          {catsQ.isLoading ? (
+            <ActivityIndicator color={merchantColors.primary} />
+          ) : (catsQ.data ?? []).length === 0 ? (
+            <Text style={styles.warn}>{t("merchant.product.errors.noCategories")}</Text>
+          ) : (
+            <View style={styles.catRow}>
+              {(catsQ.data ?? []).map((c) => (
+                <Pressable
+                  key={c.id}
+                  style={[styles.chip, categoryId === c.id && styles.chipOn]}
+                  onPress={() => {
+                    setCategoryId(c.id);
+                    setExtras({});
+                  }}
+                  testID={`merchant-product-category-${c.slug}`}
+                >
+                  <Text>{c.name}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </FormField>
         {extraFields.map((field) => (
           <TextInput
             key={field.key}
@@ -310,6 +337,29 @@ export function MerchantProductFormScreen() {
   );
 }
 
+function FormField({
+  label,
+  hint,
+  required = false,
+  children
+}: {
+  label: string;
+  hint?: string;
+  required?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <View style={styles.field}>
+      <Text style={styles.fieldLabel}>
+        {label}
+        {required ? <Text style={styles.required}> *</Text> : null}
+      </Text>
+      {hint ? <Text style={styles.fieldHint}>{hint}</Text> : null}
+      {children}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: mobileColors.background },
   flex: { flex: 1 },
@@ -320,6 +370,11 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.lg
   },
   body: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
+  field: { gap: mobileSpacing.xs },
+  fieldLabel: { fontSize: 14, fontWeight: "700", color: merchantColors.textPrimary },
+  fieldHint: { fontSize: 12, color: merchantColors.textSecondary, marginBottom: 2 },
+  required: { color: merchantColors.danger },
+  warn: { color: merchantColors.warning, fontSize: 13 },
   title: { fontSize: 20, fontWeight: "700" },
   input: {
     borderWidth: 1,

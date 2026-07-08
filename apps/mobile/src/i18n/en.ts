@@ -4061,7 +4061,22 @@ export const en = {
       editTitle: "Edit product",
       needShop: "Create a shop first.",
       selectShop: "Shop",
+      stockLabel: "Stock quantity",
+      stockHint: "Units available for sale on the marketplace.",
+      categoryLabel: "Category",
       descriptionPh: "Description",
+      placeholders: {
+        name: "e.g. Grower pig feed",
+        price: "e.g. 15000",
+        description: "Describe your product (optional)"
+      },
+      errors: {
+        nameRequired: "Enter the product name.",
+        categoryRequired: "Select a category.",
+        priceRequired: "Enter a valid price in XOF.",
+        stockInvalid: "Enter a valid stock quantity (0 or more).",
+        noCategories: "No categories available. Try again shortly."
+      },
       save: "Save",
       saveAndPublish: "Save & publish",
       photos: {

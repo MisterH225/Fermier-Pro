@@ -18,8 +18,9 @@
     "test:e2e:merchant-subscription:android": "detox test -c android.emu.debug e2e/merchantSubscription.e2e.ts",
     "test:e2e:merchant-shops": "detox test -c ios.sim.debug e2e/merchantShops.e2e.ts",
     "test:e2e:merchant-shops:android": "detox test -c android.emu.debug e2e/merchantShops.e2e.ts",
-    "test:e2e:merchant": "detox test -c ios.sim.debug e2e/merchantSubscription.e2e.ts e2e/merchantShops.e2e.ts",
-    "test:e2e:merchant:android": "detox test -c android.emu.debug e2e/merchantSubscription.e2e.ts e2e/merchantShops.e2e.ts",
+    "test:e2e:merchant-product-form": "detox test -c ios.sim.debug e2e/merchantProductForm.e2e.ts",
+    "test:e2e:merchant": "detox test -c ios.sim.debug e2e/merchantSubscription.e2e.ts e2e/merchantShops.e2e.ts e2e/merchantProductForm.e2e.ts",
+    "test:e2e:merchant:android": "detox test -c android.emu.debug e2e/merchantSubscription.e2e.ts e2e/merchantShops.e2e.ts e2e/merchantProductForm.e2e.ts",
     "e2e:build:ios": "detox build -c ios.sim.debug",
     "e2e:build:android": "detox build -c android.emu.debug"
   },
