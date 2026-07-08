@@ -35,7 +35,7 @@ export function MerchantShopScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} testID="merchant-shop-form-screen">
       <View style={styles.body}>
         <Text style={styles.title}>{t("merchant.shop.title")}</Text>
         <TextInput

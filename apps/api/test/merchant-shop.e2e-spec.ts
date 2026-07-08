@@ -66,7 +66,19 @@ describeOrSkip("Merchant shop (e2e)", () => {
   });
 
   it("publication sans abonnement → SUBSCRIPTION_REQUIRED", async () => {
-    await createMerchantShop(app, merchant);
+    const shopRes = await createMerchantShop(app, merchant);
+    expect(shopRes.status).toBe(201);
+
+    const me = await request(app.getHttpServer())
+      .get("/api/v1/merchant/me")
+      .set("Authorization", `Bearer ${merchant.merchantToken}`)
+      .set("X-Profile-Id", merchant.merchantProfileId);
+    expect(me.status).toBe(200);
+    expect(me.body.shopCount).toBe(1);
+    expect(me.body.shops).toHaveLength(1);
+    expect(me.body.shops[0].id).toBe(merchant.shopId);
+    expect(me.body.shops[0].name).toBe("Boutique E2E");
+
     const product = await createMerchantProduct(app, merchant, "Produit sans abo");
     const publish = await publishProduct(app, merchant, product.body.id);
     expect(publish.status).toBe(403);
@@ -76,6 +88,9 @@ describeOrSkip("Merchant shop (e2e)", () => {
   it("abonnement choisi → publication OK", async () => {
     const sub = await chooseFreeSubscription(app, merchant);
     expect(sub.status).toBe(201);
+    expect(sub.body.subscriptionTier).toBe("free");
+    expect(sub.body.pendingSubscription).toBeNull();
+    expect(sub.body.pendingRenewal).toBeNull();
     const product = await createMerchantProduct(app, merchant, "Produit pub");
     const publish = await publishProduct(app, merchant, product.body.id);
     expect(publish.status).toBe(201);

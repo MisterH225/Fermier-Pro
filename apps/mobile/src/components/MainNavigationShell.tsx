@@ -171,6 +171,9 @@ const linking: LinkingOptions<RootStackParamList> = {
       },
       MerchantSubscription: {
         path: "merchant/subscription"
+      },
+      MerchantShops: {
+        path: "merchant/shops"
       }
     }
   }

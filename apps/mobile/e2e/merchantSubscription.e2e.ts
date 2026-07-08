@@ -15,9 +15,11 @@ import {
   expectOnMerchantDashboard,
   expectSubscriptionCtaLabel,
   expectSubscriptionCtaLabelMatches,
+  expectSubscriptionPaymentMethodsVisible,
   launchMerchantAppFresh,
   openMerchantSubscriptionFromDashboard,
   openMerchantSubscriptionViaDeepLink,
+  selectPaymentMethod,
   selectSubscriptionPlan,
   tapSubscriptionCancel
 } from "./helpers/merchantSubscription";
@@ -50,6 +52,17 @@ describe("MerchantSubscription — écran abonnement commerçant", () => {
       await selectSubscriptionPlan("premium");
       await expectSubscriptionCtaLabelMatches(/Choisir Premium/);
       await expectSubscriptionCtaLabelMatches(/XOF\/mois|XOF\/month/);
+    });
+
+    it("sélection Premium — modes de paiement Wave et portefeuille", async () => {
+      await selectSubscriptionPlan("premium");
+      await expectSubscriptionPaymentMethodsVisible();
+    });
+
+    it("sélection Premium portefeuille — CTA débit portefeuille si solde suffisant", async () => {
+      await selectSubscriptionPlan("premium");
+      await selectPaymentMethod("wallet");
+      await expectSubscriptionCtaLabelMatches(/portefeuille|wallet/i);
     });
 
     it("bascule Free → Premium → Free met à jour le CTA", async () => {

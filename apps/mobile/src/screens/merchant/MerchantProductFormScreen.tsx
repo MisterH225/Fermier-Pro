@@ -177,7 +177,7 @@ export function MerchantProductFormScreen() {
 
   if (!shopId && !productId) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} testID="merchant-product-form-no-shop">
         <View style={[styles.emptyShop, { paddingBottom: bottomInset }]}>
           <Text style={styles.title}>{t("merchant.product.needShop")}</Text>
           <Pressable
@@ -192,7 +192,7 @@ export function MerchantProductFormScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} testID="merchant-product-form-screen">
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : "height"}

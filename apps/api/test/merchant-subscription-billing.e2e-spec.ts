@@ -108,6 +108,7 @@ describeOrSkip("Abonnement Premium commerçant — facturation (e2e)", () => {
     expect(me.body.subscriptionStatus).toBe(MerchantSubscriptionStatus.active);
     expect(me.body.nextBillingAt).toBeTruthy();
     expect(me.body.pendingRenewal).toBeNull();
+    expect(me.body.pendingSubscription).toBeNull();
 
     const profile = await base.prisma.merchantProfile.findUniqueOrThrow({
       where: { userId: merchant.merchantUserId }
@@ -128,6 +129,16 @@ describeOrSkip("Abonnement Premium commerçant — facturation (e2e)", () => {
     expect(choose.body.providerRef).toMatch(/^e2e-gp-/);
     expect(choose.body.paymentUrl).toContain("https://e2e.fermier.test/pay/");
 
+    const mePending = await getMerchantMe(app, merchant);
+    expect(mePending.status).toBe(200);
+    expect(mePending.body.subscriptionTier).toBeNull();
+    expect(mePending.body.pendingSubscription).toMatchObject({
+      providerRef: choose.body.providerRef,
+      paymentUrl: choose.body.paymentUrl,
+      amount: expect.any(Number)
+    });
+    expect(mePending.body.pendingRenewal).toBeNull();
+
     geniusPay.markPaymentCompleted(choose.body.providerRef);
 
     const confirm = await confirmMerchantSubscription(
@@ -138,6 +149,7 @@ describeOrSkip("Abonnement Premium commerçant — facturation (e2e)", () => {
     expect(confirm.status).toBe(201);
     expect(confirm.body.subscriptionTier).toBe(MerchantSubscriptionTier.premium);
     expect(confirm.body.subscriptionStatus).toBe(MerchantSubscriptionStatus.active);
+    expect(confirm.body.pendingSubscription).toBeNull();
   });
 
   it("cron J0 : renouvellement automatique via portefeuille si solde suffisant", async () => {

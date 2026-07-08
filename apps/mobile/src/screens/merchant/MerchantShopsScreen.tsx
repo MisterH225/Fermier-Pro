@@ -64,6 +64,7 @@ export function MerchantShopsScreen() {
 
   return (
     <MerchantMobileShell customHeader={header} omitBottomTabBar>
+      <View style={styles.flex} testID="merchant-shops-screen">
       {meQ.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={merchantColors.primary} />
       ) : !hasShop ? (
@@ -136,11 +137,13 @@ export function MerchantShopsScreen() {
           )}
         />
       )}
+      </View>
     </MerchantMobileShell>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   topBar: {
     flexDirection: "row",
     alignItems: "center",

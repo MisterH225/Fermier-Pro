@@ -57,3 +57,16 @@ export async function expectSubscriptionCtaLabelMatches(pattern: RegExp): Promis
 export async function expectSubscriptionCtaLabel(text: string): Promise<void> {
   await expect(element(by.id("merchant-subscription-cta-label"))).toHaveText(text);
 }
+
+export async function expectSubscriptionPaymentMethodsVisible(): Promise<void> {
+  await expect(element(by.id("merchant-subscription-pay-mobile-money"))).toBeVisible();
+  await expect(element(by.id("merchant-subscription-pay-wallet"))).toBeVisible();
+}
+
+export async function selectPaymentMethod(method: "mobile_money" | "wallet"): Promise<void> {
+  const testId =
+    method === "mobile_money"
+      ? "merchant-subscription-pay-mobile-money"
+      : "merchant-subscription-pay-wallet";
+  await element(by.id(testId)).tap();
+}

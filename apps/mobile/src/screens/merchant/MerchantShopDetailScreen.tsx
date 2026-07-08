@@ -88,7 +88,7 @@ export function MerchantShopDetailScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={["bottom"]}>
+    <SafeAreaView style={styles.safe} edges={["bottom"]} testID="merchant-shop-detail-screen">
       <View style={styles.header}>
         <Text style={styles.shopName}>{shop.name}</Text>
         {shop.description ? (

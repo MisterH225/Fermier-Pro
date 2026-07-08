@@ -293,7 +293,7 @@ export function MerchantSubscriptionScreen({
         </View>
 
         {pendingPayment ? (
-          <View style={styles.pendingBox}>
+          <View style={styles.pendingBox} testID="merchant-subscription-pending-box">
             <Text style={styles.pendingTitle}>
               {t("merchant.subscription.paymentPendingTitle")}
             </Text>
@@ -322,6 +322,7 @@ export function MerchantSubscriptionScreen({
                   paymentMethod === "mobile_money" && styles.payMethodChipOn
                 ]}
                 onPress={() => setPaymentMethod("mobile_money")}
+                testID="merchant-subscription-pay-mobile-money"
               >
                 <Text
                   style={[
@@ -340,6 +341,7 @@ export function MerchantSubscriptionScreen({
                 ]}
                 onPress={() => canPayWithWallet && setPaymentMethod("wallet")}
                 disabled={!canPayWithWallet}
+                testID="merchant-subscription-pay-wallet"
               >
                 <Text
                   style={[
