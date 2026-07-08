@@ -181,6 +181,7 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
   if (step === 0) {
     return (
       <MerchantSubscriptionScreen
+        autoAdvanceIfTierChosen
         skippable
         onSkip={async () => {
           if (accessToken && activeProfileId && !me?.subscriptionTier) {
@@ -212,6 +213,7 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
   if (step === 3) {
     return (
       <MerchantSubscriptionScreen
+        autoAdvanceIfTierChosen
         skippable={false}
         onChosen={async () => {
           await loadMe();

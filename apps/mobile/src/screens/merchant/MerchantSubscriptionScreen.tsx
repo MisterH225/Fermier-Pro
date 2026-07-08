@@ -27,6 +27,8 @@ import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 
 type Props = {
   skippable?: boolean;
+  /** Onboarding uniquement : avance si un tier est déjà enregistré. */
+  autoAdvanceIfTierChosen?: boolean;
   onSkip?: () => void;
   onChosen: () => void | Promise<void>;
   onCancel: () => void;
@@ -53,6 +55,7 @@ type PendingPayment = {
 
 export function MerchantSubscriptionScreen({
   skippable = false,
+  autoAdvanceIfTierChosen = false,
   onSkip,
   onChosen,
   onCancel
@@ -105,12 +108,19 @@ export function MerchantSubscriptionScreen({
   }, [meQ.data?.pendingSubscription]);
 
   useEffect(() => {
-    if (advancedRef.current || !meQ.data?.subscriptionTier) {
+    if (!autoAdvanceIfTierChosen || advancedRef.current || !meQ.data?.subscriptionTier) {
       return;
     }
     advancedRef.current = true;
     void onChosen();
-  }, [meQ.data?.subscriptionTier, onChosen]);
+  }, [autoAdvanceIfTierChosen, meQ.data?.subscriptionTier, onChosen]);
+
+  useEffect(() => {
+    if (autoAdvanceIfTierChosen || meQ.data?.subscriptionTier !== "free") {
+      return;
+    }
+    setSelectedTier("premium");
+  }, [autoAdvanceIfTierChosen, meQ.data?.subscriptionTier]);
 
   const invalidateMerchant = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["merchant-me", activeProfileId] });
@@ -188,6 +198,16 @@ export function MerchantSubscriptionScreen({
         if (res.paymentUrl) {
           await Linking.openURL(res.paymentUrl);
         }
+        return;
+      }
+      const updatedTier =
+        "subscriptionTier" in res ? res.subscriptionTier : meQ.data?.subscriptionTier;
+      const tierChanged =
+        selectedTier === "premium"
+          ? updatedTier === "premium"
+          : updatedTier != null && meQ.data?.subscriptionTier == null;
+      if (!tierChanged && meQ.data?.subscriptionTier === selectedTier) {
+        setError(t("merchant.subscription.alreadyOnPlan"));
         return;
       }
       await invalidateMerchant();

@@ -4014,6 +4014,7 @@ export const en = {
       ctaFree: "Start for free",
       ctaPremium: "Choose Premium — {{price}} XOF/month",
       ctaPremiumLoading: "Loading price…",
+      alreadyOnPlan: "You are already on this plan.",
       premiumPending: "Complete Premium payment (Wave link or SMS) to activate your subscription.",
       statusPaymentPending: "Payment pending",
       confirmPaymentCta: "I paid — activate Premium",

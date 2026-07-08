@@ -4063,6 +4063,7 @@ export const fr = {
       ctaFree: "Commencer gratuitement",
       ctaPremium: "Choisir Premium — {{price}} XOF/mois",
       ctaPremiumLoading: "Chargement du tarif…",
+      alreadyOnPlan: "Tu es déjà sur ce forfait.",
       premiumPending: "Finalise le paiement Premium (lien Wave ou SMS) pour activer ton abonnement.",
       statusPaymentPending: "Paiement en attente",
       confirmPaymentCta: "J'ai payé — activer Premium",

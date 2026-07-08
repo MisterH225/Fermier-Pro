@@ -53,7 +53,7 @@ export function MerchantSubscriptionBadge({
           {label}
         </Text>
       </View>
-      {!isPremium && tier !== "free" ? (
+      {!isPremium && !isPastDue ? (
         <Pressable
           testID={
             hasPendingSubscription

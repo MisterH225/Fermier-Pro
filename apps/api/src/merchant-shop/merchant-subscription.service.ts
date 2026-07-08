@@ -34,11 +34,11 @@ export class MerchantSubscriptionService {
 
   async choose(user: User, dto: ChooseMerchantSubscriptionDto) {
     const profile = await this.profiles.ensureProfile(user.id);
-    if (profile.subscriptionTier) {
-      return this.profiles.getMe(user);
-    }
 
     if (dto.tier === MerchantSubscriptionTier.free) {
+      if (profile.subscriptionTier) {
+        return this.profiles.getMe(user);
+      }
       await this.prisma.merchantProfile.update({
         where: { userId: user.id },
         data: {
@@ -46,6 +46,10 @@ export class MerchantSubscriptionService {
           subscriptionChosenAt: new Date()
         }
       });
+      return this.profiles.getMe(user);
+    }
+
+    if (profile.subscriptionTier === MerchantSubscriptionTier.premium) {
       return this.profiles.getMe(user);
     }
 
@@ -80,7 +84,7 @@ export class MerchantSubscriptionService {
       await this.prisma.merchantProfile.update({
         where: { userId: user.id },
         data: {
-          subscriptionChosenAt: new Date()
+          subscriptionChosenAt: profile.subscriptionChosenAt ?? new Date()
         }
       });
       await this.billing.activatePremium(profile.id, paidAt);
