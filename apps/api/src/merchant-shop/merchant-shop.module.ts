@@ -18,6 +18,7 @@ import { MerchantProductsService } from "./merchant-products.service";
 import { MerchantProfilesService } from "./merchant-profiles.service";
 import { MerchantShopsService } from "./merchant-shops.service";
 import { MerchantSubscriptionBillingService } from "./merchant-subscription-billing.service";
+import { MerchantSubscriptionPromoCodesService } from "./merchant-subscription-promo-codes.service";
 import { MerchantSubscriptionCronService } from "./merchant-subscription.cron";
 import { MerchantSubscriptionService } from "./merchant-subscription.service";
 
@@ -42,6 +43,7 @@ import { MerchantSubscriptionService } from "./merchant-subscription.service";
     MerchantCategoriesService,
     MerchantSubscriptionService,
     MerchantSubscriptionBillingService,
+    MerchantSubscriptionPromoCodesService,
     MerchantSubscriptionCronService,
     MerchantOrdersService,
     MerchantModerationService,
@@ -53,7 +55,8 @@ import { MerchantSubscriptionService } from "./merchant-subscription.service";
     MerchantCategoriesService,
     MerchantModerationService,
     MerchantSubscriptionService,
-    MerchantSubscriptionBillingService
+    MerchantSubscriptionBillingService,
+    MerchantSubscriptionPromoCodesService
   ]
 })
 export class MerchantShopModule {}

@@ -21,7 +21,8 @@ import {
   PurchaseMerchantProductDto,
   RespondMerchantOrderDisputeDto,
   UpdateMerchantProductDto,
-  UpdateMerchantShopDto
+  UpdateMerchantShopDto,
+  ValidateMerchantPromoCodeDto
 } from "./dto/merchant-shop.dto";
 import { MerchantCategoriesService } from "./merchant-categories.service";
 import { MerchantDashboardService } from "./merchant-dashboard.service";
@@ -64,6 +65,15 @@ export class MerchantShopController {
     @Body() dto: ChooseMerchantSubscriptionDto
   ) {
     return this.subscription.choose(user, dto);
+  }
+
+  @Post("me/subscription/validate-code")
+  @UseGuards(MerchantProfileGuard)
+  validateSubscriptionPromoCode(
+    @CurrentUser() user: Parameters<MerchantSubscriptionService["validatePromoCode"]>[0],
+    @Body() dto: ValidateMerchantPromoCodeDto
+  ) {
+    return this.subscription.validatePromoCode(user, dto.code);
   }
 
   @Post("me/subscription/confirm")

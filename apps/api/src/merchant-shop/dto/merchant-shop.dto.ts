@@ -33,6 +33,20 @@ export class ChooseMerchantSubscriptionDto {
   /** Demande un essai gratuit si activé côté plateforme. */
   @IsOptional()
   startTrial?: boolean;
+
+  /** Code marketing (essai / remise / promo) saisi par le commerçant. */
+  @IsOptional()
+  @IsString()
+  @MinLength(4)
+  @MaxLength(32)
+  promoCode?: string;
+}
+
+export class ValidateMerchantPromoCodeDto {
+  @IsString()
+  @MinLength(4)
+  @MaxLength(32)
+  code!: string;
 }
 
 export class CreateMerchantShopDto {

@@ -4058,6 +4058,11 @@ export const en = {
       billingPeriodMonth: "Monthly subscription",
       billingPeriodMonthN: "Every {{count}} months",
       promoHint: "{{percent}} % off included",
+      promoCodeLabel: "Promo code",
+      promoCodePh: "e.g. FP-ABC12345",
+      promoCodeApply: "Apply",
+      promoCodeApplied: "Code — {{percent}} % off first invoice",
+      promoTrialApplied: "{{units}} {{unitLabel}} trial via code",
       graceHint: "Grace period: {{days}} days after due date",
       features: {
         shop: {

@@ -1234,6 +1234,35 @@
       "suspended": "Suspended",
       "cancelled": "Cancelled",
       "trialing": "Trial"
-    }
+    },
+    "promoSectionTitle": "Marketing codes",
+    "promoSectionHint": "Create trial, discount or promo codes for merchants to redeem at checkout.",
+    "promoLoadError": "Could not load codes.",
+    "promoCreateError": "Could not create code.",
+    "promoCreate": "Create code",
+    "promoLabelPh": "Label (optional)",
+    "promoCodePh": "Code (auto-generated if empty)",
+    "promoPercentPh": "Discount %",
+    "promoTrialUnitsPh": "Trial length (billing units)",
+    "promoMaxRedemptionsPh": "Global quota (optional)",
+    "promoColCode": "Code",
+    "promoColType": "Type",
+    "promoColBenefit": "Benefit",
+    "promoColUsage": "Redemptions",
+    "promoColStatus": "Status",
+    "promoEmpty": "No codes yet.",
+    "promoActive": "Active",
+    "promoInactive": "Inactive",
+    "promoDeactivate": "Deactivate",
+    "promoBenefitTrial": "Trial {units} period(s)",
+    "promoBenefitPercent": "-{percent} %",
+    "promoType": {
+      "trial": "Free trial",
+      "discount": "Discount",
+      "promo": "Promo"
+    },
+    "triggerRenewal": "Test renewal",
+    "triggerRenewalOk": "Billing cycle executed.",
+    "triggerRenewalOkWithLink": "Pending invoice: {amount} XOF (link generated)."
   }
 }

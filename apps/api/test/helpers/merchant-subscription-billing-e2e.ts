@@ -21,9 +21,12 @@ export async function isMerchantSubscriptionBillingSchemaReady(
     SELECT table_name
     FROM information_schema.tables
     WHERE table_schema = 'public'
-      AND table_name = 'MerchantSubscriptionInvoice'
+      AND table_name IN (
+        'MerchantSubscriptionInvoice',
+        'MerchantSubscriptionPromoCode'
+      )
   `;
-  return rows.length > 0;
+  return rows.length >= 2;
 }
 
 export async function prepareMerchantBillingE2e(
@@ -69,6 +72,9 @@ export async function resetMerchantSubscriptionBillingState(
   await prisma.merchantSubscriptionInvoice.deleteMany({
     where: { merchantProfileId: profile.id }
   });
+  await prisma.merchantSubscriptionPromoRedemption.deleteMany({
+    where: { merchantProfileId: profile.id }
+  });
   await prisma.userWalletEntry.deleteMany({
     where: { wallet: { userId: merchantUserId } }
   });
@@ -86,7 +92,12 @@ export async function resetMerchantSubscriptionBillingState(
       premiumPaidAt: null,
       nextBillingAt: null,
       graceEndsAt: null,
-      billingReminderKey: null
+      billingReminderKey: null,
+      trialEndsAt: null,
+      promoPercentOffApplied: null,
+      cancelledAt: null,
+      suspendedAt: null,
+      suspensionReason: null
     }
   });
 

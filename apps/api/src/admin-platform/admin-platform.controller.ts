@@ -63,6 +63,7 @@ import {
   AdminMerchantGrantTrialDto,
   AdminMerchantSubReasonDto
 } from "./dto/admin-merchant-subscriptions.dto";
+import { AdminCreateMerchantPromoCodeDto } from "./dto/admin-merchant-promo-codes.dto";
 
 @Controller("admin")
 @UseGuards(SupabaseJwtGuard, ConsoleAccessGuard, AdminConsoleMenuGuard)
@@ -651,6 +652,40 @@ export class AdminPlatformController {
     @Body() body: AdminMerchantApplyPromoDto
   ) {
     return this.merchantSubscriptions.applyPromo(profileId, body.percentOff);
+  }
+
+  @Post("merchant-subscriptions/:profileId/trigger-renewal")
+  adminTriggerMerchantRenewal(@Param("profileId") profileId: string) {
+    return this.merchantSubscriptions.triggerRenewal(profileId);
+  }
+
+  @Get("merchant-subscription-promo-codes")
+  adminListMerchantPromoCodes(@Query("activeOnly") activeOnly?: string) {
+    return this.merchantSubscriptions.listPromoCodes(activeOnly === "true");
+  }
+
+  @Post("merchant-subscription-promo-codes")
+  adminCreateMerchantPromoCode(
+    @CurrentUser() admin: User,
+    @Body() body: AdminCreateMerchantPromoCodeDto
+  ) {
+    return this.merchantSubscriptions.createPromoCode(
+      {
+        type: body.type,
+        label: body.label,
+        code: body.code,
+        percentOff: body.percentOff,
+        trialUnits: body.trialUnits,
+        maxRedemptions: body.maxRedemptions,
+        expiresAt: body.expiresAt ? new Date(body.expiresAt) : null
+      },
+      admin.id
+    );
+  }
+
+  @Post("merchant-subscription-promo-codes/:id/deactivate")
+  adminDeactivateMerchantPromoCode(@Param("id") id: string) {
+    return this.merchantSubscriptions.deactivatePromoCode(id);
   }
 
   @Post("merchant/categories")

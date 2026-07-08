@@ -1253,6 +1253,35 @@
       "suspended": "Suspendu",
       "cancelled": "Annulé",
       "trialing": "Essai"
-    }
+    },
+    "promoSectionTitle": "Codes marketing",
+    "promoSectionHint": "Générez des codes essai, remise ou promo à partager aux commerçants.",
+    "promoLoadError": "Impossible de charger les codes.",
+    "promoCreateError": "Impossible de créer le code.",
+    "promoCreate": "Créer le code",
+    "promoLabelPh": "Libellé (optionnel)",
+    "promoCodePh": "Code (auto si vide)",
+    "promoPercentPh": "Remise %",
+    "promoTrialUnitsPh": "Durée essai (unités facturation)",
+    "promoMaxRedemptionsPh": "Quota global (optionnel)",
+    "promoColCode": "Code",
+    "promoColType": "Type",
+    "promoColBenefit": "Avantage",
+    "promoColUsage": "Utilisations",
+    "promoColStatus": "Statut",
+    "promoEmpty": "Aucun code pour l'instant.",
+    "promoActive": "Actif",
+    "promoInactive": "Inactif",
+    "promoDeactivate": "Désactiver",
+    "promoBenefitTrial": "Essai {units} période(s)",
+    "promoBenefitPercent": "-{percent} %",
+    "promoType": {
+      "trial": "Essai gratuit",
+      "discount": "Remise",
+      "promo": "Promo"
+    },
+    "triggerRenewal": "Test renouvellement",
+    "triggerRenewalOk": "Cycle de facturation exécuté.",
+    "triggerRenewalOkWithLink": "Facture en attente : {amount} XOF (lien généré)."
   }
 }

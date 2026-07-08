@@ -886,6 +886,79 @@ export function adminApplyMerchantPromo(
   );
 }
 
+export type AdminMerchantPromoCodeRow = {
+  id: string;
+  code: string;
+  type: "trial" | "discount" | "promo";
+  label: string | null;
+  percentOff: number | null;
+  trialUnits: number | null;
+  maxRedemptions: number | null;
+  redemptionCount: number;
+  expiresAt: string | null;
+  isActive: boolean;
+  createdAt: string;
+};
+
+export type AdminTriggerRenewalResult = {
+  profileId: string;
+  subscriptionStatus: string | null;
+  nextBillingAt: string | null;
+  graceEndsAt: string | null;
+  pendingInvoice: {
+    id: string;
+    amount: number;
+    paymentUrl: string | null;
+    providerRef: string | null;
+  } | null;
+};
+
+export function adminTriggerMerchantRenewal(token: string, profileId: string) {
+  return apiFetch<AdminTriggerRenewalResult>(
+    `/admin/merchant-subscriptions/${profileId}/trigger-renewal`,
+    token,
+    { method: "POST", body: JSON.stringify({}) }
+  );
+}
+
+export function fetchAdminMerchantPromoCodes(
+  token: string,
+  activeOnly?: boolean
+) {
+  const qs = activeOnly ? "?activeOnly=true" : "";
+  return apiFetch<AdminMerchantPromoCodeRow[]>(
+    `/admin/merchant-subscription-promo-codes${qs}`,
+    token
+  );
+}
+
+export function adminCreateMerchantPromoCode(
+  token: string,
+  body: {
+    type: "trial" | "discount" | "promo";
+    label?: string;
+    code?: string;
+    percentOff?: number;
+    trialUnits?: number;
+    maxRedemptions?: number;
+    expiresAt?: string;
+  }
+) {
+  return apiFetch<AdminMerchantPromoCodeRow>(
+    "/admin/merchant-subscription-promo-codes",
+    token,
+    { method: "POST", body: JSON.stringify(body) }
+  );
+}
+
+export function adminDeactivateMerchantPromoCode(token: string, id: string) {
+  return apiFetch<AdminMerchantPromoCodeRow>(
+    `/admin/merchant-subscription-promo-codes/${id}/deactivate`,
+    token,
+    { method: "POST", body: JSON.stringify({}) }
+  );
+}
+
 export type AdminMerchantCategoryRow = {
   id: string;
   name: string;

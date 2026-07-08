@@ -5,10 +5,15 @@ import { useTranslations } from "next-intl";
 import {
   adminApplyMerchantPromo,
   adminCancelMerchantSubscription,
+  adminCreateMerchantPromoCode,
+  adminDeactivateMerchantPromoCode,
   adminGrantMerchantTrial,
   adminResumeMerchantSubscription,
   adminSuspendMerchantSubscription,
+  adminTriggerMerchantRenewal,
+  fetchAdminMerchantPromoCodes,
   fetchAdminMerchantSubscriptions,
+  type AdminMerchantPromoCodeRow,
   type AdminMerchantSubscriptionRow,
   type AdminMerchantSubscriptionsListDto
 } from "@/lib/api";
@@ -21,6 +26,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { selectClass } from "@/lib/ui-styles";
 
+type PromoForm = {
+  type: "trial" | "discount" | "promo";
+  label: string;
+  code: string;
+  percentOff: string;
+  trialUnits: string;
+  maxRedemptions: string;
+  expiresAt: string;
+};
+
+const emptyPromoForm = (): PromoForm => ({
+  type: "discount",
+  label: "",
+  code: "",
+  percentOff: "20",
+  trialUnits: "7",
+  maxRedemptions: "",
+  expiresAt: ""
+});
+
 export default function MerchantSubscriptionsPage() {
   const t = useTranslations("merchantSubscriptions");
   const { token, ready } = useAdminToken();
@@ -29,10 +54,23 @@ export default function MerchantSubscriptionsPage() {
   const [data, setData] = useState<AdminMerchantSubscriptionsListDto | null>(
     null
   );
+  const [promoCodes, setPromoCodes] = useState<AdminMerchantPromoCodeRow[]>([]);
+  const [promoForm, setPromoForm] = useState<PromoForm>(emptyPromoForm);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   const [q, setQ] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [promoBusy, setPromoBusy] = useState(false);
+
+  const loadPromoCodes = useCallback(async () => {
+    if (!token) return;
+    try {
+      const rows = await fetchAdminMerchantPromoCodes(token);
+      setPromoCodes(rows);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("promoLoadError"));
+    }
+  }, [token, t]);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -43,10 +81,11 @@ export default function MerchantSubscriptionsPage() {
         q: q.trim() || undefined
       });
       setData(res);
+      await loadPromoCodes();
     } catch (e) {
       setError(e instanceof Error ? e.message : t("loadError"));
     }
-  }, [token, status, q, t]);
+  }, [token, status, q, t, loadPromoCodes]);
 
   useEffect(() => {
     if (ready && token) void load();
@@ -69,6 +108,51 @@ export default function MerchantSubscriptionsPage() {
     }
   };
 
+  const createPromoCode = async () => {
+    if (!token || !canWrite) return;
+    setPromoBusy(true);
+    setError(null);
+    try {
+      await adminCreateMerchantPromoCode(token, {
+        type: promoForm.type,
+        label: promoForm.label.trim() || undefined,
+        code: promoForm.code.trim() || undefined,
+        percentOff:
+          promoForm.type === "trial"
+            ? undefined
+            : Number(promoForm.percentOff),
+        trialUnits:
+          promoForm.type === "trial"
+            ? Number(promoForm.trialUnits)
+            : undefined,
+        maxRedemptions: promoForm.maxRedemptions.trim()
+          ? Number(promoForm.maxRedemptions)
+          : undefined,
+        expiresAt: promoForm.expiresAt.trim() || undefined
+      });
+      setPromoForm(emptyPromoForm());
+      await loadPromoCodes();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("promoCreateError"));
+    } finally {
+      setPromoBusy(false);
+    }
+  };
+
+  const deactivatePromo = async (id: string) => {
+    if (!token || !canWrite) return;
+    setPromoBusy(true);
+    setError(null);
+    try {
+      await adminDeactivateMerchantPromoCode(token, id);
+      await loadPromoCodes();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("actionError"));
+    } finally {
+      setPromoBusy(false);
+    }
+  };
+
   return (
     <AdminPageShell>
       <PageHeader title={t("title")} description={t("subtitle")} />
@@ -81,6 +165,149 @@ export default function MerchantSubscriptionsPage() {
           })}
         </p>
       ) : null}
+
+      <section className="mb-8 rounded-lg border p-4">
+        <h2 className="mb-3 text-base font-semibold">{t("promoSectionTitle")}</h2>
+        <p className="mb-4 text-sm text-muted-foreground">
+          {t("promoSectionHint")}
+        </p>
+        <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <select
+            className={selectClass}
+            value={promoForm.type}
+            onChange={(e) =>
+              setPromoForm((f) => ({
+                ...f,
+                type: e.target.value as PromoForm["type"]
+              }))
+            }
+          >
+            <option value="trial">{t("promoType.trial")}</option>
+            <option value="discount">{t("promoType.discount")}</option>
+            <option value="promo">{t("promoType.promo")}</option>
+          </select>
+          <Input
+            placeholder={t("promoLabelPh")}
+            value={promoForm.label}
+            onChange={(e) =>
+              setPromoForm((f) => ({ ...f, label: e.target.value }))
+            }
+          />
+          <Input
+            placeholder={t("promoCodePh")}
+            value={promoForm.code}
+            onChange={(e) =>
+              setPromoForm((f) => ({ ...f, code: e.target.value }))
+            }
+          />
+          {promoForm.type === "trial" ? (
+            <Input
+              type="number"
+              min={1}
+              placeholder={t("promoTrialUnitsPh")}
+              value={promoForm.trialUnits}
+              onChange={(e) =>
+                setPromoForm((f) => ({ ...f, trialUnits: e.target.value }))
+              }
+            />
+          ) : (
+            <Input
+              type="number"
+              min={1}
+              max={100}
+              placeholder={t("promoPercentPh")}
+              value={promoForm.percentOff}
+              onChange={(e) =>
+                setPromoForm((f) => ({ ...f, percentOff: e.target.value }))
+              }
+            />
+          )}
+          <Input
+            type="number"
+            min={1}
+            placeholder={t("promoMaxRedemptionsPh")}
+            value={promoForm.maxRedemptions}
+            onChange={(e) =>
+              setPromoForm((f) => ({ ...f, maxRedemptions: e.target.value }))
+            }
+          />
+          <Input
+            type="datetime-local"
+            value={promoForm.expiresAt}
+            onChange={(e) =>
+              setPromoForm((f) => ({ ...f, expiresAt: e.target.value }))
+            }
+          />
+          <Button
+            type="button"
+            disabled={!canWrite || promoBusy}
+            onClick={() => void createPromoCode()}
+          >
+            {t("promoCreate")}
+          </Button>
+        </div>
+        <div className="overflow-x-auto rounded-lg border">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="p-3">{t("promoColCode")}</th>
+                <th className="p-3">{t("promoColType")}</th>
+                <th className="p-3">{t("promoColBenefit")}</th>
+                <th className="p-3">{t("promoColUsage")}</th>
+                <th className="p-3">{t("promoColStatus")}</th>
+                <th className="p-3">{t("colActions")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {promoCodes.map((row) => (
+                <tr key={row.id} className="border-t">
+                  <td className="p-3 font-mono font-medium">{row.code}</td>
+                  <td className="p-3">{t(`promoType.${row.type}`)}</td>
+                  <td className="p-3">
+                    {row.type === "trial"
+                      ? t("promoBenefitTrial", { units: row.trialUnits ?? 1 })
+                      : t("promoBenefitPercent", {
+                          percent: row.percentOff ?? 0
+                        })}
+                    {row.label ? (
+                      <div className="text-xs text-muted-foreground">
+                        {row.label}
+                      </div>
+                    ) : null}
+                  </td>
+                  <td className="p-3">
+                    {row.redemptionCount}
+                    {row.maxRedemptions != null
+                      ? ` / ${row.maxRedemptions}`
+                      : ""}
+                  </td>
+                  <td className="p-3">
+                    {row.isActive ? t("promoActive") : t("promoInactive")}
+                  </td>
+                  <td className="p-3">
+                    {row.isActive ? (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={!canWrite || promoBusy}
+                        onClick={() => void deactivatePromo(row.id)}
+                      >
+                        {t("promoDeactivate")}
+                      </Button>
+                    ) : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {promoCodes.length === 0 ? (
+            <p className="p-4 text-sm text-muted-foreground">
+              {t("promoEmpty")}
+            </p>
+          ) : null}
+        </div>
+      </section>
+
       <div className="mb-4 flex flex-wrap gap-2">
         <Input
           className="max-w-xs"
@@ -224,6 +451,41 @@ export default function MerchantSubscriptionsPage() {
                       }}
                     >
                       {t("applyPromo")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={
+                        !canWrite ||
+                        busyId === row.profileId ||
+                        row.subscriptionTier !== "premium"
+                      }
+                      onClick={async () => {
+                        if (!token || !canWrite) return;
+                        setBusyId(row.profileId);
+                        setError(null);
+                        try {
+                          const res = await adminTriggerMerchantRenewal(
+                            token,
+                            row.profileId
+                          );
+                          const msg = res.pendingInvoice?.paymentUrl
+                            ? t("triggerRenewalOkWithLink", {
+                                amount: res.pendingInvoice.amount
+                              })
+                            : t("triggerRenewalOk");
+                          window.alert(msg);
+                          await load();
+                        } catch (e) {
+                          setError(
+                            e instanceof Error ? e.message : t("actionError")
+                          );
+                        } finally {
+                          setBusyId(null);
+                        }
+                      }}
+                    >
+                      {t("triggerRenewal")}
                     </Button>
                   </div>
                 </td>

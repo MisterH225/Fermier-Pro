@@ -2,17 +2,20 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import {
   MerchantSubscriptionStatus,
   MerchantSubscriptionTier,
+  MerchantSubscriptionPromoCodeType,
   Prisma
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { MerchantSubscriptionBillingService } from "../merchant-shop/merchant-subscription-billing.service";
+import { MerchantSubscriptionPromoCodesService } from "../merchant-shop/merchant-subscription-promo-codes.service";
 import { resolveMerchantPremiumBillingConfig } from "../merchant-shop/merchant-premium-billing-config";
 
 @Injectable()
 export class AdminMerchantSubscriptionsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly billing: MerchantSubscriptionBillingService
+    private readonly billing: MerchantSubscriptionBillingService,
+    private readonly promoCodes: MerchantSubscriptionPromoCodesService
   ) {}
 
   async list(params: { status?: string; q?: string; take?: number }) {
@@ -111,6 +114,33 @@ export class AdminMerchantSubscriptionsService {
   async applyPromo(profileId: string, percentOff: number) {
     await this.billing.applyPromoOverride(profileId, percentOff);
     return this.getOne(profileId);
+  }
+
+  async listPromoCodes(activeOnly?: boolean) {
+    return this.promoCodes.listAdmin({ activeOnly });
+  }
+
+  async createPromoCode(
+    input: {
+      type: MerchantSubscriptionPromoCodeType;
+      label?: string;
+      code?: string;
+      percentOff?: number;
+      trialUnits?: number;
+      maxRedemptions?: number;
+      expiresAt?: Date | null;
+    },
+    createdByUserId?: string
+  ) {
+    return this.promoCodes.createAdmin({ ...input, createdByUserId });
+  }
+
+  async deactivatePromoCode(id: string) {
+    return this.promoCodes.deactivateAdmin(id);
+  }
+
+  async triggerRenewal(profileId: string) {
+    return this.billing.triggerRenewalCycleForProfile(profileId);
   }
 
   private async getOne(profileId: string) {

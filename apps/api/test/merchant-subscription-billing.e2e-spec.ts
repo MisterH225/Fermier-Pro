@@ -3,6 +3,7 @@ import {
   MerchantSubscriptionInvoiceStatus,
   MerchantSubscriptionStatus,
   MerchantSubscriptionTier,
+  MarketplacePaymentMethod,
   PrismaClient
 } from "@prisma/client";
 import { MerchantSubscriptionBillingService } from "../src/merchant-shop/merchant-subscription-billing.service";
@@ -35,6 +36,7 @@ import {
   seedPastDuePremiumGraceExpired
 } from "./helpers/merchant-subscription-billing-e2e";
 import type { GeniusPayE2eMock } from "./mocks/geniuspay-e2e.mock";
+import request from "supertest";
 
 const hasDb = Boolean(process.env.DATABASE_URL?.trim());
 const hasJwt = Boolean(process.env.SUPABASE_JWT_SECRET?.trim());
@@ -78,6 +80,9 @@ describeOrSkip("Abonnement Premium commerçant — facturation (e2e)", () => {
       base.prisma,
       merchant.merchantUserId
     );
+    await base.prisma.merchantSubscriptionPromoCode.deleteMany({
+      where: { code: { startsWith: "E2E-" } }
+    });
   });
 
   afterAll(async () => {
@@ -248,7 +253,7 @@ describeOrSkip("Abonnement Premium commerçant — facturation (e2e)", () => {
       where: { userId: merchant.merchantUserId }
     });
     expect(profile.subscriptionTier).toBe(MerchantSubscriptionTier.free);
-    expect(profile.subscriptionStatus).toBeNull();
+    expect(profile.subscriptionStatus).toBe(MerchantSubscriptionStatus.cancelled);
     expect(profile.graceEndsAt).toBeNull();
 
     const expiredInvoice = await base.prisma.merchantSubscriptionInvoice.findFirst({
@@ -285,5 +290,157 @@ describeOrSkip("Abonnement Premium commerçant — facturation (e2e)", () => {
     });
     expect(after.billingReminderKey).toMatch(/:j_minus_3$/);
     expect(after.subscriptionStatus).toBe(MerchantSubscriptionStatus.active);
+  });
+
+  it("POST validate-code → prévisualise un code remise", async () => {
+    await base.prisma.merchantSubscriptionPromoCode.create({
+      data: {
+        code: "E2E-PREVIEW",
+        type: "discount",
+        percentOff: 25,
+        label: "Campagne test",
+        isActive: true
+      }
+    });
+
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/merchant/me/subscription/validate-code")
+      .set("Authorization", `Bearer ${merchant.merchantToken}`)
+      .set("X-Profile-Id", merchant.merchantProfileId)
+      .send({ code: "E2E-PREVIEW" });
+
+    expect(res.status).toBe(201);
+    expect(res.body.code).toBe("E2E-PREVIEW");
+    expect(res.body.type).toBe("discount");
+    expect(res.body.percentOff).toBe(25);
+    expect(res.body.discountedPriceXof).toBe(3750);
+    expect(res.body.fullPriceXof).toBe(5000);
+
+    const redemptions = await base.prisma.merchantSubscriptionPromoRedemption.count();
+    expect(redemptions).toBe(0);
+  });
+
+  it("code promo essai → statut trialing", async () => {
+    await base.prisma.merchantSubscriptionPromoCode.create({
+      data: {
+        code: "E2E-TRIAL",
+        type: "trial",
+        trialUnits: 2,
+        isActive: true
+      }
+    });
+
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/merchant/me/subscription")
+      .set("Authorization", `Bearer ${merchant.merchantToken}`)
+      .set("X-Profile-Id", merchant.merchantProfileId)
+      .send({
+        tier: MerchantSubscriptionTier.premium,
+        promoCode: "E2E-TRIAL"
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.subscriptionStatus).toBe(
+      MerchantSubscriptionStatus.trialing
+    );
+    expect(res.body.subscriptionTier).toBe(MerchantSubscriptionTier.premium);
+  });
+
+  it("code remise 50 % → souscription wallet au tarif réduit", async () => {
+    await base.prisma.merchantSubscriptionPromoCode.create({
+      data: {
+        code: "E2E-HALF",
+        type: "discount",
+        percentOff: 50,
+        isActive: true
+      }
+    });
+    await creditMerchantWallet(app, merchant.merchantToken, 3000);
+
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/merchant/me/subscription")
+      .set("Authorization", `Bearer ${merchant.merchantToken}`)
+      .set("X-Profile-Id", merchant.merchantProfileId)
+      .send({
+        tier: MerchantSubscriptionTier.premium,
+        paymentMethod: MarketplacePaymentMethod.wallet,
+        promoCode: "E2E-HALF"
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.subscriptionTier).toBe(MerchantSubscriptionTier.premium);
+    expect(res.body.promoPercentOffApplied).toBe(50);
+
+    const profile = await base.prisma.merchantProfile.findUniqueOrThrow({
+      where: { userId: merchant.merchantUserId }
+    });
+    const paid = await base.prisma.merchantSubscriptionInvoice.findFirst({
+      where: {
+        merchantProfileId: profile.id,
+        status: MerchantSubscriptionInvoiceStatus.paid
+      }
+    });
+    expect(Number(paid?.amount)).toBe(2500);
+  });
+
+  it("double utilisation du même code → refusé", async () => {
+    await base.prisma.merchantSubscriptionPromoCode.create({
+      data: {
+        code: "E2E-ONCE",
+        type: "trial",
+        trialUnits: 1,
+        isActive: true
+      }
+    });
+
+    const first = await request(app.getHttpServer())
+      .post("/api/v1/merchant/me/subscription")
+      .set("Authorization", `Bearer ${merchant.merchantToken}`)
+      .set("X-Profile-Id", merchant.merchantProfileId)
+      .send({
+        tier: MerchantSubscriptionTier.premium,
+        promoCode: "E2E-ONCE"
+      });
+    expect(first.status).toBe(201);
+
+    const profile = await base.prisma.merchantProfile.findUniqueOrThrow({
+      where: { userId: merchant.merchantUserId }
+    });
+    await base.prisma.merchantProfile.update({
+      where: { id: profile.id },
+      data: {
+        subscriptionTier: null,
+        subscriptionStatus: null,
+        trialEndsAt: null,
+        nextBillingAt: null
+      }
+    });
+
+    const second = await request(app.getHttpServer())
+      .post("/api/v1/merchant/me/subscription")
+      .set("Authorization", `Bearer ${merchant.merchantToken}`)
+      .set("X-Profile-Id", merchant.merchantProfileId)
+      .send({
+        tier: MerchantSubscriptionTier.premium,
+        promoCode: "E2E-ONCE"
+      });
+    expect(second.status).toBe(400);
+  });
+
+  it("triggerRenewalCycleForProfile → facture pending", async () => {
+    await seedActivePremiumDueToday(base.prisma, merchant.merchantUserId, {
+      walletBalance: 0
+    });
+    const profile = await base.prisma.merchantProfile.findUniqueOrThrow({
+      where: { userId: merchant.merchantUserId }
+    });
+
+    const result = await billing.triggerRenewalCycleForProfile(profile.id);
+
+    expect(result.pendingInvoice).toBeTruthy();
+    expect(result.pendingInvoice!.amount).toBe(5000);
+    expect(result.pendingInvoice!.paymentUrl).toContain(
+      "https://e2e.fermier.test/pay/"
+    );
   });
 });

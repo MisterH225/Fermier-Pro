@@ -10,6 +10,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,7 +20,9 @@ import {
   chooseMerchantSubscription,
   confirmMerchantSubscription,
   fetchMerchantMe,
-  fetchUserWallet
+  fetchUserWallet,
+  validateMerchantPromoCode,
+  type MerchantPromoCodeBenefit
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
@@ -138,6 +141,11 @@ export function MerchantSubscriptionScreen({
   const [selectedTier, setSelectedTier] = useState<Tier>("free");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mobile_money");
   const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null);
+  const [promoCodeInput, setPromoCodeInput] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<MerchantPromoCodeBenefit | null>(
+    null
+  );
+  const [validatingPromo, setValidatingPromo] = useState(false);
   /** Après Annuler : ne pas réafficher l'attente tant que l'écran est monté. */
   const [dismissedWaiting, setDismissedWaiting] = useState(false);
 
@@ -167,9 +175,16 @@ export function MerchantSubscriptionScreen({
   const trialUnits = meQ.data?.trialUnits ?? 7;
   const promoEnabled = Boolean(meQ.data?.promoEnabled);
   const promoPercentOff = meQ.data?.promoPercentOff ?? 0;
+  const codeTrialAvailable = appliedPromo?.type === "trial";
+  const codeTrialUnits = appliedPromo?.trialUnits ?? trialUnits;
+  const usesTrialPath =
+    codeTrialAvailable || (trialAvailable && !appliedPromo);
+  const effectivePremiumPriceXof =
+    appliedPromo?.discountedPriceXof ?? premiumPriceXof;
   const walletBalance = Number(walletQ.data?.balance ?? 0);
   const canPayWithWallet =
-    premiumPriceXof != null && walletBalance >= premiumPriceXof;
+    effectivePremiumPriceXof != null &&
+    walletBalance >= effectivePremiumPriceXof;
 
   const periodSuffix = useMemo(
     () => billingPeriodSuffix(t, billingUnit, billingInterval),
@@ -177,11 +192,11 @@ export function MerchantSubscriptionScreen({
   );
 
   const premiumPriceLabel = useMemo(() => {
-    if (premiumPriceXof == null) {
+    if (effectivePremiumPriceXof == null) {
       return null;
     }
-    return premiumPriceXof.toLocaleString("fr-FR");
-  }, [premiumPriceXof]);
+    return effectivePremiumPriceXof.toLocaleString("fr-FR");
+  }, [effectivePremiumPriceXof]);
 
   const premiumFeatures = useMemo(() => {
     const lines = [
@@ -194,6 +209,25 @@ export function MerchantSubscriptionScreen({
         t("merchant.subscription.promoHint", { percent: promoPercentOff })
       );
     }
+    if (appliedPromo?.type === "discount" || appliedPromo?.type === "promo") {
+      lines.push(
+        t("merchant.subscription.promoCodeApplied", {
+          percent: appliedPromo.percentOff ?? 0
+        })
+      );
+    }
+    if (appliedPromo?.type === "trial") {
+      lines.push(
+        t("merchant.subscription.promoTrialApplied", {
+          units: appliedPromo.trialUnits ?? 1,
+          unitLabel: trialUnitLabel(
+            t,
+            billingUnit,
+            appliedPromo.trialUnits ?? 1
+          )
+        })
+      );
+    }
     return lines;
   }, [
     t,
@@ -201,7 +235,8 @@ export function MerchantSubscriptionScreen({
     billingUnit,
     billingInterval,
     promoEnabled,
-    promoPercentOff
+    promoPercentOff,
+    appliedPromo
   ]);
 
   useEffect(() => {
@@ -308,17 +343,47 @@ export function MerchantSubscriptionScreen({
     return () => sub.remove();
   }, [pendingPayment, syncPaymentStatus]);
 
+  const validatePromo = async () => {
+    const code = promoCodeInput.trim();
+    if (!accessToken || !activeProfileId || code.length < 4) {
+      return;
+    }
+    setValidatingPromo(true);
+    setError(null);
+    try {
+      const benefit = await validateMerchantPromoCode(
+        accessToken,
+        activeProfileId,
+        code
+      );
+      setAppliedPromo(benefit);
+      setSelectedTier("premium");
+    } catch (e) {
+      setAppliedPromo(null);
+      setError(formatApiError(e));
+    } finally {
+      setValidatingPromo(false);
+    }
+  };
+
   const choose = async (opts?: { startTrial?: boolean }) => {
     if (!accessToken || !activeProfileId) return;
     setBusy(true);
     setError(null);
     try {
-      const startTrial = Boolean(opts?.startTrial);
+      const startTrial = Boolean(
+        opts?.startTrial && selectedTier === "premium" && !appliedPromo
+      );
+      const promoCode =
+        appliedPromo?.code ?? (promoCodeInput.trim() || undefined);
       const res = await chooseMerchantSubscription(accessToken, activeProfileId, {
         tier: selectedTier,
         paymentMethod:
-          selectedTier === "premium" && !startTrial ? paymentMethod : undefined,
-        startTrial: selectedTier === "premium" && startTrial ? true : undefined
+          selectedTier === "premium" && !startTrial && !codeTrialAvailable
+            ? paymentMethod
+            : undefined,
+        startTrial: startTrial ? true : undefined,
+        promoCode
       });
       if ("pending" in res && res.pending) {
         setDismissedWaiting(false);
@@ -397,12 +462,17 @@ export function MerchantSubscriptionScreen({
       : t("merchant.subscription.retryPaymentCta")
     : selectedTier === "free"
       ? t("merchant.subscription.ctaFree")
-      : trialAvailable
+      : codeTrialAvailable
         ? t("merchant.subscription.ctaTrial", {
-            units: trialUnits,
-            unitLabel: trialUnitLabel(t, billingUnit, trialUnits)
+            units: codeTrialUnits,
+            unitLabel: trialUnitLabel(t, billingUnit, codeTrialUnits)
           })
-        : premiumPriceLabel
+        : trialAvailable && !appliedPromo
+          ? t("merchant.subscription.ctaTrial", {
+              units: trialUnits,
+              unitLabel: trialUnitLabel(t, billingUnit, trialUnits)
+            })
+          : premiumPriceLabel
           ? paymentMethod === "wallet"
             ? t("merchant.subscription.ctaPremiumWallet", {
                 price: premiumPriceLabel,
@@ -426,7 +496,8 @@ export function MerchantSubscriptionScreen({
       return;
     }
     void choose({
-      startTrial: selectedTier === "premium" && trialAvailable
+      startTrial:
+        selectedTier === "premium" && trialAvailable && !codeTrialAvailable && !appliedPromo
     });
   };
 
@@ -553,7 +624,53 @@ export function MerchantSubscriptionScreen({
           />
         </View>
 
-        {selectedTier === "premium" && !trialAvailable ? (
+        {selectedTier === "premium" ? (
+          <View style={styles.promoBlock}>
+            <Text style={styles.promoLabel}>
+              {t("merchant.subscription.promoCodeLabel")}
+            </Text>
+            <View style={styles.promoRow}>
+              <TextInput
+                style={styles.promoInput}
+                value={promoCodeInput}
+                onChangeText={(text) => {
+                  setPromoCodeInput(text);
+                  if (appliedPromo && text.trim() !== appliedPromo.code) {
+                    setAppliedPromo(null);
+                  }
+                }}
+                placeholder={t("merchant.subscription.promoCodePh")}
+                placeholderTextColor={merchantColors.textMuted}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                testID="merchant-subscription-promo-input"
+              />
+              <Pressable
+                style={[
+                  styles.promoApplyBtn,
+                  (validatingPromo || promoCodeInput.trim().length < 4) &&
+                    styles.promoApplyBtnDisabled
+                ]}
+                disabled={validatingPromo || promoCodeInput.trim().length < 4}
+                onPress={() => void validatePromo()}
+                testID="merchant-subscription-promo-apply"
+              >
+                {validatingPromo ? (
+                  <ActivityIndicator size="small" color={merchantColors.primary} />
+                ) : (
+                  <Text style={styles.promoApplyTx}>
+                    {t("merchant.subscription.promoCodeApply")}
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+            {appliedPromo?.label ? (
+              <Text style={styles.promoHintApplied}>{appliedPromo.label}</Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        {selectedTier === "premium" && !usesTrialPath ? (
           <View style={styles.payMethodBlock}>
             <Text style={styles.payMethodLabel}>
               {t("merchant.subscription.paymentMethodLabel")}
@@ -641,10 +758,10 @@ export function MerchantSubscriptionScreen({
           disabled={
             busy ||
             (selectedTier === "premium" &&
-              !trialAvailable &&
+              !usesTrialPath &&
               !premiumPriceLabel) ||
             (selectedTier === "premium" &&
-              !trialAvailable &&
+              !usesTrialPath &&
               paymentMethod === "wallet" &&
               !canPayWithWallet)
           }
@@ -995,6 +1112,55 @@ const styles = StyleSheet.create({
   walletHint: {
     fontSize: 12,
     color: merchantColors.textMuted,
+    textAlign: "center"
+  },
+  promoBlock: {
+    marginBottom: mobileSpacing.md,
+    gap: mobileSpacing.sm
+  },
+  promoLabel: {
+    textAlign: "center",
+    fontSize: 13,
+    fontWeight: "600",
+    color: merchantColors.textSecondary
+  },
+  promoRow: {
+    flexDirection: "row",
+    gap: mobileSpacing.sm,
+    alignItems: "center"
+  },
+  promoInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: merchantColors.border,
+    borderRadius: merchantRadius.pill,
+    paddingHorizontal: mobileSpacing.md,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: merchantColors.textPrimary,
+    backgroundColor: merchantColors.cardBg
+  },
+  promoApplyBtn: {
+    paddingHorizontal: mobileSpacing.md,
+    paddingVertical: 12,
+    borderRadius: merchantRadius.pill,
+    borderWidth: 1,
+    borderColor: merchantColors.primary,
+    backgroundColor: merchantColors.primaryLight,
+    minWidth: 88,
+    alignItems: "center"
+  },
+  promoApplyBtnDisabled: {
+    opacity: 0.5
+  },
+  promoApplyTx: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: merchantColors.primary
+  },
+  promoHintApplied: {
+    fontSize: 12,
+    color: merchantColors.primary,
     textAlign: "center"
   }
 });

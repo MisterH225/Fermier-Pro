@@ -50,6 +50,12 @@ enum MerchantSubscriptionReminderStage {
   j_plus_7
 }
 
+enum MerchantSubscriptionPromoCodeType {
+  trial
+  discount
+  promo
+}
+
 enum MerchantProductStatus {
   draft
   published
@@ -3281,6 +3287,7 @@ model MerchantProfile {
   updatedAt            DateTime                  @updatedAt
   shops                MerchantShop[]
   subscriptionInvoices MerchantSubscriptionInvoice[]
+  promoRedemptions     MerchantSubscriptionPromoRedemption[]
 
   @@index([subscriptionTier])
   @@index([subscriptionTier, nextBillingAt])
@@ -3308,6 +3315,40 @@ model MerchantSubscriptionInvoice {
   @@unique([merchantProfileId, billingPeriodStart])
   @@index([status, dueDate])
   @@index([merchantProfileId, status])
+}
+
+/// Code marketing abonnement Premium commerçant (essai, remise, promo).
+model MerchantSubscriptionPromoCode {
+  id               String                            @id @default(cuid())
+  code             String                            @unique
+  type             MerchantSubscriptionPromoCodeType
+  label            String?
+  percentOff       Int?
+  trialUnits       Int?
+  maxRedemptions   Int?
+  redemptionCount  Int                               @default(0)
+  expiresAt        DateTime?
+  isActive         Boolean                           @default(true)
+  createdByUserId  String?
+  createdAt        DateTime                          @default(now())
+  updatedAt        DateTime                          @updatedAt
+  redemptions      MerchantSubscriptionPromoRedemption[]
+
+  @@index([isActive, expiresAt])
+  @@index([type])
+}
+
+/// Utilisation d'un code par un commerçant (une fois par code et par profil).
+model MerchantSubscriptionPromoRedemption {
+  id                String                        @id @default(cuid())
+  promoCodeId       String
+  promoCode         MerchantSubscriptionPromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  merchantProfileId String
+  merchantProfile   MerchantProfile               @relation(fields: [merchantProfileId], references: [id], onDelete: Cascade)
+  redeemedAt        DateTime                      @default(now())
+
+  @@unique([promoCodeId, merchantProfileId])
+  @@index([merchantProfileId])
 }
 
 /// Boutique d'un commerçant.

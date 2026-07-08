@@ -4107,6 +4107,11 @@ export const fr = {
       billingPeriodMonth: "Abonnement mensuel",
       billingPeriodMonthN: "Abonnement tous les {{count}} mois",
       promoHint: "Promo -{{percent}} % incluse",
+      promoCodeLabel: "Code promo",
+      promoCodePh: "ex. FP-ABC12345",
+      promoCodeApply: "Appliquer",
+      promoCodeApplied: "Code -{{percent}} % sur la 1ère facture",
+      promoTrialApplied: "Essai {{units}} {{unitLabel}} via code",
       graceHint: "Délai de grâce : {{days}} jours après l'échéance",
       features: {
         shop: {

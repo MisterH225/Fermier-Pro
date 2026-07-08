@@ -177,11 +177,36 @@ export function chooseMerchantSubscription(
     tier: "free" | "premium";
     paymentMethod?: "wallet" | "mobile_money";
     startTrial?: boolean;
+    promoCode?: string;
   }
 ): Promise<MerchantMeDto | { pending: boolean; providerRef: string; paymentUrl?: string | null; amount: number; invoiceId?: string }> {
   return apiPostJson(
     "/merchant/me/subscription",
     body,
+    accessToken,
+    profileId
+  );
+}
+
+export type MerchantPromoCodeBenefit = {
+  codeId: string;
+  code: string;
+  type: "trial" | "discount" | "promo";
+  label: string | null;
+  percentOff: number | null;
+  trialUnits: number | null;
+  discountedPriceXof: number | null;
+  fullPriceXof: number;
+};
+
+export function validateMerchantPromoCode(
+  accessToken: string,
+  profileId: string,
+  code: string
+): Promise<MerchantPromoCodeBenefit> {
+  return apiPostJson(
+    "/merchant/me/subscription/validate-code",
+    { code },
     accessToken,
     profileId
   );

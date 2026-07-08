@@ -9,6 +9,7 @@ import {
   MerchantProductDisabledReason,
   MerchantProductStatus,
   MerchantSubscriptionInvoiceStatus,
+  MerchantSubscriptionPromoCodeType,
   MerchantSubscriptionTier
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
@@ -19,8 +20,10 @@ import { MerchantSubscriptionBillingService } from "./merchant-subscription-bill
 import { MERCHANT_FREE_MAX_ACTIVE_PRODUCTS } from "./merchant-shop.constants";
 import {
   addBillingPeriod,
+  applyPromoPercent,
   startOfUtcDay
 } from "./merchant-subscription.constants";
+import { MerchantSubscriptionPromoCodesService } from "./merchant-subscription-promo-codes.service";
 
 @Injectable()
 export class MerchantSubscriptionService {
@@ -28,11 +31,31 @@ export class MerchantSubscriptionService {
     private readonly prisma: PrismaService,
     private readonly profiles: MerchantProfilesService,
     private readonly wallet: UserWalletService,
-    private readonly billing: MerchantSubscriptionBillingService
+    private readonly billing: MerchantSubscriptionBillingService,
+    private readonly promoCodes: MerchantSubscriptionPromoCodesService
   ) {}
+
+  private resolveCheckoutPrice(
+    cfg: Awaited<ReturnType<MerchantSubscriptionBillingService["getBillingConfig"]>>,
+    promoPercentOffApplied: number | null,
+    overridePriceXof?: number | null
+  ): number {
+    if (overridePriceXof != null) {
+      return overridePriceXof;
+    }
+    if (promoPercentOffApplied != null) {
+      return applyPromoPercent(cfg.fullPriceXof, promoPercentOffApplied);
+    }
+    return cfg.effectivePriceXof;
+  }
 
   private premiumRef(userId: string): string {
     return `merchant-premium:${userId}`;
+  }
+
+  async validatePromoCode(user: User, code: string) {
+    const profile = await this.profiles.ensureProfile(user.id);
+    return this.promoCodes.previewForMerchant(profile.id, code);
   }
 
   async choose(user: User, dto: ChooseMerchantSubscriptionDto) {
@@ -58,7 +81,22 @@ export class MerchantSubscriptionService {
 
     const cfg = await this.billing.getBillingConfig();
 
-    if (dto.startTrial) {
+    let checkoutPriceOverride: number | null = null;
+
+    if (dto.promoCode?.trim()) {
+      const benefit = await this.promoCodes.redeemForMerchant(
+        profile.id,
+        dto.promoCode
+      );
+      if (benefit.type === MerchantSubscriptionPromoCodeType.trial) {
+        await this.billing.grantTrial(profile.id, benefit.trialUnits ?? undefined);
+        return this.profiles.getMe(user);
+      }
+      if (benefit.percentOff != null) {
+        await this.billing.applyPromoOverride(profile.id, benefit.percentOff);
+        checkoutPriceOverride = benefit.discountedPriceXof;
+      }
+    } else if (dto.startTrial) {
       if (!cfg.trialEnabled) {
         throw new BadRequestException("Essai gratuit Premium indisponible");
       }
@@ -66,7 +104,9 @@ export class MerchantSubscriptionService {
       return this.profiles.getMe(user);
     }
 
-    const price = cfg.effectivePriceXof;
+    const price =
+      checkoutPriceOverride ??
+      this.resolveCheckoutPrice(cfg, profile.promoPercentOffApplied);
     const method =
       dto.paymentMethod ?? MarketplacePaymentMethod.mobile_money;
 

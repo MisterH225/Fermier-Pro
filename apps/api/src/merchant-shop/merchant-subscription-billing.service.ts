@@ -48,6 +48,13 @@ export class MerchantSubscriptionBillingService {
 
   async activatePremium(profileId: string, paidAt = new Date()) {
     const cfg = await this.getBillingConfig();
+    const existing = await this.prisma.merchantProfile.findUnique({
+      where: { id: profileId },
+      select: { promoPercentOffApplied: true }
+    });
+    const promoPercentOffApplied =
+      existing?.promoPercentOffApplied ??
+      (cfg.promoEnabled ? cfg.promoPercentOff : null);
     const nextBillingAt = addBillingPeriod(
       paidAt,
       cfg.billingUnit,
@@ -66,7 +73,7 @@ export class MerchantSubscriptionBillingService {
         cancelledAt: null,
         suspendedAt: null,
         suspensionReason: null,
-        promoPercentOffApplied: cfg.promoEnabled ? cfg.promoPercentOff : null
+        promoPercentOffApplied
       }
     });
   }
@@ -828,6 +835,61 @@ export class MerchantSubscriptionBillingService {
       amount: Number(invoice.amount),
       providerRef: invoice.providerRef,
       paymentUrl: invoice.paymentUrl
+    };
+  }
+
+  /** Force l'échéance passée (tests admin / QA). */
+  async simulateBillingDue(profileId: string) {
+    const profile = await this.prisma.merchantProfile.findUnique({
+      where: { id: profileId }
+    });
+    if (!profile || profile.subscriptionTier !== MerchantSubscriptionTier.premium) {
+      throw new NotFoundException("Abonnement Premium requis");
+    }
+    const dueAt = new Date(Date.now() - 60_000);
+    await this.prisma.merchantProfile.update({
+      where: { id: profileId },
+      data: {
+        nextBillingAt: dueAt,
+        billingReminderKey: null,
+        subscriptionStatus: MerchantSubscriptionStatus.active,
+        graceEndsAt: null
+      }
+    });
+    return dueAt;
+  }
+
+  /** Simule échéance + exécute le cycle de facturation (test renouvellement). */
+  async triggerRenewalCycleForProfile(profileId: string) {
+    await this.simulateBillingDue(profileId);
+    await this.runBillingCycle();
+    const profile = await this.prisma.merchantProfile.findUnique({
+      where: { id: profileId },
+      include: { user: { select: { id: true, phone: true, email: true } } }
+    });
+    if (!profile) {
+      throw new NotFoundException("Profil introuvable");
+    }
+    const pending = await this.prisma.merchantSubscriptionInvoice.findFirst({
+      where: {
+        merchantProfileId: profileId,
+        status: MerchantSubscriptionInvoiceStatus.pending
+      },
+      orderBy: { dueDate: "desc" }
+    });
+    return {
+      profileId,
+      subscriptionStatus: profile.subscriptionStatus,
+      nextBillingAt: profile.nextBillingAt?.toISOString() ?? null,
+      graceEndsAt: profile.graceEndsAt?.toISOString() ?? null,
+      pendingInvoice: pending
+        ? {
+            id: pending.id,
+            amount: Number(pending.amount),
+            paymentUrl: pending.paymentUrl,
+            providerRef: pending.providerRef
+          }
+        : null
     };
   }
 }

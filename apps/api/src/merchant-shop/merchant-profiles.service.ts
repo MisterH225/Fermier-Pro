@@ -17,6 +17,7 @@ import {
 } from "./merchant-shop.constants";
 import type { PatchMerchantOnboardingDto } from "./dto/merchant-shop.dto";
 import { resolveMerchantPremiumBillingConfig } from "./merchant-premium-billing-config";
+import { applyPromoPercent } from "./merchant-subscription.constants";
 
 @Injectable()
 export class MerchantProfilesService {
@@ -81,7 +82,13 @@ export class MerchantProfilesService {
     });
     const premiumMaxShops = settings?.merchantPremiumMaxShops ?? 3;
     const billing = resolveMerchantPremiumBillingConfig(settings);
-    const premiumPrice = billing.effectivePriceXof;
+    const premiumPrice =
+      profile.promoPercentOffApplied != null
+        ? applyPromoPercent(
+            billing.fullPriceXof,
+            profile.promoPercentOffApplied
+          )
+        : billing.effectivePriceXof;
 
     const shops = profile.shops.map((shop) => ({
       id: shop.id,
