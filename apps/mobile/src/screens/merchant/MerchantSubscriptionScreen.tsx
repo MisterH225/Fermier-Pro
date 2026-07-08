@@ -75,18 +75,20 @@ export function MerchantSubscriptionScreen({
   const [selectedTier, setSelectedTier] = useState<Tier>("free");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mobile_money");
   const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null);
+  /** Après Annuler : ne pas réafficher l'attente tant que l'écran est monté. */
+  const [dismissedWaiting, setDismissedWaiting] = useState(false);
 
   const meQ = useQuery({
     queryKey: ["merchant-me", activeProfileId, "subscription"],
     queryFn: () => fetchMerchantMe(accessToken!, activeProfileId!),
     enabled: Boolean(accessToken && activeProfileId),
     staleTime: 0,
-    refetchInterval: pendingPayment ? 5_000 : false
+    refetchInterval: pendingPayment && !dismissedWaiting ? 5_000 : false
   });
 
   const hasPhone = Boolean(authMe?.user.phone?.trim());
   const hasEmailOnly = Boolean(authMe?.user.email?.trim() && !hasPhone);
-  const isWaitingForPayment = Boolean(pendingPayment);
+  const isWaitingForPayment = Boolean(pendingPayment) && !dismissedWaiting;
 
   const walletQ = useQuery({
     queryKey: ["user-wallet", activeProfileId],
@@ -102,16 +104,26 @@ export function MerchantSubscriptionScreen({
 
   useEffect(() => {
     const pending = meQ.data?.pendingSubscription;
-    if (pending?.providerRef) {
-      setPendingPayment({
-        providerRef: pending.providerRef,
-        paymentUrl: pending.paymentUrl,
-        amount: pending.amount,
-        invoiceId: pending.invoiceId
-      });
-      setSelectedTier("premium");
+    if (!pending?.providerRef || dismissedWaiting) {
+      return;
     }
-  }, [meQ.data?.pendingSubscription]);
+    setPendingPayment({
+      providerRef: pending.providerRef,
+      paymentUrl: pending.paymentUrl,
+      amount: pending.amount,
+      invoiceId: pending.invoiceId
+    });
+    setSelectedTier("premium");
+  }, [meQ.data?.pendingSubscription, dismissedWaiting]);
+
+  const leaveWaitingAndCancel = useCallback(() => {
+    setDismissedWaiting(true);
+    completingRef.current = false;
+    setBusy(false);
+    setError(null);
+    setPendingPayment(null);
+    onCancel();
+  }, [onCancel]);
 
   useEffect(() => {
     if (!autoAdvanceIfTierChosen || advancedRef.current || !meQ.data?.subscriptionTier) {
@@ -212,14 +224,16 @@ export function MerchantSubscriptionScreen({
           selectedTier === "premium" ? paymentMethod : undefined
       });
       if ("pending" in res && res.pending) {
+        setDismissedWaiting(false);
         setPendingPayment({
           providerRef: res.providerRef,
           paymentUrl: res.paymentUrl ?? null,
           amount: res.amount,
           invoiceId: res.invoiceId
         });
+        setBusy(false);
         if (res.paymentUrl && hasPhone) {
-          await Linking.openURL(res.paymentUrl);
+          void Linking.openURL(res.paymentUrl);
         }
         return;
       }
@@ -248,7 +262,7 @@ export function MerchantSubscriptionScreen({
       return;
     }
     setError(null);
-    await Linking.openURL(pendingPayment.paymentUrl);
+    void Linking.openURL(pendingPayment.paymentUrl);
   };
 
   const retryCheckout = async () => {
@@ -261,14 +275,16 @@ export function MerchantSubscriptionScreen({
         paymentMethod: "mobile_money"
       });
       if ("pending" in res && res.pending) {
+        setDismissedWaiting(false);
         setPendingPayment({
           providerRef: res.providerRef,
           paymentUrl: res.paymentUrl ?? null,
           amount: res.amount,
           invoiceId: res.invoiceId
         });
+        setBusy(false);
         if (res.paymentUrl && hasPhone) {
-          await Linking.openURL(res.paymentUrl);
+          void Linking.openURL(res.paymentUrl);
         }
       }
     } catch (e) {
@@ -327,25 +343,6 @@ export function MerchantSubscriptionScreen({
               ? t("merchant.subscription.paymentWaitingBodyEmail")
               : t("merchant.subscription.paymentWaitingBody")}
           </Text>
-          {pendingPayment?.paymentUrl ? (
-            <Pressable
-              style={styles.waitingLinkBtn}
-              onPress={() => void openPaymentLink()}
-              testID="merchant-subscription-reopen-payment"
-            >
-              <Text style={styles.waitingLinkTx}>
-                {t("merchant.subscription.reopenPaymentCta")}
-              </Text>
-            </Pressable>
-          ) : null}
-          <Pressable
-            style={styles.cancel}
-            onPress={onCancel}
-            disabled={busy}
-            testID="merchant-subscription-cancel"
-          >
-            <Text style={styles.cancelTx}>{t("common.cancel")}</Text>
-          </Pressable>
           {error ? (
             <Text style={styles.err} testID="merchant-subscription-error">
               {error}
@@ -366,6 +363,14 @@ export function MerchantSubscriptionScreen({
                 {ctaLabel}
               </Text>
             )}
+          </Pressable>
+          <Pressable
+            style={styles.waitingCancel}
+            onPress={leaveWaitingAndCancel}
+            testID="merchant-subscription-cancel"
+            hitSlop={12}
+          >
+            <Text style={styles.cancelTx}>{t("common.cancel")}</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -814,7 +819,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: mobileSpacing.lg,
-    gap: mobileSpacing.md
+    gap: mobileSpacing.md,
+    paddingBottom: 120
   },
   waitingTitle: {
     fontSize: 22,
@@ -829,19 +835,10 @@ const styles = StyleSheet.create({
     maxWidth: 320,
     lineHeight: 22
   },
-  waitingLinkBtn: {
-    marginTop: mobileSpacing.sm,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: merchantRadius.pill,
-    backgroundColor: merchantColors.primaryLight,
-    borderWidth: 1,
-    borderColor: merchantColors.primary
-  },
-  waitingLinkTx: {
-    color: merchantColors.primary,
-    fontWeight: "700",
-    fontSize: 14
+  waitingCancel: {
+    alignItems: "center",
+    paddingVertical: mobileSpacing.md,
+    marginTop: mobileSpacing.xs
   },
   payMethodBlock: {
     marginBottom: mobileSpacing.md,
