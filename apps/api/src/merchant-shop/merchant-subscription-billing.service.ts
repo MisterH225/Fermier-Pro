@@ -321,7 +321,11 @@ export class MerchantSubscriptionBillingService {
    * Ne re-interroge pas GET /payments/{ref} : en sandbox GeniusPay le lookup
    * échoue souvent (TRANSACTION_NOT_FOUND) alors que payment.success est fiable.
    */
-  async confirmFromWebhook(providerRef: string, invoiceId: string) {
+  async confirmFromWebhook(
+    providerRef: string,
+    invoiceId: string,
+    webhookAmount?: number
+  ) {
     const invoice = await this.prisma.merchantSubscriptionInvoice.findUnique({
       where: { id: invoiceId }
     });
@@ -331,19 +335,71 @@ export class MerchantSubscriptionBillingService {
     if (invoice.status === MerchantSubscriptionInvoiceStatus.paid) {
       return;
     }
-    if (
-      invoice.status !== MerchantSubscriptionInvoiceStatus.pending ||
-      !invoice.providerRef ||
-      invoice.providerRef !== providerRef
-    ) {
-      throw new NotFoundException(
-        "Facture abonnement non liée à cette référence GeniusPay"
-      );
+    if (invoice.status !== MerchantSubscriptionInvoiceStatus.pending) {
+      throw new NotFoundException("Facture abonnement non en attente");
     }
+
+    const ref = providerRef.trim();
+    if (!ref) {
+      throw new NotFoundException("Référence GeniusPay manquante");
+    }
+
+    if (webhookAmount !== undefined && Number.isFinite(webhookAmount)) {
+      const expected = Number(invoice.amount);
+      if (Math.abs(webhookAmount - expected) > 1) {
+        this.log.warn(
+          `Webhook montant incohérent invoice=${invoiceId} webhook=${webhookAmount} expected=${expected}`
+        );
+        throw new NotFoundException("Montant webhook incohérent avec la facture");
+      }
+    }
+
+    if (invoice.providerRef && invoice.providerRef !== ref) {
+      this.log.warn(
+        `Webhook ref=${ref} différente de facture ref=${invoice.providerRef} invoice=${invoiceId} — mise à jour`
+      );
+      await this.prisma.merchantSubscriptionInvoice.update({
+        where: { id: invoiceId },
+        data: { providerRef: ref }
+      });
+    } else if (!invoice.providerRef) {
+      await this.prisma.merchantSubscriptionInvoice.update({
+        where: { id: invoiceId },
+        data: { providerRef: ref }
+      });
+    }
+
     await this.markInvoicePaid(invoiceId);
     this.log.log(
-      `Premium activé via webhook GeniusPay invoice=${invoiceId} ref=${providerRef}`
+      `Premium activé via webhook GeniusPay invoice=${invoiceId} ref=${ref}`
     );
+  }
+
+  /**
+   * Résout une facture en attente à partir de la référence GeniusPay seule
+   * (metadata.kind / invoice_id parfois absents du webhook sandbox).
+   */
+  async confirmFromWebhookByProviderRef(
+    providerRef: string,
+    webhookAmount?: number
+  ): Promise<boolean> {
+    const ref = providerRef.trim();
+    if (!ref) {
+      return false;
+    }
+
+    const invoice = await this.prisma.merchantSubscriptionInvoice.findFirst({
+      where: {
+        providerRef: ref,
+        status: MerchantSubscriptionInvoiceStatus.pending
+      }
+    });
+    if (!invoice) {
+      return false;
+    }
+
+    await this.confirmFromWebhook(ref, invoice.id, webhookAmount);
+    return true;
   }
 
   async tryWalletRenewal(userId: string, profile: MerchantProfile, amount: number) {

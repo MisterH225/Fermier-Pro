@@ -11,7 +11,7 @@ import {
   addMonthsUtc,
   startOfUtcDay
 } from "../src/merchant-shop/merchant-subscription.constants";
-import { createTestAppWithGeniusPayMock } from "./helpers/create-test-app-with-geniuspay-mock";
+import { createTestAppWithGeniusPayMock, postGeniusPayWebhook } from "./helpers/create-test-app-with-geniuspay-mock";
 import {
   cleanupE2eFixtures,
   seedE2eFixtures,
@@ -54,6 +54,7 @@ describeOrSkip("Abonnement Premium commerçant — facturation (e2e)", () => {
     process.env.MOBILE_MONEY_PROVIDER = "dev";
     process.env.FEATURE_WALLET = "true";
     process.env.MERCHANT_SUBSCRIPTION_SMS_ENABLED = "false";
+    process.env.GENIUSPAY_WEBHOOK_SECRET = "whsec_e2e_merchant_sub";
 
     base = await seedE2eFixtures(PrismaClient);
     const schemaReady = await isMerchantSubscriptionBillingSchemaReady(
@@ -155,6 +156,96 @@ describeOrSkip("Abonnement Premium commerçant — facturation (e2e)", () => {
     expect(confirm.body.subscriptionTier).toBe(MerchantSubscriptionTier.premium);
     expect(confirm.body.subscriptionStatus).toBe(MerchantSubscriptionStatus.active);
     expect(confirm.body.pendingSubscription).toBeNull();
+  });
+
+  it("webhook payment.success → active Premium sans GET /payments", async () => {
+    const choose = await choosePremiumMobileMoney(app, merchant);
+    expect(choose.status).toBe(201);
+    const providerRef = choose.body.providerRef as string;
+    const invoiceId = choose.body.invoiceId as string;
+
+    const webhook = await postGeniusPayWebhook(app, {
+      id: "evt-merchant-sub-1",
+      event: "payment.success",
+      timestamp: Math.floor(Date.now() / 1000),
+      data: {
+        reference: providerRef,
+        amount: choose.body.amount,
+        currency: "XOF",
+        metadata: {
+          kind: "merchant_subscription",
+          user_id: merchant.merchantUserId,
+          invoice_id: invoiceId,
+          transaction_id: `merchant-sub:${invoiceId}`,
+          amount: String(choose.body.amount)
+        }
+      }
+    });
+    expect(webhook.status).toBe(201);
+    expect(webhook.body.ok).toBe(true);
+
+    const me = await getMerchantMe(app, merchant);
+    expect(me.body.subscriptionTier).toBe(MerchantSubscriptionTier.premium);
+    expect(me.body.subscriptionStatus).toBe(MerchantSubscriptionStatus.active);
+    expect(me.body.pendingSubscription).toBeNull();
+  });
+
+  it("webhook avec référence différente de la facture → met à jour providerRef", async () => {
+    const choose = await choosePremiumMobileMoney(app, merchant);
+    expect(choose.status).toBe(201);
+    const invoiceId = choose.body.invoiceId as string;
+    const paidRef = `${choose.body.providerRef}-paid`;
+
+    const webhook = await postGeniusPayWebhook(app, {
+      id: "evt-merchant-sub-2",
+      event: "payment.success",
+      timestamp: Math.floor(Date.now() / 1000),
+      data: {
+        reference: paidRef,
+        amount: choose.body.amount,
+        currency: "XOF",
+        metadata: {
+          kind: "merchant_subscription",
+          user_id: merchant.merchantUserId,
+          invoice_id: invoiceId
+        }
+      }
+    });
+    expect(webhook.status).toBe(201);
+
+    const profile = await base.prisma.merchantProfile.findUniqueOrThrow({
+      where: { userId: merchant.merchantUserId }
+    });
+    const invoice = await base.prisma.merchantSubscriptionInvoice.findUniqueOrThrow({
+      where: { id: invoiceId }
+    });
+    expect(invoice.status).toBe(MerchantSubscriptionInvoiceStatus.paid);
+    expect(invoice.providerRef).toBe(paidRef);
+    expect(profile.subscriptionTier).toBe(MerchantSubscriptionTier.premium);
+  });
+
+  it("webhook sans kind mais référence facture en attente → active Premium", async () => {
+    const choose = await choosePremiumMobileMoney(app, merchant);
+    expect(choose.status).toBe(201);
+
+    const webhook = await postGeniusPayWebhook(app, {
+      id: "evt-merchant-sub-3",
+      event: "payment.success",
+      timestamp: Math.floor(Date.now() / 1000),
+      data: {
+        reference: choose.body.providerRef,
+        amount: choose.body.amount,
+        currency: "XOF",
+        metadata: {
+          user_id: merchant.merchantUserId
+        }
+      }
+    });
+    expect(webhook.status).toBe(201);
+    expect(webhook.body.resolvedByReference).toBe(true);
+
+    const me = await getMerchantMe(app, merchant);
+    expect(me.body.subscriptionTier).toBe(MerchantSubscriptionTier.premium);
   });
 
   it("cron J0 : renouvellement automatique via portefeuille si solde suffisant", async () => {

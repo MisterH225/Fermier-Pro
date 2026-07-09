@@ -10,6 +10,10 @@ import type { Request } from "express";
 import { WithdrawalOrchestratorService } from "../../../wallet/withdrawal-orchestrator.service";
 import { WalletRailsService } from "../../../wallet/wallet-rails.service";
 import { MerchantSubscriptionBillingService } from "../../../merchant-shop/merchant-subscription-billing.service";
+import {
+  extractMerchantSubscriptionInvoiceId,
+  isMerchantSubscriptionWebhookMetadata
+} from "../../../merchant-shop/merchant-subscription-webhook.util";
 import { MarketplaceTransactionService } from "../marketplace-transaction.service";
 import { parsePayoutMetadata } from "./geniuspay-payout.util";
 import {
@@ -126,15 +130,45 @@ export class GeniusPayWebhookController {
       }
 
       if (kind === GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION) {
-        const invoiceId =
-          typeof metadata.invoice_id === "string"
-            ? metadata.invoice_id.trim()
-            : "";
+        const invoiceId = extractMerchantSubscriptionInvoiceId(metadata);
         if (!invoiceId) {
+          const resolved =
+            await this.merchantBilling.confirmFromWebhookByProviderRef(
+              reference,
+              Number.isFinite(amount) ? amount : undefined
+            );
+          if (resolved) {
+            return { ok: true, resolvedByReference: true };
+          }
           throw new BadRequestException("invoice_id metadata manquant");
         }
-        await this.merchantBilling.confirmFromWebhook(reference, invoiceId);
+        await this.merchantBilling.confirmFromWebhook(
+          reference,
+          invoiceId,
+          Number.isFinite(amount) ? amount : undefined
+        );
         return { ok: true };
+      }
+
+      if (isMerchantSubscriptionWebhookMetadata(metadata)) {
+        const invoiceId = extractMerchantSubscriptionInvoiceId(metadata);
+        if (invoiceId) {
+          await this.merchantBilling.confirmFromWebhook(
+            reference,
+            invoiceId,
+            Number.isFinite(amount) ? amount : undefined
+          );
+          return { ok: true, resolvedByMetadata: true };
+        }
+      }
+
+      const merchantResolved =
+        await this.merchantBilling.confirmFromWebhookByProviderRef(
+          reference,
+          Number.isFinite(amount) ? amount : undefined
+        );
+      if (merchantResolved) {
+        return { ok: true, resolvedByReference: true };
       }
 
       const escrowResolved = await this.transactions.resolveEscrowWebhookPayment(

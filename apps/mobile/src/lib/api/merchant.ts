@@ -245,11 +245,12 @@ export function cancelMerchantSubscription(
 export function confirmMerchantSubscription(
   accessToken: string,
   profileId: string,
-  providerRef: string
+  providerRef: string,
+  invoiceId?: string
 ): Promise<MerchantMeDto> {
   return apiPostJson(
     "/merchant/me/subscription/confirm",
-    { providerRef },
+    { providerRef, ...(invoiceId ? { invoiceId } : {}) },
     accessToken,
     profileId
   );
