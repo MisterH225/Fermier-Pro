@@ -1282,6 +1282,42 @@
     },
     "triggerRenewal": "Test renouvellement",
     "triggerRenewalOk": "Cycle de facturation exécuté.",
-    "triggerRenewalOkWithLink": "Facture en attente : {amount} XOF (lien généré)."
+    "triggerRenewalOkWithLink": "Facture en attente : {amount} XOF (lien généré).",
+    "invoicesSectionTitle": "Factures Premium",
+    "invoicesSectionHint": "Consultation seule — aucune activation Premium manuelle. Utilisez « Vérifier GeniusPay » pour comparer le statut prestataire avec la facture.",
+    "invoicesLoadError": "Impossible de charger les factures.",
+    "invoicesEmpty": "Aucune facture trouvée.",
+    "invoiceStatusAll": "Tous les statuts facture",
+    "invoiceColDate": "Créée le",
+    "invoiceColMerchant": "Commerçant",
+    "invoiceColAmount": "Montant",
+    "invoiceColInvoiceStatus": "Statut facture",
+    "invoiceColProviderRef": "Réf. GeniusPay",
+    "invoiceColProfile": "Profil",
+    "invoiceColPaidAt": "Payée le",
+    "invoiceColActions": "Actions",
+    "invoiceVerify": "Vérifier GeniusPay",
+    "invoiceVerifying": "Vérification…",
+    "invoiceVerifyError": "Vérification GeniusPay impossible.",
+    "invoiceStatus": {
+      "pending": "En attente",
+      "paid": "Payée",
+      "failed": "Échouée",
+      "expired": "Expirée"
+    },
+    "invoiceInsight": {
+      "aligned_completed": "Aligné : GeniusPay et facture confirment le paiement.",
+      "provider_completed_invoice_pending": "GeniusPay indique un paiement réussi, mais la facture est encore en attente — le webhook n'a probablement pas activé Premium.",
+      "invoice_paid_provider_not_found": "Facture payée en base, mais la référence GeniusPay est introuvable chez le prestataire.",
+      "invoice_paid_provider_pending": "Facture payée en base, mais GeniusPay n'indique pas encore « complété ».",
+      "amount_mismatch": "Écart de montant entre la facture et GeniusPay.",
+      "provider_not_completed": "GeniusPay n'indique pas un paiement complété pour cette référence.",
+      "no_provider_ref": "Aucune référence prestataire sur la facture.",
+      "internal_wallet_ref": "Paiement via portefeuille interne (pas GeniusPay).",
+      "lookup_unavailable": "Impossible d'interroger GeniusPay (réseau ou configuration)."
+    },
+    "invoiceInspectionProviderStatus": "Statut GeniusPay : {status}",
+    "invoiceInspectionAmount": "Montant GeniusPay : {amount} {currency}",
+    "invoiceInspectionCheckedAt": "Vérifié le {date}"
   }
 }

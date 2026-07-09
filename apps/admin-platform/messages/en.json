@@ -1263,6 +1263,42 @@
     },
     "triggerRenewal": "Test renewal",
     "triggerRenewalOk": "Billing cycle executed.",
-    "triggerRenewalOkWithLink": "Pending invoice: {amount} XOF (link generated)."
+    "triggerRenewalOkWithLink": "Pending invoice: {amount} XOF (link generated).",
+    "invoicesSectionTitle": "Premium invoices",
+    "invoicesSectionHint": "Read-only — no manual Premium activation. Use “Verify GeniusPay” to compare provider status with the invoice.",
+    "invoicesLoadError": "Could not load invoices.",
+    "invoicesEmpty": "No invoices found.",
+    "invoiceStatusAll": "All invoice statuses",
+    "invoiceColDate": "Created",
+    "invoiceColMerchant": "Merchant",
+    "invoiceColAmount": "Amount",
+    "invoiceColInvoiceStatus": "Invoice status",
+    "invoiceColProviderRef": "GeniusPay ref.",
+    "invoiceColProfile": "Profile",
+    "invoiceColPaidAt": "Paid at",
+    "invoiceColActions": "Actions",
+    "invoiceVerify": "Verify GeniusPay",
+    "invoiceVerifying": "Checking…",
+    "invoiceVerifyError": "GeniusPay verification failed.",
+    "invoiceStatus": {
+      "pending": "Pending",
+      "paid": "Paid",
+      "failed": "Failed",
+      "expired": "Expired"
+    },
+    "invoiceInsight": {
+      "aligned_completed": "Aligned: GeniusPay and invoice both confirm payment.",
+      "provider_completed_invoice_pending": "GeniusPay shows completed but invoice is still pending — webhook likely did not activate Premium.",
+      "invoice_paid_provider_not_found": "Invoice paid in DB but GeniusPay reference not found.",
+      "invoice_paid_provider_pending": "Invoice paid in DB but GeniusPay is not completed yet.",
+      "amount_mismatch": "Amount mismatch between invoice and GeniusPay.",
+      "provider_not_completed": "GeniusPay does not show a completed payment for this reference.",
+      "no_provider_ref": "No provider reference on invoice.",
+      "internal_wallet_ref": "Paid via internal wallet (not GeniusPay).",
+      "lookup_unavailable": "Could not query GeniusPay (network or configuration)."
+    },
+    "invoiceInspectionProviderStatus": "GeniusPay status: {status}",
+    "invoiceInspectionAmount": "GeniusPay amount: {amount} {currency}",
+    "invoiceInspectionCheckedAt": "Checked at {date}"
   }
 }

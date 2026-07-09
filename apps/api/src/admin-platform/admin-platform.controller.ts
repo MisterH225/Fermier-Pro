@@ -604,6 +604,32 @@ export class AdminPlatformController {
     return this.merchantCategories.listAdmin();
   }
 
+  @Get("merchant-subscription-invoices")
+  adminListMerchantSubscriptionInvoices(
+    @Query("status") status?: string,
+    @Query("q") q?: string,
+    @Query("profileId") profileId?: string,
+    @Query("take") take?: string
+  ) {
+    return this.merchantSubscriptions.listInvoices({
+      status,
+      q,
+      profileId,
+      take: take ? Number(take) : undefined
+    });
+  }
+
+  @Get("merchant-subscription-invoices/:invoiceId")
+  adminGetMerchantSubscriptionInvoice(
+    @Param("invoiceId") invoiceId: string,
+    @Query("verify") verify?: string
+  ) {
+    return this.merchantSubscriptions.getInvoice(
+      invoiceId,
+      verify === "true" || verify === "1"
+    );
+  }
+
   @Get("merchant-subscriptions")
   adminListMerchantSubscriptions(
     @Query("status") status?: string,

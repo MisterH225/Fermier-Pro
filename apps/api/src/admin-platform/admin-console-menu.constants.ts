@@ -60,6 +60,7 @@ export const ADMIN_ROUTE_MENU_RULES: RouteMenuRule[] = [
   { prefix: "/admin/health-map", menu: "map" },
   { prefix: "/admin/marketplace", menu: "marketplace" },
   { prefix: "/admin/merchant-subscriptions", menu: "merchantSubscriptions" },
+  { prefix: "/admin/merchant-subscription-invoices", menu: "merchantSubscriptions" },
   { prefix: "/admin/merchant-subscription-promo-codes", menu: "merchantSubscriptions" },
   { prefix: "/admin/producer-scores", menu: "producerScores" },
   { prefix: "/admin/stats", menu: "stats" },
