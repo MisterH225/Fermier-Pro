@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   adminApplyMerchantPromo,
@@ -12,8 +12,12 @@ import {
   adminSuspendMerchantSubscription,
   adminTriggerMerchantRenewal,
   fetchAdminMerchantPromoCodes,
+  fetchAdminMerchantSubscriptionInvoice,
+  fetchAdminMerchantSubscriptionInvoices,
   fetchAdminMerchantSubscriptions,
   type AdminMerchantPromoCodeRow,
+  type AdminMerchantSubscriptionInvoiceInspection,
+  type AdminMerchantSubscriptionInvoiceRow,
   type AdminMerchantSubscriptionRow,
   type AdminMerchantSubscriptionsListDto
 } from "@/lib/api";
@@ -61,6 +65,27 @@ export default function MerchantSubscriptionsPage() {
   const [q, setQ] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [promoBusy, setPromoBusy] = useState(false);
+  const [invoiceStatus, setInvoiceStatus] = useState("");
+  const [invoiceQ, setInvoiceQ] = useState("");
+  const [invoices, setInvoices] = useState<AdminMerchantSubscriptionInvoiceRow[]>(
+    []
+  );
+  const [invoiceInspections, setInvoiceInspections] = useState<
+    Record<string, AdminMerchantSubscriptionInvoiceInspection | "loading">
+  >({});
+
+  const loadInvoices = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetchAdminMerchantSubscriptionInvoices(token, {
+        status: invoiceStatus || undefined,
+        q: invoiceQ.trim() || undefined
+      });
+      setInvoices(res.items);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("invoicesLoadError"));
+    }
+  }, [token, invoiceStatus, invoiceQ, t]);
 
   const loadPromoCodes = useCallback(async () => {
     if (!token) return;
@@ -82,10 +107,11 @@ export default function MerchantSubscriptionsPage() {
       });
       setData(res);
       await loadPromoCodes();
+      await loadInvoices();
     } catch (e) {
       setError(e instanceof Error ? e.message : t("loadError"));
     }
-  }, [token, status, q, t, loadPromoCodes]);
+  }, [token, status, q, t, loadPromoCodes, loadInvoices]);
 
   useEffect(() => {
     if (ready && token) void load();
@@ -105,6 +131,32 @@ export default function MerchantSubscriptionsPage() {
       setError(e instanceof Error ? e.message : t("actionError"));
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const verifyInvoice = async (invoiceId: string) => {
+    if (!token) return;
+    setInvoiceInspections((prev) => ({ ...prev, [invoiceId]: "loading" }));
+    setError(null);
+    try {
+      const detail = await fetchAdminMerchantSubscriptionInvoice(
+        token,
+        invoiceId,
+        true
+      );
+      if (detail.providerInspection) {
+        setInvoiceInspections((prev) => ({
+          ...prev,
+          [invoiceId]: detail.providerInspection!
+        }));
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("invoiceVerifyError"));
+      setInvoiceInspections((prev) => {
+        const next = { ...prev };
+        delete next[invoiceId];
+        return next;
+      });
     }
   };
 
@@ -303,6 +355,164 @@ export default function MerchantSubscriptionsPage() {
           {promoCodes.length === 0 ? (
             <p className="p-4 text-sm text-muted-foreground">
               {t("promoEmpty")}
+            </p>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-1 text-lg font-semibold">{t("invoicesSectionTitle")}</h2>
+        <p className="mb-4 text-sm text-muted-foreground">
+          {t("invoicesSectionHint")}
+        </p>
+        <div className="mb-4 flex flex-wrap gap-2">
+          <Input
+            className="max-w-xs"
+            placeholder={t("searchPh")}
+            value={invoiceQ}
+            onChange={(e) => setInvoiceQ(e.target.value)}
+          />
+          <select
+            className={selectClass}
+            value={invoiceStatus}
+            onChange={(e) => setInvoiceStatus(e.target.value)}
+          >
+            <option value="">{t("invoiceStatusAll")}</option>
+            <option value="pending">{t("invoiceStatus.pending")}</option>
+            <option value="paid">{t("invoiceStatus.paid")}</option>
+            <option value="failed">{t("invoiceStatus.failed")}</option>
+            <option value="expired">{t("invoiceStatus.expired")}</option>
+          </select>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => void loadInvoices()}
+          >
+            {t("refresh")}
+          </Button>
+        </div>
+        <div className="overflow-x-auto rounded-lg border">
+          <table className="w-full min-w-[960px] text-left text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="p-3">{t("invoiceColDate")}</th>
+                <th className="p-3">{t("invoiceColMerchant")}</th>
+                <th className="p-3">{t("invoiceColAmount")}</th>
+                <th className="p-3">{t("invoiceColInvoiceStatus")}</th>
+                <th className="p-3">{t("invoiceColProviderRef")}</th>
+                <th className="p-3">{t("invoiceColProfile")}</th>
+                <th className="p-3">{t("invoiceColPaidAt")}</th>
+                <th className="p-3">{t("invoiceColActions")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoices.map((row) => {
+                const inspection = invoiceInspections[row.invoiceId];
+                return (
+                  <Fragment key={row.invoiceId}>
+                    <tr className="border-t align-top">
+                      <td className="p-3 whitespace-nowrap">
+                        {new Date(row.createdAt).toLocaleString()}
+                        <div className="text-xs text-muted-foreground">
+                          {row.invoiceId}
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div className="font-medium">
+                          {row.fullName || row.email || row.phone || row.userId}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {row.phone}
+                          {row.email ? ` · ${row.email}` : ""}
+                        </div>
+                      </td>
+                      <td className="p-3 whitespace-nowrap">
+                        {row.amount.toLocaleString("fr-FR")} {row.currency}
+                      </td>
+                      <td className="p-3">{t(`invoiceStatus.${row.status}`)}</td>
+                      <td className="p-3 max-w-[180px] break-all text-xs">
+                        {row.providerRef ?? "—"}
+                      </td>
+                      <td className="p-3">
+                        {row.profileSubscriptionTier ?? "—"}
+                        {row.profileSubscriptionStatus ? (
+                          <div className="text-xs text-muted-foreground">
+                            {t(`status.${row.profileSubscriptionStatus}`)}
+                          </div>
+                        ) : null}
+                      </td>
+                      <td className="p-3 whitespace-nowrap">
+                        {row.paidAt
+                          ? new Date(row.paidAt).toLocaleString()
+                          : "—"}
+                      </td>
+                      <td className="p-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={inspection === "loading"}
+                          onClick={() => void verifyInvoice(row.invoiceId)}
+                        >
+                          {inspection === "loading"
+                            ? t("invoiceVerifying")
+                            : t("invoiceVerify")}
+                        </Button>
+                      </td>
+                    </tr>
+                    {inspection && inspection !== "loading" ? (
+                      <tr className="border-t bg-muted/20">
+                        <td colSpan={8} className="p-3 text-sm">
+                          <p className="font-medium">
+                            {t(`invoiceInsight.${inspection.syncInsight}`)}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {t("invoiceInspectionCheckedAt", {
+                              date: new Date(inspection.checkedAt).toLocaleString()
+                            })}
+                          </p>
+                          {inspection.providerStatus ? (
+                            <p className="mt-1 text-xs">
+                              {t("invoiceInspectionProviderStatus", {
+                                status: inspection.providerStatus
+                              })}
+                            </p>
+                          ) : null}
+                          {inspection.providerAmount != null ? (
+                            <p className="text-xs">
+                              {t("invoiceInspectionAmount", {
+                                amount: inspection.providerAmount.toLocaleString(
+                                  "fr-FR"
+                                ),
+                                currency: inspection.providerCurrency ?? "XOF"
+                              })}
+                            </p>
+                          ) : null}
+                          {inspection.lookupError ? (
+                            <p className="mt-1 text-xs text-destructive">
+                              {inspection.lookupError}
+                            </p>
+                          ) : null}
+                          {inspection.geniusPayCheckoutUrl ? (
+                            <a
+                              className="mt-2 inline-block text-xs text-primary underline"
+                              href={inspection.geniusPayCheckoutUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              {inspection.geniusPayCheckoutUrl}
+                            </a>
+                          ) : null}
+                        </td>
+                      </tr>
+                    ) : null}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+          {invoices.length === 0 ? (
+            <p className="p-4 text-sm text-muted-foreground">
+              {t("invoicesEmpty")}
             </p>
           ) : null}
         </div>

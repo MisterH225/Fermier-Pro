@@ -13,6 +13,7 @@ import { MarketplaceModule } from "../marketplace/marketplace.module";
 import { VetAppointmentsModule } from "../vet-appointments/vet-appointments.module";
 import { ProducerScoreModule } from "../producer-score/producer-score.module";
 import { MerchantShopModule } from "../merchant-shop/merchant-shop.module";
+import { MobileMoneyModule } from "../marketplace/escrow";
 import { AdminMerchantSubscriptionsService } from "./admin-merchant-subscriptions.service";
 
 @Module({
@@ -25,6 +26,7 @@ import { AdminMerchantSubscriptionsService } from "./admin-merchant-subscription
     AiModule,
     MarketModule,
     MarketplaceModule,
+    MobileMoneyModule,
     VetAppointmentsModule,
     ProducerScoreModule,
     MerchantShopModule

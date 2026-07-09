@@ -921,6 +921,91 @@ export function adminTriggerMerchantRenewal(token: string, profileId: string) {
   );
 }
 
+export type AdminMerchantSubscriptionInvoiceRow = {
+  invoiceId: string;
+  profileId: string;
+  userId: string;
+  fullName: string | null;
+  email: string | null;
+  phone: string | null;
+  amount: number;
+  currency: string;
+  status: "pending" | "paid" | "failed" | "expired";
+  providerRef: string | null;
+  paymentUrl: string | null;
+  billingPeriodStart: string;
+  billingPeriodEnd: string;
+  dueDate: string;
+  paidAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  profileSubscriptionTier: "free" | "premium" | null;
+  profileSubscriptionStatus:
+    | "active"
+    | "past_due"
+    | "suspended"
+    | "cancelled"
+    | "trialing"
+    | null;
+};
+
+export type AdminMerchantSubscriptionInvoiceSyncInsight =
+  | "aligned_completed"
+  | "provider_completed_invoice_pending"
+  | "invoice_paid_provider_not_found"
+  | "invoice_paid_provider_pending"
+  | "amount_mismatch"
+  | "provider_not_completed"
+  | "no_provider_ref"
+  | "internal_wallet_ref"
+  | "lookup_unavailable";
+
+export type AdminMerchantSubscriptionInvoiceInspection = {
+  checkedAt: string;
+  providerRef: string | null;
+  lookupAttempted: boolean;
+  lookupFound: boolean;
+  providerStatus?: string;
+  providerAmount?: number;
+  providerCurrency?: string;
+  amountMatches?: boolean;
+  lookupError?: string;
+  syncInsight: AdminMerchantSubscriptionInvoiceSyncInsight;
+  geniusPayCheckoutUrl: string | null;
+};
+
+export type AdminMerchantSubscriptionInvoiceDetailDto =
+  AdminMerchantSubscriptionInvoiceRow & {
+    providerInspection?: AdminMerchantSubscriptionInvoiceInspection;
+  };
+
+export function fetchAdminMerchantSubscriptionInvoices(
+  token: string,
+  params?: { status?: string; q?: string; profileId?: string }
+) {
+  const search = new URLSearchParams();
+  if (params?.status) search.set("status", params.status);
+  if (params?.q) search.set("q", params.q);
+  if (params?.profileId) search.set("profileId", params.profileId);
+  const suffix = search.toString() ? `?${search.toString()}` : "";
+  return apiFetch<{ items: AdminMerchantSubscriptionInvoiceRow[] }>(
+    `/admin/merchant-subscription-invoices${suffix}`,
+    token
+  );
+}
+
+export function fetchAdminMerchantSubscriptionInvoice(
+  token: string,
+  invoiceId: string,
+  verify = false
+) {
+  const suffix = verify ? "?verify=true" : "";
+  return apiFetch<AdminMerchantSubscriptionInvoiceDetailDto>(
+    `/admin/merchant-subscription-invoices/${invoiceId}${suffix}`,
+    token
+  );
+}
+
 export function fetchAdminMerchantPromoCodes(
   token: string,
   activeOnly?: boolean
