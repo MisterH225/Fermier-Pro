@@ -82,7 +82,11 @@ export class MerchantShopController {
     @CurrentUser() user: Parameters<MerchantSubscriptionService["confirmPremiumPayment"]>[0],
     @Body() dto: ConfirmMerchantPaymentDto
   ) {
-    return this.subscription.confirmPremiumPayment(user, dto.providerRef);
+    return this.subscription.confirmPremiumPayment(
+      user,
+      dto.providerRef,
+      dto.invoiceId
+    );
   }
 
   @Post("me/subscription/renew")

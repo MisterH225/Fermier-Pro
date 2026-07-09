@@ -302,7 +302,8 @@ export function MerchantSubscriptionScreen({
       await confirmMerchantSubscription(
         accessToken,
         activeProfileId,
-        pendingPayment.providerRef
+        pendingPayment.providerRef,
+        pendingPayment.invoiceId
       );
       await completePremiumActivation();
     } catch {
@@ -312,6 +313,7 @@ export function MerchantSubscriptionScreen({
     accessToken,
     activeProfileId,
     pendingPayment?.providerRef,
+    pendingPayment?.invoiceId,
     completePremiumActivation
   ]);
 

@@ -156,6 +156,11 @@ export class PurchaseMerchantProductDto {
 export class ConfirmMerchantPaymentDto {
   @IsString()
   providerRef!: string;
+
+  /** Facture en attente — utile si la référence GeniusPay a changé après reprise checkout. */
+  @IsOptional()
+  @IsString()
+  invoiceId?: string;
 }
 
 export class CreateMerchantCategoryDto {

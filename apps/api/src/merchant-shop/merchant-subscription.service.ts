@@ -168,7 +168,11 @@ export class MerchantSubscriptionService {
     };
   }
 
-  async confirmPremiumPayment(user: User, providerRef: string) {
+  async confirmPremiumPayment(
+    user: User,
+    providerRef: string,
+    invoiceId?: string
+  ) {
     const profile = await this.prisma.merchantProfile.findUnique({
       where: { userId: user.id }
     });
@@ -176,7 +180,7 @@ export class MerchantSubscriptionService {
       throw new NotFoundException("Profil commerçant introuvable");
     }
 
-    const invoice = await this.prisma.merchantSubscriptionInvoice.findFirst({
+    let invoice = await this.prisma.merchantSubscriptionInvoice.findFirst({
       where: {
         merchantProfileId: profile.id,
         providerRef,
@@ -184,15 +188,44 @@ export class MerchantSubscriptionService {
       }
     });
 
+    if (!invoice && invoiceId?.trim()) {
+      invoice = await this.prisma.merchantSubscriptionInvoice.findFirst({
+        where: {
+          id: invoiceId.trim(),
+          merchantProfileId: profile.id,
+          status: MerchantSubscriptionInvoiceStatus.pending
+        }
+      });
+    }
+
     if (invoice) {
-      await this.billing.confirmInvoicePayment(providerRef, invoice.id);
-      if (!profile.subscriptionChosenAt) {
-        await this.prisma.merchantProfile.update({
-          where: { userId: user.id },
-          data: { subscriptionChosenAt: new Date() }
-        });
+      const refsToTry = [
+        providerRef.trim(),
+        invoice.providerRef?.trim() ?? ""
+      ].filter((ref, index, arr) => ref.length > 0 && arr.indexOf(ref) === index);
+
+      let lastError: unknown;
+      for (const ref of refsToTry) {
+        try {
+          await this.billing.confirmInvoicePayment(ref, invoice.id);
+          if (!profile.subscriptionChosenAt) {
+            await this.prisma.merchantProfile.update({
+              where: { userId: user.id },
+              data: { subscriptionChosenAt: new Date() }
+            });
+          }
+          return this.profiles.getMe(user);
+        } catch (err) {
+          lastError = err;
+        }
       }
-      return this.profiles.getMe(user);
+      if (lastError instanceof NotFoundException) {
+        throw lastError;
+      }
+      if (lastError instanceof Error) {
+        throw new BadRequestException(lastError.message);
+      }
+      throw new BadRequestException("Paiement abonnement non confirmé");
     }
 
     if (this.wallet.isWalletPendingRef(providerRef)) {
