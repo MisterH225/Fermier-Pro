@@ -25,14 +25,7 @@ function pickProducerBilling(row: PlatformSettingsDto) {
     producerPremiumBillingInterval: Number(
       row.producerPremiumBillingInterval ?? 1
     ),
-    producerPremiumGraceDays: Number(row.producerPremiumGraceDays ?? 7),
-    producerPremiumTrialEnabled: Boolean(row.producerPremiumTrialEnabled),
-    producerPremiumTrialUnits: Number(row.producerPremiumTrialUnits ?? 7),
-    producerPremiumPromoEnabled: Boolean(row.producerPremiumPromoEnabled),
-    producerPremiumPromoPercentOff: Number(
-      row.producerPremiumPromoPercentOff ?? 20
-    ),
-    producerPremiumPromoEndsAt: row.producerPremiumPromoEndsAt ?? null
+    producerPremiumGraceDays: Number(row.producerPremiumGraceDays ?? 7)
   } satisfies Partial<PlatformSettingsDto>;
 }
 
@@ -192,99 +185,6 @@ export function ProducerPremiumBillingConfigPanel({
           <p className="text-xs text-muted-foreground">
             {t("fields.producerPremiumGraceDaysHint")}
           </p>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="producer-trial-enabled">
-            {t("fields.producerPremiumTrialEnabled")}
-          </Label>
-          <select
-            id="producer-trial-enabled"
-            className={selectClass}
-            disabled={!canEdit}
-            value={form.producerPremiumTrialEnabled ? "1" : "0"}
-            onChange={(e) =>
-              update("producerPremiumTrialEnabled", e.target.value === "1")
-            }
-          >
-            <option value="0">{t("fields.no")}</option>
-            <option value="1">{t("fields.yes")}</option>
-          </select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="producer-trial-units">
-            {t("fields.producerPremiumTrialUnits")}
-          </Label>
-          <Input
-            id="producer-trial-units"
-            type="number"
-            min={1}
-            max={365}
-            disabled={!canEdit}
-            value={form.producerPremiumTrialUnits ?? 7}
-            onChange={(e) =>
-              update("producerPremiumTrialUnits", Number(e.target.value) || 1)
-            }
-          />
-          <p className="text-xs text-muted-foreground">
-            {t("fields.producerPremiumTrialUnitsHint")}
-          </p>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="producer-promo-enabled">
-            {t("fields.producerPremiumPromoEnabled")}
-          </Label>
-          <select
-            id="producer-promo-enabled"
-            className={selectClass}
-            disabled={!canEdit}
-            value={form.producerPremiumPromoEnabled ? "1" : "0"}
-            onChange={(e) =>
-              update("producerPremiumPromoEnabled", e.target.value === "1")
-            }
-          >
-            <option value="0">{t("fields.no")}</option>
-            <option value="1">{t("fields.yes")}</option>
-          </select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="producer-promo-pct">
-            {t("fields.producerPremiumPromoPercentOff")}
-          </Label>
-          <Input
-            id="producer-promo-pct"
-            type="number"
-            min={0}
-            max={100}
-            disabled={!canEdit}
-            value={form.producerPremiumPromoPercentOff ?? 20}
-            onChange={(e) =>
-              update(
-                "producerPremiumPromoPercentOff",
-                Number(e.target.value) || 0
-              )
-            }
-          />
-        </div>
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="producer-promo-ends">
-            {t("fields.producerPremiumPromoEndsAt")}
-          </Label>
-          <Input
-            id="producer-promo-ends"
-            type="datetime-local"
-            disabled={!canEdit}
-            value={
-              form.producerPremiumPromoEndsAt
-                ? form.producerPremiumPromoEndsAt.slice(0, 16)
-                : ""
-            }
-            onChange={(e) =>
-              update(
-                "producerPremiumPromoEndsAt",
-                e.target.value ? new Date(e.target.value).toISOString() : null
-              )
-            }
-          />
         </div>
       </div>
 

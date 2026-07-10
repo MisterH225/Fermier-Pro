@@ -26,14 +26,7 @@ function pickMerchantBilling(row: PlatformSettingsDto) {
     merchantPremiumBillingInterval: Number(
       row.merchantPremiumBillingInterval ?? 1
     ),
-    merchantPremiumGraceDays: Number(row.merchantPremiumGraceDays ?? 7),
-    merchantPremiumTrialEnabled: Boolean(row.merchantPremiumTrialEnabled),
-    merchantPremiumTrialUnits: Number(row.merchantPremiumTrialUnits ?? 7),
-    merchantPremiumPromoEnabled: Boolean(row.merchantPremiumPromoEnabled),
-    merchantPremiumPromoPercentOff: Number(
-      row.merchantPremiumPromoPercentOff ?? 20
-    ),
-    merchantPremiumPromoEndsAt: row.merchantPremiumPromoEndsAt ?? null
+    merchantPremiumGraceDays: Number(row.merchantPremiumGraceDays ?? 7)
   } satisfies Partial<PlatformSettingsDto>;
 }
 
@@ -76,7 +69,10 @@ export function MerchantPremiumBillingConfigPanel({
     setSaving(true);
     setError(null);
     try {
-      const next = await patchPlatformSettings(token, pickMerchantBilling(form as PlatformSettingsDto));
+      const next = await patchPlatformSettings(
+        token,
+        pickMerchantBilling(form as PlatformSettingsDto)
+      );
       setForm(pickMerchantBilling(next));
       setSaved(true);
       onSaved?.();
@@ -210,99 +206,6 @@ export function MerchantPremiumBillingConfigPanel({
           <p className="text-xs text-muted-foreground">
             {t("fields.merchantPremiumGraceDaysHint")}
           </p>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="merchant-trial-enabled">
-            {t("fields.merchantPremiumTrialEnabled")}
-          </Label>
-          <select
-            id="merchant-trial-enabled"
-            className={selectClass}
-            disabled={!canEdit}
-            value={form.merchantPremiumTrialEnabled ? "1" : "0"}
-            onChange={(e) =>
-              update("merchantPremiumTrialEnabled", e.target.value === "1")
-            }
-          >
-            <option value="0">{t("fields.no")}</option>
-            <option value="1">{t("fields.yes")}</option>
-          </select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="merchant-trial-units">
-            {t("fields.merchantPremiumTrialUnits")}
-          </Label>
-          <Input
-            id="merchant-trial-units"
-            type="number"
-            min={1}
-            max={365}
-            disabled={!canEdit}
-            value={form.merchantPremiumTrialUnits ?? 7}
-            onChange={(e) =>
-              update("merchantPremiumTrialUnits", Number(e.target.value) || 1)
-            }
-          />
-          <p className="text-xs text-muted-foreground">
-            {t("fields.merchantPremiumTrialUnitsHint")}
-          </p>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="merchant-promo-enabled">
-            {t("fields.merchantPremiumPromoEnabled")}
-          </Label>
-          <select
-            id="merchant-promo-enabled"
-            className={selectClass}
-            disabled={!canEdit}
-            value={form.merchantPremiumPromoEnabled ? "1" : "0"}
-            onChange={(e) =>
-              update("merchantPremiumPromoEnabled", e.target.value === "1")
-            }
-          >
-            <option value="0">{t("fields.no")}</option>
-            <option value="1">{t("fields.yes")}</option>
-          </select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="merchant-promo-pct">
-            {t("fields.merchantPremiumPromoPercentOff")}
-          </Label>
-          <Input
-            id="merchant-promo-pct"
-            type="number"
-            min={0}
-            max={100}
-            disabled={!canEdit}
-            value={form.merchantPremiumPromoPercentOff ?? 20}
-            onChange={(e) =>
-              update(
-                "merchantPremiumPromoPercentOff",
-                Number(e.target.value) || 0
-              )
-            }
-          />
-        </div>
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="merchant-promo-ends">
-            {t("fields.merchantPremiumPromoEndsAt")}
-          </Label>
-          <Input
-            id="merchant-promo-ends"
-            type="datetime-local"
-            disabled={!canEdit}
-            value={
-              form.merchantPremiumPromoEndsAt
-                ? form.merchantPremiumPromoEndsAt.slice(0, 16)
-                : ""
-            }
-            onChange={(e) =>
-              update(
-                "merchantPremiumPromoEndsAt",
-                e.target.value ? new Date(e.target.value).toISOString() : null
-              )
-            }
-          />
         </div>
       </div>
 
