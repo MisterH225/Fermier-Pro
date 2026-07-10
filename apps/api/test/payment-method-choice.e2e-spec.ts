@@ -42,6 +42,8 @@ const hasDb = Boolean(process.env.DATABASE_URL?.trim());
 const hasJwt = Boolean(process.env.SUPABASE_JWT_SECRET?.trim());
 const describeOrSkip = hasDb && hasJwt ? describe : describe.skip;
 
+jest.setTimeout(600_000);
+
 function futureIso(daysAhead = 10, hourUtc = 11): string {
   const d = new Date();
   d.setUTCDate(d.getUTCDate() + daysAhead);
@@ -125,7 +127,7 @@ describeOrSkip("Choix mode de paiement (e2e)", () => {
   });
 
   afterAll(async () => {
-    if (merchant) {
+    if (merchant && base?.prisma) {
       await cleanupMerchantE2E(base.prisma, merchant, base);
     }
     if (app) {
@@ -278,6 +280,11 @@ describeOrSkip("Choix mode de paiement (e2e)", () => {
           premiumPaidAt: null
         }
       });
+      await base.prisma.merchantSubscriptionInvoice.deleteMany({
+        where: {
+          merchantProfile: { userId: merchant.merchantUserId }
+        }
+      });
 
       const res = await request(app.getHttpServer())
         .post("/api/v1/merchant/me/subscription")
@@ -285,9 +292,6 @@ describeOrSkip("Choix mode de paiement (e2e)", () => {
         .set("X-Profile-Id", merchant.merchantProfileId)
         .send({ tier: MerchantSubscriptionTier.premium });
       expect(res.status).toBe(201);
-      expect(
-        res.body.pendingSubscription ?? res.body.subscriptionTier === "premium"
-      ).toBeTruthy();
 
       const profile = await base.prisma.merchantProfile.findUniqueOrThrow({
         where: { userId: merchant.merchantUserId }

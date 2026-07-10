@@ -115,12 +115,12 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
     enabled: Boolean(accessToken)
   });
 
-  const invalidate = () => {
+  const invalidate = useCallback(() => {
     void qc.invalidateQueries({ queryKey: ["vetAppointment", appointmentId] });
     void qc.invalidateQueries({ queryKey: ["vetAppointments"] });
     void qc.invalidateQueries({ queryKey: ["vetDashboard"] });
     void qc.invalidateQueries({ queryKey: ["user-wallet"] });
-  };
+  }, [qc, appointmentId]);
 
   const walletQ = useQuery({
     queryKey: ["user-wallet", "vet-appointment", appointmentId],
