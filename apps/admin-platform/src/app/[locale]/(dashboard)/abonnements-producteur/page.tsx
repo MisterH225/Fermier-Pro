@@ -25,6 +25,7 @@ import { AdminPageShell } from "@/components/layout/AdminPageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { selectClass } from "@/lib/ui-styles";
+import { ProducerPremiumBillingConfigPanel } from "@/components/subscriptions/ProducerPremiumBillingConfigPanel";
 
 export default function ProducerSubscriptionsPage() {
   const t = useTranslations("producerSubscriptions");
@@ -123,6 +124,13 @@ export default function ProducerSubscriptionsPage() {
   return (
     <AdminPageShell>
       <PageHeader title={t("title")} description={t("subtitle")} />
+      {token ? (
+        <ProducerPremiumBillingConfigPanel
+          token={token}
+          canEdit={canWrite}
+          onSaved={() => void load()}
+        />
+      ) : null}
       {data?.billing ? (
         <p className="mb-4 text-sm text-muted-foreground">
           {t("billingSummary", {

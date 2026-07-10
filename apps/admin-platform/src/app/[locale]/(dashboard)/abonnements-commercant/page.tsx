@@ -29,6 +29,7 @@ import { AdminPageShell } from "@/components/layout/AdminPageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { selectClass } from "@/lib/ui-styles";
+import { MerchantPremiumBillingConfigPanel } from "@/components/subscriptions/MerchantPremiumBillingConfigPanel";
 
 type PromoForm = {
   type: "trial" | "discount" | "promo";
@@ -208,6 +209,13 @@ export default function MerchantSubscriptionsPage() {
   return (
     <AdminPageShell>
       <PageHeader title={t("title")} description={t("subtitle")} />
+      {token ? (
+        <MerchantPremiumBillingConfigPanel
+          token={token}
+          canEdit={canWrite}
+          onSaved={() => void load()}
+        />
+      ) : null}
       {data?.billing ? (
         <p className="mb-4 text-sm text-muted-foreground">
           {t("billingSummary", {
