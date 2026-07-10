@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSession } from "../../context/SessionContext";
+import { useBottomInset } from "../../hooks/useBottomInset";
 import {
   completeMerchantOrder,
   confirmMerchantOrder,
@@ -88,6 +89,7 @@ export function MerchantOrderDetailScreen({ route }: Props) {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const queryClient = useQueryClient();
   const { accessToken, activeProfileId, authMe } = useSession();
+  const bottomInset = useBottomInset();
   const [busy, setBusy] = useState(false);
 
   const q = useQuery({
@@ -186,9 +188,93 @@ export function MerchantOrderDetailScreen({ route }: Props) {
 
   const shortId = `#${order.id.slice(-6).toUpperCase()}`;
 
+  const primaryActions = (
+    <>
+      {isSeller && order.status === "paid" && escrowHeld ? (
+        <View style={styles.actionsRow}>
+          <Pressable
+            style={[styles.btn, styles.btnSuccess, { flex: 1 }]}
+            onPress={() => runAction.mutate("confirm")}
+            disabled={runAction.isPending}
+          >
+            <Text style={styles.btnTx}>{t("merchant.orders.accept")}</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.btn, styles.btnDanger, { flex: 1 }]}
+            onPress={() =>
+              Alert.alert(
+                t("merchant.orders.reject"),
+                t("merchant.orders.rejectConfirm"),
+                [
+                  { text: t("common.cancel"), style: "cancel" },
+                  {
+                    text: t("merchant.orders.reject"),
+                    style: "destructive",
+                    onPress: () => runAction.mutate("reject")
+                  }
+                ]
+              )
+            }
+            disabled={runAction.isPending}
+          >
+            <Text style={styles.btnTx}>{t("merchant.orders.reject")}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {isSeller && order.status === "paid" && !escrowHeld ? (
+        <Pressable
+          style={[styles.btn, styles.btnSuccess]}
+          onPress={() => runAction.mutate("complete")}
+          disabled={runAction.isPending}
+        >
+          <Text style={styles.btnTx}>{t("merchant.orders.markComplete")}</Text>
+        </Pressable>
+      ) : null}
+
+      {isSeller && order.status === "confirmed" ? (
+        <Pressable
+          style={[styles.btn, styles.btnSecondary]}
+          onPress={() => runAction.mutate("ship")}
+          disabled={runAction.isPending}
+        >
+          <Text style={styles.btnTx}>{t("merchant.orders.startShipping")}</Text>
+        </Pressable>
+      ) : null}
+
+      {isSeller && order.status === "shipping" ? (
+        <Pressable
+          style={[styles.btn, styles.btnSecondary]}
+          onPress={() => runAction.mutate("deliver")}
+          disabled={runAction.isPending}
+        >
+          <Text style={styles.btnTx}>{t("merchant.orders.markDelivered")}</Text>
+        </Pressable>
+      ) : null}
+
+      {isBuyer && order.status === "delivered" ? (
+        <Pressable
+          style={[styles.btn, styles.btnSuccess]}
+          onPress={() => runAction.mutate("complete")}
+          disabled={runAction.isPending}
+        >
+          <Text style={styles.btnTx}>{t("merchant.orders.confirmReceipt")}</Text>
+        </Pressable>
+      ) : null}
+    </>
+  );
+
   return (
     <SafeAreaView style={styles.safe} edges={["bottom"]}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: bottomInset + mobileSpacing.xl }
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator
+      >
         <View style={styles.headerRow}>
           <Text style={styles.orderId}>{shortId}</Text>
           <View style={styles.badge}>
@@ -205,6 +291,8 @@ export function MerchantOrderDetailScreen({ route }: Props) {
             })}
           </Text>
         ) : null}
+
+        {primaryActions}
 
         <Text style={styles.sectionTitle}>{t("merchant.orders.items")}</Text>
         <View style={styles.itemRow}>
@@ -302,78 +390,6 @@ export function MerchantOrderDetailScreen({ route }: Props) {
           <Text style={styles.btnTx}>{t("merchant.orders.message")}</Text>
         </Pressable>
 
-        {isSeller && order.status === "paid" && escrowHeld ? (
-          <View style={styles.actionsRow}>
-            <Pressable
-              style={[styles.btn, styles.btnSuccess, { flex: 1 }]}
-              onPress={() => runAction.mutate("confirm")}
-              disabled={runAction.isPending}
-            >
-              <Text style={styles.btnTx}>{t("merchant.orders.accept")}</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.btn, styles.btnDanger, { flex: 1 }]}
-              onPress={() =>
-                Alert.alert(
-                  t("merchant.orders.reject"),
-                  t("merchant.orders.rejectConfirm"),
-                  [
-                    { text: t("common.cancel"), style: "cancel" },
-                    {
-                      text: t("merchant.orders.reject"),
-                      style: "destructive",
-                      onPress: () => runAction.mutate("reject")
-                    }
-                  ]
-                )
-              }
-              disabled={runAction.isPending}
-            >
-              <Text style={styles.btnTx}>{t("merchant.orders.reject")}</Text>
-            </Pressable>
-          </View>
-        ) : null}
-
-        {isSeller && order.status === "paid" && !escrowHeld ? (
-          <Pressable
-            style={[styles.btn, styles.btnSuccess]}
-            onPress={() => runAction.mutate("complete")}
-            disabled={runAction.isPending}
-          >
-            <Text style={styles.btnTx}>{t("merchant.orders.markComplete")}</Text>
-          </Pressable>
-        ) : null}
-
-        {isSeller && order.status === "confirmed" ? (
-          <Pressable
-            style={[styles.btn, styles.btnSecondary]}
-            onPress={() => runAction.mutate("ship")}
-            disabled={runAction.isPending}
-          >
-            <Text style={styles.btnTx}>{t("merchant.orders.startShipping")}</Text>
-          </Pressable>
-        ) : null}
-
-        {isSeller && order.status === "shipping" ? (
-          <Pressable
-            style={[styles.btn, styles.btnSecondary]}
-            onPress={() => runAction.mutate("deliver")}
-            disabled={runAction.isPending}
-          >
-            <Text style={styles.btnTx}>{t("merchant.orders.markDelivered")}</Text>
-          </Pressable>
-        ) : null}
-
-        {isBuyer && order.status === "delivered" ? (
-          <Pressable
-            style={[styles.btn, styles.btnSuccess]}
-            onPress={() => runAction.mutate("complete")}
-            disabled={runAction.isPending}
-          >
-            <Text style={styles.btnTx}>{t("merchant.orders.confirmReceipt")}</Text>
-          </Pressable>
-        ) : null}
-
         {canDispute(order) ? (
           <Pressable
             style={[styles.btn, styles.btnOutline]}
@@ -395,7 +411,12 @@ export function MerchantOrderDetailScreen({ route }: Props) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: merchantColors.canvas },
-  scroll: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
+  scrollView: { flex: 1 },
+  scroll: {
+    paddingHorizontal: mobileSpacing.lg,
+    paddingTop: mobileSpacing.lg,
+    rowGap: mobileSpacing.md
+  },
   loader: { flex: 1, alignItems: "center", justifyContent: "center" },
   headerRow: {
     flexDirection: "row",
@@ -437,8 +458,8 @@ const styles = StyleSheet.create({
   summaryLabel: { color: merchantColors.textSecondary },
   summaryValue: { fontWeight: "600" },
   net: { color: merchantColors.success, fontWeight: "800" },
-  timeline: { gap: 0, paddingLeft: 4 },
-  tlRow: { flexDirection: "row", gap: 12, minHeight: 48 },
+  timeline: { paddingLeft: 4 },
+  tlRow: { flexDirection: "row", gap: 12, minHeight: 44 },
   tlRail: { width: 20, alignItems: "center" },
   tlDot: {
     width: 16,
@@ -452,9 +473,9 @@ const styles = StyleSheet.create({
     backgroundColor: merchantColors.success,
     borderColor: merchantColors.success
   },
-  tlLine: { flex: 1, width: 2, backgroundColor: "#E5E7EB", marginVertical: 2 },
+  tlLine: { width: 2, height: 28, backgroundColor: "#E5E7EB", marginVertical: 2 },
   tlLineOn: { backgroundColor: "#A7F3D0" },
-  tlBody: { flex: 1, paddingBottom: 12 },
+  tlBody: { flex: 1, paddingBottom: 8 },
   tlTitle: { color: merchantColors.textSecondary, fontWeight: "600" },
   tlTitleOn: { color: merchantColors.textPrimary },
   tlTime: { fontSize: 12, color: merchantColors.textSecondary, marginTop: 2 },
