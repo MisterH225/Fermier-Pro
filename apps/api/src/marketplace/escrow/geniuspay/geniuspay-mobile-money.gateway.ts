@@ -18,6 +18,7 @@ import {
   GENIUSPAY_KIND_MARKETPLACE_REFUND,
   GENIUSPAY_KIND_MARKETPLACE_SELLER_PAYOUT,
   GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION,
+  GENIUSPAY_KIND_PRODUCER_SUBSCRIPTION,
   GENIUSPAY_KIND_MERCHANT_ORDER,
   GENIUSPAY_KIND_WALLET_TOPUP,
   GENIUSPAY_KIND_WALLET_WITHDRAW,
@@ -115,6 +116,50 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
   ): Promise<MobileMoneyConfirmResult> {
     return this.confirmByReference(providerRef, (metadata) => {
       if (metadata.kind !== GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION) {
+        return "Type de paiement GeniusPay inattendu";
+      }
+      if (metadata.invoice_id !== invoiceId) {
+        return "Facture abonnement non liée à ce paiement";
+      }
+      return null;
+    });
+  }
+
+  async initiateProducerSubscriptionPayment(params: {
+    amount: number;
+    currency: string;
+    userId: string;
+    invoiceId: string;
+    label: string;
+  }): Promise<MobileMoneyInitResult> {
+    const customer = await this.loadCustomer(params.userId);
+    const data = await this.client.createPayment({
+      amount: params.amount,
+      currency: params.currency,
+      description: params.label,
+      customer,
+      metadata: {
+        kind: GENIUSPAY_KIND_PRODUCER_SUBSCRIPTION,
+        user_id: params.userId,
+        invoice_id: params.invoiceId,
+        transaction_id: `producer-sub:${params.invoiceId}`,
+        amount: String(Math.round(params.amount))
+      },
+      successUrl: process.env.GENIUSPAY_SUCCESS_URL,
+      errorUrl: process.env.GENIUSPAY_ERROR_URL
+    });
+    return {
+      providerRef: data.reference,
+      paymentUrl: resolveGeniusPayCheckoutUrl(data)
+    };
+  }
+
+  async confirmProducerSubscriptionPayment(
+    providerRef: string,
+    invoiceId: string
+  ): Promise<MobileMoneyConfirmResult> {
+    return this.confirmByReference(providerRef, (metadata) => {
+      if (metadata.kind !== GENIUSPAY_KIND_PRODUCER_SUBSCRIPTION) {
         return "Type de paiement GeniusPay inattendu";
       }
       if (metadata.invoice_id !== invoiceId) {

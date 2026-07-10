@@ -111,6 +111,18 @@ export type AuthMeResponse = {
     productSkipped: boolean;
     onboardingComplete: boolean;
   } | null;
+  producerProfile?: {
+    profileId: string;
+    subscriptionTier: "free" | "premium" | null;
+    subscriptionStatus?:
+      | "active"
+      | "past_due"
+      | "suspended"
+      | "cancelled"
+      | "trialing"
+      | null;
+    teamPremiumActive: boolean;
+  } | null;
 };
 
 export type PatchMeProfilePayload = {

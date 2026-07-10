@@ -2685,6 +2685,22 @@ model PlatformSettings {
   merchantPremiumPromoEnabled Boolean @default(false)
   merchantPremiumPromoPercentOff Int @default(20)
   merchantPremiumPromoEndsAt DateTime?
+  /// Prix abonnement Premium producteur (XOF), fixé par superadmin.
+  producerPremiumPriceXof Decimal @default(5000) @db.Decimal(14, 2)
+  /// Unité de périodicité Premium producteur (heure / jour / mois).
+  producerPremiumBillingUnit MerchantPremiumBillingUnit @default(month)
+  /// Intervalle de périodicité producteur (ex. 1 mois, 7 jours).
+  producerPremiumBillingInterval Int @default(1)
+  /// Jours de grâce après échéance avant downgrade Free.
+  producerPremiumGraceDays Int @default(7)
+  /// Essai gratuit Premium producteur activable globalement.
+  producerPremiumTrialEnabled Boolean @default(false)
+  /// Durée d'essai producteur dans l'unité de facturation.
+  producerPremiumTrialUnits Int @default(7)
+  /// Promo % active globalement (producteur).
+  producerPremiumPromoEnabled Boolean @default(false)
+  producerPremiumPromoPercentOff Int @default(20)
+  producerPremiumPromoEndsAt DateTime?
   updatedAt             DateTime @updatedAt
 }
 
@@ -2951,6 +2967,19 @@ model ProducerProfile {
   id                       String        @id @default(cuid())
   userId                   String        @unique
   user                     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// null = aucun choix enregistré (équivalent Free pour la collaboration).
+  subscriptionTier         MerchantSubscriptionTier?
+  subscriptionStatus       MerchantSubscriptionStatus?
+  subscriptionChosenAt     DateTime?
+  premiumPaidAt            DateTime?
+  nextBillingAt            DateTime?
+  graceEndsAt              DateTime?
+  billingReminderKey       String?
+  trialEndsAt              DateTime?
+  promoPercentOffApplied   Int?
+  cancelledAt              DateTime?
+  suspendedAt              DateTime?
+  suspensionReason         String?
   producerScore            ProducerScore @default(nouveau)
   dataRegularityScore      Int           @default(0)
   platformUsageScore       Int           @default(0)
@@ -2968,8 +2997,35 @@ model ProducerProfile {
   scoreUpdatedAt           DateTime?
   createdAt                DateTime      @default(now())
   updatedAt                DateTime      @updatedAt
+  subscriptionInvoices     ProducerSubscriptionInvoice[]
 
   @@index([producerScore])
+  @@index([subscriptionTier])
+  @@index([subscriptionTier, nextBillingAt])
+  @@index([subscriptionStatus])
+}
+
+/// Facture abonnement Premium producteur (lien mobile money).
+model ProducerSubscriptionInvoice {
+  id                 String                            @id @default(cuid())
+  producerProfileId  String
+  producerProfile    ProducerProfile                   @relation(fields: [producerProfileId], references: [id], onDelete: Cascade)
+  amount             Decimal                           @db.Decimal(14, 2)
+  currency           String                            @default("XOF")
+  status             MerchantSubscriptionInvoiceStatus @default(pending)
+  providerRef        String?
+  paymentUrl         String?
+  billingPeriodStart DateTime
+  billingPeriodEnd   DateTime
+  dueDate            DateTime
+  paidAt             DateTime?
+  reminderStage      MerchantSubscriptionReminderStage @default(none)
+  createdAt          DateTime                          @default(now())
+  updatedAt          DateTime                          @updatedAt
+
+  @@unique([producerProfileId, billingPeriodStart])
+  @@index([status, dueDate])
+  @@index([producerProfileId, status])
 }
 
 /// Arbitrage solde vente à crédit marketplace.

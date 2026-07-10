@@ -43,6 +43,7 @@ import {
   MerchantOrderDetailScreen,
   MerchantOrderDisputeScreen,
   MerchantSubscriptionScreen,
+  ProducerSubscriptionScreen,
   MerchantShopScreen,
   MerchantProductFormScreen,
   MerchantProductDetailScreen,
@@ -172,6 +173,9 @@ const linking: LinkingOptions<RootStackParamList> = {
       MerchantSubscription: {
         path: "merchant/subscription"
       },
+      ProducerSubscription: {
+        path: "producer/subscription"
+      },
       MerchantShops: {
         path: "merchant/shops"
       },
@@ -280,6 +284,11 @@ function MainStack() {
         name="MerchantSubscription"
         component={MerchantSubscriptionScreen}
         options={{ ...merchantStackScreenOptions, title: st("merchantSubscription") }}
+      />
+      <Stack.Screen
+        name="ProducerSubscription"
+        component={ProducerSubscriptionScreen}
+        options={{ title: st("producerSubscription") }}
       />
       <Stack.Screen
         name="MerchantShop"

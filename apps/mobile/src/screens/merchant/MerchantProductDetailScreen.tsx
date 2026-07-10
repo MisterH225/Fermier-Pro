@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
@@ -77,6 +77,7 @@ export function MerchantProductDetailScreen({ route }: Props) {
   const [busy, setBusy] = useState(false);
   const [paymentMethod, setPaymentMethod] =
     useState<MarketplacePaymentMethodChoice>("mobile_money");
+  const userPickedPaymentMethod = useRef(false);
   const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null);
   const screenW = Dimensions.get("window").width;
 
@@ -113,6 +114,13 @@ export function MerchantProductDetailScreen({ route }: Props) {
       title: product?.name?.trim() || t("navigation.screenTitles.merchantProduct")
     });
   }, [navigation, product?.name, t]);
+
+  useEffect(() => {
+    if (userPickedPaymentMethod.current) {
+      return;
+    }
+    setPaymentMethod("mobile_money");
+  }, [totalAmount]);
 
   useEffect(() => {
     if (paymentMethod === "wallet" && !canPayWithWallet) {
@@ -408,7 +416,10 @@ export function MerchantProductDetailScreen({ route }: Props) {
             currency={product.currency}
             walletBalance={walletBalance}
             value={paymentMethod}
-            onChange={setPaymentMethod}
+            onChange={(method) => {
+              userPickedPaymentMethod.current = true;
+              setPaymentMethod(method);
+            }}
             walletEnabled={walletEnabled}
           />
         ) : null}

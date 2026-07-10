@@ -38,6 +38,7 @@ export { MerchantOrdersScreen } from "../../screens/merchant/MerchantOrdersScree
 export { MerchantOrderDetailScreen } from "../../screens/merchant/MerchantOrderDetailScreen";
 export { MerchantOrderDisputeScreen } from "../../screens/merchant/MerchantOrderDisputeScreen";
 export { MerchantSubscriptionStackScreen as MerchantSubscriptionScreen } from "../../screens/merchant/MerchantSubscriptionStackScreen";
+export { ProducerSubscriptionStackScreen as ProducerSubscriptionScreen } from "../../screens/producer/ProducerSubscriptionStackScreen";
 export { MerchantShopScreen } from "../../screens/merchant/MerchantShopScreen";
 export { MerchantProductFormScreen } from "../../screens/merchant/MerchantProductFormScreen";
 export { MerchantProductDetailScreen } from "../../screens/merchant/MerchantProductDetailScreen";

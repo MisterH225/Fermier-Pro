@@ -20,6 +20,8 @@ import { PlatformSettingsService } from "../platform-settings/platform-settings.
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import { SupabaseAdminService } from "../auth/supabase-admin.service";
 import { VetsService } from "../vets/vets.service";
+import { MerchantSubscriptionBillingService } from "../merchant-shop/merchant-subscription-billing.service";
+import { ProducerSubscriptionBillingService } from "../producer-subscription/producer-subscription-billing.service";
 import type {
   CreateInstitutionConsoleUserDto,
   CreateSanitaryAlertDto,
@@ -57,7 +59,9 @@ export class AdminPlatformService {
     private readonly vets: VetsService,
     private readonly push: PushNotificationsService,
     private readonly platformSettings: PlatformSettingsService,
-    private readonly supabaseAdmin: SupabaseAdminService
+    private readonly supabaseAdmin: SupabaseAdminService,
+    private readonly merchantBilling: MerchantSubscriptionBillingService,
+    private readonly producerBilling: ProducerSubscriptionBillingService
   ) {}
 
   async assertSuperAdmin(userId: string) {
@@ -1040,6 +1044,20 @@ export class AdminPlatformService {
       }
     }
 
+    const previous = await this.platformSettings.getOrCreateSettingsRow();
+    const merchantPeriodicityChanging =
+      (dto.merchantPremiumBillingUnit !== undefined &&
+        dto.merchantPremiumBillingUnit !== previous.merchantPremiumBillingUnit) ||
+      (dto.merchantPremiumBillingInterval !== undefined &&
+        dto.merchantPremiumBillingInterval !==
+          previous.merchantPremiumBillingInterval);
+    const producerPeriodicityChanging =
+      (dto.producerPremiumBillingUnit !== undefined &&
+        dto.producerPremiumBillingUnit !== previous.producerPremiumBillingUnit) ||
+      (dto.producerPremiumBillingInterval !== undefined &&
+        dto.producerPremiumBillingInterval !==
+          previous.producerPremiumBillingInterval);
+
     await this.prisma.platformSettings.upsert({
       where: { id: "default" },
       create: {
@@ -1075,6 +1093,17 @@ export class AdminPlatformService {
         merchantPremiumPromoPercentOff: dto.merchantPremiumPromoPercentOff ?? 20,
         merchantPremiumPromoEndsAt: dto.merchantPremiumPromoEndsAt
           ? new Date(dto.merchantPremiumPromoEndsAt)
+          : null,
+        producerPremiumPriceXof: dto.producerPremiumPriceXof ?? 5000,
+        producerPremiumBillingUnit: dto.producerPremiumBillingUnit ?? "month",
+        producerPremiumBillingInterval: dto.producerPremiumBillingInterval ?? 1,
+        producerPremiumGraceDays: dto.producerPremiumGraceDays ?? 7,
+        producerPremiumTrialEnabled: dto.producerPremiumTrialEnabled ?? false,
+        producerPremiumTrialUnits: dto.producerPremiumTrialUnits ?? 7,
+        producerPremiumPromoEnabled: dto.producerPremiumPromoEnabled ?? false,
+        producerPremiumPromoPercentOff: dto.producerPremiumPromoPercentOff ?? 20,
+        producerPremiumPromoEndsAt: dto.producerPremiumPromoEndsAt
+          ? new Date(dto.producerPremiumPromoEndsAt)
           : null
       },
       update: {
@@ -1161,10 +1190,59 @@ export class AdminPlatformService {
                 ? new Date(dto.merchantPremiumPromoEndsAt)
                 : null
             }
+          : {}),
+        ...(dto.producerPremiumPriceXof !== undefined
+          ? { producerPremiumPriceXof: dto.producerPremiumPriceXof }
+          : {}),
+        ...(dto.producerPremiumBillingUnit !== undefined
+          ? { producerPremiumBillingUnit: dto.producerPremiumBillingUnit }
+          : {}),
+        ...(dto.producerPremiumBillingInterval !== undefined
+          ? { producerPremiumBillingInterval: dto.producerPremiumBillingInterval }
+          : {}),
+        ...(dto.producerPremiumGraceDays !== undefined
+          ? { producerPremiumGraceDays: dto.producerPremiumGraceDays }
+          : {}),
+        ...(dto.producerPremiumTrialEnabled !== undefined
+          ? { producerPremiumTrialEnabled: dto.producerPremiumTrialEnabled }
+          : {}),
+        ...(dto.producerPremiumTrialUnits !== undefined
+          ? { producerPremiumTrialUnits: dto.producerPremiumTrialUnits }
+          : {}),
+        ...(dto.producerPremiumPromoEnabled !== undefined
+          ? { producerPremiumPromoEnabled: dto.producerPremiumPromoEnabled }
+          : {}),
+        ...(dto.producerPremiumPromoPercentOff !== undefined
+          ? { producerPremiumPromoPercentOff: dto.producerPremiumPromoPercentOff }
+          : {}),
+        ...(dto.producerPremiumPromoEndsAt !== undefined
+          ? {
+              producerPremiumPromoEndsAt: dto.producerPremiumPromoEndsAt
+                ? new Date(dto.producerPremiumPromoEndsAt)
+                : null
+            }
           : {})
       }
     });
     this.platformSettings.invalidateCache();
+
+    if (merchantPeriodicityChanging) {
+      const unit =
+        dto.merchantPremiumBillingUnit ?? previous.merchantPremiumBillingUnit;
+      const interval =
+        dto.merchantPremiumBillingInterval ??
+        previous.merchantPremiumBillingInterval;
+      await this.merchantBilling.realignActiveNextBillingAt(unit, interval);
+    }
+    if (producerPeriodicityChanging) {
+      const unit =
+        dto.producerPremiumBillingUnit ?? previous.producerPremiumBillingUnit;
+      const interval =
+        dto.producerPremiumBillingInterval ??
+        previous.producerPremiumBillingInterval;
+      await this.producerBilling.realignActiveNextBillingAt(unit, interval);
+    }
+
     return this.platformSettings.getAdminSettingsView();
   }
 

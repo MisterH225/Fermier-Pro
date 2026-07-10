@@ -1,5 +1,6 @@
 export const GENIUSPAY_KIND_MARKETPLACE_ESCROW = "marketplace_escrow" as const;
 export const GENIUSPAY_KIND_WALLET_TOPUP = "wallet_topup" as const;
+export const GENIUSPAY_KIND_PRODUCER_SUBSCRIPTION = "producer_subscription" as const;
 export const GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION = "merchant_subscription" as const;
 export const GENIUSPAY_KIND_MERCHANT_ORDER = "merchant_order" as const;
 export const GENIUSPAY_KIND_WALLET_WITHDRAW = "wallet_withdraw" as const;
@@ -11,6 +12,7 @@ export type GeniusPayPaymentKind =
   | typeof GENIUSPAY_KIND_MARKETPLACE_ESCROW
   | typeof GENIUSPAY_KIND_WALLET_TOPUP
   | typeof GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION
+  | typeof GENIUSPAY_KIND_PRODUCER_SUBSCRIPTION
   | typeof GENIUSPAY_KIND_MERCHANT_ORDER;
 
 export type GeniusPayPayoutKind =

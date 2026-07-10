@@ -25,6 +25,7 @@ export async function seedMerchantE2E(
   const merchantSub = "33333333-3333-3333-3333-333333333333";
 
   await prisma.merchantProductModerationLog.deleteMany({});
+  await prisma.platformRevenue.deleteMany({});
   await prisma.merchantOrder.deleteMany({});
   await prisma.merchantProduct.deleteMany({});
   await prisma.merchantShop.deleteMany({});

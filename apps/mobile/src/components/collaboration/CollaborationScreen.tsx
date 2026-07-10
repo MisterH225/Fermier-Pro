@@ -1,12 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ScreenSection } from "../layout/ScreenSection";
 import { TabContent, TabSelector } from "../tabs";
 import { useSession } from "../../context/SessionContext";
 import { fetchFarm, fetchFarmMembers } from "../../lib/api";
 import { hasFarmScope } from "../../lib/menuVisibility";
+import type { RootStackParamList } from "../../types/navigation";
 import {
   mobileColors,
   mobileSpacing,
@@ -24,7 +27,9 @@ type Props = {
 
 export function CollaborationScreen({ farmId, farmName }: Props) {
   const { t } = useTranslation();
-  const { accessToken, activeProfileId } = useSession();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { accessToken, activeProfileId, authMe } = useSession();
 
   const membersQ = useQuery({
     queryKey: ["farmMembers", farmId, activeProfileId],
@@ -42,6 +47,9 @@ export function CollaborationScreen({ farmId, farmName }: Props) {
     farmQ.data?.effectiveScopes,
     "invitations.manage"
   );
+  const teamPremiumActive = authMe?.producerProfile?.teamPremiumActive ?? false;
+  const canInviteTeam = canManageInvites && teamPremiumActive;
+  const showPremiumGate = canManageInvites && !teamPremiumActive;
 
   const isRefreshing = membersQ.isFetching && !membersQ.isLoading;
 
@@ -79,11 +87,29 @@ export function CollaborationScreen({ farmId, farmName }: Props) {
                 contentContainerStyle={styles.scrollPad}
               >
                 <TabContent>
+                  {showPremiumGate ? (
+                    <View style={styles.premiumBanner}>
+                      <Text style={styles.premiumBannerTitle}>
+                        {t("collab.teamPremiumRequiredTitle")}
+                      </Text>
+                      <Text style={styles.premiumBannerBody}>
+                        {t("collab.teamPremiumRequiredBody")}
+                      </Text>
+                      <Pressable
+                        style={styles.premiumBannerCta}
+                        onPress={() => navigation.navigate("ProducerSubscription")}
+                      >
+                        <Text style={styles.premiumBannerCtaTxt}>
+                          {t("collab.teamPremiumCta")}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  ) : null}
                   <ScreenSection title={t("collab.inviteSectionTitle")}>
                     <InviteSection
                       farmId={farmId}
                       farmName={farmName}
-                      canManageInvites={canManageInvites}
+                      canManageInvites={canInviteTeam}
                     />
                   </ScreenSection>
                 </TabContent>
@@ -98,7 +124,7 @@ export function CollaborationScreen({ farmId, farmName }: Props) {
                 <DirectoryTab
                   farmId={farmId}
                   farmName={farmName ?? ""}
-                  canManageInvites={canManageInvites}
+                  canManageInvites={canInviteTeam}
                 />
               </View>
             )
@@ -191,5 +217,35 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary,
     textAlign: "center",
     lineHeight: 22
+  },
+  premiumBanner: {
+    marginBottom: mobileSpacing.md,
+    padding: mobileSpacing.md,
+    borderRadius: 12,
+    backgroundColor: mobileColors.accentSoft,
+    borderWidth: 1,
+    borderColor: mobileColors.accent,
+    gap: mobileSpacing.sm
+  },
+  premiumBannerTitle: {
+    ...mobileTypography.bodyBold,
+    color: mobileColors.textPrimary
+  },
+  premiumBannerBody: {
+    ...mobileTypography.body,
+    color: mobileColors.textSecondary,
+    lineHeight: 20
+  },
+  premiumBannerCta: {
+    alignSelf: "flex-start",
+    paddingVertical: mobileSpacing.sm,
+    paddingHorizontal: mobileSpacing.md,
+    borderRadius: 999,
+    backgroundColor: mobileColors.accent
+  },
+  premiumBannerCtaTxt: {
+    ...mobileTypography.meta,
+    color: "#fff",
+    fontWeight: "700"
   }
 });

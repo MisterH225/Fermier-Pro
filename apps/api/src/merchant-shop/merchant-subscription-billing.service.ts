@@ -17,7 +17,10 @@ import { MERCHANT_FREE_MAX_ACTIVE_PRODUCTS } from "./merchant-shop.constants";
 import {
   MERCHANT_SUBSCRIPTION_GRACE_DAYS,
   addBillingPeriod,
-  addMonthsUtc,
+  billingPeriodStart,
+  billingReminderKey,
+  graceDurationMs,
+  periodsBetweenUtc,
   daysBetweenUtc,
   startOfUtcDay
 } from "./merchant-subscription.constants";
@@ -409,7 +412,7 @@ export class MerchantSubscriptionBillingService {
       return false;
     }
     const cfg = await this.getBillingConfig();
-    const ref = `merchant-sub-wallet:${profile.id}:${startOfUtcDay(new Date()).toISOString()}`;
+    const ref = `merchant-sub-wallet:${profile.id}:${billingPeriodStart(new Date(), cfg.billingUnit).toISOString()}`;
     await this.wallet.debitForMerchantSubscription(
       userId,
       amount,
@@ -418,7 +421,9 @@ export class MerchantSubscriptionBillingService {
       "Renouvellement Premium commerçant"
     );
     const paidAt = new Date();
-    const periodStart = profile.nextBillingAt ?? paidAt;
+    const periodStart = profile.nextBillingAt
+      ? billingPeriodStart(profile.nextBillingAt, cfg.billingUnit)
+      : paidAt;
     await this.prisma.merchantSubscriptionInvoice.create({
       data: {
         merchantProfileId: profile.id,
@@ -446,7 +451,6 @@ export class MerchantSubscriptionBillingService {
   }
 
   async runBillingCycle(now = new Date()): Promise<void> {
-    const today = startOfUtcDay(now);
     const cfg = await this.getBillingConfig();
     const price = cfg.effectivePriceXof;
     const profiles = await this.prisma.merchantProfile.findMany({
@@ -468,7 +472,14 @@ export class MerchantSubscriptionBillingService {
         if (profile.subscriptionStatus === MerchantSubscriptionStatus.suspended) {
           continue;
         }
-        await this.processProfileBilling(profile, today, now, price, cfg.graceDays);
+        await this.processProfileBilling(
+          profile,
+          now,
+          price,
+          cfg.graceDays,
+          cfg.billingUnit,
+          cfg.billingInterval
+        );
       } catch (err) {
         this.log.error(
           `Billing cycle profile=${profile.id}: ${err instanceof Error ? err.message : String(err)}`
@@ -477,12 +488,77 @@ export class MerchantSubscriptionBillingService {
     }
   }
 
+  /**
+   * Recalcule `nextBillingAt` des Premium actifs après un changement
+   * de périodicité admin (ex. month → hour pour tests).
+   */
+  async realignActiveNextBillingAt(
+    billingUnit: "hour" | "day" | "month",
+    billingInterval: number
+  ): Promise<number> {
+    const profiles = await this.prisma.merchantProfile.findMany({
+      where: {
+        subscriptionTier: MerchantSubscriptionTier.premium,
+        subscriptionStatus: {
+          in: [
+            MerchantSubscriptionStatus.active,
+            MerchantSubscriptionStatus.trialing
+          ]
+        },
+        OR: [{ premiumPaidAt: { not: null } }, { trialEndsAt: { not: null } }]
+      },
+      select: {
+        id: true,
+        premiumPaidAt: true,
+        trialEndsAt: true,
+        subscriptionStatus: true,
+        nextBillingAt: true
+      }
+    });
+
+    let updated = 0;
+    const now = Date.now();
+    for (const profile of profiles) {
+      const anchor =
+        profile.subscriptionStatus === MerchantSubscriptionStatus.trialing
+          ? (profile.trialEndsAt ?? profile.premiumPaidAt)
+          : (profile.premiumPaidAt ?? profile.trialEndsAt);
+      if (!anchor) {
+        continue;
+      }
+      let next = addBillingPeriod(anchor, billingUnit, billingInterval);
+      // Si l'ancre est ancienne (ex. abo mensuel), avancer jusqu'à la prochaine échéance future.
+      while (next.getTime() <= now) {
+        next = addBillingPeriod(next, billingUnit, billingInterval);
+      }
+      if (
+        profile.nextBillingAt &&
+        Math.abs(profile.nextBillingAt.getTime() - next.getTime()) < 1000
+      ) {
+        continue;
+      }
+      await this.prisma.merchantProfile.update({
+        where: { id: profile.id },
+        data: {
+          nextBillingAt: next,
+          billingReminderKey: null,
+          ...(profile.subscriptionStatus === MerchantSubscriptionStatus.trialing
+            ? { trialEndsAt: next }
+            : {})
+        }
+      });
+      updated += 1;
+    }
+    return updated;
+  }
+
   private async processProfileBilling(
     profile: MerchantProfile & { user: { id: string; phone: string | null } },
-    today: Date,
     now: Date,
     price: number,
-    graceDays: number
+    graceDays: number,
+    billingUnit: "hour" | "day" | "month",
+    billingInterval: number
   ) {
     if (
       profile.subscriptionStatus === MerchantSubscriptionStatus.trialing &&
@@ -502,14 +578,13 @@ export class MerchantSubscriptionBillingService {
 
     if (!profile.nextBillingAt) {
       if (profile.premiumPaidAt) {
-        const cfg = await this.getBillingConfig();
         await this.prisma.merchantProfile.update({
           where: { id: profile.id },
           data: {
             nextBillingAt: addBillingPeriod(
               profile.premiumPaidAt,
-              cfg.billingUnit,
-              cfg.billingInterval
+              billingUnit,
+              billingInterval
             ),
             subscriptionStatus: MerchantSubscriptionStatus.active
           }
@@ -518,10 +593,27 @@ export class MerchantSubscriptionBillingService {
       return;
     }
 
-    const billingDay = startOfUtcDay(profile.nextBillingAt);
+    const periodStart = billingPeriodStart(profile.nextBillingAt, billingUnit);
     const dueReached = profile.nextBillingAt.getTime() <= now.getTime();
-    const daysUntilDue = daysBetweenUtc(today, billingDay);
-    const daysPastDue = daysBetweenUtc(billingDay, today);
+    // Rappels « −3 / +3 » : heures si billing horaire, sinon jours calendaires.
+    const periodsUntilDue =
+      billingUnit === "hour"
+        ? periodsBetweenUtc(
+            now,
+            profile.nextBillingAt,
+            billingUnit,
+            billingInterval
+          )
+        : daysBetweenUtc(startOfUtcDay(now), startOfUtcDay(profile.nextBillingAt));
+    const periodsPastDue =
+      billingUnit === "hour"
+        ? periodsBetweenUtc(
+            profile.nextBillingAt,
+            now,
+            billingUnit,
+            billingInterval
+          )
+        : daysBetweenUtc(startOfUtcDay(profile.nextBillingAt), startOfUtcDay(now));
 
     if (
       profile.subscriptionStatus === MerchantSubscriptionStatus.past_due &&
@@ -532,8 +624,16 @@ export class MerchantSubscriptionBillingService {
       return;
     }
 
-    if (daysUntilDue === 3 && !dueReached) {
-      await this.sendBillingReminder(profile, billingDay, price, "j_minus_3", null);
+    if (periodsUntilDue === 3 && !dueReached) {
+      await this.sendBillingReminder(
+        profile,
+        periodStart,
+        price,
+        "j_minus_3",
+        null,
+        undefined,
+        billingUnit
+      );
       return;
     }
 
@@ -550,7 +650,7 @@ export class MerchantSubscriptionBillingService {
       const invoice = await this.createPendingInvoice(
         profile.id,
         profile.user.id,
-        billingDay,
+        periodStart,
         price
       );
 
@@ -563,34 +663,36 @@ export class MerchantSubscriptionBillingService {
           subscriptionStatus: MerchantSubscriptionStatus.past_due,
           graceEndsAt: new Date(
             Math.max(profile.nextBillingAt.getTime(), now.getTime()) +
-              resolvedGrace * 86_400_000
+              graceDurationMs(resolvedGrace, billingUnit)
           )
         }
       });
 
       await this.sendBillingReminder(
         profile,
-        billingDay,
+        periodStart,
         price,
         "j0",
         invoice.paymentUrl ?? null,
-        invoice.id
+        invoice.id,
+        billingUnit
       );
       return;
     }
 
     if (
       profile.subscriptionStatus === MerchantSubscriptionStatus.past_due &&
-      daysPastDue === 3
+      periodsPastDue === 3
     ) {
-      const invoice = await this.findOpenInvoice(profile.id, billingDay);
+      const invoice = await this.findOpenInvoice(profile.id, periodStart);
       await this.sendBillingReminder(
         profile,
-        billingDay,
+        periodStart,
         price,
         "j_plus_3",
         invoice?.paymentUrl ?? null,
-        invoice?.id
+        invoice?.id,
+        billingUnit
       );
     }
   }
@@ -608,13 +710,14 @@ export class MerchantSubscriptionBillingService {
 
   private async sendBillingReminder(
     profile: MerchantProfile & { user: { id: string; phone: string | null } },
-    billingDay: Date,
+    billingAt: Date,
     price: number,
     stage: "j_minus_3" | "j0" | "j_plus_3",
     paymentUrl: string | null,
-    invoiceId?: string
+    invoiceId?: string,
+    billingUnit: "hour" | "day" | "month" = "month"
   ) {
-    const reminderKey = `${billingDay.toISOString().slice(0, 10)}:${stage}`;
+    const reminderKey = billingReminderKey(billingAt, stage, billingUnit);
     if (profile.billingReminderKey === reminderKey) {
       return;
     }
@@ -636,11 +739,14 @@ export class MerchantSubscriptionBillingService {
     const phone = profile.user.phone?.trim();
     const amountLabel = price.toLocaleString("fr-FR");
     const graceEnd = profile.graceEndsAt
-      ? profile.graceEndsAt.toLocaleDateString("fr-FR")
+      ? billingUnit === "hour"
+        ? profile.graceEndsAt.toLocaleString("fr-FR")
+        : profile.graceEndsAt.toLocaleDateString("fr-FR")
       : "";
+    const aheadLabel = billingUnit === "hour" ? "3 heures" : "3 jours";
     const message =
       stage === "j_minus_3"
-        ? `Fermier Pro: votre Premium commerçant renouvelle dans 3 jours (${amountLabel} XOF).`
+        ? `Fermier Pro: votre Premium commerçant renouvelle dans ${aheadLabel} (${amountLabel} XOF).`
         : stage === "j0"
           ? paymentUrl
             ? `Fermier Pro: renouvelez votre Premium (${amountLabel} XOF): ${paymentUrl}`
@@ -665,8 +771,9 @@ export class MerchantSubscriptionBillingService {
   private async expirePremium(
     profile: MerchantProfile & { user: { id: string; phone: string | null } }
   ) {
+    const cfg = await this.getBillingConfig();
     const billingDay = profile.nextBillingAt
-      ? startOfUtcDay(profile.nextBillingAt)
+      ? billingPeriodStart(profile.nextBillingAt, cfg.billingUnit)
       : null;
     if (billingDay) {
       await this.prisma.merchantSubscriptionInvoice.updateMany({
@@ -876,9 +983,10 @@ export class MerchantSubscriptionBillingService {
       throw new NotFoundException("Abonnement Premium actif requis");
     }
     const price = await this.getPremiumPriceXof();
+    const cfg = await this.getBillingConfig();
     const periodStart = profile.nextBillingAt
-      ? startOfUtcDay(profile.nextBillingAt)
-      : startOfUtcDay(new Date());
+      ? billingPeriodStart(profile.nextBillingAt, cfg.billingUnit)
+      : billingPeriodStart(new Date(), cfg.billingUnit);
     const invoice = await this.createPendingInvoice(
       profile.id,
       user.id,

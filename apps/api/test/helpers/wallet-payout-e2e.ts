@@ -136,7 +136,8 @@ export async function payMarketplaceMobileMoney(params: {
     .post(
       `/api/v1/marketplace/transactions/${params.transactionId}/payment/initiate`
     )
-    .set("Authorization", `Bearer ${params.buyerToken}`);
+    .set("Authorization", `Bearer ${params.buyerToken}`)
+    .send({ paymentMethod: "mobile_money" });
   expect(init.status).toBe(201);
   expect(init.body.paymentMethod).toBe(MarketplacePaymentMethod.mobile_money);
   const providerRef = init.body.providerRef as string;

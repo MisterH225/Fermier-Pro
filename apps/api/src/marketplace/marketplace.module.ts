@@ -32,6 +32,7 @@ import { MarketplaceDisputesController } from "./marketplace-disputes.controller
 import { OffersController } from "./offers.controller";
 import { OffersService } from "./offers.service";
 import { ProducerScoreModule } from "../producer-score/producer-score.module";
+import { ProducerSubscriptionModule } from "../producer-subscription/producer-subscription.module";
 import { WalletModule } from "../wallet/wallet.module";
 import { ListingAnimalSyncService } from "./listing-animal-sync.service";
 
@@ -46,7 +47,8 @@ import { ListingAnimalSyncService } from "./listing-animal-sync.service";
     ConfigClientModule,
     FeatureFlagsModule,
     PushNotificationsModule,
-    ProducerScoreModule
+    ProducerScoreModule,
+    ProducerSubscriptionModule
   ],
   controllers: [
     ListingsController,

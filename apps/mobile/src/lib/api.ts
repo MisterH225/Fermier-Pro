@@ -7,6 +7,7 @@ export * from "./api/http";
 export * from "./api/auth";
 export * from "./api/community-feed";
 export * from "./api/merchant";
+export * from "./api/producer";
 
 import {
   apiAuthHeaders,
@@ -4945,8 +4946,8 @@ export function counterMarketplaceCreditOffer(
 export function initiateMarketplaceCreditBalancePayment(
   accessToken: string,
   offerId: string,
-  activeProfileId?: string | null,
-  paymentMethod?: "mobile_money" | "wallet"
+  activeProfileId: string | null | undefined,
+  paymentMethod: "mobile_money" | "wallet"
 ): Promise<{
   providerRef: string;
   amount: number;
@@ -4957,7 +4958,7 @@ export function initiateMarketplaceCreditBalancePayment(
 }> {
   return apiPostJson(
     `/marketplace/offers/${offerId}/balance-payment/initiate`,
-    paymentMethod ? { paymentMethod } : {},
+    { paymentMethod },
     accessToken,
     activeProfileId
   );
@@ -5409,8 +5410,8 @@ export function fetchMarketplaceTransaction(
 export function initiateMarketplacePayment(
   accessToken: string,
   transactionId: string,
-  activeProfileId?: string | null,
-  paymentMethod?: "mobile_money" | "wallet"
+  activeProfileId: string | null | undefined,
+  paymentMethod: "mobile_money" | "wallet"
 ): Promise<{
   providerRef: string;
   amount: number;
@@ -5426,7 +5427,7 @@ export function initiateMarketplacePayment(
     paymentUrl?: string | null;
   }>(
     `/marketplace/transactions/${transactionId}/payment/initiate`,
-    paymentMethod ? { paymentMethod } : {},
+    { paymentMethod },
     accessToken,
     activeProfileId
   );
@@ -6184,11 +6185,18 @@ export function vetRefuseAppointment(
 export function initiateVetAppointmentPayment(
   accessToken: string,
   appointmentId: string,
-  activeProfileId?: string | null
-): Promise<{ providerRef: string; amount: number; currency: string }> {
+  activeProfileId: string | null | undefined,
+  paymentMethod: "mobile_money" | "wallet"
+): Promise<{
+  providerRef: string;
+  amount: number;
+  currency: string;
+  paymentMethod?: string;
+  paymentUrl?: string | null;
+}> {
   return apiPostJson(
     `/vet-appointments/${encodeURIComponent(appointmentId)}/payment/initiate`,
-    {},
+    { paymentMethod },
     accessToken,
     activeProfileId
   );

@@ -31,6 +31,11 @@ export function MarketplacePaymentMethodPicker({
     subtitle: string;
     disabled?: boolean;
   }[] = [
+    {
+      id: "mobile_money",
+      title: t("buyer.wallet.payWithMobileMoney"),
+      subtitle: t("buyer.wallet.mobileMoneyHint")
+    },
     ...(walletEnabled
       ? [
           {
@@ -46,12 +51,7 @@ export function MarketplacePaymentMethodPicker({
             disabled: !walletOk
           }
         ]
-      : []),
-    {
-      id: "mobile_money",
-      title: t("buyer.wallet.payWithMobileMoney"),
-      subtitle: t("buyer.wallet.mobileMoneyHint")
-    }
+      : [])
   ];
 
   return (
