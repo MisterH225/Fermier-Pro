@@ -23,6 +23,8 @@ coverage/
 .env
 .env.*
 !.env.example
+**/.e2e-env.local
+**/e2e-*.out
 
 # IDE / Editor
 .vscode/

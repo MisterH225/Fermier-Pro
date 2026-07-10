@@ -23,37 +23,88 @@ export async function seedMerchantE2E(
 ): Promise<MerchantE2ECtx> {
   const secret = process.env.SUPABASE_JWT_SECRET!;
   const merchantSub = "33333333-3333-3333-3333-333333333333";
+  const merchantEmail = "e2e-merchant@fermier.local";
+  const e2eMerchantWhere = {
+    OR: [
+      { user: { email: merchantEmail } },
+      { user: { supabaseUserId: merchantSub } }
+    ]
+  };
 
-  await prisma.merchantProductModerationLog.deleteMany({});
-  await prisma.platformRevenue.deleteMany({});
-  await prisma.merchantOrder.deleteMany({});
-  await prisma.merchantProduct.deleteMany({});
-  await prisma.merchantShop.deleteMany({});
-  await prisma.merchantSubscriptionInvoice.deleteMany({});
-  await prisma.merchantProductCategory.deleteMany({});
-  await prisma.merchantProfile.deleteMany({
+  // IMPORTANT: ne jamais deleteMany({}) global — les e2e peuvent pointer
+  // par erreur vers une base partagée. Toujours scoper au commerçant e2e.
+  const e2eMerchantUsers = await prisma.user.findMany({
     where: {
-      OR: [
-        { user: { email: "e2e-merchant@fermier.local" } },
-        { user: { supabaseUserId: merchantSub } }
-      ]
-    }
+      OR: [{ email: merchantEmail }, { supabaseUserId: merchantSub }]
+    },
+    select: { id: true }
   });
-  await prisma.profile.deleteMany({
-    where: {
-      OR: [
-        { user: { email: "e2e-merchant@fermier.local" } },
-        { user: { supabaseUserId: merchantSub } }
-      ]
+  const e2eMerchantUserIds = e2eMerchantUsers.map((u) => u.id);
+
+  if (e2eMerchantUserIds.length > 0) {
+    await prisma.merchantProductModerationLog.deleteMany({
+      where: {
+        product: {
+          shop: { merchantProfile: { userId: { in: e2eMerchantUserIds } } }
+        }
+      }
+    });
+    await prisma.platformRevenue.deleteMany({
+      where: {
+        OR: [
+          { sellerId: { in: e2eMerchantUserIds } },
+          { buyerId: { in: e2eMerchantUserIds } }
+        ]
+      }
+    });
+    await prisma.merchantOrder.deleteMany({
+      where: {
+        OR: [
+          { sellerUserId: { in: e2eMerchantUserIds } },
+          { buyerUserId: { in: e2eMerchantUserIds } }
+        ]
+      }
+    });
+    try {
+      await prisma.buyerMerchantFavorite.deleteMany({
+        where: {
+          product: {
+            shop: { merchantProfile: { userId: { in: e2eMerchantUserIds } } }
+          }
+        }
+      });
+    } catch (error: unknown) {
+      const code =
+        error && typeof error === "object" && "code" in error
+          ? String((error as { code: string }).code)
+          : "";
+      if (code !== "P2021") {
+        throw error;
+      }
     }
-  });
+    await prisma.merchantProduct.deleteMany({
+      where: {
+        shop: { merchantProfile: { userId: { in: e2eMerchantUserIds } } }
+      }
+    });
+    await prisma.merchantShop.deleteMany({
+      where: { merchantProfile: { userId: { in: e2eMerchantUserIds } } }
+    });
+    await prisma.merchantSubscriptionInvoice.deleteMany({
+      where: { merchantProfile: { userId: { in: e2eMerchantUserIds } } }
+    });
+  }
+
+  await prisma.merchantProfile.deleteMany({ where: e2eMerchantWhere });
+  await prisma.profile.deleteMany({ where: e2eMerchantWhere });
   await prisma.user.deleteMany({
     where: {
-      OR: [
-        { email: "e2e-merchant@fermier.local" },
-        { supabaseUserId: merchantSub }
-      ]
+      OR: [{ email: merchantEmail }, { supabaseUserId: merchantSub }]
     }
+  });
+  // Catégorie e2e uniquement (ne pas vider le catalogue prod).
+  await prisma.merchantProductCategory.deleteMany({
+    where: { slug: "alimentation-e2e" }
   });
 
   const merchantUser = await prisma.user.create({
@@ -172,7 +223,13 @@ export async function cleanupMerchantE2E(
       ]
     }
   });
-  await prisma.merchantProductModerationLog.deleteMany({});
+  await prisma.merchantProductModerationLog.deleteMany({
+    where: {
+      product: {
+        shop: { merchantProfile: { userId: ctx.merchantUserId } }
+      }
+    }
+  });
   try {
     await prisma.buyerMerchantFavorite.deleteMany({
       where: {
