@@ -150,6 +150,30 @@ export function ProducerSubscriptionScreen({ onChosen, onCancel }: Props) {
     }
   };
 
+  const trySilentConfirm = useCallback(async () => {
+    if (!accessToken || !activeProfileId || !pendingPayment?.providerRef) {
+      return;
+    }
+    try {
+      await confirmProducerSubscription(
+        accessToken,
+        activeProfileId,
+        pendingPayment.providerRef,
+        pendingPayment.invoiceId
+      );
+      setPendingPayment(null);
+      await completeIfPremium();
+    } catch {
+      // Le webhook ou le prochain poll confirmera l'activation.
+    }
+  }, [
+    accessToken,
+    activeProfileId,
+    pendingPayment?.providerRef,
+    pendingPayment?.invoiceId,
+    completeIfPremium
+  ]);
+
   const handleConfirmPayment = async () => {
     if (!accessToken || !activeProfileId || !pendingPayment) return;
     setBusy(true);
@@ -180,15 +204,17 @@ export function ProducerSubscriptionScreen({ onChosen, onCancel }: Props) {
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active" && pendingPayment) {
-        void meQ.refetch().then((r) => {
+        void meQ.refetch().then(async (r) => {
           if (r.data?.teamPremiumActive) {
-            void completeIfPremium();
+            await completeIfPremium();
+            return;
           }
+          await trySilentConfirm();
         });
       }
     });
     return () => sub.remove();
-  }, [completeIfPremium, meQ, pendingPayment]);
+  }, [completeIfPremium, meQ, pendingPayment, trySilentConfirm]);
 
   if (meQ.data?.teamPremiumActive) {
     return (

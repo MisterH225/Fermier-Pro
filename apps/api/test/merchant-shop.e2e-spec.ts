@@ -234,6 +234,23 @@ describeOrSkip("Merchant shop (e2e)", () => {
     expect(Array.isArray(dash.body.moderationEvents)).toBe(true);
   });
 
+  it("achat — 400 si paymentMethod absent", async () => {
+    const published = await base.prisma.merchantProduct.findFirst({
+      where: {
+        shopId: merchant.shopId,
+        status: MerchantProductStatus.published,
+        stock: { gt: 0 }
+      }
+    });
+    expect(published).toBeTruthy();
+
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/merchant/catalog/products/${published!.id}/purchase`)
+      .set("Authorization", `Bearer ${base.peerToken}`)
+      .send({ quantity: 1 });
+    expect(res.status).toBe(400);
+  });
+
   it("achat : stock, paiement, commission, chat", async () => {
     const published = await base.prisma.merchantProduct.findFirst({
       where: {

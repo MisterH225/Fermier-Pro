@@ -248,6 +248,79 @@ describeOrSkip("Abonnement Premium commerçant — facturation (e2e)", () => {
     expect(me.body.subscriptionTier).toBe(MerchantSubscriptionTier.premium);
   });
 
+  it("relance createPendingInvoice sur paiement completed → active sans écraser providerRef", async () => {
+    const choose = await choosePremiumMobileMoney(app, merchant);
+    expect(choose.status).toBe(201);
+    const invoiceId = choose.body.invoiceId as string;
+    const providerRef = choose.body.providerRef as string;
+    geniusPay.markPaymentCompleted(providerRef);
+
+    const existing = await base.prisma.merchantSubscriptionInvoice.findUniqueOrThrow({
+      where: { id: invoiceId }
+    });
+    const profile = await base.prisma.merchantProfile.findUniqueOrThrow({
+      where: { userId: merchant.merchantUserId }
+    });
+    const invoice = await billing.createPendingInvoice(
+      profile.id,
+      merchant.merchantUserId,
+      existing.billingPeriodStart,
+      Number(existing.amount)
+    );
+
+    expect(invoice.id).toBe(invoiceId);
+    expect(invoice.status).toBe(MerchantSubscriptionInvoiceStatus.paid);
+    expect(invoice.providerRef).toBe(providerRef);
+
+    const after = await base.prisma.merchantProfile.findUniqueOrThrow({
+      where: { userId: merchant.merchantUserId }
+    });
+    expect(after.subscriptionTier).toBe(MerchantSubscriptionTier.premium);
+  });
+
+  it("payment.success orphelin → 404 (pas de ACK silencieux 200)", async () => {
+    const webhook = await postGeniusPayWebhook(app, {
+      id: "evt-merchant-orphan",
+      event: "payment.success",
+      timestamp: Math.floor(Date.now() / 1000),
+      data: {
+        reference: "unknown-merchant-ref",
+        amount: 5000,
+        currency: "XOF",
+        metadata: { user_id: merchant.merchantUserId }
+      }
+    });
+    expect(webhook.status).toBe(404);
+  });
+
+  it("payment.failed → expire la facture pending commerçant", async () => {
+    const choose = await choosePremiumMobileMoney(app, merchant);
+    expect(choose.status).toBe(201);
+
+    const webhook = await postGeniusPayWebhook(app, {
+      id: "evt-merchant-fail-1",
+      event: "payment.failed",
+      timestamp: Math.floor(Date.now() / 1000),
+      data: {
+        reference: choose.body.providerRef,
+        amount: choose.body.amount,
+        currency: "XOF",
+        metadata: {
+          kind: "merchant_subscription",
+          user_id: merchant.merchantUserId,
+          invoice_id: choose.body.invoiceId
+        }
+      }
+    });
+    expect(webhook.status).toBe(201);
+    expect(webhook.body.expiredInvoice).toBe(true);
+
+    const invoice = await base.prisma.merchantSubscriptionInvoice.findUniqueOrThrow({
+      where: { id: choose.body.invoiceId }
+    });
+    expect(invoice.status).toBe(MerchantSubscriptionInvoiceStatus.expired);
+  });
+
   it("cron J0 : renouvellement automatique via portefeuille si solde suffisant", async () => {
     const { billingDay } = await seedActivePremiumDueToday(
       base.prisma,

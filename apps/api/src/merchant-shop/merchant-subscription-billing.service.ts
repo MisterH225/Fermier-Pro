@@ -150,22 +150,36 @@ export class MerchantSubscriptionBillingService {
       invoice.providerRef &&
       invoice.paymentUrl
     ) {
-      const resumed = await this.gateway.resumePendingCheckout(invoice.providerRef);
-      if (resumed?.paymentUrl) {
+      const inspection = await this.gateway.inspectCheckout?.(invoice.providerRef);
+      if (inspection?.status === "completed") {
+        // Paiement déjà complété côté GeniusPay : activer sans créer une nouvelle ref.
+        if (inspection.providerRef !== invoice.providerRef) {
+          await this.prisma.merchantSubscriptionInvoice.update({
+            where: { id: invoice.id },
+            data: { providerRef: inspection.providerRef }
+          });
+        }
+        await this.markInvoicePaid(invoice.id);
+        return this.prisma.merchantSubscriptionInvoice.findUniqueOrThrow({
+          where: { id: invoice.id }
+        });
+      }
+      if (inspection?.status === "pending" && inspection.paymentUrl) {
         if (
-          resumed.providerRef !== invoice.providerRef ||
-          resumed.paymentUrl !== invoice.paymentUrl
+          inspection.providerRef !== invoice.providerRef ||
+          inspection.paymentUrl !== invoice.paymentUrl
         ) {
           return this.prisma.merchantSubscriptionInvoice.update({
             where: { id: invoice.id },
             data: {
-              providerRef: resumed.providerRef,
-              paymentUrl: resumed.paymentUrl
+              providerRef: inspection.providerRef,
+              paymentUrl: inspection.paymentUrl
             }
           });
         }
         return invoice;
       }
+      // failed/cancelled/expired/unknown → nouveau checkout ci-dessous
     }
 
     const init = await this.gateway.initiateMerchantSubscriptionPayment({
@@ -403,6 +417,41 @@ export class MerchantSubscriptionBillingService {
 
     await this.confirmFromWebhook(ref, invoice.id, webhookAmount);
     return true;
+  }
+
+  /** Marque une facture pending comme expirée suite à payment.failed/cancelled/expired. */
+  async failFromWebhookByProviderRef(providerRef: string): Promise<boolean> {
+    const ref = providerRef.trim();
+    if (!ref) {
+      return false;
+    }
+    const updated = await this.prisma.merchantSubscriptionInvoice.updateMany({
+      where: {
+        providerRef: ref,
+        status: MerchantSubscriptionInvoiceStatus.pending
+      },
+      data: { status: MerchantSubscriptionInvoiceStatus.expired }
+    });
+    return updated.count > 0;
+  }
+
+  async failFromWebhook(
+    providerRef: string,
+    invoiceId?: string | null
+  ): Promise<boolean> {
+    if (invoiceId?.trim()) {
+      const updated = await this.prisma.merchantSubscriptionInvoice.updateMany({
+        where: {
+          id: invoiceId.trim(),
+          status: MerchantSubscriptionInvoiceStatus.pending
+        },
+        data: { status: MerchantSubscriptionInvoiceStatus.expired }
+      });
+      if (updated.count > 0) {
+        return true;
+      }
+    }
+    return this.failFromWebhookByProviderRef(providerRef);
   }
 
   async tryWalletRenewal(userId: string, profile: MerchantProfile, amount: number) {

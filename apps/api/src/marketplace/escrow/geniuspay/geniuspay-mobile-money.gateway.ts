@@ -1,6 +1,7 @@
 import { BadGatewayException, BadRequestException, Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import type {
+  MobileMoneyCheckoutInspection,
   MobileMoneyConfirmResult,
   MobileMoneyGateway,
   MobileMoneyInitResult,
@@ -231,25 +232,39 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
   async resumePendingCheckout(
     providerRef: string
   ): Promise<MobileMoneyInitResult | null> {
+    const inspection = await this.inspectCheckout(providerRef);
+    if (!inspection || inspection.status !== "pending") {
+      return null;
+    }
+    if (!inspection.paymentUrl?.trim()) {
+      return null;
+    }
+    return {
+      providerRef: inspection.providerRef,
+      paymentUrl: inspection.paymentUrl
+    };
+  }
+
+  async inspectCheckout(
+    providerRef: string
+  ): Promise<MobileMoneyCheckoutInspection | null> {
     const payment = await this.client.lookupPayment(providerRef);
     if (!payment) {
       return null;
     }
-    if (
+    const status =
+      payment.status === "pending" ||
       payment.status === "completed" ||
       payment.status === "failed" ||
       payment.status === "cancelled" ||
       payment.status === "expired"
-    ) {
-      return null;
-    }
-    const paymentUrl = resolveGeniusPayCheckoutUrl(payment);
-    if (!paymentUrl?.trim()) {
-      return null;
-    }
+        ? payment.status
+        : ("unknown" as const);
     return {
       providerRef: payment.reference,
-      paymentUrl
+      status,
+      paymentUrl:
+        status === "pending" ? resolveGeniusPayCheckoutUrl(payment) : null
     };
   }
 
@@ -646,6 +661,7 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
       kind === GENIUSPAY_KIND_MARKETPLACE_ESCROW ||
       kind === GENIUSPAY_KIND_WALLET_TOPUP ||
       kind === GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION ||
+      kind === GENIUSPAY_KIND_PRODUCER_SUBSCRIPTION ||
       kind === GENIUSPAY_KIND_MERCHANT_ORDER;
     if (!validKind || typeof userId !== "string" || !userId.trim()) {
       return null;

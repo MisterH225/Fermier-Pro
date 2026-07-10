@@ -694,14 +694,26 @@ export class MarketplaceTransactionService {
       existingRef &&
       tx.paymentMethod === MarketplacePaymentMethod.mobile_money
     ) {
-      const resumed = await this.escrow.resumeMobileMoneyCheckout(existingRef);
-      if (resumed?.paymentUrl?.trim()) {
+      const inspection = await this.escrow.inspectMobileMoneyCheckout(existingRef);
+      if (inspection?.status === "completed") {
+        // Paiement déjà completed côté GeniusPay : confirmer sans nouvelle ref.
+        await this.claimPaymentHeld(tx.id, inspection.providerRef);
         return {
-          providerRef: resumed.providerRef,
+          providerRef: inspection.providerRef,
           amount,
           currency: tx.currency,
           paymentMethod: MarketplacePaymentMethod.mobile_money,
-          paymentUrl: resumed.paymentUrl
+          paymentUrl: null,
+          alreadyConfirmed: true
+        };
+      }
+      if (inspection?.status === "pending" && inspection.paymentUrl?.trim()) {
+        return {
+          providerRef: inspection.providerRef,
+          amount,
+          currency: tx.currency,
+          paymentMethod: MarketplacePaymentMethod.mobile_money,
+          paymentUrl: inspection.paymentUrl
         };
       }
       await this.prisma.marketplaceTransaction.update({
@@ -906,9 +918,24 @@ export class MarketplaceTransactionService {
   async resolveEscrowWebhookPayment(
     providerRef: string,
     webhookAmount?: number,
-    webhookCurrency?: string
+    webhookCurrency?: string,
+    transactionId?: string
   ): Promise<boolean> {
     const ref = providerRef.trim();
+    const txId = transactionId?.trim();
+    if (txId) {
+      try {
+        await this.confirmPaymentFromWebhook(
+          txId,
+          ref,
+          webhookAmount,
+          webhookCurrency
+        );
+        return true;
+      } catch {
+        return false;
+      }
+    }
     if (!ref) {
       return false;
     }
@@ -951,7 +978,9 @@ export class MarketplaceTransactionService {
       throw new BadRequestException("Statut invalide pour confirmation webhook");
     }
     if (tx.paymentProviderRef && tx.paymentProviderRef !== providerRef) {
-      throw new BadRequestException("providerRef incohérent");
+      this.log.warn(
+        `Webhook ref=${providerRef} différente de tx ref=${tx.paymentProviderRef} tx=${transactionId} — mise à jour`
+      );
     }
     if (webhookAmount !== undefined) {
       const blocked = Number(tx.blockedAmount);
@@ -971,13 +1000,16 @@ export class MarketplaceTransactionService {
   }
 
   async failPaymentFromWebhook(transactionId: string, providerRef: string) {
+    const ref = providerRef.trim();
     await this.prisma.marketplaceTransaction.updateMany({
       where: {
         id: transactionId,
-        status: MarketplaceTransactionStatus.PAYMENT_PENDING,
-        paymentProviderRef: providerRef
+        status: MarketplaceTransactionStatus.PAYMENT_PENDING
       },
-      data: { status: MarketplaceTransactionStatus.PAYMENT_FAILED }
+      data: {
+        status: MarketplaceTransactionStatus.PAYMENT_FAILED,
+        ...(ref ? { paymentProviderRef: ref } : {})
+      }
     });
     return { ok: true };
   }

@@ -88,6 +88,18 @@ export interface MobileMoneyGateway {
   resumePendingCheckout?(
     providerRef: string
   ): Promise<MobileMoneyInitResult | null>;
+
+  /**
+   * Inspecte un checkout existant sans en créer un nouveau.
+   * Permet d'activer un paiement déjà `completed` au lieu d'écraser providerRef.
+   */
+  inspectCheckout?(providerRef: string): Promise<MobileMoneyCheckoutInspection | null>;
 }
+
+export type MobileMoneyCheckoutInspection = {
+  providerRef: string;
+  status: "pending" | "completed" | "failed" | "cancelled" | "expired" | "unknown";
+  paymentUrl?: string | null;
+};
 
 export const MOBILE_MONEY_GATEWAY = Symbol("MOBILE_MONEY_GATEWAY");

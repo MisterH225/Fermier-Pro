@@ -44,5 +44,7 @@ export function isMerchantSubscriptionWebhookMetadata(
   if (metadata.kind === GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION) {
     return true;
   }
-  return extractMerchantSubscriptionInvoiceId(metadata) != null;
+  // Ne pas traiter un simple invoice_id comme commerçant (collision avec producteur).
+  const transactionId = coerceMetadataString(metadata.transaction_id);
+  return transactionId.startsWith(MERCHANT_SUB_TX_PREFIX);
 }

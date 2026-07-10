@@ -518,8 +518,17 @@ export class MerchantOrdersService {
     if (order.status !== MerchantOrderStatus.payment_pending) {
       throw new BadRequestException("Statut invalide pour confirmation webhook");
     }
-    if (!order.providerRef || order.providerRef !== providerRef) {
-      throw new BadRequestException("providerRef incohérent");
+    if (order.providerRef && order.providerRef !== providerRef) {
+      // GeniusPay peut renvoyer une référence normalisée au succès.
+      await this.prisma.merchantOrder.update({
+        where: { id: order.id },
+        data: { providerRef }
+      });
+    } else if (!order.providerRef) {
+      await this.prisma.merchantOrder.update({
+        where: { id: order.id },
+        data: { providerRef }
+      });
     }
     const amounts = await this.computeAmounts(Number(order.totalAmount));
     if (webhookAmount !== undefined) {

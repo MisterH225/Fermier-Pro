@@ -319,7 +319,7 @@ export async function cleanupE2eFixtures(
         ]
       }
     });
-    await prisma.farm.delete({ where: { id: ctx.farmId } });
+    await prisma.farm.deleteMany({ where: { id: ctx.farmId } });
     await prisma.adminAuditLog.deleteMany({
       where: { adminUserId: { in: userIds } }
     });

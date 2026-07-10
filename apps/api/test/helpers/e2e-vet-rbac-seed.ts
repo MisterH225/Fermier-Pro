@@ -220,7 +220,7 @@ export async function cleanupE2eVetRbacFixtures(
         ]
       }
     });
-    await prisma.farm.delete({ where: { id: ctx.farmId } });
+    await prisma.farm.deleteMany({ where: { id: ctx.farmId } });
     await prisma.vetProfile.deleteMany({ where: { userId: ctx.vetUserId } });
     await prisma.profile.deleteMany({
       where: { userId: { in: [ctx.producerUserId, ctx.vetUserId] } }

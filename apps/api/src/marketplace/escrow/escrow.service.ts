@@ -93,6 +93,13 @@ export class EscrowService {
     return this.gateway.resumePendingCheckout(providerRef);
   }
 
+  async inspectMobileMoneyCheckout(providerRef: string) {
+    if (typeof this.gateway.inspectCheckout !== "function") {
+      return null;
+    }
+    return this.gateway.inspectCheckout(providerRef);
+  }
+
   async confirmHold(
     providerRef: string,
     transactionId: string,

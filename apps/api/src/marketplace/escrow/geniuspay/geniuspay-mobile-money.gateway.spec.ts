@@ -147,6 +147,47 @@ describe("GeniusPayMobileMoneyGateway", () => {
     expect(result?.paymentUrl).toContain("checkout");
   });
 
+  it("inspectCheckout signale completed sans URL", async () => {
+    lookupPayment.mockResolvedValue({
+      id: 6,
+      reference: "MTX-DONE1",
+      amount: 5000,
+      currency: "XOF",
+      status: "completed",
+      checkout_url: "https://geniuspay.ci/checkout/MTX-DONE1"
+    });
+
+    const inspection = await gateway.inspectCheckout("MTX-DONE1");
+    expect(inspection).toEqual({
+      providerRef: "MTX-DONE1",
+      status: "completed",
+      paymentUrl: null
+    });
+    expect(await gateway.resumePendingCheckout("MTX-DONE1")).toBeNull();
+  });
+
+  it("confirme un abonnement producteur via GET (parseMetadata)", async () => {
+    lookupPayment.mockResolvedValue({
+      id: 7,
+      reference: "PROD-SUB1",
+      amount: 5000,
+      currency: "XOF",
+      status: "completed",
+      metadata: {
+        kind: "producer_subscription",
+        user_id: "prod-1",
+        invoice_id: "inv-1",
+        amount: "5000"
+      }
+    });
+
+    const result = await gateway.confirmProducerSubscriptionPayment(
+      "PROD-SUB1",
+      "inv-1"
+    );
+    expect(result.success).toBe(true);
+  });
+
   it("initie un retrait wallet via payout", async () => {
     createPayout.mockResolvedValue({
       id: "p1",

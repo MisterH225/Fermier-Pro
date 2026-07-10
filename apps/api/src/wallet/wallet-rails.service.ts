@@ -64,8 +64,12 @@ export class WalletRailsService {
     amount: number,
     providerRef: string
   ) {
+    const ref = providerRef.trim();
+    if (!ref) {
+      throw new BadRequestException("Référence GeniusPay manquante");
+    }
     const existing = await this.prisma.userWalletEntry.findUnique({
-      where: { idempotencyKey: `topup:${providerRef}` }
+      where: { idempotencyKey: `topup:${ref}` }
     });
     if (existing) {
       return { ok: true, idempotent: true };
@@ -74,7 +78,40 @@ export class WalletRailsService {
     if (!user) {
       throw new BadRequestException("Utilisateur introuvable");
     }
-    return this.confirmTopUp(user, providerRef);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new BadRequestException("Montant de recharge invalide");
+    }
+
+    // Faire confiance au webhook signé (comme les abonnements) :
+    // le GET /payments/{ref} échoue souvent en sandbox après payment.success.
+    const summary = await this.wallet.getSummary(user.id);
+    const feeBreakdown = await this.fees.calculateFee(
+      WalletFeeTransactionType.deposit,
+      amount
+    );
+    const entry = await this.wallet.creditTopUp(
+      user.id,
+      feeBreakdown.netAmount,
+      summary.currency,
+      ref,
+      feeBreakdown.feeAmount > 0
+        ? `Recharge portefeuille (net après frais ${feeBreakdown.feeAmount} XOF)`
+        : "Recharge portefeuille via mobile money",
+      `topup:${ref}`
+    );
+
+    if (feeBreakdown.feeAmount > 0) {
+      await this.platformAccount.recordTransferFee(feeBreakdown.feeAmount);
+    }
+    await this.platformAccount.recordTopUp(feeBreakdown.netAmount);
+
+    return {
+      ok: true,
+      entry,
+      feeAmount: feeBreakdown.feeAmount,
+      balance: entry.balanceAfter,
+      currency: summary.currency
+    };
   }
 
   async confirmTopUp(user: User, providerRef: string) {

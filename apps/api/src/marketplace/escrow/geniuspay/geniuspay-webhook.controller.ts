@@ -2,6 +2,8 @@ import {
   BadRequestException,
   Controller,
   Headers,
+  Logger,
+  NotFoundException,
   Post,
   Req
 } from "@nestjs/common";
@@ -41,6 +43,8 @@ type RawBodyRequest = Request & { rawBody?: Buffer };
 @Controller("webhooks/geniuspay")
 @SkipThrottle()
 export class GeniusPayWebhookController {
+  private readonly log = new Logger(GeniusPayWebhookController.name);
+
   constructor(
     private readonly transactions: MarketplaceTransactionService,
     private readonly walletRails: WalletRailsService,
@@ -106,16 +110,26 @@ export class GeniusPayWebhookController {
           typeof metadata.transaction_id === "string"
             ? metadata.transaction_id.trim()
             : "";
-        if (!transactionId) {
-          throw new BadRequestException("transaction_id metadata manquant");
+        if (transactionId) {
+          await this.transactions.confirmPaymentFromWebhook(
+            transactionId,
+            reference,
+            Number.isFinite(amount) ? amount : undefined,
+            body.data.currency
+          );
+          return { ok: true };
         }
-        await this.transactions.confirmPaymentFromWebhook(
-          transactionId,
+        // Metadata incomplète : tenter résolution par providerRef avant d'échouer.
+        const escrowResolved = await this.transactions.resolveEscrowWebhookPayment(
           reference,
           Number.isFinite(amount) ? amount : undefined,
-          body.data.currency
+          body.data.currency,
+          transactionId || undefined
         );
-        return { ok: true };
+        if (escrowResolved) {
+          return { ok: true, resolvedByReference: true };
+        }
+        throw new BadRequestException("transaction_id metadata manquant");
       }
 
       if (kind === GENIUSPAY_KIND_WALLET_TOPUP) {
@@ -240,16 +254,27 @@ export class GeniusPayWebhookController {
         return { ok: true, resolvedByReference: true };
       }
 
+      const escrowTransactionId =
+        typeof metadata.transaction_id === "string"
+          ? metadata.transaction_id.trim()
+          : "";
       const escrowResolved = await this.transactions.resolveEscrowWebhookPayment(
         reference,
         Number.isFinite(amount) ? amount : undefined,
-        body.data.currency
+        body.data.currency,
+        escrowTransactionId || undefined
       );
       if (escrowResolved) {
         return { ok: true, resolvedByReference: true };
       }
 
-      return { ok: true, ignored: true, reason: "kind inconnu" };
+      // Ne pas ACK silencieusement : GeniusPay doit pouvoir retenter.
+      this.log.error(
+        `payment.success non résolu ref=${reference} kind=${String(kind ?? "")}`
+      );
+      throw new NotFoundException(
+        `Paiement GeniusPay non résolu (ref=${reference})`
+      );
     }
 
     if (
@@ -276,6 +301,53 @@ export class GeniusPayWebhookController {
           await this.merchantOrders.failPaymentFromWebhook(orderId, reference);
         }
         return { ok: true };
+      }
+      if (kind === GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION) {
+        const invoiceId = extractMerchantSubscriptionInvoiceId(metadata);
+        const failed = await this.merchantBilling.failFromWebhook(
+          reference,
+          invoiceId
+        );
+        return { ok: true, expiredInvoice: failed };
+      }
+      if (kind === GENIUSPAY_KIND_PRODUCER_SUBSCRIPTION) {
+        const invoiceId = extractProducerSubscriptionInvoiceId(metadata);
+        const failed = await this.producerBilling.failFromWebhook(
+          reference,
+          invoiceId
+        );
+        return { ok: true, expiredInvoice: failed };
+      }
+      if (isMerchantSubscriptionWebhookMetadata(metadata)) {
+        const invoiceId = extractMerchantSubscriptionInvoiceId(metadata);
+        const failed = await this.merchantBilling.failFromWebhook(
+          reference,
+          invoiceId
+        );
+        return { ok: true, expiredInvoice: failed };
+      }
+      if (isProducerSubscriptionWebhookMetadata(metadata)) {
+        const invoiceId = extractProducerSubscriptionInvoiceId(metadata);
+        const failed = await this.producerBilling.failFromWebhook(
+          reference,
+          invoiceId
+        );
+        return { ok: true, expiredInvoice: failed };
+      }
+      // Fallback : tenter les deux factures abo par référence.
+      const merchantFailed = await this.merchantBilling.failFromWebhook(
+        reference,
+        extractMerchantSubscriptionInvoiceId(metadata)
+      );
+      if (merchantFailed) {
+        return { ok: true, expiredInvoice: true };
+      }
+      const producerFailed = await this.producerBilling.failFromWebhook(
+        reference,
+        extractProducerSubscriptionInvoiceId(metadata)
+      );
+      if (producerFailed) {
+        return { ok: true, expiredInvoice: true };
       }
       return { ok: true, ignored: true };
     }
