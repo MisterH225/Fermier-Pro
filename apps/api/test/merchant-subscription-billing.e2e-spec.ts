@@ -547,6 +547,62 @@ describeOrSkip("Abonnement Premium commerçant — facturation (e2e)", () => {
     expect(Number(paid?.amount)).toBe(2500);
   });
 
+  it("après annulation → réactivation sans code = tarif plein", async () => {
+    await base.prisma.merchantSubscriptionPromoCode.create({
+      data: {
+        code: "E2E-STICKY",
+        type: "discount",
+        percentOff: 50,
+        isActive: true
+      }
+    });
+    await creditMerchantWallet(app, merchant.merchantToken, 10_000);
+
+    const withPromo = await request(app.getHttpServer())
+      .post("/api/v1/merchant/me/subscription")
+      .set("Authorization", `Bearer ${merchant.merchantToken}`)
+      .set("X-Profile-Id", merchant.merchantProfileId)
+      .send({
+        tier: MerchantSubscriptionTier.premium,
+        paymentMethod: MarketplacePaymentMethod.wallet,
+        promoCode: "E2E-STICKY"
+      });
+    expect(withPromo.status).toBe(201);
+    expect(withPromo.body.promoPercentOffApplied).toBe(50);
+
+    const cancel = await request(app.getHttpServer())
+      .post("/api/v1/merchant/me/subscription/cancel")
+      .set("Authorization", `Bearer ${merchant.merchantToken}`)
+      .set("X-Profile-Id", merchant.merchantProfileId);
+    expect([200, 201]).toContain(cancel.status);
+    expect(cancel.body.promoPercentOffApplied).toBeNull();
+
+    const again = await request(app.getHttpServer())
+      .post("/api/v1/merchant/me/subscription")
+      .set("Authorization", `Bearer ${merchant.merchantToken}`)
+      .set("X-Profile-Id", merchant.merchantProfileId)
+      .send({
+        tier: MerchantSubscriptionTier.premium,
+        paymentMethod: MarketplacePaymentMethod.wallet
+      });
+    expect(again.status).toBe(201);
+    expect(again.body.promoPercentOffApplied).toBeNull();
+
+    const profile = await base.prisma.merchantProfile.findUniqueOrThrow({
+      where: { userId: merchant.merchantUserId }
+    });
+    const paid = await base.prisma.merchantSubscriptionInvoice.findMany({
+      where: {
+        merchantProfileId: profile.id,
+        status: MerchantSubscriptionInvoiceStatus.paid
+      },
+      orderBy: { paidAt: "asc" }
+    });
+    expect(paid).toHaveLength(2);
+    expect(Number(paid[0]?.amount)).toBe(2500);
+    expect(Number(paid[1]?.amount)).toBe(5000);
+  });
+
   it("double utilisation du même code → refusé", async () => {
     await base.prisma.merchantSubscriptionPromoCode.create({
       data: {

@@ -78,7 +78,14 @@ export class ProducerSubscriptionService {
       return this.profiles.getMe(user);
     }
 
-    const price = this.resolveCheckoutPrice(cfg, profile.promoPercentOffApplied);
+    // Nouvelle souscription : ne pas réutiliser une remise d'un abonnement annulé
+    let stickyPromo = profile.promoPercentOffApplied;
+    if (stickyPromo != null) {
+      await this.billing.applyPromoOverride(profile.id, null);
+      stickyPromo = null;
+    }
+
+    const price = this.resolveCheckoutPrice(cfg, stickyPromo);
     const method =
       dto.paymentMethod ?? MarketplacePaymentMethod.mobile_money;
 

@@ -104,9 +104,15 @@ export class MerchantSubscriptionService {
       return this.profiles.getMe(user);
     }
 
+    // Nouvelle souscription : ne pas réutiliser une remise d'un abonnement annulé
+    let stickyPromo = profile.promoPercentOffApplied;
+    if (!dto.promoCode?.trim() && stickyPromo != null) {
+      await this.billing.applyPromoOverride(profile.id, null);
+      stickyPromo = null;
+    }
+
     const price =
-      checkoutPriceOverride ??
-      this.resolveCheckoutPrice(cfg, profile.promoPercentOffApplied);
+      checkoutPriceOverride ?? this.resolveCheckoutPrice(cfg, stickyPromo);
     const method =
       dto.paymentMethod ?? MarketplacePaymentMethod.mobile_money;
 

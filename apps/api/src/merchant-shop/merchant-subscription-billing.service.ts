@@ -867,7 +867,9 @@ export class MerchantSubscriptionBillingService {
           cancelledAt: new Date(),
           suspendedAt: null,
           suspensionReason: null,
-          nextBillingAt: null
+          nextBillingAt: null,
+          // Remise code promo : ne survit pas à l'annulation
+          promoPercentOffApplied: null
         }
       }),
       ...toDisable.map((prod) =>
@@ -974,8 +976,11 @@ export class MerchantSubscriptionBillingService {
     });
   }
 
-  async applyPromoOverride(profileId: string, percentOff: number) {
-    const pct = Math.min(100, Math.max(0, Math.floor(percentOff)));
+  async applyPromoOverride(profileId: string, percentOff: number | null) {
+    const pct =
+      percentOff == null
+        ? null
+        : Math.min(100, Math.max(0, Math.floor(percentOff)));
     await this.prisma.merchantProfile.update({
       where: { id: profileId },
       data: { promoPercentOffApplied: pct }
