@@ -35,17 +35,29 @@ export class ProducerProfilesService {
   }
 
   async getMe(user: User) {
-    const profile = await this.ensureProfile(user.id);
+    let profile = await this.ensureProfile(user.id);
+    // Remise code promo : ne s'applique qu'à un Premium actif, pas après annulation
+    if (
+      profile.subscriptionTier !== MerchantSubscriptionTier.premium &&
+      profile.promoPercentOffApplied != null
+    ) {
+      await this.prisma.producerProfile.update({
+        where: { id: profile.id },
+        data: { promoPercentOffApplied: null }
+      });
+      profile = await this.ensureProfile(user.id);
+    }
     const settings = await this.prisma.platformSettings.findUnique({
       where: { id: "default" }
     });
     const billing = resolveProducerPremiumBillingConfig(settings);
+    const stickyPromo =
+      profile.subscriptionTier === MerchantSubscriptionTier.premium
+        ? profile.promoPercentOffApplied
+        : null;
     const premiumPrice =
-      profile.promoPercentOffApplied != null
-        ? applyPromoPercent(
-            billing.fullPriceXof,
-            profile.promoPercentOffApplied
-          )
+      stickyPromo != null
+        ? applyPromoPercent(billing.fullPriceXof, stickyPromo)
         : billing.effectivePriceXof;
 
     const pendingInvoice = await this.prisma.producerSubscriptionInvoice.findFirst({
@@ -70,7 +82,7 @@ export class ProducerProfilesService {
       nextBillingAt: profile.nextBillingAt?.toISOString() ?? null,
       graceEndsAt: profile.graceEndsAt?.toISOString() ?? null,
       trialEndsAt: profile.trialEndsAt?.toISOString() ?? null,
-      promoPercentOffApplied: profile.promoPercentOffApplied,
+      promoPercentOffApplied: stickyPromo,
       teamPremiumActive,
       pendingRenewal:
         pendingInvoice &&

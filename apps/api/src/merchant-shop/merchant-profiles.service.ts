@@ -76,18 +76,30 @@ export class MerchantProfilesService {
 
   async getMe(user: User) {
     await this.ensureProfile(user.id);
-    const profile = await this.requireProfile(user.id);
+    let profile = await this.requireProfile(user.id);
+    // Remise code promo : ne s'applique qu'à un Premium actif, pas après annulation
+    if (
+      profile.subscriptionTier !== MerchantSubscriptionTier.premium &&
+      profile.promoPercentOffApplied != null
+    ) {
+      await this.prisma.merchantProfile.update({
+        where: { id: profile.id },
+        data: { promoPercentOffApplied: null }
+      });
+      profile = await this.requireProfile(user.id);
+    }
     const settings = await this.prisma.platformSettings.findUnique({
       where: { id: "default" }
     });
     const premiumMaxShops = settings?.merchantPremiumMaxShops ?? 3;
     const billing = resolveMerchantPremiumBillingConfig(settings);
+    const stickyPromo =
+      profile.subscriptionTier === MerchantSubscriptionTier.premium
+        ? profile.promoPercentOffApplied
+        : null;
     const premiumPrice =
-      profile.promoPercentOffApplied != null
-        ? applyPromoPercent(
-            billing.fullPriceXof,
-            profile.promoPercentOffApplied
-          )
+      stickyPromo != null
+        ? applyPromoPercent(billing.fullPriceXof, stickyPromo)
         : billing.effectivePriceXof;
 
     const shops = profile.shops.map((shop) => ({
@@ -123,7 +135,7 @@ export class MerchantProfilesService {
       nextBillingAt: profile.nextBillingAt?.toISOString() ?? null,
       graceEndsAt: profile.graceEndsAt?.toISOString() ?? null,
       trialEndsAt: profile.trialEndsAt?.toISOString() ?? null,
-      promoPercentOffApplied: profile.promoPercentOffApplied,
+      promoPercentOffApplied: stickyPromo,
       pendingRenewal:
         pendingInvoice && profile.subscriptionTier === MerchantSubscriptionTier.premium
           ? {

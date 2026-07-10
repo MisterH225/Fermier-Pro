@@ -104,6 +104,22 @@ export class MerchantSubscriptionPromoCodesService {
       where: { id },
       data: { isActive: false }
     });
+    // Profils free/annulés : ne plus afficher la remise d'un code désactivé
+    const redemptions =
+      await this.prisma.merchantSubscriptionPromoRedemption.findMany({
+        where: { promoCodeId: id },
+        select: { merchantProfileId: true }
+      });
+    const profileIds = redemptions.map((r) => r.merchantProfileId);
+    if (profileIds.length > 0) {
+      await this.prisma.merchantProfile.updateMany({
+        where: {
+          id: { in: profileIds },
+          subscriptionTier: { not: MerchantSubscriptionTier.premium }
+        },
+        data: { promoPercentOffApplied: null }
+      });
+    }
     const count = await this.prisma.merchantSubscriptionPromoRedemption.count({
       where: { promoCodeId: id }
     });
