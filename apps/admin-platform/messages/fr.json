@@ -851,7 +851,7 @@
   },
   "marketplace": {
     "title": "Marketplace",
-    "pageLead": "Annonces, transactions, litiges poids, revenus plateforme et modération commerçants.",
+    "pageLead": "Annonces, transactions, litiges poids, commandes boutique, revenus plateforme et modération commerçants.",
     "loading": "Chargement…",
     "loadError": "Impossible de charger les données marketplace.",
     "tabs": {
@@ -861,7 +861,8 @@
       "revenue": "Commissions",
       "receipts": "Reçus PDF",
       "merchantProducts": "Produits commerçants",
-      "merchantCategories": "Catégories boutique"
+      "merchantCategories": "Catégories boutique",
+      "merchantOrders": "Commandes boutique"
     },
     "overview": {
       "publishedListings": "Annonces publiées",
@@ -1033,6 +1034,45 @@
       "activate": "Activer",
       "deactivate": "Désactiver",
       "delete": "Supprimer"
+    },
+    "merchantOrders": {
+      "empty": "Aucune commande boutique.",
+      "allStatuses": "Tous les statuts",
+      "disputedCount": "{count} litige(s) dans la liste",
+      "buyer": "Acheteur",
+      "seller": "Commerçant",
+      "amount": "Montant",
+      "qty": "Quantité",
+      "createdAt": "Créée le",
+      "escrowHeld": "Escrow bloqué",
+      "disputeReason": "Motif du litige",
+      "buyerNote": "Note acheteur",
+      "sellerNote": "Note commerçant",
+      "resolve": "Arbitrer",
+      "resolveTitle": "Résoudre le litige boutique",
+      "decision": "Décision",
+      "decisionBuyer": "Rembourser l'acheteur",
+      "decisionSeller": "Valider le commerçant",
+      "note": "Note de résolution",
+      "notePlaceholder": "Optionnel",
+      "cancel": "Annuler",
+      "confirmResolve": "Confirmer",
+      "resolving": "En cours…",
+      "resolveError": "Impossible de résoudre le litige.",
+      "status": {
+        "paid": "À confirmer",
+        "confirmed": "Confirmée",
+        "shipping": "Livraison",
+        "delivered": "Livrée",
+        "completed": "Terminée",
+        "disputed": "Litige",
+        "refunded": "Remboursée",
+        "rejected": "Refusée",
+        "auto_rejected": "Expirée",
+        "payment_pending": "Paiement en attente",
+        "failed": "Échouée",
+        "cancelled": "Annulée"
+      }
     }
   },
   "vetAppointments": {

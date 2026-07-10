@@ -27,7 +27,7 @@ import { PlatformSettingsService } from "../platform-settings/platform-settings.
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { UserWalletService } from "../wallet/user-wallet.service";
-import { MERCHANT_ERROR } from "./merchant-shop.constants";
+import { MERCHANT_ERROR, MERCHANT_ORDER_CONFIRM_TIMEOUT_MS, MERCHANT_ORDER_DISPUTE_WINDOW_MS } from "./merchant-shop.constants";
 import type {
   ConfirmMerchantPaymentDto,
   OpenMerchantOrderDisputeDto,
@@ -71,6 +71,21 @@ export class MerchantOrdersService {
     return rows.map((o) => this.serializeOrder(o));
   }
 
+  async listAdminOrders(params?: { status?: string; take?: number }) {
+    const take = Math.min(100, Math.max(1, params?.take ?? 50));
+    const where: Prisma.MerchantOrderWhereInput = {};
+    if (params?.status?.trim()) {
+      where.status = params.status.trim() as MerchantOrderStatus;
+    }
+    const rows = await this.prisma.merchantOrder.findMany({
+      where,
+      include: this.orderInclude(),
+      orderBy: { createdAt: "desc" },
+      take
+    });
+    return rows.map((o) => this.serializeOrder(o));
+  }
+
   async getOrder(user: User, orderId: string) {
     const order = await this.prisma.merchantOrder.findFirst({
       where: {
@@ -86,46 +101,163 @@ export class MerchantOrdersService {
   }
 
   async completeOrder(user: User, orderId: string) {
-    const order = await this.prisma.merchantOrder.findFirst({
-      where: { id: orderId, sellerUserId: user.id },
-      include: this.orderInclude()
-    });
-    if (!order) {
-      throw new NotFoundException("Commande introuvable");
-    }
-    if (order.status !== MerchantOrderStatus.paid) {
-      throw new BadRequestException("Seules les commandes payées peuvent être terminées");
-    }
-    const updated = await this.prisma.merchantOrder.update({
-      where: { id: order.id },
-      data: {
-        status: MerchantOrderStatus.completed,
+    const order = await this.requireOrderForUser(orderId, user.id);
+    // Legacy : vendeur marque terminée sans escrow
+    if (
+      !order.escrowHeld &&
+      order.status === MerchantOrderStatus.paid &&
+      order.sellerUserId === user.id
+    ) {
+      return this.transition(order, MerchantOrderStatus.completed, user.id, {
         completedAt: new Date()
-      },
-      include: this.orderInclude()
+      });
+    }
+    // Acheteur confirme réception
+    if (order.buyerUserId !== user.id) {
+      throw new ForbiddenException("Seul l'acheteur peut confirmer la réception");
+    }
+    if (order.status !== MerchantOrderStatus.delivered) {
+      throw new BadRequestException({
+        code: MERCHANT_ERROR.INVALID_TRANSITION,
+        message: "Confirmez la réception uniquement après livraison"
+      });
+    }
+    await this.releaseEscrow(order);
+    return this.transition(order, MerchantOrderStatus.completed, user.id, {
+      completedAt: new Date(),
+      escrowHeld: false
     });
-    return this.serializeOrder(updated);
+  }
+
+  async confirmOrder(user: User, orderId: string) {
+    const order = await this.requireSellerOrder(orderId, user.id);
+    if (order.status !== MerchantOrderStatus.paid || !order.escrowHeld) {
+      throw new BadRequestException({
+        code: MERCHANT_ERROR.INVALID_TRANSITION,
+        message: "Seules les commandes payées en attente peuvent être acceptées"
+      });
+    }
+    const updated = await this.transition(
+      order,
+      MerchantOrderStatus.confirmed,
+      user.id,
+      { confirmedAt: new Date(), timeoutAt: null }
+    );
+    void this.push.sendToUser(
+      order.buyerUserId,
+      "Commande confirmée",
+      `Votre commande a été confirmée par le commerçant`,
+      { type: "merchant_order_confirmed", orderId: order.id }
+    );
+    return updated;
+  }
+
+  async rejectOrder(user: User, orderId: string) {
+    const order = await this.requireSellerOrder(orderId, user.id);
+    if (order.status !== MerchantOrderStatus.paid || !order.escrowHeld) {
+      throw new BadRequestException({
+        code: MERCHANT_ERROR.INVALID_TRANSITION,
+        message: "Seules les commandes payées en attente peuvent être refusées"
+      });
+    }
+    await this.refundEscrow(order);
+    await this.restoreStock(order);
+    const updated = await this.transition(
+      order,
+      MerchantOrderStatus.refunded,
+      user.id,
+      {
+        rejectedAt: new Date(),
+        resolvedAt: new Date(),
+        timeoutAt: null,
+        escrowHeld: false
+      }
+    );
+    // Event audit: also log rejected as intermediate note
+    await this.prisma.merchantOrderEvent.create({
+      data: {
+        orderId: order.id,
+        fromStatus: MerchantOrderStatus.paid,
+        toStatus: MerchantOrderStatus.rejected,
+        actorUserId: user.id,
+        note: "Refus commerçant"
+      }
+    });
+    void this.push.sendToUser(
+      order.buyerUserId,
+      "Commande refusée",
+      `Commande refusée — remboursement en cours`,
+      { type: "merchant_order_rejected", orderId: order.id }
+    );
+    return updated;
+  }
+
+  async shipOrder(user: User, orderId: string) {
+    const order = await this.requireSellerOrder(orderId, user.id);
+    if (order.status !== MerchantOrderStatus.confirmed) {
+      throw new BadRequestException({
+        code: MERCHANT_ERROR.INVALID_TRANSITION,
+        message: "Lancez la livraison après acceptation de la commande"
+      });
+    }
+    const updated = await this.transition(
+      order,
+      MerchantOrderStatus.shipping,
+      user.id,
+      { shippedAt: new Date() }
+    );
+    void this.push.sendToUser(
+      order.buyerUserId,
+      "Livraison en cours",
+      `Votre commande est en livraison`,
+      { type: "merchant_order_shipping", orderId: order.id }
+    );
+    return updated;
+  }
+
+  async markDelivered(user: User, orderId: string) {
+    const order = await this.requireSellerOrder(orderId, user.id);
+    if (order.status !== MerchantOrderStatus.shipping) {
+      throw new BadRequestException({
+        code: MERCHANT_ERROR.INVALID_TRANSITION,
+        message: "Marquez livré uniquement pendant la livraison"
+      });
+    }
+    const updated = await this.transition(
+      order,
+      MerchantOrderStatus.delivered,
+      user.id,
+      { deliveredAt: new Date() }
+    );
+    void this.push.sendToUser(
+      order.buyerUserId,
+      "Commande livrée",
+      `Confirmez la réception de votre commande`,
+      { type: "merchant_order_delivered", orderId: order.id }
+    );
+    return updated;
   }
 
   async openDispute(user: User, orderId: string, dto: OpenMerchantOrderDisputeDto) {
-    const order = await this.prisma.merchantOrder.findFirst({
-      where: {
-        id: orderId,
-        OR: [{ sellerUserId: user.id }, { buyerUserId: user.id }]
-      },
-      include: { dispute: true }
-    });
-    if (!order) {
-      throw new NotFoundException("Commande introuvable");
-    }
-    if (
-      order.status !== MerchantOrderStatus.paid &&
-      order.status !== MerchantOrderStatus.completed
-    ) {
-      throw new BadRequestException("Litige impossible sur cette commande");
-    }
+    const order = await this.requireOrderForUser(orderId, user.id);
     if (order.dispute) {
       throw new ConflictException("Un litige existe déjà pour cette commande");
+    }
+
+    const now = Date.now();
+    const canDisputeShipping = order.status === MerchantOrderStatus.shipping;
+    const canDisputeDelivered =
+      order.status === MerchantOrderStatus.delivered &&
+      order.deliveredAt != null &&
+      now - order.deliveredAt.getTime() <= MERCHANT_ORDER_DISPUTE_WINDOW_MS;
+    // Legacy paid/completed without escrow timeline
+    const canDisputeLegacy =
+      !order.escrowHeld &&
+      (order.status === MerchantOrderStatus.paid ||
+        order.status === MerchantOrderStatus.completed);
+
+    if (!canDisputeShipping && !canDisputeDelivered && !canDisputeLegacy) {
+      throw new BadRequestException("Litige impossible sur cette commande");
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -136,9 +268,21 @@ export class MerchantOrdersService {
           reason: dto.reason.trim()
         }
       });
+      await tx.merchantOrderEvent.create({
+        data: {
+          orderId: order.id,
+          fromStatus: order.status,
+          toStatus: MerchantOrderStatus.disputed,
+          actorUserId: user.id,
+          note: dto.reason.trim().slice(0, 500)
+        }
+      });
       return tx.merchantOrder.update({
         where: { id: order.id },
-        data: { status: MerchantOrderStatus.disputed },
+        data: {
+          status: MerchantOrderStatus.disputed,
+          disputeOpenedAt: new Date()
+        },
         include: this.orderInclude()
       });
     });
@@ -148,7 +292,7 @@ export class MerchantOrdersService {
     void this.push.sendToUser(
       counterpartId,
       "Litige boutique",
-      `Un litige a été ouvert pour la commande « ${order.productId} »`,
+      `Un litige a été ouvert pour la commande`,
       { type: "merchant_order_dispute", orderId: order.id }
     );
 
@@ -184,12 +328,327 @@ export class MerchantOrdersService {
     return this.serializeOrder(updated.order);
   }
 
+  async resolveDispute(
+    adminUserId: string,
+    orderId: string,
+    decision: "buyer" | "seller",
+    note?: string
+  ) {
+    const order = await this.prisma.merchantOrder.findFirst({
+      where: { id: orderId },
+      include: {
+        dispute: true,
+        product: { select: { id: true, name: true, currency: true, stock: true, status: true } }
+      }
+    });
+    if (!order?.dispute || order.dispute.status !== MerchantOrderDisputeStatus.open) {
+      throw new NotFoundException("Litige introuvable ou déjà clos");
+    }
+    if (order.status !== MerchantOrderStatus.disputed) {
+      throw new BadRequestException("La commande n'est pas en litige");
+    }
+
+    const resolutionNote = note?.trim() || null;
+    if (decision === "buyer") {
+      if (order.escrowHeld) {
+        await this.refundEscrow(order);
+        await this.restoreStock(order);
+      }
+      await this.prisma.merchantOrderDispute.update({
+        where: { id: order.dispute.id },
+        data: {
+          status: MerchantOrderDisputeStatus.resolved_buyer,
+          resolvedAt: new Date(),
+          resolvedByUserId: adminUserId,
+          resolutionNote
+        }
+      });
+      await this.transition(order, MerchantOrderStatus.refunded, adminUserId, {
+        resolvedAt: new Date(),
+        resolvedByUserId: adminUserId,
+        resolutionNote,
+        escrowHeld: false
+      });
+    } else {
+      if (order.escrowHeld) {
+        await this.releaseEscrow(order);
+      }
+      await this.prisma.merchantOrderDispute.update({
+        where: { id: order.dispute.id },
+        data: {
+          status: MerchantOrderDisputeStatus.resolved_seller,
+          resolvedAt: new Date(),
+          resolvedByUserId: adminUserId,
+          resolutionNote
+        }
+      });
+      await this.transition(order, MerchantOrderStatus.completed, adminUserId, {
+        completedAt: new Date(),
+        resolvedAt: new Date(),
+        resolvedByUserId: adminUserId,
+        resolutionNote,
+        escrowHeld: false
+      });
+    }
+
+    void this.push.sendToUser(
+      order.buyerUserId,
+      "Litige résolu",
+      decision === "buyer"
+        ? "Litige résolu — remboursement acheteur"
+        : "Litige résolu — paiement commerçant validé",
+      { type: "merchant_order_dispute_resolved", orderId: order.id }
+    );
+    void this.push.sendToUser(
+      order.sellerUserId,
+      "Litige résolu",
+      decision === "buyer"
+        ? "Litige résolu — remboursement acheteur"
+        : "Litige résolu — paiement commerçant validé",
+      { type: "merchant_order_dispute_resolved", orderId: order.id }
+    );
+
+    return this.prisma.merchantOrder
+      .findUniqueOrThrow({
+        where: { id: orderId },
+        include: this.orderInclude()
+      })
+      .then((o) => this.serializeOrder(o));
+  }
+
+  /** Cron : auto-rejet 24h + auto-complete 48h post-livraison. */
+  async runTrackingCycle(now = new Date()) {
+    const expired = await this.prisma.merchantOrder.findMany({
+      where: {
+        status: MerchantOrderStatus.paid,
+        escrowHeld: true,
+        timeoutAt: { lte: now }
+      },
+      include: {
+        product: {
+          select: { id: true, name: true, currency: true, stock: true, status: true }
+        }
+      },
+      take: 100
+    });
+
+    for (const order of expired) {
+      try {
+        await this.refundEscrow(order);
+        await this.restoreStock(order);
+        await this.transition(order, MerchantOrderStatus.refunded, null, {
+          rejectedAt: now,
+          resolvedAt: now,
+          timeoutAt: null,
+          escrowHeld: false
+        });
+        await this.prisma.merchantOrderEvent.create({
+          data: {
+            orderId: order.id,
+            fromStatus: MerchantOrderStatus.paid,
+            toStatus: MerchantOrderStatus.auto_rejected,
+            note: "Timeout 24h sans acceptation commerçant"
+          }
+        });
+        void this.push.sendToUser(
+          order.buyerUserId,
+          "Commande expirée",
+          "Commande auto-annulée — délai commerçant dépassé",
+          { type: "merchant_order_auto_rejected", orderId: order.id }
+        );
+        void this.push.sendToUser(
+          order.sellerUserId,
+          "Commande expirée",
+          "Commande non confirmée à temps — annulée",
+          { type: "merchant_order_auto_rejected", orderId: order.id }
+        );
+      } catch (err) {
+        // continue
+      }
+    }
+
+    const disputeDeadline = new Date(
+      now.getTime() - MERCHANT_ORDER_DISPUTE_WINDOW_MS
+    );
+    const toComplete = await this.prisma.merchantOrder.findMany({
+      where: {
+        status: MerchantOrderStatus.delivered,
+        escrowHeld: true,
+        deliveredAt: { lte: disputeDeadline }
+      },
+      include: {
+        product: {
+          select: { id: true, name: true, currency: true, stock: true, status: true }
+        }
+      },
+      take: 100
+    });
+
+    for (const order of toComplete) {
+      try {
+        await this.releaseEscrow(order);
+        await this.transition(order, MerchantOrderStatus.completed, null, {
+          completedAt: now,
+          escrowHeld: false
+        });
+        void this.push.sendToUser(
+          order.buyerUserId,
+          "Commande clôturée",
+          "Réception confirmée automatiquement — commande terminée",
+          { type: "merchant_order_auto_completed", orderId: order.id }
+        );
+        void this.push.sendToUser(
+          order.sellerUserId,
+          "Paiement libéré",
+          "Escrow libéré — commande terminée",
+          { type: "merchant_order_auto_completed", orderId: order.id }
+        );
+      } catch {
+        // continue
+      }
+    }
+  }
+
+  private async requireOrderForUser(orderId: string, userId: string) {
+    const order = await this.prisma.merchantOrder.findFirst({
+      where: {
+        id: orderId,
+        OR: [{ sellerUserId: userId }, { buyerUserId: userId }]
+      },
+      include: {
+        dispute: true,
+        product: {
+          select: { id: true, name: true, currency: true, stock: true, status: true }
+        }
+      }
+    });
+    if (!order) {
+      throw new NotFoundException("Commande introuvable");
+    }
+    return order;
+  }
+
+  private async requireSellerOrder(orderId: string, sellerUserId: string) {
+    const order = await this.prisma.merchantOrder.findFirst({
+      where: { id: orderId, sellerUserId },
+      include: {
+        dispute: true,
+        product: {
+          select: { id: true, name: true, currency: true, stock: true, status: true }
+        }
+      }
+    });
+    if (!order) {
+      throw new NotFoundException("Commande introuvable");
+    }
+    return order;
+  }
+
+  private async transition(
+    order: { id: string; status: MerchantOrderStatus },
+    toStatus: MerchantOrderStatus,
+    actorUserId: string | null,
+    data: Prisma.MerchantOrderUpdateInput = {}
+  ) {
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.merchantOrderEvent.create({
+        data: {
+          orderId: order.id,
+          fromStatus: order.status,
+          toStatus,
+          actorUserId
+        }
+      });
+      return tx.merchantOrder.update({
+        where: { id: order.id },
+        data: { status: toStatus, ...data },
+        include: this.orderInclude()
+      });
+    });
+    return this.serializeOrder(updated);
+  }
+
+  private async releaseEscrow(order: {
+    id: string;
+    sellerUserId: string;
+    buyerUserId: string;
+    totalAmount: Prisma.Decimal;
+    sellerCommission: Prisma.Decimal;
+    buyerCommission: Prisma.Decimal;
+    escrowHeld: boolean;
+    product: { name: string; currency: string };
+  }) {
+    if (!order.escrowHeld) {
+      return;
+    }
+    const amounts = await this.computeAmounts(Number(order.totalAmount));
+    await this.wallet.creditMerchantPayout(
+      order.sellerUserId,
+      amounts.sellerNet,
+      order.product.currency,
+      order.id,
+      order.buyerUserId,
+      `Vente boutique ${order.product.name}`
+    );
+    const existingRev = await this.prisma.platformRevenue.findFirst({
+      where: { merchantOrderId: order.id }
+    });
+    if (!existingRev) {
+      await this.prisma.platformRevenue.create({
+        data: {
+          merchantOrderId: order.id,
+          sellerId: order.sellerUserId,
+          buyerId: order.buyerUserId,
+          grossAmount: order.totalAmount,
+          commissionRate: new Prisma.Decimal(amounts.buyerRate),
+          commissionAmount: new Prisma.Decimal(amounts.platformFee),
+          type: "COMMISSION"
+        }
+      });
+    }
+  }
+
+  private async refundEscrow(order: {
+    id: string;
+    buyerUserId: string;
+    totalAmount: Prisma.Decimal;
+    buyerCommission: Prisma.Decimal;
+    escrowHeld: boolean;
+    product: { currency: string; name: string };
+  }) {
+    if (!order.escrowHeld) {
+      return;
+    }
+    const amounts = await this.computeAmounts(Number(order.totalAmount));
+    await this.wallet.creditMerchantOrderRefund(
+      order.buyerUserId,
+      amounts.blockedAmount,
+      order.product.currency,
+      order.id,
+      `Remboursement commande boutique ${order.product.name}`
+    );
+  }
+
+  private async restoreStock(order: {
+    productId: string;
+    quantity: number;
+  }) {
+    await this.prisma.merchantProduct.update({
+      where: { id: order.productId },
+      data: {
+        stock: { increment: order.quantity },
+        status: MerchantProductStatus.published
+      }
+    });
+  }
+
   private orderInclude() {
     return {
       product: { select: { id: true, name: true, photoUrls: true, currency: true } },
-      buyer: { select: { id: true, fullName: true } },
-      seller: { select: { id: true, fullName: true } },
-      dispute: true
+      buyer: { select: { id: true, fullName: true, phone: true } },
+      seller: { select: { id: true, fullName: true, phone: true } },
+      dispute: true,
+      events: { orderBy: { createdAt: "asc" as const }, take: 50 }
     } as const;
   }
 
@@ -206,8 +665,17 @@ export class MerchantOrdersService {
     paymentMethod: MarketplacePaymentMethod;
     providerRef: string | null;
     status: MerchantOrderStatus;
+    escrowHeld?: boolean;
     paidAt: Date | null;
+    confirmedAt?: Date | null;
+    shippedAt?: Date | null;
+    deliveredAt?: Date | null;
     completedAt?: Date | null;
+    rejectedAt?: Date | null;
+    disputeOpenedAt?: Date | null;
+    resolvedAt?: Date | null;
+    resolutionNote?: string | null;
+    timeoutAt?: Date | null;
     createdAt: Date;
     product?: {
       id: string;
@@ -215,8 +683,8 @@ export class MerchantOrdersService {
       photoUrls?: unknown;
       currency?: string;
     };
-    buyer?: { id: string; fullName: string | null };
-    seller?: { id: string; fullName: string | null };
+    buyer?: { id: string; fullName: string | null; phone?: string | null };
+    seller?: { id: string; fullName: string | null; phone?: string | null };
     dispute?: {
       id: string;
       reason: string;
@@ -226,13 +694,28 @@ export class MerchantOrdersService {
       openedByUserId: string;
       createdAt: Date;
       resolvedAt: Date | null;
+      resolutionNote?: string | null;
     } | null;
+    events?: Array<{
+      id: string;
+      fromStatus: MerchantOrderStatus | null;
+      toStatus: MerchantOrderStatus;
+      actorUserId: string | null;
+      note: string | null;
+      createdAt: Date;
+    }>;
   }) {
     const photos = Array.isArray(o.product?.photoUrls)
       ? o.product.photoUrls.filter((u): u is string => typeof u === "string")
       : [];
     const sellerNet =
       Number(o.totalAmount) - Number(o.sellerCommission);
+    const disputeWindowEndsAt =
+      o.deliveredAt != null
+        ? new Date(
+            o.deliveredAt.getTime() + MERCHANT_ORDER_DISPUTE_WINDOW_MS
+          ).toISOString()
+        : null;
     return {
       id: o.id,
       productId: o.productId,
@@ -241,8 +724,10 @@ export class MerchantOrdersService {
       productCurrency: o.product?.currency ?? "XOF",
       buyerUserId: o.buyerUserId,
       buyerName: o.buyer?.fullName ?? null,
+      buyerPhone: o.buyer?.phone ?? null,
       sellerUserId: o.sellerUserId,
       sellerName: o.seller?.fullName ?? null,
+      sellerPhone: o.seller?.phone ?? null,
       quantity: o.quantity,
       unitPrice: Number(o.unitPrice),
       totalAmount: Number(o.totalAmount),
@@ -252,9 +737,27 @@ export class MerchantOrdersService {
       paymentMethod: o.paymentMethod,
       providerRef: o.providerRef,
       status: o.status,
+      escrowHeld: o.escrowHeld ?? true,
       paidAt: o.paidAt?.toISOString() ?? null,
+      confirmedAt: o.confirmedAt?.toISOString() ?? null,
+      shippedAt: o.shippedAt?.toISOString() ?? null,
+      deliveredAt: o.deliveredAt?.toISOString() ?? null,
       completedAt: o.completedAt?.toISOString() ?? null,
+      rejectedAt: o.rejectedAt?.toISOString() ?? null,
+      disputeOpenedAt: o.disputeOpenedAt?.toISOString() ?? null,
+      resolvedAt: o.resolvedAt?.toISOString() ?? null,
+      resolutionNote: o.resolutionNote ?? null,
+      timeoutAt: o.timeoutAt?.toISOString() ?? null,
+      disputeWindowEndsAt,
       createdAt: o.createdAt.toISOString(),
+      timeline: (o.events ?? []).map((e) => ({
+        id: e.id,
+        fromStatus: e.fromStatus,
+        toStatus: e.toStatus,
+        actorUserId: e.actorUserId,
+        note: e.note,
+        createdAt: e.createdAt.toISOString()
+      })),
       dispute: o.dispute
         ? {
             id: o.dispute.id,
@@ -264,7 +767,8 @@ export class MerchantOrdersService {
             status: o.dispute.status,
             openedByUserId: o.dispute.openedByUserId,
             createdAt: o.dispute.createdAt.toISOString(),
-            resolvedAt: o.dispute.resolvedAt?.toISOString() ?? null
+            resolvedAt: o.dispute.resolvedAt?.toISOString() ?? null,
+            resolutionNote: o.dispute.resolutionNote ?? null
           }
         : null
     };
@@ -573,7 +1077,7 @@ export class MerchantOrdersService {
         status: MerchantProductStatus;
       };
     },
-    amounts: {
+    _amounts: {
       buyerRate: number;
       sellerNet: number;
       platformFee: number;
@@ -604,32 +1108,26 @@ export class MerchantOrdersService {
         });
       }
 
-      await this.wallet.creditMerchantPayout(
-        order.sellerUserId,
-        amounts.sellerNet,
-        order.product.currency,
-        order.id,
-        order.buyerUserId,
-        `Vente boutique ${order.product.name}`
-      );
-
+      // Escrow différé : pas de payout vendeur ici
+      const paidAt = new Date();
       await tx.merchantOrder.update({
         where: { id: order.id },
         data: {
           status: MerchantOrderStatus.paid,
-          paidAt: new Date()
+          paidAt,
+          escrowHeld: true,
+          timeoutAt: new Date(
+            paidAt.getTime() + MERCHANT_ORDER_CONFIRM_TIMEOUT_MS
+          )
         }
       });
 
-      await tx.platformRevenue.create({
+      await tx.merchantOrderEvent.create({
         data: {
-          merchantOrderId: order.id,
-          sellerId: order.sellerUserId,
-          buyerId: order.buyerUserId,
-          grossAmount: order.totalAmount,
-          commissionRate: new Prisma.Decimal(amounts.buyerRate),
-          commissionAmount: new Prisma.Decimal(amounts.platformFee),
-          type: "COMMISSION"
+          orderId: order.id,
+          fromStatus: MerchantOrderStatus.payment_pending,
+          toStatus: MerchantOrderStatus.paid,
+          note: "Paiement confirmé — escrow bloqué"
         }
       });
     });
@@ -641,23 +1139,19 @@ export class MerchantOrdersService {
   ) {
     const fresh = await this.prisma.merchantOrder.findUniqueOrThrow({
       where: { id: order.id },
-      include: {
-        product: { select: { id: true, name: true, photoUrls: true } },
-        buyer: { select: { id: true, fullName: true } },
-        seller: { select: { id: true, fullName: true } }
-      }
+      include: this.orderInclude()
     });
 
     void this.push.sendToUser(
       order.sellerUserId,
       "Nouvelle commande",
-      `Commande reçue pour « ${fresh.product.name} »`,
+      `Nouvelle commande — confirmez sous 24h`,
       { type: "merchant_order_paid", orderId: order.id }
     );
     void this.push.sendToUser(
       order.buyerUserId,
-      "Commande confirmée",
-      `Paiement confirmé pour « ${fresh.product.name} »`,
+      "Paiement confirmé",
+      `Paiement reçu — en attente de confirmation du commerçant`,
       { type: "merchant_order_paid", orderId: order.id }
     );
 

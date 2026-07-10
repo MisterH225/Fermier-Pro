@@ -14,6 +14,7 @@ import { MerchantCategoriesService } from "./merchant-categories.service";
 import { MerchantDashboardService } from "./merchant-dashboard.service";
 import { MerchantModerationService } from "./merchant-moderation.service";
 import { MerchantOrdersService } from "./merchant-orders.service";
+import { MerchantOrdersCronService } from "./merchant-orders.cron";
 import { MerchantProductsService } from "./merchant-products.service";
 import { MerchantProfilesService } from "./merchant-profiles.service";
 import { MerchantShopsService } from "./merchant-shops.service";
@@ -46,6 +47,7 @@ import { MerchantSubscriptionService } from "./merchant-subscription.service";
     MerchantSubscriptionPromoCodesService,
     MerchantSubscriptionCronService,
     MerchantOrdersService,
+    MerchantOrdersCronService,
     MerchantModerationService,
     MerchantDashboardService
   ],

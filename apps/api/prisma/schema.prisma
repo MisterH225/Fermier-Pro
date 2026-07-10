@@ -72,9 +72,16 @@ enum MerchantProductDisabledReason {
 
 enum MerchantOrderStatus {
   payment_pending
+  /// Paiement reçu, fonds en escrow — en attente d'acceptation commerçant
   paid
-  disputed
+  confirmed
+  shipping
+  delivered
   completed
+  rejected
+  auto_rejected
+  refunded
+  disputed
   cancelled
   failed
 }
@@ -3466,7 +3473,7 @@ model MerchantProduct {
   @@index([status, publishedAt(sort: Desc)])
 }
 
-/// Commande boutique commerçant (livraison hors app).
+/// Commande boutique commerçant (livraison hors app, escrow jusqu'à réception).
 model MerchantOrder {
   id                  String                   @id @default(cuid())
   productId           String
@@ -3483,34 +3490,65 @@ model MerchantOrder {
   paymentMethod       MarketplacePaymentMethod
   providerRef         String?
   status              MerchantOrderStatus      @default(payment_pending)
+  /// true = fonds encore bloqués (nouveau flux). false = déjà versés (legacy).
+  escrowHeld          Boolean                  @default(true)
   paidAt              DateTime?
+  confirmedAt         DateTime?
+  shippedAt           DateTime?
+  deliveredAt         DateTime?
   completedAt         DateTime?
+  rejectedAt          DateTime?
+  disputeOpenedAt     DateTime?
+  resolvedAt          DateTime?
+  resolvedByUserId    String?
+  resolutionNote      String?
+  /// Limite d'acceptation commerçant (paidAt + 24h).
+  timeoutAt           DateTime?
   createdAt           DateTime                 @default(now())
   updatedAt           DateTime                 @updatedAt
   platformRevenue     PlatformRevenue?
   walletEntries       UserWalletEntry[]
   dispute             MerchantOrderDispute?
+  events              MerchantOrderEvent[]
 
   @@index([buyerUserId, createdAt(sort: Desc)])
   @@index([sellerUserId, createdAt(sort: Desc)])
   @@index([productId])
   @@index([status])
+  @@index([status, timeoutAt])
+  @@index([status, deliveredAt])
+}
+
+/// Journal des transitions de statut d'une commande boutique.
+model MerchantOrderEvent {
+  id           String               @id @default(cuid())
+  orderId      String
+  order        MerchantOrder        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus   MerchantOrderStatus?
+  toStatus     MerchantOrderStatus
+  actorUserId  String?
+  note         String?
+  createdAt    DateTime             @default(now())
+
+  @@index([orderId, createdAt(sort: Asc)])
 }
 
 /// Litige commande boutique (hors arbitrage poids marketplace).
 model MerchantOrderDispute {
-  id             String                     @id @default(cuid())
-  orderId        String                     @unique
-  order          MerchantOrder              @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  openedByUserId String
-  openedBy       User                       @relation("MerchantOrderDisputeOpener", fields: [openedByUserId], references: [id], onDelete: Restrict)
-  reason         String
-  sellerNote     String?
-  buyerNote      String?
-  status         MerchantOrderDisputeStatus @default(open)
-  resolvedAt     DateTime?
-  createdAt      DateTime                   @default(now())
-  updatedAt      DateTime                   @updatedAt
+  id               String                     @id @default(cuid())
+  orderId          String                     @unique
+  order            MerchantOrder              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  openedByUserId   String
+  openedBy         User                       @relation("MerchantOrderDisputeOpener", fields: [openedByUserId], references: [id], onDelete: Restrict)
+  reason           String
+  sellerNote       String?
+  buyerNote        String?
+  status           MerchantOrderDisputeStatus @default(open)
+  resolvedAt       DateTime?
+  resolvedByUserId String?
+  resolutionNote   String?
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
 
   @@index([openedByUserId, createdAt(sort: Desc)])
   @@index([status])

@@ -90,8 +90,10 @@ export type MerchantOrderDto = {
   productCurrency: string;
   buyerUserId: string;
   buyerName: string | null;
+  buyerPhone?: string | null;
   sellerUserId: string;
   sellerName: string | null;
+  sellerPhone?: string | null;
   quantity: number;
   unitPrice: number;
   totalAmount: number;
@@ -101,9 +103,27 @@ export type MerchantOrderDto = {
   paymentMethod: string;
   providerRef: string | null;
   status: string;
+  escrowHeld?: boolean;
   paidAt: string | null;
+  confirmedAt?: string | null;
+  shippedAt?: string | null;
+  deliveredAt?: string | null;
   completedAt: string | null;
+  rejectedAt?: string | null;
+  disputeOpenedAt?: string | null;
+  resolvedAt?: string | null;
+  resolutionNote?: string | null;
+  timeoutAt?: string | null;
+  disputeWindowEndsAt?: string | null;
   createdAt: string;
+  timeline?: Array<{
+    id: string;
+    fromStatus: string | null;
+    toStatus: string;
+    actorUserId: string | null;
+    note: string | null;
+    createdAt: string;
+  }>;
   dispute: {
     id: string;
     reason: string;
@@ -113,6 +133,7 @@ export type MerchantOrderDto = {
     openedByUserId: string;
     createdAt: string;
     resolvedAt: string | null;
+    resolutionNote?: string | null;
   } | null;
 };
 
@@ -439,6 +460,10 @@ export function fetchMerchantSellerOrders(accessToken: string, profileId: string
   return apiGetJson<MerchantOrderDto[]>("/merchant/orders/seller", accessToken, profileId);
 }
 
+export function fetchMerchantBuyerOrders(accessToken: string) {
+  return apiGetJson<MerchantOrderDto[]>("/merchant/orders/buyer", accessToken);
+}
+
 export function fetchMerchantOrder(
   accessToken: string,
   profileId: string,
@@ -449,11 +474,63 @@ export function fetchMerchantOrder(
 
 export function completeMerchantOrder(
   accessToken: string,
-  profileId: string,
+  profileId: string | undefined,
   orderId: string
 ) {
   return apiPostJson<MerchantOrderDto>(
     `/merchant/orders/${orderId}/complete`,
+    {},
+    accessToken,
+    profileId
+  );
+}
+
+export function confirmMerchantOrder(
+  accessToken: string,
+  profileId: string,
+  orderId: string
+) {
+  return apiPostJson<MerchantOrderDto>(
+    `/merchant/orders/${orderId}/confirm`,
+    {},
+    accessToken,
+    profileId
+  );
+}
+
+export function rejectMerchantOrder(
+  accessToken: string,
+  profileId: string,
+  orderId: string
+) {
+  return apiPostJson<MerchantOrderDto>(
+    `/merchant/orders/${orderId}/reject`,
+    {},
+    accessToken,
+    profileId
+  );
+}
+
+export function shipMerchantOrder(
+  accessToken: string,
+  profileId: string,
+  orderId: string
+) {
+  return apiPostJson<MerchantOrderDto>(
+    `/merchant/orders/${orderId}/ship`,
+    {},
+    accessToken,
+    profileId
+  );
+}
+
+export function markMerchantOrderDelivered(
+  accessToken: string,
+  profileId: string,
+  orderId: string
+) {
+  return apiPostJson<MerchantOrderDto>(
+    `/merchant/orders/${orderId}/mark-delivered`,
     {},
     accessToken,
     profileId

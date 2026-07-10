@@ -761,6 +761,24 @@ export class UserWalletService {
     );
   }
 
+  async creditMerchantOrderRefund(
+    userId: string,
+    amount: number,
+    currency: string,
+    orderId: string,
+    note: string
+  ): Promise<WalletEntryDto> {
+    return this.credit(
+      userId,
+      amount,
+      currency,
+      UserWalletEntryKind.credit_refund,
+      note,
+      `merchant-refund:${orderId}`,
+      { merchantOrderId: orderId }
+    );
+  }
+
   async debitForVetHold(
     userId: string,
     amount: number,

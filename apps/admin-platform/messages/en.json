@@ -842,7 +842,8 @@
       "revenue": "Commissions",
       "receipts": "PDF receipts",
       "merchantProducts": "Merchant products",
-      "merchantCategories": "Shop categories"
+      "merchantCategories": "Shop categories",
+      "merchantOrders": "Shop orders"
     },
     "overview": {
       "publishedListings": "Published listings",
@@ -1014,6 +1015,45 @@
       "activate": "Activate",
       "deactivate": "Deactivate",
       "delete": "Delete"
+    },
+    "merchantOrders": {
+      "empty": "No shop orders.",
+      "allStatuses": "All statuses",
+      "disputedCount": "{count} dispute(s) in list",
+      "buyer": "Buyer",
+      "seller": "Merchant",
+      "amount": "Amount",
+      "qty": "Quantity",
+      "createdAt": "Created",
+      "escrowHeld": "Escrow held",
+      "disputeReason": "Dispute reason",
+      "buyerNote": "Buyer note",
+      "sellerNote": "Merchant note",
+      "resolve": "Resolve",
+      "resolveTitle": "Resolve shop dispute",
+      "decision": "Decision",
+      "decisionBuyer": "Refund buyer",
+      "decisionSeller": "Release to merchant",
+      "note": "Resolution note",
+      "notePlaceholder": "Optional",
+      "cancel": "Cancel",
+      "confirmResolve": "Confirm",
+      "resolving": "Working…",
+      "resolveError": "Could not resolve dispute.",
+      "status": {
+        "paid": "To confirm",
+        "confirmed": "Confirmed",
+        "shipping": "Shipping",
+        "delivered": "Delivered",
+        "completed": "Completed",
+        "disputed": "Disputed",
+        "refunded": "Refunded",
+        "rejected": "Rejected",
+        "auto_rejected": "Expired",
+        "payment_pending": "Payment pending",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
+      }
     }
   },
   "vetAppointments": {

@@ -7,11 +7,13 @@ import {
   fetchAdminMarketplaceOverview,
   fetchAdminMarketplaceTransactions,
   fetchAdminMerchantCategories,
+  fetchAdminMerchantOrders,
   fetchAdminMerchantProducts,
   type AdminMarketplaceListingRow,
   type AdminMarketplaceOverviewDto,
   type AdminMarketplaceTransactionRow,
   type AdminMerchantCategoryRow,
+  type AdminMerchantOrderRow,
   type AdminMerchantProductRow
 } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
@@ -28,11 +30,13 @@ import { PlatformRevenueSection } from "@/components/marketplace/PlatformRevenue
 import { MarketplaceReceiptsSection } from "@/components/marketplace/MarketplaceReceiptsSection";
 import { MerchantProductsModerationTable } from "@/components/marketplace/MerchantProductsModerationTable";
 import { MerchantCategoriesPanel } from "@/components/marketplace/MerchantCategoriesPanel";
+import { MerchantOrdersAdminPanel } from "@/components/marketplace/MerchantOrdersAdminPanel";
 
 const MAIN_TABS = [
   "listings",
   "transactions",
   "disputes",
+  "merchantOrders",
   "revenue",
   "receipts",
   "merchantProducts",
@@ -86,6 +90,10 @@ export default function MarketplaceAdminPage() {
   const [merchantCategories, setMerchantCategories] = useState<
     AdminMerchantCategoryRow[]
   >([]);
+  const [merchantOrders, setMerchantOrders] = useState<AdminMerchantOrderRow[]>(
+    []
+  );
+  const [merchantOrderStatus, setMerchantOrderStatus] = useState("disputed");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -127,6 +135,14 @@ export default function MarketplaceAdminPage() {
     setMerchantCategories(rows ?? []);
   }, [token]);
 
+  const loadMerchantOrders = useCallback(async () => {
+    if (!token) return;
+    const status =
+      merchantOrderStatus === "all" ? undefined : merchantOrderStatus;
+    const rows = await fetchAdminMerchantOrders(token, { status, take: 100 });
+    setMerchantOrders(rows ?? []);
+  }, [token, merchantOrderStatus]);
+
   useEffect(() => {
     if (!token) return;
     setLoading(true);
@@ -140,6 +156,8 @@ export default function MarketplaceAdminPage() {
           await loadTransactions();
         } else if (mainTab === "disputes") {
           await loadDisputes();
+        } else if (mainTab === "merchantOrders") {
+          await loadMerchantOrders();
         } else if (mainTab === "merchantProducts") {
           await loadMerchantProducts();
         } else if (mainTab === "merchantCategories") {
@@ -157,6 +175,7 @@ export default function MarketplaceAdminPage() {
     loadListings,
     loadTransactions,
     loadDisputes,
+    loadMerchantOrders,
     loadMerchantProducts,
     loadMerchantCategories,
     t
@@ -236,6 +255,20 @@ export default function MarketplaceAdminPage() {
             token={token!}
             rows={disputes}
             onReload={() => void loadDisputes()}
+          />
+        )
+      ) : null}
+
+      {mainTab === "merchantOrders" ? (
+        loading ? (
+          <p className="text-muted-foreground">{t("loading")}</p>
+        ) : (
+          <MerchantOrdersAdminPanel
+            token={token!}
+            rows={merchantOrders}
+            statusFilter={merchantOrderStatus}
+            onStatusFilterChange={setMerchantOrderStatus}
+            onReload={() => void loadMerchantOrders()}
           />
         )
       ) : null}

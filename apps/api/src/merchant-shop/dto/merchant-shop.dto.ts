@@ -2,6 +2,7 @@ import { MarketplacePaymentMethod, MerchantSubscriptionTier } from "@prisma/clie
 import {
   IsArray,
   IsEnum,
+  IsIn,
   IsInt,
   IsNumber,
   IsOptional,
@@ -220,4 +221,14 @@ export class RespondMerchantOrderDisputeDto {
   @MinLength(3)
   @MaxLength(2000)
   note!: string;
+}
+
+export class ResolveMerchantOrderDisputeDto {
+  @IsIn(["buyer", "seller"])
+  decision!: "buyer" | "seller";
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  note?: string;
 }

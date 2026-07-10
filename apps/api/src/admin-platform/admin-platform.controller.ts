@@ -55,8 +55,10 @@ import { MerchantModerationService } from "../merchant-shop/merchant-moderation.
 import {
   CreateMerchantCategoryDto,
   DeleteMerchantProductAdminDto,
+  ResolveMerchantOrderDisputeDto,
   UpdateMerchantCategoryDto
 } from "../merchant-shop/dto/merchant-shop.dto";
+import { MerchantOrdersService } from "../merchant-shop/merchant-orders.service";
 import { AdminMerchantSubscriptionsService } from "./admin-merchant-subscriptions.service";
 import { AdminProducerSubscriptionsService } from "./admin-producer-subscriptions.service";
 import {
@@ -82,6 +84,7 @@ export class AdminPlatformController {
     private readonly consoleAccess: AdminConsoleAccessService,
     private readonly merchantCategories: MerchantCategoriesService,
     private readonly merchantModeration: MerchantModerationService,
+    private readonly merchantOrders: MerchantOrdersService,
     private readonly merchantSubscriptions: AdminMerchantSubscriptionsService,
     private readonly producerSubscriptions: AdminProducerSubscriptionsService
   ) {}
@@ -821,6 +824,32 @@ export class AdminPlatformController {
   @Get("merchant/products")
   adminListMerchantProducts() {
     return this.merchantModeration.listAllProducts();
+  }
+
+  @Get("merchant/orders")
+  adminListMerchantOrders(
+    @Query("status") status?: string,
+    @Query("take") take?: string
+  ) {
+    return this.merchantOrders.listAdminOrders({
+      status,
+      take: take ? Number(take) : undefined
+    });
+  }
+
+  @Patch("merchant/orders/:orderId/resolve")
+  @UseGuards(SuperAdminGuard)
+  adminResolveMerchantOrderDispute(
+    @CurrentUser() admin: User,
+    @Param("orderId") orderId: string,
+    @Body() dto: ResolveMerchantOrderDisputeDto
+  ) {
+    return this.merchantOrders.resolveDispute(
+      admin.id,
+      orderId,
+      dto.decision,
+      dto.note
+    );
   }
 
   @Delete("merchant/products/:id")

@@ -211,12 +211,47 @@ export class MerchantShopController {
   }
 
   @Post("orders/:orderId/complete")
-  @UseGuards(MerchantProfileGuard)
   completeOrder(
     @CurrentUser() user: Parameters<MerchantOrdersService["completeOrder"]>[0],
     @Param("orderId") orderId: string
   ) {
     return this.orders.completeOrder(user, orderId);
+  }
+
+  @Post("orders/:orderId/confirm")
+  @UseGuards(MerchantProfileGuard)
+  confirmOrder(
+    @CurrentUser() user: Parameters<MerchantOrdersService["confirmOrder"]>[0],
+    @Param("orderId") orderId: string
+  ) {
+    return this.orders.confirmOrder(user, orderId);
+  }
+
+  @Post("orders/:orderId/reject")
+  @UseGuards(MerchantProfileGuard)
+  rejectOrder(
+    @CurrentUser() user: Parameters<MerchantOrdersService["rejectOrder"]>[0],
+    @Param("orderId") orderId: string
+  ) {
+    return this.orders.rejectOrder(user, orderId);
+  }
+
+  @Post("orders/:orderId/ship")
+  @UseGuards(MerchantProfileGuard)
+  shipOrder(
+    @CurrentUser() user: Parameters<MerchantOrdersService["shipOrder"]>[0],
+    @Param("orderId") orderId: string
+  ) {
+    return this.orders.shipOrder(user, orderId);
+  }
+
+  @Post("orders/:orderId/mark-delivered")
+  @UseGuards(MerchantProfileGuard)
+  markDelivered(
+    @CurrentUser() user: Parameters<MerchantOrdersService["markDelivered"]>[0],
+    @Param("orderId") orderId: string
+  ) {
+    return this.orders.markDelivered(user, orderId);
   }
 
   @Post("orders/:orderId/dispute")

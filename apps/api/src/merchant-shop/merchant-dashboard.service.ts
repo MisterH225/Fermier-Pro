@@ -44,7 +44,8 @@ export class MerchantDashboardService {
       this.prisma.merchantOrder.count({
         where: {
           sellerUserId: user.id,
-          status: MerchantOrderStatus.payment_pending
+          status: MerchantOrderStatus.paid,
+          escrowHeld: true
         }
       }),
       shopIds.length

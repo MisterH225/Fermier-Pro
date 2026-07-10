@@ -21,9 +21,25 @@ import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merc
 import { mobileSpacing } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
-type OrderFilter = "all" | "payment_pending" | "paid" | "disputed" | "completed";
+type OrderFilter =
+  | "all"
+  | "payment_pending"
+  | "paid"
+  | "confirmed"
+  | "shipping"
+  | "delivered"
+  | "disputed"
+  | "completed";
 
-const FILTERS: OrderFilter[] = ["all", "payment_pending", "paid", "disputed", "completed"];
+const FILTERS: OrderFilter[] = [
+  "all",
+  "paid",
+  "confirmed",
+  "shipping",
+  "delivered",
+  "disputed",
+  "completed"
+];
 
 export function MerchantOrdersScreen() {
   const { t } = useTranslation();

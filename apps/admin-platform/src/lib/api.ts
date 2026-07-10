@@ -1257,6 +1257,86 @@ export function fetchAdminMerchantProducts(token: string) {
   return apiFetch<AdminMerchantProductRow[]>("/admin/merchant/products", token);
 }
 
+export type AdminMerchantOrderRow = {
+  id: string;
+  productId: string;
+  productName: string | null;
+  productPhotoUrls: string[];
+  productCurrency: string;
+  buyerUserId: string;
+  buyerName: string | null;
+  buyerPhone?: string | null;
+  sellerUserId: string;
+  sellerName: string | null;
+  sellerPhone?: string | null;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;
+  buyerCommission: number;
+  sellerCommission: number;
+  sellerNet: number;
+  paymentMethod: string;
+  providerRef: string | null;
+  status: string;
+  escrowHeld?: boolean;
+  paidAt: string | null;
+  confirmedAt?: string | null;
+  shippedAt?: string | null;
+  deliveredAt?: string | null;
+  completedAt: string | null;
+  rejectedAt?: string | null;
+  disputeOpenedAt?: string | null;
+  resolvedAt?: string | null;
+  resolutionNote?: string | null;
+  timeoutAt?: string | null;
+  createdAt: string;
+  timeline?: Array<{
+    id: string;
+    fromStatus: string | null;
+    toStatus: string;
+    actorUserId: string | null;
+    note: string | null;
+    createdAt: string;
+  }>;
+  dispute: {
+    id: string;
+    reason: string;
+    sellerNote: string | null;
+    buyerNote: string | null;
+    status: string;
+    openedByUserId: string;
+    createdAt: string;
+    resolvedAt: string | null;
+    resolutionNote?: string | null;
+  } | null;
+};
+
+export function fetchAdminMerchantOrders(
+  token: string,
+  params?: { status?: string; take?: number }
+) {
+  const q = new URLSearchParams();
+  if (params?.status) q.set("status", params.status);
+  if (params?.take != null) q.set("take", String(params.take));
+  const qs = q.toString();
+  return apiFetch<AdminMerchantOrderRow[]>(
+    `/admin/merchant/orders${qs ? `?${qs}` : ""}`,
+    token
+  );
+}
+
+export function resolveAdminMerchantOrderDispute(
+  token: string,
+  orderId: string,
+  body: { decision: "buyer" | "seller"; note?: string }
+) {
+  return apiFetch<AdminMerchantOrderRow>(
+    `/admin/merchant/orders/${orderId}/resolve`,
+    token,
+    { method: "PATCH", body: JSON.stringify(body) }
+  );
+}
+
 export function deleteAdminMerchantProduct(
   token: string,
   id: string,
