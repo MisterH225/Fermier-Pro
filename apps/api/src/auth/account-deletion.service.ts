@@ -265,6 +265,11 @@ export class AccountDeletionService {
     tx: Prisma.TransactionClient,
     userId: string
   ): Promise<void> {
+    // Hard-delete catalogue : autorisation explicite (trigger Postgres).
+    await tx.$executeRawUnsafe(
+      `SELECT set_config('fermier.allow_merchant_catalog_delete', '1', true)`
+    );
+
     const orderIds = (
       await tx.merchantOrder.findMany({
         where: { OR: [{ buyerUserId: userId }, { sellerUserId: userId }] },
@@ -298,6 +303,19 @@ export class AccountDeletionService {
       await tx.merchantProductModerationLog.deleteMany({
         where: { productId: { in: productIds } }
       });
+      try {
+        await tx.buyerMerchantFavorite.deleteMany({
+          where: { productId: { in: productIds } }
+        });
+      } catch (error: unknown) {
+        const code =
+          error && typeof error === "object" && "code" in error
+            ? String((error as { code: string }).code)
+            : "";
+        if (code !== "P2021") {
+          throw error;
+        }
+      }
     }
 
     await tx.merchantProfile.deleteMany({ where: { userId } });

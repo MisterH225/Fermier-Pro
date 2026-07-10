@@ -6,6 +6,7 @@ import {
 } from "@prisma/client";
 import * as jwt from "jsonwebtoken";
 import request from "supertest";
+import { withMerchantCatalogHardDelete } from "../../src/merchant-shop/merchant-catalog-protection";
 import type { E2ESeedResult } from "./e2e-seed";
 
 export type MerchantE2ECtx = {
@@ -17,100 +18,110 @@ export type MerchantE2ECtx = {
   productIds: string[];
 };
 
+const E2E_MERCHANT_SUB = "33333333-3333-3333-3333-333333333333";
+const E2E_MERCHANT_EMAIL = "e2e-merchant@fermier.local";
+
+/**
+ * Nettoie uniquement le commerçant e2e (jamais le catalogue réel).
+ * Les DELETE shop/product passent par withMerchantCatalogHardDelete (trigger DB).
+ */
 export async function seedMerchantE2E(
   prisma: PrismaClient,
   _base: E2ESeedResult
 ): Promise<MerchantE2ECtx> {
   const secret = process.env.SUPABASE_JWT_SECRET!;
-  const merchantSub = "33333333-3333-3333-3333-333333333333";
-  const merchantEmail = "e2e-merchant@fermier.local";
   const e2eMerchantWhere = {
     OR: [
-      { user: { email: merchantEmail } },
-      { user: { supabaseUserId: merchantSub } }
+      { user: { email: E2E_MERCHANT_EMAIL } },
+      { user: { supabaseUserId: E2E_MERCHANT_SUB } }
     ]
   };
 
-  // IMPORTANT: ne jamais deleteMany({}) global — les e2e peuvent pointer
-  // par erreur vers une base partagée. Toujours scoper au commerçant e2e.
   const e2eMerchantUsers = await prisma.user.findMany({
     where: {
-      OR: [{ email: merchantEmail }, { supabaseUserId: merchantSub }]
+      OR: [
+        { email: E2E_MERCHANT_EMAIL },
+        { supabaseUserId: E2E_MERCHANT_SUB }
+      ]
     },
     select: { id: true }
   });
   const e2eMerchantUserIds = e2eMerchantUsers.map((u) => u.id);
 
   if (e2eMerchantUserIds.length > 0) {
-    await prisma.merchantProductModerationLog.deleteMany({
-      where: {
-        product: {
-          shop: { merchantProfile: { userId: { in: e2eMerchantUserIds } } }
-        }
-      }
-    });
-    await prisma.platformRevenue.deleteMany({
-      where: {
-        OR: [
-          { sellerId: { in: e2eMerchantUserIds } },
-          { buyerId: { in: e2eMerchantUserIds } }
-        ]
-      }
-    });
-    await prisma.merchantOrder.deleteMany({
-      where: {
-        OR: [
-          { sellerUserId: { in: e2eMerchantUserIds } },
-          { buyerUserId: { in: e2eMerchantUserIds } }
-        ]
-      }
-    });
-    try {
-      await prisma.buyerMerchantFavorite.deleteMany({
+    await withMerchantCatalogHardDelete(prisma, async (tx) => {
+      await tx.merchantProductModerationLog.deleteMany({
         where: {
           product: {
             shop: { merchantProfile: { userId: { in: e2eMerchantUserIds } } }
           }
         }
       });
-    } catch (error: unknown) {
-      const code =
-        error && typeof error === "object" && "code" in error
-          ? String((error as { code: string }).code)
-          : "";
-      if (code !== "P2021") {
-        throw error;
+      await tx.platformRevenue.deleteMany({
+        where: {
+          OR: [
+            { sellerId: { in: e2eMerchantUserIds } },
+            { buyerId: { in: e2eMerchantUserIds } }
+          ]
+        }
+      });
+      await tx.merchantOrder.deleteMany({
+        where: {
+          OR: [
+            { sellerUserId: { in: e2eMerchantUserIds } },
+            { buyerUserId: { in: e2eMerchantUserIds } }
+          ]
+        }
+      });
+      try {
+        await tx.buyerMerchantFavorite.deleteMany({
+          where: {
+            product: {
+              shop: { merchantProfile: { userId: { in: e2eMerchantUserIds } } }
+            }
+          }
+        });
+      } catch (error: unknown) {
+        const code =
+          error && typeof error === "object" && "code" in error
+            ? String((error as { code: string }).code)
+            : "";
+        if (code !== "P2021") {
+          throw error;
+        }
       }
-    }
-    await prisma.merchantProduct.deleteMany({
-      where: {
-        shop: { merchantProfile: { userId: { in: e2eMerchantUserIds } } }
-      }
-    });
-    await prisma.merchantShop.deleteMany({
-      where: { merchantProfile: { userId: { in: e2eMerchantUserIds } } }
-    });
-    await prisma.merchantSubscriptionInvoice.deleteMany({
-      where: { merchantProfile: { userId: { in: e2eMerchantUserIds } } }
+      await tx.merchantProduct.deleteMany({
+        where: {
+          shop: { merchantProfile: { userId: { in: e2eMerchantUserIds } } }
+        }
+      });
+      await tx.merchantShop.deleteMany({
+        where: { merchantProfile: { userId: { in: e2eMerchantUserIds } } }
+      });
+      await tx.merchantSubscriptionInvoice.deleteMany({
+        where: { merchantProfile: { userId: { in: e2eMerchantUserIds } } }
+      });
+      await tx.merchantProfile.deleteMany({ where: e2eMerchantWhere });
     });
   }
 
-  await prisma.merchantProfile.deleteMany({ where: e2eMerchantWhere });
   await prisma.profile.deleteMany({ where: e2eMerchantWhere });
   await prisma.user.deleteMany({
     where: {
-      OR: [{ email: merchantEmail }, { supabaseUserId: merchantSub }]
+      OR: [
+        { email: E2E_MERCHANT_EMAIL },
+        { supabaseUserId: E2E_MERCHANT_SUB }
+      ]
     }
   });
-  // Catégorie e2e uniquement (ne pas vider le catalogue prod).
   await prisma.merchantProductCategory.deleteMany({
     where: { slug: "alimentation-e2e" }
   });
 
   const merchantUser = await prisma.user.create({
     data: {
-      supabaseUserId: merchantSub,
-      email: "e2e-merchant@fermier.local",
+      supabaseUserId: E2E_MERCHANT_SUB,
+      email: E2E_MERCHANT_EMAIL,
       fullName: "E2E Merchant"
     }
   });
@@ -132,7 +143,7 @@ export async function seedMerchantE2E(
   });
 
   const merchantToken = jwt.sign(
-    { sub: merchantSub, email: merchantUser.email },
+    { sub: E2E_MERCHANT_SUB, email: merchantUser.email },
     secret,
     { expiresIn: "1h" }
   );
@@ -207,56 +218,59 @@ export async function cleanupMerchantE2E(
   ctx: MerchantE2ECtx,
   base: E2ESeedResult
 ) {
-  await prisma.platformRevenue.deleteMany({
-    where: {
-      OR: [
-        { buyerId: base.peerUserId },
-        { sellerId: ctx.merchantUserId }
-      ]
-    }
-  });
-  await prisma.merchantOrder.deleteMany({
-    where: {
-      OR: [
-        { buyerUserId: base.peerUserId },
-        { sellerUserId: ctx.merchantUserId }
-      ]
-    }
-  });
-  await prisma.merchantProductModerationLog.deleteMany({
-    where: {
-      product: {
-        shop: { merchantProfile: { userId: ctx.merchantUserId } }
-      }
-    }
-  });
-  try {
-    await prisma.buyerMerchantFavorite.deleteMany({
+  await withMerchantCatalogHardDelete(prisma, async (tx) => {
+    await tx.platformRevenue.deleteMany({
       where: {
-        product: { shop: { merchantProfile: { userId: ctx.merchantUserId } } }
+        OR: [
+          { buyerId: base.peerUserId },
+          { sellerId: ctx.merchantUserId }
+        ]
       }
     });
-  } catch (error: unknown) {
-    const code =
-      error && typeof error === "object" && "code" in error
-        ? String((error as { code: string }).code)
-        : "";
-    if (code !== "P2021") {
-      throw error;
+    await tx.merchantOrder.deleteMany({
+      where: {
+        OR: [
+          { buyerUserId: base.peerUserId },
+          { sellerUserId: ctx.merchantUserId }
+        ]
+      }
+    });
+    await tx.merchantProductModerationLog.deleteMany({
+      where: {
+        product: {
+          shop: { merchantProfile: { userId: ctx.merchantUserId } }
+        }
+      }
+    });
+    try {
+      await tx.buyerMerchantFavorite.deleteMany({
+        where: {
+          product: { shop: { merchantProfile: { userId: ctx.merchantUserId } } }
+        }
+      });
+    } catch (error: unknown) {
+      const code =
+        error && typeof error === "object" && "code" in error
+          ? String((error as { code: string }).code)
+          : "";
+      if (code !== "P2021") {
+        throw error;
+      }
     }
-  }
-  await prisma.merchantSubscriptionInvoice.deleteMany({
-    where: { merchantProfile: { userId: ctx.merchantUserId } }
+    await tx.merchantSubscriptionInvoice.deleteMany({
+      where: { merchantProfile: { userId: ctx.merchantUserId } }
+    });
+    await tx.merchantProduct.deleteMany({
+      where: { shop: { merchantProfile: { userId: ctx.merchantUserId } } }
+    });
+    await tx.merchantShop.deleteMany({
+      where: { merchantProfile: { userId: ctx.merchantUserId } }
+    });
+    await tx.merchantProfile.deleteMany({
+      where: { userId: ctx.merchantUserId }
+    });
   });
-  await prisma.merchantProduct.deleteMany({
-    where: { shop: { merchantProfile: { userId: ctx.merchantUserId } } }
-  });
-  await prisma.merchantShop.deleteMany({
-    where: { merchantProfile: { userId: ctx.merchantUserId } }
-  });
-  await prisma.merchantProfile.deleteMany({
-    where: { userId: ctx.merchantUserId }
-  });
+
   await prisma.profile.deleteMany({ where: { userId: ctx.merchantUserId } });
   await prisma.user.deleteMany({ where: { id: ctx.merchantUserId } });
   await prisma.merchantProductCategory.deleteMany({

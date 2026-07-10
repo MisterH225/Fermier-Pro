@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
+import { installMerchantCatalogDeleteGuard } from "../merchant-shop/merchant-catalog-protection";
 
 @Injectable()
 export class PrismaService
@@ -8,6 +9,11 @@ export class PrismaService
 {
   private readonly log = new Logger(PrismaService.name);
   private connectPromise: Promise<void> | null = null;
+
+  constructor() {
+    super();
+    installMerchantCatalogDeleteGuard(this);
+  }
 
   async onModuleInit(): Promise<void> {
     // Ne pas bloquer app.listen() — le healthcheck Railway doit répondre même si la DB est lente.
