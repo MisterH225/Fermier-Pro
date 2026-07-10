@@ -80,6 +80,74 @@ export class ProducerSubscriptionBillingService {
     });
   }
 
+  /**
+   * Finalise un paiement wallet : réutilise la facture de la période
+   * au lieu d'un create qui casse sur la contrainte unique de période.
+   */
+  async settlePremiumWithWallet(
+    profileId: string,
+    amount: number,
+    providerRef: string,
+    paidAt = new Date()
+  ) {
+    const cfg = await this.getBillingConfig();
+    const periodStart =
+      cfg.billingUnit === "hour" ? paidAt : startOfUtcDay(paidAt);
+    const periodEnd = addBillingPeriod(
+      periodStart,
+      cfg.billingUnit,
+      cfg.billingInterval
+    );
+
+    const existing = await this.prisma.producerSubscriptionInvoice.findUnique({
+      where: {
+        producerProfileId_billingPeriodStart: {
+          producerProfileId: profileId,
+          billingPeriodStart: periodStart
+        }
+      }
+    });
+
+    if (existing?.status === MerchantSubscriptionInvoiceStatus.paid) {
+      await this.activatePremium(profileId, existing.paidAt ?? paidAt);
+      return existing;
+    }
+
+    if (existing) {
+      const updated = await this.prisma.producerSubscriptionInvoice.update({
+        where: { id: existing.id },
+        data: {
+          status: MerchantSubscriptionInvoiceStatus.paid,
+          amount,
+          currency: "XOF",
+          paidAt,
+          providerRef,
+          paymentUrl: null,
+          billingPeriodEnd: periodEnd,
+          dueDate: periodStart
+        }
+      });
+      await this.activatePremium(profileId, paidAt);
+      return updated;
+    }
+
+    const created = await this.prisma.producerSubscriptionInvoice.create({
+      data: {
+        producerProfileId: profileId,
+        amount,
+        currency: "XOF",
+        status: MerchantSubscriptionInvoiceStatus.paid,
+        billingPeriodStart: periodStart,
+        billingPeriodEnd: periodEnd,
+        dueDate: periodStart,
+        paidAt,
+        providerRef
+      }
+    });
+    await this.activatePremium(profileId, paidAt);
+    return created;
+  }
+
   async activateTrial(profileId: string, from = new Date()) {
     const cfg = await this.getBillingConfig();
     if (!cfg.trialEnabled) {

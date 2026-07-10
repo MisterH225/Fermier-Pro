@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   AppState,
-  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,6 +24,7 @@ import {
   type MerchantPromoCodeBenefit
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
+import { openPaymentCheckout } from "../../lib/paymentCheckout";
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 
@@ -136,6 +136,7 @@ export function MerchantSubscriptionScreen({
   const queryClient = useQueryClient();
   const advancedRef = useRef(false);
   const completingRef = useRef(false);
+  const checkoutOpenedRef = useRef<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedTier, setSelectedTier] = useState<Tier>("free");
@@ -239,6 +240,21 @@ export function MerchantSubscriptionScreen({
     appliedPromo
   ]);
 
+  const openCheckoutUrl = useCallback(async (url: string | null | undefined) => {
+    const trimmed = url?.trim();
+    if (!trimmed) {
+      setError(t("merchant.subscription.paymentLinkMissing"));
+      return;
+    }
+    try {
+      setError(null);
+      checkoutOpenedRef.current = trimmed;
+      await openPaymentCheckout(trimmed);
+    } catch {
+      setError(t("merchant.subscription.paymentLinkMissing"));
+    }
+  }, [t]);
+
   useEffect(() => {
     const pending = meQ.data?.pendingSubscription;
     if (!pending?.providerRef || dismissedWaiting) {
@@ -251,7 +267,11 @@ export function MerchantSubscriptionScreen({
       invoiceId: pending.invoiceId
     });
     setSelectedTier("premium");
-  }, [meQ.data?.pendingSubscription, dismissedWaiting]);
+    const url = pending.paymentUrl?.trim();
+    if (url && checkoutOpenedRef.current !== url) {
+      void openCheckoutUrl(url);
+    }
+  }, [meQ.data?.pendingSubscription, dismissedWaiting, openCheckoutUrl]);
 
   const leaveWaitingAndCancel = useCallback(() => {
     setDismissedWaiting(true);
@@ -259,6 +279,7 @@ export function MerchantSubscriptionScreen({
     setBusy(false);
     setError(null);
     setPendingPayment(null);
+    checkoutOpenedRef.current = null;
     onCancel();
   }, [onCancel]);
 
@@ -396,8 +417,8 @@ export function MerchantSubscriptionScreen({
           invoiceId: res.invoiceId
         });
         setBusy(false);
-        if (res.paymentUrl && hasPhone) {
-          void Linking.openURL(res.paymentUrl);
+        if (res.paymentUrl) {
+          void openCheckoutUrl(res.paymentUrl);
         }
         return;
       }
@@ -425,8 +446,7 @@ export function MerchantSubscriptionScreen({
       setError(t("merchant.subscription.paymentLinkMissing"));
       return;
     }
-    setError(null);
-    void Linking.openURL(pendingPayment.paymentUrl);
+    await openCheckoutUrl(pendingPayment.paymentUrl);
   };
 
   const retryCheckout = async () => {
@@ -447,8 +467,8 @@ export function MerchantSubscriptionScreen({
           invoiceId: res.invoiceId
         });
         setBusy(false);
-        if (res.paymentUrl && hasPhone) {
-          void Linking.openURL(res.paymentUrl);
+        if (res.paymentUrl) {
+          void openCheckoutUrl(res.paymentUrl);
         }
       }
     } catch (e) {
