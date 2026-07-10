@@ -247,6 +247,65 @@ export function deleteMyAdminMessage(
   );
 }
 
+export type UserNotificationDto = {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  data: Record<string, unknown>;
+  isRead: boolean;
+  createdAt: string;
+  readAt: string | null;
+};
+
+export type UserNotificationsListDto = {
+  total: number;
+  items: UserNotificationDto[];
+};
+
+/** GET /api/v1/auth/me/notifications — inbox in-app (tous profils). */
+export function fetchMyUserNotifications(
+  accessToken: string
+): Promise<UserNotificationsListDto> {
+  return apiGetJson<UserNotificationsListDto>(
+    "/auth/me/notifications",
+    accessToken
+  );
+}
+
+/** GET /api/v1/auth/me/notifications/unread-count — badge cloche. */
+export function fetchMyUserNotificationsUnreadCount(
+  accessToken: string
+): Promise<{ count: number }> {
+  return apiGetJson<{ count: number }>(
+    "/auth/me/notifications/unread-count",
+    accessToken
+  );
+}
+
+/** PATCH /api/v1/auth/me/notifications/:id/read */
+export function markMyUserNotificationRead(
+  accessToken: string,
+  notificationId: string
+): Promise<UserNotificationDto> {
+  return apiPatchJson<UserNotificationDto>(
+    `/auth/me/notifications/${notificationId}/read`,
+    {},
+    accessToken
+  );
+}
+
+/** DELETE /api/v1/auth/me/notifications/:id */
+export function deleteMyUserNotification(
+  accessToken: string,
+  notificationId: string
+): Promise<{ ok: boolean }> {
+  return apiDeleteJson<{ ok: boolean }>(
+    `/auth/me/notifications/${notificationId}`,
+    accessToken
+  );
+}
+
 /** Types alignés sur Prisma `ProfileType` (premiere connexion mobile). */
 export type ProfileTypeChoice =
   | "producer"

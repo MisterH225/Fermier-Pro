@@ -18,6 +18,7 @@ import { MerchantProfileModal } from "../../components/merchant/MerchantProfileM
 import { MerchantSubscriptionBadge } from "../../components/merchant/MerchantSubscriptionBadge";
 import { MerchantWelcomeHeader } from "../../components/merchant/MerchantWelcomeHeader";
 import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
+import { ShopOrdersTrackingCard } from "../../components/notifications/ShopOrdersTrackingCard";
 import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import { WalletDashboardCard } from "../../components/wallet/WalletDashboardCard";
 import { useBottomInset } from "../../hooks/useBottomInset";
@@ -127,6 +128,11 @@ export function MerchantDashboardScreen() {
             }
           />
         ) : null}
+
+        <ShopOrdersTrackingCard
+          accentColor={merchantColors.primary}
+          backgroundColor={merchantColors.primaryLight}
+        />
 
         <ScreenSection title={t("merchant.dashboard.sectionKpis")} plain>
           <View style={styles.kpiGrid}>

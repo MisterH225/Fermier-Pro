@@ -24,7 +24,7 @@ import {
   type MobileMoneyGateway
 } from "../marketplace/escrow/mobile-money.gateway";
 import { PlatformSettingsService } from "../platform-settings/platform-settings.service";
-import { PushNotificationsService } from "../push-notifications/push-notifications.service";
+import { UserNotificationsService } from "../user-notifications/user-notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { UserWalletService } from "../wallet/user-wallet.service";
 import { MERCHANT_ERROR, MERCHANT_ORDER_CONFIRM_TIMEOUT_MS, MERCHANT_ORDER_DISPUTE_WINDOW_MS } from "./merchant-shop.constants";
@@ -49,7 +49,7 @@ export class MerchantOrdersService {
     @Inject(MOBILE_MONEY_GATEWAY)
     private readonly gateway: MobileMoneyGateway,
     private readonly geniusPay: GeniusPayMobileMoneyGateway,
-    private readonly push: PushNotificationsService,
+    private readonly notifications: UserNotificationsService,
     private readonly chat: ChatService
   ) {}
 
@@ -144,7 +144,7 @@ export class MerchantOrdersService {
       { confirmedAt: new Date(), timeoutAt: null }
     );
     const productLabel = order.product?.name?.trim() || "votre commande";
-    void this.push.sendToUser(
+    void this.notifications.notify(
       order.buyerUserId,
       "Commande confirmée",
       `Le commerçant a accepté ${productLabel}`,
@@ -199,7 +199,7 @@ export class MerchantOrdersService {
         note: "Refus commerçant"
       }
     });
-    void this.push.sendToUser(
+    void this.notifications.notify(
       order.buyerUserId,
       "Commande refusée",
       `Commande refusée — remboursement en cours`,
@@ -222,7 +222,7 @@ export class MerchantOrdersService {
       user.id,
       { shippedAt: new Date() }
     );
-    void this.push.sendToUser(
+    void this.notifications.notify(
       order.buyerUserId,
       "Livraison en cours",
       `Votre commande est en livraison`,
@@ -245,7 +245,7 @@ export class MerchantOrdersService {
       user.id,
       { deliveredAt: new Date() }
     );
-    void this.push.sendToUser(
+    void this.notifications.notify(
       order.buyerUserId,
       "Commande livrée",
       `Confirmez la réception de votre commande`,
@@ -305,7 +305,7 @@ export class MerchantOrdersService {
 
     const counterpartId =
       user.id === order.sellerUserId ? order.buyerUserId : order.sellerUserId;
-    void this.push.sendToUser(
+    void this.notifications.notify(
       counterpartId,
       "Litige boutique",
       `Un litige a été ouvert pour la commande`,
@@ -407,7 +407,7 @@ export class MerchantOrdersService {
       });
     }
 
-    void this.push.sendToUser(
+    void this.notifications.notify(
       order.buyerUserId,
       "Litige résolu",
       decision === "buyer"
@@ -415,7 +415,7 @@ export class MerchantOrdersService {
         : "Litige résolu — paiement commerçant validé",
       { type: "merchant_order_dispute_resolved", orderId: order.id }
     );
-    void this.push.sendToUser(
+    void this.notifications.notify(
       order.sellerUserId,
       "Litige résolu",
       decision === "buyer"
@@ -466,13 +466,13 @@ export class MerchantOrdersService {
             note: "Timeout 24h sans acceptation commerçant"
           }
         });
-        void this.push.sendToUser(
+        void this.notifications.notify(
           order.buyerUserId,
           "Commande expirée",
           "Commande auto-annulée — délai commerçant dépassé",
           { type: "merchant_order_auto_rejected", orderId: order.id }
         );
-        void this.push.sendToUser(
+        void this.notifications.notify(
           order.sellerUserId,
           "Commande expirée",
           "Commande non confirmée à temps — annulée",
@@ -507,13 +507,13 @@ export class MerchantOrdersService {
           completedAt: now,
           escrowHeld: false
         });
-        void this.push.sendToUser(
+        void this.notifications.notify(
           order.buyerUserId,
           "Commande clôturée",
           "Réception confirmée automatiquement — commande terminée",
           { type: "merchant_order_auto_completed", orderId: order.id }
         );
-        void this.push.sendToUser(
+        void this.notifications.notify(
           order.sellerUserId,
           "Paiement libéré",
           "Escrow libéré — commande terminée",
@@ -1158,13 +1158,13 @@ export class MerchantOrdersService {
       include: this.orderInclude()
     });
 
-    void this.push.sendToUser(
+    void this.notifications.notify(
       order.sellerUserId,
       "Nouvelle commande",
       `Nouvelle commande — confirmez sous 24h`,
       { type: "merchant_order_paid", orderId: order.id }
     );
-    void this.push.sendToUser(
+    void this.notifications.notify(
       order.buyerUserId,
       "Paiement confirmé",
       `Paiement reçu — en attente de confirmation du commerçant`,

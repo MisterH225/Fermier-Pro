@@ -9,14 +9,15 @@ import {
   FlatList,
   RefreshControl,
   StyleSheet,
-  Text,
-  View
+  Text
 } from "react-native";
 import { useBottomInset } from "../hooks/useBottomInset";
 import { MobileAppShell } from "../components/layout";
 import { AdminMessageCard } from "../components/admin/AdminMessageCard";
+import { UserNotificationCard } from "../components/notifications/UserNotificationCard";
 import { AlertCard } from "../components/smartAlerts/AlertCard";
 import { useAdminMessagesInbox } from "../hooks/useAdminMessagesInbox";
+import { useUserNotificationsInbox } from "../hooks/useUserNotificationsInbox";
 import { useSession } from "../context/SessionContext";
 import {
   deleteFarmSmartAlert,
@@ -24,8 +25,10 @@ import {
   patchFarmSmartAlertRead,
   postFarmSmartAlertsRefresh,
   type AdminMessageDto,
-  type SmartAlertListItemDto
+  type SmartAlertListItemDto,
+  type UserNotificationDto
 } from "../lib/api";
+import { navigateFromGenericPushData } from "../services/navigation/DeepNavigationService";
 import { sortSmartAlerts } from "../services/smartAlerts/SmartAlertsEngine";
 import { mobileColors, mobileSpacing, mobileTypography } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
@@ -33,6 +36,7 @@ import type { RootStackParamList } from "../types/navigation";
 type Props = NativeStackScreenProps<RootStackParamList, "SmartAlertsList">;
 
 type ListRow =
+  | { kind: "user"; id: string; notification: UserNotificationDto }
   | { kind: "admin"; id: string; message: AdminMessageDto }
   | { kind: "alert"; id: string; alert: SmartAlertListItemDto };
 
@@ -50,6 +54,13 @@ export function SmartAlertsListScreen({ route, navigation }: Props) {
     deleteMessage: deleteAdminMessage,
     refetch: refetchAdmin
   } = useAdminMessagesInbox();
+  const {
+    items: userNotifications,
+    isLoading: userLoading,
+    markRead: markUserRead,
+    deleteNotification: deleteUserNotification,
+    refetch: refetchUser
+  } = useUserNotificationsInbox();
 
   const listQuery = useQuery({
     queryKey: ["smartAlerts", farmId, activeProfileId, "full"],
@@ -94,7 +105,11 @@ export function SmartAlertsListScreen({ route, navigation }: Props) {
         t("smartAlerts.deleteConfirmBody"),
         [
           { text: t("common.cancel", "Annuler"), style: "cancel" },
-          { text: t("smartAlerts.delete"), style: "destructive", onPress: onConfirm }
+          {
+            text: t("smartAlerts.delete"),
+            style: "destructive",
+            onPress: onConfirm
+          }
         ]
       );
     },
@@ -115,6 +130,13 @@ export function SmartAlertsListScreen({ route, navigation }: Props) {
     [confirmDelete, deleteAdminMessage]
   );
 
+  const onDeleteUser = useCallback(
+    (id: string) => {
+      confirmDelete(() => void deleteUserNotification(id));
+    },
+    [confirmDelete, deleteUserNotification]
+  );
+
   const onDeleteAlert = useCallback(
     (id: string) => {
       if (!farmId) {
@@ -125,24 +147,66 @@ export function SmartAlertsListScreen({ route, navigation }: Props) {
     [confirmDelete, deleteAlertMutation, farmId]
   );
 
+  const onUserNotificationPress = useCallback(
+    (notification: UserNotificationDto) => {
+      if (!notification.isRead) {
+        void markUserRead(notification.id);
+      }
+      const orderId =
+        typeof notification.data?.orderId === "string"
+          ? notification.data.orderId
+          : notification.data?.orderId != null
+            ? String(notification.data.orderId)
+            : "";
+      if (notification.type.startsWith("merchant_order") && orderId) {
+        navigation.navigate("MerchantOrderDetail", { orderId });
+        return;
+      }
+      navigateFromGenericPushData(navigation as never, {
+        type: notification.type,
+        ...Object.fromEntries(
+          Object.entries(notification.data ?? {}).map(([k, v]) => [
+            k,
+            v == null ? "" : String(v)
+          ])
+        )
+      });
+    },
+    [markUserRead, navigation]
+  );
+
   const rows = useMemo((): ListRow[] => {
+    const userRows: ListRow[] = userNotifications.map((n) => ({
+      kind: "user" as const,
+      id: `user-${n.id}`,
+      notification: n
+    }));
     const adminRows: ListRow[] = adminMessages.map((m) => ({
       kind: "admin" as const,
       id: `admin-${m.id}`,
       message: m
     }));
-    const alertRows: ListRow[] = sortSmartAlerts(listQuery.data?.items ?? []).map(
-      (a) => ({
-        kind: "alert" as const,
-        id: a.id,
-        alert: a
-      })
-    );
-    return [...adminRows, ...alertRows];
-  }, [adminMessages, listQuery.data?.items]);
+    const alertRows: ListRow[] = sortSmartAlerts(
+      listQuery.data?.items ?? []
+    ).map((a) => ({
+      kind: "alert" as const,
+      id: a.id,
+      alert: a
+    }));
+    return [...userRows, ...adminRows, ...alertRows];
+  }, [adminMessages, listQuery.data?.items, userNotifications]);
 
   const renderItem = useCallback(
     ({ item }: { item: ListRow }) => {
+      if (item.kind === "user") {
+        return (
+          <UserNotificationCard
+            notification={item.notification}
+            onPress={onUserNotificationPress}
+            onDelete={onDeleteUser}
+          />
+        );
+      }
       if (item.kind === "admin") {
         return (
           <AdminMessageCard
@@ -162,11 +226,22 @@ export function SmartAlertsListScreen({ route, navigation }: Props) {
         />
       );
     },
-    [markAdminRead, navigation, onDeleteAdmin, onDeleteAlert, onMarkAlertRead, t]
+    [
+      markAdminRead,
+      navigation,
+      onDeleteAdmin,
+      onDeleteAlert,
+      onDeleteUser,
+      onMarkAlertRead,
+      onUserNotificationPress,
+      t
+    ]
   );
 
   const loading =
-    adminLoading || (Boolean(farmId) && listQuery.isPending && !listQuery.data);
+    userLoading ||
+    adminLoading ||
+    (Boolean(farmId) && listQuery.isPending && !listQuery.data);
   const farmListError = farmId ? listQuery.error : null;
 
   return (
@@ -174,9 +249,7 @@ export function SmartAlertsListScreen({ route, navigation }: Props) {
       {loading ? (
         <ActivityIndicator style={styles.center} color={mobileColors.accent} />
       ) : farmListError ? (
-        <Text style={styles.err}>
-          {(farmListError as Error).message}
-        </Text>
+        <Text style={styles.err}>{(farmListError as Error).message}</Text>
       ) : (
         <FlatList
           data={rows}
@@ -188,7 +261,8 @@ export function SmartAlertsListScreen({ route, navigation }: Props) {
               refreshing={
                 refreshMutation.isPending ||
                 listQuery.isFetching ||
-                adminLoading
+                adminLoading ||
+                userLoading
               }
               onRefresh={() => {
                 if (farmId) {
@@ -196,6 +270,7 @@ export function SmartAlertsListScreen({ route, navigation }: Props) {
                   void listQuery.refetch();
                 }
                 void refetchAdmin();
+                void refetchUser();
               }}
             />
           }
@@ -217,12 +292,13 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.lg
   },
   list: {
-    padding: mobileSpacing.lg
+    padding: mobileSpacing.lg,
+    gap: mobileSpacing.sm
   },
   empty: {
     ...mobileTypography.body,
     color: mobileColors.textSecondary,
     textAlign: "center",
-    marginTop: 32
+    marginTop: 40
   }
 });

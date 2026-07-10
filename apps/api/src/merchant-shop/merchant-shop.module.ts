@@ -7,7 +7,7 @@ import { MobileMoneyModule } from "../marketplace/escrow";
 import { MarketplaceModule } from "../marketplace/marketplace.module";
 import { PlatformSettingsModule } from "../platform-settings/platform-settings.module";
 import { PrismaModule } from "../prisma/prisma.module";
-import { PushNotificationsModule } from "../push-notifications/push-notifications.module";
+import { UserNotificationsModule } from "../user-notifications/user-notifications.module";
 import { WalletModule } from "../wallet/wallet.module";
 import { MerchantCatalogController, MerchantShopController } from "./merchant-shop.controller";
 import { MerchantCategoriesService } from "./merchant-categories.service";
@@ -33,7 +33,7 @@ import { MerchantSubscriptionService } from "./merchant-subscription.service";
     ConfigClientModule,
     FeatureFlagsModule,
     PlatformSettingsModule,
-    PushNotificationsModule,
+    UserNotificationsModule,
     ChatModule
   ],
   controllers: [MerchantShopController, MerchantCatalogController],

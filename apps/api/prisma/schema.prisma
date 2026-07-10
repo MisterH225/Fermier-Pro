@@ -238,6 +238,7 @@ model User {
   adminAuditTargets     AdminAuditLog[]      @relation("AdminAuditTarget")
   adminMessagesSent     AdminMessage[]       @relation("AdminMessageSender")
   adminMessagesReceived AdminMessage[]       @relation("AdminMessageRecipient")
+  userNotifications     UserNotification[]
   feedStatus            FeedUserStatus       @default(active)
   feedSuspensionUntil   DateTime?
   feedViolationCount    Int                  @default(0)
@@ -2584,6 +2585,25 @@ model AdminMessage {
 
   @@index([recipientUserId, sentAt])
   @@index([recipientUserId, isRead])
+}
+
+/// Notifications in-app user-scoped (cloche, tous profils) — ex. commandes boutique.
+model UserNotification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Ex. merchant_order_confirmed, merchant_order_paid…
+  type      String
+  title     String
+  body      String
+  /// Payload deep link (orderId, etc.).
+  data      Json?
+  isRead    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  @@index([userId, createdAt])
+  @@index([userId, isRead])
 }
 
 /// Comptes autorisés sur la console SuperAdmin (web).

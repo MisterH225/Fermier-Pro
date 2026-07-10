@@ -28,6 +28,7 @@ import { TechProfileModal } from "../../components/technician/TechProfileModal";
 import { TechWelcomeHeader } from "../../components/technician/TechWelcomeHeader";
 import { WalletDashboardCard } from "../../components/wallet/WalletDashboardCard";
 import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
+import { ShopOrdersTrackingCard } from "../../components/notifications/ShopOrdersTrackingCard";
 import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import { DashboardTaskWidget } from "../../components/tasks";
 import { TechQuickActionModals } from "../../components/technician/TechQuickActionModals";
@@ -210,6 +211,11 @@ export function TechDashboardScreen() {
             </ScrollView>
           ) : null}
         </ProfileHeroCard>
+
+        <ShopOrdersTrackingCard
+          accentColor={techColors.primary}
+          backgroundColor={techColors.primaryLight}
+        />
 
         <View style={styles.sectionBlock}>
           <ScreenSection title={t("tech.dashboard.tasksToday")}>

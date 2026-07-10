@@ -1028,6 +1028,12 @@ export const en = {
     title: "PigPrice Index",
     basedOn: "Based on {{count}} transactions"
   },
+  ordersTracking: {
+    buyerTitle: "Track my shop orders",
+    buyerSub: "Status, delivery and disputes",
+    merchantTitle: "Track my orders",
+    merchantSub: "Acceptance, delivery and disputes"
+  },
   smartAlerts: {
     sectionTitle: "Notifications",
     seeAll: "See all",

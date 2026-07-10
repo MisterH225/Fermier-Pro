@@ -19,6 +19,7 @@ import { BuyerProfileModal } from "../../components/buyer/BuyerProfileModal";
 import { BuyerWelcomeHeader } from "../../components/buyer/BuyerWelcomeHeader";
 import { WalletDashboardCard } from "../../components/wallet/WalletDashboardCard";
 import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
+import { ShopOrdersTrackingCard } from "../../components/notifications/ShopOrdersTrackingCard";
 import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import {
   profileScreenScrollContent,
@@ -117,6 +118,10 @@ export function BuyerDashboardScreen() {
       >
         <PendingInvitationsBanner />
         <BuyerPendingMarketplaceBanner />
+        <ShopOrdersTrackingCard
+          accentColor={buyerColors.primary}
+          backgroundColor={buyerColors.primaryLight}
+        />
 
         <MeteoProfilCard
           score={creditScoreToNumeric(creditScoreQ.data?.score)}

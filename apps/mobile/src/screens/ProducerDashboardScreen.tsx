@@ -16,6 +16,7 @@ import {
 import { MobileAppShell } from "../components/layout";
 import { FarmDashboardAISection } from "../components/ai/FarmModuleAISection";
 import { NotificationsHeaderButton } from "../components/notifications/NotificationsHeaderButton";
+import { ShopOrdersTrackingCard } from "../components/notifications/ShopOrdersTrackingCard";
 
 import { FeedStockLevelGauge, dashboardFeedItemEligibleForGauge, dashboardFeedItemToGauge } from "../components/feed";
 import { FinanceOverviewKpiGrid } from "../components/finance/FinanceOverviewKpiGrid";
@@ -329,6 +330,7 @@ export function ProducerDashboardScreen() {
           }
         >
           <PendingInvitationsBanner />
+          <ShopOrdersTrackingCard />
           {clientFeatures.marketplace ? (
             <ProducerPendingMarketplaceBanner farmId={farmId} />
           ) : null}

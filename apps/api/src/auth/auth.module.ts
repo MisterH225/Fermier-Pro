@@ -3,6 +3,7 @@ import { AdminModerationModule } from "../admin-moderation/admin-moderation.modu
 import { CguModule } from "../cgu/cgu.module";
 import { FarmDataPurgeModule } from "../farms/farm-data-purge.module";
 import { PushNotificationsModule } from "../push-notifications/push-notifications.module";
+import { UserNotificationsModule } from "../user-notifications/user-notifications.module";
 import { AccountDeletionService } from "./account-deletion.service";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
@@ -17,6 +18,7 @@ import { SupabaseJwtGuard } from "./guards/supabase-jwt.guard";
 @Module({
   imports: [
     PushNotificationsModule,
+    UserNotificationsModule,
     forwardRef(() => AdminModerationModule),
     forwardRef(() => CguModule),
     forwardRef(() => FarmDataPurgeModule)

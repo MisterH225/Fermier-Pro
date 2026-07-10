@@ -18,6 +18,7 @@ import type { Request } from "express";
 import { AdminUserModerationService } from "../admin-platform/admin-user-moderation.service";
 import { CguService } from "../cgu/cgu.service";
 import { AcceptCguDto } from "../cgu/dto/accept-cgu.dto";
+import { UserNotificationsService } from "../user-notifications/user-notifications.service";
 import { AccountDeletionService } from "./account-deletion.service";
 import { AuthService } from "./auth.service";
 import { CurrentUser } from "./decorators/current-user.decorator";
@@ -31,7 +32,8 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly accountDeletion: AccountDeletionService,
     private readonly cgu: CguService,
-    private readonly adminModeration: AdminUserModerationService
+    private readonly adminModeration: AdminUserModerationService,
+    private readonly userNotifications: UserNotificationsService
   ) {}
 
   @Get("me")
@@ -118,5 +120,43 @@ export class AuthController {
     @Param("id") messageId: string
   ) {
     return this.adminModeration.deleteMessageForRecipient(user.id, messageId);
+  }
+
+  @Get("me/notifications/unread-count")
+  @UseGuards(SupabaseJwtGuard, OptionalActiveProfileGuard)
+  async myNotificationsUnreadCount(@CurrentUser() user: User) {
+    return this.userNotifications.countUnread(user.id);
+  }
+
+  @Get("me/notifications")
+  @UseGuards(SupabaseJwtGuard, OptionalActiveProfileGuard)
+  async myNotifications(
+    @CurrentUser() user: User,
+    @Query("skip") skip?: string,
+    @Query("take") take?: string
+  ) {
+    return this.userNotifications.listForUser(
+      user,
+      skip ? Number.parseInt(skip, 10) : undefined,
+      take ? Number.parseInt(take, 10) : undefined
+    );
+  }
+
+  @Patch("me/notifications/:id/read")
+  @UseGuards(SupabaseJwtGuard, OptionalActiveProfileGuard)
+  async markMyNotificationRead(
+    @CurrentUser() user: User,
+    @Param("id") notificationId: string
+  ) {
+    return this.userNotifications.markRead(user.id, notificationId);
+  }
+
+  @Delete("me/notifications/:id")
+  @UseGuards(SupabaseJwtGuard, OptionalActiveProfileGuard)
+  async deleteMyNotification(
+    @CurrentUser() user: User,
+    @Param("id") notificationId: string
+  ) {
+    return this.userNotifications.deleteForUser(user.id, notificationId);
   }
 }

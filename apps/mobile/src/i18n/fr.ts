@@ -1034,6 +1034,12 @@ export const fr = {
     title: "Indice PigPrice",
     basedOn: "Basé sur {{count}} transactions"
   },
+  ordersTracking: {
+    buyerTitle: "Suivre mes commandes boutique",
+    buyerSub: "Statut, livraison et litiges",
+    merchantTitle: "Suivre mes commandes",
+    merchantSub: "Acceptation, livraison et litiges"
+  },
   smartAlerts: {
     sectionTitle: "Notifications",
     seeAll: "Tout voir",

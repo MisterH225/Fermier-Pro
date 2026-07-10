@@ -22,6 +22,7 @@ import { VetAccountModal } from "../../components/vet/VetAccountModal";
 import { VetWelcomeHeader } from "../../components/vet/VetWelcomeHeader";
 import { WalletDashboardCard } from "../../components/wallet/WalletDashboardCard";
 import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
+import { ShopOrdersTrackingCard } from "../../components/notifications/ShopOrdersTrackingCard";
 import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import { VisitCard } from "../../components/vet/VisitCard";
 import { PendingInvitationsBanner } from "../../components/collaboration/PendingInvitationsBanner";
@@ -172,6 +173,10 @@ export function VetDashboardScreen() {
         }
       >
         <PendingInvitationsBanner />
+        <ShopOrdersTrackingCard
+          accentColor={vetColors.primary}
+          backgroundColor={vetColors.primaryLight}
+        />
         {isPending ? (
           <View style={styles.pendingBanner}>
             <Text style={styles.pendingTx}>⏳ {t("vet.dashboard.pendingBanner")}</Text>
