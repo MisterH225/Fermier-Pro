@@ -282,6 +282,14 @@ export class MerchantCatalogController {
     return this.orders.initiatePurchase(user, productId, dto);
   }
 
+  @Get("orders/:orderId")
+  getOrder(
+    @CurrentUser() user: Parameters<MerchantOrdersService["getOrder"]>[0],
+    @Param("orderId") orderId: string
+  ) {
+    return this.orders.getOrder(user, orderId);
+  }
+
   @Post("orders/:orderId/payment/confirm")
   confirmPayment(
     @CurrentUser() user: Parameters<MerchantOrdersService["confirmPayment"]>[0],

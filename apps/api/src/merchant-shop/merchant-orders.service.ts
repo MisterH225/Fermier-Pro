@@ -18,6 +18,7 @@ import {
 } from "@prisma/client";
 import { ChatService } from "../chat/chat.service";
 import { FeatureFlagService } from "../config-client/feature-flags.service";
+import { GeniusPayMobileMoneyGateway } from "../marketplace/escrow/geniuspay/geniuspay-mobile-money.gateway";
 import {
   MOBILE_MONEY_GATEWAY,
   type MobileMoneyGateway
@@ -34,6 +35,10 @@ import type {
   RespondMerchantOrderDisputeDto
 } from "./dto/merchant-shop.dto";
 
+function usesGeniusPayProvider(): boolean {
+  return (process.env.MOBILE_MONEY_PROVIDER ?? "dev").trim().toLowerCase() === "geniuspay";
+}
+
 @Injectable()
 export class MerchantOrdersService {
   constructor(
@@ -43,6 +48,7 @@ export class MerchantOrdersService {
     private readonly featureFlags: FeatureFlagService,
     @Inject(MOBILE_MONEY_GATEWAY)
     private readonly gateway: MobileMoneyGateway,
+    private readonly geniusPay: GeniusPayMobileMoneyGateway,
     private readonly push: PushNotificationsService,
     private readonly chat: ChatService
   ) {}
@@ -362,13 +368,21 @@ export class MerchantOrdersService {
         paymentUrl: null
       };
     } else {
-      const init = await this.gateway.initiatePayment({
-        amount: amounts.blockedAmount,
-        currency: product.currency,
-        buyerUserId: buyer.id,
-        transactionId: order.id,
-        label: `Boutique ${product.name}`
-      });
+      const init = usesGeniusPayProvider()
+        ? await this.geniusPay.initiateMerchantOrderPayment({
+            amount: amounts.blockedAmount,
+            currency: product.currency,
+            buyerUserId: buyer.id,
+            orderId: order.id,
+            label: `Boutique ${product.name}`
+          })
+        : await this.gateway.initiatePayment({
+            amount: amounts.blockedAmount,
+            currency: product.currency,
+            buyerUserId: buyer.id,
+            transactionId: order.id,
+            label: `Boutique ${product.name}`
+          });
       hold = {
         providerRef: init.providerRef,
         paymentMethod: MarketplacePaymentMethod.mobile_money,
@@ -451,7 +465,12 @@ export class MerchantOrdersService {
         label
       );
     } else {
-      const res = await this.gateway.confirmPayment(dto.providerRef, order.id);
+      const res = usesGeniusPayProvider()
+        ? await this.geniusPay.confirmMerchantOrderPayment(
+            dto.providerRef,
+            order.id
+          )
+        : await this.gateway.confirmPayment(dto.providerRef, order.id);
       if (!res.success) {
         await this.prisma.merchantOrder.update({
           where: { id: order.id },
@@ -465,6 +484,68 @@ export class MerchantOrdersService {
 
     await this.settleOrderAtomic(order, amounts);
     return this.afterPaid(buyer, order);
+  }
+
+  /** Confirmation asynchrone via webhook GeniusPay (sans JWT acheteur). */
+  async confirmPaymentFromWebhook(
+    orderId: string,
+    providerRef: string,
+    webhookAmount?: number,
+    webhookCurrency?: string
+  ) {
+    const order = await this.prisma.merchantOrder.findFirst({
+      where: { id: orderId },
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+            photoUrls: true,
+            currency: true,
+            stock: true,
+            status: true
+          }
+        },
+        buyer: true
+      }
+    });
+    if (!order) {
+      throw new BadRequestException("Commande introuvable");
+    }
+    if (order.status === MerchantOrderStatus.paid) {
+      return { ok: true, idempotent: true };
+    }
+    if (order.status !== MerchantOrderStatus.payment_pending) {
+      throw new BadRequestException("Statut invalide pour confirmation webhook");
+    }
+    if (!order.providerRef || order.providerRef !== providerRef) {
+      throw new BadRequestException("providerRef incohérent");
+    }
+    const amounts = await this.computeAmounts(Number(order.totalAmount));
+    if (webhookAmount !== undefined) {
+      if (Math.abs(webhookAmount - amounts.blockedAmount) > 1) {
+        throw new BadRequestException("Montant webhook incohérent");
+      }
+    }
+    if (webhookCurrency && webhookCurrency !== order.product.currency) {
+      throw new BadRequestException("Devise webhook incohérente");
+    }
+
+    await this.settleOrderAtomic(order, amounts);
+    await this.afterPaid(order.buyer, order);
+    return { ok: true };
+  }
+
+  async failPaymentFromWebhook(orderId: string, providerRef: string) {
+    await this.prisma.merchantOrder.updateMany({
+      where: {
+        id: orderId,
+        status: MerchantOrderStatus.payment_pending,
+        providerRef
+      },
+      data: { status: MerchantOrderStatus.failed }
+    });
+    return { ok: true };
   }
 
   private async settleOrderAtomic(

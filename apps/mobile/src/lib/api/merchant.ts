@@ -398,6 +398,16 @@ export function fetchMerchantCatalogProduct(
   >(`/merchant/catalog/products/${productId}`, accessToken);
 }
 
+export function fetchMerchantCatalogOrder(
+  accessToken: string,
+  orderId: string
+) {
+  return apiGetJson<MerchantOrderDto>(
+    `/merchant/catalog/orders/${orderId}`,
+    accessToken
+  );
+}
+
 export function purchaseMerchantProduct(
   accessToken: string,
   productId: string,
@@ -418,7 +428,7 @@ export function confirmMerchantOrderPayment(
   orderId: string,
   providerRef: string
 ) {
-  return apiPostJson(
+  return apiPostJson<MerchantOrderDto>(
     `/merchant/catalog/orders/${orderId}/payment/confirm`,
     { providerRef },
     accessToken

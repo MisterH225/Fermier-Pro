@@ -4186,7 +4186,12 @@ export const en = {
       buy: "Buy",
       contact: "Contact seller",
       success: "Order confirmed",
-      chatOpened: "Conversation opened"
+      chatOpened: "Conversation opened",
+      paymentWaitingTitle: "Payment in progress",
+      paymentWaitingBody:
+        "Complete the GeniusPay checkout to confirm your order. It will activate automatically once payment is validated.",
+      reopenPaymentCta: "Open payment link",
+      paymentLinkMissing: "Payment link unavailable. Try again shortly."
     }
   }
 } as const;

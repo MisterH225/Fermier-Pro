@@ -18,6 +18,7 @@ import {
   GENIUSPAY_KIND_MARKETPLACE_REFUND,
   GENIUSPAY_KIND_MARKETPLACE_SELLER_PAYOUT,
   GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION,
+  GENIUSPAY_KIND_MERCHANT_ORDER,
   GENIUSPAY_KIND_WALLET_TOPUP,
   GENIUSPAY_KIND_WALLET_WITHDRAW,
   type GeniusPayPaymentMetadata,
@@ -118,6 +119,50 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
       }
       if (metadata.invoice_id !== invoiceId) {
         return "Facture abonnement non liée à ce paiement";
+      }
+      return null;
+    });
+  }
+
+  async initiateMerchantOrderPayment(params: {
+    amount: number;
+    currency: string;
+    buyerUserId: string;
+    orderId: string;
+    label: string;
+  }): Promise<MobileMoneyInitResult> {
+    const customer = await this.loadCustomer(params.buyerUserId);
+    const data = await this.client.createPayment({
+      amount: params.amount,
+      currency: params.currency,
+      description: params.label,
+      customer,
+      metadata: {
+        kind: GENIUSPAY_KIND_MERCHANT_ORDER,
+        user_id: params.buyerUserId,
+        order_id: params.orderId,
+        transaction_id: `merchant-order:${params.orderId}`,
+        amount: String(Math.round(params.amount))
+      },
+      successUrl: process.env.GENIUSPAY_SUCCESS_URL,
+      errorUrl: process.env.GENIUSPAY_ERROR_URL
+    });
+    return {
+      providerRef: data.reference,
+      paymentUrl: resolveGeniusPayCheckoutUrl(data)
+    };
+  }
+
+  async confirmMerchantOrderPayment(
+    providerRef: string,
+    orderId: string
+  ): Promise<MobileMoneyConfirmResult> {
+    return this.confirmByReference(providerRef, (metadata) => {
+      if (metadata.kind !== GENIUSPAY_KIND_MERCHANT_ORDER) {
+        return "Type de paiement GeniusPay inattendu";
+      }
+      if (metadata.order_id !== orderId) {
+        return "Commande boutique non liée à ce paiement";
       }
       return null;
     });
@@ -555,7 +600,8 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
     const validKind =
       kind === GENIUSPAY_KIND_MARKETPLACE_ESCROW ||
       kind === GENIUSPAY_KIND_WALLET_TOPUP ||
-      kind === GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION;
+      kind === GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION ||
+      kind === GENIUSPAY_KIND_MERCHANT_ORDER;
     if (!validKind || typeof userId !== "string" || !userId.trim()) {
       return null;
     }
@@ -563,6 +609,8 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
       typeof raw.transaction_id === "string" ? raw.transaction_id : undefined;
     const invoiceId =
       typeof raw.invoice_id === "string" ? raw.invoice_id : undefined;
+    const orderId =
+      typeof raw.order_id === "string" ? raw.order_id : undefined;
     const amount =
       raw.amount !== undefined && raw.amount !== null
         ? String(raw.amount)
@@ -572,6 +620,7 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
       user_id: userId,
       transaction_id: transactionId,
       invoice_id: invoiceId,
+      order_id: orderId,
       amount
     };
   }

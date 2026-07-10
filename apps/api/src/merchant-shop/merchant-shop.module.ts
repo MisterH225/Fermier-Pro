@@ -56,7 +56,8 @@ import { MerchantSubscriptionService } from "./merchant-subscription.service";
     MerchantModerationService,
     MerchantSubscriptionService,
     MerchantSubscriptionBillingService,
-    MerchantSubscriptionPromoCodesService
+    MerchantSubscriptionPromoCodesService,
+    MerchantOrdersService
   ]
 })
 export class MerchantShopModule {}

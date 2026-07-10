@@ -10,6 +10,7 @@ import type { Request } from "express";
 import { WithdrawalOrchestratorService } from "../../../wallet/withdrawal-orchestrator.service";
 import { WalletRailsService } from "../../../wallet/wallet-rails.service";
 import { MerchantSubscriptionBillingService } from "../../../merchant-shop/merchant-subscription-billing.service";
+import { MerchantOrdersService } from "../../../merchant-shop/merchant-orders.service";
 import {
   extractMerchantSubscriptionInvoiceId,
   isMerchantSubscriptionWebhookMetadata
@@ -18,6 +19,7 @@ import { MarketplaceTransactionService } from "../marketplace-transaction.servic
 import { parsePayoutMetadata } from "./geniuspay-payout.util";
 import {
   GENIUSPAY_KIND_MARKETPLACE_ESCROW,
+  GENIUSPAY_KIND_MERCHANT_ORDER,
   GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION,
   GENIUSPAY_KIND_WALLET_TOPUP,
   GENIUSPAY_KIND_WALLET_WITHDRAW,
@@ -37,7 +39,8 @@ export class GeniusPayWebhookController {
     private readonly transactions: MarketplaceTransactionService,
     private readonly walletRails: WalletRailsService,
     private readonly withdrawals: WithdrawalOrchestratorService,
-    private readonly merchantBilling: MerchantSubscriptionBillingService
+    private readonly merchantBilling: MerchantSubscriptionBillingService,
+    private readonly merchantOrders: MerchantOrdersService
   ) {}
 
   @Post()
@@ -150,6 +153,23 @@ export class GeniusPayWebhookController {
         return { ok: true };
       }
 
+      if (kind === GENIUSPAY_KIND_MERCHANT_ORDER) {
+        const orderId =
+          typeof metadata.order_id === "string"
+            ? metadata.order_id.trim()
+            : "";
+        if (!orderId) {
+          throw new BadRequestException("order_id metadata manquant");
+        }
+        await this.merchantOrders.confirmPaymentFromWebhook(
+          orderId,
+          reference,
+          Number.isFinite(amount) ? amount : undefined,
+          body.data.currency
+        );
+        return { ok: true };
+      }
+
       if (isMerchantSubscriptionWebhookMetadata(metadata)) {
         const invoiceId = extractMerchantSubscriptionInvoiceId(metadata);
         if (invoiceId) {
@@ -195,6 +215,16 @@ export class GeniusPayWebhookController {
             : "";
         if (transactionId) {
           await this.transactions.failPaymentFromWebhook(transactionId, reference);
+        }
+        return { ok: true };
+      }
+      if (kind === GENIUSPAY_KIND_MERCHANT_ORDER) {
+        const orderId =
+          typeof metadata.order_id === "string"
+            ? metadata.order_id.trim()
+            : "";
+        if (orderId) {
+          await this.merchantOrders.failPaymentFromWebhook(orderId, reference);
         }
         return { ok: true };
       }
