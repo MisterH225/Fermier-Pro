@@ -37,12 +37,44 @@ describeOrSkip("Marketplace escrow + wallet — GeniusPay webhook (e2e)", () => 
   let geniusPay: GeniusPayE2eMock;
   let buyerFarmId: string;
 
+  async function ensureBuyerFarmId(): Promise<string> {
+    const existing = await base.prisma.farm.findFirst({
+      where: {
+        ownerId: base.peerUserId,
+        name: "Ferme acheteur E2E marketplace"
+      },
+      select: { id: true }
+    });
+    if (existing) {
+      buyerFarmId = existing.id;
+      return buyerFarmId;
+    }
+    buyerFarmId = await seedBuyerFarm(base.prisma, base.peerUserId);
+    return buyerFarmId;
+  }
+
   async function freshMarketplaceDeal(): Promise<MarketplaceDeliveryCtx> {
     await purgeMarketplaceForUsers(base.prisma, [base.userId, base.peerUserId]);
+    await base.prisma.marketplaceListing.deleteMany({
+      where: { sellerUserId: { in: [base.userId, base.peerUserId] } }
+    });
     await cleanupBuyerMarketplaceState(base.prisma, [
       base.userId,
       base.peerUserId
     ]);
+
+    const sellerFarm = await base.prisma.farm.findUnique({
+      where: { id: base.farmId },
+      select: { id: true }
+    });
+    if (!sellerFarm) {
+      throw new Error(
+        `Ferme vendeur e2e introuvable (${base.farmId}). Relancez seedE2eFixtures.`
+      );
+    }
+
+    const farmId = await ensureBuyerFarmId();
+
     return setupMarketplaceDeliveryListing({
       app,
       prisma: base.prisma,
@@ -50,7 +82,7 @@ describeOrSkip("Marketplace escrow + wallet — GeniusPay webhook (e2e)", () => 
       sellerProfileId: base.producerProfileId,
       sellerFarmId: base.farmId,
       buyerToken: base.peerToken,
-      buyerFarmId
+      buyerFarmId: farmId
     });
   }
 
@@ -94,11 +126,19 @@ describeOrSkip("Marketplace escrow + wallet — GeniusPay webhook (e2e)", () => 
 
   afterAll(async () => {
     await app?.close();
-    await cleanupE2eFixtures(base.prisma, {
-      farmId: base.farmId,
-      userId: base.userId,
-      peerUserId: base.peerUserId
-    });
+    if (base?.prisma) {
+      await base.prisma.farm.deleteMany({
+        where: {
+          ownerId: base.peerUserId,
+          name: "Ferme acheteur E2E marketplace"
+        }
+      });
+      await cleanupE2eFixtures(base.prisma, {
+        farmId: base.farmId,
+        userId: base.userId,
+        peerUserId: base.peerUserId
+      });
+    }
   });
 
   it("webhook payment.success marketplace_escrow → PAYMENT_HELD sans GET", async () => {
@@ -236,6 +276,7 @@ describeOrSkip("Marketplace escrow + wallet — GeniusPay webhook (e2e)", () => 
       .send({ amount: topUpAmount });
     expect(init.status).toBe(201);
     const providerRef = init.body.providerRef as string;
+    const grossAmount = Number(init.body.amount);
 
     const webhook = await postGeniusPayWebhook(app, {
       id: "evt-topup-1",
@@ -243,12 +284,12 @@ describeOrSkip("Marketplace escrow + wallet — GeniusPay webhook (e2e)", () => 
       timestamp: Math.floor(Date.now() / 1000),
       data: {
         reference: providerRef,
-        amount: topUpAmount,
+        amount: grossAmount,
         currency: "XOF",
         metadata: {
           kind: "wallet_topup",
           user_id: base.peerUserId,
-          amount: String(topUpAmount)
+          amount: String(grossAmount)
         }
       }
     });

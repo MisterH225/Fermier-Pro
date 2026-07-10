@@ -127,27 +127,37 @@ describeOrSkip("Abonnement Premium producteur — GeniusPay webhook (e2e)", () =
     await ctx.prisma.producerSubscriptionInvoice.deleteMany({
       where: { producerProfile: { userId: ctx.producerUserId } }
     });
-    await ctx.prisma.producerProfile.upsert({
-      where: { userId: ctx.producerUserId },
-      create: {
-        userId: ctx.producerUserId,
-        subscriptionTier: MerchantSubscriptionTier.free,
-        subscriptionChosenAt: new Date()
-      },
-      update: {
-        subscriptionTier: MerchantSubscriptionTier.free,
-        subscriptionStatus: null,
-        subscriptionChosenAt: new Date(),
-        premiumPaidAt: null,
-        nextBillingAt: null,
-        graceEndsAt: null,
-        billingReminderKey: null,
-        trialEndsAt: null,
-        cancelledAt: null,
-        suspendedAt: null,
-        suspensionReason: null
-      }
+
+    const resetData = {
+      subscriptionTier: MerchantSubscriptionTier.free,
+      subscriptionStatus: null,
+      subscriptionChosenAt: new Date(),
+      premiumPaidAt: null,
+      nextBillingAt: null,
+      graceEndsAt: null,
+      billingReminderKey: null,
+      trialEndsAt: null,
+      cancelledAt: null,
+      suspendedAt: null,
+      suspensionReason: null
+    };
+
+    const existing = await ctx.prisma.producerProfile.findUnique({
+      where: { userId: ctx.producerUserId }
     });
+    if (existing) {
+      await ctx.prisma.producerProfile.update({
+        where: { id: existing.id },
+        data: resetData
+      });
+    } else {
+      await ctx.prisma.producerProfile.create({
+        data: {
+          userId: ctx.producerUserId,
+          ...resetData
+        }
+      });
+    }
   });
 
   afterAll(async () => {
