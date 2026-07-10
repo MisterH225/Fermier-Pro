@@ -214,6 +214,15 @@ export type PlatformSettingsDto = {
   merchantPremiumPromoEnabled?: boolean;
   merchantPremiumPromoPercentOff?: number;
   merchantPremiumPromoEndsAt?: string | null;
+  producerPremiumPriceXof?: number;
+  producerPremiumBillingUnit?: "hour" | "day" | "month";
+  producerPremiumBillingInterval?: number;
+  producerPremiumGraceDays?: number;
+  producerPremiumTrialEnabled?: boolean;
+  producerPremiumTrialUnits?: number;
+  producerPremiumPromoEnabled?: boolean;
+  producerPremiumPromoPercentOff?: number;
+  producerPremiumPromoEndsAt?: string | null;
   /** Valeurs réellement servies au mobile (DB + fallback env). */
   supportEffective: SupportContactDto;
 };
@@ -1002,6 +1011,151 @@ export function fetchAdminMerchantSubscriptionInvoice(
   const suffix = verify ? "?verify=true" : "";
   return apiFetch<AdminMerchantSubscriptionInvoiceDetailDto>(
     `/admin/merchant-subscription-invoices/${invoiceId}${suffix}`,
+    token
+  );
+}
+
+export type AdminProducerSubscriptionRow = {
+  profileId: string;
+  userId: string;
+  fullName: string | null;
+  email: string | null;
+  phone: string | null;
+  farmCount: number;
+  subscriptionTier: "free" | "premium" | null;
+  subscriptionStatus:
+    | "active"
+    | "past_due"
+    | "suspended"
+    | "cancelled"
+    | "trialing"
+    | null;
+  nextBillingAt: string | null;
+  trialEndsAt: string | null;
+  promoPercentOffApplied: number | null;
+  suspendedAt: string | null;
+  suspensionReason: string | null;
+  cancelledAt: string | null;
+  premiumPaidAt: string | null;
+};
+
+export type AdminProducerSubscriptionsListDto = {
+  billing: AdminMerchantSubscriptionsListDto["billing"];
+  items: AdminProducerSubscriptionRow[];
+};
+
+export function fetchAdminProducerSubscriptions(
+  token: string,
+  params?: { status?: string; q?: string }
+) {
+  const qs = new URLSearchParams();
+  if (params?.status) qs.set("status", params.status);
+  if (params?.q) qs.set("q", params.q);
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return apiFetch<AdminProducerSubscriptionsListDto>(
+    `/admin/producer-subscriptions${suffix}`,
+    token
+  );
+}
+
+export function adminSuspendProducerSubscription(
+  token: string,
+  profileId: string,
+  reason?: string
+) {
+  return apiFetch<AdminProducerSubscriptionRow>(
+    `/admin/producer-subscriptions/${profileId}/suspend`,
+    token,
+    { method: "POST", body: JSON.stringify({ reason }) }
+  );
+}
+
+export function adminResumeProducerSubscription(
+  token: string,
+  profileId: string
+) {
+  return apiFetch<AdminProducerSubscriptionRow>(
+    `/admin/producer-subscriptions/${profileId}/resume`,
+    token,
+    { method: "POST", body: JSON.stringify({}) }
+  );
+}
+
+export function adminCancelProducerSubscription(
+  token: string,
+  profileId: string,
+  reason?: string
+) {
+  return apiFetch<AdminProducerSubscriptionRow>(
+    `/admin/producer-subscriptions/${profileId}/cancel`,
+    token,
+    { method: "POST", body: JSON.stringify({ reason }) }
+  );
+}
+
+export function adminGrantProducerTrial(
+  token: string,
+  profileId: string,
+  units?: number
+) {
+  return apiFetch<AdminProducerSubscriptionRow>(
+    `/admin/producer-subscriptions/${profileId}/grant-trial`,
+    token,
+    { method: "POST", body: JSON.stringify({ units }) }
+  );
+}
+
+export function adminApplyProducerPromo(
+  token: string,
+  profileId: string,
+  percentOff: number
+) {
+  return apiFetch<AdminProducerSubscriptionRow>(
+    `/admin/producer-subscriptions/${profileId}/apply-promo`,
+    token,
+    { method: "POST", body: JSON.stringify({ percentOff }) }
+  );
+}
+
+export function adminTriggerProducerRenewal(token: string, profileId: string) {
+  return apiFetch<AdminTriggerRenewalResult>(
+    `/admin/producer-subscriptions/${profileId}/trigger-renewal`,
+    token,
+    { method: "POST", body: JSON.stringify({}) }
+  );
+}
+
+export type AdminProducerSubscriptionInvoiceRow = AdminMerchantSubscriptionInvoiceRow;
+export type AdminProducerSubscriptionInvoiceInspection =
+  AdminMerchantSubscriptionInvoiceInspection;
+export type AdminProducerSubscriptionInvoiceDetailDto =
+  AdminProducerSubscriptionInvoiceRow & {
+    providerInspection?: AdminProducerSubscriptionInvoiceInspection;
+  };
+
+export function fetchAdminProducerSubscriptionInvoices(
+  token: string,
+  params?: { status?: string; q?: string; profileId?: string }
+) {
+  const search = new URLSearchParams();
+  if (params?.status) search.set("status", params.status);
+  if (params?.q) search.set("q", params.q);
+  if (params?.profileId) search.set("profileId", params.profileId);
+  const suffix = search.toString() ? `?${search.toString()}` : "";
+  return apiFetch<{ items: AdminProducerSubscriptionInvoiceRow[] }>(
+    `/admin/producer-subscription-invoices${suffix}`,
+    token
+  );
+}
+
+export function fetchAdminProducerSubscriptionInvoice(
+  token: string,
+  invoiceId: string,
+  verify = false
+) {
+  const suffix = verify ? "?verify=true" : "";
+  return apiFetch<AdminProducerSubscriptionInvoiceDetailDto>(
+    `/admin/producer-subscription-invoices/${invoiceId}${suffix}`,
     token
   );
 }

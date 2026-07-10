@@ -1,10 +1,11 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,6 +13,10 @@ import {
   TextInput,
   View
 } from "react-native";
+import {
+  MarketplacePaymentMethodPicker,
+  type MarketplacePaymentMethodChoice
+} from "../components/buyer/MarketplacePaymentMethodPicker";
 import { MobileAppShell } from "../components/layout/MobileAppShell";
 import { PrimaryButton } from "../components/ui/PrimaryButton";
 import { SecondaryButton } from "../components/ui/SecondaryButton";
@@ -20,6 +25,7 @@ import {
   cancelVetAppointment,
   completeVetAppointmentService,
   confirmVetAppointmentPayment,
+  fetchUserWallet,
   fetchVetAppointment,
   initiateVetAppointmentPayment,
   submitVetAppointmentRating,
@@ -27,6 +33,7 @@ import {
   vetRefuseAppointment
 } from "../lib/api";
 import { formatApiError } from "../lib/apiErrors";
+import { openPaymentCheckout } from "../lib/paymentCheckout";
 import {
   mobileColors,
   mobileRadius,
@@ -86,7 +93,7 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
   const { appointmentId } = route.params;
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
-  const { accessToken, activeProfileId, authMe } = useSession();
+  const { accessToken, activeProfileId, authMe, clientFeatures } = useSession();
   const qc = useQueryClient();
   const myId = authMe?.user?.id;
 
@@ -97,6 +104,10 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
   const [ratingComment, setRatingComment] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [showRating, setShowRating] = useState(false);
+  const [paymentMethod, setPaymentMethod] =
+    useState<MarketplacePaymentMethodChoice>("mobile_money");
+  const userPickedPaymentMethod = useRef(false);
+  const [pendingProviderRef, setPendingProviderRef] = useState<string | null>(null);
 
   const q = useQuery({
     queryKey: ["vetAppointment", appointmentId, activeProfileId],
@@ -108,7 +119,94 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
     void qc.invalidateQueries({ queryKey: ["vetAppointment", appointmentId] });
     void qc.invalidateQueries({ queryKey: ["vetAppointments"] });
     void qc.invalidateQueries({ queryKey: ["vetDashboard"] });
+    void qc.invalidateQueries({ queryKey: ["user-wallet"] });
   };
+
+  const walletQ = useQuery({
+    queryKey: ["user-wallet", "vet-appointment", appointmentId],
+    queryFn: () => fetchUserWallet(accessToken!),
+    enabled: Boolean(accessToken && clientFeatures.wallet)
+  });
+
+  const payAmount = useMemo(() => {
+    const appt = q.data;
+    if (!appt) return 0;
+    const blocked = appt.blockedAmount;
+    if (blocked != null && Number.isFinite(Number(blocked))) {
+      return Math.round(Number(blocked));
+    }
+    return Math.round(Number(appt.servicePrice ?? 0));
+  }, [q.data]);
+
+  const walletBalance = Number(walletQ.data?.balance ?? 0);
+  const walletEnabled = clientFeatures.wallet;
+  const canPayWithWallet = walletEnabled && walletBalance >= payAmount;
+
+  useEffect(() => {
+    if (userPickedPaymentMethod.current) {
+      return;
+    }
+    setPaymentMethod("mobile_money");
+  }, [payAmount]);
+
+  useEffect(() => {
+    if (paymentMethod === "wallet" && !canPayWithWallet) {
+      setPaymentMethod("mobile_money");
+    }
+  }, [paymentMethod, canPayWithWallet]);
+
+  const tryConfirmPendingPayment = useCallback(async () => {
+    if (!accessToken || !pendingProviderRef) {
+      return;
+    }
+    try {
+      const updated = await confirmVetAppointmentPayment(
+        accessToken,
+        appointmentId,
+        pendingProviderRef,
+        activeProfileId
+      );
+      if (updated.status === "APPOINTMENT_CONFIRMED") {
+        setPendingProviderRef(null);
+        invalidate();
+        Alert.alert(
+          t("vet.appointment.paymentSuccessTitle"),
+          t("vet.appointment.paymentSuccessBody")
+        );
+      }
+    } catch {
+      // Webhook ou prochain essai confirmera le RDV.
+    }
+  }, [
+    accessToken,
+    pendingProviderRef,
+    appointmentId,
+    activeProfileId,
+    invalidate,
+    t
+  ]);
+
+  useEffect(() => {
+    if (!pendingProviderRef) {
+      return;
+    }
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        void tryConfirmPendingPayment();
+      }
+    });
+    return () => sub.remove();
+  }, [pendingProviderRef, tryConfirmPendingPayment]);
+
+  useEffect(() => {
+    if (!pendingProviderRef) {
+      return;
+    }
+    const timer = setInterval(() => {
+      void tryConfirmPendingPayment();
+    }, 5_000);
+    return () => clearInterval(timer);
+  }, [pendingProviderRef, tryConfirmPendingPayment]);
 
   const acceptMut = useMutation({
     mutationFn: () => {
@@ -147,11 +245,24 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
 
   const payMut = useMutation({
     mutationFn: async () => {
+      if (paymentMethod === "wallet" && !canPayWithWallet) {
+        throw new Error(t("buyer.wallet.topUp.insufficientBalance"));
+      }
       const init = await initiateVetAppointmentPayment(
         accessToken!,
         appointmentId,
-        activeProfileId
+        activeProfileId,
+        paymentMethod
       );
+      if (paymentMethod === "mobile_money") {
+        setPendingProviderRef(init.providerRef);
+        const checkoutUrl = init.paymentUrl?.trim();
+        if (!checkoutUrl) {
+          throw new Error("VET_CHECKOUT_URL_MISSING");
+        }
+        await openPaymentCheckout(checkoutUrl);
+        return null;
+      }
       return confirmVetAppointmentPayment(
         accessToken!,
         appointmentId,
@@ -159,14 +270,31 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
         activeProfileId
       );
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (!result) {
+        Alert.alert(
+          t("marketScreen.transaction.paymentPendingTitle"),
+          t("marketScreen.transaction.paymentPendingBody")
+        );
+        return;
+      }
+      setPendingProviderRef(null);
       invalidate();
       Alert.alert(
         t("vet.appointment.paymentSuccessTitle"),
         t("vet.appointment.paymentSuccessBody")
       );
     },
-    onError: (e: Error) => Alert.alert(t("common.error"), formatApiError(e))
+    onError: (e: Error) => {
+      if (e.message === "VET_CHECKOUT_URL_MISSING") {
+        Alert.alert(
+          t("common.error"),
+          t("merchant.purchase.paymentLinkMissing")
+        );
+        return;
+      }
+      Alert.alert(t("common.error"), formatApiError(e));
+    }
   });
 
   const completeMut = useMutation({
@@ -364,12 +492,24 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
                 {t("vet.appointment.paymentDeadline", { time: deadline })}
               </Text>
             ) : null}
+            <MarketplacePaymentMethodPicker
+              amount={payAmount}
+              currency={appt.currency}
+              walletBalance={walletBalance}
+              value={paymentMethod}
+              onChange={(method) => {
+                userPickedPaymentMethod.current = true;
+                setPaymentMethod(method);
+              }}
+              walletEnabled={walletEnabled}
+            />
             <PrimaryButton
               label={t("vet.appointment.payCta", {
                 amount: money(appt.servicePrice ?? 0, appt.currency)
               })}
               onPress={() => payMut.mutate()}
               loading={payMut.isPending}
+              disabled={paymentMethod === "wallet" && !canPayWithWallet}
             />
             <SecondaryButton
               label={t("vet.appointment.cancelCta")}

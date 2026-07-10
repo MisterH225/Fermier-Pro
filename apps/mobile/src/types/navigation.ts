@@ -18,6 +18,7 @@ export type RootStackParamList = {
   MerchantOrderDetail: { orderId: string };
   MerchantOrderDispute: { orderId: string };
   MerchantSubscription: undefined;
+  ProducerSubscription: undefined;
   MerchantShop: undefined;
   MerchantProductForm: { productId?: string; shopId?: string } | undefined;
   MerchantProductDetail: { productId: string };

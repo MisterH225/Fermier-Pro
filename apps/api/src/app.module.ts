@@ -55,6 +55,7 @@ import { FarmSettingsModule } from "./farm-settings/farm-settings.module";
 import { PredictionsModule } from "./predictions/predictions.module";
 import { CommunityFeedModule } from "./community-feed/community-feed.module";
 import { ProducerScoreModule } from "./producer-score/producer-score.module";
+import { ProducerSubscriptionModule } from "./producer-subscription/producer-subscription.module";
 import { ProfitabilityModule } from "./profitability/profitability.module";
 import { HistoricalRecordsModule } from "./historical-records/historical-records.module";
 import { MerchantShopModule } from "./merchant-shop/merchant-shop.module";
@@ -140,6 +141,7 @@ import { MerchantShopModule } from "./merchant-shop/merchant-shop.module";
     ProfitabilityModule,
     HistoricalRecordsModule,
     ProducerScoreModule,
+    ProducerSubscriptionModule,
     MerchantShopModule
   ],
   controllers: [AppController],

@@ -13,8 +13,10 @@ import { MarketplaceModule } from "../marketplace/marketplace.module";
 import { VetAppointmentsModule } from "../vet-appointments/vet-appointments.module";
 import { ProducerScoreModule } from "../producer-score/producer-score.module";
 import { MerchantShopModule } from "../merchant-shop/merchant-shop.module";
+import { ProducerSubscriptionModule } from "../producer-subscription/producer-subscription.module";
 import { MobileMoneyModule } from "../marketplace/escrow";
 import { AdminMerchantSubscriptionsService } from "./admin-merchant-subscriptions.service";
+import { AdminProducerSubscriptionsService } from "./admin-producer-subscriptions.service";
 
 @Module({
   imports: [
@@ -29,13 +31,15 @@ import { AdminMerchantSubscriptionsService } from "./admin-merchant-subscription
     MobileMoneyModule,
     VetAppointmentsModule,
     ProducerScoreModule,
-    MerchantShopModule
+    MerchantShopModule,
+    ProducerSubscriptionModule
   ],
   controllers: [AdminPlatformController],
   providers: [
     AdminPlatformService,
     AdminAiService,
-    AdminMerchantSubscriptionsService
+    AdminMerchantSubscriptionsService,
+    AdminProducerSubscriptionsService
   ],
   exports: [AdminPlatformService, AdminConsoleAuthModule]
 })

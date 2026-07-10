@@ -58,6 +58,7 @@ import {
   UpdateMerchantCategoryDto
 } from "../merchant-shop/dto/merchant-shop.dto";
 import { AdminMerchantSubscriptionsService } from "./admin-merchant-subscriptions.service";
+import { AdminProducerSubscriptionsService } from "./admin-producer-subscriptions.service";
 import {
   AdminMerchantApplyPromoDto,
   AdminMerchantGrantTrialDto,
@@ -81,7 +82,8 @@ export class AdminPlatformController {
     private readonly consoleAccess: AdminConsoleAccessService,
     private readonly merchantCategories: MerchantCategoriesService,
     private readonly merchantModeration: MerchantModerationService,
-    private readonly merchantSubscriptions: AdminMerchantSubscriptionsService
+    private readonly merchantSubscriptions: AdminMerchantSubscriptionsService,
+    private readonly producerSubscriptions: AdminProducerSubscriptionsService
   ) {}
 
   @Get("me")
@@ -683,6 +685,87 @@ export class AdminPlatformController {
   @Post("merchant-subscriptions/:profileId/trigger-renewal")
   adminTriggerMerchantRenewal(@Param("profileId") profileId: string) {
     return this.merchantSubscriptions.triggerRenewal(profileId);
+  }
+
+  @Get("producer-subscription-invoices")
+  adminListProducerSubscriptionInvoices(
+    @Query("status") status?: string,
+    @Query("q") q?: string,
+    @Query("profileId") profileId?: string,
+    @Query("take") take?: string
+  ) {
+    return this.producerSubscriptions.listInvoices({
+      status,
+      q,
+      profileId,
+      take: take ? Number(take) : undefined
+    });
+  }
+
+  @Get("producer-subscription-invoices/:invoiceId")
+  adminGetProducerSubscriptionInvoice(
+    @Param("invoiceId") invoiceId: string,
+    @Query("verify") verify?: string
+  ) {
+    return this.producerSubscriptions.getInvoice(
+      invoiceId,
+      verify === "true" || verify === "1"
+    );
+  }
+
+  @Get("producer-subscriptions")
+  adminListProducerSubscriptions(
+    @Query("status") status?: string,
+    @Query("q") q?: string,
+    @Query("take") take?: string
+  ) {
+    return this.producerSubscriptions.list({
+      status,
+      q,
+      take: take ? Number(take) : undefined
+    });
+  }
+
+  @Post("producer-subscriptions/:profileId/suspend")
+  adminSuspendProducerSubscription(
+    @Param("profileId") profileId: string,
+    @Body() body: AdminMerchantSubReasonDto
+  ) {
+    return this.producerSubscriptions.suspend(profileId, body.reason);
+  }
+
+  @Post("producer-subscriptions/:profileId/resume")
+  adminResumeProducerSubscription(@Param("profileId") profileId: string) {
+    return this.producerSubscriptions.resume(profileId);
+  }
+
+  @Post("producer-subscriptions/:profileId/cancel")
+  adminCancelProducerSubscription(
+    @Param("profileId") profileId: string,
+    @Body() body: AdminMerchantSubReasonDto
+  ) {
+    return this.producerSubscriptions.cancel(profileId, body.reason);
+  }
+
+  @Post("producer-subscriptions/:profileId/grant-trial")
+  adminGrantProducerTrial(
+    @Param("profileId") profileId: string,
+    @Body() body: AdminMerchantGrantTrialDto
+  ) {
+    return this.producerSubscriptions.grantTrial(profileId, body.units);
+  }
+
+  @Post("producer-subscriptions/:profileId/apply-promo")
+  adminApplyProducerPromo(
+    @Param("profileId") profileId: string,
+    @Body() body: AdminMerchantApplyPromoDto
+  ) {
+    return this.producerSubscriptions.applyPromo(profileId, body.percentOff);
+  }
+
+  @Post("producer-subscriptions/:profileId/trigger-renewal")
+  adminTriggerProducerRenewal(@Param("profileId") profileId: string) {
+    return this.producerSubscriptions.triggerRenewal(profileId);
   }
 
   @Get("merchant-subscription-promo-codes")

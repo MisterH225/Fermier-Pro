@@ -1,6 +1,10 @@
 import {
   addBillingPeriod,
-  applyPromoPercent
+  applyPromoPercent,
+  billingPeriodStart,
+  billingReminderKey,
+  graceDurationMs,
+  periodsBetweenUtc
 } from "./merchant-subscription.constants";
 
 describe("merchant-subscription.constants", () => {
@@ -60,6 +64,39 @@ describe("merchant-subscription.constants", () => {
     it("plafond à 100 %", () => {
       expect(applyPromoPercent(5_000, 100)).toBe(0);
       expect(applyPromoPercent(5_000, 150)).toBe(0);
+    });
+  });
+
+  describe("billingPeriodStart / billingReminderKey", () => {
+    it("tronque à l'heure pour le billing horaire", () => {
+      const at = new Date("2026-07-10T14:37:22.000Z");
+      expect(billingPeriodStart(at, "hour").toISOString()).toBe(
+        "2026-07-10T14:00:00.000Z"
+      );
+      expect(billingReminderKey(at, "j0", "hour")).toBe(
+        "2026-07-10T14:00:00.000Z:j0"
+      );
+    });
+
+    it("tronque au jour pour month/day", () => {
+      const at = new Date("2026-07-10T14:37:22.000Z");
+      expect(billingPeriodStart(at, "month").toISOString()).toBe(
+        "2026-07-10T00:00:00.000Z"
+      );
+      expect(billingReminderKey(at, "j0", "month")).toBe("2026-07-10:j0");
+    });
+  });
+
+  describe("periodsBetweenUtc / graceDurationMs", () => {
+    it("compte les périodes horaires", () => {
+      const a = new Date("2026-07-10T10:00:00.000Z");
+      const b = new Date("2026-07-10T13:00:00.000Z");
+      expect(periodsBetweenUtc(a, b, "hour", 1)).toBe(3);
+    });
+
+    it("convertit la grâce en ms selon l'unité", () => {
+      expect(graceDurationMs(7, "month")).toBe(7 * 86_400_000);
+      expect(graceDurationMs(3, "hour")).toBe(3 * 3_600_000);
     });
   });
 });

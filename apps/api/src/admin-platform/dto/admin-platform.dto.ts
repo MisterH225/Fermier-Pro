@@ -159,6 +159,51 @@ export class UpdatePlatformSettingsDto {
   @IsOptional()
   @IsDateString()
   merchantPremiumPromoEndsAt?: string | null;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  producerPremiumPriceXof?: number;
+
+  @IsOptional()
+  @IsEnum(MerchantPremiumBillingUnit)
+  producerPremiumBillingUnit?: MerchantPremiumBillingUnit;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(365)
+  producerPremiumBillingInterval?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(365)
+  producerPremiumGraceDays?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  producerPremiumTrialEnabled?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(365)
+  producerPremiumTrialUnits?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  producerPremiumPromoEnabled?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  producerPremiumPromoPercentOff?: number;
+
+  @IsOptional()
+  @IsDateString()
+  producerPremiumPromoEndsAt?: string | null;
 }
 
 export class AdminAiAskDto {

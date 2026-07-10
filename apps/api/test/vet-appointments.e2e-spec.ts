@@ -77,7 +77,8 @@ describeOrSkip("RDV vétérinaire escrow (e2e)", () => {
 
     const initRes = await request(app.getHttpServer())
       .post(`/api/v1/vet-appointments/${appointmentId}/payment/initiate`)
-      .set("Authorization", `Bearer ${ctx.producerToken}`);
+      .set("Authorization", `Bearer ${ctx.producerToken}`)
+      .send({ paymentMethod: "mobile_money" });
 
     expect(initRes.status).toBe(201);
     const providerRef = initRes.body.providerRef as string;
@@ -171,7 +172,8 @@ describeOrSkip("RDV vétérinaire escrow (e2e)", () => {
 
     const initRes = await request(app.getHttpServer())
       .post(`/api/v1/vet-appointments/${appointmentId}/payment/initiate`)
-      .set("Authorization", `Bearer ${ctx.producerToken}`);
+      .set("Authorization", `Bearer ${ctx.producerToken}`)
+      .send({ paymentMethod: "mobile_money" });
 
     expect(initRes.status).toBe(400);
 
@@ -229,6 +231,7 @@ describeOrSkip("RDV vétérinaire escrow (e2e)", () => {
     const init = await request(app.getHttpServer())
       .post(`/api/v1/vet-appointments/${firstId}/payment/initiate`)
       .set("Authorization", `Bearer ${ctx.producerToken}`)
+      .send({ paymentMethod: "mobile_money" })
       .expect(201);
 
     await request(app.getHttpServer())

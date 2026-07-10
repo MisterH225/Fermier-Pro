@@ -721,7 +721,7 @@ export class VetAppointmentService {
   async initiatePayment(
     producer: User,
     appointmentId: string,
-    dto?: { paymentMethod?: "mobile_money" | "wallet" }
+    dto: { paymentMethod: "mobile_money" | "wallet" }
   ) {
     const row = await this.requireProducerAppointment(producer.id, appointmentId, [
       VetAppointmentStatus.AWAITING_PAYMENT
@@ -737,7 +737,7 @@ export class VetAppointmentService {
     }
 
     const paymentMethod =
-      dto?.paymentMethod === "wallet"
+      dto.paymentMethod === "wallet"
         ? MarketplacePaymentMethod.wallet
         : MarketplacePaymentMethod.mobile_money;
 

@@ -351,6 +351,14 @@ export class AuthService {
         onboardingComplete: true
       }
     });
+    const producerRow = await this.prisma.producerProfile.findUnique({
+      where: { userId: user.id },
+      select: {
+        id: true,
+        subscriptionTier: true,
+        subscriptionStatus: true
+      }
+    });
 
     return {
       cgu: cguStatus,
@@ -389,6 +397,17 @@ export class AuthService {
             shopSkipped: merchantRow.shopSkipped,
             productSkipped: merchantRow.productSkipped,
             onboardingComplete: merchantRow.onboardingComplete
+          }
+        : null,
+      producerProfile: producerRow
+        ? {
+            profileId: producerRow.id,
+            subscriptionTier: producerRow.subscriptionTier,
+            subscriptionStatus: producerRow.subscriptionStatus,
+            teamPremiumActive:
+              producerRow.subscriptionTier === "premium" &&
+              (producerRow.subscriptionStatus === "active" ||
+                producerRow.subscriptionStatus === "trialing")
           }
         : null,
       user: {

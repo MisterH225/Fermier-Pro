@@ -75,6 +75,9 @@ export function pathnameToNavKey(pathname: string): NavKey | null {
   if (pathname.startsWith("/abonnements-commercant")) {
     return "merchantSubscriptions";
   }
+  if (pathname.startsWith("/abonnements-producteur")) {
+    return "producerSubscriptions";
+  }
   if (pathname.startsWith("/producteurs-scores")) {
     return "producerScores";
   }

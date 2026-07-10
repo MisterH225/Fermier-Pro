@@ -41,6 +41,7 @@ import {
   normalizePhone
 } from "./identifier-utils";
 import { InviteFromChatDto } from "./dto/invite-from-chat.dto";
+import { ProducerTeamAccessService } from "../producer-subscription/producer-team-access.service";
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const DEFAULT_LINK_TTL_MS = 365 * 24 * 60 * 60 * 1000;
@@ -131,7 +132,8 @@ export class InvitationsService {
     private readonly audit: AuditService,
     private readonly farmAccess: FarmAccessService,
     private readonly push: PushNotificationsService,
-    private readonly chat: ChatService
+    private readonly chat: ChatService,
+    private readonly producerTeam: ProducerTeamAccessService
   ) {}
 
   private recipientKindLabel(kind: string | null | undefined): string {
@@ -178,6 +180,7 @@ export class InvitationsService {
     await this.farmAccess.requireFarmScopes(actor.id, farmId, [
       FARM_SCOPE.invitationsManage
     ]);
+    await this.producerTeam.requirePremiumOwnerForFarm(farmId);
     await this.prisma.farmInvitation.updateMany({
       where: { farmId, isDefault: true, status: FarmInvitationStatus.pending },
       data: { status: FarmInvitationStatus.expired }
@@ -260,6 +263,7 @@ export class InvitationsService {
     farmId: string,
     dto: CreateFarmInvitationDto
   ) {
+    await this.producerTeam.requirePremiumOwnerForFarm(farmId);
     if (dto.role === MembershipRole.owner) {
       throw new BadRequestException(
         "Le role owner ne peut pas etre attribue par invitation"
@@ -388,6 +392,7 @@ export class InvitationsService {
       !existingMembership &&
       inv.createdById !== viewer.id
     ) {
+      await this.producerTeam.requirePremiumOwnerForFarm(inv.farmId);
       const existingPending = await this.prisma.farmInvitation.findFirst({
         where: {
           farmId: inv.farmId,
@@ -472,6 +477,9 @@ export class InvitationsService {
     await this.farmAccess.requireFarmScopes(actor.id, invitation.farmId, [
       FARM_SCOPE.invitationsManage
     ]);
+    if (dto.accept) {
+      await this.producerTeam.requirePremiumOwnerForFarm(invitation.farmId);
+    }
     if (invitation.status !== FarmInvitationStatus.pending) {
       throw new ConflictException("Invitation deja traitee");
     }
@@ -678,6 +686,8 @@ export class InvitationsService {
         "Invitation incomplete : role manquant"
       );
     }
+
+    await this.producerTeam.requirePremiumOwnerForFarm(inv.farmId);
 
     const role = inv.role;
 
@@ -927,6 +937,7 @@ export class InvitationsService {
     await this.farmAccess.requireFarmScopes(actor.id, farmId, [
       FARM_SCOPE.invitationsManage
     ]);
+    await this.producerTeam.requirePremiumOwnerForFarm(farmId);
 
     if (dto.userId === actor.id) {
       throw new BadRequestException(
@@ -1237,6 +1248,7 @@ export class InvitationsService {
     if (!invitation.role) {
       throw new BadRequestException("Invitation incomplète : rôle manquant");
     }
+    await this.producerTeam.requirePremiumOwnerForFarm(invitation.farmId);
     const role = invitation.role;
 
     const result = await this.prisma.$transaction(async (tx) => {

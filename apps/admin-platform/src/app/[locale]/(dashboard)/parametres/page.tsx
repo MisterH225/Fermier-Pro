@@ -48,7 +48,20 @@ function normalizeSettingsRow(row: PlatformSettingsDto): PlatformSettingsDto {
     merchantPremiumPromoPercentOff: Number(
       row.merchantPremiumPromoPercentOff ?? 20
     ),
-    merchantPremiumPromoEndsAt: row.merchantPremiumPromoEndsAt ?? null
+    merchantPremiumPromoEndsAt: row.merchantPremiumPromoEndsAt ?? null,
+    producerPremiumPriceXof: Number(row.producerPremiumPriceXof ?? 5000),
+    producerPremiumBillingUnit: row.producerPremiumBillingUnit ?? "month",
+    producerPremiumBillingInterval: Number(
+      row.producerPremiumBillingInterval ?? 1
+    ),
+    producerPremiumGraceDays: Number(row.producerPremiumGraceDays ?? 7),
+    producerPremiumTrialEnabled: Boolean(row.producerPremiumTrialEnabled),
+    producerPremiumTrialUnits: Number(row.producerPremiumTrialUnits ?? 7),
+    producerPremiumPromoEnabled: Boolean(row.producerPremiumPromoEnabled),
+    producerPremiumPromoPercentOff: Number(
+      row.producerPremiumPromoPercentOff ?? 20
+    ),
+    producerPremiumPromoEndsAt: row.producerPremiumPromoEndsAt ?? null
   };
 }
 

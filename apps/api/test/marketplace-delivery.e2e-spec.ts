@@ -115,7 +115,8 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
       .post(
         `/api/v1/marketplace/transactions/${disputeListing.transactionId}/payment/initiate`
       )
-      .set("Authorization", `Bearer ${ctx.peerToken}`);
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ paymentMethod: "mobile_money" });
     const providerRef = payInit.body.providerRef as string;
     await request(app.getHttpServer())
       .post(
@@ -166,7 +167,8 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
       .get(
         `/api/v1/marketplace/transactions/${disputeListing.transactionId}`
       )
-      .set("Authorization", `Bearer ${ctx.peerToken}`);
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ paymentMethod: "mobile_money" });
     expect(txAfter.body.status).toBe("BUYER_RECEIVED");
   });
 
@@ -185,7 +187,8 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
       .post(
         `/api/v1/marketplace/transactions/${reminderListing.transactionId}/payment/initiate`
       )
-      .set("Authorization", `Bearer ${ctx.peerToken}`);
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ paymentMethod: "mobile_money" });
     await request(app.getHttpServer())
       .post(
         `/api/v1/marketplace/transactions/${reminderListing.transactionId}/payment/confirm`
@@ -225,7 +228,8 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
       .post(
         `/api/v1/marketplace/transactions/${autoListing.transactionId}/payment/initiate`
       )
-      .set("Authorization", `Bearer ${ctx.peerToken}`);
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ paymentMethod: "mobile_money" });
     await request(app.getHttpServer())
       .post(
         `/api/v1/marketplace/transactions/${autoListing.transactionId}/payment/confirm`
@@ -535,7 +539,8 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
       .post(
         `/api/v1/marketplace/transactions/${listing.transactionId}/weight/request-arbitration`
       )
-      .set("Authorization", `Bearer ${ctx.peerToken}`);
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ paymentMethod: "mobile_money" });
     expect(arbitrate.status).toBe(201);
     expect(arbitrate.body.status).toBe("WEIGHT_DISPUTED");
 

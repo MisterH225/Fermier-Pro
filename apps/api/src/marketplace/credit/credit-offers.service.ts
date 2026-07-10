@@ -340,7 +340,7 @@ export class CreditOffersService {
   async initiateBalancePayment(
     user: User,
     offerId: string,
-    dto?: { paymentMethod?: "mobile_money" | "wallet" }
+    dto: { paymentMethod: "mobile_money" | "wallet" }
   ) {
     const offer = await this.requireBuyerCreditOffer(offerId, user.id);
     if (
@@ -360,7 +360,7 @@ export class CreditOffersService {
       throw new BadRequestException("Transaction introuvable");
     }
     const method =
-      dto?.paymentMethod === "wallet"
+      dto.paymentMethod === "wallet"
         ? MarketplacePaymentMethod.wallet
         : MarketplacePaymentMethod.mobile_money;
     const hold = await this.escrow.holdFunds(

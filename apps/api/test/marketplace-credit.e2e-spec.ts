@@ -178,7 +178,8 @@ describeOrSkip("Marketplace vente à crédit escrow (e2e)", () => {
   it("avance payée via escrow puis livraison et solde recalculé", async () => {
     const init = await request(app.getHttpServer())
       .post(`/api/v1/marketplace/transactions/${transactionId}/payment/initiate`)
-      .set("Authorization", `Bearer ${ctx.peerToken}`);
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ paymentMethod: "mobile_money" });
     expect(init.status).toBe(201);
     const pay = await request(app.getHttpServer())
       .post(`/api/v1/marketplace/transactions/${transactionId}/payment/confirm`)
@@ -241,7 +242,8 @@ describeOrSkip("Marketplace vente à crédit escrow (e2e)", () => {
   it("solde payé via escrow et clôture vendeur", async () => {
     const initBal = await request(app.getHttpServer())
       .post(`/api/v1/marketplace/offers/${offerId}/balance-payment/initiate`)
-      .set("Authorization", `Bearer ${ctx.peerToken}`);
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ paymentMethod: "mobile_money" });
     expect(initBal.status).toBe(201);
 
     const confirmBal = await request(app.getHttpServer())

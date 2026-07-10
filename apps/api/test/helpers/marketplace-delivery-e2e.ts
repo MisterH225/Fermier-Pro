@@ -161,7 +161,8 @@ export async function confirmMarketplacePayment(params: {
     .post(
       `/api/v1/marketplace/transactions/${params.transactionId}/payment/initiate`
     )
-    .set("Authorization", `Bearer ${params.buyerToken}`);
+    .set("Authorization", `Bearer ${params.buyerToken}`)
+    .send({ paymentMethod: "mobile_money" });
   expect(payInit.status).toBe(201);
   const payConfirm = await request(params.app.getHttpServer())
     .post(
@@ -235,7 +236,8 @@ export async function runDoubleConfirmationHappyPath(params: {
     .post(
       `/api/v1/marketplace/transactions/${params.ctx.transactionId}/payment/initiate`
     )
-    .set("Authorization", `Bearer ${params.buyerToken}`);
+    .set("Authorization", `Bearer ${params.buyerToken}`)
+    .send({ paymentMethod: "mobile_money" });
   expect(payInit.status).toBe(201);
   const providerRef = payInit.body.providerRef as string;
 

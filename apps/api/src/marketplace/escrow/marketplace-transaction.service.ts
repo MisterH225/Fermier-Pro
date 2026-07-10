@@ -636,7 +636,7 @@ export class MarketplaceTransactionService {
   async initiatePayment(
     user: User,
     transactionId: string,
-    dto?: { paymentMethod?: "mobile_money" | "wallet" }
+    dto: { paymentMethod: "mobile_money" | "wallet" }
   ) {
     let tx = await this.requireBuyer(transactionId, user.id);
     if (tx.status === MarketplaceTransactionStatus.PAYMENT_HELD) {
@@ -669,7 +669,7 @@ export class MarketplaceTransactionService {
       );
     }
     const method =
-      dto?.paymentMethod === "wallet"
+      dto.paymentMethod === "wallet"
         ? MarketplacePaymentMethod.wallet
         : MarketplacePaymentMethod.mobile_money;
 

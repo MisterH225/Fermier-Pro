@@ -28,6 +28,7 @@ export const NAV_KEYS = [
   "map",
   "marketplace",
   "merchantSubscriptions",
+  "producerSubscriptions",
   "producerScores",
   "stats",
   "wallet",
@@ -61,6 +62,12 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/abonnements-commercant",
     icon: CreditCard,
     key: "merchantSubscriptions",
+    primary: true
+  },
+  {
+    href: "/abonnements-producteur",
+    icon: Users,
+    key: "producerSubscriptions",
     primary: true
   },
   { href: "/producteurs-scores", icon: Award, key: "producerScores", primary: true },

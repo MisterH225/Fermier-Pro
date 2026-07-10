@@ -15,12 +15,18 @@ import {
   extractMerchantSubscriptionInvoiceId,
   isMerchantSubscriptionWebhookMetadata
 } from "../../../merchant-shop/merchant-subscription-webhook.util";
+import {
+  extractProducerSubscriptionInvoiceId,
+  isProducerSubscriptionWebhookMetadata
+} from "../../../producer-subscription/producer-subscription-webhook.util";
+import { ProducerSubscriptionBillingService } from "../../../producer-subscription/producer-subscription-billing.service";
 import { MarketplaceTransactionService } from "../marketplace-transaction.service";
 import { parsePayoutMetadata } from "./geniuspay-payout.util";
 import {
   GENIUSPAY_KIND_MARKETPLACE_ESCROW,
   GENIUSPAY_KIND_MERCHANT_ORDER,
   GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION,
+  GENIUSPAY_KIND_PRODUCER_SUBSCRIPTION,
   GENIUSPAY_KIND_WALLET_TOPUP,
   GENIUSPAY_KIND_WALLET_WITHDRAW,
   type GeniusPayWebhookPayload
@@ -40,6 +46,7 @@ export class GeniusPayWebhookController {
     private readonly walletRails: WalletRailsService,
     private readonly withdrawals: WithdrawalOrchestratorService,
     private readonly merchantBilling: MerchantSubscriptionBillingService,
+    private readonly producerBilling: ProducerSubscriptionBillingService,
     private readonly merchantOrders: MerchantOrdersService
   ) {}
 
@@ -132,6 +139,27 @@ export class GeniusPayWebhookController {
         return { ok: true };
       }
 
+      if (kind === GENIUSPAY_KIND_PRODUCER_SUBSCRIPTION) {
+        const invoiceId = extractProducerSubscriptionInvoiceId(metadata);
+        if (!invoiceId) {
+          const resolved =
+            await this.producerBilling.confirmFromWebhookByProviderRef(
+              reference,
+              Number.isFinite(amount) ? amount : undefined
+            );
+          if (resolved) {
+            return { ok: true, resolvedByReference: true };
+          }
+          throw new BadRequestException("invoice_id metadata manquant");
+        }
+        await this.producerBilling.confirmFromWebhook(
+          reference,
+          invoiceId,
+          Number.isFinite(amount) ? amount : undefined
+        );
+        return { ok: true };
+      }
+
       if (kind === GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION) {
         const invoiceId = extractMerchantSubscriptionInvoiceId(metadata);
         if (!invoiceId) {
@@ -170,6 +198,18 @@ export class GeniusPayWebhookController {
         return { ok: true };
       }
 
+      if (isProducerSubscriptionWebhookMetadata(metadata)) {
+        const invoiceId = extractProducerSubscriptionInvoiceId(metadata);
+        if (invoiceId) {
+          await this.producerBilling.confirmFromWebhook(
+            reference,
+            invoiceId,
+            Number.isFinite(amount) ? amount : undefined
+          );
+          return { ok: true, resolvedByMetadata: true };
+        }
+      }
+
       if (isMerchantSubscriptionWebhookMetadata(metadata)) {
         const invoiceId = extractMerchantSubscriptionInvoiceId(metadata);
         if (invoiceId) {
@@ -180,6 +220,15 @@ export class GeniusPayWebhookController {
           );
           return { ok: true, resolvedByMetadata: true };
         }
+      }
+
+      const producerResolved =
+        await this.producerBilling.confirmFromWebhookByProviderRef(
+          reference,
+          Number.isFinite(amount) ? amount : undefined
+        );
+      if (producerResolved) {
+        return { ok: true, resolvedByReference: true };
       }
 
       const merchantResolved =
