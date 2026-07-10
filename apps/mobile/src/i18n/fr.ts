@@ -3700,11 +3700,18 @@ export const fr = {
     },
     history: {
       title: "Mes achats",
-      tabs: { proposals: "Propositions", purchases: "Achats", reviews: "Avis" },
+      tabs: {
+        proposals: "Propositions",
+        purchases: "Achats ferme",
+        shopOrders: "Boutique",
+        reviews: "Avis"
+      },
       comingSoon: "Historique détaillé bientôt disponible.",
       sectionFilter: "Filtrer par type",
       noProposals: "Aucune proposition en cours ou refusée.",
       noPurchases: "Aucun achat confirmé pour le moment.",
+      noShopOrders: "Aucune commande boutique pour le moment.",
+      shopOrderFallback: "Commande boutique",
       noReviews: "Vous n'avez pas encore laissé d'avis."
     },
   favorites: {
@@ -4067,6 +4074,7 @@ export const fr = {
       status: {
         payment_pending: "En attente de paiement",
         paid: "Nouvelle commande",
+        paidBuyer: "En attente du commerçant",
         confirmed: "Confirmée",
         shipping: "En livraison",
         delivered: "Livrée",
@@ -4298,6 +4306,8 @@ export const fr = {
       buy: "Acheter",
       contact: "Contacter le vendeur",
       success: "Commande confirmée",
+      trackHint: "Suivez la commande dans Mes achats → Boutique.",
+      trackCta: "Suivre la commande",
       chatOpened: "Conversation ouverte",
       paymentWaitingTitle: "Paiement en cours",
       paymentWaitingBody:

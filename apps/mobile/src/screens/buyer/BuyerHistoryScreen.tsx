@@ -27,13 +27,14 @@ import { openBuyerOffersHub } from "../../lib/buyerMarketplacePending";
 import {
   fetchBuyerProposals,
   fetchBuyerPurchases,
-  fetchBuyerReviews
+  fetchBuyerReviews,
+  fetchMerchantBuyerOrders
 } from "../../lib/api";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
-type Tab = "proposals" | "purchases" | "reviews";
+type Tab = "proposals" | "purchases" | "shopOrders" | "reviews";
 type Route = RouteProp<RootStackParamList, "BuyerHistory">;
 
 function formatDate(iso: string): string {
@@ -64,6 +65,12 @@ export function BuyerHistoryScreen() {
     queryKey: ["buyerPurchases", activeProfileId],
     queryFn: () => fetchBuyerPurchases(accessToken!, activeProfileId),
     enabled: Boolean(accessToken) && tab === "purchases"
+  });
+
+  const shopOrdersQ = useQuery({
+    queryKey: ["merchant-orders-buyer"],
+    queryFn: () => fetchMerchantBuyerOrders(accessToken!),
+    enabled: Boolean(accessToken) && tab === "shopOrders"
   });
 
   const reviewsQ = useQuery({
@@ -104,6 +111,31 @@ export function BuyerHistoryScreen() {
     [purchasesQ.data]
   );
 
+  const shopOrderItems: EventItem[] = useMemo(
+    () =>
+      (shopOrdersQ.data ?? []).map((o) => {
+        const statusLabel =
+          o.status === "paid"
+            ? t("merchant.orders.status.paidBuyer", {
+                defaultValue: "En attente du commerçant"
+              })
+            : t(`merchant.orders.status.${o.status}`, {
+                defaultValue: o.status
+              });
+        return {
+          id: o.id,
+          title: o.productName ?? t("buyer.history.shopOrderFallback"),
+          subtitle: `${statusLabel} · ${o.sellerName ?? "—"} · ${o.totalAmount.toLocaleString("fr-FR")} ${o.productCurrency}`,
+          date: formatDate(o.createdAt),
+          valueType: "neutral" as const,
+          iconType: "custom" as const,
+          customIcon: "bag-handle-outline",
+          iconColor: buyerColors.primary
+        };
+      }),
+    [shopOrdersQ.data, t]
+  );
+
   const reviewItems: EventItem[] = useMemo(
     () =>
       (reviewsQ.data ?? []).map((r) => ({
@@ -125,14 +157,19 @@ export function BuyerHistoryScreen() {
   const isLoading =
     (tab === "proposals" && proposalsQ.isLoading) ||
     (tab === "purchases" && purchasesQ.isLoading) ||
+    (tab === "shopOrders" && shopOrdersQ.isLoading) ||
     (tab === "reviews" && reviewsQ.isLoading);
 
   const isFetching =
-    proposalsQ.isFetching || purchasesQ.isFetching || reviewsQ.isFetching;
+    proposalsQ.isFetching ||
+    purchasesQ.isFetching ||
+    shopOrdersQ.isFetching ||
+    reviewsQ.isFetching;
 
   const refresh = () => {
     if (tab === "proposals") void proposalsQ.refetch();
     if (tab === "purchases") void purchasesQ.refetch();
+    if (tab === "shopOrders") void shopOrdersQ.refetch();
     if (tab === "reviews") void reviewsQ.refetch();
   };
 
@@ -174,6 +211,25 @@ export function BuyerHistoryScreen() {
         <ProfileSectionEmpty>{t("buyer.history.noPurchases")}</ProfileSectionEmpty>
       );
     }
+    if (tab === "shopOrders") {
+      if (shopOrdersQ.error) {
+        return (
+          <ProfileSectionEmpty>
+            {(shopOrdersQ.error as Error).message}
+          </ProfileSectionEmpty>
+        );
+      }
+      return shopOrderItems.length > 0 ? (
+        <EventList
+          data={shopOrderItems}
+          onItemPress={(item) => {
+            navigation.navigate("MerchantOrderDetail", { orderId: item.id });
+          }}
+        />
+      ) : (
+        <ProfileSectionEmpty>{t("buyer.history.noShopOrders")}</ProfileSectionEmpty>
+      );
+    }
     if (reviewsQ.error) {
       return (
         <ProfileSectionEmpty>{(reviewsQ.error as Error).message}</ProfileSectionEmpty>
@@ -203,7 +259,9 @@ export function BuyerHistoryScreen() {
       >
         <ScreenSection title={t("buyer.history.sectionFilter")}>
           <View style={styles.pills}>
-            {(["proposals", "purchases", "reviews"] as Tab[]).map((k) => {
+            {(
+              ["proposals", "purchases", "shopOrders", "reviews"] as Tab[]
+            ).map((k) => {
               const active = tab === k;
               return (
                 <Pressable

@@ -31,7 +31,12 @@ export type RootStackParamList = {
       }
     | undefined;
   BuyerMessages: undefined;
-  BuyerHistory: { initialTab?: "proposals" | "purchases" | "reviews"; fromDashboard?: boolean } | undefined;
+  BuyerHistory:
+    | {
+        initialTab?: "proposals" | "purchases" | "shopOrders" | "reviews";
+        fromDashboard?: boolean;
+      }
+    | undefined;
   BuyerFinance: undefined;
   UserWallet: undefined;
   WalletOperation: {

@@ -95,8 +95,8 @@ export function MerchantOrderDetailScreen({ route }: Props) {
   const q = useQuery({
     queryKey: ["merchant-order", route.params.orderId],
     queryFn: () =>
-      fetchMerchantOrder(accessToken!, activeProfileId!, route.params.orderId),
-    enabled: Boolean(accessToken && activeProfileId)
+      fetchMerchantOrder(accessToken!, route.params.orderId, activeProfileId),
+    enabled: Boolean(accessToken)
   });
 
   const invalidate = async () => {
@@ -106,25 +106,32 @@ export function MerchantOrderDetailScreen({ route }: Props) {
     await queryClient.invalidateQueries({
       queryKey: ["merchant-orders-seller", activeProfileId]
     });
+    await queryClient.invalidateQueries({
+      queryKey: ["merchant-orders-buyer"]
+    });
   };
 
   const runAction = useMutation({
     mutationFn: async (
       action: "confirm" | "reject" | "ship" | "deliver" | "complete"
     ) => {
-      if (!accessToken || !activeProfileId) throw new Error("no auth");
+      if (!accessToken) throw new Error("no auth");
       const id = route.params.orderId;
       switch (action) {
         case "confirm":
+          if (!activeProfileId) throw new Error("no profile");
           return confirmMerchantOrder(accessToken, activeProfileId, id);
         case "reject":
+          if (!activeProfileId) throw new Error("no profile");
           return rejectMerchantOrder(accessToken, activeProfileId, id);
         case "ship":
+          if (!activeProfileId) throw new Error("no profile");
           return shipMerchantOrder(accessToken, activeProfileId, id);
         case "deliver":
+          if (!activeProfileId) throw new Error("no profile");
           return markMerchantOrderDelivered(accessToken, activeProfileId, id);
         case "complete":
-          return completeMerchantOrder(accessToken, activeProfileId, id);
+          return completeMerchantOrder(accessToken, id, activeProfileId);
       }
     },
     onSuccess: async () => {
@@ -140,10 +147,15 @@ export function MerchantOrderDetailScreen({ route }: Props) {
 
   const statusLabel = useMemo(() => {
     if (!order) return "";
+    if (isBuyer && order.status === "paid") {
+      return t("merchant.orders.status.paidBuyer", {
+        defaultValue: "En attente du commerçant"
+      });
+    }
     return t(`merchant.orders.status.${order.status}`, {
       defaultValue: order.status
     });
-  }, [order, t]);
+  }, [order, t, isBuyer]);
 
   const onChat = async () => {
     if (!accessToken || !order) return;

@@ -128,11 +128,21 @@ export function MerchantProductDetailScreen({ route }: Props) {
     }
   }, [paymentMethod, canPayWithWallet]);
 
-  const completePurchase = useCallback(() => {
-    setPendingPayment(null);
-    void q.refetch();
-    Alert.alert(t("merchant.purchase.success"));
-  }, [q, t]);
+  const completePurchase = useCallback(
+    (orderId: string) => {
+      setPendingPayment(null);
+      void q.refetch();
+      Alert.alert(t("merchant.purchase.success"), t("merchant.purchase.trackHint"), [
+        { text: t("common.ok"), style: "cancel" },
+        {
+          text: t("merchant.purchase.trackCta"),
+          onPress: () =>
+            navigation.navigate("MerchantOrderDetail", { orderId })
+        }
+      ]);
+    },
+    [navigation, q, t]
+  );
 
   const trySilentConfirm = useCallback(async () => {
     if (!accessToken || !pendingPayment) {
@@ -145,7 +155,7 @@ export function MerchantProductDetailScreen({ route }: Props) {
         pendingPayment.providerRef
       );
       if (order.status === "paid" || order.status === "completed") {
-        completePurchase();
+        completePurchase(order.id);
       }
     } catch {
       // Webhook ou prochain poll confirmera la commande.
@@ -162,7 +172,7 @@ export function MerchantProductDetailScreen({ route }: Props) {
         pendingPayment.orderId
       );
       if (order.status === "paid" || order.status === "completed") {
-        completePurchase();
+        completePurchase(order.id);
         return;
       }
     } catch {
@@ -225,7 +235,7 @@ export function MerchantProductDetailScreen({ route }: Props) {
         init.providerRef
       );
       if (order.status === "paid" || order.status === "completed") {
-        completePurchase();
+        completePurchase(order.id);
       }
     } catch (e) {
       Alert.alert(formatApiError(e));

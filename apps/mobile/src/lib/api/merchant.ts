@@ -466,22 +466,26 @@ export function fetchMerchantBuyerOrders(accessToken: string) {
 
 export function fetchMerchantOrder(
   accessToken: string,
-  profileId: string,
-  orderId: string
+  orderId: string,
+  profileId?: string | null
 ) {
-  return apiGetJson<MerchantOrderDto>(`/merchant/orders/${orderId}`, accessToken, profileId);
+  return apiGetJson<MerchantOrderDto>(
+    `/merchant/orders/${orderId}`,
+    accessToken,
+    profileId ?? undefined
+  );
 }
 
 export function completeMerchantOrder(
   accessToken: string,
-  profileId: string | undefined,
-  orderId: string
+  orderId: string,
+  profileId?: string | null
 ) {
   return apiPostJson<MerchantOrderDto>(
     `/merchant/orders/${orderId}/complete`,
     {},
     accessToken,
-    profileId
+    profileId ?? undefined
   );
 }
 
@@ -539,28 +543,28 @@ export function markMerchantOrderDelivered(
 
 export function openMerchantOrderDispute(
   accessToken: string,
-  profileId: string,
   orderId: string,
-  body: { reason: string }
+  body: { reason: string },
+  profileId?: string | null
 ) {
   return apiPostJson<MerchantOrderDto>(
     `/merchant/orders/${orderId}/dispute`,
     body,
     accessToken,
-    profileId
+    profileId ?? undefined
   );
 }
 
 export function respondMerchantOrderDispute(
   accessToken: string,
-  profileId: string,
   orderId: string,
-  body: { note: string }
+  body: { note: string },
+  profileId?: string | null
 ) {
   return apiPostJson<MerchantOrderDto>(
     `/merchant/orders/${orderId}/dispute/respond`,
     body,
     accessToken,
-    profileId
+    profileId ?? undefined
   );
 }

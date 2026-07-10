@@ -35,17 +35,24 @@ export function MerchantOrderDisputeScreen({ route }: Props) {
 
   const q = useQuery({
     queryKey: ["merchant-order", route.params.orderId],
-    queryFn: () => fetchMerchantOrder(accessToken!, activeProfileId!, route.params.orderId),
-    enabled: Boolean(accessToken && activeProfileId)
+    queryFn: () =>
+      fetchMerchantOrder(accessToken!, route.params.orderId, activeProfileId),
+    enabled: Boolean(accessToken)
   });
 
   const openM = useMutation({
     mutationFn: () =>
-      openMerchantOrderDispute(accessToken!, activeProfileId!, route.params.orderId, {
-        reason: reason.trim()
-      }),
+      openMerchantOrderDispute(
+        accessToken!,
+        route.params.orderId,
+        { reason: reason.trim() },
+        activeProfileId
+      ),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["merchant-order", route.params.orderId] });
+      await queryClient.invalidateQueries({
+        queryKey: ["merchant-order", route.params.orderId]
+      });
+      await queryClient.invalidateQueries({ queryKey: ["merchant-orders-buyer"] });
       Alert.alert(t("merchant.dispute.opened"));
     },
     onError: (e) => Alert.alert(formatApiError(e))
@@ -53,11 +60,16 @@ export function MerchantOrderDisputeScreen({ route }: Props) {
 
   const respondM = useMutation({
     mutationFn: () =>
-      respondMerchantOrderDispute(accessToken!, activeProfileId!, route.params.orderId, {
-        note: note.trim()
-      }),
+      respondMerchantOrderDispute(
+        accessToken!,
+        route.params.orderId,
+        { note: note.trim() },
+        activeProfileId
+      ),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["merchant-order", route.params.orderId] });
+      await queryClient.invalidateQueries({
+        queryKey: ["merchant-order", route.params.orderId]
+      });
       Alert.alert(t("merchant.dispute.responded"));
       setNote("");
     },
@@ -107,7 +119,9 @@ export function MerchantOrderDisputeScreen({ route }: Props) {
               <Text>{order!.dispute!.reason}</Text>
             </View>
             <Text style={styles.label}>
-              {isSeller ? t("merchant.dispute.sellerReply") : t("merchant.dispute.buyerReply")}
+              {isSeller
+                ? t("merchant.dispute.sellerReply")
+                : t("merchant.dispute.buyerReply")}
             </Text>
             <TextInput
               style={styles.input}

@@ -484,6 +484,13 @@ export function navigateFromGenericPushData(
     return true;
   }
 
+  if (type.startsWith("merchant_order") && str(data.orderId)) {
+    nav.navigate("MerchantOrderDetail", {
+      orderId: str(data.orderId)!
+    });
+    return true;
+  }
+
   if (type === "farm_scan_request") {
     const farmId = str(data.farmId);
     if (!farmId) {

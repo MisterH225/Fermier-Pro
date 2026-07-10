@@ -3647,11 +3647,18 @@ export const en = {
     },
     history: {
       title: "My purchases",
-      tabs: { proposals: "Proposals", purchases: "Purchases", reviews: "Reviews" },
+      tabs: {
+        proposals: "Proposals",
+        purchases: "Farm purchases",
+        shopOrders: "Shop",
+        reviews: "Reviews"
+      },
       comingSoon: "Detailed history coming soon.",
       sectionFilter: "Filter by type",
       noProposals: "No pending or declined proposals.",
       noPurchases: "No confirmed purchases yet.",
+      noShopOrders: "No shop orders yet.",
+      shopOrderFallback: "Shop order",
       noReviews: "You have not left any reviews yet."
     },
   favorites: {
@@ -4018,6 +4025,7 @@ export const en = {
       status: {
         payment_pending: "Awaiting payment",
         paid: "New order",
+        paidBuyer: "Waiting for merchant",
         confirmed: "Confirmed",
         shipping: "Shipping",
         delivered: "Delivered",
@@ -4249,6 +4257,8 @@ export const en = {
       buy: "Buy",
       contact: "Contact seller",
       success: "Order confirmed",
+      trackHint: "Track it under My purchases → Shop.",
+      trackCta: "Track order",
       chatOpened: "Conversation opened",
       paymentWaitingTitle: "Payment in progress",
       paymentWaitingBody:

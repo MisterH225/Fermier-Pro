@@ -143,12 +143,28 @@ export class MerchantOrdersService {
       user.id,
       { confirmedAt: new Date(), timeoutAt: null }
     );
+    const productLabel = order.product?.name?.trim() || "votre commande";
     void this.push.sendToUser(
       order.buyerUserId,
       "Commande confirmée",
-      `Votre commande a été confirmée par le commerçant`,
+      `Le commerçant a accepté ${productLabel}`,
       { type: "merchant_order_confirmed", orderId: order.id }
     );
+    try {
+      const room = await this.chat.ensureDirectRoom(
+        user,
+        order.buyerUserId,
+        undefined,
+        order.productId
+      );
+      await this.chat.createMessage(
+        user.id,
+        room.id,
+        `Commande confirmée — je prépare ${productLabel}.`
+      );
+    } catch {
+      // chat optionnel
+    }
     return updated;
   }
 
