@@ -40,8 +40,6 @@ import {
   ACTIVE_ESCROW_STATUSES,
   CANCELLABLE_BY_BUYER,
   CANCELLABLE_BY_SELLER,
-  PICKUP_CONFIRM_STATUSES,
-  SHIPMENT_CONFIRM_STATUSES,
   agreedTermsFromOffer,
   calculateAgreedDealAmount,
   calculateBlockedAmount,
@@ -57,6 +55,10 @@ import {
   resolveReceiptRealWeightKg,
   settlementAmounts
 } from "./transaction.utils";
+import {
+  canTransition,
+  type MarketplaceTransactionEvent
+} from "./transaction-state-machine";
 import {
   type BuyerAnimalWeightRow,
   canRequestWeightArbitration,
@@ -435,7 +437,8 @@ export class MarketplaceTransactionService {
       throw new BadRequestException("Litige déjà résolu");
     }
     const tx = dispute.transaction;
-    if (tx.status !== MarketplaceTransactionStatus.DELIVERY_DISPUTED) {
+    // Même état source pour toutes les issues ; l'événement précis est revalidé par branche.
+    if (!canTransition(tx.status, "DELIVERY_DISPUTE_VENDOR_WIN").allowed) {
       throw new BadRequestException("Transaction non en litige livraison");
     }
 
@@ -484,11 +487,23 @@ export class MarketplaceTransactionService {
       dto.outcome === MarketplaceDeliveryDisputeStatus.resolved_buyer ||
       dto.outcome === MarketplaceDeliveryDisputeStatus.cancelled
     ) {
+      this.assertCanTransition(
+        tx.status,
+        dto.outcome === MarketplaceDeliveryDisputeStatus.cancelled
+          ? "DELIVERY_DISPUTE_CANCELLED"
+          : "DELIVERY_DISPUTE_BUYER_WIN",
+        "Transaction non en litige livraison"
+      );
       await this.refundAndCancelDeliveryDispute(tx, dispute.id, dto.outcome, notes);
       return { ok: true, outcome: dto.outcome, adminUserId, notes };
     }
 
     if (dto.outcome === MarketplaceDeliveryDisputeStatus.resolved_split) {
+      this.assertCanTransition(
+        tx.status,
+        "DELIVERY_DISPUTE_SPLIT",
+        "Transaction non en litige livraison"
+      );
       const pct = dto.buyerRefundPercent ?? 50;
       const blocked = Number(tx.blockedAmount);
       const buyerRefund = Math.round((blocked * pct) / 100);
@@ -645,7 +660,7 @@ export class MarketplaceTransactionService {
         "Paiement déjà effectué pour cette transaction. Passez à l'étape livraison."
       );
     }
-    if (tx.status === MarketplaceTransactionStatus.PAYMENT_FAILED) {
+    if (canTransition(tx.status, "PAYMENT_RETRY").allowed) {
       await this.prisma.marketplaceTransaction.update({
         where: { id: tx.id },
         data: {
@@ -658,7 +673,7 @@ export class MarketplaceTransactionService {
       tx = await this.prisma.marketplaceTransaction.findUniqueOrThrow({
         where: { id: tx.id }
       });
-    } else if (tx.status !== MarketplaceTransactionStatus.PAYMENT_PENDING) {
+    } else if (!canTransition(tx.status, "PAYMENT_CONFIRMED").allowed) {
       throw new BadRequestException(
         `Paiement non requis pour cette transaction (statut : ${tx.status})`
       );
@@ -766,9 +781,7 @@ export class MarketplaceTransactionService {
     if (tx.status === MarketplaceTransactionStatus.PAYMENT_HELD) {
       return this.getById(user, tx.id);
     }
-    if (tx.status !== MarketplaceTransactionStatus.PAYMENT_PENDING) {
-      throw new BadRequestException("Statut invalide");
-    }
+    this.assertCanTransition(tx.status, "PAYMENT_CONFIRMED", "Statut invalide");
     const ref = tx.paymentProviderRef;
     if (!ref) {
       throw new BadRequestException("Référence paiement manquante — initiez le paiement d'abord");
@@ -864,11 +877,11 @@ export class MarketplaceTransactionService {
     if (tx.status === MarketplaceTransactionStatus.PAYMENT_HELD) {
       return this.getById(user, tx.id);
     }
-    if (tx.status !== MarketplaceTransactionStatus.PAYMENT_PENDING) {
-      throw new BadRequestException(
-        `Synchronisation impossible pour le statut : ${tx.status}`
-      );
-    }
+    this.assertCanTransition(
+      tx.status,
+      "PAYMENT_CONFIRMED",
+      `Synchronisation impossible pour le statut : ${tx.status}`
+    );
     if (tx.paymentMethod !== MarketplacePaymentMethod.mobile_money) {
       throw new BadRequestException(
         "Synchronisation GeniusPay réservée aux paiements mobile money"
@@ -975,9 +988,11 @@ export class MarketplaceTransactionService {
     if (tx.status === MarketplaceTransactionStatus.PAYMENT_HELD) {
       return { ok: true, idempotent: true };
     }
-    if (tx.status !== MarketplaceTransactionStatus.PAYMENT_PENDING) {
-      throw new BadRequestException("Statut invalide pour confirmation webhook");
-    }
+    this.assertCanTransition(
+      tx.status,
+      "PAYMENT_CONFIRMED",
+      "Statut invalide pour confirmation webhook"
+    );
     if (tx.paymentProviderRef && tx.paymentProviderRef !== providerRef) {
       this.log.warn(
         `Webhook ref=${providerRef} différente de tx ref=${tx.paymentProviderRef} tx=${transactionId} — mise à jour`
@@ -1027,11 +1042,11 @@ export class MarketplaceTransactionService {
     notes?: string
   ) {
     const tx = await this.requireBuyer(transactionId, user.id);
-    if (tx.status !== MarketplaceTransactionStatus.PAYMENT_HELD) {
-      throw new BadRequestException(
-        "Proposition de rendez-vous impossible à ce stade"
-      );
-    }
+    this.assertCanTransition(
+      tx.status,
+      "PICKUP_PROPOSED",
+      "Proposition de rendez-vous impossible à ce stade"
+    );
     const date = new Date(pickupDate);
     if (Number.isNaN(date.getTime())) {
       throw new BadRequestException("Date invalide");
@@ -1059,11 +1074,11 @@ export class MarketplaceTransactionService {
 
   async confirmPickup(user: User, transactionId: string) {
     const tx = await this.requireSeller(transactionId, user.id);
-    if (!PICKUP_CONFIRM_STATUSES.includes(tx.status)) {
-      throw new BadRequestException(
-        "Confirmation de rendez-vous impossible à ce stade"
-      );
-    }
+    this.assertCanTransition(
+      tx.status,
+      "PICKUP_CONFIRMED",
+      "Confirmation de rendez-vous impossible à ce stade"
+    );
     if (!tx.pickupDate || !tx.pickupLocation?.trim()) {
       throw new BadRequestException("Aucun rendez-vous proposé");
     }
@@ -1094,11 +1109,11 @@ export class MarketplaceTransactionService {
     }
   ) {
     const tx = await this.requireSeller(transactionId, user.id);
-    if (!SHIPMENT_CONFIRM_STATUSES.includes(tx.status)) {
-      throw new BadRequestException(
-        "Confirmation d'envoi impossible à ce stade"
-      );
-    }
+    this.assertCanTransition(
+      tx.status,
+      "SELLER_SHIPPED",
+      "Confirmation d'envoi impossible à ce stade"
+    );
     const shippedAt = new Date(params.shippedAt);
     if (Number.isNaN(shippedAt.getTime())) {
       throw new BadRequestException("Date d'envoi invalide");
@@ -1152,11 +1167,11 @@ export class MarketplaceTransactionService {
     }
   ) {
     const tx = await this.requireBuyer(transactionId, user.id);
-    if (tx.status !== MarketplaceTransactionStatus.SELLER_SHIPPED) {
-      throw new BadRequestException(
-        "Confirmation de réception impossible à ce stade"
-      );
-    }
+    this.assertCanTransition(
+      tx.status,
+      "BUYER_RECEIVED",
+      "Confirmation de réception impossible à ce stade"
+    );
     if (params.condition !== MarketplaceReceiptCondition.conform) {
       return this.openDeliveryDispute(user, transactionId, {
         disputeType:
@@ -1281,12 +1296,11 @@ export class MarketplaceTransactionService {
     }
   ) {
     const tx = await this.requireParticipant(transactionId, user.id);
-    if (
-      tx.status !== MarketplaceTransactionStatus.SELLER_SHIPPED &&
-      tx.status !== MarketplaceTransactionStatus.BUYER_RECEIVED
-    ) {
-      throw new BadRequestException("Litige livraison impossible à ce stade");
-    }
+    this.assertCanTransition(
+      tx.status,
+      "DELIVERY_DISPUTED",
+      "Litige livraison impossible à ce stade"
+    );
     const now = new Date();
     await this.prisma.$transaction([
       this.prisma.marketplaceTransaction.update({
@@ -1459,6 +1473,9 @@ export class MarketplaceTransactionService {
       }
     });
     for (const tx of rows) {
+      if (!canTransition(tx.status, "DELIVERY_DISPUTE_AUTO").allowed) {
+        continue;
+      }
       const now = new Date();
       await this.prisma.$transaction([
         this.prisma.marketplaceTransaction.update({
@@ -1520,11 +1537,11 @@ export class MarketplaceTransactionService {
     dto: DeclareWeightDto
   ) {
     const tx = await this.requireBuyer(transactionId, user.id);
-    if (tx.status !== MarketplaceTransactionStatus.PICKUP_SCHEDULED) {
-      throw new BadRequestException(
-        "Le poids réel ne peut être déclaré qu'après confirmation du rendez-vous"
-      );
-    }
+    this.assertCanTransition(
+      tx.status,
+      "WEIGHT_DECLARED",
+      "Le poids réel ne peut être déclaré qu'après confirmation du rendez-vous"
+    );
 
     const listing = await this.prisma.marketplaceListing.findUnique({
       where: { id: tx.listingId },
@@ -1603,12 +1620,11 @@ export class MarketplaceTransactionService {
 
   async validateWeight(user: User, transactionId: string) {
     const tx = await this.requireSeller(transactionId, user.id);
-    if (
-      tx.status !== MarketplaceTransactionStatus.WEIGHT_DECLARED &&
-      tx.status !== MarketplaceTransactionStatus.WEIGHT_COUNTER_DECLARED
-    ) {
-      throw new BadRequestException("Aucun poids à valider à ce stade");
-    }
+    this.assertCanTransition(
+      tx.status,
+      "WEIGHT_VALIDATED_BY_SELLER",
+      "Aucun poids à valider à ce stade"
+    );
     await this.markWeightValidatedBySeller(tx.id);
     return this.getById(user, tx.id);
   }
@@ -1626,11 +1642,11 @@ export class MarketplaceTransactionService {
     dto: DeclareSellerWeightDto
   ) {
     const tx = await this.requireSeller(transactionId, user.id);
-    if (tx.status !== MarketplaceTransactionStatus.WEIGHT_DECLARED) {
-      throw new BadRequestException(
-        "Contestation impossible à ce stade de la transaction"
-      );
-    }
+    this.assertCanTransition(
+      tx.status,
+      "WEIGHT_COUNTER_DECLARED",
+      "Contestation impossible à ce stade de la transaction"
+    );
     const buyerKg = tx.realWeightKg?.toNumber();
     if (buyerKg == null || buyerKg <= 0) {
       throw new BadRequestException("Poids acheteur manquant");
@@ -1691,11 +1707,11 @@ export class MarketplaceTransactionService {
 
   async requestWeightArbitration(user: User, transactionId: string) {
     const tx = await this.requireParticipant(transactionId, user.id);
-    if (tx.status !== MarketplaceTransactionStatus.WEIGHT_COUNTER_DECLARED) {
-      throw new BadRequestException(
-        "Arbitrage demandable uniquement après contre-déclaration vendeur"
-      );
-    }
+    this.assertCanTransition(
+      tx.status,
+      "WEIGHT_ARBITRATION_REQUESTED",
+      "Arbitrage demandable uniquement après contre-déclaration vendeur"
+    );
     const buyerKg = tx.realWeightKg?.toNumber();
     const sellerKg = tx.sellerDeclaredWeightKg?.toNumber();
     if (
@@ -1807,9 +1823,14 @@ export class MarketplaceTransactionService {
     const tx = await this.prisma.marketplaceTransaction.findUnique({
       where: { id: transactionId }
     });
-    if (!tx || tx.status !== MarketplaceTransactionStatus.WEIGHT_DISPUTED) {
+    if (!tx) {
       throw new BadRequestException("Litige introuvable");
     }
+    this.assertCanTransition(
+      tx.status,
+      "WEIGHT_ARBITRATED",
+      "Litige introuvable"
+    );
     if (!Number.isFinite(arbitrationWeightKg) || arbitrationWeightKg <= 0) {
       throw new BadRequestException("Poids arbitré invalide");
     }
@@ -1843,10 +1864,7 @@ export class MarketplaceTransactionService {
       if (tx.status === MarketplaceTransactionStatus.TRANSACTION_CLOSED) {
         return;
       }
-      const isSettableStatus =
-        tx.status === MarketplaceTransactionStatus.WEIGHT_VALIDATED ||
-        tx.status === MarketplaceTransactionStatus.BUYER_RECEIVED;
-      if (!isSettableStatus) {
+      if (!canTransition(tx.status, "CREDIT_TRANSACTION_SETTLED").allowed) {
         return;
       }
       const SETTABLE_STATUSES: MarketplaceTransactionStatus[] = [
@@ -1992,9 +2010,11 @@ export class MarketplaceTransactionService {
     if (tx.status === MarketplaceTransactionStatus.CANCELLED_BY_BUYER) {
       return { ok: true };
     }
-    if (!CANCELLABLE_BY_BUYER.includes(tx.status)) {
-      throw new BadRequestException("Annulation impossible à ce stade");
-    }
+    this.assertCanTransition(
+      tx.status,
+      "BUYER_CANCEL",
+      "Annulation impossible à ce stade"
+    );
     const needsRefund =
       tx.status === MarketplaceTransactionStatus.PAYMENT_HELD ||
       tx.status === MarketplaceTransactionStatus.PICKUP_PROPOSED ||
@@ -2089,7 +2109,11 @@ export class MarketplaceTransactionService {
         status: { in: CANCELLABLE_BY_SELLER }
       }
     });
+    let cancelledCount = 0;
     for (const tx of active) {
+      if (!canTransition(tx.status, "SELLER_CANCEL").allowed) {
+        continue;
+      }
       if (
         tx.status === MarketplaceTransactionStatus.PAYMENT_HELD ||
         tx.status === MarketplaceTransactionStatus.PICKUP_PROPOSED ||
@@ -2106,14 +2130,21 @@ export class MarketplaceTransactionService {
           tx.paymentMethod
         );
       }
-      await this.prisma.marketplaceTransaction.update({
-        where: { id: tx.id },
+      const cancelled = await this.prisma.marketplaceTransaction.updateMany({
+        where: {
+          id: tx.id,
+          status: { in: [...CANCELLABLE_BY_SELLER] }
+        },
         data: {
           status: MarketplaceTransactionStatus.CANCELLED_BY_SELLER,
           cancelledAt: new Date(),
           cancelReason: reason?.trim() || null
         }
       });
+      if (cancelled.count === 0) {
+        continue;
+      }
+      cancelledCount += 1;
       // Marquer l'offre comme annulée pour qu'elle disparaisse des dashboards
       await this.prisma.marketplaceOffer.update({
         where: { id: tx.offerId },
@@ -2138,7 +2169,7 @@ export class MarketplaceTransactionService {
       where: { id: listingId },
       data: { activeOfferCount: 0, status: ListingStatus.cancelled }
     });
-    return { cancelled: active.length };
+    return { cancelled: cancelledCount };
   }
 
   async handleExpiredPayments(): Promise<number> {
@@ -2150,6 +2181,9 @@ export class MarketplaceTransactionService {
       }
     });
     for (const tx of expired) {
+      if (!canTransition(tx.status, "OFFER_EXPIRED").allowed) {
+        continue;
+      }
       await this.prisma.marketplaceTransaction.update({
         where: { id: tx.id },
         data: { status: MarketplaceTransactionStatus.OFFER_EXPIRED, cancelledAt: now }
@@ -2183,6 +2217,9 @@ export class MarketplaceTransactionService {
       }
     });
     for (const tx of rows) {
+      if (!canTransition(tx.status, "WEIGHT_AUTO_VALIDATED").allowed) {
+        continue;
+      }
       await this.prisma.marketplaceTransaction.update({
         where: { id: tx.id },
         data: {
@@ -2221,7 +2258,7 @@ export class MarketplaceTransactionService {
       if (tx.status === MarketplaceTransactionStatus.TRANSACTION_CLOSED) {
         return;
       }
-      if (tx.status !== MarketplaceTransactionStatus.BUYER_RECEIVED) {
+      if (!canTransition(tx.status, "TRANSACTION_SETTLED").allowed) {
         return;
       }
       if (tx.isCredit) {
@@ -2513,6 +2550,9 @@ export class MarketplaceTransactionService {
       }
     });
     for (const tx of others) {
+      if (!canTransition(tx.status, "CANCELLED_SOLD_TO_OTHER").allowed) {
+        continue;
+      }
       await this.escrow.refundBuyer(
         tx.id,
         tx.buyerUserId,
@@ -2614,6 +2654,16 @@ export class MarketplaceTransactionService {
       `Un acheteur a sécurisé ${amountLabel} pour « ${tx.listing?.title ?? "votre annonce"} ». Coordonnez la livraison.`,
       { type: "marketplace_payment_held", transactionId: tx.id, listingId: tx.listingId }
     );
+  }
+
+  private assertCanTransition(
+    status: MarketplaceTransactionStatus,
+    event: MarketplaceTransactionEvent,
+    message: string
+  ): void {
+    if (!canTransition(status, event).allowed) {
+      throw new BadRequestException(message);
+    }
   }
 
   private async requireBuyer(transactionId: string, userId: string) {
