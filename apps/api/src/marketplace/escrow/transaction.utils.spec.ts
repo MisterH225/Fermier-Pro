@@ -1,12 +1,12 @@
-import { MarketplacePriceType } from "@prisma/client";
+import { MarketplacePriceType, MarketplaceTransactionStatus } from "@prisma/client";
 import {
   calculateAgreedDealAmount,
   calculateBlockedAmount,
   isDefinitiveMobileMoneyFailure,
   isPendingMobileMoneyConfirm,
+  needsEscrowRefundOnCancel,
   resolveHandoverDealTotalPrice,
-  resolveReceiptRealWeightKg,
-  settlementAmounts
+  resolveReceiptRealWeightKg
 } from "./transaction.utils";
 
 describe("transaction.utils", () => {
@@ -151,6 +151,42 @@ describe("transaction.utils", () => {
     it("détecte un échec définitif GeniusPay", () => {
       expect(isDefinitiveMobileMoneyFailure("Paiement failed")).toBe(true);
       expect(isDefinitiveMobileMoneyFailure("Paiement cancelled")).toBe(true);
+    });
+  });
+
+  describe("needsEscrowRefundOnCancel", () => {
+    it("rembourse les statuts escrow annulables, y compris contre-poids et expédié", () => {
+      expect(
+        needsEscrowRefundOnCancel(MarketplaceTransactionStatus.PAYMENT_HELD)
+      ).toBe(true);
+      expect(
+        needsEscrowRefundOnCancel(
+          MarketplaceTransactionStatus.WEIGHT_COUNTER_DECLARED
+        )
+      ).toBe(true);
+      expect(
+        needsEscrowRefundOnCancel(MarketplaceTransactionStatus.SELLER_SHIPPED)
+      ).toBe(true);
+    });
+
+    it("ne rembourse pas avant blocage ni hors cancel*", () => {
+      expect(
+        needsEscrowRefundOnCancel(MarketplaceTransactionStatus.PAYMENT_PENDING)
+      ).toBe(false);
+      expect(
+        needsEscrowRefundOnCancel(MarketplaceTransactionStatus.PAYMENT_FAILED)
+      ).toBe(false);
+      expect(
+        needsEscrowRefundOnCancel(MarketplaceTransactionStatus.BUYER_RECEIVED)
+      ).toBe(false);
+      expect(
+        needsEscrowRefundOnCancel(
+          MarketplaceTransactionStatus.DELIVERY_DISPUTED
+        )
+      ).toBe(false);
+      expect(
+        needsEscrowRefundOnCancel(MarketplaceTransactionStatus.WEIGHT_DISPUTED)
+      ).toBe(false);
     });
   });
 });

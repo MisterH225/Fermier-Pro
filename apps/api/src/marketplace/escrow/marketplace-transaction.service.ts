@@ -51,6 +51,7 @@ import {
   isStaleGeniusPayReference,
   isTransientMobileMoneyConfirm,
   lastNMonthKeys,
+  needsEscrowRefundOnCancel,
   paymentExpiryDate,
   resolveReceiptRealWeightKg,
   settlementAmounts
@@ -458,7 +459,10 @@ export class MarketplaceTransactionService {
         }),
         this.prisma.marketplaceTransaction.update({
           where: { id: tx.id },
-          data: { status: MarketplaceTransactionStatus.BUYER_RECEIVED }
+          data: {
+            status: MarketplaceTransactionStatus.BUYER_RECEIVED,
+            buyerReceivedAt: tx.buyerReceivedAt ?? now
+          }
         }),
         this.prisma.marketplaceListing.update({
           where: { id: dispute.listingId },
@@ -468,16 +472,19 @@ export class MarketplaceTransactionService {
           }
         })
       ]);
+      if (!tx.isCredit) {
+        await this.settleTransaction(tx.id);
+      }
       void this.push.sendToUser(
         tx.buyerUserId,
         "Litige résolu",
-        "Le litige livraison est clos en faveur du vendeur. Déclarez le poids réel pour poursuivre.",
+        "Le litige livraison est clos en faveur du vendeur. La transaction est en cours de finalisation.",
         { type: "marketplace_delivery_dispute_resolved", transactionId: tx.id }
       );
       void this.push.sendToUser(
         tx.sellerUserId,
         "Litige résolu",
-        "Le litige livraison est clos. En attente du poids déclaré par l'acheteur.",
+        "Le litige livraison est clos en votre faveur. Le paiement est en cours de versement.",
         { type: "marketplace_delivery_dispute_resolved", transactionId: tx.id }
       );
       return { ok: true, outcome: dto.outcome, adminUserId, notes };
@@ -2015,13 +2022,7 @@ export class MarketplaceTransactionService {
       "BUYER_CANCEL",
       "Annulation impossible à ce stade"
     );
-    const needsRefund =
-      tx.status === MarketplaceTransactionStatus.PAYMENT_HELD ||
-      tx.status === MarketplaceTransactionStatus.PICKUP_PROPOSED ||
-      tx.status === MarketplaceTransactionStatus.PICKUP_SCHEDULED ||
-      tx.status === MarketplaceTransactionStatus.WEIGHT_DECLARED ||
-      tx.status === MarketplaceTransactionStatus.WEIGHT_VALIDATED ||
-      tx.status === MarketplaceTransactionStatus.SELLER_SHIPPED;
+    const needsRefund = needsEscrowRefundOnCancel(tx.status);
     if (needsRefund) {
       const priorRefund = await this.prisma.marketplaceFundMovement.findFirst({
         where: {
@@ -2114,13 +2115,7 @@ export class MarketplaceTransactionService {
       if (!canTransition(tx.status, "SELLER_CANCEL").allowed) {
         continue;
       }
-      if (
-        tx.status === MarketplaceTransactionStatus.PAYMENT_HELD ||
-        tx.status === MarketplaceTransactionStatus.PICKUP_PROPOSED ||
-        tx.status === MarketplaceTransactionStatus.PICKUP_SCHEDULED ||
-        tx.status === MarketplaceTransactionStatus.WEIGHT_DECLARED ||
-        tx.status === MarketplaceTransactionStatus.WEIGHT_VALIDATED
-      ) {
+      if (needsEscrowRefundOnCancel(tx.status)) {
         await this.escrow.refundBuyer(
           tx.id,
           tx.buyerUserId,
