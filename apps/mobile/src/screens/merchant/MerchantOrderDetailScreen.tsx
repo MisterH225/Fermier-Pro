@@ -57,7 +57,7 @@ function stepReached(status: string, step: string): boolean {
     status === "failed" ||
     status === "cancelled"
   ) {
-    return step === "paid" && status !== "payment_pending" && status !== "failed";
+    return step === "paid" && status !== "failed";
   }
   if (status === "disputed") {
     const idx = order.indexOf("delivered");

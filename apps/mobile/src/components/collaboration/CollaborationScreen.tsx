@@ -228,7 +228,8 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.sm
   },
   premiumBannerTitle: {
-    ...mobileTypography.bodyBold,
+    ...mobileTypography.body,
+    fontWeight: "700",
     color: mobileColors.textPrimary
   },
   premiumBannerBody: {

@@ -69,6 +69,12 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
         onFinished();
         return;
       }
+      const shopCount = data.shopCount ?? data.shops?.length ?? 0;
+      // Filet : jamais l'étape produit sans boutique réelle.
+      if (next === 2 && shopCount === 0) {
+        setStep(1);
+        return;
+      }
       setStep(next);
     },
     [accessToken, activeProfileId, onFinished, refreshAuthMe]
