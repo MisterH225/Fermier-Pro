@@ -19,12 +19,13 @@ import { clearOfflineStorage } from "./src/lib/offline/queueStore";
 import { QUERY_PERSIST_STORAGE_KEY } from "./src/lib/queryPersist";
 import { queryClient } from "./src/lib/queryClient";
 import { getSupabase } from "./src/lib/supabase";
+import { Sentry } from "./src/lib/sentry";
 import i18n from "./src/i18n/i18n";
 import { getStoredAppLocale } from "./src/lib/appLocale";
 import { PendingInviteLinkListener } from "./src/components/PendingInviteLinkListener";
 import { LoginGateScreen } from "./src/screens/LoginGateScreen";
 
-export default function App() {
+function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const authConfigured = isAuthEnvConfigured();
 
@@ -124,3 +125,5 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff"
   }
 });
+
+export default Sentry.wrap(App);

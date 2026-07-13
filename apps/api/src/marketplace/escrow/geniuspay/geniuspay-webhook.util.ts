@@ -3,6 +3,14 @@ import {
   BadRequestException,
   UnauthorizedException
 } from "@nestjs/common";
+import { capturePaymentError } from "../../../common/sentry-payment.util";
+
+function throwUnauthorizedWebhook(message: string): never {
+  capturePaymentError(`webhook_signature_failure: ${message}`, {
+    provider: "geniuspay"
+  });
+  throw new UnauthorizedException(message);
+}
 
 const REPLAY_TOLERANCE_SEC = 300;
 
@@ -110,12 +118,12 @@ export function verifyGeniusPayWebhookSignature(params: {
 }): void {
   const secret = normalizeGeniusPayWebhookSecret(params.secret);
   if (!secret) {
-    throw new UnauthorizedException(
+    throwUnauthorizedWebhook(
       `GENIUSPAY_WEBHOOK_SECRET non configuré. ${WEBHOOK_SECRET_HINT}`
     );
   }
   if (/^(sk_|pk_)/i.test(secret)) {
-    throw new UnauthorizedException(
+    throwUnauthorizedWebhook(
       `GENIUSPAY_WEBHOOK_SECRET semble être une clé API (sk_/pk_), pas le secret webhook whsec_…. ${WEBHOOK_SECRET_HINT}`
     );
   }
@@ -123,10 +131,10 @@ export function verifyGeniusPayWebhookSignature(params: {
   const signature = params.signature?.trim();
   const timestamp = params.timestamp?.trim();
   if (!signature) {
-    throw new UnauthorizedException("Signature webhook GeniusPay manquante");
+    throwUnauthorizedWebhook("Signature webhook GeniusPay manquante");
   }
   if (!timestamp) {
-    throw new UnauthorizedException("Timestamp webhook GeniusPay manquant");
+    throwUnauthorizedWebhook("Timestamp webhook GeniusPay manquant");
   }
 
   assertTimestampFresh(timestamp);
@@ -160,7 +168,7 @@ export function verifyGeniusPayWebhookSignature(params: {
     }
   }
 
-  throw new UnauthorizedException(
+  throwUnauthorizedWebhook(
     `Signature webhook GeniusPay invalide — le whsec_ sur Railway ne correspond probablement pas au webhook testé (recréez le webhook et recopiez le secret). ${WEBHOOK_SECRET_HINT}`
   );
 }

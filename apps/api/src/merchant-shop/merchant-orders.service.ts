@@ -18,6 +18,7 @@ import {
 } from "@prisma/client";
 import { ChatService } from "../chat/chat.service";
 import { FeatureFlagService } from "../config-client/feature-flags.service";
+import { capturePaymentError } from "../common/sentry-payment.util";
 import { GeniusPayMobileMoneyGateway } from "../marketplace/escrow/geniuspay/geniuspay-mobile-money.gateway";
 import {
   MOBILE_MONEY_GATEWAY,
@@ -1073,6 +1074,10 @@ export class MerchantOrdersService {
         providerRef
       },
       data: { status: MerchantOrderStatus.failed }
+    });
+    capturePaymentError("failPaymentFromWebhook: commande commerçant échouée", {
+      transactionId: orderId,
+      provider: process.env.MOBILE_MONEY_PROVIDER?.trim() || "unknown"
     });
     return { ok: true };
   }

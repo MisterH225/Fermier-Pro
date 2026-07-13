@@ -4,6 +4,7 @@ import {
   type FactoryProvider,
   type OnModuleInit
 } from "@nestjs/common";
+import { capturePaymentError } from "../../common/sentry-payment.util";
 import { DevMobileMoneyGateway } from "./dev-mobile-money.gateway";
 import { GeniusPayMobileMoneyGateway } from "./geniuspay/geniuspay-mobile-money.gateway";
 import { MOBILE_MONEY_GATEWAY } from "./mobile-money.gateway";
@@ -47,6 +48,7 @@ export class MobileMoneyGatewayGuard implements OnModuleInit {
           throw new Error(message);
         }
         this.log.error(message);
+        capturePaymentError(message, { provider: "geniuspay" });
         return;
       }
 
@@ -59,6 +61,7 @@ export class MobileMoneyGatewayGuard implements OnModuleInit {
           throw new Error(message);
         }
         this.log.error(message);
+        capturePaymentError(message, { provider: "geniuspay" });
       }
       const webhookSecret = process.env.GENIUSPAY_WEBHOOK_SECRET?.trim() ?? "";
       if (!/^whsec_/i.test(webhookSecret)) {
@@ -69,6 +72,7 @@ export class MobileMoneyGatewayGuard implements OnModuleInit {
           throw new Error(message);
         }
         this.log.error(message);
+        capturePaymentError(message, { provider: "geniuspay" });
       }
       this.log.log("Gateway mobile money GeniusPay actif");
     }

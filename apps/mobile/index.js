@@ -3,6 +3,9 @@ import "react-native-gesture-handler";
 import "react-native-url-polyfill/auto";
 import "./src/i18n/i18n";
 import { registerRootComponent } from "expo";
+import { initSentry } from "./src/lib/sentry";
 import App from "./App";
+
+initSentry();
 
 registerRootComponent(App);

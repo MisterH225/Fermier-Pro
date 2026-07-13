@@ -26,6 +26,7 @@ import {
   WeightValidatedBy
 } from "@prisma/client";
 import { FarmAccessService } from "../../common/farm-access.service";
+import { capturePaymentError } from "../../common/sentry-payment.util";
 import { PrismaService } from "../../prisma/prisma.service";
 import type { ResolveDeliveryDisputeDto } from "../dto/resolve-delivery-dispute.dto";
 import { PlatformSettingsService } from "../../platform-settings/platform-settings.service";
@@ -1011,6 +1012,10 @@ export class MarketplaceTransactionService {
         ...(ref ? { paymentProviderRef: ref } : {})
       }
     });
+    capturePaymentError("failPaymentFromWebhook: paiement marketplace échoué", {
+      transactionId,
+      provider: process.env.MOBILE_MONEY_PROVIDER?.trim() || "unknown"
+    });
     return { ok: true };
   }
 
@@ -1609,7 +1614,7 @@ export class MarketplaceTransactionService {
   }
 
   /** @deprecated Route conservée — utiliser declareSellerWeight. */
-  async disputeWeight(user: User, transactionId: string, _reason?: string) {
+  async disputeWeight(_user: User, _transactionId: string, _reason?: string) {
     throw new BadRequestException(
       "Indiquez votre pesée livrée via POST /weight/seller-declare avant toute contestation."
     );

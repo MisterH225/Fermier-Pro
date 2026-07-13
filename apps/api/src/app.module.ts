@@ -2,12 +2,13 @@ import { ThrottlerStorageRedisService } from "@nest-lab/throttler-storage-redis"
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ScheduleModule } from "@nestjs/schedule";
-import { APP_GUARD } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import {
   ThrottlerGuard,
   ThrottlerModule,
   type ThrottlerModuleOptions
 } from "@nestjs/throttler";
+import { SentryGlobalFilter, SentryModule } from "@sentry/nestjs/setup";
 import { join } from "path";
 import { ResilientThrottlerStorage } from "./common/resilient-throttler.storage";
 import { AppController } from "./app.controller";
@@ -62,6 +63,7 @@ import { MerchantShopModule } from "./merchant-shop/merchant-shop.module";
 
 @Module({
   imports: [
+    SentryModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [
@@ -147,6 +149,7 @@ import { MerchantShopModule } from "./merchant-shop/merchant-shop.module";
   controllers: [AppController],
   providers: [
     AppService,
+    { provide: APP_FILTER, useClass: SentryGlobalFilter },
     { provide: APP_GUARD, useClass: ThrottlerGuard }
   ]
 })

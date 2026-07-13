@@ -15,6 +15,7 @@ import {
   MOBILE_MONEY_GATEWAY,
   type MobileMoneyGateway
 } from "../marketplace/escrow/mobile-money.gateway";
+import { capturePaymentError } from "../common/sentry-payment.util";
 import { PrismaService } from "../prisma/prisma.service";
 import { PlatformAccountService } from "./platform-account.service";
 import { UserWalletService } from "./user-wallet.service";
@@ -177,6 +178,10 @@ export class WithdrawalOrchestratorService {
         "Échec initiation retrait — fonds débloqués",
         `withdraw-init-release:${idempotencyKey}`
       );
+      capturePaymentError("payout_failure: échec initiation retrait wallet", {
+        transactionId: idempotencyKey,
+        provider: process.env.MOBILE_MONEY_PROVIDER?.trim() || "unknown"
+      });
       throw error;
     }
   }
@@ -224,6 +229,10 @@ export class WithdrawalOrchestratorService {
           failureReason:
             confirmed.failureReason ?? "Retrait mobile money non confirmé"
         }
+      });
+      capturePaymentError("payout_failure: confirmation retrait échouée", {
+        transactionId: request.id,
+        provider: process.env.MOBILE_MONEY_PROVIDER?.trim() || "unknown"
       });
       throw new BadRequestException(
         confirmed.failureReason ?? "Retrait mobile money non confirmé"
@@ -390,6 +399,10 @@ export class WithdrawalOrchestratorService {
             error instanceof Error ? error.message : "Échec du retrait"
         }
       });
+      capturePaymentError("payout_failure: échec approbation retrait admin", {
+        transactionId: request.id,
+        provider: process.env.MOBILE_MONEY_PROVIDER?.trim() || "unknown"
+      });
       throw error;
     }
   }
@@ -511,6 +524,11 @@ export class WithdrawalOrchestratorService {
         status: WithdrawalRequestStatus.failed,
         failureReason: reason
       }
+    });
+
+    capturePaymentError("payout_failure: retrait échoué via webhook payout", {
+      transactionId: request.id,
+      provider: process.env.MOBILE_MONEY_PROVIDER?.trim() || "unknown"
     });
 
     return true;

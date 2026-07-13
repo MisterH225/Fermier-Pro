@@ -9,9 +9,23 @@ const projectId =
   appJson.expo?.extra?.eas?.projectId?.trim() ||
   EAS_PROJECT_ID;
 
+const plugins = [
+  ...(appJson.expo?.plugins ?? []),
+  [
+    "@sentry/react-native/expo",
+    {
+      // Auth via SENTRY_AUTH_TOKEN (EAS / CI) — ne pas committer de token.
+      // org/project optionnels : utiles pour upload sourcemaps en build native.
+      organization: process.env.SENTRY_ORG?.trim() || undefined,
+      project: process.env.SENTRY_PROJECT?.trim() || undefined
+    }
+  ]
+];
+
 module.exports = {
   expo: {
     ...appJson.expo,
+    plugins,
     extra: {
       ...(appJson.expo?.extra ?? {}),
       eas: {

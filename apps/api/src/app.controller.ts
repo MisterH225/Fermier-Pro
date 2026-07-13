@@ -1,4 +1,12 @@
-import { Controller, Get, Header, NotFoundException, Param } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Header,
+  HttpException,
+  HttpStatus,
+  NotFoundException,
+  Param
+} from "@nestjs/common";
 import { SkipThrottle } from "@nestjs/throttler";
 import { AppService } from "./app.service";
 
@@ -8,8 +16,12 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get("health")
-  health() {
-    return this.appService.health();
+  async health() {
+    const result = await this.appService.health();
+    if (result.status === "error") {
+      throw new HttpException(result, HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    return result;
   }
 
   @Get("health/db")
