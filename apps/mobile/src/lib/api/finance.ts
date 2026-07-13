@@ -1,4 +1,5 @@
 import { apiGetJson, apiPostJson, apiPutJson, apiPatchJson, apiDeleteJson } from "./http";
+import type { ReconciliationOfferDto } from "./feed-stock";
 
 /** Finance — scopes finance.read / finance.write. */
 export type FinanceSummaryDto = {

@@ -1,4 +1,5 @@
 import { apiGetJson, apiPostJson, apiPatchJson, apiDeleteJson } from "./http";
+import type { PenMutationDto } from "./housing";
 
 export type CheptelCategoryBreakdownRow = {
   key: string;

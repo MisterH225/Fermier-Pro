@@ -1,4 +1,5 @@
 import { apiGetJson, apiPostJson, apiPatchJson, apiDeleteJson } from "./http";
+import type { PenAgeDataDto } from "./cheptel";
 
 /** Logement — scopes housing.read / housing.write. */
 export type BarnListItemDto = {

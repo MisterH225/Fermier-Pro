@@ -1,4 +1,5 @@
 import { apiGetJson } from "./http";
+import type { FeedStockComputedStatus } from "./feed-stock";
 
 /** Dashboard accueil producteur — scopes selon endpoint (finance, livestock, health). */
 export type DashboardGestationItemDto = {

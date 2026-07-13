@@ -1,4 +1,8 @@
 import { apiGetJson, apiPostJson, apiPatchJson } from "./http";
+import type {
+  InvitationPermissions,
+  InvitationRecipientKind
+} from "./invitations";
 
 // ─── Profil technicien (`/technicians/me`) ───────────────────────────────────
 
