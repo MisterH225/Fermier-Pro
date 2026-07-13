@@ -17,6 +17,8 @@ import { PrismaService } from "../prisma/prisma.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import { EscrowService } from "./escrow/escrow.service";
 import {
+  ACTIVE_ESCROW_STATUSES,
+  TERMINAL_TRANSACTION_STATUSES,
   calculateBlockedAmount,
   settlementAmounts
 } from "./escrow/transaction.utils";
@@ -39,26 +41,6 @@ const OPEN_LISTING_STATUSES: ListingStatus[] = [
   ListingStatus.delivered,
   ListingStatus.disputed,
   ListingStatus.reserved_credit
-];
-
-const TERMINAL_TX: MarketplaceTransactionStatus[] = [
-  MarketplaceTransactionStatus.TRANSACTION_CLOSED,
-  MarketplaceTransactionStatus.CANCELLED_BY_BUYER,
-  MarketplaceTransactionStatus.CANCELLED_BY_SELLER,
-  MarketplaceTransactionStatus.OFFER_EXPIRED
-];
-
-const REFUND_ON_CANCEL: MarketplaceTransactionStatus[] = [
-  MarketplaceTransactionStatus.PAYMENT_HELD,
-  MarketplaceTransactionStatus.PICKUP_PROPOSED,
-  MarketplaceTransactionStatus.PICKUP_SCHEDULED,
-  MarketplaceTransactionStatus.SELLER_SHIPPED,
-  MarketplaceTransactionStatus.BUYER_RECEIVED,
-  MarketplaceTransactionStatus.DELIVERY_DISPUTED,
-  MarketplaceTransactionStatus.WEIGHT_DECLARED,
-  MarketplaceTransactionStatus.WEIGHT_COUNTER_DECLARED,
-  MarketplaceTransactionStatus.WEIGHT_DISPUTED,
-  MarketplaceTransactionStatus.WEIGHT_VALIDATED
 ];
 
 type ListingRow = {
@@ -279,7 +261,7 @@ export class ListingAnimalSyncService {
     const txs = await this.prisma.marketplaceTransaction.findMany({
       where: {
         listingId,
-        status: { notIn: TERMINAL_TX }
+        status: { notIn: TERMINAL_TRANSACTION_STATUSES }
       }
     });
 
@@ -306,7 +288,7 @@ export class ListingAnimalSyncService {
         continue;
       }
 
-      if (fullRefund && REFUND_ON_CANCEL.includes(tx.status)) {
+      if (fullRefund && ACTIVE_ESCROW_STATUSES.includes(tx.status)) {
         await this.refundIfNeeded(
           tx.id,
           tx.buyerUserId,
@@ -518,7 +500,7 @@ export class ListingAnimalSyncService {
     const txs = await this.prisma.marketplaceTransaction.findMany({
       where: {
         listingId,
-        status: { notIn: TERMINAL_TX }
+        status: { notIn: TERMINAL_TRANSACTION_STATUSES }
       }
     });
 
@@ -580,7 +562,7 @@ export class ListingAnimalSyncService {
           estimatedWeightKg: newEstimatedWeightKg
         });
         const blocked = Number(tx.blockedAmount);
-        if (REFUND_ON_CANCEL.includes(tx.status) && blocked > newBlocked) {
+        if (ACTIVE_ESCROW_STATUSES.includes(tx.status) && blocked > newBlocked) {
           await this.refundIfNeeded(
             tx.id,
             tx.buyerUserId,

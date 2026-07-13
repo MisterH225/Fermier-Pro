@@ -434,3 +434,22 @@ export const CANCELLABLE_BY_SELLER: MarketplaceTransactionStatus[] = [
   MarketplaceTransactionStatus.WEIGHT_VALIDATED,
   MarketplaceTransactionStatus.SELLER_SHIPPED
 ];
+
+/**
+ * Fonds encore en escrow : un cancel (acheteur/vendeur) doit rembourser.
+ * = ACTIVE_ESCROW ∩ (statuts encore annulables via cancel*).
+ * Exclut PAYMENT_PENDING (rien bloqué) et les litiges non couverts par cancel*.
+ */
+export function needsEscrowRefundOnCancel(
+  status: MarketplaceTransactionStatus
+): boolean {
+  return (
+    status === MarketplaceTransactionStatus.PAYMENT_HELD ||
+    status === MarketplaceTransactionStatus.PICKUP_PROPOSED ||
+    status === MarketplaceTransactionStatus.PICKUP_SCHEDULED ||
+    status === MarketplaceTransactionStatus.WEIGHT_DECLARED ||
+    status === MarketplaceTransactionStatus.WEIGHT_COUNTER_DECLARED ||
+    status === MarketplaceTransactionStatus.WEIGHT_VALIDATED ||
+    status === MarketplaceTransactionStatus.SELLER_SHIPPED
+  );
+}
