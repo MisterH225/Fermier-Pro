@@ -61,6 +61,7 @@ if (dsn) {
   Sentry.init({
     dsn,
     environment: process.env.APP_ENV?.trim() || "development",
+    release: process.env.SENTRY_RELEASE?.trim() || undefined,
     tracesSampleRate: 0.1,
     beforeSend(event) {
       if (event.request?.headers) {

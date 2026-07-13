@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Sentry } from "../lib/sentry";
 import { mobileColors, mobileSpacing, mobileTypography } from "../theme/mobileTheme";
 
 type Props = {
@@ -25,6 +26,13 @@ export class AppErrorBoundary extends Component<Props, State> {
     if (typeof __DEV__ !== "undefined" && __DEV__) {
       console.error("[AppErrorBoundary]", error, info.componentStack);
     }
+    Sentry.captureException(error, {
+      contexts: {
+        react: {
+          componentStack: info.componentStack ?? undefined
+        }
+      }
+    });
   }
 
   private handleRetry = (): void => {

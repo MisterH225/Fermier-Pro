@@ -3,6 +3,7 @@ import "./instrument";
 import { ValidationPipe, type LogLevel } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
+import * as Sentry from "@sentry/nestjs";
 import { config as dotenvConfig } from "dotenv";
 import helmet from "helmet";
 import { join } from "path";
@@ -98,5 +99,6 @@ async function bootstrap() {
 void bootstrap().catch((err: unknown) => {
   const message = err instanceof Error ? err.stack ?? err.message : String(err);
   console.error("[bootstrap] Échec fatal au démarrage:", message);
+  Sentry.captureException(err instanceof Error ? err : new Error(message));
   process.exit(1);
 });
