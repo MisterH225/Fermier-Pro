@@ -58,11 +58,25 @@ function scrubValue(value: unknown, keyHint = ""): unknown {
 const dsn = process.env.SENTRY_DSN?.trim();
 
 if (dsn) {
+  // Profiling optionnel : no-op si le binaire natif échoue (CI / Windows).
+  let integrations: unknown[] | undefined;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { nodeProfilingIntegration } = require("@sentry/profiling-node") as {
+      nodeProfilingIntegration: () => unknown;
+    };
+    integrations = [nodeProfilingIntegration()];
+  } catch {
+    integrations = undefined;
+  }
+
   Sentry.init({
     dsn,
     environment: process.env.APP_ENV?.trim() || "development",
     release: process.env.SENTRY_RELEASE?.trim() || undefined,
     tracesSampleRate: 0.1,
+    profilesSampleRate: integrations ? 0.1 : 0,
+    ...(integrations ? { integrations: integrations as never[] } : {}),
     beforeSend(event) {
       if (event.request?.headers) {
         const headers = { ...event.request.headers };
