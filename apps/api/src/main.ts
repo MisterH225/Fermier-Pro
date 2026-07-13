@@ -5,10 +5,15 @@ import { config as dotenvConfig } from "dotenv";
 import helmet from "helmet";
 import { join } from "path";
 import { AppModule } from "./app.module";
+import { assertAppEnvConfiguredOnRailway } from "./marketplace/escrow/runtime-env.util";
 
 async function bootstrap() {
   dotenvConfig({ path: join(process.cwd(), ".env"), override: true });
   dotenvConfig({ path: join(process.cwd(), "../../.env"), override: true });
+
+  // Avant bootstrapProdEnv : refuser un déploiement Railway sans APP_ENV explicite
+  // (évite qu'un script parent invente APP_ENV=staging et masque la misconfig).
+  assertAppEnvConfiguredOnRailway();
 
   // Toujours exécuter avant NestFactory — même si Railway lance dist/main.js directement.
   // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports

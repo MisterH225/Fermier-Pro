@@ -1,4 +1,8 @@
-import { isDeploymentProduction } from "./runtime-env.util";
+import {
+  assertAppEnvConfiguredOnRailway,
+  isDeploymentProduction,
+  isRunningOnRailway
+} from "./runtime-env.util";
 
 describe("isDeploymentProduction", () => {
   const originalAppEnv = process.env.APP_ENV;
@@ -45,5 +49,61 @@ describe("isDeploymentProduction", () => {
     delete process.env.APP_ENV;
     process.env.NODE_ENV = "development";
     expect(isDeploymentProduction()).toBe(false);
+  });
+});
+
+describe("assertAppEnvConfiguredOnRailway", () => {
+  const envKeys = [
+    "APP_ENV",
+    "RAILWAY_ENVIRONMENT",
+    "RAILWAY_PROJECT_ID"
+  ] as const;
+  const originals: Record<string, string | undefined> = {};
+
+  beforeEach(() => {
+    for (const key of envKeys) {
+      originals[key] = process.env[key];
+      delete process.env[key];
+    }
+  });
+
+  afterEach(() => {
+    for (const key of envKeys) {
+      if (originals[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = originals[key];
+      }
+    }
+  });
+
+  it("does not throw locally when APP_ENV is absent and Railway vars are unset", () => {
+    delete process.env.APP_ENV;
+    delete process.env.RAILWAY_ENVIRONMENT;
+    delete process.env.RAILWAY_PROJECT_ID;
+    expect(isRunningOnRailway()).toBe(false);
+    expect(() => assertAppEnvConfiguredOnRailway()).not.toThrow();
+  });
+
+  it("throws when RAILWAY_ENVIRONMENT is set but APP_ENV is absent", () => {
+    process.env.RAILWAY_ENVIRONMENT = "production";
+    delete process.env.APP_ENV;
+    expect(() => assertAppEnvConfiguredOnRailway()).toThrow(
+      /APP_ENV est obligatoire sur Railway/
+    );
+  });
+
+  it("throws when RAILWAY_PROJECT_ID is set but APP_ENV is empty", () => {
+    process.env.RAILWAY_PROJECT_ID = "proj_abc";
+    process.env.APP_ENV = "   ";
+    expect(() => assertAppEnvConfiguredOnRailway()).toThrow(
+      /APP_ENV est obligatoire sur Railway/
+    );
+  });
+
+  it("does not throw on Railway when APP_ENV is set", () => {
+    process.env.RAILWAY_ENVIRONMENT = "production";
+    process.env.APP_ENV = "staging";
+    expect(() => assertAppEnvConfiguredOnRailway()).not.toThrow();
   });
 });

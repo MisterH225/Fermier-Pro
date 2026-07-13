@@ -44,26 +44,29 @@ function bootstrapProdEnv() {
     .trim()
     .toLowerCase();
 
-  // Gateway simulé : l'API doit démarrer en staging même si Railway a APP_ENV=production
-  // ou NODE_ENV=production sans APP_ENV (sinon MobileMoneyGatewayGuard crash au boot).
+  // Gateway simulé hors Railway : APP_ENV absent / NODE_ENV=production → staging par défaut
+  // pour ne pas casser le démarrage local. Sur Railway, main.ts exige APP_ENV explicite
+  // (assertAppEnvConfiguredOnRailway). APP_ENV=production explicite n'est plus masqué :
+  // MobileMoneyGatewayGuard refuse le provider "dev" au boot.
   if (mobileMoneyProvider === "dev") {
     const appEnv = (process.env.APP_ENV ?? "").trim().toLowerCase();
     const isExplicitProduction = appEnv === "production" || appEnv === "prod";
     const isImplicitProduction =
       !appEnv && (process.env.NODE_ENV ?? "").trim().toLowerCase() === "production";
+    const onRailway = Boolean(
+      (process.env.RAILWAY_ENVIRONMENT ?? "").trim() ||
+        (process.env.RAILWAY_PROJECT_ID ?? "").trim()
+    );
 
-    if (!appEnv || isExplicitProduction || isImplicitProduction) {
-      if (isExplicitProduction) {
-        console.warn(
-          "[bootstrap-prod-env] APP_ENV=production incompatible avec MOBILE_MONEY_PROVIDER=dev — forcé à staging. " +
-            "Branchez un provider réel avant APP_ENV=production."
-        );
-      } else {
-        console.warn(
-          "[bootstrap-prod-env] APP_ENV absent avec MOBILE_MONEY_PROVIDER=dev — APP_ENV=staging par défaut. " +
-            "Définissez APP_ENV=production uniquement avec un provider mobile money réel."
-        );
-      }
+    if (isExplicitProduction || onRailway) {
+      return;
+    }
+
+    if (!appEnv || isImplicitProduction) {
+      console.warn(
+        "[bootstrap-prod-env] APP_ENV absent avec MOBILE_MONEY_PROVIDER=dev — APP_ENV=staging par défaut. " +
+          "Définissez APP_ENV=production uniquement avec un provider mobile money réel."
+      );
       process.env.APP_ENV = "staging";
     }
   }

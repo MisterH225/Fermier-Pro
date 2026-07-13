@@ -15,19 +15,19 @@ function resolveMobileMoneyProvider(): string {
 
 /**
  * Refuse le gateway simulé en production tant qu'aucun provider réel n'est branché.
+ * En production : fail-closed (throw). Hors production : log uniquement.
  */
 @Injectable()
-class MobileMoneyGatewayGuard implements OnModuleInit {
+export class MobileMoneyGatewayGuard implements OnModuleInit {
   private readonly log = new Logger(MobileMoneyGatewayGuard.name);
 
   onModuleInit(): void {
     const provider = resolveMobileMoneyProvider();
     if (isDeploymentProduction() && provider === "dev") {
-      this.log.error(
-        "MOBILE_MONEY_PROVIDER=dev avec APP_ENV production — gateway simulé actif. " +
+      throw new Error(
+        "MOBILE_MONEY_PROVIDER=dev interdit en production — gateway simulé. " +
           "Branchez un provider réel (geniuspay, wave, orange, mtn…) avant les paiements réels."
       );
-      return;
     }
     if (provider === "dev") {
       this.log.warn(
@@ -42,26 +42,35 @@ class MobileMoneyGatewayGuard implements OnModuleInit {
         "GENIUSPAY_WEBHOOK_SECRET"
       ].filter((key) => !process.env[key]?.trim());
       if (missing.length > 0) {
-        this.log.error(
-          `MOBILE_MONEY_PROVIDER=geniuspay mais variables manquantes: ${missing.join(", ")}`
-        );
-      } else {
-        const apiKey = process.env.GENIUSPAY_API_KEY?.trim() ?? "";
-        if (apiKey && !/^pk_/i.test(apiKey)) {
-          this.log.error(
-            "GENIUSPAY_API_KEY doit être la clé publique pk_sandbox_/pk_live_ " +
-              "(pas sk_). Voir .env.example et la doc GeniusPay."
-          );
+        const message = `MOBILE_MONEY_PROVIDER=geniuspay mais variables manquantes: ${missing.join(", ")}`;
+        if (isDeploymentProduction()) {
+          throw new Error(message);
         }
-        const webhookSecret = process.env.GENIUSPAY_WEBHOOK_SECRET?.trim() ?? "";
-        if (!/^whsec_/i.test(webhookSecret)) {
-          this.log.error(
-            "GENIUSPAY_WEBHOOK_SECRET doit commencer par whsec_ " +
-              "(secret affiché à la création du webhook GeniusPay, pas GENIUSPAY_API_SECRET sk_)."
-          );
-        }
-        this.log.log("Gateway mobile money GeniusPay actif");
+        this.log.error(message);
+        return;
       }
+
+      const apiKey = process.env.GENIUSPAY_API_KEY?.trim() ?? "";
+      if (apiKey && !/^pk_/i.test(apiKey)) {
+        const message =
+          "GENIUSPAY_API_KEY doit être la clé publique pk_sandbox_/pk_live_ " +
+          "(pas sk_). Voir .env.example et la doc GeniusPay.";
+        if (isDeploymentProduction()) {
+          throw new Error(message);
+        }
+        this.log.error(message);
+      }
+      const webhookSecret = process.env.GENIUSPAY_WEBHOOK_SECRET?.trim() ?? "";
+      if (!/^whsec_/i.test(webhookSecret)) {
+        const message =
+          "GENIUSPAY_WEBHOOK_SECRET doit commencer par whsec_ " +
+          "(secret affiché à la création du webhook GeniusPay, pas GENIUSPAY_API_SECRET sk_).";
+        if (isDeploymentProduction()) {
+          throw new Error(message);
+        }
+        this.log.error(message);
+      }
+      this.log.log("Gateway mobile money GeniusPay actif");
     }
   }
 }
