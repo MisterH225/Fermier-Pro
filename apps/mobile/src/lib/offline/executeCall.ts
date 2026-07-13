@@ -12,15 +12,34 @@ export async function executeOfflineApiCall(
   activeProfileId?: string | null
 ): Promise<unknown> {
   const path = call.path.startsWith("/") ? call.path : `/${call.path}`;
+  const extraHeaders = call.headers;
   switch (call.method) {
     case "POST":
-      return apiPostJson(path, call.body, accessToken, activeProfileId);
+      return apiPostJson(
+        path,
+        call.body,
+        accessToken,
+        activeProfileId,
+        extraHeaders
+      );
     case "PUT":
-      return apiPutJson(path, call.body, accessToken, activeProfileId);
+      return apiPutJson(
+        path,
+        call.body,
+        accessToken,
+        activeProfileId,
+        extraHeaders
+      );
     case "PATCH":
-      return apiPatchJson(path, call.body, accessToken, activeProfileId);
+      return apiPatchJson(
+        path,
+        call.body,
+        accessToken,
+        activeProfileId,
+        extraHeaders
+      );
     case "DELETE":
-      return apiDeleteJson(path, accessToken, activeProfileId);
+      return apiDeleteJson(path, accessToken, activeProfileId, extraHeaders);
     default:
       throw new Error(`Méthode HTTP non supportée: ${call.method}`);
   }

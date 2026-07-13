@@ -19,6 +19,10 @@ import { SegmentedControl } from "../components/ui/SegmentedControl";
 import { useSession } from "../context/SessionContext";
 import { useDeleteFarmBatch } from "../hooks/useDeleteFarmBatch";
 import {
+  offlineQueuedMessage,
+  useOfflineMutation
+} from "../hooks/useOfflineMutation";
+import {
   fetchBatchHealthEvents,
   fetchFarmBatch,
   postBatchHealthEvent,
@@ -26,6 +30,7 @@ import {
   type BatchHealthEventRow,
   type PostBatchHealthEventPayload
 } from "../lib/api";
+import { isOfflineQueuedResult } from "../lib/offline/types";
 import {
   mobileColors,
   mobileRadius,
@@ -88,34 +93,55 @@ export function BatchDetailScreen({ route, navigation }: Props) {
     queryFn: () => fetchFarmBatch(accessToken, farmId, batchId, activeProfileId)
   });
 
-  const mutation = useMutation({
+  const buildBatchWeightPayload = () => {
+    const avg = Number.parseFloat(avgText.replace(",", "."));
+    if (!Number.isFinite(avg) || avg <= 0) {
+      throw new Error("Indique un poids moyen valide (kg).");
+    }
+    let headcountSnapshot: number | undefined;
+    const ht = headText.trim();
+    if (ht) {
+      const h = Number.parseInt(ht, 10);
+      if (!Number.isFinite(h) || h < 0) {
+        throw new Error("Effectif optionnel : nombre entier positif.");
+      }
+      headcountSnapshot = h;
+    }
+    return {
+      avgWeightKg: avg,
+      headcountSnapshot,
+      note: noteText.trim() || undefined
+    };
+  };
+
+  const mutation = useOfflineMutation({
+    farmId,
+    type: "cheptel.postBatchWeight",
+    label: t("offline.labels.batchWeight"),
     mutationFn: async () => {
-      const avg = Number.parseFloat(avgText.replace(",", "."));
-      if (!Number.isFinite(avg) || avg <= 0) {
-        throw new Error("Indique un poids moyen valide (kg).");
-      }
-      let headcountSnapshot: number | undefined;
-      const ht = headText.trim();
-      if (ht) {
-        const h = Number.parseInt(ht, 10);
-        if (!Number.isFinite(h) || h < 0) {
-          throw new Error("Effectif optionnel : nombre entier positif.");
-        }
-        headcountSnapshot = h;
-      }
+      const payload = buildBatchWeightPayload();
       return postBatchWeight(
         accessToken,
         farmId,
         batchId,
-        {
-          avgWeightKg: avg,
-          headcountSnapshot,
-          note: noteText.trim() || undefined
-        },
+        payload,
         activeProfileId
       );
     },
-    onSuccess: () => {
+    buildOfflineItem: () => {
+      const payload = buildBatchWeightPayload();
+      return {
+        calls: [
+          {
+            method: "POST",
+            path: `/farms/${farmId}/batches/${batchId}/weights`,
+            body: payload
+          }
+        ],
+        invalidateRoots: ["farmBatch", "farmBatches"]
+      };
+    },
+    onSuccess: (data) => {
       setAvgText("");
       setHeadText("");
       setNoteText("");
@@ -125,6 +151,15 @@ export function BatchDetailScreen({ route, navigation }: Props) {
       void queryClient.invalidateQueries({
         queryKey: ["farmBatches", farmId]
       });
+      if (isOfflineQueuedResult(data)) {
+        Alert.alert("", offlineQueuedMessage(t));
+      }
+    },
+    onQueued: () => {
+      setAvgText("");
+      setHeadText("");
+      setNoteText("");
+      Alert.alert("", offlineQueuedMessage(t));
     },
     onError: (e: Error) => {
       Alert.alert(t("common.errors.saveFailed"), getUserFacingError(e, t));

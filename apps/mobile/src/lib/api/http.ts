@@ -74,7 +74,8 @@ export async function apiPostJson<T>(
   path: string,
   body: unknown,
   accessToken: string,
-  activeProfileId?: string | null
+  activeProfileId?: string | null,
+  extraHeaders?: Record<string, string>
 ): Promise<T> {
   const p = path.startsWith("/") ? path : `/${path}`;
   const url = `${apiBaseUrl()}/api/v1${p}`;
@@ -82,7 +83,8 @@ export async function apiPostJson<T>(
     method: "POST",
     headers: {
       ...apiAuthHeaders(accessToken, activeProfileId),
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      ...extraHeaders
     },
     body: JSON.stringify(body)
   });
@@ -98,7 +100,8 @@ export async function apiPutJson<T>(
   path: string,
   body: unknown,
   accessToken: string,
-  activeProfileId?: string | null
+  activeProfileId?: string | null,
+  extraHeaders?: Record<string, string>
 ): Promise<T> {
   const p = path.startsWith("/") ? path : `/${path}`;
   const url = `${apiBaseUrl()}/api/v1${p}`;
@@ -106,7 +109,8 @@ export async function apiPutJson<T>(
     method: "PUT",
     headers: {
       ...apiAuthHeaders(accessToken, activeProfileId),
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      ...extraHeaders
     },
     body: JSON.stringify(body)
   });
@@ -122,7 +126,8 @@ export async function apiPatchJson<T>(
   path: string,
   body: unknown,
   accessToken: string,
-  activeProfileId?: string | null
+  activeProfileId?: string | null,
+  extraHeaders?: Record<string, string>
 ): Promise<T> {
   const p = path.startsWith("/") ? path : `/${path}`;
   const url = `${apiBaseUrl()}/api/v1${p}`;
@@ -130,7 +135,8 @@ export async function apiPatchJson<T>(
     method: "PATCH",
     headers: {
       ...apiAuthHeaders(accessToken, activeProfileId),
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      ...extraHeaders
     },
     body: JSON.stringify(body)
   });
@@ -166,13 +172,17 @@ export async function apiPostFormData<T>(
 export async function apiDeleteJson<T>(
   path: string,
   accessToken: string,
-  activeProfileId?: string | null
+  activeProfileId?: string | null,
+  extraHeaders?: Record<string, string>
 ): Promise<T> {
   const p = path.startsWith("/") ? path : `/${path}`;
   const url = `${apiBaseUrl()}/api/v1${p}`;
   const res = await fetch(url, {
     method: "DELETE",
-    headers: apiAuthHeaders(accessToken, activeProfileId)
+    headers: {
+      ...apiAuthHeaders(accessToken, activeProfileId),
+      ...extraHeaders
+    }
   });
   const text = await res.text();
   if (!res.ok) {

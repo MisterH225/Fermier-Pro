@@ -16,6 +16,7 @@ import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.decorator";
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
+import { Idempotent } from "../common/idempotency/idempotent.decorator";
 import { CreateGestationDto } from "./dto/create-gestation.dto";
 import { UpdateGestationDto } from "./dto/update-gestation.dto";
 import { PatchGestationStatusDto } from "./dto/patch-gestation-status.dto";
@@ -137,6 +138,7 @@ export class GestationController {
 
   @Post("gestations/:gestationId/litter")
   @RequireFarmScopes(FARM_SCOPE.livestockWrite)
+  @Idempotent()
   recordLitter(
     @CurrentUser() user: User,
     @Param("gestationId") gestationId: string,

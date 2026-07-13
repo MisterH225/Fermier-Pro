@@ -6,7 +6,11 @@ import { isNetworkError } from "./network";
 import { loadIdMappings, saveIdMappings } from "./queueStore";
 import { resolveOfflineValue } from "./resolveTemplates";
 import type { OfflineIdMappings, OfflineQueueItem } from "./types";
-import { offlineLocalId } from "./types";
+import {
+  OFFLINE_MAX_RETRIES,
+  attachIdempotencyHeaders,
+  offlineLocalId
+} from "./types";
 
 export type SyncOneItemResult =
   | { ok: true; item: OfflineQueueItem; idMappings: OfflineIdMappings }
@@ -58,8 +62,12 @@ export async function syncOneQueueItem(
     let work = await uploadProofIfNeeded(item, accessToken);
     const results: unknown[] = [];
     const nextMappings = { ...idMappings };
+    const calls = attachIdempotencyHeaders(
+      work.calls,
+      work.idempotencyKey || item.id
+    );
 
-    for (const call of work.calls) {
+    for (const call of calls) {
       const path = resolveOfflineValue(call.path, results, nextMappings) as string;
       const body = resolveOfflineValue(call.body, results, nextMappings);
       const res = await executeOfflineApiCall(
@@ -82,19 +90,20 @@ export async function syncOneQueueItem(
 
     return {
       ok: true,
-      item: { ...syncing, status: "pending" },
+      item: { ...syncing, status: "synced", lastError: undefined },
       idMappings: nextMappings
     };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     const retryable = isNetworkError(e);
+    const retryCount = item.retryCount + 1;
     return {
       ok: false,
       item: {
         ...syncing,
         status: "failed",
         lastError: msg,
-        retryCount: item.retryCount + 1
+        retryCount
       },
       retryable
     };
@@ -111,6 +120,12 @@ export function invalidateAfterSync(
   }
 }
 
+/**
+ * Rejoue la file dans l’ordre FIFO.
+ * - succès → `synced`
+ * - erreur réseau → stop (conserve l’ordre), incrémente `retryCount`
+ * - erreur métier ou ≥ OFFLINE_MAX_RETRIES → `failed` permanent, passe au suivant
+ */
 export async function syncOfflineQueue(options: {
   items: OfflineQueueItem[];
   accessToken: string;
@@ -119,33 +134,70 @@ export async function syncOfflineQueue(options: {
   onProgress?: (remaining: number) => void;
 }): Promise<OfflineQueueItem[]> {
   const { accessToken, activeProfileId, queryClient, onProgress } = options;
-  let remaining = [...options.items];
+  const items = options.items.map((i) => ({ ...i }));
   let idMappings = await loadIdMappings();
+  let index = 0;
 
-  while (remaining.length > 0) {
-    const head = remaining[0]!;
-    if (head.status === "failed" && head.retryCount > 5) {
-      break;
+  while (index < items.length) {
+    const head = items[index]!;
+    if (head.status === "synced") {
+      index += 1;
+      continue;
     }
+    if (head.status === "failed" && head.retryCount >= OFFLINE_MAX_RETRIES) {
+      index += 1;
+      continue;
+    }
+
     const result = await syncOneQueueItem(
       head,
       accessToken,
       activeProfileId,
       idMappings
     );
+
     if (result.ok) {
       idMappings = result.idMappings;
+      items[index] = result.item;
       invalidateAfterSync(queryClient, head.farmId, head.invalidateRoots);
-      remaining = remaining.slice(1);
-    } else {
-      remaining = [result.item, ...remaining.slice(1)];
-      if (result.retryable) {
-        break;
-      }
-      remaining = remaining.slice(1);
+      index += 1;
+      onProgress?.(items.filter((i) => i.status === "pending" || i.status === "syncing").length);
+      continue;
     }
-    onProgress?.(remaining.length);
+
+    items[index] = result.item;
+
+    if (!result.retryable) {
+      // Erreur métier : échec définitif immédiat.
+      items[index] = {
+        ...result.item,
+        status: "failed",
+        retryCount: OFFLINE_MAX_RETRIES
+      };
+      index += 1;
+      onProgress?.(items.filter((i) => i.status === "pending" || i.status === "syncing").length);
+      continue;
+    }
+
+    if (result.item.retryCount >= OFFLINE_MAX_RETRIES) {
+      index += 1;
+      onProgress?.(items.filter((i) => i.status === "pending" || i.status === "syncing").length);
+      continue;
+    }
+
+    // Réseau : stop pour préserver l’ordre au prochain retour réseau.
+    break;
   }
 
-  return remaining;
+  return items;
+}
+
+/** Remet un item en file pour un nouvel essai (bouton Réessayer). */
+export function resetQueueItemForRetry(item: OfflineQueueItem): OfflineQueueItem {
+  return {
+    ...item,
+    status: "pending",
+    retryCount: 0,
+    lastError: undefined
+  };
 }

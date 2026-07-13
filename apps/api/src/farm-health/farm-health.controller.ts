@@ -16,6 +16,7 @@ import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.decorator";
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
+import { Idempotent } from "../common/idempotency/idempotent.decorator";
 import { CreateFarmHealthRecordDto } from "./dto/create-farm-health-record.dto";
 import { CreateDiseaseCaseDto } from "./dto/create-disease-case.dto";
 import { AddDiseaseTreatmentDto } from "./dto/add-disease-treatment.dto";
@@ -70,6 +71,7 @@ export class FarmHealthController {
 
   @Post("events")
   @RequireFarmScopes(FARM_SCOPE.healthWrite)
+  @Idempotent()
   createEvent(
     @CurrentUser() user: User,
     @Param("farmId") farmId: string,

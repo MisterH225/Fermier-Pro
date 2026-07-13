@@ -3589,3 +3589,20 @@ model MerchantProductModerationLog {
   @@index([adminUserId])
 }
 
+/// Déduplication des rejeux offline (header X-Idempotency-Key).
+model IdempotencyKey {
+  id           String   @id @default(cuid())
+  key          String   @unique
+  userId       String
+  method       String
+  path         String
+  /// 0 = en cours ; sinon code HTTP de la réponse mise en cache.
+  statusCode   Int      @default(0)
+  responseBody Json?
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+}
+

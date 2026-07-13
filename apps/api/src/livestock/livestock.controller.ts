@@ -17,6 +17,7 @@ import { CheptelService } from "../cheptel/cheptel.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.decorator";
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
+import { Idempotent } from "../common/idempotency/idempotent.decorator";
 import { setDeprecatedSuccessor } from "../common/http/deprecation.util";
 import { BulkCreateAnimalsDto } from "./dto/bulk-create-animals.dto";
 import { CreateAnimalDto } from "./dto/create-animal.dto";
@@ -109,6 +110,7 @@ export class LivestockController {
 
   @Post(":animalId/weights")
   @RequireFarmScopes(FARM_SCOPE.livestockWrite)
+  @Idempotent()
   addWeight(
     @CurrentUser() user: User,
     @Param("farmId") farmId: string,

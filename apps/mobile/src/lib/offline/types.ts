@@ -3,9 +3,34 @@ export type OfflineApiCall = {
   method: "POST" | "PUT" | "PATCH" | "DELETE";
   path: string;
   body?: unknown;
+  headers?: Record<string, string>;
 };
 
-export type OfflineQueueItemStatus = "pending" | "syncing" | "failed";
+export type OfflineQueueItemStatus =
+  | "pending"
+  | "syncing"
+  | "synced"
+  | "failed";
+
+/** Tentatives max avant échec définitif. */
+export const OFFLINE_MAX_RETRIES = 5;
+
+export const IDEMPOTENCY_HEADER = "X-Idempotency-Key";
+
+/**
+ * Types de mutations terrain couverts par la file offline critique.
+ * (pesées, santé/mortalités, mises bas, finances, pesée bande)
+ */
+export const CRITICAL_OFFLINE_MUTATION_TYPES = [
+  "cheptel.postWeight",
+  "cheptel.postBatchWeight",
+  "health.createRecord",
+  "gestation.recordLitter",
+  "finance.postTransaction"
+] as const;
+
+export type CriticalOfflineMutationType =
+  (typeof CRITICAL_OFFLINE_MUTATION_TYPES)[number];
 
 /**
  * Action métier mise en file. `calls` sont exécutés dans l'ordre ;
@@ -22,6 +47,8 @@ export type OfflineQueueItem = {
   status: OfflineQueueItemStatus;
   retryCount: number;
   lastError?: string;
+  /** UUID généré à la mise en file → header X-Idempotency-Key au rejeu. */
+  idempotencyKey: string;
   /** URI locale (justificatif finance) à uploader avant le POST. */
   localProofUri?: string;
   proofMeta?: { farmId: string; txRef: string; mime: string };
@@ -51,4 +78,31 @@ export function isOfflineQueuedResult(
 
 export function offlineLocalId(queueItemId: string): string {
   return `offline:${queueItemId}`;
+}
+
+/** UUID v4 pour clé d’idempotence (file offline). */
+export function createIdempotencyKey(): string {
+  const c = globalThis.crypto as { randomUUID?: () => string } | undefined;
+  if (c?.randomUUID) {
+    return c.randomUUID();
+  }
+  return `idem_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+}
+
+export function isPermanentFailure(item: OfflineQueueItem): boolean {
+  return item.status === "failed" && item.retryCount >= OFFLINE_MAX_RETRIES;
+}
+
+export function attachIdempotencyHeaders(
+  calls: OfflineApiCall[],
+  idempotencyKey: string
+): OfflineApiCall[] {
+  return calls.map((call, index) => ({
+    ...call,
+    headers: {
+      ...call.headers,
+      [IDEMPOTENCY_HEADER]:
+        calls.length > 1 ? `${idempotencyKey}:${index}` : idempotencyKey
+    }
+  }));
 }

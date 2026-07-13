@@ -1604,11 +1604,21 @@ export const en = {
   offline: {
     bannerOffline:
       "Offline — your entries are saved on device and will sync when the network is back.",
-    queuePending: "{{count}} action(s) waiting to sync",
+    queuePending: "{{count}} entr(y/ies) waiting to sync",
     queueFailed:
       "{{pending}} pending · {{failed}} failed (tap Sync)",
+    queueSyncedOnly: "Sync complete",
     syncNow: "Sync",
-    queuedSuccess: "Saved on device — will sync when the network is available."
+    retry: "Retry",
+    itemPending: "Pending",
+    itemSyncing: "Sending…",
+    itemSynced: "Sent",
+    itemFailed: "Permanently failed",
+    itemRetrying: "Failed (attempt {{count}}/5)",
+    queuedSuccess: "Saved on device — will sync when the network is available.",
+    labels: {
+      batchWeight: "Batch weighing"
+    }
   },
   cheptel: {
     navOverview: "Overview",

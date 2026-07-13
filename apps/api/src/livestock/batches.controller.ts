@@ -14,6 +14,7 @@ import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.decorator";
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
+import { Idempotent } from "../common/idempotency/idempotent.decorator";
 import { CreateHealthEventDto } from "../health-events/dto/create-health-event.dto";
 import { BatchesService } from "./batches.service";
 import { CreateBatchWeightDto } from "./dto/create-batch-weight.dto";
@@ -75,6 +76,7 @@ export class BatchesController {
 
   @Post(":batchId/weights")
   @RequireFarmScopes(FARM_SCOPE.livestockWrite)
+  @Idempotent()
   addWeight(
     @CurrentUser() user: User,
     @Param("farmId") farmId: string,

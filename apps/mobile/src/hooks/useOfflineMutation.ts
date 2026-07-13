@@ -6,6 +6,8 @@ import {
 import { isNetworkError } from "../lib/offline/network";
 import type { OfflineQueueItem } from "../lib/offline/types";
 import {
+  attachIdempotencyHeaders,
+  createIdempotencyKey,
   isOfflineQueuedResult,
   OFFLINE_QUEUED,
   offlineLocalId,
@@ -55,12 +57,15 @@ export function useOfflineMutation<TVariables = void>(
 
       const built = config.buildOfflineItem(variables);
       const queueItemId = createOfflineQueueId();
+      const idempotencyKey = createIdempotencyKey();
       await enqueue({
         id: queueItemId,
         farmId: config.farmId,
         type: config.type,
         label: config.label,
         ...built,
+        calls: attachIdempotencyHeaders(built.calls, idempotencyKey),
+        idempotencyKey,
         localEntityId:
           built.localEntityId ??
           (config.assignLocalEntityId
@@ -108,4 +113,3 @@ export function offlineAwareMessage(
     ? offlineQueuedMessage(t)
     : t(onlineMessageKey);
 }
-

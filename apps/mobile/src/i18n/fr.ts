@@ -1629,12 +1629,22 @@ export const fr = {
   offline: {
     bannerOffline:
       "Hors ligne — vos saisies sont enregistrées localement et seront synchronisées au retour du réseau.",
-    queuePending: "{{count}} action(s) en attente de synchronisation",
+    queuePending: "{{count}} saisie(s) en attente de synchronisation",
     queueFailed:
       "{{pending}} en attente · {{failed}} en échec (appuyez sur Synchroniser)",
+    queueSyncedOnly: "Synchronisation terminée",
     syncNow: "Synchroniser",
+    retry: "Réessayer",
+    itemPending: "En attente",
+    itemSyncing: "Envoi…",
+    itemSynced: "Envoyé",
+    itemFailed: "Échec définitif",
+    itemRetrying: "Échec (essai {{count}}/5)",
     queuedSuccess:
-      "Enregistré sur l’appareil — synchronisation dès que le réseau est disponible."
+      "Enregistré sur l’appareil — synchronisation dès que le réseau est disponible.",
+    labels: {
+      batchWeight: "Pesée de bande"
+    }
   },
   cheptel: {
     navOverview: "Vue d'ensemble",

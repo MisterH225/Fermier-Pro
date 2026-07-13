@@ -10,6 +10,28 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useOfflineSync } from "../context/OfflineSyncContext";
+import { isPermanentFailure } from "../lib/offline/types";
+import type { OfflineQueueItem } from "../lib/offline/types";
+import { mobileColors, mobileSpacing } from "../theme/mobileTheme";
+
+function statusLabel(
+  item: OfflineQueueItem,
+  t: (key: string, opts?: Record<string, unknown>) => string
+): string {
+  if (item.status === "synced") {
+    return t("offline.itemSynced");
+  }
+  if (isPermanentFailure(item)) {
+    return t("offline.itemFailed");
+  }
+  if (item.status === "syncing") {
+    return t("offline.itemSyncing");
+  }
+  if (item.status === "failed") {
+    return t("offline.itemRetrying", { count: item.retryCount });
+  }
+  return t("offline.itemPending");
+}
 
 /**
  * Bandeau réseau + file de synchronisation offline-first.
@@ -18,12 +40,15 @@ export function OfflineBanner() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [offline, setOffline] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const {
     pendingCount,
     failedCount,
     isSyncing,
     syncNow,
-    isOnline
+    isOnline,
+    queue,
+    retryItem
   } = useOfflineSync();
 
   useEffect(() => {
@@ -42,7 +67,8 @@ export function OfflineBanner() {
     };
   }, []);
 
-  const showQueue = pendingCount > 0 || failedCount > 0;
+  const awaitingCount = pendingCount + failedCount;
+  const showQueue = queue.length > 0;
   if (!offline && !showQueue) {
     return null;
   }
@@ -56,27 +82,60 @@ export function OfflineBanner() {
         <Text style={styles.text}>{t("offline.bannerOffline")}</Text>
       ) : null}
       {showQueue ? (
-        <View style={styles.row}>
-          {isSyncing ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : null}
-          <Text style={styles.queueText}>
-            {failedCount > 0
-              ? t("offline.queueFailed", {
-                  pending: pendingCount,
-                  failed: failedCount
-                })
-              : t("offline.queuePending", { count: pendingCount })}
-          </Text>
-          {isOnline && !isSyncing ? (
+        <View style={styles.queueBlock}>
+          <View style={styles.row}>
+            {isSyncing ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : null}
             <Pressable
-              onPress={() => void syncNow()}
+              onPress={() => setExpanded((v) => !v)}
               accessibilityRole="button"
-              hitSlop={8}
             >
-              <Text style={styles.syncBtn}>{t("offline.syncNow")}</Text>
+              <Text style={styles.queueText}>
+                {awaitingCount > 0
+                  ? t("offline.queuePending", { count: awaitingCount })
+                  : t("offline.queueSyncedOnly")}
+              </Text>
             </Pressable>
-          ) : null}
+            {isOnline && !isSyncing && pendingCount > 0 ? (
+              <Pressable
+                onPress={() => void syncNow()}
+                accessibilityRole="button"
+                hitSlop={8}
+              >
+                <Text style={styles.syncBtn}>{t("offline.syncNow")}</Text>
+              </Pressable>
+            ) : null}
+          </View>
+
+          {expanded
+            ? queue.map((item) => (
+                <View key={item.id} style={styles.itemRow}>
+                  <View style={styles.itemTextCol}>
+                    <Text style={styles.itemLabel} numberOfLines={1}>
+                      {item.label}
+                    </Text>
+                    <Text style={styles.itemStatus}>{statusLabel(item, t)}</Text>
+                    {item.lastError && isPermanentFailure(item) ? (
+                      <Text style={styles.itemError} numberOfLines={2}>
+                        {item.lastError}
+                      </Text>
+                    ) : null}
+                  </View>
+                  {isPermanentFailure(item) ? (
+                    <Pressable
+                      onPress={() => void retryItem(item.id)}
+                      accessibilityRole="button"
+                      style={styles.retryBtn}
+                    >
+                      <Text style={styles.retryBtnText}>
+                        {t("offline.retry")}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ))
+            : null}
         </View>
       ) : null}
     </View>
@@ -96,6 +155,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 18
   },
+  queueBlock: {
+    gap: 8
+  },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -113,5 +175,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     textDecorationLine: "underline"
+  },
+  itemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.sm,
+    backgroundColor: "rgba(0,0,0,0.18)",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8
+  },
+  itemTextCol: {
+    flex: 1,
+    gap: 2
+  },
+  itemLabel: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600"
+  },
+  itemStatus: {
+    color: "#FFE082",
+    fontSize: 11
+  },
+  itemError: {
+    color: "#ffcdd2",
+    fontSize: 10,
+    lineHeight: 13
+  },
+  retryBtn: {
+    backgroundColor: mobileColors.accent,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6
+  },
+  retryBtnText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "700"
   }
 });
