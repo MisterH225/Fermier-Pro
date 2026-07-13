@@ -35,7 +35,6 @@ import {
   apiPutJson
 } from "./api/http";
 
-export type OnboardingStatusDto = {
 export type AIInsightDto = {
   type: string;
   priority: "critical" | "warning" | "info";

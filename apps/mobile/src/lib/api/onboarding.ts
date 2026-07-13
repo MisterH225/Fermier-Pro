@@ -1,5 +1,6 @@
 import { apiGetJson, apiPostJson } from "./http";
 
+export type OnboardingStatusDto = {
   isOnboarded: boolean;
   onboardingSkipped: boolean;
 };
@@ -60,4 +61,3 @@ export function postOnboardingSkip(
     activeProfileId
   );
 }
-
