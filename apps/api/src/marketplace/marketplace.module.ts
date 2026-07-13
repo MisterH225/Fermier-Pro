@@ -11,8 +11,7 @@ import {
   MarketplaceTransactionController,
   MarketplaceTransactionCronService,
   MarketplaceTransactionService,
-  MobileMoneyModule,
-  MobileMoneyWebhookController
+  MobileMoneyModule
 } from "./escrow";
 import { GeniusPayWebhookController } from "./escrow/geniuspay/geniuspay-webhook.controller";
 import { ReceiptController, ReceiptCronService, ReceiptPdfService, ReceiptService, ReceiptVerifyController } from "./receipts";
@@ -57,7 +56,6 @@ import { ListingAnimalSyncService } from "./listing-animal-sync.service";
     MarketplaceTransactionController,
     MarketplaceDisputesController,
     CreditOffersController,
-    MobileMoneyWebhookController,
     GeniusPayWebhookController,
     ReceiptController,
     ReceiptVerifyController
