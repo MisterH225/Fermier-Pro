@@ -144,7 +144,6 @@ export function NotificationSettingsRow() {
           />
         )}
       </View>
-      <Text style={styles.disclaimer}>{t("account.notificationsDeliveryNote")}</Text>
     </Card>
   );
 }
@@ -181,12 +180,5 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: mobileColors.textSecondary,
     marginTop: 4
-  },
-  disclaimer: {
-    ...mobileTypography.meta,
-    fontSize: 12,
-    lineHeight: 17,
-    color: mobileColors.textSecondary,
-    marginTop: mobileSpacing.md
   }
 });

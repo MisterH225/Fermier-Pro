@@ -331,8 +331,6 @@ export const en = {
     notificationsSaveError: "Could not save notification preferences.",
     notificationsDemoBlocked: "Demo mode: notification API settings are disabled.",
     notificationsA11y: "Enable or disable push notifications",
-    notificationsDeliveryNote:
-      "Actual push delivery (server → Expo) is not wired yet: only preferences and the device token are stored on the API.",
     dangerZone: {
       label: "Danger",
       deleteAccount: "Delete my account"

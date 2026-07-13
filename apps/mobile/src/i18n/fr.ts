@@ -331,8 +331,6 @@ export const fr = {
     notificationsSaveError: "Impossible d’enregistrer les préférences.",
     notificationsDemoBlocked: "En mode démo, les réglages notifications API sont désactivés.",
     notificationsA11y: "Activer ou désactiver les notifications push",
-    notificationsDeliveryNote:
-      "L’envoi réel des messages push (serveur → Expo) n’est pas encore branché : seules les préférences et le jeton sont enregistrés côté API.",
     dangerZone: {
       label: "Danger",
       deleteAccount: "Supprimer mon compte"
