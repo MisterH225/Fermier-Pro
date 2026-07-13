@@ -49,7 +49,7 @@ export class HistoricalRecordsController {
   @UseInterceptors(
     FileInterceptor("file", {
       storage: memoryStorage(),
-      limits: { fileSize: 5 * 1024 * 1024 }
+      limits: { fileSize: 10 * 1024 * 1024 }
     })
   )
   previewImport(@UploadedFile() file: Express.Multer.File) {

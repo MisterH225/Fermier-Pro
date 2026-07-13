@@ -9,8 +9,8 @@ import {
   HistoricalMovementType,
   Prisma
 } from "@prisma/client";
+import ExcelJS from "exceljs";
 import * as Papa from "papaparse";
-import * as XLSX from "xlsx";
 import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { ProfitabilityEngine } from "../profitability/profitability.engine";
@@ -30,6 +30,9 @@ type ParseResult = {
   summary: { total_income: number; total_expense: number; count: number };
 };
 
+/** Max upload size for historical import files (Excel / CSV). */
+export const HISTORICAL_IMPORT_MAX_BYTES = 10 * 1024 * 1024;
+
 @Injectable()
 export class HistoricalImportService {
   constructor(
@@ -38,7 +41,13 @@ export class HistoricalImportService {
     private readonly profitability: ProfitabilityEngine
   ) {}
 
-  parseFile(fileBuffer: Buffer, filename: string): ParseResult {
+  async parseFile(fileBuffer: Buffer, filename: string): Promise<ParseResult> {
+    if (fileBuffer.length > HISTORICAL_IMPORT_MAX_BYTES) {
+      throw new BadRequestException(
+        "Fichier trop volumineux (maximum 10 Mo)."
+      );
+    }
+
     const lower = filename.toLowerCase();
     let rawRows: Record<string, unknown>[] = [];
 
@@ -56,20 +65,26 @@ export class HistoricalImportService {
         );
       }
       rawRows = parsed.data;
-    } else if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
-      const workbook = XLSX.read(fileBuffer, { type: "buffer" });
-      const sheetName = workbook.SheetNames[0];
-      if (!sheetName) {
-        throw new BadRequestException("Fichier Excel vide");
+    } else if (lower.endsWith(".xls") && !lower.endsWith(".xlsx")) {
+      throw new BadRequestException(
+        "Le format .xls (Excel 97-2003) n'est plus supporté. Enregistrez le fichier en .xlsx ou utilisez un CSV."
+      );
+    } else if (lower.endsWith(".xlsx")) {
+      try {
+        rawRows = await this.parseXlsxBuffer(fileBuffer);
+      } catch (error) {
+        if (error instanceof BadRequestException) {
+          throw error;
+        }
+        throw new BadRequestException(
+          `Erreur de lecture Excel: ${
+            error instanceof Error ? error.message : "fichier invalide ou corrompu"
+          }`
+        );
       }
-      const sheet = workbook.Sheets[sheetName];
-      rawRows = XLSX.utils.sheet_to_json(sheet, { defval: "" }) as Record<
-        string,
-        unknown
-      >[];
     } else {
       throw new BadRequestException(
-        "Format non supporté. Utilisez CSV, XLS ou XLSX."
+        "Format non supporté. Utilisez CSV ou XLSX."
       );
     }
 
@@ -103,6 +118,90 @@ export class HistoricalImportService {
         count: validRows.length
       }
     };
+  }
+
+  /**
+   * Reads the first worksheet of an .xlsx buffer into row objects
+   * (header row → keys), matching SheetJS sheet_to_json({ defval: "" }).
+   */
+  private async parseXlsxBuffer(
+    fileBuffer: Buffer
+  ): Promise<Record<string, unknown>[]> {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(fileBuffer as unknown as ExcelJS.Buffer);
+    const sheet = workbook.worksheets[0];
+    if (!sheet || sheet.actualRowCount === 0) {
+      throw new BadRequestException("Fichier Excel vide");
+    }
+
+    const headerRow = sheet.getRow(1);
+    const headers: { col: number; key: string }[] = [];
+    headerRow.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+      const key = String(this.cellToPrimitive(cell.value) ?? "").trim();
+      if (key) {
+        headers.push({ col: colNumber, key });
+      }
+    });
+
+    if (!headers.length) {
+      throw new BadRequestException("Fichier Excel vide");
+    }
+
+    const rawRows: Record<string, unknown>[] = [];
+
+    sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      if (rowNumber === 1) {
+        return;
+      }
+      const obj: Record<string, unknown> = {};
+      let hasValue = false;
+      for (const { col, key } of headers) {
+        const value = this.cellToPrimitive(row.getCell(col).value);
+        obj[key] = value === null || value === undefined ? "" : value;
+        if (obj[key] !== "") {
+          hasValue = true;
+        }
+      }
+      if (hasValue) {
+        rawRows.push(obj);
+      }
+    });
+
+    return rawRows;
+  }
+
+  private cellToPrimitive(value: ExcelJS.CellValue): unknown {
+    if (value === null || value === undefined) {
+      return "";
+    }
+    if (
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
+      return value;
+    }
+    if (value instanceof Date) {
+      const y = value.getFullYear();
+      const m = String(value.getMonth() + 1).padStart(2, "0");
+      const d = String(value.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+    if (typeof value === "object") {
+      if ("richText" in value && Array.isArray(value.richText)) {
+        return value.richText.map((t) => t.text).join("");
+      }
+      if ("text" in value && typeof value.text === "string") {
+        return value.text;
+      }
+      if ("result" in value) {
+        return this.cellToPrimitive(value.result as ExcelJS.CellValue);
+      }
+      if ("error" in value) {
+        return "";
+      }
+    }
+    return String(value);
   }
 
   async confirmImport(
