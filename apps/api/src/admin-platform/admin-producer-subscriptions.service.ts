@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import {
   MerchantSubscriptionInvoiceStatus,
   MerchantSubscriptionStatus,
-  MerchantSubscriptionTier,
   Prisma
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";

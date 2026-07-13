@@ -10,6 +10,7 @@ describe("UserWalletService", () => {
     userWallet: {
       upsert: jest.Mock;
       update: jest.Mock;
+      updateMany: jest.Mock;
     };
     userWalletEntry: {
       findUnique: jest.Mock;
@@ -25,7 +26,8 @@ describe("UserWalletService", () => {
       user: { findUnique: jest.fn() },
       userWallet: {
         upsert: jest.fn(),
-        update: jest.fn()
+        update: jest.fn(),
+        updateMany: jest.fn()
       },
       userWalletEntry: {
         findUnique: jest.fn(),
@@ -52,6 +54,7 @@ describe("UserWalletService", () => {
       .mockResolvedValueOnce({ id: "w-from", balance: 5000, userId: "user-a" })
       .mockResolvedValueOnce({ id: "w-to", balance: 1000, userId: "user-b" });
     prisma.userWallet.update.mockResolvedValue({});
+    prisma.userWallet.updateMany.mockResolvedValue({ count: 1 });
     prisma.userWalletEntry.create
       .mockResolvedValueOnce({
         id: "e-debit",

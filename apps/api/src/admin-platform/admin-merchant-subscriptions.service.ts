@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import {
   MerchantSubscriptionInvoiceStatus,
   MerchantSubscriptionStatus,
-  MerchantSubscriptionTier,
   MerchantSubscriptionPromoCodeType,
   Prisma
 } from "@prisma/client";

@@ -2,8 +2,7 @@ import { Injectable } from "@nestjs/common";
 import type { User } from "@prisma/client";
 import {
   MerchantOrderStatus,
-  MerchantProductStatus,
-  Prisma
+  MerchantProductStatus
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { MerchantProfilesService } from "./merchant-profiles.service";

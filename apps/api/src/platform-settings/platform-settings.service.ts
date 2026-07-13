@@ -1,11 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { PlatformSettings } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
-import {
-  DEFAULT_WEIGHT_ARBITRATION_CUMULATIVE_MIN_DIFF_KG,
-  DEFAULT_WEIGHT_ARBITRATION_MIN_DIFF_KG,
-  normalizeWeightArbitrationThresholds
-} from "../marketplace/escrow/weight-arbitration.util";
+import { normalizeWeightArbitrationThresholds } from "../marketplace/escrow/weight-arbitration.util";
 
 const DEFAULT_MARKETPLACE_COMMISSION_RATE = 0.05;
 const DEFAULT_SELLER_COMMISSION_RATE = 0.05;

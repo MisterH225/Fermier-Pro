@@ -8,7 +8,6 @@ import {
   UseGuards
 } from "@nestjs/common";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
-import { SuperAdminGuard } from "../admin-platform/super-admin.guard";
 import { ConsoleAccessGuard } from "../admin-platform/console-access.guard";
 import { AdminConsoleMenuGuard } from "../admin-platform/admin-console-menu.guard";
 import { ChatAdminService } from "./chat-admin.service";

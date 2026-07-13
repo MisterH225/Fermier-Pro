@@ -15,7 +15,6 @@ import {
 } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
-import { SuperAdminGuard } from "../admin-platform/super-admin.guard";
 import { ConsoleAccessGuard } from "../admin-platform/console-access.guard";
 import { AdminConsoleMenuGuard } from "../admin-platform/admin-console-menu.guard";
 import {
