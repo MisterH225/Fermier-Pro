@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -55,6 +56,10 @@ type PendingPayment = {
   amount: number;
   invoiceId?: string;
 };
+
+function merchantSubDismissKey(profileId: string): string {
+  return `@fermier_pro/merchant_sub_dismiss_${profileId}`;
+}
 
 function billingPeriodSuffix(
   t: (key: string, opts?: Record<string, unknown>) => string,
@@ -248,12 +253,35 @@ export function MerchantSubscriptionScreen({
     }
     try {
       setError(null);
+      setDismissedWaiting(false);
+      if (activeProfileId) {
+        await AsyncStorage.removeItem(merchantSubDismissKey(activeProfileId));
+      }
       checkoutOpenedRef.current = trimmed;
       await openPaymentCheckout(trimmed);
     } catch {
       setError(t("merchant.subscription.paymentLinkMissing"));
     }
-  }, [t]);
+  }, [activeProfileId, t]);
+
+  useEffect(() => {
+    const pending = meQ.data?.pendingSubscription;
+    if (!pending?.providerRef || dismissedWaiting || !activeProfileId) {
+      return;
+    }
+    void (async () => {
+      const stored = await AsyncStorage.getItem(
+        merchantSubDismissKey(activeProfileId)
+      );
+      if (stored === pending.providerRef) {
+        setDismissedWaiting(true);
+      }
+    })();
+  }, [
+    activeProfileId,
+    dismissedWaiting,
+    meQ.data?.pendingSubscription?.providerRef
+  ]);
 
   useEffect(() => {
     const pending = meQ.data?.pendingSubscription;
@@ -267,21 +295,47 @@ export function MerchantSubscriptionScreen({
       invoiceId: pending.invoiceId
     });
     setSelectedTier("premium");
-    const url = pending.paymentUrl?.trim();
-    if (url && checkoutOpenedRef.current !== url) {
-      void openCheckoutUrl(url);
-    }
-  }, [meQ.data?.pendingSubscription, dismissedWaiting, openCheckoutUrl]);
+  }, [meQ.data?.pendingSubscription, dismissedWaiting]);
 
-  const leaveWaitingAndCancel = useCallback(() => {
+  const invalidateMerchant = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["merchant-me", activeProfileId] });
+    await queryClient.invalidateQueries({ queryKey: ["merchant-dashboard", activeProfileId] });
+    await refreshAuthMe();
+  }, [activeProfileId, queryClient, refreshAuthMe]);
+
+  const leaveWaitingAndCancel = useCallback(async () => {
     setDismissedWaiting(true);
     completingRef.current = false;
     setBusy(false);
     setError(null);
+    const providerRef = pendingPayment?.providerRef;
     setPendingPayment(null);
     checkoutOpenedRef.current = null;
+    if (activeProfileId && providerRef) {
+      await AsyncStorage.setItem(merchantSubDismissKey(activeProfileId), providerRef);
+    }
+    if (skippable && accessToken && activeProfileId) {
+      try {
+        await chooseMerchantSubscription(accessToken, activeProfileId, {
+          tier: "free"
+        });
+        await invalidateMerchant();
+        await onChosen();
+        return;
+      } catch (e) {
+        setError(formatApiError(e));
+      }
+    }
     onCancel();
-  }, [onCancel]);
+  }, [
+    accessToken,
+    activeProfileId,
+    invalidateMerchant,
+    onCancel,
+    onChosen,
+    pendingPayment?.providerRef,
+    skippable
+  ]);
 
   useEffect(() => {
     if (!autoAdvanceIfTierChosen || advancedRef.current || !meQ.data?.subscriptionTier) {
@@ -292,17 +346,11 @@ export function MerchantSubscriptionScreen({
   }, [autoAdvanceIfTierChosen, meQ.data?.subscriptionTier, onChosen]);
 
   useEffect(() => {
-    if (autoAdvanceIfTierChosen || meQ.data?.subscriptionTier !== "free") {
+    if (autoAdvanceIfTierChosen || skippable || meQ.data?.subscriptionTier !== "free") {
       return;
     }
     setSelectedTier("premium");
-  }, [autoAdvanceIfTierChosen, meQ.data?.subscriptionTier]);
-
-  const invalidateMerchant = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ["merchant-me", activeProfileId] });
-    await queryClient.invalidateQueries({ queryKey: ["merchant-dashboard", activeProfileId] });
-    await refreshAuthMe();
-  }, [activeProfileId, queryClient, refreshAuthMe]);
+  }, [autoAdvanceIfTierChosen, skippable, meQ.data?.subscriptionTier]);
 
   const completePremiumActivation = useCallback(async () => {
     if (completingRef.current) {

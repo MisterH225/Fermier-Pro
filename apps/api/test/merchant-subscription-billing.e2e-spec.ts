@@ -18,6 +18,7 @@ import {
   type E2ESeedResult
 } from "./helpers/e2e-seed";
 import {
+  chooseFreeSubscription,
   cleanupMerchantE2E,
   seedMerchantE2E,
   type MerchantE2ECtx
@@ -156,6 +157,38 @@ describeOrSkip("Abonnement Premium commerçant — facturation (e2e)", () => {
     expect(confirm.body.subscriptionTier).toBe(MerchantSubscriptionTier.premium);
     expect(confirm.body.subscriptionStatus).toBe(MerchantSubscriptionStatus.active);
     expect(confirm.body.pendingSubscription).toBeNull();
+  });
+
+  it("abandon Premium en attente → choix Free expire la facture pending", async () => {
+    const choose = await choosePremiumMobileMoney(app, merchant);
+    expect(choose.status).toBe(201);
+    expect(choose.body.pending).toBe(true);
+
+    const mePending = await getMerchantMe(app, merchant);
+    expect(mePending.body.pendingSubscription).toBeTruthy();
+
+    const free = await chooseFreeSubscription(app, merchant);
+    expect(free.status).toBe(201);
+    expect(free.body.subscriptionTier).toBe(MerchantSubscriptionTier.free);
+    expect(free.body.pendingSubscription).toBeNull();
+
+    const profile = await base.prisma.merchantProfile.findUniqueOrThrow({
+      where: { userId: merchant.merchantUserId }
+    });
+    const invoice = await base.prisma.merchantSubscriptionInvoice.findFirst({
+      where: {
+        merchantProfileId: profile.id,
+        status: MerchantSubscriptionInvoiceStatus.pending
+      }
+    });
+    expect(invoice).toBeNull();
+    const expired = await base.prisma.merchantSubscriptionInvoice.findFirst({
+      where: {
+        merchantProfileId: profile.id,
+        status: MerchantSubscriptionInvoiceStatus.expired
+      }
+    });
+    expect(expired).toBeTruthy();
   });
 
   it("webhook payment.success → active Premium sans GET /payments", async () => {

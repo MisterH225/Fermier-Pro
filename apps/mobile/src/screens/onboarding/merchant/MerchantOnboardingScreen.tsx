@@ -82,11 +82,15 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
 
   useEffect(() => {
     void (async () => {
-      const data = await loadMe();
-      if (!data) return;
-      await resumeFromServer(data);
+      try {
+        const data = await loadMe();
+        if (!data) return;
+        await resumeFromServer(data);
+      } catch (e) {
+        setError(formatApiError(e));
+      }
     })();
-  }, [accessToken, activeProfileId]);
+  }, [accessToken, activeProfileId, resumeFromServer]);
 
   const completeOnboarding = async () => {
     if (!accessToken || !activeProfileId) return;
@@ -186,7 +190,7 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
   }
 
   if (step === 2) {
-    const shopId = me?.shops[0]?.id ?? null;
+    const shopId = me?.shops?.[0]?.id ?? null;
     return (
       <MerchantProductForm
         mode="onboarding"

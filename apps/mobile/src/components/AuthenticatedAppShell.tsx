@@ -127,14 +127,16 @@ function AuthenticatedAppShellInner() {
 
   if (needsMerchantOnboarding(authMe, activeProfileId)) {
     return (
-      <MerchantOnboardingScreen
-        onFinished={() => {
-          void refreshAuthMe();
-        }}
-        onCancel={() => {
-          void refreshAuthMe();
-        }}
-      />
+      <AppErrorBoundary>
+        <MerchantOnboardingScreen
+          onFinished={() => {
+            void refreshAuthMe();
+          }}
+          onCancel={() => {
+            void refreshAuthMe();
+          }}
+        />
+      </AppErrorBoundary>
     );
   }
 
