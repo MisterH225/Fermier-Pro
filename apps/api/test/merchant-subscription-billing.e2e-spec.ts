@@ -159,12 +159,13 @@ describeOrSkip("Abonnement Premium commerçant — facturation (e2e)", () => {
     expect(confirm.body.pendingSubscription).toBeNull();
   });
 
-  it("abandon Premium en attente → choix Free expire la facture pending", async () => {
+  it("choix Free masque pendingSubscription mais conserve la facture pending", async () => {
     const choose = await choosePremiumMobileMoney(app, merchant);
     expect(choose.status).toBe(201);
     expect(choose.body.pending).toBe(true);
 
     const mePending = await getMerchantMe(app, merchant);
+    expect(mePending.body.subscriptionTier).toBeNull();
     expect(mePending.body.pendingSubscription).toBeTruthy();
 
     const free = await chooseFreeSubscription(app, merchant);
@@ -181,14 +182,7 @@ describeOrSkip("Abonnement Premium commerçant — facturation (e2e)", () => {
         status: MerchantSubscriptionInvoiceStatus.pending
       }
     });
-    expect(invoice).toBeNull();
-    const expired = await base.prisma.merchantSubscriptionInvoice.findFirst({
-      where: {
-        merchantProfileId: profile.id,
-        status: MerchantSubscriptionInvoiceStatus.expired
-      }
-    });
-    expect(expired).toBeTruthy();
+    expect(invoice).toBeTruthy();
   });
 
   it("webhook payment.success → active Premium sans GET /payments", async () => {

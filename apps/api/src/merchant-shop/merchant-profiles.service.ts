@@ -149,7 +149,7 @@ export class MerchantProfilesService {
           : null,
       pendingSubscription:
         pendingInvoice &&
-        profile.subscriptionTier !== MerchantSubscriptionTier.premium
+        profile.subscriptionTier === null
           ? {
               invoiceId: pendingInvoice.id,
               amount: Number(pendingInvoice.amount),

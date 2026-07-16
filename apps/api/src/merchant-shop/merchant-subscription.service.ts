@@ -64,7 +64,6 @@ export class MerchantSubscriptionService {
       if (profile.subscriptionTier) {
         return this.profiles.getMe(user);
       }
-      await this.billing.expirePendingSubscriptionInvoices(profile.id);
       await this.prisma.merchantProfile.update({
         where: { userId: user.id },
         data: {

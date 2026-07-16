@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -56,10 +55,6 @@ type PendingPayment = {
   amount: number;
   invoiceId?: string;
 };
-
-function merchantSubDismissKey(profileId: string): string {
-  return `@fermier_pro/merchant_sub_dismiss_${profileId}`;
-}
 
 function billingPeriodSuffix(
   t: (key: string, opts?: Record<string, unknown>) => string,
@@ -163,8 +158,12 @@ export function MerchantSubscriptionScreen({
     refetchInterval: pendingPayment && !dismissedWaiting ? 5_000 : false
   });
 
-  const hasPhone = Boolean(authMe?.user.phone?.trim());
-  const hasEmailOnly = Boolean(authMe?.user.email?.trim() && !hasPhone);
+  const hasPhone = Boolean(authMe?.user?.phone?.trim());
+  const hasEmailOnly = Boolean(authMe?.user?.email?.trim() && !hasPhone);
+  const serverPending = meQ.data?.pendingSubscription;
+  const showPendingBanner = Boolean(
+    serverPending?.providerRef && !pendingPayment && !dismissedWaiting
+  );
   const isWaitingForPayment = Boolean(pendingPayment) && !dismissedWaiting;
 
   const walletQ = useQuery({
@@ -254,48 +253,28 @@ export function MerchantSubscriptionScreen({
     try {
       setError(null);
       setDismissedWaiting(false);
-      if (activeProfileId) {
-        await AsyncStorage.removeItem(merchantSubDismissKey(activeProfileId));
-      }
       checkoutOpenedRef.current = trimmed;
       await openPaymentCheckout(trimmed);
     } catch {
       setError(t("merchant.subscription.paymentLinkMissing"));
     }
-  }, [activeProfileId, t]);
+  }, [t]);
 
-  useEffect(() => {
-    const pending = meQ.data?.pendingSubscription;
-    if (!pending?.providerRef || dismissedWaiting || !activeProfileId) {
+  const resumeServerPendingCheckout = useCallback(() => {
+    if (!serverPending?.providerRef) {
       return;
     }
-    void (async () => {
-      const stored = await AsyncStorage.getItem(
-        merchantSubDismissKey(activeProfileId)
-      );
-      if (stored === pending.providerRef) {
-        setDismissedWaiting(true);
-      }
-    })();
-  }, [
-    activeProfileId,
-    dismissedWaiting,
-    meQ.data?.pendingSubscription?.providerRef
-  ]);
-
-  useEffect(() => {
-    const pending = meQ.data?.pendingSubscription;
-    if (!pending?.providerRef || dismissedWaiting) {
-      return;
-    }
-    setPendingPayment({
-      providerRef: pending.providerRef,
-      paymentUrl: pending.paymentUrl,
-      amount: pending.amount,
-      invoiceId: pending.invoiceId
-    });
+    setDismissedWaiting(false);
+    setError(null);
     setSelectedTier("premium");
-  }, [meQ.data?.pendingSubscription, dismissedWaiting]);
+    setPaymentMethod("mobile_money");
+    setPendingPayment({
+      providerRef: serverPending.providerRef,
+      paymentUrl: serverPending.paymentUrl,
+      amount: serverPending.amount,
+      invoiceId: serverPending.invoiceId
+    });
+  }, [serverPending]);
 
   const invalidateMerchant = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["merchant-me", activeProfileId] });
@@ -303,39 +282,14 @@ export function MerchantSubscriptionScreen({
     await refreshAuthMe();
   }, [activeProfileId, queryClient, refreshAuthMe]);
 
-  const leaveWaitingAndCancel = useCallback(async () => {
+  const leaveWaitingAndCancel = useCallback(() => {
     setDismissedWaiting(true);
     completingRef.current = false;
     setBusy(false);
     setError(null);
-    const providerRef = pendingPayment?.providerRef;
     setPendingPayment(null);
     checkoutOpenedRef.current = null;
-    if (activeProfileId && providerRef) {
-      await AsyncStorage.setItem(merchantSubDismissKey(activeProfileId), providerRef);
-    }
-    if (skippable && accessToken && activeProfileId) {
-      try {
-        await chooseMerchantSubscription(accessToken, activeProfileId, {
-          tier: "free"
-        });
-        await invalidateMerchant();
-        await onChosen();
-        return;
-      } catch (e) {
-        setError(formatApiError(e));
-      }
-    }
-    onCancel();
-  }, [
-    accessToken,
-    activeProfileId,
-    invalidateMerchant,
-    onCancel,
-    onChosen,
-    pendingPayment?.providerRef,
-    skippable
-  ]);
+  }, []);
 
   useEffect(() => {
     if (!autoAdvanceIfTierChosen || advancedRef.current || !meQ.data?.subscriptionTier) {
@@ -465,7 +419,7 @@ export function MerchantSubscriptionScreen({
           invoiceId: res.invoiceId
         });
         setBusy(false);
-        if (res.paymentUrl) {
+        if (paymentMethod === "mobile_money" && res.paymentUrl) {
           void openCheckoutUrl(res.paymentUrl);
         }
         return;
@@ -662,6 +616,26 @@ export function MerchantSubscriptionScreen({
         </View>
 
         <Text style={styles.chooseLabel}>{t("merchant.subscription.choosePlan")}</Text>
+
+        {showPendingBanner ? (
+          <View style={styles.pendingBanner} testID="merchant-subscription-pending-banner">
+            <Text style={styles.pendingBannerTitle}>
+              {t("merchant.subscription.paymentPendingTitle")}
+            </Text>
+            <Text style={styles.pendingBannerBody}>
+              {t("merchant.subscription.premiumPending")}
+            </Text>
+            <Pressable
+              style={styles.pendingBannerBtn}
+              onPress={resumeServerPendingCheckout}
+              testID="merchant-subscription-resume-pending"
+            >
+              <Text style={styles.pendingBannerBtnTx}>
+                {t("merchant.subscription.reopenPaymentCta")}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         <View style={styles.planRow}>
           <PlanCard
@@ -1232,5 +1206,38 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: merchantColors.primary,
     textAlign: "center"
+  },
+  pendingBanner: {
+    marginBottom: mobileSpacing.md,
+    padding: mobileSpacing.md,
+    borderRadius: merchantRadius.card,
+    backgroundColor: merchantColors.primaryLight,
+    borderWidth: 1,
+    borderColor: merchantColors.primary,
+    gap: mobileSpacing.sm
+  },
+  pendingBannerTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: merchantColors.textPrimary,
+    textAlign: "center"
+  },
+  pendingBannerBody: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: merchantColors.textSecondary,
+    textAlign: "center"
+  },
+  pendingBannerBtn: {
+    alignSelf: "center",
+    paddingVertical: 10,
+    paddingHorizontal: mobileSpacing.lg,
+    borderRadius: merchantRadius.pill,
+    backgroundColor: merchantColors.primary
+  },
+  pendingBannerBtnTx: {
+    color: merchantColors.onPrimary,
+    fontWeight: "700",
+    fontSize: 14
   }
 });
