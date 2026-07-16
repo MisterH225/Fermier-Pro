@@ -16,5 +16,6 @@ export async function openMarketplaceListViaDeepLink(): Promise<void> {
 export async function expectMarketplaceTabsWithoutBoutiques(): Promise<void> {
   await expect(element(by.id("market-tab-bar"))).toBeVisible();
   await expect(element(by.id("market-tab-listings"))).toBeVisible();
+  await expect(element(by.id("market-tab-prices"))).toBeVisible();
   await expect(element(by.id("market-tab-boutiques"))).not.toExist();
 }

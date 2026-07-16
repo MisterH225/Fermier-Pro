@@ -18,8 +18,6 @@ import {
   View
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { PigPriceIndex } from "../components/market/PigPriceIndex";
-import { PigPriceIndexCard } from "../components/market/PigPriceIndexCard";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
 import { ListingModal } from "../components/marketplace/ListingModal";
 import {
@@ -40,6 +38,7 @@ import {
   type ProposalsSubTab
 } from "./market/PropositionsScreen";
 import { MarketplacePartnersTab } from "./market/tabs/MarketplacePartnersTab";
+import { MarketplacePricesTab } from "./market/tabs/MarketplacePricesTab";
 import {
   addBuyerFavorite,
   addBuyerMerchantFavorite,
@@ -48,7 +47,6 @@ import {
   fetchMarketplaceListingCategories,
   fetchMarketplaceListings,
   fetchMarketplaceOfferCounts,
-  fetchPigPriceIndexDashboard,
   removeBuyerFavorite,
   removeBuyerMerchantFavorite,
   type BuyerFavoriteListingDto
@@ -69,7 +67,7 @@ import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError
 
 type Props = NativeStackScreenProps<RootStackParamList, "MarketplaceList">;
 
-type MarketTab = "listings" | "mine" | "offers" | "partners";
+type MarketTab = "listings" | "prices" | "mine" | "offers" | "partners";
 type CatKey = string;
 type ListingFilter = "all" | "draft" | "published" | "sold" | "cancelled";
 
@@ -137,6 +135,7 @@ function initialMarketTab(
     tab === "mine" ||
     tab === "offers" ||
     tab === "listings" ||
+    tab === "prices" ||
     tab === "partners"
   ) {
     return tab;
@@ -170,14 +169,6 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
       return "listings";
     }
     return tab;
-  });
-
-  const pigDashboardQ = useQuery({
-    queryKey: ["pigPriceDashboard", activeProfileId, "30d"],
-    queryFn: () =>
-      fetchPigPriceIndexDashboard(accessToken!, activeProfileId, "30d"),
-    enabled: Boolean(accessToken) && marketTab === "listings",
-    staleTime: 3_600_000
   });
 
   const [search, setSearch] = useState("");
@@ -518,10 +509,6 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     }
     const listingsHeader = (
       <View style={styles.listHeader}>
-        <View style={styles.pigPriceSection}>
-          <PigPriceIndexCard hybrid={pigDashboardQ.data?.hybrid ?? undefined} />
-          <PigPriceIndex />
-        </View>
         <View style={styles.searchRow}>
           <TextInput
             style={styles.search}
@@ -676,6 +663,10 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     />
   );
 
+  const pricesTabContent = () => (
+    <MarketplacePricesTab contentPaddingBottom={scrollBottomPad} />
+  );
+
   const offersTabBadge = marketBrowseAsBuyer
     ? offerCountsQ.data?.sentPending ?? 0
     : offerCountsQ.data?.total ?? 0;
@@ -703,6 +694,11 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
                 content: listingsTabContent()
               },
               {
+                key: "prices",
+                label: t("marketScreen.tabPrices"),
+                content: pricesTabContent()
+              },
+              {
                 key: "offers",
                 label: t("marketScreen.proposals.tabSent"),
                 badge: offersTabBadge > 0 ? offersTabBadge : undefined,
@@ -725,6 +721,11 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
                 key: "listings",
                 label: t("marketScreen.tabListings"),
                 content: listingsTabContent()
+              },
+              {
+                key: "prices",
+                label: t("marketScreen.tabPrices"),
+                content: pricesTabContent()
               },
               {
                 key: "mine",
@@ -802,9 +803,6 @@ const styles = StyleSheet.create({
     paddingTop: mobileSpacing.sm,
     paddingBottom: mobileSpacing.xs,
     gap: mobileSpacing.sm
-  },
-  pigPriceSection: {
-    paddingHorizontal: mobileSpacing.lg
   },
   filterRow: {
     flexGrow: 0,
