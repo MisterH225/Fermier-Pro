@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   FlatList,
   Pressable,
   RefreshControl,
@@ -14,11 +15,15 @@ import {
   View
 } from "react-native";
 import { MerchantMobileShell } from "../../components/layout/MerchantMobileShell";
+import { MerchantProductGridCard } from "../../components/merchant/MerchantProductGridCard";
+import { MerchantProductsRestockSection } from "../../components/merchant/MerchantProductsRestockSection";
+import { MerchantProductsSalesSection } from "../../components/merchant/MerchantProductsSalesSection";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import {
   fetchMerchantMe,
   fetchMerchantProducts,
+  fetchMerchantSellerOrders,
   publishMerchantProduct,
   swapMerchantProductActive,
   unpublishMerchantProduct,
@@ -26,19 +31,15 @@ import {
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
 import { hasMerchantShop } from "../../lib/merchantShop";
-import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
+import { merchantColors, merchantRadius } from "../../theme/merchantTheme";
 import { mobileSpacing } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 type StatusFilter = "all" | "published" | "disabled" | "draft" | "moderated_removed";
 
 const FILTERS: StatusFilter[] = ["all", "published", "disabled", "draft", "moderated_removed"];
-
-function statusLabel(t: (k: string) => string, status: string) {
-  const key = `merchant.products.status.${status}`;
-  const translated = t(key);
-  return translated === key ? status : translated;
-}
+const GRID_GAP = mobileSpacing.sm;
+const H_PAD = mobileSpacing.md;
 
 export function MerchantProductsScreen() {
   const { t } = useTranslation();
@@ -49,6 +50,11 @@ export function MerchantProductsScreen() {
   const { accessToken, activeProfileId } = useSession();
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [refreshing, setRefreshing] = useState(false);
+
+  const cardWidth = useMemo(() => {
+    const screenW = Dimensions.get("window").width;
+    return Math.floor((screenW - H_PAD * 2 - GRID_GAP) / 2);
+  }, []);
 
   const meQ = useQuery({
     queryKey: ["merchant-me", activeProfileId],
@@ -62,6 +68,12 @@ export function MerchantProductsScreen() {
     enabled: Boolean(accessToken && activeProfileId)
   });
 
+  const ordersQ = useQuery({
+    queryKey: ["merchant-seller-orders", activeProfileId],
+    queryFn: () => fetchMerchantSellerOrders(accessToken!, activeProfileId!),
+    enabled: Boolean(accessToken && activeProfileId)
+  });
+
   const filtered = useMemo(() => {
     const items = productsQ.data ?? [];
     if (filter === "all") return items;
@@ -72,6 +84,9 @@ export function MerchantProductsScreen() {
     await queryClient.invalidateQueries({ queryKey: ["merchant-products", activeProfileId] });
     await queryClient.invalidateQueries({ queryKey: ["merchant-me", activeProfileId] });
     await queryClient.invalidateQueries({ queryKey: ["merchant-dashboard", activeProfileId] });
+    await queryClient.invalidateQueries({
+      queryKey: ["merchant-seller-orders", activeProfileId]
+    });
   }, [queryClient, activeProfileId]);
 
   const togglePublish = useMutation({
@@ -99,7 +114,8 @@ export function MerchantProductsScreen() {
     useCallback(() => {
       void meQ.refetch();
       void productsQ.refetch();
-    }, [meQ, productsQ])
+      void ordersQ.refetch();
+    }, [meQ, productsQ, ordersQ])
   );
 
   const me = meQ.data;
@@ -108,6 +124,39 @@ export function MerchantProductsScreen() {
   const atFreeLimit =
     me?.subscriptionTier === "free" &&
     (me.activeProductCount ?? 0) >= (me.maxActiveProducts ?? 5);
+
+  const openProduct = useCallback(
+    (productId: string) => {
+      navigation.navigate("MerchantProductForm", { productId });
+    },
+    [navigation]
+  );
+
+  const listHeader = useMemo(
+    () => (
+      <View>
+        <MerchantProductsSalesSection
+          orders={ordersQ.data}
+          loading={ordersQ.isLoading}
+        />
+        <MerchantProductsRestockSection
+          products={productsQ.data}
+          orders={ordersQ.data}
+          loading={productsQ.isLoading || ordersQ.isLoading}
+          onProductPress={openProduct}
+        />
+        <Text style={styles.catalogTitle}>{t("merchant.products.catalogTitle")}</Text>
+      </View>
+    ),
+    [
+      ordersQ.data,
+      ordersQ.isLoading,
+      productsQ.data,
+      productsQ.isLoading,
+      openProduct,
+      t
+    ]
+  );
 
   const header = (
     <View style={styles.topBar}>
@@ -147,90 +196,66 @@ export function MerchantProductsScreen() {
           </Pressable>
         </View>
       ) : (
-      <>
-      <View style={styles.filters}>
-        {FILTERS.map((f) => (
-          <Pressable
-            key={f}
-            style={[styles.filterChip, filter === f && styles.filterChipOn]}
-            onPress={() => setFilter(f)}
-          >
-            <Text style={[styles.filterTx, filter === f && styles.filterTxOn]}>
-              {t(`merchant.products.filter.${f}`)}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+        <>
+          <View style={styles.filters}>
+            {FILTERS.map((f) => (
+              <Pressable
+                key={f}
+                style={[styles.filterChip, filter === f && styles.filterChipOn]}
+                onPress={() => setFilter(f)}
+              >
+                <Text style={[styles.filterTx, filter === f && styles.filterTxOn]}>
+                  {t(`merchant.products.filter.${f}`)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
 
-      {productsQ.isLoading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color={merchantColors.primary} />
-      ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: mobileSpacing.md, paddingBottom: bottomInset, gap: mobileSpacing.sm }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                void productsQ.refetch().finally(() => setRefreshing(false));
+          {productsQ.isLoading && !productsQ.data ? (
+            <ActivityIndicator style={{ marginTop: 40 }} color={merchantColors.primary} />
+          ) : (
+            <FlatList
+              data={filtered}
+              keyExtractor={(item) => item.id}
+              numColumns={2}
+              columnWrapperStyle={styles.column}
+              ListHeaderComponent={listHeader}
+              contentContainerStyle={{
+                padding: H_PAD,
+                paddingBottom: bottomInset + mobileSpacing.lg
               }}
-              tintColor={merchantColors.primary}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={() => {
+                    setRefreshing(true);
+                    void Promise.all([
+                      productsQ.refetch(),
+                      ordersQ.refetch(),
+                      meQ.refetch()
+                    ]).finally(() => setRefreshing(false));
+                  }}
+                  tintColor={merchantColors.primary}
+                />
+              }
+              ListEmptyComponent={
+                <Text style={styles.empty}>{t("merchant.dashboard.noProducts")}</Text>
+              }
+              renderItem={({ item }) => (
+                <MerchantProductGridCard
+                  product={item}
+                  width={cardWidth}
+                  onPress={() => openProduct(item.id)}
+                  onTogglePublish={() => togglePublish.mutate(item)}
+                  publishBusy={togglePublish.isPending}
+                  showSwap={me?.subscriptionTier === "free" && item.status === "disabled"}
+                  onSwap={() => swapActive.mutate(item.id)}
+                  atFreeLimit={atFreeLimit}
+                />
+              )}
             />
-          }
-          ListEmptyComponent={<Text style={styles.empty}>{t("merchant.dashboard.noProducts")}</Text>}
-          renderItem={({ item }) => (
-            <View style={[styles.card, merchantShadow.card]}>
-              <View style={styles.cardHead}>
-                <Text style={styles.cardName}>{item.name}</Text>
-                <View style={styles.statusPill}>
-                  <Text style={styles.statusTx}>{statusLabel(t, item.status)}</Text>
-                </View>
-              </View>
-              <Text style={styles.cardMeta}>
-                {item.price.toLocaleString("fr-FR")} {item.currency} · {item.stock} {t("merchant.dashboard.stock")}
-              </Text>
-              <Text style={styles.cardMeta}>{item.categoryName ?? ""}</Text>
-              <View style={styles.actions}>
-                <Pressable
-                  style={styles.actionBtn}
-                  onPress={() =>
-                    navigation.navigate("MerchantProductForm", { productId: item.id })
-                  }
-                >
-                  <Text style={styles.actionTx}>{t("merchant.products.edit")}</Text>
-                </Pressable>
-                {item.status !== "moderated_removed" ? (
-                  <Pressable
-                    style={styles.actionBtn}
-                    disabled={togglePublish.isPending}
-                    onPress={() => togglePublish.mutate(item)}
-                  >
-                    <Text style={styles.actionTx}>
-                      {item.status === "published"
-                        ? t("merchant.products.unpublish")
-                        : t("merchant.products.publish")}
-                    </Text>
-                  </Pressable>
-                ) : null}
-                {me?.subscriptionTier === "free" && item.status === "disabled" ? (
-                  <Pressable
-                    style={styles.actionBtn}
-                    onPress={() => swapActive.mutate(item.id)}
-                  >
-                    <Text style={styles.actionTx}>{t("merchant.products.swap")}</Text>
-                  </Pressable>
-                ) : null}
-                {atFreeLimit && item.status === "draft" ? (
-                  <Text style={styles.hint}>{t("merchant.products.freeLimitHint")}</Text>
-                ) : null}
-              </View>
-            </View>
           )}
-        />
-      )}
-      </>
+        </>
       )}
     </MerchantMobileShell>
   );
@@ -298,35 +323,24 @@ const styles = StyleSheet.create({
     borderColor: merchantColors.border,
     backgroundColor: merchantColors.cardBg
   },
-  filterChipOn: { backgroundColor: merchantColors.primaryLight, borderColor: merchantColors.primary },
-  filterTx: { fontSize: 12, fontWeight: "600", color: merchantColors.textSecondary },
-  filterTxOn: { color: merchantColors.primary },
-  card: {
-    backgroundColor: merchantColors.cardBg,
-    borderRadius: merchantRadius.card,
-    padding: mobileSpacing.md,
-    borderWidth: 1,
-    borderColor: merchantColors.border
-  },
-  cardHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 8 },
-  cardName: { fontWeight: "800", fontSize: 16, flex: 1 },
-  statusPill: {
+  filterChipOn: {
     backgroundColor: merchantColors.primaryLight,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: merchantRadius.pill
-  },
-  statusTx: { fontSize: 11, fontWeight: "700", color: merchantColors.primary },
-  cardMeta: { color: merchantColors.textSecondary, marginTop: 4, fontSize: 13 },
-  actions: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: mobileSpacing.sm },
-  actionBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: merchantRadius.button,
-    borderWidth: 1,
     borderColor: merchantColors.primary
   },
-  actionTx: { color: merchantColors.primary, fontWeight: "700", fontSize: 13 },
-  hint: { fontSize: 12, color: merchantColors.warning, flexBasis: "100%" },
-  empty: { textAlign: "center", color: merchantColors.textSecondary, marginTop: 40 }
+  filterTx: { fontSize: 12, fontWeight: "600", color: merchantColors.textSecondary },
+  filterTxOn: { color: merchantColors.primary },
+  column: {
+    gap: GRID_GAP,
+    marginBottom: GRID_GAP
+  },
+  catalogTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    color: merchantColors.textSecondary,
+    marginBottom: mobileSpacing.sm,
+    marginTop: mobileSpacing.xs
+  },
+  empty: { textAlign: "center", color: merchantColors.textSecondary, marginTop: 24 }
 });

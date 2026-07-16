@@ -4010,11 +4010,13 @@ export const fr = {
     },
     products: {
       title: "Mes produits",
+      catalogTitle: "Catalogue",
       edit: "Modifier",
       publish: "Publier",
       unpublish: "Dépublier",
       swap: "Activer (swap)",
       freeLimitHint: "Limite Free atteinte — désactive un produit ou passe Premium.",
+      stockLabel: "Stock {{count}}",
       filter: {
         all: "Tous",
         published: "Actifs",
@@ -4027,6 +4029,34 @@ export const fr = {
         disabled: "Désactivé",
         draft: "Brouillon",
         moderated_removed: "Retiré"
+      },
+      sales: {
+        title: "Ventes dans le temps",
+        subtitle: "Revenus nets de vos commandes marketplace, mois par mois.",
+        seriesLabel: "Revenus",
+        empty: "Aucune vente comptabilisée pour le moment."
+      },
+      restock: {
+        title: "Recommandations de réassort",
+        subtitle: "Suggestions basées sur vos ventes récentes et le stock restant.",
+        badge: "Conseil intelligent",
+        empty: "Aucun réassort urgent — vos stocks sont sous contrôle.",
+        suggest: "Réassort suggéré : {{count}}",
+        priority: {
+          critical: "Urgent",
+          warning: "À surveiller",
+          info: "Info"
+        },
+        reason: {
+          out_of_stock:
+            "Rupture de stock. {{sold}} vente(s) sur 30 j — réapprovisionnez d’environ {{qty}} unité(s).",
+          low_stock_fast:
+            "Stock {{stock}} · couverture ~{{days}} j ({{sold}} vendus / 30 j). Prévoyez {{qty}} unité(s).",
+          low_stock:
+            "Stock bas ({{stock}}). Ajoutez environ {{qty}} unité(s) pour sécuriser les ventes.",
+          cover_soon:
+            "Couverture ~{{days}} j avec {{sold}} vente(s) / 30 j. Anticiper {{qty}} unité(s)."
+        }
       }
     },
     marketplace: {
