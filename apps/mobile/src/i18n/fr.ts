@@ -366,6 +366,7 @@ export const fr = {
   },
   marketScreen: {
     tabListings: "Annonces",
+    tabPrices: "Indices",
     tabMyListings: "Mes annonces",
     tabOffers: "Propositions",
     tabClients: "Clients",
@@ -1029,7 +1030,7 @@ export const fr = {
     priceOnRequest: "—"
   },
   pigPriceIndexCard: {
-    title: "Indice PigPrice",
+    title: "Indice de prix porc",
     basedOn: "Basé sur {{count}} transactions"
   },
   ordersTracking: {
