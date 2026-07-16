@@ -36,6 +36,16 @@ import { merchantColors } from "../../theme/merchantTheme";
 import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
 import { useBottomInset } from "../../hooks/useBottomInset";
 
+/** useFocusEffect exige un NavigationContainer — hors onboarding uniquement. */
+function RefetchOnNavigationFocus({ onFocus }: { onFocus: () => void }) {
+  useFocusEffect(
+    useCallback(() => {
+      onFocus();
+    }, [onFocus])
+  );
+  return null;
+}
+
 export type MerchantProductFormProps = {
   shopId?: string | null;
   productId?: string;
@@ -108,12 +118,18 @@ export function MerchantProductForm({
     }
   }, [propShopId]);
 
-  useFocusEffect(
-    useCallback(() => {
-      void meQ.refetch();
-      void catsQ.refetch();
-    }, [meQ, catsQ])
-  );
+  const refetchCatalog = useCallback(() => {
+    void meQ.refetch();
+    void catsQ.refetch();
+  }, [meQ, catsQ]);
+
+  // Onboarding est hors NavigationContainer : useFocusEffect y plante.
+  useEffect(() => {
+    if (mode !== "onboarding") {
+      return;
+    }
+    refetchCatalog();
+  }, [mode, refetchCatalog]);
 
   const shopId = useMemo(
     () => resolveMerchantShopId(meQ.data, selectedShopId ?? propShopId),
@@ -235,6 +251,9 @@ export function MerchantProductForm({
 
   return (
     <SafeAreaView style={styles.safe} testID="merchant-product-form-screen">
+      {mode === "stack" ? (
+        <RefetchOnNavigationFocus onFocus={refetchCatalog} />
+      ) : null}
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
