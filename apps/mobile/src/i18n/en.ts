@@ -3961,11 +3961,13 @@ export const en = {
     },
     products: {
       title: "My products",
+      catalogTitle: "Catalog",
       edit: "Edit",
       publish: "Publish",
       unpublish: "Unpublish",
       swap: "Activate (swap)",
       freeLimitHint: "Free limit reached — disable a product or go Premium.",
+      stockLabel: "Stock {{count}}",
       filter: {
         all: "All",
         published: "Active",
@@ -3978,6 +3980,34 @@ export const en = {
         disabled: "Disabled",
         draft: "Draft",
         moderated_removed: "Removed"
+      },
+      sales: {
+        title: "Sales over time",
+        subtitle: "Net revenue from your marketplace orders, month by month.",
+        seriesLabel: "Revenue",
+        empty: "No counted sales yet."
+      },
+      restock: {
+        title: "Restock recommendations",
+        subtitle: "Suggestions based on recent sales and remaining stock.",
+        badge: "Smart tip",
+        empty: "No urgent restock — your stock looks healthy.",
+        suggest: "Suggested restock: {{count}}",
+        priority: {
+          critical: "Urgent",
+          warning: "Watch",
+          info: "Info"
+        },
+        reason: {
+          out_of_stock:
+            "Out of stock. {{sold}} sale(s) in 30 days — restock about {{qty}} unit(s).",
+          low_stock_fast:
+            "Stock {{stock}} · ~{{days}} days cover ({{sold}} sold / 30d). Plan {{qty}} unit(s).",
+          low_stock:
+            "Low stock ({{stock}}). Add about {{qty}} unit(s) to secure sales.",
+          cover_soon:
+            "~{{days}} days cover with {{sold}} sale(s) / 30d. Anticipate {{qty}} unit(s)."
+        }
       }
     },
     marketplace: {
