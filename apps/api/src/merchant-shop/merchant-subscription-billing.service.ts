@@ -504,18 +504,6 @@ export class MerchantSubscriptionBillingService {
     return updated.count > 0;
   }
 
-  /** Abandonne les factures d'inscription Premium encore en attente (choix Free, annulation). */
-  async expirePendingSubscriptionInvoices(profileId: string): Promise<number> {
-    const updated = await this.prisma.merchantSubscriptionInvoice.updateMany({
-      where: {
-        merchantProfileId: profileId,
-        status: MerchantSubscriptionInvoiceStatus.pending
-      },
-      data: { status: MerchantSubscriptionInvoiceStatus.expired }
-    });
-    return updated.count;
-  }
-
   async failFromWebhook(
     providerRef: string,
     invoiceId?: string | null
