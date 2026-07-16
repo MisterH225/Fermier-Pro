@@ -5,6 +5,7 @@ import {
   MerchantSubscriptionTier
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { shouldExposePendingSubscription } from "../merchant-shop/merchant-pending-subscription.util";
 import { applyPromoPercent } from "../merchant-shop/merchant-subscription.constants";
 import { resolveProducerPremiumBillingConfig } from "./producer-premium-billing-config";
 import { ProducerTeamAccessService } from "./producer-team-access.service";
@@ -98,7 +99,7 @@ export class ProducerProfilesService {
           : null,
       pendingSubscription:
         pendingInvoice &&
-        profile.subscriptionTier === null
+        shouldExposePendingSubscription(profile.subscriptionTier)
           ? {
               invoiceId: pendingInvoice.id,
               amount: Number(pendingInvoice.amount),

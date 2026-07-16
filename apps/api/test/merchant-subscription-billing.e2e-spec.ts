@@ -185,6 +185,58 @@ describeOrSkip("Abonnement Premium commerçant — facturation (e2e)", () => {
     expect(invoice).toBeTruthy();
   });
 
+  it("après Free, reprise Premium mobile money réutilise la facture pending (pas GeniusPay wallet)", async () => {
+    const first = await choosePremiumMobileMoney(app, merchant);
+    expect(first.status).toBe(201);
+    expect(first.body.pending).toBe(true);
+    const firstRef = first.body.providerRef as string;
+    const firstInvoiceId = first.body.invoiceId as string;
+
+    const free = await chooseFreeSubscription(app, merchant);
+    expect(free.status).toBe(201);
+    expect(free.body.subscriptionTier).toBe(MerchantSubscriptionTier.free);
+    expect(free.body.pendingSubscription).toBeNull();
+
+    // Reprise Premium : la facture pending de période est réutilisée (createPendingInvoice).
+    const again = await choosePremiumMobileMoney(app, merchant);
+    expect(again.status).toBe(201);
+    expect(again.body.pending).toBe(true);
+    expect(again.body.invoiceId).toBe(firstInvoiceId);
+    expect(again.body.paymentUrl).toBeTruthy();
+    expect(again.body.providerRef).toBeTruthy();
+
+    const me = await getMerchantMe(app, merchant);
+    // Tier encore free jusqu'au paiement — pendingSubscription masqué tant que free.
+    expect(me.body.subscriptionTier).toBe(MerchantSubscriptionTier.free);
+    expect(me.body.pendingSubscription).toBeNull();
+
+    const profile = await base.prisma.merchantProfile.findUniqueOrThrow({
+      where: { userId: merchant.merchantUserId }
+    });
+    const pendingCount = await base.prisma.merchantSubscriptionInvoice.count({
+      where: {
+        merchantProfileId: profile.id,
+        status: MerchantSubscriptionInvoiceStatus.pending
+      }
+    });
+    expect(pendingCount).toBe(1);
+
+    // Confirmation du paiement (même ou nouvelle ref GeniusPay) → Premium.
+    geniusPay.markPaymentCompleted(again.body.providerRef as string);
+    const confirm = await confirmMerchantSubscription(
+      app,
+      merchant,
+      again.body.providerRef as string
+    );
+    expect(confirm.status).toBe(201);
+    expect(confirm.body.subscriptionTier).toBe(MerchantSubscriptionTier.premium);
+    expect(confirm.body.pendingSubscription).toBeNull();
+
+    // La première initiation n'a pas dû créer une 2e facture pending orpheline.
+    expect(firstRef).toBeTruthy();
+    expect(firstInvoiceId).toBe(again.body.invoiceId);
+  });
+
   it("webhook payment.success → active Premium sans GET /payments", async () => {
     const choose = await choosePremiumMobileMoney(app, merchant);
     expect(choose.status).toBe(201);
