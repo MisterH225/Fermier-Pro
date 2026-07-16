@@ -17,6 +17,7 @@ import {
 } from "./merchant-shop.constants";
 import type { PatchMerchantOnboardingDto } from "./dto/merchant-shop.dto";
 import { resolveMerchantPremiumBillingConfig } from "./merchant-premium-billing-config";
+import { shouldExposePendingSubscription } from "./merchant-pending-subscription.util";
 import { applyPromoPercent } from "./merchant-subscription.constants";
 
 @Injectable()
@@ -149,7 +150,7 @@ export class MerchantProfilesService {
           : null,
       pendingSubscription:
         pendingInvoice &&
-        profile.subscriptionTier === null
+        shouldExposePendingSubscription(profile.subscriptionTier)
           ? {
               invoiceId: pendingInvoice.id,
               amount: Number(pendingInvoice.amount),
