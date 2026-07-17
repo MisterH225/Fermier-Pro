@@ -22,6 +22,7 @@ export * from "./api/farm-health";
 export * from "./api/finance";
 export * from "./api/housing";
 export * from "./api/marketplace";
+export * from "./api/marketplaceOrders";
 export * from "./api/vet";
 export * from "./api/onboarding";
 export * from "./api/reports";

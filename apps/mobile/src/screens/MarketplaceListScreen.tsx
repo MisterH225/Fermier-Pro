@@ -24,6 +24,7 @@ import {
   MarketplaceListingCard,
   MarketplaceListingCardSkeleton
 } from "../components/marketplace/MarketplaceListingCard";
+import { OrdersHubView } from "../components/orders";
 import { EmptyStateCard } from "../components/common/EmptyStateCard";
 import { EventList, type EventItem } from "../components/lists";
 import { EventListFilter } from "../components/lists/EventListFilter";
@@ -47,6 +48,7 @@ import {
   fetchMarketplaceListingCategories,
   fetchMarketplaceListings,
   fetchMarketplaceOfferCounts,
+  fetchMarketplaceOrdersCounters,
   removeBuyerFavorite,
   removeBuyerMerchantFavorite,
   type BuyerFavoriteListingDto
@@ -67,7 +69,7 @@ import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError
 
 type Props = NativeStackScreenProps<RootStackParamList, "MarketplaceList">;
 
-type MarketTab = "listings" | "prices" | "mine" | "offers" | "partners";
+type MarketTab = "listings" | "prices" | "mine" | "offers" | "partners" | "sales";
 type CatKey = string;
 type ListingFilter = "all" | "draft" | "published" | "sold" | "cancelled";
 
@@ -136,7 +138,8 @@ function initialMarketTab(
     tab === "offers" ||
     tab === "listings" ||
     tab === "prices" ||
-    tab === "partners"
+    tab === "partners" ||
+    tab === "sales"
   ) {
     return tab;
   }
@@ -165,7 +168,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
   const scrollBottomPad = useScrollBottomPad();
   const [marketTab, setMarketTab] = useState<MarketTab>(() => {
     const tab = initialMarketTab(route.params);
-    if (marketBrowseAsBuyer && tab === "mine") {
+    if (marketBrowseAsBuyer && (tab === "mine" || tab === "sales")) {
       return "listings";
     }
     return tab;
@@ -219,7 +222,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     const tab = initialMarketTab(route.params);
-    if (marketBrowseAsBuyer && tab === "mine") {
+    if (marketBrowseAsBuyer && (tab === "mine" || tab === "sales")) {
       setMarketTab("listings");
       return;
     }
@@ -282,6 +285,16 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     queryFn: () =>
       fetchMarketplaceOfferCounts(accessToken!, activeProfileId, activeFarmId),
     enabled: clientFeatures.marketplace && Boolean(accessToken)
+  });
+
+  const salesCountersQ = useQuery({
+    queryKey: ["marketplace-orders-counters", "seller", activeProfileId],
+    queryFn: () =>
+      fetchMarketplaceOrdersCounters(accessToken!, "seller", activeProfileId),
+    enabled:
+      clientFeatures.marketplace &&
+      Boolean(accessToken) &&
+      !marketBrowseAsBuyer
   });
 
   useLayoutEffect(() => {
@@ -654,6 +667,14 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     />
   );
 
+  const salesTabContent = () => (
+    <OrdersHubView
+      role="seller"
+      initialSegment={route.params?.ordersSegment ?? "action_required"}
+      contentContainerStyle={{ paddingBottom: scrollBottomPad }}
+    />
+  );
+
   const partnersTabContent = () => (
     <MarketplacePartnersTab
       navigation={navigation}
@@ -670,6 +691,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
   const offersTabBadge = marketBrowseAsBuyer
     ? offerCountsQ.data?.sentPending ?? 0
     : offerCountsQ.data?.total ?? 0;
+  const salesTabBadge = salesCountersQ.data?.actionRequired ?? 0;
 
   if (!clientFeatures.marketplace) {
     return (
@@ -737,6 +759,12 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
                 label: t("marketScreen.tabOffers"),
                 badge: offersTabBadge > 0 ? offersTabBadge : undefined,
                 content: offersTabContent()
+              },
+              {
+                key: "sales",
+                label: t("marketScreen.tabSales"),
+                badge: salesTabBadge > 0 ? salesTabBadge : undefined,
+                content: salesTabContent()
               },
               {
                 key: "partners",

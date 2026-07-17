@@ -10,8 +10,13 @@ export type RootStackParamList = {
   MerchantMarket:
     | {
         searchQuery?: string;
-        tab?: "listings" | "prices" | "offers" | "partners";
+        tab?: "listings" | "prices" | "offers" | "partners" | "sales";
         offersSubTab?: "sent" | "received";
+        ordersSegment?:
+          | "action_required"
+          | "active"
+          | "closed"
+          | "disputed";
       }
     | undefined;
   MerchantOrders: { filter?: string } | undefined;
@@ -33,6 +38,12 @@ export type RootStackParamList = {
   BuyerMessages: undefined;
   BuyerHistory:
     | {
+        initialSegment?:
+          | "action_required"
+          | "active"
+          | "closed"
+          | "disputed";
+        /** @deprecated préférer initialSegment — mappé pour compatibilité. */
         initialTab?: "proposals" | "purchases" | "shopOrders" | "reviews";
         fromDashboard?: boolean;
       }
@@ -114,7 +125,7 @@ export type RootStackParamList = {
   FarmTasks: { farmId: string; farmName: string };
   MarketplaceList:
     | {
-        tab?: "listings" | "prices" | "mine" | "offers" | "partners";
+        tab?: "listings" | "prices" | "mine" | "offers" | "partners" | "sales";
         offersSubTab?: "received" | "sent";
         offersListingId?: string;
         highlightOfferId?: string;
@@ -123,6 +134,11 @@ export type RootStackParamList = {
         fromDashboard?: boolean;
         favoritesOnly?: boolean;
         searchQuery?: string;
+        ordersSegment?:
+          | "action_required"
+          | "active"
+          | "closed"
+          | "disputed";
       }
     | undefined;
   MarketplaceListingDetail: { listingId: string; headline?: string };

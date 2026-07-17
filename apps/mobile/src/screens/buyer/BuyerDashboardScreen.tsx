@@ -144,7 +144,9 @@ export function BuyerDashboardScreen() {
             <Pressable
               style={[styles.kpiCard, { backgroundColor: "#E8F5E9" }]}
               onPress={() =>
-                navigation.navigate("BuyerHistory", { initialTab: "purchases" })
+                navigation.navigate("BuyerHistory", {
+                  initialSegment: "active"
+                })
               }
             >
               <Text style={[styles.kpiValue, { color: buyerColors.success }]}>

@@ -369,6 +369,7 @@ export const en = {
     tabPrices: "Prices",
     tabMyListings: "My listings",
     tabOffers: "Offers",
+    tabSales: "My sales",
     tabClients: "Clients",
     tabSuppliers: "Suppliers",
     partners: {
@@ -431,6 +432,52 @@ export const en = {
     acceptSuccessBodySeller:
       "The buyer can now pay. Track delivery and closing here.",
     transaction: {
+      reference: "Transaction no.",
+      copyReference: "Copy reference",
+      referenceCopied: "Reference copied",
+      respondBefore: "Respond before {{when}}",
+      saleDetails: "Sale details",
+      counterparty: "Counterparty",
+      counterpartyBuyer: "Buyer",
+      counterpartySeller: "Seller",
+      marketplaceCounterparty: "Marketplace contact",
+      item: "Item",
+      listingFallback: "Marketplace listing",
+      agreedWeight: "Agreed weight",
+      declaredWeight: "Declared weight",
+      agreedAmount: "Agreed price",
+      currentAmount: "Amount",
+      paymentMethod: "Payment method",
+      escrowStatus: "Escrow status",
+      notAvailable: "Not available",
+      notDeclared: "Not declared",
+      buyerShort: "Buyer",
+      sellerShort: "Seller",
+      stepOrder: "Order",
+      stepDelivery: "Delivery",
+      stepReceiptWeighing: "Receipt & weighing",
+      stepClosed: "Closed",
+      shortStatus: {
+        OFFER_ACCEPTED: "Offer accepted",
+        PAYMENT_PENDING: "Payment pending",
+        PAYMENT_HELD: "Payment secured",
+        PICKUP_PROPOSED: "Pickup proposed",
+        PICKUP_SCHEDULED: "Pickup confirmed",
+        SELLER_SHIPPED: "Handover confirmed",
+        BUYER_RECEIVED: "Receipt confirmed",
+        DELIVERY_DISPUTED: "Delivery dispute",
+        WEIGHT_DECLARED: "Weight declared",
+        WEIGHT_COUNTER_DECLARED: "Weight difference",
+        WEIGHT_DISPUTED: "Weight dispute",
+        WEIGHT_VALIDATED: "Weight validated",
+        TRANSACTION_CLOSED: "Sale completed",
+        CANCELLED_BY_BUYER: "Cancelled",
+        CANCELLED_BY_SELLER: "Cancelled",
+        CANCELLED_SOLD_TO_OTHER: "Sold elsewhere",
+        PAYMENT_FAILED: "Payment failed",
+        OFFER_EXPIRED: "Offer expired",
+        unknown: "Unknown status"
+      },
       agreedPrice: "Agreed price:",
       agreedPricePerKg: "Agreed price/kg:",
       amountAdjustHint:
@@ -1356,7 +1403,7 @@ export const en = {
       notifications: "Notifications",
       reports: "Reports",
       messages: "Messages",
-      buyerHistory: "My purchases",
+      buyerHistory: "Orders",
       buyerFinance: "Finance",
       merchantShop: "Shop",
       merchantProduct: "Product",
@@ -2286,6 +2333,8 @@ export const en = {
       bannerOne: "Action required on a sale",
       bannerCount: "{{count}} pending marketplace actions",
       bannerA11y: "{{count}} pending marketplace action(s)",
+      bannerSalesHint: "{{count}} sale(s) to handle",
+      bannerProposalsHint: "{{count}} pending proposal(s)",
       continue: "Continue →",
       view: "View →",
       tx: {
@@ -3535,7 +3584,7 @@ export const en = {
   },
   buyer: {
     backToHome: "Home",
-    nav: { home: "Home", market: "Market", finance: "Finance", messages: "Messages", history: "Purchases" },
+    nav: { home: "Home", market: "Market", finance: "Finance", messages: "Messages", history: "Orders" },
     extended: {
       favorites: "Favorites",
       priceAlerts: "Price alerts",
@@ -3662,7 +3711,7 @@ export const en = {
       noMessage: "No messages yet"
     },
     history: {
-      title: "My purchases",
+      title: "My orders",
       tabs: {
         proposals: "Proposals",
         purchases: "Farm purchases",
@@ -3925,6 +3974,75 @@ export const en = {
     insightTitle: "In brief",
     fallbackInsightsTitle: "💡 AI advice",
     refresh: "Refresh recommendations"
+  },
+  orders: {
+    trackingNumber: "Tracking ID",
+    nextAction: "Next action: {{action}}",
+    respondBefore: "Respond before {{when}}",
+    disputed: "Disputed",
+    contact: {
+      message: "Message",
+      call: "Call"
+    },
+    activity: {
+      title: "Activity",
+      empty: "No activity yet."
+    },
+    hub: {
+      pendingProposals: "{{count}} pending proposal(s)",
+      viewProposals: "View →",
+      showReviews: "My reviews",
+      hideReviews: "Hide reviews",
+      type: {
+        escrow: "Marketplace",
+        shop: "Shop"
+      },
+      segments: {
+        action_required: "Action needed",
+        active: "In progress",
+        disputed: "Disputes",
+        closed: "Completed"
+      },
+      empty: {
+        action_required: "No orders to handle 👍",
+        active: "No orders in progress.",
+        disputed: "No open disputes.",
+        closed: "No completed orders yet."
+      },
+      escrowStatus: {
+        PAYMENT_PENDING: "Payment pending",
+        PAYMENT_FAILED: "Payment failed",
+        PAYMENT_HELD: "Funds held",
+        PICKUP_PROPOSED: "Pickup proposed",
+        PICKUP_SCHEDULED: "Pickup scheduled",
+        WEIGHT_DECLARED: "Weight declared",
+        WEIGHT_COUNTER_DECLARED: "Counter-weight",
+        WEIGHT_DISPUTED: "Weight dispute",
+        WEIGHT_VALIDATED: "Weight validated",
+        SELLER_SHIPPED: "Shipped",
+        BUYER_RECEIVED: "Received",
+        DELIVERY_DISPUTED: "Delivery dispute",
+        TRANSACTION_CLOSED: "Closed",
+        CANCELLED_BY_BUYER: "Cancelled (buyer)",
+        CANCELLED_BY_SELLER: "Cancelled (seller)",
+        CANCELLED_SOLD_TO_OTHER: "Sold to another",
+        OFFER_EXPIRED: "Expired",
+        OFFER_ACCEPTED: "Offer accepted"
+      }
+    },
+    action: {
+      pay: "Pay",
+      retryPayment: "Retry payment",
+      proposePickup: "Propose pickup",
+      confirmPickup: "Confirm pickup",
+      declareWeight: "Declare weight",
+      validateWeight: "Validate weight",
+      confirmShipment: "Confirm shipment",
+      confirmReceipt: "Confirm receipt",
+      confirmShopOrder: "Accept order",
+      shipShopOrder: "Start delivery",
+      markShopDelivered: "Mark delivered"
+    }
   },
   merchant: {
     nav: {

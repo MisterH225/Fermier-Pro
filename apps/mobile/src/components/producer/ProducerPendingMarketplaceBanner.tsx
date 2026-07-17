@@ -5,15 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSession } from "../../context/SessionContext";
-import {
-  buildProducerPendingMarketplaceItems,
-  openProducerPendingItem
-} from "../../lib/producerMarketplacePending";
-import {
-  fetchMarketplaceTransactions,
-  fetchReceivedMarketplaceOffers
-} from "../../lib/api";
-import { offerStatusLabel } from "../../lib/marketplaceLabels";
+import { fetchMarketplaceOrdersCounters } from "../../lib/api";
+import { openProducerSalesHub } from "../../lib/producerMarketplacePending";
 import {
   mobileColors,
   mobileRadius,
@@ -27,36 +20,22 @@ type Props = {
   style?: object;
 };
 
-export function ProducerPendingMarketplaceBanner({ farmId, style }: Props) {
+export function ProducerPendingMarketplaceBanner({ farmId: _farmId, style }: Props) {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken, activeProfileId, authMe, clientFeatures } = useSession();
   const sellerUserId = authMe?.user.id;
 
-  const offersQ = useQuery({
+  const countersQ = useQuery({
     queryKey: [
-      "marketplaceOffersReceived",
+      "marketplace-orders-counters",
+      "seller",
       activeProfileId,
-      farmId ?? "all",
       "pending-banner"
     ],
     queryFn: () =>
-      fetchReceivedMarketplaceOffers(
-        accessToken!,
-        activeProfileId,
-        farmId ?? undefined
-      ),
-    enabled: Boolean(
-      clientFeatures.marketplace && accessToken && sellerUserId
-    ),
-    refetchInterval: 60_000,
-    refetchOnWindowFocus: true
-  });
-
-  const txQ = useQuery({
-    queryKey: ["marketplaceTransactions", activeProfileId, "producer-banner"],
-    queryFn: () => fetchMarketplaceTransactions(accessToken!, activeProfileId),
+      fetchMarketplaceOrdersCounters(accessToken!, "seller", activeProfileId),
     enabled: Boolean(
       clientFeatures.marketplace && accessToken && sellerUserId
     ),
@@ -66,25 +45,18 @@ export function ProducerPendingMarketplaceBanner({ farmId, style }: Props) {
 
   if (!clientFeatures.marketplace || !sellerUserId) return null;
 
-  const items = buildProducerPendingMarketplaceItems(
-    offersQ.data ?? [],
-    txQ.data ?? [],
-    sellerUserId
-  );
-  if (items.length === 0) return null;
-
-  const first = items[0];
-  const subtitle =
-    first.kind === "offer"
-      ? `${offerStatusLabel(first.offer.status)} · ${first.title}`
-      : t(`producer.pendingMarketplace.tx.${first.transaction.status}`, {
-          defaultValue: first.transaction.status
-        });
+  const actionRequired = countersQ.data?.actionRequired ?? 0;
+  const pendingProposals = countersQ.data?.pendingProposals ?? 0;
+  const total = actionRequired + pendingProposals;
+  if (total === 0) return null;
 
   return (
     <Pressable
       onPress={() =>
-        openProducerPendingItem(navigation, first, txQ.data ?? [])
+        openProducerSalesHub(navigation, {
+          ordersSegment: actionRequired > 0 ? "action_required" : undefined,
+          preferProposals: actionRequired === 0 && pendingProposals > 0
+        })
       }
       style={({ pressed }) => [
         styles.banner,
@@ -93,7 +65,7 @@ export function ProducerPendingMarketplaceBanner({ farmId, style }: Props) {
       ]}
       accessibilityRole="button"
       accessibilityLabel={t("producer.pendingMarketplace.bannerA11y", {
-        count: items.length
+        count: total
       })}
     >
       <View style={styles.iconBox}>
@@ -101,14 +73,22 @@ export function ProducerPendingMarketplaceBanner({ farmId, style }: Props) {
       </View>
       <View style={styles.txCol}>
         <Text style={styles.title} numberOfLines={1}>
-          {items.length > 1
+          {total > 1
             ? t("producer.pendingMarketplace.bannerCount", {
-                count: items.length
+                count: total
               })
             : t("producer.pendingMarketplace.bannerOne")}
         </Text>
         <Text style={styles.body} numberOfLines={1}>
-          {subtitle}
+          {actionRequired > 0
+            ? t("producer.pendingMarketplace.bannerSalesHint", {
+                count: actionRequired,
+                defaultValue: "{{count}} vente(s) à traiter"
+              })
+            : t("producer.pendingMarketplace.bannerProposalsHint", {
+                count: pendingProposals,
+                defaultValue: "{{count}} proposition(s) en attente"
+              })}
         </Text>
       </View>
       <Ionicons name="chevron-forward" size={20} color={mobileColors.onAccent} />

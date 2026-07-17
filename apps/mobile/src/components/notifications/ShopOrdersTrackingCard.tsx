@@ -79,7 +79,7 @@ export function ShopOrdersTrackingCard({
       navigation.navigate("MerchantOrders");
       return;
     }
-    navigation.navigate("BuyerHistory", { initialTab: "shopOrders" });
+    navigation.navigate("BuyerHistory", { initialSegment: "active" });
   };
 
   return (

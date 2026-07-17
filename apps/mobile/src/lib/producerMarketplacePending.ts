@@ -168,6 +168,28 @@ export function openProducerOffersHub(
   });
 }
 
+/** Raccourci hub « Mes ventes » (segment À agir par défaut). */
+export function openProducerSalesHub(
+  navigation: NativeStackNavigationProp<RootStackParamList>,
+  opts?: {
+    ordersSegment?:
+      | "action_required"
+      | "active"
+      | "closed"
+      | "disputed";
+    preferProposals?: boolean;
+  }
+) {
+  if (opts?.preferProposals) {
+    openProducerOffersHub(navigation);
+    return;
+  }
+  navigation.navigate("MarketplaceList", {
+    tab: "sales",
+    ordersSegment: opts?.ordersSegment ?? "action_required"
+  });
+}
+
 export function openProducerPendingItem(
   navigation: NativeStackNavigationProp<RootStackParamList>,
   item: ProducerPendingMarketplaceItem,

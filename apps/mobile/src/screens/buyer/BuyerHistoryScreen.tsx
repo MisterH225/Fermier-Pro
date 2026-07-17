@@ -1,300 +1,65 @@
-import { useNavigation, useRoute } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useRoute } from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
-import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
-import {
-  ActivityIndicator,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
-} from "react-native";
-import { EventList } from "../../components/lists/EventList";
-import type { EventItem } from "../../components/lists/types";
-import {
-  ProfileSectionEmpty,
-  profileScreenScrollContent,
-  ScreenSection
-} from "../../components/layout";
+import { StyleSheet } from "react-native";
 import { BuyerMobileShell } from "../../components/layout/BuyerMobileShell";
+import { OrdersHubView } from "../../components/orders";
+import type { OrderPalette } from "../../components/orders/orderTheme";
+import { ordersPalette } from "../../components/orders/orderTheme";
 import { useBottomInset } from "../../hooks/useBottomInset";
-import { useSession } from "../../context/SessionContext";
-import { openBuyerOffersHub } from "../../lib/buyerMarketplacePending";
-import {
-  fetchBuyerProposals,
-  fetchBuyerPurchases,
-  fetchBuyerReviews,
-  fetchMerchantBuyerOrders
-} from "../../lib/api";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
-import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
+import { buyerColors, buyerRadius, buyerShadow } from "../../theme/buyerTheme";
+import { mobileSpacing } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
-type Tab = "proposals" | "purchases" | "shopOrders" | "reviews";
 type Route = RouteProp<RootStackParamList, "BuyerHistory">;
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
-}
-
-function stars(score: number): string {
-  return "★".repeat(Math.min(5, Math.max(0, score)));
-}
+const buyerOrdersPalette: OrderPalette = {
+  ...ordersPalette,
+  primary: buyerColors.primary,
+  primarySoft: buyerColors.primarySoft,
+  primaryLight: buyerColors.primaryLight,
+  primaryDark: buyerColors.primaryDark,
+  cardBg: buyerColors.cardBg,
+  textPrimary: buyerColors.textPrimary,
+  textSecondary: buyerColors.textSecondary,
+  textMuted: buyerColors.textMuted,
+  warning: buyerColors.warning,
+  danger: buyerColors.danger,
+  border: buyerColors.border,
+  onPrimary: buyerColors.onPrimary,
+  radius: buyerRadius,
+  shadow: buyerShadow,
+  badges: {
+    ...ordersPalette.badges,
+    pending: {
+      background: buyerColors.primaryLight,
+      foreground: buyerColors.primaryDark
+    }
+  }
+};
 
 export function BuyerHistoryScreen() {
-  const { t } = useTranslation();
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const bottomInset = useBottomInset();
   const route = useRoute<Route>();
-  const { accessToken, activeProfileId } = useSession();
-  const [tab, setTab] = useState<Tab>(route.params?.initialTab ?? "proposals");
-
-  const proposalsQ = useQuery({
-    queryKey: ["buyerProposals", activeProfileId, "history"],
-    queryFn: () => fetchBuyerProposals(accessToken!, activeProfileId),
-    enabled: Boolean(accessToken) && tab === "proposals"
-  });
-
-  const purchasesQ = useQuery({
-    queryKey: ["buyerPurchases", activeProfileId],
-    queryFn: () => fetchBuyerPurchases(accessToken!, activeProfileId),
-    enabled: Boolean(accessToken) && tab === "purchases"
-  });
-
-  const shopOrdersQ = useQuery({
-    queryKey: ["merchant-orders-buyer"],
-    queryFn: () => fetchMerchantBuyerOrders(accessToken!),
-    enabled: Boolean(accessToken) && tab === "shopOrders"
-  });
-
-  const reviewsQ = useQuery({
-    queryKey: ["buyerReviews", activeProfileId],
-    queryFn: () => fetchBuyerReviews(accessToken!, activeProfileId),
-    enabled: Boolean(accessToken) && tab === "reviews"
-  });
-
-  const proposalItems: EventItem[] = useMemo(
-    () =>
-      (proposalsQ.data ?? [])
-        .filter((p) => p.status !== "accepted")
-        .map((p) => ({
-          id: p.id,
-          title: p.listing.title,
-          subtitle: `${p.status} · ${p.listing.farmName ?? "—"}`,
-          date: formatDate(p.createdAt),
-          valueType: "neutral" as const,
-          iconType: "custom" as const,
-          customIcon: "paper-plane-outline",
-          iconColor: buyerColors.primary
-        })),
-    [proposalsQ.data]
-  );
-
-  const purchaseItems: EventItem[] = useMemo(
-    () =>
-      (purchasesQ.data ?? []).map((p) => ({
-        id: p.id,
-        title: p.listing.title,
-        subtitle: `${p.offeredPrice} · ${p.listing.farmName ?? "—"}`,
-        date: formatDate(p.createdAt),
-        valueType: "positive" as const,
-        iconType: "custom" as const,
-        customIcon: "checkmark-circle-outline",
-        iconColor: buyerColors.success
-      })),
-    [purchasesQ.data]
-  );
-
-  const shopOrderItems: EventItem[] = useMemo(
-    () =>
-      (shopOrdersQ.data ?? []).map((o) => {
-        const statusLabel =
-          o.status === "paid"
-            ? t("merchant.orders.status.paidBuyer", {
-                defaultValue: "En attente du commerçant"
-              })
-            : t(`merchant.orders.status.${o.status}`, {
-                defaultValue: o.status
-              });
-        return {
-          id: o.id,
-          title: o.productName ?? t("buyer.history.shopOrderFallback"),
-          subtitle: `${statusLabel} · ${o.sellerName ?? "—"} · ${o.totalAmount.toLocaleString("fr-FR")} ${o.productCurrency}`,
-          date: formatDate(o.createdAt),
-          valueType: "neutral" as const,
-          iconType: "custom" as const,
-          customIcon: "bag-handle-outline",
-          iconColor: buyerColors.primary
-        };
-      }),
-    [shopOrdersQ.data, t]
-  );
-
-  const reviewItems: EventItem[] = useMemo(
-    () =>
-      (reviewsQ.data ?? []).map((r) => ({
-        id: r.id,
-        title: r.farmName,
-        subtitle: r.comment
-          ? `${stars(r.score)} · ${r.comment}`
-          : stars(r.score),
-        date: formatDate(r.createdAt),
-        valueType: "neutral" as const,
-        iconType: "custom" as const,
-        customIcon: "star-outline",
-        iconColor: buyerColors.warning
-      })),
-    [reviewsQ.data]
-  );
-
-  const tabLabel = t(`buyer.history.tabs.${tab}`);
-  const isLoading =
-    (tab === "proposals" && proposalsQ.isLoading) ||
-    (tab === "purchases" && purchasesQ.isLoading) ||
-    (tab === "shopOrders" && shopOrdersQ.isLoading) ||
-    (tab === "reviews" && reviewsQ.isLoading);
-
-  const isFetching =
-    proposalsQ.isFetching ||
-    purchasesQ.isFetching ||
-    shopOrdersQ.isFetching ||
-    reviewsQ.isFetching;
-
-  const refresh = () => {
-    if (tab === "proposals") void proposalsQ.refetch();
-    if (tab === "purchases") void purchasesQ.refetch();
-    if (tab === "shopOrders") void shopOrdersQ.refetch();
-    if (tab === "reviews") void reviewsQ.refetch();
-  };
-
-  const renderContent = () => {
-    if (isLoading) {
-      return <ActivityIndicator color={buyerColors.primary} />;
-    }
-    if (tab === "proposals") {
-      if (proposalsQ.error) {
-        return (
-          <ProfileSectionEmpty>{(proposalsQ.error as Error).message}</ProfileSectionEmpty>
-        );
-      }
-      return proposalItems.length > 0 ? (
-        <EventList
-          data={proposalItems}
-          onItemPress={(item) => {
-            const row = (proposalsQ.data ?? []).find((p) => p.id === item.id);
-            if (!row) return;
-            openBuyerOffersHub(navigation, {
-              highlightOfferId: row.id,
-              offersListingId: row.listing.id
-            });
-          }}
-        />
-      ) : (
-        <ProfileSectionEmpty>{t("buyer.history.noProposals")}</ProfileSectionEmpty>
-      );
-    }
-    if (tab === "purchases") {
-      if (purchasesQ.error) {
-        return (
-          <ProfileSectionEmpty>{(purchasesQ.error as Error).message}</ProfileSectionEmpty>
-        );
-      }
-      return purchaseItems.length > 0 ? (
-        <EventList data={purchaseItems} />
-      ) : (
-        <ProfileSectionEmpty>{t("buyer.history.noPurchases")}</ProfileSectionEmpty>
-      );
-    }
-    if (tab === "shopOrders") {
-      if (shopOrdersQ.error) {
-        return (
-          <ProfileSectionEmpty>
-            {(shopOrdersQ.error as Error).message}
-          </ProfileSectionEmpty>
-        );
-      }
-      return shopOrderItems.length > 0 ? (
-        <EventList
-          data={shopOrderItems}
-          onItemPress={(item) => {
-            navigation.navigate("MerchantOrderDetail", { orderId: item.id });
-          }}
-        />
-      ) : (
-        <ProfileSectionEmpty>{t("buyer.history.noShopOrders")}</ProfileSectionEmpty>
-      );
-    }
-    if (reviewsQ.error) {
-      return (
-        <ProfileSectionEmpty>{(reviewsQ.error as Error).message}</ProfileSectionEmpty>
-      );
-    }
-    return reviewItems.length > 0 ? (
-      <EventList data={reviewItems} />
-    ) : (
-      <ProfileSectionEmpty>{t("buyer.history.noReviews")}</ProfileSectionEmpty>
-    );
-  };
 
   return (
     <BuyerMobileShell hideTopBar>
-      <ScrollView
+      <OrdersHubView
+        role="buyer"
+        initialSegment={route.params?.initialSegment}
+        legacyInitialTab={route.params?.initialTab}
+        showReviewsLink
+        palette={buyerOrdersPalette}
         contentContainerStyle={[
-          profileScreenScrollContent,
-          { paddingBottom: bottomInset }
+          styles.content,
+          { paddingBottom: bottomInset + mobileSpacing.xl }
         ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={isFetching && !isLoading}
-            onRefresh={refresh}
-            tintColor={buyerColors.primary}
-          />
-        }
-      >
-        <ScreenSection title={t("buyer.history.sectionFilter")}>
-          <View style={styles.pills}>
-            {(
-              ["proposals", "purchases", "shopOrders", "reviews"] as Tab[]
-            ).map((k) => {
-              const active = tab === k;
-              return (
-                <Pressable
-                  key={k}
-                  style={[styles.pill, active && styles.pillActive]}
-                  onPress={() => setTab(k)}
-                >
-                  <Text style={[styles.pillText, active && styles.pillTextActive]}>
-                    {t(`buyer.history.tabs.${k}`)}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </ScreenSection>
-
-        <ScreenSection title={tabLabel}>{renderContent()}</ScreenSection>
-      </ScrollView>
+      />
     </BuyerMobileShell>
   );
 }
 
 const styles = StyleSheet.create({
-  pills: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
-  pill: {
-    paddingHorizontal: mobileSpacing.md,
-    paddingVertical: 8,
-    borderRadius: buyerRadius.pill,
-    borderWidth: 1,
-    borderColor: buyerColors.border,
-    backgroundColor: buyerColors.canvas
-  },
-  pillActive: { backgroundColor: buyerColors.primary, borderColor: buyerColors.primary },
-  pillText: { ...mobileTypography.meta, fontWeight: "600", color: buyerColors.textSecondary },
-  pillTextActive: { color: "#fff" }
+  content: {
+    flexGrow: 1
+  }
 });

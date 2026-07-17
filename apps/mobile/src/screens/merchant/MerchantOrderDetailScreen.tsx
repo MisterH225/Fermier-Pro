@@ -20,6 +20,10 @@ import { MerchantOrderContactCard } from "../../components/merchant/orders/Merch
 import { MerchantOrderDeliveryCard } from "../../components/merchant/orders/MerchantOrderDeliveryCard";
 import { MerchantOrderProgressStepper } from "../../components/merchant/orders/MerchantOrderProgressStepper";
 import { MerchantOrderTrackingHeader } from "../../components/merchant/orders/MerchantOrderTrackingHeader";
+import {
+  merchantOrderPalette,
+  OrderDeadlineBanner
+} from "../../components/orders";
 import { useSession } from "../../context/SessionContext";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import {
@@ -38,20 +42,6 @@ import { mobileSpacing } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MerchantOrderDetail">;
-
-function formatWhen(iso: string | null | undefined) {
-  if (!iso) return null;
-  try {
-    return new Date(iso).toLocaleString("fr-FR", {
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
-  } catch {
-    return null;
-  }
-}
 
 export function MerchantOrderDetailScreen({ route }: Props) {
   const { t } = useTranslation();
@@ -203,11 +193,11 @@ export function MerchantOrderDetailScreen({ route }: Props) {
         />
 
         {order.status === "paid" && escrowHeld && order.timeoutAt ? (
-          <Text style={styles.timeout}>
-            {t("merchant.orders.respondBefore", {
-              when: formatWhen(order.timeoutAt) ?? order.timeoutAt
-            })}
-          </Text>
+          <OrderDeadlineBanner
+            deadlineAt={order.timeoutAt}
+            labelKey="merchant.orders.respondBefore"
+            palette={merchantOrderPalette}
+          />
         ) : null}
 
         <MerchantOrderProgressStepper order={order} />
@@ -363,11 +353,6 @@ const styles = StyleSheet.create({
     rowGap: mobileSpacing.md
   },
   loader: { flex: 1, alignItems: "center", justifyContent: "center" },
-  timeout: {
-    color: merchantColors.warning,
-    fontWeight: "700",
-    fontSize: 13
-  },
   actionsCol: { gap: 10 },
   primaryBtn: {
     backgroundColor: merchantColors.primary,

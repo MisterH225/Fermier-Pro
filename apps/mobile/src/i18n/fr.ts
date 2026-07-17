@@ -369,6 +369,7 @@ export const fr = {
     tabPrices: "Indices",
     tabMyListings: "Mes annonces",
     tabOffers: "Propositions",
+    tabSales: "Mes ventes",
     tabClients: "Clients",
     tabSuppliers: "Fournisseurs",
     partners: {
@@ -432,6 +433,52 @@ export const fr = {
     acceptSuccessBodySeller:
       "L'acheteur peut maintenant payer. Suivez la livraison et la clôture ici.",
     transaction: {
+      reference: "N° de transaction",
+      copyReference: "Copier la référence",
+      referenceCopied: "Référence copiée",
+      respondBefore: "Répondez avant {{when}}",
+      saleDetails: "Détails de la vente",
+      counterparty: "Contrepartie",
+      counterpartyBuyer: "Acheteur",
+      counterpartySeller: "Vendeur",
+      marketplaceCounterparty: "Contact marketplace",
+      item: "Article",
+      listingFallback: "Annonce marketplace",
+      agreedWeight: "Poids convenu",
+      declaredWeight: "Poids déclaré",
+      agreedAmount: "Prix convenu",
+      currentAmount: "Montant",
+      paymentMethod: "Mode de paiement",
+      escrowStatus: "Statut escrow",
+      notAvailable: "Non disponible",
+      notDeclared: "Non déclaré",
+      buyerShort: "Acheteur",
+      sellerShort: "Vendeur",
+      stepOrder: "Commande",
+      stepDelivery: "Livraison",
+      stepReceiptWeighing: "Réception & pesée",
+      stepClosed: "Clôturée",
+      shortStatus: {
+        OFFER_ACCEPTED: "Offre acceptée",
+        PAYMENT_PENDING: "Paiement attendu",
+        PAYMENT_HELD: "Paiement sécurisé",
+        PICKUP_PROPOSED: "Rendez-vous proposé",
+        PICKUP_SCHEDULED: "Rendez-vous confirmé",
+        SELLER_SHIPPED: "Remise confirmée",
+        BUYER_RECEIVED: "Réception confirmée",
+        DELIVERY_DISPUTED: "Litige livraison",
+        WEIGHT_DECLARED: "Poids déclaré",
+        WEIGHT_COUNTER_DECLARED: "Écart de poids",
+        WEIGHT_DISPUTED: "Litige poids",
+        WEIGHT_VALIDATED: "Poids validé",
+        TRANSACTION_CLOSED: "Vente conclue",
+        CANCELLED_BY_BUYER: "Annulée",
+        CANCELLED_BY_SELLER: "Annulée",
+        CANCELLED_SOLD_TO_OTHER: "Vendue ailleurs",
+        PAYMENT_FAILED: "Paiement échoué",
+        OFFER_EXPIRED: "Offre expirée",
+        unknown: "Statut inconnu"
+      },
       agreedPrice: "Prix convenu :",
       agreedPricePerKg: "Prix/kg convenu :",
       amountAdjustHint:
@@ -1362,7 +1409,7 @@ export const fr = {
       notifications: "Notifications",
       reports: "Rapports",
       messages: "Messages",
-      buyerHistory: "Mes achats",
+      buyerHistory: "Commandes",
       buyerFinance: "Finance",
       merchantShop: "Boutique",
       merchantProduct: "Produit",
@@ -2317,6 +2364,8 @@ export const fr = {
       bannerOne: "Action requise sur une vente",
       bannerCount: "{{count}} actions en attente sur le marché",
       bannerA11y: "{{count}} action(s) marketplace en attente",
+      bannerSalesHint: "{{count}} vente(s) à traiter",
+      bannerProposalsHint: "{{count}} proposition(s) en attente",
       continue: "Traiter →",
       view: "Voir →",
       tx: {
@@ -3587,7 +3636,7 @@ export const fr = {
       market: "Market",
       finance: "Finance",
       messages: "Messages",
-      history: "Achats"
+      history: "Commandes"
     },
     extended: {
       favorites: "Favoris",
@@ -3715,7 +3764,7 @@ export const fr = {
       noMessage: "Pas encore de message"
     },
     history: {
-      title: "Mes achats",
+      title: "Mes commandes",
       tabs: {
         proposals: "Propositions",
         purchases: "Achats ferme",
@@ -3974,6 +4023,75 @@ export const fr = {
     safetyMargin: "Marge de sécurité : {{direction}}{{delta}} {{currency}}/kg",
     aiTitle: "💡 Analyse IA",
     aiRefresh: "🔄 Actualiser"
+  },
+  orders: {
+    trackingNumber: "N° de suivi",
+    nextAction: "Prochaine action : {{action}}",
+    respondBefore: "Répondez avant {{when}}",
+    disputed: "Litige",
+    contact: {
+      message: "Message",
+      call: "Appeler"
+    },
+    activity: {
+      title: "Activité",
+      empty: "Aucune activité pour le moment."
+    },
+    hub: {
+      pendingProposals: "{{count}} proposition(s) en attente",
+      viewProposals: "Voir →",
+      showReviews: "Mes avis",
+      hideReviews: "Masquer les avis",
+      type: {
+        escrow: "Marketplace",
+        shop: "Boutique"
+      },
+      segments: {
+        action_required: "À agir",
+        active: "En cours",
+        disputed: "Litiges",
+        closed: "Terminées"
+      },
+      empty: {
+        action_required: "Aucune commande à traiter 👍",
+        active: "Aucune commande en cours.",
+        disputed: "Aucun litige en cours.",
+        closed: "Aucune commande terminée pour le moment."
+      },
+      escrowStatus: {
+        PAYMENT_PENDING: "Paiement en attente",
+        PAYMENT_FAILED: "Paiement échoué",
+        PAYMENT_HELD: "Fonds bloqués",
+        PICKUP_PROPOSED: "RDV proposé",
+        PICKUP_SCHEDULED: "RDV confirmé",
+        WEIGHT_DECLARED: "Poids déclaré",
+        WEIGHT_COUNTER_DECLARED: "Contre-poids",
+        WEIGHT_DISPUTED: "Litige poids",
+        WEIGHT_VALIDATED: "Poids validé",
+        SELLER_SHIPPED: "Expédiée",
+        BUYER_RECEIVED: "Réceptionnée",
+        DELIVERY_DISPUTED: "Litige livraison",
+        TRANSACTION_CLOSED: "Terminée",
+        CANCELLED_BY_BUYER: "Annulée (acheteur)",
+        CANCELLED_BY_SELLER: "Annulée (vendeur)",
+        CANCELLED_SOLD_TO_OTHER: "Vendue à un autre",
+        OFFER_EXPIRED: "Expirée",
+        OFFER_ACCEPTED: "Offre acceptée"
+      }
+    },
+    action: {
+      pay: "Payer",
+      retryPayment: "Réessayer le paiement",
+      proposePickup: "Proposer un rendez-vous",
+      confirmPickup: "Confirmer le rendez-vous",
+      declareWeight: "Déclarer le poids",
+      validateWeight: "Valider le poids",
+      confirmShipment: "Confirmer l'expédition",
+      confirmReceipt: "Confirmer la réception",
+      confirmShopOrder: "Accepter la commande",
+      shipShopOrder: "Lancer la livraison",
+      markShopDelivered: "Marquer livrée"
+    }
   },
   merchant: {
     nav: {

@@ -3,23 +3,16 @@ import * as Clipboard from "expo-clipboard";
 import { useTranslation } from "react-i18next";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import {
+  merchantOrderPalette,
+  merchantWarningOrderPalette,
+  OrderStatusBadge,
+  type OrderStatusTone
+} from "../../orders";
+import {
   orderStatusBadgeTone,
-  shortOrderTrackingId,
-  type OrderStatusBadgeTone
+  shortOrderTrackingId
 } from "../../../lib/merchantOrderTracking";
-import { merchantColors, merchantRadius } from "../../../theme/merchantTheme";
-
-const BADGE_STYLES: Record<
-  OrderStatusBadgeTone,
-  { bg: string; fg: string }
-> = {
-  neutral: { bg: "#F3F4F6", fg: "#374151" },
-  info: { bg: merchantColors.primaryLight, fg: merchantColors.primaryDark },
-  progress: { bg: "#E0F2FE", fg: "#0369A1" },
-  success: { bg: "#DCFCE7", fg: "#166534" },
-  warning: { bg: "#FEF3C7", fg: "#92400E" },
-  danger: { bg: "#FCE7F3", fg: merchantColors.danger }
-};
+import { merchantColors } from "../../../theme/merchantTheme";
 
 type Props = {
   orderId: string;
@@ -34,8 +27,19 @@ export function MerchantOrderTrackingHeader({
 }: Props) {
   const { t } = useTranslation();
   const trackingId = shortOrderTrackingId(orderId);
-  const tone = orderStatusBadgeTone(status);
-  const badge = BADGE_STYLES[tone];
+  const legacyTone = orderStatusBadgeTone(status);
+  const tone: OrderStatusTone =
+    legacyTone === "info"
+      ? "pending"
+      : legacyTone === "progress"
+        ? "active"
+        : legacyTone === "warning"
+          ? "danger"
+          : legacyTone;
+  const palette =
+    legacyTone === "warning"
+      ? merchantWarningOrderPalette
+      : merchantOrderPalette;
 
   const onCopy = async () => {
     await Clipboard.setStringAsync(trackingId);
@@ -69,11 +73,12 @@ export function MerchantOrderTrackingHeader({
           </View>
         </View>
       </View>
-      <View style={[styles.badge, { backgroundColor: badge.bg }]}>
-        <Text style={[styles.badgeTx, { color: badge.fg }]} numberOfLines={1}>
-          {statusLabel}
-        </Text>
-      </View>
+      <OrderStatusBadge
+        labelKey={statusLabel}
+        label={statusLabel}
+        tone={tone}
+        palette={palette}
+      />
     </View>
   );
 }
@@ -107,11 +112,4 @@ const styles = StyleSheet.create({
     color: merchantColors.textPrimary,
     flexShrink: 1
   },
-  badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: merchantRadius.pill,
-    maxWidth: "42%"
-  },
-  badgeTx: { fontSize: 12, fontWeight: "800" }
 });

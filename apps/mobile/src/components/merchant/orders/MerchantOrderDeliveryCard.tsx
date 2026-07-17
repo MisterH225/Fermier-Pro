@@ -1,37 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
+import {
+  merchantOrderPalette,
+  OrderInfoCard,
+  type OrderInfoRow
+} from "../../orders";
 import type { MerchantOrderDto } from "../../../lib/api";
 import { formatMarketMoney } from "../../../lib/formatMoney";
-import { merchantColors, merchantRadius, merchantShadow } from "../../../theme/merchantTheme";
-import { mobileSpacing, mobileTypography } from "../../../theme/mobileTheme";
+import { merchantColors } from "../../../theme/merchantTheme";
 
 type Props = {
   order: MerchantOrderDto;
   isSeller: boolean;
 };
-
-function Row({
-  label,
-  value,
-  valueDanger
-}: {
-  label: string;
-  value: string;
-  valueDanger?: boolean;
-}) {
-  return (
-    <View style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
-      <Text
-        style={[styles.value, valueDanger && styles.valueDanger]}
-        numberOfLines={3}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
 
 export function MerchantOrderDeliveryCard({ order, isSeller }: Props) {
   const { t } = useTranslation();
@@ -43,45 +25,55 @@ export function MerchantOrderDeliveryCard({ order, isSeller }: Props) {
     order.productName ?? "—",
     t("merchant.orders.qtyItems", { count: order.quantity })
   ].join(" · ");
+  const rows: OrderInfoRow[] = [
+    {
+      labelKey: isSeller
+        ? "merchant.orders.deliveryDetails.receiver"
+        : "merchant.orders.deliveryDetails.merchant",
+      value: counterparty
+    },
+    {
+      labelKey: "merchant.orders.deliveryDetails.contact",
+      value: phone?.trim()
+        ? phone
+        : t("merchant.orders.deliveryDetails.noContact")
+    },
+    {
+      labelKey: "merchant.orders.deliveryDetails.item",
+      value: itemLabel
+    },
+    {
+      labelKey: "merchant.orders.amount",
+      value: formatMarketMoney(
+        order.totalAmount,
+        order.productCurrency || "XOF"
+      )
+    },
+    {
+      labelKey: "merchant.orders.payment",
+      value:
+        order.status !== "payment_pending" && order.status !== "failed"
+          ? `${order.paymentMethod} · ${t("merchant.orders.paidBadge")}`
+          : order.paymentMethod
+    }
+  ];
+  if (isSeller) {
+    rows.push({
+      labelKey: "merchant.orders.net",
+      value: formatMarketMoney(
+        order.sellerNet,
+        order.productCurrency || "XOF"
+      )
+    });
+  }
 
   return (
-    <View style={[styles.card, merchantShadow.card]}>
-      <View style={styles.head}>
-        <Ionicons name="bicycle-outline" size={18} color={merchantColors.primary} />
-        <Text style={styles.headTx}>{t("merchant.orders.deliveryDetails.title")}</Text>
-      </View>
-
-      <Row
-        label={
-          isSeller
-            ? t("merchant.orders.deliveryDetails.receiver")
-            : t("merchant.orders.deliveryDetails.merchant")
-        }
-        value={counterparty}
-      />
-      <Row
-        label={t("merchant.orders.deliveryDetails.contact")}
-        value={phone?.trim() ? phone : t("merchant.orders.deliveryDetails.noContact")}
-      />
-      <Row label={t("merchant.orders.deliveryDetails.item")} value={itemLabel} />
-      <Row
-        label={t("merchant.orders.amount")}
-        value={formatMarketMoney(order.totalAmount, order.productCurrency || "XOF")}
-      />
-      <Row
-        label={t("merchant.orders.payment")}
-        value={
-          order.status !== "payment_pending" && order.status !== "failed"
-            ? `${order.paymentMethod} · ${t("merchant.orders.paidBadge")}`
-            : order.paymentMethod
-        }
-      />
-      {isSeller ? (
-        <Row
-          label={t("merchant.orders.net")}
-          value={formatMarketMoney(order.sellerNet, order.productCurrency || "XOF")}
-        />
-      ) : null}
+    <OrderInfoCard
+      titleKey="merchant.orders.deliveryDetails.title"
+      icon="bicycle-outline"
+      rows={rows}
+      palette={merchantOrderPalette}
+    >
       {order.dispute ? (
         <View style={styles.noteRow}>
           <Text style={styles.label}>{t("merchant.orders.deliveryDetails.note")}</Text>
@@ -93,44 +85,18 @@ export function MerchantOrderDeliveryCard({ order, isSeller }: Props) {
           </View>
         </View>
       ) : null}
-    </View>
+    </OrderInfoCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: merchantColors.cardBg,
-    borderRadius: merchantRadius.card,
-    padding: mobileSpacing.md,
-    borderWidth: 1,
-    borderColor: merchantColors.border,
-    gap: 12
-  },
-  head: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 },
-  headTx: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: merchantColors.textPrimary
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 12
-  },
   label: {
-    ...mobileTypography.meta,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "500",
     color: merchantColors.textSecondary,
     flexShrink: 0
   },
-  value: {
-    flex: 1,
-    textAlign: "right",
-    fontWeight: "700",
-    fontSize: 14,
-    color: merchantColors.textPrimary
-  },
-  valueDanger: { color: merchantColors.danger },
   noteRow: {
     flexDirection: "row",
     justifyContent: "space-between",

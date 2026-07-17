@@ -34,6 +34,7 @@ import { ProducerScoreModule } from "../producer-score/producer-score.module";
 import { ProducerSubscriptionModule } from "../producer-subscription/producer-subscription.module";
 import { WalletModule } from "../wallet/wallet.module";
 import { ListingAnimalSyncService } from "./listing-animal-sync.service";
+import { OrdersController, OrdersProjectionService } from "./orders";
 
 @Module({
   imports: [
@@ -58,7 +59,8 @@ import { ListingAnimalSyncService } from "./listing-animal-sync.service";
     CreditOffersController,
     GeniusPayWebhookController,
     ReceiptController,
-    ReceiptVerifyController
+    ReceiptVerifyController,
+    OrdersController
   ],
   providers: [
     SuperAdminGuard,
@@ -77,7 +79,8 @@ import { ListingAnimalSyncService } from "./listing-animal-sync.service";
     BuyerProfileDetectorService,
     CreditScoreService,
     CreditOffersService,
-    CreditCronService
+    CreditCronService,
+    OrdersProjectionService
   ],
   exports: [
     FarmMarketplaceLifecycleService,
@@ -87,7 +90,8 @@ import { ListingAnimalSyncService } from "./listing-animal-sync.service";
     ReceiptService,
     CreditOffersService,
     CreditScoreService,
-    EscrowService
+    EscrowService,
+    OrdersProjectionService
   ]
 })
 export class MarketplaceModule {}

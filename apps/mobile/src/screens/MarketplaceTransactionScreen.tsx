@@ -30,8 +30,12 @@ import {
   type MarketplacePaymentMethodChoice
 } from "../components/buyer/MarketplacePaymentMethodPicker";
 import { TransferToFarmModal } from "../components/marketplace/TransferToFarmModal";
-import { PrimaryButton } from "../components/ui/PrimaryButton";
-import { SecondaryButton } from "../components/ui/SecondaryButton";
+import {
+  PrimaryButton,
+  SecondaryButton
+} from "../components/marketplace/transaction/MarketplaceTransactionActionButtons";
+import { MarketplaceTransactionOverview } from "../components/marketplace/transaction/MarketplaceTransactionOverview";
+import { MarketplaceTransactionStatusNotice } from "../components/marketplace/transaction/MarketplaceTransactionStatusNotice";
 import { TransactionReceiptCard } from "../components/marketplace/TransactionReceiptCard";
 import { useBottomInset } from "../hooks/useBottomInset";
 import { useSession } from "../context/SessionContext";
@@ -44,6 +48,7 @@ import {
   confirmMarketplaceShipment,
   declareMarketplaceWeight,
   declareSellerMarketplaceWeight,
+  ensureDirectChatRoom,
   fetchMarketplaceTransaction,
   fetchBuyerWallet,
   initiateMarketplacePayment,
@@ -57,6 +62,7 @@ import {
   marketplaceActionErrorMessage,
   projectMarketplaceFinalAmount
 } from "../lib/marketplaceLabels";
+import { marketplaceTransactionActions } from "../lib/marketplaceOrderStatusUi";
 import { openPaymentCheckout } from "../lib/paymentCheckout";
 import { fromIsoDateString, startOfDay } from "../lib/appDate";
 import {
@@ -103,30 +109,6 @@ async function waitForMarketplacePaymentHeld(
     }
   }
   return { pendingExternalPayment: true as const };
-}
-
-function stepIndex(status: string): number {
-  switch (status) {
-    case "PAYMENT_PENDING":
-      return 0;
-    case "PAYMENT_HELD":
-    case "PICKUP_PROPOSED":
-      return 1;
-    case "PICKUP_SCHEDULED":
-    case "WEIGHT_DECLARED":
-    case "WEIGHT_COUNTER_DECLARED":
-    case "WEIGHT_DISPUTED":
-      return 2;
-    case "WEIGHT_VALIDATED":
-    case "SELLER_SHIPPED":
-    case "DELIVERY_DISPUTED":
-      return 3;
-    case "BUYER_RECEIVED":
-    case "TRANSACTION_CLOSED":
-      return 4;
-    default:
-      return 0;
-  }
 }
 
 function formatPickupDate(iso: string): string {
@@ -534,6 +516,28 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
       Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
   });
 
+  const contactMut = useMutation({
+    mutationFn: (peerUserId: string) =>
+      ensureDirectChatRoom(
+        accessToken!,
+        peerUserId,
+        activeProfileId,
+        q.data?.listingId
+      ),
+    onSuccess: (room) => {
+      void qc.invalidateQueries({ queryKey: ["chatRooms", activeProfileId] });
+      navigation.navigate("ChatRoom", {
+        roomId: room.id,
+        headline:
+          room.title?.trim() ||
+          t("marketScreen.transaction.marketplaceCounterparty"),
+        listingId: q.data?.listingId
+      });
+    },
+    onError: (e: Error) =>
+      Alert.alert("Impossible", marketplaceActionErrorMessage(e, t))
+  });
+
   const tx = q.data;
   const walletBalance = walletQ.data?.balance ?? 0;
   const payCurrency = tx?.currency ?? walletQ.data?.currency ?? "XOF";
@@ -626,17 +630,19 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   const myId = authMe?.user.id;
   const isBuyer = myId === tx.buyerUserId;
   const isSeller = myId === tx.sellerUserId;
+  const role = isBuyer ? "buyer" : "seller";
+  const availableActions = marketplaceTransactionActions(tx.status, role);
+  const hasAction = (action: (typeof availableActions)[number]) =>
+    availableActions.includes(action);
   const cur = tx.currency || "XOF";
   const estKg = parseMarketNum(tx.estimatedWeightKg);
   const agreedPerKg = parseMarketNum(tx.agreedPricePerKg);
   const agreedFlat = parseMarketNum(tx.agreedFlatPrice);
-  const currentStep = stepIndex(tx.status);
   const statusLabel = t(`marketScreen.transaction.status.${tx.status}`, {
     defaultValue: tx.status
   });
   const payReady =
-    isBuyer &&
-    (tx.status === "PAYMENT_PENDING" || tx.status === "PAYMENT_FAILED") &&
+    hasAction("pay") &&
     q.isSuccess &&
     !q.isFetching;
   const projectedFinal =
@@ -647,27 +653,53 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
       agreedFlatPrice: agreedFlat,
       realWeightKg: tx.realWeightKg
     });
-  const stepLabels = [
-    t("marketScreen.transaction.stepPayment"),
-    t("marketScreen.transaction.stepPickup"),
-    t("marketScreen.transaction.stepWeight"),
-    t("marketScreen.transaction.stepHandover"),
-    t("marketScreen.transaction.stepClosing")
-  ];
   const animalIds = tx.listingAnimalIds ?? [];
-  const canConfirmPickup = isSeller && tx.status === "PICKUP_PROPOSED";
-  const canConfirmShipment = isSeller && tx.status === "WEIGHT_VALIDATED";
-  const canConfirmReceipt = isBuyer && tx.status === "SELLER_SHIPPED";
-  const canDeclareWeight =
-    isBuyer && tx.status === "PICKUP_SCHEDULED";
+  const canConfirmPickup = hasAction("confirm_pickup");
+  const canConfirmShipment = hasAction("confirm_shipment");
+  const canConfirmReceipt = hasAction("confirm_receipt");
+  const canDeclareWeight = hasAction("declare_weight");
   const pendingTransfer = tx.pendingTransfer;
   const canCompleteTransfer =
-    isBuyer &&
-    tx.status === "TRANSACTION_CLOSED" &&
+    hasAction("complete_transfer") &&
     pendingTransfer != null &&
     pendingTransfer.completedAt == null &&
     pendingTransfer.cancelledAt == null;
-  const showPickupForm = isBuyer && tx.status === "PAYMENT_HELD";
+  const showPickupForm = hasAction("propose_pickup");
+  const overviewAmount =
+    tx.status === "TRANSACTION_CLOSED" && tx.finalAmount != null
+      ? money(tx.finalAmount, cur)
+      : money(tx.blockedAmount, cur);
+  const overviewAgreedPrice =
+    agreedFlat != null
+      ? money(agreedFlat, cur)
+      : agreedPerKg != null
+        ? `${money(agreedPerKg, cur)}/kg`
+        : t("marketScreen.transaction.notAvailable");
+  const overviewAgreedWeight =
+    estKg != null
+      ? `${estKg.toLocaleString("fr-FR", {
+          maximumFractionDigits: 1
+        })} kg`
+      : t("marketScreen.transaction.notAvailable");
+  const overviewDeclaredWeight =
+    tx.realWeightKg != null || tx.sellerDeclaredWeightKg != null
+      ? [
+          tx.realWeightKg != null
+            ? `${t("marketScreen.transaction.buyerShort")}: ${tx.realWeightKg.toLocaleString(
+                "fr-FR",
+                { maximumFractionDigits: 1 }
+              )} kg`
+            : null,
+          tx.sellerDeclaredWeightKg != null
+            ? `${t("marketScreen.transaction.sellerShort")}: ${tx.sellerDeclaredWeightKg.toLocaleString(
+                "fr-FR",
+                { maximumFractionDigits: 1 }
+              )} kg`
+            : null
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : t("marketScreen.transaction.notDeclared");
   const showScheduledPickup =
     Boolean(tx.pickupDate && tx.pickupLocation) &&
     [
@@ -693,84 +725,18 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets
     >
-      <View style={styles.card}>
-        <Text style={styles.title}>{tx.listingTitle ?? "Annonce"}</Text>
-        <Text style={styles.status}>{statusLabel}</Text>
-
-        <View style={styles.stepper}>
-          {stepLabels.map((label, idx) => {
-            const done = currentStep > idx;
-            const active = currentStep === idx || (idx === 3 && currentStep === 3);
-            return (
-              <View key={label} style={styles.stepRow}>
-                <View
-                  style={[
-                    styles.stepDot,
-                    done && styles.stepDotDone,
-                    active && styles.stepDotActive
-                  ]}
-                />
-                <Text
-                  style={[
-                    styles.stepLabel,
-                    (done || active) && styles.stepLabelActive
-                  ]}
-                >
-                  {label}
-                </Text>
-              </View>
-            );
-          })}
-        </View>
-
-        {agreedFlat != null ? (
-          <Text style={styles.line}>
-            {t("marketScreen.transaction.agreedPrice")}{" "}
-            {money(agreedFlat, cur)}
-          </Text>
-        ) : agreedPerKg != null ? (
-          <Text style={styles.line}>
-            {t("marketScreen.transaction.agreedPricePerKg")}{" "}
-            {money(agreedPerKg, cur)}/kg
-          </Text>
-        ) : null}
-        {estKg != null ? (
-          <Text style={styles.line}>
-            {t("marketScreen.totalWeight")}{" "}
-            {estKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg
-            {tx.realWeightKg != null
-              ? ` → ${tx.realWeightKg.toLocaleString("fr-FR", {
-                  maximumFractionDigits: 1
-                })} kg (${t("marketScreen.transaction.realWeight").toLowerCase()})`
-              : ""}
-          </Text>
-        ) : null}
-        <Text style={styles.amount}>
-          {tx.status === "TRANSACTION_CLOSED" && tx.finalAmount != null
-            ? money(tx.finalAmount, cur)
-            : money(tx.blockedAmount, cur)}
-        </Text>
-        {tx.status === "TRANSACTION_CLOSED" && tx.finalAmount != null ? (
-          <Text style={styles.hint}>
-            {t("marketScreen.transaction.finalCost", {
-              amount: money(tx.finalAmount, cur)
-            })}
-          </Text>
-        ) : (
-          <Text style={styles.hint}>
-            {t("marketScreen.transaction.amountAdjustHint")}
-          </Text>
-        )}
-        {projectedFinal != null &&
-        tx.status !== "TRANSACTION_CLOSED" &&
-        tx.priceType !== "flat" ? (
-          <Text style={styles.projected}>
-            {t("marketScreen.transaction.projectedFinalCost", {
-              amount: money(projectedFinal, cur)
-            })}
-          </Text>
-        ) : null}
-      </View>
+      <MarketplaceTransactionOverview
+        transaction={tx}
+        role={role}
+        amount={overviewAmount}
+        agreedPrice={overviewAgreedPrice}
+        agreedWeight={overviewAgreedWeight}
+        declaredWeight={overviewDeclaredWeight}
+        onMessage={() =>
+          contactMut.mutate(isBuyer ? tx.sellerUserId : tx.buyerUserId)
+        }
+        messageBusy={contactMut.isPending}
+      />
 
       {showScheduledPickup && tx.pickupDate && tx.pickupLocation ? (
         <View style={styles.section}>
@@ -783,117 +749,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         </View>
       ) : null}
 
-      {isSeller && tx.status === "PAYMENT_PENDING" ? (
-        <View style={styles.section}>
-          <Text style={styles.waiting}>
-            {t("marketScreen.transaction.sellerWaitPayment")}
-          </Text>
-        </View>
-      ) : null}
-
-      {isSeller && tx.status === "PAYMENT_HELD" ? (
-        <View style={styles.section}>
-          <Text style={styles.waiting}>
-            {t("marketScreen.transaction.sellerWaitBuyerPickup")}
-          </Text>
-        </View>
-      ) : null}
-
-      {isSeller && tx.status === "PICKUP_PROPOSED" ? (
-        <View style={styles.section}>
-          <Text style={styles.waiting}>
-            {t("marketScreen.transaction.sellerConfirmPickup")}
-          </Text>
-        </View>
-      ) : null}
-
-      {isBuyer && tx.status === "PICKUP_PROPOSED" ? (
-        <View style={styles.section}>
-          <Text style={styles.waiting}>
-            {t("marketScreen.transaction.buyerWaitPickupConfirm")}
-          </Text>
-        </View>
-      ) : null}
-
-      {isSeller && tx.status === "PICKUP_SCHEDULED" ? (
-        <View style={styles.section}>
-          <Text style={styles.waiting}>
-            {t("marketScreen.transaction.sellerWaitWeight")}
-          </Text>
-        </View>
-      ) : null}
-
-      {isBuyer && tx.status === "PICKUP_SCHEDULED" ? (
-        <View style={styles.section}>
-          <Text style={styles.waiting}>
-            {t("marketScreen.transaction.buyerDeclareWeight")}
-          </Text>
-        </View>
-      ) : null}
-
-      {isSeller && tx.status === "WEIGHT_VALIDATED" ? (
-        <View style={styles.section}>
-          <Text style={styles.waiting}>
-            {t("marketScreen.transaction.sellerConfirmHandover")}
-          </Text>
-        </View>
-      ) : null}
-
-      {isBuyer && tx.status === "WEIGHT_VALIDATED" ? (
-        <View style={styles.section}>
-          <Text style={styles.waiting}>
-            {t("marketScreen.transaction.buyerWaitHandover")}
-          </Text>
-        </View>
-      ) : null}
-
-      {isSeller && tx.status === "SELLER_SHIPPED" ? (
-        <View style={styles.section}>
-          <Text style={styles.waiting}>
-            {t("marketScreen.transaction.sellerWaitReceipt")}
-          </Text>
-        </View>
-      ) : null}
-
-      {isBuyer && tx.status === "SELLER_SHIPPED" ? (
-        <View style={styles.section}>
-          <Text style={styles.waiting}>
-            {t("marketScreen.transaction.buyerWaitReceipt")}
-          </Text>
-        </View>
-      ) : null}
-
-      {isBuyer && tx.status === "PAYMENT_HELD" ? (
-        <View style={styles.section}>
-          <Text style={styles.waiting}>
-            {t("marketScreen.transaction.buyerProposePickup")}
-          </Text>
-        </View>
-      ) : null}
-
-      {tx.status === "BUYER_RECEIVED" ? (
-        <View style={styles.section}>
-          <Text style={styles.waiting}>
-            {t("marketScreen.transaction.finalizing")}
-          </Text>
-        </View>
-      ) : null}
-
-      {tx.status === "WEIGHT_DISPUTED" ? (
-        <View style={styles.section}>
-          <Text style={styles.waiting}>
-            {t("marketScreen.transaction.weightDisputed")}
-          </Text>
-        </View>
-      ) : null}
-
-      {tx.status === "DELIVERY_DISPUTED" ? (
-        <View style={styles.section}>
-          <Text style={styles.waiting}>
-            {t("marketScreen.transaction.deliveryDisputed")}
-          </Text>
-        </View>
-      ) : null}
+      <MarketplaceTransactionStatusNotice status={tx.status} role={role} />
 
       {canConfirmPickup ? (
         <View style={styles.section}>
@@ -1056,7 +912,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         </View>
       ) : null}
 
-      {isSeller && tx.status === "WEIGHT_DECLARED" ? (
+      {hasAction("counter_weight") ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
             {t("marketScreen.transaction.sellerWeightReview")}
@@ -1130,14 +986,15 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
               })}
             </Text>
           ) : null}
-          {isSeller ? (
+          {hasAction("validate_weight") ? (
             <PrimaryButton
               label={t("marketScreen.transaction.validateWeight")}
               onPress={() => validateMut.mutate()}
               loading={validateMut.isPending}
             />
           ) : null}
-          {tx.canRequestWeightArbitration ? (
+          {hasAction("request_weight_arbitration") &&
+          tx.canRequestWeightArbitration ? (
             <SecondaryButton
               label={t("marketScreen.transaction.requestArbitration")}
               onPress={() => arbitrationMut.mutate()}
@@ -1152,13 +1009,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         </View>
       ) : null}
 
-      {(isBuyer || isSeller) &&
-      [
-        "PAYMENT_HELD",
-        "PICKUP_SCHEDULED",
-        "PAYMENT_PENDING",
-        "SELLER_SHIPPED"
-      ].includes(tx.status) ? (
+      {hasAction("cancel") ? (
         <View style={styles.section}>
           <SecondaryButton
             label={t("marketScreen.transaction.cancel")}
@@ -1248,7 +1099,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: mobileColors.surfaceMuted },
-  content: { padding: mobileSpacing.lg },
+  content: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
   centered: {
     flex: 1,
     alignItems: "center",
@@ -1256,67 +1107,15 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.lg
   },
   error: { ...mobileTypography.body, color: mobileColors.error },
-  card: {
-    backgroundColor: mobileColors.background,
-    borderRadius: mobileRadius.lg,
-    padding: mobileSpacing.lg
-  },
-  title: { ...mobileTypography.cardTitle, color: mobileColors.textPrimary },
-  status: {
-    ...mobileTypography.body,
-    color: mobileColors.accent,
-    marginTop: 4,
-    marginBottom: mobileSpacing.md,
-    fontWeight: "600"
-  },
-  stepper: {
-    marginBottom: mobileSpacing.md,
-    gap: mobileSpacing.xs
-  },
-  stepRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: mobileSpacing.sm
-  },
-  stepDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: mobileColors.border
-  },
-  stepDotDone: {
-    backgroundColor: mobileColors.success
-  },
-  stepDotActive: {
-    backgroundColor: mobileColors.accent
-  },
-  stepLabel: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary
-  },
-  stepLabelActive: {
-    color: mobileColors.textPrimary
-  },
   line: {
     ...mobileTypography.body,
     color: mobileColors.textSecondary,
     marginBottom: 4
   },
-  amount: {
-    ...mobileTypography.title,
-    color: mobileColors.accent,
-    marginTop: mobileSpacing.sm
-  },
   hint: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
     marginTop: mobileSpacing.sm
-  },
-  projected: {
-    ...mobileTypography.body,
-    color: mobileColors.textPrimary,
-    marginTop: mobileSpacing.sm,
-    fontWeight: "600"
   },
   waiting: {
     ...mobileTypography.body,
