@@ -19,6 +19,7 @@
     "prisma:push:force": "node scripts/prisma-run.cjs db push --accept-data-loss",
     "prisma:seed": "node prisma/seed.cjs",
     "backfill:farm-departments": "node -r ts-node/register/transpile-only scripts/backfill-farm-departments.ts",
+    "backfill:region-stats": "node -r ts-node/register/transpile-only scripts/backfill-region-stats.ts",
     "promote:superadmin": "node scripts/promote-superadmin.cjs",
     "set:auth-password": "node scripts/set-auth-password.cjs"
   },
