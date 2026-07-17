@@ -1,5 +1,5 @@
 {
-  "message": "fix(mobile): retirer la note technique push des réglages notifications",
-  "updatedAt": "2026-07-13T22:45Z",
-  "channels": ["preview", "production"]
+  "message": "feat(merchant): archivage boutique, re-soumission produit et suivi commandes",
+  "updatedAt": "2026-07-17T20:47Z",
+  "channels": ["preview"]
 }
