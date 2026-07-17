@@ -38,8 +38,65 @@ import {
   farmMatchesScope,
   resolveFarmLocation,
   scopeBoundsFor,
+  type AdminDepartmentRef,
   type HealthMapGranularity
 } from "./health-map-geo.helper";
+import {
+  assertNoNominativeFields,
+  maskLowHealthMapZones,
+  type PrivacyHealthMapZone
+} from "./institution-privacy.util";
+
+export type HealthMapOutputMode = "detailed" | "aggregated";
+
+export type HealthMapDetailedZone = {
+  id: string;
+  label: string;
+  level: HealthMapGranularity;
+  parentLabel: string | null;
+  centerLat: number | null;
+  centerLng: number | null;
+  activeCases: number;
+  totalCasesInPeriod: number;
+  farmCount: number;
+  topDiseases: Array<{ name: string; count: number }>;
+};
+
+export type HealthMapDetailedPoint = {
+  recordId: string;
+  farmId: string;
+  farmName: string;
+  lat: number;
+  lng: number;
+  diagnosis: string;
+  severity: string | null;
+  zoneId: string;
+  city: string | null;
+  sectorLabel: string | null;
+};
+
+export type HealthMapDetailedResponse = {
+  periodDays: number;
+  granularity: HealthMapGranularity;
+  truncated: boolean;
+  zones: HealthMapDetailedZone[];
+  regions: Array<{
+    country: string;
+    activeCases: number;
+    totalCases: number;
+    farmCount: number;
+    topDiseases: Array<{ name: string; count: number }>;
+  }>;
+  points: HealthMapDetailedPoint[];
+};
+
+export type HealthMapAggregatedResponse = {
+  mode: "aggregated";
+  periodDays: number;
+  granularity: HealthMapGranularity;
+  truncated: boolean;
+  zones: PrivacyHealthMapZone[];
+};
 
 function lastDaysKeys(days: number): string[] {
   const keys: string[] = [];
@@ -581,9 +638,20 @@ export class AdminPlatformService {
   }
 
   async getHealthMap(
+    periodDays?: number,
+    granularity?: HealthMapGranularity,
+    mode?: "detailed"
+  ): Promise<HealthMapDetailedResponse>;
+  async getHealthMap(
+    periodDays: number,
+    granularity: HealthMapGranularity,
+    mode: "aggregated"
+  ): Promise<HealthMapAggregatedResponse>;
+  async getHealthMap(
     periodDays = 30,
-    granularity: HealthMapGranularity = "sector"
-  ) {
+    granularity: HealthMapGranularity = "sector",
+    mode: HealthMapOutputMode = "detailed"
+  ): Promise<HealthMapDetailedResponse | HealthMapAggregatedResponse> {
     const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
     const settings = await this.platformSettings.getOrCreateSettingsRow();
     const alertSince = new Date(
@@ -622,7 +690,8 @@ export class AdminPlatformService {
             address: true,
             locationSector: true,
             locationCity: true,
-            locationCountry: true
+            locationCountry: true,
+            departmentCode: true
           }
         }
       },
@@ -631,6 +700,31 @@ export class AdminPlatformService {
     });
 
     const truncated = rows.length >= 10000;
+
+    const departmentCodes = [
+      ...new Set(
+        rows
+          .map((r) => r.farm.departmentCode)
+          .filter((code): code is string => Boolean(code?.trim()))
+      )
+    ];
+    const departmentRefRows =
+      departmentCodes.length > 0
+        ? await this.prisma.adminRegionRef.findMany({
+            where: { code: { in: departmentCodes } },
+            include: { parent: { select: { name: true } } }
+          })
+        : [];
+    const departmentRefByCode = new Map<string, AdminDepartmentRef>(
+      departmentRefRows.map((row) => [
+        row.code,
+        {
+          code: row.code,
+          name: row.name,
+          regionName: row.parent?.name ?? null
+        }
+      ])
+    );
 
     type ZoneBucket = {
       id: string;
@@ -696,14 +790,18 @@ export class AdminPlatformService {
         longitude: r.farm.longitude != null ? Number(r.farm.longitude) : null,
         locationSector: r.farm.locationSector,
         locationCity: r.farm.locationCity,
-        locationCountry: r.farm.locationCountry
+        locationCountry: r.farm.locationCountry,
+        departmentCode: r.farm.departmentCode
       });
 
       if (!farmMatchesScope(loc, scope)) {
         continue;
       }
 
-      const zoneKey = buildZoneKey(granularity, loc);
+      const departmentRef = r.farm.departmentCode
+        ? departmentRefByCode.get(r.farm.departmentCode) ?? null
+        : null;
+      const zoneKey = buildZoneKey(granularity, loc, departmentRef);
       const bucket = ensureZone(zoneKey);
       const inPeriod = r.occurredAt >= since;
       const isActive =
@@ -728,6 +826,7 @@ export class AdminPlatformService {
       }
 
       if (
+        mode === "detailed" &&
         isActive &&
         loc.lat != null &&
         loc.lng != null &&
@@ -791,6 +890,30 @@ export class AdminPlatformService {
       }),
       settings
     );
+
+    if (mode === "aggregated") {
+      const payload = {
+        mode: "aggregated" as const,
+        periodDays,
+        granularity,
+        truncated,
+        zones: maskLowHealthMapZones(
+          zones.map((z) => ({
+            zoneId: z.id,
+            label: z.label,
+            level: z.level,
+            farmsAffectedCount: z.farmCount,
+            casesCount: z.totalCasesInPeriod,
+            activeCasesCount: z.activeCases,
+            dominantDiagnoses: z.topDiseases,
+            centerLat: z.centerLat,
+            centerLng: z.centerLng
+          }))
+        )
+      };
+      assertNoNominativeFields(payload);
+      return payload;
+    }
 
     // Rétrocompatibilité : `regions` = agrégation pays
     const countryZones = granularity === "country"

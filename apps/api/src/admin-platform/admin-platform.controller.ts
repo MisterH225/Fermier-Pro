@@ -294,20 +294,37 @@ export class AdminPlatformController {
   }
 
   @Get("health-map")
-  healthMap(
+  async healthMap(
+    @CurrentUser() user: User,
     @Query("periodDays") periodDays?: string,
-    @Query("granularity") granularity?: string
+    @Query("granularity") granularity?: string,
+    @Query("mode") mode?: string
   ) {
+    const profile = await this.consoleAccess.requireConsoleAccess(user.id);
     const days = periodDays ? Number.parseInt(periodDays, 10) : 30;
     const level =
       granularity === "country" ||
       granularity === "city" ||
-      granularity === "sector"
+      granularity === "sector" ||
+      granularity === "department"
         ? granularity
         : "sector";
+    let outputMode: "detailed" | "aggregated" =
+      profile.role === "institution" ? "aggregated" : "detailed";
+    if (profile.role === "superadmin" && mode === "aggregated") {
+      outputMode = "aggregated";
+    }
+    if (outputMode === "aggregated") {
+      return this.admin.getHealthMap(
+        Number.isFinite(days) ? days : 30,
+        level,
+        "aggregated"
+      );
+    }
     return this.admin.getHealthMap(
       Number.isFinite(days) ? days : 30,
-      level
+      level,
+      "detailed"
     );
   }
 

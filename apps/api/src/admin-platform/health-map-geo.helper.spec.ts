@@ -1,6 +1,7 @@
 import {
   buildZoneKey,
   farmMatchesScope,
+  formatDepartmentZoneLabel,
   mergeFarmGeoParts,
   parseFarmAddress,
   resolveFarmLocation,
@@ -61,5 +62,30 @@ describe("health-map-geo.helper", () => {
       city: "Dakar",
       country: "Sénégal"
     });
+  });
+
+  it("buildZoneKey department utilise departmentCode et AdminRegionRef", () => {
+    const loc = resolveFarmLocation({
+      address: "Anyama, Abidjan, Côte d'Ivoire",
+      latitude: 5.49,
+      longitude: -4.05,
+      departmentCode: "CI-DEP-ANYAMA"
+    });
+    const zone = buildZoneKey("department", loc, {
+      code: "CI-DEP-ANYAMA",
+      name: "Anyama",
+      regionName: "Abidjan"
+    });
+    expect(zone).toMatchObject({
+      id: "department:CI-DEP-ANYAMA",
+      label: "Anyama (Abidjan)",
+      level: "department",
+      parentLabel: "Abidjan"
+    });
+  });
+
+  it("formatDepartmentZoneLabel retombe sur le code si référentiel absent", () => {
+    expect(formatDepartmentZoneLabel(null, "CI-DEP-TEST")).toBe("CI-DEP-TEST");
+    expect(formatDepartmentZoneLabel(null, null)).toBe("Département inconnu");
   });
 });

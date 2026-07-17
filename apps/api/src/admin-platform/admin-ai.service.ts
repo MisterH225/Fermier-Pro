@@ -59,7 +59,7 @@ export class AdminAiService {
 
     const [stats, healthMap, overview] = await Promise.all([
       this.admin.getStats("month"),
-      this.admin.getHealthMap(30),
+      this.admin.getHealthMap(30, "sector", "detailed"),
       this.admin.getOverview()
     ]);
 

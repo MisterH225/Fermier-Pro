@@ -4,7 +4,17 @@ export const SECTOR_GRID_DECIMALS = 3;
 /** Précision grille ville (sans adresse structurée, ~1,1 km). */
 export const CITY_GRID_DECIMALS = 1;
 
-export type HealthMapGranularity = "country" | "city" | "sector";
+export type HealthMapGranularity =
+  | "country"
+  | "city"
+  | "sector"
+  | "department";
+
+export type AdminDepartmentRef = {
+  code: string;
+  name: string;
+  regionName: string | null;
+};
 
 export type FarmGeoParts = {
   country: string;
@@ -27,6 +37,7 @@ export type FarmLocationInput = {
   locationSector?: string | null;
   locationCity?: string | null;
   locationCountry?: string | null;
+  departmentCode?: string | null;
 };
 
 const WEST_AFRICA_BOUNDS: MapScopeBounds = {
@@ -125,6 +136,7 @@ export function resolveFarmLocation(input: FarmLocationInput): {
   lng: number | null;
   sectorGrid: string | null;
   cityGrid: string | null;
+  departmentCode: string | null;
 } {
   const geo = mergeFarmGeoParts(input);
   const lat =
@@ -135,13 +147,15 @@ export function resolveFarmLocation(input: FarmLocationInput): {
     input.longitude != null && Number.isFinite(Number(input.longitude))
       ? Number(input.longitude)
       : null;
+  const departmentCode = input.departmentCode?.trim() || null;
   return {
     geo,
     lat,
     lng,
     sectorGrid: lat != null && lng != null ? gridKey(lat, lng, SECTOR_GRID_DECIMALS) : null,
     cityGrid:
-      lat != null && lng != null ? gridKey(lat, lng, CITY_GRID_DECIMALS) : null
+      lat != null && lng != null ? gridKey(lat, lng, CITY_GRID_DECIMALS) : null,
+    departmentCode
   };
 }
 
@@ -154,14 +168,42 @@ export type ZoneKeyParts = {
   centerLng: number | null;
 };
 
+export function formatDepartmentZoneLabel(
+  departmentRef: AdminDepartmentRef | null | undefined,
+  departmentCode: string | null
+): string {
+  if (departmentRef) {
+    return departmentRef.regionName
+      ? `${departmentRef.name} (${departmentRef.regionName})`
+      : departmentRef.name;
+  }
+  if (departmentCode) {
+    return departmentCode;
+  }
+  return "Département inconnu";
+}
+
 export function buildZoneKey(
   granularity: HealthMapGranularity,
-  loc: ReturnType<typeof resolveFarmLocation>
+  loc: ReturnType<typeof resolveFarmLocation>,
+  departmentRef?: AdminDepartmentRef | null
 ): ZoneKeyParts {
-  const { geo, lat, lng, sectorGrid, cityGrid } = loc;
+  const { geo, lat, lng, sectorGrid, cityGrid, departmentCode } = loc;
   const countryToken = normalizeGeoToken(geo.country);
   const cityName = geo.city ?? (cityGrid ? `Zone ${cityGrid}` : "Ville inconnue");
   const cityToken = normalizeGeoToken(cityName);
+
+  if (granularity === "department") {
+    const code = departmentCode ?? "unknown";
+    return {
+      id: `department:${code}`,
+      label: formatDepartmentZoneLabel(departmentRef, departmentCode),
+      level: "department",
+      parentLabel: departmentRef?.regionName ?? null,
+      centerLat: lat,
+      centerLng: lng
+    };
+  }
 
   if (granularity === "country") {
     return {
