@@ -1,5 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
-import type { AdminConsoleMenuPermissions } from "../src/admin-platform/admin-console-menu.constants";
+import type { AdminConsoleMenuPermissions } from "../../src/admin-platform/admin-console-menu.constants";
 
 export interface E2EInstitutionSeedResult {
   id: string;
