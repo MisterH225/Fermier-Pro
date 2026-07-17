@@ -17,6 +17,9 @@ import { ProducerSubscriptionModule } from "../producer-subscription/producer-su
 import { MobileMoneyModule } from "../marketplace/escrow";
 import { AdminMerchantSubscriptionsService } from "./admin-merchant-subscriptions.service";
 import { AdminProducerSubscriptionsService } from "./admin-producer-subscriptions.service";
+import { RegionStatsSnapshotCronService } from "./region-stats-snapshot-cron.service";
+import { RegionStatsSnapshotService } from "./region-stats-snapshot.service";
+import { RegionStatsService } from "./region-stats.service";
 
 @Module({
   imports: [
@@ -39,7 +42,10 @@ import { AdminProducerSubscriptionsService } from "./admin-producer-subscription
     AdminPlatformService,
     AdminAiService,
     AdminMerchantSubscriptionsService,
-    AdminProducerSubscriptionsService
+    AdminProducerSubscriptionsService,
+    RegionStatsSnapshotService,
+    RegionStatsSnapshotCronService,
+    RegionStatsService
   ],
   exports: [AdminPlatformService, AdminConsoleAuthModule]
 })

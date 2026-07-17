@@ -68,6 +68,8 @@ import {
   AdminMerchantSubReasonDto
 } from "./dto/admin-merchant-subscriptions.dto";
 import { AdminCreateMerchantPromoCodeDto } from "./dto/admin-merchant-promo-codes.dto";
+import { RegionalStatsQueryDto } from "./dto/regional-stats-query.dto";
+import { RegionStatsService } from "./region-stats.service";
 
 @Controller("admin")
 @UseGuards(SupabaseJwtGuard, ConsoleAccessGuard, AdminConsoleMenuGuard)
@@ -87,7 +89,8 @@ export class AdminPlatformController {
     private readonly merchantModeration: MerchantModerationService,
     private readonly merchantOrders: MerchantOrdersService,
     private readonly merchantSubscriptions: AdminMerchantSubscriptionsService,
-    private readonly producerSubscriptions: AdminProducerSubscriptionsService
+    private readonly producerSubscriptions: AdminProducerSubscriptionsService,
+    private readonly regionStats: RegionStatsService
   ) {}
 
   @Get("me")
@@ -309,8 +312,34 @@ export class AdminPlatformController {
   }
 
   @Get("stats")
+  @UseGuards(SuperAdminGuard)
   stats(@Query("period") period?: "month" | "quarter" | "year") {
     return this.admin.getStats(period ?? "month");
+  }
+
+  @Get("stats/regional/mortality")
+  regionalMortality(@Query() query: RegionalStatsQueryDto) {
+    return this.regionStats.getRegionalMortality(query);
+  }
+
+  @Get("stats/regional/herd")
+  regionalHerd(@Query() query: RegionalStatsQueryDto) {
+    return this.regionStats.getRegionalHerd(query);
+  }
+
+  @Get("stats/regional/reproduction")
+  regionalReproduction(@Query() query: RegionalStatsQueryDto) {
+    return this.regionStats.getRegionalReproduction(query);
+  }
+
+  @Get("stats/regional/growth")
+  regionalGrowth(@Query() query: RegionalStatsQueryDto) {
+    return this.regionStats.getRegionalGrowth(query);
+  }
+
+  @Get("stats/regional/vet-coverage")
+  regionalVetCoverage(@Query() query: RegionalStatsQueryDto) {
+    return this.regionStats.getRegionalVetCoverage(query);
   }
 
   @Get("settings")

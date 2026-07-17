@@ -2863,6 +2863,31 @@ model PigPriceIndexDaily {
   @@index([date(sort: Desc)])
 }
 
+/// Agrégats journaliers anonymisés par département (console institution / stats régionales).
+model RegionStatsDaily {
+  id                       String   @id @default(cuid())
+  date                     DateTime @db.Date
+  departmentCode           String
+  farmCount                Int      @default(0)
+  animalCountByCategory    Json     @default("{}")
+  mortalityHeadcount       Int      @default(0)
+  mortalityByCause         Json     @default("{}")
+  littersCount             Int      @default(0)
+  bornAlive                Int      @default(0)
+  stillborn                Int      @default(0)
+  weanedEstimate           Int      @default(0)
+  avgGmqByCategory         Json     @default("{}")
+  exitsSaleHeadcount       Int      @default(0)
+  exitsSaleAvgPricePerKg   Decimal? @db.Decimal(14, 4)
+  exitsSlaughterHeadcount  Int      @default(0)
+  vetConsultationsCount    Int      @default(0)
+  createdAt                DateTime @default(now())
+
+  @@unique([date, departmentCode])
+  @@index([date(sort: Desc)])
+  @@index([departmentCode])
+}
+
 /// Snapshots de l'indice hybride anti-manipulation (transactions + annonces pondérées).
 model PigPriceIndexHybridSnapshot {
   id             String   @id @default(cuid())
