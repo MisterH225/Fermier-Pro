@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { fetchRegionalStatSections } from "@/lib/api";
+import {
+  fetchRegionalStatSections,
+  fetchRegionalStatsMeta,
+  type RegionalStatsMetaDto
+} from "@/lib/api";
 import type { InstitutionStatSection } from "@/lib/institution-stat-sections";
 import { useAdminAccess } from "@/lib/admin-access-context";
 import { useAdminToken } from "@/lib/useAdminToken";
@@ -26,11 +30,29 @@ function isoDate(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
-function defaultDateRange() {
-  const to = new Date();
-  const from = new Date();
-  from.setUTCDate(from.getUTCDate() - 29);
-  return { from: isoDate(from), to: isoDate(to) };
+/** 30 derniers jours des snapshots disponibles (pas depuis 1970 / 2024). */
+function rangeFromMeta(meta: RegionalStatsMetaDto | null): {
+  from: string;
+  to: string;
+} {
+  const today = isoDate(new Date());
+  if (!meta?.latestSnapshotDate) {
+    const from = new Date();
+    from.setUTCDate(from.getUTCDate() - 29);
+    return { from: isoDate(from), to: today };
+  }
+  const to = meta.latestSnapshotDate;
+  const toDate = new Date(`${to}T00:00:00.000Z`);
+  const fromDate = new Date(toDate);
+  fromDate.setUTCDate(fromDate.getUTCDate() - 29);
+  let from = isoDate(fromDate);
+  if (
+    meta.earliestSnapshotDate &&
+    from < meta.earliestSnapshotDate
+  ) {
+    from = meta.earliestSnapshotDate;
+  }
+  return { from, to };
 }
 
 export default function StatistiquesPage() {
@@ -46,7 +68,9 @@ export default function StatistiquesPage() {
     null
   );
   const [loadingSections, setLoadingSections] = useState(true);
-  const [{ from, to }, setRange] = useState(defaultDateRange);
+  const [meta, setMeta] = useState<RegionalStatsMetaDto | null>(null);
+  const [rangeReady, setRangeReady] = useState(false);
+  const [{ from, to }, setRange] = useState({ from: "", to: "" });
 
   const isSuperadmin = profile?.role === "superadmin";
   const showInternalTab = isSuperadmin && !viewAsInstitutionId;
@@ -59,23 +83,34 @@ export default function StatistiquesPage() {
   useEffect(() => {
     if (!token) return;
     setLoadingSections(true);
-    void fetchRegionalStatSections(token, viewAsInstitutionId)
-      .then((res) => {
-        const next = res.sections.filter(
+    setRangeReady(false);
+    void Promise.all([
+      fetchRegionalStatSections(token, viewAsInstitutionId),
+      fetchRegionalStatsMeta(token, viewAsInstitutionId)
+    ])
+      .then(([sectionsRes, metaRes]) => {
+        const next = sectionsRes.sections.filter(
           (section): section is InstitutionStatSection =>
             section !== "movements"
         );
-        setSections(res.sections as InstitutionStatSection[]);
-        setIsSuperadminSections(res.isSuperadmin === true);
+        setSections(sectionsRes.sections as InstitutionStatSection[]);
+        setIsSuperadminSections(sectionsRes.isSuperadmin === true);
         setActiveSection((prev) =>
           prev && next.includes(prev) ? prev : (next[0] ?? null)
         );
+        setMeta(metaRes);
+        setRange(rangeFromMeta(metaRes));
       })
       .catch(() => {
         setSections([]);
         setActiveSection(null);
+        setMeta(null);
+        setRange(rangeFromMeta(null));
       })
-      .finally(() => setLoadingSections(false));
+      .finally(() => {
+        setLoadingSections(false);
+        setRangeReady(true);
+      });
   }, [token, viewAsInstitutionId]);
 
   useEffect(() => {
@@ -113,7 +148,7 @@ export default function StatistiquesPage() {
         <InternalStatsView token={token} />
       ) : (
         <div className="space-y-6">
-          {loadingSections ? (
+          {loadingSections || !rangeReady ? (
             <p className="text-muted-foreground">…</p>
           ) : servedSections.length === 0 ? (
             <Card>
@@ -131,6 +166,8 @@ export default function StatistiquesPage() {
                       id="stats-from"
                       type="date"
                       value={from}
+                      min={meta?.earliestSnapshotDate ?? undefined}
+                      max={to || undefined}
                       onChange={(e) =>
                         setRange((prev) => ({ ...prev, from: e.target.value }))
                       }
@@ -142,6 +179,8 @@ export default function StatistiquesPage() {
                       id="stats-to"
                       type="date"
                       value={to}
+                      min={from || meta?.earliestSnapshotDate || undefined}
+                      max={meta?.latestSnapshotDate ?? undefined}
                       onChange={(e) =>
                         setRange((prev) => ({ ...prev, to: e.target.value }))
                       }
@@ -157,6 +196,19 @@ export default function StatistiquesPage() {
                 />
               </div>
 
+              {meta?.earliestSnapshotDate && meta.latestSnapshotDate ? (
+                <p className="text-xs text-muted-foreground">
+                  {tRegional("dataAvailability", {
+                    from: meta.earliestSnapshotDate,
+                    to: meta.latestSnapshotDate
+                  })}
+                </p>
+              ) : (
+                <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  {tRegional("noSnapshotsYet")}
+                </p>
+              )}
+
               <FilterPills
                 items={servedSections}
                 value={activeSection ?? servedSections[0]}
@@ -170,7 +222,7 @@ export default function StatistiquesPage() {
                 </p>
               ) : null}
 
-              {activeSection ? (
+              {activeSection && from && to ? (
                 <RegionalStatsSectionPanel
                   token={token}
                   section={activeSection}

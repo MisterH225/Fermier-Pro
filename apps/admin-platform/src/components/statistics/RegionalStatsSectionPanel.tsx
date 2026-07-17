@@ -19,6 +19,7 @@ import { useInstitutionPreview } from "@/lib/institution-preview-context";
 import { AdminSection } from "@/components/layout/AdminSection";
 import { RegionalStatsCoverageBanner } from "@/components/statistics/RegionalStatsCoverageBanner";
 import { RegionalStatsDepartmentTable } from "@/components/statistics/RegionalStatsDepartmentTable";
+import { RegionalStatsVisuals } from "@/components/statistics/RegionalStatsVisuals";
 import { Activity } from "lucide-react";
 
 type Props = {
@@ -77,6 +78,7 @@ export function RegionalStatsSectionPanel({
   const [data, setData] = useState<RegionalStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showTable, setShowTable] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -94,12 +96,11 @@ export function RegionalStatsSectionPanel({
       ) : error ? (
         <p className="text-sm text-destructive">{t("loadError")}</p>
       ) : data ? (
-        <div className="space-y-4">
+        <div className="space-y-5">
           <RegionalStatsCoverageBanner coverage={data.coverage} />
           {section === "health" ? (
             <p className="text-xs text-muted-foreground">
-              Suspicions déclarées par les éleveurs — diagnostics non confirmés
-              labo. Létalité apparente = corrélation déclarative.
+              {t("charts.health.disclaimer")}
             </p>
           ) : null}
           {section === "adoption" && data.national ? (
@@ -109,10 +110,27 @@ export function RegionalStatsSectionPanel({
               {formatRate(data.national.retentionJ90)}
             </p>
           ) : null}
-          <RegionalStatsDepartmentTable
+
+          <RegionalStatsVisuals
             section={section}
             departments={data.departments}
           />
+
+          <div className="space-y-2">
+            <button
+              type="button"
+              className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+              onClick={() => setShowTable((v) => !v)}
+            >
+              {showTable ? t("hideTable") : t("showTable")}
+            </button>
+            {showTable ? (
+              <RegionalStatsDepartmentTable
+                section={section}
+                departments={data.departments}
+              />
+            ) : null}
+          </div>
         </div>
       ) : null}
     </AdminSection>

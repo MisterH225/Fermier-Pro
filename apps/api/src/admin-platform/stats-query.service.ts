@@ -87,33 +87,76 @@ export type RegionalSectionPayload = {
   national?: Record<string, unknown>;
 };
 
+/** k-anonymat : actif pour institutions / aperçu ; off pour superadmin opérationnel. */
+export type RegionalStatsPrivacy = {
+  maskLowCells: boolean;
+};
+
+export const DEFAULT_REGIONAL_PRIVACY: RegionalStatsPrivacy = {
+  maskLowCells: true
+};
+
+export type RegionalStatsDataAvailability = {
+  earliestSnapshotDate: string | null;
+  latestSnapshotDate: string | null;
+  snapshotRowCount: number;
+};
+
 @Injectable()
 export class StatsQueryService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getDataAvailability(): Promise<RegionalStatsDataAvailability> {
+    const agg = await this.prisma.regionStatsDaily.aggregate({
+      _min: { date: true },
+      _max: { date: true },
+      _count: true
+    });
+    return {
+      earliestSnapshotDate: agg._min.date
+        ? agg._min.date.toISOString().slice(0, 10)
+        : null,
+      latestSnapshotDate: agg._max.date
+        ? agg._max.date.toISOString().slice(0, 10)
+        : null,
+      snapshotRowCount: agg._count
+    };
+  }
+
+  private privacyRows<T extends { departmentCode: string; farmCount: number }>(
+    rows: T[],
+    privacy: RegionalStatsPrivacy
+  ): T[] | ReturnType<typeof suppressLowCells<T>> {
+    if (!privacy.maskLowCells) {
+      return rows;
+    }
+    return suppressLowCells(rows);
+  }
+
   async querySection(
     section: InstitutionStatSection,
-    query: RegionalStatsQueryDto
+    query: RegionalStatsQueryDto,
+    privacy: RegionalStatsPrivacy = DEFAULT_REGIONAL_PRIVACY
   ): Promise<RegionalSectionPayload> {
     switch (section) {
       case "mortality":
-        return this.queryMortality(query);
+        return this.queryMortality(query, privacy);
       case "herd":
-        return this.queryHerd(query);
+        return this.queryHerd(query, privacy);
       case "reproduction":
-        return this.queryReproduction(query);
+        return this.queryReproduction(query, privacy);
       case "growth":
-        return this.queryGrowth(query);
+        return this.queryGrowth(query, privacy);
       case "vetCoverage":
-        return this.queryVetCoverage(query);
+        return this.queryVetCoverage(query, privacy);
       case "economy":
-        return this.queryEconomy(query);
+        return this.queryEconomy(query, privacy);
       case "health":
-        return this.queryHealth(query);
+        return this.queryHealth(query, privacy);
       case "lifecycle":
-        return this.queryLifecycle(query);
+        return this.queryLifecycle(query, privacy);
       case "adoption":
-        return this.queryAdoption(query);
+        return this.queryAdoption(query, privacy);
       case "movements":
         throw new Error("Section movements non servie (P-14)");
       default:
@@ -121,11 +164,14 @@ export class StatsQueryService {
     }
   }
 
-  async queryMortality(query: RegionalStatsQueryDto): Promise<RegionalSectionPayload> {
+  async queryMortality(
+    query: RegionalStatsQueryDto,
+    privacy: RegionalStatsPrivacy = DEFAULT_REGIONAL_PRIVACY
+  ): Promise<RegionalSectionPayload> {
     const { from, to, rows, coverage } = await this.loadAggregated(query);
     const zByDept = await this.mortalityZScoresByDepartment();
 
-    const departments = suppressLowCells(
+    const departments = this.privacyRows(
       rows.map((row) => {
         const zScore = zByDept.get(row.departmentCode) ?? null;
         return {
@@ -136,7 +182,8 @@ export class StatsQueryService {
           zScore,
           overmortality: isOvermortality(zScore)
         };
-      })
+      }),
+      privacy
     );
 
     const payload = { from, to, coverage, departments };
@@ -144,16 +191,20 @@ export class StatsQueryService {
     return payload;
   }
 
-  async queryHerd(query: RegionalStatsQueryDto): Promise<RegionalSectionPayload> {
+  async queryHerd(
+    query: RegionalStatsQueryDto,
+    privacy: RegionalStatsPrivacy = DEFAULT_REGIONAL_PRIVACY
+  ): Promise<RegionalSectionPayload> {
     const { from, to, rows, coverage } = await this.loadAggregated(query);
-    const departments = suppressLowCells(
+    const departments = this.privacyRows(
       rows.map((row) => ({
         departmentCode: row.departmentCode,
         farmCount: row.farmCount,
         animalCountByCategory: row.animalCountByCategory,
         exitsSaleHeadcount: row.exitsSaleHeadcount,
         exitsSlaughterHeadcount: row.exitsSlaughterHeadcount
-      }))
+      })),
+      privacy
     );
     const payload = { from, to, coverage, departments };
     assertNoNominativeFields(payload);
@@ -161,11 +212,12 @@ export class StatsQueryService {
   }
 
   async queryReproduction(
-    query: RegionalStatsQueryDto
+    query: RegionalStatsQueryDto,
+    privacy: RegionalStatsPrivacy = DEFAULT_REGIONAL_PRIVACY
   ): Promise<RegionalSectionPayload> {
     const { from, to, rows, coverage, periodDays } =
       await this.loadAggregated(query);
-    const departments = suppressLowCells(
+    const departments = this.privacyRows(
       rows.map((row) => {
         const rates = computeReproductionRates(row);
         const avgSows =
@@ -201,22 +253,27 @@ export class StatsQueryService {
           intervalleMiseBasJours: rates.intervalleMiseBasJours,
           rangPorteeMoyen: rates.rangPorteeMoyen
         };
-      })
+      }),
+      privacy
     );
     const payload = { from, to, coverage, departments };
     assertNoNominativeFields(payload);
     return payload;
   }
 
-  async queryGrowth(query: RegionalStatsQueryDto): Promise<RegionalSectionPayload> {
+  async queryGrowth(
+    query: RegionalStatsQueryDto,
+    privacy: RegionalStatsPrivacy = DEFAULT_REGIONAL_PRIVACY
+  ): Promise<RegionalSectionPayload> {
     const { from, to, rows, coverage } = await this.loadAggregated(query);
-    const departments = suppressLowCells(
+    const departments = this.privacyRows(
       rows.map((row) => ({
         departmentCode: row.departmentCode,
         farmCount: row.farmCount,
         avgGmqByCategory: row.avgGmqByCategory,
         exitsSaleAvgPricePerKg: row.exitsSaleAvgPricePerKg
-      }))
+      })),
+      privacy
     );
     const payload = { from, to, coverage, departments };
     assertNoNominativeFields(payload);
@@ -224,31 +281,37 @@ export class StatsQueryService {
   }
 
   async queryVetCoverage(
-    query: RegionalStatsQueryDto
+    query: RegionalStatsQueryDto,
+    privacy: RegionalStatsPrivacy = DEFAULT_REGIONAL_PRIVACY
   ): Promise<RegionalSectionPayload> {
     const { from, to, rows, coverage } = await this.loadAggregated(query);
-    const departments = suppressLowCells(
+    const departments = this.privacyRows(
       rows.map((row) => ({
         departmentCode: row.departmentCode,
         farmCount: row.farmCount,
         vetConsultationsCount: row.vetConsultationsCount
-      }))
+      })),
+      privacy
     );
     const payload = { from, to, coverage, departments };
     assertNoNominativeFields(payload);
     return payload;
   }
 
-  async queryEconomy(query: RegionalStatsQueryDto): Promise<RegionalSectionPayload> {
+  async queryEconomy(
+    query: RegionalStatsQueryDto,
+    privacy: RegionalStatsPrivacy = DEFAULT_REGIONAL_PRIVACY
+  ): Promise<RegionalSectionPayload> {
     const { from, to, rows, coverage } = await this.loadAggregated(query);
-    const departments = suppressLowCells(
+    const departments = this.privacyRows(
       rows.map((row) => ({
         departmentCode: row.departmentCode,
         farmCount: row.farmCount,
         exitsSaleHeadcount: row.exitsSaleHeadcount,
         exitsSaleAvgPricePerKg: row.exitsSaleAvgPricePerKg,
         exitsSlaughterHeadcount: row.exitsSlaughterHeadcount
-      }))
+      })),
+      privacy
     );
     const payload = { from, to, coverage, departments };
     assertNoNominativeFields(payload);
@@ -259,7 +322,10 @@ export class StatsQueryService {
    * Santé : suspicions déclarées (pas cas confirmés).
    * Classement départements par incidence /1 000, pas par volume brut.
    */
-  async queryHealth(query: RegionalStatsQueryDto): Promise<RegionalSectionPayload> {
+  async queryHealth(
+    query: RegionalStatsQueryDto,
+    privacy: RegionalStatsPrivacy = DEFAULT_REGIONAL_PRIVACY
+  ): Promise<RegionalSectionPayload> {
     const { from, to, rows, coverage } = await this.loadAggregated(query);
     const enriched = rows.map((row) => {
       const avgHerd =
@@ -292,17 +358,18 @@ export class StatsQueryService {
       (a, b) => (b.incidencePerThousand ?? 0) - (a.incidencePerThousand ?? 0)
     );
 
-    const departments = suppressLowCells(enriched);
+    const departments = this.privacyRows(enriched, privacy);
     const payload = { from, to, coverage, departments };
     assertNoNominativeFields(payload);
     return payload;
   }
 
   async queryLifecycle(
-    query: RegionalStatsQueryDto
+    query: RegionalStatsQueryDto,
+    privacy: RegionalStatsPrivacy = DEFAULT_REGIONAL_PRIVACY
   ): Promise<RegionalSectionPayload> {
     const { from, to, rows, coverage } = await this.loadAggregated(query);
-    const departments = suppressLowCells(
+    const departments = this.privacyRows(
       rows.map((row) => {
         const avgHerd =
           row.herdSampleDays > 0
@@ -338,7 +405,8 @@ export class StatsQueryService {
           repartitionSorties: rates.repartitionSorties,
           sowCullsCount: row.sowCullsCount
         };
-      })
+      }),
+      privacy
     );
     const payload = { from, to, coverage, departments };
     assertNoNominativeFields(payload);
@@ -349,18 +417,20 @@ export class StatsQueryService {
    * Adoption : fermes actives + MAU depuis snapshot ; rétention J+30 à la volée.
    */
   async queryAdoption(
-    query: RegionalStatsQueryDto
+    query: RegionalStatsQueryDto,
+    privacy: RegionalStatsPrivacy = DEFAULT_REGIONAL_PRIVACY
   ): Promise<RegionalSectionPayload> {
     const { from, to, rows, coverage } = await this.loadAggregated(query);
     const retention = await this.computeRetentionLive();
 
-    const departments = suppressLowCells(
+    const departments = this.privacyRows(
       rows.map((row) => ({
         departmentCode: row.departmentCode,
         farmCount: row.farmCount,
         activeFarmsCount: row.activeFarmsCount,
         activeUsersByRole: row.activeUsersByRole
-      }))
+      })),
+      privacy
     );
 
     const payload = {

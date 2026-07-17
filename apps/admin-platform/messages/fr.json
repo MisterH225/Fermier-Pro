@@ -550,6 +550,52 @@
       "to": "Au",
       "loadError": "Impossible de charger cette section.",
       "superadminHint": "Vue complète superadmin — utilisez « Voir en tant que » pour prévisualiser une institution.",
+      "dataAvailability": "Snapshots disponibles du {from} au {to}. La période par défaut couvre les 30 derniers jours de données — élargir avant la première ferme n’ajoute rien.",
+      "noSnapshotsYet": "Aucun snapshot régional en base — lancez le backfill RegionStatsDaily.",
+      "showTable": "Afficher le détail tabulaire",
+      "hideTable": "Masquer le tableau",
+      "charts": {
+        "emptyMasked": "Indicateurs masqués (moins de 5 fermes par département) — vue institution anonymisée. En superadmin hors aperçu, les chiffres s’affichent.",
+        "mortality": {
+          "title": "Mortalités déclarées par département",
+          "lead": "Volume de têtes sorties pour mortalité sur la période. Compare les départements entre eux, pas au cheptel national."
+        },
+        "herd": {
+          "title": "Effectif agrégé par département",
+          "lead": "Somme des animaux actifs suivis sur le panel Fermier Pro — couverture plateforme, pas recensement officiel."
+        },
+        "reproduction": {
+          "bornTitle": "Nés vivants par département",
+          "bornLead": "Porcelets nés vivants enregistrés via les portées. Un volume bas peut refléter une faible saisie plutôt qu’une mauvaise prolificité.",
+          "farrowingTitle": "Taux de mise bas",
+          "farrowingLead": "Gestations terminées en mise bas ÷ (mises bas + avortements + pertes). Calculé à la lecture depuis les comptes bruts."
+        },
+        "growth": {
+          "title": "GMQ moyen (kg/j)",
+          "lead": "Gain moyen quotidien estimé à partir des pesées successives — moyenne simple des catégories renseignées."
+        },
+        "vetCoverage": {
+          "title": "Consultations vétérinaires",
+          "lead": "Nombre de consultations ouvertes sur la période. Indicateur d’accès aux soins, pas de couverture vaccinale."
+        },
+        "economy": {
+          "title": "Têtes vendues",
+          "lead": "Sorties de type vente enregistrées. Complète l’index marketplace avec les ventes directes saisies en ferme."
+        },
+        "health": {
+          "title": "Incidence des suspicions / 1 000 animaux",
+          "lead": "Classement par incidence (pas par volume brut) pour comparer des départements de tailles différentes.",
+          "disclaimer": "Suspicions déclarées par les éleveurs — diagnostics non confirmés labo. Létalité apparente = corrélation déclarative."
+        },
+        "lifecycle": {
+          "title": "Taux de vente du cheptel",
+          "lead": "Têtes vendues ÷ effectif moyen. Mesure la rotation commerciale, pas le chiffre d’affaires."
+        },
+        "adoption": {
+          "title": "Fermes actives (fenêtre 30 j)",
+          "lead": "Fermes avec au moins une saisie récente (cheptel, santé, repro ou finance) — mesure d’adoption plus stricte que le MAU."
+        }
+      },
       "export": {
         "exportPdf": "Exporter PDF",
         "exportCsv": "Exporter CSV (ZIP)",

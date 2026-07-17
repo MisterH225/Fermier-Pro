@@ -347,6 +347,12 @@ export type RegionalStatsSectionsDto = {
   isSuperadmin?: boolean;
 };
 
+export type RegionalStatsMetaDto = {
+  earliestSnapshotDate: string | null;
+  latestSnapshotDate: string | null;
+  snapshotRowCount: number;
+};
+
 export type RegionalStatsQuery = {
   from?: string;
   to?: string;
@@ -1779,6 +1785,19 @@ export function fetchRegionalStatSections(
   const qs = params.toString();
   return apiFetch<RegionalStatsSectionsDto>(
     `/admin/stats/regional/sections${qs ? `?${qs}` : ""}`,
+    token
+  );
+}
+
+export function fetchRegionalStatsMeta(
+  token: string,
+  viewAsInstitutionId?: string | null
+) {
+  const params = new URLSearchParams();
+  appendViewAsInstitutionId(params, viewAsInstitutionId);
+  const qs = params.toString();
+  return apiFetch<RegionalStatsMetaDto>(
+    `/admin/stats/regional/meta${qs ? `?${qs}` : ""}`,
     token
   );
 }

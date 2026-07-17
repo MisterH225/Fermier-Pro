@@ -1,45 +1,80 @@
 import { Injectable } from "@nestjs/common";
 import { RegionalStatsQueryDto } from "./dto/regional-stats-query.dto";
-import { StatsQueryService } from "./stats-query.service";
+import {
+  DEFAULT_REGIONAL_PRIVACY,
+  type RegionalStatsPrivacy,
+  StatsQueryService
+} from "./stats-query.service";
 
 /** Façade HTTP — délègue à StatsQueryService (source unique écran + rapports). */
 @Injectable()
 export class RegionStatsService {
   constructor(private readonly statsQuery: StatsQueryService) {}
 
-  getRegionalMortality(query: RegionalStatsQueryDto) {
-    return this.statsQuery.queryMortality(query);
+  getDataAvailability() {
+    return this.statsQuery.getDataAvailability();
   }
 
-  getRegionalHerd(query: RegionalStatsQueryDto) {
-    return this.statsQuery.queryHerd(query);
+  getRegionalMortality(
+    query: RegionalStatsQueryDto,
+    privacy: RegionalStatsPrivacy = DEFAULT_REGIONAL_PRIVACY
+  ) {
+    return this.statsQuery.queryMortality(query, privacy);
   }
 
-  getRegionalReproduction(query: RegionalStatsQueryDto) {
-    return this.statsQuery.queryReproduction(query);
+  getRegionalHerd(
+    query: RegionalStatsQueryDto,
+    privacy: RegionalStatsPrivacy = DEFAULT_REGIONAL_PRIVACY
+  ) {
+    return this.statsQuery.queryHerd(query, privacy);
   }
 
-  getRegionalGrowth(query: RegionalStatsQueryDto) {
-    return this.statsQuery.queryGrowth(query);
+  getRegionalReproduction(
+    query: RegionalStatsQueryDto,
+    privacy: RegionalStatsPrivacy = DEFAULT_REGIONAL_PRIVACY
+  ) {
+    return this.statsQuery.queryReproduction(query, privacy);
   }
 
-  getRegionalVetCoverage(query: RegionalStatsQueryDto) {
-    return this.statsQuery.queryVetCoverage(query);
+  getRegionalGrowth(
+    query: RegionalStatsQueryDto,
+    privacy: RegionalStatsPrivacy = DEFAULT_REGIONAL_PRIVACY
+  ) {
+    return this.statsQuery.queryGrowth(query, privacy);
   }
 
-  getRegionalEconomy(query: RegionalStatsQueryDto) {
-    return this.statsQuery.queryEconomy(query);
+  getRegionalVetCoverage(
+    query: RegionalStatsQueryDto,
+    privacy: RegionalStatsPrivacy = DEFAULT_REGIONAL_PRIVACY
+  ) {
+    return this.statsQuery.queryVetCoverage(query, privacy);
   }
 
-  getRegionalHealth(query: RegionalStatsQueryDto) {
-    return this.statsQuery.queryHealth(query);
+  getRegionalEconomy(
+    query: RegionalStatsQueryDto,
+    privacy: RegionalStatsPrivacy = DEFAULT_REGIONAL_PRIVACY
+  ) {
+    return this.statsQuery.queryEconomy(query, privacy);
   }
 
-  getRegionalLifecycle(query: RegionalStatsQueryDto) {
-    return this.statsQuery.queryLifecycle(query);
+  getRegionalHealth(
+    query: RegionalStatsQueryDto,
+    privacy: RegionalStatsPrivacy = DEFAULT_REGIONAL_PRIVACY
+  ) {
+    return this.statsQuery.queryHealth(query, privacy);
   }
 
-  getRegionalAdoption(query: RegionalStatsQueryDto) {
-    return this.statsQuery.queryAdoption(query);
+  getRegionalLifecycle(
+    query: RegionalStatsQueryDto,
+    privacy: RegionalStatsPrivacy = DEFAULT_REGIONAL_PRIVACY
+  ) {
+    return this.statsQuery.queryLifecycle(query, privacy);
+  }
+
+  getRegionalAdoption(
+    query: RegionalStatsQueryDto,
+    privacy: RegionalStatsPrivacy = DEFAULT_REGIONAL_PRIVACY
+  ) {
+    return this.statsQuery.queryAdoption(query, privacy);
   }
 }

@@ -78,6 +78,8 @@ import { GenerateInstitutionStatsReportDto } from "./dto/institution-report.dto"
 import { RegionStatsService } from "./region-stats.service";
 import { InstitutionReportService } from "./institution-report.service";
 import type { InstitutionStatSection } from "./institution-stats-sections.constants";
+import type { EffectiveConsoleContext } from "./admin-console-access.service";
+import type { RegionalStatsPrivacy } from "./stats-query.service";
 
 @Controller("admin")
 @UseGuards(SupabaseJwtGuard, ConsoleAccessGuard, AdminConsoleMenuGuard)
@@ -101,6 +103,15 @@ export class AdminPlatformController {
     private readonly regionStats: RegionStatsService,
     private readonly institutionReports: InstitutionReportService
   ) {}
+
+  /** Superadmin opérationnel : chiffres bruts. Institution / aperçu : k-anonymat. */
+  private regionalPrivacy(
+    context: EffectiveConsoleContext
+  ): RegionalStatsPrivacy {
+    const unmasked =
+      context.profile.role === "superadmin" && !context.isInstitutionPreview;
+    return { maskLowCells: !unmasked };
+  }
 
   @Get("me")
   async me(@CurrentUser() user: User) {
@@ -370,6 +381,18 @@ export class AdminPlatformController {
     return this.consoleAccess.getVisibleStatSections(context);
   }
 
+  @Get("stats/regional/meta")
+  async regionalStatsMeta(
+    @CurrentUser() user: User,
+    @Query("viewAsInstitutionId") viewAsInstitutionId?: string
+  ) {
+    await this.consoleAccess.resolveEffectiveContext(
+      user.id,
+      viewAsInstitutionId
+    );
+    return this.regionStats.getDataAvailability();
+  }
+
   @Get("stats/regional/mortality")
   async regionalMortality(
     @CurrentUser() user: User,
@@ -380,7 +403,10 @@ export class AdminPlatformController {
       query.viewAsInstitutionId
     );
     this.consoleAccess.assertStatSectionAllowed(context, "mortality");
-    return this.regionStats.getRegionalMortality(query);
+    return this.regionStats.getRegionalMortality(
+      query,
+      this.regionalPrivacy(context)
+    );
   }
 
   @Get("stats/regional/herd")
@@ -393,7 +419,7 @@ export class AdminPlatformController {
       query.viewAsInstitutionId
     );
     this.consoleAccess.assertStatSectionAllowed(context, "herd");
-    return this.regionStats.getRegionalHerd(query);
+    return this.regionStats.getRegionalHerd(query, this.regionalPrivacy(context));
   }
 
   @Get("stats/regional/reproduction")
@@ -406,7 +432,10 @@ export class AdminPlatformController {
       query.viewAsInstitutionId
     );
     this.consoleAccess.assertStatSectionAllowed(context, "reproduction");
-    return this.regionStats.getRegionalReproduction(query);
+    return this.regionStats.getRegionalReproduction(
+      query,
+      this.regionalPrivacy(context)
+    );
   }
 
   @Get("stats/regional/growth")
@@ -419,7 +448,10 @@ export class AdminPlatformController {
       query.viewAsInstitutionId
     );
     this.consoleAccess.assertStatSectionAllowed(context, "growth");
-    return this.regionStats.getRegionalGrowth(query);
+    return this.regionStats.getRegionalGrowth(
+      query,
+      this.regionalPrivacy(context)
+    );
   }
 
   @Get("stats/regional/vet-coverage")
@@ -432,7 +464,10 @@ export class AdminPlatformController {
       query.viewAsInstitutionId
     );
     this.consoleAccess.assertStatSectionAllowed(context, "vetCoverage");
-    return this.regionStats.getRegionalVetCoverage(query);
+    return this.regionStats.getRegionalVetCoverage(
+      query,
+      this.regionalPrivacy(context)
+    );
   }
 
   @Get("stats/regional/economy")
@@ -445,7 +480,10 @@ export class AdminPlatformController {
       query.viewAsInstitutionId
     );
     this.consoleAccess.assertStatSectionAllowed(context, "economy");
-    return this.regionStats.getRegionalEconomy(query);
+    return this.regionStats.getRegionalEconomy(
+      query,
+      this.regionalPrivacy(context)
+    );
   }
 
   @Get("stats/regional/health")
@@ -458,7 +496,10 @@ export class AdminPlatformController {
       query.viewAsInstitutionId
     );
     this.consoleAccess.assertStatSectionAllowed(context, "health");
-    return this.regionStats.getRegionalHealth(query);
+    return this.regionStats.getRegionalHealth(
+      query,
+      this.regionalPrivacy(context)
+    );
   }
 
   @Get("stats/regional/lifecycle")
@@ -471,7 +512,10 @@ export class AdminPlatformController {
       query.viewAsInstitutionId
     );
     this.consoleAccess.assertStatSectionAllowed(context, "lifecycle");
-    return this.regionStats.getRegionalLifecycle(query);
+    return this.regionStats.getRegionalLifecycle(
+      query,
+      this.regionalPrivacy(context)
+    );
   }
 
   @Get("stats/regional/adoption")
@@ -484,7 +528,10 @@ export class AdminPlatformController {
       query.viewAsInstitutionId
     );
     this.consoleAccess.assertStatSectionAllowed(context, "adoption");
-    return this.regionStats.getRegionalAdoption(query);
+    return this.regionStats.getRegionalAdoption(
+      query,
+      this.regionalPrivacy(context)
+    );
   }
 
   @Post("stats/reports")

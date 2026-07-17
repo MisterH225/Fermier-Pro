@@ -548,6 +548,52 @@
       "to": "To",
       "loadError": "Could not load this section.",
       "superadminHint": "Full superadmin view — use “View as” to preview an institution.",
+      "dataAvailability": "Snapshots available from {from} to {to}. Default range is the last 30 days of data — going earlier than the first farm adds nothing.",
+      "noSnapshotsYet": "No regional snapshots yet — run the RegionStatsDaily backfill.",
+      "showTable": "Show tabular detail",
+      "hideTable": "Hide table",
+      "charts": {
+        "emptyMasked": "Indicators masked (fewer than 5 farms per department) — anonymized institution view. Superadmin outside preview sees raw figures.",
+        "mortality": {
+          "title": "Declared mortality by department",
+          "lead": "Headcount exits for mortality over the period. Compare departments to each other, not to the national herd."
+        },
+        "herd": {
+          "title": "Aggregated herd by department",
+          "lead": "Sum of active animals tracked on the Fermier Pro panel — platform coverage, not an official census."
+        },
+        "reproduction": {
+          "bornTitle": "Born alive by department",
+          "bornLead": "Piglets born alive recorded via litters. Low volume may reflect sparse data entry rather than poor prolificacy.",
+          "farrowingTitle": "Farrowing rate",
+          "farrowingLead": "Completed gestations ÷ (completed + aborted + lost). Computed at read time from raw counts."
+        },
+        "growth": {
+          "title": "Average ADG (kg/day)",
+          "lead": "Average daily gain estimated from successive weighings — simple mean across reported categories."
+        },
+        "vetCoverage": {
+          "title": "Vet consultations",
+          "lead": "Consultations opened in the period. Access-to-care signal, not vaccine coverage."
+        },
+        "economy": {
+          "title": "Heads sold",
+          "lead": "Sale exits recorded. Complements the marketplace index with on-farm direct sales."
+        },
+        "health": {
+          "title": "Suspicion incidence / 1,000 animals",
+          "lead": "Ranked by incidence (not raw volume) so large departments do not always win.",
+          "disclaimer": "Farmer-declared suspicions — not lab-confirmed. Apparent case fatality is a declarative correlation only."
+        },
+        "lifecycle": {
+          "title": "Herd sale rate",
+          "lead": "Heads sold ÷ average herd. Commercial turnover, not revenue."
+        },
+        "adoption": {
+          "title": "Active farms (30-day window)",
+          "lead": "Farms with at least one recent entry (livestock, health, repro or finance) — stricter than MAU."
+        }
+      },
       "export": {
         "exportPdf": "Export PDF",
         "exportCsv": "Export CSV (ZIP)",
