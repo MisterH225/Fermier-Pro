@@ -2678,6 +2678,8 @@ model InstitutionConsoleUser {
   institutionLabel  String?
   /// Permissions par menu : { "users": "read", "map": "write", ... }
   menuPermissions   Json     @default("{}")
+  /// Sections stats régionales : { "mortality": true, "economy": false, ... } — deny-by-default.
+  statSectionPermissions Json @default("{}")
   isActive          Boolean  @default(true)
   invitedBy         String?
   invitedAt         DateTime @default(now())

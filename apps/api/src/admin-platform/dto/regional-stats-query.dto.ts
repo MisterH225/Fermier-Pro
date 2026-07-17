@@ -22,4 +22,9 @@ export class RegionalStatsQueryDto {
   @IsOptional()
   @IsString()
   departmentCode?: string;
+
+  /** Aperçu SuperAdmin : UUID InstitutionConsoleUser (réservé superadmin). */
+  @IsOptional()
+  @IsString()
+  viewAsInstitutionId?: string;
 }

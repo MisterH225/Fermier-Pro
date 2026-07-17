@@ -298,9 +298,14 @@ export class AdminPlatformController {
     @CurrentUser() user: User,
     @Query("periodDays") periodDays?: string,
     @Query("granularity") granularity?: string,
-    @Query("mode") mode?: string
+    @Query("mode") mode?: string,
+    @Query("viewAsInstitutionId") viewAsInstitutionId?: string
   ) {
-    const profile = await this.consoleAccess.requireConsoleAccess(user.id);
+    const context = await this.consoleAccess.resolveEffectiveContext(
+      user.id,
+      viewAsInstitutionId
+    );
+    const profile = context.profile;
     const days = periodDays ? Number.parseInt(periodDays, 10) : 30;
     const level =
       granularity === "country" ||
@@ -310,8 +315,14 @@ export class AdminPlatformController {
         ? granularity
         : "sector";
     let outputMode: "detailed" | "aggregated" =
-      profile.role === "institution" ? "aggregated" : "detailed";
-    if (profile.role === "superadmin" && mode === "aggregated") {
+      profile.role === "institution" || context.isInstitutionPreview
+        ? "aggregated"
+        : "detailed";
+    if (
+      profile.role === "superadmin" &&
+      !context.isInstitutionPreview &&
+      mode === "aggregated"
+    ) {
       outputMode = "aggregated";
     }
     if (outputMode === "aggregated") {
@@ -334,29 +345,94 @@ export class AdminPlatformController {
     return this.admin.getStats(period ?? "month");
   }
 
+  @Get("stats/regional/sections")
+  async regionalStatSections(
+    @CurrentUser() user: User,
+    @Query("viewAsInstitutionId") viewAsInstitutionId?: string
+  ) {
+    const context = await this.consoleAccess.resolveEffectiveContext(
+      user.id,
+      viewAsInstitutionId
+    );
+    return this.consoleAccess.getVisibleStatSections(context);
+  }
+
   @Get("stats/regional/mortality")
-  regionalMortality(@Query() query: RegionalStatsQueryDto) {
+  async regionalMortality(
+    @CurrentUser() user: User,
+    @Query() query: RegionalStatsQueryDto
+  ) {
+    const context = await this.consoleAccess.resolveEffectiveContext(
+      user.id,
+      query.viewAsInstitutionId
+    );
+    this.consoleAccess.assertStatSectionAllowed(context, "mortality");
     return this.regionStats.getRegionalMortality(query);
   }
 
   @Get("stats/regional/herd")
-  regionalHerd(@Query() query: RegionalStatsQueryDto) {
+  async regionalHerd(
+    @CurrentUser() user: User,
+    @Query() query: RegionalStatsQueryDto
+  ) {
+    const context = await this.consoleAccess.resolveEffectiveContext(
+      user.id,
+      query.viewAsInstitutionId
+    );
+    this.consoleAccess.assertStatSectionAllowed(context, "herd");
     return this.regionStats.getRegionalHerd(query);
   }
 
   @Get("stats/regional/reproduction")
-  regionalReproduction(@Query() query: RegionalStatsQueryDto) {
+  async regionalReproduction(
+    @CurrentUser() user: User,
+    @Query() query: RegionalStatsQueryDto
+  ) {
+    const context = await this.consoleAccess.resolveEffectiveContext(
+      user.id,
+      query.viewAsInstitutionId
+    );
+    this.consoleAccess.assertStatSectionAllowed(context, "reproduction");
     return this.regionStats.getRegionalReproduction(query);
   }
 
   @Get("stats/regional/growth")
-  regionalGrowth(@Query() query: RegionalStatsQueryDto) {
+  async regionalGrowth(
+    @CurrentUser() user: User,
+    @Query() query: RegionalStatsQueryDto
+  ) {
+    const context = await this.consoleAccess.resolveEffectiveContext(
+      user.id,
+      query.viewAsInstitutionId
+    );
+    this.consoleAccess.assertStatSectionAllowed(context, "growth");
     return this.regionStats.getRegionalGrowth(query);
   }
 
   @Get("stats/regional/vet-coverage")
-  regionalVetCoverage(@Query() query: RegionalStatsQueryDto) {
+  async regionalVetCoverage(
+    @CurrentUser() user: User,
+    @Query() query: RegionalStatsQueryDto
+  ) {
+    const context = await this.consoleAccess.resolveEffectiveContext(
+      user.id,
+      query.viewAsInstitutionId
+    );
+    this.consoleAccess.assertStatSectionAllowed(context, "vetCoverage");
     return this.regionStats.getRegionalVetCoverage(query);
+  }
+
+  @Get("stats/regional/economy")
+  async regionalEconomy(
+    @CurrentUser() user: User,
+    @Query() query: RegionalStatsQueryDto
+  ) {
+    const context = await this.consoleAccess.resolveEffectiveContext(
+      user.id,
+      query.viewAsInstitutionId
+    );
+    this.consoleAccess.assertStatSectionAllowed(context, "economy");
+    return this.regionStats.getRegionalEconomy(query);
   }
 
   @Get("settings")
@@ -407,6 +483,12 @@ export class AdminPlatformController {
   @UseGuards(SuperAdminGuard)
   institutionUsers() {
     return this.admin.listInstitutionConsoleUsers();
+  }
+
+  @Get("institution-users/:id")
+  @UseGuards(SuperAdminGuard)
+  institutionUser(@Param("id") id: string) {
+    return this.admin.getInstitutionConsoleUser(id);
   }
 
   @Post("institution-users")

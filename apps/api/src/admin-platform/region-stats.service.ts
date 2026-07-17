@@ -131,6 +131,22 @@ export class RegionStatsService {
     return payload;
   }
 
+  async getRegionalEconomy(query: RegionalStatsQueryDto) {
+    const { from, to, rows, coverage } = await this.loadAggregated(query);
+    const departments = suppressLowCells(
+      rows.map((row) => ({
+        departmentCode: row.departmentCode,
+        farmCount: row.farmCount,
+        exitsSaleHeadcount: row.exitsSaleHeadcount,
+        exitsSaleAvgPricePerKg: row.exitsSaleAvgPricePerKg,
+        exitsSlaughterHeadcount: row.exitsSlaughterHeadcount
+      }))
+    );
+    const payload = { from, to, coverage, departments };
+    assertNoNominativeFields(payload);
+    return payload;
+  }
+
   private async loadAggregated(query: RegionalStatsQueryDto): Promise<{
     from: string;
     to: string;

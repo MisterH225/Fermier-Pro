@@ -270,4 +270,30 @@ describeOrSkip("Carte sanitaire console (e2e)", () => {
     expect(Array.isArray(res.body)).toBe(true);
     expect(JSON.stringify(res.body)).not.toMatch(/farmId|farmName/);
   });
+
+  it("viewAsInstitutionId force le mode agrégé pour le superadmin", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/admin/health-map")
+      .query({
+        periodDays: "30",
+        granularity: "sector",
+        viewAsInstitutionId: institutionUserId
+      })
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.mode).toBe("aggregated");
+    expect(res.body.points).toBeUndefined();
+    expect(JSON.stringify(res.body)).not.toMatch(/farmId|farmName|latitude/);
+  });
+
+  it("viewAsInstitutionId refusé à une institution (403)", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/admin/health-map")
+      .query({
+        periodDays: "30",
+        viewAsInstitutionId: institutionUserId
+      })
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(res.status).toBe(403);
+  });
 });
