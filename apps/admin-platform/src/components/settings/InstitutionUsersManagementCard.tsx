@@ -8,7 +8,8 @@ import {
   removeInstitutionConsoleUser,
   resendInstitutionConsoleInvite,
   updateInstitutionConsoleUser,
-  type InstitutionConsoleUserDto
+  type InstitutionConsoleUserDto,
+  type InstitutionScheduledReportsConfig
 } from "@/lib/api";
 import {
   EDITABLE_STAT_SECTIONS,
@@ -50,6 +51,16 @@ function statSectionsFromRow(
   return out;
 }
 
+function emptyScheduledReports(): InstitutionScheduledReportsConfig {
+  return { isActive: false, cadence: "monthly", format: "pdf", sections: [] };
+}
+
+function scheduledReportsFromRow(
+  row: InstitutionConsoleUserDto
+): InstitutionScheduledReportsConfig {
+  return row.scheduledReports ?? emptyScheduledReports();
+}
+
 function permissionsFromRow(row: InstitutionConsoleUserDto): PermissionDraft {
   const out: PermissionDraft = {};
   for (const [key, access] of Object.entries(row.menuPermissions)) {
@@ -79,6 +90,8 @@ export function InstitutionUsersManagementCard() {
     useState<PermissionDraft>(emptyPermissions());
   const [editStatSections, setEditStatSections] =
     useState<StatSectionDraft>(emptyStatSections());
+  const [editScheduledReports, setEditScheduledReports] =
+    useState<InstitutionScheduledReportsConfig>(emptyScheduledReports());
   const [editLabel, setEditLabel] = useState("");
   const [busy, setBusy] = useState(false);
   const [savingEditId, setSavingEditId] = useState<string | null>(null);
@@ -197,6 +210,7 @@ export function InstitutionUsersManagementCard() {
     setEditingId(row.id);
     setEditPermissions(permissionsFromRow(row));
     setEditStatSections(statSectionsFromRow(row));
+    setEditScheduledReports(scheduledReportsFromRow(row));
     setEditLabel(row.institutionLabel ?? "");
     setError(null);
     setSuccess(null);
@@ -206,6 +220,7 @@ export function InstitutionUsersManagementCard() {
     setEditingId(null);
     setEditPermissions(emptyPermissions());
     setEditStatSections(emptyStatSections());
+    setEditScheduledReports(emptyScheduledReports());
     setEditLabel("");
   };
 
@@ -223,7 +238,8 @@ export function InstitutionUsersManagementCard() {
       await updateInstitutionConsoleUser(token, row.id, {
         institutionLabel: editLabel.trim() || undefined,
         menuPermissions,
-        statSectionPermissions: buildStatSectionPermissions(editStatSections)
+        statSectionPermissions: buildStatSectionPermissions(editStatSections),
+        scheduledReports: editScheduledReports
       });
       setSuccess(t("updated"));
       cancelEdit();
@@ -500,6 +516,79 @@ export function InstitutionUsersManagementCard() {
                             onStatSectionToggle(setEditStatSections, key, checked)
                           }
                           idPrefix={`edit-stats-${row.id}`}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">{t("scheduledReportsTitle")}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t("scheduledReportsLead")}
+                        </p>
+                        <label className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={editScheduledReports.isActive}
+                            onChange={(e) =>
+                              setEditScheduledReports((prev) => ({
+                                ...prev,
+                                isActive: e.target.checked
+                              }))
+                            }
+                          />
+                          {t("scheduledReportsActive")}
+                        </label>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <div className="space-y-1">
+                            <Label htmlFor={`edit-cadence-${row.id}`}>
+                              {t("scheduledReportsCadence")}
+                            </Label>
+                            <select
+                              id={`edit-cadence-${row.id}`}
+                              className={selectClass}
+                              value={editScheduledReports.cadence}
+                              onChange={(e) =>
+                                setEditScheduledReports((prev) => ({
+                                  ...prev,
+                                  cadence: e.target.value as "monthly" | "weekly"
+                                }))
+                              }
+                            >
+                              <option value="monthly">{t("scheduledReportsMonthly")}</option>
+                              <option value="weekly">{t("scheduledReportsWeekly")}</option>
+                            </select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor={`edit-format-${row.id}`}>
+                              {t("scheduledReportsFormat")}
+                            </Label>
+                            <select
+                              id={`edit-format-${row.id}`}
+                              className={selectClass}
+                              value={editScheduledReports.format}
+                              onChange={(e) =>
+                                setEditScheduledReports((prev) => ({
+                                  ...prev,
+                                  format: e.target.value as "pdf" | "csv"
+                                }))
+                              }
+                            >
+                              <option value="pdf">PDF</option>
+                              <option value="csv">CSV (zip)</option>
+                            </select>
+                          </div>
+                        </div>
+                        <StatSectionMatrix
+                          draft={Object.fromEntries(
+                            editScheduledReports.sections.map((key) => [key, true])
+                          ) as StatSectionDraft}
+                          onToggle={(key, checked) =>
+                            setEditScheduledReports((prev) => ({
+                              ...prev,
+                              sections: checked
+                                ? [...new Set([...prev.sections, key])]
+                                : prev.sections.filter((s) => s !== key)
+                            }))
+                          }
+                          idPrefix={`edit-scheduled-${row.id}`}
                         />
                       </div>
                       <Button

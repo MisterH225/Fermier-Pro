@@ -3,6 +3,7 @@ import { AiModule } from "../ai/ai.module";
 import { AdminModerationModule } from "../admin-moderation/admin-moderation.module";
 import { AuthModule } from "../auth/auth.module";
 import { PushNotificationsModule } from "../push-notifications/push-notifications.module";
+import { UserNotificationsModule } from "../user-notifications/user-notifications.module";
 import { VetsModule } from "../vets/vets.module";
 import { AdminAiService } from "./admin-ai.service";
 import { AdminConsoleAuthModule } from "./admin-console-auth.module";
@@ -17,9 +18,14 @@ import { ProducerSubscriptionModule } from "../producer-subscription/producer-su
 import { MobileMoneyModule } from "../marketplace/escrow";
 import { AdminMerchantSubscriptionsService } from "./admin-merchant-subscriptions.service";
 import { AdminProducerSubscriptionsService } from "./admin-producer-subscriptions.service";
+import { InstitutionReportCsvService } from "./institution-report-csv.service";
+import { InstitutionReportPdfService } from "./institution-report-pdf.service";
+import { InstitutionReportService } from "./institution-report.service";
+import { InstitutionScheduledReportCronService } from "./institution-scheduled-report-cron.service";
 import { RegionStatsSnapshotCronService } from "./region-stats-snapshot-cron.service";
 import { RegionStatsSnapshotService } from "./region-stats-snapshot.service";
 import { RegionStatsService } from "./region-stats.service";
+import { StatsQueryService } from "./stats-query.service";
 
 @Module({
   imports: [
@@ -28,6 +34,7 @@ import { RegionStatsService } from "./region-stats.service";
     AdminModerationModule,
     VetsModule,
     PushNotificationsModule,
+    UserNotificationsModule,
     AiModule,
     MarketModule,
     MarketplaceModule,
@@ -43,9 +50,14 @@ import { RegionStatsService } from "./region-stats.service";
     AdminAiService,
     AdminMerchantSubscriptionsService,
     AdminProducerSubscriptionsService,
+    StatsQueryService,
     RegionStatsSnapshotService,
     RegionStatsSnapshotCronService,
-    RegionStatsService
+    RegionStatsService,
+    InstitutionReportPdfService,
+    InstitutionReportCsvService,
+    InstitutionReportService,
+    InstitutionScheduledReportCronService
   ],
   exports: [AdminPlatformService, AdminConsoleAuthModule]
 })

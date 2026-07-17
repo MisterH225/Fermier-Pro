@@ -38,6 +38,10 @@ import {
   sanitizeStatSectionPermissions
 } from "./institution-stats-sections.constants";
 import {
+  parseScheduledReportsConfig,
+  sanitizeScheduledReportsConfig
+} from "./institution-scheduled-reports.util";
+import {
   buildZoneKey,
   farmMatchesScope,
   resolveFarmLocation,
@@ -1591,6 +1595,7 @@ export class AdminPlatformService {
     institutionLabel: string | null;
     menuPermissions: unknown;
     statSectionPermissions: unknown;
+    scheduledReports: unknown;
     isActive: boolean;
     invitedBy: string | null;
     invitedAt: Date;
@@ -1613,6 +1618,13 @@ export class AdminPlatformService {
       statSectionPermissions: parseStatSectionPermissions(
         row.statSectionPermissions
       ),
+      scheduledReports:
+        parseScheduledReportsConfig(row.scheduledReports) ?? {
+          isActive: false,
+          cadence: "monthly",
+          format: "pdf",
+          sections: []
+        },
       isActive: row.isActive,
       invitedBy: row.invitedBy,
       invitedAt: row.invitedAt.toISOString(),
@@ -1631,6 +1643,14 @@ export class AdminPlatformService {
     input?: Record<string, boolean>
   ) {
     return sanitizeStatSectionPermissions(input);
+  }
+
+  private sanitizeScheduledReports(
+    input?: Record<string, unknown>
+  ) {
+    return sanitizeScheduledReportsConfig(
+      input as Parameters<typeof sanitizeScheduledReportsConfig>[0]
+    );
   }
 
   async listInstitutionConsoleUsers() {
@@ -1669,6 +1689,9 @@ export class AdminPlatformService {
     }
     const statSectionPermissions = this.sanitizeStatSectionPermissions(
       dto.statSectionPermissions
+    );
+    const scheduledReports = this.sanitizeScheduledReports(
+      dto.scheduledReports
     );
 
     const existingSuper = await this.prisma.superAdmin.findFirst({
@@ -1747,6 +1770,7 @@ export class AdminPlatformService {
         institutionLabel,
         menuPermissions,
         statSectionPermissions,
+        scheduledReports,
         invitedBy: creator.id
       },
       include: {
@@ -1787,6 +1811,10 @@ export class AdminPlatformService {
       dto.statSectionPermissions !== undefined
         ? this.sanitizeStatSectionPermissions(dto.statSectionPermissions)
         : undefined;
+    const scheduledReports =
+      dto.scheduledReports !== undefined
+        ? this.sanitizeScheduledReports(dto.scheduledReports)
+        : undefined;
 
     const row = await this.prisma.institutionConsoleUser.update({
       where: { id },
@@ -1798,7 +1826,8 @@ export class AdminPlatformService {
         ...(menuPermissions !== undefined ? { menuPermissions } : {}),
         ...(statSectionPermissions !== undefined
           ? { statSectionPermissions }
-          : {})
+          : {}),
+        ...(scheduledReports !== undefined ? { scheduledReports } : {})
       },
       include: {
         user: {

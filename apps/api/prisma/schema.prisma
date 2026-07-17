@@ -2680,6 +2680,8 @@ model InstitutionConsoleUser {
   menuPermissions   Json     @default("{}")
   /// Sections stats régionales : { "mortality": true, "economy": false, ... } — deny-by-default.
   statSectionPermissions Json @default("{}")
+  /// Rapports programmés : { isActive, cadence, format, sections[], lastRunAt? }
+  scheduledReports    Json     @default("{}")
   isActive          Boolean  @default(true)
   invitedBy         String?
   invitedAt         DateTime @default(now())

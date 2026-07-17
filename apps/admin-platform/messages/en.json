@@ -548,6 +548,13 @@
       "to": "To",
       "loadError": "Could not load this section.",
       "superadminHint": "Full superadmin view — use “View as” to preview an institution.",
+      "export": {
+        "exportPdf": "Export PDF",
+        "exportCsv": "Export CSV (ZIP)",
+        "exporting": "Generating…",
+        "hint": "All authorized sections for the selected period.",
+        "error": "Could not generate the report."
+      },
       "sections": {
         "mortality": "Mortality",
         "herd": "Herd",
@@ -877,6 +884,13 @@
       "edit": "Edit",
       "cancelEdit": "Cancel",
       "saveEdit": "Save",
+      "scheduledReportsTitle": "Scheduled reports",
+      "scheduledReportsLead": "Automatic generation using the institution's authorized sections.",
+      "scheduledReportsActive": "Enable automatic reports",
+      "scheduledReportsCadence": "Cadence",
+      "scheduledReportsFormat": "Format",
+      "scheduledReportsMonthly": "Monthly",
+      "scheduledReportsWeekly": "Weekly",
       "inviteError": "Could not send the invitation.",
       "updateError": "Could not update the account.",
       "removeError": "Could not remove the account."

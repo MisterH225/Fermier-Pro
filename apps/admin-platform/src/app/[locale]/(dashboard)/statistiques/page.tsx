@@ -13,6 +13,7 @@ import { FilterPills } from "@/components/layout/FilterPills";
 import { InstitutionPreviewBanner } from "@/components/institution/InstitutionPreviewBanner";
 import { InstitutionPreviewSelector } from "@/components/institution/InstitutionPreviewSelector";
 import { InternalStatsView } from "@/components/statistics/InternalStatsView";
+import { RegionalStatsExportButton } from "@/components/statistics/RegionalStatsExportButton";
 import { RegionalStatsSectionPanel } from "@/components/statistics/RegionalStatsSectionPanel";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -122,29 +123,38 @@ export default function StatistiquesPage() {
             </Card>
           ) : (
             <>
-              <div className="flex flex-wrap items-end gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="stats-from">{tRegional("from")}</Label>
-                  <Input
-                    id="stats-from"
-                    type="date"
-                    value={from}
-                    onChange={(e) =>
-                      setRange((prev) => ({ ...prev, from: e.target.value }))
-                    }
-                  />
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div className="flex flex-wrap items-end gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="stats-from">{tRegional("from")}</Label>
+                    <Input
+                      id="stats-from"
+                      type="date"
+                      value={from}
+                      onChange={(e) =>
+                        setRange((prev) => ({ ...prev, from: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="stats-to">{tRegional("to")}</Label>
+                    <Input
+                      id="stats-to"
+                      type="date"
+                      value={to}
+                      onChange={(e) =>
+                        setRange((prev) => ({ ...prev, to: e.target.value }))
+                      }
+                    />
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="stats-to">{tRegional("to")}</Label>
-                  <Input
-                    id="stats-to"
-                    type="date"
-                    value={to}
-                    onChange={(e) =>
-                      setRange((prev) => ({ ...prev, to: e.target.value }))
-                    }
-                  />
-                </div>
+                <RegionalStatsExportButton
+                  token={token}
+                  sections={servedSections}
+                  from={from}
+                  to={to}
+                  viewAsInstitutionId={viewAsInstitutionId}
+                />
               </div>
 
               <FilterPills

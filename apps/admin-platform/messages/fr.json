@@ -550,6 +550,13 @@
       "to": "Au",
       "loadError": "Impossible de charger cette section.",
       "superadminHint": "Vue complète superadmin — utilisez « Voir en tant que » pour prévisualiser une institution.",
+      "export": {
+        "exportPdf": "Exporter PDF",
+        "exportCsv": "Exporter CSV (ZIP)",
+        "exporting": "Génération…",
+        "hint": "Toutes les sections autorisées sur la période sélectionnée.",
+        "error": "Impossible de générer le rapport."
+      },
       "sections": {
         "mortality": "Mortalité",
         "herd": "Cheptel",
@@ -879,6 +886,13 @@
       "edit": "Modifier",
       "cancelEdit": "Annuler",
       "saveEdit": "Enregistrer",
+      "scheduledReportsTitle": "Rapports programmés",
+      "scheduledReportsLead": "Génération automatique selon les sections autorisées de l'institution.",
+      "scheduledReportsActive": "Activer les rapports automatiques",
+      "scheduledReportsCadence": "Cadence",
+      "scheduledReportsFormat": "Format",
+      "scheduledReportsMonthly": "Mensuel",
+      "scheduledReportsWeekly": "Hebdomadaire",
       "inviteError": "Impossible d'envoyer l'invitation.",
       "updateError": "Impossible de mettre à jour le compte.",
       "removeError": "Impossible de retirer le compte."
