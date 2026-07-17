@@ -10,6 +10,11 @@ import {
   updateInstitutionConsoleUser,
   type InstitutionConsoleUserDto
 } from "@/lib/api";
+import {
+  EDITABLE_STAT_SECTIONS,
+  type EditableStatSection,
+  type StatSectionPermissions
+} from "@/lib/institution-stat-sections";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { NAV_KEYS, type NavKey } from "@/components/layout/nav-config";
 import type { AdminMenuAccess } from "@/lib/admin-permissions";
@@ -23,13 +28,41 @@ import { AdminSection } from "@/components/layout/AdminSection";
 import { Building2 } from "lucide-react";
 
 type PermissionDraft = Partial<Record<NavKey, AdminMenuAccess | "">>;
+type StatSectionDraft = StatSectionPermissions;
 
 function emptyPermissions(): PermissionDraft {
   return {};
 }
 
+function emptyStatSections(): StatSectionDraft {
+  return {};
+}
+
+function statSectionsFromRow(
+  row: InstitutionConsoleUserDto
+): StatSectionDraft {
+  const out: StatSectionDraft = {};
+  for (const key of EDITABLE_STAT_SECTIONS) {
+    if (row.statSectionPermissions?.[key] === true) {
+      out[key] = true;
+    }
+  }
+  return out;
+}
+
+function permissionsFromRow(row: InstitutionConsoleUserDto): PermissionDraft {
+  const out: PermissionDraft = {};
+  for (const [key, access] of Object.entries(row.menuPermissions)) {
+    if (access === "read" || access === "write") {
+      out[key as NavKey] = access;
+    }
+  }
+  return out;
+}
+
 export function InstitutionUsersManagementCard() {
   const t = useTranslations("settings.institutions");
+  const tStats = useTranslations("stats.regional.sections");
   const tNav = useTranslations("nav");
   const locale = useLocale();
   const { token, ready } = useAdminToken();
@@ -39,7 +72,16 @@ export function InstitutionUsersManagementCard() {
   const [fullName, setFullName] = useState("");
   const [institutionLabel, setInstitutionLabel] = useState("");
   const [permissions, setPermissions] = useState<PermissionDraft>(emptyPermissions());
+  const [statSections, setStatSections] =
+    useState<StatSectionDraft>(emptyStatSections());
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editPermissions, setEditPermissions] =
+    useState<PermissionDraft>(emptyPermissions());
+  const [editStatSections, setEditStatSections] =
+    useState<StatSectionDraft>(emptyStatSections());
+  const [editLabel, setEditLabel] = useState("");
   const [busy, setBusy] = useState(false);
+  const [savingEditId, setSavingEditId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -79,10 +121,37 @@ export function InstitutionUsersManagementCard() {
     return out;
   };
 
-  const onPermissionChange = (key: NavKey, value: string) => {
-    setPermissions((prev) => ({
+  const buildStatSectionPermissions = (
+    draft: StatSectionDraft
+  ): Record<string, boolean> => {
+    const out: Record<string, boolean> = {};
+    for (const key of EDITABLE_STAT_SECTIONS) {
+      if (draft[key] === true) {
+        out[key] = true;
+      }
+    }
+    return out;
+  };
+
+  const onPermissionChange = (
+    draftSetter: React.Dispatch<React.SetStateAction<PermissionDraft>>,
+    key: NavKey,
+    value: string
+  ) => {
+    draftSetter((prev) => ({
       ...prev,
       [key]: value === "" ? "" : (value as AdminMenuAccess)
+    }));
+  };
+
+  const onStatSectionToggle = (
+    draftSetter: React.Dispatch<React.SetStateAction<StatSectionDraft>>,
+    key: EditableStatSection,
+    checked: boolean
+  ) => {
+    draftSetter((prev) => ({
+      ...prev,
+      [key]: checked
     }));
   };
 
@@ -107,18 +176,62 @@ export function InstitutionUsersManagementCard() {
         fullName: fullName.trim() || undefined,
         institutionLabel: institutionLabel.trim() || undefined,
         inviteRedirectTo: getAdminPasswordRecoveryRedirectTo(locale),
-        menuPermissions
+        menuPermissions,
+        statSectionPermissions: buildStatSectionPermissions(statSections)
       });
       setEmail("");
       setFullName("");
       setInstitutionLabel("");
       setPermissions(emptyPermissions());
+      setStatSections(emptyStatSections());
       setSuccess(t("invited"));
       await reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : t("inviteError"));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const startEdit = (row: InstitutionConsoleUserDto) => {
+    setEditingId(row.id);
+    setEditPermissions(permissionsFromRow(row));
+    setEditStatSections(statSectionsFromRow(row));
+    setEditLabel(row.institutionLabel ?? "");
+    setError(null);
+    setSuccess(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditPermissions(emptyPermissions());
+    setEditStatSections(emptyStatSections());
+    setEditLabel("");
+  };
+
+  const onSaveEdit = async (row: InstitutionConsoleUserDto) => {
+    if (!token) return;
+    const menuPermissions = buildMenuPermissions(editPermissions);
+    if (Object.keys(menuPermissions).length === 0) {
+      setError(t("permissionsRequired"));
+      return;
+    }
+    setSavingEditId(row.id);
+    setError(null);
+    setSuccess(null);
+    try {
+      await updateInstitutionConsoleUser(token, row.id, {
+        institutionLabel: editLabel.trim() || undefined,
+        menuPermissions,
+        statSectionPermissions: buildStatSectionPermissions(editStatSections)
+      });
+      setSuccess(t("updated"));
+      cancelEdit();
+      await reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("updateError"));
+    } finally {
+      setSavingEditId(null);
     }
   };
 
@@ -148,6 +261,9 @@ export function InstitutionUsersManagementCard() {
     try {
       await removeInstitutionConsoleUser(token, row.id);
       setSuccess(t("removed"));
+      if (editingId === row.id) {
+        cancelEdit();
+      }
       await reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : t("removeError"));
@@ -205,6 +321,34 @@ export function InstitutionUsersManagementCard() {
     </div>
   );
 
+  const StatSectionMatrix = ({
+    draft,
+    onToggle,
+    idPrefix
+  }: {
+    draft: StatSectionDraft;
+    onToggle: (key: EditableStatSection, checked: boolean) => void;
+    idPrefix: string;
+  }) => (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {EDITABLE_STAT_SECTIONS.map((key) => (
+        <label
+          key={`${idPrefix}-${key}`}
+          htmlFor={`${idPrefix}-${key}`}
+          className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm"
+        >
+          <input
+            id={`${idPrefix}-${key}`}
+            type="checkbox"
+            checked={draft[key] === true}
+            onChange={(e) => onToggle(key, e.target.checked)}
+          />
+          <span>{tStats(key)}</span>
+        </label>
+      ))}
+    </div>
+  );
+
   return (
     <AdminSection
       id="institutions"
@@ -249,6 +393,16 @@ export function InstitutionUsersManagementCard() {
                         type="button"
                         variant="outline"
                         size="sm"
+                        onClick={() =>
+                          editingId === row.id ? cancelEdit() : startEdit(row)
+                        }
+                      >
+                        {editingId === row.id ? t("cancelEdit") : t("edit")}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={() => void onToggleActive(row)}
                       >
                         {row.isActive ? t("deactivate") : t("activate")}
@@ -275,18 +429,89 @@ export function InstitutionUsersManagementCard() {
                       </Button>
                     </div>
                   </div>
-                  <div className="rounded-xl bg-muted/40 p-3">
-                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                      {t("permissionsTitle")}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(row.menuPermissions).map(([key, access]) => (
-                        <Badge key={key} variant="secondary">
-                          {tNav(key as NavKey)} · {access === "write" ? t("accessWrite") : t("accessRead")}
-                        </Badge>
-                      ))}
+                  <div className="rounded-xl bg-muted/40 p-3 space-y-3">
+                    <div>
+                      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                        {t("permissionsTitle")}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(row.menuPermissions).map(([key, access]) => (
+                          <Badge key={key} variant="secondary">
+                            {tNav(key as NavKey)} ·{" "}
+                            {access === "write" ? t("accessWrite") : t("accessRead")}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                        {t("statSectionsTitle")}
+                      </p>
+                      {Object.entries(row.statSectionPermissions ?? {}).filter(
+                        ([, enabled]) => enabled
+                      ).length === 0 ? (
+                        <p className="text-xs text-muted-foreground">
+                          {t("statSectionsEmpty")}
+                        </p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(row.statSectionPermissions ?? {})
+                            .filter(([, enabled]) => enabled)
+                            .map(([key]) => (
+                              <Badge key={key} variant="outline">
+                                {tStats(key as EditableStatSection)}
+                              </Badge>
+                            ))}
+                        </div>
+                      )}
                     </div>
                   </div>
+
+                  {editingId === row.id ? (
+                    <div className="rounded-xl border bg-background p-4 space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor={`edit-label-${row.id}`}>
+                          {t("institutionLabel")}
+                        </Label>
+                        <Input
+                          id={`edit-label-${row.id}`}
+                          value={editLabel}
+                          onChange={(e) => setEditLabel(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">{t("permissionsTitle")}</p>
+                        <PermissionMatrix
+                          draft={editPermissions}
+                          onChange={(key, value) =>
+                            onPermissionChange(setEditPermissions, key, value)
+                          }
+                          idPrefix={`edit-menu-${row.id}`}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">{t("statSectionsTitle")}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t("statSectionsLead")}
+                        </p>
+                        <StatSectionMatrix
+                          draft={editStatSections}
+                          onToggle={(key, checked) =>
+                            onStatSectionToggle(setEditStatSections, key, checked)
+                          }
+                          idPrefix={`edit-stats-${row.id}`}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={savingEditId === row.id}
+                        onClick={() => void onSaveEdit(row)}
+                      >
+                        {savingEditId === row.id ? "…" : t("saveEdit")}
+                      </Button>
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -332,8 +557,21 @@ export function InstitutionUsersManagementCard() {
             <p className="text-sm font-medium">{t("permissionsTitle")}</p>
             <PermissionMatrix
               draft={permissions}
-              onChange={onPermissionChange}
+              onChange={(key, value) =>
+                onPermissionChange(setPermissions, key, value)
+              }
               idPrefix="invite"
+            />
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">{t("statSectionsTitle")}</p>
+            <p className="text-xs text-muted-foreground">{t("statSectionsLead")}</p>
+            <StatSectionMatrix
+              draft={statSections}
+              onToggle={(key, checked) =>
+                onStatSectionToggle(setStatSections, key, checked)
+              }
+              idPrefix="invite-stats"
             />
           </div>
           {error ? (

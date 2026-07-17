@@ -524,8 +524,12 @@
   },
   "stats": {
     "title": "Statistiques agrégées",
-    "pageLead": "Indicateurs clés, maladies dominantes et indices prix porc sur la période choisie.",
+    "pageLead": "Indicateurs régionaux anonymisés par section, avec vue interne réservée au superadmin.",
     "topDiseases": "Top maladies",
+    "tabs": {
+      "regional": "Sections régionales",
+      "internal": "Vue interne"
+    },
     "periods": {
       "month": "Mensuel",
       "quarter": "Trimestriel",
@@ -535,21 +539,69 @@
       "newUsers": "Nouveaux utilisateurs",
       "activeAnimals": "Animaux actifs",
       "mortality": "Mortalités (période)"
+    },
+    "regional": {
+      "emptySections": "Aucune statistique ne vous a été attribuée — contactez l'administrateur.",
+      "coverageTitle": "Couverture des données",
+      "coverageBody": "{farms} fermes · {animals} animaux · {departments} départements couverts",
+      "maskedValue": "— données insuffisantes",
+      "noDepartments": "Aucun département sur la période sélectionnée.",
+      "from": "Du",
+      "to": "Au",
+      "loadError": "Impossible de charger cette section.",
+      "superadminHint": "Vue complète superadmin — utilisez « Voir en tant que » pour prévisualiser une institution.",
+      "sections": {
+        "mortality": "Mortalité",
+        "herd": "Cheptel",
+        "reproduction": "Reproduction",
+        "growth": "Croissance",
+        "vetCoverage": "Couverture vétérinaire",
+        "economy": "Économie",
+        "movements": "Mouvements"
+      },
+      "columns": {
+        "department": "Département",
+        "farms": "Fermes",
+        "mortality": "Mortalités",
+        "byCause": "Par cause",
+        "zScore": "Z-score",
+        "herdByCategory": "Cheptel par catégorie",
+        "exitsSale": "Sorties vente",
+        "exitsSlaughter": "Sorties abattage",
+        "litters": "Portées",
+        "bornAlive": "Nés vivants",
+        "stillborn": "Mort-nés",
+        "weaned": "Sevrés (estim.)",
+        "gmq": "GMQ par catégorie",
+        "salePrice": "Prix vente / kg",
+        "vetConsultations": "Consultations vét."
+      }
     }
+  },
+  "institutionPreview": {
+    "selectorLabel": "Voir en tant que",
+    "noPreview": "Vue superadmin complète",
+    "banner": "Aperçu en tant que : {label} — sortie identique à celle de l'institution",
+    "exitPreview": "Quitter l'aperçu",
+    "unknownInstitution": "Institution"
   },
   "map": {
     "title": "Carte sanitaire",
     "subtitle": "Surveillance granulaire (secteur, ville, pays) pour circonscrire les foyers épidémiques.",
     "regions": "Zones par pays",
-    "zonePanelTitle": {
-      "sector": "Secteurs / quartiers",
-      "city": "Villes",
-      "country": "Pays"
-    },
+    "aggregatedMode": "Vue agrégée (anonymisée)",
+    "maskedZone": "— données insuffisantes",
     "granularity": {
       "sector": "Secteur",
       "city": "Ville",
-      "country": "Pays"
+      "country": "Pays",
+      "department": "Département"
+    },
+    "zonePanelTitle": {
+      "sector": "Secteurs / quartiers",
+      "city": "Villes",
+      "country": "Pays",
+      "department": "Départements"
     },
     "empty": "Aucun cas actif ou signalé sur la période.",
     "loadError": "Impossible de charger la carte sanitaire. Vérifiez l'API et votre session admin.",
@@ -821,6 +873,12 @@
       "loadError": "Impossible de charger les comptes institution.",
       "emailRequired": "L'email est obligatoire.",
       "permissionsRequired": "Sélectionnez au moins un menu avec lecture ou écriture.",
+      "statSectionsTitle": "Sections statistiques",
+      "statSectionsLead": "Deny-by-default : seules les sections cochées seront visibles si le menu Statistiques est autorisé.",
+      "statSectionsEmpty": "Aucune section accordée.",
+      "edit": "Modifier",
+      "cancelEdit": "Annuler",
+      "saveEdit": "Enregistrer",
       "inviteError": "Impossible d'envoyer l'invitation.",
       "updateError": "Impossible de mettre à jour le compte.",
       "removeError": "Impossible de retirer le compte."

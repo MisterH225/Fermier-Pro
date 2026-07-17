@@ -8,7 +8,7 @@ import type { HealthMapDto, HealthMapZone } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type Props = {
-  points: HealthMapDto["points"];
+  points?: HealthMapDto["points"];
   zones: HealthMapZone[];
   selectedZoneId: string | null;
   onZoneSelect?: (zoneId: string | null) => void;
@@ -60,15 +60,17 @@ export function HealthMapbox({
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN?.trim();
 
   const maxZoneActive = useMemo(
-    () => Math.max(0, ...zones.map((z) => z.activeCases)),
+    () => Math.max(0, ...zones.map((z) => z.activeCases ?? 0)),
     [zones]
   );
 
   const visiblePoints = useMemo(
-    () =>
-      selectedZoneId
-        ? points.filter((p) => p.zoneId === selectedZoneId)
-        : points,
+    () => {
+      const list = points ?? [];
+      return selectedZoneId
+        ? list.filter((p) => p.zoneId === selectedZoneId)
+        : list;
+    },
     [points, selectedZoneId]
   );
 
@@ -103,14 +105,14 @@ export function HealthMapbox({
       const pointSourceId = "health-points";
 
       const zoneFeatures: GeoJSON.Feature[] = zones
-        .filter((z) => z.centerLat != null && z.centerLng != null)
+        .filter((z) => !z.masked && z.centerLat != null && z.centerLng != null)
         .map((z) => ({
           type: "Feature",
           properties: {
             zoneId: z.id,
             label: z.label,
-            activeCases: z.activeCases,
-            radius: zoneRadius(z.activeCases, maxZoneActive),
+            activeCases: z.activeCases ?? 0,
+            radius: zoneRadius(z.activeCases ?? 0, maxZoneActive),
             selected: z.id === selectedZoneId ? 1 : 0
           },
           geometry: {
