@@ -1,5 +1,6 @@
 import {
   assertNoNominativeFields,
+  maskLowHealthMapZones,
   suppressLowCells
 } from "./institution-privacy.util";
 
@@ -76,6 +77,47 @@ describe("institution-privacy.util", () => {
           point: { latitude: 5.3, longitude: -4.0 }
         })
       ).toThrow(/latitude/);
+    });
+  });
+
+  describe("maskLowHealthMapZones", () => {
+    it("masque une zone sous le seuil sans compteurs métier", () => {
+      const out = maskLowHealthMapZones([
+        {
+          zoneId: "department:CI-LOW",
+          label: "Zone faible",
+          level: "department",
+          farmsAffectedCount: 3,
+          casesCount: 8,
+          activeCasesCount: 2,
+          dominantDiagnoses: [{ name: "PPC", count: 2 }],
+          centerLat: 5.3,
+          centerLng: -4.0
+        },
+        {
+          zoneId: "department:CI-HIGH",
+          label: "Zone forte",
+          level: "department",
+          farmsAffectedCount: 6,
+          casesCount: 12,
+          activeCasesCount: 4,
+          dominantDiagnoses: [{ name: "Rouget", count: 4 }],
+          centerLat: 6.1,
+          centerLng: -5.2
+        }
+      ]);
+      expect(out[0]).toEqual({
+        zoneId: "department:CI-LOW",
+        label: "Zone faible",
+        level: "department",
+        masked: true
+      });
+      expect(out[0]).not.toHaveProperty("casesCount");
+      expect(out[1]).toMatchObject({
+        zoneId: "department:CI-HIGH",
+        farmsAffectedCount: 6,
+        casesCount: 12
+      });
     });
   });
 });

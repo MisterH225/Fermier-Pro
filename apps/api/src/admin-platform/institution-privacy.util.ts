@@ -1,3 +1,5 @@
+import type { HealthMapGranularity } from "./health-map-geo.helper";
+
 const NOMINATIVE_FIELD_KEYS = new Set([
   "farmId",
   "farmName",
@@ -43,6 +45,48 @@ export function suppressLowCells<T extends LowCellMaskable & { departmentCode: s
       farmCount,
       ...rest
     } as PrivacyRow<T>;
+  });
+}
+
+export type HealthMapZoneAggregated = {
+  zoneId: string;
+  label: string;
+  level: HealthMapGranularity;
+  farmsAffectedCount: number;
+  casesCount: number;
+  activeCasesCount: number;
+  dominantDiagnoses: Array<{ name: string; count: number }>;
+  centerLat: number | null;
+  centerLng: number | null;
+};
+
+export type MaskedHealthMapZone = {
+  zoneId: string;
+  label: string;
+  level: HealthMapGranularity;
+  masked: true;
+};
+
+export type PrivacyHealthMapZone = HealthMapZoneAggregated | MaskedHealthMapZone;
+
+/**
+ * Masque les zones carte sanitaire sous le seuil k-anonymat (défaut : 5 fermes).
+ * Les zones masquées ne contiennent aucun compteur métier exact.
+ */
+export function maskLowHealthMapZones(
+  zones: HealthMapZoneAggregated[],
+  minFarms = 5
+): PrivacyHealthMapZone[] {
+  return zones.map((zone): PrivacyHealthMapZone => {
+    if (zone.farmsAffectedCount < minFarms) {
+      return {
+        zoneId: zone.zoneId,
+        label: zone.label,
+        level: zone.level,
+        masked: true
+      };
+    }
+    return zone;
   });
 }
 
