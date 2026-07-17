@@ -12,5 +12,28 @@ export const MERCHANT_ERROR = {
   SHOP_LIMIT: "SHOP_LIMIT",
   STOCK_UNAVAILABLE: "STOCK_UNAVAILABLE",
   CATEGORY_INACTIVE: "CATEGORY_INACTIVE",
-  INVALID_TRANSITION: "INVALID_TRANSITION"
+  INVALID_TRANSITION: "INVALID_TRANSITION",
+  /** Archivage refusé : commandes boutique encore en cours. */
+  SHOP_HAS_ACTIVE_ORDERS: "SHOP_HAS_ACTIVE_ORDERS",
+  /** Hard delete refusé : historique de commandes présent. */
+  SHOP_HAS_ORDER_HISTORY: "SHOP_HAS_ORDER_HISTORY",
+  SHOP_ALREADY_ARCHIVED: "SHOP_ALREADY_ARCHIVED",
+  /** Trop de re-soumissions après modération — contacter le support. */
+  RESUBMISSION_LIMIT: "RESUBMISSION_LIMIT",
+  RESUBMISSION_INVALID_STATUS: "RESUBMISSION_INVALID_STATUS"
 } as const;
+
+/** Nombre max de re-soumissions après un retrait modération. */
+export const MERCHANT_PRODUCT_MAX_RESUBMISSIONS = 2;
+
+/**
+ * Statuts qui bloquent l’archivage d’une boutique
+ * (commandes non clôturées ou litige ouvert).
+ */
+export const MERCHANT_SHOP_ARCHIVE_BLOCKING_STATUSES = [
+  "paid",
+  "confirmed",
+  "shipping",
+  "delivered",
+  "disputed"
+] as const;

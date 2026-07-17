@@ -6,6 +6,11 @@ import {
 import type { User } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { MERCHANT_ERROR } from "./merchant-shop.constants";
+import {
+  archiveShopInTransaction,
+  countBlockingOrdersForShop,
+  shopActiveOrdersConflict
+} from "./merchant-shop-archive";
 import { MerchantProfilesService } from "./merchant-profiles.service";
 import type {
   CreateMerchantShopDto,
@@ -21,7 +26,8 @@ export class MerchantShopsService {
 
   async list(user: User) {
     const profile = await this.profiles.requireProfile(user.id);
-    return profile.shops.map((shop) => ({
+    const shops = profile.shops.filter((shop) => shop.archivedAt == null);
+    return shops.map((shop) => ({
       id: shop.id,
       name: shop.name,
       description: shop.description,
@@ -42,7 +48,10 @@ export class MerchantShopsService {
       profile.subscriptionTier,
       settings?.merchantPremiumMaxShops ?? 3
     );
-    if (profile.shops.length >= maxShops) {
+    const activeShopCount = profile.shops.filter(
+      (s) => s.archivedAt == null
+    ).length;
+    if (activeShopCount >= maxShops) {
       throw new ForbiddenException({
         statusCode: 403,
         code: MERCHANT_ERROR.SHOP_LIMIT,
@@ -96,10 +105,37 @@ export class MerchantShopsService {
     };
   }
 
-  private async requireOwnedShop(userId: string, shopId: string) {
+  /**
+   * Archive la boutique (soft-delete) + dépublie ses produits.
+   * Refus 409 s’il reste des commandes bloquantes.
+   */
+  async archiveShop(user: User, shopId: string) {
+    const shop = await this.requireOwnedShop(user.id, shopId);
+    return this.prisma.$transaction(async (tx) => {
+      const blocking = await countBlockingOrdersForShop(tx, shop.id);
+      if (blocking > 0) {
+        throw shopActiveOrdersConflict(blocking);
+      }
+      const archivedAt = new Date();
+      const { productCount } = await archiveShopInTransaction(
+        tx,
+        shop.id,
+        archivedAt
+      );
+      return {
+        ok: true as const,
+        id: shop.id,
+        archivedAt: archivedAt.toISOString(),
+        unpublishedProductCount: productCount
+      };
+    });
+  }
+
+  async requireOwnedShop(userId: string, shopId: string) {
     const shop = await this.prisma.merchantShop.findFirst({
       where: {
         id: shopId,
+        archivedAt: null,
         merchantProfile: { userId }
       }
     });

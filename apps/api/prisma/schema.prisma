@@ -61,6 +61,8 @@ enum MerchantProductStatus {
   published
   disabled
   moderated_removed
+  /// Re-soumis par le commerçant, en attente de validation superadmin.
+  resubmission_review
 }
 
 enum MerchantProductDisabledReason {
@@ -68,6 +70,7 @@ enum MerchantProductDisabledReason {
   downgrade
   swap
   moderation
+  shop_archived
 }
 
 enum MerchantOrderStatus {
@@ -3523,11 +3526,14 @@ model MerchantShop {
   name              String
   description       String?
   locationLabel     String?
+  /// Soft-delete : la boutique disparaît du compte commerçant et du feed.
+  archivedAt        DateTime?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   products          MerchantProduct[]
 
   @@index([merchantProfileId])
+  @@index([merchantProfileId, archivedAt])
 }
 
 /// Catégorie produit commerçant (CRUD superadmin).
@@ -3562,6 +3568,11 @@ model MerchantProduct {
   publishedAt    DateTime?
   disabledAt     DateTime?
   disabledReason MerchantProductDisabledReason?
+  /// Motif courant affiché au commerçant (complète MerchantProductModerationLog).
+  moderationReason String?
+  moderatedAt      DateTime?
+  resubmissionCount Int                         @default(0)
+  resubmittedAt     DateTime?
   createdAt      DateTime                       @default(now())
   updatedAt      DateTime                       @updatedAt
   orders         MerchantOrder[]
@@ -3572,6 +3583,7 @@ model MerchantProduct {
   @@index([shopId, status, createdAt])
   @@index([categoryId])
   @@index([status, publishedAt(sort: Desc)])
+  @@index([status, resubmittedAt(sort: Desc)])
 }
 
 /// Commande boutique commerçant (livraison hors app, escrow jusqu'à réception).

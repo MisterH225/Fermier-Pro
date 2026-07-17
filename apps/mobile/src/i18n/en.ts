@@ -1078,7 +1078,27 @@ export const en = {
     buyerTitle: "Track my shop orders",
     buyerSub: "Status, delivery and disputes",
     merchantTitle: "Track my orders",
-    merchantSub: "Acceptance, delivery and disputes"
+    merchantSub: "Acceptance, delivery and disputes",
+    sectionTitle: "Current tracking",
+    trackingLabel: "Tracking no.",
+    sender: "Sender",
+    recipient: "Recipient",
+    youSeller: "You (seller)",
+    youBuyer: "You (buyer)",
+    dismiss: "Hide",
+    dismissA11y: "Hide tracking card",
+    openA11y: "Open tracking {{ref}}",
+    badge: {
+      pickedUp: "Picked up",
+      inTransit: "In transit",
+      delivered: "Delivered",
+      disputed: "Dispute"
+    },
+    steps: {
+      received: "Picked up",
+      in_transit: "In transit",
+      delivered: "Delivered"
+    }
   },
   smartAlerts: {
     sectionTitle: "Notifications",
@@ -4092,13 +4112,15 @@ export const en = {
         published: "Active",
         disabled: "Disabled",
         draft: "Drafts",
-        moderated_removed: "Moderation"
+        moderated_removed: "Moderation",
+        resubmission_review: "Under review"
       },
       status: {
         published: "Active",
         disabled: "Disabled",
         draft: "Draft",
-        moderated_removed: "Removed"
+        moderated_removed: "Removed",
+        resubmission_review: "Awaiting validation"
       },
       sales: {
         title: "Sales over time",
@@ -4359,7 +4381,15 @@ export const en = {
       addProduct: "Add product",
       productCount: "{{count}} product(s)",
       activeCount: "{{count}} active",
-      notFound: "Shop not found."
+      notFound: "Shop not found.",
+      delete: "Delete shop",
+      deleteTitle: "Delete this shop?",
+      deleteBody:
+        "Its {{count}} product(s) will be unpublished. This archives the shop — it will disappear from your account and the catalog.",
+      deleteConfirm: "Delete",
+      deleteSuccess: "Shop archived.",
+      deleteBlocked:
+        "Cannot delete: orders are still in progress on this shop’s products."
     },
     shopDetail: {
       noProducts: "No products in this shop yet."
@@ -4387,6 +4417,16 @@ export const en = {
       },
       save: "Save",
       saveAndPublish: "Save & publish",
+      moderation: {
+        title: "Product removed by moderation",
+        reason: "Reason: {{reason}}",
+        hint: "Fix the product, then submit it again for validation.",
+        pendingHint:
+          "Your product is awaiting re-validation. It is not visible on the marketplace.",
+        resubmit: "Fix and submit for validation",
+        limitReached:
+          "Resubmission limit reached. Contact support for another review."
+      },
       photos: {
         title: "Product photos",
         hint: "Add up to 5 photos. The first one is the main image.",

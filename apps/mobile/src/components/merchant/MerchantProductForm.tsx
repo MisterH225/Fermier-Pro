@@ -22,6 +22,7 @@ import {
   fetchMerchantMe,
   fetchMerchantProducts,
   publishMerchantProduct,
+  resubmitMerchantProduct,
   updateMerchantProduct,
   type MerchantProductDto
 } from "../../lib/api";
@@ -82,6 +83,9 @@ export function MerchantProductForm({
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [existingProduct, setExistingProduct] = useState<MerchantProductDto | null>(
+    null
+  );
 
   const meQ = useQuery({
     queryKey: ["merchant-me", activeProfileId],
@@ -154,6 +158,7 @@ export function MerchantProductForm({
     if (!productId || !productsQ.data) return;
     const existing = productsQ.data.find((p) => p.id === productId);
     if (!existing) return;
+    setExistingProduct(existing);
     setName(existing.name);
     setPrice(String(existing.price));
     setStock(String(existing.stock));
@@ -165,7 +170,16 @@ export function MerchantProductForm({
     }
   }, [productId, productsQ.data]);
 
-  const submit = async (alsoPublish = false) => {
+  const isModeratedRemoved = existingProduct?.status === "moderated_removed";
+  const isResubmissionReview = existingProduct?.status === "resubmission_review";
+  const canResubmit =
+    isModeratedRemoved && (existingProduct?.resubmissionCount ?? 0) < 2;
+  const resubmitBlocked =
+    isModeratedRemoved && (existingProduct?.resubmissionCount ?? 0) >= 2;
+  const hidePublish =
+    isModeratedRemoved || isResubmissionReview || !allowPublish;
+
+  const submit = async (mode: "save" | "publish" | "resubmit" = "save") => {
     const resolvedShopId = resolveMerchantShopId(meQ.data, selectedShopId ?? propShopId);
     if (!accessToken || !activeProfileId || !resolvedShopId) {
       setError(t("merchant.product.needShop"));
@@ -201,8 +215,11 @@ export function MerchantProductForm({
       } else {
         saved = await createMerchantProduct(accessToken, activeProfileId, resolvedShopId, body);
       }
-      if (alsoPublish && saved.status !== "published") {
+      if (mode === "publish" && saved.status !== "published") {
         saved = await publishMerchantProduct(accessToken, activeProfileId, saved.id);
+      }
+      if (mode === "resubmit") {
+        saved = await resubmitMerchantProduct(accessToken, activeProfileId, saved.id);
       }
       await queryClient.invalidateQueries({ queryKey: ["merchant-products", activeProfileId] });
       await queryClient.invalidateQueries({ queryKey: ["merchant-me", activeProfileId] });
@@ -223,8 +240,8 @@ export function MerchantProductForm({
     }
   };
 
-  const handleSubmit = (alsoPublish: boolean) => {
-    void submit(alsoPublish);
+  const handleSubmit = (mode: "save" | "publish" | "resubmit") => {
+    void submit(mode);
   };
 
   if (!shopId && !productId) {
@@ -271,6 +288,35 @@ export function MerchantProductForm({
                 ? t("merchant.onboarding.productTitle")
                 : t("merchant.product.title")}
           </Text>
+          {isModeratedRemoved ? (
+            <View style={styles.moderationBanner} testID="merchant-product-moderation-banner">
+              <Text style={styles.moderationTitle}>
+                {t("merchant.product.moderation.title")}
+              </Text>
+              {existingProduct?.moderationReason ? (
+                <Text style={styles.moderationReason}>
+                  {t("merchant.product.moderation.reason", {
+                    reason: existingProduct.moderationReason
+                  })}
+                </Text>
+              ) : null}
+              <Text style={styles.moderationHint}>
+                {resubmitBlocked
+                  ? t("merchant.product.moderation.limitReached")
+                  : t("merchant.product.moderation.hint")}
+              </Text>
+            </View>
+          ) : null}
+          {isResubmissionReview ? (
+            <View style={styles.pendingBanner} testID="merchant-product-resubmission-banner">
+              <Text style={styles.pendingTitle}>
+                {t("merchant.products.status.resubmission_review")}
+              </Text>
+              <Text style={styles.pendingHint}>
+                {t("merchant.product.moderation.pendingHint")}
+              </Text>
+            </View>
+          ) : null}
           {shops.length > 1 && !productId ? (
             <View style={styles.shopPicker}>
               <Text style={styles.shopPickerLabel}>{t("merchant.product.selectShop")}</Text>
@@ -370,7 +416,13 @@ export function MerchantProductForm({
           ))}
           <Pressable
             style={styles.btn}
-            onPress={() => handleSubmit(mode === "onboarding" ? allowPublish : false)}
+            onPress={() =>
+              handleSubmit(
+                mode === "onboarding" && allowPublish && !hidePublish
+                  ? "publish"
+                  : "save"
+              )
+            }
             disabled={busy}
             testID="merchant-product-form-save"
           >
@@ -380,20 +432,32 @@ export function MerchantProductForm({
               <Text style={styles.btnTx}>
                 {productId
                   ? t("merchant.product.save")
-                  : mode === "onboarding" && allowPublish
+                  : mode === "onboarding" && allowPublish && !hidePublish
                     ? t("merchant.product.saveAndPublish")
                     : t("merchant.onboarding.createProduct")}
               </Text>
             )}
           </Pressable>
-          {mode === "stack" && allowPublish ? (
+          {mode === "stack" && !hidePublish ? (
             <Pressable
               style={styles.btnSecondary}
-              onPress={() => handleSubmit(true)}
+              onPress={() => handleSubmit("publish")}
               disabled={busy}
               testID="merchant-product-form-save-publish"
             >
               <Text style={styles.btnTx}>{t("merchant.product.saveAndPublish")}</Text>
+            </Pressable>
+          ) : null}
+          {canResubmit ? (
+            <Pressable
+              style={styles.btnResubmit}
+              onPress={() => handleSubmit("resubmit")}
+              disabled={busy}
+              testID="merchant-product-form-resubmit"
+            >
+              <Text style={styles.btnTx}>
+                {t("merchant.product.moderation.resubmit")}
+              </Text>
             </Pressable>
           ) : null}
           {mode === "onboarding" && onSkip ? (
@@ -456,6 +520,27 @@ const styles = StyleSheet.create({
   required: { color: merchantColors.danger },
   warn: { color: merchantColors.warning, fontSize: 13 },
   title: { fontSize: 20, fontWeight: "700" },
+  moderationBanner: {
+    backgroundColor: "#FEF3C7",
+    borderRadius: mobileRadius.md,
+    padding: mobileSpacing.md,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: "#F59E0B"
+  },
+  moderationTitle: { fontWeight: "700", color: "#92400E", fontSize: 14 },
+  moderationReason: { color: "#78350F", fontSize: 13, lineHeight: 18 },
+  moderationHint: { color: "#92400E", fontSize: 12, lineHeight: 17 },
+  pendingBanner: {
+    backgroundColor: "#DBEAFE",
+    borderRadius: mobileRadius.md,
+    padding: mobileSpacing.md,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: "#3B82F6"
+  },
+  pendingTitle: { fontWeight: "700", color: "#1E3A8A", fontSize: 14 },
+  pendingHint: { color: "#1E40AF", fontSize: 12, lineHeight: 17 },
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
@@ -483,6 +568,12 @@ const styles = StyleSheet.create({
   },
   btnSecondary: {
     backgroundColor: merchantColors.success,
+    padding: mobileSpacing.md,
+    borderRadius: mobileRadius.md,
+    alignItems: "center"
+  },
+  btnResubmit: {
+    backgroundColor: "#D97706",
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.md,
     alignItems: "center"

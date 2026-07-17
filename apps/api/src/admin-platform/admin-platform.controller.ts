@@ -56,11 +56,14 @@ import { ProducerScore } from "@prisma/client";
 import { MerchantCategoriesService } from "../merchant-shop/merchant-categories.service";
 import { MerchantModerationService } from "../merchant-shop/merchant-moderation.service";
 import {
+  ArchiveMerchantShopAdminDto,
   CreateMerchantCategoryDto,
   DeleteMerchantProductAdminDto,
+  RejectMerchantProductResubmissionDto,
   ResolveMerchantOrderDisputeDto,
   UpdateMerchantCategoryDto
 } from "../merchant-shop/dto/merchant-shop.dto";
+import { MerchantProductStatus } from "@prisma/client";
 import { MerchantOrdersService } from "../merchant-shop/merchant-orders.service";
 import { AdminMerchantSubscriptionsService } from "./admin-merchant-subscriptions.service";
 import { AdminProducerSubscriptionsService } from "./admin-producer-subscriptions.service";
@@ -998,8 +1001,47 @@ export class AdminPlatformController {
   }
 
   @Get("merchant/products")
-  adminListMerchantProducts() {
-    return this.merchantModeration.listAllProducts();
+  adminListMerchantProducts(@Query("status") status?: string) {
+    const parsed =
+      status &&
+      (Object.values(MerchantProductStatus) as string[]).includes(status)
+        ? (status as MerchantProductStatus)
+        : undefined;
+    return this.merchantModeration.listAllProducts(
+      parsed ? { status: parsed } : undefined
+    );
+  }
+
+  @Get("merchant-shops")
+  adminListMerchantShops() {
+    return this.merchantModeration.listAllShops();
+  }
+
+  /** Diagnostic boutiques / produits orphelins ou publiés sur boutique archivée. */
+  @Get("merchant-shops/orphans")
+  @UseGuards(SuperAdminGuard)
+  adminListMerchantShopOrphans() {
+    return this.merchantModeration.listOrphans();
+  }
+
+  @Post("merchant-shops/:id/archive")
+  @UseGuards(SuperAdminGuard)
+  adminArchiveMerchantShop(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: ArchiveMerchantShopAdminDto
+  ) {
+    return this.merchantModeration.archiveShop(admin, id, dto);
+  }
+
+  @Delete("merchant-shops/:id")
+  @UseGuards(SuperAdminGuard)
+  adminHardDeleteMerchantShop(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: ArchiveMerchantShopAdminDto
+  ) {
+    return this.merchantModeration.hardDeleteShop(admin, id, dto);
   }
 
   @Get("merchant/orders")
@@ -1036,6 +1078,25 @@ export class AdminPlatformController {
     @Body() dto: DeleteMerchantProductAdminDto
   ) {
     return this.merchantModeration.deleteProduct(admin, id, dto);
+  }
+
+  @Post("merchant/products/:id/approve-resubmission")
+  @UseGuards(SuperAdminGuard)
+  adminApproveMerchantProductResubmission(
+    @CurrentUser() admin: User,
+    @Param("id") id: string
+  ) {
+    return this.merchantModeration.approveResubmission(admin, id);
+  }
+
+  @Post("merchant/products/:id/reject-resubmission")
+  @UseGuards(SuperAdminGuard)
+  adminRejectMerchantProductResubmission(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: RejectMerchantProductResubmissionDto
+  ) {
+    return this.merchantModeration.rejectResubmission(admin, id, dto);
   }
 
   @Get("farms/unresolved-geo")

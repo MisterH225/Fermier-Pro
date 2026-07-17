@@ -568,6 +568,7 @@ export class ListingsService {
       where: {
         status: MerchantProductStatus.published,
         stock: { gt: 0 },
+        shop: { archivedAt: null },
         ...(opts.categorySlug
           ? { category: { slug: opts.categorySlug, isActive: true } }
           : { category: { isActive: true } }),

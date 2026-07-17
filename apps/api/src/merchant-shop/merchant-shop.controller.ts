@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -138,6 +139,16 @@ export class MerchantShopController {
     return this.shops.update(user, shopId, dto);
   }
 
+  /** Archive (soft-delete) — dépublie les produits ; refus si commandes en cours. */
+  @Delete("shops/:shopId")
+  @UseGuards(MerchantProfileGuard)
+  archiveShop(
+    @CurrentUser() user: Parameters<MerchantShopsService["archiveShop"]>[0],
+    @Param("shopId") shopId: string
+  ) {
+    return this.shops.archiveShop(user, shopId);
+  }
+
   @Get("products")
   @UseGuards(MerchantProfileGuard)
   listProducts(@CurrentUser() user: Parameters<MerchantProductsService["listMine"]>[0]) {
@@ -171,6 +182,15 @@ export class MerchantShopController {
     @Param("productId") productId: string
   ) {
     return this.products.publish(user, productId);
+  }
+
+  @Post("products/:productId/resubmit")
+  @UseGuards(MerchantProfileGuard)
+  resubmitProduct(
+    @CurrentUser() user: Parameters<MerchantProductsService["resubmit"]>[0],
+    @Param("productId") productId: string
+  ) {
+    return this.products.resubmit(user, productId);
   }
 
   @Post("products/:productId/unpublish")

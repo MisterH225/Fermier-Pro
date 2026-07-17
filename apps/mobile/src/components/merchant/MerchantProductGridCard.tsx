@@ -99,7 +99,9 @@ export function MerchantProductGridCard({
 
       <View style={styles.footer}>
         <View style={styles.actions}>
-          {product.status !== "moderated_removed" && onTogglePublish ? (
+          {product.status !== "moderated_removed" &&
+          product.status !== "resubmission_review" &&
+          onTogglePublish ? (
             <Pressable
               style={styles.actionBtn}
               disabled={publishBusy}

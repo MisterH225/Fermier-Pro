@@ -209,6 +209,22 @@ export class DeleteMerchantProductAdminDto {
   reason!: string;
 }
 
+/** Rejet d’une re-soumission produit (retour en moderated_removed). */
+export class RejectMerchantProductResubmissionDto {
+  @IsString()
+  @MinLength(3)
+  @MaxLength(500)
+  reason!: string;
+}
+
+/** Motif obligatoire pour archivage / hard-delete admin d’une boutique. */
+export class ArchiveMerchantShopAdminDto {
+  @IsString()
+  @MinLength(3)
+  @MaxLength(500)
+  reason!: string;
+}
+
 export class OpenMerchantOrderDisputeDto {
   @IsString()
   @MinLength(5)

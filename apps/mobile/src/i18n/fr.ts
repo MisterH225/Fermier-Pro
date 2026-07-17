@@ -1084,7 +1084,27 @@ export const fr = {
     buyerTitle: "Suivre mes commandes boutique",
     buyerSub: "Statut, livraison et litiges",
     merchantTitle: "Suivre mes commandes",
-    merchantSub: "Acceptation, livraison et litiges"
+    merchantSub: "Acceptation, livraison et litiges",
+    sectionTitle: "Suivi actuel",
+    trackingLabel: "N° de suivi",
+    sender: "Expéditeur",
+    recipient: "Destinataire",
+    youSeller: "Vous (vendeur)",
+    youBuyer: "Vous (acheteur)",
+    dismiss: "Masquer",
+    dismissA11y: "Masquer la carte de suivi",
+    openA11y: "Ouvrir le suivi {{ref}}",
+    badge: {
+      pickedUp: "Pris en charge",
+      inTransit: "En transit",
+      delivered: "Livré",
+      disputed: "Litige"
+    },
+    steps: {
+      received: "Pris en charge",
+      in_transit: "En transit",
+      delivered: "Livré"
+    }
   },
   smartAlerts: {
     sectionTitle: "Notifications",
@@ -4141,13 +4161,15 @@ export const fr = {
         published: "Actifs",
         disabled: "Désactivés",
         draft: "Brouillons",
-        moderated_removed: "Modération"
+        moderated_removed: "Modération",
+        resubmission_review: "En validation"
       },
       status: {
         published: "Actif",
         disabled: "Désactivé",
         draft: "Brouillon",
-        moderated_removed: "Retiré"
+        moderated_removed: "Retiré",
+        resubmission_review: "En attente de validation"
       },
       sales: {
         title: "Ventes dans le temps",
@@ -4408,7 +4430,15 @@ export const fr = {
       addProduct: "Ajouter un produit",
       productCount: "{{count}} produit(s)",
       activeCount: "{{count}} actif(s)",
-      notFound: "Boutique introuvable."
+      notFound: "Boutique introuvable.",
+      delete: "Supprimer la boutique",
+      deleteTitle: "Supprimer la boutique ?",
+      deleteBody:
+        "Ses {{count}} produit(s) seront dépubliés. Cette action archive la boutique — elle disparaîtra de votre compte et du catalogue.",
+      deleteConfirm: "Supprimer",
+      deleteSuccess: "Boutique archivée.",
+      deleteBlocked:
+        "Impossible de supprimer : des commandes sont encore en cours sur les produits de cette boutique."
     },
     shopDetail: {
       noProducts: "Aucun produit dans cette boutique."
@@ -4436,6 +4466,16 @@ export const fr = {
       },
       save: "Enregistrer",
       saveAndPublish: "Enregistrer et publier",
+      moderation: {
+        title: "Produit retiré par modération",
+        reason: "Motif : {{reason}}",
+        hint: "Corrigez le produit puis soumettez-le à nouveau pour validation.",
+        pendingHint:
+          "Votre produit est en cours de re-validation par l’équipe. Il n’est pas visible sur le marketplace.",
+        resubmit: "Corriger et soumettre à validation",
+        limitReached:
+          "Limite de re-soumissions atteinte. Contactez le support pour une nouvelle revue."
+      },
       photos: {
         title: "Photos du produit",
         hint: "Ajoute jusqu'à 5 photos. La première sera l'image principale.",

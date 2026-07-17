@@ -940,6 +940,7 @@
       "revenue": "Commissions",
       "receipts": "Reçus PDF",
       "merchantProducts": "Produits commerçants",
+      "merchantShops": "Boutiques commerçants",
       "merchantCategories": "Catégories boutique",
       "merchantOrders": "Commandes boutique"
     },
@@ -1092,9 +1093,37 @@
       "colStatus": "Statut",
       "colPrice": "Prix",
       "colStock": "Stock",
-      "colReason": "Motif suppression",
+      "colReason": "Motif",
       "reasonPlaceholder": "Motif obligatoire",
-      "delete": "Supprimer"
+      "rejectReasonPlaceholder": "Motif du rejet",
+      "delete": "Supprimer",
+      "filterAll": "Tous",
+      "approveResubmission": "Approuver",
+      "rejectResubmission": "Rejeter",
+      "resubmissionMeta": "Re-soumission n°{{count}}",
+      "status": {
+        "published": "Publié",
+        "draft": "Brouillon",
+        "disabled": "Désactivé",
+        "moderated_removed": "Retiré",
+        "resubmission_review": "Re-validation"
+      }
+    },
+    "merchantShops": {
+      "empty": "Aucune boutique commerçant.",
+      "colShop": "Boutique",
+      "colMerchant": "Commerçant",
+      "colProducts": "Produits",
+      "colOrders": "Commandes",
+      "colStatus": "Statut",
+      "colReason": "Motif",
+      "reasonPlaceholder": "Motif obligatoire",
+      "statusActive": "Active",
+      "statusArchived": "Archivée",
+      "archive": "Archiver",
+      "delete": "Supprimer",
+      "alreadyArchived": "Déjà archivée",
+      "deleteDisabledTooltip": "Historique de commandes présent — archivez plutôt que de supprimer."
     },
     "merchantCategories": {
       "createTitle": "Nouvelle catégorie",

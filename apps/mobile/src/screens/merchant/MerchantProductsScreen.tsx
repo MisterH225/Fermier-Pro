@@ -35,9 +35,22 @@ import { merchantColors, merchantRadius } from "../../theme/merchantTheme";
 import { mobileSpacing } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
-type StatusFilter = "all" | "published" | "disabled" | "draft" | "moderated_removed";
+type StatusFilter =
+  | "all"
+  | "published"
+  | "disabled"
+  | "draft"
+  | "moderated_removed"
+  | "resubmission_review";
 
-const FILTERS: StatusFilter[] = ["all", "published", "disabled", "draft", "moderated_removed"];
+const FILTERS: StatusFilter[] = [
+  "all",
+  "published",
+  "disabled",
+  "draft",
+  "moderated_removed",
+  "resubmission_review"
+];
 const GRID_GAP = mobileSpacing.sm;
 const H_PAD = mobileSpacing.md;
 

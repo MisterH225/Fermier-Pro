@@ -1,11 +1,12 @@
 import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -16,7 +17,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
-import { fetchMerchantMe, fetchMerchantProducts } from "../../lib/api";
+import {
+  archiveMerchantShop,
+  fetchMerchantMe,
+  fetchMerchantProducts
+} from "../../lib/api";
+import { formatApiError } from "../../lib/apiErrors";
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
 import { mobileSpacing } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
@@ -35,6 +41,7 @@ export function MerchantShopDetailScreen() {
   const shopId = route.params.shopId;
   const bottomInset = useBottomInset();
   const { accessToken, activeProfileId } = useSession();
+  const qc = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
   const meQ = useQuery({
@@ -47,6 +54,27 @@ export function MerchantShopDetailScreen() {
     queryKey: ["merchant-products", activeProfileId],
     queryFn: () => fetchMerchantProducts(accessToken!, activeProfileId!),
     enabled: Boolean(accessToken && activeProfileId)
+  });
+
+  const archiveMut = useMutation({
+    mutationFn: () =>
+      archiveMerchantShop(accessToken!, activeProfileId!, shopId),
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["merchant-me"] }),
+        qc.invalidateQueries({ queryKey: ["merchant-products"] })
+      ]);
+      Alert.alert(t("merchant.shops.deleteSuccess"));
+      navigation.navigate("MerchantShops");
+    },
+    onError: (e) => {
+      const msg = formatApiError(e);
+      if (/SHOP_HAS_ACTIVE_ORDERS|commande/i.test(msg)) {
+        Alert.alert(t("merchant.shops.deleteBlocked"));
+        return;
+      }
+      Alert.alert(msg);
+    }
   });
 
   useFocusEffect(
@@ -65,6 +93,23 @@ export function MerchantShopDetailScreen() {
     () => (productsQ.data ?? []).filter((p) => p.shopId === shopId),
     [productsQ.data, shopId]
   );
+
+  const confirmArchive = () => {
+    Alert.alert(
+      t("merchant.shops.deleteTitle"),
+      t("merchant.shops.deleteBody", {
+        count: shop?.productCount ?? shopProducts.length
+      }),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("merchant.shops.deleteConfirm"),
+          style: "destructive",
+          onPress: () => archiveMut.mutate()
+        }
+      ]
+    );
+  };
 
   if (meQ.isLoading) {
     return (
@@ -107,7 +152,7 @@ export function MerchantShopDetailScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
           padding: mobileSpacing.md,
-          paddingBottom: bottomInset + 72,
+          paddingBottom: bottomInset + 140,
           gap: mobileSpacing.sm
         }}
         refreshControl={
@@ -154,8 +199,21 @@ export function MerchantShopDetailScreen() {
           style={styles.primaryBtn}
           onPress={() => navigation.navigate("MerchantProductForm", { shopId })}
           testID="merchant-shop-detail-add-product"
+          disabled={archiveMut.isPending}
         >
           <Text style={styles.primaryBtnTx}>{t("merchant.shops.addProduct")}</Text>
+        </Pressable>
+        <Pressable
+          style={styles.dangerBtn}
+          onPress={confirmArchive}
+          testID="merchant-shop-detail-delete"
+          disabled={archiveMut.isPending}
+        >
+          {archiveMut.isPending ? (
+            <ActivityIndicator color={merchantColors.danger} />
+          ) : (
+            <Text style={styles.dangerBtnTx}>{t("merchant.shops.delete")}</Text>
+          )}
         </Pressable>
       </View>
     </SafeAreaView>
@@ -208,7 +266,8 @@ const styles = StyleSheet.create({
     paddingTop: mobileSpacing.sm,
     backgroundColor: merchantColors.canvas,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: merchantColors.border
+    borderTopColor: merchantColors.border,
+    gap: mobileSpacing.sm
   },
   primaryBtn: {
     backgroundColor: merchantColors.primary,
@@ -216,5 +275,14 @@ const styles = StyleSheet.create({
     borderRadius: merchantRadius.pill,
     alignItems: "center"
   },
-  primaryBtnTx: { color: "#fff", fontWeight: "800", fontSize: 16 }
+  primaryBtnTx: { color: "#fff", fontWeight: "800", fontSize: 16 },
+  dangerBtn: {
+    backgroundColor: merchantColors.cardBg,
+    paddingVertical: 14,
+    borderRadius: merchantRadius.pill,
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: merchantColors.danger
+  },
+  dangerBtnTx: { color: merchantColors.danger, fontWeight: "800", fontSize: 15 }
 });

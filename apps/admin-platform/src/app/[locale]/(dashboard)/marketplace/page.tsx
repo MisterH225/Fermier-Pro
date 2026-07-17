@@ -9,12 +9,14 @@ import {
   fetchAdminMerchantCategories,
   fetchAdminMerchantOrders,
   fetchAdminMerchantProducts,
+  fetchAdminMerchantShops,
   type AdminMarketplaceListingRow,
   type AdminMarketplaceOverviewDto,
   type AdminMarketplaceTransactionRow,
   type AdminMerchantCategoryRow,
   type AdminMerchantOrderRow,
-  type AdminMerchantProductRow
+  type AdminMerchantProductRow,
+  type AdminMerchantShopRow
 } from "@/lib/api";
 import { useAdminToken } from "@/lib/useAdminToken";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -29,6 +31,7 @@ import { WeightDisputeQueue } from "@/components/marketplace/WeightDisputeQueue"
 import { PlatformRevenueSection } from "@/components/marketplace/PlatformRevenueSection";
 import { MarketplaceReceiptsSection } from "@/components/marketplace/MarketplaceReceiptsSection";
 import { MerchantProductsModerationTable } from "@/components/marketplace/MerchantProductsModerationTable";
+import { MerchantShopsAdminPanel } from "@/components/marketplace/MerchantShopsAdminPanel";
 import { MerchantCategoriesPanel } from "@/components/marketplace/MerchantCategoriesPanel";
 import { MerchantOrdersAdminPanel } from "@/components/marketplace/MerchantOrdersAdminPanel";
 
@@ -40,6 +43,7 @@ const MAIN_TABS = [
   "revenue",
   "receipts",
   "merchantProducts",
+  "merchantShops",
   "merchantCategories"
 ] as const;
 type MainTab = (typeof MAIN_TABS)[number];
@@ -87,6 +91,7 @@ export default function MarketplaceAdminPage() {
   const [merchantProducts, setMerchantProducts] = useState<AdminMerchantProductRow[]>(
     []
   );
+  const [merchantShops, setMerchantShops] = useState<AdminMerchantShopRow[]>([]);
   const [merchantCategories, setMerchantCategories] = useState<
     AdminMerchantCategoryRow[]
   >([]);
@@ -94,6 +99,7 @@ export default function MarketplaceAdminPage() {
     []
   );
   const [merchantOrderStatus, setMerchantOrderStatus] = useState("disputed");
+  const [resubmissionQueueCount, setResubmissionQueueCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -125,8 +131,26 @@ export default function MarketplaceAdminPage() {
 
   const loadMerchantProducts = useCallback(async () => {
     if (!token) return;
-    const rows = await fetchAdminMerchantProducts(token);
+    const [rows, queue] = await Promise.all([
+      fetchAdminMerchantProducts(token),
+      fetchAdminMerchantProducts(token, { status: "resubmission_review" })
+    ]);
     setMerchantProducts(rows ?? []);
+    setResubmissionQueueCount((queue ?? []).length);
+  }, [token]);
+
+  const loadResubmissionBadge = useCallback(async () => {
+    if (!token) return;
+    const queue = await fetchAdminMerchantProducts(token, {
+      status: "resubmission_review"
+    });
+    setResubmissionQueueCount((queue ?? []).length);
+  }, [token]);
+
+  const loadMerchantShops = useCallback(async () => {
+    if (!token) return;
+    const rows = await fetchAdminMerchantShops(token);
+    setMerchantShops(rows ?? []);
   }, [token]);
 
   const loadMerchantCategories = useCallback(async () => {
@@ -150,6 +174,7 @@ export default function MarketplaceAdminPage() {
     const run = async () => {
       try {
         await loadOverview();
+        await loadResubmissionBadge();
         if (mainTab === "listings") {
           await loadListings();
         } else if (mainTab === "transactions") {
@@ -160,6 +185,8 @@ export default function MarketplaceAdminPage() {
           await loadMerchantOrders();
         } else if (mainTab === "merchantProducts") {
           await loadMerchantProducts();
+        } else if (mainTab === "merchantShops") {
+          await loadMerchantShops();
         } else if (mainTab === "merchantCategories") {
           await loadMerchantCategories();
         }
@@ -172,11 +199,13 @@ export default function MarketplaceAdminPage() {
     token,
     mainTab,
     loadOverview,
+    loadResubmissionBadge,
     loadListings,
     loadTransactions,
     loadDisputes,
     loadMerchantOrders,
     loadMerchantProducts,
+    loadMerchantShops,
     loadMerchantCategories,
     t
   ]);
@@ -201,7 +230,13 @@ export default function MarketplaceAdminPage() {
         items={[...MAIN_TABS]}
         value={mainTab}
         onChange={setMainTab}
-        label={(id) => t(`tabs.${id}`)}
+        label={(id) => {
+          const base = t(`tabs.${id}`);
+          if (id === "merchantProducts" && resubmissionQueueCount > 0) {
+            return `${base} (${resubmissionQueueCount})`;
+          }
+          return base;
+        }}
       />
 
       <AdminSection icon={Store} title={t(`tabs.${mainTab}`)} bare>
@@ -289,6 +324,18 @@ export default function MarketplaceAdminPage() {
             rows={merchantProducts}
             token={token!}
             onRefresh={() => void loadMerchantProducts()}
+          />
+        )
+      ) : null}
+
+      {mainTab === "merchantShops" ? (
+        loading ? (
+          <p className="text-muted-foreground">{t("loading")}</p>
+        ) : (
+          <MerchantShopsAdminPanel
+            rows={merchantShops}
+            token={token!}
+            onRefresh={() => void loadMerchantShops()}
           />
         )
       ) : null}

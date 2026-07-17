@@ -1260,11 +1260,36 @@ export type AdminMerchantProductRow = {
   price: number;
   stock: number;
   categoryName: string;
+  shopId?: string;
   shopName: string;
+  shopArchivedAt?: string | null;
   merchantUserId: string;
   merchantEmail: string | null;
   merchantName: string | null;
+  moderationReason?: string | null;
+  moderatedAt?: string | null;
+  resubmissionCount?: number;
+  resubmittedAt?: string | null;
   publishedAt: string | null;
+  updatedAt: string;
+  orderCount?: number;
+};
+
+export type AdminMerchantShopRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  locationLabel: string | null;
+  archivedAt: string | null;
+  productCount: number;
+  publishedProductCount: number;
+  orderCount: number;
+  hasOrderHistory: boolean;
+  merchantProfileId: string;
+  merchantUserId: string;
+  merchantEmail: string | null;
+  merchantName: string | null;
+  createdAt: string;
   updatedAt: string;
 };
 
@@ -1300,8 +1325,47 @@ export function deleteAdminMerchantCategory(token: string, id: string) {
   });
 }
 
-export function fetchAdminMerchantProducts(token: string) {
-  return apiFetch<AdminMerchantProductRow[]>("/admin/merchant/products", token);
+export function fetchAdminMerchantProducts(
+  token: string,
+  params?: { status?: string }
+) {
+  const q = new URLSearchParams();
+  if (params?.status) q.set("status", params.status);
+  const qs = q.toString();
+  return apiFetch<AdminMerchantProductRow[]>(
+    `/admin/merchant/products${qs ? `?${qs}` : ""}`,
+    token
+  );
+}
+
+export function fetchAdminMerchantShops(token: string) {
+  return apiFetch<AdminMerchantShopRow[]>("/admin/merchant-shops", token);
+}
+
+export function archiveAdminMerchantShop(
+  token: string,
+  id: string,
+  reason: string
+) {
+  return apiFetch<{ ok: boolean }>(
+    `/admin/merchant-shops/${id}/archive`,
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify({ reason })
+    }
+  );
+}
+
+export function hardDeleteAdminMerchantShop(
+  token: string,
+  id: string,
+  reason: string
+) {
+  return apiFetch<{ ok: boolean }>(`/admin/merchant-shops/${id}`, token, {
+    method: "DELETE",
+    body: JSON.stringify({ reason })
+  });
 }
 
 export type AdminMerchantOrderRow = {
@@ -1393,6 +1457,32 @@ export function deleteAdminMerchantProduct(
     method: "DELETE",
     body: JSON.stringify({ reason })
   });
+}
+
+export function approveAdminMerchantProductResubmission(
+  token: string,
+  id: string
+) {
+  return apiFetch<{ ok: boolean; id: string; status: string }>(
+    `/admin/merchant/products/${id}/approve-resubmission`,
+    token,
+    { method: "POST" }
+  );
+}
+
+export function rejectAdminMerchantProductResubmission(
+  token: string,
+  id: string,
+  reason: string
+) {
+  return apiFetch<{ ok: boolean; id: string }>(
+    `/admin/merchant/products/${id}/reject-resubmission`,
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify({ reason })
+    }
+  );
 }
 
 export type SuperAdminRowDto = {

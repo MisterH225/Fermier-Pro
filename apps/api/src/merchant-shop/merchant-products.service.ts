@@ -14,7 +14,8 @@ import {
 import { PrismaService } from "../prisma/prisma.service";
 import {
   MERCHANT_ERROR,
-  MERCHANT_FREE_MAX_ACTIVE_PRODUCTS
+  MERCHANT_FREE_MAX_ACTIVE_PRODUCTS,
+  MERCHANT_PRODUCT_MAX_RESUBMISSIONS
 } from "./merchant-shop.constants";
 import { MerchantProfilesService } from "./merchant-profiles.service";
 import type {
@@ -44,6 +45,10 @@ export class MerchantProductsService {
     publishedAt: Date | null;
     disabledAt: Date | null;
     disabledReason: MerchantProductDisabledReason | null;
+    moderationReason?: string | null;
+    moderatedAt?: Date | null;
+    resubmissionCount?: number;
+    resubmittedAt?: Date | null;
     createdAt: Date;
     updatedAt: Date;
     category?: { id: string; name: string; slug: string };
@@ -69,6 +74,10 @@ export class MerchantProductsService {
       publishedAt: product.publishedAt?.toISOString() ?? null,
       disabledAt: product.disabledAt?.toISOString() ?? null,
       disabledReason: product.disabledReason,
+      moderationReason: product.moderationReason ?? null,
+      moderatedAt: product.moderatedAt?.toISOString() ?? null,
+      resubmissionCount: product.resubmissionCount ?? 0,
+      resubmittedAt: product.resubmittedAt?.toISOString() ?? null,
       createdAt: product.createdAt.toISOString(),
       updatedAt: product.updatedAt.toISOString()
     };
@@ -76,7 +85,9 @@ export class MerchantProductsService {
 
   async listMine(user: User) {
     const profile = await this.profiles.requireProfile(user.id);
-    const shopIds = profile.shops.map((s) => s.id);
+    const shopIds = profile.shops
+      .filter((s) => s.archivedAt == null)
+      .map((s) => s.id);
     const products = await this.prisma.merchantProduct.findMany({
       where: { shopId: { in: shopIds } },
       include: {
@@ -150,9 +161,12 @@ export class MerchantProductsService {
 
     if (
       product.status === MerchantProductStatus.published ||
-      product.status === MerchantProductStatus.moderated_removed
+      product.status === MerchantProductStatus.moderated_removed ||
+      product.status === MerchantProductStatus.resubmission_review
     ) {
-      throw new ConflictException("Produit déjà publié ou supprimé");
+      throw new ConflictException(
+        "Produit déjà publié, retiré par modération ou en attente de re-validation"
+      );
     }
 
     if (tier === MerchantSubscriptionTier.free) {
@@ -187,6 +201,49 @@ export class MerchantProductsService {
     await this.prisma.merchantProfile.update({
       where: { userId: user.id },
       data: { onboardingComplete: true, productSkipped: false }
+    });
+
+    return this.serializeProduct(updated);
+  }
+
+  /**
+   * Re-soumission après retrait modération — pas de republication libre :
+   * le produit passe en file superadmin (resubmission_review).
+   */
+  async resubmit(user: User, productId: string) {
+    const product = await this.requireOwnedProduct(user.id, productId);
+
+    if (product.status !== MerchantProductStatus.moderated_removed) {
+      throw new ConflictException({
+        statusCode: 409,
+        code: MERCHANT_ERROR.RESUBMISSION_INVALID_STATUS,
+        message: "Seuls les produits retirés par modération peuvent être re-soumis"
+      });
+    }
+
+    if (product.resubmissionCount >= MERCHANT_PRODUCT_MAX_RESUBMISSIONS) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        code: MERCHANT_ERROR.RESUBMISSION_LIMIT,
+        message:
+          "Limite de re-soumissions atteinte. Contactez le support pour une nouvelle revue."
+      });
+    }
+
+    const now = new Date();
+    const updated = await this.prisma.merchantProduct.update({
+      where: { id: product.id },
+      data: {
+        status: MerchantProductStatus.resubmission_review,
+        resubmissionCount: { increment: 1 },
+        resubmittedAt: now,
+        disabledAt: null,
+        disabledReason: null
+      },
+      include: {
+        category: { select: { id: true, name: true, slug: true } },
+        shop: { select: { id: true, name: true } }
+      }
     });
 
     return this.serializeProduct(updated);
@@ -307,6 +364,7 @@ export class MerchantProductsService {
       where: {
         status: MerchantProductStatus.published,
         stock: { gt: 0 },
+        shop: { archivedAt: null },
         ...(opts?.categoryId ? { categoryId: opts.categoryId } : {}),
         ...(search
           ? {
@@ -353,7 +411,8 @@ export class MerchantProductsService {
       where: {
         id: productId,
         status: MerchantProductStatus.published,
-        stock: { gt: 0 }
+        stock: { gt: 0 },
+        shop: { archivedAt: null }
       },
       include: {
         category: { select: { id: true, name: true, slug: true } },
@@ -403,7 +462,11 @@ export class MerchantProductsService {
 
   private async requireOwnedShop(userId: string, shopId: string) {
     const shop = await this.prisma.merchantShop.findFirst({
-      where: { id: shopId, merchantProfile: { userId } }
+      where: {
+        id: shopId,
+        archivedAt: null,
+        merchantProfile: { userId }
+      }
     });
     if (!shop) {
       throw new NotFoundException("Boutique introuvable");

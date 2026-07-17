@@ -103,7 +103,8 @@ export class MerchantProfilesService {
         ? applyPromoPercent(billing.fullPriceXof, stickyPromo)
         : billing.effectivePriceXof;
 
-    const shops = profile.shops.map((shop) => ({
+    const activeShops = profile.shops.filter((shop) => shop.archivedAt == null);
+    const shops = activeShops.map((shop) => ({
       id: shop.id,
       name: shop.name,
       description: shop.description,
@@ -113,7 +114,7 @@ export class MerchantProfilesService {
       createdAt: shop.createdAt.toISOString()
     }));
 
-    const allProducts = profile.shops.flatMap((s) => s.products);
+    const allProducts = activeShops.flatMap((s) => s.products);
     const activeProductCount = this.countActiveProducts(allProducts);
 
     const pendingInvoice = await this.prisma.merchantSubscriptionInvoice.findFirst({
@@ -163,7 +164,7 @@ export class MerchantProfilesService {
       shopSkipped: profile.shopSkipped,
       productSkipped: profile.productSkipped,
       onboardingComplete: profile.onboardingComplete,
-      shopCount: profile.shops.length,
+      shopCount: activeShops.length,
       activeProductCount,
       maxShops: this.maxShopsForTier(profile.subscriptionTier, premiumMaxShops),
       maxActiveProducts: this.maxActiveProductsForTier(profile.subscriptionTier),
@@ -178,9 +179,9 @@ export class MerchantProfilesService {
       promoEnabled: billing.promoEnabled,
       promoPercentOff: billing.promoPercentOff,
       shops,
-      needsShopNudge: profile.shopSkipped && profile.shops.length === 0,
+      needsShopNudge: profile.shopSkipped && activeShops.length === 0,
       needsProductNudge:
-        profile.shops.length > 0 &&
+        activeShops.length > 0 &&
         profile.productSkipped &&
         allProducts.length === 0
     };

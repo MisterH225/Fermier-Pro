@@ -1,59 +1,67 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useQuery } from "@tanstack/react-query";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
 import { useSession } from "../../context/SessionContext";
 import {
   fetchMerchantBuyerOrders,
-  fetchMerchantSellerOrders,
-  type MerchantOrderDto
+  fetchMerchantSellerOrders
 } from "../../lib/api";
-import type { RootStackParamList } from "../../types/navigation";
 import {
+  ACTIVE_ORDER_TRACKING_STATUSES,
+  buildDashboardTrackingSteps,
+  formatTrackingStepWhen,
+  pickCurrentTrackingOrder,
+  trackingBadgeLabelKey,
+  trackingBadgeTone,
+  trackingParties,
+  trackingReferenceOf
+} from "../../lib/currentOrderTracking";
+import {
+  dismissOrderTrackingCard,
+  loadDismissedOrderIds,
+  pruneDismissedOrderIds
+} from "../../lib/ordersTrackingDismiss";
+import type { RootStackParamList } from "../../types/navigation";
+import { OrderStatusBadge } from "../orders";
+import {
+  mobileColors,
   mobileRadius,
+  mobileShadows,
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
 
 type Props = {
+  /** Conservé pour compatibilité des dashboards existants (non utilisé sur le fond carte). */
   accentColor?: string;
   backgroundColor?: string;
 };
 
-/** Statuts encore en cours (suivi utile). Disparaît après completed / refund / cancel. */
-const ACTIVE_ORDER_STATUSES = new Set([
-  "payment_pending",
-  "paid",
-  "confirmed",
-  "shipping",
-  "delivered",
-  "disputed"
-]);
-
-function hasActiveOrders(orders: MerchantOrderDto[] | undefined): boolean {
-  return (orders ?? []).some((o) => ACTIVE_ORDER_STATUSES.has(o.status));
-}
-
 /**
- * Carte dashboard → suivi commandes boutique.
- * Masquée quand plus aucune commande active (réception confirmée / escrow libéré).
+ * Carte dashboard « Suivi actuel » — commande boutique active.
+ * Swipe droite → gauche pour masquer la carte (persisté localement).
  */
-export function ShopOrdersTrackingCard({
-  accentColor = "#1D4ED8",
-  backgroundColor = "#EFF6FF"
-}: Props) {
-  const { t } = useTranslation();
+export function ShopOrdersTrackingCard(_props: Props) {
+  const { t, i18n } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken, authMe, activeProfileId } = useSession();
+  const qc = useQueryClient();
+  const locale = i18n.language === "en" ? "en-US" : "fr-FR";
 
   const activeType =
     authMe?.profiles?.find((p) => p.id === activeProfileId)?.type ??
     authMe?.activeProfile?.type ??
     null;
   const isMerchant = activeType === "merchant";
+  const role = isMerchant ? "seller" : "buyer";
+  const dismissScope =
+    activeProfileId ?? authMe?.user.id ?? "anonymous";
 
   const ordersQ = useQuery({
     queryKey: isMerchant
@@ -63,72 +71,295 @@ export function ShopOrdersTrackingCard({
       isMerchant
         ? fetchMerchantSellerOrders(accessToken!, activeProfileId!)
         : fetchMerchantBuyerOrders(accessToken!),
-    enabled: Boolean(
-      accessToken && (isMerchant ? activeProfileId : true)
-    ),
+    enabled: Boolean(accessToken && (isMerchant ? activeProfileId : true)),
     refetchOnWindowFocus: true,
     staleTime: 30_000
   });
 
-  if (!hasActiveOrders(ordersQ.data)) {
+  const dismissedQ = useQuery({
+    queryKey: ["orders-tracking-dismissed", dismissScope],
+    queryFn: () => loadDismissedOrderIds(dismissScope),
+    enabled: Boolean(dismissScope),
+    staleTime: 60_000
+  });
+
+  useEffect(() => {
+    if (!ordersQ.data || !dismissScope) return;
+    const activeIds = ordersQ.data
+      .filter((o) => ACTIVE_ORDER_TRACKING_STATUSES.has(o.status))
+      .map((o) => o.id);
+    void pruneDismissedOrderIds(dismissScope, activeIds).then((next) => {
+      qc.setQueryData(["orders-tracking-dismissed", dismissScope], next);
+    });
+  }, [ordersQ.data, dismissScope, qc]);
+
+  const dismissMut = useMutation({
+    mutationFn: (orderId: string) =>
+      dismissOrderTrackingCard(dismissScope, orderId),
+    onSuccess: (next) => {
+      qc.setQueryData(["orders-tracking-dismissed", dismissScope], next);
+    }
+  });
+
+  const dismissedIds = useMemo(
+    () => dismissedQ.data ?? new Set<string>(),
+    [dismissedQ.data]
+  );
+
+  const order = pickCurrentTrackingOrder(ordersQ.data, dismissedIds);
+  if (!order) {
     return null;
   }
 
-  const onPress = () => {
-    if (isMerchant) {
-      navigation.navigate("MerchantOrders");
-      return;
-    }
-    navigation.navigate("BuyerHistory", { initialSegment: "active" });
+  const reference = trackingReferenceOf(order);
+  const parties = trackingParties(order, role, {
+    seller: t("ordersTracking.youSeller"),
+    buyer: t("ordersTracking.youBuyer"),
+    product:
+      order.productName?.trim() || t("buyer.history.shopOrderFallback")
+  });
+  const steps = buildDashboardTrackingSteps(order);
+  const completedThrough = steps.reduce(
+    (acc, step, index) => (step.done ? index : acc),
+    -1
+  );
+
+  const openDetail = () => {
+    navigation.navigate("MerchantOrderDetail", { orderId: order.id });
   };
 
-  return (
+  const renderDelete = () => (
     <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.card,
-        { backgroundColor, borderColor: accentColor },
-        pressed && { opacity: 0.9 }
-      ]}
+      style={styles.swipeDelete}
+      onPress={() => dismissMut.mutate(order.id)}
+      accessibilityRole="button"
+      accessibilityLabel={t("ordersTracking.dismissA11y")}
     >
-      <View style={[styles.iconWrap, { backgroundColor: "#fff" }]}>
-        <Ionicons name="receipt-outline" size={22} color={accentColor} />
-      </View>
-      <View style={styles.body}>
-        <Text style={[styles.title, { color: accentColor }]}>
-          {isMerchant
-            ? t("ordersTracking.merchantTitle")
-            : t("ordersTracking.buyerTitle")}
-        </Text>
-        <Text style={styles.sub}>
-          {isMerchant
-            ? t("ordersTracking.merchantSub")
-            : t("ordersTracking.buyerSub")}
-        </Text>
-      </View>
-      <Ionicons name="chevron-forward" size={20} color={accentColor} />
+      <Ionicons name="trash-outline" size={22} color="#FFFFFF" />
+      <Text style={styles.swipeLabel}>{t("ordersTracking.dismiss")}</Text>
     </Pressable>
+  );
+
+  return (
+    <View style={styles.wrap}>
+      <Text style={styles.sectionTitle}>{t("ordersTracking.sectionTitle")}</Text>
+      <Swipeable
+        renderRightActions={renderDelete}
+        overshootRight={false}
+        onSwipeableOpen={(direction) => {
+          // Ouverture complète du panneau droit = suppression (swipe G←D).
+          if (direction === "right") {
+            dismissMut.mutate(order.id);
+          }
+        }}
+      >
+        <Pressable
+          onPress={openDetail}
+          style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+          accessibilityRole="button"
+          accessibilityLabel={t("ordersTracking.openA11y", { ref: reference })}
+        >
+          <View style={styles.headerRow}>
+            <View style={styles.refBlock}>
+              <Text style={styles.refLabel}>
+                {t("ordersTracking.trackingLabel")}
+              </Text>
+              <Text style={styles.refValue} numberOfLines={1}>
+                {reference}
+              </Text>
+            </View>
+            <OrderStatusBadge
+              labelKey={trackingBadgeLabelKey(order.status)}
+              tone={trackingBadgeTone(order.status)}
+            />
+          </View>
+
+          <View style={styles.partiesRow}>
+            <View style={styles.partyCol}>
+              <Text style={styles.partyLabel}>{t(parties.sender.labelKey)}</Text>
+              <Text style={styles.partyValue} numberOfLines={3}>
+                {parties.sender.value}
+              </Text>
+            </View>
+            <View style={styles.partyCol}>
+              <Text style={styles.partyLabel}>
+                {t(parties.recipient.labelKey)}
+              </Text>
+              <Text style={styles.partyValue} numberOfLines={3}>
+                {parties.recipient.value}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.stepper} accessibilityRole="progressbar">
+            {steps.map((step, index) => {
+              const reached = index <= completedThrough || step.current;
+              const filled = index <= completedThrough;
+              const timeLabel = step.timestamp
+                ? formatTrackingStepWhen(step.timestamp, locale)
+                : null;
+              return (
+                <View key={step.key} style={styles.stepCol}>
+                  <View style={styles.railRow}>
+                    {index > 0 ? (
+                      <View
+                        style={[
+                          styles.line,
+                          styles.lineLeft,
+                          index <= completedThrough
+                            ? styles.lineDone
+                            : styles.lineIdle
+                        ]}
+                      />
+                    ) : (
+                      <View style={styles.lineSpacer} />
+                    )}
+                    <View
+                      style={[
+                        styles.node,
+                        filled || step.current
+                          ? styles.nodeDone
+                          : styles.nodeIdle
+                      ]}
+                    >
+                      {filled || step.current ? (
+                        <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                      ) : null}
+                    </View>
+                    {index < steps.length - 1 ? (
+                      <View
+                        style={[
+                          styles.line,
+                          styles.lineRight,
+                          index < completedThrough
+                            ? styles.lineDone
+                            : styles.lineIdle
+                        ]}
+                      />
+                    ) : (
+                      <View style={styles.lineSpacer} />
+                    )}
+                  </View>
+                  <Text
+                    style={[
+                      styles.stepLabel,
+                      reached ? styles.stepLabelActive : styles.stepLabelIdle
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {t(step.labelKey)}
+                  </Text>
+                  {timeLabel ? (
+                    <Text style={styles.stepTime}>{timeLabel}</Text>
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
+        </Pressable>
+      </Swipeable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrap: { marginBottom: mobileSpacing.md, gap: mobileSpacing.sm },
+  sectionTitle: {
+    ...mobileTypography.sectionTitle,
+    color: mobileColors.textPrimary,
+    fontWeight: "800"
+  },
   card: {
+    backgroundColor: mobileColors.background,
+    borderRadius: 28,
+    padding: mobileSpacing.lg,
+    borderWidth: 1,
+    borderColor: mobileColors.border,
+    gap: mobileSpacing.lg,
+    ...mobileShadows.card
+  },
+  pressed: { opacity: 0.92 },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12
+  },
+  refBlock: { flex: 1, gap: 4 },
+  refLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: mobileColors.textSecondary
+  },
+  refValue: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: mobileColors.textPrimary
+  },
+  partiesRow: { flexDirection: "row", gap: 16 },
+  partyCol: { flex: 1, gap: 4 },
+  partyLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: mobileColors.textSecondary
+  },
+  partyValue: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: mobileColors.textPrimary,
+    lineHeight: 20
+  },
+  stepper: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between"
+  },
+  stepCol: { flex: 1, alignItems: "center", gap: 6 },
+  railRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: mobileSpacing.md,
-    padding: mobileSpacing.md,
-    borderRadius: mobileRadius.md,
-    borderWidth: 1,
-    marginBottom: mobileSpacing.md
+    width: "100%",
+    height: 28
   },
-  iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  lineSpacer: { flex: 1 },
+  line: { flex: 1, height: 3 },
+  lineLeft: { borderTopRightRadius: 2, borderBottomRightRadius: 2 },
+  lineRight: { borderTopLeftRadius: 2, borderBottomLeftRadius: 2 },
+  lineDone: { backgroundColor: mobileColors.textPrimary },
+  lineIdle: { backgroundColor: "#E5E7EB" },
+  node: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center"
   },
-  body: { flex: 1, gap: 2 },
-  title: { ...mobileTypography.body, fontWeight: "800" },
-  sub: { ...mobileTypography.meta, color: "#475569" }
+  nodeDone: { backgroundColor: mobileColors.textPrimary },
+  nodeIdle: { backgroundColor: "#D1D5DB" },
+  stepLabel: {
+    fontSize: 12,
+    textAlign: "center",
+    fontWeight: "700"
+  },
+  stepLabelActive: { color: mobileColors.textPrimary },
+  stepLabelIdle: { color: "#9CA3AF", fontWeight: "600" },
+  stepTime: {
+    fontSize: 11,
+    color: mobileColors.textSecondary,
+    textAlign: "center"
+  },
+  swipeDelete: {
+    width: 96,
+    marginLeft: 8,
+    borderRadius: 28,
+    backgroundColor: mobileColors.error,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4
+  },
+  swipeLabel: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700"
+  }
 });

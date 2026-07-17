@@ -1,4 +1,4 @@
-import { apiGetJson, apiPatchJson, apiPostJson } from "./http";
+import { apiDeleteJson, apiGetJson, apiPatchJson, apiPostJson } from "./http";
 
 export type MerchantMeDto = {
   subscriptionTier: "free" | "premium" | null;
@@ -78,6 +78,10 @@ export type MerchantProductDto = {
   publishedAt: string | null;
   disabledAt: string | null;
   disabledReason: string | null;
+  moderationReason?: string | null;
+  moderatedAt?: string | null;
+  resubmissionCount?: number;
+  resubmittedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -285,6 +289,24 @@ export function createMerchantShop(
   return apiPostJson("/merchant/shops", body, accessToken, profileId);
 }
 
+/** Archive (soft-delete) une boutique — dépublie ses produits. */
+export function archiveMerchantShop(
+  accessToken: string,
+  profileId: string,
+  shopId: string
+): Promise<{
+  ok: boolean;
+  id: string;
+  archivedAt: string;
+  unpublishedProductCount: number;
+}> {
+  return apiDeleteJson(
+    `/merchant/shops/${shopId}`,
+    accessToken,
+    profileId
+  );
+}
+
 export function fetchMerchantProducts(
   accessToken: string,
   profileId: string
@@ -324,6 +346,19 @@ export function publishMerchantProduct(
 ): Promise<MerchantProductDto> {
   return apiPostJson<MerchantProductDto>(
     `/merchant/products/${productId}/publish`,
+    {},
+    accessToken,
+    profileId
+  );
+}
+
+export function resubmitMerchantProduct(
+  accessToken: string,
+  profileId: string,
+  productId: string
+): Promise<MerchantProductDto> {
+  return apiPostJson<MerchantProductDto>(
+    `/merchant/products/${productId}/resubmit`,
     {},
     accessToken,
     profileId

@@ -921,6 +921,7 @@
       "revenue": "Commissions",
       "receipts": "PDF receipts",
       "merchantProducts": "Merchant products",
+      "merchantShops": "Merchant shops",
       "merchantCategories": "Shop categories",
       "merchantOrders": "Shop orders"
     },
@@ -1073,9 +1074,37 @@
       "colStatus": "Status",
       "colPrice": "Price",
       "colStock": "Stock",
-      "colReason": "Removal reason",
+      "colReason": "Reason",
       "reasonPlaceholder": "Reason required",
-      "delete": "Remove"
+      "rejectReasonPlaceholder": "Rejection reason",
+      "delete": "Remove",
+      "filterAll": "All",
+      "approveResubmission": "Approve",
+      "rejectResubmission": "Reject",
+      "resubmissionMeta": "Resubmission #{{count}}",
+      "status": {
+        "published": "Published",
+        "draft": "Draft",
+        "disabled": "Disabled",
+        "moderated_removed": "Removed",
+        "resubmission_review": "Re-validation"
+      }
+    },
+    "merchantShops": {
+      "empty": "No merchant shops.",
+      "colShop": "Shop",
+      "colMerchant": "Merchant",
+      "colProducts": "Products",
+      "colOrders": "Orders",
+      "colStatus": "Status",
+      "colReason": "Reason",
+      "reasonPlaceholder": "Reason required",
+      "statusActive": "Active",
+      "statusArchived": "Archived",
+      "archive": "Archive",
+      "delete": "Delete",
+      "alreadyArchived": "Already archived",
+      "deleteDisabledTooltip": "Order history exists — archive instead of deleting."
     },
     "merchantCategories": {
       "createTitle": "New category",
