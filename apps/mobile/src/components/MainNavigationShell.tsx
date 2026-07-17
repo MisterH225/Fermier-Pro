@@ -273,7 +273,10 @@ function MainStack() {
       <Stack.Screen
         name="MerchantOrderDetail"
         component={MerchantOrderDetailScreen}
-        options={{ ...merchantStackScreenOptions, title: st("merchantOrder") }}
+        options={{
+          ...merchantStackScreenOptions,
+          title: st("merchantOrderDetails")
+        }}
       />
       <Stack.Screen
         name="MerchantOrderDispute"
