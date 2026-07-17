@@ -7,16 +7,26 @@ import { PrismaService } from "../prisma/prisma.service";
 import {
   type AdminConsoleMenuAccess,
   type AdminConsoleMenuKey,
-  type AdminConsoleMenuPermissions,
   hasMenuAccess,
   parseMenuPermissions
 } from "./admin-console-menu.constants";
+import {
+  type InstitutionStatSection,
+  type StatSectionAccessProfile,
+  hasStatSectionAccess,
+  parseStatSectionPermissions,
+  resolveStatSections
+} from "./institution-stats-sections.constants";
 
-export type ConsoleAccessProfile = {
-  role: "superadmin" | "institution";
-  permissions: AdminConsoleMenuPermissions | "all";
+export type ConsoleAccessProfile = StatSectionAccessProfile & {
   institutionLabel: string | null;
   institutionAccessId: string | null;
+};
+
+export type EffectiveConsoleContext = {
+  profile: ConsoleAccessProfile;
+  /** true lorsque le superadmin prévisualise via viewAsInstitutionId */
+  isInstitutionPreview: boolean;
 };
 
 @Injectable()
@@ -31,6 +41,7 @@ export class AdminConsoleAccessService {
       return {
         role: "superadmin",
         permissions: "all",
+        statSectionPermissions: "all",
         institutionLabel: null,
         institutionAccessId: null
       };
@@ -43,12 +54,7 @@ export class AdminConsoleAccessService {
       return null;
     }
 
-    return {
-      role: "institution",
-      permissions: parseMenuPermissions(institution.menuPermissions),
-      institutionLabel: institution.institutionLabel,
-      institutionAccessId: institution.id
-    };
+    return this.mapInstitutionToProfile(institution);
   }
 
   async requireConsoleAccess(userId: string): Promise<ConsoleAccessProfile> {
@@ -57,6 +63,69 @@ export class AdminConsoleAccessService {
       throw new ForbiddenException("Accès console requis");
     }
     return profile;
+  }
+
+  /**
+   * Résout le profil effectif pour les endpoints stats / health-map.
+   * viewAsInstitutionId : réservé au superadmin — retourne le profil institution cible.
+   */
+  async resolveEffectiveContext(
+    userId: string,
+    viewAsInstitutionId?: string
+  ): Promise<EffectiveConsoleContext> {
+    const caller = await this.requireConsoleAccess(userId);
+    if (!viewAsInstitutionId?.trim()) {
+      return { profile: caller, isInstitutionPreview: false };
+    }
+
+    if (caller.role !== "superadmin") {
+      throw new ForbiddenException(
+        "Le paramètre viewAsInstitutionId est réservé au SuperAdmin"
+      );
+    }
+
+    const row = await this.getInstitutionRowOrThrow(viewAsInstitutionId.trim());
+    if (!row.isActive) {
+      throw new ForbiddenException("Institution inactive");
+    }
+
+    return {
+      profile: this.mapInstitutionToProfile(row),
+      isInstitutionPreview: true
+    };
+  }
+
+  assertStatSectionAllowed(
+    context: EffectiveConsoleContext,
+    section: InstitutionStatSection
+  ): void {
+    if (
+      context.profile.role === "superadmin" &&
+      !context.isInstitutionPreview
+    ) {
+      return;
+    }
+    if (!hasStatSectionAccess(context.profile, section, "read")) {
+      throw new ForbiddenException(
+        `Section statistique « ${section} » non autorisée`
+      );
+    }
+  }
+
+  getVisibleStatSections(context: EffectiveConsoleContext): {
+    sections: InstitutionStatSection[];
+    isSuperadmin?: boolean;
+  } {
+    if (
+      context.profile.role === "superadmin" &&
+      !context.isInstitutionPreview
+    ) {
+      return {
+        sections: resolveStatSections(context.profile),
+        isSuperadmin: true
+      };
+    }
+    return { sections: resolveStatSections(context.profile) };
   }
 
   async requireSuperAdmin(userId: string): Promise<void> {
@@ -143,5 +212,22 @@ export class AdminConsoleAccessService {
       throw new NotFoundException("Accès institution introuvable");
     }
     return row;
+  }
+
+  private mapInstitutionToProfile(row: {
+    id: string;
+    institutionLabel: string | null;
+    menuPermissions: unknown;
+    statSectionPermissions: unknown;
+  }): ConsoleAccessProfile {
+    return {
+      role: "institution",
+      permissions: parseMenuPermissions(row.menuPermissions),
+      statSectionPermissions: parseStatSectionPermissions(
+        row.statSectionPermissions
+      ),
+      institutionLabel: row.institutionLabel,
+      institutionAccessId: row.id
+    };
   }
 }

@@ -41,7 +41,15 @@ describeOrSkip("Stats régionales console (e2e)", () => {
     const institution = await attachInstitutionConsoleUser(
       ctx.prisma,
       ctx.peerUserId,
-      { stats: "read" }
+      { stats: "read" },
+      {
+        mortality: true,
+        herd: true,
+        reproduction: true,
+        growth: true,
+        vetCoverage: true,
+        economy: true
+      }
     );
     institutionUserId = institution.id;
 
@@ -140,7 +148,8 @@ describeOrSkip("Stats régionales console (e2e)", () => {
     "/api/v1/admin/stats/regional/herd",
     "/api/v1/admin/stats/regional/reproduction",
     "/api/v1/admin/stats/regional/growth",
-    "/api/v1/admin/stats/regional/vet-coverage"
+    "/api/v1/admin/stats/regional/vet-coverage",
+    "/api/v1/admin/stats/regional/economy"
   ] as const;
 
   it("institution ne peut pas appeler GET /admin/stats nominatif (403)", async () => {
@@ -158,6 +167,53 @@ describeOrSkip("Stats régionales console (e2e)", () => {
       .set("Authorization", `Bearer ${ctx.token}`);
     expect(res.status).toBe(200);
     expect(typeof res.body.newUsers).toBe("number");
+  });
+
+  it("institution sans section accordée — deny-by-default (403)", async () => {
+    const restricted = await attachInstitutionConsoleUser(
+      ctx.prisma,
+      ctx.userId,
+      { stats: "read" },
+      {}
+    );
+    const jwtRestricted = ctx.token;
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/admin/stats/regional/mortality")
+      .query({ from: "2026-06-01", to: "2026-06-01" })
+      .set("Authorization", `Bearer ${jwtRestricted}`);
+    expect(res.status).toBe(403);
+    await detachInstitutionConsoleUser(ctx.prisma, restricted.id);
+    await attachSuperAdminToUser(ctx.prisma, ctx.userId);
+  });
+
+  it("superadmin — GET /admin/stats/regional/sections renvoie tout + isSuperadmin", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/admin/stats/regional/sections")
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.isSuperadmin).toBe(true);
+    expect(res.body.sections).toEqual(
+      expect.arrayContaining(["mortality", "economy", "movements"])
+    );
+  });
+
+  it("institution — sections visibles selon statSectionPermissions", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/admin/stats/regional/sections")
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.isSuperadmin).toBeUndefined();
+    expect(res.body.sections).toEqual(
+      expect.arrayContaining([
+        "mortality",
+        "herd",
+        "reproduction",
+        "growth",
+        "vetCoverage",
+        "economy"
+      ])
+    );
+    expect(res.body.sections).not.toContain("movements");
   });
 
   for (const route of regionalRoutes) {
@@ -200,6 +256,67 @@ describeOrSkip("Stats régionales console (e2e)", () => {
       .set("Authorization", `Bearer ${ctx.token}`);
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.departments)).toBe(true);
+  });
+
+  it("viewAsInstitutionId refusé à une institution (403)", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/admin/stats/regional/mortality")
+      .query({
+        from: "2026-06-01",
+        to: "2026-06-01",
+        viewAsInstitutionId: institutionUserId
+      })
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    expect(res.status).toBe(403);
+  });
+
+  it("viewAsInstitutionId reproduit le filtrage institution (mortality seule)", async () => {
+    await ctx.prisma.institutionConsoleUser.update({
+      where: { id: institutionUserId },
+      data: { statSectionPermissions: { mortality: true } }
+    });
+
+    const sectionsRes = await request(app.getHttpServer())
+      .get("/api/v1/admin/stats/regional/sections")
+      .query({ viewAsInstitutionId: institutionUserId })
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(sectionsRes.status).toBe(200);
+    expect(sectionsRes.body.sections).toEqual(["mortality"]);
+    expect(sectionsRes.body.isSuperadmin).toBeUndefined();
+
+    const herdRes = await request(app.getHttpServer())
+      .get("/api/v1/admin/stats/regional/herd")
+      .query({
+        from: "2026-06-01",
+        to: "2026-06-01",
+        viewAsInstitutionId: institutionUserId
+      })
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(herdRes.status).toBe(403);
+
+    const mortalityRes = await request(app.getHttpServer())
+      .get("/api/v1/admin/stats/regional/mortality")
+      .query({
+        from: "2026-06-01",
+        to: "2026-06-01",
+        viewAsInstitutionId: institutionUserId
+      })
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(mortalityRes.status).toBe(200);
+
+    await ctx.prisma.institutionConsoleUser.update({
+      where: { id: institutionUserId },
+      data: {
+        statSectionPermissions: {
+          mortality: true,
+          herd: true,
+          reproduction: true,
+          growth: true,
+          vetCoverage: true,
+          economy: true
+        }
+      }
+    });
   });
 
   it("snapshot service idempotent en base", async () => {

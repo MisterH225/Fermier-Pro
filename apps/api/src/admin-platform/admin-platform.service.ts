@@ -34,6 +34,10 @@ import {
   parseMenuPermissions
 } from "./admin-console-menu.constants";
 import {
+  parseStatSectionPermissions,
+  sanitizeStatSectionPermissions
+} from "./institution-stats-sections.constants";
+import {
   buildZoneKey,
   farmMatchesScope,
   resolveFarmLocation,
@@ -1586,6 +1590,7 @@ export class AdminPlatformService {
     userId: string;
     institutionLabel: string | null;
     menuPermissions: unknown;
+    statSectionPermissions: unknown;
     isActive: boolean;
     invitedBy: string | null;
     invitedAt: Date;
@@ -1605,6 +1610,9 @@ export class AdminPlatformService {
       fullName: row.user.fullName,
       institutionLabel: row.institutionLabel,
       menuPermissions: parseMenuPermissions(row.menuPermissions),
+      statSectionPermissions: parseStatSectionPermissions(
+        row.statSectionPermissions
+      ),
       isActive: row.isActive,
       invitedBy: row.invitedBy,
       invitedAt: row.invitedAt.toISOString(),
@@ -1617,6 +1625,12 @@ export class AdminPlatformService {
     input?: Record<string, "read" | "write">
   ): AdminConsoleMenuPermissions {
     return parseMenuPermissions(input ?? {});
+  }
+
+  private sanitizeStatSectionPermissions(
+    input?: Record<string, boolean>
+  ) {
+    return sanitizeStatSectionPermissions(input);
   }
 
   async listInstitutionConsoleUsers() {
@@ -1653,6 +1667,9 @@ export class AdminPlatformService {
         "Au moins un menu doit être autorisé (lecture ou écriture)"
       );
     }
+    const statSectionPermissions = this.sanitizeStatSectionPermissions(
+      dto.statSectionPermissions
+    );
 
     const existingSuper = await this.prisma.superAdmin.findFirst({
       where: { user: { email: { equals: email, mode: "insensitive" } } }
@@ -1729,6 +1746,7 @@ export class AdminPlatformService {
         userId,
         institutionLabel,
         menuPermissions,
+        statSectionPermissions,
         invitedBy: creator.id
       },
       include: {
@@ -1746,6 +1764,11 @@ export class AdminPlatformService {
     return this.mapInstitutionConsoleRow(row);
   }
 
+  async getInstitutionConsoleUser(id: string) {
+    const row = await this.getInstitutionConsoleUserOrThrow(id);
+    return this.mapInstitutionConsoleRow(row);
+  }
+
   async updateInstitutionConsoleUser(
     id: string,
     dto: UpdateInstitutionConsoleUserDto
@@ -1760,6 +1783,10 @@ export class AdminPlatformService {
         "Au moins un menu doit rester autorisé (lecture ou écriture)"
       );
     }
+    const statSectionPermissions =
+      dto.statSectionPermissions !== undefined
+        ? this.sanitizeStatSectionPermissions(dto.statSectionPermissions)
+        : undefined;
 
     const row = await this.prisma.institutionConsoleUser.update({
       where: { id },
@@ -1768,7 +1795,10 @@ export class AdminPlatformService {
           ? { institutionLabel: dto.institutionLabel.trim() || null }
           : {}),
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
-        ...(menuPermissions !== undefined ? { menuPermissions } : {})
+        ...(menuPermissions !== undefined ? { menuPermissions } : {}),
+        ...(statSectionPermissions !== undefined
+          ? { statSectionPermissions }
+          : {})
       },
       include: {
         user: {

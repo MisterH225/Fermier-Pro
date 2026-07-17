@@ -317,6 +317,9 @@ export class CreateInstitutionConsoleUserDto {
 
   @IsOptional()
   menuPermissions?: Record<string, "read" | "write">;
+
+  @IsOptional()
+  statSectionPermissions?: Record<string, boolean>;
 }
 
 export class UpdateInstitutionConsoleUserDto {
@@ -330,4 +333,7 @@ export class UpdateInstitutionConsoleUserDto {
 
   @IsOptional()
   menuPermissions?: Record<string, "read" | "write">;
+
+  @IsOptional()
+  statSectionPermissions?: Record<string, boolean>;
 }
