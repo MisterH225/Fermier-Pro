@@ -548,6 +548,13 @@
       "to": "To",
       "loadError": "Could not load this section.",
       "superadminHint": "Full superadmin view — use “View as” to preview an institution.",
+      "export": {
+        "exportPdf": "Export PDF",
+        "exportCsv": "Export CSV (ZIP)",
+        "exporting": "Generating…",
+        "hint": "All authorized sections for the selected period.",
+        "error": "Could not generate the report."
+      },
       "sections": {
         "mortality": "Mortality",
         "herd": "Herd",

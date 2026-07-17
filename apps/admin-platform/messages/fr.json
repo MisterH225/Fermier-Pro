@@ -550,6 +550,13 @@
       "to": "Au",
       "loadError": "Impossible de charger cette section.",
       "superadminHint": "Vue complète superadmin — utilisez « Voir en tant que » pour prévisualiser une institution.",
+      "export": {
+        "exportPdf": "Exporter PDF",
+        "exportCsv": "Exporter CSV (ZIP)",
+        "exporting": "Génération…",
+        "hint": "Toutes les sections autorisées sur la période sélectionnée.",
+        "error": "Impossible de générer le rapport."
+      },
       "sections": {
         "mortality": "Mortalité",
         "herd": "Cheptel",

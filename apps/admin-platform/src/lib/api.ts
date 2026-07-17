@@ -1757,6 +1757,101 @@ export function fetchRegionalEconomy(
   );
 }
 
+export type InstitutionStatsReportFormat = "pdf" | "csv";
+
+export type GenerateInstitutionStatsReportBody = {
+  sections: string[];
+  from: string;
+  to: string;
+  regionCode?: string;
+  format: InstitutionStatsReportFormat;
+  viewAsInstitutionId?: string;
+};
+
+export type InstitutionStatsReportDownload =
+  | { kind: "blob"; blob: Blob; filename: string; contentType: string }
+  | { kind: "url"; downloadUrl: string; filename: string; contentType: string };
+
+export async function generateInstitutionStatsReport(
+  token: string,
+  body: GenerateInstitutionStatsReportBody,
+  viewAsInstitutionId?: string | null
+): Promise<InstitutionStatsReportDownload> {
+  const payload: GenerateInstitutionStatsReportBody = {
+    ...body,
+    viewAsInstitutionId:
+      body.viewAsInstitutionId ?? viewAsInstitutionId?.trim() ?? undefined
+  };
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/admin/stats/reports`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(payload),
+      cache: "no-store"
+    });
+  } catch (e) {
+    const hint =
+      e instanceof TypeError && /fetch/i.test(e.message)
+        ? `API injoignable (${API_BASE}). Lancez l’API : npm run dev:api depuis la racine du monorepo.`
+        : e instanceof Error
+          ? e.message
+          : String(e);
+    throw new ApiError(hint, 0);
+  }
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new ApiError(text || res.statusText, res.status);
+  }
+
+  const contentType = res.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    const json = (await res.json()) as {
+      downloadUrl?: string | null;
+      filename?: string;
+      contentType?: string;
+    };
+    if (!json.downloadUrl) {
+      throw new ApiError("URL de téléchargement manquante", 500);
+    }
+    return {
+      kind: "url",
+      downloadUrl: json.downloadUrl,
+      filename: json.filename ?? `rapport-stats.${body.format === "pdf" ? "pdf" : "zip"}`,
+      contentType:
+        json.contentType ??
+        (body.format === "pdf" ? "application/pdf" : "application/zip")
+    };
+  }
+
+  const disposition = res.headers.get("content-disposition") ?? "";
+  const match = disposition.match(/filename="([^"]+)"/);
+  const fallbackExt = body.format === "pdf" ? "pdf" : "zip";
+  const filename = match?.[1] ?? `rapport-stats.${fallbackExt}`;
+  const blob = await res.blob();
+  return { kind: "blob", blob, filename, contentType };
+}
+
+export function triggerInstitutionStatsReportDownload(
+  result: InstitutionStatsReportDownload
+) {
+  if (result.kind === "url") {
+    window.open(result.downloadUrl, "_blank", "noopener,noreferrer");
+    return;
+  }
+  const url = URL.createObjectURL(result.blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = result.filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 export function fetchVetProfiles(
   token: string,
   query?: { status?: string }
