@@ -317,7 +317,11 @@ export type RegionalStatsDepartmentRow = {
   littersCount?: number;
   bornAlive?: number;
   stillborn?: number;
+  mummifiedTotal?: number;
   weanedEstimate?: number;
+  gestationsCompleted?: number;
+  gestationsAborted?: number;
+  gestationsLost?: number;
   avgGmqByCategory?: Record<string, number>;
   exitsSaleAvgPricePerKg?: number | null;
   vetConsultationsCount?: number;
@@ -328,8 +332,26 @@ export type RegionalStatsDepartmentRow = {
   totalSuspicionsDeclared?: number;
   incidencePerThousand?: number | null;
   letaliteApparenteDeclarative?: number | null;
+  suspicionsByDiagnosis?: Array<{
+    diagnosis: string;
+    suspicionsDeclared: number;
+    incidencePerThousand: number | null;
+  }>;
   tauxVenteCheptel?: number | null;
+  tauxMortaliteGlobal?: number | null;
   avgAgeAtSaleDays?: number | null;
+  avgAgeAtSlaughterDays?: number | null;
+  avgFatteningDurationDays?: number | null;
+  repartitionSorties?: {
+    sale: number | null;
+    slaughter: number | null;
+    mortality: number | null;
+    transfer: number | null;
+  };
+  exitsByKind?: Record<
+    string,
+    { headcount: number; totalWeightKg: number; totalPriceXof: number }
+  >;
   activeFarmsCount?: number;
   activeUsersByRole?: Record<string, number>;
 };

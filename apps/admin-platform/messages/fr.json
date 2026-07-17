@@ -557,43 +557,119 @@
       "charts": {
         "emptyMasked": "Indicateurs masqués (moins de 5 fermes par département) — vue institution anonymisée. En superadmin hors aperçu, les chiffres s’affichent.",
         "mortality": {
-          "title": "Mortalités déclarées par département",
-          "lead": "Volume de têtes sorties pour mortalité sur la période. Compare les départements entre eux, pas au cheptel national."
+          "title": "Classement des mortalités",
+          "lead": "Compare les départements entre eux — volume de têtes sorties pour mortalité, pas un taux national.",
+          "kpiTotal": "Mortalités (têtes)",
+          "kpiOver": "Dépts en surmortalité",
+          "kpiFarms": "Fermes couvertes",
+          "stackTitle": "Composition par cause",
+          "stackLead": "Barres empilées : répartition des causes déclarées par département (top causes).",
+          "gaugeTitle": "Parts des causes",
+          "gaugeLead": "Semi-jauge des principales causes agrégées sur la période.",
+          "rankTitle": "Classement départemental"
         },
         "herd": {
-          "title": "Effectif agrégé par département",
-          "lead": "Somme des animaux actifs suivis sur le panel Fermier Pro — couverture plateforme, pas recensement officiel."
+          "title": "Effectif par département",
+          "lead": "Courbe des effectifs du panel Fermier Pro — couverture plateforme, pas recensement officiel.",
+          "kpiAnimals": "Animaux suivis",
+          "kpiFarms": "Fermes actives",
+          "donutTitle": "Répartition par catégorie",
+          "donutLead": "Part de chaque catégorie de production dans l’effectif agrégé.",
+          "areaTitle": "Effectif par département",
+          "rankTitle": "Classement des effectifs",
+          "rankLead": "Départements ordonnés par taille de cheptel suivi."
         },
         "reproduction": {
-          "bornTitle": "Nés vivants par département",
-          "bornLead": "Porcelets nés vivants enregistrés via les portées. Un volume bas peut refléter une faible saisie plutôt qu’une mauvaise prolificité.",
-          "farrowingTitle": "Taux de mise bas",
-          "farrowingLead": "Gestations terminées en mise bas ÷ (mises bas + avortements + pertes). Calculé à la lecture depuis les comptes bruts."
+          "bornLead": "Nés vivants, mort-nés et sevrés côte à côte — un volume bas peut refléter une faible saisie.",
+          "farrowingLead": "Mises bas réussies vs pertes (avortements + gestations perdues), calculés depuis les comptes bruts.",
+          "kpiBorn": "Nés vivants",
+          "kpiStill": "Mort-nés",
+          "kpiFarrow": "Taux mise bas moyen",
+          "stackTitle": "Naissances & sevrage",
+          "gaugeTitle": "Issue des gestations",
+          "completed": "Mises bas",
+          "lost": "Pertes",
+          "seriesBorn": "Nés vivants",
+          "seriesStill": "Mort-nés",
+          "seriesWeaned": "Sevrés",
+          "iaTitle": "Part d’insémination artificielle",
+          "iaLead": "Modernisation de la filière : part IA parmi les saillies enregistrées."
         },
         "growth": {
-          "title": "GMQ moyen (kg/j)",
-          "lead": "Gain moyen quotidien estimé à partir des pesées successives — moyenne simple des catégories renseignées."
+          "title": "GMQ",
+          "lead": "Gain moyen quotidien estimé à partir des pesées successives.",
+          "kpiAvg": "GMQ moyen",
+          "kpiDepts": "Départements",
+          "areaTitle": "GMQ par département",
+          "catTitle": "Catégories pesées",
+          "catLead": "Nombre de départements ayant des pesées par catégorie.",
+          "catCenter": "Catégories",
+          "rankTitle": "Classement GMQ",
+          "rankLead": "Meilleurs gains moyens quotidiens observés."
         },
         "vetCoverage": {
-          "title": "Consultations vétérinaires",
-          "lead": "Nombre de consultations ouvertes sur la période. Indicateur d’accès aux soins, pas de couverture vaccinale."
+          "title": "Consultations",
+          "lead": "Répartition des consultations ouvertes — accès aux soins, pas couverture vaccinale.",
+          "kpiTotal": "Consultations",
+          "kpiPerFarm": "Par ferme (moy.)",
+          "donutTitle": "Parts par département",
+          "areaTitle": "Volume par département",
+          "areaLead": "Profil des consultations sur le panel.",
+          "rankTitle": "Intensité / ferme",
+          "rankLead": "Consultations rapportées au nombre de fermes du département."
         },
         "economy": {
-          "title": "Têtes vendues",
-          "lead": "Sorties de type vente enregistrées. Complète l’index marketplace avec les ventes directes saisies en ferme."
+          "title": "Commercialisation",
+          "lead": "Courbe des ventes déclarées — complète l’index marketplace avec les ventes directes.",
+          "kpiSales": "Têtes vendues",
+          "kpiSlaughter": "Têtes abattues",
+          "kpiPrice": "Prix moyen / kg",
+          "groupTitle": "Vente vs abattage",
+          "groupLead": "Comparaison côte à côte des sorties commerciales et d’abattage.",
+          "seriesSale": "Vente",
+          "seriesSlaughter": "Abattage",
+          "areaTitle": "Ventes par département"
         },
         "health": {
-          "title": "Incidence des suspicions / 1 000 animaux",
-          "lead": "Classement par incidence (pas par volume brut) pour comparer des départements de tailles différentes.",
-          "disclaimer": "Suspicions déclarées par les éleveurs — diagnostics non confirmés labo. Létalité apparente = corrélation déclarative."
+          "title": "Incidence / 1 000",
+          "lead": "Classement par incidence (pas par volume brut) pour comparer des territoires de tailles différentes.",
+          "disclaimer": "Suspicions déclarées par les éleveurs — diagnostics non confirmés labo. Létalité apparente = corrélation déclarative.",
+          "kpiSuspicions": "Suspicions déclarées",
+          "kpiIncidence": "Incidence moy. /1 000",
+          "kpiDiagnoses": "Diagnostics distincts",
+          "donutTitle": "Top diagnostics",
+          "donutLead": "Répartition des suspicions déclarées par diagnostic normalisé.",
+          "propTitle": "Causes de mortalité associées",
+          "propLead": "Barre de proportion des causes de décès déclarées (corrélation, pas confirmation labo)."
         },
         "lifecycle": {
           "title": "Taux de vente du cheptel",
-          "lead": "Têtes vendues ÷ effectif moyen. Mesure la rotation commerciale, pas le chiffre d’affaires."
+          "lead": "Rotation commerciale par département (ventes ÷ effectif moyen).",
+          "kpiSaleRate": "Taux vente moyen",
+          "kpiAgeSale": "Âge moyen à la vente",
+          "kpiFattening": "Durée d’engraissement",
+          "propTitle": "Où vont les porcs ?",
+          "propLead": "Répartition des sorties : vente, abattage, mortalité, transfert.",
+          "gaugeTitle": "Part des ventes",
+          "gaugeLead": "Poids des ventes parmi l’ensemble des sorties déclarées.",
+          "kindSale": "Vente",
+          "kindSlaughter": "Abattage",
+          "kindMortality": "Mortalité",
+          "kindTransfer": "Transfert",
+          "otherExits": "Autres sorties"
         },
         "adoption": {
-          "title": "Fermes actives (fenêtre 30 j)",
-          "lead": "Fermes avec au moins une saisie récente (cheptel, santé, repro ou finance) — mesure d’adoption plus stricte que le MAU."
+          "title": "Fermes actives",
+          "lead": "Profil d’activité des fermes avec au moins une saisie récente (30 j).",
+          "kpiActive": "Fermes actives",
+          "kpiRetention30": "Rétention J+30",
+          "kpiRetention90": "Rétention J+90",
+          "kpiUsers": "Utilisateurs",
+          "donutTitle": "Actifs par rôle",
+          "donutLead": "Utilisateurs actifs rattachés aux fermes du département, par type de profil.",
+          "areaTitle": "Fermes actives par département",
+          "rankTitle": "Classement adoption",
+          "rankLead": "Départements avec le plus de fermes réellement actives."
         }
       },
       "export": {

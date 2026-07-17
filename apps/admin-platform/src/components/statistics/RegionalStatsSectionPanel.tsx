@@ -114,6 +114,8 @@ export function RegionalStatsSectionPanel({
           <RegionalStatsVisuals
             section={section}
             departments={data.departments}
+            coverage={data.coverage}
+            national={data.national}
           />
 
           <div className="space-y-2">

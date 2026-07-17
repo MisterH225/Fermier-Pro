@@ -555,43 +555,119 @@
       "charts": {
         "emptyMasked": "Indicators masked (fewer than 5 farms per department) — anonymized institution view. Superadmin outside preview sees raw figures.",
         "mortality": {
-          "title": "Declared mortality by department",
-          "lead": "Headcount exits for mortality over the period. Compare departments to each other, not to the national herd."
+          "title": "Mortality ranking",
+          "lead": "Compare departments to each other — mortality headcount exits, not a national rate.",
+          "kpiTotal": "Mortality (heads)",
+          "kpiOver": "Overmortality depts",
+          "kpiFarms": "Farms covered",
+          "stackTitle": "Composition by cause",
+          "stackLead": "Stacked bars: declared causes per department (top causes).",
+          "gaugeTitle": "Cause shares",
+          "gaugeLead": "Semi-gauge of main aggregated causes over the period.",
+          "rankTitle": "Department ranking"
         },
         "herd": {
-          "title": "Aggregated herd by department",
-          "lead": "Sum of active animals tracked on the Fermier Pro panel — platform coverage, not an official census."
+          "title": "Herd by department",
+          "lead": "Panel herd sizes — platform coverage, not an official census.",
+          "kpiAnimals": "Animals tracked",
+          "kpiFarms": "Active farms",
+          "donutTitle": "Share by category",
+          "donutLead": "Production category mix in the aggregated herd.",
+          "areaTitle": "Herd by department",
+          "rankTitle": "Herd ranking",
+          "rankLead": "Departments ordered by tracked herd size."
         },
         "reproduction": {
-          "bornTitle": "Born alive by department",
-          "bornLead": "Piglets born alive recorded via litters. Low volume may reflect sparse data entry rather than poor prolificacy.",
-          "farrowingTitle": "Farrowing rate",
-          "farrowingLead": "Completed gestations ÷ (completed + aborted + lost). Computed at read time from raw counts."
+          "bornLead": "Born alive, stillborn and weaned side by side — low volume may reflect sparse data entry.",
+          "farrowingLead": "Successful farrowings vs losses (aborted + lost), from raw counts.",
+          "kpiBorn": "Born alive",
+          "kpiStill": "Stillborn",
+          "kpiFarrow": "Avg farrowing rate",
+          "stackTitle": "Births & weaning",
+          "gaugeTitle": "Gestation outcomes",
+          "completed": "Farrowings",
+          "lost": "Losses",
+          "seriesBorn": "Born alive",
+          "seriesStill": "Stillborn",
+          "seriesWeaned": "Weaned",
+          "iaTitle": "AI share",
+          "iaLead": "Sector modernization: AI share among recorded matings."
         },
         "growth": {
-          "title": "Average ADG (kg/day)",
-          "lead": "Average daily gain estimated from successive weighings — simple mean across reported categories."
+          "title": "ADG",
+          "lead": "Average daily gain estimated from successive weighings.",
+          "kpiAvg": "Average ADG",
+          "kpiDepts": "Departments",
+          "areaTitle": "ADG by department",
+          "catTitle": "Weighed categories",
+          "catLead": "Departments reporting weighings per category.",
+          "catCenter": "Categories",
+          "rankTitle": "ADG ranking",
+          "rankLead": "Best observed average daily gains."
         },
         "vetCoverage": {
-          "title": "Vet consultations",
-          "lead": "Consultations opened in the period. Access-to-care signal, not vaccine coverage."
+          "title": "Consultations",
+          "lead": "Consultation mix — access to care, not vaccine coverage.",
+          "kpiTotal": "Consultations",
+          "kpiPerFarm": "Per farm (avg)",
+          "donutTitle": "Share by department",
+          "areaTitle": "Volume by department",
+          "areaLead": "Consultation profile on the panel.",
+          "rankTitle": "Intensity / farm",
+          "rankLead": "Consultations relative to farm count."
         },
         "economy": {
-          "title": "Heads sold",
-          "lead": "Sale exits recorded. Complements the marketplace index with on-farm direct sales."
+          "title": "Commercialization",
+          "lead": "Declared sales curve — complements the marketplace index with direct sales.",
+          "kpiSales": "Heads sold",
+          "kpiSlaughter": "Heads slaughtered",
+          "kpiPrice": "Avg price / kg",
+          "groupTitle": "Sale vs slaughter",
+          "groupLead": "Side-by-side commercial and slaughter exits.",
+          "seriesSale": "Sale",
+          "seriesSlaughter": "Slaughter",
+          "areaTitle": "Sales by department"
         },
         "health": {
-          "title": "Suspicion incidence / 1,000 animals",
-          "lead": "Ranked by incidence (not raw volume) so large departments do not always win.",
-          "disclaimer": "Farmer-declared suspicions — not lab-confirmed. Apparent case fatality is a declarative correlation only."
+          "title": "Incidence / 1,000",
+          "lead": "Ranked by incidence (not raw volume) so large areas do not always win.",
+          "disclaimer": "Farmer-declared suspicions — not lab-confirmed. Apparent case fatality is declarative only.",
+          "kpiSuspicions": "Declared suspicions",
+          "kpiIncidence": "Avg incidence /1,000",
+          "kpiDiagnoses": "Distinct diagnoses",
+          "donutTitle": "Top diagnoses",
+          "donutLead": "Declared suspicions by normalized diagnosis.",
+          "propTitle": "Related mortality causes",
+          "propLead": "Proportion bar of declared death causes (correlation, not lab confirmation)."
         },
         "lifecycle": {
           "title": "Herd sale rate",
-          "lead": "Heads sold ÷ average herd. Commercial turnover, not revenue."
+          "lead": "Commercial turnover by department (sales ÷ average herd).",
+          "kpiSaleRate": "Avg sale rate",
+          "kpiAgeSale": "Avg age at sale",
+          "kpiFattening": "Fattening duration",
+          "propTitle": "Where do pigs go?",
+          "propLead": "Exit mix: sale, slaughter, mortality, transfer.",
+          "gaugeTitle": "Sale share",
+          "gaugeLead": "Weight of sales among all declared exits.",
+          "kindSale": "Sale",
+          "kindSlaughter": "Slaughter",
+          "kindMortality": "Mortality",
+          "kindTransfer": "Transfer",
+          "otherExits": "Other exits"
         },
         "adoption": {
-          "title": "Active farms (30-day window)",
-          "lead": "Farms with at least one recent entry (livestock, health, repro or finance) — stricter than MAU."
+          "title": "Active farms",
+          "lead": "Farms with at least one recent entry (30d).",
+          "kpiActive": "Active farms",
+          "kpiRetention30": "Retention D+30",
+          "kpiRetention90": "Retention D+90",
+          "kpiUsers": "Users",
+          "donutTitle": "Actives by role",
+          "donutLead": "Active users linked to department farms, by profile type.",
+          "areaTitle": "Active farms by department",
+          "rankTitle": "Adoption ranking",
+          "rankLead": "Departments with the most truly active farms."
         }
       },
       "export": {
