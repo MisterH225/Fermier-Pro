@@ -6,6 +6,9 @@ export const INSTITUTION_STAT_SECTIONS = [
   "growth",
   "vetCoverage",
   "economy",
+  "health",
+  "lifecycle",
+  "adoption",
   "movements"
 ] as const;
 
@@ -18,7 +21,10 @@ export const EDITABLE_STAT_SECTIONS = [
   "reproduction",
   "growth",
   "vetCoverage",
-  "economy"
+  "economy",
+  "health",
+  "lifecycle",
+  "adoption"
 ] as const;
 
 export type EditableStatSection = (typeof EDITABLE_STAT_SECTIONS)[number];

@@ -54,6 +54,7 @@ import {
   maskLowHealthMapZones,
   type PrivacyHealthMapZone
 } from "./institution-privacy.util";
+import { normalizeDiagnosis } from "./region-stats-p28.util";
 
 export type HealthMapOutputMode = "detailed" | "aggregated";
 
@@ -648,17 +649,20 @@ export class AdminPlatformService {
   async getHealthMap(
     periodDays?: number,
     granularity?: HealthMapGranularity,
-    mode?: "detailed"
+    mode?: "detailed",
+    diagnosisFilter?: string
   ): Promise<HealthMapDetailedResponse>;
   async getHealthMap(
     periodDays: number,
     granularity: HealthMapGranularity,
-    mode: "aggregated"
+    mode: "aggregated",
+    diagnosisFilter?: string
   ): Promise<HealthMapAggregatedResponse>;
   async getHealthMap(
     periodDays = 30,
     granularity: HealthMapGranularity = "sector",
-    mode: HealthMapOutputMode = "detailed"
+    mode: HealthMapOutputMode = "detailed",
+    diagnosisFilter?: string
   ): Promise<HealthMapDetailedResponse | HealthMapAggregatedResponse> {
     const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
     const settings = await this.platformSettings.getOrCreateSettingsRow();
@@ -669,8 +673,11 @@ export class AdminPlatformService {
       settings.mapGeographicScope,
       (settings.mapCountryCodes as string[] | null) ?? null
     );
+    const diagnosisNorm = diagnosisFilter?.trim()
+      ? normalizeDiagnosis(diagnosisFilter)
+      : null;
 
-    const rows = await this.prisma.farmHealthRecord.findMany({
+    const fetchedRows = await this.prisma.farmHealthRecord.findMany({
       where: {
         kind: FarmHealthRecordKind.disease,
         OR: [
@@ -707,7 +714,12 @@ export class AdminPlatformService {
       orderBy: { occurredAt: "desc" }
     });
 
-    const truncated = rows.length >= 10000;
+    const truncated = fetchedRows.length >= 10000;
+    const rows = diagnosisNorm
+      ? fetchedRows.filter(
+          (r) => normalizeDiagnosis(r.disease?.diagnosis) === diagnosisNorm
+        )
+      : fetchedRows;
 
     const departmentCodes = [
       ...new Set(

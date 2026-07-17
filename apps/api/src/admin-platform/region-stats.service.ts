@@ -30,4 +30,16 @@ export class RegionStatsService {
   getRegionalEconomy(query: RegionalStatsQueryDto) {
     return this.statsQuery.queryEconomy(query);
   }
+
+  getRegionalHealth(query: RegionalStatsQueryDto) {
+    return this.statsQuery.queryHealth(query);
+  }
+
+  getRegionalLifecycle(query: RegionalStatsQueryDto) {
+    return this.statsQuery.queryLifecycle(query);
+  }
+
+  getRegionalAdoption(query: RegionalStatsQueryDto) {
+    return this.statsQuery.queryAdoption(query);
+  }
 }

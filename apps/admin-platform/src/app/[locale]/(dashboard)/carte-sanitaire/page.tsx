@@ -74,6 +74,8 @@ export default function CarteSanitairePage() {
   const [periodKey, setPeriodKey] = useState<PeriodKey>("30");
   const [granularity, setGranularity] =
     useState<HealthMapGranularity>("sector");
+  const [diagnosisFilter, setDiagnosisFilter] = useState<string>("");
+  const [diagnosisOptions, setDiagnosisOptions] = useState<string[]>([]);
   const periodDays = periodToDays(periodKey);
   const [data, setData] = useState<HealthMapDto | null>(null);
   const [alerts, setAlerts] = useState<SanitaryAlertRow[]>([]);
@@ -98,7 +100,8 @@ export default function CarteSanitairePage() {
     Promise.all([
       fetchHealthMap(token, periodDays, granularity, {
         mode,
-        viewAsInstitutionId
+        viewAsInstitutionId,
+        diagnosis: diagnosisFilter || null
       }),
       fetchSanitaryAlerts(token)
     ])
@@ -106,6 +109,15 @@ export default function CarteSanitairePage() {
         setData(map);
         setAlerts(list);
         setSelectedZoneId(null);
+        if (!diagnosisFilter) {
+          const names = new Set<string>();
+          for (const zone of map.zones) {
+            for (const d of zone.topDiseases ?? []) {
+              if (d.name?.trim()) names.add(d.name.trim());
+            }
+          }
+          setDiagnosisOptions([...names].sort((a, b) => a.localeCompare(b)));
+        }
       })
       .catch(() => setError(t("loadError")))
       .finally(() => setLoading(false));
@@ -113,6 +125,7 @@ export default function CarteSanitairePage() {
     token,
     periodDays,
     granularity,
+    diagnosisFilter,
     profile?.role,
     isPreviewActive,
     viewAsInstitutionId,
@@ -182,6 +195,22 @@ export default function CarteSanitairePage() {
               onChange={setGranularity}
               label={(g) => t(`granularity.${g}` as "granularity.sector")}
             />
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+              <span>{t("diagnosisFilter")}</span>
+              <select
+                className="h-9 rounded-md border bg-background px-2 text-sm text-foreground"
+                value={diagnosisFilter}
+                onChange={(e) => setDiagnosisFilter(e.target.value)}
+                title={t("diagnosisHint")}
+              >
+                <option value="">{t("diagnosisAll")}</option>
+                {diagnosisOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </label>
             {!isAggregated ? (
               <AlertCreationModal accessToken={token} onCreated={load} />
             ) : null}

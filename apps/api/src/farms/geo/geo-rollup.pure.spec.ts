@@ -3,9 +3,11 @@ import { point as turfPoint } from "@turf/helpers";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {
+  collectLocalityCandidates,
   levenshtein,
   normalizeLocalityName,
   pickFarmGeoSource,
+  preferDepartmentForLocality,
   resolveDepartmentFromLocalityMemory,
   rollupChainMemory
 } from "./geo-rollup.pure";
@@ -96,6 +98,63 @@ describe("pickFarmGeoSource priorité GPS", () => {
         localityDepartment: "CI-BG"
       })
     ).toEqual({ departmentCode: "CI-BG", source: "locality" });
+  });
+});
+
+describe("collectLocalityCandidates", () => {
+  it("priorise ville puis secteur puis segments d'adresse", () => {
+    expect(
+      collectLocalityCandidates({
+        locationCity: "Abidjan",
+        locationSector: "Cocody",
+        address: "Rue 12, Bingerville, Côte d'Ivoire"
+      })
+    ).toEqual(["Abidjan", "Cocody", "Rue 12", "Bingerville"]);
+  });
+
+  it("découpe les adresses multi-mots (Bonoua Yaou)", () => {
+    expect(
+      collectLocalityCandidates({
+        address: "Bonoua Yaou"
+      })
+    ).toEqual(["Bonoua Yaou", "Bonoua", "Yaou"]);
+  });
+
+  it("ignore les labels GPS et le pays", () => {
+    expect(
+      collectLocalityCandidates({
+        locationCity: "5.34567, -3.98765",
+        address: "Côte d'Ivoire"
+      })
+    ).toEqual([]);
+  });
+});
+
+describe("preferDepartmentForLocality", () => {
+  it("préfère le département homonyme", () => {
+    expect(
+      preferDepartmentForLocality(
+        "Anyama",
+        ["CI-AB", "CI-DEP-ANYAMA"],
+        [
+          { code: "CI-AB", name: "Abidjan" },
+          { code: "CI-DEP-ANYAMA", name: "Anyama" }
+        ]
+      )
+    ).toBe("CI-DEP-ANYAMA");
+  });
+
+  it("reste null si aucune homonymie", () => {
+    expect(
+      preferDepartmentForLocality(
+        "Bonoua",
+        ["CI-DEP-GRANDLAH", "CI-DEP-GRANDBAS"],
+        [
+          { code: "CI-DEP-GRANDLAH", name: "Grand-Lahou" },
+          { code: "CI-DEP-GRANDBAS", name: "Grand-Bassam" }
+        ]
+      )
+    ).toBeNull();
   });
 });
 

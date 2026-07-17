@@ -62,6 +62,7 @@ export class FarmsService {
       latitude: dto.latitude,
       longitude: dto.longitude,
       locationCity: dto.locationCity,
+      locationSector: dto.locationSector,
       address: composedAddress
     });
 

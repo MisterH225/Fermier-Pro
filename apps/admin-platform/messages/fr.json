@@ -564,6 +564,9 @@
         "growth": "Croissance",
         "vetCoverage": "Couverture vétérinaire",
         "economy": "Économie",
+        "health": "Santé",
+        "lifecycle": "Cycle de vie",
+        "adoption": "Adoption",
         "movements": "Mouvements"
       },
       "columns": {
@@ -581,7 +584,17 @@
         "weaned": "Sevrés (estim.)",
         "gmq": "GMQ par catégorie",
         "salePrice": "Prix vente / kg",
-        "vetConsultations": "Consultations vét."
+        "vetConsultations": "Consultations vét.",
+        "tauxMiseBas": "Taux mise bas",
+        "tauxMortNes": "Taux mort-nés",
+        "tauxPertesGestation": "Pertes gestation",
+        "partIA": "Part IA",
+        "suspicionsDeclared": "Suspicions déclarées",
+        "incidence": "Incidence /1 000",
+        "letaliteApparente": "Létalité apparente*",
+        "tauxVente": "Taux vente",
+        "avgAgeSale": "Âge moyen vente (j)",
+        "activeFarms": "Fermes actives (30 j)"
       }
     }
   },
@@ -610,19 +623,22 @@
       "country": "Pays",
       "department": "Départements"
     },
-    "empty": "Aucun cas actif ou signalé sur la période.",
+    "empty": "Aucune suspicion déclarée sur la période.",
     "loadError": "Impossible de charger la carte sanitaire. Vérifiez l'API et votre session admin.",
     "truncated": "Volume élevé : seuls les 10 000 derniers dossiers sont agrégés. Affinez la période ou le périmètre.",
-    "activeCases": "{count} cas actifs",
-    "periodCases": "{count} cas sur la période",
+    "activeCases": "{count} suspicions actives",
+    "periodCases": "{count} suspicions déclarées sur la période",
     "farms": "{count} fermes",
-    "totalCases": "{count} cas total",
-    "activePoints": "{count} cas actifs géolocalisés",
+    "totalCases": "{count} suspicions déclarées",
+    "activePoints": "{count} suspicions actives géolocalisées",
     "zonesCount": "{count} zones",
     "clearZoneFilter": "Voir toutes les zones",
-    "pointsNote": "Cas actifs avec coordonnées GPS — couleur selon la sévérité.",
+    "pointsNote": "Suspicions actives avec GPS — diagnostics non confirmés labo.",
     "tokenMissing": "NEXT_PUBLIC_MAPBOX_TOKEN manquant dans apps/admin-platform/.env.local",
     "unknownDiagnosis": "Maladie",
+    "diagnosisFilter": "Maladie",
+    "diagnosisAll": "Toutes suspicions",
+    "diagnosisHint": "Choroplèthe filtrable par diagnostic déclaré (pas de confirmation labo).",
     "alertsTitle": "Alertes actives",
     "noAlerts": "Aucune alerte active.",
     "alertModal": {

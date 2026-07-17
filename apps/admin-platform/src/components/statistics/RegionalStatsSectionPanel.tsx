@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { InstitutionStatSection } from "@/lib/institution-stat-sections";
 import {
+  fetchRegionalAdoption,
   fetchRegionalEconomy,
   fetchRegionalGrowth,
+  fetchRegionalHealth,
   fetchRegionalHerd,
+  fetchRegionalLifecycle,
   fetchRegionalMortality,
   fetchRegionalReproduction,
   fetchRegionalVetCoverage,
@@ -46,9 +49,20 @@ async function fetchSection(
       return fetchRegionalVetCoverage(token, query, viewAsInstitutionId);
     case "economy":
       return fetchRegionalEconomy(token, query, viewAsInstitutionId);
+    case "health":
+      return fetchRegionalHealth(token, query, viewAsInstitutionId);
+    case "lifecycle":
+      return fetchRegionalLifecycle(token, query, viewAsInstitutionId);
+    case "adoption":
+      return fetchRegionalAdoption(token, query, viewAsInstitutionId);
     default:
       throw new Error(`Section non supportée : ${section}`);
   }
+}
+
+function formatRate(value: unknown): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+  return `${(value * 100).toFixed(1)} %`;
 }
 
 export function RegionalStatsSectionPanel({
@@ -82,6 +96,19 @@ export function RegionalStatsSectionPanel({
       ) : data ? (
         <div className="space-y-4">
           <RegionalStatsCoverageBanner coverage={data.coverage} />
+          {section === "health" ? (
+            <p className="text-xs text-muted-foreground">
+              Suspicions déclarées par les éleveurs — diagnostics non confirmés
+              labo. Létalité apparente = corrélation déclarative.
+            </p>
+          ) : null}
+          {section === "adoption" && data.national ? (
+            <p className="text-xs text-muted-foreground">
+              Rétention J+30 :{" "}
+              {formatRate(data.national.retentionJ30)} · J+90 :{" "}
+              {formatRate(data.national.retentionJ90)}
+            </p>
+          ) : null}
           <RegionalStatsDepartmentTable
             section={section}
             departments={data.departments}

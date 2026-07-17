@@ -26,6 +26,7 @@ async function main() {
       latitude: true,
       longitude: true,
       locationCity: true,
+      locationSector: true,
       address: true,
       departmentCode: true,
       geoResolutionSource: true

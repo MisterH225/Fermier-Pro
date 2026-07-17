@@ -14,6 +14,9 @@ export const INSTITUTION_STAT_SECTION_LABELS: Record<
   growth: "Croissance",
   vetCoverage: "Couverture vétérinaire",
   economy: "Économie",
+  health: "Santé (suspicions déclarées)",
+  lifecycle: "Cycle de vie",
+  adoption: "Adoption plateforme",
   movements: "Mouvements"
 };
 

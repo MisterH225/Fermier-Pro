@@ -80,6 +80,32 @@ function sectionToRows(
           exitsSaleAvgPricePerKg: cell(row.exitsSaleAvgPricePerKg, masked),
           exitsSlaughterHeadcount: cell(row.exitsSlaughterHeadcount, masked)
         };
+      case "health":
+        return {
+          ...base,
+          totalSuspicionsDeclared: cell(row.totalSuspicionsDeclared, masked),
+          incidencePerThousand: cell(row.incidencePerThousand, masked),
+          letaliteApparenteDeclarative: cell(
+            row.letaliteApparenteDeclarative,
+            masked
+          ),
+          mortalityByCause: cell(row.mortalityByCause, masked)
+        };
+      case "lifecycle":
+        return {
+          ...base,
+          tauxVenteCheptel: cell(row.tauxVenteCheptel, masked),
+          tauxMortaliteGlobal: cell(row.tauxMortaliteGlobal, masked),
+          tauxReformeTruies: cell(row.tauxReformeTruies, masked),
+          avgAgeAtSaleDays: cell(row.avgAgeAtSaleDays, masked),
+          avgFatteningDurationDays: cell(row.avgFatteningDurationDays, masked)
+        };
+      case "adoption":
+        return {
+          ...base,
+          activeFarmsCount: cell(row.activeFarmsCount, masked),
+          activeUsersByRole: cell(row.activeUsersByRole, masked)
+        };
       default:
         return base;
     }

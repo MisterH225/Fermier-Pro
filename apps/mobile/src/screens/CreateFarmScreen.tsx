@@ -1,5 +1,6 @@
 import { CommonActions } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import * as Location from "expo-location";
 import { getUserFacingError } from "../lib/userFacingError";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,6 +8,7 @@ import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -53,8 +55,13 @@ export function CreateFarmScreen({ navigation }: Props) {
     useState<CreateFarmPayload["livestockMode"]>("batch");
   const [locationSector, setLocationSector] = useState("");
   const [locationCity, setLocationCity] = useState("");
-  const [locationCountry, setLocationCountry] = useState("");
+  const [locationCountry, setLocationCountry] = useState("Côte d'Ivoire");
   const [addressExtra, setAddressExtra] = useState("");
+  const [coords, setCoords] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const [gpsBusy, setGpsBusy] = useState(false);
 
   const mutation = useMutation({
     mutationFn: (payload: CreateFarmPayload) => {
@@ -79,6 +86,28 @@ export function CreateFarmScreen({ navigation }: Props) {
     }
   });
 
+  const useGps = async () => {
+    setGpsBusy(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("", t("producer.gpsDenied"));
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced
+      });
+      setCoords({
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude
+      });
+    } catch {
+      Alert.alert("", t("createFarmScreen.gpsError"));
+    } finally {
+      setGpsBusy(false);
+    }
+  };
+
   const submit = () => {
     const n = name.trim();
     if (!n) {
@@ -92,6 +121,13 @@ export function CreateFarmScreen({ navigation }: Props) {
       );
       return;
     }
+    if (!coords && !locationCity.trim() && !locationSector.trim()) {
+      Alert.alert(
+        t("createFarmScreen.locationRequiredTitle"),
+        t("createFarmScreen.locationRequiredBody")
+      );
+      return;
+    }
     const payload: CreateFarmPayload = {
       name: n,
       speciesFocus: "porcin",
@@ -99,7 +135,10 @@ export function CreateFarmScreen({ navigation }: Props) {
       locationSector: locationSector.trim() || undefined,
       locationCity: locationCity.trim() || undefined,
       locationCountry: locationCountry.trim() || undefined,
-      address: addressExtra.trim() || undefined
+      address: addressExtra.trim() || undefined,
+      ...(coords
+        ? { latitude: coords.latitude, longitude: coords.longitude }
+        : {})
     };
     mutation.mutate(payload);
   };
@@ -159,6 +198,29 @@ export function CreateFarmScreen({ navigation }: Props) {
       </View>
 
       <Text style={styles.sectionTitle}>{t("createFarmScreen.locationHint")}</Text>
+
+      <Pressable
+        style={[styles.gpsBtn, gpsBusy && styles.submitDisabled]}
+        onPress={() => void useGps()}
+        disabled={gpsBusy}
+        testID="create-farm-use-gps"
+      >
+        {gpsBusy ? (
+          <ActivityIndicator color={mobileColors.accent} />
+        ) : (
+          <Text style={styles.gpsBtnTx}>{t("createFarmScreen.useGps")}</Text>
+        )}
+      </Pressable>
+      {coords ? (
+        <Text style={styles.gpsHint}>
+          {t("createFarmScreen.gpsCaptured", {
+            lat: coords.latitude.toFixed(5),
+            lng: coords.longitude.toFixed(5)
+          })}
+        </Text>
+      ) : (
+        <Text style={styles.or}>{t("createFarmScreen.orManual")}</Text>
+      )}
 
       <Text style={styles.label}>{t("createFarmScreen.sector")}</Text>
       <TextInput
@@ -296,6 +358,31 @@ const styles = StyleSheet.create({
   modeChipTextOn: {
     color: mobileColors.textPrimary,
     fontWeight: "600"
+  },
+  gpsBtn: {
+    marginTop: mobileSpacing.sm,
+    borderWidth: 1,
+    borderColor: mobileColors.accent,
+    backgroundColor: mobileColors.accentSoft,
+    borderRadius: mobileRadius.md,
+    paddingVertical: 14,
+    alignItems: "center"
+  },
+  gpsBtnTx: {
+    color: mobileColors.accent,
+    fontWeight: "700",
+    fontSize: 15
+  },
+  gpsHint: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: 6
+  },
+  or: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: 8,
+    marginBottom: 2
   },
   submit: {
     marginTop: mobileSpacing.xl,

@@ -92,4 +92,93 @@ export function pickFarmGeoSource(input: {
   return { departmentCode: null, source: "unresolved" };
 }
 
+/** Mots trop génériques à ignorer lors du découpage d’adresse. */
+const LOCALITY_STOP_KEYS = new Set([
+  "cote",
+  "ivoire",
+  "d ivoire",
+  "cote d ivoire",
+  "cote divoire",
+  "senegal",
+  "ci",
+  "rue",
+  "avenue",
+  "boulevard",
+  "bd",
+  "quartier",
+  "lot",
+  "cite",
+  "village",
+  "commune",
+  "de",
+  "du",
+  "des",
+  "le",
+  "la",
+  "les",
+  "et",
+  "en",
+  "sur",
+  "pres"
+]);
+
+/**
+ * Candidats texte pour rattacher une ferme à une localité / département CI.
+ * Ordre : ville → secteur → segments d’adresse → mots significatifs
+ * (ex. « Bonoua Yaou » → « Bonoua Yaou », « Bonoua », « Yaou »).
+ */
+export function collectLocalityCandidates(input: {
+  locationCity?: string | null;
+  locationSector?: string | null;
+  address?: string | null;
+}): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const push = (raw: string | null | undefined) => {
+    const t = raw?.trim();
+    if (!t || t.length < 2) return;
+    // Ignore paires lat,lng collées dans le label GPS
+    if (/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(t)) return;
+    if (/^\d+$/.test(t)) return;
+    const key = normalizeLocalityName(t);
+    if (!key || seen.has(key)) return;
+    if (LOCALITY_STOP_KEYS.has(key)) return;
+    seen.add(key);
+    out.push(t);
+  };
+
+  push(input.locationCity);
+  push(input.locationSector);
+  if (input.address?.trim()) {
+    for (const part of input.address.split(",")) {
+      push(part);
+      // Découpe les libellés type « Bonoua Yaou » / « Anyama yapokoi »
+      for (const word of part.split(/[\s;/|+]+/)) {
+        if (word.trim().length >= 4) push(word);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Parmi plusieurs départements candidats pour une même localité,
+ * préfère celui dont le nom admin = nom de localité (ex. Anyama → CI-DEP-ANYAMA).
+ */
+export function preferDepartmentForLocality(
+  localityName: string,
+  departmentCodes: string[],
+  departments: Array<{ code: string; name: string }>
+): string | null {
+  const unique = [...new Set(departmentCodes)];
+  if (unique.length === 0) return null;
+  if (unique.length === 1) return unique[0]!;
+  const key = normalizeLocalityName(localityName);
+  const byName = departments.filter(
+    (d) => unique.includes(d.code) && normalizeLocalityName(d.name) === key
+  );
+  if (byName.length === 1) return byName[0]!.code;
+  return null;
+}
+
 export { normalizeLocalityName, levenshtein };

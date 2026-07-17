@@ -1486,13 +1486,20 @@ export const en = {
   },
   createFarmScreen: {
     sector: "Sector / neighborhood",
-    sectorPlaceholder: "e.g. Almadies, East Pikine…",
+    sectorPlaceholder: "e.g. Cocody, Yopougon…",
     city: "City or town",
-    cityPlaceholder: "e.g. Dakar",
+    cityPlaceholder: "e.g. Abidjan, Bouaké…",
     country: "Country",
-    countryPlaceholder: "e.g. Senegal",
+    countryPlaceholder: "e.g. Côte d'Ivoire",
     locationHint:
-      "Location details feed the admin health map for epidemic zoning by sector.",
+      "Location (GPS or city) automatically links the farm to its department and region for statistics.",
+    useGps: "Use my GPS location",
+    orManual: "Or enter manually:",
+    gpsCaptured: "GPS captured: {{lat}}, {{lng}}",
+    gpsError: "Could not get location. Try again or enter the city.",
+    locationRequiredTitle: "Location required",
+    locationRequiredBody:
+      "Use GPS or enter at least a city / sector so the farm can be linked.",
     addressExtra: "Address details (optional)",
     addressExtraPlaceholder: "Street, landmark…"
   },

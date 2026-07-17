@@ -5,6 +5,10 @@ import { point as turfPoint } from "@turf/helpers";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { PrismaService } from "../../prisma/prisma.service";
+import {
+  collectLocalityCandidates,
+  preferDepartmentForLocality
+} from "./geo-rollup.pure";
 import { levenshtein } from "./levenshtein";
 import { normalizeLocalityName } from "./normalize-locality-name";
 
@@ -19,6 +23,7 @@ export type FarmGeoInput = {
   latitude?: number | Prisma.Decimal | null;
   longitude?: number | Prisma.Decimal | null;
   locationCity?: string | null;
+  locationSector?: string | null;
   address?: string | null;
 };
 
@@ -182,7 +187,7 @@ export class GeoRollupService implements OnModuleInit {
 
   /**
    * Matching localité : exact sur nameNormalized, sinon fuzzy Levenshtein ≤ 2.
-   * Ambiguïté (plusieurs départements distincts à distance min) → null.
+   * Ambiguïté : préfère le département homonyme (Anyama → CI-DEP-ANYAMA), sinon null.
    */
   async resolveDepartmentFromLocality(
     name: string
@@ -196,9 +201,13 @@ export class GeoRollupService implements OnModuleInit {
     });
     const exactCodes = [...new Set(exact.map((e) => e.departmentCode))];
     if (exactCodes.length === 1) {
-      return { departmentCode: exactCodes[0], confidence: "exact" };
+      return { departmentCode: exactCodes[0]!, confidence: "exact" };
     }
-    if (exactCodes.length > 1) return null;
+    if (exactCodes.length > 1) {
+      const picked = await this.disambiguateDepartments(name, exactCodes);
+      if (picked) return { departmentCode: picked, confidence: "exact" };
+      return null;
+    }
 
     const all = await this.prisma.localityRef.findMany({
       select: { nameNormalized: true, departmentCode: true }
@@ -213,15 +222,35 @@ export class GeoRollupService implements OnModuleInit {
     }
     if (scored.length === 0) return null;
     scored.sort((a, b) => a.dist - b.dist);
-    const minDist = scored[0].dist;
+    const minDist = scored[0]!.dist;
     const top = scored.filter((s) => s.dist === minDist);
     const depts = [...new Set(top.map((t) => t.departmentCode))];
-    if (depts.length !== 1) return null;
-    return { departmentCode: depts[0], confidence: "fuzzy" };
+    if (depts.length === 1) {
+      return { departmentCode: depts[0]!, confidence: "fuzzy" };
+    }
+    const picked = await this.disambiguateDepartments(name, depts);
+    if (picked) return { departmentCode: picked, confidence: "fuzzy" };
+    return null;
+  }
+
+  private async disambiguateDepartments(
+    localityName: string,
+    departmentCodes: string[]
+  ): Promise<string | null> {
+    const departments = await this.prisma.adminRegionRef.findMany({
+      where: { code: { in: departmentCodes }, level: "department" },
+      select: { code: true, name: true }
+    });
+    return preferDepartmentForLocality(
+      localityName,
+      departmentCodes,
+      departments
+    );
   }
 
   /**
-   * Priorité : coordonnées (source=gps) puis texte localité (source=locality).
+   * Priorité : coordonnées (source=gps) puis textes localité
+   * (ville → secteur → segments d’adresse).
    */
   async resolveFarmDepartment(farm: FarmGeoInput): Promise<FarmGeoResolution> {
     const lat = toNum(farm.latitude);
@@ -231,11 +260,12 @@ export class GeoRollupService implements OnModuleInit {
       if (code) return { departmentCode: code, source: "gps" };
     }
 
-    const localityText =
-      farm.locationCity?.trim() ||
-      extractLocalityHint(farm.address) ||
-      null;
-    if (localityText) {
+    const candidates = collectLocalityCandidates({
+      locationCity: farm.locationCity,
+      locationSector: farm.locationSector,
+      address: farm.address
+    });
+    for (const localityText of candidates) {
       const match = await this.resolveDepartmentFromLocality(localityText);
       if (match) {
         return { departmentCode: match.departmentCode, source: "locality" };
@@ -297,9 +327,3 @@ export class GeoRollupService implements OnModuleInit {
   }
 }
 
-function extractLocalityHint(address: string | null | undefined): string | null {
-  if (!address?.trim()) return null;
-  // Prend le premier segment avant virgule (souvent la ville).
-  const first = address.split(",")[0]?.trim();
-  return first && first.length >= 2 ? first : null;
-}

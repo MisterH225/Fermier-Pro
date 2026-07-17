@@ -308,6 +308,7 @@ export class AdminPlatformController {
     @Query("periodDays") periodDays?: string,
     @Query("granularity") granularity?: string,
     @Query("mode") mode?: string,
+    @Query("diagnosis") diagnosis?: string,
     @Query("viewAsInstitutionId") viewAsInstitutionId?: string
   ) {
     const context = await this.consoleAccess.resolveEffectiveContext(
@@ -334,17 +335,20 @@ export class AdminPlatformController {
     ) {
       outputMode = "aggregated";
     }
+    const diagnosisFilter = diagnosis?.trim() || undefined;
     if (outputMode === "aggregated") {
       return this.admin.getHealthMap(
         Number.isFinite(days) ? days : 30,
         level,
-        "aggregated"
+        "aggregated",
+        diagnosisFilter
       );
     }
     return this.admin.getHealthMap(
       Number.isFinite(days) ? days : 30,
       level,
-      "detailed"
+      "detailed",
+      diagnosisFilter
     );
   }
 
@@ -442,6 +446,45 @@ export class AdminPlatformController {
     );
     this.consoleAccess.assertStatSectionAllowed(context, "economy");
     return this.regionStats.getRegionalEconomy(query);
+  }
+
+  @Get("stats/regional/health")
+  async regionalHealth(
+    @CurrentUser() user: User,
+    @Query() query: RegionalStatsQueryDto
+  ) {
+    const context = await this.consoleAccess.resolveEffectiveContext(
+      user.id,
+      query.viewAsInstitutionId
+    );
+    this.consoleAccess.assertStatSectionAllowed(context, "health");
+    return this.regionStats.getRegionalHealth(query);
+  }
+
+  @Get("stats/regional/lifecycle")
+  async regionalLifecycle(
+    @CurrentUser() user: User,
+    @Query() query: RegionalStatsQueryDto
+  ) {
+    const context = await this.consoleAccess.resolveEffectiveContext(
+      user.id,
+      query.viewAsInstitutionId
+    );
+    this.consoleAccess.assertStatSectionAllowed(context, "lifecycle");
+    return this.regionStats.getRegionalLifecycle(query);
+  }
+
+  @Get("stats/regional/adoption")
+  async regionalAdoption(
+    @CurrentUser() user: User,
+    @Query() query: RegionalStatsQueryDto
+  ) {
+    const context = await this.consoleAccess.resolveEffectiveContext(
+      user.id,
+      query.viewAsInstitutionId
+    );
+    this.consoleAccess.assertStatSectionAllowed(context, "adoption");
+    return this.regionStats.getRegionalAdoption(query);
   }
 
   @Post("stats/reports")

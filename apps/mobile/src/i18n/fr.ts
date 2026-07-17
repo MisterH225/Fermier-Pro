@@ -1492,13 +1492,20 @@ export const fr = {
   },
   createFarmScreen: {
     sector: "Secteur / quartier",
-    sectorPlaceholder: "Ex. Almadies, Pikine Est…",
+    sectorPlaceholder: "Ex. Cocody, Yopougon…",
     city: "Ville ou commune",
-    cityPlaceholder: "Ex. Dakar",
+    cityPlaceholder: "Ex. Abidjan, Bouaké…",
     country: "Pays",
-    countryPlaceholder: "Ex. Sénégal",
+    countryPlaceholder: "Ex. Côte d'Ivoire",
     locationHint:
-      "Précisez la localisation pour la surveillance sanitaire (carte admin par secteur).",
+      "La localisation (GPS ou ville) rattache automatiquement la ferme au département et à la région pour les statistiques.",
+    useGps: "Utiliser ma position GPS",
+    orManual: "Ou renseigner manuellement :",
+    gpsCaptured: "GPS capturé : {{lat}}, {{lng}}",
+    gpsError: "Impossible d’obtenir la position. Réessayez ou saisissez la ville.",
+    locationRequiredTitle: "Localisation requise",
+    locationRequiredBody:
+      "Utilisez le GPS ou indiquez au moins une ville / un secteur pour rattacher la ferme.",
     addressExtra: "Complément d'adresse (optionnel)",
     addressExtraPlaceholder: "Rue, repère…"
   },

@@ -941,14 +941,6 @@ export const CI_LOCALITIES: LocalitySeed[] = [
     "longitude": -4.03
   },
   {
-    "id": "loc_anyama_ci-ab",
-    "nameNormalized": "anyama",
-    "displayName": "Anyama",
-    "departmentCode": "CI-AB",
-    "latitude": 5.4947,
-    "longitude": -4.0519
-  },
-  {
     "id": "loc_songon_ci-ab",
     "nameNormalized": "songon",
     "displayName": "Songon",
@@ -963,14 +955,6 @@ export const CI_LOCALITIES: LocalitySeed[] = [
     "departmentCode": "CI-DEP-ADIAKE",
     "latitude": 5.13,
     "longitude": -3.28
-  },
-  {
-    "id": "loc_bonoua_ci-dep-grandlah",
-    "nameNormalized": "bonoua",
-    "displayName": "Bonoua",
-    "departmentCode": "CI-DEP-GRANDLAH",
-    "latitude": 5.27,
-    "longitude": -3.6
   },
   {
     "id": "loc_alepe_ci-dep-adzope",

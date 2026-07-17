@@ -562,6 +562,9 @@
         "growth": "Growth",
         "vetCoverage": "Vet coverage",
         "economy": "Economy",
+        "health": "Health",
+        "lifecycle": "Lifecycle",
+        "adoption": "Adoption",
         "movements": "Movements"
       },
       "columns": {
@@ -579,7 +582,17 @@
         "weaned": "Weaned (est.)",
         "gmq": "ADG by category",
         "salePrice": "Sale price / kg",
-        "vetConsultations": "Vet consultations"
+        "vetConsultations": "Vet consultations",
+        "tauxMiseBas": "Farrowing rate",
+        "tauxMortNes": "Stillbirth rate",
+        "tauxPertesGestation": "Gestation losses",
+        "partIA": "AI share",
+        "suspicionsDeclared": "Declared suspicions",
+        "incidence": "Incidence /1,000",
+        "letaliteApparente": "Apparent case fatality*",
+        "tauxVente": "Sale rate",
+        "avgAgeSale": "Avg age at sale (d)",
+        "activeFarms": "Active farms (30d)"
       }
     }
   },
@@ -608,19 +621,22 @@
       "country": "Country",
       "department": "Department"
     },
-    "empty": "No active or reported cases in this period.",
+    "empty": "No declared suspicions in this period.",
     "loadError": "Could not load the health map. Check the API and your admin session.",
     "truncated": "High volume: only the latest 10,000 records are aggregated. Narrow the period or scope.",
-    "activeCases": "{count} active cases",
-    "periodCases": "{count} cases in period",
+    "activeCases": "{count} active suspicions",
+    "periodCases": "{count} declared suspicions in period",
     "farms": "{count} farms",
-    "totalCases": "{count} total cases",
-    "activePoints": "{count} geolocated active cases",
+    "totalCases": "{count} declared suspicions",
+    "activePoints": "{count} geolocated active suspicions",
     "zonesCount": "{count} zones",
     "clearZoneFilter": "Show all zones",
-    "pointsNote": "Active cases with GPS — color by severity.",
+    "pointsNote": "Active suspicions with GPS — lab-unconfirmed diagnoses.",
     "tokenMissing": "NEXT_PUBLIC_MAPBOX_TOKEN missing in apps/admin-platform/.env.local",
     "unknownDiagnosis": "Disease",
+    "diagnosisFilter": "Disease",
+    "diagnosisAll": "All suspicions",
+    "diagnosisHint": "Choropleth filterable by declared diagnosis (not lab-confirmed).",
     "alertsTitle": "Active alerts",
     "noAlerts": "No active alerts.",
     "alertModal": {

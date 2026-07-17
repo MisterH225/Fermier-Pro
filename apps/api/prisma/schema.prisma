@@ -2871,6 +2871,7 @@ model PigPriceIndexDaily {
 }
 
 /// Agrégats journaliers anonymisés par département (console institution / stats régionales).
+/// Règle P-28 : stocker numérateurs/dénominateurs bruts — jamais de ratios.
 model RegionStatsDaily {
   id                       String   @id @default(cuid())
   date                     DateTime @db.Date
@@ -2882,12 +2883,51 @@ model RegionStatsDaily {
   littersCount             Int      @default(0)
   bornAlive                Int      @default(0)
   stillborn                Int      @default(0)
+  /// Momifiés (Litter.mummified) — numérateur taux momifiés.
+  mummifiedTotal           Int      @default(0)
   weanedEstimate           Int      @default(0)
   avgGmqByCategory         Json     @default("{}")
   exitsSaleHeadcount       Int      @default(0)
   exitsSaleAvgPricePerKg   Decimal? @db.Decimal(14, 4)
   exitsSlaughterHeadcount  Int      @default(0)
   vetConsultationsCount    Int      @default(0)
+
+  /// Reproduction avancée (comptes bruts).
+  gestationsCompleted      Int      @default(0)
+  gestationsAborted        Int      @default(0)
+  gestationsLost           Int      @default(0)
+  matingsNatural           Int      @default(0)
+  matingsAI                Int      @default(0)
+  activeSowsCount          Int      @default(0)
+  /// Somme des écarts (jours) entre mises bas successives + effectif pour moyenne pondérée.
+  farrowingIntervalSumDays Int      @default(0)
+  farrowingIntervalCount   Int      @default(0)
+  gestationNumberSum       Int      @default(0)
+  gestationNumberCount     Int      @default(0)
+
+  /// Santé — suspicions déclarées (pas de confirmation labo).
+  diseaseSuspicionsByDiagnosis Json @default("{}")
+  animalsByHealthStatus        Json @default("{}")
+  /// Effectif du jour (dénominateur incidences /1 000).
+  herdCountForIncidence        Int  @default(0)
+
+  /// Cycle de vie / commercialisation.
+  /// { kind: { headcount, totalWeightKg, totalPriceXof } }
+  exitsByKind                  Json @default("{}")
+  avgAgeAtSaleDays             Float?
+  exitsSaleForAgeCount         Int  @default(0)
+  avgAgeAtSlaughterDays        Float?
+  exitsSlaughterForAgeCount    Int  @default(0)
+  avgAgeAtDeathDays            Float?
+  exitsDeathForAgeCount        Int  @default(0)
+  avgFatteningDurationDays     Float?
+  fatteningDurationCount       Int  @default(0)
+  sowCullsCount                Int  @default(0)
+
+  /// Adoption plateforme (fenêtre glissante 30 j au snapshot).
+  activeFarmsCount             Int  @default(0)
+  activeUsersByRole            Json @default("{}")
+
   createdAt                DateTime @default(now())
 
   @@unique([date, departmentCode])

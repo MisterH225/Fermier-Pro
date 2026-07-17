@@ -15,6 +15,10 @@ describe("RegionStatsSnapshotService", () => {
     vetConsultation: { findMany: jest.fn() },
     animalWeight: { findMany: jest.fn() },
     livestockBatchWeight: { findMany: jest.fn() },
+    gestation: { findMany: jest.fn() },
+    farmHealthRecord: { findMany: jest.fn() },
+    farmExpense: { findMany: jest.fn() },
+    user: { findMany: jest.fn() },
     regionStatsDaily: { upsert: jest.fn() }
   };
 
@@ -28,33 +32,72 @@ describe("RegionStatsSnapshotService", () => {
       { id: "farm-c", departmentCode: "CI-BK" }
     ]);
     prisma.animal.findMany.mockResolvedValue([
-      { farmId: "farm-a", productionCategory: "fattening" },
-      { farmId: "farm-b", productionCategory: "starter" },
-      { farmId: "farm-c", productionCategory: "fattening" }
+      {
+        farmId: "farm-a",
+        productionCategory: "fattening",
+        healthStatus: "healthy"
+      },
+      {
+        farmId: "farm-b",
+        productionCategory: "breeding_female",
+        healthStatus: "healthy"
+      },
+      {
+        farmId: "farm-c",
+        productionCategory: "fattening",
+        healthStatus: "sick"
+      }
     ]);
     prisma.livestockExit.findMany.mockImplementation(
-      async (args: { where: { kind: LivestockExitKind } }) => {
+      async (args: {
+        where: { kind?: LivestockExitKind; occurredAt?: unknown };
+        distinct?: string[];
+      }) => {
+        if (args.distinct) {
+          return [{ farmId: "farm-a" }];
+        }
         if (args.where.kind === LivestockExitKind.mortality) {
           return [
             {
               farmId: "farm-a",
+              animalId: null,
+              kind: LivestockExitKind.mortality,
               headcountAffected: 2,
-              deathCause: "infection"
+              deathCause: "infection",
+              price: null,
+              weightKg: null,
+              occurredAt: targetDate,
+              animal: null
             }
           ];
         }
-        if (args.where.kind === LivestockExitKind.sale) {
-          return [];
+        // Appel sans kind = toutes les sorties du jour
+        if (!args.where.kind && args.where.occurredAt) {
+          return [
+            {
+              farmId: "farm-a",
+              animalId: null,
+              kind: LivestockExitKind.mortality,
+              headcountAffected: 2,
+              deathCause: "infection",
+              price: null,
+              weightKg: null,
+              occurredAt: targetDate,
+              animal: null
+            }
+          ];
         }
         return [];
       }
     );
     prisma.litter.findMany.mockResolvedValue([]);
-    prisma.vetConsultation.findMany.mockResolvedValue([
-      { farmId: "farm-b" }
-    ]);
+    prisma.vetConsultation.findMany.mockResolvedValue([{ farmId: "farm-b" }]);
     prisma.animalWeight.findMany.mockResolvedValue([]);
     prisma.livestockBatchWeight.findMany.mockResolvedValue([]);
+    prisma.gestation.findMany.mockResolvedValue([]);
+    prisma.farmHealthRecord.findMany.mockResolvedValue([]);
+    prisma.farmExpense.findMany.mockResolvedValue([]);
+    prisma.user.findMany.mockResolvedValue([]);
     prisma.regionStatsDaily.upsert.mockResolvedValue({});
 
     const module = await Test.createTestingModule({
@@ -80,6 +123,74 @@ describe("RegionStatsSnapshotService", () => {
     expect(abCalls[0][0].create.mortalityHeadcount).toBe(2);
     expect(abCalls[0][0].update.mortalityHeadcount).toBe(2);
     expect(abCalls[0][0].where.date_departmentCode.date).toEqual(targetDate);
+    expect(abCalls[0][0].create.herdCountForIncidence).toBe(2);
+    expect(abCalls[0][0].create.activeSowsCount).toBe(1);
+  });
+
+  it("compte fausses couches (aborted/lost) et normalise diagnostics", async () => {
+    prisma.gestation.findMany.mockImplementation(
+      async (args: { where: { status?: unknown; matingDate?: unknown } }) => {
+        if (args.where.matingDate) {
+          return [
+            { farmId: "farm-a", matingType: "artificial_insemination" },
+            { farmId: "farm-a", matingType: "natural" }
+          ];
+        }
+        if (
+          args.where.status &&
+          typeof args.where.status === "object" &&
+          "in" in (args.where.status as object)
+        ) {
+          return [
+            {
+              farmId: "farm-a",
+              status: "aborted",
+              gestationNumber: 2,
+              sowId: "sow-1",
+              actualBirthDate: null
+            },
+            {
+              farmId: "farm-a",
+              status: "lost",
+              gestationNumber: 1,
+              sowId: "sow-2",
+              actualBirthDate: null
+            },
+            {
+              farmId: "farm-a",
+              status: "completed",
+              gestationNumber: 3,
+              sowId: "sow-3",
+              actualBirthDate: targetDate
+            }
+          ];
+        }
+        return [];
+      }
+    );
+    prisma.farmHealthRecord.findMany.mockImplementation(
+      async (args: { where: { kind?: string }; distinct?: string[] }) => {
+        if (args.distinct) return [];
+        if (args.where.kind === "disease") {
+          return [
+            { farmId: "farm-a", disease: { diagnosis: "PPA" } },
+            { farmId: "farm-a", disease: { diagnosis: "ppa" } }
+          ];
+        }
+        return [];
+      }
+    );
+
+    await service.snapshotForDate(targetDate);
+    const create = prisma.regionStatsDaily.upsert.mock.calls.find(
+      (c) => c[0].where.date_departmentCode.departmentCode === "CI-AB"
+    )![0].create;
+
+    expect(create.gestationsAborted).toBe(1);
+    expect(create.gestationsLost).toBe(1);
+    expect(create.gestationsCompleted).toBe(1);
+    expect(create.matingsAI).toBe(1);
+    expect(create.diseaseSuspicionsByDiagnosis).toEqual({ ppa: 2 });
   });
 
   it("backfillRange appelle snapshotForDate pour chaque jour", async () => {

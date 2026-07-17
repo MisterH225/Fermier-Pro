@@ -80,6 +80,26 @@ function sectionTable(section: InstitutionStatSection, data: InstitutionReportSe
           formatNumber(row.exitsSaleAvgPricePerKg, masked),
           formatNumber(row.exitsSlaughterHeadcount, masked)
         ];
+      case "health":
+        return [
+          ...base,
+          formatNumber(row.totalSuspicionsDeclared, masked),
+          formatNumber(row.incidencePerThousand, masked),
+          formatNumber(row.letaliteApparenteDeclarative, masked)
+        ];
+      case "lifecycle":
+        return [
+          ...base,
+          formatNumber(row.tauxVenteCheptel, masked),
+          formatNumber(row.tauxMortaliteGlobal, masked),
+          formatNumber(row.avgAgeAtSaleDays, masked)
+        ];
+      case "adoption":
+        return [
+          ...base,
+          formatNumber(row.activeFarmsCount, masked),
+          formatJsonRecord(row.activeUsersByRole, masked)
+        ];
       default:
         return base;
     }
@@ -104,6 +124,19 @@ function sectionTable(section: InstitutionStatSection, data: InstitutionReportSe
     case "economy":
       headers.push("Sorties vente", "Prix / kg", "Sorties abattage");
       break;
+    case "health":
+      headers.push(
+        "Suspicions déclarées",
+        "Incidence /1 000",
+        "Létalité apparente (déclarative)"
+      );
+      break;
+    case "lifecycle":
+      headers.push("Taux vente", "Taux mortalité", "Âge moyen vente (j)");
+      break;
+    case "adoption":
+      headers.push("Fermes actives", "Utilisateurs actifs / rôle");
+      break;
     default:
       break;
   }
@@ -123,6 +156,12 @@ function sectionTable(section: InstitutionStatSection, data: InstitutionReportSe
         value = Number(row.vetConsultationsCount ?? 0);
       } else if (section === "reproduction") {
         value = Number(row.bornAlive ?? 0);
+      } else if (section === "health") {
+        value = Number(row.incidencePerThousand ?? 0);
+      } else if (section === "lifecycle") {
+        value = Number(row.tauxVenteCheptel ?? 0);
+      } else if (section === "adoption") {
+        value = Number(row.activeFarmsCount ?? 0);
       } else {
         value = Number(row.farmCount ?? 0);
       }

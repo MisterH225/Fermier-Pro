@@ -70,6 +70,10 @@ export function RegionalStatsDepartmentTable({ section, departments }: Props) {
                 <TableHead>{t("columns.bornAlive")}</TableHead>
                 <TableHead>{t("columns.stillborn")}</TableHead>
                 <TableHead>{t("columns.weaned")}</TableHead>
+                <TableHead>{t("columns.tauxMiseBas")}</TableHead>
+                <TableHead>{t("columns.tauxMortNes")}</TableHead>
+                <TableHead>{t("columns.tauxPertesGestation")}</TableHead>
+                <TableHead>{t("columns.partIA")}</TableHead>
               </>
             ) : null}
             {section === "growth" ? (
@@ -86,6 +90,26 @@ export function RegionalStatsDepartmentTable({ section, departments }: Props) {
                 <TableHead>{t("columns.exitsSale")}</TableHead>
                 <TableHead>{t("columns.salePrice")}</TableHead>
                 <TableHead>{t("columns.exitsSlaughter")}</TableHead>
+              </>
+            ) : null}
+            {section === "health" ? (
+              <>
+                <TableHead>{t("columns.suspicionsDeclared")}</TableHead>
+                <TableHead>{t("columns.incidence")}</TableHead>
+                <TableHead>{t("columns.letaliteApparente")}</TableHead>
+                <TableHead>{t("columns.byCause")}</TableHead>
+              </>
+            ) : null}
+            {section === "lifecycle" ? (
+              <>
+                <TableHead>{t("columns.tauxVente")}</TableHead>
+                <TableHead>{t("columns.avgAgeSale")}</TableHead>
+                <TableHead>{t("columns.exitsSale")}</TableHead>
+              </>
+            ) : null}
+            {section === "adoption" ? (
+              <>
+                <TableHead>{t("columns.activeFarms")}</TableHead>
               </>
             ) : null}
           </TableRow>
@@ -143,6 +167,34 @@ export function RegionalStatsDepartmentTable({ section, departments }: Props) {
                     <TableCell>
                       {masked ? formatMasked(t) : (row.weanedEstimate ?? "—")}
                     </TableCell>
+                    <TableCell>
+                      {masked
+                        ? formatMasked(t)
+                        : row.tauxMiseBas != null
+                          ? `${(row.tauxMiseBas * 100).toFixed(1)} %`
+                          : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {masked
+                        ? formatMasked(t)
+                        : row.tauxMortNes != null
+                          ? `${(row.tauxMortNes * 100).toFixed(1)} %`
+                          : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {masked
+                        ? formatMasked(t)
+                        : row.tauxPertesGestation != null
+                          ? `${(row.tauxPertesGestation * 100).toFixed(1)} %`
+                          : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {masked
+                        ? formatMasked(t)
+                        : row.partIA != null
+                          ? `${(row.partIA * 100).toFixed(1)} %`
+                          : "—"}
+                    </TableCell>
                   </>
                 ) : null}
                 {section === "growth" ? (
@@ -182,6 +234,58 @@ export function RegionalStatsDepartmentTable({ section, departments }: Props) {
                         : (row.exitsSlaughterHeadcount ?? "—")}
                     </TableCell>
                   </>
+                ) : null}
+                {section === "health" ? (
+                  <>
+                    <TableCell>
+                      {masked
+                        ? formatMasked(t)
+                        : (row.totalSuspicionsDeclared ?? "—")}
+                    </TableCell>
+                    <TableCell>
+                      {masked
+                        ? formatMasked(t)
+                        : row.incidencePerThousand != null
+                          ? row.incidencePerThousand
+                          : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {masked
+                        ? formatMasked(t)
+                        : row.letaliteApparenteDeclarative != null
+                          ? `${(row.letaliteApparenteDeclarative * 100).toFixed(1)} %`
+                          : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {formatJsonRecord(row.mortalityByCause, masked, t)}
+                    </TableCell>
+                  </>
+                ) : null}
+                {section === "lifecycle" ? (
+                  <>
+                    <TableCell>
+                      {masked
+                        ? formatMasked(t)
+                        : row.tauxVenteCheptel != null
+                          ? `${(row.tauxVenteCheptel * 100).toFixed(1)} %`
+                          : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {masked
+                        ? formatMasked(t)
+                        : row.avgAgeAtSaleDays != null
+                          ? row.avgAgeAtSaleDays
+                          : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {masked ? formatMasked(t) : (row.exitsSaleHeadcount ?? "—")}
+                    </TableCell>
+                  </>
+                ) : null}
+                {section === "adoption" ? (
+                  <TableCell>
+                    {masked ? formatMasked(t) : (row.activeFarmsCount ?? "—")}
+                  </TableCell>
                 ) : null}
               </TableRow>
             );

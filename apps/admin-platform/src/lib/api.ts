@@ -321,6 +321,17 @@ export type RegionalStatsDepartmentRow = {
   avgGmqByCategory?: Record<string, number>;
   exitsSaleAvgPricePerKg?: number | null;
   vetConsultationsCount?: number;
+  tauxMiseBas?: number | null;
+  tauxMortNes?: number | null;
+  tauxPertesGestation?: number | null;
+  partIA?: number | null;
+  totalSuspicionsDeclared?: number;
+  incidencePerThousand?: number | null;
+  letaliteApparenteDeclarative?: number | null;
+  tauxVenteCheptel?: number | null;
+  avgAgeAtSaleDays?: number | null;
+  activeFarmsCount?: number;
+  activeUsersByRole?: Record<string, number>;
 };
 
 export type RegionalStatsResponse = {
@@ -328,6 +339,7 @@ export type RegionalStatsResponse = {
   to: string;
   coverage: RegionalStatsCoverage;
   departments: RegionalStatsDepartmentRow[];
+  national?: Record<string, unknown>;
 };
 
 export type RegionalStatsSectionsDto = {
@@ -1719,6 +1731,8 @@ export async function fetchHealthMap(
   options?: {
     mode?: "aggregated" | "detailed";
     viewAsInstitutionId?: string | null;
+    /** Filtre une suspicion déclarée (diagnostic normalisé). Vide = toutes. */
+    diagnosis?: string | null;
   }
 ): Promise<HealthMapDto> {
   const params = new URLSearchParams({
@@ -1727,6 +1741,9 @@ export async function fetchHealthMap(
   });
   if (options?.mode === "aggregated") {
     params.set("mode", "aggregated");
+  }
+  if (options?.diagnosis?.trim()) {
+    params.set("diagnosis", options.diagnosis.trim());
   }
   appendViewAsInstitutionId(params, options?.viewAsInstitutionId);
   const raw = await apiFetch<Record<string, unknown>>(
@@ -1843,6 +1860,39 @@ export function fetchRegionalEconomy(
 ) {
   return apiFetch<RegionalStatsResponse>(
     regionalStatsPath("economy", query, viewAsInstitutionId),
+    token
+  );
+}
+
+export function fetchRegionalHealth(
+  token: string,
+  query: RegionalStatsQuery,
+  viewAsInstitutionId?: string | null
+) {
+  return apiFetch<RegionalStatsResponse>(
+    regionalStatsPath("health", query, viewAsInstitutionId),
+    token
+  );
+}
+
+export function fetchRegionalLifecycle(
+  token: string,
+  query: RegionalStatsQuery,
+  viewAsInstitutionId?: string | null
+) {
+  return apiFetch<RegionalStatsResponse>(
+    regionalStatsPath("lifecycle", query, viewAsInstitutionId),
+    token
+  );
+}
+
+export function fetchRegionalAdoption(
+  token: string,
+  query: RegionalStatsQuery,
+  viewAsInstitutionId?: string | null
+) {
+  return apiFetch<RegionalStatsResponse>(
+    regionalStatsPath("adoption", query, viewAsInstitutionId),
     token
   );
 }

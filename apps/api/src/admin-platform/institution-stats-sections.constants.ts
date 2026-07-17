@@ -12,6 +12,9 @@ export const INSTITUTION_STAT_SECTIONS = [
   "growth",
   "vetCoverage",
   "economy",
+  "health",
+  "lifecycle",
+  "adoption",
   "movements"
 ] as const;
 
@@ -32,6 +35,9 @@ export const INSTITUTION_STAT_SECTION_ENDPOINTS: Record<
   growth: "/admin/stats/regional/growth",
   vetCoverage: "/admin/stats/regional/vet-coverage",
   economy: "/admin/stats/regional/economy",
+  health: "/admin/stats/regional/health",
+  lifecycle: "/admin/stats/regional/lifecycle",
+  adoption: "/admin/stats/regional/adoption",
   movements: "/admin/stats/regional/movements"
 };
 

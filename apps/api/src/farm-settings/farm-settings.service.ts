@@ -365,6 +365,7 @@ export class FarmSettingsService {
         latitude: true,
         longitude: true,
         locationCity: true,
+        locationSector: true,
         address: true
       }
     });
@@ -393,6 +394,7 @@ export class FarmSettingsService {
           latitude: nextLat,
           longitude: nextLng,
           locationCity: existing?.locationCity,
+          locationSector: existing?.locationSector,
           address: nextAddress
         })
       : null;
