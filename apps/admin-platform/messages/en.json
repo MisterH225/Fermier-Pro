@@ -522,8 +522,12 @@
   },
   "stats": {
     "title": "Aggregated statistics",
-    "pageLead": "Key indicators, top diseases and pig price indices for the selected period.",
+    "pageLead": "Anonymized regional indicators by section, with an internal view for superadmins only.",
     "topDiseases": "Top diseases",
+    "tabs": {
+      "regional": "Regional sections",
+      "internal": "Internal view"
+    },
     "periods": {
       "month": "Monthly",
       "quarter": "Quarterly",
@@ -533,21 +537,69 @@
       "newUsers": "New users",
       "activeAnimals": "Active animals",
       "mortality": "Mortality (period)"
+    },
+    "regional": {
+      "emptySections": "No statistics have been assigned to you — contact the administrator.",
+      "coverageTitle": "Data coverage",
+      "coverageBody": "{farms} farms · {animals} animals · {departments} departments covered",
+      "maskedValue": "— insufficient data",
+      "noDepartments": "No departments in the selected period.",
+      "from": "From",
+      "to": "To",
+      "loadError": "Could not load this section.",
+      "superadminHint": "Full superadmin view — use “View as” to preview an institution.",
+      "sections": {
+        "mortality": "Mortality",
+        "herd": "Herd",
+        "reproduction": "Reproduction",
+        "growth": "Growth",
+        "vetCoverage": "Vet coverage",
+        "economy": "Economy",
+        "movements": "Movements"
+      },
+      "columns": {
+        "department": "Department",
+        "farms": "Farms",
+        "mortality": "Mortality",
+        "byCause": "By cause",
+        "zScore": "Z-score",
+        "herdByCategory": "Herd by category",
+        "exitsSale": "Sale exits",
+        "exitsSlaughter": "Slaughter exits",
+        "litters": "Litters",
+        "bornAlive": "Born alive",
+        "stillborn": "Stillborn",
+        "weaned": "Weaned (est.)",
+        "gmq": "ADG by category",
+        "salePrice": "Sale price / kg",
+        "vetConsultations": "Vet consultations"
+      }
     }
+  },
+  "institutionPreview": {
+    "selectorLabel": "View as",
+    "noPreview": "Full superadmin view",
+    "banner": "Preview as: {label} — output identical to the institution view",
+    "exitPreview": "Exit preview",
+    "unknownInstitution": "Institution"
   },
   "map": {
     "title": "Health map",
     "subtitle": "Granular surveillance (sector, city, country) to contain epidemic clusters.",
     "regions": "Regions by country",
+    "aggregatedMode": "Aggregated view (anonymized)",
+    "maskedZone": "— insufficient data",
     "zonePanelTitle": {
       "sector": "Sectors / neighborhoods",
       "city": "Cities",
-      "country": "Countries"
+      "country": "Countries",
+      "department": "Departments"
     },
     "granularity": {
       "sector": "Sector",
       "city": "City",
-      "country": "Country"
+      "country": "Country",
+      "department": "Department"
     },
     "empty": "No active or reported cases in this period.",
     "loadError": "Could not load the health map. Check the API and your admin session.",
@@ -819,6 +871,12 @@
       "loadError": "Could not load institution accounts.",
       "emailRequired": "Email is required.",
       "permissionsRequired": "Select at least one menu with read or write access.",
+      "statSectionsTitle": "Statistics sections",
+      "statSectionsLead": "Deny-by-default: only checked sections are visible when the Statistics menu is granted.",
+      "statSectionsEmpty": "No section granted.",
+      "edit": "Edit",
+      "cancelEdit": "Cancel",
+      "saveEdit": "Save",
       "inviteError": "Could not send the invitation.",
       "updateError": "Could not update the account.",
       "removeError": "Could not remove the account."

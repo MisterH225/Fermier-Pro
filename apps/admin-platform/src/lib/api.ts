@@ -254,34 +254,36 @@ export type WithdrawalRequestAdminDto = {
   };
 };
 
-export type HealthMapGranularity = "country" | "city" | "sector";
+export type HealthMapGranularity = "country" | "city" | "sector" | "department";
 
 export type HealthMapZone = {
   id: string;
   label: string;
   level: HealthMapGranularity;
-  parentLabel: string | null;
-  centerLat: number | null;
-  centerLng: number | null;
-  activeCases: number;
-  totalCasesInPeriod: number;
-  farmCount: number;
-  topDiseases: Array<{ name: string; count: number }>;
+  parentLabel?: string | null;
+  centerLat?: number | null;
+  centerLng?: number | null;
+  masked?: boolean;
+  activeCases?: number;
+  totalCasesInPeriod?: number;
+  farmCount?: number;
+  topDiseases?: Array<{ name: string; count: number }>;
 };
 
 export type HealthMapDto = {
+  mode?: "aggregated";
   periodDays: number;
   granularity: HealthMapGranularity;
   truncated?: boolean;
   zones: HealthMapZone[];
-  regions: Array<{
+  regions?: Array<{
     country: string;
     activeCases: number;
     totalCases: number;
     farmCount: number;
     topDiseases: Array<{ name: string; count: number }>;
   }>;
-  points: Array<{
+  points?: Array<{
     recordId: string;
     farmId: string;
     farmName: string;
@@ -293,6 +295,51 @@ export type HealthMapDto = {
     city: string | null;
     sectorLabel: string | null;
   }>;
+};
+
+export type RegionalStatsCoverage = {
+  farmCount: number;
+  animalCount: number;
+  departmentsCovered: number;
+};
+
+export type RegionalStatsDepartmentRow = {
+  departmentCode: string;
+  farmCount: number;
+  masked?: true;
+  mortalityHeadcount?: number;
+  mortalityByCause?: Record<string, number>;
+  zScore?: number | null;
+  overmortality?: boolean;
+  animalCountByCategory?: Record<string, number>;
+  exitsSaleHeadcount?: number;
+  exitsSlaughterHeadcount?: number;
+  littersCount?: number;
+  bornAlive?: number;
+  stillborn?: number;
+  weanedEstimate?: number;
+  avgGmqByCategory?: Record<string, number>;
+  exitsSaleAvgPricePerKg?: number | null;
+  vetConsultationsCount?: number;
+};
+
+export type RegionalStatsResponse = {
+  from: string;
+  to: string;
+  coverage: RegionalStatsCoverage;
+  departments: RegionalStatsDepartmentRow[];
+};
+
+export type RegionalStatsSectionsDto = {
+  sections: string[];
+  isSuperadmin?: boolean;
+};
+
+export type RegionalStatsQuery = {
+  from?: string;
+  to?: string;
+  regionCode?: string;
+  departmentCode?: string;
 };
 
 export type SanitaryAlertRow = {
@@ -1386,6 +1433,7 @@ export type InstitutionConsoleUserDto = {
   fullName: string | null;
   institutionLabel: string | null;
   menuPermissions: Record<string, "read" | "write">;
+  statSectionPermissions?: Record<string, boolean>;
   isActive: boolean;
   invitedBy: string | null;
   invitedAt: string;
@@ -1397,6 +1445,13 @@ export function fetchInstitutionConsoleUsers(token: string) {
   return apiFetch<InstitutionConsoleUserDto[]>("/admin/institution-users", token);
 }
 
+export function fetchInstitutionConsoleUser(token: string, id: string) {
+  return apiFetch<InstitutionConsoleUserDto>(
+    `/admin/institution-users/${encodeURIComponent(id)}`,
+    token
+  );
+}
+
 export function createInstitutionConsoleUser(
   token: string,
   body: {
@@ -1405,6 +1460,7 @@ export function createInstitutionConsoleUser(
     institutionLabel?: string;
     inviteRedirectTo?: string;
     menuPermissions: Record<string, "read" | "write">;
+    statSectionPermissions?: Record<string, boolean>;
   }
 ) {
   return apiFetch<InstitutionConsoleUserDto>("/admin/institution-users", token, {
@@ -1420,6 +1476,7 @@ export function updateInstitutionConsoleUser(
     institutionLabel?: string;
     isActive?: boolean;
     menuPermissions?: Record<string, "read" | "write">;
+    statSectionPermissions?: Record<string, boolean>;
   }
 ) {
   return apiFetch<InstitutionConsoleUserDto>(
@@ -1503,16 +1560,190 @@ export function fetchAdminStats(
   return apiFetch<StatsDto>(`/admin/stats?period=${period}`, token);
 }
 
-export function fetchHealthMap(
+function appendViewAsInstitutionId(
+  params: URLSearchParams,
+  viewAsInstitutionId?: string | null
+) {
+  if (viewAsInstitutionId?.trim()) {
+    params.set("viewAsInstitutionId", viewAsInstitutionId.trim());
+  }
+}
+
+function normalizeHealthMapZone(
+  raw: Record<string, unknown>
+): HealthMapZone {
+  const id = String(raw.zoneId ?? raw.id ?? "");
+  const masked = raw.masked === true;
+  return {
+    id,
+    label: String(raw.label ?? id),
+    level: (raw.level as HealthMapGranularity) ?? "sector",
+    parentLabel:
+      typeof raw.parentLabel === "string" ? raw.parentLabel : null,
+    centerLat:
+      typeof raw.centerLat === "number" ? raw.centerLat : null,
+    centerLng:
+      typeof raw.centerLng === "number" ? raw.centerLng : null,
+    masked,
+    activeCases:
+      typeof raw.activeCasesCount === "number"
+        ? raw.activeCasesCount
+        : typeof raw.activeCases === "number"
+          ? raw.activeCases
+          : undefined,
+    totalCasesInPeriod:
+      typeof raw.casesCount === "number"
+        ? raw.casesCount
+        : typeof raw.totalCasesInPeriod === "number"
+          ? raw.totalCasesInPeriod
+          : undefined,
+    farmCount:
+      typeof raw.farmsAffectedCount === "number"
+        ? raw.farmsAffectedCount
+        : typeof raw.farmCount === "number"
+          ? raw.farmCount
+          : undefined,
+    topDiseases: Array.isArray(raw.dominantDiagnoses)
+      ? (raw.dominantDiagnoses as Array<{ name: string; count: number }>)
+      : Array.isArray(raw.topDiseases)
+        ? (raw.topDiseases as Array<{ name: string; count: number }>)
+        : []
+  };
+}
+
+export async function fetchHealthMap(
   token: string,
   periodDays: number,
-  granularity: HealthMapGranularity = "sector"
-) {
+  granularity: HealthMapGranularity = "sector",
+  options?: {
+    mode?: "aggregated" | "detailed";
+    viewAsInstitutionId?: string | null;
+  }
+): Promise<HealthMapDto> {
   const params = new URLSearchParams({
     periodDays: String(periodDays),
     granularity
   });
-  return apiFetch<HealthMapDto>(`/admin/health-map?${params}`, token);
+  if (options?.mode === "aggregated") {
+    params.set("mode", "aggregated");
+  }
+  appendViewAsInstitutionId(params, options?.viewAsInstitutionId);
+  const raw = await apiFetch<Record<string, unknown>>(
+    `/admin/health-map?${params}`,
+    token
+  );
+  const zones = Array.isArray(raw.zones)
+    ? raw.zones.map((zone) =>
+        normalizeHealthMapZone(zone as Record<string, unknown>)
+      )
+    : [];
+  return {
+    mode: raw.mode === "aggregated" ? "aggregated" : undefined,
+    periodDays: Number(raw.periodDays ?? periodDays),
+    granularity: (raw.granularity as HealthMapGranularity) ?? granularity,
+    truncated: raw.truncated === true,
+    zones,
+    regions: Array.isArray(raw.regions)
+      ? (raw.regions as HealthMapDto["regions"])
+      : undefined,
+    points: Array.isArray(raw.points)
+      ? (raw.points as NonNullable<HealthMapDto["points"]>)
+      : undefined
+  };
+}
+
+export function fetchRegionalStatSections(
+  token: string,
+  viewAsInstitutionId?: string | null
+) {
+  const params = new URLSearchParams();
+  appendViewAsInstitutionId(params, viewAsInstitutionId);
+  const qs = params.toString();
+  return apiFetch<RegionalStatsSectionsDto>(
+    `/admin/stats/regional/sections${qs ? `?${qs}` : ""}`,
+    token
+  );
+}
+
+function regionalStatsPath(
+  section: string,
+  query: RegionalStatsQuery,
+  viewAsInstitutionId?: string | null
+) {
+  const params = new URLSearchParams();
+  if (query.from) params.set("from", query.from);
+  if (query.to) params.set("to", query.to);
+  if (query.regionCode) params.set("regionCode", query.regionCode);
+  if (query.departmentCode) params.set("departmentCode", query.departmentCode);
+  appendViewAsInstitutionId(params, viewAsInstitutionId);
+  const qs = params.toString();
+  return `/admin/stats/regional/${section}${qs ? `?${qs}` : ""}`;
+}
+
+export function fetchRegionalMortality(
+  token: string,
+  query: RegionalStatsQuery,
+  viewAsInstitutionId?: string | null
+) {
+  return apiFetch<RegionalStatsResponse>(
+    regionalStatsPath("mortality", query, viewAsInstitutionId),
+    token
+  );
+}
+
+export function fetchRegionalHerd(
+  token: string,
+  query: RegionalStatsQuery,
+  viewAsInstitutionId?: string | null
+) {
+  return apiFetch<RegionalStatsResponse>(
+    regionalStatsPath("herd", query, viewAsInstitutionId),
+    token
+  );
+}
+
+export function fetchRegionalReproduction(
+  token: string,
+  query: RegionalStatsQuery,
+  viewAsInstitutionId?: string | null
+) {
+  return apiFetch<RegionalStatsResponse>(
+    regionalStatsPath("reproduction", query, viewAsInstitutionId),
+    token
+  );
+}
+
+export function fetchRegionalGrowth(
+  token: string,
+  query: RegionalStatsQuery,
+  viewAsInstitutionId?: string | null
+) {
+  return apiFetch<RegionalStatsResponse>(
+    regionalStatsPath("growth", query, viewAsInstitutionId),
+    token
+  );
+}
+
+export function fetchRegionalVetCoverage(
+  token: string,
+  query: RegionalStatsQuery,
+  viewAsInstitutionId?: string | null
+) {
+  return apiFetch<RegionalStatsResponse>(
+    regionalStatsPath("vet-coverage", query, viewAsInstitutionId),
+    token
+  );
+}
+
+export function fetchRegionalEconomy(
+  token: string,
+  query: RegionalStatsQuery,
+  viewAsInstitutionId?: string | null
+) {
+  return apiFetch<RegionalStatsResponse>(
+    regionalStatsPath("economy", query, viewAsInstitutionId),
+    token
+  );
 }
 
 export function fetchVetProfiles(
