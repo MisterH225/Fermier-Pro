@@ -22,6 +22,7 @@ import {
   CreateInstitutionConsoleUserDto,
   CreateSanitaryAlertDto,
   CreateSuperAdminDto,
+  PatchFarmGeoDto,
   RejectVetProfileAdminDto,
   UpdateInstitutionConsoleUserDto,
   UpdatePlatformSettingsDto
@@ -860,5 +861,18 @@ export class AdminPlatformController {
     @Body() dto: DeleteMerchantProductAdminDto
   ) {
     return this.merchantModeration.deleteProduct(admin, id, dto);
+  }
+
+  @Get("farms/unresolved-geo")
+  @UseGuards(SuperAdminGuard)
+  listUnresolvedFarmGeo(@Query("limit") limit?: string) {
+    const n = limit ? Number.parseInt(limit, 10) : 100;
+    return this.admin.listUnresolvedFarmGeo(Number.isFinite(n) ? n : 100);
+  }
+
+  @Patch("farms/:id/geo")
+  @UseGuards(SuperAdminGuard)
+  patchFarmGeo(@Param("id") id: string, @Body() dto: PatchFarmGeoDto) {
+    return this.admin.patchFarmGeo(id, dto.departmentCode.trim());
   }
 }

@@ -23,6 +23,7 @@ import { countCheptelHeadcountAt } from "./cheptel-headcount.util";
 import { mapBatchCategoryKey } from "../cheptel/batch-category.util";
 import { activeNursingLitterBatchIds } from "../gestation/litter-weaning.util";
 import { countPlacementOccupancy } from "../housing/placement-occupancy.util";
+import { GeoRollupService } from "./geo/geo-rollup.service";
 
 const MAX_ACTIVE_FARMS_PER_USER = 3;
 
@@ -34,7 +35,8 @@ export class FarmsService {
     private readonly farmAccess: FarmAccessService,
     private readonly invitations: InvitationsService,
     private readonly farmDeletion: FarmDeletionService,
-    private readonly marketplaceLifecycle: FarmMarketplaceLifecycleService
+    private readonly marketplaceLifecycle: FarmMarketplaceLifecycleService,
+    private readonly geoRollup: GeoRollupService
   ) {}
 
   async create(user: User, dto: CreateFarmDto): Promise<Farm> {
@@ -47,16 +49,23 @@ export class FarmsService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      const composedAddress = composeFarmAddress({
-        address: dto.address,
-        latitude: dto.latitude,
-        longitude: dto.longitude,
-        locationSector: dto.locationSector,
-        locationCity: dto.locationCity,
-        locationCountry: dto.locationCountry
-      });
+    const composedAddress = composeFarmAddress({
+      address: dto.address,
+      latitude: dto.latitude,
+      longitude: dto.longitude,
+      locationSector: dto.locationSector,
+      locationCity: dto.locationCity,
+      locationCountry: dto.locationCountry
+    });
 
+    const geo = await this.geoRollup.resolveFarmDepartment({
+      latitude: dto.latitude,
+      longitude: dto.longitude,
+      locationCity: dto.locationCity,
+      address: composedAddress
+    });
+
+    return this.prisma.$transaction(async (tx) => {
       const farm = await tx.farm.create({
         data: {
           ownerId: user.id,
@@ -79,6 +88,8 @@ export class FarmsService {
           locationSector: dto.locationSector?.trim() || undefined,
           locationCity: dto.locationCity?.trim() || undefined,
           locationCountry: dto.locationCountry?.trim() || undefined,
+          departmentCode: geo.departmentCode ?? undefined,
+          geoResolutionSource: geo.source,
           capacity: dto.capacity
         }
       });
