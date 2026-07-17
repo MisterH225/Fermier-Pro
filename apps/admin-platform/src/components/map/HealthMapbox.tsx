@@ -103,6 +103,7 @@ export function HealthMapbox({
   const hoveredDeptRef = useRef<string | null>(null);
 
   const [geoReady, setGeoReady] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
 
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN?.trim();
 
@@ -179,24 +180,38 @@ export function HealthMapbox({
   useEffect(() => {
     if (!containerRef.current || !token) return;
 
-    mapboxgl.accessToken = token;
-    const map = new mapboxgl.Map({
-      container: containerRef.current,
-      style: "mapbox://styles/mapbox/light-v11",
-      center: [-5.5, 7.5],
-      zoom: 5.5
-    });
-    map.addControl(new mapboxgl.NavigationControl(), "top-right");
-    mapRef.current = map;
+    let map: mapboxgl.Map | null = null;
+    try {
+      mapboxgl.accessToken = token;
+      map = new mapboxgl.Map({
+        container: containerRef.current,
+        style: "mapbox://styles/mapbox/light-v11",
+        center: [-5.5, 7.5],
+        zoom: 5.5
+      });
+      map.addControl(new mapboxgl.NavigationControl(), "top-right");
+      mapRef.current = map;
+      setMapError(null);
+    } catch (err) {
+      setMapError(
+        err instanceof Error ? err.message : t("loadError")
+      );
+      mapRef.current = null;
+      return;
+    }
 
     return () => {
       popupRef.current?.remove();
       popupRef.current = null;
-      map.remove();
+      try {
+        map?.remove();
+      } catch {
+        /* map already disposed */
+      }
       mapRef.current = null;
       boundsFittedRef.current = false;
     };
-  }, [token]);
+  }, [token, t]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -240,7 +255,11 @@ export function HealthMapbox({
         map.off("mouseleave", CHOROPLETH_LAYER_IDS.fill, deptLeaveRef.current);
         deptLeaveRef.current = null;
       }
-      map.getCanvas().style.cursor = "";
+      try {
+        map.getCanvas().style.cursor = "";
+      } catch {
+        /* map already disposed */
+      }
       if (hoveredDeptRef.current) {
         try {
           map.removeFeatureState({
@@ -252,14 +271,18 @@ export function HealthMapbox({
         }
         hoveredDeptRef.current = null;
       }
-      if (map.getLayer(CHOROPLETH_LAYER_IDS.line)) {
-        map.removeLayer(CHOROPLETH_LAYER_IDS.line);
-      }
-      if (map.getLayer(CHOROPLETH_LAYER_IDS.fill)) {
-        map.removeLayer(CHOROPLETH_LAYER_IDS.fill);
-      }
-      if (map.getSource(CHOROPLETH_SOURCE_ID)) {
-        map.removeSource(CHOROPLETH_SOURCE_ID);
+      try {
+        if (map.getLayer(CHOROPLETH_LAYER_IDS.line)) {
+          map.removeLayer(CHOROPLETH_LAYER_IDS.line);
+        }
+        if (map.getLayer(CHOROPLETH_LAYER_IDS.fill)) {
+          map.removeLayer(CHOROPLETH_LAYER_IDS.fill);
+        }
+        if (map.getSource(CHOROPLETH_SOURCE_ID)) {
+          map.removeSource(CHOROPLETH_SOURCE_ID);
+        }
+      } catch {
+        /* map already disposed */
       }
     };
 
@@ -347,7 +370,11 @@ export function HealthMapbox({
       }
 
       const onDeptMove = (e: mapboxgl.MapLayerMouseEvent) => {
-        map.getCanvas().style.cursor = "pointer";
+        try {
+          map.getCanvas().style.cursor = "pointer";
+        } catch {
+          /* ignore */
+        }
         const feature = e.features?.[0];
         const departmentCode = String(feature?.properties?.departmentCode ?? "");
         if (!departmentCode || hoveredDeptRef.current === departmentCode) return;
@@ -375,7 +402,11 @@ export function HealthMapbox({
       };
 
       const onDeptLeave = () => {
-        map.getCanvas().style.cursor = "";
+        try {
+          map.getCanvas().style.cursor = "";
+        } catch {
+          /* ignore */
+        }
         if (!hoveredDeptRef.current) return;
         const code = hoveredDeptRef.current;
         hoveredDeptRef.current = null;
@@ -459,7 +490,14 @@ export function HealthMapbox({
         mapDataMode !== "aggregated" && visiblePoints.length > 0;
 
       const zoneFeatures: GeoJSON.Feature[] = zones
-        .filter((z) => !z.masked && z.centerLat != null && z.centerLng != null)
+        .filter(
+          (z) =>
+            !z.masked &&
+            z.centerLat != null &&
+            z.centerLng != null &&
+            Number.isFinite(z.centerLat) &&
+            Number.isFinite(z.centerLng)
+        )
         .map((z) => ({
           type: "Feature",
           properties: {
@@ -475,19 +513,21 @@ export function HealthMapbox({
           }
         }));
 
-      const pointFeatures: GeoJSON.Feature[] = visiblePoints.map((p) => ({
-        type: "Feature",
-        properties: {
-          diagnosis: p.diagnosis,
-          farmName: p.farmName,
-          severity: p.severity ?? "",
-          color: severityColor(p.severity)
-        },
-        geometry: {
-          type: "Point",
-          coordinates: [p.lng, p.lat]
-        }
-      }));
+      const pointFeatures: GeoJSON.Feature[] = visiblePoints
+        .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng))
+        .map((p) => ({
+          type: "Feature",
+          properties: {
+            diagnosis: p.diagnosis,
+            farmName: p.farmName,
+            severity: p.severity ?? "",
+            color: severityColor(p.severity)
+          },
+          geometry: {
+            type: "Point",
+            coordinates: [p.lng, p.lat]
+          }
+        }));
 
       const upsertSource = (id: string, data: GeoJSON.FeatureCollection) => {
         const existingSource = map.getSource(id);
@@ -593,12 +633,19 @@ export function HealthMapbox({
     };
 
     const render = () => {
-      if (renderMode === "choropleth" && geoJsonRef.current) {
-        renderChoropleth();
-        return;
-      }
-      if (renderMode === "points") {
-        renderPoints();
+      try {
+        if (renderMode === "choropleth" && geoJsonRef.current) {
+          renderChoropleth();
+          return;
+        }
+        if (renderMode === "points") {
+          renderPoints();
+        }
+        setMapError(null);
+      } catch (err) {
+        setMapError(
+          err instanceof Error ? err.message : t("loadError")
+        );
       }
     };
 
@@ -609,9 +656,13 @@ export function HealthMapbox({
     }
 
     return () => {
-      detachPointsLayers();
-      detachChoroplethLayers();
-      map.off("load", render);
+      try {
+        detachPointsLayers();
+        detachChoroplethLayers();
+        map.off("load", render);
+      } catch {
+        /* map already disposed */
+      }
     };
   }, [
     zones,
@@ -644,8 +695,19 @@ export function HealthMapbox({
 
   return (
     <div className={cn("relative", className)}>
-      <div ref={containerRef} className="h-full w-full rounded-xl overflow-hidden" />
-      {renderMode === "choropleth" ? (
+      <div
+        ref={containerRef}
+        className={cn(
+          "h-full w-full rounded-xl overflow-hidden",
+          mapError ? "invisible absolute inset-0" : undefined
+        )}
+      />
+      {mapError ? (
+        <div className="flex h-full w-full items-center justify-center rounded-xl border border-dashed border-destructive/40 bg-muted p-8 text-sm text-destructive">
+          {mapError}
+        </div>
+      ) : null}
+      {!mapError && renderMode === "choropleth" ? (
         <HealthMapChoroplethLegend
           maxIntensity={maxChoroplethIntensity}
           metric={intensityMetric}

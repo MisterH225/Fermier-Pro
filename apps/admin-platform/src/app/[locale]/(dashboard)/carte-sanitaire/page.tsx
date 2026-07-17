@@ -80,6 +80,7 @@ export default function CarteSanitairePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
+  const safeAlerts = Array.isArray(alerts) ? alerts : [];
 
   const isAggregated =
     data?.mode === "aggregated" ||
@@ -285,11 +286,11 @@ export default function CarteSanitairePage() {
             <CardTitle className="text-base">{t("alertsTitle")}</CardTitle>
           </CardHeader>
           <CardContent>
-            {alerts.length === 0 ? (
+            {safeAlerts.length === 0 ? (
               <p className="text-muted-foreground text-sm">{t("noAlerts")}</p>
             ) : (
               <ul className="space-y-3 text-sm max-h-80 overflow-y-auto">
-                {alerts.map((a) => (
+                {safeAlerts.map((a) => (
                   <li key={a.id} className="border rounded-lg p-3 space-y-2">
                     <p className="font-semibold">{a.zoneName}</p>
                     <div className="flex flex-wrap gap-1">

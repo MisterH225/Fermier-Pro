@@ -267,14 +267,10 @@ export function buildChoroplethFillOpacityExpression(): Expression {
     0.45,
     ["!", ["boolean", ["feature-state", "hasData"], false]],
     0.42,
-    ["==", ["feature-state", metricActiveCasesKey()], 0],
+    ["==", ["feature-state", "activeCases"], 0],
     0.55,
     0.78
   ];
-}
-
-function metricActiveCasesKey(): Expression {
-  return ["feature-state", "activeCases"];
 }
 
 export function buildChoroplethLineWidthExpression(): Expression {

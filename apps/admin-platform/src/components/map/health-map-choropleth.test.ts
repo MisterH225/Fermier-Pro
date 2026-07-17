@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildChoroplethFillOpacityExpression,
   buildDepartmentFeatureState,
   buildStatsByDepartment,
   computeGeoJsonBounds,
@@ -11,6 +12,20 @@ import {
 } from "./health-map-choropleth";
 
 describe("health-map-choropleth", () => {
+  it("construit une expression d'opacité Mapbox valide (sans feature-state imbriqué)", () => {
+    const expr = buildChoroplethFillOpacityExpression();
+    expect(expr[0]).toBe("case");
+    const zeroCasesBranch = expr.find(
+      (part, index) =>
+        index > 0 &&
+        Array.isArray(part) &&
+        part[0] === "==" &&
+        Array.isArray(part[1]) &&
+        part[1][0] === "feature-state"
+    ) as ["==", ["feature-state", string], number] | undefined;
+    expect(zeroCasesBranch?.[1]).toEqual(["feature-state", "activeCases"]);
+  });
+
   it("résout le mode choroplèthe pour les stats départementales agrégées", () => {
     expect(
       resolveHealthMapMode({
