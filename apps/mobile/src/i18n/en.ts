@@ -1361,6 +1361,7 @@ export const en = {
       merchantShop: "Shop",
       merchantProduct: "Product",
       merchantOrder: "Order",
+      merchantOrderDetails: "Details",
       merchantDispute: "Dispute",
       merchantSubscription: "Subscription",
       producerSubscription: "Team Premium",
@@ -4037,6 +4038,7 @@ export const en = {
       net: "Seller net",
       message: "Message",
       timeline: "Order tracking",
+      trackShipping: "Track shipping",
       respondBefore: "Respond before {{when}}",
       accept: "Accept",
       reject: "Decline",
@@ -4050,6 +4052,44 @@ export const en = {
       disputeOpen: "Dispute in progress",
       sellerNote: "Seller note",
       buyerNote: "Buyer note",
+      tracking: {
+        label: "Tracking ID",
+        copy: "Copy tracking ID",
+        copied: "Tracking ID copied"
+      },
+      progress: {
+        received: "Received",
+        in_transit: "In transit",
+        delivered: "Delivered"
+      },
+      deliveryDetails: {
+        title: "Delivery details",
+        receiver: "Receiver",
+        merchant: "Merchant",
+        contact: "Contact",
+        noContact: "Not provided",
+        item: "Item",
+        note: "Note"
+      },
+      contact: {
+        call: "Call",
+        buyerHint: "Contact buyer",
+        sellerHint: "Contact merchant"
+      },
+      activity: {
+        title: "Activity",
+        empty: "No activity yet.",
+        generic: "Status updated: {{status}}",
+        paid: "Payment confirmed — waiting for the merchant to accept.",
+        confirmed: "Order accepted by the merchant.",
+        shipping: "Package is out for delivery.",
+        delivered: "Package marked as delivered.",
+        completed: "Order closed — sale completed.",
+        rejected: "Order declined.",
+        disputed: "A dispute was opened on this order.",
+        refunded: "Order refunded.",
+        auto_rejected: "Order expired due to no response."
+      },
       filter: {
         all: "All",
         payment_pending: "Pending",
@@ -4072,7 +4112,7 @@ export const en = {
         paid: "New order",
         paidBuyer: "Waiting for merchant",
         confirmed: "Confirmed",
-        shipping: "Shipping",
+        shipping: "In transit",
         delivered: "Delivered",
         completed: "Completed",
         rejected: "Declined",

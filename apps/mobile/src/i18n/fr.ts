@@ -1367,6 +1367,7 @@ export const fr = {
       merchantShop: "Boutique",
       merchantProduct: "Produit",
       merchantOrder: "Commande",
+      merchantOrderDetails: "Détails",
       merchantDispute: "Litige",
       merchantSubscription: "Abonnement",
       producerSubscription: "Premium équipe",
@@ -4086,6 +4087,7 @@ export const fr = {
       net: "Net vendeur",
       message: "Messagerie",
       timeline: "Suivi commande",
+      trackShipping: "Suivre la livraison",
       respondBefore: "Répondez avant {{when}}",
       accept: "Accepter",
       reject: "Refuser",
@@ -4099,6 +4101,44 @@ export const fr = {
       disputeOpen: "Litige en cours",
       sellerNote: "Note vendeur",
       buyerNote: "Note acheteur",
+      tracking: {
+        label: "N° de suivi",
+        copy: "Copier le numéro",
+        copied: "Numéro de suivi copié"
+      },
+      progress: {
+        received: "Reçue",
+        in_transit: "En livraison",
+        delivered: "Livrée"
+      },
+      deliveryDetails: {
+        title: "Détails de livraison",
+        receiver: "Destinataire",
+        merchant: "Commerçant",
+        contact: "Contact",
+        noContact: "Non renseigné",
+        item: "Article",
+        note: "Note"
+      },
+      contact: {
+        call: "Appeler",
+        buyerHint: "Contacter l’acheteur",
+        sellerHint: "Contacter le commerçant"
+      },
+      activity: {
+        title: "Activité",
+        empty: "Aucune activité pour le moment.",
+        generic: "Statut mis à jour : {{status}}",
+        paid: "Paiement confirmé — la commande attend l’acceptation du commerçant.",
+        confirmed: "Commande acceptée par le commerçant.",
+        shipping: "Colis en cours de livraison.",
+        delivered: "Colis marqué comme livré.",
+        completed: "Commande clôturée — vente terminée.",
+        rejected: "Commande refusée.",
+        disputed: "Un litige a été ouvert sur cette commande.",
+        refunded: "Commande remboursée.",
+        auto_rejected: "Commande expirée faute de réponse."
+      },
       filter: {
         all: "Toutes",
         payment_pending: "En attente",

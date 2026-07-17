@@ -7,16 +7,24 @@ import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   View
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { MerchantMobileShell } from "../../components/layout/MerchantMobileShell";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import { fetchMerchantSellerOrders, type MerchantOrderDto } from "../../lib/api";
+import { formatMarketMoney } from "../../lib/formatMoney";
+import {
+  orderStatusBadgeTone,
+  shortOrderTrackingId,
+  type OrderStatusBadgeTone
+} from "../../lib/merchantOrderTracking";
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
 import { mobileSpacing } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
@@ -40,6 +48,15 @@ const FILTERS: OrderFilter[] = [
   "disputed",
   "completed"
 ];
+
+const BADGE_STYLES: Record<OrderStatusBadgeTone, { bg: string; fg: string }> = {
+  neutral: { bg: "#F3F4F6", fg: "#374151" },
+  info: { bg: merchantColors.primaryLight, fg: merchantColors.primaryDark },
+  progress: { bg: "#E0F2FE", fg: "#0369A1" },
+  success: { bg: "#DCFCE7", fg: "#166534" },
+  warning: { bg: "#FEF3C7", fg: "#92400E" },
+  danger: { bg: "#FCE7F3", fg: merchantColors.danger }
+};
 
 export function MerchantOrdersScreen() {
   const { t } = useTranslation();
@@ -99,7 +116,11 @@ export function MerchantOrdersScreen() {
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: mobileSpacing.md, paddingBottom: bottomInset, gap: mobileSpacing.sm }}
+          contentContainerStyle={{
+            padding: mobileSpacing.md,
+            paddingBottom: bottomInset,
+            gap: mobileSpacing.sm
+          }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -117,7 +138,9 @@ export function MerchantOrdersScreen() {
               onPress={() =>
                 navigation.navigate("MerchantOrderDetail", { orderId: item.id })
               }
-              statusLabel={t(`merchant.orders.status.${item.status}`, { defaultValue: item.status })}
+              statusLabel={t(`merchant.orders.status.${item.status}`, {
+                defaultValue: item.status
+              })}
             />
           )}
         />
@@ -135,18 +158,44 @@ function OrderRow({
   onPress: () => void;
   statusLabel: string;
 }) {
+  const photo = order.productPhotoUrls?.find((u) => u.trim().length > 0);
+  const tone = orderStatusBadgeTone(order.status);
+  const badge = BADGE_STYLES[tone];
+  const trackingId = shortOrderTrackingId(order.id);
+
   return (
     <Pressable style={[styles.card, merchantShadow.card]} onPress={onPress}>
-      <View style={styles.cardHead}>
-        <Text style={styles.cardName}>{order.productName ?? order.id}</Text>
-        <Text style={styles.status}>{statusLabel}</Text>
+      <View style={styles.cardTop}>
+        <View style={styles.thumbWrap}>
+          {photo ? (
+            <Image source={{ uri: photo }} style={styles.thumb} resizeMode="cover" />
+          ) : (
+            <View style={styles.thumbPlaceholder}>
+              <Ionicons name="cube-outline" size={22} color={merchantColors.textMuted} />
+            </View>
+          )}
+        </View>
+        <View style={styles.cardBody}>
+          <View style={styles.cardHead}>
+            <Text style={styles.cardName} numberOfLines={2}>
+              {order.productName ?? trackingId}
+            </Text>
+            <View style={[styles.badge, { backgroundColor: badge.bg }]}>
+              <Text style={[styles.badgeTx, { color: badge.fg }]} numberOfLines={1}>
+                {statusLabel}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.tracking}>{trackingId}</Text>
+          <Text style={styles.meta} numberOfLines={1}>
+            {order.buyerName ?? "—"} ·{" "}
+            {formatMarketMoney(order.totalAmount, order.productCurrency || "XOF")}
+          </Text>
+          <Text style={styles.net}>
+            +{formatMarketMoney(order.sellerNet, order.productCurrency || "XOF")} net
+          </Text>
+        </View>
       </View>
-      <Text style={styles.meta}>
-        {order.buyerName ?? ""} · {order.totalAmount.toLocaleString("fr-FR")} XOF
-      </Text>
-      <Text style={styles.net}>
-        +{order.sellerNet.toLocaleString("fr-FR")} XOF net
-      </Text>
     </Pressable>
   );
 }
@@ -157,7 +206,7 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.md,
     backgroundColor: merchantColors.canvas
   },
-  title: { fontSize: 22, fontWeight: "800" },
+  title: { fontSize: 22, fontWeight: "800", color: merchantColors.textPrimary },
   filters: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -174,7 +223,10 @@ const styles = StyleSheet.create({
     borderColor: merchantColors.border,
     backgroundColor: merchantColors.cardBg
   },
-  chipOn: { backgroundColor: merchantColors.primaryLight, borderColor: merchantColors.primary },
+  chipOn: {
+    backgroundColor: merchantColors.primaryLight,
+    borderColor: merchantColors.primary
+  },
   chipTx: { fontSize: 12, fontWeight: "600", color: merchantColors.textSecondary },
   chipTxOn: { color: merchantColors.primary },
   card: {
@@ -184,10 +236,50 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: merchantColors.border
   },
-  cardHead: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
-  cardName: { fontWeight: "700", flex: 1 },
-  status: { fontSize: 12, fontWeight: "700", color: merchantColors.primary },
-  meta: { color: merchantColors.textSecondary, marginTop: 4, fontSize: 13 },
-  net: { color: merchantColors.success, fontWeight: "700", marginTop: 4 },
-  empty: { textAlign: "center", marginTop: 40, color: merchantColors.textSecondary }
+  cardTop: { flexDirection: "row", gap: 12 },
+  thumbWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: merchantColors.primaryLight
+  },
+  thumb: { width: "100%", height: "100%" },
+  thumbPlaceholder: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  cardBody: { flex: 1, gap: 3 },
+  cardHead: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 8
+  },
+  cardName: {
+    fontWeight: "800",
+    flex: 1,
+    fontSize: 15,
+    color: merchantColors.textPrimary
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: merchantRadius.pill,
+    maxWidth: "46%"
+  },
+  badgeTx: { fontSize: 10, fontWeight: "800" },
+  tracking: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: merchantColors.primary
+  },
+  meta: { color: merchantColors.textSecondary, fontSize: 13 },
+  net: { color: merchantColors.success, fontWeight: "700", fontSize: 13 },
+  empty: {
+    textAlign: "center",
+    marginTop: 40,
+    color: merchantColors.textSecondary
+  }
 });
