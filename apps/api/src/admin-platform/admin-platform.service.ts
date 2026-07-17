@@ -1727,4 +1727,76 @@ export class AdminPlatformService {
     }
     return row;
   }
+
+  /** Fermes dont le rattachement départemental n'a pas pu être résolu automatiquement. */
+  async listUnresolvedFarmGeo(limit = 100) {
+    const take = Math.min(Math.max(limit, 1), 500);
+    const farms = await this.prisma.farm.findMany({
+      where: {
+        status: "active",
+        geoResolutionSource: "unresolved"
+      },
+      orderBy: { updatedAt: "desc" },
+      take,
+      select: {
+        id: true,
+        name: true,
+        locationCity: true,
+        locationSector: true,
+        address: true,
+        latitude: true,
+        longitude: true,
+        departmentCode: true,
+        geoResolutionSource: true,
+        ownerId: true,
+        updatedAt: true
+      }
+    });
+    return {
+      count: farms.length,
+      farms: farms.map((f) => ({
+        ...f,
+        latitude: f.latitude != null ? Number(f.latitude) : null,
+        longitude: f.longitude != null ? Number(f.longitude) : null
+      }))
+    };
+  }
+
+  /** Assignation manuelle d'un département (source=manual). */
+  async patchFarmGeo(farmId: string, departmentCode: string) {
+    const dept = await this.prisma.adminRegionRef.findUnique({
+      where: { code: departmentCode }
+    });
+    if (!dept || dept.level !== "department") {
+      throw new BadRequestException(
+        "departmentCode invalide : département introuvable dans AdminRegionRef."
+      );
+    }
+    const farm = await this.prisma.farm.findUnique({ where: { id: farmId } });
+    if (!farm) {
+      throw new NotFoundException("Ferme introuvable");
+    }
+    const updated = await this.prisma.farm.update({
+      where: { id: farmId },
+      data: {
+        departmentCode,
+        geoResolutionSource: "manual"
+      },
+      select: {
+        id: true,
+        name: true,
+        departmentCode: true,
+        geoResolutionSource: true,
+        locationCity: true,
+        latitude: true,
+        longitude: true
+      }
+    });
+    return {
+      ...updated,
+      latitude: updated.latitude != null ? Number(updated.latitude) : null,
+      longitude: updated.longitude != null ? Number(updated.longitude) : null,
+      departmentName: dept.name
+    };
+  }
 }

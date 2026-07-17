@@ -24,6 +24,14 @@ export class RejectVetProfileAdminDto {
   reason!: string;
 }
 
+/** Assignation manuelle du département d'une ferme (superadmin). */
+export class PatchFarmGeoDto {
+  @IsString()
+  @MinLength(2)
+  @MaxLength(64)
+  departmentCode!: string;
+}
+
 export class UpdatePlatformSettingsDto {
   @IsOptional()
   @IsString()

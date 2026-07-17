@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { CommonModule } from "../common/common.module";
+import { FarmsModule } from "../farms/farms.module";
 import { FinanceModule } from "../finance/finance.module";
 import { GestationModule } from "../gestation/gestation.module";
 import { SmartAlertsModule } from "../smart-alerts/smart-alerts.module";
@@ -13,7 +14,8 @@ import { FarmSettingsService } from "./farm-settings.service";
     CommonModule,
     FinanceModule,
     SmartAlertsModule,
-    GestationModule
+    GestationModule,
+    FarmsModule
   ],
   controllers: [FarmSettingsController],
   providers: [FarmSettingsService],

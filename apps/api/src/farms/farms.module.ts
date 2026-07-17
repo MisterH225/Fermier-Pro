@@ -8,6 +8,7 @@ import { FarmsController } from "./farms.controller";
 import { FarmsService } from "./farms.service";
 import { FarmDeletionService } from "./farm-deletion.service";
 import { FarmDataPurgeModule } from "./farm-data-purge.module";
+import { GeoRollupService } from "./geo/geo-rollup.service";
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { FarmDataPurgeModule } from "./farm-data-purge.module";
     MarketplaceModule
   ],
   controllers: [FarmsController],
-  providers: [FarmsService, FarmDeletionService],
-  exports: [FarmsService]
+  providers: [FarmsService, FarmDeletionService, GeoRollupService],
+  exports: [FarmsService, GeoRollupService]
 })
 export class FarmsModule {}

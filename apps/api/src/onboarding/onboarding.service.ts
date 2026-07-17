@@ -20,6 +20,7 @@ import {
   penNameForBarn,
   type CreatedPenMeta
 } from "./onboarding-pen-layout";
+import { GeoRollupService } from "../farms/geo/geo-rollup.service";
 
 const PORCIN_CODE = "porcin";
 
@@ -29,7 +30,8 @@ export class OnboardingService {
     private readonly prisma: PrismaService,
     private readonly invitations: InvitationsService,
     private readonly taxonomy: TaxonomyService,
-    private readonly animalTags: AnimalProductionTagsService
+    private readonly animalTags: AnimalProductionTagsService,
+    private readonly geoRollup: GeoRollupService
   ) {}
 
   async getStatus(userId: string) {
@@ -90,6 +92,14 @@ export class OnboardingService {
       throw new BadRequestException("Espece porcin indisponible");
     }
 
+    const locationLabel = dto.locationLabel?.trim() || undefined;
+    const geo = await this.geoRollup.resolveFarmDepartment({
+      latitude: dto.latitude,
+      longitude: dto.longitude,
+      locationCity: locationLabel,
+      address: locationLabel
+    });
+
     const farm = await this.prisma.$transaction(async (tx) => {
       const createdFarm = await tx.farm.create({
         data: {
@@ -108,10 +118,10 @@ export class OnboardingService {
             dto.longitude != null
               ? new Prisma.Decimal(dto.longitude)
               : undefined,
-          address:
-            dto.locationSource === "manual"
-              ? dto.locationLabel?.trim()
-              : dto.locationLabel?.trim() ?? undefined
+          address: locationLabel,
+          locationCity: locationLabel,
+          departmentCode: geo.departmentCode ?? undefined,
+          geoResolutionSource: geo.source
         }
       });
 

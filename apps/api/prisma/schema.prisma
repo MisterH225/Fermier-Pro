@@ -121,6 +121,21 @@ enum FarmStatus {
   archived
 }
 
+/// Niveau du référentiel administratif ivoirien.
+enum AdminRegionLevel {
+  district
+  region
+  department
+}
+
+/// Origine du rattachement départemental d'une ferme.
+enum GeoResolutionSource {
+  gps
+  locality
+  manual
+  unresolved
+}
+
 enum MembershipRole {
   owner
   manager
@@ -382,6 +397,10 @@ model Farm {
   locationCity    String?
   /// Pays (libellé ou code ISO).
   locationCountry String?
+  /// Département ivoirien (référentiel AdminRegionRef), résolu automatiquement.
+  departmentCode      String?
+  /// Source de la résolution départementale (gps / localité / manuel / non résolu).
+  geoResolutionSource GeoResolutionSource @default(unresolved)
   capacity     Int?
   /// Statut du projet : actif (visible) ou archivé (masqué par défaut).
   status       FarmStatus         @default(active)
@@ -391,6 +410,7 @@ model Farm {
   displayOrder Int                @default(0)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
+  department   AdminRegionRef?    @relation("FarmDepartment", fields: [departmentCode], references: [code], onDelete: SetNull)
   owner        User               @relation("FarmOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   /// Utilisateurs ayant ce projet comme projet actif (relation inverse).
   activeFarmUsers User[]          @relation("UserActiveFarm")
@@ -441,6 +461,38 @@ model Farm {
 
   @@index([ownerId, status])
   @@index([status])
+  @@index([departmentCode])
+  @@index([geoResolutionSource])
+}
+
+/// Référentiel administratif Côte d'Ivoire (district / région / département).
+model AdminRegionRef {
+  code       String           @id
+  name       String
+  level      AdminRegionLevel
+  parentCode String?
+  parent     AdminRegionRef?  @relation("AdminRegionTree", fields: [parentCode], references: [code], onDelete: SetNull)
+  children   AdminRegionRef[] @relation("AdminRegionTree")
+  localities LocalityRef[]
+  farms      Farm[]           @relation("FarmDepartment")
+
+  @@index([level])
+  @@index([parentCode])
+  @@index([name])
+}
+
+/// Gazetteer localité → département (matching texte libre locationCity).
+model LocalityRef {
+  id             String          @id
+  nameNormalized String
+  displayName    String
+  departmentCode String
+  latitude       Decimal?        @db.Decimal(10, 7)
+  longitude      Decimal?        @db.Decimal(10, 7)
+  department     AdminRegionRef  @relation(fields: [departmentCode], references: [code], onDelete: Restrict)
+
+  @@index([nameNormalized])
+  @@index([departmentCode])
 }
 
 /// Préférences app régionales / apparence (par ferme).

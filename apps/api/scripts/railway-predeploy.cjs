@@ -75,7 +75,22 @@ if (deploy.status !== 0) {
     "[railway-predeploy] migrate deploy en échec — déploiement poursuivi (schéma peut déjà être à jour via Supabase). " +
       "Vérifiez les logs et DATABASE_URL / PRISMA_DATABASE_URL sur Railway."
   );
-  process.exit(0);
+  // On tente quand même le seed référentiels géo (tables peuvent déjà exister).
+}
+
+console.log("[railway-predeploy] seed référentiels géo CI…");
+const seed = spawnSync(process.execPath, [path.join(apiRoot, "prisma", "seed.cjs")], {
+  cwd: apiRoot,
+  env: process.env,
+  encoding: "utf8",
+  stdio: ["inherit", "pipe", "pipe"]
+});
+if (seed.stdout) process.stdout.write(seed.stdout);
+if (seed.stderr) process.stderr.write(seed.stderr);
+if (seed.status !== 0) {
+  console.error(
+    "[railway-predeploy] seed géo en échec (non bloquant) — lancez npm run prisma:seed manuellement si besoin."
+  );
 }
 
 process.exit(0);

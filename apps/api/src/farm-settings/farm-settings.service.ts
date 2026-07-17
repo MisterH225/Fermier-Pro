@@ -7,6 +7,7 @@ import { FinanceService } from "../finance/finance.service";
 import { GestationService } from "../gestation/gestation.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { SmartAlertsService } from "../smart-alerts/smart-alerts.service";
+import { GeoRollupService } from "../farms/geo/geo-rollup.service";
 import type { PatchFarmSettingsDto } from "./dto/patch-farm-settings.dto";
 
 const GMQ_PHASE_KEYS = {
@@ -29,7 +30,8 @@ export class FarmSettingsService {
     private readonly farmAccess: FarmAccessService,
     private readonly finance: FinanceService,
     private readonly smartAlerts: SmartAlertsService,
-    private readonly gestation: GestationService
+    private readonly gestation: GestationService,
+    private readonly geoRollup: GeoRollupService
   ) {}
 
   private async ensureAppSettings(farmId: string) {
@@ -357,6 +359,44 @@ export class FarmSettingsService {
     dto: NonNullable<PatchFarmSettingsDto["farm"]>
   ) {
     await this.farmAccess.requireFarmAccess(user.id, farmId);
+    const existing = await this.prisma.farm.findUnique({
+      where: { id: farmId },
+      select: {
+        latitude: true,
+        longitude: true,
+        locationCity: true,
+        address: true
+      }
+    });
+
+    const nextLat =
+      dto.latitude !== undefined
+        ? dto.latitude
+        : existing?.latitude != null
+          ? Number(existing.latitude)
+          : null;
+    const nextLng =
+      dto.longitude !== undefined
+        ? dto.longitude
+        : existing?.longitude != null
+          ? Number(existing.longitude)
+          : null;
+    const nextAddress =
+      dto.address !== undefined ? dto.address : existing?.address;
+    const locationTouched =
+      dto.latitude !== undefined ||
+      dto.longitude !== undefined ||
+      dto.address !== undefined;
+
+    const geo = locationTouched
+      ? await this.geoRollup.resolveFarmDepartment({
+          latitude: nextLat,
+          longitude: nextLng,
+          locationCity: existing?.locationCity,
+          address: nextAddress
+        })
+      : null;
+
     await this.prisma.farm.update({
       where: { id: farmId },
       data: {
@@ -373,6 +413,12 @@ export class FarmSettingsService {
           ? {
               longitude:
                 dto.longitude == null ? null : new Prisma.Decimal(dto.longitude)
+            }
+          : {}),
+        ...(geo
+          ? {
+              departmentCode: geo.departmentCode,
+              geoResolutionSource: geo.source
             }
           : {})
       }
