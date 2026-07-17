@@ -26,6 +26,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import {
+  deriveDepartmentStatsFromZones,
+  extractDepartmentCode,
+  zoneMatchesDepartment
+} from "@/components/map/health-map-choropleth";
 
 const HealthMapbox = dynamic(
   () => import("@/components/map/HealthMapbox").then((m) => m.HealthMapbox),
@@ -133,10 +138,21 @@ export default function CarteSanitairePage() {
       (a, b) => (b.activeCases ?? 0) - (a.activeCases ?? 0)
     );
     if (selectedZoneId) {
-      return sorted.filter((z) => z.id === selectedZoneId);
+      return sorted.filter((z) => zoneMatchesDepartment(z.id, selectedZoneId));
     }
     return sorted;
   }, [zones, selectedZoneId]);
+
+  const departmentStats = useMemo(() => {
+    if (!isAggregated || granularity !== "department") return undefined;
+    return deriveDepartmentStatsFromZones(zones);
+  }, [isAggregated, granularity, zones]);
+
+  const mapMode = useMemo(
+    () =>
+      isAggregated && granularity === "department" ? ("choropleth" as const) : undefined,
+    [isAggregated, granularity]
+  );
 
   if (!ready || !token) {
     return <p className="text-muted-foreground">…</p>;
@@ -208,10 +224,14 @@ export default function CarteSanitairePage() {
             ) : null}
           </div>
           <HealthMapbox
-            points={points}
+            points={isAggregated ? undefined : points}
             zones={zones}
             selectedZoneId={selectedZoneId}
             onZoneSelect={setSelectedZoneId}
+            mapDataMode={data.mode}
+            granularity={granularity}
+            departmentStats={departmentStats}
+            mode={mapMode}
             className="h-[420px] w-full rounded-3xl border border-white/60 shadow-glass"
           />
         </>
@@ -238,11 +258,19 @@ export default function CarteSanitairePage() {
                     key={z.id}
                     zone={z}
                     maxActive={maxActive}
-                    selected={z.id === selectedZoneId}
+                    selected={zoneMatchesDepartment(z.id, selectedZoneId)}
                     onSelect={() =>
-                      setSelectedZoneId((prev) =>
-                        prev === z.id ? null : z.id
-                      )
+                      setSelectedZoneId((prev) => {
+                        const key =
+                          z.level === "department"
+                            ? extractDepartmentCode(z.id)
+                            : z.id;
+                        const matches =
+                          prev === z.id ||
+                          prev === key ||
+                          (prev != null && zoneMatchesDepartment(z.id, prev));
+                        return matches ? null : key;
+                      })
                     }
                     t={t}
                   />

@@ -644,6 +644,13 @@
       "30": "30 j",
       "90": "90 j",
       "365": "12 mois"
+    },
+    "choropleth": {
+      "title": "Légende de la carte",
+      "activeCasesTitle": "Cas actifs",
+      "farmsTitle": "Fermes affectées",
+      "noData": "Aucune donnée",
+      "insufficientData": "Données insuffisantes"
     }
   },
   "ai": {

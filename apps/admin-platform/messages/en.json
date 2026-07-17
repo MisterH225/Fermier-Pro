@@ -642,6 +642,13 @@
       "30": "30d",
       "90": "90d",
       "365": "12mo"
+    },
+    "choropleth": {
+      "title": "Map legend",
+      "activeCasesTitle": "Active cases",
+      "farmsTitle": "Affected farms",
+      "noData": "No data",
+      "insufficientData": "Insufficient data"
     }
   },
   "ai": {
