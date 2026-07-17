@@ -779,6 +779,29 @@ export class UserWalletService {
     );
   }
 
+  /**
+   * Clawback litige post-completed : récupère le net versé au commerçant
+   * pour rembourser l’acheteur (les commissions plateforme sont annulées à part).
+   */
+  async debitMerchantClawback(
+    userId: string,
+    amount: number,
+    currency: string,
+    orderId: string,
+    buyerUserId: string,
+    note: string
+  ): Promise<WalletEntryDto> {
+    return this.debit(
+      userId,
+      amount,
+      currency,
+      UserWalletEntryKind.debit_adjustment,
+      note,
+      `merchant-clawback:${orderId}`,
+      { merchantOrderId: orderId, counterpartyUserId: buyerUserId }
+    );
+  }
+
   async debitForVetHold(
     userId: string,
     amount: number,

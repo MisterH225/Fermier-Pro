@@ -345,6 +345,54 @@ export class MerchantOrdersService {
     return this.serializeOrder(updated.order);
   }
 
+  /**
+   * Le commerçant reconnaît le défaut et accepte de reprendre l’article :
+   * remboursement acheteur (escrow encore tenu) ou clawback post-completed.
+   */
+  async acceptReturn(user: User, orderId: string, note?: string) {
+    const order = await this.prisma.merchantOrder.findFirst({
+      where: { id: orderId, sellerUserId: user.id },
+      include: {
+        dispute: true,
+        product: {
+          select: { id: true, name: true, currency: true, stock: true, status: true }
+        }
+      }
+    });
+    if (!order?.dispute || order.dispute.status !== MerchantOrderDisputeStatus.open) {
+      throw new NotFoundException("Litige introuvable ou déjà clos");
+    }
+    if (order.status !== MerchantOrderStatus.disputed) {
+      throw new BadRequestException("La commande n'est pas en litige");
+    }
+
+    const resolutionNote =
+      note?.trim() ||
+      "Commerçant : reprise de l’article acceptée — remboursement acheteur";
+
+    await this.settleDisputeForBuyer(order, user.id, resolutionNote);
+
+    void this.notifications.notify(
+      order.buyerUserId,
+      "Litige résolu",
+      "Le commerçant a accepté la reprise — remboursement effectué",
+      { type: "merchant_order_dispute_resolved", orderId: order.id }
+    );
+    void this.notifications.notify(
+      order.sellerUserId,
+      "Litige résolu",
+      "Reprise acceptée — remboursement acheteur effectué",
+      { type: "merchant_order_dispute_resolved", orderId: order.id }
+    );
+
+    return this.prisma.merchantOrder
+      .findUniqueOrThrow({
+        where: { id: orderId },
+        include: this.orderInclude()
+      })
+      .then((o) => this.serializeOrder(o));
+  }
+
   async resolveDispute(
     adminUserId: string,
     orderId: string,
@@ -367,25 +415,11 @@ export class MerchantOrdersService {
 
     const resolutionNote = note?.trim() || null;
     if (decision === "buyer") {
-      if (order.escrowHeld) {
-        await this.refundEscrow(order);
-        await this.restoreStock(order);
-      }
-      await this.prisma.merchantOrderDispute.update({
-        where: { id: order.dispute.id },
-        data: {
-          status: MerchantOrderDisputeStatus.resolved_buyer,
-          resolvedAt: new Date(),
-          resolvedByUserId: adminUserId,
-          resolutionNote
-        }
-      });
-      await this.transition(order, MerchantOrderStatus.refunded, adminUserId, {
-        resolvedAt: new Date(),
-        resolvedByUserId: adminUserId,
-        resolutionNote,
-        escrowHeld: false
-      });
+      await this.settleDisputeForBuyer(
+        order,
+        adminUserId,
+        resolutionNote ?? "Arbitrage admin — remboursement acheteur"
+      );
     } else {
       if (order.escrowHeld) {
         await this.releaseEscrow(order);
@@ -431,6 +465,132 @@ export class MerchantOrdersService {
         include: this.orderInclude()
       })
       .then((o) => this.serializeOrder(o));
+  }
+
+  /**
+   * Remboursement acheteur :
+   * - escrow encore tenu → refundEscrow ;
+   * - post-completed (fonds déjà versés) → clawback vendeur + crédit acheteur
+   *   + annulation des commissions plateforme.
+   */
+  private async settleDisputeForBuyer(
+    order: {
+      id: string;
+      buyerUserId: string;
+      sellerUserId: string;
+      productId: string;
+      quantity: number;
+      totalAmount: Prisma.Decimal;
+      buyerCommission: Prisma.Decimal;
+      sellerCommission: Prisma.Decimal;
+      escrowHeld: boolean;
+      status: MerchantOrderStatus;
+      dispute: { id: string } | null;
+      product: { name: string; currency: string };
+    },
+    actorUserId: string,
+    resolutionNote: string
+  ) {
+    if (!order.dispute) {
+      throw new NotFoundException("Litige introuvable");
+    }
+
+    if (order.escrowHeld) {
+      await this.refundEscrow(order);
+    } else {
+      await this.clawbackReleasedPayout(order);
+    }
+    await this.restoreStock(order);
+
+    await this.prisma.merchantOrderDispute.update({
+      where: { id: order.dispute.id },
+      data: {
+        status: MerchantOrderDisputeStatus.resolved_buyer,
+        resolvedAt: new Date(),
+        resolvedByUserId: actorUserId,
+        resolutionNote
+      }
+    });
+    await this.transition(order, MerchantOrderStatus.refunded, actorUserId, {
+      resolvedAt: new Date(),
+      resolvedByUserId: actorUserId,
+      resolutionNote,
+      escrowHeld: false
+    });
+  }
+
+  /**
+   * Litige legacy après completed : le commerçant a déjà reçu le net.
+   * - débit vendeur = sellerNet (montant reçu)
+   * - crédit acheteur = total payé (deal + commission acheteur)
+   * - commissions plateforme annulées (PlatformRevenue → COMMISSION_REVERSAL)
+   */
+  private async clawbackReleasedPayout(order: {
+    id: string;
+    buyerUserId: string;
+    sellerUserId: string;
+    totalAmount: Prisma.Decimal;
+    buyerCommission: Prisma.Decimal;
+    sellerCommission: Prisma.Decimal;
+    product: { name: string; currency: string };
+  }) {
+    const totalDeal = Number(order.totalAmount);
+    const buyerCommission = Number(order.buyerCommission);
+    const sellerCommission = Number(order.sellerCommission);
+    const sellerNet = Math.max(0, totalDeal - sellerCommission);
+    const blockedAmount = totalDeal + buyerCommission;
+    const platformFee = buyerCommission + sellerCommission;
+
+    if (sellerNet > 0) {
+      try {
+        await this.wallet.debitMerchantClawback(
+          order.sellerUserId,
+          sellerNet,
+          order.product.currency,
+          order.id,
+          order.buyerUserId,
+          `Clawback litige — reprise article ${order.product.name}`
+        );
+      } catch (e) {
+        if (
+          e instanceof BadRequestException &&
+          String(e.message).includes("Solde insuffisant")
+        ) {
+          throw new ConflictException({
+            statusCode: 409,
+            code: MERCHANT_ERROR.SELLER_BALANCE_INSUFFICIENT,
+            message:
+              "Solde commerçant insuffisant pour rembourser l’acheteur. Rechargez le portefeuille puis réessayez."
+          });
+        }
+        throw e;
+      }
+    }
+
+    if (blockedAmount > 0) {
+      await this.wallet.creditMerchantOrderRefund(
+        order.buyerUserId,
+        blockedAmount,
+        order.product.currency,
+        order.id,
+        `Remboursement litige (post-completed) ${order.product.name}`
+      );
+    }
+
+    if (platformFee > 0) {
+      const rev = await this.prisma.platformRevenue.findFirst({
+        where: { merchantOrderId: order.id }
+      });
+      if (rev && rev.type !== "COMMISSION_REVERSAL") {
+        await this.prisma.platformRevenue.update({
+          where: { id: rev.id },
+          data: {
+            type: "COMMISSION_REVERSAL",
+            commissionAmount: new Prisma.Decimal(0)
+          }
+        });
+      }
+    }
   }
 
   /** Cron : auto-rejet 24h + auto-complete 48h post-livraison. */

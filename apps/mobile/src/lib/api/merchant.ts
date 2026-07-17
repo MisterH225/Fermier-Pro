@@ -603,3 +603,18 @@ export function respondMerchantOrderDispute(
     profileId ?? undefined
   );
 }
+
+/** Commerçant : accepte la reprise → remboursement (escrow ou clawback post-completed). */
+export function acceptMerchantOrderDisputeReturn(
+  accessToken: string,
+  profileId: string,
+  orderId: string,
+  body: { note: string }
+) {
+  return apiPostJson<MerchantOrderDto>(
+    `/merchant/orders/${orderId}/dispute/accept-return`,
+    body,
+    accessToken,
+    profileId
+  );
+}

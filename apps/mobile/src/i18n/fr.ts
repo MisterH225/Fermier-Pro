@@ -4239,6 +4239,11 @@ export const fr = {
       openDispute: "Ouvrir un litige",
       disputeManage: "Gérer le litige",
       disputeOpen: "Litige en cours",
+      acceptReturn: "Accepter la reprise",
+      acceptReturnTitle: "Reprendre l’article ?",
+      acceptReturnConfirm:
+        "Vous reconnaissez le défaut. Votre portefeuille sera débité du montant reçu, l’acheteur sera remboursé du total payé, et les commissions plateforme seront annulées.",
+      acceptReturnNote: "Commerçant : reprise de l’article acceptée",
       sellerNote: "Note vendeur",
       buyerNote: "Note acheteur",
       tracking: {

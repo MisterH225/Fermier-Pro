@@ -20,7 +20,9 @@ export const MERCHANT_ERROR = {
   SHOP_ALREADY_ARCHIVED: "SHOP_ALREADY_ARCHIVED",
   /** Trop de re-soumissions après modération — contacter le support. */
   RESUBMISSION_LIMIT: "RESUBMISSION_LIMIT",
-  RESUBMISSION_INVALID_STATUS: "RESUBMISSION_INVALID_STATUS"
+  RESUBMISSION_INVALID_STATUS: "RESUBMISSION_INVALID_STATUS",
+  /** Clawback litige post-completed : solde vendeur insuffisant. */
+  SELLER_BALANCE_INSUFFICIENT: "SELLER_BALANCE_INSUFFICIENT"
 } as const;
 
 /** Nombre max de re-soumissions après un retrait modération. */

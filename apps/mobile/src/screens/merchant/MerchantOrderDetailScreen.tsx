@@ -27,6 +27,7 @@ import {
 import { useSession } from "../../context/SessionContext";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import {
+  acceptMerchantOrderDisputeReturn,
   completeMerchantOrder,
   confirmMerchantOrder,
   ensureDirectChatRoom,
@@ -75,7 +76,7 @@ export function MerchantOrderDetailScreen({ route }: Props) {
 
   const runAction = useMutation({
     mutationFn: async (
-      action: "confirm" | "reject" | "ship" | "deliver" | "complete"
+      action: "confirm" | "reject" | "ship" | "deliver" | "complete" | "acceptReturn"
     ) => {
       if (!accessToken) throw new Error("no auth");
       const id = route.params.orderId;
@@ -94,6 +95,14 @@ export function MerchantOrderDetailScreen({ route }: Props) {
           return markMerchantOrderDelivered(accessToken, activeProfileId, id);
         case "complete":
           return completeMerchantOrder(accessToken, id, activeProfileId);
+        case "acceptReturn":
+          if (!activeProfileId) throw new Error("no profile");
+          return acceptMerchantOrderDisputeReturn(
+            accessToken,
+            activeProfileId,
+            id,
+            { note: t("merchant.orders.acceptReturnNote") }
+          );
       }
     },
     onSuccess: async () => {
@@ -101,6 +110,21 @@ export function MerchantOrderDetailScreen({ route }: Props) {
     },
     onError: (e) => Alert.alert(formatApiError(e))
   });
+
+  const confirmAcceptReturn = () => {
+    Alert.alert(
+      t("merchant.orders.acceptReturnTitle"),
+      t("merchant.orders.acceptReturnConfirm"),
+      [
+        { text: t("common.cancel", { defaultValue: "Annuler" }), style: "cancel" },
+        {
+          text: t("merchant.orders.acceptReturn"),
+          style: "destructive",
+          onPress: () => runAction.mutate("acceptReturn")
+        }
+      ]
+    );
+  };
 
   const order = q.data;
   const isSeller = authMe?.user.id === order?.sellerUserId;
@@ -310,10 +334,22 @@ export function MerchantOrderDetailScreen({ route }: Props) {
           messageBusy={busy}
         />
 
-        {order.dispute ? (
+        {order.dispute && order.dispute.status === "open" ? (
           <View style={styles.disputeBox}>
             <Text style={styles.disputeTitle}>{t("merchant.orders.disputeOpen")}</Text>
             <Text style={styles.disputeReason}>{order.dispute.reason}</Text>
+            {isSeller ? (
+              <Pressable
+                style={[styles.acceptReturnBtn, actionBusy && styles.btnDisabled]}
+                onPress={confirmAcceptReturn}
+                disabled={actionBusy}
+                testID="merchant-order-accept-return"
+              >
+                <Text style={styles.acceptReturnBtnTx}>
+                  {t("merchant.orders.acceptReturn")}
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
         ) : null}
 
@@ -380,6 +416,14 @@ const styles = StyleSheet.create({
     fontSize: 15
   },
   btnDisabled: { opacity: 0.55 },
+  acceptReturnBtn: {
+    marginTop: 10,
+    backgroundColor: merchantColors.primary,
+    borderRadius: merchantRadius.md,
+    paddingVertical: 12,
+    alignItems: "center"
+  },
+  acceptReturnBtnTx: { color: "#fff", fontWeight: "800" },
   disputeBox: {
     backgroundColor: "#FEF3C7",
     borderRadius: merchantRadius.card,

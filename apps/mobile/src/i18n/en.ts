@@ -4190,6 +4190,11 @@ export const en = {
       openDispute: "Open dispute",
       disputeManage: "Manage dispute",
       disputeOpen: "Dispute in progress",
+      acceptReturn: "Accept return",
+      acceptReturnTitle: "Take the item back?",
+      acceptReturnConfirm:
+        "You acknowledge the defect. Your wallet will be debited for the amount received, the buyer will be refunded the full amount paid, and platform commissions will be reversed.",
+      acceptReturnNote: "Merchant: item return accepted",
       sellerNote: "Seller note",
       buyerNote: "Buyer note",
       tracking: {

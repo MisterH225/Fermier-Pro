@@ -292,6 +292,17 @@ export class MerchantShopController {
     return this.orders.respondDispute(user, orderId, dto);
   }
 
+  /** Commerçant : reconnaît le défaut et accepte la reprise → remboursement acheteur. */
+  @Post("orders/:orderId/dispute/accept-return")
+  @UseGuards(MerchantProfileGuard)
+  acceptDisputeReturn(
+    @CurrentUser() user: Parameters<MerchantOrdersService["acceptReturn"]>[0],
+    @Param("orderId") orderId: string,
+    @Body() dto: RespondMerchantOrderDisputeDto
+  ) {
+    return this.orders.acceptReturn(user, orderId, dto.note);
+  }
+
   @Get("categories")
   listCategories() {
     return this.categories.listPublic();
