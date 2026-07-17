@@ -877,6 +877,13 @@
       "edit": "Edit",
       "cancelEdit": "Cancel",
       "saveEdit": "Save",
+      "scheduledReportsTitle": "Scheduled reports",
+      "scheduledReportsLead": "Automatic generation using the institution's authorized sections.",
+      "scheduledReportsActive": "Enable automatic reports",
+      "scheduledReportsCadence": "Cadence",
+      "scheduledReportsFormat": "Format",
+      "scheduledReportsMonthly": "Monthly",
+      "scheduledReportsWeekly": "Weekly",
       "inviteError": "Could not send the invitation.",
       "updateError": "Could not update the account.",
       "removeError": "Could not remove the account."

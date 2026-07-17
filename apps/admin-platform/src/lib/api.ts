@@ -1426,6 +1426,14 @@ export function removeSuperAdmin(token: string, userId: string) {
   );
 }
 
+export type InstitutionScheduledReportsConfig = {
+  isActive: boolean;
+  cadence: "monthly" | "weekly";
+  format: "pdf" | "csv";
+  sections: string[];
+  lastRunAt?: string;
+};
+
 export type InstitutionConsoleUserDto = {
   id: string;
   userId: string;
@@ -1434,6 +1442,7 @@ export type InstitutionConsoleUserDto = {
   institutionLabel: string | null;
   menuPermissions: Record<string, "read" | "write">;
   statSectionPermissions?: Record<string, boolean>;
+  scheduledReports?: InstitutionScheduledReportsConfig;
   isActive: boolean;
   invitedBy: string | null;
   invitedAt: string;
@@ -1461,6 +1470,7 @@ export function createInstitutionConsoleUser(
     inviteRedirectTo?: string;
     menuPermissions: Record<string, "read" | "write">;
     statSectionPermissions?: Record<string, boolean>;
+    scheduledReports?: InstitutionScheduledReportsConfig;
   }
 ) {
   return apiFetch<InstitutionConsoleUserDto>("/admin/institution-users", token, {
@@ -1477,6 +1487,7 @@ export function updateInstitutionConsoleUser(
     isActive?: boolean;
     menuPermissions?: Record<string, "read" | "write">;
     statSectionPermissions?: Record<string, boolean>;
+    scheduledReports?: InstitutionScheduledReportsConfig;
   }
 ) {
   return apiFetch<InstitutionConsoleUserDto>(

@@ -7,8 +7,10 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards
 } from "@nestjs/common";
+import type { Response } from "express";
 import type { User } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
@@ -69,7 +71,10 @@ import {
 } from "./dto/admin-merchant-subscriptions.dto";
 import { AdminCreateMerchantPromoCodeDto } from "./dto/admin-merchant-promo-codes.dto";
 import { RegionalStatsQueryDto } from "./dto/regional-stats-query.dto";
+import { GenerateInstitutionStatsReportDto } from "./dto/institution-report.dto";
 import { RegionStatsService } from "./region-stats.service";
+import { InstitutionReportService } from "./institution-report.service";
+import type { InstitutionStatSection } from "./institution-stats-sections.constants";
 
 @Controller("admin")
 @UseGuards(SupabaseJwtGuard, ConsoleAccessGuard, AdminConsoleMenuGuard)
@@ -90,7 +95,8 @@ export class AdminPlatformController {
     private readonly merchantOrders: MerchantOrdersService,
     private readonly merchantSubscriptions: AdminMerchantSubscriptionsService,
     private readonly producerSubscriptions: AdminProducerSubscriptionsService,
-    private readonly regionStats: RegionStatsService
+    private readonly regionStats: RegionStatsService,
+    private readonly institutionReports: InstitutionReportService
   ) {}
 
   @Get("me")
@@ -433,6 +439,47 @@ export class AdminPlatformController {
     );
     this.consoleAccess.assertStatSectionAllowed(context, "economy");
     return this.regionStats.getRegionalEconomy(query);
+  }
+
+  @Post("stats/reports")
+  async generateStatsReport(
+    @CurrentUser() user: User,
+    @Body() dto: GenerateInstitutionStatsReportDto,
+    @Res() res: Response
+  ) {
+    const context = await this.consoleAccess.resolveEffectiveContext(
+      user.id,
+      dto.viewAsInstitutionId
+    );
+    for (const section of dto.sections) {
+      this.consoleAccess.assertStatSectionAllowed(
+        context,
+        section as InstitutionStatSection
+      );
+    }
+    const result = await this.institutionReports.buildReport({
+      context,
+      sections: dto.sections as InstitutionStatSection[],
+      from: dto.from,
+      to: dto.to,
+      regionCode: dto.regionCode,
+      format: dto.format,
+      persistToStorage: false
+    });
+    if (result.downloadUrl) {
+      res.json({
+        downloadUrl: result.downloadUrl,
+        filename: result.filename,
+        contentType: result.contentType
+      });
+      return;
+    }
+    res.setHeader("Content-Type", result.contentType);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${result.filename}"`
+    );
+    res.send(result.buffer);
   }
 
   @Get("settings")

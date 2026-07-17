@@ -879,6 +879,13 @@
       "edit": "Modifier",
       "cancelEdit": "Annuler",
       "saveEdit": "Enregistrer",
+      "scheduledReportsTitle": "Rapports programmés",
+      "scheduledReportsLead": "Génération automatique selon les sections autorisées de l'institution.",
+      "scheduledReportsActive": "Activer les rapports automatiques",
+      "scheduledReportsCadence": "Cadence",
+      "scheduledReportsFormat": "Format",
+      "scheduledReportsMonthly": "Mensuel",
+      "scheduledReportsWeekly": "Hebdomadaire",
       "inviteError": "Impossible d'envoyer l'invitation.",
       "updateError": "Impossible de mettre à jour le compte.",
       "removeError": "Impossible de retirer le compte."

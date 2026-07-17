@@ -320,6 +320,9 @@ export class CreateInstitutionConsoleUserDto {
 
   @IsOptional()
   statSectionPermissions?: Record<string, boolean>;
+
+  @IsOptional()
+  scheduledReports?: Record<string, unknown>;
 }
 
 export class UpdateInstitutionConsoleUserDto {
@@ -336,4 +339,7 @@ export class UpdateInstitutionConsoleUserDto {
 
   @IsOptional()
   statSectionPermissions?: Record<string, boolean>;
+
+  @IsOptional()
+  scheduledReports?: Record<string, unknown>;
 }
