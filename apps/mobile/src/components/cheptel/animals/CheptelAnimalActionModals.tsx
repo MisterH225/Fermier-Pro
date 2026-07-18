@@ -1,8 +1,15 @@
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
 import { DiseaseModal } from "../../shared/DiseaseModal";
 import { useModal } from "../../modals/useModal";
+import {
+  SellChooserSheet,
+  type SellChooserChoice
+} from "../../quickactions/SellChooserSheet";
 import type { AnimalListItem } from "../../../lib/api";
 import type { CheptelAnimalActions } from "../../../hooks/useCheptelAnimalActions";
+import type { RootStackParamList } from "../../../types/navigation";
 import { AddWeightModal } from "../weight/AddWeightModal";
 import { ChangeStatusModal } from "./ChangeStatusModal";
 import { SaleModal, type SaleResult } from "./SaleModal";
@@ -27,6 +34,8 @@ export function CheptelAnimalActionModals({
 }: Props) {
   const { t } = useTranslation();
   const { open } = useModal();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const onSaleSuccess = (sale: SaleResult) => {
     actions.closeSale();
@@ -47,6 +56,19 @@ export function CheptelAnimalActionModals({
     });
   };
 
+  const onSellChoice = (choice: SellChooserChoice) => {
+    const animal = actions.sellChooserAnimal;
+    actions.closeSellChooser();
+    if (!animal) {
+      return;
+    }
+    if (choice === "marketplace") {
+      navigation.navigate("CreateMarketplaceListing", { farmId });
+      return;
+    }
+    actions.openSale(animal);
+  };
+
   return (
     <>
       <ChangeStatusModal
@@ -55,6 +77,7 @@ export function CheptelAnimalActionModals({
         farmId={farmId}
         accessToken={accessToken}
         activeProfileId={activeProfileId}
+        presetStatus={actions.statusPreset}
         onClose={actions.closeStatus}
         onUpdated={() => {
           actions.closeStatus();
@@ -62,6 +85,12 @@ export function CheptelAnimalActionModals({
         }}
         onRequestSale={actions.openSale}
         onRequestDisease={actions.openDisease}
+      />
+
+      <SellChooserSheet
+        visible={Boolean(actions.sellChooserAnimal)}
+        onClose={actions.closeSellChooser}
+        onChoose={onSellChoice}
       />
 
       <DiseaseModal

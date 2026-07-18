@@ -15,6 +15,7 @@ export * from "./api/invitations";
 export * from "./api/feed-stock";
 export * from "./api/farms";
 export * from "./api/cheptel";
+export * from "./api/livestockExits";
 export * from "./api/tasks";
 export * from "./api/vet-consultations";
 export * from "./api/dashboard";

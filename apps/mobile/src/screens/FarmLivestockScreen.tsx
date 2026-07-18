@@ -19,6 +19,7 @@ import {
   CheptelWeightTab
 } from "../components/cheptel";
 import { CheptelTab } from "../components/cheptel/tabs/CheptelTab";
+import { FarmGestationPanel } from "../components/gestation/FarmGestationPanel";
 import { TabContent, TabSelector } from "../components/tabs";
 import { useSession } from "../context/SessionContext";
 import { fetchFarm, fetchFarmBatches, fetchFarmCheptelOverview } from "../lib/api";
@@ -27,6 +28,10 @@ import { mobileColors, mobileSpacing, mobileTypography } from "../theme/mobileTh
 import { useTechFarmPermissions } from "../hooks/useTechFarmPermissions";
 import { TechReadOnlyBanner } from "../components/technician/TechReadOnlyBanner";
 import type { RootStackParamList } from "../types/navigation";
+import {
+  type FarmLivestockTabKey,
+  isFarmLivestockTabKey
+} from "./cheptel/farmLivestockTabs";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmLivestock">;
 
@@ -39,12 +44,16 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
     highlightPen,
     showRequalificationBanner
   } = route.params;
-  const [livestockTab, setLivestockTab] = useState<
-    "overview" | "batches" | "cheptel" | "weight" | "history"
-  >(initialTab ?? (openPenId ? "cheptel" : "overview"));
+  const [livestockTab, setLivestockTab] = useState<FarmLivestockTabKey>(
+    initialTab && isFarmLivestockTabKey(initialTab)
+      ? initialTab
+      : openPenId
+        ? "cheptel"
+        : "overview"
+  );
 
   useEffect(() => {
-    if (initialTab) {
+    if (initialTab && isFarmLivestockTabKey(initialTab)) {
       setLivestockTab(initialTab);
     } else if (openPenId) {
       setLivestockTab("cheptel");
@@ -248,6 +257,18 @@ export function FarmLivestockScreen({ route, navigation }: Props) {
                   readOnly={readOnly}
                 />
               ) : null
+            )
+          },
+          {
+            key: "gestation",
+            label: t("cheptel.navGestation"),
+            content: (
+              <FarmGestationPanel
+                farmId={farmId}
+                farmName={farmName}
+                navigation={navigation}
+                embedded
+              />
             )
           },
           {

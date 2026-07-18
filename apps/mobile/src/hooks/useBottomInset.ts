@@ -1,4 +1,5 @@
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { producerQuickFabListClearance } from "../components/quickactions/producerQuickActions";
 import {
   BOTTOM_INSET_BASE,
   NAV_BAR_HEIGHT
@@ -33,7 +34,12 @@ export function useBottomChromePad(): number {
 
 /**
  * Padding bas standard pour ScrollView / FlatList (navbar + safe area + marge).
+ * Côté producteur, ajoute la réserve du FAB d’actions rapides pour ne pas
+ * masquer la dernière ligne des listes des écrans racine.
  */
 export function useBottomInset(): number {
-  return useBottomChromePad() + BOTTOM_INSET_BASE;
+  const producerPad = useProducerBottomChromePad();
+  const fabClearance =
+    producerPad > 0 ? producerQuickFabListClearance() : 0;
+  return useBottomChromePad() + BOTTOM_INSET_BASE + fabClearance;
 }

@@ -1392,6 +1392,31 @@ export const fr = {
       body: "Rapports de visite, ordonnances et statistiques personnelles seront regroupés ici (export PDF à venir)."
     }
   },
+  quickActions: {
+    fabA11y: "Actions rapides",
+    sheetTitle: "Actions rapides",
+    pickAnimalEmpty: "Aucun animal actif à sélectionner.",
+    actions: {
+      weigh: "Pesée",
+      weighA11y: "Enregistrer une pesée",
+      mortality: "Mortalité",
+      mortalityA11y: "Déclarer une mortalité",
+      farrowing: "Mise bas",
+      farrowingA11y: "Déclarer une mise bas",
+      sell: "Vendre",
+      sellA11y: "Vendre ou publier sur le marché",
+      expense: "Dépense",
+      expenseA11y: "Enregistrer une dépense"
+    },
+    sell: {
+      title: "Vendre",
+      marketplaceTitle: "Publier sur le marché",
+      marketplaceSubtitle: "Créer une annonce pour trouver un acheteur",
+      recordedTitle: "Enregistrer une vente déjà conclue",
+      recordedSubtitle: "Saisir une vente hors marketplace (sortie cheptel)",
+      pickAnimalTitle: "Quel animal vendre ?"
+    }
+  },
   navigation: {
     main: {
       home: "Accueil",
@@ -1401,6 +1426,7 @@ export const fr = {
       finance: "Finance",
       collaboration: "Équipe",
       feed: "Com",
+      marketplace: "Marché",
       profile: "Profil"
     },
     extended: {
@@ -1414,6 +1440,8 @@ export const fr = {
         "Le suivi des achats et du stock d’aliments sera disponible lorsque le module stock sera activé pour ta ferme.",
       collaboration: "Collaboration",
       market: "Market",
+      communityFeed: "Communauté",
+      communityFeedDescription: "Fil communautaire et publications",
       gestation: "Gestation",
       tasks: "Tâches",
       reports: "Rapports",
@@ -1725,6 +1753,7 @@ export const fr = {
     navBatches: "Bandes",
     navCheptel: "Cheptel",
     navAnimals: "Animaux",
+    navGestation: "Gestations",
     navPens: "Loges",
     navWeight: "Poids & GMQ",
     navHistory: "Historique",
@@ -1782,6 +1811,27 @@ export const fr = {
     },
     pensOccupancyHint:
       "Occupation globale : {{rate}} · {{available}} loge(s) avec place libre.",
+    exits: {
+      sectionTitle: "Sorties",
+      kindLocked: "Type : {{kind}} (choisi)",
+      headcount: "Effectif concerné",
+      buyerName: "Acheteur",
+      price: "Prix total",
+      destination: "Destination",
+      saleDetails: "Détails de la vente",
+      invalidHeadcount: "Indique un effectif valide.",
+      success: "Sortie enregistrée",
+      verbs: {
+        sell: "Vendre",
+        sellA11y: "Vendre ou publier sur le marché",
+        mortality: "Déclarer un décès",
+        mortalityA11y: "Déclarer un décès",
+        transfer: "Transférer",
+        transferA11y: "Transférer hors de la ferme",
+        slaughter: "Envoyer à l'abattoir",
+        slaughterA11y: "Envoyer à l'abattoir"
+      }
+    },
     actions: {
       transfer: "Transférer",
       changeStatus: "Changer statut",
@@ -2199,6 +2249,7 @@ export const fr = {
         openHealth: "Ouvrir le module Santé",
         edit: "Modifier",
         transfer: "Transférer",
+        movePen: "Changer de loge",
         addWeight: "Ajouter pesée",
         changeStatus: "Changer statut"
       }

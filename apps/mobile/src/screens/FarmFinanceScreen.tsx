@@ -147,7 +147,8 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
     farmName,
     initialTab: initialTabParam,
     openCategoryId,
-    highlightOverrun
+    highlightOverrun,
+    openTransaction
   } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
@@ -204,6 +205,54 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
   });
 
   const [overviewQ, txQ, catQ, batchesQ] = queries;
+
+  const [pendingOpenTransaction, setPendingOpenTransaction] = useState(
+    Boolean(openTransaction)
+  );
+
+  useEffect(() => {
+    if (openTransaction) {
+      setPendingOpenTransaction(true);
+    }
+  }, [openTransaction]);
+
+  useEffect(() => {
+    if (
+      !pendingOpenTransaction ||
+      !accessToken ||
+      !enabled ||
+      catQ.isPending ||
+      overviewQ.isPending
+    ) {
+      return;
+    }
+    const ov = overviewQ.data as FinanceOverviewDto | undefined;
+    open("transaction", {
+      farmId,
+      farmName,
+      accessToken,
+      activeProfileId,
+      categories: (catQ.data ?? []) as FinanceCategoryDto[],
+      batches: (batchesQ.data ?? []) as import("../lib/api").BatchListItem[],
+      currencyCode: ov?.settings.currencyCode ?? "XOF",
+      currencySymbol: ov?.settings.currencySymbol ?? "",
+      transactionRef: newFarmTransactionRef()
+    });
+    setPendingOpenTransaction(false);
+  }, [
+    pendingOpenTransaction,
+    accessToken,
+    enabled,
+    catQ.isPending,
+    catQ.data,
+    overviewQ.isPending,
+    overviewQ.data,
+    batchesQ.data,
+    farmId,
+    farmName,
+    activeProfileId,
+    open
+  ]);
 
   const reportQ = useQuery({
     queryKey: [

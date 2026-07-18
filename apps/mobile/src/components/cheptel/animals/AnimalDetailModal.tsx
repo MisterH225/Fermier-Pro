@@ -34,6 +34,8 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../../theme/mobileTheme";
+import { ExitVerbActions } from "../exits/ExitVerbActions";
+import type { LivestockExitKind } from "../exits/livestockExitKind";
 import {
   animalDisplayTag,
   breederCategoryForSex,
@@ -56,11 +58,11 @@ type Props = {
   onClose: () => void;
   onUpdated?: () => void;
   onTransfer: (animal: AnimalListItem) => void;
-  onChangeStatus: (animal: AnimalListItem) => void;
+  /** Sorties en verbes (LivestockExitKind) — remplace « Changement de statut ». */
+  onExitVerb: (animal: AnimalListItem, kind: LivestockExitKind) => void;
   onAddWeight: (animal: AnimalListItem) => void;
   onOpenHealth?: (animal: AnimalListItem) => void;
   onOpenFullRecord?: (animal: AnimalListItem) => void;
-  onListForSale?: (animal: AnimalListItem) => void;
 };
 
 const ORIGIN_OPTIONS: AnimalOriginDto[] = ["farm_born", "purchased"];
@@ -82,11 +84,10 @@ export function AnimalDetailModal({
   onClose,
   onUpdated,
   onTransfer,
-  onChangeStatus,
+  onExitVerb,
   onAddWeight,
   onOpenHealth,
-  onOpenFullRecord,
-  onListForSale
+  onOpenFullRecord
 }: Props) {
   const isOpen = presentation === "page" ? Boolean(animal) : visible;
   const { t } = useTranslation();
@@ -728,7 +729,7 @@ export function AnimalDetailModal({
             ) : null}
             <ActionChip
               icon="swap-horizontal"
-              label={t("cheptel.animals.detail.transfer")}
+              label={t("cheptel.animals.detail.movePen")}
               onPress={() => onTransfer(animal)}
             />
             <ActionChip
@@ -736,18 +737,9 @@ export function AnimalDetailModal({
               label={t("cheptel.animals.detail.addWeight")}
               onPress={() => onAddWeight(animal)}
             />
-            <ActionChip
-              icon="refresh"
-              label={t("cheptel.animals.detail.changeStatus")}
-              onPress={() => onChangeStatus(animal)}
+            <ExitVerbActions
+              onSelect={(kind) => onExitVerb(animal, kind)}
             />
-            {onListForSale ? (
-              <ActionChip
-                icon="pricetag-outline"
-                label={t("cheptel.actions.listForSale")}
-                onPress={() => onListForSale(animal)}
-              />
-            ) : null}
           </View>
           </ModalSection>
       </>

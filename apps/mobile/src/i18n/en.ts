@@ -1386,6 +1386,31 @@ export const en = {
       body: "Visit reports, prescriptions and personal stats will be grouped here (PDF export coming soon)."
     }
   },
+  quickActions: {
+    fabA11y: "Quick actions",
+    sheetTitle: "Quick actions",
+    pickAnimalEmpty: "No active animal to select.",
+    actions: {
+      weigh: "Weighing",
+      weighA11y: "Record a weighing",
+      mortality: "Mortality",
+      mortalityA11y: "Declare a mortality",
+      farrowing: "Farrowing",
+      farrowingA11y: "Record a farrowing",
+      sell: "Sell",
+      sellA11y: "Sell or list on the market",
+      expense: "Expense",
+      expenseA11y: "Record an expense"
+    },
+    sell: {
+      title: "Sell",
+      marketplaceTitle: "Publish on the market",
+      marketplaceSubtitle: "Create a listing to find a buyer",
+      recordedTitle: "Record a completed sale",
+      recordedSubtitle: "Log an off-marketplace sale (herd exit)",
+      pickAnimalTitle: "Which animal to sell?"
+    }
+  },
   navigation: {
     main: {
       home: "Home",
@@ -1395,6 +1420,7 @@ export const en = {
       finance: "Finance",
       collaboration: "Team",
       feed: "Com",
+      marketplace: "Market",
       profile: "Profile"
     },
     extended: {
@@ -1408,6 +1434,8 @@ export const en = {
         "Feed purchases and stock tracking will be available when the stock module is enabled for your farm.",
       collaboration: "Collaboration",
       market: "Market",
+      communityFeed: "Community",
+      communityFeedDescription: "Community feed and posts",
       gestation: "Gestation",
       tasks: "Tasks",
       reports: "Reports",
@@ -1699,6 +1727,7 @@ export const en = {
     navBatches: "Batches",
     navCheptel: "Herd",
     navAnimals: "Animals",
+    navGestation: "Gestations",
     navPens: "Pens",
     navWeight: "Weight & ADG",
     navHistory: "History",
@@ -1754,6 +1783,27 @@ export const en = {
     },
     pensOccupancyHint:
       "Overall occupancy: {{rate}} · {{available}} pen(s) with free space.",
+    exits: {
+      sectionTitle: "Exits",
+      kindLocked: "Type: {{kind}} (selected)",
+      headcount: "Headcount affected",
+      buyerName: "Buyer",
+      price: "Total price",
+      destination: "Destination",
+      saleDetails: "Sale details",
+      invalidHeadcount: "Enter a valid headcount.",
+      success: "Exit recorded",
+      verbs: {
+        sell: "Sell",
+        sellA11y: "Sell or list on the market",
+        mortality: "Declare a death",
+        mortalityA11y: "Declare a death",
+        transfer: "Transfer",
+        transferA11y: "Transfer out of the farm",
+        slaughter: "Send to slaughterhouse",
+        slaughterA11y: "Send to slaughterhouse"
+      }
+    },
     actions: {
       transfer: "Transfer",
       changeStatus: "Change status",
@@ -2122,6 +2172,7 @@ export const en = {
         openHealth: "Open Health module",
         edit: "Edit",
         transfer: "Transfer",
+        movePen: "Move pen",
         addWeight: "Add weighing",
         changeStatus: "Change status"
       }

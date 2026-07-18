@@ -2,6 +2,6 @@ import type { ProducerMainTab } from "./types";
 
 export function producerMainTabs(financeEnabled: boolean): ProducerMainTab[] {
   return financeEnabled
-    ? ["home", "cheptel", "health", "feed", "finance"]
-    : ["home", "cheptel", "health", "feed"];
+    ? ["home", "cheptel", "health", "marketplace", "finance"]
+    : ["home", "cheptel", "health", "marketplace"];
 }
