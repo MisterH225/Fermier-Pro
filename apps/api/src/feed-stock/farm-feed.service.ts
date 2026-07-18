@@ -7,7 +7,8 @@ import {
 } from "@nestjs/common";
 import {
   lineAmountFromUnitPrice,
-  quantityInputToKg
+  quantityInputToKg,
+  unitPriceFromTotalCost
 } from "../feed-finance-link/feed-stock-quantity.helper";
 import { movementHasCost } from "../feed-finance-link/feed-movement-cost.helper";
 import { PumpCalculator } from "../feed-finance-link/pump-calculator";
@@ -476,23 +477,51 @@ export class FarmFeedService {
           : null;
 
       let linkedExpenseId: string | null = null;
-      let totalCost: Prisma.Decimal | null = null;
+      const basis =
+        dto.priceBasis ?? (qUnit === FeedTypeUnit.sac ? "sac" : "kg");
+      let totalCost: Prisma.Decimal | null =
+        dto.totalCost != null && dto.totalCost >= 0
+          ? new Prisma.Decimal(dto.totalCost)
+          : null;
+      let unitPrice: Prisma.Decimal | null =
+        dto.unitPrice != null && dto.unitPrice >= 0
+          ? new Prisma.Decimal(dto.unitPrice)
+          : null;
+
+      if (totalCost != null && unitPrice == null) {
+        const derived = unitPriceFromTotalCost(
+          totalCost.toNumber(),
+          dto.quantityInput,
+          qUnit,
+          deltaKg,
+          basis
+        );
+        unitPrice = derived != null ? new Prisma.Decimal(derived) : null;
+      } else if (unitPrice != null && totalCost == null) {
+        const amount = lineAmountFromUnitPrice(
+          dto.quantityInput,
+          qUnit,
+          deltaKg,
+          unitPrice.toNumber(),
+          basis
+        );
+        if (amount > 0) {
+          totalCost = new Prisma.Decimal(amount);
+        }
+      }
+
       if (
         !dto.skipAutoFinanceExpense &&
-        dto.unitPrice != null &&
-        dto.unitPrice >= 0
+        totalCost != null &&
+        totalCost.toNumber() > 0
       ) {
         const fin = await this.prisma.farmFinanceSettings.findUnique({
           where: { farmId }
         });
         await ensureFarmFinanceBootstrap(this.prisma, farmId);
         const catId = await this.financeFeedCategoryId(farmId);
-        const basis = dto.priceBasis ?? (qUnit === FeedTypeUnit.sac ? "sac" : "kg");
-        const amount =
-          basis === "sac" && qUnit === FeedTypeUnit.sac
-            ? dto.quantityInput * dto.unitPrice
-            : deltaKg.toNumber() * dto.unitPrice;
-        if (amount > 0 && catId) {
+        const amount = totalCost.toNumber();
+        if (catId) {
           const expense = await this.finance.createExpense(user, farmId, {
             amount,
             currency: fin?.currencyCode,
@@ -504,29 +533,12 @@ export class FarmFeedService {
             linkedEntityId: feedType.id
           });
           linkedExpenseId = expense.id;
-          totalCost = new Prisma.Decimal(amount);
-        } else if (amount > 0) {
-          totalCost = new Prisma.Decimal(amount);
-        }
-      } else if (dto.unitPrice != null && dto.unitPrice >= 0) {
-        const basis = dto.priceBasis ?? (qUnit === FeedTypeUnit.sac ? "sac" : "kg");
-        const amount = lineAmountFromUnitPrice(
-          dto.quantityInput,
-          qUnit,
-          deltaKg,
-          dto.unitPrice,
-          basis
-        );
-        if (amount > 0) {
-          totalCost = new Prisma.Decimal(amount);
         }
       }
 
       const missingCost = !linkedExpenseId && totalCost == null;
 
       const movement = await this.prisma.$transaction(async (tx) => {
-        const basis =
-          dto.priceBasis ?? (qUnit === FeedTypeUnit.sac ? "sac" : "kg");
         const m = await tx.feedStockMovement.create({
           data: {
             farmId,
@@ -538,10 +550,7 @@ export class FarmFeedService {
             quantityKg: deltaKg,
             stockAfterKg: newStock,
             supplier: dto.supplier?.trim() || null,
-            unitPrice:
-              dto.unitPrice != null
-                ? new Prisma.Decimal(dto.unitPrice)
-                : null,
+            unitPrice,
             totalCost,
             notes: dto.notes?.trim() || null,
             occurredAt,

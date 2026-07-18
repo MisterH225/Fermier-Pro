@@ -66,7 +66,6 @@ export function EditStockModal({
   const [bagsCounted, setBagsCounted] = useState("");
   const [occurredAt, setOccurredAt] = useState("");
   const [totalCost, setTotalCost] = useState("");
-  const [unitPrice, setUnitPrice] = useState("");
   const [weightPerBagKg, setWeightPerBagKg] = useState("");
   const [supplier, setSupplier] = useState("");
   const [notes, setNotes] = useState("");
@@ -117,7 +116,6 @@ export function EditStockModal({
         feedType?.weightPerBagKg ? String(feedType.weightPerBagKg) : ""
       );
       setTotalCost(movement.totalCost ?? "");
-      setUnitPrice(movement.unitPrice ?? "");
       setSupplier(movement.supplier ?? "");
     }
     setOccurredAt(movement.occurredAt.slice(0, 10));
@@ -127,21 +125,18 @@ export function EditStockModal({
   const unitPricePreview = useMemo(() => {
     const cost = Number.parseFloat(totalCost.replace(",", "."));
     const qtyNum = Number.parseFloat(qty.replace(",", "."));
-    if (!Number.isFinite(cost) || !Number.isFinite(qtyNum) || qtyNum <= 0) {
+    if (!Number.isFinite(cost) || cost < 0 || !Number.isFinite(qtyNum) || qtyNum <= 0) {
       return null;
     }
-    const wp = Number.parseFloat(selectedType?.weightPerBagKg ?? "0");
-    let kgEquiv = qtyNum;
-    if (qtyUnit === "sac" && wp > 0) {
-      kgEquiv = qtyNum * wp;
-    } else if (qtyUnit === "tonne") {
-      kgEquiv = qtyNum * 1000;
+    if (qtyUnit === "sac" || priceBasis === "sac") {
+      return (cost / qtyNum).toFixed(2);
     }
+    const kgEquiv = qtyUnit === "tonne" ? qtyNum * 1000 : qtyNum;
     if (kgEquiv <= 0) {
       return null;
     }
     return (cost / kgEquiv).toFixed(2);
-  }, [totalCost, qty, qtyUnit, selectedType?.weightPerBagKg]);
+  }, [totalCost, qty, qtyUnit, priceBasis]);
 
   const parsedBags = Number.parseFloat(bagsCounted.replace(",", "."));
   const parsedQty = Number.parseFloat(qty.replace(",", "."));
@@ -175,9 +170,6 @@ export function EditStockModal({
             notes: notes.trim() || undefined,
             totalCost: totalCost.trim()
               ? Number.parseFloat(totalCost.replace(",", "."))
-              : undefined,
-            unitPrice: unitPrice.trim()
-              ? Number.parseFloat(unitPrice.replace(",", "."))
               : undefined
           };
       return patchFarmFeedMovement(
@@ -327,16 +319,15 @@ export function EditStockModal({
               keyboardType="decimal-pad"
               placeholder={t("feedStock.edit.totalCostPh")}
             />
-            <TextInput
-              style={styles.input}
-              value={unitPrice}
-              onChangeText={setUnitPrice}
-              keyboardType="decimal-pad"
-              placeholder={t("feedStock.edit.unitPricePh")}
-            />
             {unitPricePreview ? (
               <Text style={styles.preview}>
-                {t("feedStock.edit.calculatedPerKg", { price: unitPricePreview })}
+                {qtyUnit === "sac" || priceBasis === "sac"
+                  ? t("feedStock.edit.calculatedPerSac", {
+                      price: unitPricePreview
+                    })
+                  : t("feedStock.edit.calculatedPerKg", {
+                      price: unitPricePreview
+                    })}
               </Text>
             ) : null}
           </ModalSection>

@@ -19,7 +19,8 @@ import { inferFeedPhaseFromName } from "../feed-stock/feed-production-phase.util
 import type { CreateFeedTypeDto } from "../feed-stock/dto/create-feed-type.dto";
 import {
   lineAmountFromUnitPrice,
-  quantityInputToKg
+  quantityInputToKg,
+  unitPriceFromTotalCost
 } from "./feed-stock-quantity.helper";
 import { recalculateFeedTypeStock } from "./feed-stock-recalculate.helper";
 import type {
@@ -113,8 +114,35 @@ export class FeedFinanceLinkService {
 
     const basis = line.priceBasis ?? (qUnit === FeedTypeUnit.sac ? "sac" : "kg");
     let unitPrice: Prisma.Decimal | null = null;
+    let totalCost: Prisma.Decimal | null = null;
+
+    if (line.totalCost != null && line.totalCost >= 0) {
+      totalCost = new Prisma.Decimal(line.totalCost);
+    }
     if (line.unitPrice != null && line.unitPrice >= 0) {
       unitPrice = new Prisma.Decimal(line.unitPrice);
+    }
+
+    if (totalCost != null && unitPrice == null) {
+      const derived = unitPriceFromTotalCost(
+        totalCost.toNumber(),
+        line.quantityInput,
+        qUnit,
+        deltaKg,
+        basis
+      );
+      unitPrice = derived != null ? new Prisma.Decimal(derived) : null;
+    } else if (unitPrice != null && totalCost == null) {
+      const amount = lineAmountFromUnitPrice(
+        line.quantityInput,
+        qUnit,
+        deltaKg,
+        unitPrice.toNumber(),
+        basis
+      );
+      if (amount > 0) {
+        totalCost = new Prisma.Decimal(amount);
+      }
     }
 
     const movement = await tx.feedStockMovement.create({
@@ -129,6 +157,7 @@ export class FeedFinanceLinkService {
         stockAfterKg: newStock,
         supplier: (line.supplier ?? defaultSupplier)?.trim() || null,
         unitPrice,
+        totalCost,
         notes: null,
         occurredAt,
         linkedExpenseId: expenseId ? expenseId : null,
@@ -204,6 +233,9 @@ export class FeedFinanceLinkService {
         }
 
         const totalLines = resolvedLines.reduce((sum, { line, feedType }) => {
+          if (line.totalCost != null && line.totalCost >= 0) {
+            return sum + line.totalCost;
+          }
           const qUnit = line.quantityUnit ?? feedType.unit;
           const wp =
             line.weightPerBagKg != null
@@ -245,19 +277,42 @@ export class FeedFinanceLinkService {
           const kg = quantityInputToKg(line.quantityInput, qUnit, wp);
           const basis =
             line.priceBasis ?? (qUnit === FeedTypeUnit.sac ? "sac" : "kg");
+          const lineTotal =
+            line.totalCost != null && line.totalCost >= 0
+              ? line.totalCost
+              : undefined;
           const unitPrice =
             line.unitPrice ??
-            (basis === "sac" && qUnit === FeedTypeUnit.sac
-              ? dto.amount / line.quantityInput
-              : kg.gt(0)
-                ? dto.amount / kg.toNumber()
-                : undefined);
+            (lineTotal != null
+              ? (unitPriceFromTotalCost(
+                  lineTotal,
+                  line.quantityInput,
+                  qUnit,
+                  kg,
+                  basis
+                ) ?? undefined)
+              : basis === "sac" && qUnit === FeedTypeUnit.sac
+                ? dto.amount / line.quantityInput
+                : kg.gt(0)
+                  ? dto.amount / kg.toNumber()
+                  : undefined);
+          const totalCost =
+            lineTotal ??
+            (unitPrice != null
+              ? lineAmountFromUnitPrice(
+                  line.quantityInput,
+                  qUnit,
+                  kg,
+                  unitPrice,
+                  basis
+                )
+              : undefined);
           movements.push(
             await this.createStockInLine(
               tx,
               user,
               farmId,
-              { ...line, unitPrice },
+              { ...line, unitPrice, totalCost },
               expense.id,
               occurredAt,
               line.supplier
@@ -333,14 +388,15 @@ export class FeedFinanceLinkService {
         quantityUnit: dto.quantityUnit,
         weightPerBagKg: dto.weightPerBagKg,
         unitPrice: dto.unitPrice,
+        totalCost: dto.totalCost,
         priceBasis: dto.priceBasis,
         supplier: dto.supplier
       };
 
       if (
         dto.createFinanceExpense !== false &&
-        dto.unitPrice != null &&
-        dto.quantityInput != null
+        dto.quantityInput != null &&
+        (dto.totalCost != null || dto.unitPrice != null)
       ) {
         const feedType = await this.resolveFeedType(tx, user, farmId, line);
         const qUnit = dto.quantityUnit ?? feedType.unit;
@@ -350,13 +406,16 @@ export class FeedFinanceLinkService {
             : feedType.weightPerBagKg;
         const deltaKg = quantityInputToKg(dto.quantityInput, qUnit, wp);
         const basis = dto.priceBasis ?? (qUnit === FeedTypeUnit.sac ? "sac" : "kg");
-        const amount = lineAmountFromUnitPrice(
-          dto.quantityInput,
-          qUnit,
-          deltaKg,
-          dto.unitPrice,
-          basis
-        );
+        const amount =
+          dto.totalCost != null && dto.totalCost >= 0
+            ? dto.totalCost
+            : lineAmountFromUnitPrice(
+                dto.quantityInput,
+                qUnit,
+                deltaKg,
+                dto.unitPrice!,
+                basis
+              );
         if (amount > 0) {
           const catId = await this.feedCategoryId(farmId);
           expense = await tx.farmExpense.create({
