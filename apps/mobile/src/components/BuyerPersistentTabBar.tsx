@@ -97,7 +97,11 @@ export function BuyerPersistentTabBar() {
       { id: "favorites", label: t("buyer.extended.favorites"), a11y: t("buyer.extended.favorites") },
       { id: "priceAlerts", label: t("buyer.extended.priceAlerts"), a11y: t("buyer.extended.priceAlerts") },
       { id: "reviews", label: t("buyer.extended.reviews"), a11y: t("buyer.extended.reviews") },
-      { id: "preferences", label: t("buyer.extended.preferences"), a11y: t("buyer.extended.preferences") }
+      {
+        id: "settings",
+        label: t("navigation.extended.settings"),
+        a11y: t("navigation.extended.settings")
+      }
     ],
     [t]
   );
@@ -118,8 +122,8 @@ export function BuyerPersistentTabBar() {
         case "reviews":
           navigation.navigate("BuyerHistory", { initialTab: "reviews" });
           return;
-        case "preferences":
-          navigation.navigate("BuyerDashboard");
+        case "settings":
+          navigation.navigate("ProducerFarmSettings");
           return;
         default:
           return;

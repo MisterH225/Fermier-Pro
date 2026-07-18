@@ -2211,6 +2211,8 @@ export const fr = {
     chooseFarm: "Choisir une ferme",
     savedToast: "Paramètres sauvegardés ✅",
     save: "Enregistrer",
+    sectionAccount: "Compte",
+    sectionPreferences: "Préférences",
     sectionFarm: "🏡 Ma ferme",
     farmName: "Nom de la ferme",
     location: "Localisation",

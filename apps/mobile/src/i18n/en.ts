@@ -2180,6 +2180,8 @@ export const en = {
     chooseFarm: "Choose a farm",
     savedToast: "Settings saved ✅",
     save: "Save",
+    sectionAccount: "Account",
+    sectionPreferences: "Preferences",
     sectionFarm: "🏡 My farm",
     farmName: "Farm name",
     location: "Location",

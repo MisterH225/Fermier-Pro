@@ -97,6 +97,11 @@ export function TechPersistentTabBar() {
           a11y: t("navigation.extended.walletDescription")
         });
       }
+      items.push({
+        id: "settings",
+        label: t("navigation.extended.settings"),
+        a11y: t("navigation.extended.settings")
+      });
       return items;
     },
     [clientFeatures.wallet, t]
@@ -137,6 +142,9 @@ export function TechPersistentTabBar() {
           return;
         case "wallet":
           navigation.navigate("UserWallet");
+          return;
+        case "settings":
+          navigation.navigate("ProducerFarmSettings");
           return;
         default:
           return;

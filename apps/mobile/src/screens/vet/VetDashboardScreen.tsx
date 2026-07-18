@@ -158,6 +158,24 @@ export function VetDashboardScreen() {
             farmName={primaryFarm?.name}
             style={[styles.heroIconBtn, vetShadow.soft]}
           />
+          <Pressable
+            onPress={() => navigation.navigate("ProducerFarmSettings")}
+            style={({ pressed }) => [
+              styles.heroIconBtn,
+              vetShadow.soft,
+              pressed && styles.heroIconBtnPressed
+            ]}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel={t("settings.title")}
+            testID="vet-settings-button"
+          >
+            <Ionicons
+              name="settings-outline"
+              size={22}
+              color={vetColors.primary}
+            />
+          </Pressable>
         </View>
       </View>
       {accessToken && !isPending ? <WalletDashboardCard variant="vet" /> : null}
@@ -445,6 +463,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: vetColors.border
+  },
+  heroIconBtnPressed: {
+    opacity: 0.85
   },
   bellWrap: {
     position: "relative",
