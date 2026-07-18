@@ -7,8 +7,28 @@ export type PlatformFeeBreakdown = {
   grossAmount: number;
   feeAmount: number;
   netAmount: number;
+  /** Pourcentage (ex. 1.5 pour 1,5 %) — une décimale, sans arrondi entier trompeur. */
   ratePct: number;
 };
+
+/** Convertit un taux (0.015) en % affichable (1.5), pas `Math.round(rate*100)` (= 2). */
+export function rateToPercent(rate: number): number {
+  if (!Number.isFinite(rate) || rate < 0) {
+    return 0;
+  }
+  return Math.round(rate * 1000) / 10;
+}
+
+/** Libellé % pour l’UI (FR : virgule décimale). */
+export function formatRatePercentLabel(ratePct: number): string {
+  if (!Number.isFinite(ratePct)) {
+    return "0";
+  }
+  if (Number.isInteger(ratePct)) {
+    return String(ratePct);
+  }
+  return ratePct.toFixed(1).replace(".", ",");
+}
 
 /** Commission marketplace / boutique (entier, ex. XOF). */
 export function computeSellerFeeBreakdown(
@@ -25,7 +45,7 @@ export function computeSellerFeeBreakdown(
     grossAmount: roundedGross,
     feeAmount,
     netAmount: Math.max(0, roundedGross - feeAmount),
-    ratePct: Math.round(rate * 100)
+    ratePct: rateToPercent(rate)
   };
 }
 
@@ -44,7 +64,7 @@ export function computeVetFeeBreakdown(
     grossAmount,
     feeAmount,
     netAmount: Math.max(0, netAmount),
-    ratePct: Math.round(rate * 100)
+    ratePct: rateToPercent(rate)
   };
 }
 

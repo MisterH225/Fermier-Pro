@@ -1,7 +1,10 @@
 import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { formatMarketMoney } from "../../lib/formatMoney";
-import type { PlatformFeeBreakdown } from "../../lib/platformFees";
+import {
+  formatRatePercentLabel,
+  type PlatformFeeBreakdown
+} from "../../lib/platformFees";
 import {
   mobileColors,
   mobileRadius,
@@ -35,6 +38,7 @@ export function PlatformFeePreview({
   }
 
   const unit = t(unitLabelKey);
+  const pctLabel = formatRatePercentLabel(breakdown.ratePct);
 
   return (
     <View
@@ -45,7 +49,7 @@ export function PlatformFeePreview({
       <Text style={styles.title}>{t("platformFees.previewTitle")}</Text>
       <View style={styles.row}>
         <Text style={styles.label}>
-          {t("platformFees.platformFeeLabel", { pct: breakdown.ratePct })}
+          {t("platformFees.platformFeeLabel", { pct: pctLabel })}
         </Text>
         <Text style={styles.value}>
           {formatMarketMoney(breakdown.feeAmount, currency)}
