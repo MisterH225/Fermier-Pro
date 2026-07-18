@@ -8,6 +8,8 @@ import {
   AppState,
   Dimensions,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -288,7 +290,7 @@ export function MerchantProductDetailScreen({ route }: Props) {
             {t("merchant.purchase.paymentWaitingBody")}
           </Text>
         </View>
-        <View style={[styles.footer, { paddingBottom: bottomChromePad }]}>
+        <View style={[styles.pendingActions, { paddingBottom: bottomChromePad }]}>
           {pendingPayment.paymentUrl ? (
             <Pressable
               style={styles.btn}
@@ -315,159 +317,168 @@ export function MerchantProductDetailScreen({ route }: Props) {
 
   return (
     <SafeAreaView style={styles.safe} edges={["bottom"]}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: bottomChromePad + 220 }
-        ]}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.heroWrap}>
-          {photos.length > 1 ? (
-            <ScrollView
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              testID="merchant-product-detail-photos"
-            >
-              {photos.map((uri) => (
-                <Image
-                  key={uri}
-                  source={{ uri }}
-                  style={[styles.heroImg, { width: screenW }]}
-                  resizeMode="cover"
-                />
-              ))}
-            </ScrollView>
-          ) : photos.length === 1 ? (
-            <Image
-              source={{ uri: photos[0] }}
-              style={[styles.heroImg, { width: screenW, height: HERO_HEIGHT }]}
-              resizeMode="cover"
-              testID="merchant-product-detail-photo"
-            />
-          ) : (
-            <ProductPhotoPlaceholder />
-          )}
-          {product.categoryName ? (
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryBadgeTx}>{product.categoryName}</Text>
-            </View>
-          ) : null}
-        </View>
-
-        <DetailCard style={styles.firstCard}>
-          <Text style={styles.title}>{product.name}</Text>
-          <Text style={styles.price}>
-            {product.price.toLocaleString("fr-FR")} {product.currency}
-          </Text>
-          <Text style={styles.stock} testID="merchant-product-detail-stock">
-            {t("merchant.catalog.stock", { count: product.stock })}
-          </Text>
-        </DetailCard>
-
-        <DetailCard>
-          <DetailSectionLabel>{t("merchant.catalog.description")}</DetailSectionLabel>
-          <Text style={styles.bodyText}>
-            {descriptionText || t("merchant.catalog.noDescription")}
-          </Text>
-        </DetailCard>
-
-        <DetailCard>
-          <DetailSectionLabel>{t("merchant.catalog.shopSection")}</DetailSectionLabel>
-          {product.shopName ? (
-            <DetailRow
-              label={t("merchant.catalog.shopName")}
-              value={product.shopName}
-            />
-          ) : null}
-          {product.merchantName ? (
-            <DetailRow
-              label={t("merchant.catalog.seller")}
-              value={product.merchantName}
-            />
-          ) : null}
-          {product.shopLocation ? (
-            <View style={styles.locationRow}>
-              <Ionicons
-                name="location-outline"
-                size={16}
-                color={merchantColors.primary}
-              />
-              <View style={styles.locationText}>
-                <Text style={styles.rowLabel}>{t("merchant.catalog.location")}</Text>
-                <Text style={styles.rowValue}>{product.shopLocation}</Text>
-              </View>
-            </View>
-          ) : null}
-          {shopDescriptionText ? (
-            <View style={styles.shopAboutBlock}>
-              <Text style={styles.rowLabel}>{t("merchant.catalog.shopAbout")}</Text>
-              <Text style={styles.bodyText}>{shopDescriptionText}</Text>
-            </View>
-          ) : null}
-        </DetailCard>
-      </ScrollView>
-
-      <View style={[styles.footer, { paddingBottom: bottomChromePad }]}>
-        <Text style={styles.qtyLabel}>{t("merchant.purchase.quantity")}</Text>
-        <TextInput
-          style={styles.input}
-          value={qty}
-          onChangeText={setQty}
-          keyboardType="number-pad"
-          placeholder="1"
-          testID="merchant-product-detail-quantity"
-        />
-        {totalAmount > 0 ? (
-          <MarketplacePaymentMethodPicker
-            amount={totalAmount}
-            currency={product.currency}
-            walletBalance={walletBalance}
-            value={paymentMethod}
-            onChange={(method) => {
-              userPickedPaymentMethod.current = true;
-              setPaymentMethod(method);
-            }}
-            walletEnabled={walletEnabled}
-          />
-        ) : null}
-        {totalAmount > 0 ? (
-          <Text style={styles.escrowHint}>
-            {t("merchant.purchase.escrowHint")}
-          </Text>
-        ) : null}
-        <Pressable
-          style={[
-            styles.btn,
-            (busy || (paymentMethod === "wallet" && !canPayWithWallet)) &&
-              styles.btnDisabled
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: bottomChromePad + mobileSpacing.lg }
           ]}
-          onPress={() => void onBuy()}
-          disabled={busy || (paymentMethod === "wallet" && !canPayWithWallet)}
-          testID="merchant-product-detail-buy"
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          testID="merchant-product-detail-scroll"
         >
-          {busy ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.btnTx}>{t("merchant.purchase.buy")}</Text>
-          )}
-        </Pressable>
-        <Pressable
-          style={styles.secondary}
-          onPress={() => void onContact()}
-          testID="merchant-product-detail-contact"
-        >
-          <Text style={styles.secondaryTx}>{t("merchant.purchase.contact")}</Text>
-        </Pressable>
-      </View>
+          <View style={styles.heroWrap}>
+            {photos.length > 1 ? (
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                testID="merchant-product-detail-photos"
+              >
+                {photos.map((uri) => (
+                  <Image
+                    key={uri}
+                    source={{ uri }}
+                    style={[styles.heroImg, { width: screenW }]}
+                    resizeMode="cover"
+                  />
+                ))}
+              </ScrollView>
+            ) : photos.length === 1 ? (
+              <Image
+                source={{ uri: photos[0] }}
+                style={[styles.heroImg, { width: screenW, height: HERO_HEIGHT }]}
+                resizeMode="cover"
+                testID="merchant-product-detail-photo"
+              />
+            ) : (
+              <ProductPhotoPlaceholder />
+            )}
+            {product.categoryName ? (
+              <View style={styles.categoryBadge}>
+                <Text style={styles.categoryBadgeTx}>{product.categoryName}</Text>
+              </View>
+            ) : null}
+          </View>
+
+          <DetailCard style={styles.firstCard}>
+            <Text style={styles.title}>{product.name}</Text>
+            <Text style={styles.price}>
+              {product.price.toLocaleString("fr-FR")} {product.currency}
+            </Text>
+            <Text style={styles.stock} testID="merchant-product-detail-stock">
+              {t("merchant.catalog.stock", { count: product.stock })}
+            </Text>
+          </DetailCard>
+
+          <DetailCard>
+            <DetailSectionLabel>{t("merchant.catalog.description")}</DetailSectionLabel>
+            <Text style={styles.bodyText}>
+              {descriptionText || t("merchant.catalog.noDescription")}
+            </Text>
+          </DetailCard>
+
+          <DetailCard>
+            <DetailSectionLabel>{t("merchant.catalog.shopSection")}</DetailSectionLabel>
+            {product.shopName ? (
+              <DetailRow
+                label={t("merchant.catalog.shopName")}
+                value={product.shopName}
+              />
+            ) : null}
+            {product.merchantName ? (
+              <DetailRow
+                label={t("merchant.catalog.seller")}
+                value={product.merchantName}
+              />
+            ) : null}
+            {product.shopLocation ? (
+              <View style={styles.locationRow}>
+                <Ionicons
+                  name="location-outline"
+                  size={16}
+                  color={merchantColors.primary}
+                />
+                <View style={styles.locationText}>
+                  <Text style={styles.rowLabel}>{t("merchant.catalog.location")}</Text>
+                  <Text style={styles.rowValue}>{product.shopLocation}</Text>
+                </View>
+              </View>
+            ) : null}
+            {shopDescriptionText ? (
+              <View style={styles.shopAboutBlock}>
+                <Text style={styles.rowLabel}>{t("merchant.catalog.shopAbout")}</Text>
+                <Text style={styles.bodyText}>{shopDescriptionText}</Text>
+              </View>
+            ) : null}
+          </DetailCard>
+
+          <DetailCard style={styles.purchaseCard}>
+            <DetailSectionLabel>{t("merchant.purchase.quantity")}</DetailSectionLabel>
+            <TextInput
+              style={styles.input}
+              value={qty}
+              onChangeText={setQty}
+              keyboardType="number-pad"
+              placeholder="1"
+              testID="merchant-product-detail-quantity"
+            />
+            {totalAmount > 0 ? (
+              <View style={styles.paymentBlock}>
+                <MarketplacePaymentMethodPicker
+                  amount={totalAmount}
+                  currency={product.currency}
+                  walletBalance={walletBalance}
+                  value={paymentMethod}
+                  onChange={(method) => {
+                    userPickedPaymentMethod.current = true;
+                    setPaymentMethod(method);
+                  }}
+                  walletEnabled={walletEnabled}
+                />
+                <Text style={styles.escrowHint}>
+                  {t("merchant.purchase.escrowHint")}
+                </Text>
+              </View>
+            ) : null}
+            <Pressable
+              style={[
+                styles.btn,
+                (busy || (paymentMethod === "wallet" && !canPayWithWallet)) &&
+                  styles.btnDisabled
+              ]}
+              onPress={() => void onBuy()}
+              disabled={busy || (paymentMethod === "wallet" && !canPayWithWallet)}
+              testID="merchant-product-detail-buy"
+            >
+              {busy ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.btnTx}>{t("merchant.purchase.buy")}</Text>
+              )}
+            </Pressable>
+            <Pressable
+              style={styles.secondary}
+              onPress={() => void onContact()}
+              testID="merchant-product-detail-contact"
+            >
+              <Text style={styles.secondaryTx}>{t("merchant.purchase.contact")}</Text>
+            </Pressable>
+          </DetailCard>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: mobileColors.surfaceMuted },
+  flex: { flex: 1 },
   scroll: { flex: 1 },
   scrollContent: { flexGrow: 1 },
   loader: { flex: 1, alignItems: "center", justifyContent: "center" },
@@ -521,6 +532,12 @@ const styles = StyleSheet.create({
   firstCard: {
     marginTop: mobileSpacing.md
   },
+  purchaseCard: {
+    gap: mobileSpacing.sm
+  },
+  paymentBlock: {
+    gap: mobileSpacing.sm
+  },
   title: {
     fontSize: 24,
     fontWeight: "800",
@@ -566,11 +583,7 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.md,
     gap: mobileSpacing.xs
   },
-  footer: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
+  pendingActions: {
     paddingHorizontal: mobileSpacing.lg,
     paddingTop: mobileSpacing.md,
     backgroundColor: mobileColors.background,
@@ -578,15 +591,9 @@ const styles = StyleSheet.create({
     borderTopColor: mobileColors.border,
     gap: mobileSpacing.sm
   },
-  qtyLabel: {
-    ...mobileTypography.meta,
-    fontWeight: "600",
-    color: mobileColors.textSecondary
-  },
   escrowHint: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
-    marginBottom: 8,
     lineHeight: 18
   },
   input: {
