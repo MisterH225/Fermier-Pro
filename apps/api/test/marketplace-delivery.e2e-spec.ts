@@ -30,6 +30,7 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
 
   beforeAll(async () => {
     process.env.THROTTLE_LIMIT = "100000";
+    process.env.MOBILE_MONEY_PROVIDER = "dev";
     ctx = await seedE2eFixtures(PrismaClient);
     buyerFarmId = await seedBuyerFarm(ctx.prisma, ctx.peerUserId);
     app = await createTestApp();

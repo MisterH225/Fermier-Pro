@@ -276,6 +276,7 @@ describeOrSkip("Merchant shop (e2e)", () => {
       .send({ providerRef: purchase.body.providerRef });
     expect(confirm.status).toBe(201);
     expect(confirm.body.status).toBe("paid");
+    expect(confirm.body.escrowHeld).toBe(true);
 
     const after = await base.prisma.merchantProduct.findUniqueOrThrow({
       where: { id: published!.id }

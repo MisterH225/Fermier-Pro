@@ -656,6 +656,21 @@ describeOrSkip("Abonnement Premium commerçant — facturation (e2e)", () => {
     expect([200, 201]).toContain(cancel.status);
     expect(cancel.body.promoPercentOffApplied).toBeNull();
 
+    const profileBeforeRenewal =
+      await base.prisma.merchantProfile.findUniqueOrThrow({
+        where: { userId: merchant.merchantUserId }
+      });
+    const previousPeriodStart = new Date("2026-05-01T00:00:00.000Z");
+    const previousPeriodEnd = new Date("2026-06-01T00:00:00.000Z");
+    await base.prisma.merchantSubscriptionInvoice.updateMany({
+      where: { merchantProfileId: profileBeforeRenewal.id },
+      data: {
+        billingPeriodStart: previousPeriodStart,
+        billingPeriodEnd: previousPeriodEnd,
+        dueDate: previousPeriodStart
+      }
+    });
+
     const again = await request(app.getHttpServer())
       .post("/api/v1/merchant/me/subscription")
       .set("Authorization", `Bearer ${merchant.merchantToken}`)
