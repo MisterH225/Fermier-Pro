@@ -272,6 +272,7 @@ model User {
   merchantOrderDisputesOpened MerchantOrderDispute[] @relation("MerchantOrderDisputeOpener")
   merchantOrdersAsSeller MerchantOrder[]    @relation("MerchantOrderSeller")
   merchantModerationActions MerchantProductModerationLog[] @relation("MerchantModerationAdmin")
+  trustScoreSnapshots   TrustScoreSnapshot[]
 
   @@index([email])
   @@index([accountStatus])
@@ -3705,6 +3706,42 @@ model MerchantOrderDispute {
 
   @@index([openedByUserId, createdAt(sort: Desc)])
   @@index([status])
+}
+
+/// Snapshot score de confiance v2 (mode ombre) — n'alimente PAS le crédit.
+/// Voir apps/api/src/trust-score/ — producer-score v1 reste la source de vérité crédit.
+enum TrustScoreProfileType {
+  producer
+  buyer
+  merchant
+  vet
+  technician
+}
+
+/// Niveaux météo v2 — clés alignées produit (cf. constants/meteoProfil côté mobile).
+enum TrustScoreLevel {
+  ensoleille
+  eclaircies
+  nuageux
+  orageux
+  nouvelle
+}
+
+model TrustScoreSnapshot {
+  id           String                @id @default(cuid())
+  userId       String
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileType  TrustScoreProfileType
+  scoreVersion Int
+  pillars      Json
+  score        Int
+  level        TrustScoreLevel
+  sampleSizes  Json
+  computedAt   DateTime              @default(now())
+
+  @@index([userId, profileType, computedAt])
+  @@index([profileType, computedAt])
+  @@index([scoreVersion, computedAt])
 }
 
 /// Journal suppression produit commerçant par admin (référence litige futur).

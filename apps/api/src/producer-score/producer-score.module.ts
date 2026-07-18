@@ -9,6 +9,6 @@ import { ProducerScoreService } from "./producer-score.service";
   imports: [PrismaModule, forwardRef(() => AuthModule)],
   controllers: [ProducerScoreController],
   providers: [ProducerScoreService, ProducerScoreMetricsService],
-  exports: [ProducerScoreService]
+  exports: [ProducerScoreService, ProducerScoreMetricsService]
 })
 export class ProducerScoreModule {}
