@@ -114,6 +114,20 @@ export function QuickActionsHost({
             openTransaction: true
           });
           return;
+        case "feedIn":
+          navigation.navigate("FarmFeedStock", {
+            farmId,
+            farmName,
+            autoOpenEntry: true
+          });
+          return;
+        case "stockCheck":
+          navigation.navigate("FarmFeedStock", {
+            farmId,
+            farmName,
+            autoOpenControl: true
+          });
+          return;
         default:
           return;
       }

@@ -1403,7 +1403,11 @@ export const en = {
       sell: "Sell",
       sellA11y: "Sell or list on the market",
       expense: "Expense",
-      expenseA11y: "Record an expense"
+      expenseA11y: "Record an expense",
+      feedIn: "Feed entry",
+      feedInA11y: "Record a feed stock entry",
+      stockCheck: "Stock check",
+      stockCheckA11y: "Perform a feed stock check"
     },
     sell: {
       title: "Sell",
@@ -1432,9 +1436,9 @@ export const en = {
       team: "Team",
       teamDescription: "Manage your collaborators",
       settings: "Settings",
-      nutrition: "Stock",
+      nutrition: "Feed",
       nutritionRoadmap:
-        "Feed purchases and stock tracking will be available when the stock module is enabled for your farm.",
+        "Feed purchases and stock tracking will be available when the feed module is enabled for your farm.",
       collaboration: "Collaboration",
       market: "Market",
       communityFeed: "Community",
@@ -1449,7 +1453,7 @@ export const en = {
       closeA11y: "Close"
     },
     screenTitles: {
-      feedStock: "Feed stock",
+      feedStock: "Feed",
       communityFeed: "Com",
       notifications: "Notifications",
       reports: "Reports",
@@ -1579,7 +1583,7 @@ export const en = {
     }
   },
   feedStock: {
-    title: "Feed stock",
+    title: "Feed",
     tabOverview: "Overview",
     tabMovements: "Movements",
     tabControls: "Stock checks",
@@ -2500,8 +2504,8 @@ export const en = {
       healthVet: "Next vet visit",
       healthDiseases: "Active disease cases",
       healthMortality: "Mortality rate",
-      feedTitle: "Feed stock",
-      feedDisabled: "Feed stock module is disabled on this server.",
+      feedTitle: "Feed",
+      feedDisabled: "Feed module is disabled on this server.",
       feedCritical: "Stock below critical threshold",
       dayAbbr: "d",
       urgentBadge: "Urgent"

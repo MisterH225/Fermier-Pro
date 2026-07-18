@@ -158,8 +158,8 @@ export function buildFarmDetailMenuItems(args: {
       kind: "navigate",
       preset: "feed",
       visible: menu.feedStock,
-      title: "Nutrition et stock",
-      subtitle: "Aliments achetés, stock restant",
+      title: "Aliment",
+      subtitle: "Achats et stock restant",
       screen: "FarmFeedStock",
       params: { farmId, farmName }
     }

@@ -299,6 +299,7 @@ function resolveLegacyActionNavigation(
         feedTab,
         filterCostMissing: costFilter === "missing" || params.filterCostMissing === true,
         openFeedTypeId: str(params.feedTypeId),
+        autoOpenEntry: params.autoOpenEntry === true,
         autoOpenControl: params.autoOpenControl === true
       }
     };

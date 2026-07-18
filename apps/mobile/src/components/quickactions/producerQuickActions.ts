@@ -10,7 +10,8 @@ export const PRODUCER_QUICK_ACTION_ROOT_ROUTES = [
   "FarmLivestock",
   "FarmHealth",
   "MarketplaceList",
-  "FarmFinance"
+  "FarmFinance",
+  "FarmFeedStock"
 ] as const;
 
 export type ProducerQuickActionRootRoute =
@@ -21,14 +22,18 @@ export type ProducerQuickActionId =
   | "mortality"
   | "farrowing"
   | "sell"
-  | "expense";
+  | "expense"
+  | "feedIn"
+  | "stockCheck";
 
 export const PRODUCER_QUICK_ACTION_IDS: ProducerQuickActionId[] = [
   "weigh",
   "mortality",
   "farrowing",
   "sell",
-  "expense"
+  "expense",
+  "feedIn",
+  "stockCheck"
 ];
 
 /** Diamètre du bouton flottant (cible tactile). */

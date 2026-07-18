@@ -42,6 +42,16 @@ const ACTION_META: Record<
     icon: "wallet-outline",
     labelKey: "quickActions.actions.expense",
     a11yKey: "quickActions.actions.expenseA11y"
+  },
+  feedIn: {
+    icon: "cube-outline",
+    labelKey: "quickActions.actions.feedIn",
+    a11yKey: "quickActions.actions.feedInA11y"
+  },
+  stockCheck: {
+    icon: "clipboard-outline",
+    labelKey: "quickActions.actions.stockCheck",
+    a11yKey: "quickActions.actions.stockCheckA11y"
   }
 };
 
