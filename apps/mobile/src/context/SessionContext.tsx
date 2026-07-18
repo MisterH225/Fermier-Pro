@@ -12,11 +12,12 @@ import { AppState, type AppStateStatus } from "react-native";
 import type {
   AuthMeResponse,
   ClientConfigDto,
+  ClientPlatformFeesDto,
   PlatformModuleDto,
   SupportContactDto
 } from "../lib/api";
+import { DEFAULT_PLATFORM_FEES, fetchAuthMe, fetchClientConfig } from "../lib/api";
 import { formatApiError } from "../lib/apiErrors";
-import { fetchAuthMe, fetchClientConfig } from "../lib/api";
 import { queryClient } from "../lib/queryClient";
 import { resetNavigationToProfileHome } from "../lib/profileNavigationReset";
 const STORAGE_PROFILE_KEY = "@fermier_pro/active_profile_id";
@@ -80,6 +81,8 @@ type SessionContextValue = {
   platformModules: PlatformModuleDto[];
   /** Coordonnées support (téléphone / Telegram) depuis `/config/client`. */
   supportContact: SupportContactDto;
+  /** Taux de commission plateforme (aperçu vendeur / véto). */
+  platformFees: ClientPlatformFeesDto;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -119,6 +122,8 @@ export function SessionProvider({
     phone: null,
     telegramUrl: null
   });
+  const [platformFees, setPlatformFees] =
+    useState<ClientPlatformFeesDto>(DEFAULT_PLATFORM_FEES);
 
   useEffect(() => {
     let cancelled = false;
@@ -130,6 +135,7 @@ export function SessionProvider({
           setSupportContact(
             cfg.support ?? { phone: null, telegramUrl: null }
           );
+          setPlatformFees(cfg.fees ?? DEFAULT_PLATFORM_FEES);
         }
       })
       .catch(() => {
@@ -137,6 +143,7 @@ export function SessionProvider({
           setClientFeatures({ ...DEFAULT_CLIENT_FEATURES });
           setPlatformModules([]);
           setSupportContact({ phone: null, telegramUrl: null });
+          setPlatformFees(DEFAULT_PLATFORM_FEES);
         }
       });
     return () => {
@@ -309,7 +316,8 @@ export function SessionProvider({
       reloadAuth,
       clientFeatures,
       platformModules,
-      supportContact
+      supportContact,
+      platformFees
     }),
     [
       accessToken,
@@ -323,7 +331,8 @@ export function SessionProvider({
       reloadAuth,
       clientFeatures,
       platformModules,
-      supportContact
+      supportContact,
+      platformFees
     ]
   );
 

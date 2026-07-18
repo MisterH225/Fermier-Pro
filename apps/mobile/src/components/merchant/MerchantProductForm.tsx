@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MerchantProductPhotoGrid } from "./MerchantProductPhotoGrid";
+import { PlatformFeePreview } from "../common/PlatformFeePreview";
 import { useSession } from "../../context/SessionContext";
 import {
   createMerchantProduct,
@@ -35,6 +36,10 @@ import {
 } from "../../lib/merchantCategoryFields";
 import { resolveMerchantShopId } from "../../lib/merchantShop";
 import { validateMerchantProductFormInput } from "../../lib/merchantProductForm";
+import {
+  computeSellerFeeBreakdown,
+  parsePriceInput
+} from "../../lib/platformFees";
 import { merchantColors } from "../../theme/merchantTheme";
 import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
 import { useBottomInset } from "../../hooks/useBottomInset";
@@ -75,7 +80,7 @@ export function MerchantProductForm({
   onSubscriptionRequired
 }: MerchantProductFormProps) {
   const { t } = useTranslation();
-  const { accessToken, activeProfileId } = useSession();
+  const { accessToken, activeProfileId, platformFees } = useSession();
   const queryClient = useQueryClient();
   const bottomInset = useBottomInset();
   const [name, setName] = useState("");
@@ -148,6 +153,17 @@ export function MerchantProductForm({
   );
 
   const shops = meQ.data?.shops ?? [];
+
+  const sellerFeeBreakdown = useMemo(() => {
+    const parsed = parsePriceInput(price);
+    if (parsed == null) {
+      return null;
+    }
+    return computeSellerFeeBreakdown(
+      parsed,
+      platformFees.marketplaceSellerCommissionRate
+    );
+  }, [price, platformFees.marketplaceSellerCommissionRate]);
 
   useEffect(() => {
     if (catsQ.data?.[0] && !categoryId) {
@@ -416,6 +432,11 @@ export function MerchantProductForm({
               testID="merchant-product-form-price"
             />
           </FormField>
+          <PlatformFeePreview
+            breakdown={sellerFeeBreakdown}
+            currency="XOF"
+            unitLabelKey="platformFees.unitPerItem"
+          />
           <FormField
             label={t("merchant.product.stockLabel")}
             hint={t("merchant.product.stockHint")}

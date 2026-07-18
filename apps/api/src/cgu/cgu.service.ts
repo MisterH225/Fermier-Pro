@@ -46,10 +46,20 @@ export class CguService {
     const existing = await this.prisma.cguSettings.findUnique({
       where: { id: SETTINGS_ID }
     });
-    if (existing && !existing.content?.trim()) {
+    if (!existing) {
+      return;
+    }
+    // Contenu vide ou version applicative plus récente → synchroniser le texte légal.
+    if (
+      !existing.content?.trim() ||
+      existing.currentVersion !== CGU_DEFAULT_VERSION
+    ) {
       await this.prisma.cguSettings.update({
         where: { id: SETTINGS_ID },
-        data: { content: CGU_DEFAULT_CONTENT }
+        data: {
+          content: CGU_DEFAULT_CONTENT,
+          currentVersion: CGU_DEFAULT_VERSION
+        }
       });
     }
   }

@@ -135,6 +135,28 @@ export class PlatformSettingsService {
     return rate;
   }
 
+  /** Taux publics pour aperçu frais côté mobile (sans auth). */
+  async getPublicFeeRates(): Promise<{
+    marketplaceBuyerCommissionRate: number;
+    marketplaceSellerCommissionRate: number;
+    vetCommissionRate: number;
+  }> {
+    const [
+      marketplaceBuyerCommissionRate,
+      marketplaceSellerCommissionRate,
+      vetCommissionRate
+    ] = await Promise.all([
+      this.getMarketplaceCommissionRate(),
+      this.getSellerMarketplaceCommissionRate(),
+      this.getVetCommissionRate()
+    ]);
+    return {
+      marketplaceBuyerCommissionRate,
+      marketplaceSellerCommissionRate,
+      vetCommissionRate
+    };
+  }
+
   async getWeightArbitrationThresholds(): Promise<WeightArbitrationSettingsDto> {
     const now = Date.now();
     if (
