@@ -22,6 +22,8 @@ describeOrSkip("Marketplace vente à crédit escrow (e2e)", () => {
 
   beforeAll(async () => {
     process.env.THROTTLE_LIMIT = "100000";
+    // Remettre le gateway simulé (d'autres suites e2e forcent geniuspay).
+    process.env.MOBILE_MONEY_PROVIDER = "dev";
     ctx = await seedE2eFixtures(PrismaClient);
     app = await createTestApp();
 

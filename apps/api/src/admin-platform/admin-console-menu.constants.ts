@@ -57,6 +57,7 @@ export const ADMIN_ROUTE_MENU_RULES: RouteMenuRule[] = [
   { prefix: "/admin/feed", menu: "feedModeration" },
   { prefix: "/admin/chat", menu: "chatModeration" },
   { prefix: "/admin/audit-logs", menu: "auditLogs" },
+  { prefix: "/admin/sanitary-alerts", menu: "map" },
   { prefix: "/admin/sanitary", menu: "map" },
   { prefix: "/admin/health-map", menu: "map" },
   { prefix: "/admin/marketplace", menu: "marketplace" },
