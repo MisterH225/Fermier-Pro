@@ -93,6 +93,16 @@ describeOrSkip("Carte sanitaire console (e2e)", () => {
       update: {}
     });
     await ctx.prisma.adminRegionRef.upsert({
+      where: { code: "CI-R-LA" },
+      create: {
+        code: "CI-R-LA",
+        name: "La Mé",
+        level: "region",
+        parentCode: "CI-D-LG"
+      },
+      update: {}
+    });
+    await ctx.prisma.adminRegionRef.upsert({
       where: { code: deptLow },
       create: {
         code: deptLow,
@@ -109,16 +119,6 @@ describeOrSkip("Carte sanitaire console (e2e)", () => {
         name: "Adzopé",
         level: "department",
         parentCode: "CI-R-LA"
-      },
-      update: {}
-    });
-    await ctx.prisma.adminRegionRef.upsert({
-      where: { code: "CI-R-LA" },
-      create: {
-        code: "CI-R-LA",
-        name: "La Mé",
-        level: "region",
-        parentCode: "CI-D-LG"
       },
       update: {}
     });

@@ -108,6 +108,28 @@ export function isWriteHttpMethod(method: string): boolean {
   return ["POST", "PUT", "PATCH", "DELETE"].includes(method.toUpperCase());
 }
 
+/** POST autorisés avec permission lecture seule sur le menu associé. */
+export const ADMIN_READ_POST_PATH_PREFIXES = ["/admin/stats/reports"] as const;
+
+export function requiredMenuAccessForAdminRequest(
+  method: string,
+  path: string
+): AdminConsoleMenuAccess {
+  if (!isWriteHttpMethod(method)) {
+    return "read";
+  }
+  const normalized = normalizeAdminApiPath(path);
+  if (
+    ADMIN_READ_POST_PATH_PREFIXES.some(
+      (prefix) =>
+        normalized === prefix || normalized.startsWith(`${prefix}/`)
+    )
+  ) {
+    return "read";
+  }
+  return "write";
+}
+
 export function parseMenuPermissions(raw: unknown): AdminConsoleMenuPermissions {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     return {};

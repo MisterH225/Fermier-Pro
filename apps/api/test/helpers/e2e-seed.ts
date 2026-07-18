@@ -2,6 +2,8 @@ import type { PrismaClient } from "@prisma/client";
 import {
   AnimalSex,
   MembershipRole,
+  MerchantSubscriptionStatus,
+  MerchantSubscriptionTier,
   ProfileType,
   VaccineCatalogType
 } from "@prisma/client";
@@ -204,6 +206,21 @@ export async function seedE2eFixtures(
       type: ProfileType.producer,
       displayName: "E2E Producteur",
       isDefault: true
+    }
+  });
+
+  await prisma.producerProfile.upsert({
+    where: { userId: user.id },
+    create: {
+      userId: user.id,
+      subscriptionTier: MerchantSubscriptionTier.premium,
+      subscriptionStatus: MerchantSubscriptionStatus.active,
+      subscriptionChosenAt: new Date()
+    },
+    update: {
+      subscriptionTier: MerchantSubscriptionTier.premium,
+      subscriptionStatus: MerchantSubscriptionStatus.active,
+      subscriptionChosenAt: new Date()
     }
   });
 
