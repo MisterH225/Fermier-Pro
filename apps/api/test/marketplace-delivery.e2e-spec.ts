@@ -168,8 +168,8 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
       .get(
         `/api/v1/marketplace/transactions/${disputeListing.transactionId}`
       )
-      .set("Authorization", `Bearer ${ctx.peerToken}`)
-      .send({ paymentMethod: "mobile_money" });
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    // resolved_vendor déclenche settleTransaction → TRANSACTION_CLOSED
     expect(txAfter.body.status).toBe("TRANSACTION_CLOSED");
   });
 

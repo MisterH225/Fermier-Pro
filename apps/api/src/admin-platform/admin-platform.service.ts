@@ -1471,6 +1471,7 @@ export class AdminPlatformService {
 
   async createSuperAdmin(creator: User, dto: CreateSuperAdminDto) {
     const email = dto.email.trim().toLowerCase();
+    // Conflits métier avant le prérequis Supabase (sinon 503 masque le 409).
     const existingAdmin = await this.prisma.superAdmin.findFirst({
       where: {
         user: { email: { equals: email, mode: "insensitive" } }

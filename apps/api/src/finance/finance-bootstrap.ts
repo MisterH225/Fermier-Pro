@@ -1,5 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
-import { FinanceCategoryType } from "@prisma/client";
+import { FinanceCategoryType, Prisma, type PrismaClient } from "@prisma/client";
 
 type CatSeed = {
   type: FinanceCategoryType;
@@ -27,15 +26,25 @@ export async function ensureFarmFinanceBootstrap(
   prisma: PrismaClient,
   farmId: string
 ): Promise<void> {
-  await prisma.farmFinanceSettings.upsert({
-    where: { farmId },
-    create: {
-      farmId,
-      currencyCode: "XOF",
-      currencySymbol: "FCFA"
-    },
-    update: {}
-  });
+  try {
+    await prisma.farmFinanceSettings.upsert({
+      where: { farmId },
+      create: {
+        farmId,
+        currencyCode: "XOF",
+        currencySymbol: "FCFA"
+      },
+      update: {}
+    });
+  } catch (e) {
+    // Course concurrente create/upsert sur la même ferme (alerts + rapprochement).
+    if (
+      !(e instanceof Prisma.PrismaClientKnownRequestError) ||
+      e.code !== "P2002"
+    ) {
+      throw e;
+    }
+  }
 
   await prisma.financeCategory.createMany({
     data: DEFAULT_FINANCE_CATEGORY_SEEDS.map((c) => ({

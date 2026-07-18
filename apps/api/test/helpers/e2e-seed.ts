@@ -56,12 +56,21 @@ export async function purgeMarketplaceForUsers(
     await prisma.marketplaceDeliveryDispute.deleteMany({
       where: { transactionId: { in: transactionIds } }
     });
-    await prisma.marketplaceTransactionReceipt.deleteMany({
-      where: { transactionId: { in: transactionIds } }
-    });
-    await prisma.marketplaceTransaction.deleteMany({
-      where: { id: { in: transactionIds } }
-    });
+    // generateReceipt peut s'intercaler (async) → retry si FK receipt.
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await prisma.marketplaceTransactionReceipt.deleteMany({
+          where: { transactionId: { in: transactionIds } }
+        });
+        await prisma.marketplaceTransaction.deleteMany({
+          where: { id: { in: transactionIds } }
+        });
+        break;
+      } catch (err) {
+        if (attempt >= 2) throw err;
+        await new Promise((r) => setTimeout(r, 100 * (attempt + 1)));
+      }
+    }
   }
 
   await prisma.marketplacePendingTransfer.deleteMany({
@@ -209,18 +218,23 @@ export async function seedE2eFixtures(
     }
   });
 
+  // Premium producteur requis pour les invitations d'équipe.
   await prisma.producerProfile.upsert({
     where: { userId: user.id },
     create: {
       userId: user.id,
       subscriptionTier: MerchantSubscriptionTier.premium,
       subscriptionStatus: MerchantSubscriptionStatus.active,
-      subscriptionChosenAt: new Date()
+      subscriptionChosenAt: new Date(),
+      premiumPaidAt: new Date()
     },
     update: {
       subscriptionTier: MerchantSubscriptionTier.premium,
       subscriptionStatus: MerchantSubscriptionStatus.active,
-      subscriptionChosenAt: new Date()
+      subscriptionChosenAt: new Date(),
+      premiumPaidAt: new Date(),
+      cancelledAt: null,
+      suspendedAt: null
     }
   });
 

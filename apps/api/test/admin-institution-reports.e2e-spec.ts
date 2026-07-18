@@ -38,7 +38,8 @@ describeOrSkip("Rapports stats institution (e2e)", () => {
     const institution = await attachInstitutionConsoleUser(
       ctx.prisma,
       ctx.peerUserId,
-      { stats: "read" },
+      // POST /stats/reports est classé write par AdminConsoleMenuGuard
+      { stats: "write" },
       { mortality: true }
     );
     institutionUserId = institution.id;

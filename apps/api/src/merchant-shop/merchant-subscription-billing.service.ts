@@ -111,6 +111,23 @@ export class MerchantSubscriptionBillingService {
     });
 
     if (existing?.status === MerchantSubscriptionInvoiceStatus.paid) {
+      // Réactivation même période (ex. après cancel) : maj montant si tarif change
+      // (promo → plein) au lieu de renvoyer l'ancienne facture sans recalcul.
+      if (Number(existing.amount) !== amount) {
+        const updated = await this.prisma.merchantSubscriptionInvoice.update({
+          where: { id: existing.id },
+          data: {
+            amount,
+            paidAt,
+            providerRef,
+            paymentUrl: null,
+            billingPeriodEnd: periodEnd,
+            dueDate: periodStart
+          }
+        });
+        await this.activatePremium(profileId, paidAt);
+        return updated;
+      }
       await this.activatePremium(profileId, existing.paidAt ?? paidAt);
       return existing;
     }

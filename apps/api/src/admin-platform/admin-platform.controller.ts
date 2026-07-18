@@ -575,7 +575,7 @@ export class AdminPlatformController {
       "Content-Disposition",
       `attachment; filename="${result.filename}"`
     );
-    res.send(result.buffer);
+    res.status(200).send(result.buffer);
   }
 
   @Get("settings")

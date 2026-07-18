@@ -283,6 +283,35 @@ describeOrSkip("Merchant shop (e2e)", () => {
     });
     expect(after.stock).toBe(beforeStock - 1);
 
+    // Commission différée à la clôture escrow (pas au payment/confirm).
+    const orderId = confirm.body.id as string;
+    expect(
+      await base.prisma.platformRevenue.findFirst({
+        where: { merchantOrderId: orderId }
+      })
+    ).toBeNull();
+
+    // Avancer jusqu'à delivered sans passer par confirmOrder (chat peut bloquer en e2e).
+    await base.prisma.merchantOrder.update({
+      where: { id: orderId },
+      data: {
+        status: "delivered",
+        confirmedAt: new Date(),
+        shippedAt: new Date(),
+        deliveredAt: new Date(),
+        timeoutAt: null
+      }
+    });
+    const complete = await request(app.getHttpServer())
+      .post(`/api/v1/merchant/orders/${orderId}/complete`)
+      .set("Authorization", `Bearer ${base.peerToken}`);
+    expect([200, 201]).toContain(complete.status);
+
+    const revenue = await base.prisma.platformRevenue.findFirst({
+      where: { merchantOrderId: orderId }
+    });
+    expect(revenue).toBeTruthy();
+
     const chat = await request(app.getHttpServer())
       .post("/api/v1/chat/rooms/direct")
       .set("Authorization", `Bearer ${base.peerToken}`)
@@ -294,23 +323,27 @@ describeOrSkip("Merchant shop (e2e)", () => {
   });
 
   it("détail commande vendeur et acheteur", async () => {
-    const paid = await base.prisma.merchantOrder.findFirst({
-      where: { sellerUserId: merchant.merchantUserId, status: "paid" },
+    // La commande du test précédent peut être completed (escrow clôturé).
+    const order = await base.prisma.merchantOrder.findFirst({
+      where: {
+        sellerUserId: merchant.merchantUserId,
+        status: { in: ["paid", "completed", "delivered", "confirmed", "shipping"] }
+      },
       orderBy: { createdAt: "desc" }
     });
-    expect(paid).toBeTruthy();
+    expect(order).toBeTruthy();
 
     const sellerDetail = await request(app.getHttpServer())
-      .get(`/api/v1/merchant/orders/${paid!.id}`)
+      .get(`/api/v1/merchant/orders/${order!.id}`)
       .set("Authorization", `Bearer ${merchant.merchantToken}`)
       .set("X-Profile-Id", merchant.merchantProfileId);
     expect(sellerDetail.status).toBe(200);
-    expect(sellerDetail.body.id).toBe(paid!.id);
+    expect(sellerDetail.body.id).toBe(order!.id);
     expect(sellerDetail.body.sellerNet).toBeGreaterThan(0);
     expect(sellerDetail.body.productName).toBeTruthy();
 
     const buyerDetail = await request(app.getHttpServer())
-      .get(`/api/v1/merchant/orders/${paid!.id}`)
+      .get(`/api/v1/merchant/orders/${order!.id}`)
       .set("Authorization", `Bearer ${base.peerToken}`);
     expect(buyerDetail.status).toBe(200);
     expect(buyerDetail.body.buyerUserId).toBe(base.peerUserId);
