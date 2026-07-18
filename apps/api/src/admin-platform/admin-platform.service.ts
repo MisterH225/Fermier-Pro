@@ -1225,6 +1225,8 @@ export class AdminPlatformService {
           dto.marketplaceWeightArbitrationMinDiffKg ?? 1,
         marketplaceWeightArbitrationCumulativeMinDiffKg:
           dto.marketplaceWeightArbitrationCumulativeMinDiffKg ?? 5,
+        marketplaceWeightTolerancePercent:
+          dto.marketplaceWeightTolerancePercent ?? 3,
         merchantPremiumPriceXof: dto.merchantPremiumPriceXof ?? 5000,
         merchantPremiumMaxShops: dto.merchantPremiumMaxShops ?? 3,
         merchantPremiumBillingUnit: dto.merchantPremiumBillingUnit ?? "month",
@@ -1298,6 +1300,12 @@ export class AdminPlatformService {
           ? {
               marketplaceWeightArbitrationCumulativeMinDiffKg:
                 dto.marketplaceWeightArbitrationCumulativeMinDiffKg
+            }
+          : {}),
+        ...(dto.marketplaceWeightTolerancePercent !== undefined
+          ? {
+              marketplaceWeightTolerancePercent:
+                dto.marketplaceWeightTolerancePercent
             }
           : {}),
         ...(dto.merchantPremiumPriceXof !== undefined

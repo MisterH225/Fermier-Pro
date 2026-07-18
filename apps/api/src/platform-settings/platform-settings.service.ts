@@ -11,6 +11,7 @@ const CACHE_TTL_MS = 60_000;
 export type WeightArbitrationSettingsDto = {
   minDiffKg: number;
   cumulativeMinDiffKg: number;
+  tolerancePercent: number;
 };
 
 export type SupportContactDto = {
@@ -146,7 +147,8 @@ export class PlatformSettingsService {
       where: { id: "default" },
       select: {
         marketplaceWeightArbitrationMinDiffKg: true,
-        marketplaceWeightArbitrationCumulativeMinDiffKg: true
+        marketplaceWeightArbitrationCumulativeMinDiffKg: true,
+        marketplaceWeightTolerancePercent: true
       }
     });
     if (!row) {
@@ -154,7 +156,8 @@ export class PlatformSettingsService {
         data: { id: "default" },
         select: {
           marketplaceWeightArbitrationMinDiffKg: true,
-          marketplaceWeightArbitrationCumulativeMinDiffKg: true
+          marketplaceWeightArbitrationCumulativeMinDiffKg: true,
+          marketplaceWeightTolerancePercent: true
         }
       });
     }

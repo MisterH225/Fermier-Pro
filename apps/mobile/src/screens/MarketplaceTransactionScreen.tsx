@@ -1059,6 +1059,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
         transactionId={transactionId}
         listingId={tx.listingId}
         buyerWeightKg={tx.realWeightKg}
+        weightArbitrationThresholds={tx.weightArbitrationThresholds}
         onClose={() => setSellerWeightOpen(false)}
         onConfirm={(payload) => sellerWeightMut.mutate(payload)}
       />

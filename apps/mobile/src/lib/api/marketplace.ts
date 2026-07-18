@@ -741,6 +741,8 @@ export type MarketplaceTransactionDto = {
   weightArbitrationThresholds?: {
     minDiffKg: number;
     cumulativeMinDiffKg: number;
+    /** Tolérance relative (%) combinée avec minDiffKg via max(). */
+    tolerancePercent: number;
   };
   pickupDate: string | null;
   pickupLocation: string | null;
