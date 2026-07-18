@@ -115,6 +115,33 @@ describeOrSkip("Merchant shop (e2e)", () => {
     expect(publish.body.status).toBe("published");
   });
 
+  it("DELETE /merchant/products/:id — soft-delete commerçant", async () => {
+    const product = await createMerchantProduct(app, merchant, "Produit à supprimer");
+    expect(product.status).toBe(201);
+    const productId = product.body.id as string;
+
+    const del = await request(app.getHttpServer())
+      .delete(`/api/v1/merchant/products/${productId}`)
+      .set("Authorization", `Bearer ${merchant.merchantToken}`)
+      .set("X-Profile-Id", merchant.merchantProfileId);
+    expect(del.status).toBe(200);
+    expect(del.body.ok).toBe(true);
+    expect(del.body.id).toBe(productId);
+
+    const list = await request(app.getHttpServer())
+      .get("/api/v1/merchant/products")
+      .set("Authorization", `Bearer ${merchant.merchantToken}`)
+      .set("X-Profile-Id", merchant.merchantProfileId);
+    expect(list.status).toBe(200);
+    expect(list.body.map((p: { id: string }) => p.id)).not.toContain(productId);
+
+    const row = await base.prisma.merchantProduct.findUnique({
+      where: { id: productId }
+    });
+    expect(row?.status).toBe(MerchantProductStatus.disabled);
+    expect(row?.disabledReason).toBe("merchant_deleted");
+  });
+
   it("free bloque 6e produit actif", async () => {
     const published = await base.prisma.merchantProduct.count({
       where: {
@@ -161,7 +188,12 @@ describeOrSkip("Merchant shop (e2e)", () => {
     const disabled = await base.prisma.merchantProduct.findFirst({
       where: {
         shopId: merchant.shopId,
-        status: MerchantProductStatus.disabled
+        status: MerchantProductStatus.disabled,
+        // Exclure les soft-deletes commerçant (non swappables).
+        OR: [
+          { disabledReason: null },
+          { disabledReason: { not: "merchant_deleted" } }
+        ]
       }
     });
     if (!disabled) return;

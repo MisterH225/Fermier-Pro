@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
 import {
+  MerchantOrderStatus,
   MerchantProductDisabledReason,
   MerchantProductStatus,
   MerchantSubscriptionTier,
@@ -15,7 +16,8 @@ import { PrismaService } from "../prisma/prisma.service";
 import {
   MERCHANT_ERROR,
   MERCHANT_FREE_MAX_ACTIVE_PRODUCTS,
-  MERCHANT_PRODUCT_MAX_RESUBMISSIONS
+  MERCHANT_PRODUCT_MAX_RESUBMISSIONS,
+  MERCHANT_SHOP_ARCHIVE_BLOCKING_STATUSES
 } from "./merchant-shop.constants";
 import { MerchantProfilesService } from "./merchant-profiles.service";
 import type {
@@ -89,7 +91,18 @@ export class MerchantProductsService {
       .filter((s) => s.archivedAt == null)
       .map((s) => s.id);
     const products = await this.prisma.merchantProduct.findMany({
-      where: { shopId: { in: shopIds } },
+      where: {
+        shopId: { in: shopIds },
+        // Inclure null (SQL NOT (col = x) exclut les NULL).
+        OR: [
+          { disabledReason: null },
+          {
+            disabledReason: {
+              not: MerchantProductDisabledReason.merchant_deleted
+            }
+          }
+        ]
+      },
       include: {
         category: { select: { id: true, name: true, slug: true } },
         shop: { select: { id: true, name: true } }
@@ -268,6 +281,57 @@ export class MerchantProductsService {
       }
     });
     return this.serializeProduct(updated);
+  }
+
+  /**
+   * Soft-delete commerçant : retire le produit du catalogue et de la liste boutique.
+   * Refus 409 s’il reste des commandes bloquantes sur ce produit.
+   */
+  async remove(user: User, productId: string) {
+    const product = await this.requireOwnedProduct(user.id, productId);
+
+    const blocking = await this.prisma.merchantOrder.count({
+      where: {
+        productId: product.id,
+        status: {
+          in: [
+            ...MERCHANT_SHOP_ARCHIVE_BLOCKING_STATUSES
+          ] as MerchantOrderStatus[]
+        }
+      }
+    });
+    if (blocking > 0) {
+      throw new ConflictException({
+        statusCode: 409,
+        code: MERCHANT_ERROR.PRODUCT_HAS_ACTIVE_ORDERS,
+        message:
+          `Impossible de supprimer le produit : ${blocking} commande(s) encore en cours. ` +
+          `Finalisez ou résolvez-les avant.`,
+        activeOrderCount: blocking
+      });
+    }
+
+    const now = new Date();
+    await this.prisma.$transaction([
+      this.prisma.merchantProduct.update({
+        where: { id: product.id },
+        data: {
+          status: MerchantProductStatus.disabled,
+          publishedAt: null,
+          disabledAt: now,
+          disabledReason: MerchantProductDisabledReason.merchant_deleted
+        }
+      }),
+      this.prisma.buyerMerchantFavorite.deleteMany({
+        where: { productId: product.id }
+      })
+    ]);
+
+    return {
+      ok: true as const,
+      id: product.id,
+      deletedAt: now.toISOString()
+    };
   }
 
   async swapActive(user: User, productId: string) {
@@ -478,7 +542,16 @@ export class MerchantProductsService {
     const product = await this.prisma.merchantProduct.findFirst({
       where: {
         id: productId,
-        shop: { merchantProfile: { userId } }
+        shop: { merchantProfile: { userId } },
+        // Inclure null (SQL NOT (col = x) exclut les NULL).
+        OR: [
+          { disabledReason: null },
+          {
+            disabledReason: {
+              not: MerchantProductDisabledReason.merchant_deleted
+            }
+          }
+        ]
       },
       include: {
         category: { select: { id: true, name: true, slug: true } },

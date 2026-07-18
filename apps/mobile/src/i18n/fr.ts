@@ -3810,13 +3810,15 @@ export const fr = {
     },
   favorites: {
     title: "Mes favoris",
-    subtitle: "Annonces que vous suivez sur le marketplace.",
-    sectionList: "Annonces enregistrées",
+    subtitle: "Annonces et produits que vous suivez sur le marketplace.",
+    sectionList: "Favoris enregistrés",
     emptyTitle: "Aucun favori",
-    emptyBody: "Appuyez sur le cœur sur une annonce pour l'ajouter ici.",
+    emptyBody:
+      "Appuyez sur le cœur sur une annonce ou un produit boutique pour l'ajouter ici.",
     explore: "Explorer le marketplace",
     remove: "Retirer des favoris",
-    errorTitle: "Favoris"
+    errorTitle: "Favoris",
+    merchantBadge: "Boutique"
   },
     alerts: {
       title: "Alertes prix",
@@ -4163,6 +4165,15 @@ export const fr = {
       publish: "Publier",
       unpublish: "Dépublier",
       swap: "Activer (swap)",
+      delete: "Supprimer",
+      deleteTitle: "Supprimer ce produit ?",
+      deleteBody:
+        "Le produit sera retiré de votre boutique et du marketplace. Cette action est définitive.",
+      deleteBodyNamed:
+        "« {{name}} » sera retiré de votre boutique et du marketplace. Cette action est définitive.",
+      deleteConfirm: "Supprimer",
+      deleteBlocked:
+        "Impossible de supprimer : des commandes sont encore en cours sur ce produit.",
       freeLimitHint: "Limite Free atteinte — désactive un produit ou passe Premium.",
       stockLabel: "Stock {{count}}",
       filter: {

@@ -18,6 +18,8 @@ export const MERCHANT_ERROR = {
   /** Hard delete refusé : historique de commandes présent. */
   SHOP_HAS_ORDER_HISTORY: "SHOP_HAS_ORDER_HISTORY",
   SHOP_ALREADY_ARCHIVED: "SHOP_ALREADY_ARCHIVED",
+  /** Suppression produit refusée : commandes encore en cours. */
+  PRODUCT_HAS_ACTIVE_ORDERS: "PRODUCT_HAS_ACTIVE_ORDERS",
   /** Trop de re-soumissions après modération — contacter le support. */
   RESUBMISSION_LIMIT: "RESUBMISSION_LIMIT",
   RESUBMISSION_INVALID_STATUS: "RESUBMISSION_INVALID_STATUS",

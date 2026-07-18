@@ -16,6 +16,7 @@ export function MerchantProductFormScreen() {
       shopId={route.params?.shopId}
       productId={route.params?.productId}
       onSuccess={() => navigation.goBack()}
+      onDeleted={() => navigation.goBack()}
       onNeedShop={() => navigation.navigate("MerchantShops")}
     />
   );

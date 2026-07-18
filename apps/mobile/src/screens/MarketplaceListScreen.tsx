@@ -473,28 +473,33 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
         : null;
 
   const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
-    return (favoritesListQuery.data ?? []).map((f: BuyerFavoriteListingDto) => ({
-      id: f.id,
-      title: f.title,
-      description: null,
-      unitPrice: null,
-      quantity: null,
-      currency: "XOF",
-      locationLabel: null,
-      status: "published",
-      publishedAt: f.publishedAt,
-      createdAt: f.favoritedAt,
-      updatedAt: f.favoritedAt,
-      category: f.category,
-      photoUrls: Array.isArray(f.photoUrls)
-        ? (f.photoUrls as string[])
-        : [],
-      totalWeightKg: f.weightKg,
-      pricePerKg: f.pricePerKg,
-      totalPrice: f.totalPrice,
-      farm: f.farmName ? { id: "", name: f.farmName } : null,
-      animal: null
-    }));
+    return (favoritesListQuery.data ?? []).map((f: BuyerFavoriteListingDto) => {
+      const isMerchant = f.kind === "merchant";
+      return {
+        id: f.id,
+        kind: isMerchant ? ("merchant" as const) : ("listing" as const),
+        title: f.title,
+        description: null,
+        unitPrice: isMerchant ? f.totalPrice : null,
+        quantity: null,
+        stock: f.stock ?? null,
+        currency: f.currency?.trim() || "XOF",
+        locationLabel: null,
+        status: "published",
+        publishedAt: f.publishedAt,
+        createdAt: f.favoritedAt,
+        updatedAt: f.favoritedAt,
+        category: f.category,
+        photoUrls: Array.isArray(f.photoUrls)
+          ? (f.photoUrls as string[])
+          : [],
+        totalWeightKg: f.weightKg,
+        pricePerKg: f.pricePerKg,
+        totalPrice: f.totalPrice,
+        farm: f.farmName ? { id: "", name: f.farmName } : null,
+        animal: null
+      };
+    });
   }, [favoritesListQuery.data]);
 
   const listingsList = favoritesOnly ? favoritesAsListings : (listingsQuery.data ?? []);

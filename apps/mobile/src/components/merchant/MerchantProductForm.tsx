@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback, type ReactNode } from "react
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -18,6 +19,7 @@ import { MerchantProductPhotoGrid } from "./MerchantProductPhotoGrid";
 import { useSession } from "../../context/SessionContext";
 import {
   createMerchantProduct,
+  deleteMerchantProduct,
   fetchMerchantCategories,
   fetchMerchantMe,
   fetchMerchantProducts,
@@ -53,6 +55,8 @@ export type MerchantProductFormProps = {
   mode?: "stack" | "onboarding";
   allowPublish?: boolean;
   onSuccess: (product: MerchantProductDto) => void | Promise<void>;
+  /** Après soft-delete réussi (édition stack uniquement). */
+  onDeleted?: () => void | Promise<void>;
   onSkip?: () => void;
   onNeedShop?: () => void;
   /** Publish bloqué faute d'abonnement (onboarding → revenir au choix de forfait). */
@@ -65,6 +69,7 @@ export function MerchantProductForm({
   mode = "stack",
   allowPublish = true,
   onSuccess,
+  onDeleted,
   onSkip,
   onNeedShop,
   onSubscriptionRequired
@@ -242,6 +247,57 @@ export function MerchantProductForm({
 
   const handleSubmit = (mode: "save" | "publish" | "resubmit") => {
     void submit(mode);
+  };
+
+  const handleDelete = () => {
+    if (!accessToken || !activeProfileId || !productId || mode !== "stack") {
+      return;
+    }
+    Alert.alert(
+      t("merchant.products.deleteTitle"),
+      t("merchant.products.deleteBody"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("merchant.products.deleteConfirm"),
+          style: "destructive",
+          onPress: () => {
+            void (async () => {
+              setBusy(true);
+              setError(null);
+              try {
+                await deleteMerchantProduct(
+                  accessToken,
+                  activeProfileId,
+                  productId
+                );
+                await queryClient.invalidateQueries({
+                  queryKey: ["merchant-products", activeProfileId]
+                });
+                await queryClient.invalidateQueries({
+                  queryKey: ["merchant-me", activeProfileId]
+                });
+                await queryClient.invalidateQueries({
+                  queryKey: ["merchant-dashboard", activeProfileId]
+                });
+                if (onDeleted) {
+                  await onDeleted();
+                }
+              } catch (e) {
+                const msg = formatApiError(e);
+                if (/PRODUCT_HAS_ACTIVE_ORDERS|commande/i.test(msg)) {
+                  Alert.alert(t("merchant.products.deleteBlocked"));
+                } else {
+                  setError(msg);
+                }
+              } finally {
+                setBusy(false);
+              }
+            })();
+          }
+        }
+      ]
+    );
   };
 
   if (!shopId && !productId) {
@@ -460,6 +516,16 @@ export function MerchantProductForm({
               </Text>
             </Pressable>
           ) : null}
+          {mode === "stack" && productId ? (
+            <Pressable
+              style={styles.btnDanger}
+              onPress={handleDelete}
+              disabled={busy}
+              testID="merchant-product-form-delete"
+            >
+              <Text style={styles.btnTx}>{t("merchant.products.delete")}</Text>
+            </Pressable>
+          ) : null}
           {mode === "onboarding" && onSkip ? (
             <Pressable
               style={styles.skip}
@@ -574,6 +640,12 @@ const styles = StyleSheet.create({
   },
   btnResubmit: {
     backgroundColor: "#D97706",
+    padding: mobileSpacing.md,
+    borderRadius: mobileRadius.md,
+    alignItems: "center"
+  },
+  btnDanger: {
+    backgroundColor: merchantColors.danger,
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.md,
     alignItems: "center"
