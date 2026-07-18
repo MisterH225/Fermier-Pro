@@ -38,6 +38,11 @@ type Props = {
   farmId: string;
   accessToken: string;
   activeProfileId?: string | null;
+  /**
+   * Pré-réglage optionnel (verbes P-34). Masque / verrouille le sélecteur de type.
+   * Sans preset, le formulaire générique reste inchangé.
+   */
+  presetStatus?: AnimalStatusKey;
   onClose: () => void;
   onUpdated: () => void;
   onRequestSale?: (animal: AnimalListItem) => void;
@@ -59,6 +64,7 @@ export function ChangeStatusModal({
   farmId,
   accessToken,
   activeProfileId,
+  presetStatus,
   onClose,
   onUpdated,
   onRequestSale,
@@ -70,16 +76,22 @@ export function ChangeStatusModal({
   const [status, setStatus] = useState<AnimalStatusKey>("active");
   const [note, setNote] = useState("");
   const [deathCause, setDeathCause] = useState("");
+  const locked = Boolean(presetStatus);
 
   useEffect(() => {
     if (visible && animal) {
-      setStatus(
-        (normalizeAnimalStatusKey(animal.status) as AnimalStatusKey) || "active"
-      );
+      if (presetStatus) {
+        setStatus(presetStatus);
+      } else {
+        setStatus(
+          (normalizeAnimalStatusKey(animal.status) as AnimalStatusKey) ||
+            "active"
+        );
+      }
       setNote("");
       setDeathCause("");
     }
-  }, [visible, animal]);
+  }, [visible, animal, presetStatus]);
 
   const buildPayload = () => {
     if (!animal) {
@@ -181,7 +193,11 @@ export function ChangeStatusModal({
     <BaseModal
       visible={visible}
       onClose={onClose}
-      title={t("cheptel.animals.status.title", { tag })}
+      title={
+        locked
+          ? t(`cheptel.animals.status.${status}`, { defaultValue: tag })
+          : t("cheptel.animals.status.title", { tag })
+      }
       footerPrimary={
         <Pressable
           style={[styles.primaryBtn, saveMut.isPending && styles.btnDisabled]}
@@ -198,30 +214,41 @@ export function ChangeStatusModal({
         </Pressable>
       }
     >
-      <ModalSection title={t("modals.sections.status")}>
-        <View style={styles.statusGrid}>
-          {STATUS_OPTIONS.map((opt) => (
-            <Pressable
-              key={opt.key}
-              style={[
-                styles.statusChip,
-                opt.key !== "sold" &&
-                  opt.key !== "sick" &&
-                  status === opt.key &&
-                  styles.statusChipOn
-              ]}
-              onPress={() => onPickStatus(opt.key)}
-            >
-              <Text style={styles.statusChipText}>
-                {opt.emoji}{" "}
-                {opt.key === "sick"
-                  ? t("cheptel.animals.status.sick")
-                  : t(`cheptel.animals.status.${opt.key}`)}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      </ModalSection>
+      {locked ? (
+        <ModalSection title={t("modals.sections.status")}>
+          <Text style={styles.hint}>
+            {t("cheptel.exits.kindLocked", {
+              kind: t(`cheptel.animals.status.${status}`)
+            })}
+          </Text>
+          <Text style={styles.label}>{tag}</Text>
+        </ModalSection>
+      ) : (
+        <ModalSection title={t("modals.sections.status")}>
+          <View style={styles.statusGrid}>
+            {STATUS_OPTIONS.map((opt) => (
+              <Pressable
+                key={opt.key}
+                style={[
+                  styles.statusChip,
+                  opt.key !== "sold" &&
+                    opt.key !== "sick" &&
+                    status === opt.key &&
+                    styles.statusChipOn
+                ]}
+                onPress={() => onPickStatus(opt.key)}
+              >
+                <Text style={styles.statusChipText}>
+                  {opt.emoji}{" "}
+                  {opt.key === "sick"
+                    ? t("cheptel.animals.status.sick")
+                    : t(`cheptel.animals.status.${opt.key}`)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </ModalSection>
+      )}
 
       {status === "dead" ? (
         <ModalSection title={t("cheptel.animals.status.dead")}>

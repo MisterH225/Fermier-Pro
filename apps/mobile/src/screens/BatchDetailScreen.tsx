@@ -13,7 +13,15 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { AppDatePicker } from "../components/common/AppDatePicker";
+import { BatchExitModal } from "../components/cheptel/exits/BatchExitModal";
+import { ExitVerbActions } from "../components/cheptel/exits/ExitVerbActions";
+import type { LivestockExitKind } from "../components/cheptel/exits/livestockExitKind";
 import { EventCard, CheptelBatchDetailHeader } from "../components/farm";
+import { ScreenSection } from "../components/layout";
+import {
+  SellChooserSheet,
+  type SellChooserChoice
+} from "../components/quickactions/SellChooserSheet";
 import { Card } from "../components/ui/Card";
 import { SegmentedControl } from "../components/ui/SegmentedControl";
 import { useSession } from "../context/SessionContext";
@@ -87,6 +95,8 @@ export function BatchDetailScreen({ route, navigation }: Props) {
   const [healthBody, setHealthBody] = useState("");
   const [healthDate, setHealthDate] = useState("");
   const [batchTab, setBatchTab] = useState<BatchTab>("health");
+  const [sellChooserOpen, setSellChooserOpen] = useState(false);
+  const [exitKind, setExitKind] = useState<LivestockExitKind | null>(null);
 
   const batchQuery = useQuery({
     queryKey: ["farmBatch", farmId, batchId, activeProfileId],
@@ -285,7 +295,16 @@ export function BatchDetailScreen({ route, navigation }: Props) {
     .filter(Boolean)
     .join(" · ");
 
+  const onSellChoice = (choice: SellChooserChoice) => {
+    if (choice === "marketplace") {
+      navigation.navigate("CreateMarketplaceListing", { farmId });
+      return;
+    }
+    setExitKind("sale");
+  };
+
   return (
+    <View style={styles.root}>
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}
@@ -301,6 +320,18 @@ export function BatchDetailScreen({ route, navigation }: Props) {
       {batch.notes ? (
         <Text style={styles.notes}>{batch.notes}</Text>
       ) : null}
+
+      <ScreenSection title={t("cheptel.exits.sectionTitle")} plain>
+        <ExitVerbActions
+          onSelect={(kind) => {
+            if (kind === "sale") {
+              setSellChooserOpen(true);
+              return;
+            }
+            setExitKind(kind);
+          }}
+        />
+      </ScreenSection>
 
       <View style={styles.segmentWrap}>
         <SegmentedControl
@@ -508,6 +539,29 @@ export function BatchDetailScreen({ route, navigation }: Props) {
         </Text>
       </TouchableOpacity>
     </ScrollView>
+
+    <SellChooserSheet
+      visible={sellChooserOpen}
+      onClose={() => setSellChooserOpen(false)}
+      onChoose={onSellChoice}
+    />
+    {exitKind ? (
+      <BatchExitModal
+        visible
+        farmId={farmId}
+        batchId={batchId}
+        batchName={route.params.batchName}
+        headcount={batch.headcount}
+        accessToken={accessToken!}
+        activeProfileId={activeProfileId}
+        presetKind={exitKind}
+        onClose={() => setExitKind(null)}
+        onSaved={() => {
+          void batchQuery.refetch();
+        }}
+      />
+    ) : null}
+    </View>
   );
 }
 
@@ -540,6 +594,7 @@ function HealthEventCard({ ev }: { ev: BatchHealthEventRow }) {
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: mobileColors.canvas },
   scroll: {
     flex: 1,
     backgroundColor: mobileColors.canvas

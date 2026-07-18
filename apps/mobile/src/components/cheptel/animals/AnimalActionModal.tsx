@@ -10,6 +10,8 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../../theme/mobileTheme";
+import { ExitVerbActions } from "../exits/ExitVerbActions";
+import type { LivestockExitKind } from "../exits/livestockExitKind";
 
 type Action = {
   key: string;
@@ -23,12 +25,11 @@ type Props = {
   animal: PenAnimalRowDto | null;
   onClose: () => void;
   onTransfer: () => void;
-  onChangeStatus: () => void;
+  onExitVerb: (kind: LivestockExitKind) => void;
   onAddWeight: () => void;
   onOpenHealth: () => void;
   onOpenDetail: () => void;
   onDeclareGestation?: () => void;
-  onListForSale?: () => void;
 };
 
 export function AnimalActionModal({
@@ -36,12 +37,11 @@ export function AnimalActionModal({
   animal,
   onClose,
   onTransfer,
-  onChangeStatus,
+  onExitVerb,
   onAddWeight,
   onOpenHealth,
   onOpenDetail,
-  onDeclareGestation,
-  onListForSale
+  onDeclareGestation
 }: Props) {
   const { t } = useTranslation();
   if (!animal) {
@@ -57,15 +57,9 @@ export function AnimalActionModal({
   const actions: Action[] = [
     {
       key: "transfer",
-      label: t("cheptel.actions.transfer"),
+      label: t("cheptel.animals.detail.movePen"),
       icon: "swap-horizontal-outline",
       onPress: onTransfer
-    },
-    {
-      key: "status",
-      label: t("cheptel.actions.changeStatus"),
-      icon: "refresh-outline",
-      onPress: onChangeStatus
     },
     {
       key: "vaccine",
@@ -79,16 +73,6 @@ export function AnimalActionModal({
       icon: "scale-outline",
       onPress: onAddWeight
     },
-    ...(onListForSale
-      ? [
-          {
-            key: "sale",
-            label: t("cheptel.actions.listForSale"),
-            icon: "pricetag-outline" as const,
-            onPress: onListForSale
-          }
-        ]
-      : []),
     {
       key: "detail",
       label: t("cheptel.actions.fullRecord"),
@@ -133,6 +117,14 @@ export function AnimalActionModal({
         {animal.activeGestation ? (
           <Text style={styles.gestation}>{t("cheptel.actions.gestationActive")}</Text>
         ) : null}
+      </ModalSection>
+      <ModalSection title={t("cheptel.exits.sectionTitle")} plain>
+        <ExitVerbActions
+          onSelect={(kind) => {
+            onClose();
+            onExitVerb(kind);
+          }}
+        />
       </ModalSection>
       <ModalSection plain>
       <View style={styles.grid}>

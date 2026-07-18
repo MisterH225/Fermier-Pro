@@ -1811,6 +1811,27 @@ export const fr = {
     },
     pensOccupancyHint:
       "Occupation globale : {{rate}} · {{available}} loge(s) avec place libre.",
+    exits: {
+      sectionTitle: "Sorties",
+      kindLocked: "Type : {{kind}} (choisi)",
+      headcount: "Effectif concerné",
+      buyerName: "Acheteur",
+      price: "Prix total",
+      destination: "Destination",
+      saleDetails: "Détails de la vente",
+      invalidHeadcount: "Indique un effectif valide.",
+      success: "Sortie enregistrée",
+      verbs: {
+        sell: "Vendre",
+        sellA11y: "Vendre ou publier sur le marché",
+        mortality: "Déclarer un décès",
+        mortalityA11y: "Déclarer un décès",
+        transfer: "Transférer",
+        transferA11y: "Transférer hors de la ferme",
+        slaughter: "Envoyer à l'abattoir",
+        slaughterA11y: "Envoyer à l'abattoir"
+      }
+    },
     actions: {
       transfer: "Transférer",
       changeStatus: "Changer statut",
@@ -2228,6 +2249,7 @@ export const fr = {
         openHealth: "Ouvrir le module Santé",
         edit: "Modifier",
         transfer: "Transférer",
+        movePen: "Changer de loge",
         addWeight: "Ajouter pesée",
         changeStatus: "Changer statut"
       }

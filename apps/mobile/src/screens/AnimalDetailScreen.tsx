@@ -10,6 +10,10 @@ import {
 } from "react-native";
 import { AnimalDetailModal } from "../components/cheptel/animals/AnimalDetailModal";
 import { CheptelAnimalActionModals } from "../components/cheptel/animals/CheptelAnimalActionModals";
+import {
+  animalStatusForExitKind,
+  type LivestockExitKind
+} from "../components/cheptel/exits/livestockExitKind";
 import { useSession } from "../context/SessionContext";
 import { useCheptelAnimalActions } from "../hooks/useCheptelAnimalActions";
 import { useScreenTitle } from "../hooks/useScreenTitle";
@@ -78,8 +82,17 @@ export function AnimalDetailScreen({ route, navigation }: Props) {
     );
   }
 
-  const openAction = (setter: (animal: AnimalListItem) => void) => (a: AnimalListItem) =>
-    setter(a);
+  const openAction =
+    (setter: (animal: AnimalListItem) => void) => (a: AnimalListItem) =>
+      setter(a);
+
+  const onExitVerb = (a: AnimalListItem, kind: LivestockExitKind) => {
+    if (kind === "sale") {
+      animalActions.openSellChooser(a);
+      return;
+    }
+    animalActions.openStatus(a, animalStatusForExitKind(kind));
+  };
 
   return (
     <View style={styles.root}>
@@ -93,12 +106,11 @@ export function AnimalDetailScreen({ route, navigation }: Props) {
         onClose={() => navigation.goBack()}
         onUpdated={invalidate}
         onTransfer={openAction(animalActions.openTransfer)}
-        onChangeStatus={openAction(animalActions.openStatus)}
+        onExitVerb={onExitVerb}
         onAddWeight={openAction(animalActions.openWeight)}
         onOpenHealth={() =>
           navigation.navigate("FarmHealth", { farmId, farmName })
         }
-        onListForSale={openAction(animalActions.openSale)}
       />
 
       <CheptelAnimalActionModals

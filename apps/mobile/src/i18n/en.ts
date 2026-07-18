@@ -1783,6 +1783,27 @@ export const en = {
     },
     pensOccupancyHint:
       "Overall occupancy: {{rate}} · {{available}} pen(s) with free space.",
+    exits: {
+      sectionTitle: "Exits",
+      kindLocked: "Type: {{kind}} (selected)",
+      headcount: "Headcount affected",
+      buyerName: "Buyer",
+      price: "Total price",
+      destination: "Destination",
+      saleDetails: "Sale details",
+      invalidHeadcount: "Enter a valid headcount.",
+      success: "Exit recorded",
+      verbs: {
+        sell: "Sell",
+        sellA11y: "Sell or list on the market",
+        mortality: "Declare a death",
+        mortalityA11y: "Declare a death",
+        transfer: "Transfer",
+        transferA11y: "Transfer out of the farm",
+        slaughter: "Send to slaughterhouse",
+        slaughterA11y: "Send to slaughterhouse"
+      }
+    },
     actions: {
       transfer: "Transfer",
       changeStatus: "Change status",
@@ -2151,6 +2172,7 @@ export const en = {
         openHealth: "Open Health module",
         edit: "Edit",
         transfer: "Transfer",
+        movePen: "Move pen",
         addWeight: "Add weighing",
         changeStatus: "Change status"
       }

@@ -24,6 +24,10 @@ import {
   penBatchToEventItem,
   resolvePenAnimalListItem
 } from "../components/cheptel/animals/penDisplayUtils";
+import {
+  animalStatusForExitKind,
+  type LivestockExitKind
+} from "../components/cheptel/exits/livestockExitKind";
 import { EditPenCapacityModal } from "../components/cheptel/pens/EditPenCapacityModal";
 import { CreateGestationModal } from "../components/shared/CreateGestationModal";
 import { useModal } from "../components/modals/useModal";
@@ -488,7 +492,18 @@ export function LogeDetailScreen({ route, navigation }: Props) {
         animal={actionAnimal}
         onClose={() => setActionAnimal(null)}
         onTransfer={() => openFromAction(animalActions.openTransfer)}
-        onChangeStatus={() => openFromAction(animalActions.openStatus)}
+        onExitVerb={(kind: LivestockExitKind) => {
+          const full = actionAnimal ? toListItem(actionAnimal) : null;
+          setActionAnimal(null);
+          if (!full) {
+            return;
+          }
+          if (kind === "sale") {
+            animalActions.openSellChooser(full);
+            return;
+          }
+          animalActions.openStatus(full, animalStatusForExitKind(kind));
+        }}
         onAddWeight={() => openFromAction(animalActions.openWeight)}
         onOpenHealth={() => {
           setActionAnimal(null);
@@ -513,7 +528,6 @@ export function LogeDetailScreen({ route, navigation }: Props) {
           setGestationSow(a);
           setActionAnimal(null);
         }}
-        onListForSale={() => openFromAction(animalActions.openSale)}
       />
 
       <CreateGestationModal
@@ -610,9 +624,13 @@ export function LogeDetailScreen({ route, navigation }: Props) {
           setDetailAnimal(null);
           animalActions.openTransfer(a);
         }}
-        onChangeStatus={(a) => {
+        onExitVerb={(a, kind) => {
           setDetailAnimal(null);
-          animalActions.openStatus(a);
+          if (kind === "sale") {
+            animalActions.openSellChooser(a);
+            return;
+          }
+          animalActions.openStatus(a, animalStatusForExitKind(kind));
         }}
         onAddWeight={(a) => {
           setDetailAnimal(null);
@@ -621,10 +639,6 @@ export function LogeDetailScreen({ route, navigation }: Props) {
         onOpenHealth={() => {
           setDetailAnimal(null);
           navigation.navigate("FarmHealth", { farmId, farmName });
-        }}
-        onListForSale={(a) => {
-          setDetailAnimal(null);
-          animalActions.openSale(a);
         }}
       />
     </View>
