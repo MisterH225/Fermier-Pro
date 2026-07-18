@@ -1386,6 +1386,31 @@ export const en = {
       body: "Visit reports, prescriptions and personal stats will be grouped here (PDF export coming soon)."
     }
   },
+  quickActions: {
+    fabA11y: "Quick actions",
+    sheetTitle: "Quick actions",
+    pickAnimalEmpty: "No active animal to select.",
+    actions: {
+      weigh: "Weighing",
+      weighA11y: "Record a weighing",
+      mortality: "Mortality",
+      mortalityA11y: "Declare a mortality",
+      farrowing: "Farrowing",
+      farrowingA11y: "Record a farrowing",
+      sell: "Sell",
+      sellA11y: "Sell or list on the market",
+      expense: "Expense",
+      expenseA11y: "Record an expense"
+    },
+    sell: {
+      title: "Sell",
+      marketplaceTitle: "Publish on the market",
+      marketplaceSubtitle: "Create a listing to find a buyer",
+      recordedTitle: "Record a completed sale",
+      recordedSubtitle: "Log an off-marketplace sale (herd exit)",
+      pickAnimalTitle: "Which animal to sell?"
+    }
+  },
   navigation: {
     main: {
       home: "Home",

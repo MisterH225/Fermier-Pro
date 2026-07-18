@@ -196,6 +196,8 @@ export type RootStackParamList = {
     farmId: string;
     farmName: string;
     initialTab?: "overview" | "rentabilite" | "revenus" | "depenses" | "budget" | "portefeuille";
+    /** Ouvre le formulaire de transaction (dépense) à l’arrivée. */
+    openTransaction?: boolean;
     openCategoryId?: string;
     highlightOverrun?: boolean;
   };
@@ -265,6 +267,8 @@ export type RootStackParamList = {
     initialTab?: "overview" | "active" | "planning" | "birth" | "history";
     openGestationId?: string;
     autoOpenDetail?: boolean;
+    /** Ouvre MiseBasModal si une seule gestation à terme (ou openGestationId). */
+    autoOpenLitter?: boolean;
     highlightUrgent?: boolean;
     highlightSowId?: string;
     tab?: string;

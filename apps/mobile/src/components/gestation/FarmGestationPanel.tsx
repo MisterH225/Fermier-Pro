@@ -63,6 +63,8 @@ export type FarmGestationPanelProps = {
   initialTab?: FarmGestationPanelTabId;
   openGestationId?: string;
   autoOpenDetail?: boolean;
+  /** Ouvre MiseBasModal si openGestationId ou une seule gestation à terme. */
+  autoOpenLitter?: boolean;
   tab?: "planning";
   highlightSowId?: string;
   /** true when rendered inside FarmLivestock — no stack chrome */
@@ -86,6 +88,7 @@ export function FarmGestationPanel({
   initialTab,
   openGestationId,
   autoOpenDetail,
+  autoOpenLitter,
   tab: tabParam,
   highlightSowId,
   embedded = false,
@@ -130,10 +133,12 @@ export function FarmGestationPanel({
         const open = setTimeout(() => setDetailId(openGestationId), 300);
         return () => clearTimeout(open);
       }
-      setTab("active");
+      if (!autoOpenLitter) {
+        setTab("active");
+      }
     }
     return undefined;
-  }, [initialTab, openGestationId, autoOpenDetail, tabParam]);
+  }, [initialTab, openGestationId, autoOpenDetail, autoOpenLitter, tabParam]);
 
   const techPerms = useTechFarmPermissions(farmId, "gestation");
   const readOnly = techPerms.readOnly;
@@ -180,7 +185,7 @@ export function FarmGestationPanel({
     enabled:
       enabled &&
       !(techPerms.isTech && techPerms.loading) &&
-      (tab === "active" || tab === "birth")
+      (tab === "active" || tab === "birth" || Boolean(autoOpenLitter))
   });
 
   const availableQ = useQuery({
@@ -288,6 +293,35 @@ export function FarmGestationPanel({
   };
 
   const kpis = overviewQ.data?.kpis;
+
+  useEffect(() => {
+    if (!autoOpenLitter || readOnly || litterTarget) {
+      return;
+    }
+    const items = activeQ.data?.items ?? [];
+    if (openGestationId) {
+      const match = items.find((g) => g.id === openGestationId);
+      if (match) {
+        setLitterTarget({
+          id: match.id,
+          label: match.sowLabel,
+          sowId: match.sowId
+        });
+      }
+      return;
+    }
+    const due = items.filter((g) => (g.progress?.daysRemaining ?? 99) <= 7);
+    if (due.length === 1) {
+      const g = due[0];
+      setLitterTarget({ id: g.id, label: g.sowLabel, sowId: g.sowId });
+    }
+  }, [
+    autoOpenLitter,
+    readOnly,
+    litterTarget,
+    openGestationId,
+    activeQ.data?.items
+  ]);
 
   if (techPerms.isTech && techPerms.loading) {
     return (

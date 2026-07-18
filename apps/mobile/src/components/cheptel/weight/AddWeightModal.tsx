@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -37,7 +37,8 @@ type Props = {
   activeProfileId?: string | null;
   preselectedAnimalId?: string | null;
   onClose: () => void;
-  onSaved: () => void;
+  /** Reçoit l’animal pesé (pour mémoriser le dernier sujet). */
+  onSaved: (animalId?: string) => void;
 };
 
 export function AddWeightModal({
@@ -56,6 +57,15 @@ export function AddWeightModal({
   const [weightKg, setWeightKg] = useState("");
   const [measuredAtIso, setMeasuredAtIso] = useState(() => toIsoDateString(new Date()));
   const [note, setNote] = useState("");
+
+  useEffect(() => {
+    if (visible) {
+      setAnimalId(preselectedAnimalId ?? "");
+      setWeightKg("");
+      setMeasuredAtIso(toIsoDateString(new Date()));
+      setNote("");
+    }
+  }, [visible, preselectedAnimalId]);
 
   const animalsQuery = useQuery({
     queryKey: ["farmAnimals", farmId, activeProfileId],
@@ -121,7 +131,8 @@ export function AddWeightModal({
       optimisticAnimalWeight(qc, farmId, activeProfileId, p.animalId, p.weightKg);
     },
     onSuccess: (data) => {
-      onSaved();
+      const savedId = animalId || undefined;
+      onSaved(savedId);
       onClose();
       open("success", {
         message: isOfflineQueuedResult(data)
@@ -131,7 +142,8 @@ export function AddWeightModal({
       });
     },
     onQueued: () => {
-      onSaved();
+      const savedId = animalId || undefined;
+      onSaved(savedId);
       onClose();
       open("success", {
         message: offlineQueuedMessage(t),

@@ -16,6 +16,7 @@ import {
   type ExtendedNavMenuId,
   type ProducerMainTab
 } from "./navigation";
+import { QuickActionsHost } from "./quickactions";
 import { useSession } from "../context/SessionContext";
 import { fetchFarmTasksPendingCount, fetchFarms } from "../lib/api";
 import { fetchFeedUnreadCount } from "../lib/api/community-feed";
@@ -336,6 +337,11 @@ export function ProducerPersistentTabBar() {
 
   return (
     <View style={styles.overlay} pointerEvents="box-none">
+      <QuickActionsHost
+        visible={!extendedOpen}
+        focusedRouteName={focused?.name}
+        farmContext={farmContext}
+      />
       <View
         style={[
           styles.barAnchor,

@@ -24,6 +24,7 @@ export function FarmGestationScreen({ route, navigation }: Props) {
     initialTab,
     openGestationId,
     autoOpenDetail,
+    autoOpenLitter,
     tab,
     highlightSowId
   } = route.params;
@@ -66,6 +67,7 @@ export function FarmGestationScreen({ route, navigation }: Props) {
       initialTab={initialTab as FarmGestationPanelTabId | undefined}
       openGestationId={openGestationId}
       autoOpenDetail={autoOpenDetail}
+      autoOpenLitter={autoOpenLitter}
       tab={tab === "planning" ? "planning" : undefined}
       highlightSowId={highlightSowId}
       embedded={false}

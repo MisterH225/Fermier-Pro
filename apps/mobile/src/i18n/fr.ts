@@ -1392,6 +1392,31 @@ export const fr = {
       body: "Rapports de visite, ordonnances et statistiques personnelles seront regroupés ici (export PDF à venir)."
     }
   },
+  quickActions: {
+    fabA11y: "Actions rapides",
+    sheetTitle: "Actions rapides",
+    pickAnimalEmpty: "Aucun animal actif à sélectionner.",
+    actions: {
+      weigh: "Pesée",
+      weighA11y: "Enregistrer une pesée",
+      mortality: "Mortalité",
+      mortalityA11y: "Déclarer une mortalité",
+      farrowing: "Mise bas",
+      farrowingA11y: "Déclarer une mise bas",
+      sell: "Vendre",
+      sellA11y: "Vendre ou publier sur le marché",
+      expense: "Dépense",
+      expenseA11y: "Enregistrer une dépense"
+    },
+    sell: {
+      title: "Vendre",
+      marketplaceTitle: "Publier sur le marché",
+      marketplaceSubtitle: "Créer une annonce pour trouver un acheteur",
+      recordedTitle: "Enregistrer une vente déjà conclue",
+      recordedSubtitle: "Saisir une vente hors marketplace (sortie cheptel)",
+      pickAnimalTitle: "Quel animal vendre ?"
+    }
+  },
   navigation: {
     main: {
       home: "Accueil",
