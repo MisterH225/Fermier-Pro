@@ -127,10 +127,12 @@ export function MerchantProductForm({
     }
   }, [propShopId]);
 
+  const refetchMe = meQ.refetch;
+  const refetchCats = catsQ.refetch;
   const refetchCatalog = useCallback(() => {
-    void meQ.refetch();
-    void catsQ.refetch();
-  }, [meQ, catsQ]);
+    void refetchMe();
+    void refetchCats();
+  }, [refetchMe, refetchCats]);
 
   // Onboarding est hors NavigationContainer : useFocusEffect y plante.
   useEffect(() => {

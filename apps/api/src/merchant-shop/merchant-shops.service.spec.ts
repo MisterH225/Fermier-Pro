@@ -97,11 +97,13 @@ describe("MerchantShopsService.list", () => {
           }
         ]
       }),
-      countActiveProducts: jest.fn().mockReturnValue(0)
+      countActiveProducts: jest.fn().mockReturnValue(0),
+      visibleProducts: jest.fn((products: unknown[]) => products)
     };
     const service = new MerchantShopsService({} as never, profiles as never);
     const rows = await service.list({ id: "u1" } as never);
     expect(rows).toHaveLength(1);
     expect(rows[0]!.id).toBe("a");
+    expect(profiles.visibleProducts).toHaveBeenCalled();
   });
 });

@@ -1,7 +1,7 @@
 import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -65,6 +65,7 @@ export function MerchantOrdersScreen() {
   const route = useRoute<RouteProp<RootStackParamList, "MerchantOrders">>();
   const bottomInset = useBottomInset();
   const { accessToken, activeProfileId } = useSession();
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<OrderFilter>(
     (route.params?.filter as OrderFilter | undefined) ?? "all"
   );
@@ -84,8 +85,11 @@ export function MerchantOrdersScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void ordersQ.refetch();
-    }, [ordersQ])
+      if (!activeProfileId) return;
+      void queryClient.invalidateQueries({
+        queryKey: ["merchant-orders-seller", activeProfileId]
+      });
+    }, [queryClient, activeProfileId])
   );
 
   const header = (

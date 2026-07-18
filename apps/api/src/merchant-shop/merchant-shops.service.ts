@@ -27,16 +27,19 @@ export class MerchantShopsService {
   async list(user: User) {
     const profile = await this.profiles.requireProfile(user.id);
     const shops = profile.shops.filter((shop) => shop.archivedAt == null);
-    return shops.map((shop) => ({
-      id: shop.id,
-      name: shop.name,
-      description: shop.description,
-      locationLabel: shop.locationLabel,
-      productCount: shop.products.length,
-      activeProductCount: this.profiles.countActiveProducts(shop.products),
-      createdAt: shop.createdAt.toISOString(),
-      updatedAt: shop.updatedAt.toISOString()
-    }));
+    return shops.map((shop) => {
+      const products = this.profiles.visibleProducts(shop.products);
+      return {
+        id: shop.id,
+        name: shop.name,
+        description: shop.description,
+        locationLabel: shop.locationLabel,
+        productCount: products.length,
+        activeProductCount: this.profiles.countActiveProducts(products),
+        createdAt: shop.createdAt.toISOString(),
+        updatedAt: shop.updatedAt.toISOString()
+      };
+    });
   }
 
   async create(user: User, dto: CreateMerchantShopDto) {
