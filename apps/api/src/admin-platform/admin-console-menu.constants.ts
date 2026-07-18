@@ -87,7 +87,11 @@ export function normalizeAdminApiPath(path: string): string {
 export function resolveMenuForAdminPath(path: string): AdminConsoleMenuKey | null {
   const normalized = normalizeAdminApiPath(path);
   for (const rule of ADMIN_ROUTE_MENU_RULES) {
-    if (normalized === rule.prefix || normalized.startsWith(`${rule.prefix}/`)) {
+    if (
+      normalized === rule.prefix ||
+      normalized.startsWith(`${rule.prefix}/`) ||
+      normalized.startsWith(`${rule.prefix}-`)
+    ) {
       return rule.menu;
     }
   }

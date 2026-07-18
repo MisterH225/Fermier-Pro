@@ -6,6 +6,7 @@ import {
   advanceMarketplaceToSellerShipped,
   confirmMarketplacePayment
 } from "./helpers/marketplace-delivery-e2e";
+import { creditWalletViaDevTopUp } from "./helpers/wallet-payout-e2e";
 import {
   cleanupE2eFixtures,
   seedE2eFixtures,
@@ -212,10 +213,17 @@ describeOrSkip("Marketplace vente à crédit escrow (e2e)", () => {
   });
 
   it("solde payé via escrow et clôture vendeur", async () => {
+    process.env.MOBILE_MONEY_PROVIDER = "dev";
+    await creditWalletViaDevTopUp({
+      app,
+      token: ctx.peerToken,
+      amount: 100_000
+    });
+
     const initBal = await request(app.getHttpServer())
       .post(`/api/v1/marketplace/offers/${offerId}/balance-payment/initiate`)
       .set("Authorization", `Bearer ${ctx.peerToken}`)
-      .send({ paymentMethod: "mobile_money" });
+      .send({ paymentMethod: "wallet" });
     expect(initBal.status).toBe(201);
 
     const confirmBal = await request(app.getHttpServer())
