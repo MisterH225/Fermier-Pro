@@ -16,6 +16,10 @@ import {
   detachInstitutionConsoleUser
 } from "./helpers/e2e-institution-seed";
 import {
+  E2E_ADMIN_REGION_TREE,
+  ensureAdminRegionRefs
+} from "./helpers/e2e-admin-regions";
+import {
   cleanupE2eFixtures,
   seedE2eFixtures,
   type E2ESeedResult
@@ -82,46 +86,7 @@ describeOrSkip("Carte sanitaire console (e2e)", () => {
     );
     institutionUserId = institution.id;
 
-    await ctx.prisma.adminRegionRef.upsert({
-      where: { code: "CI-R-AB" },
-      create: {
-        code: "CI-R-AB",
-        name: "Abidjan",
-        level: "region",
-        parentCode: "CI-D-LG"
-      },
-      update: {}
-    });
-    await ctx.prisma.adminRegionRef.upsert({
-      where: { code: deptLow },
-      create: {
-        code: deptLow,
-        name: "Anyama",
-        level: "department",
-        parentCode: "CI-R-AB"
-      },
-      update: {}
-    });
-    await ctx.prisma.adminRegionRef.upsert({
-      where: { code: deptHigh },
-      create: {
-        code: deptHigh,
-        name: "Adzopé",
-        level: "department",
-        parentCode: "CI-R-LA"
-      },
-      update: {}
-    });
-    await ctx.prisma.adminRegionRef.upsert({
-      where: { code: "CI-R-LA" },
-      create: {
-        code: "CI-R-LA",
-        name: "La Mé",
-        level: "region",
-        parentCode: "CI-D-LG"
-      },
-      update: {}
-    });
+    await ensureAdminRegionRefs(ctx.prisma, E2E_ADMIN_REGION_TREE);
 
     await ctx.prisma.farm.update({
       where: { id: ctx.farmId },

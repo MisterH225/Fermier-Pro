@@ -561,7 +561,7 @@ export class AdminPlatformController {
       persistToStorage: false
     });
     if (result.downloadUrl) {
-      res.json({
+      res.status(200).json({
         downloadUrl: result.downloadUrl,
         filename: result.filename,
         contentType: result.contentType
@@ -573,7 +573,7 @@ export class AdminPlatformController {
       "Content-Disposition",
       `attachment; filename="${result.filename}"`
     );
-    res.send(result.buffer);
+    res.status(200).send(result.buffer);
   }
 
   @Get("settings")

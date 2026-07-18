@@ -2,6 +2,8 @@ import type { PrismaClient } from "@prisma/client";
 import {
   AnimalSex,
   MembershipRole,
+  MerchantSubscriptionStatus,
+  MerchantSubscriptionTier,
   ProfileType,
   VaccineCatalogType
 } from "@prisma/client";
@@ -54,12 +56,23 @@ export async function purgeMarketplaceForUsers(
     await prisma.marketplaceDeliveryDispute.deleteMany({
       where: { transactionId: { in: transactionIds } }
     });
-    await prisma.marketplaceTransactionReceipt.deleteMany({
-      where: { transactionId: { in: transactionIds } }
-    });
-    await prisma.marketplaceTransaction.deleteMany({
-      where: { id: { in: transactionIds } }
-    });
+    // generateReceipt peut s'intercaler (async) → retry si FK receipt.
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await prisma.$transaction(async (tx) => {
+          await tx.marketplaceTransactionReceipt.deleteMany({
+            where: { transactionId: { in: transactionIds } }
+          });
+          await tx.marketplaceTransaction.deleteMany({
+            where: { id: { in: transactionIds } }
+          });
+        });
+        break;
+      } catch (err) {
+        if (attempt >= 2) throw err;
+        await new Promise((r) => setTimeout(r, 75 * (attempt + 1)));
+      }
+    }
   }
 
   await prisma.marketplacePendingTransfer.deleteMany({
@@ -204,6 +217,26 @@ export async function seedE2eFixtures(
       type: ProfileType.producer,
       displayName: "E2E Producteur",
       isDefault: true
+    }
+  });
+
+  // Premium producteur requis pour les invitations d'équipe.
+  await prisma.producerProfile.upsert({
+    where: { userId: user.id },
+    create: {
+      userId: user.id,
+      subscriptionTier: MerchantSubscriptionTier.premium,
+      subscriptionStatus: MerchantSubscriptionStatus.active,
+      subscriptionChosenAt: new Date(),
+      premiumPaidAt: new Date()
+    },
+    update: {
+      subscriptionTier: MerchantSubscriptionTier.premium,
+      subscriptionStatus: MerchantSubscriptionStatus.active,
+      subscriptionChosenAt: new Date(),
+      premiumPaidAt: new Date(),
+      cancelledAt: null,
+      suspendedAt: null
     }
   });
 

@@ -282,8 +282,33 @@ describeOrSkip("Merchant shop (e2e)", () => {
     });
     expect(after.stock).toBe(beforeStock - 1);
 
+    // Commission différée à la clôture escrow (pas au payment/confirm).
+    const orderId = confirm.body.id as string;
+    const sellerConfirm = await request(app.getHttpServer())
+      .post(`/api/v1/merchant/orders/${orderId}/confirm`)
+      .set("Authorization", `Bearer ${merchant.merchantToken}`)
+      .set("X-Profile-Id", merchant.merchantProfileId);
+    expect([200, 201]).toContain(sellerConfirm.status);
+
+    const ship = await request(app.getHttpServer())
+      .post(`/api/v1/merchant/orders/${orderId}/ship`)
+      .set("Authorization", `Bearer ${merchant.merchantToken}`)
+      .set("X-Profile-Id", merchant.merchantProfileId);
+    expect([200, 201]).toContain(ship.status);
+
+    const delivered = await request(app.getHttpServer())
+      .post(`/api/v1/merchant/orders/${orderId}/mark-delivered`)
+      .set("Authorization", `Bearer ${merchant.merchantToken}`)
+      .set("X-Profile-Id", merchant.merchantProfileId);
+    expect([200, 201]).toContain(delivered.status);
+
+    const complete = await request(app.getHttpServer())
+      .post(`/api/v1/merchant/orders/${orderId}/complete`)
+      .set("Authorization", `Bearer ${base.peerToken}`);
+    expect([200, 201]).toContain(complete.status);
+
     const revenue = await base.prisma.platformRevenue.findFirst({
-      where: { merchantOrderId: confirm.body.id }
+      where: { merchantOrderId: orderId }
     });
     expect(revenue).toBeTruthy();
 

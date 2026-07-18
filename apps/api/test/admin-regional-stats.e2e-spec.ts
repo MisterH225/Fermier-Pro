@@ -11,6 +11,10 @@ import {
   detachInstitutionConsoleUser
 } from "./helpers/e2e-institution-seed";
 import {
+  E2E_ADMIN_REGION_TREE,
+  ensureAdminRegionRefs
+} from "./helpers/e2e-admin-regions";
+import {
   cleanupE2eFixtures,
   seedE2eFixtures,
   type E2ESeedResult
@@ -53,26 +57,7 @@ describeOrSkip("Stats régionales console (e2e)", () => {
     );
     institutionUserId = institution.id;
 
-    await ctx.prisma.adminRegionRef.upsert({
-      where: { code: deptLow },
-      create: {
-        code: deptLow,
-        name: "Abidjan",
-        level: "department",
-        parentCode: "CI-D-LG"
-      },
-      update: {}
-    });
-    await ctx.prisma.adminRegionRef.upsert({
-      where: { code: deptHigh },
-      create: {
-        code: deptHigh,
-        name: "Bouaké",
-        level: "department",
-        parentCode: "CI-D-VB"
-      },
-      update: {}
-    });
+    await ensureAdminRegionRefs(ctx.prisma, E2E_ADMIN_REGION_TREE);
 
     await ctx.prisma.farm.update({
       where: { id: ctx.farmId },
