@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ExtendedMenuGrid,
   MainTabBar,
+  producerExtendedMenuIds,
   producerMainTabFromRoute,
   producerMainTabs,
   PRODUCER_NAV_FLOAT_BOTTOM,
@@ -185,60 +186,61 @@ export function ProducerPersistentTabBar() {
         }
         return;
       }
-      if (tab === "feed") {
-        navigation.navigate("CommunityFeed");
+      if (tab === "marketplace") {
+        navigation.navigate("MarketplaceList");
       }
     },
     [navigation, farmContext, clientFeatures.finance]
   );
 
-  const extendedItems = useMemo(
-    () =>
-      [
-        {
-          id: "team" as const,
-          label: t("navigation.extended.team"),
-          a11y: t("navigation.extended.teamDescription")
-        },
-        {
-          id: "market" as const,
-          label: t("navigation.extended.market"),
-          a11y: t("navigation.extended.market")
-        },
-        {
-          id: "nutrition" as const,
-          label: t("navigation.extended.nutrition"),
-          a11y: t("navigation.extended.nutrition")
-        },
-        {
-          id: "gestation" as const,
-          label: t("navigation.extended.gestation"),
-          a11y: t("navigation.extended.gestation")
-        },
-        {
-          id: "tasks" as const,
-          label: t("navigation.extended.tasks"),
-          a11y: t("navigation.extended.tasks"),
-          badgeCount: pendingTasksCount
-        },
-        {
-          id: "reports" as const,
-          label: t("navigation.extended.reports"),
-          a11y: t("navigation.extended.reports")
-        },
-        {
-          id: "messages" as const,
-          label: t("navigation.extended.messages"),
-          a11y: t("navigation.screenTitles.messages")
-        },
-        {
-          id: "settings" as const,
-          label: t("navigation.extended.settings"),
-          a11y: t("navigation.extended.settings")
-        }
-      ] as const,
-    [t, pendingTasksCount]
-  );
+  const extendedItems = useMemo(() => {
+    const byId: Record<
+      string,
+      { label: string; a11y: string; badgeCount?: number }
+    > = {
+      team: {
+        label: t("navigation.extended.team"),
+        a11y: t("navigation.extended.teamDescription")
+      },
+      communityFeed: {
+        label: t("navigation.extended.communityFeed"),
+        a11y: t("navigation.extended.communityFeedDescription"),
+        badgeCount: feedUnreadCount
+      },
+      nutrition: {
+        label: t("navigation.extended.nutrition"),
+        a11y: t("navigation.extended.nutrition")
+      },
+      gestation: {
+        label: t("navigation.extended.gestation"),
+        a11y: t("navigation.extended.gestation")
+      },
+      tasks: {
+        label: t("navigation.extended.tasks"),
+        a11y: t("navigation.extended.tasks"),
+        badgeCount: pendingTasksCount
+      },
+      reports: {
+        label: t("navigation.extended.reports"),
+        a11y: t("navigation.extended.reports")
+      },
+      messages: {
+        label: t("navigation.extended.messages"),
+        a11y: t("navigation.screenTitles.messages")
+      },
+      settings: {
+        label: t("navigation.extended.settings"),
+        a11y: t("navigation.extended.settings")
+      }
+    };
+
+    return producerExtendedMenuIds().map((id) => ({
+      id,
+      label: byId[id].label,
+      a11y: byId[id].a11y,
+      badgeCount: byId[id].badgeCount
+    }));
+  }, [t, pendingTasksCount, feedUnreadCount]);
 
   const onExtendedSelect = useCallback(
     (id: ExtendedNavMenuId) => {
@@ -282,17 +284,20 @@ export function ProducerPersistentTabBar() {
             farmName: ctx.farmName
           });
           return;
-        case "market":
-          navigation.navigate("MarketplaceList");
+        case "communityFeed":
+          navigation.navigate("CommunityFeed");
           return;
         case "gestation":
+          // Cohérence Cheptel : ouvre le segment Gestations (route FarmGestation
+          // conservée pour deep links / notifications / checklist).
           if (!ctx) {
             navigation.navigate("FarmList");
             return;
           }
-          navigation.navigate("FarmGestation", {
+          navigation.navigate("FarmLivestock", {
             farmId: ctx.farmId,
-            farmName: ctx.farmName
+            farmName: ctx.farmName,
+            initialTab: "gestation"
           });
           return;
         case "tasks":
@@ -344,13 +349,12 @@ export function ProducerPersistentTabBar() {
           onTabPress={onTabPress}
           onOpenExtended={() => setExtendedOpen(true)}
           financeEnabled={financeEnabled}
-          feedBadgeCount={feedUnreadCount}
         />
       </View>
       <ExtendedMenuGrid
         visible={extendedOpen}
         onClose={() => setExtendedOpen(false)}
-        items={[...extendedItems]}
+        items={extendedItems}
         onSelect={onExtendedSelect}
       />
     </View>

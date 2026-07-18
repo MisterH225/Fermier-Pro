@@ -22,6 +22,7 @@ export function producerMainTabFromRoute(
     case "CreatePen":
     case "CreatePenLog":
     case "PenMove":
+    case "FarmGestation":
       return "cheptel";
     case "FarmHealth":
     case "FarmVetConsultations":
@@ -29,8 +30,13 @@ export function producerMainTabFromRoute(
     case "CreateVetConsultation":
     case "AddVetConsultationAttachment":
       return "health";
-    case "CommunityFeed":
-      return "feed";
+    case "MarketplaceList":
+    case "MarketplaceListingDetail":
+    case "MarketplaceTransaction":
+    case "MarketplaceMyOffers":
+    case "MarketplaceMyListings":
+    case "CreateMarketplaceListing":
+      return "marketplace";
     default:
       return null;
   }

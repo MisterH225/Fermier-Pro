@@ -1401,6 +1401,7 @@ export const fr = {
       finance: "Finance",
       collaboration: "Équipe",
       feed: "Com",
+      marketplace: "Marché",
       profile: "Profil"
     },
     extended: {
@@ -1414,6 +1415,8 @@ export const fr = {
         "Le suivi des achats et du stock d’aliments sera disponible lorsque le module stock sera activé pour ta ferme.",
       collaboration: "Collaboration",
       market: "Market",
+      communityFeed: "Communauté",
+      communityFeedDescription: "Fil communautaire et publications",
       gestation: "Gestation",
       tasks: "Tâches",
       reports: "Rapports",
@@ -1725,6 +1728,7 @@ export const fr = {
     navBatches: "Bandes",
     navCheptel: "Cheptel",
     navAnimals: "Animaux",
+    navGestation: "Gestations",
     navPens: "Loges",
     navWeight: "Poids & GMQ",
     navHistory: "Historique",

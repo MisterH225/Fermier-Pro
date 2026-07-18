@@ -3,7 +3,7 @@ export type ProducerMainTab =
   | "home"
   | "cheptel"
   | "health"
-  | "feed"
+  | "marketplace"
   | "finance";
 
 /** Entrées du menu étendu (grille 3×2). */
