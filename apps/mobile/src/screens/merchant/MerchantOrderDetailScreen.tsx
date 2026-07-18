@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
   acceptReturnBtn: {
     marginTop: 10,
     backgroundColor: merchantColors.primary,
-    borderRadius: merchantRadius.md,
+    borderRadius: merchantRadius.button,
     paddingVertical: 12,
     alignItems: "center"
   },
