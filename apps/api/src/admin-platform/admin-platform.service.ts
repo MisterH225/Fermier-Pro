@@ -1213,10 +1213,10 @@ export class AdminPlatformService {
         adminNotifyEmail: dto.adminNotifyEmail ?? null,
         reportFrequencyDays: dto.reportFrequencyDays ?? 7,
         marketplaceCommissionRate:
-          dto.marketplaceCommissionRate ?? 0.05,
+          dto.marketplaceCommissionRate ?? 0.015,
         sellerMarketplaceCommissionRate:
-          dto.sellerMarketplaceCommissionRate ?? 0.05,
-        vetCommissionRate: dto.vetCommissionRate ?? 0.05,
+          dto.sellerMarketplaceCommissionRate ?? 0.015,
+        vetCommissionRate: dto.vetCommissionRate ?? 0.015,
         supportPhone: supportPhone ?? null,
         supportTelegramUrl: supportTelegramUrl ?? null,
         withdrawalAutoApproveThreshold:

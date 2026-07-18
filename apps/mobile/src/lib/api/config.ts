@@ -41,9 +41,9 @@ export type ClientPlatformFeesDto = {
 };
 
 export const DEFAULT_PLATFORM_FEES: ClientPlatformFeesDto = {
-  marketplaceBuyerCommissionRate: 0.05,
-  marketplaceSellerCommissionRate: 0.05,
-  vetCommissionRate: 0.05
+  marketplaceBuyerCommissionRate: 0.015,
+  marketplaceSellerCommissionRate: 0.015,
+  vetCommissionRate: 0.015
 };
 
 export type ClientConfigDto = {
