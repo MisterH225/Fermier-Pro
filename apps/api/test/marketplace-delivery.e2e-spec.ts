@@ -167,9 +167,9 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
       .get(
         `/api/v1/marketplace/transactions/${disputeListing.transactionId}`
       )
-      .set("Authorization", `Bearer ${ctx.peerToken}`)
-      .send({ paymentMethod: "mobile_money" });
-    expect(txAfter.body.status).toBe("BUYER_RECEIVED");
+      .set("Authorization", `Bearer ${ctx.peerToken}`);
+    // resolved_vendor déclenche settleTransaction → TRANSACTION_CLOSED
+    expect(txAfter.body.status).toBe("TRANSACTION_CLOSED");
   });
 
   it("rappels livraison et litige auto après délai", async () => {
@@ -312,7 +312,8 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
     // Paiement
     const payInit = await request(app.getHttpServer())
       .post(`/api/v1/marketplace/transactions/${cancelPaidListing.transactionId}/payment/initiate`)
-      .set("Authorization", `Bearer ${ctx.peerToken}`);
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ paymentMethod: "mobile_money" });
     expect(payInit.status).toBe(201);
     await request(app.getHttpServer())
       .post(`/api/v1/marketplace/transactions/${cancelPaidListing.transactionId}/payment/confirm`)
@@ -390,7 +391,8 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
     // Effectuer le cycle complet et vérifier que le vendeur reçoit le prix total (sans déduction)
     const payInit = await request(app.getHttpServer())
       .post(`/api/v1/marketplace/transactions/${feeListing.transactionId}/payment/initiate`)
-      .set("Authorization", `Bearer ${ctx.peerToken}`);
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ paymentMethod: "mobile_money" });
     expect(payInit.status).toBe(201);
     // Le montant de paiement inclut la commission
     expect(payInit.body.amount).toBe(tx.blockedAmount);

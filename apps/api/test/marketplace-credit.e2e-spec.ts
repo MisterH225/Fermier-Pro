@@ -16,6 +16,7 @@ describeOrSkip("Marketplace vente à crédit escrow (e2e)", () => {
   let app: NestExpressApplication;
   let ctx: E2ESeedResult;
   let listingId: string;
+  let listingAnimalId: string;
   let offerId: string;
   let transactionId: string;
 
@@ -35,6 +36,7 @@ describeOrSkip("Marketplace vente à crédit escrow (e2e)", () => {
         status: "active"
       }
     });
+    listingAnimalId = animal.id;
 
     const listingRes = await request(app.getHttpServer())
       .post("/api/v1/marketplace/listings")
@@ -209,7 +211,10 @@ describeOrSkip("Marketplace vente à crédit escrow (e2e)", () => {
     await request(app.getHttpServer())
       .post(`/api/v1/marketplace/transactions/${transactionId}/weight/declare`)
       .set("Authorization", `Bearer ${ctx.peerToken}`)
-      .send({ realWeightKg: 80 });
+      .send({
+        realWeightKg: 80,
+        animalWeights: [{ animalId: listingAnimalId, weightKg: 80 }]
+      });
 
     await request(app.getHttpServer())
       .post(`/api/v1/marketplace/transactions/${transactionId}/weight/validate`)
