@@ -431,14 +431,14 @@ export const fr = {
     acceptSuccessBody:
       "Procédez au paiement pour sécuriser votre achat.",
     acceptSuccessBodySeller:
-      "L'acheteur peut maintenant payer. Suivez la livraison et la clôture ici.",
+      "L'acheteur peut payer. Suivez la récupération ici.",
     transaction: {
-      reference: "N° de transaction",
+      reference: "N° d'achat",
       copyReference: "Copier la référence",
       referenceCopied: "Référence copiée",
       respondBefore: "Répondez avant {{when}}",
       saleDetails: "Détails de la vente",
-      counterparty: "Contrepartie",
+      counterparty: "Autre partie",
       counterpartyBuyer: "Acheteur",
       counterpartySeller: "Vendeur",
       marketplaceCounterparty: "Contact marketplace",
@@ -449,27 +449,27 @@ export const fr = {
       agreedAmount: "Prix convenu",
       currentAmount: "Montant",
       paymentMethod: "Mode de paiement",
-      escrowStatus: "Statut escrow",
+      escrowStatus: "État du paiement",
       notAvailable: "Non disponible",
       notDeclared: "Non déclaré",
       buyerShort: "Acheteur",
       sellerShort: "Vendeur",
-      stepOrder: "Commande",
-      stepDelivery: "Livraison",
+      stepOrder: "Achat",
+      stepDelivery: "Remise",
       stepReceiptWeighing: "Réception & pesée",
       stepClosed: "Clôturée",
       shortStatus: {
         OFFER_ACCEPTED: "Offre acceptée",
         PAYMENT_PENDING: "Paiement attendu",
-        PAYMENT_HELD: "Paiement sécurisé",
+        PAYMENT_HELD: "Paiement gardé",
         PICKUP_PROPOSED: "Rendez-vous proposé",
         PICKUP_SCHEDULED: "Rendez-vous confirmé",
         SELLER_SHIPPED: "Remise confirmée",
         BUYER_RECEIVED: "Réception confirmée",
-        DELIVERY_DISPUTED: "Litige livraison",
+        DELIVERY_DISPUTED: "Problème de livraison",
         WEIGHT_DECLARED: "Poids déclaré",
         WEIGHT_COUNTER_DECLARED: "Écart de poids",
-        WEIGHT_DISPUTED: "Litige poids",
+        WEIGHT_DISPUTED: "Problème de poids",
         WEIGHT_VALIDATED: "Poids validé",
         TRANSACTION_CLOSED: "Vente conclue",
         CANCELLED_BY_BUYER: "Annulée",
@@ -482,7 +482,7 @@ export const fr = {
       agreedPrice: "Prix convenu :",
       agreedPricePerKg: "Prix/kg convenu :",
       amountAdjustHint:
-        "Ce montant sera ajusté au poids réel lors de la livraison.",
+        "Ce montant sera ajusté au poids réel à la récupération.",
       payCta: "Payer {{amount}}",
       paymentSummaryTitle: "Détail du paiement",
       dealPriceLabel: "Montant de l'achat",
@@ -494,41 +494,41 @@ export const fr = {
       totalPaymentLabel: "Total à payer",
       feeBufferNote: "",
       feePerKgNote:
-        "Montant estimé. Le total sera ajusté au poids réel constaté lors de la livraison.",
+        "Montant estimé. Le total sera ajusté au poids réel à la récupération.",
       feeConsentTitle: "Confirmer le paiement",
       feeConsentBody:
-        "Montant de l'achat : {{dealAmount}}\nFrais de plateforme ({{pct}} %) : {{feeAmount}}\n\n💳 Total à payer : {{totalAmount}}\n\nEn appuyant sur « Confirmer », vous acceptez de régler ce montant.",
+        "Montant de l'achat : {{dealAmount}}\nFrais de plateforme ({{pct}} %) : {{feeAmount}}\n\n💳 Total à payer : {{totalAmount}}\n\n🔒 Votre argent est bloqué en sécurité par Fermier Pro. Il ne sera versé au vendeur que lorsque vous aurez confirmé la réception et le poids.\n\nEn appuyant sur « Confirmer », vous acceptez de régler ce montant.",
       feeConsentConfirm: "Confirmer et payer",
       feeConsentCancel: "Annuler",
       paymentSuccessTitle: "Paiement confirmé",
       paymentSuccessBody:
-        "Votre paiement est enregistré. Proposez une date de récupération au vendeur.",
+        "Votre argent est gardé. Proposez une date de récupération au vendeur.",
       paymentPendingTitle: "Paiement en cours",
       paymentPendingBody:
-        "Finalisez le paiement dans le navigateur. La transaction sera mise à jour automatiquement une fois le paiement validé.",
+        "Finalisez le paiement dans le navigateur. L'achat se mettra à jour tout seul.",
       paymentAlreadyHeldTitle: "Paiement déjà enregistré",
       paymentAlreadyHeldBody:
-        "Cette transaction est déjà payée (souvent via le portefeuille ou un webhook GeniusPay). Passez à l'étape livraison.",
+        "Cet achat est déjà payé. Passez à la récupération.",
       paymentInvalidStatus:
-        "Cette transaction n'est plus en attente de paiement (statut : {{status}}). Rechargez l'écran ou créez une nouvelle offre.",
+        "Cet achat n'attend plus de paiement (état : {{status}}). Rechargez ou créez une nouvelle offre.",
       paymentFailedRetryHint:
-        "La dernière tentative a expiré avant confirmation GeniusPay. Appuyez sur « Payer » pour rouvrir le checkout.",
+        "Le paiement a expiré. Appuyez sur « Payer » pour recommencer.",
       checkoutUrlMissing:
-        "GeniusPay n'a pas renvoyé de lien de paiement. Réessayez dans un instant ou contactez le support.",
+        "Le lien de paiement n'est pas prêt. Réessayez ou contactez le support.",
       checkoutUrlInvalid:
-        "Le lien GeniusPay est invalide. Réessayez ou contactez le support.",
+        "Le lien de paiement est invalide. Réessayez ou contactez le support.",
       transactionNotFound:
-        "Transaction introuvable. Rechargez l'écran ou rouvrez-la depuis vos propositions.",
+        "Achat introuvable. Rechargez ou rouvrez-le depuis vos propositions.",
       paymentApiUnavailable:
         "Le service de paiement est indisponible (API obsolète ou hors ligne). Réessayez plus tard.",
       providerError:
         "Le prestataire de paiement a refusé la demande. Réessayez ou contactez le support.",
       paymentSessionExpired:
-        "Session de paiement expirée. Appuyez à nouveau sur « Payer » pour rouvrir le checkout GeniusPay.",
+        "Le paiement a expiré. Appuyez à nouveau sur « Payer ».",
       paymentErrorTitle: "Paiement impossible",
       pickupSection: "Rendez-vous de récupération",
-      pickupDate: "Date de retrait",
-      pickupLocation: "Lieu de retrait",
+      pickupDate: "Date de récupération",
+      pickupLocation: "Lieu de récupération",
       pickupLocationPh: "Village, marché, ferme…",
       proposePickup: "Proposer ce rendez-vous",
       confirmPickupCta: "Confirmer la date proposée",
@@ -539,7 +539,7 @@ export const fr = {
       pickupConfirmedBody:
         "L'acheteur pourra renseigner le poids le jour de la récupération.",
       confirmEstimatedWeight: "Confirmer le poids estimé",
-      weightSection: "Poids à la livraison",
+      weightSection: "Poids à la récupération",
       realWeight: "Poids réel (kg)",
       declareWeight: "Confirmer le poids reçu",
       declareWeightModalTitle: "Poids à la récupération",
@@ -556,31 +556,31 @@ export const fr = {
       sellerWeightReview: "Poids déclaré par l'acheteur",
       sellerDeclareWeightTitle: "Votre pesée",
       sellerDeclareWeightHint:
-        "Indiquez le poids que vous avez mesuré à la remise. Si l'écart est faible, la transaction continue ; sinon un arbitrage pourra être demandé.",
+        "Indiquez le poids mesuré à la remise. Si l'écart est faible, l'achat continue ; sinon vous pourrez demander de l'aide.",
       autoToleranceHint:
-        "Si votre pesée diffère de moins de {{percent}} % (ou {{minKg}} kg minimum) de celle de l'acheteur, la transaction sera validée automatiquement au poids moyen.",
+        "Si votre pesée diffère de moins de {{percent}} % (ou {{minKg}} kg) de celle de l'acheteur, l'achat sera validé au poids moyen.",
       sellerDeclareWeightCta: "Indiquer ma pesée",
       sellerWeightLabel: "Votre poids (kg)",
       buyerDeclaredWeight: "Poids acheteur : {{kg}} kg",
       sellerDeclaredWeightLine: "Poids vendeur : {{kg}} kg",
       sellerWeightDeclaredTitle: "Pesée enregistrée",
       sellerWeightDeclaredBody:
-        "L'écart avec l'acheteur est affiché. Validez ou demandez un arbitrage si les seuils sont atteints.",
+        "L'écart avec l'acheteur est affiché. Validez ou demandez de l'aide si besoin.",
       weightDiffSection: "Écart de poids",
       weightDiffLine: "Écart : {{kg}} kg",
       arbitrationThresholdsHint:
-        "Seuils d'arbitrage : {{min}} kg par animal · {{cumulative}} kg cumulé",
-      requestArbitration: "Demander un arbitrage",
+        "Écart max avant aide : {{min}} kg par animal · {{cumulative}} kg au total",
+      requestArbitration: "Demander l'aide Fermier Pro",
       belowArbitrationThreshold:
-        "Écart sous le seuil d'arbitrage — négociez ou validez avec l'autre partie.",
-      arbitrationRequestedTitle: "Arbitrage demandé",
+        "Écart sous le seuil — discutez ou validez avec l'autre partie.",
+      arbitrationRequestedTitle: "Aide demandée",
       arbitrationRequestedBody:
-        "Un administrateur examinera cette transaction.",
+        "Fermier Pro examinera cet achat.",
       validateWeight: "Valider le poids",
       disputeWeight: "Contester le poids",
-      cancel: "Annuler la transaction",
-      closed: "Transaction finalisée.",
-      receiptTitle: "Reçu de transaction",
+      cancel: "Annuler l'achat",
+      closed: "Achat terminé.",
+      receiptTitle: "Reçu d'achat",
       receiptNumber: "N° {{number}}",
       receiptGeneratedAt: "Généré le {{date}}",
       receiptDownload: "Télécharger le reçu (PDF)",
@@ -598,16 +598,16 @@ export const fr = {
       stepClosing: "Clôture",
       status: {
         PAYMENT_PENDING: "En attente de paiement",
-        PAYMENT_HELD: "Paiement sécurisé — proposez un rendez-vous",
+        PAYMENT_HELD: "Paiement gardé — proposez un rendez-vous",
         PICKUP_PROPOSED: "Rendez-vous proposé — en attente du vendeur",
         PICKUP_SCHEDULED: "Rendez-vous confirmé — poids à renseigner",
         WEIGHT_DECLARED: "Poids déclaré — validation vendeur",
-        WEIGHT_COUNTER_DECLARED: "Écart de poids — négociation ou arbitrage",
-        WEIGHT_DISPUTED: "Litige poids — arbitrage",
+        WEIGHT_COUNTER_DECLARED: "Écart de poids — discuter ou demander de l'aide",
+        WEIGHT_DISPUTED: "Problème de poids — aide en cours",
         WEIGHT_VALIDATED: "Poids confirmé — remise à valider",
         SELLER_SHIPPED: "Remise confirmée — confirmez la réception",
         BUYER_RECEIVED: "Réception confirmée — versement en cours",
-        DELIVERY_DISPUTED: "Litige livraison",
+        DELIVERY_DISPUTED: "Problème de livraison",
         TRANSACTION_CLOSED: "Vente conclue",
         CANCELLED_BY_BUYER: "Annulée par l'acheteur",
         CANCELLED_BY_SELLER: "Annulée par le vendeur",
@@ -619,11 +619,11 @@ export const fr = {
       weightAtDeliveryHint:
         "Le jour du rendez-vous, renseignez le poids réel mesuré à la récupération.",
       weightAtDeliveryFlatHint:
-        "Le jour du rendez-vous, renseignez le poids réel mesuré (le montant forfaitaire convenu reste inchangé).",
+        "Notez le poids réel le jour du rendez-vous. Le montant convenu ne change pas.",
       projectedFinalCost: "Coût final estimé : {{amount}}",
       finalCost: "Montant final : {{amount}}",
       sellerWaitPayment:
-        "En attente du paiement de l'acheteur. Vous serez notifié dès que les fonds sont sécurisés.",
+        "En attente du paiement. Vous serez prévenu quand l'argent sera gardé.",
       sellerWaitBuyerPickup:
         "Paiement reçu. En attente que l'acheteur propose une date de récupération.",
       sellerConfirmPickup:
@@ -643,19 +643,19 @@ export const fr = {
       buyerWaitHandover:
         "Poids confirmé. Le vendeur validera la remise des animaux.",
       buyerWaitReceipt:
-        "Le vendeur a confirmé la remise. Confirmez la réception pour finaliser et libérer le paiement.",
+        "Le vendeur a remis les animaux. Confirmez pour envoyer le paiement au vendeur.",
       deliveryDisputed:
-        "Un litige livraison est ouvert. Les fonds restent sécurisés en attendant la résolution.",
+        "Un problème de livraison est ouvert. L'argent reste gardé jusqu'à la solution.",
       finalizing:
         "Réception confirmée — versement au vendeur et clôture en cours.",
       weightDisputed:
-        "Le poids est contesté. Un arbitrage est en cours — vous serez informé de la suite."
+        "Le poids est contesté. Fermier Pro regarde le dossier — on vous dira la suite."
     },
     shipmentModal: {
       open: "Confirmer la remise",
-      title: "Confirmer l'envoi",
+      title: "Confirmer la remise",
       info: "Indiquez que les animaux ont été remis à l'acheteur ou sont en cours de livraison.",
-      date: "Date d'envoi",
+      date: "Date de remise",
       method: "Mode de livraison",
       methods: {
         handover: "Remise en main propre",
@@ -702,8 +702,8 @@ export const fr = {
       agreedSuccess:
         "Accord crédit conclu — sécurisez l'avance sur la plateforme pour lancer la livraison.",
       escrow: {
-        transactionMissing: "Transaction escrow introuvable — réessayez dans un instant.",
-        advanceHeld: "L'avance reste bloquée sur la plateforme jusqu'à la livraison.",
+        transactionMissing: "Achat introuvable — réessayez dans un instant.",
+        advanceHeld: "L'avance reste gardée jusqu'à la récupération des animaux.",
         balanceRecalculated:
           "Le solde est recalculé au poids réel après validation par le vendeur."
       },
@@ -721,8 +721,8 @@ export const fr = {
         delay: "Solde sous {{count}} jours après livraison",
         confirm: "✅ J'ai payé l'avance",
         declare: "💰 J'ai payé l'avance",
-        payEscrow: "💳 Payer l'avance (escrow)",
-        viewTransaction: "Voir la transaction",
+        payEscrow: "Payer l'avance (argent gardé)",
+        viewTransaction: "Voir l'achat",
         declaredSuccess: "Avance déclarée — le vendeur va confirmer la réception.",
         confirmReceived: "✅ Confirmer la réception de l'avance",
         notReceived: "❌ Je n'ai pas reçu l'avance",
@@ -733,18 +733,18 @@ export const fr = {
         amount: "Montant payé",
         confirm: "✅ J'ai payé le solde",
         declare: "💰 J'ai payé le solde",
-        payEscrow: "💳 Payer le solde (escrow)",
+        payEscrow: "Payer le reste (argent gardé)",
         remaining: "Solde restant",
         dueOn: "Dû le {{date}}",
         inDays: "dans {{count}} jour(s)",
         statusPending: "En attente de paiement",
         statusDeclared: "Paiement déclaré",
         statusPaid: "Soldé",
-        statusArbitration: "Arbitrage en cours",
+        statusArbitration: "Aide Fermier Pro en cours",
         declaredSuccess: "Solde déclaré — le vendeur va confirmer la réception.",
         confirmReceived: "✅ Confirmer la réception du solde",
         notReceived: "❌ Je n'ai pas reçu le solde",
-        confirmedSuccess: "Transaction crédit soldée."
+        confirmedSuccess: "Crédit soldé."
       },
       dashboard: {
         scoreTitle: "Mon score crédit",
@@ -922,7 +922,7 @@ export const fr = {
     },
     emptyListings: "Aucune annonce publiée pour le moment.",
     emptySearch: "Aucun résultat. Essaie d’autres mots-clés ou filtres.",
-    emptyMyListings: "Tu n’as pas encore d’annonce. Utilise « Créer une annonce » pour en ajouter une.",
+    emptyMyListings: "Aucune annonce pour l'instant. Touchez « Créer une annonce » pour commencer.",
     emptyMyFilter: "Aucune annonce dans ce filtre.",
     emptyOffers: "Tu n’as pas encore fait d’offre.",
     kpiListings: "Annonces",
@@ -1074,19 +1074,19 @@ export const fr = {
     statToday: "Aujourd'hui",
     statHigh: "Plus haut",
     statLow: "Plus bas",
-    statVolume: "Transactions",
+    statVolume: "Ventes",
     variationFlat: "0.0% ➡️",
     priceOnRequest: "—"
   },
   pigPriceIndexCard: {
     title: "Indice de prix porc",
-    basedOn: "Basé sur {{count}} transactions"
+    basedOn: "Basé sur {{count}} ventes"
   },
   ordersTracking: {
     buyerTitle: "Suivre mes commandes boutique",
-    buyerSub: "Statut, livraison et litiges",
+    buyerSub: "Statut, livraison et problèmes",
     merchantTitle: "Suivre mes commandes",
-    merchantSub: "Acceptation, livraison et litiges",
+    merchantSub: "Acceptation, livraison et problèmes",
     sectionTitle: "Suivi actuel",
     trackingLabel: "N° de suivi",
     sender: "Expéditeur",
@@ -1100,7 +1100,7 @@ export const fr = {
       pickedUp: "Pris en charge",
       inTransit: "En transit",
       delivered: "Livré",
-      disputed: "Litige"
+      disputed: "Problème"
     },
     steps: {
       received: "Pris en charge",
@@ -1448,8 +1448,8 @@ export const fr = {
       tasks: "Tâches",
       reports: "Rapports",
       messages: "Messages",
-      wallet: "Portefeuille",
-      walletDescription: "Solde, recharge, retrait et transferts gratuits",
+      wallet: "Mon solde",
+      walletDescription: "Solde, recharge, retrait et transferts",
       closeBackdropA11y: "Fermer le menu",
       closeA11y: "Fermer"
     },
@@ -1465,10 +1465,10 @@ export const fr = {
       merchantProduct: "Produit",
       merchantOrder: "Commande",
       merchantOrderDetails: "Détails",
-      merchantDispute: "Litige",
+      merchantDispute: "Problème",
       merchantSubscription: "Abonnement",
       producerSubscription: "Premium équipe",
-      userWallet: "Portefeuille",
+      userWallet: "Mon solde",
       walletTopUp: "Recharger",
       walletWithdraw: "Retirer",
       walletTransfer: "Transférer",
@@ -2036,7 +2036,7 @@ export const fr = {
     filterBatch: "Bandes",
     hybridHint:
       "Mode mixte : suivi individuel pour les reproducteurs, bandes pour croissance / démarrage.",
-    batchOnlyHint: "Mode bande : saisie par groupe ; le détail animal n'est pas utilisé.",
+    batchOnlyHint: "Mode bande : saisie par groupe, sans détail par animal.",
     individualHint: "Mode individuel : fiche par animal.",
     expectedExit: "Sortie prévue",
     closedAt: "Clôture",
@@ -2327,7 +2327,7 @@ export const fr = {
     sectionSecurity: "🔐 Sécurité & Connexion",
     changePassword: "Changer de mot de passe",
     changePasswordHint:
-      "Utilisez « Mot de passe oublié » sur l'écran de connexion pour réinitialiser votre mot de passe.",
+      "Utilisez « Mot de passe oublié » sur l'écran de connexion.",
     signOutConfirm: "Voulez-vous vous déconnecter ?",
     sectionAbout: "ℹ️ À propos",
     appVersion: "Version de l'application",
@@ -2434,7 +2434,7 @@ export const fr = {
       periodMonth: "/mois",
       periodMonthN: "/{{count}} mois",
       payMobileMoney: "Wave / Mobile money",
-      payWallet: "Portefeuille",
+      payWallet: "Mon solde",
       paymentWaitingTitle: "Paiement en cours",
       paymentWaitingBody:
         "Ton Premium s'activera automatiquement après confirmation du paiement.",
@@ -2451,9 +2451,9 @@ export const fr = {
       continue: "Traiter →",
       view: "Voir →",
       tx: {
-        PICKUP_PROPOSED: "Confirmer le retrait",
+        PICKUP_PROPOSED: "Confirmer la récupération",
         WEIGHT_DECLARED: "Valider le poids",
-        WEIGHT_VALIDATED: "Confirmer la livraison"
+        WEIGHT_VALIDATED: "Confirmer la remise"
       }
     },
     farmCheptelConfigSaved: "Configuration de la ferme enregistrée.",
@@ -2502,7 +2502,7 @@ export const fr = {
       anonymousBuyer: "Acheteur",
       noFarmTitle: "Aucune ferme sélectionnée",
       noFarmBody:
-        "Rattache une ferme (profil producteur) ou choisis-en une dans la liste pour afficher le tableau de bord.",
+        "Rattache une ferme ou choisis-en une dans la liste.",
       openFarmList: "Ouvrir mes fermes",
       financeTitle: "Finance",
       financeDisabled: "Module finance désactivé sur ce serveur.",
@@ -2756,7 +2756,7 @@ export const fr = {
     tabRevenues: "Revenus",
     tabExpenses: "Dépenses",
     tabBudget: "Budget",
-    tabWallet: "Portefeuille",
+    tabWallet: "Mon solde",
     trend3Months: "Évolution sur 3 mois",
     trend6Months: "Évolution sur 6 mois",
     expensesVsBudget: "Dépenses vs budget",
@@ -2886,7 +2886,7 @@ export const fr = {
     totalExpense: "Dépenses antérieures",
     netResult: "Résultat net pré-app",
     walletHint:
-      "Ces montants alimentent la rentabilité et le P&L du projet. Ils n'affectent pas le portefeuille (wallet).",
+      "Ces montants servent au suivi des dépenses. Ils ne changent pas votre solde.",
     addData: "Ajouter des données",
     quickTotalTitle: "Saisie rapide par catégorie",
     quickTotalBody: "Un total agrégé par catégorie, sans détail ligne par ligne.",
@@ -3746,8 +3746,8 @@ export const fr = {
       view: "Voir →",
       tx: {
         PAYMENT_PENDING: "Paiement à effectuer",
-        PAYMENT_HELD: "Planifier le retrait",
-        PICKUP_PROPOSED: "Confirmer le retrait",
+        PAYMENT_HELD: "Planifier la récupération",
+        PICKUP_PROPOSED: "Confirmer la récupération",
         PICKUP_SCHEDULED: "Retrait planifié",
         SELLER_SHIPPED: "Confirmer la réception"
       }
@@ -3768,14 +3768,14 @@ export const fr = {
         withdraw: "Retrait mobile money",
         transferIn: "Transfert reçu",
         transferOut: "Transfert envoyé",
-        escrowRelease: "Versement escrow",
-        refund: "Remboursement escrow",
+        escrowRelease: "Paiement reçu (vente)",
+        refund: "Remboursement",
         creditAdjustment: "Crédit",
         purchase: "Achat marketplace",
         debitAdjustment: "Débit"
       },
       ops: {
-        title: "Gérer mon portefeuille",
+        title: "Gérer mon solde",
         hint: "Rechargez via mobile money, retirez vers votre opérateur, ou transférez gratuitement à un autre utilisateur.",
         topUp: "Recharger",
         topUpCta: "Recharger via mobile money",
@@ -3813,7 +3813,7 @@ export const fr = {
       history: "Historique",
       historyHint: "Recharges, retraits, transferts, achats et remboursements.",
       emptyTitle: "Aucune opération",
-      emptyBody: "Vos remboursements escrow et paiements apparaîtront ici."
+      emptyBody: "Vos remboursements et paiements apparaîtront ici."
     },
     profile: {
       sectionBuyer: "Profil acheteur",
@@ -3846,10 +3846,10 @@ export const fr = {
       noMessage: "Pas encore de message"
     },
     history: {
-      title: "Mes commandes",
+      title: "Mes achats",
       tabs: {
         proposals: "Propositions",
-        purchases: "Achats ferme",
+        purchases: "Achats animaux",
         shopOrders: "Boutique",
         reviews: "Avis"
       },
@@ -4108,11 +4108,32 @@ export const fr = {
     aiTitle: "💡 Analyse IA",
     aiRefresh: "🔄 Actualiser"
   },
+  deadline: {
+    byDate: "Échéance : {{when}}",
+    countdownHours: "Il reste {{h}} h {{m}} min",
+    countdownMinutes: "Il reste {{m}} min",
+    overdue: "Échéance dépassée",
+    outcome: {
+      offerPaymentExpire:
+        "Sans paiement avant l'échéance, l'offre sera annulée et l'annonce remise en vente.",
+      weightAutoValidate:
+        "Sans réponse du vendeur avant l'échéance, le poids sera validé automatiquement.",
+      deliveryAutoDispute:
+        "Sans confirmation de réception avant l'échéance, un problème sera ouvert et Fermier Pro examinera le dossier.",
+      shopConfirmRefund:
+        "Sans accord du vendeur avant l'échéance, la commande sera annulée et votre argent remboursé.",
+      shopAutoComplete:
+        "Sans signalement de problème avant l'échéance, la commande sera clôturée et le vendeur payé.",
+      creditBalanceArbitration:
+        "Sans paiement du solde dans les 2 jours suivant l'échéance, Fermier Pro examinera le dossier.",
+      offerProposalExpire: "Sans réponse avant l'échéance, votre offre expirera."
+    }
+  },
   orders: {
     trackingNumber: "N° de suivi",
     nextAction: "Prochaine action : {{action}}",
     respondBefore: "Répondez avant {{when}}",
-    disputed: "Litige",
+    disputed: "Problème",
     contact: {
       message: "Message",
       call: "Appeler"
@@ -4145,16 +4166,16 @@ export const fr = {
       escrowStatus: {
         PAYMENT_PENDING: "Paiement en attente",
         PAYMENT_FAILED: "Paiement échoué",
-        PAYMENT_HELD: "Fonds bloqués",
+        PAYMENT_HELD: "Paiement gardé",
         PICKUP_PROPOSED: "RDV proposé",
         PICKUP_SCHEDULED: "RDV confirmé",
         WEIGHT_DECLARED: "Poids déclaré",
-        WEIGHT_COUNTER_DECLARED: "Contre-poids",
-        WEIGHT_DISPUTED: "Litige poids",
+        WEIGHT_COUNTER_DECLARED: "Autre pesée",
+        WEIGHT_DISPUTED: "Problème de poids",
         WEIGHT_VALIDATED: "Poids validé",
-        SELLER_SHIPPED: "Expédiée",
+        SELLER_SHIPPED: "Remise faite",
         BUYER_RECEIVED: "Réceptionnée",
-        DELIVERY_DISPUTED: "Litige livraison",
+        DELIVERY_DISPUTED: "Problème de livraison",
         TRANSACTION_CLOSED: "Terminée",
         CANCELLED_BY_BUYER: "Annulée (acheteur)",
         CANCELLED_BY_SELLER: "Annulée (vendeur)",
@@ -4170,7 +4191,7 @@ export const fr = {
       confirmPickup: "Confirmer le rendez-vous",
       declareWeight: "Déclarer le poids",
       validateWeight: "Valider le poids",
-      confirmShipment: "Confirmer l'expédition",
+      confirmShipment: "Confirmer la remise",
       confirmReceipt: "Confirmer la réception",
       confirmShopOrder: "Accepter la commande",
       shipShopOrder: "Lancer la livraison",
@@ -4288,7 +4309,7 @@ export const fr = {
       title: "Commandes",
       empty: "Aucune commande",
       buyer: "Acheteur",
-      seller: "Commerçant",
+      seller: "Vendeur",
       quantity: "Quantité",
       qtyItems: "{{count}} article(s)",
       items: "Articles",
@@ -4309,7 +4330,7 @@ export const fr = {
       markDelivered: "Marquer comme livré",
       confirmReceipt: "Confirmer la réception",
       markComplete: "Marquer terminée",
-      openDispute: "Ouvrir un litige",
+      openDispute: "Signaler un problème",
       disputeManage: "Gérer le litige",
       disputeOpen: "Litige en cours",
       acceptReturn: "Accepter la reprise",
@@ -4332,7 +4353,7 @@ export const fr = {
       deliveryDetails: {
         title: "Détails de livraison",
         receiver: "Destinataire",
-        merchant: "Commerçant",
+        merchant: "Vendeur",
         contact: "Contact",
         noContact: "Non renseigné",
         item: "Article",
@@ -4341,13 +4362,13 @@ export const fr = {
       contact: {
         call: "Appeler",
         buyerHint: "Contacter l’acheteur",
-        sellerHint: "Contacter le commerçant"
+        sellerHint: "Contacter le vendeur"
       },
       activity: {
         title: "Activité",
         empty: "Aucune activité pour le moment.",
         generic: "Statut mis à jour : {{status}}",
-        paid: "Paiement confirmé — la commande attend l’acceptation du commerçant.",
+        paid: "Paiement gardé — la commande attend l'accord du vendeur.",
         confirmed: "Commande acceptée par le commerçant.",
         shipping: "Colis en cours de livraison.",
         delivered: "Colis marqué comme livré.",
@@ -4364,7 +4385,7 @@ export const fr = {
         confirmed: "Confirmées",
         shipping: "Livraison",
         delivered: "Livrées",
-        disputed: "Litige",
+        disputed: "Problème",
         completed: "Terminées"
       },
       timelineStep: {
@@ -4391,8 +4412,8 @@ export const fr = {
       }
     },
     dispute: {
-      title: "Litige commande",
-      subtitle: "Décris le problème (livraison, qualité, etc.). Pas d'arbitrage poids.",
+      title: "Problème sur la commande",
+      subtitle: "Décris le problème (livraison, qualité…). Pas de pesée ici.",
       reasonLabel: "Motif",
       reasonPh: "Explique le problème…",
       submit: "Ouvrir le litige",
@@ -4466,7 +4487,7 @@ export const fr = {
       paymentLinkMissing: "Lien de paiement indisponible. Réessayez dans un instant.",
       paymentMethodLabel: "Mode de paiement",
       payMobileMoney: "Wave / Mobile money",
-      payWallet: "Portefeuille",
+      payWallet: "Mon solde",
       ctaPremiumWallet: "Payer avec le portefeuille — {{price}} XOF{{period}}",
       walletBalanceHint: "Solde : {{balance}} XOF · Premium : {{price}} XOF{{period}}",
       statusPastDue: "Paiement en attente",
@@ -4625,14 +4646,15 @@ export const fr = {
     purchase: {
       quantity: "Quantité",
       buy: "Acheter",
+      escrowHint:
+        "🔒 Votre argent est bloqué en sécurité par Fermier Pro. Il ne sera versé au vendeur qu'après confirmation de la réception.",
       contact: "Contacter le vendeur",
       success: "Commande confirmée",
       trackHint: "Suivez la commande dans Mes achats → Boutique.",
       trackCta: "Suivre la commande",
       chatOpened: "Conversation ouverte",
       paymentWaitingTitle: "Paiement en cours",
-      paymentWaitingBody:
-        "Finalise le paiement GeniusPay pour confirmer ta commande. Elle s'activera automatiquement après validation.",
+      paymentWaitingBody: "Finalise le paiement Mobile Money pour confirmer ta commande.",
       reopenPaymentCta: "Ouvrir le lien de paiement",
       paymentLinkMissing: "Lien de paiement indisponible. Réessayez dans un instant."
     }

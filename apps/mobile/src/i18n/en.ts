@@ -496,7 +496,7 @@ export const en = {
         "Estimated amount. The total will be adjusted to the actual weight measured at delivery.",
       feeConsentTitle: "Confirm payment",
       feeConsentBody:
-        "Purchase amount: {{dealAmount}}\nPlatform fee ({{pct}} %): {{feeAmount}}\n\n💳 Total to pay: {{totalAmount}}\n\nBy tapping \"Confirm\", you agree to pay this amount.",
+        "Purchase amount: {{dealAmount}}\nPlatform fee ({{pct}} %): {{feeAmount}}\n\n💳 Total to pay: {{totalAmount}}\n\n🔒 Your money is safely held by Fermier Pro. It will only be released to the seller once you confirm receipt and weight.\n\nBy tapping \"Confirm\", you agree to pay this amount.",
       feeConsentConfirm: "Confirm and pay",
       feeConsentCancel: "Cancel",
       paymentSuccessTitle: "Payment confirmed",
@@ -617,7 +617,7 @@ export const en = {
       weightAtDeliveryHint:
         "On pickup day, enter the actual measured weight.",
       weightAtDeliveryFlatHint:
-        "On pickup day, enter the actual measured weight (the agreed flat price stays unchanged).",
+        "Enter the actual weight on pickup day. The agreed amount stays the same.",
       projectedFinalCost: "Estimated final cost: {{amount}}",
       finalCost: "Final amount: {{amount}}",
       sellerWaitPayment:
@@ -673,6 +673,7 @@ export const en = {
       totalPrice: "Proposed total price",
       advancePct: "Advance percentage (%)",
       advanceHelper: "Minimum 20% — maximum 50%",
+      balanceHelper: "Max 7 days after delivery — reminders only after the deadline",
       advancePreview: "Advance: {{amount}}",
       balancePreview: "Balance: {{amount}}",
       balanceDays: "Balance payment deadline",
@@ -919,7 +920,7 @@ export const en = {
     },
     emptyListings: "No listings published yet.",
     emptySearch: "No results. Try other keywords or filters.",
-    emptyMyListings: "You have no listings yet. Tap « Create listing » to add one.",
+    emptyMyListings: "No listings yet. Tap « Create listing » to start.",
     emptyMyFilter: "No listings in this filter.",
     emptyOffers: "You have not made any offers yet.",
     kpiListings: "Listings",
@@ -1670,6 +1671,8 @@ export const en = {
     smartAlertsHintTitle: "Notifications",
     smartAlertsHintBody:
       "Feed and consumption alerts are available via the bell icon at the top of the dashboard.",
+    filterMissingCost: "No cost",
+    badgeMissingCost: "No cost",
     editMovement: "Edit",
     sectionType: "Feed type",
     fieldQuantity: "Quantity",
@@ -1699,6 +1702,21 @@ export const en = {
       deleteDoneMessage: "The stock entry was deleted.",
       checkDeleteDoneTitle: "Check deleted",
       checkDeleteDoneMessage: "The stock check was deleted and stock was recalculated."
+    },
+    reconciliation: {
+      title: "Suggested match",
+      subtitle: "Do these two items refer to the same purchase?",
+      stockCard: "Stock entry",
+      financeCard: "Finance expense",
+      pricePerKg: "Price/kg: {{price}} {{currency}}/kg",
+      mergeBtn: "Yes, merge",
+      rejectBtn: "No, not related",
+      laterBtn: "Remind me later",
+      skipBtn: "Skip for now",
+      mergeTitle: "Merge done",
+      mergeMessage: "Price/kg: {{price}} {{currency}}/kg",
+      followTitle: "To keep your data complete",
+      followMessage: "Can you specify the cost of this stock entry?"
     },
     errors: {
       pickType: "Pick a feed type.",
@@ -2217,7 +2235,7 @@ export const en = {
     filterBatch: "Batches",
     hybridHint:
       "Mixed mode: individual tracking for breeders, batches for growth / nursery.",
-    batchOnlyHint: "Batch mode: group entries; individual animal cards are not used.",
+    batchOnlyHint: "Batch mode: group entries, no per-animal detail.",
     individualHint: "Individual mode: one card per animal.",
     expectedExit: "Expected exit",
     closedAt: "Closed at",
@@ -2296,7 +2314,7 @@ export const en = {
     sectionSecurity: "🔐 Security & sign-in",
     changePassword: "Change password",
     changePasswordHint:
-      "Use “Forgot password” on the sign-in screen to reset your password.",
+      "Use “Forgot password” on the sign-in screen.",
     signOutConfirm: "Do you want to sign out?",
     sectionAbout: "ℹ️ About",
     appVersion: "App version",
@@ -2470,7 +2488,7 @@ export const en = {
       anonymousBuyer: "Buyer",
       noFarmTitle: "No farm selected",
       noFarmBody:
-        "Link a farm (producer profile) or pick one from the list to load your dashboard.",
+        "Link a farm or pick one from the list.",
       openFarmList: "Open my farms",
       financeTitle: "Finance",
       financeDisabled: "Finance module is disabled on this server.",
@@ -4058,6 +4076,27 @@ export const en = {
     fallbackInsightsTitle: "💡 AI advice",
     refresh: "Refresh recommendations"
   },
+  deadline: {
+    byDate: "Deadline: {{when}}",
+    countdownHours: "{{h}} h {{m}} min left",
+    countdownMinutes: "{{m}} min left",
+    overdue: "Deadline passed",
+    outcome: {
+      offerPaymentExpire:
+        "Without payment before the deadline, the offer will be cancelled and the listing put back on sale.",
+      weightAutoValidate:
+        "Without a reply from the seller before the deadline, the weight will be validated automatically.",
+      deliveryAutoDispute:
+        "Without receipt confirmation before the deadline, an issue will be opened and Fermier Pro will review it.",
+      shopConfirmRefund:
+        "Without the seller's agreement before the deadline, the order will be cancelled and your money refunded.",
+      shopAutoComplete:
+        "Without an issue reported before the deadline, the order will be closed and the seller paid.",
+      creditBalanceArbitration:
+        "Without balance payment within 2 days after the deadline, Fermier Pro will review the case.",
+      offerProposalExpire: "Without a reply before the deadline, your offer will expire."
+    }
+  },
   orders: {
     trackingNumber: "Tracking ID",
     nextAction: "Next action: {{action}}",
@@ -4575,6 +4614,8 @@ export const en = {
     purchase: {
       quantity: "Quantity",
       buy: "Buy",
+      escrowHint:
+        "🔒 Your money is safely held by Fermier Pro. It will only be released to the seller after you confirm receipt.",
       contact: "Contact seller",
       success: "Order confirmed",
       trackHint: "Track it under My purchases → Shop.",

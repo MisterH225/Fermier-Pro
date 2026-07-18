@@ -15,6 +15,7 @@ import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { RequireFarmScopes } from "../common/decorators/require-farm-scopes.decorator";
 import { FarmScopesGuard } from "../common/guards/farm-scopes.guard";
+import { Idempotent } from "../common/idempotency/idempotent.decorator";
 import { CreateLivestockExitDto } from "./dto/create-livestock-exit.dto";
 import { LivestockExitsService } from "./livestock-exits.service";
 
@@ -57,6 +58,7 @@ export class LivestockExitsController {
 
   @Post()
   @RequireFarmScopes(FARM_SCOPE.exitsWrite)
+  @Idempotent()
   create(
     @CurrentUser() user: User,
     @Param("farmId") farmId: string,

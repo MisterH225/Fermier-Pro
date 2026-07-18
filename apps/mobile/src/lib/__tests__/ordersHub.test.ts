@@ -22,6 +22,7 @@ function card(
     actionRequiredBy: "buyer",
     nextActionKey: "orders.action.pay",
     deadlineAt: null,
+    timeoutOutcomeKey: null,
     counterparty: { displayName: "Contrepartie" },
     itemSummary: "Article",
     amount: 1000,

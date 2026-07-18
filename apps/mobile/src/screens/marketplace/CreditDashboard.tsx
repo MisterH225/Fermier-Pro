@@ -126,6 +126,8 @@ export function CreditDashboardScreen(_props: Props) {
             currency={row.currency}
             balanceDueAt={row.balanceDueAt}
             status={row.status}
+            deadlineAt={row.deadlineAt}
+            timeoutOutcomeKey={row.timeoutOutcomeKey}
             listingTitle={row.listingTitle}
           />
         ))

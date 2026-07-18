@@ -29,6 +29,7 @@ import { UserNotificationsService } from "../user-notifications/user-notificatio
 import { PrismaService } from "../prisma/prisma.service";
 import { UserWalletService } from "../wallet/user-wallet.service";
 import { MERCHANT_ERROR, MERCHANT_ORDER_CONFIRM_TIMEOUT_MS, MERCHANT_ORDER_DISPUTE_WINDOW_MS } from "./merchant-shop.constants";
+import { shopTimeoutOutcomeKey } from "../common/deadline-outcome";
 import type {
   ConfirmMerchantPaymentDto,
   OpenMerchantOrderDisputeDto,
@@ -893,6 +894,17 @@ export class MerchantOrdersService {
             o.deliveredAt.getTime() + MERCHANT_ORDER_DISPUTE_WINDOW_MS
           ).toISOString()
         : null;
+    // Échéance unifiée (P-43) : paid → timeoutAt (24h, remboursement) ;
+    // delivered → fin fenêtre litige (48h, clôture + paiement vendeur).
+    const deadlineAt =
+      o.status === MerchantOrderStatus.paid && o.timeoutAt
+        ? o.timeoutAt.toISOString()
+        : o.status === MerchantOrderStatus.delivered
+          ? disputeWindowEndsAt
+          : null;
+    const timeoutOutcomeKey = deadlineAt
+      ? shopTimeoutOutcomeKey(o.status)
+      : null;
     return {
       id: o.id,
       productId: o.productId,
@@ -926,6 +938,8 @@ export class MerchantOrdersService {
       resolutionNote: o.resolutionNote ?? null,
       timeoutAt: o.timeoutAt?.toISOString() ?? null,
       disputeWindowEndsAt,
+      deadlineAt,
+      timeoutOutcomeKey,
       createdAt: o.createdAt.toISOString(),
       timeline: (o.events ?? []).map((e) => ({
         id: e.id,

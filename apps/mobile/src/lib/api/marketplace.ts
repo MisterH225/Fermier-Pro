@@ -321,6 +321,8 @@ export type MarketplaceCreditOfferDto = {
   balanceAmount: number | null;
   balanceDueDays: number | null;
   balanceDueAt: string | null;
+  deadlineAt?: string | null;
+  timeoutOutcomeKey?: string | null;
   message: string | null;
   buyerCreditScore: BuyerCreditScoreDto | null;
   transactionId?: string | null;
@@ -512,6 +514,8 @@ export type CreditPendingRow = {
   currency: string;
   balanceAmount: number;
   balanceDueAt: string | null;
+  deadlineAt?: string | null;
+  timeoutOutcomeKey?: string | null;
   status: string;
   buyerName: string | null;
 };
@@ -757,6 +761,8 @@ export type MarketplaceTransactionDto = {
   listingAnimalIds?: string[];
   currency: string;
   offerExpiresAt: string;
+  deadlineAt?: string | null;
+  timeoutOutcomeKey?: string | null;
   listingTitle: string | null;
   receiptGenerationStatus?: string;
   receipt?: {

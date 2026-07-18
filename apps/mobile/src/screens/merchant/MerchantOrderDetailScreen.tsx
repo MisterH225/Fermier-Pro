@@ -22,7 +22,7 @@ import { MerchantOrderProgressStepper } from "../../components/merchant/orders/M
 import { MerchantOrderTrackingHeader } from "../../components/merchant/orders/MerchantOrderTrackingHeader";
 import {
   merchantOrderPalette,
-  OrderDeadlineBanner
+  DeadlineNotice
 } from "../../components/orders";
 import { useSession } from "../../context/SessionContext";
 import { useBottomInset } from "../../hooks/useBottomInset";
@@ -216,10 +216,10 @@ export function MerchantOrderDetailScreen({ route }: Props) {
           statusLabel={statusLabel}
         />
 
-        {order.status === "paid" && escrowHeld && order.timeoutAt ? (
-          <OrderDeadlineBanner
-            deadlineAt={order.timeoutAt}
-            labelKey="merchant.orders.respondBefore"
+        {order.deadlineAt ? (
+          <DeadlineNotice
+            deadlineAt={order.deadlineAt}
+            outcomeKey={order.timeoutOutcomeKey}
             palette={merchantOrderPalette}
           />
         ) : null}

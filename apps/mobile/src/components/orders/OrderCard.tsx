@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { formatMarketMoney } from "../../lib/formatMoney";
 import { mobileSpacing } from "../../theme/mobileTheme";
-import { OrderDeadlineBanner } from "./OrderDeadlineBanner";
+import { DeadlineNotice } from "./DeadlineNotice";
 import {
   OrderStatusBadge,
   type OrderStatusTone
@@ -24,6 +24,7 @@ type Props = {
   nextActionKey?: string | null;
   deadlineAt?: string | null;
   deadlineLabelKey?: string;
+  timeoutOutcomeKey?: string | null;
   onPress?: () => void;
   palette?: OrderPalette;
 };
@@ -41,6 +42,7 @@ export function OrderCard({
   nextActionKey,
   deadlineAt,
   deadlineLabelKey = "orders.respondBefore",
+  timeoutOutcomeKey,
   onPress,
   palette = ordersPalette
 }: Props) {
@@ -145,8 +147,9 @@ export function OrderCard({
       ) : null}
 
       {deadlineAt ? (
-        <OrderDeadlineBanner
+        <DeadlineNotice
           deadlineAt={deadlineAt}
+          outcomeKey={timeoutOutcomeKey}
           labelKey={deadlineLabelKey}
           palette={palette}
         />

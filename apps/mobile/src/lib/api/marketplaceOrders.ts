@@ -21,6 +21,7 @@ export type MarketplaceOrderProjectionCard = {
   actionRequiredBy: "buyer" | "seller" | "system" | "none";
   nextActionKey: string | null;
   deadlineAt: string | null;
+  timeoutOutcomeKey: string | null;
   counterparty: { displayName: string };
   itemSummary: string;
   amount: number;

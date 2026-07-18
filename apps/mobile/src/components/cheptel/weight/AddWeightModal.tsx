@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -179,13 +180,21 @@ export function AddWeightModal({
       footerPrimary={
         <Pressable
           style={styles.primary}
+          testID="weigh-save"
           onPress={() => saveMut.mutate()}
           disabled={saveMut.isPending}
         >
           {saveMut.isPending ? (
             <ActivityIndicator color={mobileColors.onAccent} />
           ) : (
-            <Text style={styles.primaryTx}>{t("cheptel.weight.save")}</Text>
+            <>
+              <Ionicons
+                name="scale-outline"
+                size={18}
+                color={mobileColors.onAccent}
+              />
+              <Text style={styles.primaryTx}>{t("cheptel.weight.save")}</Text>
+            </>
           )}
         </Pressable>
       }
@@ -196,6 +205,7 @@ export function AddWeightModal({
           {animals.map((a) => (
             <Pressable
               key={a.id}
+              testID={`weigh-animal-${a.id}`}
               style={[styles.pill, animalId === a.id && styles.pillOn]}
               onPress={() => setAnimalId(a.id)}
             >
@@ -210,6 +220,7 @@ export function AddWeightModal({
       <ModalSection title={t("modals.sections.measurement")}>
         <AppTextField
           label={t("cheptel.weight.weightKg")}
+          testID="weigh-weight-input"
           value={weightKg}
           onChangeText={setWeightKg}
           keyboardType="decimal-pad"
@@ -248,7 +259,10 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accent,
     borderRadius: mobileRadius.pill,
     paddingVertical: 14,
-    alignItems: "center"
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8
   },
   primaryTx: { color: mobileColors.onAccent, fontWeight: "700" }
 });

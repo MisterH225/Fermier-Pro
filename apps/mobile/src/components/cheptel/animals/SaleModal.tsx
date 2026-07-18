@@ -245,6 +245,7 @@ export function SaleModal({
             <Text style={styles.outlineBtnText}>{t("cheptel.cancel")}</Text>
           </Pressable>
           <Pressable
+            testID="sale-confirm"
             style={[
               styles.primaryBtn,
               (!canSubmit || saveMut.isPending) && styles.btnDisabled

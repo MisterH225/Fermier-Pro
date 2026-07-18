@@ -60,7 +60,7 @@ export function SuccessModal({ visible, payload, onClose }: SuccessModalProps) {
           />
         </Pressable>
         <View style={styles.centerLayer} pointerEvents="box-none">
-          <View style={styles.card}>
+          <View style={styles.card} testID="success-modal">
             <View style={styles.seal}>
               <Ionicons name="checkmark" size={36} color="#1B5E20" />
             </View>
@@ -69,7 +69,9 @@ export function SuccessModal({ visible, payload, onClose }: SuccessModalProps) {
             </Text>
             <Text style={styles.subtitle}>{payload.message}</Text>
             {payload.detail ? (
-              <Text style={styles.detail}>{payload.detail}</Text>
+              <Text style={styles.detail} testID="success-modal-detail">
+                {payload.detail}
+              </Text>
             ) : null}
             <Pressable
               style={styles.btn}
