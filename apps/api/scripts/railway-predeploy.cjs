@@ -1,7 +1,7 @@
 /**
  * Pre-deploy Railway : migrations Prisma avec récupération P3009 (wallet / orchestrateur).
  * Le schéma peut déjà exister sur Supabase alors que _prisma_migrations marque failed.
- * Redeploy trigger: 2026-07-17T00:18Z — schema up to date (87 migrations).
+ * Redeploy trigger: 2026-07-18T12:20Z — recover merchant_shop_archived_at + trust_score.
  */
 const { spawnSync } = require("node:child_process");
 const path = require("node:path");
@@ -11,10 +11,18 @@ bootstrapProdEnv();
 
 const prismaRun = path.join(__dirname, "prisma-run.cjs");
 
-/** Migrations souvent en conflit après application SQL Supabase + rename wallet. */
+/**
+ * Migrations souvent en conflit après application SQL Supabase en parallèle
+ * (enum déjà présent / schéma déjà là → P3009 / P3018).
+ */
 const RECOVERABLE_MIGRATIONS = [
   "20260624120000_universal_user_wallet",
-  "20260625120000_payment_orchestrator"
+  "20260625120000_payment_orchestrator",
+  "20260717180000_merchant_shop_archived_at",
+  "20260717190000_merchant_product_resubmission",
+  "20260718100000_merchant_product_merchant_deleted",
+  "20260718120000_trust_score_snapshots",
+  "20260718120000_weight_tolerance_percent"
 ];
 
 function runPrisma(args) {
@@ -33,22 +41,35 @@ function combinedOutput(result) {
 function tryRecoverFailedMigrations(output) {
   const needsRecovery =
     output.includes("P3009") ||
+    output.includes("P3018") ||
     output.toLowerCase().includes("failed migrations");
   if (!needsRecovery) {
     return false;
   }
 
   console.warn(
-    "[railway-predeploy] Migration(s) en échec détectée(s) — resolve --applied sur wallet/orchestrateur…"
+    "[railway-predeploy] Migration(s) en échec détectée(s) — resolve --applied sur migrations récupérables…"
   );
 
-  for (const name of RECOVERABLE_MIGRATIONS) {
+  const names = new Set(RECOVERABLE_MIGRATIONS);
+  const named =
+    /The `([0-9]{14}_[a-z0-9_]+)` migration (?:started at .+ )?failed/i.exec(
+      output
+    ) ??
+    /Migration name: ([0-9]{14}_[a-z0-9_]+)/i.exec(output);
+  if (named?.[1]) {
+    names.add(named[1]);
+  }
+
+  let anyResolved = false;
+  for (const name of names) {
     const resolved = runPrisma(["migrate", "resolve", "--applied", name]);
     if (resolved.status === 0) {
       console.log(`[railway-predeploy] Marquée appliquée : ${name}`);
+      anyResolved = true;
     }
   }
-  return true;
+  return anyResolved || names.size > 0;
 }
 
 console.log("[railway-predeploy] prisma migrate deploy…");
