@@ -21,6 +21,7 @@ import { MerchantProductsSalesSection } from "../../components/merchant/Merchant
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import {
+  deleteMerchantProduct,
   fetchMerchantMe,
   fetchMerchantProducts,
   fetchMerchantSellerOrders,
@@ -122,6 +123,40 @@ export function MerchantProductsScreen() {
     onSuccess: () => void invalidate(),
     onError: (e) => Alert.alert(formatApiError(e))
   });
+
+  const deleteProduct = useMutation({
+    mutationFn: async (productId: string) => {
+      if (!accessToken || !activeProfileId) throw new Error("session");
+      return deleteMerchantProduct(accessToken, activeProfileId, productId);
+    },
+    onSuccess: () => void invalidate(),
+    onError: (e) => {
+      const msg = formatApiError(e);
+      if (/PRODUCT_HAS_ACTIVE_ORDERS|commande/i.test(msg)) {
+        Alert.alert(t("merchant.products.deleteBlocked"));
+        return;
+      }
+      Alert.alert(msg);
+    }
+  });
+
+  const confirmDelete = useCallback(
+    (product: MerchantProductDto) => {
+      Alert.alert(
+        t("merchant.products.deleteTitle"),
+        t("merchant.products.deleteBodyNamed", { name: product.name }),
+        [
+          { text: t("common.cancel"), style: "cancel" },
+          {
+            text: t("merchant.products.deleteConfirm"),
+            style: "destructive",
+            onPress: () => deleteProduct.mutate(product.id)
+          }
+        ]
+      );
+    },
+    [deleteProduct, t]
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -263,6 +298,7 @@ export function MerchantProductsScreen() {
                   publishBusy={togglePublish.isPending}
                   showSwap={me?.subscriptionTier === "free" && item.status === "disabled"}
                   onSwap={() => swapActive.mutate(item.id)}
+                  onDelete={() => confirmDelete(item)}
                   atFreeLimit={atFreeLimit}
                 />
               )}

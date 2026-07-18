@@ -182,6 +182,19 @@ describeOrSkip("Marketplace feed unifié (e2e)", () => {
     expect(ids.status).toBe(200);
     expect(ids.body.productIds).toContain(merchantProductId);
 
+    const list = await request(app.getHttpServer())
+      .get("/api/v1/buyers/me/favorites")
+      .set("Authorization", `Bearer ${base.peerToken}`);
+    expect(list.status).toBe(200);
+    expect(list.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "merchant",
+          id: merchantProductId
+        })
+      ])
+    );
+
     const del = await request(app.getHttpServer())
       .delete(
         `/api/v1/buyers/me/favorites/products/${merchantProductId}`
@@ -193,5 +206,14 @@ describeOrSkip("Marketplace feed unifié (e2e)", () => {
       .get("/api/v1/buyers/me/favorites/ids")
       .set("Authorization", `Bearer ${base.peerToken}`);
     expect(idsAfter.body.productIds).not.toContain(merchantProductId);
+
+    const listAfter = await request(app.getHttpServer())
+      .get("/api/v1/buyers/me/favorites")
+      .set("Authorization", `Bearer ${base.peerToken}`);
+    expect(listAfter.body).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: merchantProductId })
+      ])
+    );
   });
 });

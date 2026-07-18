@@ -26,6 +26,7 @@ import { useSession } from "../../context/SessionContext";
 import {
   fetchBuyerFavorites,
   removeBuyerFavorite,
+  removeBuyerMerchantFavorite,
   type BuyerFavoriteListingDto
 } from "../../lib/api";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
@@ -37,6 +38,19 @@ function photoUrl(item: BuyerFavoriteListingDto): string | null {
   if (!Array.isArray(photos) || photos.length === 0) return null;
   const first = photos[0];
   return typeof first === "string" && first.length > 0 ? first : null;
+}
+
+function isMerchantFavorite(item: BuyerFavoriteListingDto): boolean {
+  return item.kind === "merchant";
+}
+
+function priceLabel(item: BuyerFavoriteListingDto): string | null {
+  if (isMerchantFavorite(item)) {
+    if (!item.totalPrice) return null;
+    const currency = item.currency?.trim() || "XOF";
+    return `${item.totalPrice} ${currency}`;
+  }
+  return item.pricePerKg ? `${item.pricePerKg} / kg` : null;
 }
 
 export function BuyerFavoritesScreen() {
@@ -54,14 +68,24 @@ export function BuyerFavoritesScreen() {
   });
 
   const removeMut = useMutation({
-    mutationFn: (listingId: string) =>
-      removeBuyerFavorite(accessToken!, activeProfileId, listingId),
+    mutationFn: (item: BuyerFavoriteListingDto) => {
+      if (isMerchantFavorite(item)) {
+        return removeBuyerMerchantFavorite(
+          accessToken!,
+          activeProfileId,
+          item.id
+        );
+      }
+      return removeBuyerFavorite(accessToken!, activeProfileId, item.id);
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["buyerFavorites"] });
+      void qc.invalidateQueries({ queryKey: ["buyerFavoritesList"] });
       void qc.invalidateQueries({ queryKey: ["buyerFavoriteIds"] });
       void qc.invalidateQueries({ queryKey: ["buyerDashboard"] });
     },
-    onError: (e: Error) => Alert.alert(t("buyer.favorites.errorTitle"), getUserFacingError(e, t))
+    onError: (e: Error) =>
+      Alert.alert(t("buyer.favorites.errorTitle"), getUserFacingError(e, t))
   });
 
   const items = favoritesQ.data ?? [];
@@ -85,7 +109,9 @@ export function BuyerFavoritesScreen() {
           {favoritesQ.isLoading ? (
             <ActivityIndicator color={buyerColors.primary} style={styles.loader} />
           ) : favoritesQ.error ? (
-            <ProfileSectionEmpty>{(favoritesQ.error as Error).message}</ProfileSectionEmpty>
+            <ProfileSectionEmpty>
+              {(favoritesQ.error as Error).message}
+            </ProfileSectionEmpty>
           ) : items.length === 0 ? (
             <View style={[styles.emptyCard, buyerShadow.card]}>
               <Text style={styles.emptyTitle}>{t("buyer.favorites.emptyTitle")}</Text>
@@ -101,15 +127,21 @@ export function BuyerFavoritesScreen() {
             <View style={styles.list}>
               {items.map((item) => {
                 const uri = photoUrl(item);
+                const merchant = isMerchantFavorite(item);
+                const price = priceLabel(item);
                 return (
                   <Pressable
                     key={item.favoriteId}
                     style={[styles.card, buyerShadow.card]}
                     onPress={() =>
-                      navigation.navigate("MarketplaceListingDetail", {
-                        listingId: item.id,
-                        headline: item.title
-                      })
+                      merchant
+                        ? navigation.navigate("MerchantProductDetail", {
+                            productId: item.id
+                          })
+                        : navigation.navigate("MarketplaceListingDetail", {
+                            listingId: item.id,
+                            headline: item.title
+                          })
                     }
                   >
                     <View style={styles.cardRow}>
@@ -124,17 +156,26 @@ export function BuyerFavoritesScreen() {
                         <Text style={styles.cardTitle} numberOfLines={2}>
                           {item.title}
                         </Text>
-                        <Text style={styles.cardMeta}>{item.farmName ?? "—"}</Text>
-                        {item.pricePerKg ? (
-                          <Text style={styles.cardPrice}>{item.pricePerKg} / kg</Text>
+                        <Text style={styles.cardMeta}>
+                          {item.farmName ?? "—"}
+                          {merchant
+                            ? ` · ${t("buyer.favorites.merchantBadge")}`
+                            : ""}
+                        </Text>
+                        {price ? (
+                          <Text style={styles.cardPrice}>{price}</Text>
                         ) : null}
                       </View>
                       <Pressable
                         hitSlop={12}
-                        onPress={() => removeMut.mutate(item.id)}
+                        onPress={() => removeMut.mutate(item)}
                         accessibilityLabel={t("buyer.favorites.remove")}
                       >
-                        <Ionicons name="heart" size={24} color={buyerColors.primary} />
+                        <Ionicons
+                          name="heart"
+                          size={24}
+                          color={buyerColors.primary}
+                        />
                       </Pressable>
                     </View>
                   </Pressable>
@@ -185,7 +226,15 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   cardBody: { flex: 1, gap: 2 },
-  cardTitle: { ...mobileTypography.body, fontWeight: "600", color: buyerColors.textPrimary },
+  cardTitle: {
+    ...mobileTypography.body,
+    fontWeight: "600",
+    color: buyerColors.textPrimary
+  },
   cardMeta: { ...mobileTypography.meta, color: buyerColors.textSecondary },
-  cardPrice: { ...mobileTypography.meta, color: buyerColors.primary, fontWeight: "700" }
+  cardPrice: {
+    ...mobileTypography.meta,
+    color: buyerColors.primary,
+    fontWeight: "700"
+  }
 });

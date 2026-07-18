@@ -3755,13 +3755,14 @@ export const en = {
     },
   favorites: {
     title: "My favorites",
-    subtitle: "Listings you follow on the marketplace.",
-    sectionList: "Saved listings",
+    subtitle: "Listings and shop products you follow on the marketplace.",
+    sectionList: "Saved favorites",
     emptyTitle: "No favorites yet",
-    emptyBody: "Tap the heart on a listing to save it here.",
+    emptyBody: "Tap the heart on a listing or shop product to save it here.",
     explore: "Browse marketplace",
     remove: "Remove from favorites",
-    errorTitle: "Favorites"
+    errorTitle: "Favorites",
+    merchantBadge: "Shop"
   },
     alerts: {
       title: "Price alerts",
@@ -4112,6 +4113,15 @@ export const en = {
       publish: "Publish",
       unpublish: "Unpublish",
       swap: "Activate (swap)",
+      delete: "Delete",
+      deleteTitle: "Delete this product?",
+      deleteBody:
+        "The product will be removed from your shop and the marketplace. This cannot be undone.",
+      deleteBodyNamed:
+        "“{{name}}” will be removed from your shop and the marketplace. This cannot be undone.",
+      deleteConfirm: "Delete",
+      deleteBlocked:
+        "Cannot delete: this product still has orders in progress.",
       freeLimitHint: "Free limit reached — disable a product or go Premium.",
       stockLabel: "Stock {{count}}",
       filter: {

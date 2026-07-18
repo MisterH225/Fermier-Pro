@@ -378,6 +378,19 @@ export function unpublishMerchantProduct(
   );
 }
 
+/** DELETE /api/v1/merchant/products/:productId — soft-delete commerçant. */
+export function deleteMerchantProduct(
+  accessToken: string,
+  profileId: string,
+  productId: string
+): Promise<{ ok: true; id: string; deletedAt: string }> {
+  return apiDeleteJson<{ ok: true; id: string; deletedAt: string }>(
+    `/merchant/products/${productId}`,
+    accessToken,
+    profileId
+  );
+}
+
 export function updateMerchantProduct(
   accessToken: string,
   profileId: string,

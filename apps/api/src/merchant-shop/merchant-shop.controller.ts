@@ -202,6 +202,16 @@ export class MerchantShopController {
     return this.products.unpublish(user, productId);
   }
 
+  /** Soft-delete — retire du catalogue ; refus si commandes en cours. */
+  @Delete("products/:productId")
+  @UseGuards(MerchantProfileGuard)
+  deleteProduct(
+    @CurrentUser() user: Parameters<MerchantProductsService["remove"]>[0],
+    @Param("productId") productId: string
+  ) {
+    return this.products.remove(user, productId);
+  }
+
   @Post("products/:productId/swap-active")
   @UseGuards(MerchantProfileGuard)
   swapProduct(

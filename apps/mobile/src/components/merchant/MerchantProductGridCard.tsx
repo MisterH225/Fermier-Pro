@@ -20,6 +20,7 @@ type Props = {
   onPress: () => void;
   onTogglePublish?: () => void;
   onSwap?: () => void;
+  onDelete?: () => void;
   showSwap?: boolean;
   publishBusy?: boolean;
   atFreeLimit?: boolean;
@@ -38,6 +39,7 @@ export function MerchantProductGridCard({
   onPress,
   onTogglePublish,
   onSwap,
+  onDelete,
   showSwap,
   publishBusy,
   atFreeLimit,
@@ -118,6 +120,18 @@ export function MerchantProductGridCard({
           {showSwap && onSwap ? (
             <Pressable style={styles.actionBtn} onPress={onSwap} hitSlop={6}>
               <Text style={styles.actionTx}>{t("merchant.products.swap")}</Text>
+            </Pressable>
+          ) : null}
+          {onDelete ? (
+            <Pressable
+              style={[styles.actionBtn, styles.actionBtnDanger]}
+              onPress={onDelete}
+              hitSlop={6}
+              accessibilityLabel={t("merchant.products.delete")}
+            >
+              <Text style={[styles.actionTx, styles.actionTxDanger]}>
+                {t("merchant.products.delete")}
+              </Text>
             </Pressable>
           ) : null}
         </View>
@@ -214,10 +228,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: merchantColors.primary
   },
+  actionBtnDanger: {
+    borderColor: merchantColors.danger
+  },
   actionTx: {
     color: merchantColors.primary,
     fontWeight: "700",
     fontSize: 11
+  },
+  actionTxDanger: {
+    color: merchantColors.danger
   },
   hint: {
     fontSize: 10,

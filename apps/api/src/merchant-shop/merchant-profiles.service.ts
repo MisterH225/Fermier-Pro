@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
 import {
+  MerchantProductDisabledReason,
   MerchantProductStatus,
   MerchantSubscriptionInvoiceStatus,
   MerchantSubscriptionTier,
@@ -39,6 +40,17 @@ export class MerchantProfilesService {
         shops: {
           include: {
             products: {
+              where: {
+                // Inclure null (SQL NOT (col = x) exclut les NULL).
+                OR: [
+                  { disabledReason: null },
+                  {
+                    disabledReason: {
+                      not: MerchantProductDisabledReason.merchant_deleted
+                    }
+                  }
+                ]
+              },
               orderBy: { createdAt: "asc" }
             }
           }

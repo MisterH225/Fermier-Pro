@@ -71,6 +71,8 @@ enum MerchantProductDisabledReason {
   swap
   moderation
   shop_archived
+  /// Soft-delete initié par le commerçant (hors catalogue / hors liste boutique).
+  merchant_deleted
 }
 
 enum MerchantOrderStatus {

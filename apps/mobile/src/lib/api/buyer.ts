@@ -71,8 +71,12 @@ export type BuyerListingPreviewDto = {
 };
 
 export type BuyerFavoriteListingDto = BuyerListingPreviewDto & {
+  /** Discriminant : annonce ferme ou produit boutique. */
+  kind?: "listing" | "merchant";
   favoriteId: string;
   favoritedAt: string;
+  currency?: string | null;
+  stock?: number | null;
 };
 
 export type BuyerPriceAlertDto = {

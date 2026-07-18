@@ -7,6 +7,7 @@ import type { User } from "@prisma/client";
 import {
   ListingStatus,
   MarketplaceTransactionStatus,
+  MerchantProductStatus,
   OfferStatus,
   Prisma,
   ProfileType
@@ -156,7 +157,14 @@ export class BuyerProfilesService {
         }
       }),
       profile
-        ? this.prisma.buyerFavorite.count({ where: { buyerProfileId: profile.id } })
+        ? Promise.all([
+            this.prisma.buyerFavorite.count({
+              where: { buyerProfileId: profile.id }
+            }),
+            this.prisma.buyerMerchantFavorite.count({
+              where: { buyerProfileId: profile.id }
+            })
+          ]).then(([listings, products]) => listings + products)
         : Promise.resolve(0),
       this.userWallet.getSummary(user.id)
     ]);
@@ -568,25 +576,49 @@ export class BuyerProfilesService {
 
   async listFavorites(user: User) {
     const profile = await this.ensureRow(user.id);
-    const rows = await this.prisma.buyerFavorite.findMany({
-      where: { buyerProfileId: profile.id },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-      include: {
-        listing: {
-          include: {
-            farm: { select: { id: true, name: true } }
+    const [listingRows, productRows] = await Promise.all([
+      this.prisma.buyerFavorite.findMany({
+        where: { buyerProfileId: profile.id },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        include: {
+          listing: {
+            include: {
+              farm: { select: { id: true, name: true } }
+            }
           }
         }
-      }
-    });
-    return rows
+      }),
+      this.prisma.buyerMerchantFavorite.findMany({
+        where: { buyerProfileId: profile.id },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        include: {
+          product: {
+            include: {
+              category: { select: { id: true, name: true, slug: true } },
+              shop: {
+                select: {
+                  id: true,
+                  name: true,
+                  archivedAt: true,
+                  merchantProfile: { select: { userId: true } }
+                }
+              }
+            }
+          }
+        }
+      })
+    ]);
+
+    const listings = listingRows
       .filter(
         (f) =>
           f.listing.sellerUserId !== user.id &&
           f.listing.status === ListingStatus.published
       )
       .map((f) => ({
+        kind: "listing" as const,
         favoriteId: f.id,
         favoritedAt: f.createdAt.toISOString(),
         id: f.listing.id,
@@ -597,8 +629,47 @@ export class BuyerProfilesService {
         weightKg: f.listing.totalWeightKg?.toString() ?? null,
         farmName: f.listing.farm?.name ?? null,
         photoUrls: f.listing.photoUrls,
-        publishedAt: f.listing.publishedAt?.toISOString() ?? null
+        publishedAt: f.listing.publishedAt?.toISOString() ?? null,
+        currency: null as string | null,
+        stock: null as number | null
       }));
+
+    const products = productRows
+      .filter(
+        (f) =>
+          f.product.shop.merchantProfile.userId !== user.id &&
+          f.product.shop.archivedAt == null &&
+          f.product.status === MerchantProductStatus.published &&
+          f.product.stock > 0
+      )
+      .map((f) => {
+        const photos = Array.isArray(f.product.photoUrls)
+          ? f.product.photoUrls.filter(
+              (u): u is string => typeof u === "string"
+            )
+          : [];
+        return {
+          kind: "merchant" as const,
+          favoriteId: f.id,
+          favoritedAt: f.createdAt.toISOString(),
+          id: f.product.id,
+          title: f.product.name,
+          category: f.product.category?.slug ?? f.product.category?.name ?? null,
+          pricePerKg: null as string | null,
+          totalPrice: f.product.price.toString(),
+          weightKg: null as string | null,
+          farmName: f.product.shop.name,
+          photoUrls: photos,
+          publishedAt: f.product.publishedAt?.toISOString() ?? null,
+          currency: f.product.currency,
+          stock: f.product.stock
+        };
+      });
+
+    return [...listings, ...products].sort(
+      (a, b) =>
+        new Date(b.favoritedAt).getTime() - new Date(a.favoritedAt).getTime()
+    );
   }
 
   async addFavorite(user: User, listingId: string) {
