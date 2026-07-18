@@ -583,13 +583,21 @@ export class FarmFeedService {
 
       let reconciliation: ReconciliationOfferDto | null = null;
       if (missingCost) {
-        const offer = await this.reconciliation.buildOfferForMovement(
-          movement.id
-        );
-        if (offer.status !== "none") {
-          reconciliation = offer;
-        } else {
-          await this.reconciliation.flagCostMissing(movement.id);
+        try {
+          const offer = await this.reconciliation.buildOfferForMovement(
+            movement.id
+          );
+          if (offer.status !== "none") {
+            reconciliation = offer;
+          } else {
+            await this.reconciliation.flagCostMissing(movement.id);
+          }
+        } catch {
+          // Le mouvement est déjà persisté — ne pas échouer l'entrée stock
+          // si le bootstrap finance / rapprochement concurrent échoue.
+          await this.reconciliation
+            .flagCostMissing(movement.id)
+            .catch(() => undefined);
         }
       }
 
