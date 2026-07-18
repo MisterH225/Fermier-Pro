@@ -371,9 +371,11 @@ export class CreditOffersService {
       `Solde crédit ${offerId}`,
       { paymentMethod: method }
     );
+    // Le gateway DEV ne renvoie pas d'URL de checkout (confirm HTTP ensuite).
     if (
       method === MarketplacePaymentMethod.mobile_money &&
-      !hold.paymentUrl?.trim()
+      !hold.paymentUrl?.trim() &&
+      (process.env.MOBILE_MONEY_PROVIDER ?? "dev").trim().toLowerCase() !== "dev"
     ) {
       throw new BadGatewayException(
         "GeniusPay n'a pas renvoyé d'URL de checkout pour ce paiement"
@@ -414,7 +416,11 @@ export class CreditOffersService {
     if (providerRef && providerRef !== ref) {
       throw new BadRequestException("Référence paiement invalide");
     }
-    if (offer.balancePaymentMode !== "wallet") {
+    const isDevMobileMoney =
+      (process.env.MOBILE_MONEY_PROVIDER ?? "dev").trim().toLowerCase() ===
+      "dev";
+    // GeniusPay : confirmation via webhook. Gateway DEV / wallet : confirm HTTP.
+    if (offer.balancePaymentMode !== "wallet" && !isDevMobileMoney) {
       throw new BadRequestException(
         "Paiement en attente de confirmation GeniusPay — finalisez le checkout ou attendez la notification."
       );
