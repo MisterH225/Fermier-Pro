@@ -258,24 +258,3 @@ export function marketplaceTransactionReference(id: string): string {
   return `TX-${id.replace(/-/g, "").slice(-8).toUpperCase()}`;
 }
 
-export function marketplaceTransactionDeadlineAt(transaction: {
-  status: string;
-  offerExpiresAt?: string | null;
-  sellerShippedAt?: string | null;
-}): string | null {
-  if (
-    ["OFFER_ACCEPTED", "PAYMENT_PENDING", "PAYMENT_FAILED"].includes(
-      transaction.status
-    )
-  ) {
-    return transaction.offerExpiresAt ?? null;
-  }
-  if (transaction.status === "SELLER_SHIPPED" && transaction.sellerShippedAt) {
-    const deadline = new Date(transaction.sellerShippedAt);
-    if (!Number.isNaN(deadline.getTime())) {
-      deadline.setDate(deadline.getDate() + 14);
-      return deadline.toISOString();
-    }
-  }
-  return null;
-}

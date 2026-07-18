@@ -398,9 +398,16 @@ export function AnimalDetailModal({
       {saveMut.isPending ? (
         <ActivityIndicator color={mobileColors.onAccent} />
       ) : (
-        <Text style={styles.primaryBtnText}>
-          {t("cheptel.animals.detail.save")}
-        </Text>
+        <>
+          <Ionicons
+            name="checkmark-circle-outline"
+            size={18}
+            color={mobileColors.onAccent}
+          />
+          <Text style={styles.primaryBtnText}>
+            {t("cheptel.animals.detail.save")}
+          </Text>
+        </>
       )}
     </Pressable>
   );
@@ -919,7 +926,10 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accent,
     borderRadius: mobileRadius.pill,
     paddingVertical: 14,
-    alignItems: "center"
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8
   },
   btnDisabled: { opacity: 0.6 },
   primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 },

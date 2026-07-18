@@ -338,11 +338,16 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
         clientFeatures.marketplace && !marketBrowseAsBuyer ? (
           <TouchableOpacity
             onPress={() => setCreateModalOpen(true)}
-            style={{ paddingHorizontal: 4 }}
+            style={styles.headerActionRow}
             hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
             accessibilityRole="button"
             accessibilityLabel={t("marketScreen.create")}
           >
+            <Ionicons
+              name="add-circle-outline"
+              size={18}
+              color={mobileColors.accent}
+            />
             <Text style={styles.headerAction}>{t("marketScreen.create")}</Text>
           </TouchableOpacity>
         ) : undefined
@@ -804,6 +809,12 @@ const styles = StyleSheet.create({
     color: mobileColors.accent,
     fontWeight: "600",
     fontSize: 15
+  },
+  headerActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 4
   },
   headerBackBtn: {
     flexDirection: "row",

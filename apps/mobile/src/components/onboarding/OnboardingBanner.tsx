@@ -14,11 +14,11 @@ type Props = {
 export function OnboardingBanner({ onComplete }: Props) {
   const { t } = useTranslation();
   return (
-    <View style={styles.banner}>
+    <View style={styles.banner} testID="onboarding-banner">
       <Text style={styles.icon}>⚠️</Text>
       <View style={styles.textCol}>
         <Text style={styles.text}>{t("onboarding.banner.text")}</Text>
-        <Pressable onPress={onComplete} hitSlop={8}>
+        <Pressable onPress={onComplete} hitSlop={8} testID="onboarding-banner-cta">
           <Text style={styles.cta}>{t("onboarding.banner.cta")}</Text>
         </Pressable>
       </View>

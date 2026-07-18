@@ -119,6 +119,8 @@ export type MerchantOrderDto = {
   resolutionNote?: string | null;
   timeoutAt?: string | null;
   disputeWindowEndsAt?: string | null;
+  deadlineAt?: string | null;
+  timeoutOutcomeKey?: string | null;
   createdAt: string;
   timeline?: Array<{
     id: string;

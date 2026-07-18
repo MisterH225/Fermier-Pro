@@ -23,6 +23,8 @@
     "test:e2e:marketplace-listings:android": "detox test -c android.emu.debug e2e/marketplaceListings.e2e.ts",
     "test:e2e:merchant": "detox test -c ios.sim.debug e2e/merchantSubscription.e2e.ts e2e/merchantShops.e2e.ts e2e/merchantProductForm.e2e.ts",
     "test:e2e:merchant:android": "detox test -c android.emu.debug e2e/merchantSubscription.e2e.ts e2e/merchantShops.e2e.ts e2e/merchantProductForm.e2e.ts",
+    "test:e2e:producer": "detox test -c ios.sim.debug e2e/producerCoreGestures.e2e.ts e2e/producerOnboarding.e2e.ts e2e/offlineQueue.e2e.ts",
+    "test:e2e:producer:android": "detox test -c android.emu.debug e2e/producerCoreGestures.e2e.ts e2e/producerOnboarding.e2e.ts e2e/offlineQueue.e2e.ts",
     "e2e:build:ios": "detox build -c ios.sim.debug",
     "e2e:build:android": "detox build -c android.emu.debug"
   },

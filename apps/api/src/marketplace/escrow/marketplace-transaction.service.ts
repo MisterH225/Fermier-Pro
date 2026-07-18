@@ -27,6 +27,10 @@ import {
 } from "@prisma/client";
 import { AUDIT_ACTION } from "../../common/audit.constants";
 import { AuditService } from "../../common/audit.service";
+import {
+  escrowDeadlineAt,
+  escrowTimeoutOutcomeKey
+} from "../../common/deadline-outcome";
 import { FarmAccessService } from "../../common/farm-access.service";
 import { capturePaymentError } from "../../common/sentry-payment.util";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -2829,6 +2833,7 @@ export class MarketplaceTransactionService {
   ) {
     if (!tx) return null;
     const pending = tx.pendingTransfers?.[0] ?? null;
+    const deadline = escrowDeadlineAt(tx);
     return {
       id: tx.id,
       listingId: tx.listingId,
@@ -2876,6 +2881,8 @@ export class MarketplaceTransactionService {
           : [],
       currency: tx.currency,
       offerExpiresAt: tx.offerExpiresAt.toISOString(),
+      deadlineAt: deadline?.toISOString() ?? null,
+      timeoutOutcomeKey: deadline ? escrowTimeoutOutcomeKey(tx.status) : null,
       listingTitle: tx.listing?.title ?? null,
       receiptGenerationStatus: tx.receiptGenerationStatus,
       receipt: tx.receipt

@@ -319,6 +319,7 @@ export function ProducerDashboardScreen() {
     <>
       <MobileAppShell customHeader={dashboardHeader} omitBottomTabBar>
         <ScrollView
+          testID="producer-dashboard-screen"
           contentContainerStyle={[
             styles.wrap,
             { paddingBottom: bottomInset }

@@ -433,6 +433,11 @@ export function MerchantProductDetailScreen({ route }: Props) {
             walletEnabled={walletEnabled}
           />
         ) : null}
+        {totalAmount > 0 ? (
+          <Text style={styles.escrowHint}>
+            {t("merchant.purchase.escrowHint")}
+          </Text>
+        ) : null}
         <Pressable
           style={[
             styles.btn,
@@ -577,6 +582,12 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     fontWeight: "600",
     color: mobileColors.textSecondary
+  },
+  escrowHint: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginBottom: 8,
+    lineHeight: 18
   },
   input: {
     borderWidth: 1,

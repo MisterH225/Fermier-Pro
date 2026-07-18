@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import { formatMarketMoney } from "./MarketplaceListingCard";
-import { CountdownBalance } from "./CountdownBalance";
+import { DeadlineNotice, merchantWarningOrderPalette } from "../orders";
 import {
   mobileColors,
   mobileRadius,
@@ -14,15 +14,11 @@ type Props = {
   currency: string;
   balanceDueAt: string | null;
   status: string;
+  /** Échéance/conséquence exposées par le DTO crédit (P-43). */
+  deadlineAt?: string | null;
+  timeoutOutcomeKey?: string | null;
   listingTitle?: string;
 };
-
-function daysUntil(dueAt: string | null): number | null {
-  if (!dueAt) return null;
-  const due = new Date(dueAt).getTime();
-  if (Number.isNaN(due)) return null;
-  return Math.ceil((due - Date.now()) / 86_400_000);
-}
 
 function statusLabelKey(status: string): string {
   switch (status) {
@@ -42,18 +38,18 @@ export function BalanceTrackingCard({
   currency,
   balanceDueAt,
   status,
+  deadlineAt,
+  timeoutOutcomeKey,
   listingTitle
 }: Props) {
   const { t } = useTranslation();
-  const days = daysUntil(balanceDueAt);
-  const dueLabel =
-    balanceDueAt != null
-      ? new Date(balanceDueAt).toLocaleDateString("fr-FR", {
-          day: "numeric",
-          month: "short",
-          year: "numeric"
-        })
-      : "—";
+  const effectiveDeadline = deadlineAt ?? balanceDueAt;
+  // Fallback fidèle au cron : le solde en attente déclenche un arbitrage.
+  const outcomeKey =
+    timeoutOutcomeKey ??
+    (status === "balance_pending"
+      ? "deadline.outcome.creditBalanceArbitration"
+      : null);
 
   return (
     <View style={styles.card}>
@@ -66,13 +62,13 @@ export function BalanceTrackingCard({
       <Text style={styles.amount}>
         {formatMarketMoney(balanceAmount, currency)}
       </Text>
-      <Text style={styles.due}>
-        {t("marketScreen.credit.balance.dueOn", { date: dueLabel })}
-        {days != null
-          ? ` — ${t("marketScreen.credit.balance.inDays", { count: Math.max(0, days) })}`
-          : ""}
-      </Text>
-      <CountdownBalance dueAt={balanceDueAt} />
+      {effectiveDeadline ? (
+        <DeadlineNotice
+          deadlineAt={effectiveDeadline}
+          outcomeKey={outcomeKey}
+          palette={merchantWarningOrderPalette}
+        />
+      ) : null}
       <Text style={styles.status}>{t(statusLabelKey(status))}</Text>
     </View>
   );
@@ -101,10 +97,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: "#BA7517",
     fontWeight: "800"
-  },
-  due: {
-    ...mobileTypography.meta,
-    color: mobileColors.textSecondary
   },
   status: {
     ...mobileTypography.meta,

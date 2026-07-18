@@ -20,6 +20,7 @@ export interface OrderProjectionCard {
   actionRequiredBy: OrderActionActor;
   nextActionKey: string | null;
   deadlineAt: string | null;
+  timeoutOutcomeKey: string | null;
   counterparty: { displayName: string };
   itemSummary: string;
   amount: number;

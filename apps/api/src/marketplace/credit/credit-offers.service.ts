@@ -18,6 +18,7 @@ import {
 } from "@prisma/client";
 import { FarmAccessService } from "../../common/farm-access.service";
 import { FARM_SCOPE } from "../../common/farm-scopes.constants";
+import { creditBalanceTimeoutOutcomeKey } from "../../common/deadline-outcome";
 import { PrismaService } from "../../prisma/prisma.service";
 import { PushNotificationsService } from "../../push-notifications/push-notifications.service";
 import { EscrowService } from "../escrow/escrow.service";
@@ -578,16 +579,28 @@ export class CreditOffersService {
       },
       take: 50
     });
-    return rows.map((r) => ({
-      id: r.id,
-      listingId: r.listingId,
-      listingTitle: r.listing.title,
-      currency: r.listing.currency,
-      balanceAmount: Number(r.balanceAmount ?? 0),
-      balanceDueAt: r.balanceDueAt?.toISOString() ?? null,
-      status: r.status,
-      buyerName: r.buyer.fullName
-    }));
+    return rows.map((r) => {
+      const balancePending =
+        r.status === OfferStatus.balance_pending &&
+        r.balanceDueAt != null &&
+        r.balancePaidDeclaredAt == null;
+      return {
+        id: r.id,
+        listingId: r.listingId,
+        listingTitle: r.listing.title,
+        currency: r.listing.currency,
+        balanceAmount: Number(r.balanceAmount ?? 0),
+        balanceDueAt: r.balanceDueAt?.toISOString() ?? null,
+        deadlineAt: balancePending
+          ? r.balanceDueAt?.toISOString() ?? null
+          : null,
+        timeoutOutcomeKey: balancePending
+          ? creditBalanceTimeoutOutcomeKey()
+          : null,
+        status: r.status,
+        buyerName: r.buyer.fullName
+      };
+    });
   }
 
   async handleCreditReminders(): Promise<{ reminders: number; arbitrations: number }> {
@@ -842,6 +855,12 @@ export class CreditOffersService {
       offer.listing.sellerUserId === viewerUserId
         ? await this.creditScore.getForUser(offer.buyerUserId)
         : null;
+    // Échéance solde crédit (P-43) : miroir exact du cron dailyCreditReminders
+    // (arbitrage à J+2). Uniquement quand un solde reste dû.
+    const balanceDeadlinePending =
+      offer.status === OfferStatus.balance_pending &&
+      offer.balanceDueAt != null &&
+      offer.balancePaidDeclaredAt == null;
     return {
       id: offer.id,
       listingId: offer.listingId,
@@ -855,6 +874,12 @@ export class CreditOffersService {
       balanceAmount: offer.balanceAmount ? Number(offer.balanceAmount) : null,
       balanceDueDays: offer.balanceDueDays,
       balanceDueAt: offer.balanceDueAt?.toISOString() ?? null,
+      deadlineAt: balanceDeadlinePending
+        ? offer.balanceDueAt?.toISOString() ?? null
+        : null,
+      timeoutOutcomeKey: balanceDeadlinePending
+        ? creditBalanceTimeoutOutcomeKey()
+        : null,
       deliveredAt: offer.deliveredAt?.toISOString() ?? null,
       advancePaidDeclaredAt: offer.advancePaidDeclaredAt?.toISOString() ?? null,
       advanceConfirmedAt: offer.advanceConfirmedAt?.toISOString() ?? null,

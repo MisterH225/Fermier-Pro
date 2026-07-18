@@ -77,6 +77,7 @@ export function OfflineBanner() {
     <View
       style={[styles.wrap, { paddingTop: Math.max(insets.top, 10) }]}
       accessibilityRole="alert"
+      testID="offline-banner"
     >
       {offline ? (
         <Text style={styles.text}>{t("offline.bannerOffline")}</Text>
@@ -91,7 +92,7 @@ export function OfflineBanner() {
               onPress={() => setExpanded((v) => !v)}
               accessibilityRole="button"
             >
-              <Text style={styles.queueText}>
+              <Text style={styles.queueText} testID="offline-queue-pending">
                 {awaitingCount > 0
                   ? t("offline.queuePending", { count: awaitingCount })
                   : t("offline.queueSyncedOnly")}

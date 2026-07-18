@@ -39,6 +39,8 @@ type ProposalCardBase = {
   balanceAmount?: string | number | null;
   balanceDueDays?: number | null;
   balanceDueAt?: string | null;
+  deadlineAt?: string | null;
+  timeoutOutcomeKey?: string | null;
   advancePaidDeclaredAt?: string | null;
   advanceConfirmedAt?: string | null;
   balancePaidDeclaredAt?: string | null;
@@ -128,6 +130,8 @@ export function ProposalCard(props: ProposalCardProps) {
     balanceAmount,
     balanceDueDays,
     balanceDueAt,
+    deadlineAt,
+    timeoutOutcomeKey,
     advancePaidDeclaredAt,
     advanceConfirmedAt,
     balancePaidDeclaredAt,
@@ -264,6 +268,8 @@ export function ProposalCard(props: ProposalCardProps) {
           currency={currency}
           balanceDueAt={balanceDueAt ?? null}
           status={status}
+          deadlineAt={deadlineAt}
+          timeoutOutcomeKey={timeoutOutcomeKey}
         />
       ) : null}
 

@@ -6,7 +6,12 @@ import {
   type User
 } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
-import { MERCHANT_ORDER_DISPUTE_WINDOW_MS } from "../../merchant-shop/merchant-shop.constants";
+import {
+  escrowDeadlineAt,
+  escrowTimeoutOutcomeKey,
+  shopDeadlineAt,
+  shopTimeoutOutcomeKey
+} from "../../common/deadline-outcome";
 import {
   deriveActionRequired,
   deriveShopActionRequired,
@@ -20,8 +25,6 @@ import {
   stageOfShop
 } from "./order-stage";
 import {
-  DELIVERY_DISPUTE_AUTO_MS,
-  WEIGHT_AUTO_VALIDATE_MS,
   type OrderListSegment,
   type OrderProjectionCard,
   type OrdersCountersResponse,
@@ -69,51 +72,6 @@ function decodeCursor(raw: string): CursorPayload {
   } catch {
     throw new BadRequestException("Curseur de pagination invalide");
   }
-}
-
-function escrowDeadlineAt(tx: {
-  status: MarketplaceTransactionStatus;
-  offerExpiresAt: Date;
-  weightDeclaredByBuyerAt: Date | null;
-  sellerShippedAt: Date | null;
-}): Date | null {
-  if (
-    tx.status === MarketplaceTransactionStatus.PAYMENT_PENDING ||
-    tx.status === MarketplaceTransactionStatus.PAYMENT_FAILED
-  ) {
-    return tx.offerExpiresAt;
-  }
-  if (
-    tx.status === MarketplaceTransactionStatus.WEIGHT_DECLARED &&
-    tx.weightDeclaredByBuyerAt
-  ) {
-    return new Date(
-      tx.weightDeclaredByBuyerAt.getTime() + WEIGHT_AUTO_VALIDATE_MS
-    );
-  }
-  if (
-    tx.status === MarketplaceTransactionStatus.SELLER_SHIPPED &&
-    tx.sellerShippedAt
-  ) {
-    return new Date(tx.sellerShippedAt.getTime() + DELIVERY_DISPUTE_AUTO_MS);
-  }
-  return null;
-}
-
-function shopDeadlineAt(order: {
-  status: MerchantOrderStatus;
-  timeoutAt: Date | null;
-  deliveredAt: Date | null;
-}): Date | null {
-  if (order.status === MerchantOrderStatus.paid && order.timeoutAt) {
-    return order.timeoutAt;
-  }
-  if (order.status === MerchantOrderStatus.delivered && order.deliveredAt) {
-    return new Date(
-      order.deliveredAt.getTime() + MERCHANT_ORDER_DISPUTE_WINDOW_MS
-    );
-  }
-  return null;
 }
 
 function matchesSegment(
@@ -339,6 +297,9 @@ export class OrdersProjectionService {
       actionRequiredBy: action.actionRequiredBy,
       nextActionKey: action.nextActionKey,
       deadlineAt: deadline?.toISOString() ?? null,
+      timeoutOutcomeKey: deadline
+        ? escrowTimeoutOutcomeKey(tx.status)
+        : null,
       counterparty: { displayName: displayNameOf(counterparty) },
       itemSummary: tx.listing?.title?.trim() || "Commande marketplace",
       amount,
@@ -389,6 +350,9 @@ export class OrdersProjectionService {
       actionRequiredBy: action.actionRequiredBy,
       nextActionKey: action.nextActionKey,
       deadlineAt: deadline?.toISOString() ?? null,
+      timeoutOutcomeKey: deadline
+        ? shopTimeoutOutcomeKey(order.status)
+        : null,
       counterparty: { displayName: displayNameOf(counterparty) },
       itemSummary: order.product?.name?.trim() || "Commande boutique",
       amount,

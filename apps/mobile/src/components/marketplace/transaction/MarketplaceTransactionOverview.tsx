@@ -5,13 +5,12 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import type { MarketplaceTransactionDto } from "../../../lib/api";
 import {
   marketplaceStatusUi,
-  marketplaceTransactionDeadlineAt,
   marketplaceTransactionReference
 } from "../../../lib/marketplaceOrderStatusUi";
 import {
+  DeadlineNotice,
   OrderActivityFeed,
   OrderContactCard,
-  OrderDeadlineBanner,
   OrderInfoCard,
   OrderStatusBadge,
   OrderTrackingStepper
@@ -119,7 +118,7 @@ export function MarketplaceTransactionOverview({
   const { t } = useTranslation();
   const ui = marketplaceStatusUi(transaction.status);
   const reference = marketplaceTransactionReference(transaction.id);
-  const deadlineAt = marketplaceTransactionDeadlineAt(transaction);
+  const deadlineAt = transaction.deadlineAt ?? null;
   const counterparty =
     role === "buyer"
       ? t("marketScreen.transaction.counterpartySeller")
@@ -195,9 +194,9 @@ export function MarketplaceTransactionOverview({
 
       {deadlineAt ? (
         <View style={styles.deadline}>
-          <OrderDeadlineBanner
+          <DeadlineNotice
             deadlineAt={deadlineAt}
-            labelKey="marketScreen.transaction.respondBefore"
+            outcomeKey={transaction.timeoutOutcomeKey}
           />
         </View>
       ) : null}

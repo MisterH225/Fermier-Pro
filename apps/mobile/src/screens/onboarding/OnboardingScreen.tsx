@@ -108,7 +108,11 @@ export function OnboardingScreen({ onFinished }: Props) {
   const isCompletion = ob.step === 4;
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+    <SafeAreaView
+      style={styles.safe}
+      edges={["top", "bottom"]}
+      testID="onboarding-screen"
+    >
       {!isCompletion ? (
         <Pressable
           style={styles.skipTop}

@@ -4,8 +4,7 @@ import { OfferStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import { ListingsService } from "./listings.service";
-
-const OFFER_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+import { OFFER_TTL_MS } from "./marketplace.constants";
 
 @Injectable()
 export class MarketplaceCronService {

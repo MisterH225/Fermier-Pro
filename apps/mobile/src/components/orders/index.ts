@@ -2,7 +2,7 @@ export { OrderActivityFeed } from "./OrderActivityFeed";
 export type { OrderActivityEvent } from "./OrderActivityFeed";
 export { OrderCard } from "./OrderCard";
 export { OrderContactCard } from "./OrderContactCard";
-export { OrderDeadlineBanner } from "./OrderDeadlineBanner";
+export { DeadlineNotice } from "./DeadlineNotice";
 export { OrderInfoCard } from "./OrderInfoCard";
 export type { OrderInfoRow } from "./OrderInfoCard";
 export { OrdersHubView } from "./OrdersHubView";

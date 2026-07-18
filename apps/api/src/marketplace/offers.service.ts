@@ -19,6 +19,8 @@ import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { PrismaService } from "../prisma/prisma.service";
 import { ChatService } from "../chat/chat.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
+import { offerProposalTimeoutOutcomeKey } from "../common/deadline-outcome";
+import { OFFER_TTL_MS } from "./marketplace.constants";
 import { CounterOfferDto } from "./dto/counter-offer.dto";
 import { CreateOfferDto } from "./dto/create-offer.dto";
 import { CreditScoreService } from "./credit/credit-score.service";
@@ -210,8 +212,28 @@ export class OffersService {
     return created;
   }
 
+  /**
+   * Échéance d'expiration d'une offre non traitée (P-43) : createdAt + 7j,
+   * miroir du cron expireStaleOffers. Exposée uniquement pour pending/countered.
+   */
+  private offerDeadlineFields(offer: { status: OfferStatus; createdAt: Date }): {
+    deadlineAt: string | null;
+    timeoutOutcomeKey: string | null;
+  } {
+    const outcomeKey = offerProposalTimeoutOutcomeKey(offer.status);
+    if (!outcomeKey) {
+      return { deadlineAt: null, timeoutOutcomeKey: null };
+    }
+    return {
+      deadlineAt: new Date(
+        offer.createdAt.getTime() + OFFER_TTL_MS
+      ).toISOString(),
+      timeoutOutcomeKey: outcomeKey
+    };
+  }
+
   async listMine(user: User) {
-    return this.prisma.marketplaceOffer.findMany({
+    const rows = await this.prisma.marketplaceOffer.findMany({
       where: { buyerUserId: user.id },
       orderBy: { createdAt: "desc" },
       take: 100,
@@ -226,6 +248,7 @@ export class OffersService {
         }
       }
     });
+    return rows.map((row) => ({ ...row, ...this.offerDeadlineFields(row) }));
   }
 
   /** Propositions reçues sur les annonces du vendeur connecté (optionnellement filtrées par ferme). */
@@ -264,7 +287,11 @@ export class OffersService {
           row.offerType === OfferType.credit
             ? await this.creditScore.getForUser(row.buyerUserId)
             : null;
-        return { ...row, buyerCreditScore };
+        return {
+          ...row,
+          buyerCreditScore,
+          ...this.offerDeadlineFields(row)
+        };
       })
     );
   }

@@ -122,6 +122,7 @@ export function mapOrderProjectionToCardProps(
     actionRequiredByMe: isActionRequiredByViewer(card, role),
     nextActionKey: card.nextActionKey,
     deadlineAt: card.deadlineAt,
+    timeoutOutcomeKey: card.timeoutOutcomeKey,
     itemSummary: card.itemSummary
   };
 }
