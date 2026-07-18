@@ -40,17 +40,6 @@ export class MerchantProfilesService {
         shops: {
           include: {
             products: {
-              where: {
-                // Inclure null (SQL NOT (col = x) exclut les NULL).
-                OR: [
-                  { disabledReason: null },
-                  {
-                    disabledReason: {
-                      not: MerchantProductDisabledReason.merchant_deleted
-                    }
-                  }
-                ]
-              },
               orderBy: { createdAt: "asc" }
             }
           }
@@ -61,6 +50,15 @@ export class MerchantProfilesService {
       throw new NotFoundException("Profil commerçant introuvable");
     }
     return profile;
+  }
+
+  /** Produits visibles boutique (hors soft-delete commerçant). Filtre JS — pas de WHERE enum. */
+  visibleProducts<
+    T extends { disabledReason: MerchantProductDisabledReason | null }
+  >(products: T[]): T[] {
+    return products.filter(
+      (p) => p.disabledReason !== MerchantProductDisabledReason.merchant_deleted
+    );
   }
 
   countActiveProducts(
@@ -116,17 +114,22 @@ export class MerchantProfilesService {
         : billing.effectivePriceXof;
 
     const activeShops = profile.shops.filter((shop) => shop.archivedAt == null);
-    const shops = activeShops.map((shop) => ({
-      id: shop.id,
-      name: shop.name,
-      description: shop.description,
-      locationLabel: shop.locationLabel,
-      productCount: shop.products.length,
-      activeProductCount: this.countActiveProducts(shop.products),
-      createdAt: shop.createdAt.toISOString()
-    }));
+    const shops = activeShops.map((shop) => {
+      const products = this.visibleProducts(shop.products);
+      return {
+        id: shop.id,
+        name: shop.name,
+        description: shop.description,
+        locationLabel: shop.locationLabel,
+        productCount: products.length,
+        activeProductCount: this.countActiveProducts(products),
+        createdAt: shop.createdAt.toISOString()
+      };
+    });
 
-    const allProducts = activeShops.flatMap((s) => s.products);
+    const allProducts = activeShops.flatMap((s) =>
+      this.visibleProducts(s.products)
+    );
     const activeProductCount = this.countActiveProducts(allProducts);
 
     const pendingInvoice = await this.prisma.merchantSubscriptionInvoice.findFirst({

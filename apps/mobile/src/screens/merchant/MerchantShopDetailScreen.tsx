@@ -79,9 +79,12 @@ export function MerchantShopDetailScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void meQ.refetch();
-      void productsQ.refetch();
-    }, [meQ, productsQ])
+      if (!activeProfileId) return;
+      void qc.invalidateQueries({ queryKey: ["merchant-me", activeProfileId] });
+      void qc.invalidateQueries({
+        queryKey: ["merchant-products", activeProfileId]
+      });
+    }, [qc, activeProfileId])
   );
 
   const shop = useMemo(

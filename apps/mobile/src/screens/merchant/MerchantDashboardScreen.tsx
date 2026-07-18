@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -37,6 +37,7 @@ export function MerchantDashboardScreen() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const bottomInset = useBottomInset();
   const { accessToken, activeProfileId, authMe, refreshAuthMe } = useSession();
+  const queryClient = useQueryClient();
   const [profileOpen, setProfileOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -64,9 +65,14 @@ export function MerchantDashboardScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void meQ.refetch();
-      void dashQ.refetch();
-    }, [meQ, dashQ])
+      if (!activeProfileId) return;
+      void queryClient.invalidateQueries({
+        queryKey: ["merchant-me", activeProfileId]
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["merchant-dashboard", activeProfileId]
+      });
+    }, [queryClient, activeProfileId])
   );
 
   const me = meQ.data;

@@ -160,10 +160,17 @@ export function MerchantProductsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void meQ.refetch();
-      void productsQ.refetch();
-      void ordersQ.refetch();
-    }, [meQ, productsQ, ordersQ])
+      if (!activeProfileId) return;
+      void queryClient.invalidateQueries({
+        queryKey: ["merchant-me", activeProfileId]
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["merchant-products", activeProfileId]
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["merchant-seller-orders", activeProfileId]
+      });
+    }, [queryClient, activeProfileId])
   );
 
   const me = meQ.data;
@@ -231,9 +238,13 @@ export function MerchantProductsScreen() {
     </View>
   );
 
+  const showInitialLoader = (meQ.isLoading && !me) || (productsQ.isLoading && !productsQ.data);
+
   return (
     <MerchantMobileShell customHeader={header} omitBottomTabBar>
-      {!hasShop ? (
+      {showInitialLoader ? (
+        <ActivityIndicator style={{ marginTop: 40 }} color={merchantColors.primary} />
+      ) : !hasShop ? (
         <View style={[styles.noShopWrap, { paddingBottom: bottomInset }]}>
           <Text style={styles.noShopTitle}>{t("merchant.dashboard.nudgeCreateShop")}</Text>
           <Pressable
@@ -259,51 +270,47 @@ export function MerchantProductsScreen() {
             ))}
           </View>
 
-          {productsQ.isLoading && !productsQ.data ? (
-            <ActivityIndicator style={{ marginTop: 40 }} color={merchantColors.primary} />
-          ) : (
-            <FlatList
-              data={filtered}
-              keyExtractor={(item) => item.id}
-              numColumns={2}
-              columnWrapperStyle={styles.column}
-              ListHeaderComponent={listHeader}
-              contentContainerStyle={{
-                padding: H_PAD,
-                paddingBottom: bottomInset + mobileSpacing.lg
-              }}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={() => {
-                    setRefreshing(true);
-                    void Promise.all([
-                      productsQ.refetch(),
-                      ordersQ.refetch(),
-                      meQ.refetch()
-                    ]).finally(() => setRefreshing(false));
-                  }}
-                  tintColor={merchantColors.primary}
-                />
-              }
-              ListEmptyComponent={
-                <Text style={styles.empty}>{t("merchant.dashboard.noProducts")}</Text>
-              }
-              renderItem={({ item }) => (
-                <MerchantProductGridCard
-                  product={item}
-                  width={cardWidth}
-                  onPress={() => openProduct(item.id)}
-                  onTogglePublish={() => togglePublish.mutate(item)}
-                  publishBusy={togglePublish.isPending}
-                  showSwap={me?.subscriptionTier === "free" && item.status === "disabled"}
-                  onSwap={() => swapActive.mutate(item.id)}
-                  onDelete={() => confirmDelete(item)}
-                  atFreeLimit={atFreeLimit}
-                />
-              )}
-            />
-          )}
+          <FlatList
+            data={filtered}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            columnWrapperStyle={styles.column}
+            ListHeaderComponent={listHeader}
+            contentContainerStyle={{
+              padding: H_PAD,
+              paddingBottom: bottomInset + mobileSpacing.lg
+            }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => {
+                  setRefreshing(true);
+                  void Promise.all([
+                    productsQ.refetch(),
+                    ordersQ.refetch(),
+                    meQ.refetch()
+                  ]).finally(() => setRefreshing(false));
+                }}
+                tintColor={merchantColors.primary}
+              />
+            }
+            ListEmptyComponent={
+              <Text style={styles.empty}>{t("merchant.dashboard.noProducts")}</Text>
+            }
+            renderItem={({ item }) => (
+              <MerchantProductGridCard
+                product={item}
+                width={cardWidth}
+                onPress={() => openProduct(item.id)}
+                onTogglePublish={() => togglePublish.mutate(item)}
+                publishBusy={togglePublish.isPending}
+                showSwap={me?.subscriptionTier === "free" && item.status === "disabled"}
+                onSwap={() => swapActive.mutate(item.id)}
+                onDelete={() => confirmDelete(item)}
+                atFreeLimit={atFreeLimit}
+              />
+            )}
+          />
         </>
       )}
     </MerchantMobileShell>

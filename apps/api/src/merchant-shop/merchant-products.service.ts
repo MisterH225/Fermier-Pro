@@ -91,25 +91,21 @@ export class MerchantProductsService {
       .filter((s) => s.archivedAt == null)
       .map((s) => s.id);
     const products = await this.prisma.merchantProduct.findMany({
-      where: {
-        shopId: { in: shopIds },
-        // Inclure null (SQL NOT (col = x) exclut les NULL).
-        OR: [
-          { disabledReason: null },
-          {
-            disabledReason: {
-              not: MerchantProductDisabledReason.merchant_deleted
-            }
-          }
-        ]
-      },
+      where: { shopId: { in: shopIds } },
       include: {
         category: { select: { id: true, name: true, slug: true } },
         shop: { select: { id: true, name: true } }
       },
       orderBy: [{ status: "asc" }, { createdAt: "asc" }]
     });
-    return products.map((p) => this.serializeProduct(p));
+    // Filtre JS : évite un WHERE enum qui casse getMe/list si la migration
+    // `merchant_deleted` n'est pas encore appliquée en base.
+    return products
+      .filter(
+        (p) =>
+          p.disabledReason !== MerchantProductDisabledReason.merchant_deleted
+      )
+      .map((p) => this.serializeProduct(p));
   }
 
   async create(user: User, shopId: string, dto: CreateMerchantProductDto) {
@@ -542,23 +538,17 @@ export class MerchantProductsService {
     const product = await this.prisma.merchantProduct.findFirst({
       where: {
         id: productId,
-        shop: { merchantProfile: { userId } },
-        // Inclure null (SQL NOT (col = x) exclut les NULL).
-        OR: [
-          { disabledReason: null },
-          {
-            disabledReason: {
-              not: MerchantProductDisabledReason.merchant_deleted
-            }
-          }
-        ]
+        shop: { merchantProfile: { userId } }
       },
       include: {
         category: { select: { id: true, name: true, slug: true } },
         shop: { select: { id: true, name: true } }
       }
     });
-    if (!product) {
+    if (
+      !product ||
+      product.disabledReason === MerchantProductDisabledReason.merchant_deleted
+    ) {
       throw new NotFoundException("Produit introuvable");
     }
     return product;
