@@ -61,6 +61,7 @@ import { ProfitabilityModule } from "./profitability/profitability.module";
 import { HistoricalRecordsModule } from "./historical-records/historical-records.module";
 import { MerchantShopModule } from "./merchant-shop/merchant-shop.module";
 import { TrustScoreModule } from "./trust-score/trust-score.module";
+import { InsightsModule } from "./insights/insights.module";
 
 @Module({
   imports: [
@@ -146,7 +147,8 @@ import { TrustScoreModule } from "./trust-score/trust-score.module";
     ProducerScoreModule,
     ProducerSubscriptionModule,
     MerchantShopModule,
-    TrustScoreModule
+    TrustScoreModule,
+    InsightsModule
   ],
   controllers: [AppController],
   providers: [

@@ -4636,5 +4636,18 @@ export const fr = {
       reopenPaymentCta: "Ouvrir le lien de paiement",
       paymentLinkMissing: "Lien de paiement indisponible. Réessayez dans un instant."
     }
+  },
+  insights: {
+    firstWeighing: "Première pesée enregistrée — le suivi GMQ commence.",
+    firstGmq: "GMQ estimé : {{gmq}} g/j sur ce premier intervalle.",
+    gmqUp: "GMQ : {{gmq}} g/j ({{delta}} % vs période précédente)",
+    gmqDown: "GMQ : {{gmq}} g/j ({{delta}} % vs période précédente)",
+    gmqFlat: "GMQ : {{gmq}} g/j (stable vs période précédente)",
+    saleVsIndex:
+      "Vendu {{pricePerKg}} {{currency}}/kg — index du jour : {{index}} {{currency}}/kg ({{delta}} %)",
+    salePriceOnly: "Vendu {{pricePerKg}} {{currency}}/kg.",
+    firstLitter: "Première portée enregistrée — {{bornAlive}} nés vivants.",
+    litterVsFarmAvg:
+      "{{bornAlive}} nés vivants — moyenne ferme 12 mois : {{avg}} ({{delta}})"
   }
 } as const;

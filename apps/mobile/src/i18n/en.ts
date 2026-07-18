@@ -4586,5 +4586,18 @@ export const en = {
       reopenPaymentCta: "Open payment link",
       paymentLinkMissing: "Payment link unavailable. Try again shortly."
     }
+  },
+  insights: {
+    firstWeighing: "First weighing recorded — ADG tracking starts here.",
+    firstGmq: "Estimated ADG: {{gmq}} g/d on this first interval.",
+    gmqUp: "ADG: {{gmq}} g/d ({{delta}}% vs previous period)",
+    gmqDown: "ADG: {{gmq}} g/d ({{delta}}% vs previous period)",
+    gmqFlat: "ADG: {{gmq}} g/d (unchanged vs previous period)",
+    saleVsIndex:
+      "Sold at {{pricePerKg}} {{currency}}/kg — today's index: {{index}} {{currency}}/kg ({{delta}}%)",
+    salePriceOnly: "Sold at {{pricePerKg}} {{currency}}/kg.",
+    firstLitter: "First litter recorded — {{bornAlive}} born alive.",
+    litterVsFarmAvg:
+      "{{bornAlive}} born alive — farm 12-month average: {{avg}} ({{delta}})"
   }
 } as const;

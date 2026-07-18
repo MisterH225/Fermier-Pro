@@ -1193,7 +1193,7 @@ export class CheptelService {
         endedAt: soldAt
       });
 
-      await tx.livestockExit.create({
+      const exit = await tx.livestockExit.create({
         data: {
           farmId,
           animalId,
@@ -1227,7 +1227,7 @@ export class CheptelService {
         }
       });
 
-      return { transaction: revenue };
+      return { transaction: revenue, exitId: exit.id };
     });
 
     const animal = await this.livestock.getAnimal(user, farmId, animalId);
@@ -1238,7 +1238,11 @@ export class CheptelService {
         `marketplace sync after cheptel sell ${animalId}: ${(e as Error).message}`
       );
     }
-    return { animal, transaction: result.transaction };
+    return {
+      animal,
+      transaction: result.transaction,
+      exitId: result.exitId
+    };
   }
 
   async patchAnimalStatusWithLinks(

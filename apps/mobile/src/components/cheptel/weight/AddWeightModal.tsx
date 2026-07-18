@@ -22,6 +22,7 @@ import {
 } from "../../../hooks/useOfflineMutation";
 import { optimisticAnimalWeight } from "../../../lib/offline/optimistic";
 import { isOfflineQueuedResult } from "../../../lib/offline/types";
+import { usePostSaveInsight } from "../../../hooks/usePostSaveInsight";
 import {
   mobileColors,
   mobileRadius,
@@ -52,6 +53,7 @@ export function AddWeightModal({
 }: Props) {
   const { t } = useTranslation();
   const { open } = useModal();
+  const insights = usePostSaveInsight();
   const qc = useQueryClient();
   const [animalId, setAnimalId] = useState(preselectedAnimalId ?? "");
   const [weightKg, setWeightKg] = useState("");
@@ -134,12 +136,26 @@ export function AddWeightModal({
       const savedId = animalId || undefined;
       onSaved(savedId);
       onClose();
-      open("success", {
-        message: isOfflineQueuedResult(data)
-          ? offlineQueuedMessage(t)
-          : t("cheptel.weight.saveSuccess"),
-        autoDismissMs: 2200
-      });
+      if (isOfflineQueuedResult(data)) {
+        open("success", {
+          message: offlineQueuedMessage(t),
+          autoDismissMs: 2600
+        });
+        return;
+      }
+      void (async () => {
+        const detail = savedId
+          ? await insights.afterWeighing(
+              { accessToken, farmId, activeProfileId },
+              savedId
+            )
+          : undefined;
+        open("success", {
+          message: t("cheptel.weight.saveSuccess"),
+          detail,
+          autoDismissMs: detail ? 4200 : 2200
+        });
+      })();
     },
     onQueued: () => {
       const savedId = animalId || undefined;

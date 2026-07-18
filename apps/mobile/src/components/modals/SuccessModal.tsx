@@ -68,6 +68,9 @@ export function SuccessModal({ visible, payload, onClose }: SuccessModalProps) {
               {payload.title ?? t("modals.success.title")}
             </Text>
             <Text style={styles.subtitle}>{payload.message}</Text>
+            {payload.detail ? (
+              <Text style={styles.detail}>{payload.detail}</Text>
+            ) : null}
             <Pressable
               style={styles.btn}
               onPress={onClose}
@@ -125,7 +128,14 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     color: "#666666",
     textAlign: "center",
-    marginBottom: mobileSpacing.xl
+    marginBottom: mobileSpacing.sm
+  },
+  detail: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    textAlign: "center",
+    marginBottom: mobileSpacing.xl,
+    lineHeight: 20
   },
   btn: {
     width: "100%",

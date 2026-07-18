@@ -9,6 +9,7 @@ import {
 } from "../../quickactions/SellChooserSheet";
 import type { AnimalListItem } from "../../../lib/api";
 import type { CheptelAnimalActions } from "../../../hooks/useCheptelAnimalActions";
+import { usePostSaveInsight } from "../../../hooks/usePostSaveInsight";
 import type { RootStackParamList } from "../../../types/navigation";
 import { AddWeightModal } from "../weight/AddWeightModal";
 import { ChangeStatusModal } from "./ChangeStatusModal";
@@ -34,26 +35,40 @@ export function CheptelAnimalActionModals({
 }: Props) {
   const { t } = useTranslation();
   const { open } = useModal();
+  const insights = usePostSaveInsight();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const onSaleSuccess = (sale: SaleResult) => {
     actions.closeSale();
     onInvalidate();
+    if (!sale.animal?.id || !sale.transaction) {
+      return;
+    }
     const tag =
       sale.animal.tagCode?.trim() ||
       sale.animal.publicId?.slice(0, 8) ||
       "—";
     const amount = Number(sale.transaction.amount);
-    open("success", {
-      title: t("cheptel.animals.sale.successTitle"),
-      message: t("cheptel.animals.sale.successMessage", {
-        tag,
-        amount: amount.toLocaleString("fr-FR"),
-        currency: sale.transaction.currency
-      }),
-      autoDismissMs: 3500
+    const baseMessage = t("cheptel.animals.sale.successMessage", {
+      tag,
+      amount: amount.toLocaleString("fr-FR"),
+      currency: sale.transaction.currency
     });
+    void (async () => {
+      const detail = sale.exitId
+        ? await insights.afterSale(
+            { accessToken, farmId, activeProfileId },
+            sale.exitId
+          )
+        : undefined;
+      open("success", {
+        title: t("cheptel.animals.sale.successTitle"),
+        message: baseMessage,
+        detail,
+        autoDismissMs: detail ? 4500 : 3500
+      });
+    })();
   };
 
   const onSellChoice = (choice: SellChooserChoice) => {

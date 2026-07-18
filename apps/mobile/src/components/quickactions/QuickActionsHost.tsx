@@ -9,6 +9,7 @@ import type { RootStackParamList } from "../../types/navigation";
 import { AddWeightModal } from "../cheptel/weight/AddWeightModal";
 import { SaleModal, type SaleResult } from "../cheptel/animals/SaleModal";
 import { useModal } from "../modals/useModal";
+import { usePostSaveInsight } from "../../hooks/usePostSaveInsight";
 import { AnimalPickSheet } from "./AnimalPickSheet";
 import { QuickActionsFab } from "./QuickActionsFab";
 import { QuickActionsSheet } from "./QuickActionsSheet";
@@ -44,6 +45,7 @@ export function QuickActionsHost({
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken, activeProfileId } = useSession();
   const { open } = useModal();
+  const insights = usePostSaveInsight();
   const qc = useQueryClient();
 
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -139,20 +141,38 @@ export function QuickActionsHost({
   const onSaleSuccess = (sale: SaleResult) => {
     setSaleAnimal(null);
     void qc.invalidateQueries({ queryKey: ["farmAnimals", farmContext?.farmId] });
+    if (!sale.animal?.id || !sale.transaction || !farmContext) {
+      return;
+    }
     const tag =
       sale.animal.tagCode?.trim() ||
       sale.animal.publicId?.slice(0, 8) ||
       "—";
     const amount = Number(sale.transaction.amount);
-    open("success", {
-      title: t("cheptel.animals.sale.successTitle"),
-      message: t("cheptel.animals.sale.successMessage", {
-        tag,
-        amount: amount.toLocaleString("fr-FR"),
-        currency: sale.transaction.currency
-      }),
-      autoDismissMs: 3500
+    const baseMessage = t("cheptel.animals.sale.successMessage", {
+      tag,
+      amount: amount.toLocaleString("fr-FR"),
+      currency: sale.transaction.currency
     });
+    void (async () => {
+      const detail =
+        sale.exitId && accessToken
+          ? await insights.afterSale(
+              {
+                accessToken,
+                farmId: farmContext.farmId,
+                activeProfileId
+              },
+              sale.exitId
+            )
+          : undefined;
+      open("success", {
+        title: t("cheptel.animals.sale.successTitle"),
+        message: baseMessage,
+        detail,
+        autoDismissMs: detail ? 4500 : 3500
+      });
+    })();
   };
 
   if (!showFab || !accessToken) {

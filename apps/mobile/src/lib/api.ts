@@ -37,4 +37,5 @@ export * from "./api/farm-settings";
 export * from "./api/predictions";
 export * from "./api/profitability";
 export * from "./api/historical-records";
+export * from "./api/insights";
 

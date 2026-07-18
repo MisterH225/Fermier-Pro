@@ -28,6 +28,7 @@ import {
   offlineQueuedMessage,
   useOfflineMutation
 } from "../../hooks/useOfflineMutation";
+import { usePostSaveInsight } from "../../hooks/usePostSaveInsight";
 
 type Props = {
   visible: boolean;
@@ -53,6 +54,7 @@ export function MiseBasModal({
   onSaved
 }: Props) {
   const { t } = useTranslation();
+  const insights = usePostSaveInsight();
   const [step, setStep] = useState<Step>("litter");
   const [actualBirthDate, setActualBirthDate] = useState(() =>
     toIsoDateTimeString(new Date())
@@ -206,12 +208,26 @@ export function MiseBasModal({
       const n =
         (data as { litter?: { bornAlive?: number } }).litter?.bornAlive ??
         bornAlive;
-      Alert.alert(
-        t("gestationScreen.litterSuccessTitle"),
+      const litterId =
+        (data as { litterId?: string; litter?: { id?: string } }).litterId ??
+        (data as { litter?: { id?: string } }).litter?.id;
+      const body =
         n && Number(n) > 0
           ? t("gestationScreen.litterSuccessWithPen", { count: n })
-          : t("gestationScreen.litterSuccessBody", { count: n })
-      );
+          : t("gestationScreen.litterSuccessBody", { count: n });
+      void (async () => {
+        const insight =
+          litterId != null
+            ? await insights.afterFarrowing(
+                { accessToken, farmId, activeProfileId },
+                litterId
+              )
+            : undefined;
+        Alert.alert(
+          t("gestationScreen.litterSuccessTitle"),
+          insight ? `${body}\n\n${insight}` : body
+        );
+      })();
     },
     onQueued: () => {
       onSaved();

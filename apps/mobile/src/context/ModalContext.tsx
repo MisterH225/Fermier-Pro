@@ -27,6 +27,8 @@ export type TransactionModalPayload = {
 export type SuccessModalPayload = {
   message: string;
   title?: string;
+  /** Phrase d'insight optionnelle (ex. GMQ / prix) sous le message principal. */
+  detail?: string;
   autoDismissMs?: number;
 };
 

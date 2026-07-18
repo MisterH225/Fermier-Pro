@@ -685,7 +685,7 @@ export class GestationService {
     }
     const pensToRecalculate = new Set<string>();
 
-    await this.prisma.$transaction(async (tx) => {
+    const litterId = await this.prisma.$transaction(async (tx) => {
       const batch = await tx.livestockBatch.create({
         data: {
           farmId: g.farmId,
@@ -786,7 +786,7 @@ export class GestationService {
         }
       }
 
-      void litter;
+      return litter.id;
     });
 
     if (pensToRecalculate.size > 0) {
@@ -800,7 +800,8 @@ export class GestationService {
 
     await this.refreshAlerts(g.farmId);
     this.predictions.invalidateAndRegenerateAsync(g.farmId);
-    return this.getOne(user, gestationId);
+    const gestation = await this.getOne(user, gestationId);
+    return { ...gestation, litterId };
   }
 
   async administerVaccine(user: User, vaccineId: string) {

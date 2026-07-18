@@ -455,6 +455,8 @@ export type AnimalSaleTransactionDto = {
 export type AnimalSaleResultDto = {
   animal: AnimalDetail;
   transaction: AnimalSaleTransactionDto;
+  /** Identifiant LivestockExit pour insight post-vente. */
+  exitId?: string;
 };
 
 export function sellCheptelAnimal(
