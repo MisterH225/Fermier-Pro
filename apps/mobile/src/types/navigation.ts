@@ -1,7 +1,10 @@
 export type RootStackParamList = {
   ProducerDashboard: undefined;
-  /** Paramètres ferme (devise / seuils) — producteur. */
-  ProducerFarmSettings: { farmId: string; farmName: string };
+  /**
+   * Paramètres (socle commun tous rôles + sections ferme pour producteur).
+   * `farmId` / `farmName` requis pour les sections producteur ; optionnels sinon.
+   */
+  ProducerFarmSettings: { farmId?: string; farmName?: string } | undefined;
   BuyerDashboard: undefined;
   MerchantDashboard: undefined;
   MerchantShops: undefined;

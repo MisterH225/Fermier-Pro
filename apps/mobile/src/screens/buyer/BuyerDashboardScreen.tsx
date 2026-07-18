@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
@@ -87,6 +88,23 @@ export function BuyerDashboardScreen() {
             iconColor={buyerColors.primary}
             style={styles.heroIconBtn}
           />
+          <Pressable
+            onPress={() => navigation.navigate("ProducerFarmSettings")}
+            style={({ pressed }) => [
+              styles.heroIconBtn,
+              pressed && styles.heroIconBtnPressed
+            ]}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel={t("settings.title")}
+            testID="buyer-settings-button"
+          >
+            <Ionicons
+              name="settings-outline"
+              size={22}
+              color={buyerColors.primary}
+            />
+          </Pressable>
         </View>
       </View>
       <WalletDashboardCard variant="buyer" />
@@ -187,6 +205,9 @@ const styles = StyleSheet.create({
   heroIconBtn: {
     padding: mobileSpacing.sm,
     borderRadius: buyerRadius.pill
+  },
+  heroIconBtnPressed: {
+    opacity: 0.85
   },
   kpiGrid: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
   kpiCard: {

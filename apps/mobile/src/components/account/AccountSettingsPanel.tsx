@@ -35,13 +35,20 @@ type AccountSettingsPanelProps = {
   hideLanguagePicker?: boolean;
   /** Masque le changement de profil (ex. déplacé sous l’avatar dans le modal producteur). */
   hideActiveProfileSwitcher?: boolean;
+  /**
+   * Socle Paramètres : identité + profil actif uniquement.
+   * Langue, notifications, déconnexion et suppression sont gérés à part
+   * via SettingsSection / SettingsRow / NotificationSettingsRow.
+   */
+  accountOnly?: boolean;
 };
 
 export function AccountSettingsPanel({
   onBeforeNavigate,
   compact = false,
   hideLanguagePicker = false,
-  hideActiveProfileSwitcher = false
+  hideActiveProfileSwitcher = false,
+  accountOnly = false
 }: AccountSettingsPanelProps) {
   const { t } = useTranslation();
   const navigation =
@@ -98,67 +105,71 @@ export function AccountSettingsPanel({
         </>
       ) : null}
 
-      {!hideLanguagePicker ? (
-        <Card>
-          <Text style={styles.sectionLabel}>{t("account.language")}</Text>
-          {LOCALE_CODES.map((code) => {
-            const selected = code === currentLng;
-            const label = code === "fr" ? "Français" : "English";
-            return (
-              <Pressable
-                key={code}
-                style={[styles.localeRow, selected && styles.localeRowOn]}
-                onPress={() => void onPickLocale(code)}
-              >
-                <View style={styles.localeText}>
-                  <Text
-                    style={[
-                      styles.localeTitle,
-                      selected && styles.localeTitleOn
-                    ]}
+      {accountOnly ? null : (
+        <>
+          {!hideLanguagePicker ? (
+            <Card>
+              <Text style={styles.sectionLabel}>{t("account.language")}</Text>
+              {LOCALE_CODES.map((code) => {
+                const selected = code === currentLng;
+                const label = code === "fr" ? "Français" : "English";
+                return (
+                  <Pressable
+                    key={code}
+                    style={[styles.localeRow, selected && styles.localeRowOn]}
+                    onPress={() => void onPickLocale(code)}
                   >
-                    {label}
-                  </Text>
-                  <Text style={styles.localeHint}>
-                    {t(`account.localeHints.${code}`)}
-                  </Text>
-                </View>
-                {selected ? <Text style={styles.check}>✓</Text> : null}
-              </Pressable>
-            );
-          })}
-          <Text style={styles.hint}>{t("account.languagePersistHint")}</Text>
-        </Card>
-      ) : null}
+                    <View style={styles.localeText}>
+                      <Text
+                        style={[
+                          styles.localeTitle,
+                          selected && styles.localeTitleOn
+                        ]}
+                      >
+                        {label}
+                      </Text>
+                      <Text style={styles.localeHint}>
+                        {t(`account.localeHints.${code}`)}
+                      </Text>
+                    </View>
+                    {selected ? <Text style={styles.check}>✓</Text> : null}
+                  </Pressable>
+                );
+              })}
+              <Text style={styles.hint}>{t("account.languagePersistHint")}</Text>
+            </Card>
+          ) : null}
 
-      <NotificationSettingsRow />
+          <NotificationSettingsRow />
 
-      <Pressable style={styles.secondaryRow} onPress={goSupport}>
-        <Text style={styles.secondaryLabel}>{t("support.title")}</Text>
-        <Text style={styles.secondaryChevron}>›</Text>
-      </Pressable>
+          <Pressable style={styles.secondaryRow} onPress={goSupport}>
+            <Text style={styles.secondaryLabel}>{t("support.title")}</Text>
+            <Text style={styles.secondaryChevron}>›</Text>
+          </Pressable>
 
-      <Pressable
-        style={styles.secondaryRow}
-        onPress={() => void reloadAuth()}
-      >
-        <Text style={styles.secondaryLabel}>{t("account.refresh")}</Text>
-        <Text style={styles.secondaryChevron}>›</Text>
-      </Pressable>
+          <Pressable
+            style={styles.secondaryRow}
+            onPress={() => void reloadAuth()}
+          >
+            <Text style={styles.secondaryLabel}>{t("account.refresh")}</Text>
+            <Text style={styles.secondaryChevron}>›</Text>
+          </Pressable>
 
-      <Pressable
-        style={[styles.signOutBtn, signingOut && styles.signOutDisabled]}
-        onPress={() => void onSignOut()}
-        disabled={signingOut}
-      >
-        {signingOut ? (
-          <ActivityIndicator color={mobileColors.error} />
-        ) : (
-          <Text style={styles.signOutLabel}>{t("account.signOut")}</Text>
-        )}
-      </Pressable>
+          <Pressable
+            style={[styles.signOutBtn, signingOut && styles.signOutDisabled]}
+            onPress={() => void onSignOut()}
+            disabled={signingOut}
+          >
+            {signingOut ? (
+              <ActivityIndicator color={mobileColors.error} />
+            ) : (
+              <Text style={styles.signOutLabel}>{t("account.signOut")}</Text>
+            )}
+          </Pressable>
 
-      <DangerZone />
+          <DangerZone />
+        </>
+      )}
     </View>
   );
 }

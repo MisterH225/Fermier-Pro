@@ -161,6 +161,23 @@ export function TechDashboardScreen() {
             farmName={activeFarm?.farmName}
             style={styles.heroIconBtn}
           />
+          <Pressable
+            onPress={() => navigation.navigate("ProducerFarmSettings")}
+            style={({ pressed }) => [
+              styles.heroIconBtn,
+              pressed && styles.heroIconBtnPressed
+            ]}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel={t("settings.title")}
+            testID="tech-settings-button"
+          >
+            <Ionicons
+              name="settings-outline"
+              size={22}
+              color={techColors.primary}
+            />
+          </Pressable>
         </View>
       </View>
       {accessToken ? <WalletDashboardCard variant="tech" /> : null}
@@ -384,6 +401,9 @@ const styles = StyleSheet.create({
   heroIconBtn: {
     padding: mobileSpacing.sm,
     borderRadius: techRadius.pill
+  },
+  heroIconBtnPressed: {
+    opacity: 0.85
   },
   sectionBlock: { gap: mobileSpacing.sm },
   subtitle: { ...mobileTypography.meta, color: techColors.textSecondary },

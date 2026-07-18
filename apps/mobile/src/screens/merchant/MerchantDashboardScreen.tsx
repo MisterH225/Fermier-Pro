@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
@@ -85,6 +86,23 @@ export function MerchantDashboardScreen() {
         <View style={styles.heroActions}>
           <NotificationsHeaderButton iconColor={merchantColors.primary} style={styles.heroIconBtn} />
           <SupportHeaderButton iconColor={merchantColors.primary} style={styles.heroIconBtn} />
+          <Pressable
+            onPress={() => navigation.navigate("ProducerFarmSettings")}
+            style={({ pressed }) => [
+              styles.heroIconBtn,
+              pressed && styles.heroIconBtnPressed
+            ]}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel={t("settings.title")}
+            testID="merchant-settings-button"
+          >
+            <Ionicons
+              name="settings-outline"
+              size={22}
+              color={merchantColors.primary}
+            />
+          </Pressable>
         </View>
       </View>
       <WalletDashboardCard variant="producer" />
@@ -229,6 +247,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: merchantColors.border
+  },
+  heroIconBtnPressed: {
+    opacity: 0.85
   },
   kpiGrid: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
   kpiCard: {
