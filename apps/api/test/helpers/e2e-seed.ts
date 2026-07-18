@@ -59,18 +59,16 @@ export async function purgeMarketplaceForUsers(
     // generateReceipt peut s'intercaler (async) → retry si FK receipt.
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
-        await prisma.$transaction(async (tx) => {
-          await tx.marketplaceTransactionReceipt.deleteMany({
-            where: { transactionId: { in: transactionIds } }
-          });
-          await tx.marketplaceTransaction.deleteMany({
-            where: { id: { in: transactionIds } }
-          });
+        await prisma.marketplaceTransactionReceipt.deleteMany({
+          where: { transactionId: { in: transactionIds } }
+        });
+        await prisma.marketplaceTransaction.deleteMany({
+          where: { id: { in: transactionIds } }
         });
         break;
       } catch (err) {
         if (attempt >= 2) throw err;
-        await new Promise((r) => setTimeout(r, 75 * (attempt + 1)));
+        await new Promise((r) => setTimeout(r, 100 * (attempt + 1)));
       }
     }
   }
