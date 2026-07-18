@@ -217,15 +217,18 @@ export function SettingsScreen({ route, navigation }: Props) {
             <NotificationSettingsRow />
           </View>
 
-          <SettingsSection title={t("settings.sectionPreferences")}>
-            <SettingsRow
-              kind="navigation"
-              label={t("settings.language")}
-              value={localeCode === "en" ? "English" : "Français"}
-              onPress={() => setLangModal(true)}
-              isLast
-            />
-          </SettingsSection>
+          {/* Langue du socle : hors producteur (déjà dans section Régional déplacée). */}
+          {!isProducer ? (
+            <SettingsSection title={t("settings.sectionPreferences")}>
+              <SettingsRow
+                kind="navigation"
+                label={t("settings.language")}
+                value={localeCode === "en" ? "English" : "Français"}
+                onPress={() => setLangModal(true)}
+                isLast
+              />
+            </SettingsSection>
+          ) : null}
 
           {isTechnician ? (
             <View testID="settings-technician-sections">
