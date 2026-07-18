@@ -17,6 +17,7 @@ import { MobileAppShell } from "../components/layout";
 import { FarmDashboardAISection } from "../components/ai/FarmModuleAISection";
 import { NotificationsHeaderButton } from "../components/notifications/NotificationsHeaderButton";
 import { ShopOrdersTrackingCard } from "../components/notifications/ShopOrdersTrackingCard";
+import { MeteoHeaderButton } from "../components/meteo/MeteoHeaderButton";
 
 import { FeedStockLevelGauge, dashboardFeedItemEligibleForGauge, dashboardFeedItemToGauge } from "../components/feed";
 import { FinanceOverviewKpiGrid } from "../components/finance/FinanceOverviewKpiGrid";
@@ -31,7 +32,6 @@ import { VetAppointmentActionsBanner } from "../components/vet/VetAppointmentAct
 import { ProducerActiveProposalsSection } from "../components/producer/ProducerActiveProposalsSection";
 import { ProducerPendingMarketplaceBanner } from "../components/producer/ProducerPendingMarketplaceBanner";
 import { ProducerProfileModal } from "../components/producer/ProducerProfileModal";
-import { MeteoProfilCard } from "../components/dashboard/MeteoProfilCard";
 import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
 import { WalletDashboardCard } from "../components/wallet/WalletDashboardCard";
 import { SupportHeaderButton } from "../components/support/SupportHeaderButton";
@@ -50,7 +50,6 @@ import {
   fetchDashboardGestations,
   fetchDashboardHealth,
   fetchFarms,
-  fetchMyProducerScore,
   postFarmSmartAlertsRefresh,
   type DashboardFeedStockItemDto,
   type DashboardGestationItemDto,
@@ -200,12 +199,6 @@ export function ProducerDashboardScreen() {
     refetchInterval: 120_000
   });
 
-  const producerScoreQ = useQuery({
-    queryKey: ["myProducerScore", activeProfileId],
-    queryFn: () => fetchMyProducerScore(accessToken!, activeProfileId),
-    enabled: Boolean(accessToken)
-  });
-
   useEffect(() => {
     if (!farmId || !accessToken) {
       return;
@@ -279,6 +272,11 @@ export function ProducerDashboardScreen() {
           ) : null}
         </View>
         <View style={styles.heroActions}>
+          <MeteoHeaderButton
+            profileType="producer"
+            iconColor={mobileColors.accent}
+            style={styles.heroIconBtn}
+          />
           <NotificationsHeaderButton
             iconColor={mobileColors.accent}
             farmId={farmId}
@@ -343,12 +341,6 @@ export function ProducerDashboardScreen() {
           ) : null}
           {showOnboardingBanner ? (
             <OnboardingBanner onComplete={requestResume} />
-          ) : null}
-          {producerScoreQ.data ? (
-            <MeteoProfilCard
-              score={producerScoreQ.data.globalValue}
-              onPress={() => navigation.navigate("ProducerScoreDashboard")}
-            />
           ) : null}
           {clientFeatures.marketplace && farmId ? (
             <ProducerActiveProposalsSection farmId={farmId} />
@@ -960,5 +952,5 @@ const styles = StyleSheet.create({
     color: mobileColors.success,
     fontWeight: "600"
   },
-  // producerScoreCard et styles associés supprimés — remplacés par MeteoProfilCard
+  // MeteoProfilCard retirée du dashboard — icône MeteoHeaderButton dans le header
 });

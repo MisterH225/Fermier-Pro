@@ -1,5 +1,19 @@
 /** Système de niveaux "MétéoProfil" — remplace les anciens labels de score. */
 
+/**
+ * Clés niveau trust-score v2 (API) — mapping produit vers la météo affichée.
+ * Tant que TRUST_SCORE_V2_ACTIVE=false, l'UI consomme encore le score v1 numérique.
+ */
+export const TRUST_SCORE_V2_LEVEL_IDS = [
+  "ensoleille",
+  "eclaircies",
+  "nuageux",
+  "orageux",
+  "nouvelle"
+] as const;
+
+export type TrustScoreV2LevelId = (typeof TRUST_SCORE_V2_LEVEL_IDS)[number];
+
 export type MeteoLevel = {
   id: string;
   /** Nom du niveau affiché à l'utilisateur */
