@@ -1470,12 +1470,6 @@ export class AdminPlatformService {
   }
 
   async createSuperAdmin(creator: User, dto: CreateSuperAdminDto) {
-    if (!this.supabaseAdmin.isConfigured()) {
-      throw new ServiceUnavailableException(
-        "Supabase admin non configuré (SUPABASE_SERVICE_ROLE_KEY)"
-      );
-    }
-
     const email = dto.email.trim().toLowerCase();
     const existingAdmin = await this.prisma.superAdmin.findFirst({
       where: {
@@ -1493,6 +1487,12 @@ export class AdminPlatformService {
 
     if (existingUser?.superAdmin) {
       throw new ConflictException("Cet utilisateur est déjà administrateur");
+    }
+
+    if (!this.supabaseAdmin.isConfigured()) {
+      throw new ServiceUnavailableException(
+        "Supabase admin non configuré (SUPABASE_SERVICE_ROLE_KEY)"
+      );
     }
 
     let userId = existingUser?.id;

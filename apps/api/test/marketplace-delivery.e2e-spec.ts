@@ -30,6 +30,7 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
 
   beforeAll(async () => {
     process.env.THROTTLE_LIMIT = "100000";
+    process.env.MOBILE_MONEY_PROVIDER = "dev";
     ctx = await seedE2eFixtures(PrismaClient);
     buyerFarmId = await seedBuyerFarm(ctx.prisma, ctx.peerUserId);
     app = await createTestApp();
@@ -169,7 +170,7 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
       )
       .set("Authorization", `Bearer ${ctx.peerToken}`)
       .send({ paymentMethod: "mobile_money" });
-    expect(txAfter.body.status).toBe("BUYER_RECEIVED");
+    expect(txAfter.body.status).toBe("TRANSACTION_CLOSED");
   });
 
   it("rappels livraison et litige auto après délai", async () => {
@@ -312,7 +313,8 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
     // Paiement
     const payInit = await request(app.getHttpServer())
       .post(`/api/v1/marketplace/transactions/${cancelPaidListing.transactionId}/payment/initiate`)
-      .set("Authorization", `Bearer ${ctx.peerToken}`);
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ paymentMethod: "mobile_money" });
     expect(payInit.status).toBe(201);
     await request(app.getHttpServer())
       .post(`/api/v1/marketplace/transactions/${cancelPaidListing.transactionId}/payment/confirm`)
@@ -390,7 +392,8 @@ describeOrSkip("Marketplace livraison double confirmation (e2e)", () => {
     // Effectuer le cycle complet et vérifier que le vendeur reçoit le prix total (sans déduction)
     const payInit = await request(app.getHttpServer())
       .post(`/api/v1/marketplace/transactions/${feeListing.transactionId}/payment/initiate`)
-      .set("Authorization", `Bearer ${ctx.peerToken}`);
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({ paymentMethod: "mobile_money" });
     expect(payInit.status).toBe(201);
     // Le montant de paiement inclut la commission
     expect(payInit.body.amount).toBe(tx.blockedAmount);

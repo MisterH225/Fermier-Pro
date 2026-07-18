@@ -9,7 +9,7 @@ import type { User } from "@prisma/client";
 import { AdminConsoleAccessService } from "./admin-console-access.service";
 import {
   isSuperAdminOnlyPath,
-  isWriteHttpMethod,
+  requiredMenuAccessForAdminRequest,
   resolveMenuForAdminPath
 } from "./admin-console-menu.constants";
 
@@ -56,7 +56,10 @@ export class AdminConsoleMenuGuard implements CanActivate {
       throw new ForbiddenException("Route admin non autorisée");
     }
 
-    const required = isWriteHttpMethod(req.method ?? "GET") ? "write" : "read";
+    const required = requiredMenuAccessForAdminRequest(
+      req.method ?? "GET",
+      rawPath
+    );
     if (!this.access.canAccessMenu(profile, menu, required)) {
       throw new ForbiddenException(
         `Permission insuffisante sur le menu « ${menu} » (${required})`

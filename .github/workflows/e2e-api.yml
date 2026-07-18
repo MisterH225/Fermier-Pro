@@ -43,5 +43,7 @@ jobs:
         run: npm run build --workspace @fermier/types && npm run build --workspace @fermier/phone
       - name: Prisma schema push
         run: npm run prisma:push --workspace @fermier/api
+      - name: Seed geo reference data
+        run: npm run prisma:seed --workspace @fermier/api
       - name: Run API e2e suite
         run: npm run test:e2e

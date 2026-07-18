@@ -3,6 +3,11 @@ import { AnimalSex, PrismaClient } from "@prisma/client";
 import request from "supertest";
 import { createTestApp } from "./helpers/create-test-app";
 import {
+  advanceMarketplaceToSellerShipped,
+  confirmMarketplacePayment
+} from "./helpers/marketplace-delivery-e2e";
+import { creditWalletViaDevTopUp } from "./helpers/wallet-payout-e2e";
+import {
   cleanupE2eFixtures,
   seedE2eFixtures,
   type E2ESeedResult
@@ -18,9 +23,11 @@ describeOrSkip("Marketplace vente à crédit escrow (e2e)", () => {
   let listingId: string;
   let offerId: string;
   let transactionId: string;
+  let animalId: string;
 
   beforeAll(async () => {
     process.env.THROTTLE_LIMIT = "100000";
+    process.env.MOBILE_MONEY_PROVIDER = "dev";
     ctx = await seedE2eFixtures(PrismaClient);
     app = await createTestApp();
 
@@ -35,6 +42,7 @@ describeOrSkip("Marketplace vente à crédit escrow (e2e)", () => {
         status: "active"
       }
     });
+    animalId = animal.id;
 
     const listingRes = await request(app.getHttpServer())
       .post("/api/v1/marketplace/listings")
@@ -176,60 +184,25 @@ describeOrSkip("Marketplace vente à crédit escrow (e2e)", () => {
   });
 
   it("avance payée via escrow puis livraison et solde recalculé", async () => {
-    const init = await request(app.getHttpServer())
-      .post(`/api/v1/marketplace/transactions/${transactionId}/payment/initiate`)
-      .set("Authorization", `Bearer ${ctx.peerToken}`)
-      .send({ paymentMethod: "mobile_money" });
-    expect(init.status).toBe(201);
-    const pay = await request(app.getHttpServer())
-      .post(`/api/v1/marketplace/transactions/${transactionId}/payment/confirm`)
-      .set("Authorization", `Bearer ${ctx.peerToken}`)
-      .send({ providerRef: init.body.providerRef });
-    expect(pay.status).toBe(201);
-    expect(pay.body.status).toBe("PAYMENT_HELD");
+    await confirmMarketplacePayment({
+      app,
+      buyerToken: ctx.peerToken,
+      transactionId
+    });
 
     const offerAfterPay = await ctx.prisma.marketplaceOffer.findUniqueOrThrow({
       where: { id: offerId }
     });
     expect(offerAfterPay.status).toBe("advance_confirmed");
 
-    await request(app.getHttpServer())
-      .post(`/api/v1/marketplace/transactions/${transactionId}/pickup`)
-      .set("Authorization", `Bearer ${ctx.peerToken}`)
-      .send({
-        pickupDate: new Date().toISOString().slice(0, 10),
-        pickupLocation: "Ferme crédit E2E"
-      });
-
-    await request(app.getHttpServer())
-      .post(`/api/v1/marketplace/transactions/${transactionId}/pickup/confirm`)
-      .set("Authorization", `Bearer ${ctx.token}`)
-      .set("X-Profile-Id", ctx.producerProfileId);
-
-    await request(app.getHttpServer())
-      .post(`/api/v1/marketplace/transactions/${transactionId}/weight/declare`)
-      .set("Authorization", `Bearer ${ctx.peerToken}`)
-      .send({ realWeightKg: 80 });
-
-    await request(app.getHttpServer())
-      .post(`/api/v1/marketplace/transactions/${transactionId}/weight/validate`)
-      .set("Authorization", `Bearer ${ctx.token}`)
-      .set("X-Profile-Id", ctx.producerProfileId);
-
-    await request(app.getHttpServer())
-      .post(`/api/v1/marketplace/transactions/${transactionId}/confirm-shipment`)
-      .set("Authorization", `Bearer ${ctx.token}`)
-      .set("X-Profile-Id", ctx.producerProfileId)
-      .send({ shippedAt: new Date().toISOString().slice(0, 10) });
-
-    await request(app.getHttpServer())
-      .post(`/api/v1/marketplace/transactions/${transactionId}/confirm-receipt`)
-      .set("Authorization", `Bearer ${ctx.peerToken}`)
-      .send({
-        receivedAt: new Date().toISOString().slice(0, 10),
-        condition: "conform",
-        receivedAnimalIds: []
-      });
+    await advanceMarketplaceToSellerShipped({
+      app,
+      sellerToken: ctx.token,
+      buyerToken: ctx.peerToken,
+      transactionId,
+      animalId,
+      animalWeightKg: 80
+    });
 
     const offerBalanced = await ctx.prisma.marketplaceOffer.findUniqueOrThrow({
       where: { id: offerId }
@@ -240,10 +213,28 @@ describeOrSkip("Marketplace vente à crédit escrow (e2e)", () => {
   });
 
   it("solde payé via escrow et clôture vendeur", async () => {
+    process.env.MOBILE_MONEY_PROVIDER = "dev";
+    await creditWalletViaDevTopUp({
+      app,
+      token: ctx.peerToken,
+      amount: 100_000
+    });
+
+    const receipt = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${transactionId}/confirm-receipt`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({
+        receivedAt: new Date().toISOString().slice(0, 10),
+        condition: "conform",
+        receivedAnimalIds: [animalId]
+      });
+    expect(receipt.status).toBe(201);
+    expect(receipt.body.status).toBe("BUYER_RECEIVED");
+
     const initBal = await request(app.getHttpServer())
       .post(`/api/v1/marketplace/offers/${offerId}/balance-payment/initiate`)
       .set("Authorization", `Bearer ${ctx.peerToken}`)
-      .send({ paymentMethod: "mobile_money" });
+      .send({ paymentMethod: "wallet" });
     expect(initBal.status).toBe(201);
 
     const confirmBal = await request(app.getHttpServer())

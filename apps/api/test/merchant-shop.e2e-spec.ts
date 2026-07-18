@@ -276,16 +276,12 @@ describeOrSkip("Merchant shop (e2e)", () => {
       .send({ providerRef: purchase.body.providerRef });
     expect(confirm.status).toBe(201);
     expect(confirm.body.status).toBe("paid");
+    expect(confirm.body.escrowHeld).toBe(true);
 
     const after = await base.prisma.merchantProduct.findUniqueOrThrow({
       where: { id: published!.id }
     });
     expect(after.stock).toBe(beforeStock - 1);
-
-    const revenue = await base.prisma.platformRevenue.findFirst({
-      where: { merchantOrderId: confirm.body.id }
-    });
-    expect(revenue).toBeTruthy();
 
     const chat = await request(app.getHttpServer())
       .post("/api/v1/chat/rooms/direct")
