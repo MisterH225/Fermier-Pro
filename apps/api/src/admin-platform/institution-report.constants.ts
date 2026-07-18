@@ -47,6 +47,8 @@ export type InstitutionReportSectionData = {
     departmentsCovered: number;
   };
   departments: Record<string, unknown>[];
+  /** Agrégats nationaux (ex. rétention adoption) — optionnel. */
+  national?: Record<string, unknown>;
 };
 
 export type InstitutionReportBuildResult = {

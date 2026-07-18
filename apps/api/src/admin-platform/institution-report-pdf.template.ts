@@ -5,10 +5,10 @@ import {
   MASKED_CELL_LABEL,
   type InstitutionReportSectionData
 } from "./institution-report.constants";
-import { buildBarChartSvg } from "../reports/templates/charts";
 import { buildSectionHeader } from "../reports/templates/builders";
 import type { PdfContent, PdfDocumentDefinitions } from "../reports/templates/pdf-types";
 import { REPORT_COLORS } from "../reports/templates/palette";
+import { buildSectionCharts } from "./institution-report-section-charts";
 
 function isMasked(row: Record<string, unknown>): boolean {
   return row.masked === true;
@@ -145,31 +145,7 @@ function sectionTable(section: InstitutionStatSection, data: InstitutionReportSe
     rows.push(getRowValues(dept));
   }
 
-  const chartData = data.departments
-    .filter((row) => !isMasked(row))
-    .slice(0, 8)
-    .map((row) => {
-      let value = 0;
-      if (section === "mortality") {
-        value = Number(row.mortalityHeadcount ?? 0);
-      } else if (section === "vetCoverage") {
-        value = Number(row.vetConsultationsCount ?? 0);
-      } else if (section === "reproduction") {
-        value = Number(row.bornAlive ?? 0);
-      } else if (section === "health") {
-        value = Number(row.incidencePerThousand ?? 0);
-      } else if (section === "lifecycle") {
-        value = Number(row.tauxVenteCheptel ?? 0);
-      } else if (section === "adoption") {
-        value = Number(row.activeFarmsCount ?? 0);
-      } else {
-        value = Number(row.farmCount ?? 0);
-      }
-      return {
-        label: String(row.departmentCode ?? ""),
-        value
-      };
-    });
+  const charts = buildSectionCharts(section, data);
 
   const content: PdfContent[] = [
     buildSectionHeader(data.label),
@@ -180,6 +156,20 @@ function sectionTable(section: InstitutionStatSection, data: InstitutionReportSe
       margin: [0, 0, 0, 8]
     },
     {
+      text: `${data.coverage.farmCount} fermes · ${data.coverage.animalCount} animaux · ${data.coverage.departmentsCovered} départements`,
+      fontSize: 8,
+      color: REPORT_COLORS.greyText,
+      margin: [0, 0, 0, 10]
+    },
+    ...charts,
+    {
+      text: "Détail tabulaire",
+      fontSize: 10,
+      bold: true,
+      color: REPORT_COLORS.accent,
+      margin: [0, 4, 0, 6]
+    },
+    {
       table: {
         headerRows: 1,
         widths: headers.map(() => "*"),
@@ -187,17 +177,9 @@ function sectionTable(section: InstitutionStatSection, data: InstitutionReportSe
       },
       layout: "lightHorizontalLines",
       fontSize: 8,
-      margin: [0, 0, 0, 12]
+      margin: [0, 0, 0, 16]
     }
   ];
-
-  if (chartData.length > 0) {
-    content.push({
-      svg: buildBarChartSvg(chartData, 500, 120),
-      width: 500,
-      margin: [0, 0, 0, 16]
-    });
-  }
 
   return { stack: content };
 }

@@ -112,6 +112,43 @@ function sectionToRows(
   });
 }
 
+/** Séries utilisées par les graphiques PDF — pour réutilisation / Excel. */
+function sectionChartSeries(
+  section: InstitutionReportSectionData
+): Record<string, string | number>[] {
+  const rows = section.departments.filter((r) => r.masked !== true);
+  return rows.map((row) => {
+    const base = {
+      section: section.section,
+      chart: "department_primary",
+      departmentCode: String(row.departmentCode ?? ""),
+      label: INSTITUTION_STAT_SECTION_LABELS[section.section]
+    };
+    switch (section.section) {
+      case "mortality":
+        return { ...base, value: cell(row.mortalityHeadcount, false) };
+      case "reproduction":
+        return { ...base, value: cell(row.bornAlive, false) };
+      case "health":
+        return { ...base, value: cell(row.incidencePerThousand, false) };
+      case "lifecycle":
+        return { ...base, value: cell(row.tauxVenteCheptel, false) };
+      case "adoption":
+        return { ...base, value: cell(row.activeFarmsCount, false) };
+      case "vetCoverage":
+        return { ...base, value: cell(row.vetConsultationsCount, false) };
+      case "economy":
+        return { ...base, value: cell(row.exitsSaleHeadcount, false) };
+      case "growth":
+        return { ...base, value: cell(row.exitsSaleAvgPricePerKg, false) };
+      case "herd":
+        return { ...base, value: cell(row.farmCount, false) };
+      default:
+        return { ...base, value: cell(row.farmCount, false) };
+    }
+  });
+}
+
 @Injectable()
 export class InstitutionReportCsvService {
   buildSectionCsv(section: InstitutionReportSectionData): string {
@@ -128,6 +165,13 @@ export class InstitutionReportCsvService {
       name: institutionReportSectionFilename(section.section, from, to),
       content: this.buildSectionCsv(section)
     }));
+    const chartRows = sections.flatMap(sectionChartSeries);
+    if (chartRows.length > 0) {
+      files.push({
+        name: `visualisations_${from}_${to}.csv`,
+        content: Papa.unparse(chartRows, { header: true })
+      });
+    }
     return zipFiles(files);
   }
 }

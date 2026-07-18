@@ -22,7 +22,11 @@ import {
 } from "./institution-stats-sections.constants";
 import { InstitutionReportCsvService } from "./institution-report-csv.service";
 import { InstitutionReportPdfService } from "./institution-report-pdf.service";
-import { StatsQueryService } from "./stats-query.service";
+import {
+  DEFAULT_REGIONAL_PRIVACY,
+  StatsQueryService,
+  type RegionalStatsPrivacy
+} from "./stats-query.service";
 import { SupabaseAdminService } from "../auth/supabase-admin.service";
 
 export type BuildInstitutionReportParams = {
@@ -60,9 +64,14 @@ export class InstitutionReportService {
       regionCode: params.regionCode
     };
 
+    const privacy = this.reportPrivacy(params.context);
     const sectionData: InstitutionReportSectionData[] = [];
     for (const section of sections) {
-      const payload = await this.statsQuery.querySection(section, query);
+      const payload = await this.statsQuery.querySection(
+        section,
+        query,
+        privacy
+      );
       assertNoNominativeFields(payload);
       sectionData.push({
         section,
@@ -70,7 +79,8 @@ export class InstitutionReportService {
         from: payload.from,
         to: payload.to,
         coverage: payload.coverage,
-        departments: payload.departments
+        departments: payload.departments,
+        national: payload.national
       });
     }
 
@@ -120,6 +130,14 @@ export class InstitutionReportService {
     }
 
     throw new BadRequestException("Format de rapport non supporté");
+  }
+
+  private reportPrivacy(
+    context: EffectiveConsoleContext
+  ): RegionalStatsPrivacy {
+    const unmasked =
+      context.profile.role === "superadmin" && !context.isInstitutionPreview;
+    return unmasked ? { maskLowCells: false } : DEFAULT_REGIONAL_PRIVACY;
   }
 
   private filterAllowedSections(

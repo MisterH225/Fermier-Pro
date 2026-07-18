@@ -67,7 +67,8 @@ describe("InstitutionReportService", () => {
     expect(statsQuery.querySection).toHaveBeenCalledTimes(1);
     expect(statsQuery.querySection).toHaveBeenCalledWith(
       "mortality",
-      expect.any(Object)
+      expect.any(Object),
+      { maskLowCells: true }
     );
   });
 
@@ -91,6 +92,11 @@ describe("InstitutionReportService", () => {
     });
 
     expect(statsQuery.querySection).toHaveBeenCalledTimes(2);
+    expect(statsQuery.querySection).toHaveBeenCalledWith(
+      "mortality",
+      expect.any(Object),
+      { maskLowCells: false }
+    );
     expect(result.contentType).toBe("application/pdf");
     expect(result.buffer.toString()).toBe("pdf");
   });
@@ -125,7 +131,8 @@ describe("InstitutionReportService", () => {
     expect(statsQuery.querySection).toHaveBeenCalledTimes(1);
     expect(statsQuery.querySection).toHaveBeenCalledWith(
       "mortality",
-      expect.objectContaining({ from: "2026-06-01", to: "2026-06-30" })
+      expect.objectContaining({ from: "2026-06-01", to: "2026-06-30" }),
+      { maskLowCells: true }
     );
   });
 

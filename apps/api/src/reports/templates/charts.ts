@@ -60,7 +60,7 @@ export function buildGaugeSvg(
   value: number,
   max: number,
   size: number,
-  color = REPORT_COLORS.primary
+  color: string = REPORT_COLORS.primary
 ): string {
   const pct = Math.min(1, Math.max(0, value / max));
   const cx = size / 2;
@@ -128,7 +128,7 @@ export function buildHorizontalBarSvg(
   max: number,
   width: number,
   height: number,
-  color = REPORT_COLORS.primary
+  color: string = REPORT_COLORS.primary
 ): string {
   const pct = Math.min(1, Math.max(0, value / Math.max(max, 1)));
   const fillW = Math.max(2, (width - 4) * pct);
@@ -136,4 +136,115 @@ export function buildHorizontalBarSvg(
     <rect x="0" y="0" width="${width}" height="${height}" fill="${REPORT_COLORS.lightBg}" rx="3"/>
     <rect x="2" y="2" width="${fillW}" height="${height - 4}" fill="${color}" rx="2"/>
   </svg>`;
+}
+
+/** Classement horizontal (barres + libellés) pour rapports institutionnels. */
+export function buildHorizontalRankSvg(
+  data: { label: string; value: number }[],
+  width: number,
+  rowHeight = 18,
+  color: string = REPORT_COLORS.primary
+): string {
+  const rows = data.slice(0, 10);
+  if (rows.length === 0) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${rowHeight}"><rect width="100%" height="100%" fill="${REPORT_COLORS.lightBg}" rx="4"/></svg>`;
+  }
+  const max = Math.max(...rows.map((d) => d.value), 1);
+  const height = rows.length * rowHeight + 8;
+  const labelW = 90;
+  const barMaxW = width - labelW - 48;
+  const body = rows
+    .map((d, i) => {
+      const y = 4 + i * rowHeight;
+      const barW = Math.max(2, (d.value / max) * barMaxW);
+      const short =
+        d.label.length > 14 ? `${d.label.slice(0, 13)}…` : d.label;
+      const val =
+        Number.isInteger(d.value) ? String(d.value) : d.value.toFixed(1);
+      return `
+        <text x="4" y="${y + 12}" font-size="7" fill="${REPORT_COLORS.accent}">${escapeXml(short)}</text>
+        <rect x="${labelW}" y="${y + 3}" width="${barMaxW}" height="10" fill="${REPORT_COLORS.border}" rx="3"/>
+        <rect x="${labelW}" y="${y + 3}" width="${barW}" height="10" fill="${color}" rx="3"/>
+        <text x="${labelW + barMaxW + 4}" y="${y + 12}" font-size="7" fill="${REPORT_COLORS.greyText}">${escapeXml(val)}</text>`;
+    })
+    .join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="${REPORT_COLORS.lightBg}" rx="4"/>${body}</svg>`;
+}
+
+/** Barre de proportion segmentée (100 %). */
+export function buildProportionBarSvg(
+  segments: ChartSegment[],
+  width: number,
+  height = 28
+): string {
+  const filtered = segments.filter((s) => s.value > 0);
+  const total = filtered.reduce((s, x) => s + x.value, 0) || 1;
+  let x = 4;
+  const barH = height - 14;
+  const rects = filtered
+    .map((seg) => {
+      const w = Math.max(2, ((width - 8) * seg.value) / total);
+      const el = `<rect x="${x}" y="2" width="${w}" height="${barH}" fill="${seg.color}"/>`;
+      x += w;
+      return el;
+    })
+    .join("");
+  const legend = filtered
+    .slice(0, 5)
+    .map((seg, i) => {
+      const pct = Math.round((seg.value / total) * 100);
+      const lx = 4 + i * (width / 5);
+      return `<text x="${lx}" y="${height - 2}" font-size="6" fill="${seg.color}">■ ${escapeXml(seg.label.slice(0, 10))} ${pct}%</text>`;
+    })
+    .join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="${REPORT_COLORS.lightBg}" rx="4"/>${rects}${legend}</svg>`;
+}
+
+/** Barres groupées génériques (2 séries). */
+export function buildGroupedBarChartSvg(
+  data: { label: string; a: number; b: number }[],
+  width: number,
+  height: number,
+  labels: { a: string; b: string },
+  colors: { a: string; b: string } = {
+    a: REPORT_COLORS.success,
+    b: REPORT_COLORS.danger
+  }
+): string {
+  if (data.length === 0) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="${REPORT_COLORS.lightBg}" rx="4"/></svg>`;
+  }
+  const max = Math.max(...data.flatMap((d) => [d.a, d.b]), 1);
+  const pad = 8;
+  const chartH = height - 28;
+  const groupW = (width - pad * 2) / data.length;
+  const barW = Math.max(4, groupW / 2 - 2);
+  const bars = data
+    .flatMap((d, i) => {
+      const gx = pad + i * groupW;
+      const aH = Math.max(2, (d.a / max) * (chartH - pad));
+      const bH = Math.max(2, (d.b / max) * (chartH - pad));
+      return [
+        `<rect x="${gx}" y="${chartH - aH + pad}" width="${barW}" height="${aH}" fill="${colors.a}" rx="2"/>`,
+        `<rect x="${gx + barW + 2}" y="${chartH - bH + pad}" width="${barW}" height="${bH}" fill="${colors.b}" rx="2"/>`
+      ];
+    })
+    .join("");
+  const xLabels = data
+    .map((d, i) => {
+      const x = pad + i * groupW + groupW / 2;
+      const short = d.label.length > 6 ? d.label.slice(0, 6) : d.label;
+      return `<text x="${x}" y="${height - 6}" font-size="6" text-anchor="middle" fill="${REPORT_COLORS.greyText}">${escapeXml(short)}</text>`;
+    })
+    .join("");
+  const legend = `<text x="${pad}" y="10" font-size="6" fill="${colors.a}">■ ${escapeXml(labels.a)}</text><text x="${pad + 70}" y="10" font-size="6" fill="${colors.b}">■ ${escapeXml(labels.b)}</text>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="${REPORT_COLORS.lightBg}" rx="4"/>${legend}${bars}${xLabels}</svg>`;
+}
+
+function escapeXml(raw: string): string {
+  return raw
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
