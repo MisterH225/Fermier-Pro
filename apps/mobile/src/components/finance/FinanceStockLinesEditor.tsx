@@ -22,7 +22,7 @@ export type StockLineForm = {
   newFeedMode: boolean;
   quantity: string;
   quantityUnit: "kg" | "tonne" | "sac";
-  unitPrice: string;
+  totalCost: string;
   weightPerBagKg: string;
   supplier: string;
 };
@@ -36,19 +36,24 @@ type Props = {
   defaultSupplier?: string;
 };
 
-function lineSubtotal(line: StockLineForm, types: FeedTypeDto[]): number {
+function lineSubtotal(line: StockLineForm): number {
+  const cost = Number.parseFloat(line.totalCost.replace(",", "."));
+  return Number.isFinite(cost) && cost >= 0 ? cost : 0;
+}
+
+function derivedUnitPrice(line: StockLineForm): number | null {
+  const cost = Number.parseFloat(line.totalCost.replace(",", "."));
   const q = Number.parseFloat(line.quantity.replace(",", "."));
-  const p = Number.parseFloat(line.unitPrice.replace(",", "."));
-  if (!Number.isFinite(q) || !Number.isFinite(p)) {
-    return 0;
+  if (!Number.isFinite(cost) || cost < 0 || !Number.isFinite(q) || q <= 0) {
+    return null;
   }
   if (line.quantityUnit === "sac") {
-    return q * p;
+    return cost / q;
   }
   if (line.quantityUnit === "tonne") {
-    return q * 1000 * p;
+    return cost / (q * 1000);
   }
-  return q * p;
+  return cost / q;
 }
 
 function unitLabel(
@@ -74,9 +79,13 @@ export function stockLinesToPayload(
     .filter((l) => l.quantity.trim())
     .map((l) => {
       const q = Number.parseFloat(l.quantity.replace(",", "."));
-      const unitPrice = l.unitPrice.trim()
-        ? Number.parseFloat(l.unitPrice.replace(",", "."))
+      const totalCost = l.totalCost.trim()
+        ? Number.parseFloat(l.totalCost.replace(",", "."))
         : undefined;
+      const unitPrice =
+        totalCost != null && Number.isFinite(totalCost) && Number.isFinite(q) && q > 0
+          ? derivedUnitPrice({ ...l, totalCost: String(totalCost) }) ?? undefined
+          : undefined;
       const ft = types.find((t) => t.id === l.feedTypeId);
       const wpbRaw = l.weightPerBagKg.trim();
       const wpbFromForm = wpbRaw
@@ -108,6 +117,8 @@ export function stockLinesToPayload(
           },
           quantityInput: q,
           quantityUnit: l.quantityUnit,
+          totalCost:
+            totalCost != null && Number.isFinite(totalCost) ? totalCost : undefined,
           unitPrice,
           priceBasis: l.quantityUnit === "sac" ? ("sac" as const) : ("kg" as const),
           weightPerBagKg,
@@ -118,6 +129,8 @@ export function stockLinesToPayload(
         feedTypeId: l.feedTypeId || undefined,
         quantityInput: q,
         quantityUnit: l.quantityUnit,
+        totalCost:
+          totalCost != null && Number.isFinite(totalCost) ? totalCost : undefined,
         unitPrice,
         priceBasis: l.quantityUnit === "sac" ? ("sac" as const) : ("kg" as const),
         weightPerBagKg,
@@ -137,8 +150,8 @@ export function FinanceStockLinesEditor({
   const { t } = useTranslation();
 
   const linesTotal = useMemo(
-    () => lines.reduce((s, l) => s + lineSubtotal(l, types), 0),
-    [lines, types]
+    () => lines.reduce((s, l) => s + lineSubtotal(l), 0),
+    [lines]
   );
 
   const gap = Math.abs(linesTotal - totalAmount);
@@ -159,7 +172,7 @@ export function FinanceStockLinesEditor({
         newFeedMode: false,
         quantity: "",
         quantityUnit: (types[0]?.unit as "kg" | "sac") ?? "sac",
-        unitPrice: "",
+        totalCost: "",
         weightPerBagKg: types[0]?.weightPerBagKg
           ? String(types[0].weightPerBagKg)
           : "",
@@ -177,149 +190,156 @@ export function FinanceStockLinesEditor({
 
   return (
     <View style={styles.wrap}>
-      {lines.map((line, idx) => (
-        <View key={line.key} style={styles.lineCard}>
-          <View style={styles.lineHeader}>
-            <Text style={styles.lineTitle}>
-              {t("financeStockLink.line", { n: idx + 1 })}
+      {lines.map((line, idx) => {
+        const unitPx = derivedUnitPrice(line);
+        return (
+          <View key={line.key} style={styles.lineCard}>
+            <View style={styles.lineHeader}>
+              <Text style={styles.lineTitle}>
+                {t("financeStockLink.line", { n: idx + 1 })}
+              </Text>
+              {lines.length > 1 ? (
+                <Pressable onPress={() => removeLine(idx)} hitSlop={8}>
+                  <Text style={styles.remove}>✕</Text>
+                </Pressable>
+              ) : null}
+            </View>
+            <Pressable
+              style={styles.chip}
+              onPress={() =>
+                updateLine(idx, { newFeedMode: !line.newFeedMode })
+              }
+            >
+              <Text style={styles.chipTx}>
+                {line.newFeedMode
+                  ? t("financeStockLink.useExistingType")
+                  : t("financeStockLink.newFeedType")}
+              </Text>
+            </Pressable>
+            {line.newFeedMode ? (
+              <TextInput
+                style={styles.input}
+                value={line.newFeedName}
+                onChangeText={(v) => updateLine(idx, { newFeedName: v })}
+                placeholder={t("feedStock.fieldName")}
+              />
+            ) : (
+              <View style={styles.typeRow}>
+                {types.map((ft) => (
+                  <Pressable
+                    key={ft.id}
+                    style={[
+                      styles.typeChip,
+                      line.feedTypeId === ft.id && styles.typeChipOn
+                    ]}
+                    onPress={() =>
+                      updateLine(idx, {
+                        feedTypeId: ft.id,
+                        quantityUnit:
+                          ft.unit === "tonne"
+                            ? "tonne"
+                            : ft.unit === "kg"
+                              ? "kg"
+                              : "sac",
+                        weightPerBagKg: ft.weightPerBagKg
+                          ? String(ft.weightPerBagKg)
+                          : ""
+                      })
+                    }
+                  >
+                    <Text style={styles.typeChipTx}>{ft.name}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+            <Text style={styles.lab}>
+              {t("financeStockLink.quantityWithUnit", {
+                unit: unitLabel(line.quantityUnit, t)
+              })}
             </Text>
-            {lines.length > 1 ? (
-              <Pressable onPress={() => removeLine(idx)} hitSlop={8}>
-                <Text style={styles.remove}>✕</Text>
-              </Pressable>
-            ) : null}
-          </View>
-          <Pressable
-            style={styles.chip}
-            onPress={() =>
-              updateLine(idx, { newFeedMode: !line.newFeedMode })
-            }
-          >
-            <Text style={styles.chipTx}>
-              {line.newFeedMode
-                ? t("financeStockLink.useExistingType")
-                : t("financeStockLink.newFeedType")}
-            </Text>
-          </Pressable>
-          {line.newFeedMode ? (
             <TextInput
               style={styles.input}
-              value={line.newFeedName}
-              onChangeText={(v) => updateLine(idx, { newFeedName: v })}
-              placeholder={t("feedStock.fieldName")}
+              value={line.quantity}
+              onChangeText={(v) => {
+                const patch: Partial<StockLineForm> = { quantity: v };
+                if (
+                  totalAmount > 0 &&
+                  lines.length === 1 &&
+                  !line.totalCost.trim()
+                ) {
+                  patch.totalCost = String(Math.round(totalAmount * 100) / 100);
+                }
+                updateLine(idx, patch);
+              }}
+              keyboardType="decimal-pad"
             />
-          ) : (
-            <View style={styles.typeRow}>
-              {types.map((ft) => (
+            <View style={styles.unitRow}>
+              {(["sac", "kg", "tonne"] as const).map((u) => (
                 <Pressable
-                  key={ft.id}
+                  key={u}
                   style={[
-                    styles.typeChip,
-                    line.feedTypeId === ft.id && styles.typeChipOn
+                    styles.unitChip,
+                    line.quantityUnit === u && styles.unitChipOn
                   ]}
-                  onPress={() =>
-                    updateLine(idx, {
-                      feedTypeId: ft.id,
-                      quantityUnit:
-                        ft.unit === "tonne"
-                          ? "tonne"
-                          : ft.unit === "kg"
-                            ? "kg"
-                            : "sac",
-                      weightPerBagKg: ft.weightPerBagKg
-                        ? String(ft.weightPerBagKg)
-                        : ""
-                    })
-                  }
+                  onPress={() => updateLine(idx, { quantityUnit: u })}
                 >
-                  <Text style={styles.typeChipTx}>{ft.name}</Text>
+                  <Text
+                    style={[
+                      styles.unitChipTx,
+                      line.quantityUnit === u && styles.unitChipTxOn
+                    ]}
+                  >
+                    {unitLabel(u, t)}
+                  </Text>
                 </Pressable>
               ))}
             </View>
-          )}
-          <Text style={styles.lab}>
-            {t("financeStockLink.quantityWithUnit", {
-              unit: unitLabel(line.quantityUnit, t)
-            })}
-          </Text>
-          <TextInput
-            style={styles.input}
-            value={line.quantity}
-            onChangeText={(v) => {
-              const q = Number.parseFloat(v.replace(",", "."));
-              const patch: Partial<StockLineForm> = { quantity: v };
-              if (
-                Number.isFinite(q) &&
-                q > 0 &&
-                totalAmount > 0 &&
-                lines.length === 1 &&
-                !line.unitPrice.trim()
-              ) {
-                patch.unitPrice = String(
-                  Math.round((totalAmount / q) * 100) / 100
-                );
-              }
-              updateLine(idx, patch);
-            }}
-            keyboardType="decimal-pad"
-          />
-          <View style={styles.unitRow}>
-            {(["sac", "kg", "tonne"] as const).map((u) => (
-              <Pressable
-                key={u}
-                style={[
-                  styles.unitChip,
-                  line.quantityUnit === u && styles.unitChipOn
-                ]}
-                onPress={() => updateLine(idx, { quantityUnit: u })}
-              >
-                <Text
-                  style={[
-                    styles.unitChipTx,
-                    line.quantityUnit === u && styles.unitChipTxOn
-                  ]}
-                >
-                  {unitLabel(u, t)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          <Text style={styles.lab}>
-            {line.quantityUnit === "sac"
-              ? t("financeStockLink.unitPriceSac")
-              : t("financeStockLink.unitPrice")}
-          </Text>
-          <TextInput
-            style={styles.input}
-            value={line.unitPrice}
-            onChangeText={(v) => updateLine(idx, { unitPrice: v })}
-            keyboardType="decimal-pad"
-            placeholder={currencyCode}
-          />
-          {line.quantityUnit === "sac" &&
-          !types.find((ft) => ft.id === line.feedTypeId)?.weightPerBagKg ? (
-            <>
-              <Text style={styles.lab}>{t("financeStockLink.weightPerBag")}</Text>
-              <TextInput
-                style={styles.input}
-                value={line.weightPerBagKg}
-                onChangeText={(v) => updateLine(idx, { weightPerBagKg: v })}
-                keyboardType="decimal-pad"
-                placeholder="25"
-              />
+            <Text style={styles.lab}>{t("financeStockLink.totalCost")}</Text>
+            <TextInput
+              style={styles.input}
+              value={line.totalCost}
+              onChangeText={(v) => updateLine(idx, { totalCost: v })}
+              keyboardType="decimal-pad"
+              placeholder={currencyCode}
+            />
+            {unitPx != null ? (
               <Text style={styles.hint}>
-                {t("financeStockLink.weightPerBagHint")}
+                {line.quantityUnit === "sac"
+                  ? t("financeStockLink.calculatedUnitPriceSac", {
+                      price: unitPx.toFixed(2),
+                      currency: currencyCode
+                    })
+                  : t("financeStockLink.calculatedUnitPrice", {
+                      price: unitPx.toFixed(2),
+                      currency: currencyCode
+                    })}
               </Text>
-            </>
-          ) : null}
-          <Text style={styles.sub}>
-            {t("financeStockLink.lineSubtotal", {
-              amount: lineSubtotal(line, types).toFixed(2),
-              currency: currencyCode
-            })}
-          </Text>
-        </View>
-      ))}
+            ) : null}
+            {line.quantityUnit === "sac" &&
+            !types.find((ft) => ft.id === line.feedTypeId)?.weightPerBagKg ? (
+              <>
+                <Text style={styles.lab}>{t("financeStockLink.weightPerBag")}</Text>
+                <TextInput
+                  style={styles.input}
+                  value={line.weightPerBagKg}
+                  onChangeText={(v) => updateLine(idx, { weightPerBagKg: v })}
+                  keyboardType="decimal-pad"
+                  placeholder="25"
+                />
+                <Text style={styles.hint}>
+                  {t("financeStockLink.weightPerBagHint")}
+                </Text>
+              </>
+            ) : null}
+            <Text style={styles.sub}>
+              {t("financeStockLink.lineSubtotal", {
+                amount: lineSubtotal(line).toFixed(2),
+                currency: currencyCode
+              })}
+            </Text>
+          </View>
+        );
+      })}
       <Pressable onPress={addLine} style={styles.addBtn}>
         <Text style={styles.addTx}>{t("financeStockLink.addLine")}</Text>
       </Pressable>

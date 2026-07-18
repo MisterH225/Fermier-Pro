@@ -32,3 +32,26 @@ export function lineAmountFromUnitPrice(
   }
   return deltaKg.toNumber() * unitPrice;
 }
+
+/** Dérive le prix unitaire (par sac ou par kg selon `priceBasis`) depuis un coût total. */
+export function unitPriceFromTotalCost(
+  totalCost: number,
+  quantityInput: number,
+  quantityUnit: FeedTypeUnit,
+  deltaKg: Prisma.Decimal,
+  priceBasis: "kg" | "sac"
+): number | null {
+  if (!Number.isFinite(totalCost) || totalCost < 0) {
+    return null;
+  }
+  if (priceBasis === "sac" && quantityUnit === FeedTypeUnit.sac) {
+    if (quantityInput <= 0) {
+      return null;
+    }
+    return totalCost / quantityInput;
+  }
+  if (!deltaKg.gt(0)) {
+    return null;
+  }
+  return totalCost / deltaKg.toNumber();
+}

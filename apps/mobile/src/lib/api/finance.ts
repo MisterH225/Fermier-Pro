@@ -888,6 +888,7 @@ export type FinanceStockLineInput = {
   quantityInput: number;
   quantityUnit: "kg" | "tonne" | "sac";
   unitPrice?: number;
+  totalCost?: number;
   priceBasis?: "kg" | "sac";
   weightPerBagKg?: number;
   supplier?: string;

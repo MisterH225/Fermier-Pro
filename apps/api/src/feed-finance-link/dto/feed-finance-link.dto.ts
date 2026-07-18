@@ -49,6 +49,14 @@ export class StockLineInputDto {
   @Max(1e9)
   unitPrice?: number;
 
+  /** Coût total de la ligne ; le prix unitaire est dérivé si `unitPrice` est absent. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(1e12)
+  totalCost?: number;
+
   @IsOptional()
   @IsEnum(["kg", "sac"] as const)
   priceBasis?: "kg" | "sac";
@@ -138,6 +146,13 @@ export class CreateMovementWithTransactionDto {
   @IsOptional()
   @Type(() => Number)
   unitPrice?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(1e12)
+  totalCost?: number;
 
   @IsOptional()
   @IsEnum(["kg", "sac"] as const)

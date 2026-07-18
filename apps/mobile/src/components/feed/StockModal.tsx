@@ -70,7 +70,7 @@ export function StockModal({
   const [weightOverride, setWeightOverride] = useState("");
   const [bagsCounted, setBagsCounted] = useState("");
   const [supplier, setSupplier] = useState("");
-  const [unitPrice, setUnitPrice] = useState("");
+  const [totalCost, setTotalCost] = useState("");
   const [priceBasis, setPriceBasis] = useState<"kg" | "sac">("kg");
   const [notes, setNotes] = useState("");
   const [occurredAt, setOccurredAt] = useState(() =>
@@ -90,7 +90,7 @@ export function StockModal({
       setWeightOverride("");
       setBagsCounted("");
       setSupplier("");
-      setUnitPrice("");
+      setTotalCost("");
       setPriceBasis("kg");
       setNotes("");
       setOccurredAt(new Date().toISOString().slice(0, 10));
@@ -168,8 +168,8 @@ export function StockModal({
               weightPerBagKg:
                 Number.parseFloat(weightOverride.replace(",", ".")) || undefined,
               supplier: supplier.trim() || undefined,
-              unitPrice: unitPrice.trim()
-                ? Number.parseFloat(unitPrice.replace(",", "."))
+              totalCost: totalCost.trim()
+                ? Number.parseFloat(totalCost.replace(",", "."))
                 : undefined,
               priceBasis,
               notes: notes.trim() || undefined,
@@ -195,8 +195,8 @@ export function StockModal({
             weightPerBagKg:
               Number.parseFloat(weightOverride.replace(",", ".")) || undefined,
             supplier: supplier.trim() || undefined,
-            unitPrice: unitPrice.trim()
-              ? Number.parseFloat(unitPrice.replace(",", "."))
+            totalCost: totalCost.trim()
+              ? Number.parseFloat(totalCost.replace(",", "."))
               : undefined,
             priceBasis,
             notes: notes.trim() || undefined,
@@ -421,13 +421,14 @@ export function StockModal({
               value={supplier}
               onChangeText={setSupplier}
             />
-            <FieldLabel>{t("feedStock.fieldUnitPrice")}</FieldLabel>
+            <FieldLabel>{t("feedStock.fieldTotalCost")}</FieldLabel>
             <TextInput
               style={styles.input}
-              value={unitPrice}
-              onChangeText={setUnitPrice}
+              value={totalCost}
+              onChangeText={setTotalCost}
               keyboardType="decimal-pad"
             />
+            <Text style={styles.hint}>{t("feedStock.fieldTotalCostHint")}</Text>
             <FieldLabel>{t("feedStock.fieldPriceBasis")}</FieldLabel>
             <View style={styles.rowBtns}>
               <Pressable

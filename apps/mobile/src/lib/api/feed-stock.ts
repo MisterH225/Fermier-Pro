@@ -442,6 +442,7 @@ export type PostFarmFeedMovementPayload = {
   bagsCounted?: number;
   supplier?: string;
   unitPrice?: number;
+  totalCost?: number;
   priceBasis?: "kg" | "sac";
   notes?: string;
   occurredAt?: string;
