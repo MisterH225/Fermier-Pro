@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -561,13 +562,14 @@ export class AdminPlatformController {
       persistToStorage: false
     });
     if (result.downloadUrl) {
-      res.status(200).json({
+      res.status(HttpStatus.OK).json({
         downloadUrl: result.downloadUrl,
         filename: result.filename,
         contentType: result.contentType
       });
       return;
     }
+    res.status(HttpStatus.OK);
     res.setHeader("Content-Type", result.contentType);
     res.setHeader(
       "Content-Disposition",
