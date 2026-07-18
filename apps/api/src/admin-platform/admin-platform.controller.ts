@@ -557,6 +557,7 @@ export class AdminPlatformController {
       to: dto.to,
       regionCode: dto.regionCode,
       format: dto.format,
+      locale: dto.locale,
       persistToStorage: false
     });
     if (result.downloadUrl) {

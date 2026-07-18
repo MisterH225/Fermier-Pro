@@ -9,12 +9,15 @@ import type { EffectiveConsoleContext } from "./admin-console-access.service";
 import { RegionalStatsQueryDto } from "./dto/regional-stats-query.dto";
 import {
   INSTITUTION_REPORTS_STORAGE_BUCKET,
-  INSTITUTION_STAT_SECTION_LABELS,
   type InstitutionReportBuildInput,
   type InstitutionReportBuildResult,
   type InstitutionReportFormat,
   type InstitutionReportSectionData
 } from "./institution-report.constants";
+import {
+  reportI18n,
+  resolveReportLocale
+} from "./institution-report.i18n";
 import type { InstitutionStatSection } from "./institution-stats-sections.constants";
 import {
   hasStatSectionAccess,
@@ -36,6 +39,7 @@ export type BuildInstitutionReportParams = {
   to: string;
   regionCode?: string;
   format: InstitutionReportFormat;
+  locale?: "fr" | "en";
   persistToStorage?: boolean;
 };
 
@@ -65,6 +69,8 @@ export class InstitutionReportService {
     };
 
     const privacy = this.reportPrivacy(params.context);
+    const locale = resolveReportLocale(params.locale);
+    const labels = reportI18n(locale).common.sectionLabels;
     const sectionData: InstitutionReportSectionData[] = [];
     for (const section of sections) {
       const payload = await this.statsQuery.querySection(
@@ -75,7 +81,7 @@ export class InstitutionReportService {
       assertNoNominativeFields(payload);
       sectionData.push({
         section,
-        label: INSTITUTION_STAT_SECTION_LABELS[section],
+        label: labels[section] ?? section,
         from: payload.from,
         to: payload.to,
         coverage: payload.coverage,
@@ -106,7 +112,8 @@ export class InstitutionReportService {
         from: buildInput.from,
         to: buildInput.to,
         coverage,
-        sections: sectionData
+        sections: sectionData,
+        locale
       });
       assertNoNominativeFields({ sections: sectionData });
       const filename = this.pdfFilename(buildInput);
@@ -117,7 +124,8 @@ export class InstitutionReportService {
       const buffer = await this.csv.buildZip(
         sectionData,
         buildInput.from,
-        buildInput.to
+        buildInput.to,
+        locale
       );
       assertNoNominativeFields({ sections: sectionData });
       const filename = this.csvFilename(buildInput);

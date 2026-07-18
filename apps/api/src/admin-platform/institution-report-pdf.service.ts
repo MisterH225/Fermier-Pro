@@ -5,6 +5,7 @@ const pdfMake = require("pdfmake/build/pdfmake");
 const pdfFonts = require("pdfmake/build/vfs_fonts");
 import { buildInstitutionStatsReportDocDefinition } from "./institution-report-pdf.template";
 import type { InstitutionReportSectionData } from "./institution-report.constants";
+import type { ReportLocale } from "./institution-report.i18n";
 
 type PdfFontVfs = Record<string, string>;
 
@@ -39,6 +40,7 @@ export class InstitutionReportPdfService {
     to: string;
     coverage: InstitutionReportSectionData["coverage"];
     sections: InstitutionReportSectionData[];
+    locale?: ReportLocale;
   }): Promise<Buffer> {
     const docDefinition = buildInstitutionStatsReportDocDefinition(input);
     const pdf = pdfMake.createPdf(docDefinition);

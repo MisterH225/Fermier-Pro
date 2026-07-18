@@ -691,6 +691,14 @@
         "adoption": "Adoption",
         "movements": "Mouvements"
       },
+      "categories": {
+        "fattening": "Engraissement",
+        "starter": "Démarrage",
+        "breeding_female": "Truies",
+        "breeding_male": "Verrats",
+        "nursing": "Allaitement",
+        "growth": "Croissance"
+      },
       "columns": {
         "department": "Département",
         "farms": "Fermes",

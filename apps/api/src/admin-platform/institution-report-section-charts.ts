@@ -1,8 +1,16 @@
 /**
- * Blocs graphiques PDF par section — miroir des visualisations écran (SVG pdfmake).
+ * Blocs graphiques PDF par section — miroir des visualisations écran (SVG pdfmake)
+ * + lead méthodologique + analyse / interprétation chiffrée, localisés.
  */
 import type { InstitutionStatSection } from "./institution-stats-sections.constants";
 import type { InstitutionReportSectionData } from "./institution-report.constants";
+import {
+  chartInsights,
+  labelProductionCategory,
+  labelRecordKeys,
+  reportI18n,
+  type ReportLocale
+} from "./institution-report.i18n";
 import {
   buildBarChartSvg,
   buildDonutSvg,
@@ -12,6 +20,7 @@ import {
   buildProportionBarSvg,
   type ChartSegment
 } from "../reports/templates/charts";
+import { buildAnalysisBlock } from "../reports/templates/builders";
 import { REPORT_COLORS } from "../reports/templates/palette";
 import type { PdfContent } from "../reports/templates/pdf-types";
 
@@ -75,7 +84,33 @@ function chartTitle(text: string): PdfContent {
   };
 }
 
-function toDonutSegments(rec: Record<string, number>, limit = 6): ChartSegment[] {
+function analysis(locale: ReportLocale, text: string): PdfContent {
+  const title = reportI18n(locale).common.analysisTitle;
+  const block = buildAnalysisBlock(text, title);
+  if (block && typeof block === "object" && !Array.isArray(block)) {
+    return { ...block, margin: [0, 0, 0, 12] };
+  }
+  return block;
+}
+
+function chartBlock(
+  locale: ReportLocale,
+  copy: { title: string; lead: string },
+  viz: PdfContent | PdfContent[],
+  insight: string
+): PdfContent[] {
+  return [
+    chartTitle(copy.title),
+    chartCaption(copy.lead),
+    ...(Array.isArray(viz) ? viz : [viz]),
+    analysis(locale, insight)
+  ];
+}
+
+function toDonutSegments(
+  rec: Record<string, number>,
+  limit = 6
+): ChartSegment[] {
   return Object.entries(rec)
     .filter(([, v]) => v > 0)
     .sort((a, b) => b[1] - a[1])
@@ -87,15 +122,24 @@ function toDonutSegments(rec: Record<string, number>, limit = 6): ChartSegment[]
     }));
 }
 
+function topOf(
+  items: { label: string; value: number }[]
+): { label: string; value: number } | undefined {
+  if (items.length === 0) return undefined;
+  return [...items].sort((a, b) => b.value - a.value)[0];
+}
+
 export function buildSectionCharts(
   section: InstitutionStatSection,
-  data: InstitutionReportSectionData
+  data: InstitutionReportSectionData,
+  locale: ReportLocale = "fr"
 ): PdfContent[] {
+  const i18n = reportI18n(locale);
   const rows = visibleRows(data.departments);
   if (rows.length === 0) {
     return [
       {
-        text: "Graphiques indisponibles (données masquées ou absentes).",
+        text: i18n.common.chartsUnavailable,
         fontSize: 8,
         italics: true,
         color: REPORT_COLORS.greyText,
@@ -106,29 +150,33 @@ export function buildSectionCharts(
 
   switch (section) {
     case "mortality":
-      return chartsMortality(rows);
+      return chartsMortality(rows, locale);
     case "herd":
-      return chartsHerd(rows);
+      return chartsHerd(rows, locale);
     case "reproduction":
-      return chartsReproduction(rows);
+      return chartsReproduction(rows, locale);
     case "growth":
-      return chartsGrowth(rows);
+      return chartsGrowth(rows, locale);
     case "vetCoverage":
-      return chartsVet(rows);
+      return chartsVet(rows, locale);
     case "economy":
-      return chartsEconomy(rows);
+      return chartsEconomy(rows, locale);
     case "health":
-      return chartsHealth(rows);
+      return chartsHealth(rows, locale);
     case "lifecycle":
-      return chartsLifecycle(rows);
+      return chartsLifecycle(rows, locale);
     case "adoption":
-      return chartsAdoption(rows, data.national);
+      return chartsAdoption(rows, data.national, locale);
     default:
       return [];
   }
 }
 
-function chartsMortality(rows: Record<string, unknown>[]): PdfContent[] {
+function chartsMortality(
+  rows: Record<string, unknown>[],
+  locale: ReportLocale
+): PdfContent[] {
+  const c = reportI18n(locale).charts.mortality;
   const rank = rows
     .map((r) => ({
       label: shortDept(r.departmentCode),
@@ -140,47 +188,64 @@ function chartsMortality(rows: Record<string, unknown>[]): PdfContent[] {
   const total = rank.reduce((s, d) => s + d.value, 0);
 
   return [
-    chartTitle("Mortalités par département"),
-    chartCaption(
-      "Classement des têtes sorties pour mortalité — compare les départements entre eux."
+    ...chartBlock(
+      locale,
+      c.rank,
+      {
+        svg: buildHorizontalRankSvg(rank, CHART_W, 16, REPORT_COLORS.danger),
+        width: CHART_W,
+        margin: [0, 0, 0, 6]
+      },
+      chartInsights.topDept(
+        locale,
+        topOf(rank),
+        "volume de mortalités",
+        "mortality volume",
+        locale === "en" ? "heads" : "têtes"
+      )
     ),
-    {
-      svg: buildHorizontalRankSvg(rank, CHART_W, 16, REPORT_COLORS.danger),
-      width: CHART_W,
-      margin: [0, 0, 0, 10]
-    },
-    chartTitle("Répartition des causes déclarées"),
-    chartCaption("Parts des causes agrégées sur la période."),
-    {
-      columns: [
+    ...chartBlock(
+      locale,
+      c.causes,
+      [
         {
-          svg: buildDonutSvg(donut, 120),
-          width: 120,
-          alignment: "center" as const
+          columns: [
+            {
+              svg: buildDonutSvg(donut, 120),
+              width: 120,
+              alignment: "center" as const
+            },
+            {
+              stack: donut.map((s) => ({
+                text: `${s.label} : ${s.value}`,
+                fontSize: 8,
+                margin: [0, 2, 0, 0]
+              })),
+              width: "*"
+            }
+          ],
+          columnGap: 16,
+          margin: [0, 0, 0, 6]
         },
         {
-          stack: donut.map((s) => ({
-            text: `${s.label} : ${s.value}`,
-            fontSize: 8,
-            margin: [0, 2, 0, 0]
-          })),
-          width: "*"
+          svg: buildGaugeSvg(total, Math.max(total, 1), 100, REPORT_COLORS.danger),
+          width: 100,
+          alignment: "center" as const,
+          margin: [0, 0, 0, 6]
         }
       ],
-      columnGap: 16,
-      margin: [0, 0, 0, 8]
-    },
-    {
-      svg: buildGaugeSvg(total, Math.max(total, 1), 100, REPORT_COLORS.danger),
-      width: 100,
-      alignment: "center" as const,
-      margin: [0, 0, 0, 12]
-    }
+      chartInsights.dominantShare(locale, topOf(donut), total)
+    )
   ];
 }
 
-function chartsHerd(rows: Record<string, unknown>[]): PdfContent[] {
-  const byCat = mergeJsonCounts(rows, "animalCountByCategory");
+function chartsHerd(
+  rows: Record<string, unknown>[],
+  locale: ReportLocale
+): PdfContent[] {
+  const c = reportI18n(locale).charts.herd;
+  const byCatRaw = mergeJsonCounts(rows, "animalCountByCategory");
+  const byCat = labelRecordKeys(byCatRaw, locale, labelProductionCategory);
   const donut = toDonutSegments(byCat);
   const bars = rows.map((r) => {
     const cats = r.animalCountByCategory;
@@ -193,44 +258,65 @@ function chartsHerd(rows: Record<string, unknown>[]): PdfContent[] {
     }
     return { label: shortDept(r.departmentCode), value: herd };
   });
+  const total = Object.values(byCat).reduce((s, n) => s + n, 0);
 
   return [
-    chartTitle("Effectif par département"),
-    chartCaption("Cheptel suivi sur le panel — pas un recensement officiel."),
-    {
-      svg: buildBarChartSvg(bars, CHART_W, 120, REPORT_COLORS.primary),
-      width: CHART_W,
-      margin: [0, 0, 0, 10]
-    },
-    chartTitle("Répartition par catégorie de production"),
-    {
-      columns: [
-        {
-          svg: buildDonutSvg(donut, 120),
-          width: 120,
-          alignment: "center" as const
-        },
-        {
-          stack: donut.map((s) => ({
-            text: `${s.label} : ${s.value}`,
-            fontSize: 8,
-            margin: [0, 2, 0, 0]
-          })),
-          width: "*"
-        }
-      ],
-      columnGap: 16,
-      margin: [0, 0, 0, 12]
-    }
+    ...chartBlock(
+      locale,
+      c.bars,
+      {
+        svg: buildBarChartSvg(bars, CHART_W, 120, REPORT_COLORS.primary),
+        width: CHART_W,
+        margin: [0, 0, 0, 6]
+      },
+      chartInsights.topDept(
+        locale,
+        topOf(bars),
+        "effectif suivi",
+        "tracked herd",
+        locale === "en" ? "animals" : "animaux"
+      )
+    ),
+    ...chartBlock(
+      locale,
+      c.donut,
+      {
+        columns: [
+          {
+            svg: buildDonutSvg(donut, 120),
+            width: 120,
+            alignment: "center" as const
+          },
+          {
+            stack: donut.map((s) => ({
+              text: `${s.label} : ${s.value}`,
+              fontSize: 8,
+              margin: [0, 2, 0, 0]
+            })),
+            width: "*"
+          }
+        ],
+        columnGap: 16,
+        margin: [0, 0, 0, 6]
+      },
+      chartInsights.dominantShare(locale, topOf(donut), total)
+    )
   ];
 }
 
-function chartsReproduction(rows: Record<string, unknown>[]): PdfContent[] {
+function chartsReproduction(
+  rows: Record<string, unknown>[],
+  locale: ReportLocale
+): PdfContent[] {
+  const i18n = reportI18n(locale);
+  const c = i18n.charts.reproduction;
   const grouped = rows.map((r) => ({
     label: shortDept(r.departmentCode),
     a: num(r.bornAlive),
     b: num(r.stillborn)
   }));
+  const born = grouped.reduce((s, g) => s + g.a, 0);
+  const still = grouped.reduce((s, g) => s + g.b, 0);
   const completed = rows.reduce((s, r) => s + num(r.gestationsCompleted), 0);
   const lost =
     rows.reduce((s, r) => s + num(r.gestationsAborted), 0) +
@@ -243,37 +329,38 @@ function chartsReproduction(rows: Record<string, unknown>[]): PdfContent[] {
     .sort((a, b) => b.value - a.value);
 
   return [
-    chartTitle("Nés vivants vs mort-nés"),
-    chartCaption(
-      "Volumes déclarés via les portées — un volume bas peut refléter une faible saisie."
+    ...chartBlock(
+      locale,
+      c.born,
+      {
+        svg: buildGroupedBarChartSvg(
+          grouped,
+          CHART_W,
+          130,
+          { a: c.seriesBorn, b: c.seriesStill },
+          { a: REPORT_COLORS.success, b: REPORT_COLORS.secondary }
+        ),
+        width: CHART_W,
+        margin: [0, 0, 0, 6]
+      },
+      chartInsights.bornVsStill(locale, born, still)
     ),
-    {
-      svg: buildGroupedBarChartSvg(
-        grouped,
-        CHART_W,
-        130,
-        { a: "Nés vivants", b: "Mort-nés" },
-        { a: REPORT_COLORS.success, b: REPORT_COLORS.secondary }
-      ),
-      width: CHART_W,
-      margin: [0, 0, 0, 10]
-    },
-    chartTitle("Issue des gestations"),
-    chartCaption("Mises bas réussies vs pertes (avortements + lost)."),
-    ...(completed + lost > 0
-      ? [
-          {
+    ...chartBlock(
+      locale,
+      c.farrowing,
+      completed + lost > 0
+        ? {
             columns: [
               {
                 svg: buildDonutSvg(
                   [
                     {
-                      label: "Mises bas",
+                      label: c.completed,
                       value: completed,
                       color: REPORT_COLORS.success
                     },
                     {
-                      label: "Pertes",
+                      label: c.lost,
                       value: lost,
                       color: REPORT_COLORS.danger
                     }
@@ -285,12 +372,12 @@ function chartsReproduction(rows: Record<string, unknown>[]): PdfContent[] {
               {
                 stack: [
                   {
-                    text: `Mises bas : ${completed}`,
+                    text: `${c.completed} : ${completed}`,
                     fontSize: 9,
                     margin: [0, 8, 0, 0]
                   },
                   {
-                    text: `Pertes : ${lost}`,
+                    text: `${c.lost} : ${lost}`,
                     fontSize: 9,
                     margin: [0, 4, 0, 0]
                   }
@@ -298,28 +385,35 @@ function chartsReproduction(rows: Record<string, unknown>[]): PdfContent[] {
                 width: "*"
               }
             ],
-            margin: [0, 0, 0, 10]
-          } as PdfContent
-        ]
-      : [
-          {
-            text: "Aucune gestation terminée sur la période.",
+            margin: [0, 0, 0, 6]
+          }
+        : {
+            text: i18n.common.noGestations,
             fontSize: 8,
             italics: true,
             color: REPORT_COLORS.greyText,
-            margin: [0, 0, 0, 10]
-          } as PdfContent
-        ]),
-    chartTitle("Part d’insémination artificielle (%)"),
-    {
-      svg: buildHorizontalRankSvg(iaRank, CHART_W, 16, REPORT_COLORS.accent),
-      width: CHART_W,
-      margin: [0, 0, 0, 12]
-    }
+            margin: [0, 0, 0, 6]
+          },
+      chartInsights.farrowing(locale, completed, lost)
+    ),
+    ...chartBlock(
+      locale,
+      c.ia,
+      {
+        svg: buildHorizontalRankSvg(iaRank, CHART_W, 16, REPORT_COLORS.accent),
+        width: CHART_W,
+        margin: [0, 0, 0, 6]
+      },
+      chartInsights.topDept(locale, topOf(iaRank), "part IA", "AI share", "%")
+    )
   ];
 }
 
-function chartsGrowth(rows: Record<string, unknown>[]): PdfContent[] {
+function chartsGrowth(
+  rows: Record<string, unknown>[],
+  locale: ReportLocale
+): PdfContent[] {
+  const c = reportI18n(locale).charts.growth;
   const gmq = (r: Record<string, unknown>) => {
     const cats = r.avgGmqByCategory;
     if (!cats || typeof cats !== "object" || Array.isArray(cats)) return 0;
@@ -333,23 +427,46 @@ function chartsGrowth(rows: Record<string, unknown>[]): PdfContent[] {
   const rank = [...bars].sort((a, b) => b.value - a.value);
 
   return [
-    chartTitle("GMQ moyen par département (kg/j)"),
-    chartCaption("Estimé à partir des pesées successives."),
-    {
-      svg: buildBarChartSvg(bars, CHART_W, 120, REPORT_COLORS.primary),
-      width: CHART_W,
-      margin: [0, 0, 0, 10]
-    },
-    chartTitle("Classement GMQ"),
-    {
-      svg: buildHorizontalRankSvg(rank, CHART_W, 16, REPORT_COLORS.success),
-      width: CHART_W,
-      margin: [0, 0, 0, 12]
-    }
+    ...chartBlock(
+      locale,
+      c.bars,
+      {
+        svg: buildBarChartSvg(bars, CHART_W, 120, REPORT_COLORS.primary),
+        width: CHART_W,
+        margin: [0, 0, 0, 6]
+      },
+      chartInsights.topDept(
+        locale,
+        topOf(bars),
+        "GMQ moyen",
+        "average ADG",
+        "kg/j"
+      )
+    ),
+    ...chartBlock(
+      locale,
+      c.rank,
+      {
+        svg: buildHorizontalRankSvg(rank, CHART_W, 16, REPORT_COLORS.success),
+        width: CHART_W,
+        margin: [0, 0, 0, 6]
+      },
+      chartInsights.topDept(
+        locale,
+        topOf(rank),
+        "GMQ",
+        "ADG",
+        locale === "en" ? "kg/d" : "kg/j"
+      )
+    )
   ];
 }
 
-function chartsVet(rows: Record<string, unknown>[]): PdfContent[] {
+function chartsVet(
+  rows: Record<string, unknown>[],
+  locale: ReportLocale
+): PdfContent[] {
+  const c = reportI18n(locale).charts.vetCoverage;
   const bars = rows.map((r) => ({
     label: shortDept(r.departmentCode),
     value: num(r.vetConsultationsCount)
@@ -375,66 +492,103 @@ function chartsVet(rows: Record<string, unknown>[]): PdfContent[] {
     .sort((a, b) => b.value - a.value);
 
   return [
-    chartTitle("Consultations vétérinaires"),
-    chartCaption("Accès aux soins déclaré — pas la couverture vaccinale."),
-    {
-      columns: [
-        {
-          svg: buildDonutSvg(donut, 120),
-          width: 120
-        },
-        {
-          svg: buildBarChartSvg(bars, 360, 120, REPORT_COLORS.accent),
-          width: 360
-        }
-      ],
-      columnGap: 12,
-      margin: [0, 0, 0, 10]
-    },
-    chartTitle("Intensité / ferme"),
-    {
-      svg: buildHorizontalRankSvg(perFarm, CHART_W, 16, REPORT_COLORS.primary),
-      width: CHART_W,
-      margin: [0, 0, 0, 12]
-    }
+    ...chartBlock(
+      locale,
+      c.consult,
+      {
+        columns: [
+          { svg: buildDonutSvg(donut, 120), width: 120 },
+          {
+            svg: buildBarChartSvg(bars, 360, 120, REPORT_COLORS.accent),
+            width: 360
+          }
+        ],
+        columnGap: 12,
+        margin: [0, 0, 0, 6]
+      },
+      chartInsights.topDept(
+        locale,
+        topOf(bars),
+        "volume de consultations",
+        "consultation volume"
+      )
+    ),
+    ...chartBlock(
+      locale,
+      c.intensity,
+      {
+        svg: buildHorizontalRankSvg(perFarm, CHART_W, 16, REPORT_COLORS.primary),
+        width: CHART_W,
+        margin: [0, 0, 0, 6]
+      },
+      chartInsights.topDept(
+        locale,
+        topOf(perFarm),
+        "intensité / ferme",
+        "intensity per farm"
+      )
+    )
   ];
 }
 
-function chartsEconomy(rows: Record<string, unknown>[]): PdfContent[] {
+function chartsEconomy(
+  rows: Record<string, unknown>[],
+  locale: ReportLocale
+): PdfContent[] {
+  const c = reportI18n(locale).charts.economy;
   const grouped = rows.map((r) => ({
     label: shortDept(r.departmentCode),
     a: num(r.exitsSaleHeadcount),
     b: num(r.exitsSlaughterHeadcount)
   }));
+  const sale = grouped.reduce((s, g) => s + g.a, 0);
+  const slaughter = grouped.reduce((s, g) => s + g.b, 0);
   const sales = rows.map((r) => ({
     label: shortDept(r.departmentCode),
     value: num(r.exitsSaleHeadcount)
   }));
 
   return [
-    chartTitle("Vente vs abattage"),
-    chartCaption("Sorties commerciales et d’abattage déclarées."),
-    {
-      svg: buildGroupedBarChartSvg(
-        grouped,
-        CHART_W,
-        130,
-        { a: "Vente", b: "Abattage" },
-        { a: REPORT_COLORS.success, b: REPORT_COLORS.accent }
-      ),
-      width: CHART_W,
-      margin: [0, 0, 0, 10]
-    },
-    chartTitle("Têtes vendues par département"),
-    {
-      svg: buildBarChartSvg(sales, CHART_W, 110, REPORT_COLORS.success),
-      width: CHART_W,
-      margin: [0, 0, 0, 12]
-    }
+    ...chartBlock(
+      locale,
+      c.group,
+      {
+        svg: buildGroupedBarChartSvg(
+          grouped,
+          CHART_W,
+          130,
+          { a: c.seriesSale, b: c.seriesSlaughter },
+          { a: REPORT_COLORS.success, b: REPORT_COLORS.accent }
+        ),
+        width: CHART_W,
+        margin: [0, 0, 0, 6]
+      },
+      chartInsights.saleVsSlaughter(locale, sale, slaughter)
+    ),
+    ...chartBlock(
+      locale,
+      c.sales,
+      {
+        svg: buildBarChartSvg(sales, CHART_W, 110, REPORT_COLORS.success),
+        width: CHART_W,
+        margin: [0, 0, 0, 6]
+      },
+      chartInsights.topDept(
+        locale,
+        topOf(sales),
+        "volume de ventes",
+        "sales volume",
+        locale === "en" ? "heads" : "têtes"
+      )
+    )
   ];
 }
 
-function chartsHealth(rows: Record<string, unknown>[]): PdfContent[] {
+function chartsHealth(
+  rows: Record<string, unknown>[],
+  locale: ReportLocale
+): PdfContent[] {
+  const c = reportI18n(locale).charts.health;
   const rank = rows
     .map((r) => ({
       label: shortDept(r.departmentCode),
@@ -455,43 +609,63 @@ function chartsHealth(rows: Record<string, unknown>[]): PdfContent[] {
   const donut = toDonutSegments(diagMap);
   const causes = mergeJsonCounts(rows, "mortalityByCause");
   const proportion = toDonutSegments(causes, 5);
+  const diagTotal = donut.reduce((s, d) => s + d.value, 0);
+  const causeTotal = proportion.reduce((s, d) => s + d.value, 0);
 
   return [
-    chartTitle("Incidence des suspicions / 1 000"),
-    chartCaption(
-      "Classement par incidence (pas par volume brut). Suspicions déclarées — non confirmées labo."
+    ...chartBlock(
+      locale,
+      c.incidence,
+      {
+        svg: buildHorizontalRankSvg(rank, CHART_W, 16, REPORT_COLORS.danger),
+        width: CHART_W,
+        margin: [0, 0, 0, 6]
+      },
+      chartInsights.topDept(
+        locale,
+        topOf(rank),
+        "incidence des suspicions",
+        "suspicion incidence",
+        "/1 000"
+      )
     ),
-    {
-      svg: buildHorizontalRankSvg(rank, CHART_W, 16, REPORT_COLORS.danger),
-      width: CHART_W,
-      margin: [0, 0, 0, 10]
-    },
-    chartTitle("Top diagnostics déclarés"),
-    {
-      columns: [
-        { svg: buildDonutSvg(donut, 120), width: 120 },
-        {
-          stack: donut.map((s) => ({
-            text: `${s.label} : ${s.value}`,
-            fontSize: 8,
-            margin: [0, 2, 0, 0]
-          })),
-          width: "*"
-        }
-      ],
-      margin: [0, 0, 0, 10]
-    },
-    chartTitle("Causes de mortalité associées"),
-    chartCaption("Corrélation déclarative uniquement."),
-    {
-      svg: buildProportionBarSvg(proportion, CHART_W, 32),
-      width: CHART_W,
-      margin: [0, 0, 0, 12]
-    }
+    ...chartBlock(
+      locale,
+      c.diagnoses,
+      {
+        columns: [
+          { svg: buildDonutSvg(donut, 120), width: 120 },
+          {
+            stack: donut.map((s) => ({
+              text: `${s.label} : ${s.value}`,
+              fontSize: 8,
+              margin: [0, 2, 0, 0]
+            })),
+            width: "*"
+          }
+        ],
+        margin: [0, 0, 0, 6]
+      },
+      chartInsights.dominantShare(locale, topOf(donut), diagTotal)
+    ),
+    ...chartBlock(
+      locale,
+      c.causes,
+      {
+        svg: buildProportionBarSvg(proportion, CHART_W, 32),
+        width: CHART_W,
+        margin: [0, 0, 0, 6]
+      },
+      chartInsights.dominantShare(locale, topOf(proportion), causeTotal)
+    )
   ];
 }
 
-function chartsLifecycle(rows: Record<string, unknown>[]): PdfContent[] {
+function chartsLifecycle(
+  rows: Record<string, unknown>[],
+  locale: ReportLocale
+): PdfContent[] {
+  const c = reportI18n(locale).charts.lifecycle;
   const exits = { sale: 0, slaughter: 0, mortality: 0, transfer: 0 };
   for (const r of rows) {
     const byKind = r.exitsByKind;
@@ -507,10 +681,22 @@ function chartsLifecycle(rows: Record<string, unknown>[]): PdfContent[] {
     }
   }
   const proportion: ChartSegment[] = [
-    { label: "Vente", value: exits.sale, color: REPORT_COLORS.success },
-    { label: "Abattage", value: exits.slaughter, color: REPORT_COLORS.accent },
-    { label: "Mortalité", value: exits.mortality, color: REPORT_COLORS.danger },
-    { label: "Transfert", value: exits.transfer, color: REPORT_COLORS.secondary }
+    { label: c.kindSale, value: exits.sale, color: REPORT_COLORS.success },
+    {
+      label: c.kindSlaughter,
+      value: exits.slaughter,
+      color: REPORT_COLORS.accent
+    },
+    {
+      label: c.kindMortality,
+      value: exits.mortality,
+      color: REPORT_COLORS.danger
+    },
+    {
+      label: c.kindTransfer,
+      value: exits.transfer,
+      color: REPORT_COLORS.secondary
+    }
   ];
   const rank = rows
     .map((r) => ({
@@ -519,59 +705,80 @@ function chartsLifecycle(rows: Record<string, unknown>[]): PdfContent[] {
     }))
     .sort((a, b) => b.value - a.value);
   const saleShare = exits.sale;
-  const other =
-    exits.slaughter + exits.mortality + exits.transfer;
+  const other = exits.slaughter + exits.mortality + exits.transfer;
 
   return [
-    chartTitle("Où vont les porcs ?"),
-    chartCaption("Répartition des sorties déclarées."),
-    {
-      svg: buildProportionBarSvg(proportion, CHART_W, 32),
-      width: CHART_W,
-      margin: [0, 0, 0, 10]
-    },
-    chartTitle("Part des ventes parmi les sorties"),
-    {
-      columns: [
-        {
-          svg: buildDonutSvg(
-            [
+    ...chartBlock(
+      locale,
+      c.exits,
+      {
+        svg: buildProportionBarSvg(proportion, CHART_W, 32),
+        width: CHART_W,
+        margin: [0, 0, 0, 6]
+      },
+      chartInsights.exitMix(
+        locale,
+        proportion.map((p) => ({ label: p.label, value: p.value }))
+      )
+    ),
+    ...chartBlock(
+      locale,
+      c.saleShare,
+      {
+        columns: [
+          {
+            svg: buildDonutSvg(
+              [
+                {
+                  label: c.kindSale,
+                  value: saleShare,
+                  color: REPORT_COLORS.success
+                },
+                {
+                  label: c.otherExits,
+                  value: other,
+                  color: REPORT_COLORS.border
+                }
+              ].filter((s) => s.value > 0),
+              110
+            ),
+            width: 120
+          },
+          {
+            stack: [
+              chartCaption(c.saleRateRank),
               {
-                label: "Vente",
-                value: saleShare,
-                color: REPORT_COLORS.success
-              },
-              { label: "Autres", value: other, color: REPORT_COLORS.border }
-            ].filter((s) => s.value > 0),
-            110
-          ),
-          width: 120
-        },
-        {
-          stack: [
-            chartCaption("Taux de vente du cheptel par département (%)"),
-            {
-              svg: buildHorizontalRankSvg(
-                rank,
-                360,
-                16,
-                REPORT_COLORS.success
-              ),
-              width: 360
-            }
-          ],
-          width: "*"
-        }
-      ],
-      margin: [0, 0, 0, 12]
-    }
+                svg: buildHorizontalRankSvg(
+                  rank,
+                  360,
+                  16,
+                  REPORT_COLORS.success
+                ),
+                width: 360
+              }
+            ],
+            width: "*"
+          }
+        ],
+        margin: [0, 0, 0, 6]
+      },
+      chartInsights.topDept(
+        locale,
+        topOf(rank),
+        "taux de vente",
+        "sale rate",
+        "%"
+      )
+    )
   ];
 }
 
 function chartsAdoption(
   rows: Record<string, unknown>[],
-  national?: Record<string, unknown>
+  national: Record<string, unknown> | undefined,
+  locale: ReportLocale
 ): PdfContent[] {
+  const c = reportI18n(locale).charts.adoption;
   const bars = rows.map((r) => ({
     label: shortDept(r.departmentCode),
     value: num(r.activeFarmsCount)
@@ -580,39 +787,239 @@ function chartsAdoption(
   const donut = toDonutSegments(roles);
   const r30 = num(national?.retentionJ30) * 100;
   const r90 = num(national?.retentionJ90) * 100;
+  const r30Txt = r30 > 0 ? `${r30.toFixed(0)} %` : "—";
+  const r90Txt = r90 > 0 ? `${r90.toFixed(0)} %` : "—";
 
   return [
-    chartTitle("Fermes actives (fenêtre 30 j)"),
-    chartCaption(
-      "Fermes avec ≥ 1 saisie récente — mesure d’adoption plus stricte que le MAU."
+    ...chartBlock(
+      locale,
+      c.farms,
+      {
+        svg: buildBarChartSvg(bars, CHART_W, 120, REPORT_COLORS.primary),
+        width: CHART_W,
+        margin: [0, 0, 0, 6]
+      },
+      chartInsights.topDept(
+        locale,
+        topOf(bars),
+        "nombre de fermes actives",
+        "active farm count"
+      )
     ),
-    {
-      svg: buildBarChartSvg(bars, CHART_W, 120, REPORT_COLORS.primary),
-      width: CHART_W,
-      margin: [0, 0, 0, 10]
-    },
-    chartTitle("Utilisateurs actifs par rôle"),
-    {
-      columns: [
-        { svg: buildDonutSvg(donut, 120), width: 120 },
-        {
-          stack: [
-            ...donut.map((s) => ({
-              text: `${s.label} : ${s.value}`,
-              fontSize: 8,
-              margin: [0, 2, 0, 0] as [number, number, number, number]
-            })),
-            {
-              text: `Rétention J+30 : ${r30 > 0 ? `${r30.toFixed(0)} %` : "—"} · J+90 : ${r90 > 0 ? `${r90.toFixed(0)} %` : "—"}`,
-              fontSize: 8,
-              margin: [0, 10, 0, 0] as [number, number, number, number],
-              color: REPORT_COLORS.greyText
-            }
-          ],
-          width: "*"
-        }
-      ],
-      margin: [0, 0, 0, 12]
-    }
+    ...chartBlock(
+      locale,
+      c.roles,
+      {
+        columns: [
+          { svg: buildDonutSvg(donut, 120), width: 120 },
+          {
+            stack: [
+              ...donut.map((s) => ({
+                text: `${s.label} : ${s.value}`,
+                fontSize: 8,
+                margin: [0, 2, 0, 0] as [number, number, number, number]
+              })),
+              {
+                text: c.retention(r30Txt, r90Txt),
+                fontSize: 8,
+                margin: [0, 10, 0, 0] as [number, number, number, number],
+                color: REPORT_COLORS.greyText
+              }
+            ],
+            width: "*"
+          }
+        ],
+        margin: [0, 0, 0, 6]
+      },
+      `${chartInsights.dominantShare(
+        locale,
+        topOf(donut),
+        donut.reduce((s, d) => s + d.value, 0)
+      )} ${chartInsights.retention(locale, r30, r90)}`
+    )
   ];
+}
+
+/** Séries d’analyse pour le CSV ZIP (localisées) — miroir des blocs PDF. */
+export function sectionChartAnalyses(
+  section: InstitutionReportSectionData,
+  locale: ReportLocale
+): Array<{
+  section: string;
+  chart: string;
+  lead: string;
+  analysis: string;
+}> {
+  const rows = visibleRows(section.departments);
+  if (rows.length === 0) return [];
+  const i18n = reportI18n(locale);
+  const out: Array<{
+    section: string;
+    chart: string;
+    lead: string;
+    analysis: string;
+  }> = [];
+  const push = (copy: { title: string; lead: string }, insight: string) => {
+    out.push({
+      section: section.section,
+      chart: copy.title,
+      lead: copy.lead,
+      analysis: insight
+    });
+  };
+
+  switch (section.section) {
+    case "mortality": {
+      const rank = rows.map((r) => ({
+        label: shortDept(r.departmentCode),
+        value: num(r.mortalityHeadcount)
+      }));
+      const causes = toDonutSegments(mergeJsonCounts(rows, "mortalityByCause"));
+      push(
+        i18n.charts.mortality.rank,
+        chartInsights.topDept(
+          locale,
+          topOf(rank),
+          "volume de mortalités",
+          "mortality volume"
+        )
+      );
+      push(
+        i18n.charts.mortality.causes,
+        chartInsights.dominantShare(
+          locale,
+          topOf(causes),
+          causes.reduce((s, d) => s + d.value, 0)
+        )
+      );
+      break;
+    }
+    case "herd": {
+      const bars = rows.map((r) => {
+        const cats = r.animalCountByCategory;
+        let herd = 0;
+        if (cats && typeof cats === "object" && !Array.isArray(cats)) {
+          herd = Object.values(cats as Record<string, number>).reduce(
+            (s, n) => s + num(n),
+            0
+          );
+        }
+        return { label: shortDept(r.departmentCode), value: herd };
+      });
+      const byCat = labelRecordKeys(
+        mergeJsonCounts(rows, "animalCountByCategory"),
+        locale
+      );
+      const donut = toDonutSegments(byCat);
+      push(
+        i18n.charts.herd.bars,
+        chartInsights.topDept(
+          locale,
+          topOf(bars),
+          "effectif suivi",
+          "tracked herd"
+        )
+      );
+      push(
+        i18n.charts.herd.donut,
+        chartInsights.dominantShare(
+          locale,
+          topOf(donut),
+          donut.reduce((s, d) => s + d.value, 0)
+        )
+      );
+      break;
+    }
+    case "reproduction": {
+      const born = rows.reduce((s, r) => s + num(r.bornAlive), 0);
+      const still = rows.reduce((s, r) => s + num(r.stillborn), 0);
+      const completed = rows.reduce((s, r) => s + num(r.gestationsCompleted), 0);
+      const lost =
+        rows.reduce((s, r) => s + num(r.gestationsAborted), 0) +
+        rows.reduce((s, r) => s + num(r.gestationsLost), 0);
+      const iaRank = rows.map((r) => ({
+        label: shortDept(r.departmentCode),
+        value: num(r.partIA) * 100
+      }));
+      push(
+        i18n.charts.reproduction.born,
+        chartInsights.bornVsStill(locale, born, still)
+      );
+      push(
+        i18n.charts.reproduction.farrowing,
+        chartInsights.farrowing(locale, completed, lost)
+      );
+      push(
+        i18n.charts.reproduction.ia,
+        chartInsights.topDept(locale, topOf(iaRank), "part IA", "AI share", "%")
+      );
+      break;
+    }
+    case "economy": {
+      const sale = rows.reduce((s, r) => s + num(r.exitsSaleHeadcount), 0);
+      const slaughter = rows.reduce(
+        (s, r) => s + num(r.exitsSlaughterHeadcount),
+        0
+      );
+      push(
+        i18n.charts.economy.group,
+        chartInsights.saleVsSlaughter(locale, sale, slaughter)
+      );
+      break;
+    }
+    case "health": {
+      const rank = rows.map((r) => ({
+        label: shortDept(r.departmentCode),
+        value: num(r.incidencePerThousand)
+      }));
+      push(
+        i18n.charts.health.incidence,
+        chartInsights.topDept(
+          locale,
+          topOf(rank),
+          "incidence des suspicions",
+          "suspicion incidence",
+          "/1 000"
+        )
+      );
+      break;
+    }
+    case "lifecycle": {
+      const exits = { sale: 0, slaughter: 0, mortality: 0, transfer: 0 };
+      for (const r of rows) {
+        exits.sale += num(r.exitsSaleHeadcount);
+        exits.slaughter += num(r.exitsSlaughterHeadcount);
+      }
+      const c = i18n.charts.lifecycle;
+      push(
+        c.exits,
+        chartInsights.exitMix(locale, [
+          { label: c.kindSale, value: exits.sale },
+          { label: c.kindSlaughter, value: exits.slaughter },
+          { label: c.kindMortality, value: exits.mortality },
+          { label: c.kindTransfer, value: exits.transfer }
+        ])
+      );
+      break;
+    }
+    case "adoption": {
+      const bars = rows.map((r) => ({
+        label: shortDept(r.departmentCode),
+        value: num(r.activeFarmsCount)
+      }));
+      push(
+        i18n.charts.adoption.farms,
+        chartInsights.topDept(
+          locale,
+          topOf(bars),
+          "nombre de fermes actives",
+          "active farm count"
+        )
+      );
+      break;
+    }
+    default:
+      break;
+  }
+  return out;
 }

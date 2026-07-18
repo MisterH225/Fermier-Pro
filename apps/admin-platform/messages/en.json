@@ -689,6 +689,14 @@
         "adoption": "Adoption",
         "movements": "Movements"
       },
+      "categories": {
+        "fattening": "Fattening",
+        "starter": "Starter",
+        "breeding_female": "Breeding females",
+        "breeding_male": "Breeding males",
+        "nursing": "Nursing",
+        "growth": "Growth"
+      },
       "columns": {
         "department": "Department",
         "farms": "Farms",

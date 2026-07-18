@@ -130,6 +130,14 @@ export function RegionalStatsVisuals({
   national
 }: Props) {
   const t = useTranslations("stats.regional.charts");
+  const tCat = useTranslations("stats.regional.categories");
+  const labelCategory = (key: string) => {
+    try {
+      return tCat(key as "fattening");
+    } catch {
+      return key;
+    }
+  };
   const visible = useMemo(
     () => departments.filter(isVisible),
     [departments]
@@ -232,7 +240,7 @@ export function RegionalStatsVisuals({
     const byCat = mergeRecords(visible, (r) => r.animalCountByCategory);
     const totalAnimals = sumRecord(byCat);
     const donut = Object.entries(byCat).map(([name, value], i) => ({
-      name,
+      name: labelCategory(name),
       value,
       color: CHART_PALETTE[i % CHART_PALETTE.length]
     }));
@@ -401,7 +409,7 @@ export function RegionalStatsVisuals({
     });
     // For donut use relative weight of categories present (count of depts reporting)
     const catSegments = Object.keys(cats).map((name, i) => ({
-      name,
+      name: labelCategory(name),
       value: visible.filter((d) => (d.avgGmqByCategory?.[name] ?? 0) > 0).length || 1,
       color: CHART_PALETTE[i % CHART_PALETTE.length]
     }));

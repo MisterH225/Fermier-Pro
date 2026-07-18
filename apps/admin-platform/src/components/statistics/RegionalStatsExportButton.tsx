@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Download } from "lucide-react";
 import {
   generateInstitutionStatsReport,
@@ -27,6 +27,7 @@ export function RegionalStatsExportButton({
   viewAsInstitutionId
 }: Props) {
   const t = useTranslations("stats.regional.export");
+  const locale = useLocale();
   const [busyFormat, setBusyFormat] = useState<InstitutionStatsReportFormat | null>(
     null
   );
@@ -39,7 +40,13 @@ export function RegionalStatsExportButton({
     try {
       const result = await generateInstitutionStatsReport(
         token,
-        { sections, from, to, format },
+        {
+          sections,
+          from,
+          to,
+          format,
+          locale: locale === "en" ? "en" : "fr"
+        },
         viewAsInstitutionId
       );
       triggerInstitutionStatsReportDownload(result);

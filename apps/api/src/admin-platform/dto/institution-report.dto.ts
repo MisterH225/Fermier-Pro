@@ -33,6 +33,11 @@ export class GenerateInstitutionStatsReportDto {
   @IsIn(["pdf", "csv"])
   format!: "pdf" | "csv";
 
+  /** Langue du rapport (titres, analyses, libellés). Défaut : fr. */
+  @IsOptional()
+  @IsIn(["fr", "en"])
+  locale?: "fr" | "en";
+
   @IsOptional()
   @IsString()
   viewAsInstitutionId?: string;

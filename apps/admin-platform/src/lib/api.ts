@@ -1946,6 +1946,8 @@ export type GenerateInstitutionStatsReportBody = {
   to: string;
   regionCode?: string;
   format: InstitutionStatsReportFormat;
+  /** Langue du rapport PDF/CSV (titres, analyses, catégories). */
+  locale?: "fr" | "en";
   viewAsInstitutionId?: string;
 };
 

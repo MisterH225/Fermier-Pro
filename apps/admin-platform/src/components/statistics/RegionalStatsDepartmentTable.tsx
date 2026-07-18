@@ -21,16 +21,32 @@ function formatMasked(t: ReturnType<typeof useTranslations<"stats.regional">>) {
   return t("maskedValue");
 }
 
+const PRODUCTION_CATEGORY_KEYS = new Set([
+  "fattening",
+  "starter",
+  "breeding_female",
+  "breeding_male",
+  "nursing",
+  "growth"
+]);
+
 function formatJsonRecord(
   value: Record<string, number> | undefined,
   masked: boolean | undefined,
-  t: ReturnType<typeof useTranslations<"stats.regional">>
+  t: ReturnType<typeof useTranslations<"stats.regional">>,
+  translateCategories = false
 ) {
   if (masked || !value || Object.keys(value).length === 0) {
     return formatMasked(t);
   }
   return Object.entries(value)
-    .map(([key, count]) => `${key}: ${count}`)
+    .map(([key, count]) => {
+      const label =
+        translateCategories && PRODUCTION_CATEGORY_KEYS.has(key)
+          ? t(`categories.${key}` as "categories.fattening")
+          : key;
+      return `${label}: ${count}`;
+    })
     .join(" · ");
 }
 
@@ -141,7 +157,12 @@ export function RegionalStatsDepartmentTable({ section, departments }: Props) {
                 {section === "herd" ? (
                   <>
                     <TableCell>
-                      {formatJsonRecord(row.animalCountByCategory, masked, t)}
+                      {formatJsonRecord(
+                        row.animalCountByCategory,
+                        masked,
+                        t,
+                        true
+                      )}
                     </TableCell>
                     <TableCell>
                       {masked ? formatMasked(t) : (row.exitsSaleHeadcount ?? "—")}
@@ -200,7 +221,12 @@ export function RegionalStatsDepartmentTable({ section, departments }: Props) {
                 {section === "growth" ? (
                   <>
                     <TableCell>
-                      {formatJsonRecord(row.avgGmqByCategory, masked, t)}
+                      {formatJsonRecord(
+                        row.avgGmqByCategory,
+                        masked,
+                        t,
+                        true
+                      )}
                     </TableCell>
                     <TableCell>
                       {masked
