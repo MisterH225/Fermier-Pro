@@ -12,6 +12,12 @@ import {
   Text,
   View
 } from "react-native";
+import { MeteoProgressBar } from "../../components/common/MeteoProgressBar";
+import {
+  buildProducerScorePillarsV1,
+  type MeteoPillarView
+} from "../../components/meteo/meteoPillars";
+import { getMeteoProgress } from "../../constants/meteoProfil";
 import { useSession } from "../../context/SessionContext";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { fetchMyProducerScore, postRecomputeProducerScore } from "../../lib/api";
@@ -26,15 +32,6 @@ import {
 import type { RootStackParamList } from "../../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ProducerScoreDashboard">;
-
-type PillarKey = "data" | "usage" | "offers" | "chat";
-
-type PillarItem = {
-  key: PillarKey;
-  label: string;
-  shortLabel: string;
-  value: number;
-};
 
 const CHART_BAR_MAX_HEIGHT = 112;
 
@@ -73,16 +70,21 @@ function InsightCard({
   );
 }
 
-function PillarsBarChart({ pillars }: { pillars: PillarItem[] }) {
+function PillarsBarChart({ pillars }: { pillars: MeteoPillarView[] }) {
   return (
     <View style={styles.chartWrap}>
       <View style={styles.chartBars}>
         {pillars.map((pillar) => {
           const height = Math.max(
             6,
-            Math.round((pillar.value / 100) * CHART_BAR_MAX_HEIGHT)
+            Math.round((pillar.score / 100) * CHART_BAR_MAX_HEIGHT)
           );
-          const color = barColor(pillar.value);
+          const color = barColor(pillar.score);
+          const short =
+            pillar.shortLabel ??
+            pillar.label ??
+            pillar.shortLabelKey ??
+            pillar.labelKey;
           return (
             <View key={pillar.key} style={styles.chartCol}>
               <View style={styles.chartBarTrack}>
@@ -94,7 +96,7 @@ function PillarsBarChart({ pillars }: { pillars: PillarItem[] }) {
                 />
               </View>
               <Text style={styles.chartLabel} numberOfLines={1}>
-                {pillar.shortLabel}
+                {short}
               </Text>
             </View>
           );
@@ -127,39 +129,29 @@ export function ProducerScoreDashboardScreen(_props: Props) {
     return 70;
   }, [score]);
 
-  const pillars = useMemo<PillarItem[]>(() => {
+  /** Liste dynamique de piliers — prête pour trust-score v2 (labelKey / hint). */
+  const pillars = useMemo<MeteoPillarView[]>(() => {
     if (!score) return [];
-    return [
+    return buildProducerScorePillarsV1(
       {
-        key: "data",
-        label: t("producerScore.dashboard.dataRegularity"),
-        shortLabel: t("producerScore.dashboard.pillarShort.data"),
-        value: score.dataRegularityScore
+        dataRegularityScore: score.dataRegularityScore,
+        platformUsageScore: score.platformUsageScore,
+        responsivenessScore: score.responsivenessScore,
+        chatScore,
+        dataEntryDaysLast30: score.dataEntryDaysLast30,
+        platformActiveDaysLast30: score.platformActiveDaysLast30,
+        offersRespondedWithin48h: score.offersRespondedWithin48h,
+        offersReceivedCount: score.offersReceivedCount,
+        chatRepliedWithin24h: score.chatRepliedWithin24h,
+        chatBuyerMessagesCount: score.chatBuyerMessagesCount
       },
-      {
-        key: "usage",
-        label: t("producerScore.dashboard.platformUsage"),
-        shortLabel: t("producerScore.dashboard.pillarShort.usage"),
-        value: score.platformUsageScore
-      },
-      {
-        key: "offers",
-        label: t("producerScore.dashboard.responsiveness"),
-        shortLabel: t("producerScore.dashboard.pillarShort.offers"),
-        value: score.responsivenessScore
-      },
-      {
-        key: "chat",
-        label: t("producerScore.dashboard.chatResponsiveness"),
-        shortLabel: t("producerScore.dashboard.pillarShort.chat"),
-        value: chatScore
-      }
-    ];
+      t
+    );
   }, [score, chatScore, t]);
 
   const bestPillar = useMemo(() => {
     if (pillars.length === 0) return null;
-    return [...pillars].sort((a, b) => b.value - a.value)[0];
+    return [...pillars].sort((a, b) => b.score - a.score)[0];
   }, [pillars]);
 
   if (scoreQ.isPending) {
@@ -250,6 +242,13 @@ export function ProducerScoreDashboardScreen(_props: Props) {
           <Text style={styles.heroMetricValue}>{score.globalValue}</Text>
           <Text style={styles.heroMetricUnit}>/100</Text>
         </View>
+        <View style={styles.heroProgress}>
+          <MeteoProgressBar
+            progress={getMeteoProgress(score.globalValue)}
+            color={tierColor}
+            trackColor={`${tierColor}33`}
+          />
+        </View>
         <Text style={styles.heroHint}>{t("producerScore.dashboard.hint")}</Text>
       </View>
 
@@ -263,8 +262,8 @@ export function ProducerScoreDashboardScreen(_props: Props) {
           <Text style={styles.insightBody}>
             {bestPillar
               ? t("producerScore.dashboard.achievementBestBody", {
-                  pillar: bestPillar.label,
-                  value: bestPillar.value
+                  pillar: bestPillar.label ?? bestPillar.labelKey,
+                  value: bestPillar.score
                 })
               : t("producerScore.dashboard.achievementBestFallback")}
           </Text>
@@ -289,30 +288,16 @@ export function ProducerScoreDashboardScreen(_props: Props) {
           {pillars.map((pillar) => (
             <View key={pillar.key} style={styles.pillarDetailRow}>
               <View style={styles.pillarDetailHeader}>
-                <Text style={styles.pillarDetailLabel}>{pillar.label}</Text>
+                <Text style={styles.pillarDetailLabel}>
+                  {pillar.label ?? pillar.labelKey}
+                </Text>
                 <Text style={[styles.pillarDetailValue, { color: tierColor }]}>
-                  {pillar.value}/100
+                  {pillar.score}/100
                 </Text>
               </View>
-              <Text style={styles.pillarDetailMeta}>
-                {pillar.key === "data"
-                  ? t("producerScore.dashboard.dataRegularityDetail", {
-                      days: score.dataEntryDaysLast30
-                    })
-                  : pillar.key === "usage"
-                    ? t("producerScore.dashboard.platformUsageDetail", {
-                        days: score.platformActiveDaysLast30
-                      })
-                    : pillar.key === "offers"
-                      ? t("producerScore.dashboard.responsivenessDetail", {
-                          responded: score.offersRespondedWithin48h,
-                          received: score.offersReceivedCount
-                        })
-                      : t("producerScore.dashboard.chatResponsivenessDetail", {
-                          replied: score.chatRepliedWithin24h,
-                          messages: score.chatBuyerMessagesCount
-                        })}
-              </Text>
+              {pillar.hint ? (
+                <Text style={styles.pillarDetailMeta}>{pillar.hint}</Text>
+              ) : null}
             </View>
           ))}
         </View>
@@ -408,6 +393,10 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: mobileColors.textSecondary,
     marginBottom: 2
+  },
+  heroProgress: {
+    marginTop: mobileSpacing.sm,
+    marginBottom: mobileSpacing.xs
   },
   heroHint: {
     ...mobileTypography.meta,

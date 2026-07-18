@@ -25,13 +25,11 @@ import {
   profileScreenScrollContent,
   ScreenSection
 } from "../../components/layout";
-import { MeteoProfilCard } from "../../components/dashboard/MeteoProfilCard";
 import { BuyerMobileShell } from "../../components/layout/BuyerMobileShell";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import { openBuyerOffersHub } from "../../lib/buyerMarketplacePending";
-import { fetchBuyerDashboard, fetchMyCreditScore } from "../../lib/api";
-import { creditScoreToNumeric } from "../../constants/meteoProfil";
+import { fetchBuyerDashboard } from "../../lib/api";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { welcomeFirstName } from "../../lib/userDisplay";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
@@ -50,12 +48,6 @@ export function BuyerDashboardScreen() {
   const dashQ = useQuery({
     queryKey: ["buyerDashboard", activeProfileId],
     queryFn: () => fetchBuyerDashboard(accessToken!, activeProfileId),
-    enabled: Boolean(accessToken)
-  });
-
-  const creditScoreQ = useQuery({
-    queryKey: ["myCreditScore", activeProfileId],
-    queryFn: () => fetchMyCreditScore(accessToken!, activeProfileId),
     enabled: Boolean(accessToken)
   });
 
@@ -121,11 +113,6 @@ export function BuyerDashboardScreen() {
         <ShopOrdersTrackingCard
           accentColor={buyerColors.primary}
           backgroundColor={buyerColors.primaryLight}
-        />
-
-        <MeteoProfilCard
-          score={creditScoreToNumeric(creditScoreQ.data?.score)}
-          onPress={() => navigation.navigate("CreditDashboard")}
         />
 
         <BuyerActiveProposalsSection />

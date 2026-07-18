@@ -1,0 +1,55 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`meteoHeaderModel snapshot icône / teinte par niveau (score 0–100) 1`] = `
+[
+  {
+    "icon": "🌧️",
+    "isNew": false,
+    "label": "Nuage gris",
+    "levelId": "debutant",
+    "tint": "#B0BEC5",
+  },
+  {
+    "icon": "⛅",
+    "isNew": false,
+    "label": "Éclaircie",
+    "levelId": "eclaircie",
+    "tint": "#90A4AE",
+  },
+  {
+    "icon": "🌤️",
+    "isNew": false,
+    "label": "Brise légère",
+    "levelId": "brise",
+    "tint": "#FFB300",
+  },
+  {
+    "icon": "🌥️",
+    "isNew": false,
+    "label": "Ciel dégagé",
+    "levelId": "ciel_degage",
+    "tint": "#43A047",
+  },
+  {
+    "icon": "☀️",
+    "isNew": false,
+    "label": "Grande chaleur",
+    "levelId": "grande_chaleur",
+    "tint": "#FB8C00",
+  },
+  {
+    "icon": "🌞",
+    "isNew": false,
+    "label": "Soleil de plomb",
+    "levelId": "soleil_plomb",
+    "tint": "#E53935",
+  },
+  {
+    "icon": "🌈",
+    "isNew": false,
+    "label": "Légende",
+    "levelId": "legende",
+    "tint": "#6A1B9A",
+  },
+]
+`;
