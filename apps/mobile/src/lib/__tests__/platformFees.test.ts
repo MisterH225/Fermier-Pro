@@ -1,7 +1,9 @@
 import {
   computeSellerFeeBreakdown,
   computeVetFeeBreakdown,
-  parsePriceInput
+  formatRatePercentLabel,
+  parsePriceInput,
+  rateToPercent
 } from "../platformFees";
 
 describe("platformFees", () => {
@@ -12,6 +14,18 @@ describe("platformFees", () => {
       feeAmount: 500,
       netAmount: 9_500,
       ratePct: 5
+    });
+  });
+
+  it("affiche 1,5 % sans arrondir à 2 %", () => {
+    expect(rateToPercent(0.015)).toBe(1.5);
+    expect(formatRatePercentLabel(1.5)).toBe("1,5");
+    const b = computeSellerFeeBreakdown(3500, 0.015);
+    expect(b).toEqual({
+      grossAmount: 3500,
+      feeAmount: 53,
+      netAmount: 3447,
+      ratePct: 1.5
     });
   });
 

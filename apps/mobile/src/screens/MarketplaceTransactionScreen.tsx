@@ -39,6 +39,7 @@ import { MarketplaceTransactionStatusNotice } from "../components/marketplace/tr
 import { TransactionReceiptCard } from "../components/marketplace/TransactionReceiptCard";
 import { useBottomInset } from "../hooks/useBottomInset";
 import { useSession } from "../context/SessionContext";
+import { formatRatePercentLabel } from "../lib/platformFees";
 import {
   cancelMarketplaceTransaction,
   completeMarketplacePendingTransfer,
@@ -554,7 +555,9 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   // Frais acheteur — affichés même à 0 pour la transparence totale
   const buyerCommissionRate = tx?.commissionRate ?? 0;
   const buyerPaysCommission = tx?.buyerPaysCommission === true;
-  const feeRatePct = Math.round(buyerCommissionRate * 100);
+  // Une décimale (1,5 %) — éviter Math.round(0.015*100) === 2
+  const feeRatePct = Math.round(buyerCommissionRate * 1000) / 10;
+  const feeRatePctLabel = formatRatePercentLabel(feeRatePct);
   const feeEstimate = buyerPaysCommission ? (tx?.platformFeeEstimate ?? 0) : 0;
   // Total = achat + frais (sans buffer per_kg — restitué à la clôture)
   const paymentTotal = agreedDeal + feeEstimate;
@@ -565,7 +568,7 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
       t("marketScreen.transaction.feeConsentTitle"),
       t("marketScreen.transaction.feeConsentBody", {
         dealAmount: money(agreedDeal, payCurrency),
-        pct: feeRatePct,
+        pct: feeRatePctLabel,
         feeAmount: money(feeEstimate, payCurrency),
         totalAmount: money(paymentTotal, payCurrency)
       }),
@@ -821,8 +824,10 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
               <Text style={styles.feeLabel}>
                 {feeRatePct > 0
                   ? (tx.priceType === "flat"
-                      ? t("marketScreen.transaction.platformFeeLabel", { pct: feeRatePct })
-                      : t("marketScreen.transaction.platformFeeEstimatedLabel", { pct: feeRatePct }))
+                      ? t("marketScreen.transaction.platformFeeLabel", { pct: feeRatePctLabel })
+                      : t("marketScreen.transaction.platformFeeEstimatedLabel", {
+                          pct: feeRatePctLabel
+                        }))
                   : t("marketScreen.transaction.platformFeeZeroLabel")}
               </Text>
               <Text style={[styles.feeValue, feeEstimate > 0 && styles.feeValueAccent]}>
