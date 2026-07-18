@@ -42,6 +42,7 @@ export type FarmFeedStockDeepParams = {
   feedTab?: "overview" | "movements" | "controls";
   openFeedTypeId?: string;
   highlightFeedType?: boolean;
+  autoOpenEntry?: boolean;
   autoOpenControl?: boolean;
   filterCostMissing?: boolean;
   costFilter?: "missing";

@@ -95,6 +95,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
     feedTab: feedTabParam,
     openFeedTypeId,
     highlightFeedType,
+    autoOpenEntry,
     autoOpenControl,
     filterCostMissing,
     costFilter
@@ -147,11 +148,18 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
       const t = setTimeout(() => setStockOpen(true), 300);
       return () => clearTimeout(t);
     }
+    if (autoOpenEntry) {
+      setFeedTab("movements");
+      setStockModalDefaultTab("in");
+      const t = setTimeout(() => setStockOpen(true), 300);
+      return () => clearTimeout(t);
+    }
     return undefined;
   }, [
     feedTabParam,
     openFeedTypeId,
     highlightFeedType,
+    autoOpenEntry,
     autoOpenControl,
     filterCostMissing,
     costFilter

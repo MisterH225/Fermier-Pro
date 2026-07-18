@@ -1408,7 +1408,11 @@ export const fr = {
       sell: "Vendre",
       sellA11y: "Vendre ou publier sur le marché",
       expense: "Dépense",
-      expenseA11y: "Enregistrer une dépense"
+      expenseA11y: "Enregistrer une dépense",
+      feedIn: "Entrée aliment",
+      feedInA11y: "Enregistrer une entrée d’aliment",
+      stockCheck: "Contrôle stock",
+      stockCheckA11y: "Faire un contrôle de stock aliment"
     },
     sell: {
       title: "Vendre",
@@ -1437,9 +1441,9 @@ export const fr = {
       team: "Équipe",
       teamDescription: "Gérer vos collaborateurs",
       settings: "Paramètres",
-      nutrition: "Stock",
+      nutrition: "Aliment",
       nutritionRoadmap:
-        "Le suivi des achats et du stock d’aliments sera disponible lorsque le module stock sera activé pour ta ferme.",
+        "Le suivi des achats et du stock d’aliments sera disponible lorsque le module aliment sera activé pour ta ferme.",
       collaboration: "Collaboration",
       market: "Market",
       communityFeed: "Communauté",
@@ -1454,7 +1458,7 @@ export const fr = {
       closeA11y: "Fermer"
     },
     screenTitles: {
-      feedStock: "Stock aliment",
+      feedStock: "Aliment",
       communityFeed: "Com",
       notifications: "Notifications",
       reports: "Rapports",
@@ -1586,7 +1590,7 @@ export const fr = {
     }
   },
   feedStock: {
-    title: "Stock Aliment",
+    title: "Aliment",
     tabOverview: "Vue d'ensemble",
     tabMovements: "Mouvements",
     tabControls: "Contrôles",
@@ -2514,8 +2518,8 @@ export const fr = {
       healthVet: "Prochaine visite vétérinaire",
       healthDiseases: "Cas de maladie actifs",
       healthMortality: "Taux de mortalité",
-      feedTitle: "Stock aliment",
-      feedDisabled: "Module stock aliment désactivé sur ce serveur.",
+      feedTitle: "Aliment",
+      feedDisabled: "Module aliment désactivé sur ce serveur.",
       feedCritical: "Stock sous seuil critique",
       dayAbbr: "j",
       urgentBadge: "Urgent"

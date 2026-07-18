@@ -9,13 +9,14 @@ import {
 import { producerBottomChromeHeight } from "../../navigation/producerNavMetrics";
 
 describe("producerQuickActions root routes", () => {
-  it("inclut les 5 écrans racine producteur", () => {
+  it("inclut les écrans racine producteur dont Aliment", () => {
     expect([...PRODUCER_QUICK_ACTION_ROOT_ROUTES]).toEqual([
       "ProducerDashboard",
       "FarmLivestock",
       "FarmHealth",
       "MarketplaceList",
-      "FarmFinance"
+      "FarmFinance",
+      "FarmFeedStock"
     ]);
   });
 
@@ -23,6 +24,7 @@ describe("producerQuickActions root routes", () => {
     expect(isProducerQuickActionRootRoute("ProducerDashboard")).toBe(true);
     expect(isProducerQuickActionRootRoute("FarmLivestock")).toBe(true);
     expect(isProducerQuickActionRootRoute("MarketplaceList")).toBe(true);
+    expect(isProducerQuickActionRootRoute("FarmFeedStock")).toBe(true);
     expect(isProducerQuickActionRootRoute("AnimalDetail")).toBe(false);
     expect(isProducerQuickActionRootRoute("BatchDetail")).toBe(false);
     expect(isProducerQuickActionRootRoute("CreateMarketplaceListing")).toBe(
@@ -55,13 +57,15 @@ describe("producerQuickFabBottomOffset", () => {
 });
 
 describe("PRODUCER_QUICK_ACTION_IDS", () => {
-  it("expose les 5 gestes dont Vendre", () => {
+  it("expose les gestes cheptel/finance et aliment", () => {
     expect(PRODUCER_QUICK_ACTION_IDS).toEqual([
       "weigh",
       "mortality",
       "farrowing",
       "sell",
-      "expense"
+      "expense",
+      "feedIn",
+      "stockCheck"
     ]);
   });
 });
@@ -95,6 +99,20 @@ describe("quick action navigation params", () => {
           openTransaction: true
         }
       },
+      feedIn: {
+        screen: "FarmFeedStock",
+        params: {
+          ...farm,
+          autoOpenEntry: true
+        }
+      },
+      stockCheck: {
+        screen: "FarmFeedStock",
+        params: {
+          ...farm,
+          autoOpenControl: true
+        }
+      },
       sellMarketplace: {
         screen: "CreateMarketplaceListing",
         params: { farmId: farm.farmId }
@@ -105,6 +123,8 @@ describe("quick action navigation params", () => {
       },
       farrowing: { params: { autoOpenLitter: true, initialTab: "birth" } },
       expense: { params: { openTransaction: true, initialTab: "depenses" } },
+      feedIn: { params: { autoOpenEntry: true } },
+      stockCheck: { params: { autoOpenControl: true } },
       sellMarketplace: { params: { farmId: "f1" } }
     });
   });

@@ -257,6 +257,8 @@ export type RootStackParamList = {
     feedTab?: "overview" | "movements" | "controls";
     openFeedTypeId?: string;
     highlightFeedType?: boolean;
+    /** Ouvre le modal sur l’onglet entrée de stock (FAB / deep link). */
+    autoOpenEntry?: boolean;
     autoOpenControl?: boolean;
     filterCostMissing?: boolean;
     costFilter?: "missing";
