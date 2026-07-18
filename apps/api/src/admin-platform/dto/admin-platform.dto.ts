@@ -118,6 +118,13 @@ export class UpdatePlatformSettingsDto {
   @Max(10_000)
   marketplaceWeightArbitrationCumulativeMinDiffKg?: number;
 
+  /** Tolérance relative (%) combinée avec minDiffKg via max() — défaut 3. */
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  marketplaceWeightTolerancePercent?: number;
+
   @IsOptional()
   @IsNumber()
   @Min(0)

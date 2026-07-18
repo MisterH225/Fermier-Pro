@@ -27,6 +27,12 @@ type Props = {
   transactionId: string;
   listingId: string;
   buyerWeightKg?: number | null;
+  /** Seuils depuis le DTO transaction — rien en dur. */
+  weightArbitrationThresholds?: {
+    minDiffKg: number;
+    cumulativeMinDiffKg: number;
+    tolerancePercent: number;
+  } | null;
   onClose: () => void;
   onConfirm: (payload: { sellerDeclaredWeightKg: number; photoUrl?: string }) => void;
 };
@@ -42,6 +48,7 @@ export function DeclareSellerWeightModal({
   transactionId,
   listingId,
   buyerWeightKg,
+  weightArbitrationThresholds,
   onClose,
   onConfirm
 }: Props) {
@@ -125,6 +132,14 @@ export function DeclareSellerWeightModal({
       <Text style={styles.hint}>
         {t("marketScreen.transaction.sellerDeclareWeightHint")}
       </Text>
+      {weightArbitrationThresholds ? (
+        <Text style={styles.toleranceInfo}>
+          {t("marketScreen.transaction.autoToleranceHint", {
+            percent: weightArbitrationThresholds.tolerancePercent,
+            minKg: weightArbitrationThresholds.minDiffKg
+          })}
+        </Text>
+      ) : null}
       {buyerWeightKg != null ? (
         <Text style={styles.buyerLine}>
           {t("marketScreen.transaction.buyerDeclaredWeight", {
@@ -168,6 +183,12 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     color: mobileColors.textSecondary,
     marginBottom: mobileSpacing.md
+  },
+  toleranceInfo: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginBottom: mobileSpacing.md,
+    lineHeight: 20
   },
   buyerLine: {
     ...mobileTypography.body,

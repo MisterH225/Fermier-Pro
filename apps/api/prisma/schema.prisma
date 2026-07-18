@@ -2753,6 +2753,8 @@ model PlatformSettings {
   marketplaceWeightArbitrationMinDiffKg Decimal @default(1) @db.Decimal(14, 4)
   /// Écart total minimal (kg) pour demander un arbitrage sur un lot multi-animaux.
   marketplaceWeightArbitrationCumulativeMinDiffKg Decimal @default(5) @db.Decimal(14, 4)
+  /// Tolérance relative (%) combinée avec minDiffKg via max() — écart normal entre balances terrain (~3 %).
+  marketplaceWeightTolerancePercent Decimal @default(3) @db.Decimal(5, 2)
   /// Prix abonnement Premium commerçant (XOF), fixé par superadmin.
   merchantPremiumPriceXof Decimal @default(5000) @db.Decimal(14, 2)
   /// Nombre max de boutiques par profil Premium commerçant (global, identique pour tous).

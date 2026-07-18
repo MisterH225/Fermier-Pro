@@ -555,6 +555,8 @@ export const en = {
       sellerDeclareWeightTitle: "Your weigh-in",
       sellerDeclareWeightHint:
         "Enter the weight you measured at handover. If the gap is small, the sale continues; otherwise arbitration may be requested.",
+      autoToleranceHint:
+        "If your weigh-in differs by less than {{percent}}% (or {{minKg}} kg minimum) from the buyer's, the transaction will be validated automatically at the average weight.",
       sellerDeclareWeightCta: "Enter my weight",
       sellerWeightLabel: "Your weight (kg)",
       buyerDeclaredWeight: "Buyer weight: {{kg}} kg",

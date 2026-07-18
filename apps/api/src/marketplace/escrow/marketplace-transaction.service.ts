@@ -25,6 +25,8 @@ import {
   Prisma,
   WeightValidatedBy
 } from "@prisma/client";
+import { AUDIT_ACTION } from "../../common/audit.constants";
+import { AuditService } from "../../common/audit.service";
 import { FarmAccessService } from "../../common/farm-access.service";
 import { capturePaymentError } from "../../common/sentry-payment.util";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -62,8 +64,10 @@ import {
 } from "./transaction-state-machine";
 import {
   type BuyerAnimalWeightRow,
+  averageRetainedWeightKg,
   canRequestWeightArbitration,
   computeWeightDifferenceKg,
+  effectiveWeightToleranceKg,
   isWithinWeightTolerance,
   parseBuyerAnimalWeights,
   resolveDeclaredBuyerWeightKg
@@ -83,6 +87,7 @@ export class MarketplaceTransactionService {
     private readonly escrow: EscrowService,
     private readonly push: PushNotificationsService,
     private readonly platformSettings: PlatformSettingsService,
+    private readonly audit: AuditService,
     @Inject(forwardRef(() => ListingsService))
     private readonly listings: ListingsService,
     private readonly receipts: ReceiptService,
@@ -258,7 +263,8 @@ export class MarketplaceTransactionService {
       canRequestWeightArbitrationFlag = canRequestWeightArbitration(
         weightDiffKg,
         animalCount,
-        thresholds
+        thresholds,
+        buyerKg
       );
     }
     return {
@@ -1668,10 +1674,29 @@ export class MarketplaceTransactionService {
     const animalRows = parseBuyerAnimalWeights(tx.buyerAnimalWeights);
     const animalCount = Math.max(animalRows.length, 1);
 
-    if (isWithinWeightTolerance(diffKg, thresholds)) {
+    // Court-circuit : sous tolérance combinée (% + kg) → WEIGHT_VALIDATED direct
+    // avec moyenne dans realWeightKg (même chemin calculateFinalAmount au settle).
+    if (isWithinWeightTolerance(buyerKg, sellerKg, thresholds)) {
+      const retainedKg = averageRetainedWeightKg(buyerKg, sellerKg);
+      const tolKg = effectiveWeightToleranceKg(buyerKg, thresholds);
+      const listingFarm = await this.prisma.marketplaceListing.findUnique({
+        where: { id: tx.listingId },
+        select: { farmId: true }
+      });
       await this.markWeightValidatedBySeller(tx.id, {
         sellerDeclaredWeightKg: sellerKg,
-        sellerPhotoUrl: dto.photoUrl
+        sellerPhotoUrl: dto.photoUrl,
+        realWeightKg: retainedKg,
+        autoTolerance: {
+          actorUserId: user.id,
+          farmId: listingFarm?.farmId ?? null,
+          buyerKg,
+          sellerKg,
+          retainedKg,
+          diffKg,
+          toleranceKg: tolKg,
+          tolerancePercent: thresholds.tolerancePercent
+        }
       });
       return this.getById(user, tx.id);
     }
@@ -1694,7 +1719,8 @@ export class MarketplaceTransactionService {
     const canArbitrate = canRequestWeightArbitration(
       diffKg,
       animalCount,
-      thresholds
+      thresholds,
+      buyerKg
     );
     const buyerMsg = canArbitrate
       ? `Écart de ${diffLabel} kg. Vous pouvez demander un arbitrage ou accepter la pesée vendeur.`
@@ -1733,9 +1759,10 @@ export class MarketplaceTransactionService {
     const diffKg = computeWeightDifferenceKg(buyerKg, sellerKg);
     const animalRows = parseBuyerAnimalWeights(tx.buyerAnimalWeights);
     const animalCount = Math.max(animalRows.length, 1);
-    if (!canRequestWeightArbitration(diffKg, animalCount, thresholds)) {
+    if (!canRequestWeightArbitration(diffKg, animalCount, thresholds, buyerKg)) {
+      const tolKg = effectiveWeightToleranceKg(buyerKg, thresholds);
       throw new BadRequestException(
-        `Écart de ${diffKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg insuffisant pour un arbitrage (seuils : ${thresholds.minDiffKg} kg / ${thresholds.cumulativeMinDiffKg} kg cumulé).`
+        `Écart de ${diffKg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg insuffisant pour un arbitrage (tolérance : ${tolKg.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} kg = max(${thresholds.tolerancePercent} %, ${thresholds.minDiffKg} kg) ; cumulé lot : ${thresholds.cumulativeMinDiffKg} kg).`
       );
     }
 
@@ -1777,7 +1804,22 @@ export class MarketplaceTransactionService {
 
   private async markWeightValidatedBySeller(
     transactionId: string,
-    options?: { sellerDeclaredWeightKg?: number; sellerPhotoUrl?: string }
+    options?: {
+      sellerDeclaredWeightKg?: number;
+      sellerPhotoUrl?: string;
+      /** Poids retenu (moyenne) — écrit dans realWeightKg pour calculateFinalAmount. */
+      realWeightKg?: number;
+      autoTolerance?: {
+        actorUserId: string;
+        farmId: string | null;
+        buyerKg: number;
+        sellerKg: number;
+        retainedKg: number;
+        diffKg: number;
+        toleranceKg: number;
+        tolerancePercent: number;
+      };
+    }
   ) {
     await this.prisma.marketplaceTransaction.update({
       where: { id: transactionId },
@@ -1785,6 +1827,9 @@ export class MarketplaceTransactionService {
         status: MarketplaceTransactionStatus.WEIGHT_VALIDATED,
         weightValidatedAt: new Date(),
         weightValidatedBy: WeightValidatedBy.seller,
+        ...(options?.realWeightKg != null
+          ? { realWeightKg: new Prisma.Decimal(options.realWeightKg) }
+          : {}),
         ...(options?.sellerDeclaredWeightKg != null
           ? {
               sellerDeclaredWeightKg: new Prisma.Decimal(
@@ -1804,6 +1849,61 @@ export class MarketplaceTransactionService {
     if (!tx) {
       return;
     }
+
+    if (options?.autoTolerance) {
+      const a = options.autoTolerance;
+      const retainedLabel = a.retainedKg.toLocaleString("fr-FR", {
+        maximumFractionDigits: 2
+      });
+      const diffLabel = a.diffKg.toLocaleString("fr-FR", {
+        maximumFractionDigits: 2
+      });
+      const tolLabel = a.toleranceKg.toLocaleString("fr-FR", {
+        maximumFractionDigits: 2
+      });
+      await this.audit.record({
+        actorUserId: a.actorUserId,
+        farmId: a.farmId,
+        action: AUDIT_ACTION.marketplaceWeightAutoTolerance,
+        resourceType: "MarketplaceTransaction",
+        resourceId: transactionId,
+        metadata: {
+          buyerWeightKg: a.buyerKg,
+          sellerWeightKg: a.sellerKg,
+          retainedWeightKg: a.retainedKg,
+          diffKg: a.diffKg,
+          toleranceKg: a.toleranceKg,
+          tolerancePercent: a.tolerancePercent,
+          note: `Validation automatique au poids moyen (écart ${diffLabel} kg ≤ tolérance ${tolLabel} kg)`
+        }
+      });
+      const body = `Écart de pesée ${diffLabel} kg ≤ tolérance ${tolLabel} kg : validation automatique à ${retainedLabel} kg (moyenne). Le montant final suivra ce poids au règlement.`;
+      void this.push.sendToUser(
+        tx.buyerUserId,
+        "Poids validé automatiquement",
+        body,
+        {
+          type: "marketplace_weight_auto_tolerance",
+          transactionId: tx.id,
+          retainedWeightKg: String(a.retainedKg)
+        }
+      );
+      void this.push.sendToUser(
+        tx.sellerUserId,
+        "Poids validé automatiquement",
+        body,
+        {
+          type: "marketplace_weight_auto_tolerance",
+          transactionId: tx.id,
+          retainedWeightKg: String(a.retainedKg)
+        }
+      );
+      if (tx.isCredit) {
+        await this.creditOffers.onCreditWeightValidated(tx.id);
+      }
+      return;
+    }
+
     if (tx.isCredit) {
       await this.creditOffers.onCreditWeightValidated(tx.id);
       return;

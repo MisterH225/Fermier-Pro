@@ -557,6 +557,8 @@ export const fr = {
       sellerDeclareWeightTitle: "Votre pesée",
       sellerDeclareWeightHint:
         "Indiquez le poids que vous avez mesuré à la remise. Si l'écart est faible, la transaction continue ; sinon un arbitrage pourra être demandé.",
+      autoToleranceHint:
+        "Si votre pesée diffère de moins de {{percent}} % (ou {{minKg}} kg minimum) de celle de l'acheteur, la transaction sera validée automatiquement au poids moyen.",
       sellerDeclareWeightCta: "Indiquer ma pesée",
       sellerWeightLabel: "Votre poids (kg)",
       buyerDeclaredWeight: "Poids acheteur : {{kg}} kg",
