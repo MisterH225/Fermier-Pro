@@ -220,6 +220,17 @@ describeOrSkip("Marketplace vente à crédit escrow (e2e)", () => {
       amount: 100_000
     });
 
+    const receipt = await request(app.getHttpServer())
+      .post(`/api/v1/marketplace/transactions/${transactionId}/confirm-receipt`)
+      .set("Authorization", `Bearer ${ctx.peerToken}`)
+      .send({
+        receivedAt: new Date().toISOString().slice(0, 10),
+        condition: "conform",
+        receivedAnimalIds: [animalId]
+      });
+    expect(receipt.status).toBe(201);
+    expect(receipt.body.status).toBe("BUYER_RECEIVED");
+
     const initBal = await request(app.getHttpServer())
       .post(`/api/v1/marketplace/offers/${offerId}/balance-payment/initiate`)
       .set("Authorization", `Bearer ${ctx.peerToken}`)
