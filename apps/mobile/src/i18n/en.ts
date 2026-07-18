@@ -56,6 +56,17 @@ export const en = {
       back: "Back to terms"
     }
   },
+  platformFees: {
+    previewTitle: "Platform fees",
+    platformFeeLabel: "Platform fee ({{pct}} %)",
+    netPayoutLabel: "Amount paid out {{unit}}",
+    unitPerItem: "per item sold",
+    unitPerHead: "per head sold",
+    unitPerKg: "per kg sold",
+    unitPerService: "for this service",
+    previewHint:
+      "Estimate based on current rates. No extra Terms confirmation is required to list an item for sale."
+  },
   farmListScreen: {
     addFarm: "+ Farm",
     signOut: "Sign out",

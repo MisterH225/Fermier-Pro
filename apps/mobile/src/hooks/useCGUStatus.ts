@@ -27,7 +27,7 @@ export function resolveCguStatus(authMe: AuthMeResponse | null): CguStatusView {
     return {
       needsAcceptance: acceptedAt == null,
       isUpdate: false,
-      currentVersion: "1.0",
+      currentVersion: "1.1",
       versionAccepted,
       acceptedAt
     };
@@ -35,7 +35,7 @@ export function resolveCguStatus(authMe: AuthMeResponse | null): CguStatusView {
   return {
     needsAcceptance: true,
     isUpdate: false,
-    currentVersion: "1.0",
+    currentVersion: "1.1",
     versionAccepted: null,
     acceptedAt: null
   };

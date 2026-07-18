@@ -56,6 +56,17 @@ export const fr = {
       back: "Retour aux CGU"
     }
   },
+  platformFees: {
+    previewTitle: "Frais de plateforme",
+    platformFeeLabel: "Frais plateforme ({{pct}} %)",
+    netPayoutLabel: "Montant reversé {{unit}}",
+    unitPerItem: "par article vendu",
+    unitPerHead: "par tête vendue",
+    unitPerKg: "par kg vendu",
+    unitPerService: "pour cette prestation",
+    previewHint:
+      "Montant estimé selon les taux en vigueur. Aucune confirmation supplémentaire des CGU n'est requise pour mettre en vente."
+  },
   farmListScreen: {
     addFarm: "+ Ferme",
     signOut: "Déconnexion",

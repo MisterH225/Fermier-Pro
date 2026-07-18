@@ -65,21 +65,21 @@ export class UpdatePlatformSettingsDto {
   @Min(1)
   reportFrequencyDays?: number;
 
-  /** Taux de commission marketplace prélevé sur l'acheteur (ex. 0.05 = 5 %). */
+  /** Taux de commission marketplace prélevé sur l'acheteur (ex. 0.015 = 1,5 %). */
   @IsOptional()
   @IsNumber()
   @Min(0)
   @Max(0.99)
   marketplaceCommissionRate?: number;
 
-  /** Taux de commission marketplace prélevé sur le vendeur (ex. 0.05 = 5 %). */
+  /** Taux de commission marketplace prélevé sur le vendeur (ex. 0.015 = 1,5 %). */
   @IsOptional()
   @IsNumber()
   @Min(0)
   @Max(0.99)
   sellerMarketplaceCommissionRate?: number;
 
-  /** Taux de commission prélevé sur le montant versé au vétérinaire (ex. 0.05 = 5 %). */
+  /** Taux de commission prélevé sur le montant versé au vétérinaire (ex. 0.015 = 1,5 %). */
   @IsOptional()
   @IsNumber()
   @Min(0)

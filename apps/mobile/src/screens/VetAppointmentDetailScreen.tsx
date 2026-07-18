@@ -17,6 +17,7 @@ import {
   MarketplacePaymentMethodPicker,
   type MarketplacePaymentMethodChoice
 } from "../components/buyer/MarketplacePaymentMethodPicker";
+import { PlatformFeePreview } from "../components/common/PlatformFeePreview";
 import { MobileAppShell } from "../components/layout/MobileAppShell";
 import { PrimaryButton } from "../components/ui/PrimaryButton";
 import { SecondaryButton } from "../components/ui/SecondaryButton";
@@ -34,6 +35,10 @@ import {
 } from "../lib/api";
 import { formatApiError } from "../lib/apiErrors";
 import { openPaymentCheckout } from "../lib/paymentCheckout";
+import {
+  computeVetFeeBreakdown,
+  parsePriceInput
+} from "../lib/platformFees";
 import {
   mobileColors,
   mobileRadius,
@@ -93,7 +98,8 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
   const { appointmentId } = route.params;
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
-  const { accessToken, activeProfileId, authMe, clientFeatures } = useSession();
+  const { accessToken, activeProfileId, authMe, clientFeatures, platformFees } =
+    useSession();
   const qc = useQueryClient();
   const myId = authMe?.user?.id;
 
@@ -127,6 +133,14 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
     queryFn: () => fetchUserWallet(accessToken!),
     enabled: Boolean(accessToken && clientFeatures.wallet)
   });
+
+  const vetFeeBreakdown = useMemo(() => {
+    const parsed = parsePriceInput(servicePrice);
+    if (parsed == null) {
+      return null;
+    }
+    return computeVetFeeBreakdown(parsed, platformFees.vetCommissionRate);
+  }, [servicePrice, platformFees.vetCommissionRate]);
 
   const payAmount = useMemo(() => {
     const appt = q.data;
@@ -434,6 +448,11 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
               keyboardType="numeric"
               value={servicePrice}
               onChangeText={setServicePrice}
+            />
+            <PlatformFeePreview
+              breakdown={vetFeeBreakdown}
+              currency={q.data?.currency || "XOF"}
+              unitLabelKey="platformFees.unitPerService"
             />
             <TextInput
               style={[styles.input, styles.textArea]}

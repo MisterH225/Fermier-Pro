@@ -10,6 +10,7 @@ import {
   TextInput,
   View
 } from "react-native";
+import { PlatformFeePreview } from "../common/PlatformFeePreview";
 import { BaseModal } from "../modals/BaseModal";
 import { useModal } from "../modals/useModal";
 import { useSession } from "../../context/SessionContext";
@@ -20,6 +21,10 @@ import {
 } from "../../lib/api";
 import { combineDayAndSlot } from "../../lib/visitSlots";
 import { formatApiError } from "../../lib/apiErrors";
+import {
+  computeVetFeeBreakdown,
+  parsePriceInput
+} from "../../lib/platformFees";
 import { vetColors, vetRadius } from "../../theme/vetTheme";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 
@@ -47,12 +52,20 @@ export function ScheduleVisitModal({
   const { t } = useTranslation();
   const qc = useQueryClient();
   const modal = useModal();
-  const { accessToken, activeProfileId } = useSession();
+  const { accessToken, activeProfileId, platformFees } = useSession();
   const [farmId, setFarmId] = useState<string | null>(null);
   const [reason, setReason] = useState<VetVisitReason>("routine");
   const [notes, setNotes] = useState("");
   const [price, setPrice] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  const vetFeeBreakdown = useMemo(() => {
+    const parsed = parsePriceInput(price);
+    if (parsed == null) {
+      return null;
+    }
+    return computeVetFeeBreakdown(parsed, platformFees.vetCommissionRate);
+  }, [price, platformFees.vetCommissionRate]);
 
   const farmsQ = useQuery({
     queryKey: ["farms", activeProfileId, "scheduleVisit"],
@@ -199,6 +212,12 @@ export function ScheduleVisitModal({
           placeholderTextColor={vetColors.textSecondary}
           value={price}
           onChangeText={setPrice}
+        />
+        <PlatformFeePreview
+          breakdown={vetFeeBreakdown}
+          currency="XOF"
+          unitLabelKey="platformFees.unitPerService"
+          compact
         />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}

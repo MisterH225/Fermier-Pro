@@ -2741,11 +2741,11 @@ model PlatformSettings {
   adminNotifyEmail      String?
   reportFrequencyDays   Int      @default(7)
   /// Frais de plateforme prélevés sur l'acheteur à la clôture d'une vente marketplace.
-  marketplaceCommissionRate Decimal @default(0.05) @db.Decimal(5, 4)
+  marketplaceCommissionRate Decimal @default(0.015) @db.Decimal(5, 4)
   /// Frais de plateforme prélevés sur le vendeur à la clôture d'une vente marketplace.
-  sellerMarketplaceCommissionRate Decimal @default(0.05) @db.Decimal(5, 4)
+  sellerMarketplaceCommissionRate Decimal @default(0.015) @db.Decimal(5, 4)
   /// Frais de plateforme prélevés sur le montant versé au vétérinaire.
-  vetCommissionRate     Decimal @default(0.05) @db.Decimal(5, 4)
+  vetCommissionRate     Decimal @default(0.015) @db.Decimal(5, 4)
   /// Numéro support (appel mobile). Fallback env `SUPPORT_PHONE` si vide.
   supportPhone          String?
   /// Lien Telegram support (https://t.me/… ou @username). Fallback env `SUPPORT_TELEGRAM_URL`.

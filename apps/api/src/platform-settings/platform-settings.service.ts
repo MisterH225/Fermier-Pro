@@ -3,9 +3,9 @@ import type { PlatformSettings } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { normalizeWeightArbitrationThresholds } from "../marketplace/escrow/weight-arbitration.util";
 
-const DEFAULT_MARKETPLACE_COMMISSION_RATE = 0.05;
-const DEFAULT_SELLER_COMMISSION_RATE = 0.05;
-const DEFAULT_VET_COMMISSION_RATE = 0.05;
+const DEFAULT_MARKETPLACE_COMMISSION_RATE = 0.015;
+const DEFAULT_SELLER_COMMISSION_RATE = 0.015;
+const DEFAULT_VET_COMMISSION_RATE = 0.015;
 const CACHE_TTL_MS = 60_000;
 
 export type WeightArbitrationSettingsDto = {
@@ -133,6 +133,28 @@ export class PlatformSettingsService {
     this.cachedVetCommissionRate = rate;
     this.cachedVetAt = now;
     return rate;
+  }
+
+  /** Taux publics pour aperçu frais côté mobile (sans auth). */
+  async getPublicFeeRates(): Promise<{
+    marketplaceBuyerCommissionRate: number;
+    marketplaceSellerCommissionRate: number;
+    vetCommissionRate: number;
+  }> {
+    const [
+      marketplaceBuyerCommissionRate,
+      marketplaceSellerCommissionRate,
+      vetCommissionRate
+    ] = await Promise.all([
+      this.getMarketplaceCommissionRate(),
+      this.getSellerMarketplaceCommissionRate(),
+      this.getVetCommissionRate()
+    ]);
+    return {
+      marketplaceBuyerCommissionRate,
+      marketplaceSellerCommissionRate,
+      vetCommissionRate
+    };
   }
 
   async getWeightArbitrationThresholds(): Promise<WeightArbitrationSettingsDto> {

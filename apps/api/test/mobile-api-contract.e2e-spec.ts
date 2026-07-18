@@ -50,6 +50,12 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(typeof res.body.features.chat).toBe("boolean");
     expect(typeof res.body.features.feedStock).toBe("boolean");
     expect(typeof res.body.features.wallet).toBe("boolean");
+    expect(res.body?.fees).toBeDefined();
+    expect(typeof res.body.fees.marketplaceBuyerCommissionRate).toBe("number");
+    expect(typeof res.body.fees.marketplaceSellerCommissionRate).toBe("number");
+    expect(typeof res.body.fees.vetCommissionRate).toBe("number");
+    expect(res.body.fees.marketplaceSellerCommissionRate).toBeGreaterThanOrEqual(0);
+    expect(res.body.fees.vetCommissionRate).toBeGreaterThanOrEqual(0);
   });
 
   it("GET marketplace listings (catalogue publié)", async () => {

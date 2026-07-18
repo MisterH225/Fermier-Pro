@@ -33,6 +33,19 @@ export type SupportContactDto = {
   telegramUrl: string | null;
 };
 
+/** Taux publics depuis GET /config/client (aperçu frais). */
+export type ClientPlatformFeesDto = {
+  marketplaceBuyerCommissionRate: number;
+  marketplaceSellerCommissionRate: number;
+  vetCommissionRate: number;
+};
+
+export const DEFAULT_PLATFORM_FEES: ClientPlatformFeesDto = {
+  marketplaceBuyerCommissionRate: 0.015,
+  marketplaceSellerCommissionRate: 0.015,
+  vetCommissionRate: 0.015
+};
+
 export type ClientConfigDto = {
   features: {
     marketplace: boolean;
@@ -46,6 +59,7 @@ export type ClientConfigDto = {
   };
   modules: PlatformModuleDto[];
   support?: SupportContactDto;
+  fees?: ClientPlatformFeesDto;
 };
 
 export async function fetchClientConfig(): Promise<ClientConfigDto> {

@@ -65,11 +65,11 @@ export function PlatformSettingsPanel({
         const next = await patchPlatformSettings(token, body);
         onFormChange({
           ...next,
-          marketplaceCommissionRate: Number(next.marketplaceCommissionRate ?? 0.05),
+          marketplaceCommissionRate: Number(next.marketplaceCommissionRate ?? 0.015),
           sellerMarketplaceCommissionRate: Number(
-            next.sellerMarketplaceCommissionRate ?? 0.05
+            next.sellerMarketplaceCommissionRate ?? 0.015
           ),
-          vetCommissionRate: Number(next.vetCommissionRate ?? 0.05),
+          vetCommissionRate: Number(next.vetCommissionRate ?? 0.015),
           withdrawalAutoApproveThreshold: Number(
             next.withdrawalAutoApproveThreshold ?? 50_000
           ),
@@ -350,12 +350,12 @@ export function PlatformSettingsPanel({
               max={99}
               step={0.1}
               disabled={!canEdit}
-              value={Math.round((form.marketplaceCommissionRate ?? 0.05) * 1000) / 10}
+              value={Math.round((form.marketplaceCommissionRate ?? 0.015) * 1000) / 10}
               onChange={(e) => {
                 const pct = Number(e.target.value);
                 update(
                   "marketplaceCommissionRate",
-                  Number.isFinite(pct) ? pct / 100 : 0.05
+                  Number.isFinite(pct) ? pct / 100 : 0.015
                 );
               }}
             />
@@ -375,14 +375,14 @@ export function PlatformSettingsPanel({
               step={0.1}
               disabled={!canEdit}
               value={
-                Math.round((form.sellerMarketplaceCommissionRate ?? 0.05) * 1000) /
+                Math.round((form.sellerMarketplaceCommissionRate ?? 0.015) * 1000) /
                 10
               }
               onChange={(e) => {
                 const pct = Number(e.target.value);
                 update(
                   "sellerMarketplaceCommissionRate",
-                  Number.isFinite(pct) ? pct / 100 : 0.05
+                  Number.isFinite(pct) ? pct / 100 : 0.015
                 );
               }}
             />
@@ -455,12 +455,12 @@ export function PlatformSettingsPanel({
             max={99}
             step={0.1}
             disabled={!canEdit}
-            value={Math.round((form.vetCommissionRate ?? 0.05) * 1000) / 10}
+            value={Math.round((form.vetCommissionRate ?? 0.015) * 1000) / 10}
             onChange={(e) => {
               const pct = Number(e.target.value);
               update(
                 "vetCommissionRate",
-                Number.isFinite(pct) ? pct / 100 : 0.05
+                Number.isFinite(pct) ? pct / 100 : 0.015
               );
             }}
           />

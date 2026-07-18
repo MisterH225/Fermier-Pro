@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { AnimalListItem } from "../../lib/api";
+import { useSession } from "../../context/SessionContext";
 import {
   applyAnimalSelection,
   computeFlatLotTotal,
@@ -18,12 +19,14 @@ import {
   type ListingDurationDays,
   type MarketplaceListingFormValues
 } from "../../lib/marketplaceListingForm";
+import { computeSellerFeeBreakdown } from "../../lib/platformFees";
 import {
   mobileColors,
   mobileRadius,
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { PlatformFeePreview } from "../common/PlatformFeePreview";
 import { ModalSection } from "../modals/ModalSection";
 import { formatMarketMoney } from "./MarketplaceListingCard";
 
@@ -76,6 +79,7 @@ export function MarketplaceListingFormFields({
   individualBlockedAnimalIds
 }: Props) {
   const { t } = useTranslation();
+  const { platformFees } = useSession();
 
   const set = (patch: Partial<MarketplaceListingFormValues>) =>
     onChange(patch);
@@ -124,6 +128,24 @@ export function MarketplaceListingFormFields({
     () => computeFlatLotTotal(values.pricePerHead, headcount),
     [values.pricePerHead, headcount]
   );
+
+  const unitFeeBreakdown = useMemo(() => {
+    const unit = flatPrice
+      ? parseDecimalField(values.pricePerHead)
+      : parseDecimalField(values.pricePerKg);
+    if (unit == null) {
+      return null;
+    }
+    return computeSellerFeeBreakdown(
+      unit,
+      platformFees.marketplaceSellerCommissionRate
+    );
+  }, [
+    flatPrice,
+    values.pricePerHead,
+    values.pricePerKg,
+    platformFees.marketplaceSellerCommissionRate
+  ]);
 
   const displayTotal = flatPrice
     ? flatLotTotal != null
@@ -491,6 +513,16 @@ export function MarketplaceListingFormFields({
             })}
           </Text>
         ) : null}
+
+        <PlatformFeePreview
+          breakdown={unitFeeBreakdown}
+          currency={values.currency || "XOF"}
+          unitLabelKey={
+            flatPrice
+              ? "platformFees.unitPerHead"
+              : "platformFees.unitPerKg"
+          }
+        />
 
         <Text style={styles.lab}>{t("marketScreen.createForm.currency")}</Text>
         <TextInput

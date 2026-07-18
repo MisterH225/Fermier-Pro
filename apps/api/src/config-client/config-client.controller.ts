@@ -10,10 +10,18 @@ import {
   type SupportContactDto
 } from "../platform-settings/platform-settings.service";
 
+export type ClientPlatformFeesDto = {
+  marketplaceBuyerCommissionRate: number;
+  marketplaceSellerCommissionRate: number;
+  vetCommissionRate: number;
+};
+
 export type ClientConfigResponse = {
   features: ClientFeatureFlags;
   modules: PlatformModulePublicDto[];
   support: SupportContactDto;
+  /** Taux de commission plateforme (aperçu vendeur / véto). */
+  fees: ClientPlatformFeesDto;
 };
 
 @Controller("config")
@@ -26,11 +34,12 @@ export class ConfigClientController {
 
   @Get("client")
   async getClient(): Promise<ClientConfigResponse> {
-    const [features, modules, support] = await Promise.all([
+    const [features, modules, support, fees] = await Promise.all([
       this.featureFlags.getClientFeatureFlags(),
       this.featureFlags.getPlatformModules(),
-      this.platformSettings.getSupportContact()
+      this.platformSettings.getSupportContact(),
+      this.platformSettings.getPublicFeeRates()
     ]);
-    return { features, modules, support };
+    return { features, modules, support, fees };
   }
 }

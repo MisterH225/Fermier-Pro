@@ -21,11 +21,11 @@ import { AdminSectionGroup } from "@/components/layout/AdminSection";
 function normalizeSettingsRow(row: PlatformSettingsDto): PlatformSettingsDto {
   return {
     ...row,
-    marketplaceCommissionRate: Number(row.marketplaceCommissionRate ?? 0.05),
+    marketplaceCommissionRate: Number(row.marketplaceCommissionRate ?? 0.015),
     sellerMarketplaceCommissionRate: Number(
-      row.sellerMarketplaceCommissionRate ?? 0.05
+      row.sellerMarketplaceCommissionRate ?? 0.015
     ),
-    vetCommissionRate: Number(row.vetCommissionRate ?? 0.05),
+    vetCommissionRate: Number(row.vetCommissionRate ?? 0.015),
     withdrawalAutoApproveThreshold: Number(
       row.withdrawalAutoApproveThreshold ?? 50_000
     ),
