@@ -1,7 +1,7 @@
 /**
  * Pre-deploy Railway : migrations Prisma avec récupération P3009 (wallet / orchestrateur).
  * Le schéma peut déjà exister sur Supabase alors que _prisma_migrations marque failed.
- * Redeploy trigger: 2026-07-18T12:20Z — recover merchant_shop_archived_at + trust_score.
+ * Redeploy trigger: 2026-07-18T15:15Z — InsightsModule AuthModule (boot DI).
  */
 const { spawnSync } = require("node:child_process");
 const path = require("node:path");
