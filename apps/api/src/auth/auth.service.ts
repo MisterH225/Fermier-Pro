@@ -227,10 +227,14 @@ export class AuthService {
       data.fullName = parts.length > 0 ? parts.join(" ") : null;
     }
 
-    const updated = await this.prisma.user.update({
-      where: { id: userId },
-      data
-    });
+    // Avatar-only sur un profil (X-Profile-Id) : data User reste {} — Prisma refuse update vide.
+    const updated =
+      Object.keys(data).length > 0
+        ? await this.prisma.user.update({
+            where: { id: userId },
+            data
+          })
+        : existing;
 
     const nextEnabled = updated.notificationsEnabled;
     if (!nextEnabled) {

@@ -25,7 +25,11 @@ export function TechWelcomeHeader({
       accessibilityLabel={welcomeLabel}
     >
       {avatarUrl ? (
-        <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+        <Image
+          key={avatarUrl}
+          source={{ uri: avatarUrl }}
+          style={styles.avatar}
+        />
       ) : (
         <View style={[styles.avatar, styles.avatarPlaceholder]}>
           <Ionicons name="construct" size={26} color={techColors.primary} />

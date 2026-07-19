@@ -179,7 +179,7 @@ export function TechProfileEditScreen({ navigation }: Props) {
         photoChanged = true;
       }
 
-      await upsertTechnicianProfile(accessToken!, activeProfileId, {
+      const saved = await upsertTechnicianProfile(accessToken!, activeProfileId, {
         formationType: formationType ?? undefined,
         formationDetails: formationDetails.trim() || undefined,
         graduationYear: graduationYear
@@ -201,6 +201,8 @@ export function TechProfileEditScreen({ navigation }: Props) {
         profilePhotoUrl: nextPhotoUrl ?? undefined
       });
 
+      qc.setQueryData(["techProfile", activeProfileId], saved);
+
       // Dashboard / menu profil lisent Profile.avatarUrl via authMe — sync comme véto / producteur.
       if (photoChanged && nextPhotoUrl) {
         await patchAuthProfile(
@@ -210,10 +212,14 @@ export function TechProfileEditScreen({ navigation }: Props) {
         );
         await refreshAuthMe();
       }
+
+      return saved;
     },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["techProfile"] });
-      void qc.invalidateQueries({ queryKey: ["technicianSearch"] });
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["techProfile"] }),
+        qc.invalidateQueries({ queryKey: ["technicianSearch"] })
+      ]);
       navigation.goBack();
     },
     onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
