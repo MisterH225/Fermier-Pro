@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 
 const E2IA_LOGO = "/images/e2ia-logo.svg";
 const FERMIER_LOGO = "/images/fermier-pro-logo-nobg.png";
-const FERMIER_LOGO_ASPECT = 601 / 295;
+const FERMIER_LOGO_ASPECT = 1200 / 848;
 
 const STORY_PHOTOS = [
   {

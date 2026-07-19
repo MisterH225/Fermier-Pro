@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { NAV_ITEMS } from "@/components/layout/nav-config";
 
 const LOGO_SRC = "/images/fermier-pro-logo-nobg.png";
-const LOGO_ASPECT = 601 / 295;
+const LOGO_ASPECT = 1200 / 848;
 
 type Props = {
   pendingVets?: number;

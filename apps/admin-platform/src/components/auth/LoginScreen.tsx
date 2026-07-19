@@ -86,7 +86,7 @@ const NAV_KEYS = ["story", "ambition", "modules", "contact"] as const;
 const STAT_KEYS = ["farms", "animals", "presence"] as const;
 
 const LOGO_SRC = "/images/fermier-pro-logo-nobg.png";
-const LOGO_ASPECT = 601 / 295;
+const LOGO_ASPECT = 1200 / 848;
 
 function LogoMark({
   className,
@@ -533,7 +533,7 @@ export function LoginScreen() {
           src={LOGO_SRC}
           alt=""
           width={280}
-          height={138}
+          height={Math.round(280 / LOGO_ASPECT)}
           className="pointer-events-none absolute right-4 top-8 opacity-[0.06] sm:right-12 sm:top-12"
         />
 
