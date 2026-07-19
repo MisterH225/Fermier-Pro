@@ -4272,6 +4272,14 @@ export const fr = {
         "Impossible de supprimer : des commandes sont encore en cours sur ce produit.",
       freeLimitHint: "Limite Free atteinte — désactive un produit ou passe Premium.",
       stockLabel: "Stock {{count}}",
+      stats: {
+        title: "Performance marketplace",
+        views: "Vues",
+        likes: "Favoris",
+        purchases: "Achats",
+        unitsSold: "Unités vendues",
+        hint: "Les vues comptent les consultations de la fiche produit. Les partages ne sont pas encore mesurés."
+      },
       filter: {
         all: "Tous",
         published: "Actifs",
@@ -4612,8 +4620,10 @@ export const fr = {
         uploadUnavailable: "Stockage indisponible. Vérifie ta connexion."
       },
       fields: {
-        unit: "Unité",
-        unitPh: "ex. sac 25 kg",
+        unit: "Unité de vente",
+        unitPh: "ex. kg, douzaine, sac 25 kg…",
+        unitHint:
+          "Choisis une unité suggérée ou saisis la tienne (kg, douzaine, pièce…).",
         expiry: "Date limite",
         expiryPh: "ex. 12/2026",
         brand: "Marque",

@@ -182,7 +182,7 @@ export function MerchantProductsScreen() {
 
   const openProduct = useCallback(
     (productId: string) => {
-      navigation.navigate("MerchantProductForm", { productId });
+      navigation.navigate("MerchantMyProductDetail", { productId });
     },
     [navigation]
   );

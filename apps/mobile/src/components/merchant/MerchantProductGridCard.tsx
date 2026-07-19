@@ -78,6 +78,9 @@ export function MerchantProductGridCard({
           </Text>
           <Text style={styles.price} numberOfLines={1}>
             {formatMarketMoney(product.price, product.currency || "XOF")}
+            {product.unitLabel?.trim()
+              ? ` / ${product.unitLabel.trim()}`
+              : ""}
           </Text>
           <View
             style={[
@@ -95,6 +98,32 @@ export function MerchantProductGridCard({
             >
               {t("merchant.products.stockLabel", { count: product.stock })}
             </Text>
+          </View>
+          <View style={styles.statsRow} testID="merchant-product-card-stats">
+            <View style={styles.statItem}>
+              <Ionicons
+                name="eye-outline"
+                size={12}
+                color={merchantColors.textMuted}
+              />
+              <Text style={styles.statTx}>{product.viewCount ?? 0}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons
+                name="heart-outline"
+                size={12}
+                color={merchantColors.textMuted}
+              />
+              <Text style={styles.statTx}>{product.favoriteCount ?? 0}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons
+                name="cart-outline"
+                size={12}
+                color={merchantColors.textMuted}
+              />
+              <Text style={styles.statTx}>{product.purchaseCount ?? 0}</Text>
+            </View>
           </View>
         </View>
       </Pressable>
@@ -211,6 +240,22 @@ const styles = StyleSheet.create({
   },
   stockTxLow: { color: merchantColors.warning },
   stockTxOut: { color: merchantColors.danger },
+  statsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 4
+  },
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3
+  },
+  statTx: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: merchantColors.textSecondary
+  },
   footer: {
     paddingHorizontal: mobileSpacing.sm,
     paddingBottom: mobileSpacing.sm,

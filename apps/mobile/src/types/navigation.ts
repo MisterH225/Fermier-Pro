@@ -29,7 +29,10 @@ export type RootStackParamList = {
   ProducerSubscription: undefined;
   MerchantShop: undefined;
   MerchantProductForm: { productId?: string; shopId?: string } | undefined;
+  /** Détail produit côté acheteur (catalogue marketplace). */
   MerchantProductDetail: { productId: string };
+  /** Détail produit côté commerçant propriétaire. */
+  MerchantMyProductDetail: { productId: string };
   BuyerMarket:
     | {
         favoritesOnly?: boolean;

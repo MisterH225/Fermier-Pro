@@ -40,6 +40,7 @@ import {
   computeSellerFeeBreakdown,
   parsePriceInput
 } from "../../lib/platformFees";
+import { MERCHANT_PRODUCT_UNIT_PRESETS } from "../../lib/merchantProductUnits";
 import { merchantColors } from "../../theme/merchantTheme";
 import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
 import { useBottomInset } from "../../hooks/useBottomInset";
@@ -85,6 +86,7 @@ export function MerchantProductForm({
   const bottomInset = useBottomInset();
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [unitLabel, setUnitLabel] = useState("");
   const [stock, setStock] = useState("1");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -184,6 +186,7 @@ export function MerchantProductForm({
     setExistingProduct(existing);
     setName(existing.name);
     setPrice(String(existing.price));
+    setUnitLabel(existing.unitLabel?.trim() ?? "");
     setStock(String(existing.stock));
     setDescription(existing.description ?? "");
     setCategoryId(existing.categoryId);
@@ -228,6 +231,7 @@ export function MerchantProductForm({
         name: name.trim(),
         categoryId: resolvedCategoryId,
         description: appendCategoryDetails(description, selectedCategory, extras),
+        unitLabel: unitLabel.trim() || null,
         price: p,
         stock: s,
         photoUrls
@@ -437,6 +441,35 @@ export function MerchantProductForm({
             currency="XOF"
             unitLabelKey="platformFees.unitPerItem"
           />
+          <FormField
+            label={t("merchant.product.fields.unit")}
+            hint={t("merchant.product.fields.unitHint")}
+          >
+            <View style={styles.catRow}>
+              {MERCHANT_PRODUCT_UNIT_PRESETS.map((preset) => {
+                const selected =
+                  unitLabel.trim().toLowerCase() === preset.toLowerCase();
+                return (
+                  <Pressable
+                    key={preset}
+                    style={[styles.chip, selected && styles.chipOn]}
+                    onPress={() => setUnitLabel(preset)}
+                    testID={`merchant-product-unit-${preset}`}
+                  >
+                    <Text>{preset}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <TextInput
+              style={[styles.input, { marginTop: mobileSpacing.sm }]}
+              value={unitLabel}
+              onChangeText={setUnitLabel}
+              placeholder={t("merchant.product.fields.unitPh")}
+              testID="merchant-product-form-unit"
+              autoCapitalize="none"
+            />
+          </FormField>
           <FormField
             label={t("merchant.product.stockLabel")}
             hint={t("merchant.product.stockHint")}

@@ -177,9 +177,8 @@ export function MerchantShopDetailScreen() {
           <Pressable
             style={[styles.card, merchantShadow.card]}
             onPress={() =>
-              navigation.navigate("MerchantProductForm", {
-                productId: item.id,
-                shopId
+              navigation.navigate("MerchantMyProductDetail", {
+                productId: item.id
               })
             }
           >

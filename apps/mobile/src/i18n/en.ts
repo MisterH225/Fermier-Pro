@@ -4240,6 +4240,14 @@ export const en = {
         "Cannot delete: this product still has orders in progress.",
       freeLimitHint: "Free limit reached — disable a product or go Premium.",
       stockLabel: "Stock {{count}}",
+      stats: {
+        title: "Marketplace performance",
+        views: "Views",
+        likes: "Favorites",
+        purchases: "Purchases",
+        unitsSold: "Units sold",
+        hint: "Views count product page opens. Shares are not tracked yet."
+      },
       filter: {
         all: "All",
         published: "Active",
@@ -4580,8 +4588,10 @@ export const en = {
         uploadUnavailable: "Storage unavailable. Check your connection."
       },
       fields: {
-        unit: "Unit",
-        unitPh: "e.g. 25 kg bag",
+        unit: "Sales unit",
+        unitPh: "e.g. kg, dozen, 25 kg bag…",
+        unitHint:
+          "Pick a suggested unit or type your own (kg, dozen, piece…).",
         expiry: "Expiry",
         expiryPh: "e.g. 12/2026",
         brand: "Brand",
