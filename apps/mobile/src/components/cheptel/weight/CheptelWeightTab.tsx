@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -16,7 +16,6 @@ import {
   fetchDetectedBatches,
   fetchFarmAnimals
 } from "../../../lib/api";
-import { useBottomChromePad } from "../../../hooks/useBottomInset";
 import {
   mobileColors,
   mobileRadius,
@@ -37,7 +36,6 @@ type Props = {
 
 export function CheptelWeightTab({ farmId, accessToken, activeProfileId, readOnly = false }: Props) {
   const { t, i18n } = useTranslation();
-  const bottomChromePad = useBottomChromePad();
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
   const [period, setPeriod] = useState<SmartChartPeriod>("6M");
   const [animalId, setAnimalId] = useState<string | undefined>(undefined);
@@ -251,12 +249,6 @@ export function CheptelWeightTab({ farmId, accessToken, activeProfileId, readOnl
         }}
       />
       ) : null}
-
-      {!readOnly ? (
-      <Pressable style={[styles.fab, { bottom: bottomChromePad + mobileSpacing.sm }]} onPress={() => setAddOpen(true)}>
-        <Text style={styles.fabTx}>＋</Text>
-      </Pressable>
-      ) : null}
     </View>
   );
 }
@@ -325,17 +317,5 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
     marginTop: 4
-  },
-  fab: {
-    position: "absolute",
-    right: 0,
-    // bottom calculé dynamiquement dans le JSX via useBottomChromePad
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: mobileColors.accent,
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  fabTx: { color: mobileColors.onAccent, fontSize: 28 }
+  }
 });
