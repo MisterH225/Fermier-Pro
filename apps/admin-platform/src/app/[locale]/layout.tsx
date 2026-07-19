@@ -4,14 +4,19 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "../globals.css";
 
-/** Favicon / apple icon : même marque que l’appli mobile (carré 1024). */
-const LOGO_ICON = "/images/fermier-pro-icon.png";
+/** Favicon / apple : même icône que l’appli mobile. */
+const APP_ICON = "/images/fermier-pro-icon.png";
 
 export const metadata: Metadata = {
   icons: {
-    icon: [{ url: LOGO_ICON, type: "image/png" }],
-    shortcut: LOGO_ICON,
-    apple: LOGO_ICON
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/images/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/images/favicon-192.png", sizes: "192x192", type: "image/png" },
+      { url: APP_ICON, sizes: "1024x1024", type: "image/png" }
+    ],
+    shortcut: "/favicon.ico",
+    apple: [{ url: APP_ICON, sizes: "180x180", type: "image/png" }]
   }
 };
 
