@@ -1806,6 +1806,17 @@ export const en = {
         "These animals will be grouped as a batch for tracking and profitability (like a gestation litter).",
       confirmName: "Batch name",
       confirmAction: "Confirm",
+      editAction: "Edit",
+      editTitle: "Compose batch",
+      editBody:
+        "Review the grouping before confirming. Remove animals from another generation, or split them into several batches.",
+      editNeedAnimals: "Select at least one animal.",
+      generation: "Generation",
+      selectAll: "All",
+      selectNone: "None",
+      splitModeOn: "Split into {{count}} batches by generation",
+      splitModeOff: "Back to a single batch",
+      confirmSplitAction: "Create {{count}} batches",
       deleteTitle: "Delete this batch?",
       deleteBody:
         "Batch « {{name}} » will be permanently deleted. This cannot be undone.",

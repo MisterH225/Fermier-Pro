@@ -1669,8 +1669,32 @@ export class CheptelService {
       category: string;
       ageWeeks: number | null;
       weightKg: number | null;
+      birthDate: string | null;
+      generationKey: string;
+      generationLabel: string;
       penId: string | null;
       penName: string | null;
+    };
+
+    const monthLabels = [
+      "Jan",
+      "Fev",
+      "Mar",
+      "Avr",
+      "Mai",
+      "Jun",
+      "Jul",
+      "Aou",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+    ];
+
+    const formatGeneration = (d: Date) => {
+      const label = `${monthLabels[d.getUTCMonth()]}/${d.getUTCFullYear()}`;
+      const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+      return { key, label };
     };
 
     const enriched: Enriched[] = animals.map((a) => {
@@ -1691,51 +1715,73 @@ export class CheptelService {
       if (!weightKg && a.entryWeightKg) {
         weightKg = decimalToNum(a.entryWeightKg);
       }
+
+      let generationKey = "unknown";
+      let generationLabel = "Sans date";
+      if (a.birthDate) {
+        const g = formatGeneration(a.birthDate);
+        generationKey = `birth-${g.key}`;
+        generationLabel = g.label;
+      } else if (ageWeeks != null) {
+        const estimated = new Date(now);
+        estimated.setUTCDate(estimated.getUTCDate() - ageWeeks * 7);
+        const g = formatGeneration(estimated);
+        generationKey = `age-${g.key}`;
+        generationLabel = g.label;
+      } else if (a.entryDate) {
+        const g = formatGeneration(a.entryDate);
+        generationKey = `entry-${g.key}`;
+        generationLabel = g.label;
+      }
+
       return {
         id: a.id,
         label: a.tagCode ?? a.publicId.slice(0, 8),
         category: a.productionCategory,
         ageWeeks,
         weightKg,
+        birthDate: a.birthDate ? a.birthDate.toISOString() : null,
+        generationKey,
+        generationLabel,
         penId: a.penPlacements[0]?.penId ?? null,
         penName: a.penPlacements[0]?.pen?.name ?? null
       };
     });
 
-    const monthLabels = [
-      "Jan",
-      "Fev",
-      "Mar",
-      "Avr",
-      "Mai",
-      "Jun",
-      "Jul",
-      "Aou",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec"
-    ];
-    const monthTag = `${monthLabels[now.getMonth()]}${now.getFullYear()}`;
     const batches: Array<{
       id: string;
       name: string;
       category: string;
+      generationKey: string;
+      generationLabel: string;
       headcount: number;
       avgAgeWeeks: number | null;
       avgWeightKg: number | null;
       penNames: string[];
       animalIds: string[];
+      animals: Array<{
+        id: string;
+        label: string;
+        ageWeeks: number | null;
+        weightKg: number | null;
+        birthDate: string | null;
+        generationKey: string;
+        generationLabel: string;
+        penName: string | null;
+      }>;
     }> = [];
 
-    const byCategory = new Map<string, Enriched[]>();
+    // Group by production category + generation so starter/fattening
+    // animals from different cohorts are never auto-merged.
+    const byCategoryGeneration = new Map<string, Enriched[]>();
     for (const e of enriched) {
-      const arr = byCategory.get(e.category) ?? [];
+      const key = `${e.category}::${e.generationKey}`;
+      const arr = byCategoryGeneration.get(key) ?? [];
       arr.push(e);
-      byCategory.set(e.category, arr);
+      byCategoryGeneration.set(key, arr);
     }
 
-    for (const [category, group] of byCategory) {
+    for (const group of byCategoryGeneration.values()) {
       const used = new Set<string>();
       for (const seed of group) {
         if (used.has(seed.id)) {
@@ -1745,17 +1791,11 @@ export class CheptelService {
           if (used.has(m.id)) {
             return false;
           }
-          if (
-            m.ageWeeks != null &&
-            seed.ageWeeks != null &&
-            Math.abs(m.ageWeeks - seed.ageWeeks) > 2
-          ) {
-            return false;
-          }
+          // Same generation already enforced by map key; refine by weight when known.
           if (
             m.weightKg != null &&
             seed.weightKg != null &&
-            Math.abs(m.weightKg - seed.weightKg) > 5
+            Math.abs(m.weightKg - seed.weightKg) > 8
           ) {
             return false;
           }
@@ -1771,11 +1811,19 @@ export class CheptelService {
         const weights = members
           .map((m) => m.weightKg)
           .filter((x): x is number => x != null);
+        const category = members[0].category;
         const catLabel = category === "fattening" ? "Eng" : "Dem";
+        const generationLabel = members[0].generationLabel;
+        const name =
+          generationLabel === "Sans date"
+            ? `Bande ${catLabel}-${monthLabels[now.getUTCMonth()]}/${now.getUTCFullYear()}`
+            : `Bande ${catLabel}-${generationLabel}`;
         batches.push({
-          id: `detected-${category}-${members[0].id}`,
-          name: `Bande ${catLabel}-${monthTag}`,
+          id: `detected-${category}-${members[0].generationKey}-${members[0].id}`,
+          name,
           category,
+          generationKey: members[0].generationKey,
+          generationLabel,
           headcount: members.length,
           avgAgeWeeks: ages.length
             ? Math.round(ages.reduce((a, b) => a + b, 0) / ages.length)
@@ -1790,7 +1838,17 @@ export class CheptelService {
               members.map((m) => m.penName).filter((n): n is string => Boolean(n))
             )
           ],
-          animalIds: members.map((m) => m.id)
+          animalIds: members.map((m) => m.id),
+          animals: members.map((m) => ({
+            id: m.id,
+            label: m.label,
+            ageWeeks: m.ageWeeks,
+            weightKg: m.weightKg,
+            birthDate: m.birthDate,
+            generationKey: m.generationKey,
+            generationLabel: m.generationLabel,
+            penName: m.penName
+          }))
         });
       }
     }

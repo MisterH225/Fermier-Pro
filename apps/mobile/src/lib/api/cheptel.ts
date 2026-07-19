@@ -340,15 +340,29 @@ export function fetchCheptelGmqSummary(
   );
 }
 
+export type DetectedBatchAnimalDto = {
+  id: string;
+  label: string;
+  ageWeeks: number | null;
+  weightKg: number | null;
+  birthDate: string | null;
+  generationKey: string;
+  generationLabel: string;
+  penName: string | null;
+};
+
 export type DetectedBatchDto = {
   id: string;
   name: string;
   category: string;
+  generationKey?: string;
+  generationLabel?: string;
   headcount: number;
   avgAgeWeeks: number | null;
   avgWeightKg: number | null;
   penNames: string[];
   animalIds: string[];
+  animals?: DetectedBatchAnimalDto[];
 };
 
 export function fetchDetectedBatches(

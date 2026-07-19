@@ -1814,6 +1814,17 @@ export const fr = {
         "Ces sujets seront regroupés en bande pour le suivi et la rentabilité (comme une portée de gestation).",
       confirmName: "Nom de la bande",
       confirmAction: "Confirmer",
+      editAction: "Modifier",
+      editTitle: "Composer la bande",
+      editBody:
+        "Vérifiez le groupage avant confirmation. Retirez les sujets d’une autre génération, ou séparez-les en plusieurs bandes.",
+      editNeedAnimals: "Sélectionnez au moins un sujet.",
+      generation: "Génération",
+      selectAll: "Tout",
+      selectNone: "Aucun",
+      splitModeOn: "Séparer en {{count}} bandes par génération",
+      splitModeOff: "Revenir à une seule bande",
+      confirmSplitAction: "Créer {{count}} bandes",
       deleteTitle: "Supprimer cette bande ?",
       deleteBody:
         "La bande « {{name}} » sera définitivement supprimée. Cette action est irréversible.",

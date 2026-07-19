@@ -155,33 +155,62 @@ export function CheptelWeightTab({ farmId, accessToken, activeProfileId, readOnl
       {(batchesQ.data?.batches?.length ?? 0) > 0 ? (
         <>
           <Text style={styles.sectionTitle}>{t("cheptel.batches.detectedTitle")}</Text>
-          {(batchesQ.data?.batches ?? []).map((b) => (
-            <View key={b.id} style={styles.batchCard}>
-              <View style={styles.batchHeader}>
-                <Text style={styles.batchName}>{b.name}</Text>
-                {!readOnly ? (
-                  <Pressable
-                    style={styles.confirmBtn}
-                    onPress={() => setConfirmBatch(b)}
-                  >
-                    <Text style={styles.confirmBtnTx}>
-                      {t("cheptel.batches.confirmAction")}
-                    </Text>
-                  </Pressable>
+          {(batchesQ.data?.batches ?? []).map((b) => {
+            const labels = (b.animals ?? [])
+              .map((a) => a.label)
+              .slice(0, 6)
+              .join(", ");
+            const more =
+              (b.animals?.length ?? b.animalIds.length) > 6
+                ? ` +${(b.animals?.length ?? b.animalIds.length) - 6}`
+                : "";
+            return (
+              <View key={b.id} style={styles.batchCard}>
+                <View style={styles.batchHeader}>
+                  <Text style={styles.batchName}>{b.name}</Text>
+                  {!readOnly ? (
+                    <View style={styles.batchActions}>
+                      <Pressable
+                        style={styles.editBtn}
+                        onPress={() => setConfirmBatch(b)}
+                      >
+                        <Text style={styles.editBtnTx}>
+                          {t("cheptel.batches.editAction")}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        style={styles.confirmBtn}
+                        onPress={() => setConfirmBatch(b)}
+                      >
+                        <Text style={styles.confirmBtnTx}>
+                          {t("cheptel.batches.confirmAction")}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  ) : null}
+                </View>
+                <Text style={styles.batchMeta}>
+                  {b.headcount} {t("health.diseases.unitSubjects")}
+                  {b.generationLabel
+                    ? ` · ${t("cheptel.batches.generation")}: ${b.generationLabel}`
+                    : ""}
+                  {b.avgAgeWeeks != null
+                    ? ` · ${b.avgAgeWeeks} ${t("cheptel.weight.weeksAbbr")}`
+                    : ""}
+                  {b.avgWeightKg != null ? ` · ${b.avgWeightKg} kg` : ""}
+                </Text>
+                {labels ? (
+                  <Text style={styles.batchMeta} numberOfLines={2}>
+                    {labels}
+                    {more}
+                  </Text>
+                ) : null}
+                {b.penNames.length > 0 ? (
+                  <Text style={styles.batchMeta}>{b.penNames.join(", ")}</Text>
                 ) : null}
               </View>
-              <Text style={styles.batchMeta}>
-                {b.headcount} {t("health.diseases.unitSubjects")}
-                {b.avgAgeWeeks != null
-                  ? ` · ${b.avgAgeWeeks} ${t("cheptel.weight.weeksAbbr")}`
-                  : ""}
-                {b.avgWeightKg != null ? ` · ${b.avgWeightKg} kg` : ""}
-              </Text>
-              {b.penNames.length > 0 ? (
-                <Text style={styles.batchMeta}>{b.penNames.join(", ")}</Text>
-              ) : null}
-            </View>
-          ))}
+            );
+          })}
         </>
       ) : null}
 
@@ -268,6 +297,19 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.sm
   },
   batchName: { fontWeight: "700", color: mobileColors.textPrimary, flex: 1 },
+  batchActions: { flexDirection: "row", gap: 6, alignItems: "center" },
+  editBtn: {
+    borderRadius: mobileRadius.md,
+    borderWidth: 1,
+    borderColor: mobileColors.accent,
+    paddingHorizontal: 10,
+    paddingVertical: 6
+  },
+  editBtnTx: {
+    color: mobileColors.accent,
+    fontWeight: "700",
+    fontSize: 12
+  },
   confirmBtn: {
     backgroundColor: mobileColors.accent,
     borderRadius: mobileRadius.md,
