@@ -38,6 +38,7 @@ import { useSession } from "../../context/SessionContext";
 import {
   fetchTechnicianActivity,
   fetchTechnicianDashboard,
+  fetchTechnicianProfile,
   type TechnicianActivityRowDto
 } from "../../lib/api";
 import {
@@ -118,24 +119,42 @@ export function TechDashboardScreen() {
     enabled: Boolean(accessToken && dashQ.data?.activeFarmId)
   });
 
+  const techProfileQ = useQuery({
+    queryKey: ["techProfile", activeProfileId],
+    queryFn: () => fetchTechnicianProfile(accessToken!, activeProfileId),
+    enabled: Boolean(accessToken)
+  });
+
   const farms = dashQ.data?.farms ?? [];
   const resolvedFarmId = activeFarmId ?? dashQ.data?.activeFarmId ?? farms[0]?.farmId ?? null;
   const activeFarm = farms.find((f) => f.farmId === resolvedFarmId);
+
+  const avatarUrl = useMemo(
+    () =>
+      techProfileQ.data?.profilePhotoUrl ??
+      resolveActiveProfileAvatarUrl(authMe, activeProfileId),
+    [techProfileQ.data?.profilePhotoUrl, authMe, activeProfileId]
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       await refreshAuthMe();
-      await Promise.all([dashQ.refetch(), activityQ.refetch()]);
+      await Promise.all([
+        dashQ.refetch(),
+        activityQ.refetch(),
+        techProfileQ.refetch()
+      ]);
     } finally {
       setRefreshing(false);
     }
-  }, [refreshAuthMe, dashQ, activityQ]);
+  }, [refreshAuthMe, dashQ, activityQ, techProfileQ]);
 
   useFocusEffect(
     useCallback(() => {
       void refreshAuthMe();
-    }, [refreshAuthMe])
+      void techProfileQ.refetch();
+    }, [refreshAuthMe, techProfileQ])
   );
 
   const displayName = welcomeFirstName(authMe?.user ?? null) ?? t("tech.dashboard.defaultName");
@@ -164,7 +183,7 @@ export function TechDashboardScreen() {
         <TechWelcomeHeader
           welcomeLabel={t("tech.dashboard.welcomeLine")}
           displayName={displayName}
-          avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
+          avatarUrl={avatarUrl}
           onPressAvatar={() => setProfileOpen(true)}
         />
         <View style={styles.heroActions}>

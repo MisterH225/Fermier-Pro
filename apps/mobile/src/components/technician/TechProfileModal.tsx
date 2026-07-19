@@ -76,9 +76,8 @@ export function TechProfileModal({ visible, onClose }: TechProfileModalProps) {
 
   const avatarUri = useMemo(
     () =>
-      resolveActiveProfileAvatarUrl(authMe, activeProfileId) ??
       techProfile?.profilePhotoUrl ??
-      null,
+      resolveActiveProfileAvatarUrl(authMe, activeProfileId),
     [authMe, activeProfileId, techProfile?.profilePhotoUrl]
   );
 
@@ -131,7 +130,11 @@ export function TechProfileModal({ visible, onClose }: TechProfileModalProps) {
         >
           <View style={styles.hero}>
             {avatarUri ? (
-              <Image source={{ uri: avatarUri }} style={styles.avatar} />
+              <Image
+                key={avatarUri}
+                source={{ uri: avatarUri }}
+                style={styles.avatar}
+              />
             ) : (
               <View style={[styles.avatar, styles.avatarPh]}>
                 <Ionicons name="construct" size={44} color={techColors.primary} />

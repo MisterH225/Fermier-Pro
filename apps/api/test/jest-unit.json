@@ -4,6 +4,10 @@
   "rootDir": "..",
   "testRegex": "src/.*\\.spec\\.ts$",
   "moduleFileExtensions": ["ts", "js", "json"],
+  "moduleNameMapper": {
+    "^@fermier/types$": "<rootDir>/../../packages/types/src/index.ts",
+    "^@fermier/phone$": "<rootDir>/../../packages/phone/src/index.ts"
+  },
   "transform": {
     "^.+\\.ts$": [
       "ts-jest",

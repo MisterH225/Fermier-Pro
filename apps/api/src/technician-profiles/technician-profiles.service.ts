@@ -290,6 +290,15 @@ export class TechnicianProfilesService {
         }
       }
     });
+
+    // Dashboard lit Profile.avatarUrl via authMe — garder aligné avec profilePhotoUrl.
+    if (dto.profilePhotoUrl !== undefined) {
+      await this.prisma.profile.updateMany({
+        where: { userId: user.id, type: "technician" },
+        data: { avatarUrl: dto.profilePhotoUrl }
+      });
+    }
+
     return this.mapProfileRow(row);
   }
 
