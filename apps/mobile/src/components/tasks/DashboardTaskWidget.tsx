@@ -127,6 +127,7 @@ export function DashboardTaskWidget({
       ) : (
         <TaskListView
           tasks={tasks}
+          embedded={embedded}
           onPressTask={setDetail}
           onToggleDone={(task) => toggleMut.mutate(task)}
         />

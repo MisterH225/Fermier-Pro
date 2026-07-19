@@ -3677,6 +3677,8 @@ export const fr = {
       farmStatus: "État de la ferme",
       recentActivity: "Mon activité récente",
       noActivity: "Aucune activité récente",
+      activityExpand: "Voir {{count}} de plus",
+      activityCollapse: "Réduire",
       allActivity: "Voir tout →"
     },
     quick: {

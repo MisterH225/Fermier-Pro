@@ -119,14 +119,13 @@ export function CollaborationScreen({ farmId, farmName }: Props) {
           {
             key: "directory",
             label: t("collab.tabDirectory"),
+            flush: true,
             content: (
-              <View style={styles.directoryWrap}>
-                <DirectoryTab
-                  farmId={farmId}
-                  farmName={farmName ?? ""}
-                  canManageInvites={canInviteTeam}
-                />
-              </View>
+              <DirectoryTab
+                farmId={farmId}
+                farmName={farmName ?? ""}
+                canManageInvites={canInviteTeam}
+              />
             )
           },
           {
@@ -183,11 +182,6 @@ const styles = StyleSheet.create({
   },
   scrollPad: {
     flexGrow: 1
-  },
-  directoryWrap: {
-    flex: 1,
-    minHeight: 400,
-    paddingBottom: mobileSpacing.lg
   },
   pageHeader: {
     gap: mobileSpacing.xs

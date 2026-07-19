@@ -59,7 +59,9 @@ export function buildTechnicianCardModel(
   t: (key: string, opts?: Record<string, unknown>) => string
 ) {
   const name = tech.displayName?.trim() || t("collab.directory.techFallbackName");
-  const specs = tech.specializations.map((s) => techSpecializationLabel(s, t));
+  const specs = [
+    ...new Set(tech.specializations.map((s) => techSpecializationLabel(s, t)))
+  ];
   const title =
     specs.slice(0, 2).join(" · ") || t("collab.directory.techRoleTitle");
 
