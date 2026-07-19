@@ -66,6 +66,28 @@ export class IdempotencyService {
     }
   }
 
+  /**
+   * Aligne le cache sur la sérialisation JSON filaire (Nest/Express) :
+   * Prisma.Decimal → string via toJSON, pas number via le driver Json.
+   */
+  private toWireJson(
+    responseBody: unknown
+  ): Prisma.InputJsonValue | typeof Prisma.DbNull {
+    if (responseBody === undefined) {
+      return Prisma.DbNull;
+    }
+    return JSON.parse(
+      JSON.stringify(responseBody, (_key, value) => {
+        if (value != null && typeof value === "object") {
+          if (Prisma.Decimal.isDecimal(value)) {
+            return value.toString();
+          }
+        }
+        return value;
+      })
+    ) as Prisma.InputJsonValue;
+  }
+
   async saveCompleted(
     key: string,
     userId: string,
@@ -75,6 +97,7 @@ export class IdempotencyService {
     responseBody: unknown
   ): Promise<void> {
     const expiresAt = new Date(Date.now() + IDEMPOTENCY_TTL_MS);
+    const wireBody = this.toWireJson(responseBody);
     await this.prisma.idempotencyKey.upsert({
       where: { key },
       create: {
@@ -83,18 +106,12 @@ export class IdempotencyService {
         method,
         path,
         statusCode,
-        responseBody:
-          responseBody === undefined
-            ? Prisma.DbNull
-            : (responseBody as Prisma.InputJsonValue),
+        responseBody: wireBody,
         expiresAt
       },
       update: {
         statusCode,
-        responseBody:
-          responseBody === undefined
-            ? Prisma.DbNull
-            : (responseBody as Prisma.InputJsonValue),
+        responseBody: wireBody,
         expiresAt
       }
     });
