@@ -1,5 +1,6 @@
 import {
   Image,
+  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -18,6 +19,7 @@ import { getGoogleOAuthRedirectUri } from "../lib/googleAuth";
 import { authColors, authRadii } from "../theme/authTheme";
 
 const LOGO = require("../../assets/images/fermier-pro-logo-nobg.png");
+const AUTH_BACKGROUND = require("../../assets/images/auth-background.jpg");
 
 /**
  * Écran de connexion : Google OAuth ou SMS (Supabase Auth).
@@ -33,85 +35,102 @@ export function LoginGateScreen() {
   const logoH = Math.round(logoW * (295 / 601));
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+    <ImageBackground
+      source={AUTH_BACKGROUND}
+      style={styles.background}
+      resizeMode="cover"
+      accessibilityIgnoresInvertColors
+    >
+      <View style={styles.scrim} pointerEvents="none" />
+      <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-          <View style={styles.logoBlock}>
-            <Image
-              source={LOGO}
-              style={[styles.logo, { width: logoW, height: logoH }]}
-              resizeMode="contain"
-              accessibilityLabel={t("loginGate.logoA11y")}
-            />
-            <Text style={styles.lead}>{t("loginGate.lead")}</Text>
-          </View>
-
-          {!authOk ? (
-            <View style={styles.warnCard}>
-              <Ionicons
-                name="warning-outline"
-                size={22}
-                color={authColors.error}
-                style={styles.warnIcon}
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.logoBlock}>
+              <Image
+                source={LOGO}
+                style={[styles.logo, { width: logoW, height: logoH }]}
+                resizeMode="contain"
+                accessibilityLabel={t("loginGate.logoA11y")}
               />
-              <Text style={styles.warnText}>{t("loginGate.envWarn")}</Text>
+              <Text style={styles.lead}>{t("loginGate.lead")}</Text>
             </View>
-          ) : (
-            <>
-              {showDevRedirectHint ? (
-                <View style={styles.redirectHint}>
-                  <Text style={styles.redirectHintTitle}>
-                    {t("loginGate.redirectTitle")}
-                  </Text>
-                  <Text style={styles.redirectHintUrl} selectable>
-                    {oauthRedirectUri}
-                  </Text>
-                  <Text style={styles.redirectHintBody}>
-                    {t("loginGate.redirectBody")}
-                  </Text>
-                  {oauthRedirectUri.includes("localhost") ? (
-                    <Text style={styles.redirectWarn}>
-                      {t("loginGate.redirectLocalhostWarn")}
-                    </Text>
-                  ) : null}
-                </View>
-              ) : null}
 
-              <PhoneOtpAuth />
-
-              <View style={styles.authOrRow}>
-                <View style={styles.authOrLine} />
-                <Text style={styles.authOrText}>{t("loginGate.or")}</Text>
-                <View style={styles.authOrLine} />
+            {!authOk ? (
+              <View style={styles.warnCard}>
+                <Ionicons
+                  name="warning-outline"
+                  size={22}
+                  color={authColors.error}
+                  style={styles.warnIcon}
+                />
+                <Text style={styles.warnText}>{t("loginGate.envWarn")}</Text>
               </View>
+            ) : (
+              <>
+                {showDevRedirectHint ? (
+                  <View style={styles.redirectHint}>
+                    <Text style={styles.redirectHintTitle}>
+                      {t("loginGate.redirectTitle")}
+                    </Text>
+                    <Text style={styles.redirectHintUrl} selectable>
+                      {oauthRedirectUri}
+                    </Text>
+                    <Text style={styles.redirectHintBody}>
+                      {t("loginGate.redirectBody")}
+                    </Text>
+                    {oauthRedirectUri.includes("localhost") ? (
+                      <Text style={styles.redirectWarn}>
+                        {t("loginGate.redirectLocalhostWarn")}
+                      </Text>
+                    ) : null}
+                  </View>
+                ) : null}
 
-              <GoogleOAuthButton />
-            </>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+                <PhoneOtpAuth />
+
+                <View style={styles.authOrRow}>
+                  <View style={styles.authOrLine} />
+                  <Text style={styles.authOrText}>{t("loginGate.or")}</Text>
+                  <View style={styles.authOrLine} />
+                </View>
+
+                <GoogleOAuthButton />
+              </>
+            )}
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
+  background: {
     flex: 1,
     backgroundColor: authColors.background
+  },
+  scrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255, 255, 255, 0.42)"
+  },
+  safe: {
+    flex: 1,
+    backgroundColor: "transparent"
   },
   flex: {
     flex: 1
   },
   scroll: {
-    flex: 1
+    flex: 1,
+    backgroundColor: "transparent"
   },
   content: {
     paddingHorizontal: 24,
@@ -129,11 +148,12 @@ const styles = StyleSheet.create({
   },
   lead: {
     fontSize: 15,
-    color: authColors.body,
+    color: authColors.forestMuted,
     textAlign: "center",
     lineHeight: 22,
     maxWidth: 320,
-    marginBottom: 8
+    marginBottom: 8,
+    fontWeight: "500"
   },
   warnCard: {
     flexDirection: "row",
@@ -164,12 +184,14 @@ const styles = StyleSheet.create({
   authOrLine: {
     flex: 1,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: authColors.border
+    backgroundColor: authColors.forestMuted,
+    opacity: 0.35
   },
   authOrText: {
     marginHorizontal: 14,
     fontSize: 14,
-    color: authColors.placeholder
+    fontWeight: "600",
+    color: authColors.forestMuted
   },
   redirectHint: {
     marginTop: 16,
@@ -178,7 +200,7 @@ const styles = StyleSheet.create({
     borderRadius: authRadii.input,
     borderWidth: 1,
     borderColor: authColors.border,
-    backgroundColor: authColors.surfaceSubtle
+    backgroundColor: "rgba(255, 255, 255, 0.92)"
   },
   redirectHintTitle: {
     fontSize: 12,

@@ -517,12 +517,14 @@ const styles = StyleSheet.create({
   orLine: {
     flex: 1,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: authColors.border
+    backgroundColor: authColors.forestMuted,
+    opacity: 0.35
   },
   orText: {
     marginHorizontal: 14,
     fontSize: 14,
-    color: authColors.placeholder
+    fontWeight: "600",
+    color: authColors.forestMuted
   },
   btnOutline: {
     borderWidth: 1,
@@ -563,7 +565,7 @@ const styles = StyleSheet.create({
   footerNote: {
     marginTop: 28,
     fontSize: 13,
-    color: authColors.placeholder,
+    color: authColors.forestMuted,
     textAlign: "center",
     lineHeight: 19
   },
