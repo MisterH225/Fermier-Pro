@@ -32,6 +32,7 @@ import { ShopOrdersTrackingCard } from "../../components/notifications/ShopOrder
 import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import { DashboardTaskWidget } from "../../components/tasks";
 import { TechQuickActionModals } from "../../components/technician/TechQuickActionModals";
+import { ActivityToggleHeader } from "../../components/collaboration/ActivityToggleHeader";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import {
@@ -95,6 +96,7 @@ export function TechDashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeFarmId, setActiveFarmId] = useState<string | null>(null);
   const [quickAction, setQuickAction] = useState<TechQuickActionKey | null>(null);
+  const [activityExpanded, setActivityExpanded] = useState(false);
 
   const dashQ = useQuery({
     queryKey: ["techDashboard", activeProfileId, activeFarmId],
@@ -140,6 +142,12 @@ export function TechDashboardScreen() {
   const events = useMemo(
     () => (activityQ.data ?? []).map((a) => activityToEvent(a, locale)),
     [activityQ.data, locale]
+  );
+  const ACTIVITY_COLLAPSED = 3;
+  const visibleEvents = useMemo(
+    () =>
+      activityExpanded ? events : events.slice(0, ACTIVITY_COLLAPSED),
+    [activityExpanded, events]
   );
 
   const kpis = dashQ.data?.kpis;
@@ -238,7 +246,7 @@ export function TechDashboardScreen() {
         />
 
         <View style={styles.sectionBlock}>
-          <ScreenSection title={t("tech.dashboard.tasksToday")}>
+          <ScreenSection title={t("tech.dashboard.tasksToday")} plain>
             {activeFarm && clientFeatures.tasks && accessToken ? (
               <DashboardTaskWidget
                 farmId={activeFarm.farmId}
@@ -339,15 +347,39 @@ export function TechDashboardScreen() {
         </ScreenSection>
 
         <View style={styles.sectionBlock}>
-          <ScreenSection title={t("tech.dashboard.recentActivity")}>
-            {dashQ.isPending && !dashQ.data ? (
-              <ListSkeleton count={4} />
-            ) : events.length > 0 ? (
-              <EventList data={events} />
-            ) : (
-              <ProfileSectionEmpty>{t("tech.dashboard.noActivity")}</ProfileSectionEmpty>
-            )}
-          </ScreenSection>
+          <ActivityToggleHeader
+            title={t("tech.dashboard.recentActivity")}
+            expanded={activityExpanded}
+            onToggle={() => setActivityExpanded((v) => !v)}
+          />
+          {dashQ.isPending && !dashQ.data ? (
+            <ListSkeleton count={3} />
+          ) : events.length > 0 ? (
+            <>
+              <EventList
+                data={visibleEvents}
+                layout="embedded"
+                emptyMessage={t("tech.dashboard.noActivity")}
+              />
+              {events.length > ACTIVITY_COLLAPSED ? (
+                <Pressable
+                  onPress={() => setActivityExpanded((v) => !v)}
+                  style={styles.activityToggleMore}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.activityToggleMoreTx}>
+                    {activityExpanded
+                      ? t("tech.dashboard.activityCollapse")
+                      : t("tech.dashboard.activityExpand", {
+                          count: events.length - ACTIVITY_COLLAPSED
+                        })}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </>
+          ) : (
+            <ProfileSectionEmpty>{t("tech.dashboard.noActivity")}</ProfileSectionEmpty>
+          )}
           <ProfileSectionLink
             color={techColors.primary}
             label={t("tech.dashboard.allActivity")}
@@ -466,5 +498,14 @@ const styles = StyleSheet.create({
     borderColor: techColors.border
   },
   kpiValue: { fontSize: 22, fontWeight: "700", color: techColors.primary },
-  kpiLabel: { ...mobileTypography.meta, color: techColors.textSecondary, marginTop: 4 }
+  kpiLabel: { ...mobileTypography.meta, color: techColors.textSecondary, marginTop: 4 },
+  activityToggleMore: {
+    alignSelf: "center",
+    paddingVertical: mobileSpacing.sm
+  },
+  activityToggleMoreTx: {
+    ...mobileTypography.meta,
+    fontWeight: "700",
+    color: techColors.primary
+  }
 });

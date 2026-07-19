@@ -175,8 +175,8 @@ export function DirectoryTab({ farmId, farmName, canManageInvites }: Props) {
     );
   }, [kind, techQ.isPending, vetQ.isPending, t]);
 
-  return (
-    <View style={styles.wrap}>
+  const listHeader = (
+    <View style={styles.listHeader}>
       <View style={styles.segment}>
         {(["technician", "vet"] as const).map((k) => (
           <Pressable
@@ -219,12 +219,21 @@ export function DirectoryTab({ farmId, farmName, canManageInvites }: Props) {
           {t("collab.directory.radius", { km: radiusKm })}
         </Text>
       </View>
+    </View>
+  );
 
+  return (
+    <View style={styles.wrap}>
       {kind === "technician" ? (
         <FlatList
+          style={styles.list}
           data={techItems}
           keyExtractor={(item) => item.userId}
+          ListHeaderComponent={listHeader}
           ListEmptyComponent={listEmpty}
+          contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <TechnicianCard
               tech={item}
@@ -234,9 +243,14 @@ export function DirectoryTab({ farmId, farmName, canManageInvites }: Props) {
         />
       ) : (
         <FlatList
+          style={styles.list}
           data={vetItems}
           keyExtractor={(item) => item.id}
+          ListHeaderComponent={listHeader}
           ListEmptyComponent={listEmpty}
+          contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <VetCard vet={item} onPress={() => setSelectedVet(item)} />
           )}
@@ -326,7 +340,16 @@ export function DirectoryTab({ farmId, farmName, canManageInvites }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, minHeight: 320 },
+  wrap: { flex: 1, minHeight: 0 },
+  list: { flex: 1 },
+  listContent: {
+    flexGrow: 1,
+    paddingHorizontal: mobileSpacing.lg,
+    paddingBottom: mobileSpacing.xxl
+  },
+  listHeader: {
+    marginBottom: mobileSpacing.sm
+  },
   segment: {
     flexDirection: "row",
     backgroundColor: mobileColors.surfaceMuted,

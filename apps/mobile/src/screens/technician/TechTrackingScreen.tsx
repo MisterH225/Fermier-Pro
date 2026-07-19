@@ -57,7 +57,7 @@ export function TechTrackingScreen() {
           {activityQ.isLoading ? (
             <ListSkeleton count={5} />
           ) : items.length > 0 ? (
-            <EventList data={items} />
+            <EventList data={items} layout="embedded" />
           ) : (
             <ProfileSectionEmpty>{t("tech.dashboard.noActivity")}</ProfileSectionEmpty>
           )}

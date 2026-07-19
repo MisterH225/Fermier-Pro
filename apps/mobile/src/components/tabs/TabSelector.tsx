@@ -18,6 +18,11 @@ export type TabSelectorItem = {
   /** Pastille optionnelle (ex. compteur, mois). */
   badge?: string | number;
   content: ReactNode;
+  /**
+   * Contenu plein écran sans panneau gris arrondi (`contentShell`).
+   * Utile pour les listes scrollables (annuaire, etc.).
+   */
+  flush?: boolean;
 };
 
 export type TabSelectorProps = {
@@ -74,6 +79,7 @@ export function TabSelector({
   );
 
   const activeTab = tabs.find((t) => t.key === activeKey) ?? tabs[0];
+  const flushContent = Boolean(activeTab?.flush);
 
   return (
     <View style={styles.root} testID={`${testIDPrefix}-bar`}>
@@ -98,7 +104,7 @@ export function TabSelector({
         ))}
       </ScrollView>
 
-      <View style={styles.contentShell}>
+      <View style={flushContent ? styles.contentFlush : styles.contentShell}>
         <Animated.View style={[styles.contentInner, { opacity: fadeAnim }]}>
           {activeTab?.content}
         </Animated.View>
@@ -146,6 +152,12 @@ const styles = StyleSheet.create({
       shadowRadius: 8,
       elevation: 2
     }
+  },
+  contentFlush: {
+    flex: 1,
+    minHeight: 0,
+    marginTop: mobileSpacing.sm,
+    backgroundColor: mobileColors.canvas
   },
   contentInner: {
     flex: 1,

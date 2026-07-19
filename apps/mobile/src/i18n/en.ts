@@ -3648,6 +3648,8 @@ export const en = {
       farmStatus: "Farm status",
       recentActivity: "Recent activity",
       noActivity: "No recent activity",
+      activityExpand: "Show {{count}} more",
+      activityCollapse: "Show less",
       allActivity: "View all →"
     },
     quick: {
