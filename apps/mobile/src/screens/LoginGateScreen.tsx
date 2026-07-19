@@ -32,7 +32,8 @@ export function LoginGateScreen() {
     typeof __DEV__ !== "undefined" && __DEV__ && authOk;
   const { width: winW } = useWindowDimensions();
   const logoW = Math.min(winW - 80, 340);
-  const logoH = Math.round(logoW * (295 / 601));
+  // Ratio du PNG transparent (logo + wordmark), sans fond carrelé.
+  const logoH = Math.round(logoW * (848 / 1200));
 
   return (
     <ImageBackground
