@@ -18,13 +18,41 @@ import {
   privacyDisplayName
 } from "./technician-privacy.helper";
 
-/** Convertit le JSON Prisma `MemberActivityLog.detail` en string safe pour les clients UI. */
+const ACTIVITY_KIND_LABELS: Record<string, string> = {
+  expense: "Dépense",
+  revenue: "Recette",
+  in: "Entrée stock",
+  out: "Sortie stock",
+  stock_check: "Contrôle de stock",
+  vaccination: "Vaccination",
+  disease: "Maladie",
+  treatment: "Traitement",
+  mortality: "Mortalité",
+  vet_visit: "Visite vétérinaire",
+  weighing: "Pesée"
+};
+
+/** Convertit le JSON Prisma `MemberActivityLog.detail` en libellé UI (jamais de JSON brut). */
 function serializeActivityDetail(detail: Prisma.JsonValue | null): string | null {
   if (detail == null) {
     return null;
   }
   if (typeof detail === "string") {
-    return detail;
+    const trimmed = detail.trim();
+    if (!trimmed) {
+      return null;
+    }
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      try {
+        const parsed: unknown = JSON.parse(trimmed);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          return serializeActivityDetail(parsed as Prisma.JsonObject);
+        }
+      } catch {
+        return trimmed;
+      }
+    }
+    return trimmed;
   }
   if (typeof detail === "number" || typeof detail === "boolean") {
     return String(detail);
@@ -37,12 +65,12 @@ function serializeActivityDetail(detail: Prisma.JsonValue | null): string | null
         return value.trim();
       }
     }
+    const kind = record.kind;
+    if (typeof kind === "string" && kind.trim()) {
+      return ACTIVITY_KIND_LABELS[kind] ?? kind.replace(/[_-]+/g, " ");
+    }
   }
-  try {
-    return JSON.stringify(detail);
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 function haversineKm(

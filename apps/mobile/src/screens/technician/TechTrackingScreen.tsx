@@ -13,6 +13,10 @@ import { TechMobileShell } from "../../components/layout/TechMobileShell";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import { fetchTechnicianActivity } from "../../lib/api";
+import {
+  formatActivityAction,
+  formatActivityDetail
+} from "../../lib/formatActivityDetail";
 import { mobileSpacing } from "../../theme/mobileTheme";
 import { techColors } from "../../theme/technicianTheme";
 
@@ -33,10 +37,14 @@ export function TechTrackingScreen() {
     const date = Number.isNaN(d.getTime())
       ? "—"
       : d.toLocaleString(locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    const detailLabel = formatActivityDetail(a.detail, a.module);
+    const subtitleParts = [a.farmName, detailLabel].filter(
+      (part, index, arr) => Boolean(part) && arr.indexOf(part) === index
+    );
     return {
       id: a.id,
-      title: a.action,
-      subtitle: `${a.farmName} · ${a.module}`,
+      title: formatActivityAction(a.action),
+      subtitle: subtitleParts.join(" · "),
       date,
       valueType: "neutral",
       iconType: "custom",

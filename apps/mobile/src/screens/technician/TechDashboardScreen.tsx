@@ -40,7 +40,10 @@ import {
   fetchTechnicianDashboard,
   type TechnicianActivityRowDto
 } from "../../lib/api";
-import { formatActivityDetail } from "../../lib/formatActivityDetail";
+import {
+  formatActivityAction,
+  formatActivityDetail
+} from "../../lib/formatActivityDetail";
 import {
   canTechQuickAction,
   type TechQuickActionKey
@@ -72,10 +75,13 @@ function activityToEvent(
     ? "—"
     : d.toLocaleString(locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const detailLabel = formatActivityDetail(a.detail, a.module);
+  const subtitleParts = [a.farmName, detailLabel].filter(
+    (part, index, arr) => Boolean(part) && arr.indexOf(part) === index
+  );
   return {
     id: a.id,
-    title: a.action,
-    subtitle: a.farmName ? `${a.farmName} · ${detailLabel}` : detailLabel,
+    title: formatActivityAction(a.action),
+    subtitle: subtitleParts.join(" · "),
     date,
     valueType: "neutral",
     iconType: "custom",
