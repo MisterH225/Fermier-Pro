@@ -38,5 +38,7 @@ export async function uploadUserAvatarToSupabase(
     throw upErr;
   }
   const { data } = supabase.storage.from(AVATARS_BUCKET).getPublicUrl(path);
-  return data.publicUrl;
+  // Même chemin Storage (upsert) → bust cache Image RN / CDN via query param.
+  const sep = data.publicUrl.includes("?") ? "&" : "?";
+  return `${data.publicUrl}${sep}v=${Date.now()}`;
 }
