@@ -4,7 +4,8 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "../globals.css";
 
-const LOGO_ICON = "/images/fermier-pro-logo-nobg.png";
+/** Favicon / apple icon : même marque que l’appli mobile (carré 1024). */
+const LOGO_ICON = "/images/fermier-pro-icon.png";
 
 export const metadata: Metadata = {
   icons: {

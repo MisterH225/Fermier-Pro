@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const LOGO_SRC = "/images/fermier-pro-logo-nobg.png";
-const LOGO_ASPECT = 601 / 295;
+const LOGO_ASPECT = 1200 / 848;
 const MIN_PASSWORD_LENGTH = 8;
 
 export function ResetPasswordScreen() {

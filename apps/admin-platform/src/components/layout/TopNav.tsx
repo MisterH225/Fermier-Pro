@@ -20,7 +20,7 @@ import { NAV_ITEMS, PRIMARY_NAV, SECONDARY_NAV } from "@/components/layout/nav-c
 import type { NavItem } from "@/components/layout/nav-config";
 
 const LOGO_SRC = "/images/fermier-pro-logo-nobg.png";
-const LOGO_ASPECT = 601 / 295;
+const LOGO_ASPECT = 1200 / 848;
 
 type Props = {
   pendingVets?: number;
