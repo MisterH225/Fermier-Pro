@@ -20,6 +20,7 @@ import { PrimaryButton } from "../../components/ui/PrimaryButton";
 import { useSession } from "../../context/SessionContext";
 import {
   fetchTechnicianProfile,
+  patchAuthProfile,
   upsertTechnicianProfile,
   type TechnicianFormationType
 } from "../../lib/api";
@@ -58,7 +59,7 @@ const SPEC_OPTIONS = [
 
 export function TechProfileEditScreen({ navigation }: Props) {
   const { t } = useTranslation();
-  const { accessToken, activeProfileId, authMe } = useSession();
+  const { accessToken, activeProfileId, authMe, refreshAuthMe } = useSession();
   const qc = useQueryClient();
 
   const profileQ = useQuery({
@@ -157,6 +158,7 @@ export function TechProfileEditScreen({ navigation }: Props) {
   const saveMut = useMutation({
     mutationFn: async () => {
       let nextPhotoUrl = profilePhotoUrl;
+      let photoChanged = false;
       if (pendingPhotoUri) {
         const supabase = getSupabase();
         if (!supabase || !authMe?.user.supabaseUserId) {
@@ -174,9 +176,10 @@ export function TechProfileEditScreen({ navigation }: Props) {
           mime,
           "technician"
         );
+        photoChanged = true;
       }
 
-      return upsertTechnicianProfile(accessToken!, activeProfileId, {
+      await upsertTechnicianProfile(accessToken!, activeProfileId, {
         formationType: formationType ?? undefined,
         formationDetails: formationDetails.trim() || undefined,
         graduationYear: graduationYear
@@ -197,6 +200,16 @@ export function TechProfileEditScreen({ navigation }: Props) {
         isPublic,
         profilePhotoUrl: nextPhotoUrl ?? undefined
       });
+
+      // Dashboard / menu profil lisent Profile.avatarUrl via authMe — sync comme véto / producteur.
+      if (photoChanged && nextPhotoUrl) {
+        await patchAuthProfile(
+          accessToken!,
+          { avatarUrl: nextPhotoUrl },
+          activeProfileId
+        );
+        await refreshAuthMe();
+      }
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["techProfile"] });

@@ -75,8 +75,11 @@ export function TechProfileModal({ visible, onClose }: TechProfileModalProps) {
   const farmsCount = dashQ.data?.farms?.length ?? 0;
 
   const avatarUri = useMemo(
-    () => resolveActiveProfileAvatarUrl(authMe, activeProfileId),
-    [authMe, activeProfileId]
+    () =>
+      resolveActiveProfileAvatarUrl(authMe, activeProfileId) ??
+      techProfile?.profilePhotoUrl ??
+      null,
+    [authMe, activeProfileId, techProfile?.profilePhotoUrl]
   );
 
   const displayName =
