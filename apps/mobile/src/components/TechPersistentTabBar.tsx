@@ -1,6 +1,7 @@
 import { useNavigation, useNavigationState } from "@react-navigation/native";
 import type { NavigationState } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, View } from "react-native";
@@ -12,6 +13,7 @@ import { TECH_NAV_FLOAT_BOTTOM } from "./navigation/technician/techNavMetrics";
 import type { ExtendedNavMenuId } from "./navigation/types";
 import type { TechMainTab } from "./navigation/technician/types";
 import { useSession } from "../context/SessionContext";
+import { fetchTechnicianDashboard } from "../lib/api";
 import { mobileSpacing } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
@@ -40,7 +42,7 @@ export function TechPersistentTabBar() {
   const insets = useSafeAreaInsets();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { authMe, activeProfileId, clientFeatures } = useSession();
+  const { authMe, activeProfileId, accessToken, clientFeatures } = useSession();
   const [extendedOpen, setExtendedOpen] = useState(false);
 
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
@@ -50,9 +52,29 @@ export function TechPersistentTabBar() {
     getFocusedRoute(state as NavigationState | undefined)
   );
 
+  const dashQ = useQuery({
+    queryKey: ["techDashboard", activeProfileId, "nav"],
+    queryFn: () => fetchTechnicianDashboard(accessToken!, activeProfileId),
+    enabled: Boolean(accessToken && isTechnician)
+  });
+
+  const farmContext = useMemo((): { farmId: string; farmName: string } | null => {
+    const fromRouteId =
+      typeof focused?.params?.farmId === "string" ? focused.params.farmId : undefined;
+    const fromRouteName =
+      typeof focused?.params?.farmName === "string" ? focused.params.farmName : undefined;
+    if (fromRouteId) {
+      return { farmId: fromRouteId, farmName: fromRouteName ?? "—" };
+    }
+    const farms = dashQ.data?.farms ?? [];
+    const activeId = dashQ.data?.activeFarmId ?? farms[0]?.farmId;
+    const farm = farms.find((f) => f.farmId === activeId) ?? farms[0];
+    return farm ? { farmId: farm.farmId, farmName: farm.farmName } : null;
+  }, [dashQ.data?.activeFarmId, dashQ.data?.farms, focused?.params]);
+
   const activeTab = useMemo(
-    () => techMainTabFromRoute(focused?.name),
-    [focused?.name]
+    () => techMainTabFromRoute(focused?.name, focused?.params),
+    [focused?.name, focused?.params]
   );
 
   const onTabPress = useCallback(
@@ -64,17 +86,43 @@ export function TechPersistentTabBar() {
         case "tasks":
           navigation.navigate("TechTasks");
           return;
-        case "farm":
-          navigation.navigate("TechFarm");
+        case "vaccinations":
+          if (farmContext) {
+            navigation.navigate("FarmHealth", {
+              farmId: farmContext.farmId,
+              farmName: farmContext.farmName,
+              initialTab: "vaccination"
+            });
+          } else {
+            navigation.navigate("TechFarm");
+          }
           return;
-        case "tracking":
-          navigation.navigate("TechTracking");
+        case "weighings":
+          if (farmContext) {
+            navigation.navigate("FarmLivestock", {
+              farmId: farmContext.farmId,
+              farmName: farmContext.farmName,
+              initialTab: "weight"
+            });
+          } else {
+            navigation.navigate("TechFarm");
+          }
+          return;
+        case "feedStock":
+          if (farmContext) {
+            navigation.navigate("FarmFeedStock", {
+              farmId: farmContext.farmId,
+              farmName: farmContext.farmName
+            });
+          } else {
+            navigation.navigate("TechFarm");
+          }
           return;
         default:
           return;
       }
     },
-    [navigation]
+    [farmContext, navigation]
   );
 
   const extendedItems = useMemo(
@@ -85,10 +133,21 @@ export function TechPersistentTabBar() {
           label: t("navigation.main.feed"),
           a11y: t("navigation.main.feed")
         },
-        { id: "vaccinations", label: t("tech.extended.vaccinations"), a11y: t("tech.extended.vaccinations") },
-        { id: "weighings", label: t("tech.extended.weighings"), a11y: t("tech.extended.weighings") },
-        { id: "feedStock", label: t("tech.extended.feedStock"), a11y: t("tech.extended.feedStock") },
-        { id: "reports", label: t("tech.extended.reports"), a11y: t("tech.extended.reports") }
+        {
+          id: "farm",
+          label: t("tech.extended.farm"),
+          a11y: t("tech.extended.farm")
+        },
+        {
+          id: "tracking",
+          label: t("tech.extended.tracking"),
+          a11y: t("tech.extended.tracking")
+        },
+        {
+          id: "reports",
+          label: t("tech.extended.reports"),
+          a11y: t("tech.extended.reports")
+        }
       ];
       if (clientFeatures.wallet) {
         items.push({
@@ -110,32 +169,22 @@ export function TechPersistentTabBar() {
   const onExtendedSelect = useCallback(
     (id: ExtendedNavMenuId) => {
       setExtendedOpen(false);
-      const farmId =
-        typeof focused?.params?.farmId === "string" ? focused.params.farmId : undefined;
-      const farmName =
-        typeof focused?.params?.farmName === "string" ? focused.params.farmName : "—";
       switch (id) {
         case "communityFeed":
           navigation.navigate("CommunityFeed");
           return;
-        case "vaccinations":
-        case "weighings":
-          if (farmId) {
-            navigation.navigate("FarmHealth", { farmId, farmName });
-          } else {
-            navigation.navigate("TechFarm");
-          }
+        case "farm":
+          navigation.navigate("TechFarm");
           return;
-        case "feedStock":
-          if (farmId) {
-            navigation.navigate("FarmFeedStock", { farmId, farmName });
-          } else {
-            navigation.navigate("TechFarm");
-          }
+        case "tracking":
+          navigation.navigate("TechTracking");
           return;
         case "reports":
-          if (farmId) {
-            navigation.navigate("FarmReports", { farmId, farmName });
+          if (farmContext) {
+            navigation.navigate("FarmReports", {
+              farmId: farmContext.farmId,
+              farmName: farmContext.farmName
+            });
           } else {
             navigation.navigate("TechTracking");
           }
@@ -150,7 +199,7 @@ export function TechPersistentTabBar() {
           return;
       }
     },
-    [focused?.params, navigation]
+    [farmContext, navigation]
   );
 
   if (!isTechnician) {

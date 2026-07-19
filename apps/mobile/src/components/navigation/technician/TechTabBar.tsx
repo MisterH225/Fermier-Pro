@@ -12,18 +12,55 @@ type Props = {
   onOpenExtended: () => void;
 };
 
-const TAB_ORDER: TechMainTab[] = ["home", "tasks", "farm", "tracking"];
+const TAB_ORDER: TechMainTab[] = [
+  "home",
+  "tasks",
+  "vaccinations",
+  "weighings",
+  "feedStock"
+];
 
-const TAB_META: Record<TechMainTab, { icon: keyof typeof Ionicons.glyphMap; iconOutline: keyof typeof Ionicons.glyphMap; labelKey: string }> = {
+const TAB_META: Record<
+  TechMainTab,
+  {
+    icon: keyof typeof Ionicons.glyphMap;
+    iconOutline: keyof typeof Ionicons.glyphMap;
+    labelKey: string;
+  }
+> = {
   home: { icon: "home", iconOutline: "home-outline", labelKey: "tech.nav.home" },
-  tasks: { icon: "checkbox", iconOutline: "checkbox-outline", labelKey: "tech.nav.tasks" },
-  farm: { icon: "business", iconOutline: "business-outline", labelKey: "tech.nav.farm" },
-  tracking: { icon: "stats-chart", iconOutline: "stats-chart-outline", labelKey: "tech.nav.tracking" },
+  tasks: {
+    icon: "checkbox",
+    iconOutline: "checkbox-outline",
+    labelKey: "tech.nav.tasks"
+  },
+  vaccinations: {
+    icon: "medkit",
+    iconOutline: "medkit-outline",
+    labelKey: "tech.nav.vaccinations"
+  },
+  weighings: {
+    icon: "scale",
+    iconOutline: "scale-outline",
+    labelKey: "tech.nav.weighings"
+  },
+  feedStock: {
+    icon: "nutrition",
+    iconOutline: "nutrition-outline",
+    labelKey: "tech.nav.feedStock"
+  }
 };
 
 const H = TECH_NAV_BAR_HEIGHT;
 
-function NavItem({ icon, iconOutline, label, active, onPress, a11y }: {
+function NavItem({
+  icon,
+  iconOutline,
+  label,
+  active,
+  onPress,
+  a11y
+}: {
   icon: keyof typeof Ionicons.glyphMap;
   iconOutline: keyof typeof Ionicons.glyphMap;
   label: string;
@@ -32,16 +69,25 @@ function NavItem({ icon, iconOutline, label, active, onPress, a11y }: {
   a11y: string;
 }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={a11y} onPress={onPress} style={({ pressed }) => [styles.hit, pressed && { opacity: 0.9 }]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={a11y}
+      onPress={onPress}
+      style={({ pressed }) => [styles.hit, pressed && { opacity: 0.9 }]}
+    >
       {active ? (
         <View style={styles.activePill}>
           <Ionicons name={icon} size={17} color={techColors.onPrimary} />
-          <Text style={styles.labelActive} numberOfLines={1}>{label}</Text>
+          <Text style={styles.labelActive} numberOfLines={1}>
+            {label}
+          </Text>
         </View>
       ) : (
         <>
           <Ionicons name={iconOutline} size={22} color={techColors.textMuted} />
-          <Text style={styles.label} numberOfLines={1}>{label}</Text>
+          <Text style={styles.label} numberOfLines={1}>
+            {label}
+          </Text>
         </>
       )}
     </Pressable>
@@ -72,22 +118,97 @@ export function TechTabBar({ activeTab, onTabPress, onOpenExtended }: Props) {
         accessibilityRole="button"
         accessibilityLabel={t("navigation.extended.openA11y")}
         onPress={onOpenExtended}
-        style={({ pressed }) => [styles.plusOuter, techShadow.floating, { width: H, height: H, borderRadius: H / 2, opacity: pressed ? 0.92 : 1 }]}
+        style={({ pressed }) => [
+          styles.plusOuter,
+          techShadow.floating,
+          {
+            width: H,
+            height: H,
+            borderRadius: H / 2,
+            opacity: pressed ? 0.92 : 1
+          }
+        ]}
       >
-        <Ionicons name="add" size={Math.round(H * 0.36)} color={techColors.primary} />
-        <Text style={styles.plusLabel} numberOfLines={1}>{t("navigation.extended.menuShort")}</Text>
+        <Ionicons
+          name="add"
+          size={Math.round(H * 0.36)}
+          color={techColors.primary}
+        />
+        <Text style={styles.plusLabel} numberOfLines={1}>
+          {t("navigation.extended.menuShort")}
+        </Text>
       </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { width: "100%", flexDirection: "row", alignItems: "center", gap: mobileSpacing.sm, pointerEvents: "box-none" },
-  pill: { flex: 1, minWidth: 0, borderRadius: techRadius.pill, backgroundColor: techColors.cardBg, borderWidth: StyleSheet.hairlineWidth, borderColor: techColors.border, flexDirection: "row", alignItems: "center", justifyContent: "space-evenly", paddingHorizontal: mobileSpacing.xs },
-  hit: { flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center", paddingVertical: 4, gap: 2 },
-  activePill: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, backgroundColor: techColors.primary, paddingHorizontal: 12, paddingVertical: 7, borderRadius: techRadius.pill, maxWidth: "100%" },
-  label: { ...mobileTypography.meta, fontSize: 9, lineHeight: 11, fontWeight: "600", color: techColors.textMuted },
-  labelActive: { ...mobileTypography.meta, fontSize: 11, lineHeight: 13, fontWeight: "700", color: techColors.onPrimary },
-  plusOuter: { alignItems: "center", justifyContent: "center", gap: 1, paddingVertical: 4, backgroundColor: techColors.cardBg, borderWidth: StyleSheet.hairlineWidth, borderColor: techColors.border },
-  plusLabel: { ...mobileTypography.meta, fontSize: 9, lineHeight: 11, fontWeight: "600", color: techColors.textSecondary }
+  row: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.sm,
+    pointerEvents: "box-none"
+  },
+  pill: {
+    flex: 1,
+    minWidth: 0,
+    borderRadius: techRadius.pill,
+    backgroundColor: techColors.cardBg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: techColors.border,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-evenly",
+    paddingHorizontal: mobileSpacing.xs
+  },
+  hit: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 4,
+    gap: 2
+  },
+  activePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3,
+    backgroundColor: techColors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: techRadius.pill,
+    maxWidth: "100%"
+  },
+  label: {
+    ...mobileTypography.meta,
+    fontSize: 8,
+    lineHeight: 10,
+    fontWeight: "600",
+    color: techColors.textMuted
+  },
+  labelActive: {
+    ...mobileTypography.meta,
+    fontSize: 9,
+    lineHeight: 11,
+    fontWeight: "700",
+    color: techColors.onPrimary
+  },
+  plusOuter: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 1,
+    paddingVertical: 4,
+    backgroundColor: techColors.cardBg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: techColors.border
+  },
+  plusLabel: {
+    ...mobileTypography.meta,
+    fontSize: 9,
+    lineHeight: 11,
+    fontWeight: "600",
+    color: techColors.textSecondary
+  }
 });

@@ -1,1 +1,6 @@
-export type TechMainTab = "home" | "tasks" | "farm" | "tracking";
+export type TechMainTab =
+  | "home"
+  | "tasks"
+  | "vaccinations"
+  | "weighings"
+  | "feedStock";

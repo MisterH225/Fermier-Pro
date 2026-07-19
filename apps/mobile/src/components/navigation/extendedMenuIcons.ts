@@ -19,6 +19,8 @@ export const EXTENDED_MENU_ICONS: Record<
   vaccinations: "medkit-outline",
   weighings: "scale-outline",
   feedStock: "nutrition-outline",
+  farm: "business-outline",
+  tracking: "stats-chart-outline",
   wallet: "wallet-outline",
   favorites: "heart-outline",
   priceAlerts: "notifications-outline",

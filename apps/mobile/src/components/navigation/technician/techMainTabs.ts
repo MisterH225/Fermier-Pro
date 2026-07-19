@@ -1,14 +1,26 @@
 import type { TechMainTab } from "./types";
 
-const ROUTES: Record<TechMainTab, string> = {
-  home: "TechnicianDashboard",
-  tasks: "TechTasks",
-  farm: "TechFarm",
-  tracking: "TechTracking"
-};
-
-export function techMainTabFromRoute(routeName: string | undefined): TechMainTab | null {
+/**
+ * Associe la route focalisée à un onglet principal technicien, ou `null` hors barre.
+ */
+export function techMainTabFromRoute(
+  routeName: string | undefined,
+  params?: Record<string, unknown>
+): TechMainTab | null {
   if (!routeName) return null;
-  const hit = (Object.entries(ROUTES) as [TechMainTab, string][]).find(([, r]) => r === routeName);
-  return hit?.[0] ?? null;
+  switch (routeName) {
+    case "TechnicianDashboard":
+      return "home";
+    case "TechTasks":
+    case "FarmTasks":
+      return "tasks";
+    case "FarmHealth":
+      return "vaccinations";
+    case "FarmLivestock":
+      return params?.initialTab === "weight" ? "weighings" : null;
+    case "FarmFeedStock":
+      return "feedStock";
+    default:
+      return null;
+  }
 }
