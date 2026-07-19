@@ -1133,6 +1133,15 @@ export const fr = {
     deleteConfirmTitle: "Supprimer cette notification ?",
     deleteConfirmBody: "Cette action est définitive.",
     moduleMarket: "Marché",
+    finance: {
+      expenseInactive: {
+        title: "Rappel dépenses",
+        messageShort:
+          "Pas de dépenses aujourd’hui, ou hier ? Enregistre-les pour ne rien oublier.",
+        messageLong:
+          "Cela fait quelques jours que tu n’as rien enregistré. Enregistre les dépenses pour ne pas les oublier."
+      }
+    },
     market: {
       priceUp: {
         title: "Prix {{category}} en hausse",

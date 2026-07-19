@@ -61,16 +61,12 @@ export class PlatformSettingsService {
       return this.cachedCommissionRate;
     }
 
-    let row = await this.prisma.platformSettings.findUnique({
+    const row = await this.prisma.platformSettings.upsert({
       where: { id: "default" },
+      create: { id: "default" },
+      update: {},
       select: { marketplaceCommissionRate: true }
     });
-    if (!row) {
-      row = await this.prisma.platformSettings.create({
-        data: { id: "default" },
-        select: { marketplaceCommissionRate: true }
-      });
-    }
 
     const n = Number(row.marketplaceCommissionRate);
     const rate =
@@ -91,16 +87,12 @@ export class PlatformSettingsService {
     ) {
       return this.cachedSellerCommissionRate;
     }
-    let row = await this.prisma.platformSettings.findUnique({
+    const row = await this.prisma.platformSettings.upsert({
       where: { id: "default" },
+      create: { id: "default" },
+      update: {},
       select: { sellerMarketplaceCommissionRate: true }
     });
-    if (!row) {
-      row = await this.prisma.platformSettings.create({
-        data: { id: "default" },
-        select: { sellerMarketplaceCommissionRate: true }
-      });
-    }
     const n = Number(row.sellerMarketplaceCommissionRate);
     const rate =
       Number.isFinite(n) && n >= 0 && n < 1 ? n : DEFAULT_SELLER_COMMISSION_RATE;
@@ -117,16 +109,12 @@ export class PlatformSettingsService {
     ) {
       return this.cachedVetCommissionRate;
     }
-    let row = await this.prisma.platformSettings.findUnique({
+    const row = await this.prisma.platformSettings.upsert({
       where: { id: "default" },
+      create: { id: "default" },
+      update: {},
       select: { vetCommissionRate: true }
     });
-    if (!row) {
-      row = await this.prisma.platformSettings.create({
-        data: { id: "default" },
-        select: { vetCommissionRate: true }
-      });
-    }
     const n = Number(row.vetCommissionRate);
     const rate =
       Number.isFinite(n) && n >= 0 && n < 1 ? n : DEFAULT_VET_COMMISSION_RATE;
@@ -165,24 +153,16 @@ export class PlatformSettingsService {
     ) {
       return this.cachedWeightArbitration;
     }
-    let row = await this.prisma.platformSettings.findUnique({
+    const row = await this.prisma.platformSettings.upsert({
       where: { id: "default" },
+      create: { id: "default" },
+      update: {},
       select: {
         marketplaceWeightArbitrationMinDiffKg: true,
         marketplaceWeightArbitrationCumulativeMinDiffKg: true,
         marketplaceWeightTolerancePercent: true
       }
     });
-    if (!row) {
-      row = await this.prisma.platformSettings.create({
-        data: { id: "default" },
-        select: {
-          marketplaceWeightArbitrationMinDiffKg: true,
-          marketplaceWeightArbitrationCumulativeMinDiffKg: true,
-          marketplaceWeightTolerancePercent: true
-        }
-      });
-    }
     const thresholds = normalizeWeightArbitrationThresholds(row);
     this.cachedWeightArbitration = thresholds;
     this.cachedWeightArbitrationAt = now;
@@ -190,15 +170,11 @@ export class PlatformSettingsService {
   }
 
   async getOrCreateSettingsRow(): Promise<PlatformSettings> {
-    let row = await this.prisma.platformSettings.findUnique({
-      where: { id: "default" }
+    return this.prisma.platformSettings.upsert({
+      where: { id: "default" },
+      create: { id: "default" },
+      update: {}
     });
-    if (!row) {
-      row = await this.prisma.platformSettings.create({
-        data: { id: "default" }
-      });
-    }
-    return row;
   }
 
   /** Valeurs DB + `supportEffective` (même logique que `GET /config/client`). */
@@ -237,16 +213,12 @@ export class PlatformSettingsService {
       return this.cachedSupport;
     }
 
-    let row = await this.prisma.platformSettings.findUnique({
+    const row = await this.prisma.platformSettings.upsert({
       where: { id: "default" },
+      create: { id: "default" },
+      update: {},
       select: { supportPhone: true, supportTelegramUrl: true }
     });
-    if (!row) {
-      row = await this.prisma.platformSettings.create({
-        data: { id: "default" },
-        select: { supportPhone: true, supportTelegramUrl: true }
-      });
-    }
 
     const phone =
       normalizePhone(row.supportPhone) ??

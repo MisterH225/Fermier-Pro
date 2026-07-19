@@ -23,6 +23,18 @@ export function UserNotificationCard({
 }: Props) {
   const { t } = useTranslation();
   const isOrder = notification.type.startsWith("merchant_order");
+  const isFinanceReminder =
+    notification.type === "smart_alert" &&
+    String(notification.data?.ruleKey ?? "").startsWith(
+      "finance-expense-inactive"
+    );
+  const iconBg = isOrder ? "#DBEAFE" : isFinanceReminder ? "#D1FAE5" : "#D1FAE5";
+  const iconColor = isOrder ? "#1D4ED8" : "#047857";
+  const iconName = isOrder
+    ? "bag-handle"
+    : isFinanceReminder
+      ? "wallet-outline"
+      : "notifications";
 
   const body = (
     <Pressable
@@ -34,17 +46,8 @@ export function UserNotificationCard({
         pressed && { opacity: 0.9 }
       ]}
     >
-      <View
-        style={[
-          styles.iconWrap,
-          { backgroundColor: isOrder ? "#DBEAFE" : "#D1FAE5" }
-        ]}
-      >
-        <Ionicons
-          name={isOrder ? "bag-handle" : "notifications"}
-          size={20}
-          color={isOrder ? "#1D4ED8" : "#047857"}
-        />
+      <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
+        <Ionicons name={iconName} size={20} color={iconColor} />
       </View>
       <View style={styles.cardBody}>
         <View style={styles.cardHead}>

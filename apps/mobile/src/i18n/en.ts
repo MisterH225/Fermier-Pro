@@ -1128,6 +1128,15 @@ export const en = {
     deleteConfirmTitle: "Delete this notification?",
     deleteConfirmBody: "This action cannot be undone.",
     moduleMarket: "Market",
+    finance: {
+      expenseInactive: {
+        title: "Expense reminder",
+        messageShort:
+          "No expenses today, or yesterday? Log them so you don’t forget.",
+        messageLong:
+          "It’s been a few days since you logged anything. Record your expenses so you don’t forget them."
+      }
+    },
     market: {
       priceUp: {
         title: "{{category}} price rising",

@@ -203,5 +203,49 @@ export async function evaluateFinanceRules(
     });
   }
 
+  /**
+   * Rappel doux : aucune dépense depuis ≥ 3 jours (ferme déjà utilisatrice de finance).
+   * Clé bucketée tous les 3 jours → nouvelle notif seulement à chaque fenêtre, pas chaque nuit.
+   */
+  const EXPENSE_INACTIVE_DAYS = 3;
+  const lastExpense = await prisma.farmExpense.findFirst({
+    where: { farmId },
+    orderBy: { occurredAt: "desc" },
+    select: { occurredAt: true }
+  });
+  if (lastExpense) {
+    const daysSince =
+      (now.getTime() - lastExpense.occurredAt.getTime()) / (24 * 60 * 60 * 1000);
+    if (daysSince >= EXPENSE_INACTIVE_DAYS) {
+      const bucket = Math.floor(
+        now.getTime() / (EXPENSE_INACTIVE_DAYS * 24 * 60 * 60 * 1000)
+      );
+      const daysRounded = Math.floor(daysSince);
+      out.push({
+        ruleKey: `finance-expense-inactive:${bucket}`,
+        module: SmartAlertModule.finance,
+        priority: SmartAlertPriority.info,
+        title: "Rappel dépenses",
+        message:
+          daysRounded <= 4
+            ? "Pas de dépenses aujourd’hui, ou hier ? Enregistre-les pour ne rien oublier."
+            : "Cela fait quelques jours que tu n’as rien enregistré. Enregistre les dépenses pour ne pas les oublier.",
+        i18n: {
+          titleKey: "smartAlerts.finance.expenseInactive.title",
+          messageKey:
+            daysRounded <= 4
+              ? "smartAlerts.finance.expenseInactive.messageShort"
+              : "smartAlerts.finance.expenseInactive.messageLong",
+          params: { days: daysRounded }
+        },
+        action: {
+          label: "Finance",
+          route: "FarmFinance",
+          params: { farmId, openExpense: true }
+        }
+      });
+    }
+  }
+
   return out;
 }

@@ -48,6 +48,12 @@ describe("Merchant product resubmission", () => {
         merchantProduct: {
           findFirst: jest.fn().mockResolvedValue(base),
           update: jest.fn().mockResolvedValue(updated)
+        },
+        merchantOrder: {
+          groupBy: jest.fn().mockResolvedValue([])
+        },
+        buyerMerchantFavorite: {
+          count: jest.fn().mockResolvedValue(0)
         }
       };
       const service = new MerchantProductsService(prisma as never, {} as never);

@@ -186,13 +186,16 @@ export function SmartAlertsListScreen({ route, navigation }: Props) {
       id: `admin-${m.id}`,
       message: m
     }));
-    const alertRows: ListRow[] = sortSmartAlerts(
-      listQuery.data?.items ?? []
-    ).map((a) => ({
-      kind: "alert" as const,
-      id: a.id,
-      alert: a
-    }));
+    // Les rappels dépenses inactives sont déjà poussés en UserNotification (évite le doublon).
+    const alertRows: ListRow[] = sortSmartAlerts(listQuery.data?.items ?? [])
+      .filter(
+        (a) => !(a.ruleKey ?? "").startsWith("finance-expense-inactive:")
+      )
+      .map((a) => ({
+        kind: "alert" as const,
+        id: a.id,
+        alert: a
+      }));
     return [...userRows, ...adminRows, ...alertRows];
   }, [adminMessages, listQuery.data?.items, userNotifications]);
 

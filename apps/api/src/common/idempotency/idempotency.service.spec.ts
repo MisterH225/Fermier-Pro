@@ -91,4 +91,23 @@ describe("IdempotencyService", () => {
       })
     );
   });
+
+  it("saveCompleted sérialise Prisma.Decimal en string (JSON filaire)", async () => {
+    prisma.idempotencyKey.upsert.mockResolvedValue({});
+    await service.saveCompleted(
+      "k1",
+      "user-1",
+      "POST",
+      "/weights",
+      201,
+      { weightKg: new Prisma.Decimal("12.5"), amount: new Prisma.Decimal(100) }
+    );
+    expect(prisma.idempotencyKey.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          responseBody: { weightKg: "12.5", amount: "100" }
+        })
+      })
+    );
+  });
 });

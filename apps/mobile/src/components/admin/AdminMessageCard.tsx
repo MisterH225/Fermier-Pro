@@ -98,30 +98,31 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.md,
     marginBottom: mobileSpacing.sm,
     borderRadius: mobileRadius.md,
-    backgroundColor: mobileColors.surfaceMuted,
-    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: "#fff",
+    borderWidth: 1,
     borderColor: mobileColors.border
   },
   cardUnread: {
     borderColor: mobileColors.accent
   },
   cardRead: {
-    opacity: 0.72
+    opacity: 0.85
   },
   iconWrap: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center"
   },
   cardBody: { flex: 1, gap: 4 },
-  cardHead: { flexDirection: "row", alignItems: "center", gap: 6 },
+  cardHead: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: mobileColors.accent
+    backgroundColor: mobileColors.accent,
+    marginTop: 6
   },
   tag: {
     alignSelf: "flex-start",
