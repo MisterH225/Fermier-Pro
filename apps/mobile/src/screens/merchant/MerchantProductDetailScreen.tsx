@@ -366,15 +366,18 @@ export function MerchantProductDetailScreen({ route }: Props) {
             ) : null}
           </View>
 
-          <DetailCard style={styles.firstCard}>
-            <Text style={styles.title}>{product.name}</Text>
-            <Text style={styles.price}>
-              {product.price.toLocaleString("fr-FR")} {product.currency}
-            </Text>
-            <Text style={styles.stock} testID="merchant-product-detail-stock">
-              {t("merchant.catalog.stock", { count: product.stock })}
-            </Text>
-          </DetailCard>
+        <DetailCard style={styles.firstCard}>
+          <Text style={styles.title}>{product.name}</Text>
+          <Text style={styles.price}>
+            {product.price.toLocaleString("fr-FR")} {product.currency}
+            {product.unitLabel?.trim()
+              ? ` / ${product.unitLabel.trim()}`
+              : ""}
+          </Text>
+          <Text style={styles.stock} testID="merchant-product-detail-stock">
+            {t("merchant.catalog.stock", { count: product.stock })}
+          </Text>
+        </DetailCard>
 
           <DetailCard>
             <DetailSectionLabel>{t("merchant.catalog.description")}</DetailSectionLabel>

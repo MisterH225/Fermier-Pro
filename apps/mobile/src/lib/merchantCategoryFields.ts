@@ -9,7 +9,7 @@ export type MerchantCategoryField = {
 
 const CATEGORY_FIELDS: Record<string, MerchantCategoryField[]> = {
   alimentation: [
-    { key: "unit", labelKey: "merchant.product.fields.unit", placeholderKey: "merchant.product.fields.unitPh" },
+    // L'unité est un champ produit de premier niveau (unitLabel), pas un extra catégorie.
     { key: "expiry", labelKey: "merchant.product.fields.expiry", placeholderKey: "merchant.product.fields.expiryPh" }
   ],
   materiel: [

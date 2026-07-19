@@ -155,6 +155,15 @@ export class MerchantShopController {
     return this.products.listMine(user);
   }
 
+  @Get("products/:productId")
+  @UseGuards(MerchantProfileGuard)
+  getProduct(
+    @CurrentUser() user: Parameters<MerchantProductsService["getMine"]>[0],
+    @Param("productId") productId: string
+  ) {
+    return this.products.getMine(user, productId);
+  }
+
   @Post("shops/:shopId/products")
   @UseGuards(MerchantProfileGuard)
   createProduct(

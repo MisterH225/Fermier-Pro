@@ -23,6 +23,12 @@ export function merchantMainTabFromRoute(
   if (routeName === "MerchantProductDetail") {
     return "marketplace";
   }
+  if (
+    routeName === "MerchantMyProductDetail" ||
+    routeName === "MerchantProductForm"
+  ) {
+    return "products";
+  }
   if (routeName === "MerchantShopDetail") {
     return "shops";
   }

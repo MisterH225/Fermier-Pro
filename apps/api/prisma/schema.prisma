@@ -3604,6 +3604,8 @@ model MerchantProduct {
   category       MerchantProductCategory        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   name           String
   description    String?
+  /// Unité de vente libre (ex. kg, douzaine, sac 25 kg).
+  unitLabel      String?
   price          Decimal                        @db.Decimal(14, 2)
   currency       String                         @default("XOF")
   photoUrls      Json                           @default("[]")

@@ -69,11 +69,19 @@ export type MerchantProductDto = {
   categoryName: string | null;
   name: string;
   description: string | null;
+  /** Unité de vente (ex. kg, douzaine). */
+  unitLabel?: string | null;
   price: number;
   currency: string;
   photoUrls: string[];
   stock: number;
   viewCount?: number;
+  /** Favoris acheteurs (likes). */
+  favoriteCount?: number;
+  /** Nombre de commandes marketplace comptabilisées. */
+  purchaseCount?: number;
+  /** Quantités vendues (somme des lignes de commande). */
+  unitsSold?: number;
   status: string;
   publishedAt: string | null;
   disabledAt: string | null;
@@ -320,6 +328,18 @@ export function fetchMerchantProducts(
   );
 }
 
+export function fetchMerchantProduct(
+  accessToken: string,
+  profileId: string,
+  productId: string
+): Promise<MerchantProductDto> {
+  return apiGetJson<MerchantProductDto>(
+    `/merchant/products/${productId}`,
+    accessToken,
+    profileId
+  );
+}
+
 export function createMerchantProduct(
   accessToken: string,
   profileId: string,
@@ -328,6 +348,7 @@ export function createMerchantProduct(
     name: string;
     categoryId: string;
     description?: string;
+    unitLabel?: string | null;
     price: number;
     photoUrls?: string[];
     stock: number;
@@ -401,6 +422,7 @@ export function updateMerchantProduct(
     name?: string;
     categoryId?: string;
     description?: string;
+    unitLabel?: string | null;
     price?: number;
     photoUrls?: string[];
     stock?: number;

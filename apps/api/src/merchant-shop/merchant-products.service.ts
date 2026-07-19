@@ -25,6 +25,21 @@ import type {
   UpdateMerchantProductDto
 } from "./dto/merchant-shop.dto";
 
+/** Commandes comptées comme achats marketplace (hors échecs / annulations). */
+const PURCHASE_COUNTED_STATUSES: MerchantOrderStatus[] = [
+  MerchantOrderStatus.paid,
+  MerchantOrderStatus.confirmed,
+  MerchantOrderStatus.shipping,
+  MerchantOrderStatus.delivered,
+  MerchantOrderStatus.completed
+];
+
+type ProductStats = {
+  favoriteCount?: number;
+  purchaseCount?: number;
+  unitsSold?: number;
+};
+
 @Injectable()
 export class MerchantProductsService {
   constructor(
@@ -32,12 +47,100 @@ export class MerchantProductsService {
     private readonly profiles: MerchantProfilesService
   ) {}
 
-  private serializeProduct(product: {
+  private serializeProduct(
+    product: {
+      id: string;
+      shopId: string;
+      categoryId: string;
+      name: string;
+      description: string | null;
+      unitLabel?: string | null;
+      price: Prisma.Decimal;
+      currency: string;
+      photoUrls: unknown;
+      stock: number;
+      viewCount?: number;
+      status: MerchantProductStatus;
+      publishedAt: Date | null;
+      disabledAt: Date | null;
+      disabledReason: MerchantProductDisabledReason | null;
+      moderationReason?: string | null;
+      moderatedAt?: Date | null;
+      resubmissionCount?: number;
+      resubmittedAt?: Date | null;
+      createdAt: Date;
+      updatedAt: Date;
+      category?: { id: string; name: string; slug: string };
+      shop?: { id: string; name: string };
+      _count?: { favorites?: number };
+    },
+    stats?: ProductStats
+  ) {
+    const photos = Array.isArray(product.photoUrls)
+      ? product.photoUrls.filter((u): u is string => typeof u === "string")
+      : [];
+    return {
+      id: product.id,
+      shopId: product.shopId,
+      shopName: product.shop?.name ?? null,
+      categoryId: product.categoryId,
+      categoryName: product.category?.name ?? null,
+      name: product.name,
+      description: product.description,
+      unitLabel: product.unitLabel?.trim() || null,
+      price: Number(product.price),
+      currency: product.currency,
+      photoUrls: photos,
+      stock: product.stock,
+      viewCount: product.viewCount ?? 0,
+      favoriteCount: stats?.favoriteCount ?? product._count?.favorites ?? 0,
+      purchaseCount: stats?.purchaseCount ?? 0,
+      unitsSold: stats?.unitsSold ?? 0,
+      status: product.status,
+      publishedAt: product.publishedAt?.toISOString() ?? null,
+      disabledAt: product.disabledAt?.toISOString() ?? null,
+      disabledReason: product.disabledReason,
+      moderationReason: product.moderationReason ?? null,
+      moderatedAt: product.moderatedAt?.toISOString() ?? null,
+      resubmissionCount: product.resubmissionCount ?? 0,
+      resubmittedAt: product.resubmittedAt?.toISOString() ?? null,
+      createdAt: product.createdAt.toISOString(),
+      updatedAt: product.updatedAt.toISOString()
+    };
+  }
+
+  private async salesByProductIds(
+    productIds: string[]
+  ): Promise<Map<string, { purchaseCount: number; unitsSold: number }>> {
+    const map = new Map<string, { purchaseCount: number; unitsSold: number }>();
+    if (productIds.length === 0) {
+      return map;
+    }
+    const rows = await this.prisma.merchantOrder.groupBy({
+      by: ["productId"],
+      where: {
+        productId: { in: productIds },
+        status: { in: PURCHASE_COUNTED_STATUSES }
+      },
+      _count: { _all: true },
+      _sum: { quantity: true }
+    });
+    for (const row of rows) {
+      map.set(row.productId, {
+        purchaseCount: row._count._all,
+        unitsSold: row._sum.quantity ?? 0
+      });
+    }
+    return map;
+  }
+
+  private async serializeOwnedProduct(product: {
     id: string;
     shopId: string;
     categoryId: string;
     name: string;
     description: string | null;
+    unitLabel?: string | null;
     price: Prisma.Decimal;
     currency: string;
     photoUrls: unknown;
@@ -55,34 +158,20 @@ export class MerchantProductsService {
     updatedAt: Date;
     category?: { id: string; name: string; slug: string };
     shop?: { id: string; name: string };
+    _count?: { favorites?: number };
   }) {
-    const photos = Array.isArray(product.photoUrls)
-      ? product.photoUrls.filter((u): u is string => typeof u === "string")
-      : [];
-    return {
-      id: product.id,
-      shopId: product.shopId,
-      shopName: product.shop?.name ?? null,
-      categoryId: product.categoryId,
-      categoryName: product.category?.name ?? null,
-      name: product.name,
-      description: product.description,
-      price: Number(product.price),
-      currency: product.currency,
-      photoUrls: photos,
-      stock: product.stock,
-      viewCount: product.viewCount ?? 0,
-      status: product.status,
-      publishedAt: product.publishedAt?.toISOString() ?? null,
-      disabledAt: product.disabledAt?.toISOString() ?? null,
-      disabledReason: product.disabledReason,
-      moderationReason: product.moderationReason ?? null,
-      moderatedAt: product.moderatedAt?.toISOString() ?? null,
-      resubmissionCount: product.resubmissionCount ?? 0,
-      resubmittedAt: product.resubmittedAt?.toISOString() ?? null,
-      createdAt: product.createdAt.toISOString(),
-      updatedAt: product.updatedAt.toISOString()
-    };
+    const salesMap = await this.salesByProductIds([product.id]);
+    const sales = salesMap.get(product.id);
+    const favoriteCount =
+      product._count?.favorites ??
+      (await this.prisma.buyerMerchantFavorite.count({
+        where: { productId: product.id }
+      }));
+    return this.serializeProduct(product, {
+      favoriteCount,
+      purchaseCount: sales?.purchaseCount ?? 0,
+      unitsSold: sales?.unitsSold ?? 0
+    });
   }
 
   async listMine(user: User) {
@@ -94,18 +183,50 @@ export class MerchantProductsService {
       where: { shopId: { in: shopIds } },
       include: {
         category: { select: { id: true, name: true, slug: true } },
-        shop: { select: { id: true, name: true } }
+        shop: { select: { id: true, name: true } },
+        _count: { select: { favorites: true } }
       },
       orderBy: [{ status: "asc" }, { createdAt: "asc" }]
     });
     // Filtre JS : évite un WHERE enum qui casse getMe/list si la migration
     // `merchant_deleted` n'est pas encore appliquée en base.
-    return products
-      .filter(
-        (p) =>
-          p.disabledReason !== MerchantProductDisabledReason.merchant_deleted
-      )
-      .map((p) => this.serializeProduct(p));
+    const visible = products.filter(
+      (p) =>
+        p.disabledReason !== MerchantProductDisabledReason.merchant_deleted
+    );
+    const salesMap = await this.salesByProductIds(visible.map((p) => p.id));
+    return visible.map((p) => {
+      const sales = salesMap.get(p.id);
+      return this.serializeProduct(p, {
+        favoriteCount: p._count.favorites,
+        purchaseCount: sales?.purchaseCount ?? 0,
+        unitsSold: sales?.unitsSold ?? 0
+      });
+    });
+  }
+
+  async getMine(user: User, productId: string) {
+    const product = await this.requireOwnedProduct(user.id, productId);
+    if (
+      product.disabledReason === MerchantProductDisabledReason.merchant_deleted
+    ) {
+      throw new NotFoundException("Produit introuvable");
+    }
+    const full = await this.prisma.merchantProduct.findUniqueOrThrow({
+      where: { id: product.id },
+      include: {
+        category: { select: { id: true, name: true, slug: true } },
+        shop: { select: { id: true, name: true } },
+        _count: { select: { favorites: true } }
+      }
+    });
+    const salesMap = await this.salesByProductIds([full.id]);
+    const sales = salesMap.get(full.id);
+    return this.serializeProduct(full, {
+      favoriteCount: full._count.favorites,
+      purchaseCount: sales?.purchaseCount ?? 0,
+      unitsSold: sales?.unitsSold ?? 0
+    });
   }
 
   async create(user: User, shopId: string, dto: CreateMerchantProductDto) {
@@ -118,13 +239,15 @@ export class MerchantProductsService {
         categoryId: category.id,
         name: dto.name.trim(),
         description: dto.description?.trim() || null,
+        unitLabel: dto.unitLabel?.trim() || null,
         price: new Prisma.Decimal(dto.price),
         photoUrls: dto.photoUrls ?? [],
         stock: dto.stock
       },
       include: {
         category: { select: { id: true, name: true, slug: true } },
-        shop: { select: { id: true, name: true } }
+        shop: { select: { id: true, name: true } },
+        _count: { select: { favorites: true } }
       }
     });
 
@@ -133,7 +256,11 @@ export class MerchantProductsService {
       data: { productSkipped: false }
     });
 
-    return this.serializeProduct(product);
+    return this.serializeProduct(product, {
+      favoriteCount: 0,
+      purchaseCount: 0,
+      unitsSold: 0
+    });
   }
 
   async update(user: User, productId: string, dto: UpdateMerchantProductDto) {
@@ -150,6 +277,9 @@ export class MerchantProductsService {
         ...(dto.description !== undefined
           ? { description: dto.description.trim() || null }
           : {}),
+        ...(dto.unitLabel !== undefined
+          ? { unitLabel: dto.unitLabel?.trim() || null }
+          : {}),
         ...(dto.price !== undefined
           ? { price: new Prisma.Decimal(dto.price) }
           : {}),
@@ -158,10 +288,17 @@ export class MerchantProductsService {
       },
       include: {
         category: { select: { id: true, name: true, slug: true } },
-        shop: { select: { id: true, name: true } }
+        shop: { select: { id: true, name: true } },
+        _count: { select: { favorites: true } }
       }
     });
-    return this.serializeProduct(updated);
+    const salesMap = await this.salesByProductIds([updated.id]);
+    const sales = salesMap.get(updated.id);
+    return this.serializeProduct(updated, {
+      favoriteCount: updated._count.favorites,
+      purchaseCount: sales?.purchaseCount ?? 0,
+      unitsSold: sales?.unitsSold ?? 0
+    });
   }
 
   async publish(user: User, productId: string) {
@@ -212,7 +349,7 @@ export class MerchantProductsService {
       data: { onboardingComplete: true, productSkipped: false }
     });
 
-    return this.serializeProduct(updated);
+    return this.serializeOwnedProduct(updated);
   }
 
   /**
@@ -255,7 +392,7 @@ export class MerchantProductsService {
       }
     });
 
-    return this.serializeProduct(updated);
+    return this.serializeOwnedProduct(updated);
   }
 
   async unpublish(user: User, productId: string) {
@@ -276,7 +413,7 @@ export class MerchantProductsService {
         shop: { select: { id: true, name: true } }
       }
     });
-    return this.serializeProduct(updated);
+    return this.serializeOwnedProduct(updated);
   }
 
   /**
@@ -355,7 +492,7 @@ export class MerchantProductsService {
           shop: { select: { id: true, name: true } }
         }
       });
-      return this.serializeProduct(updated);
+      return this.serializeOwnedProduct(updated);
     }
 
     if (product.status !== MerchantProductStatus.disabled) {
@@ -396,7 +533,7 @@ export class MerchantProductsService {
           shop: { select: { id: true, name: true } }
         }
       });
-      return this.serializeProduct(updated);
+      return this.serializeOwnedProduct(updated);
     });
   }
 

@@ -84,7 +84,8 @@ export function MerchantPersistentTabBar() {
     "MerchantShop",
     "MerchantShopDetail",
     "MerchantProductForm",
-    "MerchantProductDetail"
+    "MerchantProductDetail",
+    "MerchantMyProductDetail"
   ]);
   if (focused?.name && hideTabBarRoutes.has(focused.name)) {
     return null;

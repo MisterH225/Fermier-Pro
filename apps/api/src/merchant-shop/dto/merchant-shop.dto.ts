@@ -99,6 +99,12 @@ export class CreateMerchantProductDto {
   @MaxLength(4000)
   description?: string;
 
+  /** Unité de vente (ex. kg, douzaine, sac). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  unitLabel?: string;
+
   @IsNumber()
   @Min(0.01)
   price!: number;
@@ -128,6 +134,11 @@ export class UpdateMerchantProductDto {
   @IsString()
   @MaxLength(4000)
   description?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  unitLabel?: string | null;
 
   @IsOptional()
   @IsNumber()
